@@ -13,7 +13,11 @@ import {
 } from '../../platform/engine';
 import { randomIntInclusive } from '../../platform/random';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
-import { decideMarkBotsViewed, haveAllViewed } from '../../platform/room/identityViewing';
+import {
+  decideConfirmViewed,
+  decideMarkBotsViewed,
+  haveAllViewed,
+} from '../../platform/room/identityViewing';
 import { getHumanSeatMap } from '../../platform/room/seating';
 import type { AvalonCommand } from './commands/types';
 import {
@@ -194,12 +198,19 @@ function confirmNight(state: AvalonState, context: CommandContext): AvalonDecisi
  * the host's begin command in the viewing stage.
  */
 function markRoleViewed(state: AvalonState, context: CommandContext): AvalonDecision {
-  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
-    return reject(AVALON_REASONS.phase);
-  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
-  if (resolved.kind === 'rejected') return reject(resolved.reason);
-  if (state.roleViewedSeats.includes(resolved.value)) return commitAvalon([]);
-  return commitAvalon([{ type: 'avalon.role.viewed', seat: resolved.value }]);
+  return decideConfirmViewed({
+    actingSeat: resolveActingSeat(state, state.config.numberOfPlayers, context),
+    viewedSeats: state.roleViewedSeats,
+    // Avalon's phase policy: the record may be filled in any in-game
+    // phase; lobby and ended never take confirmations of new records
+    // (an already-viewed seat still short-circuits in the skeleton).
+    phaseRejection:
+      state.phase.kind === 'lobby' || state.phase.kind === 'ended'
+        ? reject(AVALON_REASONS.phase)
+        : null,
+    buildViewedEvent: (seat) => ({ type: 'avalon.role.viewed', seat }),
+    commit: commitAvalon,
+  });
 }
 
 /**

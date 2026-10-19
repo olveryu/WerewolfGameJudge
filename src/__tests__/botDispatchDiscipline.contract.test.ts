@@ -11,10 +11,12 @@
  *
  * 登记的三种等价形态（按各家现状事实登记，不是三套标准）：
  * - parameterized-submit：submit 第三参 control 默认 null，座位动作
- *   显式传（avalon / undercover / drawguess）。
+ *   显式传（avalon / undercover / drawguess / fibking；fibking 原为
+ *   hardcoded-null-submit，其确认查看命令是经漏斗发出的座位动作、
+ *   写死 null 使房主代 bot 确认落到房主本人座位，D-2 对齐时改判此形态）。
  * - hardcoded-null-submit：漏斗写死 null，该家不存在经漏斗发出的座位
- *   动作（fibking / pictionary / storyrelay；storyrelay 的 Stage 组件
- *   另有一个同形态漏斗，一并登记）。
+ *   动作（pictionary / storyrelay；storyrelay 的 Stage 组件另有一个
+ *   同形态漏斗，一并登记）。
  * - werewolf 两件：WerewolfGameClient 接口按方法区分——座位动作方法
  *   带显式 controlledSeat 参数、房主方法无此参数（结构上不可能挂）；
  *   其 runtime 管道 dispatchWerewolfCommand 把 controlledSeat 收为
@@ -64,7 +66,7 @@ const DISPATCH_SITES: Record<GameType, readonly DispatchSiteRegistration[]> = {
     { file: 'games/drawguess/room/hooks/useDrawGuessRoomState.ts', form: 'parameterized-submit' },
   ],
   fibking: [
-    { file: 'games/fibking/room/hooks/useFibRoomScreenState.ts', form: 'hardcoded-null-submit' },
+    { file: 'games/fibking/room/hooks/useFibRoomScreenState.ts', form: 'parameterized-submit' },
   ],
   pictionary: [
     {

@@ -146,12 +146,8 @@ export interface SubmitActionIntent {
 // Player state Intents
 // =============================================================================
 
-export interface ViewedRoleIntent {
-  type: 'VIEWED_ROLE';
-  payload: {
-    seat: number;
-  };
-}
+// (VIEWED_ROLE has no intent: the role.view command is decided by the
+// shared platform confirm skeleton directly in the engine.)
 
 // =============================================================================
 // Night flow Intents (Host-only)
@@ -220,15 +216,9 @@ export interface FillWithBotsIntent {
   type: 'FILL_WITH_BOTS';
 }
 
-/**
- * Mark all bots as having viewed roles Intent (Host-only, Debug-only)
- *
- * Precondition: status === Assigned (the roster holds bot seats)
- * Result: set hasViewedRole = true only for bot seats (roster bot occupants)
- */
-export interface MarkAllBotsViewedIntent {
-  type: 'MARK_ALL_BOTS_VIEWED';
-}
+// (MARK_ALL_BOTS_VIEWED has no intent: the bots.markAllBotsViewed
+// command is decided by the shared platform scaffold skeleton
+// directly in the engine.)
 
 // =============================================================================
 // Board Nomination Intents (any connected player)

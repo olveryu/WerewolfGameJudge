@@ -7,16 +7,15 @@
  * 3. Calling when debug is not enabled must reject
  */
 
-import {
-  handleFillWithBots,
-  handleMarkAllBotsViewed,
-} from '@game-judge/game-engine/games/werewolf/domain/handlers/gameControlHandler';
+import { handleFillWithBots } from '@game-judge/game-engine/games/werewolf/domain/handlers/gameControlHandler';
 import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
 import type { Player } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { werewolfEngine } from '@game-judge/game-engine/games/werewolf/public';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
+import type { CommandContext } from '@game-judge/game-engine/platform/engine';
 
 import { expectError, expectSuccess } from './handlerTestUtils';
 
@@ -165,10 +164,22 @@ describe('handleFillWithBots', () => {
 });
 
 // =============================================================================
-// markAllBotsViewed Tests
+// markAllBotsViewed Tests — the command is decided by the shared
+// platform scaffold skeleton in the engine (F-3), so these cases run
+// against werewolfEngine.decide, not a game-local handler.
 // =============================================================================
 
-describe('handleMarkAllBotsViewed', () => {
+function hostCommandContext(): CommandContext {
+  return {
+    actor: { kind: 'user', userId: 'host-uid' },
+    controlledSeat: null,
+    commandId: 'mark-bots',
+    randomSeed: 'debug-bots',
+    nowMs: 1_000,
+  };
+}
+
+describe('werewolf.bots.markAllBotsViewed (shared scaffold skeleton)', () => {
   describe('success cases', () => {
     it('should only mark bot players as viewed', () => {
       const players: Record<number, Player | null> = {};
@@ -182,24 +193,38 @@ describe('handleMarkAllBotsViewed', () => {
         players[i] = null;
       }
 
-      const context = createTestContext({
-        state: createTestState({
-          status: GameStatus.Assigned,
-          players,
-          roster: {
-            0: { seat: 0, kind: 'bot' },
-            1: { seat: 1, userId: 'player-1' },
-            2: { seat: 2, kind: 'bot' },
-            3: { seat: 3, kind: 'bot' },
-          },
-        }),
+      const state = createTestState({
+        status: GameStatus.Assigned,
+        players,
+        roster: {
+          0: { seat: 0, kind: 'bot' },
+          1: { seat: 1, userId: 'player-1' },
+          2: { seat: 2, kind: 'bot' },
+          3: { seat: 3, kind: 'bot' },
+        },
       });
 
-      const result = handleMarkAllBotsViewed({ type: 'MARK_ALL_BOTS_VIEWED' }, context);
-
-      const success = expectSuccess(result);
-      expect(success.actions).toHaveLength(1);
-      expect(success.actions[0]!.type).toBe('MARK_ALL_BOTS_VIEWED');
+      const decision = werewolfEngine.decide(
+        state,
+        { type: 'werewolf.bots.markAllBotsViewed' },
+        hostCommandContext(),
+      );
+      if (decision.kind !== 'commit') throw new Error('Expected commit');
+      // One viewed action per unviewed bot seat; the human seat is
+      // never part of the scaffold's output.
+      expect(decision.events).toEqual([
+        { type: 'PLAYER_VIEWED_ROLE', payload: { seat: 0 } },
+        { type: 'PLAYER_VIEWED_ROLE', payload: { seat: 2 } },
+        { type: 'PLAYER_VIEWED_ROLE', payload: { seat: 3 } },
+      ]);
+      const next = decision.events.reduce(
+        (current, event) => werewolfEngine.evolve(current, event),
+        state,
+      );
+      expect(next.players[0]?.hasViewedRole).toBe(true);
+      expect(next.players[1]?.hasViewedRole).toBe(false);
+      expect(next.players[2]?.hasViewedRole).toBe(true);
+      expect(next.players[3]?.hasViewedRole).toBe(true);
     });
   });
 
@@ -208,40 +233,42 @@ describe('handleMarkAllBotsViewed', () => {
       const players: Record<number, Player | null> = {};
       players[0] = createMinimalPlayer(0, { role: 'villager' });
 
-      const context = createTestContext({
-        state: createTestState({
-          status: GameStatus.Assigned,
-          players,
-          roster: {
-            0: { seat: 0, userId: 'user-0' },
-          },
-        }),
+      const state = createTestState({
+        status: GameStatus.Assigned,
+        players,
+        roster: {
+          0: { seat: 0, userId: 'user-0' },
+        },
       });
 
-      const result = handleMarkAllBotsViewed({ type: 'MARK_ALL_BOTS_VIEWED' }, context);
-
-      const err = expectError(result);
-      expect(err.reason).toBe('no_bot_seats');
+      expect(
+        werewolfEngine.decide(
+          state,
+          { type: 'werewolf.bots.markAllBotsViewed' },
+          hostCommandContext(),
+        ),
+      ).toEqual({ kind: 'reject', reason: 'no_bot_seats' });
     });
 
     it('should reject when status is not assigned', () => {
       const players: Record<number, Player | null> = {};
       players[0] = createMinimalPlayer(0);
 
-      const context = createTestContext({
-        state: createTestState({
-          status: GameStatus.Seated, // wrong status
-          players,
-          roster: {
-            0: { seat: 0, kind: 'bot' },
-          },
-        }),
+      const state = createTestState({
+        status: GameStatus.Seated, // wrong status
+        players,
+        roster: {
+          0: { seat: 0, kind: 'bot' },
+        },
       });
 
-      const result = handleMarkAllBotsViewed({ type: 'MARK_ALL_BOTS_VIEWED' }, context);
-
-      const err = expectError(result);
-      expect(err.reason).toBe('invalid_status');
+      expect(
+        werewolfEngine.decide(
+          state,
+          { type: 'werewolf.bots.markAllBotsViewed' },
+          hostCommandContext(),
+        ),
+      ).toEqual({ kind: 'reject', reason: 'invalid_status' });
     });
   });
 });

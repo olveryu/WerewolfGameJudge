@@ -10,6 +10,8 @@
  * (demo.bots.markAllBotsViewed).
  */
 
+import { describe, expect, it } from 'vitest';
+
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
 import { describeIdentityViewingProtocol } from '../../../platform/room/__tests__/identityViewingScenarios';
 import { isBotSeat } from '../../../platform/room/seating';
@@ -60,4 +62,18 @@ describeIdentityViewingProtocol({
       },
     };
   },
+});
+
+describe('Identity Viewing Protocol — demo confirm through the shared skeleton (D-2)', () => {
+  it('still confirms an already-viewed seat after play began', () => {
+    const { session, send, seatUser } = game(3);
+    send({ type: 'demo.role.viewed' }, seatUser(1));
+    send({ type: 'demo.role.viewed' }, seatUser(2));
+    send({ type: 'demo.bots.markAllBotsViewed' });
+    send({ type: 'demo.role.viewed' }, 'host');
+    send({ type: 'demo.game.begin' });
+    const decision = session.decide({ type: 'demo.role.viewed' }, seatUser(1));
+    expect(decision.kind).toBe('commit');
+    if (decision.kind === 'commit') expect(decision.events).toEqual([]);
+  });
 });

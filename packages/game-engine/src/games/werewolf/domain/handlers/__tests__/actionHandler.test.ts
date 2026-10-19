@@ -8,11 +8,7 @@ import {
 } from '@game-judge/game-engine/games/werewolf/domain/handlers/actionGuards';
 import { handleSubmitAction as executeSubmitAction } from '@game-judge/game-engine/games/werewolf/domain/handlers/actionHandler';
 import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
-import { handleViewedRole } from '@game-judge/game-engine/games/werewolf/domain/handlers/viewedRoleHandler';
-import type {
-  SubmitActionIntent,
-  ViewedRoleIntent,
-} from '@game-judge/game-engine/games/werewolf/domain/intents/types';
+import type { SubmitActionIntent } from '@game-judge/game-engine/games/werewolf/domain/intents/types';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
 import {
   BLOCKED_UI_DEFAULTS,
@@ -80,94 +76,12 @@ function handleSubmitAction(intent: SubmitActionIntent, context: HandlerContext)
   return executeSubmitAction(intent, context, TEST_HANDLER_EXECUTION);
 }
 
-describe('handleViewedRole', () => {
-  // Helper: create assigned state for ViewedRole tests
-  const createAssignedState = (overrides?: Partial<GameState>): GameState => {
-    return createMinimalState({
-      status: GameStatus.Assigned,
-      players: {
-        0: { seat: 0, role: 'villager', hasViewedRole: false },
-        1: { seat: 1, role: 'wolf', hasViewedRole: false },
-        2: { seat: 2, role: 'seer', hasViewedRole: false },
-      },
-      ...overrides,
-    });
-  };
-
-  it('should succeed when host and status is assigned', () => {
-    const state = createAssignedState();
-    const context = createContext(state);
-    const intent: ViewedRoleIntent = {
-      type: 'VIEWED_ROLE',
-      payload: { seat: 0 },
-    };
-
-    const result = handleViewedRole(intent, context);
-
-    const success = expectSuccess(result);
-    expect(success.actions).toHaveLength(1);
-    expect(success.actions[0]!.type).toBe('PLAYER_VIEWED_ROLE');
-  });
-
-  it('should succeed when non-host views own seat', () => {
-    const state = createAssignedState();
-    const context = createContext(state, { mySeat: 1, myUserId: 'p2' });
-    const intent: ViewedRoleIntent = {
-      type: 'VIEWED_ROLE',
-      payload: { seat: 1 },
-    };
-
-    const result = handleViewedRole(intent, context);
-
-    const success = expectSuccess(result);
-    expect(success.actions).toHaveLength(1);
-    expect(success.actions[0]!.type).toBe('PLAYER_VIEWED_ROLE');
-  });
-
-  it('should fail when non-host views another seat (not_my_seat)', () => {
-    const state = createAssignedState();
-    const context = createContext(state, { mySeat: 1, myUserId: 'p2' });
-    const intent: ViewedRoleIntent = {
-      type: 'VIEWED_ROLE',
-      payload: { seat: 0 },
-    };
-
-    const result = handleViewedRole(intent, context);
-
-    const err = expectError(result);
-    expect(err.reason).toBe('not_my_seat');
-  });
-
-  it('should fail when status is not assigned (invalid_status)', () => {
-    const state = createMinimalState({ status: GameStatus.Ongoing });
-    const context = createContext(state);
-    const intent: ViewedRoleIntent = {
-      type: 'VIEWED_ROLE',
-      payload: { seat: 0 },
-    };
-
-    const result = handleViewedRole(intent, context);
-
-    const err = expectError(result);
-    expect(err.reason).toBe('invalid_status');
-  });
-
-  it('should fail when seat is empty (not_seated)', () => {
-    const state = createAssignedState({
-      players: { 0: null, 1: null, 2: null },
-    });
-    const context = createContext(state);
-    const intent: ViewedRoleIntent = {
-      type: 'VIEWED_ROLE',
-      payload: { seat: 0 },
-    };
-
-    const result = handleViewedRole(intent, context);
-
-    const err = expectError(result);
-    expect(err.reason).toBe('not_seated');
-  });
-});
+// (handleViewedRole is gone: the role.view command is decided by the
+// shared platform confirm skeleton in the engine. Its propositions —
+// confirm success per seat, invalid_status outside Assigned, no-seat
+// rejection, takeover confirms — are pinned at engine level in
+// werewolf/__tests__/identityViewingProtocol.contract.test.ts and
+// botTakeoverResolution.contract.test.ts.)
 
 // =============================================================================
 // PR4: handleSubmitAction tests

@@ -15,7 +15,6 @@ import {
   handleAssignRoles,
   handleFillWithBots,
   handleInitializeGame,
-  handleMarkAllBotsViewed,
   handlePlayerJoin,
   handlePlayerLeave,
   handlePlayerViewedRole,
@@ -77,8 +76,6 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handlePlayerViewedRole(state, action);
     case 'FILL_WITH_BOTS':
       return handleFillWithBots(state, action);
-    case 'MARK_ALL_BOTS_VIEWED':
-      return handleMarkAllBotsViewed(state);
 
     // ── Night action flow ────────────────────────────────
     case 'START_NIGHT':

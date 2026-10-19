@@ -8,7 +8,6 @@ import {
   type CommandContext,
   reject,
   resolveHostActorId,
-  resolveUserActorId,
 } from '../../../platform/engine';
 import {
   createSeededRng,
@@ -18,7 +17,11 @@ import {
 } from '../../../platform/random';
 import { resolveActingSeat } from '../../../platform/room/actingSeat';
 import { hasBeenRevealed } from '../../../platform/room/hostReveal';
-import { decideMarkBotsViewed, haveAllViewed } from '../../../platform/room/identityViewing';
+import {
+  decideConfirmViewed,
+  decideMarkBotsViewed,
+  haveAllViewed,
+} from '../../../platform/room/identityViewing';
 import {
   commitPreparationEntry,
   decidePreparationComplete,
@@ -176,16 +179,22 @@ function decideConfirmation(
   roundId: string,
   context: CommandContext,
 ): UndercoverDecision {
-  const actor = resolveUserActorId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  if (state.phase !== 'viewing') return reject(UNDERCOVER_REASONS.phase);
-  if (state.round.roundId !== roundId) return reject(UNDERCOVER_REASONS.round);
-  const acting = resolveActingSeat(state, state.config.numberOfPlayers, context);
-  if (acting.kind === 'rejected') return reject(acting.reason);
-  const seat = acting.value;
-  return state.round.confirmedSeats.includes(seat)
-    ? commitUndercover([])
-    : commitUndercover([{ type: 'undercover.round.confirmed', seat }]);
+  return decideConfirmViewed({
+    actingSeat: resolveActingSeat(state, state.config.numberOfPlayers, context),
+    viewedSeats: state.round?.confirmedSeats ?? [],
+    // Undercover's phase policy: new records belong to the current
+    // round's viewing stage. A late confirmation for an already-
+    // recorded seat still succeeds in the skeleton even after the
+    // stage flipped or the round rolled over.
+    phaseRejection:
+      state.phase !== 'viewing'
+        ? reject(UNDERCOVER_REASONS.phase)
+        : state.round?.roundId !== roundId
+          ? reject(UNDERCOVER_REASONS.round)
+          : null,
+    buildViewedEvent: (seat) => ({ type: 'undercover.round.confirmed', seat }),
+    commit: commitUndercover,
+  });
 }
 
 function decideRevelation(

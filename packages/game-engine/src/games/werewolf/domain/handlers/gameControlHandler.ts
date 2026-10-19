@@ -13,7 +13,6 @@
 import type { AudioEffect } from '../../../../platform/audio';
 import { createSeededRng, randomPick, type Rng, shuffleArray } from '../../../../platform/random';
 import { getBotDisplayName } from '../../../../platform/room/getBotDisplayName';
-import { planMarkBotsViewed } from '../../../../platform/room/identityViewing';
 import type { RosterEntry } from '../../../../platform/room/roster';
 import { decideRosterFillBots } from '../../../../platform/room/seating';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
@@ -24,7 +23,6 @@ import type {
   BoardUpvoteIntent,
   BoardWithdrawIntent,
   FillWithBotsIntent,
-  MarkAllBotsViewedIntent,
   RestartGameIntent,
   ShareNightReviewIntent,
   StartNightIntent,
@@ -42,13 +40,11 @@ import {
 } from '../models';
 import { buildNightPlan, getRoleSpec, getStepSpec } from '../models/roles/spec';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '../models/roles/spec/schema.types';
-import { getWerewolfViewedSeats, getWerewolfViewingParticipants } from '../playerHelpers';
 import type { Player } from '../protocol/types';
 import type {
   AssignRolesAction,
   EndNightAction,
   FillWithBotsAction,
-  MarkAllBotsViewedAction,
   RestartGameAction,
   SetBoardNominationAction,
   SetNightReviewAllowedSeatsAction,
@@ -396,48 +392,6 @@ export function handleFillWithBots(
   const action: FillWithBotsAction = {
     type: 'FILL_WITH_BOTS',
     payload: { bots, botRoster },
-  };
-
-  return handlerSuccess([action]);
-}
-
-/**
- * Handle mark all bots as having viewed roles (host bot-test scaffold).
- *
- * Preconditions:
- * - the roster holds at least one bot seat (AU-17: the gate is bot
- *   existence; the old debugMode flag is deleted)
- * - status === GameStatus.Assigned
- *
- * Result: set hasViewedRole = true only for bot seats (roster bot occupants)
- */
-export function handleMarkAllBotsViewed(
-  _intent: MarkAllBotsViewedIntent,
-  context: HandlerContext,
-): HandlerResult {
-  const { state } = context;
-
-  // The shared scaffold plan (platform identityViewing) decides the
-  // bot-existence gate over the same participants the checkpoint
-  // uses. Its mark and noop outcomes both take the action below:
-  // the reducer marks every bot seat and re-runs the checkpoint.
-  const plan = planMarkBotsViewed(
-    getWerewolfViewingParticipants(state),
-    getWerewolfViewedSeats(state.players),
-  );
-
-  // Gate: at least one bot seat must exist
-  if (plan.kind === 'noBotSeats') {
-    return handlerError('no_bot_seats');
-  }
-
-  // Gate: status must be assigned
-  if (state.status !== GameStatus.Assigned) {
-    return handlerError('invalid_status');
-  }
-
-  const action: MarkAllBotsViewedAction = {
-    type: 'MARK_ALL_BOTS_VIEWED',
   };
 
   return handlerSuccess([action]);

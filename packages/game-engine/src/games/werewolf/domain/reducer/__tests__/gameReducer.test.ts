@@ -1347,66 +1347,10 @@ describe('gameReducer', () => {
     });
   });
 
-  describe('MARK_ALL_BOTS_VIEWED', () => {
-    it('should mark only bot players as hasViewedRole', () => {
-      const state = createMinimalState({
-        status: GameStatus.Assigned,
-        players: {
-          0: { seat: 0, hasViewedRole: false, role: 'wolf' },
-          1: {
-            seat: 1,
-            hasViewedRole: false,
-            role: 'seer',
-          },
-          2: {
-            seat: 2,
-            hasViewedRole: false,
-            role: 'villager',
-          },
-        },
-        roster: {
-          0: { seat: 0, userId: 'p0' },
-          1: { seat: 1, kind: 'bot' },
-          2: { seat: 2, kind: 'bot' },
-        },
-      });
-      const action = { type: 'MARK_ALL_BOTS_VIEWED' as const };
-
-      const newState = gameReducer(state, action);
-
-      // Bots marked as viewed
-      expect(newState.players[1]?.hasViewedRole).toBe(true);
-      expect(newState.players[2]?.hasViewedRole).toBe(true);
-      // Human player unchanged
-      expect(newState.players[0]?.hasViewedRole).toBe(false);
-      // Not all viewed (human hasn't) → status stays assigned
-      expect(newState.status).toBe(GameStatus.Assigned);
-    });
-
-    it('should transition to ready when all players (humans + bots) have viewed', () => {
-      const state = createMinimalState({
-        status: GameStatus.Assigned,
-        players: {
-          0: { seat: 0, hasViewedRole: true, role: 'wolf' },
-          1: {
-            seat: 1,
-            hasViewedRole: false,
-            role: 'seer',
-          },
-        },
-        roster: {
-          0: { seat: 0, userId: 'p0' },
-          1: { seat: 1, kind: 'bot' },
-        },
-      });
-      const action = { type: 'MARK_ALL_BOTS_VIEWED' as const };
-
-      const newState = gameReducer(state, action);
-
-      expect(newState.players[1]?.hasViewedRole).toBe(true);
-      expect(newState.status).toBe(GameStatus.Ready);
-    });
-  });
+  // (MARK_ALL_BOTS_VIEWED is gone: the scaffold emits per-seat
+  // PLAYER_VIEWED_ROLE actions via the shared platform skeleton;
+  // its behavior is pinned at engine level in debugBots.contract
+  // and the identityViewing protocol contract.)
 
   describe('SET_NIGHT_REVIEW_ALLOWED_SEATS', () => {
     it('should set nightReviewAllowedSeats', () => {
