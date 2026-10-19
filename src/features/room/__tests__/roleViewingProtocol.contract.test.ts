@@ -108,3 +108,35 @@ describe('role viewing protocol — fibking (batch D)', () => {
     expect(screen).toMatch(/screen\.isBotTakeoverActive \? null : screen\.equippedRevealEffect/);
   });
 });
+
+describe('role viewing protocol — client begin gate convergence (C-1)', () => {
+  const beginGateConsumers = [
+    'games/avalon/room/avalonRoomAdapter.ts',
+    'games/demo/room/demoRoomAdapter.ts',
+    'games/fibking/room/fibRoomAdapter.ts',
+    'games/undercover/room/undercoverRoomAdapter.ts',
+    'games/werewolf/room/createWerewolfHostManagement.ts',
+  ];
+
+  it('every viewing game routes its begin gate through the shared factory', () => {
+    for (const path of beginGateConsumers) {
+      expect(readSource(path)).toContain('createViewingBeginGate(');
+    }
+  });
+
+  it('the generator identity template ships the same factory call', () => {
+    const templatePath = join(
+      SRC_ROOT,
+      '..',
+      'scripts/lib/new-game/templates/identity/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
+    );
+    expect(readFileSync(templatePath, 'utf8')).toContain('createViewingBeginGate(');
+  });
+
+  it('no adapter keeps a hand-rolled begin predicate (B-4)', () => {
+    expect(readSource('games/undercover/room/undercoverRoomAdapter.ts')).not.toContain(
+      'confirmedSeats.length ===',
+    );
+    expect(readSource('games/fibking/room/fibRoomAdapter.ts')).not.toContain('hasEverySeatViewed');
+  });
+});

@@ -40,6 +40,8 @@ import {
   buildReturnLobbyAction,
   buildRoomConfigAction,
   buildStartGameAction,
+  createViewingBeginGate,
+  projectViewingProgress,
 } from '@/features/room/model/hostManagementActions';
 import { type NightStepProgress, resolveStepProgress } from '@/features/room/model/nightProgress';
 import {
@@ -732,17 +734,17 @@ export function createAvalonHostManagement(
     // 三段式中段：牌已发、对局未开始。全员查看齐后房主点「开始游戏」
     // 才进夜晚（引擎 begin 门同口径，这里先给禁用态与原因）。
     const participants = getAvalonViewingParticipants(state);
-    const viewedCount = participants.filter((participant) =>
-      state.roleViewedSeats.includes(participant.seat),
-    ).length;
-    const allViewed = viewedCount === participants.length;
-    const beginDisabledReason = allViewed ? null : '还有玩家未查看身份';
+    const beginGate = createViewingBeginGate({
+      ...projectViewingProgress(participants, state.roleViewedSeats),
+      submitting: input.isSubmitting,
+      notViewedCopy: '还有玩家未查看身份',
+    });
     const submitBegin = () => void submit('开始游戏', { type: 'avalon.game.begin' });
     const beginAction = buildStartGameAction({
       onPress: () =>
         showConfirmAlert('开始游戏？', '全员已查看身份，开始后将进入夜晚阶段', submitBegin),
-      isEnabled: !input.isSubmitting && allViewed,
-      disabledReason: beginDisabledReason,
+      isEnabled: beginGate.isEnabled,
+      disabledReason: beginGate.disabledReason,
       isLoading: input.isSubmitting,
       isPrimary: true,
     });

@@ -25,6 +25,8 @@ import {
   buildPendingAwareHostAction,
   buildRoomConfigAction,
   buildStartGameAction,
+  createViewingBeginGate,
+  projectViewingProgress,
 } from '@/features/room/model/hostManagementActions';
 import type {
   RoomBottomActionModel,
@@ -227,15 +229,19 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
       const round = input.state.round;
       if (round === null) return [];
       const participants = getFibViewingParticipants(input.state);
-      const allViewed = hasEverySeatViewed(input.state);
+      const beginGate = createViewingBeginGate({
+        ...projectViewingProgress(participants, round.viewedSeats),
+        submitting: input.isCommandSubmitting,
+        notViewedCopy: '还有玩家未查看身份',
+      });
       const actions: RoomHostManagementAction[] = [
         buildStartGameAction({
           label: '开始游戏',
           onPress: () =>
             showConfirmAlert('开始游戏？', '全员已查看身份，将开始本轮描述', input.beginRound),
-          isEnabled: !input.isCommandSubmitting && allViewed,
+          isEnabled: beginGate.isEnabled,
           isLoading: input.isCommandSubmitting || undefined,
-          disabledReason: allViewed ? null : '还有玩家未查看身份',
+          disabledReason: beginGate.disabledReason,
           isPrimary: true,
         }),
       ];
@@ -443,13 +449,6 @@ function createFibHostSection(
   actions: readonly RoomHostManagementAction[],
 ): RoomHostManagementSection | null {
   return actions.length === 0 ? null : { key, title, actions };
-}
-
-function hasEverySeatViewed(state: FibState): boolean {
-  if (state.round === null) return false;
-  return getFibViewingParticipants(state).every((participant) =>
-    state.round.viewedSeats.includes(participant.seat),
-  );
 }
 
 /** Build the complete FibKing Host-only command surface from current room facts. */

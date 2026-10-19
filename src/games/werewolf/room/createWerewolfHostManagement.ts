@@ -11,6 +11,7 @@ import {
   buildPendingAwareHostAction,
   buildRoomConfigAction,
   buildStartGameAction,
+  createViewingBeginGate,
   type RoomHostActionDescriptor,
 } from '@/features/room/model/hostManagementActions';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
@@ -180,14 +181,17 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
       // disabled until every seated player has viewed their role. Once
       // all have viewed the reason clears; the phase then promotes to
       // Ready, whose start action is the same press.
-      const allViewed = input.viewedCount >= input.totalSeats;
+      const beginGate = createViewingBeginGate({
+        viewedCount: input.viewedCount,
+        totalSeats: input.totalSeats,
+        submitting: input.isHostActionSubmitting,
+        notViewedCopy: `${input.viewedCount}/${input.totalSeats} 位玩家已查看角色，等待剩余玩家`,
+      });
       return [
         buildStartGameAction({
           onPress: () => input.onHostControl('startGame'),
-          isEnabled: !input.isHostActionSubmitting && allViewed,
-          disabledReason: allViewed
-            ? null
-            : `${input.viewedCount}/${input.totalSeats} 位玩家已查看角色，等待剩余玩家`,
+          isEnabled: beginGate.isEnabled,
+          disabledReason: beginGate.disabledReason,
           isLoading: input.isHostActionSubmitting,
           isPrimary: true,
         }),

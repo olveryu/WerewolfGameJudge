@@ -27,6 +27,7 @@ export { migratePersistedUndercoverState } from './state/parseState';
 export {
   getUndercoverOccupiedSeatCount,
   getUndercoverUserSeat,
+  getUndercoverViewingParticipants,
   isUndercoverSeat,
   UNDERCOVER_CATEGORIES,
   type UndercoverCategory,
