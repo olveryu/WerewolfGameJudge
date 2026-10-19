@@ -118,6 +118,57 @@ export function buildStartGameAction(input: ActionInput): RoomHostManagementActi
   );
 }
 
+export interface ViewingProgress {
+  readonly viewedCount: number;
+  readonly totalSeats: number;
+}
+
+/**
+ * The one client projection of Identity Viewing Protocol progress:
+ * an adapter supplies its game's participants and its own viewed-seat
+ * record; the counts every begin gate consumes come from here — never
+ * from a per-game hand-rolled filter, and never from a raw record
+ * length (a stale record for a seat outside the participant set must
+ * not open the gate).
+ */
+export function projectViewingProgress(
+  participants: readonly { readonly seat: number }[],
+  viewedSeats: readonly number[],
+): ViewingProgress {
+  return {
+    totalSeats: participants.length,
+    viewedCount: participants.filter((participant) => viewedSeats.includes(participant.seat))
+      .length,
+  };
+}
+
+export interface ViewingBeginGateInput extends ViewingProgress {
+  readonly submitting: boolean;
+  /** The game's own not-all-viewed copy (content; the gate math is not). */
+  readonly notViewedCopy: string;
+}
+
+export interface ViewingBeginGate {
+  readonly allViewed: boolean;
+  readonly isEnabled: boolean;
+  readonly disabledReason: string | null;
+}
+
+/**
+ * The one client begin gate for the viewing phase, mirroring the
+ * engine checkpoint (haveAllViewed over the participant set): play
+ * opens only once every participant seat holds a viewed record. An
+ * empty participant set never opens the gate.
+ */
+export function createViewingBeginGate(input: ViewingBeginGateInput): ViewingBeginGate {
+  const allViewed = input.totalSeats > 0 && input.viewedCount >= input.totalSeats;
+  return {
+    allViewed,
+    isEnabled: !input.submitting && allViewed,
+    disabledReason: allViewed ? null : input.notViewedCopy,
+  };
+}
+
 /** "再来一局" — primary terminal action; the game's confirm copy stays in onPress. */
 export function buildNextRoundAction(input: ActionInput): RoomHostManagementAction {
   return buildAction(

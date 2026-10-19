@@ -4,6 +4,7 @@ import {
   getBotSeats,
   getUndercoverOccupiedSeatCount,
   getUndercoverUserSeat,
+  getUndercoverViewingParticipants,
   type UndercoverCategory,
   type UndercoverRole,
   type UndercoverRoleCounts,
@@ -26,6 +27,8 @@ import {
   buildPendingAwareHostAction,
   buildRoomConfigAction,
   buildStartGameAction,
+  createViewingBeginGate,
+  projectViewingProgress,
 } from '@/features/room/model/hostManagementActions';
 import {
   createBotTakeoverCapability,
@@ -302,15 +305,24 @@ export function createUndercoverHostManagement(
       break;
     case 'viewing': {
       // The begin gate mirrors the engine checkpoint: play opens only
-      // once every seat has viewed; the panel shows why it is disabled.
-      const allViewed = state.round.confirmedSeats.length === state.config.numberOfPlayers;
-      const beginDisabledReason = allViewed ? null : '还有玩家未查看词卡';
+      // once every participant seat has viewed; the panel shows why it
+      // is disabled. The projection is set-based like the engine's
+      // haveAllViewed — a raw confirmedSeats length would let a stale
+      // record for an unoccupied seat open the gate early.
+      const beginGate = createViewingBeginGate({
+        ...projectViewingProgress(
+          getUndercoverViewingParticipants(state),
+          state.round.confirmedSeats,
+        ),
+        submitting: controls.isSubmitting,
+        notViewedCopy: '还有玩家未查看词卡',
+      });
       const beginAction = buildStartGameAction({
         label: '开始游戏',
         onPress: () =>
           showConfirmAlert('开始游戏？', '全员已查看词卡，将开始轮流发言', controls.begin),
-        isEnabled: !controls.isSubmitting && allViewed,
-        disabledReason: beginDisabledReason,
+        isEnabled: beginGate.isEnabled,
+        disabledReason: beginGate.disabledReason,
         isPrimary: true,
       });
       actions.push(beginAction);

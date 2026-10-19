@@ -4,6 +4,8 @@ import {
   buildPendingAwareHostAction,
   buildReturnLobbyAction,
   buildStartGameAction,
+  createViewingBeginGate,
+  projectViewingProgress,
   type RoomHostActionDescriptor,
 } from '../hostManagementActions';
 
@@ -127,5 +129,55 @@ describe('host action pending marshal', () => {
     expect(action).toMatchObject({ key: 'night-review', isEnabled: true });
     if (action.isEnabled) action.onPress();
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('viewing begin gate', () => {
+  it('projects counts from the participant set, ignoring records outside it', () => {
+    expect(projectViewingProgress([{ seat: 0 }, { seat: 1 }, { seat: 2 }], [0, 2, 7])).toEqual({
+      viewedCount: 2,
+      totalSeats: 3,
+    });
+  });
+
+  it('opens only when every participant has viewed', () => {
+    expect(
+      createViewingBeginGate({
+        viewedCount: 3,
+        totalSeats: 3,
+        submitting: false,
+        notViewedCopy: '还有玩家未查看',
+      }),
+    ).toEqual({ allViewed: true, isEnabled: true, disabledReason: null });
+    expect(
+      createViewingBeginGate({
+        viewedCount: 2,
+        totalSeats: 3,
+        submitting: false,
+        notViewedCopy: '还有玩家未查看',
+      }),
+    ).toEqual({ allViewed: false, isEnabled: false, disabledReason: '还有玩家未查看' });
+  });
+
+  it('stays closed while submitting even when everyone has viewed', () => {
+    expect(
+      createViewingBeginGate({
+        viewedCount: 3,
+        totalSeats: 3,
+        submitting: true,
+        notViewedCopy: '还有玩家未查看',
+      }),
+    ).toEqual({ allViewed: true, isEnabled: false, disabledReason: null });
+  });
+
+  it('never opens for an empty participant set', () => {
+    expect(
+      createViewingBeginGate({
+        viewedCount: 0,
+        totalSeats: 0,
+        submitting: false,
+        notViewedCopy: '还有玩家未查看',
+      }),
+    ).toEqual({ allViewed: false, isEnabled: false, disabledReason: '还有玩家未查看' });
   });
 });

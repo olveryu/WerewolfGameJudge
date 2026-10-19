@@ -673,6 +673,27 @@ describe('createUndercoverHostManagement console primary', () => {
     const ready = resolveHostConsolePrimary(buildFor(confirmed).model!);
     if (ready?.kind !== 'ready') throw new Error('expected a ready console primary');
   });
+
+  it('opens the begin gate over the participant set, not the raw record count (B-4)', () => {
+    const viewing = createViewingState();
+    const roundId = viewing.round!.roundId;
+    let confirmed = dispatch(viewing, { type: 'undercover.round.confirm', roundId });
+    confirmed = dispatch(confirmed, { type: 'undercover.bots.markAllBotsViewed', roundId });
+    // Seat 5 is vacated with its confirmation record dropped: five
+    // participants remain, all confirmed. The engine checkpoint
+    // (haveAllViewed over the participant set) opens here; the old
+    // client predicate — confirmedSeats.length === numberOfPlayers —
+    // stayed closed on this state.
+    if (confirmed.phase !== 'viewing') throw new Error('expected a viewing state');
+    const state: UndercoverState = {
+      ...confirmed,
+      roster: { ...confirmed.roster, 5: null },
+      round: { ...confirmed.round, confirmedSeats: [0, 1, 2, 3, 4] },
+    };
+    const ready = resolveHostConsolePrimary(buildFor(state).model!);
+    if (ready?.kind !== 'ready') throw new Error('expected a ready console primary');
+    expect(ready).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
+  });
 });
 
 describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () => {

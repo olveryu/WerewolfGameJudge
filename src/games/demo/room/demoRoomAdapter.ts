@@ -29,6 +29,8 @@ import {
   buildReturnLobbyAction,
   buildRoomConfigAction,
   buildStartGameAction,
+  createViewingBeginGate,
+  projectViewingProgress,
 } from '@/features/room/model/hostManagementActions';
 import {
   buildEndedWaitingMessage,
@@ -185,16 +187,16 @@ export function createDemoHostManagement(
     // 三段式中段：身份已发、对局未开始。全员查看齐后房主点「开始游戏」
     // 才进入对局（引擎 begin 门同口径，这里先给禁用态与原因）。
     const participants = getDemoViewingParticipants(state);
-    const viewedCount = participants.filter((participant) =>
-      state.roleViewedSeats.includes(participant.seat),
-    ).length;
-    const allViewed = participants.length > 0 && viewedCount === participants.length;
-    const beginDisabledReason = allViewed ? null : '还有玩家未查看身份';
+    const beginGate = createViewingBeginGate({
+      ...projectViewingProgress(participants, state.roleViewedSeats),
+      submitting: input.isSubmitting,
+      notViewedCopy: '还有玩家未查看身份',
+    });
     const submitBegin = () => void input.submit('开始游戏', { type: 'demo.game.begin' });
     const beginAction = buildStartGameAction({
       onPress: () => showConfirmAlert('开始游戏？', '全员已查看身份，将开始对局', submitBegin),
-      isEnabled: !input.isSubmitting && allViewed,
-      disabledReason: beginDisabledReason,
+      isEnabled: beginGate.isEnabled,
+      disabledReason: beginGate.disabledReason,
       isLoading: input.isSubmitting,
       isPrimary: true,
     });
