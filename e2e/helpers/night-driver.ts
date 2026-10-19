@@ -180,7 +180,16 @@ export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<
 
   const stepBefore = await readRoomStep(page);
   const tile = page.locator(`[data-testid="seat-tile-pressable-${seatIdx}"]`);
-  await tile.waitFor({ state: 'visible', timeout: CLICK_TIMEOUT_MS });
+  // Boolean contract: a tile that never renders is a plain failure,
+  // not an exception (independent QA note on PR #224).
+  const tileVisible = await tile
+    .waitFor({ state: 'visible', timeout: CLICK_TIMEOUT_MS })
+    .then(() => true)
+    .catch(() => false);
+  if (!tileVisible) {
+    log(`clickSeatAndConfirm seat=${seatIdx} — tile not visible`);
+    return false;
+  }
 
   const alertModal = page.locator('[data-testid="alert-modal"]');
   let appeared = false;
@@ -211,10 +220,13 @@ export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<
     // Wait for the confirm dialog content to be replaced by React.
     // Confirm dialogs have a "取消" button; subsequent alerts (reveal/info) don't.
     // Once "取消" disappears, the old dialog content has been processed.
+    // Best-effort only: the action is already submitted at this point,
+    // so a timeout here must not turn a success into an exception.
     await alertModal
       .getByText('取消', { exact: true })
       .first()
-      .waitFor({ state: 'hidden', timeout: CLICK_TIMEOUT_MS });
+      .waitFor({ state: 'hidden', timeout: CLICK_TIMEOUT_MS })
+      .catch(() => undefined);
     return true;
   }
   log(`clickSeatAndConfirm seat=${seatIdx} — confirm btn not visible`);
