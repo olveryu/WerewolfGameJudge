@@ -1,4 +1,9 @@
-/** Product announcement modal composed with game-owned announcement tabs. */
+/**
+ * Product announcement modal composed with game-owned announcement tabs.
+ * The changelog tab leads the tab bar and is the default page — opening
+ * the modal (including the post-update What's New flow) lands on the
+ * update log; game-owned tabs and feedback follow it.
+ */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
@@ -39,7 +44,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
     Math.round(screenHeight * ANNOUNCEMENT_SCREEN_HEIGHT_RATIO),
   );
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState(() => gameTabs[0]?.key ?? CHANGELOG_TAB);
+  const [activeTab, setActiveTab] = useState(CHANGELOG_TAB);
   const activeGameTab = gameTabs.find((tab) => tab.key === activeTab);
   const ActiveGameTabContent = activeGameTab?.Content ?? null;
 
@@ -81,6 +86,11 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
           style={styles.tabBar}
           contentContainerStyle={styles.tabBarContent}
         >
+          <AnnouncementTabButton
+            label="更新日志"
+            isActive={activeTab === CHANGELOG_TAB}
+            onPress={() => setActiveTab(CHANGELOG_TAB)}
+          />
           {gameTabs.map((tab) => (
             <AnnouncementTabButton
               key={tab.key}
@@ -89,11 +99,6 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
               onPress={() => setActiveTab(tab.key)}
             />
           ))}
-          <AnnouncementTabButton
-            label="更新日志"
-            isActive={activeTab === CHANGELOG_TAB}
-            onPress={() => setActiveTab(CHANGELOG_TAB)}
-          />
           <AnnouncementTabButton
             label="意见反馈"
             isActive={activeTab === FEEDBACK_TAB}
