@@ -8,6 +8,12 @@
  * on it to detect phase transitions (e.g. a werewolf night ending)
  * instead of scanning display copy. Display copy may be redesigned
  * freely; this anchor must keep reflecting the game's current phase.
+ *
+ * The `data-step` anchor extends the same contract one level down: when
+ * the model carries a step (e.g. a werewolf night step), the header
+ * exposes it verbatim as `data-step`; when the step is null the
+ * attribute is absent, so drivers can distinguish "no step" from any
+ * step value.
  */
 
 import { render } from '@testing-library/react-native';
@@ -32,10 +38,11 @@ const deniedCapabilities: RoomCapabilities = {
   shouldConfirmExit: false,
 };
 
-function buildModel(phase: string): RoomShellModel {
+function buildModel(phase: string, step: string | null = null): RoomShellModel {
   return {
     roomCode: '1234',
     phase,
+    step,
     capabilities: deniedCapabilities,
     header: {
       onBack: jest.fn(),
@@ -78,10 +85,10 @@ function buildModel(phase: string): RoomShellModel {
   };
 }
 
-function renderShell(phase: string) {
+function renderShell(phase: string, step: string | null = null) {
   return render(
     <RoomShell
-      model={buildModel(phase)}
+      model={buildModel(phase, step)}
       content={{ kind: 'workspace', element: <View /> }}
       leadingExtraActions={null}
       trailingExtraActions={null}
@@ -111,6 +118,42 @@ describe('RoomShell phase anchor', () => {
     );
     expect(screen.getByTestId(TESTIDS.roomHeader).props.dataSet).toEqual({
       phase: 'Ended',
+    });
+  });
+});
+
+describe('RoomShell step anchor', () => {
+  it('exposes the model step verbatim on the shell header when present', () => {
+    const screen = renderShell('Ongoing', 'wolfKill');
+    expect(screen.getByTestId(TESTIDS.roomHeader).props.dataSet).toEqual({
+      phase: 'Ongoing',
+      step: 'wolfKill',
+    });
+  });
+
+  it('omits the step attribute entirely when the model step is null', () => {
+    const screen = renderShell('Ongoing');
+    // toStrictEqual (not toEqual): toEqual ignores undefined properties
+    // and could not tell an absent key from `step: undefined`.
+    expect(screen.getByTestId(TESTIDS.roomHeader).props.dataSet).toStrictEqual({
+      phase: 'Ongoing',
+    });
+  });
+
+  it('tracks step changes across re-renders', () => {
+    const screen = renderShell('Ongoing', 'wolfKill');
+    screen.rerender(
+      <RoomShell
+        model={buildModel('Ongoing', 'seerCheck')}
+        content={{ kind: 'workspace', element: <View /> }}
+        leadingExtraActions={null}
+        trailingExtraActions={null}
+        gameOverlays={null}
+      />,
+    );
+    expect(screen.getByTestId(TESTIDS.roomHeader).props.dataSet).toEqual({
+      phase: 'Ongoing',
+      step: 'seerCheck',
     });
   });
 });

@@ -53,6 +53,15 @@ export interface RoomShellModel {
    * never carry display copy — copy may be redesigned freely, this may not.
    */
   readonly phase: string;
+  /**
+   * The game's current step inside its phase, verbatim from its state
+   * machine (e.g. werewolf's current night step), or null when the game
+   * has no step inside the current phase. Rendered on the shell header
+   * as the `data-step` anchor alongside `data-phase`: the same
+   * machine-readable contract, one level down. The shell never
+   * interprets the value, and it must never carry display copy.
+   */
+  readonly step: string | null;
   readonly capabilities: RoomCapabilities;
   readonly header: RoomHeaderModel;
   readonly connection: RoomConnectionViewModel;

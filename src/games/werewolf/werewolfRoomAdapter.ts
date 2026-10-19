@@ -457,6 +457,9 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
     roomCode: input.roomCode,
     capabilities: input.capabilities,
     phase: input.roomStatus,
+    // The step anchor mirrors the night progress row's own gate: the
+    // current night step is only meaningful while the game is Ongoing.
+    step: input.roomStatus === GameStatus.Ongoing ? input.currentStepId : null,
     header: {
       onBack: input.onBack,
       onTitlePress: input.onTitlePress,

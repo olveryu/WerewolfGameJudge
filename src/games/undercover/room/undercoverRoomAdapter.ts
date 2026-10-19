@@ -459,6 +459,10 @@ export function createUndercoverRoomShellModel(
     roomCode: input.roomCode,
     capabilities: input.capabilities,
     phase: state.phase,
+    // The step anchor: null while this game has no sub-phase step in
+    // its state. If a phase later grows a step field (the way Avalon's
+    // night phase carries one), supply it verbatim here instead.
+    step: null,
     header: buildRoomHeaderModel({
       onBack: input.onBack,
       onTitlePress: input.onTitlePress,

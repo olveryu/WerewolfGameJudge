@@ -177,6 +177,19 @@ describe('createAvalonRoomShellModel', () => {
     expect(createAvalonRoomShellModel(baseInput(running.state)).phase).toBe('viewing');
   });
 
+  it('exposes the night step on the shell model only during the night phase', () => {
+    const running = session(5);
+    expect(createAvalonRoomShellModel(baseInput(running.state)).step).toBeNull();
+    running.send({ type: 'avalon.game.start' });
+    expect(createAvalonRoomShellModel(baseInput(running.state)).step).toBeNull();
+    for (let seat = 0; seat < 5; seat += 1) {
+      running.send({ type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `u${seat}`);
+    }
+    running.send({ type: 'avalon.game.begin' });
+    expect(running.state.phase.kind).toBe('night');
+    expect(createAvalonRoomShellModel(baseInput(running.state)).step).toBe('evilReveal');
+  });
+
   it('shows 等待房主分配角色 to a seated non-host in the lobby', () => {
     const { state } = session(5);
     const model = createAvalonRoomShellModel({
