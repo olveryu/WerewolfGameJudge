@@ -58,7 +58,7 @@ describe('Magician Swap → Seer Reveal Regression', () => {
       // Advance to seerCheck; wolves skip the attack.
       expect(executeStepsUntil(ctx, 'seerCheck', { wolf: null })).toBe(true);
 
-      expect(ctx.getGameState().currentStepId).toBe('seerCheck');
+      expect(ctx.getGameState().nightStep).toEqual({ kind: 'inStep', stepId: 'seerCheck' });
 
       // Seer checks seat 0 (should be wolf after swap)
       // Note: after swap, seat 0's role is now wolf
@@ -85,7 +85,7 @@ describe('Magician Swap → Seer Reveal Regression', () => {
       // Advance to seerCheck; wolves skip the attack.
       expect(executeStepsUntil(ctx, 'seerCheck', { wolf: null })).toBe(true);
 
-      expect(ctx.getGameState().currentStepId).toBe('seerCheck');
+      expect(ctx.getGameState().nightStep).toEqual({ kind: 'inStep', stepId: 'seerCheck' });
 
       // Seer checks seat 1 (should be magician = good after swap)
       submitActionOrThrow(ctx, 2, { kind: 'target', target: 1 }, 'seer checks swapped seat 1');
@@ -105,7 +105,7 @@ describe('Magician Swap → Seer Reveal Regression', () => {
 
       // Advance to seerCheck; wolves skip the attack.
       expect(executeStepsUntil(ctx, 'seerCheck', { wolf: null })).toBe(true);
-      expect(ctx.getGameState().currentStepId).toBe('seerCheck');
+      expect(ctx.getGameState().nightStep).toEqual({ kind: 'inStep', stepId: 'seerCheck' });
 
       // Seer checks seat 1 (original identity should still be wolf)
       submitActionOrThrow(ctx, 2, { kind: 'target', target: 1 }, 'seer checks original wolf');

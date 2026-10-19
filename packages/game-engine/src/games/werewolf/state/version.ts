@@ -11,11 +11,15 @@
  * v8 keeps the v7 shape and canonicalizes the night-step window values
  * (currentStepIndex / currentStepId / stepDeadline) on load; see
  * canonicalizeStepWindowFields in parseState.ts.
+ * v9 collapses the step window into the `nightStep` discriminated union
+ * (inStep {stepId, stepDeadline?} | exhausted | null); the step index is
+ * derived from the plan, never stored. v8 payloads migrate through
+ * upgradeV8NightStep in parseState.ts.
  */
 
 import { WEREWOLF_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 
-export const WEREWOLF_STATE_VERSION = 8;
+export const WEREWOLF_STATE_VERSION = 9;
 
 export const WEREWOLF_STATE_IDENTITY = {
   gameType: WEREWOLF_GAME_TYPE,

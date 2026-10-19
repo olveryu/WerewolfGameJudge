@@ -29,8 +29,7 @@ function createMinimalState(overrides?: Partial<LocalGameState>): LocalGameState
     ]),
     actions: new Map(),
     wolfVotes: new Map(),
-    currentStepIndex: 0,
-    currentStepId: 'wolfRobotLearn',
+    nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
     lastNightDeaths: [],
@@ -79,7 +78,7 @@ describe('WolfRobot Hunter Status Gate', () => {
   describe('bottom button visibility', () => {
     it('shows button when learned hunter AND canShootAsHunter === true', () => {
       const state = createMinimalState({
-        currentStepId: 'wolfRobotLearn',
+        nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
         wolfRobotReveal: {
           targetSeat: 1,
           result: 'hunter',
@@ -98,7 +97,7 @@ describe('WolfRobot Hunter Status Gate', () => {
     it('shows button when learned hunter AND canShootAsHunter === false (poisoned)', () => {
       // This is the key test case: button must appear even when cannot shoot
       const state = createMinimalState({
-        currentStepId: 'wolfRobotLearn',
+        nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
         wolfRobotReveal: {
           targetSeat: 1,
           result: 'hunter',
@@ -116,7 +115,7 @@ describe('WolfRobot Hunter Status Gate', () => {
 
     it('hides button after viewed', () => {
       const state = createMinimalState({
-        currentStepId: 'wolfRobotLearn',
+        nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
         wolfRobotReveal: {
           targetSeat: 1,
           result: 'hunter',
@@ -133,7 +132,7 @@ describe('WolfRobot Hunter Status Gate', () => {
 
     it('hides button when learned non-hunter role', () => {
       const state = createMinimalState({
-        currentStepId: 'wolfRobotLearn',
+        nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
         wolfRobotReveal: {
           targetSeat: 2,
           result: 'villager',
@@ -149,7 +148,7 @@ describe('WolfRobot Hunter Status Gate', () => {
 
     it('hides button when not on wolfRobotLearn step', () => {
       const state = createMinimalState({
-        currentStepId: 'seerCheck', // different step
+        nightStep: { kind: 'inStep', stepId: 'seerCheck' }, // different step
         wolfRobotReveal: {
           targetSeat: 1,
           result: 'hunter',
@@ -168,7 +167,7 @@ describe('WolfRobot Hunter Status Gate', () => {
   describe('schema-driven UI contract', () => {
     it('button label must equal schema.ui.hunterGateButtonText (no hardcoded strings)', () => {
       const state = createMinimalState({
-        currentStepId: 'wolfRobotLearn',
+        nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
         wolfRobotReveal: {
           targetSeat: 1,
           result: 'hunter',

@@ -103,13 +103,13 @@ function escapeRegExp(input: string): string {
 function fileMentionsStepId(content: string, stepId: string): boolean {
   // We accept a few common usages:
   // - ctx.assertStep('wolfKill')
-  // - currentStepId === 'seerCheck'
+  // - nightStep assertion: stepId: 'seerCheck' (toEqual on the nightStep union)
   // - executeStepsUntil(ctx, 'witchAction', ...)
   // - schemaId === 'dreamcatcherDream'
   const s = escapeRegExp(stepId);
   const patterns: RegExp[] = [
     new RegExp(String.raw`\.assertStep\(\s*['"]${s}['"]\s*\)`),
-    new RegExp(String.raw`currentStepId\s*(?:===|!==|"toBe"|"not\.toBe")\s*['"]${s}['"]`),
+    new RegExp(String.raw`stepId\s*:\s*['"]${s}['"]`),
     new RegExp(String.raw`executeStepsUntil\(\s*\w+\s*,\s*['"]${s}['"]`),
     new RegExp(String.raw`schemaId\s*===\s*['"]${s}['"]`),
     new RegExp(String.raw`stepId\s*===\s*['"]${s}['"]`),

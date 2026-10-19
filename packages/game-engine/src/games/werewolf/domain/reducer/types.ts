@@ -7,7 +7,7 @@
 import type { AudioEffect } from '../../../../platform/audio';
 import type { RosterEntry } from '../../../../platform/room/roster';
 import type { DeathReason } from '../DeathCalculator';
-import type { GameRuleOverrides, RoleId, SchemaId } from '../models';
+import type { GameRuleOverrides, RoleId } from '../models';
 import type { WolfKillOverride } from '../models/roles/spec/schema.types';
 import type {
   ConfirmStatus,
@@ -19,6 +19,7 @@ import type {
   SheriffElectionRoundResult,
   SheriffElectionState,
   WerewolfHumanSeat,
+  WerewolfNightStep,
 } from '../protocol/types';
 import type { BoardNomination } from '../protocol/types';
 
@@ -113,18 +114,16 @@ export interface AssignRolesAction {
 export interface StartNightAction {
   type: 'START_NIGHT';
   payload: {
-    currentStepIndex: number;
-    /** First step ID, or null when the plan has no night steps. */
-    currentStepId: SchemaId | null;
+    /** First plan step, or the exhausted variant when the plan has no night steps. */
+    nightStep: WerewolfNightStep;
   };
 }
 
 export interface AdvanceToNextActionAction {
   type: 'ADVANCE_TO_NEXT_ACTION';
   payload: {
-    nextStepIndex: number;
-    /** Next step stepId (from NIGHT_STEPS table-driven single source), null means night ended */
-    nextStepId: SchemaId | null;
+    /** Next plan step, or the exhausted variant when the night is complete. */
+    nightStep: WerewolfNightStep;
   };
 }
 

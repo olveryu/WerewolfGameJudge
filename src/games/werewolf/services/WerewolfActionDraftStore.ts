@@ -6,7 +6,7 @@ import { parseRoomId } from '@game-judge/game-engine/platform/protocol/roomLocat
 import { storage } from '@/services/infra/localStorage';
 
 const STORAGE_KEY_PREFIX = '@werewolf:action-draft:';
-const STORAGE_VERSION = 1;
+const STORAGE_VERSION = 2;
 const MAX_USER_ID_LENGTH = 128;
 const MAX_NONCE_LENGTH = 128;
 
@@ -19,7 +19,7 @@ interface ActionDraftStorage {
 }
 
 interface StoredWerewolfActionDraft {
-  readonly version: 1;
+  readonly version: 2;
   readonly scope: WerewolfActionDraftScope;
   readonly draft: WerewolfActionDraft;
 }
@@ -28,7 +28,6 @@ export interface WerewolfActionDraftScope {
   readonly roomId: string;
   readonly userId: string;
   readonly currentStepId: SchemaId;
-  readonly currentStepIndex: number;
   readonly roleRevealRandomNonce: string | null;
   readonly actorSeat: number;
 }
@@ -100,18 +99,11 @@ function parseScope(value: unknown): WerewolfActionDraftScope {
   const scope = requireObject(value, 'Stored Werewolf action draft scope');
   assertExactKeys(
     scope,
-    ['roomId', 'userId', 'currentStepId', 'currentStepIndex', 'roleRevealRandomNonce', 'actorSeat'],
+    ['roomId', 'userId', 'currentStepId', 'roleRevealRandomNonce', 'actorSeat'],
     'Stored Werewolf action draft scope',
   );
   if (typeof scope.currentStepId !== 'string' || !isValidSchemaId(scope.currentStepId)) {
     throw new Error('Stored Werewolf action draft step ID is invalid');
-  }
-  if (
-    typeof scope.currentStepIndex !== 'number' ||
-    !Number.isSafeInteger(scope.currentStepIndex) ||
-    scope.currentStepIndex < 0
-  ) {
-    throw new Error('Stored Werewolf action draft step index is invalid');
   }
   if (
     scope.roleRevealRandomNonce !== null &&
@@ -125,7 +117,6 @@ function parseScope(value: unknown): WerewolfActionDraftScope {
     roomId: parseRoomId(scope.roomId),
     userId: requireUserId(scope.userId),
     currentStepId: scope.currentStepId,
-    currentStepIndex: scope.currentStepIndex,
     roleRevealRandomNonce: scope.roleRevealRandomNonce,
     actorSeat: parseSeatIndex(scope.actorSeat, 'Stored Werewolf action draft actor'),
   };
@@ -189,7 +180,6 @@ function hasSameScope(first: WerewolfActionDraftScope, second: WerewolfActionDra
     first.roomId === second.roomId &&
     first.userId === second.userId &&
     first.currentStepId === second.currentStepId &&
-    first.currentStepIndex === second.currentStepIndex &&
     first.roleRevealRandomNonce === second.roleRevealRandomNonce &&
     first.actorSeat === second.actorSeat
   );
@@ -219,8 +209,18 @@ export class WerewolfActionDraftStore implements WerewolfActionDraftRepository {
     const canonicalScope = validateScopeForBoard(parseScope(scope), canonicalSeatCount);
     const raw = this.#storage.getString(getStorageKey(canonicalScope));
     if (raw === undefined) return { kind: 'missing' };
-    const parsed: unknown = JSON.parse(raw);
-    const stored = parseStoredDraft(parsed);
+    // The stored envelope is the only input here that this build did not
+    // write: a leftover from an older storage version (or a corrupt
+    // value) is rejected and discarded, never thrown into the room
+    // screen — the draft holds only unconfirmed UI choices. Board-size
+    // validation of a decodable draft stays fail-fast below.
+    let stored: StoredWerewolfActionDraft;
+    try {
+      stored = parseStoredDraft(JSON.parse(raw));
+    } catch {
+      this.clear(canonicalScope);
+      return { kind: 'missing' };
+    }
     if (!hasSameScope(stored.scope, canonicalScope)) return { kind: 'stale' };
     return {
       kind: 'found',

@@ -88,7 +88,7 @@ function createBaseWerewolfRoomMock(overrides?: Record<string, unknown>) {
     ),
     actions: new Map<RoleId, unknown>(),
     wolfVotes: new Map<number, number>(),
-    currentStepIndex: 0,
+    nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     lastNightDeaths: [],
     nightmareBlockedSeat: null,

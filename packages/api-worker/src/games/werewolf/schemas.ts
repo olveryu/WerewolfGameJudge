@@ -27,7 +27,6 @@ const schemaIdSchema = z.custom<SchemaId>(
 
 const expectedStepSchema = z.strictObject({
   currentStepId: schemaIdSchema,
-  currentStepIndex: z.number().int().nonnegative(),
   roleRevealRandomNonce: z.string().min(1).max(128).nullable(),
 });
 

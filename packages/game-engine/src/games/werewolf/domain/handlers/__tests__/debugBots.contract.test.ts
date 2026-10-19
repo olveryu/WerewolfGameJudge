@@ -47,7 +47,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Unseated,
     templateRoles: new Array<RoleId>(totalSeats).fill('villager'),
     players: defaultPlayers,
-    currentStepIndex: -1,
+    nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],

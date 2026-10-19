@@ -58,7 +58,7 @@ function createStateWithPlayers(
     players: playersMap,
     roster,
     playerProfiles,
-    currentStepIndex: -1,
+    nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],

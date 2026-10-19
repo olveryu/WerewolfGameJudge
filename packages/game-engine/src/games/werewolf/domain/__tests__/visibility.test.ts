@@ -13,7 +13,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { WEREWOLF_STATE_IDENTITY } from '../../state/version';
-import { buildNightPlan, GameStatus, type RoleId, type SchemaId } from '../models';
+import { GameStatus, type RoleId, type SchemaId } from '../models';
 import type { ConfirmStatus, GameState, WerewolfHumanSeat } from '../protocol/types';
 import type { CurrentNightResults } from '../resolvers/types';
 import { getWerewolfViewModel, type WerewolfSeatView, type WerewolfViewModel } from '../visibility';
@@ -44,13 +44,6 @@ interface StateSpec {
   readonly treasureMasterSeat?: number;
   readonly sheriffElectionResult?: GameState['sheriffElectionResult'];
   readonly mvpUserId?: string;
-}
-
-function stepIndexFor(templateRoles: readonly RoleId[], stepId: string): number {
-  const plan = buildNightPlan(templateRoles);
-  const index = plan.steps.findIndex((step) => step.stepId === stepId);
-  if (index < 0) throw new Error(`Fixture error: step ${stepId} not in plan`);
-  return index;
 }
 
 function createState(spec: StateSpec): GameState {
@@ -87,8 +80,7 @@ function createState(spec: StateSpec): GameState {
     players,
     roster,
     playerProfiles,
-    currentStepIndex: spec.stepId ? stepIndexFor(templateRoles, spec.stepId) : -1,
-    ...(spec.stepId ? { currentStepId: spec.stepId } : {}),
+    nightStep: spec.stepId ? { kind: 'inStep', stepId: spec.stepId } : null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],

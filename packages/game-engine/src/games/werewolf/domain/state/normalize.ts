@@ -157,7 +157,7 @@ export function normalizeState(raw: GameState): GameState {
     roster: raw.roster ?? {},
     // Player display info, keyed by userId
     playerProfiles: raw.playerProfiles ?? {},
-    currentStepIndex: requireField(raw.currentStepIndex, 'currentStepIndex'),
+    nightStep: requireField(raw.nightStep, 'nightStep'),
     isAudioPlaying: requireField(raw.isAudioPlaying, 'isAudioPlaying'),
 
     // Execution state (boundary normalize: undefined → [], so internal code doesn't need ?? [])
@@ -169,9 +169,6 @@ export function normalizeState(raw: GameState): GameState {
     deathReasons: raw.deathReasons,
     sheriffElection: normalizeSheriffElection(raw.sheriffElection),
     sheriffElectionResult: raw.sheriffElectionResult,
-
-    // Night flow state (critical: currentStepId must be passed through)
-    currentStepId: raw.currentStepId,
 
     // Role reveal animation seed (must be passed through, otherwise speaking-order RNG can't read it)
     roleRevealRandomNonce: raw.roleRevealRandomNonce,
@@ -192,9 +189,6 @@ export function normalizeState(raw: GameState): GameState {
     wolfRobotContext: raw.wolfRobotContext,
     confirmStatus: raw.confirmStatus,
     actionRejected: raw.actionRejected,
-
-    // Step progression deadline (unified deadline-gate, pass-through)
-    stepDeadline: raw.stepDeadline,
 
     // Pending audio effect queue (boundary normalize: legacy states
     // without the field default to an empty queue)

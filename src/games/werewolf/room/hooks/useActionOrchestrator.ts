@@ -316,7 +316,9 @@ export function useActionOrchestrator({
     // Build idempotency key: stable representation of "same turn + same actor"
     const key = [
       roomStatus,
-      gameState.currentStepIndex,
+      gameState.nightStep?.kind === 'inStep'
+        ? gameState.nightStep.stepId
+        : (gameState.nightStep?.kind ?? 'null'),
       currentActionRole ?? 'null',
       actorSeatForUi ?? 'null',
       imActioner ? 'A' : 'N',
@@ -347,7 +349,7 @@ export function useActionOrchestrator({
     firstSwapSeat,
     roomStatus,
     currentActionRole,
-    gameState.currentStepIndex,
+    gameState.nightStep,
     getAutoTriggerIntent,
     handleActionIntent,
   ]);

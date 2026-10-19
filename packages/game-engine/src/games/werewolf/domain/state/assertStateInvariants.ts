@@ -433,42 +433,25 @@ function assertRosterAlignment(state: GameState): void {
 }
 
 /**
- * The night-step window: `currentStepIndex` / `currentStepId` / `stepDeadline`
- * are only meaningful while a night is running. Outside `Ongoing` the step
- * pointer stays parked (index -1, no step id, no deadline). Inside `Ongoing`
- * the state is either parked on a plan step — id and index naming the same
- * step of the plan derived from `templateRoles` + `seerLabelMap` — or
- * exhausted (index past the plan end, no step id, no deadline; only
- * `END_NIGHT` may proceed). A deadline only ever exists on a live step.
+ * The night-step window: `nightStep` is non-null exactly while a night is
+ * running (`Ongoing`). Inside `Ongoing` the state is either parked on a
+ * plan step — the stored stepId must be a member of the plan derived from
+ * `templateRoles` + `seerLabelMap` — or exhausted (only `END_NIGHT` may
+ * proceed). A deadline only ever exists inside the live step variant.
  */
 function assertWerewolfStepWindow(state: GameState): void {
-  const { currentStepIndex, currentStepId, stepDeadline } = state;
-  if (state.status !== GameStatus.Ongoing) {
-    if (currentStepIndex !== -1) {
-      fail(`${state.status} state carries currentStepIndex ${currentStepIndex}`);
-    }
-    if (currentStepId !== undefined) {
-      fail(`${state.status} state carries currentStepId ${currentStepId}`);
-    }
-    if (stepDeadline !== undefined) {
-      fail(`${state.status} state carries stepDeadline`);
+  if (state.status === GameStatus.Ongoing) {
+    const nightStep = state.nightStep;
+    if (nightStep === null) fail('Ongoing state has no nightStep');
+    if (nightStep.kind === 'inStep') {
+      const plan = buildNightPlan(state.templateRoles, state.seerLabelMap);
+      if (!plan.steps.some((s) => s.stepId === nightStep.stepId)) {
+        fail(`night step ${nightStep.stepId} is not in the night plan`);
+      }
     }
     return;
   }
-  if (currentStepId === undefined) {
-    const planLength = buildNightPlan(state.templateRoles, state.seerLabelMap).steps.length;
-    if (currentStepIndex !== planLength) {
-      fail(
-        `Ongoing state without currentStepId carries currentStepIndex ${currentStepIndex}, expected plan length ${planLength}`,
-      );
-    }
-    if (stepDeadline !== undefined) fail('exhausted Ongoing state carries stepDeadline');
-    return;
-  }
-  const plan = buildNightPlan(state.templateRoles, state.seerLabelMap);
-  if (plan.steps[currentStepIndex]?.stepId !== currentStepId) {
-    fail(`currentStepId ${currentStepId} does not match plan step at index ${currentStepIndex}`);
-  }
+  if (state.nightStep !== null) fail(`nightStep exists during ${state.status}`);
 }
 
 /** Reject semantic state combinations that the command pipeline cannot produce. */

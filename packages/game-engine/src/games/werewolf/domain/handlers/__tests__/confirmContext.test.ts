@@ -37,8 +37,7 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
       5: { seat: 5, hasViewedRole: true, role: 'witch' },
       6: { seat: 6, hasViewedRole: true, role: 'hunter' },
     },
-    currentStepIndex: 0,
-    currentStepId: 'hunterConfirm',
+    nightStep: { kind: 'inStep', stepId: 'hunterConfirm' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],
@@ -666,7 +665,7 @@ describe('maybeCreateConfirmStatusAction - hiddenWolf', () => {
         10: { seat: 10, hasViewedRole: true, role: 'hunter' },
         11: { seat: 11, hasViewedRole: true, role: 'crow' },
       },
-      currentStepId: 'hiddenWolfReveal',
+      nightStep: { kind: 'inStep', stepId: 'hiddenWolfReveal' },
     });
     const action = maybeCreateConfirmStatusAction('hiddenWolfReveal', state);
     expect(action).toEqual({
@@ -697,7 +696,7 @@ describe('maybeCreateConfirmStatusAction - hiddenWolf', () => {
         6: { seat: 6, hasViewedRole: true, role: 'witch' },
         7: { seat: 7, hasViewedRole: true, role: 'hunter' },
       },
-      currentStepId: 'hiddenWolfReveal',
+      nightStep: { kind: 'inStep', stepId: 'hiddenWolfReveal' },
     });
     const action = maybeCreateConfirmStatusAction('hiddenWolfReveal', state);
     expect(action).toEqual({
@@ -734,7 +733,7 @@ describe('AU-39 golden: confirmContext edge characterizations', () => {
         6: { seat: 6, hasViewedRole: true, role: 'villager' },
         7: { seat: 7, hasViewedRole: true, role: 'seer' },
       },
-      currentStepId: 'hiddenWolfReveal',
+      nightStep: { kind: 'inStep', stepId: 'hiddenWolfReveal' },
       currentNightResults: { thiefChosenCard: 'wolf', treasureMasterChosenCard: 'wolf' },
     });
 
@@ -780,7 +779,7 @@ describe('AU-39 golden: confirmContext edge characterizations', () => {
         4: { seat: 4, hasViewedRole: true, role: 'seer' as const },
       },
       thiefSeat: 0,
-      currentStepId: 'hunterConfirm' as const,
+      nightStep: { kind: 'inStep', stepId: 'hunterConfirm' },
     };
 
     expect(
@@ -821,7 +820,7 @@ describe('AU-39 golden: confirmContext edge characterizations', () => {
       },
       bottomCards: ['hunter', 'villager'],
       thiefSeat: 2,
-      currentStepId: 'hunterConfirm',
+      nightStep: { kind: 'inStep', stepId: 'hunterConfirm' },
       currentNightResults: {},
     });
 

@@ -14,7 +14,6 @@ import type {
   ViewedRoleIntent,
 } from '@game-judge/game-engine/games/werewolf/domain/intents/types';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
-import type { SchemaId } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
 import {
   BLOCKED_UI_DEFAULTS,
   SCHEMAS,
@@ -50,7 +49,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Ongoing,
     templateRoles: ['villager', 'wolf', 'seer'],
     players,
-    currentStepIndex: 0,
+    nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],
@@ -177,14 +176,12 @@ describe('handleViewedRole', () => {
 describe('handleSubmitAction', () => {
   /**
    * Create ongoing state for SubmitAction tests
-   * currentStepId set to 'seerCheck' (Seer step)
+   * nightStep set to the 'seerCheck' step (Seer step)
    */
-  const createOngoingState = (
-    overrides?: Partial<GameState> & { currentStepId?: SchemaId },
-  ): GameState => {
+  const createOngoingState = (overrides?: Partial<GameState>): GameState => {
     return createMinimalState({
       status: GameStatus.Ongoing,
-      currentStepId: 'seerCheck',
+      nightStep: { kind: 'inStep', stepId: 'seerCheck' },
       isAudioPlaying: false,
       players: {
         0: { seat: 0, role: 'villager', hasViewedRole: true },
@@ -337,8 +334,8 @@ describe('handleSubmitAction', () => {
 
   // === Gate: invalid_step ===
 
-  it('should fail when currentStepId is missing (gate: invalid_step)', () => {
-    const state = createOngoingState({ currentStepId: undefined });
+  it('should fail when there is no live step (gate: invalid_step)', () => {
+    const state = createOngoingState({ nightStep: { kind: 'exhausted' } });
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
@@ -354,9 +351,9 @@ describe('handleSubmitAction', () => {
   // === Gate: step_mismatch ===
 
   it('should fail when submitted role does not match current step (gate: step_mismatch)', () => {
-    // currentStepId is seerCheck but submitting a guard action
+    // nightStep is seerCheck but submitting a guard action
     const state = createOngoingState({
-      currentStepId: 'seerCheck',
+      nightStep: { kind: 'inStep', stepId: 'seerCheck' },
       players: {
         0: { seat: 0, role: 'guard', hasViewedRole: true },
         1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -436,7 +433,8 @@ describe('handleSubmitAction', () => {
      */
     it('should reject self-target when schema has notSelf constraint (wolfRobotLearn)', () => {
       const state = createOngoingState({
-        currentStepId: 'wolfRobotLearn',
+        nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
+        templateRoles: ['villager', 'wolf', 'wolfRobot'],
         players: {
           0: { seat: 0, role: 'villager', hasViewedRole: true },
           1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -465,7 +463,8 @@ describe('handleSubmitAction', () => {
 
     it('should allow other target when schema has notSelf constraint', () => {
       const state = createOngoingState({
-        currentStepId: 'wolfRobotLearn',
+        nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
+        templateRoles: ['villager', 'wolf', 'wolfRobot'],
         players: {
           0: { seat: 0, role: 'villager', hasViewedRole: true },
           1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -497,8 +496,9 @@ describe('handleSubmitAction', () => {
       'should attach authoritative wolfRobot hunter status: $expectedCanShoot',
       ({ currentNightResults, expectedCanShoot }) => {
         const state = createOngoingState({
-          currentStepId: 'wolfRobotLearn',
+          nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
           currentNightResults,
+          templateRoles: ['hunter', 'wolf', 'wolfRobot'],
           players: {
             0: { seat: 0, role: 'hunter', hasViewedRole: true },
             1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -542,7 +542,7 @@ describe('handleSubmitAction', () => {
 
     it('should reject blocked seer with non-skip target', () => {
       const state = createOngoingState({
-        currentStepId: 'seerCheck',
+        nightStep: { kind: 'inStep', stepId: 'seerCheck' },
         players: {
           0: { seat: 0, role: 'seer', hasViewedRole: true },
           1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -565,7 +565,7 @@ describe('handleSubmitAction', () => {
 
     it('should allow blocked seer to skip (target=null)', () => {
       const state = createOngoingState({
-        currentStepId: 'seerCheck',
+        nightStep: { kind: 'inStep', stepId: 'seerCheck' },
         players: {
           0: { seat: 0, role: 'seer', hasViewedRole: true },
           1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -585,7 +585,7 @@ describe('handleSubmitAction', () => {
 
     it('should allow non-blocked seer to take action', () => {
       const state = createOngoingState({
-        currentStepId: 'seerCheck',
+        nightStep: { kind: 'inStep', stepId: 'seerCheck' },
         players: {
           0: { seat: 0, role: 'seer', hasViewedRole: true },
           1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -607,7 +607,8 @@ describe('handleSubmitAction', () => {
 
     it('should reject blocked magician with non-skip targets', () => {
       const state = createOngoingState({
-        currentStepId: 'magicianSwap',
+        nightStep: { kind: 'inStep', stepId: 'magicianSwap' },
+        templateRoles: ['magician', 'wolf', 'villager'],
         players: {
           0: { seat: 0, role: 'magician', hasViewedRole: true },
           1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -635,7 +636,8 @@ describe('handleSubmitAction', () => {
 
     it('should allow blocked magician to skip (empty targets)', () => {
       const state = createOngoingState({
-        currentStepId: 'magicianSwap',
+        nightStep: { kind: 'inStep', stepId: 'magicianSwap' },
+        templateRoles: ['magician', 'wolf'],
         players: {
           0: { seat: 0, role: 'magician', hasViewedRole: true },
           1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -661,7 +663,8 @@ describe('handleSubmitAction', () => {
 
     it('should reject blocked witch with non-skip stepResults (save)', () => {
       const state = createOngoingState({
-        currentStepId: 'witchAction',
+        nightStep: { kind: 'inStep', stepId: 'witchAction' },
+        templateRoles: ['villager', 'wolf', 'villager', 'witch'],
         players: {
           0: { seat: 0, role: 'villager', hasViewedRole: true },
           1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -691,7 +694,8 @@ describe('handleSubmitAction', () => {
 
     it('should reject blocked witch with non-skip stepResults (poison)', () => {
       const state = createOngoingState({
-        currentStepId: 'witchAction',
+        nightStep: { kind: 'inStep', stepId: 'witchAction' },
+        templateRoles: ['villager', 'wolf', 'villager', 'witch'],
         players: {
           0: { seat: 0, role: 'villager', hasViewedRole: true },
           1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -718,7 +722,8 @@ describe('handleSubmitAction', () => {
 
     it('should allow blocked witch to skip (stepResults all null)', () => {
       const state = createOngoingState({
-        currentStepId: 'witchAction',
+        nightStep: { kind: 'inStep', stepId: 'witchAction' },
+        templateRoles: ['villager', 'wolf', 'villager', 'witch'],
         players: {
           0: { seat: 0, role: 'villager', hasViewedRole: true },
           1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -744,7 +749,8 @@ describe('handleSubmitAction', () => {
 
     it('should allow non-blocked witch to use abilities', () => {
       const state = createOngoingState({
-        currentStepId: 'witchAction',
+        nightStep: { kind: 'inStep', stepId: 'witchAction' },
+        templateRoles: ['villager', 'wolf', 'villager', 'witch'],
         players: {
           0: { seat: 0, role: 'villager', hasViewedRole: true },
           1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -775,7 +781,8 @@ describe('handleSubmitAction', () => {
 
     it('should reject blocked hunter with confirmed=true', () => {
       const state = createOngoingState({
-        currentStepId: 'hunterConfirm',
+        nightStep: { kind: 'inStep', stepId: 'hunterConfirm' },
+        templateRoles: ['hunter', 'wolf'],
         players: {
           0: { seat: 0, role: 'hunter', hasViewedRole: true },
           1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -801,7 +808,8 @@ describe('handleSubmitAction', () => {
 
     it('should allow blocked hunter to skip (confirmed !== true)', () => {
       const state = createOngoingState({
-        currentStepId: 'hunterConfirm',
+        nightStep: { kind: 'inStep', stepId: 'hunterConfirm' },
+        templateRoles: ['hunter', 'wolf'],
         players: {
           0: { seat: 0, role: 'hunter', hasViewedRole: true },
           1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -825,7 +833,8 @@ describe('handleSubmitAction', () => {
 
     it('should reject non-blocked hunter trying to skip (confirm requires action)', () => {
       const state = createOngoingState({
-        currentStepId: 'hunterConfirm',
+        nightStep: { kind: 'inStep', stepId: 'hunterConfirm' },
+        templateRoles: ['hunter', 'wolf'],
         players: {
           0: { seat: 0, role: 'hunter', hasViewedRole: true },
           1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -851,7 +860,8 @@ describe('handleSubmitAction', () => {
 
     it('should allow non-blocked hunter to confirm', () => {
       const state = createOngoingState({
-        currentStepId: 'hunterConfirm',
+        nightStep: { kind: 'inStep', stepId: 'hunterConfirm' },
+        templateRoles: ['hunter', 'wolf'],
         players: {
           0: { seat: 0, role: 'hunter', hasViewedRole: true },
           1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -877,7 +887,8 @@ describe('handleSubmitAction', () => {
 
     it('should reject blocked darkWolfKing with confirmed=true', () => {
       const state = createOngoingState({
-        currentStepId: 'darkWolfKingConfirm',
+        nightStep: { kind: 'inStep', stepId: 'darkWolfKingConfirm' },
+        templateRoles: ['darkWolfKing', 'villager'],
         players: {
           0: { seat: 0, role: 'darkWolfKing', hasViewedRole: true },
           1: { seat: 1, role: 'villager', hasViewedRole: true },
@@ -902,7 +913,8 @@ describe('handleSubmitAction', () => {
 
     it('should reject non-blocked darkWolfKing trying to skip', () => {
       const state = createOngoingState({
-        currentStepId: 'darkWolfKingConfirm',
+        nightStep: { kind: 'inStep', stepId: 'darkWolfKingConfirm' },
+        templateRoles: ['darkWolfKing', 'villager'],
         players: {
           0: { seat: 0, role: 'darkWolfKing', hasViewedRole: true },
           1: { seat: 1, role: 'villager', hasViewedRole: true },

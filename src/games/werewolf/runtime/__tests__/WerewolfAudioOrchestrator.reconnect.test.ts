@@ -189,7 +189,10 @@ describe('WerewolfAudioOrchestrator reconnect', () => {
       };
       const { orchestrator, mockStore } = createOrchestrator({ audio, isAborted });
       mockStore.getState.mockReturnValue(
-        buildWerewolfTestState({ currentStepId: 'wolfKill', isAudioPlaying: true }),
+        buildWerewolfTestState({
+          nightStep: { kind: 'inStep', stepId: 'wolfKill' },
+          isAudioPlaying: true,
+        }),
       );
       orchestrator.setWasAudioInterrupted(true);
 

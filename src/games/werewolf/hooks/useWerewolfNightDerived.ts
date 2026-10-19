@@ -25,7 +25,7 @@ interface WerewolfNightDerivedValues {
   currentSchemaId: SchemaId | null;
   /** Full schema derived from schemaId */
   currentSchema: ActionSchema | null;
-  /** Authoritative stepId from Host ROLE_TURN */
+  /** Authoritative stepId from the engine's nightStep (UI-only) */
   currentStepId: SchemaId | null;
   /** Whether audio is currently playing */
   isAudioPlaying: boolean;
@@ -36,16 +36,18 @@ interface WerewolfNightDerivedValues {
  * All pure useMemo computations — no side effects, no subscriptions.
  */
 export function useWerewolfNightDerived(gameState: LocalGameState): WerewolfNightDerivedValues {
-  // Current action role + schemaId — derived from NightPlan in one pass.
-  // Phase 5: actionOrder removed from template, now derived from NightPlan.
-  // Uses currentStepIndex to pick the exact step, which correctly handles roles
-  // with multiple night steps (e.g. piper → piperHypnotize + piperHypnotizedReveal).
+  // Current action role + schemaId — resolved from the single stored step
+  // identity (nightStep.stepId) through the NightPlan. Roles with multiple
+  // night steps (e.g. piper → piperHypnotize + piperHypnotizedReveal) are
+  // handled exactly, since the plan lookup is by step id, not position.
   const { currentActionRole, currentSchemaId } = useMemo(() => {
     const NONE = { currentActionRole: null, currentSchemaId: null } as const;
     if (gameState.status !== GameStatus.Ongoing) return NONE;
+    const nightStep = gameState.nightStep;
+    if (nightStep?.kind !== 'inStep') return NONE;
     const nightPlan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
-    if (gameState.currentStepIndex >= nightPlan.steps.length) return NONE;
-    const step = nightPlan.steps[gameState.currentStepIndex]!;
+    const step = nightPlan.steps.find((s) => s.stepId === nightStep.stepId);
+    if (!step) return NONE;
     return {
       currentActionRole: step.roleId,
       currentSchemaId: step.stepId,
@@ -58,8 +60,10 @@ export function useWerewolfNightDerived(gameState: LocalGameState): WerewolfNigh
     return getSchema(currentSchemaId);
   }, [currentSchemaId]);
 
-  // Authoritative stepId from Host ROLE_TURN (UI-only)
-  const currentStepId: SchemaId | null = gameState.currentStepId ?? null;
+  // Authoritative stepId: the same nightStep identity the derivation above
+  // consumed — one source for role, schema, and step id.
+  const currentStepId: SchemaId | null =
+    gameState.nightStep?.kind === 'inStep' ? gameState.nightStep.stepId : null;
 
   // Check if audio is currently playing
   const isAudioPlaying = gameState.isAudioPlaying;

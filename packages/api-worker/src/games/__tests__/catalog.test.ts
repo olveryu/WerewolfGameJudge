@@ -267,7 +267,6 @@ describe('Worker game catalog', () => {
         input: { kind: 'target', target: 2 },
         expectedStep: {
           currentStepId: 'seerCheck',
-          currentStepIndex: 4,
           roleRevealRandomNonce: null,
         },
       }),
@@ -276,7 +275,6 @@ describe('Worker game catalog', () => {
       input: { kind: 'target', target: 2 },
       expectedStep: {
         currentStepId: 'seerCheck',
-        currentStepIndex: 4,
         roleRevealRandomNonce: null,
       },
     });
@@ -286,7 +284,6 @@ describe('Worker game catalog', () => {
         input: { kind: 'target', target: 2 },
         expectedStep: {
           currentStepId: 'unknown-step',
-          currentStepIndex: 4,
           roleRevealRandomNonce: null,
         },
       }),

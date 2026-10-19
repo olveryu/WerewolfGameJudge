@@ -41,7 +41,7 @@ function createFullState(): GameState {
         level: 3,
       },
     },
-    currentStepIndex: -1,
+    nightStep: null,
     isAudioPlaying: true,
     roleRevealRandomNonce: 'nonce',
     actions: [{ schemaId: 'wolfKill', actorSeat: 0, targetSeat: 1, timestamp: 1 }],
@@ -222,13 +222,23 @@ describe('parseWerewolfState', () => {
     expect(parseWerewolfState(encoded).playerProfiles.host?.revealEffect).toBe('none');
   });
 
-  it('rejects a current-version payload carrying a residual stepDeadline into Ended', () => {
+  it('rejects a current-version payload carrying the legacy stepDeadline field', () => {
     const encoded = { ...createFullState(), stepDeadline: 2 };
 
-    expect(() => parseWerewolfState(encoded)).toThrow('Ended state carries stepDeadline');
+    expect(() => parseWerewolfState(encoded)).toThrow(
+      'GameState contains unknown field: stepDeadline',
+    );
   });
 
-  it('rejects a current-version Day payload carrying a currentStepId', () => {
+  it('rejects a current-version payload carrying the legacy currentStepIndex field', () => {
+    const encoded = { ...createFullState(), currentStepIndex: -1 };
+
+    expect(() => parseWerewolfState(encoded)).toThrow(
+      'GameState contains unknown field: currentStepIndex',
+    );
+  });
+
+  it('rejects a current-version Day payload carrying the legacy currentStepId field', () => {
     const encoded = {
       ...createFullState(),
       status: GameStatus.Day,
@@ -244,7 +254,34 @@ describe('parseWerewolfState', () => {
       currentStepId: 'wolfKill',
     };
 
-    expect(() => parseWerewolfState(encoded)).toThrow('Day state carries currentStepId wolfKill');
+    expect(() => parseWerewolfState(encoded)).toThrow(
+      'GameState contains unknown field: currentStepId',
+    );
+  });
+
+  it('rejects a nightStep with an unknown kind', () => {
+    const encoded = { ...createFullState(), nightStep: { kind: 'sideways' } };
+
+    expect(() => parseWerewolfState(encoded)).toThrow(
+      'GameState.nightStep.kind: unsupported night step kind',
+    );
+  });
+
+  it('rejects an inStep nightStep without a stepId', () => {
+    const encoded = { ...createFullState(), nightStep: { kind: 'inStep' } };
+
+    expect(() => parseWerewolfState(encoded)).toThrow('GameState.nightStep.stepId');
+  });
+
+  it('rejects an exhausted nightStep carrying a stepDeadline key', () => {
+    const encoded = {
+      ...createFullState(),
+      nightStep: { kind: 'exhausted', stepDeadline: 2 },
+    };
+
+    expect(() => parseWerewolfState(encoded)).toThrow(
+      'GameState.nightStep contains unknown field: stepDeadline',
+    );
   });
 
   it('rejects an unknown top-level field', () => {

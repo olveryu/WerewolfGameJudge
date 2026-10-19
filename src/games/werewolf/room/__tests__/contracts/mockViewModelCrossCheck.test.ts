@@ -65,7 +65,7 @@ function buildEngineState(): GameState {
   return buildWerewolfTestState({
     status: GameStatus.Ongoing,
     templateRoles: [...ROLES],
-    currentStepIndex: stepIndex,
+    nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     players,
     roster,
     playerProfiles,

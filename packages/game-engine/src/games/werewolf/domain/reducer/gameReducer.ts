@@ -151,11 +151,25 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
     case 'CLEAR_REVEAL_ACKS':
       return { ...state, pendingRevealAcks: [] };
 
-    case 'SET_STEP_DEADLINE':
-      return { ...state, stepDeadline: action.payload.deadline };
+    case 'SET_STEP_DEADLINE': {
+      // The deadline lives inside the live step; arming it outside one is
+      // an upstream bug (both producers only fire within a step).
+      if (state.nightStep?.kind !== 'inStep') {
+        throw new Error('[FAIL-FAST] SET_STEP_DEADLINE outside a live night step');
+      }
+      return {
+        ...state,
+        nightStep: { ...state.nightStep, stepDeadline: action.payload.deadline },
+      };
+    }
 
-    case 'CLEAR_STEP_DEADLINE':
-      return { ...state, stepDeadline: undefined };
+    case 'CLEAR_STEP_DEADLINE': {
+      if (state.nightStep?.kind !== 'inStep') {
+        throw new Error('[FAIL-FAST] CLEAR_STEP_DEADLINE outside a live night step');
+      }
+      const { stepDeadline: _cleared, ...stepWithoutDeadline } = state.nightStep;
+      return { ...state, nightStep: stepWithoutDeadline };
+    }
 
     case 'SET_PENDING_AUDIO_EFFECTS':
       return { ...state, pendingAudioEffects: action.payload.effects };

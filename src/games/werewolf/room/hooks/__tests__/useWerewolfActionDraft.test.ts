@@ -19,7 +19,6 @@ const scope: WerewolfActionDraftScope = {
   roomId: 'room-id-2473',
   userId: 'user-9',
   currentStepId: 'magicianSwap',
-  currentStepIndex: 2,
   roleRevealRandomNonce: 'round-1',
   actorSeat: 3,
 };
@@ -53,7 +52,7 @@ describe('useWerewolfActionDraft', () => {
     const store = new WerewolfActionDraftStore(createStorage());
     store.write(scope, 12, { firstSwapSeat: 4, multiSelectedSeats: [1, 7] });
     const changedActive = {
-      scope: { ...scope, currentStepId: 'seerCheck' as const, currentStepIndex: 3 },
+      scope: { ...scope, currentStepId: 'seerCheck' as const },
       seatCount: 12,
     };
 

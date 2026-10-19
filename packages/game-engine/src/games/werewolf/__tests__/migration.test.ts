@@ -140,7 +140,7 @@ describe('Werewolf v5 -> v6 roster migration', () => {
   });
 });
 
-describe('v6 -> current migration (debugMode deletion + step canonicalization)', () => {
+describe('v6 -> current migration (debugMode deletion + nightStep shape)', () => {
   it('drops the debugMode field and parses the rest unchanged', () => {
     const current = buildV6State();
     const stored = JSON.parse(
@@ -149,7 +149,7 @@ describe('v6 -> current migration (debugMode deletion + step canonicalization)',
 
     const migrated = migratePersistedWerewolfState(stored);
 
-    expect(migrated.stateVersion).toBe(8);
+    expect(migrated.stateVersion).toBe(9);
     expect('debugMode' in migrated).toBe(false);
     expect(migrated).toEqual(parseWerewolfState(JSON.parse(JSON.stringify(current)) as unknown));
   });
@@ -164,7 +164,7 @@ describe('v6 -> current migration (debugMode deletion + step canonicalization)',
   });
 });
 
-describe('v7 -> v8 migration (night-step window canonicalization)', () => {
+describe('v7 -> current migration (night-step canonicalization into the nightStep shape)', () => {
   // Base board is [wolf, seer, villager]: the night plan is
   // [wolfKill, seerCheck] (length 2).
   function storedV7(overrides: Record<string, unknown>): unknown {
@@ -183,18 +183,15 @@ describe('v7 -> v8 migration (night-step window canonicalization)', () => {
         stepDeadline: 1_000,
       }),
     );
-    expect(migrated.stateVersion).toBe(8);
-    expect(migrated.currentStepIndex).toBe(-1);
-    expect(migrated.currentStepId).toBeUndefined();
-    expect(migrated.stepDeadline).toBeUndefined();
+    expect(migrated.stateVersion).toBe(9);
+    expect(migrated.nightStep).toBeNull();
   });
 
   it('clears step fields on any non-Ongoing status', () => {
     const migrated = migratePersistedWerewolfState(
       storedV7({ status: GameStatus.Seated, currentStepId: 'wolfKill', currentStepIndex: 2 }),
     );
-    expect(migrated.currentStepIndex).toBe(-1);
-    expect(migrated.currentStepId).toBeUndefined();
+    expect(migrated.nightStep).toBeNull();
   });
 
   it('repairs an Ongoing index that disagrees with its step id (the id wins)', () => {
@@ -207,9 +204,11 @@ describe('v7 -> v8 migration (night-step window canonicalization)', () => {
         stepDeadline: 2_000,
       }),
     );
-    expect(migrated.currentStepIndex).toBe(1);
-    expect(migrated.currentStepId).toBe('seerCheck');
-    expect(migrated.stepDeadline).toBe(2_000);
+    expect(migrated.nightStep).toEqual({
+      kind: 'inStep',
+      stepId: 'seerCheck',
+      stepDeadline: 2_000,
+    });
   });
 
   it('normalizes the exhausted position to the plan length and drops its deadline', () => {
@@ -221,9 +220,7 @@ describe('v7 -> v8 migration (night-step window canonicalization)', () => {
         stepDeadline: 3_000,
       }),
     );
-    expect(migrated.currentStepId).toBeUndefined();
-    expect(migrated.currentStepIndex).toBe(2);
-    expect(migrated.stepDeadline).toBeUndefined();
+    expect(migrated.nightStep).toEqual({ kind: 'exhausted' });
   });
 
   it('passes a consistent in-step Ongoing state through value-identical', () => {
@@ -236,9 +233,11 @@ describe('v7 -> v8 migration (night-step window canonicalization)', () => {
         stepDeadline: 4_000,
       }),
     );
-    expect(migrated.currentStepId).toBe('wolfKill');
-    expect(migrated.currentStepIndex).toBe(0);
-    expect(migrated.stepDeadline).toBe(4_000);
+    expect(migrated.nightStep).toEqual({
+      kind: 'inStep',
+      stepId: 'wolfKill',
+      stepDeadline: 4_000,
+    });
   });
 
   it('rescues a step id outside the plan from the stored index position', () => {
@@ -250,11 +249,10 @@ describe('v7 -> v8 migration (night-step window canonicalization)', () => {
         currentStepIndex: 1,
       }),
     );
-    expect(migrated.currentStepId).toBe('seerCheck');
-    expect(migrated.currentStepIndex).toBe(1);
+    expect(migrated.nightStep).toEqual({ kind: 'inStep', stepId: 'seerCheck' });
   });
 
-  it('rejects a current-version (v8) payload whose step window is already illegal', () => {
+  it('rejects a current-version (v9) payload that still carries legacy step fields', () => {
     const stored = JSON.parse(
       JSON.stringify({
         ...buildV6State(),
@@ -264,12 +262,10 @@ describe('v7 -> v8 migration (night-step window canonicalization)', () => {
         currentStepIndex: 0,
       }),
     ) as unknown;
-    expect(() => migratePersistedWerewolfState(stored)).toThrow(
-      'currentStepId seerCheck does not match plan step at index 0',
-    );
+    expect(() => migratePersistedWerewolfState(stored)).toThrow(/unknown field/);
   });
 
-  it('canonicalizes a dirty v6 payload on its way to v8 as well', () => {
+  it('canonicalizes a dirty v6 payload on its way to v9 as well', () => {
     const migrated = migratePersistedWerewolfState(
       storedV7({
         stateVersion: 6,
@@ -279,8 +275,117 @@ describe('v7 -> v8 migration (night-step window canonicalization)', () => {
         stepDeadline: 5_000,
       }),
     );
-    expect(migrated.stateVersion).toBe(8);
+    expect(migrated.stateVersion).toBe(9);
     expect('debugMode' in migrated).toBe(false);
-    expect(migrated.stepDeadline).toBeUndefined();
+    expect(migrated.nightStep).toBeNull();
+  });
+});
+
+describe('v8 -> v9 migration (legacy step fields into the nightStep shape)', () => {
+  // Base board is [wolf, seer, villager]: the night plan is
+  // [wolfKill, seerCheck] (length 2). A v8 document carries the legacy
+  // three fields and no nightStep key.
+  function storedV8(overrides: Record<string, unknown>): unknown {
+    const raw = JSON.parse(JSON.stringify(buildV6State())) as Record<string, unknown>;
+    delete raw.nightStep;
+    return { ...raw, stateVersion: 8, ...overrides };
+  }
+
+  it('clears an Ended residual step window (incl. deadline) into nightStep null', () => {
+    const migrated = migratePersistedWerewolfState(
+      storedV8({
+        status: GameStatus.Ended,
+        currentNightResults: {},
+        currentStepIndex: 0,
+        currentStepId: 'wolfKill',
+        stepDeadline: 1_000,
+      }),
+    );
+    expect(migrated.stateVersion).toBe(9);
+    expect(migrated.nightStep).toBeNull();
+  });
+
+  it('maps a lobby state (L1) to nightStep null', () => {
+    const migrated = migratePersistedWerewolfState(
+      storedV8({
+        status: GameStatus.Unseated,
+        currentStepIndex: 0,
+        currentStepId: 'wolfKill',
+        stepDeadline: 1_000,
+      }),
+    );
+    expect(migrated.stateVersion).toBe(9);
+    expect(migrated.nightStep).toBeNull();
+  });
+
+  it('maps a Day state with a sheriff election to nightStep null and keeps the election', () => {
+    const dayState = gameReducer(
+      {
+        ...buildV6State(),
+        status: GameStatus.Ongoing,
+        rules: { isSheriffElectionEnabled: true },
+        currentNightResults: {},
+        nightStep: { kind: 'exhausted' },
+      },
+      { type: 'END_NIGHT', payload: { deaths: [], deathReasons: {} } },
+    );
+    expect(dayState.status).toBe(GameStatus.Day);
+    const raw = JSON.parse(JSON.stringify(dayState)) as Record<string, unknown>;
+    delete raw.nightStep;
+    const migrated = migratePersistedWerewolfState({
+      ...raw,
+      stateVersion: 8,
+      currentStepIndex: -1,
+    });
+    expect(migrated.stateVersion).toBe(9);
+    expect(migrated.status).toBe(GameStatus.Day);
+    expect(migrated.nightStep).toBeNull();
+    expect(migrated.sheriffElection).toEqual(dayState.sheriffElection);
+  });
+
+  it('maps an Ongoing step id into inStep, the id winning over a stale index', () => {
+    const migrated = migratePersistedWerewolfState(
+      storedV8({
+        status: GameStatus.Ongoing,
+        currentNightResults: {},
+        currentStepId: 'seerCheck',
+        currentStepIndex: 0,
+        stepDeadline: 2_000,
+      }),
+    );
+    expect(migrated.nightStep).toEqual({
+      kind: 'inStep',
+      stepId: 'seerCheck',
+      stepDeadline: 2_000,
+    });
+  });
+
+  it('maps an Ongoing state without a step id to exhausted and drops its deadline', () => {
+    const migrated = migratePersistedWerewolfState(
+      storedV8({
+        status: GameStatus.Ongoing,
+        currentNightResults: {},
+        currentStepIndex: 2,
+        stepDeadline: 3_000,
+      }),
+    );
+    expect(migrated.nightStep).toEqual({ kind: 'exhausted' });
+  });
+
+  it('passes a consistent in-step Ongoing state through value-identical', () => {
+    const migrated = migratePersistedWerewolfState(
+      storedV8({
+        status: GameStatus.Ongoing,
+        currentNightResults: {},
+        currentStepId: 'wolfKill',
+        currentStepIndex: 0,
+        stepDeadline: 4_000,
+      }),
+    );
+    expect(migrated.nightStep).toEqual({
+      kind: 'inStep',
+      stepId: 'wolfKill',
+      stepDeadline: 4_000,
+    });
   });
 });

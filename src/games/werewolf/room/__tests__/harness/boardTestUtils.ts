@@ -371,7 +371,7 @@ export function createWerewolfRoomMock(options: WerewolfRoomMockOptions) {
     players,
     actions: new Map<RoleId, RoleAction>(),
     wolfVotes: new Map<number, number>(),
-    currentStepIndex: 0,
+    nightStep: { kind: 'inStep', stepId: schemaId } as const,
     isAudioPlaying,
     lastNightDeaths: [],
     nightmareBlockedSeat,

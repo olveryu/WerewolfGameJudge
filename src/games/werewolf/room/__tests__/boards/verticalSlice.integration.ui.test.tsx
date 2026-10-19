@@ -126,7 +126,9 @@ describe('Vertical Slice: real state -> UI rendering', () => {
         submitActionOrThrow(ctx, seat, { kind: 'target', target: 0 }, 'wolfKill');
       }
     }
-    const wolfVoteDeadline = ctx.getGameState().stepDeadline;
+    const wolfVoteState = ctx.getGameState();
+    const wolfVoteDeadline =
+      wolfVoteState.nightStep?.kind === 'inStep' ? wolfVoteState.nightStep.stepDeadline : undefined;
     if (wolfVoteDeadline === undefined) {
       throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
     }
@@ -215,7 +217,9 @@ describe('Vertical Slice: real state -> UI rendering', () => {
         submitActionOrThrow(ctx, seat, { kind: 'target', target: 0 }, 'wolfKill');
       }
     }
-    const wolfVoteDeadline = ctx.getGameState().stepDeadline;
+    const wolfVoteState = ctx.getGameState();
+    const wolfVoteDeadline =
+      wolfVoteState.nightStep?.kind === 'inStep' ? wolfVoteState.nightStep.stepDeadline : undefined;
     if (wolfVoteDeadline === undefined) {
       throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
     }

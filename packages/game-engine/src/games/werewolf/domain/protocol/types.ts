@@ -222,6 +222,29 @@ export type SheriffElectionResult =
 // GameState — single authoritative state type
 // =============================================================================
 
+/**
+ * Night step position — the only place step-scoped facts live.
+ *
+ * - `inStep`: the night plan step currently in force; `stepId` is the
+ *   step's identity (=== its action SchemaId). The step's index in the
+ *   plan is never stored; derive it with resolveCurrentNightStep.
+ * - `exhausted`: every plan step has been advanced past; the only legal
+ *   exit is END_NIGHT.
+ *
+ * Non-null exactly while status === Ongoing (asserted at the state
+ * boundary; see assertStateInvariants). stepDeadline lives and dies
+ * with the step that armed it — leaving the step discards it by
+ * construction.
+ */
+export type WerewolfNightStep =
+  | {
+      readonly kind: 'inStep';
+      readonly stepId: SchemaId;
+      /** Progression deadline (epoch ms) armed inside this step; cleared by leaving the step. */
+      readonly stepDeadline?: number;
+    }
+  | { readonly kind: 'exhausted' };
+
 export interface GameState extends BaseGameState<WerewolfGameType> {
   // --- Core fields (existing) ---
   roomCode: string;
@@ -254,15 +277,8 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    */
   playerProfiles: Record<string, RosterEntry>;
 
-  /**
-   * Current night step index.
-   * -1 = night not started (Setup phase); >= 0 = nightSteps array index.
-   * Only meaningful when status=Ongoing. While Ongoing without a
-   * currentStepId it equals the plan length (the exhausted position
-   * awaiting END_NIGHT). The step-window contract is enforced by
-   * assertWerewolfStepWindow.
-   */
-  currentStepIndex: number;
+  /** Night step position; null outside the night (status !== Ongoing). */
+  nightStep: WerewolfNightStep | null;
   isAudioPlaying: boolean;
 
   /**
@@ -271,13 +287,6 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    * seed = roomCode + ':' + roleRevealRandomNonce
    */
   roleRevealRandomNonce?: string;
-
-  /**
-   * Current night step ID (from NIGHT_STEPS table-driven single source).
-   * Present exactly while a plan step is live (status=Ongoing); absent in
-   * the exhausted position and outside the night.
-   */
-  currentStepId?: SchemaId;
 
   // --- Seat-map fields ---
   // NOTE: single source of truth for wolf vote is:
@@ -437,26 +446,6 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
     /** Unique id for this rejection event (UI uses it for dedupe). */
     rejectionId: string;
   };
-
-  // --- Step progression deadline ---
-  /**
-   * Current step progression deadline (epoch ms).
-   *
-   * Unified deadline-gate: inlineProgression allows advance after expiry.
-   * Usage:
-   * - wolfKill step: set (now + WOLF_VOTE_COUNTDOWN_MS) after all votes, cleared on change/retract
-   * - Empty deck step: set (now + random(5000, 10000)) on entry
-   *
-   * Lifecycle:
-   * - Set: internal engine (wolf vote post-action / unchosen step entry)
-   * - Check: evaluateProgression (inlineProgression.ts)
-   * - Clear: ADVANCE_TO_NEXT_ACTION reducer
-   *
-   * Window: only ever present on a live step (status=Ongoing with a
-   * currentStepId); never carried into the exhausted position or into
-   * Day/Ended. Enforced by assertWerewolfStepWindow.
-   */
-  stepDeadline?: number;
 
   // --- Pending audio queue (produced by server-side inline progression) ---
   /**

@@ -115,7 +115,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       expect(stateAfterLearn.wolfRobotHunterStatusViewed).toBe(false);
 
       // Assertion 4: current step is still wolfRobotLearn (blocked by gate)
-      expect(stateAfterLearn.currentStepId).toBe('wolfRobotLearn');
+      expect(stateAfterLearn.nightStep).toEqual({ kind: 'inStep', stepId: 'wolfRobotLearn' });
 
       // Step 3: a production progression request commits but cannot bypass either ACK gate
       const blockedProgressResult = ctx.dispatch({ type: 'werewolf.progress.request' });
@@ -123,7 +123,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
         kind: 'committed',
         outcome: { kind: 'success' },
       });
-      expect(ctx.getGameState().currentStepId).toBe('wolfRobotLearn');
+      expect(ctx.getGameState().nightStep).toEqual({ kind: 'inStep', stepId: 'wolfRobotLearn' });
 
       // Step 4: only the Wolf Robot seat can acknowledge its hunter status
       const rejectedHunterStatusAck = ctx.dispatchAsSeat(HUNTER_SEAT, {
@@ -142,7 +142,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
         kind: 'committed',
         outcome: { kind: 'success' },
       });
-      expect(ctx.getGameState().currentStepId).toBe('wolfRobotLearn');
+      expect(ctx.getGameState().nightStep).toEqual({ kind: 'inStep', stepId: 'wolfRobotLearn' });
       expect(ctx.getGameState().wolfRobotHunterStatusViewed).toBe(false);
 
       // Step 6: hunter-status ACK clears the gate and production inline progression advances
@@ -156,7 +156,9 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
 
       const stateAfterGate = ctx.getGameState();
       expect(stateAfterGate.wolfRobotHunterStatusViewed).toBe(true);
-      expect(stateAfterGate.currentStepId).not.toBe('wolfRobotLearn');
+      expect(
+        stateAfterGate.nightStep?.kind === 'inStep' ? stateAfterGate.nightStep.stepId : undefined,
+      ).not.toBe('wolfRobotLearn');
     });
   });
 
@@ -206,7 +208,9 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
 
       state = ctx.getGameState();
       expect(state.wolfRobotHunterStatusViewed).toBe(true);
-      expect(state.currentStepId).not.toBe('wolfRobotLearn');
+      expect(state.nightStep?.kind === 'inStep' ? state.nightStep.stepId : undefined).not.toBe(
+        'wolfRobotLearn',
+      );
 
       // Step 4: complete remaining steps (using unified runner)
       const { deaths } = executeRemainingSteps(ctx, {
@@ -275,7 +279,9 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
 
       state = ctx.getGameState();
       expect(state.wolfRobotHunterStatusViewed).toBe(true);
-      expect(state.currentStepId).not.toBe('wolfRobotLearn');
+      expect(state.nightStep?.kind === 'inStep' ? state.nightStep.stepId : undefined).not.toBe(
+        'wolfRobotLearn',
+      );
 
       // Step 4: complete remaining steps (using unified runner)
       const { deaths } = executeRemainingSteps(ctx, {
@@ -334,7 +340,10 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
         kind: 'committed',
         outcome: { kind: 'success' },
       });
-      expect(ctx.getGameState().currentStepId).not.toBe('wolfRobotLearn');
+      const stateAfterAck = ctx.getGameState();
+      expect(
+        stateAfterAck.nightStep?.kind === 'inStep' ? stateAfterAck.nightStep.stepId : undefined,
+      ).not.toBe('wolfRobotLearn');
     });
 
     it('wolfRobot 跳过学习时，不触发 hunter gate', () => {
@@ -359,7 +368,9 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       // Should not trigger hunter gate
       expect(state.wolfRobotHunterStatusViewed).not.toBe(false);
 
-      expect(state.currentStepId).not.toBe('wolfRobotLearn');
+      expect(state.nightStep?.kind === 'inStep' ? state.nightStep.stepId : undefined).not.toBe(
+        'wolfRobotLearn',
+      );
     });
   });
 });

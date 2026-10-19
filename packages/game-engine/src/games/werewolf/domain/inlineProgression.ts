@@ -54,8 +54,8 @@ interface InlineProgressionResult {
  * Inlined here to avoid exporting a private function.
  */
 function isStepComplete(state: GameState): boolean {
-  const stepId = state.currentStepId;
-  if (!stepId) return true; // No current step -> complete (enter endNight)
+  if (state.nightStep?.kind !== 'inStep') return true; // Exhausted -> complete (enter endNight)
+  const stepId = state.nightStep.stepId;
 
   // The learning action is complete, but this step remains active until the
   // Wolf Robot has acknowledged the learned hunter-style status.
@@ -92,9 +92,9 @@ function isStepComplete(state: GameState): boolean {
  * have no player operating them → auto-advance immediately after audio.
  */
 function isUnchosenBottomCardStep(state: GameState): boolean {
-  return state.currentStepId === undefined
+  return state.nightStep?.kind !== 'inStep'
     ? false
-    : isVacantBottomCardStep(state, state.currentStepId);
+    : isVacantBottomCardStep(state, state.nightStep.stepId);
 }
 
 /**
@@ -109,11 +109,13 @@ function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_
   if (state.isAudioPlaying) return 'none';
   if (state.pendingRevealAcks && state.pendingRevealAcks.length > 0) return 'none';
 
-  if (state.currentStepId === undefined) return 'end_night';
+  if (state.nightStep?.kind === 'exhausted') return 'end_night';
+  if (state.nightStep?.kind !== 'inStep') return 'none';
+  const stepDeadline = state.nightStep.stepDeadline;
 
   if (isStepComplete(state)) {
     // Unified deadline gate: step complete but deadline not yet reached → wait
-    if (state.stepDeadline != null && nowMs < state.stepDeadline) {
+    if (stepDeadline != null && nowMs < stepDeadline) {
       return 'none';
     }
     return 'advance';
@@ -122,9 +124,9 @@ function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_
   // Auto-skip: unchosen bottom card role steps advance after random delay
   if (isUnchosenBottomCardStep(state)) {
     // No deadline set yet → signal 'none' so runInlineProgression can set it
-    if (state.stepDeadline == null) return 'none';
+    if (stepDeadline == null) return 'none';
     // Deadline not yet reached → wait
-    if (nowMs < state.stepDeadline) return 'none';
+    if (nowMs < stepDeadline) return 'none';
     // Deadline passed → advance
     return 'advance';
   }
@@ -254,7 +256,8 @@ export function runInlineProgression(
   // overlaps with the deadline window).
   if (
     isUnchosenBottomCardStep(currentState) &&
-    currentState.stepDeadline == null &&
+    currentState.nightStep?.kind === 'inStep' &&
+    currentState.nightStep.stepDeadline == null &&
     allAudioEffects.length === 0
   ) {
     const deadline =
@@ -262,7 +265,9 @@ export function runInlineProgression(
       randomIntInclusive(
         AUTO_SKIP_DELAY_MIN_MS,
         AUTO_SKIP_DELAY_MAX_MS,
-        createSeededRng(`${execution.randomSeed}:auto-skip:${String(currentState.currentStepId)}`),
+        createSeededRng(
+          `${execution.randomSeed}:auto-skip:${String(currentState.nightStep.stepId)}`,
+        ),
       );
     const setDeadlineAction: StateAction = {
       type: 'SET_STEP_DEADLINE',

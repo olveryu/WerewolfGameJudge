@@ -85,6 +85,7 @@ export {
   TemplateCategory,
   validateTemplateRoles,
 } from './domain/models/Template';
+export { type CurrentNightStep, resolveCurrentNightStep } from './domain/nightStep';
 export {
   buildSeatRoleMap,
   findSeatByRole,
@@ -105,6 +106,7 @@ export type {
   SheriffElectionState,
   SheriffSpeakingDirection,
   ShootConfirmStatus,
+  WerewolfNightStep,
 } from './domain/protocol/types';
 export { RESOLVERS } from './domain/resolvers';
 export type { ActionInput, CurrentNightResults, ResolverContext } from './domain/resolvers/types';

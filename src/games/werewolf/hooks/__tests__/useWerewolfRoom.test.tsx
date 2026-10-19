@@ -3,7 +3,7 @@ import {
   WEREWOLF_STATE_IDENTITY,
   type WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
-import { buildNightPlan, GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
@@ -61,7 +61,7 @@ function createGameState(overrides: Partial<GameState> = {}): GameState {
     },
     roster: { 0: { seat: 0, userId: 'host-user' } },
     playerProfiles: {},
-    currentStepIndex: 0,
+    nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],
@@ -275,9 +275,6 @@ describe('useWerewolfRoom shared-session composition', () => {
 describe('useWerewolfRoom view model (AU-39)', () => {
   it('host controlling a wolf bot receives the bot view and sees the wolf pack', () => {
     const roles = ['villager', 'wolf', 'wolf'] as const;
-    const wolfKillIndex = buildNightPlan([...roles]).steps.findIndex(
-      (step) => step.stepId === 'wolfKill',
-    );
     const state = createGameState({
       templateRoles: [...roles],
       players: {
@@ -290,7 +287,7 @@ describe('useWerewolfRoom view model (AU-39)', () => {
         1: { seat: 1, kind: 'bot' },
         2: { seat: 2, kind: 'bot' },
       },
-      currentStepIndex: wolfKillIndex,
+      nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     });
     const client = createClient({ state });
     const { result } = renderHook(() => useWerewolfRoom(client), { wrapper: createWrapper() });

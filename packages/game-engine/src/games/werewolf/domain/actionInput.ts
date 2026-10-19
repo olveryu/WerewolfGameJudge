@@ -49,14 +49,14 @@ export function resolveSubmitActionIntent(
 ): SubmitActionIntentResolution {
   if (
     expectedStep !== undefined &&
-    (state.currentStepId !== expectedStep.currentStepId ||
-      state.currentStepIndex !== expectedStep.currentStepIndex ||
+    ((state.nightStep?.kind === 'inStep' ? state.nightStep.stepId : undefined) !==
+      expectedStep.currentStepId ||
       (state.roleRevealRandomNonce ?? null) !== expectedStep.roleRevealRandomNonce)
   ) {
     return { kind: 'rejected', reason: REASON_ACTION_STEP_CHANGED };
   }
 
-  const stepId = state.currentStepId;
+  const stepId = state.nightStep?.kind === 'inStep' ? state.nightStep.stepId : undefined;
   if (stepId === undefined) {
     return { kind: 'rejected', reason: 'invalid_step' };
   }

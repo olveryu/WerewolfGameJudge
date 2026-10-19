@@ -38,7 +38,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Unseated,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
-    currentStepIndex: -1,
+    nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],

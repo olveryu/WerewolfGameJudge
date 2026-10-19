@@ -40,10 +40,9 @@ const baseContext: HandlerContext = {
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
-    currentStepIndex: 0,
+    nightStep: { kind: 'inStep', stepId: 'seerCheck' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
-    currentStepId: 'seerCheck',
     currentNightResults: {},
   },
 };
@@ -61,6 +60,10 @@ vi.mock('@game-judge/game-engine/games/werewolf/domain/resolvers', () => ({
 vi.mock('@game-judge/game-engine/games/werewolf/domain/models/roles/spec', () => ({
   NIGHT_STEPS: [{ id: 'seerCheck', roleId: 'seer' }],
   SCHEMAS: { seerCheck: { id: 'seerCheck', kind: 'chooseSeat' } }, // PR4: must mock SCHEMAS
+  // resolveCurrentNightStep derives the step position from the plan and
+  // resolves its schema through getSchema; mirror the mocked step table.
+  buildNightPlan: () => ({ steps: [{ stepId: 'seerCheck', roleId: 'seer' }] }),
+  getSchema: (id: string) => ({ id, kind: 'chooseSeat' }),
 }));
 
 describe('handleSubmitAction', () => {

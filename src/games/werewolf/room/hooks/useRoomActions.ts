@@ -342,7 +342,8 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     }
 
     // Already voted: check countdown
-    const deadline = gameState?.stepDeadline;
+    const deadline =
+      gameState?.nightStep?.kind === 'inStep' ? gameState.nightStep.stepDeadline : undefined;
     if (deadline != null) {
       const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
       if (remaining > 0) {
@@ -358,7 +359,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     hasWolfVoted,
     effectiveActorRole,
     actorSeat,
-    gameState?.stepDeadline,
+    gameState?.nightStep,
     countdownTick,
   ]);
 

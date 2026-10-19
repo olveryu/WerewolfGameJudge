@@ -44,7 +44,6 @@ function hasSameScope(
     current.roomId === next.roomId &&
     current.userId === next.userId &&
     current.currentStepId === next.currentStepId &&
-    current.currentStepIndex === next.currentStepIndex &&
     current.roleRevealRandomNonce === next.roleRevealRandomNonce &&
     current.actorSeat === next.actorSeat
   );

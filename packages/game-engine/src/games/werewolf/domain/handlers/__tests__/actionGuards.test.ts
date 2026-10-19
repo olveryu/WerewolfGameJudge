@@ -30,8 +30,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
       1: { seat: 1, role: 'wolf', hasViewedRole: true },
       2: { seat: 2, role: 'villager', hasViewedRole: true },
     },
-    currentStepIndex: 0,
-    currentStepId: 'seerCheck',
+    nightStep: { kind: 'inStep', stepId: 'seerCheck' },
     isAudioPlaying: false,
     actions: [],
     currentNightResults: {},
@@ -302,8 +301,8 @@ describe('validateActionPreconditions', () => {
     }
   });
 
-  it('should reject when currentStepId is null (Gate 3)', () => {
-    const state = createMinimalState({ currentStepId: undefined });
+  it('should reject when there is no live step (Gate 3)', () => {
+    const state = createMinimalState({ nightStep: { kind: 'exhausted' } });
     const result = validateActionPreconditions(state, 0, 'seer');
     expect(result.valid).toBe(false);
     if (!result.valid) {
@@ -313,8 +312,8 @@ describe('validateActionPreconditions', () => {
   });
 
   it('should reject when role does not match step (Gate 4b step_mismatch)', () => {
-    // currentStepId is seerCheck, but submitting as wolf
-    const state = createMinimalState({ currentStepId: 'seerCheck' });
+    // nightStep is seerCheck, but submitting as wolf
+    const state = createMinimalState({ nightStep: { kind: 'inStep', stepId: 'seerCheck' } });
     const result = validateActionPreconditions(state, 1, 'wolf');
     expect(result.valid).toBe(false);
     if (!result.valid) {
@@ -325,7 +324,7 @@ describe('validateActionPreconditions', () => {
 
   it('should reject when actor seat has no player (Gate 5)', () => {
     const state = createMinimalState({
-      currentStepId: 'seerCheck',
+      nightStep: { kind: 'inStep', stepId: 'seerCheck' },
       players: {
         0: null,
         1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -341,7 +340,7 @@ describe('validateActionPreconditions', () => {
 
   it('should reject when player role does not match (Gate 5b)', () => {
     // Seat 0 has role 'seer', but submitting as 'witch'
-    const state = createMinimalState({ currentStepId: 'seerCheck' });
+    const state = createMinimalState({ nightStep: { kind: 'inStep', stepId: 'seerCheck' } });
     const result = validateActionPreconditions(state, 0, 'witch');
     expect(result.valid).toBe(false);
     if (!result.valid) {
@@ -351,7 +350,7 @@ describe('validateActionPreconditions', () => {
   });
 
   it('should succeed when all gates pass', () => {
-    const state = createMinimalState({ currentStepId: 'seerCheck' });
+    const state = createMinimalState({ nightStep: { kind: 'inStep', stepId: 'seerCheck' } });
     const result = validateActionPreconditions(state, 0, 'seer');
     expect(result.valid).toBe(true);
     if (result.valid) {

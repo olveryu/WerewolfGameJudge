@@ -8,11 +8,7 @@
  * not engine-driven flows, in this game's client tests).
  */
 import type { GameState, RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import {
-  buildNightPlan,
-  GameStatus,
-  WEREWOLF_STATE_IDENTITY,
-} from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus, WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
 
 import { EMPTY_LAYOUT } from '@/games/werewolf/room/hooks/bottomLayoutConfig';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
@@ -50,7 +46,7 @@ function createLocalGameState(overrides: Partial<GameState> = {}): LocalGameStat
       1: { seat: 1, hasViewedRole: false, role: 'witch' as RoleId },
       2: { seat: 2, hasViewedRole: false, role: 'seer' as RoleId },
     },
-    currentStepIndex: 0,
+    nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],
@@ -140,7 +136,6 @@ function bottomFor(status: GameStatus, viewer: Viewer): { kind: string; message:
   // Entry state of the night: the first planned step is running, the
   // narration has settled, and the probed viewer is not the actor
   // (actors read the schema action sentence instead — same cell).
-  const nightPlan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
   const input: WerewolfRoomShellModelInput = {
     roomCode: '1234',
     capabilities: createWerewolfRoomCapabilities(createCapabilityInput()),
@@ -175,7 +170,6 @@ function bottomFor(status: GameStatus, viewer: Viewer): { kind: string; message:
     totalSeats: 3,
     actionMessage: '',
     guideMessage,
-    currentStepId: status === GameStatus.Ongoing ? (nightPlan.steps[0]?.stepId ?? null) : null,
     gameState,
     seatViewModels: [],
     controlledSeat: null,

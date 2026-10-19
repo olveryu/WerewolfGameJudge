@@ -26,7 +26,7 @@ const makeGameState = (): LocalGameState => ({
   ]),
   actions: new Map(),
   wolfVotes: new Map(),
-  currentStepIndex: 0,
+  nightStep: { kind: 'inStep', stepId: 'wolfKill' },
   isAudioPlaying: false,
   pendingAudioEffects: [],
   lastNightDeaths: [],

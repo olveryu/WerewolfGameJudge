@@ -291,7 +291,8 @@ export function useWerewolfRoomScreenState(
 
   // ── Step deadline countdown tick ──────────────────────────────────────────
   const countdownTick = useStepDeadlineCountdown({
-    stepDeadline: gameState?.stepDeadline,
+    stepDeadline:
+      gameState?.nightStep?.kind === 'inStep' ? gameState.nightStep.stepDeadline : undefined,
     isHost,
     postProgression,
   });
@@ -371,7 +372,6 @@ export function useWerewolfRoomScreenState(
       currentStepId === null ||
       currentStepId === undefined ||
       actorSeatForUi === null ||
-      gameState.currentStepIndex < 0 ||
       gameState.template.numberOfPlayers === 0
     ) {
       return null;
@@ -381,7 +381,6 @@ export function useWerewolfRoomScreenState(
         roomId: room.roomId,
         userId: myUserId,
         currentStepId,
-        currentStepIndex: gameState.currentStepIndex,
         roleRevealRandomNonce: gameState.roleRevealRandomNonce ?? null,
         actorSeat: actorSeatForUi,
       },
@@ -409,14 +408,7 @@ export function useWerewolfRoomScreenState(
   // A confirmation dialog is ephemeral; a restored first target remains editable.
   useEffect(() => {
     setSecondSeat(null);
-  }, [
-    currentStepId,
-    gameState?.currentStepIndex,
-    gameState?.roleRevealRandomNonce,
-    myUserId,
-    room.roomId,
-    actorSeatForUi,
-  ]);
+  }, [currentStepId, gameState?.roleRevealRandomNonce, myUserId, room.roomId, actorSeatForUi]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Intent Layer: useRoomActions
@@ -504,7 +496,6 @@ export function useWerewolfRoomScreenState(
     room.roomId,
     myUserId,
     currentStepId,
-    gameState?.currentStepIndex,
     gameState?.roleRevealRandomNonce,
     actorSeatForUi,
     imActioner,
@@ -949,7 +940,6 @@ export function useWerewolfRoomScreenState(
         ...deriveWerewolfSeatCounts(gameState),
         actionMessage: derived.actionMessage,
         guideMessage,
-        currentStepId,
         gameState,
         seatViewModels: derived.seatViewModels,
         controlledSeat,
@@ -1006,7 +996,6 @@ export function useWerewolfRoomScreenState(
       gameState,
       derived,
       guideMessage,
-      currentStepId,
       controlledSeat,
       sheriffElectionPanel,
       stateRevision,

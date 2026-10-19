@@ -28,7 +28,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
       1: { userId: 'p1', seat: 1, displayName: 'P1', role: 'wolf', hasViewedRole: true },
       2: { userId: 'p2', seat: 2, displayName: 'P2', role: 'villager', hasViewedRole: true },
     },
-    currentStepIndex: 0,
+    nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],

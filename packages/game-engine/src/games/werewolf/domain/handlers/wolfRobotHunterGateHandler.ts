@@ -29,7 +29,7 @@ interface SetWolfRobotHunterStatusViewedIntent {
  * Handle Wolf Robot viewing the hunter status
  *
  * Validation:
- * 1. currentStepId === 'wolfRobotLearn'
+ * 1. nightStep is inStep 'wolfRobotLearn'
  * 2. wolfRobotReveal.learnedRoleId in WOLF_ROBOT_GATE_ROLES
  * 3. player.role at seat === 'wolfRobot'
  *
@@ -44,7 +44,7 @@ export function handleSetWolfRobotHunterStatusViewed(
   const state = ctx.state;
 
   // Gate 1: current step must be wolfRobotLearn
-  if (state.currentStepId !== 'wolfRobotLearn') {
+  if (state.nightStep?.kind !== 'inStep' || state.nightStep.stepId !== 'wolfRobotLearn') {
     return handlerError('invalid_step');
   }
 

@@ -2,6 +2,7 @@
 
 import {
   doesRoleParticipateInWolfVote,
+  type GameState,
   GameStatus,
   getSchema,
   type RoleId,
@@ -51,10 +52,14 @@ function acknowledgeAudio(ctx: GameContext, context: string): boolean {
   return true;
 }
 
+function currentStepIdOf(state: GameState): SchemaId | undefined {
+  return state.nightStep?.kind === 'inStep' ? state.nightStep.stepId : undefined;
+}
+
 function acknowledgeReveal(ctx: GameContext): boolean {
   const state = ctx.getGameState();
   if (state.pendingRevealAcks.length === 0) return false;
-  const stepId = state.currentStepId;
+  const stepId = currentStepIdOf(state);
   if (stepId === undefined) {
     throw new Error('[FAIL-FAST] Reveal acknowledgement exists without a current step');
   }
@@ -76,7 +81,7 @@ function acknowledgeReveal(ctx: GameContext): boolean {
 function acknowledgeWolfRobotHunterStatus(ctx: GameContext): boolean {
   const state = ctx.getGameState();
   if (
-    state.currentStepId !== 'wolfRobotLearn' ||
+    currentStepIdOf(state) !== 'wolfRobotLearn' ||
     state.wolfRobotHunterStatusViewed !== false ||
     state.wolfRobotReveal?.learnedRoleId === undefined
   ) {
@@ -96,7 +101,7 @@ function acknowledgeWolfRobotHunterStatus(ctx: GameContext): boolean {
 
 function acknowledgeGroupConfirmation(ctx: GameContext): boolean {
   const state = ctx.getGameState();
-  const stepId = state.currentStepId;
+  const stepId = currentStepIdOf(state);
   if (stepId === undefined || getSchema(stepId).kind !== 'groupConfirm') return false;
 
   for (const player of Object.values(state.players)) {
@@ -111,7 +116,9 @@ function acknowledgeGroupConfirmation(ctx: GameContext): boolean {
 }
 
 function releaseStepDeadline(ctx: GameContext): boolean {
-  const deadline = ctx.getGameState().stepDeadline;
+  const deadlineState = ctx.getGameState();
+  const deadline =
+    deadlineState.nightStep?.kind === 'inStep' ? deadlineState.nightStep.stepDeadline : undefined;
   if (deadline === undefined) return false;
   ctx.dispatchOrThrow(
     { type: 'werewolf.progress.request' },
@@ -140,8 +147,8 @@ export function executeStepsUntil(
   for (let transition = 0; transition < MAX_NIGHT_TRANSITIONS; transition += 1) {
     acknowledgeAudio(ctx, `complete playback before ${targetStepId}`);
     const state = ctx.getGameState();
-    if (state.currentStepId === targetStepId) return true;
-    if (state.status === GameStatus.Ended || state.currentStepId === undefined) return false;
+    if (currentStepIdOf(state) === targetStepId) return true;
+    if (state.status === GameStatus.Ended || currentStepIdOf(state) === undefined) return false;
     if (settleCompletedStep(ctx)) continue;
     executeCurrentStep(ctx, customActions);
   }
@@ -164,7 +171,7 @@ export function executeRemainingSteps(
     if (state.status !== GameStatus.Ongoing) {
       throw new Error(`[FAIL-FAST] Night runner received lifecycle ${state.status}`);
     }
-    if (state.currentStepId === undefined) {
+    if (currentStepIdOf(state) === undefined) {
       ctx.dispatchOrThrow({ type: 'werewolf.progress.request' }, 'finish Night-1');
       continue;
     }
@@ -182,7 +189,7 @@ export function executeFullNight(
 
 function executeCurrentStep(ctx: GameContext, customActions: CustomActions): void {
   const state = ctx.getGameState();
-  const currentStepId = state.currentStepId;
+  const currentStepId = currentStepIdOf(state);
   if (currentStepId === undefined) {
     throw new Error('[FAIL-FAST] Cannot execute an action without a current step');
   }
@@ -203,7 +210,7 @@ function executeCurrentStep(ctx: GameContext, customActions: CustomActions): voi
       state.thiefSeat !== undefined
     ) {
       actorSeat = state.thiefSeat;
-    } else if (state.stepDeadline !== undefined) {
+    } else if (state.nightStep?.kind === 'inStep' && state.nightStep.stepDeadline !== undefined) {
       releaseStepDeadline(ctx);
       return;
     } else {

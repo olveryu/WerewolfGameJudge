@@ -52,12 +52,11 @@ async function dispatchWerewolfCommand(
 }
 
 function getExpectedActionStep(state: GameState): WerewolfExpectedStep {
-  if (state.currentStepId === undefined || state.currentStepIndex < 0) {
+  if (state.nightStep?.kind !== 'inStep') {
     throw new Error('[FAIL-FAST] Recoverable Werewolf action requires an active night step');
   }
   return {
-    currentStepId: state.currentStepId,
-    currentStepIndex: state.currentStepIndex,
+    currentStepId: state.nightStep.stepId,
     roleRevealRandomNonce: state.roleRevealRandomNonce ?? null,
   };
 }

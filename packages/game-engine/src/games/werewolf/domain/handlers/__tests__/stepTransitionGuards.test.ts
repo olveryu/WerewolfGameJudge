@@ -25,7 +25,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'seer', 'villager'],
     players: {},
-    currentStepIndex: 0,
+    nightStep: { kind: 'exhausted' },
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
@@ -65,7 +65,7 @@ describe('validateNightFlowPreconditions', () => {
   it('should reject when wolfRobot learned a gate role but not viewed (Gate 4)', () => {
     const gateTriggerRole = WOLF_ROBOT_GATE_ROLES[0];
     const state = createMinimalState({
-      currentStepId: 'wolfRobotLearn',
+      nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
       wolfRobotReveal: {
         targetSeat: 3,
         result: gateTriggerRole,
@@ -84,7 +84,7 @@ describe('validateNightFlowPreconditions', () => {
   it('should pass when wolfRobot learned a gate role and already viewed', () => {
     const gateTriggerRole = WOLF_ROBOT_GATE_ROLES[0];
     const state = createMinimalState({
-      currentStepId: 'wolfRobotLearn',
+      nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
       wolfRobotReveal: {
         targetSeat: 3,
         result: gateTriggerRole,
@@ -98,7 +98,7 @@ describe('validateNightFlowPreconditions', () => {
 
   it('should pass when wolfRobot learned a non-gate role (no gate check)', () => {
     const state = createMinimalState({
-      currentStepId: 'wolfRobotLearn',
+      nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
       wolfRobotReveal: {
         targetSeat: 3,
         result: 'villager',
@@ -123,7 +123,7 @@ describe('isWolfRobotHunterStatusGatePending', () => {
 
   it('returns true only while the matching gate is awaiting acknowledgement', () => {
     const state = createMinimalState({
-      currentStepId: 'wolfRobotLearn',
+      nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
       wolfRobotReveal: {
         targetSeat: 3,
         result: gateTriggerRole,
@@ -142,7 +142,7 @@ describe('isWolfRobotHunterStatusGatePending', () => {
     expect(
       isWolfRobotHunterStatusGatePending({
         ...state,
-        currentStepId: 'wolfKill',
+        nightStep: { kind: 'inStep', stepId: 'wolfKill' },
       }),
     ).toBe(false);
   });

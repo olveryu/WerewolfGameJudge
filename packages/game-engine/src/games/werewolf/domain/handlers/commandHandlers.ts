@@ -3,7 +3,7 @@
 import { acknowledgeAudioQueue } from '../../../../platform/audio';
 import { getBotSeats, isBotOccupant } from '../../../../platform/room/seating';
 import { GameStatus } from '../models/GameStatus';
-import { SCHEMAS } from '../models/roles/spec/schemas';
+import { resolveCurrentNightStep } from '../nightStep';
 import type { StateAction } from '../reducer/types';
 import { type HandlerContext, handlerError, type HandlerResult, handlerSuccess } from './types';
 
@@ -46,11 +46,12 @@ export function handleGroupConfirmAck(seat: number, context: HandlerContext): Ha
     return handlerError('not_ongoing');
   }
 
-  const stepId = state.currentStepId;
-  if (!stepId) return handlerError('no_current_step');
+  const current = resolveCurrentNightStep(state);
+  if (!current) return handlerError('no_current_step');
+  const stepId = current.stepId;
 
-  const schema = SCHEMAS[stepId];
-  if (!schema || schema.kind !== 'groupConfirm') {
+  const schema = current.schema;
+  if (schema.kind !== 'groupConfirm') {
     return handlerError('not_group_confirm_step');
   }
 
@@ -115,11 +116,12 @@ export function handleMarkBotsGroupConfirmed(context: HandlerContext): HandlerRe
     return handlerError('not_ongoing');
   }
 
-  const stepId = state.currentStepId;
-  if (!stepId) return handlerError('no_current_step');
+  const current = resolveCurrentNightStep(state);
+  if (!current) return handlerError('no_current_step');
+  const stepId = current.stepId;
 
-  const schema = SCHEMAS[stepId];
-  if (!schema || schema.kind !== 'groupConfirm') {
+  const schema = current.schema;
+  if (schema.kind !== 'groupConfirm') {
     return handlerError('not_group_confirm_step');
   }
 

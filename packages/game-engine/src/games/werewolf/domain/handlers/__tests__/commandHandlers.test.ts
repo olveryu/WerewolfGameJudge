@@ -47,7 +47,7 @@ function createState(overrides: Partial<GameState> = {}): GameState {
       [PLAYER_SEAT]: { seat: PLAYER_SEAT, userId: PLAYER_USER_ID },
     },
     playerProfiles: {},
-    currentStepIndex: 0,
+    nightStep: { kind: 'exhausted' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],
@@ -76,11 +76,11 @@ const GROUP_CONFIRM_CASES = [
     stepId: 'piperHypnotizedReveal',
     actionType: 'ADD_PIPER_REVEAL_ACK',
     ackedState: {
-      currentStepId: 'piperHypnotizedReveal',
+      nightStep: { kind: 'inStep', stepId: 'piperHypnotizedReveal' },
       piperRevealAcks: [PLAYER_SEAT],
     },
     botState: {
-      currentStepId: 'piperHypnotizedReveal',
+      nightStep: { kind: 'inStep', stepId: 'piperHypnotizedReveal' },
       piperRevealAcks: [ACKED_BOT_SEAT],
     },
   },
@@ -88,11 +88,11 @@ const GROUP_CONFIRM_CASES = [
     stepId: 'awakenedGargoyleConvertReveal',
     actionType: 'ADD_CONVERSION_REVEAL_ACK',
     ackedState: {
-      currentStepId: 'awakenedGargoyleConvertReveal',
+      nightStep: { kind: 'inStep', stepId: 'awakenedGargoyleConvertReveal' },
       conversionRevealAcks: [PLAYER_SEAT],
     },
     botState: {
-      currentStepId: 'awakenedGargoyleConvertReveal',
+      nightStep: { kind: 'inStep', stepId: 'awakenedGargoyleConvertReveal' },
       conversionRevealAcks: [ACKED_BOT_SEAT],
     },
   },
@@ -100,11 +100,11 @@ const GROUP_CONFIRM_CASES = [
     stepId: 'seedWolfInfectReveal',
     actionType: 'ADD_SEED_WOLF_INFECTION_REVEAL_ACK',
     ackedState: {
-      currentStepId: 'seedWolfInfectReveal',
+      nightStep: { kind: 'inStep', stepId: 'seedWolfInfectReveal' },
       seedWolfInfectionRevealAcks: [PLAYER_SEAT],
     },
     botState: {
-      currentStepId: 'seedWolfInfectReveal',
+      nightStep: { kind: 'inStep', stepId: 'seedWolfInfectReveal' },
       seedWolfInfectionRevealAcks: [ACKED_BOT_SEAT],
     },
   },
@@ -112,15 +112,24 @@ const GROUP_CONFIRM_CASES = [
     stepId: 'cupidLoversReveal',
     actionType: 'ADD_CUPID_LOVERS_REVEAL_ACK',
     ackedState: {
-      currentStepId: 'cupidLoversReveal',
+      nightStep: { kind: 'inStep', stepId: 'cupidLoversReveal' },
       cupidLoversRevealAcks: [PLAYER_SEAT],
     },
     botState: {
-      currentStepId: 'cupidLoversReveal',
+      nightStep: { kind: 'inStep', stepId: 'cupidLoversReveal' },
       cupidLoversRevealAcks: [ACKED_BOT_SEAT],
     },
   },
 ] as const;
+
+// Boards whose night plans contain each group-confirm step; the step
+// selector requires the current step to belong to the state's plan.
+const GROUP_CONFIRM_TEMPLATE_ROLES: Record<string, GameState['templateRoles']> = {
+  piperHypnotizedReveal: ['wolf', 'piper', 'villager'],
+  awakenedGargoyleConvertReveal: ['wolf', 'awakenedGargoyle', 'villager'],
+  seedWolfInfectReveal: ['wolf', 'seedWolf', 'villager'],
+  cupidLoversReveal: ['wolf', 'cupid', 'villager'],
+};
 
 describe('Werewolf command handlers', () => {
   describe('handleAudioAck', () => {
@@ -209,7 +218,12 @@ describe('Werewolf command handlers', () => {
     it('rejects when the current step is not a group-confirm step', () => {
       const result = handleGroupConfirmAck(
         PLAYER_SEAT,
-        createContext(createState({ currentStepId: 'seerCheck' })),
+        createContext(
+          createState({
+            nightStep: { kind: 'inStep', stepId: 'seerCheck' },
+            templateRoles: ['wolf', 'seer', 'villager'],
+          }),
+        ),
       );
 
       expect(expectError(result).reason).toBe('not_group_confirm_step');
@@ -218,7 +232,12 @@ describe('Werewolf command handlers', () => {
     it('rejects when the requested seat is empty', () => {
       const result = handleGroupConfirmAck(
         9,
-        createContext(createState({ currentStepId: 'piperHypnotizedReveal' })),
+        createContext(
+          createState({
+            nightStep: { kind: 'inStep', stepId: 'piperHypnotizedReveal' },
+            templateRoles: GROUP_CONFIRM_TEMPLATE_ROLES.piperHypnotizedReveal,
+          }),
+        ),
       );
 
       expect(expectError(result).reason).toBe('no_player_at_seat');
@@ -229,10 +248,16 @@ describe('Werewolf command handlers', () => {
       (myUserId) => {
         const result = handleGroupConfirmAck(
           PLAYER_SEAT,
-          createContext(createState({ currentStepId: 'piperHypnotizedReveal' }), {
-            myUserId,
-            mySeat: null,
-          }),
+          createContext(
+            createState({
+              nightStep: { kind: 'inStep', stepId: 'piperHypnotizedReveal' },
+              templateRoles: GROUP_CONFIRM_TEMPLATE_ROLES.piperHypnotizedReveal,
+            }),
+            {
+              myUserId,
+              mySeat: null,
+            },
+          ),
         );
 
         expect(expectError(result).reason).toBe('userId_mismatch');
@@ -242,10 +267,16 @@ describe('Werewolf command handlers', () => {
     it('allows the host to acknowledge another player seat', () => {
       const result = handleGroupConfirmAck(
         PLAYER_SEAT,
-        createContext(createState({ currentStepId: 'piperHypnotizedReveal' }), {
-          myUserId: HOST_USER_ID,
-          mySeat: 0,
-        }),
+        createContext(
+          createState({
+            nightStep: { kind: 'inStep', stepId: 'piperHypnotizedReveal' },
+            templateRoles: GROUP_CONFIRM_TEMPLATE_ROLES.piperHypnotizedReveal,
+          }),
+          {
+            myUserId: HOST_USER_ID,
+            mySeat: 0,
+          },
+        ),
       );
 
       expect(expectSuccess(result).actions).toEqual([
@@ -258,7 +289,12 @@ describe('Werewolf command handlers', () => {
       ({ actionType, stepId }) => {
         const result = handleGroupConfirmAck(
           PLAYER_SEAT,
-          createContext(createState({ currentStepId: stepId })),
+          createContext(
+            createState({
+              nightStep: { kind: 'inStep', stepId },
+              templateRoles: GROUP_CONFIRM_TEMPLATE_ROLES[stepId],
+            }),
+          ),
         );
 
         expect(expectSuccess(result).actions).toEqual([
@@ -269,8 +305,13 @@ describe('Werewolf command handlers', () => {
 
     it.each(GROUP_CONFIRM_CASES)(
       'is an idempotent no-op for an existing $actionType acknowledgement',
-      ({ ackedState }) => {
-        const result = handleGroupConfirmAck(PLAYER_SEAT, createContext(createState(ackedState)));
+      ({ ackedState, stepId }) => {
+        const result = handleGroupConfirmAck(
+          PLAYER_SEAT,
+          createContext(
+            createState({ ...ackedState, templateRoles: GROUP_CONFIRM_TEMPLATE_ROLES[stepId] }),
+          ),
+        );
 
         expect(expectSuccess(result).actions).toEqual([]);
       },
@@ -311,7 +352,8 @@ describe('Werewolf command handlers', () => {
       const result = handleMarkBotsGroupConfirmed(
         createContext(
           createState({
-            currentStepId: 'seerCheck',
+            nightStep: { kind: 'inStep', stepId: 'seerCheck' },
+            templateRoles: ['wolf', 'seer', 'villager'],
             roster: rosterWithBot,
           }),
         ),
@@ -322,11 +364,12 @@ describe('Werewolf command handlers', () => {
 
     it.each(GROUP_CONFIRM_CASES)(
       'batches unacknowledged bot seats as $actionType for $stepId',
-      ({ actionType, botState }) => {
+      ({ actionType, botState, stepId }) => {
         const result = handleMarkBotsGroupConfirmed(
           createContext(
             createState({
               ...botState,
+              templateRoles: GROUP_CONFIRM_TEMPLATE_ROLES[stepId],
               players: {
                 2: {
                   seat: 2,
@@ -372,7 +415,8 @@ describe('Werewolf command handlers', () => {
       const result = handleMarkBotsGroupConfirmed(
         createContext(
           createState({
-            currentStepId: 'piperHypnotizedReveal',
+            nightStep: { kind: 'inStep', stepId: 'piperHypnotizedReveal' },
+            templateRoles: GROUP_CONFIRM_TEMPLATE_ROLES.piperHypnotizedReveal,
             piperRevealAcks: [2, 4],
             players: {
               2: {
