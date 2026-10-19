@@ -20,6 +20,7 @@ import type { BotSeatOccupant } from '../../../platform/room/seating';
 import type { DeathReason } from '../domain/DeathCalculator';
 import { GameStatus } from '../domain/models/GameStatus';
 import { isValidRoleId, type RoleId } from '../domain/models/roles';
+import { buildNightPlan } from '../domain/models/roles/spec/plan';
 import type { WolfKillOverride } from '../domain/models/roles/spec/schema.types';
 import { isValidSchemaId } from '../domain/models/roles/spec/schemas';
 import { Team } from '../domain/models/roles/spec/types';
@@ -1115,14 +1116,64 @@ export function parseWerewolfState(value: unknown): GameState {
  * data stays in players, and profiles move to `playerProfiles`.
  * @throws When the stored state is malformed or invalid after migration.
  */
+/**
+ * v8 canonicalizes the night-step window values on a raw stored record.
+ * Writers before v8 could leave the three step fields in combinations the
+ * step-window invariants reject: a stepDeadline surviving END_NIGHT into
+ * Day/Ended, a stale currentStepId outside the night, an Ongoing index that
+ * disagrees with its step id, or an exhausted position whose index is not
+ * the plan length. The repair rewrites only the step fields, from facts
+ * the record itself carries (status + currentStepId + the plan derived
+ * from templateRoles/seerLabelMap; the step id wins any disagreement
+ * because recorded night actions are keyed by it). A step id outside the
+ * plan falls back to the stored index position — the shape a plan-rule
+ * change between versions leaves behind. When neither field can be
+ * placed in the plan the record is left untouched for the strict parser
+ * and the state invariants to reject.
+ */
+function canonicalizeStepWindowFields(raw: Record<string, unknown>): void {
+  if (raw.status !== GameStatus.Ongoing) {
+    raw.currentStepIndex = -1;
+    delete raw.currentStepId;
+    delete raw.stepDeadline;
+    return;
+  }
+  const templateRoles = parseRoleIds(raw.templateRoles, 'GameState.templateRoles');
+  const seerLabelMap =
+    raw.seerLabelMap === undefined
+      ? undefined
+      : parseStringNumberRecord(raw.seerLabelMap, 'GameState.seerLabelMap');
+  const plan = buildNightPlan(templateRoles, seerLabelMap);
+  if (raw.currentStepId === undefined) {
+    raw.currentStepIndex = plan.steps.length;
+    delete raw.stepDeadline;
+    return;
+  }
+  const index = plan.steps.findIndex((step) => step.stepId === raw.currentStepId);
+  if (index >= 0) {
+    raw.currentStepIndex = index;
+    return;
+  }
+  const storedIndex = raw.currentStepIndex;
+  if (typeof storedIndex === 'number' && plan.steps[storedIndex] !== undefined) {
+    raw.currentStepId = plan.steps[storedIndex].stepId;
+  }
+}
+
 export function migratePersistedWerewolfState(value: unknown): GameState {
   const raw = parseObject(value, 'GameState');
   if (raw.stateVersion === WEREWOLF_STATE_VERSION) return parseWerewolfState(raw);
+  if (raw.stateVersion === 7) {
+    const upgraded: Record<string, unknown> = { ...raw, stateVersion: WEREWOLF_STATE_VERSION };
+    canonicalizeStepWindowFields(upgraded);
+    return parseWerewolfState(upgraded);
+  }
   if (raw.stateVersion === 6) {
     // v7 deletes the debugMode record: drop the field, then the
     // current strict parser validates the rest unchanged.
     const upgraded: Record<string, unknown> = { ...raw, stateVersion: WEREWOLF_STATE_VERSION };
     delete upgraded.debugMode;
+    canonicalizeStepWindowFields(upgraded);
     return parseWerewolfState(upgraded);
   }
   if (raw.stateVersion !== 5) {
@@ -1143,11 +1194,13 @@ export function migratePersistedWerewolfState(value: unknown): GameState {
   }
   const playerProfiles = parsePlayerProfiles(raw.roster, 'GameState.roster');
   const { roster: _legacyProfiles, ...rest } = raw;
-  return parseWerewolfState({
+  const upgraded: Record<string, unknown> = {
     ...rest,
     stateVersion: WEREWOLF_STATE_VERSION,
     players,
     roster,
     playerProfiles,
-  });
+  };
+  canonicalizeStepWindowFields(upgraded);
+  return parseWerewolfState(upgraded);
 }

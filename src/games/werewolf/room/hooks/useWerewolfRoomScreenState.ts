@@ -293,7 +293,6 @@ export function useWerewolfRoomScreenState(
   const countdownTick = useStepDeadlineCountdown({
     stepDeadline: gameState?.stepDeadline,
     isHost,
-    roomStatus,
     postProgression,
   });
 

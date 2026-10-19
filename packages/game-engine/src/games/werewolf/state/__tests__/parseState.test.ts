@@ -41,10 +41,9 @@ function createFullState(): GameState {
         level: 3,
       },
     },
-    currentStepIndex: 0,
+    currentStepIndex: -1,
     isAudioPlaying: true,
     roleRevealRandomNonce: 'nonce',
-    currentStepId: 'wolfKill',
     actions: [{ schemaId: 'wolfKill', actorSeat: 0, targetSeat: 1, timestamp: 1 }],
     currentNightResults: {
       wolfVotesBySeat: { '0': 1 },
@@ -135,7 +134,6 @@ function createFullState(): GameState {
       targetUserId: 'host',
       rejectionId: 'rejection',
     },
-    stepDeadline: 2,
     pendingAudioEffects: [{ audioKey: 'wolfKill', isEndAudio: false }],
     ui: {
       currentActorHint: {
@@ -222,6 +220,31 @@ describe('parseWerewolfState', () => {
     };
 
     expect(parseWerewolfState(encoded).playerProfiles.host?.revealEffect).toBe('none');
+  });
+
+  it('rejects a current-version payload carrying a residual stepDeadline into Ended', () => {
+    const encoded = { ...createFullState(), stepDeadline: 2 };
+
+    expect(() => parseWerewolfState(encoded)).toThrow('Ended state carries stepDeadline');
+  });
+
+  it('rejects a current-version Day payload carrying a currentStepId', () => {
+    const encoded = {
+      ...createFullState(),
+      status: GameStatus.Day,
+      sheriffElection: {
+        phase: 'candidateSpeech',
+        registeredSeats: [0, 1],
+        withdrawnSeats: [],
+        completedRounds: [],
+        speakingStartSeat: 1,
+        speakingDirection: 'counterclockwise',
+      },
+      sheriffElectionResult: undefined,
+      currentStepId: 'wolfKill',
+    };
+
+    expect(() => parseWerewolfState(encoded)).toThrow('Day state carries currentStepId wolfKill');
   });
 
   it('rejects an unknown top-level field', () => {
