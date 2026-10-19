@@ -66,17 +66,12 @@ test.describe('Werewolf Night — Kill', () => {
         const poisonTargetSeat = villagers[1]?.[1].seat ?? 1;
 
         // Drive wolf kill
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTargetSeat);
 
         // Wait for witch's turn
-        const witchTurn = await waitForRoleTurn(
-          pages[witchIdx]!,
-          ['被狼人袭击', '解药', '毒药'],
-          pages,
-          120,
-        );
+        const witchTurn = await waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages);
         expect(witchTurn).toBe(true);
 
         // Dismiss the witch info alert before interacting with seat tiles
@@ -88,7 +83,7 @@ test.describe('Werewolf Night — Kill', () => {
         await clickSeatAndConfirm(pages[witchIdx]!, poisonTargetSeat);
 
         // Night should end with death
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
 
         // Verify deaths: should see "玩家死亡" (not peaceful night)
@@ -117,14 +112,14 @@ test.describe('Werewolf Night — Kill', () => {
         const wolfIndices = findAllRolePageIndices(roleMap, '狼人');
 
         // Wait for wolf's turn
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
 
         // Choose skip attack
         await driveWolfEmptyVote(pages, wolfIndices);
 
         // Night should end with peaceful night
-        const ended = await waitForNightEnd(pages, 80);
+        const ended = await waitForNightEnd(pages, 90_000);
         expect(ended).toBe(true);
 
         await viewLastNightInfo(pages[0]!);
@@ -163,13 +158,13 @@ test.describe('Werewolf Night — Kill', () => {
         // Drive wolf kill
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
         const firstWolf = allWolfIndices[0]!;
-        const wolfTurn = await waitForRoleTurn(pages[firstWolf]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[firstWolf]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, allWolfIndices, killTarget ? killTarget[1].seat : 0);
 
         // Wait for wolfQueen charm step
         if (wqIdx !== -1) {
-          const wqTurn = await waitForRoleTurn(pages[wqIdx]!, ['魅惑'], pages, 120);
+          const wqTurn = await waitForRoleTurn(pages[wqIdx]!, 'wolfQueenCharm', pages);
           if (wqTurn) {
             // Charm a non-wolf target
             const charmTarget = [...roleMap.entries()].find(
@@ -182,7 +177,7 @@ test.describe('Werewolf Night — Kill', () => {
         }
 
         // Finish night
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended, 'Night should end after wolfQueen charm').toBe(true);
       },
     );
@@ -219,14 +214,14 @@ test.describe('Werewolf Night — Kill', () => {
         // Night order: Shadow → Avenger → Wolf
 
         // Shadow's turn: mimic avenger → bonded
-        const shadowTurn = await waitForRoleTurn(pages[shadowIdx]!, ['模仿'], pages, 120);
+        const shadowTurn = await waitForRoleTurn(pages[shadowIdx]!, 'shadowChooseMimic', pages);
         expect(shadowTurn, 'Shadow turn should be detected').toBe(true);
         await clickSeatAndConfirm(pages[shadowIdx]!, avengerSeat);
         // Dismiss the shadow reveal dialog (shows mimic result)
         await dismissAlert(pages[shadowIdx]!);
 
         // Avenger's turn: click "查看阵营" to view faction info, then dismiss
-        const avengerTurn = await waitForRoleTurn(pages[avengerIdx]!, ['阵营'], pages, 120);
+        const avengerTurn = await waitForRoleTurn(pages[avengerIdx]!, 'avengerConfirm', pages);
         expect(avengerTurn, 'Avenger turn should be detected').toBe(true);
 
         // Dismiss the initial action prompt ("复仇者行动") before clicking bottom button
@@ -240,12 +235,12 @@ test.describe('Werewolf Night — Kill', () => {
         await dismissAlert(pages[avengerIdx]!);
 
         // Wolf kills shadow
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], shadowSeat);
 
         // Night should end (remaining steps auto-advance)
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended, 'Night should end after bonded link setup').toBe(true);
 
         // Verify deaths: shadow (wolf killed) + avenger (bonded link) = 2 deaths
@@ -293,12 +288,12 @@ test.describe('Werewolf Night — Kill', () => {
         const cursedFoxSeat = roleMap.get(cursedFoxIdx)!.seat;
 
         // Wolf targets cursedFox
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], cursedFoxSeat);
 
         // Night ends — wolf kill silently fails
-        const ended = await waitForNightEnd(pages, 80);
+        const ended = await waitForNightEnd(pages, 90_000);
         expect(ended).toBe(true);
 
         // Verify: peaceful night (cursedFox immune, no other kills)

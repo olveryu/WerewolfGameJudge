@@ -1,4 +1,4 @@
-import { type Page } from '@playwright/test';
+import { type Locator, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
 import { RoomPage } from '../pages/RoomPage';
@@ -33,6 +33,29 @@ function pageId(page: Page, allPages?: Page[]): string {
 const log = (msg: string) => console.log(`[night-driver ${Date.now()}] ${msg}`);
 
 // ---------------------------------------------------------------------------
+// Time budgets — every wait is a wall-clock deadline, every click capped
+// ---------------------------------------------------------------------------
+
+/**
+ * Per-click cap. A click that cannot complete (element covered, page
+ * mid-transition) must fail within seconds and let the caller move on;
+ * an uncapped click once blocked a night spec for four minutes while
+ * the game was healthy (the click's actionability check never passed
+ * and nothing ever timed it out).
+ */
+const CLICK_TIMEOUT_MS = 5_000;
+/** Confirm dialogs can trail a slow broadcast; the window is generous. */
+const CONFIRM_TIMEOUT_MS = 10_000;
+/** Poll cadence for the deadline loops below. */
+const POLL_INTERVAL_MS = 300;
+/** Heartbeat cadence: long waits report every page's anchors. */
+const HEARTBEAT_INTERVAL_MS = 15_000;
+/** Default budget for step waits (measured: full night cases run 1.7–1.8 min). */
+const DEFAULT_STEP_WAIT_MS = 120_000;
+/** Default budget for the wolf-step wait inside the vote drivers. */
+const WOLF_STEP_WAIT_MS = 30_000;
+
+// ---------------------------------------------------------------------------
 // Role lookup
 // ---------------------------------------------------------------------------
 
@@ -60,12 +83,6 @@ export function findAllRolePageIndices(
 // UI reading
 // ---------------------------------------------------------------------------
 
-/** Read the action-message testID text content, empty string if not visible. */
-async function getActionMsg(page: Page): Promise<string> {
-  const loc = page.locator('[data-testid="action-message"]');
-  return (await loc.textContent({ timeout: 200 }).catch(() => '')) ?? '';
-}
-
 /**
  * Read the shell phase anchor: the game's current phase, verbatim from
  * the shell header's `data-phase` attribute (see RoomShellModel.phase).
@@ -75,6 +92,44 @@ export async function readRoomPhase(page: Page): Promise<string | null> {
     .locator(`[data-testid="${TESTIDS.roomHeader}"]`)
     .getAttribute('data-phase', { timeout: 200 })
     .catch(() => null);
+}
+
+/**
+ * Read the shell step anchor: the game's current step inside its phase,
+ * verbatim from the shell header's `data-step` attribute (see
+ * RoomShellModel.step). Null when the game has no step in its current
+ * phase (the attribute is absent then).
+ */
+export async function readRoomStep(page: Page): Promise<string | null> {
+  return page
+    .locator(`[data-testid="${TESTIDS.roomHeader}"]`)
+    .getAttribute('data-step', { timeout: 200 })
+    .catch(() => null);
+}
+
+/** One heartbeat line: every page's (phase, step) anchors. */
+async function logHeartbeat(pages: Page[], waitingFor: string): Promise<void> {
+  const parts: string[] = [];
+  for (let i = 0; i < pages.length; i++) {
+    const phase = await readRoomPhase(pages[i]!);
+    const step = await readRoomStep(pages[i]!);
+    parts.push(`P${i}=${phase ?? '?'}/${step ?? '-'}`);
+  }
+  log(`heartbeat waitingFor=${waitingFor} ${parts.join(' ')}`);
+}
+
+/**
+ * Click with the shared cap; a failed click is logged, never thrown, so
+ * a stuck element degrades to a missed sweep instead of a hung test.
+ */
+async function clickCapped(locator: Locator, label: string): Promise<boolean> {
+  try {
+    await locator.click({ timeout: CLICK_TIMEOUT_MS });
+    return true;
+  } catch {
+    log(`clickCapped — "${label}" did not complete within ${CLICK_TIMEOUT_MS}ms`);
+    return false;
+  }
 }
 
 /** Phases in which a werewolf night is over: day has broken or the game ended. */
@@ -106,31 +161,52 @@ export async function isTextVisible(page: Page, text: string, exact = false): Pr
 // Seat interaction
 // ---------------------------------------------------------------------------
 
-/** Click a seat tile and confirm via alert. Returns true if confirmed. */
+/**
+ * Click a seat tile and confirm via alert. Returns true if confirmed.
+ *
+ * One bounded re-click is allowed when the confirm dialog never
+ * appeared AND the room step has not moved: for single-target steps a
+ * seat click only opens the confirm dialog (a fresh dialog replaces
+ * the previous one; the submission itself is guarded against
+ * duplicates), so a re-click cannot double-submit. If the step HAS
+ * moved, the click landed and something else went wrong — fail
+ * instead of clicking into the next step. Multi-target (draft) steps
+ * do not use this helper.
+ */
 export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<boolean> {
   log(`clickSeatAndConfirm seat=${seatIdx}`);
   // Dismiss any existing alert (e.g. "夜间行动" action prompt) before clicking
   await dismissAlert(page);
 
+  const stepBefore = await readRoomStep(page);
   const tile = page.locator(`[data-testid="seat-tile-pressable-${seatIdx}"]`);
-  await tile.waitFor({ state: 'visible', timeout: 5000 });
-  await tile.click();
-  log(`clickSeatAndConfirm seat=${seatIdx} — tile clicked`);
+  await tile.waitFor({ state: 'visible', timeout: CLICK_TIMEOUT_MS });
 
-  // Wait for confirmation alert
   const alertModal = page.locator('[data-testid="alert-modal"]');
-  const appeared = await alertModal
-    .waitFor({ state: 'visible', timeout: 3000 })
-    .then(() => true)
-    .catch(() => false);
-  if (!appeared) {
-    log(`clickSeatAndConfirm seat=${seatIdx} — no confirm alert appeared`);
-    return false;
+  let appeared = false;
+  for (let attempt = 0; attempt < 2 && !appeared; attempt++) {
+    if (!(await clickCapped(tile, `seat tile ${seatIdx}`))) return false;
+    log(`clickSeatAndConfirm seat=${seatIdx} — tile clicked (attempt ${attempt + 1})`);
+    appeared = await alertModal
+      .waitFor({ state: 'visible', timeout: CONFIRM_TIMEOUT_MS })
+      .then(() => true)
+      .catch(() => false);
+    if (!appeared) {
+      const stepNow = await readRoomStep(page);
+      if (stepNow !== stepBefore) {
+        log(
+          `clickSeatAndConfirm seat=${seatIdx} — step moved ${stepBefore} -> ${stepNow} without a confirm dialog; not retrying`,
+        );
+        return false;
+      }
+      log(`clickSeatAndConfirm seat=${seatIdx} — no confirm alert appeared, step unchanged`);
+    }
   }
+  if (!appeared) return false;
 
   const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
   if (await confirmBtn.isVisible().catch(() => false)) {
-    await confirmBtn.click();
+    if (!(await clickCapped(confirmBtn, 'seat confirm'))) return false;
     log(`clickSeatAndConfirm seat=${seatIdx} — confirmed`);
     // Wait for the confirm dialog content to be replaced by React.
     // Confirm dialogs have a "取消" button; subsequent alerts (reveal/info) don't.
@@ -138,7 +214,7 @@ export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<
     await alertModal
       .getByText('取消', { exact: true })
       .first()
-      .waitFor({ state: 'hidden', timeout: 5000 });
+      .waitFor({ state: 'hidden', timeout: CLICK_TIMEOUT_MS });
     return true;
   }
   log(`clickSeatAndConfirm seat=${seatIdx} — confirm btn not visible`);
@@ -161,11 +237,11 @@ export async function chooseFirstEnabledBottomCard(page: Page): Promise<string> 
       throw new Error(`Bottom-card option ${cardIndex} has no accessible text`);
     }
     const selectedName = selectedText.trim();
-    await option.click();
+    await option.click({ timeout: CLICK_TIMEOUT_MS });
 
     const alertModal = page.locator('[data-testid="alert-modal"]');
-    await alertModal.waitFor({ state: 'visible', timeout: 3000 });
-    await alertModal.getByText('确定', { exact: true }).click();
+    await alertModal.waitFor({ state: 'visible', timeout: CONFIRM_TIMEOUT_MS });
+    await alertModal.getByText('确定', { exact: true }).click({ timeout: CLICK_TIMEOUT_MS });
     return selectedName;
   }
 
@@ -217,9 +293,11 @@ export async function tryClickAdvanceButton(
     for (const text of buttons) {
       const btn = alertModal.getByText(text, { exact: true }).first();
       if (await btn.isVisible().catch(() => false)) {
-        await btn.click();
-        log(`tryClickAdvanceButton${tag} — alert "${text}" clicked`);
-        return true;
+        if (await clickCapped(btn, `advance alert "${text}"`)) {
+          log(`tryClickAdvanceButton${tag} — alert "${text}" clicked`);
+          return true;
+        }
+        return false;
       }
     }
   }
@@ -229,9 +307,11 @@ export async function tryClickAdvanceButton(
   for (const text of buttons) {
     const btn = panel.getByText(text, { exact: true }).first();
     if (await btn.isVisible().catch(() => false)) {
-      await btn.click();
-      log(`tryClickAdvanceButton${tag} — panel "${text}" clicked`);
-      return true;
+      if (await clickCapped(btn, `advance panel "${text}"`)) {
+        log(`tryClickAdvanceButton${tag} — panel "${text}" clicked`);
+        return true;
+      }
+      return false;
     }
   }
 
@@ -243,95 +323,220 @@ export async function tryClickAdvanceButton(
 // ---------------------------------------------------------------------------
 
 /**
- * Generic poll loop: advance night on all pages until condition is met.
- * Uses simple skip-all strategy (clicks advance buttons, no seat selection).
+ * Generic poll loop: advance night on all pages until condition is met
+ * or the deadline passes. Uses simple skip-all strategy (clicks advance
+ * buttons, no seat selection). Returns whether the condition was met.
  */
 async function pollUntil(
   pages: Page[],
   condition: () => Promise<boolean>,
-  maxIter = 60,
-): Promise<void> {
-  for (let i = 0; i < maxIter; i++) {
-    if (await condition()) return;
+  timeoutMs = DEFAULT_STEP_WAIT_MS,
+): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  let lastHeartbeat = 0;
+  for (;;) {
+    if (await condition()) return true;
+    if (Date.now() >= deadline) return false;
+    if (Date.now() - lastHeartbeat >= HEARTBEAT_INTERVAL_MS) {
+      lastHeartbeat = Date.now();
+      await logHeartbeat(pages, 'pollUntil');
+    }
     await ensureConnected(pages);
     for (const page of pages) {
       const pIdx = pages.indexOf(page);
       await tryClickAdvanceButton(page, true, ` poll-P${pIdx}`);
     }
     // Poll cadence for retry loop
-    await pages[0]!.waitForTimeout(300);
+    await pages[0]!.waitForTimeout(POLL_INTERVAL_MS);
   }
 }
 
 /**
- * Wait for a specific role's turn by detecting action message keywords.
- * While waiting, advances other pages' skip buttons.
+ * Wait until a page's room reaches the given night step, polling the
+ * step anchor. Returns false when the deadline passes.
+ */
+export async function waitForRoomStep(
+  page: Page,
+  stepId: string,
+  timeoutMs = WOLF_STEP_WAIT_MS,
+): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    if ((await readRoomStep(page)) === stepId) return true;
+    if (Date.now() >= deadline) return false;
+    await page.waitForTimeout(POLL_INTERVAL_MS);
+  }
+}
+
+/** Cap for observing one step's prompt cycle before proceeding anyway. */
+const PROMPT_CYCLE_CAP_MS = 20_000;
+
+/**
+ * Driver-observed night counter. The room anchors expose no night
+ * number, and pages are reused across nights within a test, so a memo
+ * keyed on phase/step alone would false-hit on the next night (every
+ * night has the same phases and steps). Waits that observe a night
+ * end advance the epoch; memos from earlier nights stop matching.
+ */
+let nightEpoch = 0;
+const noteNightEnded = (): void => {
+  nightEpoch += 1;
+};
+
+/**
+ * Per-page memo of step instances whose prompt cycle already fired:
+ * page -> "epoch/phase/step" key. Reset implicitly when the key changes.
+ */
+const promptCycleSeen = new WeakMap<Page, string>();
+
+/**
+ * Wait for the acting page's step-prompt cycle to fire.
+ *
+ * Why this exists (all in client code): seat taps are policy NOOPs
+ * while step audio plays (interaction policy reason 'audio_playing';
+ * the tap only toasts). The step's prompt dialog is auto-triggered
+ * only once audio ends, and the alert slot is single with
+ * replace-on-call semantics (src/utils/alert.ts) — so the prompt's
+ * arrival is the client-visible signal that the audio gate lifted
+ * and the page will actually process a seat tap. The old keyword
+ * waits returned after the prompt text rendered, implicitly waiting
+ * out the audio; the step anchor flips earlier, so the cycle is
+ * observed explicitly here.
+ *
+ * Observe only — the prompt is NOT dismissed (callers dismiss as
+ * their first step, and blocked-step specs read the prompt itself).
+ * A cycle counts as fired on any modal transition after the step
+ * matched: none -> some, some -> none, or the modal's text changing
+ * (a fresh prompt replacing a leftover dialog). If no transition is
+ * observed within the cap (sampling pages that never get a prompt,
+ * actors whose prompt fired before the wait started), the wait
+ * proceeds anyway and logs it — never worse than not waiting.
+ */
+export async function waitForPromptCycle(
+  page: Page,
+  stepId: string,
+  deadlineMs: number,
+): Promise<boolean> {
+  const key = `${nightEpoch}/${(await readRoomPhase(page)) ?? '?'}/${stepId}`;
+  if (promptCycleSeen.get(page) === key) return true;
+
+  const cap = Math.min(deadlineMs, Date.now() + PROMPT_CYCLE_CAP_MS);
+  const alertModal = page.locator('[data-testid="alert-modal"]');
+  const sample = async (): Promise<string | null> => {
+    const visible = await alertModal.isVisible().catch(() => false);
+    if (!visible) return null;
+    return (await alertModal.textContent({ timeout: 200 }).catch(() => '')) ?? '';
+  };
+  const initial = await sample();
+  for (;;) {
+    if ((await readRoomStep(page)) !== stepId) return false;
+    const now = await sample();
+    if (now !== initial) {
+      promptCycleSeen.set(page, key);
+      log(`waitForPromptCycle — prompt cycle fired for step ${stepId}`);
+      return true;
+    }
+    if (Date.now() >= cap) {
+      log(`waitForPromptCycle — no prompt transition observed for step ${stepId}; proceeding`);
+      return true;
+    }
+    await page.waitForTimeout(POLL_INTERVAL_MS);
+  }
+}
+
+/**
+ * waitForRoomStep + waitForPromptCycle: the step has been reached AND
+ * the page's audio gate has lifted (its step prompt fired), so the
+ * next interaction is actually processed instead of policy-NOOPed.
+ */
+export async function waitForStepAndSettle(
+  page: Page,
+  stepId: string,
+  timeoutMs = WOLF_STEP_WAIT_MS,
+): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  if (!(await waitForRoomStep(page, stepId, timeoutMs))) return false;
+  return waitForPromptCycle(page, stepId, deadline);
+}
+
+/**
+ * Wait for a specific step of the night by reading the role page's step
+ * anchor (data-step — the engine's current step, verbatim). Detection
+ * binds only the anchor, never display copy: copy may be redesigned
+ * freely without stalling night drivers.
+ *
+ * While waiting, advances other pages' skip buttons so intermediate
+ * steps can complete.
  *
  * @param rolePage - The page belonging to the role we're waiting for
- * @param keywords - Action message substrings that signal the role's turn
+ * @param stepId - The night step id to wait for (engine step vocabulary)
  * @param allPages - All pages (used to advance other roles' skip buttons)
- * @param maxIter - Maximum poll iterations
- * @returns true if the role's turn was detected
+ * @param timeoutMs - Wall-clock budget
+ * @returns true if the step was reached; false if the night ended first
+ *   or the budget ran out
  */
 export async function waitForRoleTurn(
   rolePage: Page,
-  keywords: string[],
+  stepId: string,
   allPages: Page[],
-  maxIter = 120,
+  timeoutMs = DEFAULT_STEP_WAIT_MS,
 ): Promise<boolean> {
-  log(`waitForRoleTurn keywords=[${keywords}] rolePage=${pageId(rolePage, allPages)}`);
-  for (let i = 0; i < maxIter; i++) {
-    // Check action-message text (bottom panel)
-    const msg = await getActionMsg(rolePage);
-    if (keywords.some((kw) => msg.includes(kw))) {
-      log(`waitForRoleTurn — detected "${msg}" on iter ${i}`);
-      return true;
-    }
-
-    // Also check alert-modal text (compound steps like witch show prompts as alerts)
-    const alertVisible = await rolePage
-      .locator('[data-testid="alert-modal"]')
-      .isVisible()
-      .catch(() => false);
-    if (alertVisible) {
-      const alertText =
-        (await rolePage
-          .locator('[data-testid="alert-modal"]')
-          .textContent()
-          .catch(() => '')) ?? '';
-      if (keywords.some((kw) => alertText.includes(kw))) {
-        log(`waitForRoleTurn — detected in alert on iter ${i}`);
+  log(`waitForRoleTurn step=${stepId} rolePage=${pageId(rolePage, allPages)}`);
+  const deadline = Date.now() + timeoutMs;
+  let lastHeartbeat = 0;
+  for (;;) {
+    if ((await readRoomStep(rolePage)) === stepId) {
+      // The anchor flips while the step's audio is still playing, and
+      // seat taps during audio are policy NOOPs. The step prompt
+      // fires exactly when the audio gate lifts — wait for its cycle
+      // before returning, so the caller's first tap actually lands.
+      if (await waitForPromptCycle(rolePage, stepId, deadline)) {
+        log(`waitForRoleTurn — step ${stepId} reached, prompt cycle done`);
         return true;
       }
+      // The step moved on while waiting for the cycle: fall through
+      // to the sweep/cadence below and re-detect next round.
+      log(`waitForRoleTurn — step ${stepId} moved on during prompt cycle`);
     }
 
     if (await isNightEnded(allPages[0]!)) {
-      log(`waitForRoleTurn — night ended on iter ${i}`);
+      log('waitForRoleTurn — night ended');
+      noteNightEnded();
       return false;
+    }
+    if (Date.now() >= deadline) {
+      log(`waitForRoleTurn — timed out after ${timeoutMs}ms waiting for step ${stepId}`);
+      return false;
+    }
+    if (Date.now() - lastHeartbeat >= HEARTBEAT_INTERVAL_MS) {
+      lastHeartbeat = Date.now();
+      await logHeartbeat(allPages, stepId);
     }
 
     // Ensure all pages are connected before advancing
     await ensureConnected(allPages);
 
-    // Advance other pages — skip the target role's own page to preserve
-    // its alerts for detection. For other pages, include skip buttons to
-    // advance past intermediate roles (e.g. seer before gargoyle).
+    // Advance other pages — skip the target role's own page so its own
+    // pending step is never skipped past. For other pages, include skip
+    // buttons to advance past intermediate roles (e.g. seer before
+    // gargoyle).
     for (const p of allPages) {
       if (p === rolePage) continue;
       const pIdx = allPages.indexOf(p);
       await tryClickAdvanceButton(p, /* includeSkip */ true, ` P${pIdx}`);
     }
     // Poll cadence for retry loop
-    await allPages[0]!.waitForTimeout(300);
+    await allPages[0]!.waitForTimeout(POLL_INTERVAL_MS);
   }
-  log(`waitForRoleTurn — exhausted ${maxIter} iterations`);
-  return false;
 }
 
 /** Wait for night to end across all pages. */
-export async function waitForNightEnd(pages: Page[], maxIter = 80): Promise<boolean> {
+export async function waitForNightEnd(
+  pages: Page[],
+  timeoutMs = DEFAULT_STEP_WAIT_MS,
+): Promise<boolean> {
   log('waitForNightEnd — start');
-  await pollUntil(
+  const ended = await pollUntil(
     pages,
     async () => {
       for (const p of pages) {
@@ -339,14 +544,18 @@ export async function waitForNightEnd(pages: Page[], maxIter = 80): Promise<bool
       }
       return false;
     },
-    maxIter,
+    timeoutMs,
   );
+  if (!ended) return false;
   // Every client renders the same broadcast, but the host page's anchor
   // can land a beat after the first page that flipped; give it a brief
   // settle window before reporting.
   for (let i = 0; i < 10; i++) {
-    if (await isNightEnded(pages[0]!)) return true;
-    await pages[0]!.waitForTimeout(300);
+    if (await isNightEnded(pages[0]!)) {
+      noteNightEnded();
+      return true;
+    }
+    await pages[0]!.waitForTimeout(POLL_INTERVAL_MS);
   }
   return false;
 }
@@ -366,11 +575,11 @@ export async function viewLastNightInfo(hostPage: Page): Promise<void> {
     await dismissAlert(hostPage);
     if (await room.tryClickHostManagementAction(TESTIDS.lastNightInfoButton)) {
       // Wait for confirmation dialog ("请在警长竞选结束后再查看，请勿作弊")
-      await alertModal.waitFor({ state: 'visible', timeout: 3000 });
+      await alertModal.waitFor({ state: 'visible', timeout: CONFIRM_TIMEOUT_MS });
       // Click "确定查看" to proceed to the info alert
       const confirmBtn = alertModal.getByText('确定查看', { exact: true }).first();
       if (await confirmBtn.isVisible().catch(() => false)) {
-        await confirmBtn.click();
+        await confirmBtn.click({ timeout: CLICK_TIMEOUT_MS });
         // Poll for actual night-result content instead of visibility toggle
         // (avoids TOCTOU race where the confirmation dialog hasn't closed yet)
         const RESULT_KEYWORDS = ['平安夜', '玩家死亡', '死亡', '号玩家'];
@@ -391,9 +600,11 @@ export async function viewLastNightInfo(hostPage: Page): Promise<void> {
 
 /**
  * Drive all wolves to vote on a specific target seat.
- * Waits for each wolf's action message before voting.
+ * Waits for the wolfKill step anchor before each vote (the step is
+ * shared by all wolves, so every wolf votes inside the same step).
  *
- * @throws {Error} When a wolf action message or vote confirmation is unavailable.
+ * @throws {Error} When the wolf step is not reached or a vote
+ *   confirmation is unavailable.
  */
 export async function driveWolfVote(
   pages: Page[],
@@ -403,11 +614,11 @@ export async function driveWolfVote(
   log(`driveWolfVote wolfIndices=[${wolfIndices}] targetSeat=${targetSeat}`);
   for (const wIdx of wolfIndices) {
     const wPage = pages[wIdx]!;
-    log(`driveWolfVote — P${wIdx} waiting for action-message`);
-    await wPage
-      .locator('[data-testid="action-message"]')
-      .waitFor({ state: 'visible', timeout: 10_000 });
-    log(`driveWolfVote — P${wIdx} action-message visible, clicking seat`);
+    log(`driveWolfVote — P${wIdx} waiting for step wolfKill`);
+    if (!(await waitForStepAndSettle(wPage, 'wolfKill'))) {
+      throw new Error(`Wolf step not reached for page ${wIdx}`);
+    }
+    log(`driveWolfVote — P${wIdx} wolfKill reached, clicking seat`);
     if (!(await clickSeatAndConfirm(wPage, targetSeat))) {
       throw new Error(`Wolf vote confirmation failed for page ${wIdx}, target seat ${targetSeat}`);
     }
@@ -423,31 +634,32 @@ export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): 
   log(`driveWolfEmptyVote wolfIndices=[${wolfIndices}]`);
   for (const wIdx of wolfIndices) {
     const wPage = pages[wIdx]!;
-    // Dismiss any existing alert (e.g. "夜间行动") before interacting
+    log(`driveWolfEmptyVote — P${wIdx} waiting for step wolfKill`);
+    if (!(await waitForStepAndSettle(wPage, 'wolfKill'))) {
+      throw new Error(`Wolf step not reached for page ${wIdx}`);
+    }
+    // Dismiss the step prompt before interacting — after the settle,
+    // not before: dismissing first would eat the very prompt whose
+    // transition the settle observes, stalling it to the cap.
     await dismissAlert(wPage);
-
-    log(`driveWolfEmptyVote — P${wIdx} waiting for action-message`);
-    await wPage
-      .locator('[data-testid="action-message"]')
-      .waitFor({ state: 'visible', timeout: 10_000 });
 
     // Click skip attack button
     const panel = wPage.locator('[data-testid="bottom-action-panel"]');
     const emptyBtn = panel.getByText('放弃袭击', { exact: true }).first();
-    await emptyBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await emptyBtn.click();
+    await emptyBtn.waitFor({ state: 'visible', timeout: CLICK_TIMEOUT_MS });
+    await emptyBtn.click({ timeout: CLICK_TIMEOUT_MS });
     log(`driveWolfEmptyVote — P${wIdx} clicked 放弃袭击`);
 
     // Confirm the wolf vote alert
     const alertModal = wPage.locator('[data-testid="alert-modal"]');
     const appeared = await alertModal
-      .waitFor({ state: 'visible', timeout: 3000 })
+      .waitFor({ state: 'visible', timeout: CONFIRM_TIMEOUT_MS })
       .then(() => true)
       .catch(() => false);
     if (appeared) {
       const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
       if (await confirmBtn.isVisible().catch(() => false)) {
-        await confirmBtn.click();
+        await confirmBtn.click({ timeout: CLICK_TIMEOUT_MS });
         log(`driveWolfEmptyVote — P${wIdx} confirmed`);
       }
     }
@@ -480,8 +692,9 @@ export async function dismissAlert(page: Page): Promise<void> {
   for (const text of ['知道了', '确定']) {
     const btn = alertModal.getByText(text, { exact: true }).first();
     if (await btn.isVisible().catch(() => false)) {
-      await btn.click();
-      log(`dismissAlert — clicked "${text}"`);
+      if (await clickCapped(btn, `dismiss "${text}"`)) {
+        log(`dismissAlert — clicked "${text}"`);
+      }
       return;
     }
   }
@@ -507,10 +720,9 @@ export async function clickBottomButton(
     if (attempt > 0) await dismissAlert(page);
     const btn = panel.getByText(label, { exact: true }).first();
     if (await btn.isVisible().catch(() => false)) {
-      await btn.click();
-      return true;
+      if (await clickCapped(btn, `bottom button "${label}"`)) return true;
     }
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(POLL_INTERVAL_MS);
   }
   return false;
 }
@@ -531,31 +743,32 @@ export async function driveMagicianSwap(
   // Dismiss any existing alert (e.g. "夜间行动") before interacting with seats
   await dismissAlert(page);
 
-  // Click first seat → triggers "已选择第一位玩家" info alert
+  // Click first seat → triggers "已选择第一位玩家" info alert.
+  // Draft (toggle) selection: a failed click is reported, never
+  // blindly retried — re-clicking a seat would toggle the draft.
   const tile1 = page.locator(`[data-testid="seat-tile-pressable-${seat1}"]`);
-  await tile1.waitFor({ state: 'visible', timeout: 5000 });
-  await tile1.click();
+  await tile1.waitFor({ state: 'visible', timeout: CLICK_TIMEOUT_MS });
+  if (!(await clickCapped(tile1, `magician seat ${seat1}`))) return false;
 
   // Dismiss "已选择第一位玩家" alert before clicking second seat
   await dismissAlert(page);
 
   // Click second seat → triggers "确认交换" confirm dialog
   const tile2 = page.locator(`[data-testid="seat-tile-pressable-${seat2}"]`);
-  await tile2.waitFor({ state: 'visible', timeout: 5000 });
-  await tile2.click();
+  await tile2.waitFor({ state: 'visible', timeout: CLICK_TIMEOUT_MS });
+  if (!(await clickCapped(tile2, `magician seat ${seat2}`))) return false;
 
   // Confirm swap alert ("交换这两名玩家？")
   const alertModal = page.locator('[data-testid="alert-modal"]');
   const appeared = await alertModal
-    .waitFor({ state: 'visible', timeout: 3000 })
+    .waitFor({ state: 'visible', timeout: CONFIRM_TIMEOUT_MS })
     .then(() => true)
     .catch(() => false);
   if (!appeared) return false;
 
   const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
   if (await confirmBtn.isVisible().catch(() => false)) {
-    await confirmBtn.click();
-    return true;
+    return clickCapped(confirmBtn, 'magician swap confirm');
   }
   return false;
 }

@@ -17,6 +17,7 @@ import {
   viewLastNightInfo,
   waitForNightEnd,
   waitForRoleTurn,
+  waitForStepAndSettle,
 } from '../helpers/night-driver';
 import { runNightFlowLoop } from '../pages/NightFlowPage';
 import { RoomPage } from '../pages/RoomPage';
@@ -73,14 +74,14 @@ test.describe('Werewolf Night — Flow Verification', () => {
       const villagerSeat = roleMap.get(villagerIdx)!.seat;
       const hostPage = pages[0];
 
-      // Wait for the wolf's action prompt itself: the action-message
-      // element is already visible before the start carrying the
-      // ready/waiting text, so visibility alone would read too early —
-      // poll until the prompt is the wolf's.
-      const wolfAction = wolfPage.locator('[data-testid="action-message"]');
-      await expect
-        .poll(async () => (await wolfAction.textContent()) ?? '', { timeout: 30_000 })
-        .toContain('袭击');
+      // Wait for the wolf's step itself, settled: the room step flips
+      // to wolfKill when the wolf's turn starts, and the settle waits
+      // out the step audio — seat taps during audio are policy NOOPs,
+      // so the click below must not land inside the audio window.
+      // (The old gate polled the action-message copy, which rendered
+      // only after the audio ended and so waited it out implicitly.)
+      const wolfStepReady = await waitForStepAndSettle(wolfPage, 'wolfKill', 30_000);
+      expect(wolfStepReady, 'Wolf step should become active').toBe(true);
 
       // PR-B G-4: while the wolf acts, the non-actioner's bottom
       // panel names the step it is waiting on (same derived progress
@@ -94,7 +95,7 @@ test.describe('Werewolf Night — Flow Verification', () => {
       expect(confirmed, 'Wolf vote should be confirmed').toBe(true);
 
       // Wait for night to end
-      const nightDone = await waitForNightEnd(pages, 80);
+      const nightDone = await waitForNightEnd(pages, 90_000);
       expect(nightDone, 'Night should have ended').toBe(true);
 
       // Verify the death message mentions the correct seat number (1-based display)
@@ -169,7 +170,7 @@ test.describe('Werewolf Night — Flow Verification', () => {
       await driveWolfVote(pages, wolfIndices, killTargetSeat);
 
       // --- Phase 2: Wait for seer's turn ---
-      const seerTurnDetected = await waitForRoleTurn(seerPage, ['查验', '选择'], pages, 120);
+      const seerTurnDetected = await waitForRoleTurn(seerPage, 'seerCheck', pages);
 
       expect(seerTurnDetected, 'Seer turn should appear during night').toBe(true);
 
@@ -189,7 +190,7 @@ test.describe('Werewolf Night — Flow Verification', () => {
       await dismissAlert(seerPage);
 
       // --- Phase 4: Wait for night to complete ---
-      const nightDone = await waitForNightEnd(pages, 80);
+      const nightDone = await waitForNightEnd(pages, 90_000);
       expect(nightDone, 'Night should have ended').toBe(true);
       // NB: no day-phase assertion here — with sheriff election off
       // (helper default), the engine moves straight to Ended when

@@ -63,17 +63,17 @@ test.describe('Werewolf Night — Check Interactions', () => {
         const killTargetSeat = villagers[1]?.[1].seat ?? villagerSeat;
 
         // Magician swaps wolf and villager1
-        const magTurn = await waitForRoleTurn(pages[magIdx]!, ['交换', '选择'], pages, 120);
+        const magTurn = await waitForRoleTurn(pages[magIdx]!, 'magicianSwap', pages);
         expect(magTurn).toBe(true);
         await driveMagicianSwap(pages[magIdx]!, wolfSeat, villagerSeat);
 
         // Wolf kills another villager (the one NOT swapped)
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTargetSeat);
 
         // Seer checks the wolf's ORIGINAL seat — after swap, villager is there → Good
-        const seerTurn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 120);
+        const seerTurn = await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages);
         expect(seerTurn).toBe(true);
         await clickSeatAndConfirm(pages[seerIdx]!, wolfSeat);
 
@@ -83,7 +83,7 @@ test.describe('Werewolf Night — Check Interactions', () => {
         await dismissAlert(pages[seerIdx]!);
 
         // Finish night
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
       },
     );
@@ -120,24 +120,19 @@ test.describe('Werewolf Night — Check Interactions', () => {
         const killTargetSeat = villagers[1]?.[1].seat ?? villagerSeat;
 
         // Magician swaps wolf and villager1
-        const magTurn = await waitForRoleTurn(pages[magIdx]!, ['交换', '选择'], pages, 120);
+        const magTurn = await waitForRoleTurn(pages[magIdx]!, 'magicianSwap', pages);
         expect(magTurn).toBe(true);
         await driveMagicianSwap(pages[magIdx]!, wolfSeat, villagerSeat);
 
         // Wolf kill — gargoyle does NOT participate in wolf vote
         const allWolfIndices = findAllRolePageIndices(roleMap, '狼人');
 
-        const wolfTurn = await waitForRoleTurn(
-          pages[allWolfIndices[0]!]!,
-          ['袭击', '选择'],
-          pages,
-          120,
-        );
+        const wolfTurn = await waitForRoleTurn(pages[allWolfIndices[0]!]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, allWolfIndices, killTargetSeat);
 
         // Gargoyle checks wolf's ORIGINAL seat → villager is there after swap → Villager
-        const gargTurn = await waitForRoleTurn(pages[gargoyleIdx]!, ['查验'], pages, 120);
+        const gargTurn = await waitForRoleTurn(pages[gargoyleIdx]!, 'gargoyleCheck', pages);
         expect(gargTurn).toBe(true);
         await clickSeatAndConfirm(pages[gargoyleIdx]!, wolfSeat);
 
@@ -145,7 +140,7 @@ test.describe('Werewolf Night — Check Interactions', () => {
         expect(revealText).toContain('平民');
         await dismissAlert(pages[gargoyleIdx]!);
 
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
       },
     );
@@ -182,17 +177,17 @@ test.describe('Werewolf Night — Check Interactions', () => {
         const killTargetSeat = villagers[1]?.[1].seat ?? villagerSeat;
 
         // Magician swaps wolf and villager1
-        const magTurn = await waitForRoleTurn(pages[magIdx]!, ['交换', '选择'], pages, 120);
+        const magTurn = await waitForRoleTurn(pages[magIdx]!, 'magicianSwap', pages);
         expect(magTurn).toBe(true);
         await driveMagicianSwap(pages[magIdx]!, wolfSeat, villagerSeat);
 
         // Wolf kills villager2
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTargetSeat);
 
         // Psychic checks wolf's ORIGINAL seat → villager is there → Villager
-        const psychicTurn = await waitForRoleTurn(pages[psychicIdx]!, ['通灵', '选择'], pages, 120);
+        const psychicTurn = await waitForRoleTurn(pages[psychicIdx]!, 'psychicCheck', pages);
         expect(psychicTurn).toBe(true);
         await clickSeatAndConfirm(pages[psychicIdx]!, wolfSeat);
 
@@ -200,7 +195,7 @@ test.describe('Werewolf Night — Check Interactions', () => {
         expect(revealText).toContain('平民');
         await dismissAlert(pages[psychicIdx]!);
 
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
       },
     );
@@ -240,17 +235,12 @@ test.describe('Werewolf Night — Check Interactions', () => {
         );
 
         // Wolf kills a villager
-        const wolfTurn = await waitForRoleTurn(
-          pages[allWolfIndices[0]!]!,
-          ['袭击', '选择'],
-          pages,
-          120,
-        );
+        const wolfTurn = await waitForRoleTurn(pages[allWolfIndices[0]!]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, allWolfIndices, killSeat);
 
         // Seer checks spiritKnight → should still see Wolf (check resolves before reflect)
-        const seerTurn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 120);
+        const seerTurn = await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages);
         expect(seerTurn).toBe(true);
         await clickSeatAndConfirm(pages[seerIdx]!, skSeat);
 
@@ -260,7 +250,7 @@ test.describe('Werewolf Night — Check Interactions', () => {
         await dismissAlert(pages[seerIdx]!);
 
         // Night ends — seer dies from reflection
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
 
         // Verify deaths include seer (reflection kill)
