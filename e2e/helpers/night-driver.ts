@@ -368,6 +368,68 @@ export async function waitForRoomStep(
   }
 }
 
+/** Quiet window: no alert modal visible for this long = prompt settled. */
+const PROMPT_QUIET_MS = 900;
+/** Cap for the settle phase inside one step wait. */
+const PROMPT_SETTLE_CAP_MS = 15_000;
+
+/**
+ * Settle a page into its current step before the driver acts on it.
+ *
+ * The alert system is a single slot with replace-on-call semantics
+ * (src/utils/alert.ts): when a step starts, the acting client's step
+ * prompt and a seat click's confirm dialog replace each other, and a
+ * seat press evaluated before the client has processed the step is
+ * dropped — the confirm never appears. The old keyword waits returned
+ * only after the step's prompt text had rendered, which implicitly
+ * waited out this cycle. The anchor flips earlier, so the settle is
+ * explicit here: dismiss the step prompt when it appears, then require
+ * a short quiet window with no modal up while the step is unchanged.
+ * State only — modal presence and the step anchor, never copy.
+ *
+ * Returns false when the step moved on or the settle budget ran out.
+ */
+export async function settleStepPrompt(
+  page: Page,
+  stepId: string,
+  deadlineMs: number,
+): Promise<boolean> {
+  const cap = Math.min(Date.now() + PROMPT_SETTLE_CAP_MS, deadlineMs);
+  const alertModal = page.locator('[data-testid="alert-modal"]');
+  let quietSince = 0;
+  for (;;) {
+    if ((await readRoomStep(page)) !== stepId) return false;
+    const modalUp = await alertModal.isVisible().catch(() => false);
+    if (modalUp) {
+      quietSince = 0;
+      await dismissAlert(page);
+      // Some prompts dismiss through other safe buttons (no skip texts).
+      await tryClickAdvanceButton(page, false, ' settle');
+    } else if (quietSince === 0) {
+      quietSince = Date.now();
+    } else if (Date.now() - quietSince >= PROMPT_QUIET_MS) {
+      return true;
+    }
+    if (Date.now() >= cap) return false;
+    await page.waitForTimeout(POLL_INTERVAL_MS);
+  }
+}
+
+/**
+ * waitForRoomStep + settleStepPrompt: the step has been reached AND
+ * the page's step-prompt cycle has settled, so the next interaction
+ * lands on a client that has processed the step.
+ */
+export async function waitForStepAndSettle(
+  page: Page,
+  stepId: string,
+  timeoutMs = WOLF_STEP_WAIT_MS,
+): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  if (!(await waitForRoomStep(page, stepId, timeoutMs))) return false;
+  return settleStepPrompt(page, stepId, deadline);
+}
+
 /**
  * Wait for a specific step of the night by reading the role page's step
  * anchor (data-step — the engine's current step, verbatim). Detection
@@ -395,8 +457,17 @@ export async function waitForRoleTurn(
   let lastHeartbeat = 0;
   for (;;) {
     if ((await readRoomStep(rolePage)) === stepId) {
-      log(`waitForRoleTurn — step ${stepId} reached`);
-      return true;
+      // The anchor flips before the acting client's step-prompt cycle
+      // has run; acting inside that window loses the confirm dialog
+      // to the single-slot alert replacement. Settle first.
+      if (await settleStepPrompt(rolePage, stepId, deadline)) {
+        log(`waitForRoleTurn — step ${stepId} reached and settled`);
+        return true;
+      }
+      // Not settled (prompt still cycling or the step moved on): fall
+      // through to the sweep/cadence below and re-detect next round;
+      // the deadline check terminates the wait if it never settles.
+      log(`waitForRoleTurn — step ${stepId} present but not settled yet`);
     }
 
     if (await isNightEnded(allPages[0]!)) {
@@ -511,7 +582,7 @@ export async function driveWolfVote(
   for (const wIdx of wolfIndices) {
     const wPage = pages[wIdx]!;
     log(`driveWolfVote — P${wIdx} waiting for step wolfKill`);
-    if (!(await waitForRoomStep(wPage, 'wolfKill'))) {
+    if (!(await waitForStepAndSettle(wPage, 'wolfKill'))) {
       throw new Error(`Wolf step not reached for page ${wIdx}`);
     }
     log(`driveWolfVote — P${wIdx} wolfKill reached, clicking seat`);
@@ -534,7 +605,7 @@ export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): 
     await dismissAlert(wPage);
 
     log(`driveWolfEmptyVote — P${wIdx} waiting for step wolfKill`);
-    if (!(await waitForRoomStep(wPage, 'wolfKill'))) {
+    if (!(await waitForStepAndSettle(wPage, 'wolfKill'))) {
       throw new Error(`Wolf step not reached for page ${wIdx}`);
     }
 
