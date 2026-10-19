@@ -17,7 +17,7 @@ import {
   viewLastNightInfo,
   waitForNightEnd,
   waitForRoleTurn,
-  waitForRoomStep,
+  waitForStepAndSettle,
 } from '../helpers/night-driver';
 import { runNightFlowLoop } from '../pages/NightFlowPage';
 import { RoomPage } from '../pages/RoomPage';
@@ -74,12 +74,13 @@ test.describe('Werewolf Night — Flow Verification', () => {
       const villagerSeat = roleMap.get(villagerIdx)!.seat;
       const hostPage = pages[0];
 
-      // Wait for the wolf's step itself: the room step flips to
-      // wolfKill exactly when the wolf acts. (The old gate polled the
-      // action-message copy because the element is visible earlier
-      // carrying ready/waiting text; the step anchor reads the same
-      // moment without binding to wording.)
-      const wolfStepReady = await waitForRoomStep(wolfPage, 'wolfKill', 30_000);
+      // Wait for the wolf's step itself, settled: the room step flips
+      // to wolfKill when the wolf's turn starts, and the settle waits
+      // out the step audio — seat taps during audio are policy NOOPs,
+      // so the click below must not land inside the audio window.
+      // (The old gate polled the action-message copy, which rendered
+      // only after the audio ended and so waited it out implicitly.)
+      const wolfStepReady = await waitForStepAndSettle(wolfPage, 'wolfKill', 30_000);
       expect(wolfStepReady, 'Wolf step should become active').toBe(true);
 
       // PR-B G-4: while the wolf acts, the non-actioner's bottom
