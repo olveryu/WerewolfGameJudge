@@ -17,6 +17,7 @@ import {
   viewLastNightInfo,
   waitForNightEnd,
   waitForRoleTurn,
+  waitForRoomStep,
 } from '../helpers/night-driver';
 import { runNightFlowLoop } from '../pages/NightFlowPage';
 import { RoomPage } from '../pages/RoomPage';
@@ -73,14 +74,13 @@ test.describe('Werewolf Night — Flow Verification', () => {
       const villagerSeat = roleMap.get(villagerIdx)!.seat;
       const hostPage = pages[0];
 
-      // Wait for the wolf's action prompt itself: the action-message
-      // element is already visible before the start carrying the
-      // ready/waiting text, so visibility alone would read too early —
-      // poll until the prompt is the wolf's.
-      const wolfAction = wolfPage.locator('[data-testid="action-message"]');
-      await expect
-        .poll(async () => (await wolfAction.textContent()) ?? '', { timeout: 30_000 })
-        .toContain('袭击');
+      // Wait for the wolf's step itself: the room step flips to
+      // wolfKill exactly when the wolf acts. (The old gate polled the
+      // action-message copy because the element is visible earlier
+      // carrying ready/waiting text; the step anchor reads the same
+      // moment without binding to wording.)
+      const wolfStepReady = await waitForRoomStep(wolfPage, 'wolfKill', 30_000);
+      expect(wolfStepReady, 'Wolf step should become active').toBe(true);
 
       // PR-B G-4: while the wolf acts, the non-actioner's bottom
       // panel names the step it is waiting on (same derived progress
