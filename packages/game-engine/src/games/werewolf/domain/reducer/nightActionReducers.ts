@@ -99,6 +99,7 @@ export function handleEndNight(state: GameState, action: EndNightAction): GameSt
     currentStepIndex: -1,
     // Clear step state and audio state when night ends.
     currentStepId: undefined,
+    stepDeadline: undefined,
     isAudioPlaying: false,
   };
 }

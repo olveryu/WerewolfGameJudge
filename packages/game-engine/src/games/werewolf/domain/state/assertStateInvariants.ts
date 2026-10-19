@@ -17,6 +17,7 @@ import {
   type RoleId,
   validateTemplateRoles,
 } from '../models';
+import { buildNightPlan } from '../models/roles/spec/plan';
 import type {
   GameState,
   SheriffElectionRoundResult,
@@ -431,6 +432,45 @@ function assertRosterAlignment(state: GameState): void {
   }
 }
 
+/**
+ * The night-step window: `currentStepIndex` / `currentStepId` / `stepDeadline`
+ * are only meaningful while a night is running. Outside `Ongoing` the step
+ * pointer stays parked (index -1, no step id, no deadline). Inside `Ongoing`
+ * the state is either parked on a plan step — id and index naming the same
+ * step of the plan derived from `templateRoles` + `seerLabelMap` — or
+ * exhausted (index past the plan end, no step id, no deadline; only
+ * `END_NIGHT` may proceed). A deadline only ever exists on a live step.
+ */
+function assertWerewolfStepWindow(state: GameState): void {
+  const { currentStepIndex, currentStepId, stepDeadline } = state;
+  if (state.status !== GameStatus.Ongoing) {
+    if (currentStepIndex !== -1) {
+      fail(`${state.status} state carries currentStepIndex ${currentStepIndex}`);
+    }
+    if (currentStepId !== undefined) {
+      fail(`${state.status} state carries currentStepId ${currentStepId}`);
+    }
+    if (stepDeadline !== undefined) {
+      fail(`${state.status} state carries stepDeadline`);
+    }
+    return;
+  }
+  if (currentStepId === undefined) {
+    const planLength = buildNightPlan(state.templateRoles, state.seerLabelMap).steps.length;
+    if (currentStepIndex !== planLength) {
+      fail(
+        `Ongoing state without currentStepId carries currentStepIndex ${currentStepIndex}, expected plan length ${planLength}`,
+      );
+    }
+    if (stepDeadline !== undefined) fail('exhausted Ongoing state carries stepDeadline');
+    return;
+  }
+  const plan = buildNightPlan(state.templateRoles, state.seerLabelMap);
+  if (plan.steps[currentStepIndex]?.stepId !== currentStepId) {
+    fail(`currentStepId ${currentStepId} does not match plan step at index ${currentStepIndex}`);
+  }
+}
+
 /** Reject semantic state combinations that the command pipeline cannot produce. */
 export function assertWerewolfStateInvariants(state: GameState): void {
   const templateError = validateTemplateRoles(state.templateRoles);
@@ -451,6 +491,8 @@ export function assertWerewolfStateInvariants(state: GameState): void {
         : `${state.status} state contains currentNightResults`,
     );
   }
+
+  assertWerewolfStepWindow(state);
 
   const bottomCardRoleId = getBottomCardRoleId(state.templateRoles);
   const isAssignedState =

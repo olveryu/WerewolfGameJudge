@@ -257,7 +257,10 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   /**
    * Current night step index.
    * -1 = night not started (Setup phase); >= 0 = nightSteps array index.
-   * Only meaningful when status=Ongoing.
+   * Only meaningful when status=Ongoing. While Ongoing without a
+   * currentStepId it equals the plan length (the exhausted position
+   * awaiting END_NIGHT). The step-window contract is enforced by
+   * assertWerewolfStepWindow.
    */
   currentStepIndex: number;
   isAudioPlaying: boolean;
@@ -269,7 +272,11 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    */
   roleRevealRandomNonce?: string;
 
-  /** Current night step ID (from NIGHT_STEPS table-driven single source) */
+  /**
+   * Current night step ID (from NIGHT_STEPS table-driven single source).
+   * Present exactly while a plan step is live (status=Ongoing); absent in
+   * the exhausted position and outside the night.
+   */
   currentStepId?: SchemaId;
 
   // --- Seat-map fields ---
@@ -444,6 +451,10 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    * - Set: internal engine (wolf vote post-action / unchosen step entry)
    * - Check: evaluateProgression (inlineProgression.ts)
    * - Clear: ADVANCE_TO_NEXT_ACTION reducer
+   *
+   * Window: only ever present on a live step (status=Ongoing with a
+   * currentStepId); never carried into the exhausted position or into
+   * Day/Ended. Enforced by assertWerewolfStepWindow.
    */
   stepDeadline?: number;
 
