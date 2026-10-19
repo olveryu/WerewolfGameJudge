@@ -55,7 +55,7 @@ export interface ColdRoomFixture {
 const DEFAULT_ACTION_TIMEOUT_MS = 10_000;
 const DEFAULT_NAVIGATION_TIMEOUT_MS = 30_000;
 
-function applyContextTimeouts(context: BrowserContext): void {
+export function applyContextTimeouts(context: BrowserContext): void {
   context.setDefaultTimeout(DEFAULT_ACTION_TIMEOUT_MS);
   context.setDefaultNavigationTimeout(DEFAULT_NAVIGATION_TIMEOUT_MS);
 }
