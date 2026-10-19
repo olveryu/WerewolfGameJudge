@@ -216,7 +216,7 @@ export class WerewolfActionDraftStore implements WerewolfActionDraftRepository {
     // validation of a decodable draft stays fail-fast below.
     let stored: StoredWerewolfActionDraft;
     try {
-      stored = parseStoredDraft(JSON.parse(raw) as unknown);
+      stored = parseStoredDraft(JSON.parse(raw));
     } catch {
       this.clear(canonicalScope);
       return { kind: 'missing' };
