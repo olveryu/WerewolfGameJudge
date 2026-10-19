@@ -28,6 +28,7 @@ import { handlerResultToDecision } from '../domain/decision';
 import { handlerError, handlerRejection, handlerSuccess } from '../domain/handlers/types';
 import type { SubmitActionIntent } from '../domain/intents/types';
 import { GameStatus, type GameTemplate, type RoleId } from '../domain/models';
+import type { SchemaId } from '../domain/models/roles/spec';
 import type { GameState, SheriffElectionState } from '../domain/protocol/types';
 import type { StateAction } from '../domain/reducer/types';
 import { buildInitialGameState } from '../domain/state/buildInitialState';
@@ -232,7 +233,7 @@ describe('Werewolf authoritative actor resolution', () => {
 
 describe('Werewolf action input adapter', () => {
   it.each<{
-    stepId: GameState['currentStepId'];
+    stepId: SchemaId;
     role: RoleId;
     input: Extract<WerewolfCommand, { type: 'werewolf.action.submit' }>['input'];
     payload: SubmitActionIntent['payload'];
@@ -300,7 +301,7 @@ describe('Werewolf action input adapter', () => {
   ])('maps $input.kind into the typed handler intent', ({ stepId, role, input, payload }) => {
     const state = createState({
       status: GameStatus.Ongoing,
-      currentStepId: stepId,
+      nightStep: { kind: 'inStep', stepId },
       players: {
         ...createState().players,
         1: { seat: 1, role, hasViewedRole: true },
@@ -314,7 +315,10 @@ describe('Werewolf action input adapter', () => {
   });
 
   it('rejects a typed input whose kind does not match the authoritative current schema', () => {
-    const state = createState({ status: GameStatus.Ongoing, currentStepId: 'seerCheck' });
+    const state = createState({
+      status: GameStatus.Ongoing,
+      nightStep: { kind: 'inStep', stepId: 'seerCheck' },
+    });
 
     expect(resolveSubmitActionIntent(state, 1, { kind: 'confirm' })).toEqual({
       kind: 'rejected',
@@ -325,8 +329,7 @@ describe('Werewolf action input adapter', () => {
   it('rejects a confirmed action after its authoritative step identity changes', () => {
     const state = createState({
       status: GameStatus.Ongoing,
-      currentStepId: 'seerCheck',
-      currentStepIndex: 4,
+      nightStep: { kind: 'exhausted' },
       roleRevealRandomNonce: 'game-2',
     });
 
@@ -337,14 +340,13 @@ describe('Werewolf action input adapter', () => {
         { kind: 'target', target: 3 },
         {
           currentStepId: 'seerCheck',
-          currentStepIndex: 3,
           roleRevealRandomNonce: 'game-2',
         },
       ),
     ).toEqual({ kind: 'rejected', reason: REASON_ACTION_STEP_CHANGED });
   });
 
-  it.each<[GameState['currentStepId'], RoleId]>([
+  it.each<[SchemaId, RoleId]>([
     ['seerCheck', 'seer'],
     ['magicianSwap', 'magician'],
     ['hunterConfirm', 'hunter'],
@@ -354,7 +356,7 @@ describe('Werewolf action input adapter', () => {
   ])('maps one canonical skip input for %s', (stepId, role) => {
     const state = createState({
       status: GameStatus.Ongoing,
-      currentStepId: stepId,
+      nightStep: { kind: 'inStep', stepId },
       players: {
         ...createState().players,
         1: { seat: 1, role, hasViewedRole: true },
@@ -370,17 +372,15 @@ describe('Werewolf action input adapter', () => {
     });
   });
 
-  it.each<
-    [
-      GameState['currentStepId'],
-      Extract<WerewolfCommand, { type: 'werewolf.action.submit' }>['input'],
-    ]
-  >([
+  it.each<[SchemaId, Extract<WerewolfCommand, { type: 'werewolf.action.submit' }>['input']]>([
     ['seerCheck', { kind: 'target', target: null }],
     ['piperHypnotize', { kind: 'multiTarget', targets: [] }],
     ['witchAction', { kind: 'witch', saveTarget: null, poisonTarget: null }],
   ])('rejects duplicate skip encoding for %s', (stepId, input) => {
-    const state = createState({ status: GameStatus.Ongoing, currentStepId: stepId });
+    const state = createState({
+      status: GameStatus.Ongoing,
+      nightStep: { kind: 'inStep', stepId },
+    });
 
     expect(resolveSubmitActionIntent(state, 1, input)).toEqual({
       kind: 'rejected',
@@ -528,7 +528,7 @@ describe('Werewolf engine definition and catalog', () => {
   it('allows the original actor to acknowledge a reveal released in a later step', () => {
     const state = createState({
       status: GameStatus.Ongoing,
-      currentStepId: 'seedWolfInfectReveal',
+      nightStep: { kind: 'inStep', stepId: 'seedWolfInfectReveal' },
       pendingRevealAcks: ['seerCheck'],
       actions: [{ schemaId: 'seerCheck', actorSeat: 1, targetSeat: 0, timestamp: 1 }],
     });
@@ -616,8 +616,7 @@ describe('Werewolf engine definition and catalog', () => {
   it('passes the submitted step identity through the engine before action resolution', () => {
     const state = createState({
       status: GameStatus.Ongoing,
-      currentStepId: 'seerCheck',
-      currentStepIndex: 4,
+      nightStep: { kind: 'exhausted' },
       roleRevealRandomNonce: 'game-2',
     });
 
@@ -629,7 +628,6 @@ describe('Werewolf engine definition and catalog', () => {
           input: { kind: 'target', target: 3 },
           expectedStep: {
             currentStepId: 'seerCheck',
-            currentStepIndex: 3,
             roleRevealRandomNonce: 'game-2',
           },
         },
@@ -688,7 +686,7 @@ describe('Werewolf engine definition and catalog', () => {
   it('emits one game-ended effect with every occupied participant on the ended transition', () => {
     const state = createState({
       status: GameStatus.Ongoing,
-      currentStepId: undefined,
+      nightStep: { kind: 'exhausted' },
       currentNightResults: { wolfVotesBySeat: { '0': 1 } },
       isAudioPlaying: false,
     });
@@ -727,7 +725,10 @@ describe('Werewolf engine definition and catalog', () => {
     expect(rejected).not.toHaveProperty('effects');
 
     const noTransition = werewolfEngine.decide(
-      createState({ status: GameStatus.Ongoing, currentStepId: 'seerCheck' }),
+      createState({
+        status: GameStatus.Ongoing,
+        nightStep: { kind: 'inStep', stepId: 'seerCheck' },
+      }),
       commandByType['werewolf.progress.request'],
       userContext('host'),
     );
@@ -744,7 +745,7 @@ describe('Werewolf engine definition and catalog', () => {
   it('fails fast when an occupied seat has no role at the ended transition', () => {
     const state = createState({
       status: GameStatus.Ongoing,
-      currentStepId: undefined,
+      nightStep: { kind: 'exhausted' },
       currentNightResults: { wolfVotesBySeat: { '0': 1 } },
       isAudioPlaying: false,
       players: {
@@ -764,7 +765,7 @@ describe('Werewolf engine definition and catalog', () => {
       templateRoles: ['wolf', 'seer', 'hunter', 'villager', 'villager'],
       rules: { isSheriffElectionEnabled: true },
       roleRevealRandomNonce: 's4',
-      currentStepId: undefined,
+      nightStep: { kind: 'exhausted' },
       currentNightResults: {},
       isAudioPlaying: false,
       players: {

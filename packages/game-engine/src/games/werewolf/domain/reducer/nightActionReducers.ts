@@ -7,7 +7,7 @@
  * @pre Each reducer assumes the caller has validated via the handler layer; preconditions are not re-checked.
  *   - handleStartNight: @pre status === 'Setup' || status === 'Unseated'
  *   - handleAdvanceToNextAction: @pre status === 'Ongoing'
- *   - handleEndNight: @pre status === 'Ongoing' && currentStepId === undefined
+ *   - handleEndNight: @pre status === 'Ongoing' && nightStep is exhausted
  *   - handleApplyResolverResult: @pre status === 'Ongoing'
  *   - handleSetAudioPlaying: accepts authoritative audio-queue state events
  *   - handleSetWitchContext: @pre status === 'Ongoing'
@@ -33,17 +33,16 @@ import type {
   StartNightAction,
 } from './types';
 
-/** Start night (set initial stepIndex, clear actions/results). */
+/** Start night (set the initial night step, clear actions/results). */
 export function handleStartNight(state: GameState, action: StartNightAction): GameState {
-  const { currentStepIndex, currentStepId } = action.payload;
+  const { nightStep } = action.payload;
   return {
     ...state,
     status: GameStatus.Ongoing,
     startingParticipants: Object.values(
       getHumanSeatMap(state.roster, Object.keys(state.players).length),
     ).map((occupant) => ({ userId: occupant.userId, seat: occupant.seat })),
-    currentStepIndex,
-    currentStepId: currentStepId ?? undefined,
+    nightStep,
     // Audio queue events own isAudioPlaying; step transitions never infer it.
     actions: [],
     currentNightResults: {},
@@ -60,14 +59,11 @@ export function handleAdvanceToNextAction(
   state: GameState,
   action: AdvanceToNextActionAction,
 ): GameState {
-  const { nextStepIndex, nextStepId } = action.payload;
+  const { nightStep } = action.payload;
   return {
     ...state,
-    currentStepIndex: nextStepIndex,
-    // Keep currentStepId synchronized on advance.
-    currentStepId: nextStepId ?? undefined,
-    // Clear previous step's stepDeadline when advancing to a new step
-    stepDeadline: undefined,
+    // The previous step (and any deadline armed inside it) is replaced whole.
+    nightStep,
     // Audio queue events own isAudioPlaying; step transitions never infer it.
     // Note: wolf vote single source of truth is currentNightResults.wolfVotesBySeat (protocol removed wolfVotes/wolfVoteStatus).
     // P0-FIX: no longer clear reveal fields. Reveal should persist through the entire night
@@ -96,10 +92,8 @@ export function handleEndNight(state: GameState, action: EndNightAction): GameSt
         }
       : undefined,
     sheriffElectionResult: undefined,
-    currentStepIndex: -1,
     // Clear step state and audio state when night ends.
-    currentStepId: undefined,
-    stepDeadline: undefined,
+    nightStep: null,
     isAudioPlaying: false,
   };
 }

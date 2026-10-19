@@ -39,7 +39,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
       2: { seat: 2, role: 'villager', hasViewedRole: true },
       3: { seat: 3, role: 'witch', hasViewedRole: true },
     },
-    currentStepIndex: 0,
+    nightStep: { kind: 'inStep', stepId: 'witchAction' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],
@@ -52,7 +52,6 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     roster: {},
     playerProfiles: {},
     currentNightResults: {},
-    currentStepId: 'witchAction',
     witchContext: { killedSeat: 0, canSave: true, canPoison: true },
     ...overrides,
   };

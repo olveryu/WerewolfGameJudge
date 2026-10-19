@@ -39,6 +39,7 @@ import type {
   SheriffElectionState,
   SheriffSpeakingDirection,
   WerewolfHumanSeat,
+  WerewolfNightStep,
 } from '../domain/protocol/types';
 import type { CurrentNightResults, ResolverReveal } from '../domain/resolvers/types';
 import { type Complete, normalizeState } from '../domain/state/normalize';
@@ -902,6 +903,26 @@ function parseSheriffElectionResult(value: unknown, path: string): SheriffElecti
 }
 
 /** Decode unknown JSON and reject state that does not match the current Werewolf state version. */
+function parseNightStep(value: unknown, path: string): WerewolfNightStep | null {
+  if (value === null) return null;
+  const raw = parseObject(value, path);
+  if (raw.kind === 'inStep') {
+    return finishObject(
+      raw,
+      {
+        kind: 'inStep' as const,
+        stepId: parseSchemaId(raw.stepId, `${path}.stepId`),
+        stepDeadline: parseOptional(raw.stepDeadline, `${path}.stepDeadline`, parseInteger),
+      },
+      path,
+    );
+  }
+  if (raw.kind === 'exhausted') {
+    return finishObject(raw, { kind: 'exhausted' as const }, path);
+  }
+  throw new Error(`${path}.kind: unsupported night step kind`);
+}
+
 export function parseWerewolfState(value: unknown): GameState {
   const raw = parseObject(value, 'GameState');
   const parsed = {
@@ -942,14 +963,13 @@ export function parseWerewolfState(value: unknown): GameState {
     ),
     roster: parseSeatRoster(raw.roster, 'GameState.roster'),
     playerProfiles: parsePlayerProfiles(raw.playerProfiles, 'GameState.playerProfiles'),
-    currentStepIndex: parseInteger(raw.currentStepIndex, 'GameState.currentStepIndex'),
+    nightStep: parseNightStep(raw.nightStep, 'GameState.nightStep'),
     isAudioPlaying: parseBoolean(raw.isAudioPlaying, 'GameState.isAudioPlaying'),
     roleRevealRandomNonce: parseOptional(
       raw.roleRevealRandomNonce,
       'GameState.roleRevealRandomNonce',
       parseString,
     ),
-    currentStepId: parseOptional(raw.currentStepId, 'GameState.currentStepId', parseSchemaId),
     actions: parseArray(raw.actions, 'GameState.actions', parseProtocolAction),
     currentNightResults: parseOptional(
       raw.currentNightResults,
@@ -1043,7 +1063,6 @@ export function parseWerewolfState(value: unknown): GameState {
       'GameState.actionRejected',
       parseActionRejected,
     ),
-    stepDeadline: parseOptional(raw.stepDeadline, 'GameState.stepDeadline', parseInteger),
     // Legacy persisted states predate the queue field; a missing field
     // decodes to an empty queue instead of failing the whole state.
     pendingAudioEffects:
@@ -1160,21 +1179,61 @@ function canonicalizeStepWindowFields(raw: Record<string, unknown>): void {
   }
 }
 
+/**
+ * v9 shape transform for a canonicalized v8 record: the step window
+ * (currentStepIndex / currentStepId / stepDeadline) collapses into the
+ * `nightStep` union. The input has already been canonicalized (v8 load
+ * rules), so the combination is one of the legal window positions and
+ * this is a pure shape transform with no value judgement: non-Ongoing
+ * carries no step; Ongoing with a step id is inStep (deadline rides
+ * along); Ongoing without one is exhausted.
+ */
+function upgradeV8NightStep(raw: Record<string, unknown>): Record<string, unknown> {
+  const { currentStepIndex: _index, currentStepId, stepDeadline, ...rest } = raw;
+  let nightStep: WerewolfNightStep | null = null;
+  if (raw.status === GameStatus.Ongoing && currentStepId !== undefined) {
+    // The record was canonicalized on the way in, so these checks only
+    // fire on a corrupt stored record — fail fast rather than guess.
+    if (typeof currentStepId !== 'string' || !isValidSchemaId(currentStepId)) {
+      throw new Error('GameState.currentStepId: invalid schema id in pre-v9 state');
+    }
+    if (stepDeadline !== undefined && typeof stepDeadline !== 'number') {
+      throw new Error('GameState.stepDeadline: invalid deadline in pre-v9 state');
+    }
+    nightStep = {
+      kind: 'inStep',
+      stepId: currentStepId,
+      ...(stepDeadline !== undefined ? { stepDeadline } : {}),
+    };
+  } else if (raw.status === GameStatus.Ongoing) {
+    nightStep = { kind: 'exhausted' };
+  }
+  return { ...rest, stateVersion: WEREWOLF_STATE_VERSION, nightStep };
+}
+
 export function migratePersistedWerewolfState(value: unknown): GameState {
   const raw = parseObject(value, 'GameState');
   if (raw.stateVersion === WEREWOLF_STATE_VERSION) return parseWerewolfState(raw);
-  if (raw.stateVersion === 7) {
-    const upgraded: Record<string, unknown> = { ...raw, stateVersion: WEREWOLF_STATE_VERSION };
+  if (raw.stateVersion === 8) {
+    // v8 payloads were canonicalized when written under v8; re-applying
+    // the canonicalization is a no-op for them and keeps the transform's
+    // precondition explicit rather than assumed.
+    const upgraded: Record<string, unknown> = { ...raw };
     canonicalizeStepWindowFields(upgraded);
-    return parseWerewolfState(upgraded);
+    return parseWerewolfState(upgradeV8NightStep(upgraded));
+  }
+  if (raw.stateVersion === 7) {
+    const upgraded: Record<string, unknown> = { ...raw };
+    canonicalizeStepWindowFields(upgraded);
+    return parseWerewolfState(upgradeV8NightStep(upgraded));
   }
   if (raw.stateVersion === 6) {
     // v7 deletes the debugMode record: drop the field, then the
     // current strict parser validates the rest unchanged.
-    const upgraded: Record<string, unknown> = { ...raw, stateVersion: WEREWOLF_STATE_VERSION };
+    const upgraded: Record<string, unknown> = { ...raw };
     delete upgraded.debugMode;
     canonicalizeStepWindowFields(upgraded);
-    return parseWerewolfState(upgraded);
+    return parseWerewolfState(upgradeV8NightStep(upgraded));
   }
   if (raw.stateVersion !== 5) {
     throw new Error(`Unsupported werewolf state version: ${String(raw.stateVersion)}`);
@@ -1196,11 +1255,10 @@ export function migratePersistedWerewolfState(value: unknown): GameState {
   const { roster: _legacyProfiles, ...rest } = raw;
   const upgraded: Record<string, unknown> = {
     ...rest,
-    stateVersion: WEREWOLF_STATE_VERSION,
     players,
     roster,
     playerProfiles,
   };
   canonicalizeStepWindowFields(upgraded);
-  return parseWerewolfState(upgraded);
+  return parseWerewolfState(upgradeV8NightStep(upgraded));
 }

@@ -32,14 +32,11 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'mvpUserId',
   'roster',
   'playerProfiles',
-  'currentStepIndex',
+  'nightStep',
   'isAudioPlaying',
 
   // Role reveal animation config
   'roleRevealRandomNonce',
-
-  // Night flow state
-  'currentStepId',
 
   // Execution state
   'actions',
@@ -86,9 +83,6 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'wolfRobotHunterStatusViewed',
   'confirmStatus',
   'actionRejected',
-
-  // Unified step deadline
-  'stepDeadline',
 
   // Pending audio effect queue
   'pendingAudioEffects',
@@ -142,14 +136,13 @@ describe('normalizeState contract', () => {
         1: { seat: 1, userId: 'p1' },
       },
       playerProfiles: { p0: { displayName: 'P0' }, p1: { displayName: 'P1' } },
-      currentStepIndex: 0,
       isAudioPlaying: false,
 
       // Role reveal animation config
       roleRevealRandomNonce: 'nonce-123',
 
-      // Night flow state
-      currentStepId: 'wolfKill',
+      // Night flow state (step deadline rides inside the live step)
+      nightStep: { kind: 'inStep', stepId: 'wolfKill', stepDeadline: Date.now() + 5000 },
 
       // Execution state
       actions: [{ schemaId: 'wolfKill', actorSeat: 1, targetSeat: 2, timestamp: Date.now() }],
@@ -201,9 +194,6 @@ describe('normalizeState contract', () => {
         targetUserId: 'p1',
         rejectionId: 'rej-1',
       },
-
-      // Unified step deadline
-      stepDeadline: Date.now() + 5000,
 
       // Pending audio effect queue
       pendingAudioEffects: [{ audioKey: 'wolfKill', isEndAudio: true }],
@@ -281,7 +271,7 @@ describe('normalizeState contract', () => {
       status: GameStatus.Unseated,
       templateRoles: ['villager'],
       players: {},
-      currentStepIndex: -1,
+      nightStep: null,
       isAudioPlaying: false,
       pendingAudioEffects: [],
       actions: [],

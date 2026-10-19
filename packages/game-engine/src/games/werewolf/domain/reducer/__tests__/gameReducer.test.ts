@@ -40,7 +40,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Unseated,
     templateRoles: ['villager', 'wolf', 'seer'],
     players,
-    currentStepIndex: -1,
+    nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],
@@ -220,7 +220,7 @@ describe('gameReducer', () => {
           2: { seat: 2, role: null, hasViewedRole: false },
         },
         // These should remain unchanged
-        currentStepIndex: -1,
+        nightStep: null,
         isAudioPlaying: false,
       });
       const action: AssignRolesAction = {
@@ -232,7 +232,7 @@ describe('gameReducer', () => {
 
       // PR1 contract: ASSIGN_ROLES should NOT initialize night fields
       expect(newState.status).toBe(GameStatus.Assigned); // NOT GameStatus.Ongoing
-      expect(newState.currentStepIndex).toBe(-1); // NOT 0
+      expect(newState.nightStep).toBeNull(); // NOT an inStep step
       expect(newState.isAudioPlaying).toBe(false);
       expect(newState.actions).toEqual([]);
       expect(newState.currentNightResults).toBeUndefined();
@@ -244,52 +244,49 @@ describe('gameReducer', () => {
       const state = createMinimalState({ status: GameStatus.Assigned });
       const action: StartNightAction = {
         type: 'START_NIGHT',
-        payload: { currentStepIndex: 0, currentStepId: 'magicianSwap' },
+        payload: { nightStep: { kind: 'inStep', stepId: 'magicianSwap' } },
       };
 
       const newState = gameReducer(state, action);
 
       expect(newState.status).toBe(GameStatus.Ongoing);
-      expect(newState.currentStepIndex).toBe(0);
-      expect(newState.currentStepId).toBe('magicianSwap');
+      expect(newState.nightStep).toEqual({ kind: 'inStep', stepId: 'magicianSwap' });
       expect(newState.actions).toEqual([]);
       expect(newState.currentNightResults).toEqual({});
     });
 
-    it('should set currentStepId from payload (table-driven single source)', () => {
+    it('should set nightStep from payload (table-driven single source)', () => {
       const state = createMinimalState({ status: GameStatus.Ready });
       const action: StartNightAction = {
         type: 'START_NIGHT',
-        payload: { currentStepIndex: 0, currentStepId: 'wolfKill' },
+        payload: { nightStep: { kind: 'inStep', stepId: 'wolfKill' } },
       };
 
       const newState = gameReducer(state, action);
 
-      expect(newState.currentStepId).toBe('wolfKill');
+      expect(newState.nightStep).toEqual({ kind: 'inStep', stepId: 'wolfKill' });
     });
 
     it('initializes results without inventing a step for an empty night plan', () => {
       const state = createMinimalState({ status: GameStatus.Ready });
       const action: StartNightAction = {
         type: 'START_NIGHT',
-        payload: { currentStepIndex: -1, currentStepId: null },
+        payload: { nightStep: { kind: 'exhausted' } },
       };
 
       const newState = gameReducer(state, action);
 
       expect(newState.status).toBe(GameStatus.Ongoing);
-      expect(newState.currentStepIndex).toBe(-1);
-      expect(newState.currentStepId).toBeUndefined();
+      expect(newState.nightStep).toEqual({ kind: 'exhausted' });
       expect(newState.currentNightResults).toEqual({});
     });
   });
 
   describe('ADVANCE_TO_NEXT_ACTION', () => {
-    it('should update currentStepIndex, currentStepId and clear context but preserve reveal states', () => {
+    it('should update nightStep and clear context but preserve reveal states', () => {
       const state = createMinimalState({
         status: GameStatus.Ongoing,
-        currentStepIndex: 0,
-        currentStepId: 'wolfKill',
+        nightStep: { kind: 'inStep', stepId: 'wolfKill' },
         seerReveal: { targetSeat: 1, result: '好人' },
         psychicReveal: { targetSeat: 2, result: '狼人阵营' },
         gargoyleReveal: { targetSeat: 3, result: '守卫' },
@@ -299,14 +296,13 @@ describe('gameReducer', () => {
       });
       const action: AdvanceToNextActionAction = {
         type: 'ADVANCE_TO_NEXT_ACTION',
-        payload: { nextStepIndex: 1, nextStepId: 'seerCheck' },
+        payload: { nightStep: { kind: 'inStep', stepId: 'seerCheck' } },
       };
 
       const newState = gameReducer(state, action);
 
-      // PR6 contract: update index and stepId together
-      expect(newState.currentStepIndex).toBe(1);
-      expect(newState.currentStepId).toBe('seerCheck');
+      // PR6 contract: nightStep moves to the next plan step
+      expect(newState.nightStep).toEqual({ kind: 'inStep', stepId: 'seerCheck' });
       // P0-FIX: reveal state retained until night end, giving UI enough time to show popups
       expect(newState.seerReveal).toEqual({ targetSeat: 1, result: '好人' });
       expect(newState.psychicReveal).toEqual({ targetSeat: 2, result: '狼人阵营' });
@@ -324,13 +320,12 @@ describe('gameReducer', () => {
     it('should preserve currentNightResults on advance for death calculation at END_NIGHT', () => {
       const state = createMinimalState({
         status: GameStatus.Ongoing,
-        currentStepIndex: 0,
-        currentStepId: 'wolfKill',
+        nightStep: { kind: 'inStep', stepId: 'wolfKill' },
         currentNightResults: { wolfVotesBySeat: { '1': 3, '2': 3 } },
       });
       const action: AdvanceToNextActionAction = {
         type: 'ADVANCE_TO_NEXT_ACTION',
-        payload: { nextStepIndex: 1, nextStepId: 'witchAction' },
+        payload: { nightStep: { kind: 'inStep', stepId: 'witchAction' } },
       };
 
       const newState = gameReducer(state, action);
@@ -338,22 +333,20 @@ describe('gameReducer', () => {
       expect(newState.currentNightResults).toEqual({ wolfVotesBySeat: { '1': 3, '2': 3 } });
     });
 
-    it('should set currentStepId to undefined when nextStepId is null (night end)', () => {
+    it('should set nightStep to exhausted when the advance payload is exhausted (night end)', () => {
       const state = createMinimalState({
         status: GameStatus.Ongoing,
-        currentStepIndex: 5,
-        currentStepId: 'hunterConfirm',
+        nightStep: { kind: 'inStep', stepId: 'hunterConfirm' },
       });
       const action: AdvanceToNextActionAction = {
         type: 'ADVANCE_TO_NEXT_ACTION',
-        payload: { nextStepIndex: -1, nextStepId: null },
+        payload: { nightStep: { kind: 'exhausted' } },
       };
 
       const newState = gameReducer(state, action);
 
-      // PR6 contract: nextStepId=null indicates night end, stepId is cleared
-      expect(newState.currentStepIndex).toBe(-1);
-      expect(newState.currentStepId).toBeUndefined();
+      // PR6 contract: the exhausted payload marks night end
+      expect(newState.nightStep).toEqual({ kind: 'exhausted' });
     });
   });
 
@@ -361,7 +354,7 @@ describe('gameReducer', () => {
     it('should set status to ended and record deaths', () => {
       const state = createMinimalState({
         status: GameStatus.Ongoing,
-        currentStepId: 'hunterConfirm',
+        nightStep: { kind: 'inStep', stepId: 'hunterConfirm' },
         isAudioPlaying: true,
       });
       const action: EndNightAction = {
@@ -373,18 +366,16 @@ describe('gameReducer', () => {
 
       expect(newState.status).toBe(GameStatus.Ended);
       expect(newState.lastNightDeaths).toEqual([1, 2]);
-      expect(newState.currentStepIndex).toBe(-1);
-      // PR6 contract: clear stepId and isAudioPlaying
-      expect(newState.currentStepId).toBeUndefined();
+      // PR6 contract: clear nightStep and isAudioPlaying
+      expect(newState.nightStep).toBeNull();
       expect(newState.isAudioPlaying).toBe(false);
     });
 
-    it('should clear currentStepId and isAudioPlaying (PR6 contract)', () => {
+    it('should clear nightStep and isAudioPlaying (PR6 contract)', () => {
       const state = createMinimalState({
         status: GameStatus.Ongoing,
-        currentStepId: 'witchAction',
+        nightStep: { kind: 'inStep', stepId: 'witchAction' },
         isAudioPlaying: true,
-        currentStepIndex: 3,
       });
       const action: EndNightAction = {
         type: 'END_NIGHT',
@@ -393,10 +384,9 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      // PR6 contract: night end must clear stepId and isAudioPlaying
-      expect(newState.currentStepId).toBeUndefined();
+      // PR6 contract: night end must clear nightStep and isAudioPlaying
+      expect(newState.nightStep).toBeNull();
       expect(newState.isAudioPlaying).toBe(false);
-      expect(newState.currentStepIndex).toBe(-1);
       expect(newState.status).toBe(GameStatus.Ended);
     });
   });
@@ -613,7 +603,7 @@ describe('gameReducer', () => {
         },
         // Ensure these fields are at initial values in assigned status
         currentNightResults: undefined,
-        currentStepIndex: -1,
+        nightStep: null,
       });
       const action: PlayerViewedRoleAction = {
         type: 'PLAYER_VIEWED_ROLE',
@@ -625,7 +615,7 @@ describe('gameReducer', () => {
       // PR2 contract: do not touch night fields
       expect(newState.actions).toEqual([]);
       expect(newState.currentNightResults).toBeUndefined();
-      expect(newState.currentStepIndex).toBe(-1);
+      expect(newState.nightStep).toBeNull();
       expect(newState.witchContext).toBeUndefined();
       expect(newState.seerReveal).toBeUndefined();
     });
@@ -665,7 +655,7 @@ describe('gameReducer', () => {
       // Night state cleared
       expect(newState.actions).toEqual([]);
       expect(newState.lastNightDeaths).toBeUndefined();
-      expect(newState.currentStepIndex).toBe(-1);
+      expect(newState.nightStep).toBeNull();
     });
   });
 
@@ -822,8 +812,7 @@ describe('gameReducer', () => {
     it('should not change other state fields', () => {
       const state = createMinimalState({
         status: GameStatus.Ongoing,
-        currentStepIndex: 2,
-        currentStepId: 'seerCheck',
+        nightStep: { kind: 'inStep', stepId: 'seerCheck' },
         isAudioPlaying: false,
       });
       const action: SetAudioPlayingAction = {
@@ -834,8 +823,7 @@ describe('gameReducer', () => {
       const newState = gameReducer(state, action);
 
       expect(newState.status).toBe(GameStatus.Ongoing);
-      expect(newState.currentStepIndex).toBe(2);
-      expect(newState.currentStepId).toBe('seerCheck');
+      expect(newState.nightStep).toEqual({ kind: 'inStep', stepId: 'seerCheck' });
     });
   });
 
@@ -847,8 +835,7 @@ describe('gameReducer', () => {
       const baseState = createMinimalState({
         status: GameStatus.Ongoing,
         isAudioPlaying: true,
-        currentStepIndex: 0,
-        currentStepId: 'wolfKill',
+        nightStep: { kind: 'inStep', stepId: 'wolfKill' },
         players: {
           0: { seat: 0, role: 'villager', hasViewedRole: false },
           1: { seat: 1, role: 'wolf', hasViewedRole: false },
@@ -867,11 +854,11 @@ describe('gameReducer', () => {
         } satisfies AssignRolesAction,
         {
           type: 'START_NIGHT',
-          payload: { currentStepIndex: 0, currentStepId: 'wolfKill' },
+          payload: { nightStep: { kind: 'inStep', stepId: 'wolfKill' } },
         } satisfies StartNightAction,
         {
           type: 'ADVANCE_TO_NEXT_ACTION',
-          payload: { nextStepIndex: 1, nextStepId: 'seerCheck' },
+          payload: { nightStep: { kind: 'inStep', stepId: 'seerCheck' } },
         } satisfies AdvanceToNextActionAction,
         {
           type: 'APPLY_RESOLVER_RESULT',
@@ -901,7 +888,7 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         status: GameStatus.Ongoing,
         isAudioPlaying: true, // audio still playing (shouldn't happen in theory, but reducer must guarantee)
-        currentStepId: 'hunterConfirm',
+        nightStep: { kind: 'inStep', stepId: 'hunterConfirm' },
       });
       const action: EndNightAction = {
         type: 'END_NIGHT',
@@ -913,7 +900,7 @@ describe('gameReducer', () => {
       // PR7 contract: END_NIGHT must force isAudioPlaying=false
       expect(newState.isAudioPlaying).toBe(false);
       expect(newState.status).toBe(GameStatus.Ended);
-      expect(newState.currentStepId).toBeUndefined();
+      expect(newState.nightStep).toBeNull();
     });
   });
 
@@ -1138,8 +1125,11 @@ describe('gameReducer', () => {
   });
 
   describe('SET_STEP_DEADLINE', () => {
-    it('should set stepDeadline', () => {
-      const state = createMinimalState();
+    it('should set stepDeadline inside the live step', () => {
+      const state = createMinimalState({
+        status: GameStatus.Ongoing,
+        nightStep: { kind: 'inStep', stepId: 'wolfKill' },
+      });
       const deadline = Date.now() + 30000;
       const action = {
         type: 'SET_STEP_DEADLINE' as const,
@@ -1148,18 +1138,49 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      expect(newState.stepDeadline).toBe(deadline);
+      expect(newState.nightStep).toEqual({
+        kind: 'inStep',
+        stepId: 'wolfKill',
+        stepDeadline: deadline,
+      });
+    });
+
+    it('throws outside a live night step (fail-fast)', () => {
+      const state = createMinimalState({
+        status: GameStatus.Ongoing,
+        nightStep: { kind: 'exhausted' },
+      });
+      const action = {
+        type: 'SET_STEP_DEADLINE' as const,
+        payload: { deadline: Date.now() + 30000 },
+      };
+
+      expect(() => gameReducer(state, action)).toThrow(
+        '[FAIL-FAST] SET_STEP_DEADLINE outside a live night step',
+      );
     });
   });
 
   describe('CLEAR_STEP_DEADLINE', () => {
-    it('should clear stepDeadline', () => {
-      const state = createMinimalState({ stepDeadline: Date.now() + 30000 });
+    it('should clear stepDeadline from the live step', () => {
+      const state = createMinimalState({
+        status: GameStatus.Ongoing,
+        nightStep: { kind: 'inStep', stepId: 'wolfKill', stepDeadline: Date.now() + 30000 },
+      });
       const action = { type: 'CLEAR_STEP_DEADLINE' as const };
 
       const newState = gameReducer(state, action);
 
-      expect(newState.stepDeadline).toBeUndefined();
+      expect(newState.nightStep).toEqual({ kind: 'inStep', stepId: 'wolfKill' });
+    });
+
+    it('throws outside a live night step (fail-fast)', () => {
+      const state = createMinimalState({ status: GameStatus.Assigned });
+      const action = { type: 'CLEAR_STEP_DEADLINE' as const };
+
+      expect(() => gameReducer(state, action)).toThrow(
+        '[FAIL-FAST] CLEAR_STEP_DEADLINE outside a live night step',
+      );
     });
   });
 

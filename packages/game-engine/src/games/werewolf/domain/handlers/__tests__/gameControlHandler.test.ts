@@ -18,6 +18,7 @@ import type {
   UpdateTemplateIntent,
 } from '@game-judge/game-engine/games/werewolf/domain/intents/types';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
+import { resolveCurrentNightStep } from '@game-judge/game-engine/games/werewolf/domain/nightStep';
 import type { WerewolfHumanSeat } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import { gameReducer } from '@game-judge/game-engine/games/werewolf/domain/reducer/gameReducer';
 import { normalizeState } from '@game-judge/game-engine/games/werewolf/domain/state/normalize';
@@ -34,7 +35,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Unseated,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
-    currentStepIndex: -1,
+    nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],
@@ -252,7 +253,7 @@ describe('handleStartNight', () => {
     expect(success.actions[0]!.type).toBe('START_NIGHT');
   });
 
-  it('should set currentStepIndex to 0', () => {
+  it('should open the night on the first plan step (derived index 0)', () => {
     const context = createContext(readyState);
     const intent: StartNightIntent = { type: 'START_NIGHT' };
 
@@ -262,11 +263,13 @@ describe('handleStartNight', () => {
     const startNightAction = success.actions.find((a) => a.type === 'START_NIGHT');
     expect(startNightAction).toBeDefined();
     if (startNightAction?.type === 'START_NIGHT') {
-      expect(startNightAction.payload.currentStepIndex).toBe(0);
+      expect(startNightAction.payload.nightStep.kind).toBe('inStep');
+      const opened = gameReducer(readyState, startNightAction);
+      expect(resolveCurrentNightStep(opened)?.index).toBe(0);
     }
   });
 
-  it('should set currentStepId from buildNightPlan (table-driven single source, filtered by templateRoles)', () => {
+  it('should set nightStep from buildNightPlan (table-driven single source, filtered by templateRoles)', () => {
     const context = createContext(readyState);
     const intent: StartNightIntent = { type: 'START_NIGHT' };
 
@@ -278,7 +281,7 @@ describe('handleStartNight', () => {
     if (startNightAction?.type === 'START_NIGHT') {
       // First step comes from buildNightPlan's table-driven single source, filtered by template roles
       // readyState has villager/wolf/seer -> first step is 'wolfKill' (not magicianSwap, since no magician)
-      expect(startNightAction.payload.currentStepId).toBe('wolfKill');
+      expect(startNightAction.payload.nightStep).toEqual({ kind: 'inStep', stepId: 'wolfKill' });
     }
   });
 
@@ -307,7 +310,10 @@ describe('handleStartNight', () => {
     expect(startNightAction).toBeDefined();
     if (startNightAction?.type === 'START_NIGHT') {
       // First step should be witchAction (no wolf, wolfKill skipped)
-      expect(startNightAction.payload.currentStepId).toBe('witchAction');
+      expect(startNightAction.payload.nightStep).toEqual({
+        kind: 'inStep',
+        stepId: 'witchAction',
+      });
     }
 
     const witchContextAction = success.actions.find((a) => a.type === 'SET_WITCH_CONTEXT');
@@ -410,7 +416,7 @@ describe('handleStartNight', () => {
     expect(success.actions).toEqual([
       {
         type: 'START_NIGHT',
-        payload: { currentStepIndex: -1, currentStepId: null },
+        payload: { nightStep: { kind: 'exhausted' } },
       },
       { type: 'END_NIGHT', payload: { deaths: [] } },
     ]);

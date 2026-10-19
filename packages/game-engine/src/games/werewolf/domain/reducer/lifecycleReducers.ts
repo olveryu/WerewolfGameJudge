@@ -53,7 +53,7 @@ export function handleInitializeGame(state: GameState, action: InitializeGameAct
     // (the by-user display map is not seat-scoped).
     roster: {},
     status: GameStatus.Unseated,
-    currentStepIndex: -1,
+    nightStep: null,
     isAudioPlaying: false,
   };
 }
@@ -97,9 +97,8 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     startingParticipants: undefined,
     mvpUserId: undefined,
     status: GameStatus.Seated,
-    currentStepIndex: -1, // consistent with buildInitialGameState
+    nightStep: null, // consistent with buildInitialGameState
     isAudioPlaying: false,
-    currentStepId: undefined, // clear night step
     actions: [],
     currentNightResults: undefined,
     resolvedNightEffects: [],
@@ -124,7 +123,6 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     wolfKillOverride: undefined,
     pendingRevealAcks: [],
     pendingAudioEffects: [],
-    stepDeadline: undefined,
     ui: undefined,
     nightReviewAllowedSeats: undefined,
     seerLabelMap: undefined,

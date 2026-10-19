@@ -32,7 +32,6 @@ function runInlineProgression(
 
 function make2PlayerState(overrides: Partial<GameState> = {}): GameState {
   const plan = buildNightPlan(TEMPLATE_2P);
-  const firstStep = plan.steps[0];
   return {
     ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
@@ -43,8 +42,7 @@ function make2PlayerState(overrides: Partial<GameState> = {}): GameState {
       0: { seat: 0, hasViewedRole: true, role: 'wolf' },
       1: { seat: 1, hasViewedRole: true, role: 'villager' },
     },
-    currentStepIndex: 0,
-    currentStepId: firstStep?.stepId,
+    nightStep: { kind: 'inStep', stepId: plan.steps[0]!.stepId },
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],
@@ -66,7 +64,6 @@ function make2PlayerState(overrides: Partial<GameState> = {}): GameState {
 
 function make5PlayerState(overrides: Partial<GameState> = {}): GameState {
   const plan = buildNightPlan(TEMPLATE_5P);
-  const firstStep = plan.steps[0];
   return {
     ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
@@ -80,8 +77,7 @@ function make5PlayerState(overrides: Partial<GameState> = {}): GameState {
       3: { seat: 3, hasViewedRole: true, role: 'witch' },
       4: { seat: 4, hasViewedRole: true, role: 'villager' },
     },
-    currentStepIndex: 0,
-    currentStepId: firstStep?.stepId,
+    nightStep: { kind: 'inStep', stepId: plan.steps[0]!.stepId },
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],
@@ -138,7 +134,7 @@ describe('runInlineProgression', () => {
 
     it('种狼最终确认只读取独立 ACK 数组', () => {
       const state = make2PlayerState({
-        currentStepId: 'seedWolfInfectReveal',
+        nightStep: { kind: 'inStep', stepId: 'seedWolfInfectReveal' },
         piperRevealAcks: [0, 1],
         seedWolfInfectionRevealAcks: [0],
       });
@@ -150,7 +146,7 @@ describe('runInlineProgression', () => {
 
     it('wolfKill step 未全部投票 → stepsAdvanced=0', () => {
       const state = make2PlayerState({
-        currentStepId: 'wolfKill',
+        nightStep: { kind: 'inStep', stepId: 'wolfKill' },
         currentNightResults: {}, // 没有 wolfVotes
       });
       const result = runInlineProgression(state, 'host');
@@ -159,11 +155,10 @@ describe('runInlineProgression', () => {
 
     it('wolfKill countdown 未到期 → stepsAdvanced=0', () => {
       const state = make2PlayerState({
-        currentStepId: 'wolfKill',
+        nightStep: { kind: 'inStep', stepId: 'wolfKill', stepDeadline: Date.now() + 10000 },
         currentNightResults: {
           wolfVotesBySeat: { '0': 1 },
         },
-        stepDeadline: Date.now() + 10000, // 10s in future
       });
       const result = runInlineProgression(state, 'host', Date.now());
       expect(result.stepsAdvanced).toBe(0);
@@ -172,12 +167,10 @@ describe('runInlineProgression', () => {
     it('wolfKill countdown 已过期 → should advance', () => {
       const now = Date.now();
       const state = make2PlayerState({
-        currentStepId: 'wolfKill',
-        currentStepIndex: 0,
+        nightStep: { kind: 'inStep', stepId: 'wolfKill', stepDeadline: now - 1000 },
         currentNightResults: {
           wolfVotesBySeat: { '0': 1 },
         },
-        stepDeadline: now - 1000, // 1s in the past
       });
       const result = runInlineProgression(state, 'host', now);
       expect(result.stepsAdvanced).toBeGreaterThanOrEqual(1);
@@ -185,7 +178,7 @@ describe('runInlineProgression', () => {
 
     it('wolfRobot 猎人状态未确认时停在当前步骤', () => {
       const state = make2PlayerState({
-        currentStepId: 'wolfRobotLearn',
+        nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
         actions: [{ schemaId: 'wolfRobotLearn', actorSeat: 0, timestamp: 1 }],
         wolfRobotReveal: {
           targetSeat: 1,
@@ -216,8 +209,7 @@ describe('runInlineProgression', () => {
           2: { seat: 2, hasViewedRole: true, role: 'hunter' },
           3: { seat: 3, hasViewedRole: true, role: 'villager' },
         },
-        currentStepId: 'wolfRobotLearn',
-        currentStepIndex: wolfRobotStepIndex,
+        nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
         actions: [{ schemaId: 'wolfRobotLearn', actorSeat: 1, timestamp: 1 }],
         currentNightResults: { wolfVotesBySeat: { '0': 3 } },
         wolfRobotReveal: {
@@ -239,8 +231,7 @@ describe('runInlineProgression', () => {
       // In 2-player template, only step is wolfKill.
       // When wolf vote is complete (and no countdown), should advance past wolfKill → endNight
       const state = make2PlayerState({
-        currentStepId: 'wolfKill',
-        currentStepIndex: 0,
+        nightStep: { kind: 'inStep', stepId: 'wolfKill' },
         currentNightResults: {
           wolfVotesBySeat: { '0': 1 },
         },
@@ -267,8 +258,7 @@ describe('runInlineProgression', () => {
       expect(wolfIdx).toBeGreaterThanOrEqual(0);
 
       const state = make5PlayerState({
-        currentStepIndex: wolfIdx,
-        currentStepId: 'wolfKill',
+        nightStep: { kind: 'inStep', stepId: 'wolfKill' },
         currentNightResults: {
           wolfVotesBySeat: { '0': 4, '1': 4 },
         },
@@ -292,8 +282,7 @@ describe('runInlineProgression', () => {
       expect(wolfIdx).toBeGreaterThanOrEqual(0);
 
       const state = make5PlayerState({
-        currentStepIndex: wolfIdx,
-        currentStepId: 'wolfKill',
+        nightStep: { kind: 'inStep', stepId: 'wolfKill' },
         currentNightResults: {
           wolfVotesBySeat: { '0': 4, '1': 4 },
         },
@@ -344,8 +333,7 @@ describe('runInlineProgression', () => {
           2: { seat: 2, hasViewedRole: true, role: 'seer' },
           3: { seat: 3, hasViewedRole: true, role: 'guard' },
         },
-        currentStepIndex: witchIndex,
-        currentStepId: 'witchAction',
+        nightStep: { kind: 'inStep', stepId: 'witchAction' },
         isAudioPlaying: false,
         pendingAudioEffects: [],
         actions: [],
@@ -372,10 +360,13 @@ describe('runInlineProgression', () => {
 
       // Should NOT advance past this step (deadline is in the future)
       expect(result.stepsAdvanced).toBe(0);
-      // stepDeadline should be set
-      expect(result.finalState.stepDeadline).toBeDefined();
-      expect(result.finalState.stepDeadline!).toBeGreaterThanOrEqual(nowMs + 5000);
-      expect(result.finalState.stepDeadline!).toBeLessThanOrEqual(nowMs + 10000);
+      // stepDeadline should be set inside the live step
+      const finalStep = result.finalState.nightStep;
+      expect(finalStep?.kind).toBe('inStep');
+      const finalDeadline = finalStep?.kind === 'inStep' ? finalStep.stepDeadline : undefined;
+      expect(finalDeadline).toBeDefined();
+      expect(finalDeadline!).toBeGreaterThanOrEqual(nowMs + 5000);
+      expect(finalDeadline!).toBeLessThanOrEqual(nowMs + 10000);
     });
 
     it('should advance vacant step when stepDeadline has passed', () => {
@@ -405,8 +396,7 @@ describe('runInlineProgression', () => {
           2: { seat: 2, hasViewedRole: true, role: 'seer' },
           3: { seat: 3, hasViewedRole: true, role: 'guard' },
         },
-        currentStepIndex: witchIndex,
-        currentStepId: 'witchAction',
+        nightStep: { kind: 'inStep', stepId: 'witchAction', stepDeadline: nowMs - 1000 },
         isAudioPlaying: false,
         pendingAudioEffects: [],
         actions: [],
@@ -427,8 +417,6 @@ describe('runInlineProgression', () => {
         currentNightResults: { treasureMasterChosenCard: 'villager' },
         bottomCards: ['wolf', 'witch', 'villager'],
         treasureMasterSeat: 0,
-        // Deadline already passed
-        stepDeadline: nowMs - 1000,
       };
 
       const result = runInlineProgression(state, 'host', nowMs);
@@ -436,7 +424,11 @@ describe('runInlineProgression', () => {
       // Should advance past the vacant step
       expect(result.stepsAdvanced).toBeGreaterThanOrEqual(1);
       // stepDeadline should be cleared (advance clears it)
-      expect(result.finalState.currentStepId).not.toBe('witchAction');
+      expect(
+        result.finalState.nightStep?.kind === 'inStep'
+          ? result.finalState.nightStep.stepId
+          : undefined,
+      ).not.toBe('witchAction');
     });
 
     it('should defer stepDeadline when advancing into vacant step produces audio', () => {
@@ -469,8 +461,7 @@ describe('runInlineProgression', () => {
           2: { seat: 2, hasViewedRole: true, role: 'seer' },
           3: { seat: 3, hasViewedRole: true, role: 'guard' },
         },
-        currentStepIndex: wolfKillIdx,
-        currentStepId: 'wolfKill',
+        nightStep: { kind: 'inStep', stepId: 'wolfKill' },
         isAudioPlaying: false,
         pendingAudioEffects: [],
         actions: [{ schemaId: 'wolfKill', actorSeat: 1, timestamp: 1 }],
@@ -503,7 +494,11 @@ describe('runInlineProgression', () => {
       // Audio effects should be produced (step transition audio)
       expect(result.finalState.pendingAudioEffects?.length).toBeGreaterThan(0);
       // stepDeadline should NOT be set — deferred until audio-ack
-      expect(result.finalState.stepDeadline).toBeUndefined();
+      expect(
+        result.finalState.nightStep?.kind === 'inStep'
+          ? result.finalState.nightStep.stepDeadline
+          : undefined,
+      ).toBeUndefined();
       // isAudioPlaying should be set (audio effects → SET_AUDIO_PLAYING)
       expect(result.finalState.isAudioPlaying).toBe(true);
     });

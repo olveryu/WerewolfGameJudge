@@ -2,7 +2,7 @@
  * WolfRobot Hunter Status Gate Server Enforcement Contract Tests
  *
  * Gate 5 trigger conditions (blocks only when all three are met):
- * 1. currentStepId === 'wolfRobotLearn'
+ * 1. nightStep is the 'wolfRobotLearn' step
  * 2. wolfRobotReveal.learnedRoleId === 'hunter'
  * 3. wolfRobotHunterStatusViewed === false
  *
@@ -48,8 +48,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
       1: { seat: 1, role: 'hunter', hasViewedRole: true },
       2: { seat: 2, role: 'villager', hasViewedRole: true },
     },
-    currentStepIndex: 0,
-    currentStepId: 'wolfRobotLearn',
+    nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],
@@ -141,7 +140,8 @@ describe('WolfRobot Hunter Status Gate - Server Enforcement (handleAdvanceNight)
 
     it('[boundary] must allow advance when not in wolfRobotLearn step, even if wolfRobotHunterStatusViewed === false', () => {
       const state = createTestState({
-        currentStepId: 'seerCheck', // different step - NOT wolfRobotLearn
+        nightStep: { kind: 'inStep', stepId: 'seerCheck' },
+        templateRoles: ['wolfRobot', 'hunter', 'seer', 'villager'],
         wolfRobotHunterStatusViewed: false, // gate still false but wrong step
       });
 
@@ -187,7 +187,7 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
   describe('validation gates', () => {
     it('rejects when step is not wolfRobotLearn', () => {
       const state = createTestState({
-        currentStepId: 'seerCheck', // wrong step
+        nightStep: { kind: 'inStep', stepId: 'seerCheck' },
       });
       const context: HandlerContext = {
         state,

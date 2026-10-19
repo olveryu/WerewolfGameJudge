@@ -151,7 +151,7 @@ function createMinimalState(
       1: { seat: 1, userId: 'p2' },
       2: { seat: 2, userId: 'p3' },
     },
-    currentStepIndex: 1,
+    nightStep: { kind: 'inStep', stepId: schemaId },
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],
@@ -163,7 +163,6 @@ function createMinimalState(
     seedWolfInfectionRevealAcks: [],
     playerProfiles: {},
     currentNightResults: {},
-    currentStepId: schemaId,
     ...overrides,
   };
 }

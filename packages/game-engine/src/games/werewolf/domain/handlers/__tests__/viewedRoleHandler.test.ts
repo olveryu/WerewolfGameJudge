@@ -27,7 +27,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
       0: { seat: 0, role: 'seer', hasViewedRole: false },
       1: { seat: 1, role: 'wolf', hasViewedRole: false },
     },
-    currentStepIndex: -1,
+    nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],

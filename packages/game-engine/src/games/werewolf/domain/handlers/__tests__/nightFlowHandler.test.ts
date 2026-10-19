@@ -77,8 +77,7 @@ function createOngoingState(overrides?: Partial<GameState>): GameState {
       4: createPlayer(4, 'villager'),
       5: createPlayer(5, 'villager'),
     },
-    currentStepIndex: 0,
-    currentStepId: NIGHT_STEPS[0]?.id,
+    nightStep: { kind: 'inStep', stepId: NIGHT_STEPS[0]!.id },
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],
@@ -164,8 +163,7 @@ describe('nightFlowHandler', () => {
             1: createPlayer(1, 'seedWolf'),
             2: createPlayer(2, 'seer'),
           },
-          currentStepIndex: revealIndex - 1,
-          currentStepId: nightPlan.steps[revealIndex - 1]!.stepId,
+          nightStep: { kind: 'inStep', stepId: nightPlan.steps[revealIndex - 1]!.stepId },
           currentNightResults: {
             wolfVotesBySeat: { '0': 2, '1': 2 },
             seedWolfInfectionTarget: 2,
@@ -187,7 +185,7 @@ describe('nightFlowHandler', () => {
         });
 
         const finalized = success.actions.reduce(gameReducer, state);
-        expect(finalized.currentStepId).toBe('seedWolfInfectReveal');
+        expect(finalized.nightStep).toEqual({ kind: 'inStep', stepId: 'seedWolfInfectReveal' });
         expect(finalized.players[2]?.role).toBe('wolf');
       });
 
@@ -205,8 +203,7 @@ describe('nightFlowHandler', () => {
             2: createPlayer(2, 'guard'),
             3: createPlayer(3, 'villager'),
           },
-          currentStepIndex: revealIndex - 1,
-          currentStepId: nightPlan.steps[revealIndex - 1]!.stepId,
+          nightStep: { kind: 'inStep', stepId: nightPlan.steps[revealIndex - 1]!.stepId },
           actions: [{ schemaId: 'guardProtect', actorSeat: 2, targetSeat: 3, timestamp: 1 }],
           currentNightResults: {
             wolfVotesBySeat: { '0': 3, '1': 3 },
@@ -240,8 +237,7 @@ describe('nightFlowHandler', () => {
             2: createPlayer(2, 'guard'),
             3: createPlayer(3, 'seer'),
           },
-          currentStepIndex: revealIndex - 1,
-          currentStepId: nightPlan.steps[revealIndex - 1]!.stepId,
+          nightStep: { kind: 'inStep', stepId: nightPlan.steps[revealIndex - 1]!.stepId },
           actions: [
             { schemaId: 'guardProtect', actorSeat: 2, targetSeat: 3, timestamp: 1 },
             { schemaId: 'seerCheck', actorSeat: 3, targetSeat: 0, timestamp: 2 },
@@ -285,8 +281,7 @@ describe('nightFlowHandler', () => {
         const context: HandlerContext = {
           // Progressing from wolfKill with witch in template, should set witchContext
           state: createOngoingState({
-            currentStepIndex: 0,
-            currentStepId: 'wolfKill',
+            nightStep: { kind: 'inStep', stepId: 'wolfKill' },
             templateRoles,
           }),
           myUserId: 'host-uid',
@@ -302,9 +297,11 @@ describe('nightFlowHandler', () => {
         const advanceAction = success.actions[0]!;
         expect(advanceAction.type).toBe('ADVANCE_TO_NEXT_ACTION');
         if (advanceAction.type === 'ADVANCE_TO_NEXT_ACTION') {
-          expect(advanceAction.payload.nextStepIndex).toBe(1);
           // Use steps filtered by buildNightPlan (matching template roles)
-          expect(advanceAction.payload.nextStepId).toBe(nightPlan.steps[1]?.stepId ?? null);
+          expect(advanceAction.payload.nightStep).toEqual({
+            kind: 'inStep',
+            stepId: nightPlan.steps[1]!.stepId,
+          });
         }
 
         // Progressing from wolfKill with witch present, should have SET_WITCH_CONTEXT action
@@ -322,7 +319,7 @@ describe('nightFlowHandler', () => {
         });
       });
 
-      it('should set nextStepId to null when no more steps', () => {
+      it('should set nightStep to exhausted when no more steps', () => {
         // Test template: wolf, wolf, seer, witch, villager, villager
         // buildNightPlan will filter to: wolfKill → witchAction → seerCheck (3 steps total)
         const templateRoles: RoleId[] = ['wolf', 'wolf', 'seer', 'witch', 'villager', 'villager'];
@@ -332,8 +329,7 @@ describe('nightFlowHandler', () => {
         const lastIndex = nightPlan.steps.length - 1;
         const context: HandlerContext = {
           state: createOngoingState({
-            currentStepIndex: lastIndex,
-            currentStepId: nightPlan.steps[lastIndex]?.stepId,
+            nightStep: { kind: 'inStep', stepId: nightPlan.steps[lastIndex]!.stepId },
           }),
           myUserId: 'host-uid',
           mySeat: null,
@@ -344,9 +340,20 @@ describe('nightFlowHandler', () => {
         const success = expectSuccess(result);
         const action = success.actions[0]!;
         if (action.type === 'ADVANCE_TO_NEXT_ACTION') {
-          expect(action.payload.nextStepIndex).toBe(lastIndex + 1);
-          expect(action.payload.nextStepId).toBeNull();
+          expect(action.payload.nightStep).toEqual({ kind: 'exhausted' });
         }
+      });
+
+      it('should reject advancing from the exhausted position (no live step)', () => {
+        const context: HandlerContext = {
+          state: createOngoingState({ nightStep: { kind: 'exhausted' } }),
+          myUserId: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = handleAdvanceNight(intent, context);
+
+        expect(expectError(result).reason).toBe('invalid_step');
       });
     });
   });
@@ -380,8 +387,7 @@ describe('nightFlowHandler', () => {
               hasViewedRole: true,
             },
           },
-          currentStepIndex: 0,
-          currentStepId: undefined,
+          nightStep: { kind: 'exhausted' },
           pendingAudioEffects: [],
           actions: [],
           resolvedNightEffects: [],
@@ -447,11 +453,11 @@ describe('nightFlowHandler', () => {
     });
 
     describe('Gate: night_not_complete', () => {
-      it('should reject when currentStepId is still set (night plan not finished)', () => {
-        // currentStepId still has a value, meaning the night plan has not finished
+      it('should reject when nightStep is still in a step (night plan not finished)', () => {
+        // nightStep is still in a step, meaning the night plan has not finished
         const context: HandlerContext = {
           state: createOngoingState({
-            currentStepId: 'wolfKill', // still on wolfKill step
+            nightStep: { kind: 'inStep', stepId: 'wolfKill' }, // still on wolfKill step
             currentNightResults: { wolfVotesBySeat: {} },
           }),
           myUserId: 'host-uid',
@@ -468,10 +474,10 @@ describe('nightFlowHandler', () => {
     describe('Happy path: death calculation', () => {
       it('should produce END_NIGHT action with empty deaths when no wolf kill', () => {
         // No wolf votes = skip attack = no deaths
-        // currentStepId: undefined means night plan has finished
+        // nightStep exhausted means night plan has finished
         const context: HandlerContext = {
           state: createOngoingState({
-            currentStepId: undefined,
+            nightStep: { kind: 'exhausted' },
             currentNightResults: { wolfVotesBySeat: {} },
           }),
           myUserId: 'host-uid',
@@ -501,10 +507,10 @@ describe('nightFlowHandler', () => {
 
       it('should calculate wolf kill death (simple case)', () => {
         // Both wolves vote for seat 4 (villager)
-        // currentStepId: undefined means night plan has finished
+        // nightStep exhausted means night plan has finished
         const context: HandlerContext = {
           state: createOngoingState({
-            currentStepId: undefined,
+            nightStep: { kind: 'exhausted' },
             currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 4 } },
           }),
           myUserId: 'host-uid',
@@ -523,10 +529,10 @@ describe('nightFlowHandler', () => {
 
       it('should randomly pick one target on tie vote (平票随机刀)', () => {
         // Two wolves vote different targets = tie = randomly pick one target to kill
-        // currentStepId: undefined means night plan has finished
+        // nightStep exhausted means night plan has finished
         const context: HandlerContext = {
           state: createOngoingState({
-            currentStepId: undefined,
+            nightStep: { kind: 'exhausted' },
             currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 5 } },
           }),
           myUserId: 'host-uid',
@@ -547,7 +553,7 @@ describe('nightFlowHandler', () => {
 
       it('uses the same tied wolf target for witch context and final settlement', () => {
         const state = createOngoingState({
-          currentStepId: undefined,
+          nightStep: { kind: 'exhausted' },
           currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 5 } },
         });
         const witchContextAction = maybeCreateWitchContextAction(
@@ -574,10 +580,10 @@ describe('nightFlowHandler', () => {
 
       it('should return empty deaths when wolfKillOverride set (nightmare blocked wolf)', () => {
         // Wolves blocked, votes have no effect
-        // currentStepId: undefined means night plan has finished
+        // nightStep exhausted means night plan has finished
         const context: HandlerContext = {
           state: createOngoingState({
-            currentStepId: undefined,
+            nightStep: { kind: 'exhausted' },
             currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 4 } },
             wolfKillOverride: {
               source: 'nightmare',
@@ -600,10 +606,10 @@ describe('nightFlowHandler', () => {
 
       it('should respect guard protection (no death)', () => {
         // Attack seat 4, guard protects seat 4
-        // currentStepId: undefined means night plan has finished
+        // nightStep exhausted means night plan has finished
         const context: HandlerContext = {
           state: createOngoingState({
-            currentStepId: undefined,
+            nightStep: { kind: 'exhausted' },
             players: {
               0: createPlayer(0, 'wolf'),
               1: createPlayer(1, 'wolf'),
@@ -643,7 +649,7 @@ describe('nightFlowHandler', () => {
         // SpiritKnight ability follows identity to seat 4, seat 2 is no longer spiritKnight → not immune
         const context: HandlerContext = {
           state: createOngoingState({
-            currentStepId: undefined,
+            nightStep: { kind: 'exhausted' },
             players: {
               0: createPlayer(0, 'wolf'),
               1: createPlayer(1, 'wolf'),
@@ -679,7 +685,7 @@ describe('nightFlowHandler', () => {
         // Seer does not die
         const context: HandlerContext = {
           state: createOngoingState({
-            currentStepId: undefined,
+            nightStep: { kind: 'exhausted' },
             players: {
               0: createPlayer(0, 'wolf'),
               1: createPlayer(1, 'wolf'),
@@ -716,7 +722,7 @@ describe('nightFlowHandler', () => {
         // Triggers reflection → Seer dies
         const context: HandlerContext = {
           state: createOngoingState({
-            currentStepId: undefined,
+            nightStep: { kind: 'exhausted' },
             players: {
               0: createPlayer(0, 'wolf'),
               1: createPlayer(1, 'wolf'),
@@ -751,7 +757,7 @@ describe('nightFlowHandler', () => {
         // Behavior unchanged without swap: spiritKnight at seat 2, attack villager seat 4
         const context: HandlerContext = {
           state: createOngoingState({
-            currentStepId: undefined,
+            nightStep: { kind: 'exhausted' },
             players: {
               0: createPlayer(0, 'wolf'),
               1: createPlayer(1, 'wolf'),
@@ -836,8 +842,7 @@ describe('nightFlowHandler', () => {
         const context: HandlerContext = {
           state: createOngoingState({
             players,
-            currentStepIndex: 0, // wolfKill is step 0
-            currentStepId: 'wolfKill',
+            nightStep: { kind: 'inStep', stepId: 'wolfKill' },
             templateRoles,
             // Wolf killed the witch (seat 1)
             currentNightResults: { wolfVotesBySeat: { '0': 1 } },
@@ -877,8 +882,7 @@ describe('nightFlowHandler', () => {
         const context: HandlerContext = {
           state: createOngoingState({
             players,
-            currentStepIndex: 0,
-            currentStepId: 'wolfKill',
+            nightStep: { kind: 'inStep', stepId: 'wolfKill' },
             templateRoles,
             // Wolf killed a villager (seat 2)
             currentNightResults: { wolfVotesBySeat: { '0': 2 } },
@@ -925,8 +929,7 @@ describe('nightFlowHandler', () => {
         const context: HandlerContext = {
           state: createOngoingState({
             players,
-            currentStepIndex: 0,
-            currentStepId: 'seerCheck',
+            nightStep: { kind: 'inStep', stepId: 'seerCheck' },
             templateRoles,
             currentNightResults: {},
           }),
@@ -940,12 +943,12 @@ describe('nightFlowHandler', () => {
         // Handler internally depends on nightFlow.peekNext(); this verifies it does not crash
       });
 
-      it('should NOT set witchContext when nextStepId is undefined (night ends)', () => {
+      it('should NOT set witchContext when there is no next step (night ends)', () => {
         /**
          * Fail-safe test: when night progresses past the last step and ends,
-         * nextStepId is undefined, witchContext should not be set
+         * there is no next step, so witchContext should not be set
          *
-         * This verifies the explicit guard: nextStepId ? maybeCreate...() : null
+         * This verifies the explicit guard on the next step in the advance handler
          */
 
         // Template: wolf, witch - only 2 steps (wolfKill, witchAction)
@@ -962,8 +965,7 @@ describe('nightFlowHandler', () => {
         const context: HandlerContext = {
           state: createOngoingState({
             players,
-            currentStepIndex: 1, // witchAction is step 1
-            currentStepId: 'witchAction',
+            nightStep: { kind: 'inStep', stepId: 'witchAction' },
             templateRoles,
             currentNightResults: {},
             // witchContext already set (set when entering witchAction)

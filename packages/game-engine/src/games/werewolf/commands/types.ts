@@ -26,7 +26,6 @@ export type WerewolfActionInput =
 /** Authoritative step identity captured when a player confirms one action. */
 export interface WerewolfExpectedStep {
   readonly currentStepId: SchemaId;
-  readonly currentStepIndex: number;
   /** Null identifies the room's first game before any restart nonce exists. */
   readonly roleRevealRandomNonce: string | null;
 }

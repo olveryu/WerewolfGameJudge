@@ -250,7 +250,8 @@ export function handleSubmitAction(
       tempState = gameReducer(tempState, action);
     }
     const allVoted = isWolfVoteAllComplete(tempState);
-    const hasExistingTimer = tempState.stepDeadline != null;
+    const hasExistingTimer =
+      tempState.nightStep?.kind === 'inStep' && tempState.nightStep.stepDeadline != null;
     const timerAction = decideWolfVoteTimerAction(allVoted, hasExistingTimer, execution.nowMs);
 
     const extraActions: StateAction[] = [];

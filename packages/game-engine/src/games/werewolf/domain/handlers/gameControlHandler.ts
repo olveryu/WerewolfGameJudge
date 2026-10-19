@@ -233,7 +233,7 @@ export function handleStartNight(
   if (nightPlan.steps.length === 0) {
     const startNightAction: StartNightAction = {
       type: 'START_NIGHT',
-      payload: { currentStepIndex: -1, currentStepId: null },
+      payload: { nightStep: { kind: 'exhausted' } },
     };
     const endNightAction: EndNightAction = {
       type: 'END_NIGHT',
@@ -248,10 +248,10 @@ export function handleStartNight(
   // Collect actions to return
   const actions: StateAction[] = [];
 
-  // Night-1 only: currentStepIndex starts at 0 (first step)
+  // Night-1 only: the night opens on the first plan step.
   const startNightAction: StartNightAction = {
     type: 'START_NIGHT',
-    payload: { currentStepIndex: 0, currentStepId: firstStepId },
+    payload: { nightStep: { kind: 'inStep', stepId: firstStepId } },
   };
   actions.push(startNightAction);
 

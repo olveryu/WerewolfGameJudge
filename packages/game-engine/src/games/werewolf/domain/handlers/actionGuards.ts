@@ -11,9 +11,9 @@ import {
   GameStatus,
   type RoleId,
   type SchemaId,
-  SCHEMAS,
 } from '../models';
 import { BLOCKED_UI_DEFAULTS, getStepSpec, NIGHT_STEPS } from '../models/roles/spec';
+import { resolveCurrentNightStep } from '../nightStep';
 import type { GameState } from '../protocol/types';
 import type { ActionInput } from '../resolvers/types';
 import type { HandlerResult } from './types';
@@ -61,7 +61,7 @@ function getSchemaIdForRole(role: RoleId): SchemaId | null {
  * Gate order (must follow):
  * 1. invalid_status (must be ongoing)
  * 2. forbidden_while_audio_playing
- * 3. invalid_step (currentStepId must exist and match)
+ * 3. invalid_step (a live night step must exist and match)
  * 4. not_seated (actor seat must have a player)
  * 5. schema constraints (handled by resolver)
  */
@@ -88,22 +88,16 @@ export function validateActionPreconditions(
     };
   }
 
-  // Gate 3: invalid_step (currentStepId must exist and be found in SCHEMAS)
-  const currentStepId = state.currentStepId;
-  if (!currentStepId) {
+  // Gate 3: invalid_step (a live night step must exist)
+  const current = resolveCurrentNightStep(state);
+  if (!current) {
     return {
       valid: false,
       result: handlerError('invalid_step'),
     };
   }
-
-  const schema = SCHEMAS[currentStepId];
-  if (!schema) {
-    return {
-      valid: false,
-      result: handlerError('invalid_step'),
-    };
-  }
+  const currentStepId = current.stepId;
+  const schema = current.schema;
 
   // Gate 3b: step mismatch - submitted role must match the current step
   const expectedSchemaId = getSchemaIdForRole(role);

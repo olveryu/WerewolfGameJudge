@@ -36,7 +36,7 @@ function createAssignedState(): GameState {
       1: { seat: 1, role: 'wolf', hasViewedRole: false },
       2: { seat: 2, role: 'villager', hasViewedRole: false },
     },
-    currentStepIndex: -1,
+    nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],

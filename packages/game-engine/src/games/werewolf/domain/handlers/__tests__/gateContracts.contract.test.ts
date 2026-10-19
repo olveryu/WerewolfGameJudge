@@ -17,7 +17,6 @@ import { handleSubmitAction as executeSubmitAction } from '@game-judge/game-engi
 import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
 import type { SubmitActionIntent } from '@game-judge/game-engine/games/werewolf/domain/intents/types';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
-import type { SchemaId } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
 import {
   BLOCKED_UI_DEFAULTS,
   SCHEMAS,
@@ -58,7 +57,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Ongoing,
     templateRoles: ['villager', 'wolf', 'seer'],
     players,
-    currentStepIndex: 0,
+    nightStep: { kind: 'exhausted' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],
@@ -163,7 +162,7 @@ describe('Gate Contract: nightmare blocked reason stability', () => {
    */
   it('handleSubmitAction end-to-end: blocked seer → ACTION_REJECTED with stable reason', () => {
     const state = createMinimalState({
-      currentStepId: 'seerCheck' as SchemaId,
+      nightStep: { kind: 'inStep', stepId: 'seerCheck' },
       players: {
         0: { seat: 0, role: 'seer', hasViewedRole: true },
         1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -194,7 +193,7 @@ describe('Gate Contract: nightmare blocked reason stability', () => {
    */
   it('handleSubmitAction: blocked seer skip → success (progression continues)', () => {
     const state = createMinimalState({
-      currentStepId: 'seerCheck' as SchemaId,
+      nightStep: { kind: 'inStep', stepId: 'seerCheck' },
       players: {
         0: { seat: 0, role: 'seer', hasViewedRole: true },
         1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -231,7 +230,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
   it('forbidden_while_audio_playing beats step_mismatch (submitAction)', () => {
     const state = createMinimalState({
       isAudioPlaying: true,
-      currentStepId: 'seerCheck' as SchemaId,
+      nightStep: { kind: 'inStep', stepId: 'seerCheck' },
       players: {
         0: { seat: 0, role: 'guard', hasViewedRole: true }, // wrong role for step
       },
@@ -252,7 +251,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
   it('forbidden_while_audio_playing beats not_seated (submitAction)', () => {
     const state = createMinimalState({
       isAudioPlaying: true,
-      currentStepId: 'seerCheck' as SchemaId,
+      nightStep: { kind: 'inStep', stepId: 'seerCheck' },
       players: {
         0: null, // empty seat
         1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -273,7 +272,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
   it('forbidden_while_audio_playing beats role_mismatch (submitAction)', () => {
     const state = createMinimalState({
       isAudioPlaying: true,
-      currentStepId: 'seerCheck' as SchemaId,
+      nightStep: { kind: 'inStep', stepId: 'seerCheck' },
       players: {
         2: { seat: 2, role: 'villager', hasViewedRole: true }, // not seer
       },
@@ -293,7 +292,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
   it('forbidden_while_audio_playing beats nightmare block (submitAction)', () => {
     const state = createMinimalState({
       isAudioPlaying: true,
-      currentStepId: 'seerCheck' as SchemaId,
+      nightStep: { kind: 'inStep', stepId: 'seerCheck' },
       players: {
         0: { seat: 0, role: 'seer', hasViewedRole: true },
       },
@@ -315,7 +314,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
   it('forbidden_while_audio_playing beats wolf-specific gates (submitAction wolfKill step)', () => {
     const state = createMinimalState({
       isAudioPlaying: true,
-      currentStepId: 'wolfKill' as SchemaId,
+      nightStep: { kind: 'inStep', stepId: 'wolfKill' },
       players: {
         0: { seat: 0, role: 'villager', hasViewedRole: true }, // not wolf
       },
@@ -340,7 +339,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
 
 describe('Gate Contract: duplicate submit idempotency', () => {
   /**
-   * Invariant: After a successful action, if progression advances currentStepId,
+   * Invariant: After a successful action, if progression advances the night step,
    * a second submit for the same role/step MUST be rejected with step_mismatch.
    *
    * This is the primary dedup mechanism: RECORD_ACTION → progression → step advances
@@ -350,7 +349,7 @@ describe('Gate Contract: duplicate submit idempotency', () => {
   it('second submit after step advances → step_mismatch', () => {
     // First submit: seer checks seat 1 (success)
     const state1 = createMinimalState({
-      currentStepId: 'seerCheck' as SchemaId,
+      nightStep: { kind: 'inStep', stepId: 'seerCheck' },
       players: {
         0: { seat: 0, role: 'seer', hasViewedRole: true },
         1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -364,9 +363,10 @@ describe('Gate Contract: duplicate submit idempotency', () => {
 
     const result1 = handleSubmitAction(intent, context1);
     expectSuccess(result1);
-    // After progression: currentStepId has changed to next step
+    // After progression: the night step has changed to the next step
     const state2 = createMinimalState({
-      currentStepId: 'witchAction' as SchemaId, // advanced past seerCheck
+      nightStep: { kind: 'inStep', stepId: 'witchAction' }, // advanced past seerCheck
+      templateRoles: ['villager', 'wolf', 'seer', 'witch'],
       players: {
         0: { seat: 0, role: 'seer', hasViewedRole: true },
         1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -386,7 +386,7 @@ describe('Gate Contract: duplicate submit idempotency', () => {
     // Dedup is achieved through progression (step advancement), not handler-level tracking.
     // If resolver is idempotent (produces same result), this is safe.
     const state = createMinimalState({
-      currentStepId: 'seerCheck' as SchemaId,
+      nightStep: { kind: 'inStep', stepId: 'seerCheck' },
       players: {
         0: { seat: 0, role: 'seer', hasViewedRole: true },
         1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -417,7 +417,7 @@ describe('Gate Contract: duplicate submit idempotency', () => {
   it('wolf vote after step advances → step_mismatch', () => {
     // Wolf vote succeeds
     const state1 = createMinimalState({
-      currentStepId: 'wolfKill' as SchemaId,
+      nightStep: { kind: 'inStep', stepId: 'wolfKill' },
       players: {
         0: { seat: 0, role: 'villager', hasViewedRole: true },
         1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -433,7 +433,7 @@ describe('Gate Contract: duplicate submit idempotency', () => {
     expectSuccess(result1);
     // After progression: step advanced to seerCheck
     const state2 = createMinimalState({
-      currentStepId: 'seerCheck' as SchemaId,
+      nightStep: { kind: 'inStep', stepId: 'seerCheck' },
       players: {
         0: { seat: 0, role: 'villager', hasViewedRole: true },
         1: { seat: 1, role: 'wolf', hasViewedRole: true },
@@ -455,7 +455,7 @@ describe('Gate Contract: duplicate submit idempotency', () => {
   it('submit after game ended → invalid_status', () => {
     const state = createMinimalState({
       status: GameStatus.Ended,
-      currentStepId: 'seerCheck' as SchemaId,
+      nightStep: { kind: 'inStep', stepId: 'seerCheck' },
     });
     const context = createContext(state);
     const intent: SubmitActionIntent = {
@@ -531,7 +531,7 @@ describe('Gate Contract: validateActionPreconditions gate ordering', () => {
   it('forbidden_while_audio_playing fires before invalid_step', () => {
     const state = createMinimalState({
       isAudioPlaying: true,
-      currentStepId: undefined,
+      nightStep: { kind: 'exhausted' },
     });
     const context = createContext(state);
     const intent: SubmitActionIntent = {
@@ -546,7 +546,7 @@ describe('Gate Contract: validateActionPreconditions gate ordering', () => {
 
   it('invalid_step fires before not_seated', () => {
     const state = createMinimalState({
-      currentStepId: undefined,
+      nightStep: { kind: 'exhausted' },
       players: { 0: null },
     });
     const context = createContext(state);

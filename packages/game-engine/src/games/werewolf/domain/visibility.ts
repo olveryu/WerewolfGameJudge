@@ -28,15 +28,14 @@ import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import { isBotOccupant } from '../../../platform/room/seating';
 import {
   type ActionSchema,
-  buildNightPlan,
   canRoleSeeWolves,
   doesRoleParticipateInWolfVote,
   GameStatus,
-  getSchema,
   isWolfRole,
   type RoleId,
   type SchemaId,
 } from './models';
+import { resolveCurrentNightStep } from './nightStep';
 import {
   getBottomCardEffectiveRole,
   getWerewolfUserSeat,
@@ -121,10 +120,9 @@ interface CurrentStep {
 
 function resolveCurrentStep(state: GameState): CurrentStep | null {
   if (state.status !== GameStatus.Ongoing) return null;
-  const plan = buildNightPlan(state.templateRoles, state.seerLabelMap);
-  if (state.currentStepIndex < 0 || state.currentStepIndex >= plan.steps.length) return null;
-  const step = plan.steps[state.currentStepIndex]!;
-  return { roleId: step.roleId, schema: getSchema(step.stepId) };
+  const current = resolveCurrentNightStep(state);
+  if (!current) return null;
+  return { roleId: current.step.roleId, schema: current.schema };
 }
 
 // =============================================================================

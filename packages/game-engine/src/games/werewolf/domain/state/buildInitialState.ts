@@ -30,7 +30,7 @@ export function buildInitialGameState(
     players,
     roster: {},
     playerProfiles: {},
-    currentStepIndex: -1,
+    nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],

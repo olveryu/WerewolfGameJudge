@@ -11,8 +11,8 @@
  * does not manually advance index (`++` fallback strategy is forbidden).
  *
  * @remarks 4-gate validation order: (1) status=Ongoing (2) isAudioPlaying=false (3) isHost
- *   (4) currentStepIndex !== -1. Any failure returns handlerError.
- *   Manual currentStepIndex++ is forbidden; only progress via ADVANCE_TO_NEXT_ACTION action.
+ *   (4) a live night step exists. Any failure returns handlerError.
+ *   Manual step arithmetic is forbidden; only progress via ADVANCE_TO_NEXT_ACTION action.
  *   death calculation is only executed on END_NIGHT (computed by the DeathCalculator pure function).
  *
  * Gate validation → stepTransitionGuards.ts
@@ -27,6 +27,7 @@ import { createAudioQueueActions } from '../audioQueue';
 import type { AdvanceNightIntent, EndNightIntent } from '../intents/types';
 import { type SchemaId } from '../models';
 import { buildNightPlan, getStepSpec } from '../models/roles/spec';
+import { resolveCurrentNightStep } from '../nightStep';
 import type {
   AdvanceToNextActionAction,
   EndNightAction,
@@ -59,7 +60,7 @@ import { maybeCreateWitchContextAction } from './witchContext';
  * 3. forbidden_while_audio_playing
  *
  * Logic:
- * - Advance from current currentStepIndex to the next
+ * - Advance from the current night step to the next
  * - Compute the next stepId
  * - Return ADVANCE_TO_NEXT_ACTION action
  */
@@ -74,24 +75,23 @@ export function handleAdvanceNight(
   }
 
   const { state } = validation;
-  const currentIndex = state.currentStepIndex;
-
-  // Compute next index
-  const nextIndex = currentIndex + 1;
+  const current = resolveCurrentNightStep(state);
+  if (!current) {
+    return handlerError('invalid_step');
+  }
 
   // Use buildNightPlan's filtered steps instead of the full NIGHT_STEPS.
   // This ensures that in the 2-player template (only wolf + villager) there are no further steps after wolfKill.
   const nightPlan = buildNightPlan(state.templateRoles, state.seerLabelMap);
 
-  // Compute next stepId (null if out of range, indicating night end)
-  const nextStep = nightPlan.steps[nextIndex] ?? null;
+  // The next plan step, or the exhausted position when the plan is done.
+  const nextStep = nightPlan.steps[current.index + 1] ?? null;
   const nextStepId: SchemaId | null = nextStep?.stepId ?? null;
 
   const advanceAction: AdvanceToNextActionAction = {
     type: 'ADVANCE_TO_NEXT_ACTION',
     payload: {
-      nextStepIndex: nextIndex,
-      nextStepId,
+      nightStep: nextStep ? { kind: 'inStep', stepId: nextStep.stepId } : { kind: 'exhausted' },
     },
   };
 
@@ -139,7 +139,7 @@ export function handleAdvanceNight(
   actions.push(uiHintAction);
 
   // Audio playback: current step's end audio + next step's start audio.
-  const currentStepId = state.currentStepId;
+  const currentStepId = current.stepId;
   const audioEffects: AudioEffect[] = [];
 
   // 1) Current step's end audio
@@ -206,7 +206,7 @@ function createSeedWolfFinalizationActions(state: HandlerContext['state']): Stat
  * 1. host_only
  * 2. invalid_status
  * 3. forbidden_while_audio_playing
- * 4. night_not_complete (currentStepId must be undefined - all steps must be finished)
+ * 4. night_not_complete (nightStep must be exhausted - all steps must be finished)
  *
  * Logic:
  * - Call resolveWolfVotes on wolfVotes to derive wolfKill
@@ -227,9 +227,9 @@ export function handleEndNight(
   const { state } = validation;
 
   // Gate 5 (END_NIGHT specific): night_not_complete
-  // currentStepId must be undefined, indicating all steps are complete (after advanceNight sets nextStepId to null)
+  // The night step must be exhausted, indicating all steps are complete.
   // Calling endNight mid-night is a severe architectural violation and must fail-fast
-  if (state.currentStepId !== undefined) {
+  if (state.nightStep?.kind !== 'exhausted') {
     return handlerError('night_not_complete');
   }
 

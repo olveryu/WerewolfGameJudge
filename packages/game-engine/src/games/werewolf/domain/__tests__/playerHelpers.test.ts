@@ -45,7 +45,7 @@ function mkOngoingState(overrides: Partial<GameState> = {}): GameState {
     players: mkPlayers([[0, 'thief']]),
     roster: { 0: { seat: 0, userId: 'p0' } },
     playerProfiles: {},
-    currentStepIndex: 0,
+    nightStep: { kind: 'inStep', stepId: 'thiefChoose' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],

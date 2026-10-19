@@ -159,7 +159,7 @@ export interface ViewedRoleIntent {
 
 /**
  * Advance night to next step
- * Host-only: called after audio ends, advances currentStepIndex + currentStepId
+ * Host-only: called after audio ends, advances the night step
  */
 export interface AdvanceNightIntent {
   type: 'ADVANCE_NIGHT';
