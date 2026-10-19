@@ -368,57 +368,74 @@ export async function waitForRoomStep(
   }
 }
 
-/** Quiet window: no alert modal visible for this long = prompt settled. */
-const PROMPT_QUIET_MS = 900;
-/** Cap for the settle phase inside one step wait. */
-const PROMPT_SETTLE_CAP_MS = 15_000;
+/** Cap for observing one step's prompt cycle before proceeding anyway. */
+const PROMPT_CYCLE_CAP_MS = 20_000;
 
 /**
- * Settle a page into its current step before the driver acts on it.
- *
- * The alert system is a single slot with replace-on-call semantics
- * (src/utils/alert.ts): when a step starts, the acting client's step
- * prompt and a seat click's confirm dialog replace each other, and a
- * seat press evaluated before the client has processed the step is
- * dropped — the confirm never appears. The old keyword waits returned
- * only after the step's prompt text had rendered, which implicitly
- * waited out this cycle. The anchor flips earlier, so the settle is
- * explicit here: dismiss the step prompt when it appears, then require
- * a short quiet window with no modal up while the step is unchanged.
- * State only — modal presence and the step anchor, never copy.
- *
- * Returns false when the step moved on or the settle budget ran out.
+ * Per-page memo of step instances whose prompt cycle already fired:
+ * page -> "phase/step" key. Reset implicitly when the key changes.
  */
-export async function settleStepPrompt(
+const promptCycleSeen = new WeakMap<Page, string>();
+
+/**
+ * Wait for the acting page's step-prompt cycle to fire.
+ *
+ * Why this exists (all in client code): seat taps are policy NOOPs
+ * while step audio plays (interaction policy reason 'audio_playing';
+ * the tap only toasts). The step's prompt dialog is auto-triggered
+ * only once audio ends, and the alert slot is single with
+ * replace-on-call semantics (src/utils/alert.ts) — so the prompt's
+ * arrival is the client-visible signal that the audio gate lifted
+ * and the page will actually process a seat tap. The old keyword
+ * waits returned after the prompt text rendered, implicitly waiting
+ * out the audio; the step anchor flips earlier, so the cycle is
+ * observed explicitly here.
+ *
+ * Observe only — the prompt is NOT dismissed (callers dismiss as
+ * their first step, and blocked-step specs read the prompt itself).
+ * A cycle counts as fired on any modal transition after the step
+ * matched: none -> some, some -> none, or the modal's text changing
+ * (a fresh prompt replacing a leftover dialog). If no transition is
+ * observed within the cap (sampling pages that never get a prompt,
+ * actors whose prompt fired before the wait started), the wait
+ * proceeds anyway and logs it — never worse than not waiting.
+ */
+export async function waitForPromptCycle(
   page: Page,
   stepId: string,
   deadlineMs: number,
 ): Promise<boolean> {
-  const cap = Math.min(Date.now() + PROMPT_SETTLE_CAP_MS, deadlineMs);
+  const key = `${(await readRoomPhase(page)) ?? '?'}/${stepId}`;
+  if (promptCycleSeen.get(page) === key) return true;
+
+  const cap = Math.min(deadlineMs, Date.now() + PROMPT_CYCLE_CAP_MS);
   const alertModal = page.locator('[data-testid="alert-modal"]');
-  let quietSince = 0;
+  const sample = async (): Promise<string | null> => {
+    const visible = await alertModal.isVisible().catch(() => false);
+    if (!visible) return null;
+    return (await alertModal.textContent({ timeout: 200 }).catch(() => '')) ?? '';
+  };
+  const initial = await sample();
   for (;;) {
     if ((await readRoomStep(page)) !== stepId) return false;
-    const modalUp = await alertModal.isVisible().catch(() => false);
-    if (modalUp) {
-      quietSince = 0;
-      await dismissAlert(page);
-      // Some prompts dismiss through other safe buttons (no skip texts).
-      await tryClickAdvanceButton(page, false, ' settle');
-    } else if (quietSince === 0) {
-      quietSince = Date.now();
-    } else if (Date.now() - quietSince >= PROMPT_QUIET_MS) {
+    const now = await sample();
+    if (now !== initial) {
+      promptCycleSeen.set(page, key);
+      log(`waitForPromptCycle — prompt cycle fired for step ${stepId}`);
       return true;
     }
-    if (Date.now() >= cap) return false;
+    if (Date.now() >= cap) {
+      log(`waitForPromptCycle — no prompt transition observed for step ${stepId}; proceeding`);
+      return true;
+    }
     await page.waitForTimeout(POLL_INTERVAL_MS);
   }
 }
 
 /**
- * waitForRoomStep + settleStepPrompt: the step has been reached AND
- * the page's step-prompt cycle has settled, so the next interaction
- * lands on a client that has processed the step.
+ * waitForRoomStep + waitForPromptCycle: the step has been reached AND
+ * the page's audio gate has lifted (its step prompt fired), so the
+ * next interaction is actually processed instead of policy-NOOPed.
  */
 export async function waitForStepAndSettle(
   page: Page,
@@ -427,7 +444,7 @@ export async function waitForStepAndSettle(
 ): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   if (!(await waitForRoomStep(page, stepId, timeoutMs))) return false;
-  return settleStepPrompt(page, stepId, deadline);
+  return waitForPromptCycle(page, stepId, deadline);
 }
 
 /**
@@ -457,17 +474,17 @@ export async function waitForRoleTurn(
   let lastHeartbeat = 0;
   for (;;) {
     if ((await readRoomStep(rolePage)) === stepId) {
-      // The anchor flips before the acting client's step-prompt cycle
-      // has run; acting inside that window loses the confirm dialog
-      // to the single-slot alert replacement. Settle first.
-      if (await settleStepPrompt(rolePage, stepId, deadline)) {
-        log(`waitForRoleTurn — step ${stepId} reached and settled`);
+      // The anchor flips while the step's audio is still playing, and
+      // seat taps during audio are policy NOOPs. The step prompt
+      // fires exactly when the audio gate lifts — wait for its cycle
+      // before returning, so the caller's first tap actually lands.
+      if (await waitForPromptCycle(rolePage, stepId, deadline)) {
+        log(`waitForRoleTurn — step ${stepId} reached, prompt cycle done`);
         return true;
       }
-      // Not settled (prompt still cycling or the step moved on): fall
-      // through to the sweep/cadence below and re-detect next round;
-      // the deadline check terminates the wait if it never settles.
-      log(`waitForRoleTurn — step ${stepId} present but not settled yet`);
+      // The step moved on while waiting for the cycle: fall through
+      // to the sweep/cadence below and re-detect next round.
+      log(`waitForRoleTurn — step ${stepId} moved on during prompt cycle`);
     }
 
     if (await isNightEnded(allPages[0]!)) {
