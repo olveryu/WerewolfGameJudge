@@ -1,0 +1,128 @@
+name: E2E Run (Reusable)
+
+# The single implementation of "run a set of e2e specs on a runner".
+# Callers pass parameters only; there is no second copy of these steps.
+# - ci.yml calls this once per matrix shard with build-web: false and
+#   downloads the web-dist artifact its build-web job produced.
+# - e2e-single-spec.yml calls this with build-web: true and builds the
+#   web bundle inline, since it runs standalone.
+
+on:
+  workflow_call:
+    inputs:
+      specs:
+        description: 'Space-separated spec filenames under e2e/specs/ (e.g. "avalon.spec.ts fibking.spec.ts")'
+        required: true
+        type: string
+      shard:
+        description: 'Shard label used for artifact names and the failure-bundle shard tag (e.g. "1", "single")'
+        required: true
+        type: string
+      build-web:
+        description: 'true: export the web bundle inline. false: download the caller-provided web-dist artifact.'
+        required: true
+        type: boolean
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    # Hard bound for a hung run: the slowest measured shard is ~10min of
+    # specs plus setup; 45min leaves ample headroom while replacing the
+    # 360min GitHub default.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+
+      # Fail fast on a typo'd or uncommitted spec name, before paying for
+      # install + web export + browser download only to hear
+      # "No tests found" from Playwright.
+      - name: Validate spec files exist
+        env:
+          SPECS: ${{ inputs.specs }}
+        run: |
+          for spec in $SPECS; do
+            case "$spec" in
+              */*)
+                echo "::error::Spec must be a bare filename, not a path: $spec"
+                exit 1
+                ;;
+            esac
+            if [ ! -f "e2e/specs/$spec" ]; then
+              echo "::error::Spec not found: e2e/specs/$spec"
+              exit 1
+            fi
+            echo "Found e2e/specs/$spec"
+          done
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Export web build
+        if: ${{ inputs.build-web }}
+        run: |
+          EXPO_PUBLIC_CF_API_URL=http://127.0.0.1:8787 \
+          EXPO_PUBLIC_SENTRY_DSN='' \
+          npx expo export --platform web
+
+      # Download the pre-built web bundle from the caller's build-web job.
+      - name: Download web dist
+        if: ${{ !inputs.build-web }}
+        uses: actions/download-artifact@v7
+        with:
+          name: web-dist
+          path: dist/
+
+      - name: Get Playwright version
+        id: pw-version
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.pw-version.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install Playwright system deps only
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+      # Apply D1 migrations as a dedicated step (not buried inside the
+      # Playwright webServer) so migration failures fail fast with clear
+      # logs instead of hanging the test step with no visible cause.
+      - name: Setup D1 migrations
+        run: node scripts/setup-d1-migrations.mjs
+
+      - name: Run E2E tests (shard ${{ inputs.shard }})
+        env:
+          SPECS: ${{ inputs.specs }}
+          E2E_BUNDLE_RUN_ID: ${{ github.run_id }}
+          E2E_BUNDLE_SHARD: ${{ inputs.shard }}
+        run: pnpm exec playwright test $SPECS --reporter=list,blob,./e2e/reporters/failureBundle.ts
+
+      - name: Upload blob report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: blob-report-${{ inputs.shard }}
+          path: blob-report/
+          retention-days: 1
+
+      - name: Upload failure bundle
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: failure-bundle-${{ inputs.shard }}
+          path: failure-bundles/
+          if-no-files-found: ignore
+          retention-days: 30
