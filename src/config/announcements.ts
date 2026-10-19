@@ -16,6 +16,17 @@ interface Announcement {
 
 /** Announcements keyed by version. Key format matches APP_VERSION: `v{major}.{minor}.{patch}` */
 export const ANNOUNCEMENTS: Record<string, Announcement> = {
+  'v2.8.0': {
+    title: 'v2.8.0 更新内容',
+    items: [
+      '新增阿瓦隆，组队远征与刺杀对决开局',
+      '新增经典你画我猜，轮流绘画猜词',
+      '首页全新游戏库，选游戏更快更直观',
+      '房间提示升级，下一步与等待进度一目了然',
+      '阿瓦隆新增对局记录，按任务回看全程',
+      '卧底与瞎掰王流程升级，先看身份再开局',
+    ],
+  },
   'v2.7.0': {
     title: 'v2.7.0 更新内容',
     items: [
