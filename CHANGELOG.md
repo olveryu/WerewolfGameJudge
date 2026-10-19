@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.8.0] - 2026-10-19
+
+- Initial release
+
 ## [2.7.0] - 2026-08-17
 
 - docs(announcements): add v2.7.0 What's New entry
