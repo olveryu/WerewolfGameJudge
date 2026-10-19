@@ -372,8 +372,20 @@ export async function waitForRoomStep(
 const PROMPT_CYCLE_CAP_MS = 20_000;
 
 /**
+ * Driver-observed night counter. The room anchors expose no night
+ * number, and pages are reused across nights within a test, so a memo
+ * keyed on phase/step alone would false-hit on the next night (every
+ * night has the same phases and steps). Waits that observe a night
+ * end advance the epoch; memos from earlier nights stop matching.
+ */
+let nightEpoch = 0;
+const noteNightEnded = (): void => {
+  nightEpoch += 1;
+};
+
+/**
  * Per-page memo of step instances whose prompt cycle already fired:
- * page -> "phase/step" key. Reset implicitly when the key changes.
+ * page -> "epoch/phase/step" key. Reset implicitly when the key changes.
  */
 const promptCycleSeen = new WeakMap<Page, string>();
 
@@ -405,7 +417,7 @@ export async function waitForPromptCycle(
   stepId: string,
   deadlineMs: number,
 ): Promise<boolean> {
-  const key = `${(await readRoomPhase(page)) ?? '?'}/${stepId}`;
+  const key = `${nightEpoch}/${(await readRoomPhase(page)) ?? '?'}/${stepId}`;
   if (promptCycleSeen.get(page) === key) return true;
 
   const cap = Math.min(deadlineMs, Date.now() + PROMPT_CYCLE_CAP_MS);
@@ -489,6 +501,7 @@ export async function waitForRoleTurn(
 
     if (await isNightEnded(allPages[0]!)) {
       log('waitForRoleTurn — night ended');
+      noteNightEnded();
       return false;
     }
     if (Date.now() >= deadline) {
@@ -538,7 +551,10 @@ export async function waitForNightEnd(
   // can land a beat after the first page that flipped; give it a brief
   // settle window before reporting.
   for (let i = 0; i < 10; i++) {
-    if (await isNightEnded(pages[0]!)) return true;
+    if (await isNightEnded(pages[0]!)) {
+      noteNightEnded();
+      return true;
+    }
     await pages[0]!.waitForTimeout(POLL_INTERVAL_MS);
   }
   return false;
@@ -618,13 +634,14 @@ export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): 
   log(`driveWolfEmptyVote wolfIndices=[${wolfIndices}]`);
   for (const wIdx of wolfIndices) {
     const wPage = pages[wIdx]!;
-    // Dismiss any existing alert (e.g. "夜间行动") before interacting
-    await dismissAlert(wPage);
-
     log(`driveWolfEmptyVote — P${wIdx} waiting for step wolfKill`);
     if (!(await waitForStepAndSettle(wPage, 'wolfKill'))) {
       throw new Error(`Wolf step not reached for page ${wIdx}`);
     }
+    // Dismiss the step prompt before interacting — after the settle,
+    // not before: dismissing first would eat the very prompt whose
+    // transition the settle observes, stalling it to the cap.
+    await dismissAlert(wPage);
 
     // Click skip attack button
     const panel = wPage.locator('[data-testid="bottom-action-panel"]');
