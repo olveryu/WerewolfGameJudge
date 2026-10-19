@@ -901,6 +901,10 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
     roomCode: input.roomCode,
     capabilities: input.capabilities,
     phase: state.phase.kind,
+    // The step anchor: only the night phase carries a step (its three
+    // confirmation steps, verbatim from the phase). Every other phase
+    // kind is already the finest-grained state, so no step there.
+    step: state.phase.kind === 'night' ? state.phase.step : null,
     header: buildRoomHeaderModel({
       onBack: input.onBack,
       onTitlePress: input.onTitlePress,

@@ -185,7 +185,10 @@ export const RoomShell: React.FC<RoomShellProps> = ({
         // react-native-web maps `dataSet` to DOM data-* attributes, while a
         // direct data-* prop is silently dropped on web, and SafeAreaView's
         // props do not accept dataSet at all.
-        dataSet={{ phase: model.phase }}
+        dataSet={{
+          phase: model.phase,
+          ...(model.step !== null ? { step: model.step } : {}),
+        }}
       >
         {isHeaderStacked ? (
           <>

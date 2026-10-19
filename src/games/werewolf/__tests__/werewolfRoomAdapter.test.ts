@@ -440,6 +440,23 @@ describe('createWerewolfRoomShellModel', () => {
     expect(audioPlaying.bottomActions).toMatchObject({ kind: 'stacked', message: null });
   });
 
+  it('exposes the current night step as the shell step anchor only while Ongoing', () => {
+    const night = createWerewolfRoomShellModel(
+      createShellModelInput({ roomStatus: GameStatus.Ongoing, currentStepId: 'wolfKill' }),
+    );
+    expect(night.step).toBe('wolfKill');
+
+    const day = createWerewolfRoomShellModel(
+      createShellModelInput({ roomStatus: GameStatus.Day, currentStepId: 'wolfKill' }),
+    );
+    expect(day.step).toBeNull();
+
+    const noStep = createWerewolfRoomShellModel(
+      createShellModelInput({ roomStatus: GameStatus.Ongoing, currentStepId: null }),
+    );
+    expect(noStep.step).toBeNull();
+  });
+
   it('shows the plague-mode host message in Ready regardless of actioner state', () => {
     const model = createWerewolfRoomShellModel(
       createShellModelInput({ isHost: true, isPlagueMode: true }),
