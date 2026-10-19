@@ -81,6 +81,8 @@ jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => {
         ),
         actions: new Map(),
         wolfVotes: new Map(),
+        // Shape placeholder only: step identity in this suite comes from
+        // the mocked useWerewolfRoom (seerCheck / psychicCheck cases).
         nightStep: { kind: 'inStep', stepId: 'wolfKill' },
         isAudioPlaying: false,
         lastNightDeaths: [],
