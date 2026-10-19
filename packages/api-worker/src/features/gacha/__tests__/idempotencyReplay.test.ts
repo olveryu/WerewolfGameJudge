@@ -117,7 +117,7 @@ beforeEach(async () => {
   await env.DB.exec('DELETE FROM users;');
   await env.DB.prepare(
     `INSERT INTO users (id, is_anonymous, created_at, updated_at)
-     VALUES (?, 1, datetime('now'), datetime('now')), (?, 1, datetime('now'), datetime('now'))`,
+     VALUES (?, 0, datetime('now'), datetime('now')), (?, 0, datetime('now'), datetime('now'))`,
   )
     .bind(USER_ID, OTHER_USER_ID)
     .run();
@@ -134,6 +134,33 @@ describe('gacha idempotency replay', () => {
       version: 1,
       history_count: 1,
       ledger_count: 1,
+    });
+  });
+
+  it('rejects anonymous guest accounts on draw and exchange without debit', async () => {
+    await seedStats(USER_ID);
+    await env.DB.prepare('UPDATE users SET is_anonymous = 1 WHERE id = ?').bind(USER_ID).run();
+    const token = await mintToken(USER_ID);
+
+    const drawRes = await draw(token);
+    expect(drawRes.status).toBe(403);
+    await expect(drawRes.json()).resolves.toEqual({
+      success: false,
+      reason: 'ANONYMOUS_NOT_SUPPORTED',
+    });
+
+    const exchangeRes = await exchange(token, IDEMPOTENCY_KEY);
+    expect(exchangeRes.status).toBe(403);
+    await expect(exchangeRes.json()).resolves.toEqual({
+      success: false,
+      reason: 'ANONYMOUS_NOT_SUPPORTED',
+    });
+
+    await expect(readMutationCounts(USER_ID)).resolves.toEqual({
+      normal_draws: 5,
+      version: 0,
+      history_count: 0,
+      ledger_count: 0,
     });
   });
 

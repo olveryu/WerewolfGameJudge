@@ -9,6 +9,7 @@ import { memo } from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
 
 import { UI_ICONS } from '@/config/iconTokens';
+import { GUEST_GROWTH_NOTICE } from '@/features/auth/guestPolicy';
 import { TESTIDS } from '@/testids';
 import { fixed, typography } from '@/theme';
 import { AVATAR_IMAGES, getAvatarThumbByIndex } from '@/utils/avatar';
@@ -128,7 +129,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
                 </>
               )}
             </Text>
-            {!authLoading && <Text style={styles.buttonCaption}>仅分配线条头像和随机昵称</Text>}
+            {!authLoading && <Text style={styles.buttonCaption}>{GUEST_GROWTH_NOTICE}</Text>}
           </TouchableOpacity>
         )}
 

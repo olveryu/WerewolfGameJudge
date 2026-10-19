@@ -31,6 +31,7 @@ import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
+import { GUEST_GROWTH_NOTICE, GUEST_UPGRADE_LOGIN_PARAMS } from '@/features/auth/guestPolicy';
 import { useDrawMutation, useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { usePendingGachaOperation } from '@/features/gacha/queries/useGachaQuery';
 import { useAppVisibility } from '@/features/product/hooks/useAppVisibility';
@@ -68,6 +69,7 @@ function GachaSession({ navigation }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuthContext();
   const isAnon = !user || user.isAnonymous;
+  const isGuest = user?.isAnonymous ?? false;
   const {
     data: status,
     isPending,
@@ -115,10 +117,15 @@ function GachaSession({ navigation }: Props) {
   const handleDraw = useCallback(
     (drawType: 'normal' | 'golden', count: number) => {
       if (isAnon) {
-        navigation.navigate('AuthLogin', {
-          loginTitle: '登录',
-          loginSubtitle: '登录后即可抽奖',
-        });
+        navigation.navigate(
+          'AuthLogin',
+          isGuest
+            ? GUEST_UPGRADE_LOGIN_PARAMS
+            : {
+                loginTitle: '登录',
+                loginSubtitle: '登录后即可抽奖',
+              },
+        );
         return;
       }
       if (isAnimating || isDrawPending) return;
@@ -159,7 +166,18 @@ function GachaSession({ navigation }: Props) {
         },
       );
     },
-    [isAnon, isAnimating, draw, isDrawPending, reducedMotion, navigation, begin, accept, fail],
+    [
+      isAnon,
+      isGuest,
+      isAnimating,
+      draw,
+      isDrawPending,
+      reducedMotion,
+      navigation,
+      begin,
+      accept,
+      fail,
+    ],
   );
 
   const handleCloseTenOverlay = dismiss;
@@ -222,16 +240,27 @@ function GachaSession({ navigation }: Props) {
         />
         <View style={styles.loadingContainer}>
           {isAnon ? (
-            <Button
-              onPress={() =>
-                navigation.navigate('AuthLogin', {
-                  loginTitle: '登录',
-                  loginSubtitle: '登录后即可抽奖',
-                })
-              }
-            >
-              登录后抽奖
-            </Button>
+            isGuest ? (
+              <>
+                <Text style={styles.statusMessage}>{GUEST_GROWTH_NOTICE}</Text>
+                <Button
+                  onPress={() => navigation.navigate('AuthLogin', GUEST_UPGRADE_LOGIN_PARAMS)}
+                >
+                  绑定邮箱开启成长
+                </Button>
+              </>
+            ) : (
+              <Button
+                onPress={() =>
+                  navigation.navigate('AuthLogin', {
+                    loginTitle: '登录',
+                    loginSubtitle: '登录后即可抽奖',
+                  })
+                }
+              >
+                登录后抽奖
+              </Button>
+            )
           ) : isPending && fetchStatus !== 'paused' ? (
             <ActivityIndicator
               size="large"
