@@ -301,7 +301,7 @@ export function renderDigest({ entries, e2eResult, runUrl, unitFailures = [] }) 
     parts.push(renderFailure(entry.record, entry.errorContextText, entry.shardIndex), '');
   }
   if (flaky.length > 0) {
-    parts.push('### ⚠️ Flaky（重试后通过，计入台账）', '');
+    parts.push('### ⚠️ Flaky（重试后通过）', '');
     for (const entry of flaky) {
       parts.push(
         `- \`${entry.record.specFile}\` — ${entry.record.fullTitle}（retry ${entry.record.retry}）：${inlineCode(firstLine(entry.record.errorMessage))}`,
@@ -310,7 +310,7 @@ export function renderDigest({ entries, e2eResult, runUrl, unitFailures = [] }) 
     parts.push('');
   }
   if (unitFailures.length > 0) {
-    parts.push(`### 🧪 单测失败（${unitFailures.length} 条，计入台账）`, '');
+    parts.push(`### 🧪 单测失败（${unitFailures.length} 条）`, '');
     for (const unit of unitFailures) {
       parts.push(
         `- \`${unit.specFile}\` — ${unit.fullTitle}（${unit.source}）：${inlineCode(unit.errorMessage)}`,
@@ -396,26 +396,38 @@ function isLedgerRow(value) {
   );
 }
 
-/** Parse the machine-readable ledger state embedded in the issue body. */
+/**
+ * Parse the machine-readable ledger state embedded in the issue body. The
+ * state comment is anchored at the END of the body: test titles are
+ * uncontrolled input and may themselves contain `-->`, so the terminator
+ * is only trusted as the body's final characters, never found by scanning
+ * forward. A body that carries the state prefix but does not parse is
+ * corrupt — throw, so the caller fails loudly and leaves the issue
+ * untouched instead of silently rewriting the ledger from empty.
+ */
 export function parseLedgerState(body) {
   if (!body || !body.includes(LEDGER_MARKER)) {
     return [];
   }
-  const start = body.indexOf(LEDGER_STATE_PREFIX);
+  const start = body.lastIndexOf(LEDGER_STATE_PREFIX);
   if (start === -1) {
     return [];
   }
-  const jsonStart = start + LEDGER_STATE_PREFIX.length;
-  const jsonEnd = body.indexOf(' -->', jsonStart);
-  if (jsonEnd === -1) {
-    return [];
+  const trimmed = body.replace(/\s+$/, '');
+  if (!trimmed.endsWith(' -->')) {
+    throw new Error('ledger state comment is not at the end of the issue body');
   }
+  const jsonText = trimmed.slice(start + LEDGER_STATE_PREFIX.length, trimmed.length - 4);
+  let parsed;
   try {
-    const parsed = JSON.parse(body.slice(jsonStart, jsonEnd));
-    return Array.isArray(parsed) ? parsed.filter(isLedgerRow) : [];
+    parsed = JSON.parse(jsonText);
   } catch {
-    return [];
+    throw new Error('ledger state JSON is corrupt');
   }
+  if (!Array.isArray(parsed)) {
+    throw new Error('ledger state JSON is not an array');
+  }
+  return parsed.filter(isLedgerRow);
 }
 
 function dayDiff(fromDate, toDate) {
@@ -427,7 +439,7 @@ function isSilenced(row, today) {
 }
 
 function escapeCell(text) {
-  return (text ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
+  return (text ?? '').replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ');
 }
 
 function kindLabel(row) {
@@ -518,7 +530,9 @@ export function updateLedger({ existingBody, additions, today, runId, runUrl }) 
     seenThisRun.add(key);
     const row = byKey.get(key);
     if (row) {
-      if (row.lastRunId === runId) {
+      // Per-run idempotence needs a real run identity; without one (empty
+      // runId) every invocation is a distinct observation and counts.
+      if (runId !== '' && row.lastRunId === runId) {
         continue;
       }
       row.count += 1;

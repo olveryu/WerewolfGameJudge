@@ -265,7 +265,7 @@ test('renderDigest: unit failures get their own section under the unit caliber',
     unitFailures,
   });
   assert.ok(body.includes('🧪 2 条单测失败'));
-  assert.ok(body.includes('### 🧪 单测失败（2 条，计入台账）'));
+  assert.ok(body.includes('### 🧪 单测失败（2 条）'));
   assert.ok(body.includes('`src/__tests__/alpha.test.ts` — alpha does the thing（root jest）'));
   assert.equal(shouldPostNewComment({ entries: [], e2eResult: 'success', unitFailures }), true);
   // The e2e-only rendering is untouched when there are no unit failures.
@@ -373,6 +373,48 @@ test('renderLedgerBody and parseLedgerState round-trip', () => {
   assert.equal(renderLedgerBody(state, '2026-10-19'), result.body);
   assert.deepEqual(parseLedgerState('no marker here'), []);
   assert.deepEqual(parseLedgerState(`${LEDGER_MARKER}\nno state`), []);
+});
+
+test('updateLedger: a title containing --> cannot truncate the embedded state', () => {
+  const additions = [
+    {
+      source: 'e2e',
+      specFile: 'e2e/specs/markdown.spec.ts',
+      fullTitle: 'renders an arrow --> inside a comment',
+      kind: 'failure',
+    },
+  ];
+  const first = applyLedger(undefined, additions);
+  const state = parseLedgerState(first.body);
+  assert.equal(state.length, 1);
+  assert.equal(state[0].fullTitle, 'renders an arrow --> inside a comment');
+  // The next run still sees the history and increments instead of wiping.
+  const next = applyLedger(first.body, additions, {
+    today: '2026-10-20',
+    runId: '1002',
+    runUrl: 'https://example/run/1002',
+  });
+  assert.equal(next.rows.length, 1);
+  assert.equal(next.rows[0].count, 2);
+  // A trailing newline on the stored body (GitHub round-trip) is tolerated.
+  assert.equal(parseLedgerState(`${first.body}\n`).length, 1);
+});
+
+test('parseLedgerState: a corrupt embedded state throws instead of resetting', () => {
+  const corrupt = `${LEDGER_MARKER}\n# t\n\n<!-- ledger-state: {not json} -->`;
+  assert.throws(() => parseLedgerState(corrupt), /corrupt/);
+  assert.throws(() => applyLedger(corrupt, e2eLedgerAdditions([flakyEntry()])), /corrupt/);
+});
+
+test('updateLedger: an empty runId counts every invocation (no run identity)', () => {
+  const additions = e2eLedgerAdditions([flakyEntry()]);
+  const first = applyLedger(undefined, additions, { runId: '', runUrl: '' });
+  const second = applyLedger(first.body, additions, {
+    today: '2026-10-20',
+    runId: '',
+    runUrl: '',
+  });
+  assert.equal(second.rows[0].count, 2);
 });
 
 test('findLedgerIssue matches title + marker and skips pull requests', () => {

@@ -729,7 +729,10 @@ jobs:
     # there is no PR, so the digest goes to the step summary only. Runs even
     # when e2e failed; skipped only when e2e itself was skipped.
     if: always() && needs.e2e.result != 'skipped' && (github.event_name == 'pull_request' || github.ref == 'refs/heads/main')
-    needs: e2e
+    # Waits for the unit-test jobs as well as e2e: their result artifacts
+    # must exist before the downloads below run, or unit failures would be
+    # recorded only when the test jobs happened to finish first.
+    needs: [e2e, test-root, test-api-worker]
     permissions:
       contents: read
       pull-requests: write
