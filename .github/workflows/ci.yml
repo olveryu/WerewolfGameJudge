@@ -91,11 +91,25 @@ jobs:
       - name: Build game-engine
         run: pnpm --filter @game-judge/game-engine run build
 
+      # JSON results ride along on both runners (vitest and jest emit the
+      # same JSON shape) so the failure-digest job can fold unit failures
+      # into the digest and the flake ledger. Paths are absolute because
+      # pnpm --filter runs each suite inside its package directory.
       - name: Test game-engine (shard ${{ matrix.shard }}/2)
-        run: pnpm --filter @game-judge/game-engine run test --shard=${{ matrix.shard }}/2
+        run: pnpm --filter @game-judge/game-engine run test --shard=${{ matrix.shard }}/2 --reporter=default --reporter=json --outputFile=${{ github.workspace }}/test-results-engine-${{ matrix.shard }}.json
 
       - name: Test root (shard ${{ matrix.shard }}/2)
-        run: pnpm --filter werewolfgamejudge run test --shard=${{ matrix.shard }}/2
+        run: pnpm --filter werewolfgamejudge run test --shard=${{ matrix.shard }}/2 --json --outputFile=${{ github.workspace }}/test-results-root-${{ matrix.shard }}.json
+
+      - name: Upload unit test results (shard ${{ matrix.shard }}/2)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-root-${{ matrix.shard }}
+          path: |
+            test-results-root-${{ matrix.shard }}.json
+            test-results-engine-${{ matrix.shard }}.json
+          if-no-files-found: ignore
 
   # api-worker tests are slow (Miniflare + D1). Shard across 3 runners.
   test-api-worker:
@@ -123,7 +137,15 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Test api-worker (shard ${{ matrix.shard }}/3)
-        run: pnpm --filter @game-judge/api-worker run test --shard=${{ matrix.shard }}/3
+        run: pnpm --filter @game-judge/api-worker run test --shard=${{ matrix.shard }}/3 --reporter=default --reporter=json --outputFile=${{ github.workspace }}/test-results-api-${{ matrix.shard }}.json
+
+      - name: Upload unit test results (shard ${{ matrix.shard }}/3)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-api-${{ matrix.shard }}
+          path: test-results-api-${{ matrix.shard }}.json
+          if-no-files-found: ignore
 
   deploy-api-worker:
     runs-on: ubuntu-latest
@@ -707,10 +729,14 @@ jobs:
     # there is no PR, so the digest goes to the step summary only. Runs even
     # when e2e failed; skipped only when e2e itself was skipped.
     if: always() && needs.e2e.result != 'skipped' && (github.event_name == 'pull_request' || github.ref == 'refs/heads/main')
-    needs: e2e
+    # Waits for the unit-test jobs as well as e2e: their result artifacts
+    # must exist before the downloads below run, or unit failures would be
+    # recorded only when the test jobs happened to finish first.
+    needs: [e2e, test-root, test-api-worker]
     permissions:
       contents: read
       pull-requests: write
+      issues: write
     steps:
       - uses: actions/checkout@v6
 
@@ -729,6 +755,14 @@ jobs:
           path: failure-bundles-in
           merge-multiple: true
 
+      - name: Download unit test results
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: test-results-*
+          path: test-results-in
+          merge-multiple: true
+
       - name: Post failure digest to the PR
         if: github.event_name == 'pull_request'
         env:
@@ -736,18 +770,28 @@ jobs:
         run: >-
           node scripts/e2e-failure-digest.mjs
           --bundles failure-bundles-in
+          --test-results test-results-in
           --pr ${{ github.event.pull_request.number }}
           --repo ${{ github.repository }}
           --run-url ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           --e2e-result ${{ needs.e2e.result }}
 
+      # Push runs also maintain the rolling flake-ledger issue (--ledger):
+      # e2e flaky/failures plus unit failures, aggregated per test in the
+      # issue body. Record-only; see scripts/e2e-failure-digest.mjs.
       - name: Write failure digest to the step summary (push runs)
         if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: >-
           node scripts/e2e-failure-digest.mjs
           --bundles failure-bundles-in
+          --test-results test-results-in
+          --repo ${{ github.repository }}
           --run-url ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          --run-id ${{ github.run_id }}
           --e2e-result ${{ needs.e2e.result }}
+          --ledger
 
   deploy-e2e-report:
     runs-on: ubuntu-latest
