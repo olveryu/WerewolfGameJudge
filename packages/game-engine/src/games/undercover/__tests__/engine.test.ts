@@ -322,7 +322,7 @@ describe('Undercover authoritative engine', () => {
     expect(state.round?.confirmedSeats).toHaveLength(8);
     expect(getBotSeats(state.roster)).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect(state.usedWordPairIds).toEqual(['pair-1']);
-    expect(reveal(state, 'civilian', user('host', 2)).round?.revelations).toHaveLength(1);
+    expect(reveal(state, 'civilian', user('host')).round?.revelations).toHaveLength(1);
   });
 
   it('keeps blank victory ahead of parity and publishes one final elimination', () => {

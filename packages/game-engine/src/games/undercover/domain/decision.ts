@@ -1,14 +1,6 @@
-/** Undercover decision helpers; shared rejection vocabulary and actor authorization. */
+/** Undercover decision helpers; shared rejection vocabulary. */
 
-import {
-  type CommandContext,
-  commit,
-  type Decision,
-  reject,
-  resolveUserActorId,
-} from '../../../platform/engine';
-import { REASON_NOT_HOST } from '../../../platform/protocol/reasons';
-import type { UndercoverState } from '../state/types';
+import { commit, type Decision } from '../../../platform/engine';
 import type { UndercoverEffect, UndercoverEvent } from './events';
 
 export const UNDERCOVER_REASONS = {
@@ -33,14 +25,4 @@ export function commitUndercover(
   effects: readonly UndercoverEffect[] = [],
 ): UndercoverDecision {
   return commit({ events, effects, broadcast: events.length === 0 ? 'none' : 'state' });
-}
-
-/** Authorizes the real host, even while the client is viewing a controlled robot seat. */
-export function requireUndercoverHost(
-  state: UndercoverState,
-  context: CommandContext,
-): UndercoverDecision | null {
-  const actor = resolveUserActorId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  return actor.value === state.hostUserId ? null : reject(REASON_NOT_HOST);
 }

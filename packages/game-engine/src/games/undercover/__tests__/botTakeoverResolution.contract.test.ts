@@ -10,7 +10,12 @@
 
 import type { CommandContext } from '../../../platform/engine';
 import { dispatchCommand } from '../../../platform/engine/__tests__/engineSession';
-import { REASON_NOT_SEATED, REASON_USER_ACTOR_REQUIRED } from '../../../platform/protocol/reasons';
+import {
+  REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+  REASON_NOT_HOST,
+  REASON_NOT_SEATED,
+  REASON_USER_ACTOR_REQUIRED,
+} from '../../../platform/protocol/reasons';
 import {
   type ActingSeatProbe,
   type ActingSeatProbeActor,
@@ -107,4 +112,69 @@ describeBotTakeoverResolution({
       },
     };
   },
+});
+
+// D-1: host commands go through the platform host gate, so a host acting
+// through a controlled bot seat is rejected like in every other game.
+// (Confirm above is unaffected: it resolves through the acting seat.)
+describe('undercover host gate under bot takeover', () => {
+  it('rejects a host round command from a controlled seat', () => {
+    const state = viewingState();
+    const decision = undercoverEngine.decide(
+      state,
+      { type: 'undercover.bots.markAllBotsViewed', roundId: state.round!.roundId },
+      user('host', 2),
+    );
+    expect(decision).toEqual({ kind: 'reject', reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED });
+  });
+
+  it('rejects a host reveal from a controlled seat', () => {
+    const state = viewingState();
+    const decision = undercoverEngine.decide(
+      state,
+      { type: 'undercover.round.reveal', roundId: state.round!.roundId, seat: 3 },
+      user('host', 2),
+    );
+    expect(decision).toEqual({ kind: 'reject', reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED });
+  });
+
+  it('rejects a host room command from a controlled seat', () => {
+    const state = undercoverEngine.createInitialState(CONFIG, {
+      roomCode: '1234',
+      hostUserId: 'host',
+      nowMs: 0,
+      commandId: 'create',
+    });
+    const decision = undercoverEngine.decide(
+      state,
+      { type: 'undercover.config.update', config: { ...CONFIG, hasBlank: false } },
+      user('host', 2),
+    );
+    expect(decision).toEqual({ kind: 'reject', reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED });
+  });
+
+  it('rejects a non-host round command with the not-host reason', () => {
+    const state = viewingState();
+    const decision = undercoverEngine.decide(
+      state,
+      { type: 'undercover.bots.markAllBotsViewed', roundId: state.round!.roundId },
+      user('guest'),
+    );
+    expect(decision).toEqual({ kind: 'reject', reason: REASON_NOT_HOST });
+  });
+
+  it('admits the uncontrolled host round command', () => {
+    const state = viewingState();
+    const decision = undercoverEngine.decide(
+      state,
+      { type: 'undercover.bots.markAllBotsViewed', roundId: state.round!.roundId },
+      user('host'),
+    );
+    expect(decision.kind).toBe('commit');
+    if (decision.kind === 'commit') {
+      expect(
+        decision.events.filter((event) => event.type === 'undercover.round.confirmed'),
+      ).toHaveLength(6);
+    }
+  });
 });
