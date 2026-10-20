@@ -6,6 +6,7 @@ import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/
 import {
   countOccupiedSeats,
   findRosterSeatByUserId,
+  isRoomFull,
   type RosterMap,
   type SeatOccupant,
 } from '../../../platform/room/seating';
@@ -216,7 +217,7 @@ export function getPictionaryOccupiedSeatCount(state: PictionaryState): number {
 }
 
 export function isPictionaryRoomFull(state: PictionaryState): boolean {
-  return getPictionaryOccupiedSeatCount(state) === state.config.numberOfPlayers;
+  return isRoomFull(state.roster, state.config.numberOfPlayers);
 }
 
 export function getPictionaryBotUserId(roomCode: string, seat: number): string {
