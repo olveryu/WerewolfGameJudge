@@ -2,13 +2,13 @@
  * Relay phase clock: durations become absolute server deadlines, and
  * an expired phase dispatches by phase.
  *
- * Expiry guards stay with each game (actor gate, deadline presence,
- * and what a stale revision does are observable per-game behavior).
- * This module receives a state whose revision the caller has already
- * verified and performs only the phase dispatch: answering settles,
- * transition is resolved by the game's injected continuation (the
- * games part ways here — next step or gallery entry), and gallery
- * advances one cell.
+ * The expiry guard sequence itself is the platform chassis
+ * (`platform/room/phaseDeadline.ts`); what each gate does on failure
+ * stays injected per game. This module receives a state whose
+ * revision the caller has already verified and performs only the
+ * phase dispatch: answering settles, transition is resolved by the
+ * game's injected continuation (the games part ways here — next
+ * step or gallery entry), and gallery advances one cell.
  */
 
 import { type Decision, type GameEffect, type GameEvent, reject } from '../../engine';

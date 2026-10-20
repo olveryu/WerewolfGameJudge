@@ -7,9 +7,9 @@ import {
   type GameEngineDefinition,
   reject,
 } from '../../platform/engine';
+import { guardPhaseExpiry } from '../../platform/room/phaseDeadline';
 import { buildRelayChains, buildRelayParticipants } from '../../platform/room/relay/assignment';
 import { expireRelayPhase, relayDeadline } from '../../platform/room/relay/clock';
-import { guardRelayPhaseExpiry } from '../../platform/room/relay/expireGuard';
 import type { StoryRelayCommand } from './commands/types';
 import {
   commitStoryRelay,
@@ -98,7 +98,7 @@ function expirePhase(state: StoryRelayState, context: CommandContext): StoryRela
   // The revision gate for this command runs in decideStoryRelayCommand
   // (stale revisions reject there); the shared guard sequence covers
   // the actor and deadline gates and the dispatch.
-  return guardRelayPhaseExpiry(context, {
+  return guardPhaseExpiry(context, {
     deadlineAt: state.deadlineAt,
     notExpiredReason: STORY_RELAY_REASONS.deadline,
     dispatch: (nowMs) =>
