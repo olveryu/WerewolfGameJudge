@@ -311,7 +311,9 @@ export class RoomPage {
     await expect(this.page.getByTestId(TESTIDS.alertTitle)).toHaveText('返回大厅', {
       timeout: 3000,
     });
-    const confirmButton = this.page.getByTestId(TESTIDS.alertButton(2));
+    // AlertModal's sortButtons moves cancel to the end in the 3-button
+    // column layout, so the rendered order is [分享战报, 返回大厅, 取消].
+    const confirmButton = this.page.getByTestId(TESTIDS.alertButton(1));
     await expect(confirmButton).toHaveText('返回大厅');
     await confirmButton.click();
     // Wait for restart broadcast — the console primary returns when the room is ready again.
