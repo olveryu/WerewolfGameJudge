@@ -6,14 +6,15 @@ import {
   type CreateGameContext,
   type GameEngineDefinition,
   reject,
+  requireHost,
 } from '../../platform/engine';
 import { guardPhaseExpiry } from '../../platform/room/phaseDeadline';
 import { buildRelayChains, buildRelayParticipants } from '../../platform/room/relay/assignment';
 import { expireRelayPhase, relayDeadline } from '../../platform/room/relay/clock';
+import { isRoomFull } from '../../platform/room/seating';
 import type { StoryRelayCommand } from './commands/types';
 import {
   commitStoryRelay,
-  requireStoryRelayHost,
   STORY_RELAY_REASONS,
   type StoryRelayDecision,
   type StoryRelayEffect,
@@ -31,7 +32,6 @@ import {
 import { decideStoryRelayRoom } from './domain/seating';
 import { normalizeStoryRelayState } from './state/normalize';
 import {
-  getStoryRelayOccupiedSeatCount,
   isValidStoryRelayConfig,
   STORY_RELAY_GAME_TYPE,
   type StoryRelayConfig,
@@ -68,9 +68,9 @@ function createInitialState(config: StoryRelayConfig, context: CreateGameContext
 }
 
 function startRound(state: StoryRelayState, context: CommandContext): StoryRelayDecision {
-  const hostRejection = requireStoryRelayHost(state, context);
+  const hostRejection = requireHost<StoryRelayEvent, StoryRelayEffect>(context, state.hostUserId);
   if (hostRejection !== null) return hostRejection;
-  if (getStoryRelayOccupiedSeatCount(state) !== state.config.numberOfPlayers)
+  if (!isRoomFull(state.roster, state.config.numberOfPlayers))
     return reject(STORY_RELAY_REASONS.full);
   const roundId = `storyrelay-round:${context.commandId}`;
   const assignment = createStoryRelayAssignment(state.config.numberOfPlayers, context.randomSeed);
@@ -140,7 +140,7 @@ export function decideStoryRelayCommand(
     default:
       break;
   }
-  const hostRejection = requireStoryRelayHost(state, context);
+  const hostRejection = requireHost<StoryRelayEvent, StoryRelayEffect>(context, state.hostUserId);
   if (hostRejection !== null) return hostRejection;
   switch (command.type) {
     case 'storyrelay.phase.finish':

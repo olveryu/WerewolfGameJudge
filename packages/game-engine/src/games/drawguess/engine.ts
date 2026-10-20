@@ -7,11 +7,12 @@ import {
   type CreateGameContext,
   type GameEngineDefinition,
   reject,
+  requireHost,
   resolveUncontrolledUserActorId,
 } from '../../platform/engine';
 import { createSeededRng, randomPick } from '../../platform/random';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
-import { getHumanSeatMap } from '../../platform/room/seating';
+import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
 import type {
   DrawGuessCommand,
   DrawGuessInternalCommand,
@@ -23,7 +24,6 @@ import {
   type DrawGuessDecision,
   type DrawGuessEffect,
   type DrawGuessEvent,
-  requireDrawGuessHost,
   resolveDrawGuessGuesser,
 } from './domain/decision';
 import { evolveDrawGuessState } from './domain/evolve';
@@ -46,7 +46,6 @@ import {
   type DrawGuessState,
   type DrawGuessStroke,
   type DrawGuessWordChoice,
-  getDrawGuessOccupiedSeatCount,
   getDrawGuessTotalTurns,
   isValidDrawGuessConfig,
 } from './state/types';
@@ -89,11 +88,11 @@ function completionEffect(state: DrawGuessState, context: CommandContext): DrawG
 
 /** Host starts the game (or restarts from ended): build the drawer queue and deal words. */
 function startGame(state: DrawGuessState, context: CommandContext): DrawGuessDecision {
-  const hostRejection = requireDrawGuessHost(state, context);
+  const hostRejection = requireHost<DrawGuessEvent, DrawGuessEffect>(context, state.hostUserId);
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
     return reject(DRAWGUESS_REASONS.phase);
-  if (getDrawGuessOccupiedSeatCount(state) !== state.config.numberOfPlayers)
+  if (!isRoomFull(state.roster, state.config.numberOfPlayers))
     return reject(DRAWGUESS_REASONS.full);
   const drawerQueue = Array.from({ length: state.config.numberOfPlayers }, (_, seat) => seat);
   const drawerSeat = drawerQueue[0];
@@ -415,7 +414,7 @@ function expirePhase(
 }
 
 function returnToLobby(state: DrawGuessState, context: CommandContext): DrawGuessDecision {
-  const hostRejection = requireDrawGuessHost(state, context);
+  const hostRejection = requireHost<DrawGuessEvent, DrawGuessEffect>(context, state.hostUserId);
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'ended') return reject(DRAWGUESS_REASONS.phase);
   return commitDrawGuess([{ type: 'drawguess.game.returnedToLobby' }]);

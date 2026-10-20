@@ -5,8 +5,6 @@ import {
   type CommandContext,
   commit,
   type Decision,
-  reject,
-  resolveHostActorId,
 } from '../../../platform/engine';
 import { resolveActingSeat } from '../../../platform/room/actingSeat';
 import { type RosterChange } from '../../../platform/room/seating';
@@ -127,15 +125,6 @@ export function commitDrawGuess(
   effects: readonly DrawGuessEffect[] = [],
 ): DrawGuessDecision {
   return commit({ events, effects });
-}
-
-/** Requires the current host acting outside bot takeover. */
-export function requireDrawGuessHost(
-  state: DrawGuessState,
-  context: CommandContext,
-): DrawGuessDecision | null {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  return actor.kind === 'rejected' ? reject(actor.reason) : null;
 }
 
 /** Resolves the acting seat for guess submission (never the drawer). */
