@@ -6,7 +6,8 @@ import {
   REASON_SYSTEM_ACTOR_REQUIRED,
   REASON_USER_ACTOR_REQUIRED,
 } from '../protocol/reasons';
-import type { CommandContext } from './types';
+import { reject } from './decision';
+import type { CommandContext, Decision, GameEffect, GameEvent } from './types';
 
 export type ActorResolution<T> =
   | { readonly kind: 'resolved'; readonly value: T }
@@ -45,4 +46,24 @@ export function resolveSystemActorEffectId(context: CommandContext): ActorResolu
   return context.actor.kind === 'system'
     ? resolved(context.actor.effectId)
     : rejected(REASON_SYSTEM_ACTOR_REQUIRED);
+}
+
+/**
+ * The host gate every host-only command runs: an uncontrolled user
+ * actor who is the room's host. Returns the rejection to propagate,
+ * or null when the gate passes. Only the not-host outcome may be
+ * re-labelled with a game-supplied reason (`notHostReason`, default
+ * the platform code); the user-required and controlled-seat outcomes
+ * pass through with their platform reasons (D-1), so a host acting
+ * through a bot takeover is rejected as a takeover, not as a
+ * non-host.
+ */
+export function requireHost<TEvent extends GameEvent, TEffect extends GameEffect>(
+  context: CommandContext,
+  hostUserId: string,
+  notHostReason: string = REASON_NOT_HOST,
+): Decision<TEvent, TEffect> | null {
+  const actor = resolveHostActorId(context, hostUserId);
+  if (actor.kind === 'resolved') return null;
+  return reject(actor.reason === REASON_NOT_HOST ? notHostReason : actor.reason);
 }

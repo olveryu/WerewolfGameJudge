@@ -7,6 +7,7 @@ import {
   type CreateGameContext,
   type GameEngineDefinition,
   reject,
+  requireHost,
   resolveSystemActorEffectId,
 } from '../../platform/engine';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
@@ -15,7 +16,7 @@ import {
   decideMarkBotsViewed,
   haveAllViewed,
 } from '../../platform/room/identityViewing';
-import { getHumanSeatMap } from '../../platform/room/seating';
+import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
 import type { DemoCommand } from './commands/types';
 import {
   commitDemo,
@@ -23,7 +24,6 @@ import {
   type DemoDecision,
   type DemoEffect,
   type DemoEvent,
-  requireDemoHost,
 } from './domain/decision';
 import { evolveDemoState } from './domain/evolve';
 import { dealDemoIdentities, DEMO_STAGE_DURATION_MS } from './domain/rules';
@@ -33,7 +33,6 @@ import {
   DEMO_GAME_TYPE,
   type DemoConfig,
   type DemoState,
-  getDemoOccupiedSeatCount,
   getDemoViewingParticipants,
   isValidDemoConfig,
 } from './state/types';
@@ -75,12 +74,15 @@ function completionEffect(state: DemoState, context: CommandContext): DemoEffect
  * begins the game only once every seat has viewed its identity.
  */
 function startGame(state: DemoState, context: CommandContext): DemoDecision {
-  const hostRejection = requireDemoHost(state, context, DEMO_REASONS.notHostStart);
+  const hostRejection = requireHost<DemoEvent, DemoEffect>(
+    context,
+    state.hostUserId,
+    DEMO_REASONS.notHostStart,
+  );
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
     return reject(DEMO_REASONS.phase);
-  if (getDemoOccupiedSeatCount(state) !== state.config.numberOfPlayers)
-    return reject(DEMO_REASONS.full);
+  if (!isRoomFull(state.roster, state.config.numberOfPlayers)) return reject(DEMO_REASONS.full);
   return commitDemo([
     {
       type: 'demo.game.started',
@@ -107,7 +109,11 @@ function settleDueEffect(gameSequence: number, deadlineAt: number): DemoEffect {
  * client submission settles the stage.
  */
 function beginGame(state: DemoState, context: CommandContext): DemoDecision {
-  const hostRejection = requireDemoHost(state, context, DEMO_REASONS.notHostBegin);
+  const hostRejection = requireHost<DemoEvent, DemoEffect>(
+    context,
+    state.hostUserId,
+    DEMO_REASONS.notHostBegin,
+  );
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'viewing') return reject(DEMO_REASONS.phase);
   if (!haveAllViewed(getDemoViewingParticipants(state), state.roleViewedSeats))
@@ -147,7 +153,11 @@ function markAllBotsViewed(state: DemoState, context: CommandContext): DemoDecis
     gateRejection:
       state.phase.kind === 'lobby' || state.phase.kind === 'ended'
         ? reject(DEMO_REASONS.phase)
-        : requireDemoHost(state, context, DEMO_REASONS.notHostMarkBots),
+        : requireHost<DemoEvent, DemoEffect>(
+            context,
+            state.hostUserId,
+            DEMO_REASONS.notHostMarkBots,
+          ),
     participants: getDemoViewingParticipants(state),
     viewedSeats: state.roleViewedSeats,
     noBotSeatsReason: DEMO_REASONS.noBotSeats,
@@ -157,7 +167,11 @@ function markAllBotsViewed(state: DemoState, context: CommandContext): DemoDecis
 }
 
 function returnToLobby(state: DemoState, context: CommandContext): DemoDecision {
-  const hostRejection = requireDemoHost(state, context, DEMO_REASONS.notHostReturnToLobby);
+  const hostRejection = requireHost<DemoEvent, DemoEffect>(
+    context,
+    state.hostUserId,
+    DEMO_REASONS.notHostReturnToLobby,
+  );
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'ended') return reject(DEMO_REASONS.phase);
   return commitDemo([{ type: 'demo.game.returnedToLobby' }]);

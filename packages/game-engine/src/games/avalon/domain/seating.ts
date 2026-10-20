@@ -1,33 +1,17 @@
-/** Lobby-only Avalon seating using the shared roster decisions. */
+/** Lobby-only Avalon seating over the shared room-command skeleton. */
 
-import {
-  type CommandContext,
-  reject,
-  resolveUncontrolledUserActorId,
-} from '../../../platform/engine';
-import { REASON_NOT_HOST, REASON_NOT_SEATED } from '../../../platform/protocol/reasons';
+import { type CommandContext, reject } from '../../../platform/engine';
 import { type Rng, secureRng, shuffleArray } from '../../../platform/random';
-import {
-  decideRosterClearSeats,
-  decideRosterFillBots,
-  decideRosterKickSeat,
-  decideRosterLeaveSeat,
-  decideRosterTakeSeat,
-  findRosterSeatByUserId,
-  hasOccupantAtOrBeyond,
-  isBotOccupant,
-  type RosterChange,
-} from '../../../platform/room/seating';
+import { decideRoomCommands } from '../../../platform/room/roomCommands';
 import type { AvalonCommand } from '../commands/types';
 import {
   AVALON_BOARDS,
-  type AvalonHumanSeat,
   type AvalonPlayerCount,
   type AvalonRoleId,
   type AvalonState,
   isValidAvalonConfig,
 } from '../state/types';
-import { AVALON_REASONS, type AvalonDecision, commitAvalon, requireAvalonHost } from './decision';
+import { AVALON_REASONS, type AvalonDecision, commitAvalon } from './decision';
 
 type RoomCommand = Extract<
   AvalonCommand,
@@ -50,86 +34,39 @@ export function dealAvalonRoles(
   return roles;
 }
 
-function seats(changes: readonly RosterChange<AvalonHumanSeat>[]): AvalonDecision {
-  return commitAvalon([{ type: 'avalon.seats.changed', changes }]);
-}
-
-function rejectSeatOperation(reason: string): AvalonDecision {
-  return reject(reason);
-}
-
 /** Decides lobby and profile changes with authenticated ownership. */
 export function decideAvalonRoom(
   state: AvalonState,
   command: RoomCommand,
   context: CommandContext,
 ): AvalonDecision {
-  if (command.type === 'room.profile.update') {
-    const actor = resolveUncontrolledUserActorId(context);
-    if (actor.kind === 'rejected') return reject(actor.reason);
-    const seat = findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, actor.value);
-    if (seat === null) return reject(REASON_NOT_SEATED);
-    const occupant = state.roster[seat];
-    if (occupant == null || isBotOccupant(occupant)) return reject(REASON_NOT_SEATED);
-    return seats([
-      {
-        seat,
-        previous: occupant,
-        next: { ...occupant, profile: { ...occupant.profile, ...command.profile } },
-      },
-    ]);
-  }
-  if (state.phase.kind !== 'lobby') return reject(AVALON_REASONS.phase);
-  if (command.type === 'room.seat.take' || command.type === 'room.seat.leave') {
-    const actor = resolveUncontrolledUserActorId(context);
-    if (actor.kind === 'rejected') return reject(actor.reason);
-    if (command.type === 'room.seat.take' && command.profile.displayName.trim().length === 0)
-      return reject(AVALON_REASONS.config);
-    const result =
-      command.type === 'room.seat.take'
-        ? decideRosterTakeSeat(
-            state.roster,
-            state.config.numberOfPlayers,
-            command.seat,
-            actor.value,
-            (seat): AvalonHumanSeat => ({
-              seat,
-              userId: actor.value,
-              profile: { ...command.profile },
-            }),
-          )
-        : decideRosterLeaveSeat(state.roster, state.config.numberOfPlayers, actor.value);
-    if (result.kind === 'rejected') return rejectSeatOperation(result.reason);
-    return seats(result.changes);
-  }
-  const hostRejection = requireAvalonHost(state, context, REASON_NOT_HOST);
-  if (hostRejection !== null) return hostRejection;
-  switch (command.type) {
-    case 'avalon.config.update': {
-      if (!isValidAvalonConfig(command.config)) return reject(AVALON_REASONS.config);
-      if (hasOccupantAtOrBeyond(state.roster, command.config.numberOfPlayers))
-        return reject(AVALON_REASONS.occupied);
-      return commitAvalon([{ type: 'avalon.config.updated', config: { ...command.config } }]);
-    }
-    case 'room.seat.fillBots': {
-      const result = decideRosterFillBots(state.roster, state.config.numberOfPlayers);
-      return result.kind === 'rejected'
-        ? rejectSeatOperation(result.reason)
-        : seats(result.changes);
-    }
-    case 'room.seat.kick': {
-      const result = decideRosterKickSeat(state.roster, state.config.numberOfPlayers, command.seat);
-      return result.kind === 'rejected'
-        ? rejectSeatOperation(result.reason)
-        : seats(result.changes);
-    }
-    case 'room.seat.clear': {
-      const result = decideRosterClearSeats(state.roster, state.config.numberOfPlayers);
-      return result.kind === 'rejected'
-        ? rejectSeatOperation(result.reason)
-        : seats(result.changes);
-    }
-    default:
-      return reject(AVALON_REASONS.phase);
-  }
+  return decideRoomCommands({
+    facts: {
+      roster: state.roster,
+      seatCount: state.config.numberOfPlayers,
+      hostUserId: state.hostUserId,
+    },
+    command,
+    context,
+    options: {
+      lobbyRejection: state.phase.kind !== 'lobby' ? reject(AVALON_REASONS.phase) : null,
+      phaseReason: AVALON_REASONS.phase,
+      configReason: AVALON_REASONS.config,
+      occupiedReason: AVALON_REASONS.occupied,
+      profileLanding: { kind: 'rosterChange' },
+      resolveConfigFacts: (resolved) =>
+        resolved.type === 'avalon.config.update'
+          ? {
+              invalidReason: isValidAvalonConfig(resolved.config) ? null : AVALON_REASONS.config,
+              newSeatCount: resolved.config.numberOfPlayers,
+              buildEvent: () => ({
+                type: 'avalon.config.updated',
+                config: { ...resolved.config },
+              }),
+            }
+          : null,
+      buildSeatsChangedEvent: (changes) => ({ type: 'avalon.seats.changed', changes }),
+      commit: commitAvalon,
+    },
+  });
 }

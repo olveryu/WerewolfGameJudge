@@ -1,3 +1,4 @@
+export { findSeatByUserId } from './kernel';
 export {
   applyRosterChanges,
   type BotSeatOccupant,
@@ -14,6 +15,7 @@ export {
   hasOccupantAtOrBeyond,
   isBotOccupant,
   isBotSeat,
+  isRoomFull,
   type RosterChange,
   type RosterMap,
   type RosterOccupant,

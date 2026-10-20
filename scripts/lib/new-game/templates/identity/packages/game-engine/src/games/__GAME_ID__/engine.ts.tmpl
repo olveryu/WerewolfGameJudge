@@ -7,6 +7,7 @@ import {
   type CreateGameContext,
   type GameEngineDefinition,
   reject,
+  requireHost,
 } from '../../platform/engine';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
 import {
@@ -14,11 +15,10 @@ import {
   decideMarkBotsViewed,
   haveAllViewed,
 } from '../../platform/room/identityViewing';
-import { getHumanSeatMap } from '../../platform/room/seating';
+import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
 import type { __GAME_PASCAL__Command } from './commands/types';
 import {
   commit__GAME_PASCAL__,
-  require__GAME_PASCAL__Host,
   __GAME_UPPER___REASONS,
   type __GAME_PASCAL__Decision,
   type __GAME_PASCAL__Effect,
@@ -29,7 +29,6 @@ import { deal__GAME_PASCAL__Identities } from './domain/rules';
 import { decide__GAME_PASCAL__Room } from './domain/seating';
 import { normalize__GAME_PASCAL__State } from './state/normalize';
 import {
-  get__GAME_PASCAL__OccupiedSeatCount,
   get__GAME_PASCAL__ViewingParticipants,
   isValid__GAME_PASCAL__Config,
   __GAME_UPPER___GAME_TYPE,
@@ -77,11 +76,15 @@ function completionEffect(state: __GAME_PASCAL__State, context: CommandContext):
  * begins the game only once every seat has viewed its identity.
  */
 function startGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
-  const hostRejection = require__GAME_PASCAL__Host(state, context, __GAME_UPPER___REASONS.notHostStart);
+  const hostRejection = requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
+    context,
+    state.hostUserId,
+    __GAME_UPPER___REASONS.notHostStart,
+  );
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
     return reject(__GAME_UPPER___REASONS.phase);
-  if (get__GAME_PASCAL__OccupiedSeatCount(state) !== state.config.numberOfPlayers)
+  if (!isRoomFull(state.roster, state.config.numberOfPlayers))
     return reject(__GAME_UPPER___REASONS.full);
   return commit__GAME_PASCAL__([
     {
@@ -94,7 +97,11 @@ function startGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME
 
 /** Host begins play from the viewing stage: the identity checkpoint must be complete. */
 function beginGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
-  const hostRejection = require__GAME_PASCAL__Host(state, context, __GAME_UPPER___REASONS.notHostBegin);
+  const hostRejection = requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
+    context,
+    state.hostUserId,
+    __GAME_UPPER___REASONS.notHostBegin,
+  );
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'viewing') return reject(__GAME_UPPER___REASONS.phase);
   if (!haveAllViewed(get__GAME_PASCAL__ViewingParticipants(state), state.roleViewedSeats))
@@ -133,7 +140,11 @@ function markAllBotsViewed(
     gateRejection:
       state.phase.kind === 'lobby' || state.phase.kind === 'ended'
         ? reject(__GAME_UPPER___REASONS.phase)
-        : require__GAME_PASCAL__Host(state, context, __GAME_UPPER___REASONS.notHostMarkBots),
+        : requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
+            context,
+            state.hostUserId,
+            __GAME_UPPER___REASONS.notHostMarkBots,
+          ),
     participants: get__GAME_PASCAL__ViewingParticipants(state),
     viewedSeats: state.roleViewedSeats,
     noBotSeatsReason: __GAME_UPPER___REASONS.noBotSeats,
@@ -143,9 +154,9 @@ function markAllBotsViewed(
 }
 
 function returnToLobby(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
-  const hostRejection = require__GAME_PASCAL__Host(
-    state,
+  const hostRejection = requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
     context,
+    state.hostUserId,
     __GAME_UPPER___REASONS.notHostReturnToLobby,
   );
   if (hostRejection !== null) return hostRejection;

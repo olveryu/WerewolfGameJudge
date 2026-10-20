@@ -1,12 +1,6 @@
 /** __GAME_PASCAL__ decision outcomes and permission gates; no IO. */
 
-import {
-  type CommandContext,
-  commit,
-  type Decision,
-  reject,
-  resolveHostActorId,
-} from '../../../platform/engine';
+import { commit, type Decision } from '../../../platform/engine';
 import { type RosterChange } from '../../../platform/room/seating';
 import type { __GAME_PASCAL__HumanSeat, __GAME_PASCAL__State } from '../state/types';
 
@@ -71,14 +65,4 @@ export function commit__GAME_PASCAL__(
   effects: readonly __GAME_PASCAL__Effect[] = [],
 ): __GAME_PASCAL__Decision {
   return commit({ events, effects });
-}
-
-/** Requires the current host acting outside bot takeover; rejects with the given reason. */
-export function require__GAME_PASCAL__Host(
-  state: __GAME_PASCAL__State,
-  context: CommandContext,
-  reason: string,
-): __GAME_PASCAL__Decision | null {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  return actor.kind === 'rejected' ? reject(reason) : null;
 }

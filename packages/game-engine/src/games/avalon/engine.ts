@@ -8,6 +8,7 @@ import {
   type CreateGameContext,
   type GameEngineDefinition,
   reject,
+  requireHost,
   resolveSystemActorEffectId,
   resolveUncontrolledUserActorId,
 } from '../../platform/engine';
@@ -18,7 +19,7 @@ import {
   decideMarkBotsViewed,
   haveAllViewed,
 } from '../../platform/room/identityViewing';
-import { getHumanSeatMap } from '../../platform/room/seating';
+import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
 import type { AvalonCommand } from './commands/types';
 import {
   AVALON_REASONS,
@@ -26,7 +27,6 @@ import {
   type AvalonEffect,
   type AvalonEvent,
   commitAvalon,
-  requireAvalonHost,
   resolveAvalonAssassin,
   teamSizeReason,
 } from './domain/decision';
@@ -130,12 +130,15 @@ function completionEffect(state: AvalonState, context: CommandContext): AvalonEf
  * every seat has viewed its role (the werewolf two-step flow).
  */
 function startGame(state: AvalonState, context: CommandContext): AvalonDecision {
-  const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostStart);
+  const hostRejection = requireHost<AvalonEvent, AvalonEffect>(
+    context,
+    state.hostUserId,
+    AVALON_REASONS.notHostStart,
+  );
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
     return reject(AVALON_REASONS.phase);
-  if (getAvalonOccupiedSeatCount(state) !== state.config.numberOfPlayers)
-    return reject(AVALON_REASONS.full);
+  if (!isRoomFull(state.roster, state.config.numberOfPlayers)) return reject(AVALON_REASONS.full);
   const count = state.config.numberOfPlayers;
   const roles = dealAvalonRoles(count);
   const leaderSeat = randomIntInclusive(0, count - 1);
@@ -160,7 +163,11 @@ function startGame(state: AvalonState, context: CommandContext): AvalonDecision 
  * audio of the game, exactly like werewolf's START_NIGHT.
  */
 function beginGame(state: AvalonState, context: CommandContext): AvalonDecision {
-  const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostBegin);
+  const hostRejection = requireHost<AvalonEvent, AvalonEffect>(
+    context,
+    state.hostUserId,
+    AVALON_REASONS.notHostBegin,
+  );
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'viewing') return reject(AVALON_REASONS.phase);
   if (!haveAllViewed(getAvalonViewingParticipants(state), state.roleViewedSeats))
@@ -225,7 +232,11 @@ function markAllBotsViewed(state: AvalonState, context: CommandContext): AvalonD
     gateRejection:
       state.phase.kind === 'lobby' || state.phase.kind === 'ended'
         ? reject(AVALON_REASONS.phase)
-        : requireAvalonHost(state, context, AVALON_REASONS.notHostMarkBots),
+        : requireHost<AvalonEvent, AvalonEffect>(
+            context,
+            state.hostUserId,
+            AVALON_REASONS.notHostMarkBots,
+          ),
     participants: getAvalonViewingParticipants(state),
     viewedSeats: state.roleViewedSeats,
     noBotSeatsReason: AVALON_REASONS.noBotSeats,
@@ -369,7 +380,11 @@ function castVote(state: AvalonState, vote: AvalonBallot, context: CommandContex
  */
 function finishVote(state: AvalonState, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'vote') return reject(AVALON_REASONS.phase);
-  const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostFinishVote);
+  const hostRejection = requireHost<AvalonEvent, AvalonEffect>(
+    context,
+    state.hostUserId,
+    AVALON_REASONS.notHostFinishVote,
+  );
   if (hostRejection !== null) return hostRejection;
   const settlement = buildVoteSettlement(state, state.phase.ballots, context);
   return commitAvalon(settlement.events, settlement.effects);
@@ -497,7 +512,11 @@ function settleQuestWithDefaults(state: AvalonState, context: CommandContext): A
 /** Host ends the quest early (D16). */
 function finishQuest(state: AvalonState, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'quest') return reject(AVALON_REASONS.phase);
-  const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostFinishQuest);
+  const hostRejection = requireHost<AvalonEvent, AvalonEffect>(
+    context,
+    state.hostUserId,
+    AVALON_REASONS.notHostFinishQuest,
+  );
   if (hostRejection !== null) return hostRejection;
   return settleQuestWithDefaults(state, context);
 }
@@ -636,7 +655,11 @@ function earlyStrike(state: AvalonState, target: number, context: CommandContext
 }
 
 function returnToLobby(state: AvalonState, context: CommandContext): AvalonDecision {
-  const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostReturnToLobby);
+  const hostRejection = requireHost<AvalonEvent, AvalonEffect>(
+    context,
+    state.hostUserId,
+    AVALON_REASONS.notHostReturnToLobby,
+  );
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'ended') return reject(AVALON_REASONS.phase);
   // 播报未播完时阻塞回大厅，避免 orphan 音频队列（用户 2026-10-07 确认）。
@@ -646,7 +669,11 @@ function returnToLobby(state: AvalonState, context: CommandContext): AvalonDecis
 
 /** 房主播完第一晚播报后提交 ack，清空队列、释放门控（共享音频机器，与狼人杀 handleAudioAck 同一份 ack 转移）。 */
 function ackAudio(state: AvalonState, context: CommandContext): AvalonDecision {
-  const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostAckAudio);
+  const hostRejection = requireHost<AvalonEvent, AvalonEffect>(
+    context,
+    state.hostUserId,
+    AVALON_REASONS.notHostAckAudio,
+  );
   if (hostRejection !== null) return hostRejection;
   // 队列已空且未在播时 ack 是幂等空转：不发事件、不 bump 修订号。
   if (acknowledgeAudioQueue(state) === null) return commitAvalon([]);

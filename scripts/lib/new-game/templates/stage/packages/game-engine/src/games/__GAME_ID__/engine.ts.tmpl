@@ -7,14 +7,14 @@ import {
   type CreateGameContext,
   type GameEngineDefinition,
   reject,
+  requireHost,
   resolveSystemActorEffectId,
   resolveUncontrolledUserActorId,
 } from '../../platform/engine';
-import { getHumanSeatMap } from '../../platform/room/seating';
+import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
 import type { __GAME_PASCAL__Command } from './commands/types';
 import {
   commit__GAME_PASCAL__,
-  require__GAME_PASCAL__Host,
   __GAME_UPPER___REASONS,
   type __GAME_PASCAL__Decision,
   type __GAME_PASCAL__Effect,
@@ -25,7 +25,6 @@ import { __GAME_UPPER___STAGE_DURATION_MS } from './domain/rules';
 import { decide__GAME_PASCAL__Room } from './domain/seating';
 import { normalize__GAME_PASCAL__State } from './state/normalize';
 import {
-  get__GAME_PASCAL__OccupiedSeatCount,
   isValid__GAME_PASCAL__Config,
   __GAME_UPPER___GAME_TYPE,
   type __GAME_PASCAL__Config,
@@ -79,11 +78,15 @@ function settleDueEffect(gameSequence: number, deadlineAt: number): __GAME_PASCA
  * path for expiry, client expire submissions only accelerate it.
  */
 function startGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
-  const hostRejection = require__GAME_PASCAL__Host(state, context, __GAME_UPPER___REASONS.notHostStart);
+  const hostRejection = requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
+    context,
+    state.hostUserId,
+    __GAME_UPPER___REASONS.notHostStart,
+  );
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
     return reject(__GAME_UPPER___REASONS.phase);
-  if (get__GAME_PASCAL__OccupiedSeatCount(state) !== state.config.numberOfPlayers)
+  if (!isRoomFull(state.roster, state.config.numberOfPlayers))
     return reject(__GAME_UPPER___REASONS.full);
   const deadlineAt = context.nowMs + __GAME_UPPER___STAGE_DURATION_MS;
   const gameSequence = state.gameSequence + 1;
@@ -119,9 +122,9 @@ function expireStage(
 }
 
 function returnToLobby(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
-  const hostRejection = require__GAME_PASCAL__Host(
-    state,
+  const hostRejection = requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
     context,
+    state.hostUserId,
     __GAME_UPPER___REASONS.notHostReturnToLobby,
   );
   if (hostRejection !== null) return hostRejection;
