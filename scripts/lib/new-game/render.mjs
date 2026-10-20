@@ -2,9 +2,11 @@
  * Placeholder rendering for the new-game generator.
  *
  * Templates are plain text files carrying `__GAME_*__` tokens and, for
- * files shared between presets, preset-conditional line blocks marked
- * with `//#identity` / `//#stage` ... `//#end` lines. Rendering is pure:
- * same input, same output, no filesystem access.
+ * files shared between capability packs, capability-conditional line
+ * blocks marked with `//#cap <capabilityKey>` ... `//#end` lines: a
+ * block's lines survive rendering only when the pack's capability
+ * record enables that key. Rendering is pure: same input, same
+ * output, no filesystem access.
  */
 
 const GAME_ID_PATTERN = /^[a-z][a-z0-9]*$/;
@@ -30,11 +32,11 @@ export function deriveGameNames(gameId) {
   };
 }
 
-const BLOCK_START = /^\/\/#(identity|stage)\s*$/;
+const BLOCK_START = /^\/\/#cap ([A-Za-z]+)\s*$/;
 const BLOCK_END = /^\/\/#end\s*$/;
 
-/** Strip preset-conditional blocks that do not match the active preset. */
-export function applyPresetBlocks(text, preset) {
+/** Strip capability-conditional blocks the active pack does not enable. */
+export function applyCapabilityBlocks(text, capabilities) {
   const lines = text.split('\n');
   const kept = [];
   let activeBlock = null;
@@ -42,19 +44,22 @@ export function applyPresetBlocks(text, preset) {
     const start = BLOCK_START.exec(line.trim());
     if (start !== null) {
       if (activeBlock !== null) {
-        throw new Error(`Nested preset block "${start[1]}" inside "${activeBlock}".`);
+        throw new Error(`Nested capability block "${start[1]}" inside "${activeBlock}".`);
+      }
+      if (!Object.hasOwn(capabilities, start[1])) {
+        throw new Error(`Unknown capability block "${start[1]}".`);
       }
       activeBlock = start[1];
       continue;
     }
     if (BLOCK_END.test(line.trim())) {
-      if (activeBlock === null) throw new Error('Preset block end without a start marker.');
+      if (activeBlock === null) throw new Error('Capability block end without a start marker.');
       activeBlock = null;
       continue;
     }
-    if (activeBlock === null || activeBlock === preset) kept.push(line);
+    if (activeBlock === null || capabilities[activeBlock] === true) kept.push(line);
   }
-  if (activeBlock !== null) throw new Error(`Unterminated preset block "${activeBlock}".`);
+  if (activeBlock !== null) throw new Error(`Unterminated capability block "${activeBlock}".`);
   return kept.join('\n');
 }
 
@@ -78,7 +83,7 @@ export function renderTemplate(text, names, extraTokens = {}) {
   return rendered;
 }
 
-/** Render one template file body for one preset. */
-export function renderTemplateFile(text, { names, preset, extraTokens }) {
-  return renderTemplate(applyPresetBlocks(text, preset), names, extraTokens);
+/** Render one template file body for one capability pack. */
+export function renderTemplateFile(text, { names, capabilities, extraTokens }) {
+  return renderTemplate(applyCapabilityBlocks(text, capabilities), names, extraTokens);
 }

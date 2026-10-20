@@ -19,6 +19,7 @@ import { fileURLToPath } from 'node:url';
 
 import { editEngineContractsTest } from './lib/new-game/edits.mjs';
 import { generateNewGame, PRESET_CAPABILITIES } from './lib/new-game/generate.mjs';
+import { applyCapabilityBlocks } from './lib/new-game/render.mjs';
 
 const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -146,6 +147,34 @@ function expectedCreatedFiles(gameId, preset) {
 function readFixture(root, file) {
   return fs.readFileSync(path.join(root, file), 'utf8');
 }
+
+test('capability blocks keep lines only for enabled capabilities and fail fast on bad markers', () => {
+  const capabilities = { identityViewing: true, stageDeadline: false };
+  const text = [
+    'base',
+    '//#cap identityViewing',
+    'viewing line',
+    '//#end',
+    '//#cap stageDeadline',
+    'deadline line',
+    '//#end',
+    'tail',
+  ].join('\n');
+  assert.equal(applyCapabilityBlocks(text, capabilities), 'base\nviewing line\ntail');
+  assert.throws(
+    () => applyCapabilityBlocks('//#cap nope\nx\n//#end', capabilities),
+    /Unknown capability block "nope"/,
+  );
+  assert.throws(
+    () => applyCapabilityBlocks('//#cap identityViewing\n//#cap stageDeadline\n//#end', capabilities),
+    /Nested capability block/,
+  );
+  assert.throws(() => applyCapabilityBlocks('//#end', capabilities), /without a start marker/);
+  assert.throws(
+    () => applyCapabilityBlocks('//#cap identityViewing\nx', capabilities),
+    /Unterminated capability block/,
+  );
+});
 
 for (const preset of ['identity', 'stage']) {
   test(`generates the complete ${preset} skeleton and wires every registration point`, () => {
