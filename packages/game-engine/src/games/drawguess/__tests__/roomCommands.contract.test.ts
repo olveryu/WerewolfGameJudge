@@ -131,6 +131,22 @@ describeRoomCommands({
   makeSession,
 });
 
+describe('Room Commands - drawguess config resend', () => {
+  it('re-emits the config event when the same config is resent (no no-op policy)', () => {
+    const state = freshState();
+    const decision = drawGuessEngine.decide(
+      state,
+      { type: 'drawguess.config.update', config: { ...DEFAULT_DRAWGUESS_CONFIG } },
+      context({ userId: 'host', controlledSeat: null }),
+    );
+    expect(decision.kind).toBe('commit');
+    if (decision.kind === 'commit')
+      expect(decision.events).toEqual([
+        { type: 'drawguess.config.updated', config: { ...DEFAULT_DRAWGUESS_CONFIG } },
+      ]);
+  });
+});
+
 describe('Room Commands - drawguess lobby gate after begin', () => {
   it('answers rejoin and config attempts with the phase reason, ahead of the host gate', () => {
     const session = makeSession();

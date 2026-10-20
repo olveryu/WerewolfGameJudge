@@ -135,15 +135,38 @@ describeRoomCommands({
 
 describe('Room Commands - storyrelay config derivation', () => {
   it('drives the room from the updated player count: new seats take, fill, and start', () => {
-    const session = makeSession();
-    expect(session.dispatch({ kind: 'config', variant: 'valid' }, HOST)).toBeNull();
-    expect(session.seatCount()).toBe(7);
-    // Seat 6 did not exist under the old count; it takes and fills now.
-    expect(session.dispatch({ kind: 'take', seat: 6, displayName: 'Last' }, HOST)).toBeNull();
-    expect(session.dispatch({ kind: 'fillBots' }, HOST)).toBeNull();
-    for (let seat = 0; seat < 7; seat += 1) {
-      expect(session.occupantKind(seat)).not.toBe('empty');
-    }
+    let state = freshState();
+    const apply = (command: StoryRelayCommand): void => {
+      const decision = storyRelayEngine.decide(state, command, context(HOST));
+      if (decision.kind === 'reject') throw new Error(`dispatch failed: ${decision.reason}`);
+      for (const event of decision.events) state = storyRelayEngine.evolve(state, event);
+      state = storyRelayEngine.normalize(state);
+    };
+    apply({
+      type: 'storyrelay.config.update',
+      config: { ...DEFAULT_STORY_RELAY_CONFIG, numberOfPlayers: 7 },
+    });
+    expect(state.config.numberOfPlayers).toBe(7);
+    // Seat 6 did not exist under the old count; it takes and fills now,
+    // and the start gate admits the round at the derived count.
+    apply({ type: 'room.seat.take', seat: 6, profile: { displayName: 'Last' } });
+    apply({ type: 'room.seat.fillBots' });
+    apply({ type: 'storyrelay.game.begin' });
+    expect(state.phase).not.toBe('lobby');
+  });
+
+  it('re-emits the config event when the same config is resent (no no-op policy)', () => {
+    const state = freshState();
+    const decision = storyRelayEngine.decide(
+      state,
+      { type: 'storyrelay.config.update', config: { ...DEFAULT_STORY_RELAY_CONFIG } },
+      context(HOST),
+    );
+    expect(decision.kind).toBe('commit');
+    if (decision.kind === 'commit')
+      expect(decision.events).toEqual([
+        { type: 'storyrelay.config.updated', config: { ...DEFAULT_STORY_RELAY_CONFIG } },
+      ]);
   });
 });
 
