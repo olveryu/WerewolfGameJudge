@@ -173,14 +173,14 @@ describe('createAvalonRoomShellModel', () => {
     const lobby = session(3);
     expect(createAvalonRoomShellModel(baseInput(lobby.state)).phase).toBe('lobby');
     const running = session(5);
-    running.send({ type: 'avalon.game.start' });
+    running.send({ type: 'avalon.roles.assign' });
     expect(createAvalonRoomShellModel(baseInput(running.state)).phase).toBe('viewing');
   });
 
   it('exposes the night step on the shell model only during the night phase', () => {
     const running = session(5);
     expect(createAvalonRoomShellModel(baseInput(running.state)).step).toBeNull();
-    running.send({ type: 'avalon.game.start' });
+    running.send({ type: 'avalon.roles.assign' });
     expect(createAvalonRoomShellModel(baseInput(running.state)).step).toBeNull();
     for (let seat = 0; seat < 5; seat += 1) {
       running.send({ type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `u${seat}`);
@@ -209,7 +209,7 @@ describe('createAvalonRoomShellModel', () => {
 
   it('hints an unviewed seated player to view their role during the viewing stage', () => {
     const running = session(5);
-    running.send({ type: 'avalon.game.start' });
+    running.send({ type: 'avalon.roles.assign' });
     const input = {
       ...baseInput(running.state),
       isLobby: false,
@@ -230,7 +230,7 @@ describe('createAvalonRoomShellModel', () => {
 
   it('adds the always-on view-role action once the game is running', () => {
     const running = session(5);
-    running.send({ type: 'avalon.game.start' });
+    running.send({ type: 'avalon.roles.assign' });
     const onViewRolePress = jest.fn();
     const model = createAvalonRoomShellModel({
       ...baseInput(running.state),
@@ -257,7 +257,7 @@ describe('createAvalonRoomShellModel', () => {
 
   it('pins the night info action: confirm stays available while audio plays', () => {
     const running = session(5);
-    running.send({ type: 'avalon.game.start' });
+    running.send({ type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 5; seat += 1) {
       running.send({ type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `u${seat}`);
     }
@@ -323,7 +323,7 @@ describe('createAvalonRoomShellModel', () => {
 
   it('lets a night participant confirm while the narration is still queued', () => {
     const running = session(5);
-    running.send({ type: 'avalon.game.start' });
+    running.send({ type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 5; seat += 1) {
       running.send({ type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `u${seat}`);
     }
@@ -371,7 +371,7 @@ const seatUser = (seat: number) => (seat === 0 ? 'host' : `u${seat}`);
 /** Starts a five-human game and walks it through viewing + night into nominate. */
 function daytimeSession() {
   const running = session(5);
-  running.send({ type: 'avalon.game.start' });
+  running.send({ type: 'avalon.roles.assign' });
   for (let seat = 0; seat < 5; seat += 1) {
     running.send({ type: 'avalon.role.viewed' }, seatUser(seat));
   }
@@ -415,7 +415,7 @@ function ninePlayerDaytimeSession(): RunningSession {
   for (let seat = 0; seat < 9; seat += 1) {
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
   }
-  send({ type: 'avalon.game.start' });
+  send({ type: 'avalon.roles.assign' });
   for (let seat = 0; seat < 9; seat += 1) {
     send({ type: 'avalon.role.viewed' }, seatUser(seat));
   }
@@ -721,7 +721,7 @@ function currentPhase(running: RunningSession): AvalonState['phase'] {
 /** Walks a five-human game into the first night step (evilReveal). */
 function nightSession() {
   const running = session(5);
-  running.send({ type: 'avalon.game.start' });
+  running.send({ type: 'avalon.roles.assign' });
   for (let seat = 0; seat < 5; seat += 1) {
     running.send({ type: 'avalon.role.viewed' }, seatUser(seat));
   }

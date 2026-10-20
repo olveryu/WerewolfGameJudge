@@ -136,7 +136,7 @@ function armedVoteState(): AvalonState {
       `seat-${seat}`,
     );
   }
-  state = applyPublic(state, { type: 'avalon.game.start' }, SETTLE_HOST, 'start');
+  state = applyPublic(state, { type: 'avalon.roles.assign' }, SETTLE_HOST, 'start');
   for (let seat = 0; seat < 5; seat += 1) {
     state = applyPublic(state, { type: 'avalon.role.viewed' }, seatUser(seat), `view-${seat}`);
   }

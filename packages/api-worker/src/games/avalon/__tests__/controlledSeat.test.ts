@@ -54,7 +54,7 @@ function nightState(): AvalonState {
     'seat-host',
   );
   const seated = commitState(seatedFirst, { type: 'room.seat.fillBots' }, HOST, null, 'fill-bots');
-  const dealt = commitState(seated, { type: 'avalon.game.start' }, HOST, null, 'start');
+  const dealt = commitState(seated, { type: 'avalon.roles.assign' }, HOST, null, 'start');
   const hostViewed = commitState(dealt, { type: 'avalon.role.viewed' }, HOST, null, 'view-host');
   const botsMarked = commitState(
     hostViewed,

@@ -714,7 +714,7 @@ export function createAvalonHostManagement(
     const startDisabledReason = canStart
       ? null
       : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
-    const submitAssign = () => void submit('分配角色', { type: 'avalon.game.start' });
+    const submitAssign = () => void submit('分配角色', { type: 'avalon.roles.assign' });
     const assignAction = buildAssignRolesAction({
       onPress: () =>
         showConfirmAlert(
@@ -802,7 +802,7 @@ export function createAvalonHostManagement(
                 showConfirmAlert(
                   HOST_FLOW_CONFIRM.nextRoundTitle,
                   '重新发牌并清零比分，开始新的一局。',
-                  () => void submit('再来一局', { type: 'avalon.game.start' }),
+                  () => void submit('再来一局', { type: 'avalon.roles.assign' }),
                 ),
             }),
             buildReturnLobbyAction({

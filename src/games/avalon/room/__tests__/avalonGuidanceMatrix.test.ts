@@ -76,7 +76,7 @@ function session(playerCount: 5 | 9): Session {
 }
 
 function startViewing(s: Session) {
-  s.send({ type: 'avalon.game.start' });
+  s.send({ type: 'avalon.roles.assign' });
   if (s.state.phase.kind !== 'viewing') throw new Error('expected viewing');
 }
 

@@ -66,7 +66,7 @@ describe('Avalon restart recovery', () => {
       'seat',
     );
     state = applyCommand(state, { type: 'room.seat.fillBots' }, 'fill');
-    state = applyCommand(state, { type: 'avalon.game.start' }, 'start');
+    state = applyCommand(state, { type: 'avalon.roles.assign' }, 'start');
     state = applyCommand(state, { type: 'avalon.role.viewed' }, 'view-host');
     state = applyCommand(state, { type: 'avalon.bots.markAllBotsViewed' }, 'mark-bots');
     state = applyCommand(state, { type: 'avalon.game.begin' }, 'begin');

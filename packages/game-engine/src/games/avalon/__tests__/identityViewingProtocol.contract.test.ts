@@ -1,7 +1,7 @@
 /**
  * Identity Viewing Protocol — avalon scenario (P-1 batch C).
  *
- * Avalon follows the protocol: dealing (avalon.game.start) lands in
+ * Avalon follows the protocol: dealing (avalon.roles.assign) lands in
  * the viewing stage with an empty record (avalon.role.viewed,
  * idempotent), and play is gated at the host's begin command
  * (avalon.game.begin) — the night only opens once every seated
@@ -82,7 +82,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
     decideAs,
     seatUser,
     startGame() {
-      send({ type: 'avalon.game.start' });
+      send({ type: 'avalon.roles.assign' });
     },
     /** Begins play from the viewing stage; acks the opening narration. */
     begin() {

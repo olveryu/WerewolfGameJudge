@@ -44,7 +44,7 @@ function questPhaseSession() {
   for (let seat = 0; seat < 5; seat += 1) {
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
   }
-  send({ type: 'avalon.game.start' });
+  send({ type: 'avalon.roles.assign' });
   for (let seat = 0; seat < 5; seat += 1) {
     send({ type: 'avalon.role.viewed' }, seatUser(seat));
   }
@@ -118,7 +118,7 @@ describe('createAvalonSeatDataSource — night badges', () => {
     for (let seat = 0; seat < 5; seat += 1) {
       send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
     }
-    send({ type: 'avalon.game.start' });
+    send({ type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 5; seat += 1) {
       send({ type: 'avalon.role.viewed' }, seatUser(seat));
     }
@@ -158,7 +158,7 @@ describe('createAvalonSeatDataSource — night badges', () => {
     for (let seat = 0; seat < 5; seat += 1) {
       send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
     }
-    send({ type: 'avalon.game.start' });
+    send({ type: 'avalon.roles.assign' });
     send({ type: 'avalon.role.viewed' }, seatUser(2));
     const viewingSource = createAvalonSeatDataSource({
       state,
@@ -254,7 +254,7 @@ describe('createAvalonSeatDataSource — nominate picked badge', () => {
     for (let seat = 0; seat < 5; seat += 1) {
       send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
     }
-    send({ type: 'avalon.game.start' });
+    send({ type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 5; seat += 1) {
       send({ type: 'avalon.role.viewed' }, seatUser(seat));
     }
@@ -336,7 +336,7 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
   }
 
   function beginGame(session: Session) {
-    session.send({ type: 'avalon.game.start' });
+    session.send({ type: 'avalon.roles.assign' });
     for (let seat = 0; seat < session.state.config.numberOfPlayers; seat += 1) {
       session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
     }
@@ -390,7 +390,7 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
       seen.push([session.state.phase.kind, leaderBadgeLabel(session.state)] as const);
     };
     record();
-    session.send({ type: 'avalon.game.start' });
+    session.send({ type: 'avalon.roles.assign' });
     record();
     for (let seat = 0; seat < 5; seat += 1) {
       session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));

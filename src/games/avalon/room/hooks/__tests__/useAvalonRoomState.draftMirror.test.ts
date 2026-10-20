@@ -71,7 +71,7 @@ function nominateState(): AvalonState {
   for (let seat = 0; seat < 5; seat += 1) {
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
   }
-  send({ type: 'avalon.game.start' });
+  send({ type: 'avalon.roles.assign' });
   for (let seat = 0; seat < 5; seat += 1) {
     send({ type: 'avalon.role.viewed' }, seatUser(seat));
   }

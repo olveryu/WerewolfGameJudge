@@ -43,7 +43,7 @@ function viewingState(): AvalonState {
   dispatch({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } }, user('host'));
   dispatch({ type: 'room.seat.take', seat: 1, profile: { displayName: 'Guest' } }, user('guest'));
   dispatch({ type: 'room.seat.fillBots' }, user('host'));
-  dispatch({ type: 'avalon.game.start' }, user('host'));
+  dispatch({ type: 'avalon.roles.assign' }, user('host'));
   if (state.phase.kind !== 'viewing') throw new Error('Expected viewing stage');
   return state;
 }

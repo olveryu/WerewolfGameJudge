@@ -79,7 +79,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
         .filter((seat) => isAvalonEvilRole(session.state.roles[seat]!));
     },
     startGame() {
-      send({ type: 'avalon.game.start' });
+      send({ type: 'avalon.roles.assign' });
       // 身份查看协议：真人各自查看角色，机器人由房主标记已查看，
       // 否则房主的开始命令不放行。按当前状态的人数扫全部座位
       // （config 中途改人数后新入座的真人也要查看）。
@@ -234,13 +234,13 @@ describe('Avalon engine', () => {
 
   it('rejects starting when seats are not full or the actor is not the host', () => {
     const session = game({ numberOfPlayers: 6 }, 4);
-    session.expectReject({ type: 'avalon.game.start' }, 'avalon_room_not_full');
-    session.expectReject({ type: 'avalon.game.start' }, 'avalon_not_host_start', 'u1');
+    session.expectReject({ type: 'avalon.roles.assign' }, 'avalon_room_not_full');
+    session.expectReject({ type: 'avalon.roles.assign' }, 'avalon_not_host_start', 'u1');
   });
 
   it('rejects marking bots when the room has no bot seats (werewolf parity)', () => {
     const session = game({ numberOfPlayers: 5 });
-    session.send({ type: 'avalon.game.start' });
+    session.send({ type: 'avalon.roles.assign' });
     session.expectReject({ type: 'avalon.bots.markAllBotsViewed' }, 'avalon_no_bot_seats');
   });
 
@@ -1266,7 +1266,7 @@ describe('Avalon engine', () => {
     }
     session.accuse(session.seatOfRole('merlin'));
     expect(session.state.phase.kind).toBe('ended');
-    session.send({ type: 'avalon.game.start' });
+    session.send({ type: 'avalon.roles.assign' });
     expect(session.state.phase.kind).toBe('viewing');
     expect(session.state.gameSequence).toBe(2);
     expect(session.state.questResults).toEqual([]);
@@ -1315,7 +1315,7 @@ describe('Avalon engine', () => {
     expect(userOf(5)).toBe('u9');
     // The new roster starts cleanly: deal, viewing checkpoint and the
     // night steps all key off the new seat owner.
-    session.send({ type: 'avalon.game.start' });
+    session.send({ type: 'avalon.roles.assign' });
     expect(Object.keys(session.state.roles)).toHaveLength(6);
     for (let seat = 0; seat < 6; seat += 1) {
       session.send({ type: 'avalon.role.viewed' }, userOf(seat));
@@ -1696,7 +1696,7 @@ describe('Avalon engine', () => {
   it('queues night narration on game begin (never at deal) and records confirm during playback', () => {
     // startGame helper 已 ack；这里手动走一遍验证队列内容。
     const raw = game({ numberOfPlayers: 7 });
-    raw.send({ type: 'avalon.game.start' });
+    raw.send({ type: 'avalon.roles.assign' });
     // 发牌不排任何播报、不进夜晚：查看阶段无声无夜。
     expect(raw.state.phase.kind).toBe('viewing');
     expect(raw.state.isAudioPlaying).toBe(false);
@@ -1733,7 +1733,7 @@ describe('Avalon engine', () => {
 
   it('queues step transition narration with end+begin pairs', () => {
     const session = game({ numberOfPlayers: 7 });
-    session.send({ type: 'avalon.game.start' });
+    session.send({ type: 'avalon.roles.assign' });
     // 身份查看协议：全员先查看角色，房主开始游戏后才进夜晚。
     for (let seat = 0; seat < 7; seat += 1) {
       session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
@@ -1774,7 +1774,7 @@ describe('Avalon engine', () => {
 
   it('advances on the host ack when all participants confirmed during playback', () => {
     const session = game({ numberOfPlayers: 7 });
-    session.send({ type: 'avalon.game.start' });
+    session.send({ type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 7; seat += 1) {
       session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
     }
@@ -1817,7 +1817,7 @@ describe('Avalon engine', () => {
   it('reaches the identical end state when the host acks before the confirmations', () => {
     const beginNight = () => {
       const session = game({ numberOfPlayers: 7 });
-      session.send({ type: 'avalon.game.start' });
+      session.send({ type: 'avalon.roles.assign' });
       for (let seat = 0; seat < 7; seat += 1) {
         session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
       }
@@ -1861,7 +1861,7 @@ describe('Avalon engine', () => {
 
   it('advances exactly once per step under interleaved confirm and ack orders', () => {
     const session = game({ numberOfPlayers: 7 });
-    session.send({ type: 'avalon.game.start' });
+    session.send({ type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 7; seat += 1) {
       session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
     }
@@ -1926,7 +1926,7 @@ describe('Avalon engine', () => {
 
   it('keeps the fully-confirmed still-playing intermediate state valid for the state layer', () => {
     const session = game({ numberOfPlayers: 7 });
-    session.send({ type: 'avalon.game.start' });
+    session.send({ type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 7; seat += 1) {
       session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
     }
@@ -1948,7 +1948,7 @@ describe('Avalon engine', () => {
 
   it('keeps the participant gate and confirm idempotency with the order gate gone', () => {
     const session = game({ numberOfPlayers: 7 });
-    session.send({ type: 'avalon.game.start' });
+    session.send({ type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 7; seat += 1) {
       session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
     }
@@ -1975,7 +1975,7 @@ describe('Avalon engine', () => {
 
   it('keeps extra acks inert before completion and after the night ends', () => {
     const session = game({ numberOfPlayers: 7 });
-    session.send({ type: 'avalon.game.start' });
+    session.send({ type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 7; seat += 1) {
       session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
     }
@@ -2016,7 +2016,7 @@ describe('Avalon engine', () => {
 
   it('blocks returnToLobby while audio is playing', () => {
     const session = game({ numberOfPlayers: 6 });
-    session.send({ type: 'avalon.game.start' });
+    session.send({ type: 'avalon.roles.assign' });
     // 身份查看协议：全员先查看角色，房主开始游戏后才进夜晚。
     for (let seat = 0; seat < 6; seat += 1) {
       session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
