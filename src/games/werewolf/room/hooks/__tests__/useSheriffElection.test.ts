@@ -33,12 +33,8 @@ function createDayState() {
       1: { seat: 1, role: 'seer', hasViewedRole: true },
     },
     roster: {
-      0: { seat: 0, userId: 'host-1' },
-      1: { seat: 1, userId: 'user-1' },
-    },
-    playerProfiles: {
-      'host-1': { displayName: 'Host' },
-      'user-1': { displayName: 'Player' },
+      0: { seat: 0, userId: 'host-1', profile: { displayName: 'Host' } },
+      1: { seat: 1, userId: 'user-1', profile: { displayName: 'Player' } },
     },
     sheriffElection: {
       phase: 'registration',

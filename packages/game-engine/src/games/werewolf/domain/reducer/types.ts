@@ -5,7 +5,6 @@
  */
 
 import type { AudioEffect } from '../../../../platform/audio';
-import type { RosterEntry } from '../../../../platform/room/roster';
 import type { DeathReason } from '../DeathCalculator';
 import type { GameRuleOverrides, RoleId } from '../models';
 import type { WolfKillOverride } from '../models/roles/spec/schema.types';
@@ -62,7 +61,6 @@ export interface PlayerJoinAction {
     occupant: WerewolfHumanSeat;
     /** Per-seat game data (role / hasViewedRole axis). */
     player: Player;
-    rosterEntry: RosterEntry;
   };
 }
 
@@ -330,8 +328,6 @@ export interface FillWithBotsAction {
   payload: {
     /** bot seats to add: per-seat game data keyed by seat number */
     bots: Record<number, Player>;
-    /** bot profile entries to add (keyed by synthetic bot userId) */
-    botRoster: Record<string, RosterEntry>;
   };
 }
 

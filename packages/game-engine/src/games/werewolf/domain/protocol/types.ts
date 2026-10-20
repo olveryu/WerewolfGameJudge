@@ -11,7 +11,7 @@
 import type { AudioEffect } from '../../../../platform/audio';
 import type { WerewolfGameType } from '../../../../platform/protocol/gameTypes';
 import type { BaseGameState } from '../../../../platform/protocol/roomSnapshot';
-import type { RosterEntry } from '../../../../platform/room/roster';
+import type { RoomSeatProfile } from '../../../../platform/room/roster';
 import type { RosterMap, SeatOccupant } from '../../../../platform/room/seating';
 import type { DeathReason } from '../DeathCalculator';
 import type { GameRuleOverrides, GameStatus, RoleId, SchemaId } from '../models';
@@ -132,6 +132,7 @@ export interface Player {
 /** A human occupant of a seat in the unified roster (identity axis). */
 export interface WerewolfHumanSeat extends SeatOccupant {
   readonly userId: string;
+  readonly profile: RoomSeatProfile;
 }
 
 // =============================================================================
@@ -268,14 +269,6 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   /** Immutable human participants captured at night start, retained through departures. */
   startingParticipants?: readonly { readonly userId: string; readonly seat: number }[];
   mvpUserId?: string;
-
-  /**
-   * Player display info (RosterEntry), keyed by userId.
-   * Display fields (displayName / avatarUrl / avatarFrame / level) separated from Player.
-   * Written on join, removed on leave, updated on updateProfile.
-   * (Bot display entries are keyed by their synthetic `bot-<seat>` id.)
-   */
-  playerProfiles: Record<string, RosterEntry>;
 
   /** Night step position; null outside the night (status !== Ongoing). */
   nightStep: WerewolfNightStep | null;

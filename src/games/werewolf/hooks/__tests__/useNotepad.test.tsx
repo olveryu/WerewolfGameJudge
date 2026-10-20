@@ -34,7 +34,6 @@ function createGameState(
     templateRoles: ['wolf', 'seer'],
     players: {},
     roster: {},
-    playerProfiles: {},
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     pendingAudioEffects: [],

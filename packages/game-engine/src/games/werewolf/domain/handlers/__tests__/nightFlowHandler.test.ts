@@ -90,7 +90,6 @@ function createOngoingState(overrides?: Partial<GameState>): GameState {
     seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
-    playerProfiles: {},
     ...overrides,
   };
   // Occupancy follows the players map in this factory (seat N is user `player-N`).
@@ -98,7 +97,11 @@ function createOngoingState(overrides?: Partial<GameState>): GameState {
     const roster: Record<number, WerewolfHumanSeat> = {};
     for (const player of Object.values(state.players)) {
       if (player !== null) {
-        roster[player.seat] = { seat: player.seat, userId: `player-${player.seat}` };
+        roster[player.seat] = {
+          seat: player.seat,
+          userId: `player-${player.seat}`,
+          profile: { displayName: 'P' },
+        };
       }
     }
     return { ...state, roster };
@@ -402,10 +405,9 @@ describe('nightFlowHandler', () => {
           seedWolfInfectionRevealAcks: [],
           cupidLoversRevealAcks: [],
           roster: {
-            0: { seat: 0, userId: 'u0' },
-            1: { seat: 1, userId: 'u1' },
+            0: { seat: 0, userId: 'u0', profile: { displayName: 'u0' } },
+            1: { seat: 1, userId: 'u1', profile: { displayName: 'u1' } },
           },
-          playerProfiles: {},
         },
       };
 

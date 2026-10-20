@@ -50,7 +50,6 @@ function createState(spec: StateSpec): GameState {
   const templateRoles = spec.templateRoles ?? spec.roles.filter((r): r is RoleId => r !== null);
   const players: Record<number, { seat: number; hasViewedRole: boolean; role: RoleId } | null> = {};
   const roster: Record<number, WerewolfHumanSeat | { seat: number; kind: 'bot' }> = {};
-  const playerProfiles: Record<string, { displayName: string }> = {};
 
   spec.roles.forEach((role, seat) => {
     if (role === null) {
@@ -64,10 +63,8 @@ function createState(spec: StateSpec): GameState {
     };
     if (spec.botSeats?.includes(seat)) {
       roster[seat] = { seat, kind: 'bot' };
-      playerProfiles[`bot-${seat}`] = { displayName: `BotProfile${seat}` };
     } else {
-      roster[seat] = { seat, userId: `p${seat}` };
-      playerProfiles[`p${seat}`] = { displayName: `P${seat}` };
+      roster[seat] = { seat, userId: `p${seat}`, profile: { displayName: `P${seat}` } };
     }
   });
 
@@ -79,7 +76,6 @@ function createState(spec: StateSpec): GameState {
     templateRoles: [...templateRoles],
     players,
     roster,
-    playerProfiles,
     nightStep: spec.stepId ? { kind: 'inStep', stepId: spec.stepId } : null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
@@ -507,16 +503,17 @@ describe('getWerewolfViewModel — day fields and lifecycle', () => {
     });
   });
 
-  it('seat displayName falls back to 玩家 for an empty or missing profile name', () => {
+  it('seat displayName falls back to 玩家 for an empty profile name', () => {
     const state = createState({ roles: ['wolf', 'villager', 'seer'] });
+    const emptyName = (seat: number): WerewolfHumanSeat => ({
+      seat,
+      userId: `p${seat}`,
+      profile: { displayName: '' },
+    });
     const mutated: GameState = {
       ...state,
-      playerProfiles: {
-        ...state.playerProfiles,
-        p1: { displayName: '' },
-      },
+      roster: { ...state.roster, 1: emptyName(1), 2: emptyName(2) },
     };
-    delete mutated.playerProfiles['p2'];
     const vm = getWerewolfViewModel(mutated, null);
     expect(vm.seats.map((seat) => seat.displayName)).toEqual(['P0', '玩家', '玩家']);
   });

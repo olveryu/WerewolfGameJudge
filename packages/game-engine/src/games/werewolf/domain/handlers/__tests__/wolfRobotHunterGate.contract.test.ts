@@ -59,7 +59,6 @@ function createTestState(overrides?: Partial<GameState>): GameState {
     seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
-    playerProfiles: {},
     wolfRobotReveal: {
       targetSeat: 1,
       result: 'hunter',
@@ -74,7 +73,11 @@ function createTestState(overrides?: Partial<GameState>): GameState {
     const roster: Record<number, WerewolfHumanSeat> = {};
     for (const player of Object.values(state.players)) {
       if (player !== null) {
-        roster[player.seat] = { seat: player.seat, userId: `U${player.seat + 1}` };
+        roster[player.seat] = {
+          seat: player.seat,
+          userId: `U${player.seat + 1}`,
+          profile: { displayName: 'P' },
+        };
       }
     }
     return { ...state, roster };

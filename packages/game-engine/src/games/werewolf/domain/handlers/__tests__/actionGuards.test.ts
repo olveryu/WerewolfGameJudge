@@ -36,11 +36,10 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     currentNightResults: {},
     pendingRevealAcks: [],
     roster: {
-      0: { seat: 0, userId: 'p0' },
-      1: { seat: 1, userId: 'p1' },
-      2: { seat: 2, userId: 'p2' },
+      0: { seat: 0, userId: 'p0', profile: { displayName: 'P1' } },
+      1: { seat: 1, userId: 'p1', profile: { displayName: 'P2' } },
+      2: { seat: 2, userId: 'p2', profile: { displayName: 'P3' } },
     },
-    playerProfiles: {},
     ...overrides,
   } as GameState;
 }

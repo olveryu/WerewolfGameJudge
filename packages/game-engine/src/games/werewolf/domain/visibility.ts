@@ -25,7 +25,7 @@
  */
 
 import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
-import { isBotOccupant } from '../../../platform/room/seating';
+import { buildSeatIdentityView } from '../../../platform/room/seatIdentity';
 import {
   type ActionSchema,
   canRoleSeeWolves,
@@ -201,22 +201,13 @@ function buildSeatViews(
       throw new Error(`[FAIL-FAST] Werewolf seat ${seat} has game data without an occupant`);
     }
 
-    let displayName: string;
-    let isBot: boolean;
-    if (isBotOccupant(occupant)) {
-      isBot = true;
-      displayName = getBotDisplayName(seat);
-    } else {
-      isBot = false;
-      // Fallback matches the client seat board (`|| '玩家'`): an empty-string
-      // profile name falls back too, not just a missing profile.
-      displayName = state.playerProfiles[occupant.userId]?.displayName || '玩家';
-    }
-
+    const identity = buildSeatIdentityView(state.roster, seat, getBotDisplayName);
     return {
       seat,
-      displayName,
-      isBot,
+      // Fallback matches the client seat board (`|| '玩家'`): an empty-string
+      // profile name falls back too (bot names are never empty).
+      displayName: identity.displayName || '玩家',
+      isBot: identity.isBot,
       visibleRole: seat === viewerSeat ? (player.role ?? null) : null,
       isWolfPackPeer: wolfPackSeats !== null && wolfPackSeats.includes(seat),
       hasViewedRole: player.hasViewedRole,

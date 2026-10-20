@@ -59,8 +59,7 @@ function createGameState(overrides: Partial<GameState> = {}): GameState {
         hasViewedRole: true,
       },
     },
-    roster: { 0: { seat: 0, userId: 'host-user' } },
-    playerProfiles: {},
+    roster: { 0: { seat: 0, userId: 'host-user', profile: { displayName: 'Host' } } },
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
@@ -285,7 +284,7 @@ describe('useWerewolfRoom view model (AU-39)', () => {
         2: { seat: 2, role: 'wolf', hasViewedRole: true },
       },
       roster: {
-        0: { seat: 0, userId: 'host-user' },
+        0: { seat: 0, userId: 'host-user', profile: { displayName: 'Host' } },
         1: { seat: 1, kind: 'bot' },
         2: { seat: 2, kind: 'bot' },
       },

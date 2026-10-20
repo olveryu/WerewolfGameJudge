@@ -51,13 +51,17 @@ const CURRENT_NIGHT_RESULTS: CurrentNightResults = {
 
 function buildEngineState(): GameState {
   const players: Record<number, { seat: number; hasViewedRole: boolean; role: RoleId } | null> = {};
-  const roster: Record<number, { seat: number; userId: string } | { seat: number; kind: 'bot' }> =
-    {};
-  const playerProfiles: Record<string, { displayName: string }> = {};
+  const roster: Record<
+    number,
+    | { seat: number; userId: string; profile: { displayName: string } }
+    | { seat: number; kind: 'bot' }
+  > = {};
   ROLES.forEach((role, seat) => {
     players[seat] = { seat, hasViewedRole: seat !== UNVIEWED_SEAT, role };
-    roster[seat] = seat === BOT_SEAT ? { seat, kind: 'bot' } : { seat, userId: `p${seat}` };
-    playerProfiles[`p${seat}`] = { displayName: `P${seat + 1}` };
+    roster[seat] =
+      seat === BOT_SEAT
+        ? { seat, kind: 'bot' }
+        : { seat, userId: `p${seat}`, profile: { displayName: `P${seat + 1}` } };
   });
   const plan = buildNightPlan(ROLES);
   const stepIndex = plan.steps.findIndex((step) => step.stepId === 'wolfKill');
@@ -68,7 +72,6 @@ function buildEngineState(): GameState {
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     players,
     roster,
-    playerProfiles,
     currentNightResults: CURRENT_NIGHT_RESULTS,
   });
 }

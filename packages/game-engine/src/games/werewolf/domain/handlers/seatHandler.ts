@@ -75,10 +75,21 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
     userId,
     // Key order intentionally matches parseSeatRoster: the room repository
     // detects state changes by comparing serialized snapshots, so producer
-    // and parser must build occupants with identical key order.
+    // and parser must build occupants with identical key order. The
+    // profile literal's field order likewise matches parseRosterEntry.
     (targetSeat) => ({
       seat: targetSeat,
       userId,
+      profile: {
+        displayName,
+        avatarUrl,
+        avatarFrame,
+        seatFlair,
+        seatAnimation,
+        nameStyle,
+        revealEffect,
+        level,
+      },
     }),
   );
   if (seatDecision.kind === 'rejected') {
@@ -99,17 +110,6 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
             seat: change.seat,
             occupant: change.next,
             player: { seat: change.seat, role: null, hasViewedRole: false },
-            // Key order matches parseRosterEntry for the same reason as above.
-            rosterEntry: {
-              displayName,
-              avatarUrl,
-              avatarFrame,
-              seatFlair,
-              seatAnimation,
-              nameStyle,
-              revealEffect,
-              level,
-            },
           },
         },
   );

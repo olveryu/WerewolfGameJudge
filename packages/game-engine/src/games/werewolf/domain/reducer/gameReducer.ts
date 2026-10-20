@@ -10,6 +10,7 @@
  * This file retains only switch routing and minimal inline cases.
  */
 
+import { findRosterSeatByUserId, isBotOccupant } from '../../../../platform/room/seating';
 import type { GameState } from '../protocol/types';
 import {
   handleAssignRoles,
@@ -219,15 +220,21 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
     // ── Growth ───────────────────────────────────────────
     case 'UPDATE_ROSTER_LEVELS': {
       const { levels } = action.payload;
-      const newProfiles = { ...state.playerProfiles };
-      let changed = false;
+      const seatCount = Object.keys(state.players).length;
+      let newRoster: GameState['roster'] | null = null;
       for (const [userId, level] of Object.entries(levels)) {
-        if (newProfiles[userId] && newProfiles[userId].level !== level) {
-          newProfiles[userId] = { ...newProfiles[userId], level };
-          changed = true;
-        }
+        const roster: GameState['roster'] = newRoster ?? state.roster;
+        const seat: number | null = findRosterSeatByUserId(roster, seatCount, userId);
+        if (seat === null) continue; // no seat held: nothing to update
+        const occupant = roster[seat];
+        if (occupant == null || isBotOccupant(occupant)) continue;
+        if (occupant.profile.level === level) continue;
+        newRoster = {
+          ...roster,
+          [seat]: { ...occupant, profile: { ...occupant.profile, level } },
+        };
       }
-      return changed ? { ...state, playerProfiles: newProfiles } : state;
+      return newRoster ? { ...state, roster: newRoster } : state;
     }
 
     default: {

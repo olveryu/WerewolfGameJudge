@@ -49,7 +49,6 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
     seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
-    playerProfiles: {},
     currentNightResults: {},
     ...overrides,
   };
@@ -59,7 +58,11 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
     const roster: Record<number, WerewolfHumanSeat> = {};
     for (const player of Object.values(state.players)) {
       if (player !== null) {
-        roster[player.seat] = { seat: player.seat, userId: `p${player.seat}` };
+        roster[player.seat] = {
+          seat: player.seat,
+          userId: `p${player.seat}`,
+          profile: { displayName: 'P' },
+        };
       }
     }
     return { ...state, roster };

@@ -30,8 +30,7 @@ function createReadySnapshot(isSeated: boolean): RoomSessionSnapshot<GameState> 
       state: {
         status: GameStatus.Seated,
         players: isSeated ? { 0: null, 1: { seat: 1, role: null, hasViewedRole: false } } : {},
-        roster: isSeated ? { 1: { seat: 1, userId: 'u1' } } : {},
-        playerProfiles: {},
+        roster: isSeated ? { 1: { seat: 1, userId: 'u1', profile: { displayName: 'P' } } } : {},
       } as GameState,
     },
     lastCommand: null,

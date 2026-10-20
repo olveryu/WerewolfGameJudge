@@ -49,7 +49,6 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     roster: {},
-    playerProfiles: {},
     ...overrides,
   };
 }
@@ -91,7 +90,7 @@ describe('handleJoinSeat', () => {
         2: null,
       },
       roster: {
-        0: { seat: 0, userId: 'other' },
+        0: { seat: 0, userId: 'other', profile: { displayName: 'other' } },
       },
     });
     const context = createContext(state);
@@ -176,7 +175,7 @@ describe('handleJoinSeat', () => {
         2: null,
       },
       roster: {
-        0: { seat: 0, userId: 'player-1' },
+        0: { seat: 0, userId: 'player-1', profile: { displayName: 'player-1' } },
       },
     });
     const context = createContext(state);
@@ -211,7 +210,7 @@ describe('handleJoinSeat', () => {
         2: null,
       },
       roster: {
-        0: { seat: 0, userId: 'player-1' },
+        0: { seat: 0, userId: 'player-1', profile: { displayName: 'player-1' } },
       },
     });
     const context = createContext(state);
@@ -241,7 +240,7 @@ describe('handleLeaveMySeat', () => {
         2: null,
       },
       roster: {
-        0: { seat: 0, userId: 'player-1' },
+        0: { seat: 0, userId: 'player-1', profile: { displayName: 'player-1' } },
       },
     });
     const context = createContext(state, { mySeat: 0 });
@@ -280,7 +279,7 @@ describe('handleLeaveMySeat', () => {
         2: null,
       },
       roster: {
-        0: { seat: 0, userId: 'player-1' },
+        0: { seat: 0, userId: 'player-1', profile: { displayName: 'player-1' } },
       },
     });
     const context = createContext(state, { mySeat: 0 });
@@ -304,7 +303,7 @@ describe('handleLeaveMySeat', () => {
         2: null,
       },
       roster: {
-        0: { seat: 0, userId: 'player-1' },
+        0: { seat: 0, userId: 'player-1', profile: { displayName: 'player-1' } },
       },
     });
     const context = createContext(state, { mySeat: 0 });
@@ -330,7 +329,7 @@ describe('handleLeaveMySeat', () => {
           2: null,
         },
         roster: {
-          0: { seat: 0, userId: 'player-1' },
+          0: { seat: 0, userId: 'player-1', profile: { displayName: 'player-1' } },
         },
       });
       const context = createContext(state, { mySeat: 0 });
@@ -385,7 +384,7 @@ describe('handleUpdatePlayerProfile', () => {
         2: null,
       },
       roster: {
-        0: { seat: 0, userId: 'player-1' },
+        0: { seat: 0, userId: 'player-1', profile: { displayName: 'player-1' } },
       },
     });
     const context = createContext(state, { mySeat: 0 });
@@ -414,7 +413,7 @@ describe('handleUpdatePlayerProfile', () => {
         2: null,
       },
       roster: {
-        0: { seat: 0, userId: 'player-1' },
+        0: { seat: 0, userId: 'player-1', profile: { displayName: 'player-1' } },
       },
     });
     const context = createContext(state, { mySeat: 0 });
@@ -452,7 +451,7 @@ describe('handleKickPlayer', () => {
         2: null,
       },
       roster: {
-        1: { seat: 1, userId: 'p2' },
+        1: { seat: 1, userId: 'p2', profile: { displayName: 'p2' } },
       },
     });
     const context = createContext(state, { myUserId: 'not-host' });
@@ -494,9 +493,9 @@ describe('handleKickPlayer', () => {
         2: { seat: 2, role: null, hasViewedRole: false },
       },
       roster: {
-        0: { seat: 0, userId: 'host-1' },
-        1: { seat: 1, userId: 'p2' },
-        2: { seat: 2, userId: 'p3' },
+        0: { seat: 0, userId: 'host-1', profile: { displayName: 'host-1' } },
+        1: { seat: 1, userId: 'p2', profile: { displayName: 'p2' } },
+        2: { seat: 2, userId: 'p3', profile: { displayName: 'p3' } },
       },
     });
     const context = createContext(state, { myUserId: 'host-1' });

@@ -29,7 +29,6 @@ export function buildInitialGameState(
     ...(template.rules ? { rules: template.rules } : {}),
     players,
     roster: {},
-    playerProfiles: {},
     nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],

@@ -7,19 +7,22 @@
  * and the by-user display map is renamed roster -> playerProfiles.
  * v7 drops the debugMode record (the flag is deleted; bot gates key
  * off roster bot seats). v6 payloads migrate by dropping the field.
- * v5 payloads migrate through migratePersistedWerewolfState.
- * v8 keeps the v7 shape and canonicalizes the night-step window values
- * (currentStepIndex / currentStepId / stepDeadline) on load; see
- * canonicalizeStepWindowFields in parseState.ts.
+ * v5 payloads migrated through migratePersistedWerewolfState.
+ * v8 kept the v7 shape and canonicalized the night-step window values
+ * (currentStepIndex / currentStepId / stepDeadline) on load.
  * v9 collapses the step window into the `nightStep` discriminated union
  * (inStep {stepId, stepDeadline?} | exhausted | null); the step index is
- * derived from the plan, never stored. v8 payloads migrate through
- * upgradeV8NightStep in parseState.ts.
+ * derived from the plan, never stored. v8 payloads migrated into it
+ * through the upgrade chain v10 deleted.
+ * v10 embeds the display profile in the roster human occupant
+ * (profile: RoomSeatProfile) and deletes the by-user playerProfiles
+ * map. Hard cut: v9-and-older payloads are rejected, not migrated —
+ * the v5-v9 upgrade chain is deleted with this version.
  */
 
 import { WEREWOLF_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 
-export const WEREWOLF_STATE_VERSION = 9;
+export const WEREWOLF_STATE_VERSION = 10;
 
 export const WEREWOLF_STATE_IDENTITY = {
   gameType: WEREWOLF_GAME_TYPE,

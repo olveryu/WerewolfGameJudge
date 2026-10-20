@@ -28,14 +28,9 @@ function makeBaseGameState(overrides: Partial<GameState> = {}): GameState {
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     roster: {
-      0: { seat: 0, userId: 'p0' },
-      1: { seat: 1, userId: 'p1' },
-      2: { seat: 2, userId: 'p2' },
-    },
-    playerProfiles: {
-      p0: { displayName: 'P1' },
-      p1: { displayName: 'P2' },
-      p2: { displayName: 'P3' },
+      0: { seat: 0, userId: 'p0', profile: { displayName: 'P1' } },
+      1: { seat: 1, userId: 'p1', profile: { displayName: 'P2' } },
+      2: { seat: 2, userId: 'p2', profile: { displayName: 'P3' } },
     },
     ...overrides,
   };
@@ -44,10 +39,10 @@ function makeBaseGameState(overrides: Partial<GameState> = {}): GameState {
 describe('toWerewolfLocalState', () => {
   it('fails fast before rendering a stale reveal effect', () => {
     const state = makeBaseGameState({
-      playerProfiles: {
-        p0: { displayName: 'P1', revealEffect: 'retiredEffect' },
-        p1: { displayName: 'P2' },
-        p2: { displayName: 'P3' },
+      roster: {
+        0: { seat: 0, userId: 'p0', profile: { displayName: 'P1', revealEffect: 'retiredEffect' } },
+        1: { seat: 1, userId: 'p1', profile: { displayName: 'P2' } },
+        2: { seat: 2, userId: 'p2', profile: { displayName: 'P3' } },
       },
     });
 
