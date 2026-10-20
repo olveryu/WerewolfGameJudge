@@ -1,12 +1,6 @@
 /** Story Relay decision outcomes and common permission gates; no IO. */
 
-import {
-  type CommandContext,
-  commit,
-  type Decision,
-  reject,
-  resolveHostActorId,
-} from '../../../platform/engine';
+import { commit, type Decision } from '../../../platform/engine';
 import type { RosterChange } from '../../../platform/room/seating';
 import type {
   StoryRelayConfig,
@@ -79,13 +73,4 @@ export function commitStoryRelay(
   effects: readonly StoryRelayEffect[] = [],
 ): StoryRelayDecision {
   return commit({ events, effects });
-}
-
-/** Requires the current host acting outside bot takeover. */
-export function requireStoryRelayHost(
-  state: StoryRelayState,
-  context: CommandContext,
-): StoryRelayDecision | null {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  return actor.kind === 'rejected' ? reject(actor.reason) : null;
 }
