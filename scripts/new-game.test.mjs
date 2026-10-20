@@ -166,7 +166,8 @@ test('capability blocks keep lines only for enabled capabilities and fail fast o
     /Unknown capability block "nope"/,
   );
   assert.throws(
-    () => applyCapabilityBlocks('//#cap identityViewing\n//#cap stageDeadline\n//#end', capabilities),
+    () =>
+      applyCapabilityBlocks('//#cap identityViewing\n//#cap stageDeadline\n//#end', capabilities),
     /Nested capability block/,
   );
   assert.throws(() => applyCapabilityBlocks('//#end', capabilities), /without a start marker/);
