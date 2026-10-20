@@ -12,6 +12,7 @@ import {
 } from '../../platform/engine';
 import { createSeededRng, randomPick } from '../../platform/random';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
+import { guardPhaseExpiry, rejectIfPastDeadline } from '../../platform/room/phaseDeadline';
 import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
 import type {
   DrawGuessCommand,
@@ -118,8 +119,11 @@ function checkDrawingDeadline(
   context: CommandContext,
 ): DrawGuessDecision | null {
   if (state.phase.kind !== 'drawing') return reject(DRAWGUESS_REASONS.phase);
-  if (context.nowMs >= state.phase.deadlineAt) return reject(DRAWGUESS_REASONS.stale);
-  return null;
+  return rejectIfPastDeadline<DrawGuessEvent, DrawGuessEffect>(
+    state.phase.deadlineAt,
+    context.nowMs,
+    DRAWGUESS_REASONS.stale,
+  );
 }
 
 /** Applies dealt word choices (Worker D1 selection) to the waiting wordSelect phase. */
@@ -174,8 +178,12 @@ function chooseWord(
   const stale = checkRevision(state, phaseRevision, turnIndex);
   if (stale !== null) return stale;
   if (state.phase.kind !== 'wordSelect') return reject(DRAWGUESS_REASONS.phase);
-  if (state.phase.deadlineAt !== null && context.nowMs >= state.phase.deadlineAt)
-    return reject(DRAWGUESS_REASONS.stale);
+  const lateSubmission = rejectIfPastDeadline<DrawGuessEvent, DrawGuessEffect>(
+    state.phase.deadlineAt,
+    context.nowMs,
+    DRAWGUESS_REASONS.stale,
+  );
+  if (lateSubmission !== null) return lateSubmission;
   if (state.phase.choices.length === 0) return reject(DRAWGUESS_REASONS.emptyChoices);
   const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
@@ -367,21 +375,22 @@ function finishRound(state: DrawGuessState, context: CommandContext): DrawGuessD
   return endRound(state, context);
 }
 
-/** Advances an expired phase; idempotent on phaseRevision. */
-function expirePhase(
-  state: DrawGuessState,
-  phaseRevision: number,
-  turnIndex: number,
-  context: CommandContext,
-): DrawGuessDecision {
-  const stale = checkRevision(state, phaseRevision, turnIndex);
-  if (stale !== null) return stale;
-  const actor = resolveUncontrolledUserActorId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
+/** The deadline the expiry guard reads; phases that cannot expire carry none. */
+function expiringPhaseDeadlineAt(state: DrawGuessState): number | null {
+  switch (state.phase.kind) {
+    case 'wordSelect':
+    case 'drawing':
+    case 'roundEnd':
+      return state.phase.deadlineAt;
+    default:
+      return null;
+  }
+}
+
+/** Settles the current phase once every expiry gate has passed. */
+function dispatchExpiredPhase(state: DrawGuessState, context: CommandContext): DrawGuessDecision {
   switch (state.phase.kind) {
     case 'wordSelect': {
-      if (state.phase.deadlineAt === null || context.nowMs < state.phase.deadlineAt)
-        return reject(DRAWGUESS_REASONS.deadline);
       if (state.phase.choices.length === 0) return reject(DRAWGUESS_REASONS.emptyChoices);
       const choice = randomPick(
         state.phase.choices,
@@ -390,10 +399,8 @@ function expirePhase(
       return beginDrawing(state, choice, context);
     }
     case 'drawing':
-      if (context.nowMs < state.phase.deadlineAt) return reject(DRAWGUESS_REASONS.deadline);
       return endRound(state, context);
     case 'roundEnd': {
-      if (context.nowMs < state.phase.deadlineAt) return reject(DRAWGUESS_REASONS.deadline);
       const nextTurn = state.turnIndex + 1;
       if (nextTurn >= getDrawGuessTotalTurns(state)) {
         return commitDrawGuess(
@@ -411,6 +418,38 @@ function expirePhase(
     default:
       return reject(DRAWGUESS_REASONS.phase);
   }
+}
+
+/** Advances an expired phase; idempotent on phaseRevision. */
+function expirePhase(
+  state: DrawGuessState,
+  phaseRevision: number,
+  turnIndex: number,
+  context: CommandContext,
+): DrawGuessDecision {
+  // Shared guard sequence (E-2, registered as guardDualReject in the
+  // phase-deadline variants table): phase, actor, the dual revision
+  // check (phaseRevision + turnIndex), then the deadline. DrawGuess
+  // previously ran the revision check ahead of the actor, so a
+  // command failing both now hears the actor (or phase) reason.
+  return guardPhaseExpiry(context, {
+    phaseRejection:
+      state.phase.kind === 'wordSelect' ||
+      state.phase.kind === 'drawing' ||
+      state.phase.kind === 'roundEnd'
+        ? null
+        : reject(DRAWGUESS_REASONS.phase),
+    revision: {
+      checks: [
+        { commandRevision: phaseRevision, currentRevision: state.phaseRevision },
+        { commandRevision: turnIndex, currentRevision: state.turnIndex },
+      ],
+      onStale: () => reject(DRAWGUESS_REASONS.stale),
+    },
+    deadlineAt: expiringPhaseDeadlineAt(state),
+    notExpiredReason: DRAWGUESS_REASONS.deadline,
+    dispatch: () => dispatchExpiredPhase(state, context),
+  });
 }
 
 function returnToLobby(state: DrawGuessState, context: CommandContext): DrawGuessDecision {

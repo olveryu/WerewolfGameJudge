@@ -129,7 +129,7 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
     },
   },
   drawguess: {
-    adoption: 'pending',
+    adoption: 'switched',
     variant: {
       actorChannel: 'uncontrolledUser',
       revisionPolicy: 'guardDualReject',
