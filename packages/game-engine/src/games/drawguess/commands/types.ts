@@ -21,7 +21,7 @@ export type DrawGuessPublicCommand =
   | RoomSeatCommand<RoomSeatProfile>
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | { readonly type: 'drawguess.config.update'; readonly config: DrawGuessConfig }
-  | { readonly type: 'drawguess.round.start' }
+  | { readonly type: 'drawguess.game.begin' }
   | { readonly type: 'drawguess.game.returnToLobby' }
   | { readonly type: 'drawguess.drawing.reserve' }
   | { readonly type: 'drawguess.round.finish' }

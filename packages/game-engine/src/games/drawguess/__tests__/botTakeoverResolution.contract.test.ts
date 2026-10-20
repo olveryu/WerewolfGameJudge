@@ -44,7 +44,7 @@ function guessingState(): DrawGuessState {
   send({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } }, 'host');
   send({ type: 'room.seat.take', seat: 1, profile: { displayName: 'Guest' } }, 'guest');
   send({ type: 'room.seat.fillBots' }, 'host');
-  send({ type: 'drawguess.round.start' });
+  send({ type: 'drawguess.game.begin' });
   session.sendAs(
     { type: 'drawguess.words.dealt', turnIndex: 0, choices: CHOICES },
     session.systemContext('effect:1'),

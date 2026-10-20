@@ -71,7 +71,7 @@ function game(numberOfPlayers = 4) {
       return session.now();
     },
     startGame() {
-      send({ type: 'drawguess.round.start' });
+      send({ type: 'drawguess.game.begin' });
       // Worker deals 3 word choices (simulated here via internal command).
       sendInternal({ type: 'drawguess.words.dealt', turnIndex: 0, choices: CHOICES });
     },
@@ -116,7 +116,7 @@ describe('DrawGuess engine', () => {
     // 4 humans seated in a 6-player room: 2 empty seats remain.
     const decision = drawGuessEngine.decide(
       session.state,
-      { type: 'drawguess.round.start' },
+      { type: 'drawguess.game.begin' },
       {
         actor: { kind: 'user', userId: 'host' },
         controlledSeat: null,
@@ -134,7 +134,7 @@ describe('DrawGuess engine', () => {
     const session = game(6);
     // Fill the 2 empty seats with implicit bots so the room is full.
     session.send({ type: 'room.seat.fillBots' });
-    session.send({ type: 'drawguess.round.start' });
+    session.send({ type: 'drawguess.game.begin' });
     expect(session.state.phase.kind).toBe('wordSelect');
     if (session.state.phase.kind !== 'wordSelect') throw new Error('phase');
     expect(session.state.phase.drawerSeat).toBe(0);
@@ -371,7 +371,7 @@ describe('DrawGuess engine', () => {
     const session = game(4);
     session.send({ type: 'room.seat.fillBots' });
     // Seats 4..5 become bots; make drawer seat 4 by starting and advancing.
-    session.send({ type: 'drawguess.round.start' });
+    session.send({ type: 'drawguess.game.begin' });
     // Simulate 4 turns to reach a bot drawer... instead directly test takeover auth:
     const state = session.state;
     // The 4-seat room is already full of humans, so filling adds no bots.

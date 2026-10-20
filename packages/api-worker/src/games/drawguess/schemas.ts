@@ -98,7 +98,7 @@ const phaseIdentityShape = {
 const publicCommandOptions = definePublicCommandOptions<DrawGuessPublicCommand>()([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({ type: z.literal('drawguess.config.update'), config: drawGuessConfigSchema }),
-  z.strictObject({ type: z.literal('drawguess.round.start') }),
+  z.strictObject({ type: z.literal('drawguess.game.begin') }),
   z.strictObject({ type: z.literal('drawguess.game.returnToLobby') }),
   z.strictObject({ type: z.literal('drawguess.drawing.reserve') }),
   z.strictObject({ type: z.literal('drawguess.round.finish') }),

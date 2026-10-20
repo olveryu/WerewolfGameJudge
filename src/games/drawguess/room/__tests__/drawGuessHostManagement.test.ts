@@ -73,7 +73,7 @@ function session() {
     },
     fillAndStart() {
       send({ type: 'room.seat.fillBots' });
-      send({ type: 'drawguess.round.start' });
+      send({ type: 'drawguess.game.begin' });
       send({ type: 'drawguess.words.dealt', turnIndex: 0, choices: CHOICES }, 'host', true);
     },
     playToEnd() {

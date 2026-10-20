@@ -158,13 +158,13 @@ $$
 ```mermaid
 stateDiagram-v2
     [*] --> Lobby
-    Lobby --> WordSelect: round.start
+    Lobby --> WordSelect: game.begin
     WordSelect --> Drawing: word.choose
     WordSelect --> Drawing: wordSelect deadline (server auto-assign)
     Drawing --> RoundEnd: all guessed / deadline / round.finish
     RoundEnd --> WordSelect: next drawer (phase.expire)
     RoundEnd --> Ended: all turns complete (phase.expire)
-    Ended --> WordSelect: round.start (next game)
+    Ended --> WordSelect: game.begin (next game)
     Ended --> Lobby: game.returnToLobby
 ```
 
@@ -194,7 +194,7 @@ stateDiagram-v2
 - `drawing` 结束条件：`deadlineAt` 到达；画手或房主执行 `round.finish`（画手放弃需二次确认）。
   （Gartic.io 规则：无"全员猜中提前结束"；2026-10-04 实测确认）
 - `roundEnd` 8 秒后由 `phase.expire` 自动推进到下一画手的 `wordSelect`；全部回合完成后推进到 `ended`。
-- `ended` 由房主执行 `round.start` 再来一局（重新生成队列、清零比分）或 `game.returnToLobby` 返回大厅。
+- `ended` 由房主执行 `game.begin` 再来一局（重新生成队列、清零比分）或 `game.returnToLobby` 返回大厅。
 
 ### 5.3 拼音首字母揭示计时
 
@@ -308,7 +308,7 @@ Codec 必须用 `z.strictObject` 精确验证：座位范围、笔画字段、�
 | 命令                           | 发送方                                     | 阶段              | 说明                                                               |
 | ------------------------------ | ------------------------------------------ | ----------------- | ------------------------------------------------------------------ |
 | `drawguess.config.update`      | 房主                                       | `lobby`           | 修改配置（人数）                                                   |
-| `drawguess.round.start`        | 房主                                       | `lobby` / `ended` | 开始游戏：生成画手队列、清零比分；`ended` 时为再来一局             |
+| `drawguess.game.begin`         | 房主                                       | `lobby` / `ended` | 开始游戏：生成画手队列、清零比分；`ended` 时为再来一局             |
 | `drawguess.word.choose`        | 画手（或接管人）                           | `wordSelect`      | 从 3 个候选中选定题目，生成 `revealOrder`                          |
 | `drawguess.stroke.add`         | 画手（或接管人）                           | `drawing`         | 整笔提交（客户端 `onElementComplete` 触发）                        |
 | `drawguess.stroke.undo`        | 画手（或接管人）                           | `drawing`         | 撤销最后一笔（广播，否则画面分叉）；V1 无重做                      |
@@ -448,7 +448,7 @@ GET /api/games/drawguess/rooms/:roomCode/media/:entryId
 
 - `roundEnd`：展示本轮画作（优先 R2 PNG，缺失则用 `strokes` 本地渲染）、公布答案、本轮得分明细（猜中者与得分、画手得分），8 秒后自动进入下一回合。
 - `ended`：总分排行榜（按 `scores` 降序，含头像与名次），房主可见"再来一局"与"返回大厅"。
-- 结算页不直接展示房主流程按钮以外的游戏外操作；"再来一局"重新走 `round.start` 完整初始化。
+- 结算页不直接展示房主流程按钮以外的游戏外操作；"再来一局"重新走 `game.begin` 完整初始化。
 
 ### 9.7 响应式布局
 

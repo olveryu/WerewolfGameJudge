@@ -232,7 +232,7 @@ describe('createDrawGuessRoomShellModel — roundEnd wait (PR-B G-8)', () => {
       return decision.events.reduce(drawGuessEngine.evolve, current);
     };
     let state = lobbyState(true);
-    state = dispatch(state, { type: 'drawguess.round.start' });
+    state = dispatch(state, { type: 'drawguess.game.begin' });
     state = dispatch(
       state,
       {
