@@ -480,7 +480,7 @@ describe('GameRoom command receipts', () => {
     expect(replay).toEqual({ kind: 'decided', result: first.result, isReplay: true });
     const snapshot = await stub.getSnapshot(roomIdentity(stub));
     if (snapshot === null) throw new Error('Expected initialized snapshot');
-    expect(WEREWOLF_STATE_CODEC.parse(snapshot.state).players[2]?.hasViewedRole).toBe(false);
+    expect(WEREWOLF_STATE_CODEC.parse(snapshot.state).roleViewedSeats).not.toContain(2);
   });
 
   it('writes the authoritative state and receipt before delivering its platform effect', async () => {

@@ -30,7 +30,7 @@ type Players = GameState['players'];
 function mkPlayers(entries: Array<[number, RoleId | null]>): Players {
   const players: Players = {};
   for (const [seat, role] of entries) {
-    players[seat] = role ? { seat: seat, role, hasViewedRole: true } : null;
+    players[seat] = role ? { seat: seat, role } : null;
   }
   return players;
 }
@@ -43,6 +43,7 @@ function mkOngoingState(overrides: Partial<GameState> = {}): GameState {
     status: GameStatus.Ongoing,
     templateRoles: ['thief', 'seer', 'villager'],
     players: mkPlayers([[0, 'thief']]),
+    roleViewedSeats: [],
     roster: { 0: { seat: 0, userId: 'p0', profile: { displayName: 'p0' } } },
     nightStep: { kind: 'inStep', stepId: 'thiefChoose' },
     isAudioPlaying: false,
@@ -84,7 +85,7 @@ describe('buildSeatRoleMap', () => {
 
   it('should skip players with null role', () => {
     const players: Players = {
-      0: { seat: 0, role: null, hasViewedRole: false },
+      0: { seat: 0, role: null },
     };
     const map = buildSeatRoleMap(players);
     expect(map.size).toBe(0);

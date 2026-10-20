@@ -26,9 +26,9 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'seer', 'villager'],
     players: {
-      0: { seat: 0, role: 'seer', hasViewedRole: true },
-      1: { seat: 1, role: 'wolf', hasViewedRole: true },
-      2: { seat: 2, role: 'villager', hasViewedRole: true },
+      0: { seat: 0, role: 'seer' },
+      1: { seat: 1, role: 'wolf' },
+      2: { seat: 2, role: 'villager' },
     },
     nightStep: { kind: 'inStep', stepId: 'seerCheck' },
     isAudioPlaying: false,
@@ -326,7 +326,7 @@ describe('validateActionPreconditions', () => {
       nightStep: { kind: 'inStep', stepId: 'seerCheck' },
       players: {
         0: null,
-        1: { seat: 1, role: 'wolf', hasViewedRole: true },
+        1: { seat: 1, role: 'wolf' },
       },
     });
     const result = validateActionPreconditions(state, 0, 'seer');

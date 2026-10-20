@@ -11,6 +11,7 @@ export function buildWerewolfTestState(overrides: Partial<GameState> = {}): Game
     status: GameStatus.Unseated,
     templateRoles: [],
     players: {},
+    roleViewedSeats: [],
     roster: {},
     nightStep: null,
     isAudioPlaying: false,

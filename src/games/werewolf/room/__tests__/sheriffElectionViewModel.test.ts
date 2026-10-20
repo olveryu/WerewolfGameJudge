@@ -8,10 +8,10 @@ import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalStat
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
 const PLAYERS: GameState['players'] = {
-  0: { seat: 0, role: 'wolf', hasViewedRole: true },
-  1: { seat: 1, role: 'seer', hasViewedRole: true },
-  2: { seat: 2, role: 'hunter', hasViewedRole: true },
-  3: { seat: 3, role: 'villager', hasViewedRole: true },
+  0: { seat: 0, role: 'wolf' },
+  1: { seat: 1, role: 'seer' },
+  2: { seat: 2, role: 'hunter' },
+  3: { seat: 3, role: 'villager' },
 };
 
 const ROSTER: NonNullable<GameState['roster']> = {
@@ -27,6 +27,7 @@ function createLocalState(overrides: Partial<GameState>) {
       status: GameStatus.Day,
       templateRoles: ['wolf', 'seer', 'hunter', 'villager'],
       players: PLAYERS,
+      roleViewedSeats: [0, 1, 2, 3],
       roster: ROSTER,
       rules: { isSheriffElectionEnabled: true },
       ...overrides,

@@ -28,6 +28,7 @@ export function buildInitialGameState(
     templateRoles: template.roles,
     ...(template.rules ? { rules: template.rules } : {}),
     players,
+    roleViewedSeats: [],
     roster: {},
     nightStep: null,
     isAudioPlaying: false,

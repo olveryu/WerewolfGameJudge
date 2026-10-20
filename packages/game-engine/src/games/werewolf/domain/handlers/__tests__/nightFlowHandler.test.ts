@@ -54,7 +54,6 @@ function createPlayer(seat: number, role: string, overrides?: Partial<Player>): 
   return {
     seat: seat,
     role: role as Player['role'],
-    hasViewedRole: true,
     ...overrides,
   };
 }
@@ -77,6 +76,7 @@ function createOngoingState(overrides?: Partial<GameState>): GameState {
       4: createPlayer(4, 'villager'),
       5: createPlayer(5, 'villager'),
     },
+    roleViewedSeats: [],
     nightStep: { kind: 'inStep', stepId: NIGHT_STEPS[0]!.id },
     isAudioPlaying: false,
     pendingAudioEffects: [],
@@ -382,14 +382,13 @@ describe('nightFlowHandler', () => {
             0: {
               seat: 0,
               role: 'wolf',
-              hasViewedRole: true,
             },
             1: {
               seat: 1,
               role: 'villager',
-              hasViewedRole: true,
             },
           },
+          roleViewedSeats: [],
           nightStep: { kind: 'exhausted' },
           pendingAudioEffects: [],
           actions: [],

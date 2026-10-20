@@ -39,7 +39,6 @@ import { resolveCurrentNightStep } from './nightStep';
 import {
   getBottomCardEffectiveRole,
   getWerewolfUserSeat,
-  getWerewolfViewedSeats,
   isBottomCardWolfVoteExcluded,
   resolveNightStepActor,
 } from './playerHelpers';
@@ -210,7 +209,7 @@ function buildSeatViews(
       isBot: identity.isBot,
       visibleRole: seat === viewerSeat ? (player.role ?? null) : null,
       isWolfPackPeer: wolfPackSeats !== null && wolfPackSeats.includes(seat),
-      hasViewedRole: player.hasViewedRole,
+      hasViewedRole: state.roleViewedSeats.includes(seat),
     };
   });
 }
@@ -338,7 +337,7 @@ export function getWerewolfViewModel(
     myEffectiveRole,
     seats: buildSeatViews(state, occupiedSeats, viewerSeat, wolfPackSeats),
     wolfPackSeats,
-    viewedSeats: getWerewolfViewedSeats(state.players),
+    viewedSeats: state.roleViewedSeats,
     night: {
       stepSchemaKind: step?.schema.kind ?? null,
       confirmStatus: deriveConfirmStatus(state, step, viewerSeat),

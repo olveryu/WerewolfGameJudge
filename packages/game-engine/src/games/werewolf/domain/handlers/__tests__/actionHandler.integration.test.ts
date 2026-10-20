@@ -25,9 +25,10 @@ const baseContext: HandlerContext = {
     status: GameStatus.Ongoing,
     templateRoles: ['seer', 'villager'],
     players: {
-      0: { seat: 0, role: 'seer', hasViewedRole: true },
-      1: { seat: 1, role: 'villager', hasViewedRole: true },
+      0: { seat: 0, role: 'seer' },
+      1: { seat: 1, role: 'villager' },
     },
+    roleViewedSeats: [],
     roster: {
       0: { seat: 0, userId: 'p0', profile: { displayName: 'p0' } },
       1: { seat: 1, userId: 'p1', profile: { displayName: 'p1' } },

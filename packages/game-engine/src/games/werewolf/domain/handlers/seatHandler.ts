@@ -109,7 +109,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
           payload: {
             seat: change.seat,
             occupant: change.next,
-            player: { seat: change.seat, role: null, hasViewedRole: false },
+            player: { seat: change.seat, role: null },
           },
         },
   );

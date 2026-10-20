@@ -3,7 +3,7 @@
  *
  * Verifies core constraints of debug bots functionality:
  * 1. After fillWithBots: every newly added bot seat gets a roster bot marker (bots carry no profile)
- * 2. markAllBotsViewed: only sets hasViewedRole = true on seats whose roster occupant is a bot
+ * 2. markAllBotsViewed: only adds seats whose roster occupant is a bot to roleViewedSeats
  * 3. Calling when debug is not enabled must reject
  */
 
@@ -26,7 +26,6 @@ import { expectError, expectSuccess } from './handlerTestUtils';
 function createMinimalPlayer(seat: number, overrides?: Partial<Player>): Player {
   return {
     seat: seat,
-    hasViewedRole: false,
     role: null,
     ...overrides,
   };
@@ -46,6 +45,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Unseated,
     templateRoles: new Array<RoleId>(totalSeats).fill('villager'),
     players: defaultPlayers,
+    roleViewedSeats: [],
     nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
@@ -183,10 +183,10 @@ describe('werewolf.bots.markAllBotsViewed (shared scaffold skeleton)', () => {
     it('should only mark bot players as viewed', () => {
       const players: Record<number, Player | null> = {};
       // Create a mix of bots and humans
-      players[0] = createMinimalPlayer(0, { role: 'villager', hasViewedRole: false });
-      players[1] = createMinimalPlayer(1, { role: 'wolf', hasViewedRole: false }); // human
-      players[2] = createMinimalPlayer(2, { role: 'seer', hasViewedRole: false });
-      players[3] = createMinimalPlayer(3, { role: 'witch', hasViewedRole: false });
+      players[0] = createMinimalPlayer(0, { role: 'villager' });
+      players[1] = createMinimalPlayer(1, { role: 'wolf' }); // human
+      players[2] = createMinimalPlayer(2, { role: 'seer' });
+      players[3] = createMinimalPlayer(3, { role: 'witch' });
       // Rest are null
       for (let i = 4; i < 12; i++) {
         players[i] = null;
@@ -220,10 +220,7 @@ describe('werewolf.bots.markAllBotsViewed (shared scaffold skeleton)', () => {
         (current, event) => werewolfEngine.evolve(current, event),
         state,
       );
-      expect(next.players[0]?.hasViewedRole).toBe(true);
-      expect(next.players[1]?.hasViewedRole).toBe(false);
-      expect(next.players[2]?.hasViewedRole).toBe(true);
-      expect(next.players[3]?.hasViewedRole).toBe(true);
+      expect(next.roleViewedSeats).toEqual([0, 2, 3]);
     });
   });
 

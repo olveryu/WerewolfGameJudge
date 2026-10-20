@@ -11,14 +11,14 @@
  *   - handlePlayerViewedRole: @throws '[FAIL-FAST] PLAYER_VIEWED_ROLE: no player at seat X'
  */
 
-import { haveAllViewed } from '../../../../platform/room/identityViewing';
+import { haveAllViewed, markSeatViewed } from '../../../../platform/room/identityViewing';
 import {
   type BotSeatOccupant,
   findRosterSeatByUserId,
   isBotOccupant,
 } from '../../../../platform/room/seating';
 import { GameStatus, getPlayerCount } from '../models';
-import { getWerewolfViewedSeats, getWerewolfViewingParticipants } from '../playerHelpers';
+import { getWerewolfViewingParticipants } from '../playerHelpers';
 import type { GameState, WerewolfHumanSeat } from '../protocol/types';
 import type { Complete } from '../state/normalize';
 import type {
@@ -49,6 +49,8 @@ export function handleInitializeGame(state: GameState, action: InitializeGameAct
     hostUserId,
     templateRoles,
     players,
+    // The viewed record resets together with the players map.
+    roleViewedSeats: [],
     // Occupancy resets together with the players map; the display
     // profile rides inside each human occupant, so it resets with it.
     roster: {},
@@ -71,7 +73,6 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
       players[i] = {
         ...existingPlayer,
         role: null,
-        hasViewedRole: false,
       };
     } else {
       players[i] = null;
@@ -93,6 +94,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
 
     // ── Reset fields ─────────────────────────────────────────
     players,
+    roleViewedSeats: [],
     startingParticipants: undefined,
     mvpUserId: undefined,
     status: GameStatus.Seated,
@@ -167,10 +169,7 @@ export function handleUpdateTemplate(state: GameState, action: UpdateTemplateAct
       if (existingPlayer.role != null) {
         throw new Error(`[FAIL-FAST] UPDATE_TEMPLATE cannot resize assigned player at seat ${i}`);
       }
-      newPlayers[i] = {
-        ...existingPlayer,
-        hasViewedRole: false,
-      };
+      newPlayers[i] = existingPlayer;
     } else {
       // Empty seat or newly added seat from expansion
       newPlayers[i] = null;
@@ -196,6 +195,10 @@ export function handleUpdateTemplate(state: GameState, action: UpdateTemplateAct
     templateRoles: newTemplateRoles,
     rules: action.payload.rules,
     players: newPlayers,
+    // Kept seats are all unassigned here (assigned seats fail fast
+    // above), so no viewed record can survive a template change; any
+    // entry for a dropped seat goes with it.
+    roleViewedSeats: [],
     roster: newRoster,
     status: allSeated ? GameStatus.Seated : GameStatus.Unseated,
     // boardNominations: preserved, not cleared on adopt
@@ -284,13 +287,14 @@ export function handleAssignRoles(state: GameState, action: AssignRolesAction): 
     const seat = Number.parseInt(seatStr, 10);
     const player = newPlayers[seat];
     if (player) {
-      newPlayers[seat] = { ...player, role, hasViewedRole: false };
+      newPlayers[seat] = { ...player, role };
     }
   }
 
   return {
     ...state,
     players: newPlayers,
+    roleViewedSeats: [],
     status: GameStatus.Assigned,
     seerLabelMap,
     bottomCards,
@@ -311,18 +315,12 @@ export function handlePlayerViewedRole(
     throw new Error(`[FAIL-FAST] PLAYER_VIEWED_ROLE: no player at seat ${seat}`);
   }
 
-  // Update hasViewedRole for current player
-  const newPlayers = {
-    ...state.players,
-    [seat]: { ...player, hasViewedRole: true },
-  };
+  // Record the view in the state-level viewed set (platform shape).
+  const roleViewedSeats = markSeatViewed(state.roleViewedSeats, seat);
 
   // Identity Viewing Protocol checkpoint (AU-19): every seated
   // player counts; bot seats join via the host's scaffold marks.
-  const allViewed = haveAllViewed(
-    getWerewolfViewingParticipants(state, newPlayers),
-    getWerewolfViewedSeats(newPlayers),
-  );
+  const allViewed = haveAllViewed(getWerewolfViewingParticipants(state), roleViewedSeats);
 
   // Only advance to GameStatus.Ready when status === GameStatus.Assigned and all viewed
   const newStatus =
@@ -330,7 +328,7 @@ export function handlePlayerViewedRole(
 
   return {
     ...state,
-    players: newPlayers,
+    roleViewedSeats,
     status: newStatus,
   };
 }

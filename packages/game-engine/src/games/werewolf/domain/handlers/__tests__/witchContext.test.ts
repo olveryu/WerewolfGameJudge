@@ -27,7 +27,6 @@ function createPlayer(seat: number, role: string): Player {
   return {
     seat: seat,
     role: role as Player['role'],
-    hasViewedRole: true,
   };
 }
 

@@ -30,12 +30,13 @@ function createWolfKillState(overrides: Partial<GameState> = {}): GameState {
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'wolf', 'villager', 'villager', 'seer'],
     players: {
-      0: { seat: 0, hasViewedRole: true, role: 'wolf' },
-      1: { seat: 1, hasViewedRole: true, role: 'wolf' },
-      2: { seat: 2, hasViewedRole: true, role: 'villager' },
-      3: { seat: 3, hasViewedRole: true, role: 'villager' },
-      4: { seat: 4, hasViewedRole: true, role: 'seer' },
+      0: { seat: 0, role: 'wolf' },
+      1: { seat: 1, role: 'wolf' },
+      2: { seat: 2, role: 'villager' },
+      3: { seat: 3, role: 'villager' },
+      4: { seat: 4, role: 'seer' },
     },
+    roleViewedSeats: [],
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
@@ -94,9 +95,9 @@ describe('isWolfVoteAllComplete', () => {
   it('fails fast when an ongoing player has no assigned role', () => {
     const state = createWolfKillState({
       players: {
-        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { seat: 1, hasViewedRole: true, role: null }, // role missing
-        2: { seat: 2, hasViewedRole: true, role: 'villager' },
+        0: { seat: 0, role: 'wolf' },
+        1: { seat: 1, role: null }, // role missing
+        2: { seat: 2, role: 'villager' },
       },
       currentNightResults: {
         wolfVotesBySeat: { '0': 2 },
@@ -110,8 +111,8 @@ describe('isWolfVoteAllComplete', () => {
   it('fails fast when wolfKill has no participating wolves', () => {
     const state = createWolfKillState({
       players: {
-        0: { seat: 0, hasViewedRole: true, role: 'villager' },
-        1: { seat: 1, hasViewedRole: true, role: 'seer' },
+        0: { seat: 0, role: 'villager' },
+        1: { seat: 1, role: 'seer' },
       },
       currentNightResults: {},
     });
@@ -146,11 +147,11 @@ describe('isWolfVoteAllComplete', () => {
     const state = createWolfKillState({
       // All 5 players have roles — the only valid ongoing state
       players: {
-        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { seat: 1, hasViewedRole: true, role: 'wolf' },
-        2: { seat: 2, hasViewedRole: true, role: 'villager' },
-        3: { seat: 3, hasViewedRole: true, role: 'villager' },
-        4: { seat: 4, hasViewedRole: true, role: 'seer' },
+        0: { seat: 0, role: 'wolf' },
+        1: { seat: 1, role: 'wolf' },
+        2: { seat: 2, role: 'villager' },
+        3: { seat: 3, role: 'villager' },
+        4: { seat: 4, role: 'seer' },
       },
       currentNightResults: {
         wolfVotesBySeat: { '0': 2, '1': 3 },

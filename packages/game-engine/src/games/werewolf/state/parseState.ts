@@ -144,7 +144,6 @@ function parsePlayer(value: unknown, path: string): Player {
       role: parseOptional(raw.role, `${path}.role`, (role, rolePath) =>
         parseNullable(role, rolePath, parseRoleId),
       ),
-      hasViewedRole: parseBoolean(raw.hasViewedRole, `${path}.hasViewedRole`),
     },
     path,
   );
@@ -913,6 +912,7 @@ export function parseWerewolfState(value: unknown): GameState {
     templateRoles: parseRoleIds(raw.templateRoles, 'GameState.templateRoles'),
     rules: parseOptional(raw.rules, 'GameState.rules', parseRules),
     players: parsePlayers(raw.players, 'GameState.players'),
+    roleViewedSeats: parseArray(raw.roleViewedSeats, 'GameState.roleViewedSeats', parseSeat),
     mvpUserId: parseOptional(raw.mvpUserId, 'GameState.mvpUserId', parseNonEmptyString),
     startingParticipants: parseOptional(
       raw.startingParticipants,

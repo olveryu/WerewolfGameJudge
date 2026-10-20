@@ -18,11 +18,12 @@ function createFullState(): GameState {
       witchCanSelfHeal: true,
     },
     players: {
-      0: { seat: 0, role: 'treasureMaster', hasViewedRole: true },
-      1: { seat: 1, role: 'wolf', hasViewedRole: true },
-      2: { seat: 2, role: 'seer', hasViewedRole: true },
-      3: { seat: 3, role: 'villager', hasViewedRole: true },
+      0: { seat: 0, role: 'treasureMaster' },
+      1: { seat: 1, role: 'wolf' },
+      2: { seat: 2, role: 'seer' },
+      3: { seat: 3, role: 'villager' },
     },
+    roleViewedSeats: [],
     roster: {
       0: {
         seat: 0,
@@ -326,7 +327,6 @@ describe('parseWerewolfState', () => {
       players: {
         0: {
           seat: 0,
-          hasViewedRole: true,
           legacyBot: true,
         },
       },
