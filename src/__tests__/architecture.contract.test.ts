@@ -911,6 +911,7 @@ describe('Worker ownership: source tree is exact', () => {
       'effectCommandId.ts',
       'effectDispatch.ts',
       'runtimeGameModule.ts',
+      'settleDue.ts',
       'workerModule.ts',
     ]);
   });
