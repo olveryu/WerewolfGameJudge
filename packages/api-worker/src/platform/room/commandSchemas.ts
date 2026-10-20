@@ -6,14 +6,19 @@ import type {
 } from '@game-judge/game-engine/platform/room/roster';
 import { z } from 'zod';
 
+// Field order in both profile schemas must match the canonical RosterEntry
+// order (platform/room/roster.ts and every game's parseRosterEntry literal):
+// zod emits parsed keys in schema declaration order, and room state is
+// byte-compared with JSON.stringify after a parseState rebuild, so any
+// divergence makes a later rejected command look state-changing.
 const roomSeatProfileSchema: z.ZodType<RoomSeatProfile> = z.strictObject({
   displayName: z.string().min(1),
   avatarUrl: z.string().optional(),
   avatarFrame: z.string().optional(),
   seatFlair: z.string().optional(),
+  seatAnimation: z.string().optional(),
   nameStyle: z.string().optional(),
   revealEffect: z.string().optional(),
-  seatAnimation: z.string().optional(),
   level: z.number().int().nonnegative().optional(),
 });
 
@@ -22,9 +27,9 @@ const roomProfileUpdateSchema: z.ZodType<RoomProfileUpdate> = z.strictObject({
   avatarUrl: z.string().optional(),
   avatarFrame: z.string().optional(),
   seatFlair: z.string().optional(),
+  seatAnimation: z.string().optional(),
   nameStyle: z.string().optional(),
   revealEffect: z.string().optional(),
-  seatAnimation: z.string().optional(),
 });
 
 export const ROOM_PUBLIC_COMMAND_SCHEMAS = [
