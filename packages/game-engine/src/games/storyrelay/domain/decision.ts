@@ -78,7 +78,7 @@ export function commitStoryRelay(
   events: readonly StoryRelayEvent[],
   effects: readonly StoryRelayEffect[] = [],
 ): StoryRelayDecision {
-  return commit({ events, effects, broadcast: events.length === 0 ? 'none' : 'state' });
+  return commit({ events, effects });
 }
 
 /** Requires the current host acting outside bot takeover. */

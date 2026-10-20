@@ -70,7 +70,7 @@ export function commit__GAME_PASCAL__(
   events: readonly __GAME_PASCAL__Event[],
   effects: readonly __GAME_PASCAL__Effect[] = [],
 ): __GAME_PASCAL__Decision {
-  return commit({ events, effects, broadcast: events.length === 0 ? 'none' : 'state' });
+  return commit({ events, effects });
 }
 
 /** Requires the current host acting outside bot takeover; rejects with the given reason. */

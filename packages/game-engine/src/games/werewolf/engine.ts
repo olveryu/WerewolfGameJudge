@@ -143,10 +143,7 @@ function decideHandler(
  * for a handler success (actions as events, empty means no broadcast).
  */
 function commitActions(events: readonly StateAction[]): WerewolfDecision {
-  return commit<StateAction, WerewolfEffect>({
-    events,
-    broadcast: events.length === 0 ? 'none' : 'state',
-  });
+  return commit<StateAction, WerewolfEffect>({ events });
 }
 
 function validateRevealAckActor(state: GameState, actorSeat: number): string | null {

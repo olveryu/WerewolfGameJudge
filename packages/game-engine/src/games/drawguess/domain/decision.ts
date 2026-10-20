@@ -126,7 +126,7 @@ export function commitDrawGuess(
   events: readonly DrawGuessEvent[],
   effects: readonly DrawGuessEffect[] = [],
 ): DrawGuessDecision {
-  return commit({ events, effects, broadcast: events.length === 0 ? 'none' : 'state' });
+  return commit({ events, effects });
 }
 
 /** Requires the current host acting outside bot takeover. */

@@ -10,9 +10,5 @@ export function commitFib(
   events: readonly FibEvent[],
   effects: readonly FibEffect[] = [],
 ): FibDecision {
-  return commit({
-    events,
-    effects,
-    broadcast: events.length === 0 ? 'none' : 'state',
-  });
+  return commit({ events, effects });
 }
