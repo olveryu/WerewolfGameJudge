@@ -1,10 +1,12 @@
 /** v5 -> v6 player-record split migration: identity moves to the roster. */
 
+import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
 import { GameStatus } from '../domain/models/GameStatus';
 import { createTemplateFromRoles } from '../domain/models/Template';
 import type { GameState } from '../domain/protocol/types';
 import { gameReducer } from '../domain/reducer/gameReducer';
 import { buildInitialGameState } from '../domain/state/buildInitialState';
+import { werewolfEngine } from '../engine';
 import { migratePersistedWerewolfState, parseWerewolfState } from '../state/parseState';
 
 function buildV6State(): GameState {
@@ -387,5 +389,143 @@ describe('v8 -> v9 migration (legacy step fields into the nightStep shape)', () 
       stepId: 'wolfKill',
       stepDeadline: 4_000,
     });
+  });
+});
+
+describe('v9 current-shape fixtures (baseline for the v10 profile-embedding migration)', () => {
+  // PR-0 baseline: each fixture below is a document the current (v9)
+  // store can hold. At the current version migratePersistedWerewolfState
+  // takes the identity path, so the migrated result must deep-equal a
+  // direct parse of the same document. The v9 -> v10 transform (PR-1)
+  // diffs against exactly these shapes.
+  function expectCurrentVersionBaseline(stored: Record<string, unknown>): GameState {
+    expect(stored.stateVersion).toBe(9);
+    const direct = parseWerewolfState(JSON.parse(JSON.stringify(stored)) as unknown);
+    const migrated = migratePersistedWerewolfState(JSON.parse(JSON.stringify(stored)) as unknown);
+    expect(migrated).toEqual(direct);
+    return migrated;
+  }
+
+  function storedDocument(state: GameState): Record<string, unknown> {
+    return JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
+  }
+
+  it('pins an empty lobby (room created, nobody seated)', () => {
+    const lobby = parseWerewolfState(
+      storedDocument(
+        buildInitialGameState(
+          'ROOM',
+          'host',
+          createTemplateFromRoles(['wolf', 'seer', 'villager']),
+        ),
+      ),
+    );
+    const migrated = expectCurrentVersionBaseline(storedDocument(lobby));
+    expect(migrated.status).toBe(GameStatus.Unseated);
+    expect(migrated.roster).toEqual({});
+    expect(migrated.playerProfiles).toEqual({});
+  });
+
+  it('pins a full house (2 humans + 1 bot) with a profile entry per occupant', () => {
+    // buildV6State builds a current-shape started game despite the name:
+    // every seat is taken, and every occupant — humans and the bot —
+    // has a playerProfiles entry (the bot under its synthetic bot-<seat>
+    // id). v10 drops the bot entry and embeds the human entries.
+    const migrated = expectCurrentVersionBaseline(storedDocument(buildV6State()));
+    expect(migrated.roster[0]).toEqual({ seat: 0, userId: 'host' });
+    expect(migrated.roster[1]).toEqual({ seat: 1, userId: 'alice' });
+    expect(migrated.roster[2]).toEqual({ seat: 2, kind: 'bot' });
+    expect(Object.keys(migrated.playerProfiles).sort()).toEqual(['alice', 'bot-2', 'host']);
+    expect(migrated.playerProfiles.host?.displayName).toBe('房主');
+    expect(migrated.playerProfiles['bot-2']?.displayName).toBe('机器人3号');
+  });
+
+  it('pins a night in progress (nightStep inStep, startingParticipants snapshotted)', () => {
+    // Driven through authoritative commands only (the mainline flow), so
+    // the fixture is a state the command pipeline itself can produce.
+    const session = createEngineSession(werewolfEngine, {
+      config: { templateRoles: ['wolf', 'seer', 'hunter', 'villager'] },
+      parse: parseWerewolfState,
+    });
+    session.send({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } }, 'host');
+    session.send({ type: 'room.seat.take', seat: 1, profile: { displayName: 'User 1' } }, 'user-1');
+    session.send({ type: 'room.seat.fillBots' }, 'host');
+    session.send({ type: 'werewolf.roles.assign' }, 'host');
+    session.send({ type: 'werewolf.role.viewed' }, 'host');
+    session.send({ type: 'werewolf.role.viewed' }, 'user-1');
+    session.send({ type: 'werewolf.bots.markAllBotsViewed' }, 'host');
+    session.send({ type: 'werewolf.game.begin' }, 'host');
+
+    const migrated = expectCurrentVersionBaseline(storedDocument(session.state));
+    expect(migrated.status).toBe(GameStatus.Ongoing);
+    expect(migrated.nightStep?.kind).toBe('inStep');
+    // The snapshot holds the human participants only; bot seats are not
+    // participants. PR-1 must leave this field untouched.
+    expect(migrated.startingParticipants).toEqual([
+      { userId: 'host', seat: 0 },
+      { userId: 'user-1', seat: 1 },
+    ]);
+  });
+
+  it('pins a post-shrink state whose kicked player profile outlives the roster', () => {
+    let state = buildInitialGameState(
+      'ROOM',
+      'host',
+      createTemplateFromRoles(['wolf', 'seer', 'villager']),
+    );
+    state = gameReducer(state, {
+      type: 'PLAYER_JOIN',
+      payload: {
+        seat: 0,
+        occupant: { seat: 0, userId: 'host' },
+        player: { seat: 0, role: null, hasViewedRole: false },
+        rosterEntry: { displayName: '房主' },
+      },
+    });
+    state = gameReducer(state, {
+      type: 'PLAYER_JOIN',
+      payload: {
+        seat: 1,
+        occupant: { seat: 1, userId: 'alice' },
+        player: { seat: 1, role: null, hasViewedRole: false },
+        rosterEntry: { displayName: 'Alice' },
+      },
+    });
+    state = gameReducer(state, {
+      type: 'PLAYER_JOIN',
+      payload: {
+        seat: 2,
+        occupant: { seat: 2, userId: 'bob' },
+        player: { seat: 2, role: null, hasViewedRole: false },
+        rosterEntry: { displayName: 'Bob' },
+      },
+    });
+    const stored = storedDocument(parseWerewolfState(storedDocument(state)));
+    // The template shrinks 3 -> 2 seats: bob's seat leaves the roster and
+    // the players map, but his playerProfiles entry survives — profiles
+    // are keyed by userId and the shrink path never pruned them. v10
+    // drops the orphan; this fixture pins that it exists at v9.
+    stored.templateRoles = ['wolf', 'seer'];
+    delete (stored.players as Record<string, unknown>)['2'];
+    delete (stored.roster as Record<string, unknown>)['2'];
+
+    const migrated = expectCurrentVersionBaseline(stored);
+    expect(migrated.roster[2]).toBeUndefined();
+    expect(migrated.playerProfiles.bob?.displayName).toBe('Bob');
+  });
+
+  it('pins an Ended game that still carries its playerProfiles', () => {
+    const ended: GameState = {
+      ...buildV6State(),
+      status: GameStatus.Ended,
+      currentNightResults: {},
+      mvpUserId: 'host',
+    };
+    const migrated = expectCurrentVersionBaseline(storedDocument(ended));
+    expect(migrated.status).toBe(GameStatus.Ended);
+    expect(migrated.mvpUserId).toBe('host');
+    expect(migrated.playerProfiles.host?.displayName).toBe('房主');
+    expect(migrated.playerProfiles.alice?.displayName).toBe('Alice');
+    expect(migrated.playerProfiles['bot-2']?.displayName).toBe('机器人3号');
   });
 });
