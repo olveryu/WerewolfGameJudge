@@ -87,7 +87,7 @@ describe('Avalon v2 -> v3 roster migration', () => {
   it('migrates an in-progress game (roles dealt, night pending)', () => {
     let state = lobby(1);
     state = dispatch(state, { type: 'room.seat.fillBots' });
-    state = dispatch(state, { type: 'avalon.game.start' });
+    state = dispatch(state, { type: 'avalon.roles.assign' });
     expect(state.phase.kind).toBe('viewing');
     expect(Object.keys(state.roles)).toHaveLength(5);
     expect(migratePersistedAvalonState(downgradeToV2(state))).toEqual(state);
@@ -164,7 +164,7 @@ describe('Avalon v3 -> v4 countdown migration', () => {
   /** Drives a 5-human game into the vote phase with two ballots cast. */
   function votePhaseState(): AvalonState {
     let state = lobby(5);
-    state = dispatch(state, { type: 'avalon.game.start' });
+    state = dispatch(state, { type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 5; seat += 1) {
       state = dispatch(state, { type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `user-${seat}`);
     }
@@ -259,7 +259,7 @@ describe('Avalon v4 -> v5 viewing-stage migration', () => {
     // A v4 room mid-night (the deal already opened the night under the
     // old flow) must resume exactly where it was; v5 adds no field.
     let state = lobby(5);
-    state = dispatch(state, { type: 'avalon.game.start' });
+    state = dispatch(state, { type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 5; seat += 1) {
       state = dispatch(state, { type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `user-${seat}`);
     }
@@ -287,7 +287,7 @@ describe('Avalon v5 -> v6 round-history migration', () => {
   /** Drives a 5-human game to the round 1 nomination phase. */
   function nominateState(): AvalonState {
     let state = lobby(5);
-    state = dispatch(state, { type: 'avalon.game.start' });
+    state = dispatch(state, { type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 5; seat += 1) {
       state = dispatch(state, { type: 'avalon.role.viewed' }, actorOf(seat));
     }
@@ -375,7 +375,7 @@ describe('Avalon nomination draft field (pre-draft persisted states)', () => {
     // the document a pre-draft store would have persisted (same version,
     // the field simply absent) — it must parse with an empty draft.
     let state = lobby(5);
-    state = dispatch(state, { type: 'avalon.game.start' });
+    state = dispatch(state, { type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 5; seat += 1) {
       state = dispatch(state, { type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `user-${seat}`);
     }

@@ -50,7 +50,7 @@ function session() {
     userOf,
     /** Deals, clears the viewing checkpoint, and passes the first night. */
     toNominate() {
-      send({ type: 'avalon.game.start' });
+      send({ type: 'avalon.roles.assign' });
       for (let seat = 0; seat < 5; seat += 1) send({ type: 'avalon.role.viewed' }, userOf(seat));
       send({ type: 'avalon.game.begin' });
       ackAudio();
@@ -91,7 +91,7 @@ describe('createAvalonHistorySummary', () => {
   it('is hidden in the lobby and narrates viewing and night', () => {
     const room = session();
     expect(createAvalonHistorySummary(room.state)).toBeNull();
-    room.send({ type: 'avalon.game.start' });
+    room.send({ type: 'avalon.roles.assign' });
     expect(createAvalonHistorySummary(room.state)).toBe('身份查看阶段');
     for (let seat = 0; seat < 5; seat += 1) {
       room.send({ type: 'avalon.role.viewed' }, room.userOf(seat));

@@ -65,7 +65,7 @@ function viewingStateWithBots(): AvalonState {
     );
   }
   send({ type: 'room.seat.fillBots' });
-  send({ type: 'avalon.game.start' });
+  send({ type: 'avalon.roles.assign' });
   return state;
 }
 
@@ -109,7 +109,7 @@ function buildNominateWithBots(): AvalonState {
   };
   send({ type: 'room.seat.take', seat: 0, profile: { displayName: 'P0' } });
   send({ type: 'room.seat.fillBots' });
-  send({ type: 'avalon.game.start' });
+  send({ type: 'avalon.roles.assign' });
   send({ type: 'avalon.role.viewed' });
   send({ type: 'avalon.bots.markAllBotsViewed' });
   send({ type: 'avalon.game.begin' });

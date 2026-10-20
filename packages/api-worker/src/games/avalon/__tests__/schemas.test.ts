@@ -63,7 +63,7 @@ describe('Avalon public command schema', () => {
         type: 'avalon.config.update',
         config: { numberOfPlayers: 8, voteMode: 'secret', vetoLimit: 4 },
       },
-      { type: 'avalon.game.start' },
+      { type: 'avalon.roles.assign' },
       { type: 'avalon.game.returnToLobby' },
       { type: 'avalon.night.confirm' },
       { type: 'avalon.team.updateDraft', seats: [0, 1, 2] },
@@ -89,7 +89,7 @@ describe('Avalon public command schema', () => {
   it('rejects unknown commands, extra fields and mistyped payloads', () => {
     expect(avalonPublicCommandSchema.safeParse({ type: 'avalon.game.fly' }).success).toBe(false);
     expect(
-      avalonPublicCommandSchema.safeParse({ type: 'avalon.game.start', extra: 1 }).success,
+      avalonPublicCommandSchema.safeParse({ type: 'avalon.roles.assign', extra: 1 }).success,
     ).toBe(false);
     expect(
       avalonPublicCommandSchema.safeParse({ type: 'avalon.team.vote', vote: 'yes' }).success,

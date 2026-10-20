@@ -130,7 +130,7 @@ async function armedVoteRoom(stub: DurableObjectStub<GameRoom>): Promise<AvalonS
       profile: { displayName: `P${seat}` },
     });
   }
-  await send(stub, HOST, { type: 'avalon.game.start' });
+  await send(stub, HOST, { type: 'avalon.roles.assign' });
   for (let seat = 0; seat < 5; seat += 1) {
     await send(stub, seatUser(seat), { type: 'avalon.role.viewed' });
   }

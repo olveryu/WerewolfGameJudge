@@ -44,7 +44,7 @@ function startFivePlayerGame(playerCount: 5 | 9 = 5) {
   for (let seat = 0; seat < playerCount; seat += 1) {
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
   }
-  send({ type: 'avalon.game.start' });
+  send({ type: 'avalon.roles.assign' });
   return {
     get state() {
       return state;

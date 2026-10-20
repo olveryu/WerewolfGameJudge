@@ -31,7 +31,7 @@ export const avalonCreateConfigSchema: z.ZodType<AvalonConfig> = avalonConfigSch
 const avalonPublicCommandOptions = definePublicCommandOptions<AvalonPublicCommand>()([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({ type: z.literal('avalon.config.update'), config: avalonConfigSchema }),
-  z.strictObject({ type: z.literal('avalon.game.start') }),
+  z.strictObject({ type: z.literal('avalon.roles.assign') }),
   z.strictObject({ type: z.literal('avalon.game.begin') }),
   z.strictObject({ type: z.literal('avalon.game.returnToLobby') }),
   z.strictObject({ type: z.literal('avalon.night.confirm') }),

@@ -106,12 +106,12 @@ function session() {
     },
     /** Starts without marking the bots, leaving their viewed records open. */
     startWithUnmarkedBots() {
-      send({ type: 'avalon.game.start' });
+      send({ type: 'avalon.roles.assign' });
       send({ type: 'avalon.role.viewed' });
       ackAudio();
     },
     startToNominate() {
-      send({ type: 'avalon.game.start' });
+      send({ type: 'avalon.roles.assign' });
       // Only the host is human: the host views, then marks the bots,
       // then begins the game into the night.
       send({ type: 'avalon.role.viewed' });

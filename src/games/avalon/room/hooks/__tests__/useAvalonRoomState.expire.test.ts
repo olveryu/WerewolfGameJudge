@@ -78,7 +78,7 @@ function drivenGame(withBots: boolean): DrivenGame {
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
   }
   if (withBots) send({ type: 'room.seat.fillBots' });
-  send({ type: 'avalon.game.start' });
+  send({ type: 'avalon.roles.assign' });
   for (const seat of humanSeats) send({ type: 'avalon.role.viewed' }, seatUser(seat));
   if (withBots) send({ type: 'avalon.bots.markAllBotsViewed' });
   send({ type: 'avalon.game.begin' });

@@ -667,7 +667,7 @@ function decideCommand(
     case 'room.profile.update':
     case 'avalon.config.update':
       return decideAvalonRoom(state, command, context);
-    case 'avalon.game.start':
+    case 'avalon.roles.assign':
       return startGame(state, context);
     case 'avalon.game.begin':
       return beginGame(state, context);

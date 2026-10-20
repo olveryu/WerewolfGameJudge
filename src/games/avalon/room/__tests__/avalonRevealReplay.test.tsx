@@ -93,7 +93,7 @@ function drivenGame(numberOfPlayers: AvalonPlayerCount, botSeats: readonly numbe
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
   }
   if (botSeats.length > 0) send({ type: 'room.seat.fillBots' });
-  send({ type: 'avalon.game.start' });
+  send({ type: 'avalon.roles.assign' });
   for (const seat of humanSeats) send({ type: 'avalon.role.viewed' }, seatUser(seat));
   if (botSeats.length > 0) send({ type: 'avalon.bots.markAllBotsViewed' });
   send({ type: 'avalon.game.begin' });
