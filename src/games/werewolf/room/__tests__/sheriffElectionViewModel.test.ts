@@ -15,17 +15,10 @@ const PLAYERS: GameState['players'] = {
 };
 
 const ROSTER: NonNullable<GameState['roster']> = {
-  0: { seat: 0, userId: 'host-1' },
-  1: { seat: 1, userId: 'user-1' },
-  2: { seat: 2, userId: 'user-2' },
-  3: { seat: 3, userId: 'user-3' },
-};
-
-const PROFILES: GameState['playerProfiles'] = {
-  'host-1': { displayName: 'Alice' },
-  'user-1': { displayName: 'Bob' },
-  'user-2': { displayName: 'Chen' },
-  'user-3': { displayName: 'Dana' },
+  0: { seat: 0, userId: 'host-1', profile: { displayName: 'Alice' } },
+  1: { seat: 1, userId: 'user-1', profile: { displayName: 'Bob' } },
+  2: { seat: 2, userId: 'user-2', profile: { displayName: 'Chen' } },
+  3: { seat: 3, userId: 'user-3', profile: { displayName: 'Dana' } },
 };
 
 function createLocalState(overrides: Partial<GameState>) {
@@ -35,7 +28,6 @@ function createLocalState(overrides: Partial<GameState>) {
       templateRoles: ['wolf', 'seer', 'hunter', 'villager'],
       players: PLAYERS,
       roster: ROSTER,
-      playerProfiles: PROFILES,
       rules: { isSheriffElectionEnabled: true },
       ...overrides,
     }),

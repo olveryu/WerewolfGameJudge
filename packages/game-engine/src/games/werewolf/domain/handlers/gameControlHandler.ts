@@ -12,8 +12,6 @@
 
 import type { AudioEffect } from '../../../../platform/audio';
 import { createSeededRng, randomPick, type Rng, shuffleArray } from '../../../../platform/random';
-import { getBotDisplayName } from '../../../../platform/room/getBotDisplayName';
-import type { RosterEntry } from '../../../../platform/room/roster';
 import { decideRosterFillBots } from '../../../../platform/room/seating';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
 import { createAudioQueueActions } from '../audioQueue';
@@ -430,9 +428,8 @@ export function handleUpdateTemplate(
  * (decideRosterFillBots, the same one every other game decides with):
  * it picks the empty seats and validates the roster invariants. What
  * stays werewolf-owned is the payload its state model needs per bot
- * seat — a players-record entry plus a playerProfiles entry keyed by
- * the synthetic `bot-<seat>` userId; the reducer (evolve side) books
- * that double write into players/roster/playerProfiles.
+ * seat — a players-record entry; the bot occupant in the roster
+ * carries no profile (its display name is derived at projection).
  */
 export function handleFillWithBots(
   _intent: FillWithBotsIntent,
@@ -452,21 +449,17 @@ export function handleFillWithBots(
   }
 
   const bots: Record<number, Player> = {};
-  const botRoster: Record<string, RosterEntry> = {};
   for (const change of fill.changes) {
     const seat = change.seat;
     bots[seat] = {
       seat: seat,
       hasViewedRole: false,
     };
-    botRoster[`bot-${seat}`] = {
-      displayName: getBotDisplayName(seat),
-    };
   }
 
   const action: FillWithBotsAction = {
     type: 'FILL_WITH_BOTS',
-    payload: { bots, botRoster },
+    payload: { bots },
   };
 
   return handlerSuccess([action]);

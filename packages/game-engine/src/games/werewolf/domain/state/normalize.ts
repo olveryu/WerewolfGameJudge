@@ -155,8 +155,6 @@ export function normalizeState(raw: GameState): GameState {
     mvpUserId: raw.mvpUserId,
     // Seat occupancy roster (seat -> human occupant or bot marker)
     roster: raw.roster ?? {},
-    // Player display info, keyed by userId
-    playerProfiles: raw.playerProfiles ?? {},
     nightStep: requireField(raw.nightStep, 'nightStep'),
     isAudioPlaying: requireField(raw.isAudioPlaying, 'isAudioPlaying'),
 

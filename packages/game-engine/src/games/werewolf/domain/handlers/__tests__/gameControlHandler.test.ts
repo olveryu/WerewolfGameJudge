@@ -48,7 +48,6 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     roster: {},
-    playerProfiles: {},
     ...overrides,
   };
   // Every fixture in this file seats user `p<seat + 1>` at each occupied seat;
@@ -57,7 +56,11 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     const roster: Record<number, WerewolfHumanSeat> = {};
     for (const player of Object.values(state.players)) {
       if (player !== null) {
-        roster[player.seat] = { seat: player.seat, userId: `p${player.seat + 1}` };
+        roster[player.seat] = {
+          seat: player.seat,
+          userId: `p${player.seat + 1}`,
+          profile: { displayName: 'P' },
+        };
       }
     }
     return { ...state, roster };

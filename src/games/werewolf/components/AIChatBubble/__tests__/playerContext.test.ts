@@ -18,19 +18,17 @@ import { buildPlayerContext } from '../playerContext';
  * real — the seat argument each test used to pass is now the viewer seat.
  */
 function viewModelFor(state: GameState, viewerSeat: number | null) {
-  const roster: Record<number, { seat: number; userId: string }> = {};
-  const playerProfiles: Record<string, { displayName: string }> = {};
+  const roster: Record<number, { seat: number; userId: string; profile: { displayName: string } }> =
+    {};
   for (const [seatKey, player] of Object.entries(state.players)) {
     if (!player) continue;
     const seat = Number(seatKey);
     const userId = `user-${seat}`;
-    roster[seat] = { seat, userId };
-    playerProfiles[userId] = { displayName: '玩家' };
+    roster[seat] = { seat, userId, profile: { displayName: '玩家' } };
   }
   const completed: GameState = {
     ...state,
     roster,
-    playerProfiles,
     nightStep: state.nightStep,
   };
   return getWerewolfViewModel(completed, viewerSeat);

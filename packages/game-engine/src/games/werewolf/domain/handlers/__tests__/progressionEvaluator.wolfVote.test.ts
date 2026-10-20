@@ -47,7 +47,6 @@ function createWolfKillState(overrides: Partial<GameState> = {}): GameState {
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
-    playerProfiles: {},
     currentNightResults: {},
     ...overrides,
   };
@@ -56,7 +55,11 @@ function createWolfKillState(overrides: Partial<GameState> = {}): GameState {
     const roster: Record<number, WerewolfHumanSeat> = {};
     for (const player of Object.values(state.players)) {
       if (player !== null) {
-        roster[player.seat] = { seat: player.seat, userId: `p${player.seat}` };
+        roster[player.seat] = {
+          seat: player.seat,
+          userId: `p${player.seat}`,
+          profile: { displayName: 'P' },
+        };
       }
     }
     return { ...state, roster };

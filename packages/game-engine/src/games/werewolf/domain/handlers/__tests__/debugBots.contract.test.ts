@@ -2,7 +2,7 @@
  * Debug Bots Contract Tests
  *
  * Verifies core constraints of debug bots functionality:
- * 1. After fillWithBots: every newly added bot seat gets a botRoster profile keyed `bot-<seat>`
+ * 1. After fillWithBots: every newly added bot seat gets a roster bot marker (bots carry no profile)
  * 2. markAllBotsViewed: only sets hasViewedRole = true on seats whose roster occupant is a bot
  * 3. Calling when debug is not enabled must reject
  */
@@ -57,7 +57,6 @@ function createTestState(overrides?: Partial<GameState>): GameState {
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     roster: {},
-    playerProfiles: {},
     currentNightResults: {},
     ...overrides,
   };
@@ -95,20 +94,20 @@ describe('handleFillWithBots', () => {
 
       const action = success.actions[0]! as {
         type: 'FILL_WITH_BOTS';
-        payload: { bots: Record<number, Player>; botRoster: Record<string, unknown> };
+        payload: { bots: Record<number, Player> };
       };
       const bots = action.payload.bots;
 
       // All 12 seats should have bots
       expect(Object.keys(bots)).toHaveLength(12);
 
-      // Each bot is pure per-seat game data; its bot identity is carried by
-      // the botRoster profile keyed by the synthetic `bot-<seat>` userId.
+      // Each bot is pure per-seat game data; bots carry no profile — their
+      // identity is the roster bot marker the reducer writes from this
+      // action (covered in gameReducer.test.ts).
       for (const [seat, bot] of Object.entries(bots)) {
         expect(bot.seat).toBe(Number(seat));
-        expect(action.payload.botRoster).toHaveProperty(`bot-${seat}`);
       }
-      expect(Object.keys(action.payload.botRoster)).toHaveLength(12);
+      expect(Object.keys(action.payload)).toEqual(['bots']);
     });
 
     it('should not overwrite existing human players', () => {
@@ -125,8 +124,8 @@ describe('handleFillWithBots', () => {
         state: createTestState({
           players,
           roster: {
-            0: { seat: 0, userId: 'human-uid' },
-            5: { seat: 5, userId: 'another-human' },
+            0: { seat: 0, userId: 'human-uid', profile: { displayName: 'human-uid' } },
+            5: { seat: 5, userId: 'another-human', profile: { displayName: 'another-human' } },
           },
         }),
       });
@@ -198,7 +197,7 @@ describe('werewolf.bots.markAllBotsViewed (shared scaffold skeleton)', () => {
         players,
         roster: {
           0: { seat: 0, kind: 'bot' },
-          1: { seat: 1, userId: 'player-1' },
+          1: { seat: 1, userId: 'player-1', profile: { displayName: 'player-1' } },
           2: { seat: 2, kind: 'bot' },
           3: { seat: 3, kind: 'bot' },
         },
@@ -237,7 +236,7 @@ describe('werewolf.bots.markAllBotsViewed (shared scaffold skeleton)', () => {
         status: GameStatus.Assigned,
         players,
         roster: {
-          0: { seat: 0, userId: 'user-0' },
+          0: { seat: 0, userId: 'user-0', profile: { displayName: 'user-0' } },
         },
       });
 

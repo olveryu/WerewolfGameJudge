@@ -24,22 +24,23 @@ function createFullState(): GameState {
       3: { seat: 3, role: 'villager', hasViewedRole: true },
     },
     roster: {
-      0: { seat: 0, userId: 'host' },
-      1: { seat: 1, userId: 'player' },
-      2: { seat: 2, userId: 'seer' },
-      3: { seat: 3, userId: 'villager' },
-    },
-    playerProfiles: {
-      host: {
-        displayName: 'Host',
-        avatarUrl: 'avatar',
-        avatarFrame: 'frame',
-        seatFlair: 'flair',
-        seatAnimation: 'animation',
-        nameStyle: 'style',
-        revealEffect: 'effect',
-        level: 3,
+      0: {
+        seat: 0,
+        userId: 'host',
+        profile: {
+          displayName: 'Host',
+          avatarUrl: 'avatar',
+          avatarFrame: 'frame',
+          seatFlair: 'flair',
+          seatAnimation: 'animation',
+          nameStyle: 'style',
+          revealEffect: 'effect',
+          level: 3,
+        },
       },
+      1: { seat: 1, userId: 'player', profile: { displayName: 'Player' } },
+      2: { seat: 2, userId: 'seer', profile: { displayName: 'Seer' } },
+      3: { seat: 3, userId: 'villager', profile: { displayName: 'Villager' } },
     },
     nightStep: null,
     isAudioPlaying: true,
@@ -211,15 +212,21 @@ describe('parseWerewolfState', () => {
 
   it('migrates the legacy empty reveal effect to the canonical room value', () => {
     const state = createFullState();
+    const hostOccupant = state.roster[0];
+    if (hostOccupant == null || !('profile' in hostOccupant)) {
+      throw new Error('fixture seat 0 must be a human occupant');
+    }
     const encoded = {
       ...state,
-      playerProfiles: {
-        ...state.playerProfiles,
-        host: { ...state.playerProfiles.host, revealEffect: '' },
+      roster: {
+        ...state.roster,
+        0: { ...hostOccupant, profile: { ...hostOccupant.profile, revealEffect: '' } },
       },
     };
 
-    expect(parseWerewolfState(encoded).playerProfiles.host?.revealEffect).toBe('none');
+    expect(parseWerewolfState(encoded).roster[0]).toMatchObject({
+      profile: { revealEffect: 'none' },
+    });
   });
 
   it('rejects a current-version payload carrying the legacy stepDeadline field', () => {
@@ -308,7 +315,7 @@ describe('parseWerewolfState', () => {
 
     const unknownKind = {
       ...createFullState(),
-      roster: { 0: { seat: 0, userId: 'host', kind: 'ghost' } },
+      roster: { 0: { seat: 0, userId: 'host', profile: { displayName: '房主' }, kind: 'ghost' } },
     };
     expect(() => parseWerewolfState(unknownKind)).toThrow('unknown field: kind');
   });

@@ -20,7 +20,6 @@ import type { BotSeatOccupant } from '../../../platform/room/seating';
 import type { DeathReason } from '../domain/DeathCalculator';
 import { GameStatus } from '../domain/models/GameStatus';
 import { isValidRoleId, type RoleId } from '../domain/models/roles';
-import { buildNightPlan } from '../domain/models/roles/spec/plan';
 import type { WolfKillOverride } from '../domain/models/roles/spec/schema.types';
 import { isValidSchemaId } from '../domain/models/roles/spec/schemas';
 import { Team } from '../domain/models/roles/spec/types';
@@ -151,27 +150,6 @@ function parsePlayer(value: unknown, path: string): Player {
   );
 }
 
-/** Parses the v5 player record (identity still embedded) for migration. */
-function parseLegacyPlayer(
-  value: unknown,
-  path: string,
-): { userId: string; seat: number; role?: RoleId | null; hasViewedRole: boolean; isBot?: boolean } {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    {
-      userId: parseNonEmptyString(raw.userId, `${path}.userId`),
-      seat: parseSeat(raw.seat, `${path}.seat`),
-      role: parseOptional(raw.role, `${path}.role`, (role, rolePath) =>
-        parseNullable(role, rolePath, parseRoleId),
-      ),
-      hasViewedRole: parseBoolean(raw.hasViewedRole, `${path}.hasViewedRole`),
-      isBot: parseOptional(raw.isBot, `${path}.isBot`, parseBoolean),
-    },
-    path,
-  );
-}
-
 function parseRevealEffect(value: unknown, path: string): string {
   const revealEffect = parseString(value, path);
   return revealEffect === '' ? 'none' : revealEffect;
@@ -210,16 +188,6 @@ function parseRosterEntry(value: unknown, path: string): RosterEntry {
   );
 }
 
-function parsePlayerProfiles(value: unknown, path: string): Record<string, RosterEntry> {
-  const raw = parseObject(value, path);
-  const profiles: Record<string, RosterEntry> = {};
-  for (const [userId, entry] of Object.entries(raw)) {
-    if (userId.length === 0) fail(`${path}.${userId}`, 'a non-empty user ID key');
-    profiles[userId] = parseRosterEntry(entry, `${path}.${userId}`);
-  }
-  return profiles;
-}
-
 function parseSeatRoster(
   value: unknown,
   path: string,
@@ -241,6 +209,7 @@ function parseSeatRoster(
             {
               seat: parseSeat(rawOccupant.seat, `${path}.${key}.seat`),
               userId: parseNonEmptyString(rawOccupant.userId, `${path}.${key}.userId`),
+              profile: parseRosterEntry(rawOccupant.profile, `${path}.${key}.profile`),
             },
             `${path}.${key}`,
           );
@@ -962,7 +931,6 @@ export function parseWerewolfState(value: unknown): GameState {
         }),
     ),
     roster: parseSeatRoster(raw.roster, 'GameState.roster'),
-    playerProfiles: parsePlayerProfiles(raw.playerProfiles, 'GameState.playerProfiles'),
     nightStep: parseNightStep(raw.nightStep, 'GameState.nightStep'),
     isAudioPlaying: parseBoolean(raw.isAudioPlaying, 'GameState.isAudioPlaying'),
     roleRevealRandomNonce: parseOptional(
@@ -1129,136 +1097,17 @@ export function parseWerewolfState(value: unknown): GameState {
 }
 
 /**
- * Upgrades stored v5 rooms: v5 embedded identity in the player record
- * (userId / isBot) and kept display profiles under `roster`. The v6
- * shape splits them: occupancy goes to the unified seat roster, game
- * data stays in players, and profiles move to `playerProfiles`.
- * @throws When the stored state is malformed or invalid after migration.
+ * Entry point for persisted state: hard cut at the current version.
+ * Payloads below WEREWOLF_STATE_VERSION are rejected, not migrated —
+ * old rooms are not carried across a state-shape change (v10 deleted
+ * the v5-v9 upgrade chain; see state/version.ts).
+ * @throws When the stored state carries any other version, or when the
+ *   current-version payload is malformed.
  */
-/**
- * v8 canonicalizes the night-step window values on a raw stored record.
- * Writers before v8 could leave the three step fields in combinations the
- * step-window invariants reject: a stepDeadline surviving END_NIGHT into
- * Day/Ended, a stale currentStepId outside the night, an Ongoing index that
- * disagrees with its step id, or an exhausted position whose index is not
- * the plan length. The repair rewrites only the step fields, from facts
- * the record itself carries (status + currentStepId + the plan derived
- * from templateRoles/seerLabelMap; the step id wins any disagreement
- * because recorded night actions are keyed by it). A step id outside the
- * plan falls back to the stored index position — the shape a plan-rule
- * change between versions leaves behind. When neither field can be
- * placed in the plan the record is left untouched for the strict parser
- * and the state invariants to reject.
- */
-function canonicalizeStepWindowFields(raw: Record<string, unknown>): void {
-  if (raw.status !== GameStatus.Ongoing) {
-    raw.currentStepIndex = -1;
-    delete raw.currentStepId;
-    delete raw.stepDeadline;
-    return;
-  }
-  const templateRoles = parseRoleIds(raw.templateRoles, 'GameState.templateRoles');
-  const seerLabelMap =
-    raw.seerLabelMap === undefined
-      ? undefined
-      : parseStringNumberRecord(raw.seerLabelMap, 'GameState.seerLabelMap');
-  const plan = buildNightPlan(templateRoles, seerLabelMap);
-  if (raw.currentStepId === undefined) {
-    raw.currentStepIndex = plan.steps.length;
-    delete raw.stepDeadline;
-    return;
-  }
-  const index = plan.steps.findIndex((step) => step.stepId === raw.currentStepId);
-  if (index >= 0) {
-    raw.currentStepIndex = index;
-    return;
-  }
-  const storedIndex = raw.currentStepIndex;
-  if (typeof storedIndex === 'number' && plan.steps[storedIndex] !== undefined) {
-    raw.currentStepId = plan.steps[storedIndex].stepId;
-  }
-}
-
-/**
- * v9 shape transform for a canonicalized v8 record: the step window
- * (currentStepIndex / currentStepId / stepDeadline) collapses into the
- * `nightStep` union. The input has already been canonicalized (v8 load
- * rules), so the combination is one of the legal window positions and
- * this is a pure shape transform with no value judgement: non-Ongoing
- * carries no step; Ongoing with a step id is inStep (deadline rides
- * along); Ongoing without one is exhausted.
- */
-function upgradeV8NightStep(raw: Record<string, unknown>): Record<string, unknown> {
-  const { currentStepIndex: _index, currentStepId, stepDeadline, ...rest } = raw;
-  let nightStep: WerewolfNightStep | null = null;
-  if (raw.status === GameStatus.Ongoing && currentStepId !== undefined) {
-    // The record was canonicalized on the way in, so these checks only
-    // fire on a corrupt stored record — fail fast rather than guess.
-    if (typeof currentStepId !== 'string' || !isValidSchemaId(currentStepId)) {
-      throw new Error('GameState.currentStepId: invalid schema id in pre-v9 state');
-    }
-    if (stepDeadline !== undefined && typeof stepDeadline !== 'number') {
-      throw new Error('GameState.stepDeadline: invalid deadline in pre-v9 state');
-    }
-    nightStep = {
-      kind: 'inStep',
-      stepId: currentStepId,
-      ...(stepDeadline !== undefined ? { stepDeadline } : {}),
-    };
-  } else if (raw.status === GameStatus.Ongoing) {
-    nightStep = { kind: 'exhausted' };
-  }
-  return { ...rest, stateVersion: WEREWOLF_STATE_VERSION, nightStep };
-}
-
 export function migratePersistedWerewolfState(value: unknown): GameState {
   const raw = parseObject(value, 'GameState');
-  if (raw.stateVersion === WEREWOLF_STATE_VERSION) return parseWerewolfState(raw);
-  if (raw.stateVersion === 8) {
-    // v8 payloads were canonicalized when written under v8; re-applying
-    // the canonicalization is a no-op for them and keeps the transform's
-    // precondition explicit rather than assumed.
-    const upgraded: Record<string, unknown> = { ...raw };
-    canonicalizeStepWindowFields(upgraded);
-    return parseWerewolfState(upgradeV8NightStep(upgraded));
-  }
-  if (raw.stateVersion === 7) {
-    const upgraded: Record<string, unknown> = { ...raw };
-    canonicalizeStepWindowFields(upgraded);
-    return parseWerewolfState(upgradeV8NightStep(upgraded));
-  }
-  if (raw.stateVersion === 6) {
-    // v7 deletes the debugMode record: drop the field, then the
-    // current strict parser validates the rest unchanged.
-    const upgraded: Record<string, unknown> = { ...raw };
-    delete upgraded.debugMode;
-    canonicalizeStepWindowFields(upgraded);
-    return parseWerewolfState(upgradeV8NightStep(upgraded));
-  }
-  if (raw.stateVersion !== 5) {
+  if (raw.stateVersion !== WEREWOLF_STATE_VERSION) {
     throw new Error(`Unsupported werewolf state version: ${String(raw.stateVersion)}`);
   }
-  const rawPlayers = parseObject(raw.players, 'GameState.players');
-  const players: Record<number, Player | null> = {};
-  const roster: Record<number, WerewolfHumanSeat | BotSeatOccupant> = {};
-  for (const [key, player] of Object.entries(rawPlayers)) {
-    const seat = parseSeatKey(key, `GameState.players.${key}`);
-    if (player === null) {
-      players[seat] = null;
-      continue;
-    }
-    const legacy = parseLegacyPlayer(player, `GameState.players.${key}`);
-    players[seat] = { seat, role: legacy.role, hasViewedRole: legacy.hasViewedRole };
-    roster[seat] = legacy.isBot === true ? { seat, kind: 'bot' } : { seat, userId: legacy.userId };
-  }
-  const playerProfiles = parsePlayerProfiles(raw.roster, 'GameState.roster');
-  const { roster: _legacyProfiles, ...rest } = raw;
-  const upgraded: Record<string, unknown> = {
-    ...rest,
-    players,
-    roster,
-    playerProfiles,
-  };
-  canonicalizeStepWindowFields(upgraded);
-  return parseWerewolfState(upgradeV8NightStep(upgraded));
+  return parseWerewolfState(raw);
 }

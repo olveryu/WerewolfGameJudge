@@ -52,14 +52,9 @@ function createState(overrides: Partial<GameState> = {}): GameState {
       3: null,
     },
     roster: {
-      0: { seat: 0, userId: 'host' },
-      1: { seat: 1, userId: 'user-1' },
+      0: { seat: 0, userId: 'host', profile: { displayName: 'Host' } },
+      1: { seat: 1, userId: 'user-1', profile: { displayName: 'User 1' } },
       2: { seat: 2, kind: 'bot' },
-    },
-    playerProfiles: {
-      host: { displayName: 'Host' },
-      'user-1': { displayName: 'User 1' },
-      'bot-2': { displayName: 'Bot 2' },
     },
     ...overrides,
   };
@@ -871,18 +866,11 @@ describe('Werewolf engine definition and catalog', () => {
         4: { seat: 4, role: 'villager', hasViewedRole: true },
       },
       roster: {
-        0: { seat: 0, userId: 'host' },
-        1: { seat: 1, userId: 'user-1' },
+        0: { seat: 0, userId: 'host', profile: { displayName: 'Host' } },
+        1: { seat: 1, userId: 'user-1', profile: { displayName: 'User 1' } },
         2: { seat: 2, kind: 'bot' },
-        3: { seat: 3, userId: 'user-3' },
-        4: { seat: 4, userId: 'user-4' },
-      },
-      playerProfiles: {
-        host: { displayName: 'Host' },
-        'user-1': { displayName: 'User 1' },
-        'bot-2': { displayName: 'Bot 2' },
-        'user-3': { displayName: 'User 3' },
-        'user-4': { displayName: 'User 4' },
+        3: { seat: 3, userId: 'user-3', profile: { displayName: 'User 3' } },
+        4: { seat: 4, userId: 'user-4', profile: { displayName: 'User 4' } },
       },
     });
 
@@ -1279,10 +1267,10 @@ describe('Werewolf engine definition and catalog', () => {
         3: { seat: 3, hasViewedRole: false },
       },
       roster: {
-        0: { seat: 0, userId: 'host' },
-        1: { seat: 1, userId: 'user-1' },
-        2: { seat: 2, userId: 'user-2' },
-        3: { seat: 3, userId: 'user-3' },
+        0: { seat: 0, userId: 'host', profile: { displayName: 'Host' } },
+        1: { seat: 1, userId: 'user-1', profile: { displayName: 'User 1' } },
+        2: { seat: 2, userId: 'user-2', profile: { displayName: 'User 2' } },
+        3: { seat: 3, userId: 'user-3', profile: { displayName: 'User 3' } },
       },
     });
     const command = commandByType['werewolf.roles.assign'];

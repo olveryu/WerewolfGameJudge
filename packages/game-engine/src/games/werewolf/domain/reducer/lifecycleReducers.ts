@@ -12,7 +12,11 @@
  */
 
 import { haveAllViewed } from '../../../../platform/room/identityViewing';
-import { type BotSeatOccupant, isBotOccupant } from '../../../../platform/room/seating';
+import {
+  type BotSeatOccupant,
+  findRosterSeatByUserId,
+  isBotOccupant,
+} from '../../../../platform/room/seating';
 import { GameStatus, getPlayerCount } from '../models';
 import { getWerewolfViewedSeats, getWerewolfViewingParticipants } from '../playerHelpers';
 import type { GameState, WerewolfHumanSeat } from '../protocol/types';
@@ -45,8 +49,8 @@ export function handleInitializeGame(state: GameState, action: InitializeGameAct
     hostUserId,
     templateRoles,
     players,
-    // Occupancy resets together with the players map; profiles are kept
-    // (the by-user display map is not seat-scoped).
+    // Occupancy resets together with the players map; the display
+    // profile rides inside each human occupant, so it resets with it.
     roster: {},
     status: GameStatus.Unseated,
     nightStep: null,
@@ -86,7 +90,6 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     templateRoles: state.templateRoles,
     rules: state.rules,
     roster: state.roster,
-    playerProfiles: state.playerProfiles,
 
     // ── Reset fields ─────────────────────────────────────────
     players,
@@ -176,8 +179,9 @@ export function handleUpdateTemplate(state: GameState, action: UpdateTemplateAct
   // Note: seats beyond newCount (shrink) are not copied, i.e. kicked.
   // Occupancy lives in the roster since the v6 split, so the same cut must
   // be applied there or the stranded occupants break every later actor
-  // resolution (their seat is outside the new seat range). Profiles are
-  // kept, matching the pre-split behavior where shrink left them in place.
+  // resolution (their seat is outside the new seat range). The display
+  // profile rides inside the occupant, so a kicked seat's profile goes
+  // with it.
   const newRoster: Record<number, WerewolfHumanSeat | BotSeatOccupant> = {};
   for (const [seatKey, occupant] of Object.entries(state.roster)) {
     const seat = Number(seatKey);
@@ -200,7 +204,7 @@ export function handleUpdateTemplate(state: GameState, action: UpdateTemplateAct
 
 /** Player takes a seat. */
 export function handlePlayerJoin(state: GameState, action: PlayerJoinAction): GameState {
-  const { seat, occupant, player, rosterEntry } = action.payload;
+  const { seat, occupant, player } = action.payload;
   const newPlayers = { ...state.players, [seat]: player };
   const allSeated = Object.values(newPlayers).every((p) => p !== null);
   const newStatus = allSeated ? GameStatus.Seated : state.status;
@@ -209,28 +213,19 @@ export function handlePlayerJoin(state: GameState, action: PlayerJoinAction): Ga
     ...state,
     players: newPlayers,
     roster: { ...state.roster, [seat]: occupant },
-    playerProfiles: { ...state.playerProfiles, [occupant.userId]: rosterEntry },
     status: newStatus,
   };
 }
 
-/** Player leaves seat. */
+/** Player leaves seat (the profile rides inside the occupant and goes with it). */
 export function handlePlayerLeave(state: GameState, action: PlayerLeaveAction): GameState {
   const { seat } = action.payload;
-  const leavingOccupant = state.roster[seat];
   const newRoster = { ...state.roster };
   delete newRoster[seat];
-  const newProfiles = { ...state.playerProfiles };
-  if (leavingOccupant != null) {
-    // Bots carry their profile under the synthetic `bot-<seat>` id; the
-    // pre-split record deleted it via the bot's userId, so do the same.
-    delete newProfiles[isBotOccupant(leavingOccupant) ? `bot-${seat}` : leavingOccupant.userId];
-  }
   return {
     ...state,
     players: { ...state.players, [seat]: null },
     roster: newRoster,
-    playerProfiles: newProfiles,
     status: state.status === GameStatus.Seated ? GameStatus.Unseated : state.status,
   };
 }
@@ -250,24 +245,30 @@ export function handleUpdatePlayerProfile(
     revealEffect,
     seatAnimation,
   } = action.payload;
-  const existing = state.playerProfiles[userId];
-  if (!existing) return state; // no-op if userId has no profile entry
+  const seat = findRosterSeatByUserId(state.roster, Object.keys(state.players).length, userId);
+  if (seat === null) return state; // no-op if the user holds no seat
+  const occupant = state.roster[seat];
+  if (occupant == null || isBotOccupant(occupant)) return state;
+  const existing = occupant.profile;
 
   return {
     ...state,
-    playerProfiles: {
-      ...state.playerProfiles,
-      [userId]: {
-        ...existing,
-        ...(displayName !== undefined && { displayName }),
-        ...(avatarUrl !== undefined && { avatarUrl }),
-        ...(avatarFrame !== undefined && { avatarFrame }),
-        ...(seatFlair !== undefined && { seatFlair }),
-        // Field order matches parseRosterEntry so a partially populated
-        // entry still serializes identically after a parse round-trip.
-        ...(seatAnimation !== undefined && { seatAnimation }),
-        ...(nameStyle !== undefined && { nameStyle }),
-        ...(revealEffect !== undefined && { revealEffect }),
+    roster: {
+      ...state.roster,
+      [seat]: {
+        ...occupant,
+        profile: {
+          ...existing,
+          ...(displayName !== undefined && { displayName }),
+          ...(avatarUrl !== undefined && { avatarUrl }),
+          ...(avatarFrame !== undefined && { avatarFrame }),
+          ...(seatFlair !== undefined && { seatFlair }),
+          // Field order matches parseRosterEntry so a partially populated
+          // profile still serializes identically after a parse round-trip.
+          ...(seatAnimation !== undefined && { seatAnimation }),
+          ...(nameStyle !== undefined && { nameStyle }),
+          ...(revealEffect !== undefined && { revealEffect }),
+        },
       },
     },
   };
@@ -336,7 +337,7 @@ export function handlePlayerViewedRole(
 
 /** Fill empty seats with bots. */
 export function handleFillWithBots(state: GameState, action: FillWithBotsAction): GameState {
-  const { bots, botRoster } = action.payload;
+  const { bots } = action.payload;
 
   // Merge existing players and bots
   const newPlayers = { ...state.players };
@@ -354,7 +355,6 @@ export function handleFillWithBots(state: GameState, action: FillWithBotsAction)
     ...state,
     players: newPlayers,
     roster: newRoster,
-    playerProfiles: { ...state.playerProfiles, ...botRoster },
     status: allSeated ? GameStatus.Seated : state.status,
   };
 }

@@ -17,8 +17,7 @@ function createTreasureMasterState(overrides: Partial<GameState> = {}): GameStat
         hasViewedRole: false,
       },
     },
-    roster: { 0: { seat: 0, userId: 'host' } },
-    playerProfiles: {},
+    roster: { 0: { seat: 0, userId: 'host', profile: { displayName: 'host' } } },
     nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
@@ -64,12 +63,11 @@ function createSheriffElectionState(overrides: Partial<GameState> = {}): GameSta
       3: { seat: 3, role: 'villager', hasViewedRole: true },
     },
     roster: {
-      0: { seat: 0, userId: 'host' },
-      1: { seat: 1, userId: 'p1' },
-      2: { seat: 2, userId: 'p2' },
-      3: { seat: 3, userId: 'p3' },
+      0: { seat: 0, userId: 'host', profile: { displayName: 'host' } },
+      1: { seat: 1, userId: 'p1', profile: { displayName: 'p1' } },
+      2: { seat: 2, userId: 'p2', profile: { displayName: 'p2' } },
+      3: { seat: 3, userId: 'p3', profile: { displayName: 'p3' } },
     },
-    playerProfiles: {},
     nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
@@ -194,8 +192,8 @@ describe('assertWerewolfStateInvariants', () => {
             1: { seat: 1, role: 'seer', hasViewedRole: false },
           },
           roster: {
-            0: { seat: 0, userId: 'host' },
-            1: { seat: 1, userId: 'p1' },
+            0: { seat: 0, userId: 'host', profile: { displayName: 'host' } },
+            1: { seat: 1, userId: 'p1', profile: { displayName: 'p1' } },
           },
         }),
       ),
@@ -454,8 +452,8 @@ describe('assertWerewolfStateInvariants', () => {
       assertWerewolfStateInvariants(
         createTreasureMasterState({
           roster: {
-            0: { seat: 0, userId: 'host' },
-            1: { seat: 1, userId: 'p1' },
+            0: { seat: 0, userId: 'host', profile: { displayName: 'host' } },
+            1: { seat: 1, userId: 'p1', profile: { displayName: 'p1' } },
           },
         }),
       ),
@@ -465,8 +463,8 @@ describe('assertWerewolfStateInvariants', () => {
         createTreasureMasterState({
           players: { 0: { seat: 0, role: 'treasureMaster', hasViewedRole: false }, 1: null },
           roster: {
-            0: { seat: 0, userId: 'host' },
-            1: { seat: 1, userId: 'p1' },
+            0: { seat: 0, userId: 'host', profile: { displayName: 'host' } },
+            1: { seat: 1, userId: 'p1', profile: { displayName: 'p1' } },
           },
         }),
       ),
@@ -474,7 +472,10 @@ describe('assertWerewolfStateInvariants', () => {
     expect(() =>
       assertWerewolfStateInvariants(
         createTreasureMasterState({
-          roster: { 0: { seat: 0, userId: 'host' }, 1: { seat: 0, userId: 'p1' } },
+          roster: {
+            0: { seat: 0, userId: 'host', profile: { displayName: 'host' } },
+            1: { seat: 0, userId: 'p1', profile: { displayName: 'p1' } },
+          },
           players: {
             0: { seat: 0, role: 'treasureMaster', hasViewedRole: false },
             1: { seat: 1, role: null, hasViewedRole: false },
@@ -485,7 +486,10 @@ describe('assertWerewolfStateInvariants', () => {
     expect(() =>
       assertWerewolfStateInvariants(
         createTreasureMasterState({
-          roster: { 0: { seat: 0, userId: 'host' }, 1: { seat: 1, userId: 'host' } },
+          roster: {
+            0: { seat: 0, userId: 'host', profile: { displayName: 'host' } },
+            1: { seat: 1, userId: 'host', profile: { displayName: 'host' } },
+          },
           players: {
             0: { seat: 0, role: 'treasureMaster', hasViewedRole: false },
             1: { seat: 1, role: null, hasViewedRole: false },

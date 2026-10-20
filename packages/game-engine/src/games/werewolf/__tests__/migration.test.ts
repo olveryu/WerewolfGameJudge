@@ -1,4 +1,14 @@
-/** v5 -> v6 player-record split migration: identity moves to the roster. */
+/**
+ * Persisted-state version gate.
+ *
+ * v10 is a hard cut: the display profile moved into the roster human
+ * occupant and the by-user playerProfiles map was deleted. Payloads
+ * below the current version are rejected, not migrated — old rooms are
+ * not carried across a state-shape change, and the v5-v9 upgrade chain
+ * was deleted with v10 (see state/version.ts). This suite pins the
+ * gate: the current version passes through untouched; every older (or
+ * newer) version is refused.
+ */
 
 import { GameStatus } from '../domain/models/GameStatus';
 import { createTemplateFromRoles } from '../domain/models/Template';
@@ -6,8 +16,10 @@ import type { GameState } from '../domain/protocol/types';
 import { gameReducer } from '../domain/reducer/gameReducer';
 import { buildInitialGameState } from '../domain/state/buildInitialState';
 import { migratePersistedWerewolfState, parseWerewolfState } from '../state/parseState';
+import { WEREWOLF_STATE_VERSION } from '../state/version';
 
-function buildV6State(): GameState {
+/** A started game in the current shape: 2 humans + 1 bot, roles assigned and viewed. */
+function buildStartedState(): GameState {
   let state = buildInitialGameState(
     'ROOM',
     'host',
@@ -17,25 +29,22 @@ function buildV6State(): GameState {
     type: 'PLAYER_JOIN',
     payload: {
       seat: 0,
-      occupant: { seat: 0, userId: 'host' },
+      occupant: { seat: 0, userId: 'host', profile: { displayName: '房主' } },
       player: { seat: 0, role: null, hasViewedRole: false },
-      rosterEntry: { displayName: '房主' },
     },
   });
   state = gameReducer(state, {
     type: 'PLAYER_JOIN',
     payload: {
       seat: 1,
-      occupant: { seat: 1, userId: 'alice' },
+      occupant: { seat: 1, userId: 'alice', profile: { displayName: 'Alice' } },
       player: { seat: 1, role: null, hasViewedRole: false },
-      rosterEntry: { displayName: 'Alice' },
     },
   });
   state = gameReducer(state, {
     type: 'FILL_WITH_BOTS',
     payload: {
       bots: { 2: { seat: 2, hasViewedRole: false } },
-      botRoster: { 'bot-2': { displayName: '机器人3号' } },
     },
   });
   // Assign roles and mark everyone as having viewed, as a started game would.
@@ -51,341 +60,118 @@ function buildV6State(): GameState {
   return parseWerewolfState(JSON.parse(JSON.stringify(state)));
 }
 
-/** Rebuilds the exact document a v5 store would have persisted. */
-function downgradeToV5(state: GameState): Record<string, unknown> {
+/** Rebuilds the exact document a v9 store would have persisted for the same game. */
+function downgradeToV9(state: GameState): Record<string, unknown> {
   const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
-  const roster = raw.roster as Record<string, { userId?: string }>;
-  const players: Record<string, unknown> = {};
-  for (const [key, player] of Object.entries(raw.players as Record<string, unknown>)) {
-    if (player === null) {
-      players[key] = null;
-      continue;
-    }
-    const occupant = roster[key];
-    const isBot = occupant !== undefined && occupant.userId === undefined;
-    players[key] = {
-      ...(player as Record<string, unknown>),
-      userId: isBot ? `bot-${key}` : occupant?.userId,
-      ...(isBot ? { isBot: true } : {}),
-    };
-  }
   return {
     ...raw,
-    stateVersion: 5,
-    players,
-    roster: raw.playerProfiles,
-    playerProfiles: undefined,
+    stateVersion: 9,
+    roster: {
+      0: { seat: 0, userId: 'host' },
+      1: { seat: 1, userId: 'alice' },
+      2: { seat: 2, kind: 'bot' },
+    },
+    playerProfiles: {
+      host: { displayName: '房主' },
+      alice: { displayName: 'Alice' },
+      'bot-2': { displayName: '机器人3号' },
+    },
   };
 }
 
-describe('Werewolf v5 -> v6 roster migration', () => {
-  it('splits a started game (2 humans + 1 bot, roles assigned) exactly', () => {
-    const state = buildV6State();
-    const legacy = downgradeToV5(state);
-    delete legacy.playerProfiles;
-    expect(() => parseWerewolfState(legacy)).toThrow();
-    const migrated = migratePersistedWerewolfState(legacy);
+function asStored(state: GameState): Record<string, unknown> {
+  return JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
+}
+
+describe('persisted state version gate (v10 hard cut)', () => {
+  it('pins the current version at 10', () => {
+    expect(WEREWOLF_STATE_VERSION).toBe(10);
+    expect(buildStartedState().stateVersion).toBe(10);
+  });
+
+  it('passes a current-version payload through value-identical (identity baseline)', () => {
+    const state = buildStartedState();
+    const migrated = migratePersistedWerewolfState(asStored(state));
     expect(migrated).toEqual(state);
+    expect(migrated.roster[0]).toEqual({
+      seat: 0,
+      userId: 'host',
+      profile: { displayName: '房主' },
+    });
     expect(migrated.roster[2]).toEqual({ seat: 2, kind: 'bot' });
-    expect(migrated.roster[0]).toEqual({ seat: 0, userId: 'host' });
-    expect(migrated.playerProfiles.host?.displayName).toBe('房主');
-    expect(migrated.playerProfiles['bot-2']?.displayName).toBe('机器人3号');
-    expect(migratePersistedWerewolfState(state)).toEqual(state);
   });
 
-  it('migrates sparse players and an explicit isBot:false whole', () => {
-    // A lobby room where seat 1 was never taken; seat 0 carries the explicit
-    // isBot:false the old optional field allowed.
-    const lobby = parseWerewolfState(
-      JSON.parse(
-        JSON.stringify(
-          buildInitialGameState(
-            'ROOM',
-            'host',
-            createTemplateFromRoles(['wolf', 'seer', 'villager']),
-          ),
-        ),
-      ),
-    );
-    lobby.hostUserId = 'host';
-    lobby.players[0] = { seat: 0, role: null, hasViewedRole: false };
-    lobby.players[2] = { seat: 2, role: null, hasViewedRole: false };
-    lobby.roster = {
-      0: { seat: 0, userId: 'host' },
-      2: { seat: 2, kind: 'bot' },
+  it('keeps the serialized form string-identical across a parse round-trip', () => {
+    // The room repository detects changes by comparing serialized
+    // snapshots, so producer and parser key order must agree exactly —
+    // the embedded profile subtree included.
+    const serialized = JSON.stringify(buildStartedState());
+    expect(JSON.stringify(parseWerewolfState(JSON.parse(serialized)))).toBe(serialized);
+  });
+
+  it('keeps a fully populated profile string-identical across a parse round-trip', () => {
+    // Every optional profile field set: the serialized key order of the
+    // whole profile subtree must survive the round-trip unchanged.
+    const raw = asStored(buildStartedState());
+    const roster = raw.roster as Record<string, { profile?: Record<string, unknown> }>;
+    roster[0]!.profile = {
+      displayName: '房主',
+      avatarUrl: 'https://example.com/avatar.png',
+      avatarFrame: 'gold',
+      seatFlair: 'crown',
+      seatAnimation: 'shine',
+      nameStyle: 'gradient',
+      revealEffect: 'flip',
+      level: 7,
     };
-    lobby.playerProfiles = {
-      host: { displayName: '房主' },
-      'bot-2': { displayName: '机器人3号' },
+    const serialized = JSON.stringify(parseWerewolfState(raw));
+    expect(serialized).toContain(
+      '"profile":{"displayName":"房主","avatarUrl":"https://example.com/avatar.png",' +
+        '"avatarFrame":"gold","seatFlair":"crown","seatAnimation":"shine",' +
+        '"nameStyle":"gradient","revealEffect":"flip","level":7}',
+    );
+    expect(JSON.stringify(parseWerewolfState(JSON.parse(serialized)))).toBe(serialized);
+  });
+
+  it('rejects a v9 payload (profiles still in the by-user map)', () => {
+    const legacy = downgradeToV9(buildStartedState());
+    expect(() => migratePersistedWerewolfState(legacy)).toThrow(
+      'Unsupported werewolf state version: 9',
+    );
+    expect(() => parseWerewolfState(legacy)).toThrow('GameState.stateVersion must be 10');
+  });
+
+  it('rejects a v5 payload (identity still embedded in the player record)', () => {
+    const legacy = { ...asStored(buildStartedState()), stateVersion: 5 };
+    expect(() => migratePersistedWerewolfState(legacy)).toThrow(
+      'Unsupported werewolf state version: 5',
+    );
+  });
+
+  it('rejects a payload from a newer version', () => {
+    const future = { ...asStored(buildStartedState()), stateVersion: 11 };
+    expect(() => migratePersistedWerewolfState(future)).toThrow(
+      'Unsupported werewolf state version: 11',
+    );
+  });
+
+  it('rejects a current-version payload that still carries the dropped playerProfiles field', () => {
+    const stored = {
+      ...asStored(buildStartedState()),
+      playerProfiles: { host: { displayName: '房主' } },
     };
-    const legacy = downgradeToV5(lobby);
-    const legacyPlayers = legacy.players as Record<string, Record<string, unknown> | null>;
-    const legacyHost = legacyPlayers[0];
-    if (legacyHost != null) legacyHost.isBot = false;
-
-    expect(migratePersistedWerewolfState(legacy)).toEqual(lobby);
-  });
-
-  it('migrates an empty lobby (no occupants) whole', () => {
-    const state = parseWerewolfState(
-      JSON.parse(
-        JSON.stringify(
-          buildInitialGameState('ROOM', 'host', createTemplateFromRoles(['wolf', 'seer'])),
-        ),
-      ),
+    expect(() => migratePersistedWerewolfState(stored)).toThrow(
+      'GameState contains unknown field: playerProfiles',
     );
-    const legacy = downgradeToV5(state);
-    delete legacy.playerProfiles;
-    expect(migratePersistedWerewolfState(legacy)).toEqual(state);
-  });
-});
-
-describe('v6 -> current migration (debugMode deletion + nightStep shape)', () => {
-  it('drops the debugMode field and parses the rest unchanged', () => {
-    const current = buildV6State();
-    const stored = JSON.parse(
-      JSON.stringify({ ...current, stateVersion: 6, debugMode: { botsEnabled: true } }),
-    ) as unknown;
-
-    const migrated = migratePersistedWerewolfState(stored);
-
-    expect(migrated.stateVersion).toBe(9);
-    expect('debugMode' in migrated).toBe(false);
-    expect(migrated).toEqual(parseWerewolfState(JSON.parse(JSON.stringify(current)) as unknown));
-  });
-
-  it('rejects a current-version payload that still carries debugMode', () => {
-    const current = buildV6State();
-    const stored = JSON.parse(
-      JSON.stringify({ ...current, debugMode: { botsEnabled: true } }),
-    ) as unknown;
-
-    expect(() => parseWerewolfState(stored)).toThrow('GameState contains unknown field: debugMode');
-  });
-});
-
-describe('v7 -> current migration (night-step canonicalization into the nightStep shape)', () => {
-  // Base board is [wolf, seer, villager]: the night plan is
-  // [wolfKill, seerCheck] (length 2).
-  function storedV7(overrides: Record<string, unknown>): unknown {
-    return JSON.parse(
-      JSON.stringify({ ...buildV6State(), stateVersion: 7, ...overrides }),
-    ) as unknown;
-  }
-
-  it('clears a stepDeadline that survived END_NIGHT into Ended', () => {
-    const migrated = migratePersistedWerewolfState(
-      storedV7({
-        status: GameStatus.Ended,
-        currentNightResults: {},
-        currentStepIndex: 0,
-        currentStepId: 'wolfKill',
-        stepDeadline: 1_000,
-      }),
+    expect(() => parseWerewolfState(stored)).toThrow(
+      'GameState contains unknown field: playerProfiles',
     );
-    expect(migrated.stateVersion).toBe(9);
-    expect(migrated.nightStep).toBeNull();
   });
 
-  it('clears step fields on any non-Ongoing status', () => {
-    const migrated = migratePersistedWerewolfState(
-      storedV7({ status: GameStatus.Seated, currentStepId: 'wolfKill', currentStepIndex: 2 }),
-    );
-    expect(migrated.nightStep).toBeNull();
-  });
-
-  it('repairs an Ongoing index that disagrees with its step id (the id wins)', () => {
-    const migrated = migratePersistedWerewolfState(
-      storedV7({
-        status: GameStatus.Ongoing,
-        currentNightResults: {},
-        currentStepId: 'seerCheck',
-        currentStepIndex: 0,
-        stepDeadline: 2_000,
-      }),
-    );
-    expect(migrated.nightStep).toEqual({
-      kind: 'inStep',
-      stepId: 'seerCheck',
-      stepDeadline: 2_000,
-    });
-  });
-
-  it('normalizes the exhausted position to the plan length and drops its deadline', () => {
-    const migrated = migratePersistedWerewolfState(
-      storedV7({
-        status: GameStatus.Ongoing,
-        currentNightResults: {},
-        currentStepIndex: 0,
-        stepDeadline: 3_000,
-      }),
-    );
-    expect(migrated.nightStep).toEqual({ kind: 'exhausted' });
-  });
-
-  it('passes a consistent in-step Ongoing state through value-identical', () => {
-    const migrated = migratePersistedWerewolfState(
-      storedV7({
-        status: GameStatus.Ongoing,
-        currentNightResults: {},
-        currentStepId: 'wolfKill',
-        currentStepIndex: 0,
-        stepDeadline: 4_000,
-      }),
-    );
-    expect(migrated.nightStep).toEqual({
-      kind: 'inStep',
-      stepId: 'wolfKill',
-      stepDeadline: 4_000,
-    });
-  });
-
-  it('rescues a step id outside the plan from the stored index position', () => {
-    const migrated = migratePersistedWerewolfState(
-      storedV7({
-        status: GameStatus.Ongoing,
-        currentNightResults: {},
-        currentStepId: 'guardProtect',
-        currentStepIndex: 1,
-      }),
-    );
-    expect(migrated.nightStep).toEqual({ kind: 'inStep', stepId: 'seerCheck' });
-  });
-
-  it('rejects a current-version (v9) payload that still carries legacy step fields', () => {
-    const stored = JSON.parse(
-      JSON.stringify({
-        ...buildV6State(),
-        status: GameStatus.Ongoing,
-        currentNightResults: {},
-        currentStepId: 'seerCheck',
-        currentStepIndex: 0,
-      }),
-    ) as unknown;
-    expect(() => migratePersistedWerewolfState(stored)).toThrow(/unknown field/);
-  });
-
-  it('canonicalizes a dirty v6 payload on its way to v9 as well', () => {
-    const migrated = migratePersistedWerewolfState(
-      storedV7({
-        stateVersion: 6,
-        debugMode: { botsEnabled: true },
-        status: GameStatus.Ended,
-        currentNightResults: {},
-        stepDeadline: 5_000,
-      }),
-    );
-    expect(migrated.stateVersion).toBe(9);
-    expect('debugMode' in migrated).toBe(false);
-    expect(migrated.nightStep).toBeNull();
-  });
-});
-
-describe('v8 -> v9 migration (legacy step fields into the nightStep shape)', () => {
-  // Base board is [wolf, seer, villager]: the night plan is
-  // [wolfKill, seerCheck] (length 2). A v8 document carries the legacy
-  // three fields and no nightStep key.
-  function storedV8(overrides: Record<string, unknown>): unknown {
-    const raw = JSON.parse(JSON.stringify(buildV6State())) as Record<string, unknown>;
-    delete raw.nightStep;
-    return { ...raw, stateVersion: 8, ...overrides };
-  }
-
-  it('clears an Ended residual step window (incl. deadline) into nightStep null', () => {
-    const migrated = migratePersistedWerewolfState(
-      storedV8({
-        status: GameStatus.Ended,
-        currentNightResults: {},
-        currentStepIndex: 0,
-        currentStepId: 'wolfKill',
-        stepDeadline: 1_000,
-      }),
-    );
-    expect(migrated.stateVersion).toBe(9);
-    expect(migrated.nightStep).toBeNull();
-  });
-
-  it('maps a lobby state (L1) to nightStep null', () => {
-    const migrated = migratePersistedWerewolfState(
-      storedV8({
-        status: GameStatus.Unseated,
-        currentStepIndex: 0,
-        currentStepId: 'wolfKill',
-        stepDeadline: 1_000,
-      }),
-    );
-    expect(migrated.stateVersion).toBe(9);
-    expect(migrated.nightStep).toBeNull();
-  });
-
-  it('maps a Day state with a sheriff election to nightStep null and keeps the election', () => {
-    const dayState = gameReducer(
-      {
-        ...buildV6State(),
-        status: GameStatus.Ongoing,
-        rules: { isSheriffElectionEnabled: true },
-        currentNightResults: {},
-        nightStep: { kind: 'exhausted' },
-      },
-      { type: 'END_NIGHT', payload: { deaths: [], deathReasons: {} } },
-    );
-    expect(dayState.status).toBe(GameStatus.Day);
-    const raw = JSON.parse(JSON.stringify(dayState)) as Record<string, unknown>;
-    delete raw.nightStep;
-    const migrated = migratePersistedWerewolfState({
-      ...raw,
-      stateVersion: 8,
-      currentStepIndex: -1,
-    });
-    expect(migrated.stateVersion).toBe(9);
-    expect(migrated.status).toBe(GameStatus.Day);
-    expect(migrated.nightStep).toBeNull();
-    expect(migrated.sheriffElection).toEqual(dayState.sheriffElection);
-  });
-
-  it('maps an Ongoing step id into inStep, the id winning over a stale index', () => {
-    const migrated = migratePersistedWerewolfState(
-      storedV8({
-        status: GameStatus.Ongoing,
-        currentNightResults: {},
-        currentStepId: 'seerCheck',
-        currentStepIndex: 0,
-        stepDeadline: 2_000,
-      }),
-    );
-    expect(migrated.nightStep).toEqual({
-      kind: 'inStep',
-      stepId: 'seerCheck',
-      stepDeadline: 2_000,
-    });
-  });
-
-  it('maps an Ongoing state without a step id to exhausted and drops its deadline', () => {
-    const migrated = migratePersistedWerewolfState(
-      storedV8({
-        status: GameStatus.Ongoing,
-        currentNightResults: {},
-        currentStepIndex: 2,
-        stepDeadline: 3_000,
-      }),
-    );
-    expect(migrated.nightStep).toEqual({ kind: 'exhausted' });
-  });
-
-  it('passes a consistent in-step Ongoing state through value-identical', () => {
-    const migrated = migratePersistedWerewolfState(
-      storedV8({
-        status: GameStatus.Ongoing,
-        currentNightResults: {},
-        currentStepId: 'wolfKill',
-        currentStepIndex: 0,
-        stepDeadline: 4_000,
-      }),
-    );
-    expect(migrated.nightStep).toEqual({
-      kind: 'inStep',
-      stepId: 'wolfKill',
-      stepDeadline: 4_000,
-    });
+  it('rejects a current-version payload whose human occupant lacks the embedded profile', () => {
+    const stored = asStored(buildStartedState());
+    const roster = stored.roster as Record<string, Record<string, unknown>>;
+    delete roster[0]!.profile;
+    expect(() => parseWerewolfState(stored)).toThrow();
   });
 });

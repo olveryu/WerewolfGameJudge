@@ -41,14 +41,9 @@ function createLocalGameState(overrides: Partial<GameState> = {}): LocalGameStat
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     roster: {
-      0: { seat: 0, userId: 'p0' },
-      1: { seat: 1, userId: 'p1' },
-      2: { seat: 2, userId: 'p2' },
-    },
-    playerProfiles: {
-      p0: { displayName: 'P1' },
-      p1: { displayName: 'P2' },
-      p2: { displayName: 'P3' },
+      0: { seat: 0, userId: 'p0', profile: { displayName: 'P1' } },
+      1: { seat: 1, userId: 'p1', profile: { displayName: 'P2' } },
+      2: { seat: 2, userId: 'p2', profile: { displayName: 'P3' } },
     },
     ...overrides,
   });
@@ -558,8 +553,8 @@ describe('createWerewolfRoomShellModel', () => {
           2: { seat: 2, hasViewedRole: botViewed, role: 'seer' as RoleId },
         },
         roster: {
-          0: { seat: 0, userId: 'HOST' },
-          1: { seat: 1, userId: 'P2' },
+          0: { seat: 0, userId: 'HOST', profile: { displayName: '房主' } },
+          1: { seat: 1, userId: 'P2', profile: { displayName: 'P2' } },
           2: { seat: 2, kind: 'bot' },
         },
       });
@@ -596,8 +591,8 @@ describe('createWerewolfRoomShellModel', () => {
             2: { seat: 2, hasViewedRole: true, role: 'seer' as RoleId },
           },
           roster: {
-            0: { seat: 0, userId: 'HOST' },
-            1: { seat: 1, userId: 'P2' },
+            0: { seat: 0, userId: 'HOST', profile: { displayName: '房主' } },
+            1: { seat: 1, userId: 'P2', profile: { displayName: 'P2' } },
             2: { seat: 2, kind: 'bot' },
           },
         }),

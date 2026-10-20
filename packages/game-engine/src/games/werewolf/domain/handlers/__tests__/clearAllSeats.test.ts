@@ -30,7 +30,6 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     roster: {},
-    playerProfiles: {},
     ...overrides,
   };
 }
@@ -55,9 +54,9 @@ describe('handleClearAllSeats', () => {
       2: { seat: 2, role: null, hasViewedRole: false },
     },
     roster: {
-      0: { seat: 0, userId: 'p1' },
-      1: { seat: 1, userId: 'p2' },
-      2: { seat: 2, userId: 'p3' },
+      0: { seat: 0, userId: 'p1', profile: { displayName: 'p1' } },
+      1: { seat: 1, userId: 'p2', profile: { displayName: 'p2' } },
+      2: { seat: 2, userId: 'p3', profile: { displayName: 'p3' } },
     },
   });
 
@@ -84,7 +83,7 @@ describe('handleClearAllSeats', () => {
         2: null,
       },
       roster: {
-        0: { seat: 0, userId: 'p1' },
+        0: { seat: 0, userId: 'p1', profile: { displayName: 'p1' } },
       },
     });
     const context = createContext(state);

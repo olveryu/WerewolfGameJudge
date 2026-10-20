@@ -10,7 +10,6 @@ import type { WerewolfHumanSeat } from '@game-judge/game-engine/games/werewolf/d
 import { gameReducer } from '@game-judge/game-engine/games/werewolf/domain/reducer/gameReducer';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
-import type { RosterEntry } from '@game-judge/game-engine/platform/room/roster';
 
 interface PlayerInput {
   userId: string;
@@ -26,7 +25,6 @@ function createStateWithPlayers(
   const templateRoles: RoleId[] = players.map(() => 'villager'); // placeholder
   const playersMap: GameState['players'] = {};
   const roster: Record<number, WerewolfHumanSeat> = {};
-  const playerProfiles: Record<string, RosterEntry> = {};
 
   for (let i = 0; i < players.length; i++) {
     const p = players[i];
@@ -36,10 +34,10 @@ function createStateWithPlayers(
         role: p.role ?? null,
         hasViewedRole: false,
       };
-      roster[i] = { seat: i, userId: p.userId };
-      playerProfiles[p.userId] = {
-        displayName: p.displayName,
-        avatarUrl: p.avatarUrl,
+      roster[i] = {
+        seat: i,
+        userId: p.userId,
+        profile: { displayName: p.displayName, avatarUrl: p.avatarUrl },
       };
     } else {
       playersMap[i] = null;
@@ -57,7 +55,6 @@ function createStateWithPlayers(
     templateRoles,
     players: playersMap,
     roster,
-    playerProfiles,
     nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
@@ -84,10 +81,16 @@ describe('UPDATE_TEMPLATE player retention', () => {
       payload: { templateRoles: ['wolf', 'villager'] },
     });
 
-    expect(newState.roster[0]).toEqual({ seat: 0, userId: 'u1' });
-    expect(newState.playerProfiles['u1']?.displayName).toBe('Player1');
-    expect(newState.roster[1]).toEqual({ seat: 1, userId: 'u2' });
-    expect(newState.playerProfiles['u2']?.displayName).toBe('Player2');
+    expect(newState.roster[0]).toEqual({
+      seat: 0,
+      userId: 'u1',
+      profile: { displayName: 'Player1', avatarUrl: undefined },
+    });
+    expect(newState.roster[1]).toEqual({
+      seat: 1,
+      userId: 'u2',
+      profile: { displayName: 'Player2', avatarUrl: undefined },
+    });
     expect(newState.status).toBe(GameStatus.Seated);
   });
 
@@ -102,8 +105,16 @@ describe('UPDATE_TEMPLATE player retention', () => {
       payload: { templateRoles: ['wolf', 'villager', 'seer'] },
     });
 
-    expect(newState.roster[0]).toEqual({ seat: 0, userId: 'u1' });
-    expect(newState.roster[1]).toEqual({ seat: 1, userId: 'u2' });
+    expect(newState.roster[0]).toEqual({
+      seat: 0,
+      userId: 'u1',
+      profile: { displayName: 'Player1', avatarUrl: undefined },
+    });
+    expect(newState.roster[1]).toEqual({
+      seat: 1,
+      userId: 'u2',
+      profile: { displayName: 'Player2', avatarUrl: undefined },
+    });
     expect(newState.players[2]).toBeNull();
     expect(newState.status).toBe(GameStatus.Unseated); // has empty seats
   });
@@ -121,8 +132,16 @@ describe('UPDATE_TEMPLATE player retention', () => {
     });
 
     expect(Object.keys(newState.players).length).toBe(2);
-    expect(newState.roster[0]).toEqual({ seat: 0, userId: 'u1' });
-    expect(newState.roster[1]).toEqual({ seat: 1, userId: 'u2' });
+    expect(newState.roster[0]).toEqual({
+      seat: 0,
+      userId: 'u1',
+      profile: { displayName: 'Player1', avatarUrl: undefined },
+    });
+    expect(newState.roster[1]).toEqual({
+      seat: 1,
+      userId: 'u2',
+      profile: { displayName: 'Player2', avatarUrl: undefined },
+    });
     expect(newState.players[2]).toBeUndefined(); // removed
     // Occupancy must be cut together with the players map, otherwise the
     // stranded occupant makes every later actor resolution throw.
@@ -151,7 +170,11 @@ describe('UPDATE_TEMPLATE player retention', () => {
       payload: { templateRoles: ['wolf'] },
     });
 
-    expect(newState.playerProfiles['u1']?.avatarUrl).toBe('https://example.com/avatar.png');
+    expect(newState.roster[0]).toEqual({
+      seat: 0,
+      userId: 'u1',
+      profile: { displayName: 'Player1', avatarUrl: 'https://example.com/avatar.png' },
+    });
   });
 
   it('should handle partial seating correctly', () => {
@@ -168,9 +191,17 @@ describe('UPDATE_TEMPLATE player retention', () => {
       payload: { templateRoles: ['wolf', 'villager', 'seer', 'witch'] },
     });
 
-    expect(newState.roster[0]).toEqual({ seat: 0, userId: 'u1' });
+    expect(newState.roster[0]).toEqual({
+      seat: 0,
+      userId: 'u1',
+      profile: { displayName: 'Player1', avatarUrl: undefined },
+    });
     expect(newState.players[1]).toBeNull();
-    expect(newState.roster[2]).toEqual({ seat: 2, userId: 'u3' });
+    expect(newState.roster[2]).toEqual({
+      seat: 2,
+      userId: 'u3',
+      profile: { displayName: 'Player3', avatarUrl: undefined },
+    });
     expect(newState.players[3]).toBeNull();
     expect(newState.status).toBe(GameStatus.Unseated);
   });

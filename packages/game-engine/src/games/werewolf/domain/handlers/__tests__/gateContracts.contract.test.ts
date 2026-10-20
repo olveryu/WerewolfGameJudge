@@ -21,6 +21,7 @@ import {
   BLOCKED_UI_DEFAULTS,
   SCHEMAS,
 } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
+import type { WerewolfHumanSeat } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import type { ActionRejectedAction } from '@game-judge/game-engine/games/werewolf/domain/reducer/types';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
@@ -45,9 +46,14 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
   };
   // Occupancy mirrors the seated players; this file's convention is that
   // seat N is occupied by user `p${N + 1}`.
-  const derivedRoster: Record<number, { seat: number; userId: string }> = {};
+  const derivedRoster: Record<number, WerewolfHumanSeat> = {};
   for (const player of Object.values(players)) {
-    if (player) derivedRoster[player.seat] = { seat: player.seat, userId: `p${player.seat + 1}` };
+    if (player)
+      derivedRoster[player.seat] = {
+        seat: player.seat,
+        userId: `p${player.seat + 1}`,
+        profile: { displayName: 'P' },
+      };
   }
   const roster: GameState['roster'] = rosterOverride ?? derivedRoster;
   return {
@@ -68,7 +74,6 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     roster,
-    playerProfiles: {},
     currentNightResults: {},
     ...rest,
   };

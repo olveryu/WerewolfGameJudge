@@ -29,10 +29,9 @@ const baseContext: HandlerContext = {
       1: { seat: 1, role: 'villager', hasViewedRole: true },
     },
     roster: {
-      0: { seat: 0, userId: 'p0' },
-      1: { seat: 1, userId: 'p1' },
+      0: { seat: 0, userId: 'p0', profile: { displayName: 'p0' } },
+      1: { seat: 1, userId: 'p1', profile: { displayName: 'p1' } },
     },
-    playerProfiles: {},
     actions: [],
     pendingRevealAcks: [],
     hypnotizedSeats: [],

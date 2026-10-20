@@ -57,14 +57,9 @@ function createLocalGameState(overrides: Partial<GameState> = {}): LocalGameStat
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     roster: {
-      0: { seat: 0, userId: 'HOST' },
-      1: { seat: 1, userId: 'p1' },
-      2: { seat: 2, userId: 'p2' },
-    },
-    playerProfiles: {
-      HOST: { displayName: '房主' },
-      p1: { displayName: 'P2' },
-      p2: { displayName: 'P3' },
+      0: { seat: 0, userId: 'HOST', profile: { displayName: '房主' } },
+      1: { seat: 1, userId: 'p1', profile: { displayName: 'P2' } },
+      2: { seat: 2, userId: 'p2', profile: { displayName: 'P3' } },
     },
     ...overrides,
   });

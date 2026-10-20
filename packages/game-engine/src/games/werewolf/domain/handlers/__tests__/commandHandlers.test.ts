@@ -43,10 +43,13 @@ function createState(overrides: Partial<GameState> = {}): GameState {
       },
     },
     roster: {
-      0: { seat: 0, userId: HOST_USER_ID },
-      [PLAYER_SEAT]: { seat: PLAYER_SEAT, userId: PLAYER_USER_ID },
+      0: { seat: 0, userId: HOST_USER_ID, profile: { displayName: 'Host' } },
+      [PLAYER_SEAT]: {
+        seat: PLAYER_SEAT,
+        userId: PLAYER_USER_ID,
+        profile: { displayName: 'Player' },
+      },
     },
-    playerProfiles: {},
     nightStep: { kind: 'exhausted' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
@@ -321,8 +324,12 @@ describe('Werewolf command handlers', () => {
   describe('handleMarkBotsGroupConfirmed', () => {
     // AU-17: the only gate is whether the roster holds bot seats.
     const rosterWithBot = {
-      0: { seat: 0, userId: HOST_USER_ID },
-      [PLAYER_SEAT]: { seat: PLAYER_SEAT, userId: PLAYER_USER_ID },
+      0: { seat: 0, userId: HOST_USER_ID, profile: { displayName: 'Host' } },
+      [PLAYER_SEAT]: {
+        seat: PLAYER_SEAT,
+        userId: PLAYER_USER_ID,
+        profile: { displayName: 'Player' },
+      },
       9: { seat: 9, kind: 'bot' as const },
     };
 
@@ -396,7 +403,7 @@ describe('Werewolf command handlers', () => {
               roster: {
                 2: { seat: 2, kind: 'bot' },
                 [ACKED_BOT_SEAT]: { seat: ACKED_BOT_SEAT, kind: 'bot' },
-                5: { seat: 5, userId: 'human' },
+                5: { seat: 5, userId: 'human', profile: { displayName: 'human' } },
                 8: { seat: 8, kind: 'bot' },
               },
             }),

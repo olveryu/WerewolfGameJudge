@@ -23,39 +23,40 @@ import {
 import { type GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { NIGHT_STEPS, SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
 import { createTemplateFromRoles } from '@game-judge/game-engine/games/werewolf/public';
-import type { RosterEntry } from '@game-judge/game-engine/platform/room/roster';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import { parseResolvedRoleRevealAnimation } from '@game-judge/game-engine/product/rewards';
 
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 
 /**
- * Convert Player game data + roster occupant + profile entry to LocalPlayer.
- * Identity and bot-ness come from the unified roster (single derivation
- * point); display fields come from the by-user profile map.
+ * Convert Player game data + roster occupant to LocalPlayer.
+ * Identity, bot-ness, and display fields all come from the unified
+ * roster occupant (single derivation point): a human occupant embeds
+ * its display profile; a bot occupant holds none, so its display name
+ * is the derived bot name for the seat and the rest stay undefined.
  */
 function toLocalPlayer(
   bp: Player,
   seat: number,
   occupant: NonNullable<GameState['roster'][number]>,
-  profiles: Readonly<Record<string, RosterEntry>>,
 ): LocalPlayer {
   const isBot = isBotOccupant(occupant);
   const userId = isBot ? `bot-${seat}` : occupant.userId;
-  const roster = profiles[userId];
+  const profile = isBot ? undefined : occupant.profile;
   return {
     userId,
     seat,
-    displayName: roster?.displayName,
-    avatarUrl: roster?.avatarUrl,
-    avatarFrame: roster?.avatarFrame,
-    seatFlair: roster?.seatFlair,
-    seatAnimation: roster?.seatAnimation,
-    nameStyle: roster?.nameStyle,
+    displayName: isBot ? getBotDisplayName(seat) : profile?.displayName,
+    avatarUrl: profile?.avatarUrl,
+    avatarFrame: profile?.avatarFrame,
+    seatFlair: profile?.seatFlair,
+    seatAnimation: profile?.seatAnimation,
+    nameStyle: profile?.nameStyle,
     roleRevealEffect:
-      roster?.revealEffect === undefined
+      profile?.revealEffect === undefined
         ? undefined
-        : parseResolvedRoleRevealAnimation(roster.revealEffect),
-    level: roster?.level,
+        : parseResolvedRoleRevealAnimation(profile.revealEffect),
+    level: profile?.level,
     role: bp.role ?? null,
     hasViewedRole: bp.hasViewedRole,
     isBot: isBot ? true : undefined,
@@ -89,7 +90,6 @@ export function toWerewolfLocalState(state: GameState): LocalGameState {
     lastNightDeaths,
     status,
     roster,
-    playerProfiles,
     ...passthroughFields
   } = state;
 
@@ -105,7 +105,7 @@ export function toWerewolfLocalState(state: GameState): LocalGameState {
     if (occupant == null) {
       throw new Error(`[FAIL-FAST] Werewolf seat ${seat} has game data without an occupant`);
     }
-    playersMap.set(seat, toLocalPlayer(bp, seat, occupant, playerProfiles));
+    playersMap.set(seat, toLocalPlayer(bp, seat, occupant));
   }
 
   // 2. templateRoles → template (using createTemplateFromRoles)
