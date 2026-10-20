@@ -19,14 +19,22 @@ import {
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
+  allViewedConfirmBody,
+  buildAbortGameAction,
+  buildAssignRolesAction,
   buildClearSeatsAction,
   buildFillBotsAction,
   buildMarkBotsViewedAction,
+  buildNextRoundAction,
   buildPendingAwareHostAction,
+  buildReturnLobbyAction,
   buildRoomConfigAction,
   buildStartGameAction,
   createViewingBeginGate,
+  HOST_FLOW_CONFIRM,
   projectViewingProgress,
+  seatShortageReason,
+  viewedProgressReason,
 } from '@/features/room/model/hostManagementActions';
 import type {
   RoomBottomActionModel,
@@ -229,16 +237,20 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
       const round = input.state.round;
       if (round === null) return [];
       const participants = getFibViewingParticipants(input.state);
+      const progress = projectViewingProgress(participants, round.viewedSeats);
       const beginGate = createViewingBeginGate({
-        ...projectViewingProgress(participants, round.viewedSeats),
+        ...progress,
         submitting: input.isCommandSubmitting,
-        notViewedCopy: '还有玩家未查看身份',
+        notViewedCopy: viewedProgressReason(progress.viewedCount, progress.totalSeats, '身份'),
       });
       const actions: RoomHostManagementAction[] = [
         buildStartGameAction({
-          label: '开始游戏',
           onPress: () =>
-            showConfirmAlert('开始游戏？', '全员已查看身份，将开始本轮描述', input.beginRound),
+            showConfirmAlert(
+              HOST_FLOW_CONFIRM.startTitle,
+              allViewedConfirmBody('身份', '将开始本轮描述'),
+              input.beginRound,
+            ),
           isEnabled: beginGate.isEnabled,
           isLoading: input.isCommandSubmitting || undefined,
           disabledReason: beginGate.disabledReason,
@@ -261,15 +273,18 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
     }
     case 'lobby': {
       return [
-        buildStartGameAction({
-          label: '开始本轮',
+        buildAssignRolesAction({
           onPress: () =>
-            showConfirmAlert('开始本轮？', '将为每位玩家分配身份并准备本轮词语', input.startRound),
+            showConfirmAlert(
+              HOST_FLOW_CONFIRM.assignTitle,
+              '将为每位玩家分配身份并准备本轮词语',
+              input.startRound,
+            ),
           isEnabled: !input.isCommandSubmitting && isFibRoomFull(input.state),
           isLoading: input.isCommandSubmitting || undefined,
           disabledReason: input.isCommandSubmitting
             ? null
-            : `座位尚未坐满（还差 ${input.state.numberOfPlayers - getFibOccupiedSeatCount(input.state)} 人）`,
+            : seatShortageReason(input.state.numberOfPlayers, getFibOccupiedSeatCount(input.state)),
           isPrimary: true,
           remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
         }),
@@ -307,18 +322,11 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
           input.isCommandSubmitting,
           input.startRound,
         ),
-        buildPendingAwareHostAction(
-          {
-            key: 'return-lobby',
-            label: '返回大厅',
-            icon: 'return-down-back-outline',
-            variant: 'secondary',
-            testID: TESTIDS.fibReturnLobbyButton,
-            isLoading: input.isCommandSubmitting || undefined,
-          },
-          input.isCommandSubmitting,
-          input.cancelPreparing,
-        ),
+        buildReturnLobbyAction({
+          onPress: input.cancelPreparing,
+          isEnabled: !input.isCommandSubmitting,
+          isLoading: input.isCommandSubmitting || undefined,
+        }),
       ];
     case 'ongoing':
       return [
@@ -361,18 +369,22 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
       ];
     case 'ended':
       return [
-        buildPendingAwareHostAction(
-          {
-            key: 'next-round',
-            label: '下一轮',
-            icon: 'play-forward-outline',
-            variant: 'primary',
-            testID: TESTIDS.fibNextRoundButton,
-            isLoading: input.isCommandSubmitting || undefined,
-          },
-          input.isCommandSubmitting,
-          input.startRound,
-        ),
+        buildNextRoundAction({
+          onPress: () =>
+            showConfirmAlert(
+              HOST_FLOW_CONFIRM.nextRoundTitle,
+              '重新分配身份，开始新的一局。',
+              input.startRound,
+            ),
+          isEnabled: !input.isCommandSubmitting,
+          isLoading: input.isCommandSubmitting || undefined,
+          isPrimary: true,
+        }),
+        buildReturnLobbyAction({
+          onPress: input.endGame,
+          isEnabled: !input.isCommandSubmitting,
+          isLoading: input.isCommandSubmitting || undefined,
+        }),
       ];
   }
 }
@@ -408,34 +420,13 @@ function createFibDangerActions(input: FibHostManagementInput): RoomHostManageme
     case 'viewing':
     case 'ongoing':
       return [
-        buildPendingAwareHostAction(
-          {
-            key: 'abandon-game',
-            label: '放弃游戏',
-            icon: 'stop-circle-outline',
-            variant: 'danger',
-            testID: TESTIDS.fibAbandonGameButton,
-            isLoading: input.isCommandSubmitting || undefined,
-          },
-          input.isCommandSubmitting,
-          input.abandonGame,
-        ),
+        buildAbortGameAction({
+          onPress: input.abandonGame,
+          isEnabled: !input.isCommandSubmitting,
+          isLoading: input.isCommandSubmitting || undefined,
+        }),
       ];
     case 'ended':
-      return [
-        buildPendingAwareHostAction(
-          {
-            key: 'end-game',
-            label: '结束游戏',
-            icon: 'stop-circle-outline',
-            variant: 'danger',
-            testID: TESTIDS.fibEndGameButton,
-            isLoading: input.isCommandSubmitting || undefined,
-          },
-          input.isCommandSubmitting,
-          input.endGame,
-        ),
-      ];
     case 'lobby':
     case 'preparing':
     case 'preparationFailed':
@@ -458,7 +449,7 @@ export function createFibHostManagement(
   if (!input.isHost) return null;
   const sections = [
     createFibHostSection('current-flow', '当前流程', createFibCurrentFlowActions(input)),
-    createFibHostSection('room-management', '房间管理', createFibRoomManagementActions(input)),
+    createFibHostSection('room', '房间管理', createFibRoomManagementActions(input)),
     createFibHostSection('danger', '危险操作', createFibDangerActions(input)),
   ].filter((section): section is RoomHostManagementSection => section !== null);
 
@@ -547,7 +538,7 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
 function getPlayerMessage(state: FibState, viewerSeat: number | null): string | null {
   switch (state.phase) {
     case 'lobby':
-      return viewerSeat === null ? null : '等待房主开始本轮';
+      return viewerSeat === null ? null : '等待房主分配角色';
     case 'preparing':
       return '房主正在准备本轮';
     case 'preparationFailed':

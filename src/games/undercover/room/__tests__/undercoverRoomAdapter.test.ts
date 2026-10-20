@@ -299,13 +299,24 @@ it('requires confirmation to restart an active round and exposes restart in host
     capabilities,
     controls: result.current,
   });
-  const restart = hostManagement?.sections[0]?.actions.find((action) => action.key === 'restart');
-  if (restart === undefined || !restart.isEnabled) throw new Error('Expected enabled restart');
+  const nextRound = hostManagement?.sections[0]?.actions.find(
+    (action) => action.key === 'next-round',
+  );
+  if (nextRound === undefined || !nextRound.isEnabled)
+    throw new Error('Expected enabled next round');
   jest.mocked(showConfirmAlert).mockClear();
   await act(async () => {
-    restart.onPress();
+    nextRound.onPress();
   });
-  expect(showConfirmAlert).not.toHaveBeenCalled();
+  // Terminal presses confirm first (chassis contract); the restart
+  // dispatch lands once the host confirms.
+  const terminalConfirmation = jest.mocked(showConfirmAlert).mock.calls.at(-1);
+  if (terminalConfirmation === undefined) throw new Error('Expected next-round confirmation');
+  expect(terminalConfirmation[0]).toBe('再来一局');
+  expect(terminalConfirmation[1]).toBe('重新分配词语与身份，开始新的一局。');
+  await act(async () => {
+    await terminalConfirmation[2]();
+  });
   expect(session.dispatch).toHaveBeenCalledTimes(2);
 });
 
@@ -470,10 +481,10 @@ describe('createUndercoverRoomShellModel', () => {
       capabilities,
       controls: { ...controls, isSubmitting: true },
     });
-    const start = model?.sections[0]?.actions.find((action) => action.key === 'start-game');
+    const start = model?.sections[0]?.actions.find((action) => action.key === 'assign-roles');
     // Submitting marshal: disabled with no reason (the room IS full —
     // the lock, not a seat shortage, is what blocks it) and no handler.
-    expect(start).toMatchObject({ label: '开始本局', isEnabled: false, disabledReason: null });
+    expect(start).toMatchObject({ label: '分配角色', isEnabled: false, disabledReason: null });
     expect(start).not.toHaveProperty('onPress');
   });
 
@@ -631,7 +642,7 @@ describe('createUndercoverHostManagement console primary', () => {
   it('blocks the round start in a non-full lobby with a seat-count reason and share remedy', () => {
     const { model, shareRoom } = buildFor(lobbyState(false));
     const step = resolveHostConsolePrimary(model!);
-    expect(step).toMatchObject({ actionKey: 'start-game', label: '开始本局' });
+    expect(step).toMatchObject({ actionKey: 'assign-roles', label: '分配角色' });
     if (step?.kind !== 'blocked') throw new Error('expected a blocked console primary');
     expect(step.reason).toBe('座位尚未坐满（还差 5 人）');
     expect(step.remedy?.label).toBe('分享房间');
@@ -639,7 +650,7 @@ describe('createUndercoverHostManagement console primary', () => {
     expect(shareRoom).toHaveBeenCalledTimes(1);
     // The panel caption renders the same player-facing reason; the
     // bot-mentioning command-failure copy must never reach it.
-    const startAction = model?.sections[0]?.actions.find((action) => action.key === 'start-game');
+    const startAction = model?.sections[0]?.actions.find((action) => action.key === 'assign-roles');
     if (startAction?.isEnabled !== false) throw new Error('expected a disabled panel start action');
     expect(startAction.disabledReason).toBe('座位尚未坐满（还差 5 人）');
     expect(startAction.disabledReason).not.toContain('机器人');
@@ -652,7 +663,7 @@ describe('createUndercoverHostManagement console primary', () => {
     if (step?.kind !== 'ready') throw new Error('expected a ready console primary');
     step.onPress();
     expect(showConfirmAlert).toHaveBeenCalledWith(
-      '开始本局？',
+      '分配角色？',
       '将为每位玩家分配词卡',
       expect.any(Function),
     );
@@ -664,7 +675,7 @@ describe('createUndercoverHostManagement console primary', () => {
     const blocked = resolveHostConsolePrimary(blockedBuild.model!);
     expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
     if (blocked?.kind !== 'blocked') throw new Error('expected a blocked console primary');
-    expect(blocked.reason).toBe('还有玩家未查看词卡');
+    expect(blocked.reason).toBe('0/6 位玩家已查看词卡，等待剩余玩家');
     expect(blocked.remedy).toBeNull();
 
     const roundId = viewing.round!.roundId;

@@ -65,7 +65,7 @@ export function DemoConfigScreen({ session }: { readonly session: DemoRoomSessio
   const submit = () => {
     if (params.mode === 'edit') {
       void submission
-        .submit('保存Demo设置', () =>
+        .submit('保存设置', () =>
           session.dispatch(
             { type: 'demo.config.update', config },
             { controlledSeat: null, label: '保存设置' },

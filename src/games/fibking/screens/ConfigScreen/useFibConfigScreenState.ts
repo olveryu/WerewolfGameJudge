@@ -104,10 +104,10 @@ export function useFibConfigScreenState({
     if (numberOfPlayers === null) return;
 
     if (params.mode === 'edit') {
-      void submitRoomCommand('更新房间设置', () =>
+      void submitRoomCommand('保存设置', () =>
         session.dispatch(
           { type: 'fibking.config.update', numberOfPlayers },
-          { controlledSeat: null, label: 'updateFibConfig' },
+          { controlledSeat: null, label: '保存设置' },
         ),
       ).then((success) => {
         if (success) returnFromEdit();

@@ -22,6 +22,8 @@ import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoo
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
+  allViewedConfirmBody,
+  buildAssignRolesAction,
   buildClearSeatsAction,
   buildFillBotsAction,
   buildMarkBotsViewedAction,
@@ -30,7 +32,10 @@ import {
   buildRoomConfigAction,
   buildStartGameAction,
   createViewingBeginGate,
+  HOST_FLOW_CONFIRM,
   projectViewingProgress,
+  seatShortageReason,
+  viewedProgressReason,
 } from '@/features/room/model/hostManagementActions';
 import {
   buildEndedWaitingMessage,
@@ -160,12 +165,15 @@ export function createDemoHostManagement(
     const canStart = occupiedSeatCount === state.config.numberOfPlayers;
     const startDisabledReason = canStart
       ? null
-      : `座位尚未坐满（还差 ${state.config.numberOfPlayers - occupiedSeatCount} 人）`;
-    const submitAssign = () => void input.submit('分配身份', { type: 'demo.game.start' });
-    const assignAction = buildStartGameAction({
-      label: '分配身份',
+      : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
+    const submitAssign = () => void input.submit('分配角色', { type: 'demo.game.start' });
+    const assignAction = buildAssignRolesAction({
       onPress: () =>
-        showConfirmAlert('分配身份？', '所有座位已满，将为每位玩家分配身份', submitAssign),
+        showConfirmAlert(
+          HOST_FLOW_CONFIRM.assignTitle,
+          '所有座位已满，将为每位玩家分配身份',
+          submitAssign,
+        ),
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
@@ -187,14 +195,20 @@ export function createDemoHostManagement(
     // 三段式中段：身份已发、对局未开始。全员查看齐后房主点「开始游戏」
     // 才进入对局（引擎 begin 门同口径，这里先给禁用态与原因）。
     const participants = getDemoViewingParticipants(state);
+    const progress = projectViewingProgress(participants, state.roleViewedSeats);
     const beginGate = createViewingBeginGate({
-      ...projectViewingProgress(participants, state.roleViewedSeats),
+      ...progress,
       submitting: input.isSubmitting,
-      notViewedCopy: '还有玩家未查看身份',
+      notViewedCopy: viewedProgressReason(progress.viewedCount, progress.totalSeats, '身份'),
     });
     const submitBegin = () => void input.submit('开始游戏', { type: 'demo.game.begin' });
     const beginAction = buildStartGameAction({
-      onPress: () => showConfirmAlert('开始游戏？', '全员已查看身份，将开始对局', submitBegin),
+      onPress: () =>
+        showConfirmAlert(
+          HOST_FLOW_CONFIRM.startTitle,
+          allViewedConfirmBody('身份', '将开始对局'),
+          submitBegin,
+        ),
       isEnabled: beginGate.isEnabled,
       disabledReason: beginGate.disabledReason,
       isLoading: input.isSubmitting,
@@ -237,15 +251,23 @@ export function createDemoHostManagement(
           actions: [
             buildNextRoundAction({
               onPress: () =>
-                showConfirmAlert('再来一局', '重新分配身份，开始新的一局。', async () => {
-                  await input.submit('再来一局', { type: 'demo.game.start' });
-                }),
+                showConfirmAlert(
+                  HOST_FLOW_CONFIRM.nextRoundTitle,
+                  '重新分配身份，开始新的一局。',
+                  async () => {
+                    await input.submit('再来一局', { type: 'demo.game.start' });
+                  },
+                ),
             }),
             buildReturnLobbyAction({
               onPress: () =>
-                showConfirmAlert('返回大厅', '保留座位和设置，清除当前对局。', async () => {
-                  await input.submit('返回大厅', { type: 'demo.game.returnToLobby' });
-                }),
+                showConfirmAlert(
+                  HOST_FLOW_CONFIRM.returnLobbyTitle,
+                  HOST_FLOW_CONFIRM.returnLobbyBody,
+                  async () => {
+                    await input.submit('返回大厅', { type: 'demo.game.returnToLobby' });
+                  },
+                ),
             }),
           ],
         },

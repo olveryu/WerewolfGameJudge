@@ -188,9 +188,9 @@ describe('createAvalonHostManagement', () => {
     game.seatHost();
     const model = build(game.state, true, true);
     expect(model?.sections[0]?.actions[0]).toMatchObject({
-      key: 'start-game',
+      key: 'assign-roles',
       label: '分配角色',
-      testID: 'start-game-button',
+      testID: 'assign-roles-button',
       isEnabled: false,
       disabledReason: '座位尚未坐满（还差 5 人）',
     });
@@ -214,7 +214,7 @@ describe('createAvalonHostManagement', () => {
     // its press handler, disabled with no reason (the room IS full —
     // the lock, not a seat shortage, is what blocks it).
     expect(action).toMatchObject({
-      key: 'start-game',
+      key: 'assign-roles',
       label: '分配角色',
       isEnabled: false,
       disabledReason: null,
@@ -248,7 +248,7 @@ describe('createAvalonHostManagement', () => {
       key: 'start-game',
       label: '开始游戏',
       isEnabled: false,
-      disabledReason: '还有玩家未查看身份',
+      disabledReason: '1/6 位玩家已查看身份，等待剩余玩家',
     });
     const section = model?.sections.find((entry) => entry.key === 'bot-viewing');
     expect(section?.actions.map((action) => action.key)).toEqual(['mark-bots-viewed']);
@@ -296,7 +296,7 @@ describe('createAvalonHostManagement', () => {
       const game = session();
       game.seatHost();
       const primary = resolveHostConsolePrimary(build(game.state, true, true)!);
-      expect(primary).toMatchObject({ actionKey: 'start-game', label: '分配角色' });
+      expect(primary).toMatchObject({ actionKey: 'assign-roles', label: '分配角色' });
       if (primary?.kind !== 'blocked') throw new Error('expected a blocked console primary');
       expect(primary.reason).toBe('座位尚未坐满（还差 5 人）');
       expect(primary.remedy?.label).toBe('分享房间');
@@ -307,7 +307,7 @@ describe('createAvalonHostManagement', () => {
       game.seatHost();
       game.fill();
       const primary = resolveHostConsolePrimary(build(game.state, true, true)!);
-      expect(primary).toMatchObject({ actionKey: 'start-game', label: '分配角色' });
+      expect(primary).toMatchObject({ actionKey: 'assign-roles', label: '分配角色' });
       if (primary?.kind !== 'ready') throw new Error('expected a ready console primary');
     });
 
@@ -319,7 +319,7 @@ describe('createAvalonHostManagement', () => {
       const blocked = resolveHostConsolePrimary(build(game.state, true, false)!);
       expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
       if (blocked?.kind !== 'blocked') throw new Error('expected a blocked console primary');
-      expect(blocked.reason).toBe('还有玩家未查看身份');
+      expect(blocked.reason).toBe('1/6 位玩家已查看身份，等待剩余玩家');
       expect(blocked.remedy).toBeNull();
 
       game.send({ type: 'avalon.bots.markAllBotsViewed' });

@@ -476,8 +476,11 @@ test.describe('Avalon full game', () => {
       await hostPage.screenshot({ path: testInfo.outputPath('avalon-lobby.png') });
 
       const roles = await test.step('发牌、全员查看身份并捕获各自角色', async () => {
-        await rooms[0]!.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '分配角色？');
-        await expect(hostPage.getByText('还有玩家未查看身份', { exact: true })).toBeVisible({
+        await rooms[0]!.clickHostManagementActionAndConfirm(
+          TESTIDS.assignRolesButton,
+          '分配角色？',
+        );
+        await expect(hostPage.getByText(/位玩家已查看身份，等待剩余玩家/)).toBeVisible({
           timeout: 15_000,
         });
         const captured: RoleName[] = [];

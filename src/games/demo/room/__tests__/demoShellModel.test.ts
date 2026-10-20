@@ -246,7 +246,10 @@ describe('createDemoHostManagement', () => {
     });
     expect(model?.sections.map((section) => section.key)).toEqual(['game', 'bot-viewing', 'room']);
     const begin = model?.sections[0]?.actions[0];
-    expect(begin).toMatchObject({ isEnabled: false, disabledReason: '还有玩家未查看身份' });
+    expect(begin).toMatchObject({
+      isEnabled: false,
+      disabledReason: '0/4 位玩家已查看身份，等待剩余玩家',
+    });
   });
 
   it('enables begin once every seat has viewed', () => {
@@ -276,7 +279,7 @@ describe('createDemoHostManagement', () => {
 
     it('blocks identity assignment in a non-full lobby and offers room sharing', () => {
       const step = resolveHostConsolePrimary(build(lobbyState(false))!);
-      expect(step).toMatchObject({ actionKey: 'start-game', label: '分配身份' });
+      expect(step).toMatchObject({ actionKey: 'assign-roles', label: '分配角色' });
       if (step?.kind !== 'blocked') throw new Error('expected a blocked console primary');
       expect(step.reason).toBe('座位尚未坐满（还差 3 人）');
       expect(step.remedy?.label).toBe('分享房间');
@@ -291,7 +294,7 @@ describe('createDemoHostManagement', () => {
       const blocked = resolveHostConsolePrimary(build(viewingState())!);
       expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
       if (blocked?.kind !== 'blocked') throw new Error('expected a blocked console primary');
-      expect(blocked.reason).toBe('还有玩家未查看身份');
+      expect(blocked.reason).toBe('0/4 位玩家已查看身份，等待剩余玩家');
       expect(blocked.remedy).toBeNull();
 
       let state = viewingState();

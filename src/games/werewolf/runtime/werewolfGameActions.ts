@@ -83,7 +83,7 @@ function copyActionInput(input: WerewolfActionInput): WerewolfActionInput {
 }
 
 export function assignRoles(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
-  return dispatchWerewolfCommand(ctx, { type: 'werewolf.roles.assign' }, null, 'assignRoles');
+  return dispatchWerewolfCommand(ctx, { type: 'werewolf.roles.assign' }, null, '分配角色');
 }
 
 export function updateTemplate(
@@ -98,12 +98,12 @@ export function updateTemplate(
       rules: template.rules === undefined ? undefined : { ...template.rules },
     },
     null,
-    'updateTemplate',
+    '保存设置',
   );
 }
 
 export function restartGame(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
-  return dispatchWerewolfCommand(ctx, { type: 'werewolf.game.restart' }, null, 'restartGame');
+  return dispatchWerewolfCommand(ctx, { type: 'werewolf.game.restart' }, null, '重新开始');
 }
 
 /** Submit the selected player for the captured round without restarting it. */
@@ -115,7 +115,7 @@ export function selectMvp(
     ctx,
     { type: 'werewolf.mvp.select', selection: { ...selection } },
     null,
-    'selectMvp',
+    '评选 MVP',
     true,
   );
 }
@@ -124,12 +124,7 @@ export function markViewedRole(
   ctx: GameActionsContext,
   controlledSeat: number | null,
 ): Promise<WerewolfCommandDispatchOutcome> {
-  return dispatchWerewolfCommand(
-    ctx,
-    { type: 'werewolf.role.view' },
-    controlledSeat,
-    'markViewedRole',
-  );
+  return dispatchWerewolfCommand(ctx, { type: 'werewolf.role.view' }, controlledSeat, '确认查看');
 }
 
 export async function startNight(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
@@ -137,7 +132,7 @@ export async function startNight(ctx: GameActionsContext): Promise<WerewolfComma
     ctx,
     { type: 'werewolf.night.start' },
     null,
-    'startNight',
+    '开始游戏',
   );
   if (!isSuccessfulRoomCommand(result)) return result;
 
@@ -156,7 +151,7 @@ export function shareNightReview(
     ctx,
     { type: 'werewolf.review.share', allowedSeats: [...allowedSeats] },
     null,
-    'shareNightReview',
+    '分享战报',
   );
 }
 
@@ -248,7 +243,7 @@ export function markAllBotsViewed(
     ctx,
     { type: 'werewolf.bots.markAllBotsViewed' },
     null,
-    'markAllBotsViewed',
+    '标记机器人已查看',
   );
 }
 
@@ -259,7 +254,7 @@ export function markAllBotsGroupConfirmed(
     ctx,
     { type: 'werewolf.groupConfirm.ackBots' },
     null,
-    'markAllBotsGroupConfirmed',
+    '标记机器人已确认',
   );
 }
 

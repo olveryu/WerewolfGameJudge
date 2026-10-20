@@ -32,6 +32,8 @@ import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoo
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
+  allViewedConfirmBody,
+  buildAssignRolesAction,
   buildClearSeatsAction,
   buildFillBotsAction,
   buildMarkBotsViewedAction,
@@ -41,7 +43,10 @@ import {
   buildRoomConfigAction,
   buildStartGameAction,
   createViewingBeginGate,
+  HOST_FLOW_CONFIRM,
   projectViewingProgress,
+  seatShortageReason,
+  viewedProgressReason,
 } from '@/features/room/model/hostManagementActions';
 import { type NightStepProgress, resolveStepProgress } from '@/features/room/model/nightProgress';
 import {
@@ -708,11 +713,15 @@ export function createAvalonHostManagement(
     const canStart = occupiedSeatCount === state.config.numberOfPlayers;
     const startDisabledReason = canStart
       ? null
-      : `座位尚未坐满（还差 ${state.config.numberOfPlayers - occupiedSeatCount} 人）`;
+      : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
     const submitAssign = () => void submit('分配角色', { type: 'avalon.game.start' });
-    const assignAction = buildStartGameAction({
-      label: '分配角色',
-      onPress: () => showConfirmAlert('分配角色？', '所有座位已满，将洗牌并分配角色', submitAssign),
+    const assignAction = buildAssignRolesAction({
+      onPress: () =>
+        showConfirmAlert(
+          HOST_FLOW_CONFIRM.assignTitle,
+          '所有座位已满，将洗牌并分配角色',
+          submitAssign,
+        ),
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
@@ -734,15 +743,20 @@ export function createAvalonHostManagement(
     // 三段式中段：牌已发、对局未开始。全员查看齐后房主点「开始游戏」
     // 才进夜晚（引擎 begin 门同口径，这里先给禁用态与原因）。
     const participants = getAvalonViewingParticipants(state);
+    const progress = projectViewingProgress(participants, state.roleViewedSeats);
     const beginGate = createViewingBeginGate({
-      ...projectViewingProgress(participants, state.roleViewedSeats),
+      ...progress,
       submitting: input.isSubmitting,
-      notViewedCopy: '还有玩家未查看身份',
+      notViewedCopy: viewedProgressReason(progress.viewedCount, progress.totalSeats, '身份'),
     });
     const submitBegin = () => void submit('开始游戏', { type: 'avalon.game.begin' });
     const beginAction = buildStartGameAction({
       onPress: () =>
-        showConfirmAlert('开始游戏？', '全员已查看身份，开始后将进入夜晚阶段', submitBegin),
+        showConfirmAlert(
+          HOST_FLOW_CONFIRM.startTitle,
+          allViewedConfirmBody('身份', '开始后将进入夜晚阶段'),
+          submitBegin,
+        ),
       isEnabled: beginGate.isEnabled,
       disabledReason: beginGate.disabledReason,
       isLoading: input.isSubmitting,
@@ -786,7 +800,7 @@ export function createAvalonHostManagement(
             buildNextRoundAction({
               onPress: () =>
                 showConfirmAlert(
-                  '再来一局',
+                  HOST_FLOW_CONFIRM.nextRoundTitle,
                   '重新发牌并清零比分，开始新的一局。',
                   () => void submit('再来一局', { type: 'avalon.game.start' }),
                 ),
@@ -794,8 +808,8 @@ export function createAvalonHostManagement(
             buildReturnLobbyAction({
               onPress: () =>
                 showConfirmAlert(
-                  '返回大厅',
-                  '保留座位和设置，清除当前对局。',
+                  HOST_FLOW_CONFIRM.returnLobbyTitle,
+                  HOST_FLOW_CONFIRM.returnLobbyBody,
                   () => void submit('返回大厅', { type: 'avalon.game.returnToLobby' }),
                 ),
             }),

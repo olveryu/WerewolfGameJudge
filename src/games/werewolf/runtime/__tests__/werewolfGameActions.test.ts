@@ -181,7 +181,7 @@ describe('canonical Werewolf command builders', () => {
     expect(dispatchMock).toHaveBeenCalledTimes(1);
     expect(dispatchMock).toHaveBeenCalledWith(
       { type: 'werewolf.mvp.select', selection },
-      { controlledSeat: null, label: 'selectMvp', isRecoverable: true },
+      { controlledSeat: null, label: '评选 MVP', isRecoverable: true },
     );
     expect(ctx.getState).not.toHaveBeenCalled();
   });

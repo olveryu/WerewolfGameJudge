@@ -223,7 +223,7 @@ export class RoomPage {
 
   /** Click "分配角色" and confirm the dialog. Wait for role assignment to propagate. */
   async prepareRoles() {
-    await this.clickHostManagementActionAndConfirm(TESTIDS.prepareToFlipButton, '分配角色？');
+    await this.clickHostManagementActionAndConfirm(TESTIDS.assignRolesButton, '分配角色？');
     // Wait for role assignment broadcast to arrive ("查看身份" becomes enabled)
     // instead of fixed timeout — server-authoritative mode has variable latency.
     await expect(this.page.getByRole('button', { name: '查看身份' })).toBeEnabled({

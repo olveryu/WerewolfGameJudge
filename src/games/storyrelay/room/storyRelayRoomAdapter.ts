@@ -20,12 +20,15 @@ import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoo
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
+  buildAbortGameAction,
   buildClearSeatsAction,
   buildFillBotsAction,
   buildNextRoundAction,
   buildReturnLobbyAction,
   buildRoomConfigAction,
   buildStartGameAction,
+  HOST_FLOW_CONFIRM,
+  seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
 import type { NightStepProgress } from '@/features/room/model/nightProgress';
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
@@ -190,15 +193,14 @@ export function createStoryRelayHostManagement(
   if (state.phase === 'lobby') {
     const submitStart = () => void submit('开始游戏', { type: 'storyrelay.round.start' });
     const startAction = buildStartGameAction({
-      onPress: () => showConfirmAlert('开始游戏？', '将分配写作顺序并开始故事接龙', submitStart),
+      onPress: () =>
+        showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将分配写作顺序并开始故事接龙', submitStart),
       isEnabled:
         !input.isSubmitting &&
         getStoryRelayOccupiedSeatCount(state) === state.config.numberOfPlayers,
       disabledReason: input.isSubmitting
         ? null
-        : `座位尚未坐满（还差 ${
-            state.config.numberOfPlayers - getStoryRelayOccupiedSeatCount(state)
-          } 人）`,
+        : seatShortageReason(state.config.numberOfPlayers, getStoryRelayOccupiedSeatCount(state)),
       isLoading: input.isSubmitting,
       isPrimary: true,
       remedy: buildShareRoomRemedy(capabilities.canShareRoom),
@@ -227,7 +229,7 @@ export function createStoryRelayHostManagement(
                   buildNextRoundAction({
                     onPress: () =>
                       showConfirmAlert(
-                        '再来一局',
+                        HOST_FLOW_CONFIRM.nextRoundTitle,
                         '重新分配写作顺序并开始新一局。当前故事将被替换，请先保存需要保留的故事图片。',
                         async () => {
                           await submit('再来一局', { type: 'storyrelay.round.next' });
@@ -239,7 +241,7 @@ export function createStoryRelayHostManagement(
             buildReturnLobbyAction({
               onPress: () =>
                 showConfirmAlert(
-                  '返回大厅',
+                  HOST_FLOW_CONFIRM.returnLobbyTitle,
                   '保留座位和设置，清除当前故事。请先保存需要保留的故事图片。',
                   async () => {
                     await submit('返回大厅', { type: 'storyrelay.game.returnToLobby' });
@@ -289,20 +291,21 @@ export function createStoryRelayHostManagement(
         key: 'danger',
         title: '危险操作',
         actions: [
-          {
-            key: 'abort-round',
-            label: '中止本局',
-            icon: 'close-circle-outline',
-            variant: 'danger',
-            isEnabled: true,
+          buildAbortGameAction({
             onPress: () =>
-              showConfirmAlert('中止本局', '将公开已收录的故事片段，本局不结算奖励。', async () => {
-                await submit('中止本局', {
-                  type: 'storyrelay.round.abort',
-                  phaseRevision: state.phaseRevision,
-                });
-              }),
-          },
+              showConfirmAlert(
+                HOST_FLOW_CONFIRM.abortTitle,
+                '将公开已收录的故事片段，本局不结算奖励。',
+                async () => {
+                  await submit('中止本局', {
+                    type: 'storyrelay.round.abort',
+                    phaseRevision: state.phaseRevision,
+                  });
+                },
+              ),
+            isEnabled: !input.isSubmitting,
+            isLoading: input.isSubmitting,
+          }),
         ],
       },
     ],

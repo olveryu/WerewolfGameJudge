@@ -57,7 +57,7 @@ for (const viewport of [
         await joinerRooms[i]!.seatAt(i + 1);
       }
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-        '下一步：开始本局',
+        '下一步：分配角色',
         { timeout: 15_000 },
       );
 
@@ -72,7 +72,7 @@ for (const viewport of [
         await joinerRooms[i]!.seatAt(i + 1);
       }
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-        '下一步：开始本局',
+        '下一步：分配角色',
         { timeout: 15_000 },
       );
       // PR-B G-7: seated non-host players see the shared lobby wait in
@@ -80,8 +80,8 @@ for (const viewport of [
       await expect(joinerPages[0]!.getByText('等待房主开始游戏', { exact: true })).toBeVisible();
 
       await hostRoom.openHostManagement();
-      await hostPage.getByTestId('start-game-button').click();
-      await hostRoom.confirmHostActionDialog('开始本局？');
+      await hostPage.getByTestId(TESTIDS.assignRolesButton).click();
+      await hostRoom.confirmHostActionDialog('分配角色？');
       await expect(hostPage.getByTestId('undercover-view-word')).toBeVisible();
       await expect(hostPage.getByTestId('undercover-word')).toHaveCount(0);
       // Every real player views their own word card on their own page.
@@ -98,7 +98,7 @@ for (const viewport of [
         await page.getByTestId('undercover-view-word').click();
         await page.getByTestId('undercover-confirm').click();
       }
-      await expect(hostPage.getByText('还有玩家未查看词卡', { exact: true })).toBeVisible();
+      await expect(hostPage.getByText(/位玩家已查看词卡，等待剩余玩家/)).toBeVisible();
       await hostPage.getByTestId('undercover-view-word').click();
       await hostPage.getByTestId('undercover-confirm').click();
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
@@ -196,15 +196,16 @@ for (const viewport of [
       // while it is already open leaves Playwright retrying the entry click
       // until the test timeout.
       const endedManagement = await hostRoom.openHostManagement();
-      await expect(endedManagement.getByTestId('undercover-restart')).toBeVisible();
+      await expect(endedManagement.getByTestId(TESTIDS.nextRoundButton)).toBeVisible();
       await hostPage.screenshot({
         path: testInfo.outputPath(`undercover-ended-${viewport.width}.png`),
       });
       expect(
         await hostPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
-      await endedManagement.getByTestId('undercover-restart').click();
-      await expect(hostPage.getByText('还有玩家未查看词卡', { exact: true })).toBeVisible();
+      await endedManagement.getByTestId(TESTIDS.nextRoundButton).click();
+      await hostRoom.confirmHostActionDialog('再来一局');
+      await expect(hostPage.getByText(/位玩家已查看词卡，等待剩余玩家/)).toBeVisible();
       await expect(hostPage.getByTestId('undercover-results')).toHaveCount(0);
       await expect(hostPage.getByText('已出局 · 平民', { exact: true })).toHaveCount(0);
       // NB: do NOT open the host management panel here. On narrow viewports it
@@ -222,7 +223,7 @@ for (const viewport of [
       ).toBeVisible();
       await hostRoom.closeHostManagement();
       await hostRoom.openHostManagement();
-      await hostPage.getByTestId('undercover-restart').click();
+      await hostPage.getByTestId(TESTIDS.restartButton).click();
       await expect(hostPage.getByText('重新开始？', { exact: true })).toBeVisible();
       await hostPage.getByText('取消', { exact: true }).click();
       await expect(
@@ -230,11 +231,11 @@ for (const viewport of [
       ).toBeVisible();
       await hostRoom.closeHostManagement();
       await hostRoom.openHostManagement();
-      await hostPage.getByTestId('undercover-restart').click();
+      await hostPage.getByTestId(TESTIDS.restartButton).click();
       await hostPage.getByText('确定', { exact: true }).click();
-      await expect(hostPage.getByText('还有玩家未查看词卡', { exact: true })).toBeVisible();
+      await expect(hostPage.getByText(/位玩家已查看词卡，等待剩余玩家/)).toBeVisible();
       await hostRoom.openHostManagement();
-      await hostPage.getByTestId('undercover-abort').click();
+      await hostPage.getByTestId(TESTIDS.abortGameButton).click();
       await hostPage.getByText('确定', { exact: true }).click();
       // PR-B G-7: the aborted conclusion lives in the bottom panel —
       // players get the conclusion plus the host wait, the host the
@@ -244,9 +245,10 @@ for (const viewport of [
       ).toBeVisible();
       await expect(hostPage.getByText('本局已中止', { exact: true })).toBeVisible();
       await hostRoom.openHostManagement();
-      await hostPage.getByTestId('undercover-return-lobby').click();
+      await hostPage.getByTestId(TESTIDS.returnLobbyButton).click();
+      await hostRoom.confirmHostActionDialog('返回大厅');
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-        '下一步：开始本局',
+        '下一步：分配角色',
       );
     } finally {
       await closeAll(fixture);

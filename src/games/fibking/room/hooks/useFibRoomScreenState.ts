@@ -33,6 +33,7 @@ import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
+import { HOST_FLOW_CONFIRM } from '@/features/room/model/hostManagementActions';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import {
   deriveRemainingRevealCards,
@@ -195,10 +196,10 @@ export function useFibRoomScreenState({
   const startRound = () => {
     const label =
       state.phase === 'ended'
-        ? '开始下一轮'
+        ? '再来一局'
         : state.phase === 'preparationFailed'
           ? '重新准备'
-          : '开始本轮';
+          : '分配角色';
     void submit(label, {
       type: 'fibking.round.start',
     });
@@ -207,7 +208,7 @@ export function useFibRoomScreenState({
   const cancelPreparing = () => {
     const isReturningToLobby = state.phase === 'preparationFailed';
     showConfirmAlert(
-      isReturningToLobby ? '返回大厅？' : '取消准备？',
+      isReturningToLobby ? HOST_FLOW_CONFIRM.returnLobbyTitle : '取消准备？',
       isReturningToLobby
         ? '返回大厅后可以调整座位和房间设置。'
         : '本次词语准备会终止，座位和历史词语会保留。',
@@ -280,15 +281,23 @@ export function useFibRoomScreenState({
   };
 
   const abandonGame = () => {
-    showConfirmAlert('放弃游戏？', '放弃后将返回大厅；座位和已用词记录会保留。', async () => {
-      await submit('放弃游戏', { type: 'fibking.game.returnToLobby' });
-    });
+    showConfirmAlert(
+      HOST_FLOW_CONFIRM.abortTitle,
+      '中止后将返回大厅；座位和已用词记录会保留。',
+      async () => {
+        await submit('中止本局', { type: 'fibking.game.returnToLobby' });
+      },
+    );
   };
 
   const endGame = () => {
-    showConfirmAlert('结束游戏？', '结束后返回大厅，座位和已用词记录会保留。', async () => {
-      await submit('结束游戏', { type: 'fibking.game.returnToLobby' });
-    });
+    showConfirmAlert(
+      HOST_FLOW_CONFIRM.returnLobbyTitle,
+      HOST_FLOW_CONFIRM.returnLobbyBody,
+      async () => {
+        await submit('返回大厅', { type: 'fibking.game.returnToLobby' });
+      },
+    );
   };
 
   const openIdentity = useCallback(() => {
