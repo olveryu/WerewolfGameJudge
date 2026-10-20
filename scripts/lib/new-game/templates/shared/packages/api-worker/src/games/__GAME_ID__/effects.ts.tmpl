@@ -1,7 +1,7 @@
 /** Worker-side execution for __GAME_PASCAL__ effects: game-completed growth settlement. */
 
 import {
-//#stage
+//#cap stageDeadline
   __GAME_UPPER___REASONS,
 //#end
   type __GAME_PASCAL__Effect,
@@ -14,7 +14,7 @@ import {
   gameCompletionPayloadSchema,
   publishGameRewards,
 } from '../../features/account/settleGameRewards';
-//#stage
+//#cap stageDeadline
 import { dispatchEffectCommand } from '../../platform/gameModules/effectDispatch';
 //#end
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
@@ -24,7 +24,7 @@ const gameCompletedEffectSchema = z.strictObject({
   payload: gameCompletionPayloadSchema,
 });
 
-//#stage
+//#cap stageDeadline
 const settleDueEffectSchema = z.strictObject({
   type: z.literal('__GAME_ID__.settle.due'),
   payload: z.strictObject({
@@ -36,12 +36,12 @@ const settleDueEffectSchema = z.strictObject({
 //#end
 export const __GAME_CAMEL__EffectSchema: z.ZodType<__GAME_PASCAL__Effect> = z.union([
   gameCompletedEffectSchema,
-//#stage
+//#cap stageDeadline
   settleDueEffectSchema,
 //#end
 ]);
 
-//#stage
+//#cap stageDeadline
 type __GAME_PASCAL__SettleDueEffect = Extract<
   __GAME_PASCAL__Effect,
   { type: '__GAME_ID__.settle.due' }
@@ -104,7 +104,7 @@ export async function handle__GAME_PASCAL__Effect(
         context,
       );
       return;
-//#stage
+//#cap stageDeadline
     case '__GAME_ID__.settle.due':
       await handle__GAME_PASCAL__SettleDueEffect(effect, context);
       return;

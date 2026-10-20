@@ -23,7 +23,7 @@ describe('get__GAME_PASCAL__RoomCommandFailureMessage', () => {
     ).toBe('房间初始化冲突，请重新创建');
   });
 
-//#identity
+//#cap identityViewing
   it('explains the identity checkpoint', () => {
     expect(
       get__GAME_PASCAL__RoomCommandFailureMessage(
@@ -32,7 +32,7 @@ describe('get__GAME_PASCAL__RoomCommandFailureMessage', () => {
     ).toBe('还有玩家未查看身份');
   });
 //#end
-//#stage
+//#cap stageDeadline
   it('explains an unexpired stage deadline', () => {
     expect(
       get__GAME_PASCAL__RoomCommandFailureMessage(

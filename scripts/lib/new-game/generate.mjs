@@ -232,10 +232,10 @@ function collectTemplateFiles(layer) {
 }
 
 /** Render the destination path of a template (path segments carry name tokens too). */
-function renderDestination(relativeTemplatePath, names, preset, extraTokens) {
+function renderDestination(relativeTemplatePath, names, capabilities, extraTokens) {
   return renderTemplateFile(relativeTemplatePath.split(path.sep).join('/'), {
     names,
-    preset,
+    capabilities,
     extraTokens,
   });
 }
@@ -301,9 +301,9 @@ export function generateNewGame(options) {
   const templates = new Map([...collectTemplateFiles('shared'), ...collectTemplateFiles(preset)]);
   const created = new Map();
   for (const [relative, sourcePath] of templates) {
-    const destination = renderDestination(relative, names, preset, extraTokens);
+    const destination = renderDestination(relative, names, capabilities, extraTokens);
     const body = fs.readFileSync(sourcePath, 'utf8');
-    created.set(destination, renderTemplateFile(body, { names, preset, extraTokens }));
+    created.set(destination, renderTemplateFile(body, { names, capabilities, extraTokens }));
   }
 
   const edited = new Map();

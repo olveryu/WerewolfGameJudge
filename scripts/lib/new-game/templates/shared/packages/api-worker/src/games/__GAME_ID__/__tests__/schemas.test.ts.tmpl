@@ -50,13 +50,15 @@ describe('__GAME_PASCAL__ public command schema', () => {
       { type: 'room.seat.leave' },
       { type: 'room.seat.fillBots' },
       { type: '__GAME_ID__.config.update', config: { numberOfPlayers: 6 } },
-//#identity
+//#cap identityViewing
       { type: '__GAME_ID__.roles.assign' },
       { type: '__GAME_ID__.game.begin' },
       { type: '__GAME_ID__.role.viewed' },
+//#end
+//#cap botTestScaffold
       { type: '__GAME_ID__.bots.markAllBotsViewed' },
 //#end
-//#stage
+//#cap stageDeadline
       { type: '__GAME_ID__.game.begin' },
       { type: '__GAME_ID__.phase.expire' },
 //#end
@@ -72,19 +74,19 @@ describe('__GAME_PASCAL__ public command schema', () => {
     expect(__GAME_CAMEL__PublicCommandSchema.safeParse({ type: '__GAME_ID__.nope' }).success).toBe(
       false,
     );
-//#identity
+//#cap identityViewing
     expect(
       __GAME_CAMEL__PublicCommandSchema.safeParse({ type: '__GAME_ID__.roles.assign', extra: 1 })
         .success,
     ).toBe(false);
 //#end
-//#stage
+//#cap stageDeadline
     expect(
       __GAME_CAMEL__PublicCommandSchema.safeParse({ type: '__GAME_ID__.game.begin', extra: 1 })
         .success,
     ).toBe(false);
 //#end
-//#stage
+//#cap stageDeadline
     expect(
       __GAME_CAMEL__PublicCommandSchema.safeParse({ type: '__GAME_ID__.phase.settleExpired' })
         .success,
@@ -97,7 +99,7 @@ describe('__GAME_PASCAL__ public command schema', () => {
       __GAME_CAMEL__InternalCommandSchema.safeParse({ type: '__GAME_ID__.phase.expire' }).success,
     ).toBe(false);
 //#end
-//#identity
+//#cap identityViewing
     expect(__GAME_CAMEL__InternalCommandSchema.safeParse({ type: 'anything' }).success).toBe(false);
 //#end
   });

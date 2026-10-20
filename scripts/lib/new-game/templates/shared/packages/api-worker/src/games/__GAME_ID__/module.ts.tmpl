@@ -25,15 +25,15 @@ export const __GAME_CAMEL__WorkerModule = defineWorkerGameModule({
   effectSchema: __GAME_CAMEL__EffectSchema,
   httpRoutes: [],
   getEffectBusinessKey: (effect, context) =>
-//#stage
+//#cap stageDeadline
     effect.type === '__GAME_ID__.settle.due'
       ? `__GAME_ID__:settle:${effect.payload.gameSequence}:${effect.payload.deadlineAt}`
       : `__GAME_ID__:game-completed:${context.createdRevision}:${effect.payload.roundId}`,
 //#end
-//#identity
+//#cap identityViewing
     `__GAME_ID__:game-completed:${context.createdRevision}:${effect.payload.roundId}`,
 //#end
-//#stage
+//#cap stageDeadline
   // The settle effect is the room's wake-up for the armed stage
   // deadline: park it in the outbox until its deadline.
   getEffectDeliveryAt: (effect) =>

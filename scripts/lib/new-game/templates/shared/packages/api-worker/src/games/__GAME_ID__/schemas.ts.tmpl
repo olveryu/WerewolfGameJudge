@@ -25,13 +25,15 @@ const __GAME_CAMEL__PublicCommandOptions = definePublicCommandOptions<__GAME_PAS
     type: z.literal('__GAME_ID__.config.update'),
     config: __GAME_CAMEL__ConfigSchema,
   }),
-//#identity
+//#cap identityViewing
   z.strictObject({ type: z.literal('__GAME_ID__.roles.assign') }),
   z.strictObject({ type: z.literal('__GAME_ID__.game.begin') }),
   z.strictObject({ type: z.literal('__GAME_ID__.role.viewed') }),
+//#end
+//#cap botTestScaffold
   z.strictObject({ type: z.literal('__GAME_ID__.bots.markAllBotsViewed') }),
 //#end
-//#stage
+//#cap stageDeadline
   z.strictObject({ type: z.literal('__GAME_ID__.game.begin') }),
   z.strictObject({ type: z.literal('__GAME_ID__.phase.expire') }),
 //#end
@@ -42,12 +44,12 @@ const __GAME_CAMEL__PublicCommandOptions = definePublicCommandOptions<__GAME_PAS
 export const __GAME_CAMEL__PublicCommandSchema: z.ZodType<__GAME_PASCAL__PublicCommand> =
   z.discriminatedUnion('type', __GAME_CAMEL__PublicCommandOptions);
 
-//#identity
+//#cap identityViewing
 /** The skeleton has no worker-originated commands yet (see the engine commands/types.ts). */
 export const __GAME_CAMEL__InternalCommandSchema: z.ZodType<__GAME_PASCAL__InternalCommand> =
   z.never();
 //#end
-//#stage
+//#cap stageDeadline
 /**
  * Worker-originated commands: dispatched only by the settle effect
  * handler as the system actor when a scheduled deadline effect is due.
