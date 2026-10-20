@@ -302,13 +302,20 @@ export class RoomPage {
     await this.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
   }
 
-  /** Click "重新开始" (restart) and confirm dialog. */
-  async restart() {
-    await this.clickHostManagementAction(TESTIDS.restartButton);
-    await expect(this.page.getByText('重新开始游戏？', { exact: true })).toBeVisible({
+  /** Click "返回大厅" (terminal return-to-lobby) and pass the share-report ritual. */
+  async returnToLobby() {
+    await this.clickHostManagementAction(TESTIDS.returnLobbyButton);
+    // The ritual title and its confirm button both read 返回大厅, so the
+    // title is awaited by testID and the confirm is pressed by its
+    // alert-button testID (avalon.spec.ts precedents), never by text.
+    await expect(this.page.getByTestId(TESTIDS.alertTitle)).toHaveText('返回大厅', {
       timeout: 3000,
     });
-    await this.page.getByText('重新开始', { exact: true }).click();
+    // AlertModal's sortButtons moves cancel to the end in the 3-button
+    // column layout, so the rendered order is [分享战报, 返回大厅, 取消].
+    const confirmButton = this.page.getByTestId(TESTIDS.alertButton(1));
+    await expect(confirmButton).toHaveText('返回大厅');
+    await confirmButton.click();
     // Wait for restart broadcast — the console primary returns when the room is ready again.
     await expect(this.page.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
       '下一步：分配角色',

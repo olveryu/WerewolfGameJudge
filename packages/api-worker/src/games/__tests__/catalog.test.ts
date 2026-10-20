@@ -48,6 +48,7 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
   },
   'werewolf.roles.assign': { type: 'werewolf.roles.assign' },
   'werewolf.game.restart': { type: 'werewolf.game.restart' },
+  'werewolf.game.redeal': { type: 'werewolf.game.redeal' },
   'werewolf.mvp.select': {
     type: 'werewolf.mvp.select',
     selection: { roleRevealRandomNonce: 'round-1', mvpUserId: 'user-1' },

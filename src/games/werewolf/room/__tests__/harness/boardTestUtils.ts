@@ -454,6 +454,7 @@ export function createWerewolfRoomMock(options: WerewolfRoomMockOptions) {
     assignRoles: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
     startGame: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
     restartGame: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
+    redealGame: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
     selectMvp: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
     clearAllSeats: jest.fn(),
     kickPlayer: jest.fn().mockResolvedValue(successfulWerewolfCommand()),

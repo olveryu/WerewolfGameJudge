@@ -32,8 +32,8 @@ test.describe('Resilience — Restart & Settings', () => {
       const room = new RoomPage(hostPage);
       await room.screenshot(testInfo, 'restart-01-first-night-done.png');
 
-      // Restart
-      await room.restart();
+      // Return to the lobby (terminal flow), then set the game up again
+      await room.returnToLobby();
       await room.screenshot(testInfo, 'restart-02-after-restart.png');
 
       // Wait for both pages to stabilize (seat grid visible)

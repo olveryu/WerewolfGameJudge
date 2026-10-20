@@ -10,7 +10,9 @@ import {
   buildEnabledHostAction,
   buildFillBotsAction,
   buildMarkBotsViewedAction,
+  buildNextRoundAction,
   buildPendingAwareHostAction,
+  buildReturnLobbyAction,
   buildRoomConfigAction,
   buildStartGameAction,
   createViewingBeginGate,
@@ -54,16 +56,6 @@ interface WerewolfHostManagementInput {
   readonly onMarkAllBotsGroupConfirmed: () => void;
   readonly onNightReview: () => void;
   readonly onLastNightInfo: () => void;
-}
-
-function createHostControlAction(
-  input: WerewolfHostManagementInput,
-  action: HostControlEvent['action'],
-  descriptor: RoomHostActionDescriptor,
-): RoomHostManagementAction {
-  return buildPendingAwareHostAction(descriptor, input.isHostActionSubmitting, () =>
-    input.onHostControl(action),
-  );
 }
 
 function createSheriffAdvanceAction(
@@ -163,12 +155,14 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
           input.isHostActionSubmitting || input.mvpSeat !== null,
           input.onSelectMvp,
         ),
-        createHostControlAction(input, 'restart', {
-          key: 'restart',
-          label: '重新开始',
-          icon: 'refresh-outline',
-          variant: 'primary',
-          testID: TESTIDS.restartButton,
+        buildNextRoundAction({
+          onPress: () => input.onHostControl('redeal'),
+          isEnabled: !input.isHostActionSubmitting,
+          isLoading: input.isHostActionSubmitting,
+        }),
+        buildReturnLobbyAction({
+          onPress: () => input.onHostControl('returnToLobby'),
+          isEnabled: !input.isHostActionSubmitting,
           isLoading: input.isHostActionSubmitting,
         }),
       ];
@@ -302,7 +296,7 @@ function createDangerActions(input: WerewolfHostManagementInput): RoomHostManage
   if (!canRestart) return [];
   return [
     buildAbortGameAction({
-      onPress: () => input.onHostControl('restart'),
+      onPress: () => input.onHostControl('abort'),
       isEnabled: !input.isHostActionSubmitting,
       isLoading: input.isHostActionSubmitting,
     }),

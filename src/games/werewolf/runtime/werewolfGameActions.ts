@@ -103,7 +103,11 @@ export function updateTemplate(
 }
 
 export function restartGame(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
-  return dispatchWerewolfCommand(ctx, { type: 'werewolf.game.restart' }, null, '重新开始');
+  return dispatchWerewolfCommand(ctx, { type: 'werewolf.game.restart' }, null, '返回大厅');
+}
+
+export function redealGame(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
+  return dispatchWerewolfCommand(ctx, { type: 'werewolf.game.redeal' }, null, '再来一局');
 }
 
 /** Submit the selected player for the captured round without restarting it. */

@@ -86,6 +86,16 @@ export interface RestartGameIntent {
 }
 
 /**
+ * Redeal Intent (Host-only)
+ * Precondition: status === Ended
+ * Result: restart (keep seats/template, clear the finished game) and a
+ * fresh role deal in one atomic command; status -> Assigned
+ */
+export interface RedealGameIntent {
+  type: 'REDEAL_GAME';
+}
+
+/**
  * Update template Intent (Host-only)
  * Precondition: status === Unseated | Seated (before role assignment)
  * Used for Host editing room config

@@ -206,6 +206,7 @@ export function useWerewolfRoomScreenState(
     assignRoles,
     startGame,
     restartGame,
+    redealGame,
     selectMvp,
     clearAllSeats,
     shareNightReview,
@@ -563,14 +564,16 @@ export function useWerewolfRoomScreenState(
   const {
     showPrepareToFlipDialog,
     showStartGameDialog,
-    showRestartDialog,
+    showAbortDialog,
+    showRedealDialog,
+    showReturnToLobbyDialog,
     isSubmitting: isHostControlSubmitting,
     isStartingGame,
   } = useWerewolfHostControl({
-    roomStatus,
     assignRoles,
     startGame,
     restartGame,
+    redealGame,
     shareNightReviewReport: shareNightReviewReportDirectly,
   });
 
@@ -694,7 +697,9 @@ export function useWerewolfRoomScreenState(
     viewedRole,
     showPrepareToFlipDialog,
     showStartGameDialog,
-    showRestartDialog,
+    showAbortDialog,
+    showRedealDialog,
+    showReturnToLobbyDialog,
   });
 
   // Bot takeover uses the shared long-press hook like every other seated

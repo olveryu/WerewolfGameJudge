@@ -67,7 +67,9 @@ interface UseInteractionDispatcherParams {
   // ── Host dialogs ──
   showPrepareToFlipDialog: () => void;
   showStartGameDialog: () => void;
-  showRestartDialog: () => void;
+  showAbortDialog: () => void;
+  showRedealDialog: () => void;
+  showReturnToLobbyDialog: () => void;
 
   // ── Role card state setters (owned by WerewolfRoomScreen) ──
   setRoleCardVisible: (v: boolean) => void;
@@ -108,7 +110,9 @@ export function useInteractionDispatcher({
   viewedRole,
   showPrepareToFlipDialog,
   showStartGameDialog,
-  showRestartDialog,
+  showAbortDialog,
+  showRedealDialog,
+  showReturnToLobbyDialog,
   setRoleCardVisible,
   setShouldPlayRevealAnimation,
   setIsLoadingRole,
@@ -307,8 +311,14 @@ export function useInteractionDispatcher({
             case 'startGame':
               showStartGameDialog();
               return;
-            case 'restart':
-              showRestartDialog();
+            case 'abort':
+              showAbortDialog();
+              return;
+            case 'redeal':
+              showRedealDialog();
+              return;
+            case 'returnToLobby':
+              showReturnToLobbyDialog();
               return;
             default: {
               const _exhaustive: never = result.action;
@@ -363,7 +373,9 @@ export function useInteractionDispatcher({
       viewedRole,
       showPrepareToFlipDialog,
       showStartGameDialog,
-      showRestartDialog,
+      showAbortDialog,
+      showRedealDialog,
+      showReturnToLobbyDialog,
       capabilities,
       effectiveSeat,
       gameState,

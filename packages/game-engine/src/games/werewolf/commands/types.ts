@@ -42,6 +42,7 @@ export interface WerewolfMvpSelection {
 type WerewolfGameCommand =
   | { readonly type: 'werewolf.roles.assign' }
   | { readonly type: 'werewolf.game.restart' }
+  | { readonly type: 'werewolf.game.redeal' }
   | { readonly type: 'werewolf.mvp.select'; readonly selection: WerewolfMvpSelection }
   | { readonly type: 'werewolf.bots.markAllBotsViewed' }
   | {

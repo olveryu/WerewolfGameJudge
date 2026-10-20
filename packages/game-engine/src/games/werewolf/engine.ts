@@ -38,6 +38,7 @@ import {
   handleBoardUpvote,
   handleBoardWithdraw,
   handleFillWithBots,
+  handleRedealGame,
   handleRestartGame,
   handleShareNightReview,
   handleStartNight,
@@ -104,6 +105,7 @@ function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
     case 'room.profile.update':
     case 'werewolf.roles.assign':
     case 'werewolf.game.restart':
+    case 'werewolf.game.redeal':
     case 'werewolf.mvp.select':
     case 'werewolf.bots.markAllBotsViewed':
     case 'werewolf.config.update':
@@ -293,6 +295,15 @@ function decideWerewolfCommandRules(
       return decideHandler(
         state,
         handleRestartGame({ type: 'RESTART_GAME' }, actor.value.handlerContext, context),
+        context,
+      );
+    }
+    case 'werewolf.game.redeal': {
+      const actor = resolveHostActor(state, context);
+      if (actor.kind === 'rejected') return reject(actor.reason);
+      return decideHandler(
+        state,
+        handleRedealGame({ type: 'REDEAL_GAME' }, actor.value.handlerContext, context),
         context,
       );
     }

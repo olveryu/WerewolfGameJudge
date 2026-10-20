@@ -95,6 +95,7 @@ interface UseWerewolfRoomResult {
   assignRoles: () => Promise<WerewolfCommandDispatchOutcome>;
   startGame: () => Promise<WerewolfCommandDispatchOutcome>;
   restartGame: () => Promise<WerewolfCommandDispatchOutcome>;
+  redealGame: () => Promise<WerewolfCommandDispatchOutcome>;
   selectMvp: (selection: WerewolfMvpSelection) => Promise<WerewolfCommandDispatchOutcome>;
   clearAllSeats: () => Promise<WerewolfCommandDispatchOutcome>;
   shareNightReview: (allowedSeats: number[]) => Promise<WerewolfCommandDispatchOutcome>;
@@ -302,6 +303,7 @@ interface UseWerewolfRoomResult {
     assignRoles: actions.assignRoles,
     startGame: actions.startGame,
     restartGame: actions.restartGame,
+    redealGame: actions.redealGame,
     selectMvp: actions.selectMvp,
     clearAllSeats: actions.clearAllSeats,
     shareNightReview: actions.shareNightReview,

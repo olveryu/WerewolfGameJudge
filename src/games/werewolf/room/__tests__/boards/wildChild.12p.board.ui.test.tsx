@@ -58,7 +58,9 @@ jest.mock('../../useRoomHostDialogs', () => ({
   useRoomHostDialogs: () => ({
     showPrepareToFlipDialog: jest.fn(),
     showStartGameDialog: jest.fn(),
-    showRestartDialog: jest.fn(),
+    showAbortDialog: jest.fn(),
+    showRedealDialog: jest.fn(),
+    showReturnToLobbyDialog: jest.fn(),
     handleSettingsPress: jest.fn(),
   }),
 }));

@@ -425,6 +425,97 @@ describe('Werewolf handler decision adapter', () => {
   });
 });
 
+describe('Werewolf redeal (one-command restart + deal)', () => {
+  function createEndedState(): GameState {
+    let state = werewolfEngine.createInitialState(
+      {
+        templateRoles: ['villager', 'villager', 'villager', 'villager'],
+        rules: { isSheriffElectionEnabled: false },
+      },
+      { roomCode: 'redeal', hostUserId: 'host', nowMs: 1, commandId: 'create-redeal' },
+    );
+    for (let seat = 0; seat < 4; seat++) {
+      const userId = seat === 0 ? 'host' : `human-${seat}`;
+      state = evolveCommittedCommand(
+        state,
+        { type: 'room.seat.take', seat, profile: { displayName: userId } },
+        userContext(userId),
+      );
+    }
+    state = evolveCommittedCommand(state, { type: 'werewolf.roles.assign' }, userContext('host'));
+    for (const occupant of Object.values(state.roster)) {
+      if (occupant != null && !isBotOccupant(occupant))
+        state = evolveCommittedCommand(
+          state,
+          { type: 'werewolf.role.view' },
+          userContext(occupant.userId),
+        );
+    }
+    state = evolveCommittedCommand(state, { type: 'werewolf.night.start' }, userContext('host'));
+    expect(state.status).toBe(GameStatus.Ended);
+    return state;
+  }
+
+  it('rejects redeal before the game has ended', () => {
+    const ended = createEndedState();
+    const seated = evolveCommittedCommand(
+      ended,
+      { type: 'werewolf.game.restart' },
+      userContext('host'),
+    );
+    expect(seated.status).toBe(GameStatus.Seated);
+    expect(
+      werewolfEngine.decide(seated, { type: 'werewolf.game.redeal' }, userContext('host')),
+    ).toEqual({
+      kind: 'reject',
+      reason: 'invalid_status',
+    });
+  });
+
+  it('emits restart then a fresh deal and lands on Assigned with roles dealt', () => {
+    const ended = createEndedState();
+    const decision = werewolfEngine.decide(
+      ended,
+      { type: 'werewolf.game.redeal' },
+      userContext('host'),
+    );
+    if (decision.kind !== 'commit') {
+      throw new Error(`Expected redeal commit, received ${decision.kind}`);
+    }
+    expect(decision.events.map((event) => event.type)).toEqual(['RESTART_GAME', 'ASSIGN_ROLES']);
+
+    const next = decision.events.reduce(werewolfEngine.evolve, ended);
+    expect(next.status).toBe(GameStatus.Assigned);
+    expect(next.startingParticipants).toBeUndefined();
+    expect(next.roleRevealRandomNonce).toBe('seed-1');
+    for (const player of Object.values(next.players)) {
+      expect(player).not.toBeNull();
+      expect(player?.role).not.toBeNull();
+      expect(player?.hasViewedRole).toBe(false);
+    }
+  });
+
+  it('matches the restart-then-assign sequence under the same execution context', () => {
+    const ended = createEndedState();
+    const viaRedeal = evolveCommittedCommand(
+      ended,
+      { type: 'werewolf.game.redeal' },
+      userContext('host'),
+    );
+    const restarted = evolveCommittedCommand(
+      ended,
+      { type: 'werewolf.game.restart' },
+      userContext('host'),
+    );
+    const viaTwoSteps = evolveCommittedCommand(
+      restarted,
+      { type: 'werewolf.roles.assign' },
+      userContext('host'),
+    );
+    expect(viaRedeal).toEqual(viaTwoSteps);
+  });
+});
+
 describe('Werewolf engine definition and catalog', () => {
   const commandByType = {
     'room.seat.take': {
@@ -442,6 +533,7 @@ describe('Werewolf engine definition and catalog', () => {
     },
     'werewolf.roles.assign': { type: 'werewolf.roles.assign' },
     'werewolf.game.restart': { type: 'werewolf.game.restart' },
+    'werewolf.game.redeal': { type: 'werewolf.game.redeal' },
     'werewolf.mvp.select': {
       type: 'werewolf.mvp.select',
       selection: { roleRevealRandomNonce: null, mvpUserId: 'user-1' },
@@ -551,6 +643,7 @@ describe('Werewolf engine definition and catalog', () => {
     'room.seat.fillBots',
     'werewolf.roles.assign',
     'werewolf.game.restart',
+    'werewolf.game.redeal',
     'werewolf.bots.markAllBotsViewed',
     'werewolf.config.update',
     'werewolf.review.share',
