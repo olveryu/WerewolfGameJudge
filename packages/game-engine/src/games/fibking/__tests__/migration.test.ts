@@ -82,7 +82,7 @@ describe('FibKing v6 -> v7 roster migration', () => {
 
   it('migrates a preparing state (round in flight) whole', () => {
     let state = filledLobby();
-    state = dispatch(state, { type: 'fibking.round.start' });
+    state = dispatch(state, { type: 'fibking.roles.assign' });
     expect(state.phase).toBe('preparing');
     expect(migratePersistedFibState(downgradeToV6(state))).toEqual(state);
   });
@@ -121,7 +121,7 @@ describe('FibKing v6 -> v7 roster migration', () => {
       return fibEngine.normalize(decision.events.reduce(fibEngine.evolve, state));
     };
     let state = filledLobby();
-    state = dispatch(state, { type: 'fibking.round.start' });
+    state = dispatch(state, { type: 'fibking.roles.assign' });
     if (state.phase !== 'preparing') throw new Error('Expected preparing state');
     const { roundId } = state.pendingRound;
     state = dispatchSystem(state, {
@@ -168,9 +168,9 @@ describe('FibKing v6 -> v7 roster migration', () => {
       legacy.stateVersion = 7;
       return legacy;
     };
-    let ongoing = dispatch(state, { type: 'fibking.round.confirmRoleView' });
+    let ongoing = dispatch(state, { type: 'fibking.role.viewed' });
     ongoing = dispatch(ongoing, { type: 'fibking.bots.markAllBotsViewed' });
-    ongoing = dispatch(ongoing, { type: 'fibking.round.begin' });
+    ongoing = dispatch(ongoing, { type: 'fibking.game.begin' });
     expect(ongoing.phase).toBe('ongoing');
     expect(migratePersistedFibState(toV7Document(ongoing))).toEqual(ongoing);
     const ended = dispatch(ongoing, { type: 'fibking.round.reveal' });

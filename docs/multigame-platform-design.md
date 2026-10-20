@@ -1075,7 +1075,7 @@ interface PendingFibRound {
 
 ### 18.2 Command 与 effect
 
-1. Host 发送 `fibking.round.start`。
+1. Host 发送 `fibking.roles.assign`。
 2. Engine 验证 phase 和满座条件。
 3. Engine 转为 `preparing`，保存 `roundId`，发出 `fibking.word.select` effect。
 4. Outbox worker 从 D1 全局题库按玩家曝光历史和稳定 seed 选词；空库时使用确定性本地兜底。

@@ -113,7 +113,7 @@ function createFullLobby(): FibState {
 }
 
 function startPreparing(state: FibState, commandId = 'round-command-1'): FibState {
-  return dispatch(state, { type: 'fibking.round.start' }, userContext('host', { commandId }));
+  return dispatch(state, { type: 'fibking.roles.assign' }, userContext('host', { commandId }));
 }
 
 it('rejects marking bots when the room has no bot seats (werewolf parity)', () => {
@@ -134,13 +134,13 @@ function confirmAllRoleViews(state: FibState): FibState {
   // The host confirms their own view, then marks the bot seats
   // through the scaffold action (the engine never auto-marks);
   // play itself opens only on the host's begin command.
-  const confirmed = dispatch(state, { type: 'fibking.round.confirmRoleView' }, userContext('host'));
+  const confirmed = dispatch(state, { type: 'fibking.role.viewed' }, userContext('host'));
   const marked = dispatch(
     confirmed,
     { type: 'fibking.bots.markAllBotsViewed' },
     userContext('host'),
   );
-  return dispatch(marked, { type: 'fibking.round.begin' }, userContext('host'));
+  return dispatch(marked, { type: 'fibking.game.begin' }, userContext('host'));
 }
 
 it('emits a completion reward roster only on the first host reveal', () => {
@@ -401,7 +401,7 @@ describe('FibKing engine configuration and seating', () => {
     expect(getFibOccupiedSeatCount(state)).toBe(3);
     expect(isBotSeat(state.roster, 2)).toBe(false);
     expect(isBotSeat(state.roster, 3)).toBe(true);
-    expect(decideFibCommand(state, { type: 'fibking.round.start' }, userContext('host'))).toEqual({
+    expect(decideFibCommand(state, { type: 'fibking.roles.assign' }, userContext('host'))).toEqual({
       kind: 'reject',
       reason: REASON_FIB_ROUND_NOT_FULL,
     });
@@ -547,13 +547,13 @@ describe('FibKing engine configuration and seating', () => {
 describe('FibKing recoverable round workflow', () => {
   it('requires a full room and emits one durable word-generation effect', () => {
     expect(
-      decideFibCommand(createLobby(), { type: 'fibking.round.start' }, userContext('host')),
+      decideFibCommand(createLobby(), { type: 'fibking.roles.assign' }, userContext('host')),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_ROUND_NOT_FULL });
 
     const state = createFullLobby();
     const decision = decideFibCommand(
       state,
-      { type: 'fibking.round.start' },
+      { type: 'fibking.roles.assign' },
       userContext('host', { commandId: 'round-a', randomSeed: 'unrelated-seed' }),
     );
     expect(decision).toEqual({
@@ -722,7 +722,7 @@ describe('FibKing recoverable round workflow', () => {
     expect(
       decideFibCommand(
         failed,
-        { type: 'fibking.round.start' },
+        { type: 'fibking.roles.assign' },
         userContext('host', { commandId: 'retry-round' }),
       ),
     ).toMatchObject({ kind: 'commit' });
@@ -769,7 +769,7 @@ describe('FibKing recoverable round workflow', () => {
 
     const nextDecision = decideFibCommand(
       state,
-      { type: 'fibking.round.start' },
+      { type: 'fibking.roles.assign' },
       userContext('host', { commandId: 'round-next' }),
     );
     expect(nextDecision.kind).toBe('commit');
@@ -895,7 +895,7 @@ describe('FibKing recoverable round workflow', () => {
 
     const redrawDecision = decideFibCommand(
       ongoing,
-      { type: 'fibking.round.start' },
+      { type: 'fibking.roles.assign' },
       userContext('host', { commandId: 'redraw-round' }),
     );
     expect(redrawDecision).toMatchObject({
@@ -922,7 +922,7 @@ describe('FibKing recoverable round workflow', () => {
   it('rejects another start while preparing', () => {
     const preparing = startPreparing(createFullLobby());
     expect(
-      decideFibCommand(preparing, { type: 'fibking.round.start' }, userContext('host')),
+      decideFibCommand(preparing, { type: 'fibking.roles.assign' }, userContext('host')),
     ).toEqual({
       kind: 'reject',
       reason: REASON_FIB_ROUND_ALREADY_ONGOING,

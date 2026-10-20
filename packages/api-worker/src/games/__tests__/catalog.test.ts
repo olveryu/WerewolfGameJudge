@@ -108,7 +108,7 @@ const VALID_FIB_PUBLIC_COMMAND_BY_TYPE = {
   },
   'fibking.config.update': { type: 'fibking.config.update', numberOfPlayers: 8 },
   'fibking.game.returnToLobby': { type: 'fibking.game.returnToLobby' },
-  'fibking.round.start': { type: 'fibking.round.start' },
+  'fibking.roles.assign': { type: 'fibking.roles.assign' },
   'fibking.round.cancelPreparing': { type: 'fibking.round.cancelPreparing' },
   'fibking.round.reveal': { type: 'fibking.round.reveal' },
 } as const satisfies {

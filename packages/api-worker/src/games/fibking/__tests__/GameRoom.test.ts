@@ -109,7 +109,7 @@ describe('FibKing generic GameRoom integration', () => {
         await dispatch(instance, stub, 'empty-fill', { type: 'room.seat.fillBots' }),
       );
       requireCommitted(
-        await dispatch(instance, stub, 'empty-start', { type: 'fibking.round.start' }),
+        await dispatch(instance, stub, 'empty-start', { type: 'fibking.roles.assign' }),
       );
       await state.storage.deleteAlarm();
       await instance.alarm();
@@ -179,7 +179,7 @@ describe('FibKing generic GameRoom integration', () => {
         await dispatch(instance, stub, 'fib-fill-bots', { type: 'room.seat.fillBots' }),
       );
       const preparing = requireCommitted(
-        await dispatch(instance, stub, 'fib-start-round', { type: 'fibking.round.start' }),
+        await dispatch(instance, stub, 'fib-start-round', { type: 'fibking.roles.assign' }),
       );
       expect(preparing.snapshot.state.phase).toBe('preparing');
       expect(Object.keys(preparing.snapshot.state.roster)).toEqual([
@@ -233,13 +233,13 @@ describe('FibKing generic GameRoom integration', () => {
     // The host confirms, marks the bot seats, then begins play.
     requireCommitted(
       await dispatch(stub, stub, 'fib-confirm-role-view', {
-        type: 'fibking.round.confirmRoleView',
+        type: 'fibking.role.viewed',
       }),
       await dispatch(stub, stub, 'fib-mark-bots-viewed', {
         type: 'fibking.bots.markAllBotsViewed',
       }),
       await dispatch(stub, stub, 'fib-begin-round', {
-        type: 'fibking.round.begin',
+        type: 'fibking.game.begin',
       }),
     );
     const startedSnapshot = await stub.getSnapshot(roomIdentity(stub));

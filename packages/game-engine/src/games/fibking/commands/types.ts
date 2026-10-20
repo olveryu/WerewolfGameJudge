@@ -19,11 +19,11 @@ export type FibPublicCommand =
   | FibRoomCommand
   | { readonly type: 'fibking.config.update'; readonly numberOfPlayers: number }
   | { readonly type: 'fibking.game.returnToLobby' }
-  | { readonly type: 'fibking.round.start' }
+  | { readonly type: 'fibking.roles.assign' }
   | { readonly type: 'fibking.round.cancelPreparing' }
-  | { readonly type: 'fibking.round.confirmRoleView' }
+  | { readonly type: 'fibking.role.viewed' }
   | { readonly type: 'fibking.bots.markAllBotsViewed' }
-  | { readonly type: 'fibking.round.begin' }
+  | { readonly type: 'fibking.game.begin' }
   | { readonly type: 'fibking.round.guess'; readonly seat: number }
   | { readonly type: 'fibking.round.reveal' };
 

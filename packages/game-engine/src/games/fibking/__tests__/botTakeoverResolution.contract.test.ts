@@ -2,7 +2,7 @@
  * Bot Takeover Resolution — fibking scenario (bot wave PR-2).
  *
  * Runs the shared acting-seat propositions against the real fibking
- * engine. The probe command is fibking.round.confirmRoleView in the
+ * engine. The probe command is fibking.role.viewed in the
  * viewing phase, whose commit event names the seat that viewed.
  * Layout: host at seat 0, a human guest at seat 1, bots at seats 2-3.
  */
@@ -75,7 +75,7 @@ function viewingState(): FibState {
     user('guest'),
   );
   state = dispatch(state, { type: 'room.seat.fillBots' }, user('host'));
-  state = dispatch(state, { type: 'fibking.round.start' }, user('host'));
+  state = dispatch(state, { type: 'fibking.roles.assign' }, user('host'));
   if (state.phase !== 'preparing') throw new Error('Expected preparing state');
   const { roundId } = state.pendingRound;
   state = dispatch(
@@ -129,11 +129,7 @@ describeBotTakeoverResolution({
       probe(actor: ActingSeatProbeActor): ActingSeatProbe {
         const context: CommandContext =
           actor.kind === 'system' ? system() : user(actor.userId, actor.controlledSeat);
-        const decision = decideFibCommand(
-          state,
-          { type: 'fibking.round.confirmRoleView' },
-          context,
-        );
+        const decision = decideFibCommand(state, { type: 'fibking.role.viewed' }, context);
         if (decision.kind === 'reject') return { kind: 'rejected', reason: decision.reason };
         const event = decision.events.find(
           (entry): entry is Extract<typeof entry, { type: 'fibking.role.viewed' }> =>

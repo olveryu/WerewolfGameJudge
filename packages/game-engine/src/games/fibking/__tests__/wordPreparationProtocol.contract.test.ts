@@ -128,11 +128,11 @@ class FibPreparationSession implements PreparationSession {
   }
 
   startDecision(): PreparationDecisionProbe {
-    return probe(this.#decide({ type: 'fibking.round.start' }, this.#startContext()));
+    return probe(this.#decide({ type: 'fibking.roles.assign' }, this.#startContext()));
   }
 
   applyStart(): void {
-    const decision = this.#decide({ type: 'fibking.round.start' }, this.#startContext());
+    const decision = this.#decide({ type: 'fibking.roles.assign' }, this.#startContext());
     if (decision.kind === 'reject') throw new Error(`Start rejected: ${decision.reason}`);
     this.#startCount += 1;
     this.#state = fibEngine.normalize(decision.events.reduce(fibEngine.evolve, this.#state));

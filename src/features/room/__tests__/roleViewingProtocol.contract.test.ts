@@ -98,11 +98,11 @@ describe('role viewing protocol — fibking (batch D)', () => {
     // The anchor is the server-side per-round viewed record.
     expect(hook).toMatch(/state\.round\.viewedSeats\.includes\(effectiveSeat\)/);
     // The modal confirm submits the viewing record while in the viewing phase.
-    expect(hook).toMatch(/\{ type: 'fibking\.round\.confirmRoleView' \}/);
+    expect(hook).toMatch(/\{ type: 'fibking\.role\.viewed' \}/);
     // D-2: the confirm is a seat action — under bot takeover it must
     // carry the controlled seat explicitly (the baseline Avalon shape),
     // never the dispatch funnel's default null.
-    expect(hook).toMatch(/confirmRoleView' \}, controlledSeat\)/);
+    expect(hook).toMatch(/viewed' \}, controlledSeat\)/);
     const screen = readSource('games/fibking/room/FibRoomScreen.tsx');
     // D-1: a controlled bot's card never plays the controller's effect.
     expect(screen).toMatch(/screen\.isBotTakeoverActive \? null : screen\.equippedRevealEffect/);
