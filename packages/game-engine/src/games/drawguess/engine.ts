@@ -435,7 +435,7 @@ function decidePublicCommand(
     case 'room.profile.update':
     case 'drawguess.config.update':
       return decideDrawGuessRoom(state, command, context);
-    case 'drawguess.round.start':
+    case 'drawguess.game.begin':
       return startGame(state, context);
     case 'drawguess.word.choose':
       return chooseWord(state, command.word, command.phaseRevision, command.turnIndex, context);

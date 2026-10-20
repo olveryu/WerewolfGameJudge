@@ -116,7 +116,7 @@ function lobbySession(): Session {
 
 function wordSelectSession(): Session {
   const session = lobbySession();
-  session.send({ type: 'drawguess.round.start' });
+  session.send({ type: 'drawguess.game.begin' });
   session.sendSystem({ type: 'drawguess.words.dealt', turnIndex: 0, choices: CHOICES });
   if (session.state.phase.kind !== 'wordSelect') throw new Error('expected wordSelect');
   return session;

@@ -103,7 +103,7 @@ describe('DrawGuess v1 -> v2 roster migration', () => {
   });
 
   it('migrates a started game (drawer queue present) whole', () => {
-    const state = dispatch(filledLobby(), { type: 'drawguess.round.start' });
+    const state = dispatch(filledLobby(), { type: 'drawguess.game.begin' });
     expect(state.phase.kind).not.toBe('lobby');
     expect(migratePersistedDrawGuessState(downgradeToV1(state))).toEqual(state);
   });

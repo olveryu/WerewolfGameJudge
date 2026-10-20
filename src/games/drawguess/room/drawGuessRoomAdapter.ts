@@ -167,7 +167,7 @@ export function createDrawGuessHostManagement(
     const startDisabledReason = canStart
       ? null
       : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
-    const submitStart = () => void input.submit('开始游戏', { type: 'drawguess.round.start' });
+    const submitStart = () => void input.submit('开始游戏', { type: 'drawguess.game.begin' });
     const startAction = buildStartGameAction({
       onPress: () =>
         showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将开始本局绘画猜词', submitStart),
@@ -201,7 +201,7 @@ export function createDrawGuessHostManagement(
                   HOST_FLOW_CONFIRM.nextRoundTitle,
                   '重新生成画手队列并清零比分，开始新的一局。',
                   async () => {
-                    await input.submit('再来一局', { type: 'drawguess.round.start' });
+                    await input.submit('再来一局', { type: 'drawguess.game.begin' });
                   },
                 ),
             }),
