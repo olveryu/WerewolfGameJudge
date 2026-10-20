@@ -6,34 +6,21 @@ import {
   type CreateGameContext,
   type GameEngineDefinition,
   reject,
-  resolveHostActorId,
+  requireHost,
   resolveSystemActorEffectId,
-  resolveUncontrolledUserActorId,
 } from '../../platform/engine';
 import { PICTIONARY_GAME_TYPE, type PictionaryGameType } from '../../platform/protocol/gameTypes';
-import { REASON_GAME_IN_PROGRESS, REASON_NOT_SEATED } from '../../platform/protocol/reasons';
+import { REASON_NOT_SEATED } from '../../platform/protocol/reasons';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
 import { guardPhaseExpiry } from '../../platform/room/phaseDeadline';
 import { buildRelayChains, buildRelayParticipants } from '../../platform/room/relay/assignment';
 import { relayDeadline } from '../../platform/room/relay/clock';
-import {
-  decideRosterClearSeats,
-  decideRosterFillBots,
-  decideRosterKickSeat,
-  decideRosterLeaveSeat,
-  decideRosterTakeSeat,
-  findRosterSeatByUserId,
-  hasOccupantAtOrBeyond,
-  type RosterChange,
-  type RosterOperationResult,
-} from '../../platform/room/seating';
+import { findRosterSeatByUserId } from '../../platform/room/seating';
 import type { PictionaryCommand } from './commands/types';
 import { commitPictionary, type PictionaryDecision } from './domain/decision';
 import type { PictionaryEvent } from './domain/events';
 import { evolvePictionaryState } from './domain/evolve';
 import {
-  REASON_PICTIONARY_CONFIG_INVALID,
-  REASON_PICTIONARY_OCCUPIED_SEAT_OUT_OF_RANGE,
   REASON_PICTIONARY_PHASE_INVALID,
   REASON_PICTIONARY_PHASE_NOT_EXPIRED,
   REASON_PICTIONARY_ROOM_NOT_FULL,
@@ -49,6 +36,7 @@ import {
   expirePictionaryPhase,
   getPictionaryAnswerDurationSeconds,
 } from './domain/relay';
+import { decidePictionaryRoom } from './domain/seating';
 import { getPictionaryTaskForSeat } from './domain/visibility';
 import type { PictionaryEffect } from './effects/types';
 import { normalizePictionaryState } from './state/normalize';
@@ -63,140 +51,10 @@ import {
   type PictionaryDrawingReservation,
   type PictionaryEntry,
   type PictionaryGalleryState,
-  type PictionaryHumanSeat,
   type PictionaryMedia,
-  type PictionaryProfileUpdate,
-  type PictionarySeatProfile,
   type PictionaryState,
 } from './state/types';
 import { PICTIONARY_STATE_IDENTITY, PICTIONARY_STATE_VERSION } from './state/version';
-
-function requireLobby(state: PictionaryState): PictionaryDecision | null {
-  return state.phase === 'lobby' ? null : reject(REASON_GAME_IN_PROGRESS);
-}
-
-function rejectSeatOperation(
-  result: Extract<RosterOperationResult<PictionaryHumanSeat>, { kind: 'rejected' }>,
-): PictionaryDecision {
-  return reject(result.reason);
-}
-
-function seatChangesEvent(changes: readonly RosterChange<PictionaryHumanSeat>[]): PictionaryEvent {
-  return { type: 'pictionary.seats.changed', changes };
-}
-
-function decideTakePictionarySeat(
-  state: PictionaryState,
-  seat: number,
-  profile: PictionarySeatProfile,
-  context: CommandContext,
-): PictionaryDecision {
-  const lobbyRejection = requireLobby(state);
-  if (lobbyRejection !== null) return lobbyRejection;
-  const actor = resolveUncontrolledUserActorId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  const result = decideRosterTakeSeat(
-    state.roster,
-    state.config.numberOfPlayers,
-    seat,
-    actor.value,
-    (targetSeat): PictionaryHumanSeat => ({
-      userId: actor.value,
-      seat: targetSeat,
-      profile: { ...profile },
-    }),
-  );
-  return result.kind === 'rejected'
-    ? rejectSeatOperation(result)
-    : commitPictionary([seatChangesEvent(result.changes)]);
-}
-
-function decideLeavePictionarySeat(
-  state: PictionaryState,
-  context: CommandContext,
-): PictionaryDecision {
-  const lobbyRejection = requireLobby(state);
-  if (lobbyRejection !== null) return lobbyRejection;
-  const actor = resolveUncontrolledUserActorId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  const result = decideRosterLeaveSeat(state.roster, state.config.numberOfPlayers, actor.value);
-  return result.kind === 'rejected'
-    ? rejectSeatOperation(result)
-    : commitPictionary([seatChangesEvent(result.changes)]);
-}
-
-function decideKickPictionarySeat(
-  state: PictionaryState,
-  seat: number,
-  context: CommandContext,
-): PictionaryDecision {
-  const lobbyRejection = requireLobby(state);
-  if (lobbyRejection !== null) return lobbyRejection;
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  const result = decideRosterKickSeat(state.roster, state.config.numberOfPlayers, seat);
-  if (result.kind === 'rejected') return rejectSeatOperation(result);
-  return commitPictionary([seatChangesEvent(result.changes)]);
-}
-
-function decideClearPictionarySeats(
-  state: PictionaryState,
-  context: CommandContext,
-): PictionaryDecision {
-  const lobbyRejection = requireLobby(state);
-  if (lobbyRejection !== null) return lobbyRejection;
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  const result = decideRosterClearSeats(state.roster, state.config.numberOfPlayers);
-  if (result.kind === 'rejected') return rejectSeatOperation(result);
-  return result.changes.length === 0
-    ? commitPictionary([])
-    : commitPictionary([seatChangesEvent(result.changes)]);
-}
-
-function decideFillPictionaryBots(
-  state: PictionaryState,
-  context: CommandContext,
-): PictionaryDecision {
-  const lobbyRejection = requireLobby(state);
-  if (lobbyRejection !== null) return lobbyRejection;
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  const result = decideRosterFillBots(state.roster, state.config.numberOfPlayers);
-  if (result.kind === 'rejected') return rejectSeatOperation(result);
-  return result.changes.length === 0
-    ? commitPictionary([])
-    : commitPictionary([seatChangesEvent(result.changes)]);
-}
-
-function decideUpdatePictionaryProfile(
-  state: PictionaryState,
-  profile: PictionaryProfileUpdate,
-  context: CommandContext,
-): PictionaryDecision {
-  const actor = resolveUncontrolledUserActorId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  const seat = findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, actor.value);
-  return seat === null
-    ? reject(REASON_NOT_SEATED)
-    : commitPictionary([{ type: 'pictionary.profile.updated', seat, profile: { ...profile } }]);
-}
-
-function decideUpdatePictionaryConfig(
-  state: PictionaryState,
-  config: PictionaryConfig,
-  context: CommandContext,
-): PictionaryDecision {
-  const lobbyRejection = requireLobby(state);
-  if (lobbyRejection !== null) return lobbyRejection;
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  if (!isValidPictionaryConfig(config)) return reject(REASON_PICTIONARY_CONFIG_INVALID);
-  if (hasOccupantAtOrBeyond(state.roster, config.numberOfPlayers)) {
-    return reject(REASON_PICTIONARY_OCCUPIED_SEAT_OUT_OF_RANGE);
-  }
-  return commitPictionary([{ type: 'pictionary.config.updated', config }]);
-}
 
 function createRound(state: PictionaryState, context: CommandContext): PictionaryEvent {
   const roundId = `pictionary-round:${context.commandId}`;
@@ -220,8 +78,8 @@ function decideStartPictionaryRound(
   state: PictionaryState,
   context: CommandContext,
 ): PictionaryDecision {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
+  const hostRejection = requireHost<PictionaryEvent, PictionaryEffect>(context, state.hostUserId);
+  if (hostRejection !== null) return hostRejection;
   if (state.phase !== 'lobby' && state.phase !== 'ended') {
     return reject(REASON_PICTIONARY_PHASE_INVALID);
   }
@@ -402,8 +260,8 @@ function decideFinishPictionaryPhase(
   state: PictionaryState,
   context: CommandContext,
 ): PictionaryDecision {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
+  const hostRejection = requireHost<PictionaryEvent, PictionaryEffect>(context, state.hostUserId);
+  if (hostRejection !== null) return hostRejection;
   if (state.phase !== 'answering') {
     return reject(REASON_PICTIONARY_PHASE_INVALID);
   }
@@ -414,8 +272,8 @@ function decidePausePictionaryGallery(
   state: PictionaryState,
   context: CommandContext,
 ): PictionaryDecision {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
+  const hostRejection = requireHost<PictionaryEvent, PictionaryEffect>(context, state.hostUserId);
+  if (hostRejection !== null) return hostRejection;
   return controlPictionaryGallery(state, 'pictionary.gallery.pause', context.nowMs);
 }
 
@@ -423,8 +281,8 @@ function decideResumePictionaryGallery(
   state: PictionaryState,
   context: CommandContext,
 ): PictionaryDecision {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
+  const hostRejection = requireHost<PictionaryEvent, PictionaryEffect>(context, state.hostUserId);
+  if (hostRejection !== null) return hostRejection;
   return controlPictionaryGallery(state, 'pictionary.gallery.resume', context.nowMs);
 }
 
@@ -433,8 +291,8 @@ function decideMovePictionaryGallery(
   context: CommandContext,
   direction: 1 | -1,
 ): PictionaryDecision {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
+  const hostRejection = requireHost<PictionaryEvent, PictionaryEffect>(context, state.hostUserId);
+  if (hostRejection !== null) return hostRejection;
   return controlPictionaryGallery(
     state,
     direction === 1 ? 'pictionary.gallery.advance' : 'pictionary.gallery.rewind',
@@ -446,8 +304,8 @@ function decideReturnPictionaryToLobby(
   state: PictionaryState,
   context: CommandContext,
 ): PictionaryDecision {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
+  const hostRejection = requireHost<PictionaryEvent, PictionaryEffect>(context, state.hostUserId);
+  if (hostRejection !== null) return hostRejection;
   return state.phase === 'ended' || state.phase === 'aborted'
     ? commitPictionary([{ type: 'pictionary.game.returnedToLobby' }])
     : reject(REASON_PICTIONARY_PHASE_INVALID);
@@ -516,19 +374,13 @@ export function decidePictionaryCommand(
   }
   switch (command.type) {
     case 'room.seat.take':
-      return decideTakePictionarySeat(state, command.seat, command.profile, context);
     case 'room.seat.leave':
-      return decideLeavePictionarySeat(state, context);
     case 'room.seat.kick':
-      return decideKickPictionarySeat(state, command.seat, context);
     case 'room.seat.clear':
-      return decideClearPictionarySeats(state, context);
     case 'room.seat.fillBots':
-      return decideFillPictionaryBots(state, context);
     case 'room.profile.update':
-      return decideUpdatePictionaryProfile(state, command.profile, context);
     case 'pictionary.config.update':
-      return decideUpdatePictionaryConfig(state, command.config, context);
+      return decidePictionaryRoom(state, command, context);
     case 'pictionary.game.begin':
     case 'pictionary.game.next':
       return decideStartPictionaryRound(state, context);
@@ -539,8 +391,11 @@ export function decidePictionaryCommand(
     case 'pictionary.drawing.reserve':
       return decideReservePictionaryDrawing(state, context);
     case 'pictionary.game.abort': {
-      const actor = resolveHostActorId(context, state.hostUserId);
-      if (actor.kind === 'rejected') return reject(actor.reason);
+      const hostRejection = requireHost<PictionaryEvent, PictionaryEffect>(
+        context,
+        state.hostUserId,
+      );
+      if (hostRejection !== null) return hostRejection;
       if (
         !['answering', 'settling', 'transition'].includes(state.phase) ||
         (state.phase === 'transition' && state.stepIndex === state.config.numberOfPlayers - 1)
@@ -563,8 +418,11 @@ export function decidePictionaryCommand(
     case 'pictionary.gallery.rewind':
       return decideMovePictionaryGallery(state, context, -1);
     case 'pictionary.gallery.finish': {
-      const actor = resolveHostActorId(context, state.hostUserId);
-      if (actor.kind === 'rejected') return reject(actor.reason);
+      const hostRejection = requireHost<PictionaryEvent, PictionaryEffect>(
+        context,
+        state.hostUserId,
+      );
+      if (hostRejection !== null) return hostRejection;
       return controlPictionaryGallery(state, command.type, context.nowMs);
     }
     case 'pictionary.game.returnToLobby':
