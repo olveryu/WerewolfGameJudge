@@ -17,6 +17,12 @@
  * silently committing empty instead of rejecting, is pinned here
  * as well — the proposition is that an expired command never
  * changes state.
+ *
+ * The task projection's move onto the shared machine (E-4 PR-2) is
+ * pinned here too: outside the task phases there is no task, so a
+ * stale task command is rejected as an invalid task at the entry
+ * gate, and a corrupted round (missing chain or previous entry)
+ * fails fast instead of projecting null.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -397,5 +403,53 @@ describe('Pictionary relay-chain contract', () => {
       kind: 'reject',
       reason: REASON_PICTIONARY_TASK_ALREADY_SUBMITTED,
     });
+  });
+
+  it('rejects a task command sent in the gallery as an invalid task', () => {
+    const session = game();
+    session.playRound();
+    expect(session.state.phase).toBe('gallery');
+    // The identity below is the one seat 0's client bound at the
+    // final step: entering the gallery changes neither round nor
+    // step, and the seat's chain is the one it authored on. The
+    // machine projection has no task outside the task phases, so
+    // the entry gate rejects the stale command as an invalid task
+    // instead of passing it through to the machine's phase gate.
+    const state = session.state;
+    if (state.roundId === null) throw new Error('Missing round id');
+    const seatIndex = state.seatOrder.indexOf(0);
+    const chainIndex =
+      (seatIndex - state.stepOffsets[state.stepIndex]! + NUMBER_OF_PLAYERS) % NUMBER_OF_PLAYERS;
+    const chain = state.chains[chainIndex];
+    if (chain === undefined) throw new Error('Missing chain');
+    const staleTaskCommand: PictionaryCommand = {
+      type: 'pictionary.text.submit',
+      text: 'too late',
+      roundId: state.roundId,
+      stepIndex: state.stepIndex,
+      chainId: chain.id,
+    };
+    const context = session.session.context('user-0');
+    expect(session.session.decideAs(staleTaskCommand, context)).toEqual({
+      kind: 'reject',
+      reason: REASON_PICTIONARY_TASK_INVALID,
+    });
+  });
+
+  it('fails fast when the projected chain is missing', () => {
+    const session = game();
+    const corrupted: PictionaryState = { ...session.state, chains: [] };
+    expect(() => getPictionaryTaskForSeat(corrupted, 0)).toThrow('Relay task chain missing');
+  });
+
+  it('fails fast when the previous entry is missing', () => {
+    const session = game();
+    session.playStep();
+    expect(session.state.stepIndex).toBe(1);
+    const corrupted: PictionaryState = {
+      ...session.state,
+      chains: session.state.chains.map((chain) => ({ ...chain, entries: [] })),
+    };
+    expect(() => getPictionaryTaskForSeat(corrupted, 0)).toThrow('Relay previous entry missing');
   });
 });
