@@ -45,7 +45,7 @@ function createPreparingState(): FibState {
     { roomCode: '4321', hostUserId: 'host', nowMs: 1, commandId: 'create' },
   );
   const full = applyPublicCommand(lobby, { type: 'room.seat.fillBots' }, 'fill-bots', 2);
-  return applyPublicCommand(full, { type: 'fibking.round.start' }, 'start-command', 3);
+  return applyPublicCommand(full, { type: 'fibking.roles.assign' }, 'start-command', 3);
 }
 
 function createContext(

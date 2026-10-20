@@ -2,7 +2,7 @@
 
 /**
  * v8 splits the viewing checkpoint from play: rounds gain the host's
- * guess record (guesses) and play opens only on fibking.round.begin.
+ * guess record (guesses) and play opens only on fibking.game.begin.
  * v7 replaces realSeats plus the implicit-bot derivation inputs with the
  * unified roster (bot seats become explicit occupants).
  * v6 added the per-round role viewing record (Identity Viewing Protocol):

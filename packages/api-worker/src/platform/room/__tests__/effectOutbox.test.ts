@@ -136,7 +136,7 @@ async function createPreparingRoom() {
     hostUserId: 'host',
     config: { numberOfPlayers: 4 },
   });
-  for (const command of [{ type: 'room.seat.fillBots' }, { type: 'fibking.round.start' }]) {
+  for (const command of [{ type: 'room.seat.fillBots' }, { type: 'fibking.roles.assign' }]) {
     const result = await stub.dispatchUserCommand({
       ...identity,
       actorUserId: 'host',

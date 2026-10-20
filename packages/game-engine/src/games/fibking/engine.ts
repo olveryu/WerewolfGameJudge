@@ -378,7 +378,7 @@ function decideConfirmFibRoleView(state: FibState, context: CommandContext): Fib
  * Identity Viewing Protocol scaffold action (host only): marks
  * every unviewed bot seat as viewed. Filling the last missing
  * record only opens the begin gate; the host still begins play
- * with fibking.round.begin.
+ * with fibking.game.begin.
  */
 function decideMarkAllBotsViewed(state: FibState, context: CommandContext): FibDecision {
   // FibKing's viewing phase gate stays here (it also narrows the
@@ -561,17 +561,17 @@ export function decideFibCommand(
       return decideUpdateFibConfig(state, command.numberOfPlayers, context);
     case 'fibking.game.returnToLobby':
       return decideReturnFibGameToLobby(state, context);
-    case 'fibking.round.start':
+    case 'fibking.roles.assign':
       return decideStartFibRound(state, context);
     case 'fibking.round.cancelPreparing':
       return decideCancelFibPreparation(state, context);
     case 'fibking.round.reveal':
       return decideRevealFibRound(state, context);
-    case 'fibking.round.confirmRoleView':
+    case 'fibking.role.viewed':
       return decideConfirmFibRoleView(state, context);
     case 'fibking.bots.markAllBotsViewed':
       return decideMarkAllBotsViewed(state, context);
-    case 'fibking.round.begin':
+    case 'fibking.game.begin':
       return decideBeginFibRound(state, context);
     case 'fibking.round.guess':
       return decideGuessFibSeat(state, command.seat, context);

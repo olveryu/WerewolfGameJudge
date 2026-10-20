@@ -201,7 +201,7 @@ export function useFibRoomScreenState({
           ? '重新准备'
           : '分配角色';
     void submit(label, {
-      type: 'fibking.round.start',
+      type: 'fibking.roles.assign',
     });
   };
 
@@ -221,7 +221,7 @@ export function useFibRoomScreenState({
   };
 
   const beginRound = () => {
-    void submit('开始游戏', { type: 'fibking.round.begin' });
+    void submit('开始游戏', { type: 'fibking.game.begin' });
   };
 
   const toggleGuessMode = useCallback(() => {
@@ -275,7 +275,7 @@ export function useFibRoomScreenState({
       '重新抽词？',
       '当前词语和身份将作废，并重新抽取词语、分配身份。已出现的词语不会再次抽到。',
       async () => {
-        await submit('重新抽词', { type: 'fibking.round.start' });
+        await submit('重新抽词', { type: 'fibking.roles.assign' });
       },
     );
   };
@@ -315,7 +315,7 @@ export function useFibRoomScreenState({
       throw new Error('[FAIL-FAST] FibKing identity modal is not open');
     }
     if (roundView?.phase === 'viewing' && !roundView.viewerHasViewed) {
-      void submit('确认查看身份', { type: 'fibking.round.confirmRoleView' }, controlledSeat);
+      void submit('确认查看身份', { type: 'fibking.role.viewed' }, controlledSeat);
     }
     setIsIdentityVisible(false);
   };
