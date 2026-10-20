@@ -147,7 +147,7 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
     },
   },
   demo: {
-    adoption: 'pending',
+    adoption: 'switched',
     variant: {
       actorChannel: 'systemOnly',
       revisionPolicy: 'none',

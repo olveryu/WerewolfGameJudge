@@ -6,6 +6,7 @@ import {
   migratePersistedDemoState,
 } from '@game-judge/game-engine/games/demo/public';
 
+import { settleDueBusinessKey, settleDueDeliveryAt } from '../../platform/gameModules/settleDue';
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { demoEffectSchema, handleDemoEffect } from './effects';
 import {
@@ -26,11 +27,11 @@ export const demoWorkerModule = defineWorkerGameModule({
   httpRoutes: [],
   getEffectBusinessKey: (effect, context) =>
     effect.type === 'demo.settle.due'
-      ? `demo:settle:${effect.payload.gameSequence}:${effect.payload.deadlineAt}`
+      ? settleDueBusinessKey('demo:settle', effect.payload)
       : `demo:game-completed:${context.createdRevision}:${effect.payload.roundId}`,
   // The settle effect is the room's wake-up for the armed stage
   // deadline: park it in the outbox until its deadline.
   getEffectDeliveryAt: (effect) =>
-    effect.type === 'demo.settle.due' ? effect.payload.deadlineAt : null,
+    effect.type === 'demo.settle.due' ? settleDueDeliveryAt(effect.payload) : null,
   handleEffect: handleDemoEffect,
 });

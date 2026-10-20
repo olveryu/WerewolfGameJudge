@@ -12,7 +12,7 @@ import {
   gameCompletionPayloadSchema,
   publishGameRewards,
 } from '../../features/account/settleGameRewards';
-import { dispatchEffectCommand } from '../../platform/gameModules/effectDispatch';
+import { createSettleDueHandler } from '../../platform/gameModules/settleDue';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 
 const gameCompletedEffectSchema = z.strictObject({
@@ -42,32 +42,30 @@ type DemoSettleDueEffect = Extract<DemoEffect, { type: 'demo.settle.due' }>;
  */
 const SUPERSEDED_SETTLE_REASONS: readonly string[] = [DEMO_REASONS.phase, DEMO_REASONS.deadline];
 
-async function handleDemoSettleDueEffect(
-  effect: DemoSettleDueEffect,
-  context: WorkerEffectContext<DemoState, DemoInternalCommand>,
-): Promise<void> {
-  const state = context.state;
-  const phase = state.phase;
-  // Staleness gate: the payload pins one exact arming. If the room has
-  // moved on (already settled, new game), this delivery is a no-op —
-  // never settle whatever stage happens to be current.
-  if (
-    state.gameSequence !== effect.payload.gameSequence ||
-    phase.kind !== 'playing' ||
-    phase.deadlineAt !== effect.payload.deadlineAt
-  ) {
-    return;
-  }
-  await dispatchEffectCommand(
-    context,
-    { type: 'demo.phase.settleExpired' },
-    {
-      namespace: 'demo:settle',
-      supersededReasons: SUPERSEDED_SETTLE_REASONS,
-      label: 'Demo settle',
-    },
-  );
-}
+/**
+ * Scheduled stage-deadline settlement through the shared settle.due
+ * handler. The staleness gate compares the payload's pinned arming
+ * field by field (game sequence, deadline): if the room has moved on
+ * (already settled, new game), the delivery is a no-op.
+ */
+const handleDemoSettleDueEffect = createSettleDueHandler<
+  DemoState,
+  DemoSettleDueEffect['payload'],
+  DemoInternalCommand
+>({
+  namespace: 'demo:settle',
+  label: 'Demo settle',
+  command: { type: 'demo.phase.settleExpired' },
+  supersededReasons: SUPERSEDED_SETTLE_REASONS,
+  isCurrent: (state, payload) => {
+    const phase = state.phase;
+    return (
+      state.gameSequence === payload.gameSequence &&
+      phase.kind === 'playing' &&
+      phase.deadlineAt === payload.deadlineAt
+    );
+  },
+});
 
 /**
  * Deliver one validated Demo effect. Exactly-once for the
