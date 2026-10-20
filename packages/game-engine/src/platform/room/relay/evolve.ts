@@ -10,7 +10,7 @@
  * contract: exactly those events advance the revision.
  */
 
-import type { RelayChain, RelayGalleryState, RelayParticipant, RelayPhase } from './types';
+import type { RelayChain, RelayParticipant, RelayPhase } from './types';
 
 /** The round fields a round-started event carries into the slice. */
 export interface RelayRoundStartFields<TEntry> {
@@ -74,14 +74,29 @@ export function applyRelayRoundStarted<TEntry, TRound extends RelayRoundStartFie
   };
 }
 
-/** Lands one seat's readiness change. */
+/**
+ * Lands one seat's readiness change.
+ *
+ * readySeats has exactly one canonical persisted order platform-wide:
+ * strictly ascending by seat. A ready seat is inserted at its sorted
+ * position (the input is already ascending), never appended in
+ * arrival order — games' state invariants rely on this order, and no
+ * consumer reads readySeats in arrival order.
+ */
 export function applyRelayTaskReady(
   readySeats: readonly number[],
   seat: number,
   isReady: boolean,
 ): { readonly readySeats: readonly number[] } {
+  if (!isReady) {
+    return { readySeats: readySeats.filter((ready) => ready !== seat) };
+  }
+  const index = readySeats.findIndex((ready) => ready > seat);
   return {
-    readySeats: isReady ? [...readySeats, seat] : readySeats.filter((ready) => ready !== seat),
+    readySeats:
+      index === -1
+        ? [...readySeats, seat]
+        : [...readySeats.slice(0, index), seat, ...readySeats.slice(index)],
   };
 }
 
@@ -98,21 +113,26 @@ export function applyRelayEntryAppended<TEntry>(
   };
 }
 
-/** Lands a phase change: new phase fields, revision advanced, readiness cleared. */
-export function applyRelayPhaseChanged(
+/**
+ * Lands a phase change: new phase fields, revision advanced, readiness
+ * cleared. The gallery is opaque cargo for this applier — it is carried
+ * from the event into the slice untouched, so each game passes (and
+ * persists) its own gallery shape.
+ */
+export function applyRelayPhaseChanged<TGallery>(
   slice: { readonly phaseRevision: number },
   event: {
     readonly phase: RelayPhase;
     readonly stepIndex: number;
     readonly deadlineAt: number | null;
-    readonly gallery: RelayGalleryState | null;
+    readonly gallery: TGallery;
   },
 ): {
   readonly phase: RelayPhase;
   readonly phaseRevision: number;
   readonly stepIndex: number;
   readonly deadlineAt: number | null;
-  readonly gallery: RelayGalleryState | null;
+  readonly gallery: TGallery;
   readonly readySeats: readonly number[];
 } {
   return {
