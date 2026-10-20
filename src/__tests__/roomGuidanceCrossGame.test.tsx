@@ -313,7 +313,7 @@ describe('room guidance console: one reason, one screen (cross-game)', () => {
 
   it('demo: the viewing begin reason renders once in the console and never in the panel', () => {
     let state = demoState(true);
-    state = driveDemo(state, { type: 'demo.game.start' });
+    state = driveDemo(state, { type: 'demo.roles.assign' });
     expectReasonExactlyOnce(demoShell(state), '0/4 位玩家已查看身份，等待剩余玩家', '开始游戏');
   });
 

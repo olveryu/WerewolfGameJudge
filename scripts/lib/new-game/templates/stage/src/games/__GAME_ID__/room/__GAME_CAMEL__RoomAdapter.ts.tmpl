@@ -163,7 +163,7 @@ export function create__GAME_PASCAL__HostManagement(
     const startDisabledReason = canStart
       ? null
       : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
-    const submitStart = () => void input.submit('开始游戏', { type: '__GAME_ID__.game.start' });
+    const submitStart = () => void input.submit('开始游戏', { type: '__GAME_ID__.game.begin' });
     const startAction = buildStartGameAction({
       onPress: () => showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将开始本局对局', submitStart),
       isEnabled: !input.isSubmitting && canStart,
@@ -193,7 +193,7 @@ export function create__GAME_PASCAL__HostManagement(
             buildNextRoundAction({
               onPress: () =>
                 showConfirmAlert(HOST_FLOW_CONFIRM.nextRoundTitle, '将重新分配并清零比分，开始新的一局。', async () => {
-                  await input.submit('再来一局', { type: '__GAME_ID__.game.start' });
+                  await input.submit('再来一局', { type: '__GAME_ID__.game.begin' });
                 }),
             }),
             buildReturnLobbyAction({

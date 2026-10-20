@@ -11,7 +11,7 @@ export type __GAME_PASCAL__PublicCommand =
   | RoomSeatCommand<RoomSeatProfile>
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | { readonly type: '__GAME_ID__.config.update'; readonly config: __GAME_PASCAL__Config }
-  | { readonly type: '__GAME_ID__.game.start' }
+  | { readonly type: '__GAME_ID__.game.begin' }
   | { readonly type: '__GAME_ID__.game.returnToLobby' }
   | { readonly type: '__GAME_ID__.phase.expire' }
   // TODO(gameplay): 玩法命令（行动、提交、投票……）逐条加在这里，并在

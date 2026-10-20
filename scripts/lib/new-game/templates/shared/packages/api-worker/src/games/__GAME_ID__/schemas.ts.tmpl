@@ -25,13 +25,14 @@ const __GAME_CAMEL__PublicCommandOptions = definePublicCommandOptions<__GAME_PAS
     type: z.literal('__GAME_ID__.config.update'),
     config: __GAME_CAMEL__ConfigSchema,
   }),
-  z.strictObject({ type: z.literal('__GAME_ID__.game.start') }),
 //#identity
+  z.strictObject({ type: z.literal('__GAME_ID__.roles.assign') }),
   z.strictObject({ type: z.literal('__GAME_ID__.game.begin') }),
   z.strictObject({ type: z.literal('__GAME_ID__.role.viewed') }),
   z.strictObject({ type: z.literal('__GAME_ID__.bots.markAllBotsViewed') }),
 //#end
 //#stage
+  z.strictObject({ type: z.literal('__GAME_ID__.game.begin') }),
   z.strictObject({ type: z.literal('__GAME_ID__.phase.expire') }),
 //#end
   z.strictObject({ type: z.literal('__GAME_ID__.game.returnToLobby') }),

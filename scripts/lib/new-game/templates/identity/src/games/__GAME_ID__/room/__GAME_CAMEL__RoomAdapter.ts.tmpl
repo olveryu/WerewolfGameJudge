@@ -172,7 +172,7 @@ export function create__GAME_PASCAL__HostManagement(
       ? null
       : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
     const submitAssign = () =>
-      void input.submit('分配角色', { type: '__GAME_ID__.game.start' });
+      void input.submit('分配角色', { type: '__GAME_ID__.roles.assign' });
     const assignAction = buildAssignRolesAction({
       onPress: () =>
         showConfirmAlert(
@@ -257,7 +257,7 @@ export function create__GAME_PASCAL__HostManagement(
                   HOST_FLOW_CONFIRM.nextRoundTitle,
                   '重新分配身份，开始新的一局。',
                   async () => {
-                    await input.submit('再来一局', { type: '__GAME_ID__.game.start' });
+                    await input.submit('再来一局', { type: '__GAME_ID__.roles.assign' });
                   },
                 ),
             }),

@@ -205,7 +205,7 @@ function decideCommand(
     case 'room.profile.update':
     case 'demo.config.update':
       return decideDemoRoom(state, command, context);
-    case 'demo.game.start':
+    case 'demo.roles.assign':
       return startGame(state, context);
     case 'demo.game.begin':
       return beginGame(state, context);

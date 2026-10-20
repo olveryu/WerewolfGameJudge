@@ -184,7 +184,7 @@ function decideCommand(
     case 'room.profile.update':
     case '__GAME_ID__.config.update':
       return decide__GAME_PASCAL__Room(state, command, context);
-    case '__GAME_ID__.game.start':
+    case '__GAME_ID__.roles.assign':
       return startGame(state, context);
     case '__GAME_ID__.game.begin':
       return beginGame(state, context);
