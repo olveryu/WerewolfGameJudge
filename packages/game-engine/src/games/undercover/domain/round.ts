@@ -239,11 +239,11 @@ export function decideUndercoverRound(
     command.type === 'undercover.round.failPreparation'
   )
     return decideInternal(state, command, context);
-  if (command.type === 'undercover.round.confirm')
+  if (command.type === 'undercover.role.viewed')
     return decideConfirmation(state, command.roundId, context);
   const hostActor = resolveHostActorId(context, state.hostUserId);
   if (hostActor.kind === 'rejected') return reject(hostActor.reason);
-  if (command.type === 'undercover.round.start')
+  if (command.type === 'undercover.roles.assign')
     return state.phase === 'lobby'
       ? decideStart(state, command.shouldAllowRepeated, context)
       : reject(UNDERCOVER_REASONS.phase);
@@ -258,14 +258,14 @@ export function decideUndercoverRound(
     state.phase === 'preparing' || state.phase === 'preparationFailed'
       ? state.pendingRound.roundId
       : state.round?.roundId;
-  if (command.type === 'undercover.round.restart') {
+  if (command.type === 'undercover.game.redeal') {
     if (state.phase === 'lobby') return reject(UNDERCOVER_REASONS.phase);
     if ((roundId ?? null) !== command.roundId) return reject(UNDERCOVER_REASONS.round);
     return decideStart(state, false, context);
   }
   if (roundId !== command.roundId) return reject(UNDERCOVER_REASONS.round);
   switch (command.type) {
-    case 'undercover.round.begin': {
+    case 'undercover.game.begin': {
       // The begin gate is the identity checkpoint: play opens only once
       // every seat (bots via the host scaffold action) has viewed.
       if (state.phase !== 'viewing') return reject(UNDERCOVER_REASONS.phase);
@@ -308,7 +308,7 @@ export function decideUndercoverRound(
             commit: commitUndercover,
           })
         : reject(UNDERCOVER_REASONS.phase);
-    case 'undercover.round.abort':
+    case 'undercover.game.abort':
       return state.phase === 'preparing' ||
         state.phase === 'preparationFailed' ||
         state.phase === 'viewing' ||

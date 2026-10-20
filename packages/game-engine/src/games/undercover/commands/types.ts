@@ -15,14 +15,14 @@ export type UndercoverPublicCommand =
   | RoomSeatCommand<RoomSeatProfile>
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | { readonly type: 'undercover.config.update'; readonly config: UndercoverConfig }
-  | { readonly type: 'undercover.round.start'; readonly shouldAllowRepeated: boolean }
-  | { readonly type: 'undercover.round.restart'; readonly roundId: string | null }
+  | { readonly type: 'undercover.roles.assign'; readonly shouldAllowRepeated: boolean }
+  | { readonly type: 'undercover.game.redeal'; readonly roundId: string | null }
   | { readonly type: 'undercover.round.retry'; readonly roundId: string }
-  | { readonly type: 'undercover.round.confirm'; readonly roundId: string }
-  | { readonly type: 'undercover.round.begin'; readonly roundId: string }
+  | { readonly type: 'undercover.role.viewed'; readonly roundId: string }
+  | { readonly type: 'undercover.game.begin'; readonly roundId: string }
   | { readonly type: 'undercover.bots.markAllBotsViewed'; readonly roundId: string }
   | { readonly type: 'undercover.round.reveal'; readonly roundId: string; readonly seat: number }
-  | { readonly type: 'undercover.round.abort'; readonly roundId: string }
+  | { readonly type: 'undercover.game.abort'; readonly roundId: string }
   | { readonly type: 'undercover.game.returnToLobby' };
 
 export type UndercoverInternalCommand =

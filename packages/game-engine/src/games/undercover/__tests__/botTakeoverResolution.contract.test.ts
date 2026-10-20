@@ -2,7 +2,7 @@
  * Bot Takeover Resolution — undercover scenario (bot wave PR-2).
  *
  * Runs the shared acting-seat propositions against the real
- * undercover engine. The probe command is undercover.round.confirm
+ * undercover engine. The probe command is undercover.role.viewed
  * in the viewing phase, whose commit event names the seat that
  * confirmed. Layout: host at seat 0, a human guest at seat 1, bots
  * filling seats 2-7.
@@ -65,7 +65,7 @@ function viewingState(): UndercoverState {
     user('guest'),
   );
   state = dispatch({ type: 'room.seat.fillBots' }, user('host'));
-  state = dispatch({ type: 'undercover.round.start', shouldAllowRepeated: false }, user('host'));
+  state = dispatch({ type: 'undercover.roles.assign', shouldAllowRepeated: false }, user('host'));
   if (state.phase !== 'preparing') throw new Error('Expected preparing state');
   state = dispatch(
     {
@@ -99,7 +99,7 @@ describeBotTakeoverResolution({
             : user(actor.userId, actor.controlledSeat);
         const decision = undercoverEngine.decide(
           state,
-          { type: 'undercover.round.confirm', roundId },
+          { type: 'undercover.role.viewed', roundId },
           context,
         );
         if (decision.kind === 'reject') return { kind: 'rejected', reason: decision.reason };

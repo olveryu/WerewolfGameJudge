@@ -55,7 +55,7 @@ function createViewingState() {
   );
   state = dispatch(state, { type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
   state = dispatch(state, { type: 'room.seat.fillBots' });
-  state = dispatch(state, { type: 'undercover.round.start', shouldAllowRepeated: false });
+  state = dispatch(state, { type: 'undercover.roles.assign', shouldAllowRepeated: false });
   state = dispatch(
     state,
     {
@@ -126,7 +126,7 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
   const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
   const { result } = renderHook(() => useUndercoverRoundControls(state, session, 'host', null));
   const capabilities = createUndercoverRoomCapabilities({
-    state: dispatch(state, { type: 'undercover.round.abort', roundId: state.round!.roundId }),
+    state: dispatch(state, { type: 'undercover.game.abort', roundId: state.round!.roundId }),
     isHost: true,
     mySeat: null,
     requestTakeSeat: jest.fn(),
@@ -141,7 +141,7 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
     takeOverBot: jest.fn(),
   });
   const lobby = dispatch(
-    dispatch(state, { type: 'undercover.round.abort', roundId: state.round!.roundId }),
+    dispatch(state, { type: 'undercover.game.abort', roundId: state.round!.roundId }),
     { type: 'undercover.game.returnToLobby' },
   );
   const empty = dispatch(lobby, { type: 'room.seat.clear' });
@@ -183,8 +183,8 @@ it('selects directly for confirmation, cancels without submission and invalidate
   let state = createViewingState();
   const roundId = state.round!.roundId;
   state = dispatch(state, { type: 'undercover.bots.markAllBotsViewed', roundId });
-  state = dispatch(state, { type: 'undercover.round.confirm', roundId });
-  state = dispatch(state, { type: 'undercover.round.begin', roundId });
+  state = dispatch(state, { type: 'undercover.role.viewed', roundId });
+  state = dispatch(state, { type: 'undercover.game.begin', roundId });
   const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
   const { result, rerender } = renderHook(
     ({ currentState }: { currentState: UndercoverState }) =>
@@ -263,10 +263,10 @@ it('requires confirmation to restart an active round and exposes restart in host
     await confirmation[2]();
   });
   expect(session.dispatch).toHaveBeenCalledWith(
-    { type: 'undercover.round.restart', roundId: state.round.roundId },
+    { type: 'undercover.game.redeal', roundId: state.round.roundId },
     { controlledSeat: null, label: '重新开始' },
   );
-  const aborted = dispatch(state, { type: 'undercover.round.abort', roundId: state.round.roundId });
+  const aborted = dispatch(state, { type: 'undercover.game.abort', roundId: state.round.roundId });
   rerender({ currentState: aborted });
   expect(
     createUndercoverBottomActions(result.current, aborted, {
@@ -587,7 +587,7 @@ it('clears the self-hint once every seat has viewed', () => {
   ]);
   expect(viewingBottom.layout.secondary).toEqual([]);
   expect(viewingBottom.layout.ghost).toEqual([]);
-  let state = dispatch(viewing, { type: 'undercover.round.confirm', roundId });
+  let state = dispatch(viewing, { type: 'undercover.role.viewed', roundId });
   state = dispatch(state, { type: 'undercover.bots.markAllBotsViewed', roundId });
   expect(state.round!.confirmedSeats).toHaveLength(6);
   rerender({ currentState: state });
@@ -679,7 +679,7 @@ describe('createUndercoverHostManagement console primary', () => {
     expect(blocked.remedy).toBeNull();
 
     const roundId = viewing.round!.roundId;
-    let confirmed = dispatch(viewing, { type: 'undercover.round.confirm', roundId });
+    let confirmed = dispatch(viewing, { type: 'undercover.role.viewed', roundId });
     confirmed = dispatch(confirmed, { type: 'undercover.bots.markAllBotsViewed', roundId });
     const ready = resolveHostConsolePrimary(buildFor(confirmed).model!);
     if (ready?.kind !== 'ready') throw new Error('expected a ready console primary');
@@ -688,7 +688,7 @@ describe('createUndercoverHostManagement console primary', () => {
   it('opens the begin gate over the participant set, not the raw record count (B-4)', () => {
     const viewing = createViewingState();
     const roundId = viewing.round!.roundId;
-    let confirmed = dispatch(viewing, { type: 'undercover.round.confirm', roundId });
+    let confirmed = dispatch(viewing, { type: 'undercover.role.viewed', roundId });
     confirmed = dispatch(confirmed, { type: 'undercover.bots.markAllBotsViewed', roundId });
     // Seat 5 is vacated with its confirmation record dropped: five
     // participants remain, all confirmed. The engine checkpoint
@@ -747,9 +747,9 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
   function createOngoingState() {
     let state = createViewingState();
     const roundId = state.round!.roundId;
-    state = dispatch(state, { type: 'undercover.round.confirm', roundId });
+    state = dispatch(state, { type: 'undercover.role.viewed', roundId });
     state = dispatch(state, { type: 'undercover.bots.markAllBotsViewed', roundId });
-    state = dispatch(state, { type: 'undercover.round.begin', roundId });
+    state = dispatch(state, { type: 'undercover.game.begin', roundId });
     return state;
   }
 
@@ -768,7 +768,7 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
 
   it('shows the preparing status while words are prepared', () => {
     const state = dispatch(createLobbyState(), {
-      type: 'undercover.round.start',
+      type: 'undercover.roles.assign',
       shouldAllowRepeated: false,
     });
     expect(state.phase).toBe('preparing');
@@ -779,7 +779,7 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
 
   it('keeps the three failure reasons distinct for players and bare for the host', () => {
     const preparing = dispatch(createLobbyState(), {
-      type: 'undercover.round.start',
+      type: 'undercover.roles.assign',
       shouldAllowRepeated: false,
     });
     if (preparing.phase !== 'preparing') throw new Error('Expected preparing');
@@ -818,7 +818,7 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
   it('gives aborted players the conclusion plus the host wait', () => {
     const ongoing = createOngoingState();
     const aborted = dispatch(ongoing, {
-      type: 'undercover.round.abort',
+      type: 'undercover.game.abort',
       roundId: ongoing.round!.roundId,
     });
     expect(aborted.phase).toBe('aborted');

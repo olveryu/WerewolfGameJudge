@@ -10,7 +10,7 @@ import {
 
 describe('Undercover schemas', () => {
   it('requires an explicit round identity for restart and rejects caller-owned random choices', () => {
-    const command = { type: 'undercover.round.restart', roundId: 'round' };
+    const command = { type: 'undercover.game.redeal', roundId: 'round' };
     expect(undercoverPublicCommandSchema.parse(command)).toEqual(command);
     expect(undercoverPublicCommandSchema.parse({ ...command, roundId: null })).toEqual({
       ...command,

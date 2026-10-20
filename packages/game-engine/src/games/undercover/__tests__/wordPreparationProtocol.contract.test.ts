@@ -123,7 +123,7 @@ class UndercoverPreparationSession implements PreparationSession {
   startDecision(): PreparationDecisionProbe {
     return probe(
       this.#decide(
-        { type: 'undercover.round.start', shouldAllowRepeated: false },
+        { type: 'undercover.roles.assign', shouldAllowRepeated: false },
         hostContext(`start-${this.#startCount}`),
       ),
     );
@@ -131,7 +131,7 @@ class UndercoverPreparationSession implements PreparationSession {
 
   applyStart(): void {
     const decision = this.#decide(
-      { type: 'undercover.round.start', shouldAllowRepeated: false },
+      { type: 'undercover.roles.assign', shouldAllowRepeated: false },
       hostContext(`start-${this.#startCount}`),
     );
     if (decision.kind === 'reject') throw new Error(`Start rejected: ${decision.reason}`);
