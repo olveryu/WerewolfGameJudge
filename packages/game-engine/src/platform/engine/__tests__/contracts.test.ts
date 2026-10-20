@@ -129,6 +129,18 @@ describe('typed game engine contract', () => {
     expect(reject('not_host')).toEqual({ kind: 'reject', reason: 'not_host' });
   });
 
+  it('defaults broadcast to state exactly when events commit', () => {
+    const event = { type: 'counter.incremented', amount: 1 } satisfies IncrementedEvent;
+    expect(commit({ events: [] })).toMatchObject({ broadcast: 'none' });
+    expect(commit({ events: [event] })).toMatchObject({ broadcast: 'state' });
+    expect(commitDomainRejection('blocked', { events: [] })).toMatchObject({ broadcast: 'none' });
+    expect(commitDomainRejection('blocked', { events: [event] })).toMatchObject({
+      broadcast: 'state',
+    });
+    expect(commit({ events: [], broadcast: 'state' })).toMatchObject({ broadcast: 'state' });
+    expect(commit({ events: [event], broadcast: 'none' })).toMatchObject({ broadcast: 'none' });
+  });
+
   it('declares the nightPhase capability exactly for werewolf and avalon', () => {
     // The one chassis switch the template registry reads: exactly the
     // games with a night segment declare it, so a game cannot silently

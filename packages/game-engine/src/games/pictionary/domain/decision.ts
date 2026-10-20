@@ -10,5 +10,5 @@ export function commitPictionary(
   events: readonly PictionaryEvent[],
   effects: readonly PictionaryEffect[] = [],
 ): PictionaryDecision {
-  return commit({ events, effects, broadcast: events.length === 0 ? 'none' : 'state' });
+  return commit({ events, effects });
 }

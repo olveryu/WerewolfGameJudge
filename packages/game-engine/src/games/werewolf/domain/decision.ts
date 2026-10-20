@@ -33,7 +33,6 @@ export function handlerResultToDecision(
   if (result.kind === 'rejection') {
     return commitDomainRejection<StateAction, WerewolfEffect>(result.reason, {
       events,
-      broadcast: events.length === 0 ? 'none' : 'state',
     });
   }
 
@@ -47,7 +46,6 @@ export function handlerResultToDecision(
 
   return commit<StateAction, WerewolfEffect>({
     events,
-    broadcast: events.length === 0 ? 'none' : 'state',
     ...(result.reason === undefined ? {} : { reason: result.reason }),
   });
 }

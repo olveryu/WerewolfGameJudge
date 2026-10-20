@@ -24,5 +24,5 @@ export function commitUndercover(
   events: readonly UndercoverEvent[],
   effects: readonly UndercoverEffect[] = [],
 ): UndercoverDecision {
-  return commit({ events, effects, broadcast: events.length === 0 ? 'none' : 'state' });
+  return commit({ events, effects });
 }
