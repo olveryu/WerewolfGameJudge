@@ -123,11 +123,11 @@ export function decideStoryRelayCommand(
     case 'room.profile.update':
     case 'storyrelay.config.update':
       return decideStoryRelayRoom(state, command, context);
-    case 'storyrelay.round.start':
+    case 'storyrelay.game.begin':
       return state.phase === 'lobby'
         ? startRound(state, context)
         : reject(STORY_RELAY_REASONS.phase);
-    case 'storyrelay.round.next':
+    case 'storyrelay.game.next':
       return state.phase === 'ended'
         ? startRound(state, context)
         : reject(STORY_RELAY_REASONS.phase);
@@ -147,7 +147,7 @@ export function decideStoryRelayCommand(
       return state.phase === 'answering'
         ? commitStoryRelay([storyRelayPhase(state, 'settling', null)])
         : reject(STORY_RELAY_REASONS.phase);
-    case 'storyrelay.round.abort':
+    case 'storyrelay.game.abort':
       return ['answering', 'settling', 'transition'].includes(state.phase) &&
         state.completedAt === null
         ? commitStoryRelay([{ type: 'storyrelay.round.aborted', abortedAt: context.nowMs }])

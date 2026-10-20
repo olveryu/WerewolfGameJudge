@@ -35,8 +35,8 @@ const commands = definePublicCommandOptions<StoryRelayCommand>()([
   }),
   z.strictObject({
     type: z.literal([
-      'storyrelay.round.start',
-      'storyrelay.round.next',
+      'storyrelay.game.begin',
+      'storyrelay.game.next',
       'storyrelay.game.returnToLobby',
     ]),
   }),
@@ -54,7 +54,7 @@ const commands = definePublicCommandOptions<StoryRelayCommand>()([
     type: z.literal([
       'storyrelay.phase.expire',
       'storyrelay.phase.finish',
-      'storyrelay.round.abort',
+      'storyrelay.game.abort',
       'storyrelay.gallery.pause',
       'storyrelay.gallery.resume',
       'storyrelay.gallery.advance',

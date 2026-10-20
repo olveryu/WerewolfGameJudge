@@ -41,7 +41,7 @@ function botRoundState(): StoryRelayState {
     state = decision.events.reduce(storyRelayEngine.evolve, state);
   };
   send({ type: 'room.seat.fillBots' });
-  send({ type: 'storyrelay.round.start' });
+  send({ type: 'storyrelay.game.begin' });
   if (state.phase !== 'answering') throw new Error('Expected the answering phase');
   return state;
 }

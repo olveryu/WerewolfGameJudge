@@ -36,7 +36,7 @@ function createCollection() {
   };
   execute({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
   execute({ type: 'room.seat.fillBots' });
-  execute({ type: 'storyrelay.round.start' });
+  execute({ type: 'storyrelay.game.begin' });
   execute({ type: 'storyrelay.phase.finish', phaseRevision: state.phaseRevision });
   let snapshot: Extract<RoomSessionSnapshot<StoryRelayState>, { phase: 'ready' }> = {
     phase: 'ready',
@@ -212,7 +212,7 @@ it('lets a non-host player submit only their own seat, never bot seats', async (
   };
   execute({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Player' } }, 'player');
   execute({ type: 'room.seat.fillBots' }, 'host');
-  execute({ type: 'storyrelay.round.start' }, 'host');
+  execute({ type: 'storyrelay.game.begin' }, 'host');
   execute({ type: 'storyrelay.phase.finish', phaseRevision: state.phaseRevision }, 'host');
 
   const dispatch = jest.fn<

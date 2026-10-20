@@ -57,7 +57,7 @@ function botGame(seatHost: boolean) {
   };
   if (seatHost) send({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
   send({ type: 'room.seat.fillBots' });
-  send({ type: 'storyrelay.round.start' });
+  send({ type: 'storyrelay.game.begin' });
   // Host ends the writing step, like tapping finish-step in the UI; the phase
   // becomes settling, which is when text submissions are accepted.
   send({ type: 'storyrelay.phase.finish', phaseRevision: state.phaseRevision });
@@ -152,7 +152,7 @@ describe('Story Relay bot takeover', () => {
       );
     }
 
-    session.send({ type: 'storyrelay.round.abort', phaseRevision: session.state.phaseRevision });
+    session.send({ type: 'storyrelay.game.abort', phaseRevision: session.state.phaseRevision });
 
     expect(session.state.phase).toBe('aborted');
     expect(session.state.chains).toHaveLength(4);

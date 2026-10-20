@@ -22,7 +22,7 @@ function game(numberOfPlayers = 4, galleryItemDurationSeconds: 10 | null = null)
     session.send(command, 'host', seat);
   send({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
   send({ type: 'room.seat.fillBots' });
-  send({ type: 'storyrelay.round.start' });
+  send({ type: 'storyrelay.game.begin' });
   return {
     get state() {
       return session.state;
@@ -110,7 +110,7 @@ describe('Story Relay engine', () => {
       });
       expect(session.state.phase).toBe('ended');
       expect(session.effects).toHaveLength(1);
-      session.send({ type: 'storyrelay.round.next' });
+      session.send({ type: 'storyrelay.game.next' });
       expect(session.state).toMatchObject({ phase: 'answering', stepIndex: 0, completedAt: null });
       expect(session.state.chains.every((chain) => chain.entries.length === 0)).toBe(true);
     },
@@ -147,7 +147,7 @@ describe('Story Relay engine', () => {
       ).kind,
     ).toBe('reject');
     expect(getStoryRelayTaskForSeat(session.state, 0)!.previousEntry!.kind).toBe('empty');
-    session.send({ type: 'storyrelay.round.abort', phaseRevision: session.state.phaseRevision });
+    session.send({ type: 'storyrelay.game.abort', phaseRevision: session.state.phaseRevision });
     expect(session.state.phase).toBe('aborted');
     expect(session.effects).toHaveLength(0);
   });

@@ -56,7 +56,7 @@ it('persists 400 maximum-length paragraphs and replays the final receipt without
     return { input, result };
   };
   await send({ type: 'room.seat.fillBots' });
-  await send({ type: 'storyrelay.round.start' });
+  await send({ type: 'storyrelay.game.begin' });
   const text = '\u0001'.repeat(STORY_RELAY_TEXT_MAX_LENGTH);
   for (let stepIndex = 0; stepIndex < STORY_RELAY_MAX_PLAYERS; stepIndex += 1) {
     await send({ type: 'storyrelay.phase.finish', phaseRevision: state.phaseRevision });
