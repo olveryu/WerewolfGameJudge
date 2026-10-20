@@ -1,5 +1,12 @@
 /** Pure Pictionary event reducer. */
 
+import {
+  applyRelayEntryAppended,
+  applyRelayPhaseChanged,
+  applyRelayRoundStarted,
+  applyRelayTaskReady,
+  clearRelayRound,
+} from '../../../platform/room/relay/evolve';
 import { applyRosterChanges, isBotOccupant } from '../../../platform/room/seating';
 import type { PictionaryEntry, PictionaryState } from '../state/types';
 import type { PictionaryEvent } from './events';
@@ -9,16 +16,6 @@ function applySeatChanges(
   event: Extract<PictionaryEvent, { readonly type: 'pictionary.seats.changed' }>,
 ): PictionaryState {
   return { ...state, roster: applyRosterChanges(state.roster, event.changes) };
-}
-
-function appendEntry(
-  state: PictionaryState,
-  chainId: string,
-  entry: PictionaryEntry,
-): PictionaryState['chains'] {
-  return state.chains.map((chain) =>
-    chain.id === chainId ? { ...chain, entries: [...chain.entries, entry] } : chain,
-  );
 }
 
 export function evolvePictionaryState(
@@ -49,31 +46,22 @@ export function evolvePictionaryState(
     case 'pictionary.round.started':
       return {
         ...state,
-        phase: 'answering',
-        phaseRevision: state.phaseRevision + 1,
-        roundNumber: state.roundNumber + 1,
+        ...applyRelayRoundStarted(state, {
+          participants: event.participants,
+          seatOrder: event.seatOrder,
+          stepOffsets: event.stepOffsets,
+          chains: event.chains,
+          deadlineAt: event.deadlineAt,
+        }),
         roundId: event.roundId,
-        participants: event.participants,
-        seatOrder: event.seatOrder,
-        stepOffsets: event.stepOffsets,
-        stepIndex: 0,
-        deadlineAt: event.deadlineAt,
-        readySeats: [],
         reservations: [],
-        chains: event.chains,
-        gallery: null,
       };
     case 'pictionary.task.readiness.changed':
-      return {
-        ...state,
-        readySeats: event.isReady
-          ? [...state.readySeats, event.seat].sort((left, right) => left - right)
-          : state.readySeats.filter((seat) => seat !== event.seat),
-      };
+      return { ...state, ...applyRelayTaskReady(state.readySeats, event.seat, event.isReady) };
     case 'pictionary.task.submitted':
       return {
         ...state,
-        chains: appendEntry(state, event.chainId, event.entry),
+        ...applyRelayEntryAppended(state.chains, event.chainId, event.entry),
         reservations:
           event.submissionId === null
             ? state.reservations
@@ -94,31 +82,9 @@ export function evolvePictionaryState(
         gallery: null,
       };
     case 'pictionary.phase.changed':
-      return {
-        ...state,
-        phase: event.phase,
-        phaseRevision: state.phaseRevision + 1,
-        stepIndex: event.stepIndex,
-        deadlineAt: event.deadlineAt,
-        readySeats: [],
-        gallery: event.gallery,
-      };
+      return { ...state, ...applyRelayPhaseChanged(state, event) };
     case 'pictionary.game.returnedToLobby':
-      return {
-        ...state,
-        phase: 'lobby',
-        phaseRevision: state.phaseRevision + 1,
-        roundId: null,
-        participants: [],
-        seatOrder: [],
-        stepOffsets: [],
-        stepIndex: -1,
-        deadlineAt: null,
-        readySeats: [],
-        reservations: [],
-        chains: [],
-        gallery: null,
-      };
+      return { ...state, ...clearRelayRound<PictionaryEntry>(state), reservations: [] };
   }
   const exhaustive: never = event;
   return exhaustive;

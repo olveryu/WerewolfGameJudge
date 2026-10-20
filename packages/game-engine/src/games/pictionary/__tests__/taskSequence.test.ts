@@ -468,6 +468,35 @@ describe('Pictionary task sequence', () => {
     expect(state.chains.every((chain) => chain.entries.length === 1)).toBe(true);
   });
 
+  it('keeps readySeats in ascending seat order when players ready out of order', () => {
+    let state = dispatch(
+      createFullLobby(),
+      { type: 'pictionary.game.begin' },
+      userContext('user-0', 10_000),
+    );
+
+    state = dispatch(
+      state,
+      { type: 'pictionary.task.ready.set', isReady: true },
+      userContext('user-2', 11_000),
+    );
+    expect(state.readySeats).toEqual([2]);
+
+    state = dispatch(
+      state,
+      { type: 'pictionary.task.ready.set', isReady: true },
+      userContext('user-0', 11_001),
+    );
+    expect(state.readySeats).toEqual([0, 2]);
+
+    state = dispatch(
+      state,
+      { type: 'pictionary.task.ready.set', isReady: true },
+      userContext('user-3', 11_002),
+    );
+    expect(state).toMatchObject({ phase: 'answering', readySeats: [0, 2, 3] });
+  });
+
   it('lets a player resume editing before collection starts', () => {
     let state = dispatch(
       createFullLobby(),
