@@ -122,10 +122,9 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
         buildAssignRolesAction({
           onPress: () => input.onHostControl('prepareToFlip'),
           isEnabled: !input.isHostActionSubmitting && !seatsOpen,
-          disabledReason:
-            !input.isHostActionSubmitting && seatsOpen
-              ? seatShortageReason(input.totalSeats, input.seatedCount)
-              : null,
+          disabledReason: seatsOpen
+            ? seatShortageReason(input.totalSeats, input.seatedCount)
+            : null,
           isLoading: input.isHostActionSubmitting,
           isPrimary: true,
           remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),

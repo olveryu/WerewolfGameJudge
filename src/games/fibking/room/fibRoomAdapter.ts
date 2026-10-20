@@ -378,7 +378,6 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
             ),
           isEnabled: !input.isCommandSubmitting,
           isLoading: input.isCommandSubmitting || undefined,
-          isPrimary: true,
         }),
         buildReturnLobbyAction({
           onPress: input.endGame,

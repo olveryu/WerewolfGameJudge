@@ -253,7 +253,6 @@ export function createPictionaryHostManagement(
             ),
           isEnabled: !input.isCommandSubmitting,
           isLoading: input.isCommandSubmitting || undefined,
-          isPrimary: true,
         }),
       );
     actions.push(

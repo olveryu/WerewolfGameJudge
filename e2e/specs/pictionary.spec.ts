@@ -399,7 +399,7 @@ test.describe('Pictionary', () => {
       await hostPage.getByRole('dialog').getByText('确定', { exact: true }).click();
       for (const page of fixture.pages) {
         await expect(page.getByText('第 1 轮未完成，房主已中止。', { exact: true })).toBeVisible();
-        await expect(page.getByRole('button', { name: '再来一轮', exact: true })).toHaveCount(0);
+        await expect(page.getByRole('button', { name: '再来一局', exact: true })).toHaveCount(0);
       }
       await expect(hostPage.getByRole('button', { name: /草稿|跳过/ })).toHaveCount(0);
       await expect(hostPage.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toHaveCount(0);

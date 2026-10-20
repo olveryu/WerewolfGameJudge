@@ -404,7 +404,6 @@ export function createUndercoverHostManagement(
             ),
           isEnabled: !controls.isSubmitting,
           isLoading: controls.isSubmitting,
-          isPrimary: true,
         }),
       );
       actions.push(returnLobbyAction());
