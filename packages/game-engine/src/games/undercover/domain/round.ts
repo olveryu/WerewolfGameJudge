@@ -31,11 +31,10 @@ import {
   type PreparationStateSlice,
   resolvePreparationRetryPending,
 } from '../../../platform/room/preparation';
-import { getHumanSeatMap } from '../../../platform/room/seating';
+import { getHumanSeatMap, isRoomFull } from '../../../platform/room/seating';
 import type { UndercoverCommand } from '../commands/types';
 import { isValidUndercoverWordPair } from '../state/normalize';
 import {
-  getUndercoverOccupiedSeatCount,
   getUndercoverViewingParticipants,
   isUndercoverSeat,
   type UndercoverPendingRound,
@@ -88,7 +87,7 @@ function decideStart(
   shouldAllowRepeated: boolean,
   context: CommandContext,
 ): UndercoverDecision {
-  if (getUndercoverOccupiedSeatCount(state) !== state.config.numberOfPlayers)
+  if (!isRoomFull(state.roster, state.config.numberOfPlayers))
     return reject(UNDERCOVER_REASONS.notFull);
   // D-1: a start always freezes a fresh pending round; only the
   // dedicated retry command reuses the failed one.
