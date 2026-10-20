@@ -123,7 +123,7 @@ describe('Pictionary task sequence', () => {
   it('rejects delayed task commands after an empty submission and later steps', () => {
     let state = dispatch(
       createFullLobby(),
-      { type: 'pictionary.round.start' },
+      { type: 'pictionary.game.begin' },
       userContext('user-0'),
     );
     const delayed = createPictionaryCommand(
@@ -151,7 +151,7 @@ describe('Pictionary task sequence', () => {
   it('aborts incomplete rounds without rewards and keeps accepted works and author names', () => {
     let state = dispatch(
       createFullLobby(),
-      { type: 'pictionary.round.start' },
+      { type: 'pictionary.game.begin' },
       userContext('user-0'),
     );
     state = expireCurrentPhase(state);
@@ -167,7 +167,7 @@ describe('Pictionary task sequence', () => {
     );
     const decision = decidePictionaryCommand(
       state,
-      { type: 'pictionary.round.abort' },
+      { type: 'pictionary.game.abort' },
       userContext('user-0'),
     );
     expect(decision.kind).toBe('commit');
@@ -189,7 +189,7 @@ describe('Pictionary task sequence', () => {
   it('preserves paused time and revealed entries and can finish the entire gallery', () => {
     let state = dispatch(
       createFullLobby(),
-      { type: 'pictionary.round.start' },
+      { type: 'pictionary.game.begin' },
       userContext('user-0'),
     );
     for (let step = 0; step < 4; step++) state = advancePastAnsweringStep(state);
@@ -216,7 +216,7 @@ describe('Pictionary task sequence', () => {
   )('varies handoff recipients in a %s-player round', (numberOfPlayers) => {
     let state = dispatch(
       createFullLobby(numberOfPlayers),
-      { type: 'pictionary.round.start' },
+      { type: 'pictionary.game.begin' },
       userContext('user-0'),
     );
     for (let stepIndex = 0; stepIndex < numberOfPlayers; stepIndex += 1) {
@@ -250,7 +250,7 @@ describe('Pictionary task sequence', () => {
   it('preserves current rounds and pending drawings through persistence', () => {
     let state = dispatch(
       createFullLobby(),
-      { type: 'pictionary.round.start' },
+      { type: 'pictionary.game.begin' },
       userContext('user-0'),
     );
     state = expireCurrentPhase(state);
@@ -277,7 +277,7 @@ describe('Pictionary task sequence', () => {
     (hasContent) => {
       let state = dispatch(
         createFullLobby(),
-        { type: 'pictionary.round.start' },
+        { type: 'pictionary.game.begin' },
         userContext('user-0'),
       );
       for (let step = 0; step < 4; step += 1) {
@@ -336,7 +336,7 @@ describe('Pictionary task sequence', () => {
   it('pauses at each album end until the host advances, including the final album', () => {
     let state = dispatch(
       createFullLobby(),
-      { type: 'pictionary.round.start' },
+      { type: 'pictionary.game.begin' },
       userContext('user-0'),
     );
     for (let step = 0; step < 4; step += 1) state = advancePastAnsweringStep(state);
@@ -382,11 +382,7 @@ describe('Pictionary task sequence', () => {
 
   it('keeps collection open until clients deliver their drafts', () => {
     const state = expireCurrentPhase(
-      dispatch(
-        createFullLobby(),
-        { type: 'pictionary.round.start' },
-        userContext('user-0', 10_000),
-      ),
+      dispatch(createFullLobby(), { type: 'pictionary.game.begin' }, userContext('user-0', 10_000)),
     );
     expect(state.phase).toBe('settling');
     expect(state.deadlineAt).toBeNull();
@@ -412,7 +408,7 @@ describe('Pictionary task sequence', () => {
     const startTime = 10_000;
     const state = dispatch(
       createFullLobby(),
-      { type: 'pictionary.round.start' },
+      { type: 'pictionary.game.begin' },
       userContext('user-0', startTime),
     );
 
@@ -430,7 +426,7 @@ describe('Pictionary task sequence', () => {
   it('keeps final content out of the relay during the editable answering phase', () => {
     const state = dispatch(
       createFullLobby(),
-      { type: 'pictionary.round.start' },
+      { type: 'pictionary.game.begin' },
       userContext('user-0', 10_000),
     );
 
@@ -446,7 +442,7 @@ describe('Pictionary task sequence', () => {
   it('collects final content only after every player marks the local draft ready', () => {
     let state = dispatch(
       createFullLobby(),
-      { type: 'pictionary.round.start' },
+      { type: 'pictionary.game.begin' },
       userContext('user-0', 10_000),
     );
 
@@ -475,7 +471,7 @@ describe('Pictionary task sequence', () => {
   it('lets a player resume editing before collection starts', () => {
     let state = dispatch(
       createFullLobby(),
-      { type: 'pictionary.round.start' },
+      { type: 'pictionary.game.begin' },
       userContext('user-0', 10_000),
     );
 
@@ -500,7 +496,7 @@ describe('Pictionary task sequence', () => {
     (numberOfPlayers) => {
       let state = dispatch(
         createFullLobby(numberOfPlayers),
-        { type: 'pictionary.round.start' },
+        { type: 'pictionary.game.begin' },
         userContext('user-0', 10_000),
       );
       const relayStepCount = getPictionaryRelayStepCount(state.config.numberOfPlayers);

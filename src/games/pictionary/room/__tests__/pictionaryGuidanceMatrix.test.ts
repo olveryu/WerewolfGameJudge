@@ -83,7 +83,7 @@ function startedSession(): Session {
       seatUser(seat),
     );
   }
-  session.dispatch({ type: 'pictionary.round.start' });
+  session.dispatch({ type: 'pictionary.game.begin' });
   if (session.state.phase !== 'answering') throw new Error('expected answering');
   return session;
 }
@@ -133,7 +133,7 @@ function stateFor(phase: PictionaryPhase): PictionaryState {
       return session.state;
     }
     case 'aborted':
-      session.dispatch({ type: 'pictionary.round.abort' });
+      session.dispatch({ type: 'pictionary.game.abort' });
       if (session.state.phase !== 'aborted') throw new Error('expected aborted');
       return session.state;
     default:

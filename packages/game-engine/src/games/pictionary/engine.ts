@@ -530,8 +530,8 @@ export function decidePictionaryCommand(
       return decideUpdatePictionaryProfile(state, command.profile, context);
     case 'pictionary.config.update':
       return decideUpdatePictionaryConfig(state, command.config, context);
-    case 'pictionary.round.start':
-    case 'pictionary.round.next':
+    case 'pictionary.game.begin':
+    case 'pictionary.game.next':
       return decideStartPictionaryRound(state, context);
     case 'pictionary.task.ready.set':
     case 'pictionary.task.empty.submit':
@@ -539,7 +539,7 @@ export function decidePictionaryCommand(
       return decidePictionaryTask(state, command, context);
     case 'pictionary.drawing.reserve':
       return decideReservePictionaryDrawing(state, context);
-    case 'pictionary.round.abort': {
+    case 'pictionary.game.abort': {
       const actor = resolveHostActorId(context, state.hostUserId);
       if (actor.kind === 'rejected') return reject(actor.reason);
       if (

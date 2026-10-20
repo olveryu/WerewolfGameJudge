@@ -77,7 +77,7 @@ function game(galleryItemDurationSeconds: 10 | null = 10) {
       `user-${seat}`,
     );
   }
-  send({ type: 'pictionary.round.start' });
+  send({ type: 'pictionary.game.begin' });
 
   function expireCurrentPhase() {
     const state = session.state;
@@ -303,7 +303,7 @@ describe('Pictionary relay-chain contract', () => {
     expect(revision()).toBe(afterStart + 2);
     session.expireCurrentPhase();
     expect(revision()).toBe(afterStart + 3);
-    session.send({ type: 'pictionary.round.abort' });
+    session.send({ type: 'pictionary.game.abort' });
     expect(revision()).toBe(afterStart + 4);
     expect(session.state.phase).toBe('aborted');
     session.send({ type: 'pictionary.game.returnToLobby' });

@@ -157,7 +157,7 @@ $$
 ```mermaid
 stateDiagram-v2
     [*] --> Lobby
-    Lobby --> Answering: round.start
+    Lobby --> Answering: game.begin
   Answering --> Answering: ready / continue editing
   Answering --> Settling: all ready, deadline, or host finish
   Settling --> Transition: all inputs or automatic empty submissions committed
@@ -289,12 +289,12 @@ interface PictionaryChain {
 ### 7.1 Public commands
 
 - `pictionary.config.update`
-- `pictionary.round.start`
+- `pictionary.game.begin`
 - `pictionary.task.ready.set`
 - `pictionary.text.submit`
 - `pictionary.task.empty.submit`
 - `pictionary.drawing.reserve`
-- `pictionary.round.abort`
+- `pictionary.game.abort`
 - `pictionary.phase.expire`
 - `pictionary.phase.finish`
 - `pictionary.gallery.pause`
@@ -302,7 +302,7 @@ interface PictionaryChain {
 - `pictionary.gallery.advance`
 - `pictionary.gallery.rewind`
 - `pictionary.gallery.finish`
-- `pictionary.round.next`
+- `pictionary.game.next`
 - `pictionary.game.returnToLobby`
 
 共享入座、离座、踢人和房间操作继续使用平台命令，不复制 Pictionary 版本。

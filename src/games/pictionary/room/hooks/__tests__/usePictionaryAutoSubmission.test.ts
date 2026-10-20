@@ -52,7 +52,7 @@ function createCollection() {
       `user-${seat}`,
     );
   }
-  dispatchEngine({ type: 'pictionary.round.start' });
+  dispatchEngine({ type: 'pictionary.game.begin' });
   dispatchEngine({ type: 'pictionary.phase.finish' });
   const collection = state;
   let snapshot: Extract<RoomSessionSnapshot<PictionaryState>, { phase: 'ready' }> = {

@@ -101,7 +101,7 @@ describe('Pictionary engine', () => {
     send({ type: 'room.seat.take', seat: 0, profile: { displayName: '玩家 1' } });
     const context = session.context('user-0');
     const decision = session.decideAs(
-      bind(session.state, { type: 'pictionary.round.start' }, context),
+      bind(session.state, { type: 'pictionary.game.begin' }, context),
       context,
     );
     expect(decision).toEqual({ kind: 'reject', reason: REASON_PICTIONARY_ROOM_NOT_FULL });
@@ -111,7 +111,7 @@ describe('Pictionary engine', () => {
   it('runs the full relay into the gallery and completes exactly once', () => {
     const { session, send, takeAllSeats, completeCurrentStep } = game();
     takeAllSeats();
-    send({ type: 'pictionary.round.start' });
+    send({ type: 'pictionary.game.begin' });
     expect(session.state.phase).toBe('answering');
     expect(session.state.stepIndex).toBe(0);
 
@@ -148,7 +148,7 @@ describe('Pictionary engine', () => {
   it('settles when the last drawing of the final step lands, before the gallery opens', () => {
     const { session, send, takeAllSeats, expireCurrentPhase, completeCurrentStep } = game();
     takeAllSeats();
-    send({ type: 'pictionary.round.start' });
+    send({ type: 'pictionary.game.begin' });
     for (let step = 0; step < 3; step += 1) completeCurrentStep();
 
     // The final step (step 3) is a drawing step: its entries land
@@ -201,7 +201,7 @@ describe('Pictionary engine', () => {
   it('keeps the completion-moment settlement population through the gallery', () => {
     const { session, send, takeAllSeats, expireCurrentPhase } = game(5);
     takeAllSeats();
-    send({ type: 'pictionary.round.start' });
+    send({ type: 'pictionary.game.begin' });
 
     const authorContent = (seat: number) => {
       const stepIndex = session.state.stepIndex;

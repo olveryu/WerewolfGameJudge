@@ -104,7 +104,7 @@ function drawingCollectionState(): PictionaryState {
     user('guest'),
   );
   state = dispatch(state, { type: 'room.seat.fillBots' }, user('host'));
-  state = dispatch(state, { type: 'pictionary.round.start' }, user('host'));
+  state = dispatch(state, { type: 'pictionary.game.begin' }, user('host'));
 
   state = markEverySeatReady(state);
   for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {

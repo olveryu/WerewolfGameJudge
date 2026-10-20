@@ -55,7 +55,7 @@ describe('derivePictionaryBottomProgress', () => {
     const session = createSession();
     session.dispatch({ type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } });
     session.dispatch({ type: 'room.seat.fillBots' });
-    session.dispatch({ type: 'pictionary.round.start' });
+    session.dispatch({ type: 'pictionary.game.begin' });
     expect(session.state.phase).toBe('answering');
     expect(derivePictionaryBottomProgress(session.state)).toEqual({
       current: 1,

@@ -81,7 +81,7 @@ function createBotRound(): PictionaryState {
     userContext('host'),
   );
   state = dispatch(state, { type: 'room.seat.fillBots' }, userContext('host'));
-  return dispatch(state, { type: 'pictionary.round.start' }, userContext('host'));
+  return dispatch(state, { type: 'pictionary.game.begin' }, userContext('host'));
 }
 
 function markEverySeatReady(state: PictionaryState): PictionaryState {
@@ -224,7 +224,7 @@ describe('Pictionary bot control', () => {
       CREATE_CONTEXT,
     );
     state = dispatch(state, { type: 'room.seat.fillBots' }, userContext('host'));
-    state = dispatch(state, { type: 'pictionary.round.start' }, userContext('host'));
+    state = dispatch(state, { type: 'pictionary.game.begin' }, userContext('host'));
 
     state = expireCurrentPhase(state);
     expect(state.phase).toBe('settling');

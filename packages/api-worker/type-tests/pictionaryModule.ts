@@ -26,7 +26,7 @@ const createConfigSchema: z.ZodType<PictionaryConfig> = z.strictObject({
 });
 
 const publicCommandSchema: z.ZodType<PictionaryPublicCommand> = z.strictObject({
-  type: z.literal('pictionary.round.start'),
+  type: z.literal('pictionary.game.begin'),
 });
 
 const internalCommandSchema: z.ZodType<PictionaryInternalCommand> = z.strictObject({
