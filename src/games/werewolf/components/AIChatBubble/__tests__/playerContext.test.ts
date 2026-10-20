@@ -41,6 +41,7 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     phase: 'night',
     currentStep: null,
     players: {},
+    roleViewedSeats: [],
     templateRoles: [],
     wolfVotes: {},
     lastNightDeaths: [],
