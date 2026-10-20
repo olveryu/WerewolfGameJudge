@@ -13,9 +13,9 @@ import {
 import { PICTIONARY_GAME_TYPE, type PictionaryGameType } from '../../platform/protocol/gameTypes';
 import { REASON_GAME_IN_PROGRESS, REASON_NOT_SEATED } from '../../platform/protocol/reasons';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
+import { guardPhaseExpiry } from '../../platform/room/phaseDeadline';
 import { buildRelayChains, buildRelayParticipants } from '../../platform/room/relay/assignment';
 import { relayDeadline } from '../../platform/room/relay/clock';
-import { guardRelayPhaseExpiry } from '../../platform/room/relay/expireGuard';
 import {
   decideRosterClearSeats,
   decideRosterFillBots,
@@ -377,7 +377,7 @@ function decideExpirePictionaryPhase(
   // gate and its stale mode (a stale revision silently commits empty —
   // the decide entry above exempts this command from the revision
   // rejection every other revisioned command gets).
-  return guardRelayPhaseExpiry(context, {
+  return guardPhaseExpiry(context, {
     checkActor: (actorUserId) => {
       const actorSeat = findRosterSeatByUserId(
         state.roster,
@@ -389,8 +389,7 @@ function decideExpirePictionaryPhase(
         : null;
     },
     revision: {
-      commandRevision: phaseRevision,
-      currentRevision: state.phaseRevision,
+      checks: [{ commandRevision: phaseRevision, currentRevision: state.phaseRevision }],
       onStale: () => commitPictionary([]),
     },
     deadlineAt: state.deadlineAt,

@@ -26,6 +26,7 @@ import {
   reject,
 } from '../../engine';
 import { resolveActingSeat } from '../actingSeat';
+import { rejectIfPastDeadline } from '../phaseDeadline';
 import { relayDeadline } from './clock';
 import type {
   RelayActorSlice,
@@ -168,8 +169,12 @@ export function decideRelayTask<
 ): Decision<TEvent, TEffect> {
   const phase = command.kind === 'ready' ? 'answering' : 'settling';
   if (state.phase !== phase) return reject(kit.reasons.phase);
-  if (state.deadlineAt !== null && context.nowMs >= state.deadlineAt)
-    return reject(kit.reasons.taskExpired ?? kit.reasons.task);
+  const lateRejection = rejectIfPastDeadline<TEvent, TEffect>(
+    state.deadlineAt,
+    context.nowMs,
+    kit.reasons.taskExpired ?? kit.reasons.task,
+  );
+  if (lateRejection !== null) return lateRejection;
   const acting = resolveActingSeat(state, kit.shape.numberOfPlayers, context);
   if (acting.kind === 'rejected') return reject(acting.reason);
   const seat = acting.value;
