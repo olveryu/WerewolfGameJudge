@@ -2,7 +2,7 @@
  * useWerewolfLastActionToast — passive-action toast notifications
  *
  * Detects lastCommandType in STATE_UPDATE broadcasts,
- * shows toast notifications to non-Host players (kick/clearAllSeats/assignRoles/startNight/endNight/restartGame).
+ * shows toast notifications to non-Host players (kick/clearAllSeats/assignRoles/startNight/endNight/abortGame/returnToLobby).
  * Uses the immutable session command marker keyed by revision.
  */
 

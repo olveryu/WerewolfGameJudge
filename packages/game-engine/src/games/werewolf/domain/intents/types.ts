@@ -81,8 +81,24 @@ export interface StartNightIntent {
   type: 'START_NIGHT';
 }
 
-export interface RestartGameIntent {
-  type: 'RESTART_GAME';
+/**
+ * Abort game Intent (Host-only)
+ * Precondition: status !== Ended (a game is in progress)
+ * Result: restart (keep seats/template, clear the game in progress);
+ * status -> Seated
+ */
+export interface AbortGameIntent {
+  type: 'ABORT_GAME';
+}
+
+/**
+ * Return to lobby Intent (Host-only)
+ * Precondition: status === Ended
+ * Result: restart (keep seats/template, clear the finished game);
+ * status -> Seated
+ */
+export interface ReturnToLobbyIntent {
+  type: 'RETURN_TO_LOBBY';
 }
 
 /**

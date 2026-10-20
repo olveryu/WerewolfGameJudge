@@ -34,9 +34,16 @@ export interface WerewolfGameClient {
   startNight(): Promise<WerewolfCommandDispatchOutcome>;
 
   /**
-   * Restart game (back to the lobby: seats and template kept, roles cleared)
+   * Abort the game in progress (back to the lobby: seats and template
+   * kept, roles cleared)
    */
-  restartGame(): Promise<WerewolfCommandDispatchOutcome>;
+  abortGame(): Promise<WerewolfCommandDispatchOutcome>;
+
+  /**
+   * Return to the lobby after the game has ended (seats and template
+   * kept, roles cleared)
+   */
+  returnToLobby(): Promise<WerewolfCommandDispatchOutcome>;
 
   /**
    * Redeal a finished game (restart + fresh role deal in one command)

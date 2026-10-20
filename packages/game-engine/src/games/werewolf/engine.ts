@@ -33,13 +33,14 @@ import {
   handleRevealAck,
 } from './domain/handlers/commandHandlers';
 import {
+  handleAbortGame,
   handleAssignRoles,
   handleBoardNominate,
   handleBoardUpvote,
   handleBoardWithdraw,
   handleFillWithBots,
   handleRedealGame,
-  handleRestartGame,
+  handleReturnToLobbyGame,
   handleShareNightReview,
   handleStartNight,
   handleUpdateTemplate,
@@ -88,7 +89,7 @@ type WerewolfDecision = Decision<StateAction, WerewolfEffect>;
 function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
   switch (command.type) {
     case 'werewolf.action.submit':
-    case 'werewolf.role.view':
+    case 'werewolf.role.viewed':
     case 'werewolf.reveal.ack':
     case 'werewolf.wolfRobot.ackHunterStatus':
     case 'werewolf.groupConfirm.ack':
@@ -104,7 +105,8 @@ function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
     case 'room.seat.fillBots':
     case 'room.profile.update':
     case 'werewolf.roles.assign':
-    case 'werewolf.game.restart':
+    case 'werewolf.game.abort':
+    case 'werewolf.game.returnToLobby':
     case 'werewolf.game.redeal':
     case 'werewolf.mvp.select':
     case 'werewolf.bots.markAllBotsViewed':
@@ -113,7 +115,7 @@ function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
     case 'werewolf.board.nominate':
     case 'werewolf.board.upvote':
     case 'werewolf.board.withdraw':
-    case 'werewolf.night.start':
+    case 'werewolf.game.begin':
     case 'werewolf.sheriff.advance':
     case 'werewolf.sheriff.endBySelfDestruct':
     case 'werewolf.audio.ack':
@@ -289,12 +291,21 @@ function decideWerewolfCommandRules(
         context,
       );
     }
-    case 'werewolf.game.restart': {
+    case 'werewolf.game.abort': {
       const actor = resolveHostActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
       return decideHandler(
         state,
-        handleRestartGame({ type: 'RESTART_GAME' }, actor.value.handlerContext, context),
+        handleAbortGame({ type: 'ABORT_GAME' }, actor.value.handlerContext, context),
+        context,
+      );
+    }
+    case 'werewolf.game.returnToLobby': {
+      const actor = resolveHostActor(state, context);
+      if (actor.kind === 'rejected') return reject(actor.reason);
+      return decideHandler(
+        state,
+        handleReturnToLobbyGame({ type: 'RETURN_TO_LOBBY' }, actor.value.handlerContext, context),
         context,
       );
     }
@@ -371,7 +382,7 @@ function decideWerewolfCommandRules(
         true,
       );
     }
-    case 'werewolf.role.view': {
+    case 'werewolf.role.viewed': {
       const actor = resolveEffectiveSeatActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
       // Identity Viewing Protocol confirm: the shared skeleton owns
@@ -466,7 +477,7 @@ function decideWerewolfCommandRules(
         context,
       );
     }
-    case 'werewolf.night.start': {
+    case 'werewolf.game.begin': {
       const actor = resolveHostActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
       return decideHandler(

@@ -40,15 +40,15 @@ describe('Werewolf engine mainline', () => {
     );
 
     // Humans view their own roles; the checkpoint holds for the bots.
-    session.send({ type: 'werewolf.role.view' }, 'host');
-    session.send({ type: 'werewolf.role.view' }, 'user-1');
+    session.send({ type: 'werewolf.role.viewed' }, 'host');
+    session.send({ type: 'werewolf.role.viewed' }, 'user-1');
     expect(session.state.status).toBe(GameStatus.Assigned);
 
     // The host scaffold action fills the bot records; that releases it.
     session.send({ type: 'werewolf.bots.markAllBotsViewed' }, 'host');
     expect(session.state.status).toBe(GameStatus.Ready);
 
-    session.send({ type: 'werewolf.night.start' }, 'host');
+    session.send({ type: 'werewolf.game.begin' }, 'host');
     expect(session.state.status).toBe(GameStatus.Ongoing);
     expect(werewolfEngine.getLifecycle(session.state)).toBe('ongoing');
   });

@@ -67,7 +67,8 @@ function createMockClient(overrides: Partial<MockClient> = {}): MockClient {
       .mockResolvedValue(successfulCommand()),
     assignRoles: jest.fn<Promise<MutationResult>, []>().mockResolvedValue(successfulCommand()),
     startNight: jest.fn<Promise<MutationResult>, []>().mockResolvedValue(successfulCommand()),
-    restartGame: jest.fn<Promise<MutationResult>, []>().mockResolvedValue(successfulCommand()),
+    abortGame: jest.fn<Promise<MutationResult>, []>().mockResolvedValue(successfulCommand()),
+    returnToLobby: jest.fn<Promise<MutationResult>, []>().mockResolvedValue(successfulCommand()),
     selectMvp: jest.fn().mockResolvedValue(successfulCommand()),
     shareNightReview: jest
       .fn<Promise<MutationResult>, [number[]]>()
@@ -249,15 +250,26 @@ describe('useWerewolfGameActions - game control', () => {
     expect(deps.bgm.startBgmIfEnabled).not.toHaveBeenCalled();
   });
 
-  it('restartGame should stop BGM, clear the controlled seat, and call client', async () => {
+  it('abortGame should stop BGM, clear the controlled seat, and call client', async () => {
     const deps = createDeps({ botControl: createMockBotControl({ controlledSeat: 2 }) });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
-    await act(() => result.current.restartGame());
+    await act(() => result.current.abortGame());
 
     expect(deps.bgm.stopBgm).toHaveBeenCalled();
     expect(deps.botControl.releaseBot).toHaveBeenCalledTimes(1);
-    expect(deps.client.restartGame).toHaveBeenCalled();
+    expect(deps.client.abortGame).toHaveBeenCalled();
+  });
+
+  it('returnToLobby should stop BGM, clear the controlled seat, and call client', async () => {
+    const deps = createDeps({ botControl: createMockBotControl({ controlledSeat: 2 }) });
+    const { result } = renderHook(() => useWerewolfGameActions(deps));
+
+    await act(() => result.current.returnToLobby());
+
+    expect(deps.bgm.stopBgm).toHaveBeenCalled();
+    expect(deps.botControl.releaseBot).toHaveBeenCalledTimes(1);
+    expect(deps.client.returnToLobby).toHaveBeenCalled();
   });
 
   it('clearAllSeats should call the shared seat command', async () => {

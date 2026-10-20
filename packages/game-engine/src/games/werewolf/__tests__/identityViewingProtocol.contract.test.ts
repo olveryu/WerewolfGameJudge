@@ -165,7 +165,7 @@ describe('Identity Viewing Protocol — werewolf confirm through the shared skel
   it('confirms an unviewed seat in the Assigned window', () => {
     const decision = werewolfEngine.decide(
       createAssignedState(),
-      { type: 'werewolf.role.view' },
+      { type: 'werewolf.role.viewed' },
       userContext('p0'),
     );
     if (decision.kind !== 'commit') throw new Error('Expected commit');
@@ -179,7 +179,7 @@ describe('Identity Viewing Protocol — werewolf confirm through the shared skel
     expect(state.status).toBe(GameStatus.Ready);
     const decision = werewolfEngine.decide(
       state,
-      { type: 'werewolf.role.view' },
+      { type: 'werewolf.role.viewed' },
       userContext('p0'),
     );
     if (decision.kind !== 'commit') throw new Error('Expected commit');
@@ -188,16 +188,16 @@ describe('Identity Viewing Protocol — werewolf confirm through the shared skel
 
   it('rejects an unviewed confirmation outside the Assigned window', () => {
     const state: GameState = { ...createAssignedState(), status: GameStatus.Seated };
-    expect(werewolfEngine.decide(state, { type: 'werewolf.role.view' }, userContext('p0'))).toEqual(
-      { kind: 'reject', reason: 'invalid_status' },
-    );
+    expect(
+      werewolfEngine.decide(state, { type: 'werewolf.role.viewed' }, userContext('p0')),
+    ).toEqual({ kind: 'reject', reason: 'invalid_status' });
   });
 
   it('rejects a confirmation from a user with no seat', () => {
     expect(
       werewolfEngine.decide(
         createAssignedState(),
-        { type: 'werewolf.role.view' },
+        { type: 'werewolf.role.viewed' },
         userContext('outsider'),
       ),
     ).toEqual({ kind: 'reject', reason: REASON_NOT_SEATED });

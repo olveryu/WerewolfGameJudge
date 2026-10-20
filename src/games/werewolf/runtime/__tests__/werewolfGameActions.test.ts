@@ -10,6 +10,7 @@ import type {
   RoomCommandDispatchOutcome,
 } from '@/features/room/session/types';
 import {
+  abortGame,
   advanceSheriffElection,
   assignRoles,
   boardNominate,
@@ -27,7 +28,7 @@ import {
   prepareAudioAck,
   redealGame,
   registerSheriffCandidate,
-  restartGame,
+  returnToLobby,
   selectMvp,
   setWolfRobotHunterStatusViewed,
   shareNightReview,
@@ -148,8 +149,10 @@ describe('canonical Werewolf command builders', () => {
       },
       null,
     );
-    await restartGame(ctx);
-    expectCommand({ type: 'werewolf.game.restart' }, null);
+    await abortGame(ctx);
+    expectCommand({ type: 'werewolf.game.abort' }, null);
+    await returnToLobby(ctx);
+    expectCommand({ type: 'werewolf.game.returnToLobby' }, null);
     await redealGame(ctx);
     expectCommand({ type: 'werewolf.game.redeal' }, null);
     await shareNightReview(ctx, [1, 3]);
@@ -193,7 +196,7 @@ describe('canonical Werewolf command builders', () => {
     const ctx = createContext();
 
     await markViewedRole(ctx, 4);
-    expectCommand({ type: 'werewolf.role.view' }, 4);
+    expectCommand({ type: 'werewolf.role.viewed' }, 4);
     await submitRevealAck(ctx, 4);
     expectCommand({ type: 'werewolf.reveal.ack' }, 4);
     await submitGroupConfirmAck(ctx, 4);
@@ -263,7 +266,7 @@ describe('canonical Werewolf command builders', () => {
 
     await startNight(ctx);
 
-    expectCommand({ type: 'werewolf.night.start' }, null);
+    expectCommand({ type: 'werewolf.game.begin' }, null);
     expect(ctx.audio.preloadRoles).toHaveBeenCalledWith(['wolf', 'seer']);
 
     dispatchMock.mockResolvedValueOnce(rejectedCommand('invalid_status'));

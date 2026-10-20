@@ -53,7 +53,8 @@ export const werewolfCreateConfigSchema: z.ZodType<WerewolfConfig> = z
 const publicCommandOptions = definePublicCommandOptions<WerewolfPublicCommand>()([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({ type: z.literal('werewolf.roles.assign') }),
-  z.strictObject({ type: z.literal('werewolf.game.restart') }),
+  z.strictObject({ type: z.literal('werewolf.game.abort') }),
+  z.strictObject({ type: z.literal('werewolf.game.returnToLobby') }),
   z.strictObject({ type: z.literal('werewolf.game.redeal') }),
   z.strictObject({
     type: z.literal('werewolf.mvp.select'),
@@ -85,7 +86,7 @@ const publicCommandOptions = definePublicCommandOptions<WerewolfPublicCommand>()
     ]),
     expectedStep: expectedStepSchema.optional(),
   }),
-  z.strictObject({ type: z.literal('werewolf.role.view') }),
+  z.strictObject({ type: z.literal('werewolf.role.viewed') }),
   z.strictObject({
     type: z.literal('werewolf.config.update'),
     templateRoles: z.array(roleIdSchema).readonly(),
@@ -105,7 +106,7 @@ const publicCommandOptions = definePublicCommandOptions<WerewolfPublicCommand>()
     targetUserId: z.string().min(1),
   }),
   z.strictObject({ type: z.literal('werewolf.board.withdraw') }),
-  z.strictObject({ type: z.literal('werewolf.night.start') }),
+  z.strictObject({ type: z.literal('werewolf.game.begin') }),
   z.strictObject({ type: z.literal('werewolf.sheriff.register') }),
   z.strictObject({ type: z.literal('werewolf.sheriff.cancelRegistration') }),
   z.strictObject({ type: z.literal('werewolf.sheriff.withdraw') }),

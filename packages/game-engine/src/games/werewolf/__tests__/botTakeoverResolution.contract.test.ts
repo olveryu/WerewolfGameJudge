@@ -7,7 +7,7 @@
  * players map is invalid; a seat with no roster occupant is empty);
  * neither gate can trigger in this layout, so the shared
  * propositions apply verbatim. The probe command is
- * werewolf.role.view in the Assigned status; a commit is applied
+ * werewolf.role.viewed in the Assigned status; a commit is applied
  * and the seat whose viewed flag flipped names the acting seat.
  * Layout: host at seat 0, a human guest at seat 1, a bot at seat 2.
  */
@@ -87,7 +87,7 @@ describeBotTakeoverResolution({
                 randomSeed: 'seed-1',
               }
             : user(actor.userId, actor.controlledSeat);
-        const decision = werewolfEngine.decide(state, { type: 'werewolf.role.view' }, context);
+        const decision = werewolfEngine.decide(state, { type: 'werewolf.role.viewed' }, context);
         if (decision.kind === 'reject') return { kind: 'rejected', reason: decision.reason };
         const next = decision.events.reduce(werewolfEngine.evolve, state);
         for (const player of Object.values(next.players)) {

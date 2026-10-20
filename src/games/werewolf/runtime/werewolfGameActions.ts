@@ -102,8 +102,12 @@ export function updateTemplate(
   );
 }
 
-export function restartGame(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
-  return dispatchWerewolfCommand(ctx, { type: 'werewolf.game.restart' }, null, '返回大厅');
+export function abortGame(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
+  return dispatchWerewolfCommand(ctx, { type: 'werewolf.game.abort' }, null, '中止本局');
+}
+
+export function returnToLobby(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
+  return dispatchWerewolfCommand(ctx, { type: 'werewolf.game.returnToLobby' }, null, '返回大厅');
 }
 
 export function redealGame(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
@@ -128,13 +132,13 @@ export function markViewedRole(
   ctx: GameActionsContext,
   controlledSeat: number | null,
 ): Promise<WerewolfCommandDispatchOutcome> {
-  return dispatchWerewolfCommand(ctx, { type: 'werewolf.role.view' }, controlledSeat, '确认查看');
+  return dispatchWerewolfCommand(ctx, { type: 'werewolf.role.viewed' }, controlledSeat, '确认查看');
 }
 
 export async function startNight(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
   const result = await dispatchWerewolfCommand(
     ctx,
-    { type: 'werewolf.night.start' },
+    { type: 'werewolf.game.begin' },
     null,
     '开始游戏',
   );

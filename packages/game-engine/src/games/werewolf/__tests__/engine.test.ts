@@ -124,11 +124,11 @@ describe('Werewolf authoritative actor resolution', () => {
       if (occupant != null && !isBotOccupant(occupant))
         state = evolveCommittedCommand(
           state,
-          { type: 'werewolf.role.view' },
+          { type: 'werewolf.role.viewed' },
           userContext(occupant.userId),
         );
     }
-    state = evolveCommittedCommand(state, { type: 'werewolf.night.start' }, userContext('host'));
+    state = evolveCommittedCommand(state, { type: 'werewolf.game.begin' }, userContext('host'));
     expect(state.status).toBe(GameStatus.Ended);
     expect(state.startingParticipants).toHaveLength(humanPlayerCount);
     const command: WerewolfCommand = {
@@ -179,7 +179,7 @@ describe('Werewolf authoritative actor resolution', () => {
     ).toBe('reject');
     const restarted = evolveCommittedCommand(
       selected,
-      { type: 'werewolf.game.restart' },
+      { type: 'werewolf.game.returnToLobby' },
       userContext('host'),
     );
     expect(restarted.startingParticipants).toBeUndefined();
@@ -447,11 +447,11 @@ describe('Werewolf redeal (one-command restart + deal)', () => {
       if (occupant != null && !isBotOccupant(occupant))
         state = evolveCommittedCommand(
           state,
-          { type: 'werewolf.role.view' },
+          { type: 'werewolf.role.viewed' },
           userContext(occupant.userId),
         );
     }
-    state = evolveCommittedCommand(state, { type: 'werewolf.night.start' }, userContext('host'));
+    state = evolveCommittedCommand(state, { type: 'werewolf.game.begin' }, userContext('host'));
     expect(state.status).toBe(GameStatus.Ended);
     return state;
   }
@@ -460,7 +460,7 @@ describe('Werewolf redeal (one-command restart + deal)', () => {
     const ended = createEndedState();
     const seated = evolveCommittedCommand(
       ended,
-      { type: 'werewolf.game.restart' },
+      { type: 'werewolf.game.returnToLobby' },
       userContext('host'),
     );
     expect(seated.status).toBe(GameStatus.Seated);
@@ -504,7 +504,7 @@ describe('Werewolf redeal (one-command restart + deal)', () => {
     );
     const restarted = evolveCommittedCommand(
       ended,
-      { type: 'werewolf.game.restart' },
+      { type: 'werewolf.game.returnToLobby' },
       userContext('host'),
     );
     const viaTwoSteps = evolveCommittedCommand(
@@ -532,7 +532,8 @@ describe('Werewolf engine definition and catalog', () => {
       profile: { displayName: 'Updated' },
     },
     'werewolf.roles.assign': { type: 'werewolf.roles.assign' },
-    'werewolf.game.restart': { type: 'werewolf.game.restart' },
+    'werewolf.game.returnToLobby': { type: 'werewolf.game.returnToLobby' },
+    'werewolf.game.abort': { type: 'werewolf.game.abort' },
     'werewolf.game.redeal': { type: 'werewolf.game.redeal' },
     'werewolf.mvp.select': {
       type: 'werewolf.mvp.select',
@@ -543,7 +544,7 @@ describe('Werewolf engine definition and catalog', () => {
       type: 'werewolf.action.submit',
       input: { kind: 'skip' },
     },
-    'werewolf.role.view': { type: 'werewolf.role.view' },
+    'werewolf.role.viewed': { type: 'werewolf.role.viewed' },
     'werewolf.config.update': {
       type: 'werewolf.config.update',
       templateRoles: ['villager'],
@@ -559,7 +560,7 @@ describe('Werewolf engine definition and catalog', () => {
       targetUserId: 'user-1',
     },
     'werewolf.board.withdraw': { type: 'werewolf.board.withdraw' },
-    'werewolf.night.start': { type: 'werewolf.night.start' },
+    'werewolf.game.begin': { type: 'werewolf.game.begin' },
     'werewolf.sheriff.register': { type: 'werewolf.sheriff.register' },
     'werewolf.sheriff.cancelRegistration': { type: 'werewolf.sheriff.cancelRegistration' },
     'werewolf.sheriff.withdraw': { type: 'werewolf.sheriff.withdraw' },
@@ -642,12 +643,13 @@ describe('Werewolf engine definition and catalog', () => {
     'room.seat.clear',
     'room.seat.fillBots',
     'werewolf.roles.assign',
-    'werewolf.game.restart',
+    'werewolf.game.abort',
+    'werewolf.game.returnToLobby',
     'werewolf.game.redeal',
     'werewolf.bots.markAllBotsViewed',
     'werewolf.config.update',
     'werewolf.review.share',
-    'werewolf.night.start',
+    'werewolf.game.begin',
     'werewolf.sheriff.advance',
     'werewolf.audio.ack',
     'werewolf.progress.request',
@@ -678,7 +680,7 @@ describe('Werewolf engine definition and catalog', () => {
   it('allows controlledSeat only for seat-owned commands', () => {
     const allowedTypes = new Set<WerewolfCommand['type']>([
       'werewolf.action.submit',
-      'werewolf.role.view',
+      'werewolf.role.viewed',
       'werewolf.reveal.ack',
       'werewolf.wolfRobot.ackHunterStatus',
       'werewolf.groupConfirm.ack',

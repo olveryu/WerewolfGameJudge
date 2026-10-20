@@ -47,7 +47,8 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
     profile: { displayName: '新名字' },
   },
   'werewolf.roles.assign': { type: 'werewolf.roles.assign' },
-  'werewolf.game.restart': { type: 'werewolf.game.restart' },
+  'werewolf.game.returnToLobby': { type: 'werewolf.game.returnToLobby' },
+  'werewolf.game.abort': { type: 'werewolf.game.abort' },
   'werewolf.game.redeal': { type: 'werewolf.game.redeal' },
   'werewolf.mvp.select': {
     type: 'werewolf.mvp.select',
@@ -55,7 +56,7 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
   },
   'werewolf.bots.markAllBotsViewed': { type: 'werewolf.bots.markAllBotsViewed' },
   'werewolf.action.submit': { type: 'werewolf.action.submit', input: { kind: 'skip' } },
-  'werewolf.role.view': { type: 'werewolf.role.view' },
+  'werewolf.role.viewed': { type: 'werewolf.role.viewed' },
   'werewolf.config.update': {
     type: 'werewolf.config.update',
     templateRoles: ['villager'],
@@ -68,7 +69,7 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
   },
   'werewolf.board.upvote': { type: 'werewolf.board.upvote', targetUserId: 'user-1' },
   'werewolf.board.withdraw': { type: 'werewolf.board.withdraw' },
-  'werewolf.night.start': { type: 'werewolf.night.start' },
+  'werewolf.game.begin': { type: 'werewolf.game.begin' },
   'werewolf.sheriff.register': { type: 'werewolf.sheriff.register' },
   'werewolf.sheriff.cancelRegistration': { type: 'werewolf.sheriff.cancelRegistration' },
   'werewolf.sheriff.withdraw': { type: 'werewolf.sheriff.withdraw' },
