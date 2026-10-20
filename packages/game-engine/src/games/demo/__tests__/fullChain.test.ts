@@ -44,7 +44,7 @@ function game(humanCount: number) {
 }
 
 function dealViewAndBegin(session: ReturnType<typeof game>): void {
-  session.send({ type: 'demo.game.start' });
+  session.send({ type: 'demo.roles.assign' });
   for (let seat = 0; seat < session.state.config.numberOfPlayers; seat += 1) {
     if (isBotSeat(session.state.roster, seat)) continue;
     session.send({ type: 'demo.role.viewed' }, session.seatUser(seat));
@@ -66,7 +66,7 @@ describe('Demo full chain', () => {
 
     // deal: identities are dealt into the viewing stage, nobody has
     // viewed yet (the engine never auto-marks, bots included).
-    session.send({ type: 'demo.game.start' });
+    session.send({ type: 'demo.roles.assign' });
     expect(session.state.phase.kind).toBe('viewing');
     expect(Object.keys(session.state.identities)).toHaveLength(4);
     expect(session.state.roleViewedSeats).toEqual([]);

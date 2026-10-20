@@ -160,7 +160,7 @@ function decideCommand(
     case 'room.profile.update':
     case '__GAME_ID__.config.update':
       return decide__GAME_PASCAL__Room(state, command, context);
-    case '__GAME_ID__.game.start':
+    case '__GAME_ID__.game.begin':
       return startGame(state, context);
     case '__GAME_ID__.phase.expire':
       return expireStage(state, context, false);

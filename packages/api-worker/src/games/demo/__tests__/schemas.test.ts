@@ -50,7 +50,7 @@ describe('Demo public command schema', () => {
       { type: 'room.seat.leave' },
       { type: 'room.seat.fillBots' },
       { type: 'demo.config.update', config: { numberOfPlayers: 6 } },
-      { type: 'demo.game.start' },
+      { type: 'demo.roles.assign' },
       { type: 'demo.game.begin' },
       { type: 'demo.role.viewed' },
       { type: 'demo.bots.markAllBotsViewed' },
@@ -64,7 +64,7 @@ describe('Demo public command schema', () => {
 
   it('rejects unknown commands, extra fields and worker-internal commands', () => {
     expect(demoPublicCommandSchema.safeParse({ type: 'demo.nope' }).success).toBe(false);
-    expect(demoPublicCommandSchema.safeParse({ type: 'demo.game.start', extra: 1 }).success).toBe(
+    expect(demoPublicCommandSchema.safeParse({ type: 'demo.roles.assign', extra: 1 }).success).toBe(
       false,
     );
     expect(demoInternalCommandSchema.safeParse({ type: 'anything' }).success).toBe(false);

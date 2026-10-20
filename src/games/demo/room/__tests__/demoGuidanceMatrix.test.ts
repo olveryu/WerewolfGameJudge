@@ -71,7 +71,7 @@ function lobbyState(): DemoState {
 }
 
 function viewingState(): DemoState {
-  const state = drive(lobbyState(), { type: 'demo.game.start' });
+  const state = drive(lobbyState(), { type: 'demo.roles.assign' });
   if (state.phase.kind !== 'viewing') throw new Error('expected viewing');
   return state;
 }

@@ -68,7 +68,7 @@ describe('__GAME_PASCAL__ lobby and seating', () => {
 
   it('rejects starting before every seat is filled', () => {
     const session = game({ numberOfPlayers: 4 }, 3, false);
-    const decision = session.decideAs({ type: '__GAME_ID__.game.start' });
+    const decision = session.decideAs({ type: '__GAME_ID__.game.begin' });
     expect(decision.kind).toBe('reject');
     if (decision.kind === 'reject') expect(decision.reason).toBe(__GAME_UPPER___REASONS.full);
   });
@@ -78,7 +78,7 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
   it('opens the stage with an armed deadline and a settle.due effect', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
     const startedAt = session.session.now();
-    session.send({ type: '__GAME_ID__.game.start' });
+    session.send({ type: '__GAME_ID__.game.begin' });
     expect(session.state.phase).toEqual({
       kind: 'stage',
       deadlineAt: startedAt + __GAME_UPPER___STAGE_DURATION_MS,
@@ -96,7 +96,7 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
 
   it('rejects expiry before the deadline, then settles exactly once at the deadline', () => {
     const session = game({ numberOfPlayers: 4 }, 3);
-    session.send({ type: '__GAME_ID__.game.start' });
+    session.send({ type: '__GAME_ID__.game.begin' });
     const early = session.decideAs({ type: '__GAME_ID__.phase.expire' }, 'u1');
     expect(early.kind).toBe('reject');
     if (early.kind === 'reject') expect(early.reason).toBe(__GAME_UPPER___REASONS.deadline);
@@ -113,7 +113,7 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
 
   it('settles through the internal system channel with the same decision', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
-    session.send({ type: '__GAME_ID__.game.start' });
+    session.send({ type: '__GAME_ID__.game.begin' });
     session.session.advance(__GAME_UPPER___STAGE_DURATION_MS);
     const state = session.session.sendAs(
       { type: '__GAME_ID__.phase.settleExpired' },
@@ -124,7 +124,7 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
 
   it('rejects the public expire channel for a system actor and vice versa', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
-    session.send({ type: '__GAME_ID__.game.start' });
+    session.send({ type: '__GAME_ID__.game.begin' });
     session.session.advance(__GAME_UPPER___STAGE_DURATION_MS);
     const publicAsSystem = __GAME_CAMEL__Engine.decide(
       session.state,
@@ -140,7 +140,7 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
 describe('__GAME_PASCAL__ gameplay seam', () => {
   it('rejects the example gameplay command as not implemented (no fake green)', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
-    session.send({ type: '__GAME_ID__.game.start' });
+    session.send({ type: '__GAME_ID__.game.begin' });
     const decision = session.decideAs({ type: '__GAME_ID__.gameplay.example' });
     expect(decision.kind).toBe('reject');
     if (decision.kind === 'reject')
@@ -149,7 +149,7 @@ describe('__GAME_PASCAL__ gameplay seam', () => {
 
   it('ends through the terminal seam with exactly one completion effect', () => {
     const session = game({ numberOfPlayers: 4 }, 3);
-    session.send({ type: '__GAME_ID__.game.start' });
+    session.send({ type: '__GAME_ID__.game.begin' });
     const decision = end__GAME_PASCAL__Game(session.state, session.session.context('host'));
     expect(decision.kind).toBe('commit');
     if (decision.kind !== 'commit') return;

@@ -166,7 +166,7 @@ export function createDemoHostManagement(
     const startDisabledReason = canStart
       ? null
       : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
-    const submitAssign = () => void input.submit('分配角色', { type: 'demo.game.start' });
+    const submitAssign = () => void input.submit('分配角色', { type: 'demo.roles.assign' });
     const assignAction = buildAssignRolesAction({
       onPress: () =>
         showConfirmAlert(
@@ -255,7 +255,7 @@ export function createDemoHostManagement(
                   HOST_FLOW_CONFIRM.nextRoundTitle,
                   '重新分配身份，开始新的一局。',
                   async () => {
-                    await input.submit('再来一局', { type: 'demo.game.start' });
+                    await input.submit('再来一局', { type: 'demo.roles.assign' });
                   },
                 ),
             }),

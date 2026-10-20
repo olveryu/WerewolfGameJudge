@@ -55,7 +55,7 @@ function game(
 }
 
 function viewAllAndBegin(session: ReturnType<typeof game>): void {
-  session.send({ type: '__GAME_ID__.game.start' });
+  session.send({ type: '__GAME_ID__.roles.assign' });
   for (let seat = 0; seat < session.state.config.numberOfPlayers; seat += 1) {
     if (isBotSeat(session.state.roster, seat)) continue;
     session.send({ type: '__GAME_ID__.role.viewed' }, session.seatUser(seat));
@@ -80,7 +80,7 @@ describe('__GAME_PASCAL__ lobby and seating', () => {
 
   it('rejects starting before every seat is filled', () => {
     const session = game({ numberOfPlayers: 4 }, 2, false);
-    const decision = session.decideAs({ type: '__GAME_ID__.game.start' });
+    const decision = session.decideAs({ type: '__GAME_ID__.roles.assign' });
     expect(decision.kind).toBe('reject');
     if (decision.kind === 'reject') expect(decision.reason).toBe(__GAME_UPPER___REASONS.full);
   });
@@ -99,7 +99,7 @@ describe('__GAME_PASCAL__ lobby and seating', () => {
 describe('__GAME_PASCAL__ identity viewing checkpoint', () => {
   it('deals identities into the viewing stage with an empty view record', () => {
     const session = game({ numberOfPlayers: 4 }, 2);
-    session.send({ type: '__GAME_ID__.game.start' });
+    session.send({ type: '__GAME_ID__.roles.assign' });
     expect(session.state.phase.kind).toBe('viewing');
     expect(Object.keys(session.state.identities)).toHaveLength(4);
     expect(session.state.roleViewedSeats).toEqual([]);
@@ -114,7 +114,7 @@ describe('__GAME_PASCAL__ identity viewing checkpoint', () => {
 
   it('holds begin until every seat — bots included — has viewed', () => {
     const session = game({ numberOfPlayers: 4 }, 2);
-    session.send({ type: '__GAME_ID__.game.start' });
+    session.send({ type: '__GAME_ID__.roles.assign' });
     session.send({ type: '__GAME_ID__.role.viewed' }, session.seatUser(0));
     session.send({ type: '__GAME_ID__.role.viewed' }, session.seatUser(1));
     const blocked = session.decideAs({ type: '__GAME_ID__.game.begin' });
@@ -128,7 +128,7 @@ describe('__GAME_PASCAL__ identity viewing checkpoint', () => {
 
   it('projects identities per viewer: self visible, others hidden until the end', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
-    session.send({ type: '__GAME_ID__.game.start' });
+    session.send({ type: '__GAME_ID__.roles.assign' });
     const view = get__GAME_PASCAL__ViewModel(session.state, 1);
     expect(view.myIdentity).not.toBeNull();
     expect(view.seats.every((seat) => seat.identity === null)).toBe(true);

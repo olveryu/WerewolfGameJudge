@@ -47,7 +47,7 @@ function lobbyState(withBots: boolean): DemoState {
 
 function viewingState(): DemoState {
   let state = lobbyState(true);
-  state = drive(state, { type: 'demo.game.start' });
+  state = drive(state, { type: 'demo.roles.assign' });
   return state;
 }
 

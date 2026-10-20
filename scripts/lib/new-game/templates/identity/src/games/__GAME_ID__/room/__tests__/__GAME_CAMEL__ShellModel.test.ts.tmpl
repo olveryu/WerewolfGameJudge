@@ -49,7 +49,7 @@ function lobbyState(withBots: boolean): __GAME_PASCAL__State {
 
 function viewingState(): __GAME_PASCAL__State {
   let state = lobbyState(true);
-  state = drive(state, { type: '__GAME_ID__.game.start' });
+  state = drive(state, { type: '__GAME_ID__.roles.assign' });
   return state;
 }
 

@@ -54,7 +54,7 @@ function armedPlayingState(): DemoState {
       `seat-${seat}`,
     );
   }
-  state = applyPublic(state, { type: 'demo.game.start' }, HOST, 'start');
+  state = applyPublic(state, { type: 'demo.roles.assign' }, HOST, 'start');
   for (let seat = 0; seat < 4; seat += 1) {
     state = applyPublic(state, { type: 'demo.role.viewed' }, seatUser(seat), `view-${seat}`);
   }

@@ -135,7 +135,7 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
 
   it('assembles the shell once the game has started', () => {
     let state = lobbyState(true);
-    state = drive(state, { type: '__GAME_ID__.game.start' });
+    state = drive(state, { type: '__GAME_ID__.game.begin' });
     const model = create__GAME_PASCAL__RoomShellModel({
       roomCode: '1234',
       capabilities: capabilities(),
@@ -176,7 +176,7 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
 describe('create__GAME_PASCAL__HostManagement', () => {
   it('keeps only room actions in the host panel during the stage phase', () => {
     let state = lobbyState(true);
-    state = drive(state, { type: '__GAME_ID__.game.start' });
+    state = drive(state, { type: '__GAME_ID__.game.begin' });
     const model = create__GAME_PASCAL__HostManagement({
       state,
       isHost: true,

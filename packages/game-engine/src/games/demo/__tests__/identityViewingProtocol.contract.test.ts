@@ -1,7 +1,7 @@
 /**
  * Identity Viewing Protocol — demo scenario.
  *
- * Demo follows the protocol: dealing (demo.game.start)
+ * Demo follows the protocol: dealing (demo.roles.assign)
  * lands in the viewing stage with an empty record
  * (demo.role.viewed, idempotent), and play is gated at the
  * host's begin command (demo.game.begin) — play opens only once
@@ -32,7 +32,7 @@ function game(humanCount: number) {
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
   }
   if (humanCount < 4) send({ type: 'room.seat.fillBots' });
-  send({ type: 'demo.game.start' });
+  send({ type: 'demo.roles.assign' });
   return { session, send, seatUser };
 }
 

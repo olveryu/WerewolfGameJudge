@@ -24,7 +24,7 @@ const demoPublicCommandOptions = definePublicCommandOptions<DemoPublicCommand>()
     type: z.literal('demo.config.update'),
     config: demoConfigSchema,
   }),
-  z.strictObject({ type: z.literal('demo.game.start') }),
+  z.strictObject({ type: z.literal('demo.roles.assign') }),
   z.strictObject({ type: z.literal('demo.game.begin') }),
   z.strictObject({ type: z.literal('demo.role.viewed') }),
   z.strictObject({ type: z.literal('demo.bots.markAllBotsViewed') }),
