@@ -144,16 +144,29 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
   }
 
   /**
-   * Host: restart game (HTTP API)
+   * Host: abort the game in progress (HTTP API)
    *
    * Server resets state -> WS broadcast pushes new state to all clients.
    */
-  async restartGame(): Promise<WerewolfCommandDispatchOutcome> {
+  async abortGame(): Promise<WerewolfCommandDispatchOutcome> {
     // Stop current audio then release preloaded resources (stop before clearPreloaded)
     this.#audio.stopNarration();
     this.#audio.clearPreloaded();
     // Server validates hostUserId, client no longer does redundant gating
-    return gameActions.restartGame(this.#getActionsContext());
+    return gameActions.abortGame(this.#getActionsContext());
+  }
+
+  /**
+   * Host: return to the lobby after the game has ended (HTTP API)
+   *
+   * Server resets state -> WS broadcast pushes new state to all clients.
+   */
+  async returnToLobby(): Promise<WerewolfCommandDispatchOutcome> {
+    // Stop current audio then release preloaded resources (stop before clearPreloaded)
+    this.#audio.stopNarration();
+    this.#audio.clearPreloaded();
+    // Server validates hostUserId, client no longer does redundant gating
+    return gameActions.returnToLobby(this.#getActionsContext());
   }
 
   /**

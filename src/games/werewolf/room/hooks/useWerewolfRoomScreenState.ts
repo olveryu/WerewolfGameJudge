@@ -205,7 +205,8 @@ export function useWerewolfRoomScreenState(
     leaveSeat,
     assignRoles,
     startGame,
-    restartGame,
+    abortGame,
+    returnToLobby,
     redealGame,
     selectMvp,
     clearAllSeats,
@@ -572,7 +573,8 @@ export function useWerewolfRoomScreenState(
   } = useWerewolfHostControl({
     assignRoles,
     startGame,
-    restartGame,
+    abortGame,
+    returnToLobby,
     redealGame,
     shareNightReviewReport: shareNightReviewReportDirectly,
   });

@@ -157,17 +157,32 @@ describe('WerewolfGameClientRuntime composition', () => {
     expect(client.wasAudioInterrupted).toBe(false);
   });
 
-  it('stops prepared audio before dispatching a Werewolf restart command', async () => {
+  it('stops prepared audio before dispatching a Werewolf abort command', async () => {
     const { client, roomSession, audio } = createClient();
     roomSession.emit(enteringSnapshot());
     roomSession.emit(readySnapshot(GameStatus.Seated));
 
-    await client.restartGame();
+    await client.abortGame();
 
     expect(audio.stopNarration).toHaveBeenCalledTimes(1);
     expect(audio.clearPreloaded).toHaveBeenCalledTimes(1);
     expect(roomSession.dispatch).toHaveBeenCalledWith(
-      { type: 'werewolf.game.restart' },
+      { type: 'werewolf.game.abort' },
+      { controlledSeat: null, label: '中止本局' },
+    );
+  });
+
+  it('stops prepared audio before dispatching a Werewolf return-to-lobby command', async () => {
+    const { client, roomSession, audio } = createClient();
+    roomSession.emit(enteringSnapshot());
+    roomSession.emit(readySnapshot(GameStatus.Ended));
+
+    await client.returnToLobby();
+
+    expect(audio.stopNarration).toHaveBeenCalledTimes(1);
+    expect(audio.clearPreloaded).toHaveBeenCalledTimes(1);
+    expect(roomSession.dispatch).toHaveBeenCalledWith(
+      { type: 'werewolf.game.returnToLobby' },
       { controlledSeat: null, label: '返回大厅' },
     );
   });

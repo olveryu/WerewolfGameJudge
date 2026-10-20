@@ -41,7 +41,8 @@ export interface WerewolfMvpSelection {
 
 type WerewolfGameCommand =
   | { readonly type: 'werewolf.roles.assign' }
-  | { readonly type: 'werewolf.game.restart' }
+  | { readonly type: 'werewolf.game.abort' }
+  | { readonly type: 'werewolf.game.returnToLobby' }
   | { readonly type: 'werewolf.game.redeal' }
   | { readonly type: 'werewolf.mvp.select'; readonly selection: WerewolfMvpSelection }
   | { readonly type: 'werewolf.bots.markAllBotsViewed' }
@@ -51,7 +52,7 @@ type WerewolfGameCommand =
       /** Optional only for rolling compatibility with clients predating recoverable actions. */
       readonly expectedStep?: WerewolfExpectedStep;
     }
-  | { readonly type: 'werewolf.role.view' }
+  | { readonly type: 'werewolf.role.viewed' }
   | {
       readonly type: 'werewolf.config.update';
       readonly templateRoles: readonly RoleId[];
@@ -65,7 +66,7 @@ type WerewolfGameCommand =
     }
   | { readonly type: 'werewolf.board.upvote'; readonly targetUserId: string }
   | { readonly type: 'werewolf.board.withdraw' }
-  | { readonly type: 'werewolf.night.start' }
+  | { readonly type: 'werewolf.game.begin' }
   | { readonly type: 'werewolf.sheriff.register' }
   | { readonly type: 'werewolf.sheriff.cancelRegistration' }
   | { readonly type: 'werewolf.sheriff.withdraw' }

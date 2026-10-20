@@ -154,7 +154,8 @@ export function createBaseWerewolfRoomMock({
     leaveSeat: jest.fn(),
     assignRoles: jest.fn().mockResolvedValue(commandResult),
     startGame: jest.fn().mockResolvedValue(commandResult),
-    restartGame: jest.fn().mockResolvedValue(commandResult),
+    abortGame: jest.fn().mockResolvedValue(commandResult),
+    returnToLobby: jest.fn().mockResolvedValue(commandResult),
 
     submitAction: jest.fn().mockResolvedValue(commandResult),
 

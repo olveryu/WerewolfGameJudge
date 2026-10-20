@@ -161,7 +161,7 @@ export function useWerewolfBgmControl(
     setIsBgmPlaying(true);
   }, [settingsService, audioService]);
 
-  // Stop BGM (called by restartGame or manual user trigger)
+  // Stop BGM (called by abortGame/returnToLobby or manual user trigger)
   const stopBgm = useCallback(() => {
     audioService.stopBgm();
     setIsBgmPlaying(false);

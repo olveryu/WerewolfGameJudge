@@ -2,7 +2,7 @@
  * Game Control Handler - game control processor (Host-only)
  *
  * Responsibilities:
- * - Handle ASSIGN_ROLES / START_NIGHT / RESTART_GAME / REDEAL_GAME / UPDATE_TEMPLATE intents
+ * - Handle ASSIGN_ROLES / START_NIGHT / ABORT_GAME / RETURN_TO_LOBBY / REDEAL_GAME / UPDATE_TEMPLATE intents
  * - Role assignment logic (shuffle + write to state)
  * - NightPlan construction (generate step plan from template)
  *
@@ -18,13 +18,14 @@ import { decideRosterFillBots } from '../../../../platform/room/seating';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
 import { createAudioQueueActions } from '../audioQueue';
 import type {
+  AbortGameIntent,
   AssignRolesIntent,
   BoardNominateIntent,
   BoardUpvoteIntent,
   BoardWithdrawIntent,
   FillWithBotsIntent,
   RedealGameIntent,
-  RestartGameIntent,
+  ReturnToLobbyIntent,
   ShareNightReviewIntent,
   StartNightIntent,
   UpdateTemplateIntent,
@@ -307,20 +308,50 @@ export function handleStartNight(
   return handlerSuccess(actions);
 }
 
-/**
- * Handle restart game
- */
-export function handleRestartGame(
-  _intent: RestartGameIntent,
-  context: HandlerContext,
-  execution: HandlerExecutionContext,
-): HandlerResult {
+/** The restart outcome both terminal-flow commands share (RESTART_GAME). */
+function decideRestartGame(execution: HandlerExecutionContext): HandlerResult {
   const action: RestartGameAction = {
     type: 'RESTART_GAME',
     nonce: execution.randomSeed,
   };
 
   return handlerSuccess([action]);
+}
+
+/**
+ * Handle abort game (a game is in progress): the host ends the current
+ * game and returns the room to the lobby.
+ */
+export function handleAbortGame(
+  _intent: AbortGameIntent,
+  context: HandlerContext,
+  execution: HandlerExecutionContext,
+): HandlerResult {
+  // Gate: only a game in progress can be aborted; a finished game
+  // leaves through returnToLobby instead.
+  if (context.state.status === GameStatus.Ended) {
+    return handlerError('invalid_status');
+  }
+
+  return decideRestartGame(execution);
+}
+
+/**
+ * Handle return to lobby (the game has ended): the host closes the
+ * finished game and returns the room to the lobby.
+ */
+export function handleReturnToLobbyGame(
+  _intent: ReturnToLobbyIntent,
+  context: HandlerContext,
+  execution: HandlerExecutionContext,
+): HandlerResult {
+  // Gate: only a finished game returns to the lobby this way; a game
+  // in progress is aborted instead.
+  if (context.state.status !== GameStatus.Ended) {
+    return handlerError('invalid_status');
+  }
+
+  return decideRestartGame(execution);
 }
 
 /**

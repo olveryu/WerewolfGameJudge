@@ -300,11 +300,11 @@ export function createGame(
   for (let seat = 0; seat < template.numberOfPlayers; seat += 1) {
     context.dispatchAsSeatOrThrow(
       seat,
-      { type: 'werewolf.role.view' },
+      { type: 'werewolf.role.viewed' },
       `view role at seat ${seat}`,
     );
   }
-  context.dispatchOrThrow({ type: 'werewolf.night.start' }, 'start night');
+  context.dispatchOrThrow({ type: 'werewolf.game.begin' }, 'start night');
   context.acknowledgePendingAudioOrThrow('complete initial night audio');
 
   return context;

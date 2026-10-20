@@ -455,7 +455,7 @@ describe('GameRoom command receipts', () => {
       commandId: 'view-empty-bot',
       actorUserId: 'host-1',
       controlledSeat: 2,
-      command: { type: 'werewolf.role.view' },
+      command: { type: 'werewolf.role.viewed' },
     } as const;
 
     const first = await dispatch(stub, rejectedRequest);

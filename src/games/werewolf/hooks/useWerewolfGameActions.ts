@@ -2,7 +2,7 @@
  * useWerewolfGameActions - Game control + night-phase player actions
  *
  * Manages:
- * - Host-only game flow: updateTemplate, assignRoles, startGame, restartGame
+ * - Host-only game flow: updateTemplate, assignRoles, startGame, abortGame, returnToLobby
  * - Role reveal animation and audio playing control
  * - Player night actions: viewedRole, submitAction
  * - Reveal ack and wolfRobot hunter status gates
@@ -95,7 +95,8 @@ interface WerewolfGameActionsState {
   // locking and failure presentation for them.
   assignRoles: () => Promise<WerewolfCommandDispatchOutcome>;
   startGame: () => Promise<WerewolfCommandDispatchOutcome>;
-  restartGame: () => Promise<WerewolfCommandDispatchOutcome>;
+  abortGame: () => Promise<WerewolfCommandDispatchOutcome>;
+  returnToLobby: () => Promise<WerewolfCommandDispatchOutcome>;
   redealGame: () => Promise<WerewolfCommandDispatchOutcome>;
   selectMvp: (selection: WerewolfMvpSelection) => Promise<WerewolfCommandDispatchOutcome>;
   clearAllSeats: () => Promise<WerewolfCommandDispatchOutcome>;
@@ -181,18 +182,30 @@ interface WerewolfGameActionsDeps {
     return client.startNight();
   }, [client, isHost]);
 
-  // Restart game (host only)
-  const restartGame = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
+  // Abort the game in progress (host only). The pre-submit teardown
+  // matches returnToLobby: the room goes back to the lobby, so BGM
+  // stops and any bot control is released.
+  const abortGame = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
     if (!isHost) {
-      throw new Error('[FAIL-FAST] Restarting a Werewolf game requires the host');
+      throw new Error('[FAIL-FAST] Aborting a Werewolf game requires the host');
     }
-    // Stop BGM on restart
     bgm.stopBgm();
-    // Clear controlled seat on restart
     if (botControl.controlledSeat !== null) {
       botControl.releaseBot();
     }
-    return client.restartGame();
+    return client.abortGame();
+  }, [client, bgm, botControl, isHost]);
+
+  // Return to the lobby after the game has ended (host only)
+  const returnToLobby = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
+    if (!isHost) {
+      throw new Error('[FAIL-FAST] Returning a Werewolf room to the lobby requires the host');
+    }
+    bgm.stopBgm();
+    if (botControl.controlledSeat !== null) {
+      botControl.releaseBot();
+    }
+    return client.returnToLobby();
   }, [client, bgm, botControl, isHost]);
 
   // Redeal a finished game (host only): one engine command restarts and
@@ -449,7 +462,8 @@ interface WerewolfGameActionsDeps {
     updateTemplate,
     assignRoles,
     startGame,
-    restartGame,
+    abortGame,
+    returnToLobby,
     redealGame,
     selectMvp,
     clearAllSeats,

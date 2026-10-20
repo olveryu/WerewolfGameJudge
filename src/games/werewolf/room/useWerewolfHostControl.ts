@@ -29,7 +29,8 @@ import { roomScreenLog } from '@/utils/logger';
 interface UseWerewolfHostControlParams {
   assignRoles: () => Promise<WerewolfCommandDispatchOutcome>;
   startGame: () => Promise<WerewolfCommandDispatchOutcome>;
-  restartGame: () => Promise<WerewolfCommandDispatchOutcome>;
+  abortGame: () => Promise<WerewolfCommandDispatchOutcome>;
+  returnToLobby: () => Promise<WerewolfCommandDispatchOutcome>;
   redealGame: () => Promise<WerewolfCommandDispatchOutcome>;
   /** Share night review report. Returns true on success, false on failure. */
   shareNightReviewReport: () => Promise<boolean>;
@@ -51,7 +52,8 @@ interface UseWerewolfHostControlResult {
 export const useWerewolfHostControl = ({
   assignRoles,
   startGame,
-  restartGame,
+  abortGame,
+  returnToLobby,
   redealGame,
   shareNightReviewReport,
 }: UseWerewolfHostControlParams): UseWerewolfHostControlResult => {
@@ -81,8 +83,8 @@ export const useWerewolfHostControl = ({
 
   const handleAbort = useCallback(async () => {
     roomScreenLog.debug('Aborting game');
-    await submit('中止本局', restartGame);
-  }, [restartGame, submit]);
+    await submit('中止本局', abortGame);
+  }, [abortGame, submit]);
 
   const showAbortDialog = useCallback(() => {
     // The danger action aborts the current game back to the seated
@@ -101,8 +103,8 @@ export const useWerewolfHostControl = ({
 
   const handleReturnToLobby = useCallback(async () => {
     roomScreenLog.debug('Returning to lobby');
-    await submit('返回大厅', restartGame);
-  }, [restartGame, submit]);
+    await submit('返回大厅', returnToLobby);
+  }, [returnToLobby, submit]);
 
   const showEndedFlowDialog = useCallback(
     (flow: 'redeal' | 'returnToLobby') => {

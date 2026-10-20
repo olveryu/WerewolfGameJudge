@@ -3,16 +3,18 @@
  */
 
 import {
+  handleAbortGame as executeAbortGame,
   handleAssignRoles as executeAssignRoles,
-  handleRestartGame as executeRestartGame,
+  handleReturnToLobbyGame as executeReturnToLobbyGame,
   handleShareNightReview,
   handleStartNight as executeStartNight,
   handleUpdateTemplate,
 } from '@game-judge/game-engine/games/werewolf/domain/handlers/gameControlHandler';
 import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
 import type {
+  AbortGameIntent,
   AssignRolesIntent,
-  RestartGameIntent,
+  ReturnToLobbyIntent,
   ShareNightReviewIntent,
   StartNightIntent,
   UpdateTemplateIntent,
@@ -80,8 +82,12 @@ function handleStartNight(intent: StartNightIntent, context: HandlerContext) {
   return executeStartNight(intent, context, TEST_HANDLER_EXECUTION);
 }
 
-function handleRestartGame(intent: RestartGameIntent, context: HandlerContext) {
-  return executeRestartGame(intent, context, TEST_HANDLER_EXECUTION);
+function handleAbortGame(intent: AbortGameIntent, context: HandlerContext) {
+  return executeAbortGame(intent, context, TEST_HANDLER_EXECUTION);
+}
+
+function handleReturnToLobbyGame(intent: ReturnToLobbyIntent, context: HandlerContext) {
+  return executeReturnToLobbyGame(intent, context, TEST_HANDLER_EXECUTION);
 }
 
 // =============================================================================
@@ -429,13 +435,13 @@ describe('handleStartNight', () => {
   });
 });
 
-describe('handleRestartGame', () => {
-  it('should succeed when host', () => {
+describe('handleAbortGame / handleReturnToLobbyGame', () => {
+  it('returnToLobby should succeed when host and the game has ended', () => {
     const state = createMinimalState({ status: GameStatus.Ended });
     const context = createContext(state);
-    const intent: RestartGameIntent = { type: 'RESTART_GAME' };
+    const intent: ReturnToLobbyIntent = { type: 'RETURN_TO_LOBBY' };
 
-    const result = handleRestartGame(intent, context);
+    const result = handleReturnToLobbyGame(intent, context);
 
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
@@ -443,6 +449,43 @@ describe('handleRestartGame', () => {
     if (success.actions[0]!.type === 'RESTART_GAME') {
       expect(success.actions[0].nonce).toBe(TEST_HANDLER_EXECUTION.randomSeed);
     }
+  });
+
+  it('returnToLobby should fail while a game is in progress', () => {
+    const state = createMinimalState({ status: GameStatus.Ongoing });
+    const context = createContext(state);
+    const intent: ReturnToLobbyIntent = { type: 'RETURN_TO_LOBBY' };
+
+    const result = handleReturnToLobbyGame(intent, context);
+
+    const err = expectError(result);
+    expect(err.reason).toBe('invalid_status');
+  });
+
+  it('abort should succeed while a game is in progress', () => {
+    const state = createMinimalState({ status: GameStatus.Ongoing });
+    const context = createContext(state);
+    const intent: AbortGameIntent = { type: 'ABORT_GAME' };
+
+    const result = handleAbortGame(intent, context);
+
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(1);
+    expect(success.actions[0]!.type).toBe('RESTART_GAME');
+    if (success.actions[0]!.type === 'RESTART_GAME') {
+      expect(success.actions[0].nonce).toBe(TEST_HANDLER_EXECUTION.randomSeed);
+    }
+  });
+
+  it('abort should fail once the game has ended', () => {
+    const state = createMinimalState({ status: GameStatus.Ended });
+    const context = createContext(state);
+    const intent: AbortGameIntent = { type: 'ABORT_GAME' };
+
+    const result = handleAbortGame(intent, context);
+
+    const err = expectError(result);
+    expect(err.reason).toBe('invalid_status');
   });
 });
 

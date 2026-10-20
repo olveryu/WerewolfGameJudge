@@ -49,7 +49,7 @@ describe('platform room effects', () => {
       derivePlatformRoomEffects({
         roomCode: ROOM_CODE,
         actorUserId: 'host-1',
-        commandType: 'werewolf.night.start',
+        commandType: 'werewolf.game.begin',
         outcomeKind: 'success',
         previousLifecycle: 'setup',
         lifecycle: 'ongoing',
@@ -68,7 +68,7 @@ describe('platform room effects', () => {
       derivePlatformRoomEffects({
         roomCode: ROOM_CODE,
         actorUserId: 'host-1',
-        commandType: 'werewolf.night.start',
+        commandType: 'werewolf.game.begin',
         outcomeKind: 'domainRejected',
         previousLifecycle: 'setup',
         lifecycle: 'ongoing',
