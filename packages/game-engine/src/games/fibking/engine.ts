@@ -6,12 +6,11 @@ import {
   type CreateGameContext,
   type GameEngineDefinition,
   reject,
-  resolveHostActorId,
-  resolveUncontrolledUserActorId,
+  requireHost,
 } from '../../platform/engine';
 import { buildGameCompletionPayload } from '../../platform/engine/completionEffect';
 import { FIBKING_GAME_TYPE, type FibKingGameType } from '../../platform/protocol/gameTypes';
-import { REASON_GAME_IN_PROGRESS, REASON_NOT_SEATED } from '../../platform/protocol/reasons';
+import { REASON_NOT_SEATED } from '../../platform/protocol/reasons';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
 import { hasBeenRevealed } from '../../platform/room/hostReveal';
 import {
@@ -30,18 +29,7 @@ import {
   type PreparationStateSlice,
   resolvePreparationRetryPending,
 } from '../../platform/room/preparation';
-import {
-  decideRosterClearSeats,
-  decideRosterFillBots,
-  decideRosterKickSeat,
-  decideRosterLeaveSeat,
-  decideRosterTakeSeat,
-  findRosterSeatByUserId,
-  getHumanSeatMap,
-  hasOccupantAtOrBeyond,
-  type RosterChange,
-  type RosterOperationResult,
-} from '../../platform/room/seating';
+import { getHumanSeatMap } from '../../platform/room/seating';
 import type { FibCommand } from './commands/types';
 import { commitFib, type FibDecision } from './domain/decision';
 import type { FibEvent } from './domain/events';
@@ -50,8 +38,6 @@ import {
   REASON_FIB_GAME_NOT_ENDED,
   REASON_FIB_NO_BOT_SEATS,
   REASON_FIB_NOT_ALL_VIEWED,
-  REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
-  REASON_FIB_PLAYER_COUNT_INVALID,
   REASON_FIB_PREPARATION_STAGE_INVALID,
   REASON_FIB_ROUND_ALREADY_ONGOING,
   REASON_FIB_ROUND_MISMATCH,
@@ -64,6 +50,7 @@ import {
   REASON_FIB_WORD_REUSED,
 } from './domain/reasons';
 import { assignFibRoles } from './domain/roles';
+import { decideFibRoom } from './domain/seating';
 import type { FibEffect } from './effects/types';
 import { normalizeFibState } from './state/normalize';
 import {
@@ -72,10 +59,7 @@ import {
   FIB_PREPARATION_FAILURE_CODES,
   FIB_PREPARATION_STAGES,
   type FibConfig,
-  type FibHumanSeat,
   type FibPreparationStage,
-  type FibProfileUpdate,
-  type FibSeatProfile,
   type FibState,
   getFibRole,
   getFibViewingParticipants,
@@ -86,125 +70,6 @@ import {
   type PendingFibRound,
 } from './state/types';
 import { FIB_STATE_IDENTITY, FIB_STATE_VERSION } from './state/version';
-
-function rejectSeatOperation(
-  result: Extract<RosterOperationResult<FibHumanSeat>, { kind: 'rejected' }>,
-): FibDecision {
-  return reject(result.reason);
-}
-
-function seatChangesEvent(changes: readonly RosterChange<FibHumanSeat>[]): FibEvent {
-  return { type: 'fibking.seats.changed', changes };
-}
-
-function requireLobby(state: FibState): FibDecision | null {
-  return state.phase === 'lobby' ? null : reject(REASON_GAME_IN_PROGRESS);
-}
-
-function decideTakeFibSeat(
-  state: FibState,
-  seat: number,
-  profile: FibSeatProfile,
-  context: CommandContext,
-): FibDecision {
-  const lobbyRejection = requireLobby(state);
-  if (lobbyRejection !== null) return lobbyRejection;
-  const actor = resolveUncontrolledUserActorId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-
-  const result = decideRosterTakeSeat(
-    state.roster,
-    state.numberOfPlayers,
-    seat,
-    actor.value,
-    (targetSeat): FibHumanSeat => ({
-      userId: actor.value,
-      seat: targetSeat,
-      profile: { ...profile },
-    }),
-  );
-  return result.kind === 'rejected'
-    ? rejectSeatOperation(result)
-    : commitFib([seatChangesEvent(result.changes)]);
-}
-
-function decideLeaveFibSeat(state: FibState, context: CommandContext): FibDecision {
-  const lobbyRejection = requireLobby(state);
-  if (lobbyRejection !== null) return lobbyRejection;
-  const actor = resolveUncontrolledUserActorId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  const result = decideRosterLeaveSeat(state.roster, state.numberOfPlayers, actor.value);
-  return result.kind === 'rejected'
-    ? rejectSeatOperation(result)
-    : commitFib([seatChangesEvent(result.changes)]);
-}
-
-function decideKickFibSeat(state: FibState, seat: number, context: CommandContext): FibDecision {
-  const lobbyRejection = requireLobby(state);
-  if (lobbyRejection !== null) return lobbyRejection;
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  const result = decideRosterKickSeat(state.roster, state.numberOfPlayers, seat);
-  if (result.kind === 'rejected') return rejectSeatOperation(result);
-  return commitFib([seatChangesEvent(result.changes)]);
-}
-
-function decideClearFibSeats(state: FibState, context: CommandContext): FibDecision {
-  const lobbyRejection = requireLobby(state);
-  if (lobbyRejection !== null) return lobbyRejection;
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  const result = decideRosterClearSeats(state.roster, state.numberOfPlayers);
-  if (result.kind === 'rejected') return rejectSeatOperation(result);
-  return result.changes.length === 0
-    ? commitFib([])
-    : commitFib([seatChangesEvent(result.changes)]);
-}
-
-function decideFillFibBots(state: FibState, context: CommandContext): FibDecision {
-  const lobbyRejection = requireLobby(state);
-  if (lobbyRejection !== null) return lobbyRejection;
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  const result = decideRosterFillBots(state.roster, state.numberOfPlayers);
-  if (result.kind === 'rejected') return rejectSeatOperation(result);
-  return result.changes.length === 0
-    ? commitFib([])
-    : commitFib([seatChangesEvent(result.changes)]);
-}
-
-function decideUpdateFibProfile(
-  state: FibState,
-  profile: FibProfileUpdate,
-  context: CommandContext,
-): FibDecision {
-  const actor = resolveUncontrolledUserActorId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  const seat = findRosterSeatByUserId(state.roster, state.numberOfPlayers, actor.value);
-  return seat === null
-    ? reject(REASON_NOT_SEATED)
-    : commitFib([{ type: 'fibking.profile.updated', seat, profile: { ...profile } }]);
-}
-
-function decideUpdateFibConfig(
-  state: FibState,
-  numberOfPlayers: number,
-  context: CommandContext,
-): FibDecision {
-  const lobbyRejection = requireLobby(state);
-  if (lobbyRejection !== null) return lobbyRejection;
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  if (!isValidFibPlayerCount(numberOfPlayers)) {
-    return reject(REASON_FIB_PLAYER_COUNT_INVALID);
-  }
-
-  if (hasOccupantAtOrBeyond(state.roster, numberOfPlayers))
-    return reject(REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE);
-  return numberOfPlayers === state.numberOfPlayers
-    ? commitFib([])
-    : commitFib([{ type: 'fibking.config.updated', numberOfPlayers }]);
-}
 
 function createRoundId(commandId: string): string {
   if (commandId.length === 0) {
@@ -246,8 +111,8 @@ const FIB_PREPARATION_REASONS = {
 } as const;
 
 function decideStartFibRound(state: FibState, context: CommandContext): FibDecision {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
+  const hostRejection = requireHost<FibEvent, FibEffect>(context, state.hostUserId);
+  if (hostRejection !== null) return hostRejection;
   if (state.phase === 'preparing') {
     return reject(REASON_FIB_ROUND_ALREADY_ONGOING);
   }
@@ -282,8 +147,8 @@ function decideStartFibRound(state: FibState, context: CommandContext): FibDecis
 }
 
 function decideCancelFibPreparation(state: FibState, context: CommandContext): FibDecision {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
+  const hostRejection = requireHost<FibEvent, FibEffect>(context, state.hostUserId);
+  if (hostRejection !== null) return hostRejection;
   return state.phase === 'preparing' || state.phase === 'preparationFailed'
     ? commitFib([{ type: 'fibking.round.preparationCancelled' }])
     : reject(REASON_FIB_ROUND_NOT_PREPARING);
@@ -315,8 +180,8 @@ function commitFibRoundEnded(
 }
 
 function decideRevealFibRound(state: FibState, context: CommandContext): FibDecision {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
+  const hostRejection = requireHost<FibEvent, FibEffect>(context, state.hostUserId);
+  if (hostRejection !== null) return hostRejection;
   if (state.phase !== 'ongoing') return reject(REASON_FIB_ROUND_NOT_ONGOING);
   return commitFibRoundEnded(state, context, []);
 }
@@ -327,8 +192,8 @@ function decideRevealFibRound(state: FibState, context: CommandContext): FibDeci
  * play never opens on the last view record alone.
  */
 function decideBeginFibRound(state: FibState, context: CommandContext): FibDecision {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
+  const hostRejection = requireHost<FibEvent, FibEffect>(context, state.hostUserId);
+  if (hostRejection !== null) return hostRejection;
   if (state.phase !== 'viewing') return reject(REASON_FIB_ROUND_NOT_VIEWING);
   if (!haveAllViewed(getFibViewingParticipants(state), state.round.viewedSeats)) {
     return reject(REASON_FIB_NOT_ALL_VIEWED);
@@ -343,8 +208,8 @@ function decideBeginFibRound(state: FibState, context: CommandContext): FibDecis
  * same path as revealing the answer, a miss changes nothing else.
  */
 function decideGuessFibSeat(state: FibState, seat: number, context: CommandContext): FibDecision {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
+  const hostRejection = requireHost<FibEvent, FibEffect>(context, state.hostUserId);
+  if (hostRejection !== null) return hostRejection;
   if (state.phase !== 'ongoing') return reject(REASON_FIB_ROUND_NOT_ONGOING);
   if (state.roster[seat] == null) return reject(REASON_NOT_SEATED);
   if (hasBeenRevealed(state.round.guesses, seat)) {
@@ -384,9 +249,8 @@ function decideMarkAllBotsViewed(state: FibState, context: CommandContext): FibD
   // FibKing's viewing phase gate stays here (it also narrows the
   // round); the shared skeleton owns everything past the host gate.
   if (state.phase !== 'viewing') return reject(REASON_FIB_ROUND_NOT_VIEWING);
-  const actor = resolveHostActorId(context, state.hostUserId);
   return decideMarkBotsViewed({
-    gateRejection: actor.kind === 'rejected' ? reject(actor.reason) : null,
+    gateRejection: requireHost<FibEvent, FibEffect>(context, state.hostUserId),
     participants: getFibViewingParticipants(state),
     viewedSeats: state.round.viewedSeats,
     noBotSeatsReason: REASON_FIB_NO_BOT_SEATS,
@@ -396,8 +260,8 @@ function decideMarkAllBotsViewed(state: FibState, context: CommandContext): FibD
 }
 
 function decideReturnFibGameToLobby(state: FibState, context: CommandContext): FibDecision {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
+  const hostRejection = requireHost<FibEvent, FibEffect>(context, state.hostUserId);
+  if (hostRejection !== null) return hostRejection;
   return state.phase === 'viewing' || state.phase === 'ongoing' || state.phase === 'ended'
     ? commitFib([{ type: 'fibking.game.returnedToLobby' }])
     : reject(REASON_FIB_GAME_NOT_ENDED);
@@ -546,19 +410,13 @@ export function decideFibCommand(
 ): FibDecision {
   switch (command.type) {
     case 'room.seat.take':
-      return decideTakeFibSeat(state, command.seat, command.profile, context);
     case 'room.seat.leave':
-      return decideLeaveFibSeat(state, context);
     case 'room.seat.kick':
-      return decideKickFibSeat(state, command.seat, context);
     case 'room.seat.clear':
-      return decideClearFibSeats(state, context);
     case 'room.seat.fillBots':
-      return decideFillFibBots(state, context);
     case 'room.profile.update':
-      return decideUpdateFibProfile(state, command.profile, context);
     case 'fibking.config.update':
-      return decideUpdateFibConfig(state, command.numberOfPlayers, context);
+      return decideFibRoom(state, command, context);
     case 'fibking.game.returnToLobby':
       return decideReturnFibGameToLobby(state, context);
     case 'fibking.roles.assign':
