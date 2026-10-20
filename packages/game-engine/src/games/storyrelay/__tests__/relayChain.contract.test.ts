@@ -33,7 +33,7 @@ function game(galleryItemDurationSeconds: 10 | null = 10) {
     session.send(command, 'host', controlledSeat);
   send({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
   send({ type: 'room.seat.fillBots' });
-  send({ type: 'storyrelay.round.start' });
+  send({ type: 'storyrelay.game.begin' });
 
   function taskIdentity(seat: number): StoryRelayTaskIdentity {
     const task = getStoryRelayTaskForSeat(session.state, seat);
@@ -195,7 +195,7 @@ describe('Story Relay relay-chain contract', () => {
     expect(session.state).toBe(before);
     session.expire();
     expect(revision()).toBe(afterStart + 3);
-    session.send({ type: 'storyrelay.round.abort', phaseRevision: revision() });
+    session.send({ type: 'storyrelay.game.abort', phaseRevision: revision() });
     expect(revision()).toBe(afterStart + 4);
     expect(session.state.phase).toBe('aborted');
     session.send({ type: 'storyrelay.game.returnToLobby' });

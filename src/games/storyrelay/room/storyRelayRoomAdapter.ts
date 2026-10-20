@@ -191,7 +191,7 @@ export function createStoryRelayHostManagement(
   if (capabilities.canClearSeats.isAllowed)
     roomActions.push(buildClearSeatsAction({ onPress: capabilities.canClearSeats.execute }));
   if (state.phase === 'lobby') {
-    const submitStart = () => void submit('开始游戏', { type: 'storyrelay.round.start' });
+    const submitStart = () => void submit('开始游戏', { type: 'storyrelay.game.begin' });
     const startAction = buildStartGameAction({
       onPress: () =>
         showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将分配写作顺序并开始故事接龙', submitStart),
@@ -232,7 +232,7 @@ export function createStoryRelayHostManagement(
                         HOST_FLOW_CONFIRM.nextRoundTitle,
                         '重新分配写作顺序并开始新一局。当前故事将被替换，请先保存需要保留的故事图片。',
                         async () => {
-                          await submit('再来一局', { type: 'storyrelay.round.next' });
+                          await submit('再来一局', { type: 'storyrelay.game.next' });
                         },
                       ),
                   }),
@@ -298,7 +298,7 @@ export function createStoryRelayHostManagement(
                 '将公开已收录的故事片段，本局不结算奖励。',
                 async () => {
                   await submit('中止本局', {
-                    type: 'storyrelay.round.abort',
+                    type: 'storyrelay.game.abort',
                     phaseRevision: state.phaseRevision,
                   });
                 },

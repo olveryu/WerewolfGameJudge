@@ -86,7 +86,7 @@ function startedSession(): Session {
   // takeover seat (controlledSeat is only legal for bot seats), the
   // same driving path as the engine relay-chain contract test.
   session.send({ type: 'room.seat.fillBots' });
-  session.send({ type: 'storyrelay.round.start' });
+  session.send({ type: 'storyrelay.game.begin' });
   if (session.state.phase !== 'answering') throw new Error('expected answering');
   return session;
 }
@@ -148,7 +148,7 @@ function stateFor(phase: Phase): StoryRelayState {
       if (phaseOf(session) !== 'ended') throw new Error('expected ended');
       return session.state;
     case 'aborted':
-      session.send({ type: 'storyrelay.round.abort', phaseRevision: session.state.phaseRevision });
+      session.send({ type: 'storyrelay.game.abort', phaseRevision: session.state.phaseRevision });
       if (session.state.phase !== 'aborted') throw new Error('expected aborted');
       return session.state;
     default:

@@ -44,7 +44,7 @@ function settlingState(): StoryRelayState {
   dispatch({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } }, user('host'));
   dispatch({ type: 'room.seat.take', seat: 1, profile: { displayName: 'Guest' } }, user('guest'));
   dispatch({ type: 'room.seat.fillBots' }, user('host'));
-  dispatch({ type: 'storyrelay.round.start' }, user('host'));
+  dispatch({ type: 'storyrelay.game.begin' }, user('host'));
   dispatch({ type: 'storyrelay.phase.finish', phaseRevision: state.phaseRevision }, user('host'));
   if (state.phase !== 'settling') throw new Error('Expected settling phase');
   return state;

@@ -17,7 +17,7 @@ type RevisionCommand = { readonly phaseRevision: number } & {
   readonly type:
     | 'storyrelay.phase.expire'
     | 'storyrelay.phase.finish'
-    | 'storyrelay.round.abort'
+    | 'storyrelay.game.abort'
     | 'storyrelay.gallery.pause'
     | 'storyrelay.gallery.resume'
     | 'storyrelay.gallery.advance'
@@ -31,8 +31,8 @@ export type StoryRelayCommand =
   | { readonly type: 'storyrelay.config.update'; readonly config: StoryRelayConfig }
   | {
       readonly type:
-        | 'storyrelay.round.start'
-        | 'storyrelay.round.next'
+        | 'storyrelay.game.begin'
+        | 'storyrelay.game.next'
         | 'storyrelay.game.returnToLobby';
     }
   | (StoryRelayTaskIdentity & {

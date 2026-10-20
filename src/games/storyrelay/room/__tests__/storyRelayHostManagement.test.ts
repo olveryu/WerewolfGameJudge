@@ -89,7 +89,7 @@ function session() {
     },
     fillAndStart() {
       send({ type: 'room.seat.fillBots' });
-      send({ type: 'storyrelay.round.start' });
+      send({ type: 'storyrelay.game.begin' });
     },
     finishStep() {
       send({ type: 'storyrelay.phase.finish', phaseRevision: state.phaseRevision });
@@ -194,7 +194,7 @@ describe('createStoryRelayHostManagement', () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
-    game.send({ type: 'storyrelay.round.abort', phaseRevision: game.state.phaseRevision });
+    game.send({ type: 'storyrelay.game.abort', phaseRevision: game.state.phaseRevision });
     expect(game.state.phase).toBe('aborted');
     const model = build(game.state, true, false);
     expect(model?.sections[0]?.actions.map((action) => action.key)).toEqual(['return-lobby']);

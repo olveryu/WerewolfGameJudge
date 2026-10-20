@@ -71,7 +71,7 @@ describe('Story Relay v1 -> v2 roster migration', () => {
 
   it('migrates an in-progress round without touching participants or chains', () => {
     let state = filledLobby();
-    state = dispatch(state, { type: 'storyrelay.round.start' }, 'start');
+    state = dispatch(state, { type: 'storyrelay.game.begin' }, 'start');
     expect(state.phase).toBe('answering');
     expect(state.participants).toHaveLength(4);
     expect(migratePersistedStoryRelayState(downgradeToV1(state))).toEqual(state);
