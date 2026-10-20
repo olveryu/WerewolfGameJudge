@@ -46,7 +46,7 @@ const phaseIdentityShape = {
 const publicCommandOptions = definePublicCommandOptions<PictionaryPublicCommand>()([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({ type: z.literal('pictionary.config.update'), config: pictionaryConfigSchema }),
-  z.strictObject({ type: z.literal('pictionary.round.start') }),
+  z.strictObject({ type: z.literal('pictionary.game.begin') }),
   z.strictObject({
     type: z.literal('pictionary.task.ready.set'),
     ...taskIdentityShape,
@@ -59,7 +59,7 @@ const publicCommandOptions = definePublicCommandOptions<PictionaryPublicCommand>
     text: z.string().refine(isValidPictionaryText),
   }),
   z.strictObject({ type: z.literal('pictionary.drawing.reserve'), ...taskIdentityShape }),
-  z.strictObject({ type: z.literal('pictionary.round.abort'), ...phaseIdentityShape }),
+  z.strictObject({ type: z.literal('pictionary.game.abort'), ...phaseIdentityShape }),
   z.strictObject({
     type: z.literal('pictionary.phase.expire'),
     phaseRevision: z.int().nonnegative(),
@@ -70,7 +70,7 @@ const publicCommandOptions = definePublicCommandOptions<PictionaryPublicCommand>
   z.strictObject({ type: z.literal('pictionary.gallery.advance'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.gallery.rewind'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.gallery.finish'), ...phaseIdentityShape }),
-  z.strictObject({ type: z.literal('pictionary.round.next'), ...phaseIdentityShape }),
+  z.strictObject({ type: z.literal('pictionary.game.next'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.game.returnToLobby'), ...phaseIdentityShape }),
 ]);
 

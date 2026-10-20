@@ -20,12 +20,12 @@ type PictionaryRoomCommand =
 export type PictionaryCommandInput =
   | PictionaryRoomCommand
   | { readonly type: 'pictionary.config.update'; readonly config: PictionaryConfig }
-  | { readonly type: 'pictionary.round.start' }
+  | { readonly type: 'pictionary.game.begin' }
   | { readonly type: 'pictionary.task.ready.set'; readonly isReady: boolean }
   | { readonly type: 'pictionary.task.empty.submit' }
   | { readonly type: 'pictionary.text.submit'; readonly text: string }
   | { readonly type: 'pictionary.drawing.reserve' }
-  | { readonly type: 'pictionary.round.abort' }
+  | { readonly type: 'pictionary.game.abort' }
   | { readonly type: 'pictionary.phase.expire'; readonly phaseRevision: number }
   | { readonly type: 'pictionary.phase.finish' }
   | { readonly type: 'pictionary.gallery.pause' }
@@ -33,7 +33,7 @@ export type PictionaryCommandInput =
   | { readonly type: 'pictionary.gallery.advance' }
   | { readonly type: 'pictionary.gallery.rewind' }
   | { readonly type: 'pictionary.gallery.finish' }
-  | { readonly type: 'pictionary.round.next' }
+  | { readonly type: 'pictionary.game.next' }
   | { readonly type: 'pictionary.game.returnToLobby' };
 
 export interface PictionaryTaskIdentity {
@@ -58,13 +58,13 @@ type PhaseCommand = Extract<
   {
     readonly type:
       | 'pictionary.phase.finish'
-      | 'pictionary.round.abort'
+      | 'pictionary.game.abort'
       | 'pictionary.gallery.pause'
       | 'pictionary.gallery.resume'
       | 'pictionary.gallery.advance'
       | 'pictionary.gallery.rewind'
       | 'pictionary.gallery.finish'
-      | 'pictionary.round.next'
+      | 'pictionary.game.next'
       | 'pictionary.game.returnToLobby';
   }
 >;
@@ -95,13 +95,13 @@ export function createPictionaryCommand(
       };
     }
     case 'pictionary.phase.finish':
-    case 'pictionary.round.abort':
+    case 'pictionary.game.abort':
     case 'pictionary.gallery.pause':
     case 'pictionary.gallery.resume':
     case 'pictionary.gallery.advance':
     case 'pictionary.gallery.rewind':
     case 'pictionary.gallery.finish':
-    case 'pictionary.round.next':
+    case 'pictionary.game.next':
     case 'pictionary.game.returnToLobby':
       return { ...command, roundId: state.roundId, phaseRevision: state.phaseRevision };
     default:

@@ -17,7 +17,7 @@ export interface PictionaryConfig {
 }
 
 export type PictionaryPublicCommand = {
-  readonly type: 'pictionary.round.start';
+  readonly type: 'pictionary.game.begin';
 };
 
 export type PictionaryInternalCommand = {

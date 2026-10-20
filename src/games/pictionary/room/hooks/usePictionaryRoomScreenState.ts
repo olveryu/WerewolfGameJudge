@@ -167,14 +167,14 @@ export function usePictionaryRoomScreenState({
     [commandSubmission, session],
   );
   const startRound = useCallback(
-    () => void submitCommand('开始游戏', { type: 'pictionary.round.start' }),
+    () => void submitCommand('开始游戏', { type: 'pictionary.game.begin' }),
     [submitCommand],
   );
   const nextRound = useCallback(
     () =>
       void submitCommand(
         '再来一局',
-        createPictionaryCommand(state, { type: 'pictionary.round.next' }, null),
+        createPictionaryCommand(state, { type: 'pictionary.game.next' }, null),
       ),
     [state, submitCommand],
   );
@@ -310,7 +310,7 @@ export function usePictionaryRoomScreenState({
             async () => {
               await submitCommand(
                 '中止本局',
-                createPictionaryCommand(state, { type: 'pictionary.round.abort' }, null),
+                createPictionaryCommand(state, { type: 'pictionary.game.abort' }, null),
               );
             },
           ),

@@ -111,7 +111,7 @@ describe('Pictionary v8 -> v9 roster migration', () => {
   });
 
   it('migrates a started round (participants snapshot present) whole', () => {
-    const state = dispatch(filledLobby(), { type: 'pictionary.round.start' });
+    const state = dispatch(filledLobby(), { type: 'pictionary.game.begin' });
     expect(state.phase).not.toBe('lobby');
     expect(migratePersistedPictionaryState(downgradeToV8(state))).toEqual(state);
   });

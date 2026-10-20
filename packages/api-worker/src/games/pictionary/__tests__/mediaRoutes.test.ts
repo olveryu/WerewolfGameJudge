@@ -194,7 +194,7 @@ describe('Pictionary current persisted relay state', () => {
     let state = await dispatchCommand(
       room,
       host.access_token,
-      { type: 'pictionary.round.start' },
+      { type: 'pictionary.game.begin' },
       null,
     );
     state = await markEverySeatReady(room, host.access_token, state);
@@ -268,7 +268,7 @@ describe('Pictionary current persisted relay state', () => {
     const host = await createAnonymousSession();
     const room = await createPictionaryRoom(host.access_token);
     await dispatchCommand(room, host.access_token, { type: 'room.seat.fillBots' }, null);
-    await dispatchCommand(room, host.access_token, { type: 'pictionary.round.start' }, null);
+    await dispatchCommand(room, host.access_token, { type: 'pictionary.game.begin' }, null);
     const stub = env.GAME_ROOM.get(env.GAME_ROOM.idFromString(room.roomId));
     await runInDurableObject(stub, async (_instance: GameRoomRuntime, durableState) => {
       const sql = durableState.storage.sql;
@@ -309,7 +309,7 @@ describe('Pictionary spectator media', () => {
     let state = await dispatchCommand(
       room,
       host.access_token,
-      { type: 'pictionary.round.start' },
+      { type: 'pictionary.game.begin' },
       null,
     );
     for (let step = 0; step < 2; step += 1) {
@@ -352,7 +352,7 @@ describe('Pictionary spectator media', () => {
       null,
     );
     await dispatchCommand(room, host.access_token, { type: 'room.seat.fillBots' }, null);
-    await dispatchCommand(room, host.access_token, { type: 'pictionary.round.start' }, null);
+    await dispatchCommand(room, host.access_token, { type: 'pictionary.game.begin' }, null);
     await dispatchCommand(room, host.access_token, { type: 'pictionary.phase.finish' }, null);
     const oldProtocol = await postJson(
       '/room/command',
@@ -400,12 +400,7 @@ describe('Pictionary spectator media', () => {
       2,
     );
     const aborted = requireReservation(state, 2);
-    state = await dispatchCommand(
-      room,
-      host.access_token,
-      { type: 'pictionary.round.abort' },
-      null,
-    );
+    state = await dispatchCommand(room, host.access_token, { type: 'pictionary.game.abort' }, null);
     expect(state.phase).toBe('aborted');
     expect(state.reservations).toHaveLength(0);
     expect((await putDrawing(room, host.access_token, aborted, '2')).status).toBe(409);
@@ -444,12 +439,7 @@ describe('Pictionary controlled bot media', () => {
       null,
     );
     state = await dispatchCommand(room, host.access_token, { type: 'room.seat.fillBots' }, null);
-    state = await dispatchCommand(
-      room,
-      host.access_token,
-      { type: 'pictionary.round.start' },
-      null,
-    );
+    state = await dispatchCommand(room, host.access_token, { type: 'pictionary.game.begin' }, null);
     state = await markEverySeatReady(room, host.access_token, state);
     for (let seat = 0; seat < 4; seat += 1) {
       state = await dispatchCommand(
