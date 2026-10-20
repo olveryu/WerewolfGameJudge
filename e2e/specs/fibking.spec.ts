@@ -140,7 +140,7 @@ test.describe('FibKing', () => {
 
       // Presence gate: all 4 real players seated, no bots involved.
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-        '下一步：开始本轮',
+        '下一步：分配角色',
         { timeout: 15_000 },
       );
 
@@ -156,7 +156,7 @@ test.describe('FibKing', () => {
       await firstBatchRooms[1]!.expectNotSeated();
       await firstBatchRooms[1]!.seatAt(2);
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-        '下一步：开始本轮',
+        '下一步：分配角色',
         { timeout: 15_000 },
       );
 

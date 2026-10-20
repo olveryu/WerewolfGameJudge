@@ -14,6 +14,7 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useState } from 'react';
 
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
+import { HOST_FLOW_CONFIRM } from '@/features/room/model/hostManagementActions';
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { getWerewolfRoomCommandFailureMessage } from '@/games/werewolf/werewolfRoomCommandFailureMessage';
 import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
@@ -53,7 +54,7 @@ export const useWerewolfHostControl = ({
   const showPrepareToFlipDialog = useCallback(() => {
     // The full-room gate lives on the descriptor: this dialog only opens
     // once every seat is taken.
-    showConfirmAlert('分配角色？', '所有座位已满，将洗牌并分配角色', async () => {
+    showConfirmAlert(HOST_FLOW_CONFIRM.assignTitle, '所有座位已满，将洗牌并分配角色', async () => {
       roomScreenLog.debug('Assigning roles');
       await submit('分配角色', assignRoles);
     });
@@ -76,10 +77,20 @@ export const useWerewolfHostControl = ({
     await submit('重新开始', restartGame);
   }, [restartGame, submit]);
 
+  const handleAbort = useCallback(async () => {
+    roomScreenLog.debug('Aborting game');
+    await submit('中止本局', restartGame);
+  }, [restartGame, submit]);
+
   const showRestartDialog = useCallback(() => {
     if (roomStatus !== GameStatus.Ended) {
-      // Game not ended — no complete report to share, plain restart
-      showConfirmAlert('重新开始游戏？', '使用相同配置开始新一局', handleRestart);
+      // Game not ended — the danger action aborts the current game
+      // back to the seated state; there is no report to share yet.
+      showConfirmAlert(
+        HOST_FLOW_CONFIRM.abortTitle,
+        '本局不计胜负，保留座位和板子，清除已分配的角色。',
+        handleAbort,
+      );
       return;
     }
 
@@ -96,7 +107,7 @@ export const useWerewolfHostControl = ({
         onPress: () => handleRestart(),
       },
     ]);
-  }, [roomStatus, shareNightReviewReport, handleRestart]);
+  }, [roomStatus, shareNightReviewReport, handleRestart, handleAbort]);
 
   return {
     showPrepareToFlipDialog,

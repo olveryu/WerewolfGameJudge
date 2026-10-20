@@ -78,7 +78,7 @@ export function DrawGuessConfigScreen({ session }: { readonly session: DrawGuess
   const submit = () => {
     if (params.mode === 'edit') {
       void submission
-        .submit('保存你画我猜设置', () =>
+        .submit('保存设置', () =>
           session.dispatch(
             { type: 'drawguess.config.update', config },
             { controlledSeat: null, label: '保存设置' },

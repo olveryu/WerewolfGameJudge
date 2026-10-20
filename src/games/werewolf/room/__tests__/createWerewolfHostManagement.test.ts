@@ -149,7 +149,7 @@ describe('createWerewolfHostManagement', () => {
     );
 
     expect(model?.hasPendingAction).toBe(true);
-    expect(actionLabels(model!)).toEqual(['结束报名', '本局复盘', '昨夜信息', '重新开始']);
+    expect(actionLabels(model!)).toEqual(['结束报名', '本局复盘', '昨夜信息', '中止本局']);
     const advanceAction = model?.sections[0]?.actions[0];
     if (advanceAction?.isEnabled !== true) throw new Error('Expected enabled sheriff advancement');
     expect(advanceAction.isPrimary).toBe(true);
@@ -200,7 +200,7 @@ describe('createWerewolfHostManagement', () => {
     );
 
     expect(actionLabels(model!)).not.toContain('开始游戏');
-    expect(actionLabels(model!)).toContain('重新开始');
+    expect(actionLabels(model!)).toContain('中止本局');
   });
 
   it.each([GameStatus.Ongoing, GameStatus.Day])(
@@ -217,7 +217,7 @@ describe('createWerewolfHostManagement', () => {
       );
       const restartAction = model?.sections
         .flatMap((section) => section.actions)
-        .find((action) => action.label === '重新开始');
+        .find((action) => action.label === '中止本局');
       if (restartAction?.isEnabled !== true) {
         throw new Error(`Expected restart during ${roomStatus} audio playback`);
       }
@@ -265,16 +265,16 @@ describe('createWerewolfHostManagement', () => {
       expect(actionLabels(model!)).toContain('分配角色');
       const primary = resolveHostConsolePrimary(model!);
       if (primary?.kind !== 'blocked') throw new Error('Expected a blocked console primary');
-      expect(primary.reason).toBe('还有 9 个空位等待入座');
+      expect(primary.reason).toBe('座位尚未坐满（还差 9 人）');
     });
 
     it('blocks role assignment while seats are open and offers room sharing as the remedy', () => {
       const input = createInput({ roomStatus: GameStatus.Seated, seatedCount: 6, totalSeats: 9 });
       const model = createWerewolfHostManagement(input);
       const primary = resolveHostConsolePrimary(model!);
-      expect(primary).toMatchObject({ actionKey: 'prepare-to-flip', label: '分配角色' });
+      expect(primary).toMatchObject({ actionKey: 'assign-roles', label: '分配角色' });
       if (primary?.kind !== 'blocked') throw new Error('Expected a blocked console primary');
-      expect(primary.reason).toBe('还有 3 个空位等待入座');
+      expect(primary.reason).toBe('座位尚未坐满（还差 3 人）');
       expect(primary.remedy?.label).toBe('分享房间');
       primary.remedy?.onPress();
       expect(input.capabilities.canShareRoom.execute).toHaveBeenCalledTimes(1);
@@ -282,9 +282,9 @@ describe('createWerewolfHostManagement', () => {
       // availability lives on the descriptor, not in a dialog gate.
       const assignAction = model?.sections
         .flatMap((section) => section.actions)
-        .find((action) => action.key === 'prepare-to-flip');
+        .find((action) => action.key === 'assign-roles');
       if (assignAction?.isEnabled !== false) throw new Error('Expected a disabled panel action');
-      expect(assignAction.disabledReason).toBe('还有 3 个空位等待入座');
+      expect(assignAction.disabledReason).toBe('座位尚未坐满（还差 3 人）');
     });
 
     it('drops the share remedy when sharing is not allowed', () => {

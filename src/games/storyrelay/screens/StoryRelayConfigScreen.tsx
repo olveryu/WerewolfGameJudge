@@ -110,7 +110,7 @@ export function StoryRelayConfigScreen({ session }: { readonly session: StoryRel
   const submit = () => {
     if (params.mode === 'edit') {
       void submission
-        .submit('保存故事接龙设置', () =>
+        .submit('保存设置', () =>
           session.dispatch(
             { type: 'storyrelay.config.update', config },
             { controlledSeat: null, label: '保存设置' },

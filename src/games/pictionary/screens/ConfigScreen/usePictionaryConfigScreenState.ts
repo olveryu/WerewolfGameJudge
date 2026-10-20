@@ -90,10 +90,10 @@ export function usePictionaryConfigScreenState({
   const submit = useCallback(() => {
     if (params.mode === 'edit') {
       void command
-        .submit('保存接龙设置', () =>
+        .submit('保存设置', () =>
           session.dispatch(
             { type: 'pictionary.config.update', config },
-            { controlledSeat: null, label: 'updatePictionaryConfig' },
+            { controlledSeat: null, label: '保存设置' },
           ),
         )
         .then((success) => {

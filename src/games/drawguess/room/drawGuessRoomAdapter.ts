@@ -27,6 +27,8 @@ import {
   buildReturnLobbyAction,
   buildRoomConfigAction,
   buildStartGameAction,
+  HOST_FLOW_CONFIRM,
+  seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
@@ -164,10 +166,11 @@ export function createDrawGuessHostManagement(
     const canStart = occupiedSeatCount === state.config.numberOfPlayers;
     const startDisabledReason = canStart
       ? null
-      : `座位尚未坐满（还差 ${state.config.numberOfPlayers - occupiedSeatCount} 人）`;
+      : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
     const submitStart = () => void input.submit('开始游戏', { type: 'drawguess.round.start' });
     const startAction = buildStartGameAction({
-      onPress: () => showConfirmAlert('开始游戏？', '将开始本局绘画猜词', submitStart),
+      onPress: () =>
+        showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将开始本局绘画猜词', submitStart),
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
@@ -195,7 +198,7 @@ export function createDrawGuessHostManagement(
             buildNextRoundAction({
               onPress: () =>
                 showConfirmAlert(
-                  '再来一局',
+                  HOST_FLOW_CONFIRM.nextRoundTitle,
                   '重新生成画手队列并清零比分，开始新的一局。',
                   async () => {
                     await input.submit('再来一局', { type: 'drawguess.round.start' });
@@ -204,9 +207,13 @@ export function createDrawGuessHostManagement(
             }),
             buildReturnLobbyAction({
               onPress: () =>
-                showConfirmAlert('返回大厅', '保留座位和设置，清除当前对局。', async () => {
-                  await input.submit('返回大厅', { type: 'drawguess.game.returnToLobby' });
-                }),
+                showConfirmAlert(
+                  HOST_FLOW_CONFIRM.returnLobbyTitle,
+                  HOST_FLOW_CONFIRM.returnLobbyBody,
+                  async () => {
+                    await input.submit('返回大厅', { type: 'drawguess.game.returnToLobby' });
+                  },
+                ),
             }),
           ],
         },

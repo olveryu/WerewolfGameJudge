@@ -10,6 +10,7 @@ import { AppState } from 'react-native';
 
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
+import { HOST_FLOW_CONFIRM } from '@/features/room/model/hostManagementActions';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
@@ -26,11 +27,20 @@ function requestUndercoverRestart(
     state.phase === 'preparing' || state.phase === 'preparationFailed'
       ? state.pendingRound.roundId
       : (state.round?.roundId ?? null);
+  const isTerminal = state.phase === 'ended' || state.phase === 'aborted';
   const restart = async () => {
     closeCard();
-    if (await submit('重新开始', { type: 'undercover.round.restart', roundId })) clearSelection();
+    if (
+      await submit(isTerminal ? '再来一局' : '重新开始', {
+        type: 'undercover.round.restart',
+        roundId,
+      })
+    )
+      clearSelection();
   };
-  if (state.phase === 'ended' || state.phase === 'aborted') void restart();
+  // Terminal presses are confirmed by the panel adapter (chassis
+  // next-round confirm); in-game restarts confirm here.
+  if (isTerminal) void restart();
   else
     showConfirmAlert(
       '重新开始？',
@@ -140,15 +150,25 @@ export function useUndercoverRoundControls(
       ? state.pendingRound.roundId
       : state.round?.roundId;
   const returnToLobby = () => {
-    closeCard();
-    void submit('返回大厅', { type: 'undercover.game.returnToLobby' });
+    showConfirmAlert(
+      HOST_FLOW_CONFIRM.returnLobbyTitle,
+      HOST_FLOW_CONFIRM.returnLobbyBody,
+      async () => {
+        closeCard();
+        await submit('返回大厅', { type: 'undercover.game.returnToLobby' });
+      },
+    );
   };
   const abort = () => {
     if (roundId === undefined) throw new Error('Abort requires an active Undercover round');
-    showConfirmAlert('中止本局？', '本局不计胜负，不公开未揭晓身份和词语。', async () => {
-      closeCard();
-      await submit('中止本局', { type: 'undercover.round.abort', roundId });
-    });
+    showConfirmAlert(
+      HOST_FLOW_CONFIRM.abortTitle,
+      '本局不计胜负，不公开未揭晓身份和词语。',
+      async () => {
+        closeCard();
+        await submit('中止本局', { type: 'undercover.round.abort', roundId });
+      },
+    );
   };
   const confirmCard = () => {
     if (state.phase !== 'viewing' || card === null)
@@ -177,7 +197,7 @@ export function useUndercoverRoundControls(
       '当前分类没有未使用词对。本次授权不会改变之后各局的去重设置。',
       async () => {
         if (await submit('返回大厅', { type: 'undercover.game.returnToLobby' }))
-          await submit('开始本局', { type: 'undercover.round.start', shouldAllowRepeated: true });
+          await submit('分配角色', { type: 'undercover.round.start', shouldAllowRepeated: true });
       },
     );
   return {
@@ -223,7 +243,7 @@ export function useUndercoverRoundControls(
     },
     cancelSelection: exitSelection,
     start: () => {
-      void submit('开始本局', { type: 'undercover.round.start', shouldAllowRepeated: false });
+      void submit('分配角色', { type: 'undercover.round.start', shouldAllowRepeated: false });
     },
     retry: () => {
       if (roundId === undefined) throw new Error('Retry requires a pending round');

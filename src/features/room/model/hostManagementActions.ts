@@ -18,8 +18,6 @@ interface ActionInput {
   readonly isEnabled?: boolean;
   readonly disabledReason?: string | null;
   readonly isLoading?: boolean;
-  /** Overrides the builder's default label (e.g. a game's own round wording). */
-  readonly label?: string;
   /** Marks this action as the phase's primary for the collapsed host console. */
   readonly isPrimary?: boolean;
   /** Remedy offered beside this action when the console renders it blocked. */
@@ -106,16 +104,87 @@ export function buildPendingAwareHostAction(
     : buildEnabledHostAction(descriptor, onPress);
 }
 
-/** "开始游戏" — primary action, every game has it. */
+/** "开始游戏" — primary action, every game has it. The label is chassis vocabulary: no per-game override. */
 export function buildStartGameAction(input: ActionInput): RoomHostManagementAction {
   return buildAction(
     'start-game',
-    input.label ?? '开始游戏',
+    '开始游戏',
     'play-outline',
     'primary',
     TESTIDS.startGameButton,
     input,
   );
+}
+
+/** "分配角色" — the deal step: seats are full, roles/words get dealt. */
+export function buildAssignRolesAction(input: ActionInput): RoomHostManagementAction {
+  return buildAction(
+    'assign-roles',
+    '分配角色',
+    'layers-outline',
+    'primary',
+    TESTIDS.assignRolesButton,
+    input,
+  );
+}
+
+/** "重新开始" — in-game redeal in place (the round restarts with fresh deals, seats and settings kept). */
+export function buildRestartGameAction(input: ActionInput): RoomHostManagementAction {
+  return buildAction(
+    'restart',
+    '重新开始',
+    'refresh-outline',
+    'secondary',
+    TESTIDS.restartButton,
+    input,
+  );
+}
+
+/** "中止本局" — danger action: discard the current game without a redeal. */
+export function buildAbortGameAction(input: ActionInput): RoomHostManagementAction {
+  return buildAction(
+    'abort-game',
+    '中止本局',
+    'stop-circle-outline',
+    'danger',
+    TESTIDS.abortGameButton,
+    input,
+  );
+}
+
+/**
+ * Host-flow confirm copy that is chassis-level: titles are one
+ * vocabulary platform-wide, and the isomorphic bodies are built from
+ * one sentence pattern with the game's own nouns injected. Bodies
+ * that carry game content (what gets redealt, what is preserved)
+ * stay with the game.
+ */
+export const HOST_FLOW_CONFIRM = {
+  assignTitle: '分配角色？',
+  startTitle: '开始游戏？',
+  nextRoundTitle: '再来一局',
+  returnLobbyTitle: '返回大厅',
+  abortTitle: '中止本局？',
+  returnLobbyBody: '保留座位和设置，清除当前对局。',
+} as const;
+
+/** "全员已查看{身份|词卡}，…" — the viewing-complete confirm body pattern. */
+export function allViewedConfirmBody(viewedNoun: string, outcome: string): string {
+  return `全员已查看${viewedNoun}，${outcome}`;
+}
+
+/** The one seat-shortage disabled reason, shared by every assign/start gate. */
+export function seatShortageReason(totalSeats: number, occupiedSeats: number): string {
+  return `座位尚未坐满（还差 ${totalSeats - occupiedSeats} 人）`;
+}
+
+/** The one viewing-progress disabled reason (count form), shared by every begin gate. */
+export function viewedProgressReason(
+  viewedCount: number,
+  totalSeats: number,
+  viewedNoun: string,
+): string {
+  return `${viewedCount}/${totalSeats} 位玩家已查看${viewedNoun}，等待剩余玩家`;
 }
 
 export interface ViewingProgress {

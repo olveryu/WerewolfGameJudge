@@ -31,6 +31,7 @@ import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleAct
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
+import { HOST_FLOW_CONFIRM } from '@/features/room/model/hostManagementActions';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { ROOM_SEAT_TAP_BLOCKED_TITLE } from '@/features/room/model/RoomSeatTap';
@@ -172,7 +173,7 @@ export function usePictionaryRoomScreenState({
   const nextRound = useCallback(
     () =>
       void submitCommand(
-        '再来一轮',
+        '再来一局',
         createPictionaryCommand(state, { type: 'pictionary.round.next' }, null),
       ),
     [state, submitCommand],
@@ -303,12 +304,16 @@ export function usePictionaryRoomScreenState({
             { confirmText: '结束本棒' },
           ),
         abortRound: () =>
-          showConfirmAlert('中止本轮？', '保留已提交作品供回看；本局不结算完成奖励。', async () => {
-            await submitCommand(
-              '中止本局',
-              createPictionaryCommand(state, { type: 'pictionary.round.abort' }, null),
-            );
-          }),
+          showConfirmAlert(
+            HOST_FLOW_CONFIRM.abortTitle,
+            '保留已提交作品供回看；本局不结算完成奖励。',
+            async () => {
+              await submitCommand(
+                '中止本局',
+                createPictionaryCommand(state, { type: 'pictionary.round.abort' }, null),
+              );
+            },
+          ),
       }),
     [
       capabilities,

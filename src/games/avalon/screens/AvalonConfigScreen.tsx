@@ -153,7 +153,7 @@ export function AvalonConfigScreen({ session }: { readonly session: AvalonRoomSe
   const submit = () => {
     if (params.mode === 'edit') {
       void submission
-        .submit('保存阿瓦隆设置', () =>
+        .submit('保存设置', () =>
           session.dispatch(
             { type: 'avalon.config.update', config },
             { controlledSeat: null, label: '保存设置' },

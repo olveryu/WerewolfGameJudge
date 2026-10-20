@@ -200,7 +200,7 @@ describe('useWerewolfHostControl', () => {
   });
 
   describe('showRestartDialog', () => {
-    it('shows the plain confirm dialog before the game ends', async () => {
+    it('shows the abort confirm dialog before the game ends', async () => {
       const restartGame = jest
         .fn()
         .mockResolvedValue(successfulRoomCommand(buildWerewolfTestState()));
@@ -216,8 +216,8 @@ describe('useWerewolfHostControl', () => {
       });
 
       expect(mockShowAlert).toHaveBeenCalledWith(
-        '重新开始游戏？',
-        '使用相同配置开始新一局',
+        '中止本局？',
+        '本局不计胜负，保留座位和板子，清除已分配的角色。',
         expect.arrayContaining([
           expect.objectContaining({ text: '确定' }),
           expect.objectContaining({ text: '取消', style: 'cancel' }),

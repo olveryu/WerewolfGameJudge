@@ -4,6 +4,8 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import {
+  buildAbortGameAction,
+  buildAssignRolesAction,
   buildClearSeatsAction,
   buildEnabledHostAction,
   buildFillBotsAction,
@@ -13,6 +15,8 @@ import {
   buildStartGameAction,
   createViewingBeginGate,
   type RoomHostActionDescriptor,
+  seatShortageReason,
+  viewedProgressReason,
 } from '@/features/room/model/hostManagementActions';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import {
@@ -107,32 +111,25 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
   switch (input.roomStatus) {
     case GameStatus.Unseated:
     case GameStatus.Seated: {
-      const descriptor: RoomHostActionDescriptor = {
-        key: 'prepare-to-flip',
-        label: '分配角色',
-        icon: 'layers-outline',
-        variant: 'primary',
-        testID: TESTIDS.prepareToFlipButton,
-        isLoading: input.isHostActionSubmitting,
-        isPrimary: true,
-        remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
-      };
-      // Availability lives on the descriptor: while seats are open the
+      // Availability lives on the action: while seats are open the
       // action itself renders disabled with the seat-count reason, and
       // the console derives its blocked state from the disabled
       // primary action — the same shape as the start-game action once
       // roles are assigned. The dialog layer no longer gates on a full
       // room; a server-side rejection surfaces via the failure alert.
-      if (!input.isHostActionSubmitting && input.seatedCount < input.totalSeats) {
-        return [
-          {
-            ...descriptor,
-            isEnabled: false,
-            disabledReason: `还有 ${input.totalSeats - input.seatedCount} 个空位等待入座`,
-          },
-        ];
-      }
-      return [createHostControlAction(input, 'prepareToFlip', descriptor)];
+      const seatsOpen = input.seatedCount < input.totalSeats;
+      return [
+        buildAssignRolesAction({
+          onPress: () => input.onHostControl('prepareToFlip'),
+          isEnabled: !input.isHostActionSubmitting && !seatsOpen,
+          disabledReason: seatsOpen
+            ? seatShortageReason(input.totalSeats, input.seatedCount)
+            : null,
+          isLoading: input.isHostActionSubmitting,
+          isPrimary: true,
+          remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
+        }),
+      ];
     }
     case GameStatus.Ready:
       return input.isPlagueMode
@@ -185,7 +182,7 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
         viewedCount: input.viewedCount,
         totalSeats: input.totalSeats,
         submitting: input.isHostActionSubmitting,
-        notViewedCopy: `${input.viewedCount}/${input.totalSeats} 位玩家已查看角色，等待剩余玩家`,
+        notViewedCopy: viewedProgressReason(input.viewedCount, input.totalSeats, '角色'),
       });
       return [
         buildStartGameAction({
@@ -304,12 +301,9 @@ function createDangerActions(input: WerewolfHostManagementInput): RoomHostManage
     input.roomStatus === GameStatus.Day;
   if (!canRestart) return [];
   return [
-    createHostControlAction(input, 'restart', {
-      key: 'restart',
-      label: '重新开始',
-      icon: 'refresh-outline',
-      variant: 'danger',
-      testID: TESTIDS.restartButton,
+    buildAbortGameAction({
+      onPress: () => input.onHostControl('restart'),
+      isEnabled: !input.isHostActionSubmitting,
       isLoading: input.isHostActionSubmitting,
     }),
   ];
@@ -331,7 +325,7 @@ export function createWerewolfHostManagement(
 
   const sections = [
     createSection('current-flow', '当前流程', createCurrentFlowActions(input)),
-    createSection('room-management', '房间管理', createRoomManagementActions(input)),
+    createSection('room', '房间管理', createRoomManagementActions(input)),
     createSection('post-game', '赛后管理', createPostGameActions(input)),
     createSection('tools', '辅助工具', createToolActions(input)),
     createSection('danger', '危险操作', createDangerActions(input)),

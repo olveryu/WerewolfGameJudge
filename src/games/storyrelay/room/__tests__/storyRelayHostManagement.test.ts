@@ -177,7 +177,7 @@ describe('createStoryRelayHostManagement', () => {
       label: '结束本棒',
       testID: 'storyrelay-finish-step',
     });
-    expect(model?.sections[1]?.actions[0]).toMatchObject({ key: 'abort-round', label: '中止本局' });
+    expect(model?.sections[1]?.actions[0]).toMatchObject({ key: 'abort-game', label: '中止本局' });
   });
 
   it('keeps only the abort action outside answering while the round can abort', () => {

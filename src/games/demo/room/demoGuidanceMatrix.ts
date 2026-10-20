@@ -13,7 +13,7 @@ import {
 
 export const DEMO_GUIDANCE_MATRIX: RoomGuidanceMatrix<DemoPhaseKind> = {
   lobby: {
-    host: guidanceExempt('房主由房主面板承载分配身份动作'),
+    host: guidanceExempt('房主由房主面板承载分配角色动作'),
     seated: GUIDANCE_MESSAGE,
     spectator: guidanceExempt('无座位无个人提示；房间状态归座位盘'),
   },

@@ -55,7 +55,7 @@ export class FibConfigPage {
 
   async saveExpectingRejectedShrink(): Promise<void> {
     await this.save();
-    await expect(this.page.getByText('更新房间设置失败', { exact: true })).toBeVisible();
+    await expect(this.page.getByText('保存设置失败', { exact: true })).toBeVisible();
     await expect(
       this.page.getByText('目标人数之外的座位仍有真人入座，请先让这些玩家离座或换到空位', {
         exact: true,

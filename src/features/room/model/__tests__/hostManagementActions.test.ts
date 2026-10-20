@@ -1,7 +1,10 @@
 import {
+  buildAbortGameAction,
+  buildAssignRolesAction,
   buildEnabledHostAction,
   buildNextRoundAction,
   buildPendingAwareHostAction,
+  buildRestartGameAction,
   buildReturnLobbyAction,
   buildStartGameAction,
   createViewingBeginGate,
@@ -25,12 +28,27 @@ describe('host management action builders', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('supports a per-game start label without changing key or testID', () => {
-    const action = buildStartGameAction({ onPress: () => undefined, label: '开始本轮' });
+  it('builds the chassis assign action with the fixed vocabulary', () => {
+    const action = buildAssignRolesAction({ onPress: () => undefined });
     expect(action).toMatchObject({
-      key: 'start-game',
-      label: '开始本轮',
-      testID: 'start-game-button',
+      key: 'assign-roles',
+      label: '分配角色',
+      testID: 'assign-roles-button',
+    });
+  });
+
+  it('builds the chassis abort and restart actions with the fixed vocabulary', () => {
+    expect(buildAbortGameAction({ onPress: () => undefined })).toMatchObject({
+      key: 'abort-game',
+      label: '中止本局',
+      variant: 'danger',
+      testID: 'abort-game-button',
+    });
+    expect(buildRestartGameAction({ onPress: () => undefined })).toMatchObject({
+      key: 'restart',
+      label: '重新开始',
+      variant: 'secondary',
+      testID: 'restart-button',
     });
   });
 

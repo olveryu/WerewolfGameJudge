@@ -300,13 +300,13 @@ function storyRelayShell(state: StoryRelayState): RoomShellModel {
 
 describe('room guidance console: one reason, one screen (cross-game)', () => {
   it('demo: the not-full reason renders once in the console and never in the panel', () => {
-    expectReasonExactlyOnce(demoShell(demoState(false)), '座位尚未坐满（还差 3 人）', '分配身份');
+    expectReasonExactlyOnce(demoShell(demoState(false)), '座位尚未坐满（还差 3 人）', '分配角色');
   });
 
   it('demo: a full lobby offers the assign console action with no blocked reason', () => {
     const shell = demoShell(demoState(true));
     const bottom = renderSurfaces(shell);
-    expect(bottom.getByText('下一步：分配身份')).toBeTruthy();
+    expect(bottom.getByText('下一步：分配角色')).toBeTruthy();
     expect(bottom.queryAllByText(/座位尚未坐满/)).toHaveLength(0);
     bottom.unmount();
   });
@@ -314,7 +314,7 @@ describe('room guidance console: one reason, one screen (cross-game)', () => {
   it('demo: the viewing begin reason renders once in the console and never in the panel', () => {
     let state = demoState(true);
     state = driveDemo(state, { type: 'demo.game.start' });
-    expectReasonExactlyOnce(demoShell(state), '还有玩家未查看身份', '开始游戏');
+    expectReasonExactlyOnce(demoShell(state), '0/4 位玩家已查看身份，等待剩余玩家', '开始游戏');
   });
 
   it('drawguess: the not-full reason renders once in the console and never in the panel', () => {

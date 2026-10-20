@@ -121,7 +121,7 @@ describe('FibKing room adapter', () => {
       expect.objectContaining({
         label: '开始游戏',
         isEnabled: false,
-        disabledReason: '还有玩家未查看身份',
+        disabledReason: '1/4 位玩家已查看身份，等待剩余玩家',
       }),
     );
     expect(pending[1]).toEqual(expect.objectContaining({ label: '标记机器人已查看' }));
@@ -161,7 +161,7 @@ describe('FibKing room adapter', () => {
     const lobbyStart = build(fullLobby)?.sections.find((section) => section.key === 'current-flow')
       ?.actions[0];
     expect(lobbyStart).toMatchObject({
-      label: '开始本轮',
+      label: '分配角色',
       isEnabled: false,
       disabledReason: null,
       isLoading: true,
@@ -175,7 +175,7 @@ describe('FibKing room adapter', () => {
       'guess-seat',
       'reveal-round',
       'redraw-round',
-      'abandon-game',
+      'abort-game',
     ]);
     for (const action of ongoingActions) {
       expect(action).toMatchObject({ isEnabled: false, disabledReason: null });
@@ -414,7 +414,7 @@ describe('FibKing room adapter', () => {
     });
 
     expect(lobbyManagement?.sections.flatMap((section) => section.actions)).toMatchObject([
-      { label: '开始本轮', isEnabled: false, disabledReason: '座位尚未坐满（还差 7 人）' },
+      { label: '分配角色', isEnabled: false, disabledReason: '座位尚未坐满（还差 7 人）' },
       { label: '房间设置', isEnabled: true },
       { label: '填充机器人', isEnabled: true },
       { label: '清空座位', isEnabled: true },
@@ -456,7 +456,7 @@ describe('FibKing room adapter', () => {
       { label: '大聪明选人', isEnabled: true },
       { label: '公布答案', isEnabled: true },
       { label: '重新抽词', isEnabled: true },
-      { label: '放弃游戏', isEnabled: true },
+      { label: '中止本局', isEnabled: true },
     ]);
     const revealAction = ongoingActions?.[1];
     const redrawAction = ongoingActions?.[2];
@@ -498,12 +498,11 @@ describe('FibKing room adapter', () => {
       abandonGame,
       endGame,
     });
-    expect(endedManagement?.sections.map((section) => section.title)).toEqual([
-      '当前流程',
-      '危险操作',
-    ]);
-    const endAction = endedManagement?.sections[1]?.actions[0];
-    if (endAction?.isEnabled !== true) throw new Error('Expected enabled end-game action');
+    expect(endedManagement?.sections.map((section) => section.title)).toEqual(['当前流程']);
+    const endAction = endedManagement?.sections[0]?.actions.find(
+      (action) => action.key === 'return-lobby',
+    );
+    if (endAction?.isEnabled !== true) throw new Error('Expected enabled return-lobby action');
     endAction.onPress();
     expect(endGame).toHaveBeenCalledTimes(1);
   });
@@ -669,7 +668,7 @@ describe('createFibHostManagement console primary', () => {
 
   it('blocks the round start in a non-full lobby and offers room sharing as the remedy', () => {
     const step = resolveHostConsolePrimary(build(createLobby(4))!);
-    expect(step).toMatchObject({ actionKey: 'start-game', label: '开始本轮' });
+    expect(step).toMatchObject({ actionKey: 'assign-roles', label: '分配角色' });
     if (step?.kind !== 'blocked') throw new Error('expected a blocked console primary');
     expect(step.reason).toBe('座位尚未坐满（还差 3 人）');
     expect(step.remedy?.label).toBe('分享房间');
@@ -679,7 +678,7 @@ describe('createFibHostManagement console primary', () => {
 
   it('offers the round start once every seat is taken', () => {
     const step = resolveHostConsolePrimary(build(withBotSeats(createLobby(4), [1, 2, 3]))!);
-    expect(step).toMatchObject({ actionKey: 'start-game', label: '开始本轮' });
+    expect(step).toMatchObject({ actionKey: 'assign-roles', label: '分配角色' });
     if (step?.kind !== 'ready') throw new Error('expected a ready console primary');
   });
 
@@ -687,7 +686,7 @@ describe('createFibHostManagement console primary', () => {
     const blocked = resolveHostConsolePrimary(build(createViewing([0]))!);
     expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
     if (blocked?.kind !== 'blocked') throw new Error('expected a blocked console primary');
-    expect(blocked.reason).toBe('还有玩家未查看身份');
+    expect(blocked.reason).toBe('1/4 位玩家已查看身份，等待剩余玩家');
     expect(blocked.remedy).toBeNull();
 
     const ready = resolveHostConsolePrimary(build(createViewing([0, 1, 2, 3]))!);

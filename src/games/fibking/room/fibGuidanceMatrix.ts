@@ -13,7 +13,7 @@ import {
 
 export const FIBKING_GUIDANCE_MATRIX: RoomGuidanceMatrix<FibPhase> = {
   lobby: {
-    host: guidanceExempt('房主由房主面板承载开始本轮动作'),
+    host: guidanceExempt('房主由房主面板承载分配角色动作'),
     seated: GUIDANCE_MESSAGE,
     spectator: guidanceExempt('无座位无个人提示；房间状态归座位盘'),
   },
@@ -38,7 +38,7 @@ export const FIBKING_GUIDANCE_MATRIX: RoomGuidanceMatrix<FibPhase> = {
     spectator: guidanceExempt('局中进程由对局工作区与座位盘承载'),
   },
   ended: {
-    host: guidanceExempt('房主由房主面板承载再来一轮动作'),
+    host: guidanceExempt('房主由房主面板承载再来一局动作'),
     seated: guidanceExempt('结果由结算区与「查看结果」动作承载'),
     spectator: guidanceExempt('结算区全观看者可见'),
   },

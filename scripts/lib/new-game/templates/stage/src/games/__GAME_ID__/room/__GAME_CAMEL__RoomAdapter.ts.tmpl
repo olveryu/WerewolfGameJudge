@@ -27,6 +27,8 @@ import {
   buildReturnLobbyAction,
   buildRoomConfigAction,
   buildStartGameAction,
+  HOST_FLOW_CONFIRM,
+  seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
 import {
   buildEndedWaitingMessage,
@@ -160,10 +162,10 @@ export function create__GAME_PASCAL__HostManagement(
     const canStart = occupiedSeatCount === state.config.numberOfPlayers;
     const startDisabledReason = canStart
       ? null
-      : `座位尚未坐满（还差 ${state.config.numberOfPlayers - occupiedSeatCount} 人）`;
+      : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
     const submitStart = () => void input.submit('开始游戏', { type: '__GAME_ID__.game.start' });
     const startAction = buildStartGameAction({
-      onPress: () => showConfirmAlert('开始游戏？', '将开始本局对局', submitStart),
+      onPress: () => showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将开始本局对局', submitStart),
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
@@ -190,13 +192,13 @@ export function create__GAME_PASCAL__HostManagement(
           actions: [
             buildNextRoundAction({
               onPress: () =>
-                showConfirmAlert('再来一局', '重新开始新的一局。', async () => {
+                showConfirmAlert(HOST_FLOW_CONFIRM.nextRoundTitle, '将重新分配并清零比分，开始新的一局。', async () => {
                   await input.submit('再来一局', { type: '__GAME_ID__.game.start' });
                 }),
             }),
             buildReturnLobbyAction({
               onPress: () =>
-                showConfirmAlert('返回大厅', '保留座位和设置，清除当前对局。', async () => {
+                showConfirmAlert(HOST_FLOW_CONFIRM.returnLobbyTitle, HOST_FLOW_CONFIRM.returnLobbyBody, async () => {
                   await input.submit('返回大厅', { type: '__GAME_ID__.game.returnToLobby' });
                 }),
             }),

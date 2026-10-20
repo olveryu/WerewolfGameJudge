@@ -17,10 +17,16 @@ import {
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
+  buildAbortGameAction,
   buildClearSeatsAction,
   buildFillBotsAction,
+  buildNextRoundAction,
+  buildPendingAwareHostAction,
+  buildReturnLobbyAction,
   buildRoomConfigAction,
   buildStartGameAction,
+  HOST_FLOW_CONFIRM,
+  seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
 import type { NightStepProgress } from '@/features/room/model/nightProgress';
 import type { RoomBottomStackModel } from '@/features/room/model/RoomBottomActions';
@@ -230,16 +236,6 @@ interface PictionaryHostManagementInput {
   readonly abortRound: () => void;
 }
 
-function hostAction(
-  key: string,
-  label: string,
-  icon: RoomHostManagementAction['icon'],
-  variant: RoomHostManagementAction['variant'],
-  onPress: () => void,
-): RoomHostManagementAction {
-  return { key, label, icon, variant, isEnabled: true, onPress };
-}
-
 export function createPictionaryHostManagement(
   input: PictionaryHostManagementInput,
 ): RoomHostManagementModel | null {
@@ -248,16 +244,28 @@ export function createPictionaryHostManagement(
     const actions: RoomHostManagementAction[] = [];
     if (input.state.phase === 'ended')
       actions.push(
-        hostAction('next-round', '再来一轮', 'play-forward-outline', 'primary', input.nextRound),
+        buildNextRoundAction({
+          onPress: () =>
+            showConfirmAlert(
+              HOST_FLOW_CONFIRM.nextRoundTitle,
+              '重新生成画手队列，开始新的一轮。',
+              input.nextRound,
+            ),
+          isEnabled: !input.isCommandSubmitting,
+          isLoading: input.isCommandSubmitting || undefined,
+        }),
       );
     actions.push(
-      hostAction(
-        'return-lobby',
-        '返回大厅',
-        'return-down-back-outline',
-        'secondary',
-        input.returnToLobby,
-      ),
+      buildReturnLobbyAction({
+        onPress: () =>
+          showConfirmAlert(
+            HOST_FLOW_CONFIRM.returnLobbyTitle,
+            HOST_FLOW_CONFIRM.returnLobbyBody,
+            input.returnToLobby,
+          ),
+        isEnabled: !input.isCommandSubmitting,
+        isLoading: input.isCommandSubmitting || undefined,
+      }),
     );
     return {
       sections: [{ key: 'current-flow', title: '当前流程', actions }],
@@ -277,11 +285,14 @@ export function createPictionaryHostManagement(
         key: 'current-flow',
         title: '当前流程',
         actions: [
-          hostAction(
-            'finish-phase',
-            '结束本棒',
-            'stop-circle-outline',
-            'secondary',
+          buildPendingAwareHostAction(
+            {
+              key: 'finish-phase',
+              label: '结束本棒',
+              icon: 'stop-circle-outline',
+              variant: 'secondary',
+            },
+            input.isCommandSubmitting,
             input.finishPhase,
           ),
         ],
@@ -290,20 +301,26 @@ export function createPictionaryHostManagement(
       key: 'danger',
       title: '危险操作',
       actions: [
-        hostAction('abort-round', '中止本局', 'close-circle-outline', 'danger', input.abortRound),
+        buildAbortGameAction({
+          onPress: input.abortRound,
+          isEnabled: !input.isCommandSubmitting,
+          isLoading: input.isCommandSubmitting || undefined,
+        }),
       ],
     });
     return { sections };
   }
   const startAction: RoomHostManagementAction = buildStartGameAction({
-    onPress: () => showConfirmAlert('开始游戏？', '将开始本局绘画接龙', input.startRound),
+    onPress: () =>
+      showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将开始本局绘画接龙', input.startRound),
     isEnabled: !input.isCommandSubmitting && isPictionaryRoomFull(input.state),
     isLoading: input.isCommandSubmitting || undefined,
     disabledReason: input.isCommandSubmitting
       ? null
-      : `座位尚未坐满（还差 ${
-          input.state.config.numberOfPlayers - getPictionaryOccupiedSeatCount(input.state)
-        } 人）`,
+      : seatShortageReason(
+          input.state.config.numberOfPlayers,
+          getPictionaryOccupiedSeatCount(input.state),
+        ),
     isPrimary: true,
     remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
   });
@@ -333,7 +350,7 @@ export function createPictionaryHostManagement(
     { key: 'current-flow', title: '当前流程', actions: [startAction] },
   ];
   if (roomActions.length > 0) {
-    sections.push({ key: 'room-management', title: '房间管理', actions: roomActions });
+    sections.push({ key: 'room', title: '房间管理', actions: roomActions });
   }
   return { sections };
 }

@@ -168,7 +168,7 @@ describe('WerewolfGameClientRuntime composition', () => {
     expect(audio.clearPreloaded).toHaveBeenCalledTimes(1);
     expect(roomSession.dispatch).toHaveBeenCalledWith(
       { type: 'werewolf.game.restart' },
-      { controlledSeat: null, label: 'restartGame' },
+      { controlledSeat: null, label: '重新开始' },
     );
   });
 

@@ -91,9 +91,9 @@ export class FibRoomPage extends RoomPage {
 
   async startRound(): Promise<void> {
     await this.openHostManagement();
-    await this.page.getByTestId(TESTIDS.startGameButton).click();
+    await this.page.getByTestId(TESTIDS.assignRolesButton).click();
     await this.expectHostManagementClosed();
-    await this.confirmHostActionDialog('开始本轮？');
+    await this.confirmHostActionDialog('分配角色？');
     await expect(this.page.getByTestId(TESTIDS.fibViewIdentityButton)).toBeVisible({
       timeout: 15_000,
     });
@@ -180,20 +180,21 @@ export class FibRoomPage extends RoomPage {
 
   async abandonGame(): Promise<void> {
     await this.openHostManagement();
-    await this.page.getByTestId(TESTIDS.fibAbandonGameButton).click();
+    await this.page.getByTestId(TESTIDS.abortGameButton).click();
     await this.expectHostManagementClosed();
-    await expect(this.page.getByText('放弃游戏？', { exact: true })).toBeVisible();
+    await expect(this.page.getByText('中止本局？', { exact: true })).toBeVisible();
     await this.page.getByText('确定', { exact: true }).click();
     await expect(this.page.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-      '下一步：开始本轮',
+      '下一步：分配角色',
       { timeout: 15_000 },
     );
   }
 
   async startNextRound(): Promise<void> {
     await this.openHostManagement();
-    await this.page.getByTestId(TESTIDS.fibNextRoundButton).click();
+    await this.page.getByTestId(TESTIDS.nextRoundButton).click();
     await this.expectHostManagementClosed();
+    await this.confirmHostActionDialog('再来一局');
     await expect(this.page.getByTestId(TESTIDS.fibViewIdentityButton)).toBeVisible({
       timeout: 15_000,
     });
@@ -201,12 +202,12 @@ export class FibRoomPage extends RoomPage {
 
   async endGame(): Promise<void> {
     await this.openHostManagement();
-    await this.page.getByTestId(TESTIDS.fibEndGameButton).click();
+    await this.page.getByTestId(TESTIDS.returnLobbyButton).click();
     await this.expectHostManagementClosed();
-    await expect(this.page.getByText('结束游戏？', { exact: true })).toBeVisible();
+    await expect(this.page.getByText('返回大厅', { exact: true })).toBeVisible();
     await this.page.getByText('确定', { exact: true }).click();
     await expect(this.page.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-      '下一步：开始本轮',
+      '下一步：分配角色',
       { timeout: 15_000 },
     );
   }
