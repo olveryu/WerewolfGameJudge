@@ -7,6 +7,7 @@ import {
   applyRelayTaskReady,
   clearRelayRound,
 } from '../../../platform/room/relay/evolve';
+import { mergeRoomSeatProfile } from '../../../platform/room/roster';
 import { applyRosterChanges, isBotOccupant } from '../../../platform/room/seating';
 import type { PictionaryEntry, PictionaryState } from '../state/types';
 import type { PictionaryEvent } from './events';
@@ -36,7 +37,7 @@ export function evolvePictionaryState(
           ...state.roster,
           [event.seat]: {
             ...occupant,
-            profile: { ...occupant.profile, ...event.profile },
+            profile: mergeRoomSeatProfile(occupant.profile, event.profile),
           },
         },
       };
