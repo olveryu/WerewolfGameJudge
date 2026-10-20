@@ -305,7 +305,9 @@ export class RoomPage {
   /** Click "返回大厅" (terminal return-to-lobby) and pass the share-report ritual. */
   async returnToLobby() {
     await this.clickHostManagementAction(TESTIDS.returnLobbyButton);
-    await expect(this.page.getByText('返回大厅', { exact: true })).toBeVisible({
+    // The ritual title and its confirm button both read 返回大厅, so the
+    // title is awaited by testID (avalon.spec.ts precedent), not by text.
+    await expect(this.page.getByTestId(TESTIDS.alertTitle)).toHaveText('返回大厅', {
       timeout: 3000,
     });
     await this.page.getByRole('button', { name: '返回大厅', exact: true }).click();
