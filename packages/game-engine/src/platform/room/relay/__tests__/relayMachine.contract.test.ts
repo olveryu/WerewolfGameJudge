@@ -278,3 +278,12 @@ describe('relay revision contract', () => {
     expect(applyRelayTaskReady([0], 1, true)).toEqual({ readySeats: [0, 1] });
   });
 });
+
+describe('relay readySeats canonical order', () => {
+  it('inserts a ready seat at its ascending position, not in arrival order', () => {
+    expect(applyRelayTaskReady([2], 0, true)).toEqual({ readySeats: [0, 2] });
+    expect(applyRelayTaskReady([0, 2], 1, true)).toEqual({ readySeats: [0, 1, 2] });
+    expect(applyRelayTaskReady([0, 2], 3, true)).toEqual({ readySeats: [0, 2, 3] });
+    expect(applyRelayTaskReady([0, 1, 2], 1, false)).toEqual({ readySeats: [0, 2] });
+  });
+});
