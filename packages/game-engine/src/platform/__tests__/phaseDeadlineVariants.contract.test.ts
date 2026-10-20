@@ -138,7 +138,7 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
     },
   },
   avalon: {
-    adoption: 'pending',
+    adoption: 'switched',
     variant: {
       actorChannel: 'dualChannel',
       revisionPolicy: 'none',

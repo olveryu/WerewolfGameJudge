@@ -6,6 +6,7 @@ import {
   migratePersistedAvalonState,
 } from '@game-judge/game-engine/games/avalon/public';
 
+import { settleDueBusinessKey, settleDueDeliveryAt } from '../../platform/gameModules/settleDue';
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { avalonEffectSchema, handleAvalonEffect } from './effects';
 import {
@@ -26,12 +27,11 @@ export const avalonWorkerModule = defineWorkerGameModule({
   httpRoutes: [],
   getEffectBusinessKey: (effect) =>
     effect.type === 'avalon.settle.due'
-      ? `avalon:settle:${effect.payload.gameSequence}:${effect.payload.phase}:` +
-        `${effect.payload.round}:${effect.payload.deadlineAt}`
+      ? settleDueBusinessKey('avalon:settle', effect.payload)
       : effect.payload.roundId,
   // The settle effect is the room's wake-up for the armed reveal
   // countdown: park it in the outbox until its deadline.
   getEffectDeliveryAt: (effect) =>
-    effect.type === 'avalon.settle.due' ? effect.payload.deadlineAt : null,
+    effect.type === 'avalon.settle.due' ? settleDueDeliveryAt(effect.payload) : null,
   handleEffect: handleAvalonEffect,
 });
