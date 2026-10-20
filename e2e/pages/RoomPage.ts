@@ -306,11 +306,14 @@ export class RoomPage {
   async returnToLobby() {
     await this.clickHostManagementAction(TESTIDS.returnLobbyButton);
     // The ritual title and its confirm button both read 返回大厅, so the
-    // title is awaited by testID (avalon.spec.ts precedent), not by text.
+    // title is awaited by testID and the confirm is pressed by its
+    // alert-button testID (avalon.spec.ts precedents), never by text.
     await expect(this.page.getByTestId(TESTIDS.alertTitle)).toHaveText('返回大厅', {
       timeout: 3000,
     });
-    await this.page.getByRole('button', { name: '返回大厅', exact: true }).click();
+    const confirmButton = this.page.getByTestId(TESTIDS.alertButton(2));
+    await expect(confirmButton).toHaveText('返回大厅');
+    await confirmButton.click();
     // Wait for restart broadcast — the console primary returns when the room is ready again.
     await expect(this.page.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
       '下一步：分配角色',
