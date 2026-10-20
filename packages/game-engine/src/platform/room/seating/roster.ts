@@ -127,6 +127,14 @@ export function countOccupiedSeats<TSeat extends SeatOccupant>(roster: RosterMap
   return Object.values(roster).filter((occupant) => occupant != null).length;
 }
 
+/** Whether every seat in range is occupied (the start gate's full predicate). */
+export function isRoomFull<TSeat extends SeatOccupant>(
+  roster: RosterMap<TSeat>,
+  seatCount: number,
+): boolean {
+  return countOccupiedSeats(roster) === seatCount;
+}
+
 /** Whether any occupant (human or bot) sits at or beyond a seat count. */
 export function hasOccupantAtOrBeyond<TSeat extends SeatOccupant>(
   roster: RosterMap<TSeat>,

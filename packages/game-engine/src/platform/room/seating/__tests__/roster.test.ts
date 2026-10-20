@@ -13,6 +13,7 @@ import {
   hasOccupantAtOrBeyond,
   isBotOccupant,
   isBotSeat,
+  isRoomFull,
   type RosterMap,
   type SeatOccupant,
 } from '../index';
@@ -48,6 +49,15 @@ describe('roster selectors', () => {
     expect(hasOccupantAtOrBeyond(roster, 3)).toBe(true);
     expect(findRosterSeatByUserId(roster, 4, 'bob')).toBe(3);
     expect(findRosterSeatByUserId(roster, 4, 'nobody')).toBeNull();
+  });
+
+  it('reports full exactly when every seat in range is occupied', () => {
+    expect(isRoomFull(mixedRoster(), 4)).toBe(false);
+    expect(isRoomFull(mixedRoster(), 3)).toBe(true);
+    expect(isRoomFull({}, 0)).toBe(true);
+    expect(isRoomFull({}, 2)).toBe(false);
+    const full: RosterMap<TestSeat> = { 0: human(0, 'alice'), 1: botSeatOccupant(1) };
+    expect(isRoomFull(full, 2)).toBe(true);
   });
 
   it('projects humans only and fails fast on a corrupt bot marker', () => {

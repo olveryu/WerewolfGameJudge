@@ -1,12 +1,6 @@
 /** Demo decision outcomes and permission gates; no IO. */
 
-import {
-  type CommandContext,
-  commit,
-  type Decision,
-  reject,
-  resolveHostActorId,
-} from '../../../platform/engine';
+import { commit, type Decision } from '../../../platform/engine';
 import { type RosterChange } from '../../../platform/room/seating';
 import type { DemoHumanSeat, DemoState } from '../state/types';
 
@@ -81,14 +75,4 @@ export function commitDemo(
   effects: readonly DemoEffect[] = [],
 ): DemoDecision {
   return commit({ events, effects });
-}
-
-/** Requires the current host acting outside bot takeover; rejects with the given reason. */
-export function requireDemoHost(
-  state: DemoState,
-  context: CommandContext,
-  reason: string,
-): DemoDecision | null {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  return actor.kind === 'rejected' ? reject(reason) : null;
 }

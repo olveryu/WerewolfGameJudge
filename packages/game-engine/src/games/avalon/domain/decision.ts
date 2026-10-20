@@ -6,8 +6,6 @@ import {
   type CommandContext,
   commit,
   type Decision,
-  reject,
-  resolveHostActorId,
 } from '../../../platform/engine';
 import { resolveActingSeat } from '../../../platform/room/actingSeat';
 import { type RosterChange } from '../../../platform/room/seating';
@@ -172,16 +170,6 @@ export function commitAvalon(
   effects: readonly AvalonEffect[] = [],
 ): AvalonDecision {
   return commit({ events, effects });
-}
-
-/** Requires the current host acting outside bot takeover; rejects with the given reason. */
-export function requireAvalonHost(
-  state: AvalonState,
-  context: CommandContext,
-  reason: string,
-): AvalonDecision | null {
-  const actor = resolveHostActorId(context, state.hostUserId);
-  return actor.kind === 'rejected' ? reject(reason) : null;
 }
 
 /** Resolves the acting seat and requires it to hold the assassin role. */
