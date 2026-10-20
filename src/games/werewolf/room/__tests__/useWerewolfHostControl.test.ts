@@ -1,10 +1,11 @@
 /**
  * Tests for useWerewolfHostControl hook — the host flow commands
- * (assign / start / restart) on the shared command pipeline:
- * confirm dialogs keep their copy, submission goes through
- * useRoomCommandSubmission (single-flight lock + shared failure alert).
+ * (assign / start / abort / redeal / return-to-lobby) on the shared
+ * command pipeline: confirm dialogs keep their copy, submission goes
+ * through useRoomCommandSubmission (single-flight lock + shared
+ * failure alert). Both terminal flows pass the share-report ritual;
+ * which command the confirm submits is the flow the host picked.
  */
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react-native';
 
 import { useWerewolfHostControl } from '@/games/werewolf/room/useWerewolfHostControl';
@@ -44,10 +45,10 @@ const pressButton = (text: string): unknown => {
 const renderControl = (overrides: Partial<Parameters<typeof useWerewolfHostControl>[0]> = {}) =>
   renderHook(() =>
     useWerewolfHostControl({
-      roomStatus: GameStatus.Seated,
       assignRoles: jest.fn().mockResolvedValue(successfulRoomCommand(buildWerewolfTestState())),
       startGame: jest.fn().mockResolvedValue(successfulRoomCommand(buildWerewolfTestState())),
       restartGame: jest.fn().mockResolvedValue(successfulRoomCommand(buildWerewolfTestState())),
+      redealGame: jest.fn().mockResolvedValue(successfulRoomCommand(buildWerewolfTestState())),
       shareNightReviewReport: jest.fn().mockResolvedValue(true),
       ...overrides,
     }),
@@ -199,20 +200,16 @@ describe('useWerewolfHostControl', () => {
     });
   });
 
-  describe('showRestartDialog', () => {
-    it('shows the abort confirm dialog before the game ends', async () => {
+  describe('showAbortDialog', () => {
+    it('shows the abort confirm dialog and submits restart on confirm', async () => {
       const restartGame = jest
         .fn()
         .mockResolvedValue(successfulRoomCommand(buildWerewolfTestState()));
       const shareNightReviewReport = jest.fn().mockResolvedValue(true);
-      const { result } = renderControl({
-        roomStatus: GameStatus.Ongoing,
-        restartGame,
-        shareNightReviewReport,
-      });
+      const { result } = renderControl({ restartGame, shareNightReviewReport });
 
       act(() => {
-        result.current.showRestartDialog();
+        result.current.showAbortDialog();
       });
 
       expect(mockShowAlert).toHaveBeenCalledWith(
@@ -230,71 +227,112 @@ describe('useWerewolfHostControl', () => {
       expect(restartGame).toHaveBeenCalledTimes(1);
       expect(shareNightReviewReport).not.toHaveBeenCalled();
     });
+  });
 
-    it('offers share-before-restart once the game has ended', async () => {
+  describe('terminal flows (share-report ritual)', () => {
+    it('redeal: offers share first, confirm submits redeal only', async () => {
       const restartGame = jest
         .fn()
         .mockResolvedValue(successfulRoomCommand(buildWerewolfTestState()));
+      const redealGame = jest
+        .fn()
+        .mockResolvedValue(successfulRoomCommand(buildWerewolfTestState()));
       const shareNightReviewReport = jest.fn().mockResolvedValue(true);
-      const { result } = renderControl({
-        roomStatus: GameStatus.Ended,
-        restartGame,
-        shareNightReviewReport,
-      });
+      const { result } = renderControl({ restartGame, redealGame, shareNightReviewReport });
 
       act(() => {
-        result.current.showRestartDialog();
+        result.current.showRedealDialog();
       });
 
       expect(mockShowAlert).toHaveBeenCalledWith(
-        '重新开始游戏？',
-        '重新开始后本局复盘将无法查看，是否先分享战报？',
+        '再来一局',
+        '本局复盘将无法查看，是否先分享战报？',
         expect.arrayContaining([
           expect.objectContaining({ text: '分享战报' }),
-          expect.objectContaining({ text: '重新开始' }),
+          expect.objectContaining({ text: '再来一局' }),
           expect.objectContaining({ text: '取消', style: 'cancel' }),
         ]),
       );
 
-      // Share branch: shares the report, never restarts.
+      // Share branch: shares the report, submits nothing.
+      await act(async () => {
+        await pressButton('分享战报');
+      });
+      expect(shareNightReviewReport).toHaveBeenCalledTimes(1);
+      expect(redealGame).not.toHaveBeenCalled();
+      expect(restartGame).not.toHaveBeenCalled();
+
+      // Confirm branch: submits the redeal command only.
+      await act(async () => {
+        await pressButton('再来一局');
+      });
+      expect(redealGame).toHaveBeenCalledTimes(1);
+      expect(restartGame).not.toHaveBeenCalled();
+    });
+
+    it('return-to-lobby: offers share first, confirm submits restart only', async () => {
+      const restartGame = jest
+        .fn()
+        .mockResolvedValue(successfulRoomCommand(buildWerewolfTestState()));
+      const redealGame = jest
+        .fn()
+        .mockResolvedValue(successfulRoomCommand(buildWerewolfTestState()));
+      const shareNightReviewReport = jest.fn().mockResolvedValue(true);
+      const { result } = renderControl({ restartGame, redealGame, shareNightReviewReport });
+
+      act(() => {
+        result.current.showReturnToLobbyDialog();
+      });
+
+      expect(mockShowAlert).toHaveBeenCalledWith(
+        '返回大厅',
+        '本局复盘将无法查看，是否先分享战报？',
+        expect.arrayContaining([
+          expect.objectContaining({ text: '分享战报' }),
+          expect.objectContaining({ text: '返回大厅' }),
+          expect.objectContaining({ text: '取消', style: 'cancel' }),
+        ]),
+      );
+
       await act(async () => {
         await pressButton('分享战报');
       });
       expect(shareNightReviewReport).toHaveBeenCalledTimes(1);
       expect(restartGame).not.toHaveBeenCalled();
+      expect(redealGame).not.toHaveBeenCalled();
 
-      // Restart branch: submits the restart command.
       await act(async () => {
-        await pressButton('重新开始');
+        await pressButton('返回大厅');
       });
       expect(restartGame).toHaveBeenCalledTimes(1);
+      expect(redealGame).not.toHaveBeenCalled();
     });
 
-    it('rejects a second restart press while the first is in flight', async () => {
-      let resolveRestart!: (outcome: WerewolfCommandDispatchOutcome) => void;
-      const restartGame = jest.fn(
-        () => new Promise<WerewolfCommandDispatchOutcome>((resolve) => (resolveRestart = resolve)),
+    it('rejects a second redeal press while the first is in flight', async () => {
+      let resolveRedeal!: (outcome: WerewolfCommandDispatchOutcome) => void;
+      const redealGame = jest.fn(
+        () => new Promise<WerewolfCommandDispatchOutcome>((resolve) => (resolveRedeal = resolve)),
       );
-      const { result } = renderControl({ roomStatus: GameStatus.Ended, restartGame });
+      const { result } = renderControl({ redealGame });
 
       act(() => {
-        result.current.showRestartDialog();
+        result.current.showRedealDialog();
       });
 
       let firstPress: unknown;
       await act(async () => {
-        firstPress = pressButton('重新开始');
+        firstPress = pressButton('再来一局');
       });
-      expect(restartGame).toHaveBeenCalledTimes(1);
+      expect(redealGame).toHaveBeenCalledTimes(1);
       expect(result.current.isSubmitting).toBe(true);
 
-      await expect(pressButton('重新开始') as Promise<unknown>).rejects.toThrow(
+      await expect(pressButton('再来一局') as Promise<unknown>).rejects.toThrow(
         'already in progress',
       );
-      expect(restartGame).toHaveBeenCalledTimes(1);
+      expect(redealGame).toHaveBeenCalledTimes(1);
 
       await act(async () => {
-        resolveRestart(successfulRoomCommand(buildWerewolfTestState()));
+        resolveRedeal(successfulRoomCommand(buildWerewolfTestState()));
         await firstPress;
       });
       expect(result.current.isSubmitting).toBe(false);

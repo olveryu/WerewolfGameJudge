@@ -168,7 +168,22 @@ describe('WerewolfGameClientRuntime composition', () => {
     expect(audio.clearPreloaded).toHaveBeenCalledTimes(1);
     expect(roomSession.dispatch).toHaveBeenCalledWith(
       { type: 'werewolf.game.restart' },
-      { controlledSeat: null, label: '重新开始' },
+      { controlledSeat: null, label: '返回大厅' },
+    );
+  });
+
+  it('stops prepared audio before dispatching a Werewolf redeal command', async () => {
+    const { client, roomSession, audio } = createClient();
+    roomSession.emit(enteringSnapshot());
+    roomSession.emit(readySnapshot(GameStatus.Ended));
+
+    await client.redealGame();
+
+    expect(audio.stopNarration).toHaveBeenCalledTimes(1);
+    expect(audio.clearPreloaded).toHaveBeenCalledTimes(1);
+    expect(roomSession.dispatch).toHaveBeenCalledWith(
+      { type: 'werewolf.game.redeal' },
+      { controlledSeat: null, label: '再来一局' },
     );
   });
 

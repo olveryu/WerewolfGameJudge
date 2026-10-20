@@ -96,7 +96,7 @@ export interface BottomActionEvent {
 /** Host control button tap (start game, restart, etc.) */
 export interface HostControlEvent {
   kind: 'HOST_CONTROL';
-  action: 'prepareToFlip' | 'startGame' | 'restart';
+  action: 'prepareToFlip' | 'startGame' | 'abort' | 'redeal' | 'returnToLobby';
 }
 
 /** View role card button tap */
@@ -163,7 +163,7 @@ export interface InteractionResultActionFlow {
 /** Run host control action */
 export interface InteractionResultHostControl {
   kind: 'HOST_CONTROL';
-  action: 'prepareToFlip' | 'startGame' | 'restart';
+  action: 'prepareToFlip' | 'startGame' | 'abort' | 'redeal' | 'returnToLobby';
 }
 
 /** View player profile card */

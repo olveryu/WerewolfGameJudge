@@ -25,6 +25,7 @@ import {
   markViewedRole,
   postProgression,
   prepareAudioAck,
+  redealGame,
   registerSheriffCandidate,
   restartGame,
   selectMvp,
@@ -149,6 +150,8 @@ describe('canonical Werewolf command builders', () => {
     );
     await restartGame(ctx);
     expectCommand({ type: 'werewolf.game.restart' }, null);
+    await redealGame(ctx);
+    expectCommand({ type: 'werewolf.game.redeal' }, null);
     await shareNightReview(ctx, [1, 3]);
     expectCommand({ type: 'werewolf.review.share', allowedSeats: [1, 3] }, null);
     await postProgression(ctx);

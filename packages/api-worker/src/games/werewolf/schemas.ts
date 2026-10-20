@@ -54,6 +54,7 @@ const publicCommandOptions = definePublicCommandOptions<WerewolfPublicCommand>()
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({ type: z.literal('werewolf.roles.assign') }),
   z.strictObject({ type: z.literal('werewolf.game.restart') }),
+  z.strictObject({ type: z.literal('werewolf.game.redeal') }),
   z.strictObject({
     type: z.literal('werewolf.mvp.select'),
     selection: z.strictObject({

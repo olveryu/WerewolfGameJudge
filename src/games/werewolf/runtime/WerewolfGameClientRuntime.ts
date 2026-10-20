@@ -156,6 +156,19 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
     return gameActions.restartGame(this.#getActionsContext());
   }
 
+  /**
+   * Host: redeal a finished game (HTTP API)
+   *
+   * The engine restarts and deals fresh roles in one atomic command;
+   * the WS broadcast pushes the Assigned state to all clients.
+   */
+  async redealGame(): Promise<WerewolfCommandDispatchOutcome> {
+    // Same audio teardown as restart: a new game begins.
+    this.#audio.stopNarration();
+    this.#audio.clearPreloaded();
+    return gameActions.redealGame(this.#getActionsContext());
+  }
+
   /** Confirm MVP without changing audio, roles, or review state. */
   async selectMvp(selection: WerewolfMvpSelection): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.selectMvp(this.#getActionsContext(), selection);

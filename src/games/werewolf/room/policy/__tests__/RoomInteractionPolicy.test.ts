@@ -52,7 +52,7 @@ function createBottomActionEvent(): InteractionEvent {
 }
 
 function createHostControlEvent(
-  action: 'prepareToFlip' | 'startGame' | 'restart',
+  action: 'prepareToFlip' | 'startGame' | 'abort' | 'redeal' | 'returnToLobby',
 ): InteractionEvent {
   return { kind: 'HOST_CONTROL', action };
 }
@@ -126,7 +126,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
         roomStatus: GameStatus.Ongoing,
         isHost: true,
       });
-      const event = createHostControlEvent('restart');
+      const event = createHostControlEvent('abort');
 
       const result = getInteractionResult(ctx, event);
 

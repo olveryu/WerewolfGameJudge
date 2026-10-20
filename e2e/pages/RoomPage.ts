@@ -302,13 +302,13 @@ export class RoomPage {
     await this.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
   }
 
-  /** Click "重新开始" (restart) and confirm dialog. */
-  async restart() {
-    await this.clickHostManagementAction(TESTIDS.restartButton);
-    await expect(this.page.getByText('重新开始游戏？', { exact: true })).toBeVisible({
+  /** Click "返回大厅" (terminal return-to-lobby) and pass the share-report ritual. */
+  async returnToLobby() {
+    await this.clickHostManagementAction(TESTIDS.returnLobbyButton);
+    await expect(this.page.getByText('返回大厅', { exact: true })).toBeVisible({
       timeout: 3000,
     });
-    await this.page.getByText('重新开始', { exact: true }).click();
+    await this.page.getByRole('button', { name: '返回大厅', exact: true }).click();
     // Wait for restart broadcast — the console primary returns when the room is ready again.
     await expect(this.page.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
       '下一步：分配角色',

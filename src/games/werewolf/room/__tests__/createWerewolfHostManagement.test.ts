@@ -85,7 +85,7 @@ function createSheriffElection(
 }
 
 describe('createWerewolfHostManagement', () => {
-  it('locks the selected MVP while leaving restart independent', () => {
+  it('locks the selected MVP while leaving the terminal flows independent', () => {
     const onSelectMvp = jest.fn();
     const model = createWerewolfHostManagement(
       createInput({
@@ -99,8 +99,34 @@ describe('createWerewolfHostManagement', () => {
       label: '本局 MVP：3号',
       isEnabled: false,
     });
-    expect(actions.find((action) => action.key === 'restart')).toMatchObject({ isEnabled: true });
+    expect(actions.find((action) => action.key === 'next-round')).toMatchObject({
+      isEnabled: true,
+    });
+    expect(actions.find((action) => action.key === 'return-lobby')).toMatchObject({
+      isEnabled: true,
+    });
     expect(onSelectMvp).not.toHaveBeenCalled();
+  });
+
+  it('routes the ended double-key through the host-control channel by flow', () => {
+    const onHostControl = jest.fn();
+    const model = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Ended,
+        capabilities: deniedRoomCapabilities,
+        onHostControl,
+      }),
+    );
+    const actions = model!.sections.flatMap((section) => section.actions);
+    const nextRound = actions.find((action) => action.key === 'next-round');
+    const returnLobby = actions.find((action) => action.key === 'return-lobby');
+    if (nextRound?.isEnabled !== true || returnLobby?.isEnabled !== true) {
+      throw new Error('Expected both terminal actions enabled');
+    }
+    nextRound.onPress();
+    expect(onHostControl).toHaveBeenCalledWith('redeal');
+    returnLobby.onPress();
+    expect(onHostControl).toHaveBeenCalledWith('returnToLobby');
   });
 
   it('returns null for a non-Host player', () => {
@@ -204,7 +230,7 @@ describe('createWerewolfHostManagement', () => {
   });
 
   it.each([GameStatus.Ongoing, GameStatus.Day])(
-    'keeps restart available during audio playback in %s',
+    'keeps abort available during audio playback in %s',
     (roomStatus) => {
       const onHostControl = jest.fn();
       const model = createWerewolfHostManagement(
@@ -215,19 +241,19 @@ describe('createWerewolfHostManagement', () => {
           onHostControl,
         }),
       );
-      const restartAction = model?.sections
+      const abortAction = model?.sections
         .flatMap((section) => section.actions)
         .find((action) => action.label === '中止本局');
-      if (restartAction?.isEnabled !== true) {
-        throw new Error(`Expected restart during ${roomStatus} audio playback`);
+      if (abortAction?.isEnabled !== true) {
+        throw new Error(`Expected abort during ${roomStatus} audio playback`);
       }
 
-      restartAction.onPress();
-      expect(onHostControl).toHaveBeenCalledWith('restart');
+      abortAction.onPress();
+      expect(onHostControl).toHaveBeenCalledWith('abort');
     },
   );
 
-  it('promotes restart in the ended state and includes result tools', () => {
+  it('presents the terminal double-key in the ended state and includes result tools', () => {
     const onNightReview = jest.fn();
     const model = createWerewolfHostManagement(
       createInput({
@@ -244,7 +270,8 @@ describe('createWerewolfHostManagement', () => {
     ]);
     expect(actionLabels(model!)).toEqual([
       '评选 MVP',
-      '重新开始',
+      '再来一局',
+      '返回大厅',
       '本局复盘',
       '昨夜信息',
       '音乐设置',

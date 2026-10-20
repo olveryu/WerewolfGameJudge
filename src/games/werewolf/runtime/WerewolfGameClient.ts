@@ -34,9 +34,14 @@ export interface WerewolfGameClient {
   startNight(): Promise<WerewolfCommandDispatchOutcome>;
 
   /**
-   * Restart game
+   * Restart game (back to the lobby: seats and template kept, roles cleared)
    */
   restartGame(): Promise<WerewolfCommandDispatchOutcome>;
+
+  /**
+   * Redeal a finished game (restart + fresh role deal in one command)
+   */
+  redealGame(): Promise<WerewolfCommandDispatchOutcome>;
   /** Confirm the MVP once for the captured round, retaining the current game. */
   selectMvp(selection: WerewolfMvpSelection): Promise<WerewolfCommandDispatchOutcome>;
 

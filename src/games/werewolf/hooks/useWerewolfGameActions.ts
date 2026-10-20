@@ -90,12 +90,13 @@ function handleCommandOutcome(
 interface WerewolfGameActionsState {
   // Game control (host-only)
   updateTemplate: (template: GameTemplate) => Promise<void>;
-  // The three host flow commands return their dispatch outcome unpresented:
+  // The host flow commands return their dispatch outcome unpresented:
   // the host-control pipeline (useWerewolfHostControl) owns submission
   // locking and failure presentation for them.
   assignRoles: () => Promise<WerewolfCommandDispatchOutcome>;
   startGame: () => Promise<WerewolfCommandDispatchOutcome>;
   restartGame: () => Promise<WerewolfCommandDispatchOutcome>;
+  redealGame: () => Promise<WerewolfCommandDispatchOutcome>;
   selectMvp: (selection: WerewolfMvpSelection) => Promise<WerewolfCommandDispatchOutcome>;
   clearAllSeats: () => Promise<WerewolfCommandDispatchOutcome>;
   shareNightReview: (allowedSeats: number[]) => Promise<WerewolfCommandDispatchOutcome>;
@@ -192,6 +193,20 @@ interface WerewolfGameActionsDeps {
       botControl.releaseBot();
     }
     return client.restartGame();
+  }, [client, bgm, botControl, isHost]);
+
+  // Redeal a finished game (host only): one engine command restarts and
+  // deals fresh roles; the pre-submit teardown matches restart (a new
+  // game begins, so BGM stops and any bot control is released).
+  const redealGame = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
+    if (!isHost) {
+      throw new Error('[FAIL-FAST] Redealing a Werewolf game requires the host');
+    }
+    bgm.stopBgm();
+    if (botControl.controlledSeat !== null) {
+      botControl.releaseBot();
+    }
+    return client.redealGame();
   }, [client, bgm, botControl, isHost]);
 
   const selectMvp = useCallback(
@@ -435,6 +450,7 @@ interface WerewolfGameActionsDeps {
     assignRoles,
     startGame,
     restartGame,
+    redealGame,
     selectMvp,
     clearAllSeats,
     shareNightReview,

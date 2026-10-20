@@ -2,7 +2,7 @@
  * Game Control Handler - game control processor (Host-only)
  *
  * Responsibilities:
- * - Handle ASSIGN_ROLES / START_NIGHT / RESTART_GAME / UPDATE_TEMPLATE intents
+ * - Handle ASSIGN_ROLES / START_NIGHT / RESTART_GAME / REDEAL_GAME / UPDATE_TEMPLATE intents
  * - Role assignment logic (shuffle + write to state)
  * - NightPlan construction (generate step plan from template)
  *
@@ -23,6 +23,7 @@ import type {
   BoardUpvoteIntent,
   BoardWithdrawIntent,
   FillWithBotsIntent,
+  RedealGameIntent,
   RestartGameIntent,
   ShareNightReviewIntent,
   StartNightIntent,
@@ -40,7 +41,7 @@ import {
 } from '../models';
 import { buildNightPlan, getRoleSpec, getStepSpec } from '../models/roles/spec';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '../models/roles/spec/schema.types';
-import type { Player } from '../protocol/types';
+import type { GameState, Player } from '../protocol/types';
 import type {
   AssignRolesAction,
   EndNightAction,
@@ -74,13 +75,24 @@ export function handleAssignRoles(
   context: HandlerContext,
   execution: HandlerExecutionContext,
 ): HandlerResult {
-  const { state } = context;
-  const rng = createSeededRng(`${execution.randomSeed}:roles`);
-
   // Gate: game status must be GameStatus.Seated
-  if (state.status !== GameStatus.Seated) {
+  if (context.state.status !== GameStatus.Seated) {
     return handlerError('invalid_status');
   }
+
+  return decideRoleDeal(context.state, execution);
+}
+
+/**
+ * The one role-deal computation, shared by ASSIGN_ROLES and REDEAL_GAME.
+ *
+ * Every input (templateRoles, rules, the seat map) is preserved verbatim
+ * by the RESTART_GAME transition, so dealing from the pre-restart state
+ * yields exactly the deal the post-restart state would produce — that is
+ * what lets REDEAL_GAME decide both steps against one state snapshot.
+ */
+function decideRoleDeal(state: GameState, execution: HandlerExecutionContext): HandlerResult {
+  const rng = createSeededRng(`${execution.randomSeed}:roles`);
 
   const seatCount = Object.keys(state.players).length;
   const bottomCardRoleId = getBottomCardRoleId(state.templateRoles);
@@ -309,6 +321,38 @@ export function handleRestartGame(
   };
 
   return handlerSuccess([action]);
+}
+
+/**
+ * Handle redeal (Ended only): restart + a fresh role deal as one atomic
+ * command — the host's "one more game" step. Emits RESTART_GAME followed
+ * by the ASSIGN_ROLES action from the shared deal computation; evolve
+ * applies both in order, so no half-restarted state is ever observable
+ * (the client must not chain restart + assign commands to fake this).
+ */
+export function handleRedealGame(
+  _intent: RedealGameIntent,
+  context: HandlerContext,
+  execution: HandlerExecutionContext,
+): HandlerResult {
+  const { state } = context;
+
+  // Gate: only a finished game can be redealt.
+  if (state.status !== GameStatus.Ended) {
+    return handlerError('invalid_status');
+  }
+
+  const deal = decideRoleDeal(state, execution);
+  if (deal.kind !== 'success') {
+    return deal;
+  }
+
+  const restartAction: RestartGameAction = {
+    type: 'RESTART_GAME',
+    nonce: execution.randomSeed,
+  };
+
+  return handlerSuccess([restartAction, ...deal.actions]);
 }
 
 /**
