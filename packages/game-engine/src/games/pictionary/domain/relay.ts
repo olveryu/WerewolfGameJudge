@@ -96,7 +96,7 @@ function fromLinearGallery(gallery: RelayGalleryState, stepIndex: number): Picti
 }
 
 /** Adapts authoritative state for the shared machine without touching the persisted shape. */
-function toPictionaryRelaySlice(state: PictionaryState): PictionaryRelaySlice {
+export function toPictionaryRelaySlice(state: PictionaryState): PictionaryRelaySlice {
   return { ...state, gallery: toLinearGallery(state) };
 }
 
