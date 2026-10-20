@@ -32,7 +32,7 @@ function requestUndercoverRestart(
     closeCard();
     if (
       await submit(isTerminal ? '再来一局' : '重新开始', {
-        type: 'undercover.round.restart',
+        type: 'undercover.game.redeal',
         roundId,
       })
     )
@@ -166,7 +166,7 @@ export function useUndercoverRoundControls(
       '本局不计胜负，不公开未揭晓身份和词语。',
       async () => {
         closeCard();
-        await submit('中止本局', { type: 'undercover.round.abort', roundId });
+        await submit('中止本局', { type: 'undercover.game.abort', roundId });
       },
     );
   };
@@ -176,7 +176,7 @@ export function useUndercoverRoundControls(
     closeCard();
     void submit(
       '确认词卡',
-      { type: 'undercover.round.confirm', roundId: state.round.roundId },
+      { type: 'undercover.role.viewed', roundId: state.round.roundId },
       controlledSeat,
     );
   };
@@ -197,7 +197,7 @@ export function useUndercoverRoundControls(
       '当前分类没有未使用词对。本次授权不会改变之后各局的去重设置。',
       async () => {
         if (await submit('返回大厅', { type: 'undercover.game.returnToLobby' }))
-          await submit('分配角色', { type: 'undercover.round.start', shouldAllowRepeated: true });
+          await submit('分配角色', { type: 'undercover.roles.assign', shouldAllowRepeated: true });
       },
     );
   return {
@@ -222,7 +222,7 @@ export function useUndercoverRoundControls(
     },
     begin: () => {
       if (state.phase !== 'viewing') throw new Error('Begin requires the viewing phase');
-      void submit('开始游戏', { type: 'undercover.round.begin', roundId: state.round.roundId });
+      void submit('开始游戏', { type: 'undercover.game.begin', roundId: state.round.roundId });
     },
     isSelecting,
     selectedSeat,
@@ -243,7 +243,7 @@ export function useUndercoverRoundControls(
     },
     cancelSelection: exitSelection,
     start: () => {
-      void submit('分配角色', { type: 'undercover.round.start', shouldAllowRepeated: false });
+      void submit('分配角色', { type: 'undercover.roles.assign', shouldAllowRepeated: false });
     },
     retry: () => {
       if (roundId === undefined) throw new Error('Retry requires a pending round');

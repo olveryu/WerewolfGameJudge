@@ -36,7 +36,7 @@ function prepare() {
   const full = applyCommand(seated.state, { type: 'room.seat.fillBots' }, 'fill');
   return applyCommand(
     full.state,
-    { type: 'undercover.round.start', shouldAllowRepeated: false },
+    { type: 'undercover.roles.assign', shouldAllowRepeated: false },
     'start',
   );
 }
@@ -68,7 +68,7 @@ describe('Undercover Worker effects', () => {
     if (reading.kind === 'reject') throw new Error(reading.reason);
     const confirmed = applyCommand(
       reading.state,
-      { type: 'undercover.round.confirm', roundId },
+      { type: 'undercover.role.viewed', roundId },
       'confirm',
     );
     const marked = applyCommand(
@@ -76,7 +76,7 @@ describe('Undercover Worker effects', () => {
       { type: 'undercover.bots.markAllBotsViewed', roundId },
       'bots',
     );
-    let decision = applyCommand(marked.state, { type: 'undercover.round.begin', roundId }, 'begin');
+    let decision = applyCommand(marked.state, { type: 'undercover.game.begin', roundId }, 'begin');
     for (let seat = 0; decision.state.phase === 'ongoing'; seat += 1) {
       decision = applyCommand(
         decision.state,

@@ -73,7 +73,7 @@ function viewingState(): UndercoverState {
   });
   state = dispatch(state, { type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
   state = dispatch(state, { type: 'room.seat.fillBots' });
-  state = dispatch(state, { type: 'undercover.round.start', shouldAllowRepeated: false });
+  state = dispatch(state, { type: 'undercover.roles.assign', shouldAllowRepeated: false });
   if (state.phase !== 'preparing') throw new Error('Expected preparation');
   return dispatch(
     state,
@@ -90,14 +90,14 @@ function confirmSeat(state: UndercoverState, seat: number): UndercoverState {
   if (state.round === null) throw new Error('Expected round');
   return dispatch(
     state,
-    { type: 'undercover.round.confirm', roundId: state.round.roundId },
+    { type: 'undercover.role.viewed', roundId: state.round.roundId },
     user('host', seat === 0 ? null : seat),
   );
 }
 
 function beginRound(state: UndercoverState): UndercoverState {
   if (state.round === null) throw new Error('Expected round');
-  return dispatch(state, { type: 'undercover.round.begin', roundId: state.round.roundId });
+  return dispatch(state, { type: 'undercover.game.begin', roundId: state.round.roundId });
 }
 
 describe('Identity Viewing Protocol — undercover viewing-stage begin gate', () => {
@@ -115,7 +115,7 @@ describe('Identity Viewing Protocol — undercover viewing-stage begin gate', ()
     if (state.round === null) throw new Error('Expected round');
     const blocked = undercoverEngine.decide(
       state,
-      { type: 'undercover.round.begin', roundId: state.round.roundId },
+      { type: 'undercover.game.begin', roundId: state.round.roundId },
       user(),
     );
     expect(blocked.kind).toBe('reject');
@@ -152,7 +152,7 @@ describe('Identity Viewing Protocol — undercover viewing-stage begin gate', ()
     for (let seat = 0; seat < config.numberOfPlayers; seat += 1) state = confirmSeat(state, seat);
     const nonHost = undercoverEngine.decide(
       state,
-      { type: 'undercover.round.begin', roundId },
+      { type: 'undercover.game.begin', roundId },
       user('guest'),
     );
     expect(nonHost.kind).toBe('reject');
@@ -160,7 +160,7 @@ describe('Identity Viewing Protocol — undercover viewing-stage begin gate', ()
     state = beginRound(state);
     const again = undercoverEngine.decide(
       state,
-      { type: 'undercover.round.begin', roundId },
+      { type: 'undercover.game.begin', roundId },
       user(),
     );
     expect(again.kind).toBe('reject');
@@ -225,7 +225,7 @@ describe('Identity Viewing Protocol — undercover confirm through the shared sk
     expect(state.phase).toBe('ongoing');
     const decision = undercoverEngine.decide(
       state,
-      { type: 'undercover.round.confirm', roundId: state.round!.roundId },
+      { type: 'undercover.role.viewed', roundId: state.round!.roundId },
       user('host'),
     );
     if (decision.kind !== 'commit') throw new Error('Expected commit');
@@ -243,7 +243,7 @@ describe('Identity Viewing Protocol — undercover confirm through the shared sk
     expect(
       undercoverEngine.decide(
         state,
-        { type: 'undercover.round.confirm', roundId: 'round-none' },
+        { type: 'undercover.role.viewed', roundId: 'round-none' },
         user('host'),
       ),
     ).toEqual({ kind: 'reject', reason: UNDERCOVER_REASONS.phase });
@@ -254,7 +254,7 @@ describe('Identity Viewing Protocol — undercover confirm through the shared sk
     expect(
       undercoverEngine.decide(
         state,
-        { type: 'undercover.round.confirm', roundId: 'round-stale' },
+        { type: 'undercover.role.viewed', roundId: 'round-stale' },
         user('host'),
       ),
     ).toEqual({ kind: 'reject', reason: UNDERCOVER_REASONS.round });
@@ -291,7 +291,7 @@ describeIdentityViewingProtocol({
         state.round !== null &&
         undercoverEngine.decide(
           state,
-          { type: 'undercover.round.begin', roundId: state.round.roundId },
+          { type: 'undercover.game.begin', roundId: state.round.roundId },
           user(),
         ).kind === 'commit',
     };

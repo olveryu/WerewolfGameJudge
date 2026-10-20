@@ -64,7 +64,7 @@ function createLobby(settings: UndercoverConfig = config): UndercoverState {
 
 function prepare(): UndercoverState {
   const state = dispatch(createLobby(), { type: 'room.seat.fillBots' });
-  return dispatch(state, { type: 'undercover.round.start', shouldAllowRepeated: false });
+  return dispatch(state, { type: 'undercover.roles.assign', shouldAllowRepeated: false });
 }
 
 function complete(state: UndercoverState): UndercoverState {
@@ -87,11 +87,11 @@ function ongoing(): UndercoverState {
   for (let seat = 0; seat < config.numberOfPlayers; seat += 1) {
     state = dispatch(
       state,
-      { type: 'undercover.round.confirm', roundId },
+      { type: 'undercover.role.viewed', roundId },
       user('host', seat === 0 ? null : seat),
     );
   }
-  return dispatch(state, { type: 'undercover.round.begin', roundId });
+  return dispatch(state, { type: 'undercover.game.begin', roundId });
 }
 
 function reveal(state: UndercoverState, role: UndercoverRole, context = user()): UndercoverState {
@@ -119,9 +119,9 @@ describe('Undercover authoritative engine', () => {
       complete(preparing),
       active,
       reveal(reveal(reveal(ongoing(), 'blank'), 'undercover'), 'undercover'),
-      dispatch(active, { type: 'undercover.round.abort', roundId: active.round.roundId }),
+      dispatch(active, { type: 'undercover.game.abort', roundId: active.round.roundId }),
       dispatch(preparing, {
-        type: 'undercover.round.abort',
+        type: 'undercover.game.abort',
         roundId: preparing.pendingRound.roundId,
       }),
       dispatch(
@@ -139,7 +139,7 @@ describe('Undercover authoritative engine', () => {
         state.phase === 'preparing' || state.phase === 'preparationFailed'
           ? state.pendingRound.roundId
           : (state.round?.roundId ?? null);
-      const command = { type: 'undercover.round.restart', roundId } as const;
+      const command = { type: 'undercover.game.redeal', roundId } as const;
       expect(undercoverEngine.decide(state, command, user('visitor')).kind).toBe('reject');
       const decision = undercoverEngine.decide(state, command, user('host', null, 'restart'));
       if (decision.kind === 'reject') throw new Error(decision.reason);
@@ -199,7 +199,7 @@ describe('Undercover authoritative engine', () => {
     expect(
       undercoverEngine.decide(
         createLobby(),
-        { type: 'undercover.round.restart', roundId: null },
+        { type: 'undercover.game.redeal', roundId: null },
         user(),
       ).kind,
     ).toBe('reject');
@@ -213,7 +213,7 @@ describe('Undercover authoritative engine', () => {
       reading.round.speakingStartSeat,
     );
     const confirmed = dispatch(reading, {
-      type: 'undercover.round.confirm',
+      type: 'undercover.role.viewed',
       roundId: reading.round.roundId,
     });
     expect(confirmed.round).toEqual({ ...reading.round, confirmedSeats: [0] });
@@ -239,7 +239,7 @@ describe('Undercover authoritative engine', () => {
         },
         system(),
       ),
-      dispatch(active, { type: 'undercover.round.abort', roundId: active.round.roundId }),
+      dispatch(active, { type: 'undercover.game.abort', roundId: active.round.roundId }),
       reveal(reveal(reveal(active, 'blank'), 'undercover'), 'undercover'),
     ];
     for (const state of states) {
@@ -280,7 +280,7 @@ describe('Undercover authoritative engine', () => {
     if (viewing.round === null) throw new Error('Expected round');
     viewing = dispatch(
       viewing,
-      { type: 'undercover.round.confirm', roundId: viewing.round.roundId },
+      { type: 'undercover.role.viewed', roundId: viewing.round.roundId },
       user('host', 1),
     );
     const v4Viewing: Record<string, unknown> = {
@@ -311,7 +311,7 @@ describe('Undercover authoritative engine', () => {
     }
     if (state.round === null) throw new Error('Expected round');
     const aborted = dispatch(state, {
-      type: 'undercover.round.abort',
+      type: 'undercover.game.abort',
       roundId: state.round.roundId,
     });
     expect(getUndercoverWordCard(aborted, 'host', 1)).toBeNull();
@@ -384,7 +384,7 @@ describe('Undercover authoritative engine', () => {
     if (state.phase !== 'ongoing') throw new Error('Expected ongoing round');
     const decision = undercoverEngine.decide(
       state,
-      { type: 'undercover.round.abort', roundId: state.round.roundId },
+      { type: 'undercover.game.abort', roundId: state.round.roundId },
       user(),
     );
     if (decision.kind === 'reject') throw new Error(decision.reason);
@@ -420,11 +420,11 @@ describe('Undercover authoritative engine', () => {
     state = dispatch(state, { type: 'room.seat.fillBots' });
     expect(getBotSeats(state.roster)).not.toContain(1);
     state = complete(
-      dispatch(state, { type: 'undercover.round.start', shouldAllowRepeated: false }),
+      dispatch(state, { type: 'undercover.roles.assign', shouldAllowRepeated: false }),
     );
     if (state.round === null) throw new Error('Expected round');
     const command: UndercoverCommand = {
-      type: 'undercover.round.confirm',
+      type: 'undercover.role.viewed',
       roundId: state.round.roundId,
     };
     expect(undercoverEngine.decide(state, command, user('host', 1))).toEqual({
@@ -448,16 +448,16 @@ describe('Undercover authoritative engine', () => {
     );
     state = dispatch(
       state,
-      { type: 'undercover.round.confirm', roundId: command.roundId },
+      { type: 'undercover.role.viewed', roundId: command.roundId },
       user('host', 1),
     );
     state = dispatch(state, command);
     expect(state.phase).toBe('viewing');
     expect(state.round?.confirmedSeats).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect(dispatch(state, command)).toEqual(state);
-    state = dispatch(state, { type: 'undercover.round.confirm', roundId: command.roundId });
+    state = dispatch(state, { type: 'undercover.role.viewed', roundId: command.roundId });
     expect(state.phase).toBe('viewing');
-    state = dispatch(state, { type: 'undercover.round.begin', roundId: command.roundId });
+    state = dispatch(state, { type: 'undercover.game.begin', roundId: command.roundId });
     expect(state.phase).toBe('ongoing');
     expect(undercoverEngine.decide(state, command, user()).kind).toBe('reject');
   });
@@ -472,7 +472,7 @@ describe('Undercover authoritative engine', () => {
       );
     }
     state = complete(
-      dispatch(state, { type: 'undercover.round.start', shouldAllowRepeated: false }),
+      dispatch(state, { type: 'undercover.roles.assign', shouldAllowRepeated: false }),
     );
     if (state.round === null) throw new Error('Expected round');
     expect(
@@ -488,7 +488,7 @@ describe('Undercover authoritative engine', () => {
     let state = dispatch(createLobby(), { type: 'room.seat.leave' });
     state = dispatch(state, { type: 'room.seat.fillBots' });
     state = complete(
-      dispatch(state, { type: 'undercover.round.start', shouldAllowRepeated: false }),
+      dispatch(state, { type: 'undercover.roles.assign', shouldAllowRepeated: false }),
     );
     if (state.round === null) throw new Error('Expected round');
     state = dispatch(state, {
@@ -498,7 +498,7 @@ describe('Undercover authoritative engine', () => {
     expect(state.phase).toBe('viewing');
     expect(state.round?.confirmedSeats).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
     if (state.round === null) throw new Error('Expected round');
-    state = dispatch(state, { type: 'undercover.round.begin', roundId: state.round.roundId });
+    state = dispatch(state, { type: 'undercover.game.begin', roundId: state.round.roundId });
     expect(state.phase).toBe('ongoing');
   });
 
@@ -506,7 +506,7 @@ describe('Undercover authoritative engine', () => {
     let state = complete(prepare());
     if (state.round === null) throw new Error('Expected round');
     const command: UndercoverCommand = {
-      type: 'undercover.round.confirm',
+      type: 'undercover.role.viewed',
       roundId: state.round.roundId,
     };
     state = dispatch(state, command);
@@ -606,7 +606,7 @@ describe('Undercover authoritative engine', () => {
     const initial = ongoing();
     if (initial.round === null) throw new Error('Expected round');
     const roundId = initial.round.roundId;
-    const aborted = dispatch(initial, { type: 'undercover.round.abort', roundId });
+    const aborted = dispatch(initial, { type: 'undercover.game.abort', roundId });
     const lobby = dispatch(aborted, { type: 'undercover.game.returnToLobby' });
     expect(lobby).toMatchObject({
       phase: 'lobby',
@@ -619,11 +619,11 @@ describe('Undercover authoritative engine', () => {
     expect(lobby).not.toHaveProperty('pendingRound');
     const restarted = dispatch(
       lobby,
-      { type: 'undercover.round.start', shouldAllowRepeated: false },
+      { type: 'undercover.roles.assign', shouldAllowRepeated: false },
       user('host', null, 'next-round'),
     );
     expect(
-      undercoverEngine.decide(restarted, { type: 'undercover.round.abort', roundId }, user()),
+      undercoverEngine.decide(restarted, { type: 'undercover.game.abort', roundId }, user()),
     ).toEqual({ kind: 'reject', reason: UNDERCOVER_REASONS.round });
   });
 });

@@ -58,7 +58,7 @@ function lobbyState(): UndercoverState {
 
 function preparingState(): UndercoverState {
   const state = dispatch(lobbyState(), {
-    type: 'undercover.round.start',
+    type: 'undercover.roles.assign',
     shouldAllowRepeated: false,
   });
   if (state.phase !== 'preparing') throw new Error('expected preparing');
@@ -100,11 +100,11 @@ function ongoingState(): UndercoverState {
   for (let seat = 0; seat < 6; seat += 1) {
     state = dispatch(
       state,
-      { type: 'undercover.round.confirm', roundId },
+      { type: 'undercover.role.viewed', roundId },
       seat === 0 ? { kind: 'host' } : { kind: 'seat', seat },
     );
   }
-  state = dispatch(state, { type: 'undercover.round.begin', roundId });
+  state = dispatch(state, { type: 'undercover.game.begin', roundId });
   if (state.phase !== 'ongoing') throw new Error('expected ongoing');
   return state;
 }
@@ -113,7 +113,7 @@ function abortedState(): UndercoverState {
   const viewing = viewingState();
   if (viewing.round === null) throw new Error('expected round');
   const state = dispatch(viewing, {
-    type: 'undercover.round.abort',
+    type: 'undercover.game.abort',
     roundId: viewing.round.roundId,
   });
   if (state.phase !== 'aborted') throw new Error('expected aborted');
