@@ -9,8 +9,6 @@ import {
   type GameEngineDefinition,
   reject,
   requireHost,
-  resolveSystemActorEffectId,
-  resolveUncontrolledUserActorId,
 } from '../../platform/engine';
 import { randomIntInclusive } from '../../platform/random';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
@@ -19,6 +17,7 @@ import {
   decideMarkBotsViewed,
   haveAllViewed,
 } from '../../platform/room/identityViewing';
+import { buildSettleDueEffect, guardPhaseExpiry } from '../../platform/room/phaseDeadline';
 import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
 import type { AvalonCommand } from './commands/types';
 import {
@@ -94,9 +93,11 @@ function createInitialState(config: AvalonConfig, context: CreateGameContext): A
 }
 
 /**
- * The scheduled settle effect for one armed reveal countdown. The payload
- * pins the exact arming so the Worker handler can no-op a delivery that
- * arrives after the phase already settled or a new game began.
+ * The scheduled settle effect for one armed reveal countdown, built by
+ * the platform constructor: the payload pins the exact arming so the
+ * Worker handler can no-op a delivery that arrives after the phase
+ * already settled or a new game began. The round's legality is an
+ * Avalon game rule and is validated here, at the call site.
  */
 function settleDueEffect(
   state: AvalonState,
@@ -105,10 +106,12 @@ function settleDueEffect(
   deadlineAt: number,
 ): AvalonEffect {
   if (!isAvalonQuestRound(round)) throw new Error(`Invalid avalon quest round: ${round}`);
-  return {
-    type: 'avalon.settle.due',
-    payload: { gameSequence: state.gameSequence, phase, round, deadlineAt },
-  };
+  return buildSettleDueEffect(AVALON_GAME_TYPE, {
+    gameSequence: state.gameSequence,
+    phase,
+    round,
+    deadlineAt,
+  });
 }
 
 /** 对局结束时发结算 effect，Worker 据此发 XP 奖励；xpSettled 保证恰好一次。 */
@@ -391,21 +394,13 @@ function finishVote(state: AvalonState, context: CommandContext): AvalonDecision
 }
 
 /**
- * Settle-channel gate for countdown expiry: the public timeout command
- * requires an uncontrolled user (any foreground client may accelerate the
- * settlement), while the internal settle command requires the system
- * actor (the scheduled `avalon.settle.due` effect handler). Both channels
- * then run the identical settlement below.
- */
-function resolveSettleActor(context: CommandContext, internal: boolean) {
-  return internal ? resolveSystemActorEffectId(context) : resolveUncontrolledUserActorId(context);
-}
-
-/**
  * Settles the current phase when the reveal countdown expires, via the
  * public expire command (client acceleration) or the internal
  * settleExpired command (the scheduled `avalon.settle.due` effect,
- * which is the correctness path). The countdown is armed only once
+ * which is the correctness path). Both channels run the shared expiry
+ * guard: the public command travels on the uncontrolled-user channel
+ * (any foreground client may accelerate the settlement), the internal
+ * command on the system channel. The countdown is armed only once
  * every seat has voted / every team seat has played, so this settles
  * the final ballot or play set; dispatch is by the current phase.
  */
@@ -414,17 +409,21 @@ function timeoutSettle(
   context: CommandContext,
   internal: boolean,
 ): AvalonDecision {
-  if (state.phase.kind !== 'vote' && state.phase.kind !== 'quest')
-    return reject(AVALON_REASONS.phase);
-  const actor = resolveSettleActor(context, internal);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  if (state.phase.deadlineAt === null) return reject(AVALON_REASONS.deadline);
-  if (context.nowMs < state.phase.deadlineAt) return reject(AVALON_REASONS.deadline);
-  if (state.phase.kind === 'vote') {
-    const settlement = buildVoteSettlement(state, state.phase.ballots, context);
-    return commitAvalon(settlement.events, settlement.effects);
-  }
-  return settleQuestWithDefaults(state, context);
+  const phase = state.phase;
+  return guardPhaseExpiry(context, {
+    phaseRejection:
+      phase.kind === 'vote' || phase.kind === 'quest' ? null : reject(AVALON_REASONS.phase),
+    actorChannel: internal ? 'system' : 'uncontrolledUser',
+    deadlineAt: phase.kind === 'vote' || phase.kind === 'quest' ? phase.deadlineAt : null,
+    notExpiredReason: AVALON_REASONS.deadline,
+    dispatch: () => {
+      if (phase.kind === 'vote') {
+        const settlement = buildVoteSettlement(state, phase.ballots, context);
+        return commitAvalon(settlement.events, settlement.effects);
+      }
+      return settleQuestWithDefaults(state, context);
+    },
+  });
 }
 
 /**

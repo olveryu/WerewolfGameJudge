@@ -12,7 +12,7 @@ import {
   gameCompletionPayloadSchema,
   publishGameRewards,
 } from '../../features/account/settleGameRewards';
-import { dispatchEffectCommand } from '../../platform/gameModules/effectDispatch';
+import { createSettleDueHandler } from '../../platform/gameModules/settleDue';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 
 const gameCompletedEffectSchema = z.strictObject({
@@ -48,34 +48,33 @@ const SUPERSEDED_SETTLE_REASONS: readonly string[] = [
   AVALON_REASONS.deadline,
 ];
 
-async function handleAvalonSettleDueEffect(
-  effect: AvalonSettleDueEffect,
-  context: WorkerEffectContext<AvalonState, AvalonInternalCommand>,
-): Promise<void> {
-  const state = context.state;
-  const phase = state.phase;
-  // Staleness gate: the payload pins one exact arming. If the room has
-  // moved on (already settled, new proposal, new game), this delivery
-  // is a no-op — never settle whatever phase happens to be current.
-  if (
-    state.gameSequence !== effect.payload.gameSequence ||
-    (phase.kind !== 'vote' && phase.kind !== 'quest') ||
-    phase.kind !== effect.payload.phase ||
-    phase.round !== effect.payload.round ||
-    phase.deadlineAt !== effect.payload.deadlineAt
-  ) {
-    return;
-  }
-  await dispatchEffectCommand(
-    context,
-    { type: 'avalon.phase.settleExpired' },
-    {
-      namespace: 'avalon:settle',
-      supersededReasons: SUPERSEDED_SETTLE_REASONS,
-      label: 'Avalon settle',
-    },
-  );
-}
+/**
+ * Scheduled countdown settlement through the shared settle.due
+ * handler. The staleness gate compares the payload's pinned arming
+ * field by field (game sequence, phase, round, deadline): if the
+ * room has moved on (already settled, new proposal, new game), the
+ * delivery is a no-op.
+ */
+const handleAvalonSettleDueEffect = createSettleDueHandler<
+  AvalonState,
+  AvalonSettleDueEffect['payload'],
+  AvalonInternalCommand
+>({
+  namespace: 'avalon:settle',
+  label: 'Avalon settle',
+  command: { type: 'avalon.phase.settleExpired' },
+  supersededReasons: SUPERSEDED_SETTLE_REASONS,
+  isCurrent: (state, payload) => {
+    const phase = state.phase;
+    return (
+      state.gameSequence === payload.gameSequence &&
+      (phase.kind === 'vote' || phase.kind === 'quest') &&
+      phase.kind === payload.phase &&
+      phase.round === payload.round &&
+      phase.deadlineAt === payload.deadlineAt
+    );
+  },
+});
 
 /**
  * Deliver one validated Avalon effect. Exactly-once for the completion
