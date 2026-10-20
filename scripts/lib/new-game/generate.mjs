@@ -265,6 +265,7 @@ export function generateNewGame(options) {
     iconName = 'game-controller-outline',
     tier = 'mini',
     rewards = DEFAULT_REWARDS,
+    production = false,
   } = options;
   if (preset !== 'identity' && preset !== 'stage') {
     throw new Error(`Invalid preset "${String(preset)}": expected "identity" or "stage".`);
@@ -285,7 +286,15 @@ export function generateNewGame(options) {
     __GAME_TIER__: tier,
     __GAME_PRESET__: preset,
   };
-  const ctx = { gameId, camel: names.camel, pascal: names.pascal, rewards, capabilities, home };
+  const ctx = {
+    gameId,
+    camel: names.camel,
+    pascal: names.pascal,
+    rewards,
+    capabilities,
+    home,
+    production,
+  };
 
   // Phase 1: compute everything in memory. Nothing below writes until
   // every render and every edit has succeeded.
@@ -335,6 +344,7 @@ export function generateNewGame(options) {
     createdFiles,
     editedFiles,
     migrationName,
+    production,
   });
 
   // Phase 2: duplicate guard — no target may already exist, including

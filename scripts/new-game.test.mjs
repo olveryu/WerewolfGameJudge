@@ -180,7 +180,18 @@ for (const preset of ['identity', 'stage']) {
     assert.ok(gameTypes.includes(`  'demoproto',\n] as const;`));
     const registry = readFixture(root, 'packages/game-engine/src/games/registry.ts');
     assert.ok(registry.includes('demoproto: {'));
-    assert.ok(registry.includes('isProduction: true'));
+    // Scope the production-flag assertion to the generated entry itself:
+    // the fixture registry already carries seven `isProduction: true`
+    // lines for the shipped games, so a file-wide includes() is vacuous.
+    const entryStart = registry.indexOf('demoproto: {');
+    const demoprotoEntry = registry.slice(entryStart, registry.indexOf('\n  },', entryStart));
+    assert.ok(
+      demoprotoEntry.includes('isProduction: false'),
+      'default generation registers the new game as non-production',
+    );
+    const reportText = readFixture(root, summary.reportPath);
+    assert.ok(reportText.includes('上线（翻生产）'), 'default report carries the go-live step');
+    assert.ok(reportText.includes('homeProductionFilter'), 'go-live step names the tripwire list');
     assert.ok(
       registry.includes(
         "rewards: { policy: 'flat', xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 }",
@@ -306,6 +317,29 @@ for (const preset of ['identity', 'stage']) {
     }
   });
 }
+
+test('production: true registers the new game as production and reports the list-only go-live step', () => {
+  const root = makeFixtureRepo();
+  const summary = generateNewGame({
+    rootDir: root,
+    gameId: 'demoproto',
+    preset: 'identity',
+    production: true,
+  });
+  const registry = readFixture(root, 'packages/game-engine/src/games/registry.ts');
+  const entryStart = registry.indexOf('demoproto: {');
+  const demoprotoEntry = registry.slice(entryStart, registry.indexOf('\n  },', entryStart));
+  assert.ok(
+    demoprotoEntry.includes('isProduction: true'),
+    '--production generation registers the new game as production',
+  );
+  const report = readFixture(root, summary.reportPath);
+  assert.ok(
+    report.includes('上线（同步绊线名单）'),
+    'production report carries the list-only step',
+  );
+  assert.ok(report.includes('homeProductionFilter'), 'list-only step names the tripwire list');
+});
 
 test('generated output passes the format and lint gates with tooling present', (t) => {
   // The fixture-repo cases above structurally cannot catch shaping

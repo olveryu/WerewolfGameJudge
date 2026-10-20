@@ -18,6 +18,8 @@ const USAGE = `Usage: pnpm new-game <gameId> --preset identity|stage [options]
 
 Options:
   --preset <identity|stage>  Skeleton archetype (required).
+  --production               Register as a production game (default: registered but
+                             hidden from player surfaces until the go-live step).
   --name <text>              Home display name (default: the game id).
   --subtitle <text>          Home subtitle (default: a TODO placeholder).
   --icon <ionicon-name>      Home icon (default: game-controller-outline).
@@ -68,6 +70,9 @@ function parseArgs(argv) {
         break;
       case '--daily-target':
         options.rewards.dailyCompletionTarget = parseRewardValue('--daily-target', next());
+        break;
+      case '--production':
+        options.production = true;
         break;
       case '--help':
       case '-h':

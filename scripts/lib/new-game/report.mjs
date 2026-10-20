@@ -15,6 +15,7 @@ export function buildIntegrationReport({
   createdFiles,
   editedFiles,
   migrationName,
+  production,
 }) {
   const capabilityRows = Object.entries(capabilities)
     .map(([key, value]) => `| \`${key}\` | ${value ? '开' : '关'} |`)
@@ -33,6 +34,7 @@ export function buildIntegrationReport({
 | --- | --- |
 | 游戏 ID | \`${gameId}\` |
 | 原型预设 | ${preset === 'identity' ? '身份推理型（identity）' : '舞台回合型（stage）'} |
+| 生产态 | ${production ? '是（--production）' : '否（默认非生产，上线动作见第 8 步）'} |
 | 展示名 / 副标题 | ${home.displayName} / ${home.subtitle} |
 | 首页图标 / 档位 | ${home.iconName} / ${home.tier} |
 | 完成奖励（flat） | xpEarned ${rewards.xpEarned} · normalDrawsEarned ${rewards.normalDrawsEarned} · dailyCompletionTarget ${rewards.dailyCompletionTarget} |
@@ -80,6 +82,23 @@ ${edited}
    \`workerWorkflows\` 登记供词 workflow 导出（capabilities contract 会验两者一致），
    并按 new-game skill Phase 3d 建词表与灌种子词，不许空表上线。
 7. **门禁复跑**：\`pnpm exec tsc --noEmit\`、引擎与 worker 的 vitest、根 jest、
-   \`pnpm run knip\`、改动文件 prettier/eslint，全部绿了再开 PR。
+   \`pnpm run knip\`、改动文件 prettier/eslint，全部绿了再开 PR。${
+     production
+       ? `
+8. **上线（同步绊线名单）**：本次以 \`--production\` 生成，注册表已是
+   \`isProduction: true\`，上线前只剩一步：把 \`'${gameId}'\` 按它在 \`GAME_TYPES\`
+   中的顺序位置，加进 \`src/games/__tests__/homeProductionFilter.contract.test.ts\`
+   的 \`PRODUCTION_GAME_TYPES\` 名单——这份硬编码名单是刻意保留的绊线，
+   生产集合变更永远是显式动作。名单同步、contract 转绿即上线完成。`
+       : `
+8. **上线（翻生产）**：本次生成默认非生产（注册表 \`isProduction: false\`）——
+   游戏已全注册、凭房间码可进，但首页/建房/guide/spotlight/公告等玩家面不可见。
+   玩法完成、门禁全绿后，在同一个 PR 里做两处显式动作才算上线：
+   ① \`packages/game-engine/src/games/registry.ts\` 本游戏条目改 \`isProduction: true\`；
+   ② 把 \`'${gameId}'\` 按它在 \`GAME_TYPES\` 中的顺序位置，加进
+   \`src/games/__tests__/homeProductionFilter.contract.test.ts\` 的
+   \`PRODUCTION_GAME_TYPES\` 名单（硬编码名单是刻意保留的绊线）。
+   两处只改其一会被 contract 拦住；两处齐、contract 转绿即上线完成。`
+   }
 `;
 }

@@ -78,8 +78,8 @@ export function editGameTypes(content, { gameId }) {
   );
 }
 
-/** Append the registration metadata entry (flat rewards, in production, no workflows/routes yet). */
-export function editRegistry(content, { gameId, rewards }) {
+/** Append the registration metadata entry (flat rewards, production flag per --production, no workflows/routes yet). */
+export function editRegistry(content, { gameId, rewards, production }) {
   const file = 'games/registry.ts';
   if (content.includes(`gameType: '${gameId}'`)) fail(file, `'${gameId}' is already registered.`);
   const entry = [
@@ -87,7 +87,7 @@ export function editRegistry(content, { gameId, rewards }) {
     `    gameType: '${gameId}',`,
     `    enginePublicExport: './games/${gameId}/public',`,
     `    clientModulePath: 'src/games/${gameId}/module.ts',`,
-    `    isProduction: true,`,
+    `    isProduction: ${production},`,
     `    // TODO(new-game): confirm the completion reward amounts for ${gameId}.`,
     `    rewards: { policy: 'flat', xpEarned: ${rewards.xpEarned}, normalDrawsEarned: ${rewards.normalDrawsEarned}, dailyCompletionTarget: ${rewards.dailyCompletionTarget} },`,
     `    workerWorkflows: [],`,
