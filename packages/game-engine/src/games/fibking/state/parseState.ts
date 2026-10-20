@@ -76,8 +76,8 @@ function parseHumanSeat(value: unknown, path: string): FibHumanSeat {
   return finishObject(
     raw,
     {
-      userId: parseNonEmptyString(raw.userId, `${path}.userId`),
       seat: parseSeat(raw.seat, `${path}.seat`),
+      userId: parseNonEmptyString(raw.userId, `${path}.userId`),
       profile: parseRosterEntry(raw.profile, `${path}.profile`),
     },
     path,

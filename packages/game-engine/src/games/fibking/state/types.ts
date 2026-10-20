@@ -10,6 +10,7 @@ import {
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
 import {
   countOccupiedSeats,
+  isRoomFull,
   type RosterMap,
   type SeatOccupant,
 } from '../../../platform/room/seating';
@@ -198,7 +199,7 @@ export function getFibOccupiedSeatCount(state: FibState): number {
 }
 
 export function isFibRoomFull(state: FibState): boolean {
-  return getFibOccupiedSeatCount(state) === state.numberOfPlayers;
+  return isRoomFull(state.roster, state.numberOfPlayers);
 }
 
 /** Identity Viewing Protocol participants: every occupied seat with its bot flag. */
