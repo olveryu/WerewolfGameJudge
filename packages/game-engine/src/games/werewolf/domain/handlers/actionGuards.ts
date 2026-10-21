@@ -5,6 +5,7 @@
  * Exported `isSkipAction` and `checkNightmareBlockGuard` are also consumed by tests.
  */
 
+import { guardAudioPlayback } from '../../../../platform/audio';
 import {
   type ActionSchema,
   doesRoleParticipateInWolfVote,
@@ -81,10 +82,11 @@ export function validateActionPreconditions(
   }
 
   // Gate 2: forbidden_while_audio_playing
-  if (state.isAudioPlaying) {
+  const audioReason = guardAudioPlayback(state, 'forbidden_while_audio_playing');
+  if (audioReason !== null) {
     return {
       valid: false,
-      result: handlerError('forbidden_while_audio_playing'),
+      result: handlerError(audioReason),
     };
   }
 

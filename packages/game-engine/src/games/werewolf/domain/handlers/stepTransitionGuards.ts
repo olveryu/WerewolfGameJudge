@@ -7,6 +7,7 @@
  * Gates have no IO and do not mutate state.
  */
 
+import { guardAudioPlayback } from '../../../../platform/audio';
 import { GameStatus } from '../models';
 import type { GameState } from '../protocol/types';
 import { WOLF_ROBOT_GATE_ROLES } from './revealPayload';
@@ -46,10 +47,11 @@ export function validateNightFlowPreconditions(
   }
 
   // Gate 2: forbidden_while_audio_playing
-  if (state.isAudioPlaying) {
+  const audioReason = guardAudioPlayback(state, 'forbidden_while_audio_playing');
+  if (audioReason !== null) {
     return {
       valid: false,
-      result: handlerError('forbidden_while_audio_playing'),
+      result: handlerError(audioReason),
     };
   }
 

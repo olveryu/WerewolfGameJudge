@@ -16,9 +16,9 @@
  * No IO.
  */
 
-import { type AudioEffect, isAudioGateOpen, queueAudioBatch } from '../../../platform/audio';
+import { type AudioEffect, guardAudioPlayback, queueAudioBatch } from '../../../platform/audio';
 import { AVALON_NIGHT_STEPS, type AvalonState } from '../state/types';
-import type { AvalonEvent } from './decision';
+import { AVALON_REASONS, type AvalonEvent } from './decision';
 import { getAvalonNightStepDef, getAvalonNightStepEndKey } from './nightSteps';
 import { getAvalonNightParticipants } from './rules';
 
@@ -39,7 +39,9 @@ export function queueAudio(effects: readonly AudioEffect[]): AvalonEvent {
 export function evaluateAvalonNightCompletion(state: AvalonState): readonly AvalonEvent[] {
   const phase = state.phase;
   if (phase.kind !== 'night') return [];
-  if (!isAudioGateOpen(state)) return [];
+  // Progression is not a command rejection: while playback is
+  // running the shared gate guard's verdict simply means no events.
+  if (guardAudioPlayback(state, AVALON_REASONS.audioPlaying) !== null) return [];
   const participants = getAvalonNightParticipants(state.roles, phase.step);
   if (!participants.every((seat) => phase.confirmedSeats.includes(seat))) return [];
   const def = getAvalonNightStepDef(phase.step);

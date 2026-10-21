@@ -10,7 +10,7 @@
  * does not directly modify state (returns StateAction list for reducer to execute).
  */
 
-import type { AudioEffect } from '../../../../platform/audio';
+import { type AudioEffect, guardAudioPlayback } from '../../../../platform/audio';
 import { createSeededRng, randomPick, type Rng, shuffleArray } from '../../../../platform/random';
 import { decideRosterFillBots } from '../../../../platform/room/seating';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
@@ -331,6 +331,13 @@ export function handleAbortGame(
     return handlerError('invalid_status');
   }
 
+  // Gate: terminal flow waits until narration playback finishes
+  // (platform audio gate, same reason as the night gates).
+  const audioReason = guardAudioPlayback(context.state, 'forbidden_while_audio_playing');
+  if (audioReason !== null) {
+    return handlerError(audioReason);
+  }
+
   return decideRestartGame(execution);
 }
 
@@ -347,6 +354,13 @@ export function handleReturnToLobbyGame(
   // in progress is aborted instead.
   if (context.state.status !== GameStatus.Ended) {
     return handlerError('invalid_status');
+  }
+
+  // Gate: terminal flow waits until narration playback finishes
+  // (platform audio gate, same reason as the night gates).
+  const audioReason = guardAudioPlayback(context.state, 'forbidden_while_audio_playing');
+  if (audioReason !== null) {
+    return handlerError(audioReason);
   }
 
   return decideRestartGame(execution);
@@ -369,6 +383,13 @@ export function handleRedealGame(
   // Gate: only a finished game can be redealt.
   if (state.status !== GameStatus.Ended) {
     return handlerError('invalid_status');
+  }
+
+  // Gate: terminal flow waits until narration playback finishes
+  // (platform audio gate, same reason as the night gates).
+  const audioReason = guardAudioPlayback(state, 'forbidden_while_audio_playing');
+  if (audioReason !== null) {
+    return handlerError(audioReason);
   }
 
   const deal = decideRoleDeal(state, execution);
