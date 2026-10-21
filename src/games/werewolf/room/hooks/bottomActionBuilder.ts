@@ -12,6 +12,7 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { getBottomCardEffectiveRole } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
+import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
@@ -78,7 +79,7 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
   } = ctx;
 
   if (roomStatus !== GameStatus.Ongoing) return EMPTY;
-  if (isAudioPlaying) return EMPTY;
+  if (isAudioPlaybackLocked(isAudioPlaying)) return EMPTY;
   if (!currentSchema) return EMPTY;
 
   // All schemas (including groupConfirm): only visible to the actioner.

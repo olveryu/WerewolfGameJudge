@@ -229,8 +229,12 @@ describe('createWerewolfHostManagement', () => {
     expect(actionLabels(model!)).toContain('中止本局');
   });
 
+  // Audio playback lock (supersedes the former "keeps abort available"
+  // pin, which contradicted the interaction policy's audio gate): while
+  // narration plays, flow actions are disabled with the shared lock
+  // reason and carry no press handler; read-only review tools stay live.
   it.each([GameStatus.Ongoing, GameStatus.Day])(
-    'keeps abort available during audio playback in %s',
+    'disables abort during audio playback in %s',
     (roomStatus) => {
       const onHostControl = jest.fn();
       const model = createWerewolfHostManagement(
@@ -244,14 +248,75 @@ describe('createWerewolfHostManagement', () => {
       const abortAction = model?.sections
         .flatMap((section) => section.actions)
         .find((action) => action.label === '中止本局');
-      if (abortAction?.isEnabled !== true) {
-        throw new Error(`Expected abort during ${roomStatus} audio playback`);
-      }
-
-      abortAction.onPress();
-      expect(onHostControl).toHaveBeenCalledWith('abort');
+      expect(abortAction).toMatchObject({
+        isEnabled: false,
+        disabledReason: '语音播报中，请稍候',
+      });
+      expect(abortAction).not.toHaveProperty('onPress');
+      expect(onHostControl).not.toHaveBeenCalled();
     },
   );
+
+  it('disables the terminal actions during audio playback in Ended', () => {
+    const model = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Ended,
+        isAudioPlaying: true,
+        capabilities: deniedRoomCapabilities,
+      }),
+    );
+    const actions = model!.sections.flatMap((section) => section.actions);
+    for (const key of ['select-mvp', 'next-round', 'return-lobby']) {
+      const action = actions.find((entry) => entry.key === key);
+      expect(action).toMatchObject({ isEnabled: false, disabledReason: '语音播报中，请稍候' });
+      expect(action).not.toHaveProperty('onPress');
+    }
+  });
+
+  it.each([GameStatus.Day, GameStatus.Ended])(
+    'keeps the read-only review tools available during audio playback in %s',
+    (roomStatus) => {
+      const onNightReview = jest.fn();
+      const onLastNightInfo = jest.fn();
+      const model = createWerewolfHostManagement(
+        createInput({
+          roomStatus,
+          isAudioPlaying: true,
+          capabilities: deniedRoomCapabilities,
+          onNightReview,
+          onLastNightInfo,
+        }),
+      );
+      const actions = model!.sections.flatMap((section) => section.actions);
+      const reviewAction = actions.find((action) => action.key === 'night-review');
+      const infoAction = actions.find((action) => action.key === 'last-night-info');
+      if (reviewAction?.isEnabled !== true || infoAction?.isEnabled !== true) {
+        throw new Error(`Expected review tools to stay enabled during ${roomStatus} audio`);
+      }
+      reviewAction.onPress();
+      infoAction.onPress();
+      expect(onNightReview).toHaveBeenCalledTimes(1);
+      expect(onLastNightInfo).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('disables the sheriff flow actions during audio playback in Day', () => {
+    const sheriffElection = createSheriffElection({ phase: 'candidateSpeech' });
+    const model = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Day,
+        isAudioPlaying: true,
+        sheriffElection,
+        capabilities: deniedRoomCapabilities,
+      }),
+    );
+    const actions = model!.sections.flatMap((section) => section.actions);
+    for (const key of ['sheriff-advance', 'sheriff-self-destruct']) {
+      const action = actions.find((entry) => entry.key === key);
+      expect(action).toMatchObject({ isEnabled: false, disabledReason: '语音播报中，请稍候' });
+      expect(action).not.toHaveProperty('onPress');
+    }
+  });
 
   it('presents the terminal double-key in the ended state and includes result tools', () => {
     const onNightReview = jest.fn();

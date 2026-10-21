@@ -3,6 +3,7 @@
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
+import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
 import {
   buildAbortGameAction,
   buildAssignRolesAction,
@@ -311,6 +312,16 @@ function createSection(
   return actions.length === 0 ? null : { key, title, actions };
 }
 
+/**
+ * Read-only actions exempt from the audio playback lock: the post-game
+ * review tools only open dialogs over finished information, matching
+ * the interaction policy's read-only exemptions.
+ */
+const AUDIO_LOCK_EXEMPT_ACTION_KEYS: ReadonlySet<string> = new Set([
+  'night-review',
+  'last-night-info',
+]);
+
 /** Build the complete Host-only command surface from current room facts. */
 export function createWerewolfHostManagement(
   input: WerewolfHostManagementInput,
@@ -328,10 +339,13 @@ export function createWerewolfHostManagement(
   if (sections.length === 0) {
     throw new Error('Werewolf Host management must expose at least one action');
   }
-  return {
-    hasPendingAction: getHasPendingAction(input),
-    sections,
-  };
+  return applyAudioPlaybackLock(
+    {
+      hasPendingAction: getHasPendingAction(input),
+      sections,
+    },
+    { isAudioPlaying: input.isAudioPlaying, exemptActionKeys: AUDIO_LOCK_EXEMPT_ACTION_KEYS },
+  );
 }
 
 function getHasPendingAction(input: WerewolfHostManagementInput): boolean {

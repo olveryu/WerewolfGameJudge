@@ -10,6 +10,7 @@
 
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
+import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import { AUDIO_WAITING_LABEL, VIEW_IDENTITY_LABEL } from '@/features/room/model/RoomBottomActions';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import { TESTIDS } from '@/testids';
@@ -223,7 +224,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     match: {
       status: GameStatus.Ongoing,
       role: 'host',
-      when: (ctx) => ctx.isAudioPlaying,
+      when: (ctx) => isAudioPlaybackLocked(ctx.isAudioPlaying),
     },
     layout: {
       primary: [{ source: 'static', button: 'audioWaiting' }],
@@ -235,7 +236,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     match: {
       status: GameStatus.Ongoing,
       role: 'player',
-      when: (ctx) => ctx.isAudioPlaying,
+      when: (ctx) => isAudioPlaybackLocked(ctx.isAudioPlaying),
     },
     layout: {
       primary: [{ source: 'static', button: 'audioWaiting' }],
@@ -292,6 +293,35 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     },
   },
   // spectator: no panel
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Day — audio playback gate (the night-end announcement window opens
+  // Day with narration still playing; same collapse as Ongoing)
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    match: {
+      status: GameStatus.Day,
+      role: 'host',
+      when: (ctx) => isAudioPlaybackLocked(ctx.isAudioPlaying),
+    },
+    layout: {
+      primary: [{ source: 'static', button: 'audioWaiting' }],
+      secondary: [],
+      ghost: [],
+    },
+  },
+  {
+    match: {
+      status: GameStatus.Day,
+      role: 'player',
+      when: (ctx) => isAudioPlaybackLocked(ctx.isAudioPlaying),
+    },
+    layout: {
+      primary: [{ source: 'static', button: 'audioWaiting' }],
+      secondary: [],
+      ghost: [],
+    },
+  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Day — sheriff election owns the contextual action; keep room tools visible

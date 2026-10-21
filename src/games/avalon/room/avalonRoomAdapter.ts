@@ -21,6 +21,7 @@ import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotD
 
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
 import type { BoardInfoSection, RoleDisplayItem } from '@/features/room/model/BoardInfoSection';
 import {
   buildRoomHeaderModel,
@@ -694,6 +695,9 @@ export interface AvalonHostManagementInput {
   ) => Promise<boolean>;
 }
 
+/** Avalon's panel carries no read-only actions, so nothing is exempt from the audio lock. */
+const AVALON_AUDIO_LOCK_EXEMPT_ACTION_KEYS: ReadonlySet<string> = new Set();
+
 /** Assembles the Avalon host panel for the current phase. */
 export function createAvalonHostManagement(
   input: AvalonHostManagementInput,
@@ -701,6 +705,14 @@ export function createAvalonHostManagement(
   if (!input.isHost) return null;
   const { state, capabilities } = input;
   const submit = input.submit;
+  // Every exit passes through the one audio playback lock: while the
+  // night narration plays, panel actions render disabled and their
+  // presses are unreachable instead of relying on engine rejection.
+  const applyLock = (model: RoomHostManagementModel): RoomHostManagementModel =>
+    applyAudioPlaybackLock(model, {
+      isAudioPlaying: state.isAudioPlaying,
+      exemptActionKeys: AVALON_AUDIO_LOCK_EXEMPT_ACTION_KEYS,
+    }) ?? model;
   const roomActions: RoomHostManagementAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
     roomActions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
@@ -728,7 +740,7 @@ export function createAvalonHostManagement(
       isPrimary: true,
       remedy: buildShareRoomRemedy(capabilities.canShareRoom),
     });
-    return {
+    return applyLock({
       sections: [
         {
           key: 'game',
@@ -737,7 +749,7 @@ export function createAvalonHostManagement(
         },
         { key: 'room', title: '房间管理', actions: roomActions },
       ],
-    };
+    });
   }
   if (state.phase.kind === 'viewing') {
     // 三段式中段：牌已发、对局未开始。全员查看齐后房主点「开始游戏」
@@ -786,12 +798,10 @@ export function createAvalonHostManagement(
         ],
       });
     sections.push({ key: 'room', title: '房间管理', actions: roomActions });
-    return {
-      sections,
-    };
+    return applyLock({ sections });
   }
   if (state.phase.kind === 'ended') {
-    return {
+    return applyLock({
       sections: [
         {
           key: 'current-flow',
@@ -816,7 +826,7 @@ export function createAvalonHostManagement(
           ],
         },
       ],
-    };
+    });
   }
   // 房主手动结算（D15/D16）：投票阶段可结束投票，任务阶段可结束任务。
   const inGameSections: RoomHostManagementSection[] = [];
@@ -899,9 +909,9 @@ export function createAvalonHostManagement(
     });
   // 房主管理常驻（对齐狼人杀）：局内任何时候房主都能点开，房间管理区始终有，
   // 投票/任务阶段额外出现"结束投票"/"结束任务"。
-  return {
+  return applyLock({
     sections: [...inGameSections, { key: 'room', title: '房间管理', actions: roomActions }],
-  };
+  });
 }
 
 /** Assembles the Avalon RoomShellModel from the hook's projections. */

@@ -438,7 +438,10 @@ describe('resolveBottomLayout', () => {
       expect(layout.primary[0]).toMatchObject({ isEnabled: true });
     });
 
-    it('host during audio → viewRole remains enabled', () => {
+    // The night-end announcement opens Day with narration still
+    // playing: the layout collapses to the audio placeholder exactly
+    // as in Ongoing (supersedes the former viewRole-stays pin).
+    it('host during audio → primary: audioWaiting, ghost: empty', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Day,
@@ -448,9 +451,40 @@ describe('resolveBottomLayout', () => {
         }),
       );
 
-      expect(keys(layout, 'primary')).toEqual(['viewRole']);
-      expect(layout.primary[0]).toMatchObject({ isEnabled: true });
+      expect(keys(layout, 'primary')).toEqual(['audioWaiting']);
+      expect(layout.primary[0]).toMatchObject({ isEnabled: false });
+      expect(keys(layout, 'secondary')).toEqual([]);
       expect(keys(layout, 'ghost')).toEqual([]);
+    });
+
+    it('player during audio → primary: audioWaiting, ghost: empty', () => {
+      const layout = resolveBottomLayout(
+        makeCtx({
+          roomStatus: GameStatus.Day,
+          isHost: false,
+          effectiveSeat: 1,
+          isAudioPlaying: true,
+          nightReviewAllowedSeats: [1],
+        }),
+      );
+
+      expect(keys(layout, 'primary')).toEqual(['audioWaiting']);
+      expect(keys(layout, 'secondary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual([]);
+    });
+
+    it('spectator during audio → nightReview remains (read-only surface, no collapse)', () => {
+      const layout = resolveBottomLayout(
+        makeCtx({
+          roomStatus: GameStatus.Day,
+          isHost: false,
+          effectiveSeat: null,
+          isAudioPlaying: true,
+        }),
+      );
+
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'secondary')).toEqual(['nightReview']);
     });
 
     it('player → primary: viewRole', () => {

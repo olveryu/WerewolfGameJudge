@@ -5,7 +5,8 @@
  * It enforces a strict priority order and returns instructions for the orchestrator.
  *
  * Priority order (contract - MUST be tested):
- * 1. Audio Gate (highest) - NOOP when audio is playing during ongoing game
+ * 1. Audio Gate (highest) - NOOP while audio is playing, in any phase
+ *    (night steps, and the Day / Ended announcement window alike)
  * 2. Pending Server-Ack Gate - NOOP when any protocol ack is in-flight
  *    (reveal / hunterStatus / groupConfirm); aggregated via useWerewolfPendingAcks
  * 4. Event Routing - Route to appropriate handler based on event type
@@ -16,6 +17,7 @@
 
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
+import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import { getSeatTapResult } from '@/games/werewolf/room/seatTap/SeatTapPolicy';
 
 import type {
@@ -31,7 +33,9 @@ import type {
 
 /**
  * Check audio gate - highest priority.
- * Returns NOOP if audio is playing during ongoing game.
+ * Returns NOOP while audio is playing, whatever the phase: the gate
+ * covers night steps (Ongoing) and the night-end announcement window
+ * (Day / Ended) alike, through the one shared lock predicate.
  *
  * Exempt events (always allowed during audio playback):
  * - LEAVE_ROOM: safety exit
@@ -48,7 +52,7 @@ function checkAudioGate(
 ): InteractionResult | null {
   if (AUDIO_GATE_EXEMPT.has(event.kind)) return null;
 
-  if (ctx.roomStatus === GameStatus.Ongoing && ctx.isAudioPlaying) {
+  if (isAudioPlaybackLocked(ctx.isAudioPlaying)) {
     return { kind: 'NOOP', reason: 'audio_playing' };
   }
   return null;

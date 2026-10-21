@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { closeAll } from '../fixtures/app.fixture';
 import { setupNPlayerGame } from '../helpers/multi-player';
+import { waitForHostAudioAck } from '../helpers/night-driver';
 import { runNightFlowLoop } from '../pages/NightFlowPage';
 import { RoomPage } from '../pages/RoomPage';
 import { SheriffElectionPage } from '../pages/SheriffElectionPage';
@@ -36,6 +37,14 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await Promise.all(elections.map((election) => election.waitForPhase('报名上警')));
 
     await hostElection.expectWideInspector();
+    // The phase flip queued the night-end announcement in the same
+    // state write, so it is still playing now — and while audio plays
+    // the host's main action is in its blocked form (no
+    // room-next-step-button), so the registration-actions assertion
+    // below would time out. Wait for the host's audio ack (the
+    // server-side gate lifting) before asserting, like a host who
+    // waits out the announcement.
+    await waitForHostAudioAck(setup.hostPage);
     await hostElection.expectHostRegistrationActions('register');
     const desktopViewport = setup.hostPage.viewportSize();
     if (desktopViewport === null) throw new Error('Sheriff E2E requires a viewport');

@@ -516,6 +516,18 @@ describe('createWerewolfRoomShellModel', () => {
     expect(idle.seats.visuallyDisabled).toBe(false);
   });
 
+  it('disables the seat board visually during the Day / Ended announcement window', () => {
+    // The night-end announcement keeps isAudioPlaying true after the
+    // status has already moved on; the seat board greys in that window
+    // too, matching the phase-free interaction policy gate.
+    for (const roomStatus of [GameStatus.Day, GameStatus.Ended]) {
+      const model = createWerewolfRoomShellModel(
+        createShellModelInput({ roomStatus, isAudioPlaying: true }),
+      );
+      expect(model.seats.visuallyDisabled).toBe(true);
+    }
+  });
+
   it('gates the bot-seat long press on the takeover capability', () => {
     const onSeatLongPressed = jest.fn();
     const allowed = createWerewolfRoomShellModel(createShellModelInput({ onSeatLongPressed }));

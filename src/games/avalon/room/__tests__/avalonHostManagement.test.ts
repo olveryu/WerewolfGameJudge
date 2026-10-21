@@ -336,6 +336,36 @@ describe('createAvalonHostManagement', () => {
     });
   });
 
+  it('exposes no enabled panel action while the night narration is playing', () => {
+    const game = session();
+    game.seatHost();
+    game.fill();
+    game.send({ type: 'avalon.roles.assign' });
+    game.send({ type: 'avalon.role.viewed' });
+    game.send({ type: 'avalon.bots.markAllBotsViewed' });
+    game.send({ type: 'avalon.game.begin' });
+    // No ack: the first night step's narration is still playing. The
+    // factory exit runs the shared audio playback lock, so whatever
+    // actions the panel carries, none of them is enabled.
+    expect(game.state.phase.kind).toBe('night');
+    expect(game.state.isAudioPlaying).toBe(true);
+    const locked = build(game.state, true, false);
+    expect(locked).not.toBeNull();
+    for (const section of locked!.sections) {
+      for (const action of section.actions) {
+        expect(action.isEnabled).toBe(false);
+        expect(action).not.toHaveProperty('onPress');
+      }
+    }
+
+    game.ackAudio();
+    expect(game.state.isAudioPlaying).toBe(false);
+    const idle = build(game.state, true, false);
+    expect(idle?.sections.map((section) => section.key)).toEqual(
+      locked!.sections.map((section) => section.key),
+    );
+  });
+
   it('pins the terminal panel on the shared builders after three failed quests', () => {
     const game = session();
     game.seatHost();
