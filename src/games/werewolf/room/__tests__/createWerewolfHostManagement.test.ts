@@ -51,7 +51,9 @@ function actionLabels(model: NonNullable<ReturnType<typeof createWerewolfHostMan
 
 function createSheriffElection(
   viewOverrides: Partial<SheriffElectionPanelModel['view']> = {},
-  callbacks: Partial<Pick<SheriffElectionPanelModel, 'advance' | 'requestEndBySelfDestruct'>> = {},
+  callbacks: Partial<
+    Pick<SheriffElectionPanelModel, 'advance' | 'requestAdvance' | 'requestEndBySelfDestruct'>
+  > = {},
 ): SheriffElectionPanelModel {
   return {
     view: {
@@ -79,6 +81,7 @@ function createSheriffElection(
     withdraw: jest.fn().mockResolvedValue(undefined),
     vote: jest.fn().mockResolvedValue(undefined),
     advance: jest.fn().mockResolvedValue(undefined),
+    requestAdvance: jest.fn(),
     requestEndBySelfDestruct: jest.fn(),
     ...callbacks,
   };
@@ -164,8 +167,8 @@ describe('createWerewolfHostManagement', () => {
   });
 
   it('surfaces sheriff advancement as the current task and keeps restart separate', () => {
-    const advance = jest.fn().mockResolvedValue(undefined);
-    const sheriffElection = createSheriffElection({}, { advance });
+    const requestAdvance = jest.fn();
+    const sheriffElection = createSheriffElection({}, { requestAdvance });
     const model = createWerewolfHostManagement(
       createInput({
         roomStatus: GameStatus.Day,
@@ -180,7 +183,29 @@ describe('createWerewolfHostManagement', () => {
     if (advanceAction?.isEnabled !== true) throw new Error('Expected enabled sheriff advancement');
     expect(advanceAction.isPrimary).toBe(true);
     advanceAction.onPress();
-    expect(advance).toHaveBeenCalledTimes(1);
+    expect(requestAdvance).toHaveBeenCalledTimes(1);
+  });
+
+  it('routes advancement through the request entry during speech phases too', () => {
+    const requestAdvance = jest.fn();
+    const sheriffElection = createSheriffElection(
+      { phase: 'candidateSpeech', advanceLabel: '结束发言' },
+      { requestAdvance },
+    );
+    const model = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Day,
+        sheriffElection,
+        capabilities: deniedRoomCapabilities,
+      }),
+    );
+    const advanceAction = model?.sections
+      .flatMap((section) => section.actions)
+      .find((action) => action.key === 'sheriff-advance');
+
+    if (advanceAction?.isEnabled !== true) throw new Error('Expected enabled sheriff advancement');
+    advanceAction.onPress();
+    expect(requestAdvance).toHaveBeenCalledTimes(1);
   });
 
   it.each([

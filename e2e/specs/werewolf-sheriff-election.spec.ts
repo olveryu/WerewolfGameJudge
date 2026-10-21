@@ -70,7 +70,7 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await secondElection.register();
     await Promise.all(elections.map((election) => election.expectCandidateRecordsHidden()));
 
-    await hostElection.advance();
+    await hostElection.endRegistration();
     await Promise.all(elections.map((election) => election.waitForPhase('竞选发言')));
     await Promise.all(elections.map((election) => election.expectRegisteredOrder([3, 1, 2])));
     const candidateSpeakingInstruction = await hostElection.getSpeakingInstruction();

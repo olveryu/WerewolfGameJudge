@@ -103,6 +103,14 @@ export class SheriffElectionPage {
     await new RoomPage(this.page).clickHostManagementAction(TESTIDS.sheriffAdvanceButton);
   }
 
+  /** Close registration; the advance action asks the Host to confirm first. */
+  async endRegistration(): Promise<void> {
+    await new RoomPage(this.page).clickHostManagementActionAndConfirm(
+      TESTIDS.sheriffAdvanceButton,
+      '结束报名？',
+    );
+  }
+
   async voteFor(candidateSeat: number): Promise<void> {
     const candidateButton = this.page.getByTestId(TESTIDS.sheriffCandidateButton(candidateSeat));
     await candidateButton.click();

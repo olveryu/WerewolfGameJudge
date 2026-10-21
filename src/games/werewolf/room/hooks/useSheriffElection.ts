@@ -13,7 +13,7 @@ import {
 } from '@/games/werewolf/room/sheriffElectionViewModel';
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
-import { showDestructiveAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -33,6 +33,8 @@ export interface SheriffElectionPanelModel {
   readonly withdraw: () => Promise<void>;
   readonly vote: (targetSeat: number | null) => Promise<void>;
   readonly advance: () => Promise<void>;
+  /** Host tap on the advance action: closing registration asks first. */
+  readonly requestAdvance: () => void;
   readonly requestEndBySelfDestruct: () => void;
 }
 
@@ -117,6 +119,18 @@ export function useSheriffElection(
     () => executeCommand({ kind: 'advance' }, '推进竞选', advanceSheriffElection),
     [advanceSheriffElection, executeCommand],
   );
+  const requestAdvance = useCallback(() => {
+    // Closing registration is irreversible and registration is still
+    // secret at that point, so the confirm copy names no counts or
+    // seats — it only states the consequence. Later phases advance
+    // directly: ending a speech or confirming the candidate list is
+    // the Host's pacing call at the table.
+    if (view !== null && view.phase === 'registration') {
+      showConfirmAlert('结束报名？', '结束后，未报名的玩家不能再参选。', advance);
+      return;
+    }
+    void advance();
+  }, [advance, view]);
   const endBySelfDestruct = useCallback(
     () =>
       executeCommand(
@@ -147,6 +161,7 @@ export function useSheriffElection(
             withdraw,
             vote,
             advance,
+            requestAdvance,
             requestEndBySelfDestruct,
           },
     [
@@ -154,6 +169,7 @@ export function useSheriffElection(
       cancelRegistration,
       pendingAction,
       register,
+      requestAdvance,
       requestEndBySelfDestruct,
       view,
       vote,

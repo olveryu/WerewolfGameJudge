@@ -72,10 +72,8 @@ function createSheriffAdvanceAction(
     isLoading: election.pendingAction?.kind === 'advance',
     isPrimary: true,
   };
-  return buildPendingAwareHostAction(
-    descriptor,
-    election.pendingAction !== null,
-    () => void election.advance(),
+  return buildPendingAwareHostAction(descriptor, election.pendingAction !== null, () =>
+    election.requestAdvance(),
   );
 }
 
