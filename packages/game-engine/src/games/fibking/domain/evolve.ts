@@ -2,6 +2,7 @@
 
 import { appendRevelation } from '../../../platform/room/hostReveal';
 import { markSeatViewed } from '../../../platform/room/identityViewing';
+import { mergeRoomSeatProfile } from '../../../platform/room/roster';
 import { applyRosterChanges, isBotOccupant } from '../../../platform/room/seating';
 import { FIB_USED_WORD_LIMIT, type FibState } from '../state/types';
 import type { FibEvent } from './events';
@@ -33,7 +34,7 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
           ...state.roster,
           [event.seat]: {
             ...occupant,
-            profile: { ...occupant.profile, ...event.profile },
+            profile: mergeRoomSeatProfile(occupant.profile, event.profile),
           },
         },
       };

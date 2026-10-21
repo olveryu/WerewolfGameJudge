@@ -57,7 +57,12 @@ import {
 } from '../engine';
 import type { RoomProfileUpdateCommand, RoomSeatCommand } from '../protocol/commands';
 import { REASON_NOT_SEATED } from '../protocol/reasons';
-import type { RoomProfileUpdate, RoomSeatProfile } from './roster';
+import {
+  buildRoomSeatProfile,
+  mergeRoomSeatProfile,
+  type RoomProfileUpdate,
+  type RoomSeatProfile,
+} from './roster';
 import {
   decideRosterClearSeats,
   decideRosterFillBots,
@@ -228,7 +233,7 @@ export function decideRoomCommands<
       {
         seat,
         previous: occupant,
-        next: { ...occupant, profile: { ...occupant.profile, ...command.profile } },
+        next: { ...occupant, profile: mergeRoomSeatProfile(occupant.profile, command.profile) },
       },
     ]);
   }
@@ -242,7 +247,7 @@ export function decideRoomCommands<
       ? decideRosterTakeSeat(facts.roster, facts.seatCount, command.seat, actor.value, (seat) => ({
           seat,
           userId: actor.value,
-          profile: { ...command.profile },
+          profile: buildRoomSeatProfile(command.profile),
         }))
       : decideRosterLeaveSeat(facts.roster, facts.seatCount, actor.value);
     if (result.kind === 'rejected') return reject(result.reason);
