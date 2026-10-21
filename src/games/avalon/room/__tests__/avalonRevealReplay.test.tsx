@@ -58,11 +58,14 @@ interface DrivenGame {
   readonly state: AvalonState;
   actAs: (seat: number, command: AvalonPublicCommand) => void;
   send: (command: AvalonPublicCommand, userId?: string) => void;
+  /** 全员投完/出完后把时钟推到 deadline 并发公开 expire——唯一关轮路径（手动结算已删）。 */
+  settle: () => void;
 }
 
 /** Real engine drive to the nominate phase: humans take seats, the rest are bots. */
 function drivenGame(numberOfPlayers: AvalonPlayerCount, botSeats: readonly number[]): DrivenGame {
   let commandNumber = 0;
+  let nowMs = DRIVE_NOW;
   let state = avalonEngine.createInitialState(
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers },
     { roomCode: '1234', hostUserId: 'host', nowMs: DRIVE_NOW, commandId: 'create' },
@@ -71,7 +74,7 @@ function drivenGame(numberOfPlayers: AvalonPlayerCount, botSeats: readonly numbe
     const context: CommandContext = {
       actor: { kind: 'user', userId },
       controlledSeat,
-      nowMs: DRIVE_NOW,
+      nowMs,
       commandId: `command:${commandNumber++}`,
       randomSeed: `seed:${commandNumber}`,
     };
@@ -80,6 +83,14 @@ function drivenGame(numberOfPlayers: AvalonPlayerCount, botSeats: readonly numbe
     state = decision.events.reduce(avalonEngine.evolve, state);
   };
   const send = (command: AvalonPublicCommand, userId = 'host') => apply(command, userId, null);
+  const settle = () => {
+    const phase = state.phase;
+    if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) {
+      throw new Error('expected an armed vote or quest countdown');
+    }
+    nowMs = phase.deadlineAt;
+    apply({ type: 'avalon.phase.expire' }, 'host', null);
+  };
   /** Acts for one seat: bot seats are driven through the host takeover channel. */
   const actAs = (seat: number, command: AvalonPublicCommand) => {
     if (isBotSeat(state.roster, seat)) apply(command, 'host', seat);
@@ -113,10 +124,11 @@ function drivenGame(numberOfPlayers: AvalonPlayerCount, botSeats: readonly numbe
     },
     actAs,
     send,
+    settle,
   };
 }
 
-/** Current leader proposes the first requiredSize seats; everyone casts `ballot`; host settles. */
+/** Current leader proposes the first requiredSize seats; everyone casts `ballot`; countdown settles. */
 function proposeAndSettleVote(game: DrivenGame, ballot: 'approve' | 'reject'): void {
   const phase = game.state.phase;
   if (phase.kind !== 'nominate') throw new Error(`expected nominate, got ${phase.kind}`);
@@ -127,17 +139,17 @@ function proposeAndSettleVote(game: DrivenGame, ballot: 'approve' | 'reject'): v
   for (let seat = 0; seat < count; seat += 1) {
     game.actAs(seat, { type: 'avalon.team.vote', vote: ballot });
   }
-  game.send({ type: 'avalon.vote.finish' });
+  game.settle();
 }
 
-/** Every team member plays success; host settles the quest. */
+/** Every team member plays success; the countdown settles the quest. */
 function playQuestAndSettle(game: DrivenGame): void {
   const phase = game.state.phase;
   if (phase.kind !== 'quest') throw new Error(`expected quest, got ${phase.kind}`);
   for (const seat of phase.teamSeats) {
     game.actAs(seat, { type: 'avalon.quest.play', play: 'success' });
   }
-  game.send({ type: 'avalon.quest.finish' });
+  game.settle();
 }
 
 /** 5-player game after round 1: quest settled, back at nominate with the approval still projected. */

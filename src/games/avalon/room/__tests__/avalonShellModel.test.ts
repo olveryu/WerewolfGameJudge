@@ -29,6 +29,7 @@ type CommandContext = Parameters<typeof avalonEngine.decide>[2];
 
 function session(humanCount: number) {
   let commandNumber = 0;
+  let nowMs = 1000;
   let state: AvalonState = avalonEngine.createInitialState(
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
@@ -37,7 +38,7 @@ function session(humanCount: number) {
     const context: CommandContext = {
       actor: { kind: 'user', userId },
       controlledSeat: null,
-      nowMs: 1000,
+      nowMs,
       commandId: `command:${commandNumber++}`,
       randomSeed: `seed:${commandNumber}`,
     };
@@ -52,11 +53,19 @@ function session(humanCount: number) {
     );
   }
   if (humanCount < 5) send({ type: 'room.seat.fillBots' });
+  /** 全员投完/出完后把时钟推到 deadline 并发公开 expire——唯一关轮路径（手动结算已删）。 */
+  const settle = () => {
+    const phase = state.phase;
+    if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) return;
+    nowMs = phase.deadlineAt;
+    send({ type: 'avalon.phase.expire' });
+  };
   return {
     get state() {
       return state;
     },
     send,
+    settle,
   };
 }
 
@@ -396,6 +405,7 @@ type RunningSession = ReturnType<typeof daytimeSession>;
  */
 function ninePlayerDaytimeSession(): RunningSession {
   let commandNumber = 0;
+  let nowMs = 1000;
   let state: AvalonState = avalonEngine.createInitialState(
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 9 },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
@@ -404,7 +414,7 @@ function ninePlayerDaytimeSession(): RunningSession {
     const context: CommandContext = {
       actor: { kind: 'user', userId },
       controlledSeat: null,
-      nowMs: 1000,
+      nowMs,
       commandId: `command:${commandNumber++}`,
       randomSeed: `seed:${commandNumber}`,
     };
@@ -429,11 +439,18 @@ function ninePlayerDaytimeSession(): RunningSession {
     if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
   }
   if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+  const settle = () => {
+    const phase = state.phase;
+    if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) return;
+    nowMs = phase.deadlineAt;
+    send({ type: 'avalon.phase.expire' });
+  };
   return {
     get state() {
       return state;
     },
     send,
+    settle,
   };
 }
 
@@ -479,7 +496,7 @@ function evilSeats(running: RunningSession): number[] {
     .map(([seat]) => Number(seat));
 }
 
-/** Plays one quest round to completion: leader proposes, all approve, team plays, host settles. */
+/** Plays one quest round to completion: leader proposes, all approve, team plays, countdown settles. */
 function playQuestRound(running: RunningSession, failSeats: ReadonlySet<number> = new Set()) {
   const state = running.state;
   if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
@@ -495,7 +512,7 @@ function playQuestRound(running: RunningSession, failSeats: ReadonlySet<number> 
   for (let seat = 0; seat < playerCount; seat += 1) {
     running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
   }
-  running.send({ type: 'avalon.vote.finish' });
+  running.settle();
   if (running.state.phase.kind !== 'quest') throw new Error('expected quest phase');
   for (const seat of team) {
     running.send(
@@ -503,7 +520,7 @@ function playQuestRound(running: RunningSession, failSeats: ReadonlySet<number> 
       seatUser(seat),
     );
   }
-  running.send({ type: 'avalon.quest.finish' });
+  running.settle();
   return team;
 }
 
@@ -636,7 +653,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     for (let seat = 0; seat < 5; seat += 1) {
       running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
     }
-    running.send({ type: 'avalon.vote.finish' });
+    running.settle();
     const outsider = [0, 1, 2, 3, 4].find((seat) => !team.includes(seat));
     if (outsider === undefined) throw new Error('expected a non-team seat');
     const outsiderBottom = shellFor(running, outsider);
@@ -809,7 +826,7 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
       for (let seat = 0; seat < 5; seat += 1) {
         running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
       }
-      running.send({ type: 'avalon.vote.finish' });
+      running.settle();
       if (currentPhase(running).kind !== 'quest') throw new Error('expected quest phase');
       for (const seat of team) {
         running.send(
@@ -817,7 +834,7 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
           seatUser(seat),
         );
       }
-      running.send({ type: 'avalon.quest.finish' });
+      running.settle();
     }
     if (running.state.phase.kind !== 'ended') throw new Error('expected ended phase');
     expect(shellFor(running, 2).message).toBe('等待房主操作（再来一局 / 返回大厅）');

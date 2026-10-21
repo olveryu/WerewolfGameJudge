@@ -19,6 +19,7 @@ type CommandContext = Parameters<typeof avalonEngine.decide>[2];
 
 function questPhaseSession() {
   let commandNumber = 0;
+  let nowMs = 1000;
   let state: AvalonState = avalonEngine.createInitialState(
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
@@ -31,7 +32,7 @@ function questPhaseSession() {
     const context: CommandContext = {
       actor: { kind: 'user', userId },
       controlledSeat,
-      nowMs: 1000,
+      nowMs,
       commandId: `command:${commandNumber++}`,
       randomSeed: `seed:${commandNumber}`,
     };
@@ -63,7 +64,13 @@ function questPhaseSession() {
   for (let seat = 0; seat < 5; seat += 1) {
     send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
   }
-  send({ type: 'avalon.vote.finish' });
+  // 全员投完后倒计时到期结算（手动结束已删）：把时钟推到 deadline 发 expire。
+  const armedVote = state.phase;
+  if (armedVote.kind !== 'vote' || armedVote.deadlineAt === null) {
+    throw new Error('expected an armed vote countdown');
+  }
+  nowMs = armedVote.deadlineAt;
+  send({ type: 'avalon.phase.expire' });
   if (state.phase.kind !== 'quest') throw new Error('expected quest phase');
   return {
     get state() {
@@ -288,6 +295,7 @@ describe('createAvalonSeatDataSource — nominate picked badge', () => {
 describe('createAvalonSeatDataSource — leader badge phase gate', () => {
   function startSession(numberOfPlayers: AvalonPlayerCount) {
     let commandNumber = 0;
+    let nowMs = 1000;
     let state: AvalonState = avalonEngine.createInitialState(
       { ...DEFAULT_AVALON_CONFIG, numberOfPlayers },
       { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
@@ -296,7 +304,7 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
       const context: CommandContext = {
         actor: { kind: 'user', userId },
         controlledSeat: null,
-        nowMs: 1000,
+        nowMs,
         commandId: `command:${commandNumber++}`,
         randomSeed: `seed:${commandNumber}`,
       };
@@ -304,6 +312,13 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
       if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
       state = decision.events.reduce(avalonEngine.evolve, state);
       return state;
+    };
+    /** 全员投完/出完后把时钟推到 deadline 并发公开 expire——唯一关轮路径（手动结算已删）。 */
+    const settle = () => {
+      const phase = state.phase;
+      if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) return;
+      nowMs = phase.deadlineAt;
+      send({ type: 'avalon.phase.expire' });
     };
     const seatUser = (seat: number) => (seat === 0 ? 'host' : `u${seat}`);
     for (let seat = 0; seat < numberOfPlayers; seat += 1) {
@@ -314,6 +329,7 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
         return state;
       },
       send,
+      settle,
       seatUser,
     };
   }
@@ -376,11 +392,11 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
     for (let seat = 0; seat < session.state.config.numberOfPlayers; seat += 1) {
       session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(seat));
     }
-    session.send({ type: 'avalon.vote.finish' });
+    session.settle();
     for (const seat of team) {
       session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(seat));
     }
-    session.send({ type: 'avalon.quest.finish' });
+    session.settle();
   }
 
   it('shows the leader badge in daytime phases only across a game walk', () => {
@@ -405,12 +421,12 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
     for (let seat = 0; seat < 5; seat += 1) {
       session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(seat));
     }
-    session.send({ type: 'avalon.vote.finish' });
+    session.settle();
     record();
     for (const seat of team) {
       session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(seat));
     }
-    session.send({ type: 'avalon.quest.finish' });
+    session.settle();
     record();
     expect(seen).toEqual([
       ['lobby', null],
