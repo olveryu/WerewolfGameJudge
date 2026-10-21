@@ -10,6 +10,7 @@
  * This file retains only switch routing and minimal inline cases.
  */
 
+import { buildRoomSeatProfile } from '../../../../platform/room/roster';
 import { findRosterSeatByUserId, isBotOccupant } from '../../../../platform/room/seating';
 import type { GameState } from '../protocol/types';
 import {
@@ -231,7 +232,7 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
         if (occupant.profile.level === level) continue;
         newRoster = {
           ...roster,
-          [seat]: { ...occupant, profile: { ...occupant.profile, level } },
+          [seat]: { ...occupant, profile: buildRoomSeatProfile({ ...occupant.profile, level }) },
         };
       }
       return newRoster ? { ...state, roster: newRoster } : state;

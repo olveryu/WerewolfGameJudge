@@ -12,6 +12,7 @@
  */
 
 import { haveAllViewed, markSeatViewed } from '../../../../platform/room/identityViewing';
+import { mergeRoomSeatProfile, type RoomProfileUpdate } from '../../../../platform/room/roster';
 import {
   type BotSeatOccupant,
   findRosterSeatByUserId,
@@ -254,24 +255,27 @@ export function handleUpdatePlayerProfile(
   if (occupant == null || isBotOccupant(occupant)) return state;
   const existing = occupant.profile;
 
+  // Only fields the update carries enter the patch; the constructor then
+  // rebuilds the merged profile in canonical field order, so a partially
+  // populated profile serializes identically after a parse round-trip no
+  // matter how either side was built.
+  const patch: RoomProfileUpdate = {
+    ...(displayName !== undefined && { displayName }),
+    ...(avatarUrl !== undefined && { avatarUrl }),
+    ...(avatarFrame !== undefined && { avatarFrame }),
+    ...(seatFlair !== undefined && { seatFlair }),
+    ...(seatAnimation !== undefined && { seatAnimation }),
+    ...(nameStyle !== undefined && { nameStyle }),
+    ...(revealEffect !== undefined && { revealEffect }),
+  };
+
   return {
     ...state,
     roster: {
       ...state.roster,
       [seat]: {
         ...occupant,
-        profile: {
-          ...existing,
-          ...(displayName !== undefined && { displayName }),
-          ...(avatarUrl !== undefined && { avatarUrl }),
-          ...(avatarFrame !== undefined && { avatarFrame }),
-          ...(seatFlair !== undefined && { seatFlair }),
-          // Field order matches parseRosterEntry so a partially populated
-          // profile still serializes identically after a parse round-trip.
-          ...(seatAnimation !== undefined && { seatAnimation }),
-          ...(nameStyle !== undefined && { nameStyle }),
-          ...(revealEffect !== undefined && { revealEffect }),
-        },
+        profile: mergeRoomSeatProfile(existing, patch),
       },
     },
   };
