@@ -27,14 +27,15 @@ const __GAME_CAMEL__PublicCommandOptions = definePublicCommandOptions<__GAME_PAS
   }),
 //#cap identityViewing
   z.strictObject({ type: z.literal('__GAME_ID__.roles.assign') }),
+//#end
   z.strictObject({ type: z.literal('__GAME_ID__.game.begin') }),
+//#cap identityViewing
   z.strictObject({ type: z.literal('__GAME_ID__.role.viewed') }),
 //#end
 //#cap botTestScaffold
   z.strictObject({ type: z.literal('__GAME_ID__.bots.markAllBotsViewed') }),
 //#end
-//#cap stageDeadline
-  z.strictObject({ type: z.literal('__GAME_ID__.game.begin') }),
+//#cap publicExpire
   z.strictObject({ type: z.literal('__GAME_ID__.phase.expire') }),
 //#end
   z.strictObject({ type: z.literal('__GAME_ID__.game.returnToLobby') }),
@@ -44,7 +45,7 @@ const __GAME_CAMEL__PublicCommandOptions = definePublicCommandOptions<__GAME_PAS
 export const __GAME_CAMEL__PublicCommandSchema: z.ZodType<__GAME_PASCAL__PublicCommand> =
   z.discriminatedUnion('type', __GAME_CAMEL__PublicCommandOptions);
 
-//#cap identityViewing
+//#cap !stageDeadline
 /** The skeleton has no worker-originated commands yet (see the engine commands/types.ts). */
 export const __GAME_CAMEL__InternalCommandSchema: z.ZodType<__GAME_PASCAL__InternalCommand> =
   z.never();

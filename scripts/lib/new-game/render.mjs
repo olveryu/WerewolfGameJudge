@@ -5,8 +5,11 @@
  * files shared between capability packs, capability-conditional line
  * blocks marked with `//#cap <capabilityKey>` ... `//#end` lines: a
  * block's lines survive rendering only when the pack's capability
- * record enables that key. Rendering is pure: same input, same
- * output, no filesystem access.
+ * record enables that key. A negated marker `//#cap !<capabilityKey>`
+ * keeps its lines only when the record does NOT enable the key, so a
+ * pair of sibling blocks (positive + negated) expresses an either/or
+ * whose two forms are both written out in the template. Rendering is
+ * pure: same input, same output, no filesystem access.
  */
 
 const GAME_ID_PATTERN = /^[a-z][a-z0-9]*$/;
@@ -32,10 +35,10 @@ export function deriveGameNames(gameId) {
   };
 }
 
-const BLOCK_START = /^\/\/#cap ([A-Za-z]+)\s*$/;
+const BLOCK_START = /^\/\/#cap (!?)([A-Za-z]+)\s*$/;
 const BLOCK_END = /^\/\/#end\s*$/;
 
-/** Strip capability-conditional blocks the active pack does not enable. */
+/** Strip capability-conditional blocks the active pack does not select. */
 export function applyCapabilityBlocks(text, capabilities) {
   const lines = text.split('\n');
   const kept = [];
@@ -43,13 +46,14 @@ export function applyCapabilityBlocks(text, capabilities) {
   for (const line of lines) {
     const start = BLOCK_START.exec(line.trim());
     if (start !== null) {
+      const marker = `${start[1]}${start[2]}`;
       if (activeBlock !== null) {
-        throw new Error(`Nested capability block "${start[1]}" inside "${activeBlock}".`);
+        throw new Error(`Nested capability block "${marker}" inside "${activeBlock.marker}".`);
       }
-      if (!Object.hasOwn(capabilities, start[1])) {
-        throw new Error(`Unknown capability block "${start[1]}".`);
+      if (!Object.hasOwn(capabilities, start[2])) {
+        throw new Error(`Unknown capability block "${marker}".`);
       }
-      activeBlock = start[1];
+      activeBlock = { key: start[2], negated: start[1] === '!', marker };
       continue;
     }
     if (BLOCK_END.test(line.trim())) {
@@ -57,9 +61,17 @@ export function applyCapabilityBlocks(text, capabilities) {
       activeBlock = null;
       continue;
     }
-    if (activeBlock === null || capabilities[activeBlock] === true) kept.push(line);
+    if (
+      activeBlock === null ||
+      (activeBlock.negated
+        ? capabilities[activeBlock.key] !== true
+        : capabilities[activeBlock.key] === true)
+    ) {
+      kept.push(line);
+    }
   }
-  if (activeBlock !== null) throw new Error(`Unterminated capability block "${activeBlock}".`);
+  if (activeBlock !== null)
+    throw new Error(`Unterminated capability block "${activeBlock.marker}".`);
   return kept.join('\n');
 }
 

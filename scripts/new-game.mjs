@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * `pnpm new-game <gameId> --preset identity|stage` — scaffold a new game.
+ * `pnpm new-game <gameId> --preset identity|stage|demo-hybrid` — scaffold a new game.
  *
  * Produces the full skeleton (engine, Worker module, client module,
  * design doc, registration migration) from the templates under
@@ -14,10 +14,10 @@ import path from 'node:path';
 
 import { DEFAULT_REWARDS, generateNewGame } from './lib/new-game/generate.mjs';
 
-const USAGE = `Usage: pnpm new-game <gameId> --preset identity|stage [options]
+const USAGE = `Usage: pnpm new-game <gameId> --preset identity|stage|demo-hybrid [options]
 
 Options:
-  --preset <identity|stage>  Skeleton archetype (required).
+  --preset <identity|stage|demo-hybrid>  Skeleton archetype (required).
   --production               Register as a production game (default: registered but
                              hidden from player surfaces until the go-live step).
   --name <text>              Home display name (default: the game id).

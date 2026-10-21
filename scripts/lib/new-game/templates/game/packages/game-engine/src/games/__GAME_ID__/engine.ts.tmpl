@@ -1,0 +1,431 @@
+/** Authoritative __GAME_PASCAL__ engine; delegates persistence and delivery to the platform. */
+
+import {
+  buildGameCompletionPayload,
+  type CommandContext,
+  type CommonGameLifecycle,
+  type CreateGameContext,
+  type GameEngineDefinition,
+  reject,
+  requireHost,
+} from '../../platform/engine';
+//#cap identityViewing
+import { resolveActingSeat } from '../../platform/room/actingSeat';
+import {
+  decideConfirmViewed,
+  decideMarkBotsViewed,
+  haveAllViewed,
+} from '../../platform/room/identityViewing';
+//#end
+//#cap stageDeadline
+import { buildSettleDueEffect, guardPhaseExpiry } from '../../platform/room/phaseDeadline';
+//#end
+import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
+import type { __GAME_PASCAL__Command } from './commands/types';
+import {
+  commit__GAME_PASCAL__,
+  __GAME_UPPER___REASONS,
+  type __GAME_PASCAL__Decision,
+  type __GAME_PASCAL__Effect,
+  type __GAME_PASCAL__Event,
+} from './domain/decision';
+import { evolve__GAME_PASCAL__State } from './domain/evolve';
+//#cap identityViewing
+import { deal__GAME_PASCAL__Identities } from './domain/rules';
+//#end
+//#cap stageDeadline
+import { __GAME_UPPER___STAGE_DURATION_MS } from './domain/rules';
+//#end
+import { decide__GAME_PASCAL__Room } from './domain/seating';
+import { normalize__GAME_PASCAL__State } from './state/normalize';
+import {
+//#cap identityViewing
+  get__GAME_PASCAL__ViewingParticipants,
+//#end
+  isValid__GAME_PASCAL__Config,
+  __GAME_UPPER___GAME_TYPE,
+  type __GAME_PASCAL__Config,
+  type __GAME_PASCAL__State,
+} from './state/types';
+import { __GAME_UPPER___STATE_VERSION } from './state/version';
+
+function createInitialState(
+  config: __GAME_PASCAL__Config,
+  context: CreateGameContext,
+): __GAME_PASCAL__State {
+  if (!isValid__GAME_PASCAL__Config(config)) throw new Error(__GAME_UPPER___REASONS.config);
+  return normalize__GAME_PASCAL__State({
+    gameType: __GAME_UPPER___GAME_TYPE,
+    stateVersion: __GAME_UPPER___STATE_VERSION,
+    roomCode: context.roomCode,
+    hostUserId: context.hostUserId,
+    phase: { kind: 'lobby' },
+    phaseRevision: 0,
+    config: { ...config },
+    roster: {},
+//#cap identityViewing
+    identities: {},
+    roleViewedSeats: [],
+//#end
+    gameSequence: 0,
+    xpSettled: false,
+  });
+}
+
+/** 对局结束时发结算 effect，Worker 据此发 XP 奖励；xpSettled 保证恰好一次。 */
+function completionEffect(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Effect {
+  return {
+    type: '__GAME_ID__.game.completed',
+    payload: buildGameCompletionPayload({
+      roundId: `__GAME_ID__:game:${state.gameSequence}`,
+      completedAt: context.nowMs,
+      humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
+    }),
+  };
+}
+
+//#cap stageDeadline
+/**
+ * The scheduled settle effect for one armed stage deadline, built
+ * by the platform constructor: the payload pins the exact arming so
+ * the Worker handler can no-op a delivery that arrives after the
+ * stage already settled or a new game began.
+ */
+function settleDueEffect(gameSequence: number, deadlineAt: number): __GAME_PASCAL__Effect {
+  return buildSettleDueEffect(__GAME_UPPER___GAME_TYPE, { gameSequence, deadlineAt });
+}
+
+//#end
+//#cap identityViewing
+/**
+ * Host deals the game (or redeals from ended): assign identities and
+ * enter the viewing stage. Dealing never starts play — the host
+ * begins the game only once every seat has viewed its identity.
+ */
+function startGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
+  const hostRejection = requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
+    context,
+    state.hostUserId,
+    __GAME_UPPER___REASONS.notHostStart,
+  );
+  if (hostRejection !== null) return hostRejection;
+  if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
+    return reject(__GAME_UPPER___REASONS.phase);
+  if (!isRoomFull(state.roster, state.config.numberOfPlayers))
+    return reject(__GAME_UPPER___REASONS.full);
+  return commit__GAME_PASCAL__([
+    {
+      type: '__GAME_ID__.game.started',
+      identities: deal__GAME_PASCAL__Identities(state),
+      gameSequence: state.gameSequence + 1,
+    },
+  ]);
+}
+
+//#end
+//#cap !identityViewing
+/**
+ * Host starts the game (or restarts from ended): the first stage opens
+ * with its deadline armed; the settle.due effect is the correctness
+ * path for expiry, client expire submissions only accelerate it.
+ */
+function startGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
+  const hostRejection = requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
+    context,
+    state.hostUserId,
+    __GAME_UPPER___REASONS.notHostStart,
+  );
+  if (hostRejection !== null) return hostRejection;
+  if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
+    return reject(__GAME_UPPER___REASONS.phase);
+  if (!isRoomFull(state.roster, state.config.numberOfPlayers))
+    return reject(__GAME_UPPER___REASONS.full);
+  const deadlineAt = context.nowMs + __GAME_UPPER___STAGE_DURATION_MS;
+  const gameSequence = state.gameSequence + 1;
+  return commit__GAME_PASCAL__(
+    [{ type: '__GAME_ID__.game.started', deadlineAt, gameSequence }],
+    [settleDueEffect(gameSequence, deadlineAt)],
+  );
+}
+
+//#end
+//#cap !stageDeadline
+/** Host begins play from the viewing stage: the identity checkpoint must be complete. */
+//#end
+//#cap armDeadlineAtBegin
+/**
+ * Host begins play from the viewing stage: the identity checkpoint
+ * must be complete. The playing stage opens with its deadline armed;
+ * the settle.due effect is the correctness path for expiry — no
+ * client submission settles the stage.
+ */
+//#end
+//#cap identityViewing
+function beginGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
+  const hostRejection = requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
+    context,
+    state.hostUserId,
+    __GAME_UPPER___REASONS.notHostBegin,
+  );
+  if (hostRejection !== null) return hostRejection;
+  if (state.phase.kind !== 'viewing') return reject(__GAME_UPPER___REASONS.phase);
+  if (!haveAllViewed(get__GAME_PASCAL__ViewingParticipants(state), state.roleViewedSeats))
+    return reject(__GAME_UPPER___REASONS.notAllViewed);
+//#end
+//#cap !stageDeadline
+  return commit__GAME_PASCAL__([{ type: '__GAME_ID__.game.begun' }]);
+//#end
+//#cap armDeadlineAtBegin
+  const deadlineAt = context.nowMs + __GAME_UPPER___STAGE_DURATION_MS;
+  return commit__GAME_PASCAL__(
+    [{ type: '__GAME_ID__.game.begun', deadlineAt }],
+    [settleDueEffect(state.gameSequence, deadlineAt)],
+  );
+//#end
+//#cap identityViewing
+}
+
+/**
+ * Identity Viewing Protocol: records that the actor's seat viewed its
+ * identity. Idempotent, and accepted in any in-game phase; the record
+ * only gates the host's begin command in the viewing stage.
+ */
+function markRoleViewed(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
+  return decideConfirmViewed({
+    actingSeat: resolveActingSeat(state, state.config.numberOfPlayers, context),
+    viewedSeats: state.roleViewedSeats,
+    phaseRejection:
+      state.phase.kind === 'lobby' || state.phase.kind === 'ended'
+        ? reject(__GAME_UPPER___REASONS.phase)
+        : null,
+    buildViewedEvent: (seat) => ({ type: '__GAME_ID__.role.viewed', seat }),
+    commit: commit__GAME_PASCAL__,
+  });
+}
+
+//#end
+//#cap botTestScaffold
+/**
+ * Identity Viewing Protocol scaffold action (host only): marks every
+ * unviewed bot seat as viewed. Humans always mark themselves; the
+ * engine never auto-marks at deal time.
+ */
+function markAllBotsViewed(
+  state: __GAME_PASCAL__State,
+  context: CommandContext,
+): __GAME_PASCAL__Decision {
+  return decideMarkBotsViewed({
+    gateRejection:
+      state.phase.kind === 'lobby' || state.phase.kind === 'ended'
+        ? reject(__GAME_UPPER___REASONS.phase)
+        : requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
+            context,
+            state.hostUserId,
+            __GAME_UPPER___REASONS.notHostMarkBots,
+          ),
+    participants: get__GAME_PASCAL__ViewingParticipants(state),
+    viewedSeats: state.roleViewedSeats,
+    noBotSeatsReason: __GAME_UPPER___REASONS.noBotSeats,
+    buildViewedEvent: (seat) => ({ type: '__GAME_ID__.role.viewed', seat }),
+    commit: commit__GAME_PASCAL__,
+  });
+}
+
+//#end
+//#cap publicExpire
+/**
+ * Settle-channel gate for deadline expiry, run through the shared
+ * expiry guard on its dual-channel assembly: the public expire
+ * command travels on the uncontrolled-user channel (any foreground
+ * client may accelerate the settlement), while the internal settle
+ * command travels on the system channel (the scheduled
+ * `__GAME_ID__.settle.due` effect handler, the correctness path).
+ * Both channels then run the identical settlement below.
+ */
+function expireStage(
+  state: __GAME_PASCAL__State,
+  context: CommandContext,
+  internal: boolean,
+): __GAME_PASCAL__Decision {
+  const phase = state.phase;
+  return guardPhaseExpiry(context, {
+    phaseRejection: phase.kind === 'playing' ? null : reject(__GAME_UPPER___REASONS.phase),
+    actorChannel: internal ? 'system' : 'uncontrolledUser',
+    deadlineAt: phase.kind === 'playing' ? phase.deadlineAt : null,
+    notExpiredReason: __GAME_UPPER___REASONS.deadline,
+    dispatch: () =>
+      commit__GAME_PASCAL__(
+        [{ type: '__GAME_ID__.phase.expired' }],
+        state.xpSettled ? [] : [completionEffect(state, context)],
+      ),
+  });
+}
+
+//#end
+//#cap internalSettleOnly
+/**
+ * Settle channel for stage-deadline expiry, run through the shared
+ * expiry guard on its system-only assembly: only the system actor
+ * (the scheduled `__GAME_ID__.settle.due` effect handler) may settle,
+ * and only once the armed deadline has been reached. This skeleton
+ * has no public expire command — the scheduled effect is the only
+ * channel. Settlement itself runs through the terminal seam
+ * (end__GAME_PASCAL__Game).
+ */
+function settleExpired(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
+  const phase = state.phase;
+  return guardPhaseExpiry(context, {
+    phaseRejection: phase.kind === 'playing' ? null : reject(__GAME_UPPER___REASONS.phase),
+    actorChannel: 'system',
+    deadlineAt: phase.kind === 'playing' ? phase.deadlineAt : null,
+    notExpiredReason: __GAME_UPPER___REASONS.deadline,
+    dispatch: () => end__GAME_PASCAL__Game(state, context),
+  });
+}
+
+//#end
+function returnToLobby(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
+  const hostRejection = requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
+    context,
+    state.hostUserId,
+    __GAME_UPPER___REASONS.notHostReturnToLobby,
+  );
+  if (hostRejection !== null) return hostRejection;
+  if (state.phase.kind !== 'ended') return reject(__GAME_UPPER___REASONS.phase);
+  return commit__GAME_PASCAL__([{ type: '__GAME_ID__.game.returnedToLobby' }]);
+}
+
+/**
+ * TODO(gameplay): 终局接缝。玩法状态机判定出胜负时从这里收口：
+ * 一次性发 game.ended 事件 + 结算 effect（xpSettled 防重复）。
+//#cap !stageDeadline
+ * 骨架阶段没有任何命令能走到终局——玩法填空时把触发点挂到本函数上
+//#end
+//#cap stageDeadline
+ * 骨架阶段由阶段到期结算直接终局——玩法填空时把触发点挂到本函数上
+//#end
+ * （engine.test.ts 已钉住本接缝的结算形状，填空后不许改形状）。
+ */
+export function end__GAME_PASCAL__Game(
+  state: __GAME_PASCAL__State,
+  context: CommandContext,
+): __GAME_PASCAL__Decision {
+  if (state.phase.kind !== 'playing') return reject(__GAME_UPPER___REASONS.phase);
+  return commit__GAME_PASCAL__(
+    [{ type: '__GAME_ID__.game.ended' }],
+    state.xpSettled ? [] : [completionEffect(state, context)],
+  );
+}
+
+function decideCommand(
+  state: __GAME_PASCAL__State,
+  command: __GAME_PASCAL__Command,
+  context: CommandContext,
+): __GAME_PASCAL__Decision {
+  switch (command.type) {
+    case 'room.seat.take':
+    case 'room.seat.leave':
+    case 'room.seat.kick':
+    case 'room.seat.clear':
+    case 'room.seat.fillBots':
+    case 'room.profile.update':
+    case '__GAME_ID__.config.update':
+      return decide__GAME_PASCAL__Room(state, command, context);
+//#cap identityViewing
+    case '__GAME_ID__.roles.assign':
+      return startGame(state, context);
+    case '__GAME_ID__.game.begin':
+      return beginGame(state, context);
+    case '__GAME_ID__.role.viewed':
+      return markRoleViewed(state, context);
+//#end
+//#cap botTestScaffold
+    case '__GAME_ID__.bots.markAllBotsViewed':
+      return markAllBotsViewed(state, context);
+//#end
+//#cap !identityViewing
+    case '__GAME_ID__.game.begin':
+      return startGame(state, context);
+//#end
+//#cap publicExpire
+    case '__GAME_ID__.phase.expire':
+      return expireStage(state, context, false);
+    case '__GAME_ID__.phase.settleExpired':
+      return expireStage(state, context, true);
+//#end
+//#cap internalSettleOnly
+    case '__GAME_ID__.phase.settleExpired':
+      return settleExpired(state, context);
+//#end
+    case '__GAME_ID__.game.returnToLobby':
+      return returnToLobby(state, context);
+    case '__GAME_ID__.gameplay.example':
+      // TODO(gameplay): 示例玩法命令——接上真实玩法后删除或替换。
+      return reject(__GAME_UPPER___REASONS.notImplemented);
+    default:
+      return reject(__GAME_UPPER___REASONS.phase);
+  }
+}
+
+/** Decides public and worker-internal commands against the authoritative state. */
+export function decide__GAME_PASCAL__Command(
+  state: __GAME_PASCAL__State,
+  command: __GAME_PASCAL__Command,
+  context: CommandContext,
+): __GAME_PASCAL__Decision {
+  return decideCommand(state, command, context);
+}
+
+/** Projects domain phases into the shared room lifecycle. */
+export function get__GAME_PASCAL__Lifecycle(state: __GAME_PASCAL__State): CommonGameLifecycle {
+  return state.phase.kind === 'lobby'
+    ? 'setup'
+    : state.phase.kind === 'ended'
+      ? 'ended'
+      : 'ongoing';
+}
+
+export const __GAME_CAMEL__Engine = {
+  gameType: __GAME_UPPER___GAME_TYPE,
+  stateVersion: __GAME_UPPER___STATE_VERSION,
+  capabilities: {
+    nightPhase: false,
+    botsAndTakeover: true,
+//#cap identityViewing
+    identityViewing: true,
+    revealAnimation: true,
+//#end
+//#cap !identityViewing
+    identityViewing: false,
+    revealAnimation: false,
+//#end
+//#cap stageDeadline
+    stageDeadline: true,
+//#end
+//#cap !stageDeadline
+    stageDeadline: false,
+//#end
+    audioOrchestration: false,
+    wordLibrary: false,
+    gallery: false,
+    hostConfig: true,
+//#cap botTestScaffold
+    botTestScaffold: true,
+//#end
+//#cap !botTestScaffold
+    botTestScaffold: false,
+//#end
+  },
+  createInitialState,
+  decide: decide__GAME_PASCAL__Command,
+  evolve: evolve__GAME_PASCAL__State,
+  normalize: normalize__GAME_PASCAL__State,
+  getLifecycle: get__GAME_PASCAL__Lifecycle,
+} satisfies GameEngineDefinition<
+  typeof __GAME_UPPER___GAME_TYPE,
+  __GAME_PASCAL__State,
+  __GAME_PASCAL__Config,
+  __GAME_PASCAL__Command,
+  __GAME_PASCAL__Event,
+  __GAME_PASCAL__Effect
+>;

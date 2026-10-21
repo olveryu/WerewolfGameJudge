@@ -33,7 +33,7 @@ export const __GAME_CAMEL__WorkerModule = defineWorkerGameModule({
       ? settleDueBusinessKey('__GAME_ID__:settle', effect.payload)
       : `__GAME_ID__:game-completed:${context.createdRevision}:${effect.payload.roundId}`,
 //#end
-//#cap identityViewing
+//#cap !stageDeadline
     `__GAME_ID__:game-completed:${context.createdRevision}:${effect.payload.roundId}`,
 //#end
 //#cap stageDeadline
