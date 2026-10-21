@@ -621,7 +621,7 @@ test.describe('Avalon full game', () => {
       // 否决后队长顺延一位（轮转断言）。
       expect(leader2).toBe((leader1 + 1) % PLAYER_COUNT);
       await expect(hostPage.getByTestId('avalon-history-summary')).toContainText(
-        '任务一 · 成功（成功票 3）',
+        '任务一 · 成功（成功牌 3）',
         { timeout: 15_000 },
       );
 
@@ -636,7 +636,7 @@ test.describe('Avalon full game', () => {
         questResult: { round: 2, success: false, successCount: 3, failCount: 1 },
       });
       await expect(hostPage.getByTestId('avalon-history-summary')).toContainText(
-        '任务二 · 失败（失败票 1）',
+        '任务二 · 失败（失败牌 1）',
         { timeout: 15_000 },
       );
 
@@ -653,17 +653,20 @@ test.describe('Avalon full game', () => {
           timeout: 10_000,
         });
         await hostPage.getByTestId('avalon-history-tab-1').click();
-        await expect(
-          hostPage
-            .getByTestId('avalon-history-round-1')
-            .getByText('任务一 · 成功（成功票 3 · 失败票 0）', { exact: true }),
-        ).toBeVisible();
+        const round1 = hostPage.getByTestId('avalon-history-round-1');
+        await expect(round1.getByText('任务一 · 成功', { exact: true })).toBeVisible();
+        // 横幅牌面（v4 起计数与标题分开渲染）：成功牌 ×3、失败牌 ×0。
+        await expect(round1.getByText('成功牌', { exact: true })).toBeVisible();
+        await expect(round1.getByText('×3', { exact: true })).toBeVisible();
+        await expect(round1.getByText('失败牌', { exact: true })).toBeVisible();
+        await expect(round1.getByText('×0', { exact: true })).toBeVisible();
         await hostPage.getByTestId('avalon-history-tab-2').click();
-        await expect(
-          hostPage
-            .getByTestId('avalon-history-round-2')
-            .getByText('任务二 · 失败（成功票 3 · 失败票 1）', { exact: true }),
-        ).toBeVisible();
+        const round2 = hostPage.getByTestId('avalon-history-round-2');
+        await expect(round2.getByText('任务二 · 失败', { exact: true })).toBeVisible();
+        await expect(round2.getByText('成功牌', { exact: true })).toBeVisible();
+        await expect(round2.getByText('×3', { exact: true })).toBeVisible();
+        await expect(round2.getByText('失败牌', { exact: true })).toBeVisible();
+        await expect(round2.getByText('×1', { exact: true })).toBeVisible();
         await hostPage.getByTestId('avalon-history-close').click();
       });
 
