@@ -459,6 +459,69 @@ export async function waitForStepAndSettle(
   return waitForPromptCycle(page, stepId, deadline);
 }
 
+/** Budget for the host's audio ack (the night-end clip alone runs 19.6s). */
+const AUDIO_ACK_WAIT_MS = 30_000;
+
+/**
+ * Wait until the host page's audio ack for the currently playing
+ * announcement batch has been committed by the server.
+ *
+ * Why this exists: terminal commands (return to lobby / redeal /
+ * abort) are rejected by the engine while audio plays
+ * (forbidden_while_audio_playing), and the client submits them once
+ * with no retry — a click inside the announcement window strands the
+ * room behind a failure alert. The step-scoped prompt cycle
+ * (waitForPromptCycle) cannot observe the night-end announcement:
+ * Ended has no step anchor and fires no prompt, and the bottom
+ * panel's audio-waiting placeholder exists only in Ongoing. The ack
+ * is the anchor instead: the host submits werewolf.audio.ack only
+ * after the batch has played in full, and its committed response
+ * means the server has cleared isAudioPlaying.
+ *
+ * Call only when the announcement batch is the one outstanding —
+ * i.e. after the phase flip that queued it (a night cannot advance
+ * past an un-acked step, so no earlier batch can still be playing).
+ *
+ * @throws {Error} When no ack is committed within the budget, or the
+ *   ack command was not committed.
+ */
+export async function waitForHostAudioAck(
+  hostPage: Page,
+  timeoutMs = AUDIO_ACK_WAIT_MS,
+): Promise<void> {
+  const response = await hostPage.waitForResponse(
+    (resp) => {
+      const request = resp.request();
+      if (new URL(resp.url()).pathname !== '/room/command' || request.method() !== 'POST') {
+        return false;
+      }
+      const body: unknown = request.postDataJSON();
+      return (
+        typeof body === 'object' &&
+        body !== null &&
+        'command' in body &&
+        typeof body.command === 'object' &&
+        body.command !== null &&
+        'type' in body.command &&
+        body.command.type === 'werewolf.audio.ack'
+      );
+    },
+    { timeout: timeoutMs },
+  );
+  if (!response.ok()) {
+    throw new Error(`Audio ack request failed with HTTP ${response.status()}`);
+  }
+  const result: unknown = await response.json();
+  if (
+    typeof result !== 'object' ||
+    result === null ||
+    !('kind' in result) ||
+    result.kind !== 'committed'
+  ) {
+    throw new Error('Audio ack was not committed by the server');
+  }
+}
+
 /**
  * Wait for a specific step of the night by reading the role page's step
  * anchor (data-step — the engine's current step, verbatim). Detection
