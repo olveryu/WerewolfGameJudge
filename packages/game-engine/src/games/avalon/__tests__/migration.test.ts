@@ -24,6 +24,21 @@ function dispatch(state: AvalonState, command: AvalonCommand, actor = 'host'): A
   return avalonEngine.normalize(decision.events.reduce(avalonEngine.evolve, state));
 }
 
+/** Fires the armed countdown through the public expire command at its deadline. */
+function dispatchSettle(state: AvalonState): AvalonState {
+  const phase = state.phase;
+  if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) {
+    throw new Error('expected an armed vote or quest countdown');
+  }
+  const decision = avalonEngine.decide(
+    state,
+    { type: 'avalon.phase.expire' },
+    { ...context('host', 'avalon.phase.expire'), nowMs: phase.deadlineAt },
+  );
+  if (decision.kind === 'reject') throw new Error(`Rejected expire: ${decision.reason}`);
+  return avalonEngine.normalize(decision.events.reduce(avalonEngine.evolve, state));
+}
+
 function lobby(humans: number): AvalonState {
   let state = avalonEngine.createInitialState(
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
@@ -228,8 +243,8 @@ describe('Avalon v3 -> v4 countdown migration', () => {
         seat === 0 ? 'host' : `user-${seat}`,
       );
     }
-    // The completed ballot set only arms the countdown; the host finish settles it.
-    state = dispatch(state, { type: 'avalon.vote.finish' });
+    // The completed ballot set arms the countdown; its expiry settles it.
+    state = dispatchSettle(state);
     if (state.phase.kind !== 'quest') throw new Error('expected quest phase');
     const migrated = migratePersistedAvalonState(downgradeToV3(state));
     if (migrated.phase.kind !== 'quest') throw new Error('expected quest phase');
@@ -320,7 +335,7 @@ describe('Avalon v5 -> v6 round-history migration', () => {
     for (let seat = 0; seat < 5; seat += 1) {
       next = dispatch(next, { type: 'avalon.team.vote', vote: ballotOf(seat) }, actorOf(seat));
     }
-    return dispatch(next, { type: 'avalon.vote.finish' });
+    return dispatchSettle(next);
   }
 
   /** Settles the in-flight quest with every team member playing success. */
@@ -330,7 +345,7 @@ describe('Avalon v5 -> v6 round-history migration', () => {
     for (const seat of state.phase.teamSeats) {
       next = dispatch(next, { type: 'avalon.quest.play', play: 'success' }, actorOf(seat));
     }
-    return dispatch(next, { type: 'avalon.quest.finish' });
+    return dispatchSettle(next);
   }
 
   it('rebuilds the settled quest round field-for-field', () => {

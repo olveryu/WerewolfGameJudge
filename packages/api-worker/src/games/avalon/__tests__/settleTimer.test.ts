@@ -282,7 +282,9 @@ describe('Avalon scheduled settle (Durable Object)', () => {
   it('settles the quest on alarm at the quest arming point', async () => {
     const stub = getStub();
     await armedVoteRoom(stub);
-    await send(stub, HOST, { type: 'avalon.vote.finish' });
+    // No manual finish exists: the armed vote countdown settles on alarm.
+    await fastForwardArmedCountdown(stub, 'vote', Date.now() - 1000);
+    await fireAlarm(stub);
     await send(stub, seatUser(0), { type: 'avalon.quest.play', play: 'success' });
     await send(stub, seatUser(1), { type: 'avalon.quest.play', play: 'success' });
     const armed = await readState(stub);
