@@ -1,29 +1,26 @@
 /**
- * NightReview.helpers - Pure functions: extract night action summary and full identity table from LocalGameState
+ * NightReview.helpers - Pure functions: extract structured night review entries from LocalGameState
  *
- * First section: convert currentNightResults / lastNightDeaths / all check reveals to Chinese description list.
- * Second section: output each player's real role by seat number.
- * No service / hook / React imports; relies only on game-engine types and getRoleDisplayName.
+ * First section: convert currentNightResults / lastNightDeaths / all check reveals to
+ * structured action entries (category, seats, outcome semantics) in night-resolution order.
+ * Second section: per-seat identity entries (seat, role, faction source, alive state).
+ * Text rendering lives in the consumers (NightReviewModal renders structure;
+ * shareNightReviewLines formats the share surfaces). This module emits no display strings.
+ * No service / hook / React imports; relies only on game-engine types and ROLE_SPECS.
  */
 
 import type { DeathReason } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import {
-  getRoleDisplayName,
-  getRoleEmoji,
-  ROLE_SPECS,
-} from '@game-judge/game-engine/games/werewolf/public';
+import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 import { Team } from '@game-judge/game-engine/games/werewolf/public';
-import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
-import { ACTION, STATUS } from '@/config/emojiTokens';
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Death reason labels
 // ─────────────────────────────────────────────────────────────────────────────
 
-const DEATH_REASON_LABELS: Record<DeathReason, string> = {
+export const DEATH_REASON_LABELS: Record<DeathReason, string> = {
   wolfKill: '狼杀',
   poison: '毒杀',
   checkDeath: '查验致死',
@@ -154,141 +151,258 @@ function resolveWolfKillTarget(
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** One wolf's kill vote inside a wolfAttack entry. Seats are 0-based. */
+export interface NightReviewWolfVote {
+  readonly voterSeat: number;
+  readonly targetSeat: number;
+}
+
+/** Why the wolf team gave up its attack (wolfKillOverride source). */
+export type NightReviewWolfGiveUpReason = 'poisonerPresent' | 'nightmareBlock';
+
+/**
+ * One night fact, in the order the legacy text summary listed them.
+ * Renderers switch on `kind` exhaustively; seats are 0-based.
+ */
+export type NightReviewActionEntry =
+  // Setup: bottom cards, card choices, cupid link
+  | { readonly kind: 'bottomCards'; readonly roleIds: readonly RoleId[] }
+  | { readonly kind: 'cardChoice'; readonly actorRoleId: RoleId; readonly chosenRoleId: RoleId }
+  | { readonly kind: 'cupidLink'; readonly seats: readonly [number, number] }
+  // Wolf team attack
+  | { readonly kind: 'wolfAttack'; readonly votes: readonly NightReviewWolfVote[] }
+  | { readonly kind: 'wolfNoTarget' }
+  | { readonly kind: 'wolfGiveUp'; readonly reason: NightReviewWolfGiveUpReason }
+  // Nightmare block / Eclipse Wolf Queen shelter / Hidden Wolf presence
+  | {
+      readonly kind: 'nightmareBlock';
+      readonly targetSeat: number;
+      readonly targetRoleId: RoleId | null;
+    }
+  | { readonly kind: 'nightmareIdle' }
+  | { readonly kind: 'shelter'; readonly targetSeat: number }
+  | { readonly kind: 'shelterIdle' }
+  | { readonly kind: 'hiddenWolfConfirmed' }
+  // Guard / elders
+  | { readonly kind: 'guard'; readonly targetSeat: number }
+  | { readonly kind: 'guardIdle' }
+  | { readonly kind: 'silence'; readonly targetSeat: number }
+  | { readonly kind: 'silenceIdle' }
+  | { readonly kind: 'voteban'; readonly targetSeat: number }
+  | { readonly kind: 'votebanIdle' }
+  // Witch / Poisoner potions
+  | { readonly kind: 'save'; readonly targetSeat: number }
+  | {
+      readonly kind: 'poison';
+      readonly actorRoleId: 'witch' | 'poisoner';
+      readonly targetSeat: number;
+    }
+  | { readonly kind: 'witchIdleAll' }
+  | { readonly kind: 'witchNoSave' }
+  | { readonly kind: 'witchNoPoison' }
+  | { readonly kind: 'poisonerNoPoison' }
+  // Crow / Dreamcatcher / Magician
+  | { readonly kind: 'curse'; readonly targetSeat: number }
+  | { readonly kind: 'curseIdle' }
+  | { readonly kind: 'dream'; readonly targetSeat: number }
+  | { readonly kind: 'dreamIdle' }
+  | { readonly kind: 'swap'; readonly seats: readonly [number, number] }
+  | { readonly kind: 'swapIdle' }
+  // Idol choices / mimic / presence / charm / convert / hypnotize
+  | { readonly kind: 'idolChoice'; readonly actorRoleId: RoleId; readonly targetSeat: number }
+  | { readonly kind: 'mimic'; readonly targetSeat: number; readonly isBound: boolean }
+  | { readonly kind: 'avengerConfirmed' }
+  | { readonly kind: 'charm'; readonly targetSeat: number }
+  | { readonly kind: 'charmIdle' }
+  | { readonly kind: 'convert'; readonly targetSeat: number }
+  | { readonly kind: 'hypnotize'; readonly targetSeats: readonly number[] }
+  | { readonly kind: 'hypnotizeIdle' }
+  // Check family / Wolf Robot learning
+  | {
+      readonly kind: 'check';
+      readonly actorRoleId: RoleId;
+      readonly targetSeat: number;
+      readonly result: string;
+    }
+  | { readonly kind: 'checkIdle'; readonly actorRoleId: RoleId }
+  | { readonly kind: 'learn'; readonly targetSeat: number; readonly learnedRoleId: RoleId }
+  | { readonly kind: 'learnIdle' }
+  // Shooting availability / Seed Wolf infection
+  | { readonly kind: 'shootStatus'; readonly actorRoleId: RoleId; readonly canShoot: boolean }
+  | { readonly kind: 'infectConverted'; readonly targetSeat: number }
+  | { readonly kind: 'infectFailed'; readonly targetSeat: number }
+  | { readonly kind: 'infectIdle' }
+  // Interaction warnings
+  | { readonly kind: 'guardSaveConflict'; readonly targetSeat: number }
+  | {
+      readonly kind: 'poisonImmune';
+      readonly targetSeat: number;
+      readonly targetRoleId: RoleId;
+    }
+  | {
+      readonly kind: 'reflectDamage';
+      readonly checkerRoleId: RoleId;
+      readonly targetSeat: number;
+      readonly targetRoleId: RoleId;
+    }
+  // Night outcome
+  | { readonly kind: 'peacefulNight' }
+  | {
+      readonly kind: 'deaths';
+      readonly deaths: readonly {
+        readonly seat: number;
+        readonly reason: DeathReason | null;
+      }[];
+    };
+
+/** One seat's identity for the review grid. Seats are 0-based. */
+export interface NightReviewIdentityEntry {
+  readonly seat: number;
+  /** Occupied seat's role; null for an empty seat or an unassigned role. */
+  readonly roleId: RoleId | null;
+  /** True when the seat has no occupant at all （空座）. */
+  readonly isEmptySeat: boolean;
+  /** False when the seat is in lastNightDeaths. */
+  readonly isAlive: boolean;
+}
+
 export interface NightReviewData {
-  /** Per-action descriptions of the night */
-  actionLines: string[];
-  /** Seat number -> Chinese role name */
-  identityLines: string[];
+  /** Structured night facts in summary order */
+  actions: NightReviewActionEntry[];
+  /** Per-seat identity entries sorted by seat */
+  identities: NightReviewIdentityEntry[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Action summary builder
+// Action entries builder
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Build action summary lines from night results + reveal fields.
+ * Build structured action entries from night results + reveal fields.
+ * Branching and ordering mirror the fact inventory one-to-one:
+ * every fact the legacy text summary carried appears exactly once, in the same order.
  */
-export function buildActionLines(gameState: LocalGameState): string[] {
-  const lines: string[] = [];
+export function buildActionEntries(gameState: LocalGameState): NightReviewActionEntry[] {
+  const entries: NightReviewActionEntry[] = [];
   const nr = gameState.currentNightResults;
 
   // 0. TreasureMaster: bottom cards composition + card choice + skipped roles
   if (gameState.bottomCards && gameState.bottomCards.length > 0) {
-    const cardNames = gameState.bottomCards.map((id) => getRoleDisplayName(id)).join('、');
-    lines.push(`${getRoleEmoji('treasureMaster')} 底牌组成：${cardNames}`);
+    entries.push({ kind: 'bottomCards', roleIds: [...gameState.bottomCards] });
   }
   if (gameState.currentNightResults.treasureMasterChosenCard) {
-    const chosenName = getRoleDisplayName(gameState.currentNightResults.treasureMasterChosenCard);
-    lines.push(`${getRoleEmoji('treasureMaster')} 盗宝大师选择了 ${chosenName}`);
+    entries.push({
+      kind: 'cardChoice',
+      actorRoleId: 'treasureMaster',
+      chosenRoleId: gameState.currentNightResults.treasureMasterChosenCard,
+    });
   }
   if (gameState.currentNightResults.thiefChosenCard) {
-    const chosenName = getRoleDisplayName(gameState.currentNightResults.thiefChosenCard);
-    lines.push(`${getRoleEmoji('thief')} 盗贼选择了 ${chosenName}`);
+    entries.push({
+      kind: 'cardChoice',
+      actorRoleId: 'thief',
+      chosenRoleId: gameState.currentNightResults.thiefChosenCard,
+    });
   }
   if (gameState.loverSeats && gameState.loverSeats.length === 2) {
-    lines.push(
-      `${getRoleEmoji('cupid')} 丘比特连线了 ${formatSeat(gameState.loverSeats[0])} 和 ${formatSeat(gameState.loverSeats[1])}`,
-    );
+    entries.push({ kind: 'cupidLink', seats: [gameState.loverSeats[0], gameState.loverSeats[1]] });
   }
 
   // 1. Wolf kill vote
   if (nr.wolfVotesBySeat && Object.keys(nr.wolfVotesBySeat).length > 0) {
-    const entries = Object.entries(nr.wolfVotesBySeat);
-    const voteDesc = entries
-      .map(([voter, target]) => `${formatSeat(Number(voter))}→${formatSeat(target)}`)
-      .join('，');
-    lines.push(`${getRoleEmoji('wolf')} 狼人袭击：${voteDesc}`);
+    const votes = Object.entries(nr.wolfVotesBySeat).map(([voter, target]) => ({
+      voterSeat: Number(voter),
+      targetSeat: target,
+    }));
+    entries.push({ kind: 'wolfAttack', votes });
   } else if (
     !nr.wolfKillOverride &&
     Array.from(gameState.players.values()).some(
       (p) => p?.role && ROLE_SPECS[p.role]?.team === Team.Wolf,
     )
   ) {
-    lines.push(`${getRoleEmoji('wolf')} 狼人空刀（未选择目标）`);
+    entries.push({ kind: 'wolfNoTarget' });
   }
 
   if (nr.wolfKillOverride) {
-    const reason =
-      nr.wolfKillOverride.source === 'poisoner'
-        ? '毒师在场'
-        : `被${getRoleDisplayName('nightmare')}封锁`;
-    lines.push(`${getRoleEmoji('wolf')} 狼人放弃袭击（${reason}）`);
+    entries.push({
+      kind: 'wolfGiveUp',
+      reason: nr.wolfKillOverride.source === 'poisoner' ? 'poisonerPresent' : 'nightmareBlock',
+    });
   }
 
   // 2. Nightmare block
   if (nr.blockedSeat != null) {
     const blockedPlayer = gameState.players.get(nr.blockedSeat);
-    const roleSuffix = blockedPlayer?.role
-      ? `（${getRoleDisplayName(blockedPlayer.role)}，技能无效）`
-      : '';
-    lines.push(
-      `${getRoleEmoji('nightmare')} ${getRoleDisplayName('nightmare')}封锁了 ${formatSeat(nr.blockedSeat)}${roleSuffix}`,
-    );
+    entries.push({
+      kind: 'nightmareBlock',
+      targetSeat: nr.blockedSeat,
+      targetRoleId: blockedPlayer?.role ?? null,
+    });
   } else {
     const nightmareSeat = findSeatByRole(gameState.players, 'nightmare');
     if (nightmareSeat !== undefined) {
-      lines.push(`${getRoleEmoji('nightmare')} ${getRoleDisplayName('nightmare')}未封锁`);
+      entries.push({ kind: 'nightmareIdle' });
     }
   }
 
   // 2a. EclipseWolfQueen shelter
   if (nr.shelteredSeat != null) {
-    lines.push(
-      `${getRoleEmoji('eclipseWolfQueen')} ${getRoleDisplayName('eclipseWolfQueen')}庇护了 ${formatSeat(nr.shelteredSeat)}`,
-    );
+    entries.push({ kind: 'shelter', targetSeat: nr.shelteredSeat });
   } else {
     const eqSeat = findSeatByRole(gameState.players, 'eclipseWolfQueen');
     if (eqSeat !== undefined && nr.blockedSeat !== eqSeat) {
-      lines.push(
-        `${getRoleEmoji('eclipseWolfQueen')} ${getRoleDisplayName('eclipseWolfQueen')}未庇护`,
-      );
+      entries.push({ kind: 'shelterIdle' });
     }
   }
 
   // 2b. HiddenWolf reveal (confirm-only — just show presence)
   const hiddenWolfSeat = findSeatByRole(gameState.players, 'hiddenWolf');
   if (hiddenWolfSeat !== undefined) {
-    lines.push(`${getRoleEmoji('hiddenWolf')} ${getRoleDisplayName('hiddenWolf')}已确认狼同伴`);
+    entries.push({ kind: 'hiddenWolfConfirmed' });
   }
 
   // 3. Guard
   if (nr.guardedSeat != null) {
-    lines.push(`${ACTION.GUARD} 守卫守护了 ${formatSeat(nr.guardedSeat)}`);
+    entries.push({ kind: 'guard', targetSeat: nr.guardedSeat });
   } else {
     const guardSeat = findSeatByRole(gameState.players, 'guard');
     if (guardSeat !== undefined && nr.blockedSeat !== guardSeat) {
-      lines.push(`${ACTION.GUARD} 守卫未守护`);
+      entries.push({ kind: 'guardIdle' });
     }
   }
 
   // 3a. SilenceElder
   if (nr.silencedSeat != null) {
-    lines.push(`${getRoleEmoji('silenceElder')} 禁言长老禁言了 ${formatSeat(nr.silencedSeat)}`);
+    entries.push({ kind: 'silence', targetSeat: nr.silencedSeat });
   } else {
     const seSeat = findSeatByRole(gameState.players, 'silenceElder');
     if (seSeat !== undefined && nr.blockedSeat !== seSeat) {
-      lines.push(`${getRoleEmoji('silenceElder')} 禁言长老未禁言`);
+      entries.push({ kind: 'silenceIdle' });
     }
   }
 
   // 3b. VotebanElder
   if (nr.votebannedSeat != null) {
-    lines.push(`${getRoleEmoji('votebanElder')} 禁票长老禁票了 ${formatSeat(nr.votebannedSeat)}`);
+    entries.push({ kind: 'voteban', targetSeat: nr.votebannedSeat });
   } else {
     const veSeat = findSeatByRole(gameState.players, 'votebanElder');
     if (veSeat !== undefined && nr.blockedSeat !== veSeat) {
-      lines.push(`${getRoleEmoji('votebanElder')} 禁票长老未禁票`);
+      entries.push({ kind: 'votebanIdle' });
     }
   }
 
   // 4. Witch / Poisoner
   if (nr.savedSeat != null) {
-    lines.push(`${ACTION.SAVE} 女巫使用解药救了 ${formatSeat(nr.savedSeat)}`);
+    entries.push({ kind: 'save', targetSeat: nr.savedSeat });
   }
   if (nr.poisonedSeat != null) {
     const isPoisoner = findSeatByRole(gameState.players, 'poisoner') !== undefined;
-    const poisonLabel = isPoisoner ? '毒师毒杀了' : '女巫使用毒药毒杀了';
-    lines.push(`${ACTION.POISON} ${poisonLabel} ${formatSeat(nr.poisonedSeat)}`);
+    entries.push({
+      kind: 'poison',
+      actorRoleId: isPoisoner ? 'poisoner' : 'witch',
+      targetSeat: nr.poisonedSeat,
+    });
   }
 
   // 4x. Witch/Poisoner "did nothing" annotations
@@ -304,142 +418,135 @@ export function buildActionLines(gameState: LocalGameState): string[] {
       const noPoison = nr.poisonedSeat == null;
 
       if (noSave && witchOwnsPoison && noPoison) {
-        lines.push(`${ACTION.SAVE} 女巫未使用药水`);
+        entries.push({ kind: 'witchIdleAll' });
       } else {
-        if (noSave) lines.push(`${ACTION.SAVE} 女巫未使用解药`);
-        if (witchOwnsPoison && noPoison) lines.push(`${ACTION.POISON} 女巫未使用毒药`);
+        if (noSave) entries.push({ kind: 'witchNoSave' });
+        if (witchOwnsPoison && noPoison) entries.push({ kind: 'witchNoPoison' });
       }
     }
     if (poisonerSeat !== undefined && !poisonerBlocked && nr.poisonedSeat == null) {
-      lines.push(`${ACTION.POISON} 毒师未使用毒药`);
+      entries.push({ kind: 'poisonerNoPoison' });
     }
   }
 
   // 4a. Crow curse
   if (nr.cursedSeat != null) {
-    lines.push(`${getRoleEmoji('crow')} 乌鸦诅咒了 ${formatSeat(nr.cursedSeat)}`);
+    entries.push({ kind: 'curse', targetSeat: nr.cursedSeat });
   } else {
     const crowSeat = findSeatByRole(gameState.players, 'crow');
     if (crowSeat !== undefined && nr.blockedSeat !== crowSeat) {
-      lines.push(`${getRoleEmoji('crow')} 乌鸦未诅咒`);
+      entries.push({ kind: 'curseIdle' });
     }
   }
 
   // 5. Dreamcatcher
   if (nr.dreamingSeat != null) {
-    lines.push(`${getRoleEmoji('dreamcatcher')} 摄梦人摄梦了 ${formatSeat(nr.dreamingSeat)}`);
+    entries.push({ kind: 'dream', targetSeat: nr.dreamingSeat });
   } else {
     const dcSeat = findSeatByRole(gameState.players, 'dreamcatcher');
     if (dcSeat !== undefined && nr.blockedSeat !== dcSeat) {
-      lines.push(`${getRoleEmoji('dreamcatcher')} 摄梦人未摄梦`);
+      entries.push({ kind: 'dreamIdle' });
     }
   }
 
   // 6. Magician swap
   if (nr.swappedSeats) {
-    lines.push(
-      `${getRoleEmoji('magician')} 魔术师交换了 ${formatSeat(nr.swappedSeats[0])} 和 ${formatSeat(nr.swappedSeats[1])}`,
-    );
+    entries.push({ kind: 'swap', seats: [nr.swappedSeats[0], nr.swappedSeats[1]] });
   } else {
     const magicianSeat = findSeatByRole(gameState.players, 'magician');
     if (magicianSeat !== undefined && nr.blockedSeat !== magicianSeat) {
-      lines.push(`${getRoleEmoji('magician')} 魔术师未交换`);
+      entries.push({ kind: 'swapIdle' });
     }
   }
 
   // 6a. Slacker idol (from actions Map)
   const slackerAction = gameState.actions.get('slacker');
   if (slackerAction && slackerAction.kind === 'target') {
-    lines.push(
-      `${getRoleEmoji('slacker')} ${getRoleDisplayName('slacker')}选择了 ${formatSeat(slackerAction.targetSeat)} 为榜样`,
-    );
+    entries.push({
+      kind: 'idolChoice',
+      actorRoleId: 'slacker',
+      targetSeat: slackerAction.targetSeat,
+    });
   }
 
   // 6b. WildChild idol (from actions Map)
   const wildChildAction = gameState.actions.get('wildChild');
   if (wildChildAction && wildChildAction.kind === 'target') {
-    lines.push(
-      `${getRoleEmoji('wildChild')} 野孩子选择了 ${formatSeat(wildChildAction.targetSeat)} 为榜样`,
-    );
+    entries.push({
+      kind: 'idolChoice',
+      actorRoleId: 'wildChild',
+      targetSeat: wildChildAction.targetSeat,
+    });
   }
 
   // 6b2. Shadow mimic
   if (nr.shadowMimicTarget != null) {
-    const mimicInfo =
-      nr.avengerFaction === Team.Third
-        ? `${getRoleEmoji('shadow')} 影子模仿了 ${formatSeat(nr.shadowMimicTarget)}（绑定）`
-        : `${getRoleEmoji('shadow')} 影子模仿了 ${formatSeat(nr.shadowMimicTarget)}`;
-    lines.push(mimicInfo);
+    entries.push({
+      kind: 'mimic',
+      targetSeat: nr.shadowMimicTarget,
+      isBound: nr.avengerFaction === Team.Third,
+    });
   }
 
   // 6b3. Avenger faction (always participates, just show presence)
   const avengerSeat = findSeatByRole(gameState.players, 'avenger');
   if (avengerSeat !== undefined) {
-    lines.push(`${getRoleEmoji('avenger')} 复仇者已确认阵营`);
+    entries.push({ kind: 'avengerConfirmed' });
   }
 
   // 6c. WolfQueen charm (from actions Map)
   const wolfQueenAction = gameState.actions.get('wolfQueen');
   if (wolfQueenAction && wolfQueenAction.kind === 'target') {
-    lines.push(`${ACTION.CHARM} 狼美人魅惑了 ${formatSeat(wolfQueenAction.targetSeat)}`);
+    entries.push({ kind: 'charm', targetSeat: wolfQueenAction.targetSeat });
   } else {
     const wqSeat = findSeatByRole(gameState.players, 'wolfQueen');
     if (wqSeat !== undefined && nr.blockedSeat !== wqSeat) {
-      lines.push(`${ACTION.CHARM} 狼美人未魅惑`);
+      entries.push({ kind: 'charmIdle' });
     }
   }
 
   // 6d. AwakenedGargoyle convert
   if (nr.convertedSeat != null) {
-    lines.push(
-      `${getRoleEmoji('awakenedGargoyle')} 觉醒石像鬼转化了 ${formatSeat(nr.convertedSeat)}`,
-    );
+    entries.push({ kind: 'convert', targetSeat: nr.convertedSeat });
   }
 
   // 6e. Piper hypnotize
   if (nr.hypnotizedSeats && nr.hypnotizedSeats.length > 0) {
-    const hypnotizedList = nr.hypnotizedSeats.map((seat) => formatSeat(seat)).join('、');
-    lines.push(`${getRoleEmoji('piper')} 吹笛者催眠了 ${hypnotizedList}`);
+    entries.push({ kind: 'hypnotize', targetSeats: [...nr.hypnotizedSeats] });
   } else {
     const piperSeat = findSeatByRole(gameState.players, 'piper');
     if (piperSeat !== undefined && nr.blockedSeat !== piperSeat) {
-      lines.push(`${getRoleEmoji('piper')} 吹笛者未催眠`);
+      entries.push({ kind: 'hypnotizeIdle' });
     }
   }
 
   // 7. Check reveals (seer family + others)
-  const revealFields = [
-    { key: 'seerReveal' as const, label: '预言家' },
-    { key: 'mirrorSeerReveal' as const, label: '灯影预言家' },
-    { key: 'drunkSeerReveal' as const, label: '酒鬼预言家' },
-    { key: 'psychicReveal' as const, label: '通灵师' },
-    { key: 'gargoyleReveal' as const, label: '石像鬼' },
-    { key: 'pureWhiteReveal' as const, label: '纯白之女' },
-    { key: 'wolfWitchReveal' as const, label: '狼巫' },
-  ] as const;
+  const revealFields: readonly {
+    readonly key: DamageReflectionRevealKey;
+    readonly roleId: RoleId;
+  }[] = [
+    { key: 'seerReveal', roleId: 'seer' },
+    { key: 'mirrorSeerReveal', roleId: 'mirrorSeer' },
+    { key: 'drunkSeerReveal', roleId: 'drunkSeer' },
+    { key: 'psychicReveal', roleId: 'psychic' },
+    { key: 'gargoyleReveal', roleId: 'gargoyle' },
+    { key: 'pureWhiteReveal', roleId: 'pureWhite' },
+    { key: 'wolfWitchReveal', roleId: 'wolfWitch' },
+  ];
 
-  // Map reveal key → roleId for "did nothing" annotations
-  const revealRoleMap: Record<string, RoleId> = {
-    seerReveal: 'seer',
-    mirrorSeerReveal: 'mirrorSeer',
-    drunkSeerReveal: 'drunkSeer',
-    psychicReveal: 'psychic',
-    gargoyleReveal: 'gargoyle',
-    pureWhiteReveal: 'pureWhite',
-    wolfWitchReveal: 'wolfWitch',
-  };
-
-  for (const { key, label } of revealFields) {
+  for (const { key, roleId } of revealFields) {
     const reveal = gameState[key];
     if (reveal) {
-      lines.push(`${ACTION.CHECK} ${label}查验 ${formatSeat(reveal.targetSeat)}：${reveal.result}`);
+      entries.push({
+        kind: 'check',
+        actorRoleId: roleId,
+        targetSeat: reveal.targetSeat,
+        result: reveal.result,
+      });
     } else {
-      const roleId = revealRoleMap[key];
-      if (roleId) {
-        const seat = findSeatByRole(gameState.players, roleId);
-        if (seat !== undefined && nr.blockedSeat !== seat) {
-          lines.push(`${ACTION.CHECK} ${label}未查验`);
-        }
+      const seat = findSeatByRole(gameState.players, roleId);
+      if (seat !== undefined && nr.blockedSeat !== seat) {
+        entries.push({ kind: 'checkIdle', actorRoleId: roleId });
       }
     }
   }
@@ -447,13 +554,15 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   // 8. WolfRobot learn
   if (gameState.wolfRobotReveal) {
     const wr = gameState.wolfRobotReveal;
-    lines.push(
-      `${ACTION.LEARN} ${getRoleDisplayName('wolfRobot')}学习了 ${formatSeat(wr.targetSeat)}（${getRoleDisplayName(wr.learnedRoleId)}）`,
-    );
+    entries.push({
+      kind: 'learn',
+      targetSeat: wr.targetSeat,
+      learnedRoleId: wr.learnedRoleId,
+    });
   } else {
     const wrSeat = findSeatByRole(gameState.players, 'wolfRobot');
     if (wrSeat !== undefined && nr.blockedSeat !== wrSeat) {
-      lines.push(`${ACTION.LEARN} ${getRoleDisplayName('wolfRobot')}未学习`);
+      entries.push({ kind: 'learnIdle' });
     }
   }
 
@@ -463,31 +572,32 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   // Cannot shoot on abnormal night death (poison / lover suicide / dreamcatcher chain / charm chain).
   const hunterSeat = findSeatByRole(gameState.players, 'hunter');
   if (hunterSeat !== undefined) {
-    const canShoot = canShootForSeat(hunterSeat, gameState);
-    lines.push(canShoot ? `${ACTION.SHOOT} 猎人可以发动技能` : `${ACTION.SHOOT} 猎人不能发动技能`);
+    entries.push({
+      kind: 'shootStatus',
+      actorRoleId: 'hunter',
+      canShoot: canShootForSeat(hunterSeat, gameState),
+    });
   }
 
   const darkWolfKingSeat = findSeatByRole(gameState.players, 'darkWolfKing');
   if (darkWolfKingSeat !== undefined) {
-    const canShoot = canShootForSeat(darkWolfKingSeat, gameState);
-    lines.push(
-      canShoot
-        ? `${getRoleEmoji('darkWolfKing')} ${getRoleDisplayName('darkWolfKing')}可以发动技能`
-        : `${getRoleEmoji('darkWolfKing')} ${getRoleDisplayName('darkWolfKing')}不能发动技能`,
-    );
+    entries.push({
+      kind: 'shootStatus',
+      actorRoleId: 'darkWolfKing',
+      canShoot: canShootForSeat(darkWolfKingSeat, gameState),
+    });
   }
 
   // 10. Seed Wolf final infection outcome
   const seedWolfSeat = findSeatByRole(gameState.players, 'seedWolf');
   if (seedWolfSeat !== undefined) {
     const result = gameState.seedWolfInfectionResult;
-    const prefix = `${getRoleEmoji('seedWolf')} ${getRoleDisplayName('seedWolf')}`;
     if (result?.outcome === 'converted') {
-      lines.push(`${prefix}成功感染了 ${formatSeat(result.targetSeat)}`);
+      entries.push({ kind: 'infectConverted', targetSeat: result.targetSeat });
     } else if (result?.outcome === 'failed') {
-      lines.push(`${prefix}感染 ${formatSeat(result.targetSeat)}失败`);
+      entries.push({ kind: 'infectFailed', targetSeat: result.targetSeat });
     } else {
-      lines.push(`${prefix}未使用感染`);
+      entries.push({ kind: 'infectIdle' });
     }
   }
 
@@ -496,7 +606,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   // Same-guard-same-save warning
   const wolfTarget = resolveWolfKillTarget(nr.wolfVotesBySeat);
   if (wolfTarget !== undefined && nr.guardedSeat === wolfTarget && nr.savedSeat === wolfTarget) {
-    lines.push(`⚠️ 同守同救：${formatSeat(wolfTarget)} 仍然死亡`);
+    entries.push({ kind: 'guardSaveConflict', targetSeat: wolfTarget });
   }
 
   // Poison immunity warning
@@ -507,9 +617,11 @@ export function buildActionLines(gameState: LocalGameState): string[] {
         (a) => a.type === 'passive' && a.effect === 'immuneToPoison',
       );
       if (hasImmunity) {
-        lines.push(
-          `⚠️ ${formatSeat(nr.poisonedSeat)}（${getRoleDisplayName(poisonedPlayer.role)}）免疫毒药`,
-        );
+        entries.push({
+          kind: 'poisonImmune',
+          targetSeat: nr.poisonedSeat,
+          targetRoleId: poisonedPlayer.role,
+        });
       }
     }
   }
@@ -524,9 +636,12 @@ export function buildActionLines(gameState: LocalGameState): string[] {
           (a) => a.type === 'passive' && a.effect === 'reflectsDamage',
         );
         if (reflects) {
-          lines.push(
-            `⚠️ ${getRoleDisplayName(roleId)} 查验了 ${formatSeat(reveal.targetSeat)}（${getRoleDisplayName(targetPlayer.role)}），遭到反伤`,
-          );
+          entries.push({
+            kind: 'reflectDamage',
+            checkerRoleId: roleId,
+            targetSeat: reveal.targetSeat,
+            targetRoleId: targetPlayer.role,
+          });
         }
       }
     }
@@ -535,43 +650,45 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   // 10. Final deaths
   const deaths = gameState.lastNightDeaths;
   if (deaths.length === 0) {
-    lines.push(`${STATUS.PEACEFUL_NIGHT} 昨夜平安夜`);
+    entries.push({ kind: 'peacefulNight' });
   } else {
     const { deathReasons } = gameState;
-    const deathList = deaths
-      .map((d) => {
-        const reason = deathReasons?.[d];
-        return reason ? `${formatSeat(d)}（${DEATH_REASON_LABELS[reason]}）` : formatSeat(d);
-      })
-      .join('、');
-    lines.push(`${STATUS.DEATH} 死亡：${deathList}`);
+    entries.push({
+      kind: 'deaths',
+      deaths: deaths.map((seat) => ({ seat, reason: deathReasons?.[seat] ?? null })),
+    });
   }
 
-  return lines;
+  return entries;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Identity table builder
+// Identity entries builder
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Build per-seat identity lines: "1号: 狼人" etc.
+ * Build per-seat identity entries sorted by seat.
+ * Alive state derives from lastNightDeaths (night-1 scope: the only death set
+ * the review state carries).
  */
-export function buildIdentityLines(players: Map<number, LocalPlayer | null>): string[] {
-  const lines: string[] = [];
+export function buildIdentityEntries(
+  players: Map<number, LocalPlayer | null>,
+  deadSeats: ReadonlySet<number>,
+): NightReviewIdentityEntry[] {
+  const entries: NightReviewIdentityEntry[] = [];
   const seats = Array.from(players.keys()).sort((a, b) => a - b);
 
   for (const seat of seats) {
     const player = players.get(seat);
-    if (!player) {
-      lines.push(`${formatSeat(seat)}: 空座`);
-      continue;
-    }
-    const roleName = player.role ? getRoleDisplayName(player.role) : '未分配';
-    lines.push(`${formatSeat(seat)}: ${roleName}`);
+    entries.push({
+      seat,
+      roleId: player?.role ?? null,
+      isEmptySeat: !player,
+      isAlive: !deadSeats.has(seat),
+    });
   }
 
-  return lines;
+  return entries;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -583,7 +700,7 @@ export function buildIdentityLines(players: Map<number, LocalPlayer | null>): st
  */
 export function buildNightReviewData(gameState: LocalGameState): NightReviewData {
   return {
-    actionLines: buildActionLines(gameState),
-    identityLines: buildIdentityLines(gameState.players),
+    actions: buildActionEntries(gameState),
+    identities: buildIdentityEntries(gameState.players, new Set(gameState.lastNightDeaths)),
   };
 }

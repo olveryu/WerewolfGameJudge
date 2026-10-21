@@ -19,6 +19,10 @@ import {
 } from '@/theme';
 
 import type { NightReviewData } from '../NightReview.helpers';
+import {
+  formatNightReviewActionLine,
+  formatNightReviewIdentityLine,
+} from '../shareNightReviewLines';
 
 interface NightReviewShareCardProps {
   data: NightReviewData;
@@ -40,18 +44,18 @@ export function NightReviewShareCard({ data, roomCode, ref }: NightReviewShareCa
       </Text>
 
       <Text style={styles.sectionTitle}>行动摘要</Text>
-      {data.actionLines.map((line, i) => (
+      {data.actions.map((entry, i) => (
         <Text key={`share-action-${i}`} style={styles.line}>
-          {line}
+          {formatNightReviewActionLine(entry)}
         </Text>
       ))}
 
       <RNView style={styles.divider} />
 
       <Text style={styles.sectionTitle}>全员身份</Text>
-      {data.identityLines.map((line, i) => (
+      {data.identities.map((entry, i) => (
         <Text key={`share-identity-${i}`} style={styles.line}>
-          {line}
+          {formatNightReviewIdentityLine(entry)}
         </Text>
       ))}
     </RNView>
