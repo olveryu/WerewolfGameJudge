@@ -1,13 +1,15 @@
 /**
  * Server-authoritative first-day sheriff-election rules.
  *
- * @remarks Gates are evaluated from status to phase to actor eligibility. A seeded random start
+ * @remarks Gates are evaluated from status to audio playback to phase to actor eligibility:
+ * every election command waits for narration playback like the night gates do. A seeded random start
  * seat and direction define the physical table traversal for candidate speeches. Ballots remain
  * editable until the Host closes a round; closed rounds are appended to the public election record
  * before any winner or runoff transition is decided. Runoff speakers use the reverse of their
  * relative first-round speaking order, so the candidate who spoke later speaks first.
  */
 
+import { guardAudioPlayback } from '../../../../platform/audio';
 import { createSeededRng, randomBool, randomIntInclusive } from '../../../../platform/random';
 import type {
   AdvanceSheriffElectionIntent,
@@ -68,6 +70,13 @@ function resolveSheriffElectionGate(context: HandlerContext): SheriffElectionGat
   const election = context.state.sheriffElection;
   if (election === undefined) {
     return { kind: 'rejected', error: handlerError('invalid_status') };
+  }
+  // Gate: the election is not exempt from the playback lock — every
+  // election command waits until narration playback finishes
+  // (platform audio gate, same reason as the night gates).
+  const audioReason = guardAudioPlayback(context.state, 'forbidden_while_audio_playing');
+  if (audioReason !== null) {
+    return { kind: 'rejected', error: handlerError(audioReason) };
   }
   return { kind: 'allowed', election };
 }

@@ -1221,12 +1221,99 @@ describe('Werewolf engine definition and catalog', () => {
     ).toEqual({ kind: 'reject', reason: 'not_candidate' });
   });
 
-  it('allows players and the Host to operate the election during final night audio', () => {
-    let state = createState({
+  it('rejects every election command during final night audio and allows them after the ack', () => {
+    const audioWindow = {
       status: GameStatus.Day,
       rules: { isSheriffElectionEnabled: true },
       isAudioPlaying: true,
       pendingAudioEffects: [{ audioKey: 'night_end' }],
+    };
+    const audioRejection = { kind: 'reject', reason: 'forbidden_while_audio_playing' } as const;
+
+    const registration = createState({
+      ...audioWindow,
+      sheriffElection: {
+        phase: 'registration',
+        registeredSeats: [1],
+        withdrawnSeats: [],
+        completedRounds: [],
+      },
+    });
+    expect(
+      werewolfEngine.decide(
+        registration,
+        { type: 'werewolf.sheriff.register' },
+        userContext('host'),
+      ),
+    ).toEqual(audioRejection);
+    expect(
+      werewolfEngine.decide(
+        registration,
+        { type: 'werewolf.sheriff.cancelRegistration' },
+        userContext('user-1'),
+      ),
+    ).toEqual(audioRejection);
+    expect(
+      werewolfEngine.decide(
+        registration,
+        { type: 'werewolf.sheriff.advance' },
+        userContext('host'),
+      ),
+    ).toEqual(audioRejection);
+
+    const candidateSpeech = createState({
+      ...audioWindow,
+      sheriffElection: {
+        phase: 'candidateSpeech',
+        registeredSeats: [0, 1],
+        withdrawnSeats: [],
+        completedRounds: [],
+        speakingStartSeat: 0,
+        speakingDirection: 'clockwise',
+      },
+    });
+    expect(
+      werewolfEngine.decide(
+        candidateSpeech,
+        { type: 'werewolf.sheriff.withdraw' },
+        userContext('user-1'),
+      ),
+    ).toEqual(audioRejection);
+    expect(
+      werewolfEngine.decide(
+        candidateSpeech,
+        { type: 'werewolf.sheriff.endBySelfDestruct' },
+        userContext('host'),
+      ),
+    ).toEqual(audioRejection);
+
+    const firstVote = createState({
+      ...audioWindow,
+      roster: {
+        0: { seat: 0, userId: 'host', profile: { displayName: 'Host' } },
+        1: { seat: 1, userId: 'user-1', profile: { displayName: 'User 1' } },
+        2: { seat: 2, userId: 'user-2', profile: { displayName: 'User 2' } },
+      },
+      sheriffElection: {
+        phase: 'firstVote',
+        registeredSeats: [0, 1],
+        withdrawnSeats: [],
+        completedRounds: [],
+        candidateSeats: [0, 1],
+        eligibleVoterSeats: [2],
+        ballots: {},
+      },
+    });
+    expect(
+      werewolfEngine.decide(
+        firstVote,
+        { type: 'werewolf.sheriff.vote', targetSeat: 0 },
+        userContext('user-2'),
+      ),
+    ).toEqual(audioRejection);
+
+    let state = createState({
+      ...audioWindow,
       sheriffElection: {
         phase: 'registration',
         registeredSeats: [],
@@ -1234,15 +1321,17 @@ describe('Werewolf engine definition and catalog', () => {
         completedRounds: [],
       },
     });
+    state = evolveCommittedCommand(state, { type: 'werewolf.audio.ack' }, userContext('host'));
+    expect(state.isAudioPlaying).toBe(false);
 
     state = evolveCommittedCommand(
       state,
       { type: 'werewolf.sheriff.register' },
       userContext('user-1'),
     );
-    expect(state).toMatchObject({
-      isAudioPlaying: true,
-      sheriffElection: { phase: 'registration', registeredSeats: [1] },
+    expect(state.sheriffElection).toMatchObject({
+      phase: 'registration',
+      registeredSeats: [1],
     });
 
     state = evolveCommittedCommand(
@@ -1250,9 +1339,9 @@ describe('Werewolf engine definition and catalog', () => {
       { type: 'werewolf.sheriff.advance' },
       userContext('host'),
     );
-    expect(state).toMatchObject({
-      isAudioPlaying: true,
-      sheriffElection: { phase: 'candidateSpeech', registeredSeats: [1] },
+    expect(state.sheriffElection).toMatchObject({
+      phase: 'candidateSpeech',
+      registeredSeats: [1],
     });
   });
 

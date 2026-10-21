@@ -495,6 +495,7 @@ function createWerewolfBottomActions(
       election: input.sheriffElectionPanel,
       roomTools: roomBottomActionLayout,
       isInspectorVisible: input.isSheriffInspectorVisible,
+      isAudioPlaying: input.isAudioPlaying,
       openDetails: input.openSheriffDetails,
     });
   }
