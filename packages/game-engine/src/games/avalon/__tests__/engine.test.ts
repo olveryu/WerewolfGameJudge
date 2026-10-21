@@ -626,8 +626,9 @@ describe('Avalon engine', () => {
     expect(session.state.phase.deadlineAt).toBeNull();
     session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(1));
     if (session.state.phase.kind !== 'quest') throw new Error('expected quest phase');
-    expect(session.state.phase.deadlineAt).toBe(1000 + 5000);
-    session.setNow(1000 + 5000);
+    // The vote settled at its own 6000 deadline, so the quest countdown arms from there.
+    expect(session.state.phase.deadlineAt).toBe(6000 + 5000);
+    session.setNow(6000 + 5000);
     session.send({ type: 'avalon.phase.expire' }, session.seatUser(1));
     expect(session.state.phase.kind).toBe('nominate');
     expect(session.state.questResults[0]).toBe('success');
@@ -645,12 +646,12 @@ describe('Avalon engine', () => {
     session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(evil));
     session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(good));
     if (session.state.phase.kind !== 'quest') throw new Error('expected quest phase');
-    expect(session.state.phase.deadlineAt).toBe(1000 + 5000);
+    expect(session.state.phase.deadlineAt).toBe(6000 + 5000);
     // The evil member flips to a fail inside the countdown; the deadline stands.
     session.send({ type: 'avalon.quest.play', play: 'fail' }, session.seatUser(evil));
     if (session.state.phase.kind !== 'quest') throw new Error('expected quest phase');
-    expect(session.state.phase.deadlineAt).toBe(1000 + 5000);
-    session.setNow(1000 + 5000);
+    expect(session.state.phase.deadlineAt).toBe(6000 + 5000);
+    session.setNow(6000 + 5000);
     session.send({ type: 'avalon.phase.expire' }, session.seatUser(good));
     expect(session.state.questResults[0]).toBe('fail');
   });
@@ -721,11 +722,11 @@ describe('Avalon engine', () => {
           gameSequence: session.state.gameSequence,
           phase: 'quest',
           round: 1,
-          deadlineAt: 1000 + 5000,
+          deadlineAt: 6000 + 5000,
         },
       },
     ]);
-    session.setNow(1000 + 5000);
+    session.setNow(6000 + 5000);
     session.sendSystem({ type: 'avalon.phase.settleExpired' });
     expect(session.state.phase.kind).toBe('nominate');
     expect(session.state.questResults[0]).toBe('success');
