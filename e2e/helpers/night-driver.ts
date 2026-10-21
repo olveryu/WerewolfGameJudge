@@ -459,7 +459,7 @@ export async function waitForStepAndSettle(
   return waitForPromptCycle(page, stepId, deadline);
 }
 
-/** Budget for the host's audio ack (the night-end clip alone runs 19.6s). */
+/** Budget for the host's audio ack (the night-end clip alone runs ~7.6s). */
 const AUDIO_ACK_WAIT_MS = 30_000;
 
 /**
