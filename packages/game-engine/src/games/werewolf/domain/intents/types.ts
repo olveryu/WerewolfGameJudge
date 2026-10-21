@@ -5,63 +5,16 @@
  * Intents are private domain inputs resolved from typed Werewolf commands.
  */
 
-import type { GameRuleOverrides, RoleId } from '../models';
+import type { RoleId } from '../models';
 import type { ActionInput } from '../resolvers/types';
-
-// =============================================================================
-// Seat-related Intents
-// =============================================================================
-
-export interface JoinSeatIntent {
-  type: 'JOIN_SEAT';
-  payload: {
-    seat: number;
-    userId: string;
-    displayName: string;
-    avatarUrl?: string;
-    avatarFrame?: string;
-    seatFlair?: string;
-    nameStyle?: string;
-    revealEffect?: string;
-    seatAnimation?: string;
-    level?: number;
-  };
-}
-
-/**
- * Leave my seat (no need to specify seat)
- * seat obtained by handler from context.mySeat
- */
-export interface LeaveMySeatIntent {
-  type: 'LEAVE_MY_SEAT';
-  payload: {
-    userId: string;
-  };
-}
-
-/**
- * Unseat all Intent (Host-only)
- * Precondition: status === Unseated | Seated
- * Result: all seats cleared, status -> Unseated
- */
-export interface ClearAllSeatsIntent {
-  type: 'CLEAR_ALL_SEATS';
-}
-
-/**
- * Kick from seat Intent (Host-only)
- * Precondition: status === Unseated | Seated, target seat not empty
- */
-export interface KickPlayerIntent {
-  type: 'KICK_PLAYER';
-  payload: {
-    targetSeat: number;
-  };
-}
 
 // =============================================================================
 // Game lifecycle Intents
 // =============================================================================
+
+// (Seat / profile / fill intents have no intent form: the room
+// commands are decided by the shared platform skeleton directly in
+// the engine — see domain/seating.)
 
 /**
  * Assign roles Intent (Host-only)
@@ -112,47 +65,12 @@ export interface RedealGameIntent {
 }
 
 /**
- * Update template Intent (Host-only)
- * Precondition: status === Unseated | Seated (before role assignment)
- * Used for Host editing room config
- */
-export interface UpdateTemplateIntent {
-  type: 'UPDATE_TEMPLATE';
-  payload: {
-    templateRoles: RoleId[];
-    rules?: GameRuleOverrides;
-  };
-}
-
-/**
  * Share details Intent (Host-only)
  * Host selects seats allowed to view "detailed info" in ended phase
  */
 export interface ShareNightReviewIntent {
   type: 'SHARE_NIGHT_REVIEW';
   allowedSeats: number[];
-}
-
-// =============================================================================
-// Player profile Intents
-// =============================================================================
-
-/**
- * Update seated player display profile (roster fields)
- * Any seated player can call (updates own profile)
- */
-export interface UpdatePlayerProfileIntent {
-  type: 'UPDATE_PLAYER_PROFILE';
-  payload: {
-    userId: string;
-    displayName?: string;
-    avatarUrl?: string;
-    avatarFrame?: string;
-    seatFlair?: string;
-    nameStyle?: string;
-    revealEffect?: string;
-    seatAnimation?: string;
-  };
 }
 
 // =============================================================================
@@ -231,17 +149,10 @@ export interface EndSheriffElectionBySelfDestructIntent {
 // Debug Bots Intents (Host-only)
 // =============================================================================
 
-/**
- * Fill with bots Intent (Host-only, Debug-only)
- *
- * Precondition: status === Unseated
- * Result:
- * - Create bot players for all empty seats (bot occupants in the roster)
- */
-export interface FillWithBotsIntent {
-  type: 'FILL_WITH_BOTS';
-}
-
+// (FILL_WITH_BOTS has no intent: the room.seat.fillBots command is
+// decided by the shared platform room-command skeleton directly in
+// the engine — see domain/seating.)
+//
 // (MARK_ALL_BOTS_VIEWED has no intent: the bots.markAllBotsViewed
 // command is decided by the shared platform scaffold skeleton
 // directly in the engine.)

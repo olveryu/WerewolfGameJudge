@@ -19,10 +19,9 @@ import {
   resolveEffectiveSeatActor,
   resolveHostActor,
   resolveSystemActor,
-  resolveUncontrolledUserActor,
   resolveUserActor,
 } from './domain/actor';
-import { handlerResultToDecision } from './domain/decision';
+import { commitActions, handlerResultToDecision } from './domain/decision';
 import { handleSubmitAction } from './domain/handlers/actionHandler';
 import {
   handleApplyRosterLevels,
@@ -38,20 +37,11 @@ import {
   handleBoardNominate,
   handleBoardUpvote,
   handleBoardWithdraw,
-  handleFillWithBots,
   handleRedealGame,
   handleReturnToLobbyGame,
   handleShareNightReview,
   handleStartNight,
-  handleUpdateTemplate,
 } from './domain/handlers/gameControlHandler';
-import {
-  handleClearAllSeats,
-  handleJoinSeat,
-  handleKickPlayer,
-  handleLeaveMySeat,
-  handleUpdatePlayerProfile,
-} from './domain/handlers/seatHandler';
 import {
   handleAdvanceSheriffElection,
   handleCancelSheriffRegistration,
@@ -73,6 +63,7 @@ import { getWerewolfViewingParticipants } from './domain/playerHelpers';
 import type { GameState } from './domain/protocol/types';
 import { gameReducer } from './domain/reducer/gameReducer';
 import type { StateAction } from './domain/reducer/types';
+import { decideWerewolfRoom, isWerewolfRoomCommand } from './domain/seating';
 import { buildInitialGameState } from './domain/state/buildInitialState';
 import { normalizeState } from './domain/state/normalize';
 import { createWerewolfGameEndedEffect } from './effects/gameEnded';
@@ -137,15 +128,6 @@ function decideHandler(
   return handlerResultToDecision(state, result, context, { progressAfterSuccess });
 }
 
-/**
- * The commit the platform viewing skeletons expect, in werewolf's
- * decision form — the same shape handlerResultToDecision produces
- * for a handler success (actions as events, empty means no broadcast).
- */
-function commitActions(events: readonly StateAction[]): WerewolfDecision {
-  return commit<StateAction, WerewolfEffect>({ events });
-}
-
 function validateRevealAckActor(state: GameState, actorSeat: number): string | null {
   if (state.pendingRevealAcks.length === 0) return null;
 
@@ -202,83 +184,15 @@ function decideWerewolfCommandRules(
     return reject(REASON_CONTROLLED_SEAT_NOT_ALLOWED);
   }
 
+  // Room Commands (E-1): seat / profile / fill / config commands are
+  // decided by the shared platform skeleton; werewolf injects its
+  // phase vocabulary, its SEATS_CHANGED event form, and its config
+  // facts in domain/seating.
+  if (isWerewolfRoomCommand(command)) {
+    return decideWerewolfRoom(state, command, context);
+  }
+
   switch (command.type) {
-    case 'room.seat.take': {
-      const actor = resolveUncontrolledUserActor(state, context);
-      if (actor.kind === 'rejected') return reject(actor.reason);
-      return decideHandler(
-        state,
-        handleJoinSeat(
-          {
-            type: 'JOIN_SEAT',
-            payload: {
-              seat: command.seat,
-              userId: actor.value.userId,
-              ...command.profile,
-            },
-          },
-          actor.value.handlerContext,
-        ),
-        context,
-      );
-    }
-    case 'room.seat.leave': {
-      const actor = resolveUncontrolledUserActor(state, context);
-      if (actor.kind === 'rejected') return reject(actor.reason);
-      return decideHandler(
-        state,
-        handleLeaveMySeat(
-          { type: 'LEAVE_MY_SEAT', payload: { userId: actor.value.userId } },
-          actor.value.handlerContext,
-        ),
-        context,
-      );
-    }
-    case 'room.seat.kick': {
-      const actor = resolveHostActor(state, context);
-      if (actor.kind === 'rejected') return reject(actor.reason);
-      return decideHandler(
-        state,
-        handleKickPlayer(
-          { type: 'KICK_PLAYER', payload: { targetSeat: command.seat } },
-          actor.value.handlerContext,
-        ),
-        context,
-      );
-    }
-    case 'room.seat.clear': {
-      const actor = resolveHostActor(state, context);
-      if (actor.kind === 'rejected') return reject(actor.reason);
-      return decideHandler(
-        state,
-        handleClearAllSeats({ type: 'CLEAR_ALL_SEATS' }, actor.value.handlerContext),
-        context,
-      );
-    }
-    case 'room.seat.fillBots': {
-      const actor = resolveHostActor(state, context);
-      if (actor.kind === 'rejected') return reject(actor.reason);
-      return decideHandler(
-        state,
-        handleFillWithBots({ type: 'FILL_WITH_BOTS' }, actor.value.handlerContext),
-        context,
-      );
-    }
-    case 'room.profile.update': {
-      const actor = resolveUncontrolledUserActor(state, context);
-      if (actor.kind === 'rejected') return reject(actor.reason);
-      return decideHandler(
-        state,
-        handleUpdatePlayerProfile(
-          {
-            type: 'UPDATE_PLAYER_PROFILE',
-            payload: { userId: actor.value.userId, ...command.profile },
-          },
-          actor.value.handlerContext,
-        ),
-        context,
-      );
-    }
     case 'werewolf.roles.assign': {
       const actor = resolveHostActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
@@ -394,27 +308,6 @@ function decideWerewolfCommandRules(
         buildViewedEvent: (seat) => ({ type: 'PLAYER_VIEWED_ROLE', payload: { seat } }),
         commit: commitActions,
       });
-    }
-    case 'werewolf.config.update': {
-      const actor = resolveHostActor(state, context);
-      if (actor.kind === 'rejected') return reject(actor.reason);
-      const templateRoles = [...command.templateRoles];
-      const validationReason = validateTemplateRoles(templateRoles);
-      if (validationReason !== null) return reject(validationReason);
-      return decideHandler(
-        state,
-        handleUpdateTemplate(
-          {
-            type: 'UPDATE_TEMPLATE',
-            payload: {
-              templateRoles,
-              ...(command.rules === undefined ? {} : { rules: { ...command.rules } }),
-            },
-          },
-          actor.value.handlerContext,
-        ),
-        context,
-      );
     }
     case 'werewolf.review.share': {
       const actor = resolveHostActor(state, context);
