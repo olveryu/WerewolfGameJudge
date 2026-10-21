@@ -27,7 +27,7 @@
  * registered as ruled-pending-deletion with presence markers —
  * while deletion is pending the markers must still be there (a
  * silently vanished marker means the registry rotted); the PR
- * that deletes one flips its row to 'deleted' in the same change.
+ * that deletes one flips its row to 'none' in the same change.
  *
  * Out-of-registry baselines (bidirectional weld below):
  * - relay answering is the no-countdown variant (registry label
@@ -165,12 +165,9 @@ const EXPECTED_SETTLE_COUNTDOWN_ADOPTERS: Readonly<
     // Avalon ballots can be overwritten but never retracted, so
     // completion is monotonic and clear is unreachable.
     clear: 'unreachable-submissionIrrevocable',
-    manualClose: {
-      kind: 'ruledPendingDeletion',
-      markerFile: 'avalon/commands/types.ts',
-      presenceMarkers: ["'avalon.vote.finish'"],
-      deletion: 'independent avalon finish deletion (not an E-3 PR)',
-    },
+    // The host's manual finish was deleted outright (2026-10-21
+    // ruling): the armed countdown expiring is the only close.
+    manualClose: { kind: 'none' },
   },
   'avalon:quest': {
     adoption: 'switched',
@@ -178,12 +175,9 @@ const EXPECTED_SETTLE_COUNTDOWN_ADOPTERS: Readonly<
     // Quest plays can be overwritten but never retracted, so
     // completion is monotonic and clear is unreachable.
     clear: 'unreachable-submissionIrrevocable',
-    manualClose: {
-      kind: 'ruledPendingDeletion',
-      markerFile: 'avalon/commands/types.ts',
-      presenceMarkers: ["'avalon.quest.finish'"],
-      deletion: 'independent avalon finish deletion (not an E-3 PR)',
-    },
+    // The host's manual finish was deleted outright (2026-10-21
+    // ruling): the armed countdown expiring is the only close.
+    manualClose: { kind: 'none' },
   },
 };
 
@@ -569,10 +563,13 @@ describe('settle countdown registry', () => {
     }
   });
 
-  it('welds the none-manual-close point: werewolf declares no finish or close command', () => {
+  it('welds the none-manual-close points: werewolf and avalon declare no finish or close command', () => {
     const werewolfCommands = readGameFile('werewolf/commands/types.ts');
     expect(werewolfCommands).not.toContain('finish');
     expect(werewolfCommands).not.toContain('close');
+    const avalonCommands = readGameFile('avalon/commands/types.ts');
+    expect(avalonCommands).not.toContain('finish');
+    expect(avalonCommands).not.toContain('close');
   });
 
   it('welds the relay baseline: last ready settles immediately with a null deadline', () => {
