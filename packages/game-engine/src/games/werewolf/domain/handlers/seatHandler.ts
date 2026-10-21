@@ -16,6 +16,7 @@ import {
   REASON_NOT_HOST,
   REASON_NOT_SEATED,
 } from '../../../../platform/protocol/reasons';
+import { buildRoomSeatProfile } from '../../../../platform/room/roster';
 import {
   decideRosterClearSeats,
   decideRosterKickSeat,
@@ -76,11 +77,12 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
     // Key order intentionally matches parseSeatRoster: the room repository
     // detects state changes by comparing serialized snapshots, so producer
     // and parser must build occupants with identical key order. The
-    // profile literal's field order likewise matches parseRosterEntry.
+    // profile itself is built by the platform constructor, the one place
+    // its field order is produced.
     (targetSeat) => ({
       seat: targetSeat,
       userId,
-      profile: {
+      profile: buildRoomSeatProfile({
         displayName,
         avatarUrl,
         avatarFrame,
@@ -89,7 +91,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
         nameStyle,
         revealEffect,
         level,
-      },
+      }),
     }),
   );
   if (seatDecision.kind === 'rejected') {
