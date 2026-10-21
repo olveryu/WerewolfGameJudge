@@ -15,7 +15,7 @@ import {
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
 import { createSeededRng, randomIntInclusive } from '../../../platform/random';
-import type { RoomSeatProfile } from '../../../platform/room/roster';
+import { buildRoomSeatProfile, type RoomSeatProfile } from '../../../platform/room/roster';
 import type { BotSeatOccupant } from '../../../platform/room/seating';
 import type { UndercoverRole } from '../domain/rules';
 import { normalizeUndercoverState } from './normalize';
@@ -59,7 +59,7 @@ function parseProfile(value: unknown, path: string): RoomSeatProfile {
   const raw = parseObject(value, path);
   return finishObject(
     raw,
-    {
+    buildRoomSeatProfile({
       displayName: parseNonEmptyString(raw.displayName, `${path}.displayName`),
       avatarUrl: parseOptional(raw.avatarUrl, `${path}.avatarUrl`, parseString),
       avatarFrame: parseOptional(raw.avatarFrame, `${path}.avatarFrame`, parseString),
@@ -68,7 +68,7 @@ function parseProfile(value: unknown, path: string): RoomSeatProfile {
       nameStyle: parseOptional(raw.nameStyle, `${path}.nameStyle`, parseString),
       revealEffect: parseOptional(raw.revealEffect, `${path}.revealEffect`, parseString),
       level: parseOptional(raw.level, `${path}.level`, parseInteger),
-    },
+    }),
     path,
   );
 }
