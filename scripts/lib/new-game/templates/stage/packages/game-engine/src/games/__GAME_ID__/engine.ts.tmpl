@@ -8,9 +8,8 @@ import {
   type GameEngineDefinition,
   reject,
   requireHost,
-  resolveSystemActorEffectId,
-  resolveUncontrolledUserActorId,
 } from '../../platform/engine';
+import { buildSettleDueEffect, guardPhaseExpiry } from '../../platform/room/phaseDeadline';
 import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
 import type { __GAME_PASCAL__Command } from './commands/types';
 import {
@@ -64,12 +63,13 @@ function completionEffect(state: __GAME_PASCAL__State, context: CommandContext):
 }
 
 /**
- * The scheduled settle effect for one armed stage deadline. The payload
- * pins the exact arming so the Worker handler can no-op a delivery that
- * arrives after the stage already settled or a new game began.
+ * The scheduled settle effect for one armed stage deadline, built
+ * by the platform constructor: the payload pins the exact arming so
+ * the Worker handler can no-op a delivery that arrives after the
+ * stage already settled or a new game began.
  */
 function settleDueEffect(gameSequence: number, deadlineAt: number): __GAME_PASCAL__Effect {
-  return { type: '__GAME_ID__.settle.due', payload: { gameSequence, deadlineAt } };
+  return buildSettleDueEffect(__GAME_UPPER___GAME_TYPE, { gameSequence, deadlineAt });
 }
 
 /**
@@ -97,10 +97,12 @@ function startGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME
 }
 
 /**
- * Settle-channel gate for deadline expiry: the public expire command
- * requires an uncontrolled user (any foreground client may accelerate
- * the settlement), while the internal settle command requires the
- * system actor (the scheduled `__GAME_ID__.settle.due` effect handler).
+ * Settle-channel gate for deadline expiry, run through the shared
+ * expiry guard on its dual-channel assembly: the public expire
+ * command travels on the uncontrolled-user channel (any foreground
+ * client may accelerate the settlement), while the internal settle
+ * command travels on the system channel (the scheduled
+ * `__GAME_ID__.settle.due` effect handler, the correctness path).
  * Both channels then run the identical settlement below.
  */
 function expireStage(
@@ -108,17 +110,18 @@ function expireStage(
   context: CommandContext,
   internal: boolean,
 ): __GAME_PASCAL__Decision {
-  if (state.phase.kind !== 'stage') return reject(__GAME_UPPER___REASONS.phase);
-  const actor = internal
-    ? resolveSystemActorEffectId(context)
-    : resolveUncontrolledUserActorId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  if (state.phase.deadlineAt === null) return reject(__GAME_UPPER___REASONS.deadline);
-  if (context.nowMs < state.phase.deadlineAt) return reject(__GAME_UPPER___REASONS.deadline);
-  return commit__GAME_PASCAL__(
-    [{ type: '__GAME_ID__.phase.expired' }],
-    state.xpSettled ? [] : [completionEffect(state, context)],
-  );
+  const phase = state.phase;
+  return guardPhaseExpiry(context, {
+    phaseRejection: phase.kind === 'stage' ? null : reject(__GAME_UPPER___REASONS.phase),
+    actorChannel: internal ? 'system' : 'uncontrolledUser',
+    deadlineAt: phase.kind === 'stage' ? phase.deadlineAt : null,
+    notExpiredReason: __GAME_UPPER___REASONS.deadline,
+    dispatch: () =>
+      commit__GAME_PASCAL__(
+        [{ type: '__GAME_ID__.phase.expired' }],
+        state.xpSettled ? [] : [completionEffect(state, context)],
+      ),
+  });
 }
 
 function returnToLobby(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {

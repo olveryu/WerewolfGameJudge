@@ -15,7 +15,7 @@ import {
   publishGameRewards,
 } from '../../features/account/settleGameRewards';
 //#cap stageDeadline
-import { dispatchEffectCommand } from '../../platform/gameModules/effectDispatch';
+import { createSettleDueHandler } from '../../platform/gameModules/settleDue';
 //#end
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 
@@ -58,32 +58,31 @@ const SUPERSEDED_SETTLE_REASONS: readonly string[] = [
   __GAME_UPPER___REASONS.deadline,
 ];
 
-async function handle__GAME_PASCAL__SettleDueEffect(
-  effect: __GAME_PASCAL__SettleDueEffect,
-  context: WorkerEffectContext<__GAME_PASCAL__State, __GAME_PASCAL__InternalCommand>,
-): Promise<void> {
-  const state = context.state;
-  const phase = state.phase;
-  // Staleness gate: the payload pins one exact arming. If the room has
-  // moved on (already settled, new game), this delivery is a no-op —
-  // never settle whatever stage happens to be current.
-  if (
-    state.gameSequence !== effect.payload.gameSequence ||
-    phase.kind !== 'stage' ||
-    phase.deadlineAt !== effect.payload.deadlineAt
-  ) {
-    return;
-  }
-  await dispatchEffectCommand(
-    context,
-    { type: '__GAME_ID__.phase.settleExpired' },
-    {
-      namespace: '__GAME_ID__:settle',
-      supersededReasons: SUPERSEDED_SETTLE_REASONS,
-      label: '__GAME_PASCAL__ settle',
-    },
-  );
-}
+/**
+ * Scheduled stage-deadline settlement through the shared settle.due
+ * handler. The staleness gate compares the payload's pinned arming
+ * field by field (game sequence, deadline): if the room has moved on
+ * (already settled, new game), the delivery is a no-op — never settle
+ * whatever stage happens to be current.
+ */
+const handle__GAME_PASCAL__SettleDueEffect = createSettleDueHandler<
+  __GAME_PASCAL__State,
+  __GAME_PASCAL__SettleDueEffect['payload'],
+  __GAME_PASCAL__InternalCommand
+>({
+  namespace: '__GAME_ID__:settle',
+  label: '__GAME_PASCAL__ settle',
+  command: { type: '__GAME_ID__.phase.settleExpired' },
+  supersededReasons: SUPERSEDED_SETTLE_REASONS,
+  isCurrent: (state, payload) => {
+    const phase = state.phase;
+    return (
+      state.gameSequence === payload.gameSequence &&
+      phase.kind === 'stage' &&
+      phase.deadlineAt === payload.deadlineAt
+    );
+  },
+});
 
 //#end
 /**

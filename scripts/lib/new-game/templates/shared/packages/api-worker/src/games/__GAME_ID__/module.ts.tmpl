@@ -6,6 +6,9 @@ import {
   __GAME_CAMEL__Engine,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
 
+//#cap stageDeadline
+import { settleDueBusinessKey, settleDueDeliveryAt } from '../../platform/gameModules/settleDue';
+//#end
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { handle__GAME_PASCAL__Effect, __GAME_CAMEL__EffectSchema } from './effects';
 import {
@@ -27,7 +30,7 @@ export const __GAME_CAMEL__WorkerModule = defineWorkerGameModule({
   getEffectBusinessKey: (effect, context) =>
 //#cap stageDeadline
     effect.type === '__GAME_ID__.settle.due'
-      ? `__GAME_ID__:settle:${effect.payload.gameSequence}:${effect.payload.deadlineAt}`
+      ? settleDueBusinessKey('__GAME_ID__:settle', effect.payload)
       : `__GAME_ID__:game-completed:${context.createdRevision}:${effect.payload.roundId}`,
 //#end
 //#cap identityViewing
@@ -37,7 +40,7 @@ export const __GAME_CAMEL__WorkerModule = defineWorkerGameModule({
   // The settle effect is the room's wake-up for the armed stage
   // deadline: park it in the outbox until its deadline.
   getEffectDeliveryAt: (effect) =>
-    effect.type === '__GAME_ID__.settle.due' ? effect.payload.deadlineAt : null,
+    effect.type === '__GAME_ID__.settle.due' ? settleDueDeliveryAt(effect.payload) : null,
 //#end
   handleEffect: handle__GAME_PASCAL__Effect,
 });
