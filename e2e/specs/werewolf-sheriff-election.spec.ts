@@ -106,9 +106,13 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     // expiry (the Host client drives progression at the deadline).
     await Promise.all(elections.map((election) => election.waitForPhase('平票发言')));
     await Promise.all(
-      elections.map((election) =>
-        election.expectClosedRound('first', ['1号', '1票', '2号', '4号', '→', '5号']),
-      ),
+      elections.map(async (election) => {
+        await election.expectClosedRound('first', ['1号', '1 票', '2号']);
+        await election.expectBallotGroups('first', [
+          { candidate: 1, voters: [4] },
+          { candidate: 2, voters: [5] },
+        ]);
+      }),
     );
     const runoffSpeakingInstruction = await hostElection.getSpeakingInstruction();
     expect(runoffSpeakingInstruction).toMatch(/^从 [12]号开始，(顺时针|逆时针)发言$/);
@@ -134,15 +138,15 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await Promise.all(elections.map((election) => election.waitForPhase('竞选结束')));
     await Promise.all(
       elections.map(async (election) => {
-        await election.expectClosedRound('first', ['1号', '1票', '2号', '4号', '→', '5号']);
-        await election.expectClosedRound('runoff', [
-          '1号',
-          '3票',
-          '2号',
-          '0票',
-          '3号',
-          '4号',
-          '5号',
+        await election.expectClosedRound('first', ['1号', '1 票', '2号']);
+        await election.expectBallotGroups('first', [
+          { candidate: 1, voters: [4] },
+          { candidate: 2, voters: [5] },
+        ]);
+        await election.expectClosedRound('runoff', ['1号', '3 票', '2号', '0 票']);
+        await election.expectBallotGroups('runoff', [
+          { candidate: 1, voters: [3, 4, 5] },
+          { candidate: 2, voters: [] },
         ]);
         await election.expectResult('1号');
       }),

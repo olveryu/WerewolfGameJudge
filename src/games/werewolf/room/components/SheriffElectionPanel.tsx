@@ -3,6 +3,8 @@
  *
  * Renders the state-driven public record and reports user intent through the
  * supplied panel model. It does not derive eligibility or call services.
+ * The record is drawn graphically first: seat dots for candidacy, tally bars
+ * with voters grouped under their candidate, and a banner for the outcome.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -16,7 +18,10 @@ import type {
   SheriffElectionPanelModel,
   SheriffElectionPendingAction,
 } from '@/games/werewolf/room/hooks/useSheriffElection';
-import type { SheriffBallotSelectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
+import type {
+  SheriffBallotSelectionViewModel,
+  SheriffElectionRoundViewModel,
+} from '@/games/werewolf/room/sheriffElectionViewModel';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
@@ -82,8 +87,37 @@ const BallotChoice: React.FC<BallotChoiceProps> = memo(
 );
 BallotChoice.displayName = 'SheriffBallotChoice';
 
-function formatSeatList(seats: readonly number[]): string {
-  return seats.length === 0 ? '无' : seats.map(formatSeat).join(' · ');
+interface SeatDotProps {
+  readonly seat: number;
+  readonly isWithdrawn?: boolean;
+  readonly isSmall?: boolean;
+  readonly testID?: string;
+  readonly styles: SheriffElectionPanelStyles;
+}
+
+/** Circular seat marker; the seat number is the only text it carries. */
+function SeatDot({ seat, isWithdrawn = false, isSmall = false, testID, styles }: SeatDotProps) {
+  return (
+    <View
+      style={[
+        styles.seatDot,
+        isSmall && styles.seatDotSmall,
+        isWithdrawn && styles.seatDotWithdrawn,
+      ]}
+      testID={testID}
+      accessibilityLabel={isWithdrawn ? `${seat + 1}号，已退水` : `${seat + 1}号`}
+    >
+      <Text
+        style={[
+          styles.seatDotText,
+          isSmall && styles.seatDotSmallText,
+          isWithdrawn && styles.seatDotTextWithdrawn,
+        ]}
+      >
+        {seat + 1}
+      </Text>
+    </View>
+  );
 }
 
 function areSameSeats(first: readonly number[], second: readonly number[]): boolean {
@@ -102,8 +136,7 @@ function getMyBallotText(selection: SheriffBallotSelectionViewModel | null): str
   }
 }
 
-function getFinalResultText(result: SheriffElectionResult): string {
-  if (result.kind === 'elected') return `${formatSeat(result.sheriffSeat)} 当选警长`;
+function getNoSheriffText(result: Extract<SheriffElectionResult, { kind: 'noSheriff' }>): string {
   switch (result.reason) {
     case 'noCandidates':
       return '无人参选，本局没有警长';
@@ -116,6 +149,158 @@ function getFinalResultText(result: SheriffElectionResult): string {
   }
 }
 
+interface ResultBannerProps {
+  readonly result: SheriffElectionResult;
+  readonly completedRounds: readonly SheriffElectionRoundViewModel[];
+  readonly styles: SheriffElectionPanelStyles;
+}
+
+/** Outcome banner: gold medal block for an elected sheriff, neutral otherwise. */
+function ResultBanner({ result, completedRounds, styles }: ResultBannerProps) {
+  const isElected = result.kind === 'elected';
+  let title: string;
+  let subtitle: string | null = null;
+  if (result.kind === 'elected') {
+    title = `${formatSeat(result.sheriffSeat)} · 当选警长`;
+    const decidingRound = completedRounds[completedRounds.length - 1];
+    subtitle =
+      decidingRound === undefined
+        ? `警徽在 ${formatSeat(result.sheriffSeat)}`
+        : `${decidingRound.key === 'first' ? '首轮' : '平票'}投票当选 · 警徽在 ${formatSeat(result.sheriffSeat)}`;
+  } else {
+    title = getNoSheriffText(result);
+  }
+
+  return (
+    <View
+      style={[styles.resultBanner, !isElected && styles.resultBannerNeutral]}
+      testID={TESTIDS.sheriffElectionResult}
+    >
+      <View style={[styles.resultMedal, !isElected && styles.resultMedalNeutral]}>
+        <Ionicons
+          name={isElected ? 'shield-checkmark' : 'shield-outline'}
+          size={componentSizes.icon.lg}
+          color={isElected ? colors.textInverse : colors.textSecondary}
+        />
+      </View>
+      <View style={styles.resultTextGroup}>
+        <Text style={styles.resultTitle}>{title}</Text>
+        {subtitle !== null && <Text style={styles.resultSubtitle}>{subtitle}</Text>}
+      </View>
+    </View>
+  );
+}
+
+interface CompletedRoundProps {
+  readonly round: SheriffElectionRoundViewModel;
+  readonly winnerSeat: number | null;
+  readonly styles: SheriffElectionPanelStyles;
+}
+
+/**
+ * One closed round as a tally card: a bar per candidate with that candidate's
+ * voters grouped underneath, and abstentions demoted to one grey line.
+ */
+function CompletedRound({ round, winnerSeat, styles }: CompletedRoundProps) {
+  const votersByCandidate = new Map<number, number[]>();
+  const abstainVoters: number[] = [];
+  for (const voterSeat of round.eligibleVoterSeats) {
+    const targetSeat = round.ballots[voterSeat];
+    if (targetSeat === undefined) {
+      throw new Error(`[FAIL-FAST] Sheriff round view has no ballot for seat ${voterSeat}`);
+    }
+    if (targetSeat === null) {
+      abstainVoters.push(voterSeat);
+    } else {
+      const voters = votersByCandidate.get(targetSeat);
+      if (voters === undefined) votersByCandidate.set(targetSeat, [voterSeat]);
+      else voters.push(voterSeat);
+    }
+  }
+  for (const voters of votersByCandidate.values()) voters.sort((a, b) => a - b);
+  abstainVoters.sort((a, b) => a - b);
+  const totalVotes = round.candidateSeats.reduce((sum, seat) => {
+    const voteCount = round.voteCounts[seat];
+    if (voteCount === undefined) {
+      throw new Error(`[FAIL-FAST] Sheriff round view has no count for seat ${seat}`);
+    }
+    return sum + voteCount;
+  }, 0);
+
+  return (
+    <View style={styles.roundSection} testID={TESTIDS.sheriffCompletedRound(round.key)}>
+      <Text style={styles.roundTitle}>{round.title}</Text>
+      <View style={styles.tallyCard}>
+        {round.candidateSeats.map((seat, index) => {
+          const voteCount = round.voteCounts[seat];
+          if (voteCount === undefined) {
+            throw new Error(`[FAIL-FAST] Sheriff round view has no count for seat ${seat}`);
+          }
+          const isWinner = winnerSeat === seat;
+          const voters = votersByCandidate.get(seat) ?? [];
+          return (
+            <View
+              key={seat}
+              style={[styles.tallyGroup, index > 0 && styles.tallyGroupBorder]}
+              testID={TESTIDS.sheriffTallyGroup(round.key, seat)}
+            >
+              <View style={styles.tallyRow}>
+                <Text style={[styles.tallyName, isWinner && styles.tallyNameWinner]}>
+                  {formatSeat(seat)}
+                </Text>
+                {isWinner && (
+                  <Ionicons name="trophy" size={componentSizes.icon.xs} color={colors.warning} />
+                )}
+                <View style={styles.tallyBarTrack}>
+                  {voteCount > 0 && (
+                    <View
+                      style={[
+                        styles.tallyBarFill,
+                        isWinner && styles.tallyBarFillWinner,
+                        { flexGrow: voteCount },
+                      ]}
+                    />
+                  )}
+                  {voteCount < totalVotes && <View style={{ flexGrow: totalVotes - voteCount }} />}
+                </View>
+                <Text style={styles.tallyCount}>{voteCount} 票</Text>
+              </View>
+              {voters.length > 0 && (
+                <View style={styles.voterChips} accessibilityLabel={`${formatSeat(seat)}的投票人`}>
+                  {voters.map((voterSeat) => (
+                    <View
+                      key={voterSeat}
+                      style={styles.voterChip}
+                      testID={TESTIDS.sheriffBallotChip(round.key, voterSeat)}
+                    >
+                      <SeatDot seat={voterSeat} isSmall styles={styles} />
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          );
+        })}
+        {abstainVoters.length > 0 && (
+          <View style={styles.abstainRow} testID={TESTIDS.sheriffAbstainRow(round.key)}>
+            <Text style={styles.abstainLabel}>弃票</Text>
+            {abstainVoters.map((voterSeat) => (
+              <View
+                key={voterSeat}
+                testID={TESTIDS.sheriffAbstainChip(round.key, voterSeat)}
+                accessibilityLabel={`${voterSeat + 1}号弃票`}
+              >
+                <SeatDot seat={voterSeat} isSmall styles={styles} />
+              </View>
+            ))}
+          </View>
+        )}
+        {round.eligibleVoterSeats.length === 0 && <Text style={styles.emptyBallots}>无投票人</Text>}
+      </View>
+    </View>
+  );
+}
+
 const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ model, styles }) => {
   const { view, pendingAction } = model;
   const myBallotText = getMyBallotText(view.myBallot);
@@ -125,6 +310,7 @@ const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ mo
     !areSameSeats(candidateRecords.registeredSeats, candidateRecords.activeCandidateSeats);
   const activeCandidateLabel =
     view.phase === 'runoffSpeech' || view.phase === 'runoffVote' ? '平票候选' : '候选';
+  const decidingRoundKey = view.completedRounds[view.completedRounds.length - 1]?.key;
 
   return (
     <View style={styles.container} testID={TESTIDS.sheriffElectionPanel}>
@@ -144,26 +330,58 @@ const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ mo
 
       <Text style={styles.description}>{view.phaseDescription}</Text>
 
+      {view.finalResult !== null && (
+        <ResultBanner
+          result={view.finalResult}
+          completedRounds={view.completedRounds}
+          styles={styles}
+        />
+      )}
+
       {candidateRecords !== null && (
         <View style={styles.records}>
           <View style={styles.recordRow}>
             <Text style={styles.recordLabel}>上警</Text>
-            <Text style={styles.recordValue} testID={TESTIDS.sheriffRegisteredSeats}>
-              {formatSeatList(candidateRecords.registeredSeats)}
-            </Text>
-          </View>
-          <View style={styles.recordRow}>
-            <Text style={styles.recordLabel}>退水</Text>
-            <Text style={styles.recordValue} testID={TESTIDS.sheriffWithdrawnSeats}>
-              {formatSeatList(candidateRecords.withdrawnSeats)}
-            </Text>
+            <View style={styles.recordValueColumn}>
+              <View style={styles.seatDotRow} testID={TESTIDS.sheriffRegisteredSeats}>
+                {candidateRecords.registeredSeats.length === 0 ? (
+                  <Text style={styles.recordEmpty}>无</Text>
+                ) : (
+                  candidateRecords.registeredSeats.map((seat) => (
+                    <SeatDot
+                      key={seat}
+                      seat={seat}
+                      isWithdrawn={candidateRecords.withdrawnSeats.includes(seat)}
+                      testID={TESTIDS.sheriffRegisteredSeatDot(seat)}
+                      styles={styles}
+                    />
+                  ))
+                )}
+              </View>
+              {candidateRecords.withdrawnSeats.length > 0 && (
+                <Text style={styles.withdrawnNote} testID={TESTIDS.sheriffWithdrawnSeats}>
+                  {candidateRecords.withdrawnSeats
+                    .map((seat) => `${formatSeat(seat)}已退水`)
+                    .join('、')}
+                </Text>
+              )}
+            </View>
           </View>
           {shouldShowActiveCandidates && (
             <View style={styles.recordRow}>
               <Text style={styles.recordLabel}>{activeCandidateLabel}</Text>
-              <Text style={styles.recordValue} testID={TESTIDS.sheriffActiveCandidateSeats}>
-                {formatSeatList(candidateRecords.activeCandidateSeats)}
-              </Text>
+              <View style={styles.recordValueColumn}>
+                <View style={styles.seatDotRow} testID={TESTIDS.sheriffActiveCandidateSeats}>
+                  {candidateRecords.activeCandidateSeats.map((seat) => (
+                    <SeatDot
+                      key={seat}
+                      seat={seat}
+                      testID={TESTIDS.sheriffActiveCandidateSeatDot(seat)}
+                      styles={styles}
+                    />
+                  ))}
+                </View>
+              </View>
             </View>
           )}
           {view.speakingInstruction !== null && (
@@ -220,58 +438,17 @@ const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ mo
 
       {view.completedRounds.length > 0 && <View style={styles.divider} />}
       {view.completedRounds.map((round) => (
-        <View
+        <CompletedRound
           key={round.key}
-          style={styles.roundSection}
-          testID={TESTIDS.sheriffCompletedRound(round.key)}
-        >
-          <Text style={styles.roundTitle}>{round.title}</Text>
-          <View style={styles.tallyList}>
-            {round.candidateSeats.map((seat) => {
-              const voteCount = round.voteCounts[seat];
-              if (voteCount === undefined) {
-                throw new Error(`[FAIL-FAST] Sheriff round view has no count for seat ${seat}`);
-              }
-              return (
-                <View key={seat} style={styles.tallyRow}>
-                  <Text style={styles.tallySeat}>{formatSeat(seat)}</Text>
-                  <Text style={styles.tallyValue}>{voteCount}票</Text>
-                </View>
-              );
-            })}
-          </View>
-          <Text style={styles.ballotListTitle}>投票明细</Text>
-          <View style={styles.ballotList}>
-            {round.eligibleVoterSeats.length === 0 ? (
-              <Text style={styles.emptyBallots}>无投票人</Text>
-            ) : (
-              round.eligibleVoterSeats.map((voterSeat) => {
-                const targetSeat = round.ballots[voterSeat];
-                if (targetSeat === undefined) {
-                  throw new Error(
-                    `[FAIL-FAST] Sheriff round view has no ballot for seat ${voterSeat}`,
-                  );
-                }
-                return (
-                  <View key={voterSeat} style={styles.ballotRow}>
-                    <Text style={styles.ballotSeat}>{formatSeat(voterSeat)}</Text>
-                    <Text style={styles.ballotArrow}>→</Text>
-                    <Text style={styles.ballotTarget}>
-                      {targetSeat === null ? '弃票' : formatSeat(targetSeat)}
-                    </Text>
-                  </View>
-                );
-              })
-            )}
-          </View>
-        </View>
+          round={round}
+          winnerSeat={
+            view.finalResult?.kind === 'elected' && round.key === decidingRoundKey
+              ? view.finalResult.sheriffSeat
+              : null
+          }
+          styles={styles}
+        />
       ))}
-
-      {view.finalResult !== null && (
-        <View style={styles.finalBanner} testID={TESTIDS.sheriffElectionResult}>
-          <Text style={styles.finalText}>{getFinalResultText(view.finalResult)}</Text>
-        </View>
-      )}
     </View>
   );
 };

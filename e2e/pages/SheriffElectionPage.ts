@@ -128,21 +128,53 @@ export class SheriffElectionPage {
   }
 
   async expectRegisteredOrder(displaySeats: readonly number[]): Promise<void> {
-    const registeredText = await this.page
+    const dots = this.page
       .getByTestId(TESTIDS.sheriffRegisteredSeats)
-      .textContent();
-    if (registeredText === null) {
-      throw new Error('Sheriff registered-seat record has no text');
-    }
+      .getByTestId(/^sheriff-registered-seat-\d+$/);
+    await expect(dots).toHaveCount(displaySeats.length, { timeout: 15_000 });
 
-    let previousPosition = -1;
-    for (const displaySeat of displaySeats) {
-      const currentPosition = registeredText.indexOf(`${displaySeat}号`, previousPosition + 1);
-      expect(
-        currentPosition,
-        `Expected ${displaySeat}号 after index ${previousPosition}`,
-      ).toBeGreaterThan(previousPosition);
-      previousPosition = currentPosition;
+    const dotIds = await dots.evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute('data-testid')),
+    );
+    const actualOrder = dotIds.map((dotId) => {
+      if (dotId === null) {
+        throw new Error('Sheriff registered-seat dot has no test id');
+      }
+      return Number(dotId.replace('sheriff-registered-seat-', '')) + 1;
+    });
+    expect(actualOrder).toEqual(displaySeats);
+  }
+
+  /**
+   * Assert the exact voter set grouped under each candidate in a closed
+   * round. Display seat numbers in, internal seat indexes in the testids.
+   */
+  async expectBallotGroups(
+    round: 'first' | 'runoff',
+    groups: readonly {
+      readonly candidate: number;
+      readonly voters: readonly number[];
+    }[],
+  ): Promise<void> {
+    for (const group of groups) {
+      const tallyGroup = this.page.getByTestId(
+        TESTIDS.sheriffTallyGroup(round, group.candidate - 1),
+      );
+      await expect(tallyGroup).toBeVisible({ timeout: 15_000 });
+
+      const chips = tallyGroup.getByTestId(new RegExp(`^sheriff-ballot-chip-${round}-\\d+$`));
+      const chipIds = await chips.evaluateAll((elements) =>
+        elements.map((element) => element.getAttribute('data-testid')),
+      );
+      const actualVoters = chipIds
+        .map((chipId) => {
+          if (chipId === null) {
+            throw new Error('Sheriff ballot chip has no test id');
+          }
+          return Number(chipId.replace(`sheriff-ballot-chip-${round}-`, '')) + 1;
+        })
+        .sort((first, second) => first - second);
+      expect(actualVoters).toEqual([...group.voters].sort((first, second) => first - second));
     }
   }
 
