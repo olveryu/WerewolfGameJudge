@@ -54,6 +54,7 @@ const createMockGameState = (playerCount: number): LocalGameState => {
       numberOfPlayers: playerCount,
     },
     players,
+    roleViewedSeats: [],
     actions: new Map<RoleId, RoleAction>(),
     wolfVotes: new Map<number, number>(),
     nightStep: { kind: 'exhausted' },

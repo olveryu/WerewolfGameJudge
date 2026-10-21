@@ -27,6 +27,7 @@ function createMinimalState(overrides?: Partial<LocalGameState>): LocalGameState
       [1, { userId: 'U2', seat: 1, displayName: 'P2', role: 'hunter', hasViewedRole: true }],
       [2, { userId: 'U3', seat: 2, displayName: 'P3', role: 'villager', hasViewedRole: true }],
     ]),
+    roleViewedSeats: [0, 1, 2],
     actions: new Map(),
     wolfVotes: new Map(),
     nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },

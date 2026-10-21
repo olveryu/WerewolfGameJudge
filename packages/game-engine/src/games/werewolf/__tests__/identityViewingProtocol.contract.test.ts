@@ -2,9 +2,10 @@
  * Identity Viewing Protocol — werewolf scenario (P-1 batch A).
  *
  * Werewolf is the protocol's reference implementation: the engine keeps
- * a per-player hasViewedRole record (false at deal time), the viewed
- * action flips it idempotently, and the status advances Assigned ->
- * Ready only when every seated player has viewed - bot seats count
+ * the viewed record as the state-level roleViewedSeats set (empty at
+ * deal time), the viewed action adds to it idempotently, and the
+ * status advances Assigned -> Ready only when every seated player has
+ * viewed - bot seats count
  * like everyone else; the host marks them viewed (mark-all-bots)
  * through the scaffold action. Same-named scenario files live in
  * each compliant game's __tests__.
@@ -64,10 +65,11 @@ function createAssignedState(): GameState {
     status: GameStatus.Assigned,
     templateRoles: ['wolf', 'seer', 'villager'],
     players: {
-      0: { seat: 0, role: 'seer', hasViewedRole: false },
-      1: { seat: 1, role: 'wolf', hasViewedRole: false },
-      2: { seat: 2, role: 'villager', hasViewedRole: false },
+      0: { seat: 0, role: 'seer' },
+      1: { seat: 1, role: 'wolf' },
+      2: { seat: 2, role: 'villager' },
     },
+    roleViewedSeats: [],
     nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
@@ -91,11 +93,7 @@ function view(state: GameState, seat: number): GameState {
 }
 
 function viewedSeats(state: GameState): readonly number[] {
-  const seats: number[] = [];
-  for (const player of Object.values(state.players)) {
-    if (player !== null && player.hasViewedRole) seats.push(player.seat);
-  }
-  return seats;
+  return state.roleViewedSeats;
 }
 
 describe('Identity Viewing Protocol — werewolf record and Ready checkpoint', () => {
@@ -104,7 +102,7 @@ describe('Identity Viewing Protocol — werewolf record and Ready checkpoint', (
     expect(viewedSeats(state)).toEqual([]);
 
     state = view(state, 0);
-    expect(state.players[0]?.hasViewedRole).toBe(true);
+    expect(state.roleViewedSeats).toEqual([0]);
     expect(state.status).toBe(GameStatus.Assigned);
 
     state = view(state, 2);
@@ -119,7 +117,7 @@ describe('Identity Viewing Protocol — werewolf record and Ready checkpoint', (
     state = view(state, 1);
     const afterFirst = state;
     state = view(state, 1);
-    expect(state.players).toEqual(afterFirst.players);
+    expect(state.roleViewedSeats).toEqual(afterFirst.roleViewedSeats);
     expect(state.status).toBe(afterFirst.status);
     expect(viewedSeats(state)).toEqual([1]);
   });

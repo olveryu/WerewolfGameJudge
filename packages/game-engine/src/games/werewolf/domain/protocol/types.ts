@@ -124,9 +124,6 @@ export interface ProtocolAction {
 export interface Player {
   seat: number;
   role?: RoleId | null;
-  /** Whether this player has viewed their assigned role; set to false after assignRoles, true after viewRole.
-   *  Host can only startNight after all players have hasViewedRole=true. */
-  hasViewedRole: boolean;
 }
 
 /** A human occupant of a seat in the unified roster (identity axis). */
@@ -255,10 +252,18 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   /** Game rule overrides (plague mode, witch self-heal, etc.) */
   rules?: GameRuleOverrides;
 
-  // Numeric seat index -> per-seat game data (role / hasViewedRole).
+  // Numeric seat index -> per-seat game data (role).
   // Occupancy and identity live in `roster`; the two maps are seat-aligned:
   // a seat has game data exactly when it has an occupant.
   players: Record<number, Player | null>;
+
+  /**
+   * Seats that have viewed their assigned role (Identity Viewing
+   * Protocol record, the platform stored-set shape). Cleared when roles
+   * are (re)assigned; the host can only startNight once every seated
+   * player is in this set.
+   */
+  roleViewedSeats: readonly number[];
 
   /**
    * Seat occupancy (unified roster): seat -> human occupant or bot marker.

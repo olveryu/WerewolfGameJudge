@@ -45,6 +45,7 @@ function createState(): LocalGameState {
         { userId: `p${seat}`, seat, displayName: `P${seat}`, role, hasViewedRole: false },
       ]),
     ),
+    roleViewedSeats: [],
     actions: new Map(),
     wolfVotes: new Map(),
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },

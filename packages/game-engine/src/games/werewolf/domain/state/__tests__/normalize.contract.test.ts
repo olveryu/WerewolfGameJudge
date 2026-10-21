@@ -28,6 +28,7 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'templateRoles',
   'rules',
   'players',
+  'roleViewedSeats',
   'startingParticipants',
   'mvpUserId',
   'roster',
@@ -127,9 +128,10 @@ describe('normalizeState contract', () => {
       templateRoles: ['villager', 'wolf'],
       rules: { isPlagueMode: false },
       players: {
-        0: { seat: 0, role: 'villager', hasViewedRole: true },
-        1: { seat: 1, role: 'wolf', hasViewedRole: true },
+        0: { seat: 0, role: 'villager' },
+        1: { seat: 1, role: 'wolf' },
       },
+      roleViewedSeats: [],
       roster: {
         0: { seat: 0, userId: 'p0', profile: { displayName: 'P0' } },
         1: { seat: 1, userId: 'p1', profile: { displayName: 'P1' } },
@@ -269,6 +271,7 @@ describe('normalizeState contract', () => {
       status: GameStatus.Unseated,
       templateRoles: ['villager'],
       players: {},
+      roleViewedSeats: [],
       nightStep: null,
       isAudioPlaying: false,
       pendingAudioEffects: [],

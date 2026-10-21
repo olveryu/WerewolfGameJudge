@@ -37,6 +37,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Unseated,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
+    roleViewedSeats: [],
     nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
@@ -101,9 +102,9 @@ describe('handleAssignRoles', () => {
   const seatedState = createMinimalState({
     status: GameStatus.Seated,
     players: {
-      0: { seat: 0, role: null, hasViewedRole: false },
-      1: { seat: 1, role: null, hasViewedRole: false },
-      2: { seat: 2, role: null, hasViewedRole: false },
+      0: { seat: 0, role: null },
+      1: { seat: 1, role: null },
+      2: { seat: 2, role: null },
     },
   });
 
@@ -147,7 +148,7 @@ describe('handleAssignRoles', () => {
       status: GameStatus.Seated,
       templateRoles: ['treasureMaster', 'wolf', 'seer', 'villager'],
       players: {
-        0: { seat: 0, role: null, hasViewedRole: false },
+        0: { seat: 0, role: null },
       },
     });
 
@@ -171,7 +172,7 @@ describe('handleAssignRoles', () => {
       templateRoles: ['thief', 'wolf', 'seer'],
       rules: { isPlagueMode: true },
       players: {
-        0: { seat: 0, role: null, hasViewedRole: false },
+        0: { seat: 0, role: null },
       },
     });
 
@@ -203,9 +204,9 @@ describe('handleAssignRoles', () => {
     const state = createMinimalState({
       status: GameStatus.Assigned,
       players: {
-        0: { seat: 0, role: 'villager', hasViewedRole: false },
-        1: { seat: 1, role: 'wolf', hasViewedRole: false },
-        2: { seat: 2, role: 'seer', hasViewedRole: false },
+        0: { seat: 0, role: 'villager' },
+        1: { seat: 1, role: 'wolf' },
+        2: { seat: 2, role: 'seer' },
       },
     });
     const context = createContext(state);
@@ -222,9 +223,9 @@ describe('handleAssignRoles', () => {
       status: GameStatus.Seated,
       templateRoles: ['villager', 'wolf'], // 2 roles but 3 seats
       players: {
-        0: { seat: 0, role: null, hasViewedRole: false },
-        1: { seat: 1, role: null, hasViewedRole: false },
-        2: { seat: 2, role: null, hasViewedRole: false },
+        0: { seat: 0, role: null },
+        1: { seat: 1, role: null },
+        2: { seat: 2, role: null },
       },
     });
     const context = createContext(state);
@@ -245,9 +246,9 @@ describe('handleStartNight', () => {
   const readyState = createMinimalState({
     status: GameStatus.Ready,
     players: {
-      0: { seat: 0, role: 'villager', hasViewedRole: true },
-      1: { seat: 1, role: 'wolf', hasViewedRole: true },
-      2: { seat: 2, role: 'seer', hasViewedRole: true },
+      0: { seat: 0, role: 'villager' },
+      1: { seat: 1, role: 'wolf' },
+      2: { seat: 2, role: 'seer' },
     },
   });
 
@@ -300,9 +301,9 @@ describe('handleStartNight', () => {
       status: GameStatus.Ready,
       templateRoles: ['villager', 'villager', 'witch'],
       players: {
-        0: { seat: 0, role: 'villager', hasViewedRole: true },
-        1: { seat: 1, role: 'villager', hasViewedRole: true },
-        2: { seat: 2, role: 'witch', hasViewedRole: true },
+        0: { seat: 0, role: 'villager' },
+        1: { seat: 1, role: 'villager' },
+        2: { seat: 2, role: 'witch' },
       },
     });
     const context = createContext(noWolfState);
@@ -341,9 +342,9 @@ describe('handleStartNight', () => {
     const state = createMinimalState({
       status: GameStatus.Assigned,
       players: {
-        0: { seat: 0, role: 'villager', hasViewedRole: false },
-        1: { seat: 1, role: 'wolf', hasViewedRole: false },
-        2: { seat: 2, role: 'seer', hasViewedRole: false },
+        0: { seat: 0, role: 'villager' },
+        1: { seat: 1, role: 'wolf' },
+        2: { seat: 2, role: 'seer' },
       },
     });
     const context = createContext(state);
@@ -359,9 +360,9 @@ describe('handleStartNight', () => {
     const state = createMinimalState({
       status: GameStatus.Ongoing,
       players: {
-        0: { seat: 0, role: 'villager', hasViewedRole: true },
-        1: { seat: 1, role: 'wolf', hasViewedRole: true },
-        2: { seat: 2, role: 'seer', hasViewedRole: true },
+        0: { seat: 0, role: 'villager' },
+        1: { seat: 1, role: 'wolf' },
+        2: { seat: 2, role: 'seer' },
       },
     });
     const context = createContext(state);
@@ -411,9 +412,9 @@ describe('handleStartNight', () => {
       status: GameStatus.Ready,
       templateRoles: ['villager', 'villager', 'villager'],
       players: {
-        0: { seat: 0, role: 'villager', hasViewedRole: true },
-        1: { seat: 1, role: 'villager', hasViewedRole: true },
-        2: { seat: 2, role: 'villager', hasViewedRole: true },
+        0: { seat: 0, role: 'villager' },
+        1: { seat: 1, role: 'villager' },
+        2: { seat: 2, role: 'villager' },
       },
     });
     const context = createContext(allVillagerState);
@@ -517,9 +518,9 @@ describe('handleUpdateTemplate', () => {
     const state = createMinimalState({
       status: GameStatus.Seated,
       players: {
-        0: { seat: 0, role: null, hasViewedRole: false },
-        1: { seat: 1, role: null, hasViewedRole: false },
-        2: { seat: 2, role: null, hasViewedRole: false },
+        0: { seat: 0, role: null },
+        1: { seat: 1, role: null },
+        2: { seat: 2, role: null },
       },
     });
     const context = createContext(state);
@@ -553,9 +554,9 @@ describe('handleShareNightReview', () => {
   const endedState = createMinimalState({
     status: GameStatus.Ended,
     players: {
-      0: { seat: 0, role: 'villager', hasViewedRole: true },
-      1: { seat: 1, role: 'wolf', hasViewedRole: true },
-      2: { seat: 2, role: 'seer', hasViewedRole: true },
+      0: { seat: 0, role: 'villager' },
+      1: { seat: 1, role: 'wolf' },
+      2: { seat: 2, role: 'seer' },
     },
   });
 

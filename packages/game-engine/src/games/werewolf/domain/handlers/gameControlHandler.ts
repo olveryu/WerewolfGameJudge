@@ -65,7 +65,7 @@ import { maybeCreateWitchContextAction } from './witchContext';
  *
  * - Precondition: status === GameStatus.Seated
  * - Shuffle and assign roles
- * - Set hasViewedRole = false
+ * - Clear the viewed-role record (roleViewedSeats)
  * - status -> GameStatus.Assigned
  * - Broadcast STATE_UPDATE
  */
@@ -453,7 +453,6 @@ export function handleFillWithBots(
     const seat = change.seat;
     bots[seat] = {
       seat: seat,
-      hasViewedRole: false,
     };
   }
 

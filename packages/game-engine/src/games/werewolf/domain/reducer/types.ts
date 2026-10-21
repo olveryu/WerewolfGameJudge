@@ -59,7 +59,7 @@ export interface PlayerJoinAction {
     seat: number;
     /** Roster occupant (identity axis). */
     occupant: WerewolfHumanSeat;
-    /** Per-seat game data (role / hasViewedRole axis). */
+    /** Per-seat game data (role axis). */
     player: Player;
   };
 }

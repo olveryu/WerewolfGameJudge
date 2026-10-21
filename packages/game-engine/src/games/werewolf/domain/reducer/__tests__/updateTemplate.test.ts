@@ -32,7 +32,6 @@ function createStateWithPlayers(
       playersMap[i] = {
         seat: i,
         role: p.role ?? null,
-        hasViewedRole: false,
       };
       roster[i] = {
         seat: i,
@@ -54,6 +53,7 @@ function createStateWithPlayers(
     status: allSeated ? GameStatus.Seated : GameStatus.Unseated,
     templateRoles,
     players: playersMap,
+    roleViewedSeats: [],
     roster,
     nightStep: null,
     isAudioPlaying: false,

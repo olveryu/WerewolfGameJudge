@@ -48,7 +48,8 @@ interface StateSpec {
 
 function createState(spec: StateSpec): GameState {
   const templateRoles = spec.templateRoles ?? spec.roles.filter((r): r is RoleId => r !== null);
-  const players: Record<number, { seat: number; hasViewedRole: boolean; role: RoleId } | null> = {};
+  const players: Record<number, { seat: number; role: RoleId } | null> = {};
+  const roleViewedSeats: number[] = [];
   const roster: Record<number, WerewolfHumanSeat | { seat: number; kind: 'bot' }> = {};
 
   spec.roles.forEach((role, seat) => {
@@ -58,9 +59,9 @@ function createState(spec: StateSpec): GameState {
     }
     players[seat] = {
       seat,
-      hasViewedRole: !spec.unviewedSeats?.includes(seat),
       role,
     };
+    if (!spec.unviewedSeats?.includes(seat)) roleViewedSeats.push(seat);
     if (spec.botSeats?.includes(seat)) {
       roster[seat] = { seat, kind: 'bot' };
     } else {
@@ -75,6 +76,7 @@ function createState(spec: StateSpec): GameState {
     status: spec.status ?? GameStatus.Ongoing,
     templateRoles: [...templateRoles],
     players,
+    roleViewedSeats,
     roster,
     nightStep: spec.stepId ? { kind: 'inStep', stepId: spec.stepId } : null,
     isAudioPlaying: false,

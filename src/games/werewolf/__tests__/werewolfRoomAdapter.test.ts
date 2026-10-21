@@ -26,10 +26,11 @@ function createLocalGameState(overrides: Partial<GameState> = {}): LocalGameStat
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'witch', 'seer'] as RoleId[],
     players: {
-      0: { seat: 0, hasViewedRole: true, role: 'wolf' as RoleId },
-      1: { seat: 1, hasViewedRole: true, role: 'witch' as RoleId },
-      2: { seat: 2, hasViewedRole: true, role: 'seer' as RoleId },
+      0: { seat: 0, role: 'wolf' as RoleId },
+      1: { seat: 1, role: 'witch' as RoleId },
+      2: { seat: 2, role: 'seer' as RoleId },
     },
+    roleViewedSeats: [0, 1, 2],
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
@@ -548,10 +549,11 @@ describe('createWerewolfRoomShellModel', () => {
       createLocalGameState({
         status: GameStatus.Assigned,
         players: {
-          0: { seat: 0, hasViewedRole: true, role: 'wolf' as RoleId },
-          1: { seat: 1, hasViewedRole: true, role: 'witch' as RoleId },
-          2: { seat: 2, hasViewedRole: botViewed, role: 'seer' as RoleId },
+          0: { seat: 0, role: 'wolf' as RoleId },
+          1: { seat: 1, role: 'witch' as RoleId },
+          2: { seat: 2, role: 'seer' as RoleId },
         },
+        roleViewedSeats: botViewed ? [0, 1, 2] : [0, 1],
         roster: {
           0: { seat: 0, userId: 'HOST', profile: { displayName: '房主' } },
           1: { seat: 1, userId: 'P2', profile: { displayName: 'P2' } },
@@ -586,10 +588,11 @@ describe('createWerewolfRoomShellModel', () => {
         gameState: createLocalGameState({
           status: GameStatus.Assigned,
           players: {
-            0: { seat: 0, hasViewedRole: true, role: 'wolf' as RoleId },
-            1: { seat: 1, hasViewedRole: false, role: 'witch' as RoleId },
-            2: { seat: 2, hasViewedRole: true, role: 'seer' as RoleId },
+            0: { seat: 0, role: 'wolf' as RoleId },
+            1: { seat: 1, role: 'witch' as RoleId },
+            2: { seat: 2, role: 'seer' as RoleId },
           },
+          roleViewedSeats: [0, 2],
           roster: {
             0: { seat: 0, userId: 'HOST', profile: { displayName: '房主' } },
             1: { seat: 1, userId: 'P2', profile: { displayName: 'P2' } },

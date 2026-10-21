@@ -77,6 +77,7 @@ export function createBaseWerewolfRoomMock({
       actionOrder: [currentActionRole],
     },
     players,
+    roleViewedSeats: Array.from({ length: numberOfPlayers }, (_, i) => i),
     actions: new Map<RoleId, RoleAction>(),
     wolfVotes: new Map<number, number>(),
     nightStep: { kind: 'inStep', stepId: schemaId } as const,

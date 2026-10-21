@@ -34,14 +34,13 @@ function createState(overrides: Partial<GameState> = {}): GameState {
       0: {
         seat: 0,
         role: 'wolf',
-        hasViewedRole: true,
       },
       [PLAYER_SEAT]: {
         seat: PLAYER_SEAT,
         role: 'villager',
-        hasViewedRole: true,
       },
     },
+    roleViewedSeats: [],
     roster: {
       0: { seat: 0, userId: HOST_USER_ID, profile: { displayName: 'Host' } },
       [PLAYER_SEAT]: {
@@ -381,23 +380,19 @@ describe('Werewolf command handlers', () => {
                 2: {
                   seat: 2,
                   role: 'villager',
-                  hasViewedRole: true,
                 },
                 [ACKED_BOT_SEAT]: {
                   seat: ACKED_BOT_SEAT,
                   role: 'villager',
-                  hasViewedRole: true,
                 },
                 5: {
                   seat: 5,
                   role: 'villager',
-                  hasViewedRole: true,
                 },
                 7: null,
                 8: {
                   seat: 8,
                   role: 'wolf',
-                  hasViewedRole: true,
                 },
               },
               roster: {
@@ -429,12 +424,10 @@ describe('Werewolf command handlers', () => {
               2: {
                 seat: 2,
                 role: 'wolf',
-                hasViewedRole: true,
               },
               4: {
                 seat: 4,
                 role: 'villager',
-                hasViewedRole: true,
               },
             },
             roster: {

@@ -69,7 +69,7 @@ import {
   type RoleId,
   validateTemplateRoles,
 } from './domain/models';
-import { getWerewolfViewedSeats, getWerewolfViewingParticipants } from './domain/playerHelpers';
+import { getWerewolfViewingParticipants } from './domain/playerHelpers';
 import type { GameState } from './domain/protocol/types';
 import { gameReducer } from './domain/reducer/gameReducer';
 import type { StateAction } from './domain/reducer/types';
@@ -356,7 +356,7 @@ function decideWerewolfCommandRules(
       return decideMarkBotsViewed({
         gateRejection: state.status !== GameStatus.Assigned ? reject('invalid_status') : null,
         participants: getWerewolfViewingParticipants(state),
-        viewedSeats: getWerewolfViewedSeats(state.players),
+        viewedSeats: state.roleViewedSeats,
         noBotSeatsReason: 'no_bot_seats',
         buildViewedEvent: (seat) => ({ type: 'PLAYER_VIEWED_ROLE', payload: { seat } }),
         commit: commitActions,
@@ -389,7 +389,7 @@ function decideWerewolfCommandRules(
       // vocabulary as the viewed record.
       return decideConfirmViewed({
         actingSeat: { kind: 'resolved', value: actor.value.seat },
-        viewedSeats: getWerewolfViewedSeats(state.players),
+        viewedSeats: state.roleViewedSeats,
         phaseRejection: state.status !== GameStatus.Assigned ? reject('invalid_status') : null,
         buildViewedEvent: (seat) => ({ type: 'PLAYER_VIEWED_ROLE', payload: { seat } }),
         commit: commitActions,

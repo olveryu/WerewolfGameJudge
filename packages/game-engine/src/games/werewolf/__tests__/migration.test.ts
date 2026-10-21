@@ -1,13 +1,15 @@
 /**
  * Persisted-state version gate.
  *
- * v10 is a hard cut: the display profile moved into the roster human
- * occupant and the by-user playerProfiles map was deleted. Payloads
- * below the current version are rejected, not migrated — old rooms are
- * not carried across a state-shape change, and the v5-v9 upgrade chain
- * was deleted with v10 (see state/version.ts). This suite pins the
- * gate: the current version passes through untouched; every older (or
- * newer) version is refused.
+ * v11 is a hard cut: the viewed record moved out of the per-player
+ * hasViewedRole flag into the state-level roleViewedSeats set (v10 had
+ * already moved the display profile into the roster human occupant and
+ * deleted the by-user playerProfiles map). Payloads below the current
+ * version are rejected, not migrated — old rooms are not carried
+ * across a state-shape change, and the v5-v9 upgrade chain was deleted
+ * with v10 (see state/version.ts). This suite pins the gate: the
+ * current version passes through untouched; every older (or newer)
+ * version is refused.
  */
 
 import { GameStatus } from '../domain/models/GameStatus';
@@ -30,7 +32,7 @@ function buildStartedState(): GameState {
     payload: {
       seat: 0,
       occupant: { seat: 0, userId: 'host', profile: { displayName: '房主' } },
-      player: { seat: 0, role: null, hasViewedRole: false },
+      player: { seat: 0, role: null },
     },
   });
   state = gameReducer(state, {
@@ -38,13 +40,13 @@ function buildStartedState(): GameState {
     payload: {
       seat: 1,
       occupant: { seat: 1, userId: 'alice', profile: { displayName: 'Alice' } },
-      player: { seat: 1, role: null, hasViewedRole: false },
+      player: { seat: 1, role: null },
     },
   });
   state = gameReducer(state, {
     type: 'FILL_WITH_BOTS',
     payload: {
-      bots: { 2: { seat: 2, hasViewedRole: false } },
+      bots: { 2: { seat: 2 } },
     },
   });
   // Assign roles and mark everyone as having viewed, as a started game would.
@@ -52,12 +54,24 @@ function buildStartedState(): GameState {
     ...state,
     status: GameStatus.Ready,
     players: {
-      0: { seat: 0, role: 'wolf', hasViewedRole: true },
-      1: { seat: 1, role: 'seer', hasViewedRole: true },
-      2: { seat: 2, role: 'villager', hasViewedRole: true },
+      0: { seat: 0, role: 'wolf' },
+      1: { seat: 1, role: 'seer' },
+      2: { seat: 2, role: 'villager' },
     },
+    roleViewedSeats: [0, 1, 2],
   };
   return parseWerewolfState(JSON.parse(JSON.stringify(state)));
+}
+
+/** Rebuilds the exact document a v10 store would have persisted for the same game. */
+function downgradeToV10(state: GameState): Record<string, unknown> {
+  const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
+  const players = raw.players as Record<string, Record<string, unknown>>;
+  for (const player of Object.values(players)) {
+    if (player !== null) player.hasViewedRole = true;
+  }
+  delete raw.roleViewedSeats;
+  return { ...raw, stateVersion: 10 };
 }
 
 /** Rebuilds the exact document a v9 store would have persisted for the same game. */
@@ -83,10 +97,10 @@ function asStored(state: GameState): Record<string, unknown> {
   return JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
 }
 
-describe('persisted state version gate (v10 hard cut)', () => {
-  it('pins the current version at 10', () => {
-    expect(WEREWOLF_STATE_VERSION).toBe(10);
-    expect(buildStartedState().stateVersion).toBe(10);
+describe('persisted state version gate (v11 hard cut)', () => {
+  it('pins the current version at 11', () => {
+    expect(WEREWOLF_STATE_VERSION).toBe(11);
+    expect(buildStartedState().stateVersion).toBe(11);
   });
 
   it('passes a current-version payload through value-identical (identity baseline)', () => {
@@ -133,12 +147,20 @@ describe('persisted state version gate (v10 hard cut)', () => {
     expect(JSON.stringify(parseWerewolfState(JSON.parse(serialized)))).toBe(serialized);
   });
 
+  it('rejects a v10 payload (viewed record still a per-player flag)', () => {
+    const legacy = downgradeToV10(buildStartedState());
+    expect(() => migratePersistedWerewolfState(legacy)).toThrow(
+      'Unsupported werewolf state version: 10',
+    );
+    expect(() => parseWerewolfState(legacy)).toThrow('GameState.stateVersion must be 11');
+  });
+
   it('rejects a v9 payload (profiles still in the by-user map)', () => {
     const legacy = downgradeToV9(buildStartedState());
     expect(() => migratePersistedWerewolfState(legacy)).toThrow(
       'Unsupported werewolf state version: 9',
     );
-    expect(() => parseWerewolfState(legacy)).toThrow('GameState.stateVersion must be 10');
+    expect(() => parseWerewolfState(legacy)).toThrow('GameState.stateVersion must be 11');
   });
 
   it('rejects a v5 payload (identity still embedded in the player record)', () => {
@@ -149,9 +171,9 @@ describe('persisted state version gate (v10 hard cut)', () => {
   });
 
   it('rejects a payload from a newer version', () => {
-    const future = { ...asStored(buildStartedState()), stateVersion: 11 };
+    const future = { ...asStored(buildStartedState()), stateVersion: 12 };
     expect(() => migratePersistedWerewolfState(future)).toThrow(
-      'Unsupported werewolf state version: 11',
+      'Unsupported werewolf state version: 12',
     );
   });
 
@@ -165,6 +187,15 @@ describe('persisted state version gate (v10 hard cut)', () => {
     );
     expect(() => parseWerewolfState(stored)).toThrow(
       'GameState contains unknown field: playerProfiles',
+    );
+  });
+
+  it('rejects a current-version payload whose player still carries the dropped hasViewedRole flag', () => {
+    const stored = asStored(buildStartedState());
+    const players = stored.players as Record<string, Record<string, unknown>>;
+    players[0]!.hasViewedRole = true;
+    expect(() => parseWerewolfState(stored)).toThrow(
+      'GameState.players.0 contains unknown field: hasViewedRole',
     );
   });
 

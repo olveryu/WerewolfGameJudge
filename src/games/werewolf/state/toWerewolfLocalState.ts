@@ -39,6 +39,7 @@ function toLocalPlayer(
   bp: Player,
   seat: number,
   occupant: NonNullable<GameState['roster'][number]>,
+  hasViewedRole: boolean,
 ): LocalPlayer {
   const isBot = isBotOccupant(occupant);
   const userId = isBot ? `bot-${seat}` : occupant.userId;
@@ -58,7 +59,7 @@ function toLocalPlayer(
         : parseResolvedRoleRevealAnimation(profile.revealEffect),
     level: profile?.level,
     role: bp.role ?? null,
-    hasViewedRole: bp.hasViewedRole,
+    hasViewedRole,
     isBot: isBot ? true : undefined,
   };
 }
@@ -105,7 +106,7 @@ export function toWerewolfLocalState(state: GameState): LocalGameState {
     if (occupant == null) {
       throw new Error(`[FAIL-FAST] Werewolf seat ${seat} has game data without an occupant`);
     }
-    playersMap.set(seat, toLocalPlayer(bp, seat, occupant));
+    playersMap.set(seat, toLocalPlayer(bp, seat, occupant, state.roleViewedSeats.includes(seat)));
   }
 
   // 2. templateRoles → template (using createTemplateFromRoles)

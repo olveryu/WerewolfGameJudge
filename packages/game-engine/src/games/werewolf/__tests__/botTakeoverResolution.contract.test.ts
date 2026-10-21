@@ -90,16 +90,12 @@ describeBotTakeoverResolution({
         const decision = werewolfEngine.decide(state, { type: 'werewolf.role.viewed' }, context);
         if (decision.kind === 'reject') return { kind: 'rejected', reason: decision.reason };
         const next = decision.events.reduce(werewolfEngine.evolve, state);
-        for (const player of Object.values(next.players)) {
-          if (
-            player !== null &&
-            player.hasViewedRole &&
-            !state.players[player.seat]?.hasViewedRole
-          ) {
-            return { kind: 'resolved', seat: player.seat };
+        for (const seat of next.roleViewedSeats) {
+          if (!state.roleViewedSeats.includes(seat)) {
+            return { kind: 'resolved', seat };
           }
         }
-        throw new Error('Role view commit flipped no viewed flag');
+        throw new Error('Role view commit added no viewed seat');
       },
     };
   },

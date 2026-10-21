@@ -24,6 +24,7 @@ const makeGameState = (): LocalGameState => ({
     [1, { userId: 'u2', seat: 1, role: 'witch', hasViewedRole: true, displayName: 'P2' }],
     [2, { userId: 'u3', seat: 2, role: 'wolf', hasViewedRole: true, displayName: 'P3' }],
   ]),
+  roleViewedSeats: [0, 1, 2],
   actions: new Map(),
   wolfVotes: new Map(),
   nightStep: { kind: 'inStep', stepId: 'wolfKill' },

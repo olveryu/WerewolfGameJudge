@@ -50,14 +50,14 @@ const CURRENT_NIGHT_RESULTS: CurrentNightResults = {
 };
 
 function buildEngineState(): GameState {
-  const players: Record<number, { seat: number; hasViewedRole: boolean; role: RoleId } | null> = {};
+  const players: Record<number, { seat: number; role: RoleId } | null> = {};
   const roster: Record<
     number,
     | { seat: number; userId: string; profile: { displayName: string } }
     | { seat: number; kind: 'bot' }
   > = {};
   ROLES.forEach((role, seat) => {
-    players[seat] = { seat, hasViewedRole: seat !== UNVIEWED_SEAT, role };
+    players[seat] = { seat, role };
     roster[seat] =
       seat === BOT_SEAT
         ? { seat, kind: 'bot' }
@@ -71,6 +71,7 @@ function buildEngineState(): GameState {
     templateRoles: [...ROLES],
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     players,
+    roleViewedSeats: ROLES.map((_, seat) => seat).filter((seat) => seat !== UNVIEWED_SEAT),
     roster,
     currentNightResults: CURRENT_NIGHT_RESULTS,
   });

@@ -33,6 +33,7 @@ function createGameState(
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'seer'],
     players: {},
+    roleViewedSeats: [],
     roster: {},
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,

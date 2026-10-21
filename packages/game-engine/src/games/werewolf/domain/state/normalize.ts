@@ -151,6 +151,9 @@ export function normalizeState(raw: GameState): GameState {
     rules: raw.rules,
     // Player keys retain the authoritative state representation.
     players: requireField(raw.players, 'players'),
+    // Viewed-role seat set (boundary normalize: legacy in-memory states
+    // without the field default to an empty set)
+    roleViewedSeats: raw.roleViewedSeats ?? [],
     startingParticipants: raw.startingParticipants,
     mvpUserId: raw.mvpUserId,
     // Seat occupancy roster (seat -> human occupant or bot marker)

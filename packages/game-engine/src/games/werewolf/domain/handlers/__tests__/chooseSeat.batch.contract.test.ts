@@ -142,10 +142,11 @@ function createMinimalState(
     status: GameStatus.Ongoing,
     templateRoles: ['villager', role, 'wolf'],
     players: {
-      0: { seat: 0, role: 'villager', hasViewedRole: true },
-      1: { seat: 1, role, hasViewedRole: true },
-      2: { seat: 2, role: 'wolf', hasViewedRole: true },
+      0: { seat: 0, role: 'villager' },
+      1: { seat: 1, role },
+      2: { seat: 2, role: 'wolf' },
     },
+    roleViewedSeats: [],
     roster: {
       0: { seat: 0, userId: 'p1', profile: { displayName: 'p1' } },
       1: { seat: 1, userId: 'p2', profile: { displayName: 'p2' } },

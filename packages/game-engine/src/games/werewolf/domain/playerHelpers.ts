@@ -133,11 +133,11 @@ export function isBottomCardWolfVoteExcluded(originalRole: RoleId): boolean {
 
 /**
  * Identity Viewing Protocol participants (AU-19): every seated player
- * with its bot flag. Werewolf keeps its per-player hasViewedRole
- * record (no state-shape migration); the protocol inputs are derived
- * from the players record plus the roster's bot axis. `players`
- * defaults to the state's record; reducers pass the in-flight record
- * they are about to commit.
+ * with its bot flag. The viewed record itself lives in the state's
+ * roleViewedSeats set; the participant list is derived from the
+ * players record plus the roster's bot axis. `players` defaults to
+ * the state's record; reducers pass the in-flight record they are
+ * about to commit.
  */
 export function getWerewolfViewingParticipants(
   state: GameState,
@@ -152,15 +152,6 @@ export function getWerewolfViewingParticipants(
     seats.push(Number.parseInt(seatStr, 10));
   }
   return buildIdentityViewingParticipants(state.roster, seats);
-}
-
-/** Seats whose hasViewedRole record is set, ascending (AU-19). */
-export function getWerewolfViewedSeats(players: Players): readonly number[] {
-  const seats: number[] = [];
-  for (const [seatStr, player] of Object.entries(players)) {
-    if (player?.hasViewedRole === true) seats.push(Number.parseInt(seatStr, 10));
-  }
-  return seats.sort((left, right) => left - right);
 }
 
 /** Returns the seat held by a user, or null when they hold no seat. */

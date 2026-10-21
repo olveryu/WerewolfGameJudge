@@ -46,9 +46,9 @@ function createState(overrides: Partial<GameState> = {}): GameState {
   return {
     ...buildInitialGameState('1234', 'host', TEMPLATE),
     players: {
-      0: { seat: 0, role: 'wolf', hasViewedRole: true },
-      1: { seat: 1, role: 'seer', hasViewedRole: true },
-      2: { seat: 2, role: 'hunter', hasViewedRole: true },
+      0: { seat: 0, role: 'wolf' },
+      1: { seat: 1, role: 'seer' },
+      2: { seat: 2, role: 'hunter' },
       3: null,
     },
     roster: {
@@ -299,7 +299,7 @@ describe('Werewolf action input adapter', () => {
       nightStep: { kind: 'inStep', stepId },
       players: {
         ...createState().players,
-        1: { seat: 1, role, hasViewedRole: true },
+        1: { seat: 1, role },
       },
     });
 
@@ -354,7 +354,7 @@ describe('Werewolf action input adapter', () => {
       nightStep: { kind: 'inStep', stepId },
       players: {
         ...createState().players,
-        1: { seat: 1, role, hasViewedRole: true },
+        1: { seat: 1, role },
       },
     });
 
@@ -486,7 +486,7 @@ describe('Werewolf redeal (one-command restart + deal)', () => {
     for (const player of Object.values(next.players)) {
       expect(player).not.toBeNull();
       expect(player?.role).not.toBeNull();
-      expect(player?.hasViewedRole).toBe(false);
+      expect(next.roleViewedSeats).not.toContain(player?.seat);
     }
   });
 
@@ -596,12 +596,11 @@ describe('Werewolf engine definition and catalog', () => {
         command.type === 'werewolf.config.update'
           ? createState({
               players: {
-                0: { seat: 0, role: null, hasViewedRole: false },
-                1: { seat: 1, role: null, hasViewedRole: false },
+                0: { seat: 0, role: null },
+                1: { seat: 1, role: null },
                 2: {
                   seat: 2,
                   role: null,
-                  hasViewedRole: false,
                 },
                 3: null,
               },
@@ -840,7 +839,7 @@ describe('Werewolf engine definition and catalog', () => {
       isAudioPlaying: false,
       players: {
         ...createState().players,
-        1: { seat: 1, hasViewedRole: true },
+        1: { seat: 1 },
       },
     });
 
@@ -859,11 +858,11 @@ describe('Werewolf engine definition and catalog', () => {
       currentNightResults: {},
       isAudioPlaying: false,
       players: {
-        0: { seat: 0, role: 'wolf', hasViewedRole: true },
-        1: { seat: 1, role: 'seer', hasViewedRole: true },
-        2: { seat: 2, role: 'hunter', hasViewedRole: true },
-        3: { seat: 3, role: 'villager', hasViewedRole: true },
-        4: { seat: 4, role: 'villager', hasViewedRole: true },
+        0: { seat: 0, role: 'wolf' },
+        1: { seat: 1, role: 'seer' },
+        2: { seat: 2, role: 'hunter' },
+        3: { seat: 3, role: 'villager' },
+        4: { seat: 4, role: 'villager' },
       },
       roster: {
         0: { seat: 0, userId: 'host', profile: { displayName: 'Host' } },
@@ -1261,10 +1260,10 @@ describe('Werewolf engine definition and catalog', () => {
     const state = createState({
       status: GameStatus.Seated,
       players: {
-        0: { seat: 0, hasViewedRole: false },
-        1: { seat: 1, hasViewedRole: false },
-        2: { seat: 2, hasViewedRole: false },
-        3: { seat: 3, hasViewedRole: false },
+        0: { seat: 0 },
+        1: { seat: 1 },
+        2: { seat: 2 },
+        3: { seat: 3 },
       },
       roster: {
         0: { seat: 0, userId: 'host', profile: { displayName: 'Host' } },

@@ -19,6 +19,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Unseated,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
+    roleViewedSeats: [],
     nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
@@ -49,9 +50,9 @@ describe('handleClearAllSeats', () => {
   const seatedState = createMinimalState({
     status: GameStatus.Seated,
     players: {
-      0: { seat: 0, role: null, hasViewedRole: false },
-      1: { seat: 1, role: null, hasViewedRole: false },
-      2: { seat: 2, role: null, hasViewedRole: false },
+      0: { seat: 0, role: null },
+      1: { seat: 1, role: null },
+      2: { seat: 2, role: null },
     },
     roster: {
       0: { seat: 0, userId: 'p1', profile: { displayName: 'p1' } },
@@ -78,7 +79,7 @@ describe('handleClearAllSeats', () => {
     const state = createMinimalState({
       status: GameStatus.Unseated,
       players: {
-        0: { seat: 0, role: null, hasViewedRole: false },
+        0: { seat: 0, role: null },
         1: null,
         2: null,
       },

@@ -35,9 +35,8 @@ describe('Werewolf engine mainline', () => {
     session.send({ type: 'werewolf.roles.assign' }, 'host');
     expect(session.state.status).toBe(GameStatus.Assigned);
     const players = session.state.players;
-    expect(Object.values(players).every((player) => player !== null && !player.hasViewedRole)).toBe(
-      true,
-    );
+    expect(Object.values(players).every((player) => player !== null)).toBe(true);
+    expect(session.state.roleViewedSeats).toEqual([]);
 
     // Humans view their own roles; the checkpoint holds for the bots.
     session.send({ type: 'werewolf.role.viewed' }, 'host');

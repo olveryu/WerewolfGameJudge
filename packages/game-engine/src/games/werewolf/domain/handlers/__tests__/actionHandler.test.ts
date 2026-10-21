@@ -29,9 +29,9 @@ import {
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   const { players: playersOverride, roster: rosterOverride, ...rest } = overrides ?? {};
   const players: GameState['players'] = playersOverride ?? {
-    0: { seat: 0, role: 'villager', hasViewedRole: true },
-    1: { seat: 1, role: 'wolf', hasViewedRole: true },
-    2: { seat: 2, role: 'seer', hasViewedRole: true },
+    0: { seat: 0, role: 'villager' },
+    1: { seat: 1, role: 'wolf' },
+    2: { seat: 2, role: 'seer' },
   };
   // Occupancy mirrors the seated players; this file's convention is that
   // seat N is occupied by user `p${N + 1}`.
@@ -51,6 +51,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Ongoing,
     templateRoles: ['villager', 'wolf', 'seer'],
     players,
+    roleViewedSeats: [],
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
@@ -103,9 +104,9 @@ describe('handleSubmitAction', () => {
       nightStep: { kind: 'inStep', stepId: 'seerCheck' },
       isAudioPlaying: false,
       players: {
-        0: { seat: 0, role: 'villager', hasViewedRole: true },
-        1: { seat: 1, role: 'wolf', hasViewedRole: true },
-        2: { seat: 2, role: 'seer', hasViewedRole: true },
+        0: { seat: 0, role: 'villager' },
+        1: { seat: 1, role: 'wolf' },
+        2: { seat: 2, role: 'seer' },
       },
       currentNightResults: {},
       actions: [],
@@ -274,9 +275,9 @@ describe('handleSubmitAction', () => {
     const state = createOngoingState({
       nightStep: { kind: 'inStep', stepId: 'seerCheck' },
       players: {
-        0: { seat: 0, role: 'guard', hasViewedRole: true },
-        1: { seat: 1, role: 'wolf', hasViewedRole: true },
-        2: { seat: 2, role: 'seer', hasViewedRole: true },
+        0: { seat: 0, role: 'guard' },
+        1: { seat: 1, role: 'wolf' },
+        2: { seat: 2, role: 'seer' },
       },
     });
     const context = createContext(state);
@@ -296,9 +297,9 @@ describe('handleSubmitAction', () => {
   it('should fail when actor seat has no player (gate: not_seated)', () => {
     const state = createOngoingState({
       players: {
-        0: { seat: 0, role: 'villager', hasViewedRole: true },
+        0: { seat: 0, role: 'villager' },
         1: null,
-        2: { seat: 2, role: 'seer', hasViewedRole: true },
+        2: { seat: 2, role: 'seer' },
       },
     });
     const context = createContext(state);
@@ -355,9 +356,9 @@ describe('handleSubmitAction', () => {
         nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
         templateRoles: ['villager', 'wolf', 'wolfRobot'],
         players: {
-          0: { seat: 0, role: 'villager', hasViewedRole: true },
-          1: { seat: 1, role: 'wolf', hasViewedRole: true },
-          2: { seat: 2, role: 'wolfRobot', hasViewedRole: true },
+          0: { seat: 0, role: 'villager' },
+          1: { seat: 1, role: 'wolf' },
+          2: { seat: 2, role: 'wolfRobot' },
         },
       });
       const context = createContext(state);
@@ -385,9 +386,9 @@ describe('handleSubmitAction', () => {
         nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
         templateRoles: ['villager', 'wolf', 'wolfRobot'],
         players: {
-          0: { seat: 0, role: 'villager', hasViewedRole: true },
-          1: { seat: 1, role: 'wolf', hasViewedRole: true },
-          2: { seat: 2, role: 'wolfRobot', hasViewedRole: true },
+          0: { seat: 0, role: 'villager' },
+          1: { seat: 1, role: 'wolf' },
+          2: { seat: 2, role: 'wolfRobot' },
         },
       });
       const context = createContext(state);
@@ -419,9 +420,9 @@ describe('handleSubmitAction', () => {
           currentNightResults,
           templateRoles: ['hunter', 'wolf', 'wolfRobot'],
           players: {
-            0: { seat: 0, role: 'hunter', hasViewedRole: true },
-            1: { seat: 1, role: 'wolf', hasViewedRole: true },
-            2: { seat: 2, role: 'wolfRobot', hasViewedRole: true },
+            0: { seat: 0, role: 'hunter' },
+            1: { seat: 1, role: 'wolf' },
+            2: { seat: 2, role: 'wolfRobot' },
           },
         });
         const intent: SubmitActionIntent = {
@@ -463,9 +464,9 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         nightStep: { kind: 'inStep', stepId: 'seerCheck' },
         players: {
-          0: { seat: 0, role: 'seer', hasViewedRole: true },
-          1: { seat: 1, role: 'wolf', hasViewedRole: true },
-          2: { seat: 2, role: 'villager', hasViewedRole: true },
+          0: { seat: 0, role: 'seer' },
+          1: { seat: 1, role: 'wolf' },
+          2: { seat: 2, role: 'villager' },
         },
         currentNightResults: { blockedSeat: 0 }, // seer is blocked
       });
@@ -486,8 +487,8 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         nightStep: { kind: 'inStep', stepId: 'seerCheck' },
         players: {
-          0: { seat: 0, role: 'seer', hasViewedRole: true },
-          1: { seat: 1, role: 'wolf', hasViewedRole: true },
+          0: { seat: 0, role: 'seer' },
+          1: { seat: 1, role: 'wolf' },
         },
         currentNightResults: { blockedSeat: 0 }, // seer is blocked
       });
@@ -506,8 +507,8 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         nightStep: { kind: 'inStep', stepId: 'seerCheck' },
         players: {
-          0: { seat: 0, role: 'seer', hasViewedRole: true },
-          1: { seat: 1, role: 'wolf', hasViewedRole: true },
+          0: { seat: 0, role: 'seer' },
+          1: { seat: 1, role: 'wolf' },
         },
         currentNightResults: { blockedSeat: 99 }, // someone else blocked
       });
@@ -529,9 +530,9 @@ describe('handleSubmitAction', () => {
         nightStep: { kind: 'inStep', stepId: 'magicianSwap' },
         templateRoles: ['magician', 'wolf', 'villager'],
         players: {
-          0: { seat: 0, role: 'magician', hasViewedRole: true },
-          1: { seat: 1, role: 'wolf', hasViewedRole: true },
-          2: { seat: 2, role: 'villager', hasViewedRole: true },
+          0: { seat: 0, role: 'magician' },
+          1: { seat: 1, role: 'wolf' },
+          2: { seat: 2, role: 'villager' },
         },
         currentNightResults: { blockedSeat: 0 }, // magician is blocked
       });
@@ -558,8 +559,8 @@ describe('handleSubmitAction', () => {
         nightStep: { kind: 'inStep', stepId: 'magicianSwap' },
         templateRoles: ['magician', 'wolf'],
         players: {
-          0: { seat: 0, role: 'magician', hasViewedRole: true },
-          1: { seat: 1, role: 'wolf', hasViewedRole: true },
+          0: { seat: 0, role: 'magician' },
+          1: { seat: 1, role: 'wolf' },
         },
         currentNightResults: { blockedSeat: 0 }, // magician is blocked
       });
@@ -585,9 +586,9 @@ describe('handleSubmitAction', () => {
         nightStep: { kind: 'inStep', stepId: 'witchAction' },
         templateRoles: ['villager', 'wolf', 'villager', 'witch'],
         players: {
-          0: { seat: 0, role: 'villager', hasViewedRole: true },
-          1: { seat: 1, role: 'wolf', hasViewedRole: true },
-          3: { seat: 3, role: 'witch', hasViewedRole: true },
+          0: { seat: 0, role: 'villager' },
+          1: { seat: 1, role: 'wolf' },
+          3: { seat: 3, role: 'witch' },
         },
         currentNightResults: {
           blockedSeat: 3, // witch is blocked
@@ -616,9 +617,9 @@ describe('handleSubmitAction', () => {
         nightStep: { kind: 'inStep', stepId: 'witchAction' },
         templateRoles: ['villager', 'wolf', 'villager', 'witch'],
         players: {
-          0: { seat: 0, role: 'villager', hasViewedRole: true },
-          1: { seat: 1, role: 'wolf', hasViewedRole: true },
-          3: { seat: 3, role: 'witch', hasViewedRole: true },
+          0: { seat: 0, role: 'villager' },
+          1: { seat: 1, role: 'wolf' },
+          3: { seat: 3, role: 'witch' },
         },
         currentNightResults: { blockedSeat: 3 }, // witch is blocked
       });
@@ -644,9 +645,9 @@ describe('handleSubmitAction', () => {
         nightStep: { kind: 'inStep', stepId: 'witchAction' },
         templateRoles: ['villager', 'wolf', 'villager', 'witch'],
         players: {
-          0: { seat: 0, role: 'villager', hasViewedRole: true },
-          1: { seat: 1, role: 'wolf', hasViewedRole: true },
-          3: { seat: 3, role: 'witch', hasViewedRole: true },
+          0: { seat: 0, role: 'villager' },
+          1: { seat: 1, role: 'wolf' },
+          3: { seat: 3, role: 'witch' },
         },
         currentNightResults: { blockedSeat: 3 }, // witch is blocked
         witchContext: { killedSeat: 0, canSave: true, canPoison: true },
@@ -671,9 +672,9 @@ describe('handleSubmitAction', () => {
         nightStep: { kind: 'inStep', stepId: 'witchAction' },
         templateRoles: ['villager', 'wolf', 'villager', 'witch'],
         players: {
-          0: { seat: 0, role: 'villager', hasViewedRole: true },
-          1: { seat: 1, role: 'wolf', hasViewedRole: true },
-          3: { seat: 3, role: 'witch', hasViewedRole: true },
+          0: { seat: 0, role: 'villager' },
+          1: { seat: 1, role: 'wolf' },
+          3: { seat: 3, role: 'witch' },
         },
         currentNightResults: {
           blockedSeat: 99, // someone else blocked
@@ -703,8 +704,8 @@ describe('handleSubmitAction', () => {
         nightStep: { kind: 'inStep', stepId: 'hunterConfirm' },
         templateRoles: ['hunter', 'wolf'],
         players: {
-          0: { seat: 0, role: 'hunter', hasViewedRole: true },
-          1: { seat: 1, role: 'wolf', hasViewedRole: true },
+          0: { seat: 0, role: 'hunter' },
+          1: { seat: 1, role: 'wolf' },
         },
         currentNightResults: { blockedSeat: 0 }, // hunter is blocked
       });
@@ -730,8 +731,8 @@ describe('handleSubmitAction', () => {
         nightStep: { kind: 'inStep', stepId: 'hunterConfirm' },
         templateRoles: ['hunter', 'wolf'],
         players: {
-          0: { seat: 0, role: 'hunter', hasViewedRole: true },
-          1: { seat: 1, role: 'wolf', hasViewedRole: true },
+          0: { seat: 0, role: 'hunter' },
+          1: { seat: 1, role: 'wolf' },
         },
         currentNightResults: { blockedSeat: 0 }, // hunter is blocked
       });
@@ -755,8 +756,8 @@ describe('handleSubmitAction', () => {
         nightStep: { kind: 'inStep', stepId: 'hunterConfirm' },
         templateRoles: ['hunter', 'wolf'],
         players: {
-          0: { seat: 0, role: 'hunter', hasViewedRole: true },
-          1: { seat: 1, role: 'wolf', hasViewedRole: true },
+          0: { seat: 0, role: 'hunter' },
+          1: { seat: 1, role: 'wolf' },
         },
         currentNightResults: {}, // NOT blocked
       });
@@ -782,8 +783,8 @@ describe('handleSubmitAction', () => {
         nightStep: { kind: 'inStep', stepId: 'hunterConfirm' },
         templateRoles: ['hunter', 'wolf'],
         players: {
-          0: { seat: 0, role: 'hunter', hasViewedRole: true },
-          1: { seat: 1, role: 'wolf', hasViewedRole: true },
+          0: { seat: 0, role: 'hunter' },
+          1: { seat: 1, role: 'wolf' },
         },
         currentNightResults: {}, // NOT blocked
       });
@@ -809,8 +810,8 @@ describe('handleSubmitAction', () => {
         nightStep: { kind: 'inStep', stepId: 'darkWolfKingConfirm' },
         templateRoles: ['darkWolfKing', 'villager'],
         players: {
-          0: { seat: 0, role: 'darkWolfKing', hasViewedRole: true },
-          1: { seat: 1, role: 'villager', hasViewedRole: true },
+          0: { seat: 0, role: 'darkWolfKing' },
+          1: { seat: 1, role: 'villager' },
         },
         currentNightResults: { blockedSeat: 0 }, // darkWolfKing is blocked
       });
@@ -835,8 +836,8 @@ describe('handleSubmitAction', () => {
         nightStep: { kind: 'inStep', stepId: 'darkWolfKingConfirm' },
         templateRoles: ['darkWolfKing', 'villager'],
         players: {
-          0: { seat: 0, role: 'darkWolfKing', hasViewedRole: true },
-          1: { seat: 1, role: 'villager', hasViewedRole: true },
+          0: { seat: 0, role: 'darkWolfKing' },
+          1: { seat: 1, role: 'villager' },
         },
         currentNightResults: {}, // NOT blocked
       });
