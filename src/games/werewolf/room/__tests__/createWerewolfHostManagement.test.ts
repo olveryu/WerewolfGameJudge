@@ -208,6 +208,38 @@ describe('createWerewolfHostManagement', () => {
     expect(requestAdvance).toHaveBeenCalledTimes(1);
   });
 
+  it.each(['firstVote', 'runoffVote'] as const)(
+    'presents the waiting-progress form instead of an advance during %s',
+    (phase) => {
+      const sheriffElection = createSheriffElection({
+        phase,
+        canAdvance: false,
+        advanceLabel: null,
+        voteProgress: { submittedCount: 1, eligibleCount: 3 },
+      });
+      const model = createWerewolfHostManagement(
+        createInput({
+          roomStatus: GameStatus.Day,
+          sheriffElection,
+          capabilities: deniedRoomCapabilities,
+        }),
+      );
+      const actions = model!.sections.flatMap((section) => section.actions);
+      expect(actions.map((action) => action.label)).not.toContain('推进竞选');
+      expect(actions.find((action) => action.key === 'sheriff-advance')).toBeUndefined();
+      const waiting = actions.find((action) => action.key === 'sheriff-waiting-vote');
+      expect(waiting).toMatchObject({
+        label: '等待投票完成',
+        isPrimary: true,
+        isEnabled: false,
+        disabledReason: '1/3 已提交，等待剩余玩家',
+      });
+      const primary = resolveHostConsolePrimary(model!);
+      if (primary?.kind !== 'blocked') throw new Error('Expected a blocked console primary');
+      expect(primary.reason).toBe('1/3 已提交，等待剩余玩家');
+    },
+  );
+
   it.each([
     ['candidateSpeech', true],
     ['runoffSpeech', true],

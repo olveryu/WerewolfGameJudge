@@ -211,6 +211,36 @@ describe('parseWerewolfState', () => {
     });
   });
 
+  it('decodes an armed sheriff voting deadline', () => {
+    const state = createFullState();
+    const encoded = {
+      ...state,
+      status: GameStatus.Day,
+      sheriffElection: {
+        phase: 'firstVote',
+        registeredSeats: [0, 1],
+        withdrawnSeats: [],
+        completedRounds: [],
+        candidateSeats: [0, 1],
+        eligibleVoterSeats: [2, 3],
+        ballots: { 2: 0, 3: 1 },
+        deadline: 6000,
+      },
+      sheriffElectionResult: undefined,
+    };
+
+    expect(parseWerewolfState(encoded).sheriffElection).toEqual({
+      phase: 'firstVote',
+      registeredSeats: [0, 1],
+      withdrawnSeats: [],
+      completedRounds: [],
+      candidateSeats: [0, 1],
+      eligibleVoterSeats: [2, 3],
+      ballots: { 2: 0, 3: 1 },
+      deadline: 6000,
+    });
+  });
+
   it('migrates the legacy empty reveal effect to the canonical room value', () => {
     const state = createFullState();
     const hostOccupant = state.roster[0];

@@ -530,6 +530,7 @@ function decideWerewolfCommandRules(
             payload: { voterSeat: actor.value.seat, targetSeat: command.targetSeat },
           },
           actor.value.handlerContext,
+          context,
         ),
         context,
       );

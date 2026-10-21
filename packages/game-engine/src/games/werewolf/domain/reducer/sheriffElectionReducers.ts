@@ -12,8 +12,10 @@ import type {
   AdvanceSheriffElectionAction,
   CancelSheriffRegistrationAction,
   CastSheriffVoteAction,
+  ClearSheriffElectionDeadlineAction,
   CompleteSheriffElectionAction,
   RegisterSheriffCandidateAction,
+  SetSheriffElectionDeadlineAction,
   WithdrawSheriffCandidateAction,
 } from './types';
 
@@ -78,6 +80,32 @@ export function handleCastSheriffVote(state: GameState, action: CastSheriffVoteA
       ballots: { ...election.ballots, [action.payload.voterSeat]: action.payload.targetSeat },
     },
   };
+}
+
+export function handleSetSheriffElectionDeadline(
+  state: GameState,
+  action: SetSheriffElectionDeadlineAction,
+): GameState {
+  const election = requireSheriffElection(state);
+  if (election.phase !== 'firstVote' && election.phase !== 'runoffVote') {
+    throw new Error('[FAIL-FAST] SET_SHERIFF_ELECTION_DEADLINE outside a voting phase');
+  }
+  return {
+    ...state,
+    sheriffElection: { ...election, deadline: action.payload.deadline },
+  };
+}
+
+export function handleClearSheriffElectionDeadline(
+  state: GameState,
+  _action: ClearSheriffElectionDeadlineAction,
+): GameState {
+  const election = requireSheriffElection(state);
+  if (election.phase !== 'firstVote' && election.phase !== 'runoffVote') {
+    throw new Error('[FAIL-FAST] CLEAR_SHERIFF_ELECTION_DEADLINE outside a voting phase');
+  }
+  const { deadline: _cleared, ...electionWithoutDeadline } = election;
+  return { ...state, sheriffElection: electionWithoutDeadline };
 }
 
 export function handleAdvanceSheriffElection(

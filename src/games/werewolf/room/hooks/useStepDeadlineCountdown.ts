@@ -14,9 +14,11 @@
  * Does not render UI — returns `countdownTick` for downstream consumers
  * (e.g. `useRoomActions.getBottomAction` countdown display).
  *
- * `stepDeadline` only ever exists on a live night step: the engine clears
- * it when the night ends and the state invariants reject it anywhere else,
- * so this hook needs no room-status gate of its own.
+ * The caller passes the one armed deadline: a live night step's
+ * `stepDeadline`, or a sheriff voting round's settle deadline during
+ * the Day election. Both carriers exist only inside the phase that
+ * armed them (the state invariants reject them anywhere else), so
+ * this hook needs no room-status gate of its own.
  */
 
 import { useEffect, useRef, useState } from 'react';

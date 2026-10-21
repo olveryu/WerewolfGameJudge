@@ -172,9 +172,10 @@ function getAdvanceLabel(election: SheriffElectionState): string | null {
     case 'withdrawal':
       return '确认候选名单';
     case 'firstVote':
-      return '公布首轮结果';
     case 'runoffVote':
-      return '公布最终结果';
+      // Voting phases close on settle-countdown expiry; there is
+      // no Host advance to label.
+      return null;
     case 'completed':
       return null;
   }
@@ -314,7 +315,11 @@ export function createSheriffElectionViewModel(
       election.registeredSeats.includes(input.effectiveSeat),
     canWithdraw,
     canVote,
-    canAdvance: input.isHost && election.phase !== 'completed',
+    canAdvance:
+      input.isHost &&
+      election.phase !== 'completed' &&
+      election.phase !== 'firstVote' &&
+      election.phase !== 'runoffVote',
     advanceLabel: getAdvanceLabel(election),
   };
 }

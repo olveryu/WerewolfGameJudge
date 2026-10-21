@@ -359,6 +359,41 @@ describe('assertWerewolfStateInvariants', () => {
     ).toThrow('targets non-candidate 3');
   });
 
+  it('rejects an armed voting deadline while an eligible ballot is missing', () => {
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createSheriffElectionState({
+          sheriffElection: {
+            phase: 'firstVote',
+            registeredSeats: [0, 1],
+            withdrawnSeats: [],
+            completedRounds: [],
+            candidateSeats: [0, 1],
+            eligibleVoterSeats: [2, 3],
+            ballots: { 2: 0 },
+            deadline: 6000,
+          },
+        }),
+      ),
+    ).toThrow("deadline is armed without voter 3's ballot");
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createSheriffElectionState({
+          sheriffElection: {
+            phase: 'firstVote',
+            registeredSeats: [0, 1],
+            withdrawnSeats: [],
+            completedRounds: [],
+            candidateSeats: [0, 1],
+            eligibleVoterSeats: [2, 3],
+            ballots: { 2: 0, 3: 1 },
+            deadline: 6000,
+          },
+        }),
+      ),
+    ).not.toThrow();
+  });
+
   it('requires phase-specific eligible voters after a candidate withdraws', () => {
     expect(() =>
       assertWerewolfStateInvariants(

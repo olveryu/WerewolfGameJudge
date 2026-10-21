@@ -77,6 +77,31 @@ function createSheriffAdvanceAction(
   );
 }
 
+/**
+ * Voting phases have no Host advance: the console's current task is
+ * the waiting-progress form (the sheriff dock's 「等待投票完成」
+ * language), a disabled primary carrying the submission progress
+ * until the settle countdown closes the round on expiry.
+ */
+function createSheriffWaitingVoteAction(
+  election: SheriffElectionPanelModel,
+): RoomHostManagementAction | null {
+  if (election.view.phase !== 'firstVote' && election.view.phase !== 'runoffVote') return null;
+  const progress = election.view.voteProgress;
+  return {
+    key: 'sheriff-waiting-vote',
+    label: '等待投票完成',
+    icon: 'time-outline',
+    variant: 'primary',
+    isPrimary: true,
+    isEnabled: false,
+    disabledReason:
+      progress === null
+        ? null
+        : `${progress.submittedCount}/${progress.eligibleCount} 已提交，等待剩余玩家`,
+  };
+}
+
 function createSheriffSelfDestructAction(
   election: SheriffElectionPanelModel,
 ): RoomHostManagementAction | null {
@@ -137,8 +162,12 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
       if (input.sheriffElection === null) return [];
       const actions: RoomHostManagementAction[] = [];
       const advanceAction = createSheriffAdvanceAction(input.sheriffElection);
+      const waitingVoteAction = createSheriffWaitingVoteAction(input.sheriffElection);
       const selfDestructAction = createSheriffSelfDestructAction(input.sheriffElection);
-      if (advanceAction !== null) actions.push(advanceAction);
+      // A voting phase presents the waiting form instead of the
+      // advance — never both (one primary per phase).
+      if (waitingVoteAction !== null) actions.push(waitingVoteAction);
+      else if (advanceAction !== null) actions.push(advanceAction);
       if (selfDestructAction !== null) actions.push(selfDestructAction);
       return actions;
     }

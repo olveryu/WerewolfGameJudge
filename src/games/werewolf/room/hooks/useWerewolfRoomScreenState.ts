@@ -292,9 +292,19 @@ export function useWerewolfRoomScreenState(
   const [secondSeat, setSecondSeat] = useState<number | null>(null);
 
   // ── Step deadline countdown tick ──────────────────────────────────────────
+  // The one countdown driver reads whichever deadline is armed: the
+  // night step's stepDeadline, or the sheriff voting round's settle
+  // deadline while the election is in a voting phase.
+  const sheriffElectionForDeadline = gameState?.sheriffElection;
+  const activeStepDeadline =
+    gameState?.nightStep?.kind === 'inStep'
+      ? gameState.nightStep.stepDeadline
+      : sheriffElectionForDeadline?.phase === 'firstVote' ||
+          sheriffElectionForDeadline?.phase === 'runoffVote'
+        ? sheriffElectionForDeadline.deadline
+        : undefined;
   const countdownTick = useStepDeadlineCountdown({
-    stepDeadline:
-      gameState?.nightStep?.kind === 'inStep' ? gameState.nightStep.stepDeadline : undefined,
+    stepDeadline: activeStepDeadline,
     isHost,
     postProgression,
   });

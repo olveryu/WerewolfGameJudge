@@ -104,6 +104,7 @@ function normalizeSheriffElection(
         candidateSeats: [...election.candidateSeats],
         eligibleVoterSeats: [...election.eligibleVoterSeats],
         ballots: canonicalizeRequiredSeatKeyRecord(election.ballots),
+        deadline: election.deadline,
       };
     case 'runoffSpeech':
       return {

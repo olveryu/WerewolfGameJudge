@@ -46,8 +46,10 @@ import {
   handleAdvanceSheriffElection,
   handleCancelSheriffRegistration,
   handleCastSheriffVote,
+  handleClearSheriffElectionDeadline,
   handleCompleteSheriffElection,
   handleRegisterSheriffCandidate,
+  handleSetSheriffElectionDeadline,
   handleWithdrawSheriffCandidate,
 } from './sheriffElectionReducers';
 import type { StateAction } from './types';
@@ -98,6 +100,10 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handleCastSheriffVote(state, action);
     case 'ADVANCE_SHERIFF_ELECTION':
       return handleAdvanceSheriffElection(state, action);
+    case 'SET_SHERIFF_ELECTION_DEADLINE':
+      return handleSetSheriffElectionDeadline(state, action);
+    case 'CLEAR_SHERIFF_ELECTION_DEADLINE':
+      return handleClearSheriffElectionDeadline(state, action);
     case 'COMPLETE_SHERIFF_ELECTION':
       return handleCompleteSheriffElection(state, action);
     case 'RECORD_ACTION':

@@ -4,13 +4,17 @@
  * @remarks Gates are evaluated from status to audio playback to phase to actor eligibility:
  * every election command waits for narration playback like the night gates do. A seeded random start
  * seat and direction define the physical table traversal for candidate speeches. Ballots remain
- * editable until the Host closes a round; closed rounds are appended to the public election record
+ * editable until the round's settle countdown expires: the shared settle
+ * countdown skeleton (`decideSettleCountdownArm`) arms the voting phase's
+ * deadline once every eligible ballot is in, and expiry — never a Host
+ * advance — closes the round. Closed rounds are appended to the public election record
  * before any winner or runoff transition is decided. Runoff speakers use the reverse of their
  * relative first-round speaking order, so the candidate who spoke later speaks first.
  */
 
 import { guardAudioPlayback } from '../../../../platform/audio';
 import { createSeededRng, randomBool, randomIntInclusive } from '../../../../platform/random';
+import { decideSettleCountdownArm } from '../../../../platform/room/settleCountdown';
 import type {
   AdvanceSheriffElectionIntent,
   CancelSheriffRegistrationIntent,
@@ -27,6 +31,7 @@ import type {
   SheriffElectionState,
   SheriffSpeakingDirection,
 } from '../protocol/types';
+import { gameReducer } from '../reducer/gameReducer';
 import type {
   AdvanceSheriffElectionAction,
   CancelSheriffRegistrationAction,
@@ -40,6 +45,7 @@ import {
   type HandlerContext,
   type HandlerError,
   handlerError,
+  type HandlerExecutionContext,
   type HandlerResult,
   handlerSuccess,
 } from './types';
@@ -273,6 +279,25 @@ function closeFirstVote(
   });
 }
 
+/**
+ * Close the active voting round on settle-countdown expiry.
+ *
+ * The one settlement entry the Day progression evaluation calls;
+ * the tally itself is the same closeFirstVote/closeRunoffVote the
+ * round was always settled with. The submission set is complete by
+ * construction (the countdown only arms once every eligible ballot
+ * is in, and ballots are never removed), so closeVotingRound's
+ * fail-fast throw on a missing ballot stays as the corruption guard.
+ */
+export function closeSheriffVotingRound(
+  state: GameState,
+  election: VotingElectionState,
+): StateAction {
+  return election.phase === 'firstVote'
+    ? closeFirstVote(state, election)
+    : closeRunoffVote(election);
+}
+
 function closeRunoffVote(
   election: Extract<SheriffElectionState, { phase: 'runoffVote' }>,
 ): CompleteSheriffElectionAction {
@@ -360,6 +385,7 @@ export function handleWithdrawSheriffCandidate(
 export function handleCastSheriffVote(
   intent: CastSheriffVoteIntent,
   context: HandlerContext,
+  execution: HandlerExecutionContext,
 ): HandlerResult {
   const gate = resolveSheriffElectionGate(context);
   if (gate.kind === 'rejected') return gate.error;
@@ -380,7 +406,35 @@ export function handleCastSheriffVote(
     type: 'CAST_SHERIFF_VOTE',
     payload: intent.payload,
   };
-  return handlerSuccess([action]);
+
+  // Settle countdown post-pass (the wolf-vote form in actionHandler):
+  // reduce the cast onto a temp state, let the shared skeleton decide
+  // set/clear/noop from the new completion, and append the deadline
+  // action. Ballots are append-only, so completion never falls back
+  // and the clear branch is structurally unreachable here.
+  const tempState = gameReducer(context.state, action);
+  const tempElection = tempState.sheriffElection;
+  if (tempElection === undefined) {
+    throw new Error('[FAIL-FAST] Sheriff vote reduction lost the election state');
+  }
+  if (tempElection.phase !== 'firstVote' && tempElection.phase !== 'runoffVote') {
+    throw new Error('[FAIL-FAST] Sheriff vote reduction left the voting phase');
+  }
+  const timerAction = decideSettleCountdownArm({
+    complete: hasEveryEligibleVote(tempElection),
+    armedDeadlineAt: tempElection.deadline ?? null,
+    nowMs: execution.nowMs,
+  });
+  const actions: StateAction[] = [action];
+  if (timerAction.type === 'set') {
+    actions.push({
+      type: 'SET_SHERIFF_ELECTION_DEADLINE',
+      payload: { deadline: timerAction.deadlineAt },
+    });
+  } else if (timerAction.type === 'clear') {
+    actions.push({ type: 'CLEAR_SHERIFF_ELECTION_DEADLINE' });
+  }
+  return handlerSuccess(actions);
 }
 
 /** @pre `state.status === GameStatus.Day` and actor is Host. */
@@ -420,15 +474,12 @@ export function handleAdvanceSheriffElection(
       action = startFirstSheriffVote(context.state, election);
       break;
     case 'firstVote':
-      if (!hasEveryEligibleVote(election)) return handlerError('pending_votes');
-      action = closeFirstVote(context.state, election);
-      break;
+    case 'runoffVote':
+      // Voting phases have no manual close: the settle countdown
+      // armed by the last ballot closes the round on expiry.
+      return handlerError('invalid_election_phase');
     case 'runoffSpeech':
       action = advanceRunoffSpeech(context.state, election);
-      break;
-    case 'runoffVote':
-      if (!hasEveryEligibleVote(election)) return handlerError('pending_votes');
-      action = closeRunoffVote(election);
       break;
     case 'completed':
       return handlerError('invalid_election_phase');
