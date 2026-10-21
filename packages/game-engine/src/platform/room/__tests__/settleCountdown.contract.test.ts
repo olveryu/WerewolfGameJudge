@@ -13,8 +13,8 @@
  *   an unregistered adoption — a new drift call site — fails).
  * - 'pending': the point is a verified adopter with a named
  *   landing PR. Its current arming form stays registered until
- *   that PR flips the row: avalon's two in-engine arm fragments,
- *   sheriff's not-yet-existing arm (a net-new carrier, PR-2b).
+ *   that PR flips the row: sheriff's not-yet-existing arm (a
+ *   net-new carrier, PR-2b).
  *
  * Clear reachability is registered per point with its reason:
  * the skeleton keeps one three-way decision for all points; a
@@ -122,13 +122,11 @@ const EXPECTED_SETTLE_COUNTDOWN_ADOPTERS: Readonly<
     },
   },
   'avalon:vote': {
-    adoption: 'pending',
-    landingPr: 'E-3 PR-2',
+    adoption: 'switched',
     hostFile: 'avalon/engine.ts',
     // Avalon ballots can be overwritten but never retracted, so
     // completion is monotonic and clear is unreachable.
     clear: 'unreachable-submissionIrrevocable',
-    legacyArmMarker: 'AVALON_SETTLE_COUNTDOWN_SECONDS * 1000',
     manualClose: {
       kind: 'ruledPendingDeletion',
       markerFile: 'avalon/commands/types.ts',
@@ -137,13 +135,11 @@ const EXPECTED_SETTLE_COUNTDOWN_ADOPTERS: Readonly<
     },
   },
   'avalon:quest': {
-    adoption: 'pending',
-    landingPr: 'E-3 PR-2',
+    adoption: 'switched',
     hostFile: 'avalon/engine.ts',
     // Quest plays can be overwritten but never retracted, so
     // completion is monotonic and clear is unreachable.
     clear: 'unreachable-submissionIrrevocable',
-    legacyArmMarker: 'AVALON_SETTLE_COUNTDOWN_SECONDS * 1000',
     manualClose: {
       kind: 'ruledPendingDeletion',
       markerFile: 'avalon/commands/types.ts',

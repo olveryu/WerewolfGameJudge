@@ -19,6 +19,7 @@ import {
 } from '../../platform/room/identityViewing';
 import { buildSettleDueEffect, guardPhaseExpiry } from '../../platform/room/phaseDeadline';
 import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
+import { decideSettleCountdownArm } from '../../platform/room/settleCountdown';
 import type { AvalonCommand } from './commands/types';
 import {
   AVALON_REASONS,
@@ -33,7 +34,6 @@ import { evolveAvalonState } from './domain/evolve';
 import { evaluateAvalonNightCompletion, queueAudio } from './domain/nightProgression';
 import { getAvalonNightStepDef } from './domain/nightSteps';
 import {
-  AVALON_SETTLE_COUNTDOWN_SECONDS,
   buildAvalonNightInfo,
   getAvalonFailsNeeded,
   getAvalonLadyInitialHolderSeat,
@@ -368,8 +368,17 @@ function castVote(state: AvalonState, vote: AvalonBallot, context: CommandContex
       break;
     }
   }
-  if (!allCast || state.phase.deadlineAt !== null) return commitAvalon([castEvent]);
-  const deadlineAt = context.nowMs + AVALON_SETTLE_COUNTDOWN_SECONDS * 1000;
+  const arm = decideSettleCountdownArm({
+    complete: allCast,
+    armedDeadlineAt: state.phase.deadlineAt,
+    nowMs: context.nowMs,
+  });
+  // Exactly-once layer 1 (decide short-circuit): an already armed
+  // countdown is never re-armed, so the settle.due effect below is
+  // emitted exactly once per arming (see the effect pin in
+  // domain/decision.ts and the worker business key).
+  if (arm.type !== 'set' || state.phase.deadlineAt !== null) return commitAvalon([castEvent]);
+  const deadlineAt = arm.deadlineAt;
   return commitAvalon(
     [castEvent, { type: 'avalon.vote.allCast', deadlineAt }],
     [settleDueEffect(state, 'vote', state.phase.round, deadlineAt)],
@@ -490,8 +499,15 @@ function playQuest(state: AvalonState, play: AvalonPlay, context: CommandContext
   const playedEvent: AvalonEvent = { type: 'avalon.quest.played', seat: resolved.value, play };
   // 收齐后武装揭晓倒计时（D16 洗混结算口径不变，结算推迟到倒计时到期或房主手动结束）。
   const allPlayed = state.phase.teamSeats.every((seat) => plays[seat] !== undefined);
-  if (!allPlayed || state.phase.deadlineAt !== null) return commitAvalon([playedEvent]);
-  const deadlineAt = context.nowMs + AVALON_SETTLE_COUNTDOWN_SECONDS * 1000;
+  const arm = decideSettleCountdownArm({
+    complete: allPlayed,
+    armedDeadlineAt: state.phase.deadlineAt,
+    nowMs: context.nowMs,
+  });
+  // Exactly-once layer 1 (decide short-circuit): same pin as the
+  // vote point above — an armed countdown is never re-armed.
+  if (arm.type !== 'set' || state.phase.deadlineAt !== null) return commitAvalon([playedEvent]);
+  const deadlineAt = arm.deadlineAt;
   return commitAvalon(
     [playedEvent, { type: 'avalon.quest.allPlayed', deadlineAt }],
     [settleDueEffect(state, 'quest', state.phase.round, deadlineAt)],

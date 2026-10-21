@@ -13,9 +13,6 @@ import {
 } from '../state/types';
 import { AVALON_NIGHT_STEP_DEFS } from './nightSteps';
 
-/** 揭晓倒计时（秒）：全员投完票/出完牌后才开始计时，到点自动结算揭晓。 */
-export const AVALON_SETTLE_COUNTDOWN_SECONDS = 5;
-
 /** 第 R 轮需要的队员数（官方任务人数表）。 */
 export function getAvalonQuestSize(
   numberOfPlayers: AvalonPlayerCount,
