@@ -78,7 +78,7 @@ const handle__GAME_PASCAL__SettleDueEffect = createSettleDueHandler<
     const phase = state.phase;
     return (
       state.gameSequence === payload.gameSequence &&
-      phase.kind === 'stage' &&
+      phase.kind === 'playing' &&
       phase.deadlineAt === payload.deadlineAt
     );
   },

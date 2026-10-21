@@ -39,13 +39,16 @@ import { buildIntegrationReport } from './report.mjs';
 const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'templates');
 
 /**
- * Capability declarations written for a fresh skeleton, per preset.
- * Every value matches the wiring the skeleton actually ships: the
- * capabilities contract welds each declaration to a source marker, so
- * a switch the skeleton does not wire must be declared off (audio,
- * gallery, word library are hooked up per game after generation; the
- * bot scaffold presupposes identity-viewing records, so the stage
- * preset — like every shipped stage game — declares it off).
+ * Capability declarations written for a fresh skeleton, per preset
+ * pack. Every value matches the wiring the skeleton actually ships:
+ * the capabilities contract welds each declaration to a source
+ * marker, so a switch the skeleton does not wire must be declared
+ * off (audio, gallery, word library are hooked up per game after
+ * generation; the bot scaffold presupposes identity-viewing records,
+ * so the stage preset — like every shipped stage game — declares it
+ * off). The demo-hybrid pack is the union the shipped demo game was
+ * hand-built to: identity viewing plus a stage deadline on the
+ * playing phase, and its row mirrors demo's verified declaration.
  */
 export const PRESET_CAPABILITIES = {
   identity: {
@@ -72,6 +75,50 @@ export const PRESET_CAPABILITIES = {
     hostConfig: true,
     botTestScaffold: false,
   },
+  'demo-hybrid': {
+    nightPhase: false,
+    botsAndTakeover: true,
+    identityViewing: true,
+    revealAnimation: true,
+    stageDeadline: true,
+    audioOrchestration: false,
+    wordLibrary: false,
+    gallery: false,
+    hostConfig: true,
+    botTestScaffold: true,
+  },
+};
+
+/**
+ * Pack-level template segment switches: they steer `//#cap` blocks
+ * while rendering, and nothing else. Unlike PRESET_CAPABILITIES they
+ * are NOT game capabilities — never written into generated code,
+ * never welded by the capabilities contract. They exist for skeleton
+ * assembly choices no single capability key expresses: the stage
+ * pack ships the dual-channel expiry assembly (a public
+ * `phase.expire` command next to the internal settle channel),
+ * while demo-hybrid ships the internal settle channel only, exactly
+ * like the shipped demo game; and a pack with both identity viewing
+ * and a stage deadline arms the deadline when play begins (after
+ * the viewing checkpoint), not when identities are dealt.
+ */
+const PACK_SEGMENT_SWITCHES = {
+  identity: { publicExpire: false, internalSettleOnly: false, armDeadlineAtBegin: false },
+  stage: { publicExpire: true, internalSettleOnly: false, armDeadlineAtBegin: false },
+  'demo-hybrid': { publicExpire: false, internalSettleOnly: true, armDeadlineAtBegin: true },
+};
+
+/**
+ * Whole-file capability gates for the single game template tree:
+ * a gated file is collected only when the pack enables the key.
+ * These three are the identity-viewing chain's whole-file products
+ * (identity card adapter/modal and the viewing-protocol contract).
+ */
+const FILE_CAPABILITY_GATES = {
+  'packages/game-engine/src/games/__GAME_ID__/__tests__/identityViewingProtocol.contract.test.ts':
+    'identityViewing',
+  'src/games/__GAME_ID__/components/__GAME_PASCAL__RoleCardAdapter.ts': 'identityViewing',
+  'src/games/__GAME_ID__/room/components/__GAME_PASCAL__RoleCardModal.tsx': 'identityViewing',
 };
 
 export const DEFAULT_REWARDS = { xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 };
@@ -213,7 +260,7 @@ function autofixGeneratedImports(repoRoot, createdFiles) {
   }
 }
 
-function collectTemplateFiles(layer) {
+function collectTemplateFiles(layer, capabilities = null) {
   const collected = new Map();
   const layerDir = path.join(TEMPLATES_DIR, layer);
   if (!fs.existsSync(layerDir)) return collected;
@@ -223,6 +270,13 @@ function collectTemplateFiles(layer) {
       if (entry.isDirectory()) walk(entryPath);
       else if (entry.name.endsWith('.tmpl')) {
         const relative = path.relative(layerDir, entryPath).slice(0, -'.tmpl'.length);
+        const gate = FILE_CAPABILITY_GATES[relative];
+        if (gate !== undefined) {
+          if (capabilities === null || !Object.hasOwn(capabilities, gate)) {
+            throw new Error(`Unknown file capability gate "${gate}" for template ${relative}.`);
+          }
+          if (capabilities[gate] !== true) continue;
+        }
         collected.set(relative, entryPath);
       }
     }
@@ -267,8 +321,10 @@ export function generateNewGame(options) {
     rewards = DEFAULT_REWARDS,
     production = false,
   } = options;
-  if (preset !== 'identity' && preset !== 'stage') {
-    throw new Error(`Invalid preset "${String(preset)}": expected "identity" or "stage".`);
+  if (!Object.hasOwn(PRESET_CAPABILITIES, preset)) {
+    throw new Error(
+      `Invalid preset "${String(preset)}": expected "identity", "stage" or "demo-hybrid".`,
+    );
   }
   if (tier !== 'main' && tier !== 'mini') {
     throw new Error(`Invalid tier "${String(tier)}": expected "main" or "mini".`);
@@ -278,6 +334,9 @@ export function generateNewGame(options) {
   assertSafeDisplayValue('--icon', iconName);
   const names = deriveGameNames(gameId);
   const capabilities = PRESET_CAPABILITIES[preset];
+  // Rendering sees the capability row plus the pack's segment
+  // switches; edits and the report keep the pure capability row.
+  const renderCapabilities = { ...capabilities, ...PACK_SEGMENT_SWITCHES[preset] };
   const home = { displayName, subtitle, iconName, tier };
   const extraTokens = {
     __GAME_DISPLAY_NAME__: displayName,
@@ -298,12 +357,18 @@ export function generateNewGame(options) {
 
   // Phase 1: compute everything in memory. Nothing below writes until
   // every render and every edit has succeeded.
-  const templates = new Map([...collectTemplateFiles('shared'), ...collectTemplateFiles(preset)]);
+  const templates = new Map([
+    ...collectTemplateFiles('shared'),
+    ...collectTemplateFiles('game', capabilities),
+  ]);
   const created = new Map();
   for (const [relative, sourcePath] of templates) {
-    const destination = renderDestination(relative, names, capabilities, extraTokens);
+    const destination = renderDestination(relative, names, renderCapabilities, extraTokens);
     const body = fs.readFileSync(sourcePath, 'utf8');
-    created.set(destination, renderTemplateFile(body, { names, capabilities, extraTokens }));
+    created.set(
+      destination,
+      renderTemplateFile(body, { names, capabilities: renderCapabilities, extraTokens }),
+    );
   }
 
   const edited = new Map();

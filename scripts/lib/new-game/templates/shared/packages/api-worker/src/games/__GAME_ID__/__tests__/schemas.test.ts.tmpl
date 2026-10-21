@@ -52,14 +52,15 @@ describe('__GAME_PASCAL__ public command schema', () => {
       { type: '__GAME_ID__.config.update', config: { numberOfPlayers: 6 } },
 //#cap identityViewing
       { type: '__GAME_ID__.roles.assign' },
+//#end
       { type: '__GAME_ID__.game.begin' },
+//#cap identityViewing
       { type: '__GAME_ID__.role.viewed' },
 //#end
 //#cap botTestScaffold
       { type: '__GAME_ID__.bots.markAllBotsViewed' },
 //#end
-//#cap stageDeadline
-      { type: '__GAME_ID__.game.begin' },
+//#cap publicExpire
       { type: '__GAME_ID__.phase.expire' },
 //#end
       { type: '__GAME_ID__.game.returnToLobby' },

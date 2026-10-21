@@ -57,9 +57,11 @@ prevent exactly that.
 另有两项在设计阶段就定死（Phase 2/3 照此执行，不许留到实现期现定）：
 
 - **原型预设**：有秘密身份、发牌与身份查看 → `identity`（身份推理型）；
-  无秘密身份、按回合/舞台推进、自带阶段截止 → `stage`（舞台回合型）。
-  判据与两预设的差异见 Phase 2。混血形态（如身份 + 轻回合）在 1c 里注明
-  选哪个预设起步、之后逐项改哪些能力声明。
+  无秘密身份、按回合/舞台推进、自带阶段截止 → `stage`（舞台回合型）；
+  有秘密身份与查看阶段、且玩法阶段自带截止、到期只走系统定时结算
+  （无公开 expire 加速通道、无客户端倒计时面）→ `demo-hybrid`
+  （混合型，与 demo 本体同形态）。判据与三预设的差异见 Phase 2。
+  三预设之外的混血形态在 1c 里注明选哪个预设起步、之后逐项改哪些能力声明。
 - **词库形态**：不需要词 / 局内准备型（对局内要从库里选词，瞎掰王/卧底形态）/
   库供给型（后台持续生成审核灌库，你画我猜形态）。两种词形态可叠加
   （局内准备型的词源头就是供给链）。接法见 3d。
@@ -102,13 +104,13 @@ XP/结算、测试计划。
 设计批准后，一条命令生成骨架并完成全部注册接线：
 
 ```bash
-pnpm new-game <gameId> --preset identity|stage --name <中文名> --subtitle <一句话玩法> \
+pnpm new-game <gameId> --preset identity|stage|demo-hybrid --name <中文名> --subtitle <一句话玩法> \
   [--icon <ionicon-name>] [--tier main|mini] [--xp <n>] [--draws <n>] [--daily-target <n>]
 ```
 
 - `gameId`：小写字母/数字、字母开头、单个词（类名由它派生 PascalCase，
   如 `drawguess` → `Drawguess`）；不许与现有游戏或生成器测试夹具（`demoproto`）重名。
-- 生成器产出 40（identity）/ 37（stage）个文件：引擎包、worker 模块、客户端模块、
+- 生成器产出 40（identity）/ 37（stage）/ 40（demo-hybrid）个文件：引擎包、worker 模块、客户端模块、
   design doc 骨架、migration 骨架、e2e spec 骨架（`.spec.ts.tmpl`，默认不进 CI）。
 - 生成器同时改 13 处共享文件完成注册：注册元数据（`games/registry.ts`，含 rewards
   一节）、`GAME_TYPES`、引擎/worker/客户端三层 catalog、包 `exports` 与
@@ -125,29 +127,35 @@ pnpm new-game <gameId> --preset identity|stage --name <中文名> --subtitle <�
 
 ### 预设选择判据
 
-两预设是同一副骨架的两个初始提交，只差四项能力声明与其预置接线：
+三预设是同一副骨架（同一棵模板树、按能力键条件渲染）的三个初始提交，
+只差四项能力声明与其预置接线：
 
-| 能力              | identity（身份推理型） | stage（舞台回合型） | 说明                                        |
-| ----------------- | ---------------------- | ------------------- | ------------------------------------------- |
-| `identityViewing` | 开                     | 关                  | 发牌 + 身份查看检查点（3c-3 标准件）        |
-| `revealAnimation` | 开                     | 关                  | 开卡动画 + 装备特效（依赖 identityViewing） |
-| `stageDeadline`   | 关                     | 开                  | 阶段截止 + 定时结算接线（3e）               |
-| `botTestScaffold` | 开                     | 关                  | 批量标记命令（无查看记录可标，故舞台型关）  |
+| 能力              | identity（身份推理型） | stage（舞台回合型） | demo-hybrid（混合型） | 说明                                        |
+| ----------------- | ---------------------- | ------------------- | --------------------- | ------------------------------------------- |
+| `identityViewing` | 开                     | 关                  | 开                    | 发牌 + 身份查看检查点（3c-3 标准件）        |
+| `revealAnimation` | 开                     | 关                  | 开                    | 开卡动画 + 装备特效（依赖 identityViewing） |
+| `stageDeadline`   | 关                     | 开                  | 开                    | 阶段截止 + 定时结算接线（3e）               |
+| `botTestScaffold` | 开                     | 关                  | 开                    | 批量标记命令（无查看记录可标，故舞台型关）  |
 
-其余六项两预设相同：`botsAndTakeover`、`hostConfig` 开；
+其余六项三预设相同：`botsAndTakeover`、`hostConfig` 开；
 `nightPhase`、`audioOrchestration`、`wordLibrary`、`gallery` 关
-（词库按 3d 在生成后打开并接线）。选预设只看游戏的**主形态**：
-有秘密身份与查看阶段选 identity；靠阶段截止推进回合选 stage。
-混血游戏选更接近的预设起步，差的那几项在 Phase 3 逐项改声明 + 接线（3e），
-不许为了迁就预设改玩法设计。
+（词库按 3d 在生成后打开并接线）。`stageDeadline` 开时还有一层接线形态
+差异（不在能力表里）：stage 是双通道（公开 `phase.expire` 客户端加速 +
+系统 settle 兜底、客户端带倒计时面）；demo-hybrid 是系统单通道（开始时
+武装、到期只走内部 `phase.settleExpired`、无公开 expire、无客户端
+倒计时面），与 demo 本体同形态。选预设只看游戏的**主形态**：
+有秘密身份与查看阶段选 identity；靠阶段截止推进回合选 stage；
+两者都要且到期只走定时结算选 demo-hybrid。
+三预设之外的混血游戏选更接近的预设起步，差的那几项在 Phase 3 逐项改
+声明 + 接线（3e），不许为了迁就预设改玩法设计。
 
 ### 接入报告 7 项人工步的处置规程
 
 1. **设计定稿**：把 design doc 骨架的 10 项需求表填成 Phase 1 批准稿；
    骨架里的展示名、副标题、图标、默认人数都是占位值，逐个核。
-   identity 另需把 `TODO_IDENTITY` 占位身份换成真实身份表，并按仓库立绘
-   流程生产角色立绘与图鉴素材（prompt 文档先给用户审、生成图先过目点头
-   才入库、抠图走既定工具），图鉴接共享图鉴机器（`src/features/encyclopedia/`），
+   带身份查看的预设（identity / demo-hybrid）另需把 `TODO_IDENTITY` 占位
+   身份换成真实身份表，并按仓库立绘流程生产角色立绘与图鉴素材（prompt 文档
+   先给用户审、生成图先过目点头才入库、抠图走既定工具），图鉴接共享图鉴机器（`src/features/encyclopedia/`），
    不许自建第二份图鉴或说明页手写第二份角色文案。
 2. **玩法填空**：grep `TODO(gameplay)`（限定新游戏的引擎/worker/客户端三处目录）
    逐个填掉：玩法状态机接 `domain/decision.ts` 与 `engine.ts` 的 TODO 接缝，
@@ -298,8 +306,8 @@ blocked 带原因与补救（未坐满的补救是分享房间）；无单一明
 
 有发牌/身份的游戏，发牌后必须有独立的身份查看阶段，且开局门按狼人杀
 口径定死（平台单一实现 `packages/game-engine/src/platform/room/identityViewing.ts`）。
-identity 预设的骨架已整套包含本节标准件（协议接线、`markAllBotsViewed`
-命令、房主面板装配、协议 contract），生成后要做的是填身份表与玩法，
+identity 与 demo-hybrid 预设的骨架已整套包含本节标准件（协议接线、
+`markAllBotsViewed` 命令、房主面板装配、协议 contract），生成后要做的是填身份表与玩法，
 **不许改检查点口径**：
 
 - **检查点**：每个座位（**含 bot**）的查看记录齐全才能开始——开局谓词
@@ -363,9 +371,12 @@ identity 预设的骨架已整套包含本节标准件（协议接线、`markAll
 并武装一条 `settle.due` effect、加内部命令 `phase.settleExpired`
 （系统身份 + effect-id 门 + deadline 门）、worker module 的
 `getEffectDeliveryAt` 把 settle effect 泊车到 `deadlineAt` 由 outbox
-定时投递——接线齐了才把声明翻 `true` 并同步期望行。**stageDeadline 的
-接法以此形态为准**（定时投递 + 内部 settle 命令），不许客户端轮询或
-本地计时冒充；stage 预设已按此形态预置，identity 游戏要截止照此补。
+定时投递——接线齐了才把声明翻 `true` 并同步期望行。**这套形态已固化为
+demo-hybrid 预设**：新游戏要 demo 的截止形态（开始时武装、系统单通道
+结算）直接选 demo-hybrid，不许再在 identity 骨架上手接一遍。
+**stageDeadline 的接法以定时投递 + 内部 settle 命令为准**，不许客户端
+轮询或本地计时冒充；stage 预设在此之上多一条公开 expire 加速通道
+（双通道），identity 游戏要截止照 demo-hybrid 形态补。
 `wordLibrary` 同理：开声明的同时必须登记 `workerWorkflows`（3d）。
 
 ### 3f. 接龙链接线（stage 预设未预接，人工接）

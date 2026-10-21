@@ -1,0 +1,106 @@
+//#cap identityViewing
+/** __GAME_PASCAL__ per-seat view model: identities are cropped by the viewer (UI-level privacy). */
+//#end
+//#cap !identityViewing
+/** __GAME_PASCAL__ per-seat view model: the stage projection every client renders from. */
+//#end
+
+import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
+//#cap identityViewing
+import { listUnviewedSeats } from '../../../platform/room/identityViewing';
+//#end
+import { buildSeatIdentityView } from '../../../platform/room/seatIdentity';
+import {
+//#cap identityViewing
+  get__GAME_PASCAL__ViewingParticipants,
+//#end
+  is__GAME_PASCAL__OccupiedSeat,
+  type __GAME_PASCAL__PhaseKind,
+  type __GAME_PASCAL__State,
+} from '../state/types';
+
+export interface __GAME_PASCAL__SeatView {
+  readonly seat: number;
+  readonly displayName: string;
+  readonly isBot: boolean;
+//#cap identityViewing
+  /** 终局揭晓前为 null。 */
+  readonly identity: string | null;
+//#end
+}
+
+export interface __GAME_PASCAL__ViewModel {
+  readonly phase: __GAME_PASCAL__PhaseKind;
+  readonly mySeat: number | null;
+//#cap identityViewing
+  /** 本人身份；未发牌时为 null。他人身份只在终局后由 seats 公开。 */
+  readonly myIdentity: string | null;
+//#end
+  readonly seats: readonly __GAME_PASCAL__SeatView[];
+//#cap identityViewing
+  /** 本人是否已查看自己的身份（揭示动画锚点）。 */
+  readonly hasViewedRole: boolean;
+  /** 尚未查看身份的座位（公开信息，含机器人）。 */
+  readonly unviewedRoleSeats: readonly number[];
+//#end
+//#cap stageDeadline
+  /** 当前舞台阶段的截止时刻（epoch ms）；无阶段或无截止时为 null。 */
+  readonly stageDeadlineAt: number | null;
+//#end
+//#cap identityViewing
+  // TODO(gameplay): 玩法投影（公开进度、本人私有信息）加在这里：
+//#end
+//#cap !identityViewing
+  // TODO(gameplay): 玩法投影（当前回合、公开产物、本人私有信息）加在这里：
+//#end
+  // 私有字段只许按 viewerSeat 裁剪产出，不许把完整状态透传给客户端拼装。
+}
+
+/**
+//#cap identityViewing
+ * Builds the cropped view model for one viewer.
+//#end
+//#cap !identityViewing
+ * Builds the view model for one viewer.
+//#end
+ * @param viewerSeat Seat of the viewer; null for spectators without a seat.
+ */
+export function get__GAME_PASCAL__ViewModel(
+  state: __GAME_PASCAL__State,
+  viewerSeat: number | null,
+): __GAME_PASCAL__ViewModel {
+//#cap identityViewing
+  const revealed = state.phase.kind === 'ended';
+//#end
+  const seats: __GAME_PASCAL__SeatView[] = [];
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+    if (!is__GAME_PASCAL__OccupiedSeat(state, seat)) continue;
+//#cap identityViewing
+    seats.push({
+      ...buildSeatIdentityView(state.roster, seat, getBotDisplayName),
+      identity: revealed ? (state.identities[seat] ?? null) : null,
+    });
+//#end
+//#cap !identityViewing
+    seats.push({ ...buildSeatIdentityView(state.roster, seat, getBotDisplayName) });
+//#end
+  }
+  return {
+    phase: state.phase.kind,
+    mySeat: viewerSeat,
+//#cap identityViewing
+    myIdentity: viewerSeat === null ? null : (state.identities[viewerSeat] ?? null),
+//#end
+    seats,
+//#cap identityViewing
+    hasViewedRole: viewerSeat !== null && state.roleViewedSeats.includes(viewerSeat),
+    unviewedRoleSeats: listUnviewedSeats(
+      get__GAME_PASCAL__ViewingParticipants(state),
+      state.roleViewedSeats,
+    ).map((participant) => participant.seat),
+//#end
+//#cap stageDeadline
+    stageDeadlineAt: state.phase.kind === 'playing' ? state.phase.deadlineAt : null,
+//#end
+  };
+}

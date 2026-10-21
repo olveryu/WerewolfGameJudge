@@ -134,7 +134,7 @@ function expectedCreatedFiles(gameId, preset) {
     `docs/${gameId}-game-design.md`,
     `e2e/specs/${gameId}.spec.ts.tmpl`,
   ];
-  if (preset === 'identity') {
+  if (PRESET_CAPABILITIES[preset].identityViewing) {
     files.push(
       `${engine}/__tests__/identityViewingProtocol.contract.test.ts`,
       `${client}/room/components/${pascal}RoleCardModal.tsx`,
@@ -161,9 +161,16 @@ test('capability blocks keep lines only for enabled capabilities and fail fast o
     'tail',
   ].join('\n');
   assert.equal(applyCapabilityBlocks(text, capabilities), 'base\nviewing line\ntail');
+  // Negated blocks invert the switch: kept exactly when the key is off.
+  assert.equal(applyCapabilityBlocks('//#cap !stageDeadline\nx\n//#end', capabilities), 'x');
+  assert.equal(applyCapabilityBlocks('//#cap !identityViewing\nx\n//#end', capabilities), '');
   assert.throws(
     () => applyCapabilityBlocks('//#cap nope\nx\n//#end', capabilities),
     /Unknown capability block "nope"/,
+  );
+  assert.throws(
+    () => applyCapabilityBlocks('//#cap !nope\nx\n//#end', capabilities),
+    /Unknown capability block "!nope"/,
   );
   assert.throws(
     () =>
@@ -177,7 +184,7 @@ test('capability blocks keep lines only for enabled capabilities and fail fast o
   );
 });
 
-for (const preset of ['identity', 'stage']) {
+for (const preset of ['identity', 'stage', 'demo-hybrid']) {
   test(`generates the complete ${preset} skeleton and wires every registration point`, () => {
     const root = makeFixtureRepo();
     const summary = generateNewGame({
@@ -320,6 +327,13 @@ for (const preset of ['identity', 'stage']) {
     assert.ok(report.includes(summary.migrationName));
     assert.ok(report.includes('审 migration'));
     assert.ok(report.includes('e2e 启用需用户批准'));
+    // The TODO_IDENTITY follow-up note rides on the identityViewing
+    // capability, not on the preset name.
+    assert.equal(
+      report.includes('TODO_IDENTITY'),
+      capabilities.identityViewing,
+      'report TODO_IDENTITY note follows identityViewing',
+    );
 
     // Migration: both game_type CHECK lists extended, manual step marked.
     const migration = readFixture(root, `packages/api-worker/migrations/${summary.migrationName}`);
@@ -337,34 +351,40 @@ for (const preset of ['identity', 'stage']) {
       .filter((file) => file.startsWith('src/games/demoproto/'))
       .map((file) => readFixture(root, file))
       .join('\n');
-    if (preset === 'identity') {
+    if (capabilities.botTestScaffold) {
       assert.ok(engineGameDir.includes('demoproto.bots.markAllBotsViewed'));
-      assert.ok(!engineGameDir.includes('deadlineAt'));
+    }
+    if (capabilities.identityViewing) {
       assert.ok(clientGameDir.includes('RevealAnimationGate'));
     } else {
-      assert.ok(engineGameDir.includes('deadlineAt'));
       assert.ok(!clientGameDir.includes('RevealAnimationGate'));
-      // E-2 PR-5: the generated stage engine assembles expiry through
-      // the shared phase-deadline chassis only — the guard and the
-      // settle.due constructor are called, and no self-written gate
-      // keyword (raw actor resolution, hand-built settle effect)
+    }
+    if (capabilities.stageDeadline) {
+      assert.ok(engineGameDir.includes('deadlineAt'));
+      // E-2 PR-5: the generated deadline engine assembles expiry
+      // through the shared phase-deadline chassis only — the guard
+      // and the settle.due constructor are called, and no self-written
+      // gate keyword (raw actor resolution, hand-built settle effect)
       // survives in the generated engine.
-      assert.ok(engineSource.includes('guardPhaseExpiry('), 'stage engine calls the expiry guard');
+      assert.ok(
+        engineSource.includes('guardPhaseExpiry('),
+        'deadline engine calls the expiry guard',
+      );
       assert.ok(
         engineSource.includes('buildSettleDueEffect('),
-        'stage engine calls the settle.due constructor',
+        'deadline engine calls the settle.due constructor',
       );
       assert.ok(
         !engineSource.includes('resolveSystemActorEffectId'),
-        'stage engine has no self-written system-channel gate',
+        'deadline engine has no self-written system-channel gate',
       );
       assert.ok(
         !engineSource.includes('resolveUncontrolledUserActorId'),
-        'stage engine has no self-written user-channel gate',
+        'deadline engine has no self-written user-channel gate',
       );
       assert.ok(
         !engineSource.includes("type: 'demoproto.settle.due'"),
-        'stage engine does not hand-build the settle.due effect',
+        'deadline engine does not hand-build the settle.due effect',
       );
       // The generated worker side delivers through the shared
       // settle.due helper: handler, business key and delivery time.
@@ -390,6 +410,17 @@ for (const preset of ['identity', 'stage']) {
         !workerModule.includes(':settle:${'),
         'worker module does not hand-build the settle business key',
       );
+    } else {
+      assert.ok(!engineGameDir.includes('deadlineAt'));
+    }
+    if (preset === 'demo-hybrid') {
+      // The hybrid pack settles through the system channel only: the
+      // public expire command (and its phase.expired event) must not
+      // exist anywhere in the generated engine, and the client carries
+      // no countdown surface.
+      assert.ok(!engineSource.includes(`'demoproto.phase.expire'`), 'no public expire command');
+      assert.ok(!engineSource.includes('phase.expired'), 'no phase.expired event');
+      assert.ok(!clientGameDir.includes('useStageDeadline'), 'client has no countdown hook');
     }
   });
 }
@@ -431,40 +462,45 @@ test('generated output passes the format and lint gates with tooling present', (
     t.skip('requires installed dependencies (node_modules)');
     return;
   }
-  const root = makeRealRepoCopy();
-  try {
-    const summary = generateNewGame({ rootDir: root, gameId: 'aaprobe', preset: 'identity' });
-    assert.equal(summary.formatted, true, 'prettier pass must run, not skip');
-    const require = createRequire(path.join(root, 'package.json'));
-    const prettierBin = require.resolve('prettier/bin/prettier.cjs');
-    // Same scope the generator's format pass claims: formattable
-    // extensions, templates excluded (their rendered outputs are the
-    // other entries in the list).
-    const formatTargets = summary.createdFiles.filter(
-      (file) => /\.(?:ts|tsx|js|mjs|json|md)$/.test(file) && !file.endsWith('.tmpl'),
-    );
-    execFileSync(process.execPath, [prettierBin, '--check', ...formatTargets], {
-      cwd: root,
-      stdio: 'pipe',
-    });
-    const eslintBin = path.join(
-      path.dirname(require.resolve('eslint/package.json')),
-      'bin',
-      'eslint.js',
-    );
-    const lintTargets = summary.createdFiles.filter((file) => /\.(?:ts|tsx)$/.test(file));
-    execFileSync(process.execPath, [eslintBin, '--max-warnings', '0', ...lintTargets], {
-      cwd: root,
-      stdio: 'pipe',
-      env: {
-        ...process.env,
-        NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=4096']
-          .filter(Boolean)
-          .join(' '),
-      },
-    });
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+  // Every preset must pass: the three packs render different segment
+  // combinations out of the one template tree, so each one's shaping
+  // is only proven in the real tree.
+  for (const preset of ['identity', 'stage', 'demo-hybrid']) {
+    const root = makeRealRepoCopy();
+    try {
+      const summary = generateNewGame({ rootDir: root, gameId: 'aaprobe', preset });
+      assert.equal(summary.formatted, true, `prettier pass must run, not skip (${preset})`);
+      const require = createRequire(path.join(root, 'package.json'));
+      const prettierBin = require.resolve('prettier/bin/prettier.cjs');
+      // Same scope the generator's format pass claims: formattable
+      // extensions, templates excluded (their rendered outputs are the
+      // other entries in the list).
+      const formatTargets = summary.createdFiles.filter(
+        (file) => /\.(?:ts|tsx|js|mjs|json|md)$/.test(file) && !file.endsWith('.tmpl'),
+      );
+      execFileSync(process.execPath, [prettierBin, '--check', ...formatTargets], {
+        cwd: root,
+        stdio: 'pipe',
+      });
+      const eslintBin = path.join(
+        path.dirname(require.resolve('eslint/package.json')),
+        'bin',
+        'eslint.js',
+      );
+      const lintTargets = summary.createdFiles.filter((file) => /\.(?:ts|tsx)$/.test(file));
+      execFileSync(process.execPath, [eslintBin, '--max-warnings', '0', ...lintTargets], {
+        cwd: root,
+        stdio: 'pipe',
+        env: {
+          ...process.env,
+          NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=4096']
+            .filter(Boolean)
+            .join(' '),
+        },
+      });
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   }
 });
 

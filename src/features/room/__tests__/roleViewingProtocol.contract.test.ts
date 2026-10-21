@@ -124,11 +124,11 @@ describe('role viewing protocol — client begin gate convergence (C-1)', () => 
     }
   });
 
-  it('the generator identity template ships the same factory call', () => {
+  it('the generator template ships the same factory call', () => {
     const templatePath = join(
       SRC_ROOT,
       '..',
-      'scripts/lib/new-game/templates/identity/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
+      'scripts/lib/new-game/templates/game/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
     );
     expect(readFileSync(templatePath, 'utf8')).toContain('createViewingBeginGate(');
   });

@@ -5,6 +5,12 @@
  * steps that remain before the new game is a real game.
  */
 
+const PRESET_LABELS = {
+  identity: '身份推理型（identity）',
+  stage: '舞台回合型（stage）',
+  'demo-hybrid': '身份查看＋舞台截止混合型（demo-hybrid）',
+};
+
 export function buildIntegrationReport({
   gameId,
   preset,
@@ -33,7 +39,7 @@ export function buildIntegrationReport({
 | 项 | 值 |
 | --- | --- |
 | 游戏 ID | \`${gameId}\` |
-| 原型预设 | ${preset === 'identity' ? '身份推理型（identity）' : '舞台回合型（stage）'} |
+| 原型预设 | ${PRESET_LABELS[preset]} |
 | 生产态 | ${production ? '是（--production）' : '否（默认非生产，上线动作见第 8 步）'} |
 | 展示名 / 副标题 | ${home.displayName} / ${home.subtitle} |
 | 首页图标 / 档位 | ${home.iconName} / ${home.tier} |
@@ -61,7 +67,7 @@ ${edited}
 
 1. **设计定稿**：把 \`docs/${gameId}-game-design.md\` 里的 10 项需求表填完并走批准流程
    （new-game skill Phase 1）；骨架里的默认人数、展示名、副标题、图标都是占位值。${
-     preset === 'identity'
+     capabilities.identityViewing
        ? `\n   身份型预设另需把 \`TODO_IDENTITY\` 占位身份换成真实身份表，并按仓库立绘流程生产
    角色立绘与图鉴素材（prompt 先审、生成过目后才入库）。`
        : ''

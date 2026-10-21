@@ -1,0 +1,80 @@
+/** __GAME_PASCAL__ commands; actors come from platform authentication. */
+
+import type {
+  RoomProfileUpdateCommand,
+  RoomSeatCommand,
+} from '../../../platform/protocol/commands';
+import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
+import type { __GAME_PASCAL__Config } from '../state/types';
+
+export type __GAME_PASCAL__PublicCommand =
+  | RoomSeatCommand<RoomSeatProfile>
+  | RoomProfileUpdateCommand<RoomProfileUpdate>
+  | { readonly type: '__GAME_ID__.config.update'; readonly config: __GAME_PASCAL__Config }
+//#cap identityViewing
+  | { readonly type: '__GAME_ID__.roles.assign' }
+//#end
+  | { readonly type: '__GAME_ID__.game.begin' }
+  | { readonly type: '__GAME_ID__.game.returnToLobby' }
+//#cap identityViewing
+  | { readonly type: '__GAME_ID__.role.viewed' }
+//#end
+//#cap botTestScaffold
+  | { readonly type: '__GAME_ID__.bots.markAllBotsViewed' }
+//#end
+//#cap publicExpire
+  | { readonly type: '__GAME_ID__.phase.expire' }
+//#end
+//#cap identityViewing
+  // TODO(gameplay): 玩法命令（行动、投票、技能……）逐条加在这里，并在
+//#end
+//#cap !identityViewing
+  // TODO(gameplay): 玩法命令（行动、提交、投票……）逐条加在这里，并在
+//#end
+  // engine.ts 的 decide 分发与 Worker schemas.ts 的公开命令表同步登记；
+  // 未实现的玩法命令必须显式 reject __GAME_UPPER___REASONS.notImplemented，不许假绿。
+  | { readonly type: '__GAME_ID__.gameplay.example' };
+
+//#cap !stageDeadline
+/**
+ * Worker-originated commands: the skeleton has no worker-originated
+ * flow yet, so the partition is empty. The first asynchronous flow
+ * (word supply, media, timers) adds its command here, unions it into
+ * `__GAME_PASCAL__Command` below, and replaces the `z.never()`
+ * internal schema in the Worker module.
+ */
+export type __GAME_PASCAL__InternalCommand = never;
+
+/**
+ * The full command surface the engine decides. While the internal
+ * partition is empty this is the public surface alone — unioning
+ * `never` in would be a redundant constituent; the first internal
+ * command joins by extending this type to
+ * `__GAME_PASCAL__PublicCommand | __GAME_PASCAL__InternalCommand`,
+ * and the Worker dispatch typing fails until it does.
+ */
+export type __GAME_PASCAL__Command = __GAME_PASCAL__PublicCommand;
+//#end
+//#cap publicExpire
+/**
+ * Worker-originated settle command: the room runtime fires the armed
+ * stage deadline through a scheduled `__GAME_ID__.settle.due` effect,
+ * and the effect handler dispatches this as the system actor. It runs
+ * the same settlement decide as the public expire command; the public
+ * one stays as a client acceleration path only.
+ */
+//#end
+//#cap internalSettleOnly
+/**
+ * Worker-originated settle command: the room runtime fires the armed
+ * stage deadline through a scheduled `__GAME_ID__.settle.due` effect,
+ * and the effect handler dispatches this as the system actor. It runs
+ * the same settlement decide as the terminal seam; no public expire
+ * command exists — the scheduled effect is the only channel.
+ */
+//#end
+//#cap stageDeadline
+export type __GAME_PASCAL__InternalCommand = { readonly type: '__GAME_ID__.phase.settleExpired' };
+
+export type __GAME_PASCAL__Command = __GAME_PASCAL__PublicCommand | __GAME_PASCAL__InternalCommand;
+//#end
