@@ -10,6 +10,9 @@ import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
 const mockHandleError = jest.fn();
+const mockShowConfirmAlert = jest.fn<boolean, [string, string, () => void | Promise<void>]>(
+  () => true,
+);
 const mockShowDestructiveAlert = jest.fn<
   boolean,
   [string, string, string, () => void | Promise<void>]
@@ -20,6 +23,8 @@ jest.mock('@/utils/errorPipeline', () => ({
   },
 }));
 jest.mock('@/utils/alertPresets', () => ({
+  showConfirmAlert: (...args: [string, string, () => void | Promise<void>]) =>
+    mockShowConfirmAlert(...args),
   showDestructiveAlert: (...args: [string, string, string, () => void | Promise<void>]) =>
     mockShowDestructiveAlert(...args),
 }));
@@ -79,6 +84,7 @@ function createInput(overrides: Partial<HookInput> = {}): HookInput {
 describe('useSheriffElection', () => {
   beforeEach(() => {
     mockHandleError.mockClear();
+    mockShowConfirmAlert.mockClear();
     mockShowDestructiveAlert.mockClear();
   });
 
@@ -160,6 +166,53 @@ describe('useSheriffElection', () => {
     if (confirmSelfDestruct === undefined) throw new Error('Expected self-destruct confirmation');
     await act(async () => confirmSelfDestruct());
     expect(endSheriffElectionBySelfDestruct).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks before closing registration and dispatches only on confirm', async () => {
+    const advanceSheriffElection = jest.fn(async () =>
+      successfulRoomCommand(createDayState().protocol),
+    );
+    const input = createInput({ advanceSheriffElection });
+    const { result } = renderHook(() => useSheriffElection(input));
+
+    act(() => result.current!.requestAdvance());
+
+    expect(mockShowConfirmAlert).toHaveBeenCalledWith(
+      '结束报名？',
+      '结束后，未报名的玩家不能再参选。',
+      expect.any(Function),
+    );
+    expect(advanceSheriffElection).not.toHaveBeenCalled();
+
+    const confirmAdvance = mockShowConfirmAlert.mock.calls[0]?.[2];
+    if (confirmAdvance === undefined) throw new Error('Expected end-registration confirmation');
+    await act(async () => confirmAdvance());
+    expect(advanceSheriffElection).toHaveBeenCalledTimes(1);
+  });
+
+  it('advances directly without a confirm outside registration', async () => {
+    const advanceSheriffElection = jest.fn(async () =>
+      successfulRoomCommand(createDayState().protocol),
+    );
+    const registrationInput = createInput({ advanceSheriffElection });
+    const speechState: GameState = {
+      ...createDayState().protocol,
+      sheriffElection: {
+        phase: 'candidateSpeech',
+        registeredSeats: [0],
+        withdrawnSeats: [],
+        completedRounds: [],
+        speakingStartSeat: 0,
+        speakingDirection: 'clockwise',
+      },
+    };
+    const input = { ...registrationInput, gameState: toWerewolfLocalState(speechState) };
+    const { result } = renderHook(() => useSheriffElection(input));
+
+    act(() => result.current!.requestAdvance());
+
+    expect(mockShowConfirmAlert).not.toHaveBeenCalled();
+    expect(advanceSheriffElection).toHaveBeenCalledTimes(1);
   });
 
   it('reports unexpected command errors and always releases the mutex', async () => {
