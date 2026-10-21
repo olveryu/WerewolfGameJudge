@@ -14,6 +14,7 @@ import type React from 'react';
 import { memo, useCallback } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
+import { SeatDot } from '@/components/SeatDot';
 import type {
   SheriffElectionPanelModel,
   SheriffElectionPendingAction,
@@ -86,39 +87,6 @@ const BallotChoice: React.FC<BallotChoiceProps> = memo(
   },
 );
 BallotChoice.displayName = 'SheriffBallotChoice';
-
-interface SeatDotProps {
-  readonly seat: number;
-  readonly isWithdrawn?: boolean;
-  readonly isSmall?: boolean;
-  readonly testID?: string;
-  readonly styles: SheriffElectionPanelStyles;
-}
-
-/** Circular seat marker; the seat number is the only text it carries. */
-function SeatDot({ seat, isWithdrawn = false, isSmall = false, testID, styles }: SeatDotProps) {
-  return (
-    <View
-      style={[
-        styles.seatDot,
-        isSmall && styles.seatDotSmall,
-        isWithdrawn && styles.seatDotWithdrawn,
-      ]}
-      testID={testID}
-      accessibilityLabel={isWithdrawn ? `${seat + 1}号，已退水` : `${seat + 1}号`}
-    >
-      <Text
-        style={[
-          styles.seatDotText,
-          isSmall && styles.seatDotSmallText,
-          isWithdrawn && styles.seatDotTextWithdrawn,
-        ]}
-      >
-        {seat + 1}
-      </Text>
-    </View>
-  );
-}
 
 function areSameSeats(first: readonly number[], second: readonly number[]): boolean {
   return first.length === second.length && first.every((seat, index) => seat === second[index]);
@@ -273,7 +241,7 @@ function CompletedRound({ round, winnerSeat, styles }: CompletedRoundProps) {
                       style={styles.voterChip}
                       testID={TESTIDS.sheriffBallotChip(round.key, voterSeat)}
                     >
-                      <SeatDot seat={voterSeat} isSmall styles={styles} />
+                      <SeatDot seat={voterSeat} size="sm" />
                     </View>
                   ))}
                 </View>
@@ -290,7 +258,7 @@ function CompletedRound({ round, winnerSeat, styles }: CompletedRoundProps) {
                 testID={TESTIDS.sheriffAbstainChip(round.key, voterSeat)}
                 accessibilityLabel={`${voterSeat + 1}号弃票`}
               >
-                <SeatDot seat={voterSeat} isSmall styles={styles} />
+                <SeatDot seat={voterSeat} size="sm" />
               </View>
             ))}
           </View>
@@ -347,15 +315,18 @@ const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ mo
                 {candidateRecords.registeredSeats.length === 0 ? (
                   <Text style={styles.recordEmpty}>无</Text>
                 ) : (
-                  candidateRecords.registeredSeats.map((seat) => (
-                    <SeatDot
-                      key={seat}
-                      seat={seat}
-                      isWithdrawn={candidateRecords.withdrawnSeats.includes(seat)}
-                      testID={TESTIDS.sheriffRegisteredSeatDot(seat)}
-                      styles={styles}
-                    />
-                  ))
+                  candidateRecords.registeredSeats.map((seat) => {
+                    const isWithdrawn = candidateRecords.withdrawnSeats.includes(seat);
+                    return (
+                      <SeatDot
+                        key={seat}
+                        seat={seat}
+                        withdrawn={isWithdrawn}
+                        stateLabel={isWithdrawn ? '已退水' : undefined}
+                        testID={TESTIDS.sheriffRegisteredSeatDot(seat)}
+                      />
+                    );
+                  })
                 )}
               </View>
               {candidateRecords.withdrawnSeats.length > 0 && (
@@ -377,7 +348,6 @@ const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ mo
                       key={seat}
                       seat={seat}
                       testID={TESTIDS.sheriffActiveCandidateSeatDot(seat)}
-                      styles={styles}
                     />
                   ))}
                 </View>

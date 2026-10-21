@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
+import { SeatDot } from '@/components/SeatDot';
 import {
   borderRadius,
   colors,
@@ -37,50 +38,9 @@ const QUEST_TRACK_ROUNDS = [1, 2, 3, 4, 5] as const;
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 type QuestTrackState = 'success' | 'fail' | 'current' | 'upcoming';
-type SeatBadgeVariant = 'leader' | 'team' | 'plain' | 'mini' | 'ballot';
 
 function ballotLabel(ballot: AvalonBallot): string {
   return ballot === 'approve' ? '赞成' : '反对';
-}
-
-function SeatBadge({
-  seat,
-  variant = 'plain',
-  testID,
-}: {
-  readonly seat: number;
-  readonly variant?: SeatBadgeVariant;
-  readonly testID?: string;
-}) {
-  const isLeader = variant === 'leader';
-  return (
-    <View
-      style={[
-        styles.seatBadge,
-        variant === 'leader' ? styles.leaderSeatBadge : null,
-        variant === 'team' ? styles.teamSeatBadge : null,
-        variant === 'mini' || variant === 'ballot' ? styles.smallSeatBadge : null,
-      ]}
-      testID={testID}
-      accessibilityLabel={isLeader ? `${seat + 1}号，组队者` : `${seat + 1}号`}
-    >
-      <Text
-        style={[
-          styles.seatBadgeText,
-          variant === 'leader' ? styles.leaderSeatBadgeText : null,
-          variant === 'team' ? styles.teamSeatBadgeText : null,
-          variant === 'mini' || variant === 'ballot' ? styles.smallSeatBadgeText : null,
-        ]}
-      >
-        {seat + 1}
-      </Text>
-      {isLeader ? (
-        <View style={styles.leaderMarker}>
-          <Ionicons name="flag" size={componentSizes.icon.xs} color={colors.warning} />
-        </View>
-      ) : null}
-    </View>
-  );
 }
 
 function BallotChips({
@@ -102,7 +62,7 @@ function BallotChips({
           testID={`${testIDPrefix}-ballot-seat-${seat + 1}`}
           accessibilityLabel={`${seat + 1}号，${ballotLabel(ballot)}`}
         >
-          <SeatBadge seat={seat} variant="ballot" />
+          <SeatDot seat={seat} size="sm" />
           <Ionicons
             name={ballot === 'approve' ? 'checkmark' : 'close'}
             size={componentSizes.icon.xs}
@@ -178,9 +138,10 @@ function ProposerRow({
 }) {
   return (
     <View style={styles.proposerRow}>
-      <SeatBadge
+      <SeatDot
         seat={proposal.leaderSeat}
-        variant="leader"
+        emphasis="leader"
+        stateLabel="组队者"
         testID={`${testIDPrefix}-leader-seat-${proposal.leaderSeat + 1}`}
       />
       <Text style={styles.proposerText}>
@@ -219,10 +180,10 @@ function AvalonProposalBlock({
         <View style={styles.teamRow} testID={`${testIDPrefix}-team`}>
           <Text style={styles.teamLabel}>队伍</Text>
           {proposal.teamSeats.map((seat) => (
-            <SeatBadge
+            <SeatDot
               key={seat}
               seat={seat}
-              variant="team"
+              emphasis="filled"
               testID={`${testIDPrefix}-team-seat-${seat + 1}`}
             />
           ))}
@@ -248,9 +209,10 @@ function AvalonProposalBlock({
         testID={`${testIDPrefix}-toggle`}
         onPress={() => setExpanded((current) => !current)}
       >
-        <SeatBadge
+        <SeatDot
           seat={proposal.leaderSeat}
-          variant="leader"
+          emphasis="leader"
+          stateLabel="组队者"
           testID={`${testIDPrefix}-leader-seat-${proposal.leaderSeat + 1}`}
         />
         <View style={styles.rejectedSummary}>
@@ -260,10 +222,10 @@ function AvalonProposalBlock({
           <View style={styles.rejectedMeta}>
             <View style={styles.miniTeam} testID={`${testIDPrefix}-team`}>
               {proposal.teamSeats.map((seat) => (
-                <SeatBadge
+                <SeatDot
                   key={seat}
                   seat={seat}
-                  variant="mini"
+                  size="sm"
                   testID={`${testIDPrefix}-team-seat-${seat + 1}`}
                 />
               ))}
@@ -896,58 +858,6 @@ const styles = StyleSheet.create({
     width: componentSizes.avatar.sm,
     ...textStyles.caption,
     color: colors.textSecondary,
-  },
-  seatBadge: {
-    width: componentSizes.avatar.xs,
-    height: componentSizes.avatar.xs,
-    borderRadius: borderRadius.full,
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceHover,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  leaderSeatBadge: {
-    width: componentSizes.avatar.sm,
-    height: componentSizes.avatar.sm,
-    borderColor: colors.primary,
-    backgroundColor: withAlpha(colors.primary, 0.12),
-  },
-  teamSeatBadge: {
-    width: componentSizes.avatar.sm,
-    height: componentSizes.avatar.sm,
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  smallSeatBadge: {
-    width: componentSizes.badge.md,
-    height: componentSizes.badge.md,
-  },
-  seatBadgeText: {
-    ...textStyles.caption,
-    color: colors.text,
-    fontWeight: typography.weights.semibold,
-  },
-  leaderSeatBadgeText: {
-    color: colors.primary,
-  },
-  teamSeatBadgeText: {
-    color: colors.textInverse,
-  },
-  smallSeatBadgeText: {
-    ...textStyles.captionSmall,
-  },
-  leaderMarker: {
-    position: 'absolute',
-    top: -spacing.small,
-    right: -spacing.tight,
-    width: componentSizes.badge.sm,
-    height: componentSizes.badge.sm,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   voteBar: {
     flexDirection: 'row',
