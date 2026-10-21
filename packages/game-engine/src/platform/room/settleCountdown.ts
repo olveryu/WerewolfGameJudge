@@ -12,9 +12,13 @@
  * and the current time. Everything else stays injected per game:
  * the completeness predicate (a game's predicate may fail fast on
  * corrupt state; the skeleton never swallows that), the arming
- * landing form (werewolf appends step-deadline state actions,
- * avalon emits an event plus a settle.due effect), and the
- * settlement function itself.
+ * landing form (werewolf appends step-deadline state actions and
+ * applies the skeleton outcome as decided, refresh included;
+ * avalon emits an event plus a settle.due effect and pins that
+ * emission to exactly once per arming — an already armed countdown
+ * is not re-emitted, so the skeleton's refresh outcome on a
+ * re-submit while armed is decided but not applied there), and
+ * the settlement function itself.
  *
  * Adopters are registered per access point in
  * `__tests__/settleCountdown.contract.test.ts`, together with each
