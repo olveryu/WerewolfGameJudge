@@ -38,7 +38,29 @@
  *   writer of the werewolf `stepDeadline` carrier — registered
  *   here so the countdown welds never mistake it for an adopter.
  *
- * Weld scan scope is the game-engine game sources only. The
+ * Deadline arithmetic weld (bidirectional, below): every
+ * now-anchored deadline addition in the scanned sources must
+ * appear in `EXPECTED_DEADLINE_ARITHMETIC`, and every registered
+ * entry must still be present — the scanned multiset and the
+ * registry must be exactly equal, so a new unregistered arm
+ * computation fails and a silently vanished registered one
+ * fails too. Anchors are `nowMs`, `now`, and `phaseStartAt`
+ * (bare or behind a dotted prefix such as `context.` /
+ * `input.` / `execution.`), plus `Date.now()`; the right-hand
+ * side is unrestricted (a literal such as `5000`, a named
+ * constant, or a call). Registrations are exact points — one
+ * file, one enclosing function, one normalized expression —
+ * never a whole file or directory. The registered points are
+ * the skeleton's set branch, the two pending avalon legacy arm
+ * fragments, and the out-of-registry baselines: demo and
+ * drawguess stage-entry arming (E-2 domain), the relay clock
+ * helper and gallery resume re-arm (relay domain), and the
+ * werewolf inline AUTO_SKIP second writer.
+ *
+ * Weld scan scope is the game-engine production sources: every
+ * non-test `.ts` file under `packages/game-engine/src` (games,
+ * platform, and product trees), with comments stripped before
+ * scanning so a comment quoting an arm form is not a hit. The
  * avalon client's `settleCountdownSeconds` display field (root
  * `src/`) is a presentation value, not an arm site, and is out
  * of scope by construction.
@@ -157,6 +179,98 @@ const ACCESS_POINT_IDS = Object.keys(
   EXPECTED_SETTLE_COUNTDOWN_ADOPTERS,
 ) as SettleCountdownAccessPointId[];
 
+const engineSourceDirectory = path.resolve(__dirname, '..', '..', '..');
+
+type DeadlineArithmeticDomain =
+  | 'skeleton'
+  | 'avalonPending'
+  | 'e2StageDeadline'
+  | 'relayClock'
+  | 'werewolfInlineAutoSkip';
+
+interface DeadlineArithmeticRegistration {
+  /** File relative to `packages/game-engine/src` (posix separators). */
+  readonly file: string;
+  /** Function enclosing the arithmetic. */
+  readonly symbol: string;
+  /** Normalized `left + firstRightToken` form of the addition. */
+  readonly expression: string;
+  readonly domain: DeadlineArithmeticDomain;
+}
+
+/**
+ * Every now-anchored deadline addition in the game-engine
+ * production sources, registered as exact points. The switched
+ * werewolf wolf-vote point contributes no local arithmetic: its
+ * call site in `actionHandler.ts` passes `nowMs` into the
+ * skeleton, and the skeleton's set branch is the one addition.
+ */
+const EXPECTED_DEADLINE_ARITHMETIC: readonly DeadlineArithmeticRegistration[] = [
+  {
+    file: 'platform/room/settleCountdown.ts',
+    symbol: 'decideSettleCountdownArm',
+    expression: 'input.nowMs + countdownMs',
+    domain: 'skeleton',
+  },
+  {
+    file: 'games/avalon/engine.ts',
+    symbol: 'castVote',
+    expression: 'context.nowMs + AVALON_SETTLE_COUNTDOWN_SECONDS',
+    domain: 'avalonPending',
+  },
+  {
+    file: 'games/avalon/engine.ts',
+    symbol: 'playQuest',
+    expression: 'context.nowMs + AVALON_SETTLE_COUNTDOWN_SECONDS',
+    domain: 'avalonPending',
+  },
+  {
+    file: 'games/demo/engine.ts',
+    symbol: 'beginGame',
+    expression: 'context.nowMs + DEMO_STAGE_DURATION_MS',
+    domain: 'e2StageDeadline',
+  },
+  {
+    file: 'games/drawguess/engine.ts',
+    symbol: 'dealWords',
+    expression: 'context.nowMs + DRAWGUESS_WORD_SELECT_SECONDS',
+    domain: 'e2StageDeadline',
+  },
+  {
+    file: 'games/drawguess/engine.ts',
+    symbol: 'beginDrawing',
+    expression: 'phaseStartAt + DRAWGUESS_DRAWING_DURATION_SECONDS',
+    domain: 'e2StageDeadline',
+  },
+  {
+    file: 'games/drawguess/engine.ts',
+    symbol: 'endRound',
+    expression: 'context.nowMs + DRAWGUESS_ROUND_END_SECONDS',
+    domain: 'e2StageDeadline',
+  },
+  {
+    file: 'platform/room/relay/clock.ts',
+    symbol: 'relayDeadline',
+    expression: 'nowMs + seconds',
+    domain: 'relayClock',
+  },
+  {
+    // Resume re-arm in the gallery control path; gallery moves
+    // proper go through `relayDeadline` above and add no second
+    // arithmetic point.
+    file: 'platform/room/relay/gallery.ts',
+    symbol: 'controlRelayGallery',
+    expression: 'nowMs + duration',
+    domain: 'relayClock',
+  },
+  {
+    file: 'games/werewolf/domain/inlineProgression.ts',
+    symbol: 'runInlineProgression',
+    expression: 'execution.nowMs + randomIntInclusive',
+    domain: 'werewolfInlineAutoSkip',
+  },
+];
+
 /** Concatenated non-test source of one directory tree. */
 function readSourceTree(root: string): string {
   const chunks: string[] = [];
@@ -180,6 +294,121 @@ function readGameFile(relativePath: string): string {
 
 function countOccurrences(haystack: string, needle: string): number {
   return haystack.split(needle).length - 1;
+}
+
+/** Relative paths (posix separators) of every non-test `.ts` file under a tree. */
+function listProductionSourceFiles(root: string): string[] {
+  const files: string[] = [];
+  const walk = (current: string): void => {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const entryPath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name !== '__tests__') walk(entryPath);
+      } else if (entry.name.endsWith('.ts')) {
+        files.push(path.relative(root, entryPath).split(path.sep).join('/'));
+      }
+    }
+  };
+  walk(root);
+  return files.sort();
+}
+
+/**
+ * Blanks out line and block comments (string and template
+ * literals are preserved), keeping offsets and newlines intact
+ * so positions in the stripped text match the original file.
+ */
+function stripComments(source: string): string {
+  let out = '';
+  let i = 0;
+  let quote: string | null = null;
+  while (i < source.length) {
+    const char = source[i]!;
+    const next = source[i + 1];
+    if (quote !== null) {
+      out += char;
+      if (char === '\\') {
+        out += next ?? '';
+        i += 2;
+        continue;
+      }
+      if (char === quote) quote = null;
+      i += 1;
+      continue;
+    }
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char;
+      out += char;
+      i += 1;
+      continue;
+    }
+    if (char === '/' && next === '/') {
+      while (i < source.length && source[i] !== '\n') {
+        out += ' ';
+        i += 1;
+      }
+      continue;
+    }
+    if (char === '/' && next === '*') {
+      out += '  ';
+      i += 2;
+      while (i < source.length && !(source[i] === '*' && source[i + 1] === '/')) {
+        out += source[i] === '\n' ? '\n' : ' ';
+        i += 1;
+      }
+      if (i < source.length) {
+        out += '  ';
+        i += 2;
+      }
+      continue;
+    }
+    out += char;
+    i += 1;
+  }
+  return out;
+}
+
+interface DeadlineArithmeticHit {
+  readonly file: string;
+  readonly symbol: string;
+  readonly expression: string;
+}
+
+/**
+ * Finds every now-anchored deadline addition in one production
+ * source file: an anchor (`nowMs` / `now` / `phaseStartAt`, bare
+ * or behind a dotted prefix, or `Date.now()`) added to a first
+ * right-hand token (identifier or numeric literal, optionally
+ * parenthesized). Each hit is pinned to its enclosing function.
+ */
+function findDeadlineArithmetic(relativeFile: string): DeadlineArithmeticHit[] {
+  const source = stripComments(
+    fs.readFileSync(path.join(engineSourceDirectory, relativeFile), 'utf8'),
+  );
+  const pattern =
+    /(?<![\w$])(Date\.now\(\))|(?<![\w$])((?:[A-Za-z_$][\w$]*\.)*(?:nowMs|phaseStartAt|now))(?=\s*\+)/g;
+  const hits: DeadlineArithmeticHit[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(source)) !== null) {
+    const left = match[1] ?? match[2]!;
+    const rest = source.slice(pattern.lastIndex);
+    const right = /^\s*\+\s*\(?\s*([A-Za-z_$][\w$]*|\d[\d_]*)/.exec(rest);
+    if (right === null) continue;
+    let symbol = '<module>';
+    for (const declaration of source
+      .slice(0, match.index)
+      .matchAll(/function\s+([A-Za-z_$][\w$]*)/g)) {
+      symbol = declaration[1]!;
+    }
+    hits.push({ file: relativeFile, symbol, expression: `${left} + ${right[1]!}` });
+  }
+  return hits;
+}
+
+function byPoint(a: DeadlineArithmeticHit, b: DeadlineArithmeticHit): number {
+  return `${a.file}\n${a.symbol}\n${a.expression}`.localeCompare(
+    `${b.file}\n${b.symbol}\n${b.expression}`,
+  );
 }
 
 describe('decideSettleCountdownArm truth table (moved from werewolf decideWolfVoteTimerAction)', () => {
@@ -353,5 +582,45 @@ describe('settle countdown registry', () => {
     const inlineProgression = readGameFile('werewolf/domain/inlineProgression.ts');
     expect(inlineProgression).toContain('AUTO_SKIP_DELAY_MIN_MS');
     expect(inlineProgression).not.toContain('decideSettleCountdownArm');
+  });
+});
+
+describe('deadline arithmetic weld (bidirectional)', () => {
+  it('registers exact points only: one file, one function, one expression per entry', () => {
+    for (const entry of EXPECTED_DEADLINE_ARITHMETIC) {
+      expect(entry.file.endsWith('.ts')).toBe(true);
+      expect(entry.file).not.toContain('*');
+      expect(entry.symbol.length).toBeGreaterThan(0);
+      expect(entry.symbol).not.toContain('*');
+      expect(entry.expression).toContain(' + ');
+    }
+  });
+
+  it('confines every now-anchored deadline addition to the registered points', () => {
+    const actual = listProductionSourceFiles(engineSourceDirectory)
+      .flatMap((file) => findDeadlineArithmetic(file))
+      .sort(byPoint);
+    const expected = EXPECTED_DEADLINE_ARITHMETIC.map(({ file, symbol, expression }) => ({
+      file,
+      symbol,
+      expression,
+    })).sort(byPoint);
+    expect(actual).toEqual(expected);
+  });
+
+  it('keeps the pending avalon arithmetic points in step with the adopter registry', () => {
+    const pendingAvalonPoints = ACCESS_POINT_IDS.filter(
+      (id) =>
+        id.startsWith('avalon:') &&
+        EXPECTED_SETTLE_COUNTDOWN_ADOPTERS[id].adoption === 'pending' &&
+        EXPECTED_SETTLE_COUNTDOWN_ADOPTERS[id].legacyArmMarker !== undefined,
+    ).length;
+    const registered = EXPECTED_DEADLINE_ARITHMETIC.filter(
+      (entry) => entry.domain === 'avalonPending',
+    ).length;
+    expect(registered).toBe(pendingAvalonPoints);
+    expect(
+      EXPECTED_DEADLINE_ARITHMETIC.filter((entry) => entry.domain === 'skeleton'),
+    ).toHaveLength(1);
   });
 });
