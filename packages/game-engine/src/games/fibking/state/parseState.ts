@@ -14,7 +14,7 @@ import {
   parseSeat,
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
-import type { RosterEntry } from '../../../platform/room/roster';
+import { buildRoomSeatProfile, type RosterEntry } from '../../../platform/room/roster';
 import type { BotSeatOccupant } from '../../../platform/room/seating';
 import { normalizeFibState } from './normalize';
 import type {
@@ -57,7 +57,7 @@ function parseRosterEntry(value: unknown, path: string): RosterEntry {
   const raw = parseObject(value, path);
   return finishObject(
     raw,
-    {
+    buildRoomSeatProfile({
       displayName: parseNonEmptyString(raw.displayName, `${path}.displayName`),
       avatarUrl: parseOptional(raw.avatarUrl, `${path}.avatarUrl`, parseString),
       avatarFrame: parseOptional(raw.avatarFrame, `${path}.avatarFrame`, parseString),
@@ -66,7 +66,7 @@ function parseRosterEntry(value: unknown, path: string): RosterEntry {
       nameStyle: parseOptional(raw.nameStyle, `${path}.nameStyle`, parseString),
       revealEffect: parseOptional(raw.revealEffect, `${path}.revealEffect`, parseString),
       level: parseOptional(raw.level, `${path}.level`, parseInteger),
-    },
+    }),
     path,
   );
 }

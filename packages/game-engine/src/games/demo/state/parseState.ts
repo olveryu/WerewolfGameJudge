@@ -13,7 +13,7 @@ import {
   parseSeat,
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
-import type { RoomSeatProfile } from '../../../platform/room/roster';
+import { buildRoomSeatProfile, type RoomSeatProfile } from '../../../platform/room/roster';
 import type { BotSeatOccupant } from '../../../platform/room/seating';
 import { normalizeDemoState } from './normalize';
 import {
@@ -43,7 +43,7 @@ function profile(value: unknown, path: string): RoomSeatProfile {
   const raw = parseObject(value, path);
   return finishObject(
     raw,
-    {
+    buildRoomSeatProfile({
       displayName: parseNonEmptyString(raw.displayName, `${path}.displayName`),
       avatarUrl: parseOptional(raw.avatarUrl, `${path}.avatarUrl`, parseString),
       avatarFrame: parseOptional(raw.avatarFrame, `${path}.avatarFrame`, parseString),
@@ -52,7 +52,7 @@ function profile(value: unknown, path: string): RoomSeatProfile {
       nameStyle: parseOptional(raw.nameStyle, `${path}.nameStyle`, parseString),
       revealEffect: parseOptional(raw.revealEffect, `${path}.revealEffect`, parseString),
       level: parseOptional(raw.level, `${path}.level`, parseInteger),
-    },
+    }),
     path,
   );
 }
