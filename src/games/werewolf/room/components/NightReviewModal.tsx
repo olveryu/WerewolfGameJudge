@@ -51,7 +51,14 @@ interface NightReviewModalProps {
 // Shared primitives
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Faction semantic color for a role (wolf red / god purple / villager green / special amber). */
+/**
+ * Faction semantic color for a role on the review surface (wolf red / god
+ * purple / villager gray / special amber). Villager maps to the neutral
+ * textSecondary gray here: the approved review design renders villager
+ * identities gray on this surface, not the app-wide villager green.
+ * This one mapping feeds every faction-tinted element in the modal
+ * (identity cards, role chips, event badges) so the surface stays consistent.
+ */
 function factionColor(roleId: RoleId | null): string {
   if (roleId === null) return colors.textSecondary;
   switch (ROLE_SPECS[roleId]?.faction) {
@@ -60,7 +67,7 @@ function factionColor(roleId: RoleId | null): string {
     case Faction.God:
       return colors.god;
     case Faction.Villager:
-      return colors.villager;
+      return colors.textSecondary;
     case Faction.Special:
       return colors.third;
     default:
