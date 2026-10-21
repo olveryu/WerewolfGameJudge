@@ -156,8 +156,8 @@ async function confirmNightInfo(
 async function pickTeam(pages: Page[], leaderSeat: number, team: readonly number[]) {
   const leaderPage = pages[leaderSeat]!;
   const leaderRoom = new RoomPage(leaderPage);
-  // 提名草稿是服务端状态、全房可见：第二名玩家（非队长）页面必须实时
-  // 看到同一份草稿徽标，队长改选后同步变化。
+  // 提名草稿是服务端状态、全房可见：第二名玩家（非组队者）页面必须实时
+  // 看到同一份草稿徽标，组队者改选后同步变化。
   const observerSeat = (leaderSeat + 1) % PLAYER_COUNT;
   const observerRoom = new RoomPage(pages[observerSeat]!);
   // 改选探针：先选一个不在最终队伍里的座位，再撤销，验证徽标的新增与
@@ -177,12 +177,16 @@ async function pickTeam(pages: Page[], leaderSeat: number, team: readonly number
   for (const seat of team) {
     const tile = leaderRoom.getSeatTile(seat);
     await tile.click();
-    // 座位状态标签是单槽：队长本人座位恒显示「队长」，选中也不变「队员」；
-    // 其点选是否生效由最后提交按钮「恰选满才 enabled」兜底验证。
-    if (seat !== leaderSeat) {
-      await expect(tile).toContainText('队员', { timeout: 10_000 });
-      // 同一座位的「队员」徽标同步出现在第二名玩家页面（草稿回声）。
-      await expect(observerRoom.getSeatTile(seat)).toContainText('队员', { timeout: 10_000 });
+    // 座位状态标签：队员事实对每个被选座位都必须亮起（含组队者本人——
+    // 组队者被选进队伍时与组队者事实同显「组队者 · 队员」，不被组队者标遮住）；
+    // 同一座位的徽标同步出现在第二名玩家页面（草稿回声）。
+    await expect(tile).toContainText('队员', { timeout: 10_000 });
+    await expect(observerRoom.getSeatTile(seat)).toContainText('队员', { timeout: 10_000 });
+    if (seat === leaderSeat) {
+      await expect(tile).toContainText('组队者 · 队员', { timeout: 10_000 });
+      await expect(observerRoom.getSeatTile(seat)).toContainText('组队者 · 队员', {
+        timeout: 10_000,
+      });
     }
   }
   const submit = leaderPage.getByTestId('avalon-nominate-submit');
@@ -290,8 +294,8 @@ const LADY_PICK_PATTERN = /点座位盘点选一名没当过湖仙的玩家/;
 
 async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoundScript) {
   let team: readonly number[] = [];
-  const leaderSeat = await test.step(`任务${script.round}：定位队长并组队`, async () => {
-    const seat = await findSeatByProbe(pages, LEADER_PICK_PATTERN, '队长组队提示');
+  const leaderSeat = await test.step(`任务${script.round}：定位组队者并组队`, async () => {
+    const seat = await findSeatByProbe(pages, LEADER_PICK_PATTERN, '组队者组队提示');
     team = script.teamFor(seat);
     await pickTeam(pages, seat, team);
     return seat;
@@ -604,7 +608,7 @@ test.describe('Avalon full game', () => {
           approveCount: 8,
           rejectCount: 2,
           // 赞成行选一名确定投了赞成的座位（两名指定反对者之外任意一人；
-          // 不能选新队长——他可能恰好就是指定反对者之一）。
+          // 不能选新组队者——他可能恰好就是指定反对者之一）。
           rows: new Map<number, '赞成' | '反对'>([
             [evilSeats[0]!, '反对'],
             [evilSeats[1]!, '反对'],
@@ -618,7 +622,7 @@ test.describe('Avalon full game', () => {
         },
         questResult: { round: 1, success: true, successCount: 3, failCount: 0 },
       });
-      // 否决后队长顺延一位（轮转断言）。
+      // 否决后组队者顺延一位（轮转断言）。
       expect(leader2).toBe((leader1 + 1) % PLAYER_COUNT);
       await expect(hostPage.getByTestId('avalon-history-summary')).toContainText(
         '任务一 · 成功（成功牌 3）',

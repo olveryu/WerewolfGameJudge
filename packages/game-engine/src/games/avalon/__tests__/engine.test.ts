@@ -340,7 +340,7 @@ describe('Avalon engine', () => {
     expect(view.merlinSees).not.toContain(mordred);
     expect(view.merlinSees).toHaveLength(2);
     session.passNight();
-    // 9 人局湖仙 token 给首任队长右手边。
+    // 9 人局湖仙 token 给首任组队者右手边。
     expect(session.state.ladyHolderSeat).not.toBeNull();
   });
 
@@ -361,7 +361,7 @@ describe('Avalon engine', () => {
       'avalon_team_size_invalid:2',
       session.seatUser(leader),
     );
-    // 队长可以把自己选进队伍：先写草稿再确认，组队后直接进入投票。
+    // 组队者可以把自己选进队伍：先写草稿再确认，组队后直接进入投票。
     session.send(
       { type: 'avalon.team.updateDraft', seats: [leader, (leader + 1) % 6] },
       session.seatUser(leader),
@@ -381,7 +381,7 @@ describe('Avalon engine', () => {
     const nonLeader = (leader + 1) % 6;
     if (session.state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
     expect(session.state.phase.draftSeats).toEqual([]);
-    // 非队长不能改草稿；草稿也不能超出本轮所需人数（上限钉死）。
+    // 非组队者不能改草稿；草稿也不能超出本轮所需人数（上限钉死）。
     session.expectReject(
       { type: 'avalon.team.updateDraft', seats: [0, 1] },
       'avalon_not_leader',
@@ -432,7 +432,7 @@ describe('Avalon engine', () => {
       'avalon_phase_invalid',
       leaderUser,
     );
-    // 否决后轮转到新队长：新 nominate 的草稿清零，不继承上一任。
+    // 否决后轮转到新组队者：新 nominate 的草稿清零，不继承上一任。
     session.voteAll('reject');
     session.settleVote();
     const rotatedPhase = session.phase();

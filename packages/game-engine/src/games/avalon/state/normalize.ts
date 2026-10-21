@@ -282,7 +282,7 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
       const phase = state.phase;
       invariant(isAvalonQuestRound(phase.round), 'nominate round');
       invariant(phase.requiredSize === getAvalonQuestSize(count, phase.round), 'nominate size');
-      // 草稿是队长的工作集：座位合法、不重复、不超上限。是否已入座
+      // 草稿是组队者的工作集：座位合法、不重复、不超上限。是否已入座
       // 由 updateDraft / propose 的命令校验把守（草稿期间座位可能变动，
       // 确认时才以入座为准），此处不重复钉入座。
       invariant(

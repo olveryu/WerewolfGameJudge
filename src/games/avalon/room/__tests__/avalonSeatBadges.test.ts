@@ -86,14 +86,25 @@ describe('createAvalonSeatDataSource — quest played badge', () => {
   it('marks a team seat as 已出牌 after it plays, and only that seat', () => {
     const session = questPhaseSession();
     const leader = session.leader;
-    session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(leader));
-    const source = createAvalonSeatDataSource({
+    // 出牌前：组队者本人在队伍里，组队者与队员两个事实同显。
+    const beforePlay = createAvalonSeatDataSource({
       state: session.state,
       revision: 1,
       userId: 'host',
       controlledSeat: null,
     });
-    expect(source.getSeat(leader).statusBadge).toEqual({ label: '队长 · 已出牌', tone: 'success' });
+    expect(beforePlay.getSeat(leader).statusBadge?.label).toBe('组队者 · 队员');
+    session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(leader));
+    const source = createAvalonSeatDataSource({
+      state: session.state,
+      revision: 2,
+      userId: 'host',
+      controlledSeat: null,
+    });
+    expect(source.getSeat(leader).statusBadge).toEqual({
+      label: '组队者 · 队员 · 已出牌',
+      tone: 'success',
+    });
     const other = (leader + 1) % 5;
     expect(source.getSeat(other).statusBadge).toEqual({ label: '队员', tone: 'success' });
     const outsider = (leader + 2) % 5;
@@ -238,7 +249,7 @@ describe('createAvalonSeatDataSource — night badge window closes', () => {
 });
 
 describe('createAvalonSeatDataSource — nominate picked badge', () => {
-  it('marks locally picked seats as 队员 during nomination (leader keeps 队长)', () => {
+  it('marks locally picked seats as 队员 during nomination (leader in draft shows 组队者 · 队员)', () => {
     let commandNumber = 0;
     let state: AvalonState = avalonEngine.createInitialState(
       { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
@@ -278,7 +289,7 @@ describe('createAvalonSeatDataSource — nominate picked badge', () => {
     const leader = state.leaderSeat;
     const pickedSeat = (leader + 1) % 5;
     const unpickedSeat = (leader + 2) % 5;
-    // 场景来源：队长经 updateDraft 把两人写进服务端草稿（徽标读草稿）。
+    // 场景来源：组队者经 updateDraft 把两人写进服务端草稿（徽标读草稿）。
     send({ type: 'avalon.team.updateDraft', seats: [pickedSeat, leader] }, seatUser(leader));
     const source = createAvalonSeatDataSource({
       state,
@@ -287,7 +298,7 @@ describe('createAvalonSeatDataSource — nominate picked badge', () => {
       controlledSeat: null,
     });
     expect(source.getSeat(pickedSeat).statusBadge).toEqual({ label: '队员', tone: 'success' });
-    expect(source.getSeat(leader).statusBadge?.label).toBe('队长');
+    expect(source.getSeat(leader).statusBadge?.label).toBe('组队者 · 队员');
     expect(source.getSeat(unpickedSeat).statusBadge).toBeNull();
   });
 });
@@ -336,7 +347,7 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
 
   type Session = ReturnType<typeof startSession>;
 
-  /** The 队长-carrying badge label anywhere on the seat board, or null when gated off. */
+  /** The 组队者-carrying badge label anywhere on the seat board, or null when gated off. */
   function leaderBadgeLabel(state: AvalonState): string | null {
     const source = createAvalonSeatDataSource({
       state,
@@ -346,7 +357,7 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
     });
     for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
       const label = source.getSeat(seat).statusBadge?.label ?? null;
-      if (label !== null && label.includes('队长')) return label;
+      if (label !== null && label.includes('组队者')) return label;
     }
     return null;
   }
@@ -432,10 +443,10 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
       ['lobby', null],
       ['viewing', null],
       ['night', null],
-      ['nominate', '队长'],
-      ['vote', '队长'],
-      ['quest', '队长'],
-      ['nominate', '队长'],
+      ['nominate', '组队者'],
+      ['vote', '组队者 · 队员'],
+      ['quest', '组队者 · 队员'],
+      ['nominate', '组队者'],
     ]);
   });
 
@@ -447,7 +458,7 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
     playSuccessfulRound(session);
     playSuccessfulRound(session);
     if (session.state.phase.kind !== 'lady') throw new Error('expected lady phase');
-    expect(leaderBadgeLabel(session.state)).toBe('队长');
+    expect(leaderBadgeLabel(session.state)).toBe('组队者');
   });
 
   it('shows the leader badge in the assassin phase and drops it once ended', () => {
@@ -458,7 +469,7 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
     playSuccessfulRound(session);
     playSuccessfulRound(session);
     if (session.state.phase.kind !== 'assassin') throw new Error('expected assassin phase');
-    expect(leaderBadgeLabel(session.state)).toBe('队长');
+    expect(leaderBadgeLabel(session.state)).toBe('组队者');
     const assassinKey = Object.keys(session.state.roles).find(
       (key) => session.state.roles[Number(key)] === 'assassin',
     );

@@ -125,7 +125,7 @@ export interface AvalonViewModel {
   /** 尚未查看角色的座位（公开信息，与狼人杀 roster 口径一致）。 */
   readonly unviewedRoleSeats: readonly number[];
   readonly requiredSize: number | null;
-  /** 提名草稿（队长未确认的暂选集）：nominate 阶段向全房公开，其余阶段为 null。 */
+  /** 提名草稿（组队者未确认的暂选集）：nominate 阶段向全房公开，其余阶段为 null。 */
   readonly draftSeats: readonly number[] | null;
   readonly proposedSeats: readonly number[] | null;
   readonly teamSeats: readonly number[] | null;

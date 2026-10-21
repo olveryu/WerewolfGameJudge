@@ -30,8 +30,8 @@ export function getAvalonFailsNeeded(
 }
 
 /**
- * 队长顺时针移交：座位号按顺时针方向递增编号，下一任队长为 (leader + 1) % N。
- * 湖仙 token 给首任队长"右手边"的玩家：面向圆心时右手指向逆时针邻座，
+ * 组队者顺时针移交：座位号按顺时针方向递增编号，下一任组队者为 (leader + 1) % N。
+ * 湖仙 token 给首任组队者"右手边"的玩家：面向圆心时右手指向逆时针邻座，
  * 即 (leader - 1 + N) % N。
  */
 export function nextAvalonLeaderSeat(
@@ -41,7 +41,7 @@ export function nextAvalonLeaderSeat(
   return (leaderSeat + 1) % numberOfPlayers;
 }
 
-/** 首任湖仙 token 持有人：首任队长右手边的玩家（见上）。 */
+/** 首任湖仙 token 持有人：首任组队者右手边的玩家（见上）。 */
 export function getAvalonLadyInitialHolderSeat(
   leaderSeat: number,
   numberOfPlayers: AvalonPlayerCount,
