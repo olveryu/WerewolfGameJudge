@@ -1,6 +1,6 @@
 /** Authoritative Avalon engine; delegates persistence and delivery to the platform. */
 
-import { acknowledgeAudioQueue, isAudioGateOpen } from '../../platform/audio';
+import { acknowledgeAudioQueue, guardAudioPlayback } from '../../platform/audio';
 import {
   buildGameCompletionPayload,
   type CommandContext,
@@ -662,7 +662,8 @@ function returnToLobby(state: AvalonState, context: CommandContext): AvalonDecis
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'ended') return reject(AVALON_REASONS.phase);
   // 播报未播完时阻塞回大厅，避免 orphan 音频队列（用户 2026-10-07 确认）。
-  if (!isAudioGateOpen(state)) return reject(AVALON_REASONS.audioPlaying);
+  const audioReason = guardAudioPlayback(state, AVALON_REASONS.audioPlaying);
+  if (audioReason !== null) return reject(audioReason);
   return commitAvalon([{ type: 'avalon.game.returnedToLobby' }]);
 }
 

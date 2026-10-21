@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { closeAll } from '../fixtures/app.fixture';
 import { setupNPlayerGame, viewRoleWithRetry } from '../helpers/multi-player';
+import { waitForHostAudioAck } from '../helpers/night-driver';
 import { runNightFlowLoop } from '../pages/NightFlowPage';
 import { RoomPage } from '../pages/RoomPage';
 
@@ -31,6 +32,14 @@ test.describe('Resilience — Restart & Settings', () => {
 
       const room = new RoomPage(hostPage);
       await room.screenshot(testInfo, 'restart-01-first-night-done.png');
+
+      // The phase flip queued the night-end announcement in the same
+      // state write, so it is still playing now — and the engine
+      // rejects terminal commands while audio plays, with no client
+      // retry. Wait for the host's audio ack (the server-side gate
+      // lifting) before clicking, like a host who waits out the
+      // announcement.
+      await waitForHostAudioAck(hostPage);
 
       // Return to the lobby (terminal flow), then set the game up again
       await room.returnToLobby();
