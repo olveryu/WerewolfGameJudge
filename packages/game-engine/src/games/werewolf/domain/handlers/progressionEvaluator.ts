@@ -3,7 +3,11 @@
  *
  * Responsibilities:
  * - isWolfVoteAllComplete: determine whether all wolves have completed voting (shared by server + evaluator)
- * - decideWolfVoteTimerAction: Timer set/clear/noop decision
+ *
+ * The vote timer set/clear/noop decision lives in the shared settle
+ * countdown skeleton (`platform/room/settleCountdown.ts`,
+ * `decideSettleCountdownArm`); this module keeps only the werewolf
+ * completeness predicate injected into it.
  *
  * Only reads state facts to make decisions; contains no IO (network / audio / Alert).
  * Progression decision and execution handled by server-side runInlineProgression (see inlineProgression.ts).
@@ -12,9 +16,6 @@
 import { doesRoleParticipateInWolfVote } from '../models';
 import { getBottomCardEffectiveRole, isBottomCardWolfVoteExcluded } from '../playerHelpers';
 import type { GameState } from '../protocol/types';
-
-/** Wolf vote countdown in milliseconds */
-export const WOLF_VOTE_COUNTDOWN_MS = 5000;
 
 /**
  * Determine whether all wolves participating in the vote have voted (exported pure function).
@@ -62,31 +63,4 @@ export function isWolfVoteAllComplete(state: GameState): boolean {
     const v = wolfVotes[String(seat)];
     return typeof v === 'number' && (v >= 0 || v === -1);
   });
-}
-
-/**
- * Result type for the Timer decision pure function
- */
-type WolfVoteTimerAction = { type: 'set'; deadline: number } | { type: 'clear' } | { type: 'noop' };
-
-/**
- * Decide the wolf vote Timer action (pure function).
- *
- * | allVoted | hasExistingTimer | Action |
- * |---------|-----------------|------|
- * | true    | any             | set (set/reset deadline) |
- * | false   | true            | clear (retract caused vote no longer complete) |
- * | false   | false           | noop |
- *
- * Strategy A: any successful submit calls this function; when allVoted, always set (regardless of content change).
- */
-export function decideWolfVoteTimerAction(
-  allVoted: boolean,
-  hasExistingTimer: boolean,
-  now: number,
-  countdownMs: number = WOLF_VOTE_COUNTDOWN_MS,
-): WolfVoteTimerAction {
-  if (allVoted) return { type: 'set', deadline: now + countdownMs };
-  if (hasExistingTimer) return { type: 'clear' };
-  return { type: 'noop' };
 }

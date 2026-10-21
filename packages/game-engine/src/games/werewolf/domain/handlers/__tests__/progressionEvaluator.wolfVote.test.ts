@@ -1,16 +1,15 @@
 /**
  * progressionEvaluator.wolfVote.test.ts
  *
- * Tests for wolf vote related pure functions:
+ * Tests for the wolf vote completeness predicate:
  * - isWolfVoteAllComplete
- * - decideWolfVoteTimerAction
+ *
+ * The timer arm decision moved to the shared settle countdown
+ * skeleton; its truth-table tests live in
+ * `platform/room/__tests__/settleCountdown.contract.test.ts`.
  */
 
-import {
-  decideWolfVoteTimerAction,
-  isWolfVoteAllComplete,
-  WOLF_VOTE_COUNTDOWN_MS,
-} from '@game-judge/game-engine/games/werewolf/domain/handlers/progressionEvaluator';
+import { isWolfVoteAllComplete } from '@game-judge/game-engine/games/werewolf/domain/handlers/progressionEvaluator';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
 import type {
   GameState,
@@ -160,45 +159,5 @@ describe('isWolfVoteAllComplete', () => {
     // With all roles assigned (production invariant), the fail-closed
     // `return false` branch is unreachable → no deadlock
     expect(isWolfVoteAllComplete(state)).toBe(true);
-  });
-});
-
-// =============================================================================
-// decideWolfVoteTimerAction
-// =============================================================================
-
-describe('decideWolfVoteTimerAction', () => {
-  const NOW = 1000000;
-
-  it('allVoted + no timer -> set', () => {
-    const action = decideWolfVoteTimerAction(true, false, NOW);
-    expect(action.type).toBe('set');
-    if (action.type === 'set') {
-      expect(action.deadline).toBe(NOW + WOLF_VOTE_COUNTDOWN_MS);
-    }
-  });
-
-  it('allVoted + has timer -> set (reset)', () => {
-    const action = decideWolfVoteTimerAction(true, true, NOW);
-    expect(action.type).toBe('set');
-    if (action.type === 'set') {
-      expect(action.deadline).toBe(NOW + WOLF_VOTE_COUNTDOWN_MS);
-    }
-  });
-
-  it('!allVoted + has timer -> clear', () => {
-    const action = decideWolfVoteTimerAction(false, true, NOW);
-    expect(action).toEqual({ type: 'clear' });
-  });
-
-  it('!allVoted + no timer -> noop', () => {
-    const action = decideWolfVoteTimerAction(false, false, NOW);
-    expect(action).toEqual({ type: 'noop' });
-  });
-
-  it('allVoted + has timer + content unchanged -> set (strategy A: still reset)', () => {
-    // Strategy A: any successful submit resets. Content change is irrelevant.
-    const action = decideWolfVoteTimerAction(true, true, NOW);
-    expect(action.type).toBe('set');
   });
 });

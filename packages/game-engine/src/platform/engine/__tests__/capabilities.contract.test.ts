@@ -10,8 +10,13 @@
  *   `stageDeadline`, `audioOrchestration`, `gallery`: a marker string
  *   that only exists in the game's non-test engine source when the
  *   platform wiring is present (the shared seating command, the
- *   per-game config/scaffold commands, the deadline state field, the
- *   audio machinery, the gallery flow).
+ *   per-game config/scaffold commands, the phase expiry guard call,
+ *   the audio machinery, the gallery flow). The stageDeadline marker
+ *   is the guard call itself, not the `deadlineAt` field name: the
+ *   settle countdown skeleton (E-3) also names its arm field
+ *   `deadlineAt`, and werewolf — stageDeadline false, its deadline
+ *   is the night-step domain — calls that skeleton, so the field
+ *   name no longer discriminates this capability.
  * - `identityViewing`: the per-game protocol scenario suite
  *   (`identityViewingProtocol.contract.test.ts`) exists exactly for
  *   the games that declare it; those suites pin the behavior itself.
@@ -186,7 +191,7 @@ const SOURCE_WELDS: readonly {
     capability: 'botTestScaffold',
     marker: (gameType) => `${gameType}.bots.markAllBotsViewed`,
   },
-  { capability: 'stageDeadline', marker: () => 'deadlineAt' },
+  { capability: 'stageDeadline', marker: () => 'guardPhaseExpiry' },
   { capability: 'audioOrchestration', marker: () => 'audio' },
   { capability: 'gallery', marker: () => 'gallery' },
 ];

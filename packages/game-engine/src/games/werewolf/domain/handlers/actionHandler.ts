@@ -11,6 +11,7 @@
 
 import { createSeededRng, type Rng } from '../../../../platform/random';
 import { isBotOccupant } from '../../../../platform/room/seating';
+import { decideSettleCountdownArm } from '../../../../platform/room/settleCountdown';
 import type { SubmitActionIntent } from '../intents/types';
 import { ROLE_SPECS, type RoleId, type SchemaId, Team } from '../models';
 import { buildSeatRoleMap } from '../playerHelpers';
@@ -31,7 +32,7 @@ import {
 } from './actionGuards';
 import { computeCanShootForSeat } from './confirmContext';
 import { resolveSeedWolfInfectionResult } from './deathResolution';
-import { decideWolfVoteTimerAction, isWolfVoteAllComplete } from './progressionEvaluator';
+import { isWolfVoteAllComplete } from './progressionEvaluator';
 import { buildRevealPayload, WOLF_ROBOT_GATE_ROLES } from './revealPayload';
 import type { HandlerContext, HandlerExecutionContext, HandlerResult } from './types';
 import { handlerRejection, handlerSuccess } from './types';
@@ -249,15 +250,19 @@ export function handleSubmitAction(
       tempState = gameReducer(tempState, action);
     }
     const allVoted = isWolfVoteAllComplete(tempState);
-    const hasExistingTimer =
-      tempState.nightStep?.kind === 'inStep' && tempState.nightStep.stepDeadline != null;
-    const timerAction = decideWolfVoteTimerAction(allVoted, hasExistingTimer, execution.nowMs);
+    const armedDeadlineAt =
+      tempState.nightStep?.kind === 'inStep' ? (tempState.nightStep.stepDeadline ?? null) : null;
+    const timerAction = decideSettleCountdownArm({
+      complete: allVoted,
+      armedDeadlineAt,
+      nowMs: execution.nowMs,
+    });
 
     const extraActions: StateAction[] = [];
     if (timerAction.type === 'set') {
       extraActions.push({
         type: 'SET_STEP_DEADLINE' as const,
-        payload: { deadline: timerAction.deadline },
+        payload: { deadline: timerAction.deadlineAt },
       });
     } else if (timerAction.type === 'clear') {
       extraActions.push({ type: 'CLEAR_STEP_DEADLINE' as const });

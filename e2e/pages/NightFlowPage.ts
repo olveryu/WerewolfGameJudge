@@ -93,7 +93,7 @@ const VOTE_COUNT_PATTERN = String.raw`\d+/\d+ 狼人已确认`;
  * Wolf vote "stuck" iteration threshold.
  *
  * After all wolves confirm, the server sets a 5 s countdown
- * (`WOLF_VOTE_COUNTDOWN_MS`). Once the countdown expires the Host calls
+ * (`SETTLE_COUNTDOWN_MS`). Once the countdown expires the Host calls
  * `postProgression`, which may take up to `API_TIMEOUT_MS` (8 s) on a
  * cold-start Edge Function. During this whole window the vote count text
  * ("1/1 狼人已确认") stays unchanged, so the stuck-detector keeps

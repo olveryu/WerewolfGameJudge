@@ -341,7 +341,7 @@ export interface FillWithBotsAction {
 
 /**
  * Set current step progression deadline (epoch ms).
- * - wolfKill step: set (now + WOLF_VOTE_COUNTDOWN_MS) after all votes
+ * - wolfKill step: set (now + SETTLE_COUNTDOWN_MS) after all votes
  * - Empty deck step: set (now + random(5000, 10000)) on entry
  */
 export interface SetStepDeadlineAction {
