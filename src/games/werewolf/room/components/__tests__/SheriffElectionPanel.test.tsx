@@ -1,6 +1,6 @@
 /** Presentational tests for the sheriff-election room panel. */
 
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, within } from '@testing-library/react-native';
 
 import { SheriffElectionPanel } from '@/games/werewolf/room/components/SheriffElectionPanel';
 import { createSheriffElectionPanelStyles } from '@/games/werewolf/room/components/sheriffElectionPanel.styles';
@@ -142,6 +142,39 @@ describe('SheriffElectionPanel', () => {
     expect(screen.queryByText(/Alice|Bob|Chen|Dana/)).toBeNull();
   });
 
+  it('renders registered seats as dots in registration order and strikes withdrawn dots', () => {
+    const model = createModel({
+      phase: 'candidateSpeech',
+      phaseTitle: '竞选发言',
+      candidateRecords: {
+        registeredSeats: [2, 0, 1],
+        withdrawnSeats: [2],
+        activeCandidateSeats: [0, 1],
+      },
+    });
+    const screen = render(<SheriffElectionPanel model={model} styles={styles} />);
+
+    const dots = screen.getAllByTestId(/^sheriff-registered-seat-\d+$/);
+    expect(dots.map((dot) => String(dot.props.testID))).toEqual([
+      TESTIDS.sheriffRegisteredSeatDot(2),
+      TESTIDS.sheriffRegisteredSeatDot(0),
+      TESTIDS.sheriffRegisteredSeatDot(1),
+    ]);
+
+    const withdrawnDot = screen.getByTestId(TESTIDS.sheriffRegisteredSeatDot(2));
+    expect(withdrawnDot.props.accessibilityLabel).toBe('3号，已退水');
+    expect(JSON.stringify(withdrawnDot.props.style)).toContain('opacity');
+    expect(JSON.stringify(within(withdrawnDot).getByText('3').props.style)).toContain(
+      'line-through',
+    );
+    expect(screen.getByTestId(TESTIDS.sheriffWithdrawnSeats)).toHaveTextContent('3号已退水');
+
+    const activeRow = screen.getByTestId(TESTIDS.sheriffActiveCandidateSeats);
+    expect(within(activeRow).getByTestId(TESTIDS.sheriffActiveCandidateSeatDot(0))).toBeTruthy();
+    expect(within(activeRow).getByTestId(TESTIDS.sheriffActiveCandidateSeatDot(1))).toBeTruthy();
+    expect(within(activeRow).queryByTestId(TESTIDS.sheriffActiveCandidateSeatDot(2))).toBeNull();
+  });
+
   it('disables every visible action while a vote command is pending', () => {
     const model = createModel(
       {
@@ -174,7 +207,7 @@ describe('SheriffElectionPanel', () => {
     expect(model.vote).not.toHaveBeenCalled();
   });
 
-  it('keeps closed ballots and the final result visible after completion', () => {
+  it('keeps closed ballots grouped by candidate and the result banner visible after completion', () => {
     const model = createModel({
       phase: 'completed',
       phaseTitle: '竞选结束',
@@ -197,10 +230,120 @@ describe('SheriffElectionPanel', () => {
     });
     const screen = render(<SheriffElectionPanel model={model} styles={styles} />);
 
-    expect(screen.getByTestId(TESTIDS.sheriffRegisteredSeats)).toHaveTextContent('1号 · 2号');
-    expect(screen.getByTestId(TESTIDS.sheriffCompletedRound('first'))).toHaveTextContent(/3号→1号/);
-    expect(screen.getByTestId(TESTIDS.sheriffElectionResult)).toHaveTextContent('1号 当选警长');
+    expect(screen.getByTestId(TESTIDS.sheriffRegisteredSeatDot(0))).toHaveTextContent('1');
+    expect(screen.getByTestId(TESTIDS.sheriffRegisteredSeatDot(1))).toHaveTextContent('2');
+
+    const winnerGroup = screen.getByTestId(TESTIDS.sheriffTallyGroup('first', 0));
+    expect(within(winnerGroup).getByText('1 票')).toBeTruthy();
+    expect(within(winnerGroup).getByTestId(TESTIDS.sheriffBallotChip('first', 2))).toBeTruthy();
+    expect(within(winnerGroup).queryByTestId(TESTIDS.sheriffBallotChip('first', 3))).toBeNull();
+
+    const loserGroup = screen.getByTestId(TESTIDS.sheriffTallyGroup('first', 1));
+    expect(within(loserGroup).getByText('0 票')).toBeTruthy();
+    expect(within(loserGroup).queryByTestId(TESTIDS.sheriffBallotChip('first', 2))).toBeNull();
+
+    const abstainRow = screen.getByTestId(TESTIDS.sheriffAbstainRow('first'));
+    expect(within(abstainRow).getByTestId(TESTIDS.sheriffAbstainChip('first', 3))).toBeTruthy();
+    expect(screen.queryByText(/→/)).toBeNull();
+
+    const banner = screen.getByTestId(TESTIDS.sheriffElectionResult);
+    expect(banner).toHaveTextContent(/1号 · 当选警长/);
+    expect(banner).toHaveTextContent(/首轮投票当选 · 警徽在 1号/);
     expect(screen.queryByText(/Alice|Bob|Chen|Dana/)).toBeNull();
     expect(screen.queryByTestId(TESTIDS.sheriffAdvanceButton)).toBeNull();
+  });
+
+  it('marks the winner only in the deciding runoff round', () => {
+    const model = createModel({
+      phase: 'completed',
+      phaseTitle: '竞选结束',
+      candidateRecords: {
+        registeredSeats: [0, 1],
+        withdrawnSeats: [],
+        activeCandidateSeats: [0, 1],
+      },
+      completedRounds: [
+        {
+          key: 'first',
+          title: '首轮投票结果',
+          candidateSeats: [0, 1],
+          eligibleVoterSeats: [2, 3],
+          voteCounts: { 0: 1, 1: 1 },
+          ballots: { 2: 0, 3: 1 },
+        },
+        {
+          key: 'runoff',
+          title: '平票投票结果',
+          candidateSeats: [0, 1],
+          eligibleVoterSeats: [2, 3],
+          voteCounts: { 0: 2, 1: 0 },
+          ballots: { 2: 0, 3: 0 },
+        },
+      ],
+      finalResult: { kind: 'elected', sheriffSeat: 0 },
+    });
+    const screen = render(<SheriffElectionPanel model={model} styles={styles} />);
+
+    const firstRoundWinner = within(
+      screen.getByTestId(TESTIDS.sheriffTallyGroup('first', 0)),
+    ).getByText('1号');
+    expect(JSON.stringify(firstRoundWinner.props.style)).not.toContain(colors.warning);
+
+    const runoffWinner = within(
+      screen.getByTestId(TESTIDS.sheriffTallyGroup('runoff', 0)),
+    ).getByText('1号');
+    expect(JSON.stringify(runoffWinner.props.style)).toContain(colors.warning);
+    expect(
+      within(screen.getByTestId(TESTIDS.sheriffTallyGroup('runoff', 0))).getByText('2 票'),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByTestId(TESTIDS.sheriffTallyGroup('runoff', 1))).getByText('0 票'),
+    ).toBeTruthy();
+
+    expect(screen.getByTestId(TESTIDS.sheriffElectionResult)).toHaveTextContent(
+      /平票投票当选 · 警徽在 1号/,
+    );
+  });
+
+  it('renders a neutral banner and an empty record when nobody ran', () => {
+    const model = createModel({
+      phase: 'completed',
+      phaseTitle: '竞选结束',
+      candidateRecords: {
+        registeredSeats: [],
+        withdrawnSeats: [],
+        activeCandidateSeats: [],
+      },
+      finalResult: { kind: 'noSheriff', reason: 'noCandidates' },
+    });
+    const screen = render(<SheriffElectionPanel model={model} styles={styles} />);
+
+    expect(screen.getByTestId(TESTIDS.sheriffElectionResult)).toHaveTextContent(
+      /无人参选，本局没有警长/,
+    );
+    expect(screen.getByTestId(TESTIDS.sheriffRegisteredSeats)).toHaveTextContent('无');
+    expect(screen.queryByTestId(TESTIDS.sheriffWithdrawnSeats)).toBeNull();
+  });
+
+  it.each([
+    ['noVotes', '无人得票，本局没有警长'],
+    ['runoffTie', '平票未决，本局没有警长'],
+    ['selfDestruct', '因狼人自爆，警长竞选已结束且没有警长'],
+  ] as const)('renders the no-sheriff banner for %s', (reason, expectedText) => {
+    const model = createModel({
+      phase: 'completed',
+      phaseTitle: '竞选结束',
+      candidateRecords: {
+        registeredSeats: [0],
+        withdrawnSeats: [],
+        activeCandidateSeats: [0],
+      },
+      finalResult: { kind: 'noSheriff', reason },
+    });
+    const screen = render(<SheriffElectionPanel model={model} styles={styles} />);
+
+    expect(screen.getByTestId(TESTIDS.sheriffElectionResult)).toHaveTextContent(
+      new RegExp(expectedText),
+    );
   });
 });
