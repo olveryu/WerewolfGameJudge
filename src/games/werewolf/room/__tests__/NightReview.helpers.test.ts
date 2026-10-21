@@ -7,7 +7,28 @@ import { NIGHT_STEPS } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 
-import { buildActionLines, buildIdentityLines, buildNightReviewData } from '../NightReview.helpers';
+import {
+  buildActionEntries,
+  buildIdentityEntries,
+  buildNightReviewData,
+  type NightReviewActionEntry,
+} from '../NightReview.helpers';
+import {
+  formatNightReviewActionLine,
+  formatNightReviewIdentityLine,
+} from '../shareNightReviewLines';
+
+// ─── Legacy line adapters (equivalence harness) ────────────────────────────
+// Every legacy assertion below runs against lines formatted FROM the
+// structured entries, proving the entry stream carries the same facts in the
+// same order as the retired string builders.
+function buildActionLines(state: LocalGameState): string[] {
+  return buildActionEntries(state).map(formatNightReviewActionLine);
+}
+
+function buildIdentityLines(players: Map<number, LocalPlayer | null>): string[] {
+  return buildIdentityEntries(players, new Set()).map(formatNightReviewIdentityLine);
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -733,8 +754,115 @@ describe('NightReview.helpers', () => {
           lastNightDeaths: [0],
         }),
       );
-      expect(data.actionLines.length).toBeGreaterThan(0);
-      expect(data.identityLines.length).toBe(2);
+      expect(data.actions.length).toBeGreaterThan(0);
+      expect(data.identities.length).toBe(2);
+      // Seat 0 died last night (lastNightDeaths: [0]); seat 1 is alive.
+      expect(data.identities[0]).toEqual({
+        seat: 0,
+        roleId: 'wolf',
+        isEmptySeat: false,
+        isAlive: false,
+      });
+      expect(data.identities[1]).toEqual({
+        seat: 1,
+        roleId: 'seer',
+        isEmptySeat: false,
+        isAlive: true,
+      });
+    });
+  });
+
+  describe('structured entries', () => {
+    it('emits exactly one peacefulNight entry for an empty night', () => {
+      expect(buildActionEntries(makeGameState())).toEqual([{ kind: 'peacefulNight' }]);
+    });
+
+    it('carries wolf votes as structured voter/target pairs', () => {
+      const entries = buildActionEntries(
+        makeGameState({ currentNightResults: { wolfVotesBySeat: { '2': 4, '3': 4 } } }),
+      );
+      expect(entries[0]).toEqual({
+        kind: 'wolfAttack',
+        votes: [
+          { voterSeat: 2, targetSeat: 4 },
+          { voterSeat: 3, targetSeat: 4 },
+        ],
+      });
+    });
+
+    it('carries deaths with their reasons in order', () => {
+      const entries = buildActionEntries(
+        makeGameState({
+          lastNightDeaths: [0, 3],
+          deathReasons: { 0: 'wolfKill', 3: 'poison' },
+        }),
+      );
+      expect(entries[entries.length - 1]).toEqual({
+        kind: 'deaths',
+        deaths: [
+          { seat: 0, reason: 'wolfKill' },
+          { seat: 3, reason: 'poison' },
+        ],
+      });
+    });
+
+    it('keeps the fact order of a composed night as an entry kind sequence', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'wolf')],
+        [1, makePlayer(1, 'guard')],
+        [2, makePlayer(2, 'witch')],
+        [3, makePlayer(3, 'seer')],
+        [4, makePlayer(4, 'villager')],
+      ]);
+      const entries = buildActionEntries(
+        makeGameState({
+          players,
+          currentNightResults: {
+            wolfVotesBySeat: { '0': 4 },
+            guardedSeat: 4,
+            savedSeat: 4,
+          },
+          seerReveal: { targetSeat: 0, result: '狼人' },
+          lastNightDeaths: [4],
+          deathReasons: { 4: 'wolfKill' },
+        }),
+      );
+      const kinds: NightReviewActionEntry['kind'][] = entries.map((entry) => entry.kind);
+      expect(kinds).toEqual([
+        'wolfAttack',
+        'guard',
+        'save',
+        'witchNoPoison',
+        'check',
+        'guardSaveConflict',
+        'deaths',
+      ]);
+    });
+
+    it('formats every entry of a composed night to a non-empty legacy line', () => {
+      const entries = buildActionEntries(
+        makeGameState({
+          currentNightResults: { guardedSeat: 1, savedSeat: 3, poisonedSeat: 5 },
+          lastNightDeaths: [5],
+        }),
+      );
+      const lines = entries.map(formatNightReviewActionLine);
+      expect(lines.length).toBe(entries.length);
+      for (const line of lines) expect(line.length).toBeGreaterThan(0);
+    });
+
+    it('builds identity entries for empty and unassigned seats', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, null],
+        [1, makePlayer(1, null)],
+        [2, makePlayer(2, 'wolf')],
+      ]);
+      const entries = buildIdentityEntries(players, new Set([2]));
+      expect(entries).toEqual([
+        { seat: 0, roleId: null, isEmptySeat: true, isAlive: true },
+        { seat: 1, roleId: null, isEmptySeat: false, isAlive: true },
+        { seat: 2, roleId: 'wolf', isEmptySeat: false, isAlive: false },
+      ]);
     });
   });
 });

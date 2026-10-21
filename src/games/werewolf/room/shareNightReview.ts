@@ -13,6 +13,10 @@ import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
 import { log } from '@/utils/logger';
 
 import type { NightReviewData } from './NightReview.helpers';
+import {
+  formatNightReviewActionLine,
+  formatNightReviewIdentityLine,
+} from './shareNightReviewLines';
 
 type ShareNightReviewResult = 'shared' | 'cancelled' | 'failed';
 
@@ -106,8 +110,9 @@ export function renderNightReviewToCanvas(
 
   // Action lines (with wrapping)
   tmpCtx.font = `${fontSize.line}px system-ui, -apple-system, sans-serif`;
+  const actionLines = data.actions.map((entry) => formatNightReviewActionLine(entry));
   const wrappedActions: string[][] = [];
-  for (const line of data.actionLines) {
+  for (const line of actionLines) {
     const wrapped = wrapText(tmpCtx, line, contentWidth - spacing.small);
     wrappedActions.push(wrapped);
     totalHeight += wrapped.length * lineHeight.line;
@@ -120,8 +125,9 @@ export function renderNightReviewToCanvas(
   totalHeight += lineHeight.section + spacing.small;
 
   // Identity lines (with wrapping)
+  const identityLines = data.identities.map((entry) => formatNightReviewIdentityLine(entry));
   const wrappedIdentities: string[][] = [];
-  for (const line of data.identityLines) {
+  for (const line of identityLines) {
     const wrapped = wrapText(tmpCtx, line, contentWidth - spacing.small);
     wrappedIdentities.push(wrapped);
     totalHeight += wrapped.length * lineHeight.line;
