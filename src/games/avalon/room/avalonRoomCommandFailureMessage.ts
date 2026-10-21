@@ -23,7 +23,7 @@ export const getAvalonRoomCommandFailureMessage = createRoomCommandFailureMessag
     [AVALON_REASONS.notAllViewed]: '还有玩家未查看身份',
     [AVALON_REASONS.full]: ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
     [AVALON_REASONS.notNightParticipant]: '你不在当前确认步骤内',
-    [AVALON_REASONS.notLeader]: '只有当前队长可以组队',
+    [AVALON_REASONS.notLeader]: '只有当前组队者可以组队',
     [AVALON_REASONS.notVotePhase]: '当前不在投票阶段',
     [AVALON_REASONS.notTeamMember]: '你不在本轮任务队伍中',
     [AVALON_REASONS.goodMustSucceed]: '好人只能出成功牌',
