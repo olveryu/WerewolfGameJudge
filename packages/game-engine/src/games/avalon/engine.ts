@@ -373,10 +373,14 @@ function castVote(state: AvalonState, vote: AvalonBallot, context: CommandContex
     armedDeadlineAt: state.phase.deadlineAt,
     nowMs: context.nowMs,
   });
-  // Exactly-once layer 1 (decide short-circuit): an already armed
-  // countdown is never re-armed, so the settle.due effect below is
-  // emitted exactly once per arming (see the effect pin in
-  // domain/decision.ts and the worker business key).
+  // Exactly-once emission pin (avalon's landing form, see the
+  // skeleton header in platform/room/settleCountdown.ts): on a
+  // re-submit while armed the skeleton decides set again
+  // (refresh), but this landing applies a set only to an unarmed
+  // phase — the armed countdown is not re-emitted, so the
+  // settle.due effect below fires exactly once per arming (see
+  // the effect pin in domain/decision.ts and the worker business
+  // key).
   if (arm.type !== 'set' || state.phase.deadlineAt !== null) return commitAvalon([castEvent]);
   const deadlineAt = arm.deadlineAt;
   return commitAvalon(
@@ -504,8 +508,9 @@ function playQuest(state: AvalonState, play: AvalonPlay, context: CommandContext
     armedDeadlineAt: state.phase.deadlineAt,
     nowMs: context.nowMs,
   });
-  // Exactly-once layer 1 (decide short-circuit): same pin as the
-  // vote point above — an armed countdown is never re-armed.
+  // Exactly-once emission pin: same landing rule as the vote
+  // point above — a set decided while armed (refresh) is not
+  // applied to an already armed phase and never re-emitted.
   if (arm.type !== 'set' || state.phase.deadlineAt !== null) return commitAvalon([playedEvent]);
   const deadlineAt = arm.deadlineAt;
   return commitAvalon(
