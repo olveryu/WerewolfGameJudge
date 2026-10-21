@@ -222,7 +222,7 @@ export function AvalonConfigScreen({ session }: { readonly session: AvalonRoomSe
             </Button>
           </View>
           <Text style={styles.hint}>
-            公投：结束投票后同时亮票，每人投了什么全员可见；暗投：只公布赞成 /
+            公投：投票结算后同时亮票，每人投了什么全员可见；暗投：只公布赞成 /
             反对数量。任务出牌永远是暗投。
           </Text>
         </View>

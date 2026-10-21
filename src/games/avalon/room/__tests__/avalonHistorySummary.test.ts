@@ -19,6 +19,7 @@ type CommandContext = Parameters<typeof avalonEngine.decide>[2];
 
 function session() {
   let commandNumber = 0;
+  let nowMs = 1000;
   let state: AvalonState = avalonEngine.createInitialState(
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
@@ -27,7 +28,7 @@ function session() {
     const context: CommandContext = {
       actor: { kind: 'user', userId },
       controlledSeat: null,
-      nowMs: 1000,
+      nowMs,
       commandId: `command:${commandNumber++}`,
       randomSeed: `seed:${commandNumber}`,
     };
@@ -41,6 +42,15 @@ function session() {
   }
   const ackAudio = () => {
     if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' });
+  };
+  /** 全员投完/出完后把时钟推到 deadline 并发公开 expire——唯一关轮路径（手动结算已删）。 */
+  const settlePhase = () => {
+    const phase = state.phase;
+    if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) {
+      throw new Error('expected an armed vote or quest countdown');
+    }
+    nowMs = phase.deadlineAt;
+    send({ type: 'avalon.phase.expire' });
   };
   return {
     get state() {
@@ -72,7 +82,7 @@ function session() {
       for (let seat = 0; seat < 5; seat += 1) {
         send({ type: 'avalon.team.vote', vote: ballot }, userOf(seat));
       }
-      send({ type: 'avalon.vote.finish' });
+      settlePhase();
       return team;
     },
     /** Settles the in-flight quest; the first evil team member (if any) fails it. */
@@ -82,7 +92,7 @@ function session() {
         const play = isAvalonEvilRole(state.roles[seat]!) ? 'fail' : 'success';
         send({ type: 'avalon.quest.play', play }, userOf(seat));
       }
-      send({ type: 'avalon.quest.finish' });
+      settlePhase();
     },
   };
 }

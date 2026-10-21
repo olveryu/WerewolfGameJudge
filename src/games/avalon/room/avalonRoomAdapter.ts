@@ -39,7 +39,6 @@ import {
   buildFillBotsAction,
   buildMarkBotsViewedAction,
   buildNextRoundAction,
-  buildPendingAwareHostAction,
   buildReturnLobbyAction,
   buildRoomConfigAction,
   buildStartGameAction,
@@ -828,68 +827,7 @@ export function createAvalonHostManagement(
       ],
     });
   }
-  // 房主手动结算（D15/D16）：投票阶段可结束投票，任务阶段可结束任务。
   const inGameSections: RoomHostManagementSection[] = [];
-  if (state.phase.kind === 'vote')
-    inGameSections.push({
-      key: 'vote',
-      title: '投票管理',
-      actions: [
-        buildPendingAwareHostAction(
-          {
-            key: 'finish-vote',
-            label: '结束投票',
-            icon: 'checkmark-done-outline',
-            variant: 'primary',
-            isLoading: input.isSubmitting,
-            testID: 'avalon-finish-vote',
-          },
-          input.isSubmitting,
-          () =>
-            showConfirmAlert(
-              '结束投票',
-              input.controlledSeat !== null
-                ? '未投票的座位将视为弃权，确定结束投票并结算吗？你正在接管机器人座位，结算前将先释放接管。'
-                : '未投票的座位将视为弃权，确定结束投票并结算吗？',
-              () => {
-                // 房主接管中需先释放，否则服务端按"机器人身份"拒绝（platform requireHost）。
-                // 显式传 null，避免闭包捕获旧的 controlledSeat。
-                if (input.controlledSeat !== null) input.releaseBot();
-                void submit('结束投票', { type: 'avalon.vote.finish' }, null);
-              },
-            ),
-        ),
-      ],
-    });
-  if (state.phase.kind === 'quest')
-    inGameSections.push({
-      key: 'quest',
-      title: '任务管理',
-      actions: [
-        buildPendingAwareHostAction(
-          {
-            key: 'finish-quest',
-            label: '结束任务',
-            icon: 'checkmark-done-outline',
-            variant: 'primary',
-            isLoading: input.isSubmitting,
-            testID: 'avalon-finish-quest',
-          },
-          input.isSubmitting,
-          () =>
-            showConfirmAlert(
-              '结束任务',
-              input.controlledSeat !== null
-                ? '未出牌的队员将视为成功，确定提前结算吗？你正在接管机器人座位，结算前将先释放接管。'
-                : '未出牌的队员将视为成功，确定提前结算吗？',
-              () => {
-                if (input.controlledSeat !== null) input.releaseBot();
-                void submit('结束任务', { type: 'avalon.quest.finish' }, null);
-              },
-            ),
-        ),
-      ],
-    });
   // 身份查看脚手架（对齐狼人杀）：还有机器人座位未落查看记录时，
   // 房主可一键标记；引擎不自动落标记，检查点对 bot 同样生效。
   const hasUnviewedBot = getAvalonViewingParticipants(state).some(
@@ -907,8 +845,8 @@ export function createAvalonHostManagement(
         }),
       ],
     });
-  // 房主管理常驻（对齐狼人杀）：局内任何时候房主都能点开，房间管理区始终有，
-  // 投票/任务阶段额外出现"结束投票"/"结束任务"。
+  // 房主管理常驻（对齐狼人杀）：局内任何时候房主都能点开，房间管理区始终有。
+  // 投票/任务阶段没有手动结算入口：全员投完/出完后倒计时到期自动结算（唯一关轮路径）。
   return applyLock({
     sections: [...inGameSections, { key: 'room', title: '房间管理', actions: roomActions }],
   });

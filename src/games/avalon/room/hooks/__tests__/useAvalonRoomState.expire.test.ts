@@ -46,11 +46,14 @@ interface DrivenGame {
   state: AvalonState;
   actAs: (seat: number, command: AvalonPublicCommand) => void;
   send: (command: AvalonPublicCommand, userId?: string) => void;
+  /** 全员投完/出完后把时钟推到 deadline 并发公开 expire——唯一关轮路径（手动结算已删）。 */
+  settle: () => void;
 }
 
 /** Real engine drive to the nominate phase: 3 humans + 2 bots, or 5 humans. */
 function drivenGame(withBots: boolean): DrivenGame {
   let commandNumber = 0;
+  let nowMs = DRIVE_NOW;
   let state = avalonEngine.createInitialState(
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
     { roomCode: '1234', hostUserId: 'host', nowMs: DRIVE_NOW, commandId: 'create' },
@@ -59,7 +62,7 @@ function drivenGame(withBots: boolean): DrivenGame {
     const context: CommandContext = {
       actor: { kind: 'user', userId },
       controlledSeat,
-      nowMs: DRIVE_NOW,
+      nowMs,
       commandId: `command:${commandNumber++}`,
       randomSeed: `seed:${commandNumber}`,
     };
@@ -68,6 +71,14 @@ function drivenGame(withBots: boolean): DrivenGame {
     state = decision.events.reduce(avalonEngine.evolve, state);
   };
   const send = (command: AvalonPublicCommand, userId = 'host') => apply(command, userId, null);
+  const settle = () => {
+    const phase = state.phase;
+    if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) {
+      throw new Error('expected an armed vote or quest countdown');
+    }
+    nowMs = phase.deadlineAt;
+    apply({ type: 'avalon.phase.expire' }, 'host', null);
+  };
   /** Acts for one seat: bot seats are driven through the host takeover channel. */
   const actAs = (seat: number, command: AvalonPublicCommand) => {
     if (isBotSeat(state.roster, seat)) apply(command, 'host', seat);
@@ -98,6 +109,7 @@ function drivenGame(withBots: boolean): DrivenGame {
     },
     actAs,
     send,
+    settle,
   };
 }
 
@@ -121,10 +133,11 @@ function armedQuestState(): AvalonState {
   for (let seat = 0; seat < 5; seat += 1) {
     game.actAs(seat, { type: 'avalon.team.vote', vote: 'approve' });
   }
-  game.send({ type: 'avalon.vote.finish' });
+  game.settle();
   game.actAs(0, { type: 'avalon.quest.play', play: 'success' });
   game.actAs(1, { type: 'avalon.quest.play', play: 'success' });
-  if (game.state.phase.kind !== 'quest' || game.state.phase.deadlineAt !== DRIVE_NOW + 5000) {
+  // The vote settled at DRIVE_NOW + 5000, so the quest countdown arms 5s after that.
+  if (game.state.phase.kind !== 'quest' || game.state.phase.deadlineAt !== DRIVE_NOW + 2 * 5000) {
     throw new Error('expected an armed quest countdown');
   }
   return game.state;
@@ -211,7 +224,8 @@ describe('useAvalonRoomState countdown expiry wiring', () => {
   it('dispatches the quest timeout when the armed quest deadline passes', async () => {
     const { dispatch, unmount } = renderRoomState(armedQuestState());
     await act(async () => {
-      jest.advanceTimersByTime(6000);
+      // The armed quest deadline sits at DRIVE_NOW + 10000 (see armedQuestState).
+      jest.advanceTimersByTime(11000);
     });
     expect(dispatch).toHaveBeenCalledWith(
       { type: 'avalon.phase.expire' },

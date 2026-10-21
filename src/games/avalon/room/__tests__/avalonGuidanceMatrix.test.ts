@@ -34,10 +34,13 @@ interface Session {
   readonly state: AvalonState;
   send(command: AvalonPublicCommand, userId?: string): void;
   trySend(command: AvalonPublicCommand, userId?: string): boolean;
+  /** 全员投完/出完后把时钟推到 deadline 并发公开 expire——唯一关轮路径（手动结算已删）。 */
+  settle(): void;
 }
 
 function session(playerCount: 5 | 9): Session {
   let commandNumber = 0;
+  let nowMs = 1000;
   let state: AvalonState = avalonEngine.createInitialState(
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: playerCount },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
@@ -46,7 +49,7 @@ function session(playerCount: 5 | 9): Session {
     const context: CommandContext = {
       actor: { kind: 'user', userId },
       controlledSeat: null,
-      nowMs: 1000,
+      nowMs,
       commandId: `command:${commandNumber++}`,
       randomSeed: `seed:${commandNumber}`,
     };
@@ -71,6 +74,16 @@ function session(playerCount: 5 | 9): Session {
     },
     trySend(command, userId = 'host') {
       return apply(command, userId);
+    },
+    settle() {
+      const phase = state.phase;
+      if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) {
+        throw new Error('expected an armed vote or quest countdown');
+      }
+      nowMs = phase.deadlineAt;
+      if (!apply({ type: 'avalon.phase.expire' }, 'host')) {
+        throw new Error('rejected: avalon.phase.expire');
+      }
     },
   };
 }
@@ -115,15 +128,15 @@ function approveTeam(s: Session) {
   for (let seat = 0; seat < count; seat += 1) {
     s.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
   }
-  s.send({ type: 'avalon.vote.finish' });
+  s.settle();
   if (s.state.phase.kind !== 'quest') throw new Error('expected quest');
 }
 
-function finishQuest(s: Session, team: readonly number[]) {
+function playQuestAndSettle(s: Session, team: readonly number[]) {
   for (const seat of team) {
     s.send({ type: 'avalon.quest.play', play: 'success' }, seatUser(seat));
   }
-  s.send({ type: 'avalon.quest.finish' });
+  s.settle();
 }
 
 /** Plays one full quest round with an all-success team; returns the team used. */
@@ -136,7 +149,7 @@ function playQuestRound(s: Session): readonly number[] {
   }
   proposeTeam(s, team);
   approveTeam(s);
-  finishQuest(s, team);
+  playQuestAndSettle(s, team);
   return team;
 }
 

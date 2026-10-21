@@ -63,7 +63,7 @@ function build(state: AvalonState, isHost: boolean, isSetup: boolean, isSubmitti
 }
 
 function session() {
-  const nowMs = 1000;
+  let nowMs = 1000;
   let commandNumber = 0;
   let state: AvalonState = avalonEngine.createInitialState(
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: PLAYER_COUNT },
@@ -88,6 +88,13 @@ function session() {
   /** Acts for a seat the way the client does: plainly for the host seat, via takeover for bots. */
   const sendAsSeat = (command: AvalonPublicCommand, seat: number) =>
     send(command, seat === 0 ? null : seat);
+  /** 全员投完/出完后把时钟推到 deadline 并发公开 expire——唯一关轮路径（手动结算已删）。 */
+  const settle = () => {
+    const phase = state.phase;
+    if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) return;
+    nowMs = phase.deadlineAt;
+    send({ type: 'avalon.phase.expire' });
+  };
   const ackAudio = () => {
     if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' });
   };
@@ -97,6 +104,7 @@ function session() {
     },
     send,
     sendAsSeat,
+    settle,
     ackAudio,
     seatHost() {
       send({ type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } });
@@ -153,7 +161,7 @@ function session() {
       sendAsSeat({ type: 'avalon.team.propose' }, state.leaderSeat);
       for (let seat = 0; seat < PLAYER_COUNT; seat += 1)
         sendAsSeat({ type: 'avalon.team.vote', vote: 'approve' }, seat);
-      send({ type: 'avalon.vote.finish' });
+      settle();
       const questPhase = state.phase;
       if (questPhase.kind !== 'quest') throw new Error(`expected quest, got ${questPhase.kind}`);
       for (const seat of questPhase.teamSeats)
@@ -161,7 +169,7 @@ function session() {
           { type: 'avalon.quest.play', play: seat === evilSeat ? 'fail' : 'success' },
           seat,
         );
-      if (state.phase.kind === 'quest') send({ type: 'avalon.quest.finish' });
+      if (state.phase.kind === 'quest') settle();
       ackAudio();
       this.passLady();
     },
@@ -260,7 +268,7 @@ describe('createAvalonHostManagement', () => {
     expect(after?.sections[0]?.actions[0]).toMatchObject({ key: 'start-game', isEnabled: true });
   });
 
-  it('pins the vote and quest panels with their manual settle actions', () => {
+  it('pins the vote and quest panels: no manual settle actions, room section only', () => {
     const game = session();
     game.seatHost();
     game.fill();
@@ -271,24 +279,15 @@ describe('createAvalonHostManagement', () => {
     game.sendAsSeat({ type: 'avalon.team.updateDraft', seats: team }, game.state.leaderSeat);
     game.sendAsSeat({ type: 'avalon.team.propose' }, game.state.leaderSeat);
     expect(game.state.phase.kind).toBe('vote');
+    // 手动结算已删：投票阶段房主管理只有常驻房间区，关轮靠全员投完后倒计时到期。
     const voteModel = build(game.state, true, false);
-    expect(voteModel?.sections.map((section) => section.key)).toEqual(['vote', 'room']);
-    expect(voteModel?.sections[0]?.actions[0]).toMatchObject({
-      key: 'finish-vote',
-      label: '结束投票',
-      testID: 'avalon-finish-vote',
-    });
+    expect(voteModel?.sections.map((section) => section.key)).toEqual(['room']);
     for (let seat = 0; seat < PLAYER_COUNT; seat += 1)
       game.sendAsSeat({ type: 'avalon.team.vote', vote: 'approve' }, seat);
-    game.send({ type: 'avalon.vote.finish' });
+    game.settle();
     expect(game.state.phase.kind).toBe('quest');
     const questModel = build(game.state, true, false);
-    expect(questModel?.sections.map((section) => section.key)).toEqual(['quest', 'room']);
-    expect(questModel?.sections[0]?.actions[0]).toMatchObject({
-      key: 'finish-quest',
-      label: '结束任务',
-      testID: 'avalon-finish-quest',
-    });
+    expect(questModel?.sections.map((section) => section.key)).toEqual(['room']);
   });
 
   describe('console primary', () => {

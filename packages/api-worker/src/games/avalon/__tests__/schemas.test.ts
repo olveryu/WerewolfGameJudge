@@ -70,10 +70,8 @@ describe('Avalon public command schema', () => {
       { type: 'avalon.team.propose' },
       { type: 'avalon.team.vote', vote: 'approve' },
       { type: 'avalon.team.vote', vote: 'reject' },
-      { type: 'avalon.vote.finish' },
       { type: 'avalon.quest.play', play: 'success' },
       { type: 'avalon.quest.play', play: 'fail' },
-      { type: 'avalon.quest.finish' },
       { type: 'avalon.lady.check', seat: 3 },
       { type: 'avalon.lady.acknowledge' },
       { type: 'avalon.assassin.accuse', seat: 2 },
@@ -88,6 +86,11 @@ describe('Avalon public command schema', () => {
 
   it('rejects unknown commands, extra fields and mistyped payloads', () => {
     expect(avalonPublicCommandSchema.safeParse({ type: 'avalon.game.fly' }).success).toBe(false);
+    // The host's manual finish commands were deleted; both now parse as unknown.
+    expect(avalonPublicCommandSchema.safeParse({ type: 'avalon.vote.finish' }).success).toBe(false);
+    expect(avalonPublicCommandSchema.safeParse({ type: 'avalon.quest.finish' }).success).toBe(
+      false,
+    );
     expect(
       avalonPublicCommandSchema.safeParse({ type: 'avalon.roles.assign', extra: 1 }).success,
     ).toBe(false);
