@@ -1,13 +1,14 @@
 /**
- * 对局记录浮层：按任务分 tab（默认当前轮）、任务区在前投票区在后、
- * 明细只用座位号；暗投不给逐人票；未结算提案只露进度与本人的一票。
+ * 对局记录浮层：任务轨道与按任务分 tab 在前，结论横幅居中，提案与
+ * 表决时间线在后；明细只用座位号；暗投不给逐人票；未结算提案只露
+ * 进度与本人的一票；否决提案默认收起。
  */
 
 import {
   type AvalonRoundRecordView,
   type AvalonViewModel,
 } from '@game-judge/game-engine/games/avalon/public';
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, within } from '@testing-library/react-native';
 
 import { AvalonHistoryOverlay } from '../AvalonHistoryOverlay';
 
@@ -114,27 +115,92 @@ describe('AvalonHistoryOverlay', () => {
     const { getByTestId, queryByTestId } = renderOverlay([settledRound, openRound]);
     expect(getByTestId('avalon-history-round-2')).toBeTruthy();
     expect(queryByTestId('avalon-history-round-1')).toBeNull();
+    expect(getByTestId('avalon-history-track-round-1').props.accessibilityLabel).toBe(
+      '任务一，成功',
+    );
+    expect(getByTestId('avalon-history-track-round-2').props.accessibilityLabel).toBe(
+      '任务二，进行中',
+    );
+    expect(getByTestId('avalon-history-track-round-5').props.accessibilityLabel).toBe(
+      '任务五，未开始',
+    );
     fireEvent.press(getByTestId('avalon-history-tab-1'));
     expect(getByTestId('avalon-history-round-1')).toBeTruthy();
     expect(queryByTestId('avalon-history-round-2')).toBeNull();
   });
 
-  it('renders the settled quest first, then proposals with seat-number detail', () => {
-    const { getAllByText, getByText, queryByText } = renderOverlay([settledRound]);
-    expect(getByText('任务一 · 成功（成功票 2 · 失败票 0）')).toBeTruthy();
-    // 任务区队伍行带队长标记（队长 = 通过提案的 2 号）；提案块队伍行是同一支队伍。
-    expect(getByText('队伍：2号（队长） 2号 3号')).toBeTruthy();
-    expect(getAllByText('队伍：2号 3号')).toHaveLength(1);
-    expect(getByText('队伍：1号 2号')).toBeTruthy();
-    expect(getByText('第1次提案 · 队长 1号')).toBeTruthy();
-    expect(getByText('赞成 2 · 反对 3 → 否决')).toBeTruthy();
-    expect(getByText('第2次提案 · 队长 2号')).toBeTruthy();
-    expect(getByText('赞成 4 · 反对 1 → 通过')).toBeTruthy();
-    // 1 号在两次提案都投赞成，明细行出现两次；2 号只在第 1 次投反对。
-    expect(getAllByText('1号 → 赞成')).toHaveLength(2);
-    expect(getByText('2号 → 反对')).toBeTruthy();
+  it('renders the settled quest banner, adopted card, and collapsed rejected proposal', () => {
+    const { getByTestId, getByText, queryByText } = renderOverlay([settledRound]);
+    expect(getByText('任务一 · 成功')).toBeTruthy();
+    expect(getByText('任务出牌结果（出牌人不公开）')).toBeTruthy();
+    expect(getByText('成功牌')).toBeTruthy();
+    expect(getByText('×2')).toBeTruthy();
+    expect(getByText('失败牌')).toBeTruthy();
+    expect(getByText('×0')).toBeTruthy();
+    expect(queryByText(/成功票|失败票/)).toBeNull();
+
+    const adopted = within(getByTestId('avalon-history-proposal-1-2'));
+    expect(adopted.getByText('通过 · 采用')).toBeTruthy();
+    expect(adopted.getByText('赞成 4')).toBeTruthy();
+    expect(adopted.getByText('反对 1')).toBeTruthy();
+    expect(adopted.getByLabelText('1号，赞成')).toBeTruthy();
+    expect(adopted.getByLabelText('2号，赞成')).toBeTruthy();
+    expect(adopted.getByLabelText('3号，赞成')).toBeTruthy();
+    expect(adopted.getByLabelText('4号，反对')).toBeTruthy();
+    expect(adopted.getByLabelText('5号，赞成')).toBeTruthy();
+
+    const rejected = within(getByTestId('avalon-history-proposal-1-1'));
+    expect(rejected.getByText('否决')).toBeTruthy();
+    expect(rejected.getByText('赞成 2 · 反对 3')).toBeTruthy();
+    expect(rejected.queryByLabelText('1号，赞成')).toBeNull();
+    expect(rejected.queryByLabelText('2号，反对')).toBeNull();
+    fireEvent.press(getByTestId('avalon-history-proposal-1-1-toggle'));
+    expect(rejected.getByLabelText('1号，赞成')).toBeTruthy();
+    expect(rejected.getByLabelText('2号，反对')).toBeTruthy();
+    expect(rejected.getByLabelText('3号，反对')).toBeTruthy();
+    expect(rejected.getByLabelText('4号，反对')).toBeTruthy();
+    expect(rejected.getByLabelText('5号，赞成')).toBeTruthy();
+
     // 只用座位号：玩家名不出现在记录里。
     expect(queryByText(/玩家/)).toBeNull();
+  });
+
+  it('keeps the leader out of the team row when the leader is not a team member', () => {
+    const leaderOutsideTeamRound: AvalonRoundRecordView = {
+      round: 1,
+      proposals: [
+        {
+          leaderSeat: 2,
+          teamSeats: [1, 4],
+          ballots: { 0: 'approve', 1: 'approve', 2: 'approve', 3: 'approve', 4: 'approve' },
+          approveCount: 5,
+          rejectCount: 0,
+          abstainCount: 0,
+          approved: true,
+        },
+      ],
+      quest: { result: 'success', successCount: 2, failCount: 0 },
+      vetoEnded: false,
+      questProgress: null,
+      currentProposal: null,
+    };
+    const { getByTestId } = renderOverlay([leaderOutsideTeamRound]);
+    const proposal = within(getByTestId('avalon-history-proposal-1-1'));
+    const team = within(getByTestId('avalon-history-proposal-1-1-team'));
+    expect(proposal.getByTestId('avalon-history-proposal-1-1-leader-seat-3')).toBeTruthy();
+    expect(team.getByTestId('avalon-history-proposal-1-1-team-seat-2')).toBeTruthy();
+    expect(team.getByTestId('avalon-history-proposal-1-1-team-seat-5')).toBeTruthy();
+    expect(team.queryByTestId('avalon-history-proposal-1-1-team-seat-3')).toBeNull();
+  });
+
+  it('includes the leader in the team row only as a member when the leader is on the team', () => {
+    const { getByTestId } = renderOverlay([settledRound]);
+    const adopted = within(getByTestId('avalon-history-proposal-1-2'));
+    const team = within(getByTestId('avalon-history-proposal-1-2-team'));
+    expect(adopted.getByTestId('avalon-history-proposal-1-2-leader-seat-2')).toBeTruthy();
+    expect(team.getByTestId('avalon-history-proposal-1-2-team-seat-2')).toBeTruthy();
+    expect(team.getByTestId('avalon-history-proposal-1-2-team-seat-3')).toBeTruthy();
+    expect(team.queryByTestId('avalon-history-proposal-1-2-team-seat-1')).toBeNull();
   });
 
   it('keeps per-seat ballots hidden in secret mode', () => {
@@ -142,21 +208,24 @@ describe('AvalonHistoryOverlay', () => {
       ...settledRound,
       proposals: settledRound.proposals.map((proposal) => ({ ...proposal, ballots: null })),
     };
-    const { getAllByText, getByText, queryByText } = renderOverlay([secretRound]);
-    // 每条提案各给一次暗投说明。
+    const { getAllByText, getByTestId, queryByLabelText } = renderOverlay([secretRound]);
+    // 被采用卡直接说明暗投口径；被否决行展开后同样只给计数与说明。
+    expect(getAllByText('暗投模式不公布逐人票')).toHaveLength(1);
+    expect(queryByLabelText('1号，赞成')).toBeNull();
+    fireEvent.press(getByTestId('avalon-history-proposal-1-1-toggle'));
     expect(getAllByText('暗投模式不公布逐人票')).toHaveLength(2);
-    expect(queryByText('1号 → 赞成')).toBeNull();
-    expect(getByText('赞成 2 · 反对 3 → 否决')).toBeTruthy();
+    expect(queryByLabelText('1号，赞成')).toBeNull();
+    expect(queryByLabelText('2号，反对')).toBeNull();
   });
 
   it('shows only progress and the viewer ballot for the open proposal', () => {
-    const { getByText, queryByText } = renderOverlay([openRound]);
+    const { getByText, queryByTestId, queryByText } = renderOverlay([openRound]);
     expect(getByText('任务二 · 组队投票中')).toBeTruthy();
-    expect(getByText('第1次提案 · 队长 3号')).toBeTruthy();
-    expect(getByText('队伍：3号 4号')).toBeTruthy();
-    expect(getByText('进行中（已投 2/5）')).toBeTruthy();
+    expect(getByText('第1次提案 · 进行中（已投 2/5）')).toBeTruthy();
     expect(getByText('你投了：赞成')).toBeTruthy();
-    expect(queryByText(/→ 赞成/)).toBeNull();
+    expect(queryByTestId('avalon-history-current-proposal-2-team')).toBeNull();
+    expect(queryByText(/第1次提案 · 队长/)).toBeNull();
+    expect(queryByText(/1号，赞成/)).toBeNull();
   });
 
   it('renders quest progress while the quest is open', () => {
@@ -168,17 +237,21 @@ describe('AvalonHistoryOverlay', () => {
       questProgress: { playedCount: 1, teamSize: 2 },
       currentProposal: null,
     };
-    const { getAllByText, getByText } = renderOverlay([questRound]);
-    expect(getByText('任务一 · 任务执行中（已出牌 1/2）')).toBeTruthy();
-    // 任务区队伍行带队长标记；促成任务的提案块队伍行是同一支队伍。
-    expect(getByText('队伍：2号（队长） 2号 3号')).toBeTruthy();
-    expect(getAllByText('队伍：2号 3号')).toHaveLength(1);
+    const { getAllByTestId, getByText } = renderOverlay([questRound]);
+    expect(getByText('任务一 · 任务执行中')).toBeTruthy();
+    expect(getByText('已出牌 1/2')).toBeTruthy();
+    expect(getAllByTestId('avalon-history-proposal-1-1-team')).toHaveLength(1);
+    const team = within(getAllByTestId('avalon-history-proposal-1-1-team')[0]!);
+    expect(team.getByTestId('avalon-history-proposal-1-1-team-seat-2')).toBeTruthy();
+    expect(team.getByTestId('avalon-history-proposal-1-1-team-seat-3')).toBeTruthy();
   });
 
-  it('renders the veto-ended closing line without a quest', () => {
+  it('renders the veto-ended closing banner without a quest', () => {
     const vetoRound: AvalonRoundRecordView = {
       round: 1,
       proposals: [
+        settledRound.proposals[0]!,
+        settledRound.proposals[0]!,
         settledRound.proposals[0]!,
         settledRound.proposals[0]!,
         settledRound.proposals[0]!,
@@ -188,8 +261,13 @@ describe('AvalonHistoryOverlay', () => {
       questProgress: null,
       currentProposal: null,
     };
-    const { getByText } = renderOverlay([vetoRound]);
-    expect(getByText('组队失败：3 次否决达上限，本轮无任务')).toBeTruthy();
+    const { getByTestId, getByText, queryByLabelText } = renderOverlay([vetoRound]);
+    expect(getByText('组队失败')).toBeTruthy();
+    expect(getByText('5 次否决达上限，本轮无任务')).toBeTruthy();
+    for (let index = 1; index <= 5; index += 1) {
+      expect(getByTestId(`avalon-history-proposal-1-${index}`)).toBeTruthy();
+    }
+    expect(queryByLabelText('1号，赞成')).toBeNull();
   });
 
   it('renders an empty state before any round starts', () => {

@@ -41,7 +41,7 @@ export const AvalonGameplayContent: React.FC = () => (
       <RuleItem
         icon="trophy-outline"
         title="任务：秘密出牌"
-        description="队员秘密出牌：好人只能出成功，坏人可出成功或失败。出完可改牌；收齐后洗混亮牌，只公布成功 / 失败数量，不揭晓出牌人。7 人及以上第 4 轮需要 2 张失败票才算失败。房主可点「结束任务」提前结算，未出牌视为成功。"
+        description="队员秘密出牌：好人只能出成功，坏人可出成功或失败。出完可改牌；收齐后洗混亮牌，只公布成功 / 失败数量，不揭晓出牌人。7 人及以上第 4 轮需要 2 张失败牌才算失败。房主可点「结束任务」提前结算，未出牌视为成功。"
       />
     </GameGuideSection>
     <GameGuideSection title="板子：人数即板子">

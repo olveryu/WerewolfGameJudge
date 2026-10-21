@@ -243,8 +243,8 @@ function avalonLatestQuestConclusion(state: AvalonState): string | null {
     if (record.quest === null) continue;
     const quest = record.quest;
     return quest.result === 'success'
-      ? `${formatAvalonQuestLabel(record.round)} · 成功（成功票 ${quest.successCount}）`
-      : `${formatAvalonQuestLabel(record.round)} · 失败（失败票 ${quest.failCount}）`;
+      ? `${formatAvalonQuestLabel(record.round)} · 成功（成功牌 ${quest.successCount}）`
+      : `${formatAvalonQuestLabel(record.round)} · 失败（失败牌 ${quest.failCount}）`;
   }
   return null;
 }

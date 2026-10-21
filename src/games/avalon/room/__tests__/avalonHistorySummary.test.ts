@@ -136,8 +136,8 @@ describe('createAvalonHistorySummary', () => {
       throw new Error('expected a settled quest record');
     const expected =
       record.quest.result === 'success'
-        ? `任务一 · 成功（成功票 ${record.quest.successCount}）`
-        : `任务一 · 失败（失败票 ${record.quest.failCount}）`;
+        ? `任务一 · 成功（成功牌 ${record.quest.successCount}）`
+        : `任务一 · 失败（失败牌 ${record.quest.failCount}）`;
     expect(createAvalonHistorySummary(room.state)).toBe(expected);
   });
 
