@@ -454,7 +454,7 @@ test.describe('Avalon full game', () => {
           await expect(count).toHaveText(String(expected));
         }
         await hostPage.getByTestId('avalon-vote-mode-public').click();
-        await expect(hostPage.getByText(/公投：结束投票后同时亮票/)).toBeVisible();
+        await expect(hostPage.getByText(/公投：投票结算后同时亮票/)).toBeVisible();
         await expect(hostPage.getByText('本局板子（10 人）')).toBeVisible();
         await expect(hostPage.getByText(/任务人数：3-4-4-5-5/)).toBeVisible();
         await hostPage.getByTestId('avalon-config-submit').click();
