@@ -344,6 +344,52 @@ for (const preset of ['identity', 'stage']) {
     } else {
       assert.ok(engineGameDir.includes('deadlineAt'));
       assert.ok(!clientGameDir.includes('RevealAnimationGate'));
+      // E-2 PR-5: the generated stage engine assembles expiry through
+      // the shared phase-deadline chassis only — the guard and the
+      // settle.due constructor are called, and no self-written gate
+      // keyword (raw actor resolution, hand-built settle effect)
+      // survives in the generated engine.
+      assert.ok(engineSource.includes('guardPhaseExpiry('), 'stage engine calls the expiry guard');
+      assert.ok(
+        engineSource.includes('buildSettleDueEffect('),
+        'stage engine calls the settle.due constructor',
+      );
+      assert.ok(
+        !engineSource.includes('resolveSystemActorEffectId'),
+        'stage engine has no self-written system-channel gate',
+      );
+      assert.ok(
+        !engineSource.includes('resolveUncontrolledUserActorId'),
+        'stage engine has no self-written user-channel gate',
+      );
+      assert.ok(
+        !engineSource.includes("type: 'demoproto.settle.due'"),
+        'stage engine does not hand-build the settle.due effect',
+      );
+      // The generated worker side delivers through the shared
+      // settle.due helper: handler, business key and delivery time.
+      const workerEffects = readFixture(root, 'packages/api-worker/src/games/demoproto/effects.ts');
+      const workerModule = readFixture(root, 'packages/api-worker/src/games/demoproto/module.ts');
+      assert.ok(
+        workerEffects.includes('createSettleDueHandler'),
+        'worker effects use the shared settle handler',
+      );
+      assert.ok(
+        !workerEffects.includes('dispatchEffectCommand'),
+        'worker settle handler is not hand-rolled over the raw dispatch',
+      );
+      assert.ok(
+        workerModule.includes('settleDueBusinessKey('),
+        'worker module uses the business-key helper',
+      );
+      assert.ok(
+        workerModule.includes('settleDueDeliveryAt('),
+        'worker module uses the delivery-time helper',
+      );
+      assert.ok(
+        !workerModule.includes(':settle:${'),
+        'worker module does not hand-build the settle business key',
+      );
     }
   });
 }
