@@ -51,11 +51,18 @@
  * constant, or a call). Registrations are exact points — one
  * file, one enclosing function, one normalized expression —
  * never a whole file or directory. The registered points are
- * the skeleton's set branch, the two pending avalon legacy arm
- * fragments, and the out-of-registry baselines: demo and
- * drawguess stage-entry arming (E-2 domain), the relay clock
- * helper and gallery resume re-arm (relay domain), and the
- * werewolf inline AUTO_SKIP second writer.
+ * the skeleton's set branch and the out-of-registry baselines:
+ * demo and drawguess stage-entry arming (E-2 domain), the relay
+ * clock helper and gallery resume re-arm (relay domain), and
+ * the werewolf inline AUTO_SKIP second writer. The switched
+ * adopters contribute no local arithmetic: their call sites
+ * pass `nowMs` into the skeleton, whose set branch is the one
+ * registered addition. (The two avalon legacy arm fragments
+ * were registered under `avalonPending` while those points
+ * were pending; PR-2 switched them and the registrations were
+ * retired — the `avalonPending` domain now stands empty, kept
+ * so the step below still welds any future pending avalon
+ * arithmetic registration to the adopter registry.)
  *
  * Known limits of this weld's text scan: the parenthesized
  * anchor form — `(context.nowMs) + 5000`,
@@ -210,8 +217,8 @@ interface DeadlineArithmeticRegistration {
 /**
  * Every now-anchored deadline addition in the game-engine
  * production sources, registered as exact points. The switched
- * werewolf wolf-vote point contributes no local arithmetic: its
- * call site in `actionHandler.ts` passes `nowMs` into the
+ * points (werewolf wolf-vote; avalon vote and quest) contribute
+ * no local arithmetic: their call sites pass `nowMs` into the
  * skeleton, and the skeleton's set branch is the one addition.
  */
 const EXPECTED_DEADLINE_ARITHMETIC: readonly DeadlineArithmeticRegistration[] = [
@@ -220,18 +227,6 @@ const EXPECTED_DEADLINE_ARITHMETIC: readonly DeadlineArithmeticRegistration[] = 
     symbol: 'decideSettleCountdownArm',
     expression: 'input.nowMs + countdownMs',
     domain: 'skeleton',
-  },
-  {
-    file: 'games/avalon/engine.ts',
-    symbol: 'castVote',
-    expression: 'context.nowMs + AVALON_SETTLE_COUNTDOWN_SECONDS',
-    domain: 'avalonPending',
-  },
-  {
-    file: 'games/avalon/engine.ts',
-    symbol: 'playQuest',
-    expression: 'context.nowMs + AVALON_SETTLE_COUNTDOWN_SECONDS',
-    domain: 'avalonPending',
   },
   {
     file: 'games/demo/engine.ts',
