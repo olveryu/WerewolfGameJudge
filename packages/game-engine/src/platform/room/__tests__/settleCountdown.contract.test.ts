@@ -57,6 +57,19 @@
  * helper and gallery resume re-arm (relay domain), and the
  * werewolf inline AUTO_SKIP second writer.
  *
+ * Known limits of this weld's text scan: the parenthesized
+ * anchor form — `(context.nowMs) + 5000`,
+ * `(Date.now()) + 5000` — is covered (one closing parenthesis
+ * may sit between the anchor and the `+`). Two escapes remain
+ * known limitations. A regex literal containing `//` earlier
+ * on the same line masks the rest of that line for the comment
+ * stripper, so arithmetic behind it is not scanned; and an
+ * anchor handed off through an alias variable before the
+ * addition leaves the anchor set entirely. Closing either
+ * needs lexical or data-flow analysis, which is out of
+ * proportion for a drift weld — and both forms are deliberate,
+ * review-visible obfuscation rather than accidental drift.
+ *
  * Weld scan scope is the game-engine production sources: every
  * non-test `.ts` file under `packages/game-engine/src` (games,
  * platform, and product trees), with comments stripped before
@@ -379,20 +392,23 @@ interface DeadlineArithmeticHit {
  * source file: an anchor (`nowMs` / `now` / `phaseStartAt`, bare
  * or behind a dotted prefix, or `Date.now()`) added to a first
  * right-hand token (identifier or numeric literal, optionally
- * parenthesized). Each hit is pinned to its enclosing function.
+ * parenthesized). The anchor itself may be parenthesized: one
+ * closing parenthesis between the anchor and the `+` is part of
+ * the matched form. Each hit is pinned to its enclosing
+ * function.
  */
 function findDeadlineArithmetic(relativeFile: string): DeadlineArithmeticHit[] {
   const source = stripComments(
     fs.readFileSync(path.join(engineSourceDirectory, relativeFile), 'utf8'),
   );
   const pattern =
-    /(?<![\w$])(Date\.now\(\))|(?<![\w$])((?:[A-Za-z_$][\w$]*\.)*(?:nowMs|phaseStartAt|now))(?=\s*\+)/g;
+    /(?<![\w$])(Date\.now\(\))(?=\s*\)?\s*\+)|(?<![\w$])((?:[A-Za-z_$][\w$]*\.)*(?:nowMs|phaseStartAt|now))(?=\s*\)?\s*\+)/g;
   const hits: DeadlineArithmeticHit[] = [];
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(source)) !== null) {
     const left = match[1] ?? match[2]!;
     const rest = source.slice(pattern.lastIndex);
-    const right = /^\s*\+\s*\(?\s*([A-Za-z_$][\w$]*|\d[\d_]*)/.exec(rest);
+    const right = /^\s*\)?\s*\+\s*\(?\s*([A-Za-z_$][\w$]*|\d[\d_]*)/.exec(rest);
     if (right === null) continue;
     let symbol = '<module>';
     for (const declaration of source
