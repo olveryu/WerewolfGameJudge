@@ -162,6 +162,21 @@ export interface AdvanceSheriffElectionAction {
   payload: { election: SheriffElectionState };
 }
 
+/**
+ * Arm the active sheriff voting round's settle-countdown deadline
+ * (epoch ms). Mirrors SET_STEP_DEADLINE for the night step: the
+ * deadline lives inside the voting phase that armed it.
+ */
+export interface SetSheriffElectionDeadlineAction {
+  type: 'SET_SHERIFF_ELECTION_DEADLINE';
+  payload: { deadline: number };
+}
+
+/** Clear the active sheriff voting round's settle-countdown deadline. */
+export interface ClearSheriffElectionDeadlineAction {
+  type: 'CLEAR_SHERIFF_ELECTION_DEADLINE';
+}
+
 export interface CompleteSheriffElectionAction {
   type: 'COMPLETE_SHERIFF_ELECTION';
   payload: {
@@ -506,6 +521,8 @@ export type StateAction =
   | WithdrawSheriffCandidateAction
   | CastSheriffVoteAction
   | AdvanceSheriffElectionAction
+  | SetSheriffElectionDeadlineAction
+  | ClearSheriffElectionDeadlineAction
   | CompleteSheriffElectionAction
   // Night actions
   | RecordActionAction

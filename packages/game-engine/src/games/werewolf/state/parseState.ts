@@ -820,6 +820,7 @@ function parseSheriffElection(value: unknown, path: string): SheriffElectionStat
             parseSeat,
           ),
           ballots: parseSheriffBallots(raw.ballots, `${path}.ballots`),
+          deadline: parseOptional(raw.deadline, `${path}.deadline`, parseInteger),
         },
         path,
       );

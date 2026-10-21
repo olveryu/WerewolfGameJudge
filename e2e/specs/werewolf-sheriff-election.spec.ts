@@ -100,8 +100,10 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await fifthElection.voteFor(1);
     await hostElection.expectVoteProgress('2/2 已提交');
     await hostElection.expectOpenBallotsHidden();
-    await hostElection.advance();
 
+    // No manual publication exists any more: the last ballot arms
+    // the 5s settle countdown and the round publishes itself on
+    // expiry (the Host client drives progression at the deadline).
     await Promise.all(elections.map((election) => election.waitForPhase('平票发言')));
     await Promise.all(
       elections.map((election) =>
@@ -126,8 +128,9 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await fourthElection.voteFor(0);
     await fifthElection.voteFor(0);
     await hostElection.expectVoteProgress('3/3 已提交');
-    await hostElection.advance();
 
+    // Same automatic publication as the first round: wait for the
+    // armed countdown to expire instead of clicking a close button.
     await Promise.all(elections.map((election) => election.waitForPhase('竞选结束')));
     await Promise.all(
       elections.map(async (election) => {

@@ -192,6 +192,12 @@ export type SheriffElectionState = SheriffElectionCommonState &
         readonly candidateSeats: readonly number[];
         readonly eligibleVoterSeats: readonly number[];
         readonly ballots: Readonly<Record<number, number | null>>;
+        /**
+         * Settle-countdown deadline (epoch ms), armed once every
+         * eligible ballot is in; the round closes on expiry. Absent
+         * while the round is still collecting ballots.
+         */
+        readonly deadline?: number;
       }
     | {
         readonly phase: 'runoffSpeech';
@@ -204,6 +210,8 @@ export type SheriffElectionState = SheriffElectionCommonState &
         readonly candidateSeats: readonly number[];
         readonly eligibleVoterSeats: readonly number[];
         readonly ballots: Readonly<Record<number, number | null>>;
+        /** Settle-countdown deadline (epoch ms); see the firstVote variant. */
+        readonly deadline?: number;
       }
     | { readonly phase: 'completed' }
   );

@@ -22,11 +22,16 @@
  * state-level roleViewedSeats set (the platform stored-set shape,
  * written via markSeatViewed). Hard cut: v10-and-older payloads are
  * rejected, not migrated.
+ * v12 adds the settle-countdown deadline slot to the sheriff
+ * election voting phases (firstVote / runoffVote): once every
+ * eligible ballot is in, the round arms a deadline and closes on
+ * expiry instead of a Host advance. Hard cut: v11-and-older
+ * payloads are rejected, not migrated.
  */
 
 import { WEREWOLF_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 
-export const WEREWOLF_STATE_VERSION = 11;
+export const WEREWOLF_STATE_VERSION = 12;
 
 export const WEREWOLF_STATE_IDENTITY = {
   gameType: WEREWOLF_GAME_TYPE,

@@ -13,8 +13,9 @@
  *   an unregistered adoption — a new drift call site — fails).
  * - 'pending': the point is a verified adopter with a named
  *   landing PR. Its current arming form stays registered until
- *   that PR flips the row: sheriff's not-yet-existing arm (a
- *   net-new carrier, PR-2b).
+ *   that PR flips the row. (No registered point is pending
+ *   today: sheriff's arm — a net-new carrier landed by PR-2b —
+ *   was the last to flip.)
  *
  * Clear reachability is registered per point with its reason:
  * the skeleton keeps one three-way decision for all points; a
@@ -148,20 +149,15 @@ const EXPECTED_SETTLE_COUNTDOWN_ADOPTERS: Readonly<
     manualClose: { kind: 'none' },
   },
   'werewolf:sheriff-vote': {
-    adoption: 'pending',
-    landingPr: 'E-3 PR-2b',
+    adoption: 'switched',
     hostFile: 'werewolf/domain/handlers/sheriffElectionHandler.ts',
     // Sheriff ballots are append-only (cast or overwritten, never
     // removed), so completion is monotonic and clear is
     // structurally unreachable at this point.
     clear: 'unreachable-ballotsAppendOnly',
-    manualClose: {
-      kind: 'ruledPendingDeletion',
-      markerFile: 'werewolf/domain/handlers/sheriffElectionHandler.ts',
-      // The host advance command still closes both vote phases.
-      presenceMarkers: ['closeFirstVote(context.state, election)', 'closeRunoffVote(election)'],
-      deletion: 'E-3 PR-2b removes the advance vote-phase close branch',
-    },
+    // E-3 PR-2b deleted the advance vote-phase close branch: a
+    // sheriff voting phase now closes only on countdown expiry.
+    manualClose: { kind: 'none' },
   },
   'avalon:vote': {
     adoption: 'switched',
@@ -217,8 +213,9 @@ interface DeadlineArithmeticRegistration {
 /**
  * Every now-anchored deadline addition in the game-engine
  * production sources, registered as exact points. The switched
- * points (werewolf wolf-vote; avalon vote and quest) contribute
- * no local arithmetic: their call sites pass `nowMs` into the
+ * points (werewolf wolf-vote and sheriff-vote; avalon vote and
+ * quest) contribute no local arithmetic: their call sites pass
+ * `nowMs` into the
  * skeleton, and the skeleton's set branch is the one addition.
  */
 const EXPECTED_DEADLINE_ARITHMETIC: readonly DeadlineArithmeticRegistration[] = [

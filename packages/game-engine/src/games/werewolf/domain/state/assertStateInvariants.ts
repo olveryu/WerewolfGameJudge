@@ -317,6 +317,16 @@ function assertActiveSheriffVotingPhase(
       fail(`${election.phase} targets non-candidate ${targetSeat}`);
     }
   }
+  // The settle countdown only arms once every eligible ballot is in
+  // (and ballots are never removed), so an armed deadline implies a
+  // complete submission set.
+  if (election.deadline !== undefined) {
+    for (const voterSeat of election.eligibleVoterSeats) {
+      if (!Object.hasOwn(election.ballots, voterSeat)) {
+        fail(`${election.phase} deadline is armed without voter ${voterSeat}'s ballot`);
+      }
+    }
+  }
 }
 
 function assertSheriffElectionPhase(state: GameState, election: SheriffElectionState): void {

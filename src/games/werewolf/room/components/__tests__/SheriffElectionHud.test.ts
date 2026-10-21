@@ -1,6 +1,5 @@
 /** Unit tests for the sheriff-election HUD summary copy. */
 
-import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
 import { getHudSummary } from '@/games/werewolf/room/components/SheriffElectionHud';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
@@ -39,21 +38,17 @@ function createModel(viewOverrides: Partial<SheriffElectionViewModel>): SheriffE
 }
 
 describe('getHudSummary', () => {
-  it('tells the host where to announce once all votes are in', () => {
-    const model = createModel({
+  it('announces the automatic publication once all votes are in, for host and players alike', () => {
+    const hostModel = createModel({
       voteProgress: { submittedCount: 4, eligibleCount: 4 },
-      canAdvance: true,
-      advanceLabel: '公布首轮结果',
     });
-    expect(getHudSummary(model)).toBe(`4/4 人已投票，请在「${HOST_MANAGEMENT_LABEL}」公布`);
-  });
-
-  it('tells non-hosts to wait for the host once all votes are in', () => {
-    const model = createModel({
+    expect(getHudSummary(hostModel)).toBe('4/4 人已投票，即将自动公布结果');
+    const playerModel = createModel({
       voteProgress: { submittedCount: 4, eligibleCount: 4 },
-      canAdvance: false,
+      canVote: true,
+      myBallot: { kind: 'candidate', seat: 1 },
     });
-    expect(getHudSummary(model)).toBe('4/4 人已投票，等待房主公布结果');
+    expect(getHudSummary(playerModel)).toBe('4/4 人已投票，即将自动公布结果');
   });
 
   it('tells a player who has not voted where to vote', () => {

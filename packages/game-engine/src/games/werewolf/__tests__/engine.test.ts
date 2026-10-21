@@ -942,24 +942,46 @@ describe('Werewolf engine definition and catalog', () => {
         userContext('user-1'),
       ),
     ).toEqual({ kind: 'reject', reason: 'not_eligible_voter' });
+    // The pending_votes rejection is gone with the manual close: a
+    // voting phase rejects advance outright, complete or not — the
+    // round closes only when its settle countdown expires.
     expect(
       werewolfEngine.decide(state, { type: 'werewolf.sheriff.advance' }, userContext('host')),
-    ).toEqual({ kind: 'reject', reason: 'pending_votes' });
+    ).toEqual({ kind: 'reject', reason: 'invalid_election_phase' });
 
     state = evolveCommittedCommand(
       state,
       { type: 'werewolf.sheriff.vote', targetSeat: 0 },
       userContext('user-3'),
     );
+    if (state.sheriffElection?.phase !== 'firstVote') {
+      throw new Error('Expected the first vote to still be collecting ballots');
+    }
+    expect(state.sheriffElection.deadline).toBeUndefined();
     state = evolveCommittedCommand(
       state,
       { type: 'werewolf.sheriff.vote', targetSeat: 2 },
       userContext('user-4'),
     );
+    if (state.sheriffElection?.phase !== 'firstVote') {
+      throw new Error('Expected the completed first vote to await its deadline');
+    }
+    // The last ballot (cast at nowMs 1000) arms the 5s settle deadline.
+    expect(state.sheriffElection.deadline).toBe(6000);
+    expect(
+      werewolfEngine.decide(state, { type: 'werewolf.sheriff.advance' }, userContext('host')),
+    ).toEqual({ kind: 'reject', reason: 'invalid_election_phase' });
+
     state = evolveCommittedCommand(
       state,
-      { type: 'werewolf.sheriff.advance' },
-      userContext('host'),
+      { type: 'werewolf.progress.request' },
+      { ...userContext('host'), nowMs: 5999 },
+    );
+    expect(state.sheriffElection?.phase).toBe('firstVote');
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.progress.request' },
+      { ...userContext('host'), nowMs: 6000 },
     );
     expect(state.sheriffElection).toMatchObject({
       phase: 'runoffSpeech',
@@ -996,15 +1018,23 @@ describe('Werewolf engine definition and catalog', () => {
       { type: 'werewolf.sheriff.vote', targetSeat: 0 },
       userContext('user-3'),
     );
+    if (state.sheriffElection?.phase !== 'runoffVote') {
+      throw new Error('Expected the runoff vote to still be collecting ballots');
+    }
+    expect(state.sheriffElection.deadline).toBeUndefined();
     state = evolveCommittedCommand(
       state,
       { type: 'werewolf.sheriff.vote', targetSeat: 0 },
       userContext('user-4'),
     );
+    if (state.sheriffElection?.phase !== 'runoffVote') {
+      throw new Error('Expected the completed runoff vote to await its deadline');
+    }
+    expect(state.sheriffElection.deadline).toBe(6000);
     const finalDecision = werewolfEngine.decide(
       state,
-      { type: 'werewolf.sheriff.advance' },
-      userContext('host'),
+      { type: 'werewolf.progress.request' },
+      { ...userContext('host'), nowMs: 6000 },
     );
     if (finalDecision.kind === 'reject') {
       throw new Error(`Expected election completion, received ${finalDecision.reason}`);
@@ -1023,6 +1053,109 @@ describe('Werewolf engine definition and catalog', () => {
     });
     expect(finalDecision.effects).toHaveLength(1);
     expect(finalDecision.effects[0]?.type).toBe('werewolf.game.ended');
+  });
+
+  it('arms and refreshes the sheriff settle deadline, counting a host-cast bot ballot', () => {
+    let state = createState({
+      status: GameStatus.Day,
+      rules: { isSheriffElectionEnabled: true },
+      isAudioPlaying: false,
+      sheriffElection: {
+        phase: 'firstVote',
+        registeredSeats: [0, 1],
+        withdrawnSeats: [],
+        completedRounds: [],
+        candidateSeats: [0, 1],
+        eligibleVoterSeats: [2],
+        ballots: {},
+      },
+    });
+
+    // Seat 2 is a bot: the Host casts its ballot through the
+    // controlled seat, and that ballot completes the round.
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.vote', targetSeat: 0 },
+      userContext('host', 2),
+    );
+    if (state.sheriffElection?.phase !== 'firstVote') {
+      throw new Error('Expected the armed first vote to await its deadline');
+    }
+    expect(state.sheriffElection.ballots).toEqual({ 2: 0 });
+    expect(state.sheriffElection.deadline).toBe(6000);
+
+    // A ballot change after arming refreshes the deadline (the
+    // skeleton's track semantics, same as the wolf vote).
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.vote', targetSeat: 1 },
+      { ...userContext('host', 2), nowMs: 2000 },
+    );
+    if (state.sheriffElection?.phase !== 'firstVote') {
+      throw new Error('Expected the refreshed first vote to await its deadline');
+    }
+    expect(state.sheriffElection.ballots).toEqual({ 2: 1 });
+    expect(state.sheriffElection.deadline).toBe(7000);
+
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.progress.request' },
+      { ...userContext('host'), nowMs: 6999 },
+    );
+    expect(state.sheriffElection?.phase).toBe('firstVote');
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.progress.request' },
+      { ...userContext('host'), nowMs: 7000 },
+    );
+    expect(state).toMatchObject({
+      status: GameStatus.Ended,
+      sheriffElection: { phase: 'completed' },
+      sheriffElectionResult: { kind: 'elected', sheriffSeat: 1 },
+    });
+  });
+
+  it('holds an expired sheriff deadline while audio is playing', () => {
+    const armedVote: SheriffElectionState = {
+      phase: 'firstVote',
+      registeredSeats: [0, 1],
+      withdrawnSeats: [],
+      completedRounds: [],
+      candidateSeats: [0, 1],
+      eligibleVoterSeats: [2],
+      ballots: { 2: 0 },
+      deadline: 6000,
+    };
+
+    const audible = createState({
+      status: GameStatus.Day,
+      rules: { isSheriffElectionEnabled: true },
+      isAudioPlaying: true,
+      pendingAudioEffects: [{ audioKey: 'night_end' }],
+      sheriffElection: armedVote,
+    });
+    const heldState = evolveCommittedCommand(
+      audible,
+      { type: 'werewolf.progress.request' },
+      { ...userContext('host'), nowMs: 6000 },
+    );
+    expect(heldState.sheriffElection?.phase).toBe('firstVote');
+
+    const silent = createState({
+      status: GameStatus.Day,
+      rules: { isSheriffElectionEnabled: true },
+      isAudioPlaying: false,
+      sheriffElection: armedVote,
+    });
+    const closedState = evolveCommittedCommand(
+      silent,
+      { type: 'werewolf.progress.request' },
+      { ...userContext('host'), nowMs: 6000 },
+    );
+    expect(closedState).toMatchObject({
+      status: GameStatus.Ended,
+      sheriffElectionResult: { kind: 'elected', sheriffSeat: 0 },
+    });
   });
 
   it('ends the election by self-destruct during speeches but rejects voting phases', () => {

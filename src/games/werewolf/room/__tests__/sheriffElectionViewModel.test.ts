@@ -131,6 +131,30 @@ describe('createSheriffElectionViewModel', () => {
     expect(JSON.stringify(viewModel)).not.toMatch(/Alice|Bob|Chen|Dana/);
   });
 
+  it('gives the Host no advance during voting phases (the countdown closes the round)', () => {
+    for (const phase of ['firstVote', 'runoffVote'] as const) {
+      const gameState = createLocalState({
+        sheriffElection: {
+          phase,
+          registeredSeats: [0, 1],
+          withdrawnSeats: [],
+          completedRounds: [],
+          candidateSeats: [0, 1],
+          eligibleVoterSeats: [2, 3],
+          ballots: { 2: 0 },
+        },
+      });
+
+      const viewModel = createSheriffElectionViewModel({
+        gameState,
+        effectiveSeat: 0,
+        isHost: true,
+      });
+
+      expect(viewModel).toMatchObject({ phase, canAdvance: false, advanceLabel: null });
+    }
+  });
+
   it('publishes every ballot and tally only after a round closes', () => {
     const gameState = createLocalState({
       status: GameStatus.Ended,

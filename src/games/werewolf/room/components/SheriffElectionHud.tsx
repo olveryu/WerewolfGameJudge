@@ -9,7 +9,6 @@ import { Pressable, Text, View } from 'react-native';
 
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
 import { getSheriffVoteButtonLabel } from '@/games/werewolf/room/sheriffElectionDockModel';
-import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes } from '@/theme';
 
@@ -33,10 +32,9 @@ export function getHudSummary(model: SheriffElectionPanelModel): string {
     const { submittedCount, eligibleCount } = view.voteProgress;
     const progress = `${submittedCount}/${eligibleCount} 人已投票`;
     if (submittedCount >= eligibleCount) {
-      if (view.canAdvance && view.advanceLabel !== null) {
-        return `${progress}，请在「${HOST_MANAGEMENT_LABEL}」公布`;
-      }
-      return `${progress}，等待房主公布结果`;
+      // The round closes itself: the settle countdown armed by the
+      // last ballot publishes the result on expiry — no Host action.
+      return `${progress}，即将自动公布结果`;
     }
     const ballot = view.myBallot;
     if (view.canVote && (ballot === null || ballot.kind === 'notSubmitted')) {

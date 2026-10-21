@@ -20,6 +20,7 @@ import type { AudioEffect } from '../../../platform/audio';
 import { createSeededRng, randomIntInclusive } from '../../../platform/random';
 import { createAudioQueueActions, isAudioQueueAction } from './audioQueue';
 import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
+import { closeSheriffVotingRound } from './handlers/sheriffElectionHandler';
 import { isWolfRobotHunterStatusGatePending } from './handlers/stepTransitionGuards';
 import { handleAdvanceNight, handleEndNight } from './handlers/stepTransitionHandler';
 import type { HandlerContext, HandlerExecutionContext } from './handlers/types';
@@ -134,6 +135,21 @@ function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_
   return 'none';
 }
 
+/**
+ * Sheriff settle-countdown expiry (the Day counterpart of the night
+ * deadline gate): an armed voting round closes once its deadline is
+ * reached. Mirrors evaluateProgression's audio gate — while audio is
+ * playing the evaluation does not advance the election.
+ */
+function evaluateSheriffElectionExpiry(state: GameState, nowMs: number): StateAction | null {
+  if (state.isAudioPlaying) return null;
+  const election = state.sheriffElection;
+  if (election === undefined) return null;
+  if (election.phase !== 'firstVote' && election.phase !== 'runoffVote') return null;
+  if (election.deadline === undefined || nowMs < election.deadline) return null;
+  return closeSheriffVotingRound(state, election);
+}
+
 interface ProgressionActionBatch {
   readonly stateActions: StateAction[];
   readonly audioEffects: AudioEffect[];
@@ -172,7 +188,7 @@ function splitProgressionActions(actions: readonly StateAction[]): ProgressionAc
  * After action processing completes, evaluate and execute the progression chain within the same request:
  * action complete -> evaluate -> advance -> evaluate -> ... -> none/end_night
  *
- * @pre state.status === 'Ongoing'
+ * @pre state.status === 'Ongoing' (night) or 'Day' (sheriff expiry only)
  * @remarks MAX_PROGRESSION_LOOPS=20 circuit-breaker protection. Recursively advances until evaluateProgression returns 'none'.
  *   auto-skip delay: vacant bottom card step sets stepDeadline = now + random(5000, 10000)ms,
  *   set only when no pending audio (avoids audio duration overlapping with deadline window).
@@ -187,6 +203,21 @@ export function runInlineProgression(
   hostUserId: string,
   execution: HandlerExecutionContext,
 ): InlineProgressionResult {
+  // Day has no night steps: its only progression is the sheriff
+  // voting round's settle-countdown expiry (one close per evaluation;
+  // a runoff round it opens collects ballots before it can arm).
+  if (state.status === GameStatus.Day) {
+    const expiryAction = evaluateSheriffElectionExpiry(state, execution.nowMs);
+    if (expiryAction === null) {
+      return { actions: [], finalState: state, stepsAdvanced: 0 };
+    }
+    return {
+      actions: [expiryAction],
+      finalState: gameReducer(state, expiryAction),
+      stepsAdvanced: 1,
+    };
+  }
+
   const allActions: StateAction[] = [];
   const allAudioEffects: AudioEffect[] = [];
   let currentState = state;

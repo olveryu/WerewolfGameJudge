@@ -1,15 +1,17 @@
 /**
  * Persisted-state version gate.
  *
- * v11 is a hard cut: the viewed record moved out of the per-player
- * hasViewedRole flag into the state-level roleViewedSeats set (v10 had
- * already moved the display profile into the roster human occupant and
- * deleted the by-user playerProfiles map). Payloads below the current
- * version are rejected, not migrated — old rooms are not carried
- * across a state-shape change, and the v5-v9 upgrade chain was deleted
- * with v10 (see state/version.ts). This suite pins the gate: the
- * current version passes through untouched; every older (or newer)
- * version is refused.
+ * v12 is a hard cut: the sheriff election voting phases gained the
+ * settle-countdown deadline slot (v11 had moved the viewed record
+ * out of the per-player hasViewedRole flag into the state-level
+ * roleViewedSeats set; v10 had already moved the display profile
+ * into the roster human occupant and deleted the by-user
+ * playerProfiles map). Payloads below the current version are
+ * rejected, not migrated — old rooms are not carried across a
+ * state-shape change, and the v5-v9 upgrade chain was deleted with
+ * v10 (see state/version.ts). This suite pins the gate: the current
+ * version passes through untouched; every older (or newer) version
+ * is refused.
  */
 
 import { GameStatus } from '../domain/models/GameStatus';
@@ -97,10 +99,10 @@ function asStored(state: GameState): Record<string, unknown> {
   return JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
 }
 
-describe('persisted state version gate (v11 hard cut)', () => {
-  it('pins the current version at 11', () => {
-    expect(WEREWOLF_STATE_VERSION).toBe(11);
-    expect(buildStartedState().stateVersion).toBe(11);
+describe('persisted state version gate (v12 hard cut)', () => {
+  it('pins the current version at 12', () => {
+    expect(WEREWOLF_STATE_VERSION).toBe(12);
+    expect(buildStartedState().stateVersion).toBe(12);
   });
 
   it('passes a current-version payload through value-identical (identity baseline)', () => {
@@ -147,12 +149,20 @@ describe('persisted state version gate (v11 hard cut)', () => {
     expect(JSON.stringify(parseWerewolfState(JSON.parse(serialized)))).toBe(serialized);
   });
 
+  it('rejects a v11 payload (sheriff voting phases have no deadline slot)', () => {
+    const legacy = { ...asStored(buildStartedState()), stateVersion: 11 };
+    expect(() => migratePersistedWerewolfState(legacy)).toThrow(
+      'Unsupported werewolf state version: 11',
+    );
+    expect(() => parseWerewolfState(legacy)).toThrow('GameState.stateVersion must be 12');
+  });
+
   it('rejects a v10 payload (viewed record still a per-player flag)', () => {
     const legacy = downgradeToV10(buildStartedState());
     expect(() => migratePersistedWerewolfState(legacy)).toThrow(
       'Unsupported werewolf state version: 10',
     );
-    expect(() => parseWerewolfState(legacy)).toThrow('GameState.stateVersion must be 11');
+    expect(() => parseWerewolfState(legacy)).toThrow('GameState.stateVersion must be 12');
   });
 
   it('rejects a v9 payload (profiles still in the by-user map)', () => {
@@ -160,7 +170,7 @@ describe('persisted state version gate (v11 hard cut)', () => {
     expect(() => migratePersistedWerewolfState(legacy)).toThrow(
       'Unsupported werewolf state version: 9',
     );
-    expect(() => parseWerewolfState(legacy)).toThrow('GameState.stateVersion must be 11');
+    expect(() => parseWerewolfState(legacy)).toThrow('GameState.stateVersion must be 12');
   });
 
   it('rejects a v5 payload (identity still embedded in the player record)', () => {
@@ -171,9 +181,9 @@ describe('persisted state version gate (v11 hard cut)', () => {
   });
 
   it('rejects a payload from a newer version', () => {
-    const future = { ...asStored(buildStartedState()), stateVersion: 12 };
+    const future = { ...asStored(buildStartedState()), stateVersion: 13 };
     expect(() => migratePersistedWerewolfState(future)).toThrow(
-      'Unsupported werewolf state version: 12',
+      'Unsupported werewolf state version: 13',
     );
   });
 
