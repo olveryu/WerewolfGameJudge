@@ -47,6 +47,23 @@ export interface SheriffElectionPanelStyles {
   recordRow: ViewStyle;
   recordLabel: TextStyle;
   recordValue: TextStyle;
+  recordValueColumn: ViewStyle;
+  recordEmpty: TextStyle;
+  seatDotRow: ViewStyle;
+  seatDot: ViewStyle;
+  seatDotText: TextStyle;
+  seatDotWithdrawn: ViewStyle;
+  seatDotTextWithdrawn: TextStyle;
+  seatDotSmall: ViewStyle;
+  seatDotSmallText: TextStyle;
+  withdrawnNote: TextStyle;
+  resultBanner: ViewStyle;
+  resultBannerNeutral: ViewStyle;
+  resultMedal: ViewStyle;
+  resultMedalNeutral: ViewStyle;
+  resultTextGroup: ViewStyle;
+  resultTitle: TextStyle;
+  resultSubtitle: TextStyle;
   divider: ViewStyle;
   voteStatusRow: ViewStyle;
   voteProgress: TextStyle;
@@ -63,19 +80,21 @@ export interface SheriffElectionPanelStyles {
   ballotChoiceTextSelected: TextStyle;
   roundSection: ViewStyle;
   roundTitle: TextStyle;
-  tallyList: ViewStyle;
+  tallyCard: ViewStyle;
+  tallyGroup: ViewStyle;
+  tallyGroupBorder: ViewStyle;
   tallyRow: ViewStyle;
-  tallySeat: TextStyle;
-  tallyValue: TextStyle;
-  ballotListTitle: TextStyle;
-  ballotList: ViewStyle;
-  ballotRow: ViewStyle;
-  ballotSeat: TextStyle;
-  ballotArrow: TextStyle;
-  ballotTarget: TextStyle;
+  tallyName: TextStyle;
+  tallyNameWinner: TextStyle;
+  tallyBarTrack: ViewStyle;
+  tallyBarFill: ViewStyle;
+  tallyBarFillWinner: ViewStyle;
+  tallyCount: TextStyle;
+  voterChips: ViewStyle;
+  voterChip: ViewStyle;
+  abstainRow: ViewStyle;
+  abstainLabel: TextStyle;
   emptyBallots: TextStyle;
-  finalBanner: ViewStyle;
-  finalText: TextStyle;
 }
 
 export function createSheriffElectionPanelStyles(colors: ThemeColors): SheriffElectionPanelStyles {
@@ -235,6 +254,90 @@ export function createSheriffElectionPanelStyles(colors: ThemeColors): SheriffEl
       color: colors.text,
       flex: 1,
     },
+    recordValueColumn: {
+      flex: 1,
+    },
+    recordEmpty: {
+      ...textStyles.secondary,
+      color: colors.textSecondary,
+    },
+    seatDotRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: spacing.tight,
+    },
+    seatDot: {
+      width: componentSizes.avatar.xs,
+      height: componentSizes.avatar.xs,
+      borderRadius: borderRadius.full,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+      backgroundColor: colors.background,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    seatDotText: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      fontWeight: typography.weights.bold,
+      color: colors.text,
+    },
+    seatDotWithdrawn: {
+      opacity: fixed.disabledOpacity,
+    },
+    seatDotTextWithdrawn: {
+      textDecorationLine: 'line-through',
+    },
+    seatDotSmall: {
+      width: componentSizes.badge.md,
+      height: componentSizes.badge.md,
+    },
+    seatDotSmallText: {
+      ...textStyles.captionSmall,
+    },
+    withdrawnNote: {
+      ...textStyles.caption,
+      color: colors.textSecondary,
+      marginTop: spacing.tight,
+    },
+    resultBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.small,
+      padding: spacing.medium,
+      borderRadius: borderRadius.medium,
+      backgroundColor: withAlpha(colors.warning, 0.12),
+      marginTop: spacing.medium,
+    },
+    resultBannerNeutral: {
+      backgroundColor: colors.background,
+    },
+    resultMedal: {
+      width: componentSizes.avatar.md,
+      height: componentSizes.avatar.md,
+      borderRadius: borderRadius.medium,
+      backgroundColor: colors.warning,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    resultMedalNeutral: {
+      backgroundColor: colors.surfaceHover,
+    },
+    resultTextGroup: {
+      flex: 1,
+    },
+    resultTitle: {
+      ...textStyles.bodySemibold,
+      color: colors.text,
+    },
+    resultSubtitle: {
+      ...textStyles.caption,
+      color: colors.textSecondary,
+      marginTop: spacing.micro,
+    },
     divider: {
       height: fixed.borderWidth,
       backgroundColor: colors.border,
@@ -316,69 +419,88 @@ export function createSheriffElectionPanelStyles(colors: ThemeColors): SheriffEl
       ...textStyles.secondarySemibold,
       color: colors.text,
     },
-    tallyList: {
+    tallyCard: {
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+      borderRadius: borderRadius.medium,
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.tight,
+    },
+    tallyGroup: {
+      paddingVertical: spacing.small,
+    },
+    tallyGroupBorder: {
       borderTopWidth: fixed.borderWidth,
-      borderTopColor: colors.border,
+      borderTopColor: colors.borderLight,
     },
     tallyRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      minHeight: componentSizes.button.sm,
-      borderBottomWidth: fixed.borderWidth,
-      borderBottomColor: colors.border,
+      gap: spacing.small,
     },
-    tallySeat: {
+    tallyName: {
       ...textStyles.secondarySemibold,
       color: colors.text,
+      width: componentSizes.avatar.md,
+      flexShrink: 0,
     },
-    tallyValue: {
-      ...textStyles.secondary,
-      color: colors.primary,
+    tallyNameWinner: {
+      color: colors.warning,
     },
-    ballotListTitle: {
-      ...textStyles.caption,
-      fontWeight: typography.weights.semibold,
-      color: colors.textSecondary,
-      marginTop: spacing.tight,
+    tallyBarTrack: {
+      flex: 1,
+      flexDirection: 'row',
+      height: componentSizes.badge.dot,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.background,
+      overflow: 'hidden',
     },
-    ballotList: {
+    tallyBarFill: {
+      height: '100%',
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.primary,
+    },
+    tallyBarFillWinner: {
+      backgroundColor: colors.warning,
+    },
+    tallyCount: {
+      ...textStyles.secondarySemibold,
+      color: colors.text,
+      width: componentSizes.avatar.md,
+      flexShrink: 0,
+      textAlign: 'right',
+    },
+    voterChips: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: spacing.tight,
+      marginTop: spacing.tight,
+      marginLeft: componentSizes.avatar.md + spacing.small,
     },
-    ballotRow: {
+    voterChip: {
       flexDirection: 'row',
       alignItems: 'center',
-      minHeight: componentSizes.icon.lg,
+      paddingVertical: spacing.micro,
+      paddingHorizontal: spacing.micro,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.borderLight,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.surface,
     },
-    ballotSeat: {
-      ...textStyles.caption,
-      color: colors.text,
-      width: componentSizes.avatar.lg,
+    abstainRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: spacing.tight,
+      marginTop: spacing.small,
     },
-    ballotArrow: {
+    abstainLabel: {
       ...textStyles.caption,
-      color: colors.textMuted,
-      width: componentSizes.icon.lg,
-      textAlign: 'center',
-    },
-    ballotTarget: {
-      ...textStyles.caption,
-      color: colors.text,
-      flex: 1,
+      color: colors.textSecondary,
     },
     emptyBallots: {
       ...textStyles.caption,
       color: colors.textSecondary,
-    },
-    finalBanner: {
-      padding: spacing.medium,
-      borderRadius: borderRadius.small,
-      backgroundColor: withAlpha(colors.success, 0.12),
-    },
-    finalText: {
-      ...textStyles.bodySemibold,
-      color: colors.success,
-      textAlign: 'center',
     },
   });
 }

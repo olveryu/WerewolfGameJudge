@@ -113,6 +113,14 @@ export const TESTIDS = {
   sheriffAdvanceButton: 'sheriff-advance-button',
   sheriffSelfDestructButton: 'sheriff-self-destruct-button',
   sheriffCompletedRound: (round: string) => `sheriff-completed-round-${round}`,
+  sheriffRegisteredSeatDot: (seat: number) => `sheriff-registered-seat-${seat}`,
+  sheriffActiveCandidateSeatDot: (seat: number) => `sheriff-active-candidate-seat-${seat}`,
+  sheriffTallyGroup: (round: string, seat: number) => `sheriff-tally-${round}-${seat}`,
+  sheriffBallotChip: (round: string, voterSeat: number) =>
+    `sheriff-ballot-chip-${round}-${voterSeat}`,
+  sheriffAbstainRow: (round: string) => `sheriff-abstain-${round}`,
+  sheriffAbstainChip: (round: string, voterSeat: number) =>
+    `sheriff-abstain-chip-${round}-${voterSeat}`,
   sheriffElectionResult: 'sheriff-election-result',
 
   // ActionMessage / BottomActionPanel
