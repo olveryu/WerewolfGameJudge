@@ -521,15 +521,18 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
   }
 
   // 7. Check reveals (seer family + others)
-  const revealFields = [
-    { key: 'seerReveal' as const, roleId: 'seer' as RoleId },
-    { key: 'mirrorSeerReveal' as const, roleId: 'mirrorSeer' as RoleId },
-    { key: 'drunkSeerReveal' as const, roleId: 'drunkSeer' as RoleId },
-    { key: 'psychicReveal' as const, roleId: 'psychic' as RoleId },
-    { key: 'gargoyleReveal' as const, roleId: 'gargoyle' as RoleId },
-    { key: 'pureWhiteReveal' as const, roleId: 'pureWhite' as RoleId },
-    { key: 'wolfWitchReveal' as const, roleId: 'wolfWitch' as RoleId },
-  ] as const;
+  const revealFields: readonly {
+    readonly key: DamageReflectionRevealKey;
+    readonly roleId: RoleId;
+  }[] = [
+    { key: 'seerReveal', roleId: 'seer' },
+    { key: 'mirrorSeerReveal', roleId: 'mirrorSeer' },
+    { key: 'drunkSeerReveal', roleId: 'drunkSeer' },
+    { key: 'psychicReveal', roleId: 'psychic' },
+    { key: 'gargoyleReveal', roleId: 'gargoyle' },
+    { key: 'pureWhiteReveal', roleId: 'pureWhite' },
+    { key: 'wolfWitchReveal', roleId: 'wolfWitch' },
+  ];
 
   for (const { key, roleId } of revealFields) {
     const reveal = gameState[key];
