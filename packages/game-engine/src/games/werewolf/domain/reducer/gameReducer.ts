@@ -21,6 +21,7 @@ import {
   handlePlayerLeave,
   handlePlayerViewedRole,
   handleRestartGame,
+  handleSeatsChanged,
   handleSetBoardNomination,
   handleUpdatePlayerProfile,
   handleUpdateTemplate,
@@ -72,6 +73,8 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handlePlayerJoin(state, action);
     case 'PLAYER_LEAVE':
       return handlePlayerLeave(state, action);
+    case 'SEATS_CHANGED':
+      return handleSeatsChanged(state, action);
     case 'UPDATE_PLAYER_PROFILE':
       return handleUpdatePlayerProfile(state, action);
     case 'ASSIGN_ROLES':
