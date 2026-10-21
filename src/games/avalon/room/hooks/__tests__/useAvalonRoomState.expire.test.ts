@@ -224,7 +224,8 @@ describe('useAvalonRoomState countdown expiry wiring', () => {
   it('dispatches the quest timeout when the armed quest deadline passes', async () => {
     const { dispatch, unmount } = renderRoomState(armedQuestState());
     await act(async () => {
-      jest.advanceTimersByTime(6000);
+      // The armed quest deadline sits at DRIVE_NOW + 10000 (see armedQuestState).
+      jest.advanceTimersByTime(11000);
     });
     expect(dispatch).toHaveBeenCalledWith(
       { type: 'avalon.phase.expire' },
