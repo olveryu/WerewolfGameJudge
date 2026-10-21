@@ -1,3 +1,4 @@
+import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
 import type { RoomBottomActionLayout } from '@/features/room/model/RoomBottomActions';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
 import { createSheriffElectionDockModel } from '@/games/werewolf/room/sheriffElectionDockModel';
@@ -75,6 +76,7 @@ describe('createSheriffElectionDockModel', () => {
       election: createElection({ canRegister: true }),
       roomTools: ROOM_TOOLS,
       isInspectorVisible: false,
+      isAudioPlaying: false,
       openDetails: jest.fn(),
     });
 
@@ -102,6 +104,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isInspectorVisible: false,
+      isAudioPlaying: false,
       openDetails: jest.fn(),
     });
 
@@ -127,6 +130,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isInspectorVisible: false,
+      isAudioPlaying: false,
       openDetails: jest.fn(),
     });
 
@@ -149,6 +153,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isInspectorVisible: false,
+      isAudioPlaying: false,
       openDetails: jest.fn(),
     });
 
@@ -172,6 +177,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isInspectorVisible: false,
+      isAudioPlaying: false,
       openDetails: jest.fn(),
     });
 
@@ -184,6 +190,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isInspectorVisible: false,
+      isAudioPlaying: false,
       openDetails: jest.fn(),
     });
 
@@ -199,6 +206,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isInspectorVisible: false,
+      isAudioPlaying: false,
       openDetails: jest.fn(),
     });
 
@@ -222,6 +230,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isInspectorVisible: false,
+      isAudioPlaying: false,
       openDetails,
     });
 
@@ -256,6 +265,7 @@ describe('createSheriffElectionDockModel', () => {
         ],
       },
       isInspectorVisible: false,
+      isAudioPlaying: false,
       openDetails: jest.fn(),
     });
 
@@ -283,9 +293,135 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isInspectorVisible: true,
+      isAudioPlaying: false,
       openDetails: jest.fn(),
     });
 
     expect(dock.primary).toMatchObject({ label: '请在「警长竞选」中投票', isEnabled: false });
+  });
+
+  it('locks the registration command while narration audio plays', () => {
+    const election = createElection({ canRegister: true });
+    const dock = createSheriffElectionDockModel({
+      election,
+      roomTools: ROOM_TOOLS,
+      isInspectorVisible: false,
+      isAudioPlaying: true,
+      openDetails: jest.fn(),
+    });
+
+    expect(dock.primary).toMatchObject({
+      key: 'sheriff-register',
+      label: '报名上警',
+      isEnabled: false,
+      disabledReason: AUDIO_PLAYBACK_LOCK_REASON,
+    });
+    expect(dock.primary).not.toHaveProperty('onPress');
+    expect(election.register).not.toHaveBeenCalled();
+  });
+
+  it('locks the cancellation and withdrawal commands while narration audio plays', () => {
+    const cancelDock = createSheriffElectionDockModel({
+      election: createElection({ canCancelRegistration: true }),
+      roomTools: ROOM_TOOLS,
+      isInspectorVisible: false,
+      isAudioPlaying: true,
+      openDetails: jest.fn(),
+    });
+    expect(cancelDock.primary).toMatchObject({
+      key: 'sheriff-cancel-registration',
+      isEnabled: false,
+      disabledReason: AUDIO_PLAYBACK_LOCK_REASON,
+    });
+    expect(cancelDock.primary).not.toHaveProperty('onPress');
+
+    const withdrawDock = createSheriffElectionDockModel({
+      election: createElection({ canWithdraw: true }),
+      roomTools: ROOM_TOOLS,
+      isInspectorVisible: false,
+      isAudioPlaying: true,
+      openDetails: jest.fn(),
+    });
+    expect(withdrawDock.primary).toMatchObject({
+      key: 'sheriff-withdraw',
+      isEnabled: false,
+      disabledReason: AUDIO_PLAYBACK_LOCK_REASON,
+      buttonColor: colors.error,
+    });
+    expect(withdrawDock.primary).not.toHaveProperty('onPress');
+  });
+
+  it('locks the vote-details command while narration audio plays', () => {
+    const openDetails = jest.fn();
+    const dock = createSheriffElectionDockModel({
+      election: createElection({
+        phase: 'firstVote',
+        canVote: true,
+        myBallot: { kind: 'notSubmitted' },
+        voteProgress: { submittedCount: 0, eligibleCount: 2 },
+      }),
+      roomTools: ROOM_TOOLS,
+      isInspectorVisible: false,
+      isAudioPlaying: true,
+      openDetails,
+    });
+
+    expect(dock.primary).toMatchObject({
+      key: 'sheriff-open-vote',
+      isEnabled: false,
+      disabledReason: AUDIO_PLAYBACK_LOCK_REASON,
+    });
+    expect(dock.primary).not.toHaveProperty('onPress');
+    expect(openDetails).not.toHaveBeenCalled();
+  });
+
+  it('keeps the pending disabled form when a command is already in flight during audio', () => {
+    const election = createElection({ canRegister: true }, { pendingAction: { kind: 'register' } });
+    const dock = createSheriffElectionDockModel({
+      election,
+      roomTools: ROOM_TOOLS,
+      isInspectorVisible: false,
+      isAudioPlaying: true,
+      openDetails: jest.fn(),
+    });
+
+    expect(dock.primary).toMatchObject({
+      key: 'sheriff-register',
+      isEnabled: false,
+      disabledReason: null,
+      isLoading: true,
+    });
+    expect(dock.primary).not.toHaveProperty('onPress');
+  });
+
+  it('keeps the read-only identity tool available while the command is audio-locked', () => {
+    const onViewRole = jest.fn();
+    const dock = createSheriffElectionDockModel({
+      election: createElection({ canRegister: true }),
+      roomTools: {
+        ...ROOM_TOOLS,
+        primary: [
+          {
+            key: 'viewRole',
+            label: '查看身份',
+            variant: 'primary',
+            size: 'lg',
+            isEnabled: true,
+            onPress: onViewRole,
+          },
+        ],
+      },
+      isInspectorVisible: false,
+      isAudioPlaying: true,
+      openDetails: jest.fn(),
+    });
+
+    expect(dock.primary).toMatchObject({ isEnabled: false });
+    expect(dock.leading).toMatchObject({ key: 'viewRole', isEnabled: true });
+    if (dock.leading === null || !dock.leading.isEnabled) {
+      throw new Error('Expected executable identity action');
+    }
+    dock.leading.onPress();
+    expect(onViewRole).toHaveBeenCalledTimes(1);
   });
 });

@@ -7,6 +7,10 @@
 
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
+import {
+  AUDIO_PLAYBACK_LOCK_REASON,
+  isAudioPlaybackLocked,
+} from '@/features/room/model/audioPlaybackLock';
 import type {
   RoomBottomActionLayout,
   RoomBottomButton,
@@ -24,6 +28,7 @@ interface SheriffElectionDockInput {
   readonly election: SheriffElectionPanelModel;
   readonly roomTools: RoomBottomActionLayout;
   readonly isInspectorVisible: boolean;
+  readonly isAudioPlaying: boolean;
   readonly openDetails: () => void;
 }
 
@@ -62,6 +67,7 @@ function createRoomTool(
 function createCommandButton(
   action: SheriffDockAction,
   model: SheriffElectionPanelModel,
+  isAudioLocked: boolean,
 ): RoomBottomButton {
   const isLoading = model.pendingAction?.kind === action.pendingKind;
   const base = {
@@ -73,14 +79,23 @@ function createCommandButton(
     buttonColor: action.tone === 'danger' ? colors.error : undefined,
     isLoading,
   };
-  if (model.pendingAction === null) {
-    return { ...base, isEnabled: true, onPress: action.execute };
+  if (model.pendingAction !== null) {
+    return {
+      ...base,
+      isEnabled: false,
+      disabledReason: null,
+    };
   }
-  return {
-    ...base,
-    isEnabled: false,
-    disabledReason: null,
-  };
+  // The election has no read-only exemption from the audio playback
+  // lock: while narration plays the command renders disabled with the
+  // one lock reason and its press drops with the enabled branch — the
+  // host-management combinator's form, applied to the dock primary
+  // (the bottom-layout collapse cannot reach this button: the dock
+  // replaces the bottom area wholesale during the election).
+  if (isAudioLocked) {
+    return { ...base, isEnabled: false, disabledReason: AUDIO_PLAYBACK_LOCK_REASON };
+  }
+  return { ...base, isEnabled: true, onPress: action.execute };
 }
 
 function createInspectorVotePrompt(action: SheriffDockAction): RoomBottomButton {
@@ -197,6 +212,10 @@ export function createSheriffElectionDockModel(
       ? createWaitingButton(input.election)
       : input.isInspectorVisible && personalAction.key === 'sheriff-open-vote'
         ? createInspectorVotePrompt(personalAction)
-        : createCommandButton(personalAction, input.election);
+        : createCommandButton(
+            personalAction,
+            input.election,
+            isAudioPlaybackLocked(input.isAudioPlaying),
+          );
   return { kind: 'dock', message: null, progress: null, leading, primary, trailing };
 }
