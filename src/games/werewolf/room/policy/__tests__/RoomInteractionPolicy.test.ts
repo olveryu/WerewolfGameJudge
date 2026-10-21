@@ -147,6 +147,52 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
       expect(result.kind).toBe('SHOW_DIALOG');
       expect(result).toHaveProperty('dialogType', 'leaveRoom');
     });
+
+    // The night-end announcement window: END_NIGHT lands in Day / Ended
+    // with the announcement still playing. The gate is phase-free, so
+    // the same lock holds there (it previously covered Ongoing only).
+    test.each([GameStatus.Day, GameStatus.Ended])(
+      'audio_playing blocks host control during the %s announcement window',
+      (roomStatus) => {
+        const ctx = createBaseContext({
+          isAudioPlaying: true,
+          roomStatus,
+          isHost: true,
+        });
+        const event = createHostControlEvent(roomStatus === GameStatus.Day ? 'abort' : 'redeal');
+
+        const result = getInteractionResult(ctx, event);
+
+        expect(result.kind).toBe('NOOP');
+        expect(result).toHaveProperty('reason', 'audio_playing');
+      },
+    );
+
+    test('audio_playing blocks seat tap and bottom action during the Day announcement window', () => {
+      const ctx = createBaseContext({
+        isAudioPlaying: true,
+        roomStatus: GameStatus.Day,
+      });
+
+      expect(getInteractionResult(ctx, createSeatTapEvent(1))).toHaveProperty(
+        'reason',
+        'audio_playing',
+      );
+      expect(getInteractionResult(ctx, createBottomActionEvent())).toHaveProperty(
+        'reason',
+        'audio_playing',
+      );
+    });
+
+    test('audio_playing does NOT block view role or leave room during the Day announcement window', () => {
+      const ctx = createBaseContext({
+        isAudioPlaying: true,
+        roomStatus: GameStatus.Day,
+      });
+
+      expect(getInteractionResult(ctx, createViewRoleEvent()).kind).toBe('SHOW_DIALOG');
+      expect(getInteractionResult(ctx, createLeaveRoomEvent()).kind).toBe('SHOW_DIALOG');
+    });
   });
 
   describe('Priority 2: Pending Server-Ack', () => {

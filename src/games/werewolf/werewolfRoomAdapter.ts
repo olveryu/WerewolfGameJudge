@@ -7,6 +7,7 @@ import { getRoleDisplayAs } from '@game-judge/game-engine/games/werewolf/public'
 import { getRoleDisplayName } from '@game-judge/game-engine/games/werewolf/public';
 import { getRoleSpec } from '@game-judge/game-engine/games/werewolf/public';
 
+import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import type { BoardInfoSection, RoleDisplayItem } from '@/features/room/model/BoardInfoSection';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { type NightStepProgress, resolveStepProgress } from '@/features/room/model/nightProgress';
@@ -470,9 +471,7 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
     connection: input.connection,
     seats: {
       source: seatSource,
-      visuallyDisabled:
-        (input.roomStatus === GameStatus.Ongoing && input.isAudioPlaying) ||
-        input.isActionSubmitting,
+      visuallyDisabled: isAudioPlaybackLocked(input.isAudioPlaying) || input.isActionSubmitting,
       onSeatPress: input.onSeatPress,
       onBotSeatLongPress: input.capabilities.canTakeOverBots.isAllowed
         ? input.onSeatLongPressed

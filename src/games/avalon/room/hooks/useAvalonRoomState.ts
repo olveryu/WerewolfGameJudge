@@ -37,6 +37,7 @@ import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessi
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
+import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import {
   deriveRemainingRevealCards,
@@ -369,7 +370,9 @@ export function useAvalonRoomState(
     userId: user.id,
     controlledSeat,
     seatsVisuallyDisabled:
-      state.isAudioPlaying || submission.isSubmitting || seatController.isSubmitting,
+      isAudioPlaybackLocked(state.isAudioPlaying) ||
+      submission.isSubmitting ||
+      seatController.isSubmitting,
     onSeatPress,
     onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,
     seatController,

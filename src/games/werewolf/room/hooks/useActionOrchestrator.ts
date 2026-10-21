@@ -24,6 +24,7 @@ import type { WerewolfViewModel } from '@game-judge/game-engine/games/werewolf/p
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import {
   isSuccessfulRoomCommand,
   type SuccessfulRoomCommandDispatchOutcome,
@@ -308,7 +309,8 @@ export function useActionOrchestrator({
     }
 
     // Suppress auto-triggering intent while audio is playing or the continue-game overlay is visible
-    if (!imActioner || isAudioPlaying || needsContinueOverlay || hasPendingActionCommand) return;
+    if (!imActioner || needsContinueOverlay || hasPendingActionCommand) return;
+    if (isAudioPlaybackLocked(isAudioPlaying)) return;
 
     const autoIntent = getAutoTriggerIntent();
     if (!autoIntent) return;

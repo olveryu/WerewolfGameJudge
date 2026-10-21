@@ -16,6 +16,7 @@
 // (Both point to the same enum from services/types/GameStateTypes)
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
+import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import {
   getRoomSeatTapIntent,
   resolveRoomInGameSeatTap,
@@ -119,7 +120,7 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
   // When audio is playing during ongoing game, all seat taps are no-op.
   // This prevents accidental actions and ensures audio completes.
   // ─────────────────────────────────────────────────────────────────────────
-  if (roomStatus === GameStatus.Ongoing && isAudioPlaying) {
+  if (roomStatus === GameStatus.Ongoing && isAudioPlaybackLocked(isAudioPlaying)) {
     return { kind: 'NOOP', reason: 'audio_playing' };
   }
 

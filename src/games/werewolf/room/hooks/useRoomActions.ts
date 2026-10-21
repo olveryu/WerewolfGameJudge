@@ -27,6 +27,7 @@ import {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useMemo } from 'react';
 
+import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
@@ -320,7 +321,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
 
   const canTapForAction = useCallback((): boolean => {
     if (roomStatus !== GameStatus.Ongoing) return false;
-    if (isAudioPlaying) return false;
+    if (isAudioPlaybackLocked(isAudioPlaying)) return false;
     if (!imActioner) return false;
     return true;
   }, [roomStatus, isAudioPlaying, imActioner]);
@@ -401,7 +402,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   // ─────────────────────────────────────────────────────────────────────────
 
   const getAutoTriggerIntent = useCallback((): ActionIntent | null => {
-    if (!actorRole || !imActioner || isAudioPlaying) return null;
+    if (!actorRole || !imActioner || isAudioPlaybackLocked(isAudioPlaying)) return null;
 
     // NOTE: Nightmare block is handled by server resolver (server-authoritative).
     // UI does NOT intercept or change prompt for blocked players.
