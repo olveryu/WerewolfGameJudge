@@ -30,6 +30,7 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import {
   createBotTakeoverCapability,
@@ -51,7 +52,6 @@ import {
   getDrawGuessSeatTapIntent,
 } from '../drawGuessRoomAdapter';
 import { getDrawGuessRoomCommandFailureMessage } from '../drawGuessRoomCommandFailureMessage';
-import { useDrawGuessSeatCommands } from './useDrawGuessSeatCommands';
 
 /**
  * 每秒更新的本地时钟：驱动拼音首字母揭示的显示 tick（effect 内更新，render 保持纯）。
@@ -117,7 +117,7 @@ export function useDrawGuessRoomState(
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot, takeOver } = botControl;
   const effectiveSeat = controlledSeat ?? mySeat;
-  const seats = useDrawGuessSeatCommands(session, user);
+  const seats = useStandardSeatCommands(session, user);
   const seatController = useRoomSeatController({ currentSeat: mySeat, takeSeat: seats.takeSeat });
   const profile = useRoomProfileController({
     myUserId: user.id,

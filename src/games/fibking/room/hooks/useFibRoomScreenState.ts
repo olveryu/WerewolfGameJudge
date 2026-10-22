@@ -29,6 +29,7 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
 import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
@@ -58,7 +59,6 @@ import {
   getFibSeatTapIntent,
 } from '../fibRoomAdapter';
 import { getFibRoomCommandFailureMessage } from '../fibRoomCommandFailureMessage';
-import { useFibSeatCommands } from './useFibSeatCommands';
 
 interface UseFibRoomScreenStateParams {
   readonly room: GameRoomScreenProps<'fibking'>['room'];
@@ -114,7 +114,7 @@ export function useFibRoomScreenState({
   const revision = sessionSnapshot.snapshot.revision;
   const isHost = state.hostUserId === user.id;
   const mySeat = getFibUserSeat(state, user.id);
-  const seatCommands = useFibSeatCommands({ session, user });
+  const seatCommands = useStandardSeatCommands(session, user);
   const seatController = useRoomSeatController({
     currentSeat: mySeat,
     takeSeat: seatCommands.takeSeat,

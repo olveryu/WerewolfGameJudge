@@ -26,6 +26,7 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
@@ -46,7 +47,6 @@ import {
   getStoryRelaySeatTapIntent,
 } from '../storyRelayRoomAdapter';
 import { getStoryRelayRoomCommandFailureMessage } from '../storyRelayRoomCommandFailureMessage';
-import { useStoryRelaySeatCommands } from './useStoryRelaySeatCommands';
 
 /**
  * 故事接龙房间 Screen 的显式契约（P-2b，对齐狼人杀 WerewolfRoomScreenState 形态）：
@@ -83,7 +83,7 @@ export function useStoryRelayRoomState(
   const isLobby = state.phase === 'lobby';
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot } = botControl;
-  const seats = useStoryRelaySeatCommands(session, user);
+  const seats = useStandardSeatCommands(session, user);
   const seatController = useRoomSeatController({ currentSeat: mySeat, takeSeat: seats.takeSeat });
   const profile = useRoomProfileController({
     myUserId: user.id,

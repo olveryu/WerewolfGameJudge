@@ -29,6 +29,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
 import type {
   WerewolfCommandDispatchOutcome,
@@ -48,7 +49,6 @@ import { useWerewolfDebugMode } from './useWerewolfDebugMode';
 import { useWerewolfGameActions } from './useWerewolfGameActions';
 import { useWerewolfLastActionToast } from './useWerewolfLastActionToast';
 import { useWerewolfNightDerived } from './useWerewolfNightDerived';
-import { useWerewolfSeatCommands } from './useWerewolfSeatCommands';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Return type
@@ -204,7 +204,7 @@ interface UseWerewolfRoomResult {
   // BGM state management (needs isHost + gameState derived above)
   const bgm = useWerewolfBgmControl(isHost, gameState.status, gameState.isAudioPlaying);
 
-  const seatCommands = useWerewolfSeatCommands({ session, user });
+  const seatCommands = useStandardSeatCommands(session, user);
 
   // Takeover ownership (AU-14): bot control + lifecycle guard +
   // effective identity live in one hook; the debug hook below only

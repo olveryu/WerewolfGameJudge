@@ -157,7 +157,6 @@ function expectedCreatedFiles(gameId, preset) {
     `${client}/room/${gameId}GuidanceMatrix.ts`,
     `${client}/room/${gameId}RoomCommandFailureMessage.ts`,
     `${client}/room/hooks/use${pascal}RoomState.ts`,
-    `${client}/room/hooks/use${pascal}SeatCommands.ts`,
     `${client}/room/__tests__/${gameId}ShellModel.test.ts`,
     `${client}/room/__tests__/${gameId}RoomCommandFailureMessage.test.ts`,
     `${client}/__tests__/build${pascal}TestState.ts`,

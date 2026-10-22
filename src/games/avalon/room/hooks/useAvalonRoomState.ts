@@ -36,6 +36,7 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
@@ -66,7 +67,6 @@ import {
 } from '../avalonRoomAdapter';
 import { getAvalonRoomCommandFailureMessage } from '../avalonRoomCommandFailureMessage';
 import { useAvalonAudioOrchestration } from './useAvalonAudioOrchestration';
-import { useAvalonSeatCommands } from './useAvalonSeatCommands';
 
 /**
  * 阿瓦隆房间 Screen 的显式契约（P-2b，对齐狼人杀 WerewolfRoomScreenState 形态）：
@@ -187,7 +187,7 @@ export function useAvalonRoomState(
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot, takeOver } = botControl;
   const effectiveSeat = controlledSeat ?? mySeat;
-  const seats = useAvalonSeatCommands(session, user);
+  const seats = useStandardSeatCommands(session, user);
   const seatController = useRoomSeatController({ currentSeat: mySeat, takeSeat: seats.takeSeat });
   const profile = useRoomProfileController({
     myUserId: user.id,
