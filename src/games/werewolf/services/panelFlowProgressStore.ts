@@ -1,5 +1,6 @@
 /**
- * Local persistence for bottom-panel flow progress (see panelFlow.ts).
+ * Local persistence for bottom-panel flow progress (see
+ * games/werewolf/room/panelFlow.ts).
  *
  * One JSON record in MMKV, partitioned by (roomId, userId, game round)
  * — the round is the deal's roleRevealRandomNonce, so a redeal or a
@@ -8,11 +9,13 @@
  * cache only: it never enters room state, never crosses the wire, and
  * a corrupt or missing record degrades to "no progress yet".
  */
+import { z } from 'zod';
+
 import { PANEL_FLOW_PROGRESS_KEY } from '@/config/storageKeys';
 import { storage } from '@/services/infra/localStorage';
 
-import type { PanelFlowProgress } from './panelFlow';
-import { EMPTY_PANEL_FLOW_PROGRESS } from './panelFlow';
+import type { PanelFlowProgress } from '../room/panelFlow';
+import { EMPTY_PANEL_FLOW_PROGRESS } from '../room/panelFlow';
 
 /** Identifies one game's progress partition. */
 export interface PanelFlowScope {
@@ -21,35 +24,36 @@ export interface PanelFlowScope {
   readonly roleRevealRandomNonce: string | null;
 }
 
+const panelFlowProgressSchema = z.strictObject({
+  lastNightInfoConfirmed: z.boolean(),
+  nightReviewOpened: z.boolean(),
+});
+
+const panelFlowProgressRecordSchema = z.record(z.string(), z.unknown());
+
 type PanelFlowProgressRecord = Readonly<Record<string, PanelFlowProgress>>;
 
 function panelFlowScopeKey(scope: PanelFlowScope): string {
   return `${scope.roomId}:${scope.userId ?? 'anonymous'}:${scope.roleRevealRandomNonce ?? 'none'}`;
 }
 
-function isPanelFlowProgress(value: unknown): value is PanelFlowProgress {
-  if (typeof value !== 'object' || value === null) return false;
-  const candidate = value as { lastNightInfoConfirmed?: unknown; nightReviewOpened?: unknown };
-  return (
-    typeof candidate.lastNightInfoConfirmed === 'boolean' &&
-    typeof candidate.nightReviewOpened === 'boolean'
-  );
-}
-
 function readRecord(): PanelFlowProgressRecord {
   const raw = storage.getString(PANEL_FLOW_PROGRESS_KEY);
   if (raw === undefined) return {};
+  let parsed: unknown;
   try {
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {};
-    const record: Record<string, PanelFlowProgress> = {};
-    for (const [key, value] of Object.entries(parsed)) {
-      if (isPanelFlowProgress(value)) record[key] = value;
-    }
-    return record;
+    parsed = JSON.parse(raw);
   } catch {
     return {};
   }
+  const recordResult = panelFlowProgressRecordSchema.safeParse(parsed);
+  if (!recordResult.success) return {};
+  const record: Record<string, PanelFlowProgress> = {};
+  for (const [key, value] of Object.entries(recordResult.data)) {
+    const entry = panelFlowProgressSchema.safeParse(value);
+    if (entry.success) record[key] = entry.data;
+  }
+  return record;
 }
 
 export function readPanelFlowProgress(scope: PanelFlowScope): PanelFlowProgress {

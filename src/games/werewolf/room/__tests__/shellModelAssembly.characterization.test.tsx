@@ -171,12 +171,22 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
 
     expect(model.bottomActions.kind).toBe('stacked');
     if (model.bottomActions.kind === 'stacked') {
-      expect(model.bottomActions.message).toBe('请选择要查验的玩家，如不使用请点击「不用技能」');
-      expect(model.bottomActions.layout.primary).toEqual([]);
-      expect(model.bottomActions.layout.secondary.map((a) => [a.key, a.label, a.variant])).toEqual([
-        ['viewRole', '查看身份', 'secondary'],
+      // The Ended bottom is the panel flow: the step bar takes the
+      // message row, the current step is the only primary, and view
+      // identity is a ghost tool.
+      expect(model.bottomActions.message).toBeNull();
+      expect(model.bottomActions.steps?.map((step) => [step.key, step.state])).toEqual([
+        ['lastNightInfo', 'current'],
+        ['nightReview', 'upcoming'],
+        ['closing', 'upcoming'],
       ]);
-      expect(model.bottomActions.layout.ghost).toEqual([]);
+      expect(model.bottomActions.layout.primary.map((a) => [a.key, a.label, a.variant])).toEqual([
+        ['lastNightInfo', '昨夜信息', 'primary'],
+      ]);
+      expect(model.bottomActions.layout.secondary).toEqual([]);
+      expect(model.bottomActions.layout.ghost.map((a) => [a.key, a.label, a.variant])).toEqual([
+        ['viewRole', '查看身份', 'ghost'],
+      ]);
     }
   });
 

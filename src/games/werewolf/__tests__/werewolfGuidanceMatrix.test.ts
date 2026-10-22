@@ -233,7 +233,7 @@ describe('WEREWOLF_GUIDANCE_MATRIX', () => {
     }
   });
 
-  it('keeps the Ended host line to the settlement sentence while non-hosts name the operator', () => {
+  it('gives Ended no guide line for any viewer — the panel flow step bar carries it', () => {
     const gameState = createLocalGameState({ status: GameStatus.Ended });
     expect(
       buildWerewolfGuideMessage({
@@ -242,7 +242,7 @@ describe('WEREWOLF_GUIDANCE_MATRIX', () => {
         mySeat: 0,
         gameState,
       }),
-    ).toBe('天亮了');
+    ).toBeNull();
     expect(
       buildWerewolfGuideMessage({
         isHost: false,
@@ -250,7 +250,15 @@ describe('WEREWOLF_GUIDANCE_MATRIX', () => {
         mySeat: 1,
         gameState,
       }),
-    ).toBe('天亮了 → 昨夜信息/本局复盘由1号玩家操作');
+    ).toBeNull();
+    expect(
+      buildWerewolfGuideMessage({
+        isHost: false,
+        roomStatus: GameStatus.Ended,
+        mySeat: null,
+        gameState,
+      }),
+    ).toBeNull();
   });
 
   it('addresses the Assigned spectator as a waiter, never as a card holder', () => {

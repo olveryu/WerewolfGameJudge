@@ -22,6 +22,7 @@ const mockIsMiniProgram = jest.mocked(isMiniProgram);
 
 function createDeps(
   beginReportCapture: () => Promise<string | null>,
+  overrides: Partial<Parameters<typeof useRoomModals>[0]> = {},
 ): Parameters<typeof useRoomModals>[0] {
   return {
     reportScopeKey: 'report-1',
@@ -36,6 +37,9 @@ function createDeps(
     shareNightReviewReport: async () => {
       throw new Error('Unexpected night-review report share call');
     },
+    isGameEnded: false,
+    onLastNightInfoConfirmed: () => undefined,
+    ...overrides,
   };
 }
 
@@ -104,5 +108,55 @@ describe('useRoomModals night-review report preparation', () => {
     await waitFor(() => expect(mockShowAlert).toHaveBeenCalledTimes(2));
     expect(getShareButton(0)).toMatchObject({ loading: true });
     expect(getShareButton(1)).toMatchObject({ loading: false });
+  });
+});
+
+describe('useRoomModals last-night info confirmation', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockShowAlert.mockReturnValue(true);
+  });
+
+  function pressLastNightInfoConfirm() {
+    const confirmCall = mockShowAlert.mock.calls.find((call) => call[0] === '提示');
+    const confirmButton = confirmCall?.[2]?.find(({ text }) => text === '确定查看');
+    expect(confirmButton).toBeDefined();
+    act(() => {
+      void confirmButton?.onPress?.();
+    });
+  }
+
+  it('warns about the sheriff election mid-game and completes the flow step on confirm', () => {
+    const onLastNightInfoConfirmed = jest.fn();
+    const deps = createDeps(async () => null, {
+      getLastNightInfo: () => '昨夜平安夜',
+      onLastNightInfoConfirmed,
+    });
+    const { result } = renderHook(() => useRoomModals(deps));
+
+    act(() => result.current.showLastNightInfo());
+
+    expect(mockShowAlert).toHaveBeenCalledWith(
+      '提示',
+      '昨夜信息可能影响警长竞选，请确认是否现在查看。',
+      expect.anything(),
+    );
+    expect(onLastNightInfoConfirmed).not.toHaveBeenCalled();
+
+    pressLastNightInfoConfirm();
+
+    expect(onLastNightInfoConfirmed).toHaveBeenCalledTimes(1);
+    expect(mockShowAlert).toHaveBeenCalledWith('昨夜信息', '昨夜平安夜', expect.anything());
+  });
+
+  it('drops the election warning once the game has ended', () => {
+    const deps = createDeps(async () => null, { isGameEnded: true });
+    const { result } = renderHook(() => useRoomModals(deps));
+
+    act(() => result.current.showLastNightInfo());
+
+    const confirmCall = mockShowAlert.mock.calls.find((call) => call[0] === '提示');
+    expect(confirmCall?.[1]).toBe('请确认是否现在查看昨夜信息。');
+    expect(confirmCall?.[1]).not.toContain('警长竞选');
   });
 });

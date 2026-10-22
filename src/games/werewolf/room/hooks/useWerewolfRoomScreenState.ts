@@ -45,12 +45,12 @@ import type { RootStackParamList } from '@/navigation/types';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
-import type { PanelFlowProgress } from '../panelFlow';
 import {
   type PanelFlowScope,
   readPanelFlowProgress,
   recordPanelFlowProgress,
-} from '../panelFlowProgressStore';
+} from '../../services/panelFlowProgressStore';
+import type { PanelFlowProgress } from '../panelFlow';
 import type { ActionIntent, HostControlEvent } from '../policy/types';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
 import { useRoomHostDialogs } from '../useRoomHostDialogs';
