@@ -2,8 +2,8 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
-import { memo, useEffect, useMemo, useRef } from 'react';
-import { Animated, Platform, Text, View } from 'react-native';
+import { Fragment, memo, useEffect, useMemo, useRef } from 'react';
+import { Animated, Platform, Pressable, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import type { RoomHostConsolePrimary } from '@/features/room/model/resolveHostConsolePrimary';
@@ -13,6 +13,7 @@ import type {
   RoomBottomButton,
   RoomBottomDockModel,
   RoomBottomToolButton,
+  RoomPanelStep,
 } from '@/features/room/model/RoomBottomActions';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
@@ -76,8 +77,10 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
     model.layout.secondary.length > 0 ||
     model.layout.ghost.length > 0;
   const message = model.message;
-  const hasMessage = message !== null && message.length > 0;
-  if (!hasButtons && !hasMessage && model.progress === null) return null;
+  const steps = model.kind === 'stacked' ? (model.steps ?? null) : null;
+  const hint = model.kind === 'stacked' ? (model.hint ?? null) : null;
+  const hasMessage = steps === null && message !== null && message.length > 0;
+  if (!hasButtons && !hasMessage && steps === null && model.progress === null) return null;
 
   const isCompact = isCompactHeight === true;
   const containerStyle = [
@@ -101,17 +104,25 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
         </View>
       )}
 
-      {hasMessage && (
-        <Animated.Text
-          style={[
-            styles.message,
-            isCompact && styles.messageCompact,
-            { opacity: messageFade, transform: [{ translateY: messageSlide }] },
-          ]}
-          testID={TESTIDS.actionMessage}
-        >
-          {message}
-        </Animated.Text>
+      {steps !== null ? (
+        <PanelStepsRow steps={steps} styles={styles} isCompact={isCompact} />
+      ) : (
+        hasMessage && (
+          <Animated.Text
+            style={[
+              styles.message,
+              isCompact && styles.messageCompact,
+              { opacity: messageFade, transform: [{ translateY: messageSlide }] },
+            ]}
+            testID={TESTIDS.actionMessage}
+          >
+            {message}
+          </Animated.Text>
+        )
+      )}
+
+      {hint !== null && hint.length > 0 && (
+        <Text style={[styles.hint, isCompact && styles.hintCompact]}>{hint}</Text>
       )}
 
       {model.kind === 'dock' ? (
@@ -132,6 +143,51 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
     </View>
   );
 };
+
+/**
+ * Guided step flow rendered in the panel's message row. Completed
+ * steps show a check; the current step is highlighted; only steps
+ * carrying an onPress (completed / current) respond to taps.
+ */
+const PanelStepsRow: React.FC<{
+  readonly steps: readonly RoomPanelStep[];
+  readonly styles: BottomActionPanelStyles;
+  readonly isCompact: boolean;
+}> = ({ steps, styles, isCompact }) => (
+  <View style={[styles.stepsRow, isCompact && styles.stepsRowCompact]}>
+    {steps.map((step, index) => (
+      <Fragment key={step.key}>
+        {index > 0 && <Text style={styles.stepSeparator}>→</Text>}
+        <Pressable
+          style={styles.stepItem}
+          onPress={step.onPress}
+          disabled={step.onPress === undefined}
+          accessibilityRole="button"
+          accessibilityLabel={step.label}
+        >
+          {step.state === 'complete' && (
+            <Ionicons
+              name="checkmark-circle"
+              size={componentSizes.icon.sm}
+              color={colors.success}
+            />
+          )}
+          <Text
+            style={
+              step.state === 'complete'
+                ? styles.stepLabelComplete
+                : step.state === 'current'
+                  ? styles.stepLabelCurrent
+                  : styles.stepLabelUpcoming
+            }
+          >
+            {step.label}
+          </Text>
+        </Pressable>
+      </Fragment>
+    ))}
+  </View>
+);
 
 const DockActions: React.FC<{
   readonly model: RoomBottomDockModel;
@@ -179,16 +235,20 @@ const StackedActions: React.FC<{
   readonly onOpenHostManagement: () => void;
   readonly styles: BottomActionPanelStyles;
 }> = ({ model, hostManagement, onOpenHostManagement, styles }) => {
-  const hasPlayerActions = model.layout.primary.length > 0 || model.layout.secondary.length > 0;
   return (
     <View style={styles.compactManagementStack}>
-      {hasPlayerActions && (
+      {model.layout.primary.length > 0 && (
         <View style={styles.buttonRow}>
           {model.layout.primary.map((button) => (
             <LayoutButton key={button.key} model={button} />
           ))}
+        </View>
+      )}
+
+      {model.layout.secondary.length > 0 && (
+        <View style={styles.secondaryRow}>
           {model.layout.secondary.map((button) => (
-            <LayoutButton key={button.key} model={button} />
+            <LayoutButton key={button.key} model={button} style={styles.secondaryButton} />
           ))}
         </View>
       )}
@@ -376,7 +436,7 @@ const LayoutButton: React.FC<{
 
   if (model.disabledReason === null || model.disabledReason.length === 0) return button;
   return (
-    <View>
+    <View style={style}>
       {button}
       <DisabledReasonCaption reason={model.disabledReason} />
     </View>

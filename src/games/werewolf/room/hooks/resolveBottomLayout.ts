@@ -10,6 +10,11 @@
 
 import type { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
+import {
+  AUDIO_PLAYBACK_LOCK_REASON,
+  isAudioPlaybackLocked,
+} from '@/features/room/model/audioPlaybackLock';
+
 import type { BottomButton } from './bottomActionBuilder';
 import {
   type BottomLayout,
@@ -66,18 +71,29 @@ function classifySchemaButtons(buttons: readonly BottomButton[]): {
 // Static button materialization
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Closing actions: state-changing, so the audio playback lock holds them like the sheet's copies. */
+const AUDIO_LOCKED_STATIC_BUTTONS: ReadonlySet<StaticButtonId> = new Set([
+  'nextRound',
+  'returnToLobby',
+]);
+
 function materializeStaticButton(
   id: StaticButtonId,
   tier: 'primary' | 'secondary' | 'ghost',
+  ctx: LayoutContext,
 ): ButtonConfig {
   const def = STATIC_BUTTONS[id];
   const base = {
     key: id,
     label: def.label,
-    variant: tier,
+    variant: def.variantOverride ?? tier,
     size: tier === 'primary' ? 'lg' : 'md',
     testID: def.testID,
   } as const;
+
+  if (AUDIO_LOCKED_STATIC_BUTTONS.has(id) && isAudioPlaybackLocked(ctx.isAudioPlaying)) {
+    return { ...base, isEnabled: false, disabledReason: AUDIO_PLAYBACK_LOCK_REASON };
+  }
 
   switch (id) {
     case 'waitForHost':
@@ -118,7 +134,7 @@ function materializeSlots(
     if (slot.source === 'static') {
       // Invariant: viewRole requires a seat (you need a role to view)
       if (slot.button === 'viewRole' && ctx.effectiveSeat === null) continue;
-      result.push(materializeStaticButton(slot.button, tier));
+      result.push(materializeStaticButton(slot.button, tier, ctx));
     } else {
       // Schema slot — pick from classified primary or secondary
       const source =

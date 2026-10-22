@@ -1,4 +1,5 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import type { RoomBottomActionModel } from '@/features/room/model/RoomBottomActions';
 import type {
@@ -530,6 +531,86 @@ describe('RoomBottomActionPanel', () => {
       );
       expect(screen.queryByTestId(TESTIDS.roomNextStepButton)).toBeNull();
       expect(screen.queryByTestId(TESTIDS.roomNextStepRemedyButton)).toBeNull();
+    });
+  });
+
+  describe('guided step flow', () => {
+    const dangerButton = (key: string, label: string, testID: string) => ({
+      key,
+      label,
+      variant: 'danger' as const,
+      size: 'md' as const,
+      isEnabled: true as const,
+      onPress: jest.fn(),
+      testID,
+    });
+
+    it('renders secondary actions side by side, each flexing to equal width', () => {
+      const model: RoomBottomActionModel = {
+        kind: 'stacked',
+        message: null,
+        progress: null,
+        layout: {
+          primary: [],
+          secondary: [
+            dangerButton('nextRound', '再来一局', TESTIDS.nextRoundBottomButton),
+            dangerButton('returnToLobby', '返回大厅', TESTIDS.returnLobbyBottomButton),
+          ],
+          ghost: [],
+        },
+      };
+      const { getByTestId } = renderPanel(model);
+
+      for (const testID of [TESTIDS.nextRoundBottomButton, TESTIDS.returnLobbyBottomButton]) {
+        const element = getByTestId(testID);
+        expect(element).toBeTruthy();
+        expect(StyleSheet.flatten(element.props.style)).toMatchObject({ flex: 1 });
+      }
+    });
+
+    it('renders the step bar in place of the message and wires complete/current presses', () => {
+      const onRevisit = jest.fn();
+      const onCurrent = jest.fn();
+      const model: RoomBottomActionModel = {
+        kind: 'stacked',
+        message: '不应出现的消息',
+        progress: null,
+        steps: [
+          { key: 'lastNightInfo', label: '昨夜信息', state: 'complete', onPress: onRevisit },
+          { key: 'nightReview', label: '本局复盘', state: 'current', onPress: onCurrent },
+          { key: 'closing', label: '收尾', state: 'upcoming' },
+        ],
+        layout: { primary: [], secondary: [], ghost: [] },
+      };
+      const { getByText, queryByText, queryByTestId } = renderPanel(model);
+
+      expect(queryByTestId(TESTIDS.actionMessage)).toBeNull();
+      expect(queryByText('不应出现的消息')).toBeNull();
+      expect(getByText('昨夜信息')).toBeTruthy();
+      expect(getByText('本局复盘')).toBeTruthy();
+      expect(getByText('收尾')).toBeTruthy();
+
+      fireEvent.press(getByText('昨夜信息'));
+      expect(onRevisit).toHaveBeenCalledTimes(1);
+      fireEvent.press(getByText('本局复盘'));
+      expect(onCurrent).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders the hint line above the buttons', () => {
+      const model: RoomBottomActionModel = {
+        kind: 'stacked',
+        message: null,
+        progress: null,
+        steps: [
+          { key: 'lastNightInfo', label: '昨夜信息', state: 'complete' },
+          { key: 'nightReview', label: '本局复盘', state: 'current' },
+          { key: 'closing', label: '收尾', state: 'upcoming' },
+        ],
+        hint: '记得把复盘分享给第一天出局的玩家',
+        layout: { primary: [], secondary: [], ghost: [] },
+      };
+      const { getByText } = renderPanel(model);
+      expect(getByText('记得把复盘分享给第一天出局的玩家')).toBeTruthy();
     });
   });
 });

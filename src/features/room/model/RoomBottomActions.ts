@@ -15,7 +15,7 @@ type RoomBottomActionAvailability =
 interface RoomBottomButtonBase {
   readonly key: string;
   readonly label: string;
-  readonly variant: 'primary' | 'secondary' | 'ghost';
+  readonly variant: 'primary' | 'secondary' | 'ghost' | 'danger';
   readonly size: 'lg' | 'md';
   readonly testID?: string;
   readonly textColor?: string;
@@ -161,12 +161,33 @@ export interface RoomBottomActionLayout {
   readonly ghost: readonly RoomBottomButton[];
 }
 
+/**
+ * One entry of a guided step flow rendered in place of the stacked
+ * panel's message line (e.g. a phase's "next action" sequence). The
+ * current step mirrors the panel's primary button; completed steps may
+ * carry an onPress to revisit their surface, upcoming steps are inert.
+ * Games that never run a step flow simply never set `steps`.
+ */
+export interface RoomPanelStep {
+  readonly key: string;
+  readonly label: string;
+  readonly state: 'complete' | 'current' | 'upcoming';
+  readonly onPress?: () => void;
+}
+
 export interface RoomBottomStackModel {
   readonly kind: 'stacked';
   readonly message: string | null;
   /** Step progress for stepped phases (night sequences, relay chains); null elsewhere. */
   readonly progress: NightStepProgress | null;
   readonly layout: RoomBottomActionLayout;
+  /**
+   * Guided step flow for the message row. When non-null it replaces
+   * the message text line; null/absent keeps the plain message line.
+   */
+  readonly steps?: readonly RoomPanelStep[] | null;
+  /** Small caption rendered directly above the buttons (e.g. a step reminder); null/absent renders nothing. */
+  readonly hint?: string | null;
 }
 
 export interface RoomBottomDockModel {

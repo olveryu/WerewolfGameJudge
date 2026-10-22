@@ -501,6 +501,83 @@ describe('createWerewolfRoomShellModel', () => {
     }
   });
 
+  it('renders the Ended panel flow as a step bar instead of a message', () => {
+    const onLastNightInfo = jest.fn();
+    const onNightReview = jest.fn();
+    const model = createWerewolfRoomShellModel(
+      createShellModelInput({
+        roomStatus: GameStatus.Ended,
+        isHost: true,
+        actionMessage: '对局结束',
+        panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
+        onLastNightInfo,
+        onNightReview,
+      }),
+    );
+    expect(model.bottomActions.kind).toBe('stacked');
+    if (model.bottomActions.kind === 'stacked') {
+      expect(model.bottomActions.message).toBeNull();
+      expect(model.bottomActions.hint).toBeNull();
+      expect(model.bottomActions.steps?.map((step) => [step.key, step.state])).toEqual([
+        ['lastNightInfo', 'current'],
+        ['nightReview', 'upcoming'],
+        ['closing', 'upcoming'],
+      ]);
+      // The current step press is the same handler as the panel primary.
+      model.bottomActions.steps?.[0]?.onPress?.();
+      expect(onLastNightInfo).toHaveBeenCalledTimes(1);
+      // Upcoming steps are inert.
+      expect(model.bottomActions.steps?.[1]?.onPress).toBeUndefined();
+    }
+  });
+
+  it('shows the host share hint while the Ended review step is current', () => {
+    const model = createWerewolfRoomShellModel(
+      createShellModelInput({
+        roomStatus: GameStatus.Ended,
+        isHost: true,
+        panelFlow: { lastNightInfoConfirmed: true, nightReviewOpened: false },
+      }),
+    );
+    expect(model.bottomActions.kind).toBe('stacked');
+    if (model.bottomActions.kind === 'stacked') {
+      expect(model.bottomActions.hint).toBe('记得把复盘分享给第一天出局的玩家');
+      expect(model.bottomActions.steps?.map((step) => step.state)).toEqual([
+        'complete',
+        'current',
+        'upcoming',
+      ]);
+    }
+
+    const guest = createWerewolfRoomShellModel(
+      createShellModelInput({
+        roomStatus: GameStatus.Ended,
+        isHost: false,
+        panelFlow: { lastNightInfoConfirmed: true, nightReviewOpened: false },
+      }),
+    );
+    if (guest.bottomActions.kind === 'stacked') {
+      expect(guest.bottomActions.hint).toBeNull();
+    }
+  });
+
+  it('puts the step bar on the Day panel too (first step = last-night info)', () => {
+    const model = createWerewolfRoomShellModel(
+      createShellModelInput({
+        roomStatus: GameStatus.Day,
+        panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
+      }),
+    );
+    expect(model.bottomActions.kind).toBe('stacked');
+    if (model.bottomActions.kind === 'stacked') {
+      expect(model.bottomActions.steps?.map((step) => [step.key, step.state])).toEqual([
+        ['lastNightInfo', 'current'],
+        ['nightReview', 'upcoming'],
+        ['closing', 'upcoming'],
+      ]);
+    }
+  });
+
   it('disables the seat board visually during host audio or action submission', () => {
     const audio = createWerewolfRoomShellModel(
       createShellModelInput({ roomStatus: GameStatus.Ongoing, isAudioPlaying: true }),

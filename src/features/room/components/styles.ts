@@ -15,7 +15,18 @@ export interface BottomActionPanelStyles {
   progressRowCompact: ViewStyle;
   message: TextStyle;
   messageCompact: TextStyle;
+  stepsRow: ViewStyle;
+  stepsRowCompact: ViewStyle;
+  stepItem: ViewStyle;
+  stepLabelComplete: TextStyle;
+  stepLabelCurrent: TextStyle;
+  stepLabelUpcoming: TextStyle;
+  stepSeparator: TextStyle;
+  hint: TextStyle;
+  hintCompact: TextStyle;
   buttonRow: ViewStyle;
+  secondaryRow: ViewStyle;
+  secondaryButton: ViewStyle;
   compactManagementStack: ViewStyle;
   ghostRow: ViewStyle;
   dockRow: ViewStyle;

@@ -86,6 +86,8 @@ export const TESTIDS = {
   audioWaitingButton: 'audio-waiting-button',
   lastNightInfoButton: 'last-night-info-button',
   lastNightInfoBottomButton: 'last-night-info-bottom-button',
+  nextRoundBottomButton: 'next-round-bottom-button',
+  returnLobbyBottomButton: 'return-lobby-bottom-button',
   chooseBottomCardModal: 'choose-bottom-card-modal',
   chooseBottomCardOption: (cardIndex: number) => `choose-bottom-card-option-${cardIndex}`,
   bgmToggleButton: 'bgm-toggle-button',

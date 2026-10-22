@@ -18,9 +18,13 @@ function makeCtx(overrides: Partial<LayoutContext> = {}): LayoutContext {
     imActioner: false,
     isAudioPlaying: false,
     nightReviewAllowedSeats: [],
+    panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
     ...overrides,
   };
 }
+
+const FLOW_INFO_CONFIRMED = { lastNightInfoConfirmed: true, nightReviewOpened: false } as const;
+const FLOW_DONE = { lastNightInfoConfirmed: true, nightReviewOpened: true } as const;
 
 /** Extract keys from a tier for concise assertions. */
 function keys(layout: BottomLayout, tier: 'primary' | 'secondary' | 'ghost'): string[] {
@@ -107,20 +111,20 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Assigned', () => {
-    it('host → primary: viewRole only', () => {
+    it('host → ghost: viewRole only (identity is a tool, not a step)', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Assigned, isHost: true, effectiveSeat: 0 }),
       );
-      expect(keys(layout, 'primary')).toEqual(['viewRole']);
-      expect(keys(layout, 'ghost')).toEqual([]);
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
     });
 
-    it('player → primary: viewRole only', () => {
+    it('player → ghost: viewRole only', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Assigned, isHost: false, effectiveSeat: 1 }),
       );
-      expect(keys(layout, 'primary')).toEqual(['viewRole']);
-      expect(keys(layout, 'ghost')).toEqual([]);
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
     });
 
     it('spectator → empty', () => {
@@ -136,12 +140,12 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Ready', () => {
-    it('host → primary: viewRole', () => {
+    it('host → ghost: viewRole', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Ready, isHost: true, effectiveSeat: 0 }),
       );
-      expect(keys(layout, 'primary')).toEqual(['viewRole']);
-      expect(keys(layout, 'ghost')).toEqual([]);
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
     });
 
     it('host and player receive the same personal action', () => {
@@ -152,15 +156,15 @@ describe('resolveBottomLayout', () => {
           effectiveSeat: 0,
         }),
       );
-      expect(keys(layout, 'primary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
     });
 
-    it('player → primary: viewRole', () => {
+    it('player → ghost: viewRole', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Ready, isHost: false, effectiveSeat: 1 }),
       );
-      expect(keys(layout, 'primary')).toEqual(['viewRole']);
-      expect(keys(layout, 'ghost')).toEqual([]);
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
     });
   });
 
@@ -169,7 +173,7 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Ongoing (non-actioner)', () => {
-    it('host → primary: viewRole only', () => {
+    it('host → ghost: viewRole only', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ongoing,
@@ -178,11 +182,11 @@ describe('resolveBottomLayout', () => {
           imActioner: false,
         }),
       );
-      expect(keys(layout, 'primary')).toEqual(['viewRole']);
-      expect(keys(layout, 'ghost')).toEqual([]);
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
     });
 
-    it('player → primary: viewRole', () => {
+    it('player → ghost: viewRole', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ongoing,
@@ -191,8 +195,8 @@ describe('resolveBottomLayout', () => {
           imActioner: false,
         }),
       );
-      expect(keys(layout, 'primary')).toEqual(['viewRole']);
-      expect(keys(layout, 'ghost')).toEqual([]);
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
     });
 
     it('spectator → empty', () => {
@@ -430,20 +434,49 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Day', () => {
-    it('host → primary: viewRole, secondary: lastNightInfo + nightReview', () => {
+    it('host, flow step pending → primary: lastNightInfo, ghost: viewRole + nightReview', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Day, isHost: true, effectiveSeat: 0 }),
       );
 
-      expect(keys(layout, 'primary')).toEqual(['viewRole']);
-      expect(keys(layout, 'secondary')).toEqual(['lastNightInfo', 'nightReview']);
-      expect(layout.secondary.map((button) => button.label)).toEqual(['昨夜信息', '本局复盘']);
-      expect(layout.secondary.map((button) => button.testID)).toEqual([
-        TESTIDS.lastNightInfoBottomButton,
-        TESTIDS.nightReviewBottomButton,
-      ]);
-      expect(keys(layout, 'ghost')).toEqual([]);
-      expect(layout.primary[0]).toMatchObject({ isEnabled: true });
+      expect(keys(layout, 'primary')).toEqual(['lastNightInfo']);
+      expect(layout.primary[0]).toMatchObject({
+        label: '昨夜信息',
+        testID: TESTIDS.lastNightInfoBottomButton,
+        isEnabled: true,
+      });
+      expect(keys(layout, 'secondary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole', 'nightReview']);
+      expect(layout.ghost[1]).toMatchObject({ testID: TESTIDS.nightReviewBottomButton });
+    });
+
+    it('host, info confirmed → flow pauses: ghost tools only', () => {
+      const layout = resolveBottomLayout(
+        makeCtx({
+          roomStatus: GameStatus.Day,
+          isHost: true,
+          effectiveSeat: 0,
+          panelFlow: FLOW_INFO_CONFIRMED,
+        }),
+      );
+
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'secondary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole', 'lastNightInfo', 'nightReview']);
+    });
+
+    it('player, info confirmed, no review permission → ghost: viewRole + lastNightInfo', () => {
+      const layout = resolveBottomLayout(
+        makeCtx({
+          roomStatus: GameStatus.Day,
+          isHost: false,
+          effectiveSeat: 1,
+          panelFlow: FLOW_INFO_CONFIRMED,
+        }),
+      );
+
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole', 'lastNightInfo']);
     });
 
     // The night-end announcement opens Day with narration still
@@ -481,7 +514,7 @@ describe('resolveBottomLayout', () => {
       expect(keys(layout, 'ghost')).toEqual([]);
     });
 
-    it('spectator during audio → nightReview remains (read-only surface, no collapse)', () => {
+    it('spectator during audio → flow surface remains (read-only, no collapse)', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Day,
@@ -491,27 +524,42 @@ describe('resolveBottomLayout', () => {
         }),
       );
 
-      expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual(['nightReview']);
+      expect(keys(layout, 'primary')).toEqual(['lastNightInfo']);
+      expect(layout.primary[0]).toMatchObject({ isEnabled: true });
+      expect(keys(layout, 'ghost')).toEqual(['nightReview']);
     });
 
-    it('player → primary: viewRole', () => {
+    it('player with review permission → primary: lastNightInfo, ghost: viewRole + nightReview', () => {
+      const layout = resolveBottomLayout(
+        makeCtx({
+          roomStatus: GameStatus.Day,
+          isHost: false,
+          effectiveSeat: 1,
+          nightReviewAllowedSeats: [1],
+        }),
+      );
+
+      expect(keys(layout, 'primary')).toEqual(['lastNightInfo']);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole', 'nightReview']);
+    });
+
+    it('player without review permission → primary: lastNightInfo, ghost: viewRole', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Day, isHost: false, effectiveSeat: 1 }),
       );
 
-      expect(keys(layout, 'primary')).toEqual(['viewRole']);
-      expect(keys(layout, 'ghost')).toEqual([]);
+      expect(keys(layout, 'primary')).toEqual(['lastNightInfo']);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
     });
 
-    it('spectator → secondary: nightReview', () => {
+    it('spectator → primary: lastNightInfo, ghost: nightReview', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Day, isHost: false, effectiveSeat: null }),
       );
 
-      expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual(['nightReview']);
-      expect(keys(layout, 'ghost')).toEqual([]);
+      expect(keys(layout, 'primary')).toEqual(['lastNightInfo']);
+      expect(keys(layout, 'secondary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual(['nightReview']);
     });
   });
 
@@ -520,41 +568,75 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Ended', () => {
-    it('host → secondary: viewRole + lastNightInfo + nightReview', () => {
+    it('host, fresh progress → primary: lastNightInfo, ghost: viewRole', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Ended, isHost: true, effectiveSeat: 0 }),
       );
-      expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual(['viewRole', 'lastNightInfo', 'nightReview']);
-      expect(layout.secondary.map((button) => button.label)).toEqual([
-        '查看身份',
-        '昨夜信息',
-        '本局复盘',
-      ]);
-      expect(layout.secondary.map((button) => button.testID)).toEqual([
-        undefined,
-        TESTIDS.lastNightInfoBottomButton,
-        TESTIDS.nightReviewBottomButton,
-      ]);
-      expect(keys(layout, 'ghost')).toEqual([]);
+      expect(keys(layout, 'primary')).toEqual(['lastNightInfo']);
+      expect(layout.primary[0]).toMatchObject({
+        label: '昨夜信息',
+        testID: TESTIDS.lastNightInfoBottomButton,
+      });
+      expect(keys(layout, 'secondary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
     });
 
-    it('player with review permission → secondary: viewRole + nightReview', () => {
+    it('host, info confirmed in Day → Ended starts at the review step (progress carries over)', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ended,
-          isHost: false,
-          effectiveSeat: 2,
-          nightReviewAllowedSeats: [2, 4],
+          isHost: true,
+          effectiveSeat: 0,
+          panelFlow: FLOW_INFO_CONFIRMED,
+        }),
+      );
+      expect(keys(layout, 'primary')).toEqual(['nightReview']);
+      expect(layout.primary[0]).toMatchObject({
+        label: '本局复盘',
+        testID: TESTIDS.nightReviewBottomButton,
+      });
+      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+    });
+
+    it('host, flow done → danger closing row: nextRound + returnToLobby', () => {
+      const layout = resolveBottomLayout(
+        makeCtx({
+          roomStatus: GameStatus.Ended,
+          isHost: true,
+          effectiveSeat: 0,
+          panelFlow: FLOW_DONE,
         }),
       );
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual(['viewRole', 'nightReview']);
-      expect(layout.secondary[1]?.label).toBe('本局复盘');
-      expect(keys(layout, 'ghost')).toEqual([]);
+      expect(keys(layout, 'secondary')).toEqual(['nextRound', 'returnToLobby']);
+      expect(layout.secondary.map((button) => button.label)).toEqual(['再来一局', '返回大厅']);
+      expect(layout.secondary.map((button) => button.variant)).toEqual(['danger', 'danger']);
+      expect(layout.secondary.map((button) => button.testID)).toEqual([
+        TESTIDS.nextRoundBottomButton,
+        TESTIDS.returnLobbyBottomButton,
+      ]);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
     });
 
-    it('player without nightReview permission → primary: viewRole only', () => {
+    it('host, flow done, audio playing → closing actions held by the audio lock', () => {
+      const layout = resolveBottomLayout(
+        makeCtx({
+          roomStatus: GameStatus.Ended,
+          isHost: true,
+          effectiveSeat: 0,
+          panelFlow: FLOW_DONE,
+          isAudioPlaying: true,
+        }),
+      );
+      expect(keys(layout, 'secondary')).toEqual(['nextRound', 'returnToLobby']);
+      for (const button of layout.secondary) {
+        expect(button).toMatchObject({ isEnabled: false, disabledReason: '语音播报中，请稍候' });
+      }
+      // The read-only ghost tool stays available under the lock.
+      expect(layout.ghost[0]).toMatchObject({ key: 'viewRole', isEnabled: true });
+    });
+
+    it('player, fresh progress → primary: lastNightInfo regardless of review permission', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ended,
@@ -563,12 +645,26 @@ describe('resolveBottomLayout', () => {
           nightReviewAllowedSeats: [0, 4],
         }),
       );
-      expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
-      expect(keys(layout, 'ghost')).toEqual([]);
+      expect(keys(layout, 'primary')).toEqual(['lastNightInfo']);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
     });
 
-    it('spectator → secondary: nightReview only', () => {
+    it('player, flow done → secondary: returnToLobby only', () => {
+      const layout = resolveBottomLayout(
+        makeCtx({
+          roomStatus: GameStatus.Ended,
+          isHost: false,
+          effectiveSeat: 2,
+          panelFlow: FLOW_DONE,
+        }),
+      );
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'secondary')).toEqual(['returnToLobby']);
+      expect(layout.secondary[0]).toMatchObject({ variant: 'danger', isEnabled: true });
+      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+    });
+
+    it('spectator, fresh progress → primary: lastNightInfo', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ended,
@@ -576,8 +672,21 @@ describe('resolveBottomLayout', () => {
           effectiveSeat: null,
         }),
       );
-      expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual(['nightReview']);
+      expect(keys(layout, 'primary')).toEqual(['lastNightInfo']);
+      expect(keys(layout, 'ghost')).toEqual([]);
+    });
+
+    it('spectator, flow done → secondary: returnToLobby only', () => {
+      const layout = resolveBottomLayout(
+        makeCtx({
+          roomStatus: GameStatus.Ended,
+          isHost: false,
+          effectiveSeat: null,
+          panelFlow: FLOW_DONE,
+        }),
+      );
+      expect(keys(layout, 'secondary')).toEqual(['returnToLobby']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
   });
 
@@ -630,8 +739,9 @@ describe('resolveBottomLayout', () => {
 
     it('variant correctness: primary buttons get variant=primary', () => {
       const layout = resolveBottomLayout(
-        makeCtx({ roomStatus: GameStatus.Ready, isHost: true, effectiveSeat: 0 }),
+        makeCtx({ roomStatus: GameStatus.Day, isHost: true, effectiveSeat: 0 }),
       );
+      expect(layout.primary.length).toBeGreaterThan(0);
       for (const btn of layout.primary) {
         expect(btn.variant).toBe('primary');
       }

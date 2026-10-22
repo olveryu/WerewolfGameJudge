@@ -42,6 +42,8 @@ import type {
   StaticButtonAction,
 } from '@/games/werewolf/room/hooks/bottomLayoutConfig';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
+import type { PanelFlowProgress } from '@/games/werewolf/room/panelFlow';
+import { buildPanelFlowSteps, resolvePanelFlowHint } from '@/games/werewolf/room/panelFlow';
 import type { ActionIntent, HostControlEvent } from '@/games/werewolf/room/policy/types';
 import { createSheriffElectionDockModel } from '@/games/werewolf/room/sheriffElectionDockModel';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
@@ -347,6 +349,12 @@ export interface WerewolfRoomShellModelInput {
   readonly actionMessage: string | null;
   /** Non-host phase hint; the bottom action message is its single home. Null for the host. */
   readonly guideMessage: string | null;
+  /**
+   * Local Day/Ended panel-flow progress for the current game (see
+   * panelFlow.ts). Optional so focused unit tests of the message
+   * channel can omit it; the Screen always supplies it.
+   */
+  readonly panelFlow?: PanelFlowProgress;
   readonly gameState: LocalGameState;
   // Seats and takeover.
   readonly seatViewModels: readonly SeatViewModel[];
@@ -500,7 +508,39 @@ function createWerewolfBottomActions(
     });
   }
 
+  // Day/Ended panel flow: the step bar takes the message row whenever
+  // the Screen supplies flow progress. buildPanelFlowSteps is null for
+  // every other status, so this only ever engages at Day/Ended.
+  const panelFlow = input.panelFlow;
+  const flowSteps =
+    panelFlow === undefined
+      ? null
+      : buildPanelFlowSteps({
+          roomStatus: input.roomStatus,
+          progress: panelFlow,
+          onOpenLastNightInfo: input.onLastNightInfo,
+          onOpenNightReview: input.onNightReview,
+        });
+  const flowHint =
+    panelFlow === undefined
+      ? null
+      : resolvePanelFlowHint({
+          roomStatus: input.roomStatus,
+          isHost: input.isHost,
+          progress: panelFlow,
+        });
+
   if (input.roomStatus === GameStatus.Ended) {
+    if (flowSteps !== null) {
+      return {
+        kind: 'stacked',
+        message: null,
+        progress: null,
+        steps: flowSteps,
+        hint: flowHint,
+        layout: roomBottomActionLayout,
+      };
+    }
     return {
       kind: 'stacked',
       // The live actionMessage is '' (not null) once no action role remains,
@@ -533,6 +573,8 @@ function createWerewolfBottomActions(
           : input.actionMessage
         : (stepWaitingMessage ?? input.guideMessage),
     progress,
+    steps: flowSteps,
+    hint: flowHint,
     layout: roomBottomActionLayout,
   };
 }

@@ -12,6 +12,8 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
 import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import { AUDIO_WAITING_LABEL, VIEW_IDENTITY_LABEL } from '@/features/room/model/RoomBottomActions';
+import type { PanelFlowProgress } from '@/games/werewolf/room/panelFlow';
+import { resolvePanelFlowCurrentStep } from '@/games/werewolf/room/panelFlow';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import { TESTIDS } from '@/testids';
 
@@ -22,7 +24,7 @@ import { TESTIDS } from '@/testids';
 interface ButtonConfigBase {
   readonly key: string;
   readonly label: string;
-  readonly variant: 'primary' | 'secondary' | 'ghost';
+  readonly variant: 'primary' | 'secondary' | 'ghost' | 'danger';
   readonly size: 'lg' | 'md';
   readonly testID?: string;
 }
@@ -60,7 +62,9 @@ export type StaticButtonId =
   | 'waitForHost'
   | 'audioWaiting'
   | 'nightReview'
-  | 'lastNightInfo';
+  | 'lastNightInfo'
+  | 'nextRound'
+  | 'returnToLobby';
 
 /** Static entries that represent real user intent. Display-only entries are excluded. */
 export type StaticButtonAction = Exclude<StaticButtonId, 'audioWaiting' | 'waitForHost'>;
@@ -72,6 +76,12 @@ export type StaticButtonAction = Exclude<StaticButtonId, 'audioWaiting' | 'waitF
 interface StaticButtonDef {
   label: string;
   testID?: string;
+  /**
+   * Display variant used instead of the tier-derived variant when this
+   * button is materialized (the closing actions render danger inside
+   * the secondary row). Absent = variant follows the layout tier.
+   */
+  variantOverride?: 'danger';
 }
 
 export const STATIC_BUTTONS: Record<StaticButtonId, StaticButtonDef> = {
@@ -93,6 +103,21 @@ export const STATIC_BUTTONS: Record<StaticButtonId, StaticButtonDef> = {
     label: '昨夜信息',
     testID: TESTIDS.lastNightInfoBottomButton,
   },
+  // Closing actions of the Day/Ended panel flow — the same actions as
+  // the host-management sheet's buildNextRoundAction /
+  // buildReturnLobbyAction （再来一局 = host control 'redeal',
+  // 返回大厅 = 'returnToLobby' for the host, leaving the room for
+  // everyone else), surfaced in the secondary row in danger.
+  nextRound: {
+    label: '再来一局',
+    testID: TESTIDS.nextRoundBottomButton,
+    variantOverride: 'danger',
+  },
+  returnToLobby: {
+    label: '返回大厅',
+    testID: TESTIDS.returnLobbyBottomButton,
+    variantOverride: 'danger',
+  },
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -107,6 +132,27 @@ export interface LayoutContext {
   imActioner: boolean;
   isAudioPlaying: boolean;
   nightReviewAllowedSeats: readonly number[];
+  /**
+   * Local progress of the Day/Ended panel flow for the current game
+   * (client-only state, never room state). Drives which flow step the
+   * Day/Ended rules surface.
+   */
+  panelFlow: PanelFlowProgress;
+}
+
+/** True when the Day/Ended panel flow currently guides towards `step`. */
+function isPanelFlowStep(ctx: LayoutContext, step: 'lastNightInfo' | 'nightReview' | 'closing') {
+  return resolvePanelFlowCurrentStep(ctx.roomStatus, ctx.panelFlow) === step;
+}
+
+/** True when the Day flow's only step is done and the phase's own actions resume. */
+function isPanelFlowPaused(ctx: LayoutContext) {
+  return resolvePanelFlowCurrentStep(ctx.roomStatus, ctx.panelFlow) === null;
+}
+
+/** Review gate shared by the Day rules: a seat the game marked review-authorized. */
+function isNightReviewAllowed(ctx: LayoutContext) {
+  return ctx.effectiveSeat !== null && ctx.nightReviewAllowedSeats.includes(ctx.effectiveSeat);
 }
 
 /** What to put in a button slot. */
@@ -187,17 +233,17 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   {
     match: { status: GameStatus.Assigned, role: 'host' },
     layout: {
-      primary: [{ source: 'static', button: 'viewRole' }],
+      primary: [],
       secondary: [],
-      ghost: [],
+      ghost: [{ source: 'static', button: 'viewRole' }],
     },
   },
   {
     match: { status: GameStatus.Assigned, role: 'player' },
     layout: {
-      primary: [{ source: 'static', button: 'viewRole' }],
+      primary: [],
       secondary: [],
-      ghost: [],
+      ghost: [{ source: 'static', button: 'viewRole' }],
     },
   },
   // spectator: no panel
@@ -208,17 +254,17 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   {
     match: { status: GameStatus.Ready, role: 'host' },
     layout: {
-      primary: [{ source: 'static', button: 'viewRole' }],
+      primary: [],
       secondary: [],
-      ghost: [],
+      ghost: [{ source: 'static', button: 'viewRole' }],
     },
   },
   {
     match: { status: GameStatus.Ready, role: 'player' },
     layout: {
-      primary: [{ source: 'static', button: 'viewRole' }],
+      primary: [],
       secondary: [],
-      ghost: [],
+      ghost: [{ source: 'static', button: 'viewRole' }],
     },
   },
   // spectator: no panel
@@ -288,17 +334,17 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   {
     match: { status: GameStatus.Ongoing, role: 'host' },
     layout: {
-      primary: [{ source: 'static', button: 'viewRole' }],
+      primary: [],
       secondary: [],
-      ghost: [],
+      ghost: [{ source: 'static', button: 'viewRole' }],
     },
   },
   {
     match: { status: GameStatus.Ongoing, role: 'player' },
     layout: {
-      primary: [{ source: 'static', button: 'viewRole' }],
+      primary: [],
       secondary: [],
-      ghost: [],
+      ghost: [{ source: 'static', button: 'viewRole' }],
     },
   },
   // spectator: no panel
@@ -333,93 +379,231 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Day — sheriff election owns the contextual action; keep room tools visible
+  // Day — panel flow, first step （昨夜信息）. The step is the panel's
+  // only primary; view identity and the review stay reachable as ghost
+  // tools (the review also feeds the sheriff-election dock's trailing
+  // tool). Once the step is confirmed the flow pauses: the phase's own
+  // actions resume and the info demotes to a ghost tool.
   // ═══════════════════════════════════════════════════════════════════════════
   {
-    match: { status: GameStatus.Day, role: 'host' },
+    match: {
+      status: GameStatus.Day,
+      role: 'host',
+      when: (ctx) => isPanelFlowStep(ctx, 'lastNightInfo'),
+    },
     layout: {
-      primary: [{ source: 'static', button: 'viewRole' }],
-      secondary: [
-        { source: 'static', button: 'lastNightInfo' },
+      primary: [{ source: 'static', button: 'lastNightInfo' }],
+      secondary: [],
+      ghost: [
+        { source: 'static', button: 'viewRole' },
         { source: 'static', button: 'nightReview' },
       ],
-      ghost: [],
     },
   },
   {
     match: {
       status: GameStatus.Day,
       role: 'player',
-      when: (ctx) =>
-        ctx.effectiveSeat !== null && ctx.nightReviewAllowedSeats.includes(ctx.effectiveSeat),
+      when: (ctx) => isPanelFlowStep(ctx, 'lastNightInfo') && isNightReviewAllowed(ctx),
     },
     layout: {
-      primary: [{ source: 'static', button: 'viewRole' }],
-      secondary: [{ source: 'static', button: 'nightReview' }],
-      ghost: [],
-    },
-  },
-  {
-    match: { status: GameStatus.Day, role: 'player' },
-    layout: {
-      primary: [{ source: 'static', button: 'viewRole' }],
+      primary: [{ source: 'static', button: 'lastNightInfo' }],
       secondary: [],
-      ghost: [],
+      ghost: [
+        { source: 'static', button: 'viewRole' },
+        { source: 'static', button: 'nightReview' },
+      ],
     },
   },
   {
-    match: { status: GameStatus.Day, role: 'spectator' },
+    match: {
+      status: GameStatus.Day,
+      role: 'player',
+      when: (ctx) => isPanelFlowStep(ctx, 'lastNightInfo'),
+    },
     layout: {
-      primary: [],
-      secondary: [{ source: 'static', button: 'nightReview' }],
-      ghost: [],
+      primary: [{ source: 'static', button: 'lastNightInfo' }],
+      secondary: [],
+      ghost: [{ source: 'static', button: 'viewRole' }],
     },
   },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Ended
-  // ═══════════════════════════════════════════════════════════════════════════
   {
-    match: { status: GameStatus.Ended, role: 'host' },
+    match: {
+      status: GameStatus.Day,
+      role: 'spectator',
+      when: (ctx) => isPanelFlowStep(ctx, 'lastNightInfo'),
+    },
+    layout: {
+      primary: [{ source: 'static', button: 'lastNightInfo' }],
+      secondary: [],
+      ghost: [{ source: 'static', button: 'nightReview' }],
+    },
+  },
+  {
+    match: { status: GameStatus.Day, role: 'host', when: (ctx) => isPanelFlowPaused(ctx) },
     layout: {
       primary: [],
-      secondary: [
+      secondary: [],
+      ghost: [
         { source: 'static', button: 'viewRole' },
         { source: 'static', button: 'lastNightInfo' },
         { source: 'static', button: 'nightReview' },
       ],
-      ghost: [],
+    },
+  },
+  {
+    match: {
+      status: GameStatus.Day,
+      role: 'player',
+      when: (ctx) => isPanelFlowPaused(ctx) && isNightReviewAllowed(ctx),
+    },
+    layout: {
+      primary: [],
+      secondary: [],
+      ghost: [
+        { source: 'static', button: 'viewRole' },
+        { source: 'static', button: 'lastNightInfo' },
+        { source: 'static', button: 'nightReview' },
+      ],
+    },
+  },
+  {
+    match: { status: GameStatus.Day, role: 'player', when: (ctx) => isPanelFlowPaused(ctx) },
+    layout: {
+      primary: [],
+      secondary: [],
+      ghost: [
+        { source: 'static', button: 'viewRole' },
+        { source: 'static', button: 'lastNightInfo' },
+      ],
+    },
+  },
+  {
+    match: { status: GameStatus.Day, role: 'spectator', when: (ctx) => isPanelFlowPaused(ctx) },
+    layout: {
+      primary: [],
+      secondary: [],
+      ghost: [
+        { source: 'static', button: 'lastNightInfo' },
+        { source: 'static', button: 'nightReview' },
+      ],
+    },
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Ended — panel flow （昨夜信息 → 本局复盘 → 收尾）. One primary per
+  // step; the closing step is the danger row in the secondary tier.
+  // Progress made during Day carries over: a confirmed first step is
+  // never asked again.
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    match: {
+      status: GameStatus.Ended,
+      role: 'host',
+      when: (ctx) => isPanelFlowStep(ctx, 'lastNightInfo'),
+    },
+    layout: {
+      primary: [{ source: 'static', button: 'lastNightInfo' }],
+      secondary: [],
+      ghost: [{ source: 'static', button: 'viewRole' }],
     },
   },
   {
     match: {
       status: GameStatus.Ended,
       role: 'player',
-      when: (ctx) =>
-        ctx.effectiveSeat !== null && ctx.nightReviewAllowedSeats.includes(ctx.effectiveSeat),
+      when: (ctx) => isPanelFlowStep(ctx, 'lastNightInfo'),
+    },
+    layout: {
+      primary: [{ source: 'static', button: 'lastNightInfo' }],
+      secondary: [],
+      ghost: [{ source: 'static', button: 'viewRole' }],
+    },
+  },
+  {
+    match: {
+      status: GameStatus.Ended,
+      role: 'spectator',
+      when: (ctx) => isPanelFlowStep(ctx, 'lastNightInfo'),
+    },
+    layout: {
+      primary: [{ source: 'static', button: 'lastNightInfo' }],
+      secondary: [],
+      ghost: [],
+    },
+  },
+  {
+    match: {
+      status: GameStatus.Ended,
+      role: 'host',
+      when: (ctx) => isPanelFlowStep(ctx, 'nightReview'),
+    },
+    layout: {
+      primary: [{ source: 'static', button: 'nightReview' }],
+      secondary: [],
+      ghost: [{ source: 'static', button: 'viewRole' }],
+    },
+  },
+  {
+    match: {
+      status: GameStatus.Ended,
+      role: 'player',
+      when: (ctx) => isPanelFlowStep(ctx, 'nightReview'),
+    },
+    layout: {
+      primary: [{ source: 'static', button: 'nightReview' }],
+      secondary: [],
+      ghost: [{ source: 'static', button: 'viewRole' }],
+    },
+  },
+  {
+    match: {
+      status: GameStatus.Ended,
+      role: 'spectator',
+      when: (ctx) => isPanelFlowStep(ctx, 'nightReview'),
+    },
+    layout: {
+      primary: [{ source: 'static', button: 'nightReview' }],
+      secondary: [],
+      ghost: [],
+    },
+  },
+  {
+    match: {
+      status: GameStatus.Ended,
+      role: 'host',
+      when: (ctx) => isPanelFlowStep(ctx, 'closing'),
     },
     layout: {
       primary: [],
       secondary: [
-        { source: 'static', button: 'viewRole' },
-        { source: 'static', button: 'nightReview' },
+        { source: 'static', button: 'nextRound' },
+        { source: 'static', button: 'returnToLobby' },
       ],
-      ghost: [],
+      ghost: [{ source: 'static', button: 'viewRole' }],
     },
   },
   {
-    match: { status: GameStatus.Ended, role: 'player' },
+    match: {
+      status: GameStatus.Ended,
+      role: 'player',
+      when: (ctx) => isPanelFlowStep(ctx, 'closing'),
+    },
     layout: {
       primary: [],
-      secondary: [{ source: 'static', button: 'viewRole' }],
-      ghost: [],
+      secondary: [{ source: 'static', button: 'returnToLobby' }],
+      ghost: [{ source: 'static', button: 'viewRole' }],
     },
   },
   {
-    match: { status: GameStatus.Ended, role: 'spectator' },
+    match: {
+      status: GameStatus.Ended,
+      role: 'spectator',
+      when: (ctx) => isPanelFlowStep(ctx, 'closing'),
+    },
     layout: {
       primary: [],
-      secondary: [{ source: 'static', button: 'nightReview' }],
+      secondary: [{ source: 'static', button: 'returnToLobby' }],
       ghost: [],
     },
   },
