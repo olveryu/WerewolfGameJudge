@@ -4,10 +4,13 @@
  * Capture source is provided by caller (typically a hidden share card view).
  * Mini program fallback path uses Canvas 2D to draw the card directly (no
  * html2canvas): renderNightReviewToCanvas below is the text-medium rendering
- * of the same report — it consumes the same NightReviewData entries in order
- * and the shared layout/copy spec in nightReviewLayout, and the structural
- * alignment with the DOM presentation is pinned by nightReviewCanvasAlignment
- * tests. It must not grow a second hand-drawn layout spec.
+ * of the same report — it follows the DOM presentation's section order
+ * (share title → outcome line → disclaimer → action entries → identities),
+ * deriving the outcome from the same NightReviewData via getNightReviewOutcome
+ * and formatting entries via shareNightReviewLines, with copy/geometry from
+ * the shared spec in nightReviewLayout. The structural alignment with the DOM
+ * presentation is pinned by nightReviewCanvasAlignment tests. It must not
+ * grow a second hand-drawn layout spec.
  */
 import type { RefObject } from 'react';
 import { Dimensions, type View } from 'react-native';
@@ -18,7 +21,7 @@ import { shareImageBase64 } from '@/features/room/services/shareImage';
 import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
 import { log } from '@/utils/logger';
 
-import type { NightReviewData } from './NightReview.helpers';
+import { getNightReviewOutcome, type NightReviewData } from './NightReview.helpers';
 import {
   formatNightReviewShareTitle,
   NIGHT_REVIEW_ACTIONS_TITLE,
@@ -29,6 +32,7 @@ import {
 import {
   formatNightReviewActionLine,
   formatNightReviewIdentityLine,
+  formatNightReviewOutcomeLine,
 } from './shareNightReviewLines';
 
 type ShareNightReviewResult = 'shared' | 'cancelled' | 'failed';
@@ -87,8 +91,10 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
 /**
  * Render NightReviewData to a canvas and return base64 PNG.
  * Text-medium rendering of the shared report: geometry and copy come from
- * nightReviewLayout (the same spec the DOM surfaces use) and theme tokens;
- * entries are drawn in NightReviewData order via shareNightReviewLines.
+ * nightReviewLayout (the same spec the DOM surfaces use) and theme tokens.
+ * Draw order mirrors the DOM body: share title, the outcome line (the hero's
+ * text form), the disclaimer, the action entries with the outcome entry
+ * lifted out (it is the outcome line), then the identity entries.
  */
 export function renderNightReviewToCanvas(
   data: NightReviewData,
@@ -124,15 +130,24 @@ export function renderNightReviewToCanvas(
   // Title
   totalHeight += lineHeight.title + spacing.medium;
 
+  // Outcome line (with wrapping, subtitle metrics like the DOM hero headline)
+  tmpCtx.font = `bold ${fontSize.title}px system-ui, -apple-system, sans-serif`;
+  const outcomeLine = formatNightReviewOutcomeLine(getNightReviewOutcome(data));
+  const wrappedOutcome = wrapText(tmpCtx, outcomeLine, contentWidth);
+  totalHeight += wrappedOutcome.length * lineHeight.title + spacing.medium;
+
   // Disclaimer
   totalHeight += lineHeight.line + spacing.medium;
 
   // Actions section title
   totalHeight += lineHeight.section + spacing.small;
 
-  // Action lines (with wrapping)
+  // Action lines (with wrapping; the outcome entry is drawn as the outcome
+  // line above, not in action order)
   tmpCtx.font = `${fontSize.line}px system-ui, -apple-system, sans-serif`;
-  const actionLines = data.actions.map((entry) => formatNightReviewActionLine(entry));
+  const actionLines = data.actions
+    .filter((entry) => entry.kind !== 'deaths' && entry.kind !== 'peacefulNight')
+    .map((entry) => formatNightReviewActionLine(entry));
   const wrappedActions: string[][] = [];
   for (const line of actionLines) {
     const wrapped = wrapText(tmpCtx, line, contentWidth - spacing.small);
@@ -184,6 +199,15 @@ export function renderNightReviewToCanvas(
   ctx.textBaseline = 'middle';
   ctx.fillText(formatNightReviewShareTitle(roomCode), cardWidth / 2, y + lineHeight.title / 2);
   y += lineHeight.title + spacing.medium;
+
+  // ── Outcome line ──
+  ctx.font = `bold ${fontSize.title}px system-ui, -apple-system, sans-serif`;
+  ctx.fillStyle = colors.text;
+  for (const wLine of wrappedOutcome) {
+    ctx.fillText(wLine, cardWidth / 2, y + lineHeight.title / 2);
+    y += lineHeight.title;
+  }
+  y += spacing.medium;
 
   // ── Disclaimer ──
   ctx.font = `${fontSize.line}px system-ui, -apple-system, sans-serif`;
