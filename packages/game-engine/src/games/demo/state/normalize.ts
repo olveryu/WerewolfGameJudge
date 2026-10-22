@@ -23,12 +23,6 @@ export function normalizeDemoState(state: DemoState): DemoState {
   );
   invariant(Number.isSafeInteger(state.gameSequence) && state.gameSequence >= 0, 'game sequence');
   invariant(typeof state.xpSettled === 'boolean', 'xp settled flag');
-  if (state.phase.kind === 'playing') {
-    invariant(
-      Number.isSafeInteger(state.phase.deadlineAt) && state.phase.deadlineAt >= 0,
-      'stage deadline',
-    );
-  }
   const entries = Object.entries(state.roster);
   invariant(
     entries.every(
@@ -62,6 +56,13 @@ export function normalizeDemoState(state: DemoState): DemoState {
       identitySeats.every((seat) => isSeat(seat) && isDemoOccupiedSeat(state, seat)) &&
         identitySeats.length === entries.length,
       'dealt identities',
+    );
+  }
+  if (state.phase.kind === 'playing') {
+    invariant(
+      state.phase.deadlineAt === null ||
+        (Number.isSafeInteger(state.phase.deadlineAt) && state.phase.deadlineAt >= 0),
+      'stage deadline',
     );
   }
   if (state.phase.kind === 'ended') invariant(state.xpSettled, 'ended settles exactly once');

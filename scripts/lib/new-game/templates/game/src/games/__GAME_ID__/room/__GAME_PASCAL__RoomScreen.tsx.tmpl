@@ -129,7 +129,7 @@ function __GAME_PASCAL__StageArea({
   readonly screen: __GAME_PASCAL__RoomScreenState;
 }) {
   const phase = screen.state.phase;
-  // 查看动作定义走共享解析（与 demo 同形态）：此处是 stage 区表面渲染。
+  // 查看动作定义走共享解析（身份模板同形态）：此处是 stage 区表面渲染。
   const viewIdentityAction = resolveViewIdentityAction({
     isVisible: phase.kind !== 'ended',
     label: '查看我的身份',

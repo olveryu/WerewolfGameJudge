@@ -90,6 +90,24 @@ function makeRealRepoCopy() {
   return root;
 }
 
+/**
+ * Whole-file products a capability adds on top of the base skeleton,
+ * keyed by capability: the expectation side of the generator's
+ * FILE_CAPABILITY_GATES. A new gated template file joins this table
+ * under its capability, or the file-list assertion below fails for
+ * the packs that enable the capability.
+ */
+const CAPABILITY_FILE_ADDITIONS = [
+  {
+    capability: 'identityViewing',
+    files: ({ engine, client, pascal }) => [
+      `${engine}/__tests__/identityViewingProtocol.contract.test.ts`,
+      `${client}/room/components/${pascal}RoleCardModal.tsx`,
+      `${client}/components/${pascal}RoleCardAdapter.ts`,
+    ],
+  },
+];
+
 function expectedCreatedFiles(gameId, preset) {
   const pascal = gameId.charAt(0).toUpperCase() + gameId.slice(1);
   const engine = `packages/game-engine/src/games/${gameId}`;
@@ -134,12 +152,10 @@ function expectedCreatedFiles(gameId, preset) {
     `docs/${gameId}-game-design.md`,
     `e2e/specs/${gameId}.spec.ts.tmpl`,
   ];
-  if (PRESET_CAPABILITIES[preset].identityViewing) {
-    files.push(
-      `${engine}/__tests__/identityViewingProtocol.contract.test.ts`,
-      `${client}/room/components/${pascal}RoleCardModal.tsx`,
-      `${client}/components/${pascal}RoleCardAdapter.ts`,
-    );
+  for (const addition of CAPABILITY_FILE_ADDITIONS) {
+    if (PRESET_CAPABILITIES[preset][addition.capability]) {
+      files.push(...addition.files({ engine, client, pascal }));
+    }
   }
   return files.sort();
 }
@@ -501,6 +517,306 @@ test('generated output passes the format and lint gates with tooling present', (
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
+  }
+});
+
+/** Remove one exact text fragment from a copied file; fail loudly when absent. */
+function removeExactText(root, file, text) {
+  const target = path.join(root, file);
+  const content = fs.readFileSync(target, 'utf8');
+  if (!content.includes(text)) throw new Error(`strip anchor missing in ${file}`);
+  fs.writeFileSync(target, content.replace(text, ''));
+}
+
+/** Remove the lines from `startLine` through the next exact `endLine`, inclusive. */
+function removeEntryBlock(root, file, startLine, endLine) {
+  const target = path.join(root, file);
+  const lines = fs.readFileSync(target, 'utf8').split('\n');
+  const start = lines.findIndex((line) => line === startLine);
+  if (start === -1) throw new Error(`strip block start missing in ${file}: ${startLine}`);
+  const end = lines.findIndex((line, index) => index > start && line === endLine);
+  if (end === -1) throw new Error(`strip block end missing in ${file}: ${endLine}`);
+  lines.splice(start, end - start + 1);
+  fs.writeFileSync(target, lines.join('\n'));
+}
+
+/**
+ * Strip the shipped demo out of a real-repo copy so the generator
+ * accepts the id again: its product files, its registration migration
+ * and every shared-file registration entry. Migrations are history
+ * and stay; only demo's own registration migration goes, so the
+ * regenerated one lands on the same number and must reproduce it.
+ */
+function stripShippedDemo(root) {
+  for (const dir of [
+    'packages/game-engine/src/games/demo',
+    'packages/api-worker/src/games/demo',
+    'src/games/demo',
+  ]) {
+    fs.rmSync(path.join(root, dir), { recursive: true, force: true });
+  }
+  for (const file of [
+    'docs/demo-game-design.md',
+    'e2e/specs/demo.spec.ts.tmpl',
+    'packages/api-worker/migrations/0065_demo.sql',
+  ]) {
+    fs.rmSync(path.join(root, file), { force: true });
+  }
+  removeExactText(root, 'packages/game-engine/src/platform/protocol/gameTypes.ts', "  'demo',\n");
+  removeEntryBlock(root, 'packages/game-engine/src/games/registry.ts', '  demo: {', '  },');
+  removeExactText(
+    root,
+    'packages/game-engine/src/product/rewards/earnings.ts',
+    '  // TODO(new-game): confirm the completion reward amounts for demo.\n' +
+      '  demo: { xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 },\n',
+  );
+  removeEntryBlock(
+    root,
+    'packages/game-engine/package.json',
+    '    "./games/demo/public": {',
+    '    },',
+  );
+  removeExactText(
+    root,
+    'packages/game-engine/src/platform/__tests__/architecture.contract.test.ts',
+    "  './games/demo/public',\n",
+  );
+  removeExactText(
+    root,
+    'packages/game-engine/src/platform/__tests__/engineSkeleton.contract.test.ts',
+    "      'demo',\n",
+  );
+  removeExactText(
+    root,
+    'packages/game-engine/src/platform/engine/__tests__/contracts.test.ts',
+    "import { demoEngine } from '../../../games/demo/engine';\n",
+  );
+  const contractsFile = path.join(
+    root,
+    'packages/game-engine/src/platform/engine/__tests__/contracts.test.ts',
+  );
+  const contractsLines = fs.readFileSync(contractsFile, 'utf8').split('\n');
+  const keptLines = contractsLines.filter((line) => !line.includes('demo: demoEngine,'));
+  if (contractsLines.length - keptLines.length !== 5) {
+    throw new Error('expected exactly five demo catalog entries in contracts.test.ts');
+  }
+  fs.writeFileSync(contractsFile, keptLines.join('\n'));
+  removeEntryBlock(
+    root,
+    'packages/game-engine/src/platform/engine/__tests__/capabilities.contract.test.ts',
+    '  demo: {',
+    '  },',
+  );
+  removeExactText(
+    root,
+    'packages/game-engine/src/games/catalog.ts',
+    "import { demoEngine } from './demo/engine';\n",
+  );
+  removeExactText(root, 'packages/game-engine/src/games/catalog.ts', '  demo: demoEngine,\n');
+  removeExactText(
+    root,
+    'packages/api-worker/src/games/catalog.ts',
+    "import { demoWorkerModule } from './demo/module';\n",
+  );
+  removeExactText(
+    root,
+    'packages/api-worker/src/games/catalog.ts',
+    '  demo: registerWorkerGameModule(demoWorkerModule),\n',
+  );
+  removeExactText(
+    root,
+    'src/games/catalog.ts',
+    "import { createDemoUiModule } from '@/games/demo/module';\n",
+  );
+  removeExactText(
+    root,
+    'src/games/catalog.ts',
+    "import { demoGameNavigation } from '@/games/demo/navigation/demoGameNavigation';\n",
+  );
+  removeEntryBlock(root, 'src/games/catalog.ts', '  demo: {', '  },');
+  removeExactText(
+    root,
+    'src/games/catalog.ts',
+    '    demo: registerClientGameModule(CLIENT_GAME_PLUGIN_CATALOG.demo.createModule(dependencies)),\n',
+  );
+  removeEntryBlock(root, 'src/test-utils/clientGameCatalog.tsx', '    demo: {', '    },');
+  removeExactText(
+    root,
+    'src/__tests__/botDispatchDiscipline.contract.test.ts',
+    "  demo: [{ file: 'games/demo/room/hooks/useDemoRoomState.ts', form: 'parameterized-submit' }],\n",
+  );
+}
+
+/**
+ * Pinned demo compare exceptions (G-5): the shipped demo is the
+ * finalized instance of the skeleton, so a handful of texts are
+ * deliberately ahead of the templates — the design doc records the
+ * preset it was originally generated with, three documentation blocks
+ * carry demo's finalized facts where the templates keep TODO
+ * fill-ins, and two registration entries carry hand completions.
+ * Each entry rewrites the shipped text into the regenerated text;
+ * after rewriting, the files must be byte-identical. An entry whose
+ * text no longer matches fails the case, so this list only shrinks.
+ */
+const DEMO_COMPARE_EXCEPTIONS = [
+  {
+    file: 'docs/demo-game-design.md',
+    body: '> 状态：骨架（由 `pnpm new-game demo --preset identity` 生成，待设计定稿）',
+    generated: '> 状态：骨架（由 `pnpm new-game demo --preset demo-hybrid` 生成，待设计定稿）',
+  },
+  {
+    file: 'docs/demo-game-design.md',
+    body: '> 原型预设：identity',
+    generated: '> 原型预设：demo-hybrid',
+  },
+  {
+    file: 'packages/game-engine/src/games/demo/domain/rules.ts',
+    body: [
+      '/**',
+      ' * The demo playing stage is an idle stage: it opens when the host',
+      ' * begins the game and settles when this deadline expires through the',
+      ' * scheduled `demo.settle.due` effect (the #162 delivery form). The',
+      ' * duration only exists so the full chain has a real stage deadline to',
+      ' * arm, deliver and settle against.',
+      ' */',
+    ].join('\n'),
+    generated: [
+      '// TODO(gameplay): 骨架舞台时长占位（毫秒）。真实阶段链落地时，每个阶段的',
+      '// 时长在本文件按阶段定义，开始阶段时按当前阶段取值算 deadlineAt。',
+    ].join('\n'),
+  },
+  {
+    file: 'packages/game-engine/src/games/demo/engine.ts',
+    body: [
+      ' * 终局接缝。玩法状态机判定出胜负时从这里收口：',
+      ' * 一次性发 game.ended 事件 + 结算 effect（xpSettled 防重复）。',
+      ' * demo 没有玩法判定，触发点就是阶段截止：`demo.phase.settleExpired`',
+      ' * 过门后转调本函数（engine.test.ts 已钉住本接缝的结算形状，不许改形状）。',
+    ].join('\n'),
+    generated: [
+      ' * TODO(gameplay): 终局接缝。玩法状态机判定出胜负时从这里收口：',
+      ' * 一次性发 game.ended 事件 + 结算 effect（xpSettled 防重复）。',
+      ' * 骨架阶段由阶段到期结算直接终局——玩法填空时把触发点挂到本函数上',
+      ' * （engine.test.ts 已钉住本接缝的结算形状，填空后不许改形状）。',
+    ].join('\n'),
+  },
+  {
+    file: 'src/games/demo/room/demoGuidanceMatrix.ts',
+    body: [
+      '/**',
+      ' * Demo（生成器样例游戏）（阶段 × 观看者）底部提示矩阵声明：逐格事实以',
+      ' * demoGuidanceMatrix.test.ts 用真实引擎流驱动 createDemoRoomShellModel',
+      ' * 对账为准。模板生成的游戏以本表为起点声明各自矩阵。',
+      ' */',
+    ].join('\n'),
+    generated: [
+      '/**',
+      ' * Demo（阶段 × 观看者）底部提示矩阵声明：本表是新游戏的起点声明——',
+      ' * 每格要么承诺该阶段入口态底部有一句提示，要么登记豁免理由（指出由哪个',
+      ' * 表面承载引导）。生成后必须：①在 src/__tests__/roomGuidanceMatrix.contract.test.ts',
+      ' * 的注册表里登记本表；②写一个矩阵测试，用真实引擎流驱动本游戏的',
+      ' * shell model 逐格对账（参考 demo 的 demoGuidanceMatrix.test.ts）。',
+      ' */',
+    ].join('\n'),
+  },
+  {
+    file: 'src/games/demo/room/demoGuidanceMatrix.ts',
+    body: '玩法阶段界面在 stage 区（模板占位面）',
+    generated: '玩法阶段界面在 stage 区',
+    occurrences: 3,
+  },
+  {
+    file: 'packages/game-engine/src/games/registry.ts',
+    body: [
+      '    // Reference game for template regression (plan §7.1 / D8): fully',
+      '    // registered through the real path, never shipped to players — the',
+      '    // client lobby/create surfaces filter on this flag.',
+      '',
+    ].join('\n'),
+    generated: '',
+  },
+  {
+    file: 'src/test-utils/clientGameCatalog.tsx',
+    body: '          gradient: [lighten(colors.primary, 0.45), colors.primary],\n',
+    generated: '',
+  },
+];
+
+/** Files that live in the shipped demo but are never generator products. */
+const DEMO_BODY_ONLY_FILES = [
+  'packages/api-worker/src/games/demo/__tests__/effects.test.ts',
+  'packages/game-engine/src/games/demo/__tests__/fullChain.test.ts',
+  'packages/game-engine/src/games/demo/__tests__/phaseDeadlineProtocol.contract.test.ts',
+  'packages/game-engine/src/games/demo/__tests__/roomCommands.contract.test.ts',
+  'src/games/demo/room/__tests__/demoGuidanceMatrix.test.ts',
+];
+
+function applyDemoCompareExceptions(file, bodyText, consumed) {
+  let text = bodyText;
+  for (const exception of DEMO_COMPARE_EXCEPTIONS) {
+    if (exception.file !== file) continue;
+    const occurrences = text.split(exception.body).length - 1;
+    assert.equal(
+      occurrences,
+      exception.occurrences ?? 1,
+      `${file}: pinned compare exception must match the shipped text exactly ${exception.occurrences ?? 1} time(s)`,
+    );
+    text = text.split(exception.body).join(exception.generated);
+    consumed.add(exception);
+  }
+  return text;
+}
+
+test('regenerating demo with the demo-hybrid pack reproduces the shipped demo', (t) => {
+  // Same tooling requirement as the format/lint case above: the
+  // comparison is byte-exact, so the prettier/eslint shaping passes
+  // must really run inside the copy.
+  if (!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier'))) {
+    t.skip('requires installed dependencies (node_modules)');
+    return;
+  }
+  const root = makeRealRepoCopy();
+  try {
+    stripShippedDemo(root);
+    const summary = generateNewGame({
+      rootDir: root,
+      gameId: 'demo',
+      preset: 'demo-hybrid',
+      displayName: 'Demo',
+      subtitle: '模板参照游戏',
+      iconName: 'game-controller-outline',
+      tier: 'mini',
+    });
+    const consumed = new Set();
+    for (const file of [...summary.createdFiles, ...summary.editedFiles]) {
+      const generated = readFixture(root, file);
+      const body = applyDemoCompareExceptions(file, readFixture(REPO_ROOT, file), consumed);
+      assert.equal(body, generated, `${file} drifted from the demo-hybrid regeneration`);
+    }
+    assert.equal(
+      consumed.size,
+      DEMO_COMPARE_EXCEPTIONS.length,
+      'every pinned demo compare exception must be consumed; an unconsumed exception means the drift is gone and the whitelist must shrink',
+    );
+    const created = new Set(summary.createdFiles);
+    const bodyOnly = [];
+    const collectBodyOnly = (dir, relative) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const rel = `${relative}/${entry.name}`;
+        if (entry.isDirectory()) collectBodyOnly(path.join(dir, entry.name), rel);
+        else if (!created.has(rel)) bodyOnly.push(rel);
+      }
+    };
+    for (const dir of [
+      'packages/game-engine/src/games/demo',
+      'packages/api-worker/src/games/demo',
+      'src/games/demo',
+    ]) {
+      collectBodyOnly(path.join(REPO_ROOT, dir), dir);
+    }
+    assert.deepEqual(bodyOnly.sort(), DEMO_BODY_ONLY_FILES);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
   }
 });
 

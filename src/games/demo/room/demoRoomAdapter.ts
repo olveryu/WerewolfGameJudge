@@ -291,12 +291,12 @@ export function createDemoRoomShellModel(input: DemoRoomShellModelInput): RoomSh
   });
   return {
     roomCode: input.roomCode,
-    capabilities: input.capabilities,
     phase: state.phase.kind,
     // The step anchor: null while this game has no sub-phase step in
     // its state. If a phase later grows a step field (the way Avalon's
     // night phase carries one), supply it verbatim here instead.
     step: null,
+    capabilities: input.capabilities,
     header: buildRoomHeaderModel({
       onBack: input.onBack,
       onTitlePress: input.onTitlePress,

@@ -30,4 +30,11 @@ describe('getDemoRoomCommandFailureMessage', () => {
       ),
     ).toBe('还有玩家未查看身份');
   });
+  it('explains an unexpired stage deadline', () => {
+    expect(
+      getDemoRoomCommandFailureMessage(
+        rejectedRoomCommand<DemoState>('demo_deadline_not_reached', 'command-2'),
+      ),
+    ).toBe('当前阶段尚未结束');
+  });
 });

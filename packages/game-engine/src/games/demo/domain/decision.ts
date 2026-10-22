@@ -53,12 +53,12 @@ export type DemoEffect =
     }
   | {
       /**
-       * Armed stage deadline: emitted exactly once when the playing
-       * stage opens. The Worker outbox delivers it at `deadlineAt`
+       * Armed stage deadline: emitted exactly once when a stage with a
+       * deadline opens. The Worker outbox delivers it at `deadlineAt`
        * (alarm-scheduled), and the handler settles through the internal
        * settle command unless the phase has already moved on. The
        * payload pins the exact arming (game, deadline) so a late or
-       * replayed delivery can never settle a newer game.
+       * replayed delivery can never settle a newer stage.
        */
       readonly type: 'demo.settle.due';
       readonly payload: {

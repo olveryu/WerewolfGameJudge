@@ -4,6 +4,7 @@ import { createEngineSession } from '../../../platform/engine/__tests__/engineSe
 import { getBotSeats, isBotSeat } from '../../../platform/room/seating';
 import type { DemoCommand } from '../commands/types';
 import { DEMO_REASONS } from '../domain/decision';
+import { DEMO_STAGE_DURATION_MS } from '../domain/rules';
 import { getDemoViewModel } from '../domain/visibility';
 import { demoEngine, endDemoGame } from '../engine';
 import { parseDemoState } from '../state/parseState';
@@ -121,6 +122,57 @@ describe('Demo identity viewing checkpoint', () => {
     expect(view.myIdentity).not.toBeNull();
     expect(view.seats.every((seat) => seat.identity === null)).toBe(true);
     expect(view.unviewedRoleSeats).toEqual([0, 1, 2, 3]);
+  });
+});
+
+describe('Demo stage deadline settlement', () => {
+  it('opens the playing stage with an armed deadline and a settle.due effect', () => {
+    const session = game({ numberOfPlayers: 4 }, 4);
+    const startedAt = session.session.now();
+    viewAllAndBegin(session);
+    expect(session.state.phase).toEqual({
+      kind: 'playing',
+      deadlineAt: startedAt + DEMO_STAGE_DURATION_MS,
+    });
+    expect(session.effects).toEqual([
+      {
+        type: 'demo.settle.due',
+        payload: { gameSequence: 1, deadlineAt: startedAt + DEMO_STAGE_DURATION_MS },
+      },
+    ]);
+    expect(getDemoViewModel(session.state, 0).stageDeadlineAt).toBe(
+      startedAt + DEMO_STAGE_DURATION_MS,
+    );
+  });
+
+  it('rejects settle before the deadline, then settles exactly once at the deadline', () => {
+    const session = game({ numberOfPlayers: 4 }, 3);
+    viewAllAndBegin(session);
+    const early = demoEngine.decide(
+      session.state,
+      { type: 'demo.phase.settleExpired' },
+      session.session.systemContext('settle-effect'),
+    );
+    expect(early.kind).toBe('reject');
+    if (early.kind === 'reject') expect(early.reason).toBe(DEMO_REASONS.deadline);
+    session.session.advance(DEMO_STAGE_DURATION_MS);
+    const state = session.session.sendAs(
+      { type: 'demo.phase.settleExpired' },
+      session.session.systemContext('settle-effect'),
+    );
+    expect(state.phase.kind).toBe('ended');
+    expect(state.xpSettled).toBe(true);
+    const completions = session.effects.filter((effect) => effect.type === 'demo.game.completed');
+    expect(completions).toHaveLength(1);
+    expect(completions[0]?.payload.participantUserIds).toEqual(['host', 'u1', 'u2']);
+  });
+
+  it('rejects the internal settle channel for a user actor', () => {
+    const session = game({ numberOfPlayers: 4 }, 4);
+    viewAllAndBegin(session);
+    session.session.advance(DEMO_STAGE_DURATION_MS);
+    const internalAsUser = session.decideAs({ type: 'demo.phase.settleExpired' }, 'u1');
+    expect(internalAsUser.kind).toBe('reject');
   });
 });
 
