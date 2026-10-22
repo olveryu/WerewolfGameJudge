@@ -153,7 +153,8 @@ describe('Pictionary engine', () => {
     for (let step = 0; step < 3; step += 1) completeCurrentStep();
 
     // The final step (step 3) is a drawing step: its entries land
-    // through drawing commits, which bypass the shared task machine.
+    // through drawing commits, whose landing tail is the shared
+    // task machine's.
     expireCurrentPhase();
     expect(session.state.phase).toBe('settling');
     expect(session.state.stepIndex).toBe(3);
