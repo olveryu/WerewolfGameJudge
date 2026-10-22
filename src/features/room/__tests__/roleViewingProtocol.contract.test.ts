@@ -60,7 +60,10 @@ describe('role viewing protocol — werewolf (batch A)', () => {
 
 describe('role viewing protocol — avalon (batch C)', () => {
   it('the avalon role card renders through the shared gate with the server anchor', () => {
-    const modal = readSource('games/avalon/room/components/AvalonRoleCardModal.tsx');
+    // C-5: the per-game modal file is gone; avalon's card path renders
+    // the shared RevealRoleCardModal assembly, whose only render path
+    // goes through the gate.
+    const modal = readSource('features/room/components/RevealRoleCardModal.tsx');
     expect(modal).toMatch(/<RevealAnimationGate/);
     expect(modal).not.toMatch(/animationDone/);
     const hook = readSource('games/avalon/room/hooks/useAvalonRoomState.ts');
@@ -71,6 +74,7 @@ describe('role viewing protocol — avalon (batch C)', () => {
     );
     expect(hook).toMatch(/!state\.roleViewedSeats\.includes\(effectiveSeat\)/);
     const screen = readSource('games/avalon/room/AvalonRoomScreen.tsx');
+    expect(screen).toMatch(/<RevealRoleCardModal/);
     // D-1: a controlled bot's card never plays the controller's effect.
     expect(screen).toMatch(/screen\.controlledSeat !== null/);
   });

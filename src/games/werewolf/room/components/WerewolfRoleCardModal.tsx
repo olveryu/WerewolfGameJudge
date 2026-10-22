@@ -3,7 +3,7 @@
  *
  * 共享层提供 RoleCardSimple / RoleRevealAnimator / RevealRoleData；
  * 本组件是狼人杀的组装：RoleId → RevealRoleData 转换、双预言家标签、
- * AI 攻略入口、头像预加载。阿瓦隆有自己的薄组装（AvalonRoleCardModal）。
+ * AI 攻略入口、头像预加载。阿瓦隆/demo 走共享 RevealRoleCardModal 装配。
  *
  * Chooses render mode based on animation config:
  * - Animation is 'none' or should not play → static RoleCardSimple

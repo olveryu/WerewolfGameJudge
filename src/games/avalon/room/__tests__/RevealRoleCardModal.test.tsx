@@ -2,12 +2,15 @@
  * RevealRoleCardModal: the shared reveal gate assembly with the
  * server-side viewed anchor, exercised through Avalon's real adapter
  * (the assembly's first consumer pair was Avalon/Demo).
+ *
+ * Lives in Avalon's test tree, not the shared layer's: the shared room
+ * layer must stay game-agnostic (roomGameAgnostic contract), and this
+ * test binds a real game's adapter.
  */
 import { fireEvent, render } from '@testing-library/react-native';
 
+import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardModal';
 import { toRevealRoleData } from '@/games/avalon/components/AvalonRoleCardAdapter';
-
-import { RevealRoleCardModal } from '../RevealRoleCardModal';
 
 jest.mock('@/features/room/components/RoleRevealEffects/RoleRevealAnimator', () => {
   const { Pressable, Text } = require('react-native') as typeof import('react-native');
