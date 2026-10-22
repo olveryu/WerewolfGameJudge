@@ -18,8 +18,17 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { editEngineContractsTest } from './lib/new-game/edits.mjs';
-import { generateNewGame, PRESET_CAPABILITIES } from './lib/new-game/generate.mjs';
-import { applyCapabilityBlocks } from './lib/new-game/render.mjs';
+import {
+  FILE_CAPABILITY_GATES,
+  generateNewGame,
+  PACK_SEGMENT_SWITCHES,
+  PRESET_CAPABILITIES,
+} from './lib/new-game/generate.mjs';
+import {
+  applyCapabilityBlocks,
+  deriveGameNames,
+  renderTemplateFile,
+} from './lib/new-game/render.mjs';
 
 const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -105,6 +114,10 @@ const CAPABILITY_FILE_ADDITIONS = [
       `${client}/room/components/${pascal}RoleCardModal.tsx`,
       `${client}/components/${pascal}RoleCardAdapter.ts`,
     ],
+  },
+  {
+    capability: 'audioOrchestration',
+    files: ({ client, pascal }) => [`${client}/room/hooks/use${pascal}AudioOrchestration.ts`],
   },
 ];
 
@@ -429,6 +442,27 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
     } else {
       assert.ok(!engineGameDir.includes('deadlineAt'));
     }
+    if (capabilities.audioOrchestration) {
+      assert.ok(engineGameDir.includes('demoproto.audio.ack'));
+    } else {
+      // The audio wiring is segment-gated end to end: a pack that
+      // declares it off must not leak a single audio marker into the
+      // generated engine or client (the capabilities contract welds
+      // the declaration to exactly this source evidence).
+      assert.ok(!engineGameDir.includes('audio.ack'), 'audio-off engine has no ack command');
+      assert.ok(
+        !engineGameDir.includes('pendingAudioEffects'),
+        'audio-off engine has no audio queue fields',
+      );
+      assert.ok(
+        !clientGameDir.includes('applyAudioPlaybackLock'),
+        'audio-off client has no audio playback lock',
+      );
+      assert.ok(
+        !clientGameDir.includes('AudioOrchestration'),
+        'audio-off client has no audio binding',
+      );
+    }
     if (preset === 'demo-hybrid') {
       // The hybrid pack settles through the system channel only: the
       // public expire command (and its phase.expired event) must not
@@ -440,6 +474,121 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
     }
   });
 }
+
+test('audioOrchestration segments render the full audio wiring when on and nothing when off', () => {
+  // No shipped pack declares audioOrchestration (narration is a
+  // per-game choice, not an archetype trait), so the on-state cannot
+  // be reached through generateNewGame's preset table. Prove the
+  // segment at the layer it lives in instead: render the whole
+  // template tree with the identity pack's record, once with the
+  // capability flipped on and once off, applying the same whole-file
+  // gates and destination rendering the generator uses.
+  const names = deriveGameNames('demoproto');
+  const extraTokens = {
+    __GAME_DISPLAY_NAME__: '演示原型',
+    __GAME_SUBTITLE__: '生成器自证用临时游戏',
+    __GAME_ICON_NAME__: 'game-controller-outline',
+    __GAME_TIER__: 'mini',
+    __GAME_PRESET__: 'identity',
+  };
+  const baseRecord = { ...PRESET_CAPABILITIES.identity, ...PACK_SEGMENT_SWITCHES.identity };
+  const renderTree = (capabilities) => {
+    const rendered = new Map();
+    for (const layer of ['shared', 'game']) {
+      const layerDir = path.join(REPO_ROOT, 'scripts/lib/new-game/templates', layer);
+      const walk = (current) => {
+        for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+          const entryPath = path.join(current, entry.name);
+          if (entry.isDirectory()) {
+            walk(entryPath);
+          } else if (entry.name.endsWith('.tmpl')) {
+            const relative = path.relative(layerDir, entryPath).slice(0, -'.tmpl'.length);
+            const gate = FILE_CAPABILITY_GATES[relative];
+            if (layer === 'game' && gate !== undefined && capabilities[gate] !== true) continue;
+            const destination = renderTemplateFile(relative.split(path.sep).join('/'), {
+              names,
+              capabilities,
+              extraTokens,
+            });
+            rendered.set(
+              destination,
+              renderTemplateFile(fs.readFileSync(entryPath, 'utf8'), {
+                names,
+                capabilities,
+                extraTokens,
+              }),
+            );
+          }
+        }
+      };
+      walk(layerDir);
+    }
+    return rendered;
+  };
+
+  const hookFile = 'src/games/demoproto/room/hooks/useDemoprotoAudioOrchestration.ts';
+  const on = renderTree({ ...baseRecord, audioOrchestration: true });
+  const off = renderTree({ ...baseRecord, audioOrchestration: false });
+
+  // The whole-file gate is the only file-set difference.
+  assert.ok(on.has(hookFile), 'audio-on render includes the binding hook file');
+  assert.ok(!off.has(hookFile), 'audio-off render excludes the binding hook file');
+  assert.deepEqual(
+    [...on.keys()].filter((file) => !off.has(file)),
+    [hookFile],
+  );
+  assert.deepEqual(
+    [...off.keys()].filter((file) => !on.has(file)),
+    [],
+  );
+
+  const onUnion = [...on.values()].join('\n');
+  const wiringMarkers = [
+    // Engine state slice + strict parse of the queue.
+    'pendingAudioEffects',
+    'isAudioPlaying',
+    // Ack command across commands/types, engine decide and worker schemas.
+    `'demoproto.audio.ack'`,
+    // Queue/clear events and their evolve landing on the shared machine.
+    `'demoproto.audio.queued'`,
+    `'demoproto.audio.cleared'`,
+    'queueAudioBatch(',
+    'acknowledgeAudioQueue(',
+    // The platform gate guard at the returnToLobby wiring point.
+    'guardAudioPlayback(',
+    // Per-game audio reasons and their client failure copy.
+    `audioPlaying: 'demoproto_audio_playing'`,
+    `notHostAckAudio: 'demoproto_not_host_ack_audio'`,
+    '播报尚未结束，请稍候',
+    // Client playback lock at the room-state assembly exit.
+    'applyAudioPlaybackLock(',
+    'DEMOPROTO_AUDIO_LOCK_EXEMPT_ACTION_KEYS',
+    // Orchestrator binding call in the room-state hook.
+    'useDemoprotoAudioOrchestration(',
+    // The generated engine test segment for the queue/ack/gate chain.
+    `describe('Demoproto audio queue and ack'`,
+  ];
+  for (const marker of wiringMarkers) {
+    assert.ok(onUnion.includes(marker), `audio-on render is missing wiring marker: ${marker}`);
+  }
+  assert.ok(
+    on
+      .get('packages/game-engine/src/games/demoproto/engine.ts')
+      .includes('audioOrchestration: true'),
+    'audio-on engine declares the capability true',
+  );
+
+  const offUnion = [...off.values()].join('\n');
+  for (const marker of wiringMarkers) {
+    assert.ok(!offUnion.includes(marker), `audio-off render leaks wiring marker: ${marker}`);
+  }
+  assert.ok(
+    off
+      .get('packages/game-engine/src/games/demoproto/engine.ts')
+      .includes('audioOrchestration: false'),
+    'audio-off engine declares the capability false',
+  );
+});
 
 test('production: true registers the new game as production and reports the list-only go-live step', () => {
   const root = makeFixtureRepo();

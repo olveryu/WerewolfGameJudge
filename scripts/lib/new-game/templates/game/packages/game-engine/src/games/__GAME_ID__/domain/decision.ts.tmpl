@@ -1,6 +1,9 @@
 /** __GAME_PASCAL__ decision outcomes and permission gates; no IO. */
 
 import { commit, type Decision } from '../../../platform/engine';
+//#cap audioOrchestration
+import type { AudioEffect } from '../../../platform/audio';
+//#end
 import { type RosterChange } from '../../../platform/room/seating';
 import type { __GAME_PASCAL__HumanSeat, __GAME_PASCAL__State } from '../state/types';
 
@@ -23,6 +26,10 @@ export const __GAME_UPPER___REASONS = {
 //#end
   full: '__GAME_ID___room_not_full',
   notHostReturnToLobby: '__GAME_ID___not_host_return_to_lobby',
+//#cap audioOrchestration
+  audioPlaying: '__GAME_ID___audio_playing',
+  notHostAckAudio: '__GAME_ID___not_host_ack_audio',
+//#end
   occupied: '__GAME_ID___occupied_seat_out_of_range',
 //#cap stageDeadline
   deadline: '__GAME_ID___deadline_not_reached',
@@ -61,6 +68,13 @@ export type __GAME_PASCAL__Event =
 //#end
 //#cap publicExpire
   | { readonly type: '__GAME_ID__.phase.expired' }
+//#end
+//#cap audioOrchestration
+  | {
+      readonly type: '__GAME_ID__.audio.queued';
+      readonly effects: readonly AudioEffect[];
+    }
+  | { readonly type: '__GAME_ID__.audio.cleared' }
 //#end
   // TODO(gameplay): 玩法事件随玩法状态机加在这里，evolve.ts 逐个落状态。
   | { readonly type: '__GAME_ID__.game.ended' }

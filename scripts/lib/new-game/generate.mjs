@@ -43,10 +43,14 @@ const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 't
  * pack. Every value matches the wiring the skeleton actually ships:
  * the capabilities contract welds each declaration to a source
  * marker, so a switch the skeleton does not wire must be declared
- * off (audio, gallery, word library are hooked up per game after
- * generation; the bot scaffold presupposes identity-viewing records,
- * so the stage preset — like every shipped stage game — declares it
- * off). The demo-hybrid pack is the union the shipped demo game was
+ * off (gallery and word library are hooked up per game after
+ * generation; the audio wiring ships as capability segments plus a
+ * gated binding file and renders in full for a pack that declares
+ * it on — all three packs keep it off because narration is a
+ * per-game design choice, not an archetype trait; the bot scaffold
+ * presupposes identity-viewing records, so the stage preset — like
+ * every shipped stage game — declares it off). The demo-hybrid pack
+ * is the union the shipped demo game was
  * hand-built to: identity viewing plus a stage deadline on the
  * playing phase, and its row mirrors demo's verified declaration.
  */
@@ -102,7 +106,7 @@ export const PRESET_CAPABILITIES = {
  * and a stage deadline arms the deadline when play begins (after
  * the viewing checkpoint), not when identities are dealt.
  */
-const PACK_SEGMENT_SWITCHES = {
+export const PACK_SEGMENT_SWITCHES = {
   identity: { publicExpire: false, internalSettleOnly: false, armDeadlineAtBegin: false },
   stage: { publicExpire: true, internalSettleOnly: false, armDeadlineAtBegin: false },
   'demo-hybrid': { publicExpire: false, internalSettleOnly: true, armDeadlineAtBegin: true },
@@ -111,14 +115,18 @@ const PACK_SEGMENT_SWITCHES = {
 /**
  * Whole-file capability gates for the single game template tree:
  * a gated file is collected only when the pack enables the key.
- * These three are the identity-viewing chain's whole-file products
- * (identity card adapter/modal and the viewing-protocol contract).
+ * The first three are the identity-viewing chain's whole-file
+ * products (identity card adapter/modal and the viewing-protocol
+ * contract); the last is the audio chain's client binding hook —
+ * the engine/client wiring inside shared files rides `//#cap`
+ * segments, but the binding itself is a file only audio games have.
  */
-const FILE_CAPABILITY_GATES = {
+export const FILE_CAPABILITY_GATES = {
   'packages/game-engine/src/games/__GAME_ID__/__tests__/identityViewingProtocol.contract.test.ts':
     'identityViewing',
   'src/games/__GAME_ID__/components/__GAME_PASCAL__RoleCardAdapter.ts': 'identityViewing',
   'src/games/__GAME_ID__/room/components/__GAME_PASCAL__RoleCardModal.tsx': 'identityViewing',
+  'src/games/__GAME_ID__/room/hooks/use__GAME_PASCAL__AudioOrchestration.ts': 'audioOrchestration',
 };
 
 export const DEFAULT_REWARDS = { xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 };

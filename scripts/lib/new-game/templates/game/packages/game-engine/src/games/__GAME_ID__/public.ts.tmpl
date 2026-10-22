@@ -1,5 +1,8 @@
 /** Public pure __GAME_PASCAL__ API for transport, persistence and the client game module. */
 
+//#cap audioOrchestration
+export type { AudioEffect } from '../../platform/audio';
+//#end
 export { getBotSeats, isBotOccupant, isBotSeat } from '../../platform/room/seating';
 export type {
   __GAME_PASCAL__Command,
