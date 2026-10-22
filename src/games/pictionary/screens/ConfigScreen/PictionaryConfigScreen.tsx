@@ -120,6 +120,7 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
           optionTestID={(value) =>
             TESTIDS.pictionaryConfigDurationOption('drawing', value ?? 'unlimited')
           }
+          optionAccessibilityLabel={(_value, optionLabel) => optionLabel}
         />
         <GameSettingsDurationOptions
           title="文字作答时间"
@@ -130,6 +131,7 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
           optionTestID={(value) =>
             TESTIDS.pictionaryConfigDurationOption('guess', value ?? 'unlimited')
           }
+          optionAccessibilityLabel={(_value, optionLabel) => optionLabel}
         />
         <GameSettingsDurationOptions
           title="每棒间隔"
@@ -140,6 +142,7 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
           optionTestID={(value) =>
             TESTIDS.pictionaryConfigDurationOption('transition', value ?? 'unlimited')
           }
+          optionAccessibilityLabel={(_value, optionLabel) => optionLabel}
         />
         <GameSettingsDurationOptions
           title="结果播放"
@@ -150,6 +153,7 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
           optionTestID={(value) =>
             TESTIDS.pictionaryConfigDurationOption('gallery', value ?? 'unlimited')
           }
+          optionAccessibilityLabel={(_value, optionLabel) => optionLabel}
         />
         <Text style={styles.estimate}>{getEstimatedMinutes(state.config)}</Text>
       </GameScreenContent>

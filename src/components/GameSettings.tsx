@@ -66,6 +66,9 @@ export function GameSettingsStepper({
  * Shared duration radio group for game settings: one titled section of
  * second options, where a null option means "no time limit". Callers own
  * the candidate values and the selected value; presentation is shared.
+ * The accessibility label defaults to `${title} ${optionLabel}`; a caller
+ * whose established form is the bare option label passes
+ * `optionAccessibilityLabel` to keep it.
  */
 export function GameSettingsDurationOptions<TDuration extends number | null>({
   title,
@@ -75,6 +78,7 @@ export function GameSettingsDurationOptions<TDuration extends number | null>({
   onChange,
   nullLabel = '不限时',
   optionTestID,
+  optionAccessibilityLabel,
 }: {
   readonly title: string;
   readonly hint?: string;
@@ -83,6 +87,7 @@ export function GameSettingsDurationOptions<TDuration extends number | null>({
   readonly onChange: (value: TDuration) => void;
   readonly nullLabel?: string;
   readonly optionTestID?: (value: TDuration) => string;
+  readonly optionAccessibilityLabel?: (value: TDuration, optionLabel: string) => string;
 }) {
   return (
     <View style={styles.section}>
@@ -98,7 +103,11 @@ export function GameSettingsDurationOptions<TDuration extends number | null>({
               onPress={() => onChange(option)}
               testID={optionTestID?.(option)}
               accessibilityRole="radio"
-              accessibilityLabel={`${title} ${optionLabel}`}
+              accessibilityLabel={
+                optionAccessibilityLabel
+                  ? optionAccessibilityLabel(option, optionLabel)
+                  : `${title} ${optionLabel}`
+              }
               accessibilityState={{ checked: selected }}
               aria-checked={selected}
               style={[styles.option, selected && styles.optionSelected]}
