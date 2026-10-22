@@ -11,7 +11,7 @@
  * at avatar.sm and `size` is ignored. `withdrawn` dims the whole dot and
  * strikes the number through. The accessibility label is `N号`, extended with
  * `，<stateLabel>` when the caller passes a state word — the word itself is
- * each surface's own vocabulary (队长 / 已退水） and stays with the caller.
+ * each surface's own vocabulary (组队者 / 已退水） and stays with the caller.
  * Pure presentation component; does not import service, contains no business
  * logic.
  */

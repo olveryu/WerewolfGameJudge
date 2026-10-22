@@ -40,10 +40,10 @@ describe('SeatDot', () => {
   });
 
   it('renders the leader variant with primary ring, tint and flag marker', () => {
-    const screen = render(<SeatDot seat={4} emphasis="leader" stateLabel="队长" testID="dot" />);
+    const screen = render(<SeatDot seat={4} emphasis="leader" stateLabel="组队者" testID="dot" />);
 
     const dot = screen.getByTestId('dot');
-    expect(dot.props.accessibilityLabel).toBe('5号，队长');
+    expect(dot.props.accessibilityLabel).toBe('5号，组队者');
 
     expect(StyleSheet.flatten(dot.props.style)).toMatchObject({
       width: componentSizes.avatar.sm,
