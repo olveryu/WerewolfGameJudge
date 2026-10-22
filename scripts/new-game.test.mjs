@@ -364,6 +364,20 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
     assert.ok(report.includes(summary.migrationName));
     assert.ok(report.includes('审 migration'));
     assert.ok(report.includes('e2e 启用需用户批准'));
+    // The word-library step names all three workflow registration
+    // sites: the registry entry, the worker entrypoint export and
+    // the wrangler binding (the last one has no contract weld).
+    assert.ok(report.includes('workerWorkflows'));
+    assert.ok(report.includes("exportName: 'DemoprotoWordSupplyWorkflow'"));
+    assert.ok(report.includes('packages/api-worker/src/index.ts'));
+    assert.ok(
+      report.includes(
+        `export { DemoprotoWordSupplyWorkflow } from './games/demoproto/wordSupplyWorkflow';`,
+      ),
+    );
+    assert.ok(report.includes('packages/api-worker/wrangler.toml'));
+    assert.ok(report.includes('[[workflows]]'));
+    assert.ok(report.includes('binding = "DEMOPROTO_WORD_SUPPLY"'));
     // The TODO_IDENTITY follow-up note rides on the identityViewing
     // capability, not on the preset name.
     assert.equal(
