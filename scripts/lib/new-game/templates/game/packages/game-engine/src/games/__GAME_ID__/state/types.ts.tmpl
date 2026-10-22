@@ -6,6 +6,9 @@
 //#end
 
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
+//#cap audioOrchestration
+import type { AudioEffect } from '../../../platform/audio';
+//#end
 //#cap identityViewing
 import {
   buildRosterViewingParticipants,
@@ -106,6 +109,12 @@ export interface __GAME_PASCAL__State extends BaseGameState<typeof __GAME_UPPER_
   readonly gameSequence: number;
   /** 终局结算 effect 恰好发出一次的标记。 */
   readonly xpSettled: boolean;
+//#cap audioOrchestration
+  /** 待播放的播报队列（共享 AudioEffect，音频 key 见各入队点）；房主播完提交 ack 后清空。 */
+  readonly pendingAudioEffects: readonly AudioEffect[];
+  /** 播报进行中标记：为真时音频门关闭（引擎 guardAudioPlayback、客户端播报锁）。 */
+  readonly isAudioPlaying: boolean;
+//#end
 }
 
 /** Returns the seat held by a user, or null when they hold no seat. */

@@ -275,6 +275,80 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
 });
 
 //#end
+//#cap audioOrchestration
+describe('__GAME_PASCAL__ audio queue and ack', () => {
+  it('lands a queued batch through the shared machine and clears it on host ack', () => {
+    const session = game({ numberOfPlayers: 4 }, 4);
+    const queued = __GAME_CAMEL__Engine.evolve(session.state, {
+      type: '__GAME_ID__.audio.queued',
+      effects: [{ audioKey: 'night' }],
+    });
+    expect(queued.pendingAudioEffects).toEqual([{ audioKey: 'night' }]);
+    expect(queued.isAudioPlaying).toBe(true);
+    const decision = __GAME_CAMEL__Engine.decide(
+      queued,
+      { type: '__GAME_ID__.audio.ack' },
+      session.session.context('host'),
+    );
+    expect(decision.kind).toBe('commit');
+    if (decision.kind !== 'commit') return;
+    expect(decision.events).toEqual([{ type: '__GAME_ID__.audio.cleared' }]);
+    const cleared = decision.events.reduce(__GAME_CAMEL__Engine.evolve, queued);
+    expect(cleared.pendingAudioEffects).toEqual([]);
+    expect(cleared.isAudioPlaying).toBe(false);
+  });
+
+  it('rejects ack from a non-host and treats an idle ack as a no-op commit', () => {
+    const session = game({ numberOfPlayers: 4 }, 4);
+    const queued = __GAME_CAMEL__Engine.evolve(session.state, {
+      type: '__GAME_ID__.audio.queued',
+      effects: [{ audioKey: 'night' }],
+    });
+    const nonHost = __GAME_CAMEL__Engine.decide(
+      queued,
+      { type: '__GAME_ID__.audio.ack' },
+      session.session.context('u1'),
+    );
+    expect(nonHost.kind).toBe('reject');
+    if (nonHost.kind === 'reject')
+      expect(nonHost.reason).toBe(__GAME_UPPER___REASONS.notHostAckAudio);
+    const idle = session.decideAs({ type: '__GAME_ID__.audio.ack' });
+    expect(idle.kind).toBe('commit');
+    if (idle.kind === 'commit') expect(idle.events).toEqual([]);
+  });
+
+  it('blocks returnToLobby while playback is running, then releases it after ack', () => {
+    const session = game({ numberOfPlayers: 4 }, 4);
+    const ended = __GAME_CAMEL__Engine.evolve(session.state, { type: '__GAME_ID__.game.ended' });
+    const playing = __GAME_CAMEL__Engine.evolve(ended, {
+      type: '__GAME_ID__.audio.queued',
+      effects: [{ audioKey: 'night_end', isEndAudio: true }],
+    });
+    const blocked = __GAME_CAMEL__Engine.decide(
+      playing,
+      { type: '__GAME_ID__.game.returnToLobby' },
+      session.session.context('host'),
+    );
+    expect(blocked.kind).toBe('reject');
+    if (blocked.kind === 'reject') expect(blocked.reason).toBe(__GAME_UPPER___REASONS.audioPlaying);
+    const ack = __GAME_CAMEL__Engine.decide(
+      playing,
+      { type: '__GAME_ID__.audio.ack' },
+      session.session.context('host'),
+    );
+    expect(ack.kind).toBe('commit');
+    if (ack.kind !== 'commit') return;
+    const cleared = ack.events.reduce(__GAME_CAMEL__Engine.evolve, playing);
+    const released = __GAME_CAMEL__Engine.decide(
+      cleared,
+      { type: '__GAME_ID__.game.returnToLobby' },
+      session.session.context('host'),
+    );
+    expect(released.kind).toBe('commit');
+  });
+});
+
+//#end
 describe('__GAME_PASCAL__ gameplay seam', () => {
 //#cap identityViewing
   it('rejects the example gameplay command as not implemented (no fake green)', () => {

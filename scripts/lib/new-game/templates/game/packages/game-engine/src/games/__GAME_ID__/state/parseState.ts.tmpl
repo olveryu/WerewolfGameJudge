@@ -18,6 +18,9 @@ import {
   parseSeat,
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
+//#cap audioOrchestration
+import type { AudioEffect } from '../../../platform/audio';
+//#end
 import { buildRoomSeatProfile, type RoomSeatProfile } from '../../../platform/room/roster';
 import type { BotSeatOccupant } from '../../../platform/room/seating';
 import { normalize__GAME_PASCAL__State } from './normalize';
@@ -94,6 +97,28 @@ function rosterSeats(value: unknown, path: string): __GAME_PASCAL__State['roster
   return result;
 }
 
+//#cap audioOrchestration
+function audioEffect(value: unknown, path: string): AudioEffect {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      audioKey: parseNonEmptyString(raw.audioKey, `${path}.audioKey`),
+      isEndAudio:
+        raw.isEndAudio === undefined
+          ? undefined
+          : parseBoolean(raw.isEndAudio, `${path}.isEndAudio`),
+    },
+    path,
+  );
+}
+
+function audioEffects(value: unknown, path: string): readonly AudioEffect[] {
+  if (!Array.isArray(value)) failDecode(path, 'an array');
+  return value.map((item, index) => audioEffect(item, `${path}[${index}]`));
+}
+
+//#end
 //#cap identityViewing
 function identities(value: unknown, path: string): Readonly<Record<number, string>> {
   const raw = parseObject(value, path);
@@ -168,6 +193,13 @@ export function parse__GAME_PASCAL__State(value: unknown): __GAME_PASCAL__State 
 //#end
         gameSequence: parseInteger(raw.gameSequence, `${path}.gameSequence`),
         xpSettled: parseBoolean(raw.xpSettled, `${path}.xpSettled`),
+//#cap audioOrchestration
+        pendingAudioEffects: audioEffects(
+          raw.pendingAudioEffects,
+          `${path}.pendingAudioEffects`,
+        ),
+        isAudioPlaying: parseBoolean(raw.isAudioPlaying, `${path}.isAudioPlaying`),
+//#end
       },
       path,
     ),

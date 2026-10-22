@@ -1,5 +1,8 @@
 /** Authoritative __GAME_PASCAL__ engine; delegates persistence and delivery to the platform. */
 
+//#cap audioOrchestration
+import { acknowledgeAudioQueue, guardAudioPlayback } from '../../platform/audio';
+//#end
 import {
   buildGameCompletionPayload,
   type CommandContext,
@@ -69,6 +72,10 @@ function createInitialState(
 //#end
     gameSequence: 0,
     xpSettled: false,
+//#cap audioOrchestration
+    pendingAudioEffects: [],
+    isAudioPlaying: false,
+//#end
   });
 }
 
@@ -292,8 +299,28 @@ function returnToLobby(state: __GAME_PASCAL__State, context: CommandContext): __
   );
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'ended') return reject(__GAME_UPPER___REASONS.phase);
+//#cap audioOrchestration
+  // 播报未播完时阻塞回大厅，避免 orphan 音频队列（与阿瓦隆同口径）。
+  const audioReason = guardAudioPlayback(state, __GAME_UPPER___REASONS.audioPlaying);
+  if (audioReason !== null) return reject(audioReason);
+//#end
   return commit__GAME_PASCAL__([{ type: '__GAME_ID__.game.returnedToLobby' }]);
 }
+//#cap audioOrchestration
+
+/** 房主播完播报后提交 ack，清空队列、释放音频门（共享音频机器，与阿瓦隆 ackAudio 同一份 ack 转移）。 */
+function ackAudio(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
+  const hostRejection = requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
+    context,
+    state.hostUserId,
+    __GAME_UPPER___REASONS.notHostAckAudio,
+  );
+  if (hostRejection !== null) return hostRejection;
+  // 队列已空且未在播时 ack 是幂等空转：不发事件、不 bump 修订号。
+  if (acknowledgeAudioQueue(state) === null) return commit__GAME_PASCAL__([]);
+  return commit__GAME_PASCAL__([{ type: '__GAME_ID__.audio.cleared' }]);
+}
+//#end
 
 /**
  * TODO(gameplay): 终局接缝。玩法状态机判定出胜负时从这里收口：
@@ -359,6 +386,10 @@ function decideCommand(
 //#end
     case '__GAME_ID__.game.returnToLobby':
       return returnToLobby(state, context);
+//#cap audioOrchestration
+    case '__GAME_ID__.audio.ack':
+      return ackAudio(state, context);
+//#end
     case '__GAME_ID__.gameplay.example':
       // TODO(gameplay): 示例玩法命令——接上真实玩法后删除或替换。
       return reject(__GAME_UPPER___REASONS.notImplemented);
@@ -405,7 +436,12 @@ export const __GAME_CAMEL__Engine = {
 //#cap !stageDeadline
     stageDeadline: false,
 //#end
+//#cap audioOrchestration
+    audioOrchestration: true,
+//#end
+//#cap !audioOrchestration
     audioOrchestration: false,
+//#end
     wordLibrary: false,
     gallery: false,
     hostConfig: true,

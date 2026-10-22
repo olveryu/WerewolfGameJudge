@@ -1,0 +1,151 @@
+/**
+ * __GAME_DISPLAY_NAME__播报 — 共享房间音频运行核（RoomAudioOrchestrator）的 React 薄绑定。
+ *
+ * 生命周期（队列身份识别、顺序播放、prepared envelope ack、三层连接恢复、
+ * 重连整队重播、ack 后 recheck 链式续播）已搬入共享核心
+ * （src/features/room/audio/RoomAudioOrchestrator），全平台只此一份。本 hook
+ * 只做适配，不再自维护 ack/重试/去重逻辑：
+ * - queue source：直接读 session 权威快照（连接状态 + state.pendingAudioEffects）。
+ *   必须读快照而非 React prop：ack 提交后 session 先应用新快照再返回结果，
+ *   核心的 ack 后 recheck 只有读快照才能同步看到已清的队列（读 prop 会因
+ *   重渲染滞后而重播已确认的队列）。session 非 ready 或播放器未就绪时
+ *   快照为 null（核心静默）。
+ * - player port：本游戏音频运行时（__GAME_PASCAL__AudioRuntime）的 playEffect；
+ *   播放器与音频资源 registry 是本游戏资产，骨架只定 port 形状，运行时由
+ *   use__GAME_PASCAL__RoomState 的调用点注入（骨架阶段传 null，绑定静默）。
+ * - ack port：session.prepare/dispatchPrepared 制 `__GAME_ID__.audio.ack`，
+ *   envelope 由核心保留至终局决定（服务端按 commandId 幂等）。
+ */
+
+import type {
+  AudioEffect,
+  __GAME_PASCAL__PublicCommand,
+  __GAME_PASCAL__State,
+} from '@game-judge/game-engine/games/__GAME_ID__/public';
+import { useEffect, useRef } from 'react';
+
+import {
+  RoomAudioOrchestrator,
+  type RoomAudioQueueSnapshot,
+  type RoomAudioQueueSource,
+} from '@/features/room/audio/RoomAudioOrchestrator';
+import type { PreparedRoomCommand } from '@/features/room/session/types';
+import { log } from '@/utils/logger';
+
+import type { __GAME_PASCAL__RoomSession } from '../../model/__GAME_PASCAL__RoomSession';
+
+const __GAME_CAMEL__AudioLog = log.extend('__GAME_PASCAL__Audio');
+
+/**
+ * 本游戏的音频运行时：把一条队列 effect 真正播出声的资产侧接口。
+ * TODO(gameplay): 用本游戏播放器 + 资源 registry 实现本接口，并在
+ * use__GAME_PASCAL__RoomState 的绑定调用点传入（缺资源必须 fail-fast，
+ * 不许静默跳过——资源的缺失是编程错误，不是运行时状况）。
+ */
+export interface __GAME_PASCAL__AudioRuntime {
+  /** 播放一条 effect，播完（或被平台播放器跳过）后 resolve。 */
+  playEffect(effect: AudioEffect): Promise<void>;
+  /** 停止正在播的播报（绑定卸载时调用）。 */
+  stopNarration(): void;
+}
+
+interface Use__GAME_PASCAL__AudioOrchestrationDeps {
+  readonly session: __GAME_PASCAL__RoomSession;
+  readonly isHost: boolean;
+  /** 本游戏音频运行时；null 表示资产未就绪，绑定保持静默。 */
+  readonly audio: __GAME_PASCAL__AudioRuntime | null;
+}
+
+type __GAME_PASCAL__AudioCore = RoomAudioOrchestrator<
+  AudioEffect,
+  PreparedRoomCommand<__GAME_PASCAL__PublicCommand>,
+  __GAME_PASCAL__State
+>;
+
+export function use__GAME_PASCAL__AudioOrchestration(
+  deps: Use__GAME_PASCAL__AudioOrchestrationDeps,
+): void {
+  const { session, isHost, audio } = deps;
+  const sessionRef = useRef(session);
+  const isHostRef = useRef(isHost);
+  const audioRef = useRef(audio);
+  const abortedRef = useRef(false);
+  const coreRef = useRef<__GAME_PASCAL__AudioCore | null>(null);
+  const listenersRef = useRef(
+    new Set<(snapshot: RoomAudioQueueSnapshot<AudioEffect> | null) => void>(),
+  );
+
+  // Sync latest inputs and poke the core with the current snapshot on every
+  // render: host/player changes arrive as props, queue/connection changes
+  // arrive through the queue source's session forwarding below.
+  useEffect(() => {
+    sessionRef.current = session;
+    isHostRef.current = isHost;
+    audioRef.current = audio;
+
+    const readSnapshot = (): RoomAudioQueueSnapshot<AudioEffect> | null => {
+      const current = sessionRef.current.getSnapshot();
+      if (current.phase !== 'ready' || audioRef.current === null) return null;
+      return {
+        pendingAudioEffects: current.snapshot.state.pendingAudioEffects,
+        connection: current.connection,
+      };
+    };
+
+    if (coreRef.current === null) {
+      const queueSource: RoomAudioQueueSource<AudioEffect> = {
+        getSnapshot: readSnapshot,
+        subscribe: (listener) => {
+          listenersRef.current.add(listener);
+          const unsubscribeSession = sessionRef.current.subscribe(() => listener(readSnapshot()));
+          return () => {
+            listenersRef.current.delete(listener);
+            unsubscribeSession();
+          };
+        },
+      };
+      coreRef.current = new RoomAudioOrchestrator<
+        AudioEffect,
+        PreparedRoomCommand<__GAME_PASCAL__PublicCommand>,
+        __GAME_PASCAL__State
+      >({
+        queueSource,
+        player: {
+          playEffect: (effect) => {
+            const player = audioRef.current;
+            if (player === null) {
+              throw new Error(
+                '[FAIL-FAST] __GAME_PASCAL__ audio playback requires a ready audio runtime',
+              );
+            }
+            return player.playEffect(effect);
+          },
+        },
+        ack: {
+          prepare: () => sessionRef.current.prepare({ type: '__GAME_ID__.audio.ack' }, null),
+          dispatch: (prepared) => sessionRef.current.dispatchPrepared(prepared, '播报确认'),
+        },
+        isHost: () => isHostRef.current,
+        isAborted: () => abortedRef.current,
+        logger: __GAME_CAMEL__AudioLog,
+        onError: (error, label) =>
+          __GAME_CAMEL__AudioLog.warn('__GAME_ID__ audio orchestration failed', { label, error }),
+      });
+    }
+
+    const snapshot = readSnapshot();
+    for (const listener of listenersRef.current) listener(snapshot);
+  });
+
+  // Unmount: stop the lifecycle (timers, subscriptions, retained ack) and
+  // stop any in-flight narration, mirroring the shipped bindings' cleanup.
+  useEffect(
+    () => () => {
+      abortedRef.current = true;
+      coreRef.current?.dispose();
+      coreRef.current = null;
+      audioRef.current?.stopNarration();
+    },
+    [],
+  );
+}

@@ -49,6 +49,9 @@ import {
   type RevealRoleData,
 } from '@/features/room/model/RevealRoleData';
 //#end
+//#cap audioOrchestration
+import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
+//#end
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
@@ -71,7 +74,15 @@ import {
   create__GAME_PASCAL__RoomShellModel,
   get__GAME_PASCAL__SeatTapIntent,
 } from '../__GAME_CAMEL__RoomAdapter';
+//#cap audioOrchestration
+
+/** 本游戏房主面板没有只读动作，播报锁无豁免（与阿瓦隆同口径）；将来面板加只读动作时把其 key 登记在这里。 */
+const __GAME_UPPER___AUDIO_LOCK_EXEMPT_ACTION_KEYS: ReadonlySet<string> = new Set();
+//#end
 import { get__GAME_PASCAL__RoomCommandFailureMessage } from '../__GAME_CAMEL__RoomCommandFailureMessage';
+//#cap audioOrchestration
+import { use__GAME_PASCAL__AudioOrchestration } from './use__GAME_PASCAL__AudioOrchestration';
+//#end
 import { use__GAME_PASCAL__SeatCommands } from './use__GAME_PASCAL__SeatCommands';
 
 /**
@@ -172,6 +183,12 @@ export function use__GAME_PASCAL__RoomState(
 //#end
   const submit = (label: string, command: __GAME_PASCAL__Command, control: number | null = null) =>
     submission.submit(label, () => session.dispatch(command, { controlledSeat: control, label }));
+//#cap audioOrchestration
+  // 播报绑定：房主端按权威队列顺序播放、播完提交 ack（共享运行核的薄绑定）。
+  // 音频运行时是本游戏资产（播放器 + 资源 registry），骨架阶段传 null 保持
+  // 静默；就绪后把运行时实例传进这里，绑定即刻生效。
+  use__GAME_PASCAL__AudioOrchestration({ session, isHost, audio: null });
+//#end
 //#cap publicExpire
   // 阶段截止：剩余秒数与到期推进。服务端定时 settle effect 是正确性
   // 路径；这里的前台派发只是加速，守卫保证不重复结算。
@@ -293,6 +310,27 @@ export function use__GAME_PASCAL__RoomState(
     }
   };
   const selection = profile.selection;
+//#cap audioOrchestration
+  // 房主面板模型在离开本 hook 前过一遍播报锁（组合子在共享层一份）：
+  // 播报期内非豁免动作翻禁用且点不动，两个渲染面（折叠控制台与展开
+  // 面板）同时生效。工厂本体多出口且各出口在其他 cap 段内，无法在工厂
+  // 里再嵌一层 cap，故锁点在本 hook 的组装出口——模型到达任何渲染面
+  // 之前必经此处，与已落地两家「组装后统一过锁」的语义一致。
+  const hostManagement = applyAudioPlaybackLock(
+    create__GAME_PASCAL__HostManagement({
+      state,
+      isHost,
+      capabilities,
+      isSubmitting: submission.isSubmitting,
+      submit,
+    }),
+    {
+      isAudioPlaying: state.isAudioPlaying,
+      exemptActionKeys: __GAME_UPPER___AUDIO_LOCK_EXEMPT_ACTION_KEYS,
+    },
+  );
+//#end
+//#cap !audioOrchestration
   const hostManagement = create__GAME_PASCAL__HostManagement({
     state,
     isHost,
@@ -300,6 +338,7 @@ export function use__GAME_PASCAL__RoomState(
     isSubmitting: submission.isSubmitting,
     submit,
   });
+//#end
 
   const shellModel: RoomShellModel = create__GAME_PASCAL__RoomShellModel({
     roomCode: room.roomCode,

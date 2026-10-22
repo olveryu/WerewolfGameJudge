@@ -1,5 +1,8 @@
 /** Applies __GAME_PASCAL__ domain events; reset paths clear all game-owned state. */
 
+//#cap audioOrchestration
+import { acknowledgeAudioQueue, queueAudioBatch } from '../../../platform/audio';
+//#end
 //#cap identityViewing
 import { markSeatViewed } from '../../../platform/room/identityViewing';
 //#end
@@ -18,6 +21,10 @@ function reset__GAME_PASCAL__Game(state: __GAME_PASCAL__State): __GAME_PASCAL__S
     roleViewedSeats: [],
 //#end
     xpSettled: false,
+//#cap audioOrchestration
+    pendingAudioEffects: [],
+    isAudioPlaying: false,
+//#end
   };
 }
 
@@ -78,6 +85,18 @@ export function evolve__GAME_PASCAL__State(
       // TODO(gameplay): 骨架只有一个舞台阶段，到期结算即终局；真实阶段链
       // 落地时改为推进到下一阶段（只有最后一个阶段的结算才发 game.ended）。
       return { ...bumped, phase: { kind: 'ended' }, xpSettled: true };
+    }
+//#end
+//#cap audioOrchestration
+    case '__GAME_ID__.audio.queued': {
+      // The shared machine owns the transition (replace + gate close);
+      // an empty batch cannot reach here — queueing fail-fasts in decide.
+      return { ...bumped, ...queueAudioBatch(event.effects) };
+    }
+    case '__GAME_ID__.audio.cleared': {
+      const cleared = acknowledgeAudioQueue(state);
+      if (cleared === null) return state;
+      return { ...bumped, ...cleared };
     }
 //#end
     // TODO(gameplay): 玩法事件在这里逐个落状态；阶段推进只许由事件驱动。
