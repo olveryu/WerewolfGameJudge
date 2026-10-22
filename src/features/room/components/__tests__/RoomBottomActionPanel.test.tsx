@@ -540,7 +540,7 @@ describe('RoomBottomActionPanel', () => {
       label,
       variant: 'danger' as const,
       size: 'md' as const,
-      isEnabled: true,
+      isEnabled: true as const,
       onPress: jest.fn(),
       testID,
     });
