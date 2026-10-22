@@ -2,7 +2,12 @@
  * shareNightReview - Share night review as screenshot image.
  *
  * Capture source is provided by caller (typically a hidden share card view).
- * Mini program path uses Canvas 2D to draw the card directly (no html2canvas).
+ * Mini program fallback path uses Canvas 2D to draw the card directly (no
+ * html2canvas): renderNightReviewToCanvas below is the text-medium rendering
+ * of the same report — it consumes the same NightReviewData entries in order
+ * and the shared layout/copy spec in nightReviewLayout, and the structural
+ * alignment with the DOM presentation is pinned by nightReviewCanvasAlignment
+ * tests. It must not grow a second hand-drawn layout spec.
  */
 import type { RefObject } from 'react';
 import { Dimensions, type View } from 'react-native';
@@ -14,6 +19,13 @@ import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
 import { log } from '@/utils/logger';
 
 import type { NightReviewData } from './NightReview.helpers';
+import {
+  formatNightReviewShareTitle,
+  NIGHT_REVIEW_ACTIONS_TITLE,
+  NIGHT_REVIEW_CARD_WIDTH_RATIO,
+  NIGHT_REVIEW_DISCLAIMER_TEXT,
+  NIGHT_REVIEW_IDENTITIES_TITLE,
+} from './nightReviewLayout';
 import {
   formatNightReviewActionLine,
   formatNightReviewIdentityLine,
@@ -74,7 +86,9 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
 
 /**
  * Render NightReviewData to a canvas and return base64 PNG.
- * Mirrors the layout of NightReviewShareCard using the same theme tokens.
+ * Text-medium rendering of the shared report: geometry and copy come from
+ * nightReviewLayout (the same spec the DOM surfaces use) and theme tokens;
+ * entries are drawn in NightReviewData order via shareNightReviewLines.
  */
 export function renderNightReviewToCanvas(
   data: NightReviewData,
@@ -83,7 +97,7 @@ export function renderNightReviewToCanvas(
 ): string {
   const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio ?? 2) : 2;
   const screenWidth = Dimensions.get('window').width;
-  const cardWidth = Math.round(screenWidth * 0.88);
+  const cardWidth = Math.round(screenWidth * NIGHT_REVIEW_CARD_WIDTH_RATIO);
   const pad = spacing.large;
   const contentWidth = cardWidth - pad * 2;
   const fontSize = {
@@ -113,7 +127,7 @@ export function renderNightReviewToCanvas(
   // Disclaimer
   totalHeight += lineHeight.line + spacing.medium;
 
-  // "行动摘要" section title
+  // Actions section title
   totalHeight += lineHeight.section + spacing.small;
 
   // Action lines (with wrapping)
@@ -129,7 +143,7 @@ export function renderNightReviewToCanvas(
   // Divider
   totalHeight += spacing.medium * 2 + 1;
 
-  // "全员身份" section title
+  // Identities section title
   totalHeight += lineHeight.section + spacing.small;
 
   // Identity lines (with wrapping)
@@ -168,20 +182,20 @@ export function renderNightReviewToCanvas(
   ctx.fillStyle = colors.text;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(`房间 ${roomCode} 战报`, cardWidth / 2, y + lineHeight.title / 2);
+  ctx.fillText(formatNightReviewShareTitle(roomCode), cardWidth / 2, y + lineHeight.title / 2);
   y += lineHeight.title + spacing.medium;
 
   // ── Disclaimer ──
   ctx.font = `${fontSize.line}px system-ui, -apple-system, sans-serif`;
   ctx.fillStyle = colors.textSecondary;
-  ctx.fillText('⚠ 仅供裁判及观战者参考', cardWidth / 2, y + lineHeight.line / 2);
+  ctx.fillText(`⚠ ${NIGHT_REVIEW_DISCLAIMER_TEXT}`, cardWidth / 2, y + lineHeight.line / 2);
   y += lineHeight.line + spacing.medium;
 
-  // ── "行动摘要" ──
+  // ── Actions section ──
   ctx.font = `600 ${fontSize.section}px system-ui, -apple-system, sans-serif`;
   ctx.fillStyle = colors.primary;
   ctx.textAlign = 'left';
-  ctx.fillText('行动摘要', pad, y + lineHeight.section / 2);
+  ctx.fillText(NIGHT_REVIEW_ACTIONS_TITLE, pad, y + lineHeight.section / 2);
   y += lineHeight.section + spacing.small;
 
   // ── Action lines ──
@@ -204,10 +218,10 @@ export function renderNightReviewToCanvas(
   ctx.stroke();
   y += 1 + spacing.medium;
 
-  // ── "全员身份" ──
+  // ── Identities section ──
   ctx.font = `600 ${fontSize.section}px system-ui, -apple-system, sans-serif`;
   ctx.fillStyle = colors.primary;
-  ctx.fillText('全员身份', pad, y + lineHeight.section / 2);
+  ctx.fillText(NIGHT_REVIEW_IDENTITIES_TITLE, pad, y + lineHeight.section / 2);
   y += lineHeight.section + spacing.small;
 
   // ── Identity lines ──

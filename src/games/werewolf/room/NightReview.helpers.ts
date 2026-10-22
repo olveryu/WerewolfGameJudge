@@ -4,8 +4,9 @@
  * First section: convert currentNightResults / lastNightDeaths / all check reveals to
  * structured action entries (category, seats, outcome semantics) in night-resolution order.
  * Second section: per-seat identity entries (seat, role, faction source, alive state).
- * Text rendering lives in the consumers (NightReviewModal renders structure;
- * shareNightReviewLines formats the share surfaces). This module emits no display strings.
+ * Text rendering lives in the consumers (NightReviewReportBody renders structure
+ * for the DOM surfaces; shareNightReviewLines formats the text channel). This
+ * module emits no display strings.
  * No service / hook / React imports; relies only on game-engine types and ROLE_SPECS.
  */
 

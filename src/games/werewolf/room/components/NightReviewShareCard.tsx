@@ -1,28 +1,18 @@
 /**
  * NightReviewShareCard - Hidden share card used for battle report screenshot capture.
  *
- * Renders the same content sections as NightReviewModal without actions/overlay.
+ * Shell only: card frame and share title. The report presentation itself lives
+ * in NightReviewReportBody, shared with NightReviewModal so the two surfaces
+ * cannot drift.
  */
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { type Ref, useMemo } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View as RNView, type View } from 'react-native';
 
-import { STATUS_ICONS } from '@/config/iconTokens';
-import {
-  borderRadius,
-  colors,
-  fixed,
-  spacing,
-  textStyles,
-  type ThemeColors,
-  typography,
-} from '@/theme';
+import { borderRadius, colors, fixed, spacing, type ThemeColors, typography } from '@/theme';
 
 import type { NightReviewData } from '../NightReview.helpers';
-import {
-  formatNightReviewActionLine,
-  formatNightReviewIdentityLine,
-} from '../shareNightReviewLines';
+import { formatNightReviewShareTitle, NIGHT_REVIEW_CARD_WIDTH_RATIO } from '../nightReviewLayout';
+import { NightReviewReportBody } from './NightReviewReportBody';
 
 interface NightReviewShareCardProps {
   data: NightReviewData;
@@ -36,28 +26,9 @@ export function NightReviewShareCard({ data, roomCode, ref }: NightReviewShareCa
 
   return (
     <RNView ref={ref} collapsable={false} style={styles.card}>
-      <Text style={styles.title}>房间 {roomCode} 战报</Text>
+      <Text style={styles.title}>{formatNightReviewShareTitle(roomCode)}</Text>
 
-      <Text style={styles.disclaimer}>
-        <Ionicons name={STATUS_ICONS.WARNING} size={typography.secondary} color={colors.warning} />
-        {' 仅供裁判及观战者参考'}
-      </Text>
-
-      <Text style={styles.sectionTitle}>行动摘要</Text>
-      {data.actions.map((entry, i) => (
-        <Text key={`share-action-${i}`} style={styles.line}>
-          {formatNightReviewActionLine(entry)}
-        </Text>
-      ))}
-
-      <RNView style={styles.divider} />
-
-      <Text style={styles.sectionTitle}>全员身份</Text>
-      {data.identities.map((entry, i) => (
-        <Text key={`share-identity-${i}`} style={styles.line}>
-          {formatNightReviewIdentityLine(entry)}
-        </Text>
-      ))}
+      <NightReviewReportBody data={data} />
     </RNView>
   );
 }
@@ -70,7 +41,7 @@ function createStyles(colors: ThemeColors, screenWidth: number) {
       borderWidth: fixed.borderWidth,
       borderColor: colors.border,
       padding: spacing.large,
-      width: screenWidth * 0.88,
+      width: screenWidth * NIGHT_REVIEW_CARD_WIDTH_RATIO,
     },
     title: {
       fontSize: typography.subtitle,
@@ -79,29 +50,6 @@ function createStyles(colors: ThemeColors, screenWidth: number) {
       color: colors.text,
       textAlign: 'center',
       marginBottom: spacing.medium,
-    },
-    sectionTitle: {
-      ...textStyles.bodySemibold,
-      color: colors.primary,
-      marginBottom: spacing.small,
-    },
-    disclaimer: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.textSecondary,
-      textAlign: 'center',
-      marginBottom: spacing.medium,
-    },
-    line: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.text,
-      paddingLeft: spacing.small,
-    },
-    divider: {
-      height: fixed.divider,
-      backgroundColor: colors.border,
-      marginVertical: spacing.medium,
     },
   });
 }
