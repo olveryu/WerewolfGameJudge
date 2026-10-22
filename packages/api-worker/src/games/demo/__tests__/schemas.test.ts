@@ -67,6 +67,16 @@ describe('Demo public command schema', () => {
     expect(demoPublicCommandSchema.safeParse({ type: 'demo.roles.assign', extra: 1 }).success).toBe(
       false,
     );
+    expect(demoPublicCommandSchema.safeParse({ type: 'demo.game.begin', extra: 1 }).success).toBe(
+      false,
+    );
+    expect(demoPublicCommandSchema.safeParse({ type: 'demo.phase.settleExpired' }).success).toBe(
+      false,
+    );
+    expect(demoInternalCommandSchema.safeParse({ type: 'demo.phase.settleExpired' }).success).toBe(
+      true,
+    );
+    expect(demoInternalCommandSchema.safeParse({ type: 'demo.phase.expire' }).success).toBe(false);
     expect(demoInternalCommandSchema.safeParse({ type: 'anything' }).success).toBe(false);
   });
 });

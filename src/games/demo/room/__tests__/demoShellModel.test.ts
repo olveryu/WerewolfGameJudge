@@ -178,6 +178,7 @@ describe('createDemoRoomShellModel', () => {
     state = drive(state, { type: 'demo.game.begin' });
     const playing = state.phase;
     if (playing.kind !== 'playing') throw new Error('expected playing phase');
+    if (playing.deadlineAt === null) throw new Error('expected an armed stage deadline');
     const settleContext: CommandContext = {
       actor: { kind: 'system', effectId: 'effect:1' },
       controlledSeat: null,

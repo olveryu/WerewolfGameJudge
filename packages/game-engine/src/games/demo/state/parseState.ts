@@ -8,6 +8,7 @@ import {
   parseChoice,
   parseInteger,
   parseNonEmptyString,
+  parseNullable,
   parseObject,
   parseOptional,
   parseSeat,
@@ -106,12 +107,16 @@ function phase(value: unknown, path: string): DemoPhase {
       return finishObject(raw, { kind: 'lobby' as const }, path);
     case 'viewing':
       return finishObject(raw, { kind: 'viewing' as const }, path);
+    // TODO(gameplay): playing 阶段加字段时在这里逐字段严格解析。
     case 'playing':
       return finishObject(
         raw,
         {
           kind: 'playing' as const,
-          deadlineAt: parseInteger(raw.deadlineAt, `${path}.deadlineAt`),
+          deadlineAt:
+            raw.deadlineAt === undefined
+              ? null
+              : parseNullable(raw.deadlineAt, `${path}.deadlineAt`, parseInteger),
         },
         path,
       );

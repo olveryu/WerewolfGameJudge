@@ -69,7 +69,9 @@ function settleEffectFor(
   state: DemoState,
   overrides: Partial<Extract<DemoEffect, { type: 'demo.settle.due' }>['payload']> = {},
 ): DemoEffect {
-  if (state.phase.kind !== 'playing') throw new Error('Expected a playing phase');
+  if (state.phase.kind !== 'playing' || state.phase.deadlineAt === null) {
+    throw new Error('Expected a playing phase');
+  }
   return demoEffectSchema.parse({
     type: 'demo.settle.due',
     payload: {

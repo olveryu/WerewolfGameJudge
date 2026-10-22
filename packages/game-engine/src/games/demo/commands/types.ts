@@ -23,10 +23,10 @@ export type DemoPublicCommand =
 
 /**
  * Worker-originated settle command: the room runtime fires the armed
- * stage deadline through a scheduled `demo.settle.due` effect, and
- * the effect handler dispatches this command as the system actor. It
- * runs the same settlement decide as the terminal seam; no public
- * expire command exists — the scheduled effect is the only channel.
+ * stage deadline through a scheduled `demo.settle.due` effect,
+ * and the effect handler dispatches this as the system actor. It runs
+ * the same settlement decide as the terminal seam; no public expire
+ * command exists — the scheduled effect is the only channel.
  */
 export type DemoInternalCommand = { readonly type: 'demo.phase.settleExpired' };
 

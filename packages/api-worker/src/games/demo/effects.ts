@@ -46,7 +46,8 @@ const SUPERSEDED_SETTLE_REASONS: readonly string[] = [DEMO_REASONS.phase, DEMO_R
  * Scheduled stage-deadline settlement through the shared settle.due
  * handler. The staleness gate compares the payload's pinned arming
  * field by field (game sequence, deadline): if the room has moved on
- * (already settled, new game), the delivery is a no-op.
+ * (already settled, new game), the delivery is a no-op — never settle
+ * whatever stage happens to be current.
  */
 const handleDemoSettleDueEffect = createSettleDueHandler<
   DemoState,

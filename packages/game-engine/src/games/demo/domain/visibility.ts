@@ -28,6 +28,8 @@ export interface DemoViewModel {
   readonly hasViewedRole: boolean;
   /** 尚未查看身份的座位（公开信息，含机器人）。 */
   readonly unviewedRoleSeats: readonly number[];
+  /** 当前舞台阶段的截止时刻（epoch ms）；无阶段或无截止时为 null。 */
+  readonly stageDeadlineAt: number | null;
   // TODO(gameplay): 玩法投影（公开进度、本人私有信息）加在这里：
   // 私有字段只许按 viewerSeat 裁剪产出，不许把完整状态透传给客户端拼装。
 }
@@ -56,5 +58,6 @@ export function getDemoViewModel(state: DemoState, viewerSeat: number | null): D
       getDemoViewingParticipants(state),
       state.roleViewedSeats,
     ).map((participant) => participant.seat),
+    stageDeadlineAt: state.phase.kind === 'playing' ? state.phase.deadlineAt : null,
   };
 }

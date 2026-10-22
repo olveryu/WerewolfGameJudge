@@ -26,7 +26,8 @@ import {
   type DemoEvent,
 } from './domain/decision';
 import { evolveDemoState } from './domain/evolve';
-import { dealDemoIdentities, DEMO_STAGE_DURATION_MS } from './domain/rules';
+import { dealDemoIdentities } from './domain/rules';
+import { DEMO_STAGE_DURATION_MS } from './domain/rules';
 import { decideDemoRoom } from './domain/seating';
 import { normalizeDemoState } from './state/normalize';
 import {
@@ -69,6 +70,16 @@ function completionEffect(state: DemoState, context: CommandContext): DemoEffect
 }
 
 /**
+ * The scheduled settle effect for one armed stage deadline, built
+ * by the platform constructor: the payload pins the exact arming so
+ * the Worker handler can no-op a delivery that arrives after the
+ * stage already settled or a new game began.
+ */
+function settleDueEffect(gameSequence: number, deadlineAt: number): DemoEffect {
+  return buildSettleDueEffect(DEMO_GAME_TYPE, { gameSequence, deadlineAt });
+}
+
+/**
  * Host deals the game (or redeals from ended): assign identities and
  * enter the viewing stage. Dealing never starts play — the host
  * begins the game only once every seat has viewed its identity.
@@ -90,16 +101,6 @@ function startGame(state: DemoState, context: CommandContext): DemoDecision {
       gameSequence: state.gameSequence + 1,
     },
   ]);
-}
-
-/**
- * The scheduled settle effect for the one armed stage deadline, built
- * by the platform constructor: the payload pins the exact arming so
- * the Worker handler can no-op a delivery that arrives after the game
- * already settled or a new game began.
- */
-function settleDueEffect(gameSequence: number, deadlineAt: number): DemoEffect {
-  return buildSettleDueEffect(DEMO_GAME_TYPE, { gameSequence, deadlineAt });
 }
 
 /**
@@ -166,6 +167,26 @@ function markAllBotsViewed(state: DemoState, context: CommandContext): DemoDecis
   });
 }
 
+/**
+ * Settle channel for stage-deadline expiry, run through the shared
+ * expiry guard on its system-only assembly: only the system actor
+ * (the scheduled `demo.settle.due` effect handler) may settle,
+ * and only once the armed deadline has been reached. This skeleton
+ * has no public expire command — the scheduled effect is the only
+ * channel. Settlement itself runs through the terminal seam
+ * (endDemoGame).
+ */
+function settleExpired(state: DemoState, context: CommandContext): DemoDecision {
+  const phase = state.phase;
+  return guardPhaseExpiry(context, {
+    phaseRejection: phase.kind === 'playing' ? null : reject(DEMO_REASONS.phase),
+    actorChannel: 'system',
+    deadlineAt: phase.kind === 'playing' ? phase.deadlineAt : null,
+    notExpiredReason: DEMO_REASONS.deadline,
+    dispatch: () => endDemoGame(state, context),
+  });
+}
+
 function returnToLobby(state: DemoState, context: CommandContext): DemoDecision {
   const hostRejection = requireHost<DemoEvent, DemoEffect>(
     context,
@@ -189,25 +210,6 @@ export function endDemoGame(state: DemoState, context: CommandContext): DemoDeci
     [{ type: 'demo.game.ended' }],
     state.xpSettled ? [] : [completionEffect(state, context)],
   );
-}
-
-/**
- * Settle channel for stage-deadline expiry, run through the shared
- * expiry guard on its system-only assembly: only the system actor
- * (the scheduled `demo.settle.due` effect handler) may settle, and
- * only once the armed deadline has been reached. Demo has no public
- * expire command — the scheduled effect is the only channel.
- * Settlement itself runs through the terminal seam above.
- */
-function settleExpired(state: DemoState, context: CommandContext): DemoDecision {
-  const phase = state.phase;
-  return guardPhaseExpiry(context, {
-    phaseRejection: phase.kind === 'playing' ? null : reject(DEMO_REASONS.phase),
-    actorChannel: 'system',
-    deadlineAt: phase.kind === 'playing' ? phase.deadlineAt : null,
-    notExpiredReason: DEMO_REASONS.deadline,
-    dispatch: () => endDemoGame(state, context),
-  });
 }
 
 function decideCommand(

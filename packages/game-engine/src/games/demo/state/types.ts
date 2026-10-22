@@ -40,10 +40,14 @@ export function isValidDemoConfig(config: DemoConfig): boolean {
 export type DemoPhase =
   | { readonly kind: 'lobby' }
   | { readonly kind: 'viewing' }
-  // The playing stage carries the armed stage deadline: it opens at
-  // `game.begun` with `deadlineAt` set, and the scheduled settle effect
-  // settles the game when the deadline is reached (never client-driven).
-  | { readonly kind: 'playing'; readonly deadlineAt: number }
+  // TODO(gameplay): playing 阶段的玩法字段（当前回合、行动座位、阶段产物）
+  // 加在这里，并同步 parseState / normalize / visibility 三处。deadlineAt
+  // 是阶段截止的底盘字段：null 表示本阶段无截止，非 null 时到期由
+  // phase.expire / phase.settleExpired 结算（服务端定时 effect 是正确性路径）。
+  | {
+      readonly kind: 'playing';
+      readonly deadlineAt: number | null;
+    }
   | { readonly kind: 'ended' };
 
 export const DEMO_PHASES = ['lobby', 'viewing', 'playing', 'ended'] as const;

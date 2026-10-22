@@ -113,7 +113,7 @@ function makeSession(): PhaseDeadlineSession {
     },
     deadlineAt: () => {
       const phase = current().phase;
-      if (phase.kind !== 'playing') {
+      if (phase.kind !== 'playing' || phase.deadlineAt === null) {
         throw new Error('Expected the playing stage with an armed deadline');
       }
       return phase.deadlineAt;

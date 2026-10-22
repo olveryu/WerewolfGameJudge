@@ -72,7 +72,7 @@ export function __GAME_PASCAL__ConfigScreen({
   const submit = () => {
     if (params.mode === 'edit') {
       void submission
-        .submit('保存__GAME_DISPLAY_NAME__设置', () =>
+        .submit('保存设置', () =>
           session.dispatch(
             { type: '__GAME_ID__.config.update', config },
             { controlledSeat: null, label: '保存设置' },

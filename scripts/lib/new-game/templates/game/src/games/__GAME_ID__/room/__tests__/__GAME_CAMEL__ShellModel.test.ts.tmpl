@@ -16,6 +16,9 @@ import {
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
 
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+//#cap identityViewing
+import { resolveHostConsolePrimary } from '@/features/room/model/resolveHostConsolePrimary';
+//#end
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
@@ -137,6 +140,8 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
       releaseBot: jest.fn(),
     });
     expect(model.roomCode).toBe('1234');
+    // The shell phase anchor carries the __GAME_ID__ phase kind verbatim.
+    expect(model.phase).toBe('lobby');
     expect(model.seats.source.count).toBe(4);
     expect(model.seats.onSeatPress).toBe(onSeatPress);
     expect(model.seatConfirmation).toBeNull();
@@ -145,6 +150,109 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
     expect(model.hostManagement).toBe(hostManagement);
     expect(model.controlledSeat).toBeNull();
   });
+//#cap identityViewing
+
+  it('exposes the viewing phase on the shell model', () => {
+    const model = create__GAME_PASCAL__RoomShellModel({
+      roomCode: '1234',
+      capabilities: capabilities(),
+      onBack: jest.fn(),
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: null,
+      onUserActionPress: jest.fn(),
+      connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
+      state: viewingState(),
+      revision: 5,
+      userId: 'host',
+      controlledSeat: null,
+      seatsVisuallyDisabled: false,
+      onSeatPress: jest.fn(),
+      onBotSeatLongPress: null,
+      seatController,
+      profileSelection: null,
+      onProfileClose: jest.fn(),
+      onProfileLeaveSeat: jest.fn(),
+      share,
+      isLobby: false,
+      isHost: true,
+      mySeat: 0,
+      hostManagement: { sections: [] },
+      releaseBot: jest.fn(),
+    });
+    expect(model.phase).toBe('viewing');
+  });
+//#end
+//#cap internalSettleOnly
+
+  it('shows the shared ended wait to a seated non-host player once ended', () => {
+    let state = viewingState();
+    state = drive(state, { type: '__GAME_ID__.role.viewed' });
+    state = drive(state, { type: '__GAME_ID__.bots.markAllBotsViewed' });
+    state = drive(state, { type: '__GAME_ID__.game.begin' });
+    const playing = state.phase;
+    if (playing.kind !== 'playing') throw new Error('expected playing phase');
+    if (playing.deadlineAt === null) throw new Error('expected an armed stage deadline');
+    const settleContext: CommandContext = {
+      actor: { kind: 'system', effectId: 'effect:1' },
+      controlledSeat: null,
+      nowMs: playing.deadlineAt,
+      commandId: '__GAME_ID__.phase.settleExpired',
+      randomSeed: 'seed',
+    };
+    const decision = __GAME_CAMEL__Engine.decide(
+      state,
+      { type: '__GAME_ID__.phase.settleExpired' },
+      settleContext,
+    );
+    if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+    state = decision.events.reduce(__GAME_CAMEL__Engine.evolve, state);
+    if (state.phase.kind !== 'ended') throw new Error('expected ended phase');
+    const shellInput = {
+      roomCode: '1234',
+      capabilities: capabilities(),
+      onBack: jest.fn(),
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: null,
+      onUserActionPress: jest.fn(),
+      connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
+      state,
+      revision: 9,
+      controlledSeat: null,
+      seatsVisuallyDisabled: false,
+      onSeatPress: jest.fn(),
+      onBotSeatLongPress: null,
+      seatController,
+      profileSelection: null,
+      onProfileClose: jest.fn(),
+      onProfileLeaveSeat: jest.fn(),
+      share,
+      isLobby: false,
+      hostManagement: { sections: [] },
+      releaseBot: jest.fn(),
+    } as const;
+    const playerModel = create__GAME_PASCAL__RoomShellModel({
+      ...shellInput,
+      userId: 'bot-user',
+      isHost: false,
+      mySeat: 2,
+    });
+    expect(playerModel.bottomActions).toMatchObject({
+      kind: 'stacked',
+      message: '等待房主操作（再来一局 / 返回大厅）',
+    });
+    const hostModel = create__GAME_PASCAL__RoomShellModel({
+      ...shellInput,
+      userId: 'host',
+      isHost: true,
+      mySeat: 0,
+    });
+    expect(hostModel.bottomActions).toMatchObject({ kind: 'stacked', message: null });
+  });
+//#end
 //#cap !identityViewing
 
   it('assembles the shell once the game has started', () => {
@@ -234,6 +342,46 @@ describe('create__GAME_PASCAL__HostManagement', () => {
       submit: jest.fn(async () => true),
     });
     expect(model?.sections.map((section) => section.key)).toEqual(['room']);
+  });
+//#end
+//#cap identityViewing
+
+  describe('console primary', () => {
+    const build = (state: __GAME_PASCAL__State) =>
+      create__GAME_PASCAL__HostManagement({
+        state,
+        isHost: true,
+        capabilities: capabilities(),
+        isSubmitting: false,
+        submit: jest.fn(async () => true),
+      });
+
+    it('blocks identity assignment in a non-full lobby and offers room sharing', () => {
+      const step = resolveHostConsolePrimary(build(lobbyState(false))!);
+      expect(step).toMatchObject({ actionKey: 'assign-roles', label: '分配角色' });
+      if (step?.kind !== 'blocked') throw new Error('expected a blocked console primary');
+      expect(step.reason).toBe('座位尚未坐满（还差 3 人）');
+      expect(step.remedy?.label).toBe('分享房间');
+    });
+
+    it('offers identity assignment once the room is full', () => {
+      const step = resolveHostConsolePrimary(build(lobbyState(true))!);
+      if (step?.kind !== 'ready') throw new Error('expected a ready console primary');
+    });
+
+    it('blocks game start while viewing is incomplete, then offers it', () => {
+      const blocked = resolveHostConsolePrimary(build(viewingState())!);
+      expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
+      if (blocked?.kind !== 'blocked') throw new Error('expected a blocked console primary');
+      expect(blocked.reason).toBe('0/4 位玩家已查看身份，等待剩余玩家');
+      expect(blocked.remedy).toBeNull();
+
+      let state = viewingState();
+      state = drive(state, { type: '__GAME_ID__.role.viewed' });
+      state = drive(state, { type: '__GAME_ID__.bots.markAllBotsViewed' });
+      const ready = resolveHostConsolePrimary(build(state)!);
+      if (ready?.kind !== 'ready') throw new Error('expected a ready console primary');
+    });
   });
 //#end
 });

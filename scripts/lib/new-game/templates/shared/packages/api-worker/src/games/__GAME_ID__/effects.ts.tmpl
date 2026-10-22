@@ -1,4 +1,9 @@
+//#cap !stageDeadline
 /** Worker-side execution for __GAME_PASCAL__ effects: game-completed growth settlement. */
+//#end
+//#cap stageDeadline
+/** Worker-side execution for __GAME_PASCAL__ effects: game-completed growth settlement and scheduled stage-deadline settlement. */
+//#end
 
 import {
 //#cap stageDeadline
@@ -47,12 +52,23 @@ type __GAME_PASCAL__SettleDueEffect = Extract<
   { type: '__GAME_ID__.settle.due' }
 >;
 
+//#end
+//#cap publicExpire
 /**
  * A settle command rejected on the phase or deadline guard means the
  * arming it targeted is already gone (a client expire or the host
  * settled first, or the phase moved on): the delivery is done, not
  * failed.
  */
+//#end
+//#cap internalSettleOnly
+/**
+ * A settle command rejected on the phase or deadline guard means the
+ * arming it targeted is already gone (the phase moved on): the
+ * delivery is done, not failed.
+ */
+//#end
+//#cap stageDeadline
 const SUPERSEDED_SETTLE_REASONS: readonly string[] = [
   __GAME_UPPER___REASONS.phase,
   __GAME_UPPER___REASONS.deadline,
@@ -90,7 +106,14 @@ const handle__GAME_PASCAL__SettleDueEffect = createSettleDueHandler<
  * completion effect is enforced in three layers: the engine emits it
  * at most once per game (xpSettled), the effect outbox dedupes on the
  * business key, and settleGameRewards is idempotent on the settlement
+//#cap !stageDeadline
  * id.
+//#end
+//#cap stageDeadline
+ * id. The settle effect is exactly-once by construction: the engine
+ * arms it once per game, the outbox dedupes on the arming identity,
+ * and delivery no-ops unless the pinned arming is still current.
+//#end
  */
 export async function handle__GAME_PASCAL__Effect(
   effect: __GAME_PASCAL__Effect,
