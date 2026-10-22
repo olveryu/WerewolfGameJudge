@@ -50,12 +50,6 @@ export interface SheriffElectionPanelStyles {
   recordValueColumn: ViewStyle;
   recordEmpty: TextStyle;
   seatDotRow: ViewStyle;
-  seatDot: ViewStyle;
-  seatDotText: TextStyle;
-  seatDotWithdrawn: ViewStyle;
-  seatDotTextWithdrawn: TextStyle;
-  seatDotSmall: ViewStyle;
-  seatDotSmallText: TextStyle;
   withdrawnNote: TextStyle;
   resultBanner: ViewStyle;
   resultBannerNeutral: ViewStyle;
@@ -266,36 +260,6 @@ export function createSheriffElectionPanelStyles(colors: ThemeColors): SheriffEl
       flexWrap: 'wrap',
       alignItems: 'center',
       gap: spacing.tight,
-    },
-    seatDot: {
-      width: componentSizes.avatar.xs,
-      height: componentSizes.avatar.xs,
-      borderRadius: borderRadius.full,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      backgroundColor: colors.background,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-    seatDotText: {
-      fontSize: typography.caption,
-      lineHeight: typography.lineHeights.caption,
-      fontWeight: typography.weights.bold,
-      color: colors.text,
-    },
-    seatDotWithdrawn: {
-      opacity: fixed.disabledOpacity,
-    },
-    seatDotTextWithdrawn: {
-      textDecorationLine: 'line-through',
-    },
-    seatDotSmall: {
-      width: componentSizes.badge.md,
-      height: componentSizes.badge.md,
-    },
-    seatDotSmallText: {
-      ...textStyles.captionSmall,
     },
     withdrawnNote: {
       ...textStyles.caption,

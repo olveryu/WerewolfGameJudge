@@ -20,6 +20,7 @@ import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-n
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { CloseButton } from '@/components/CloseButton';
+import { SeatDot } from '@/components/SeatDot';
 import { STATUS_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
 import {
@@ -73,14 +74,6 @@ function factionColor(roleId: RoleId | null): string {
     default:
       return colors.textSecondary;
   }
-}
-
-function SeatDot({ seat }: { readonly seat: number }) {
-  return (
-    <View style={styles.seatDot}>
-      <Text style={styles.seatDotText}>{seat + 1}</Text>
-    </View>
-  );
 }
 
 type PillTone = 'good' | 'bad' | 'success' | 'warn' | 'neutral';
@@ -756,22 +749,6 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.caption,
     color: colors.textSecondary,
     marginTop: spacing.micro,
-  },
-  seatDot: {
-    width: componentSizes.avatar.xs,
-    height: componentSizes.avatar.xs,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.background,
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  seatDotText: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    fontWeight: typography.weights.bold,
-    color: colors.text,
   },
   pill: {
     borderRadius: borderRadius.full,

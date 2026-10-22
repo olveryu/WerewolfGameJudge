@@ -165,6 +165,7 @@ jest.mock('./src/theme', () => {
       maxContentWidth: 600,
       keyboardOffset: 24,
       activeOpacity: 0.7,
+      disabledOpacity: 0.5,
     },
     componentSizes: {
       button: { sm: 32, md: 44, lg: 56 },
