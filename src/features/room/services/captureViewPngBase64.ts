@@ -8,7 +8,7 @@ import { loadHtml2canvas } from './loadHtml2canvas';
 
 const BASE64_MARKER = 'base64,';
 
-function parseBase64DataUrl(dataUrl: string): string {
+export function parseBase64DataUrl(dataUrl: string): string {
   const markerIndex = dataUrl.indexOf(BASE64_MARKER);
   if (markerIndex < 0) {
     throw new Error('[FAIL-FAST] Captured view must be a base64 data URL');

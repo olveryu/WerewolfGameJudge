@@ -8,6 +8,7 @@ import type { RefObject } from 'react';
 import { Dimensions, type View } from 'react-native';
 
 import { captureViewPngBase64 } from '@/features/room/services/captureViewPngBase64';
+import { captureViewSegmentedPngBase64 } from '@/features/room/services/captureViewSegmentedPngBase64';
 import { shareImageBase64 } from '@/features/room/services/shareImage';
 import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
 import { log } from '@/utils/logger';
@@ -19,6 +20,13 @@ import {
 } from './shareNightReviewLines';
 
 type ShareNightReviewResult = 'shared' | 'cancelled' | 'failed';
+
+/**
+ * Trial switch: when true, the mini-program share path captures the share card
+ * with the segmented band capture instead of the Canvas 2D renderer below.
+ * Set to false to fall back to the hand-drawn renderer.
+ */
+export const SEGMENTED_CAPTURE_TRIAL_ENABLED = true;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Canvas 2D renderer — draws the battle report card without DOM/html2canvas.
@@ -223,6 +231,12 @@ export function renderNightReviewToCanvas(
 
 export async function captureNightReviewCard(ref: RefObject<View | null>): Promise<string> {
   return captureViewPngBase64(ref);
+}
+
+export async function captureNightReviewCardSegmented(
+  ref: RefObject<View | null>,
+): Promise<string> {
+  return captureViewSegmentedPngBase64(ref);
 }
 
 function isShareCancelledError(error: unknown): boolean {
