@@ -124,7 +124,14 @@ function canShootForSeat(seat: number, gameState: LocalGameState): boolean {
   return true;
 }
 
-/** Resolve wolf kill target from majority vote. Tie = no kill. */
+/**
+ * Resolve wolf kill target from majority vote. Tie = no kill.
+ * Abstentions (target -1, the sentinel the engine's wolfKillResolver records
+ * for an empty vote) do not participate in the count — this mirrors the
+ * engine's resolveWolfVotes convention, which filters -1 before tallying;
+ * counting an abstention as a target would manufacture ties and suppress
+ * the guard-save-conflict annotation on nights a wolf abstained.
+ */
 function resolveWolfKillTarget(
   wolfVotesBySeat: Readonly<Record<string, number>> | undefined,
 ): number | undefined {
@@ -133,6 +140,7 @@ function resolveWolfKillTarget(
   if (entries.length === 0) return undefined;
   const counts = new Map<number, number>();
   for (const [, target] of entries) {
+    if (target === -1) continue;
     counts.set(target, (counts.get(target) ?? 0) + 1);
   }
   let maxCount = 0;
@@ -154,7 +162,12 @@ function resolveWolfKillTarget(
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** One wolf's kill vote inside a wolfAttack entry. Seats are 0-based. */
+/**
+ * One wolf's kill vote inside a wolfAttack entry. Seats are 0-based and
+ * targetSeat is always a real seat: abstentions (the engine's -1 sentinel in
+ * wolfVotesBySeat) are split into the entry's abstainSeats by
+ * buildActionEntries and never appear as a vote here.
+ */
 export interface NightReviewWolfVote {
   readonly voterSeat: number;
   readonly targetSeat: number;
@@ -172,8 +185,12 @@ export type NightReviewActionEntry =
   | { readonly kind: 'bottomCards'; readonly roleIds: readonly RoleId[] }
   | { readonly kind: 'cardChoice'; readonly actorRoleId: RoleId; readonly chosenRoleId: RoleId }
   | { readonly kind: 'cupidLink'; readonly seats: readonly [number, number] }
-  // Wolf team attack
-  | { readonly kind: 'wolfAttack'; readonly votes: readonly NightReviewWolfVote[] }
+  // Wolf team attack (votes = real targets only; abstaining wolves sit in abstainSeats)
+  | {
+      readonly kind: 'wolfAttack';
+      readonly votes: readonly NightReviewWolfVote[];
+      readonly abstainSeats: readonly number[];
+    }
   | { readonly kind: 'wolfNoTarget' }
   | { readonly kind: 'wolfGiveUp'; readonly reason: NightReviewWolfGiveUpReason }
   // Nightmare block / Eclipse Wolf Queen shelter / Hidden Wolf presence
@@ -346,13 +363,27 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
     entries.push({ kind: 'cupidLink', seats: [gameState.loverSeats[0], gameState.loverSeats[1]] });
   }
 
-  // 1. Wolf kill vote
+  // 1. Wolf kill vote. wolfVotesBySeat records an abstention as the engine
+  // sentinel -1 (wolfKillResolver's empty vote); split abstentions out so
+  // votes only ever carry real target seats. -1 is the only legal negative:
+  // any other negative target is a corrupt record and fails fast here rather
+  // than rendering as a seat downstream.
   if (nr.wolfVotesBySeat && Object.keys(nr.wolfVotesBySeat).length > 0) {
-    const votes = Object.entries(nr.wolfVotesBySeat).map(([voter, target]) => ({
-      voterSeat: Number(voter),
-      targetSeat: target,
-    }));
-    entries.push({ kind: 'wolfAttack', votes });
+    const votes: NightReviewWolfVote[] = [];
+    const abstainSeats: number[] = [];
+    for (const [voter, target] of Object.entries(nr.wolfVotesBySeat)) {
+      const voterSeat = Number(voter);
+      if (target === -1) {
+        abstainSeats.push(voterSeat);
+      } else if (target >= 0) {
+        votes.push({ voterSeat, targetSeat: target });
+      } else {
+        throw new Error(
+          `[FAIL-FAST] Invalid wolf vote target ${target} from seat ${voterSeat} in night review`,
+        );
+      }
+    }
+    entries.push({ kind: 'wolfAttack', votes, abstainSeats });
   } else if (
     !nr.wolfKillOverride &&
     Array.from(gameState.players.values()).some(

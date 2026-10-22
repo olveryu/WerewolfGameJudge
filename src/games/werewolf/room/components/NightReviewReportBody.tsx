@@ -15,6 +15,9 @@
  * - Red (error / wolf) expresses outcomes only: out pills and death surfaces.
  *   Every other badge is a tinted wash (withAlpha 0.12) with a same-color icon.
  * - Every size/color value comes from @/theme tokens or withAlpha derivations.
+ * - Every seat reference in the timeline renders as a SeatIdentityChip
+ *   (seat dot + 「N号 · 角色名」), so a reader never has to cross-check the
+ *   identity grid to know who a seat is.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
@@ -142,20 +145,67 @@ function EventRow({ icon, color, children }: EventRowProps) {
   );
 }
 
+interface SeatIdentityChipProps {
+  readonly seat: number;
+  readonly identityBySeat: ReadonlyMap<number, NightReviewIdentityEntry>;
+  /** Passed through to SeatDot (wolf-attack targets render as the filled focal dot). */
+  readonly emphasis?: 'filled';
+}
+
+/**
+ * One seat reference in the timeline: seat dot + 「N号 · 角色名」.
+ * The role text reuses the identity grid's fallbacks (空座 / 未分配) via
+ * identityRoleText. A seat with no identity entry is a broken fact stream
+ * and fails fast, exactly like the hero's death cards.
+ */
+function SeatIdentityChip({ seat, identityBySeat, emphasis }: SeatIdentityChipProps) {
+  const identity = identityBySeat.get(seat);
+  if (identity === undefined) {
+    throw new Error(`[FAIL-FAST] Night review seat ${seat} has no identity entry`);
+  }
+  return (
+    <View style={styles.seatChip}>
+      <SeatDot seat={seat} emphasis={emphasis ?? 'none'} />
+      <Text style={styles.seatChipText}>
+        {formatSeat(seat)} · {identityRoleText(identity)}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * The single seat holding a role, or undefined when the role is absent or
+ * held by more than one seat (bottom-card boards can duplicate a role).
+ * Callers annotate an actor seat only on a unique match — never guess.
+ */
+function uniqueSeatForRole(
+  identityBySeat: ReadonlyMap<number, NightReviewIdentityEntry>,
+  roleId: RoleId,
+): number | undefined {
+  let found: number | undefined;
+  for (const entry of identityBySeat.values()) {
+    if (entry.roleId !== roleId) continue;
+    if (found !== undefined) return undefined;
+    found = entry.seat;
+  }
+  return found;
+}
+
 interface EventHeadProps {
   readonly title: string;
+  readonly identityBySeat: ReadonlyMap<number, NightReviewIdentityEntry>;
   readonly seats?: readonly number[];
   readonly pill?: { readonly text: string; readonly tone: PillTone };
   readonly children?: ReactNode;
 }
 
-/** Title line of an event row: bold label, seat dots, result pill, inline extras. */
-function EventHead({ title, seats, pill, children }: EventHeadProps) {
+/** Title line of an event row: bold label, seat identity chips, result pill, inline extras. */
+function EventHead({ title, identityBySeat, seats, pill, children }: EventHeadProps) {
   return (
     <View style={styles.eventHead}>
       <Text style={styles.eventTitle}>{title}</Text>
       {seats?.map((seat) => (
-        <SeatDot key={seat} seat={seat} />
+        <SeatIdentityChip key={seat} seat={seat} identityBySeat={identityBySeat} />
       ))}
       {children}
       {pill ? <Pill text={pill.text} tone={pill.tone} /> : null}
@@ -422,9 +472,11 @@ function groupWolfVotes(votes: readonly NightReviewWolfVote[]): WolfVoteGroup[] 
 function WolfAttackRow({
   entry,
   deadSeats,
+  identityBySeat,
 }: {
   readonly entry: NightReviewActionEntry;
   readonly deadSeats: ReadonlySet<number>;
+  readonly identityBySeat: ReadonlyMap<number, NightReviewIdentityEntry>;
 }) {
   if (entry.kind !== 'wolfAttack') {
     throw new Error('[FAIL-FAST] WolfAttackRow requires a wolfAttack entry');
@@ -432,20 +484,38 @@ function WolfAttackRow({
   const groups = groupWolfVotes(entry.votes);
   return (
     <EventRow icon="moon" color={colors.wolf}>
-      <EventHead title="狼人袭击" />
+      <EventHead title="狼人袭击" identityBySeat={identityBySeat} />
       {groups.map((group) => (
         <View key={group.targetSeat} style={styles.voteGroup}>
           <View style={styles.voteVoters}>
             {group.voterSeats.map((seat) => (
-              <SeatDot key={seat} seat={seat} />
+              <SeatIdentityChip key={seat} seat={seat} identityBySeat={identityBySeat} />
             ))}
           </View>
           <Text style={styles.voteArrow}>→</Text>
-          <SeatDot seat={group.targetSeat} emphasis="filled" />
+          <SeatIdentityChip
+            seat={group.targetSeat}
+            identityBySeat={identityBySeat}
+            emphasis="filled"
+          />
           {deadSeats.has(group.targetSeat) ? <Pill text="出局" tone="bad" /> : null}
         </View>
       ))}
-      <EventSub text={groups.length === 1 ? '狼队共同目标' : NIGHT_REVIEW_WOLF_SPLIT_SUB} />
+      {entry.abstainSeats.length > 0 ? (
+        <View style={styles.voteGroup}>
+          <View style={styles.voteVoters}>
+            {entry.abstainSeats.map((seat) => (
+              <SeatIdentityChip key={seat} seat={seat} identityBySeat={identityBySeat} />
+            ))}
+          </View>
+          <Pill text="空刀" tone="neutral" />
+        </View>
+      ) : null}
+      {/* Split / shared-target wording judges real targets only: abstentions
+          neither split the pack nor make a lone target a shared one. When
+          every wolf abstained there are no groups and no sub-line at all. */}
+      {groups.length === 1 ? <EventSub text="狼队共同目标" /> : null}
+      {groups.length > 1 ? <EventSub text={NIGHT_REVIEW_WOLF_SPLIT_SUB} /> : null}
     </EventRow>
   );
 }
@@ -454,17 +524,26 @@ function WolfAttackRow({
 function PotionEntryLine({
   entry,
   deadSeats,
+  identityBySeat,
 }: {
   readonly entry: NightReviewActionEntry;
   readonly deadSeats: ReadonlySet<number>;
+  readonly identityBySeat: ReadonlyMap<number, NightReviewIdentityEntry>;
 }) {
   switch (entry.kind) {
     case 'save':
-      return <EventHead title="女巫使用解药救了" seats={[entry.targetSeat]} />;
+      return (
+        <EventHead
+          title="女巫使用解药救了"
+          identityBySeat={identityBySeat}
+          seats={[entry.targetSeat]}
+        />
+      );
     case 'poison':
       return (
         <EventHead
           title={entry.actorRoleId === 'poisoner' ? '毒师毒杀' : '女巫使用毒药毒杀'}
+          identityBySeat={identityBySeat}
           seats={[entry.targetSeat]}
           pill={deadSeats.has(entry.targetSeat) ? { text: '出局', tone: 'bad' } : undefined}
         />
@@ -485,9 +564,11 @@ function PotionEntryLine({
 function PotionFamilyRow({
   entries,
   deadSeats,
+  identityBySeat,
 }: {
   readonly entries: readonly NightReviewActionEntry[];
   readonly deadSeats: ReadonlySet<number>;
+  readonly identityBySeat: ReadonlyMap<number, NightReviewIdentityEntry>;
 }) {
   const mainEntry = entries.find(isEffectivePotion);
   if (mainEntry === undefined) {
@@ -500,7 +581,12 @@ function PotionFamilyRow({
       color={isSaveLed ? colors.success : colors.error}
     >
       {entries.map((entry, i) => (
-        <PotionEntryLine key={`potion-${i}`} entry={entry} deadSeats={deadSeats} />
+        <PotionEntryLine
+          key={`potion-${i}`}
+          entry={entry}
+          deadSeats={deadSeats}
+          identityBySeat={identityBySeat}
+        />
       ))}
     </EventRow>
   );
@@ -509,15 +595,17 @@ function PotionFamilyRow({
 function NightReviewActionRow({
   entry,
   deadSeats,
+  identityBySeat,
 }: {
   readonly entry: NightReviewActionEntry;
   readonly deadSeats: ReadonlySet<number>;
+  readonly identityBySeat: ReadonlyMap<number, NightReviewIdentityEntry>;
 }) {
   switch (entry.kind) {
     case 'bottomCards':
       return (
         <EventRow icon="layers-outline" color={colors.third}>
-          <EventHead title="底牌组成" />
+          <EventHead identityBySeat={identityBySeat} title="底牌组成" />
           <View style={styles.chipWrap}>
             {entry.roleIds.map((roleId, i) => (
               <RoleChip key={`${roleId}-${i}`} roleId={roleId} />
@@ -528,7 +616,10 @@ function NightReviewActionRow({
     case 'cardChoice':
       return (
         <EventRow icon="albums-outline" color={factionColor(entry.actorRoleId)}>
-          <EventHead title={`${getRoleDisplayName(entry.actorRoleId)}选择了`}>
+          <EventHead
+            identityBySeat={identityBySeat}
+            title={`${getRoleDisplayName(entry.actorRoleId)}选择了`}
+          >
             <RoleChip roleId={entry.chosenRoleId} />
           </EventHead>
         </EventRow>
@@ -536,22 +627,22 @@ function NightReviewActionRow({
     case 'cupidLink':
       return (
         <EventRow icon="heart" color={colors.third}>
-          <EventHead title="丘比特连线" seats={entry.seats} />
+          <EventHead identityBySeat={identityBySeat} title="丘比特连线" seats={entry.seats} />
         </EventRow>
       );
     case 'wolfAttack':
-      return <WolfAttackRow entry={entry} deadSeats={deadSeats} />;
+      return <WolfAttackRow entry={entry} deadSeats={deadSeats} identityBySeat={identityBySeat} />;
     case 'wolfNoTarget':
       return (
         <EventRow icon="moon" color={colors.wolf}>
-          <EventHead title="狼人空刀" />
+          <EventHead identityBySeat={identityBySeat} title="狼人空刀" />
           <EventSub text="未选择目标" />
         </EventRow>
       );
     case 'wolfGiveUp':
       return (
         <EventRow icon="moon" color={colors.wolf}>
-          <EventHead title="狼人放弃袭击" />
+          <EventHead identityBySeat={identityBySeat} title="狼人放弃袭击" />
           <EventSub
             text={
               entry.reason === 'poisonerPresent'
@@ -564,7 +655,11 @@ function NightReviewActionRow({
     case 'nightmareBlock':
       return (
         <EventRow icon="eye-off-outline" color={colors.wolf}>
-          <EventHead title={`${getRoleDisplayName('nightmare')}封锁`} seats={[entry.targetSeat]} />
+          <EventHead
+            identityBySeat={identityBySeat}
+            title={`${getRoleDisplayName('nightmare')}封锁`}
+            seats={[entry.targetSeat]}
+          />
           {entry.targetRoleId ? (
             <EventSub text={`${getRoleDisplayName(entry.targetRoleId)}，技能无效`} />
           ) : null}
@@ -574,6 +669,7 @@ function NightReviewActionRow({
       return (
         <EventRow icon="umbrella-outline" color={colors.wolf}>
           <EventHead
+            identityBySeat={identityBySeat}
             title={`${getRoleDisplayName('eclipseWolfQueen')}庇护`}
             seats={[entry.targetSeat]}
           />
@@ -582,43 +678,56 @@ function NightReviewActionRow({
     case 'guard':
       return (
         <EventRow icon="shield" color={colors.info}>
-          <EventHead title="守卫守护" seats={[entry.targetSeat]} />
+          <EventHead identityBySeat={identityBySeat} title="守卫守护" seats={[entry.targetSeat]} />
         </EventRow>
       );
     case 'silence':
       return (
         <EventRow icon="mic-off-outline" color={colors.third}>
-          <EventHead title="禁言长老禁言" seats={[entry.targetSeat]} />
+          <EventHead
+            identityBySeat={identityBySeat}
+            title="禁言长老禁言"
+            seats={[entry.targetSeat]}
+          />
         </EventRow>
       );
     case 'voteban':
       return (
         <EventRow icon="ban-outline" color={colors.third}>
-          <EventHead title="禁票长老禁票" seats={[entry.targetSeat]} />
+          <EventHead
+            identityBySeat={identityBySeat}
+            title="禁票长老禁票"
+            seats={[entry.targetSeat]}
+          />
         </EventRow>
       );
     case 'curse':
       return (
         <EventRow icon="sparkles-outline" color={colors.third}>
-          <EventHead title="乌鸦诅咒" seats={[entry.targetSeat]} />
+          <EventHead identityBySeat={identityBySeat} title="乌鸦诅咒" seats={[entry.targetSeat]} />
         </EventRow>
       );
     case 'dream':
       return (
         <EventRow icon="bed-outline" color={colors.god}>
-          <EventHead title="摄梦人摄梦" seats={[entry.targetSeat]} />
+          <EventHead
+            identityBySeat={identityBySeat}
+            title="摄梦人摄梦"
+            seats={[entry.targetSeat]}
+          />
         </EventRow>
       );
     case 'swap':
       return (
         <EventRow icon="swap-horizontal" color={colors.god}>
-          <EventHead title="魔术师交换" seats={entry.seats} />
+          <EventHead identityBySeat={identityBySeat} title="魔术师交换" seats={entry.seats} />
         </EventRow>
       );
     case 'idolChoice':
       return (
         <EventRow icon="star-outline" color={colors.third}>
           <EventHead
+            identityBySeat={identityBySeat}
             title={`${getRoleDisplayName(entry.actorRoleId)}选择榜样`}
             seats={[entry.targetSeat]}
           />
@@ -628,6 +737,7 @@ function NightReviewActionRow({
       return (
         <EventRow icon="copy-outline" color={factionColor('shadow')}>
           <EventHead
+            identityBySeat={identityBySeat}
             title="影子模仿"
             seats={[entry.targetSeat]}
             pill={entry.isBound ? { text: '绑定', tone: 'neutral' } : undefined}
@@ -637,13 +747,18 @@ function NightReviewActionRow({
     case 'charm':
       return (
         <EventRow icon="heart-outline" color={colors.wolf}>
-          <EventHead title="狼美人魅惑" seats={[entry.targetSeat]} />
+          <EventHead
+            identityBySeat={identityBySeat}
+            title="狼美人魅惑"
+            seats={[entry.targetSeat]}
+          />
         </EventRow>
       );
     case 'convert':
       return (
         <EventRow icon="repeat-outline" color={colors.wolf}>
           <EventHead
+            identityBySeat={identityBySeat}
             title={`${getRoleDisplayName('awakenedGargoyle')}转化`}
             seats={[entry.targetSeat]}
           />
@@ -652,13 +767,14 @@ function NightReviewActionRow({
     case 'hypnotize':
       return (
         <EventRow icon="musical-notes-outline" color={colors.third}>
-          <EventHead title="吹笛者催眠" seats={entry.targetSeats} />
+          <EventHead identityBySeat={identityBySeat} title="吹笛者催眠" seats={entry.targetSeats} />
         </EventRow>
       );
     case 'check':
       return (
         <EventRow icon="eye" color={factionColor(entry.actorRoleId)}>
           <EventHead
+            identityBySeat={identityBySeat}
             title={`${getRoleDisplayName(entry.actorRoleId)}查验`}
             seats={[entry.targetSeat]}
             pill={{ text: entry.result, tone: checkResultTone(entry.result) }}
@@ -668,28 +784,44 @@ function NightReviewActionRow({
     case 'learn':
       return (
         <EventRow icon="book-outline" color={colors.wolf}>
-          <EventHead title={`${getRoleDisplayName('wolfRobot')}学习`} seats={[entry.targetSeat]}>
+          <EventHead
+            identityBySeat={identityBySeat}
+            title={`${getRoleDisplayName('wolfRobot')}学习`}
+            seats={[entry.targetSeat]}
+          >
             <RoleChip roleId={entry.learnedRoleId} />
           </EventHead>
         </EventRow>
       );
-    case 'shootStatus':
+    case 'shootStatus': {
+      // The entry names the actor only by role; the seat is the missing fact
+      // on this row. Annotate it （猎人（N号）) only when the role resolves to
+      // exactly one seat in the identity table — absent or duplicated roles
+      // (bottom-card boards) get no annotation rather than a guessed seat.
+      const actorSeat = uniqueSeatForRole(identityBySeat, entry.actorRoleId);
       return (
         <EventRow icon="locate-outline" color={factionColor(entry.actorRoleId)}>
           <EventHead
+            identityBySeat={identityBySeat}
             title={getRoleDisplayName(entry.actorRoleId)}
             pill={
               entry.canShoot
                 ? { text: '可以发动技能', tone: 'success' }
                 : { text: '不能发动技能', tone: 'neutral' }
             }
-          />
+          >
+            {actorSeat !== undefined ? (
+              <Text style={styles.actorSeatText}>（{formatSeat(actorSeat)}）</Text>
+            ) : null}
+          </EventHead>
         </EventRow>
       );
+    }
     case 'infectConverted':
       return (
         <EventRow icon="bug-outline" color={colors.wolf}>
           <EventHead
+            identityBySeat={identityBySeat}
             title={`${getRoleDisplayName('seedWolf')}感染`}
             seats={[entry.targetSeat]}
             pill={{ text: '成功', tone: 'success' }}
@@ -700,6 +832,7 @@ function NightReviewActionRow({
       return (
         <EventRow icon="bug-outline" color={colors.wolf}>
           <EventHead
+            identityBySeat={identityBySeat}
             title={`${getRoleDisplayName('seedWolf')}感染`}
             seats={[entry.targetSeat]}
             pill={{ text: '失败', tone: 'bad' }}
@@ -709,14 +842,14 @@ function NightReviewActionRow({
     case 'guardSaveConflict':
       return (
         <EventRow icon={STATUS_ICONS.WARNING} color={colors.warning}>
-          <EventHead title="同守同救" seats={[entry.targetSeat]} />
+          <EventHead identityBySeat={identityBySeat} title="同守同救" seats={[entry.targetSeat]} />
           <EventSub text="仍然死亡" />
         </EventRow>
       );
     case 'poisonImmune':
       return (
         <EventRow icon={STATUS_ICONS.WARNING} color={colors.warning}>
-          <EventHead title="免疫毒药" seats={[entry.targetSeat]}>
+          <EventHead identityBySeat={identityBySeat} title="免疫毒药" seats={[entry.targetSeat]}>
             <RoleChip roleId={entry.targetRoleId} />
           </EventHead>
         </EventRow>
@@ -725,6 +858,7 @@ function NightReviewActionRow({
       return (
         <EventRow icon={STATUS_ICONS.WARNING} color={colors.warning}>
           <EventHead
+            identityBySeat={identityBySeat}
             title={`${getRoleDisplayName(entry.checkerRoleId)}查验`}
             seats={[entry.targetSeat]}
             pill={{ text: '反伤', tone: 'warn' }}
@@ -806,6 +940,10 @@ export function NightReviewReportBody({ data }: { readonly data: NightReviewData
   );
   const outcome = useMemo(() => getNightReviewOutcome(data), [data]);
   const partition = useMemo(() => partitionEntries(data.actions), [data.actions]);
+  const identityBySeat = useMemo(
+    () => new Map(data.identities.map((entry) => [entry.seat, entry])),
+    [data.identities],
+  );
 
   return (
     <>
@@ -824,9 +962,19 @@ export function NightReviewReportBody({ data }: { readonly data: NightReviewData
         <View style={styles.timelineRail} />
         {partition.timeline.map((segment, i) =>
           segment.type === 'single' ? (
-            <NightReviewActionRow key={`action-${i}`} entry={segment.entry} deadSeats={deadSeats} />
+            <NightReviewActionRow
+              key={`action-${i}`}
+              entry={segment.entry}
+              deadSeats={deadSeats}
+              identityBySeat={identityBySeat}
+            />
           ) : (
-            <PotionFamilyRow key={`action-${i}`} entries={segment.entries} deadSeats={deadSeats} />
+            <PotionFamilyRow
+              key={`action-${i}`}
+              entries={segment.entries}
+              deadSeats={deadSeats}
+              identityBySeat={identityBySeat}
+            />
           ),
         )}
       </View>
@@ -960,6 +1108,23 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
     color: colors.text,
   },
+  seatChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.micro,
+  },
+  seatChipText: {
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    fontWeight: typography.weights.semibold,
+    color: colors.text,
+  },
+  actorSeatText: {
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
+    fontWeight: typography.weights.semibold,
+    color: colors.textSecondary,
+  },
   eventSub: {
     fontSize: typography.caption,
     lineHeight: typography.lineHeights.caption,
@@ -995,11 +1160,13 @@ const styles = StyleSheet.create({
   voteGroup: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: spacing.tight,
     marginTop: spacing.tight,
   },
   voteVoters: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.micro,
   },
   voteArrow: {
