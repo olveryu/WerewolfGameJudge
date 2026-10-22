@@ -71,20 +71,32 @@ export interface StandardGuideRouteParams<TGameType extends GameType> {
  * Builds the standard guide route parser for one game: an optional room code
  * plus game-specific extra fields validated by the injected parser.
  */
+export function createStandardGuideRouteParser<TGameType extends GameType>(options: {
+  readonly gameType: TGameType;
+  readonly displayName: string;
+}): (value: unknown) => StandardGuideRouteParams<TGameType>;
 export function createStandardGuideRouteParser<
   TGameType extends GameType,
-  TExtra extends object = Record<never, never>,
+  TExtra extends object,
 >(options: {
+  readonly gameType: TGameType;
+  readonly displayName: string;
+  readonly extraFields: {
+    readonly keys: readonly string[];
+    readonly parse: (params: Readonly<Record<string, unknown>>) => TExtra;
+  };
+}): (value: unknown) => StandardGuideRouteParams<TGameType> & TExtra;
+export function createStandardGuideRouteParser<TGameType extends GameType>(options: {
   readonly gameType: TGameType;
   readonly displayName: string;
   readonly extraFields?: {
     readonly keys: readonly string[];
-    readonly parse: (params: Readonly<Record<string, unknown>>) => TExtra;
+    readonly parse: (params: Readonly<Record<string, unknown>>) => object;
   };
-}): (value: unknown) => StandardGuideRouteParams<TGameType> & TExtra {
+}): (value: unknown) => StandardGuideRouteParams<TGameType> & Record<string, unknown> {
   const routeLabel = `${options.displayName} guide`;
   const extraKeys = options.extraFields?.keys ?? [];
-  return (value: unknown): StandardGuideRouteParams<TGameType> & TExtra => {
+  return (value: unknown): StandardGuideRouteParams<TGameType> & Record<string, unknown> => {
     const params = parseRouteParams(value, routeLabel);
     const gameType = parseGameType(params.gameType);
     if (gameType !== options.gameType) {
@@ -92,9 +104,7 @@ export function createStandardGuideRouteParser<
     }
     assertExactRouteParamKeys(params, ['gameType', 'roomCode', ...extraKeys], routeLabel);
     const roomCode = params.roomCode === undefined ? undefined : parseRoomCode(params.roomCode);
-    const extra: TExtra | Record<never, never> = options.extraFields
-      ? options.extraFields.parse(params)
-      : {};
+    const extra: object = options.extraFields ? options.extraFields.parse(params) : {};
     return { gameType: options.gameType, roomCode, ...extra };
   };
 }

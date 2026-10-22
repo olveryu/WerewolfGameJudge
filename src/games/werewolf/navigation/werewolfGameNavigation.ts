@@ -44,7 +44,7 @@ export const parseWerewolfGuideRouteParams: (params: unknown) => WerewolfGuideRo
     displayName: 'Werewolf',
     extraFields: {
       keys: ['roleId', 'initialTab'],
-      parse: (params) => ({
+      parse: (params: Readonly<Record<string, unknown>>) => ({
         roleId: parseGuideRoleId(params.roleId),
         initialTab: parseGuideTab(params.initialTab),
       }),

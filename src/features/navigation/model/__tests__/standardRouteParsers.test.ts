@@ -75,7 +75,7 @@ const parseGuideWithRole = createStandardGuideRouteParser({
   displayName: 'Avalon',
   extraFields: {
     keys: ['roleId'],
-    parse: (params) => {
+    parse: (params: Readonly<Record<string, unknown>>) => {
       const roleId = params.roleId;
       if (roleId !== undefined && typeof roleId !== 'string') {
         throw new Error('[FAIL-FAST] Avalon guide role must be a string');

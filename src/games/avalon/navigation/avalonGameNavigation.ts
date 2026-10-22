@@ -45,7 +45,9 @@ export const parseAvalonGuideRouteParams: (value: unknown) => AvalonGuideRoutePa
     displayName: 'Avalon',
     extraFields: {
       keys: ['roleId'],
-      parse: (params) => ({ roleId: parseGuideRoleId(params.roleId) }),
+      parse: (params: Readonly<Record<string, unknown>>) => ({
+        roleId: parseGuideRoleId(params.roleId),
+      }),
     },
   });
 
