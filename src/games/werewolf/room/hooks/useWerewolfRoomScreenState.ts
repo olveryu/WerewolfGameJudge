@@ -886,6 +886,10 @@ export function useWerewolfRoomScreenState(
     [dispatchInteraction],
   );
 
+  const handleLastNightInfo = useCallback(() => {
+    void showLastNightInfo();
+  }, [showLastNightInfo]);
+
   const handleStaticButtonPress = useCallback(
     (action: StaticButtonAction) => {
       switch (action) {
@@ -895,13 +899,16 @@ export function useWerewolfRoomScreenState(
         case 'nightReview':
           openNightReview();
           break;
+        case 'lastNightInfo':
+          handleLastNightInfo();
+          break;
         default: {
           const exhaustiveAction: never = action;
           throw new Error(`Unhandled Werewolf static button action: ${exhaustiveAction}`);
         }
       }
     },
-    [dispatchInteraction, openNightReview],
+    [dispatchInteraction, handleLastNightInfo, openNightReview],
   );
 
   const handleHostControl = useCallback(
@@ -981,9 +988,7 @@ export function useWerewolfRoomScreenState(
         onMarkAllBotsViewed: executeMarkAllBotsViewed,
         onMarkAllBotsGroupConfirmed: executeMarkAllBotsGroupConfirmed,
         onNightReview: openNightReview,
-        onLastNightInfo: () => {
-          void showLastNightInfo();
-        },
+        onLastNightInfo: handleLastNightInfo,
         bottomLayout,
         onSchemaButtonPress: handleSchemaButtonPress,
         onStaticButtonPress: handleStaticButtonPress,
@@ -1027,7 +1032,7 @@ export function useWerewolfRoomScreenState(
       executeMarkAllBotsViewed,
       executeMarkAllBotsGroupConfirmed,
       openNightReview,
-      showLastNightInfo,
+      handleLastNightInfo,
       bottomLayout,
       handleSchemaButtonPress,
       handleStaticButtonPress,

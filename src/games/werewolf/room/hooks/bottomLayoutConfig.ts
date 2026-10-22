@@ -55,7 +55,12 @@ export interface BottomLayout {
 // Static button IDs
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type StaticButtonId = 'viewRole' | 'waitForHost' | 'audioWaiting' | 'nightReview';
+export type StaticButtonId =
+  | 'viewRole'
+  | 'waitForHost'
+  | 'audioWaiting'
+  | 'nightReview'
+  | 'lastNightInfo';
 
 /** Static entries that represent real user intent. Display-only entries are excluded. */
 export type StaticButtonAction = Exclude<StaticButtonId, 'audioWaiting' | 'waitForHost'>;
@@ -83,6 +88,10 @@ export const STATIC_BUTTONS: Record<StaticButtonId, StaticButtonDef> = {
   nightReview: {
     label: '本局复盘',
     testID: TESTIDS.nightReviewButton,
+  },
+  lastNightInfo: {
+    label: '昨夜信息',
+    testID: TESTIDS.lastNightInfoBottomButton,
   },
 } as const;
 
@@ -330,7 +339,10 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     match: { status: GameStatus.Day, role: 'host' },
     layout: {
       primary: [{ source: 'static', button: 'viewRole' }],
-      secondary: [],
+      secondary: [
+        { source: 'static', button: 'lastNightInfo' },
+        { source: 'static', button: 'nightReview' },
+      ],
       ghost: [],
     },
   },
@@ -371,7 +383,11 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     match: { status: GameStatus.Ended, role: 'host' },
     layout: {
       primary: [],
-      secondary: [{ source: 'static', button: 'viewRole' }],
+      secondary: [
+        { source: 'static', button: 'viewRole' },
+        { source: 'static', button: 'lastNightInfo' },
+        { source: 'static', button: 'nightReview' },
+      ],
       ghost: [],
     },
   },
