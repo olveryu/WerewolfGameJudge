@@ -1,15 +1,8 @@
 /** FibKing-owned root route extensions. */
 
-export type FibConfigRouteParams =
-  | {
-      readonly gameType: 'fibking';
-      readonly mode: 'create';
-    }
-  | {
-      readonly gameType: 'fibking';
-      readonly mode: 'edit';
-      readonly roomCode: string;
-    };
+import type { StandardConfigRouteParams } from '@/features/navigation/model/standardRouteParsers';
+
+export type FibConfigRouteParams = StandardConfigRouteParams<'fibking'>;
 
 export interface FibGuideRouteParams {
   readonly gameType: 'fibking';

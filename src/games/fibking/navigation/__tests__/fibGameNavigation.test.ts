@@ -1,4 +1,4 @@
-import { parseFibConfigRouteParams } from '@/games/fibking/navigation/fibConfigRoute';
+import { parseFibConfigRouteParams } from '@/games/fibking/navigation/fibGameNavigation';
 
 describe('parseFibConfigRouteParams', () => {
   it('parses exact create and edit routes', () => {

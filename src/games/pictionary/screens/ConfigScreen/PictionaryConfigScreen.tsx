@@ -22,7 +22,7 @@ import { GameSettingsStepper } from '@/components/GameSettings';
 import { gameSettingsStyles } from '@/components/GameSettings.styles';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
-import { parsePictionaryConfigRouteParams } from '@/games/pictionary/navigation/pictionaryConfigRoute';
+import { parsePictionaryConfigRouteParams } from '@/games/pictionary/navigation/pictionaryGameNavigation';
 import type { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes } from '@/theme';

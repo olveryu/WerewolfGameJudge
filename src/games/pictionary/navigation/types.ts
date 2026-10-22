@@ -1,15 +1,8 @@
 /** Pictionary-owned root route extensions. */
 
-export type PictionaryConfigRouteParams =
-  | {
-      readonly gameType: 'pictionary';
-      readonly mode: 'create';
-    }
-  | {
-      readonly gameType: 'pictionary';
-      readonly mode: 'edit';
-      readonly roomCode: string;
-    };
+import type { StandardConfigRouteParams } from '@/features/navigation/model/standardRouteParsers';
+
+export type PictionaryConfigRouteParams = StandardConfigRouteParams<'pictionary'>;
 
 export interface PictionaryGuideRouteParams {
   readonly gameType: 'pictionary';
