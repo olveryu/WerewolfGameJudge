@@ -553,7 +553,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     // Tier ownership: propose is the stage main action — primary tier.
     expect(findTierAction(empty, 'primary', 'proposeTeam')).toBe(propose);
     expect(findTierAction(empty, 'secondary', 'proposeTeam')).toBeUndefined();
-    // 草稿满员经服务端草稿驱动（队长 updateDraft 后 VM 投影 draftSeats）。
+    // 草稿满员经服务端草稿驱动（组队者 updateDraft 后 VM 投影 draftSeats）。
     running.send(
       { type: 'avalon.team.updateDraft', seats: [leader, (leader + 1) % 5] },
       seatUser(leader),
@@ -570,7 +570,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const leader = running.state.leaderSeat;
     const other = (leader + 1) % 5;
     const bottom = shellFor(running, other);
-    expect(bottom.message).toBe(`等待队长组队（${leader + 1} 号座位），本轮需要 2 名队员。`);
+    expect(bottom.message).toBe(`等待组队者组队（${leader + 1} 号座位），本轮需要 2 名队员。`);
     expect(findStageAction(bottom, 'proposeTeam')).toBeUndefined();
   });
 

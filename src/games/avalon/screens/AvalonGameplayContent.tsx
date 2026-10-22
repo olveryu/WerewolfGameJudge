@@ -30,8 +30,8 @@ export const AvalonGameplayContent: React.FC = () => (
       />
       <RuleItem
         icon="people-outline"
-        title="队长组队"
-        description="每轮由队长选出规定人数的队员（可含自己），全员线下口头讨论，不限时。"
+        title="组队者组队"
+        description="每轮由组队者选出规定人数的队员（可含自己），全员线下口头讨论，不限时。"
       />
       <RuleItem
         icon="checkbox-outline"
@@ -55,7 +55,7 @@ export const AvalonGameplayContent: React.FC = () => (
       <RuleItem
         icon="water-outline"
         title="湖中仙女（9 / 10 人局）"
-        description="开局 token 给首任队长右手边的玩家。第 2、3、4 轮任务结算后，持有人私下查验一名没当过湖仙的玩家，只能看到阵营（好 / 坏），然后 token 传给被查验者，共 3 次。"
+        description="开局 token 给首任组队者右手边的玩家。第 2、3、4 轮任务结算后，持有人私下查验一名没当过湖仙的玩家，只能看到阵营（好 / 坏），然后 token 传给被查验者，共 3 次。"
       />
       <RuleItem
         icon="locate-outline"

@@ -101,10 +101,11 @@ function getAvalonProfileTarget(state: AvalonState, seat: number): RoomProfileTa
 }
 
 /**
- * 队长徽标的阶段门：队长只在白天组队流程中有职能（组队 / 投票 / 任务 /
- * 湖仙 / 刺杀），只在这些阶段显示。身份查看与夜晚显示队长是阶段信息串扰
- * （与查看勾只属于查看阶段同类命题）；大厅队长未定、终局队长无职能，
- * 同样不显示。穷尽映射逐阶段表态，新增阶段必须在此显式决定。
+ * 组队者徽标的阶段门：组队者只在白天组队流程中有职能（组队 / 投票 /
+ * 任务 / 湖仙 / 刺杀），只在这些阶段显示。身份查看与夜晚显示组队者是
+ * 阶段信息串扰（与查看勾只属于查看阶段同类命题）；大厅组队者未定、
+ * 终局组队者无职能，同样不显示。穷尽映射逐阶段表态，新增阶段必须在
+ * 此显式决定。
  */
 const AVALON_LEADER_BADGE_PHASES: Readonly<Record<AvalonPhaseKind, boolean>> = {
   lobby: false,
@@ -120,18 +121,24 @@ const AVALON_LEADER_BADGE_PHASES: Readonly<Record<AvalonPhaseKind, boolean>> = {
 
 function avalonSeatStatusLabel(state: AvalonState, seat: number): string | null {
   const phase = state.phase;
-  if (state.leaderSeat === seat && AVALON_LEADER_BADGE_PHASES[phase.kind]) return '队长';
-  if (phase.kind === 'lady' && phase.holderSeat === seat) return '湖仙';
-  // 提名草稿（服务端权威、全房可见）：草稿中的座位即「队员」徽标。
-  // 本函数读的是调用方给的派生输入：队长本人屏幕由 room-state 以点选
+  const isPicker = state.leaderSeat === seat && AVALON_LEADER_BADGE_PHASES[phase.kind];
+  // 队员事实：提名草稿（服务端权威、全房可见）/ 投票提案 / 任务队伍。
+  // 本函数读的是调用方给的派生输入：组队者本人屏幕由 room-state 以点选
   // 镜像覆盖 draftSeats（未回声先按镜像亮），其余视角恒为服务端草稿。
-  if (phase.kind === 'nominate' && phase.draftSeats.includes(seat)) return '队员';
-  if (phase.kind === 'vote' && phase.proposedSeats.includes(seat)) return '队员';
-  if (phase.kind === 'quest' && phase.teamSeats.includes(seat)) return '队员';
+  const isTeamMember =
+    (phase.kind === 'nominate' && phase.draftSeats.includes(seat)) ||
+    (phase.kind === 'vote' && phase.proposedSeats.includes(seat)) ||
+    (phase.kind === 'quest' && phase.teamSeats.includes(seat));
+  // 组队者只是本轮选队伍的人、不是队伍领袖：被选进队伍时两个事实同显，
+  // 不许组队者标把队员标遮住（组队者选自己进队，座位必须有反馈）。
+  if (isPicker && isTeamMember) return '组队者 · 队员';
+  if (isPicker) return '组队者';
+  if (phase.kind === 'lady' && phase.holderSeat === seat) return '湖仙';
+  if (isTeamMember) return '队员';
   return null;
 }
 
-/** 创建共享座位表数据源：含队长 / 队员 / 湖仙状态徽标（不暴露角色）。 */
+/** 创建共享座位表数据源：含组队者 / 队员 / 湖仙状态徽标（不暴露角色）。 */
 export interface AvalonSeatSourceInput {
   readonly state: AvalonState;
   readonly revision: number;
@@ -290,7 +297,7 @@ export function createAvalonHistorySummary(state: AvalonState): string | null {
       }
       if (phase.kind === 'nominate') {
         const attempt = (record?.proposals.length ?? 0) + 1;
-        return `${questLabel} · 第${attempt}次提案 · 队长组队中`;
+        return `${questLabel} · 第${attempt}次提案 · 组队者组队中`;
       }
       if (phase.kind === 'vote') {
         const attempt = (record?.proposals.length ?? 0) + 1;
@@ -521,7 +528,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           });
         }
       } else {
-        message = `等待队长组队（${instruction.leaderSeat + 1} 号座位），本轮需要 ${instruction.requiredSize} 名队员。`;
+        message = `等待组队者组队（${instruction.leaderSeat + 1} 号座位），本轮需要 ${instruction.requiredSize} 名队员。`;
       }
       break;
     }

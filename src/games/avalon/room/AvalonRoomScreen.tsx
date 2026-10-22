@@ -164,7 +164,7 @@ function AvalonRoomContent(
     (viewModel.phase === 'nominate' || viewModel.phase === 'lady' || viewModel.phase === 'assassin')
       ? viewModel.questHistory[questHistoryCount - 1]
       : undefined;
-  // 座位盘选人：提名（队长点选切换服务端草稿）/ 湖仙（持有人点选→二次确认）/ 刺杀
+  // 座位盘选人：提名（组队者点选切换服务端草稿）/ 湖仙（持有人点选→二次确认）/ 刺杀
   // （刺客点选→二次确认）/ 提前刺杀（选人模式开启时点选→二次确认，优先于阶段点选）。
   const [ladyCheckTarget, setLadyCheckTarget] = useState<number | null>(null);
   useEffect(() => {

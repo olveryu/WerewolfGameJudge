@@ -223,7 +223,7 @@ export type AvalonPhase =
       readonly round: AvalonQuestRound;
       readonly requiredSize: number;
       /**
-       * 队长未确认的提名草稿（服务端权威，全房可见）：队长经
+       * 组队者未确认的提名草稿（服务端权威，全房可见）：组队者经
        * avalon.team.updateDraft 整集替换，长度恒 ≤ requiredSize；
        * propose 以草稿为准。进入 nominate 时恒为空集（否决轮转 /
        * 任务结算 / 湖仙确认产生的新 nominate 不继承旧草稿）。
@@ -299,7 +299,7 @@ export interface AvalonNightInfo {
   readonly percivalSees: readonly number[];
 }
 
-/** 每轮历史记录：队长 / 队员 / 投票结果 / 任务结果。 */
+/** 每轮历史记录：组队者 / 队员 / 投票结果 / 任务结果。 */
 /**
  * One settled team proposal inside a quest round, appended by evolve when
  * its vote settles — approved or rejected alike (rejected proposals used
@@ -384,7 +384,7 @@ export interface AvalonState extends BaseGameState<typeof AVALON_GAME_TYPE> {
   /** 已查看自己角色的座位（身份查看协议）；第一个任务开始前的检查点依据。 */
   readonly roleViewedSeats: readonly number[];
   readonly nightInfo: AvalonNightInfo;
-  /** 当前队长 seat；lobby 时为 -1。 */
+  /** 当前组队者 seat；lobby 时为 -1。 */
   readonly leaderSeat: number;
   /** 本轮已否决次数；组队通过后清零。 */
   readonly rejectStreak: number;

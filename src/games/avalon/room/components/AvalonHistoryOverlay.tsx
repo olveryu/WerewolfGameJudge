@@ -62,7 +62,7 @@ function SeatBadge({
         variant === 'mini' || variant === 'ballot' ? styles.smallSeatBadge : null,
       ]}
       testID={testID}
-      accessibilityLabel={isLeader ? `${seat + 1}号，队长` : `${seat + 1}号`}
+      accessibilityLabel={isLeader ? `${seat + 1}号，组队者` : `${seat + 1}号`}
     >
       <Text
         style={[
@@ -185,7 +185,7 @@ function ProposerRow({
       />
       <Text style={styles.proposerText}>
         <Text style={styles.proposerSeat}>{proposal.leaderSeat + 1} 号</Text>
-        <Text style={styles.proposerMeta}> · 队长 · 第 {index + 1} 次提议</Text>
+        <Text style={styles.proposerMeta}> · 组队者 · 第 {index + 1} 次提议</Text>
       </Text>
       <View style={styles.adoptedBadge}>
         <Text style={styles.adoptedBadgeText}>{badge}</Text>
@@ -255,7 +255,7 @@ function AvalonProposalBlock({
         />
         <View style={styles.rejectedSummary}>
           <Text style={styles.rejectedTitle}>
-            {proposal.leaderSeat + 1} 号 · 队长 · 第 {index + 1} 次提议
+            {proposal.leaderSeat + 1} 号 · 组队者 · 第 {index + 1} 次提议
           </Text>
           <View style={styles.rejectedMeta}>
             <View style={styles.miniTeam} testID={`${testIDPrefix}-team`}>

@@ -113,7 +113,7 @@ describe('createAvalonHistorySummary', () => {
   it('narrates the current proposal while nominating and voting', () => {
     const room = session();
     room.toNominate();
-    expect(createAvalonHistorySummary(room.state)).toBe('任务一 · 第1次提案 · 队长组队中');
+    expect(createAvalonHistorySummary(room.state)).toBe('任务一 · 第1次提案 · 组队者组队中');
     if (room.state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
     const leader = room.state.leaderSeat;
     room.send(

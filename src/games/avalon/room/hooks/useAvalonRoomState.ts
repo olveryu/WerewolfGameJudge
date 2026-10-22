@@ -204,7 +204,7 @@ export function useAvalonRoomState(
   // 座位动作（以被接管机器人的身份发出）由调用方显式传 controlledSeat。
   const submit = (label: string, command: AvalonPublicCommand, control: number | null = null) =>
     submission.submit(label, () => session.dispatch(command, { controlledSeat: control, label }));
-  // 提名点选镜像（队长本人屏幕的派生覆盖，见 shellState）与草稿派发
+  // 提名点选镜像（组队者本人屏幕的派生覆盖，见 shellState）与草稿派发
   // 链：Screen 的点选机制经 setNominationDraftOverride 同步镜像，草稿
   // 派发统一经 submitTeamDraft 按发送顺序串行、记录链尾供 propose 等待。
   const [nominationDraftOverride, setNominationDraftOverrideState] = useState<
@@ -215,7 +215,7 @@ export function useAvalonRoomState(
   }, []);
   const lastTeamDraftDispatchRef = useRef<Promise<boolean> | null>(null);
   const submitTeamDraft = (seats: readonly number[]): Promise<boolean> => {
-    // submission 是单飞锁：队长连点时后一笔若与在飞的前一笔重叠，会被
+    // submission 是单飞锁：组队者连点时后一笔若与在飞的前一笔重叠，会被
     // 锁以「已有操作进行中」直接拒绝，整集丢失且镜像误回滚。故按发送
     // 顺序逐笔接续——等前一笔落定再发本笔，本笔返回值仍是它自己的
     // 派发结果；镜像的连点复合靠这里的串行才真正成立。
@@ -344,10 +344,10 @@ export function useAvalonRoomState(
   });
 
   const selection = profile.selection;
-  // 队长本人屏幕的派生输入：nominate 阶段以点选镜像覆盖草稿，让「队员」
+  // 组队者本人屏幕的派生输入：nominate 阶段以点选镜像覆盖草稿，让「队员」
   // 徽标与「提交队伍」的满员判断不必等服务端回声。只覆盖喂给 shell
   // model 的这一份派生：state 本体、返回的 viewModel、摘要与房主管理
-  // 读的仍是权威状态；无镜像或非队长视角时恒为原 state。
+  // 读的仍是权威状态；无镜像或非组队者视角时恒为原 state。
   const shellState: AvalonState =
     nominationDraftOverride !== null &&
     state.phase.kind === 'nominate' &&
@@ -402,7 +402,7 @@ export function useAvalonRoomState(
     onOpenVotePress: () => setVoteModalOpen(true),
     onOpenQuestPress: () => setQuestModalOpen(true),
     onProposeTeamPress: () => {
-      // 提案以服务端草稿为准：草稿由队长的点选经 submitTeamDraft 维护。
+      // 提案以服务端草稿为准：草稿由组队者的点选经 submitTeamDraft 维护。
       // 先等最后一笔在飞的草稿派发落定再发 propose，免得 propose 抢在
       // 草稿前面被引擎按旧草稿长度拒绝；草稿派发被拒时 propose 照常
       // 发出，由引擎按服务端草稿校验、既有失败提示承接。

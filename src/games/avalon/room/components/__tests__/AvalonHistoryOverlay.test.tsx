@@ -224,7 +224,7 @@ describe('AvalonHistoryOverlay', () => {
     expect(getByText('第1次提案 · 进行中（已投 2/5）')).toBeTruthy();
     expect(getByText('你投了：赞成')).toBeTruthy();
     expect(queryByTestId('avalon-history-current-proposal-2-team')).toBeNull();
-    expect(queryByText(/第1次提案 · 队长/)).toBeNull();
+    expect(queryByText(/第1次提案 · 组队者/)).toBeNull();
     expect(queryByText(/1号，赞成/)).toBeNull();
   });
 
