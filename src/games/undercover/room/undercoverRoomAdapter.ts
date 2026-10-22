@@ -19,7 +19,7 @@ import {
 } from '@/features/room/model/buildRoomHeaderModel';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
-import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
+import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
   buildAbortGameAction,
@@ -42,6 +42,7 @@ import {
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
+  createViewProfilesCapability,
   type RoomCapabilities,
   type RoomProfileTarget,
   type RoomSetupCapabilitiesInput,
@@ -83,17 +84,10 @@ export const UNDERCOVER_CATEGORY_NAMES: Readonly<Record<UndercoverCategory | 'al
 };
 
 /** Resolve only public roster identity, never the secret role or word. */
-export function getUndercoverProfileTarget(
-  state: UndercoverState,
-  seat: number,
-): RoomProfileTarget | null {
-  return getRoomProfileTarget(
-    state.roster,
-    seat,
-    (botSeat) => `undercover-bot:${state.roomCode}:${botSeat}`,
-    getBotDisplayName,
-  );
-}
+export const getUndercoverProfileTarget = createRoomProfileTargetResolver<UndercoverState>(
+  (roomCode, botSeat) => `undercover-bot:${roomCode}:${botSeat}`,
+  getBotDisplayName,
+);
 
 interface UndercoverCapabilitiesInput extends Omit<
   RoomSetupCapabilitiesInput,
@@ -117,7 +111,7 @@ export function createUndercoverRoomCapabilities(
       isRoomFull:
         getUndercoverOccupiedSeatCount(input.state) === input.state.config.numberOfPlayers,
     }),
-    canViewProfiles: { isAllowed: true, execute: input.openProfile },
+    canViewProfiles: createViewProfilesCapability(true, input.openProfile),
     canTakeOverBots: createBotTakeoverCapability(input.isHost, input.takeOverBot),
   };
 }

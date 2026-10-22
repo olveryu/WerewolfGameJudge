@@ -1,21 +1,21 @@
 /**
- * 阿瓦隆角色卡弹窗：走共享 RevealAnimationGate（身份查看协议）。
+ * Shared identity-card modal: the RevealAnimationGate assembly every
+ * identity-viewing game renders (server-anchored first-view animation,
+ * static card afterwards).
  *
- * 锚点是服务端 roleViewedSeats：本人尚未查看时首次打开才播装备动画，
- * 查看落记录后（含回看）恒静态。无立绘时显示阵营色占位（角色名首字）。
+ * Games supply only their role key and their adapter from that key to
+ * RevealRoleData; the gate/static branching lives here exactly once.
+ * A null key renders the static card without the gate.
  */
-import type { AvalonRoleId } from '@game-judge/game-engine/games/avalon/public';
-
 import { RevealAnimationGate } from '@/features/room/components/RevealAnimationGate';
 import { RoleCardSimple } from '@/features/room/components/RoleCardSimple';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 
-import { toRevealRoleData } from '../../components/AvalonRoleCardAdapter';
-
-export function AvalonRoleCardModal({
+export function RevealRoleCardModal<TKey>({
   visible,
-  roleId,
+  roleKey,
+  toRoleData,
   effectType,
   shouldPlay,
   allRoles,
@@ -23,18 +23,20 @@ export function AvalonRoleCardModal({
   onClose,
 }: {
   readonly visible: boolean;
-  readonly roleId: AvalonRoleId | null;
-  /** 卡片主人的装备揭示动画；预览或接管机器人时为 null（D-1）。 */
+  readonly roleKey: TKey | null;
+  /** The game's adapter from its role key to the shared reveal data. */
+  readonly toRoleData: (key: TKey) => RevealRoleData;
+  /** The card owner's equipped reveal effect; null for previews or bot takeovers. */
   readonly effectType?: RevealEffectType | null;
-  /** 服务端锚点：该座位尚未查看角色时为 true（首次查看才播动画）。 */
+  /** Server anchor: true only while the seat has not yet viewed (first view plays). */
   readonly shouldPlay: boolean;
-  /** 动画候选池：本局完整角色分布（state.roles 公开广播，D6-Q1）。 */
+  /** Animation candidate pool: the game's full role distribution. */
   readonly allRoles: readonly RevealRoleData[];
-  /** 桌上未看牌数（已占座位数 − 已查看数）。 */
+  /** Unviewed cards left on the table (occupied seats minus viewed seats). */
   readonly remainingCards: number;
   readonly onClose: () => void;
 }) {
-  const role = roleId != null ? toRevealRoleData(roleId) : null;
+  const role = roleKey != null ? toRoleData(roleKey) : null;
 
   if (role == null) {
     return <RoleCardSimple visible={visible} role={role} onClose={onClose} confirmText="知道了" />;

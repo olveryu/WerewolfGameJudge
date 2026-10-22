@@ -2,21 +2,15 @@
  * Demo玩法说明。
  */
 
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
 import { GameGuide, GameGuideSection, GameNotice, RuleItem } from '@/components/GameGuide';
-import type { RootStackParamList } from '@/navigation/types';
 
 /** 展示玩法说明；章节内容随设计定稿填写（TODO(gameplay)）。 */
 export function DemoRulesScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   return (
     <GameGuide
       title="Demo玩法"
       heading="模板参照游戏"
       intro="TODO(gameplay):一句话讲清这局游戏怎么玩、怎么赢，按 docs/demo-game-design.md 定稿填写。"
-      onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
     >
       <GameGuideSection title="一局怎么玩">
         <RuleItem

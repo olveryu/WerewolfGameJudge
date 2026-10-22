@@ -116,8 +116,8 @@ export const PACK_SEGMENT_SWITCHES = {
 /**
  * Whole-file capability gates for the single game template tree:
  * a gated file is collected only when the pack enables the key.
- * The first three are the identity-viewing chain's whole-file
- * products (identity card adapter/modal and the viewing-protocol
+ * The first two are the identity-viewing chain's whole-file
+ * products (identity card adapter and the viewing-protocol
  * contract); the last is the audio chain's client binding hook —
  * the engine/client wiring inside shared files rides `//#cap`
  * segments, but the binding itself is a file only audio games have.
@@ -126,7 +126,6 @@ export const FILE_CAPABILITY_GATES = {
   'packages/game-engine/src/games/__GAME_ID__/__tests__/identityViewingProtocol.contract.test.ts':
     'identityViewing',
   'src/games/__GAME_ID__/components/__GAME_PASCAL__RoleCardAdapter.ts': 'identityViewing',
-  'src/games/__GAME_ID__/room/components/__GAME_PASCAL__RoleCardModal.tsx': 'identityViewing',
   'src/games/__GAME_ID__/room/hooks/use__GAME_PASCAL__AudioOrchestration.ts': 'audioOrchestration',
 };
 

@@ -1,5 +1,7 @@
 /** Game-neutral seat-tap intent shared by every room adapter. */
 
+import type { RoomProfileTarget } from './RoomCapabilities';
+
 /** Title of every seat-tap rejection alert, in all seven games. */
 export const ROOM_SEAT_TAP_BLOCKED_TITLE = '不可选择';
 
@@ -35,6 +37,32 @@ export function resolveRoomInGameSeatTap(disabledReason?: string): RoomInGameSea
     throw new Error('Room seat disabled reason must be non-empty');
   }
   return { kind: 'alert', reason: disabledReason };
+}
+
+/** One game's seat-tap input before its profile target is resolved. */
+export interface RoomSeatTapResolverInput<TState> {
+  readonly state: TState;
+  readonly seat: number;
+  readonly currentSeat: number | null;
+  readonly disabledReason?: string;
+}
+
+/**
+ * Bind the shared seat-tap contract to one game's profile-target
+ * resolver. Each adapter previously hand-wrote this forwarding function
+ * (plus its own input interface); the factory leaves each game a
+ * one-line resolver constant under its established export name.
+ */
+export function createRoomSeatTapIntentResolver<TState>(
+  resolveProfileTarget: (state: TState, seat: number) => RoomProfileTarget | null,
+): (input: RoomSeatTapResolverInput<TState>) => RoomSeatTapIntent<RoomProfileTarget> {
+  return (input) =>
+    getRoomSeatTapIntent({
+      seat: input.seat,
+      currentSeat: input.currentSeat,
+      target: resolveProfileTarget(input.state, input.seat),
+      disabledReason: input.disabledReason,
+    });
 }
 
 /** Resolve shared lobby/profile semantics without executing a room capability. */

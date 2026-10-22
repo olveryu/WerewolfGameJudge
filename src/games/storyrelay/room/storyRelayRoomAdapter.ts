@@ -18,7 +18,7 @@ import { createControlledSeatModel } from '@/features/room/model/createControlle
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
-import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
+import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildAbortGameAction,
   buildClearSeatsAction,
@@ -32,7 +32,6 @@ import {
 } from '@/features/room/model/hostManagementActions';
 import type { NightStepProgress } from '@/features/room/model/nightProgress';
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
-import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import {
@@ -43,23 +42,16 @@ import type {
   RoomSeatDataSource,
   RoomSeatStatusBadge,
 } from '@/features/room/model/RoomSeatDataSource';
-import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
+import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 /** Returns a public occupant identity for shared profile controls. */
-function getStoryRelayProfileTarget(
-  state: StoryRelayState,
-  seat: number,
-): RoomProfileTarget | null {
-  return getRoomProfileTarget(
-    state.roster,
-    seat,
-    (botSeat) => `storyrelay-bot:${state.roomCode}:${botSeat}`,
-    getBotDisplayName,
-  );
-}
+const getStoryRelayProfileTarget = createRoomProfileTargetResolver<StoryRelayState>(
+  (roomCode, botSeat) => `storyrelay-bot:${roomCode}:${botSeat}`,
+  getBotDisplayName,
+);
 
 /** Creates the shared seat-board source including public readiness and receipt status. */
 export interface StoryRelaySeatSourceInput {
@@ -69,22 +61,10 @@ export interface StoryRelaySeatSourceInput {
   readonly controlledSeat: number | null;
 }
 
-interface StoryRelaySeatTapInput {
-  readonly state: StoryRelayState;
-  readonly seat: number;
-  readonly currentSeat: number | null;
-  readonly disabledReason?: string;
-}
-
 /** Project StoryRelay seating into the shared room seat-tap contract. */
-export function getStoryRelaySeatTapIntent(input: StoryRelaySeatTapInput) {
-  return getRoomSeatTapIntent({
-    seat: input.seat,
-    currentSeat: input.currentSeat,
-    target: getStoryRelayProfileTarget(input.state, input.seat),
-    disabledReason: input.disabledReason,
-  });
-}
+export const getStoryRelaySeatTapIntent = createRoomSeatTapIntentResolver(
+  getStoryRelayProfileTarget,
+);
 
 function createStoryRelaySeatDataSource(input: StoryRelaySeatSourceInput): RoomSeatDataSource {
   const { state, revision, userId, controlledSeat } = input;

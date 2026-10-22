@@ -1,4 +1,8 @@
-import { getRoomSeatTapIntent, resolveRoomInGameSeatTap } from '@/features/room/model/RoomSeatTap';
+import {
+  createRoomSeatTapIntentResolver,
+  getRoomSeatTapIntent,
+  resolveRoomInGameSeatTap,
+} from '@/features/room/model/RoomSeatTap';
 
 describe('getRoomSeatTapIntent', () => {
   it('gives a disabled reason priority over every seat target', () => {
@@ -58,5 +62,36 @@ describe('resolveRoomInGameSeatTap', () => {
     expect(() => resolveRoomInGameSeatTap('')).toThrow(
       'Room seat disabled reason must be non-empty',
     );
+  });
+});
+
+describe('createRoomSeatTapIntentResolver', () => {
+  interface FakeState {
+    readonly occupied: Readonly<Record<number, { readonly userId: string }>>;
+  }
+  const state: FakeState = { occupied: { 2: { userId: 'user-2' } } };
+  const resolveIntent = createRoomSeatTapIntentResolver<FakeState>((s, seat) => {
+    const occupant = s.occupied[seat];
+    return occupant === undefined
+      ? null
+      : { seat, userId: occupant.userId, occupantKind: 'human' as const, rosterName: '甲' };
+  });
+
+  it('resolves the profile branch through the bound target resolver', () => {
+    expect(resolveIntent({ state, seat: 2, currentSeat: null })).toEqual({
+      kind: 'profile',
+      target: { seat: 2, userId: 'user-2', occupantKind: 'human', rosterName: '甲' },
+    });
+  });
+
+  it('keeps the shared take/move/blocked branches over the bound state', () => {
+    expect(resolveIntent({ state, seat: 3, currentSeat: null })).toEqual({ kind: 'take', seat: 3 });
+    expect(resolveIntent({ state, seat: 3, currentSeat: 0 })).toEqual({ kind: 'move', seat: 3 });
+    expect(
+      resolveIntent({ state, seat: 2, currentSeat: 0, disabledReason: '当前座位不可操作' }),
+    ).toEqual({
+      kind: 'blocked',
+      reason: '当前座位不可操作',
+    });
   });
 });

@@ -82,6 +82,19 @@ export function createBotTakeoverCapability(
 }
 
 /**
+ * The one derivation of the profile-viewing capability: a game decides
+ * only whether profiles may be viewed in its current phase; the denial
+ * copy is shared. Every game previously inlined this ternary (and the
+ * denial copy) per adapter/hook.
+ */
+export function createViewProfilesCapability(
+  canView: boolean,
+  openProfile: (target: RoomProfileTarget) => void,
+): RoomCapability<readonly [target: RoomProfileTarget]> {
+  return canView ? allowed(openProfile) : denied('游戏进行中不能查看玩家资料');
+}
+
+/**
  * Derive game-neutral setup capabilities from authoritative room facts.
  *
  * @remarks Game adapters map their lifecycle into these facts but cannot redefine basic room policy.

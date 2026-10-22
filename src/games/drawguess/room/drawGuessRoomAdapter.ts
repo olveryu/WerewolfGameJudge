@@ -19,7 +19,7 @@ import { createControlledSeatModel } from '@/features/room/model/createControlle
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
-import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
+import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -31,7 +31,6 @@ import {
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
-import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import {
@@ -39,20 +38,16 @@ import {
   type RoomHostManagementAction,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
-import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
+import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
-function getDrawGuessProfileTarget(state: DrawGuessState, seat: number): RoomProfileTarget | null {
-  return getRoomProfileTarget(
-    state.roster,
-    seat,
-    (botSeat) => `drawguess-bot:${state.roomCode}:${botSeat}`,
-    getBotDisplayName,
-  );
-}
+const getDrawGuessProfileTarget = createRoomProfileTargetResolver<DrawGuessState>(
+  (roomCode, botSeat) => `drawguess-bot:${roomCode}:${botSeat}`,
+  getBotDisplayName,
+);
 
 function drawerStatusLabel(state: DrawGuessState, seat: number): string | null {
   const phase = state.phase;
@@ -70,22 +65,8 @@ export interface DrawGuessSeatSourceInput {
   readonly controlledSeat: number | null;
 }
 
-interface DrawGuessSeatTapInput {
-  readonly state: DrawGuessState;
-  readonly seat: number;
-  readonly currentSeat: number | null;
-  readonly disabledReason?: string;
-}
-
 /** Project DrawGuess seating into the shared room seat-tap contract. */
-export function getDrawGuessSeatTapIntent(input: DrawGuessSeatTapInput) {
-  return getRoomSeatTapIntent({
-    seat: input.seat,
-    currentSeat: input.currentSeat,
-    target: getDrawGuessProfileTarget(input.state, input.seat),
-    disabledReason: input.disabledReason,
-  });
-}
+export const getDrawGuessSeatTapIntent = createRoomSeatTapIntentResolver(getDrawGuessProfileTarget);
 
 function createDrawGuessSeatDataSource(input: DrawGuessSeatSourceInput): RoomSeatDataSource {
   const { state, revision, userId, controlledSeat } = input;

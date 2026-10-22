@@ -1,6 +1,5 @@
 /** Pictionary create/edit configuration hosted by the shared root navigator. */
 
-import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   getPictionaryRelayStepCount,
   PICTIONARY_DRAWING_DURATIONS,
@@ -13,19 +12,18 @@ import { type RouteProp, useNavigation, useRoute } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type React from 'react';
 import { useCallback } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { GameScreen, GameScreenContent, GameScreenFooter } from '@/components/GameScreen';
-import { GameSettingsStepper } from '@/components/GameSettings';
+import { GameSettingsDurationOptions, GameSettingsStepper } from '@/components/GameSettings';
 import { gameSettingsStyles } from '@/components/GameSettings.styles';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { parsePictionaryConfigRouteParams } from '@/games/pictionary/navigation/pictionaryGameNavigation';
 import type { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes } from '@/theme';
 
 import { pictionaryConfigStyles as styles } from './PictionaryConfigScreen.styles';
 import {
@@ -35,78 +33,6 @@ import {
 
 interface PictionaryConfigScreenProps {
   readonly session: PictionaryRoomSession;
-}
-
-interface DurationOptionProps<TDuration extends number | null> {
-  readonly value: TDuration;
-  readonly selected: boolean;
-  readonly testID: string;
-  readonly onSelect: (value: TDuration) => void;
-}
-
-function DurationOption<TDuration extends number | null>({
-  value,
-  selected,
-  testID,
-  onSelect,
-}: DurationOptionProps<TDuration>): React.ReactElement {
-  const handlePress = useCallback(() => onSelect(value), [onSelect, value]);
-  return (
-    <Pressable
-      onPress={handlePress}
-      testID={testID}
-      style={[styles.option, selected && styles.optionSelected]}
-      accessibilityRole="radio"
-      accessibilityLabel={value === null ? '不限时' : `${value} 秒`}
-      accessibilityState={{ checked: selected }}
-      aria-checked={selected}
-    >
-      <Ionicons
-        name={selected ? 'radio-button-on' : 'radio-button-off'}
-        size={componentSizes.icon.sm}
-        color={selected ? colors.primary : colors.textSecondary}
-      />
-      <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
-        {value === null ? '不限时' : `${value} 秒`}
-      </Text>
-    </Pressable>
-  );
-}
-
-interface DurationSectionProps<TDuration extends number | null> {
-  readonly setting: 'drawing' | 'guess' | 'transition' | 'gallery';
-  readonly title: string;
-  readonly hint: string;
-  readonly values: readonly TDuration[];
-  readonly selected: TDuration;
-  readonly onSelect: (value: TDuration) => void;
-}
-
-function DurationSection<TDuration extends number | null>({
-  setting,
-  title,
-  hint,
-  values,
-  selected,
-  onSelect,
-}: DurationSectionProps<TDuration>): React.ReactElement {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <Text style={styles.sectionHint}>{hint}</Text>
-      <View style={styles.optionRow}>
-        {values.map((value) => (
-          <DurationOption
-            key={value ?? 'unlimited'}
-            value={value}
-            selected={value === selected}
-            testID={TESTIDS.pictionaryConfigDurationOption(setting, value ?? 'unlimited')}
-            onSelect={onSelect}
-          />
-        ))}
-      </View>
-    </View>
-  );
 }
 
 function useDurationHandlers(state: PictionaryConfigScreenState) {
@@ -185,37 +111,49 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
             支持 4 至 20 人 · 共 {getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒
           </Text>
         </View>
-        <DurationSection
-          setting="drawing"
+        <GameSettingsDurationOptions
           title="绘画时间"
           hint="默认 120 秒，足够画清重点"
           values={PICTIONARY_DRAWING_DURATIONS}
-          selected={state.config.drawingDurationSeconds}
-          onSelect={durations.drawing}
+          value={state.config.drawingDurationSeconds}
+          onChange={durations.drawing}
+          optionTestID={(value) =>
+            TESTIDS.pictionaryConfigDurationOption('drawing', value ?? 'unlimited')
+          }
+          optionAccessibilityLabel={(_value, optionLabel) => optionLabel}
         />
-        <DurationSection
-          setting="guess"
+        <GameSettingsDurationOptions
           title="文字作答时间"
           hint="用于开场出题和看图猜词"
           values={PICTIONARY_GUESS_DURATIONS}
-          selected={state.config.guessDurationSeconds}
-          onSelect={durations.guess}
+          value={state.config.guessDurationSeconds}
+          onChange={durations.guess}
+          optionTestID={(value) =>
+            TESTIDS.pictionaryConfigDurationOption('guess', value ?? 'unlimited')
+          }
+          optionAccessibilityLabel={(_value, optionLabel) => optionLabel}
         />
-        <DurationSection
-          setting="transition"
+        <GameSettingsDurationOptions
           title="每棒间隔"
           hint="给大家留一点换手时间"
           values={PICTIONARY_TRANSITION_DURATIONS}
-          selected={state.config.transitionDurationSeconds}
-          onSelect={durations.transition}
+          value={state.config.transitionDurationSeconds}
+          onChange={durations.transition}
+          optionTestID={(value) =>
+            TESTIDS.pictionaryConfigDurationOption('transition', value ?? 'unlimited')
+          }
+          optionAccessibilityLabel={(_value, optionLabel) => optionLabel}
         />
-        <DurationSection
-          setting="gallery"
+        <GameSettingsDurationOptions
           title="结果播放"
           hint="不限时会改为房主手动翻页"
           values={PICTIONARY_GALLERY_ITEM_DURATIONS}
-          selected={state.config.galleryItemDurationSeconds}
-          onSelect={durations.gallery}
+          value={state.config.galleryItemDurationSeconds}
+          onChange={durations.gallery}
+          optionTestID={(value) =>
+            TESTIDS.pictionaryConfigDurationOption('gallery', value ?? 'unlimited')
+          }
+          optionAccessibilityLabel={(_value, optionLabel) => optionLabel}
         />
         <Text style={styles.estimate}>{getEstimatedMinutes(state.config)}</Text>
       </GameScreenContent>

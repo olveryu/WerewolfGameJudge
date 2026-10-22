@@ -1,20 +1,14 @@
 /** Story Relay gameplay guide; no duplicated editable room configuration. */
 
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
 import { GameGuide, GameGuideSection, GameNotice, RuleItem } from '@/components/GameGuide';
-import type { RootStackParamList } from '@/navigation/types';
 
 /** Presents ordinary text relay rules and manual bot responsibilities. */
 export function StoryRelayRulesScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   return (
     <GameGuide
       title="故事接龙玩法"
       heading="把故事交给下一个人"
       intro="每人写一个开头，再接着上一段续写。等所有人写完，一起揭晓故事变成了什么。"
-      onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
     >
       <GameGuideSection title="从开头到揭晓">
         <RuleItem

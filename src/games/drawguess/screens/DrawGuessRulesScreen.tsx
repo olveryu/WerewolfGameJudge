@@ -2,21 +2,15 @@
  * 你画我猜玩法说明。
  */
 
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
 import { GameGuide, GameGuideSection, GameNotice, RuleItem } from '@/components/GameGuide';
-import type { RootStackParamList } from '@/navigation/types';
 
 /** 展示轮流作画、猜词计分、提示与机器人规则。 */
 export function DrawGuessRulesScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   return (
     <GameGuide
       title="你画我猜玩法"
       heading="一人作画，其余人猜"
       intro="每轮一人当画手作画，其他人在聊天框里打字猜词。猜得越快分越高，画手按猜中人数得分。"
-      onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
     >
       <GameGuideSection title="一轮怎么玩">
         <RuleItem

@@ -3,6 +3,8 @@
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
+  createViewProfilesCapability,
+  type RoomProfileTarget,
   type RoomSetupCapabilitiesInput,
 } from '../RoomCapabilities';
 
@@ -89,5 +91,28 @@ describe('createBotTakeoverCapability', () => {
   it('denies non-hosts with the shared reason', () => {
     const capability = createBotTakeoverCapability(false, jest.fn());
     expect(capability).toEqual({ isAllowed: false, reason: '只有房主可以接管机器人' });
+  });
+});
+
+describe('createViewProfilesCapability', () => {
+  it('allows viewing with the supplied opener when the game phase permits it', () => {
+    const openProfile = jest.fn();
+    const capability = createViewProfilesCapability(true, openProfile);
+    const target: RoomProfileTarget = {
+      seat: 1,
+      userId: 'user-1',
+      occupantKind: 'human',
+      rosterName: '甲',
+    };
+
+    expect(capability.isAllowed).toBe(true);
+    if (capability.isAllowed) capability.execute(target);
+    expect(openProfile).toHaveBeenCalledWith(target);
+  });
+
+  it('denies viewing with the shared copy when the game phase forbids it', () => {
+    const capability = createViewProfilesCapability(false, jest.fn());
+
+    expect(capability).toEqual({ isAllowed: false, reason: '游戏进行中不能查看玩家资料' });
   });
 });

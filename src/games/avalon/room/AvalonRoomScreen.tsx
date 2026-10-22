@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { createBoardInfoStyles } from '@/features/room/components/boardInfo.styles';
+import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardModal';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -16,6 +17,7 @@ import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer'
 import type { AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 import { colors } from '@/theme';
 
+import { toRevealRoleData } from '../components/AvalonRoleCardAdapter';
 import { createAvalonHistorySummary } from './avalonRoomAdapter';
 import { AvalonBoardInfoCard } from './components/AvalonBoardInfoCard';
 import { AvalonEndedSection } from './components/AvalonEndedSection';
@@ -27,7 +29,6 @@ import { AvalonLadyResultModal } from './components/AvalonLadyResultModal';
 import { AvalonNightConfirmModal } from './components/AvalonNightConfirmModal';
 import { AvalonQuestModal } from './components/AvalonQuestModal';
 import { AvalonQuestResultPanel } from './components/AvalonQuestResultPanel';
-import { AvalonRoleCardModal } from './components/AvalonRoleCardModal';
 import {
   type AvalonStrikeConfirmation,
   AvalonStrikeConfirmModal,
@@ -468,9 +469,10 @@ function AvalonRoomContent(
               ) : null}
             </>
           )}
-          <AvalonRoleCardModal
+          <RevealRoleCardModal
             visible={screen.roleCardVisible}
-            roleId={screen.rolePreviewId ?? viewModel?.myRole ?? null}
+            roleKey={screen.rolePreviewId ?? viewModel?.myRole ?? null}
+            toRoleData={toRevealRoleData}
             effectType={
               screen.rolePreviewId !== null || screen.controlledSeat !== null
                 ? null

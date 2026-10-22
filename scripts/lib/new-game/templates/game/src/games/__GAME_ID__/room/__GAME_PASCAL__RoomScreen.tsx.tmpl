@@ -11,6 +11,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 //#cap identityViewing
 import { Button } from '@/components/Button';
+import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardModal';
 //#end
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
@@ -36,7 +37,7 @@ import { colors, spacing, textStyles } from '@/theme';
 //#end
 
 //#cap identityViewing
-import { __GAME_PASCAL__RoleCardModal } from './components/__GAME_PASCAL__RoleCardModal';
+import { toRevealRoleData } from '../components/__GAME_PASCAL__RoleCardAdapter';
 //#end
 import {
   use__GAME_PASCAL__RoomState,
@@ -98,9 +99,10 @@ function __GAME_PASCAL__RoomContent(
       trailingExtraActions={null}
 //#cap identityViewing
       gameOverlays={
-        <__GAME_PASCAL__RoleCardModal
+        <RevealRoleCardModal
           visible={screen.roleCardVisible}
-          identity={screen.viewModel?.myIdentity ?? null}
+          roleKey={screen.viewModel?.myIdentity ?? null}
+          toRoleData={toRevealRoleData}
           effectType={null}
           shouldPlay={screen.roleCardShouldPlay}
           allRoles={screen.roleCardAllRoles}

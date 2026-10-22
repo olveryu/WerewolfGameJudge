@@ -1,6 +1,6 @@
-/** Shared count control; callers own the displayed value, editing and validation. */
+/** Shared settings controls; callers own the displayed values, editing and validation. */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { colors } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
@@ -57,6 +57,72 @@ export function GameSettingsStepper({
         <Button variant="icon" onPress={onIncrement} accessibilityLabel="增加人数">
           <Ionicons name="add" size={componentSizes.icon.sm} color={colors.text} />
         </Button>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Shared duration radio group for game settings: one titled section of
+ * second options, where a null option means "no time limit". Callers own
+ * the candidate values and the selected value; presentation is shared.
+ * The accessibility label defaults to `${title} ${optionLabel}`; a caller
+ * whose established form is the bare option label passes
+ * `optionAccessibilityLabel` to keep it.
+ */
+export function GameSettingsDurationOptions<TDuration extends number | null>({
+  title,
+  hint,
+  values,
+  value,
+  onChange,
+  nullLabel = '不限时',
+  optionTestID,
+  optionAccessibilityLabel,
+}: {
+  readonly title: string;
+  readonly hint?: string;
+  readonly values: readonly TDuration[];
+  readonly value: TDuration;
+  readonly onChange: (value: TDuration) => void;
+  readonly nullLabel?: string;
+  readonly optionTestID?: (value: TDuration) => string;
+  readonly optionAccessibilityLabel?: (value: TDuration, optionLabel: string) => string;
+}) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.label}>{title}</Text>
+      {hint !== undefined ? <Text style={styles.hint}>{hint}</Text> : null}
+      <View style={styles.optionRow}>
+        {values.map((option) => {
+          const selected = option === value;
+          const optionLabel = option === null ? nullLabel : `${option} 秒`;
+          return (
+            <Pressable
+              key={option ?? 'unlimited'}
+              onPress={() => onChange(option)}
+              testID={optionTestID?.(option)}
+              accessibilityRole="radio"
+              accessibilityLabel={
+                optionAccessibilityLabel
+                  ? optionAccessibilityLabel(option, optionLabel)
+                  : `${title} ${optionLabel}`
+              }
+              accessibilityState={{ checked: selected }}
+              aria-checked={selected}
+              style={[styles.option, selected && styles.optionSelected]}
+            >
+              <Ionicons
+                name={selected ? 'radio-button-on' : 'radio-button-off'}
+                size={componentSizes.icon.sm}
+                color={selected ? colors.primary : colors.textSecondary}
+              />
+              <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
+                {optionLabel}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );

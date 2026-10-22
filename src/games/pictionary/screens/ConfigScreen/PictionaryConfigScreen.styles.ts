@@ -7,17 +7,11 @@ import { colors, spacing, typography } from '@/theme';
 
 export const pictionaryConfigStyles = StyleSheet.create({
   section: gameSettingsStyles.section,
-  sectionTitle: gameSettingsStyles.label,
   sectionHint: {
     fontSize: typography.caption,
     lineHeight: typography.lineHeights.caption,
     color: colors.textMuted,
   },
-  optionRow: gameSettingsStyles.optionRow,
-  option: gameSettingsStyles.option,
-  optionSelected: gameSettingsStyles.optionSelected,
-  optionText: gameSettingsStyles.optionText,
-  optionTextSelected: gameSettingsStyles.optionTextSelected,
   estimate: {
     marginTop: spacing.large,
     fontSize: typography.secondary,
