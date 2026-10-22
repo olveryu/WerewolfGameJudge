@@ -84,9 +84,19 @@ ${edited}
 5. **e2e 启用需用户批准**：\`e2e/specs/${gameId}.spec.ts.tmpl\` 是多真人多 context 的
    spec 骨架，默认不进 CI。启用时改名为 \`${gameId}.spec.ts\` 并把文件名加进
    \`.github/workflows/ci.yml\` 的 e2e 分片矩阵（ciE2eCoverage contract 会验全量一致）。
-6. **词库（如需要）**：把引擎 \`wordLibrary\` 开关打开时，必须同时在注册表
-   \`workerWorkflows\` 登记供词 workflow 导出（capabilities contract 会验两者一致），
-   并按 new-game skill Phase 3d 建词表与灌种子词，不许空表上线。
+6. **词库（如需要）**：把引擎 \`wordLibrary\` 开关打开时，供词 workflow 要在
+   三处登记，缺一处都不完整（骨架不带 workflow 本体，类本体按 new-game skill
+   Phase 3d 手写在 \`packages/api-worker/src/games/${gameId}/wordSupplyWorkflow.ts\`）：
+   ① 注册表 \`packages/game-engine/src/games/registry.ts\` 本条目的
+   \`workerWorkflows\` 加一项 \`{ exportName: '${names.pascal}WordSupplyWorkflow', modulePath: './games/${gameId}/wordSupplyWorkflow' }\`
+   ——capabilities contract 验引擎声明与登记一致，漏这处会红；
+   ② \`packages/api-worker/src/index.ts\` 的 workflow 导出区加一行
+   \`export { ${names.pascal}WordSupplyWorkflow } from './games/${gameId}/wordSupplyWorkflow';\`
+   ——architecture contract 验注册表与导出双向一致，漏这处会红；
+   ③ \`packages/api-worker/wrangler.toml\` 加一段 \`[[workflows]]\`
+   （\`name = "${gameId}-word-supply"\`、\`binding = "${gameId.toUpperCase()}_WORD_SUPPLY"\`、\`class_name = "${names.pascal}WordSupplyWorkflow"\`）
+   ——这一处没有任何 contract 焊接，漏了不会红灯、但部署后 workflow 不存在，
+   只能靠本步核对。三处齐后，再按 skill Phase 3d 建词表与灌种子词，不许空表上线。
 7. **门禁复跑**：\`pnpm exec tsc --noEmit\`、引擎与 worker 的 vitest、根 jest、
    \`pnpm run knip\`、改动文件 prettier/eslint，全部绿了再开 PR。${
      production

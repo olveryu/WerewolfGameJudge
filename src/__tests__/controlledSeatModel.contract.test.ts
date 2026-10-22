@@ -11,6 +11,8 @@
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 
+import { CLIENT_GAME_PLUGIN_CATALOG } from '@/games/catalog';
+
 const GAMES_DIR = join(__dirname, '../games');
 const HANDWRITTEN_PATTERN = /displayName:.*\n.*onRelease:/;
 
@@ -50,27 +52,37 @@ describe('controlled seat model contract', () => {
     expect(factory).not.toMatch(/hint/);
     expect(factory).not.toMatch(/canControlBots|hasBots/);
     // Every game feeds the factory the controlled seat and its display
-    // name; none passes a precomputed visibility flag.
-    // Assembly sites: the shell factories in the adapters own the call for
-    // six games; fibking/pictionary still assemble in their screen-state
-    // hooks (their factories receive the model as an input).
-    const consumers = [
-      'avalon/room/avalonRoomAdapter.ts',
-      'demo/room/demoRoomAdapter.ts',
-      'drawguess/room/drawGuessRoomAdapter.ts',
-      'fibking/room/hooks/useFibRoomScreenState.ts',
-      'pictionary/room/hooks/usePictionaryRoomScreenState.ts',
-      'storyrelay/room/storyRelayRoomAdapter.ts',
-      'undercover/room/undercoverRoomAdapter.ts',
-      'werewolf/werewolfRoomAdapter.ts',
-    ];
-    for (const consumer of consumers) {
-      const source = readFileSync(join(GAMES_DIR, consumer), 'utf-8');
-      const call = /createControlledSeatModel\(\{[\s\S]*?\}\)/.exec(source);
-      if (call === null) throw new Error(`No factory call found in ${consumer}`);
-      expect(call[0]).toMatch(/controlledSeat[:,]/);
-      expect(call[0]).toMatch(/controlledBotName[:,]/);
-      expect(call[0]).not.toMatch(/canControlBots|hasBots|isVisible/);
+    // name; none passes a precomputed visibility flag. The coverage
+    // set is derived from the client catalog: each registered game
+    // must assemble the model through exactly one production call
+    // site, discovered by scanning the game's own sources — the
+    // assembly point differs per game (the shell factories in the
+    // adapters own the call for most games; fibking/pictionary
+    // assemble in their screen-state hooks, whose factories receive
+    // the model as an input), so a hardcoded path list would
+    // silently leave the next game uncovered.
+    for (const gameType of Object.keys(CLIENT_GAME_PLUGIN_CATALOG)) {
+      const callSites: { file: string; call: string }[] = [];
+      for (const file of getAllTsFiles(join(GAMES_DIR, gameType))) {
+        if (file.includes('__tests__') || file.endsWith('.test.ts') || file.endsWith('.test.tsx')) {
+          continue;
+        }
+        const call = /createControlledSeatModel\(\{[\s\S]*?\}\)/.exec(readFileSync(file, 'utf-8'));
+        if (call !== null) callSites.push({ file, call: call[0] });
+      }
+      if (callSites.length !== 1 || callSites[0] === undefined) {
+        throw new Error(
+          `${gameType}: expected exactly one createControlledSeatModel call site, ` +
+            `found ${callSites.length}` +
+            (callSites.length > 0
+              ? `: ${callSites.map((site) => site.file.replace(GAMES_DIR, 'src/games')).join(', ')}`
+              : ''),
+        );
+      }
+      const { call } = callSites[0];
+      expect(call).toMatch(/controlledSeat[:,]/);
+      expect(call).toMatch(/controlledBotName[:,]/);
+      expect(call).not.toMatch(/canControlBots|hasBots|isVisible/);
     }
   });
 
