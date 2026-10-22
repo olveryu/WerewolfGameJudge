@@ -85,6 +85,7 @@ export const TESTIDS = {
   restartButton: 'restart-button',
   audioWaitingButton: 'audio-waiting-button',
   lastNightInfoButton: 'last-night-info-button',
+  lastNightInfoBottomButton: 'last-night-info-bottom-button',
   chooseBottomCardModal: 'choose-bottom-card-modal',
   chooseBottomCardOption: (cardIndex: number) => `choose-bottom-card-option-${cardIndex}`,
   bgmToggleButton: 'bgm-toggle-button',
@@ -187,6 +188,7 @@ export const TESTIDS = {
 
   // NightReviewModal
   nightReviewButton: 'night-review-button',
+  nightReviewBottomButton: 'night-review-bottom-button',
   nightReviewModal: 'night-review-modal',
   nightReviewShareButton: 'night-review-share-button',
 
