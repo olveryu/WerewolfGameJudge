@@ -8,10 +8,11 @@
  * Every other NOOP reason and every non-gated path stays silent.
  */
 
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
-import { act, renderHook } from '@testing-library/react-native';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { act, renderHook } from '@testing-library/react-native';
 import { toast } from 'sonner-native';
 
 import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
