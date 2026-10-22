@@ -87,7 +87,7 @@ export const STATIC_BUTTONS: Record<StaticButtonId, StaticButtonDef> = {
   },
   nightReview: {
     label: '本局复盘',
-    testID: TESTIDS.nightReviewButton,
+    testID: TESTIDS.nightReviewBottomButton,
   },
   lastNightInfo: {
     label: '昨夜信息',

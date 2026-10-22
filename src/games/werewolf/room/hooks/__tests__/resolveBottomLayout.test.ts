@@ -440,7 +440,7 @@ describe('resolveBottomLayout', () => {
       expect(layout.secondary.map((button) => button.label)).toEqual(['昨夜信息', '本局复盘']);
       expect(layout.secondary.map((button) => button.testID)).toEqual([
         TESTIDS.lastNightInfoBottomButton,
-        TESTIDS.nightReviewButton,
+        TESTIDS.nightReviewBottomButton,
       ]);
       expect(keys(layout, 'ghost')).toEqual([]);
       expect(layout.primary[0]).toMatchObject({ isEnabled: true });
@@ -534,7 +534,7 @@ describe('resolveBottomLayout', () => {
       expect(layout.secondary.map((button) => button.testID)).toEqual([
         undefined,
         TESTIDS.lastNightInfoBottomButton,
-        TESTIDS.nightReviewButton,
+        TESTIDS.nightReviewBottomButton,
       ]);
       expect(keys(layout, 'ghost')).toEqual([]);
     });

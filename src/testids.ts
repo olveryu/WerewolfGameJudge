@@ -188,6 +188,7 @@ export const TESTIDS = {
 
   // NightReviewModal
   nightReviewButton: 'night-review-button',
+  nightReviewBottomButton: 'night-review-bottom-button',
   nightReviewModal: 'night-review-modal',
   nightReviewShareButton: 'night-review-share-button',
 
