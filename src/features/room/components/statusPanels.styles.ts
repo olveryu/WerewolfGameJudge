@@ -66,10 +66,60 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       messageCompact: {
         marginBottom: spacing.tight,
       },
+      stepsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing.small,
+        marginBottom: spacing.small,
+        paddingHorizontal: spacing.small,
+      },
+      stepsRowCompact: {
+        marginBottom: spacing.tight,
+      },
+      stepItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.tight,
+      },
+      stepLabelComplete: {
+        ...textStyles.secondarySemibold,
+        color: colors.textSecondary,
+      },
+      stepLabelCurrent: {
+        ...textStyles.secondarySemibold,
+        color: colors.primary,
+      },
+      stepLabelUpcoming: {
+        ...textStyles.secondarySemibold,
+        color: colors.textMuted,
+      },
+      stepSeparator: {
+        ...textStyles.caption,
+        color: colors.textMuted,
+      },
+      hint: {
+        ...textStyles.caption,
+        textAlign: 'center',
+        color: colors.warning,
+        marginBottom: spacing.small,
+        paddingHorizontal: spacing.small,
+      },
+      hintCompact: {
+        marginBottom: spacing.tight,
+      },
       buttonRow: {
         flexDirection: 'column',
         alignItems: 'stretch',
         gap: spacing.small,
+      },
+      secondaryRow: {
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        gap: spacing.small,
+      },
+      secondaryButton: {
+        flex: 1,
       },
       compactManagementStack: {
         gap: spacing.small,

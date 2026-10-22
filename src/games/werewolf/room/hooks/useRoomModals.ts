@@ -30,6 +30,18 @@ interface UseRoomModalsDeps {
   beginReportCapture: () => Promise<string | null>;
   /** Directly share the report (system share/copy). Return value is optional and unused by caller. */
   shareNightReviewReport: () => Promise<unknown>;
+  /**
+   * Whether the game has ended. Confirmation copy only warns about the
+   * sheriff election while an election can still be affected; at Ended
+   * that warning is meaningless and drops out.
+   */
+  isGameEnded: boolean;
+  /**
+   * Fired when the viewer confirms viewing the last-night info in its
+   * dialog — the panel flow's first step completes on this confirm,
+   * not on merely opening the dialog.
+   */
+  onLastNightInfoConfirmed: () => void;
 }
 
 /** useRoomModals return value */
@@ -71,6 +83,8 @@ export function useRoomModals({
   shareNightReview,
   beginReportCapture,
   shareNightReviewReport,
+  isGameEnded,
+  onLastNightInfoConfirmed,
 }: UseRoomModalsDeps): RoomModalsState {
   // ── Role card modal ──
   const [roleCardVisible, setRoleCardVisible] = useState(false);
@@ -131,14 +145,16 @@ export function useRoomModals({
     const requestId = detailAlertRequestRef.current;
     const isShown = showConfirmAlert(
       '查看本局复盘？',
-      '本局复盘包含全员身份和行动记录，查看后可能影响警长竞选，请确认是否继续。',
+      isGameEnded
+        ? '本局复盘包含全员身份和行动记录，请确认是否继续。'
+        : '本局复盘包含全员身份和行动记录，查看后可能影响警长竞选，请确认是否继续。',
       () => {
         if (detailAlertRequestRef.current === requestId) setNightReviewVisible(true);
       },
       { confirmText: '确定查看' },
     );
     detailAlertGenerationRef.current = isShown ? getAlertGeneration() : null;
-  }, []);
+  }, [isGameEnded]);
 
   /**
    * Show the "本局复盘" alert with optional loading state on "分享战报" button.
@@ -263,8 +279,11 @@ export function useRoomModals({
   const showLastNightInfo = useCallback(() => {
     showConfirmAlert(
       '提示',
-      '昨夜信息可能影响警长竞选，请确认是否现在查看。',
+      isGameEnded
+        ? '请确认是否现在查看昨夜信息。'
+        : '昨夜信息可能影响警长竞选，请确认是否现在查看。',
       () => {
+        onLastNightInfoConfirmed();
         const info = getLastNightInfo();
         const curseInfo = getCurseInfo();
         const buttons: {
@@ -284,7 +303,7 @@ export function useRoomModals({
       },
       { confirmText: '确定查看' },
     );
-  }, [getLastNightInfo, getCurseInfo]);
+  }, [getLastNightInfo, getCurseInfo, isGameEnded, onLastNightInfoConfirmed]);
 
   return {
     roleCardVisible,

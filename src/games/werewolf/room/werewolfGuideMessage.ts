@@ -1,10 +1,10 @@
 /**
  * Werewolf phase guide message: the non-host phase hints whose single
- * home is the bottom action message, plus the Ended settlement line
- * (information for every viewer, the host included). Host ACTION
- * guidance lives on the host console, not here. Pure over the local
- * state so the guidance matrix test can hold every (status × viewer)
- * cell true without rendering the room hook.
+ * home is the bottom action message. Host ACTION guidance lives on
+ * the host console, not here, and Ended has no guide line at all: its
+ * bottom is the panel flow's step bar （昨夜信息 → 本局复盘 → 收尾）.
+ * Pure over the local state so the guidance matrix test can hold
+ * every (status × viewer) cell true without rendering the room hook.
  */
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
@@ -21,7 +21,7 @@ export function buildWerewolfGuideMessage(input: {
   const { isHost, roomStatus, mySeat, gameState } = input;
 
   if (isHost) {
-    return roomStatus === GameStatus.Ended ? '天亮了' : null;
+    return null;
   }
 
   const players = gameState.players;
@@ -46,19 +46,6 @@ export function buildWerewolfGuideMessage(input: {
     }
     case GameStatus.Ready:
       return '准备就绪，等待房主开始';
-    case GameStatus.Day:
-      return null;
-    case GameStatus.Ended: {
-      let hostSeat: number | null = null;
-      for (const [seat, p] of players) {
-        if (p?.userId === gameState.hostUserId) {
-          hostSeat = seat;
-          break;
-        }
-      }
-      const hostLabel = hostSeat !== null ? `${hostSeat + 1}号玩家` : '房主';
-      return `天亮了 → 昨夜信息/本局复盘由${hostLabel}操作`;
-    }
     default:
       return null;
   }

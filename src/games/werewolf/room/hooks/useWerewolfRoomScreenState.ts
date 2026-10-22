@@ -45,6 +45,12 @@ import type { RootStackParamList } from '@/navigation/types';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
+import type { PanelFlowProgress } from '../panelFlow';
+import {
+  type PanelFlowScope,
+  readPanelFlowProgress,
+  recordPanelFlowProgress,
+} from '../panelFlowProgressStore';
 import type { ActionIntent, HostControlEvent } from '../policy/types';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
 import { useRoomHostDialogs } from '../useRoomHostDialogs';
@@ -642,6 +648,35 @@ export function useWerewolfRoomScreenState(
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // Bottom-panel flow progress (Day/Ended "next step" flow; client-local
+  // state persisted per room + user + game round — never room state)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const panelFlowScope: PanelFlowScope = useMemo(
+    () => ({
+      roomId: room.roomId,
+      userId: myUserId,
+      roleRevealRandomNonce: gameState?.roleRevealRandomNonce ?? null,
+    }),
+    [room.roomId, myUserId, gameState?.roleRevealRandomNonce],
+  );
+  const [panelFlowProgress, setPanelFlowProgress] = useState<PanelFlowProgress>(() =>
+    readPanelFlowProgress(panelFlowScope),
+  );
+  useEffect(() => {
+    setPanelFlowProgress(readPanelFlowProgress(panelFlowScope));
+  }, [panelFlowScope]);
+  const markPanelFlowProgress = useCallback(
+    (patch: Partial<PanelFlowProgress>) => {
+      setPanelFlowProgress(recordPanelFlowProgress(panelFlowScope, patch));
+    },
+    [panelFlowScope],
+  );
+  const handleLastNightInfoConfirmed = useCallback(() => {
+    markPanelFlowProgress({ lastNightInfoConfirmed: true });
+  }, [markPanelFlowProgress]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // Modal / dialog state (role card, skill preview, night review, share review)
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -675,7 +710,21 @@ export function useWerewolfRoomScreenState(
     beginReportCapture,
     reportScopeKey,
     shareNightReviewReport: shareNightReviewReportDirectly,
+    isGameEnded: roomStatus === GameStatus.Ended,
+    onLastNightInfoConfirmed: handleLastNightInfoConfirmed,
   });
+
+  /**
+   * The review step of the panel flow completes on open — but only an
+   * Ended open counts; opening the review mid-Day (host sheet, dock
+   * tool) must not pre-complete the Ended step.
+   */
+  const handleOpenNightReview = useCallback(() => {
+    openNightReview();
+    if (roomStatus === GameStatus.Ended) {
+      markPanelFlowProgress({ nightReviewOpened: true });
+    }
+  }, [openNightReview, roomStatus, markPanelFlowProgress]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Interaction Dispatcher
@@ -727,9 +776,8 @@ export function useWerewolfRoomScreenState(
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Guide message (phase hints whose single home is the bottom action
-  // message. Host ACTION guidance lives on the host console; the Ended
-  // settlement line is information for every viewer, the host included,
-  // so it is produced here for both audiences.)
+  // message. Host ACTION guidance lives on the host console; Ended has
+  // no guide line — its bottom is the panel flow's step bar.)
   // ═══════════════════════════════════════════════════════════════════════════
 
   const guideMessage = useMemo((): string | null => {
@@ -867,6 +915,7 @@ export function useWerewolfRoomScreenState(
       imActioner,
       isAudioPlaying,
       nightReviewAllowedSeats: gameState.nightReviewAllowedSeats ?? [],
+      panelFlow: panelFlowProgress,
     }),
     [
       roomStatus,
@@ -875,6 +924,7 @@ export function useWerewolfRoomScreenState(
       imActioner,
       isAudioPlaying,
       gameState.nightReviewAllowedSeats,
+      panelFlowProgress,
     ],
   );
   const bottomLayout = useBottomLayout({ ctx: layoutCtx, schemaVM: getBottomAction() });
@@ -897,10 +947,23 @@ export function useWerewolfRoomScreenState(
           dispatchInteraction({ kind: 'VIEW_ROLE' });
           break;
         case 'nightReview':
-          openNightReview();
+          handleOpenNightReview();
           break;
         case 'lastNightInfo':
           handleLastNightInfo();
+          break;
+        case 'nextRound':
+          // Same host-control event as the sheet's 再来一局 action.
+          dispatchInteraction({ kind: 'HOST_CONTROL', action: 'redeal' });
+          break;
+        case 'returnToLobby':
+          // Host: the sheet's 返回大厅 host control. Everyone else:
+          // leaving the room, the same path as the header back button.
+          if (isHost) {
+            dispatchInteraction({ kind: 'HOST_CONTROL', action: 'returnToLobby' });
+          } else {
+            dispatchInteraction({ kind: 'LEAVE_ROOM' });
+          }
           break;
         default: {
           const exhaustiveAction: never = action;
@@ -908,7 +971,7 @@ export function useWerewolfRoomScreenState(
         }
       }
     },
-    [dispatchInteraction, handleLastNightInfo, openNightReview],
+    [dispatchInteraction, handleLastNightInfo, handleOpenNightReview, isHost],
   );
 
   const handleHostControl = useCallback(
@@ -964,6 +1027,7 @@ export function useWerewolfRoomScreenState(
         ...deriveWerewolfSeatCounts(gameState),
         actionMessage: derived.actionMessage,
         guideMessage,
+        panelFlow: panelFlowProgress,
         gameState,
         seatViewModels: derived.seatViewModels,
         controlledSeat,
@@ -987,7 +1051,7 @@ export function useWerewolfRoomScreenState(
         onMusicSettings: handleMusicSettings,
         onMarkAllBotsViewed: executeMarkAllBotsViewed,
         onMarkAllBotsGroupConfirmed: executeMarkAllBotsGroupConfirmed,
-        onNightReview: openNightReview,
+        onNightReview: handleOpenNightReview,
         onLastNightInfo: handleLastNightInfo,
         bottomLayout,
         onSchemaButtonPress: handleSchemaButtonPress,
@@ -1031,7 +1095,8 @@ export function useWerewolfRoomScreenState(
       handleMusicSettings,
       executeMarkAllBotsViewed,
       executeMarkAllBotsGroupConfirmed,
-      openNightReview,
+      handleOpenNightReview,
+      panelFlowProgress,
       handleLastNightInfo,
       bottomLayout,
       handleSchemaButtonPress,
