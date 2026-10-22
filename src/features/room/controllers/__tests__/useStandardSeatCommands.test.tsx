@@ -1,12 +1,11 @@
 import type { RoomSeatCommand } from '@game-judge/game-engine/platform/protocol/commands';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import type { RoomSeatProfile } from '@game-judge/game-engine/platform/room/roster';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { type QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { act, renderHook } from '@testing-library/react-native';
 import type { PropsWithChildren } from 'react';
 
 import type { User } from '@/contexts/AuthContext';
-import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
 import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
 import type {
   RoomCommandDispatchOptions,
@@ -60,6 +59,19 @@ function createReadySnapshot(userId = 'user-1'): RoomSessionSnapshot<TestState> 
   };
 }
 
+const cachedStats = { xp: 120, level: 7, gamesPlayed: 3, unlockedItems: [] };
+
+// The jest automock for @tanstack/react-query has no working cache:
+// useQueryClient is a jest.fn whose return value each test installs here,
+// with getQueryData as the only surface createSeatProfile reads.
+function installQueryClient(stats: unknown): QueryClient {
+  const queryClient = {
+    getQueryData: jest.fn().mockReturnValue(stats),
+  } as unknown as QueryClient;
+  (useQueryClient as unknown as jest.Mock).mockReturnValue(queryClient);
+  return queryClient;
+}
+
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: PropsWithChildren) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
@@ -68,13 +80,7 @@ function createWrapper(queryClient: QueryClient) {
 
 describe('useStandardSeatCommands', () => {
   it('binds the shared controller to the user profile built from the room identity', async () => {
-    const queryClient = new QueryClient();
-    queryClient.setQueryData(userStatsOptions(user.id).queryKey, {
-      xp: 120,
-      level: 7,
-      gamesPlayed: 3,
-      unlockedItems: [],
-    });
+    const queryClient = installQueryClient(cachedStats);
     const dispatch = jest.fn(
       async (_command: RoomSeatCommand<RoomSeatProfile>, _options: RoomCommandDispatchOptions) =>
         rejectedRoomCommand<TestState>('test-rejection', 'command-id'),
@@ -116,13 +122,7 @@ describe('useStandardSeatCommands', () => {
   });
 
   it('falls back to the anonymous profile without a stats level for anonymous users', async () => {
-    const queryClient = new QueryClient();
-    queryClient.setQueryData(userStatsOptions(user.id).queryKey, {
-      xp: 120,
-      level: 7,
-      gamesPlayed: 3,
-      unlockedItems: [],
-    });
+    const queryClient = installQueryClient(cachedStats);
     const anonymousUser: User = { ...user, displayName: null, isAnonymous: true };
     const dispatch = jest.fn(
       async (_command: RoomSeatCommand<RoomSeatProfile>, _options: RoomCommandDispatchOptions) =>
@@ -150,7 +150,7 @@ describe('useStandardSeatCommands', () => {
   });
 
   it('fails fast when the authenticated user does not match the room identity', () => {
-    const queryClient = new QueryClient();
+    const queryClient = installQueryClient(undefined);
     const session = {
       getSnapshot: () => createReadySnapshot('another-user'),
       dispatch: jest.fn(),
