@@ -789,7 +789,75 @@ describe('NightReview.helpers', () => {
           { voterSeat: 2, targetSeat: 4 },
           { voterSeat: 3, targetSeat: 4 },
         ],
+        abstainSeats: [],
       });
+    });
+
+    it('splits abstain votes (engine sentinel -1) out of the wolfAttack votes', () => {
+      const entries = buildActionEntries(
+        makeGameState({
+          currentNightResults: { wolfVotesBySeat: { '6': 5, '7': 5, '11': -1, '8': 4 } },
+        }),
+      );
+      expect(entries[0]).toEqual({
+        kind: 'wolfAttack',
+        votes: [
+          { voterSeat: 6, targetSeat: 5 },
+          { voterSeat: 7, targetSeat: 5 },
+          { voterSeat: 8, targetSeat: 4 },
+        ],
+        abstainSeats: [11],
+      });
+    });
+
+    it('keeps an all-abstain night as a wolfAttack entry with empty votes', () => {
+      const entries = buildActionEntries(
+        makeGameState({ currentNightResults: { wolfVotesBySeat: { '0': -1, '1': -1 } } }),
+      );
+      expect(entries[0]).toEqual({ kind: 'wolfAttack', votes: [], abstainSeats: [0, 1] });
+    });
+
+    it('fails fast on an invalid negative wolf vote target', () => {
+      expect(() =>
+        buildActionEntries(
+          makeGameState({ currentNightResults: { wolfVotesBySeat: { '0': -3 } } }),
+        ),
+      ).toThrow(/Invalid wolf vote target/);
+    });
+
+    it('formats abstentions as 空刀 in the text channel, never as seat 0', () => {
+      const lines = buildActionLines(
+        makeGameState({
+          currentNightResults: { wolfVotesBySeat: { '6': 5, '11': -1 } },
+        }),
+      );
+      expect(lines[0]).toContain('狼人袭击：7号→6号，12号空刀');
+      expect(lines[0]).not.toContain('0号');
+    });
+
+    it('does not let an abstention manufacture a tie for the guard-save conflict', () => {
+      // One real vote on seat 4 (index 3) plus one abstention: the engine
+      // tally ignores the abstention, so the wolf target still resolves and
+      // the 同守同救 annotation (guard + save on that target) stays reachable.
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'wolf')],
+        [1, makePlayer(1, 'wolf')],
+        [2, makePlayer(2, 'guard')],
+        [3, makePlayer(3, 'villager')],
+        [4, makePlayer(4, 'witch')],
+      ]);
+      const lines = buildActionLines(
+        makeGameState({
+          players,
+          currentNightResults: {
+            wolfVotesBySeat: { '0': 3, '1': -1 },
+            guardedSeat: 3,
+            savedSeat: 3,
+          },
+          lastNightDeaths: [3],
+        }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('同守同救'));
     });
 
     it('carries deaths with their reasons in order', () => {

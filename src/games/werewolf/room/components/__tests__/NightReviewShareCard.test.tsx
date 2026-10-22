@@ -88,7 +88,9 @@ describe('NightReviewShareCard', () => {
     expect(view.getAllByText('狼人').length).toBeGreaterThanOrEqual(2);
     // Same outcome hero as the modal: headline + death card, no deaths row.
     expect(view.getByText('昨夜 1 人出局')).toBeTruthy();
-    expect(view.getByText('5号 · 平民')).toBeTruthy();
+    // 「5号 · 平民」 now appears twice: the death card and the wolf target's
+    // SeatIdentityChip in the action zone carry the same seat+identity label.
+    expect(view.getAllByText('5号 · 平民').length).toBeGreaterThanOrEqual(2);
     expect(view.getByText('狼杀')).toBeTruthy();
     expect(view.queryByText('死亡')).toBeNull();
     expect(view.getByText('出局')).toBeTruthy();
@@ -118,6 +120,37 @@ describe('NightReviewShareCard', () => {
     expect(view.getByText('无人出局')).toBeTruthy();
     expect(view.getByText(NIGHT_REVIEW_NOISE_TITLE)).toBeTruthy();
     expect(view.getByText('守卫未守护')).toBeTruthy();
+  });
+
+  it('renders wolf abstentions as an empty-attack group, never as seat 0', () => {
+    const players = new Map<number, LocalPlayer | null>([
+      [0, makePlayer(0, 'wolf')],
+      [1, makePlayer(1, 'wolf')],
+      [4, makePlayer(4, 'villager')],
+    ]);
+    const view = render(
+      <NightReviewShareCard
+        data={buildNightReviewData(
+          makeGameState({
+            players,
+            currentNightResults: { wolfVotesBySeat: { '0': 4, '1': -1 } },
+          }),
+        )}
+        roomCode="1234"
+      />,
+    );
+
+    // Same presentation as the modal: one real target group (shared-target
+    // wording judges real targets only) plus the abstention group; the -1
+    // sentinel never surfaces as a 「0」 seat anywhere on the card.
+    expect(view.getByText('昨夜平安夜')).toBeTruthy();
+    expect(view.getByText('狼人袭击')).toBeTruthy();
+    expect(view.getByText('空刀')).toBeTruthy();
+    expect(view.getByText('狼队共同目标')).toBeTruthy();
+    expect(view.getAllByText('5号 · 平民').length).toBeGreaterThanOrEqual(1);
+    expect(view.getAllByText('2号 · 狼人').length).toBeGreaterThanOrEqual(1);
+    expect(view.queryByText('0')).toBeNull();
+    expect(view.queryByText('0号')).toBeNull();
   });
 
   it('renders the identity grid with exactly one out marker', () => {

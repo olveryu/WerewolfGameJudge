@@ -177,6 +177,41 @@ describe('night review canvas / DOM structural alignment', () => {
     ]);
   });
 
+  it('draws wolf abstentions inside the wolf-attack line and never a seat 0', () => {
+    const { texts } = installFakeCanvas();
+    const players = new Map<number, LocalPlayer | null>([
+      [0, makePlayer(0, 'wolf')],
+      [1, makePlayer(1, 'wolf')],
+      [4, makePlayer(4, 'villager')],
+    ]);
+    const state = {
+      currentNightResults: { wolfVotesBySeat: { '0': 4, '1': -1 } },
+      lastNightDeaths: [],
+      players,
+      actions: new Map(),
+    } as unknown as LocalGameState;
+    const data = buildNightReviewData(state);
+
+    const base64 = renderNightReviewToCanvas(data, '1234', colors);
+
+    expect(base64).toBe('AAAA');
+    // Same per-entry formatter sequence as the composed-night case: the
+    // abstention rides inside the wolf-attack line, no separate entry.
+    expect(texts).toEqual([
+      formatNightReviewShareTitle('1234'),
+      formatNightReviewOutcomeLine(getNightReviewOutcome(data)),
+      `⚠ ${NIGHT_REVIEW_DISCLAIMER_TEXT}`,
+      NIGHT_REVIEW_ACTIONS_TITLE,
+      ...data.actions
+        .filter((entry) => entry.kind !== 'deaths' && entry.kind !== 'peacefulNight')
+        .map(formatNightReviewActionLine),
+      NIGHT_REVIEW_IDENTITIES_TITLE,
+      ...data.identities.map(formatNightReviewIdentityLine),
+    ]);
+    expect(texts.some((text) => text.includes('狼人袭击：1号→5号，2号空刀'))).toBe(true);
+    expect(texts.every((text) => !text.includes('0号'))).toBe(true);
+  });
+
   it('renders the DOM share card with the same sections, order and grouping', () => {
     const data = buildNightReviewData(composedNightState());
     const view = render(<NightReviewShareCard data={data} roomCode="1234" />);

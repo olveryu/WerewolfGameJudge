@@ -51,8 +51,17 @@ export function formatNightReviewActionLine(entry: NightReviewActionEntry): stri
       return `${getRoleEmoji(entry.actorRoleId)} ${getRoleDisplayName(entry.actorRoleId)}选择了 ${getRoleDisplayName(entry.chosenRoleId)}`;
     case 'cupidLink':
       return `${getRoleEmoji('cupid')} 丘比特连线了 ${formatSeat(entry.seats[0])} 和 ${formatSeat(entry.seats[1])}`;
-    case 'wolfAttack':
-      return `${getRoleEmoji('wolf')} 狼人袭击：${entry.votes.map((v) => `${formatSeat(v.voterSeat)}→${formatSeat(v.targetSeat)}`).join('，')}`;
+    case 'wolfAttack': {
+      // Real votes first (voter→target), then each abstention as 「N号空刀」;
+      // abstainSeats are split out by the fact layer, so no sentinel can be
+      // formatted as a seat here.
+      const voteText = entry.votes
+        .map((v) => `${formatSeat(v.voterSeat)}→${formatSeat(v.targetSeat)}`)
+        .join('，');
+      const abstainText = entry.abstainSeats.map((seat) => `${formatSeat(seat)}空刀`).join('，');
+      const parts = [voteText, abstainText].filter((part) => part.length > 0);
+      return `${getRoleEmoji('wolf')} 狼人袭击：${parts.join('，')}`;
+    }
     case 'wolfNoTarget':
       return `${getRoleEmoji('wolf')} 狼人空刀（未选择目标）`;
     case 'wolfGiveUp':

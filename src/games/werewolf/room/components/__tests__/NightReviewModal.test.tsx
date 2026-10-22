@@ -145,7 +145,9 @@ describe('NightReviewModal', () => {
     // The outcome renders once, in the hero: headline + death card
     // (seat + identity + wolf-kill reason), not as a timeline row.
     expect(view.getByText('昨夜 1 人出局')).toBeTruthy();
-    expect(view.getByText('5号 · 平民')).toBeTruthy();
+    // 「5号 · 平民」 now appears on the death card AND on the action-row seat
+    // identity chips (wolf-attack target, witch save target).
+    expect(view.getAllByText('5号 · 平民').length).toBeGreaterThanOrEqual(2);
     expect(view.getByText('狼杀')).toBeTruthy();
     expect(view.queryByText('死亡')).toBeNull();
     // The wolf attack target died: the row carries an out pill.
@@ -312,6 +314,96 @@ describe('NightReviewModal', () => {
     // as a noise-zone chip, and with no other idle entries the zone is absent.
     expect(view.queryByText('女巫未使用解药')).toBeNull();
     expect(view.queryByText(NIGHT_REVIEW_NOISE_TITLE)).toBeNull();
+  });
+
+  it('renders the screenshot night: split votes, one abstention, seat identities', () => {
+    // The user-reported night (room 2219), seats 0-based: wolves on seats
+    // 7/8/9/12号 vote 6号 + 5号, 12号 abstains; the witch poisons 12号 (a
+    // wolf), the seer checks 5号, the hunter sits on 3号.
+    const players = new Map<number, LocalPlayer | null>([
+      [0, makePlayer(0, 'villager')],
+      [1, makePlayer(1, 'villager')],
+      [2, makePlayer(2, 'hunter')],
+      [3, makePlayer(3, 'seer')],
+      [4, makePlayer(4, 'villager')],
+      [5, makePlayer(5, 'villager')],
+      [6, makePlayer(6, 'wolf')],
+      [7, makePlayer(7, 'wolf')],
+      [8, makePlayer(8, 'wolf')],
+      [9, makePlayer(9, 'witch')],
+      [10, makePlayer(10, 'villager')],
+      [11, makePlayer(11, 'wolf')],
+    ]);
+    const view = render(
+      <NightReviewModal
+        visible
+        data={buildNightReviewData(
+          makeGameState({
+            players,
+            currentNightResults: {
+              wolfVotesBySeat: { '6': 5, '7': 5, '8': 4, '11': -1 },
+              poisonedSeat: 11,
+            },
+            seerReveal: { targetSeat: 4, result: '好人' },
+            lastNightDeaths: [5, 11],
+            deathReasons: { 5: 'wolfKill', 11: 'poison' },
+          }),
+        )}
+        onClose={jest.fn()}
+      />,
+    );
+
+    // Hero: both deaths with identities and reasons.
+    expect(view.getByText('昨夜 2 人出局')).toBeTruthy();
+    expect(view.getAllByText('6号 · 平民').length).toBeGreaterThanOrEqual(1);
+    expect(view.getAllByText('12号 · 狼人').length).toBeGreaterThanOrEqual(2);
+    // The abstention renders as an 空刀 group — never as a seat "0" target.
+    expect(view.getByText('空刀')).toBeTruthy();
+    expect(view.queryByText('0')).toBeNull();
+    expect(view.queryByText('0号')).toBeNull();
+    // Real targets form exactly two groups (split wording below). The 6号
+    // target chip repeats the death card's identity label — without the chip
+    // the label would appear only once.
+    expect(view.getAllByText('6号 · 平民').length).toBeGreaterThanOrEqual(2);
+    expect(view.getByText('狼队目标不一致')).toBeTruthy();
+    expect(view.queryByText('狼队共同目标')).toBeNull();
+    // The poison row's target carries its identity (12号 is the wolf).
+    expect(view.getByText('女巫使用毒药毒杀')).toBeTruthy();
+    // The check row's target carries its identity too (5号 · 平民 appears on
+    // the wolf-attack target chip and the seer-check chip).
+    expect(view.getAllByText('5号 · 平民').length).toBeGreaterThanOrEqual(2);
+    // The hunter row names its seat: 猎人（3号）. 「猎人」 itself appears on
+    // both the identity grid and the shoot-status row title.
+    expect(view.getAllByText('猎人').length).toBeGreaterThanOrEqual(2);
+    expect(view.getByText('（3号）')).toBeTruthy();
+    expect(view.getByText('可以发动技能')).toBeTruthy();
+  });
+
+  it('renders an all-abstain wolf night with only the abstain group', () => {
+    const players = new Map<number, LocalPlayer | null>([
+      [0, makePlayer(0, 'wolf')],
+      [1, makePlayer(1, 'wolf')],
+      [2, makePlayer(2, 'villager')],
+    ]);
+    const view = render(
+      <NightReviewModal
+        visible
+        data={buildNightReviewData(
+          makeGameState({
+            players,
+            currentNightResults: { wolfVotesBySeat: { '0': -1, '1': -1 } },
+          }),
+        )}
+        onClose={jest.fn()}
+      />,
+    );
+
+    expect(view.getByText('狼人袭击')).toBeTruthy();
+    expect(view.getByText('空刀')).toBeTruthy();
+    // No real target: no shared/split wording and no filled target dot.
+    expect(view.queryByText('狼队共同目标')).toBeNull();
+    expect(view.queryByText('狼队目标不一致')).toBeNull();
+    expect(view.queryByText('0')).toBeNull();
   });
 
   it('drops idle entries into the noise zone between timeline and identities', () => {
