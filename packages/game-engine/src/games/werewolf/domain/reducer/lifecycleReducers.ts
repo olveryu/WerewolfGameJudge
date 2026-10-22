@@ -30,6 +30,7 @@ import type {
   PlayerLeaveAction,
   PlayerViewedRoleAction,
   RestartGameAction,
+  SeatsChangedAction,
   SetBoardNominationAction,
   UpdatePlayerProfileAction,
   UpdateTemplateAction,
@@ -359,6 +360,39 @@ export function handleFillWithBots(state: GameState, action: FillWithBotsAction)
     roster: newRoster,
     status: allSeated ? GameStatus.Seated : state.status,
   };
+}
+
+/**
+ * Apply one batch of roster changes (the room-command skeleton's
+ * seats event). Each change folds through the same per-seat
+ * transition the handlers used to emit as a standalone action — a
+ * cleared seat leaves, a bot seat fills, a human seat joins with a
+ * fresh player record — so a batch lands on the players axis and
+ * the status derivation exactly as the equivalent action sequence
+ * did, in the order the skeleton decided the changes.
+ */
+export function handleSeatsChanged(state: GameState, action: SeatsChangedAction): GameState {
+  let next = state;
+  for (const change of action.changes) {
+    if (change.next === null) {
+      next = handlePlayerLeave(next, { type: 'PLAYER_LEAVE', payload: { seat: change.seat } });
+    } else if (isBotOccupant(change.next)) {
+      next = handleFillWithBots(next, {
+        type: 'FILL_WITH_BOTS',
+        payload: { bots: { [change.seat]: { seat: change.seat } } },
+      });
+    } else {
+      next = handlePlayerJoin(next, {
+        type: 'PLAYER_JOIN',
+        payload: {
+          seat: change.seat,
+          occupant: change.next,
+          player: { seat: change.seat, role: null },
+        },
+      });
+    }
+  }
+  return next;
 }
 
 /** (The mark-all-bots-viewed transition is per-seat PLAYER_VIEWED_ROLE

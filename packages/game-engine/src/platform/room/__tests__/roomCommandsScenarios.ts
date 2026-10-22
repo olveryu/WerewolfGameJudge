@@ -27,6 +27,16 @@
  * Game-specific behavior (config shapes, phase machines) stays in
  * each game's own test files; the driver only maps the suite's
  * semantic intents onto the game's typed commands.
+ *
+ * Registered divergences (werewolf, E-1 closer): a game whose config
+ * has no occupancy dimension declares `occupiedReason: null` — the
+ * shrinking scenario is skipped and the game pins its own shrink
+ * semantics in its own file; a game whose config rejection is not a
+ * single code declares `blankNameReason` for the display-name
+ * scenarios; a game whose fill-bots gate admits only the unfilled
+ * lobby declares `refillRejection` (the reason a second fill hears)
+ * and `fillBotsPhaseReason` (the reason fill-bots hears once the
+ * room has left the lobby, when it differs from the phase reason).
  */
 
 import { describe, expect, it } from 'vitest';
@@ -81,8 +91,30 @@ export interface RoomCommandsSuite {
   readonly phaseReason: string;
   /** The game's config rejection code. */
   readonly configReason: string;
-  /** The game's occupied rejection code. */
-  readonly occupiedReason: string;
+  /**
+   * The game's occupied rejection code, or null when its config has
+   * no occupancy dimension (the shrinking scenario is skipped; the
+   * game pins its own shrink semantics in its own file).
+   */
+  readonly occupiedReason: string | null;
+  /**
+   * The rejection code for a blank display name (take / profile
+   * update). Defaults to `configReason`; declared separately by a
+   * game whose config rejection is not a single code.
+   */
+  readonly blankNameReason?: string;
+  /**
+   * The rejection code a second fill-bots hears on a just-filled
+   * room. Defaults to null (the fill is an idempotent empty commit);
+   * declared by a game whose fill gate admits only the unfilled
+   * lobby.
+   */
+  readonly refillRejection?: string;
+  /**
+   * The rejection code fill-bots hears once the room has left the
+   * lobby. Defaults to `phaseReason`.
+   */
+  readonly fillBotsPhaseReason?: string;
   /** A fresh session in an empty lobby. */
   makeSession(): RoomCommandsSession;
 }
@@ -91,6 +123,8 @@ export function describeRoomCommands(suite: RoomCommandsSuite): void {
   const host: RoomScenarioActor = { userId: suite.hostUserId, controlledSeat: null };
   const guest: RoomScenarioActor = { userId: 'guest', controlledSeat: null };
   const lastSeat = suite.seatCount - 1;
+  const blankNameReason = suite.blankNameReason ?? suite.configReason;
+  const fillBotsPhaseReason = suite.fillBotsPhaseReason ?? suite.phaseReason;
 
   describe(`Room Commands - shared scenarios (${suite.game})`, () => {
     it('seats a user who takes an empty seat, with their display name', () => {
@@ -111,7 +145,7 @@ export function describeRoomCommands(suite: RoomCommandsSuite): void {
     it('rejects a blank display name on take with the game config reason', () => {
       const session = suite.makeSession();
       expect(session.dispatch({ kind: 'take', seat: 0, displayName: '  ' }, host)).toBe(
-        suite.configReason,
+        blankNameReason,
       );
       expect(session.occupantKind(0)).toBe('empty');
     });
@@ -151,7 +185,7 @@ export function describeRoomCommands(suite: RoomCommandsSuite): void {
         REASON_NOT_SEATED,
       );
       expect(session.dispatch({ kind: 'updateProfile', displayName: ' ' }, guest)).toBe(
-        suite.configReason,
+        blankNameReason,
       );
     });
 
@@ -172,7 +206,7 @@ export function describeRoomCommands(suite: RoomCommandsSuite): void {
       for (let seat = 0; seat < suite.seatCount; seat += 1) {
         expect(session.occupantKind(seat)).not.toBe('empty');
       }
-      expect(session.dispatch({ kind: 'fillBots' }, host)).toBeNull();
+      expect(session.dispatch({ kind: 'fillBots' }, host)).toBe(suite.refillRejection ?? null);
       expect(session.occupantKind(1)).toBe('bot');
     });
 
@@ -217,17 +251,20 @@ export function describeRoomCommands(suite: RoomCommandsSuite): void {
       );
     });
 
-    it('rejects a shrinking config that strands an occupant with the occupied reason', () => {
-      const session = suite.makeSession();
-      session.dispatch(
-        { kind: 'take', seat: lastSeat, displayName: 'Last' },
-        { userId: 'last', controlledSeat: null },
-      );
-      expect(session.dispatch({ kind: 'config', variant: 'shrinking' }, host)).toBe(
-        suite.occupiedReason,
-      );
-      expect(session.seatCount()).toBe(suite.seatCount);
-    });
+    it.runIf(suite.occupiedReason !== null)(
+      'rejects a shrinking config that strands an occupant with the occupied reason',
+      () => {
+        const session = suite.makeSession();
+        session.dispatch(
+          { kind: 'take', seat: lastSeat, displayName: 'Last' },
+          { userId: 'last', controlledSeat: null },
+        );
+        expect(session.dispatch({ kind: 'config', variant: 'shrinking' }, host)).toBe(
+          suite.occupiedReason,
+        );
+        expect(session.seatCount()).toBe(suite.seatCount);
+      },
+    );
 
     it('keeps the profile branch open after the lobby, behind the lobby gate for the rest', () => {
       const session = suite.makeSession();
@@ -235,12 +272,14 @@ export function describeRoomCommands(suite: RoomCommandsSuite): void {
       // Profile updates run ahead of the lobby gate: a seated user still commits.
       expect(session.dispatch({ kind: 'updateProfile', displayName: 'In Game' }, host)).toBeNull();
       // Seat and host commands hear the phase reason — a guest included,
-      // so the lobby gate provably precedes the host gate.
+      // so the lobby gate provably precedes the host gate. Fill-bots may
+      // hear its own phase reason (fillBotsPhaseReason) when the game's
+      // fill gate vocabulary differs from its seat-command vocabulary.
       expect(session.dispatch({ kind: 'take', seat: 0, displayName: 'Late' }, guest)).toBe(
         suite.phaseReason,
       );
-      expect(session.dispatch({ kind: 'fillBots' }, guest)).toBe(suite.phaseReason);
-      expect(session.dispatch({ kind: 'fillBots' }, host)).toBe(suite.phaseReason);
+      expect(session.dispatch({ kind: 'fillBots' }, guest)).toBe(fillBotsPhaseReason);
+      expect(session.dispatch({ kind: 'fillBots' }, host)).toBe(fillBotsPhaseReason);
     });
   });
 }

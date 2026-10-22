@@ -18,6 +18,17 @@ interface HandlerDecisionOptions {
   readonly progressAfterSuccess?: boolean;
 }
 
+/**
+ * The commit the platform skeletons expect, in werewolf's decision
+ * form — the same shape handlerResultToDecision produces for a
+ * handler success (actions as events, empty means no broadcast).
+ */
+export function commitActions(
+  events: readonly StateAction[],
+): Decision<StateAction, WerewolfEffect> {
+  return commit<StateAction, WerewolfEffect>({ events });
+}
+
 export function handlerResultToDecision(
   state: GameState,
   result: HandlerResult,

@@ -9,7 +9,6 @@ import {
   handleReturnToLobbyGame as executeReturnToLobbyGame,
   handleShareNightReview,
   handleStartNight as executeStartNight,
-  handleUpdateTemplate,
 } from '@game-judge/game-engine/games/werewolf/domain/handlers/gameControlHandler';
 import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
 import type {
@@ -19,7 +18,6 @@ import type {
   ReturnToLobbyIntent,
   ShareNightReviewIntent,
   StartNightIntent,
-  UpdateTemplateIntent,
 } from '@game-judge/game-engine/games/werewolf/domain/intents/types';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
 import { resolveCurrentNightStep } from '@game-judge/game-engine/games/werewolf/domain/nightStep';
@@ -567,58 +565,9 @@ describe('handleRedealGame', () => {
   });
 });
 
-// =============================================================================
-// handleUpdateTemplate tests (PR?: allow before view role)
-// =============================================================================
-
-describe('handleUpdateTemplate', () => {
-  const updateIntent: UpdateTemplateIntent = {
-    type: 'UPDATE_TEMPLATE',
-    payload: { templateRoles: ['villager', 'wolf', 'seer', 'witch'] },
-  };
-
-  it('should succeed when status is unseated', () => {
-    const state = createMinimalState({ status: GameStatus.Unseated });
-    const context = createContext(state);
-
-    const result = handleUpdateTemplate(updateIntent, context);
-
-    const success = expectSuccess(result);
-    expect(success.actions).toHaveLength(1);
-    expect(success.actions[0]!.type).toBe('UPDATE_TEMPLATE');
-  });
-
-  it('should succeed when status is seated', () => {
-    const state = createMinimalState({
-      status: GameStatus.Seated,
-      players: {
-        0: { seat: 0, role: null },
-        1: { seat: 1, role: null },
-        2: { seat: 2, role: null },
-      },
-    });
-    const context = createContext(state);
-
-    const result = handleUpdateTemplate(updateIntent, context);
-
-    const success = expectSuccess(result);
-    expect(success.actions).toHaveLength(1);
-    expect(success.actions[0]!.type).toBe('UPDATE_TEMPLATE');
-  });
-
-  it.each([GameStatus.Assigned, GameStatus.Ready, GameStatus.Ongoing, GameStatus.Ended] as const)(
-    'should fail when status is %s (invalid_status)',
-    (status) => {
-      const state = createMinimalState({ status });
-      const context = createContext(state);
-
-      const result = handleUpdateTemplate(updateIntent, context);
-
-      const err = expectError(result);
-      expect(err.reason).toBe('invalid_status');
-    },
-  );
-});
+// (The config update's status gate is pinned at the decide level in
+// games/werewolf/__tests__/roomCommands.contract.test.ts — the
+// command is decided by the room-command skeleton, not a handler.)
 
 // =============================================================================
 // handleShareNightReview tests

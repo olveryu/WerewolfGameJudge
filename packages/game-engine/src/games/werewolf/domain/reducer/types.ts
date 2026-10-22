@@ -5,6 +5,7 @@
  */
 
 import type { AudioEffect } from '../../../../platform/audio';
+import type { RosterChange } from '../../../../platform/room/seating';
 import type { DeathReason } from '../DeathCalculator';
 import type { GameRuleOverrides, RoleId } from '../models';
 import type { WolfKillOverride } from '../models/roles/spec/schema.types';
@@ -69,6 +70,19 @@ export interface PlayerLeaveAction {
   payload: {
     seat: number;
   };
+}
+
+/**
+ * Seats changed — the room-command skeleton's single seats event in
+ * werewolf's action vocabulary. The roster changes land in one
+ * batch; the reducer folds each change through the per-seat
+ * lifecycle transitions (join / leave / bot fill), so the players
+ * axis and the status derivation move with the roster exactly as
+ * they did when handlers emitted the per-seat actions one by one.
+ */
+export interface SeatsChangedAction {
+  type: 'SEATS_CHANGED';
+  changes: readonly RosterChange<WerewolfHumanSeat>[];
 }
 
 /**
@@ -509,6 +523,7 @@ export type StateAction =
   // Seating
   | PlayerJoinAction
   | PlayerLeaveAction
+  | SeatsChangedAction
   | UpdatePlayerProfileAction
   // Game phase
   | AssignRolesAction

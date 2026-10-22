@@ -141,7 +141,7 @@ describe('isWolfVoteAllComplete', () => {
   it('production invariant: all players have roles when status=ongoing → fail-closed never triggers', () => {
     // Mirrors real game flow: handleAssignRoles assigns a role to every seat
     // before handleStartNight sets status=GameStatus.Ongoing. During ongoing,
-    // handleTakeSeat rejects joins and handleLeaveMySeat rejects leaves.
+    // the room-command skeleton rejects seat takes and leaves (lobby gate).
     // Therefore player.role is never null when this function runs.
     const state = createWolfKillState({
       // All 5 players have roles — the only valid ongoing state

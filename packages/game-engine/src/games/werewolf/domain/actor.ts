@@ -5,7 +5,6 @@ import {
   type CommandContext,
   resolveHostActorId,
   resolveSystemActorEffectId,
-  resolveUncontrolledUserActorId,
   resolveUserActorId,
 } from '../../../platform/engine';
 import { REASON_INVALID_SEAT, REASON_SEAT_EMPTY } from '../../../platform/protocol/reasons';
@@ -47,15 +46,6 @@ export function resolveUserActor(
     userId,
     handlerContext: { state, myUserId: userId, mySeat },
   });
-}
-
-export function resolveUncontrolledUserActor(
-  state: GameState,
-  context: CommandContext,
-): ActorResolution<ResolvedUserActor> {
-  const actorId = resolveUncontrolledUserActorId(context);
-  if (actorId.kind === 'rejected') return actorId;
-  return resolveUserActor(state, context);
 }
 
 export function resolveHostActor(

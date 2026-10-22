@@ -2,7 +2,8 @@
  * Game Control Handler - game control processor (Host-only)
  *
  * Responsibilities:
- * - Handle ASSIGN_ROLES / START_NIGHT / ABORT_GAME / RETURN_TO_LOBBY / REDEAL_GAME / UPDATE_TEMPLATE intents
+ * - Handle ASSIGN_ROLES / START_NIGHT / ABORT_GAME / RETURN_TO_LOBBY / REDEAL_GAME intents
+ *   (the config update is decided by the room-command skeleton in domain/seating)
  * - Role assignment logic (shuffle + write to state)
  * - NightPlan construction (generate step plan from template)
  *
@@ -12,7 +13,6 @@
 
 import { type AudioEffect, guardAudioPlayback } from '../../../../platform/audio';
 import { createSeededRng, randomPick, type Rng, shuffleArray } from '../../../../platform/random';
-import { decideRosterFillBots } from '../../../../platform/room/seating';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
 import { createAudioQueueActions } from '../audioQueue';
 import type {
@@ -21,37 +21,32 @@ import type {
   BoardNominateIntent,
   BoardUpvoteIntent,
   BoardWithdrawIntent,
-  FillWithBotsIntent,
   RedealGameIntent,
   ReturnToLobbyIntent,
   ShareNightReviewIntent,
   StartNightIntent,
-  UpdateTemplateIntent,
 } from '../intents/types';
 import {
   type BottomCardRoleId,
   GameStatus,
   getBottomCardCount,
   getBottomCardRoleId,
-  getPlayerCount,
   getRoleDealPool,
   getValidBottomCardDeals,
   type RoleId,
 } from '../models';
 import { buildNightPlan, getRoleSpec, getStepSpec } from '../models/roles/spec';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '../models/roles/spec/schema.types';
-import type { GameState, Player } from '../protocol/types';
+import type { GameState } from '../protocol/types';
 import type {
   AssignRolesAction,
   EndNightAction,
-  FillWithBotsAction,
   RestartGameAction,
   SetBoardNominationAction,
   SetNightReviewAllowedSeatsAction,
   SetWolfKillOverrideAction,
   StartNightAction,
   StateAction,
-  UpdateTemplateAction,
   UpvoteBoardNominationAction,
   WithdrawBoardNominationAction,
 } from '../reducer/types';
@@ -403,86 +398,6 @@ export function handleRedealGame(
   };
 
   return handlerSuccess([restartAction, ...deal.actions]);
-}
-
-/**
- * Handle update template (only "before role assignment": unseated | seated)
- *
- * Called when Host edits room config.
- */
-export function handleUpdateTemplate(
-  intent: UpdateTemplateIntent,
-  context: HandlerContext,
-): HandlerResult {
-  const { state } = context;
-
-  // Validate: only allow modification "before role assignment" (unseated/seated).
-  // Once in assigned/ready/ongoing/ended, modifications cause state machine and player perception drift, so RESTART_GAME is required first.
-  const canUpdateTemplateBeforeView =
-    state.status === GameStatus.Unseated || state.status === GameStatus.Seated;
-  if (!canUpdateTemplateBeforeView) {
-    return handlerError('invalid_status');
-  }
-
-  const action: UpdateTemplateAction = {
-    type: 'UPDATE_TEMPLATE',
-    payload: {
-      templateRoles: intent.payload.templateRoles,
-      rules: intent.payload.rules,
-    },
-  };
-
-  return handlerSuccess([action]);
-}
-
-/**
- * Handle fill with bots (Debug-only, Host-only)
- *
- * Preconditions:
- * - status === GameStatus.Unseated
- *
- * Result:
- * - Create bot players for all empty seats (bot occupants in the roster)
- *
- * @remarks
- * The seat decision is the platform's single fill implementation
- * (decideRosterFillBots, the same one every other game decides with):
- * it picks the empty seats and validates the roster invariants. What
- * stays werewolf-owned is the payload its state model needs per bot
- * seat — a players-record entry; the bot occupant in the roster
- * carries no profile (its display name is derived at projection).
- */
-export function handleFillWithBots(
-  _intent: FillWithBotsIntent,
-  context: HandlerContext,
-): HandlerResult {
-  const { state } = context;
-
-  // Gate: only allow bot fill in unseated phase
-  if (state.status !== GameStatus.Unseated) {
-    return handlerError('invalid_status');
-  }
-
-  const seatCount = getPlayerCount(state.templateRoles);
-  const fill = decideRosterFillBots(state.roster, seatCount);
-  if (fill.kind === 'rejected') {
-    return handlerError(fill.reason);
-  }
-
-  const bots: Record<number, Player> = {};
-  for (const change of fill.changes) {
-    const seat = change.seat;
-    bots[seat] = {
-      seat: seat,
-    };
-  }
-
-  const action: FillWithBotsAction = {
-    type: 'FILL_WITH_BOTS',
-    payload: { bots },
-  };
-
-  return handlerSuccess([action]);
 }
 
 /**

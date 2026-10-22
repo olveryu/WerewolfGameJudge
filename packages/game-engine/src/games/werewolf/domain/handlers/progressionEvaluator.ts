@@ -27,8 +27,8 @@ import type { GameState } from '../protocol/types';
  *
  * @invariant player.role !== null when status=Ongoing (this function only called during wolfKill step).
  * Guarantee chain: handleAssignRoles writes role for all seats -> status=Assigned ->
- * handleStartNight sets status=Ongoing. During Ongoing, handleTakeSeat rejects joining
- * (status !== Unseated/Seated), handleLeaveMySeat rejects leaving (status === Ongoing).
+ * handleStartNight sets status=Ongoing. During Ongoing, the shared room-command
+ * skeleton rejects joining and leaving (lobby gate unless status is Unseated/Seated).
  * Violating those invariants is corrupt state and must not turn into a stuck timer.
  */
 export function isWolfVoteAllComplete(state: GameState): boolean {
