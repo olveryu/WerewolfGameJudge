@@ -17,7 +17,10 @@ export const parseDemoConfigRouteParams = createStandardConfigRouteParser({
   displayName: 'Demo',
 });
 
-const parseGuide = createStandardGuideRouteParser({ gameType: 'demo', displayName: 'Demo' });
+const parseGuide = createStandardGuideRouteParser({
+  gameType: 'demo',
+  displayName: 'Demo',
+});
 
 export const demoGameNavigation = defineGameNavigation({
   gameType: 'demo',
