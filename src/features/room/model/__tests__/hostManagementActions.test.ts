@@ -107,11 +107,11 @@ describe('host management action builders', () => {
 
 describe('host action pending marshal', () => {
   const descriptor: RoomHostActionDescriptor = {
-    key: 'finish-vote',
-    label: '结束投票',
+    key: 'sample-action',
+    label: '示例操作',
     icon: 'checkmark-done-outline',
     variant: 'primary',
-    testID: 'finish-vote-button',
+    testID: 'sample-action-button',
     isLoading: true,
   };
 

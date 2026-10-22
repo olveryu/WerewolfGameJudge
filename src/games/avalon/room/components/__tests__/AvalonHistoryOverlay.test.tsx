@@ -130,13 +130,16 @@ describe('AvalonHistoryOverlay', () => {
   });
 
   it('renders the settled quest banner, adopted card, and collapsed rejected proposal', () => {
-    const { getByTestId, getByText, queryByText } = renderOverlay([settledRound]);
+    const { getByLabelText, getByTestId, getByText, queryByText } = renderOverlay([settledRound]);
     expect(getByText('任务一 · 成功')).toBeTruthy();
     expect(getByText('任务出牌结果（出牌人不公开）')).toBeTruthy();
     expect(getByText('成功牌')).toBeTruthy();
     expect(getByText('×2')).toBeTruthy();
     expect(getByText('失败牌')).toBeTruthy();
     expect(getByText('×0')).toBeTruthy();
+    // 标签与计数绑在同一节点上断言：计数挂错牌面（成功牌挂失败数）时抓得到。
+    expect(getByLabelText('成功牌 2 张')).toBeTruthy();
+    expect(getByLabelText('失败牌 0 张')).toBeTruthy();
     expect(queryByText(/成功票|失败票/)).toBeNull();
 
     const adopted = within(getByTestId('avalon-history-proposal-1-2'));
@@ -163,6 +166,24 @@ describe('AvalonHistoryOverlay', () => {
 
     // 只用座位号：玩家名不出现在记录里。
     expect(queryByText(/玩家/)).toBeNull();
+  });
+
+  it('labels the track node and quest cards of a failed quest', () => {
+    const failedRound: AvalonRoundRecordView = {
+      round: 1,
+      proposals: [settledRound.proposals[1]!],
+      quest: { result: 'fail', successCount: 1, failCount: 1 },
+      vetoEnded: false,
+      questProgress: null,
+      currentProposal: null,
+    };
+    const { getByLabelText, getByTestId } = renderOverlay([failedRound]);
+    expect(getByTestId('avalon-history-track-round-1').props.accessibilityLabel).toBe(
+      '任务一，失败',
+    );
+    // 失败轮里两张牌计数均为 1：标签↔计数互换即挂。
+    expect(getByLabelText('成功牌 1 张')).toBeTruthy();
+    expect(getByLabelText('失败牌 1 张')).toBeTruthy();
   });
 
   it('keeps the leader out of the team row when the leader is not a team member', () => {
