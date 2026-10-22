@@ -1,41 +1,24 @@
 /** Story Relay route parsers; navigation hosts receive validated game-owned parameters. */
 
-import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
-
 import { defineGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
 import {
-  assertExactRouteParamKeys,
-  parseRouteParams,
-} from '@/features/navigation/model/routeParams';
+  createStandardConfigRouteParser,
+  createStandardGuideRouteParser,
+  type StandardConfigRouteParams,
+} from '@/features/navigation/model/standardRouteParsers';
 
-export type StoryRelayConfigRouteParams =
-  | { readonly gameType: 'storyrelay'; readonly mode: 'create' }
-  | { readonly gameType: 'storyrelay'; readonly mode: 'edit'; readonly roomCode: string };
+export type StoryRelayConfigRouteParams = StandardConfigRouteParams<'storyrelay'>;
 
 /** Parses only create or active-room edit settings routes. */
-export function parseStoryRelayConfigRouteParams(value: unknown): StoryRelayConfigRouteParams {
-  const params = parseRouteParams(value, 'Story Relay config');
-  assertExactRouteParamKeys(params, ['gameType', 'mode', 'roomCode'], 'Story Relay config');
-  if (params.gameType !== 'storyrelay') throw new Error('Story Relay config game mismatch');
-  if (params.mode === 'create' && params.roomCode === undefined)
-    return { gameType: 'storyrelay', mode: 'create' };
-  if (params.mode === 'edit')
-    return { gameType: 'storyrelay', mode: 'edit', roomCode: parseRoomCode(params.roomCode) };
-  throw new Error('Invalid Story Relay config route');
-}
+export const parseStoryRelayConfigRouteParams = createStandardConfigRouteParser({
+  gameType: 'storyrelay',
+  displayName: 'Story Relay',
+});
 
-function parseGuide(value: unknown): {
-  readonly gameType: 'storyrelay';
-  readonly roomCode?: string;
-} {
-  const params = parseRouteParams(value, 'Story Relay guide');
-  assertExactRouteParamKeys(params, ['gameType', 'roomCode'], 'Story Relay guide');
-  if (params.gameType !== 'storyrelay') throw new Error('Story Relay guide game mismatch');
-  return {
-    gameType: 'storyrelay' as const,
-    roomCode: params.roomCode === undefined ? undefined : parseRoomCode(params.roomCode),
-  };
-}
+const parseGuide = createStandardGuideRouteParser({
+  gameType: 'storyrelay',
+  displayName: 'Story Relay',
+});
 
 export const storyRelayGameNavigation = defineGameNavigation({
   gameType: 'storyrelay',

@@ -12,7 +12,7 @@ import { GameSettingsStepper } from '@/components/GameSettings';
 import { gameSettingsStyles } from '@/components/GameSettings.styles';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
-import { parseFibConfigRouteParams } from '@/games/fibking/navigation/fibConfigRoute';
+import { parseFibConfigRouteParams } from '@/games/fibking/navigation/fibGameNavigation';
 import type { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 

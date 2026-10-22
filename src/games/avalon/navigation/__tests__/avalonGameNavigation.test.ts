@@ -29,7 +29,7 @@ describe('parseAvalonGuideRouteParams', () => {
       parseAvalonGuideRouteParams({ gameType: 'avalon', initialTab: 'roles' }),
     ).toThrow();
     expect(() => parseAvalonGuideRouteParams({ gameType: 'werewolf' })).toThrow(
-      'Avalon guide game mismatch',
+      '[FAIL-FAST] Avalon guide received game type werewolf',
     );
   });
 });

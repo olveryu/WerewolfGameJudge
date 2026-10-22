@@ -3,29 +3,21 @@
  */
 
 import { AVALON_ROLES, type AvalonRoleId } from '@game-judge/game-engine/games/avalon/public';
-import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 
 import { defineGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
 import {
-  assertExactRouteParamKeys,
-  parseRouteParams,
-} from '@/features/navigation/model/routeParams';
+  createStandardConfigRouteParser,
+  createStandardGuideRouteParser,
+  type StandardConfigRouteParams,
+} from '@/features/navigation/model/standardRouteParsers';
 
-export type AvalonConfigRouteParams =
-  | { readonly gameType: 'avalon'; readonly mode: 'create' }
-  | { readonly gameType: 'avalon'; readonly mode: 'edit'; readonly roomCode: string };
+export type AvalonConfigRouteParams = StandardConfigRouteParams<'avalon'>;
 
 /** 只解析创建或活跃房间的设置编辑路由。 */
-export function parseAvalonConfigRouteParams(value: unknown): AvalonConfigRouteParams {
-  const params = parseRouteParams(value, 'Avalon config');
-  assertExactRouteParamKeys(params, ['gameType', 'mode', 'roomCode'], 'Avalon config');
-  if (params.gameType !== 'avalon') throw new Error('Avalon config game mismatch');
-  if (params.mode === 'create' && params.roomCode === undefined)
-    return { gameType: 'avalon', mode: 'create' };
-  if (params.mode === 'edit')
-    return { gameType: 'avalon', mode: 'edit', roomCode: parseRoomCode(params.roomCode) };
-  throw new Error('Invalid Avalon config route');
-}
+export const parseAvalonConfigRouteParams = createStandardConfigRouteParser({
+  gameType: 'avalon',
+  displayName: 'Avalon',
+});
 
 export interface AvalonGuideRouteParams {
   readonly gameType: 'avalon';
@@ -47,16 +39,17 @@ function parseGuideRoleId(value: unknown): AvalonRoleId | undefined {
 }
 
 /** 解析图鉴路由：gameType 必填，roomCode / roleId 可选且严格校验。 */
-export function parseAvalonGuideRouteParams(value: unknown): AvalonGuideRouteParams {
-  const params = parseRouteParams(value, 'Avalon guide');
-  assertExactRouteParamKeys(params, ['gameType', 'roomCode', 'roleId'], 'Avalon guide');
-  if (params.gameType !== 'avalon') throw new Error('Avalon guide game mismatch');
-  return {
+export const parseAvalonGuideRouteParams: (value: unknown) => AvalonGuideRouteParams =
+  createStandardGuideRouteParser({
     gameType: 'avalon',
-    roomCode: params.roomCode === undefined ? undefined : parseRoomCode(params.roomCode),
-    roleId: parseGuideRoleId(params.roleId),
-  };
-}
+    displayName: 'Avalon',
+    extraFields: {
+      keys: ['roleId'],
+      parse: (params: Readonly<Record<string, unknown>>) => ({
+        roleId: parseGuideRoleId(params.roleId),
+      }),
+    },
+  });
 
 export const avalonGameNavigation = defineGameNavigation({
   gameType: 'avalon',

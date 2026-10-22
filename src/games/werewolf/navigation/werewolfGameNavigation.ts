@@ -9,6 +9,7 @@ import {
   assertExactRouteParamKeys,
   parseRouteParams,
 } from '@/features/navigation/model/routeParams';
+import { createStandardGuideRouteParser } from '@/features/navigation/model/standardRouteParsers';
 
 import type {
   WerewolfGuideRouteParams,
@@ -37,27 +38,18 @@ function parseGuideRoleId(value: unknown): RoleId | undefined {
   return value;
 }
 
-export function parseWerewolfGuideRouteParams(params: unknown): WerewolfGuideRouteParams {
-  const routeParams = parseRouteParams(params, 'Werewolf guide');
-  const gameType = parseGameType(routeParams.gameType);
-  if (gameType !== 'werewolf') {
-    throw new Error(`[FAIL-FAST] Werewolf guide received game type ${gameType}`);
-  }
-  assertExactRouteParamKeys(
-    routeParams,
-    ['gameType', 'roomCode', 'roleId', 'initialTab'],
-    'Werewolf guide',
-  );
-
-  const roomCode =
-    routeParams.roomCode === undefined ? undefined : parseRoomCode(routeParams.roomCode);
-  return {
-    gameType,
-    roomCode,
-    roleId: parseGuideRoleId(routeParams.roleId),
-    initialTab: parseGuideTab(routeParams.initialTab),
-  };
-}
+export const parseWerewolfGuideRouteParams: (params: unknown) => WerewolfGuideRouteParams =
+  createStandardGuideRouteParser({
+    gameType: 'werewolf',
+    displayName: 'Werewolf',
+    extraFields: {
+      keys: ['roleId', 'initialTab'],
+      parse: (params: Readonly<Record<string, unknown>>) => ({
+        roleId: parseGuideRoleId(params.roleId),
+        initialTab: parseGuideTab(params.initialTab),
+      }),
+    },
+  });
 
 export function parseWerewolfNotepadRouteParams(params: unknown): WerewolfNotepadRouteParams {
   const routeParams = parseRouteParams(params, 'Werewolf notepad');

@@ -1,12 +1,6 @@
 /** Pure route-to-flow mapping for Werewolf configuration. */
 
-import { parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
-import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
-
-import {
-  assertExactRouteParamKeys,
-  parseRouteParams,
-} from '@/features/navigation/model/routeParams';
+import { createStandardConfigRouteParser } from '@/features/navigation/model/standardRouteParsers';
 
 import type { WerewolfConfigRouteParams, WerewolfConfigStackParamList } from './types';
 
@@ -16,34 +10,13 @@ export interface WerewolfConfigFlowStart {
   readonly configParams: WerewolfConfigStackParamList['Config'];
 }
 
-export function parseWerewolfConfigRouteParams(params: unknown): WerewolfConfigRouteParams {
-  const routeParams = parseRouteParams(params, 'Werewolf config');
-  const gameType = parseGameType(routeParams.gameType);
-  if (gameType !== 'werewolf') {
-    throw new Error(`[FAIL-FAST] Werewolf config received game type ${gameType}`);
-  }
-
-  const mode = routeParams.mode;
-  if (typeof mode !== 'string') {
-    throw new Error('[FAIL-FAST] Werewolf config mode must be a string');
-  }
-  switch (mode) {
-    case 'create': {
-      assertExactRouteParamKeys(routeParams, ['gameType', 'mode', 'roomCode'], 'Werewolf config');
-      if (routeParams.roomCode !== undefined) {
-        throw new Error('[FAIL-FAST] Werewolf create config must not include a room code');
-      }
-      return { gameType, mode };
-    }
-    case 'edit':
-    case 'nominate': {
-      assertExactRouteParamKeys(routeParams, ['gameType', 'mode', 'roomCode'], 'Werewolf config');
-      return { gameType, mode, roomCode: parseRoomCode(routeParams.roomCode) };
-    }
-    default:
-      throw new Error(`[FAIL-FAST] Unknown Werewolf config mode: ${mode}`);
-  }
-}
+/** 狼人杀在标准 create/edit 之外多一个带 roomCode 的 nominate mode。 */
+export const parseWerewolfConfigRouteParams: (params: unknown) => WerewolfConfigRouteParams =
+  createStandardConfigRouteParser({
+    gameType: 'werewolf',
+    displayName: 'Werewolf',
+    extraRoomCodeModes: ['nominate'],
+  });
 
 export function getWerewolfConfigFlowStart(params: unknown): WerewolfConfigFlowStart {
   const routeParams = parseWerewolfConfigRouteParams(params);
