@@ -3,6 +3,7 @@
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import { translateReasonCode } from '@/utils/errorUtils';
+import { ROOM_CHASSIS_REASON_MESSAGES } from '@/utils/roomChassisReasonMessages';
 
 import { getRoomCommandFailureReason } from './roomCommandResult';
 import type { RoomCommandDispatchOutcome } from './types';
@@ -21,9 +22,12 @@ export type RoomCommandFailureMessageMap = Readonly<Record<string, string>>;
 export type RoomCommandFailureFallback = (reason: string) => string | undefined;
 
 /**
- * The one failure-presentation shape: look the reason up in the game's
- * map, then the game's fallback (e.g. a parameterized reason that is
- * already user-facing), then the shared reason-code translation.
+ * The one failure-presentation shape: platform (chassis) reason codes
+ * resolve from the shared chassis table first — game maps carry gameplay
+ * reasons only, so a chassis entry in a game map is unreachable by
+ * construction (audit item B-2). Then the game's map, then the game's
+ * fallback (e.g. a parameterized reason that is already user-facing),
+ * then the shared reason-code translation.
  */
 export function createRoomCommandFailureMessage<TState extends BaseGameState<string>>(
   messages: RoomCommandFailureMessageMap,
@@ -31,6 +35,11 @@ export function createRoomCommandFailureMessage<TState extends BaseGameState<str
 ): (result: RoomCommandDispatchOutcome<TState>) => string {
   return (result) => {
     const reason = getRoomCommandFailureReason(result);
-    return messages[reason] ?? fallback?.(reason) ?? translateReasonCode(reason);
+    return (
+      ROOM_CHASSIS_REASON_MESSAGES[reason] ??
+      messages[reason] ??
+      fallback?.(reason) ??
+      translateReasonCode(reason)
+    );
   };
 }

@@ -5,6 +5,8 @@
  * No React / service / game state / Sentry dependencies.
  */
 
+import { ROOM_CHASSIS_REASON_MESSAGES } from './roomChassisReasonMessages';
+
 /**
  * Extract a user-friendly error message from an unknown caught value.
  *
@@ -158,9 +160,6 @@ const REASON_CODE_MAP: Record<string, string> = {
   INVALID_REFRESH_TOKEN: '登录已过期，请重新登录',
   WECHAT_ALREADY_BOUND: '该微信已绑定其他账号',
   // ── Room / Avatar / Share ─────────────────────────────────────────────────
-  room_initialization_conflict: '房间初始化冲突，请重新创建',
-  room_effects_pending: '房间操作仍在处理中，请稍后重试',
-  command_id_conflict: '操作标识冲突，请重试',
   FILE_REQUIRED: '请选择文件',
   INVALID_FILE_TYPE: '文件类型无效，仅支持 JPEG/PNG/WebP',
   FILE_TOO_LARGE: '文件过大（最大 5MB）',
@@ -177,17 +176,12 @@ const REASON_CODE_MAP: Record<string, string> = {
   // ── AI ────────────────────────────────────────────────────────────────────
   QUOTA_EXHAUSTED: 'AI 额度已用完',
   AI_UNAVAILABLE: 'AI 服务暂不可用', // ── Validation ─────────────────────────────────────────────────────────────────
-  VALIDATION_ERROR: '输入信息格式有误', // ── Seat / lifecycle ──────────────────────────────────────────────────────
-  game_in_progress: '游戏进行中，无法操作',
-  not_authenticated: '身份验证失败',
-  no_state: '房间不存在或已解散',
-  invalid_seat: '座位不存在',
-  seat_taken: '座位已被占用',
-  not_seated: '你还没有入座',
-  not_host: '仅房主可以执行此操作',
-  seat_empty: '该座位没有玩家',
-  controlled_seat_not_allowed: '当前操作不支持接管座位',
-  controlled_seat_not_bot: '只能接管机器人座位',
+  VALIDATION_ERROR: '输入信息格式有误',
+  // ── Seat / lifecycle ──────────────────────────────────────────────────────
+  // Platform room-operation codes: copy lives in roomChassisReasonMessages
+  // (the one chassis table, audit item B-2) and is spread in here so this
+  // map and the room presenters can never diverge.
+  ...ROOM_CHASSIS_REASON_MESSAGES,
   // Game control
   invalid_status: '当前状态不允许此操作',
   role_count_mismatch: '角色数量与座位数不匹配',
