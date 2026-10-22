@@ -1,10 +1,12 @@
 /**
- * shareNightReviewLines - Text rendering of structured night review entries for share surfaces.
+ * shareNightReviewLines - Pure-text generator for structured night review entries.
  *
- * The share card (RN view) and the mini-program canvas renderer consume plain text
- * lines; this module is that text renderer. It formats NightReviewActionEntry /
- * NightReviewIdentityEntry values back into the exact legacy summary wording.
- * The in-room NightReviewModal does NOT use this module — it renders entries structurally.
+ * This module is the text channel only: it formats NightReviewActionEntry /
+ * NightReviewIdentityEntry values into the exact legacy summary wording for
+ * consumers that cannot render the DOM presentation — the mini-program canvas
+ * fallback renderer (shareNightReview) and text-level test assertions.
+ * The DOM surfaces (NightReviewModal, NightReviewShareCard) do NOT use this
+ * module — they render entries structurally via NightReviewReportBody.
  */
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
