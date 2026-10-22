@@ -2,6 +2,7 @@
 
 import { fireEvent, render, within } from '@testing-library/react-native';
 import { type StyleProp, StyleSheet } from 'react-native';
+import type { ReactTestInstance } from 'react-test-renderer';
 
 import { SheriffElectionPanel } from '@/games/werewolf/room/components/SheriffElectionPanel';
 import { createSheriffElectionPanelStyles } from '@/games/werewolf/room/components/sheriffElectionPanel.styles';
@@ -59,6 +60,16 @@ interface FlatColorStyle {
 /** StyleSheet.flatten with the color fields typed (rendered props carry untyped styles). */
 function flattenStyle(style: unknown): FlatColorStyle | undefined {
   return StyleSheet.flatten<FlatColorStyle>(style as StyleProp<FlatColorStyle>);
+}
+
+/** Host instances carry a string type ('View', 'Text'); composites carry the component. */
+function isHostView(node: ReactTestInstance): boolean {
+  return String(node.type) === 'View';
+}
+
+/** A host View whose flattened style paints the given background color. */
+function hasGoldFill(node: ReactTestInstance): boolean {
+  return isHostView(node) && flattenStyle(node.props.style)?.backgroundColor === colors.warning;
 }
 
 describe('SheriffElectionPanel', () => {
@@ -257,17 +268,9 @@ describe('SheriffElectionPanel', () => {
     // exist in the winner group only.
     const trophy = within(winnerGroup).getByTestId('Ionicons-icon-trophy');
     expect(flattenStyle(trophy.props.style)?.color).toBe(colors.warning);
-    expect(
-      winnerGroup.findAll(
-        (node) => flattenStyle(node.props.style)?.backgroundColor === colors.warning,
-      ),
-    ).toHaveLength(1);
+    expect(winnerGroup.findAll(hasGoldFill)).toHaveLength(1);
     expect(within(loserGroup).queryByTestId('Ionicons-icon-trophy')).toBeNull();
-    expect(
-      loserGroup.findAll(
-        (node) => flattenStyle(node.props.style)?.backgroundColor === colors.warning,
-      ),
-    ).toHaveLength(0);
+    expect(loserGroup.findAll(hasGoldFill)).toHaveLength(0);
 
     const abstainRow = screen.getByTestId(TESTIDS.sheriffAbstainRow('first'));
     expect(within(abstainRow).getByTestId(TESTIDS.sheriffAbstainChip('first', 3))).toBeTruthy();
