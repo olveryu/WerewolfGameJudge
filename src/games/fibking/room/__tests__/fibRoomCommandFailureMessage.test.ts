@@ -26,15 +26,18 @@ describe('getFibRoomCommandFailureMessage', () => {
     ).toBe('目标人数之外的座位仍有真人入座，请先让这些玩家离座或换到空位');
   });
 
-  it('keeps the pre-normalization copy for a non-bot controlled seat', () => {
-    // The confirm-view rejection used to arrive as not_seated, whose
-    // shared translation is this sentence; the game map pins it under
-    // the normalized platform code so the visible copy does not move.
+  it('presents the shared chassis copy for a non-bot controlled seat', () => {
+    // This map used to pin '你还没有入座' here — a pre-normalization
+    // preservation: the rejection once arrived as not_seated, whose copy
+    // that is. After normalization the trigger is "the takeover target
+    // is not a bot", which the not_seated sentence misdescribes. Audit
+    // item B-2 rules chassis copy comes from the shared table only, so
+    // the game map carries no entry for the platform code.
     expect(
       getFibRoomCommandFailureMessage(
         rejectedRoomCommand<FibState>(REASON_CONTROLLED_SEAT_NOT_BOT, 'command-3'),
       ),
-    ).toBe('你还没有入座');
+    ).toBe('只能接管机器人座位');
   });
 
   it('delegates shared room rejection reasons to the shared translator', () => {
