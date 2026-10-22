@@ -148,7 +148,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
     await waitForRoomScreen(screen.getByTestId);
 
     expect(screen.getByTestId(TESTIDS.sheriffOpenVoteButton)).toBeTruthy();
-    expect(screen.getByTestId(TESTIDS.nightReviewButton)).toBeTruthy();
+    expect(screen.getByTestId(TESTIDS.nightReviewBottomButton)).toBeTruthy();
   });
 
   it('restores Ended controls while retaining the completed election Inspector', async () => {

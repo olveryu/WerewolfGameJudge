@@ -1,5 +1,7 @@
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
+import { TESTIDS } from '@/testids';
+
 import type { BottomButton } from '../bottomActionBuilder';
 import type { BottomLayout, LayoutContext } from '../bottomLayoutConfig';
 import { resolveBottomLayout } from '../resolveBottomLayout';
@@ -428,12 +430,18 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Day', () => {
-    it('host → primary: viewRole only', () => {
+    it('host → primary: viewRole, secondary: lastNightInfo + nightReview', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Day, isHost: true, effectiveSeat: 0 }),
       );
 
       expect(keys(layout, 'primary')).toEqual(['viewRole']);
+      expect(keys(layout, 'secondary')).toEqual(['lastNightInfo', 'nightReview']);
+      expect(layout.secondary.map((button) => button.label)).toEqual(['昨夜信息', '本局复盘']);
+      expect(layout.secondary.map((button) => button.testID)).toEqual([
+        TESTIDS.lastNightInfoBottomButton,
+        TESTIDS.nightReviewBottomButton,
+      ]);
       expect(keys(layout, 'ghost')).toEqual([]);
       expect(layout.primary[0]).toMatchObject({ isEnabled: true });
     });
@@ -512,12 +520,22 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Ended', () => {
-    it('host → secondary: viewRole; review belongs to Host management', () => {
+    it('host → secondary: viewRole + lastNightInfo + nightReview', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Ended, isHost: true, effectiveSeat: 0 }),
       );
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole', 'lastNightInfo', 'nightReview']);
+      expect(layout.secondary.map((button) => button.label)).toEqual([
+        '查看身份',
+        '昨夜信息',
+        '本局复盘',
+      ]);
+      expect(layout.secondary.map((button) => button.testID)).toEqual([
+        undefined,
+        TESTIDS.lastNightInfoBottomButton,
+        TESTIDS.nightReviewBottomButton,
+      ]);
       expect(keys(layout, 'ghost')).toEqual([]);
     });
 

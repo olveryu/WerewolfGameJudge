@@ -21,9 +21,7 @@ export function buildWerewolfGuideMessage(input: {
   const { isHost, roomStatus, mySeat, gameState } = input;
 
   if (isHost) {
-    return roomStatus === GameStatus.Ended
-      ? '天亮了 →「昨夜信息」查看结果，「本局复盘」查看/分享战报'
-      : null;
+    return roomStatus === GameStatus.Ended ? '天亮了' : null;
   }
 
   const players = gameState.players;

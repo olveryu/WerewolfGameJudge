@@ -259,7 +259,7 @@ describe('createSheriffElectionDockModel', () => {
             label: '本局复盘',
             variant: 'secondary',
             size: 'md',
-            testID: TESTIDS.nightReviewButton,
+            testID: TESTIDS.nightReviewBottomButton,
             isEnabled: true,
             onPress: openNightReview,
           },
