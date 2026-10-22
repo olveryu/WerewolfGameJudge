@@ -45,17 +45,37 @@ beforeEach(() => {
   mockTrialEnabled = true;
   jest.mocked(uploadShareImage).mockResolvedValue('https://example.com/report.png');
   jest.mocked(wxPreviewImage).mockResolvedValue(undefined);
+  jest.spyOn(global, 'requestAnimationFrame').mockImplementation((callback) => {
+    callback(0);
+    return 1;
+  });
 });
+afterEach(() => jest.restoreAllMocks());
 
-it('captures the share card in segments and previews the uploaded image', async () => {
-  jest.mocked(captureNightReviewCardSegmented).mockResolvedValue('segmented-image');
+it('mounts the share card for the segmented capture and previews the uploaded image', async () => {
+  let complete!: (value: string) => void;
+  const capture = new Promise<string>((resolve) => {
+    complete = resolve;
+  });
+  jest.mocked(captureNightReviewCardSegmented).mockReturnValue(capture);
   const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+
+  let sharePromise!: Promise<boolean>;
+  await act(async () => {
+    sharePromise = result.current.shareNightReviewReportDirectly();
+  });
+  // The card only exists in the tree while a capture runs; the segmented
+  // capture must be preceded by the mount this flag represents.
+  expect(result.current.isCapturingShareCard).toBe(true);
+  expect(captureNightReviewCardSegmented).toHaveBeenCalledTimes(1);
 
   let shared!: boolean;
   await act(async () => {
-    shared = await result.current.shareNightReviewReportDirectly();
+    complete('segmented-image');
+    shared = await sharePromise;
   });
 
+  expect(result.current.isCapturingShareCard).toBe(false);
   expect(shared).toBe(true);
   expect(captureNightReviewCardSegmented).toHaveBeenCalledTimes(1);
   expect(renderNightReviewToCanvas).not.toHaveBeenCalled();

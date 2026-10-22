@@ -2,6 +2,7 @@
 
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
+import type { RefObject } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 
@@ -65,6 +66,49 @@ export function useNightReviewShare(
     };
   }, [reportScopeKey]);
 
+  /**
+   * Mounts the share card for one capture and unmounts it afterwards; the
+   * card only exists in the tree while a capture runs. Every capture of the
+   * card must go through here — reading the ref without mounting first finds
+   * nothing. Concurrent callers join the in-flight capture.
+   */
+  const captureMountedShareCard = useCallback(
+    (capture: (ref: RefObject<View | null>) => Promise<string>): Promise<string | null> => {
+      const scope = scopeRef.current;
+      if (scope === null || scope.key !== reportScopeKey || nightReviewData === null) {
+        return Promise.resolve(null);
+      }
+      if (scope.inFlight !== null) return scope.inFlight;
+      setCapturingScopeKey(reportScopeKey);
+      scope.inFlight = (async () => {
+        try {
+          await new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          );
+          if (!scope.isActive) return null;
+          const base64 = await capture(nightReviewShareCardRef);
+          if (!scope.isActive) return null;
+          return base64;
+        } catch (error) {
+          if (scope.isActive) {
+            handleError(error, {
+              label: '生成战报',
+              logger: roomScreenLog,
+              feedback: 'toast',
+              alertMessage: '无法生成战报截图，请重试',
+            });
+          }
+          return null;
+        } finally {
+          scope.inFlight = null;
+          if (scope.isActive) setCapturingScopeKey(null);
+        }
+      })();
+      return scope.inFlight;
+    },
+    [nightReviewData, reportScopeKey],
+  );
+
   const beginReportCapture = useCallback((): Promise<string | null> => {
     const scope = scopeRef.current;
     if (scope === null || scope.key !== reportScopeKey || nightReviewData === null) {
@@ -72,34 +116,12 @@ export function useNightReviewShare(
     }
     if (scope.inFlight !== null) return scope.inFlight;
     if (scope.base64 !== null) return Promise.resolve(scope.base64);
-    setCapturingScopeKey(reportScopeKey);
-    scope.inFlight = (async () => {
-      try {
-        await new Promise<void>((resolve) =>
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-        );
-        if (!scope.isActive) return null;
-        const base64 = await captureNightReviewCard(nightReviewShareCardRef);
-        if (!scope.isActive) return null;
-        scope.base64 = base64;
-        return base64;
-      } catch (error) {
-        if (scope.isActive) {
-          handleError(error, {
-            label: '生成战报',
-            logger: roomScreenLog,
-            feedback: 'toast',
-            alertMessage: '无法生成战报截图，请重试',
-          });
-        }
-        return null;
-      } finally {
-        scope.inFlight = null;
-        if (scope.isActive) setCapturingScopeKey(null);
-      }
+    return (async () => {
+      const base64 = await captureMountedShareCard(captureNightReviewCard);
+      if (base64 !== null && scope.isActive) scope.base64 = base64;
+      return base64;
     })();
-    return scope.inFlight;
-  }, [nightReviewData, reportScopeKey]);
+  }, [captureMountedShareCard, nightReviewData, reportScopeKey]);
 
   const shareNightReviewReportDirectly = useCallback(async (): Promise<boolean> => {
     const scope = scopeRef.current;
@@ -107,8 +129,9 @@ export function useNightReviewShare(
     try {
       if (isMiniProgram()) {
         const base64 = SEGMENTED_CAPTURE_TRIAL_ENABLED
-          ? await captureNightReviewCardSegmented(nightReviewShareCardRef)
+          ? await captureMountedShareCard(captureNightReviewCardSegmented)
           : renderNightReviewToCanvas(nightReviewData, roomCode, colors);
+        if (base64 === null) return false;
         const url = await uploadShareImage(base64);
         if (!scope.isActive) return false;
         await wxPreviewImage(url);
@@ -130,7 +153,7 @@ export function useNightReviewShare(
       }
       return false;
     }
-  }, [beginReportCapture, nightReviewData, reportScopeKey, roomCode]);
+  }, [beginReportCapture, captureMountedShareCard, nightReviewData, reportScopeKey, roomCode]);
 
   return {
     nightReviewData,
