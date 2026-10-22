@@ -19,7 +19,7 @@ import type {
   RoomSessionSnapshot,
 } from '@/features/room/session/types';
 
-interface RoomSeatSession<TState extends BaseGameState<string>, TProfile> {
+export interface RoomSeatSession<TState extends BaseGameState<string>, TProfile> {
   getSnapshot(): RoomSessionSnapshot<TState>;
   dispatch(
     command: RoomSeatCommand<TProfile>,

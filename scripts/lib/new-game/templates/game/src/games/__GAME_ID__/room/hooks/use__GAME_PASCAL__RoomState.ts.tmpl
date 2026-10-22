@@ -39,6 +39,7 @@ import { useRoomProfileController } from '@/features/room/controllers/useRoomPro
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
+import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 //#cap publicExpire
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
@@ -83,7 +84,6 @@ import { get__GAME_PASCAL__RoomCommandFailureMessage } from '../__GAME_CAMEL__Ro
 //#cap audioOrchestration
 import { use__GAME_PASCAL__AudioOrchestration } from './use__GAME_PASCAL__AudioOrchestration';
 //#end
-import { use__GAME_PASCAL__SeatCommands } from './use__GAME_PASCAL__SeatCommands';
 
 /**
 //#cap identityViewing
@@ -156,7 +156,7 @@ export function use__GAME_PASCAL__RoomState(
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot, takeOver } = botControl;
   const effectiveSeat = controlledSeat ?? mySeat;
-  const seats = use__GAME_PASCAL__SeatCommands(session, user);
+  const seats = useStandardSeatCommands(session, user);
   const seatController = useRoomSeatController({ currentSeat: mySeat, takeSeat: seats.takeSeat });
   const profile = useRoomProfileController({
     myUserId: user.id,

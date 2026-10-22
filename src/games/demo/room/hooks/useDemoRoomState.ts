@@ -30,6 +30,7 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
 import {
   deriveRemainingRevealCards,
   type RevealRoleData,
@@ -55,7 +56,6 @@ import {
   getDemoSeatTapIntent,
 } from '../demoRoomAdapter';
 import { getDemoRoomCommandFailureMessage } from '../demoRoomCommandFailureMessage';
-import { useDemoSeatCommands } from './useDemoSeatCommands';
 
 /**
  * Demo房间 Screen 的显式契约：领域推导（视图模型、身份卡锚点）
@@ -111,7 +111,7 @@ export function useDemoRoomState(
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot, takeOver } = botControl;
   const effectiveSeat = controlledSeat ?? mySeat;
-  const seats = useDemoSeatCommands(session, user);
+  const seats = useStandardSeatCommands(session, user);
   const seatController = useRoomSeatController({ currentSeat: mySeat, takeSeat: seats.takeSeat });
   const profile = useRoomProfileController({
     myUserId: user.id,

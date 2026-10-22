@@ -12,6 +12,7 @@ import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
@@ -26,7 +27,6 @@ import {
   createUndercoverRoomCapabilities,
   getUndercoverProfileTarget,
 } from '../undercoverRoomAdapter';
-import { useUndercoverSeatCommands } from './useUndercoverSeatCommands';
 
 export function useUndercoverRoster(
   state: UndercoverState,
@@ -35,7 +35,7 @@ export function useUndercoverRoster(
   configureGame: () => void,
   shareRoom: () => void,
 ) {
-  const commands = useUndercoverSeatCommands(session, user);
+  const commands = useStandardSeatCommands(session, user);
   const mySeat = getUndercoverUserSeat(state, user.id);
   const seatController = useRoomSeatController({
     currentSeat: mySeat,
