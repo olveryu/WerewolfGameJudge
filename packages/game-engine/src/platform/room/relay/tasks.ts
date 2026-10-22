@@ -16,6 +16,14 @@
  * settlement effect) is injected per game, because the event and
  * effect shapes are game-owned — both games fire it from this
  * point, in the decision that lands the final step's last entry.
+ *
+ * The gate order and the landing tail are also exported on their own
+ * (`resolveRelayTaskGate`, `appendRelayEntryTail`) for the one path
+ * that cannot travel the whole decision: a game whose entry is built
+ * outside the machine (Pictionary's drawing commit, an upload
+ * callback keyed by submission id) runs the same gates for its
+ * reservation and the same tail for its landing, so the order and
+ * the tail still exist exactly once.
  */
 
 import {
@@ -31,6 +39,7 @@ import { relayDeadline } from './clock';
 import type {
   RelayActorSlice,
   RelayEventKit,
+  RelayPhase,
   RelayRoundSlice,
   RelayTask,
   RelayTaskCommand,
@@ -64,21 +73,55 @@ export function getRelayTaskForSeat<TEntry, TPrevious>(
   };
 }
 
-/** Whether a command's task identity still matches the seat's current task. */
-function matchesRelayTask<TEntry, TPrevious>(
-  state: RelayRoundSlice<TEntry>,
-  identity: RelayTaskIdentity,
-  seat: number,
-  numberOfPlayers: number,
+/** A task gate pass: the acting seat and its resolved current task. */
+export interface RelayTaskGatePass<TPrevious> {
+  readonly seat: number;
+  readonly task: RelayTask<TPrevious>;
+}
+
+/**
+ * The gate order every relay task decision runs first: phase,
+ * deadline, acting seat, task identity, duplicate. Returns the
+ * acting seat and its current task on a pass, or the rejection the
+ * first failed gate raises. `identity` is the command's claimed task
+ * identity, or null when the caller carries none — a game resolving
+ * the seat's own current task, its identity already bound at its
+ * decide entry.
+ */
+export function resolveRelayTaskGate<
+  TEntry,
+  TPrevious,
+  TEvent extends GameEvent,
+  TEffect extends GameEffect,
+>(
+  kit: RelayEventKit<TEntry, TEvent, TEffect>,
+  state: RelayRoundSlice<TEntry> & RelayActorSlice,
+  phase: RelayPhase,
+  identity: RelayTaskIdentity | null,
+  context: CommandContext,
   stripPreviousEntry: (entry: TEntry) => TPrevious,
-): boolean {
-  const task = getRelayTaskForSeat(state, seat, numberOfPlayers, stripPreviousEntry);
-  return (
-    task !== null &&
-    identity.roundId === task.roundId &&
-    identity.stepIndex === task.stepIndex &&
-    identity.chainId === task.chainId
+): RelayTaskGatePass<TPrevious> | Decision<TEvent, TEffect> {
+  if (state.phase !== phase) return reject(kit.reasons.phase);
+  const lateRejection = rejectIfPastDeadline<TEvent, TEffect>(
+    state.deadlineAt,
+    context.nowMs,
+    kit.reasons.taskExpired ?? kit.reasons.task,
   );
+  if (lateRejection !== null) return lateRejection;
+  const acting = resolveActingSeat(state, kit.shape.numberOfPlayers, context);
+  if (acting.kind === 'rejected') return reject(acting.reason);
+  const seat = acting.value;
+  const task = getRelayTaskForSeat(state, seat, kit.shape.numberOfPlayers, stripPreviousEntry);
+  if (task === null) return reject(kit.reasons.task);
+  if (
+    identity !== null &&
+    (identity.roundId !== task.roundId ||
+      identity.stepIndex !== task.stepIndex ||
+      identity.chainId !== task.chainId)
+  )
+    return reject(kit.reasons.task);
+  if (task.isSubmitted) return reject(kit.reasons.submitted);
+  return { seat, task };
 }
 
 /** Game-supplied pieces of a task decision: content validation, entry building, completion. */
@@ -125,14 +168,29 @@ export interface RelayTaskHooks<
   ) => { readonly events: readonly TEvent[]; readonly effects: readonly TEffect[] };
 }
 
-function appendRelayEntry<TEntry, TPrevious, TEvent extends GameEvent, TEffect extends GameEffect>(
+/**
+ * The tail of an entry landing, callable on its own for an entry
+ * built outside the machine: once the step's last missing entry
+ * lands, the step advances into a timed transition, and a completed
+ * final step fires the game's injected round completion. The caller
+ * supplies its own first event (the machine's `entryAppended`
+ * factory output for machine submissions; a game's own submitted
+ * event when its entry carries more, such as a submission id).
+ */
+export function appendRelayEntryTail<
+  TEntry,
+  TPrevious,
+  TEvent extends GameEvent,
+  TEffect extends GameEffect,
+>(
   kit: RelayEventKit<TEntry, TEvent, TEffect>,
   state: RelayRoundSlice<TEntry> & RelayActorSlice,
+  firstEvent: TEvent,
   appended: { readonly chainId: string; readonly entry: TEntry },
   nowMs: number,
   hooks: RelayTaskHooks<TEntry, TPrevious, TEvent, TEffect>,
 ): Decision<TEvent, TEffect> {
-  const events: TEvent[] = [kit.entryAppended(appended.chainId, appended.entry)];
+  const events: TEvent[] = [firstEvent];
   const effects: TEffect[] = [];
   const submitted =
     state.chains.filter((chain) => chain.entries.length > state.stepIndex).length + 1;
@@ -154,6 +212,23 @@ function appendRelayEntry<TEntry, TPrevious, TEvent extends GameEvent, TEffect e
   return kit.commit(events, effects);
 }
 
+function appendRelayEntry<TEntry, TPrevious, TEvent extends GameEvent, TEffect extends GameEffect>(
+  kit: RelayEventKit<TEntry, TEvent, TEffect>,
+  state: RelayRoundSlice<TEntry> & RelayActorSlice,
+  appended: { readonly chainId: string; readonly entry: TEntry },
+  nowMs: number,
+  hooks: RelayTaskHooks<TEntry, TPrevious, TEvent, TEffect>,
+): Decision<TEvent, TEffect> {
+  return appendRelayEntryTail(
+    kit,
+    state,
+    kit.entryAppended(appended.chainId, appended.entry),
+    appended,
+    nowMs,
+    hooks,
+  );
+}
+
 /** Decides authenticated readiness or a final submission, rejecting stale identity and duplicates. */
 export function decideRelayTask<
   TEntry,
@@ -168,25 +243,9 @@ export function decideRelayTask<
   hooks: RelayTaskHooks<TEntry, TPrevious, TEvent, TEffect>,
 ): Decision<TEvent, TEffect> {
   const phase = command.kind === 'ready' ? 'answering' : 'settling';
-  if (state.phase !== phase) return reject(kit.reasons.phase);
-  const lateRejection = rejectIfPastDeadline<TEvent, TEffect>(
-    state.deadlineAt,
-    context.nowMs,
-    kit.reasons.taskExpired ?? kit.reasons.task,
-  );
-  if (lateRejection !== null) return lateRejection;
-  const acting = resolveActingSeat(state, kit.shape.numberOfPlayers, context);
-  if (acting.kind === 'rejected') return reject(acting.reason);
-  const seat = acting.value;
-  if (!matchesRelayTask(state, command, seat, kit.shape.numberOfPlayers, hooks.stripPreviousEntry))
-    return reject(kit.reasons.task);
-  const task = getRelayTaskForSeat(
-    state,
-    seat,
-    kit.shape.numberOfPlayers,
-    hooks.stripPreviousEntry,
-  )!;
-  if (task.isSubmitted) return reject(kit.reasons.submitted);
+  const gated = resolveRelayTaskGate(kit, state, phase, command, context, hooks.stripPreviousEntry);
+  if ('kind' in gated) return gated;
+  const { seat, task } = gated;
   if (command.kind === 'ready') {
     if (state.readySeats.includes(seat) === command.isReady) return kit.commit([]);
     const events: TEvent[] = [kit.taskReady(seat, command.isReady)];

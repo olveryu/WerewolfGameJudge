@@ -24,6 +24,7 @@ import {
   getPictionaryExpectedKind,
   PICTIONARY_DRAWING_HEIGHT,
   PICTIONARY_DRAWING_WIDTH,
+  type PictionaryMedia,
   type PictionaryState,
 } from '../state/types';
 import { bindPictionaryCommand } from './commandBinding';
@@ -152,7 +153,8 @@ describe('Pictionary engine', () => {
     for (let step = 0; step < 3; step += 1) completeCurrentStep();
 
     // The final step (step 3) is a drawing step: its entries land
-    // through drawing commits, which bypass the shared task machine.
+    // through drawing commits, whose landing tail is the shared
+    // task machine's.
     expireCurrentPhase();
     expect(session.state.phase).toBe('settling');
     expect(session.state.stepIndex).toBe(3);
@@ -196,6 +198,83 @@ describe('Pictionary engine', () => {
     expect(
       session.effects.filter((effect) => effect.type === 'pictionary.game.completed'),
     ).toHaveLength(1);
+  });
+
+  it('pins the drawing commit event sequence before the tail moves to the shared machine', () => {
+    const { session, send, takeAllSeats, expireCurrentPhase, completeCurrentStep } = game();
+    takeAllSeats();
+    send({ type: 'pictionary.game.begin' });
+    completeCurrentStep();
+
+    const mediaFor = (seat: number): PictionaryMedia => ({
+      objectKey: `test/sequence-drawing-${seat}.png`,
+      contentType: 'image/png',
+      width: PICTIONARY_DRAWING_WIDTH,
+      height: PICTIONARY_DRAWING_HEIGHT,
+      byteLength: 1024,
+      sha256: 'test-sha',
+    });
+    const commitFor = (seat: number) => {
+      send({ type: 'pictionary.drawing.reserve' }, `user-${seat}`);
+      const reservation = session.state.reservations.find((item) => item.authorSeat === seat);
+      if (reservation === undefined) throw new Error(`Missing reservation for seat ${seat}`);
+      return {
+        type: 'pictionary.drawing.commit' as const,
+        submissionId: reservation.submissionId,
+        media: mediaFor(seat),
+      };
+    };
+    const land = (command: ReturnType<typeof commitFor>) =>
+      session.sendAs(command, session.systemContext('drawing-upload'));
+
+    // Step 1 (drawing, not final): a mid-step commit is the submitted
+    // event alone; the step's last commit appends the transition.
+    expireCurrentPhase();
+    expect(session.state.phase).toBe('settling');
+    expect(session.state.stepIndex).toBe(1);
+    const firstCommand = commitFor(0);
+    const first = session.decideAs(firstCommand, session.systemContext('drawing-upload'));
+    if (first.kind !== 'commit') throw new Error('Expected a commit decision');
+    expect(first.events.map((event) => event.type)).toEqual(['pictionary.task.submitted']);
+    expect(first.effects).toEqual([]);
+    const firstEvent = first.events[0];
+    if (firstEvent?.type !== 'pictionary.task.submitted') {
+      throw new Error('Expected the submitted event');
+    }
+    expect(firstEvent.submissionId).toBe(firstCommand.submissionId);
+    land(firstCommand);
+    for (const seat of [1, 2]) land(commitFor(seat));
+    const stepLastCommand = commitFor(3);
+    const stepLast = session.decideAs(stepLastCommand, session.systemContext('drawing-upload'));
+    if (stepLast.kind !== 'commit') throw new Error('Expected a commit decision');
+    expect(stepLast.events.map((event) => event.type)).toEqual([
+      'pictionary.task.submitted',
+      'pictionary.phase.changed',
+    ]);
+    expect(stepLast.effects).toEqual([]);
+    const transition = stepLast.events[1];
+    if (transition?.type !== 'pictionary.phase.changed') {
+      throw new Error('Expected the transition event');
+    }
+    expect(transition.phase).toBe('transition');
+    land(stepLastCommand);
+    expect(session.state.phase).toBe('transition');
+
+    // Step 2 (text) lands through the machine; step 3 is the final
+    // drawing step, whose last commit also fires the settlement.
+    expireCurrentPhase();
+    completeCurrentStep();
+    expireCurrentPhase();
+    expect(session.state.phase).toBe('settling');
+    expect(session.state.stepIndex).toBe(3);
+    for (const seat of [0, 1, 2]) land(commitFor(seat));
+    const finalLast = session.decideAs(commitFor(3), session.systemContext('drawing-upload'));
+    if (finalLast.kind !== 'commit') throw new Error('Expected a commit decision');
+    expect(finalLast.events.map((event) => event.type)).toEqual([
+      'pictionary.task.submitted',
+      'pictionary.phase.changed',
+    ]);
+    expect(finalLast.effects.map((effect) => effect.type)).toEqual(['pictionary.game.completed']);
   });
 
   it('keeps the completion-moment settlement population through the gallery', () => {

@@ -37,11 +37,17 @@ import {
   type RelayExpireHooks,
 } from '../../../platform/room/relay/clock';
 import { controlRelayGallery } from '../../../platform/room/relay/gallery';
-import { decideRelayTask, type RelayTaskHooks } from '../../../platform/room/relay/tasks';
+import {
+  appendRelayEntryTail,
+  decideRelayTask,
+  type RelayTaskHooks,
+  resolveRelayTaskGate,
+} from '../../../platform/room/relay/tasks';
 import type {
   RelayEventKit,
   RelayGalleryControl,
   RelayGalleryState,
+  RelayTask,
   RelayTaskCommand,
 } from '../../../platform/room/relay/types';
 import type { PictionaryCommand } from '../commands/types';
@@ -168,7 +174,7 @@ function createPictionaryRelayKit(
  * build the payload here so the settlement content exists exactly
  * once.
  */
-export function buildPictionaryCompletionPayload(
+function buildPictionaryCompletionPayload(
   state: Pick<PictionaryState, 'roundId' | 'chains' | 'participants'>,
   appendedEntries: readonly PictionaryEntry[],
   nowMs: number,
@@ -290,6 +296,52 @@ export function decidePictionaryTask(
     toPictionaryRelaySlice(state),
     relayCommand,
     context,
+    createPictionaryTaskHooks(state),
+  );
+}
+
+/**
+ * Runs the shared machine's gate order (phase, deadline, acting
+ * seat, task, duplicate) for the drawing reservation, which carries
+ * no task identity of its own — the decide entry has already bound
+ * the command's identity to the actor's task. The reservation's own
+ * gates (the step expects a drawing, no reservation already claims
+ * the seat) stay with the caller.
+ */
+export function resolvePictionaryDrawingGate(
+  state: PictionaryState,
+  context: CommandContext,
+): { readonly seat: number; readonly task: RelayTask<PictionaryEntry> } | PictionaryDecision {
+  return resolveRelayTaskGate(
+    createPictionaryRelayKit(state),
+    toPictionaryRelaySlice(state),
+    'settling',
+    null,
+    context,
+    (entry) => entry,
+  );
+}
+
+/**
+ * Lands an entry built outside the task machine (a drawing commit:
+ * an upload callback keyed by submission id) through the shared
+ * step tail — step resolution, the transition event, and the final
+ * step's settlement fire exactly as a machine submission's do. The
+ * caller supplies its own submitted event, which carries the
+ * submission id the machine's factory would write as null.
+ */
+export function appendPictionaryExternalEntry(
+  state: PictionaryState,
+  submittedEvent: PictionaryEvent,
+  appended: { readonly chainId: string; readonly entry: PictionaryEntry },
+  nowMs: number,
+): PictionaryDecision {
+  return appendRelayEntryTail(
+    createPictionaryRelayKit(state),
+    toPictionaryRelaySlice(state),
+    submittedEvent,
+    appended,
+    nowMs,
     createPictionaryTaskHooks(state),
   );
 }

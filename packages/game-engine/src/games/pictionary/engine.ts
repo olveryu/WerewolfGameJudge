@@ -11,7 +11,6 @@ import {
 } from '../../platform/engine';
 import { PICTIONARY_GAME_TYPE, type PictionaryGameType } from '../../platform/protocol/gameTypes';
 import { REASON_NOT_SEATED } from '../../platform/protocol/reasons';
-import { resolveActingSeat } from '../../platform/room/actingSeat';
 import { guardPhaseExpiry } from '../../platform/room/phaseDeadline';
 import { buildRelayChains, buildRelayParticipants } from '../../platform/room/relay/assignment';
 import { relayDeadline } from '../../platform/room/relay/clock';
@@ -29,19 +28,20 @@ import {
   REASON_PICTIONARY_UPLOAD_INVALID,
 } from './domain/reasons';
 import {
-  buildPictionaryCompletionPayload,
+  appendPictionaryExternalEntry,
   controlPictionaryGallery,
   createPictionaryAssignment,
   decidePictionaryTask,
   expirePictionaryPhase,
   getPictionaryAnswerDurationSeconds,
+  resolvePictionaryDrawingGate,
 } from './domain/relay';
 import { decidePictionaryRoom } from './domain/seating';
 import { getPictionaryTaskForSeat } from './domain/visibility';
 import type { PictionaryEffect } from './effects/types';
 import { normalizePictionaryState } from './state/normalize';
 import {
-  getPictionaryRelayStepCount,
+  getPictionaryExpectedKind,
   isPictionaryRoomFull,
   isValidPictionaryConfig,
   PICTIONARY_DRAWING_HEIGHT,
@@ -87,35 +87,6 @@ function decideStartPictionaryRound(
   return commitPictionary([createRound(state, context)]);
 }
 
-function resolveSeatTask(
-  state: PictionaryState,
-  context: CommandContext,
-  requiredPhase: 'answering' | 'settling',
-):
-  | {
-      readonly seat: number;
-      readonly task: NonNullable<ReturnType<typeof getPictionaryTaskForSeat>>;
-    }
-  | PictionaryDecision {
-  if (state.phase !== requiredPhase) return reject(REASON_PICTIONARY_PHASE_INVALID);
-  if (state.deadlineAt !== null && context.nowMs >= state.deadlineAt) {
-    return reject(REASON_PICTIONARY_PHASE_NOT_EXPIRED);
-  }
-  const acting = resolveActingSeat(state, state.config.numberOfPlayers, context);
-  if (acting.kind === 'rejected') return reject(acting.reason);
-  const seat = acting.value;
-  const task = getPictionaryTaskForSeat(state, seat);
-  if (task === null) return reject(REASON_PICTIONARY_TASK_INVALID);
-  if (task.chain.entries.length > state.stepIndex) {
-    return reject(REASON_PICTIONARY_TASK_ALREADY_SUBMITTED);
-  }
-  return { seat, task };
-}
-
-function isDecision(value: ReturnType<typeof resolveSeatTask>): value is PictionaryDecision {
-  return 'kind' in value;
-}
-
 function phaseChangedEvent(
   state: PictionaryState,
   phase: PictionaryState['phase'],
@@ -126,23 +97,6 @@ function phaseChangedEvent(
   return { type: 'pictionary.phase.changed', phase, stepIndex, deadlineAt, gallery };
 }
 
-function hasResolvedCurrentStep(state: PictionaryState, additionalEntries = 0): boolean {
-  const resolved = state.chains.reduce(
-    (count, chain) => count + (chain.entries.length > state.stepIndex ? 1 : 0),
-    0,
-  );
-  return resolved + additionalEntries === state.config.numberOfPlayers;
-}
-
-function transitionEvent(state: PictionaryState, nowMs: number): PictionaryEvent {
-  return phaseChangedEvent(
-    state,
-    'transition',
-    state.stepIndex,
-    relayDeadline(nowMs, state.config.transitionDurationSeconds),
-  );
-}
-
 function settlingEvent(state: PictionaryState): PictionaryEvent {
   return phaseChangedEvent(state, 'settling', state.stepIndex, null);
 }
@@ -151,17 +105,19 @@ function decideReservePictionaryDrawing(
   state: PictionaryState,
   context: CommandContext,
 ): PictionaryDecision {
-  const resolved = resolveSeatTask(state, context, 'settling');
-  if (isDecision(resolved)) return resolved;
-  if (resolved.task.expectedKind !== 'drawing') return reject(REASON_PICTIONARY_TASK_INVALID);
-  if (state.reservations.some((reservation) => reservation.authorSeat === resolved.seat)) {
+  const gated = resolvePictionaryDrawingGate(state, context);
+  if ('kind' in gated) return gated;
+  if (getPictionaryExpectedKind(state.stepIndex) !== 'drawing') {
+    return reject(REASON_PICTIONARY_TASK_INVALID);
+  }
+  if (state.reservations.some((reservation) => reservation.authorSeat === gated.seat)) {
     return reject(REASON_PICTIONARY_TASK_ALREADY_SUBMITTED);
   }
   const reservation: PictionaryDrawingReservation = {
     submissionId: `pictionary-submission:${context.commandId}`,
     entryId: `pictionary-entry:${context.commandId}`,
-    chainId: resolved.task.chain.id,
-    authorSeat: resolved.seat,
+    chainId: gated.task.chainId,
+    authorSeat: gated.seat,
     reservedAt: context.nowMs,
     uploadDeadlineAt: state.deadlineAt,
   };
@@ -203,23 +159,16 @@ function decideCommitPictionaryDrawing(
     media,
     submittedAt: context.nowMs,
   };
-  const events: PictionaryEvent[] = [
+  // The entry itself is Pictionary's own (an upload callback keyed
+  // by submission id); its landing — step resolution, the transition
+  // event, and the final step's settlement — is the shared machine's
+  // tail, the same one a machine submission lands through.
+  return appendPictionaryExternalEntry(
+    state,
     { type: 'pictionary.task.submitted', chainId: reservation.chainId, entry, submissionId },
-  ];
-  if (!hasResolvedCurrentStep(state, 1)) return commitPictionary(events);
-  events.push(transitionEvent(state, context.nowMs));
-  // A drawing commit bypasses the shared task machine, so the final
-  // step's last drawing fires the round settlement from here — the
-  // same decision and payload assembly as the machine's path.
-  if (state.stepIndex !== getPictionaryRelayStepCount(state.config.numberOfPlayers) - 1) {
-    return commitPictionary(events);
-  }
-  return commitPictionary(events, [
-    {
-      type: 'pictionary.game.completed',
-      payload: buildPictionaryCompletionPayload(state, [entry], context.nowMs),
-    },
-  ]);
+    { chainId: reservation.chainId, entry },
+    context.nowMs,
+  );
 }
 
 function expireAnsweringPhase(state: PictionaryState): PictionaryDecision {
