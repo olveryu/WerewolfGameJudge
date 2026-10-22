@@ -47,6 +47,7 @@ const SHARED_FILES = [
   'src/games/catalog.ts',
   'src/test-utils/clientGameCatalog.tsx',
   'src/__tests__/botDispatchDiscipline.contract.test.ts',
+  'src/__tests__/roomGuidanceMatrix.contract.test.ts',
 ];
 
 function makeFixtureRepo() {
@@ -348,6 +349,13 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
         `{ file: 'games/demoproto/room/hooks/useDemoprotoRoomState.ts', form: 'parameterized-submit' },`,
       ),
     );
+    const guidanceRegistry = readFixture(root, 'src/__tests__/roomGuidanceMatrix.contract.test.ts');
+    assert.ok(
+      guidanceRegistry.includes(
+        `import { DEMOPROTO_GUIDANCE_MATRIX } from '@/games/demoproto/room/demoprotoGuidanceMatrix';`,
+      ),
+    );
+    assert.ok(guidanceRegistry.includes('  demoproto: DEMOPROTO_GUIDANCE_MATRIX,'));
 
     // Integration report: parameters, migration and the manual steps
     // that must not be automated away (migration review, e2e approval).
@@ -794,6 +802,16 @@ function stripShippedDemo(root) {
     'src/__tests__/botDispatchDiscipline.contract.test.ts',
     "  demo: [{ file: 'games/demo/room/hooks/useDemoRoomState.ts', form: 'parameterized-submit' }],\n",
   );
+  removeExactText(
+    root,
+    'src/__tests__/roomGuidanceMatrix.contract.test.ts',
+    "import { DEMO_GUIDANCE_MATRIX } from '@/games/demo/room/demoGuidanceMatrix';\n",
+  );
+  removeExactText(
+    root,
+    'src/__tests__/roomGuidanceMatrix.contract.test.ts',
+    '  demo: DEMO_GUIDANCE_MATRIX,\n',
+  );
 }
 
 /**
@@ -862,8 +880,8 @@ const DEMO_COMPARE_EXCEPTIONS = [
       '/**',
       ' * Demo（阶段 × 观看者）底部提示矩阵声明：本表是新游戏的起点声明——',
       ' * 每格要么承诺该阶段入口态底部有一句提示，要么登记豁免理由（指出由哪个',
-      ' * 表面承载引导）。生成后必须：①在 src/__tests__/roomGuidanceMatrix.contract.test.ts',
-      ' * 的注册表里登记本表；②写一个矩阵测试，用真实引擎流驱动本游戏的',
+      ' * 表面承载引导）。生成器已把本表登记进 src/__tests__/roomGuidanceMatrix.contract.test.ts',
+      ' * 的注册表；生成后必须写一个矩阵测试，用真实引擎流驱动本游戏的',
       ' * shell model 逐格对账（参考 demo 的 demoGuidanceMatrix.test.ts）。',
       ' */',
     ].join('\n'),

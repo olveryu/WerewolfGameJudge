@@ -371,3 +371,29 @@ export function editTestClientCatalog(content, { gameId, camel, home }) {
   ].join('\n');
   return replaceOnce(file, content, /(\n  \};\n\}\s*)$/, (match) => `\n${entry}  };\n}\n`);
 }
+
+/**
+ * Register the game's guidance matrix in the exhaustive registry
+ * contract: the import joins the @/games import group in specifier
+ * order and the row is appended to the GUIDANCE_MATRICES literal.
+ * The constant name derives exactly like the template's
+ * __GAME_UPPER__ token (gameId uppercased), so the registered name
+ * always matches the export of the matrix file generated alongside.
+ */
+export function editGuidanceMatrixRegistry(content, { gameId, camel }) {
+  const file = 'src/__tests__/roomGuidanceMatrix.contract.test.ts';
+  const constant = `${gameId.toUpperCase()}_GUIDANCE_MATRIX`;
+  if (content.includes(constant)) fail(file, `'${gameId}' is already registered.`);
+  const withImport = insertImportsSorted(
+    file,
+    content,
+    [`import { ${constant} } from '@/games/${gameId}/room/${camel}GuidanceMatrix';`],
+    /^@\/games\//,
+  );
+  return replaceOnce(
+    file,
+    withImport,
+    /(const GUIDANCE_MATRICES: Record<GameType, RoomGuidanceMatrix<string>> = \{[\s\S]*?)(\n\};)/,
+    (_match, head, tail) => `${head}\n  ${gameId}: ${constant},${tail}`,
+  );
+}

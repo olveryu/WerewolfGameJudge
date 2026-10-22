@@ -24,6 +24,7 @@ import {
   editExpectedCapabilities,
   editExpectedPackageExports,
   editGameTypes,
+  editGuidanceMatrixRegistry,
   editRegistry,
   editTestClientCatalog,
   editWorkerCatalog,
@@ -183,6 +184,10 @@ const SHARED_EDITS = [
   {
     file: 'src/__tests__/botDispatchDiscipline.contract.test.ts',
     apply: (content, ctx) => editDispatchDiscipline(content, ctx),
+  },
+  {
+    file: 'src/__tests__/roomGuidanceMatrix.contract.test.ts',
+    apply: (content, ctx) => editGuidanceMatrixRegistry(content, ctx),
   },
 ];
 
