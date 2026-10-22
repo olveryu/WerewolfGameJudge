@@ -20,8 +20,8 @@ import { buildStepActorWaitingMessage } from '@/features/room/model/RoomBottomAc
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
+  createViewProfilesCapability,
   type RoomCapabilities,
-  type RoomCapability,
   type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
@@ -52,14 +52,6 @@ import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { colors } from '@/theme';
 
 export const WEREWOLF_DISPLAY_NAME = '狼人杀';
-
-const denied = <TArgs extends readonly unknown[], TResult>(
-  reason: string | null,
-): RoomCapability<TArgs, TResult> => ({ isAllowed: false, reason });
-
-const allowed = <TArgs extends readonly unknown[], TResult>(
-  execute: (...args: TArgs) => TResult,
-): RoomCapability<TArgs, TResult> => ({ isAllowed: true, execute });
 
 interface WerewolfCapabilitiesInput {
   readonly status: GameStatus;
@@ -102,10 +94,10 @@ export function createWerewolfRoomCapabilities(input: WerewolfCapabilitiesInput)
 
   return {
     ...setupCapabilities,
-    canViewProfiles:
-      input.status !== GameStatus.Ongoing && input.status !== GameStatus.Day
-        ? allowed(input.openProfile)
-        : denied('游戏进行中不能查看玩家资料'),
+    canViewProfiles: createViewProfilesCapability(
+      input.status !== GameStatus.Ongoing && input.status !== GameStatus.Day,
+      input.openProfile,
+    ),
     canTakeOverBots: createBotTakeoverCapability(canTakeOver, input.takeOverBot),
   };
 }

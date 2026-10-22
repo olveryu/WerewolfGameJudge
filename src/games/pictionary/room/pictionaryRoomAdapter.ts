@@ -15,7 +15,7 @@ import {
   type RoomHeaderGachaStatus,
 } from '@/features/room/model/buildRoomHeaderModel';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
-import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
+import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildAbortGameAction,
   buildClearSeatsAction,
@@ -34,8 +34,8 @@ import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActi
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
+  createViewProfilesCapability,
   type RoomCapabilities,
-  type RoomCapability,
   type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
 import {
@@ -50,7 +50,7 @@ import type {
   RoomSeatDataSource,
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
-import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
+import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type {
   RoomConnectionViewModel,
@@ -60,14 +60,6 @@ import type {
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 export const PICTIONARY_DISPLAY_NAME = '你画我猜接龙';
-
-const denied = <TArgs extends readonly unknown[], TResult>(
-  reason: string,
-): RoomCapability<TArgs, TResult> => ({ isAllowed: false, reason });
-
-const allowed = <TArgs extends readonly unknown[], TResult>(
-  execute: (...args: TArgs) => TResult,
-): RoomCapability<TArgs, TResult> => ({ isAllowed: true, execute });
 
 interface PictionaryCapabilitiesInput {
   readonly state: PictionaryState;
@@ -107,7 +99,7 @@ export function createPictionaryRoomCapabilities(
   });
   return {
     ...setupCapabilities,
-    canViewProfiles: isLobby ? allowed(input.openProfile) : denied('游戏进行中不能查看玩家资料'),
+    canViewProfiles: createViewProfilesCapability(isLobby, input.openProfile),
     canTakeOverBots: createBotTakeoverCapability(input.isHost, input.takeOverBot),
   };
 }
@@ -154,24 +146,14 @@ export function createPictionarySeatDataSource(
   });
 }
 
-export function getPictionarySeatTapIntent(input: {
-  readonly state: PictionaryState;
-  readonly seat: number;
-  readonly currentSeat: number | null;
-  readonly disabledReason?: string;
-}) {
-  return getRoomSeatTapIntent({
-    seat: input.seat,
-    currentSeat: input.currentSeat,
-    target: getRoomProfileTarget(
-      input.state.roster,
-      input.seat,
-      (botSeat) => getPictionaryBotUserId(input.state.roomCode, botSeat),
-      getBotDisplayName,
-    ),
-    disabledReason: input.disabledReason,
-  });
-}
+const getPictionaryProfileTarget = createRoomProfileTargetResolver<PictionaryState>(
+  getPictionaryBotUserId,
+  getBotDisplayName,
+);
+
+export const getPictionarySeatTapIntent = createRoomSeatTapIntentResolver(
+  getPictionaryProfileTarget,
+);
 
 /**
  * The stepped relay phases feed the bottom panel's slim progress row;

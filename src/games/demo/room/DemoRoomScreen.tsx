@@ -5,6 +5,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardModal';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -15,7 +16,7 @@ import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { DemoRoomSession } from '@/games/demo/model/DemoRoomSession';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
 
-import { DemoRoleCardModal } from './components/DemoRoleCardModal';
+import { toRevealRoleData } from '../components/DemoRoleCardAdapter';
 import { type DemoRoomScreenState, useDemoRoomState } from './hooks/useDemoRoomState';
 
 type DemoRoomScreenProps = GameRoomScreenProps<'demo'> & {
@@ -68,9 +69,10 @@ function DemoRoomContent(
       leadingExtraActions={null}
       trailingExtraActions={null}
       gameOverlays={
-        <DemoRoleCardModal
+        <RevealRoleCardModal
           visible={screen.roleCardVisible}
-          identity={screen.viewModel?.myIdentity ?? null}
+          roleKey={screen.viewModel?.myIdentity ?? null}
+          toRoleData={toRevealRoleData}
           effectType={null}
           shouldPlay={screen.roleCardShouldPlay}
           allRoles={screen.roleCardAllRoles}

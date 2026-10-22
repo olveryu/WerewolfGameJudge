@@ -112,7 +112,6 @@ const CAPABILITY_FILE_ADDITIONS = [
     capability: 'identityViewing',
     files: ({ engine, client, pascal }) => [
       `${engine}/__tests__/identityViewingProtocol.contract.test.ts`,
-      `${client}/room/components/${pascal}RoleCardModal.tsx`,
       `${client}/components/${pascal}RoleCardAdapter.ts`,
     ],
   },

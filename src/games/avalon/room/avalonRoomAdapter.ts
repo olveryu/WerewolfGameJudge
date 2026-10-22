@@ -31,7 +31,7 @@ import { createControlledSeatModel } from '@/features/room/model/createControlle
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
-import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
+import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
   buildAssignRolesAction,
@@ -57,7 +57,6 @@ import {
   type RoomBottomStackModel,
   VIEW_IDENTITY_LABEL,
 } from '@/features/room/model/RoomBottomActions';
-import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import {
@@ -66,7 +65,7 @@ import {
   type RoomHostManagementSection,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
-import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
+import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { colors } from '@/theme';
@@ -91,14 +90,10 @@ function avalonSeatLabel(state: AvalonState, seat: number): string {
 }
 
 /** 为共享资料卡控件返回公开的席位身份。 */
-function getAvalonProfileTarget(state: AvalonState, seat: number): RoomProfileTarget | null {
-  return getRoomProfileTarget(
-    state.roster,
-    seat,
-    (botSeat) => `avalon-bot:${state.roomCode}:${botSeat}`,
-    getBotDisplayName,
-  );
-}
+const getAvalonProfileTarget = createRoomProfileTargetResolver<AvalonState>(
+  (roomCode, botSeat) => `avalon-bot:${roomCode}:${botSeat}`,
+  getBotDisplayName,
+);
 
 /**
  * 组队者徽标的阶段门：组队者只在白天组队流程中有职能（组队 / 投票 /
@@ -146,22 +141,8 @@ export interface AvalonSeatSourceInput {
   readonly controlledSeat: number | null;
 }
 
-interface AvalonSeatTapInput {
-  readonly state: AvalonState;
-  readonly seat: number;
-  readonly currentSeat: number | null;
-  readonly disabledReason?: string;
-}
-
 /** Project Avalon seating into the shared room seat-tap contract. */
-export function getAvalonSeatTapIntent(input: AvalonSeatTapInput) {
-  return getRoomSeatTapIntent({
-    seat: input.seat,
-    currentSeat: input.currentSeat,
-    target: getAvalonProfileTarget(input.state, input.seat),
-    disabledReason: input.disabledReason,
-  });
-}
+export const getAvalonSeatTapIntent = createRoomSeatTapIntentResolver(getAvalonProfileTarget);
 
 export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSeatDataSource {
   const { state, revision, userId, controlledSeat } = input;

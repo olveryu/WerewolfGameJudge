@@ -17,7 +17,7 @@ import {
   type RoomHeaderGachaStatus,
 } from '@/features/room/model/buildRoomHeaderModel';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
-import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
+import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
   buildAbortGameAction,
@@ -50,8 +50,8 @@ import {
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
+  createViewProfilesCapability,
   type RoomCapabilities,
-  type RoomCapability,
   type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
 import {
@@ -63,7 +63,7 @@ import {
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
-import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
+import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type {
   RoomConnectionViewModel,
@@ -81,10 +81,6 @@ const FIB_ROLE_NAMES: Readonly<Record<FibRole, string>> = {
   honest: '老实人',
   fibber: '瞎掰王',
 };
-
-const allowed = <TArgs extends readonly unknown[], TResult>(
-  execute: (...args: TArgs) => TResult,
-): RoomCapability<TArgs, TResult> => ({ isAllowed: true, execute });
 
 interface FibCapabilitiesInput {
   readonly state: FibState;
@@ -124,36 +120,18 @@ export function createFibRoomCapabilities(input: FibCapabilitiesInput): RoomCapa
 
   return {
     ...setupCapabilities,
-    canViewProfiles: allowed(input.openProfile),
+    canViewProfiles: createViewProfilesCapability(true, input.openProfile),
     canTakeOverBots: createBotTakeoverCapability(input.isHost, input.takeOverBot),
   };
 }
 
-export function getFibProfileTarget(state: FibState, seat: number): RoomProfileTarget | null {
-  return getRoomProfileTarget(
-    state.roster,
-    seat,
-    (botSeat) => getFibBotUserId(state.roomCode, botSeat),
-    getBotDisplayName,
-  );
-}
-
-interface FibSeatTapInput {
-  readonly state: FibState;
-  readonly seat: number;
-  readonly currentSeat: number | null;
-  readonly disabledReason?: string;
-}
+export const getFibProfileTarget = createRoomProfileTargetResolver<FibState>(
+  getFibBotUserId,
+  getBotDisplayName,
+);
 
 /** Project Fib sparse seating into the shared room seat-tap contract. */
-export function getFibSeatTapIntent(input: FibSeatTapInput) {
-  return getRoomSeatTapIntent({
-    seat: input.seat,
-    currentSeat: input.currentSeat,
-    target: getFibProfileTarget(input.state, input.seat),
-    disabledReason: input.disabledReason,
-  });
-}
+export const getFibSeatTapIntent = createRoomSeatTapIntentResolver(getFibProfileTarget);
 
 function getSeatRoleLabel(state: FibState, seat: number): string | null {
   if (

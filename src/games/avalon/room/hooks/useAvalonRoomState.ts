@@ -47,6 +47,7 @@ import {
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
+  createViewProfilesCapability,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
 import {
@@ -293,9 +294,7 @@ export function useAvalonRoomState(
         }),
       shareRoom: share.open,
     }),
-    canViewProfiles: isLobby
-      ? { isAllowed: true, execute: profile.open }
-      : { isAllowed: false, reason: '游戏进行中不能查看玩家资料' },
+    canViewProfiles: createViewProfilesCapability(isLobby, profile.open),
     canTakeOverBots: createBotTakeoverCapability(canControlBots, takeOver),
   };
   const onSeatPress = (seat: number, disabledReason?: string) => {

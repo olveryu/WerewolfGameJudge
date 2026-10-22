@@ -32,6 +32,31 @@ function isBotOccupant(occupant: RoomProfileTargetOccupant): occupant is RoomPro
   return 'kind' in occupant && occupant.kind === 'bot';
 }
 
+/** The state shape the resolver factory binds: a roster plus its room code. */
+export interface RoomProfileTargetState {
+  readonly roster: Readonly<Record<number, RoomProfileTargetOccupant | null | undefined>>;
+  readonly roomCode: string;
+}
+
+/**
+ * Bind the shared derivation to one game's state and bot identity format.
+ * The bot id format stays game-owned (see the module header); the factory
+ * owns only the binding, so each game's adapter keeps a one-line resolver
+ * instead of a hand-written forwarding function.
+ */
+export function createRoomProfileTargetResolver<TState extends RoomProfileTargetState>(
+  botUserId: (roomCode: string, seat: number) => string,
+  botDisplayName: (seat: number) => string,
+): (state: TState, seat: number) => RoomProfileTarget | null {
+  return (state, seat) =>
+    getRoomProfileTarget(
+      state.roster,
+      seat,
+      (botSeat) => botUserId(state.roomCode, botSeat),
+      botDisplayName,
+    );
+}
+
 /** Resolve only public roster identity for the shared profile controls. */
 export function getRoomProfileTarget(
   roster: Readonly<Record<number, RoomProfileTargetOccupant | null | undefined>>,

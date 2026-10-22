@@ -27,7 +27,7 @@ import { createControlledSeatModel } from '@/features/room/model/createControlle
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
-import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
+import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
 import {
 //#cap identityViewing
   allViewedConfirmBody,
@@ -58,7 +58,6 @@ import {
   buildEndedWaitingMessage,
   buildLobbyHostStartMessage,
 } from '@/features/room/model/RoomBottomActions';
-import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import {
   buildShareRoomRemedy,
@@ -72,23 +71,16 @@ import {
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 //#end
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
-import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
+import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
-function get__GAME_PASCAL__ProfileTarget(
-  state: __GAME_PASCAL__State,
-  seat: number,
-): RoomProfileTarget | null {
-  return getRoomProfileTarget(
-    state.roster,
-    seat,
-    (botSeat) => `__GAME_ID__-bot:${state.roomCode}:${botSeat}`,
-    getBotDisplayName,
-  );
-}
+const get__GAME_PASCAL__ProfileTarget = createRoomProfileTargetResolver<__GAME_PASCAL__State>(
+  (roomCode, botSeat) => `__GAME_ID__-bot:${roomCode}:${botSeat}`,
+  getBotDisplayName,
+);
 
 export interface __GAME_PASCAL__SeatSourceInput {
   readonly state: __GAME_PASCAL__State;
@@ -97,22 +89,8 @@ export interface __GAME_PASCAL__SeatSourceInput {
   readonly controlledSeat: number | null;
 }
 
-interface __GAME_PASCAL__SeatTapInput {
-  readonly state: __GAME_PASCAL__State;
-  readonly seat: number;
-  readonly currentSeat: number | null;
-  readonly disabledReason?: string;
-}
-
 /** Project __GAME_PASCAL__ seating into the shared room seat-tap contract. */
-export function get__GAME_PASCAL__SeatTapIntent(input: __GAME_PASCAL__SeatTapInput) {
-  return getRoomSeatTapIntent({
-    seat: input.seat,
-    currentSeat: input.currentSeat,
-    target: get__GAME_PASCAL__ProfileTarget(input.state, input.seat),
-    disabledReason: input.disabledReason,
-  });
-}
+export const get__GAME_PASCAL__SeatTapIntent = createRoomSeatTapIntentResolver(get__GAME_PASCAL__ProfileTarget);
 
 function create__GAME_PASCAL__SeatDataSource(
   input: __GAME_PASCAL__SeatSourceInput,

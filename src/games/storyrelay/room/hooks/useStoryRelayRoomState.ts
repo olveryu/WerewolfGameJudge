@@ -30,6 +30,7 @@ import { useStandardSeatCommands } from '@/features/room/controllers/useStandard
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
+  createViewProfilesCapability,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
 import {
@@ -126,9 +127,7 @@ export function useStoryRelayRoomState(
         }),
       shareRoom: share.open,
     }),
-    canViewProfiles: isLobby
-      ? { isAllowed: true, execute: profile.open }
-      : { isAllowed: false, reason: '游戏进行中不能查看玩家资料' },
+    canViewProfiles: createViewProfilesCapability(isLobby, profile.open),
     canTakeOverBots: createBotTakeoverCapability(canControlBots, botControl.takeOver),
   };
   const isSeatBot = useCallback((seat: number) => isBotSeat(state.roster, seat), [state]);

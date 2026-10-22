@@ -1,21 +1,16 @@
 /** FibKing guide content; shared components own layout, not game rules. */
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { GameGuide, GameGuideSection, GameNotice, RuleItem } from '@/components/GameGuide';
-import type { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 
 /** Explains identities and the existing round lifecycle. */
 export function FibRulesScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'GameGuide'>>();
   return (
     <GameGuide
       title="瞎掰王玩法"
       heading="真假释义，只能相信描述"
       intro="每轮所有玩家看到同一个词。老实人知道真实释义，瞎掰王编造释义，大聪明根据描述判断真相。"
       testID={TESTIDS.fibRulesScreenRoot}
-      onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
     >
       <GameGuideSection title="三个身份">
         <RuleItem

@@ -20,7 +20,7 @@ import { createControlledSeatModel } from '@/features/room/model/createControlle
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
-import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
+import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
   buildAssignRolesAction,
@@ -41,7 +41,6 @@ import {
   buildEndedWaitingMessage,
   buildLobbyHostStartMessage,
 } from '@/features/room/model/RoomBottomActions';
-import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import {
   buildShareRoomRemedy,
@@ -50,20 +49,16 @@ import {
   type RoomHostManagementSection,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
-import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
+import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
-function getDemoProfileTarget(state: DemoState, seat: number): RoomProfileTarget | null {
-  return getRoomProfileTarget(
-    state.roster,
-    seat,
-    (botSeat) => `demo-bot:${state.roomCode}:${botSeat}`,
-    getBotDisplayName,
-  );
-}
+const getDemoProfileTarget = createRoomProfileTargetResolver<DemoState>(
+  (roomCode, botSeat) => `demo-bot:${roomCode}:${botSeat}`,
+  getBotDisplayName,
+);
 
 export interface DemoSeatSourceInput {
   readonly state: DemoState;
@@ -72,22 +67,8 @@ export interface DemoSeatSourceInput {
   readonly controlledSeat: number | null;
 }
 
-interface DemoSeatTapInput {
-  readonly state: DemoState;
-  readonly seat: number;
-  readonly currentSeat: number | null;
-  readonly disabledReason?: string;
-}
-
 /** Project Demo seating into the shared room seat-tap contract. */
-export function getDemoSeatTapIntent(input: DemoSeatTapInput) {
-  return getRoomSeatTapIntent({
-    seat: input.seat,
-    currentSeat: input.currentSeat,
-    target: getDemoProfileTarget(input.state, input.seat),
-    disabledReason: input.disabledReason,
-  });
-}
+export const getDemoSeatTapIntent = createRoomSeatTapIntentResolver(getDemoProfileTarget);
 
 function createDemoSeatDataSource(input: DemoSeatSourceInput): RoomSeatDataSource {
   const { state, revision, userId, controlledSeat } = input;

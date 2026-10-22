@@ -1,21 +1,16 @@
 /** Undercover guide content; describes offline voting without owning game logic. */
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Text } from 'react-native';
 
 import { GameGuide, GameGuideSection, GameNotice, RuleItem } from '@/components/GameGuide';
 import { gameScreenStyles } from '@/components/GameScreen';
-import type { RootStackParamList } from '@/navigation/types';
 
 /** Presents identities, offline voting and authoritative victory conditions. */
 export function UndercoverRulesScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'GameGuide'>>();
   return (
     <GameGuide
       title="谁是卧底玩法"
       heading="描述词语，找出不同的人"
       intro="平民和卧底拿到相关但不同的词，通过描述寻找线索，再在线下投票选出出局玩家。"
-      onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
     >
       <GameGuideSection title="三个身份">
         <RuleItem

@@ -1,9 +1,16 @@
-/** Shared reading components for game guides; content and navigation remain game-owned. */
+/**
+ * Shared reading components for game guides; the guide content remains
+ * game-owned. Back navigation defaults to the shared behaviour (go back
+ * when possible, otherwise Home); a caller may still override onBack.
+ */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ComponentProps, ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import type { RootStackParamList } from '@/navigation/types';
 import { borderRadius, colors, spacing, typography, withAlpha } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
@@ -22,15 +29,18 @@ export function GameGuide({
   readonly title: string;
   readonly heading: string;
   readonly intro: string;
-  readonly onBack: () => void;
+  readonly onBack?: () => void;
   readonly children: ReactNode;
   readonly testID?: string;
 }) {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const handleBack =
+    onBack ?? (() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')));
   return (
     <GameScreen
       testID={testID}
-      header={<ScreenHeader title={title} onBack={onBack} topInset={insets.top} />}
+      header={<ScreenHeader title={title} onBack={handleBack} topInset={insets.top} />}
     >
       <GameScreenContent>
         <Text style={gameScreenStyles.kicker}>游戏目标</Text>
