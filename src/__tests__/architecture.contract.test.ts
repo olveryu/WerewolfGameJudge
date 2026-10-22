@@ -630,9 +630,13 @@ describe('Game capabilities: client wiring matches the engine declaration', () =
         .map((filePath) => fs.readFileSync(filePath, 'utf-8'))
         .join('\n');
       // The marker is the consumption side: the shared gate every
-      // role-card reveal routes through. The declaration key itself
+      // role-card reveal routes through, consumed either directly or
+      // through the shared RevealRoleCardModal assembly (whose only
+      // render path goes through the gate). The declaration key itself
       // never appears in client source, so this cannot self-prove.
-      const wired = clientSource.includes('RevealAnimationGate');
+      const wired =
+        clientSource.includes('RevealAnimationGate') ||
+        clientSource.includes('RevealRoleCardModal');
       expect(declared).toBe(wired);
     }
   });

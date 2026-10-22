@@ -404,9 +404,12 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
       assert.ok(engineGameDir.includes('demoproto.bots.markAllBotsViewed'));
     }
     if (capabilities.identityViewing) {
-      assert.ok(clientGameDir.includes('RevealAnimationGate'));
+      // The generated room screen consumes the shared RevealRoleCardModal
+      // assembly (whose only render path goes through RevealAnimationGate).
+      assert.ok(clientGameDir.includes('RevealRoleCardModal'));
     } else {
       assert.ok(!clientGameDir.includes('RevealAnimationGate'));
+      assert.ok(!clientGameDir.includes('RevealRoleCardModal'));
     }
     if (capabilities.stageDeadline) {
       assert.ok(engineGameDir.includes('deadlineAt'));
