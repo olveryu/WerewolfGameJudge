@@ -11,7 +11,9 @@ import {
   buildActionEntries,
   buildIdentityEntries,
   buildNightReviewData,
+  getNightReviewOutcome,
   type NightReviewActionEntry,
+  type NightReviewData,
 } from '../NightReview.helpers';
 import {
   formatNightReviewActionLine,
@@ -863,6 +865,42 @@ describe('NightReview.helpers', () => {
         { seat: 1, roleId: null, isEmptySeat: false, isAlive: true },
         { seat: 2, roleId: 'wolf', isEmptySeat: false, isAlive: false },
       ]);
+    });
+  });
+
+  describe('getNightReviewOutcome', () => {
+    it('derives the deaths outcome with seats and reasons from built data', () => {
+      const data = buildNightReviewData(
+        makeGameState({
+          lastNightDeaths: [5, 2],
+          deathReasons: { 5: 'poison', 2: 'wolfKill' },
+        }),
+      );
+      expect(getNightReviewOutcome(data)).toEqual({
+        type: 'deaths',
+        deaths: [
+          { seat: 5, reason: 'poison' },
+          { seat: 2, reason: 'wolfKill' },
+        ],
+      });
+    });
+
+    it('derives the peaceful outcome when nobody died', () => {
+      const data = buildNightReviewData(makeGameState({}));
+      expect(getNightReviewOutcome(data)).toEqual({ type: 'peaceful' });
+    });
+
+    it('fails fast when the data carries no outcome entry', () => {
+      const data: NightReviewData = { actions: [{ kind: 'wolfNoTarget' }], identities: [] };
+      expect(() => getNightReviewOutcome(data)).toThrow(/no outcome entry/);
+    });
+
+    it('fails fast when the data carries more than one outcome entry', () => {
+      const data: NightReviewData = {
+        actions: [{ kind: 'peacefulNight' }, { kind: 'deaths', deaths: [] }],
+        identities: [],
+      };
+      expect(() => getNightReviewOutcome(data)).toThrow(/more than one outcome entry/);
     });
   });
 });

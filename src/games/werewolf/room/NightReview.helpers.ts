@@ -6,7 +6,9 @@
  * Second section: per-seat identity entries (seat, role, faction source, alive state).
  * Text rendering lives in the consumers (NightReviewReportBody renders structure
  * for the DOM surfaces; shareNightReviewLines formats the text channel). This
- * module emits no display strings.
+ * module emits no display strings. Its one derivation, getNightReviewOutcome,
+ * lifts the single outcome entry (deaths / peacefulNight) the builders append,
+ * so every surface headlines the same result.
  * No service / hook / React imports; relies only on game-engine types and ROLE_SPECS.
  */
 
@@ -272,6 +274,41 @@ export interface NightReviewData {
   actions: NightReviewActionEntry[];
   /** Per-seat identity entries sorted by seat */
   identities: NightReviewIdentityEntry[];
+}
+
+/** The night outcome, derived from the data's single outcome entry. */
+export type NightReviewOutcome =
+  | { readonly type: 'peaceful' }
+  | {
+      readonly type: 'deaths';
+      readonly deaths: readonly {
+        readonly seat: number;
+        readonly reason: DeathReason | null;
+      }[];
+    };
+
+/**
+ * Derive the night outcome from the action entries. The builders always emit
+ * exactly one outcome entry (`deaths` or `peacefulNight`); anything else is a
+ * malformed NightReviewData and fails fast instead of rendering a wrong hero.
+ * Shared by the DOM report hero and the canvas outcome line — one derivation.
+ */
+export function getNightReviewOutcome(data: NightReviewData): NightReviewOutcome {
+  let outcome: NightReviewOutcome | undefined;
+  for (const entry of data.actions) {
+    if (entry.kind !== 'deaths' && entry.kind !== 'peacefulNight') continue;
+    if (outcome !== undefined) {
+      throw new Error('[FAIL-FAST] Night review data carries more than one outcome entry');
+    }
+    outcome =
+      entry.kind === 'peacefulNight'
+        ? { type: 'peaceful' }
+        : { type: 'deaths', deaths: entry.deaths };
+  }
+  if (outcome === undefined) {
+    throw new Error('[FAIL-FAST] Night review data carries no outcome entry');
+  }
+  return outcome;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

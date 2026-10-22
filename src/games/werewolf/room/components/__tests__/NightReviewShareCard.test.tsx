@@ -9,6 +9,7 @@ import { render } from '@testing-library/react-native';
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 
 import { buildNightReviewData } from '../../NightReview.helpers';
+import { NIGHT_REVIEW_NOISE_TITLE } from '../../nightReviewLayout';
 import { NightReviewShareCard } from '../NightReviewShareCard';
 
 function makePlayer(seat: number, role: string | null): LocalPlayer {
@@ -82,12 +83,41 @@ describe('NightReviewShareCard', () => {
     expect(view.getByText('狼人袭击')).toBeTruthy();
     expect(view.getByText('守卫守护')).toBeTruthy();
     expect(view.getByText('女巫使用解药救了')).toBeTruthy();
-    expect(view.getByText('女巫未使用毒药')).toBeTruthy();
+    expect(view.getByText('毒药未使用')).toBeTruthy();
     expect(view.getByText('预言家查验')).toBeTruthy();
     expect(view.getAllByText('狼人').length).toBeGreaterThanOrEqual(2);
-    expect(view.getByText('死亡')).toBeTruthy();
+    // Same outcome hero as the modal: headline + death card, no deaths row.
+    expect(view.getByText('昨夜 1 人出局')).toBeTruthy();
+    expect(view.getByText('5号 · 平民')).toBeTruthy();
     expect(view.getByText('狼杀')).toBeTruthy();
+    expect(view.queryByText('死亡')).toBeNull();
     expect(view.getByText('出局')).toBeTruthy();
+  });
+
+  it('renders the same outcome hero and noise zone as the modal', () => {
+    const players = new Map<number, LocalPlayer | null>([
+      [0, makePlayer(0, 'wolf')],
+      [1, makePlayer(1, 'guard')],
+      [4, makePlayer(4, 'villager')],
+    ]);
+    const view = render(
+      <NightReviewShareCard
+        data={buildNightReviewData(
+          makeGameState({
+            players,
+            currentNightResults: { wolfVotesBySeat: { '0': 4 } },
+          }),
+        )}
+        roomCode="1234"
+      />,
+    );
+
+    // Peaceful night: hero headline + sub-line, and the guard's idle entry
+    // lands in the noise zone exactly like the modal presentation.
+    expect(view.getByText('昨夜平安夜')).toBeTruthy();
+    expect(view.getByText('无人出局')).toBeTruthy();
+    expect(view.getByText(NIGHT_REVIEW_NOISE_TITLE)).toBeTruthy();
+    expect(view.getByText('守卫未守护')).toBeTruthy();
   });
 
   it('renders the identity grid with exactly one out marker', () => {

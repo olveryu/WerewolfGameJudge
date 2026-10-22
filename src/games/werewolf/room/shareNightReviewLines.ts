@@ -19,7 +19,9 @@ import {
   DEATH_REASON_LABELS,
   type NightReviewActionEntry,
   type NightReviewIdentityEntry,
+  type NightReviewOutcome,
 } from './NightReview.helpers';
+import { NIGHT_REVIEW_PEACEFUL_HEADLINE } from './nightReviewLayout';
 
 /** Display labels for the check family, keyed by checker role. */
 const CHECK_LABELS: Partial<Record<RoleId, string>> = {
@@ -144,7 +146,7 @@ export function formatNightReviewActionLine(entry: NightReviewActionEntry): stri
     case 'reflectDamage':
       return `⚠️ ${getRoleDisplayName(entry.checkerRoleId)} 查验了 ${formatSeat(entry.targetSeat)}（${getRoleDisplayName(entry.targetRoleId)}），遭到反伤`;
     case 'peacefulNight':
-      return `${STATUS.PEACEFUL_NIGHT} 昨夜平安夜`;
+      return `${STATUS.PEACEFUL_NIGHT} ${NIGHT_REVIEW_PEACEFUL_HEADLINE}`;
     case 'deaths':
       return `${STATUS.DEATH} 死亡：${entry.deaths.map((d) => (d.reason ? `${formatSeat(d.seat)}（${DEATH_REASON_LABELS[d.reason]}）` : formatSeat(d.seat))).join('、')}`;
     default: {
@@ -154,6 +156,24 @@ export function formatNightReviewActionLine(entry: NightReviewActionEntry): stri
       );
     }
   }
+}
+
+/**
+ * Format the derived night outcome as the text channel's headline line.
+ * Mirrors the DOM hero (same outcome, same death order and reason labels);
+ * the canvas fallback draws this line right under the share title instead of
+ * drawing the outcome entry in action order.
+ */
+export function formatNightReviewOutcomeLine(outcome: NightReviewOutcome): string {
+  if (outcome.type === 'peaceful') {
+    return `${STATUS.PEACEFUL_NIGHT} ${NIGHT_REVIEW_PEACEFUL_HEADLINE}`;
+  }
+  const list = outcome.deaths
+    .map((d) =>
+      d.reason ? `${formatSeat(d.seat)}（${DEATH_REASON_LABELS[d.reason]}）` : formatSeat(d.seat),
+    )
+    .join('、');
+  return `${STATUS.DEATH} 昨夜出局：${list}`;
 }
 
 /** Format one structured identity entry as its legacy summary line. */

@@ -16,6 +16,23 @@ export const NIGHT_REVIEW_ACTIONS_TITLE = '第一夜 · 行动';
 /** Section title above the identity grid. */
 export const NIGHT_REVIEW_IDENTITIES_TITLE = '全员身份';
 
+/** Outcome hero headline for a peaceful night (no deaths). */
+export const NIGHT_REVIEW_PEACEFUL_HEADLINE = '昨夜平安夜';
+
+/** Outcome hero sub-line shown under the peaceful-night headline. */
+export const NIGHT_REVIEW_PEACEFUL_SUB = '无人出局';
+
+/** Section title above the muted noise zone (idle / confirmation-only entries). */
+export const NIGHT_REVIEW_NOISE_TITLE = '未行动 · 状态确认';
+
+/** Sub-line under the wolf attack row when the wolves split their votes across targets. */
+export const NIGHT_REVIEW_WOLF_SPLIT_SUB = '狼队目标不一致';
+
+/** Outcome hero headline for a night with deaths, by death count. */
+export function formatNightReviewOutcomeHeadline(deathCount: number): string {
+  return `昨夜 ${deathCount} 人出局`;
+}
+
 /** Fair-play disclaimer shown on every review surface. */
 export const NIGHT_REVIEW_DISCLAIMER_TEXT = '仅供裁判及观战者参考';
 
