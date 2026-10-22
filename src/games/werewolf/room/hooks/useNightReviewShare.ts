@@ -15,7 +15,9 @@ import { isMiniProgram, wxPreviewImage } from '@/utils/miniProgram';
 import { buildNightReviewData } from '../NightReview.helpers';
 import {
   captureNightReviewCard,
+  captureNightReviewCardSegmented,
   renderNightReviewToCanvas,
+  SEGMENTED_CAPTURE_TRIAL_ENABLED,
   shareNightReviewReportImage,
 } from '../shareNightReview';
 
@@ -104,7 +106,9 @@ export function useNightReviewShare(
     if (scope === null || scope.key !== reportScopeKey || nightReviewData === null) return false;
     try {
       if (isMiniProgram()) {
-        const base64 = renderNightReviewToCanvas(nightReviewData, roomCode, colors);
+        const base64 = SEGMENTED_CAPTURE_TRIAL_ENABLED
+          ? await captureNightReviewCardSegmented(nightReviewShareCardRef)
+          : renderNightReviewToCanvas(nightReviewData, roomCode, colors);
         const url = await uploadShareImage(base64);
         if (!scope.isActive) return false;
         await wxPreviewImage(url);
