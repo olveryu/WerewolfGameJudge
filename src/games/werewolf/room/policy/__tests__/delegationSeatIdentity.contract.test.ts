@@ -100,6 +100,93 @@ function getInterfaceMethod(
   return match;
 }
 
+interface AutoTriggerEffectSegments {
+  keyArrayBlock: string;
+  depsBlock: string;
+}
+
+/**
+ * Anchored extraction of the auto-trigger useEffect segments.
+ *
+ * The auto-trigger effect is the useEffect whose callback builds the
+ * idempotency key as `const key = [...].join(...)`; its dependency array is
+ * the effect call's second argument. Both segments are located by AST node
+ * identity, so unrelated growth inside the effect body (extra statements,
+ * comments, longer keys) cannot push the segments out of reach the way the
+ * previous fixed character windows could (the deps window had 11 chars of
+ * headroom left).
+ */
+function getAutoTriggerEffectSegments(relativePath: string): AutoTriggerEffectSegments {
+  const sourceFile = parseTypeScriptSource(relativePath);
+  const segments: AutoTriggerEffectSegments[] = [];
+
+  function findKeyArrayLiteral(node: ts.Node): ts.ArrayLiteralExpression | undefined {
+    let found: ts.ArrayLiteralExpression | undefined;
+    function search(current: ts.Node): void {
+      if (found !== undefined) {
+        return;
+      }
+      if (
+        ts.isVariableDeclaration(current) &&
+        ts.isIdentifier(current.name) &&
+        current.name.text === 'key' &&
+        current.initializer !== undefined &&
+        ts.isCallExpression(current.initializer) &&
+        ts.isPropertyAccessExpression(current.initializer.expression) &&
+        current.initializer.expression.name.text === 'join' &&
+        ts.isArrayLiteralExpression(current.initializer.expression.expression)
+      ) {
+        found = current.initializer.expression.expression;
+        return;
+      }
+      ts.forEachChild(current, search);
+    }
+    search(node);
+    return found;
+  }
+
+  function visit(node: ts.Node): void {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === 'useEffect'
+    ) {
+      const callback = node.arguments[0];
+      if (
+        callback !== undefined &&
+        (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback))
+      ) {
+        const keyArray = findKeyArrayLiteral(callback);
+        if (keyArray !== undefined) {
+          const deps = node.arguments[1];
+          if (deps === undefined || !ts.isArrayLiteralExpression(deps)) {
+            throw new Error(
+              `[FAIL-FAST] Auto-trigger useEffect in ${relativePath} must declare a dependency array literal`,
+            );
+          }
+          segments.push({
+            keyArrayBlock: keyArray.getText(sourceFile),
+            depsBlock: deps.getText(sourceFile),
+          });
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  if (segments.length !== 1) {
+    throw new Error(
+      `[FAIL-FAST] Expected exactly one auto-trigger useEffect in ${relativePath}, found ${segments.length}`,
+    );
+  }
+  const segment = segments[0];
+  if (segment === undefined) {
+    throw new Error('[FAIL-FAST] Auto-trigger useEffect segments disappeared after validation');
+  }
+  return segment;
+}
+
 // After refactoring, handleActionIntent logic moved to useActionOrchestrator,
 // and dispatchInteraction logic moved to useInteractionDispatcher.
 // C09 further extracted intent handlers into individual executor files.
@@ -388,25 +475,9 @@ describe('Delegation Seat Identity Contract', () => {
      * so that switching seats produces a different key and re-triggers the prompt.
      */
     it('idempotency key must contain actorSeatForUi (preferred) or effectiveSeat', () => {
-      const content = readFileContent(ORCHESTRATOR_PATH);
-
-      // Find the idempotency key construction block
-      // We need the one inside the auto-trigger useEffect, not any other key.
-      // The auto-trigger key is preceded by a comment about "Auto-trigger"
-      const idempotencySection = content.indexOf('Auto-trigger intent');
-      expect(idempotencySection).toBeGreaterThan(-1);
-
-      // Find the key = [...] within the region after that comment
-      const searchRegion = content.substring(idempotencySection, idempotencySection + 1500);
-      const keyStart = searchRegion.indexOf('const key = [');
-      expect(keyStart).toBeGreaterThan(-1);
-
-      // Extract the key array (up to '].join')
-      const keyRegion = searchRegion.substring(keyStart);
-      const joinIndex = keyRegion.indexOf('].join');
-      expect(joinIndex).toBeGreaterThan(-1);
-
-      const keyArrayBlock = keyRegion.substring(0, joinIndex);
+      // Anchored extraction: the key array literal built inside the
+      // auto-trigger useEffect (see getAutoTriggerEffectSegments).
+      const { keyArrayBlock } = getAutoTriggerEffectSegments(ORCHESTRATOR_PATH);
 
       // MUST include actor seat dimension: actorSeatForUi (preferred) or effectiveSeat
       const hasActorSeat = keyArrayBlock.includes('actorSeatForUi');
@@ -421,20 +492,7 @@ describe('Delegation Seat Identity Contract', () => {
      * A key without any seat-level field would cause cross-seat deduplication.
      */
     it('idempotency key must not be missing all seat-level fields', () => {
-      const content = readFileContent(ORCHESTRATOR_PATH);
-
-      const idempotencySection = content.indexOf('Auto-trigger intent');
-      expect(idempotencySection).toBeGreaterThan(-1);
-
-      const searchRegion = content.substring(idempotencySection, idempotencySection + 1500);
-      const keyStart = searchRegion.indexOf('const key = [');
-      expect(keyStart).toBeGreaterThan(-1);
-
-      const keyRegion = searchRegion.substring(keyStart);
-      const joinIndex = keyRegion.indexOf('].join');
-      expect(joinIndex).toBeGreaterThan(-1);
-
-      const keyArrayBlock = keyRegion.substring(0, joinIndex);
+      const { keyArrayBlock } = getAutoTriggerEffectSegments(ORCHESTRATOR_PATH);
 
       // At least one of these seat-level fields must be present
       const seatFields = ['actorSeatForUi', 'effectiveSeat', 'mySeat', 'controlledSeat'];
@@ -457,28 +515,11 @@ describe('Delegation Seat Identity Contract', () => {
      * Contract: useEffect deps must include the seat field used in key
      */
     it('useEffect dependency array must include the seat field used in key', () => {
-      const content = readFileContent(ORCHESTRATOR_PATH);
-
-      const idempotencySection = content.indexOf('Auto-trigger intent');
-      expect(idempotencySection).toBeGreaterThan(-1);
-
-      // Find the deps array: starts with '}, [' after handleActionIntent call
-      const afterSection = content.substring(idempotencySection, idempotencySection + 2000);
+      const { keyArrayBlock, depsBlock } = getAutoTriggerEffectSegments(ORCHESTRATOR_PATH);
 
       // Find which seat field is in the key
-      const keyStart = afterSection.indexOf('const key = [');
-      const keyRegion = afterSection.substring(keyStart);
-      const joinIndex = keyRegion.indexOf('].join');
-      const keyArrayBlock = keyRegion.substring(0, joinIndex);
-
       const usesActorSeat = keyArrayBlock.includes('actorSeatForUi');
       const usesEffectiveSeat = keyArrayBlock.includes('effectiveSeat');
-
-      // Find the deps array (the }, [ ... ]); block at the end of useEffect)
-      const depsRegex = /\},\s*\[([\s\S]*?)\]\);/g;
-      const depsMatch = depsRegex.exec(afterSection);
-      expect(depsMatch).toBeTruthy();
-      const depsBlock = depsMatch![1];
 
       // The seat field used in the key must appear in deps
       if (usesActorSeat) {
