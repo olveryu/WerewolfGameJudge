@@ -38,6 +38,7 @@ import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, fixed } from '@/theme';
+import { isMiniProgram } from '@/utils/miniProgram';
 
 import { createWerewolfBoardInfoSections } from '../werewolfRoomAdapter';
 import { BoardNominationModal } from './components/BoardNominationList';
@@ -45,6 +46,7 @@ import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
 import { createMvpSelectionStyles, MvpSelectionModal } from './components/MvpSelectionModal';
 import { NightReviewModal } from './components/NightReviewModal';
 import { NightReviewShareCard } from './components/NightReviewShareCard';
+import { ShareProgressModal } from './components/ShareProgressModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
 import {
   SheriffElectionInspector,
@@ -167,6 +169,8 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     nightReviewData,
     nightReviewShareCardRef,
     isCapturingShareCard,
+    shareRun,
+    cancelReportShare,
     nightReviewVisible,
     closeNightReview,
     shareReviewVisible,
@@ -426,6 +430,12 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
                 roomCode={roomCode}
               />
             </View>
+          )}
+
+          {/* Share progress -- the tapped share's visible lifecycle on the
+              mini program, from tap until the WeChat preview takes over */}
+          {shareRun !== null && isMiniProgram() && (
+            <ShareProgressModal run={shareRun} onCancel={cancelReportShare} />
           )}
 
           {/* Share Review Modal -- Host picks seats whose details to share */}

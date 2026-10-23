@@ -90,6 +90,46 @@ it('shares through the in-flight capture instead of starting a second one', asyn
   await expect(getBase64()).resolves.toBe('joined-image');
 });
 
+it('tracks the share run through generation and ends it at the platform handoff', async () => {
+  let complete!: (value: string) => void;
+  const capture = new Promise<string>((resolve) => {
+    complete = resolve;
+  });
+  jest.mocked(captureNightReviewCard).mockReturnValue(capture);
+  let finishShare!: (value: 'shared') => void;
+  jest.mocked(shareNightReviewReportImage).mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finishShare = resolve;
+      }),
+  );
+  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+
+  let sharePromise!: Promise<boolean>;
+  await act(async () => {
+    sharePromise = result.current.shareNightReviewReportDirectly();
+  });
+  // Whole-view captures report no bands, but the generating phase of the
+  // run is still presented until the image exists.
+  expect(result.current.shareRun).toEqual({ phase: 'capturing', progress: null });
+
+  await act(async () => {
+    complete('fresh-image');
+  });
+  // The system share sheet owns every visible surface from the handoff
+  // on: the run ends even though the share call has not settled yet.
+  expect(result.current.shareRun).toBeNull();
+  expect(shareNightReviewReportImage).toHaveBeenCalledTimes(1);
+
+  let shared!: boolean;
+  await act(async () => {
+    finishShare('shared');
+    shared = await sharePromise;
+  });
+  expect(shared).toBe(true);
+  expect(result.current.shareRun).toBeNull();
+});
+
 it('reports capture failure and allows a fresh attempt', async () => {
   jest
     .mocked(captureNightReviewCard)
