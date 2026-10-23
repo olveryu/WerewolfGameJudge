@@ -12,10 +12,10 @@ import { ScrollView, StyleSheet, Text, useWindowDimensions } from 'react-native'
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { CloseButton } from '@/components/CloseButton';
 import { TESTIDS } from '@/testids';
-import { colors, spacing, typography } from '@/theme';
+import { borderRadius, spacing, typography } from '@/theme';
 
 import type { NightReviewData } from '../NightReview.helpers';
-import { NIGHT_REVIEW_CARD_WIDTH_RATIO } from '../nightReviewLayout';
+import { NIGHT_REPORT_PALETTE, NIGHT_REVIEW_CARD_WIDTH_RATIO } from '../nightReviewLayout';
 import { NightReviewReportBody } from './NightReviewReportBody';
 
 interface NightReviewModalProps {
@@ -27,8 +27,16 @@ interface NightReviewModalProps {
 export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, data, onClose }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
+  // The frame takes the dossier's dark surface: the report body prints its
+  // archive page edge-to-edge inside the modal.
   const contentStyle = useMemo(
-    () => ({ width: screenWidth * NIGHT_REVIEW_CARD_WIDTH_RATIO, maxHeight: screenHeight * 0.75 }),
+    () => ({
+      width: screenWidth * NIGHT_REVIEW_CARD_WIDTH_RATIO,
+      maxHeight: screenHeight * 0.75,
+      backgroundColor: NIGHT_REPORT_PALETTE.background,
+      borderRadius: borderRadius.xlarge,
+      padding: 0,
+    }),
     [screenWidth, screenHeight],
   );
 
@@ -40,7 +48,7 @@ export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, dat
       testID={TESTIDS.nightReviewModal}
       dismissOnOverlayPress
     >
-      <CloseButton onPress={onClose} />
+      <CloseButton onPress={onClose} variant="onOverlay" />
 
       <Text style={styles.title}>本局复盘</Text>
 
@@ -56,9 +64,10 @@ const styles = StyleSheet.create({
     fontSize: typography.subtitle,
     lineHeight: typography.lineHeights.subtitle,
     fontWeight: typography.weights.bold,
-    color: colors.text,
+    color: NIGHT_REPORT_PALETTE.text,
     textAlign: 'center',
-    marginBottom: spacing.medium,
+    paddingTop: spacing.large,
+    marginBottom: spacing.small,
   },
   scrollView: {
     flex: 1,

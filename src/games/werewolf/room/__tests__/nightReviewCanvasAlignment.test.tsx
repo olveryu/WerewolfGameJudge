@@ -4,11 +4,11 @@
  * Structural alignment between the mini-program canvas fallback renderer and
  * the DOM share presentation: both present the same NightReviewData — same
  * title/disclaimer copy from nightReviewLayout, same section order (share
- * title → outcome → disclaimer → actions → identities), the outcome lifted
- * out of the action order on both surfaces, and the remaining entries in the
- * same order. The canvas is a text medium, so alignment is pinned on its
- * fillText sequence against the entry formatters, and on the DOM side
- * against the rendered text order.
+ * title → outcome → stats → disclaimer → actions → sheriff → identities),
+ * the outcome lifted out of the action order on both surfaces, and the
+ * remaining entries in the same order. The canvas is a text medium, so
+ * alignment is pinned on its fillText sequence against the entry
+ * formatters, and on the DOM side against the rendered text order.
  */
 import { render } from '@testing-library/react-native';
 
@@ -25,8 +25,9 @@ import {
 import {
   formatNightReviewShareTitle,
   NIGHT_REPORT_ACTIONS_TITLE,
+  NIGHT_REPORT_FOOTER_TEXT,
+  NIGHT_REPORT_IDLE_TITLE,
   NIGHT_REPORT_SHERIFF_TITLE,
-  NIGHT_REVIEW_ACTIONS_TITLE,
   NIGHT_REVIEW_DISCLAIMER_TEXT,
   NIGHT_REVIEW_IDENTITIES_TITLE,
 } from '../nightReviewLayout';
@@ -276,33 +277,38 @@ describe('night review canvas / DOM structural alignment', () => {
     };
 
     // Same shared copy, same section order as the canvas sequence:
-    // share title → outcome hero headline → disclaimer → actions.
+    // share title → headline → stats strip → action cards → identity wall →
+    // footer (the canvas disclaimer text lives in the DOM footer).
     expect(indexOf(formatNightReviewShareTitle('1234'))).toBeLessThan(indexOf('昨夜 1 人出局'));
-    expect(indexOf('昨夜 1 人出局')).toBeLessThan(indexOf(NIGHT_REVIEW_DISCLAIMER_TEXT));
-    expect(indexOf(NIGHT_REVIEW_DISCLAIMER_TEXT)).toBeLessThan(indexOf(NIGHT_REVIEW_ACTIONS_TITLE));
+    expect(indexOf('昨夜 1 人出局')).toBeLessThan(indexOf('● 狼杀 1'));
+    expect(indexOf('● 狼杀 1')).toBeLessThan(indexOf(NIGHT_REPORT_ACTIONS_TITLE));
+    expect(indexOf(NIGHT_REPORT_FOOTER_TEXT)).toBeGreaterThan(
+      indexOf(NIGHT_REVIEW_IDENTITIES_TITLE),
+    );
+    expect(NIGHT_REPORT_FOOTER_TEXT).toContain(NIGHT_REVIEW_DISCLAIMER_TEXT);
 
-    // Action rows appear in entry order between the two section titles; the
-    // outcome itself never appears as a timeline row (hero only).
-    const rowTitles = ['狼人袭击', '守卫守护', '女巫使用解药救了', '毒药未使用', '预言家查验'];
+    // Action cards appear in entry order between the two section titles;
+    // the outcome itself never appears as a card (header only).
+    const cardTitles = ['狼队', '守护', '使用解药救了', '查验'];
     expect(sequence).not.toContain('死亡');
-    let previous = indexOf(NIGHT_REVIEW_ACTIONS_TITLE);
-    for (const title of rowTitles) {
+    let previous = indexOf(NIGHT_REPORT_ACTIONS_TITLE);
+    for (const title of cardTitles) {
       const index = indexOf(title);
       expect(index).toBeGreaterThan(previous);
       previous = index;
     }
     expect(indexOf(NIGHT_REVIEW_IDENTITIES_TITLE)).toBeGreaterThan(previous);
 
-    // Identity seats ascend after the identities title.
+    // Identity roles ascend by seat after the identities title.
     const afterIdentities = sequence.slice(indexOf(NIGHT_REVIEW_IDENTITIES_TITLE));
-    const seatIndices = ['1号', '2号', '3号', '4号', '5号'].map((label) =>
+    const roleIndices = ['狼人', '守卫', '女巫', '预言家', '平民'].map((label) =>
       afterIdentities.indexOf(label),
     );
-    for (const index of seatIndices) expect(index).toBeGreaterThanOrEqual(0);
-    expect([...seatIndices].sort((a, b) => a - b)).toEqual(seatIndices);
+    for (const index of roleIndices) expect(index).toBeGreaterThanOrEqual(0);
+    expect([...roleIndices].sort((a, b) => a - b)).toEqual(roleIndices);
   });
 
-  it('orders the DOM sections hero → actions → noise zone → identities', () => {
+  it('orders the DOM sections header → actions → strip → sheriff → identities', () => {
     const players = new Map<number, LocalPlayer | null>([
       [0, makePlayer(0, 'wolf')],
       [1, makePlayer(1, 'guard')],
@@ -324,8 +330,9 @@ describe('night review canvas / DOM structural alignment', () => {
       return index;
     };
 
-    expect(indexOf('昨夜平安夜')).toBeLessThan(indexOf(NIGHT_REVIEW_ACTIONS_TITLE));
-    expect(indexOf(NIGHT_REVIEW_ACTIONS_TITLE)).toBeLessThan(indexOf('守卫未守护'));
-    expect(indexOf('守卫未守护')).toBeLessThan(indexOf(NIGHT_REVIEW_IDENTITIES_TITLE));
+    expect(indexOf('昨夜平安夜')).toBeLessThan(indexOf(NIGHT_REPORT_ACTIONS_TITLE));
+    expect(indexOf(NIGHT_REPORT_ACTIONS_TITLE)).toBeLessThan(indexOf(NIGHT_REPORT_IDLE_TITLE));
+    expect(indexOf(NIGHT_REPORT_IDLE_TITLE)).toBeLessThan(indexOf('守卫 2号 未守护'));
+    expect(indexOf('守卫 2号 未守护')).toBeLessThan(indexOf(NIGHT_REVIEW_IDENTITIES_TITLE));
   });
 });

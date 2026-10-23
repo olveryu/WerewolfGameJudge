@@ -12,17 +12,11 @@ import { colors, NIGHT_REPORT_DOSSIER_COLORS } from '@/theme';
 /** Card width as a fraction of the window width, shared by all three surfaces. */
 export const NIGHT_REVIEW_CARD_WIDTH_RATIO = 0.88;
 
-/** Section title above the night action entries. */
-export const NIGHT_REVIEW_ACTIONS_TITLE = '第一夜 · 行动';
-
 /** Section title above the identity grid. */
 export const NIGHT_REVIEW_IDENTITIES_TITLE = '全员身份';
 
 /** Outcome hero headline for a peaceful night (no deaths). */
 export const NIGHT_REVIEW_PEACEFUL_HEADLINE = '昨夜平安夜';
-
-/** Outcome hero sub-line shown under the peaceful-night headline. */
-export const NIGHT_REVIEW_PEACEFUL_SUB = '无人出局';
 
 /** Outcome hero headline for a night with deaths, by death count. */
 export function formatNightReviewOutcomeHeadline(deathCount: number): string {

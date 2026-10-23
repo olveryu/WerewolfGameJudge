@@ -242,7 +242,7 @@ export function formatNightReviewStatsLine(stats: NightReportStats): string {
 }
 
 /** Format a wolf verdict as its line, drawn right after the wolf attack line. */
-export function formatNightReviewWolfVerdictLine(verdict: NightReviewWolfVerdict): string {
+function formatNightReviewWolfVerdictLine(verdict: NightReviewWolfVerdict): string {
   switch (verdict.type) {
     case 'sharedTarget':
       return NIGHT_REPORT_WOLF_VERDICT_SHARED;
@@ -271,7 +271,7 @@ function formatSheriffSeatList(seats: readonly number[]): string {
 }
 
 /** Format one closed sheriff round as its record line. */
-export function formatNightReviewSheriffRoundLine(round: NightReviewSheriffRound): string {
+function formatNightReviewSheriffRoundLine(round: NightReviewSheriffRound): string {
   const label = NIGHT_REPORT_SHERIFF_ROUND_LABELS[round.round];
   const candidateParts = [...round.perCandidate]
     .sort((a, b) => b.votes - a.votes || a.seat - b.seat)
@@ -325,9 +325,10 @@ export function formatNightReviewSheriffLines(section: NightReviewSheriffSection
     case 'completed': {
       const lines: string[] = [];
       if (section.result.kind === 'elected') {
+        const sheriffSeat = section.result.sheriffSeat;
         const decidingRound = section.rounds[section.rounds.length - 1];
         const winner = decidingRound?.perCandidate.find(
-          (candidate) => candidate.seat === section.result.sheriffSeat,
+          (candidate) => candidate.seat === sheriffSeat,
         );
         if (decidingRound !== undefined && winner !== undefined) {
           const total =
@@ -335,11 +336,11 @@ export function formatNightReviewSheriffLines(section: NightReviewSheriffSection
             decidingRound.abstainingSeats.length;
           const label = NIGHT_REPORT_SHERIFF_ROUND_LABELS[decidingRound.round];
           lines.push(
-            `${NIGHT_REPORT_SHERIFF_TITLE}：${formatSeat(section.result.sheriffSeat)} ${NIGHT_REPORT_SHERIFF_ELECTED_TITLE}（${label} ${winner.votes}/${total} 票）`,
+            `${NIGHT_REPORT_SHERIFF_TITLE}：${formatSeat(sheriffSeat)} ${NIGHT_REPORT_SHERIFF_ELECTED_TITLE}（${label} ${winner.votes}/${total} 票）`,
           );
         } else {
           lines.push(
-            `${NIGHT_REPORT_SHERIFF_TITLE}：${formatSeat(section.result.sheriffSeat)} ${NIGHT_REPORT_SHERIFF_ELECTED_TITLE}`,
+            `${NIGHT_REPORT_SHERIFF_TITLE}：${formatSeat(sheriffSeat)} ${NIGHT_REPORT_SHERIFF_ELECTED_TITLE}`,
           );
         }
       } else {
