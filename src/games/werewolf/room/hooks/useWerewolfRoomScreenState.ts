@@ -50,7 +50,7 @@ import {
   readPanelFlowProgress,
   recordPanelFlowProgress,
 } from '../../services/panelFlowProgressStore';
-import type { PanelFlowProgress } from '../panelFlow';
+import type { PanelFlowProgress, PanelFlowViewer } from '../panelFlow';
 import type { ActionIntent, HostControlEvent } from '../policy/types';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
 import { useRoomHostDialogs } from '../useRoomHostDialogs';
@@ -1040,6 +1040,10 @@ export function useWerewolfRoomScreenState(
         actionMessage: derived.actionMessage,
         guideMessage,
         panelFlow: panelFlowProgress,
+        panelFlowViewer: {
+          role: isHost ? 'host' : effectiveSeat !== null ? 'player' : 'spectator',
+          reviewShared: (gameState.nightReviewAllowedSeats ?? []).length > 0,
+        } satisfies PanelFlowViewer,
         gameState,
         seatViewModels: derived.seatViewModels,
         controlledSeat,
@@ -1109,6 +1113,7 @@ export function useWerewolfRoomScreenState(
       executeMarkAllBotsGroupConfirmed,
       handleOpenNightReview,
       panelFlowProgress,
+      effectiveSeat,
       handleLastNightInfo,
       bottomLayout,
       handleSchemaButtonPress,

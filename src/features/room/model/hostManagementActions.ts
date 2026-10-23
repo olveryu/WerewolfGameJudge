@@ -13,6 +13,15 @@ import { TESTIDS } from '@/testids';
 
 import type { RoomHostManagementAction, RoomHostRemedy } from './RoomHostManagement';
 
+/**
+ * Variant of the two terminal (closing) actions — 再来一局 and
+ * 返回大厅. Single source: the shared builders below read it, and
+ * every surface that re-presents the same actions (the werewolf
+ * bottom panel's closing row) reads it too, instead of restating
+ * the literal.
+ */
+export const TERMINAL_ACTION_VARIANT = 'danger' as const;
+
 interface ActionInput {
   readonly onPress: () => void;
   readonly isEnabled?: boolean;
@@ -238,25 +247,25 @@ export function createViewingBeginGate(input: ViewingBeginGateInput): ViewingBeg
   };
 }
 
-/** "再来一局" — primary terminal action; the game's confirm copy stays in onPress. */
+/** "再来一局" — danger terminal action; the game's confirm copy stays in onPress. */
 export function buildNextRoundAction(input: ActionInput): RoomHostManagementAction {
   return buildAction(
     'next-round',
     '再来一局',
     'play-forward-outline',
-    'primary',
+    TERMINAL_ACTION_VARIANT,
     TESTIDS.nextRoundButton,
     input,
   );
 }
 
-/** "返回大厅" — secondary terminal action; the game's confirm copy stays in onPress. */
+/** "返回大厅" — danger terminal action; the game's confirm copy stays in onPress. */
 export function buildReturnLobbyAction(input: ActionInput): RoomHostManagementAction {
   return buildAction(
     'return-lobby',
     '返回大厅',
     'return-down-back-outline',
-    'secondary',
+    TERMINAL_ACTION_VARIANT,
     TESTIDS.returnLobbyButton,
     input,
   );

@@ -531,6 +531,24 @@ describe('createWerewolfRoomShellModel', () => {
     }
   });
 
+  it('gives a spectator no step bar at Ended (their panel is the review button)', () => {
+    const model = createWerewolfRoomShellModel(
+      createShellModelInput({
+        roomStatus: GameStatus.Ended,
+        isHost: false,
+        actionMessage: '对局结束',
+        panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
+        panelFlowViewer: { role: 'spectator', reviewShared: false },
+      }),
+    );
+    expect(model.bottomActions.kind).toBe('stacked');
+    if (model.bottomActions.kind === 'stacked') {
+      expect(model.bottomActions.steps).toBeUndefined();
+      expect(model.bottomActions.hint).toBeUndefined();
+      expect(model.bottomActions.message).toBe('对局结束');
+    }
+  });
+
   it('shows the host share hint while the Ended review step is current', () => {
     const model = createWerewolfRoomShellModel(
       createShellModelInput({
@@ -557,14 +575,17 @@ describe('createWerewolfRoomShellModel', () => {
       }),
     );
     if (guest.bottomActions.kind === 'stacked') {
-      expect(guest.bottomActions.hint).toBeNull();
+      // No flow for a player: the Ended model carries no hint field
+      // at all (same shape as the spectator's).
+      expect(guest.bottomActions.hint).toBeUndefined();
     }
   });
 
-  it('puts the step bar on the Day panel too (first step = last-night info)', () => {
+  it('puts the step bar on the host Day panel too (first step = last-night info)', () => {
     const model = createWerewolfRoomShellModel(
       createShellModelInput({
         roomStatus: GameStatus.Day,
+        isHost: true,
         panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
       }),
     );

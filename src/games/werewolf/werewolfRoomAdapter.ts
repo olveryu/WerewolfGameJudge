@@ -42,7 +42,7 @@ import type {
   StaticButtonAction,
 } from '@/games/werewolf/room/hooks/bottomLayoutConfig';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
-import type { PanelFlowProgress } from '@/games/werewolf/room/panelFlow';
+import type { PanelFlowProgress, PanelFlowViewer } from '@/games/werewolf/room/panelFlow';
 import { buildPanelFlowSteps, resolvePanelFlowHint } from '@/games/werewolf/room/panelFlow';
 import type { ActionIntent, HostControlEvent } from '@/games/werewolf/room/policy/types';
 import { createSheriffElectionDockModel } from '@/games/werewolf/room/sheriffElectionDockModel';
@@ -347,6 +347,14 @@ export interface WerewolfRoomShellModelInput {
    * channel can omit it; the Screen always supplies it.
    */
   readonly panelFlow?: PanelFlowProgress;
+  /**
+   * Panel-flow viewer facts for the current user (see panelFlow.ts).
+   * Optional alongside panelFlow for the same focused tests; when
+   * omitted it defaults from isHost to a participant viewer (host
+   * when host, otherwise an authorized player). The Screen always
+   * supplies the real viewer — spectators get no step bar.
+   */
+  readonly panelFlowViewer?: PanelFlowViewer;
   readonly gameState: LocalGameState;
   // Seats and takeover.
   readonly seatViewModels: readonly SeatViewModel[];
@@ -504,12 +512,17 @@ function createWerewolfBottomActions(
   // the Screen supplies flow progress. buildPanelFlowSteps is null for
   // every other status, so this only ever engages at Day/Ended.
   const panelFlow = input.panelFlow;
+  const flowViewer: PanelFlowViewer = input.panelFlowViewer ?? {
+    role: input.isHost ? 'host' : 'player',
+    reviewShared: false,
+  };
   const flowSteps =
     panelFlow === undefined
       ? null
       : buildPanelFlowSteps({
           roomStatus: input.roomStatus,
           progress: panelFlow,
+          viewer: flowViewer,
           onOpenLastNightInfo: input.onLastNightInfo,
           onOpenNightReview: input.onNightReview,
         });
@@ -520,6 +533,7 @@ function createWerewolfBottomActions(
           roomStatus: input.roomStatus,
           isHost: input.isHost,
           progress: panelFlow,
+          reviewShared: flowViewer.reviewShared,
         });
 
   if (input.roomStatus === GameStatus.Ended) {
