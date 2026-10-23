@@ -197,6 +197,7 @@ export const TESTIDS = {
   // ShareReviewModal
   shareReviewButton: 'share-review-button',
   shareReviewModal: 'share-review-modal',
+  shareProgressModal: 'share-progress-modal',
 
   // QRCodeModal
   qrCodeModal: 'qr-code-modal',
