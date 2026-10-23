@@ -36,8 +36,8 @@ import type {
 } from '../commands/types';
 import {
   REASON_PICTIONARY_GALLERY_MANUAL,
+  REASON_PICTIONARY_PHASE_EXPIRED,
   REASON_PICTIONARY_PHASE_INVALID,
-  REASON_PICTIONARY_PHASE_NOT_EXPIRED,
   REASON_PICTIONARY_TASK_ALREADY_SUBMITTED,
   REASON_PICTIONARY_TASK_INVALID,
 } from '../domain/reasons';
@@ -376,13 +376,16 @@ describe('Pictionary relay-chain contract', () => {
 
   it('keeps its own submission gates on the shared machine', () => {
     const session = game();
-    // Late readiness: the answering deadline has passed.
+    // Late readiness: the answering deadline has passed, so the
+    // shared machine's deadline gate rejects with the dedicated
+    // expired reason (not the not-expired reason the host's early
+    // finish/expire path uses).
     const answeringDeadline = session.state.deadlineAt;
     if (answeringDeadline === null) throw new Error('Missing answering deadline');
     session.setNow(answeringDeadline);
     expect(session.decide({ type: 'pictionary.task.ready.set', isReady: true })).toEqual({
       kind: 'reject',
-      reason: REASON_PICTIONARY_PHASE_NOT_EXPIRED,
+      reason: REASON_PICTIONARY_PHASE_EXPIRED,
     });
     // Move to the first drawing step (step 1) and settle it.
     session.expireCurrentPhase();
