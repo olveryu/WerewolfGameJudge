@@ -7,6 +7,9 @@
  * fallback renderer (shareNightReview) and text-level test assertions.
  * The DOM surfaces (NightReviewModal, NightReviewShareCard) do NOT use this
  * module — they render entries structurally via NightReviewReportBody.
+ * Action subjects carry the actor's seat once, at the subject; the sheriff
+ * lines format the fact layer's public-record section, so nothing secret
+ * can reach this channel either.
  */
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
@@ -17,11 +20,42 @@ import { ACTION, STATUS } from '@/config/emojiTokens';
 
 import {
   DEATH_REASON_LABELS,
+  deriveWolfVerdict,
+  type NightReportStats,
   type NightReviewActionEntry,
   type NightReviewIdentityEntry,
   type NightReviewOutcome,
+  type NightReviewSheriffRound,
+  type NightReviewSheriffSection,
+  type NightReviewWolfVerdict,
 } from './NightReview.helpers';
-import { NIGHT_REVIEW_PEACEFUL_HEADLINE } from './nightReviewLayout';
+import {
+  NIGHT_REPORT_SHERIFF_ABSTAIN_LABEL,
+  NIGHT_REPORT_SHERIFF_CANDIDATES_LABEL,
+  NIGHT_REPORT_SHERIFF_ELECTED_TITLE,
+  NIGHT_REPORT_SHERIFF_IN_PROGRESS,
+  NIGHT_REPORT_SHERIFF_NONE_TITLE,
+  NIGHT_REPORT_SHERIFF_REASON_LABELS,
+  NIGHT_REPORT_SHERIFF_REGISTRATION_STATUS,
+  NIGHT_REPORT_SHERIFF_ROUND_LABELS,
+  NIGHT_REPORT_SHERIFF_TITLE,
+  NIGHT_REPORT_SHERIFF_WITHDRAWN_LABEL,
+  NIGHT_REPORT_STAT_LABELS,
+  NIGHT_REPORT_WOLF_VERDICT_ALL_ABSTAIN,
+  NIGHT_REPORT_WOLF_VERDICT_SHARED,
+  NIGHT_REPORT_WOLF_VERDICT_SPLIT_KILLED,
+  NIGHT_REPORT_WOLF_VERDICT_SPLIT_TIED,
+  NIGHT_REVIEW_PEACEFUL_HEADLINE,
+} from './nightReviewLayout';
+
+/**
+ * A sentence subject carrying its seat exactly once — 「女巫（10号）」. The
+ * legacy lines named the actor's role without a seat; the 2026 report pins
+ * the actor's seat at the subject and keeps inline targets seat-only.
+ */
+function subject(roleName: string, actorSeat: number): string {
+  return `${roleName}（${formatSeat(actorSeat)}）`;
+}
 
 /** Display labels for the check family, keyed by checker role. */
 const CHECK_LABELS: Partial<Record<RoleId, string>> = {
@@ -48,9 +82,9 @@ export function formatNightReviewActionLine(entry: NightReviewActionEntry): stri
     case 'bottomCards':
       return `${getRoleEmoji('treasureMaster')} 底牌组成：${entry.roleIds.map((id) => getRoleDisplayName(id)).join('、')}`;
     case 'cardChoice':
-      return `${getRoleEmoji(entry.actorRoleId)} ${getRoleDisplayName(entry.actorRoleId)}选择了 ${getRoleDisplayName(entry.chosenRoleId)}`;
+      return `${getRoleEmoji(entry.actorRoleId)} ${subject(getRoleDisplayName(entry.actorRoleId), entry.actorSeat)}选择了 ${getRoleDisplayName(entry.chosenRoleId)}`;
     case 'cupidLink':
-      return `${getRoleEmoji('cupid')} 丘比特连线了 ${formatSeat(entry.seats[0])} 和 ${formatSeat(entry.seats[1])}`;
+      return `${getRoleEmoji('cupid')} ${subject('丘比特', entry.actorSeat)}连线了 ${formatSeat(entry.seats[0])} 和 ${formatSeat(entry.seats[1])}`;
     case 'wolfAttack': {
       // Real votes first (voter→target), then each abstention as 「N号空刀」;
       // abstainSeats are split out by the fact layer, so no sentinel can be
@@ -67,87 +101,89 @@ export function formatNightReviewActionLine(entry: NightReviewActionEntry): stri
     case 'wolfGiveUp':
       return `${getRoleEmoji('wolf')} 狼人放弃袭击（${entry.reason === 'poisonerPresent' ? '毒师在场' : `被${getRoleDisplayName('nightmare')}封锁`}）`;
     case 'nightmareBlock':
-      return `${getRoleEmoji('nightmare')} ${getRoleDisplayName('nightmare')}封锁了 ${formatSeat(entry.targetSeat)}${entry.targetRoleId ? `（${getRoleDisplayName(entry.targetRoleId)}，技能无效）` : ''}`;
+      return `${getRoleEmoji('nightmare')} ${subject(getRoleDisplayName('nightmare'), entry.actorSeat)}封锁了 ${formatSeat(entry.targetSeat)}${entry.targetRoleId ? `（${getRoleDisplayName(entry.targetRoleId)}，技能无效）` : ''}`;
     case 'nightmareIdle':
-      return `${getRoleEmoji('nightmare')} ${getRoleDisplayName('nightmare')}未封锁`;
+      return `${getRoleEmoji('nightmare')} ${subject(getRoleDisplayName('nightmare'), entry.actorSeat)}未封锁`;
     case 'shelter':
-      return `${getRoleEmoji('eclipseWolfQueen')} ${getRoleDisplayName('eclipseWolfQueen')}庇护了 ${formatSeat(entry.targetSeat)}`;
+      return `${getRoleEmoji('eclipseWolfQueen')} ${subject(getRoleDisplayName('eclipseWolfQueen'), entry.actorSeat)}庇护了 ${formatSeat(entry.targetSeat)}`;
     case 'shelterIdle':
-      return `${getRoleEmoji('eclipseWolfQueen')} ${getRoleDisplayName('eclipseWolfQueen')}未庇护`;
+      return `${getRoleEmoji('eclipseWolfQueen')} ${subject(getRoleDisplayName('eclipseWolfQueen'), entry.actorSeat)}未庇护`;
     case 'hiddenWolfConfirmed':
-      return `${getRoleEmoji('hiddenWolf')} ${getRoleDisplayName('hiddenWolf')}已确认狼同伴`;
+      return `${getRoleEmoji('hiddenWolf')} ${subject(getRoleDisplayName('hiddenWolf'), entry.actorSeat)}已确认狼同伴`;
     case 'guard':
-      return `${ACTION.GUARD} 守卫守护了 ${formatSeat(entry.targetSeat)}`;
+      return `${ACTION.GUARD} ${subject('守卫', entry.actorSeat)}守护了 ${formatSeat(entry.targetSeat)}`;
     case 'guardIdle':
-      return `${ACTION.GUARD} 守卫未守护`;
+      return `${ACTION.GUARD} ${subject('守卫', entry.actorSeat)}未守护`;
     case 'silence':
-      return `${getRoleEmoji('silenceElder')} 禁言长老禁言了 ${formatSeat(entry.targetSeat)}`;
+      return `${getRoleEmoji('silenceElder')} ${subject('禁言长老', entry.actorSeat)}禁言了 ${formatSeat(entry.targetSeat)}`;
     case 'silenceIdle':
-      return `${getRoleEmoji('silenceElder')} 禁言长老未禁言`;
+      return `${getRoleEmoji('silenceElder')} ${subject('禁言长老', entry.actorSeat)}未禁言`;
     case 'voteban':
-      return `${getRoleEmoji('votebanElder')} 禁票长老禁票了 ${formatSeat(entry.targetSeat)}`;
+      return `${getRoleEmoji('votebanElder')} ${subject('禁票长老', entry.actorSeat)}禁票了 ${formatSeat(entry.targetSeat)}`;
     case 'votebanIdle':
-      return `${getRoleEmoji('votebanElder')} 禁票长老未禁票`;
+      return `${getRoleEmoji('votebanElder')} ${subject('禁票长老', entry.actorSeat)}未禁票`;
     case 'save':
-      return `${ACTION.SAVE} 女巫使用解药救了 ${formatSeat(entry.targetSeat)}`;
+      return `${ACTION.SAVE} ${subject('女巫', entry.actorSeat)}使用解药救了 ${formatSeat(entry.targetSeat)}`;
     case 'poison':
-      return `${ACTION.POISON} ${entry.actorRoleId === 'poisoner' ? '毒师毒杀了' : '女巫使用毒药毒杀了'} ${formatSeat(entry.targetSeat)}`;
+      return entry.actorRoleId === 'poisoner'
+        ? `${ACTION.POISON} ${subject('毒师', entry.actorSeat)}毒杀了 ${formatSeat(entry.targetSeat)}`
+        : `${ACTION.POISON} ${subject('女巫', entry.actorSeat)}使用毒药毒杀了 ${formatSeat(entry.targetSeat)}`;
     case 'witchIdleAll':
-      return `${ACTION.SAVE} 女巫未使用药水`;
+      return `${ACTION.SAVE} ${subject('女巫', entry.actorSeat)}未使用药水`;
     case 'witchNoSave':
-      return `${ACTION.SAVE} 女巫未使用解药`;
+      return `${ACTION.SAVE} ${subject('女巫', entry.actorSeat)}未使用解药`;
     case 'witchNoPoison':
-      return `${ACTION.POISON} 女巫未使用毒药`;
+      return `${ACTION.POISON} ${subject('女巫', entry.actorSeat)}未使用毒药`;
     case 'poisonerNoPoison':
-      return `${ACTION.POISON} 毒师未使用毒药`;
+      return `${ACTION.POISON} ${subject('毒师', entry.actorSeat)}未使用毒药`;
     case 'curse':
-      return `${getRoleEmoji('crow')} 乌鸦诅咒了 ${formatSeat(entry.targetSeat)}`;
+      return `${getRoleEmoji('crow')} ${subject('乌鸦', entry.actorSeat)}诅咒了 ${formatSeat(entry.targetSeat)}`;
     case 'curseIdle':
-      return `${getRoleEmoji('crow')} 乌鸦未诅咒`;
+      return `${getRoleEmoji('crow')} ${subject('乌鸦', entry.actorSeat)}未诅咒`;
     case 'dream':
-      return `${getRoleEmoji('dreamcatcher')} 摄梦人摄梦了 ${formatSeat(entry.targetSeat)}`;
+      return `${getRoleEmoji('dreamcatcher')} ${subject('摄梦人', entry.actorSeat)}摄梦了 ${formatSeat(entry.targetSeat)}`;
     case 'dreamIdle':
-      return `${getRoleEmoji('dreamcatcher')} 摄梦人未摄梦`;
+      return `${getRoleEmoji('dreamcatcher')} ${subject('摄梦人', entry.actorSeat)}未摄梦`;
     case 'swap':
-      return `${getRoleEmoji('magician')} 魔术师交换了 ${formatSeat(entry.seats[0])} 和 ${formatSeat(entry.seats[1])}`;
+      return `${getRoleEmoji('magician')} ${subject('魔术师', entry.actorSeat)}交换了 ${formatSeat(entry.seats[0])} 和 ${formatSeat(entry.seats[1])}`;
     case 'swapIdle':
-      return `${getRoleEmoji('magician')} 魔术师未交换`;
+      return `${getRoleEmoji('magician')} ${subject('魔术师', entry.actorSeat)}未交换`;
     case 'idolChoice':
       return entry.actorRoleId === 'slacker'
-        ? `${getRoleEmoji('slacker')} ${getRoleDisplayName('slacker')}选择了 ${formatSeat(entry.targetSeat)} 为榜样`
-        : `${getRoleEmoji('wildChild')} 野孩子选择了 ${formatSeat(entry.targetSeat)} 为榜样`;
+        ? `${getRoleEmoji('slacker')} ${subject(getRoleDisplayName('slacker'), entry.actorSeat)}选择了 ${formatSeat(entry.targetSeat)} 为榜样`
+        : `${getRoleEmoji('wildChild')} ${subject('野孩子', entry.actorSeat)}选择了 ${formatSeat(entry.targetSeat)} 为榜样`;
     case 'mimic':
-      return `${getRoleEmoji('shadow')} 影子模仿了 ${formatSeat(entry.targetSeat)}${entry.isBound ? '（绑定）' : ''}`;
+      return `${getRoleEmoji('shadow')} ${subject('影子', entry.actorSeat)}模仿了 ${formatSeat(entry.targetSeat)}${entry.isBound ? '（绑定）' : ''}`;
     case 'avengerConfirmed':
-      return `${getRoleEmoji('avenger')} 复仇者已确认阵营`;
+      return `${getRoleEmoji('avenger')} ${subject('复仇者', entry.actorSeat)}已确认阵营`;
     case 'charm':
-      return `${ACTION.CHARM} 狼美人魅惑了 ${formatSeat(entry.targetSeat)}`;
+      return `${ACTION.CHARM} ${subject('狼美人', entry.actorSeat)}魅惑了 ${formatSeat(entry.targetSeat)}`;
     case 'charmIdle':
-      return `${ACTION.CHARM} 狼美人未魅惑`;
+      return `${ACTION.CHARM} ${subject('狼美人', entry.actorSeat)}未魅惑`;
     case 'convert':
-      return `${getRoleEmoji('awakenedGargoyle')} ${getRoleDisplayName('awakenedGargoyle')}转化了 ${formatSeat(entry.targetSeat)}`;
+      return `${getRoleEmoji('awakenedGargoyle')} ${subject(getRoleDisplayName('awakenedGargoyle'), entry.actorSeat)}转化了 ${formatSeat(entry.targetSeat)}`;
     case 'hypnotize':
-      return `${getRoleEmoji('piper')} 吹笛者催眠了 ${entry.targetSeats.map((seat) => formatSeat(seat)).join('、')}`;
+      return `${getRoleEmoji('piper')} ${subject('吹笛者', entry.actorSeat)}催眠了 ${entry.targetSeats.map((seat) => formatSeat(seat)).join('、')}`;
     case 'hypnotizeIdle':
-      return `${getRoleEmoji('piper')} 吹笛者未催眠`;
+      return `${getRoleEmoji('piper')} ${subject('吹笛者', entry.actorSeat)}未催眠`;
     case 'check':
-      return `${ACTION.CHECK} ${checkLabel(entry.actorRoleId)}查验 ${formatSeat(entry.targetSeat)}：${entry.result}`;
+      return `${ACTION.CHECK} ${subject(checkLabel(entry.actorRoleId), entry.actorSeat)}查验 ${formatSeat(entry.targetSeat)}：${entry.result}`;
     case 'checkIdle':
-      return `${ACTION.CHECK} ${checkLabel(entry.actorRoleId)}未查验`;
+      return `${ACTION.CHECK} ${subject(checkLabel(entry.actorRoleId), entry.actorSeat)}未查验`;
     case 'learn':
-      return `${ACTION.LEARN} ${getRoleDisplayName('wolfRobot')}学习了 ${formatSeat(entry.targetSeat)}（${getRoleDisplayName(entry.learnedRoleId)}）`;
+      return `${ACTION.LEARN} ${subject(getRoleDisplayName('wolfRobot'), entry.actorSeat)}学习了 ${formatSeat(entry.targetSeat)}（${getRoleDisplayName(entry.learnedRoleId)}）`;
     case 'learnIdle':
-      return `${ACTION.LEARN} ${getRoleDisplayName('wolfRobot')}未学习`;
+      return `${ACTION.LEARN} ${subject(getRoleDisplayName('wolfRobot'), entry.actorSeat)}未学习`;
     case 'shootStatus':
       return entry.actorRoleId === 'hunter'
-        ? `${ACTION.SHOOT} 猎人${entry.canShoot ? '可以' : '不能'}发动技能`
-        : `${getRoleEmoji('darkWolfKing')} ${getRoleDisplayName('darkWolfKing')}${entry.canShoot ? '可以' : '不能'}发动技能`;
+        ? `${ACTION.SHOOT} ${subject('猎人', entry.actorSeat)}${entry.canShoot ? '可以' : '不能'}发动技能`
+        : `${getRoleEmoji('darkWolfKing')} ${subject(getRoleDisplayName('darkWolfKing'), entry.actorSeat)}${entry.canShoot ? '可以' : '不能'}发动技能`;
     case 'infectConverted':
-      return `${getRoleEmoji('seedWolf')} ${getRoleDisplayName('seedWolf')}成功感染了 ${formatSeat(entry.targetSeat)}`;
+      return `${getRoleEmoji('seedWolf')} ${subject(getRoleDisplayName('seedWolf'), entry.actorSeat)}成功感染了 ${formatSeat(entry.targetSeat)}`;
     case 'infectFailed':
-      return `${getRoleEmoji('seedWolf')} ${getRoleDisplayName('seedWolf')}感染 ${formatSeat(entry.targetSeat)}失败`;
+      return `${getRoleEmoji('seedWolf')} ${subject(getRoleDisplayName('seedWolf'), entry.actorSeat)}感染 ${formatSeat(entry.targetSeat)}失败`;
     case 'infectIdle':
-      return `${getRoleEmoji('seedWolf')} ${getRoleDisplayName('seedWolf')}未使用感染`;
+      return `${getRoleEmoji('seedWolf')} ${subject(getRoleDisplayName('seedWolf'), entry.actorSeat)}未使用感染`;
     case 'guardSaveConflict':
       return `⚠️ 同守同救：${formatSeat(entry.targetSeat)} 仍然死亡`;
     case 'poisonImmune':
@@ -193,4 +229,138 @@ export function formatNightReviewIdentityLine(entry: NightReviewIdentityEntry): 
       ? getRoleDisplayName(entry.roleId)
       : '未分配';
   return `${formatSeat(entry.seat)}: ${roleName}`;
+}
+
+/** Format the derived stats tallies as the text channel's stats line. */
+export function formatNightReviewStatsLine(stats: NightReportStats): string {
+  return [
+    `${NIGHT_REPORT_STAT_LABELS.wolfKill} ${stats.wolfKills}`,
+    `${NIGHT_REPORT_STAT_LABELS.poison} ${stats.poisonKills}`,
+    `${NIGHT_REPORT_STAT_LABELS.save} ${stats.saves}`,
+    `${NIGHT_REPORT_STAT_LABELS.check} ${stats.checks}`,
+  ].join(' · ');
+}
+
+/** Format a wolf verdict as its line, drawn right after the wolf attack line. */
+function formatNightReviewWolfVerdictLine(verdict: NightReviewWolfVerdict): string {
+  switch (verdict.type) {
+    case 'sharedTarget':
+      return NIGHT_REPORT_WOLF_VERDICT_SHARED;
+    case 'splitKilled':
+      return NIGHT_REPORT_WOLF_VERDICT_SPLIT_KILLED;
+    case 'splitTied':
+      return NIGHT_REPORT_WOLF_VERDICT_SPLIT_TIED;
+    case 'allAbstain':
+      return NIGHT_REPORT_WOLF_VERDICT_ALL_ABSTAIN;
+  }
+}
+
+/** Convenience: the verdict line for a wolfAttack entry, from the fact layer. */
+export function formatNightReviewWolfVerdictForEntry(
+  entry: Extract<NightReviewActionEntry, { kind: 'wolfAttack' }>,
+): string {
+  return formatNightReviewWolfVerdictLine(deriveWolfVerdict(entry));
+}
+
+/**
+ * Seat list in the election record's compact form: bare numbers joined by
+ * 、 with a single trailing 号 （「1、4、9、11号」).
+ */
+function formatSheriffSeatList(seats: readonly number[]): string {
+  return `${seats.map((seat) => seat + 1).join('、')}号`;
+}
+
+/** Format one closed sheriff round as its record line. */
+function formatNightReviewSheriffRoundLine(round: NightReviewSheriffRound): string {
+  const label = NIGHT_REPORT_SHERIFF_ROUND_LABELS[round.round];
+  const candidateParts = [...round.perCandidate]
+    .sort((a, b) => b.votes - a.votes || a.seat - b.seat)
+    .map(
+      (candidate) =>
+        `${formatSeat(candidate.seat)} ${candidate.votes}票（${formatSheriffSeatList(candidate.voterSeats)}）`,
+    );
+  const parts = [...candidateParts];
+  if (round.abstainingSeats.length > 0) {
+    parts.push(
+      `${NIGHT_REPORT_SHERIFF_ABSTAIN_LABEL}：${formatSheriffSeatList(round.abstainingSeats)}`,
+    );
+  }
+  return `${label}：${parts.join('，')}`;
+}
+
+/**
+ * Format the sheriff section as text lines (status-only while the election
+ * is in flight; the full public record once it completes). The section
+ * itself guarantees nothing secret is present, so this formatter renders
+ * whatever the section carries.
+ */
+export function formatNightReviewSheriffLines(section: NightReviewSheriffSection): string[] {
+  switch (section.kind) {
+    case 'registration':
+      return [`${NIGHT_REPORT_SHERIFF_TITLE}：${NIGHT_REPORT_SHERIFF_REGISTRATION_STATUS}`];
+    case 'inProgress': {
+      const lines: string[] = [
+        `${NIGHT_REPORT_SHERIFF_TITLE}：${NIGHT_REPORT_SHERIFF_IN_PROGRESS}`,
+      ];
+      if (section.candidateSeats.length > 0) {
+        const withdrawn =
+          section.withdrawnSeats.length > 0
+            ? `（${NIGHT_REPORT_SHERIFF_WITHDRAWN_LABEL}：${formatSheriffSeatList(section.withdrawnSeats)}）`
+            : '';
+        lines.push(
+          `${NIGHT_REPORT_SHERIFF_CANDIDATES_LABEL}：${section.candidateSeats.map((seat) => formatSeat(seat)).join('、')}${withdrawn}`,
+        );
+      }
+      for (const round of section.closedRounds) {
+        lines.push(formatNightReviewSheriffRoundLine(round));
+      }
+      if (section.activeRound !== null) {
+        const label = NIGHT_REPORT_SHERIFF_ROUND_LABELS[section.activeRound.round];
+        lines.push(
+          `${label}投票中：候选 ${section.activeRound.candidateSeats.map((seat) => formatSeat(seat)).join('、')}`,
+        );
+      }
+      return lines;
+    }
+    case 'completed': {
+      const lines: string[] = [];
+      if (section.result.kind === 'elected') {
+        const sheriffSeat = section.result.sheriffSeat;
+        const decidingRound = section.rounds[section.rounds.length - 1];
+        const winner = decidingRound?.perCandidate.find(
+          (candidate) => candidate.seat === sheriffSeat,
+        );
+        if (decidingRound !== undefined && winner !== undefined) {
+          const total =
+            decidingRound.perCandidate.reduce((sum, candidate) => sum + candidate.votes, 0) +
+            decidingRound.abstainingSeats.length;
+          const label = NIGHT_REPORT_SHERIFF_ROUND_LABELS[decidingRound.round];
+          lines.push(
+            `${NIGHT_REPORT_SHERIFF_TITLE}：${formatSeat(sheriffSeat)} ${NIGHT_REPORT_SHERIFF_ELECTED_TITLE}（${label} ${winner.votes}/${total} 票）`,
+          );
+        } else {
+          lines.push(
+            `${NIGHT_REPORT_SHERIFF_TITLE}：${formatSeat(sheriffSeat)} ${NIGHT_REPORT_SHERIFF_ELECTED_TITLE}`,
+          );
+        }
+      } else {
+        lines.push(
+          `${NIGHT_REPORT_SHERIFF_TITLE}：${NIGHT_REPORT_SHERIFF_NONE_TITLE}（${NIGHT_REPORT_SHERIFF_REASON_LABELS[section.result.reason]}）`,
+        );
+      }
+      if (section.registeredSeats.length > 0) {
+        const withdrawn =
+          section.withdrawnSeats.length > 0
+            ? `（${NIGHT_REPORT_SHERIFF_WITHDRAWN_LABEL}：${formatSheriffSeatList(section.withdrawnSeats)}）`
+            : '';
+        lines.push(
+          `${NIGHT_REPORT_SHERIFF_CANDIDATES_LABEL}：${section.registeredSeats.map((seat) => formatSeat(seat)).join('、')}${withdrawn}`,
+        );
+      }
+      for (const round of section.rounds) {
+        lines.push(formatNightReviewSheriffRoundLine(round));
+      }
+      return lines;
+    }
+  }
 }

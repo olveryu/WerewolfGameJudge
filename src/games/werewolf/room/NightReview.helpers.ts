@@ -6,14 +6,21 @@
  * Second section: per-seat identity entries (seat, role, faction source, alive state).
  * Text rendering lives in the consumers (NightReviewReportBody renders structure
  * for the DOM surfaces; shareNightReviewLines formats the text channel). This
- * module emits no display strings. Its one derivation, getNightReviewOutcome,
- * lifts the single outcome entry (deaths / peacefulNight) the builders append,
- * so every surface headlines the same result.
+ * module emits no display strings. Its derivations — getNightReviewOutcome,
+ * deriveNightReportStats, deriveWolfVerdict, deriveDeathNotes,
+ * deriveWolfTargetSaveNote, deriveSheriffSection — lift every fact a surface
+ * headlines or annotates from the same entries, so no surface re-derives
+ * facts on its own.
  * No service / hook / React imports; relies only on game-engine types and ROLE_SPECS.
  */
 
 import type { DeathReason } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type {
+  SheriffElectionResult,
+  SheriffElectionRoundResult,
+  SheriffElectionState,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 import { Team } from '@game-judge/game-engine/games/werewolf/public';
 
@@ -70,6 +77,21 @@ function findSeatByRole(
     if (player?.role === roleId) return seat;
   }
   return undefined;
+}
+
+/**
+ * The seat of the role an action entry is about to name as its actor. The
+ * night-results record carries no actor fields (only target seats), so the
+ * actor is resolved from the roster at the construction point. An entry whose
+ * actor cannot be resolved is a corrupt fact set — fail fast here rather
+ * than letting a surface invent or drop the actor downstream.
+ */
+function requireSeatByRole(players: Map<number, LocalPlayer | null>, roleId: RoleId): number {
+  const seat = findSeatByRole(players, roleId);
+  if (seat === undefined) {
+    throw new Error(`[FAIL-FAST] Night review cannot resolve an actor seat for role ${roleId}`);
+  }
+  return seat;
 }
 
 /**
@@ -183,8 +205,17 @@ export type NightReviewWolfGiveUpReason = 'poisonerPresent' | 'nightmareBlock';
 export type NightReviewActionEntry =
   // Setup: bottom cards, card choices, cupid link
   | { readonly kind: 'bottomCards'; readonly roleIds: readonly RoleId[] }
-  | { readonly kind: 'cardChoice'; readonly actorRoleId: RoleId; readonly chosenRoleId: RoleId }
-  | { readonly kind: 'cupidLink'; readonly seats: readonly [number, number] }
+  | {
+      readonly kind: 'cardChoice';
+      readonly actorSeat: number;
+      readonly actorRoleId: RoleId;
+      readonly chosenRoleId: RoleId;
+    }
+  | {
+      readonly kind: 'cupidLink';
+      readonly actorSeat: number;
+      readonly seats: readonly [number, number];
+    }
   // Wolf team attack (votes = real targets only; abstaining wolves sit in abstainSeats)
   | {
       readonly kind: 'wolfAttack';
@@ -196,62 +227,93 @@ export type NightReviewActionEntry =
   // Nightmare block / Eclipse Wolf Queen shelter / Hidden Wolf presence
   | {
       readonly kind: 'nightmareBlock';
+      readonly actorSeat: number;
       readonly targetSeat: number;
       readonly targetRoleId: RoleId | null;
     }
-  | { readonly kind: 'nightmareIdle' }
-  | { readonly kind: 'shelter'; readonly targetSeat: number }
-  | { readonly kind: 'shelterIdle' }
-  | { readonly kind: 'hiddenWolfConfirmed' }
+  | { readonly kind: 'nightmareIdle'; readonly actorSeat: number }
+  | { readonly kind: 'shelter'; readonly actorSeat: number; readonly targetSeat: number }
+  | { readonly kind: 'shelterIdle'; readonly actorSeat: number }
+  | { readonly kind: 'hiddenWolfConfirmed'; readonly actorSeat: number }
   // Guard / elders
-  | { readonly kind: 'guard'; readonly targetSeat: number }
-  | { readonly kind: 'guardIdle' }
-  | { readonly kind: 'silence'; readonly targetSeat: number }
-  | { readonly kind: 'silenceIdle' }
-  | { readonly kind: 'voteban'; readonly targetSeat: number }
-  | { readonly kind: 'votebanIdle' }
+  | { readonly kind: 'guard'; readonly actorSeat: number; readonly targetSeat: number }
+  | { readonly kind: 'guardIdle'; readonly actorSeat: number }
+  | { readonly kind: 'silence'; readonly actorSeat: number; readonly targetSeat: number }
+  | { readonly kind: 'silenceIdle'; readonly actorSeat: number }
+  | { readonly kind: 'voteban'; readonly actorSeat: number; readonly targetSeat: number }
+  | { readonly kind: 'votebanIdle'; readonly actorSeat: number }
   // Witch / Poisoner potions
-  | { readonly kind: 'save'; readonly targetSeat: number }
+  | { readonly kind: 'save'; readonly actorSeat: number; readonly targetSeat: number }
   | {
       readonly kind: 'poison';
+      readonly actorSeat: number;
       readonly actorRoleId: 'witch' | 'poisoner';
       readonly targetSeat: number;
     }
-  | { readonly kind: 'witchIdleAll' }
-  | { readonly kind: 'witchNoSave' }
-  | { readonly kind: 'witchNoPoison' }
-  | { readonly kind: 'poisonerNoPoison' }
+  | { readonly kind: 'witchIdleAll'; readonly actorSeat: number }
+  | { readonly kind: 'witchNoSave'; readonly actorSeat: number }
+  | { readonly kind: 'witchNoPoison'; readonly actorSeat: number }
+  | { readonly kind: 'poisonerNoPoison'; readonly actorSeat: number }
   // Crow / Dreamcatcher / Magician
-  | { readonly kind: 'curse'; readonly targetSeat: number }
-  | { readonly kind: 'curseIdle' }
-  | { readonly kind: 'dream'; readonly targetSeat: number }
-  | { readonly kind: 'dreamIdle' }
-  | { readonly kind: 'swap'; readonly seats: readonly [number, number] }
-  | { readonly kind: 'swapIdle' }
+  | { readonly kind: 'curse'; readonly actorSeat: number; readonly targetSeat: number }
+  | { readonly kind: 'curseIdle'; readonly actorSeat: number }
+  | { readonly kind: 'dream'; readonly actorSeat: number; readonly targetSeat: number }
+  | { readonly kind: 'dreamIdle'; readonly actorSeat: number }
+  | {
+      readonly kind: 'swap';
+      readonly actorSeat: number;
+      readonly seats: readonly [number, number];
+    }
+  | { readonly kind: 'swapIdle'; readonly actorSeat: number }
   // Idol choices / mimic / presence / charm / convert / hypnotize
-  | { readonly kind: 'idolChoice'; readonly actorRoleId: RoleId; readonly targetSeat: number }
-  | { readonly kind: 'mimic'; readonly targetSeat: number; readonly isBound: boolean }
-  | { readonly kind: 'avengerConfirmed' }
-  | { readonly kind: 'charm'; readonly targetSeat: number }
-  | { readonly kind: 'charmIdle' }
-  | { readonly kind: 'convert'; readonly targetSeat: number }
-  | { readonly kind: 'hypnotize'; readonly targetSeats: readonly number[] }
-  | { readonly kind: 'hypnotizeIdle' }
+  | {
+      readonly kind: 'idolChoice';
+      readonly actorSeat: number;
+      readonly actorRoleId: RoleId;
+      readonly targetSeat: number;
+    }
+  | {
+      readonly kind: 'mimic';
+      readonly actorSeat: number;
+      readonly targetSeat: number;
+      readonly isBound: boolean;
+    }
+  | { readonly kind: 'avengerConfirmed'; readonly actorSeat: number }
+  | { readonly kind: 'charm'; readonly actorSeat: number; readonly targetSeat: number }
+  | { readonly kind: 'charmIdle'; readonly actorSeat: number }
+  | { readonly kind: 'convert'; readonly actorSeat: number; readonly targetSeat: number }
+  | {
+      readonly kind: 'hypnotize';
+      readonly actorSeat: number;
+      readonly targetSeats: readonly number[];
+    }
+  | { readonly kind: 'hypnotizeIdle'; readonly actorSeat: number }
   // Check family / Wolf Robot learning
   | {
       readonly kind: 'check';
+      readonly actorSeat: number;
       readonly actorRoleId: RoleId;
       readonly targetSeat: number;
       readonly result: string;
     }
-  | { readonly kind: 'checkIdle'; readonly actorRoleId: RoleId }
-  | { readonly kind: 'learn'; readonly targetSeat: number; readonly learnedRoleId: RoleId }
-  | { readonly kind: 'learnIdle' }
+  | { readonly kind: 'checkIdle'; readonly actorSeat: number; readonly actorRoleId: RoleId }
+  | {
+      readonly kind: 'learn';
+      readonly actorSeat: number;
+      readonly targetSeat: number;
+      readonly learnedRoleId: RoleId;
+    }
+  | { readonly kind: 'learnIdle'; readonly actorSeat: number }
   // Shooting availability / Seed Wolf infection
-  | { readonly kind: 'shootStatus'; readonly actorRoleId: RoleId; readonly canShoot: boolean }
-  | { readonly kind: 'infectConverted'; readonly targetSeat: number }
-  | { readonly kind: 'infectFailed'; readonly targetSeat: number }
-  | { readonly kind: 'infectIdle' }
+  | {
+      readonly kind: 'shootStatus';
+      readonly actorSeat: number;
+      readonly actorRoleId: RoleId;
+      readonly canShoot: boolean;
+    }
+  | { readonly kind: 'infectConverted'; readonly actorSeat: number; readonly targetSeat: number }
+  | { readonly kind: 'infectFailed'; readonly actorSeat: number; readonly targetSeat: number }
+  | { readonly kind: 'infectIdle'; readonly actorSeat: number }
   // Interaction warnings
   | { readonly kind: 'guardSaveConflict'; readonly targetSeat: number }
   | {
@@ -286,12 +348,95 @@ export interface NightReviewIdentityEntry {
   readonly isAlive: boolean;
 }
 
+/**
+ * One closed sheriff-election voting round, re-derived from the round's
+ * ballots alone: each candidate's votes and voter seats are counted from
+ * `ballots`; the stored `voteCounts` / `abstainingSeats` are only ever used
+ * as a cross-check (a mismatch fails fast in the derivation). Seats are
+ * 0-based; candidates are in seat order, voters in eligible-voter order.
+ */
+export interface NightReviewSheriffRound {
+  readonly round: 'first' | 'runoff';
+  readonly perCandidate: readonly {
+    readonly seat: number;
+    readonly votes: number;
+    readonly voterSeats: readonly number[];
+  }[];
+  readonly abstainingSeats: readonly number[];
+}
+
+/**
+ * The sheriff-election section of the night report, derived from
+ * `sheriffElection` + `sheriffElectionResult`. The report never publishes
+ * more than the public election record (the sheriffElectionViewModel
+ * convention):
+ * during `registration` the section is status-only — candidate identities
+ * and counts stay secret from everyone, the host included — and a round
+ * that is still collecting ballots contributes its candidates but never
+ * any ballot content.
+ */
+export type NightReviewSheriffSection =
+  | { readonly kind: 'registration' }
+  | {
+      readonly kind: 'inProgress';
+      /** Public candidates for the current stage (see derivation). */
+      readonly candidateSeats: readonly number[];
+      readonly withdrawnSeats: readonly number[];
+      readonly closedRounds: readonly NightReviewSheriffRound[];
+      /** The round currently collecting ballots, when in a voting stage. */
+      readonly activeRound: {
+        readonly round: 'first' | 'runoff';
+        readonly candidateSeats: readonly number[];
+      } | null;
+    }
+  | {
+      readonly kind: 'completed';
+      readonly registeredSeats: readonly number[];
+      readonly withdrawnSeats: readonly number[];
+      readonly rounds: readonly NightReviewSheriffRound[];
+      readonly result: SheriffElectionResult;
+    };
+
 export interface NightReviewData {
   /** Structured night facts in summary order */
   actions: NightReviewActionEntry[];
   /** Per-seat identity entries sorted by seat */
   identities: NightReviewIdentityEntry[];
+  /**
+   * Sheriff-election section. Absent when the game never held an election.
+   * The election belongs to the game archive, not to one night: the section
+   * reflects the election state at the moment the review is opened.
+   */
+  sheriff?: NightReviewSheriffSection;
 }
+
+/** Headline tallies for the report's stats strip, derived from the entries. */
+export interface NightReportStats {
+  /** Deaths whose recorded reason is wolfKill. */
+  readonly wolfKills: number;
+  /** Deaths whose recorded reason is poison. */
+  readonly poisonKills: number;
+  /** Save entries whose target did not die tonight. */
+  readonly saves: number;
+  /** Check entries (one per checker who revealed a result). */
+  readonly checks: number;
+}
+
+/**
+ * How the wolf team's votes resolved, derived from a wolfAttack entry:
+ * one shared target, a split vote that still produced a plurality kill, a
+ * split vote tied at the top (no kill), or every wolf abstaining.
+ */
+export type NightReviewWolfVerdict =
+  | { readonly type: 'sharedTarget'; readonly targetSeat: number }
+  | { readonly type: 'splitKilled'; readonly targetSeat: number }
+  | { readonly type: 'splitTied' }
+  | { readonly type: 'allAbstain' };
+
+/** A factual annotation on one death, for the report's death cards. */
+export type NightReviewDeathNote =
+  | { readonly kind: 'wolfVotes'; readonly votes: number }
+  | { readonly kind: 'poisonedBy'; readonly actorRoleId: 'witch' | 'poisoner' };
 
 /** The night outcome, derived from the data's single outcome entry. */
 export type NightReviewOutcome =
@@ -329,6 +474,327 @@ export function getNightReviewOutcome(data: NightReviewData): NightReviewOutcome
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Report derivations (actors, tallies, verdicts, annotations)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The role that acted in an entry, for surfaces that head a card or line
+ * with the actor. Team / setup / outcome / annotation entries have no
+ * single actor and return null. Kinds whose actor varies carry it on the
+ * entry itself (`actorRoleId`); the rest are fixed by kind.
+ */
+export function nightReviewActorRoleId(entry: NightReviewActionEntry): RoleId | null {
+  switch (entry.kind) {
+    case 'cardChoice':
+    case 'poison':
+    case 'idolChoice':
+    case 'check':
+    case 'checkIdle':
+    case 'shootStatus':
+      return entry.actorRoleId;
+    case 'cupidLink':
+      return 'cupid';
+    case 'nightmareBlock':
+    case 'nightmareIdle':
+      return 'nightmare';
+    case 'shelter':
+    case 'shelterIdle':
+      return 'eclipseWolfQueen';
+    case 'hiddenWolfConfirmed':
+      return 'hiddenWolf';
+    case 'guard':
+    case 'guardIdle':
+      return 'guard';
+    case 'silence':
+    case 'silenceIdle':
+      return 'silenceElder';
+    case 'voteban':
+    case 'votebanIdle':
+      return 'votebanElder';
+    case 'save':
+    case 'witchIdleAll':
+    case 'witchNoSave':
+    case 'witchNoPoison':
+      return 'witch';
+    case 'poisonerNoPoison':
+      return 'poisoner';
+    case 'curse':
+    case 'curseIdle':
+      return 'crow';
+    case 'dream':
+    case 'dreamIdle':
+      return 'dreamcatcher';
+    case 'swap':
+    case 'swapIdle':
+      return 'magician';
+    case 'mimic':
+      return 'shadow';
+    case 'avengerConfirmed':
+      return 'avenger';
+    case 'charm':
+    case 'charmIdle':
+      return 'wolfQueen';
+    case 'convert':
+      return 'awakenedGargoyle';
+    case 'hypnotize':
+    case 'hypnotizeIdle':
+      return 'piper';
+    case 'learn':
+    case 'learnIdle':
+      return 'wolfRobot';
+    case 'infectConverted':
+    case 'infectFailed':
+    case 'infectIdle':
+      return 'seedWolf';
+    case 'bottomCards':
+    case 'wolfAttack':
+    case 'wolfNoTarget':
+    case 'wolfGiveUp':
+    case 'guardSaveConflict':
+    case 'poisonImmune':
+    case 'reflectDamage':
+    case 'deaths':
+    case 'peacefulNight':
+      return null;
+  }
+}
+
+/**
+ * Derive how a wolfAttack entry's votes resolved. The tally mirrors
+ * resolveWolfKillTarget (plurality wins, a tie at the top kills nobody);
+ * the entry's votes already exclude abstentions, which were split into
+ * abstainSeats by the builder.
+ */
+export function deriveWolfVerdict(
+  entry: Extract<NightReviewActionEntry, { kind: 'wolfAttack' }>,
+): NightReviewWolfVerdict {
+  if (entry.votes.length === 0) return { type: 'allAbstain' };
+  const counts = new Map<number, number>();
+  for (const vote of entry.votes) {
+    counts.set(vote.targetSeat, (counts.get(vote.targetSeat) ?? 0) + 1);
+  }
+  let maxCount = 0;
+  let maxTarget: number | undefined;
+  let tied = false;
+  for (const [target, count] of counts) {
+    if (count > maxCount) {
+      maxCount = count;
+      maxTarget = target;
+      tied = false;
+    } else if (count === maxCount) {
+      tied = true;
+    }
+  }
+  if (tied || maxTarget === undefined) return { type: 'splitTied' };
+  return counts.size === 1
+    ? { type: 'sharedTarget', targetSeat: maxTarget }
+    : { type: 'splitKilled', targetSeat: maxTarget };
+}
+
+/**
+ * Derive the stats-strip tallies from the entries. Death categories come
+ * from the single outcome entry (the same source the headline reads), and
+ * the derivation cross-checks it: a seat listed twice is a corrupt outcome
+ * and fails fast.
+ */
+export function deriveNightReportStats(data: NightReviewData): NightReportStats {
+  const outcome = getNightReviewOutcome(data);
+  const deadSeats = new Set<number>();
+  let wolfKills = 0;
+  let poisonKills = 0;
+  if (outcome.type === 'deaths') {
+    for (const death of outcome.deaths) {
+      if (deadSeats.has(death.seat)) {
+        throw new Error(`[FAIL-FAST] Night review outcome lists seat ${death.seat} more than once`);
+      }
+      deadSeats.add(death.seat);
+      if (death.reason === 'wolfKill') wolfKills += 1;
+      else if (death.reason === 'poison') poisonKills += 1;
+    }
+  }
+  let saves = 0;
+  let checks = 0;
+  for (const entry of data.actions) {
+    if (entry.kind === 'check') checks += 1;
+    if (entry.kind === 'save' && !deadSeats.has(entry.targetSeat)) saves += 1;
+  }
+  return { wolfKills, poisonKills, saves, checks };
+}
+
+/**
+ * Per-death annotations for the report's death cards: how many wolf votes
+ * locked a wolf-killed seat, and whose poison killed a poisoned seat. A
+ * death whose cause has no matching action entry simply gets no note.
+ */
+export function deriveDeathNotes(data: NightReviewData): ReadonlyMap<number, NightReviewDeathNote> {
+  const outcome = getNightReviewOutcome(data);
+  const notes = new Map<number, NightReviewDeathNote>();
+  if (outcome.type !== 'deaths') return notes;
+  const wolfEntry = data.actions.find((entry) => entry.kind === 'wolfAttack');
+  const poisonEntry = data.actions.find((entry) => entry.kind === 'poison');
+  for (const death of outcome.deaths) {
+    if (death.reason === 'wolfKill' && wolfEntry?.kind === 'wolfAttack') {
+      const votes = wolfEntry.votes.filter((vote) => vote.targetSeat === death.seat).length;
+      if (votes > 0) notes.set(death.seat, { kind: 'wolfVotes', votes });
+    } else if (
+      death.reason === 'poison' &&
+      poisonEntry?.kind === 'poison' &&
+      poisonEntry.targetSeat === death.seat
+    ) {
+      notes.set(death.seat, { kind: 'poisonedBy', actorRoleId: poisonEntry.actorRoleId });
+    }
+  }
+  return notes;
+}
+
+/**
+ * The wolf-kill target the witch left unsaved, when there is one: the
+ * wolf verdict resolved a target and no save entry covers it. Backs the
+ * witch card's "wolf target not saved" annotation — surfaces render the
+ * fact, they never re-derive it.
+ */
+export function deriveWolfTargetSaveNote(
+  data: NightReviewData,
+): { readonly wolfTargetSeat: number } | null {
+  const wolfEntry = data.actions.find((entry) => entry.kind === 'wolfAttack');
+  if (wolfEntry?.kind !== 'wolfAttack') return null;
+  const verdict = deriveWolfVerdict(wolfEntry);
+  if (verdict.type !== 'sharedTarget' && verdict.type !== 'splitKilled') return null;
+  const saved = data.actions.some(
+    (entry) => entry.kind === 'save' && entry.targetSeat === verdict.targetSeat,
+  );
+  return saved ? null : { wolfTargetSeat: verdict.targetSeat };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sheriff election section derivation
+// ─────────────────────────────────────────────────────────────────────────────
+
+function sameSeatSet(a: readonly number[], b: readonly number[]): boolean {
+  if (a.length !== b.length) return false;
+  const bSet = new Set(b);
+  return a.every((seat) => bSet.has(seat));
+}
+
+/**
+ * Re-derive one closed round's public tally from its ballots alone. The
+ * stored voteCounts / abstainingSeats are cross-checks only: any mismatch
+ * with the ballot-derived tally is a corrupt record and fails fast, exactly
+ * like the election view model refuses to render a round whose stored
+ * counts are incomplete.
+ */
+function deriveSheriffRound(round: SheriffElectionRoundResult): NightReviewSheriffRound {
+  const ballots = new Map<number, number | null>();
+  for (const voterSeat of round.eligibleVoterSeats) {
+    const ballot = round.ballots[voterSeat];
+    if (ballot === undefined) {
+      throw new Error(
+        `[FAIL-FAST] Sheriff round ${round.round} has no ballot for eligible voter ${voterSeat}`,
+      );
+    }
+    ballots.set(voterSeat, ballot);
+  }
+  const perCandidate = [...round.candidateSeats]
+    .sort((a, b) => a - b)
+    .map((seat) => {
+      const voterSeats = round.eligibleVoterSeats.filter(
+        (voterSeat) => ballots.get(voterSeat) === seat,
+      );
+      const storedCount = round.voteCounts[seat];
+      if (storedCount === undefined) {
+        throw new Error(
+          `[FAIL-FAST] Sheriff round ${round.round} has no stored vote count for candidate ${seat}`,
+        );
+      }
+      if (storedCount !== voterSeats.length) {
+        throw new Error(
+          `[FAIL-FAST] Sheriff round ${round.round} stored vote count ${storedCount} for candidate ${seat} disagrees with its ballots (${voterSeats.length})`,
+        );
+      }
+      return { seat, votes: voterSeats.length, voterSeats };
+    });
+  const abstainingSeats = round.eligibleVoterSeats.filter(
+    (voterSeat) => ballots.get(voterSeat) === null,
+  );
+  if (!sameSeatSet(abstainingSeats, round.abstainingSeats)) {
+    throw new Error(
+      `[FAIL-FAST] Sheriff round ${round.round} stored abstaining seats disagree with its ballots`,
+    );
+  }
+  return { round: round.round, perCandidate, abstainingSeats };
+}
+
+/**
+ * Derive the report's sheriff section from the election state. Mirrors the
+ * public record the election panel publishes (sheriffElectionViewModel):
+ * registration exposes nothing but the status; speech stages expose the
+ * active candidates; a voting stage exposes the closed rounds in full plus
+ * the active round's candidates — its ballots are never read here.
+ */
+export function deriveSheriffSection(
+  gameState: LocalGameState,
+): NightReviewSheriffSection | undefined {
+  const election: SheriffElectionState | undefined = gameState.sheriffElection;
+  const result: SheriffElectionResult | undefined = gameState.sheriffElectionResult;
+  if (election === undefined) {
+    if (result !== undefined) {
+      throw new Error(
+        '[FAIL-FAST] Sheriff election result exists without an election state in night review',
+      );
+    }
+    return undefined;
+  }
+  const withdrawn = new Set(election.withdrawnSeats);
+  switch (election.phase) {
+    case 'registration':
+      return { kind: 'registration' };
+    case 'candidateSpeech':
+    case 'withdrawal':
+      return {
+        kind: 'inProgress',
+        candidateSeats: election.registeredSeats.filter((seat) => !withdrawn.has(seat)),
+        withdrawnSeats: [...election.withdrawnSeats],
+        closedRounds: [],
+        activeRound: null,
+      };
+    case 'firstVote':
+    case 'runoffVote':
+      return {
+        kind: 'inProgress',
+        candidateSeats: [...election.candidateSeats],
+        withdrawnSeats: [...election.withdrawnSeats],
+        closedRounds: election.completedRounds.map(deriveSheriffRound),
+        activeRound: {
+          round: election.phase === 'firstVote' ? 'first' : 'runoff',
+          candidateSeats: [...election.candidateSeats],
+        },
+      };
+    case 'runoffSpeech':
+      return {
+        kind: 'inProgress',
+        candidateSeats: election.candidateSeats.filter((seat) => !withdrawn.has(seat)),
+        withdrawnSeats: [...election.withdrawnSeats],
+        closedRounds: election.completedRounds.map(deriveSheriffRound),
+        activeRound: null,
+      };
+    case 'completed': {
+      if (result === undefined) {
+        throw new Error(
+          '[FAIL-FAST] Sheriff election is completed without a result in night review',
+        );
+      }
+      return {
+        kind: 'completed',
+        registeredSeats: [...election.registeredSeats],
+        withdrawnSeats: [...election.withdrawnSeats],
+        rounds: election.completedRounds.map(deriveSheriffRound),
+        result,
+      };
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Action entries builder
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -348,6 +814,7 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
   if (gameState.currentNightResults.treasureMasterChosenCard) {
     entries.push({
       kind: 'cardChoice',
+      actorSeat: requireSeatByRole(gameState.players, 'treasureMaster'),
       actorRoleId: 'treasureMaster',
       chosenRoleId: gameState.currentNightResults.treasureMasterChosenCard,
     });
@@ -355,12 +822,17 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
   if (gameState.currentNightResults.thiefChosenCard) {
     entries.push({
       kind: 'cardChoice',
+      actorSeat: requireSeatByRole(gameState.players, 'thief'),
       actorRoleId: 'thief',
       chosenRoleId: gameState.currentNightResults.thiefChosenCard,
     });
   }
   if (gameState.loverSeats && gameState.loverSeats.length === 2) {
-    entries.push({ kind: 'cupidLink', seats: [gameState.loverSeats[0], gameState.loverSeats[1]] });
+    entries.push({
+      kind: 'cupidLink',
+      actorSeat: requireSeatByRole(gameState.players, 'cupid'),
+      seats: [gameState.loverSeats[0], gameState.loverSeats[1]],
+    });
   }
 
   // 1. Wolf kill vote. wolfVotesBySeat records an abstention as the engine
@@ -405,71 +877,93 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
     const blockedPlayer = gameState.players.get(nr.blockedSeat);
     entries.push({
       kind: 'nightmareBlock',
+      actorSeat: requireSeatByRole(gameState.players, 'nightmare'),
       targetSeat: nr.blockedSeat,
       targetRoleId: blockedPlayer?.role ?? null,
     });
   } else {
     const nightmareSeat = findSeatByRole(gameState.players, 'nightmare');
     if (nightmareSeat !== undefined) {
-      entries.push({ kind: 'nightmareIdle' });
+      entries.push({ kind: 'nightmareIdle', actorSeat: nightmareSeat });
     }
   }
 
   // 2a. EclipseWolfQueen shelter
   if (nr.shelteredSeat != null) {
-    entries.push({ kind: 'shelter', targetSeat: nr.shelteredSeat });
+    entries.push({
+      kind: 'shelter',
+      actorSeat: requireSeatByRole(gameState.players, 'eclipseWolfQueen'),
+      targetSeat: nr.shelteredSeat,
+    });
   } else {
     const eqSeat = findSeatByRole(gameState.players, 'eclipseWolfQueen');
     if (eqSeat !== undefined && nr.blockedSeat !== eqSeat) {
-      entries.push({ kind: 'shelterIdle' });
+      entries.push({ kind: 'shelterIdle', actorSeat: eqSeat });
     }
   }
 
   // 2b. HiddenWolf reveal (confirm-only — just show presence)
   const hiddenWolfSeat = findSeatByRole(gameState.players, 'hiddenWolf');
   if (hiddenWolfSeat !== undefined) {
-    entries.push({ kind: 'hiddenWolfConfirmed' });
+    entries.push({ kind: 'hiddenWolfConfirmed', actorSeat: hiddenWolfSeat });
   }
 
   // 3. Guard
   if (nr.guardedSeat != null) {
-    entries.push({ kind: 'guard', targetSeat: nr.guardedSeat });
+    entries.push({
+      kind: 'guard',
+      actorSeat: requireSeatByRole(gameState.players, 'guard'),
+      targetSeat: nr.guardedSeat,
+    });
   } else {
     const guardSeat = findSeatByRole(gameState.players, 'guard');
     if (guardSeat !== undefined && nr.blockedSeat !== guardSeat) {
-      entries.push({ kind: 'guardIdle' });
+      entries.push({ kind: 'guardIdle', actorSeat: guardSeat });
     }
   }
 
   // 3a. SilenceElder
   if (nr.silencedSeat != null) {
-    entries.push({ kind: 'silence', targetSeat: nr.silencedSeat });
+    entries.push({
+      kind: 'silence',
+      actorSeat: requireSeatByRole(gameState.players, 'silenceElder'),
+      targetSeat: nr.silencedSeat,
+    });
   } else {
     const seSeat = findSeatByRole(gameState.players, 'silenceElder');
     if (seSeat !== undefined && nr.blockedSeat !== seSeat) {
-      entries.push({ kind: 'silenceIdle' });
+      entries.push({ kind: 'silenceIdle', actorSeat: seSeat });
     }
   }
 
   // 3b. VotebanElder
   if (nr.votebannedSeat != null) {
-    entries.push({ kind: 'voteban', targetSeat: nr.votebannedSeat });
+    entries.push({
+      kind: 'voteban',
+      actorSeat: requireSeatByRole(gameState.players, 'votebanElder'),
+      targetSeat: nr.votebannedSeat,
+    });
   } else {
     const veSeat = findSeatByRole(gameState.players, 'votebanElder');
     if (veSeat !== undefined && nr.blockedSeat !== veSeat) {
-      entries.push({ kind: 'votebanIdle' });
+      entries.push({ kind: 'votebanIdle', actorSeat: veSeat });
     }
   }
 
   // 4. Witch / Poisoner
   if (nr.savedSeat != null) {
-    entries.push({ kind: 'save', targetSeat: nr.savedSeat });
+    entries.push({
+      kind: 'save',
+      actorSeat: requireSeatByRole(gameState.players, 'witch'),
+      targetSeat: nr.savedSeat,
+    });
   }
   if (nr.poisonedSeat != null) {
-    const isPoisoner = findSeatByRole(gameState.players, 'poisoner') !== undefined;
+    const poisonerSeat = findSeatByRole(gameState.players, 'poisoner');
     entries.push({
       kind: 'poison',
-      actorRoleId: isPoisoner ? 'poisoner' : 'witch',
+      actorSeat: poisonerSeat ?? requireSeatByRole(gameState.players, 'witch'),
+      actorRoleId: poisonerSeat !== undefined ? 'poisoner' : 'witch',
       targetSeat: nr.poisonedSeat,
     });
   }
@@ -487,44 +981,58 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
       const noPoison = nr.poisonedSeat == null;
 
       if (noSave && witchOwnsPoison && noPoison) {
-        entries.push({ kind: 'witchIdleAll' });
+        entries.push({ kind: 'witchIdleAll', actorSeat: witchSeat });
       } else {
-        if (noSave) entries.push({ kind: 'witchNoSave' });
-        if (witchOwnsPoison && noPoison) entries.push({ kind: 'witchNoPoison' });
+        if (noSave) entries.push({ kind: 'witchNoSave', actorSeat: witchSeat });
+        if (witchOwnsPoison && noPoison) {
+          entries.push({ kind: 'witchNoPoison', actorSeat: witchSeat });
+        }
       }
     }
     if (poisonerSeat !== undefined && !poisonerBlocked && nr.poisonedSeat == null) {
-      entries.push({ kind: 'poisonerNoPoison' });
+      entries.push({ kind: 'poisonerNoPoison', actorSeat: poisonerSeat });
     }
   }
 
   // 4a. Crow curse
   if (nr.cursedSeat != null) {
-    entries.push({ kind: 'curse', targetSeat: nr.cursedSeat });
+    entries.push({
+      kind: 'curse',
+      actorSeat: requireSeatByRole(gameState.players, 'crow'),
+      targetSeat: nr.cursedSeat,
+    });
   } else {
     const crowSeat = findSeatByRole(gameState.players, 'crow');
     if (crowSeat !== undefined && nr.blockedSeat !== crowSeat) {
-      entries.push({ kind: 'curseIdle' });
+      entries.push({ kind: 'curseIdle', actorSeat: crowSeat });
     }
   }
 
   // 5. Dreamcatcher
   if (nr.dreamingSeat != null) {
-    entries.push({ kind: 'dream', targetSeat: nr.dreamingSeat });
+    entries.push({
+      kind: 'dream',
+      actorSeat: requireSeatByRole(gameState.players, 'dreamcatcher'),
+      targetSeat: nr.dreamingSeat,
+    });
   } else {
     const dcSeat = findSeatByRole(gameState.players, 'dreamcatcher');
     if (dcSeat !== undefined && nr.blockedSeat !== dcSeat) {
-      entries.push({ kind: 'dreamIdle' });
+      entries.push({ kind: 'dreamIdle', actorSeat: dcSeat });
     }
   }
 
   // 6. Magician swap
   if (nr.swappedSeats) {
-    entries.push({ kind: 'swap', seats: [nr.swappedSeats[0], nr.swappedSeats[1]] });
+    entries.push({
+      kind: 'swap',
+      actorSeat: requireSeatByRole(gameState.players, 'magician'),
+      seats: [nr.swappedSeats[0], nr.swappedSeats[1]],
+    });
   } else {
     const magicianSeat = findSeatByRole(gameState.players, 'magician');
     if (magicianSeat !== undefined && nr.blockedSeat !== magicianSeat) {
-      entries.push({ kind: 'swapIdle' });
+      entries.push({ kind: 'swapIdle', actorSeat: magicianSeat });
     }
   }
 
@@ -533,6 +1041,7 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
   if (slackerAction && slackerAction.kind === 'target') {
     entries.push({
       kind: 'idolChoice',
+      actorSeat: requireSeatByRole(gameState.players, 'slacker'),
       actorRoleId: 'slacker',
       targetSeat: slackerAction.targetSeat,
     });
@@ -543,6 +1052,7 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
   if (wildChildAction && wildChildAction.kind === 'target') {
     entries.push({
       kind: 'idolChoice',
+      actorSeat: requireSeatByRole(gameState.players, 'wildChild'),
       actorRoleId: 'wildChild',
       targetSeat: wildChildAction.targetSeat,
     });
@@ -552,6 +1062,7 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
   if (nr.shadowMimicTarget != null) {
     entries.push({
       kind: 'mimic',
+      actorSeat: requireSeatByRole(gameState.players, 'shadow'),
       targetSeat: nr.shadowMimicTarget,
       isBound: nr.avengerFaction === Team.Third,
     });
@@ -560,32 +1071,44 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
   // 6b3. Avenger faction (always participates, just show presence)
   const avengerSeat = findSeatByRole(gameState.players, 'avenger');
   if (avengerSeat !== undefined) {
-    entries.push({ kind: 'avengerConfirmed' });
+    entries.push({ kind: 'avengerConfirmed', actorSeat: avengerSeat });
   }
 
   // 6c. WolfQueen charm (from actions Map)
   const wolfQueenAction = gameState.actions.get('wolfQueen');
   if (wolfQueenAction && wolfQueenAction.kind === 'target') {
-    entries.push({ kind: 'charm', targetSeat: wolfQueenAction.targetSeat });
+    entries.push({
+      kind: 'charm',
+      actorSeat: requireSeatByRole(gameState.players, 'wolfQueen'),
+      targetSeat: wolfQueenAction.targetSeat,
+    });
   } else {
     const wqSeat = findSeatByRole(gameState.players, 'wolfQueen');
     if (wqSeat !== undefined && nr.blockedSeat !== wqSeat) {
-      entries.push({ kind: 'charmIdle' });
+      entries.push({ kind: 'charmIdle', actorSeat: wqSeat });
     }
   }
 
   // 6d. AwakenedGargoyle convert
   if (nr.convertedSeat != null) {
-    entries.push({ kind: 'convert', targetSeat: nr.convertedSeat });
+    entries.push({
+      kind: 'convert',
+      actorSeat: requireSeatByRole(gameState.players, 'awakenedGargoyle'),
+      targetSeat: nr.convertedSeat,
+    });
   }
 
   // 6e. Piper hypnotize
   if (nr.hypnotizedSeats && nr.hypnotizedSeats.length > 0) {
-    entries.push({ kind: 'hypnotize', targetSeats: [...nr.hypnotizedSeats] });
+    entries.push({
+      kind: 'hypnotize',
+      actorSeat: requireSeatByRole(gameState.players, 'piper'),
+      targetSeats: [...nr.hypnotizedSeats],
+    });
   } else {
     const piperSeat = findSeatByRole(gameState.players, 'piper');
     if (piperSeat !== undefined && nr.blockedSeat !== piperSeat) {
-      entries.push({ kind: 'hypnotizeIdle' });
+      entries.push({ kind: 'hypnotizeIdle', actorSeat: piperSeat });
     }
   }
 
@@ -608,6 +1131,7 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
     if (reveal) {
       entries.push({
         kind: 'check',
+        actorSeat: requireSeatByRole(gameState.players, roleId),
         actorRoleId: roleId,
         targetSeat: reveal.targetSeat,
         result: reveal.result,
@@ -615,7 +1139,7 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
     } else {
       const seat = findSeatByRole(gameState.players, roleId);
       if (seat !== undefined && nr.blockedSeat !== seat) {
-        entries.push({ kind: 'checkIdle', actorRoleId: roleId });
+        entries.push({ kind: 'checkIdle', actorSeat: seat, actorRoleId: roleId });
       }
     }
   }
@@ -625,13 +1149,14 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
     const wr = gameState.wolfRobotReveal;
     entries.push({
       kind: 'learn',
+      actorSeat: requireSeatByRole(gameState.players, 'wolfRobot'),
       targetSeat: wr.targetSeat,
       learnedRoleId: wr.learnedRoleId,
     });
   } else {
     const wrSeat = findSeatByRole(gameState.players, 'wolfRobot');
     if (wrSeat !== undefined && nr.blockedSeat !== wrSeat) {
-      entries.push({ kind: 'learnIdle' });
+      entries.push({ kind: 'learnIdle', actorSeat: wrSeat });
     }
   }
 
@@ -643,6 +1168,7 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
   if (hunterSeat !== undefined) {
     entries.push({
       kind: 'shootStatus',
+      actorSeat: hunterSeat,
       actorRoleId: 'hunter',
       canShoot: canShootForSeat(hunterSeat, gameState),
     });
@@ -652,6 +1178,7 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
   if (darkWolfKingSeat !== undefined) {
     entries.push({
       kind: 'shootStatus',
+      actorSeat: darkWolfKingSeat,
       actorRoleId: 'darkWolfKing',
       canShoot: canShootForSeat(darkWolfKingSeat, gameState),
     });
@@ -662,11 +1189,19 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
   if (seedWolfSeat !== undefined) {
     const result = gameState.seedWolfInfectionResult;
     if (result?.outcome === 'converted') {
-      entries.push({ kind: 'infectConverted', targetSeat: result.targetSeat });
+      entries.push({
+        kind: 'infectConverted',
+        actorSeat: seedWolfSeat,
+        targetSeat: result.targetSeat,
+      });
     } else if (result?.outcome === 'failed') {
-      entries.push({ kind: 'infectFailed', targetSeat: result.targetSeat });
+      entries.push({
+        kind: 'infectFailed',
+        actorSeat: seedWolfSeat,
+        targetSeat: result.targetSeat,
+      });
     } else {
-      entries.push({ kind: 'infectIdle' });
+      entries.push({ kind: 'infectIdle', actorSeat: seedWolfSeat });
     }
   }
 
@@ -768,8 +1303,10 @@ export function buildIdentityEntries(
  * Build full night review data from game state.
  */
 export function buildNightReviewData(gameState: LocalGameState): NightReviewData {
+  const sheriff = deriveSheriffSection(gameState);
   return {
     actions: buildActionEntries(gameState),
     identities: buildIdentityEntries(gameState.players, new Set(gameState.lastNightDeaths)),
+    ...(sheriff !== undefined ? { sheriff } : {}),
   };
 }

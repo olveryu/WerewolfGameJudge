@@ -1,10 +1,18 @@
 /**
- * NightReviewModal component tests — v5 presentation.
+ * NightReviewModal component tests — 2026 dossier presentation.
  *
- * Asserts the full fact set of a composed night survives the v5 rendering:
- * outcome hero (headline + death cards), action timeline (aggregated wolf
- * votes, merged potion rows), noise zone for idle entries, identity grid.
+ * Asserts the full fact set of a composed night survives the dossier
+ * rendering: conclusion header (headline, stats strip, death cards with
+ * derived bylines), one card per actor (wolf team card with verdict,
+ * merged potion card), the did-not-act strip, the sheriff card across the
+ * election state matrix, and the identity wall. Number discipline is
+ * pinned throughout: a seat number appears only on its medal, so no
+ * 「N号」 text exists anywhere in the report.
  */
+import type {
+  SheriffElectionResult,
+  SheriffElectionState,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { render } from '@testing-library/react-native';
 import type { StyleProp } from 'react-native';
 import { StyleSheet } from 'react-native';
@@ -12,10 +20,10 @@ import type { ReactTestInstance } from 'react-test-renderer';
 
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 import { TESTIDS } from '@/testids';
-import { colors, withAlpha } from '@/theme';
+import { colors } from '@/theme';
 
 import { buildNightReviewData } from '../../NightReview.helpers';
-import { NIGHT_REVIEW_NOISE_TITLE } from '../../nightReviewLayout';
+import { NIGHT_REPORT_FOOTER_TEXT, NIGHT_REPORT_KICKER } from '../../nightReviewLayout';
 import { NightReviewModal } from '../NightReviewModal';
 
 interface JsonNode {
@@ -53,6 +61,8 @@ function makeGameState(
     players: Map<number, LocalPlayer | null>;
     seerReveal: { targetSeat: number; result: '好人' | '狼人' };
     bottomCards: LocalGameState['bottomCards'];
+    sheriffElection: SheriffElectionState;
+    sheriffElectionResult: SheriffElectionResult;
   }> = {},
 ): LocalGameState {
   return {
@@ -63,6 +73,8 @@ function makeGameState(
     players: overrides.players ?? new Map(),
     actions: new Map(),
     seerReveal: overrides.seerReveal,
+    sheriffElection: overrides.sheriffElection,
+    sheriffElectionResult: overrides.sheriffElectionResult,
   } as unknown as LocalGameState;
 }
 
@@ -87,23 +99,6 @@ function enclosingBackgroundColor(node: ReactTestInstance): string | undefined {
   return undefined;
 }
 
-/** First node at or above a rendered node that carries a backgroundColor. */
-function enclosingBackgroundNode(node: ReactTestInstance): ReactTestInstance {
-  let current: ReactTestInstance | null = node;
-  while (current) {
-    if (flattenStyle(current.props.style)?.backgroundColor) return current;
-    current = current.parent;
-  }
-  throw new Error('Expected an enclosing node with a backgroundColor');
-}
-
-/** Every string leaf under a rendered instance, in tree order. */
-function subtreeStrings(node: ReactTestInstance): string[] {
-  return node.children.flatMap((child) =>
-    typeof child === 'string' ? [child] : subtreeStrings(child),
-  );
-}
-
 function composedNightState(): LocalGameState {
   const players = new Map<number, LocalPlayer | null>([
     [0, makePlayer(0, 'wolf')],
@@ -126,7 +121,7 @@ function composedNightState(): LocalGameState {
 }
 
 describe('NightReviewModal', () => {
-  it('renders the disclaimer line, section labels and modal shell', () => {
+  it('renders the dossier sections and modal shell', () => {
     const view = render(
       <NightReviewModal
         visible
@@ -137,9 +132,16 @@ describe('NightReviewModal', () => {
 
     expect(view.getByTestId(TESTIDS.nightReviewModal)).toBeTruthy();
     expect(view.getByText('本局复盘')).toBeTruthy();
-    expect(view.getByText('仅供裁判及观战者参考')).toBeTruthy();
-    expect(view.getByText('第一夜 · 行动')).toBeTruthy();
+    expect(view.getByText(NIGHT_REPORT_KICKER)).toBeTruthy();
+    expect(view.getByText('关键行动')).toBeTruthy();
     expect(view.getByText('全员身份')).toBeTruthy();
+    expect(view.getByText(NIGHT_REPORT_FOOTER_TEXT)).toBeTruthy();
+    // Stats strip tallies for the composed night.
+    const sequence = collectTextSequence(view.toJSON());
+    expect(sequence).toContain('● 狼杀 1');
+    expect(sequence).toContain('● 毒杀 0');
+    expect(sequence).toContain('● 救活 0');
+    expect(sequence).toContain('● 查验 1');
   });
 
   it('renders every action fact of the composed night', () => {
@@ -151,27 +153,29 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    expect(view.getByText('狼人袭击')).toBeTruthy();
-    expect(view.getByText('守卫守护')).toBeTruthy();
-    expect(view.getByText('女巫使用解药救了')).toBeTruthy();
-    // The unused poison merges into the witch row as a sub-line.
-    expect(view.getByText('毒药未使用')).toBeTruthy();
-    expect(view.getByText('预言家查验')).toBeTruthy();
-    // Check result pill for the seer reveal (狼人 verdict on seat 0).
-    expect(view.getAllByText('狼人').length).toBeGreaterThanOrEqual(2);
-    // The outcome renders once, in the hero: headline + death card
-    // (seat + identity + wolf-kill reason), not as a timeline row.
+    // Conclusion header: headline + death card with the derived byline.
     expect(view.getByText('昨夜 1 人出局')).toBeTruthy();
-    // 「5号 · 平民」 now appears on the death card AND on the action-row seat
-    // identity chips (wolf-attack target, witch save target).
-    expect(view.getAllByText('5号 · 平民').length).toBeGreaterThanOrEqual(2);
-    expect(view.getByText('狼杀')).toBeTruthy();
+    expect(view.getAllByText('狼杀出局')).toHaveLength(2);
+    expect(view.getByText('狼队 1 票锁定')).toBeTruthy();
+    // Wolf team card: shared target, and the target died.
+    expect(view.getByText('狼队')).toBeTruthy();
+    expect(view.getByText('击杀成立')).toBeTruthy();
+    expect(view.getByText('狼队共同目标')).toBeTruthy();
+    // Guard card.
+    expect(view.getByText('守护')).toBeTruthy();
+    // Witch card: the save row plus the unused-poison sub-line.
+    expect(view.getByText('使用解药救了')).toBeTruthy();
+    expect(view.getByText('毒药未使用')).toBeTruthy();
+    // Seer card with its result tag.
+    expect(view.getByText('查验')).toBeTruthy();
+    expect(view.getAllByText('狼人').length).toBeGreaterThanOrEqual(2);
+    // Number discipline: no 「N号」 text anywhere — numbers live on medals.
+    expect(view.queryByText('5号 · 平民')).toBeNull();
+    expect(view.queryByText('5号')).toBeNull();
     expect(view.queryByText('死亡')).toBeNull();
-    // The wolf attack target died: the row carries an out pill.
-    expect(view.getByText('出局')).toBeTruthy();
   });
 
-  it('renders the full identity grid with exactly one out marker', () => {
+  it('renders the full identity wall with exactly one out seat', () => {
     const view = render(
       <NightReviewModal
         visible
@@ -180,55 +184,33 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    expect(view.getByText('1号')).toBeTruthy();
-    expect(view.getByText('2号')).toBeTruthy();
-    expect(view.getByText('3号')).toBeTruthy();
-    expect(view.getByText('4号')).toBeTruthy();
-    expect(view.getByText('5号')).toBeTruthy();
-    expect(view.getByText('守卫')).toBeTruthy();
-    expect(view.getByText('女巫')).toBeTruthy();
-    expect(view.getByText('预言家')).toBeTruthy();
-    expect(view.getByText('平民')).toBeTruthy();
-    // Only seat 5 (index 4) died last night.
-    expect(view.getAllByText('已出局')).toHaveLength(1);
+    const sequence = collectTextSequence(view.toJSON());
+    const afterIdentities = sequence.slice(sequence.indexOf('全员身份'));
+    const roleOrder = ['狼人', '守卫', '女巫', '预言家', '平民'].map((name) =>
+      afterIdentities.indexOf(name),
+    );
+    for (const index of roleOrder) expect(index).toBeGreaterThanOrEqual(0);
+    expect([...roleOrder].sort((a, b) => a - b)).toEqual(roleOrder);
+    expect(view.getAllByText('存活')).toHaveLength(4);
+    expect(view.queryByText('已出局')).toBeNull();
   });
 
-  it('renders villager surfaces in neutral gray, never the villager green', () => {
+  it('renders bottom cards and villager identities on the dossier', () => {
     const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'villager')]]);
     const view = render(
       <NightReviewModal
         visible
-        data={buildNightReviewData(makeGameState({ players, bottomCards: ['villager'] }))}
+        data={buildNightReviewData(
+          makeGameState({ players, bottomCards: ['villager', 'seer', 'guard'] }),
+        )}
         onClose={jest.fn()}
       />,
     );
 
-    // Both villager surfaces fed by the shared faction mapping — the identity
-    // card role text and the bottom-card role chip — render gray per the
-    // approved review design （民灰）, not colors.villager green.
-    const villagerTexts = view.getAllByText('平民');
-    expect(villagerTexts).toHaveLength(2);
-    for (const textNode of villagerTexts) {
-      const textColor = flattenStyle(textNode.props.style)?.color;
-      expect(textColor).toBe(colors.textSecondary);
-      expect(textColor).not.toBe(colors.villager);
-    }
-    // Each surface pins its own exact wash — identity card 0.1, role chip
-    // 0.12 — so swapping the two alphas fails here. The identity card is
-    // told apart from the chip by the seat label inside its wash container.
-    let identityCardWash: string | undefined;
-    let roleChipWash: string | undefined;
-    for (const textNode of villagerTexts) {
-      const washNode = enclosingBackgroundNode(textNode);
-      const wash = flattenStyle(washNode.props.style)?.backgroundColor;
-      if (subtreeStrings(washNode).includes('1号')) {
-        identityCardWash = wash;
-      } else {
-        roleChipWash = wash;
-      }
-    }
-    expect(identityCardWash).toBe(withAlpha(colors.textSecondary, 0.1));
-    expect(roleChipWash).toBe(withAlpha(colors.textSecondary, 0.12));
+    expect(view.getByText('底牌组成')).toBeTruthy();
+    // 平民 appears on the bottom-card row and on the identity wall.
+    expect(view.getAllByText('平民')).toHaveLength(2);
+    expect(view.getByText('存活')).toBeTruthy();
   });
 
   it('renders a peaceful night and placeholder identities', () => {
@@ -245,13 +227,15 @@ describe('NightReviewModal', () => {
     );
 
     expect(view.getByText('昨夜平安夜')).toBeTruthy();
-    expect(view.getByText('无人出局')).toBeTruthy();
     expect(view.getByText('空座')).toBeTruthy();
     expect(view.getByText('未分配')).toBeTruthy();
-    expect(view.queryByText('已出局')).toBeNull();
+    expect(view.queryByText('狼杀出局')).toBeNull();
+    const sequence = collectTextSequence(view.toJSON());
+    expect(sequence).toContain('● 狼杀 0');
+    expect(sequence).toContain('● 查验 0');
   });
 
-  it('aggregates wolf votes by target with one filled target dot', () => {
+  it('aggregates wolf votes by target with one filled target medal', () => {
     const players = new Map<number, LocalPlayer | null>([
       [0, makePlayer(0, 'wolf')],
       [1, makePlayer(1, 'wolf')],
@@ -276,14 +260,15 @@ describe('NightReviewModal', () => {
     );
 
     expect(view.getByText('狼队共同目标')).toBeTruthy();
-    // Four wolves voted seat 5 (index 4): the target dot renders once, not
-    // once per vote, and it is the filled emphasis variant (primary fill).
+    // Seat 5 (index 4) renders as a medal twice — the wolf target and the
+    // identity wall — and exactly one of them is the filled emphasis.
     const targetTexts = view.getAllByText('5');
-    expect(targetTexts).toHaveLength(1);
-    expect(enclosingBackgroundColor(targetTexts[0]!)).toBe(colors.primary);
+    expect(targetTexts).toHaveLength(2);
+    const filled = targetTexts.filter((node) => enclosingBackgroundColor(node) === colors.primary);
+    expect(filled).toHaveLength(1);
   });
 
-  it('marks split wolf votes with per-target groups and the split sub-line', () => {
+  it('marks tied split wolf votes with the tie verdict', () => {
     const players = new Map<number, LocalPlayer | null>([
       [0, makePlayer(0, 'wolf')],
       [1, makePlayer(1, 'wolf')],
@@ -303,17 +288,16 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    expect(view.getByText('狼队目标不一致')).toBeTruthy();
+    expect(view.getByText('狼队目标不一致 — 平票，未击杀')).toBeTruthy();
+    expect(view.getByText('平票未击杀')).toBeTruthy();
     expect(view.queryByText('狼队共同目标')).toBeNull();
-    // One dot per target, even though two wolves voted.
-    expect(view.getAllByText('5')).toHaveLength(1);
-    expect(view.getAllByText('6')).toHaveLength(1);
-    // Equal vote counts order groups by target seat ascending.
+    // One target medal per group even though two wolves voted; equal counts
+    // order groups by target seat ascending.
     const sequence = collectTextSequence(view.toJSON());
     expect(sequence.indexOf('5')).toBeLessThan(sequence.indexOf('6'));
   });
 
-  it('merges the witch poison and unused antidote into one row', () => {
+  it('merges the witch poison and unused antidote into one card', () => {
     const players = new Map<number, LocalPlayer | null>([
       [0, makePlayer(0, 'wolf')],
       [1, makePlayer(1, 'villager')],
@@ -335,13 +319,16 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    expect(view.getByText('女巫使用毒药毒杀')).toBeTruthy();
-    expect(view.getByText('解药未使用')).toBeTruthy();
+    expect(view.getByText('毒杀')).toBeTruthy();
     expect(view.getByText('出局')).toBeTruthy();
-    // The unused antidote is absorbed by the merged row: it must not repeat
-    // as a noise-zone chip, and with no other idle entries the zone is absent.
+    // Death card byline names the poison owner.
+    expect(view.getByText('女巫下毒')).toBeTruthy();
+    expect(view.getAllByText('毒杀出局')).toHaveLength(2);
+    // The unused antidote merges into the witch card as a sub-line together
+    // with the derived "wolf target not saved" note — no strip appears.
+    expect(view.getByText('解药未使用 · 狼刀目标未救')).toBeTruthy();
+    expect(view.queryByText('未行动')).toBeNull();
     expect(view.queryByText('女巫未使用解药')).toBeNull();
-    expect(view.queryByText(NIGHT_REVIEW_NOISE_TITLE)).toBeNull();
   });
 
   it('renders the screenshot night: split votes, one abstention, seat identities', () => {
@@ -381,30 +368,39 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    // Hero: both deaths with identities and reasons.
+    // Conclusion header: both deaths, stats, derived bylines.
     expect(view.getByText('昨夜 2 人出局')).toBeTruthy();
-    expect(view.getAllByText('6号 · 平民').length).toBeGreaterThanOrEqual(1);
-    expect(view.getAllByText('12号 · 狼人').length).toBeGreaterThanOrEqual(2);
-    // The abstention renders as an 空刀 group — never as a seat "0" target.
-    expect(view.getByText('空刀')).toBeTruthy();
-    expect(view.queryByText('0')).toBeNull();
-    expect(view.queryByText('0号')).toBeNull();
-    // Real targets form exactly two groups (split wording below). The 6号
-    // target chip repeats the death card's identity label — without the chip
-    // the label would appear only once.
-    expect(view.getAllByText('6号 · 平民').length).toBeGreaterThanOrEqual(2);
-    expect(view.getByText('狼队目标不一致')).toBeTruthy();
+    const sequence = collectTextSequence(view.toJSON());
+    expect(sequence).toContain('● 狼杀 1');
+    expect(sequence).toContain('● 毒杀 1');
+    expect(sequence).toContain('● 救活 0');
+    expect(sequence).toContain('● 查验 1');
+    expect(view.getByText('狼队 2 票锁定')).toBeTruthy();
+    expect(view.getByText('女巫下毒')).toBeTruthy();
+    // Wolf team card: split verdict, kill成立 tag, abstention group.
+    expect(view.getByText('狼队目标不一致 — 按多数票击杀')).toBeTruthy();
+    expect(view.getByText('击杀成立')).toBeTruthy();
     expect(view.queryByText('狼队共同目标')).toBeNull();
-    // The poison row's target carries its identity (12号 is the wolf).
-    expect(view.getByText('女巫使用毒药毒杀')).toBeTruthy();
-    // The check row's target carries its identity too (5号 · 平民 appears on
-    // the wolf-attack target chip and the seer-check chip).
-    expect(view.getAllByText('5号 · 平民').length).toBeGreaterThanOrEqual(2);
-    // The hunter row names its seat: 猎人（3号）. 「猎人」 itself appears on
-    // both the identity grid and the shoot-status row title.
+    expect(view.getByText('空刀')).toBeTruthy();
+    // The -1 abstention sentinel never surfaces as a seat: no bare 「0」
+    // medal and no 「0号」 text in the whole sequence.
+    expect(sequence).not.toContain('0');
+    expect(sequence).not.toContain('0号');
+    // Witch card: poison row with the out tag and the merged sub-line.
+    expect(view.getByText('解药未使用 · 狼刀目标未救')).toBeTruthy();
+    // Seer card: check with the 好人 result tag.
+    expect(view.getByText('好人')).toBeTruthy();
+    // Hunter card: the seat lives on the medal only — no （3号） text.
     expect(view.getAllByText('猎人').length).toBeGreaterThanOrEqual(2);
-    expect(view.getByText('（3号）')).toBeTruthy();
-    expect(view.getByText('可以发动技能')).toBeTruthy();
+    expect(view.getByText('可发动技能')).toBeTruthy();
+    expect(view.queryByText('（3号）')).toBeNull();
+    expect(view.queryByText('3号')).toBeNull();
+    // Identity wall statuses.
+    expect(view.getAllByText('存活')).toHaveLength(10);
+    expect(view.getAllByText('狼杀出局')).toHaveLength(2);
+    expect(view.getAllByText('毒杀出局')).toHaveLength(2);
+    // No idle entries this night: no strip.
+    expect(view.queryByText('未行动')).toBeNull();
   });
 
   it('renders an all-abstain wolf night with only the abstain group', () => {
@@ -426,15 +422,16 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    expect(view.getByText('狼人袭击')).toBeTruthy();
-    expect(view.getByText('空刀')).toBeTruthy();
-    // No real target: no shared/split wording and no filled target dot.
+    expect(view.getByText('狼队全员空刀')).toBeTruthy();
+    expect(view.getAllByText('空刀').length).toBeGreaterThanOrEqual(1);
     expect(view.queryByText('狼队共同目标')).toBeNull();
-    expect(view.queryByText('狼队目标不一致')).toBeNull();
-    expect(view.queryByText('0')).toBeNull();
+    expect(view.queryByText('狼队目标不一致 — 按多数票击杀')).toBeNull();
+    const sequence = collectTextSequence(view.toJSON());
+    expect(sequence).not.toContain('0');
+    expect(sequence).not.toContain('0号');
   });
 
-  it('drops idle entries into the noise zone between timeline and identities', () => {
+  it('drops idle entries into the strip between the cards and the identity wall', () => {
     const players = new Map<number, LocalPlayer | null>([
       [0, makePlayer(0, 'wolf')],
       [1, makePlayer(1, 'guard')],
@@ -461,10 +458,110 @@ describe('NightReviewModal', () => {
       return index;
     };
     // The guard never guarded and the seer never checked: both land in the
-    // noise zone, after the effective timeline and before the identity grid.
-    expect(indexOf('狼人袭击')).toBeLessThan(indexOf(NIGHT_REVIEW_NOISE_TITLE));
-    expect(indexOf(NIGHT_REVIEW_NOISE_TITLE)).toBeLessThan(indexOf('守卫未守护'));
-    expect(indexOf('守卫未守护')).toBeLessThan(indexOf('预言家未查验'));
-    expect(indexOf('预言家未查验')).toBeLessThan(indexOf('全员身份'));
+    // strip as flowing text, after the action cards, before the wall.
+    expect(indexOf('关键行动')).toBeLessThan(indexOf('未行动'));
+    expect(indexOf('未行动')).toBeLessThan(indexOf('守卫 2号 未守护 · 预言家 4号 未查验'));
+    expect(indexOf('守卫 2号 未守护 · 预言家 4号 未查验')).toBeLessThan(indexOf('全员身份'));
+  });
+
+  describe('sheriff card', () => {
+    const FIRST_ROUND = {
+      round: 'first',
+      candidateSeats: [2, 5],
+      eligibleVoterSeats: [0, 1, 2, 3, 4, 5, 6],
+      ballots: { 0: 2, 1: 2, 2: 5, 3: 2, 4: null, 5: 2, 6: 5 },
+      voteCounts: { 2: 4, 5: 2 },
+      abstainingSeats: [4],
+    } as const;
+    const sevenVillagers = (): Map<number, LocalPlayer | null> =>
+      new Map([0, 1, 2, 3, 4, 5, 6].map((seat) => [seat, makePlayer(seat, 'villager')] as const));
+
+    it('renders the full public record for a completed election', () => {
+      const view = render(
+        <NightReviewModal
+          visible
+          data={buildNightReviewData(
+            makeGameState({
+              players: sevenVillagers(),
+              sheriffElection: {
+                phase: 'completed',
+                registeredSeats: [2, 5],
+                withdrawnSeats: [],
+                completedRounds: [FIRST_ROUND],
+              },
+              sheriffElectionResult: { kind: 'elected', sheriffSeat: 2 },
+            }),
+          )}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(view.getByText('警长竞选')).toBeTruthy();
+      expect(view.getByText('警长当选')).toBeTruthy();
+      expect(view.getByText('得票 4 / 7')).toBeTruthy();
+      expect(view.getByText('参选')).toBeTruthy();
+      expect(view.getByText('首轮投票')).toBeTruthy();
+      expect(view.getByText('4 票')).toBeTruthy();
+      expect(view.getByText('2 票')).toBeTruthy();
+      expect(view.getByText('弃票')).toBeTruthy();
+    });
+
+    it('renders registration as status only — no seats, no counts', () => {
+      const view = render(
+        <NightReviewModal
+          visible
+          data={buildNightReviewData(
+            makeGameState({
+              players: sevenVillagers(),
+              sheriffElection: {
+                phase: 'registration',
+                registeredSeats: [1, 2],
+                withdrawnSeats: [],
+                completedRounds: [],
+              },
+            }),
+          )}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(view.getByText('报名中')).toBeTruthy();
+      expect(view.queryByText('参选')).toBeNull();
+      expect(view.queryByText('首轮投票')).toBeNull();
+      const sequence = collectTextSequence(view.toJSON());
+      const cardHead = sequence.lastIndexOf('警长竞选');
+      expect(sequence[cardHead + 1]).toBe('报名中');
+      expect(sequence[cardHead + 2]).toBe('全员身份');
+    });
+
+    it('renders an in-progress vote with candidates only — ballots never surface', () => {
+      const view = render(
+        <NightReviewModal
+          visible
+          data={buildNightReviewData(
+            makeGameState({
+              players: sevenVillagers(),
+              sheriffElection: {
+                phase: 'firstVote',
+                registeredSeats: [2, 5],
+                withdrawnSeats: [],
+                completedRounds: [],
+                candidateSeats: [2, 5],
+                eligibleVoterSeats: [0, 1, 2, 3, 4, 5, 6],
+                ballots: { 0: 2, 1: 5 },
+              },
+            }),
+          )}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(view.getByText('投票中')).toBeTruthy();
+      expect(view.getByText('首轮投票中')).toBeTruthy();
+      // The two cast ballots must not leak as counts or voter rows.
+      expect(view.queryByText('4 票')).toBeNull();
+      expect(view.queryByText('1 票')).toBeNull();
+      expect(view.queryByText('弃票')).toBeNull();
+    });
   });
 });

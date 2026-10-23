@@ -8,10 +8,14 @@
 import { type Ref, useMemo } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View as RNView, type View } from 'react-native';
 
-import { borderRadius, colors, fixed, spacing, type ThemeColors, typography } from '@/theme';
+import { spacing, typography } from '@/theme';
 
 import type { NightReviewData } from '../NightReview.helpers';
-import { formatNightReviewShareTitle, NIGHT_REVIEW_CARD_WIDTH_RATIO } from '../nightReviewLayout';
+import {
+  formatNightReviewShareTitle,
+  NIGHT_REPORT_PALETTE,
+  NIGHT_REVIEW_CARD_WIDTH_RATIO,
+} from '../nightReviewLayout';
 import { NightReviewReportBody } from './NightReviewReportBody';
 
 interface NightReviewShareCardProps {
@@ -22,7 +26,7 @@ interface NightReviewShareCardProps {
 
 export function NightReviewShareCard({ data, roomCode, ref }: NightReviewShareCardProps) {
   const { width: screenWidth } = useWindowDimensions();
-  const styles = useMemo(() => createStyles(colors, screenWidth), [screenWidth]);
+  const styles = useMemo(() => createStyles(screenWidth), [screenWidth]);
 
   return (
     <RNView ref={ref} collapsable={false} style={styles.card}>
@@ -33,23 +37,21 @@ export function NightReviewShareCard({ data, roomCode, ref }: NightReviewShareCa
   );
 }
 
-function createStyles(colors: ThemeColors, screenWidth: number) {
+function createStyles(screenWidth: number) {
   return StyleSheet.create({
+    // The captured card is the dossier itself: dark surface edge-to-edge,
+    // the report body prints its archive page inside.
     card: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      padding: spacing.large,
+      backgroundColor: NIGHT_REPORT_PALETTE.background,
       width: screenWidth * NIGHT_REVIEW_CARD_WIDTH_RATIO,
     },
     title: {
       fontSize: typography.subtitle,
       lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.bold,
-      color: colors.text,
+      color: NIGHT_REPORT_PALETTE.text,
       textAlign: 'center',
-      marginBottom: spacing.medium,
+      paddingTop: spacing.large,
     },
   });
 }
