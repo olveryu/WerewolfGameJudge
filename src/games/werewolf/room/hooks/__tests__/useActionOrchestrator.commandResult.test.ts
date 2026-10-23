@@ -45,6 +45,7 @@ function createParams(
     roomStatus: GameStatus.Ongoing,
     currentActionRole: 'seer' as const,
     currentSchema: getSchema('seerCheck'),
+    pendingRevealAck: null,
     effectiveSeat: 0,
     effectiveRole: 'seer' as const,
     controlledSeat: null,

@@ -3,8 +3,10 @@
  *
  * Dispatches ActionIntent to the executor registry, manages action submission
  * helpers (proceedWithAction, confirmThenAct), runs auto-trigger effect
- * (idempotent intent auto-fire on step changes), and surfaces Host
- * ACTION_REJECTED via alert.
+ * (idempotent intent auto-fire on step changes), surfaces Host
+ * ACTION_REJECTED via alert, and re-presents the reveal-ack dialog from room
+ * state when a full-page reload lost the outcome snapshot that normally
+ * feeds revealExecutor.
  *
  * Server-ack lifecycle (reveal / hunterStatus / groupConfirm) tracked via
  * useWerewolfAckMutation — RoomInteractionPolicy reads aggregate state via
@@ -21,7 +23,7 @@ import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ActionSchema } from '@game-judge/game-engine/games/werewolf/public';
 import type { WerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus, getSchema } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
@@ -30,6 +32,7 @@ import {
   type SuccessfulRoomCommandDispatchOutcome,
 } from '@/features/room/session/roomCommandResult';
 import { useWerewolfAckMutation } from '@/games/werewolf/hooks/useWerewolfAckMutation';
+import type { PendingRevealAck } from '@/games/werewolf/room/policy/pendingRevealAck';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import type { UseRoomActionDialogsResult } from '@/games/werewolf/room/useRoomActionDialogs';
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
@@ -39,6 +42,10 @@ import { roomScreenLog } from '@/utils/logger';
 
 import type { ExecutorContext } from '../executors';
 import { dispatchIntent } from '../executors';
+import {
+  createRevealAckPresentationGuard,
+  presentRevealAckDialog,
+} from '../executors/presentRevealAckDialog';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -52,6 +59,12 @@ interface UseActionOrchestratorParams {
   roomStatus: GameStatus;
   currentActionRole: RoleId | null;
   currentSchema: ActionSchema | null;
+  /**
+   * Reveal ack the effective actor still owes per room state (derived in
+   * useWerewolfRoom from the raw snapshot). Drives the state-driven re-entry
+   * effect below; null when no reveal ack is pending for this actor.
+   */
+  pendingRevealAck: PendingRevealAck | null;
 
   // ── Identity (effective* = submission, actor* = UI decision) ──
   effectiveSeat: number | null;
@@ -110,6 +123,7 @@ export function useActionOrchestrator({
   roomStatus,
   currentActionRole,
   currentSchema,
+  pendingRevealAck,
   effectiveSeat,
   effectiveRole,
   controlledSeat,
@@ -147,6 +161,11 @@ export function useActionOrchestrator({
     'groupConfirm',
     () => submitGroupConfirmAck(),
   );
+
+  // ─── Reveal-ack presentation guard ───────────────────────────────────────
+  // Shared by revealExecutor (outcome path) and the re-entry effect below so
+  // the reveal dialog is presented at most once per pending-ack episode.
+  const [revealAckGuard] = useState(createRevealAckPresentationGuard);
 
   // ─── Refs ────────────────────────────────────────────────────────────────
   const gameStateRef = useRef<LocalGameState>(gameState);
@@ -263,6 +282,7 @@ export function useActionOrchestrator({
         setMultiSelectedSeats,
         proceedWithAction,
         confirmThenAct,
+        revealAckGuard,
         revealAckMutation,
         hunterStatusAckMutation,
         groupConfirmAckMutation,
@@ -282,6 +302,7 @@ export function useActionOrchestrator({
       confirmThenAct,
       currentSchema,
       currentActionRole,
+      revealAckGuard,
       revealAckMutation,
       hunterStatusAckMutation,
       groupConfirmAckMutation,
@@ -354,6 +375,49 @@ export function useActionOrchestrator({
     gameState.nightStep,
     getAutoTriggerIntent,
     handleActionIntent,
+  ]);
+
+  // ─── Reveal-ack re-entry (state-driven) ──────────────────────────────────
+  // The outcome path (revealExecutor) presents the reveal dialog from the
+  // just-committed command snapshot. After a full-page reload that snapshot
+  // is gone, but the ack stays pending in room state and progression stays
+  // frozen on it (inlineProgression returns 'none' while pendingRevealAcks
+  // is non-empty) — with no other way to send the ack, the room soft-locks.
+  // When the derived pending ack names this actor, re-present the same
+  // dialog from live state. Suppression mirrors the auto-trigger effect
+  // (continue overlay, pending command recovery, audio lock); the shared
+  // guard keeps this from stacking a second dialog when the outcome path
+  // already presented it, and a missing reveal payload (deferred reveal not
+  // yet finalized) consumes no claim so a later state update can present.
+  useEffect(() => {
+    if (pendingRevealAck === null) {
+      revealAckGuard.clear();
+      return;
+    }
+    if (roomStatus !== GameStatus.Ongoing) return;
+    if (needsContinueOverlay || hasPendingActionCommand) return;
+    if (isAudioPlaybackLocked(isAudioPlaying)) return;
+    if (revealAckMutation.isPending) return;
+
+    presentRevealAckDialog({
+      state: gameState,
+      schema: getSchema(pendingRevealAck.schemaId),
+      revealKind: pendingRevealAck.revealKind,
+      claimKey: pendingRevealAck.schemaId,
+      guard: revealAckGuard,
+      revealAckMutation,
+      actionDialogs,
+    });
+  }, [
+    pendingRevealAck,
+    roomStatus,
+    needsContinueOverlay,
+    hasPendingActionCommand,
+    isAudioPlaying,
+    revealAckMutation,
+    gameState,
+    revealAckGuard,
+    actionDialogs,
   ]);
 
   return {

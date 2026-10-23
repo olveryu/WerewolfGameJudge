@@ -18,6 +18,7 @@ import type { UseMutationResult } from '@tanstack/react-query';
 import type { MutableRefObject } from 'react';
 
 import type { SuccessfulRoomCommandDispatchOutcome } from '@/features/room/session/roomCommandResult';
+import type { RevealAckPresentationGuard } from '@/games/werewolf/room/executors/presentRevealAckDialog';
 import type { ActionIntent, ActionIntentType } from '@/games/werewolf/room/policy/types';
 import type { UseRoomActionDialogsResult } from '@/games/werewolf/room/useRoomActionDialogs';
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
@@ -58,6 +59,14 @@ export interface ExecutorContext {
     onAccepted: (result: SuccessfulRoomCommandDispatchOutcome<GameState>) => Promise<void> | void,
     opts?: { title?: string; message?: string },
   ) => void;
+
+  // ── Reveal-ack presentation coordination ──
+  /**
+   * Claim guard shared by the outcome path (revealExecutor) and the
+   * state-driven re-entry effect, so the reveal dialog is presented at most
+   * once per pending-ack episode. See presentRevealAckDialog.
+   */
+  revealAckGuard: RevealAckPresentationGuard;
 
   // ── Server-ack mutations (TanStack — owns isPending lifecycle) ──
   /** reveal-ack roundtrip; mutate() called after user dismisses reveal dialog */

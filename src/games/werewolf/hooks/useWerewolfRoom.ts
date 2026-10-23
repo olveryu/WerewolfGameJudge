@@ -31,6 +31,8 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
+import type { PendingRevealAck } from '@/games/werewolf/room/policy/pendingRevealAck';
+import { derivePendingRevealAck } from '@/games/werewolf/room/policy/pendingRevealAck';
 import type {
   WerewolfCommandDispatchOutcome,
   WerewolfGameClient,
@@ -83,6 +85,13 @@ interface UseWerewolfRoomResult {
   currentSchemaId: SchemaId | null;
   currentSchema: ActionSchema | null;
   currentStepId: SchemaId | null;
+
+  /**
+   * Reveal ack the effective actor still owes per room state (state-driven
+   * re-entry after a reload lost the outcome snapshot). Null when no reveal
+   * ack is pending for the effective actor.
+   */
+  pendingRevealAck: PendingRevealAck | null;
 
   // Connection (from shared RoomSession)
   connectionStatus: RoomConnectionStatus;
@@ -257,6 +266,15 @@ interface UseWerewolfRoomResult {
     [snapshot, botControl.effectiveSeat],
   );
 
+  // State-driven reveal-ack re-entry: the ack the effective actor still owes
+  // per room state (the action committed, then the page reloaded before the
+  // reveal dialog was confirmed). Derived from the raw snapshot because the
+  // LocalGameState projection drops the recorded actions' actor seats.
+  const pendingRevealAck = useMemo(
+    () => derivePendingRevealAck(snapshot, botControl.effectiveSeat),
+    [snapshot, botControl.effectiveSeat],
+  );
+
   // myRole keeps own-seat semantics (the identity layer's real identity);
   // when not delegating it is the room view model's own role.
   const myRole: RoleId | null =
@@ -289,6 +307,7 @@ interface UseWerewolfRoomResult {
     markAllBotsViewed: debug.markAllBotsViewed,
     markAllBotsGroupConfirmed: debug.markAllBotsGroupConfirmed,
     // Night-derived
+    pendingRevealAck,
     roomStatus,
     currentActionRole: nightDerived.currentActionRole,
     isAudioPlaying: nightDerived.isAudioPlaying,

@@ -1,33 +1,29 @@
 /**
  * revealExecutor — Handles 'reveal' ActionIntent
  *
- * Submits via confirmThenAct, reads reveal data from the committed command
- * snapshot, shows the reveal dialog, and triggers revealAckMutation.mutate when the user
- * dismisses. The mutation's isPending covers the dialog-closed-but-ack-pending
- * window the previous pendingRevealDialog flag protected (gate logic in
- * RoomInteractionPolicy via useWerewolfPendingAcks).
+ * Submits via confirmThenAct, then presents the reveal dialog from the
+ * committed command snapshot via presentRevealAckDialog (the one dialog
+ * presentation, shared with the state-driven re-entry effect in
+ * useActionOrchestrator). Dismissing the dialog triggers
+ * revealAckMutation.mutate; the mutation's isPending covers the
+ * dialog-closed-but-ack-pending window the previous pendingRevealDialog
+ * flag protected (gate logic in RoomInteractionPolicy via
+ * useWerewolfPendingAcks).
  *
- * Failed acknowledgements reject the dialog action so the same attempt can be retried.
+ * A snapshot without reveal data fails fast. 'alreadyPresented' is not an
+ * error: the state-driven re-entry presented the same dialog first.
  */
 
-import { getRoleDisplayName } from '@game-judge/game-engine/games/werewolf/public';
-import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
-
-import {
-  getRoomCommandFailureReason,
-  isSuccessfulRoomCommand,
-} from '@/features/room/session/roomCommandResult';
 import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
-import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
-import { getRevealDataFromState } from '../hooks/actionIntentHelpers';
+import { presentRevealAckDialog } from './presentRevealAckDialog';
 import type { IntentExecutor } from './types';
 
 /** Handle reveal intent (display check result + ack). */
 export const revealExecutor: IntentExecutor = (intent, ctx) => {
   const { currentSchema, confirmThenAct } = ctx;
-  const { revealAckMutation, actionDialogs } = ctx;
+  const { revealAckMutation, actionDialogs, revealAckGuard } = ctx;
 
   if (!intent.revealKind) {
     roomScreenLog.warn(' reveal intent missing revealKind');
@@ -38,43 +34,19 @@ export const revealExecutor: IntentExecutor = (intent, ctx) => {
 
   confirmThenAct(intent.targetSeat, async (accepted) => {
     const state = toWerewolfLocalState(accepted.decision.snapshot.state);
-    const reveal = getRevealDataFromState(state, revealKind);
-    if (!reveal) {
+    const result = presentRevealAckDialog({
+      state,
+      schema: currentSchema,
+      revealKind,
+      claimKey: currentSchema?.id ?? revealKind,
+      guard: revealAckGuard,
+      revealAckMutation,
+      actionDialogs,
+    });
+    if (result === 'missingRevealData') {
       throw new Error(
         `[FAIL-FAST] Successful ${revealKind} command snapshot is missing reveal data`,
       );
     }
-
-    const ui = currentSchema?.kind !== 'compound' ? currentSchema?.ui : undefined;
-    const displayResult =
-      ui?.revealResultFormat === 'factionCheck' ? reveal.result : getRoleDisplayName(reveal.result);
-    const titlePrefix = ui?.revealTitlePrefix ?? revealKind;
-    const revealTitle = `${titlePrefix}：${formatSeat(reveal.targetSeat)}是${displayResult}`;
-
-    const attemptAck = (): Promise<void> =>
-      new Promise<void>((resolve, reject) => {
-        revealAckMutation.mutate(undefined, {
-          onSuccess: (result) => {
-            if (!isSuccessfulRoomCommand(result)) {
-              const reason = getRoomCommandFailureReason(result);
-              roomScreenLog.warn('revealAck failed', { reason });
-              reject(new Error(reason));
-            } else {
-              resolve();
-            }
-          },
-          onError: (error) => {
-            handleError(error, {
-              label: '确认查验结果',
-              logger: roomScreenLog,
-              feedback: 'toast',
-              alertMessage: '请稍后重试',
-            });
-            reject(error);
-          },
-        });
-      });
-
-    actionDialogs.showRevealDialog(revealTitle, '', attemptAck);
   });
 };
