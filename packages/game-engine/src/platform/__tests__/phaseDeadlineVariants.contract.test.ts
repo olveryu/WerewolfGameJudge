@@ -51,6 +51,16 @@
  * separate on purpose (also registered in the useStageDeadline
  * header); this registry records the distinction and changes
  * neither hook.
+ *
+ * Cross-reference to the E-3 registry
+ * (`platform/room/__tests__/settleCountdown.contract.test.ts`):
+ * the `deadlineAt` this table's avalon row pins through its
+ * settlePin is produced by the E-3 skeleton arm
+ * (`decideSettleCountdownArm`), not by an assembly dimension
+ * here. The werewolf row's out-of-domain ruling is scoped to
+ * the phase-level expiry gate only: werewolf's wolf-vote arm is
+ * registered in the E-3 registry, and this row must not be
+ * flipped to 'switched' on that account.
  */
 
 import fs from 'node:fs';
