@@ -27,8 +27,8 @@ interface NightReviewModalProps {
 export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, data, onClose }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
-  // The frame takes the dossier's dark surface: the report body prints its
-  // archive page edge-to-edge inside the modal.
+  // The frame takes the report's light surface: the report body prints
+  // its page edge-to-edge inside the modal.
   const contentStyle = useMemo(
     () => ({
       width: screenWidth * NIGHT_REVIEW_CARD_WIDTH_RATIO,

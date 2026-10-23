@@ -7,7 +7,7 @@
  * spacing and radii stay sourced from @/theme tokens directly.
  */
 
-import { colors, NIGHT_REPORT_DOSSIER_COLORS } from '@/theme';
+import { colors, NIGHT_REPORT_COLORS } from '@/theme';
 
 /** Card width as a fraction of the window width, shared by all three surfaces. */
 export const NIGHT_REVIEW_CARD_WIDTH_RATIO = 0.88;
@@ -32,79 +32,82 @@ export function formatNightReviewShareTitle(roomCode: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2026 dossier spec — the dark-archive night report.
+// 2026 report spec — the light-surface night report.
 //
-// The DOM body is a dark dossier printed on NIGHT_REPORT_PALETTE (flat
-// colors only, no gradients — the segmented screenshot capture composites
-// bands and a gradient would seam). A seat number appears exactly once per
-// mention: on its SeatMedal. Copy that names a role as a sentence subject
-// lives on card heads and identity statements; inline targets are medals.
+// The DOM body is printed on NIGHT_REPORT_PALETTE, a light palette aligned
+// with the app theme (flat colors only, no gradients — the segmented
+// screenshot capture composites bands and a gradient would seam). A seat
+// number appears exactly once per mention: on its SeatMedal. Copy that
+// names a role as a sentence subject lives on card heads and identity
+// statements; inline targets are medals.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Semantic slots of the dossier palette, composed from the theme hues. */
+/** Semantic slots of the report palette, composed from the theme hues. */
 export const NIGHT_REPORT_PALETTE = {
-  background: NIGHT_REPORT_DOSSIER_COLORS.background,
-  card: NIGHT_REPORT_DOSSIER_COLORS.card,
-  cardBorder: NIGHT_REPORT_DOSSIER_COLORS.cardBorder,
-  divider: NIGHT_REPORT_DOSSIER_COLORS.divider,
-  text: NIGHT_REPORT_DOSSIER_COLORS.text,
-  textSecondary: NIGHT_REPORT_DOSSIER_COLORS.textSecondary,
-  textMuted: NIGHT_REPORT_DOSSIER_COLORS.textMuted,
-  textFaint: NIGHT_REPORT_DOSSIER_COLORS.textFaint,
-  danger: NIGHT_REPORT_DOSSIER_COLORS.salmon,
-  dangerText: NIGHT_REPORT_DOSSIER_COLORS.salmonLight,
-  violet: NIGHT_REPORT_DOSSIER_COLORS.violet,
+  background: NIGHT_REPORT_COLORS.background,
+  card: NIGHT_REPORT_COLORS.card,
+  cardBorder: NIGHT_REPORT_COLORS.cardBorder,
+  divider: NIGHT_REPORT_COLORS.divider,
+  text: NIGHT_REPORT_COLORS.text,
+  textSecondary: NIGHT_REPORT_COLORS.textSecondary,
+  textMuted: NIGHT_REPORT_COLORS.textMuted,
+  textFaint: NIGHT_REPORT_COLORS.textFaint,
+  danger: NIGHT_REPORT_COLORS.danger,
+  dangerText: NIGHT_REPORT_COLORS.dangerText,
+  violet: NIGHT_REPORT_COLORS.violet,
   hitMedalBg: colors.primary,
-  hitMedalText: NIGHT_REPORT_DOSSIER_COLORS.text,
+  // The hit medal is a filled primary disc: its numeral stays inverse
+  // (white) even though the report's text slots are now dark-on-light.
+  hitMedalText: colors.textInverse,
   medalNeutral: {
-    bg: NIGHT_REPORT_DOSSIER_COLORS.neutralMedalBg,
-    border: NIGHT_REPORT_DOSSIER_COLORS.neutralMedalBorder,
-    text: NIGHT_REPORT_DOSSIER_COLORS.text,
+    bg: NIGHT_REPORT_COLORS.neutralMedalBg,
+    border: NIGHT_REPORT_COLORS.neutralMedalBorder,
+    text: NIGHT_REPORT_COLORS.text,
   },
   medalWolf: {
-    bg: NIGHT_REPORT_DOSSIER_COLORS.wolfMedalBg,
-    border: NIGHT_REPORT_DOSSIER_COLORS.wolfMedalBorder,
-    text: NIGHT_REPORT_DOSSIER_COLORS.wolfMedalText,
+    bg: NIGHT_REPORT_COLORS.wolfMedalBg,
+    border: NIGHT_REPORT_COLORS.wolfMedalBorder,
+    text: NIGHT_REPORT_COLORS.wolfMedalText,
   },
   medalGod: {
-    bg: NIGHT_REPORT_DOSSIER_COLORS.godMedalBg,
-    border: NIGHT_REPORT_DOSSIER_COLORS.godMedalBorder,
-    text: NIGHT_REPORT_DOSSIER_COLORS.godMedalText,
+    bg: NIGHT_REPORT_COLORS.godMedalBg,
+    border: NIGHT_REPORT_COLORS.godMedalBorder,
+    text: NIGHT_REPORT_COLORS.godMedalText,
   },
   medalGood: {
-    bg: NIGHT_REPORT_DOSSIER_COLORS.goodMedalBg,
-    border: NIGHT_REPORT_DOSSIER_COLORS.goodMedalBorder,
-    text: NIGHT_REPORT_DOSSIER_COLORS.goodMedalText,
+    bg: NIGHT_REPORT_COLORS.goodMedalBg,
+    border: NIGHT_REPORT_COLORS.goodMedalBorder,
+    text: NIGHT_REPORT_COLORS.goodMedalText,
   },
   medalDead: {
-    bg: NIGHT_REPORT_DOSSIER_COLORS.deadMedalBg,
-    border: NIGHT_REPORT_DOSSIER_COLORS.deadMedalBorder,
-    text: NIGHT_REPORT_DOSSIER_COLORS.salmonLight,
+    bg: NIGHT_REPORT_COLORS.deadMedalBg,
+    border: NIGHT_REPORT_COLORS.deadMedalBorder,
+    text: NIGHT_REPORT_COLORS.dangerText,
   },
   tagBad: {
-    bg: NIGHT_REPORT_DOSSIER_COLORS.deadMedalBg,
-    text: NIGHT_REPORT_DOSSIER_COLORS.salmonLight,
+    bg: NIGHT_REPORT_COLORS.deadMedalBg,
+    text: NIGHT_REPORT_COLORS.dangerText,
   },
   tagGood: {
-    bg: NIGHT_REPORT_DOSSIER_COLORS.goodMedalBg,
-    text: NIGHT_REPORT_DOSSIER_COLORS.goodMedalText,
+    bg: NIGHT_REPORT_COLORS.goodMedalBg,
+    text: NIGHT_REPORT_COLORS.goodMedalText,
   },
   tagInfo: {
-    bg: NIGHT_REPORT_DOSSIER_COLORS.godMedalBg,
-    text: NIGHT_REPORT_DOSSIER_COLORS.violet,
+    bg: NIGHT_REPORT_COLORS.godMedalBg,
+    text: NIGHT_REPORT_COLORS.violet,
   },
   tagMuted: {
-    bg: NIGHT_REPORT_DOSSIER_COLORS.neutralMedalBg,
-    text: NIGHT_REPORT_DOSSIER_COLORS.textSecondary,
+    bg: NIGHT_REPORT_COLORS.neutralMedalBg,
+    text: NIGHT_REPORT_COLORS.textSecondary,
   },
-  idleBg: NIGHT_REPORT_DOSSIER_COLORS.idleBg,
-  idleBorder: NIGHT_REPORT_DOSSIER_COLORS.cardBorder,
-  idleText: NIGHT_REPORT_DOSSIER_COLORS.idleText,
-  idleStrong: NIGHT_REPORT_DOSSIER_COLORS.idleStrong,
+  idleBg: NIGHT_REPORT_COLORS.idleBg,
+  idleBorder: NIGHT_REPORT_COLORS.cardBorder,
+  idleText: NIGHT_REPORT_COLORS.idleText,
+  idleStrong: NIGHT_REPORT_COLORS.idleStrong,
   rosterOutMedal: {
-    bg: NIGHT_REPORT_DOSSIER_COLORS.rosterOutMedalBg,
-    border: NIGHT_REPORT_DOSSIER_COLORS.rosterOutMedalBorder,
-    text: NIGHT_REPORT_DOSSIER_COLORS.rosterOutMedalText,
+    bg: NIGHT_REPORT_COLORS.rosterOutMedalBg,
+    border: NIGHT_REPORT_COLORS.rosterOutMedalBorder,
+    text: NIGHT_REPORT_COLORS.rosterOutMedalText,
   },
 } as const;
 
@@ -116,7 +119,7 @@ export const NIGHT_REPORT_MEDAL_SIZES = {
   roster: 38,
 } as const;
 
-/** Kicker line at the top of the dossier. */
+/** Kicker line at the top of the report. */
 export const NIGHT_REPORT_KICKER = '🌙 第一夜 · 夜报';
 
 /** Section title above the key action cards. */
@@ -128,7 +131,7 @@ export const NIGHT_REPORT_IDLE_TITLE = '未行动';
 /** Section title above the sheriff election card. */
 export const NIGHT_REPORT_SHERIFF_TITLE = '警长竞选';
 
-/** Footer line at the bottom of the dossier. */
+/** Footer line at the bottom of the report. */
 export const NIGHT_REPORT_FOOTER_TEXT = '仅供裁判及观战者参考 · 本夜报由对局记录自动生成';
 
 /** Stats strip labels, in strip order. */

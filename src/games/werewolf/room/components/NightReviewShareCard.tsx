@@ -39,8 +39,8 @@ export function NightReviewShareCard({ data, roomCode, ref }: NightReviewShareCa
 
 function createStyles(screenWidth: number) {
   return StyleSheet.create({
-    // The captured card is the dossier itself: dark surface edge-to-edge,
-    // the report body prints its archive page inside.
+    // The captured card is the report itself: light surface edge-to-edge,
+    // the report body prints its page inside.
     card: {
       backgroundColor: NIGHT_REPORT_PALETTE.background,
       width: screenWidth * NIGHT_REVIEW_CARD_WIDTH_RATIO,
