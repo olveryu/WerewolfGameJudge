@@ -156,7 +156,42 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
     expect(model.hostManagement).not.toBeNull();
   });
 
-  it('switches the bottom actions to the info form once the game has ended', async () => {
+  it('switches the host bottom actions to the info form once the game has ended', async () => {
+    mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+      schemaId: 'seerCheck',
+      currentActionRole: 'seer',
+      myRole: 'villager',
+      mySeat: 3,
+      numberOfPlayers: 4,
+      isHost: true,
+      gameStateOverrides: { status: GameStatus.Ended },
+      hookOverrides: { roomStatus: GameStatus.Ended },
+    });
+
+    const model = await captureModel(renderRoom());
+
+    expect(model.bottomActions.kind).toBe('stacked');
+    if (model.bottomActions.kind === 'stacked') {
+      // The host's Ended bottom is the panel flow: the step bar takes
+      // the message row, the current step is the only primary, and
+      // view identity is a ghost tool.
+      expect(model.bottomActions.message).toBeNull();
+      expect(model.bottomActions.steps?.map((step) => [step.key, step.state])).toEqual([
+        ['lastNightInfo', 'current'],
+        ['nightReview', 'upcoming'],
+        ['closing', 'upcoming'],
+      ]);
+      expect(model.bottomActions.layout.primary.map((a) => [a.key, a.label, a.variant])).toEqual([
+        ['lastNightInfo', '昨夜信息', 'primary'],
+      ]);
+      expect(model.bottomActions.layout.secondary).toEqual([]);
+      expect(model.bottomActions.layout.ghost.map((a) => [a.key, a.label, a.variant])).toEqual([
+        ['viewRole', '查看身份', 'ghost'],
+      ]);
+    }
+  });
+
+  it('gives a player no panel flow once the game has ended', async () => {
     mockUseWerewolfRoomReturn = createWerewolfRoomMock({
       schemaId: 'seerCheck',
       currentActionRole: 'seer',
@@ -171,18 +206,12 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
 
     expect(model.bottomActions.kind).toBe('stacked');
     if (model.bottomActions.kind === 'stacked') {
-      // The Ended bottom is the panel flow: the step bar takes the
-      // message row, the current step is the only primary, and view
-      // identity is a ghost tool.
-      expect(model.bottomActions.message).toBeNull();
-      expect(model.bottomActions.steps?.map((step) => [step.key, step.state])).toEqual([
-        ['lastNightInfo', 'current'],
-        ['nightReview', 'upcoming'],
-        ['closing', 'upcoming'],
-      ]);
-      expect(model.bottomActions.layout.primary.map((a) => [a.key, a.label, a.variant])).toEqual([
-        ['lastNightInfo', '昨夜信息', 'primary'],
-      ]);
+      // The flow is the host's alone: a player gets no step bar and
+      // no host buttons at Ended — only their own ghost tool, with
+      // the plain message row.
+      expect(model.bottomActions.steps).toBeUndefined();
+      expect(model.bottomActions.message).toBe('请选择要查验的玩家，如不使用请点击「不用技能」');
+      expect(model.bottomActions.layout.primary).toEqual([]);
       expect(model.bottomActions.layout.secondary).toEqual([]);
       expect(model.bottomActions.layout.ghost.map((a) => [a.key, a.label, a.variant])).toEqual([
         ['viewRole', '查看身份', 'ghost'],
