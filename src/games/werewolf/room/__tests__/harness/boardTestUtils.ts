@@ -432,6 +432,7 @@ export function createWerewolfRoomMock(options: WerewolfRoomMockOptions) {
     currentActionRole,
     currentSchema,
     currentStepId: schemaId,
+    pendingRevealAck: null,
     currentSchemaId: schemaId,
     isAudioPlaying,
     mySeat,
