@@ -16,56 +16,35 @@ const INFO_CONFIRMED: PanelFlowProgress = {
 };
 const REVIEW_OPENED: PanelFlowProgress = { lastNightInfoConfirmed: true, nightReviewOpened: true };
 
-const HOST: PanelFlowViewer = { role: 'host', reviewShared: false, reviewAuthorized: true };
-const HOST_SHARED: PanelFlowViewer = { role: 'host', reviewShared: true, reviewAuthorized: true };
-const PLAYER: PanelFlowViewer = { role: 'player', reviewShared: false, reviewAuthorized: true };
-const PLAYER_UNAUTHORIZED: PanelFlowViewer = {
-  role: 'player',
-  reviewShared: false,
-  reviewAuthorized: false,
-};
-const SPECTATOR: PanelFlowViewer = {
-  role: 'spectator',
-  reviewShared: false,
-  reviewAuthorized: true,
-};
+const HOST: PanelFlowViewer = { role: 'host', reviewShared: false };
+const HOST_SHARED: PanelFlowViewer = { role: 'host', reviewShared: true };
+const PLAYER: PanelFlowViewer = { role: 'player', reviewShared: false };
+const SPECTATOR: PanelFlowViewer = { role: 'spectator', reviewShared: false };
 
 describe('resolvePanelFlowCurrentStep', () => {
   it('Day starts at the last-night info step', () => {
-    expect(resolvePanelFlowCurrentStep(GameStatus.Day, EMPTY_PANEL_FLOW_PROGRESS, PLAYER)).toBe(
+    expect(resolvePanelFlowCurrentStep(GameStatus.Day, EMPTY_PANEL_FLOW_PROGRESS, HOST)).toBe(
       'lastNightInfo',
     );
   });
 
   it('Day pauses once the info is confirmed (phase actions resume)', () => {
-    expect(resolvePanelFlowCurrentStep(GameStatus.Day, INFO_CONFIRMED, PLAYER)).toBeNull();
-    expect(resolvePanelFlowCurrentStep(GameStatus.Day, REVIEW_OPENED, PLAYER)).toBeNull();
-  });
-
-  it('Ended walks info → review → closing for a player (review completes on open)', () => {
-    expect(resolvePanelFlowCurrentStep(GameStatus.Ended, EMPTY_PANEL_FLOW_PROGRESS, PLAYER)).toBe(
-      'lastNightInfo',
-    );
-    expect(resolvePanelFlowCurrentStep(GameStatus.Ended, INFO_CONFIRMED, PLAYER)).toBe(
-      'nightReview',
-    );
-    expect(resolvePanelFlowCurrentStep(GameStatus.Ended, REVIEW_OPENED, PLAYER)).toBe('closing');
+    expect(resolvePanelFlowCurrentStep(GameStatus.Day, INFO_CONFIRMED, HOST)).toBeNull();
+    expect(resolvePanelFlowCurrentStep(GameStatus.Day, REVIEW_OPENED, HOST)).toBeNull();
   });
 
   it('Day progress carries into Ended: a confirmed info step is never re-asked', () => {
     // Same progress record, status flips Day → Ended mid-game
     // (e.g. a wolf self-detonates during the day).
-    expect(resolvePanelFlowCurrentStep(GameStatus.Ended, INFO_CONFIRMED, PLAYER)).toBe(
-      'nightReview',
-    );
+    expect(resolvePanelFlowCurrentStep(GameStatus.Ended, INFO_CONFIRMED, HOST)).toBe('nightReview');
   });
 
   it('does not apply outside Day/Ended', () => {
     expect(
-      resolvePanelFlowCurrentStep(GameStatus.Ongoing, EMPTY_PANEL_FLOW_PROGRESS, PLAYER),
+      resolvePanelFlowCurrentStep(GameStatus.Ongoing, EMPTY_PANEL_FLOW_PROGRESS, HOST),
     ).toBeNull();
     expect(
-      resolvePanelFlowCurrentStep(GameStatus.Assigned, EMPTY_PANEL_FLOW_PROGRESS, PLAYER),
+      resolvePanelFlowCurrentStep(GameStatus.Assigned, EMPTY_PANEL_FLOW_PROGRESS, HOST),
     ).toBeNull();
   });
 
@@ -89,26 +68,15 @@ describe('resolvePanelFlowCurrentStep', () => {
     });
   });
 
-  describe('player without the review shared with them', () => {
-    it('skips the review step entirely: info → closing', () => {
-      expect(
-        resolvePanelFlowCurrentStep(
-          GameStatus.Ended,
-          EMPTY_PANEL_FLOW_PROGRESS,
-          PLAYER_UNAUTHORIZED,
-        ),
-      ).toBe('lastNightInfo');
-      expect(
-        resolvePanelFlowCurrentStep(GameStatus.Ended, INFO_CONFIRMED, PLAYER_UNAUTHORIZED),
-      ).toBe('closing');
-      expect(
-        resolvePanelFlowCurrentStep(GameStatus.Ended, REVIEW_OPENED, PLAYER_UNAUTHORIZED),
-      ).toBe('closing');
+  describe('non-host viewers', () => {
+    it('players never enter the flow, whatever the progress or their review access', () => {
+      for (const progress of [EMPTY_PANEL_FLOW_PROGRESS, INFO_CONFIRMED, REVIEW_OPENED]) {
+        expect(resolvePanelFlowCurrentStep(GameStatus.Day, progress, PLAYER)).toBeNull();
+        expect(resolvePanelFlowCurrentStep(GameStatus.Ended, progress, PLAYER)).toBeNull();
+      }
     });
-  });
 
-  describe('spectator', () => {
-    it('never enters the flow, whatever the progress', () => {
+    it('spectators never enter the flow, whatever the progress', () => {
       for (const progress of [EMPTY_PANEL_FLOW_PROGRESS, INFO_CONFIRMED, REVIEW_OPENED]) {
         expect(resolvePanelFlowCurrentStep(GameStatus.Day, progress, SPECTATOR)).toBeNull();
         expect(resolvePanelFlowCurrentStep(GameStatus.Ended, progress, SPECTATOR)).toBeNull();
@@ -123,7 +91,7 @@ describe('buildPanelFlowSteps', () => {
   const build = (
     roomStatus: GameStatus,
     progress: PanelFlowProgress,
-    viewer: PanelFlowViewer = PLAYER,
+    viewer: PanelFlowViewer = HOST,
   ) =>
     buildPanelFlowSteps({ roomStatus, progress, viewer, onOpenLastNightInfo, onOpenNightReview });
 
@@ -141,7 +109,7 @@ describe('buildPanelFlowSteps', () => {
   });
 
   it('the closing step itself is never a step-bar press', () => {
-    const steps = build(GameStatus.Ended, REVIEW_OPENED);
+    const steps = build(GameStatus.Ended, REVIEW_OPENED, HOST_SHARED);
     expect(steps?.map((step) => step.state)).toEqual(['complete', 'complete', 'current']);
     expect(steps?.[2]?.onPress).toBeUndefined();
   });
@@ -161,25 +129,10 @@ describe('buildPanelFlowSteps', () => {
     expect(steps?.map((step) => step.state)).toEqual(['complete', 'complete', 'current']);
   });
 
-  it('unauthorized player: the step bar has only the info and closing steps', () => {
-    const steps = build(GameStatus.Ended, INFO_CONFIRMED, PLAYER_UNAUTHORIZED);
-    expect(steps?.map((step) => step.label)).toEqual(['昨夜信息', '收尾']);
-    expect(steps?.map((step) => step.state)).toEqual(['complete', 'current']);
-    expect(steps?.[1]?.onPress).toBeUndefined();
-
-    const fresh = build(GameStatus.Ended, EMPTY_PANEL_FLOW_PROGRESS, PLAYER_UNAUTHORIZED);
-    expect(fresh?.map((step) => step.state)).toEqual(['current', 'upcoming']);
-    expect(fresh?.[0]?.onPress).toBe(onOpenLastNightInfo);
-  });
-
-  it('a player authorized mid-Ended gains the review step (state-driven derivation)', () => {
-    // Same progress, two viewer facts: before the host shares, the
-    // step does not exist; after, it appears as the current step.
-    const before = build(GameStatus.Ended, INFO_CONFIRMED, PLAYER_UNAUTHORIZED);
-    expect(before?.map((step) => step.key)).toEqual(['lastNightInfo', 'closing']);
-    const after = build(GameStatus.Ended, INFO_CONFIRMED, PLAYER);
-    expect(after?.map((step) => step.key)).toEqual(['lastNightInfo', 'nightReview', 'closing']);
-    expect(after?.[1]?.state).toBe('current');
+  it('player: no step bar at Day or Ended', () => {
+    expect(build(GameStatus.Day, EMPTY_PANEL_FLOW_PROGRESS, PLAYER)).toBeNull();
+    expect(build(GameStatus.Ended, EMPTY_PANEL_FLOW_PROGRESS, PLAYER)).toBeNull();
+    expect(build(GameStatus.Ended, REVIEW_OPENED, PLAYER)).toBeNull();
   });
 
   it('spectator: no step bar at Day or Ended', () => {

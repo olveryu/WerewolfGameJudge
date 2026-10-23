@@ -467,7 +467,7 @@ describe('resolveBottomLayout', () => {
       expect(keys(layout, 'ghost')).toEqual(['viewRole', 'lastNightInfo', 'nightReview']);
     });
 
-    it('player, info confirmed, no review permission → ghost: viewRole + lastNightInfo', () => {
+    it('player, info confirmed, no review permission → ghost: viewRole only (no host buttons)', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Day,
@@ -478,7 +478,8 @@ describe('resolveBottomLayout', () => {
       );
 
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole', 'lastNightInfo']);
+      expect(keys(layout, 'secondary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
     });
 
     // The night-end announcement opens Day with narration still
@@ -532,7 +533,10 @@ describe('resolveBottomLayout', () => {
       expect(keys(layout, 'ghost')).toEqual([]);
     });
 
-    it('player with review permission → primary: lastNightInfo, ghost: viewRole + nightReview', () => {
+    it('player with review permission → ghost: viewRole + nightReview, no primary', () => {
+      // The shared review is the one host action a player may see,
+      // and it arrives as a ghost tool on their own surface — never
+      // as a flow step, whatever the flow progress.
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Day,
@@ -542,16 +546,18 @@ describe('resolveBottomLayout', () => {
         }),
       );
 
-      expect(keys(layout, 'primary')).toEqual(['lastNightInfo']);
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'secondary')).toEqual([]);
       expect(keys(layout, 'ghost')).toEqual(['viewRole', 'nightReview']);
     });
 
-    it('player without review permission → primary: lastNightInfo, ghost: viewRole', () => {
+    it('player without review permission → ghost: viewRole only, no lastNightInfo', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Day, isHost: false, effectiveSeat: 1 }),
       );
 
-      expect(keys(layout, 'primary')).toEqual(['lastNightInfo']);
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'secondary')).toEqual([]);
       expect(keys(layout, 'ghost')).toEqual(['viewRole']);
     });
 
@@ -666,7 +672,7 @@ describe('resolveBottomLayout', () => {
       expect(layout.ghost[0]).toMatchObject({ key: 'viewRole', isEnabled: true });
     });
 
-    it('player, fresh progress → primary: lastNightInfo regardless of review permission', () => {
+    it('player, fresh progress → ghost: viewRole only (no flow, no host buttons)', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ended,
@@ -675,11 +681,14 @@ describe('resolveBottomLayout', () => {
           nightReviewAllowedSeats: [0, 4],
         }),
       );
-      expect(keys(layout, 'primary')).toEqual(['lastNightInfo']);
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'secondary')).toEqual([]);
       expect(keys(layout, 'ghost')).toEqual(['viewRole']);
     });
 
-    it('player, flow done → secondary: returnToLobby only', () => {
+    it('player, authorized → ghost: viewRole + nightReview, no closing row', () => {
+      // Even with the host's flow fully done, a player never sees
+      // the closing actions; the shared review stays a ghost tool.
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ended,
@@ -690,12 +699,11 @@ describe('resolveBottomLayout', () => {
         }),
       );
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual(['returnToLobby']);
-      expect(layout.secondary[0]).toMatchObject({ variant: 'danger', isEnabled: true });
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'secondary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole', 'nightReview']);
     });
 
-    it('player, authorized → review step primary: nightReview', () => {
+    it('player, authorized mid-Ended → the review ghost appears (state-driven)', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ended,
@@ -705,12 +713,12 @@ describe('resolveBottomLayout', () => {
           nightReviewAllowedSeats: [2],
         }),
       );
-      expect(keys(layout, 'primary')).toEqual(['nightReview']);
+      expect(keys(layout, 'primary')).toEqual([]);
       expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole', 'nightReview']);
     });
 
-    it('player, never authorized → no review step: info confirmed lands on closing', () => {
+    it('player, never authorized → ghost: viewRole only, no returnToLobby', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ended,
@@ -721,7 +729,7 @@ describe('resolveBottomLayout', () => {
         }),
       );
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual(['returnToLobby']);
+      expect(keys(layout, 'secondary')).toEqual([]);
       expect(keys(layout, 'ghost')).toEqual(['viewRole']);
     });
 

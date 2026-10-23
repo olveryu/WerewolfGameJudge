@@ -538,7 +538,7 @@ describe('createWerewolfRoomShellModel', () => {
         isHost: false,
         actionMessage: '对局结束',
         panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
-        panelFlowViewer: { role: 'spectator', reviewShared: false, reviewAuthorized: true },
+        panelFlowViewer: { role: 'spectator', reviewShared: false },
       }),
     );
     expect(model.bottomActions.kind).toBe('stacked');
@@ -575,14 +575,17 @@ describe('createWerewolfRoomShellModel', () => {
       }),
     );
     if (guest.bottomActions.kind === 'stacked') {
-      expect(guest.bottomActions.hint).toBeNull();
+      // No flow for a player: the Ended model carries no hint field
+      // at all (same shape as the spectator's).
+      expect(guest.bottomActions.hint).toBeUndefined();
     }
   });
 
-  it('puts the step bar on the Day panel too (first step = last-night info)', () => {
+  it('puts the step bar on the host Day panel too (first step = last-night info)', () => {
     const model = createWerewolfRoomShellModel(
       createShellModelInput({
         roomStatus: GameStatus.Day,
+        isHost: true,
         panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
       }),
     );

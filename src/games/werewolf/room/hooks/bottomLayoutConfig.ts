@@ -150,16 +150,14 @@ function isNightReviewAllowed(ctx: LayoutContext) {
 
 /**
  * The panel-flow viewer facts for this context, derived from the same
- * role split the layout rules match on. Both review facts read the
+ * role split the layout rules match on. `reviewShared` reads the
  * engine's nightReviewAllowedSeats: the host has shared the review
- * when the set is non-empty; a player is authorized when their own
- * seat is in it (the host needs no authorization).
+ * when the set is non-empty.
  */
 function panelFlowViewer(ctx: LayoutContext): PanelFlowViewer {
   return {
     role: ctx.isHost ? 'host' : ctx.effectiveSeat !== null ? 'player' : 'spectator',
     reviewShared: ctx.nightReviewAllowedSeats.length > 0,
-    reviewAuthorized: ctx.isHost ? true : isNightReviewAllowed(ctx),
   };
 }
 
@@ -397,11 +395,18 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Day — panel flow, first step （昨夜信息）. The step is the panel's
-  // only primary; view identity and the review stay reachable as ghost
-  // tools (the review also feeds the sheriff-election dock's trailing
-  // tool). Once the step is confirmed the flow pauses: the phase's own
-  // actions resume and the info demotes to a ghost tool.
+  // Day — panel flow, first step （昨夜信息）, host only. The step is
+  // the panel's only primary; view identity and the review stay
+  // reachable as ghost tools (the review also feeds the
+  // sheriff-election dock's trailing tool). Once the step is
+  // confirmed the flow pauses: the phase's own actions resume and
+  // the info demotes to a ghost tool.
+  //
+  // Players never join the flow — every flow action is a host
+  // action. Their Day panel is their own surface: the view-identity
+  // ghost tool, plus the review as a ghost tool when the host
+  // shared it with their seat (the one host action a player may
+  // ever see, and only because it was given to them).
   // ═══════════════════════════════════════════════════════════════════════════
   {
     match: {
@@ -416,33 +421,6 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
         { source: 'static', button: 'viewRole' },
         { source: 'static', button: 'nightReview' },
       ],
-    },
-  },
-  {
-    match: {
-      status: GameStatus.Day,
-      role: 'player',
-      when: (ctx) => isPanelFlowStep(ctx, 'lastNightInfo') && isNightReviewAllowed(ctx),
-    },
-    layout: {
-      primary: [{ source: 'static', button: 'lastNightInfo' }],
-      secondary: [],
-      ghost: [
-        { source: 'static', button: 'viewRole' },
-        { source: 'static', button: 'nightReview' },
-      ],
-    },
-  },
-  {
-    match: {
-      status: GameStatus.Day,
-      role: 'player',
-      when: (ctx) => isPanelFlowStep(ctx, 'lastNightInfo'),
-    },
-    layout: {
-      primary: [{ source: 'static', button: 'lastNightInfo' }],
-      secondary: [],
-      ghost: [{ source: 'static', button: 'viewRole' }],
     },
   },
   {
@@ -461,27 +439,23 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     match: {
       status: GameStatus.Day,
       role: 'player',
-      when: (ctx) => isPanelFlowPaused(ctx) && isNightReviewAllowed(ctx),
+      when: (ctx) => isNightReviewAllowed(ctx),
     },
     layout: {
       primary: [],
       secondary: [],
       ghost: [
         { source: 'static', button: 'viewRole' },
-        { source: 'static', button: 'lastNightInfo' },
         { source: 'static', button: 'nightReview' },
       ],
     },
   },
   {
-    match: { status: GameStatus.Day, role: 'player', when: (ctx) => isPanelFlowPaused(ctx) },
+    match: { status: GameStatus.Day, role: 'player' },
     layout: {
       primary: [],
       secondary: [],
-      ghost: [
-        { source: 'static', button: 'viewRole' },
-        { source: 'static', button: 'lastNightInfo' },
-      ],
+      ghost: [{ source: 'static', button: 'viewRole' }],
     },
   },
   // Spectators never join the flow, in any Day flow state: their
@@ -496,27 +470,19 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Ended — panel flow （昨夜信息 → 本局复盘 → 收尾）. One primary per
-  // step; the closing step is the danger row in the secondary tier.
-  // Progress made during Day carries over: a confirmed first step is
-  // never asked again.
+  // Ended — panel flow （昨夜信息 → 本局复盘 → 收尾）, host only. One
+  // primary per step; the closing step is the danger row in the
+  // secondary tier. Progress made during Day carries over: a
+  // confirmed first step is never asked again.
+  //
+  // Players have no Ended flow and no closing step: their panel is
+  // the view-identity ghost tool, plus the review as a ghost tool
+  // when the host shared it with their seat.
   // ═══════════════════════════════════════════════════════════════════════════
   {
     match: {
       status: GameStatus.Ended,
       role: 'host',
-      when: (ctx) => isPanelFlowStep(ctx, 'lastNightInfo'),
-    },
-    layout: {
-      primary: [{ source: 'static', button: 'lastNightInfo' }],
-      secondary: [],
-      ghost: [{ source: 'static', button: 'viewRole' }],
-    },
-  },
-  {
-    match: {
-      status: GameStatus.Ended,
-      role: 'player',
       when: (ctx) => isPanelFlowStep(ctx, 'lastNightInfo'),
     },
     layout: {
@@ -550,18 +516,6 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   {
     match: {
       status: GameStatus.Ended,
-      role: 'player',
-      when: (ctx) => isPanelFlowStep(ctx, 'nightReview') && isNightReviewAllowed(ctx),
-    },
-    layout: {
-      primary: [{ source: 'static', button: 'nightReview' }],
-      secondary: [],
-      ghost: [{ source: 'static', button: 'viewRole' }],
-    },
-  },
-  {
-    match: {
-      status: GameStatus.Ended,
       role: 'host',
       when: (ctx) => isPanelFlowStep(ctx, 'closing'),
     },
@@ -578,11 +532,22 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     match: {
       status: GameStatus.Ended,
       role: 'player',
-      when: (ctx) => isPanelFlowStep(ctx, 'closing'),
+      when: (ctx) => isNightReviewAllowed(ctx),
     },
     layout: {
       primary: [],
-      secondary: [{ source: 'static', button: 'returnToLobby' }],
+      secondary: [],
+      ghost: [
+        { source: 'static', button: 'viewRole' },
+        { source: 'static', button: 'nightReview' },
+      ],
+    },
+  },
+  {
+    match: { status: GameStatus.Ended, role: 'player' },
+    layout: {
+      primary: [],
+      secondary: [],
       ghost: [{ source: 'static', button: 'viewRole' }],
     },
   },

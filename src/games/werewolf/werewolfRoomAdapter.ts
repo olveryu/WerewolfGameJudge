@@ -515,7 +515,6 @@ function createWerewolfBottomActions(
   const flowViewer: PanelFlowViewer = input.panelFlowViewer ?? {
     role: input.isHost ? 'host' : 'player',
     reviewShared: false,
-    reviewAuthorized: true,
   };
   const flowSteps =
     panelFlow === undefined

@@ -1043,10 +1043,6 @@ export function useWerewolfRoomScreenState(
         panelFlowViewer: {
           role: isHost ? 'host' : effectiveSeat !== null ? 'player' : 'spectator',
           reviewShared: (gameState.nightReviewAllowedSeats ?? []).length > 0,
-          reviewAuthorized:
-            isHost ||
-            (effectiveSeat !== null &&
-              (gameState.nightReviewAllowedSeats ?? []).includes(effectiveSeat)),
         } satisfies PanelFlowViewer,
         gameState,
         seatViewModels: derived.seatViewModels,
