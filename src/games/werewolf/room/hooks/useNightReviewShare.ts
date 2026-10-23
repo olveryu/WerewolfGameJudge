@@ -6,7 +6,10 @@ import type { RefObject } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 
-import type { CaptureProgressCallback } from '@/features/room/services/captureViewSegmentedPngBase64';
+import type {
+  CaptureProgress,
+  CaptureProgressCallback,
+} from '@/features/room/services/captureViewSegmentedPngBase64';
 import { uploadShareImage } from '@/features/room/services/uploadShareImage';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -31,10 +34,7 @@ interface ReportCaptureScope {
 }
 
 /** Band progress of the current report's capture; null while no capture runs. */
-export interface ReportCaptureProgress {
-  readonly done: number;
-  readonly total: number;
-}
+export type ReportCaptureProgress = CaptureProgress;
 
 /** Keeps cached images and late completions inside their report's lifetime. */
 export function useNightReviewShare(

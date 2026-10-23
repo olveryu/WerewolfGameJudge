@@ -18,10 +18,16 @@ export interface CaptureBand {
   readonly height: number;
 }
 
+/** Band-count progress of one capture: `done` of `total` bands are rendered. */
+export interface CaptureProgress {
+  readonly done: number;
+  readonly total: number;
+}
+
 /**
- * Band-count progress for one capture: `done` of `total` bands are rendered.
- * The sequence always starts at (0, total) once bands are planned and ends at
- * (total, total) on success; a failed capture never reports completion.
+ * Reports capture progress as (done, total) band counts. The sequence always
+ * starts at (0, total) once bands are planned and ends at (total, total) on
+ * success; a failed capture never reports completion.
  */
 export type CaptureProgressCallback = (done: number, total: number) => void;
 
