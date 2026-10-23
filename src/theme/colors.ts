@@ -47,6 +47,45 @@ export interface ThemeColors {
   transparent: 'transparent';
 }
 
+/**
+ * Night report (2026) dossier palette — the dark archive surface the
+ * werewolf night review is printed on. Raw hues live here in the theme
+ * layer (same precedent as PICTIONARY_DRAWING_PALETTE); the report's layout
+ * spec (nightReviewLayout) composes them into semantic slots.
+ */
+export const NIGHT_REPORT_DOSSIER_COLORS = {
+  background: '#101017',
+  card: '#1C1C26',
+  cardBorder: '#2B2B3A',
+  divider: '#262633',
+  text: '#F2F2F7',
+  textSecondary: '#9A9AAD',
+  textMuted: '#6D6D80',
+  textFaint: '#55556A',
+  salmon: '#FF7A72',
+  salmonLight: '#FF9D97',
+  deadMedalBg: '#3A2326',
+  deadMedalBorder: '#5C3236',
+  wolfMedalBg: '#33202B',
+  wolfMedalText: '#FF9DB1',
+  wolfMedalBorder: '#59303F',
+  godMedalBg: '#262040',
+  godMedalText: '#C4B0FF',
+  godMedalBorder: '#453A75',
+  violet: '#B79AFF',
+  goodMedalBg: '#1E2B26',
+  goodMedalText: '#7EE2A8',
+  goodMedalBorder: '#2F5243',
+  neutralMedalBg: '#262633',
+  neutralMedalBorder: '#3D3D52',
+  idleBg: '#17171F',
+  idleText: '#8A8A9C',
+  idleStrong: '#B9B9C9',
+  rosterOutMedalBg: '#241D20',
+  rosterOutMedalBorder: '#453034',
+  rosterOutMedalText: '#8A7076',
+} as const;
+
 export const PICTIONARY_CANVAS_BACKGROUND = '#FFFFFF';
 
 export const PICTIONARY_DRAWING_PALETTE = [

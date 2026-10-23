@@ -5,7 +5,8 @@
  * Mini program fallback path uses Canvas 2D to draw the card directly (no
  * html2canvas): renderNightReviewToCanvas below is the text-medium rendering
  * of the same report — it follows the DOM presentation's section order
- * (share title → outcome line → disclaimer → action entries → identities),
+ * (share title → outcome line → stats line → disclaimer → action entries →
+ * sheriff section → identities),
  * deriving the outcome from the same NightReviewData via getNightReviewOutcome
  * and formatting entries via shareNightReviewLines, with copy/geometry from
  * the shared spec in nightReviewLayout. The structural alignment with the DOM
@@ -21,10 +22,15 @@ import { shareImageBase64 } from '@/features/room/services/shareImage';
 import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
 import { log } from '@/utils/logger';
 
-import { getNightReviewOutcome, type NightReviewData } from './NightReview.helpers';
+import {
+  deriveNightReportStats,
+  getNightReviewOutcome,
+  type NightReviewData,
+} from './NightReview.helpers';
 import {
   formatNightReviewShareTitle,
-  NIGHT_REVIEW_ACTIONS_TITLE,
+  NIGHT_REPORT_ACTIONS_TITLE,
+  NIGHT_REPORT_SHERIFF_TITLE,
   NIGHT_REVIEW_CARD_WIDTH_RATIO,
   NIGHT_REVIEW_DISCLAIMER_TEXT,
   NIGHT_REVIEW_IDENTITIES_TITLE,
@@ -33,6 +39,9 @@ import {
   formatNightReviewActionLine,
   formatNightReviewIdentityLine,
   formatNightReviewOutcomeLine,
+  formatNightReviewSheriffLines,
+  formatNightReviewStatsLine,
+  formatNightReviewWolfVerdictForEntry,
 } from './shareNightReviewLines';
 
 type ShareNightReviewResult = 'shared' | 'cancelled' | 'failed';
@@ -136,6 +145,10 @@ export function renderNightReviewToCanvas(
   const wrappedOutcome = wrapText(tmpCtx, outcomeLine, contentWidth);
   totalHeight += wrappedOutcome.length * lineHeight.title + spacing.medium;
 
+  // Stats line (single line under the outcome, same tallies as the DOM strip)
+  const statsLine = formatNightReviewStatsLine(deriveNightReportStats(data));
+  totalHeight += lineHeight.line + spacing.small;
+
   // Disclaimer
   totalHeight += lineHeight.line + spacing.medium;
 
@@ -143,17 +156,36 @@ export function renderNightReviewToCanvas(
   totalHeight += lineHeight.section + spacing.small;
 
   // Action lines (with wrapping; the outcome entry is drawn as the outcome
-  // line above, not in action order)
+  // line above, not in action order). The wolf verdict line follows the wolf
+  // attack line, mirroring the DOM wolf card's footer.
   tmpCtx.font = `${fontSize.line}px system-ui, -apple-system, sans-serif`;
-  const actionLines = data.actions
-    .filter((entry) => entry.kind !== 'deaths' && entry.kind !== 'peacefulNight')
-    .map((entry) => formatNightReviewActionLine(entry));
+  const actionLines: string[] = [];
+  for (const entry of data.actions) {
+    if (entry.kind === 'deaths' || entry.kind === 'peacefulNight') continue;
+    actionLines.push(formatNightReviewActionLine(entry));
+    if (entry.kind === 'wolfAttack') {
+      actionLines.push(formatNightReviewWolfVerdictForEntry(entry));
+    }
+  }
   const wrappedActions: string[][] = [];
   for (const line of actionLines) {
     const wrapped = wrapText(tmpCtx, line, contentWidth - spacing.small);
     wrappedActions.push(wrapped);
     totalHeight += wrapped.length * lineHeight.line;
   }
+
+  // Sheriff section (title + record lines), only when an election exists
+  const sheriffLines = data.sheriff ? formatNightReviewSheriffLines(data.sheriff) : [];
+  if (data.sheriff !== undefined) {
+    totalHeight += spacing.medium + lineHeight.section + spacing.small;
+    for (const line of sheriffLines) {
+      const wrapped = wrapText(tmpCtx, line, contentWidth - spacing.small);
+      totalHeight += wrapped.length * lineHeight.line;
+    }
+  }
+  const wrappedSheriff: string[][] = sheriffLines.map((line) =>
+    wrapText(tmpCtx, line, contentWidth - spacing.small),
+  );
 
   // Divider
   totalHeight += spacing.medium * 2 + 1;
@@ -209,6 +241,12 @@ export function renderNightReviewToCanvas(
   }
   y += spacing.medium;
 
+  // ── Stats line ──
+  ctx.font = `${fontSize.line}px system-ui, -apple-system, sans-serif`;
+  ctx.fillStyle = colors.textSecondary;
+  ctx.fillText(statsLine, cardWidth / 2, y + lineHeight.line / 2);
+  y += lineHeight.line + spacing.small;
+
   // ── Disclaimer ──
   ctx.font = `${fontSize.line}px system-ui, -apple-system, sans-serif`;
   ctx.fillStyle = colors.textSecondary;
@@ -219,7 +257,7 @@ export function renderNightReviewToCanvas(
   ctx.font = `600 ${fontSize.section}px system-ui, -apple-system, sans-serif`;
   ctx.fillStyle = colors.primary;
   ctx.textAlign = 'left';
-  ctx.fillText(NIGHT_REVIEW_ACTIONS_TITLE, pad, y + lineHeight.section / 2);
+  ctx.fillText(NIGHT_REPORT_ACTIONS_TITLE, pad, y + lineHeight.section / 2);
   y += lineHeight.section + spacing.small;
 
   // ── Action lines ──
@@ -229,6 +267,23 @@ export function renderNightReviewToCanvas(
     for (const wLine of wrapped) {
       ctx.fillText(wLine, pad + spacing.small, y + lineHeight.line / 2);
       y += lineHeight.line;
+    }
+  }
+
+  // ── Sheriff section ──
+  if (data.sheriff !== undefined) {
+    y += spacing.medium;
+    ctx.font = `600 ${fontSize.section}px system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = colors.primary;
+    ctx.fillText(NIGHT_REPORT_SHERIFF_TITLE, pad, y + lineHeight.section / 2);
+    y += lineHeight.section + spacing.small;
+    ctx.font = `${fontSize.line}px system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = colors.text;
+    for (const wrapped of wrappedSheriff) {
+      for (const wLine of wrapped) {
+        ctx.fillText(wLine, pad + spacing.small, y + lineHeight.line / 2);
+        y += lineHeight.line;
+      }
     }
   }
 
