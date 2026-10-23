@@ -87,6 +87,23 @@ function enclosingBackgroundColor(node: ReactTestInstance): string | undefined {
   return undefined;
 }
 
+/** First node at or above a rendered node that carries a backgroundColor. */
+function enclosingBackgroundNode(node: ReactTestInstance): ReactTestInstance {
+  let current: ReactTestInstance | null = node;
+  while (current) {
+    if (flattenStyle(current.props.style)?.backgroundColor) return current;
+    current = current.parent;
+  }
+  throw new Error('Expected an enclosing node with a backgroundColor');
+}
+
+/** Every string leaf under a rendered instance, in tree order. */
+function subtreeStrings(node: ReactTestInstance): string[] {
+  return node.children.flatMap((child) =>
+    typeof child === 'string' ? [child] : subtreeStrings(child),
+  );
+}
+
 function composedNightState(): LocalGameState {
   const players = new Map<number, LocalPlayer | null>([
     [0, makePlayer(0, 'wolf')],
@@ -191,16 +208,27 @@ describe('NightReviewModal', () => {
     // approved review design （民灰）, not colors.villager green.
     const villagerTexts = view.getAllByText('平民');
     expect(villagerTexts).toHaveLength(2);
-    const grayWashes = [
-      withAlpha(colors.textSecondary, 0.1),
-      withAlpha(colors.textSecondary, 0.12),
-    ];
     for (const textNode of villagerTexts) {
       const textColor = flattenStyle(textNode.props.style)?.color;
       expect(textColor).toBe(colors.textSecondary);
       expect(textColor).not.toBe(colors.villager);
-      expect(grayWashes).toContain(enclosingBackgroundColor(textNode));
     }
+    // Each surface pins its own exact wash — identity card 0.1, role chip
+    // 0.12 — so swapping the two alphas fails here. The identity card is
+    // told apart from the chip by the seat label inside its wash container.
+    let identityCardWash: string | undefined;
+    let roleChipWash: string | undefined;
+    for (const textNode of villagerTexts) {
+      const washNode = enclosingBackgroundNode(textNode);
+      const wash = flattenStyle(washNode.props.style)?.backgroundColor;
+      if (subtreeStrings(washNode).includes('1号')) {
+        identityCardWash = wash;
+      } else {
+        roleChipWash = wash;
+      }
+    }
+    expect(identityCardWash).toBe(withAlpha(colors.textSecondary, 0.1));
+    expect(roleChipWash).toBe(withAlpha(colors.textSecondary, 0.12));
   });
 
   it('renders a peaceful night and placeholder identities', () => {

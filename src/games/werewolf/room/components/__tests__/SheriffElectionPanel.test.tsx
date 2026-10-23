@@ -1,6 +1,8 @@
 /** Presentational tests for the sheriff-election room panel. */
 
 import { fireEvent, render, within } from '@testing-library/react-native';
+import { type StyleProp, StyleSheet } from 'react-native';
+import type { ReactTestInstance } from 'react-test-renderer';
 
 import { SheriffElectionPanel } from '@/games/werewolf/room/components/SheriffElectionPanel';
 import { createSheriffElectionPanelStyles } from '@/games/werewolf/room/components/sheriffElectionPanel.styles';
@@ -49,6 +51,26 @@ function createModel(
 }
 
 const styles = createSheriffElectionPanelStyles(colors);
+
+interface FlatColorStyle {
+  color?: string;
+  backgroundColor?: string;
+}
+
+/** StyleSheet.flatten with the color fields typed (rendered props carry untyped styles). */
+function flattenStyle(style: unknown): FlatColorStyle | undefined {
+  return StyleSheet.flatten<FlatColorStyle>(style as StyleProp<FlatColorStyle>);
+}
+
+/** Host instances carry a string type ('View', 'Text'); composites carry the component. */
+function isHostView(node: ReactTestInstance): boolean {
+  return String(node.type) === 'View';
+}
+
+/** A host View whose flattened style paints the given background color. */
+function hasGoldFill(node: ReactTestInstance): boolean {
+  return isHostView(node) && flattenStyle(node.props.style)?.backgroundColor === colors.warning;
+}
 
 describe('SheriffElectionPanel', () => {
   it('renders open-vote progress and reports candidate or abstain intent', () => {
@@ -241,6 +263,14 @@ describe('SheriffElectionPanel', () => {
     const loserGroup = screen.getByTestId(TESTIDS.sheriffTallyGroup('first', 1));
     expect(within(loserGroup).getByText('0 票')).toBeTruthy();
     expect(within(loserGroup).queryByTestId(TESTIDS.sheriffBallotChip('first', 2))).toBeNull();
+
+    // Winner-only markers: the gold trophy icon and the gold tally-bar fill
+    // exist in the winner group only.
+    const trophy = within(winnerGroup).getByTestId('Ionicons-icon-trophy');
+    expect(flattenStyle(trophy.props.style)?.color).toBe(colors.warning);
+    expect(winnerGroup.findAll(hasGoldFill)).toHaveLength(1);
+    expect(within(loserGroup).queryByTestId('Ionicons-icon-trophy')).toBeNull();
+    expect(loserGroup.findAll(hasGoldFill)).toHaveLength(0);
 
     const abstainRow = screen.getByTestId(TESTIDS.sheriffAbstainRow('first'));
     expect(within(abstainRow).getByTestId(TESTIDS.sheriffAbstainChip('first', 3))).toBeTruthy();
