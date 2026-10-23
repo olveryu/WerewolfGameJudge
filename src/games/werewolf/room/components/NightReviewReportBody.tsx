@@ -1,7 +1,7 @@
 /**
  * NightReviewReportBody - The one presentation body for the night review report.
  *
- * 2026 dossier presentation (identical on every surface): a dark archive
+ * 2026 report presentation (identical on every surface): a light-surface
  * "night report" in five sections — conclusion header (kicker, headline,
  * stats strip, one card per death) → key actions (one card per actor; the
  * wolf team shares one team card) → did-not-act strip → sheriff election

@@ -1,7 +1,7 @@
 /**
- * NightReviewModal component tests — 2026 dossier presentation.
+ * NightReviewModal component tests — 2026 report presentation.
  *
- * Asserts the full fact set of a composed night survives the dossier
+ * Asserts the full fact set of a composed night survives the report
  * rendering: conclusion header (headline, stats strip, death cards with
  * derived bylines), one card per actor (wolf team card with verdict,
  * merged potion card), the did-not-act strip, the sheriff card across the
@@ -121,7 +121,7 @@ function composedNightState(): LocalGameState {
 }
 
 describe('NightReviewModal', () => {
-  it('renders the dossier sections and modal shell', () => {
+  it('renders the report sections and modal shell', () => {
     const view = render(
       <NightReviewModal
         visible
@@ -195,7 +195,7 @@ describe('NightReviewModal', () => {
     expect(view.queryByText('已出局')).toBeNull();
   });
 
-  it('renders bottom cards and villager identities on the dossier', () => {
+  it('renders bottom cards and villager identities on the report', () => {
     const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'villager')]]);
     const view = render(
       <NightReviewModal

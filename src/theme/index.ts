@@ -23,7 +23,7 @@
 // Colors
 export {
   colors,
-  NIGHT_REPORT_DOSSIER_COLORS,
+  NIGHT_REPORT_COLORS,
   PICTIONARY_CANVAS_BACKGROUND,
   type ThemeColors,
 } from './colors';
