@@ -15,6 +15,7 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useMemo, useRef } from 'react';
 import { toast } from 'sonner-native';
 
+import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
 import { useWerewolfPendingAcks } from '@/games/werewolf/hooks/useWerewolfPendingAcks';
@@ -29,6 +30,25 @@ import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { showDismissAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
+
+/**
+ * The one wait message shown when the pending server-ack gate holds a tap:
+ * a protocol ack for the step just taken (reveal / hunterStatus /
+ * groupConfirm) is still being confirmed by the server.
+ */
+export const PENDING_ACK_GATE_MESSAGE = '正在确认上一步，请稍候';
+
+/** Minimum interval between two gate toasts of the same gate. */
+const GATE_TOAST_THROTTLE_MS = 3000;
+
+/** Show a gate toast at most once per throttle window for that gate. */
+function showThrottledGateToast(lastShownAt: { current: number }, message: string): void {
+  const now = Date.now();
+  if (now - lastShownAt.current >= GATE_TOAST_THROTTLE_MS) {
+    lastShownAt.current = now;
+    toast.info(message);
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -119,9 +139,9 @@ export function useInteractionDispatcher({
 }: UseInteractionDispatcherParams): UseInteractionDispatcherResult {
   // ─── Seat tap sub-handlers ───────────────────────────────────────────────
 
-  /** Throttle guard for audio-gate toast — avoids spamming when user taps repeatedly */
+  /** Throttle guards for gate toasts — avoids spamming when user taps repeatedly */
   const lastAudioToastRef = useRef(0);
-  const AUDIO_TOAST_THROTTLE_MS = 3000;
+  const lastPendingAckToastRef = useRef(0);
 
   const handleSeatingTap = useCallback(
     (seat: number) => {
@@ -209,11 +229,9 @@ export function useInteractionDispatcher({
             event: event.kind,
           });
           if (result.reason === 'audio_playing') {
-            const now = Date.now();
-            if (now - lastAudioToastRef.current >= AUDIO_TOAST_THROTTLE_MS) {
-              lastAudioToastRef.current = now;
-              toast.info('语音播报中，请稍候');
-            }
+            showThrottledGateToast(lastAudioToastRef, AUDIO_PLAYBACK_LOCK_REASON);
+          } else if (result.reason === 'pending_ack') {
+            showThrottledGateToast(lastPendingAckToastRef, PENDING_ACK_GATE_MESSAGE);
           }
           return;
 
