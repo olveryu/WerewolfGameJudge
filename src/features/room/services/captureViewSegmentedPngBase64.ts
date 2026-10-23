@@ -18,6 +18,17 @@ export interface CaptureBand {
   readonly height: number;
 }
 
+/**
+ * Band-count progress for one capture: `done` of `total` bands are rendered.
+ * The sequence always starts at (0, total) once bands are planned and ends at
+ * (total, total) on success; a failed capture never reports completion.
+ */
+export type CaptureProgressCallback = (done: number, total: number) => void;
+
+export interface SegmentedCaptureOptions {
+  readonly onProgress?: CaptureProgressCallback;
+}
+
 /** Split a total height into consecutive bands of at most bandHeightPx. */
 export function planCaptureBands(totalHeightPx: number, bandHeightPx: number): CaptureBand[] {
   if (totalHeightPx <= 0) {
@@ -36,14 +47,22 @@ export function planCaptureBands(totalHeightPx: number, bandHeightPx: number): C
 /**
  * Capture a mounted Web view band by band and stitch the bands into one PNG.
  * @remarks Web-only mechanism: native capture has no overflow failure, so
- * non-Web platforms delegate to the whole-view capture unchanged.
+ * non-Web platforms delegate to the whole-view capture unchanged; that path
+ * reports progress as a single indivisible band, (0, 1) then (1, 1).
  */
-export async function captureViewSegmentedPngBase64(ref: RefObject<unknown>): Promise<string> {
+export async function captureViewSegmentedPngBase64(
+  ref: RefObject<unknown>,
+  options?: SegmentedCaptureOptions,
+): Promise<string> {
   if (ref.current === null) {
     throw new Error('[FAIL-FAST] Capture view ref is not mounted');
   }
+  const onProgress = options?.onProgress;
   if (Platform.OS !== 'web') {
-    return captureViewPngBase64(ref);
+    onProgress?.(0, 1);
+    const base64 = await captureViewPngBase64(ref);
+    onProgress?.(1, 1);
+    return base64;
   }
   if (typeof HTMLElement === 'undefined' || !(ref.current instanceof HTMLElement)) {
     throw new Error('[FAIL-FAST] Capture view ref must resolve to an HTMLElement on Web');
@@ -64,6 +83,8 @@ export async function captureViewSegmentedPngBase64(ref: RefObject<unknown>): Pr
   }
 
   const html2canvas = await loadHtml2canvas();
+  onProgress?.(0, bands.length);
+  let doneBands = 0;
   for (const band of bands) {
     const bandCanvas = await html2canvas(element, {
       backgroundColor: null,
@@ -76,6 +97,8 @@ export async function captureViewSegmentedPngBase64(ref: RefObject<unknown>): Pr
       throw new Error('[FAIL-FAST] Segmented capture produced an empty band');
     }
     ctx.drawImage(bandCanvas, 0, Math.round(band.y * scale));
+    doneBands += 1;
+    onProgress?.(doneBands, bands.length);
   }
   return parseBase64DataUrl(stitched.toDataURL('image/png'));
 }

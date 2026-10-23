@@ -180,4 +180,113 @@ describe('captureViewSegmentedPngBase64', () => {
     await expect(captureViewSegmentedPngBase64(ref)).resolves.toBe('native-base64');
     expect(mockHtml2canvas).not.toHaveBeenCalled();
   });
+
+  it('reports band progress from zero to the band total across a Web capture', async () => {
+    setPlatformOS('web');
+    const element = makeElement(400, 2500);
+    const progress: [number, number][] = [];
+
+    await expect(
+      captureViewSegmentedPngBase64(
+        { current: element },
+        { onProgress: (done, total) => progress.push([done, total]) },
+      ),
+    ).resolves.toBe('stitched');
+
+    expect(progress).toEqual([
+      [0, 3],
+      [1, 3],
+      [2, 3],
+      [3, 3],
+    ]);
+  });
+
+  it('reports a single-band Web capture as (0, 1) then (1, 1)', async () => {
+    setPlatformOS('web');
+    const progress: [number, number][] = [];
+
+    await captureViewSegmentedPngBase64(
+      { current: makeElement(400, 300) },
+      { onProgress: (done, total) => progress.push([done, total]) },
+    );
+
+    expect(progress).toEqual([
+      [0, 1],
+      [1, 1],
+    ]);
+  });
+
+  it('stops reporting progress when a band fails and never reports completion', async () => {
+    setPlatformOS('web');
+    const element = makeElement(400, 2500);
+    const emptyCanvas = document.createElement('canvas');
+    emptyCanvas.width = 0;
+    emptyCanvas.height = 0;
+    let callCount = 0;
+    mockHtml2canvas.mockImplementation(async (el, options) => {
+      callCount += 1;
+      if (callCount === 2) return emptyCanvas;
+      const canvas = document.createElement('canvas');
+      canvas.width = el.scrollWidth;
+      canvas.height = options?.height ?? 0;
+      return canvas;
+    });
+    const progress: [number, number][] = [];
+
+    await expect(
+      captureViewSegmentedPngBase64(
+        { current: element },
+        { onProgress: (done, total) => progress.push([done, total]) },
+      ),
+    ).rejects.toThrow('[FAIL-FAST] Segmented capture produced an empty band');
+
+    expect(progress).toEqual([
+      [0, 3],
+      [1, 3],
+    ]);
+  });
+
+  it('reports no progress when band planning rejects the element height', async () => {
+    setPlatformOS('web');
+    const onProgress = jest.fn<void, [number, number]>();
+
+    await expect(
+      captureViewSegmentedPngBase64({ current: makeElement(400, 0) }, { onProgress }),
+    ).rejects.toThrow('[FAIL-FAST] Segmented capture needs a positive element height');
+
+    expect(onProgress).not.toHaveBeenCalled();
+  });
+
+  it('reports the native delegation as one indivisible band', async () => {
+    setPlatformOS('ios');
+    mockCaptureRef.mockResolvedValue('native-base64');
+    const progress: [number, number][] = [];
+
+    await expect(
+      captureViewSegmentedPngBase64(
+        { current: {} },
+        { onProgress: (done, total) => progress.push([done, total]) },
+      ),
+    ).resolves.toBe('native-base64');
+
+    expect(progress).toEqual([
+      [0, 1],
+      [1, 1],
+    ]);
+  });
+
+  it('does not report completion when the native delegation fails', async () => {
+    setPlatformOS('ios');
+    mockCaptureRef.mockRejectedValue(new Error('native capture failed'));
+    const progress: [number, number][] = [];
+
+    await expect(
+      captureViewSegmentedPngBase64(
+        { current: {} },
+        { onProgress: (done, total) => progress.push([done, total]) },
+      ),
+    ).rejects.toThrow('native capture failed');
+
+    expect(progress).toEqual([[0, 1]]);
+  });
 });

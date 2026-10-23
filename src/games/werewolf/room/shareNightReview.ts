@@ -17,7 +17,10 @@ import type { RefObject } from 'react';
 import { Dimensions, type View } from 'react-native';
 
 import { captureViewPngBase64 } from '@/features/room/services/captureViewPngBase64';
-import { captureViewSegmentedPngBase64 } from '@/features/room/services/captureViewSegmentedPngBase64';
+import {
+  type CaptureProgressCallback,
+  captureViewSegmentedPngBase64,
+} from '@/features/room/services/captureViewSegmentedPngBase64';
 import { shareImageBase64 } from '@/features/room/services/shareImage';
 import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
 import { log } from '@/utils/logger';
@@ -328,8 +331,9 @@ export async function captureNightReviewCard(ref: RefObject<View | null>): Promi
 
 export async function captureNightReviewCardSegmented(
   ref: RefObject<View | null>,
+  onProgress?: CaptureProgressCallback,
 ): Promise<string> {
-  return captureViewSegmentedPngBase64(ref);
+  return captureViewSegmentedPngBase64(ref, { onProgress });
 }
 
 function isShareCancelledError(error: unknown): boolean {
