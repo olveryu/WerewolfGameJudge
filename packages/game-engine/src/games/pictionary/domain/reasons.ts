@@ -6,6 +6,7 @@ export const REASON_PICTIONARY_OCCUPIED_SEAT_OUT_OF_RANGE =
 export const REASON_PICTIONARY_ROOM_NOT_FULL = 'pictionary_room_not_full' as const;
 export const REASON_PICTIONARY_PHASE_INVALID = 'pictionary_phase_invalid' as const;
 export const REASON_PICTIONARY_PHASE_NOT_EXPIRED = 'pictionary_phase_not_expired' as const;
+export const REASON_PICTIONARY_PHASE_EXPIRED = 'pictionary_phase_expired' as const;
 export const REASON_PICTIONARY_TASK_INVALID = 'pictionary_task_invalid' as const;
 export const REASON_PICTIONARY_TASK_ALREADY_SUBMITTED =
   'pictionary_task_already_submitted' as const;
