@@ -85,6 +85,19 @@
  * avalon client's `settleCountdownSeconds` display field (root
  * `src/`) is a presentation value, not an arm site, and is out
  * of scope by construction.
+ *
+ * Division of ownership with the E-2 registry
+ * (`platform/__tests__/phaseDeadlineVariants.contract.test.ts`):
+ * E-3 owns the arm computation — the `decideSettleCountdownArm`
+ * truth table, the per-access-point adoption registry, and the
+ * deadline arithmetic weld in this file. E-2 owns the expiry
+ * side: the phase expiry guard assembly, the settle.due pin,
+ * and the worker delivery of the pinned effect. For avalon the
+ * two meet at one value: the `deadlineAt` the skeleton arm
+ * produces here is the value avalon pins through
+ * `buildSettleDueEffect` (`sequence+phase+round+deadline`) and
+ * that the E-2 value table's avalon row registers as its
+ * settlePin.
  */
 
 import fs from 'node:fs';
