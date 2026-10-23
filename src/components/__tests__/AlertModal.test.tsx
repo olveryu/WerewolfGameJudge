@@ -1,4 +1,5 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { ActivityIndicator } from 'react-native';
 
 import { type AlertButton, AlertModal } from '@/components/AlertModal';
 
@@ -127,6 +128,60 @@ describe('AlertModal', () => {
       const { getByText } = render(<AlertModal {...defaultProps} buttons={buttons} />);
 
       expect(getByText('OK')).toBeTruthy();
+    });
+  });
+
+  describe('Loading buttons', () => {
+    it('should render spinner and text together for an explicitly loading button', () => {
+      const buttons: AlertButton[] = [
+        { text: '生成中 1/3 段', loading: true },
+        { text: '取消', style: 'cancel' },
+      ];
+
+      const { getByText, UNSAFE_getAllByType: getAllByType } = render(
+        <AlertModal {...defaultProps} buttons={buttons} />,
+      );
+
+      // The label must stay visible next to the spinner — callers encode
+      // progress in the text (e.g. "生成中 1/3 段"), so replacing the text
+      // with a bare spinner hides the only progress signal.
+      expect(getByText('生成中 1/3 段')).toBeTruthy();
+      expect(getAllByType(ActivityIndicator)).toHaveLength(1);
+      expect(getByText('取消')).toBeTruthy();
+    });
+
+    it('should render spinner and text together for a loading cancel button', () => {
+      const buttons: AlertButton[] = [{ text: '取消', style: 'cancel', loading: true }];
+
+      const { getByText, UNSAFE_getAllByType: getAllByType } = render(
+        <AlertModal {...defaultProps} buttons={buttons} />,
+      );
+
+      expect(getByText('取消')).toBeTruthy();
+      expect(getAllByType(ActivityIndicator)).toHaveLength(1);
+    });
+
+    it('should keep the pressed button text visible while its async onPress is pending', () => {
+      const onClose = jest.fn();
+      const onPress = jest.fn(() => new Promise<void>(() => undefined));
+      const buttons: AlertButton[] = [{ text: '保存', onPress }];
+
+      const { getByText, UNSAFE_getAllByType: getAllByType } = render(
+        <AlertModal {...defaultProps} buttons={buttons} onClose={onClose} />,
+      );
+
+      fireEvent.press(getByText('保存'));
+
+      expect(getByText('保存')).toBeTruthy();
+      expect(getAllByType(ActivityIndicator)).toHaveLength(1);
+      // Modal stays open while the promise is pending
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('should not render a spinner for non-loading buttons', () => {
+      const { UNSAFE_queryAllByType: queryAllByType } = render(<AlertModal {...defaultProps} />);
+
+      expect(queryAllByType(ActivityIndicator)).toHaveLength(0);
     });
   });
 
