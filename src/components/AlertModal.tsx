@@ -177,12 +177,15 @@ export const AlertModal: React.FC<AlertModalProps> = ({
                   onPress={() => handleButtonPress(button, index)}
                   disabled={isDisabled}
                 >
-                  {isLoading ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={button.style === 'cancel' ? colors.textSecondary : colors.textInverse}
-                    />
-                  ) : (
+                  <View style={styles.buttonContent}>
+                    {isLoading ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={
+                          button.style === 'cancel' ? colors.textSecondary : colors.textInverse
+                        }
+                      />
+                    ) : null}
                     <Text
                       style={[
                         styles.buttonText,
@@ -192,7 +195,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
                     >
                       {button.text}
                     </Text>
-                  )}
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -266,6 +269,12 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     },
     disabledButton: {
       opacity: 0.5,
+    },
+    buttonContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.small,
     },
     buttonText: {
       ...textStyles.bodySemibold,
