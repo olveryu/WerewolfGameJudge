@@ -13,7 +13,8 @@ import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResu
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { DISMISS_BUTTON, dismissAlert, getAlertGeneration, showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
-import { isMiniProgram } from '@/utils/miniProgram';
+
+import type { ReportCaptureProgress } from './useNightReviewShare';
 
 /** useRoomModals deps */
 interface UseRoomModalsDeps {
@@ -28,6 +29,8 @@ interface UseRoomModalsDeps {
   shareNightReview: (allowedSeats: number[]) => Promise<WerewolfCommandDispatchOutcome>;
   /** Begin background capture of report; returns base64 (success) or null (failure) */
   beginReportCapture: () => Promise<string | null>;
+  /** Band progress of the in-flight report capture; null while no capture runs */
+  reportCaptureProgress: ReportCaptureProgress | null;
   /** Directly share the report (system share/copy). Return value is optional and unused by caller. */
   shareNightReviewReport: () => Promise<unknown>;
   /**
@@ -82,6 +85,7 @@ export function useRoomModals({
   getCurseInfo,
   shareNightReview,
   beginReportCapture,
+  reportCaptureProgress,
   shareNightReviewReport,
   isGameEnded,
   onLastNightInfoConfirmed,
@@ -160,9 +164,11 @@ export function useRoomModals({
    * Show the "本局复盘" alert with optional loading state on "分享战报" button.
    * Can be called twice: first with `reportLoading: true`, then with `false`
    * once capture completes — `showAlert` seamlessly updates the existing modal.
+   * While the capture reports band progress, the button label carries the
+   * live "生成中 done/total 段" count instead of the plain share label.
    */
   const showDetailAlert = useCallback(
-    (reportLoading: boolean) => {
+    (reportLoading: boolean, captureProgress: ReportCaptureProgress | null = null) => {
       const requestId = detailAlertRequestRef.current;
       const dismiss = () => {
         if (detailAlertRequestRef.current !== requestId) return false;
@@ -170,6 +176,10 @@ export function useRoomModals({
         detailAlertGenerationRef.current = null;
         return true;
       };
+      const shareButtonText =
+        reportLoading && captureProgress !== null
+          ? `生成中 ${captureProgress.done}/${captureProgress.total} 段`
+          : '分享战报';
 
       let isShown = false;
       if (isHost) {
@@ -187,7 +197,7 @@ export function useRoomModals({
             },
           },
           {
-            text: '分享战报',
+            text: shareButtonText,
             loading: reportLoading,
             onPress: () => {
               if (dismiss()) void shareNightReviewReport();
@@ -210,7 +220,7 @@ export function useRoomModals({
             },
           },
           {
-            text: '分享战报',
+            text: shareButtonText,
             loading: reportLoading,
             onPress: () => {
               if (dismiss()) void shareNightReviewReport();
@@ -230,6 +240,15 @@ export function useRoomModals({
     [confirmOpenNightReview, isHost, canShareReport, shareNightReviewReport],
   );
 
+  // While the detail alert is open, each band-progress report re-renders the
+  // share button label with the live count. Completion is not handled here:
+  // openNightReview's capture promise re-shows the alert with loading off.
+  useEffect(() => {
+    if (reportCaptureProgress === null) return;
+    if (!detailAlertOpenRef.current) return;
+    showDetailAlert(true, reportCaptureProgress);
+  }, [reportCaptureProgress, showDetailAlert]);
+
   const openNightReview = useCallback(() => {
     if (!isHost && !canShareReport) {
       // Non-host without share permission: confirm before viewing (anti-cheat reminder)
@@ -240,12 +259,9 @@ export function useRoomModals({
     detailAlertOpenRef.current = true;
     const requestId = ++detailAlertRequestRef.current;
 
-    if (isMiniProgram()) {
-      showDetailAlert(false);
-      return;
-    }
-
-    // Start capture in background; update alert to enable "分享战报" on completion
+    // Start capture in background on every platform (the mini program now
+    // pre-captures into the same cache); update alert to enable "分享战报"
+    // on completion
     void beginReportCapture().then(() => {
       if (
         detailAlertOpenRef.current &&
