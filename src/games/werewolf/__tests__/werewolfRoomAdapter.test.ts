@@ -531,6 +531,24 @@ describe('createWerewolfRoomShellModel', () => {
     }
   });
 
+  it('gives a spectator no step bar at Ended (their panel is the review button)', () => {
+    const model = createWerewolfRoomShellModel(
+      createShellModelInput({
+        roomStatus: GameStatus.Ended,
+        isHost: false,
+        actionMessage: '对局结束',
+        panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
+        panelFlowViewer: { role: 'spectator', reviewShared: false, reviewAuthorized: true },
+      }),
+    );
+    expect(model.bottomActions.kind).toBe('stacked');
+    if (model.bottomActions.kind === 'stacked') {
+      expect(model.bottomActions.steps).toBeUndefined();
+      expect(model.bottomActions.hint).toBeUndefined();
+      expect(model.bottomActions.message).toBe('对局结束');
+    }
+  });
+
   it('shows the host share hint while the Ended review step is current', () => {
     const model = createWerewolfRoomShellModel(
       createShellModelInput({

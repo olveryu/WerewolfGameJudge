@@ -10,6 +10,7 @@ import {
   createViewingBeginGate,
   projectViewingProgress,
   type RoomHostActionDescriptor,
+  TERMINAL_ACTION_VARIANT,
 } from '../hostManagementActions';
 
 describe('host management action builders', () => {
@@ -90,7 +91,7 @@ describe('host management action builders', () => {
       key: 'next-round',
       label: '再来一局',
       icon: 'play-forward-outline',
-      variant: 'primary',
+      variant: 'danger',
       testID: 'next-round-button',
       isEnabled: true,
     });
@@ -98,10 +99,20 @@ describe('host management action builders', () => {
       key: 'return-lobby',
       label: '返回大厅',
       icon: 'return-down-back-outline',
-      variant: 'secondary',
+      variant: 'danger',
       testID: 'return-lobby-button',
       isEnabled: true,
     });
+  });
+
+  it('takes both terminal variants from the single TERMINAL_ACTION_VARIANT source', () => {
+    expect(TERMINAL_ACTION_VARIANT).toBe('danger');
+    expect(buildNextRoundAction({ onPress: () => undefined }).variant).toBe(
+      TERMINAL_ACTION_VARIANT,
+    );
+    expect(buildReturnLobbyAction({ onPress: () => undefined }).variant).toBe(
+      TERMINAL_ACTION_VARIANT,
+    );
   });
 });
 
