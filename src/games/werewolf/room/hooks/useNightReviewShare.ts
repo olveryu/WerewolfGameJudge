@@ -36,6 +36,25 @@ interface ReportCaptureScope {
 /** Band progress of the current report's capture; null while no capture runs. */
 export type ReportCaptureProgress = CaptureProgress;
 
+/** Phase of one direct share run, from tap to platform handoff. */
+export type ReportShareRunPhase = 'capturing' | 'uploading';
+
+/**
+ * Visible lifecycle of one direct share run; null while no share runs.
+ * The capturing phase carries the live band progress (null until the
+ * segmented capture reports its first band; whole-view captures never
+ * report bands). The uploading phase covers the mini program's image
+ * upload, up to the WeChat preview taking over.
+ */
+export type ReportShareRun =
+  | { readonly phase: 'capturing'; readonly progress: ReportCaptureProgress | null }
+  | { readonly phase: 'uploading' };
+
+/** Cancellation marker for one share run; the token's identity is the run. */
+interface ShareRunToken {
+  cancelled: boolean;
+}
+
 /** Keeps cached images and late completions inside their report's lifetime. */
 export function useNightReviewShare(
   roomId: string,
@@ -56,10 +75,15 @@ export function useNightReviewShare(
   });
   const nightReviewShareCardRef = useRef<View>(null);
   const scopeRef = useRef<ReportCaptureScope | null>(null);
+  const shareRunRef = useRef<ShareRunToken | null>(null);
   const [capturingScopeKey, setCapturingScopeKey] = useState<string | null>(null);
   const [captureProgressState, setCaptureProgressState] = useState<
     (ReportCaptureProgress & { readonly key: string }) | null
   >(null);
+  const [shareRunState, setShareRunState] = useState<{
+    readonly key: string;
+    readonly phase: ReportShareRunPhase;
+  } | null>(null);
 
   useEffect(() => {
     const scope: ReportCaptureScope = {
@@ -71,9 +95,11 @@ export function useNightReviewShare(
     scopeRef.current = scope;
     setCapturingScopeKey(null);
     setCaptureProgressState(null);
+    setShareRunState(null);
     return () => {
       scope.isActive = false;
       scopeRef.current = null;
+      shareRunRef.current = null;
     };
   }, [reportScopeKey]);
 
@@ -162,22 +188,61 @@ export function useNightReviewShare(
     })();
   }, [captureMountedShareCard, captureReportCard, nightReviewData, reportScopeKey]);
 
+  /**
+   * Detaches the waiting UI from the current share run: the run's later
+   * stages must no longer hand off to the preview. The capture itself is
+   * not touched — an in-flight capture keeps running and still lands in
+   * the scope cache, and an upload already sent simply completes with
+   * nobody taking over its result.
+   */
+  const cancelReportShare = useCallback(() => {
+    const run = shareRunRef.current;
+    if (run !== null) {
+      run.cancelled = true;
+      shareRunRef.current = null;
+    }
+    setShareRunState(null);
+  }, []);
+
   const shareNightReviewReportDirectly = useCallback(async (): Promise<boolean> => {
     const scope = scopeRef.current;
     if (scope === null || scope.key !== reportScopeKey || nightReviewData === null) return false;
+    // One token per run: starting a new run supersedes the previous one,
+    // and cancelling marks the token so its continuation never hands off.
+    const run: ShareRunToken = { cancelled: false };
+    shareRunRef.current = run;
+    const isRunCurrent = () => shareRunRef.current === run && !run.cancelled && scope.isActive;
+    const enterPhase = (phase: ReportShareRunPhase) => {
+      if (shareRunRef.current === run && scope.isActive) {
+        setShareRunState({ key: reportScopeKey, phase });
+      }
+    };
     try {
       if (isMiniProgram()) {
-        const base64 = SEGMENTED_CAPTURE_TRIAL_ENABLED
-          ? await beginReportCapture()
-          : renderNightReviewToCanvas(nightReviewData, roomCode, colors);
-        if (base64 === null) return false;
+        let base64: string;
+        if (SEGMENTED_CAPTURE_TRIAL_ENABLED) {
+          // A cached image skips the generating phase entirely; only a
+          // capture that still has to run (or finish) is presented.
+          if (scope.base64 === null) enterPhase('capturing');
+          const captured = await beginReportCapture();
+          if (captured === null) return false;
+          base64 = captured;
+        } else {
+          base64 = renderNightReviewToCanvas(nightReviewData, roomCode, colors);
+        }
+        if (!isRunCurrent()) return false;
+        enterPhase('uploading');
         const url = await uploadShareImage(base64);
-        if (!scope.isActive) return false;
+        if (!isRunCurrent()) return false;
         await wxPreviewImage(url);
         return scope.isActive;
       }
+      if (scope.base64 === null) enterPhase('capturing');
       const base64 = scope.base64 ?? (await beginReportCapture());
-      if (!scope.isActive || base64 === null) return false;
+      if (!isRunCurrent() || base64 === null) return false;
+      // The platform share sheet owns every visible surface from the
+      // handoff on, so the run ends here instead of being held behind it.
+      if (shareRunRef.current === run) setShareRunState(null);
       const result = await shareNightReviewReportImage(() => Promise.resolve(base64), roomCode);
       if (!scope.isActive) return false;
       if (result === 'failed') showErrorAlert('分享失败', '无法分享战报，请稍后重试');
@@ -191,18 +256,35 @@ export function useNightReviewShare(
         });
       }
       return false;
+    } finally {
+      if (shareRunRef.current === run) {
+        shareRunRef.current = null;
+        if (scope.isActive) setShareRunState(null);
+      }
     }
   }, [beginReportCapture, nightReviewData, reportScopeKey, roomCode]);
+
+  const reportCaptureProgress: ReportCaptureProgress | null =
+    captureProgressState !== null && captureProgressState.key === reportScopeKey
+      ? { done: captureProgressState.done, total: captureProgressState.total }
+      : null;
+  const shareRunPhase =
+    shareRunState !== null && shareRunState.key === reportScopeKey ? shareRunState.phase : null;
+  const shareRun: ReportShareRun | null =
+    shareRunPhase === null
+      ? null
+      : shareRunPhase === 'uploading'
+        ? { phase: 'uploading' }
+        : { phase: 'capturing', progress: reportCaptureProgress };
 
   return {
     nightReviewData,
     reportScopeKey,
     nightReviewShareCardRef,
     isCapturingShareCard: capturingScopeKey === reportScopeKey,
-    reportCaptureProgress:
-      captureProgressState !== null && captureProgressState.key === reportScopeKey
-        ? { done: captureProgressState.done, total: captureProgressState.total }
-        : null,
+    reportCaptureProgress,
+    shareRun,
+    cancelReportShare,
     beginReportCapture,
     shareNightReviewReportDirectly,
   };

@@ -144,6 +144,8 @@ export interface WerewolfRoomScreenState {
   readonly nightReviewData: NightReviewShareState['nightReviewData'];
   readonly nightReviewShareCardRef: NightReviewShareState['nightReviewShareCardRef'];
   readonly isCapturingShareCard: boolean;
+  readonly shareRun: NightReviewShareState['shareRun'];
+  readonly cancelReportShare: NightReviewShareState['cancelReportShare'];
   readonly nightReviewVisible: boolean;
   readonly closeNightReview: () => void;
   readonly shareReviewVisible: boolean;
@@ -568,6 +570,8 @@ export function useWerewolfRoomScreenState(
     nightReviewShareCardRef,
     isCapturingShareCard,
     reportCaptureProgress,
+    shareRun,
+    cancelReportShare,
     beginReportCapture,
     shareNightReviewReportDirectly,
   } = useNightReviewShare(room.roomId, roomCode, myUserId, gameState);
@@ -1160,6 +1164,8 @@ export function useWerewolfRoomScreenState(
     nightReviewData,
     nightReviewShareCardRef,
     isCapturingShareCard,
+    shareRun,
+    cancelReportShare,
     nightReviewVisible,
     closeNightReview,
     shareReviewVisible,
