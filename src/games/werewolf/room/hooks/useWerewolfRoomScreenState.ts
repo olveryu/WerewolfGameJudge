@@ -206,7 +206,7 @@ export function useWerewolfRoomScreenState(
     currentActionRole,
     currentSchema,
     currentStepId,
-    pendingRevealAck,
+    pendingRevealAck: pendingRevealAckField,
     isAudioPlaying,
     takeSeat,
     leaveSeat,
@@ -255,6 +255,10 @@ export function useWerewolfRoomScreenState(
     resumeAfterRejoin,
     needsContinueOverlay,
   } = useWerewolfRoom(client);
+
+  // Assembly surfaces (tests, future callers) may omit the field entirely;
+  // absence means "no reveal ack pending", never a value to dereference.
+  const pendingRevealAck = pendingRevealAckField ?? null;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Personal role reveal animation (from GameState roster, already resolved)
