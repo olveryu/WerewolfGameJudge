@@ -567,6 +567,7 @@ export function useWerewolfRoomScreenState(
     reportScopeKey,
     nightReviewShareCardRef,
     isCapturingShareCard,
+    reportCaptureProgress,
     beginReportCapture,
     shareNightReviewReportDirectly,
   } = useNightReviewShare(room.roomId, roomCode, myUserId, gameState);
@@ -714,6 +715,7 @@ export function useWerewolfRoomScreenState(
     getCurseInfo: getCurseInfoFn,
     shareNightReview,
     beginReportCapture,
+    reportCaptureProgress,
     reportScopeKey,
     shareNightReviewReport: shareNightReviewReportDirectly,
     isGameEnded: roomStatus === GameStatus.Ended,

@@ -1,7 +1,12 @@
-/** Mini-program report sharing picks the segmented capture only while the trial switch is on. */
+/**
+ * Mini-program report sharing picks the segmented capture only while the
+ * trial switch is on, and shares the same pre-capture cache as other
+ * platforms instead of capturing on tap.
+ */
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react-native';
 
+import type { CaptureProgressCallback } from '@/features/room/services/captureViewSegmentedPngBase64';
 import { uploadShareImage } from '@/features/room/services/uploadShareImage';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { handleError } from '@/utils/errorPipeline';
@@ -81,6 +86,101 @@ it('mounts the share card for the segmented capture and previews the uploaded im
   expect(renderNightReviewToCanvas).not.toHaveBeenCalled();
   expect(uploadShareImage).toHaveBeenCalledWith('segmented-image');
   expect(wxPreviewImage).toHaveBeenCalledWith('https://example.com/report.png');
+});
+
+it('reuses the pre-captured image when sharing after the review opened', async () => {
+  jest.mocked(captureNightReviewCardSegmented).mockResolvedValue('segmented-image');
+  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+
+  await act(async () => {
+    await result.current.beginReportCapture();
+  });
+  expect(captureNightReviewCardSegmented).toHaveBeenCalledTimes(1);
+
+  let shared!: boolean;
+  await act(async () => {
+    shared = await result.current.shareNightReviewReportDirectly();
+  });
+
+  expect(shared).toBe(true);
+  expect(captureNightReviewCardSegmented).toHaveBeenCalledTimes(1);
+  expect(uploadShareImage).toHaveBeenCalledWith('segmented-image');
+  expect(wxPreviewImage).toHaveBeenCalledWith('https://example.com/report.png');
+});
+
+it('joins the in-flight pre-capture instead of capturing twice when sharing early', async () => {
+  let complete!: (value: string) => void;
+  const capture = new Promise<string>((resolve) => {
+    complete = resolve;
+  });
+  jest.mocked(captureNightReviewCardSegmented).mockReturnValue(capture);
+  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+
+  let pending!: Promise<string | null>;
+  let sharePromise!: Promise<boolean>;
+  await act(async () => {
+    pending = result.current.beginReportCapture();
+    sharePromise = result.current.shareNightReviewReportDirectly();
+  });
+  expect(captureNightReviewCardSegmented).toHaveBeenCalledTimes(1);
+
+  let shared!: boolean;
+  await act(async () => {
+    complete('segmented-image');
+    shared = await sharePromise;
+    await pending;
+  });
+
+  expect(shared).toBe(true);
+  expect(captureNightReviewCardSegmented).toHaveBeenCalledTimes(1);
+  expect(uploadShareImage).toHaveBeenCalledTimes(1);
+  expect(uploadShareImage).toHaveBeenCalledWith('segmented-image');
+});
+
+it('exposes band progress during capture and clears it when capture settles', async () => {
+  let complete!: (value: string) => void;
+  const capture = new Promise<string>((resolve) => {
+    complete = resolve;
+  });
+  let reportProgress: CaptureProgressCallback | undefined;
+  jest.mocked(captureNightReviewCardSegmented).mockImplementation((_ref, onProgress) => {
+    reportProgress = onProgress;
+    onProgress?.(0, 3);
+    return capture;
+  });
+  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+
+  let pending!: Promise<string | null>;
+  await act(async () => {
+    pending = result.current.beginReportCapture();
+  });
+  expect(result.current.reportCaptureProgress).toEqual({ done: 0, total: 3 });
+
+  await act(async () => {
+    reportProgress?.(2, 3);
+  });
+  expect(result.current.reportCaptureProgress).toEqual({ done: 2, total: 3 });
+
+  await act(async () => {
+    reportProgress?.(3, 3);
+    complete('segmented-image');
+    await pending;
+  });
+  expect(result.current.reportCaptureProgress).toBeNull();
+});
+
+it('prepares nothing when the trial switch is off because sharing draws with canvas', async () => {
+  mockTrialEnabled = false;
+  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+
+  let prepared!: string | null;
+  await act(async () => {
+    prepared = await result.current.beginReportCapture();
+  });
+
+  expect(prepared).toBeNull();
+  expect(result.current.isCapturingShareCard).toBe(false);
+  expect(captureNightReviewCardSegmented).not.toHaveBeenCalled();
 });
 
 it('draws with the canvas renderer when the trial switch is off', async () => {

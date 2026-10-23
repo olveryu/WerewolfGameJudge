@@ -6,6 +6,7 @@ import type { RefObject } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 
+import type { CaptureProgressCallback } from '@/features/room/services/captureViewSegmentedPngBase64';
 import { uploadShareImage } from '@/features/room/services/uploadShareImage';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -29,6 +30,12 @@ interface ReportCaptureScope {
   inFlight: Promise<string | null> | null;
 }
 
+/** Band progress of the current report's capture; null while no capture runs. */
+export interface ReportCaptureProgress {
+  readonly done: number;
+  readonly total: number;
+}
+
 /** Keeps cached images and late completions inside their report's lifetime. */
 export function useNightReviewShare(
   roomId: string,
@@ -50,6 +57,9 @@ export function useNightReviewShare(
   const nightReviewShareCardRef = useRef<View>(null);
   const scopeRef = useRef<ReportCaptureScope | null>(null);
   const [capturingScopeKey, setCapturingScopeKey] = useState<string | null>(null);
+  const [captureProgressState, setCaptureProgressState] = useState<
+    (ReportCaptureProgress & { readonly key: string }) | null
+  >(null);
 
   useEffect(() => {
     const scope: ReportCaptureScope = {
@@ -60,11 +70,26 @@ export function useNightReviewShare(
     };
     scopeRef.current = scope;
     setCapturingScopeKey(null);
+    setCaptureProgressState(null);
     return () => {
       scope.isActive = false;
       scopeRef.current = null;
     };
   }, [reportScopeKey]);
+
+  /**
+   * The single platform capture selection: the mini program captures the
+   * card band by band (whole-view capture overflows its web-view), every
+   * other platform captures the mounted card in one shot. Band progress is
+   * only produced by the segmented capture.
+   */
+  const captureReportCard = useCallback(
+    (ref: RefObject<View | null>, onProgress: CaptureProgressCallback): Promise<string> => {
+      if (isMiniProgram()) return captureNightReviewCardSegmented(ref, onProgress);
+      return captureNightReviewCard(ref);
+    },
+    [],
+  );
 
   /**
    * Mounts the share card for one capture and unmounts it afterwards; the
@@ -73,7 +98,12 @@ export function useNightReviewShare(
    * nothing. Concurrent callers join the in-flight capture.
    */
   const captureMountedShareCard = useCallback(
-    (capture: (ref: RefObject<View | null>) => Promise<string>): Promise<string | null> => {
+    (
+      capture: (
+        ref: RefObject<View | null>,
+        onProgress: CaptureProgressCallback,
+      ) => Promise<string>,
+    ): Promise<string | null> => {
       const scope = scopeRef.current;
       if (scope === null || scope.key !== reportScopeKey || nightReviewData === null) {
         return Promise.resolve(null);
@@ -86,7 +116,10 @@ export function useNightReviewShare(
             requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
           );
           if (!scope.isActive) return null;
-          const base64 = await capture(nightReviewShareCardRef);
+          const reportProgress: CaptureProgressCallback = (done, total) => {
+            if (scope.isActive) setCaptureProgressState({ key: reportScopeKey, done, total });
+          };
+          const base64 = await capture(nightReviewShareCardRef, reportProgress);
           if (!scope.isActive) return null;
           return base64;
         } catch (error) {
@@ -101,7 +134,10 @@ export function useNightReviewShare(
           return null;
         } finally {
           scope.inFlight = null;
-          if (scope.isActive) setCapturingScopeKey(null);
+          if (scope.isActive) {
+            setCapturingScopeKey(null);
+            setCaptureProgressState(null);
+          }
         }
       })();
       return scope.inFlight;
@@ -116,12 +152,15 @@ export function useNightReviewShare(
     }
     if (scope.inFlight !== null) return scope.inFlight;
     if (scope.base64 !== null) return Promise.resolve(scope.base64);
+    // With the trial switch off, the mini program shares a Canvas-drawn
+    // image instead of a card capture, so no card image exists to prepare.
+    if (isMiniProgram() && !SEGMENTED_CAPTURE_TRIAL_ENABLED) return Promise.resolve(null);
     return (async () => {
-      const base64 = await captureMountedShareCard(captureNightReviewCard);
+      const base64 = await captureMountedShareCard(captureReportCard);
       if (base64 !== null && scope.isActive) scope.base64 = base64;
       return base64;
     })();
-  }, [captureMountedShareCard, nightReviewData, reportScopeKey]);
+  }, [captureMountedShareCard, captureReportCard, nightReviewData, reportScopeKey]);
 
   const shareNightReviewReportDirectly = useCallback(async (): Promise<boolean> => {
     const scope = scopeRef.current;
@@ -129,7 +168,7 @@ export function useNightReviewShare(
     try {
       if (isMiniProgram()) {
         const base64 = SEGMENTED_CAPTURE_TRIAL_ENABLED
-          ? await captureMountedShareCard(captureNightReviewCardSegmented)
+          ? await beginReportCapture()
           : renderNightReviewToCanvas(nightReviewData, roomCode, colors);
         if (base64 === null) return false;
         const url = await uploadShareImage(base64);
@@ -153,13 +192,17 @@ export function useNightReviewShare(
       }
       return false;
     }
-  }, [beginReportCapture, captureMountedShareCard, nightReviewData, reportScopeKey, roomCode]);
+  }, [beginReportCapture, nightReviewData, reportScopeKey, roomCode]);
 
   return {
     nightReviewData,
     reportScopeKey,
     nightReviewShareCardRef,
     isCapturingShareCard: capturingScopeKey === reportScopeKey,
+    reportCaptureProgress:
+      captureProgressState !== null && captureProgressState.key === reportScopeKey
+        ? { done: captureProgressState.done, total: captureProgressState.total }
+        : null,
     beginReportCapture,
     shareNightReviewReportDirectly,
   };

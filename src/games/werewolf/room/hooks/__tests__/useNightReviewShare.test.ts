@@ -62,6 +62,34 @@ it('discards an old capture after account change and shares only the current ima
   expect(result.current.isCapturingShareCard).toBe(false);
 });
 
+it('shares through the in-flight capture instead of starting a second one', async () => {
+  let complete!: (value: string) => void;
+  const capture = new Promise<string>((resolve) => {
+    complete = resolve;
+  });
+  jest.mocked(captureNightReviewCard).mockReturnValue(capture);
+  jest.mocked(shareNightReviewReportImage).mockResolvedValue('shared');
+  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+
+  let pending!: Promise<string | null>;
+  let sharePromise!: Promise<boolean>;
+  await act(async () => {
+    pending = result.current.beginReportCapture();
+    sharePromise = result.current.shareNightReviewReportDirectly();
+  });
+  expect(captureNightReviewCard).toHaveBeenCalledTimes(1);
+
+  await act(async () => {
+    complete('joined-image');
+    await pending;
+    await sharePromise;
+  });
+
+  expect(captureNightReviewCard).toHaveBeenCalledTimes(1);
+  const getBase64 = jest.mocked(shareNightReviewReportImage).mock.calls[0]![0];
+  await expect(getBase64()).resolves.toBe('joined-image');
+});
+
 it('reports capture failure and allows a fresh attempt', async () => {
   jest
     .mocked(captureNightReviewCard)

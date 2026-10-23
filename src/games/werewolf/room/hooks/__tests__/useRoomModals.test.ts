@@ -4,21 +4,16 @@
 
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
+import type { ReportCaptureProgress } from '@/games/werewolf/room/hooks/useNightReviewShare';
 import { useRoomModals } from '@/games/werewolf/room/hooks/useRoomModals';
 import { showAlert } from '@/utils/alert';
-import { isMiniProgram } from '@/utils/miniProgram';
 
 jest.mock('@/utils/alert', () => ({
   ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
   showAlert: jest.fn(),
 }));
 
-jest.mock('@/utils/miniProgram', () => ({
-  isMiniProgram: jest.fn(),
-}));
-
 const mockShowAlert = jest.mocked(showAlert);
-const mockIsMiniProgram = jest.mocked(isMiniProgram);
 
 function createDeps(
   beginReportCapture: () => Promise<string | null>,
@@ -34,6 +29,7 @@ function createDeps(
       throw new Error('Unexpected night-review authorization call');
     },
     beginReportCapture,
+    reportCaptureProgress: null,
     shareNightReviewReport: async () => {
       throw new Error('Unexpected night-review report share call');
     },
@@ -49,7 +45,6 @@ function getShareButton(callIndex: number) {
 
 describe('useRoomModals night-review report preparation', () => {
   it('does not update a replaced report or an unmounted dialog after capture completes', async () => {
-    mockIsMiniProgram.mockReturnValue(false);
     let complete!: (value: string | null) => void;
     const capture = new Promise<string | null>((resolve) => {
       complete = resolve;
@@ -74,20 +69,21 @@ describe('useRoomModals night-review report preparation', () => {
     mockShowAlert.mockReturnValue(true);
   });
 
-  it('enables mini-program sharing without starting an unused DOM capture', () => {
-    mockIsMiniProgram.mockReturnValue(true);
-    const beginReportCapture = jest.fn<Promise<string | null>, []>();
+  it('starts pre-capture on open for every platform and enables sharing when it completes', async () => {
+    const beginReportCapture = jest.fn<Promise<string | null>, []>().mockResolvedValue('image');
     const { result } = renderHook(() => useRoomModals(createDeps(beginReportCapture)));
 
     act(() => result.current.openNightReview());
 
-    expect(beginReportCapture).not.toHaveBeenCalled();
+    expect(beginReportCapture).toHaveBeenCalledTimes(1);
     expect(mockShowAlert).toHaveBeenCalledTimes(1);
-    expect(getShareButton(0)).toMatchObject({ loading: false });
+    expect(getShareButton(0)).toMatchObject({ loading: true });
+
+    await waitFor(() => expect(mockShowAlert).toHaveBeenCalledTimes(2));
+    expect(getShareButton(1)).toMatchObject({ loading: false });
   });
 
-  it('keeps report sharing loading while regular Web capture is pending', () => {
-    mockIsMiniProgram.mockReturnValue(false);
+  it('keeps report sharing loading while capture is pending', () => {
     const beginReportCapture = jest.fn(() => new Promise<string | null>(() => undefined));
     const { result } = renderHook(() => useRoomModals(createDeps(beginReportCapture)));
 
@@ -98,8 +94,7 @@ describe('useRoomModals night-review report preparation', () => {
     expect(getShareButton(0)).toMatchObject({ loading: true });
   });
 
-  it('enables regular Web sharing after capture reports a failure', async () => {
-    mockIsMiniProgram.mockReturnValue(false);
+  it('enables sharing after capture reports a failure', async () => {
     const beginReportCapture = jest.fn<Promise<string | null>, []>().mockResolvedValue(null);
     const { result } = renderHook(() => useRoomModals(createDeps(beginReportCapture)));
 
@@ -108,6 +103,47 @@ describe('useRoomModals night-review report preparation', () => {
     await waitFor(() => expect(mockShowAlert).toHaveBeenCalledTimes(2));
     expect(getShareButton(0)).toMatchObject({ loading: true });
     expect(getShareButton(1)).toMatchObject({ loading: false });
+  });
+
+  it('shows live band progress on the share button while the detail alert is open', () => {
+    const beginReportCapture = jest.fn(() => new Promise<string | null>(() => undefined));
+    const deps = createDeps(beginReportCapture);
+    const { result, rerender } = renderHook(
+      ({ progress }: { progress: ReportCaptureProgress | null }) =>
+        useRoomModals({ ...deps, reportCaptureProgress: progress }),
+      { initialProps: { progress: null as ReportCaptureProgress | null } },
+    );
+
+    act(() => result.current.openNightReview());
+    expect(mockShowAlert).toHaveBeenCalledTimes(1);
+
+    rerender({ progress: { done: 1, total: 3 } });
+
+    expect(mockShowAlert).toHaveBeenCalledTimes(2);
+    const progressButton = mockShowAlert.mock.calls[1]?.[2]?.find(({ text }) =>
+      text.startsWith('生成中'),
+    );
+    expect(progressButton).toMatchObject({ text: '生成中 1/3 段', loading: true });
+  });
+
+  it('does not re-show the detail alert for progress once it was dismissed', () => {
+    const beginReportCapture = jest.fn(() => new Promise<string | null>(() => undefined));
+    const deps = createDeps(beginReportCapture);
+    const { result, rerender } = renderHook(
+      ({ progress }: { progress: ReportCaptureProgress | null }) =>
+        useRoomModals({ ...deps, reportCaptureProgress: progress }),
+      { initialProps: { progress: null as ReportCaptureProgress | null } },
+    );
+
+    act(() => result.current.openNightReview());
+    const cancelButton = mockShowAlert.mock.calls[0]?.[2]?.find(({ text }) => text === '取消');
+    act(() => {
+      void cancelButton?.onPress?.();
+    });
+
+    rerender({ progress: { done: 2, total: 3 } });
+
+    expect(mockShowAlert).toHaveBeenCalledTimes(1);
   });
 });
 
