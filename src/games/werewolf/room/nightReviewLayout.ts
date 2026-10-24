@@ -151,44 +151,6 @@ export const NIGHT_REPORT_WOLF_TAG_SURVIVED = '目标存活';
 export const NIGHT_REPORT_WOLF_TAG_TIED = '平票未击杀';
 export const NIGHT_REPORT_WOLF_TAG_ABSTAIN = '空刀';
 
-/** Sheriff round labels, by round. */
-export const NIGHT_REPORT_SHERIFF_ROUND_LABELS = {
-  first: '首轮',
-  runoff: '决选',
-} as const;
-
-/** Sheriff card head when a sheriff was elected. */
-export const NIGHT_REPORT_SHERIFF_ELECTED_TITLE = '警长当选';
-
-/** Sheriff card head when the election produced no sheriff. */
-export const NIGHT_REPORT_SHERIFF_NONE_TITLE = '无警长';
-
-/** Why an election produced no sheriff, by engine reason. */
-export const NIGHT_REPORT_SHERIFF_REASON_LABELS = {
-  noCandidates: '无人参选',
-  noVotes: '无人投票',
-  runoffTie: '决选平票',
-  selfDestruct: '狼人自爆中断',
-} as const;
-
-/** Sheriff status tags for elections still in flight. */
-export const NIGHT_REPORT_SHERIFF_REGISTRATION_STATUS = '报名中';
-export const NIGHT_REPORT_SHERIFF_IN_PROGRESS = '进行中';
-export const NIGHT_REPORT_SHERIFF_VOTING = '投票中';
-export const NIGHT_REPORT_SHERIFF_RUNOFF_IN_PROGRESS = '决选进行中';
-
-/** Sheriff card row labels. */
-export const NIGHT_REPORT_SHERIFF_CANDIDATES_LABEL = '参选';
-export const NIGHT_REPORT_SHERIFF_RUNOFF_CANDIDATES_LABEL = '决选候选';
-export const NIGHT_REPORT_SHERIFF_WITHDRAWN_LABEL = '退选';
-export const NIGHT_REPORT_SHERIFF_ABSTAIN_LABEL = '弃票';
-export const NIGHT_REPORT_SHERIFF_VOTE_ROUND_SUFFIX = '投票';
-
-/** Winner vote-share tag on the completed sheriff card head. */
-export function formatNightReportSheriffVotesTag(votes: number, total: number): string {
-  return `得票 ${votes} / ${total}`;
-}
-
 /** Roster cell status for a seat still alive. */
 export const NIGHT_REPORT_ROSTER_ALIVE = '存活';
 

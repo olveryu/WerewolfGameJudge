@@ -46,12 +46,9 @@ import {
   type NightReviewData,
   type NightReviewDeathNote,
   type NightReviewIdentityEntry,
-  type NightReviewSheriffRound,
-  type NightReviewSheriffSection,
   type NightReviewWolfVerdict,
 } from '../NightReview.helpers';
 import {
-  formatNightReportSheriffVotesTag,
   formatNightReviewOutcomeHeadline,
   NIGHT_REPORT_ACTIONS_TITLE,
   NIGHT_REPORT_DEATH_CAUSE_SUFFIX,
@@ -62,20 +59,7 @@ import {
   NIGHT_REPORT_PALETTE,
   NIGHT_REPORT_ROSTER_ALIVE,
   NIGHT_REPORT_ROSTER_OUT,
-  NIGHT_REPORT_SHERIFF_ABSTAIN_LABEL,
-  NIGHT_REPORT_SHERIFF_CANDIDATES_LABEL,
-  NIGHT_REPORT_SHERIFF_ELECTED_TITLE,
-  NIGHT_REPORT_SHERIFF_IN_PROGRESS,
-  NIGHT_REPORT_SHERIFF_NONE_TITLE,
-  NIGHT_REPORT_SHERIFF_REASON_LABELS,
-  NIGHT_REPORT_SHERIFF_REGISTRATION_STATUS,
-  NIGHT_REPORT_SHERIFF_ROUND_LABELS,
-  NIGHT_REPORT_SHERIFF_RUNOFF_CANDIDATES_LABEL,
-  NIGHT_REPORT_SHERIFF_RUNOFF_IN_PROGRESS,
   NIGHT_REPORT_SHERIFF_TITLE,
-  NIGHT_REPORT_SHERIFF_VOTE_ROUND_SUFFIX,
-  NIGHT_REPORT_SHERIFF_VOTING,
-  NIGHT_REPORT_SHERIFF_WITHDRAWN_LABEL,
   NIGHT_REPORT_STAT_LABELS,
   NIGHT_REPORT_WOLF_TAG_ABSTAIN,
   NIGHT_REPORT_WOLF_TAG_KILLED,
@@ -88,6 +72,7 @@ import {
   NIGHT_REVIEW_IDENTITIES_TITLE,
   NIGHT_REVIEW_PEACEFUL_HEADLINE,
 } from '../nightReviewLayout';
+import { SheriffElectionReportSection } from './SheriffElectionReportSection';
 
 const P = NIGHT_REPORT_PALETTE;
 
@@ -980,192 +965,6 @@ function IdleStrip({ entries }: { readonly entries: readonly NightReviewActionEn
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sheriff election card
-// ─────────────────────────────────────────────────────────────────────────────
-
-function SheriffRoundBlock({ round }: { readonly round: NightReviewSheriffRound }) {
-  return (
-    <View style={styles.roundBlock}>
-      <Text style={styles.roundLabel}>
-        {`${NIGHT_REPORT_SHERIFF_ROUND_LABELS[round.round]}${NIGHT_REPORT_SHERIFF_VOTE_ROUND_SUFFIX}`}
-      </Text>
-      {[...round.perCandidate]
-        .sort((a, b) => b.votes - a.votes || a.seat - b.seat)
-        .map((candidate) => (
-          <View key={candidate.seat} style={styles.voteRow}>
-            <SeatMedal seat={candidate.seat} size="small" filled />
-            <Text style={styles.voteCount}>{`${candidate.votes} 票`}</Text>
-            <Text style={styles.voteArrow}>←</Text>
-            <View style={styles.voteVoters}>
-              {candidate.voterSeats.map((seat) => (
-                <SeatMedal key={seat} seat={seat} size="small" />
-              ))}
-            </View>
-          </View>
-        ))}
-      {round.abstainingSeats.length > 0 && (
-        <View style={styles.voteRow}>
-          <Text style={styles.abstainText}>{NIGHT_REPORT_SHERIFF_ABSTAIN_LABEL}</Text>
-          <View style={styles.voteVoters}>
-            {round.abstainingSeats.map((seat) => (
-              <SeatMedal key={seat} seat={seat} size="small" />
-            ))}
-          </View>
-        </View>
-      )}
-    </View>
-  );
-}
-
-function CandidateMedals({
-  seats,
-  withdrawnSeats,
-}: {
-  readonly seats: readonly number[];
-  readonly withdrawnSeats: readonly number[];
-}) {
-  const withdrawn = new Set(withdrawnSeats);
-  return (
-    <View style={styles.voteRow}>
-      <View style={styles.voteVoters}>
-        {seats.map((seat) => (
-          <SeatMedal key={seat} seat={seat} size="small" dimmed={withdrawn.has(seat)} />
-        ))}
-      </View>
-      {withdrawnSeats.length > 0 && (
-        <ReportTag text={NIGHT_REPORT_SHERIFF_WITHDRAWN_LABEL} tone="muted" />
-      )}
-    </View>
-  );
-}
-
-function SheriffCard({ section }: { readonly section: NightReviewSheriffSection }) {
-  if (section.kind === 'registration') {
-    // Registration secrecy: status only — no seats, no counts, for anyone.
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardHead}>
-          <Text style={styles.cardRole}>{NIGHT_REPORT_SHERIFF_TITLE}</Text>
-          <View style={styles.cardTag}>
-            <ReportTag text={NIGHT_REPORT_SHERIFF_REGISTRATION_STATUS} tone="muted" />
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  if (section.kind === 'inProgress') {
-    const status =
-      section.activeRound !== null
-        ? NIGHT_REPORT_SHERIFF_VOTING
-        : section.closedRounds.length > 0
-          ? NIGHT_REPORT_SHERIFF_RUNOFF_IN_PROGRESS
-          : NIGHT_REPORT_SHERIFF_IN_PROGRESS;
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardHead}>
-          <Text style={styles.cardRole}>{NIGHT_REPORT_SHERIFF_TITLE}</Text>
-          <View style={styles.cardTag}>
-            <ReportTag text={status} tone="muted" />
-          </View>
-        </View>
-        {section.activeRound === null && section.candidateSeats.length > 0 && (
-          <>
-            <Text style={styles.roundLabel}>
-              {section.closedRounds.length > 0
-                ? NIGHT_REPORT_SHERIFF_RUNOFF_CANDIDATES_LABEL
-                : NIGHT_REPORT_SHERIFF_CANDIDATES_LABEL}
-            </Text>
-            {/*
-              The candidate row follows the panel's record model: speech
-              phases show the full registration (actives + withdrawn, the
-              withdrawn dimmed); a runoff row shows only the runoff
-              candidates. The election-wide withdrawn list is never merged
-              into the runoff row — a first-phase withdrawal was never a
-              runoff candidate.
-            */}
-            <CandidateMedals
-              seats={
-                section.closedRounds.length > 0
-                  ? section.candidateSeats
-                  : [...section.candidateSeats, ...section.withdrawnSeats]
-              }
-              withdrawnSeats={section.closedRounds.length > 0 ? [] : section.withdrawnSeats}
-            />
-          </>
-        )}
-        {section.closedRounds.map((round) => (
-          <SheriffRoundBlock key={round.round} round={round} />
-        ))}
-        {section.activeRound !== null && (
-          <>
-            <Text style={styles.roundLabel}>
-              {`${NIGHT_REPORT_SHERIFF_ROUND_LABELS[section.activeRound.round]}${NIGHT_REPORT_SHERIFF_VOTE_ROUND_SUFFIX}中`}
-            </Text>
-            <CandidateMedals seats={section.activeRound.candidateSeats} withdrawnSeats={[]} />
-          </>
-        )}
-      </View>
-    );
-  }
-
-  // Completed: the full public record.
-  const decidingRound = section.rounds[section.rounds.length - 1];
-  const sheriffSeat = section.result.kind === 'elected' ? section.result.sheriffSeat : null;
-  const winner =
-    sheriffSeat === null
-      ? undefined
-      : decidingRound?.perCandidate.find((candidate) => candidate.seat === sheriffSeat);
-  const winnerTotal =
-    decidingRound !== undefined
-      ? decidingRound.perCandidate.reduce((sum, candidate) => sum + candidate.votes, 0) +
-        decidingRound.abstainingSeats.length
-      : 0;
-  return (
-    <View style={styles.card}>
-      <View style={styles.cardHead}>
-        {section.result.kind === 'elected' ? (
-          <>
-            <SeatMedal seat={section.result.sheriffSeat} size="medium" tone="good" />
-            <Text style={styles.cardRole}>{NIGHT_REPORT_SHERIFF_ELECTED_TITLE}</Text>
-            {winner !== undefined && (
-              <View style={styles.cardTag}>
-                <ReportTag
-                  text={formatNightReportSheriffVotesTag(winner.votes, winnerTotal)}
-                  tone="good"
-                />
-              </View>
-            )}
-          </>
-        ) : (
-          <>
-            <Text style={styles.cardRole}>{NIGHT_REPORT_SHERIFF_NONE_TITLE}</Text>
-            <View style={styles.cardTag}>
-              <ReportTag
-                text={NIGHT_REPORT_SHERIFF_REASON_LABELS[section.result.reason]}
-                tone="muted"
-              />
-            </View>
-          </>
-        )}
-      </View>
-      {section.registeredSeats.length > 0 && (
-        <>
-          <Text style={styles.roundLabel}>{NIGHT_REPORT_SHERIFF_CANDIDATES_LABEL}</Text>
-          <CandidateMedals
-            seats={section.registeredSeats}
-            withdrawnSeats={section.withdrawnSeats}
-          />
-        </>
-      )}
-      {section.rounds.map((round) => (
-        <SheriffRoundBlock key={round.round} round={round} />
-      ))}
-    </View>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Identity wall
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1264,7 +1063,9 @@ export function NightReviewReportBody({ data }: { readonly data: NightReviewData
       {data.sheriff !== undefined && (
         <>
           <SectionTitle text={NIGHT_REPORT_SHERIFF_TITLE} />
-          <SheriffCard section={data.sheriff} />
+          <View style={styles.card}>
+            <SheriffElectionReportSection section={data.sheriff} />
+          </View>
         </>
       )}
       <SectionTitle text={NIGHT_REVIEW_IDENTITIES_TITLE} />
@@ -1467,12 +1268,6 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: P.textMuted,
   },
-  voteCount: {
-    fontSize: typography.secondary,
-    lineHeight: typography.lineHeights.secondary,
-    fontWeight: typography.weights.bold,
-    color: P.text,
-  },
   abstainText: {
     fontSize: typography.secondary,
     lineHeight: typography.lineHeights.secondary,
@@ -1488,15 +1283,6 @@ const styles = StyleSheet.create({
     borderTopColor: P.divider,
     paddingTop: spacing.small,
     marginTop: spacing.tight,
-  },
-  roundBlock: {
-    gap: spacing.tight,
-  },
-  roundLabel: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    fontWeight: typography.weights.semibold,
-    color: P.textSecondary,
   },
   idleStrip: {
     backgroundColor: P.idleBg,

@@ -184,7 +184,7 @@ describe('NightReviewShareCard', () => {
       <NightReviewShareCard data={buildNightReviewData(composedNightState())} roomCode="1234" />,
     );
 
-    // The pre-extraction card printed formatNightReview* lines verbatim
+    // The pre-extraction card printed plain-text summary lines verbatim
     // (e.g. "🐺 狼人袭击：1号→5号"); the shared body renders structure instead.
     expect(view.queryByText(/狼人袭击：/)).toBeNull();
     expect(view.queryByText(/5号: 平民/)).toBeNull();

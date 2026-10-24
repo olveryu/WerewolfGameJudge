@@ -18,7 +18,11 @@ import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement'
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 import type { SheriffCandidateRecords, SheriffRoundRecord } from './sheriffElectionRecord';
-import { deriveSheriffRoundRecord, getSheriffCandidateRecords } from './sheriffElectionRecord';
+import {
+  deriveSheriffRoundRecord,
+  getSheriffCandidateRecords,
+  getSheriffVoteProgress,
+} from './sheriffElectionRecord';
 
 export interface SheriffCandidateOptionViewModel {
   readonly seat: number;
@@ -79,7 +83,12 @@ const SPEAKING_DIRECTION_LABELS = {
   counterclockwise: '逆时针',
 } satisfies Record<SheriffSpeakingDirection, string>;
 
-const PHASE_CONTENT: Record<
+/**
+ * Panel phase copy, shared with the night report: the report renders the
+ * panel's phase titles and descriptions (never the host variant — the
+ * archive is read-only, host instructions do not belong in it).
+ */
+export const SHERIFF_ELECTION_PHASE_CONTENT: Record<
   SheriffElectionState['phase'],
   { readonly title: string; readonly description: string; readonly hostDescription?: string }
 > = {
@@ -125,7 +134,13 @@ function assertOccupiedSeats(gameState: LocalGameState, seats: readonly number[]
   for (const seat of seats) assertOccupiedSeat(gameState, seat);
 }
 
-function getSpeakingInstruction(
+/**
+ * The panel's speaking-order line, shared with the night report: the
+ * report renders the same line from the same computation, never a copy.
+ * Only speech phases produce one; the occupied-seat assertion stays here
+ * in the shell — the core never sees a player roster.
+ */
+export function getSpeakingInstruction(
   gameState: LocalGameState,
   election: SheriffElectionState,
 ): string | null {
@@ -155,6 +170,14 @@ function getAdvanceLabel(election: SheriffElectionState): string | null {
 }
 
 /**
+ * The panel's title for one closed round, shared with the night report:
+ * both surfaces label the same record with the same title.
+ */
+export function getSheriffElectionRoundTitle(round: SheriffRoundRecord['round']): string {
+  return round === 'first' ? '首轮投票结果' : '平票投票结果';
+}
+
+/**
  * One closed round for the panel: the shared record's tally plus the
  * panel's title. Occupied-seat assertions stay in this shell — the core
  * never sees a player roster. Coverage is preserved: every eligible voter
@@ -179,7 +202,7 @@ function createCompletedRoundViewModel(
 
   return {
     key: record.round,
-    title: record.round === 'first' ? '首轮投票结果' : '平票投票结果',
+    title: getSheriffElectionRoundTitle(record.round),
     perCandidate: record.perCandidate,
     abstainingSeats: record.abstainingSeats,
   };
@@ -205,7 +228,7 @@ export function createSheriffElectionViewModel(
   const election = input.gameState.sheriffElection;
   if (election === undefined) return null;
 
-  const phaseContent = PHASE_CONTENT[election.phase];
+  const phaseContent = SHERIFF_ELECTION_PHASE_CONTENT[election.phase];
   const candidateRecords = getSheriffCandidateRecords(election);
   const speakingInstruction = getSpeakingInstruction(input.gameState, election);
   const votingState = getVotingState(election);
@@ -260,13 +283,7 @@ export function createSheriffElectionViewModel(
         : phaseContent.description,
     candidateRecords,
     speakingInstruction,
-    voteProgress:
-      votingState === null
-        ? null
-        : {
-            submittedCount: Object.keys(votingState.ballots).length,
-            eligibleCount: votingState.eligibleVoterSeats.length,
-          },
+    voteProgress: getSheriffVoteProgress(election),
     myBallot,
     candidateOptions:
       canVote && votingState !== null
