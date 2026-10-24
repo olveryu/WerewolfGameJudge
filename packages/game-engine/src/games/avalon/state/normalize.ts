@@ -80,6 +80,7 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
     invariant(state.ladyHolderSeat === null, 'lobby lady holder');
     invariant(state.ladyExaminedSeats.length === 0, 'lobby lady examined');
     invariant(state.lastLadyCheck === null, 'lobby lady check');
+    invariant(state.ladyHistory.length === 0, 'lobby lady history');
     invariant(state.rejectStreak === 0, 'lobby reject streak');
     invariant(state.lastVoteResult === null, 'lobby last vote result');
   } else {
@@ -234,6 +235,23 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
         lastCheck.holderSeat !== lastCheck.targetSeat &&
         (lastCheck.faction === 'good' || lastCheck.faction === 'evil')),
     'last lady check',
+  );
+  // 公开湖仙历史：最多 3 次（任务二 / 三 / 四后各一次），afterRound 递增，
+  // 同一座位不重复被查验，且每条的历史链与 examinedSeats 的顺序一致
+  // （examinedSeats[0] 为首任持有人，其后依次为各次被查验者）。
+  invariant(
+    state.ladyHistory.length <= 3 &&
+      state.ladyHistory.every(
+        (record, index) =>
+          (record.afterRound === 2 || record.afterRound === 3 || record.afterRound === 4) &&
+          (index === 0 || record.afterRound > state.ladyHistory[index - 1]!.afterRound) &&
+          isSeat(record.holderSeat) &&
+          isSeat(record.targetSeat) &&
+          record.holderSeat !== record.targetSeat &&
+          state.ladyExaminedSeats[index] === record.holderSeat &&
+          state.ladyExaminedSeats[index + 1] === record.targetSeat,
+      ),
+    'lady history',
   );
 
   // 投票结算面板数据：计数与逐人投票一致（否决上限终局时 rejectStreak 记为上限）。

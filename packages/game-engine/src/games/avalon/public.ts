@@ -21,6 +21,7 @@ export {
 } from './domain/rules';
 export {
   type AvalonCurrentProposalView,
+  type AvalonLadyCheckRecordView,
   type AvalonLadyCheckResultView,
   type AvalonLadyView,
   type AvalonLastVoteResultView,
@@ -63,6 +64,7 @@ export {
   type AvalonConfig,
   type AvalonEndReason,
   type AvalonHumanSeat,
+  type AvalonLadyCheckRecord,
   type AvalonLadyCheckResult,
   type AvalonLastVoteResult,
   type AvalonNightInfo,

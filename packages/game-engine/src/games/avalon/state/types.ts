@@ -356,6 +356,17 @@ export interface AvalonLadyCheckResult {
 }
 
 /**
+ * 一次已完成湖仙查验的公开历史记录：只记第几轮后、持有人是谁、查验了谁。
+ * 查验结果（好 / 坏）是持有人私密信息，刻意不进这个类型，类型上就不许
+ * 结果进公开历史；新持有人即被查验者，不另存，两者同一事实不双写。
+ */
+export interface AvalonLadyCheckRecord {
+  readonly afterRound: 2 | 3 | 4;
+  readonly holderSeat: number;
+  readonly targetSeat: number;
+}
+
+/**
  * 最近一次组队投票结算结果（设计稿 §7 投票结算面板）。
  * team.proposed 后清零；vetoLimitReached 时 rejectStreak 记为否决上限。
  */
@@ -400,6 +411,8 @@ export interface AvalonState extends BaseGameState<typeof AVALON_GAME_TYPE> {
   readonly ladyHolderSeat: number | null;
   readonly ladyExaminedSeats: readonly number[];
   readonly lastLadyCheck: AvalonLadyCheckResult | null;
+  /** 已完成湖仙查验的公开历史（按查验顺序）；查验结果不在此列。 */
+  readonly ladyHistory: readonly AvalonLadyCheckRecord[];
   /** 最近一次组队投票结算（投票结算面板用）；新一轮提案后清零。 */
   readonly lastVoteResult: AvalonLastVoteResult | null;
   /** 已完成的对局序号（从 0 开始）；每次开局递增，用于结算幂等。 */

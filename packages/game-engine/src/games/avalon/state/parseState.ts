@@ -23,6 +23,7 @@ import {
   AVALON_BALLOTS,
   AVALON_END_REASONS,
   AVALON_GAME_TYPE,
+  AVALON_LADY_MIN_PLAYERS,
   AVALON_LADY_ROUNDS,
   AVALON_NIGHT_STEPS,
   AVALON_PHASES,
@@ -33,6 +34,7 @@ import {
   type AvalonBallot,
   type AvalonConfig,
   type AvalonHumanSeat,
+  type AvalonLadyCheckRecord,
   type AvalonLadyCheckResult,
   type AvalonLastVoteResult,
   type AvalonNightInfo,
@@ -251,6 +253,19 @@ function ladyCheck(value: unknown, path: string): AvalonLadyCheckResult {
   );
 }
 
+function ladyHistoryRecord(value: unknown, path: string): AvalonLadyCheckRecord {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      afterRound: parseChoice(raw.afterRound, `${path}.afterRound`, AVALON_LADY_ROUNDS),
+      holderSeat: parseSeat(raw.holderSeat, `${path}.holderSeat`),
+      targetSeat: parseSeat(raw.targetSeat, `${path}.targetSeat`),
+    },
+    path,
+  );
+}
+
 function audioEffect(value: unknown, path: string): AudioEffect {
   const raw = parseObject(value, path);
   return finishObject(
@@ -421,6 +436,7 @@ export function parseAvalonState(value: unknown): AvalonState {
         ),
         roleViewedSeats: parseArray(raw.roleViewedSeats, `${path}.roleViewedSeats`, parseSeat),
         lastLadyCheck: parseNullable(raw.lastLadyCheck, `${path}.lastLadyCheck`, ladyCheck),
+        ladyHistory: parseArray(raw.ladyHistory, `${path}.ladyHistory`, ladyHistoryRecord),
         lastVoteResult: parseNullable(raw.lastVoteResult, `${path}.lastVoteResult`, lastVoteResult),
         gameSequence: parseInteger(raw.gameSequence, `${path}.gameSequence`),
         xpSettled: parseBoolean(raw.xpSettled, `${path}.xpSettled`),
@@ -491,6 +507,31 @@ function deriveLegacyRoundHistory(
 }
 
 /**
+ * Derives completed lady checks from what pre-v7 payloads actually stored:
+ * examinedSeats[0] is the initial holder, each later entry is the next
+ * checked seat, in check order. The first completed check follows round 2,
+ * the second follows round 3, the third follows round 4, so afterRound is
+ * the checked entry's index + 1. A check still in progress (lady phase
+ * with a chosen target not yet acknowledged) is not in examinedSeats and
+ * is correctly not derived.
+ */
+function deriveLegacyLadyHistory(
+  raw: Readonly<Record<string, unknown>>,
+): readonly AvalonLadyCheckRecord[] {
+  const config = parseAvalonConfig(raw.config, 'AvalonState.config');
+  if (config.numberOfPlayers < AVALON_LADY_MIN_PLAYERS) return [];
+  const examined =
+    raw.ladyExaminedSeats === undefined
+      ? []
+      : parseArray(raw.ladyExaminedSeats, 'AvalonState.ladyExaminedSeats', parseSeat);
+  return examined.slice(1).map((targetSeat, index) => ({
+    afterRound: AVALON_LADY_ROUNDS[index]!,
+    holderSeat: examined[index]!,
+    targetSeat,
+  }));
+}
+
+/**
  * Upgrades stored v1/v2 rooms. v1 predates role viewing, so its record
  * starts empty. v2 stored the roster as realSeats plus the implicit-bot
  * derivation inputs; the v3 roster materializes exactly the seats the
@@ -504,11 +545,20 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
   // migration is a pure version bump with field-for-field equivalence.
   // v5 -> v6 adds roundHistory, derived from what the old state stored
   // (see deriveLegacyRoundHistory); v3/v4 take the same derivation.
+  // v6 -> v7 adds ladyHistory, derived from examinedSeats (see above).
   if (raw.stateVersion === 3 || raw.stateVersion === 4 || raw.stateVersion === 5) {
     return parseAvalonState({
       ...raw,
       stateVersion: AVALON_STATE_VERSION,
       roundHistory: deriveLegacyRoundHistory(raw),
+      ladyHistory: deriveLegacyLadyHistory(raw),
+    });
+  }
+  if (raw.stateVersion === 6) {
+    return parseAvalonState({
+      ...raw,
+      stateVersion: AVALON_STATE_VERSION,
+      ladyHistory: deriveLegacyLadyHistory(raw),
     });
   }
   if (raw.stateVersion !== 1 && raw.stateVersion !== 2) return parseAvalonState(raw);
@@ -536,5 +586,6 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
     roleViewedSeats: raw.stateVersion === 1 ? [] : raw.roleViewedSeats,
     roster,
     roundHistory: deriveLegacyRoundHistory(rest),
+    ladyHistory: deriveLegacyLadyHistory(rest),
   });
 }
