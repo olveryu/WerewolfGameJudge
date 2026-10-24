@@ -16,14 +16,21 @@
 
 import type { DeathReason } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import type { SheriffElectionResult } from '@game-judge/game-engine/games/werewolf/public';
+import type {
+  SheriffElectionResult,
+  SheriffElectionState,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 import { Team } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 
 import type { SheriffRoundRecord } from './sheriffElectionRecord';
-import { deriveSheriffRoundRecord, getSheriffCandidateRecords } from './sheriffElectionRecord';
+import {
+  deriveSheriffRoundRecord,
+  getSheriffCandidateRecords,
+  getSheriffVoteProgress,
+} from './sheriffElectionRecord';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Death reason labels
@@ -368,6 +375,10 @@ export type NightReviewSheriffSection =
   | { readonly kind: 'registration' }
   | {
       readonly kind: 'inProgress';
+      /** Election phase, so the report renders the panel's phase titles. */
+      readonly phase: SheriffElectionState['phase'];
+      /** Full registration, so the report renders the panel's 上警 row. */
+      readonly registeredSeats: readonly number[];
       /** Public candidates for the current stage (see derivation). */
       readonly candidateSeats: readonly number[];
       readonly withdrawnSeats: readonly number[];
@@ -377,11 +388,21 @@ export type NightReviewSheriffSection =
         readonly round: 'first' | 'runoff';
         readonly candidateSeats: readonly number[];
       } | null;
+      /**
+       * Submission counts for an open voting round (the panel's public
+       * slice: counts only, never ballot targets). Null outside voting.
+       */
+      readonly voteProgress: {
+        readonly submittedCount: number;
+        readonly eligibleCount: number;
+      } | null;
     }
   | {
       readonly kind: 'completed';
       readonly registeredSeats: readonly number[];
       readonly withdrawnSeats: readonly number[];
+      /** Still-standing candidates, so the report renders the panel's records. */
+      readonly activeCandidateSeats: readonly number[];
       readonly rounds: readonly NightReviewSheriffRound[];
       readonly result: SheriffElectionResult;
     };
@@ -666,7 +687,10 @@ export function deriveWolfTargetSaveNote(
  * in which section kind. It never re-derives a tally or a candidate set.
  * Registration exposes nothing but the status; speech stages expose the
  * active candidates; a voting stage exposes the closed rounds in full plus
- * the active round's candidates — its ballots are never read here.
+ * the active round's candidates and the submission counts — its ballot
+ * targets are never read here. The in-progress section also carries the
+ * phase and the full registration so the report can render the panel's
+ * phase header and records rows without re-deriving them.
  */
 export function deriveSheriffSection(
   gameState: LocalGameState,
@@ -695,15 +719,20 @@ export function deriveSheriffSection(
     case 'withdrawal':
       return {
         kind: 'inProgress',
+        phase: election.phase,
+        registeredSeats: [...records.registeredSeats],
         candidateSeats: [...records.activeCandidateSeats],
         withdrawnSeats: [...records.withdrawnSeats],
         closedRounds: [],
         activeRound: null,
+        voteProgress: null,
       };
     case 'firstVote':
     case 'runoffVote':
       return {
         kind: 'inProgress',
+        phase: election.phase,
+        registeredSeats: [...records.registeredSeats],
         candidateSeats: [...records.activeCandidateSeats],
         withdrawnSeats: [...records.withdrawnSeats],
         closedRounds: election.completedRounds.map(deriveSheriffRoundRecord),
@@ -711,14 +740,18 @@ export function deriveSheriffSection(
           round: election.phase === 'firstVote' ? 'first' : 'runoff',
           candidateSeats: [...records.activeCandidateSeats],
         },
+        voteProgress: getSheriffVoteProgress(election),
       };
     case 'runoffSpeech':
       return {
         kind: 'inProgress',
+        phase: election.phase,
+        registeredSeats: [...records.registeredSeats],
         candidateSeats: [...records.activeCandidateSeats],
         withdrawnSeats: [...records.withdrawnSeats],
         closedRounds: election.completedRounds.map(deriveSheriffRoundRecord),
         activeRound: null,
+        voteProgress: null,
       };
     case 'completed': {
       if (result === undefined) {
@@ -730,6 +763,7 @@ export function deriveSheriffSection(
         kind: 'completed',
         registeredSeats: [...records.registeredSeats],
         withdrawnSeats: [...records.withdrawnSeats],
+        activeCandidateSeats: [...records.activeCandidateSeats],
         rounds: election.completedRounds.map(deriveSheriffRoundRecord),
         result,
       };

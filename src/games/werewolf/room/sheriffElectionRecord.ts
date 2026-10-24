@@ -121,6 +121,23 @@ function getActiveCandidateSeats(election: SheriffElectionState): readonly numbe
 }
 
 /**
+ * Submission progress for an open voting round: how many eligible voters
+ * have submitted, never who voted for whom. This is the sanctioned public
+ * slice of an open round — the election panel publishes exactly these
+ * counts live — so the night report may carry them too. Null outside a
+ * voting phase.
+ */
+export function getSheriffVoteProgress(
+  election: SheriffElectionState,
+): { readonly submittedCount: number; readonly eligibleCount: number } | null {
+  if (election.phase !== 'firstVote' && election.phase !== 'runoffVote') return null;
+  return {
+    submittedCount: Object.keys(election.ballots).length,
+    eligibleCount: election.eligibleVoterSeats.length,
+  };
+}
+
+/**
  * The election's candidate records for its current phase. Null while
  * registration identities are not yet public — callers must render a
  * status only and never read registeredSeats in that phase.
