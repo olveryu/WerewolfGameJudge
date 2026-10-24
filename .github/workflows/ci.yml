@@ -29,14 +29,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Typecheck
-        run: pnpm run typecheck
-
-      - name: Build game-engine
-        run: pnpm --filter @game-judge/game-engine run build
-
-      - name: Check unused files and dependencies
-        run: pnpm run knip
+      - name: Build, typecheck workspace and check unused code
+        run: pnpm exec turbo run build typecheck knip
 
       - name: Check agent configuration drift
         run: pnpm run sync:agents:check
@@ -150,12 +144,10 @@ jobs:
   deploy-api-worker:
     runs-on: ubuntu-latest
     if: |
-      needs.quality.result == 'success' &&
-      needs.lint.result == 'success' &&
-      needs.test-root.result == 'success' &&
+      needs.ci-gate.result == 'success' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       github.ref == 'refs/heads/main'
-    needs: [quality, lint, test-root]
+    needs: [ci-gate]
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -183,13 +175,11 @@ jobs:
   deploy-frontend:
     runs-on: ubuntu-latest
     if: |
-      needs.quality.result == 'success' &&
-      needs.lint.result == 'success' &&
-      needs.test-root.result == 'success' &&
+      needs.ci-gate.result == 'success' &&
       needs.deploy-api-worker.result == 'success' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       github.ref == 'refs/heads/main'
-    needs: [quality, lint, test-root, deploy-api-worker]
+    needs: [ci-gate, deploy-api-worker]
     permissions:
       contents: read
       deployments: write
@@ -492,11 +482,9 @@ jobs:
   deploy-miniapp:
     runs-on: ubuntu-latest
     if: |
-      needs.quality.result == 'success' &&
-      needs.lint.result == 'success' &&
-      needs.test-root.result == 'success' &&
+      needs.ci-gate.result == 'success' &&
       github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [quality, lint, test-root]
+    needs: [ci-gate]
     steps:
       - uses: actions/checkout@v6
         with:

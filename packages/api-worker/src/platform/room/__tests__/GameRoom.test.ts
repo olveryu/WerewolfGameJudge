@@ -367,7 +367,7 @@ describe('GameRoom command receipts', () => {
 
     expect(first.isReplay).toBe(false);
     expect(first.result.snapshot.revision).toBe(2);
-    expect(first.result.snapshot.state.roster[0]?.userId).toBe('host-1');
+    expect(first.result.snapshot.state.roster[0]).toMatchObject({ userId: 'host-1' });
     expect(replay.isReplay).toBe(true);
     expect(replay.result).toEqual(first.result);
     expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(2);

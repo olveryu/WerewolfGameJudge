@@ -1,0 +1,37 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "agentGuidance": false,
+  "tasks": {
+    "build": {
+      "cache": false,
+      "outputs": ["dist/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
+    "test": {
+      "dependsOn": ["build", "^build"],
+      "cache": false
+    },
+    "//#typecheck": {
+      "dependsOn": ["@game-judge/game-engine#build"],
+      "cache": false
+    },
+    "//#lint": {
+      "dependsOn": ["@game-judge/game-engine#build"],
+      "cache": false
+    },
+    "//#knip": {
+      "dependsOn": ["@game-judge/game-engine#build"],
+      "cache": false
+    },
+    "//#format": {
+      "cache": false
+    },
+    "//#test": {
+      "dependsOn": ["@game-judge/game-engine#build"],
+      "cache": false
+    }
+  }
+}

@@ -1,8 +1,11 @@
 /** Unit tests for Pictionary media authorization logic (canReadDrawing). */
 
-import type {
-  PictionaryChain,
-  PictionaryState,
+import {
+  PICTIONARY_DRAWING_HEIGHT,
+  PICTIONARY_DRAWING_WIDTH,
+  PICTIONARY_STATE_VERSION,
+  type PictionaryChain,
+  type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 import { describe, expect, it } from 'vitest';
 
@@ -13,6 +16,10 @@ function createMinimalState(
   overrides: Partial<PictionaryState> = {},
 ): PictionaryState {
   return {
+    gameType: 'pictionary',
+    stateVersion: PICTIONARY_STATE_VERSION,
+    roomCode: '1234',
+    hostUserId: 'host-1',
     phase,
     phaseRevision: 1,
     config: {
@@ -41,16 +48,18 @@ function createMinimalState(
 function createChainWithDrawing(entryId: string): PictionaryChain {
   return {
     id: 'chain-0',
+    originSeat: 0,
     entries: [
       {
         kind: 'drawing',
         id: entryId,
         authorSeat: 0,
+        submittedAt: 1000,
         media: {
           objectKey: 'test-key',
           contentType: 'image/png',
-          width: 800,
-          height: 600,
+          width: PICTIONARY_DRAWING_WIDTH,
+          height: PICTIONARY_DRAWING_HEIGHT,
           byteLength: 100,
           sha256: 'abc',
         },

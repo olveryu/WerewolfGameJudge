@@ -6,6 +6,7 @@ coverage/
 
 # dependencies
 node_modules/
+.turbo/
 
 # Python virtual env
 .venv/

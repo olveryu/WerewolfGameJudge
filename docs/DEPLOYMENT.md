@@ -99,31 +99,30 @@ pnpm exec wrangler secret list --config wrangler.toml
 `.github/workflows/ci.yml` runs on pushes to `main`, pull requests targeting `main`, and manual dispatches.
 
 ```text
-quality
-├── e2e (five balanced groups) → merge-reports
-│                              └── deploy-e2e-report (main only)
-├── deploy-api-worker (main only)
-│   └── deploy-frontend (main only; waits for API deployment)
-└── deploy-miniapp (main push only; conditional upload)
+quality + lint + test-root + test-api-worker + e2e
+└── ci-gate (all required jobs must succeed)
+	├── deploy-api-worker (main only)
+	│   └── deploy-frontend (main only; waits for API deployment)
+	└── deploy-miniapp (main push only; conditional upload)
 ```
 
-E2E uses local Wrangler/D1 and a local web build. It validates the commit independently of the production deployment and does not wait for the deploy jobs.
+E2E uses local Wrangler/D1 and a local web build. It validates the commit independently of production deployment and does not wait for deploy jobs. All production deployment jobs wait for `ci-gate`, so remote migrations and releases cannot start while required tests are still running or have failed. E2E reports are published separately after the matrix finishes.
 
 ### Quality
 
-`pnpm run quality` is the single local quality entry point. CI executes the same stages in this order:
+`pnpm run quality` is the single local non-E2E quality entry point. `turbo.json` registers root and workspace checks and builds `game-engine` before its consumers. Tasks currently run without caching; the command finishes with the agent adapter drift check. CI splits its checks into jobs:
 
-1. Type generation and TypeScript checks.
-2. `game-engine` build.
-3. Knip unused-code and dependency check.
-4. Agent adapter drift check.
-5. ESLint.
-6. Prettier check.
-7. All workspace unit and integration tests.
+- `quality`: `turbo run build typecheck knip` checks generated types, root/Worker TypeScript (including Worker tests), `game-engine` build and Knip; followed by agent adapter drift.
+- `lint`: ESLint and Prettier.
+- `test-root`: game-engine Vitest and root Jest suites.
+- `test-api-worker`: Worker integration tests, after the preceding jobs succeed.
+- `e2e`: Playwright shards using the `build-web` artifact, independently of unit-test completion.
+
+`ci-gate` waits for all five required jobs and fails if any failed, was cancelled or was skipped. Production deployments depend on this aggregate gate rather than a separate subset of checks.
 
 ### API Worker
 
-After `quality` succeeds on `main`, `deploy-api-worker`:
+After `ci-gate` succeeds on `main`, `deploy-api-worker`:
 
 1. Builds `@game-judge/game-engine`.
 2. Applies remote D1 migrations with the API package's `db:migrate:remote` script.
@@ -133,7 +132,7 @@ Migrations run before Worker deployment. A migration failure stops the job and l
 
 ### Frontend
 
-`deploy-frontend` waits for both `quality` and `deploy-api-worker`, then:
+`deploy-frontend` waits for both `ci-gate` and `deploy-api-worker`, then:
 
 1. Runs `scripts/build.sh` to build `game-engine`, export Expo Web, add PWA files, fix font and bundle paths, inject the custom HTML shell, and upload Sentry source maps.
 2. Rewrites HTML and JavaScript asset references to a versioned npmmirror URL.
@@ -147,7 +146,7 @@ This order prevents production HTML from referencing an asset package that the C
 
 ### WeChat Mini Program
 
-`deploy-miniapp` runs only on a push to `main`. It uploads when either condition is true:
+`deploy-miniapp` runs only on a push to `main` after `ci-gate` succeeds. It uploads when either condition is true:
 
 - The commit subject starts with `release:`.
 - Files under `miniapp/` changed in the commit.
@@ -223,7 +222,7 @@ Production frontend deployment must use CI because URL rewriting, npm publicatio
 
 ## Production Verification
 
-1. Confirm `quality`, `deploy-api-worker`, and `deploy-frontend` succeeded in GitHub Actions.
+1. Confirm `ci-gate`, `deploy-api-worker`, and `deploy-frontend` succeeded in GitHub Actions.
 2. Confirm the frontend job recorded the expected npm package version and both npmmirror checks passed.
 3. Visit [werewolfgamer.com](https://werewolfgamer.com) and confirm the document and versioned CDN assets load without errors.
 4. Request [api.werewolfjudge.eu.org/health](https://api.werewolfjudge.eu.org/health) and confirm the Worker is healthy.
