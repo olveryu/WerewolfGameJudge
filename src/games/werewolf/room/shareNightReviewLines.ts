@@ -38,7 +38,10 @@ import {
   NIGHT_REPORT_SHERIFF_REASON_LABELS,
   NIGHT_REPORT_SHERIFF_REGISTRATION_STATUS,
   NIGHT_REPORT_SHERIFF_ROUND_LABELS,
+  NIGHT_REPORT_SHERIFF_RUNOFF_CANDIDATES_LABEL,
+  NIGHT_REPORT_SHERIFF_RUNOFF_IN_PROGRESS,
   NIGHT_REPORT_SHERIFF_TITLE,
+  NIGHT_REPORT_SHERIFF_VOTING,
   NIGHT_REPORT_SHERIFF_WITHDRAWN_LABEL,
   NIGHT_REPORT_STAT_LABELS,
   NIGHT_REPORT_WOLF_VERDICT_ALL_ABSTAIN,
@@ -299,17 +302,30 @@ export function formatNightReviewSheriffLines(section: NightReviewSheriffSection
     case 'registration':
       return [`${NIGHT_REPORT_SHERIFF_TITLE}：${NIGHT_REPORT_SHERIFF_REGISTRATION_STATUS}`];
     case 'inProgress': {
-      const lines: string[] = [
-        `${NIGHT_REPORT_SHERIFF_TITLE}：${NIGHT_REPORT_SHERIFF_IN_PROGRESS}`,
-      ];
-      if (section.candidateSeats.length > 0) {
-        const withdrawn =
-          section.withdrawnSeats.length > 0
-            ? `（${NIGHT_REPORT_SHERIFF_WITHDRAWN_LABEL}：${formatSheriffSeatList(section.withdrawnSeats)}）`
-            : '';
-        lines.push(
-          `${NIGHT_REPORT_SHERIFF_CANDIDATES_LABEL}：${section.candidateSeats.map((seat) => formatSeat(seat)).join('、')}${withdrawn}`,
-        );
+      // Same status mapping and candidate grouping as the card: voting
+      // shows the active round only, a runoff row shows the runoff
+      // candidates only, speech phases show the full registration.
+      const status =
+        section.activeRound !== null
+          ? NIGHT_REPORT_SHERIFF_VOTING
+          : section.closedRounds.length > 0
+            ? NIGHT_REPORT_SHERIFF_RUNOFF_IN_PROGRESS
+            : NIGHT_REPORT_SHERIFF_IN_PROGRESS;
+      const lines: string[] = [`${NIGHT_REPORT_SHERIFF_TITLE}：${status}`];
+      if (section.activeRound === null && section.candidateSeats.length > 0) {
+        if (section.closedRounds.length > 0) {
+          lines.push(
+            `${NIGHT_REPORT_SHERIFF_RUNOFF_CANDIDATES_LABEL}：${section.candidateSeats.map((seat) => formatSeat(seat)).join('、')}`,
+          );
+        } else {
+          const withdrawn =
+            section.withdrawnSeats.length > 0
+              ? `（${NIGHT_REPORT_SHERIFF_WITHDRAWN_LABEL}：${formatSheriffSeatList(section.withdrawnSeats)}）`
+              : '';
+          lines.push(
+            `${NIGHT_REPORT_SHERIFF_CANDIDATES_LABEL}：${section.candidateSeats.map((seat) => formatSeat(seat)).join('、')}${withdrawn}`,
+          );
+        }
       }
       for (const round of section.closedRounds) {
         lines.push(formatNightReviewSheriffRoundLine(round));

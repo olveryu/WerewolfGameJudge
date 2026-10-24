@@ -16,15 +16,14 @@
 
 import type { DeathReason } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import type {
-  SheriffElectionResult,
-  SheriffElectionRoundResult,
-  SheriffElectionState,
-} from '@game-judge/game-engine/games/werewolf/public';
+import type { SheriffElectionResult } from '@game-judge/game-engine/games/werewolf/public';
 import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 import { Team } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
+
+import type { SheriffRoundRecord } from './sheriffElectionRecord';
+import { deriveSheriffRoundRecord, getSheriffCandidateRecords } from './sheriffElectionRecord';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Death reason labels
@@ -349,21 +348,11 @@ export interface NightReviewIdentityEntry {
 }
 
 /**
- * One closed sheriff-election voting round, re-derived from the round's
- * ballots alone: each candidate's votes and voter seats are counted from
- * `ballots`; the stored `voteCounts` / `abstainingSeats` are only ever used
- * as a cross-check (a mismatch fails fast in the derivation). Seats are
- * 0-based; candidates are in seat order, voters in eligible-voter order.
+ * One closed sheriff-election voting round in the report. The tally itself
+ * is defined once in sheriffElectionRecord; this is only the report's
+ * surface name for that record, never a second definition.
  */
-export interface NightReviewSheriffRound {
-  readonly round: 'first' | 'runoff';
-  readonly perCandidate: readonly {
-    readonly seat: number;
-    readonly votes: number;
-    readonly voterSeats: readonly number[];
-  }[];
-  readonly abstainingSeats: readonly number[];
-}
+export type NightReviewSheriffRound = SheriffRoundRecord;
 
 /**
  * The sheriff-election section of the night report, derived from
@@ -670,72 +659,20 @@ export function deriveWolfTargetSaveNote(
 // Sheriff election section derivation
 // ─────────────────────────────────────────────────────────────────────────────
 
-function sameSeatSet(a: readonly number[], b: readonly number[]): boolean {
-  if (a.length !== b.length) return false;
-  const bSet = new Set(b);
-  return a.every((seat) => bSet.has(seat));
-}
-
 /**
- * Re-derive one closed round's public tally from its ballots alone. The
- * stored voteCounts / abstainingSeats are cross-checks only: any mismatch
- * with the ballot-derived tally is a corrupt record and fails fast, exactly
- * like the election view model refuses to render a round whose stored
- * counts are incomplete.
- */
-function deriveSheriffRound(round: SheriffElectionRoundResult): NightReviewSheriffRound {
-  const ballots = new Map<number, number | null>();
-  for (const voterSeat of round.eligibleVoterSeats) {
-    const ballot = round.ballots[voterSeat];
-    if (ballot === undefined) {
-      throw new Error(
-        `[FAIL-FAST] Sheriff round ${round.round} has no ballot for eligible voter ${voterSeat}`,
-      );
-    }
-    ballots.set(voterSeat, ballot);
-  }
-  const perCandidate = [...round.candidateSeats]
-    .sort((a, b) => a - b)
-    .map((seat) => {
-      const voterSeats = round.eligibleVoterSeats.filter(
-        (voterSeat) => ballots.get(voterSeat) === seat,
-      );
-      const storedCount = round.voteCounts[seat];
-      if (storedCount === undefined) {
-        throw new Error(
-          `[FAIL-FAST] Sheriff round ${round.round} has no stored vote count for candidate ${seat}`,
-        );
-      }
-      if (storedCount !== voterSeats.length) {
-        throw new Error(
-          `[FAIL-FAST] Sheriff round ${round.round} stored vote count ${storedCount} for candidate ${seat} disagrees with its ballots (${voterSeats.length})`,
-        );
-      }
-      return { seat, votes: voterSeats.length, voterSeats };
-    });
-  const abstainingSeats = round.eligibleVoterSeats.filter(
-    (voterSeat) => ballots.get(voterSeat) === null,
-  );
-  if (!sameSeatSet(abstainingSeats, round.abstainingSeats)) {
-    throw new Error(
-      `[FAIL-FAST] Sheriff round ${round.round} stored abstaining seats disagree with its ballots`,
-    );
-  }
-  return { round: round.round, perCandidate, abstainingSeats };
-}
-
-/**
- * Derive the report's sheriff section from the election state. Mirrors the
- * public record the election panel publishes (sheriffElectionViewModel):
- * registration exposes nothing but the status; speech stages expose the
+ * Project the report's sheriff section from the shared election record
+ * (sheriffElectionRecord) — the same record the election panel publishes.
+ * This function owns only the report's own shape: which record fields land
+ * in which section kind. It never re-derives a tally or a candidate set.
+ * Registration exposes nothing but the status; speech stages expose the
  * active candidates; a voting stage exposes the closed rounds in full plus
  * the active round's candidates — its ballots are never read here.
  */
 export function deriveSheriffSection(
   gameState: LocalGameState,
 ): NightReviewSheriffSection | undefined {
-  const election: SheriffElectionState | undefined = gameState.sheriffElection;
-  const result: SheriffElectionResult | undefined = gameState.sheriffElectionResult;
+  const election = gameState.sheriffElection;
+  const result = gameState.sheriffElectionResult;
   if (election === undefined) {
     if (result !== undefined) {
       throw new Error(
@@ -744,16 +681,22 @@ export function deriveSheriffSection(
     }
     return undefined;
   }
-  const withdrawn = new Set(election.withdrawnSeats);
+  if (election.phase === 'registration') {
+    return { kind: 'registration' };
+  }
+  const records = getSheriffCandidateRecords(election);
+  if (records === null) {
+    throw new Error(
+      '[FAIL-FAST] Sheriff election records are missing outside registration in night review',
+    );
+  }
   switch (election.phase) {
-    case 'registration':
-      return { kind: 'registration' };
     case 'candidateSpeech':
     case 'withdrawal':
       return {
         kind: 'inProgress',
-        candidateSeats: election.registeredSeats.filter((seat) => !withdrawn.has(seat)),
-        withdrawnSeats: [...election.withdrawnSeats],
+        candidateSeats: [...records.activeCandidateSeats],
+        withdrawnSeats: [...records.withdrawnSeats],
         closedRounds: [],
         activeRound: null,
       };
@@ -761,20 +704,20 @@ export function deriveSheriffSection(
     case 'runoffVote':
       return {
         kind: 'inProgress',
-        candidateSeats: [...election.candidateSeats],
-        withdrawnSeats: [...election.withdrawnSeats],
-        closedRounds: election.completedRounds.map(deriveSheriffRound),
+        candidateSeats: [...records.activeCandidateSeats],
+        withdrawnSeats: [...records.withdrawnSeats],
+        closedRounds: election.completedRounds.map(deriveSheriffRoundRecord),
         activeRound: {
           round: election.phase === 'firstVote' ? 'first' : 'runoff',
-          candidateSeats: [...election.candidateSeats],
+          candidateSeats: [...records.activeCandidateSeats],
         },
       };
     case 'runoffSpeech':
       return {
         kind: 'inProgress',
-        candidateSeats: election.candidateSeats.filter((seat) => !withdrawn.has(seat)),
-        withdrawnSeats: [...election.withdrawnSeats],
-        closedRounds: election.completedRounds.map(deriveSheriffRound),
+        candidateSeats: [...records.activeCandidateSeats],
+        withdrawnSeats: [...records.withdrawnSeats],
+        closedRounds: election.completedRounds.map(deriveSheriffRoundRecord),
         activeRound: null,
       };
     case 'completed': {
@@ -785,9 +728,9 @@ export function deriveSheriffSection(
       }
       return {
         kind: 'completed',
-        registeredSeats: [...election.registeredSeats],
-        withdrawnSeats: [...election.withdrawnSeats],
-        rounds: election.completedRounds.map(deriveSheriffRound),
+        registeredSeats: [...records.registeredSeats],
+        withdrawnSeats: [...records.withdrawnSeats],
+        rounds: election.completedRounds.map(deriveSheriffRoundRecord),
         result,
       };
     }
