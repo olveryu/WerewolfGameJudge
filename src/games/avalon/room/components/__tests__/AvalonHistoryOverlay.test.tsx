@@ -54,6 +54,7 @@ function historyViewModel(roundHistory: readonly AvalonRoundRecordView[]): Avalo
     rejectStreak: 0,
     vetoLimit: 5,
     voteMode: 'public',
+    playerCount: 5,
     lastVoteResult: null,
   };
 }
@@ -101,11 +102,14 @@ const openRound: AvalonRoundRecordView = {
   },
 };
 
-function renderOverlay(roundHistory: readonly AvalonRoundRecordView[]) {
+function renderOverlay(
+  roundHistory: readonly AvalonRoundRecordView[],
+  overrides: Partial<AvalonViewModel> = {},
+) {
   return render(
     <AvalonHistoryOverlay
       visible
-      viewModel={historyViewModel(roundHistory)}
+      viewModel={{ ...historyViewModel(roundHistory), ...overrides }}
       onClose={() => undefined}
     />,
   );
@@ -230,12 +234,10 @@ describe('AvalonHistoryOverlay', () => {
       ...settledRound,
       proposals: settledRound.proposals.map((proposal) => ({ ...proposal, ballots: null })),
     };
-    const { getAllByText, getByTestId, queryByLabelText } = renderOverlay([secretRound]);
-    // 被采用卡直接说明暗投口径；被否决行展开后同样只给计数与说明。
-    expect(getAllByText('暗投模式不公布逐人票')).toHaveLength(1);
-    expect(queryByLabelText('1号，赞成')).toBeNull();
-    fireEvent.press(getByTestId('avalon-history-proposal-1-1-toggle'));
+    const { getAllByText, queryByLabelText, queryByTestId } = renderOverlay([secretRound]);
+    // 被采用卡与被否决行都直接给静态说明；暗投被否决行没有“展开逐人票”切换。
     expect(getAllByText('暗投模式不公布逐人票')).toHaveLength(2);
+    expect(queryByTestId('avalon-history-proposal-1-1-toggle')).toBeNull();
     expect(queryByLabelText('1号，赞成')).toBeNull();
     expect(queryByLabelText('2号，反对')).toBeNull();
   });
@@ -295,5 +297,92 @@ describe('AvalonHistoryOverlay', () => {
   it('renders an empty state before any round starts', () => {
     const { getByText } = renderOverlay([]);
     expect(getByText('暂无对局记录。')).toBeTruthy();
+  });
+
+  it('shows the config line in the header', () => {
+    const { getByText } = renderOverlay([settledRound], { voteMode: 'secret' });
+    expect(getByText('投票暗投 · 否决上限 5 · 任务人数 2 / 3 / 2 / 3 / 3')).toBeTruthy();
+  });
+
+  it('marks an ended interrupted round as unfinished, not in progress', () => {
+    const interruptedRound: AvalonRoundRecordView = {
+      round: 3,
+      proposals: [settledRound.proposals[0]!],
+      quest: null,
+      vetoEnded: false,
+      questProgress: null,
+      currentProposal: null,
+    };
+    const { getByTestId, getByText } = renderOverlay([settledRound, interruptedRound], {
+      phase: 'ended',
+      questResults: ['success'],
+    });
+    expect(getByText('任务三 · 未完成')).toBeTruthy();
+    expect(getByText('提前刺杀打断，无结算结果')).toBeTruthy();
+    expect(getByTestId('avalon-history-track-round-3').props.accessibilityLabel).toBe(
+      '任务三，未完成',
+    );
+    expect(getByTestId('avalon-history-track-round-5').props.accessibilityLabel).toBe(
+      '任务五，未开始（提前结束）',
+    );
+  });
+
+  it('shows the completed lake check as holder-checked-whom, without the result', () => {
+    const lakeRound: AvalonRoundRecordView = {
+      round: 2,
+      proposals: [settledRound.proposals[1]!],
+      quest: { result: 'success', successCount: 3, failCount: 0 },
+      vetoEnded: false,
+      questProgress: null,
+      currentProposal: null,
+    };
+    const { getByTestId, getByText, queryByText } = renderOverlay([settledRound, lakeRound], {
+      ladyHistory: [{ afterRound: 2, holderSeat: 1, targetSeat: 3 }],
+      questResults: ['success', 'success'],
+    });
+    expect(getByTestId('avalon-history-lake-2')).toBeTruthy();
+    expect(getByText('2 号查验了 4 号')).toBeTruthy();
+    expect(getByText('→ 新持有人 4 号')).toBeTruthy();
+    expect(queryByText(/好人|坏人/)).toBeNull();
+  });
+
+  it('shows only the holder for an in-progress lake check', () => {
+    const lakeRound: AvalonRoundRecordView = {
+      round: 2,
+      proposals: [settledRound.proposals[1]!],
+      quest: { result: 'success', successCount: 3, failCount: 0 },
+      vetoEnded: false,
+      questProgress: null,
+      currentProposal: null,
+    };
+    const { getByText, queryByText } = renderOverlay([settledRound, lakeRound], {
+      lady: {
+        holderSeat: 0,
+        examinedSeats: [1],
+        targetSeat: 3,
+        canCheck: false,
+        needsAcknowledge: false,
+      },
+      questResults: ['success', 'success'],
+    });
+    expect(getByText('1 号查验进行中')).toBeTruthy();
+    // 进行中不写被选目标：token 尚未移交，目标尚未公开。
+    expect(queryByText(/查验了/)).toBeNull();
+  });
+
+  it('marks an ended unoccurred lake check as not happened', () => {
+    const interruptedRound: AvalonRoundRecordView = {
+      round: 3,
+      proposals: [settledRound.proposals[0]!],
+      quest: null,
+      vetoEnded: false,
+      questProgress: null,
+      currentProposal: null,
+    };
+    const { getByText } = renderOverlay([settledRound, interruptedRound], {
+      phase: 'ended',
+      questResults: ['success'],
+    });
+    expect(getByText('未发生（提前刺杀打断）')).toBeTruthy();
   });
 });

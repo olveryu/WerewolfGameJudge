@@ -47,6 +47,7 @@ function questViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMod
     rejectStreak: 0,
     vetoLimit: 5,
     voteMode: 'public',
+    playerCount: 5,
     lastVoteResult: null,
     ...overrides,
   };
