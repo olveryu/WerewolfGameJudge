@@ -496,11 +496,17 @@ describe('NightReviewModal', () => {
         />,
       );
 
-      expect(view.getByText('警长竞选')).toBeTruthy();
-      expect(view.getByText('警长当选')).toBeTruthy();
-      expect(view.getByText('得票 4 / 7')).toBeTruthy();
-      expect(view.getByText('参选')).toBeTruthy();
-      expect(view.getByText('首轮投票')).toBeTruthy();
+      // Panel UI: the report's section title plus the panel header both
+      // read 警长竞选; the outcome is the panel's result banner, and the
+      // records collapse to the 上警 row because every registered seat is
+      // still standing (no separate 参选 row under the panel's rule).
+      expect(view.getAllByText('警长竞选')).toHaveLength(2);
+      expect(view.getByText('竞选结束')).toBeTruthy();
+      expect(view.getByText('3号 · 当选警长')).toBeTruthy();
+      expect(view.getByText('首轮投票当选 · 警徽在 3号')).toBeTruthy();
+      expect(view.getByText('上警')).toBeTruthy();
+      expect(view.queryByText('参选')).toBeNull();
+      expect(view.getByText('首轮投票结果')).toBeTruthy();
       expect(view.getByText('4 票')).toBeTruthy();
       expect(view.getByText('2 票')).toBeTruthy();
       expect(view.getByText('弃票')).toBeTruthy();
@@ -525,16 +531,21 @@ describe('NightReviewModal', () => {
         />,
       );
 
-      expect(view.getByText('报名中')).toBeTruthy();
-      expect(view.queryByText('参选')).toBeNull();
-      expect(view.queryByText('首轮投票')).toBeNull();
+      // Panel UI: the registration phase header only — no records row,
+      // no seats, no counts, for anyone.
+      expect(view.getByText('报名上警')).toBeTruthy();
+      expect(view.queryByText('上警')).toBeNull();
+      expect(view.queryByText('首轮投票结果')).toBeNull();
       const sequence = collectTextSequence(view.toJSON());
       const cardHead = sequence.lastIndexOf('警长竞选');
-      expect(sequence[cardHead + 1]).toBe('报名中');
-      expect(sequence[cardHead + 2]).toBe('全员身份');
+      expect(sequence[cardHead + 1]).toBe('报名上警');
+      expect(sequence[cardHead + 2]).toBe(
+        '想竞选警长的玩家可在手机上报名，系统随后将随机确定发言顺序。',
+      );
+      expect(sequence[cardHead + 3]).toBe('全员身份');
     });
 
-    it('renders an in-progress vote with candidates only — ballots never surface', () => {
+    it('renders an in-progress vote with progress counts only — ballot targets never surface', () => {
       const view = render(
         <NightReviewModal
           visible
@@ -556,12 +567,16 @@ describe('NightReviewModal', () => {
         />,
       );
 
-      expect(view.getByText('投票中')).toBeTruthy();
-      expect(view.getByText('首轮投票中')).toBeTruthy();
-      // The two cast ballots must not leak as counts or voter rows.
+      // Panel UI: the phase header plus the read-only progress row. Only
+      // the submission count surfaces (2 of 7); ballot targets never
+      // appear as tally rows, voter rows, or per-candidate counts.
+      expect(view.getByText('首轮投票')).toBeTruthy();
+      expect(view.getByText('投票进度')).toBeTruthy();
+      expect(view.getByText('2/7 已提交')).toBeTruthy();
       expect(view.queryByText('4 票')).toBeNull();
       expect(view.queryByText('1 票')).toBeNull();
       expect(view.queryByText('弃票')).toBeNull();
+      expect(view.queryByText('首轮投票结果')).toBeNull();
     });
   });
 });

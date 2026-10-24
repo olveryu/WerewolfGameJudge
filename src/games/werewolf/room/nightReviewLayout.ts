@@ -182,12 +182,6 @@ export const NIGHT_REPORT_SHERIFF_CANDIDATES_LABEL = '参选';
 export const NIGHT_REPORT_SHERIFF_RUNOFF_CANDIDATES_LABEL = '决选候选';
 export const NIGHT_REPORT_SHERIFF_WITHDRAWN_LABEL = '退选';
 export const NIGHT_REPORT_SHERIFF_ABSTAIN_LABEL = '弃票';
-export const NIGHT_REPORT_SHERIFF_VOTE_ROUND_SUFFIX = '投票';
-
-/** Winner vote-share tag on the completed sheriff card head. */
-export function formatNightReportSheriffVotesTag(votes: number, total: number): string {
-  return `得票 ${votes} / ${total}`;
-}
 
 /** Roster cell status for a seat still alive. */
 export const NIGHT_REPORT_ROSTER_ALIVE = '存活';
