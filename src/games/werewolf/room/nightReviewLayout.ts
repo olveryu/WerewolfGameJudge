@@ -1,10 +1,10 @@
 /**
  * nightReviewLayout - The one layout/copy spec for the werewolf night review report.
  *
- * Every surface that presents NightReviewData — the in-room modal, the DOM share
- * card, and the mini-program Canvas fallback renderer — reads its card geometry
- * and shared copy from here, so the surfaces cannot drift apart. Font sizes,
- * spacing and radii stay sourced from @/theme tokens directly.
+ * Every surface that presents NightReviewData — the in-room modal and the DOM
+ * share card — reads its card geometry and shared copy from here, so the
+ * surfaces cannot drift apart. Font sizes, spacing and radii stay sourced
+ * from @/theme tokens directly.
  */
 
 import { colors, NIGHT_REPORT_COLORS } from '@/theme';
@@ -23,10 +23,7 @@ export function formatNightReviewOutcomeHeadline(deathCount: number): string {
   return `昨夜 ${deathCount} 人出局`;
 }
 
-/** Fair-play disclaimer shown on every review surface. */
-export const NIGHT_REVIEW_DISCLAIMER_TEXT = '仅供裁判及观战者参考';
-
-/** Title of the share card / canvas report image. */
+/** Title of the share card image. */
 export function formatNightReviewShareTitle(roomCode: string): string {
   return `房间 ${roomCode} 战报`;
 }
