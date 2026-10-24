@@ -2,11 +2,12 @@
  * shareNightReviewLines - Pure-text generator for structured night review entries.
  *
  * This module is the text channel only: it formats NightReviewActionEntry /
- * NightReviewIdentityEntry values into the exact legacy summary wording for
- * consumers that cannot render the DOM presentation — the mini-program canvas
- * fallback renderer (shareNightReview) and text-level test assertions.
+ * NightReviewIdentityEntry values into the exact legacy summary wording.
  * The DOM surfaces (NightReviewModal, NightReviewShareCard) do NOT use this
  * module — they render entries structurally via NightReviewReportBody.
+ * The lines survive as the report's canonical plain-text rendering, pinned
+ * by text-level test assertions (including the panel/report equivalence
+ * contract); the Canvas renderer that once consumed them is deleted.
  * Action subjects carry the actor's seat once, at the subject; the sheriff
  * lines format the fact layer's public-record section, so nothing secret
  * can reach this channel either.
@@ -20,14 +21,10 @@ import { ACTION, STATUS } from '@/config/emojiTokens';
 
 import {
   DEATH_REASON_LABELS,
-  deriveWolfVerdict,
-  type NightReportStats,
   type NightReviewActionEntry,
   type NightReviewIdentityEntry,
-  type NightReviewOutcome,
   type NightReviewSheriffRound,
   type NightReviewSheriffSection,
-  type NightReviewWolfVerdict,
 } from './NightReview.helpers';
 import {
   NIGHT_REPORT_SHERIFF_ABSTAIN_LABEL,
@@ -43,11 +40,6 @@ import {
   NIGHT_REPORT_SHERIFF_TITLE,
   NIGHT_REPORT_SHERIFF_VOTING,
   NIGHT_REPORT_SHERIFF_WITHDRAWN_LABEL,
-  NIGHT_REPORT_STAT_LABELS,
-  NIGHT_REPORT_WOLF_VERDICT_ALL_ABSTAIN,
-  NIGHT_REPORT_WOLF_VERDICT_SHARED,
-  NIGHT_REPORT_WOLF_VERDICT_SPLIT_KILLED,
-  NIGHT_REPORT_WOLF_VERDICT_SPLIT_TIED,
   NIGHT_REVIEW_PEACEFUL_HEADLINE,
 } from './nightReviewLayout';
 
@@ -206,24 +198,6 @@ export function formatNightReviewActionLine(entry: NightReviewActionEntry): stri
   }
 }
 
-/**
- * Format the derived night outcome as the text channel's headline line.
- * Mirrors the DOM hero (same outcome, same death order and reason labels);
- * the canvas fallback draws this line right under the share title instead of
- * drawing the outcome entry in action order.
- */
-export function formatNightReviewOutcomeLine(outcome: NightReviewOutcome): string {
-  if (outcome.type === 'peaceful') {
-    return `${STATUS.PEACEFUL_NIGHT} ${NIGHT_REVIEW_PEACEFUL_HEADLINE}`;
-  }
-  const list = outcome.deaths
-    .map((d) =>
-      d.reason ? `${formatSeat(d.seat)}（${DEATH_REASON_LABELS[d.reason]}）` : formatSeat(d.seat),
-    )
-    .join('、');
-  return `${STATUS.DEATH} 昨夜出局：${list}`;
-}
-
 /** Format one structured identity entry as its legacy summary line. */
 export function formatNightReviewIdentityLine(entry: NightReviewIdentityEntry): string {
   const roleName = entry.isEmptySeat
@@ -232,37 +206,6 @@ export function formatNightReviewIdentityLine(entry: NightReviewIdentityEntry): 
       ? getRoleDisplayName(entry.roleId)
       : '未分配';
   return `${formatSeat(entry.seat)}: ${roleName}`;
-}
-
-/** Format the derived stats tallies as the text channel's stats line. */
-export function formatNightReviewStatsLine(stats: NightReportStats): string {
-  return [
-    `${NIGHT_REPORT_STAT_LABELS.wolfKill} ${stats.wolfKills}`,
-    `${NIGHT_REPORT_STAT_LABELS.poison} ${stats.poisonKills}`,
-    `${NIGHT_REPORT_STAT_LABELS.save} ${stats.saves}`,
-    `${NIGHT_REPORT_STAT_LABELS.check} ${stats.checks}`,
-  ].join(' · ');
-}
-
-/** Format a wolf verdict as its line, drawn right after the wolf attack line. */
-function formatNightReviewWolfVerdictLine(verdict: NightReviewWolfVerdict): string {
-  switch (verdict.type) {
-    case 'sharedTarget':
-      return NIGHT_REPORT_WOLF_VERDICT_SHARED;
-    case 'splitKilled':
-      return NIGHT_REPORT_WOLF_VERDICT_SPLIT_KILLED;
-    case 'splitTied':
-      return NIGHT_REPORT_WOLF_VERDICT_SPLIT_TIED;
-    case 'allAbstain':
-      return NIGHT_REPORT_WOLF_VERDICT_ALL_ABSTAIN;
-  }
-}
-
-/** Convenience: the verdict line for a wolfAttack entry, from the fact layer. */
-export function formatNightReviewWolfVerdictForEntry(
-  entry: Extract<NightReviewActionEntry, { kind: 'wolfAttack' }>,
-): string {
-  return formatNightReviewWolfVerdictLine(deriveWolfVerdict(entry));
 }
 
 /**
