@@ -172,15 +172,20 @@ describe('AvalonReviewOverlay', () => {
   });
 
   it('renders the complete lake list with unoccurred reasons', () => {
-    const { getByTestId } = renderReview();
+    const { getByTestId, getAllByText, queryByText } = renderReview();
     // 湖仙完整版与任务进程里的轮次湖仙节是同一共享件的两处渲染，
     // 故完整版内的断言必须限定在 avalon-review-lake 容器里。
     const lake = within(getByTestId('avalon-review-lake'));
     expect(lake.getByTestId('avalon-review-lake-2')).toBeTruthy();
-    expect(lake.getByText('2 号查验了 4 号')).toBeTruthy();
+    // 复盘必带查验结果：mock 里被查 4 号（座位 3）是莫甘娜 → 坏人；
+    // 且复盘里不出现记录那句“结果只给持有人看”说明。
+    expect(lake.getByText('2 号查验了 4 号（坏人）')).toBeTruthy();
     expect(lake.getByText('→ 新持有人 4 号')).toBeTruthy();
     expect(lake.getByText('未发生（提前刺杀打断）')).toBeTruthy();
     expect(lake.getByText('未发生（任务未开始）')).toBeTruthy();
+    expect(queryByText('查验结果只给当时持有人看，不进记录。')).toBeNull();
+    // 任务进程里同轮的轮末湖仙节同样带结果（两处渲染同一共享件）。
+    expect(getAllByText('2 号查验了 4 号（坏人）')).toHaveLength(2);
   });
 
   it('renders the interrupted round and the ended track in the quest process', () => {
