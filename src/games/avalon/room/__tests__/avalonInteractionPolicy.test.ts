@@ -56,6 +56,7 @@ function baseViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMode
     rejectStreak: 0,
     vetoLimit: 5,
     voteMode: 'public',
+    playerCount: 5,
     lastVoteResult: null,
     ...overrides,
   };
@@ -138,6 +139,7 @@ describe('resolveVoteInstruction', () => {
       baseViewModel({
         phase: 'vote',
         voteMode: 'secret',
+        playerCount: 5,
         voteCounts: { approve: 3, reject: 2, abstain: 0 },
       }),
     );

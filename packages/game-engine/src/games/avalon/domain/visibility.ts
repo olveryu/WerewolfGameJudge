@@ -166,6 +166,8 @@ export interface AvalonViewModel {
   readonly rejectStreak: number;
   readonly vetoLimit: number;
   readonly voteMode: AvalonVoteMode;
+  /** 本局人数（配置人数，非已入座数）；记录头与复盘配置据此取任务人数。 */
+  readonly playerCount: number;
   /** 最近一次组队投票结算面板数据；新一轮提案后为 null。 */
   readonly lastVoteResult: AvalonLastVoteResultView | null;
 }
@@ -411,6 +413,7 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
     rejectStreak: state.rejectStreak,
     vetoLimit: state.config.vetoLimit,
     voteMode: state.config.voteMode,
+    playerCount: state.config.numberOfPlayers,
     lastVoteResult,
   };
 }
