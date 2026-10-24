@@ -46,6 +46,7 @@ function ladyViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMode
       needsAcknowledge: true,
     },
     ladyCheckResult: null,
+    ladyHistory: [],
     isAssassin: false,
     canEarlyStrike: false,
     accusedSeat: null,

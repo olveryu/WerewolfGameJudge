@@ -33,6 +33,7 @@ function resetAvalonGame(state: AvalonState): AvalonState {
     ladyHolderSeat: null,
     ladyExaminedSeats: [],
     lastLadyCheck: null,
+    ladyHistory: [],
     lastVoteResult: null,
     xpSettled: false,
     pendingAudioEffects: [],
@@ -344,6 +345,16 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           targetSeat: event.targetSeat,
           faction: event.faction,
         },
+        // 查验完成才落历史：checked 只选了对象、对方还没确认展示，
+        // 那一刻不写历史，避免把“已选择”写成“已查验”。
+        ladyHistory: [
+          ...state.ladyHistory,
+          {
+            afterRound: state.phase.afterRound,
+            holderSeat: state.phase.holderSeat,
+            targetSeat: event.targetSeat,
+          },
+        ],
       };
     }
     case 'avalon.game.ended':

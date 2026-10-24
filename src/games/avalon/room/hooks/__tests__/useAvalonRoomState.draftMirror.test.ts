@@ -110,7 +110,7 @@ function createFakeSession(state: AvalonState, userId: string) {
     identity: { room: { roomCode: '1234' }, userId },
     lastCommand: null,
     error: null,
-    snapshot: { gameType: 'avalon', stateVersion: 6, revision: 1, state },
+    snapshot: { gameType: 'avalon', stateVersion: 7, revision: 1, state },
   } as const;
   const session = {
     getSnapshot: () => snapshot,

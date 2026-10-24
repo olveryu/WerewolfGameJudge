@@ -84,6 +84,7 @@ function createInitialState(config: AvalonConfig, context: CreateGameContext): A
     ladyHolderSeat: null,
     ladyExaminedSeats: [],
     lastLadyCheck: null,
+    ladyHistory: [],
     lastVoteResult: null,
     gameSequence: 0,
     xpSettled: false,
