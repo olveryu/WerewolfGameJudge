@@ -169,6 +169,7 @@ export function AvalonRecordRound({
             round={record.round}
             proposal={proposal}
             index={index}
+            testIDPrefix={`${prefix}-proposal-${record.round}-${index + 1}`}
           />
         ))}
         {currentProposal !== null ? (
@@ -196,6 +197,7 @@ export function AvalonRecordRound({
         ) : null}
       </View>
       <AvalonRecordLakeSection
+        afterRound={record.round}
         record={record}
         completed={completedLadyCheck}
         inProgressHolderSeat={inProgressLadyHolderSeat}

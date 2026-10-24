@@ -20,7 +20,6 @@ import { colors } from '@/theme';
 import { toRevealRoleData } from '../components/AvalonRoleCardAdapter';
 import { createAvalonHistorySummary } from './avalonRoomAdapter';
 import { AvalonBoardInfoCard } from './components/AvalonBoardInfoCard';
-import { AvalonEndedSection } from './components/AvalonEndedSection';
 import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
 import { AvalonHistorySummary } from './components/AvalonHistorySummary';
 import { AvalonLadyAcknowledgeModal } from './components/AvalonLadyAcknowledgeModal';
@@ -29,6 +28,7 @@ import { AvalonLadyResultModal } from './components/AvalonLadyResultModal';
 import { AvalonNightConfirmModal } from './components/AvalonNightConfirmModal';
 import { AvalonQuestModal } from './components/AvalonQuestModal';
 import { AvalonQuestResultPanel } from './components/AvalonQuestResultPanel';
+import { AvalonReviewOverlay } from './components/AvalonReviewOverlay';
 import {
   type AvalonStrikeConfirmation,
   AvalonStrikeConfirmModal,
@@ -67,7 +67,11 @@ export function AvalonRoomScreen(props: AvalonRoomScreenProps) {
 function AvalonRoomContent(
   props: AvalonRoomScreenProps & { readonly entryController: RoomEntryController },
 ) {
-  const screen = useAvalonRoomState(props);
+  // 复盘浮层开关住在 Screen：hook 的底部与主持管理入口共用这一个处理器。
+  const [reviewVisible, setReviewVisible] = useState(false);
+  const screen = useAvalonRoomState(props, {
+    onReviewPress: () => setReviewVisible(true),
+  });
   const config = screen.state.config;
   const isLobby = screen.state.phase.kind === 'lobby';
   const viewModel = screen.viewModel;
@@ -337,22 +341,9 @@ function AvalonRoomContent(
                   />
                 ),
               sideInspector: null,
-              beforeSeatBoard: (
-                <>
-                  {viewModel.phase === 'ended' ? (
-                    <AvalonEndedSection viewModel={viewModel} />
-                  ) : null}
-                  <AvalonBoardInfoCard
-                    playerCount={config.numberOfPlayers}
-                    collapsed
-                    onRolePress={(roleId) => {
-                      screen.setRolePreviewId(roleId);
-                      screen.setRoleCardVisible(true);
-                    }}
-                    styles={boardInfoStyles}
-                  />
-                </>
-              ),
+              // 终局结算只在本局复盘里：座位表上方不留结算区与配置卡，
+              // 配置摘要只在对局记录头一行字。
+              beforeSeatBoard: <></>,
               afterSeatBoard: null,
             }
       }
@@ -366,6 +357,11 @@ function AvalonRoomContent(
                 visible={historyVisible}
                 viewModel={viewModel}
                 onClose={() => setHistoryVisible(false)}
+              />
+              <AvalonReviewOverlay
+                visible={reviewVisible}
+                viewModel={viewModel}
+                onClose={() => setReviewVisible(false)}
               />
               {showVoteResult && voteResult !== null ? (
                 <AvalonVoteResultPanel

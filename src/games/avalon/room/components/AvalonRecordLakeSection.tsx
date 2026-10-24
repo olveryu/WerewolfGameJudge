@@ -6,36 +6,40 @@
  * - 进行中：只写持有人查验进行中，不写被选目标——token 尚未移交，
  *   目标公开的时点是 acknowledge，不是 check；
  * - 终局未发生：仅终局时渲染，局中不渲染未来轮次的未发生行。
- *   未发生的原因由本节按轮次状态推导，不由调用方各写一份。
+ *   未发生的原因由本节按轮次状态推导，不由调用方各写一份：
+ *   轮次从未开始 / 否决终局 / 本轮结算后即终局（湖仙未轮到）/
+ *   未结算轮被刺杀打断。未 acknowledge 即终局的查验不进公开历史，
+ *   按“未进行”口径处理，不写成已完成。
  */
 
-import type {
-  AvalonLadyCheckRecordView,
-  AvalonRoundRecordView,
+import {
+  AVALON_LADY_ROUNDS,
+  type AvalonLadyCheckRecordView,
+  type AvalonRoundRecordView,
 } from '@game-judge/game-engine/games/avalon/public';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { SeatDot } from '@/components/SeatDot';
 import { borderRadius, colors, spacing, textStyles, typography, withAlpha } from '@/theme';
 
-const LADY_ROUNDS = [2, 3, 4] as const;
-
 export function AvalonRecordLakeSection({
+  afterRound,
   record,
   completed,
   inProgressHolderSeat,
   ended,
   testIDPrefix,
 }: {
-  readonly record: AvalonRoundRecordView;
+  readonly afterRound: number;
+  readonly record: AvalonRoundRecordView | null;
   readonly completed: AvalonLadyCheckRecordView | null;
   readonly inProgressHolderSeat: number | null;
   readonly ended: boolean;
   readonly testIDPrefix?: string;
 }) {
-  const ladyRounds: readonly number[] = LADY_ROUNDS;
-  if (!ladyRounds.includes(record.round)) return null;
-  const prefix = testIDPrefix ?? `avalon-history-lake-${record.round}`;
+  const ladyRounds: readonly number[] = AVALON_LADY_ROUNDS;
+  if (!ladyRounds.includes(afterRound)) return null;
+  const prefix = testIDPrefix ?? `avalon-history-lake-${afterRound}`;
   if (completed !== null) {
     return (
       <View style={styles.section} testID={prefix}>
@@ -61,13 +65,18 @@ export function AvalonRecordLakeSection({
     );
   }
   if (!ended) return null;
-  // 终局且本轮无已完成查验：本轮未结算（被打断或否决终局），湖仙未发生。
+  const reason =
+    record === null
+      ? '任务未开始'
+      : record.vetoEnded
+        ? '否决达上限终局'
+        : record.quest !== null
+          ? '本轮结算后即终局，湖仙未进行'
+          : '提前刺杀打断';
   return (
     <View style={styles.section} testID={prefix}>
       <Text style={styles.title}>湖仙查验</Text>
-      <Text style={styles.text}>
-        未发生（{record.vetoEnded ? '否决达上限终局' : '提前刺杀打断'}）
-      </Text>
+      <Text style={styles.text}>未发生（{reason}）</Text>
     </View>
   );
 }
