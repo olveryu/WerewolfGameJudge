@@ -1016,6 +1016,8 @@ describe('Avalon engine', () => {
     // 持有人查验一名好人；非被查验者确认被拒绝。
     const target = good.find((seat) => seat !== holder)!;
     session.send({ type: 'avalon.lady.check', seat: target }, session.seatUser(holder));
+    // 只选了对象、对方还没确认：这一步不落历史，不算已查验。
+    expect(session.state.ladyHistory).toEqual([]);
     session.expectReject(
       { type: 'avalon.lady.acknowledge' },
       'avalon_not_lady_target',
@@ -1028,6 +1030,17 @@ describe('Avalon engine', () => {
     if (afterPhase.kind === 'nominate') expect(afterPhase.round).toBe(3);
     expect(session.state.ladyHolderSeat).toBe(target);
     expect(session.state.ladyExaminedSeats).toEqual([holder, target]);
+    // 公开历史只记第几轮后、持有人、被查验者，不含查验结果，且所有视角同值。
+    expect(session.state.ladyHistory).toEqual([
+      { afterRound: 2, holderSeat: holder, targetSeat: target },
+    ]);
+    expect(getAvalonViewModel(session.state, holder).ladyHistory).toEqual(
+      session.state.ladyHistory,
+    );
+    expect(getAvalonViewModel(session.state, nonHolder).ladyHistory).toEqual(
+      session.state.ladyHistory,
+    );
+    expect(getAvalonViewModel(session.state, null).ladyHistory).toEqual(session.state.ladyHistory);
     expect(getAvalonViewModel(session.state, holder).ladyCheckResult).toEqual({
       targetSeat: target,
       faction: 'good',

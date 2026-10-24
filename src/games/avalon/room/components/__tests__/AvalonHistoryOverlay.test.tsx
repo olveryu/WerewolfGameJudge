@@ -45,6 +45,7 @@ function historyViewModel(roundHistory: readonly AvalonRoundRecordView[]): Avalo
     roundHistory,
     lady: null,
     ladyCheckResult: null,
+    ladyHistory: [],
     isAssassin: false,
     canEarlyStrike: false,
     accusedSeat: null,
