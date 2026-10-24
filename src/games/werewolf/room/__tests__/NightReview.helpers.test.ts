@@ -1522,14 +1522,17 @@ describe('NightReview.helpers', () => {
       );
       expect(section).toEqual({
         kind: 'inProgress',
+        phase: 'candidateSpeech',
+        registeredSeats: [2, 5, 7],
         candidateSeats: [2, 5],
         withdrawnSeats: [7],
         closedRounds: [],
         activeRound: null,
+        voteProgress: null,
       });
     });
 
-    it('first vote in progress lists candidates only — ballots are never read', () => {
+    it('first vote in progress lists candidates and submission counts only — ballot targets are never exposed', () => {
       const section = deriveSheriffSection(
         makeGameState({
           sheriffElection: {
@@ -1545,10 +1548,13 @@ describe('NightReview.helpers', () => {
       );
       expect(section).toEqual({
         kind: 'inProgress',
+        phase: 'firstVote',
+        registeredSeats: [2, 5],
         candidateSeats: [2, 5],
         withdrawnSeats: [],
         closedRounds: [],
         activeRound: { round: 'first', candidateSeats: [2, 5] },
+        voteProgress: { submittedCount: 2, eligibleCount: 7 },
       });
       expect(JSON.stringify(section)).not.toContain('ballot');
       expect(JSON.stringify(section)).not.toContain('votes');
@@ -1570,10 +1576,13 @@ describe('NightReview.helpers', () => {
       );
       expect(section).toEqual({
         kind: 'inProgress',
+        phase: 'runoffSpeech',
+        registeredSeats: [2, 5, 9],
         candidateSeats: [2],
         withdrawnSeats: [9, 5],
         closedRounds: [FIRST_ROUND_DERIVED],
         activeRound: null,
+        voteProgress: null,
       });
     });
 
@@ -1593,10 +1602,13 @@ describe('NightReview.helpers', () => {
       );
       expect(section).toEqual({
         kind: 'inProgress',
+        phase: 'runoffVote',
+        registeredSeats: [2, 5],
         candidateSeats: [2, 5],
         withdrawnSeats: [],
         closedRounds: [FIRST_ROUND_DERIVED],
         activeRound: { round: 'runoff', candidateSeats: [2, 5] },
+        voteProgress: { submittedCount: 1, eligibleCount: 7 },
       });
     });
 
@@ -1616,6 +1628,7 @@ describe('NightReview.helpers', () => {
         kind: 'completed',
         registeredSeats: [2, 5],
         withdrawnSeats: [],
+        activeCandidateSeats: [2, 5],
         rounds: [FIRST_ROUND_DERIVED],
         result: { kind: 'elected', sheriffSeat: 2 },
       });
@@ -1665,6 +1678,7 @@ describe('NightReview.helpers', () => {
         kind: 'completed',
         registeredSeats: [],
         withdrawnSeats: [],
+        activeCandidateSeats: [],
         rounds: [],
         result: { kind: 'noSheriff', reason: 'noCandidates' },
       });
