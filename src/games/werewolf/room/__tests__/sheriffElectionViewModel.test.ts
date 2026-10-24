@@ -186,10 +186,11 @@ describe('createSheriffElectionViewModel', () => {
       {
         key: 'first',
         title: '首轮投票结果',
-        candidateSeats: [0, 1],
-        eligibleVoterSeats: [2, 3],
-        voteCounts: { 0: 1, 1: 0 },
-        ballots: { 2: 0, 3: null },
+        perCandidate: [
+          { seat: 0, votes: 1, voterSeats: [2] },
+          { seat: 1, votes: 0, voterSeats: [] },
+        ],
+        abstainingSeats: [3],
       },
     ]);
     expect(viewModel?.finalResult).toEqual({ kind: 'elected', sheriffSeat: 0 });
@@ -227,10 +228,11 @@ describe('createSheriffElectionViewModel', () => {
       {
         key: 'first',
         title: '首轮投票结果',
-        candidateSeats: [1, 3],
-        eligibleVoterSeats: [0, 2],
-        voteCounts: { 3: 1, 1: 1 },
-        ballots: { 0: 3, 2: 1 },
+        perCandidate: [
+          { seat: 1, votes: 1, voterSeats: [2] },
+          { seat: 3, votes: 1, voterSeats: [0] },
+        ],
+        abstainingSeats: [],
       },
     ]);
     expect(gameState.sheriffElection?.completedRounds[0]?.candidateSeats).toEqual([3, 1]);

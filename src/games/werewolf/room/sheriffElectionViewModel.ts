@@ -17,6 +17,9 @@ import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
+import type { SheriffCandidateRecords, SheriffRoundRecord } from './sheriffElectionRecord';
+import { deriveSheriffRoundRecord, getSheriffCandidateRecords } from './sheriffElectionRecord';
+
 export interface SheriffCandidateOptionViewModel {
   readonly seat: number;
   readonly isSelected: boolean;
@@ -27,19 +30,16 @@ export type SheriffBallotSelectionViewModel =
   | { readonly kind: 'abstained' }
   | { readonly kind: 'candidate'; readonly seat: number };
 
+/**
+ * One closed round as the panel renders it: the shared record's tally plus
+ * the panel's round title. The tally itself lives only in
+ * sheriffElectionRecord; this view model never re-derives it.
+ */
 export interface SheriffElectionRoundViewModel {
-  readonly key: SheriffElectionRoundResult['round'];
+  readonly key: SheriffRoundRecord['round'];
   readonly title: string;
-  readonly candidateSeats: readonly number[];
-  readonly eligibleVoterSeats: readonly number[];
-  readonly voteCounts: Readonly<Record<number, number>>;
-  readonly ballots: Readonly<Record<number, number | null>>;
-}
-
-export interface SheriffCandidateRecordsViewModel {
-  readonly registeredSeats: readonly number[];
-  readonly withdrawnSeats: readonly number[];
-  readonly activeCandidateSeats: readonly number[];
+  readonly perCandidate: SheriffRoundRecord['perCandidate'];
+  readonly abstainingSeats: SheriffRoundRecord['abstainingSeats'];
 }
 
 export interface SheriffElectionViewModel {
@@ -47,7 +47,7 @@ export interface SheriffElectionViewModel {
   readonly phaseTitle: string;
   readonly phaseDescription: string;
   /** Null while registration identities are not yet public. */
-  readonly candidateRecords: SheriffCandidateRecordsViewModel | null;
+  readonly candidateRecords: SheriffCandidateRecords | null;
   readonly speakingInstruction: string | null;
   readonly voteProgress: {
     readonly submittedCount: number;
@@ -125,33 +125,6 @@ function assertOccupiedSeats(gameState: LocalGameState, seats: readonly number[]
   for (const seat of seats) assertOccupiedSeat(gameState, seat);
 }
 
-function getActiveCandidateSeats(election: SheriffElectionState): readonly number[] {
-  switch (election.phase) {
-    case 'firstVote':
-    case 'runoffVote':
-      return election.candidateSeats;
-    case 'runoffSpeech':
-      return election.candidateSeats.filter((seat) => !election.withdrawnSeats.includes(seat));
-    case 'registration':
-    case 'candidateSpeech':
-    case 'withdrawal':
-    case 'completed':
-      return election.registeredSeats.filter((seat) => !election.withdrawnSeats.includes(seat));
-  }
-}
-
-function createCandidateRecords(
-  election: SheriffElectionState,
-  activeCandidateSeats: readonly number[],
-): SheriffCandidateRecordsViewModel | null {
-  if (election.phase === 'registration') return null;
-  return {
-    registeredSeats: election.registeredSeats,
-    withdrawnSeats: election.withdrawnSeats,
-    activeCandidateSeats,
-  };
-}
-
 function getSpeakingInstruction(
   gameState: LocalGameState,
   election: SheriffElectionState,
@@ -181,34 +154,34 @@ function getAdvanceLabel(election: SheriffElectionState): string | null {
   }
 }
 
+/**
+ * One closed round for the panel: the shared record's tally plus the
+ * panel's title. Occupied-seat assertions stay in this shell — the core
+ * never sees a player roster. Coverage is preserved: every eligible voter
+ * is either a voter seat or an abstaining seat in the record (the core
+ * fails fast on any missing ballot), so asserting the record's seats
+ * asserts every candidate, voter and abstainer the old code asserted.
+ */
 function createCompletedRoundViewModel(
   gameState: LocalGameState,
   round: SheriffElectionRoundResult,
 ): SheriffElectionRoundViewModel {
-  assertOccupiedSeats(gameState, round.candidateSeats);
-  assertOccupiedSeats(gameState, round.eligibleVoterSeats);
-  for (const candidateSeat of round.candidateSeats) {
-    if (round.voteCounts[candidateSeat] === undefined) {
-      throw new Error(`[FAIL-FAST] Closed sheriff round has no count for seat ${candidateSeat}`);
-    }
-  }
-  for (const voterSeat of round.eligibleVoterSeats) {
-    const targetSeat = round.ballots[voterSeat];
-    if (targetSeat === undefined) {
-      throw new Error(`[FAIL-FAST] Closed sheriff round has no ballot for seat ${voterSeat}`);
-    }
-    if (targetSeat !== null) assertOccupiedSeat(gameState, targetSeat);
-  }
+  const record = deriveSheriffRoundRecord(round);
+  assertOccupiedSeats(
+    gameState,
+    record.perCandidate.map((candidate) => candidate.seat),
+  );
+  assertOccupiedSeats(
+    gameState,
+    record.perCandidate.flatMap((candidate) => candidate.voterSeats),
+  );
+  assertOccupiedSeats(gameState, record.abstainingSeats);
 
   return {
-    key: round.round,
-    title: round.round === 'first' ? '首轮投票结果' : '平票投票结果',
-    // The state record keeps registration order; the published tally is
-    // presented in seat order, so the projection sorts a copy.
-    candidateSeats: [...round.candidateSeats].sort((a, b) => a - b),
-    eligibleVoterSeats: round.eligibleVoterSeats,
-    voteCounts: round.voteCounts,
-    ballots: round.ballots,
+    key: record.round,
+    title: record.round === 'first' ? '首轮投票结果' : '平票投票结果',
+    perCandidate: record.perCandidate,
+    abstainingSeats: record.abstainingSeats,
   };
 }
 
@@ -233,13 +206,14 @@ export function createSheriffElectionViewModel(
   if (election === undefined) return null;
 
   const phaseContent = PHASE_CONTENT[election.phase];
-  const activeCandidateSeats = getActiveCandidateSeats(election);
-  const candidateRecords = createCandidateRecords(election, activeCandidateSeats);
+  const candidateRecords = getSheriffCandidateRecords(election);
   const speakingInstruction = getSpeakingInstruction(input.gameState, election);
   const votingState = getVotingState(election);
   assertOccupiedSeats(input.gameState, election.registeredSeats);
   assertOccupiedSeats(input.gameState, election.withdrawnSeats);
-  assertOccupiedSeats(input.gameState, activeCandidateSeats);
+  if (candidateRecords !== null) {
+    assertOccupiedSeats(input.gameState, candidateRecords.activeCandidateSeats);
+  }
 
   let myBallot: SheriffBallotSelectionViewModel | null = null;
   if (

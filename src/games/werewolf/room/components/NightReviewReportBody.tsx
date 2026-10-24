@@ -1076,9 +1076,21 @@ function SheriffCard({ section }: { readonly section: NightReviewSheriffSection 
                 ? NIGHT_REPORT_SHERIFF_RUNOFF_CANDIDATES_LABEL
                 : NIGHT_REPORT_SHERIFF_CANDIDATES_LABEL}
             </Text>
+            {/*
+              The candidate row follows the panel's record model: speech
+              phases show the full registration (actives + withdrawn, the
+              withdrawn dimmed); a runoff row shows only the runoff
+              candidates. The election-wide withdrawn list is never merged
+              into the runoff row — a first-phase withdrawal was never a
+              runoff candidate.
+            */}
             <CandidateMedals
-              seats={[...section.candidateSeats, ...section.withdrawnSeats]}
-              withdrawnSeats={section.withdrawnSeats}
+              seats={
+                section.closedRounds.length > 0
+                  ? section.candidateSeats
+                  : [...section.candidateSeats, ...section.withdrawnSeats]
+              }
+              withdrawnSeats={section.closedRounds.length > 0 ? [] : section.withdrawnSeats}
             />
           </>
         )}
