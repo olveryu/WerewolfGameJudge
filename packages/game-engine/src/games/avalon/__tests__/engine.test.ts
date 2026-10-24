@@ -1067,6 +1067,21 @@ describe('Avalon engine', () => {
       'avalon_lady_already_examined',
       session.seatUser(target),
     );
+    // 第 2 次查验：持有人已是第 1 次的被查验者，新记录 afterRound=3，
+    // 且第 1 条的 target 同时是第 2 条的 holder（链不断）。
+    const target2 = good.find((seat) => seat !== holder && seat !== target)!;
+    session.send({ type: 'avalon.lady.check', seat: target2 }, session.seatUser(target));
+    session.send({ type: 'avalon.lady.acknowledge' }, session.seatUser(target2));
+    expect(session.state.ladyHolderSeat).toBe(target2);
+    expect(session.state.ladyExaminedSeats).toEqual([holder, target, target2]);
+    expect(session.state.ladyHistory).toEqual([
+      { afterRound: 2, holderSeat: holder, targetSeat: target },
+      { afterRound: 3, holderSeat: target, targetSeat: target2 },
+    ]);
+    expect(getAvalonViewModel(session.state, target).ladyCheckResult).toEqual({
+      targetSeat: target2,
+      faction: 'good',
+    });
   });
 
   it('skips the lady phase in 8-player games', () => {

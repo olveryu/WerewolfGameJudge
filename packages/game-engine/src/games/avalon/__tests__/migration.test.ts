@@ -432,11 +432,10 @@ describe('Avalon v6 -> v7 lady-history migration', () => {
     return seat === 0 ? 'host' : `user-${seat}`;
   }
 
-  /** Drives a real 9-player game through one completed lady check. */
-  function ladyCheckedState(): {
+  /** Drives a real 9-player game to the first lady phase (after round 2). */
+  function ladyPhaseState(): {
     state: AvalonState;
     holder: number;
-    target: number;
   } {
     let state = avalonEngine.createInitialState(
       { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 9 },
@@ -479,7 +478,18 @@ describe('Avalon v6 -> v7 lady-history migration', () => {
       state = dispatchSettle(state);
     }
     if (state.phase.kind !== 'lady') throw new Error('expected lady phase');
-    const holder = state.phase.holderSeat;
+    return { state, holder: state.phase.holderSeat };
+  }
+
+  /** Drives a real 9-player game through one completed lady check. */
+  function ladyCheckedState(): {
+    state: AvalonState;
+    holder: number;
+    target: number;
+  } {
+    const phase = ladyPhaseState();
+    let state = phase.state;
+    const holder = phase.holder;
     const target = Array.from({ length: 9 }, (_, seat) => seat).find(
       (seat) => seat !== holder && !state.ladyExaminedSeats.includes(seat),
     )!;
@@ -500,14 +510,103 @@ describe('Avalon v6 -> v7 lady-history migration', () => {
   });
 
   it('does not derive an in-progress check', () => {
-    const { state } = ladyCheckedState();
-    // examinedSeats holds only completed checks; a lady phase with a
-    // chosen-but-unacknowledged target is not in it, so the derivation
-    // below (one examined seat, the initial holder) yields no record.
+    // A real lady phase: target chosen, not yet acknowledged. The v6
+    // document has no ladyHistory and examinedSeats holds only the
+    // initial holder, so migration must yield an empty history while
+    // keeping the lady phase, holder and chosen target intact.
+    const phase = ladyPhaseState();
+    let state = phase.state;
+    const holder = phase.holder;
+    const target = Array.from({ length: 9 }, (_, seat) => seat).find(
+      (seat) => seat !== holder && !state.ladyExaminedSeats.includes(seat),
+    )!;
+    state = dispatch(state, { type: 'avalon.lady.check', seat: target }, actorOf(holder));
+    if (state.phase.kind !== 'lady') throw new Error('expected lady phase');
+    expect(state.phase.targetSeat).toBe(target);
+    expect(state.ladyHistory).toEqual([]);
     const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
-    raw.ladyExaminedSeats = [state.ladyExaminedSeats[0]];
+    delete raw.ladyHistory;
+    const migrated = migratePersistedAvalonState({ ...raw, stateVersion: 6 });
+    expect(migrated.stateVersion).toBe(7);
+    expect(migrated.ladyHistory).toEqual([]);
+    if (migrated.phase.kind !== 'lady') throw new Error('expected lady phase');
+    expect(migrated.phase.holderSeat).toBe(holder);
+    expect(migrated.phase.targetSeat).toBe(target);
+    expect(migrated.ladyExaminedSeats).toEqual([holder]);
+  });
+
+  it('clears history when the game returns to lobby', () => {
+    // returnedToLobby only accepts ended games, so drive the checked
+    // game to its end first: a third success opens the assassin phase,
+    // a missed accusation ends the game, then the host returns to lobby.
+    let { state } = ladyCheckedState();
+    expect(state.ladyHistory).toHaveLength(1);
+    const leader = state.leaderSeat;
+    const team = Array.from({ length: 4 }, (_, index) => (leader + index) % 9);
+    state = dispatch(state, { type: 'avalon.team.updateDraft', seats: team }, actorOf(leader));
+    state = dispatch(state, { type: 'avalon.team.propose' }, actorOf(leader));
+    for (let seat = 0; seat < 9; seat += 1) {
+      state = dispatch(state, { type: 'avalon.team.vote', vote: 'approve' }, actorOf(seat));
+    }
+    state = dispatchSettle(state);
+    if (state.phase.kind !== 'quest') throw new Error('expected quest phase');
+    for (const seat of state.phase.teamSeats) {
+      state = dispatch(state, { type: 'avalon.quest.play', play: 'success' }, actorOf(seat));
+    }
+    state = dispatchSettle(state);
+    if (state.phase.kind !== 'assassin') throw new Error('expected assassin phase');
+    const assassin = Number(
+      Object.keys(state.roles).find((key) => state.roles[Number(key)] === 'assassin'),
+    );
+    const innocent = Number(
+      Object.keys(state.roles).find((key) => state.roles[Number(key)] === 'loyalServant'),
+    );
+    state = dispatch(state, { type: 'avalon.assassin.accuse', seat: innocent }, actorOf(assassin));
+    if (state.phase.kind !== 'ended') throw new Error('expected ended phase');
+    if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+    state = dispatch(state, { type: 'avalon.game.returnToLobby' });
+    if (state.phase.kind !== 'lobby') throw new Error('expected lobby phase');
+    expect(state.ladyHistory).toEqual([]);
+    expect(state.ladyExaminedSeats).toEqual([]);
+    expect(state.ladyHolderSeat).toBeNull();
+    expect(state.lastLadyCheck).toBeNull();
+  });
+
+  it('derives no history below 9 players even with examined seats', () => {
+    // The <9 guard is a direct branch, not a side effect of an empty
+    // examined list: drive a real 5-player game to nominate, then claim
+    // examined seats on its v6 document; migration must still yield [].
+    let state = avalonEngine.createInitialState(
+      { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
+      { roomCode: '1234', hostUserId: 'host', nowMs: 0, commandId: 'create' },
+    );
+    for (let seat = 0; seat < 5; seat += 1) {
+      state = dispatch(
+        state,
+        { type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } },
+        actorOf(seat),
+      );
+    }
+    state = dispatch(state, { type: 'avalon.roles.assign' });
+    for (let seat = 0; seat < 5; seat += 1) {
+      state = dispatch(state, { type: 'avalon.role.viewed' }, actorOf(seat));
+    }
+    state = dispatch(state, { type: 'avalon.game.begin' });
+    if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+    while (state.phase.kind === 'night') {
+      const participants = getAvalonNightParticipants(state.roles, state.phase.step);
+      for (const seat of participants) {
+        state = dispatch(state, { type: 'avalon.night.confirm' }, actorOf(seat));
+      }
+      if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+    }
+    if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+    expect(state.ladyHistory).toEqual([]);
+    const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
+    raw.ladyExaminedSeats = [0, 1];
     delete raw.ladyHistory;
     const migrated = migratePersistedAvalonState({ ...raw, stateVersion: 6 });
     expect(migrated.ladyHistory).toEqual([]);
+    expect(migrated.ladyHolderSeat).toBeNull();
   });
 });
