@@ -11,7 +11,6 @@ import type {
   CaptureProgressCallback,
 } from '@/features/room/services/captureViewSegmentedPngBase64';
 import { uploadShareImage } from '@/features/room/services/uploadShareImage';
-import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -21,8 +20,6 @@ import { buildNightReviewData } from '../NightReview.helpers';
 import {
   captureNightReviewCard,
   captureNightReviewCardSegmented,
-  renderNightReviewToCanvas,
-  SEGMENTED_CAPTURE_TRIAL_ENABLED,
   shareNightReviewReportImage,
 } from '../shareNightReview';
 
@@ -178,9 +175,6 @@ export function useNightReviewShare(
     }
     if (scope.inFlight !== null) return scope.inFlight;
     if (scope.base64 !== null) return Promise.resolve(scope.base64);
-    // With the trial switch off, the mini program shares a Canvas-drawn
-    // image instead of a card capture, so no card image exists to prepare.
-    if (isMiniProgram() && !SEGMENTED_CAPTURE_TRIAL_ENABLED) return Promise.resolve(null);
     return (async () => {
       const base64 = await captureMountedShareCard(captureReportCard);
       if (base64 !== null && scope.isActive) scope.base64 = base64;
@@ -219,17 +213,12 @@ export function useNightReviewShare(
     };
     try {
       if (isMiniProgram()) {
-        let base64: string;
-        if (SEGMENTED_CAPTURE_TRIAL_ENABLED) {
-          // A cached image skips the generating phase entirely; only a
-          // capture that still has to run (or finish) is presented.
-          if (scope.base64 === null) enterPhase('capturing');
-          const captured = await beginReportCapture();
-          if (captured === null) return false;
-          base64 = captured;
-        } else {
-          base64 = renderNightReviewToCanvas(nightReviewData, roomCode, colors);
-        }
+        // A cached image skips the generating phase entirely; only a
+        // capture that still has to run (or finish) is presented.
+        if (scope.base64 === null) enterPhase('capturing');
+        const captured = await beginReportCapture();
+        if (captured === null) return false;
+        const base64 = captured;
         if (!isRunCurrent()) return false;
         enterPhase('uploading');
         const url = await uploadShareImage(base64);
