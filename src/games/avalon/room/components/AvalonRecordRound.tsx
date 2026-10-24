@@ -147,12 +147,15 @@ export function AvalonRecordRound({
   inProgressLadyHolderSeat,
   ended,
   testIDPrefix,
+  lakeCheckedFaction,
 }: {
   readonly record: AvalonRoundRecordView;
   readonly completedLadyCheck: AvalonLadyCheckRecordView | null;
   readonly inProgressLadyHolderSeat: number | null;
   readonly ended: boolean;
   readonly testIDPrefix?: string;
+  /** 透传给湖仙节：对局记录不传（undefined），本局复盘必传（见湖仙节注释）。 */
+  readonly lakeCheckedFaction?: 'good' | 'evil' | null;
 }) {
   const prefix = testIDPrefix ?? 'avalon-history';
   const currentProposal = record.currentProposal;
@@ -202,6 +205,8 @@ export function AvalonRecordRound({
         completed={completedLadyCheck}
         inProgressHolderSeat={inProgressLadyHolderSeat}
         ended={ended}
+        checkedFaction={lakeCheckedFaction}
+        testIDPrefix={`${prefix}-round-lake-${record.round}`}
       />
     </View>
   );
