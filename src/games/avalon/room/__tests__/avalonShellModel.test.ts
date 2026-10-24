@@ -149,6 +149,7 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
     onLadyAcknowledgePress: jest.fn(),
     onLadyResultPress: jest.fn(),
     onEarlyStrikePress: jest.fn(),
+    onReviewPress: jest.fn(),
     strikePickMode: false,
     onCancelEarlyStrikePress: jest.fn(),
     hostManagement: null,
@@ -839,5 +840,50 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     if (running.state.phase.kind !== 'ended') throw new Error('expected ended phase');
     expect(shellFor(running, 2).message).toBe('等待房主操作（再来一局 / 返回大厅）');
     expect(shellFor(running, 0).message).toBeNull();
+  });
+
+  it('ended: every viewer gets the same review button in secondary', () => {
+    const running = daytimeSession();
+    for (let round = 0; round < 5 && running.state.phase.kind !== 'ended'; round += 1) {
+      if (running.state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+      const leader = running.state.leaderSeat;
+      const required = running.state.phase.requiredSize;
+      const evils = evilSeats(running);
+      const evilOnTeam = evils.find((seat) => seat !== leader) ?? evils[0];
+      if (evilOnTeam === undefined) throw new Error('expected an evil seat');
+      const team: number[] = [leader];
+      if (!team.includes(evilOnTeam)) team.push(evilOnTeam);
+      for (let seat = 0; team.length < required; seat += 1) {
+        if (!team.includes(seat)) team.push(seat);
+      }
+      running.send({ type: 'avalon.team.updateDraft', seats: team }, seatUser(leader));
+      running.send({ type: 'avalon.team.propose' }, seatUser(leader));
+      for (let seat = 0; seat < 5; seat += 1) {
+        running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
+      }
+      running.settle();
+      if (currentPhase(running).kind !== 'quest') throw new Error('expected quest phase');
+      for (const seat of team) {
+        running.send(
+          { type: 'avalon.quest.play', play: seat === evilOnTeam ? 'fail' : 'success' },
+          seatUser(seat),
+        );
+      }
+      running.settle();
+    }
+    if (running.state.phase.kind !== 'ended') throw new Error('expected ended phase');
+    const onReviewPress = jest.fn();
+    for (const seat of [0, 2]) {
+      const bottom = shellFor(running, seat, { onReviewPress });
+      const review = findTierAction(bottom, 'secondary', 'avalonReview');
+      expect(review).toMatchObject({
+        label: '本局复盘',
+        variant: 'secondary',
+        isEnabled: true,
+        testID: 'avalon-review-open',
+      });
+      if (review && review.isEnabled) review.onPress();
+    }
+    expect(onReviewPress).toHaveBeenCalledTimes(2);
   });
 });

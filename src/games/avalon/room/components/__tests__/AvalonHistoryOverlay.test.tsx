@@ -299,6 +299,20 @@ describe('AvalonHistoryOverlay', () => {
     expect(getByText('暂无对局记录。')).toBeTruthy();
   });
 
+  it('marks a settled round whose settlement ended the game as lake-skipped', () => {
+    // 三胜 / 三败在该轮结算后即终局，湖仙未轮到：不能写成“提前刺杀打断”。
+    const settledRound2: AvalonRoundRecordView = {
+      ...settledRound,
+      round: 2,
+    };
+    const { getByText, queryByText } = renderOverlay([settledRound, settledRound2], {
+      phase: 'ended',
+      questResults: ['success', 'success'],
+    });
+    expect(getByText('未发生（本轮结算后即终局，湖仙未进行）')).toBeTruthy();
+    expect(queryByText('未发生（提前刺杀打断）')).toBeNull();
+  });
+
   it('shows the config line in the header', () => {
     const { getByText } = renderOverlay([settledRound], { voteMode: 'secret' });
     expect(getByText('投票暗投 · 否决上限 5 · 任务人数 2 / 3 / 2 / 3 / 3')).toBeTruthy();

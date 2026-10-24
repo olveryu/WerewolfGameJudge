@@ -58,6 +58,7 @@ function build(state: AvalonState, isHost: boolean, isSetup: boolean, isSubmitti
     isSubmitting,
     controlledSeat: null,
     releaseBot,
+    onReviewPress: jest.fn(),
     submit,
   });
 }
@@ -374,10 +375,39 @@ describe('createAvalonHostManagement', () => {
     expect(game.state.phase.kind).toBe('ended');
     const model = build(game.state, true, false);
     const actions = model?.sections[0]?.actions ?? [];
-    expect(actions.map((action) => action.key)).toEqual(['next-round', 'return-lobby']);
+    expect(actions.map((action) => action.key)).toEqual([
+      'avalonReview',
+      'next-round',
+      'return-lobby',
+    ]);
     expect(actions.map((action) => action.testID)).toEqual([
+      'avalon-review-open',
       'next-round-button',
       'return-lobby-button',
     ]);
+  });
+
+  it('routes the host review action through the shared review handler', () => {
+    const game = session();
+    game.seatHost();
+    game.fill();
+    game.startToNominate();
+    game.playToEnded();
+    expect(game.state.phase.kind).toBe('ended');
+    const onReviewPress = jest.fn();
+    const model = createAvalonHostManagement({
+      state: game.state,
+      isHost: true,
+      capabilities: capabilities(false),
+      isSubmitting: false,
+      controlledSeat: null,
+      releaseBot,
+      onReviewPress,
+      submit,
+    });
+    const review = model?.sections[0]?.actions.find((action) => action.key === 'avalonReview');
+    expect(review).toMatchObject({ label: '本局复盘', variant: 'secondary', isEnabled: true });
+    if (review && review.isEnabled) review.onPress();
+    expect(onReviewPress).toHaveBeenCalledTimes(1);
   });
 });

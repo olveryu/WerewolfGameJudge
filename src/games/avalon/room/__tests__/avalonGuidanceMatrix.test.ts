@@ -233,6 +233,7 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
     onLadyAcknowledgePress: jest.fn(),
     onLadyResultPress: jest.fn(),
     onEarlyStrikePress: jest.fn(),
+    onReviewPress: jest.fn(),
     strikePickMode: false,
     onCancelEarlyStrikePress: jest.fn(),
     hostManagement: null,

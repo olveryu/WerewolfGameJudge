@@ -729,18 +729,25 @@ test.describe('Avalon full game', () => {
       });
 
       await test.step('终局：坏人获胜、全员身份公开、对局记录收束', async () => {
+        // 终局结算只在本局复盘里：座位表上方不再有常驻结算区，复盘由
+        // 底部「本局复盘」按钮打开（玩家与观看者同款入口）。
+        await expect(hostPage.getByTestId('avalon-ended')).toHaveCount(0);
         for (const page of [hostPage, pages[assassinSeat]!]) {
-          const ended = page.getByTestId('avalon-ended');
-          await expect(ended).toBeVisible({ timeout: 20_000 });
-          await expect(ended.getByText('坏人获胜', { exact: true })).toBeVisible();
-          await expect(ended.getByText(/刺客指认出了梅林/)).toBeVisible();
-          await expect(ended.getByText(/刺客指认了/)).toBeVisible();
+          await page.getByTestId('avalon-review-open').click();
+          const review = page.getByTestId('avalon-review-conclusion');
+          await expect(review).toBeVisible({ timeout: 20_000 });
+          await expect(review.getByText('坏人获胜', { exact: true })).toBeVisible();
+          await expect(review.getByText(/刺客指认出了梅林/)).toBeVisible();
+          await expect(review.getByText(/刺客 \d+ 号指认 \d+ 号（梅林）→ 命中/)).toBeVisible();
+          await page.getByTestId('avalon-review-close').click();
         }
+        await hostPage.getByTestId('avalon-review-open').click();
         for (let seat = 0; seat < PLAYER_COUNT; seat += 1) {
-          const row = hostPage.getByTestId(`avalon-ended-role-${seat}`);
+          const row = hostPage.getByTestId(`avalon-review-identity-${seat}`);
           await expect(row).toContainText(roles[seat]!);
           await expect(row).toContainText(EVIL_ROLES.has(roles[seat]!) ? '坏人' : '好人');
         }
+        await hostPage.getByTestId('avalon-review-close').click();
         await expect(hostPage.getByTestId('avalon-history-summary')).toContainText(
           '本局结束 · 坏人获胜',
         );

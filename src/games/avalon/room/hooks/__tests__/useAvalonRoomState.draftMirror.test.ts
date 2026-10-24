@@ -144,7 +144,7 @@ function renderRoomState(state: AvalonState) {
       stopNarration: jest.fn(),
     },
   } as unknown as Parameters<typeof useAvalonRoomState>[0];
-  const rendered = renderHook(() => useAvalonRoomState(props));
+  const rendered = renderHook(() => useAvalonRoomState(props, { onReviewPress: jest.fn() }));
   return { ...rendered, dispatch: fake.dispatch };
 }
 
