@@ -134,7 +134,13 @@ function assertOccupiedSeats(gameState: LocalGameState, seats: readonly number[]
   for (const seat of seats) assertOccupiedSeat(gameState, seat);
 }
 
-function getSpeakingInstruction(
+/**
+ * The panel's speaking-order line, shared with the night report: the
+ * report renders the same line from the same computation, never a copy.
+ * Only speech phases produce one; the occupied-seat assertion stays here
+ * in the shell — the core never sees a player roster.
+ */
+export function getSpeakingInstruction(
   gameState: LocalGameState,
   election: SheriffElectionState,
 ): string | null {

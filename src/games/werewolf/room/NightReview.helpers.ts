@@ -31,6 +31,7 @@ import {
   getSheriffCandidateRecords,
   getSheriffVoteProgress,
 } from './sheriffElectionRecord';
+import { getSpeakingInstruction } from './sheriffElectionViewModel';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Death reason labels
@@ -389,6 +390,12 @@ export type NightReviewSheriffSection =
         readonly candidateSeats: readonly number[];
       } | null;
       /**
+       * The panel's speaking-order line, from the panel's own computation
+       * (getSpeakingInstruction). Null outside speech phases, so the row
+       * never renders there — exactly the panel's rule.
+       */
+      readonly speakingInstruction: string | null;
+      /**
        * Submission counts for an open voting round (the panel's public
        * slice: counts only, never ballot targets). Null outside voting.
        */
@@ -726,6 +733,7 @@ export function deriveSheriffSection(
         closedRounds: [],
         activeRound: null,
         voteProgress: null,
+        speakingInstruction: getSpeakingInstruction(gameState, election),
       };
     case 'firstVote':
     case 'runoffVote':
@@ -741,6 +749,7 @@ export function deriveSheriffSection(
           candidateSeats: [...records.activeCandidateSeats],
         },
         voteProgress: getSheriffVoteProgress(election),
+        speakingInstruction: getSpeakingInstruction(gameState, election),
       };
     case 'runoffSpeech':
       return {
@@ -752,6 +761,7 @@ export function deriveSheriffSection(
         closedRounds: election.completedRounds.map(deriveSheriffRoundRecord),
         activeRound: null,
         voteProgress: null,
+        speakingInstruction: getSpeakingInstruction(gameState, election),
       };
     case 'completed': {
       if (result === undefined) {

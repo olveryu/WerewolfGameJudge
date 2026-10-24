@@ -12,10 +12,9 @@
  *
  * Panel copy is the single source: phase titles/descriptions and round
  * titles come from sheriffElectionViewModel, and the section carries the
- * phase, the full registration and the submission counts so nothing here
- * is re-derived. Speaking order is the one panel row the report does not
- * render: the section carries no speaking data, and the plan does not ask
- * for it.
+ * phase, the full registration, the submission counts and the speaking
+ * line so nothing here is re-derived — including the speaking order,
+ * which the section projects from the panel's own computation.
  */
 
 import { useMemo } from 'react';
@@ -84,7 +83,7 @@ export function SheriffElectionReportSection({
             activeCandidateSeats: section.candidateSeats,
           }}
           phase={section.phase}
-          speakingInstruction={null}
+          speakingInstruction={section.speakingInstruction}
           styles={styles}
         />
         {section.voteProgress !== null && (

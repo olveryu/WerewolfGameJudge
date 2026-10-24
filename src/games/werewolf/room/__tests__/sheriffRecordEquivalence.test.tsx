@@ -229,6 +229,10 @@ describe('panel and report derive the same sheriff record', () => {
     expect(section.withdrawnSeats).toEqual([9]);
     expect(section.closedRounds).toEqual([FIRST_ROUND_TALLY]);
 
+    // Speaking line: panel and report compute it from the same function.
+    expect(view?.speakingInstruction).toBe('从 3号开始，顺时针发言');
+    expect(section.speakingInstruction).toBe(view?.speakingInstruction);
+
     // Card channel, now in panel UI: the 平票候选 row holds exactly the
     // runoff candidates. The withdrawn seat appears in the 上警 row
     // (every registered seat, withdrawals marked) — that is the panel's
@@ -242,16 +246,19 @@ describe('panel and report derive the same sheriff record', () => {
     const texts = collectTexts(toJSON());
     const registeredLabelIndex = texts.indexOf('上警');
     const runoffLabelIndex = texts.indexOf('平票候选');
+    const speakingLabelIndex = texts.indexOf('发言顺序');
     const nextRoundIndex = texts.indexOf('首轮投票结果');
     expect(registeredLabelIndex).toBeGreaterThan(-1);
     expect(runoffLabelIndex).toBeGreaterThan(registeredLabelIndex);
-    expect(nextRoundIndex).toBeGreaterThan(runoffLabelIndex);
+    expect(speakingLabelIndex).toBeGreaterThan(runoffLabelIndex);
+    expect(nextRoundIndex).toBeGreaterThan(speakingLabelIndex);
     expect(texts.slice(registeredLabelIndex + 1, runoffLabelIndex)).toEqual([
       '3',
       '6',
       '10',
       '10号已退水',
     ]);
-    expect(texts.slice(runoffLabelIndex + 1, nextRoundIndex)).toEqual(['3', '6']);
+    expect(texts.slice(runoffLabelIndex + 1, speakingLabelIndex)).toEqual(['3', '6']);
+    expect(texts[speakingLabelIndex + 1]).toBe('从 3号开始，顺时针发言');
   });
 });

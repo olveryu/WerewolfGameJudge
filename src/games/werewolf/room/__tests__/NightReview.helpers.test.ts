@@ -1709,6 +1709,7 @@ describe('NightReview.helpers', () => {
     it('candidate speech exposes active candidates and withdrawals, no tallies', () => {
       const section = deriveSheriffSection(
         makeGameState({
+          players: new Map([[2, makePlayer(2, 'villager')]]),
           sheriffElection: {
             phase: 'candidateSpeech',
             registeredSeats: [2, 5, 7],
@@ -1728,6 +1729,31 @@ describe('NightReview.helpers', () => {
         closedRounds: [],
         activeRound: null,
         voteProgress: null,
+        speakingInstruction: '从 3号开始，顺时针发言',
+      });
+    });
+
+    it('withdrawal exposes candidates and no speaking line', () => {
+      const section = deriveSheriffSection(
+        makeGameState({
+          sheriffElection: {
+            phase: 'withdrawal',
+            registeredSeats: [2, 5, 7],
+            withdrawnSeats: [7],
+            completedRounds: [],
+          },
+        }),
+      );
+      expect(section).toEqual({
+        kind: 'inProgress',
+        phase: 'withdrawal',
+        registeredSeats: [2, 5, 7],
+        candidateSeats: [2, 5],
+        withdrawnSeats: [7],
+        closedRounds: [],
+        activeRound: null,
+        voteProgress: null,
+        speakingInstruction: null,
       });
     });
 
@@ -1754,6 +1780,7 @@ describe('NightReview.helpers', () => {
         closedRounds: [],
         activeRound: { round: 'first', candidateSeats: [2, 5] },
         voteProgress: { submittedCount: 2, eligibleCount: 7 },
+        speakingInstruction: null,
       });
       expect(JSON.stringify(section)).not.toContain('ballot');
       expect(JSON.stringify(section)).not.toContain('votes');
@@ -1762,6 +1789,7 @@ describe('NightReview.helpers', () => {
     it('runoff speech shows the closed first round and the runoff candidates', () => {
       const section = deriveSheriffSection(
         makeGameState({
+          players: new Map([[2, makePlayer(2, 'villager')]]),
           sheriffElection: {
             phase: 'runoffSpeech',
             registeredSeats: [2, 5, 9],
@@ -1782,6 +1810,7 @@ describe('NightReview.helpers', () => {
         closedRounds: [FIRST_ROUND_DERIVED],
         activeRound: null,
         voteProgress: null,
+        speakingInstruction: '从 3号开始，顺时针发言',
       });
     });
 
@@ -1808,6 +1837,7 @@ describe('NightReview.helpers', () => {
         closedRounds: [FIRST_ROUND_DERIVED],
         activeRound: { round: 'runoff', candidateSeats: [2, 5] },
         voteProgress: { submittedCount: 1, eligibleCount: 7 },
+        speakingInstruction: null,
       });
     });
 
