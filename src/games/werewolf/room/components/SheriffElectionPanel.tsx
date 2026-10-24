@@ -168,44 +168,25 @@ interface CompletedRoundProps {
 /**
  * One closed round as a tally card: a bar per candidate with that candidate's
  * voters grouped underneath, and abstentions demoted to one grey line.
+ * The tally comes from the shared record (sheriffElectionRecord) via the
+ * view model — this component renders it and never re-derives it.
  */
 function CompletedRound({ round, winnerSeat, styles }: CompletedRoundProps) {
-  const votersByCandidate = new Map<number, number[]>();
-  const abstainVoters: number[] = [];
-  for (const voterSeat of round.eligibleVoterSeats) {
-    const targetSeat = round.ballots[voterSeat];
-    if (targetSeat === undefined) {
-      throw new Error(`[FAIL-FAST] Sheriff round view has no ballot for seat ${voterSeat}`);
-    }
-    if (targetSeat === null) {
-      abstainVoters.push(voterSeat);
-    } else {
-      const voters = votersByCandidate.get(targetSeat);
-      if (voters === undefined) votersByCandidate.set(targetSeat, [voterSeat]);
-      else voters.push(voterSeat);
-    }
-  }
-  for (const voters of votersByCandidate.values()) voters.sort((a, b) => a - b);
-  abstainVoters.sort((a, b) => a - b);
-  const totalVotes = round.candidateSeats.reduce((sum, seat) => {
-    const voteCount = round.voteCounts[seat];
-    if (voteCount === undefined) {
-      throw new Error(`[FAIL-FAST] Sheriff round view has no count for seat ${seat}`);
-    }
-    return sum + voteCount;
-  }, 0);
+  const totalVotes = round.perCandidate.reduce((sum, candidate) => sum + candidate.votes, 0);
+  // A closed round fails fast on any missing ballot in the core, so zero
+  // ballots cast means zero eligible voters — the same empty case the old
+  // eligible-voter check rendered.
+  const hasNoVoters = totalVotes + round.abstainingSeats.length === 0;
 
   return (
     <View style={styles.roundSection} testID={TESTIDS.sheriffCompletedRound(round.key)}>
       <Text style={styles.roundTitle}>{round.title}</Text>
       <View style={styles.tallyCard}>
-        {round.candidateSeats.map((seat, index) => {
-          const voteCount = round.voteCounts[seat];
-          if (voteCount === undefined) {
-            throw new Error(`[FAIL-FAST] Sheriff round view has no count for seat ${seat}`);
-          }
+        {round.perCandidate.map((candidate, index) => {
+          const seat = candidate.seat;
+          const voteCount = candidate.votes;
           const isWinner = winnerSeat === seat;
-          const voters = votersByCandidate.get(seat) ?? [];
+          const voters = candidate.voterSeats;
           return (
             <View
               key={seat}
@@ -249,10 +230,10 @@ function CompletedRound({ round, winnerSeat, styles }: CompletedRoundProps) {
             </View>
           );
         })}
-        {abstainVoters.length > 0 && (
+        {round.abstainingSeats.length > 0 && (
           <View style={styles.abstainRow} testID={TESTIDS.sheriffAbstainRow(round.key)}>
             <Text style={styles.abstainLabel}>弃票</Text>
-            {abstainVoters.map((voterSeat) => (
+            {round.abstainingSeats.map((voterSeat) => (
               <View
                 key={voterSeat}
                 testID={TESTIDS.sheriffAbstainChip(round.key, voterSeat)}
@@ -263,7 +244,7 @@ function CompletedRound({ round, winnerSeat, styles }: CompletedRoundProps) {
             ))}
           </View>
         )}
-        {round.eligibleVoterSeats.length === 0 && <Text style={styles.emptyBallots}>无投票人</Text>}
+        {hasNoVoters && <Text style={styles.emptyBallots}>无投票人</Text>}
       </View>
     </View>
   );
