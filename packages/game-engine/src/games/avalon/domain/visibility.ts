@@ -106,6 +106,16 @@ export interface AvalonLadyCheckResultView {
   readonly faction: 'good' | 'evil';
 }
 
+/**
+ * 已完成湖仙查验的公开历史视图：只含第几轮后、持有人、被查验座位，
+ * 所有视角同值；查验结果（好 / 坏）不在此列，仍只走持有人私密路径。
+ */
+export interface AvalonLadyCheckRecordView {
+  readonly afterRound: 2 | 3 | 4;
+  readonly holderSeat: number;
+  readonly targetSeat: number;
+}
+
 export interface AvalonViewModel {
   readonly phase: AvalonPhaseKind;
   readonly mySeat: number | null;
@@ -145,6 +155,8 @@ export interface AvalonViewModel {
   readonly lady: AvalonLadyView | null;
   /** 最近一次湖仙查验结果（目标座位 + 阵营），仅查验时的持有人可见。 */
   readonly ladyCheckResult: AvalonLadyCheckResultView | null;
+  /** 已完成湖仙查验的公开历史，所有视角同值。 */
+  readonly ladyHistory: readonly AvalonLadyCheckRecordView[];
   readonly isAssassin: boolean;
   /** D13：night 结束后、终局前，刺客端常驻刺杀按钮。 */
   readonly canEarlyStrike: boolean;
@@ -385,6 +397,7 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
     roundHistory: roundRecordViews(state, viewerSeat),
     lady,
     ladyCheckResult,
+    ladyHistory: state.ladyHistory.map((record) => ({ ...record })),
     isAssassin,
     canEarlyStrike:
       isAssassin &&

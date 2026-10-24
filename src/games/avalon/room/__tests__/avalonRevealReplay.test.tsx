@@ -203,7 +203,7 @@ function createMutableSession(initialState: AvalonState, userId: string) {
       },
       lastCommand: null,
       error: null,
-      snapshot: { gameType: 'avalon', stateVersion: 6, revision, state },
+      snapshot: { gameType: 'avalon', stateVersion: 7, revision, state },
     } as const;
   };
   let snapshot = buildSnapshot();

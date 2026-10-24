@@ -47,6 +47,7 @@ function baseViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMode
     roundHistory: [],
     lady: null,
     ladyCheckResult: null,
+    ladyHistory: [],
     isAssassin: false,
     canEarlyStrike: false,
     accusedSeat: null,
