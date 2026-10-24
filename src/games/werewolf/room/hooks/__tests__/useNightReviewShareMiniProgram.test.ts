@@ -1,7 +1,6 @@
 /**
- * Mini-program report sharing picks the segmented capture only while the
- * trial switch is on, and shares the same pre-capture cache as other
- * platforms instead of capturing on tap.
+ * Mini-program report sharing uses the segmented capture and shares the
+ * same pre-capture cache as other platforms instead of capturing on tap.
  */
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react-native';
@@ -12,20 +11,13 @@ import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { handleError } from '@/utils/errorPipeline';
 import { wxPreviewImage } from '@/utils/miniProgram';
 
-import { captureNightReviewCardSegmented, renderNightReviewToCanvas } from '../../shareNightReview';
+import { captureNightReviewCardSegmented } from '../../shareNightReview';
 import { useNightReviewShare } from '../useNightReviewShare';
-
-let mockTrialEnabled = true;
 
 jest.mock('../../shareNightReview', () => ({
   captureNightReviewCard: jest.fn(),
   captureNightReviewCardSegmented: jest.fn(),
-  renderNightReviewToCanvas: jest.fn(),
   shareNightReviewReportImage: jest.fn(),
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- mirrors the module export name
-  get SEGMENTED_CAPTURE_TRIAL_ENABLED() {
-    return mockTrialEnabled;
-  },
 }));
 jest.mock('@/utils/errorPipeline', () => ({ handleError: jest.fn() }));
 jest.mock('@/utils/miniProgram', () => ({
@@ -47,7 +39,6 @@ const gameState = {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockTrialEnabled = true;
   jest.mocked(uploadShareImage).mockResolvedValue('https://example.com/report.png');
   jest.mocked(wxPreviewImage).mockResolvedValue(undefined);
   jest.spyOn(global, 'requestAnimationFrame').mockImplementation((callback) => {
@@ -83,7 +74,6 @@ it('mounts the share card for the segmented capture and previews the uploaded im
   expect(result.current.isCapturingShareCard).toBe(false);
   expect(shared).toBe(true);
   expect(captureNightReviewCardSegmented).toHaveBeenCalledTimes(1);
-  expect(renderNightReviewToCanvas).not.toHaveBeenCalled();
   expect(uploadShareImage).toHaveBeenCalledWith('segmented-image');
   expect(wxPreviewImage).toHaveBeenCalledWith('https://example.com/report.png');
 });
@@ -169,38 +159,7 @@ it('exposes band progress during capture and clears it when capture settles', as
   expect(result.current.reportCaptureProgress).toBeNull();
 });
 
-it('prepares nothing when the trial switch is off because sharing draws with canvas', async () => {
-  mockTrialEnabled = false;
-  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
-
-  let prepared!: string | null;
-  await act(async () => {
-    prepared = await result.current.beginReportCapture();
-  });
-
-  expect(prepared).toBeNull();
-  expect(result.current.isCapturingShareCard).toBe(false);
-  expect(captureNightReviewCardSegmented).not.toHaveBeenCalled();
-});
-
-it('draws with the canvas renderer when the trial switch is off', async () => {
-  mockTrialEnabled = false;
-  jest.mocked(renderNightReviewToCanvas).mockReturnValue('drawn-image');
-  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
-
-  let shared!: boolean;
-  await act(async () => {
-    shared = await result.current.shareNightReviewReportDirectly();
-  });
-
-  expect(shared).toBe(true);
-  expect(renderNightReviewToCanvas).toHaveBeenCalledTimes(1);
-  expect(captureNightReviewCardSegmented).not.toHaveBeenCalled();
-  expect(uploadShareImage).toHaveBeenCalledWith('drawn-image');
-  expect(wxPreviewImage).toHaveBeenCalledWith('https://example.com/report.png');
-});
-
-it('surfaces a segmented capture failure instead of silently falling back to drawing', async () => {
+it('surfaces a segmented capture failure instead of sharing', async () => {
   jest
     .mocked(captureNightReviewCardSegmented)
     .mockRejectedValue(new Error('segmented capture failed'));
@@ -213,7 +172,6 @@ it('surfaces a segmented capture failure instead of silently falling back to dra
 
   expect(shared).toBe(false);
   expect(handleError).toHaveBeenCalledTimes(1);
-  expect(renderNightReviewToCanvas).not.toHaveBeenCalled();
   expect(uploadShareImage).not.toHaveBeenCalled();
   expect(wxPreviewImage).not.toHaveBeenCalled();
 });
