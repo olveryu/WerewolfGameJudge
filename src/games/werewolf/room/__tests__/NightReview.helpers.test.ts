@@ -7,7 +7,7 @@ import type {
   SheriffElectionState,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { makeActionTarget } from '@game-judge/game-engine/games/werewolf/public';
-import { getRoleDisplayName, ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
+import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 import { NIGHT_STEPS } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
@@ -26,22 +26,6 @@ import {
   nightReviewActorRoleId,
   type NightReviewData,
 } from '../NightReview.helpers';
-import {
-  formatNightReviewActionLine,
-  formatNightReviewIdentityLine,
-} from '../shareNightReviewLines';
-
-// ─── Legacy line adapters (equivalence harness) ────────────────────────────
-// Every legacy assertion below runs against lines formatted FROM the
-// structured entries, proving the entry stream carries the same facts in the
-// same order as the retired string builders.
-function buildActionLines(state: LocalGameState): string[] {
-  return buildActionEntries(state).map(formatNightReviewActionLine);
-}
-
-function buildIdentityLines(players: Map<number, LocalPlayer | null>): string[] {
-  return buildIdentityEntries(players, new Set()).map(formatNightReviewIdentityLine);
-}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -100,121 +84,192 @@ function makePlayer(seat: number, role: string | null): LocalPlayer {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('NightReview.helpers', () => {
-  describe('buildActionLines', () => {
+  describe('buildActionEntries', () => {
     it('returns peaceful night when no deaths and no actions', () => {
-      const lines = buildActionLines(makeGameState());
-      expect(lines).toEqual(['🌙 昨夜平安夜']);
+      const entries = buildActionEntries(makeGameState());
+      expect(entries).toEqual([{ kind: 'peacefulNight' }]);
     });
 
     it('shows wolf votes', () => {
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({
           currentNightResults: {
             wolfVotesBySeat: { '2': 4, '3': 4 },
           },
         }),
       );
-      expect(lines[0]).toContain('狼人袭击');
-      expect(lines[0]).toContain('3号→5号');
-      expect(lines[0]).toContain('4号→5号');
+      expect(entries[0]).toEqual({
+        kind: 'wolfAttack',
+        votes: [
+          { voterSeat: 2, targetSeat: 4 },
+          { voterSeat: 3, targetSeat: 4 },
+        ],
+        abstainSeats: [],
+      });
     });
 
     it('shows guard protection', () => {
       const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'guard')]]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { guardedSeat: 1 } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('守卫（1号）守护了 2号'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'guard', actorSeat: 0, targetSeat: 1 }),
+      );
     });
 
     it('shows witch save and poison', () => {
       const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'witch')]]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { savedSeat: 3, poisonedSeat: 5 } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('女巫（1号）使用解药救了 4号'));
-      expect(lines).toContainEqual(expect.stringContaining('女巫（1号）使用毒药毒杀了 6号'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'save', actorSeat: 0, targetSeat: 3 }),
+      );
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'poison',
+          actorSeat: 0,
+          actorRoleId: 'witch',
+          targetSeat: 5,
+        }),
+      );
     });
 
     it('shows nightmare block', () => {
       const players = new Map<number, LocalPlayer | null>([[1, makePlayer(1, 'nightmare')]]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { blockedSeat: 0 } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('噩梦之影（2号）封锁了 1号'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'nightmareBlock',
+          actorSeat: 1,
+          targetSeat: 0,
+          targetRoleId: null,
+        }),
+      );
     });
 
     it('shows dreamcatcher protection', () => {
       const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'dreamcatcher')]]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { dreamingSeat: 2 } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('摄梦人（1号）摄梦了 3号'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'dream', actorSeat: 0, targetSeat: 2 }),
+      );
     });
 
     it('shows magician swap', () => {
       const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'magician')]]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { swappedSeats: [1, 4] } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('魔术师（1号）交换了 2号 和 5号'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'swap', actorSeat: 0, seats: [1, 4] }),
+      );
     });
 
     it('shows seer reveal', () => {
       const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'seer')]]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({ players, seerReveal: { targetSeat: 2, result: '狼人' } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('预言家（1号）查验 3号：狼人'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'check',
+          actorSeat: 0,
+          actorRoleId: 'seer',
+          targetSeat: 2,
+          result: '狼人',
+        }),
+      );
     });
 
     it('shows wolf robot learn', () => {
       const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'wolfRobot')]]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({
           players,
           wolfRobotReveal: { targetSeat: 5, result: '猎人', learnedRoleId: 'hunter' },
         }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('机械狼人（1号）学习了 6号'));
-      expect(lines).toContainEqual(expect.stringContaining('猎人'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'learn',
+          actorSeat: 0,
+          targetSeat: 5,
+          learnedRoleId: 'hunter',
+        }),
+      );
     });
 
     it('shows death list', () => {
-      const lines = buildActionLines(makeGameState({ lastNightDeaths: [0, 3] }));
-      expect(lines).toContainEqual(expect.stringContaining('死亡：1号、4号'));
+      const entries = buildActionEntries(makeGameState({ lastNightDeaths: [0, 3] }));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'deaths',
+          deaths: [
+            { seat: 0, reason: null },
+            { seat: 3, reason: null },
+          ],
+        }),
+      );
     });
 
     it('shows death list with reason labels when deathReasons present', () => {
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({
           lastNightDeaths: [0, 3],
           deathReasons: { 0: 'wolfKill', 3: 'poison' },
         }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('死亡：1号（狼杀）、4号（毒杀）'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'deaths',
+          deaths: [
+            { seat: 0, reason: 'wolfKill' },
+            { seat: 3, reason: 'poison' },
+          ],
+        }),
+      );
     });
 
     it('shows death list without labels when deathReasons is undefined', () => {
-      const lines = buildActionLines(makeGameState({ lastNightDeaths: [0, 3] }));
-      expect(lines).toContainEqual(expect.stringContaining('死亡：1号、4号'));
-      expect(lines.join()).not.toContain('（');
+      const entries = buildActionEntries(makeGameState({ lastNightDeaths: [0, 3] }));
+      const deaths = entries.find((entry) => entry.kind === 'deaths');
+      expect(deaths).toEqual(
+        expect.objectContaining({
+          deaths: [
+            { seat: 0, reason: null },
+            { seat: 3, reason: null },
+          ],
+        }),
+      );
     });
 
     it('shows all death reason types correctly', () => {
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({
           lastNightDeaths: [0, 1, 2],
           deathReasons: { 0: 'wolfKill', 1: 'coupleLink', 2: 'magicianSwap' },
         }),
       );
-      expect(lines).toContainEqual(
-        expect.stringContaining('1号（狼杀）、2号（殉情）、3号（魔术师交换）'),
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'deaths',
+          deaths: [
+            { seat: 0, reason: 'wolfKill' },
+            { seat: 1, reason: 'coupleLink' },
+            { seat: 2, reason: 'magicianSwap' },
+          ],
+        }),
       );
     });
 
     it('shows wolf kill disabled', () => {
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({
           currentNightResults: {
             wolfKillOverride: {
@@ -224,25 +279,38 @@ describe('NightReview.helpers', () => {
           },
         }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('狼人放弃袭击'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'wolfGiveUp', reason: 'nightmareBlock' }),
+      );
     });
 
     it('shows bottom cards composition', () => {
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({
           bottomCards: ['seer', 'guard', 'villager'],
         }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('底牌组成'));
-      expect(lines).toContainEqual(expect.stringContaining('预言家'));
-      expect(lines).toContainEqual(expect.stringContaining('守卫'));
-      expect(lines).toContainEqual(expect.stringContaining('平民'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'bottomCards',
+          roleIds: ['seer', 'guard', 'villager'],
+        }),
+      );
     });
 
     it('shows treasureMaster chosen card', () => {
       const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'treasureMaster')]]);
-      const lines = buildActionLines(makeGameState({ players, treasureMasterChosenCard: 'seer' }));
-      expect(lines).toContainEqual(expect.stringContaining('盗宝大师（1号）选择了 预言家'));
+      const entries = buildActionEntries(
+        makeGameState({ players, treasureMasterChosenCard: 'seer' }),
+      );
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'cardChoice',
+          actorSeat: 0,
+          actorRoleId: 'treasureMaster',
+          chosenRoleId: 'seer',
+        }),
+      );
     });
 
     it('shows slacker idol choice', () => {
@@ -250,8 +318,15 @@ describe('NightReview.helpers', () => {
       const actions: Map<RoleId, ReturnType<typeof makeActionTarget>> = new Map([
         ['slacker', makeActionTarget(3)],
       ]);
-      const lines = buildActionLines(makeGameState({ players, actions }));
-      expect(lines).toContainEqual(expect.stringContaining('混血儿（1号）选择了 4号 为榜样'));
+      const entries = buildActionEntries(makeGameState({ players, actions }));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'idolChoice',
+          actorSeat: 0,
+          actorRoleId: 'slacker',
+          targetSeat: 3,
+        }),
+      );
     });
 
     it('shows wildChild idol choice', () => {
@@ -259,8 +334,15 @@ describe('NightReview.helpers', () => {
       const actions: Map<RoleId, ReturnType<typeof makeActionTarget>> = new Map([
         ['wildChild', makeActionTarget(1)],
       ]);
-      const lines = buildActionLines(makeGameState({ players, actions }));
-      expect(lines).toContainEqual(expect.stringContaining('野孩子（1号）选择了 2号 为榜样'));
+      const entries = buildActionEntries(makeGameState({ players, actions }));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'idolChoice',
+          actorSeat: 0,
+          actorRoleId: 'wildChild',
+          targetSeat: 1,
+        }),
+      );
     });
 
     it('shows wolfQueen charm', () => {
@@ -268,38 +350,44 @@ describe('NightReview.helpers', () => {
       const actions: Map<RoleId, ReturnType<typeof makeActionTarget>> = new Map([
         ['wolfQueen', makeActionTarget(4)],
       ]);
-      const lines = buildActionLines(makeGameState({ players, actions }));
-      expect(lines).toContainEqual(expect.stringContaining('狼美人（1号）魅惑了 5号'));
+      const entries = buildActionEntries(makeGameState({ players, actions }));
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'charm', actorSeat: 0, targetSeat: 4 }),
+      );
     });
 
     it('shows successful Seed Wolf infection', () => {
       const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'seedWolf')]]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({
           players,
           seedWolfInfectionResult: { outcome: 'converted', targetSeat: 3 },
         }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('种狼（1号）成功感染了 4号'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'infectConverted', actorSeat: 0, targetSeat: 3 }),
+      );
     });
 
     it('shows failed Seed Wolf infection', () => {
       const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'seedWolf')]]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({
           players,
           seedWolfInfectionResult: { outcome: 'failed', targetSeat: 3 },
         }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('种狼（1号）感染 4号失败'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'infectFailed', actorSeat: 0, targetSeat: 3 }),
+      );
     });
 
     it('shows unused Seed Wolf infection', () => {
       const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'seedWolf')]]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({ players, seedWolfInfectionResult: { outcome: 'notUsed' } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('种狼（1号）未使用感染'));
+      expect(entries).toContainEqual(expect.objectContaining({ kind: 'infectIdle', actorSeat: 0 }));
     });
 
     it('shows hunter can shoot when not poisoned', () => {
@@ -307,8 +395,15 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'hunter')],
         [1, makePlayer(1, 'wolf')],
       ]);
-      const lines = buildActionLines(makeGameState({ players }));
-      expect(lines).toContainEqual(expect.stringContaining('猎人（1号）可以发动技能'));
+      const entries = buildActionEntries(makeGameState({ players }));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'shootStatus',
+          actorSeat: 0,
+          actorRoleId: 'hunter',
+          canShoot: true,
+        }),
+      );
     });
 
     it('shows hunter cannot shoot when poisoned', () => {
@@ -317,16 +412,30 @@ describe('NightReview.helpers', () => {
         [1, makePlayer(1, 'wolf')],
         [2, makePlayer(2, 'witch')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { poisonedSeat: 0 } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('猎人（1号）不能发动技能'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'shootStatus',
+          actorSeat: 0,
+          actorRoleId: 'hunter',
+          canShoot: false,
+        }),
+      );
     });
 
     it('shows darkWolfKing can shoot when not poisoned', () => {
       const players = new Map<number, LocalPlayer | null>([[2, makePlayer(2, 'darkWolfKing')]]);
-      const lines = buildActionLines(makeGameState({ players }));
-      expect(lines).toContainEqual(expect.stringContaining('狼王（3号）可以发动技能'));
+      const entries = buildActionEntries(makeGameState({ players }));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'shootStatus',
+          actorSeat: 2,
+          actorRoleId: 'darkWolfKing',
+          canShoot: true,
+        }),
+      );
     });
 
     it('shows darkWolfKing cannot shoot when poisoned', () => {
@@ -334,10 +443,17 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'witch')],
         [2, makePlayer(2, 'darkWolfKing')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { poisonedSeat: 2 } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('狼王（3号）不能发动技能'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'shootStatus',
+          actorSeat: 2,
+          actorRoleId: 'darkWolfKing',
+          canShoot: false,
+        }),
+      );
     });
 
     it('shows hunter cannot shoot when dream-linked death (dreamcatcher killed)', () => {
@@ -346,13 +462,20 @@ describe('NightReview.helpers', () => {
         [1, makePlayer(1, 'dreamcatcher')],
         [2, makePlayer(2, 'witch')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({
           players,
           currentNightResults: { dreamingSeat: 0, poisonedSeat: 1 },
         }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('猎人（1号）不能发动技能'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'shootStatus',
+          actorSeat: 0,
+          actorRoleId: 'hunter',
+          canShoot: false,
+        }),
+      );
     });
 
     it('shows hunter can shoot when dream target but dreamcatcher alive', () => {
@@ -360,13 +483,20 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'hunter')],
         [1, makePlayer(1, 'dreamcatcher')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({
           players,
           currentNightResults: { dreamingSeat: 0 },
         }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('猎人（1号）可以发动技能'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'shootStatus',
+          actorSeat: 0,
+          actorRoleId: 'hunter',
+          canShoot: true,
+        }),
+      );
     });
 
     it('shows hunter cannot shoot when wolfQueen charm victim (wolfQueen killed)', () => {
@@ -375,13 +505,20 @@ describe('NightReview.helpers', () => {
         [1, makePlayer(1, 'wolfQueen')],
         [2, makePlayer(2, 'witch')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({
           players,
           currentNightResults: { charmedSeat: 0, poisonedSeat: 1 },
         }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('猎人（1号）不能发动技能'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'shootStatus',
+          actorSeat: 0,
+          actorRoleId: 'hunter',
+          canShoot: false,
+        }),
+      );
     });
 
     it('shows hunter cannot shoot when couple death (partner wolf-killed)', () => {
@@ -390,14 +527,21 @@ describe('NightReview.helpers', () => {
         [1, makePlayer(1, 'villager')],
         [2, makePlayer(2, 'cupid')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({
           players,
           loverSeats: [0, 1],
           witchContext: { killedSeat: 1, canSave: true, canPoison: true },
         }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('猎人（1号）不能发动技能'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'shootStatus',
+          actorSeat: 0,
+          actorRoleId: 'hunter',
+          canShoot: false,
+        }),
+      );
     });
 
     // ── P3: Wolf empty kill (empty knife) ──
@@ -407,8 +551,8 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'villager')],
       ]);
-      const lines = buildActionLines(makeGameState({ players }));
-      expect(lines).toContainEqual(expect.stringContaining('狼人空刀'));
+      const entries = buildActionEntries(makeGameState({ players }));
+      expect(entries).toContainEqual(expect.objectContaining({ kind: 'wolfNoTarget' }));
     });
 
     it('does not show wolf empty kill when wolfKillOverride is present', () => {
@@ -416,7 +560,7 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'villager')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({
           players,
           currentNightResults: {
@@ -427,9 +571,9 @@ describe('NightReview.helpers', () => {
           },
         }),
       );
-      const joined = lines.join('\n');
-      expect(joined).not.toContain('空刀');
-      expect(joined).toContain('放弃袭击');
+      const kinds = entries.map((entry) => entry.kind);
+      expect(kinds).not.toContain('wolfNoTarget');
+      expect(kinds).toContain('wolfGiveUp');
     });
 
     it('does not show wolf empty kill when no wolves in game', () => {
@@ -437,9 +581,9 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'villager')],
         [1, makePlayer(1, 'seer')],
       ]);
-      const lines = buildActionLines(makeGameState({ players }));
-      const joined = lines.join('\n');
-      expect(joined).not.toContain('空刀');
+      const entries = buildActionEntries(makeGameState({ players }));
+      const kinds = entries.map((entry) => entry.kind);
+      expect(kinds).not.toContain('wolfNoTarget');
     });
 
     // ── P2: Nightmare block role name ──
@@ -449,12 +593,17 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'guard')],
         [1, makePlayer(1, 'nightmare')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { blockedSeat: 0 } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('噩梦之影（2号）封锁了 1号'));
-      expect(lines).toContainEqual(expect.stringContaining('守卫'));
-      expect(lines).toContainEqual(expect.stringContaining('技能无效'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'nightmareBlock',
+          actorSeat: 1,
+          targetSeat: 0,
+          targetRoleId: 'guard',
+        }),
+      );
     });
 
     // ── P1: Guard "did nothing" ──
@@ -464,8 +613,8 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'guard')],
         [1, makePlayer(1, 'villager')],
       ]);
-      const lines = buildActionLines(makeGameState({ players }));
-      expect(lines).toContainEqual(expect.stringContaining('守卫（1号）未守护'));
+      const entries = buildActionEntries(makeGameState({ players }));
+      expect(entries).toContainEqual(expect.objectContaining({ kind: 'guardIdle', actorSeat: 0 }));
     });
 
     it('does not show guard did nothing when guard is blocked by nightmare', () => {
@@ -473,11 +622,11 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'guard')],
         [1, makePlayer(1, 'nightmare')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { blockedSeat: 0 } }),
       );
-      const joined = lines.join('\n');
-      expect(joined).not.toContain('守卫（1号）未守护');
+      const kinds = entries.map((entry) => entry.kind);
+      expect(kinds).not.toContain('guardIdle');
     });
 
     // ── P1: Witch "did nothing" ──
@@ -487,8 +636,10 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'villager')],
       ]);
-      const lines = buildActionLines(makeGameState({ players }));
-      expect(lines).toContainEqual(expect.stringContaining('女巫（1号）未使用药水'));
+      const entries = buildActionEntries(makeGameState({ players }));
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'witchIdleAll', actorSeat: 0 }),
+      );
     });
 
     it('shows witch did not use save when witch saved nothing but poisoned', () => {
@@ -496,12 +647,14 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'villager')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { poisonedSeat: 1 } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('女巫（1号）未使用解药'));
-      const joined = lines.join('\n');
-      expect(joined).not.toContain('未使用药水');
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'witchNoSave', actorSeat: 0 }),
+      );
+      const kinds = entries.map((entry) => entry.kind);
+      expect(kinds).not.toContain('witchIdleAll');
     });
 
     it('shows witch did not use poison when witch saved but did not poison', () => {
@@ -509,12 +662,14 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'villager')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { savedSeat: 1 } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('女巫（1号）未使用毒药'));
-      const joined = lines.join('\n');
-      expect(joined).not.toContain('未使用解药');
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'witchNoPoison', actorSeat: 0 }),
+      );
+      const kinds = entries.map((entry) => entry.kind);
+      expect(kinds).not.toContain('witchNoSave');
     });
 
     it('does not show witch did nothing when witch is blocked by nightmare', () => {
@@ -522,11 +677,13 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'nightmare')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { blockedSeat: 0 } }),
       );
-      const joined = lines.join('\n');
-      expect(joined).not.toContain('女巫未使用');
+      const kinds = entries.map((entry) => entry.kind);
+      expect(kinds).not.toContain('witchIdleAll');
+      expect(kinds).not.toContain('witchNoSave');
+      expect(kinds).not.toContain('witchNoPoison');
     });
 
     it('shows poisoner did nothing when poisoner present but did not poison', () => {
@@ -534,8 +691,10 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'poisoner')],
         [1, makePlayer(1, 'villager')],
       ]);
-      const lines = buildActionLines(makeGameState({ players }));
-      expect(lines).toContainEqual(expect.stringContaining('毒师（1号）未使用毒药'));
+      const entries = buildActionEntries(makeGameState({ players }));
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'poisonerNoPoison', actorSeat: 0 }),
+      );
     });
 
     it('witch does not show poison unused when poisoner owns the poison', () => {
@@ -543,13 +702,17 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'poisoner')],
       ]);
-      const lines = buildActionLines(makeGameState({ players }));
-      // Witch shows "未使用解药", NOT "未使用药水" (poisoner owns poison)
-      expect(lines).toContainEqual(expect.stringContaining('女巫（1号）未使用解药'));
-      expect(lines).toContainEqual(expect.stringContaining('毒师（2号）未使用毒药'));
-      const joined = lines.join('\n');
-      expect(joined).not.toContain('女巫（1号）未使用毒药');
-      expect(joined).not.toContain('女巫（1号）未使用药水');
+      const entries = buildActionEntries(makeGameState({ players }));
+      // Witch shows "did not use save", NOT "did not use poison" (poisoner owns poison)
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'witchNoSave', actorSeat: 0 }),
+      );
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'poisonerNoPoison', actorSeat: 1 }),
+      );
+      const kinds = entries.map((entry) => entry.kind);
+      expect(kinds).not.toContain('witchNoPoison');
+      expect(kinds).not.toContain('witchIdleAll');
     });
 
     // ── P2: double-save warning ──
@@ -561,7 +724,7 @@ describe('NightReview.helpers', () => {
         [2, makePlayer(2, 'witch')],
         [3, makePlayer(3, 'villager')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({
           players,
           currentNightResults: {
@@ -572,8 +735,9 @@ describe('NightReview.helpers', () => {
           lastNightDeaths: [3],
         }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('同守同救'));
-      expect(lines).toContainEqual(expect.stringContaining('4号'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'guardSaveConflict', targetSeat: 3 }),
+      );
     });
 
     // ── P3: Poison immunity warning ──
@@ -583,11 +747,16 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'witcher')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { poisonedSeat: 1 } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('免疫毒药'));
-      expect(lines).toContainEqual(expect.stringContaining('猎魔人'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'poisonImmune',
+          targetSeat: 1,
+          targetRoleId: 'witcher',
+        }),
+      );
     });
 
     it('does not show poison immunity for non-immune target', () => {
@@ -595,11 +764,11 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'villager')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { poisonedSeat: 1 } }),
       );
-      const joined = lines.join('\n');
-      expect(joined).not.toContain('免疫毒药');
+      const kinds = entries.map((entry) => entry.kind);
+      expect(kinds).not.toContain('poisonImmune');
     });
 
     // ── P3: Damage reflection warning ──
@@ -609,20 +778,26 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'seer')],
         [1, makePlayer(1, 'spiritKnight')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({
           players,
           seerReveal: { targetSeat: 1, result: '狼人' },
         }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('反伤'));
-      expect(lines).toContainEqual(expect.stringContaining('灵骑士'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'reflectDamage',
+          checkerRoleId: 'seer',
+          targetSeat: 1,
+          targetRoleId: 'spiritKnight',
+        }),
+      );
     });
   });
 
-  describe('buildIdentityLines', () => {
+  describe('buildIdentityEntries', () => {
     it('returns empty for no players', () => {
-      expect(buildIdentityLines(new Map())).toEqual([]);
+      expect(buildIdentityEntries(new Map(), new Set())).toEqual([]);
     });
 
     it('builds identity list sorted by seat', () => {
@@ -631,25 +806,30 @@ describe('NightReview.helpers', () => {
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'villager')],
       ]);
-      const lines = buildIdentityLines(players);
-      expect(lines[0]).toBe('1号: 狼人');
-      expect(lines[1]).toBe('2号: 平民');
-      expect(lines[2]).toBe('3号: 预言家');
+      expect(buildIdentityEntries(players, new Set())).toEqual([
+        { seat: 0, roleId: 'wolf', isEmptySeat: false, isAlive: true },
+        { seat: 1, roleId: 'villager', isEmptySeat: false, isAlive: true },
+        { seat: 2, roleId: 'seer', isEmptySeat: false, isAlive: true },
+      ]);
     });
 
     it('shows empty seat', () => {
       const players = new Map<number, LocalPlayer | null>([[0, null]]);
-      expect(buildIdentityLines(players)).toEqual(['1号: 空座']);
+      expect(buildIdentityEntries(players, new Set())).toEqual([
+        { seat: 0, roleId: null, isEmptySeat: true, isAlive: true },
+      ]);
     });
 
     it('shows unassigned role', () => {
       const players = new Map([[0, makePlayer(0, null)]]);
-      expect(buildIdentityLines(players)).toEqual(['1号: 未分配']);
+      expect(buildIdentityEntries(players, new Set())).toEqual([
+        { seat: 0, roleId: null, isEmptySeat: false, isAlive: true },
+      ]);
     });
   });
 
-  describe('contract: every NIGHT_STEPS role produces a line with its displayName', () => {
-    it('buildActionLines covers all night-action roles', () => {
+  describe('contract: every NIGHT_STEPS role produces an entry', () => {
+    it('buildActionEntries covers all night-action roles', () => {
       // Build a maximal game state with ALL roles' night actions populated
       const players = new Map<number, LocalPlayer | null>([
         [0, makePlayer(0, 'wolf')],
@@ -733,23 +913,42 @@ describe('NightReview.helpers', () => {
           thiefChosenCard: 'villager',
         },
       } as unknown as LocalGameState;
-      const lines = [...buildActionLines(gs), ...buildActionLines(thiefState)];
-      const joined = lines.join('\n');
+      const entries = [...buildActionEntries(gs), ...buildActionEntries(thiefState)];
+      const roles = new Set<RoleId>();
+      for (const entry of entries) {
+        const actor = nightReviewActorRoleId(entry);
+        if (actor !== null) roles.add(actor);
+        if (
+          entry.kind === 'wolfAttack' ||
+          entry.kind === 'wolfNoTarget' ||
+          entry.kind === 'wolfGiveUp'
+        ) {
+          roles.add('wolf');
+        }
+        if (entry.kind === 'bottomCards') {
+          for (const roleId of entry.roleIds) roles.add(roleId);
+        }
+        if (entry.kind === 'reflectDamage') {
+          roles.add(entry.checkerRoleId);
+          roles.add(entry.targetRoleId);
+        }
+        if (entry.kind === 'poisonImmune') roles.add(entry.targetRoleId);
+      }
 
-      // Every NIGHT_STEPS role must appear in output by its canonical displayName
+      // Every NIGHT_STEPS role must produce an entry that names it as actor
+      // (or, for the wolf team, as the team behind a wolf entry).
       for (const step of NIGHT_STEPS) {
-        const displayName = getRoleDisplayName(step.roleId);
-        expect(joined).toContain(displayName);
+        expect(roles.has(step.roleId)).toBe(true);
       }
     });
   });
 
-  describe('contract: skipped actions — every canSkip role still produces a line', () => {
+  describe('contract: skipped actions — every canSkip role still produces an entry', () => {
     /**
      * Derive all roles that have canSkip: true from ROLE_SPECS.
-     * When a role skips its action, its displayName must still appear in the review.
+     * When a role skips its action, it must still produce an entry.
      */
-    it('buildActionLines covers all canSkip roles when they skip', () => {
+    it('buildActionEntries covers all canSkip roles when they skip', () => {
       // Collect all roles with canSkip: true
       const canSkipRoleIds: RoleId[] = [];
       for (const [roleId, spec] of Object.entries(ROLE_SPECS)) {
@@ -773,12 +972,22 @@ describe('NightReview.helpers', () => {
         currentNightResults: {},
       });
 
-      const lines = buildActionLines(gs);
-      const joined = lines.join('\n');
+      const entries = buildActionEntries(gs);
+      const roles = new Set<RoleId>();
+      for (const entry of entries) {
+        const actor = nightReviewActorRoleId(entry);
+        if (actor !== null) roles.add(actor);
+        if (
+          entry.kind === 'wolfAttack' ||
+          entry.kind === 'wolfNoTarget' ||
+          entry.kind === 'wolfGiveUp'
+        ) {
+          roles.add('wolf');
+        }
+      }
 
       for (const roleId of canSkipRoleIds) {
-        const displayName = getRoleDisplayName(roleId);
-        expect(joined).toContain(displayName);
+        expect(roles.has(roleId)).toBe(true);
       }
     });
   });
@@ -865,14 +1074,19 @@ describe('NightReview.helpers', () => {
       ).toThrow(/Invalid wolf vote target/);
     });
 
-    it('formats abstentions as 空刀 in the text channel, never as seat 0', () => {
-      const lines = buildActionLines(
+    it('keeps abstentions as abstainSeats, never as seat 0', () => {
+      const entries = buildActionEntries(
         makeGameState({
           currentNightResults: { wolfVotesBySeat: { '6': 5, '11': -1 } },
         }),
       );
-      expect(lines[0]).toContain('狼人袭击：7号→6号，12号空刀');
-      expect(lines[0]).not.toContain('0号');
+      const attack = entries.find((entry) => entry.kind === 'wolfAttack');
+      expect(attack).toEqual(
+        expect.objectContaining({
+          votes: [{ voterSeat: 6, targetSeat: 5 }],
+          abstainSeats: [11],
+        }),
+      );
     });
 
     it('does not let an abstention manufacture a tie for the guard-save conflict', () => {
@@ -886,7 +1100,7 @@ describe('NightReview.helpers', () => {
         [3, makePlayer(3, 'villager')],
         [4, makePlayer(4, 'witch')],
       ]);
-      const lines = buildActionLines(
+      const entries = buildActionEntries(
         makeGameState({
           players,
           currentNightResults: {
@@ -897,7 +1111,9 @@ describe('NightReview.helpers', () => {
           lastNightDeaths: [3],
         }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('同守同救'));
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'guardSaveConflict', targetSeat: 3 }),
+      );
     });
 
     it('carries deaths with their reasons in order', () => {
@@ -947,23 +1163,6 @@ describe('NightReview.helpers', () => {
         'guardSaveConflict',
         'deaths',
       ]);
-    });
-
-    it('formats every entry of a composed night to a non-empty legacy line', () => {
-      const players = new Map<number, LocalPlayer | null>([
-        [0, makePlayer(0, 'guard')],
-        [1, makePlayer(1, 'witch')],
-      ]);
-      const entries = buildActionEntries(
-        makeGameState({
-          players,
-          currentNightResults: { guardedSeat: 1, savedSeat: 3, poisonedSeat: 5 },
-          lastNightDeaths: [5],
-        }),
-      );
-      const lines = entries.map(formatNightReviewActionLine);
-      expect(lines.length).toBe(entries.length);
-      for (const line of lines) expect(line.length).toBeGreaterThan(0);
     });
 
     it('builds identity entries for empty and unassigned seats', () => {

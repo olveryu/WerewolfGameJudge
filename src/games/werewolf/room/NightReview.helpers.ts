@@ -5,8 +5,8 @@
  * structured action entries (category, seats, outcome semantics) in night-resolution order.
  * Second section: per-seat identity entries (seat, role, faction source, alive state).
  * Text rendering lives in the consumers (NightReviewReportBody renders structure
- * for the DOM surfaces; shareNightReviewLines formats the text channel). This
- * module emits no display strings. Its derivations — getNightReviewOutcome,
+ * for the DOM surfaces; the panel read-only components render the sheriff
+ * section). This module emits no display strings. Its derivations — getNightReviewOutcome,
  * deriveNightReportStats, deriveWolfVerdict, deriveDeathNotes,
  * deriveWolfTargetSaveNote, deriveSheriffSection — lift every fact a surface
  * headlines or annotates from the same entries, so no surface re-derives

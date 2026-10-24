@@ -31,7 +31,6 @@ import { SheriffElectionPanel } from '../components/SheriffElectionPanel';
 import { createSheriffElectionPanelStyles } from '../components/sheriffElectionPanel.styles';
 import type { SheriffElectionPanelModel } from '../hooks/useSheriffElection';
 import { deriveSheriffSection } from '../NightReview.helpers';
-import { formatNightReviewSheriffLines } from '../shareNightReviewLines';
 import { createSheriffElectionViewModel } from '../sheriffElectionViewModel';
 
 const FIRST_ROUND: NonNullable<GameState['sheriffElection']>['completedRounds'][number] = {
@@ -229,12 +228,6 @@ describe('panel and report derive the same sheriff record', () => {
     expect(section.candidateSeats).toEqual([2, 5]);
     expect(section.withdrawnSeats).toEqual([9]);
     expect(section.closedRounds).toEqual([FIRST_ROUND_TALLY]);
-
-    // Text channel: the runoff row lists the runoff candidates only.
-    const lines = formatNightReviewSheriffLines(section);
-    const runoffLine = lines.find((line) => line.startsWith('决选候选'));
-    expect(runoffLine).toBe('决选候选：3号、6号');
-    expect(lines.join('\n')).not.toContain('10号');
 
     // Card channel, now in panel UI: the 平票候选 row holds exactly the
     // runoff candidates. The withdrawn seat appears in the 上警 row
