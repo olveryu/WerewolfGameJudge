@@ -346,6 +346,8 @@ export interface AvalonBottomActionsInput {
   readonly onLadyAcknowledgePress: () => void;
   readonly onLadyResultPress: () => void;
   readonly onEarlyStrikePress: () => void;
+  /** 本局复盘入口：终局时底部按钮与主持管理按钮共用的唯一处理器。 */
+  readonly onReviewPress: () => void;
   /** 提前刺杀选人模式（本地 UI 状态）：开启时底部区独占为座位盘点选提示 + 取消入口。 */
   readonly strikePickMode: boolean;
   readonly onCancelEarlyStrikePress: () => void;
@@ -608,8 +610,17 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
       break;
     }
     case 'ended':
-      // 结算常驻于座位表上方区；非房主玩家在此等房主决定再来一局
-      // 或返回大厅（共享终局等待句，DrawGuess 基准句式）。
+      // 终局结算只在本局复盘里；底部区只留复盘入口（玩家与观看者同款，
+      // 非 host 专属），再来一局 / 返回大厅仍是房主专属（主持管理里）。
+      secondary.push({
+        key: 'avalonReview',
+        label: '本局复盘',
+        variant: 'secondary',
+        size: 'md',
+        isEnabled: true,
+        onPress: input.onReviewPress,
+        testID: 'avalon-review-open',
+      });
       message = buildEndedWaitingMessage({
         isEnded: true,
         isHost: input.isHost,
@@ -658,6 +669,7 @@ export interface AvalonRoomShellModelInput {
   readonly onLadyAcknowledgePress: () => void;
   readonly onLadyResultPress: () => void;
   readonly onEarlyStrikePress: () => void;
+  readonly onReviewPress: () => void;
   readonly strikePickMode: boolean;
   readonly onCancelEarlyStrikePress: () => void;
   readonly hostManagement: RoomHostManagementModel | null;
@@ -675,6 +687,8 @@ export interface AvalonHostManagementInput {
   readonly isSubmitting: boolean;
   readonly controlledSeat: number | null;
   readonly releaseBot: () => void;
+  /** 本局复盘入口：与底部按钮共用的唯一处理器。 */
+  readonly onReviewPress: () => void;
   readonly submit: (
     label: string,
     command: AvalonPublicCommand,
@@ -794,6 +808,15 @@ export function createAvalonHostManagement(
           key: 'current-flow',
           title: '当前流程',
           actions: [
+            {
+              key: 'avalonReview',
+              label: '本局复盘',
+              icon: 'document-text-outline',
+              variant: 'secondary',
+              testID: 'avalon-review-open',
+              isEnabled: true,
+              onPress: input.onReviewPress,
+            },
             buildNextRoundAction({
               onPress: () =>
                 showConfirmAlert(
@@ -898,6 +921,7 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       onLadyAcknowledgePress: input.onLadyAcknowledgePress,
       onLadyResultPress: input.onLadyResultPress,
       onEarlyStrikePress: input.onEarlyStrikePress,
+      onReviewPress: input.onReviewPress,
       strikePickMode: input.strikePickMode,
       onCancelEarlyStrikePress: input.onCancelEarlyStrikePress,
     }),

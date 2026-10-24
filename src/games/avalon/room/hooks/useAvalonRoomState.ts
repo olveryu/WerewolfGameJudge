@@ -144,6 +144,10 @@ export function useAvalonRoomState(
     readonly entryController: RoomEntryController;
     readonly audio: AvalonAudioRuntime;
   },
+  callbacks: {
+    /** 本局复盘入口：Screen 持有复盘浮层开关，底部与主持管理共用它。 */
+    readonly onReviewPress: () => void;
+  },
 ): AvalonRoomScreenState {
   const { session, room, navigation, entryController, audio } = props;
   const { user } = useAuthContext();
@@ -339,6 +343,7 @@ export function useAvalonRoomState(
     isSubmitting: submission.isSubmitting,
     controlledSeat,
     releaseBot,
+    onReviewPress: callbacks.onReviewPress,
     submit,
   });
 
@@ -417,6 +422,7 @@ export function useAvalonRoomState(
     onLadyAcknowledgePress: () => setLadyAckOpen(true),
     onLadyResultPress: () => ladyResultReopenRef.current?.(),
     onEarlyStrikePress: () => setStrikePickMode(true),
+    onReviewPress: callbacks.onReviewPress,
     strikePickMode,
     onCancelEarlyStrikePress: () => setStrikePickMode(false),
     hostManagement,
