@@ -1538,4 +1538,14 @@ describe('Room seat taps: in-game adjudication is the shared resolveRoomInGameSe
     expect(source).toContain('createRoomSeatPressHandler(');
     expect(source).toContain('useRoomSetupController(');
   });
+
+  it.each([
+    'features/room/controllers/useRoomSetupController.ts',
+    'games/pictionary/room/hooks/usePictionaryRoomScreenState.ts',
+    'games/fibking/room/hooks/useFibRoomScreenState.ts',
+    'games/undercover/room/hooks/useUndercoverRoster.ts',
+  ])('%s shares roster wiring without moving game-owned permissions', (relativePath) => {
+    const source = fs.readFileSync(path.join(srcDir, relativePath), 'utf-8');
+    expect(source).toContain('useRoomRosterController(');
+  });
 });

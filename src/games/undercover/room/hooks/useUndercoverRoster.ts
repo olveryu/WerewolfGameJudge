@@ -9,10 +9,7 @@ import type { User } from '@/contexts/AuthContext';
 import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
-import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
-import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
-import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
-import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
+import { useRoomRosterController } from '@/features/room/controllers/useRoomRosterController';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
@@ -35,18 +32,16 @@ export function useUndercoverRoster(
   configureGame: () => void,
   shareRoom: () => void,
 ) {
-  const commands = useStandardSeatCommands(session, user);
   const mySeat = getUndercoverUserSeat(state, user.id);
-  const seatController = useRoomSeatController({
-    currentSeat: mySeat,
-    takeSeat: commands.takeSeat,
+  const {
+    seatController,
+    profile: profileController,
+    actions,
+  } = useRoomRosterController({
+    session,
+    user,
+    mySeat,
   });
-  const profileController = useRoomProfileController({
-    myUserId: user.id,
-    kickSeat: commands.kickSeat,
-    leaveSeat: commands.leaveSeat,
-  });
-  const operations = useRoomHostOperations(commands);
   const bot = useRoomBotControl();
   const isHost = state.hostUserId === user.id;
   const canControl = isHost;
@@ -59,17 +54,11 @@ export function useUndercoverRoster(
     release,
   });
   const capabilities = createUndercoverRoomCapabilities({
+    ...actions,
     state,
     isHost,
     mySeat,
-    requestTakeSeat: seatController.requestTakeSeat,
-    requestMoveSeat: seatController.requestMoveSeat,
-    leaveSeat: profileController.leaveSelf,
-    kickSeat: profileController.kick,
-    clearSeats: operations.requestClearSeats,
-    fillBots: operations.requestFillBots,
     configureGame,
-    openProfile: profileController.open,
     takeOverBot: bot.takeOver,
     shareRoom,
   });

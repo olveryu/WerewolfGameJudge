@@ -12,11 +12,10 @@ import {
   type RoomSetupCapabilitiesInput,
 } from '@/features/room/model/RoomCapabilities';
 
-import { useRoomHostOperations } from './useRoomHostOperations';
-import { type RoomProfileController, useRoomProfileController } from './useRoomProfileController';
+import type { RoomProfileController } from './useRoomProfileController';
+import { useRoomRosterController } from './useRoomRosterController';
 import type { RoomSeatSession } from './useRoomSeatCommands';
-import { type RoomSeatController, useRoomSeatController } from './useRoomSeatController';
-import { useStandardSeatCommands } from './useStandardSeatCommands';
+import type { RoomSeatController } from './useRoomSeatController';
 
 interface UseRoomSetupControllerParams<TState extends BaseGameState<string>> extends Pick<
   RoomSetupCapabilitiesInput,
@@ -43,19 +42,10 @@ interface RoomSetupController {
 export function useRoomSetupController<TState extends BaseGameState<string>>(
   params: UseRoomSetupControllerParams<TState>,
 ): RoomSetupController {
-  const seats = useStandardSeatCommands(params.session, params.user);
-  const seatController = useRoomSeatController({
-    currentSeat: params.mySeat,
-    takeSeat: seats.takeSeat,
-  });
-  const profile = useRoomProfileController({
-    myUserId: params.user.id,
-    kickSeat: seats.kickSeat,
-    leaveSeat: seats.leaveSeat,
-  });
-  const host = useRoomHostOperations({ clearSeats: seats.clearSeats, fillBots: seats.fillBots });
+  const { seatController, profile, actions } = useRoomRosterController(params);
   const capabilities = {
     ...createRoomSetupCapabilities({
+      ...actions,
       isSetup: params.isSetup,
       isHost: params.isHost,
       mySeat: params.mySeat,
@@ -64,12 +54,6 @@ export function useRoomSetupController<TState extends BaseGameState<string>>(
       isRoomFull: params.isRoomFull,
       configureGame: params.configureGame,
       shareRoom: params.shareRoom,
-      requestTakeSeat: seatController.requestTakeSeat,
-      requestMoveSeat: seatController.requestMoveSeat,
-      leaveSeat: profile.leaveSelf,
-      kickSeat: profile.kick,
-      clearSeats: host.requestClearSeats,
-      fillBots: host.requestFillBots,
     }),
     canViewProfiles: createViewProfilesCapability(params.isSetup, profile.open),
   };

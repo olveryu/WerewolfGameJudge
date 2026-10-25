@@ -22,13 +22,11 @@ import {
 } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
-import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
-import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+import type { RoomProfileController } from '@/features/room/controllers/useRoomProfileController';
+import { useRoomRosterController } from '@/features/room/controllers/useRoomRosterController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
-import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
@@ -62,7 +60,7 @@ interface UsePictionaryRoomScreenStateParams {
 
 function usePictionaryProfileModel(
   capabilities: RoomCapabilities,
-  profileController: ReturnType<typeof useRoomProfileController>,
+  profileController: RoomProfileController,
 ): RoomProfileCardModel | null {
   const selection = profileController.selection;
   return useMemo(
@@ -117,16 +115,15 @@ export function usePictionaryRoomScreenState({
   const revision = snapshot.snapshot.revision;
   const isHost = state.hostUserId === user.id;
   const mySeat = getPictionaryUserSeat(state, user.id);
-  const seatCommands = useStandardSeatCommands(session, user);
   const { controlledSeat, takeOver: takeOverBot, release: releaseBot } = useRoomBotControl();
-  const seatController = useRoomSeatController({
-    currentSeat: mySeat,
-    takeSeat: seatCommands.takeSeat,
-  });
-  const profileController = useRoomProfileController({
-    myUserId: user.id,
-    kickSeat: seatCommands.kickSeat,
-    leaveSeat: seatCommands.leaveSeat,
+  const {
+    seatController,
+    profile: profileController,
+    actions,
+  } = useRoomRosterController({
+    session,
+    user,
+    mySeat,
   });
   const share = useRoomShareController({
     roomCode: room.roomCode,
@@ -134,10 +131,6 @@ export function usePictionaryRoomScreenState({
   });
   const openShare = share.open;
   const commandSubmission = useRoomCommandSubmission(getPictionaryRoomCommandFailureMessage);
-  const { requestClearSeats, requestFillBots } = useRoomHostOperations({
-    clearSeats: seatCommands.clearSeats,
-    fillBots: seatCommands.fillBots,
-  });
   const { data: gachaStatus } = useGachaStatusQuery();
   const effectiveSeat = controlledSeat ?? mySeat;
 
@@ -186,39 +179,15 @@ export function usePictionaryRoomScreenState({
       ),
     [state, submitCommand],
   );
-  const capabilities = useMemo(
-    () =>
-      createPictionaryRoomCapabilities({
-        state,
-        isHost,
-        mySeat,
-        requestTakeSeat: seatController.requestTakeSeat,
-        requestMoveSeat: seatController.requestMoveSeat,
-        leaveSeat: profileController.leaveSelf,
-        kickSeat: profileController.kick,
-        clearSeats: requestClearSeats,
-        fillBots: requestFillBots,
-        configureGame,
-        openProfile: profileController.open,
-        takeOverBot,
-        shareRoom: share.open,
-      }),
-    [
-      configureGame,
-      isHost,
-      mySeat,
-      profileController.kick,
-      profileController.leaveSelf,
-      profileController.open,
-      requestClearSeats,
-      requestFillBots,
-      seatController.requestMoveSeat,
-      seatController.requestTakeSeat,
-      share.open,
-      state,
-      takeOverBot,
-    ],
-  );
+  const capabilities = createPictionaryRoomCapabilities({
+    ...actions,
+    state,
+    isHost,
+    mySeat,
+    configureGame,
+    takeOverBot,
+    shareRoom: share.open,
+  });
   const onSeatPress = useCallback(
     (seat: number, disabledReason?: string) => {
       const intent = getPictionarySeatTapIntent({
