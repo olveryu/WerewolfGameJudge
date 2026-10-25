@@ -42,6 +42,7 @@ const avalonPublicCommandOptions = definePublicCommandOptions<AvalonPublicComman
     type: z.literal('avalon.team.updateDraft'),
     seats: z.array(z.number().int().nonnegative()).readonly(),
   }),
+  z.strictObject({ type: z.literal('avalon.team.preselect') }),
   z.strictObject({ type: z.literal('avalon.team.propose') }),
   z.strictObject({
     type: z.literal('avalon.team.vote'),
