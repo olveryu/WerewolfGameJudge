@@ -10,11 +10,10 @@ import {
   parseNonEmptyString,
   parseNullable,
   parseObject,
-  parseOptional,
   parseSeat,
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
-import { buildRoomSeatProfile, type RoomSeatProfile } from '../../../platform/room/roster';
+import { parseRoomHumanSeat, parseRoomRoster } from '../../../platform/room/roster';
 import type { BotSeatOccupant } from '../../../platform/room/seating';
 import { normalizeStoryRelayState } from './normalize';
 import {
@@ -57,52 +56,6 @@ export function parseStoryRelayConfig(value: unknown, path = 'StoryRelayConfig')
   );
 }
 
-function profile(value: unknown, path: string): RoomSeatProfile {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    buildRoomSeatProfile({
-      displayName: parseNonEmptyString(raw.displayName, `${path}.displayName`),
-      avatarUrl: parseOptional(raw.avatarUrl, `${path}.avatarUrl`, parseString),
-      avatarFrame: parseOptional(raw.avatarFrame, `${path}.avatarFrame`, parseString),
-      seatFlair: parseOptional(raw.seatFlair, `${path}.seatFlair`, parseString),
-      seatAnimation: parseOptional(raw.seatAnimation, `${path}.seatAnimation`, parseString),
-      nameStyle: parseOptional(raw.nameStyle, `${path}.nameStyle`, parseString),
-      revealEffect: parseOptional(raw.revealEffect, `${path}.revealEffect`, parseString),
-      level: parseOptional(raw.level, `${path}.level`, parseInteger),
-    }),
-    path,
-  );
-}
-
-function roster(value: unknown, path: string): StoryRelayState['roster'] {
-  const raw = parseObject(value, path);
-  const result: Record<number, StoryRelayHumanSeat | BotSeatOccupant> = {};
-  for (const [key, value] of Object.entries(raw)) {
-    if (!/^(0|[1-9]\d*)$/.test(key)) failDecode(`${path}.${key}`, 'a canonical seat key');
-    const rawSeat = parseObject(value, `${path}.${key}`);
-    const seat = parseSeat(Number(key), `${path}.${key}`);
-    if (rawSeat.kind === 'bot') {
-      result[seat] = finishObject(
-        rawSeat,
-        { seat: parseSeat(rawSeat.seat, `${path}.${key}.seat`), kind: 'bot' as const },
-        `${path}.${key}`,
-      );
-    } else {
-      result[seat] = finishObject(
-        rawSeat,
-        {
-          seat: parseSeat(rawSeat.seat, `${path}.${key}.seat`),
-          userId: parseNonEmptyString(rawSeat.userId, `${path}.${key}.userId`),
-          profile: profile(rawSeat.profile, `${path}.${key}.profile`),
-        },
-        `${path}.${key}`,
-      );
-    }
-  }
-  return result;
-}
-
 function legacyRealSeats(
   value: unknown,
   path: string,
@@ -111,16 +64,7 @@ function legacyRealSeats(
   const result: Record<number, StoryRelayHumanSeat> = {};
   for (const [key, value] of Object.entries(raw)) {
     if (!/^(0|[1-9]\d*)$/.test(key)) failDecode(`${path}.${key}`, 'a canonical seat key');
-    const rawSeat = parseObject(value, `${path}.${key}`);
-    result[parseSeat(Number(key), `${path}.${key}`)] = finishObject(
-      rawSeat,
-      {
-        seat: parseSeat(rawSeat.seat, `${path}.${key}.seat`),
-        userId: parseNonEmptyString(rawSeat.userId, `${path}.${key}.userId`),
-        profile: profile(rawSeat.profile, `${path}.${key}.profile`),
-      },
-      `${path}.${key}`,
-    );
+    result[parseSeat(Number(key), `${path}.${key}`)] = parseRoomHumanSeat(value, `${path}.${key}`);
   }
   return result;
 }
@@ -205,7 +149,7 @@ export function parseStoryRelayState(value: unknown): StoryRelayState {
         phase: parseChoice(raw.phase, `${path}.phase`, STORY_RELAY_PHASES),
         phaseRevision: parseInteger(raw.phaseRevision, `${path}.phaseRevision`),
         config: parseStoryRelayConfig(raw.config, `${path}.config`),
-        roster: roster(raw.roster, `${path}.roster`),
+        roster: parseRoomRoster(raw.roster, `${path}.roster`),
         roundNumber: parseInteger(raw.roundNumber, `${path}.roundNumber`),
         roundId: parseNullable(raw.roundId, `${path}.roundId`, parseNonEmptyString),
         startedAt: parseNullable(raw.startedAt, `${path}.startedAt`, parseInteger),

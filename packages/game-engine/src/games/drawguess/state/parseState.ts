@@ -11,12 +11,10 @@ import {
   parseNonEmptyString,
   parseNullable,
   parseObject,
-  parseOptional,
   parseSeat,
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
-import { buildRoomSeatProfile, type RoomSeatProfile } from '../../../platform/room/roster';
-import type { BotSeatOccupant } from '../../../platform/room/seating';
+import { parseRoomHumanSeat, parseRoomRoster } from '../../../platform/room/roster';
 import { normalizeDrawGuessState } from './normalize';
 import {
   DRAWGUESS_DRAWING_DURATION_SECONDS,
@@ -69,62 +67,15 @@ export function parseDrawGuessConfig(value: unknown, path = 'DrawGuessConfig'): 
   );
 }
 
-function profile(value: unknown, path: string): RoomSeatProfile {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    buildRoomSeatProfile({
-      displayName: parseNonEmptyString(raw.displayName, `${path}.displayName`),
-      avatarUrl: parseOptional(raw.avatarUrl, `${path}.avatarUrl`, parseString),
-      avatarFrame: parseOptional(raw.avatarFrame, `${path}.avatarFrame`, parseString),
-      seatFlair: parseOptional(raw.seatFlair, `${path}.seatFlair`, parseString),
-      seatAnimation: parseOptional(raw.seatAnimation, `${path}.seatAnimation`, parseString),
-      nameStyle: parseOptional(raw.nameStyle, `${path}.nameStyle`, parseString),
-      revealEffect: parseOptional(raw.revealEffect, `${path}.revealEffect`, parseString),
-      level: parseOptional(raw.level, `${path}.level`, parseInteger),
-    }),
-    path,
-  );
-}
-
-function humanSeat(value: unknown, path: string): DrawGuessHumanSeat {
-  const rawSeat = parseObject(value, path);
-  return finishObject(
-    rawSeat,
-    {
-      seat: parseSeat(rawSeat.seat, `${path}.seat`),
-      userId: parseNonEmptyString(rawSeat.userId, `${path}.userId`),
-      profile: profile(rawSeat.profile, `${path}.profile`),
-    },
-    path,
-  );
-}
-
-function roster(value: unknown, path: string): DrawGuessState['roster'] {
-  const raw = parseObject(value, path);
-  const result: Record<number, DrawGuessHumanSeat | BotSeatOccupant> = {};
-  for (const [key, occupant] of Object.entries(raw)) {
-    if (!/^(0|[1-9]\d*)$/.test(key)) failDecode(`${path}.${key}`, 'a canonical seat key');
-    const seat = parseSeat(Number(key), `${path}.${key}`);
-    const rawOccupant = parseObject(occupant, `${path}.${key}`);
-    result[seat] =
-      rawOccupant.kind === 'bot'
-        ? finishObject(
-            rawOccupant,
-            { seat: parseSeat(rawOccupant.seat, `${path}.${key}.seat`), kind: 'bot' as const },
-            `${path}.${key}`,
-          )
-        : humanSeat(occupant, `${path}.${key}`);
-  }
-  return result;
-}
-
 function legacyRealSeats(value: unknown, path: string): Record<number, DrawGuessHumanSeat> {
   const raw = parseObject(value, path);
   const result: Record<number, DrawGuessHumanSeat> = {};
   for (const [key, occupant] of Object.entries(raw)) {
     if (!/^(0|[1-9]\d*)$/.test(key)) failDecode(`${path}.${key}`, 'a canonical seat key');
-    result[parseSeat(Number(key), `${path}.${key}`)] = humanSeat(occupant, `${path}.${key}`);
+    result[parseSeat(Number(key), `${path}.${key}`)] = parseRoomHumanSeat(
+      occupant,
+      `${path}.${key}`,
+    );
   }
   return result;
 }
@@ -348,7 +299,7 @@ export function parseDrawGuessState(value: unknown): DrawGuessState {
         phase: phase(raw.phase, `${path}.phase`),
         phaseRevision: parseInteger(raw.phaseRevision, `${path}.phaseRevision`),
         config: parseDrawGuessConfig(raw.config, `${path}.config`),
-        roster: roster(raw.roster, `${path}.roster`),
+        roster: parseRoomRoster(raw.roster, `${path}.roster`),
         drawerQueue: parseArray(raw.drawerQueue, `${path}.drawerQueue`, parseSeat),
         turnIndex: parseInteger(raw.turnIndex, `${path}.turnIndex`),
         scores: scores(raw.scores, `${path}.scores`),
