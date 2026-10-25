@@ -156,42 +156,85 @@ async function confirmNightInfo(
 async function pickTeam(pages: Page[], leaderSeat: number, team: readonly number[]) {
   const leaderPage = pages[leaderSeat]!;
   const leaderRoom = new RoomPage(leaderPage);
-  // 提名草稿是服务端状态、全房可见：第二名玩家（非组队者）页面必须实时
-  // 看到同一份草稿徽标，组队者改选后同步变化。
+  // 组队选人只在 modal 里做：板子点选已停用，modal 本地选择在确认前
+  // 不落服务端、不向全房显示；确认后服务端回声才是全房可见的阵容。
   const observerSeat = (leaderSeat + 1) % PLAYER_COUNT;
   const observerRoom = new RoomPage(pages[observerSeat]!);
-  // 改选探针：先选一个不在最终队伍里的座位，再撤销，验证徽标的新增与
-  // 消失都同步到第二名玩家；最终队伍不变，下游步骤不受影响。
+  // 改选探针座位：不在最终队伍里，用于取消探针与最终改选探针。
   const probeSeat = Array.from({ length: PLAYER_COUNT }, (_, seat) => seat).find(
     (seat) => seat !== leaderSeat && !team.includes(seat),
   );
   if (probeSeat === undefined) throw new Error('pickTeam: no probe seat outside the team');
-  const leaderProbeTile = leaderRoom.getSeatTile(probeSeat);
-  const observerProbeTile = observerRoom.getSeatTile(probeSeat);
-  await leaderProbeTile.click();
-  await expect(leaderProbeTile).toContainText('队员', { timeout: 10_000 });
-  await expect(observerProbeTile).toContainText('队员', { timeout: 10_000 });
-  await leaderProbeTile.click();
-  await expect(leaderProbeTile).not.toContainText('队员', { timeout: 10_000 });
-  await expect(observerProbeTile).not.toContainText('队员', { timeout: 10_000 });
+  const pickModal = leaderPage.getByTestId('avalon-team-pick-modal');
+  const pickRow = (seat: number) => leaderPage.getByTestId(`avalon-team-pick-row-${seat}`);
+  const pickCount = leaderPage.getByTestId('avalon-team-pick-count');
+  const pickConfirm = leaderPage.getByTestId('avalon-team-pick-confirm');
+
+  // 两段式组队：先预选——modal 取消探针：勾选后取消，板子与观察者
+  // 页面都不应出现任何队员徽标。
+  const preselect = leaderPage.getByTestId('avalon-nominate-preselect');
+  await expect(preselect).toBeEnabled({ timeout: 10_000 });
+  await preselect.click();
+  await expect(pickModal).toBeVisible({ timeout: 10_000 });
+  await pickRow(probeSeat).click();
+  await expect(pickCount).toContainText('已选 1/2', { timeout: 10_000 });
+  await leaderPage.getByTestId('avalon-team-pick-cancel').click();
+  await expect(pickModal).toBeHidden({ timeout: 10_000 });
+  await expect(leaderRoom.getSeatTile(probeSeat)).not.toContainText('队员', { timeout: 10_000 });
+  await expect(observerRoom.getSeatTile(probeSeat)).not.toContainText('队员', { timeout: 10_000 });
+
+  // 重开预选 modal 选满最终队伍并确认：服务端回声到后，队员徽标同步
+  // 到组队者与观察者页面（含组队者本人的「组队者 · 队员」）。
+  await preselect.click();
+  await expect(pickModal).toBeVisible({ timeout: 10_000 });
   for (const seat of team) {
-    const tile = leaderRoom.getSeatTile(seat);
-    await tile.click();
-    // 座位状态标签：队员事实对每个被选座位都必须亮起（含组队者本人——
-    // 组队者被选进队伍时与组队者事实同显「组队者 · 队员」，不被组队者标遮住）；
-    // 同一座位的徽标同步出现在第二名玩家页面（草稿回声）。
-    await expect(tile).toContainText('队员', { timeout: 10_000 });
+    await pickRow(seat).click();
+  }
+  await expect(pickCount).toContainText('已选 2/2', { timeout: 10_000 });
+  await pickConfirm.click();
+  await expect(pickModal).toBeHidden({ timeout: 10_000 });
+  for (const seat of team) {
+    await expect(leaderRoom.getSeatTile(seat)).toContainText('队员', { timeout: 10_000 });
     await expect(observerRoom.getSeatTile(seat)).toContainText('队员', { timeout: 10_000 });
     if (seat === leaderSeat) {
-      await expect(tile).toContainText('组队者 · 队员', { timeout: 10_000 });
+      await expect(leaderRoom.getSeatTile(seat)).toContainText('组队者 · 队员', {
+        timeout: 10_000,
+      });
       await expect(observerRoom.getSeatTile(seat)).toContainText('组队者 · 队员', {
         timeout: 10_000,
       });
     }
   }
+  // 预选回声到后，组队者底部主按钮翻成「最终队伍」，非组队者页面宣告预选状态。
   const submit = leaderPage.getByTestId('avalon-nominate-submit');
   await expect(submit).toBeEnabled({ timeout: 10_000 });
+  await expect(leaderPage.getByText(/预选已确认/)).toBeVisible({ timeout: 10_000 });
+  await expect(
+    pages[observerSeat]!.getByText('队长已预选，正在定最终队伍。', { exact: true }),
+  ).toBeVisible({ timeout: 10_000 });
+
+  // 最终队伍可改选探针：modal 里换出一名非组队者队员再换回——确认前
+  // 板子仍是预选阵容（换出座位仍是队员、换入座位仍不是）；换回确认后
+  // 最终队伍恢复为预选阵容，下游步骤不受影响。
+  const editedOut = team.find((seat) => seat !== leaderSeat);
+  if (editedOut === undefined) throw new Error('pickTeam: team has no non-leader member');
   await submit.click();
+  await expect(pickModal).toBeVisible({ timeout: 10_000 });
+  await expect(pickCount).toContainText('已选 2/2', { timeout: 10_000 });
+  await pickRow(editedOut).click();
+  await expect(pickCount).toContainText('已选 1/2', { timeout: 10_000 });
+  await pickRow(probeSeat).click();
+  await expect(pickCount).toContainText('已选 2/2', { timeout: 10_000 });
+  await expect(leaderRoom.getSeatTile(editedOut)).toContainText('队员', { timeout: 10_000 });
+  await expect(observerRoom.getSeatTile(editedOut)).toContainText('队员', { timeout: 10_000 });
+  await expect(leaderRoom.getSeatTile(probeSeat)).not.toContainText('队员', { timeout: 10_000 });
+  await expect(observerRoom.getSeatTile(probeSeat)).not.toContainText('队员', { timeout: 10_000 });
+  await pickRow(probeSeat).click();
+  await pickRow(editedOut).click();
+  await expect(pickCount).toContainText('已选 2/2', { timeout: 10_000 });
+  // 最终队伍 modal 确认即提交进投票。
+  await pickConfirm.click();
+  await expect(pickModal).toBeHidden({ timeout: 10_000 });
 }
 
 async function castVote(page: Page, ballot: Ballot): Promise<void> {
