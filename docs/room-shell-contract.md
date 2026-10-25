@@ -48,6 +48,64 @@ component owns the complete geometry, including the value area, not just its out
   dialog. Use the existing confirmation/sheet primitives when dismissal, pending-state
   locking or responsive presentation differs; preserve those behaviors while aligning visuals.
 
+## Configuration Submission
+
+Demo, Avalon, DrawGuess, Story Relay and the shared new-game settings template use
+`src/features/room/controllers/useRoomConfigSubmission.ts` for create/edit submission.
+It composes the creation and command controllers, exposes their combined pending state,
+returns to the active room only after an accepted edit, and replaces the config route after
+successful creation. Creation failures keep the game-specific error label and shared error pipeline.
+
+Games retain authoritative configuration initialization, field validation, authentication
+preconditions, creation payloads, typed update commands and command-failure presentation.
+The shared controller does not synthesize configs or change host-command dispatch options.
+
+## Room Controller Composition
+
+All eight room hooks and the new-game hook template use
+`src/features/room/controllers/useRoomPresentationController.ts` for the share controller,
+once-per-created-entry QR presentation, title gestures and gacha status. Games supply their
+display name, room code, authoritative host flag and entry reason. This composition does not
+interpret game phases; Werewolf supplies its entry reason through the Screen-to-hook contract.
+
+`src/features/room/controllers/useRoomRosterController.ts` binds standard seat commands,
+seat confirmations, profiles and host clear/fill confirmations to one authenticated session.
+It exposes the controllers and their capability actions without deciding lifecycle permissions.
+Pictionary, FibKing and Undercover pass those actions into their existing game-owned capability
+factories, preserving their different in-game profile and seat-tap behavior.
+
+Demo, Avalon, DrawGuess and Story Relay share their standard setup composition:
+
+- `src/features/room/controllers/useRoomSetupController.ts` composes the roster controller with
+  standard setup capabilities and setup-only profile viewing. Games supply
+  lifecycle facts, occupancy, bot support and configuration/share callbacks; they do not repeat
+  the controller-to-capability wiring.
+- `src/features/room/controllers/createRoomSeatPressHandler.ts` executes setup seat intents and
+  delegates unconsumed in-game taps to the shared adjudicator. Games keep their profile-target
+  resolvers. Avalon consumes game-specific seat picks before calling this handler.
+- Bot takeover, role viewing, deadlines, gameplay commands and shell projections remain game-owned.
+  Sharing roster controllers does not require replacing game-owned capability factories or click policies.
+
+The new-game room hook template emits both shared bindings. Update that template with Demo so
+new games do not regenerate copies of the execution branches or controller wiring.
+
+## Shell Model Assembly
+
+All eight game adapters use `src/features/room/model/createRoomShellModel.ts` to assemble
+the public shell fields and seat board. Game adapter inputs inherit the shared contract,
+omitting fields that the game computes rather than duplicating common field declarations.
+The factory copies only declared output fields; spreading a game adapter input into it does
+not expose game state, controllers or private projection inputs on the returned model.
+
+- `RoomShellModelInput` accepts standard header callbacks and gacha status; the factory delegates
+  header construction to `buildRoomHeaderModel`.
+- `RoomShellModelWithHeaderInput` accepts a complete header. Werewolf retains its precomputed
+  ticket count and avatar callback instead of reconstructing gacha state.
+- Games supply authoritative `phase` and nullable `step`, seat-source projections, profile and
+  confirmation models, bottom actions, host management, and bot-control projections. The factory
+  does not infer phases, lock seats or decide permissions.
+- The new-game adapter template uses the same factory and input contract as Demo.
+
 ## Room Content
 
 `RoomShell` owns the shared header, connection/status ribbon, seat control banner, bottom actions, profile, invitation, and host-management surfaces. Game screens provide models and content, not another copy of those surfaces.

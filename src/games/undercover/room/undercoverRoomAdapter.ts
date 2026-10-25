@@ -13,12 +13,12 @@ import {
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
-import {
-  buildRoomHeaderModel,
-  type RoomHeaderGachaStatus,
-} from '@/features/room/model/buildRoomHeaderModel';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
+import {
+  createRoomShellModel,
+  type RoomShellModelInput,
+} from '@/features/room/model/createRoomShellModel';
 import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
@@ -53,11 +53,8 @@ import {
   type RoomHostManagementModel,
   type RoomHostManagementSection,
 } from '@/features/room/model/RoomHostManagement';
-import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
-import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
-import type { RoomShareModel } from '@/features/room/model/RoomShare';
-import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
+import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { colors } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
@@ -197,28 +194,16 @@ export function createUndercoverBoardInfoSections(
   return sections;
 }
 
-export interface UndercoverRoomShellModelInput {
-  readonly roomCode: string;
-  readonly capabilities: RoomCapabilities;
-  readonly onBack: () => void;
-  readonly onTitlePress: () => void;
-  readonly onTitleLongPress: () => void;
-  readonly user: { readonly id: string; readonly avatarUrl?: string | null } | null;
-  readonly gachaStatus: RoomHeaderGachaStatus | null | undefined;
-  readonly onUserActionPress: () => void;
-  readonly connection: RoomConnectionViewModel;
+export interface UndercoverRoomShellModelInput extends Omit<
+  RoomShellModelInput,
+  'phase' | 'step' | 'seatSource' | 'bottomActions' | 'hostManagement' | 'controlledSeat'
+> {
   readonly state: UndercoverState;
   readonly revision: number;
   readonly myUserId: string;
   readonly controlledSeat: number | null;
   readonly selectedSeat: number | null;
   readonly isSelecting: boolean;
-  readonly seatsVisuallyDisabled: boolean;
-  readonly onSeatPress: (seat: number, disabledReason?: string) => void;
-  readonly onBotSeatLongPress: ((seat: number) => void) | null;
-  readonly seatConfirmation: RoomSeatConfirmationModel | null;
-  readonly profile: RoomProfileCardModel | null;
-  readonly share: RoomShareModel;
   readonly isHost: boolean;
   readonly controls: UndercoverRoundControls;
   readonly release: () => void;
@@ -422,32 +407,11 @@ export function createUndercoverRoomShellModel(
     selectedSeat: input.selectedSeat,
     isSelecting: input.isSelecting,
   });
-  return {
-    roomCode: input.roomCode,
-    capabilities: input.capabilities,
+  return createRoomShellModel({
+    ...input,
+    seatSource,
     phase: state.phase,
-    // The step anchor: null while this game has no sub-phase step in
-    // its state. If a phase later grows a step field (the way Avalon's
-    // night phase carries one), supply it verbatim here instead.
     step: null,
-    header: buildRoomHeaderModel({
-      onBack: input.onBack,
-      onTitlePress: input.onTitlePress,
-      onTitleLongPress: input.onTitleLongPress,
-      user: input.user,
-      gachaStatus: input.gachaStatus,
-      onUserActionPress: input.onUserActionPress,
-    }),
-    connection: input.connection,
-    seats: {
-      source: seatSource,
-      visuallyDisabled: input.seatsVisuallyDisabled,
-      onSeatPress: input.onSeatPress,
-      onBotSeatLongPress: input.onBotSeatLongPress,
-    },
-    seatConfirmation: input.seatConfirmation,
-    profile: input.profile,
-    share: input.share,
     bottomActions: createUndercoverBottomActions(input.controls, state, {
       isHost: input.isHost,
       mySeat: getUndercoverUserSeat(state, input.myUserId),
@@ -467,5 +431,5 @@ export function createUndercoverRoomShellModel(
       release: input.release,
       gameName: 'Undercover',
     }),
-  };
+  });
 }

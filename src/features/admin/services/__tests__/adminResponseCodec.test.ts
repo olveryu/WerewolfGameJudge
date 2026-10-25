@@ -1,3 +1,5 @@
+import { GAME_WORD_GAMES } from '@game-judge/game-engine/product/wordSupply';
+
 import {
   parseAdminAIUsageResponse,
   parseAdminAnalyticsResponse,
@@ -8,6 +10,7 @@ import {
   parseAdminStatsResponse,
   parseAdminUsersResponse,
   parseGameWordsStatsResponse,
+  parseTriggerSupplyResult,
 } from '@/features/admin/services/adminResponseCodec';
 
 describe('adminResponseCodec', () => {
@@ -280,9 +283,9 @@ describe('adminResponseCodec', () => {
     ).toThrow();
   });
 
-  it('accepts drawguess as a supported game word game', () => {
+  it.each(GAME_WORD_GAMES)('accepts %s in dashboard and trigger responses', (game) => {
     const decoded = parseGameWordsStatsResponse({
-      game: 'drawguess',
+      game,
       wordsByCategory: [{ category: 'animals', active: 0, total: 0 }],
       monthlySupply: null,
       tavilyRequestsUsed: null,
@@ -292,6 +295,14 @@ describe('adminResponseCodec', () => {
       queryLeaderboard: [],
       supplyEnabled: true,
     });
-    expect(decoded.game).toBe('drawguess');
+    expect(decoded.game).toBe(game);
+    const trigger = { game, force: false, workflowId: `${game}-manual-1` };
+    expect(parseTriggerSupplyResult(trigger)).toEqual(trigger);
+  });
+
+  it('rejects unsupported word-supply games', () => {
+    expect(() =>
+      parseTriggerSupplyResult({ game: 'werewolf', force: false, workflowId: 'run' }),
+    ).toThrow('unsupported game');
   });
 });

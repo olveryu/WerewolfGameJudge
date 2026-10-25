@@ -17,22 +17,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
+import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
-import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
-import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
-import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import type { RoomEntryReason } from '@/features/room/model/RoomUiModule';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { isWerewolfLocalBotSeat } from '@/games/werewolf/state/isWerewolfLocalBotSeat';
@@ -104,7 +102,6 @@ type NightReviewShareState = ReturnType<typeof useNightReviewShare>;
  */
 export interface WerewolfRoomScreenState {
   readonly shellModel: RoomShellModel;
-  readonly roomShare: RoomShareModel;
   readonly gameState: CoreRoomState['gameState'];
   readonly isHost: boolean;
   readonly roomStatus: GameStatus;
@@ -165,6 +162,7 @@ export interface WerewolfRoomScreenState {
 
 export interface WerewolfRoomScreenStateProps {
   readonly room: RoomRecord;
+  readonly entryReason: RoomEntryReason;
   readonly navigation: RoomScreenNavigation;
   readonly entryController: RoomEntryController;
   readonly client: WerewolfGameClient;
@@ -326,8 +324,6 @@ export function useWerewolfRoomScreenState(
   // Simple hooks
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const { handleTitlePress, handleTitleLongPress } = useRoomTitleActions();
-
   const roomConnection = entryController;
 
   const seatController = useRoomSeatController({
@@ -339,9 +335,15 @@ export function useWerewolfRoomScreenState(
     kickSeat: kickPlayer,
     leaveSeat,
   });
-  const shareController = useRoomShareController({
+  const {
+    share: shareController,
+    titleActions: { handleTitlePress, handleTitleLongPress },
+    gachaStatus,
+  } = useRoomPresentationController({
     roomCode,
     gameDisplayName: WEREWOLF_DISPLAY_NAME,
+    isHost,
+    entryReason: props.entryReason,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -891,7 +893,6 @@ export function useWerewolfRoomScreenState(
   // ═══════════════════════════════════════════════════════════════════════════
 
   const { user } = useAuthContext();
-  const { data: gachaStatus } = useGachaStatusQuery();
   const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
 
   const handleAvatarPress = useCallback(() => {
@@ -1129,7 +1130,6 @@ export function useWerewolfRoomScreenState(
 
   return {
     shellModel,
-    roomShare: shareController,
     gameState,
     isHost,
     roomStatus,

@@ -3,10 +3,11 @@ import { DRAWGUESS_WORD_CATEGORIES } from '@game-judge/game-engine/games/drawgue
 import { z } from 'zod';
 
 import {
-  createCompleteWordPackStatement,
+  createClaimWordCandidatesStatement,
   createWordPackId,
   failWordPack,
   insertReservedWordPack,
+  publishReviewedWordPack,
 } from '../../platform/wordSupply/wordPackLedger';
 import {
   DRAWGUESS_WORD_BATCH_LIMIT,
@@ -100,17 +101,12 @@ export async function getDrawGuessReviewCandidates(
   db: D1Database,
   pack: DrawGuessWordPack,
 ): Promise<DrawGuessWordCandidate[]> {
-  const rows = await db
-    .prepare(
-      `UPDATE drawguess_word_candidates SET claimed_pack_id = ?
-      WHERE id IN (SELECT id FROM drawguess_word_candidates WHERE category = ? AND status = 'pending'
-        AND (claimed_pack_id IS NULL OR claimed_pack_id = ? OR EXISTS (SELECT 1 FROM drawguess_word_packs failed WHERE failed.id = claimed_pack_id AND failed.status = 'failed'))
-        ORDER BY created_at, id LIMIT ?)
-      AND EXISTS (SELECT 1 FROM drawguess_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved')
-      RETURNING material_json`,
-    )
-    .bind(pack.id, pack.category, pack.id, DRAWGUESS_WORD_BATCH_LIMIT, pack.id, pack.request_token)
-    .all();
+  const rows = await createClaimWordCandidatesStatement(
+    db,
+    'drawguess_word_packs',
+    pack,
+    DRAWGUESS_WORD_BATCH_LIMIT,
+  ).all();
   const candidates = rows.results.map((row) => {
     const { material_json } = z.strictObject({ material_json: z.string() }).parse(row);
     const value: unknown = JSON.parse(material_json);
@@ -131,91 +127,63 @@ export async function publishDrawGuessWordPack(
 ): Promise<void> {
   const parsedCandidates = parseDrawGuessCandidates({ candidates }, pack.category);
   const parsedReviews = parseDrawGuessReviews({ reviews }, parsedCandidates);
-  const now = new Date().toISOString();
-  const statements: D1PreparedStatement[] = [];
-  for (const [index, candidate] of parsedCandidates.entries()) {
-    const review = parsedReviews[index];
-    if (review === undefined) throw new Error('DrawGuess publication review missing');
-    const id = await getDrawGuessWordId(candidate.word);
-    let pinyinInitials: string | null = null;
-    try {
-      pinyinInitials = toPinyinInitials(candidate.word);
-    } catch {
-      // 拼音解析失败（无声母字等）视为不合格，不进词库。
-      pinyinInitials = null;
-    }
-    const isAccepted = pinyinInitials !== null && isDrawGuessReviewAccepted(review);
-    const reviewJson = JSON.stringify({
-      reviewVersion: DRAWGUESS_WORD_REVIEW_VERSION,
-      promptVersion: DRAWGUESS_WORD_PROMPT_VERSION,
-      packId: pack.id,
-      pinyinInitials,
-      review,
-    });
-    statements.push(
-      db
-        .prepare(
-          `UPDATE drawguess_word_candidates SET status = ?, reviewed_at = ?, review_json = ?
-      WHERE id = ? AND claimed_pack_id = ? AND EXISTS (SELECT 1 FROM drawguess_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved')`,
-        )
-        .bind(
-          isAccepted ? 'accepted' : 'rejected',
-          now,
-          reviewJson,
-          id,
-          pack.id,
-          pack.id,
-          pack.request_token,
-        ),
-    );
-    if (isAccepted && pinyinInitials !== null) {
-      statements.push(
-        db
-          .prepare(
-            `INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at, disabled_at)
+  await publishReviewedWordPack(
+    db,
+    'drawguess_word_packs',
+    pack,
+    parsedCandidates,
+    parsedReviews,
+    async (candidate, review, now) => {
+      const id = await getDrawGuessWordId(candidate.word);
+      let pinyinInitials: string | null = null;
+      try {
+        pinyinInitials = toPinyinInitials(candidate.word);
+      } catch {
+        // 拼音解析失败（无声母字等）视为不合格，不进词库。
+        pinyinInitials = null;
+      }
+      const isAccepted = pinyinInitials !== null && isDrawGuessReviewAccepted(review);
+      const reviewJson = JSON.stringify({
+        reviewVersion: DRAWGUESS_WORD_REVIEW_VERSION,
+        promptVersion: DRAWGUESS_WORD_PROMPT_VERSION,
+        packId: pack.id,
+        pinyinInitials,
+        review,
+      });
+      const inventoryStatement =
+        isAccepted && pinyinInitials !== null
+          ? db
+              .prepare(
+                `INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at, disabled_at)
         SELECT ?, ?, ?, ?, ?, 'active', ?, NULL FROM drawguess_word_candidates candidate
         WHERE candidate.id = ? AND candidate.claimed_pack_id = ? AND candidate.status = 'accepted'
           AND EXISTS (SELECT 1 FROM drawguess_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved')
         ON CONFLICT (id) DO UPDATE SET pinyin_initials = excluded.pinyin_initials, category = excluded.category,
           difficulty = excluded.difficulty, status = 'active', disabled_at = NULL`,
-          )
-          .bind(
-            id,
-            candidate.word,
-            pinyinInitials,
-            candidate.category,
-            candidate.difficulty,
-            now,
-            id,
-            pack.id,
-            pack.id,
-            pack.request_token,
-          ),
-      );
-    } else {
-      statements.push(
-        db
-          .prepare(
-            `UPDATE drawguess_words SET status = 'disabled', disabled_at = ?
+              )
+              .bind(
+                id,
+                candidate.word,
+                pinyinInitials,
+                candidate.category,
+                candidate.difficulty,
+                now,
+                id,
+                pack.id,
+                pack.id,
+                pack.request_token,
+              )
+          : db
+              .prepare(
+                `UPDATE drawguess_words SET status = 'disabled', disabled_at = ?
         WHERE id = ? AND status = 'active'
           AND EXISTS (SELECT 1 FROM drawguess_word_candidates WHERE id = ? AND claimed_pack_id = ? AND status = 'rejected')
           AND EXISTS (SELECT 1 FROM drawguess_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved')`,
-          )
-          .bind(now, id, id, pack.id, pack.id, pack.request_token),
-      );
-    }
-  }
-  statements.push(
-    createCompleteWordPackStatement(
-      db,
-      'drawguess_word_packs',
-      pack,
-      JSON.stringify(parsedCandidates),
-      JSON.stringify(parsedReviews),
-      now,
-    ),
+              )
+              .bind(now, id, id, pack.id, pack.id, pack.request_token);
+      return { id, isAccepted, reviewJson, inventoryStatement };
+    },
   );
-  await db.batch(statements);
 }
 
 /** Record failure without disabling inventory or discarding the unreviewed queue. */

@@ -84,6 +84,21 @@ describe('createPictionaryRoomShellModel', () => {
       hostManagement: null,
       controlledSeat: null,
     });
+    expect(Object.keys(model).sort()).toEqual([
+      'bottomActions',
+      'capabilities',
+      'connection',
+      'controlledSeat',
+      'header',
+      'hostManagement',
+      'phase',
+      'profile',
+      'roomCode',
+      'seatConfirmation',
+      'seats',
+      'share',
+      'step',
+    ]);
     expect(model.roomCode).toBe('2468');
     expect(model.header.onBack).toBe(onBack);
     expect(model.header.userAction?.ticketCount).toBeNull();

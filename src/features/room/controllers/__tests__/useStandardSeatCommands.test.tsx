@@ -1,3 +1,5 @@
+/** Standard seat bindings and setup composition use real controllers with a typed test session. */
+
 import type { RoomSeatCommand } from '@game-judge/game-engine/platform/protocol/commands';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import type { RoomSeatProfile } from '@game-judge/game-engine/platform/room/roster';
@@ -6,12 +8,14 @@ import { act, renderHook } from '@testing-library/react-native';
 import type { PropsWithChildren } from 'react';
 
 import type { User } from '@/contexts/AuthContext';
+import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
 import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
+import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type {
   RoomCommandDispatchOptions,
   RoomSessionSnapshot,
 } from '@/features/room/session/types';
-import { rejectedRoomCommand } from '@/test-utils/roomCommand';
+import { rejectedRoomCommand, successfulRoomCommand } from '@/test-utils/roomCommand';
 
 type TestState = BaseGameState<'werewolf'>;
 
@@ -77,6 +81,74 @@ function createWrapper(queryClient: QueryClient) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
+
+describe('useRoomSetupController', () => {
+  it('binds capabilities to real controllers and recalculates them when the game leaves setup', async () => {
+    const queryClient = installQueryClient(cachedStats);
+    const dispatch = jest.fn(
+      async (_command: RoomSeatCommand<RoomSeatProfile>, _options: RoomCommandDispatchOptions) =>
+        successfulRoomCommand(state, 'setup-command'),
+    );
+    const session = { getSnapshot: () => createReadySnapshot(), dispatch };
+    const configureGame = jest.fn();
+    const shareRoom = jest.fn();
+    const { result, rerender } = renderHook(
+      ({ isSetup, mySeat }: { isSetup: boolean; mySeat: number | null }) =>
+        useRoomSetupController({
+          session,
+          user,
+          isSetup,
+          mySeat,
+          isHost: true,
+          supportsBots: true,
+          hasOccupiedSeats: true,
+          isRoomFull: false,
+          configureGame,
+          shareRoom,
+        }),
+      { initialProps: { isSetup: true, mySeat: null }, wrapper: createWrapper(queryClient) },
+    );
+    const takeSeat = result.current.capabilities.canTakeSeat;
+    if (!takeSeat.isAllowed) throw new Error('Expected take-seat capability in setup');
+    act(() => takeSeat.execute(2));
+    expect(result.current.seatController.pendingAction).toEqual({ kind: 'take', toSeat: 2 });
+    expect(dispatch).not.toHaveBeenCalled();
+    await act(async () => result.current.seatController.confirm());
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'room.seat.take', seat: 2 }),
+      { controlledSeat: null, label: 'takeRoomSeat' },
+    );
+
+    const target: RoomProfileTarget = {
+      seat: 1,
+      userId: 'user-2',
+      occupantKind: 'human',
+      rosterName: 'Bob',
+    };
+    const viewProfile = result.current.capabilities.canViewProfiles;
+    if (!viewProfile.isAllowed) throw new Error('Expected profile capability in setup');
+    act(() => viewProfile.execute(target));
+    expect(result.current.profile.selection).toEqual({ target, isSelf: false });
+    act(() => result.current.profile.close());
+
+    for (const capability of [
+      result.current.capabilities.canConfigureGame,
+      result.current.capabilities.canShareRoom,
+    ]) {
+      if (!capability.isAllowed) throw new Error('Expected navigation capability in setup');
+      capability.execute();
+    }
+    expect(configureGame).toHaveBeenCalledTimes(1);
+    expect(shareRoom).toHaveBeenCalledTimes(1);
+
+    rerender({ isSetup: false, mySeat: 2 });
+    expect(result.current.capabilities.canTakeSeat.isAllowed).toBe(false);
+    expect(result.current.capabilities.canMoveSeat.isAllowed).toBe(false);
+    expect(result.current.capabilities.canViewProfiles.isAllowed).toBe(false);
+    expect(result.current.capabilities.canClearSeats.isAllowed).toBe(false);
+    expect(result.current.capabilities.canFillBots.isAllowed).toBe(false);
+  });
+});
 
 describe('useStandardSeatCommands', () => {
   it('binds the shared controller to the user profile built from the room identity', async () => {

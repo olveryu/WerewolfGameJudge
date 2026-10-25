@@ -1,9 +1,9 @@
 /**
  * Generator tests: run the real generator against a fixture repository
- * assembled from the real shared files it edits, for both presets.
- * One case generates in a copy of the real tree instead, so the
- * prettier/eslint shaping passes actually run (they skip silently in
- * the dependency-free fixture). Run with
+ * assembled from the real shared files it edits, for all three presets.
+ * Real-tree copies validate formatting, lint, client/engine/Worker types,
+ * generated engine behavior and registration contracts. Demo regeneration
+ * must also match the shipped reference game. Run with
  * `node --test scripts/new-game.test.mjs` (also wrapped by
  * src/__tests__/newGameGenerator.contract.test.ts in the jest suite).
  */
@@ -40,6 +40,7 @@ const SHARED_FILES = [
   'packages/game-engine/package.json',
   'packages/game-engine/src/platform/__tests__/architecture.contract.test.ts',
   'packages/game-engine/src/platform/__tests__/engineSkeleton.contract.test.ts',
+  'packages/game-engine/src/platform/__tests__/phaseDeadlineVariants.contract.test.ts',
   'packages/game-engine/src/platform/engine/__tests__/capabilities.contract.test.ts',
   'packages/game-engine/src/platform/engine/__tests__/contracts.test.ts',
   'packages/game-engine/src/games/catalog.ts',
@@ -108,6 +109,10 @@ function makeRealRepoCopy() {
  * the packs that enable the capability.
  */
 const CAPABILITY_FILE_ADDITIONS = [
+  {
+    capability: 'stageDeadline',
+    files: ({ engine }) => [`${engine}/__tests__/phaseDeadlineProtocol.contract.test.ts`],
+  },
   {
     capability: 'identityViewing',
     files: ({ engine, client, pascal }) => [
@@ -258,9 +263,7 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
     assert.ok(reportText.includes('上线（翻生产）'), 'default report carries the go-live step');
     assert.ok(reportText.includes('homeProductionFilter'), 'go-live step names the tripwire list');
     assert.ok(
-      registry.includes(
-        "rewards: { policy: 'flat', xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 }",
-      ),
+      demoprotoEntry.includes("rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.demoproto }"),
     );
     const earnings = readFixture(root, 'packages/game-engine/src/product/rewards/earnings.ts');
     assert.ok(
@@ -636,7 +639,7 @@ test('production: true registers the new game as production and reports the list
   assert.ok(report.includes('homeProductionFilter'), 'list-only step names the tripwire list');
 });
 
-test('generated output passes the format and lint gates with tooling present', (t) => {
+test('generated output passes format, lint, typecheck and engine tests with tooling present', (t) => {
   // The fixture-repo cases above structurally cannot catch shaping
   // defects: without node_modules both shaping passes skip silently.
   // This case generates in a copy of the real tree (dependencies
@@ -686,6 +689,36 @@ test('generated output passes the format and lint gates with tooling present', (
             .join(' '),
         },
       });
+      const typescriptBin = require.resolve('typescript/bin/tsc');
+      for (const project of ['tsconfig.json', 'packages/api-worker/tsconfig.json']) {
+        execFileSync(process.execPath, [typescriptBin, '--noEmit', '--project', project], {
+          cwd: root,
+          stdio: 'pipe',
+          encoding: 'utf8',
+        });
+      }
+      const vitestPackageJson = createRequire(
+        path.join(root, 'packages/game-engine/package.json'),
+      ).resolve('vitest/package.json');
+      const vitestBin = path.resolve(
+        path.dirname(vitestPackageJson),
+        JSON.parse(fs.readFileSync(vitestPackageJson, 'utf8')).bin.vitest,
+      );
+      execFileSync(
+        process.execPath,
+        [
+          vitestBin,
+          'run',
+          'src/games/aaprobe',
+          'src/platform/__tests__/phaseDeadlineVariants.contract.test.ts',
+          'src/platform/__tests__/gameRegistry.contract.test.ts',
+        ],
+        {
+          cwd: path.join(root, 'packages/game-engine'),
+          stdio: 'pipe',
+          encoding: 'utf8',
+        },
+      );
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
@@ -736,6 +769,12 @@ function stripShippedDemo(root) {
   }
   removeExactText(root, 'packages/game-engine/src/platform/protocol/gameTypes.ts', "  'demo',\n");
   removeEntryBlock(root, 'packages/game-engine/src/games/registry.ts', '  demo: {', '  },');
+  removeEntryBlock(
+    root,
+    'packages/game-engine/src/platform/__tests__/phaseDeadlineVariants.contract.test.ts',
+    '  demo: {',
+    '  },',
+  );
   removeExactText(
     root,
     'packages/game-engine/src/product/rewards/earnings.ts',
@@ -917,18 +956,12 @@ const DEMO_COMPARE_EXCEPTIONS = [
     ].join('\n'),
     generated: '',
   },
-  {
-    file: 'src/test-utils/clientGameCatalog.tsx',
-    body: '          gradient: [lighten(colors.primary, 0.45), colors.primary],\n',
-    generated: '',
-  },
 ];
 
 /** Files that live in the shipped demo but are never generator products. */
 const DEMO_BODY_ONLY_FILES = [
   'packages/api-worker/src/games/demo/__tests__/effects.test.ts',
   'packages/game-engine/src/games/demo/__tests__/fullChain.test.ts',
-  'packages/game-engine/src/games/demo/__tests__/phaseDeadlineProtocol.contract.test.ts',
   'packages/game-engine/src/games/demo/__tests__/roomCommands.contract.test.ts',
   'src/games/demo/room/__tests__/demoGuidanceMatrix.test.ts',
 ];

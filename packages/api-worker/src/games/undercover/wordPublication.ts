@@ -3,10 +3,11 @@ import { UNDERCOVER_CATEGORIES } from '@game-judge/game-engine/games/undercover/
 import { z } from 'zod';
 
 import {
-  createCompleteWordPackStatement,
+  createClaimWordCandidatesStatement,
   createWordPackId,
   failWordPack,
   insertReservedWordPack,
+  publishReviewedWordPack,
 } from '../../platform/wordSupply/wordPackLedger';
 import {
   getUndercoverPairId,
@@ -123,23 +124,12 @@ export async function getUndercoverReviewCandidates(
         new Date(now - REVIEW_INTERVAL_MS).toISOString(),
         UNDERCOVER_WORD_REVIEW_VERSION,
       ),
-    db
-      .prepare(
-        `UPDATE undercover_word_candidates SET claimed_pack_id = ?
-      WHERE id IN (SELECT id FROM undercover_word_candidates WHERE category = ? AND status = 'pending'
-        AND (claimed_pack_id IS NULL OR claimed_pack_id = ? OR EXISTS (SELECT 1 FROM undercover_word_packs failed WHERE failed.id = claimed_pack_id AND failed.status = 'failed'))
-        ORDER BY created_at, id LIMIT ?)
-      AND EXISTS (SELECT 1 FROM undercover_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved')
-      RETURNING material_json`,
-      )
-      .bind(
-        pack.id,
-        pack.category,
-        pack.id,
-        UNDERCOVER_WORD_BATCH_LIMIT,
-        pack.id,
-        pack.request_token,
-      ),
+    createClaimWordCandidatesStatement(
+      db,
+      'undercover_word_packs',
+      pack,
+      UNDERCOVER_WORD_BATCH_LIMIT,
+    ),
   ]);
   const rows = results[1];
   if (rows === undefined) throw new Error('Undercover candidate claim result missing');
@@ -160,74 +150,53 @@ export async function publishUndercoverWordPack(
 ): Promise<void> {
   const parsedCandidates = parseUndercoverCandidates({ candidates }, pack.category);
   const parsedReviews = parseUndercoverReviews({ reviews }, parsedCandidates);
-  const now = new Date().toISOString();
-  const statements: D1PreparedStatement[] = [];
-  for (const [index, candidate] of parsedCandidates.entries()) {
-    const review = parsedReviews[index];
-    if (review === undefined) throw new Error('Undercover publication review missing');
-    const id = await getUndercoverPairId(candidate.wordA, candidate.wordB);
-    const isAccepted = isUndercoverReviewAccepted(review);
-    const reviewJson = JSON.stringify({
-      reviewVersion: UNDERCOVER_WORD_REVIEW_VERSION,
-      promptVersion: UNDERCOVER_WORD_PROMPT_VERSION,
-      packId: pack.id,
-      review,
-    });
-    statements.push(
-      db
-        .prepare(
-          `UPDATE undercover_word_candidates SET status = ?, reviewed_at = ?
-      WHERE id = ? AND claimed_pack_id = ? AND EXISTS (SELECT 1 FROM undercover_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved')`,
-        )
-        .bind(isAccepted ? 'accepted' : 'rejected', now, id, pack.id, pack.id, pack.request_token),
-    );
-    if (isAccepted) {
-      statements.push(
-        db
-          .prepare(
-            `INSERT INTO undercover_word_pairs (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
+  await publishReviewedWordPack(
+    db,
+    'undercover_word_packs',
+    pack,
+    parsedCandidates,
+    parsedReviews,
+    async (candidate, review, now) => {
+      const id = await getUndercoverPairId(candidate.wordA, candidate.wordB);
+      const isAccepted = isUndercoverReviewAccepted(review);
+      const reviewJson = JSON.stringify({
+        reviewVersion: UNDERCOVER_WORD_REVIEW_VERSION,
+        promptVersion: UNDERCOVER_WORD_PROMPT_VERSION,
+        packId: pack.id,
+        review,
+      });
+      const inventoryStatement = isAccepted
+        ? db
+            .prepare(
+              `INSERT INTO undercover_word_pairs (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
         SELECT ?, ?, ?, ?, 'active', ?, ?, ? FROM undercover_word_candidates candidate
         WHERE candidate.id = ? AND candidate.claimed_pack_id = ? AND candidate.status = 'accepted'
           AND EXISTS (SELECT 1 FROM undercover_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved')
         ON CONFLICT (id) DO UPDATE SET category = excluded.category, status = 'active', reviewed_at = excluded.reviewed_at, review_json = excluded.review_json`,
-          )
-          .bind(
-            id,
-            candidate.wordA,
-            candidate.wordB,
-            candidate.category,
-            now,
-            now,
-            reviewJson,
-            id,
-            pack.id,
-            pack.id,
-            pack.request_token,
-          ),
-      );
-    } else {
-      statements.push(
-        db
-          .prepare(
-            `UPDATE undercover_word_pairs SET status = 'disabled', reviewed_at = ?, review_json = ?
+            )
+            .bind(
+              id,
+              candidate.wordA,
+              candidate.wordB,
+              candidate.category,
+              now,
+              now,
+              reviewJson,
+              id,
+              pack.id,
+              pack.id,
+              pack.request_token,
+            )
+        : db
+            .prepare(
+              `UPDATE undercover_word_pairs SET status = 'disabled', reviewed_at = ?, review_json = ?
         WHERE id = ? AND EXISTS (SELECT 1 FROM undercover_word_candidates WHERE id = ? AND claimed_pack_id = ? AND status = 'rejected')
           AND EXISTS (SELECT 1 FROM undercover_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved')`,
-          )
-          .bind(now, reviewJson, id, id, pack.id, pack.id, pack.request_token),
-      );
-    }
-  }
-  statements.push(
-    createCompleteWordPackStatement(
-      db,
-      'undercover_word_packs',
-      pack,
-      JSON.stringify(parsedCandidates),
-      JSON.stringify(parsedReviews),
-      now,
-    ),
+            )
+            .bind(now, reviewJson, id, id, pack.id, pack.id, pack.request_token);
+      return { id, isAccepted, reviewJson, inventoryStatement };
+    },
   );
-  await db.batch(statements);
 }
 
 /** Record failure without disabling inventory or discarding the unreviewed queue. */

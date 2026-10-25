@@ -21,19 +21,12 @@ import { GameSettingsDurationOptions, GameSettingsStepper } from '@/components/G
 import { gameSettingsStyles as styles } from '@/components/GameSettings.styles';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
-import { useRoomCreationController } from '@/features/room/controllers/useRoomCreationController';
-import {
-  replaceWithCreatedRoom,
-  returnToActiveRoom,
-} from '@/features/room/navigation/roomFlowNavigation';
+import { useRoomConfigSubmission } from '@/features/room/controllers/useRoomConfigSubmission';
 import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 import { parseStoryRelayConfigRouteParams } from '@/games/storyrelay/navigation/storyRelayGameNavigation';
 import { getStoryRelayRoomCommandFailureMessage } from '@/games/storyrelay/room/storyRelayRoomCommandFailureMessage';
 import type { RootStackParamList } from '@/navigation/types';
 import { showErrorAlert } from '@/utils/alertPresets';
-import { handleError } from '@/utils/errorPipeline';
-import { configLog } from '@/utils/logger';
 
 /** Renders create/edit settings, saving through shared creation and command controllers. */
 export function StoryRelayConfigScreen({ session }: { readonly session: StoryRelayRoomSession }) {
@@ -42,8 +35,6 @@ export function StoryRelayConfigScreen({ session }: { readonly session: StoryRel
   const params = parseStoryRelayConfigRouteParams(route.params);
   const { user } = useAuthContext();
   const insets = useSafeAreaInsets();
-  const creation = useRoomCreationController();
-  const submission = useRoomCommandSubmission(getStoryRelayRoomCommandFailureMessage);
   const [config, setConfig] = useState<StoryRelayConfig>(() => {
     if (params.mode === 'create') return DEFAULT_STORY_RELAY_CONFIG;
     const snapshot = session.getSnapshot();
@@ -63,32 +54,21 @@ export function StoryRelayConfigScreen({ session }: { readonly session: StoryRel
       return showErrorAlert('人数设置有误', '支持 4 至 20 人');
     update('numberOfPlayers', count);
   };
-  const submit = () => {
-    if (params.mode === 'edit') {
-      void submission
-        .submit('保存设置', () =>
-          session.dispatch(
-            { type: 'storyrelay.config.update', config },
-            { controlledSeat: null, label: '保存设置' },
-          ),
-        )
-        .then((success) => {
-          if (success) returnToActiveRoom(navigation, params.roomCode);
-        });
-      return;
-    }
-    if (user === null) throw new Error('Story Relay creation requires authentication');
-    void creation
-      .createRoom({ expectedHostUserId: user.id, gameType: 'storyrelay', config: { ...config } })
-      .then((record) => replaceWithCreatedRoom(navigation, record.roomCode))
-      .catch((error: unknown) =>
-        handleError(error, {
-          label: '创建故事接龙房间',
-          logger: configLog,
-          alertMessage: '创建失败，请重试',
-        }),
-      );
-  };
+  const { submit, isSubmitting } = useRoomConfigSubmission({
+    params,
+    navigation,
+    getFailureMessage: getStoryRelayRoomCommandFailureMessage,
+    creationLabel: '创建故事接龙房间',
+    createRequest: () => {
+      if (user === null) throw new Error('Story Relay creation requires authentication');
+      return { expectedHostUserId: user.id, gameType: 'storyrelay', config: { ...config } };
+    },
+    updateConfig: () =>
+      session.dispatch(
+        { type: 'storyrelay.config.update', config },
+        { controlledSeat: null, label: '保存设置' },
+      ),
+  });
   return (
     <GameScreen
       testID="storyrelay-config"
@@ -141,7 +121,7 @@ export function StoryRelayConfigScreen({ session }: { readonly session: StoryRel
           variant="primary"
           size="lg"
           onPress={submit}
-          loading={creation.isCreating || submission.isSubmitting}
+          loading={isSubmitting}
           testID="storyrelay-config-submit"
         >
           {params.mode === 'edit' ? '保存设置' : '创建房间'}

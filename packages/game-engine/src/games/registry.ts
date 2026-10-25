@@ -10,12 +10,13 @@
  */
 
 import type { GameType } from '../platform/protocol/gameTypes';
+import { GAME_COMPLETION_REWARDS } from '../product/rewards/earnings';
 
 /** Completion reward policy declared by a registered game.
  *
  * `flat` games settle through the shared completion pipeline and must carry
- * the three flat amounts here; the amounts are welded to
- * `GAME_COMPLETION_REWARDS` by contract. `levelRoll` games settle through
+ * the three flat amounts from the product-owned `GAME_COMPLETION_REWARDS`.
+ * `levelRoll` games settle through
  * their own pipeline (XP rolled from the player's level), so the flat
  * amounts do not apply and the pipeline entry point is registered instead.
  */
@@ -79,7 +80,7 @@ export const GAME_REGISTRY = {
     enginePublicExport: './games/fibking/public',
     clientModulePath: 'src/games/fibking/module.ts',
     isProduction: true,
-    rewards: { policy: 'flat', xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 },
+    rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.fibking },
     workerWorkflows: [
       { exportName: 'FibWordSupplyWorkflow', modulePath: './games/fibking/wordSupplyWorkflow' },
     ],
@@ -90,7 +91,7 @@ export const GAME_REGISTRY = {
     enginePublicExport: './games/pictionary/public',
     clientModulePath: 'src/games/pictionary/module.ts',
     isProduction: true,
-    rewards: { policy: 'flat', xpEarned: 15, normalDrawsEarned: 3, dailyCompletionTarget: 1 },
+    rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.pictionary },
     workerWorkflows: [],
     httpRoutes: ['/api/games/pictionary/rooms'],
   },
@@ -99,7 +100,7 @@ export const GAME_REGISTRY = {
     enginePublicExport: './games/undercover/public',
     clientModulePath: 'src/games/undercover/module.ts',
     isProduction: true,
-    rewards: { policy: 'flat', xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 },
+    rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.undercover },
     workerWorkflows: [
       {
         exportName: 'UndercoverWordSupplyWorkflow',
@@ -113,7 +114,7 @@ export const GAME_REGISTRY = {
     enginePublicExport: './games/storyrelay/public',
     clientModulePath: 'src/games/storyrelay/module.ts',
     isProduction: true,
-    rewards: { policy: 'flat', xpEarned: 15, normalDrawsEarned: 3, dailyCompletionTarget: 1 },
+    rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.storyrelay },
     workerWorkflows: [],
     httpRoutes: [],
   },
@@ -122,7 +123,7 @@ export const GAME_REGISTRY = {
     enginePublicExport: './games/drawguess/public',
     clientModulePath: 'src/games/drawguess/module.ts',
     isProduction: true,
-    rewards: { policy: 'flat', xpEarned: 15, normalDrawsEarned: 3, dailyCompletionTarget: 1 },
+    rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.drawguess },
     workerWorkflows: [
       {
         exportName: 'DrawGuessWordSupplyWorkflow',
@@ -136,8 +137,7 @@ export const GAME_REGISTRY = {
     enginePublicExport: './games/avalon/public',
     clientModulePath: 'src/games/avalon/module.ts',
     isProduction: true,
-    // Main-tier session game (design D6-Q5: 2/3 of werewolf XP_BASE=50).
-    rewards: { policy: 'flat', xpEarned: 33, normalDrawsEarned: 3, dailyCompletionTarget: 1 },
+    rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.avalon },
     workerWorkflows: [],
     httpRoutes: [],
   },
@@ -149,8 +149,7 @@ export const GAME_REGISTRY = {
     // registered through the real path, never shipped to players — the
     // client lobby/create surfaces filter on this flag.
     isProduction: false,
-    // TODO(new-game): confirm the completion reward amounts for demo.
-    rewards: { policy: 'flat', xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 },
+    rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.demo },
     workerWorkflows: [],
     httpRoutes: [],
   },

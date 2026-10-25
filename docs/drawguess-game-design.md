@@ -566,8 +566,9 @@ V1 不新增 D1 对局表。游戏权威状态保存在 DO SQLite，R2 保存终
 - `navigation/`：配置、规则、房间内页面导航。
 - `screens/`：`DrawGuessConfigScreen`、`DrawGuessRulesScreen`。
 - `room/`：`DrawGuessRoomScreen`（阶段切换）、`components/`（画布/工具栏/猜词面板/提示条/计分板）、`hooks/`（笔画同步、deadline）。
-- `model/drawGuessDrawing.ts`：笔画数据模型（从接龙版**复制**，注明来源）。
-- `services/drawGuessMediaApi.ts`：终稿 PNG 上传/读取。
+- 笔画数据模型复用 `src/features/drawing/model/drawing.ts`，不在游戏目录复制。
+- `services/drawGuessMediaApi.ts`：提供游戏画作规格，通过 `src/features/drawing/services/createDrawingRenderer.ts` 复用路径构造、标准像素填充与 PNG 导出；接龙版使用同一渲染器。新增绘图游戏也应绑定自身规格，不复制算法。
+- `services/drawGuessMediaTransport.ts`：终稿 PNG 上传/读取。实时笔画同步与接龙版任务提交仍由各游戏负责，不属于共享渲染器。
 
 接入 `GameRoom.ts`、`HomeScreen.tsx`、`AppNavigator.tsx`、`RoomShell.tsx`、Worker `actionPipeline.ts` 时不得增加 `if (gameType === 'drawguess')`。缺少的共享能力必须先证明对多个游戏通用，再进入平台层。
 

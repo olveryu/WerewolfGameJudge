@@ -24,8 +24,7 @@ import { useCallback } from 'react';
 //#end
 
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
-import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
+import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import {
@@ -34,13 +33,9 @@ import {
 } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
-import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
-import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
-import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
-import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
-import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
+import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 //#cap publicExpire
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 //#end
@@ -55,21 +50,14 @@ import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock'
 //#end
 import {
   createBotTakeoverCapability,
-  createRoomSetupCapabilities,
-  createViewProfilesCapability,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
-import {
-  resolveRoomInGameSeatTap,
-  ROOM_SEAT_TAP_BLOCKED_TITLE,
-} from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 //#cap identityViewing
 import { toRevealRoleData } from '@/games/__GAME_ID__/components/__GAME_PASCAL__RoleCardAdapter';
 //#end
 import type { __GAME_PASCAL__RoomSession } from '@/games/__GAME_ID__/model/__GAME_PASCAL__RoomSession';
-import { showErrorAlert } from '@/utils/alertPresets';
 
 import {
   create__GAME_PASCAL__HostManagement,
@@ -157,20 +145,29 @@ export function use__GAME_PASCAL__RoomState(
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot, takeOver } = botControl;
   const effectiveSeat = controlledSeat ?? mySeat;
-  const seats = useStandardSeatCommands(session, user);
-  const seatController = useRoomSeatController({ currentSeat: mySeat, takeSeat: seats.takeSeat });
-  const profile = useRoomProfileController({
-    myUserId: user.id,
-    kickSeat: seats.kickSeat,
-    leaveSeat: seats.leaveSeat,
-  });
-  const host = useRoomHostOperations({ clearSeats: seats.clearSeats, fillBots: seats.fillBots });
-  const share = useRoomShareController({
+  const { share, titleActions, gachaStatus } = useRoomPresentationController({
     roomCode: room.roomCode,
     gameDisplayName: '__GAME_DISPLAY_NAME__',
+    isHost,
+    entryReason: props.entryReason,
   });
-  const titleActions = useRoomTitleActions();
-  const { data: gachaStatus } = useGachaStatusQuery();
+  const { seatController, profile, capabilities: setupCapabilities } = useRoomSetupController({
+    session,
+    user,
+    isSetup: isLobby,
+    isHost,
+    mySeat,
+    supportsBots: true,
+    hasOccupiedSeats: get__GAME_PASCAL__OccupiedSeatCount(state) > 0,
+    isRoomFull: get__GAME_PASCAL__OccupiedSeatCount(state) === state.config.numberOfPlayers,
+    configureGame: () =>
+      navigation.navigate('GameConfig', {
+        gameType: '__GAME_ID__',
+        mode: 'edit',
+        roomCode: room.roomCode,
+      }),
+    shareRoom: share.open,
+  });
   const submission = useRoomCommandSubmission(get__GAME_PASCAL__RoomCommandFailureMessage);
   // 派发纪律（#149 定版）：默认不带接管座位。房主命令的平台门只认未接管
 //#cap identityViewing
@@ -247,28 +244,7 @@ export function use__GAME_PASCAL__RoomState(
     release: releaseBot,
   });
   const capabilities: RoomCapabilities = {
-    ...createRoomSetupCapabilities({
-      isSetup: isLobby,
-      isHost,
-      mySeat,
-      supportsBots: true,
-      hasOccupiedSeats: get__GAME_PASCAL__OccupiedSeatCount(state) > 0,
-      isRoomFull: get__GAME_PASCAL__OccupiedSeatCount(state) === state.config.numberOfPlayers,
-      requestTakeSeat: seatController.requestTakeSeat,
-      requestMoveSeat: seatController.requestMoveSeat,
-      leaveSeat: profile.leaveSelf,
-      kickSeat: profile.kick,
-      clearSeats: host.requestClearSeats,
-      fillBots: host.requestFillBots,
-      configureGame: () =>
-        navigation.navigate('GameConfig', {
-          gameType: '__GAME_ID__',
-          mode: 'edit',
-          roomCode: room.roomCode,
-        }),
-      shareRoom: share.open,
-    }),
-    canViewProfiles: createViewProfilesCapability(isLobby, profile.open),
+    ...setupCapabilities,
     canTakeOverBots: createBotTakeoverCapability(canControlBots, takeOver),
   };
   const isSeatBot = useCallback((seat: number) => isBotSeat(state.roster, seat), [state]);
@@ -283,31 +259,14 @@ export function use__GAME_PASCAL__RoomState(
     isBotSeat: isSeatBot,
     gameName: '__GAME_PASCAL__',
   });
-  const onSeatPress = (seat: number, disabledReason?: string) => {
-    // 局内裁决走共享 resolveRoomInGameSeatTap（同一实现，全平台一份）。
-    if (!isLobby) {
-      const outcome = resolveRoomInGameSeatTap(disabledReason);
-      if (outcome.kind === 'alert')
-        return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, outcome.reason);
-      return;
-    }
-    const intent = get__GAME_PASCAL__SeatTapIntent({
-      state,
-      seat,
-      currentSeat: mySeat,
-      disabledReason,
-    });
-    switch (intent.kind) {
-      case 'blocked':
-        return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, intent.reason);
-      case 'profile':
-        return profile.open(intent.target);
-      case 'take':
-        return seatController.requestTakeSeat(intent.seat);
-      case 'move':
-        return seatController.requestMoveSeat(intent.seat);
-    }
-  };
+  const onSeatPress = createRoomSeatPressHandler({
+    isSetup: isLobby,
+    state,
+    currentSeat: mySeat,
+    resolveIntent: get__GAME_PASCAL__SeatTapIntent,
+    profile,
+    seatController,
+  });
   const selection = profile.selection;
 //#cap audioOrchestration
   // 房主面板模型在离开本 hook 前过一遍播报锁（组合子在共享层一份）：
@@ -367,8 +326,6 @@ export function use__GAME_PASCAL__RoomState(
     hostManagement,
     releaseBot,
   });
-  const openShare = share.open;
-  useAutoShowRoomShareQr({ isHost, entryReason: props.entryReason, openShare });
 //#cap identityViewing
   const viewModel = isLobby ? null : get__GAME_PASCAL__ViewModel(state, effectiveSeat);
   const roleCardShouldPlay =

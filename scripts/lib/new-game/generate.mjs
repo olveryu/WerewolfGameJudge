@@ -23,6 +23,7 @@ import {
   editEngineSkeletonContract,
   editExpectedCapabilities,
   editExpectedPackageExports,
+  editExpectedPhaseDeadlineVariants,
   editGameTypes,
   editGuidanceMatrixRegistry,
   editRegistry,
@@ -123,6 +124,8 @@ export const PACK_SEGMENT_SWITCHES = {
  * segments, but the binding itself is a file only audio games have.
  */
 export const FILE_CAPABILITY_GATES = {
+  'packages/game-engine/src/games/__GAME_ID__/__tests__/phaseDeadlineProtocol.contract.test.ts':
+    'stageDeadline',
   'packages/game-engine/src/games/__GAME_ID__/__tests__/identityViewingProtocol.contract.test.ts':
     'identityViewing',
   'src/games/__GAME_ID__/components/__GAME_PASCAL__RoleCardAdapter.ts': 'identityViewing',
@@ -155,6 +158,10 @@ const SHARED_EDITS = [
   {
     file: 'packages/game-engine/src/platform/__tests__/engineSkeleton.contract.test.ts',
     apply: (content, ctx) => editEngineSkeletonContract(content, ctx),
+  },
+  {
+    file: 'packages/game-engine/src/platform/__tests__/phaseDeadlineVariants.contract.test.ts',
+    apply: (content, ctx) => editExpectedPhaseDeadlineVariants(content, ctx),
   },
   {
     file: 'packages/game-engine/src/platform/engine/__tests__/capabilities.contract.test.ts',
@@ -363,6 +370,7 @@ export function generateNewGame(options) {
     pascal: names.pascal,
     rewards,
     capabilities,
+    publicExpire: renderCapabilities.publicExpire,
     home,
     production,
   };

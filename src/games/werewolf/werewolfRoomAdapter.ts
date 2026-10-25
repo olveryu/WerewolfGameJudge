@@ -10,6 +10,10 @@ import { getRoleSpec } from '@game-judge/game-engine/games/werewolf/public';
 import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import type { BoardInfoSection, RoleDisplayItem } from '@/features/room/model/BoardInfoSection';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import {
+  createRoomShellModel,
+  type RoomShellModelWithHeaderInput,
+} from '@/features/room/model/createRoomShellModel';
 import { type NightStepProgress, resolveStepProgress } from '@/features/room/model/nightProgress';
 import type {
   RoomBottomActionLayout,
@@ -24,15 +28,12 @@ import {
   type RoomCapabilities,
   type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
-import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
-import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type {
   RoomSeatDataSource,
   RoomSeatStatusBadge,
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
-import type { RoomShareModel } from '@/features/room/model/RoomShare';
-import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
+import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { createWerewolfHostManagement } from '@/games/werewolf/room/createWerewolfHostManagement';
 import type {
@@ -311,14 +312,16 @@ export function createWerewolfBottomActionLayout(input: {
  * Everything derivable from these facts is derived inside
  * createWerewolfRoomShellModel; the Screen only wires this input object.
  */
-export interface WerewolfRoomShellModelInput {
-  // Shell pass-through models assembled elsewhere (header-adjacent state).
-  readonly roomCode: string;
-  readonly capabilities: RoomCapabilities;
-  readonly connection: RoomConnectionViewModel;
-  readonly seatConfirmation: RoomSeatConfirmationModel | null;
-  readonly profile: RoomProfileCardModel | null;
-  readonly share: RoomShareModel;
+export interface WerewolfRoomShellModelInput extends Pick<
+  RoomShellModelWithHeaderInput,
+  | 'roomCode'
+  | 'capabilities'
+  | 'connection'
+  | 'seatConfirmation'
+  | 'profile'
+  | 'share'
+  | 'onSeatPress'
+> {
   // Header.
   readonly user: { readonly id: string; readonly avatarUrl?: string | null } | null;
   readonly ticketCount: number | null;
@@ -361,7 +364,6 @@ export interface WerewolfRoomShellModelInput {
   readonly controlledSeat: number | null;
   readonly sheriffElectionPanel: SheriffElectionPanelModel | null;
   readonly stateRevision: string | number;
-  readonly onSeatPress: (seat: number, disabledReason?: string) => void;
   readonly onSeatLongPressed: (seat: number) => void;
   readonly hasBots: boolean;
   readonly controlledBotName: string | null;
@@ -456,9 +458,8 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
 
   const bottomActions = createWerewolfBottomActions(input, roomBottomActionLayout);
 
-  return {
-    roomCode: input.roomCode,
-    capabilities: input.capabilities,
+  return createRoomShellModel({
+    ...input,
     phase: input.roomStatus,
     // The step anchor mirrors the night progress row's own gate: the
     // current night step is only meaningful while the game is Ongoing.
@@ -476,22 +477,15 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
         onPress: input.onAvatarPress,
       },
     },
-    connection: input.connection,
-    seats: {
-      source: seatSource,
-      visuallyDisabled: isAudioPlaybackLocked(input.isAudioPlaying) || input.isActionSubmitting,
-      onSeatPress: input.onSeatPress,
-      onBotSeatLongPress: input.capabilities.canTakeOverBots.isAllowed
-        ? input.onSeatLongPressed
-        : null,
-    },
-    seatConfirmation: input.seatConfirmation,
-    profile: input.profile,
-    share: input.share,
+    seatSource,
+    seatsVisuallyDisabled: isAudioPlaybackLocked(input.isAudioPlaying) || input.isActionSubmitting,
+    onBotSeatLongPress: input.capabilities.canTakeOverBots.isAllowed
+      ? input.onSeatLongPressed
+      : null,
     bottomActions,
     hostManagement,
     controlledSeat: controlledSeatModel,
-  };
+  });
 }
 
 function createWerewolfBottomActions(

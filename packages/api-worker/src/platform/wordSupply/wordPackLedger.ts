@@ -2,11 +2,9 @@
  * Pack-row writes shared by the undercover, drawguess, and fibking editorial
  * queues.
  *
- * Category selection, candidate storage, and the publish choreography stay
- * with each game (their queue semantics differ); the pack row lifecycle —
- * reserve insert under the capacity gate, publish completion inside the
- * game's batch, and failure recording — is identical modulo the table name
- * and the per-table column mapping below. Fibking shares only the failure
+ * Category selection, intake, review policy, and inventory statements stay
+ * game-owned. Undercover and drawguess share candidate claims and the atomic
+ * candidate-review / inventory / pack-completion transaction. Fibking shares only the failure
  * statement: its packs table carries a different column set (month_id /
  * published_at / source_json / outcome instead of model / candidates_json /
  * failure_reason), so its reserve insert and publish completion stay in its
@@ -36,6 +34,90 @@ const WORD_PACK_FAILURE_COLUMNS: Readonly<
 export interface WordPackRef {
   readonly id: string;
   readonly request_token: string;
+}
+
+const WORD_PACK_CANDIDATES_TABLES = {
+  undercover_word_packs: {
+    candidatesTable: 'undercover_word_candidates',
+    hasCandidateReviewJson: false,
+  },
+  drawguess_word_packs: {
+    candidatesTable: 'drawguess_word_candidates',
+    hasCandidateReviewJson: true,
+  },
+} as const;
+
+/** Claim category-scoped pending material; callers may prepend game-owned re-review statements. */
+export function createClaimWordCandidatesStatement(
+  db: D1Database,
+  packsTable: keyof typeof WORD_PACK_CANDIDATES_TABLES,
+  pack: WordPackRef & { readonly category: string },
+  batchLimit: number,
+): D1PreparedStatement {
+  const { candidatesTable } = WORD_PACK_CANDIDATES_TABLES[packsTable];
+  return db
+    .prepare(
+      `UPDATE ${candidatesTable} SET claimed_pack_id = ?
+      WHERE id IN (SELECT id FROM ${candidatesTable} WHERE category = ? AND status = 'pending'
+        AND (claimed_pack_id IS NULL OR claimed_pack_id = ? OR EXISTS (SELECT 1 FROM ${packsTable} failed WHERE failed.id = claimed_pack_id AND failed.status = 'failed'))
+        ORDER BY created_at, id LIMIT ?)
+      AND EXISTS (SELECT 1 FROM ${packsTable} WHERE id = ? AND request_token = ? AND status = 'reserved')
+      RETURNING material_json`,
+    )
+    .bind(pack.id, pack.category, pack.id, batchLimit, pack.id, pack.request_token);
+}
+
+interface WordCandidatePublication {
+  readonly id: string;
+  readonly isAccepted: boolean;
+  readonly reviewJson: string;
+  readonly inventoryStatement: D1PreparedStatement;
+}
+
+/** Commit candidate reviews, game-owned inventory writes, and pack completion atomically. */
+export async function publishReviewedWordPack<TCandidate, TReview>(
+  db: D1Database,
+  packsTable: keyof typeof WORD_PACK_CANDIDATES_TABLES,
+  pack: WordPackRef,
+  candidates: readonly TCandidate[],
+  reviews: readonly TReview[],
+  createPublication: (
+    candidate: TCandidate,
+    review: TReview,
+    now: string,
+  ) => Promise<WordCandidatePublication>,
+): Promise<void> {
+  const { candidatesTable, hasCandidateReviewJson } = WORD_PACK_CANDIDATES_TABLES[packsTable];
+  const now = new Date().toISOString();
+  const statements: D1PreparedStatement[] = [];
+  for (const [index, candidate] of candidates.entries()) {
+    const review = reviews[index];
+    if (review === undefined) throw new Error('Word publication review missing');
+    const publication = await createPublication(candidate, review, now);
+    const reviewAssignment = hasCandidateReviewJson ? ', review_json = ?' : '';
+    const binds = [publication.isAccepted ? 'accepted' : 'rejected', now];
+    if (hasCandidateReviewJson) binds.push(publication.reviewJson);
+    statements.push(
+      db
+        .prepare(
+          `UPDATE ${candidatesTable} SET status = ?, reviewed_at = ?${reviewAssignment}
+      WHERE id = ? AND claimed_pack_id = ? AND EXISTS (SELECT 1 FROM ${packsTable} WHERE id = ? AND request_token = ? AND status = 'reserved')`,
+        )
+        .bind(...binds, publication.id, pack.id, pack.id, pack.request_token),
+      publication.inventoryStatement,
+    );
+  }
+  statements.push(
+    createCompleteWordPackStatement(
+      db,
+      packsTable,
+      pack,
+      JSON.stringify(candidates),
+      JSON.stringify(reviews),
+      now,
+    ),
+  );
+  await db.batch(statements);
 }
 
 /**
@@ -82,10 +164,10 @@ export async function insertReservedWordPack(
     .first();
 }
 
-/** Final publish statement; the caller appends it to its own publication batch. */
-export function createCompleteWordPackStatement(
+/** Complete the pack after candidate and inventory writes in the publication batch. */
+function createCompleteWordPackStatement(
   db: D1Database,
-  packsTable: WordPacksTable,
+  packsTable: keyof typeof WORD_PACK_CANDIDATES_TABLES,
   pack: WordPackRef,
   candidatesJson: string,
   reviewsJson: string,

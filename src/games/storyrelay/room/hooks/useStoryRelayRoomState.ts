@@ -10,8 +10,7 @@ import {
 import { useCallback } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
-import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
+import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import {
@@ -20,27 +19,16 @@ import {
 } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
-import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
-import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
-import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
-import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
-import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
+import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
 import {
   createBotTakeoverCapability,
-  createRoomSetupCapabilities,
-  createViewProfilesCapability,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
-import {
-  resolveRoomInGameSeatTap,
-  ROOM_SEAT_TAP_BLOCKED_TITLE,
-} from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { type StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
-import { showErrorAlert } from '@/utils/alertPresets';
 
 import {
   createStoryRelayHostManagement,
@@ -84,17 +72,33 @@ export function useStoryRelayRoomState(
   const isLobby = state.phase === 'lobby';
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot } = botControl;
-  const seats = useStandardSeatCommands(session, user);
-  const seatController = useRoomSeatController({ currentSeat: mySeat, takeSeat: seats.takeSeat });
-  const profile = useRoomProfileController({
-    myUserId: user.id,
-    kickSeat: seats.kickSeat,
-    leaveSeat: seats.leaveSeat,
+  const { share, titleActions, gachaStatus } = useRoomPresentationController({
+    roomCode: room.roomCode,
+    gameDisplayName: '故事接龙',
+    isHost,
+    entryReason: props.entryReason,
   });
-  const host = useRoomHostOperations({ clearSeats: seats.clearSeats, fillBots: seats.fillBots });
-  const share = useRoomShareController({ roomCode: room.roomCode, gameDisplayName: '故事接龙' });
-  const titleActions = useRoomTitleActions();
-  const { data: gachaStatus } = useGachaStatusQuery();
+  const {
+    seatController,
+    profile,
+    capabilities: setupCapabilities,
+  } = useRoomSetupController({
+    session,
+    user,
+    isSetup: isLobby,
+    isHost,
+    mySeat,
+    supportsBots: true,
+    hasOccupiedSeats: getStoryRelayOccupiedSeatCount(state) > 0,
+    isRoomFull: getStoryRelayOccupiedSeatCount(state) === state.config.numberOfPlayers,
+    configureGame: () =>
+      navigation.navigate('GameConfig', {
+        gameType: 'storyrelay',
+        mode: 'edit',
+        roomCode: room.roomCode,
+      }),
+    shareRoom: share.open,
+  });
   const submission = useRoomCommandSubmission(getStoryRelayRoomCommandFailureMessage);
   const submit = (label: string, command: StoryRelayCommand) =>
     submission.submit(label, () => session.dispatch(command, { controlledSeat: null, label }));
@@ -106,28 +110,7 @@ export function useStoryRelayRoomState(
     release: releaseBot,
   });
   const capabilities: RoomCapabilities = {
-    ...createRoomSetupCapabilities({
-      isSetup: isLobby,
-      isHost,
-      mySeat,
-      supportsBots: true,
-      hasOccupiedSeats: getStoryRelayOccupiedSeatCount(state) > 0,
-      isRoomFull: getStoryRelayOccupiedSeatCount(state) === state.config.numberOfPlayers,
-      requestTakeSeat: seatController.requestTakeSeat,
-      requestMoveSeat: seatController.requestMoveSeat,
-      leaveSeat: profile.leaveSelf,
-      kickSeat: profile.kick,
-      clearSeats: host.requestClearSeats,
-      fillBots: host.requestFillBots,
-      configureGame: () =>
-        navigation.navigate('GameConfig', {
-          gameType: 'storyrelay',
-          mode: 'edit',
-          roomCode: room.roomCode,
-        }),
-      shareRoom: share.open,
-    }),
-    canViewProfiles: createViewProfilesCapability(isLobby, profile.open),
+    ...setupCapabilities,
     canTakeOverBots: createBotTakeoverCapability(canControlBots, botControl.takeOver),
   };
   const isSeatBot = useCallback((seat: number) => isBotSeat(state.roster, seat), [state]);
@@ -142,31 +125,14 @@ export function useStoryRelayRoomState(
     isBotSeat: isSeatBot,
     gameName: 'StoryRelay',
   });
-  const onSeatPress = (seat: number, disabledReason?: string) => {
-    // 局内裁决走共享 resolveRoomInGameSeatTap（与狼人杀 SeatTapPolicy 同一实现）。
-    if (!isLobby) {
-      const outcome = resolveRoomInGameSeatTap(disabledReason);
-      if (outcome.kind === 'alert')
-        return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, outcome.reason);
-      return;
-    }
-    const intent = getStoryRelaySeatTapIntent({
-      state,
-      seat,
-      currentSeat: mySeat,
-      disabledReason,
-    });
-    switch (intent.kind) {
-      case 'blocked':
-        return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, intent.reason);
-      case 'profile':
-        return profile.open(intent.target);
-      case 'take':
-        return seatController.requestTakeSeat(intent.seat);
-      case 'move':
-        return seatController.requestMoveSeat(intent.seat);
-    }
-  };
+  const onSeatPress = createRoomSeatPressHandler({
+    isSetup: isLobby,
+    state,
+    currentSeat: mySeat,
+    resolveIntent: getStoryRelaySeatTapIntent,
+    profile,
+    seatController,
+  });
   const hostManagement = createStoryRelayHostManagement({
     state,
     isHost,
@@ -204,8 +170,6 @@ export function useStoryRelayRoomState(
     hostManagement,
     releaseBot,
   });
-  const openShare = share.open;
-  useAutoShowRoomShareQr({ isHost, entryReason: props.entryReason, openShare });
   return {
     state,
     shellModel,

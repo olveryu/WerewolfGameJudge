@@ -20,19 +20,12 @@ import { GameSettingsStepper } from '@/components/GameSettings';
 import { gameSettingsStyles as styles } from '@/components/GameSettings.styles';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
-import { useRoomCreationController } from '@/features/room/controllers/useRoomCreationController';
-import {
-  replaceWithCreatedRoom,
-  returnToActiveRoom,
-} from '@/features/room/navigation/roomFlowNavigation';
+import { useRoomConfigSubmission } from '@/features/room/controllers/useRoomConfigSubmission';
 import type { __GAME_PASCAL__RoomSession } from '@/games/__GAME_ID__/model/__GAME_PASCAL__RoomSession';
 import { parse__GAME_PASCAL__ConfigRouteParams } from '@/games/__GAME_ID__/navigation/__GAME_CAMEL__GameNavigation';
 import { get__GAME_PASCAL__RoomCommandFailureMessage } from '@/games/__GAME_ID__/room/__GAME_CAMEL__RoomCommandFailureMessage';
 import type { RootStackParamList } from '@/navigation/types';
 import { showErrorAlert } from '@/utils/alertPresets';
-import { handleError } from '@/utils/errorPipeline';
-import { configLog } from '@/utils/logger';
 
 // TODO(gameplay): 玩法配置项（时长、模式等）按设计文档加进本页与引擎 Config。
 
@@ -47,8 +40,6 @@ export function __GAME_PASCAL__ConfigScreen({
   const params = parse__GAME_PASCAL__ConfigRouteParams(route.params);
   const { user } = useAuthContext();
   const insets = useSafeAreaInsets();
-  const creation = useRoomCreationController();
-  const submission = useRoomCommandSubmission(get__GAME_PASCAL__RoomCommandFailureMessage);
   const [config, setConfig] = useState<__GAME_PASCAL__Config>(() => {
     if (params.mode === 'create') return DEFAULT___GAME_UPPER___CONFIG;
     const snapshot = session.getSnapshot();
@@ -69,32 +60,21 @@ export function __GAME_PASCAL__ConfigScreen({
       );
     setConfig((current) => ({ ...current, numberOfPlayers: count }));
   };
-  const submit = () => {
-    if (params.mode === 'edit') {
-      void submission
-        .submit('保存设置', () =>
-          session.dispatch(
-            { type: '__GAME_ID__.config.update', config },
-            { controlledSeat: null, label: '保存设置' },
-          ),
-        )
-        .then((success) => {
-          if (success) returnToActiveRoom(navigation, params.roomCode);
-        });
-      return;
-    }
-    if (user === null) throw new Error('__GAME_PASCAL__ creation requires authentication');
-    void creation
-      .createRoom({ expectedHostUserId: user.id, gameType: '__GAME_ID__', config: { ...config } })
-      .then((record) => replaceWithCreatedRoom(navigation, record.roomCode))
-      .catch((error: unknown) =>
-        handleError(error, {
-          label: '创建__GAME_DISPLAY_NAME__房间',
-          logger: configLog,
-          alertMessage: '创建失败，请重试',
-        }),
-      );
-  };
+  const { submit, isSubmitting } = useRoomConfigSubmission({
+    params,
+    navigation,
+    getFailureMessage: get__GAME_PASCAL__RoomCommandFailureMessage,
+    creationLabel: '创建__GAME_DISPLAY_NAME__房间',
+    createRequest: () => {
+      if (user === null) throw new Error('__GAME_PASCAL__ creation requires authentication');
+      return { expectedHostUserId: user.id, gameType: '__GAME_ID__', config: { ...config } };
+    },
+    updateConfig: () =>
+      session.dispatch(
+        { type: '__GAME_ID__.config.update', config },
+        { controlledSeat: null, label: '保存设置' },
+      ),
+  });
   return (
     <GameScreen
       testID="__GAME_ID__-config"
@@ -129,7 +109,7 @@ export function __GAME_PASCAL__ConfigScreen({
           variant="primary"
           size="lg"
           onPress={submit}
-          loading={creation.isCreating || submission.isSubmitting}
+          loading={isSubmitting}
           testID="__GAME_ID__-config-submit"
         >
           {params.mode === 'edit' ? '保存设置' : '创建房间'}

@@ -20,19 +20,12 @@ import { GameSettingsStepper } from '@/components/GameSettings';
 import { gameSettingsStyles as styles } from '@/components/GameSettings.styles';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
-import { useRoomCreationController } from '@/features/room/controllers/useRoomCreationController';
-import {
-  replaceWithCreatedRoom,
-  returnToActiveRoom,
-} from '@/features/room/navigation/roomFlowNavigation';
+import { useRoomConfigSubmission } from '@/features/room/controllers/useRoomConfigSubmission';
 import type { DemoRoomSession } from '@/games/demo/model/DemoRoomSession';
 import { parseDemoConfigRouteParams } from '@/games/demo/navigation/demoGameNavigation';
 import { getDemoRoomCommandFailureMessage } from '@/games/demo/room/demoRoomCommandFailureMessage';
 import type { RootStackParamList } from '@/navigation/types';
 import { showErrorAlert } from '@/utils/alertPresets';
-import { handleError } from '@/utils/errorPipeline';
-import { configLog } from '@/utils/logger';
 
 // TODO(gameplay): 玩法配置项（时长、模式等）按设计文档加进本页与引擎 Config。
 
@@ -43,8 +36,6 @@ export function DemoConfigScreen({ session }: { readonly session: DemoRoomSessio
   const params = parseDemoConfigRouteParams(route.params);
   const { user } = useAuthContext();
   const insets = useSafeAreaInsets();
-  const creation = useRoomCreationController();
-  const submission = useRoomCommandSubmission(getDemoRoomCommandFailureMessage);
   const [config, setConfig] = useState<DemoConfig>(() => {
     if (params.mode === 'create') return DEFAULT_DEMO_CONFIG;
     const snapshot = session.getSnapshot();
@@ -62,32 +53,21 @@ export function DemoConfigScreen({ session }: { readonly session: DemoRoomSessio
       return showErrorAlert('人数设置有误', `支持 ${DEMO_MIN_PLAYERS} 至 ${DEMO_MAX_PLAYERS} 人`);
     setConfig((current) => ({ ...current, numberOfPlayers: count }));
   };
-  const submit = () => {
-    if (params.mode === 'edit') {
-      void submission
-        .submit('保存设置', () =>
-          session.dispatch(
-            { type: 'demo.config.update', config },
-            { controlledSeat: null, label: '保存设置' },
-          ),
-        )
-        .then((success) => {
-          if (success) returnToActiveRoom(navigation, params.roomCode);
-        });
-      return;
-    }
-    if (user === null) throw new Error('Demo creation requires authentication');
-    void creation
-      .createRoom({ expectedHostUserId: user.id, gameType: 'demo', config: { ...config } })
-      .then((record) => replaceWithCreatedRoom(navigation, record.roomCode))
-      .catch((error: unknown) =>
-        handleError(error, {
-          label: '创建Demo房间',
-          logger: configLog,
-          alertMessage: '创建失败，请重试',
-        }),
-      );
-  };
+  const { submit, isSubmitting } = useRoomConfigSubmission({
+    params,
+    navigation,
+    getFailureMessage: getDemoRoomCommandFailureMessage,
+    creationLabel: '创建Demo房间',
+    createRequest: () => {
+      if (user === null) throw new Error('Demo creation requires authentication');
+      return { expectedHostUserId: user.id, gameType: 'demo', config: { ...config } };
+    },
+    updateConfig: () =>
+      session.dispatch(
+        { type: 'demo.config.update', config },
+        { controlledSeat: null, label: '保存设置' },
+      ),
+  });
   return (
     <GameScreen
       testID="demo-config"
@@ -122,7 +102,7 @@ export function DemoConfigScreen({ session }: { readonly session: DemoRoomSessio
           variant="primary"
           size="lg"
           onPress={submit}
-          loading={creation.isCreating || submission.isSubmitting}
+          loading={isSubmitting}
           testID="demo-config-submit"
         >
           {params.mode === 'edit' ? '保存设置' : '创建房间'}
