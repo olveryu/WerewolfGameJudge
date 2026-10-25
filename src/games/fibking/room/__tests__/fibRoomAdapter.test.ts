@@ -521,17 +521,17 @@ describe('FibKing room adapter', () => {
     const ongoing = createOngoing();
     const ongoingActions = createFibBottomActions({ state: ongoing, ...common });
     expect(ongoingActions.layout.primary).toEqual([]);
-    expect(ongoingActions.layout.secondary).toEqual([]);
-    // Tier contract: the persistent view-identity tool lives in the ghost tier.
-    expect(ongoingActions.layout.ghost).toMatchObject([
+    // 2026 规则：进行中查看只是回看工具，进 secondary，永不进 ghost。
+    expect(ongoingActions.layout.secondary).toMatchObject([
       {
         label: '查看身份',
-        variant: 'ghost',
+        variant: 'secondary',
         testID: TESTIDS.fibViewIdentityButton,
         isEnabled: true,
       },
     ]);
-    const identityAction = ongoingActions.layout.ghost[0];
+    expect(ongoingActions.layout.ghost).toEqual([]);
+    const identityAction = ongoingActions.layout.secondary[0];
     if (identityAction?.isEnabled !== true) throw new Error('Expected enabled identity action');
     identityAction.onPress();
     expect(openIdentity).toHaveBeenCalledTimes(1);
@@ -617,15 +617,15 @@ describe('FibKing room adapter', () => {
       openIdentity,
     });
     expect(ongoingPlayer.layout.primary).toEqual([]);
-    expect(ongoingPlayer.layout.secondary).toEqual([]);
-    expect(ongoingPlayer.layout.ghost).toMatchObject([
+    expect(ongoingPlayer.layout.secondary).toMatchObject([
       {
         label: '查看身份',
-        variant: 'ghost',
+        variant: 'secondary',
         testID: TESTIDS.fibViewIdentityButton,
         isEnabled: true,
       },
     ]);
+    expect(ongoingPlayer.layout.ghost).toEqual([]);
 
     const ongoingSpectator = createFibBottomActions({
       state: createOngoing(),
@@ -633,15 +633,15 @@ describe('FibKing room adapter', () => {
       viewerSeat: null,
       openIdentity,
     });
-    expect(ongoingSpectator.layout.secondary).toEqual([]);
-    expect(ongoingSpectator.layout.ghost).toMatchObject([
+    expect(ongoingSpectator.layout.secondary).toMatchObject([
       {
         label: '查看题目',
-        variant: 'ghost',
+        variant: 'secondary',
         testID: TESTIDS.fibViewIdentityButton,
         isEnabled: true,
       },
     ]);
+    expect(ongoingSpectator.layout.ghost).toEqual([]);
   });
 });
 

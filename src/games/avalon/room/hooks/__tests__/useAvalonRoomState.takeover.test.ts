@@ -222,7 +222,7 @@ describe('useAvalonRoomState takeover dispatch discipline', () => {
     dispatch.mockClear();
     const bottom = result.current.shellModel.bottomActions;
     if (bottom.kind !== 'stacked') throw new Error('expected stacked bottom actions in viewing');
-    const viewRole = bottom.layout.ghost.find((action) => action.testID === 'avalon-view-role');
+    const viewRole = bottom.layout.primary.find((action) => action.testID === 'avalon-view-role');
     if (viewRole === undefined || !viewRole.isEnabled)
       throw new Error('view-role action missing or disabled');
     await act(async () => {

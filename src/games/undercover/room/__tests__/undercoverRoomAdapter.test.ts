@@ -567,9 +567,9 @@ it('clears the self-hint once every seat has viewed', () => {
     message: '请点击下方「查看我的词」，查看词语',
   });
   // Tier contract: the word card is the viewing step's main action, so
-  // it sits in the primary tier at stage-action size — it is not a
-  // ghost-tier review tool even though its definition resolves through
-  // the shared view-action resolver.
+  // it sits in the primary tier — it is not a ghost-tier review tool
+  // even though its definition resolves through the shared view-action
+  // resolver. Size is the fixed cross-game md.
   const viewingBottom = createUndercoverBottomActions(result.current, viewing, {
     isHost: true,
     mySeat: getUndercoverUserSeat(viewing, 'host'),
@@ -580,7 +580,7 @@ it('clears the self-hint once every seat has viewed', () => {
       key: 'card',
       label: '查看我的词',
       variant: 'primary',
-      size: 'lg',
+      size: 'md',
       testID: 'undercover-view-word',
       isEnabled: true,
     },

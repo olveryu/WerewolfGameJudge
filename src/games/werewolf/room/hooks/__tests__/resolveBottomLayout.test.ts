@@ -113,20 +113,20 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Assigned', () => {
-    it('host → ghost: viewRole only (identity is a tool, not a step)', () => {
+    it('host → primary: viewRole only (viewing is the step)', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Assigned, isHost: true, effectiveSeat: 0 }),
       );
-      expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'primary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
-    it('player → ghost: viewRole only', () => {
+    it('player → primary: viewRole only', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Assigned, isHost: false, effectiveSeat: 1 }),
       );
-      expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'primary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
     it('spectator → empty', () => {
@@ -142,12 +142,12 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Ready', () => {
-    it('host → ghost: viewRole', () => {
+    it('host → primary: viewRole', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Ready, isHost: true, effectiveSeat: 0 }),
       );
-      expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'primary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
     it('host and player receive the same personal action', () => {
@@ -158,15 +158,15 @@ describe('resolveBottomLayout', () => {
           effectiveSeat: 0,
         }),
       );
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'primary')).toEqual(['viewRole']);
     });
 
-    it('player → ghost: viewRole', () => {
+    it('player → primary: viewRole', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Ready, isHost: false, effectiveSeat: 1 }),
       );
-      expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'primary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
   });
 
@@ -175,7 +175,7 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Ongoing (non-actioner)', () => {
-    it('host → ghost: viewRole only', () => {
+    it('host → secondary: viewRole only', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ongoing,
@@ -185,10 +185,11 @@ describe('resolveBottomLayout', () => {
         }),
       );
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
-    it('player → ghost: viewRole', () => {
+    it('player → secondary: viewRole', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ongoing,
@@ -198,7 +199,8 @@ describe('resolveBottomLayout', () => {
         }),
       );
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
     it('spectator → empty', () => {
@@ -290,19 +292,19 @@ describe('resolveBottomLayout', () => {
       });
 
     describe('chooseSeat / swap — single skip button', () => {
-      it('host actioner → secondary: skip, ghost: viewRole', () => {
+      it('host actioner → secondary: skip + viewRole', () => {
         const layout = resolveBottomLayout(actorCtx(true), [skipButton]);
         expect(keys(layout, 'primary')).toEqual([]);
-        expect(keys(layout, 'secondary')).toEqual(['skip']);
-        expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+        expect(keys(layout, 'secondary')).toEqual(['skip', 'viewRole']);
+        expect(keys(layout, 'ghost')).toEqual([]);
         expect(layout.secondary[0]!.variant).toBe('secondary');
         expect(layout.secondary[0]!.size).toBe('md');
       });
 
-      it('player actioner → secondary: skip, ghost: viewRole', () => {
+      it('player actioner → secondary: skip + viewRole', () => {
         const layout = resolveBottomLayout(actorCtx(false), [skipButton]);
-        expect(keys(layout, 'secondary')).toEqual(['skip']);
-        expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+        expect(keys(layout, 'secondary')).toEqual(['skip', 'viewRole']);
+        expect(keys(layout, 'ghost')).toEqual([]);
       });
     });
 
@@ -310,7 +312,7 @@ describe('resolveBottomLayout', () => {
       it('secondary: wolfEmpty', () => {
         const layout = resolveBottomLayout(actorCtx(true), [wolfEmptyButton]);
         expect(keys(layout, 'primary')).toEqual([]);
-        expect(keys(layout, 'secondary')).toEqual(['wolfEmpty']);
+        expect(keys(layout, 'secondary')).toEqual(['wolfEmpty', 'viewRole']);
       });
     });
 
@@ -318,7 +320,7 @@ describe('resolveBottomLayout', () => {
       it('primary: wolfCancel, secondary: wolfEmpty', () => {
         const layout = resolveBottomLayout(actorCtx(true), [wolfCancelButton, wolfEmptyButton]);
         expect(keys(layout, 'primary')).toEqual(['wolfCancel']);
-        expect(keys(layout, 'secondary')).toEqual(['wolfEmpty']);
+        expect(keys(layout, 'secondary')).toEqual(['wolfEmpty', 'viewRole']);
         expect(layout.primary[0]!.variant).toBe('primary');
         expect(layout.primary[0]!.size).toBe('lg');
       });
@@ -328,7 +330,7 @@ describe('resolveBottomLayout', () => {
       it('primary: confirm', () => {
         const layout = resolveBottomLayout(actorCtx(true), [confirmButton]);
         expect(keys(layout, 'primary')).toEqual(['confirm']);
-        expect(keys(layout, 'secondary')).toEqual([]);
+        expect(keys(layout, 'secondary')).toEqual(['viewRole']);
       });
     });
 
@@ -336,7 +338,7 @@ describe('resolveBottomLayout', () => {
       it('primary: save, secondary: skip', () => {
         const layout = resolveBottomLayout(actorCtx(false), [saveButton, skipButton]);
         expect(keys(layout, 'primary')).toEqual(['save']);
-        expect(keys(layout, 'secondary')).toEqual(['skip']);
+        expect(keys(layout, 'secondary')).toEqual(['skip', 'viewRole']);
       });
     });
 
@@ -344,7 +346,7 @@ describe('resolveBottomLayout', () => {
       it('secondary: skip', () => {
         const layout = resolveBottomLayout(actorCtx(false), [skipButton]);
         expect(keys(layout, 'primary')).toEqual([]);
-        expect(keys(layout, 'secondary')).toEqual(['skip']);
+        expect(keys(layout, 'secondary')).toEqual(['skip', 'viewRole']);
       });
     });
 
@@ -366,14 +368,14 @@ describe('resolveBottomLayout', () => {
       it('primary: multiConfirm, secondary: skip', () => {
         const layout = resolveBottomLayout(actorCtx(true), [multiConfirmButton, skipButton]);
         expect(keys(layout, 'primary')).toEqual(['multiConfirm']);
-        expect(keys(layout, 'secondary')).toEqual(['skip']);
+        expect(keys(layout, 'secondary')).toEqual(['skip', 'viewRole']);
       });
     });
 
     describe('multiChooseSeat — not selected, skip only', () => {
       it('secondary: skip', () => {
         const layout = resolveBottomLayout(actorCtx(true), [skipButton]);
-        expect(keys(layout, 'secondary')).toEqual(['skip']);
+        expect(keys(layout, 'secondary')).toEqual(['skip', 'viewRole']);
         expect(keys(layout, 'primary')).toEqual([]);
       });
     });
@@ -390,7 +392,7 @@ describe('resolveBottomLayout', () => {
         // so classifySchemaButtons puts it in secondary. This is correct —
         // the user still needs to acknowledge.
         const layout = resolveBottomLayout(actorCtx(false), [hintSkip]);
-        expect(keys(layout, 'secondary')).toEqual(['skip']);
+        expect(keys(layout, 'secondary')).toEqual(['skip', 'viewRole']);
       });
     });
 
@@ -403,7 +405,7 @@ describe('resolveBottomLayout', () => {
 
       it('secondary: wolfEmpty', () => {
         const layout = resolveBottomLayout(actorCtx(false), [hintWolfEmpty]);
-        expect(keys(layout, 'secondary')).toEqual(['wolfEmpty']);
+        expect(keys(layout, 'secondary')).toEqual(['wolfEmpty', 'viewRole']);
       });
     });
 
@@ -421,12 +423,12 @@ describe('resolveBottomLayout', () => {
     });
 
     describe('no schema buttons (canSkip=false, no selection)', () => {
-      it('host → ghost only: viewRole', () => {
+      it('host → secondary only: viewRole', () => {
         const layout = resolveBottomLayout(actorCtx(true), []);
-        // No schema buttons → primary/secondary empty, but ghost still shows
+        // No schema buttons → primary empty, but secondary still shows
         expect(keys(layout, 'primary')).toEqual([]);
-        expect(keys(layout, 'secondary')).toEqual([]);
-        expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+        expect(keys(layout, 'secondary')).toEqual(['viewRole']);
+        expect(keys(layout, 'ghost')).toEqual([]);
       });
     });
   });
@@ -436,7 +438,7 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Day', () => {
-    it('host, flow step pending → primary: lastNightInfo, ghost: viewRole + nightReview', () => {
+    it('host, flow step pending → primary: lastNightInfo, secondary: viewRole, ghost: nightReview', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Day, isHost: true, effectiveSeat: 0 }),
       );
@@ -447,12 +449,12 @@ describe('resolveBottomLayout', () => {
         testID: TESTIDS.lastNightInfoBottomButton,
         isEnabled: true,
       });
-      expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole', 'nightReview']);
-      expect(layout.ghost[1]).toMatchObject({ testID: TESTIDS.nightReviewBottomButton });
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual(['nightReview']);
+      expect(layout.ghost[0]).toMatchObject({ testID: TESTIDS.nightReviewBottomButton });
     });
 
-    it('host, info confirmed → flow pauses: ghost tools only', () => {
+    it('host, info confirmed → flow pauses: secondary viewRole + ghost tools', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Day,
@@ -463,11 +465,11 @@ describe('resolveBottomLayout', () => {
       );
 
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole', 'lastNightInfo', 'nightReview']);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual(['lastNightInfo', 'nightReview']);
     });
 
-    it('player, info confirmed, no review permission → ghost: viewRole only (no host buttons)', () => {
+    it('player, info confirmed, no review permission → secondary: viewRole only (no host buttons)', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Day,
@@ -478,8 +480,8 @@ describe('resolveBottomLayout', () => {
       );
 
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
     // The night-end announcement opens Day with narration still
@@ -533,7 +535,7 @@ describe('resolveBottomLayout', () => {
       expect(keys(layout, 'ghost')).toEqual([]);
     });
 
-    it('player with review permission → ghost: viewRole + nightReview, no primary', () => {
+    it('player with review permission → secondary: viewRole, ghost: nightReview, no primary', () => {
       // The shared review is the one host action a player may see,
       // and it arrives as a ghost tool on their own surface — never
       // as a flow step, whatever the flow progress.
@@ -547,18 +549,18 @@ describe('resolveBottomLayout', () => {
       );
 
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole', 'nightReview']);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual(['nightReview']);
     });
 
-    it('player without review permission → ghost: viewRole only, no lastNightInfo', () => {
+    it('player without review permission → secondary: viewRole only, no lastNightInfo', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Day, isHost: false, effectiveSeat: 1 }),
       );
 
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
     it('spectator → primary: nightReview only, in any flow state', () => {
@@ -588,7 +590,7 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Ended', () => {
-    it('host, fresh progress → primary: lastNightInfo, ghost: viewRole', () => {
+    it('host, fresh progress → primary: lastNightInfo, secondary: viewRole', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Ended, isHost: true, effectiveSeat: 0 }),
       );
@@ -597,8 +599,8 @@ describe('resolveBottomLayout', () => {
         label: '昨夜信息',
         testID: TESTIDS.lastNightInfoBottomButton,
       });
-      expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
     it('host, info confirmed in Day → Ended starts at the review step (progress carries over)', () => {
@@ -611,11 +613,12 @@ describe('resolveBottomLayout', () => {
         }),
       );
       expect(keys(layout, 'primary')).toEqual(['nightReview']);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
       expect(layout.primary[0]).toMatchObject({
         label: '本局复盘',
         testID: TESTIDS.nightReviewBottomButton,
       });
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
     it('host, review opened but not shared → still on the review step (share gate)', () => {
@@ -628,8 +631,8 @@ describe('resolveBottomLayout', () => {
         }),
       );
       expect(keys(layout, 'primary')).toEqual(['nightReview']);
-      expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
     it('host, flow done (opened + shared) → danger closing row: nextRound + returnToLobby', () => {
@@ -643,14 +646,23 @@ describe('resolveBottomLayout', () => {
         }),
       );
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual(['nextRound', 'returnToLobby']);
-      expect(layout.secondary.map((button) => button.label)).toEqual(['再来一局', '返回大厅']);
-      expect(layout.secondary.map((button) => button.variant)).toEqual(['danger', 'danger']);
+      expect(keys(layout, 'secondary')).toEqual(['nextRound', 'returnToLobby', 'viewRole']);
+      expect(layout.secondary.map((button) => button.label)).toEqual([
+        '再来一局',
+        '返回大厅',
+        '查看身份',
+      ]);
+      expect(layout.secondary.map((button) => button.variant)).toEqual([
+        'danger',
+        'danger',
+        'secondary',
+      ]);
       expect(layout.secondary.map((button) => button.testID)).toEqual([
         TESTIDS.nextRoundBottomButton,
         TESTIDS.returnLobbyBottomButton,
+        undefined,
       ]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
     it('host, flow done, audio playing → closing actions held by the audio lock', () => {
@@ -664,15 +676,17 @@ describe('resolveBottomLayout', () => {
           isAudioPlaying: true,
         }),
       );
-      expect(keys(layout, 'secondary')).toEqual(['nextRound', 'returnToLobby']);
-      for (const button of layout.secondary) {
+      expect(keys(layout, 'secondary')).toEqual(['nextRound', 'returnToLobby', 'viewRole']);
+      for (const button of layout.secondary.filter((button) => button.key !== 'viewRole')) {
         expect(button).toMatchObject({ isEnabled: false, disabledReason: '语音播报中，请稍候' });
       }
-      // The read-only ghost tool stays available under the lock.
-      expect(layout.ghost[0]).toMatchObject({ key: 'viewRole', isEnabled: true });
+      // The read-only view tool stays available under the lock (it is not a closing action).
+      expect(layout.secondary.find((button) => button.key === 'viewRole')).toMatchObject({
+        isEnabled: true,
+      });
     });
 
-    it('player, fresh progress → ghost: viewRole only (no flow, no host buttons)', () => {
+    it('player, fresh progress → secondary: viewRole only (no flow, no host buttons)', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ended,
@@ -682,11 +696,11 @@ describe('resolveBottomLayout', () => {
         }),
       );
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
-    it('player, authorized → ghost: viewRole + nightReview, no closing row', () => {
+    it('player, authorized → secondary: viewRole, ghost: nightReview, no closing row', () => {
       // Even with the host's flow fully done, a player never sees
       // the closing actions; the shared review stays a ghost tool.
       const layout = resolveBottomLayout(
@@ -699,8 +713,8 @@ describe('resolveBottomLayout', () => {
         }),
       );
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole', 'nightReview']);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual(['nightReview']);
     });
 
     it('player, authorized mid-Ended → the review ghost appears (state-driven)', () => {
@@ -714,11 +728,11 @@ describe('resolveBottomLayout', () => {
         }),
       );
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole', 'nightReview']);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual(['nightReview']);
     });
 
-    it('player, never authorized → ghost: viewRole only, no returnToLobby', () => {
+    it('player, never authorized → secondary: viewRole only, no returnToLobby', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ended,
@@ -729,8 +743,8 @@ describe('resolveBottomLayout', () => {
         }),
       );
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
     it('spectator, fresh progress → primary: nightReview only', () => {
@@ -801,7 +815,7 @@ describe('resolveBottomLayout', () => {
 
     it('variant correctness: ghost buttons get variant=ghost', () => {
       const layout = resolveBottomLayout(
-        makeCtx({ roomStatus: GameStatus.Ready, isHost: true, effectiveSeat: 0 }),
+        makeCtx({ roomStatus: GameStatus.Day, isHost: true, effectiveSeat: 0 }),
       );
       for (const btn of layout.ghost) {
         expect(btn.variant).toBe('ghost');

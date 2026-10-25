@@ -249,17 +249,17 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   {
     match: { status: GameStatus.Assigned, role: 'host' },
     layout: {
-      primary: [],
+      primary: [{ source: 'static', button: 'viewRole' }],
       secondary: [],
-      ghost: [{ source: 'static', button: 'viewRole' }],
+      ghost: [],
     },
   },
   {
     match: { status: GameStatus.Assigned, role: 'player' },
     layout: {
-      primary: [],
+      primary: [{ source: 'static', button: 'viewRole' }],
       secondary: [],
-      ghost: [{ source: 'static', button: 'viewRole' }],
+      ghost: [],
     },
   },
   // spectator: no panel
@@ -270,17 +270,17 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   {
     match: { status: GameStatus.Ready, role: 'host' },
     layout: {
-      primary: [],
+      primary: [{ source: 'static', button: 'viewRole' }],
       secondary: [],
-      ghost: [{ source: 'static', button: 'viewRole' }],
+      ghost: [],
     },
   },
   {
     match: { status: GameStatus.Ready, role: 'player' },
     layout: {
-      primary: [],
+      primary: [{ source: 'static', button: 'viewRole' }],
       secondary: [],
-      ghost: [{ source: 'static', button: 'viewRole' }],
+      ghost: [],
     },
   },
   // spectator: no panel
@@ -327,8 +327,11 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     },
     layout: {
       primary: [{ source: 'schema', tier: 'primary' }],
-      secondary: [{ source: 'schema', tier: 'secondary' }],
-      ghost: [{ source: 'static', button: 'viewRole' }],
+      secondary: [
+        { source: 'schema', tier: 'secondary' },
+        { source: 'static', button: 'viewRole' },
+      ],
+      ghost: [],
     },
   },
   {
@@ -339,8 +342,11 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     },
     layout: {
       primary: [{ source: 'schema', tier: 'primary' }],
-      secondary: [{ source: 'schema', tier: 'secondary' }],
-      ghost: [{ source: 'static', button: 'viewRole' }],
+      secondary: [
+        { source: 'schema', tier: 'secondary' },
+        { source: 'static', button: 'viewRole' },
+      ],
+      ghost: [],
     },
   },
 
@@ -351,16 +357,16 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     match: { status: GameStatus.Ongoing, role: 'host' },
     layout: {
       primary: [],
-      secondary: [],
-      ghost: [{ source: 'static', button: 'viewRole' }],
+      secondary: [{ source: 'static', button: 'viewRole' }],
+      ghost: [],
     },
   },
   {
     match: { status: GameStatus.Ongoing, role: 'player' },
     layout: {
       primary: [],
-      secondary: [],
-      ghost: [{ source: 'static', button: 'viewRole' }],
+      secondary: [{ source: 'static', button: 'viewRole' }],
+      ghost: [],
     },
   },
   // spectator: no panel
@@ -396,15 +402,15 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Day — panel flow, first step （昨夜信息）, host only. The step is
-  // the panel's only primary; view identity and the review stay
-  // reachable as ghost tools (the review also feeds the
-  // sheriff-election dock's trailing tool). Once the step is
+  // the panel's only primary; view identity stays reachable as a
+  // secondary tool, the review as a ghost tool (the review also feeds
+  // the sheriff-election dock's trailing tool). Once the step is
   // confirmed the flow pauses: the phase's own actions resume and
   // the info demotes to a ghost tool.
   //
   // Players never join the flow — every flow action is a host
   // action. Their Day panel is their own surface: the view-identity
-  // ghost tool, plus the review as a ghost tool when the host
+  // secondary tool, plus the review as a ghost tool when the host
   // shared it with their seat (the one host action a player may
   // ever see, and only because it was given to them).
   // ═══════════════════════════════════════════════════════════════════════════
@@ -416,20 +422,16 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     },
     layout: {
       primary: [{ source: 'static', button: 'lastNightInfo' }],
-      secondary: [],
-      ghost: [
-        { source: 'static', button: 'viewRole' },
-        { source: 'static', button: 'nightReview' },
-      ],
+      secondary: [{ source: 'static', button: 'viewRole' }],
+      ghost: [{ source: 'static', button: 'nightReview' }],
     },
   },
   {
     match: { status: GameStatus.Day, role: 'host', when: (ctx) => isPanelFlowPaused(ctx) },
     layout: {
       primary: [],
-      secondary: [],
+      secondary: [{ source: 'static', button: 'viewRole' }],
       ghost: [
-        { source: 'static', button: 'viewRole' },
         { source: 'static', button: 'lastNightInfo' },
         { source: 'static', button: 'nightReview' },
       ],
@@ -443,19 +445,16 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     },
     layout: {
       primary: [],
-      secondary: [],
-      ghost: [
-        { source: 'static', button: 'viewRole' },
-        { source: 'static', button: 'nightReview' },
-      ],
+      secondary: [{ source: 'static', button: 'viewRole' }],
+      ghost: [{ source: 'static', button: 'nightReview' }],
     },
   },
   {
     match: { status: GameStatus.Day, role: 'player' },
     layout: {
       primary: [],
-      secondary: [],
-      ghost: [{ source: 'static', button: 'viewRole' }],
+      secondary: [{ source: 'static', button: 'viewRole' }],
+      ghost: [],
     },
   },
   // Spectators never join the flow, in any Day flow state: their
@@ -476,7 +475,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   // confirmed first step is never asked again.
   //
   // Players have no Ended flow and no closing step: their panel is
-  // the view-identity ghost tool, plus the review as a ghost tool
+  // the view-identity secondary tool, plus the review as a ghost tool
   // when the host shared it with their seat.
   // ═══════════════════════════════════════════════════════════════════════════
   {
@@ -487,8 +486,8 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     },
     layout: {
       primary: [{ source: 'static', button: 'lastNightInfo' }],
-      secondary: [],
-      ghost: [{ source: 'static', button: 'viewRole' }],
+      secondary: [{ source: 'static', button: 'viewRole' }],
+      ghost: [],
     },
   },
   // Spectators never join the flow: their whole panel is the single
@@ -509,8 +508,8 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     },
     layout: {
       primary: [{ source: 'static', button: 'nightReview' }],
-      secondary: [],
-      ghost: [{ source: 'static', button: 'viewRole' }],
+      secondary: [{ source: 'static', button: 'viewRole' }],
+      ghost: [],
     },
   },
   {
@@ -524,8 +523,9 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
       secondary: [
         { source: 'static', button: 'nextRound' },
         { source: 'static', button: 'returnToLobby' },
+        { source: 'static', button: 'viewRole' },
       ],
-      ghost: [{ source: 'static', button: 'viewRole' }],
+      ghost: [],
     },
   },
   {
@@ -536,19 +536,16 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     },
     layout: {
       primary: [],
-      secondary: [],
-      ghost: [
-        { source: 'static', button: 'viewRole' },
-        { source: 'static', button: 'nightReview' },
-      ],
+      secondary: [{ source: 'static', button: 'viewRole' }],
+      ghost: [{ source: 'static', button: 'nightReview' }],
     },
   },
   {
     match: { status: GameStatus.Ended, role: 'player' },
     layout: {
       primary: [],
-      secondary: [],
-      ghost: [{ source: 'static', button: 'viewRole' }],
+      secondary: [{ source: 'static', button: 'viewRole' }],
+      ghost: [],
     },
   },
 ];
