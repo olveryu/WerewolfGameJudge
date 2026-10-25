@@ -11,6 +11,7 @@
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { render } from '@testing-library/react-native';
 
+import { AUDIO_WAITING_LABEL } from '@/features/room/model/RoomBottomActions';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import {
   createWerewolfRoomMock,
@@ -121,7 +122,7 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
     }
   });
 
-  it('disables seats and hides the action message while audio is playing', async () => {
+  it('disables seats and replaces action guidance with narration status while audio is playing', async () => {
     mockUseWerewolfRoomReturn = createWerewolfRoomMock({
       schemaId: 'seerCheck',
       currentActionRole: 'seer',
@@ -136,7 +137,7 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
     expect(model.seats.visuallyDisabled).toBe(true);
     expect(model.bottomActions.kind).toBe('stacked');
     if (model.bottomActions.kind === 'stacked') {
-      expect(model.bottomActions.message).toBeNull();
+      expect(model.bottomActions.message).toBe(AUDIO_WAITING_LABEL);
     }
   });
 
@@ -254,7 +255,7 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
         key: 'sheriff-register',
         label: '报名上警',
         variant: 'primary',
-        size: 'lg',
+        size: 'md',
         testID: 'sheriff-register-button',
         isEnabled: true,
       });

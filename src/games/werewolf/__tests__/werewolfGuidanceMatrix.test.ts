@@ -213,10 +213,8 @@ describe('WEREWOLF_GUIDANCE_MATRIX', () => {
       const cell = WEREWOLF_GUIDANCE_MATRIX[status][viewer];
       const bottom = bottomFor(status, viewer);
       if (status === GameStatus.Day) {
-        // Declared exempt because the sheriff dock — not a message —
-        // is the bottom guidance surface in the election phase.
         expect(bottom.kind).toBe('dock');
-        expect(bottom.message).toBeNull();
+        expect(bottom.message).toBe('报名进行中');
         continue;
       }
       if (cell.kind === 'message') {

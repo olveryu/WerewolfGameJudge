@@ -136,7 +136,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
       },
     } as unknown as MockReturn;
 
-    const { getByTestId, queryByText } = render(
+    const { getByTestId, queryByText, getByRole } = render(
       <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
@@ -148,6 +148,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
     await waitFor(() => {
       const skipButton = queryByText(BLOCKED_UI_DEFAULTS.skipButtonText);
       expect(skipButton).toBeTruthy();
+      expect(getByRole('button', { name: '确认跳过' })).toBeTruthy();
     });
   });
 
@@ -246,7 +247,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
       },
     } as unknown as MockReturn;
 
-    const { getByTestId, queryByText } = render(
+    const { getByTestId, queryByText, getByRole } = render(
       <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
@@ -258,6 +259,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
     await waitFor(() => {
       const skipButton = queryByText(BLOCKED_UI_DEFAULTS.skipButtonText);
       expect(skipButton).toBeTruthy();
+      expect(getByRole('button', { name: '确认跳过' })).toBeTruthy();
     });
   });
 });

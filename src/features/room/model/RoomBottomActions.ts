@@ -1,5 +1,8 @@
 /** Game-neutral render models for stacked and compact room action panels. */
 
+import type Ionicons from '@expo/vector-icons/Ionicons';
+import type { ComponentProps } from 'react';
+
 import type { NightStepProgress } from './nightProgress';
 
 type RoomBottomActionAvailability =
@@ -15,6 +18,7 @@ type RoomBottomActionAvailability =
 interface RoomBottomButtonBase {
   readonly key: string;
   readonly label: string;
+  readonly icon?: ComponentProps<typeof Ionicons>['name'];
   readonly variant: 'primary' | 'secondary' | 'ghost' | 'danger';
   readonly size: 'lg' | 'md';
   readonly testID?: string;
@@ -25,12 +29,13 @@ interface RoomBottomButtonBase {
 
 export type RoomBottomButton = RoomBottomButtonBase & RoomBottomActionAvailability;
 
-/** Label of the disabled placeholder shown while narration audio plays. */
+/** Status message shown while narration audio plays. */
 export const AUDIO_WAITING_LABEL = '语音播报中…';
 
 interface RoomBottomToolButtonBase {
   readonly key: string;
   readonly label: string;
+  readonly icon?: ComponentProps<typeof Ionicons>['name'];
   readonly tone: 'default' | 'danger';
   readonly testID?: string;
 }
@@ -139,6 +144,7 @@ export function buildViewIdentityButton(
   return {
     key: surface.key,
     label: action.label,
+    icon: 'eye-outline',
     variant: surface.variant,
     size: 'md',
     ...(surface.testID !== undefined ? { testID: surface.testID } : {}),
@@ -199,7 +205,7 @@ export interface RoomBottomDockModel {
   /** Step progress for stepped phases (night sequences, relay chains); null elsewhere. */
   readonly progress: NightStepProgress | null;
   readonly leading: RoomBottomToolButton | null;
-  readonly primary: RoomBottomButton;
+  readonly primary: RoomBottomButton | null;
   readonly trailing: RoomBottomToolButton | null;
 }
 

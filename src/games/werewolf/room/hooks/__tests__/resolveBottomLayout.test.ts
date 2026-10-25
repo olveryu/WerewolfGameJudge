@@ -59,14 +59,11 @@ describe('resolveBottomLayout', () => {
       expect(keys(layout, 'primary')).toEqual([]);
     });
 
-    it('player → primary: waitForHost (disabled)', () => {
+    it('player waits through status information, without a placeholder button', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Unseated, isHost: false, effectiveSeat: 1 }),
       );
-      expect(keys(layout, 'primary')).toEqual(['waitForHost']);
-      expect(layout.primary[0]).toMatchObject({
-        isEnabled: false,
-      });
+      expect(keys(layout, 'primary')).toEqual([]);
     });
 
     it('spectator → empty layout', () => {
@@ -92,11 +89,11 @@ describe('resolveBottomLayout', () => {
       expect(keys(layout, 'ghost')).toEqual([]);
     });
 
-    it('player → primary: waitForHost', () => {
+    it('player has no action while waiting for the host', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Seated, isHost: false, effectiveSeat: 1 }),
       );
-      expect(keys(layout, 'primary')).toEqual(['waitForHost']);
+      expect(keys(layout, 'primary')).toEqual([]);
       expect(keys(layout, 'ghost')).toEqual([]);
     });
 
@@ -215,7 +212,7 @@ describe('resolveBottomLayout', () => {
       expect(keys(layout, 'primary')).toEqual([]);
     });
 
-    it('audio playing, non-actioner host → primary: audioWaiting, ghost: empty', () => {
+    it('audio playing, non-actioner host has no buttons', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ongoing,
@@ -224,7 +221,7 @@ describe('resolveBottomLayout', () => {
           isAudioPlaying: true,
         }),
       );
-      expect(keys(layout, 'primary')).toEqual(['audioWaiting']);
+      expect(keys(layout, 'primary')).toEqual([]);
       expect(keys(layout, 'secondary')).toEqual([]);
       expect(keys(layout, 'ghost')).toEqual([]);
     });
@@ -317,12 +314,15 @@ describe('resolveBottomLayout', () => {
     });
 
     describe('wolfVote — after voting (cancel + empty)', () => {
-      it('primary: wolfCancel, secondary: wolfEmpty', () => {
+      it('keeps cancellation and empty vote secondary regardless of order', () => {
         const layout = resolveBottomLayout(actorCtx(true), [wolfCancelButton, wolfEmptyButton]);
-        expect(keys(layout, 'primary')).toEqual(['wolfCancel']);
-        expect(keys(layout, 'secondary')).toEqual(['wolfEmpty', 'viewRole']);
-        expect(layout.primary[0]!.variant).toBe('primary');
-        expect(layout.primary[0]!.size).toBe('lg');
+        expect(keys(layout, 'primary')).toEqual([]);
+        expect(keys(layout, 'secondary')).toEqual(['wolfCancel', 'wolfEmpty', 'viewRole']);
+        expect(
+          layout.secondary.every(
+            (button) => button.variant === 'secondary' && button.size === 'md',
+          ),
+        ).toBe(true);
       });
     });
 
@@ -484,10 +484,7 @@ describe('resolveBottomLayout', () => {
       expect(keys(layout, 'ghost')).toEqual([]);
     });
 
-    // The night-end announcement opens Day with narration still
-    // playing: the layout collapses to the audio placeholder exactly
-    // as in Ongoing (supersedes the former viewRole-stays pin).
-    it('host during audio → primary: audioWaiting, ghost: empty', () => {
+    it('host during Day narration has no buttons', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Day,
@@ -497,13 +494,12 @@ describe('resolveBottomLayout', () => {
         }),
       );
 
-      expect(keys(layout, 'primary')).toEqual(['audioWaiting']);
-      expect(layout.primary[0]).toMatchObject({ isEnabled: false });
+      expect(keys(layout, 'primary')).toEqual([]);
       expect(keys(layout, 'secondary')).toEqual([]);
       expect(keys(layout, 'ghost')).toEqual([]);
     });
 
-    it('player during audio → primary: audioWaiting, ghost: empty', () => {
+    it('player during Day narration has no buttons', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Day,
@@ -514,7 +510,7 @@ describe('resolveBottomLayout', () => {
         }),
       );
 
-      expect(keys(layout, 'primary')).toEqual(['audioWaiting']);
+      expect(keys(layout, 'primary')).toEqual([]);
       expect(keys(layout, 'secondary')).toEqual([]);
       expect(keys(layout, 'ghost')).toEqual([]);
     });
@@ -780,7 +776,7 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('edge cases', () => {
-    it('audio playing, host actioner → audioWaiting placeholder, ghost empty', () => {
+    it('audio playing, host actioner has no buttons', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ongoing,
@@ -790,15 +786,12 @@ describe('resolveBottomLayout', () => {
           imActioner: true,
         }),
       );
-      expect(keys(layout, 'primary')).toEqual(['audioWaiting']);
+      expect(keys(layout, 'primary')).toEqual([]);
       expect(keys(layout, 'secondary')).toEqual([]);
       expect(keys(layout, 'ghost')).toEqual([]);
-      expect(layout.primary[0]).toMatchObject({
-        isEnabled: false,
-      });
     });
 
-    it('audio playing, player actioner → audioWaiting placeholder, ghost empty', () => {
+    it('audio playing, player actioner has no buttons', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ongoing,
@@ -808,7 +801,7 @@ describe('resolveBottomLayout', () => {
           imActioner: true,
         }),
       );
-      expect(keys(layout, 'primary')).toEqual(['audioWaiting']);
+      expect(keys(layout, 'primary')).toEqual([]);
       expect(keys(layout, 'secondary')).toEqual([]);
       expect(keys(layout, 'ghost')).toEqual([]);
     });

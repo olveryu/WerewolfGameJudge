@@ -526,7 +526,7 @@ test.describe('Avalon full game', () => {
           await rooms[seat]!.seatAt(seat);
         }
         await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-          '下一步：分配角色',
+          '分配角色',
           { timeout: 15_000 },
         );
       });
@@ -543,7 +543,7 @@ test.describe('Avalon full game', () => {
         const captured: RoleName[] = [];
         for (const page of pages) captured.push(await viewAndCaptureRole(page));
         await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-          '下一步：开始游戏',
+          '开始游戏',
           { timeout: 15_000 },
         );
         return captured;

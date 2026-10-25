@@ -20,7 +20,10 @@ import type {
   RoomBottomActionModel,
   RoomBottomButton,
 } from '@/features/room/model/RoomBottomActions';
-import { buildStepActorWaitingMessage } from '@/features/room/model/RoomBottomActions';
+import {
+  AUDIO_WAITING_LABEL,
+  buildStepActorWaitingMessage,
+} from '@/features/room/model/RoomBottomActions';
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
@@ -270,6 +273,7 @@ export function createWerewolfBottomActionLayout(input: {
     const base = {
       key: button.key,
       label: button.label,
+      icon: button.icon,
       variant: button.variant,
       size: button.size,
       testID: button.testID,
@@ -555,26 +559,24 @@ function createWerewolfBottomActions(
   }
 
   const progress = deriveWerewolfBottomProgress(input.gameState);
-  // 夜晚步进中非行动者的等待句与进度行同源：同一个 progress 派生出
-  // 「正在等待 {本步角色} 行动」，两处永远指同一步。行动者本人不看
-  // 这句（其行动提示走 actionMessage，音频窗口内由播报占位按钮承载）。
+  // Waiting and progress use the same authoritative night step.
   const stepWaitingMessage =
     input.roomStatus === GameStatus.Ongoing && !input.imActioner
       ? buildStepActorWaitingMessage(progress)
       : null;
   return {
     kind: 'stacked',
-    message:
-      !input.isAudioPlaying &&
-      (input.imActioner ||
-        (input.isPlagueMode && input.isHost && input.roomStatus === GameStatus.Ready))
+    message: isAudioPlaybackLocked(input.isAudioPlaying)
+      ? AUDIO_WAITING_LABEL
+      : input.imActioner ||
+          (input.isPlagueMode && input.isHost && input.roomStatus === GameStatus.Ready)
         ? input.isPlagueMode && input.isHost && input.roomStatus === GameStatus.Ready
           ? '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程'
           : input.actionMessage
         : (stepWaitingMessage ?? input.guideMessage),
     progress,
-    steps: flowSteps,
-    hint: flowHint,
+    steps: input.isAudioPlaying ? null : flowSteps,
+    hint: input.isAudioPlaying ? null : flowHint,
     layout: roomBottomActionLayout,
   };
 }

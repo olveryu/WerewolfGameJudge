@@ -459,12 +459,11 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
         '点座位盘点选一名玩家进行提前刺杀（除自己外任意座位），点选后会再次确认。刺中梅林坏人直接获胜，刺错好人直接获胜。';
       return { kind: 'stacked', message, progress: null, layout: { primary, secondary, ghost } };
     }
-    primary.push({
+    secondary.push({
       key: 'earlyStrike',
       label: '刺杀',
-      variant: 'primary',
+      variant: 'secondary',
       size: 'md',
-      buttonColor: colors.error,
       isEnabled: true,
       onPress: input.onEarlyStrikePress,
       testID: 'avalon-early-strike',

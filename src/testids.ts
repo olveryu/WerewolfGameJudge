@@ -83,7 +83,6 @@ export const TESTIDS = {
   nextRoundButton: 'next-round-button',
   returnLobbyButton: 'return-lobby-button',
   restartButton: 'restart-button',
-  audioWaitingButton: 'audio-waiting-button',
   lastNightInfoButton: 'last-night-info-button',
   lastNightInfoBottomButton: 'last-night-info-bottom-button',
   nextRoundBottomButton: 'next-round-bottom-button',

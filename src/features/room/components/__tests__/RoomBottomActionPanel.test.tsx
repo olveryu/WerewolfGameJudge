@@ -175,6 +175,20 @@ describe('RoomBottomActionPanel', () => {
     expect(queryByTestId(TESTIDS.bottomActionPanel)).toBeNull();
   });
 
+  it('renders a spectator waiting message without an inert action button', () => {
+    const screen = renderPanel({
+      kind: 'dock',
+      message: '等待投票完成',
+      progress: null,
+      leading: null,
+      primary: null,
+      trailing: null,
+    });
+
+    expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('等待投票完成');
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+  });
+
   it('does not emit an action-message node for an empty message', () => {
     const model: RoomBottomActionModel = {
       kind: 'stacked',
@@ -201,7 +215,7 @@ describe('RoomBottomActionPanel', () => {
     expect(screen.queryByTestId(TESTIDS.actionMessage)).toBeNull();
   });
 
-  it('opens Host management from the dark full-width entry without executing a command', () => {
+  it('opens Host management from a neutral entry without executing a command', () => {
     const openHostManagement = jest.fn();
     const model: RoomBottomActionModel = {
       kind: 'stacked',
@@ -226,10 +240,10 @@ describe('RoomBottomActionPanel', () => {
 
     expect(screen.getByText('全部操作')).toBeTruthy();
     expect(screen.getByTestId(TESTIDS.roomHostManagementButton)).toHaveStyle({
-      backgroundColor: colors.text,
-      borderColor: colors.text,
+      backgroundColor: colors.surfaceHover,
+      borderColor: colors.border,
     });
-    expect(screen.getByText('主持管理')).toHaveStyle({ color: colors.textInverse });
+    expect(screen.getByText('主持管理')).toHaveStyle({ color: colors.textSecondary });
     fireEvent.press(screen.getByLabelText('主持管理'));
     expect(openHostManagement).toHaveBeenCalledTimes(1);
   });
@@ -441,6 +455,49 @@ describe('RoomBottomActionPanel', () => {
   });
 
   describe('host console primary', () => {
+    it('keeps the player command prominent and host advancement available', () => {
+      const onPlayerPress = jest.fn();
+      const onHostPress = jest.fn();
+      const screen = renderPanel(
+        {
+          ...emptyStackedModel,
+          layout: {
+            primary: [
+              {
+                key: 'submit',
+                label: '提交答案',
+                variant: 'primary',
+                size: 'md',
+                isEnabled: true,
+                onPress: onPlayerPress,
+              },
+            ],
+            secondary: [],
+            ghost: [],
+          },
+        },
+        hostModelWith([
+          {
+            key: 'advance',
+            label: '结束作答',
+            icon: 'arrow-forward',
+            variant: 'primary',
+            isPrimary: true,
+            isEnabled: true,
+            onPress: onHostPress,
+          },
+        ]),
+      );
+
+      expect(screen.getByTestId(TESTIDS.roomNextStepButton)).toHaveStyle({
+        backgroundColor: colors.surfaceHover,
+      });
+      fireEvent.press(screen.getByLabelText('提交答案'));
+      fireEvent.press(screen.getByLabelText('结束作答'));
+      expect(onPlayerPress).toHaveBeenCalledTimes(1);
+      expect(onHostPress).toHaveBeenCalledTimes(1);
+    });
+
     it('runs the ready primary through the action’s own onPress', () => {
       const onPress = jest.fn();
       const screen = renderPanel(
@@ -458,7 +515,7 @@ describe('RoomBottomActionPanel', () => {
         ]),
       );
       const strip = screen.getByTestId(TESTIDS.roomNextStepButton);
-      expect(strip.props.accessibilityLabel).toBe('下一步：开始游戏');
+      expect(strip.props.accessibilityLabel).toBe('开始游戏');
       fireEvent.press(strip);
       expect(onPress).toHaveBeenCalledTimes(1);
     });

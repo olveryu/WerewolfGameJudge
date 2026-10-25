@@ -72,10 +72,11 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
 
   const hasButtons =
     hostManagement !== null ||
-    model.kind === 'dock' ||
-    model.layout.primary.length > 0 ||
-    model.layout.secondary.length > 0 ||
-    model.layout.ghost.length > 0;
+    (model.kind === 'dock'
+      ? model.primary !== null || model.leading !== null || model.trailing !== null
+      : model.layout.primary.length > 0 ||
+        model.layout.secondary.length > 0 ||
+        model.layout.ghost.length > 0);
   const message = model.message;
   const steps = model.kind === 'stacked' ? (model.steps ?? null) : null;
   const hint = model.kind === 'stacked' ? (model.hint ?? null) : null;
@@ -195,36 +196,29 @@ const DockActions: React.FC<{
   readonly onOpenHostManagement: () => void;
   readonly styles: BottomActionPanelStyles;
 }> = ({ model, hostManagement, onOpenHostManagement, styles }) => {
-  const shouldStackTools =
-    hostManagement === null && model.leading !== null && model.trailing !== null;
-  const dockContent = shouldStackTools ? (
-    <View style={styles.compactManagementStack}>
-      <LayoutButton model={model.primary} style={styles.dockPrimary} />
-      <View style={styles.dockToolRow}>
-        <DockTool model={model.leading} isExpanded styles={styles} />
-        <DockTool model={model.trailing} isExpanded styles={styles} />
-      </View>
-    </View>
-  ) : (
-    <View style={styles.dockRow}>
-      <DockTool model={model.leading} isExpanded={false} styles={styles} />
-      <View style={styles.dockCenter}>
-        <LayoutButton model={model.primary} style={styles.dockPrimary} />
-      </View>
-      {hostManagement === null && (
-        <DockTool model={model.trailing} isExpanded={false} styles={styles} />
-      )}
-    </View>
-  );
-  if (hostManagement === null) return dockContent;
+  const hasPrimaryAction =
+    model.primary !== null &&
+    model.primary.variant === 'primary' &&
+    (model.primary.isEnabled || model.primary.isLoading === true);
   return (
     <View style={styles.compactManagementStack}>
-      {dockContent}
-      <HostManagementBlock
-        model={hostManagement}
-        onOpenHostManagement={onOpenHostManagement}
-        styles={styles}
-      />
+      {model.primary !== null && (
+        <LayoutButton model={model.primary} style={styles.dockPrimary} styles={styles} />
+      )}
+      {(model.leading !== null || (hostManagement === null && model.trailing !== null)) && (
+        <View style={styles.dockToolRow}>
+          <DockTool model={model.leading} styles={styles} />
+          {hostManagement === null && <DockTool model={model.trailing} styles={styles} />}
+        </View>
+      )}
+      {hostManagement !== null && (
+        <HostManagementBlock
+          model={hostManagement}
+          hasPrimaryAction={hasPrimaryAction}
+          onOpenHostManagement={onOpenHostManagement}
+          styles={styles}
+        />
+      )}
     </View>
   );
 };
@@ -235,12 +229,15 @@ const StackedActions: React.FC<{
   readonly onOpenHostManagement: () => void;
   readonly styles: BottomActionPanelStyles;
 }> = ({ model, hostManagement, onOpenHostManagement, styles }) => {
+  const hasPrimaryAction = model.layout.primary.some(
+    (button) => button.variant === 'primary' && (button.isEnabled || button.isLoading === true),
+  );
   return (
     <View style={styles.compactManagementStack}>
       {model.layout.primary.length > 0 && (
         <View style={styles.buttonRow}>
           {model.layout.primary.map((button) => (
-            <LayoutButton key={button.key} model={button} />
+            <LayoutButton key={button.key} model={button} styles={styles} />
           ))}
         </View>
       )}
@@ -248,7 +245,12 @@ const StackedActions: React.FC<{
       {model.layout.secondary.length > 0 && (
         <View style={styles.secondaryRow}>
           {model.layout.secondary.map((button) => (
-            <LayoutButton key={button.key} model={button} style={styles.secondaryButton} />
+            <LayoutButton
+              key={button.key}
+              model={button}
+              style={styles.secondaryButton}
+              styles={styles}
+            />
           ))}
         </View>
       )}
@@ -256,7 +258,7 @@ const StackedActions: React.FC<{
       {model.layout.ghost.length > 0 && (
         <View style={styles.ghostRow}>
           {model.layout.ghost.map((button) => (
-            <LayoutButton key={button.key} model={button} />
+            <LayoutButton key={button.key} model={button} styles={styles} />
           ))}
         </View>
       )}
@@ -264,6 +266,7 @@ const StackedActions: React.FC<{
       {hostManagement !== null && (
         <HostManagementBlock
           model={hostManagement}
+          hasPrimaryAction={hasPrimaryAction}
           onOpenHostManagement={onOpenHostManagement}
           styles={styles}
         />
@@ -274,13 +277,16 @@ const StackedActions: React.FC<{
 
 const HostManagementBlock: React.FC<{
   readonly model: RoomHostManagementModel;
+  readonly hasPrimaryAction: boolean;
   readonly onOpenHostManagement: () => void;
   readonly styles: BottomActionPanelStyles;
-}> = ({ model, onOpenHostManagement, styles }) => {
+}> = ({ model, hasPrimaryAction, onOpenHostManagement, styles }) => {
   const primary = resolveHostConsolePrimary(model);
   return (
-    <View style={styles.compactManagementStack}>
-      {primary !== null && <HostConsolePrimary primary={primary} styles={styles} />}
+    <View style={styles.hostManagementBlock}>
+      {primary !== null && (
+        <HostConsolePrimary primary={primary} hasPrimaryAction={hasPrimaryAction} styles={styles} />
+      )}
       <HostManagementEntry model={model} onPress={onOpenHostManagement} styles={styles} />
     </View>
   );
@@ -288,24 +294,27 @@ const HostManagementBlock: React.FC<{
 
 const HostConsolePrimary: React.FC<{
   readonly primary: RoomHostConsolePrimary;
+  readonly hasPrimaryAction: boolean;
   readonly styles: BottomActionPanelStyles;
-}> = ({ primary, styles }) => {
+}> = ({ primary, hasPrimaryAction, styles }) => {
   if (primary.kind === 'ready') {
     return (
       <Button
-        variant="primary"
+        variant={hasPrimaryAction ? 'secondary' : 'primary'}
         size="md"
         onPress={primary.onPress}
         testID={TESTIDS.roomNextStepButton}
-        accessibilityLabel={`下一步：${primary.label}`}
-        style={styles.nextStepReady}
+        accessibilityLabel={primary.label}
+        style={[styles.nextStepReady, hasPrimaryAction && styles.secondaryAction]}
+        icon={
+          <Ionicons
+            name="arrow-forward"
+            size={componentSizes.icon.sm}
+            color={hasPrimaryAction ? colors.text : colors.textInverse}
+          />
+        }
       >
-        <View style={styles.nextStepContent}>
-          <Text style={styles.nextStepReadyLabel} numberOfLines={1}>
-            {`下一步：${primary.label}`}
-          </Text>
-          <Ionicons name="arrow-forward" size={componentSizes.icon.sm} color={colors.textInverse} />
-        </View>
+        {primary.label}
       </Button>
     );
   }
@@ -318,8 +327,8 @@ const HostConsolePrimary: React.FC<{
       </View>
       {remedy !== null && (
         <Button
-          variant="primary"
-          size="sm"
+          variant="secondary"
+          size="md"
           onPress={remedy.onPress}
           testID={TESTIDS.roomNextStepRemedyButton}
         >
@@ -348,7 +357,7 @@ const HostManagementEntry: React.FC<{
         <Ionicons
           name="shield-checkmark-outline"
           size={componentSizes.icon.sm}
-          color={colors.textInverse}
+          color={colors.textSecondary}
         />
         <Text style={styles.hostManagementTitle} numberOfLines={1}>
           {HOST_MANAGEMENT_LABEL}
@@ -363,7 +372,11 @@ const HostManagementEntry: React.FC<{
         <Text style={styles.hostManagementExpandLabel} numberOfLines={1}>
           全部操作
         </Text>
-        <Ionicons name="chevron-forward" size={componentSizes.icon.sm} color={colors.textInverse} />
+        <Ionicons
+          name="chevron-forward"
+          size={componentSizes.icon.sm}
+          color={colors.textSecondary}
+        />
       </View>
     </View>
   </Button>
@@ -371,19 +384,26 @@ const HostManagementEntry: React.FC<{
 
 const DockTool: React.FC<{
   readonly model: RoomBottomToolButton | null;
-  readonly isExpanded: boolean;
   readonly styles: BottomActionPanelStyles;
-}> = ({ model, isExpanded, styles }) => {
+}> = ({ model, styles }) => {
   if (model === null) return null;
 
-  const iconColor = model.tone === 'danger' ? colors.error : colors.textSecondary;
+  const iconColor = !model.isEnabled
+    ? colors.textMuted
+    : model.tone === 'danger'
+      ? colors.error
+      : colors.textSecondary;
   const buttonProps = {
     variant: 'secondary' as const,
-    size: 'lg' as const,
+    size: 'md' as const,
     testID: model.testID,
     accessibilityLabel: model.label,
     textColor: iconColor,
-    style: isExpanded ? styles.dockPrimary : undefined,
+    style: [styles.dockPrimary, styles.secondaryAction],
+    icon:
+      model.icon === undefined ? undefined : (
+        <Ionicons name={model.icon} size={componentSizes.icon.sm} color={iconColor} />
+      ),
   };
 
   const button = model.isEnabled ? (
@@ -397,7 +417,7 @@ const DockTool: React.FC<{
   );
 
   return (
-    <View style={isExpanded ? styles.dockExpandedToolSlot : styles.toolSlot}>
+    <View style={styles.dockExpandedToolSlot}>
       {button}
       {!model.isEnabled && model.disabledReason !== null && model.disabledReason.length > 0 && (
         <DisabledReasonCaption reason={model.disabledReason} />
@@ -409,7 +429,14 @@ const DockTool: React.FC<{
 const LayoutButton: React.FC<{
   readonly model: RoomBottomButton;
   readonly style?: BottomActionPanelStyles['dockPrimary'];
-}> = ({ model, style }) => {
+  readonly styles: BottomActionPanelStyles;
+}> = ({ model, style, styles }) => {
+  const iconColor = !model.isEnabled
+    ? colors.textMuted
+    : (model.textColor ??
+      (model.variant === 'primary' || model.variant === 'danger'
+        ? colors.textInverse
+        : colors.textSecondary));
   const visualProps = {
     variant: model.variant,
     size: model.size,
@@ -417,8 +444,13 @@ const LayoutButton: React.FC<{
     buttonColor: model.buttonColor,
     textColor: model.textColor,
     testID: model.testID,
-    style,
-  } as const;
+    accessibilityLabel: model.label,
+    icon:
+      model.icon === undefined ? undefined : (
+        <Ionicons name={model.icon} size={componentSizes.icon.sm} color={iconColor} />
+      ),
+    style: [styles.actionButton, model.variant === 'secondary' && styles.secondaryAction, style],
+  };
 
   if (model.isEnabled) {
     return (

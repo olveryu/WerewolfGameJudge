@@ -96,6 +96,7 @@ describe('resolveViewIdentityAction / buildViewIdentityButton', () => {
     ).toEqual({
       key: 'viewRole',
       label: '查看身份',
+      icon: 'eye-outline',
       variant: 'primary',
       size: 'md',
       testID: 'avalon-view-role',

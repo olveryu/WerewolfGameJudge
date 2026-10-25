@@ -101,7 +101,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       hint: {
         ...textStyles.caption,
         textAlign: 'center',
-        color: colors.warning,
+        color: colors.textSecondary,
         marginBottom: spacing.small,
         paddingHorizontal: spacing.small,
       },
@@ -115,33 +115,38 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       },
       secondaryRow: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         alignItems: 'stretch',
         gap: spacing.small,
       },
       secondaryButton: {
         flex: 1,
+        flexBasis: '45%',
+        minWidth: 0,
+      },
+      actionButton: {
+        minHeight: fixed.minTouchTarget,
+        minWidth: fixed.minTouchTarget,
+      },
+      secondaryAction: {
+        backgroundColor: colors.surfaceHover,
+      },
+      hostManagementBlock: {
+        gap: spacing.small,
+        paddingTop: spacing.small,
+        borderTopWidth: fixed.borderWidth,
+        borderTopColor: colors.borderLight,
       },
       compactManagementStack: {
         gap: spacing.small,
       },
       ghostRow: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         justifyContent: 'center',
         alignItems: 'center',
         gap: spacing.medium,
         paddingTop: spacing.tight,
-      },
-      dockRow: {
-        minHeight: componentSizes.button.lg,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: spacing.small,
-      },
-      dockCenter: {
-        flex: 1,
-        minWidth: 0,
-        alignItems: 'stretch',
       },
       dockPrimary: {
         alignSelf: 'stretch',
@@ -151,22 +156,17 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         alignItems: 'stretch',
         gap: spacing.small,
       },
-      toolSlot: {
-        width: componentSizes.menu.compactMinWidth,
-        minHeight: componentSizes.button.lg,
-      },
       dockExpandedToolSlot: {
         flex: 1,
         minWidth: 0,
-        minHeight: componentSizes.button.lg,
+        minHeight: fixed.minTouchTarget,
       },
       hostManagementEntry: {
         width: '100%',
         minHeight: componentSizes.button.md,
-        paddingHorizontal: spacing.small,
-        borderRadius: borderRadius.small,
-        backgroundColor: colors.text,
-        borderColor: colors.text,
+        paddingHorizontal: spacing.medium,
+        backgroundColor: colors.surfaceHover,
+        borderColor: colors.border,
       },
       hostManagementContent: {
         width: '100%',
@@ -183,7 +183,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       },
       hostManagementTitle: {
         ...textStyles.secondarySemibold,
-        color: colors.textInverse,
+        color: colors.textSecondary,
       },
       hostManagementExpandRow: {
         flex: 1,
@@ -195,33 +195,19 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       },
       hostManagementExpandLabel: {
         ...textStyles.caption,
-        color: withAlpha(colors.textInverse, 0.78),
+        color: colors.textSecondary,
         flexShrink: 1,
       },
       hostManagementPending: {
         ...textStyles.caption,
-        color: colors.textInverse,
+        color: colors.text,
         fontWeight: typography.weights.semibold,
         flexShrink: 1,
       },
       nextStepReady: {
         width: '100%',
         minHeight: componentSizes.button.md,
-        paddingHorizontal: spacing.small,
-        borderRadius: borderRadius.small,
-      },
-      nextStepContent: {
-        width: '100%',
-        minWidth: 0,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: spacing.small,
-      },
-      nextStepReadyLabel: {
-        ...textStyles.bodySemibold,
-        color: colors.textInverse,
-        flexShrink: 1,
+        paddingHorizontal: spacing.medium,
       },
       nextStepBlocked: {
         flexDirection: 'row',

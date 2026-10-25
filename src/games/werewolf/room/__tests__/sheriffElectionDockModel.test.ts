@@ -4,7 +4,6 @@ import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useS
 import { createSheriffElectionDockModel } from '@/games/werewolf/room/sheriffElectionDockModel';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
 import { TESTIDS } from '@/testids';
-import { colors } from '@/theme';
 
 const BASE_VIEW: SheriffElectionViewModel = {
   phase: 'registration',
@@ -48,6 +47,7 @@ const ROOM_TOOLS: RoomBottomActionLayout = {
     {
       key: 'viewRole',
       label: '查看身份',
+      icon: 'eye-outline',
       variant: 'primary',
       size: 'lg',
       isEnabled: true,
@@ -68,7 +68,7 @@ const ROOM_TOOLS: RoomBottomActionLayout = {
 };
 
 describe('createSheriffElectionDockModel', () => {
-  it('projects the identity action as a text-only tool', () => {
+  it('projects the identity action as a labelled icon tool', () => {
     const identityAction = ROOM_TOOLS.primary[0];
     if (identityAction === undefined || !identityAction.isEnabled) {
       throw new Error('Expected executable source identity action');
@@ -87,7 +87,7 @@ describe('createSheriffElectionDockModel', () => {
       tone: 'default',
       isEnabled: true,
     });
-    expect(dock.leading).not.toHaveProperty('icon');
+    expect(dock.leading).toHaveProperty('icon', 'eye-outline');
     if (dock.leading === null || !dock.leading.isEnabled) {
       throw new Error('Expected executable identity action');
     }
@@ -115,13 +115,14 @@ describe('createSheriffElectionDockModel', () => {
       variant: 'primary',
     });
     expect(dock.trailing).toBeNull();
-    if (!dock.primary.isEnabled) throw new Error('Expected executable personal sheriff action');
+    if (dock.primary === null || !dock.primary.isEnabled)
+      throw new Error('Expected executable personal sheriff action');
     dock.primary.onPress();
     expect(election.register).toHaveBeenCalledTimes(1);
     expect(election.advance).not.toHaveBeenCalled();
   });
 
-  it('keeps a waiting player command when only Host advancement is available', () => {
+  it('shows a waiting message when only Host advancement is available', () => {
     const election = createElection({
       phase: 'candidateSpeech',
       canAdvance: true,
@@ -135,12 +136,8 @@ describe('createSheriffElectionDockModel', () => {
       openDetails: jest.fn(),
     });
 
-    expect(dock.primary).toMatchObject({
-      key: 'sheriff-waiting',
-      label: '按顺序发言中',
-      variant: 'primary',
-      isEnabled: false,
-    });
+    expect(dock.primary).toBeNull();
+    expect(dock.message).toBe('按顺序发言中');
     expect(dock.trailing).toBeNull();
   });
 
@@ -161,7 +158,7 @@ describe('createSheriffElectionDockModel', () => {
     expect(dock.primary).toMatchObject({
       key: 'sheriff-cancel-registration',
       label: '取消报名',
-      variant: 'primary',
+      variant: 'secondary',
     });
     expect(dock.trailing).toBeNull();
   });
@@ -182,7 +179,8 @@ describe('createSheriffElectionDockModel', () => {
       openDetails: jest.fn(),
     });
 
-    expect(dock.primary).toMatchObject({ key: 'sheriff-waiting', isEnabled: false });
+    expect(dock.primary).toBeNull();
+    expect(dock.message).toBe('报名进行中');
   });
 
   it('uses the personal action as the player primary command', () => {
@@ -201,7 +199,7 @@ describe('createSheriffElectionDockModel', () => {
     });
   });
 
-  it('marks a player withdrawal as the destructive primary command', () => {
+  it('presents withdrawal as a secondary game action', () => {
     const election = createElection({ canWithdraw: true });
     const dock = createSheriffElectionDockModel({
       election,
@@ -214,8 +212,7 @@ describe('createSheriffElectionDockModel', () => {
     expect(dock.primary).toMatchObject({
       key: 'sheriff-withdraw',
       label: '退水',
-      variant: 'primary',
-      buttonColor: colors.error,
+      variant: 'secondary',
     });
   });
 
@@ -236,7 +233,8 @@ describe('createSheriffElectionDockModel', () => {
     });
 
     expect(dock.primary).toMatchObject({ key: 'sheriff-open-vote', label: '选择投票' });
-    if (!dock.primary.isEnabled) throw new Error('Expected an enabled ballot details action');
+    if (dock.primary === null || !dock.primary.isEnabled)
+      throw new Error('Expected an enabled ballot details action');
     dock.primary.onPress();
     expect(openDetails).toHaveBeenCalledTimes(1);
     expect(election.vote).not.toHaveBeenCalled();
@@ -298,7 +296,8 @@ describe('createSheriffElectionDockModel', () => {
       openDetails: jest.fn(),
     });
 
-    expect(dock.primary).toMatchObject({ label: '请在「警长竞选」中投票', isEnabled: false });
+    expect(dock.primary).toBeNull();
+    expect(dock.message).toBe('请在「警长竞选」中投票');
   });
 
   it('locks the registration command while narration audio plays', () => {
@@ -347,7 +346,7 @@ describe('createSheriffElectionDockModel', () => {
       key: 'sheriff-withdraw',
       isEnabled: false,
       disabledReason: AUDIO_PLAYBACK_LOCK_REASON,
-      buttonColor: colors.error,
+      variant: 'secondary',
     });
     expect(withdrawDock.primary).not.toHaveProperty('onPress');
   });

@@ -608,7 +608,8 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const assassinBottom = shellFor(running, assassin, { onEarlyStrikePress });
     const strike = findStageAction(assassinBottom, 'earlyStrike');
     expect(strike).toMatchObject({ label: '刺杀', isEnabled: true, testID: 'avalon-early-strike' });
-    expect(findTierAction(assassinBottom, 'primary', 'earlyStrike')).toBe(strike);
+    expect(findTierAction(assassinBottom, 'secondary', 'earlyStrike')).toBe(strike);
+    expect(strike).toMatchObject({ variant: 'secondary' });
     if (strike && strike.isEnabled) strike.onPress();
     expect(onEarlyStrikePress).toHaveBeenCalledTimes(1);
     const merlinBottom = shellFor(running, roleSeat(running, 'merlin'));

@@ -54,6 +54,17 @@ interface BottomActionContext {
 
 const EMPTY: BottomActionVM = { buttons: [] };
 
+/** Resolve the server hint for the actor's effective role; no state changes or side effects. */
+export function getCurrentActorHint(gameState: LocalGameState, actorRole: RoleId | null) {
+  const hint = gameState.ui?.currentActorHint;
+  const effectiveActorRole = actorRole
+    ? getBottomCardEffectiveRole(actorRole, gameState.currentNightResults)
+    : null;
+  return hint && effectiveActorRole && hint.targetRoleIds.includes(effectiveActorRole)
+    ? hint
+    : null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Builder
 // ─────────────────────────────────────────────────────────────────────────────
@@ -89,19 +100,14 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
   // ─────────────────────────────────────────────────────────────────────────
   // UI Hint (driven by server broadcast; UI is read-only display)
   // ─────────────────────────────────────────────────────────────────────────
-  const hint = gameState.ui?.currentActorHint;
-  // For bottom card actors (thief/treasureMaster), check hint against effective role
-  const effectiveActorRole = actorRole
-    ? getBottomCardEffectiveRole(actorRole, gameState.currentNightResults)
-    : null;
-  const hintApplies = hint && effectiveActorRole && hint.targetRoleIds.includes(effectiveActorRole);
-  if (hintApplies) {
+  const hint = getCurrentActorHint(gameState, actorRole);
+  if (hint !== null) {
     if (hint.bottomAction === 'skipOnly') {
       return {
         buttons: [
           {
             key: 'skip',
-            label: hint.message,
+            label: '确认跳过',
             intent: { type: 'skip', targetSeat: -1, message: hint.message },
           },
         ],
@@ -112,7 +118,7 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
         buttons: [
           {
             key: 'wolfEmpty',
-            label: hint.message,
+            label: '确认放弃袭击',
             intent: { type: 'wolfVote', targetSeat: -1, wolfSeat: actorSeat ?? undefined },
           },
         ],

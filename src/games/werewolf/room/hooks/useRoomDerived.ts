@@ -15,6 +15,7 @@ import { useMemo } from 'react';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 import { buildSeatViewModels, getRoleStats } from '../werewolfRoom.helpers';
+import { getCurrentActorHint } from './bottomActionBuilder';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -152,6 +153,13 @@ export function useRoomDerived(input: UseRoomDerivedInput) {
 
   const actionMessage = useMemo(() => {
     if (!currentActionRole) return '';
+    const hint = getCurrentActorHint(gameState, effectiveRole);
+    if (
+      hint !== null &&
+      (hint.bottomAction === 'skipOnly' || hint.bottomAction === 'wolfEmptyOnly')
+    ) {
+      return hint.message;
+    }
     if (!currentSchema?.ui?.prompt) {
       throw new Error(`[FAIL-FAST] Missing schema.ui.prompt for role: ${currentActionRole}`);
     }

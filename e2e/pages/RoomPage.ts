@@ -318,7 +318,7 @@ export class RoomPage {
     await confirmButton.click();
     // Wait for restart broadcast — the console primary returns when the room is ready again.
     await expect(this.page.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-      '下一步：分配角色',
+      '分配角色',
       { timeout: 15_000 },
     );
   }

@@ -126,7 +126,7 @@ const ManagementAction: React.FC<{
     icon: <Ionicons name={action.icon} size={componentSizes.icon.sm} color={iconColor} />,
     accessibilityLabel: action.label,
     testID: action.testID,
-    style: styles.actionButton,
+    style: [styles.actionButton, action.variant === 'secondary' && styles.secondaryAction],
   };
 
   if (action.isEnabled) {
@@ -228,6 +228,10 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     alignSelf: 'stretch',
+    minHeight: fixed.minTouchTarget,
+  },
+  secondaryAction: {
+    backgroundColor: colors.surfaceHover,
   },
 });
 

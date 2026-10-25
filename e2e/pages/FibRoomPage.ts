@@ -185,7 +185,7 @@ export class FibRoomPage extends RoomPage {
     await expect(this.page.getByText('中止本局？', { exact: true })).toBeVisible();
     await this.page.getByText('确定', { exact: true }).click();
     await expect(this.page.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-      '下一步：分配角色',
+      '分配角色',
       { timeout: 15_000 },
     );
   }
@@ -207,7 +207,7 @@ export class FibRoomPage extends RoomPage {
     await expect(this.page.getByText('返回大厅', { exact: true })).toBeVisible();
     await this.page.getByText('确定', { exact: true }).click();
     await expect(this.page.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-      '下一步：分配角色',
+      '分配角色',
       { timeout: 15_000 },
     );
   }

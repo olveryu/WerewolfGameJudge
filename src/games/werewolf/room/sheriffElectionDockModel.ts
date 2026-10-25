@@ -22,7 +22,6 @@ import type {
   SheriffElectionPendingAction,
 } from '@/games/werewolf/room/hooks/useSheriffElection';
 import { TESTIDS } from '@/testids';
-import { colors } from '@/theme';
 
 interface SheriffElectionDockInput {
   readonly election: SheriffElectionPanelModel;
@@ -37,7 +36,7 @@ interface SheriffDockAction {
   readonly label: string;
   readonly testID: string;
   readonly pendingKind: SheriffElectionPendingAction['kind'] | null;
-  readonly tone: 'default' | 'danger';
+  readonly variant: 'primary' | 'secondary';
   readonly execute: () => void;
 }
 
@@ -55,7 +54,7 @@ function createRoomTool(
   tone: RoomBottomToolButton['tone'],
 ): RoomBottomToolButton | null {
   if (button === null) return null;
-  const base = { key: button.key, label, tone, testID: button.testID } as const;
+  const base = { key: button.key, label, tone, icon: button.icon, testID: button.testID } as const;
   if (button.isEnabled) return { ...base, isEnabled: true, onPress: button.onPress };
   return {
     ...base,
@@ -73,10 +72,9 @@ function createCommandButton(
   const base = {
     key: action.key,
     label: action.label,
-    variant: 'primary' as const,
-    size: 'lg' as const,
+    variant: action.variant,
+    size: 'md' as const,
     testID: action.testID,
-    buttonColor: action.tone === 'danger' ? colors.error : undefined,
     isLoading,
   };
   if (model.pendingAction !== null) {
@@ -98,18 +96,6 @@ function createCommandButton(
   return { ...base, isEnabled: true, onPress: action.execute };
 }
 
-function createInspectorVotePrompt(action: SheriffDockAction): RoomBottomButton {
-  return {
-    key: action.key,
-    label: action.label,
-    variant: 'primary',
-    size: 'lg',
-    testID: action.testID,
-    isEnabled: false,
-    disabledReason: null,
-  };
-}
-
 export function getSheriffVoteButtonLabel(model: SheriffElectionPanelModel): string {
   const ballot = model.view.myBallot;
   if (ballot === null || ballot.kind === 'notSubmitted') return '选择投票';
@@ -125,7 +111,7 @@ function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction |
       label: '报名上警',
       testID: TESTIDS.sheriffRegisterButton,
       pendingKind: 'register',
-      tone: 'default',
+      variant: 'primary',
       execute: () => void election.register(),
     };
   }
@@ -135,7 +121,7 @@ function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction |
       label: '取消报名',
       testID: TESTIDS.sheriffCancelRegistrationButton,
       pendingKind: 'cancelRegistration',
-      tone: 'default',
+      variant: 'secondary',
       execute: () => void election.cancelRegistration(),
     };
   }
@@ -145,7 +131,7 @@ function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction |
       label: '退水',
       testID: TESTIDS.sheriffWithdrawButton,
       pendingKind: 'withdraw',
-      tone: 'danger',
+      variant: 'secondary',
       execute: () => void election.withdraw(),
     };
   }
@@ -157,42 +143,28 @@ function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction |
         : getSheriffVoteButtonLabel(election),
       testID: TESTIDS.sheriffOpenVoteButton,
       pendingKind: null,
-      tone: 'default',
+      variant: 'primary',
       execute: input.openDetails,
     };
   }
   return null;
 }
 
-function createWaitingButton(model: SheriffElectionPanelModel): RoomBottomButton {
-  let label: string;
+function getSheriffWaitingMessage(model: SheriffElectionPanelModel): string {
   switch (model.view.phase) {
     case 'registration':
-      label = '报名进行中';
-      break;
+      return '报名进行中';
     case 'candidateSpeech':
     case 'runoffSpeech':
-      label = '按顺序发言中';
-      break;
+      return '按顺序发言中';
     case 'withdrawal':
-      label = '等待确认候选';
-      break;
+      return '等待确认候选';
     case 'firstVote':
     case 'runoffVote':
-      label = '等待投票完成';
-      break;
+      return '等待投票完成';
     case 'completed':
-      label = '竞选已结束';
-      break;
+      return '竞选已结束';
   }
-  return {
-    key: 'sheriff-waiting',
-    label,
-    variant: 'primary',
-    size: 'lg',
-    isEnabled: false,
-    disabledReason: null,
-  };
 }
 
 /** Build the compact Day dock from the election projection and ordinary room tools. */
@@ -207,15 +179,19 @@ export function createSheriffElectionDockModel(
   );
 
   const personalAction = getPersonalAction(input);
-  const primary =
+  const message =
     personalAction === null
-      ? createWaitingButton(input.election)
+      ? getSheriffWaitingMessage(input.election)
       : input.isInspectorVisible && personalAction.key === 'sheriff-open-vote'
-        ? createInspectorVotePrompt(personalAction)
-        : createCommandButton(
-            personalAction,
-            input.election,
-            isAudioPlaybackLocked(input.isAudioPlaying),
-          );
-  return { kind: 'dock', message: null, progress: null, leading, primary, trailing };
+        ? personalAction.label
+        : null;
+  const primary =
+    personalAction === null || message !== null
+      ? null
+      : createCommandButton(
+          personalAction,
+          input.election,
+          isAudioPlaybackLocked(input.isAudioPlaying),
+        );
+  return { kind: 'dock', message, progress: null, leading, primary, trailing };
 }

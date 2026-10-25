@@ -12,7 +12,10 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
 import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import { TERMINAL_ACTION_VARIANT } from '@/features/room/model/hostManagementActions';
-import { AUDIO_WAITING_LABEL, VIEW_IDENTITY_LABEL } from '@/features/room/model/RoomBottomActions';
+import {
+  type RoomBottomButton,
+  VIEW_IDENTITY_LABEL,
+} from '@/features/room/model/RoomBottomActions';
 import type { PanelFlowProgress, PanelFlowViewer } from '@/games/werewolf/room/panelFlow';
 import { resolvePanelFlowCurrentStep } from '@/games/werewolf/room/panelFlow';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
@@ -25,6 +28,7 @@ import { TESTIDS } from '@/testids';
 interface ButtonConfigBase {
   readonly key: string;
   readonly label: string;
+  readonly icon?: RoomBottomButton['icon'];
   readonly variant: 'primary' | 'secondary' | 'ghost' | 'danger';
   readonly size: 'lg' | 'md';
   readonly testID?: string;
@@ -60,15 +64,13 @@ export interface BottomLayout {
 
 export type StaticButtonId =
   | 'viewRole'
-  | 'waitForHost'
-  | 'audioWaiting'
   | 'nightReview'
   | 'lastNightInfo'
   | 'nextRound'
   | 'returnToLobby';
 
-/** Static entries that represent real user intent. Display-only entries are excluded. */
-export type StaticButtonAction = Exclude<StaticButtonId, 'audioWaiting' | 'waitForHost'>;
+/** Every static entry represents a real user intent. */
+export type StaticButtonAction = StaticButtonId;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Static button definitions
@@ -76,6 +78,7 @@ export type StaticButtonAction = Exclude<StaticButtonId, 'audioWaiting' | 'waitF
 
 interface StaticButtonDef {
   label: string;
+  icon: NonNullable<RoomBottomButton['icon']>;
   testID?: string;
   /**
    * Display variant used instead of the tier-derived variant when this
@@ -88,20 +91,16 @@ interface StaticButtonDef {
 export const STATIC_BUTTONS: Record<StaticButtonId, StaticButtonDef> = {
   viewRole: {
     label: VIEW_IDENTITY_LABEL,
-  },
-  waitForHost: {
-    label: '等待房主开始',
-  },
-  audioWaiting: {
-    label: AUDIO_WAITING_LABEL,
-    testID: TESTIDS.audioWaitingButton,
+    icon: 'eye-outline',
   },
   nightReview: {
     label: '本局复盘',
+    icon: 'document-text-outline',
     testID: TESTIDS.nightReviewBottomButton,
   },
   lastNightInfo: {
     label: '昨夜信息',
+    icon: 'moon-outline',
     testID: TESTIDS.lastNightInfoBottomButton,
   },
   // Closing actions of the Day/Ended panel flow — the same actions as
@@ -113,11 +112,13 @@ export const STATIC_BUTTONS: Record<StaticButtonId, StaticButtonDef> = {
   // these actions look, read by both surfaces.
   nextRound: {
     label: '再来一局',
+    icon: 'refresh-outline',
     testID: TESTIDS.nextRoundBottomButton,
     variantOverride: TERMINAL_ACTION_VARIANT,
   },
   returnToLobby: {
     label: '返回大厅',
+    icon: 'exit-outline',
     testID: TESTIDS.returnLobbyBottomButton,
     variantOverride: TERMINAL_ACTION_VARIANT,
   },
@@ -215,7 +216,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   {
     match: { status: GameStatus.Unseated, role: 'player' },
     layout: {
-      primary: [{ source: 'static', button: 'waitForHost' }],
+      primary: [],
       secondary: [],
       ghost: [],
     },
@@ -236,7 +237,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   {
     match: { status: GameStatus.Seated, role: 'player' },
     layout: {
-      primary: [{ source: 'static', button: 'waitForHost' }],
+      primary: [],
       secondary: [],
       ghost: [],
     },
@@ -288,8 +289,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   // ═══════════════════════════════════════════════════════════════════════════
   // Ongoing — audio playback gate
   // Host is the audio broadcaster for ALL night steps (not just their own role).
-  // While audio is playing, the panel is fully locked: only the disabled
-  // "语音播报中" placeholder is shown. No other buttons — everyone is "闭眼".
+  // While audio plays, no actions are exposed. The adapter owns the audio status message.
   // ═══════════════════════════════════════════════════════════════════════════
   {
     match: {
@@ -298,7 +298,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
       when: (ctx) => isAudioPlaybackLocked(ctx.isAudioPlaying),
     },
     layout: {
-      primary: [{ source: 'static', button: 'audioWaiting' }],
+      primary: [],
       secondary: [],
       ghost: [],
     },
@@ -310,7 +310,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
       when: (ctx) => isAudioPlaybackLocked(ctx.isAudioPlaying),
     },
     layout: {
-      primary: [{ source: 'static', button: 'audioWaiting' }],
+      primary: [],
       secondary: [],
       ghost: [],
     },
@@ -382,7 +382,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
       when: (ctx) => isAudioPlaybackLocked(ctx.isAudioPlaying),
     },
     layout: {
-      primary: [{ source: 'static', button: 'audioWaiting' }],
+      primary: [],
       secondary: [],
       ghost: [],
     },
@@ -394,7 +394,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
       when: (ctx) => isAudioPlaybackLocked(ctx.isAudioPlaying),
     },
     layout: {
-      primary: [{ source: 'static', button: 'audioWaiting' }],
+      primary: [],
       secondary: [],
       ghost: [],
     },

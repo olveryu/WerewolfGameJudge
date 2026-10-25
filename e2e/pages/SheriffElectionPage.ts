@@ -54,7 +54,7 @@ export class SheriffElectionPage {
     await this.expectSingleLineButtonLabel(hostManagementButton, '主持管理');
     await this.expectSingleLineButtonLabel(hostManagementButton, '待处理');
     const consoleButton = this.page.getByTestId(TESTIDS.roomNextStepButton);
-    await expect(consoleButton).toHaveAccessibleName('下一步：结束报名');
+    await expect(consoleButton).toHaveAccessibleName('结束报名');
 
     const personalBox = await personalButton.boundingBox();
     const hostManagementBox = await hostManagementButton.boundingBox();
@@ -62,6 +62,25 @@ export class SheriffElectionPage {
       throw new Error('Host registration dock controls must have layout boxes');
     }
     expect(hostManagementBox.y).toBeGreaterThanOrEqual(personalBox.y + personalBox.height);
+
+    const viewport = this.page.viewportSize();
+    if (viewport === null) throw new Error('Room action checks require a viewport');
+    for (const button of [personalButton, consoleButton, hostManagementButton]) {
+      const bounds = await button.boundingBox();
+      if (bounds === null) throw new Error('Room action button must have layout bounds');
+      expect(bounds.height).toBeGreaterThanOrEqual(44);
+      expect(bounds.width).toBeGreaterThanOrEqual(44);
+      expect(bounds.x).toBeGreaterThanOrEqual(0);
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
+      await expect(button).toBeInViewport({ ratio: 1 });
+    }
+    await consoleButton.focus();
+    await this.page.keyboard.press('Tab');
+    await expect(hostManagementButton).toBeFocused();
+    const outlineStyle = await hostManagementButton.evaluate(
+      (element) => getComputedStyle(element).outlineStyle,
+    );
+    expect(outlineStyle).not.toBe('none');
 
     const room = new RoomPage(this.page);
     const hostManagementPanel = await room.openHostManagement();

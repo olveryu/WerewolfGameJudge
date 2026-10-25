@@ -57,7 +57,7 @@ for (const viewport of [
         await joinerRooms[i]!.seatAt(i + 1);
       }
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-        '下一步：分配角色',
+        '分配角色',
         { timeout: 15_000 },
       );
 
@@ -72,7 +72,7 @@ for (const viewport of [
         await joinerRooms[i]!.seatAt(i + 1);
       }
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-        '下一步：分配角色',
+        '分配角色',
         { timeout: 15_000 },
       );
       // PR-B G-7: seated non-host players see the shared lobby wait in
@@ -102,7 +102,7 @@ for (const viewport of [
       await hostPage.getByTestId('undercover-view-word').click();
       await hostPage.getByTestId('undercover-confirm').click();
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-        '下一步：开始游戏',
+        '开始游戏',
       );
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('start-game-button').click();
@@ -248,7 +248,7 @@ for (const viewport of [
       await hostPage.getByTestId(TESTIDS.returnLobbyButton).click();
       await hostRoom.confirmHostActionDialog('返回大厅');
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-        '下一步：分配角色',
+        '分配角色',
       );
     } finally {
       await closeAll(fixture);

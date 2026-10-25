@@ -108,6 +108,28 @@ not expose game state, controllers or private projection inputs on the returned 
 
 ## Room Content
 
+### Room Action Hierarchy
+
+- All games use the shared bottom panel for status, current actions and persistent tools,
+  with a separated host-management block. Hosting is an additional capability, not a
+  replacement for the user's player or spectator actions.
+- Waiting and narration are status messages, never inert primary buttons. A dock may have
+  no primary action. Real unavailable commands retain their disabled state and reason.
+- Emphasis follows intent, not array order: confirmation is primary; cancellation, optional
+  alternatives and repeated viewing are secondary. Equal game choices keep equal emphasis.
+- Identity viewing stays primary during the viewing step and secondary afterward. It remains
+  a labelled button, not a borderless action. Review tools use labelled icons. Games retain
+  their existing visibility and information permissions, including spectator permissions.
+- When a current primary action is available or submitting, host advancement remains reachable
+  with secondary emphasis. The management entry is always neutral. Advancement uses its action
+  label without a generic next-step prefix. Dangerous commands retain explicit danger semantics.
+- Room buttons share the existing capsule geometry and md sizing. Tool hit targets are at
+  least 44 logical pixels; secondary and tool rows wrap on narrow screens. Management sheets
+  use the same secondary fill as the bottom panel. Do not override geometry or color by role.
+- Server hint applicability is resolved once for the actor's effective role. Restricted-action
+  reasons render as status text; their confirmation buttons keep short action labels and the
+  original submission intent. Narration status preserves the authoritative progress row.
+
 `RoomShell` owns the shared header, connection/status ribbon, seat control banner, bottom actions, profile, invitation, and host-management surfaces. Game screens provide models and content, not another copy of those surfaces.
 
 `content` is an explicit discriminated union:
