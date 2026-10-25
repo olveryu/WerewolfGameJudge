@@ -31,20 +31,13 @@ import { GameSettingsStepper } from '@/components/GameSettings';
 import { gameSettingsStyles as styles } from '@/components/GameSettings.styles';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
-import { useRoomCreationController } from '@/features/room/controllers/useRoomCreationController';
-import {
-  replaceWithCreatedRoom,
-  returnToActiveRoom,
-} from '@/features/room/navigation/roomFlowNavigation';
+import { useRoomConfigSubmission } from '@/features/room/controllers/useRoomConfigSubmission';
 import type { AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 import { parseAvalonConfigRouteParams } from '@/games/avalon/navigation/avalonGameNavigation';
 import { getAvalonRoomCommandFailureMessage } from '@/games/avalon/room/avalonRoomCommandFailureMessage';
 import type { RootStackParamList } from '@/navigation/types';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
-import { handleError } from '@/utils/errorPipeline';
-import { configLog } from '@/utils/logger';
 
 import { getAvalonRoleDisplayName } from '../model/avalonRoleDisplay';
 
@@ -112,8 +105,6 @@ export function AvalonConfigScreen({ session }: { readonly session: AvalonRoomSe
   const params = parseAvalonConfigRouteParams(route.params);
   const { user } = useAuthContext();
   const insets = useSafeAreaInsets();
-  const creation = useRoomCreationController();
-  const submission = useRoomCommandSubmission(getAvalonRoomCommandFailureMessage);
   // Worker 的 avalonCreateConfigSchema 全字段必填（无 schema 默认值），
   // 创建/更新必须永远提交完整三字段；D7/D8 的"默认"即此处 UI 预选值。
   const [config, setConfig] = useState<AvalonConfig>(() => {
@@ -150,32 +141,21 @@ export function AvalonConfigScreen({ session }: { readonly session: AvalonRoomSe
       );
     setConfig((current) => ({ ...current, vetoLimit: limit }));
   };
-  const submit = () => {
-    if (params.mode === 'edit') {
-      void submission
-        .submit('保存设置', () =>
-          session.dispatch(
-            { type: 'avalon.config.update', config },
-            { controlledSeat: null, label: '保存设置' },
-          ),
-        )
-        .then((success) => {
-          if (success) returnToActiveRoom(navigation, params.roomCode);
-        });
-      return;
-    }
-    if (user === null) throw new Error('Avalon creation requires authentication');
-    void creation
-      .createRoom({ expectedHostUserId: user.id, gameType: 'avalon', config: { ...config } })
-      .then((record) => replaceWithCreatedRoom(navigation, record.roomCode))
-      .catch((error: unknown) =>
-        handleError(error, {
-          label: '创建阿瓦隆房间',
-          logger: configLog,
-          alertMessage: '创建失败，请重试',
-        }),
-      );
-  };
+  const { submit, isSubmitting } = useRoomConfigSubmission({
+    params,
+    navigation,
+    getFailureMessage: getAvalonRoomCommandFailureMessage,
+    creationLabel: '创建阿瓦隆房间',
+    createRequest: () => {
+      if (user === null) throw new Error('Avalon creation requires authentication');
+      return { expectedHostUserId: user.id, gameType: 'avalon', config: { ...config } };
+    },
+    updateConfig: () =>
+      session.dispatch(
+        { type: 'avalon.config.update', config },
+        { controlledSeat: null, label: '保存设置' },
+      ),
+  });
   return (
     <GameScreen
       testID="avalon-config"
@@ -246,7 +226,7 @@ export function AvalonConfigScreen({ session }: { readonly session: AvalonRoomSe
           variant="primary"
           size="lg"
           onPress={submit}
-          loading={creation.isCreating || submission.isSubmitting}
+          loading={isSubmitting}
           testID="avalon-config-submit"
         >
           {params.mode === 'edit' ? '保存设置' : '创建房间'}

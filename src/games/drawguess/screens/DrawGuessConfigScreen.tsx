@@ -24,19 +24,12 @@ import { GameSettingsStepper } from '@/components/GameSettings';
 import { gameSettingsStyles as styles } from '@/components/GameSettings.styles';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
-import { useRoomCreationController } from '@/features/room/controllers/useRoomCreationController';
-import {
-  replaceWithCreatedRoom,
-  returnToActiveRoom,
-} from '@/features/room/navigation/roomFlowNavigation';
+import { useRoomConfigSubmission } from '@/features/room/controllers/useRoomConfigSubmission';
 import type { DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
 import { parseDrawGuessConfigRouteParams } from '@/games/drawguess/navigation/drawGuessGameNavigation';
 import { getDrawGuessRoomCommandFailureMessage } from '@/games/drawguess/room/drawGuessRoomCommandFailureMessage';
 import type { RootStackParamList } from '@/navigation/types';
 import { showErrorAlert } from '@/utils/alertPresets';
-import { handleError } from '@/utils/errorPipeline';
-import { configLog } from '@/utils/logger';
 
 /** 单轮固定耗时：选词 15 秒 + 作画 90 秒 + 结算 8 秒；总轮数 = 人数 × 2。 */
 function estimateTotalMinutes(numberOfPlayers: number): number {
@@ -54,8 +47,6 @@ export function DrawGuessConfigScreen({ session }: { readonly session: DrawGuess
   const params = parseDrawGuessConfigRouteParams(route.params);
   const { user } = useAuthContext();
   const insets = useSafeAreaInsets();
-  const creation = useRoomCreationController();
-  const submission = useRoomCommandSubmission(getDrawGuessRoomCommandFailureMessage);
   const [config, setConfig] = useState<DrawGuessConfig>(() => {
     if (params.mode === 'create') return DEFAULT_DRAWGUESS_CONFIG;
     const snapshot = session.getSnapshot();
@@ -75,32 +66,21 @@ export function DrawGuessConfigScreen({ session }: { readonly session: DrawGuess
       return showErrorAlert('人数设置有误', '支持 4 至 12 人');
     update('numberOfPlayers', count);
   };
-  const submit = () => {
-    if (params.mode === 'edit') {
-      void submission
-        .submit('保存设置', () =>
-          session.dispatch(
-            { type: 'drawguess.config.update', config },
-            { controlledSeat: null, label: '保存设置' },
-          ),
-        )
-        .then((success) => {
-          if (success) returnToActiveRoom(navigation, params.roomCode);
-        });
-      return;
-    }
-    if (user === null) throw new Error('DrawGuess creation requires authentication');
-    void creation
-      .createRoom({ expectedHostUserId: user.id, gameType: 'drawguess', config: { ...config } })
-      .then((record) => replaceWithCreatedRoom(navigation, record.roomCode))
-      .catch((error: unknown) =>
-        handleError(error, {
-          label: '创建你画我猜房间',
-          logger: configLog,
-          alertMessage: '创建失败，请重试',
-        }),
-      );
-  };
+  const { submit, isSubmitting } = useRoomConfigSubmission({
+    params,
+    navigation,
+    getFailureMessage: getDrawGuessRoomCommandFailureMessage,
+    creationLabel: '创建你画我猜房间',
+    createRequest: () => {
+      if (user === null) throw new Error('DrawGuess creation requires authentication');
+      return { expectedHostUserId: user.id, gameType: 'drawguess', config: { ...config } };
+    },
+    updateConfig: () =>
+      session.dispatch(
+        { type: 'drawguess.config.update', config },
+        { controlledSeat: null, label: '保存设置' },
+      ),
+  });
   return (
     <GameScreen
       testID="drawguess-config"
@@ -143,7 +123,7 @@ export function DrawGuessConfigScreen({ session }: { readonly session: DrawGuess
           variant="primary"
           size="lg"
           onPress={submit}
-          loading={creation.isCreating || submission.isSubmitting}
+          loading={isSubmitting}
           testID="drawguess-config-submit"
         >
           {params.mode === 'edit' ? '保存设置' : '创建房间'}

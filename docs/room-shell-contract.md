@@ -48,6 +48,18 @@ component owns the complete geometry, including the value area, not just its out
   dialog. Use the existing confirmation/sheet primitives when dismissal, pending-state
   locking or responsive presentation differs; preserve those behaviors while aligning visuals.
 
+## Configuration Submission
+
+Demo, Avalon, DrawGuess, Story Relay and the shared new-game settings template use
+`src/features/room/controllers/useRoomConfigSubmission.ts` for create/edit submission.
+It composes the creation and command controllers, exposes their combined pending state,
+returns to the active room only after an accepted edit, and replaces the config route after
+successful creation. Creation failures keep the game-specific error label and shared error pipeline.
+
+Games retain authoritative configuration initialization, field validation, authentication
+preconditions, creation payloads, typed update commands and command-failure presentation.
+The shared controller does not synthesize configs or change host-command dispatch options.
+
 ## Room Controller Composition
 
 `src/features/room/controllers/useRoomRosterController.ts` binds standard seat commands,
