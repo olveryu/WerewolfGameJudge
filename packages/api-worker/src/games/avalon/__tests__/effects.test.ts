@@ -175,6 +175,7 @@ function armedVoteState(): AvalonState {
     seatUser(leader),
     'draft',
   );
+  state = applyPublic(state, { type: 'avalon.team.preselect' }, seatUser(leader), 'preselect');
   state = applyPublic(state, { type: 'avalon.team.propose' }, seatUser(leader), 'propose');
   for (let seat = 0; seat < 5; seat += 1) {
     state = applyPublic(
