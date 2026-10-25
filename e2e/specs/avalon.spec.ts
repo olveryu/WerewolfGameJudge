@@ -177,7 +177,7 @@ async function pickTeam(pages: Page[], leaderSeat: number, team: readonly number
   await preselect.click();
   await expect(pickModal).toBeVisible({ timeout: 10_000 });
   await pickRow(probeSeat).click();
-  await expect(pickCount).toContainText('已选 1/2', { timeout: 10_000 });
+  await expect(pickCount).toContainText(`已选 1/${team.length}`, { timeout: 10_000 });
   await leaderPage.getByTestId('avalon-team-pick-cancel').click();
   await expect(pickModal).toBeHidden({ timeout: 10_000 });
   await expect(leaderRoom.getSeatTile(probeSeat)).not.toContainText('队员', { timeout: 10_000 });
@@ -190,7 +190,9 @@ async function pickTeam(pages: Page[], leaderSeat: number, team: readonly number
   for (const seat of team) {
     await pickRow(seat).click();
   }
-  await expect(pickCount).toContainText('已选 2/2', { timeout: 10_000 });
+  await expect(pickCount).toContainText(`已选 ${team.length}/${team.length}`, {
+    timeout: 10_000,
+  });
   await pickConfirm.click();
   await expect(pickModal).toBeHidden({ timeout: 10_000 });
   for (const seat of team) {
@@ -220,18 +222,26 @@ async function pickTeam(pages: Page[], leaderSeat: number, team: readonly number
   if (editedOut === undefined) throw new Error('pickTeam: team has no non-leader member');
   await submit.click();
   await expect(pickModal).toBeVisible({ timeout: 10_000 });
-  await expect(pickCount).toContainText('已选 2/2', { timeout: 10_000 });
+  await expect(pickCount).toContainText(`已选 ${team.length}/${team.length}`, {
+    timeout: 10_000,
+  });
   await pickRow(editedOut).click();
-  await expect(pickCount).toContainText('已选 1/2', { timeout: 10_000 });
+  await expect(pickCount).toContainText(`已选 ${team.length - 1}/${team.length}`, {
+    timeout: 10_000,
+  });
   await pickRow(probeSeat).click();
-  await expect(pickCount).toContainText('已选 2/2', { timeout: 10_000 });
+  await expect(pickCount).toContainText(`已选 ${team.length}/${team.length}`, {
+    timeout: 10_000,
+  });
   await expect(leaderRoom.getSeatTile(editedOut)).toContainText('队员', { timeout: 10_000 });
   await expect(observerRoom.getSeatTile(editedOut)).toContainText('队员', { timeout: 10_000 });
   await expect(leaderRoom.getSeatTile(probeSeat)).not.toContainText('队员', { timeout: 10_000 });
   await expect(observerRoom.getSeatTile(probeSeat)).not.toContainText('队员', { timeout: 10_000 });
   await pickRow(probeSeat).click();
   await pickRow(editedOut).click();
-  await expect(pickCount).toContainText('已选 2/2', { timeout: 10_000 });
+  await expect(pickCount).toContainText(`已选 ${team.length}/${team.length}`, {
+    timeout: 10_000,
+  });
   // 最终队伍 modal 确认即提交进投票。
   await pickConfirm.click();
   await expect(pickModal).toBeHidden({ timeout: 10_000 });
