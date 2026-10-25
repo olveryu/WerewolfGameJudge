@@ -310,9 +310,19 @@ function AvalonRoomContent(
                   />
                 ),
               sideInspector: null,
-              // 终局结算只在本局复盘里：座位表上方不留结算区与配置卡，
-              // 配置摘要只在对局记录头一行字。
-              beforeSeatBoard: <></>,
+              // 终局结算只在本局复盘里：座位表上方不留结算区；板子信息
+              // 折叠常驻（恢复 #313 前的形态，终局区不恢复）。
+              beforeSeatBoard: (
+                <AvalonBoardInfoCard
+                  playerCount={config.numberOfPlayers}
+                  collapsed
+                  onRolePress={(roleId) => {
+                    screen.setRolePreviewId(roleId);
+                    screen.setRoleCardVisible(true);
+                  }}
+                  styles={boardInfoStyles}
+                />
+              ),
               afterSeatBoard: null,
             }
       }
