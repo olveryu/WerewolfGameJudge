@@ -48,6 +48,23 @@ component owns the complete geometry, including the value area, not just its out
   dialog. Use the existing confirmation/sheet primitives when dismissal, pending-state
   locking or responsive presentation differs; preserve those behaviors while aligning visuals.
 
+## Room Controller Composition
+
+Demo, Avalon, DrawGuess and Story Relay share their standard setup composition:
+
+- `src/features/room/controllers/useRoomSetupController.ts` binds seat commands, seat confirmations,
+  profile actions and host clear/fill confirmations to the authenticated session. Games supply
+  lifecycle facts, occupancy, bot support and configuration/share callbacks; they do not repeat
+  the controller-to-capability wiring.
+- `src/features/room/controllers/createRoomSeatPressHandler.ts` executes setup seat intents and
+  delegates unconsumed in-game taps to the shared adjudicator. Games keep their profile-target
+  resolvers. Avalon consumes game-specific seat picks before calling this handler.
+- Bot takeover, role viewing, deadlines, gameplay commands and shell projections remain game-owned.
+  Other games keep their existing composition until their distinct lifecycle contracts are migrated.
+
+The new-game room hook template emits both shared bindings. Update that template with Demo so
+new games do not regenerate copies of the execution branches or controller wiring.
+
 ## Room Content
 
 `RoomShell` owns the shared header, connection/status ribbon, seat control banner, bottom actions, profile, invitation, and host-management surfaces. Game screens provide models and content, not another copy of those surfaces.

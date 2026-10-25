@@ -15,6 +15,7 @@ import { useCallback, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
 import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
@@ -24,32 +25,22 @@ import {
 } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
-import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
-import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
-import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
 import {
   deriveRemainingRevealCards,
   type RevealRoleData,
 } from '@/features/room/model/RevealRoleData';
 import {
   createBotTakeoverCapability,
-  createRoomSetupCapabilities,
-  createViewProfilesCapability,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
-import {
-  resolveRoomInGameSeatTap,
-  ROOM_SEAT_TAP_BLOCKED_TITLE,
-} from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { toRevealRoleData } from '@/games/demo/components/DemoRoleCardAdapter';
 import type { DemoRoomSession } from '@/games/demo/model/DemoRoomSession';
-import { showErrorAlert } from '@/utils/alertPresets';
 
 import {
   createDemoHostManagement,
@@ -112,17 +103,30 @@ export function useDemoRoomState(
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot, takeOver } = botControl;
   const effectiveSeat = controlledSeat ?? mySeat;
-  const seats = useStandardSeatCommands(session, user);
-  const seatController = useRoomSeatController({ currentSeat: mySeat, takeSeat: seats.takeSeat });
-  const profile = useRoomProfileController({
-    myUserId: user.id,
-    kickSeat: seats.kickSeat,
-    leaveSeat: seats.leaveSeat,
-  });
-  const host = useRoomHostOperations({ clearSeats: seats.clearSeats, fillBots: seats.fillBots });
   const share = useRoomShareController({
     roomCode: room.roomCode,
     gameDisplayName: 'Demo',
+  });
+  const {
+    seatController,
+    profile,
+    capabilities: setupCapabilities,
+  } = useRoomSetupController({
+    session,
+    user,
+    isSetup: isLobby,
+    isHost,
+    mySeat,
+    supportsBots: true,
+    hasOccupiedSeats: getDemoOccupiedSeatCount(state) > 0,
+    isRoomFull: getDemoOccupiedSeatCount(state) === state.config.numberOfPlayers,
+    configureGame: () =>
+      navigation.navigate('GameConfig', {
+        gameType: 'demo',
+        mode: 'edit',
+        roomCode: room.roomCode,
+      }),
+    shareRoom: share.open,
   });
   const titleActions = useRoomTitleActions();
   const { data: gachaStatus } = useGachaStatusQuery();
@@ -155,28 +159,7 @@ export function useDemoRoomState(
     release: releaseBot,
   });
   const capabilities: RoomCapabilities = {
-    ...createRoomSetupCapabilities({
-      isSetup: isLobby,
-      isHost,
-      mySeat,
-      supportsBots: true,
-      hasOccupiedSeats: getDemoOccupiedSeatCount(state) > 0,
-      isRoomFull: getDemoOccupiedSeatCount(state) === state.config.numberOfPlayers,
-      requestTakeSeat: seatController.requestTakeSeat,
-      requestMoveSeat: seatController.requestMoveSeat,
-      leaveSeat: profile.leaveSelf,
-      kickSeat: profile.kick,
-      clearSeats: host.requestClearSeats,
-      fillBots: host.requestFillBots,
-      configureGame: () =>
-        navigation.navigate('GameConfig', {
-          gameType: 'demo',
-          mode: 'edit',
-          roomCode: room.roomCode,
-        }),
-      shareRoom: share.open,
-    }),
-    canViewProfiles: createViewProfilesCapability(isLobby, profile.open),
+    ...setupCapabilities,
     canTakeOverBots: createBotTakeoverCapability(canControlBots, takeOver),
   };
   const isSeatBot = useCallback((seat: number) => isBotSeat(state.roster, seat), [state]);
@@ -191,31 +174,14 @@ export function useDemoRoomState(
     isBotSeat: isSeatBot,
     gameName: 'Demo',
   });
-  const onSeatPress = (seat: number, disabledReason?: string) => {
-    // 局内裁决走共享 resolveRoomInGameSeatTap（同一实现，全平台一份）。
-    if (!isLobby) {
-      const outcome = resolveRoomInGameSeatTap(disabledReason);
-      if (outcome.kind === 'alert')
-        return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, outcome.reason);
-      return;
-    }
-    const intent = getDemoSeatTapIntent({
-      state,
-      seat,
-      currentSeat: mySeat,
-      disabledReason,
-    });
-    switch (intent.kind) {
-      case 'blocked':
-        return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, intent.reason);
-      case 'profile':
-        return profile.open(intent.target);
-      case 'take':
-        return seatController.requestTakeSeat(intent.seat);
-      case 'move':
-        return seatController.requestMoveSeat(intent.seat);
-    }
-  };
+  const onSeatPress = createRoomSeatPressHandler({
+    isSetup: isLobby,
+    state,
+    currentSeat: mySeat,
+    resolveIntent: getDemoSeatTapIntent,
+    profile,
+    seatController,
+  });
   const selection = profile.selection;
   const hostManagement = createDemoHostManagement({
     state,

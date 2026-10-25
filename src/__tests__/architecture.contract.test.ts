@@ -1517,9 +1517,7 @@ describe('Room layout: afterSeatBoard is always null in every game room screen',
 describe('Room seat taps: in-game adjudication is the shared resolveRoomInGameSeatTap', () => {
   const consumerPaths = [
     'games/werewolf/room/seatTap/SeatTapPolicy.ts',
-    'games/avalon/room/hooks/useAvalonRoomState.ts',
-    'games/storyrelay/room/hooks/useStoryRelayRoomState.ts',
-    'games/drawguess/room/hooks/useDrawGuessRoomState.ts',
+    'features/room/controllers/createRoomSeatPressHandler.ts',
   ];
 
   it.each(consumerPaths)(
@@ -1529,4 +1527,15 @@ describe('Room seat taps: in-game adjudication is the shared resolveRoomInGameSe
       expect(source).toContain('resolveRoomInGameSeatTap(');
     },
   );
+
+  it.each([
+    'games/demo/room/hooks/useDemoRoomState.ts',
+    'games/avalon/room/hooks/useAvalonRoomState.ts',
+    'games/storyrelay/room/hooks/useStoryRelayRoomState.ts',
+    'games/drawguess/room/hooks/useDrawGuessRoomState.ts',
+  ])('%s delegates setup and seat-press execution to shared controllers', (relativePath) => {
+    const source = fs.readFileSync(path.join(srcDir, relativePath), 'utf-8');
+    expect(source).toContain('createRoomSeatPressHandler(');
+    expect(source).toContain('useRoomSetupController(');
+  });
 });
