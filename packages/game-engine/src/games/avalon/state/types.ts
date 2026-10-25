@@ -229,6 +229,14 @@ export type AvalonPhase =
        * 任务结算 / 湖仙确认产生的新 nominate 不继承旧草稿）。
        */
       readonly draftSeats: readonly number[];
+      /**
+       * 预选阵容（服务端权威，全房可见）：组队者经
+       * avalon.team.preselect 把当时满员的草稿记为预选，确认后锁定——
+       * 之后改选最终队伍（updateDraft）不改动它；进入新 nominate 时
+       * 清零。propose 的先行规则：必须先预选（非空）才能提交；
+       * 提交的是当前草稿（最终队伍），可与预选不同。
+       */
+      readonly preselectedSeats: readonly number[];
     }
   | {
       readonly kind: 'vote';

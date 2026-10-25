@@ -137,6 +137,8 @@ export interface AvalonViewModel {
   readonly requiredSize: number | null;
   /** 提名草稿（组队者未确认的暂选集）：nominate 阶段向全房公开，其余阶段为 null。 */
   readonly draftSeats: readonly number[] | null;
+  /** 预选阵容（组队者确认的锁定记录）：nominate 阶段向全房公开，其余阶段为 null。 */
+  readonly preselectedSeats: readonly number[] | null;
   readonly proposedSeats: readonly number[] | null;
   readonly teamSeats: readonly number[] | null;
   readonly myBallot: AvalonBallot | null;
@@ -295,6 +297,7 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
   let nightConfirmed = false;
   let requiredSize: number | null = null;
   let draftSeats: readonly number[] | null = null;
+  let preselectedSeats: readonly number[] | null = null;
   let proposedSeats: readonly number[] | null = null;
   let teamSeats: readonly number[] | null = null;
   let myBallot: AvalonBallot | null = null;
@@ -322,6 +325,8 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
     requiredSize = phase.requiredSize;
     // 草稿是公开信息：全房原样投影，供线下讨论（保密不适用于提名）。
     draftSeats = phase.draftSeats;
+    // 预选记录同样公开：锁定后全房可见，改选最终队伍不改动它。
+    preselectedSeats = phase.preselectedSeats;
     proposedSeats = null;
   } else if (phase.kind === 'vote') {
     proposedSeats = phase.proposedSeats;
@@ -388,6 +393,7 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
     ).map((participant) => participant.seat),
     requiredSize,
     draftSeats,
+    preselectedSeats,
     proposedSeats,
     teamSeats,
     myBallot,

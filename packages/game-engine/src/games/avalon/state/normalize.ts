@@ -309,6 +309,15 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
           new Set(phase.draftSeats).size === phase.draftSeats.length,
         'nominate draft seats',
       );
+      // 预选恒为满员阵容或空集（未预选）：命令层只接受满员草稿记为
+      // 预选，之后改选最终队伍不改动它，此处只钉形状。
+      invariant(
+        (phase.preselectedSeats.length === 0 ||
+          phase.preselectedSeats.length === phase.requiredSize) &&
+          phase.preselectedSeats.every(isSeat) &&
+          new Set(phase.preselectedSeats).size === phase.preselectedSeats.length,
+        'nominate preselected seats',
+      );
       return state;
     }
     case 'vote': {

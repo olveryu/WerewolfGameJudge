@@ -138,6 +138,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           round: 1,
           requiredSize: getAvalonQuestSize(state.config.numberOfPlayers, 1),
           draftSeats: [],
+          preselectedSeats: [],
         },
       };
     }
@@ -153,7 +154,13 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
     }
     case 'avalon.team.draftUpdated': {
       if (state.phase.kind !== 'nominate') return state;
+      // 改选最终队伍不改动预选记录：预选一旦记下即锁定，只在进入
+      // 新 nominate 时清零。
       return { ...bumped, phase: { ...state.phase, draftSeats: [...event.seats] } };
+    }
+    case 'avalon.team.preselected': {
+      if (state.phase.kind !== 'nominate') return state;
+      return { ...bumped, phase: { ...state.phase, preselectedSeats: [...event.seats] } };
     }
     case 'avalon.team.proposed': {
       if (state.phase.kind !== 'nominate') return state;
@@ -243,6 +250,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           round: state.phase.round,
           requiredSize: getAvalonQuestSize(state.config.numberOfPlayers, state.phase.round),
           draftSeats: [],
+          preselectedSeats: [],
         },
         lastVoteResult,
         roundHistory,
@@ -315,6 +323,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           round: nextRound,
           requiredSize: getAvalonQuestSize(state.config.numberOfPlayers, nextRound),
           draftSeats: [],
+          preselectedSeats: [],
         },
         leaderSeat: nextAvalonLeaderSeat(state.leaderSeat, state.config.numberOfPlayers),
       };
@@ -336,6 +345,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           round: event.nextRound,
           requiredSize: event.nextRequiredSize,
           draftSeats: [],
+          preselectedSeats: [],
         },
         leaderSeat: event.nextLeaderSeat,
         ladyHolderSeat: event.targetSeat,
