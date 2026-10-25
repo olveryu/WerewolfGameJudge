@@ -78,26 +78,25 @@ export function createUndercoverBottomActions(
   viewer: { readonly isHost: boolean; readonly mySeat: number | null },
 ): RoomBottomActionModel {
   const primary: RoomBottomButton[] = [];
+  const secondary: RoomBottomButton[] = [];
   const ghost: RoomBottomButton[] = [];
   const cardLabel =
     controls.controlledSeat !== null ? `查看 ${controls.controlledSeat + 1} 号词卡` : '查看我的词';
-  // The word card is this game's viewing-step main action (the step's
-  // server-side confirmation hangs on it), not a persistent review
-  // tool: its definition resolves through the shared view-action
-  // resolver, but it renders as a stage action in the primary tier —
-  // it does not go through buildViewIdentityButton, whose ghost-tier
-  // presentation is the platform rule for review tools only.
+  // 词卡层级按 2026 规则：查看阶段是本步主行动，进 primary；其余阶段
+  // 只是回看工具，进 secondary。尺寸全游戏固定 md。取消选择仍是
+  // ghost（那是 tertiary 动作，不是查看）。
+  const isViewingStep = state.phase === 'viewing';
   const viewCardAction = resolveViewIdentityAction({
     isVisible: controls.canViewCard && !controls.isSelecting,
     label: cardLabel,
     onPress: controls.openCard,
   });
   if (viewCardAction !== null)
-    primary.push({
+    (isViewingStep ? primary : secondary).push({
       key: 'card',
       label: viewCardAction.label,
-      variant: 'primary',
-      size: 'lg',
+      variant: isViewingStep ? 'primary' : 'secondary',
+      size: 'md',
       testID: 'undercover-view-word',
       isEnabled: true,
       onPress: viewCardAction.onPress,
@@ -116,6 +115,6 @@ export function createUndercoverBottomActions(
     kind: 'stacked',
     message: resolveUndercoverBottomMessage(controls, state, viewer, cardLabel),
     progress: null,
-    layout: { primary, secondary: [], ghost },
+    layout: { primary, secondary, ghost },
   };
 }

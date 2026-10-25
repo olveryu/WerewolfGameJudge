@@ -250,14 +250,13 @@ describe('createAvalonRoomShellModel', () => {
     });
     expect(model.bottomActions.kind).toBe('stacked');
     if (model.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
-    // Tier contract: the persistent view-identity tool lives in the
-    // ghost tier on its own row, never in a stage-action tier.
-    expect(model.bottomActions.layout.primary).toEqual([]);
+    // 2026 规则：查看阶段的查看身份是 primary，其余阶段是 secondary，永不进 ghost。
     expect(model.bottomActions.layout.secondary).toEqual([]);
-    const viewRole = model.bottomActions.layout.ghost.find((action) => action.key === 'viewRole');
+    expect(model.bottomActions.layout.ghost).toEqual([]);
+    const viewRole = model.bottomActions.layout.primary.find((action) => action.key === 'viewRole');
     expect(viewRole).toMatchObject({
       label: '查看身份',
-      variant: 'ghost',
+      variant: 'primary',
       size: 'md',
       isEnabled: true,
       testID: 'avalon-view-role',
@@ -298,9 +297,10 @@ describe('createAvalonRoomShellModel', () => {
     );
     // Tier regression pin (the reported bug): at night the stage
     // action 确认信息 sits in the primary tier while the persistent
-    // 查看身份 sits in the ghost tier — different rows, never one row.
+    // 查看身份 sits in the secondary tier — different rows, never one row.
     expect(during.bottomActions.layout.primary.map((action) => action.key)).toEqual(['nightInfo']);
-    expect(during.bottomActions.layout.ghost.map((action) => action.key)).toEqual(['viewRole']);
+    expect(during.bottomActions.layout.secondary.map((action) => action.key)).toEqual(['viewRole']);
+    expect(during.bottomActions.layout.ghost).toEqual([]);
     expect(duringInfo).toMatchObject({
       label: '确认信息',
       isEnabled: true,
@@ -624,9 +624,12 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
       '点座位盘点选一名玩家进行提前刺杀（除自己外任意座位），点选后会再次确认。刺中梅林坏人直接获胜，刺错好人直接获胜。',
     );
     // 独占底部区：只剩局内常驻「查看身份」与取消入口，阶段主按钮（如提交队伍）不出现。
-    // 层级归属：查看身份在 ghost 层独行，取消刺杀在 secondary 层，primary 为空。
-    expect(bottom.layout.ghost.map((action) => action.key)).toEqual(['viewRole']);
-    expect(bottom.layout.secondary.map((action) => action.key)).toEqual(['earlyStrike']);
+    // 层级归属：查看身份与取消刺杀同在 secondary 层，primary 为空。
+    expect(bottom.layout.ghost).toEqual([]);
+    expect(bottom.layout.secondary.map((action) => action.key)).toEqual([
+      'viewRole',
+      'earlyStrike',
+    ]);
     expect(bottom.layout.primary).toEqual([]);
     const cancel = findStageAction(bottom, 'earlyStrike');
     expect(cancel).toMatchObject({

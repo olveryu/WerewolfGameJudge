@@ -118,26 +118,28 @@ export function resolveViewIdentityAction(input: {
 }
 
 /**
- * Renders a resolved view-identity action as a bottom button. The
- * view-identity action is a persistent review tool, so its tier is a
- * platform rule, not a per-game choice: it always renders as a ghost
- * button (variant 'ghost', size 'md') and belongs in the layout's
- * ghost tier, on its own row, never mixed into a stage-action row.
- * Only the key and testID remain the surface's own anchors. The button
- * is always enabled (a hidden action is expressed by resolving to
- * null, never by a disabled view button).
+ * Renders a resolved view-identity action as a bottom button. The tier
+ * follows the 2026 rule, decided by the caller from whether the current
+ * step is the viewing step: the viewing step renders primary, every
+ * other phase renders secondary. Ghost is never a view-identity tier:
+ * viewing your own secret is always a real button (filled or outlined),
+ * never a borderless text action. Size is fixed md across games; only
+ * the key, the tier and the testID remain the surface's own anchors.
+ * The button is always enabled (a hidden action is expressed by
+ * resolving to null, never by a disabled view button).
  */
 export function buildViewIdentityButton(
   action: RoomViewIdentityAction,
   surface: {
     readonly key: string;
+    readonly variant: 'primary' | 'secondary';
     readonly testID?: string;
   },
 ): RoomBottomButton {
   return {
     key: surface.key,
     label: action.label,
-    variant: 'ghost',
+    variant: surface.variant,
     size: 'md',
     ...(surface.testID !== undefined ? { testID: surface.testID } : {}),
     isEnabled: true,
@@ -149,11 +151,12 @@ export function buildViewIdentityButton(
  * The three tiers of the stacked bottom layout, one tier per row.
  * Tier ownership is a platform contract, decided by semantics:
  * stage actions (what this step asks the player to do) belong in
- * primary / secondary; persistent review tools (present all game,
- * unrelated to the current step — view identity, review) belong in
- * ghost, on their own row. A stage main action keeps its primary
- * tier even when it opens a card (e.g. Undercover's word card is the
- * viewing step's main action, not a review tool).
+ * primary / secondary; tertiary actions (cancel, dismiss) belong in
+ * ghost, on their own row. View identity follows its own 2026 rule
+ * rather than the review-tool grouping: it is the viewing step's main
+ * action (primary) in the viewing step and a persistent secondary
+ * tool in every other phase — it is never ghost. The review button
+ * (nightReview) remains a ghost tool.
  */
 export interface RoomBottomActionLayout {
   readonly primary: readonly RoomBottomButton[];

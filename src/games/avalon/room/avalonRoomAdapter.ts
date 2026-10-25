@@ -381,15 +381,18 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
     return { kind: 'stacked', message, progress: null, layout: { primary, secondary, ghost } };
   }
   // 查看身份：局内常驻（对齐狼人杀）。用 effectiveSeat：房主代打 bot 时也能看 bot 的身份。
+  // 层级按 2026 规则：查看阶段是 primary，其余阶段是 secondary，永不进 ghost。
+  const isViewingStep = state.phase.kind === 'viewing';
   const viewIdentityAction = resolveViewIdentityAction({
     isVisible: input.effectiveSeat !== null,
     label: VIEW_IDENTITY_LABEL,
     onPress: input.onViewRolePress,
   });
   if (viewIdentityAction !== null) {
-    ghost.push(
+    (isViewingStep ? primary : secondary).push(
       buildViewIdentityButton(viewIdentityAction, {
         key: 'viewRole',
+        variant: isViewingStep ? 'primary' : 'secondary',
         testID: 'avalon-view-role',
       }),
     );

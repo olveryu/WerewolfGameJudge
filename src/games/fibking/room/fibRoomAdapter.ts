@@ -476,15 +476,17 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
     case 'viewing':
     case 'ongoing': {
       // 查看动作定义走共享解析：旁观者看题目、在座玩家看身份，同一命令两种内容。
+      // 层级按 2026 规则：查看阶段是 primary，其余阶段是 secondary，永不进 ghost。
       const viewIdentityAction = resolveViewIdentityAction({
         isVisible: true,
         label: input.viewerSeat === null ? '查看题目' : VIEW_IDENTITY_LABEL,
         onPress: input.openIdentity,
       });
       if (viewIdentityAction !== null) {
-        ghost.push(
+        (input.state.phase === 'viewing' ? primary : secondary).push(
           buildViewIdentityButton(viewIdentityAction, {
             key: 'view-identity',
+            variant: input.state.phase === 'viewing' ? 'primary' : 'secondary',
             testID: TESTIDS.fibViewIdentityButton,
           }),
         );
