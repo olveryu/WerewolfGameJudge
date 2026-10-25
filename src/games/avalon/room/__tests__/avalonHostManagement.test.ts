@@ -159,6 +159,7 @@ function session() {
         ),
       ].slice(0, phase.requiredSize);
       sendAsSeat({ type: 'avalon.team.updateDraft', seats: team }, state.leaderSeat);
+      sendAsSeat({ type: 'avalon.team.preselect' }, state.leaderSeat);
       sendAsSeat({ type: 'avalon.team.propose' }, state.leaderSeat);
       for (let seat = 0; seat < PLAYER_COUNT; seat += 1)
         sendAsSeat({ type: 'avalon.team.vote', vote: 'approve' }, seat);
@@ -278,6 +279,7 @@ describe('createAvalonHostManagement', () => {
     if (phase.kind !== 'nominate') throw new Error('expected nominate');
     const team = Array.from({ length: phase.requiredSize }, (_, seat) => seat);
     game.sendAsSeat({ type: 'avalon.team.updateDraft', seats: team }, game.state.leaderSeat);
+    game.sendAsSeat({ type: 'avalon.team.preselect' }, game.state.leaderSeat);
     game.sendAsSeat({ type: 'avalon.team.propose' }, game.state.leaderSeat);
     expect(game.state.phase.kind).toBe('vote');
     // 手动结算已删：投票阶段房主管理只有常驻房间区，关轮靠全员投完后倒计时到期。

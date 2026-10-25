@@ -67,6 +67,7 @@ import {
   getAvalonSeatTapIntent,
 } from '../avalonRoomAdapter';
 import { getAvalonRoomCommandFailureMessage } from '../avalonRoomCommandFailureMessage';
+import type { AvalonTeamPickKind } from '../components/AvalonTeamPickModal';
 import { useAvalonAudioOrchestration } from './useAvalonAudioOrchestration';
 
 /**
@@ -91,18 +92,15 @@ export interface AvalonRoomScreenState {
     command: AvalonPublicCommand,
     control?: number | null,
   ) => Promise<boolean>;
+  /** 组队选人弹窗开关：null 关闭，preselect / final 为两段 modal。 */
+  readonly teamPickModal: AvalonTeamPickKind | null;
+  readonly setTeamPickModal: (modal: AvalonTeamPickKind | null) => void;
   /**
-   * 同步提名点选镜像（Screen 的点选机制经 onMirrorChange 推来）：只覆盖
-   * 本 hook 派生 shell model 时 nominate 阶段的 draftSeats，权威 state
-   * 本体与返回的 viewModel 不受影响；传 null 表示镜像已清除。
+   * 组队选人 modal 确认：先同步草稿（与服务端草稿同集时跳过派发），
+   * 再按当前 modal 段发 preselect / propose；确认即关闭 modal。
+   * 组队命令全链串行，下一笔等上一笔 followup 落定再发。
    */
-  readonly setNominationDraftOverride: (selection: readonly number[] | null) => void;
-  /**
-   * 派发提名草稿更新（avalon.team.updateDraft）并记录在飞派发：
-   * onProposeTeamPress 会先等最近一笔草稿派发落定再发 propose。
-   * 返回派发结果（true 成功 / false 被拒），供点选机制回滚镜像。
-   */
-  readonly submitTeamDraft: (seats: readonly number[]) => Promise<boolean>;
+  readonly confirmTeamPick: (seats: readonly number[]) => Promise<void>;
   readonly isSubmitting: boolean;
   readonly session: AvalonRoomSession;
   readonly openRules: () => void;
@@ -209,21 +207,15 @@ export function useAvalonRoomState(
   // 座位动作（以被接管机器人的身份发出）由调用方显式传 controlledSeat。
   const submit = (label: string, command: AvalonPublicCommand, control: number | null = null) =>
     submission.submit(label, () => session.dispatch(command, { controlledSeat: control, label }));
-  // 提名点选镜像（组队者本人屏幕的派生覆盖，见 shellState）与草稿派发
-  // 链：Screen 的点选机制经 setNominationDraftOverride 同步镜像，草稿
-  // 派发统一经 submitTeamDraft 按发送顺序串行、记录链尾供 propose 等待。
-  const [nominationDraftOverride, setNominationDraftOverrideState] = useState<
-    readonly number[] | null
-  >(null);
-  const setNominationDraftOverride = useCallback((selection: readonly number[] | null) => {
-    setNominationDraftOverrideState(selection);
-  }, []);
+  // 组队选人 modal 开关：选人与确认都在 modal 里做（见 confirmTeamPick），
+  // 板子点选已停用，不再有派生镜像覆盖草稿。
+  const [teamPickModal, setTeamPickModal] = useState<AvalonTeamPickKind | null>(null);
   const lastTeamDraftDispatchRef = useRef<Promise<boolean> | null>(null);
   const submitTeamDraft = (seats: readonly number[]): Promise<boolean> => {
-    // submission 是单飞锁：组队者连点时后一笔若与在飞的前一笔重叠，会被
-    // 锁以「已有操作进行中」直接拒绝，整集丢失且镜像误回滚。故按发送
-    // 顺序逐笔接续——等前一笔落定再发本笔，本笔返回值仍是它自己的
-    // 派发结果；镜像的连点复合靠这里的串行才真正成立。
+    // submission 是单飞锁：后一笔组队命令若与在飞的前一笔重叠，会被
+    // 锁以「已有操作进行中」直接拒绝。故按发送顺序逐笔接续——等前一笔
+    // 落定再发本笔，本笔返回值仍是它自己的派发结果；confirmTeamPick
+    // 把 followup 也接进同一条链，下一笔等 followup 落定再发。
     const dispatchNow = () =>
       submit('更新草稿', { type: 'avalon.team.updateDraft', seats }, controlledSeat);
     const previous = lastTeamDraftDispatchRef.current;
@@ -348,17 +340,33 @@ export function useAvalonRoomState(
   });
 
   const selection = profile.selection;
-  // 组队者本人屏幕的派生输入：nominate 阶段以点选镜像覆盖草稿，让「队员」
-  // 徽标与「提交队伍」的满员判断不必等服务端回声。只覆盖喂给 shell
-  // model 的这一份派生：state 本体、返回的 viewModel、摘要与房主管理
-  // 读的仍是权威状态；无镜像或非组队者视角时恒为原 state。
-  const shellState: AvalonState =
-    nominationDraftOverride !== null &&
-    state.phase.kind === 'nominate' &&
-    effectiveSeat !== null &&
-    state.leaderSeat === effectiveSeat
-      ? { ...state, phase: { ...state.phase, draftSeats: nominationDraftOverride } }
-      : state;
+  // 组队选人 modal 确认：先同步草稿（与服务端草稿同集时跳过），再按
+  // 当前 modal 段发 preselect / propose。组队命令全链串行：followup
+  // 返回 submit 链、链尾记回 ref，下一笔组队命令等上一笔 followup
+  // 落定再发，免得被单飞锁以「已有操作进行中」拒绝；草稿被拒时
+  // followup 照常发出，由引擎校验承接。
+  const confirmTeamPick = (seats: readonly number[]): Promise<void> => {
+    const kind = teamPickModal;
+    setTeamPickModal(null);
+    if (kind === null || state.phase.kind !== 'nominate') return Promise.resolve();
+    const serverDraft = state.phase.draftSeats;
+    const sameSet =
+      serverDraft.length === seats.length && seats.every((seat) => serverDraft.includes(seat));
+    const followup = () =>
+      submit(
+        kind === 'preselect' ? '预选队伍' : '提交队伍',
+        kind === 'preselect' ? { type: 'avalon.team.preselect' } : { type: 'avalon.team.propose' },
+        controlledSeat,
+      );
+    const previous = lastTeamDraftDispatchRef.current;
+    const chained = sameSet
+      ? previous === null
+        ? followup()
+        : previous.then(followup, followup)
+      : submitTeamDraft(seats).then(followup, followup);
+    lastTeamDraftDispatchRef.current = chained;
+    return chained.then(() => undefined);
+  };
   const shellModel: RoomShellModel = createAvalonRoomShellModel({
     roomCode: room.roomCode,
     capabilities,
@@ -369,7 +377,7 @@ export function useAvalonRoomState(
     gachaStatus,
     onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
     connection: entryController.connection,
-    state: shellState,
+    state,
     revision: snapshot.snapshot.revision,
     userId: user.id,
     controlledSeat,
@@ -405,20 +413,10 @@ export function useAvalonRoomState(
     settleCountdownSeconds: phaseRemainingSeconds,
     onOpenVotePress: () => setVoteModalOpen(true),
     onOpenQuestPress: () => setQuestModalOpen(true),
-    onProposeTeamPress: () => {
-      // 提案以服务端草稿为准：草稿由组队者的点选经 submitTeamDraft 维护。
-      // 先等最后一笔在飞的草稿派发落定再发 propose，免得 propose 抢在
-      // 草稿前面被引擎按旧草稿长度拒绝；草稿派发被拒时 propose 照常
-      // 发出，由引擎按服务端草稿校验、既有失败提示承接。
-      const propose = () =>
-        void submit('提交队伍', { type: 'avalon.team.propose' }, controlledSeat);
-      const pendingDraft = lastTeamDraftDispatchRef.current;
-      if (pendingDraft === null) {
-        propose();
-        return;
-      }
-      void pendingDraft.then(propose, propose);
-    },
+    // 两段式组队入口：底部按钮只打开选人 modal，选人与确认都在
+    // modal 里做（见 confirmTeamPick）；板子点选已停用。
+    onPreselectTeamPress: () => setTeamPickModal('preselect'),
+    onProposeTeamPress: () => setTeamPickModal('final'),
     onLadyAcknowledgePress: () => setLadyAckOpen(true),
     onLadyResultPress: () => ladyResultReopenRef.current?.(),
     onEarlyStrikePress: () => setStrikePickMode(true),
@@ -446,8 +444,9 @@ export function useAvalonRoomState(
     equippedRevealEffect: resolveEquippedRevealEffect(user.equippedEffect, room.roomCode, user.id),
     phaseRemainingSeconds,
     submit,
-    setNominationDraftOverride,
-    submitTeamDraft,
+    teamPickModal,
+    setTeamPickModal,
+    confirmTeamPick,
     isSubmitting: submission.isSubmitting,
     session,
     openRules: () =>

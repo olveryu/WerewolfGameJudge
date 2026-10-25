@@ -78,6 +78,7 @@ function session() {
       const size = state.phase.requiredSize;
       const team = Array.from({ length: size }, (_, index) => (leader + index) % 5);
       send({ type: 'avalon.team.updateDraft', seats: team }, userOf(leader));
+      send({ type: 'avalon.team.preselect' }, userOf(leader));
       send({ type: 'avalon.team.propose' }, userOf(leader));
       for (let seat = 0; seat < 5; seat += 1) {
         send({ type: 'avalon.team.vote', vote: ballot }, userOf(seat));
@@ -120,6 +121,7 @@ describe('createAvalonHistorySummary', () => {
       { type: 'avalon.team.updateDraft', seats: [leader, (leader + 1) % 5] },
       room.userOf(leader),
     );
+    room.send({ type: 'avalon.team.preselect' }, room.userOf(leader));
     room.send({ type: 'avalon.team.propose' }, room.userOf(leader));
     expect(createAvalonHistorySummary(room.state)).toBe('任务一 · 第1次提案投票中');
   });

@@ -145,6 +145,7 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
     settleCountdownSeconds: null,
     onOpenVotePress: jest.fn(),
     onOpenQuestPress: jest.fn(),
+    onPreselectTeamPress: jest.fn(),
     onProposeTeamPress: jest.fn(),
     onLadyAcknowledgePress: jest.fn(),
     onLadyResultPress: jest.fn(),
@@ -509,6 +510,7 @@ function playQuestRound(running: RunningSession, failSeats: ReadonlySet<number> 
     if (!team.includes(seat)) team.push(seat);
   }
   running.send({ type: 'avalon.team.updateDraft', seats: team }, seatUser(leader));
+  running.send({ type: 'avalon.team.preselect' }, seatUser(leader));
   running.send({ type: 'avalon.team.propose' }, seatUser(leader));
   for (let seat = 0; seat < playerCount; seat += 1) {
     running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
@@ -538,31 +540,44 @@ function completeLadyIfPresent(running: RunningSession) {
 }
 
 describe('createAvalonRoomShellModel — daytime bottom actions', () => {
-  it('nominate: the leader gets pick guidance and a propose button gated on the required size', () => {
+  it('nominate: two-stage buttons driven by the server preselect record', () => {
     const running = daytimeSession();
     const leader = running.state.leaderSeat;
+    const onPreselectTeamPress = jest.fn();
     const onProposeTeamPress = jest.fn();
-    const empty = shellFor(running, leader, { onProposeTeamPress });
-    expect(empty.message).toContain('点座位盘点选');
-    const propose = findStageAction(empty, 'proposeTeam');
-    expect(propose).toMatchObject({
-      label: '提交队伍',
-      isEnabled: false,
-      disabledReason: '队员人数必须为 2 人',
-      testID: 'avalon-nominate-submit',
+    const empty = shellFor(running, leader, { onPreselectTeamPress, onProposeTeamPress });
+    expect(empty.message).toContain('点「预选队伍」打开选人');
+    // 未预选时主按钮是「预选队伍」，只负责打开 modal（满员门在 modal
+    // 确认按钮上），草稿为空也不禁用；最终队伍按钮在预选回声到之前不存在。
+    const preselect = findStageAction(empty, 'preselectTeam');
+    expect(preselect).toMatchObject({
+      label: '预选队伍',
+      isEnabled: true,
+      testID: 'avalon-nominate-preselect',
     });
-    // Tier ownership: propose is the stage main action — primary tier.
-    expect(findTierAction(empty, 'primary', 'proposeTeam')).toBe(propose);
-    expect(findTierAction(empty, 'secondary', 'proposeTeam')).toBeUndefined();
-    // 草稿满员经服务端草稿驱动（组队者 updateDraft 后 VM 投影 draftSeats）。
+    expect(findTierAction(empty, 'primary', 'preselectTeam')).toBe(preselect);
+    expect(findTierAction(empty, 'secondary', 'preselectTeam')).toBeUndefined();
+    expect(findStageAction(empty, 'proposeTeam')).toBeUndefined();
+    if (preselect && preselect.isEnabled) preselect.onPress();
+    expect(onPreselectTeamPress).toHaveBeenCalledTimes(1);
+    // 预选回声到后主按钮翻成「最终队伍」，预选按钮消失（引擎预选
+    // 仍要求满员草稿在先，这笔是造回声用的引擎前置，不是按钮门禁）。
     running.send(
       { type: 'avalon.team.updateDraft', seats: [leader, (leader + 1) % 5] },
       seatUser(leader),
     );
-    const full = shellFor(running, leader, { onProposeTeamPress });
-    const ready = findStageAction(full, 'proposeTeam');
-    expect(ready).toMatchObject({ label: '提交队伍', isEnabled: true });
-    if (ready && ready.isEnabled) ready.onPress();
+    running.send({ type: 'avalon.team.preselect' }, seatUser(leader));
+    const preselected = shellFor(running, leader, { onPreselectTeamPress, onProposeTeamPress });
+    expect(preselected.message).toContain('预选已确认');
+    expect(findStageAction(preselected, 'preselectTeam')).toBeUndefined();
+    const final = findStageAction(preselected, 'proposeTeam');
+    expect(final).toMatchObject({
+      label: '最终队伍',
+      isEnabled: true,
+      testID: 'avalon-nominate-submit',
+    });
+    expect(findTierAction(preselected, 'primary', 'proposeTeam')).toBe(final);
+    if (final && final.isEnabled) final.onPress();
     expect(onProposeTeamPress).toHaveBeenCalledTimes(1);
   });
 
@@ -573,6 +588,17 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const bottom = shellFor(running, other);
     expect(bottom.message).toBe(`等待组队者组队（${leader + 1} 号座位），本轮需要 2 名队员。`);
     expect(findStageAction(bottom, 'proposeTeam')).toBeUndefined();
+    expect(findStageAction(bottom, 'preselectTeam')).toBeUndefined();
+    // 预选后非组队者只收到状态宣告，仍无操作按钮。
+    running.send(
+      { type: 'avalon.team.updateDraft', seats: [leader, (leader + 1) % 5] },
+      seatUser(leader),
+    );
+    running.send({ type: 'avalon.team.preselect' }, seatUser(leader));
+    const afterPreselect = shellFor(running, other);
+    expect(afterPreselect.message).toBe('队长已预选，正在定最终队伍。');
+    expect(findStageAction(afterPreselect, 'proposeTeam')).toBeUndefined();
+    expect(findStageAction(afterPreselect, 'preselectTeam')).toBeUndefined();
   });
 
   it('early strike: only the assassin carries the strike button during the day', () => {
@@ -617,6 +643,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const leader = running.state.leaderSeat;
     const team = [leader, (leader + 1) % 5];
     running.send({ type: 'avalon.team.updateDraft', seats: team }, seatUser(leader));
+    running.send({ type: 'avalon.team.preselect' }, seatUser(leader));
     running.send({ type: 'avalon.team.propose' }, seatUser(leader));
     const voter = leader;
     const onOpenVotePress = jest.fn();
@@ -650,6 +677,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     if (evil === undefined) throw new Error('expected an evil seat besides the leader');
     const team = [leader, evil];
     running.send({ type: 'avalon.team.updateDraft', seats: team }, seatUser(leader));
+    running.send({ type: 'avalon.team.preselect' }, seatUser(leader));
     running.send({ type: 'avalon.team.propose' }, seatUser(leader));
     for (let seat = 0; seat < 5; seat += 1) {
       running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
@@ -778,6 +806,7 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
       if (!team.includes(seat)) team.push(seat);
     }
     running.send({ type: 'avalon.team.updateDraft', seats: team }, seatUser(leader));
+    running.send({ type: 'avalon.team.preselect' }, seatUser(leader));
     running.send({ type: 'avalon.team.propose' }, seatUser(leader));
     if (currentPhase(running).kind !== 'vote') throw new Error('expected vote phase');
     running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(1));
@@ -823,6 +852,7 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
         if (!team.includes(seat)) team.push(seat);
       }
       running.send({ type: 'avalon.team.updateDraft', seats: team }, seatUser(leader));
+      running.send({ type: 'avalon.team.preselect' }, seatUser(leader));
       running.send({ type: 'avalon.team.propose' }, seatUser(leader));
       for (let seat = 0; seat < 5; seat += 1) {
         running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
@@ -857,6 +887,7 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
         if (!team.includes(seat)) team.push(seat);
       }
       running.send({ type: 'avalon.team.updateDraft', seats: team }, seatUser(leader));
+      running.send({ type: 'avalon.team.preselect' }, seatUser(leader));
       running.send({ type: 'avalon.team.propose' }, seatUser(leader));
       for (let seat = 0; seat < 5; seat += 1) {
         running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));

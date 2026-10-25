@@ -27,6 +27,7 @@ function questViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMod
     unviewedRoleSeats: [],
     requiredSize: null,
     draftSeats: null,
+    preselectedSeats: null,
     proposedSeats: null,
     teamSeats: [0, 1],
     myBallot: null,
