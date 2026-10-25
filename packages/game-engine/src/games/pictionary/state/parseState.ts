@@ -14,12 +14,10 @@ import {
   parseNonEmptyString,
   parseNullable,
   parseObject,
-  parseOptional,
   parseSeat,
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
-import { buildRoomSeatProfile, type RosterEntry } from '../../../platform/room/roster';
-import type { BotSeatOccupant } from '../../../platform/room/seating';
+import { parseRoomHumanSeat, parseRoomRoster } from '../../../platform/room/roster';
 import { normalizePictionaryState } from './normalize';
 import {
   PICTIONARY_DRAWING_DURATIONS,
@@ -111,62 +109,6 @@ function parseConfig(value: unknown, path: string): PictionaryConfig {
   );
 }
 
-function parseRosterEntry(value: unknown, path: string): RosterEntry {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    buildRoomSeatProfile({
-      displayName: parseNonEmptyString(raw.displayName, `${path}.displayName`),
-      avatarUrl: parseOptional(raw.avatarUrl, `${path}.avatarUrl`, parseString),
-      avatarFrame: parseOptional(raw.avatarFrame, `${path}.avatarFrame`, parseString),
-      seatFlair: parseOptional(raw.seatFlair, `${path}.seatFlair`, parseString),
-      seatAnimation: parseOptional(raw.seatAnimation, `${path}.seatAnimation`, parseString),
-      nameStyle: parseOptional(raw.nameStyle, `${path}.nameStyle`, parseString),
-      revealEffect: parseOptional(raw.revealEffect, `${path}.revealEffect`, parseString),
-      level: parseOptional(raw.level, `${path}.level`, parseInteger),
-    }),
-    path,
-  );
-}
-
-function parseHumanSeat(value: unknown, path: string): PictionaryHumanSeat {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    {
-      seat: parseSeat(raw.seat, `${path}.seat`),
-      userId: parseNonEmptyString(raw.userId, `${path}.userId`),
-      profile: parseRosterEntry(raw.profile, `${path}.profile`),
-    },
-    path,
-  );
-}
-
-function parseRoster(
-  value: unknown,
-  path: string,
-): Readonly<Record<number, PictionaryHumanSeat | BotSeatOccupant>> {
-  const raw = parseObject(value, path);
-  const seats: Record<number, PictionaryHumanSeat | BotSeatOccupant> = {};
-  for (const [key, occupant] of Object.entries(raw)) {
-    if (!/^(0|[1-9]\d*)$/.test(key)) {
-      failDecode(`${path}.${key}`, 'a canonical non-negative integer key');
-    }
-    const seat = parseSeat(Number(key), `${path}.${key}`);
-    const rawOccupant = parseObject(occupant, `${path}.${key}`);
-    if (rawOccupant.kind === 'bot') {
-      seats[seat] = finishObject(
-        rawOccupant,
-        { seat: parseSeat(rawOccupant.seat, `${path}.${key}.seat`), kind: 'bot' as const },
-        `${path}.${key}`,
-      );
-    } else {
-      seats[seat] = parseHumanSeat(occupant, `${path}.${key}`);
-    }
-  }
-  return seats;
-}
-
 function parseLegacyRealSeats(
   value: unknown,
   path: string,
@@ -178,7 +120,7 @@ function parseLegacyRealSeats(
       failDecode(`${path}.${key}`, 'a canonical non-negative integer key');
     }
     const seat = parseSeat(Number(key), `${path}.${key}`);
-    seats[seat] = parseHumanSeat(occupant, `${path}.${key}`);
+    seats[seat] = parseRoomHumanSeat(occupant, `${path}.${key}`);
   }
   return seats;
 }
@@ -305,7 +247,7 @@ export function parsePictionaryState(value: unknown): PictionaryState {
         phase: parsePhase(raw.phase, 'PictionaryState.phase'),
         phaseRevision: parseInteger(raw.phaseRevision, 'PictionaryState.phaseRevision'),
         config: parseConfig(raw.config, 'PictionaryState.config'),
-        roster: parseRoster(raw.roster, 'PictionaryState.roster'),
+        roster: parseRoomRoster(raw.roster, 'PictionaryState.roster'),
         roundNumber: parseInteger(raw.roundNumber, 'PictionaryState.roundNumber'),
         roundId: parseNullable(raw.roundId, 'PictionaryState.roundId', parseNonEmptyString),
         participants: parseArray(

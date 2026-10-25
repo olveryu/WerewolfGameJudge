@@ -10,12 +10,10 @@ import {
   parseNonEmptyString,
   parseNullable,
   parseObject,
-  parseOptional,
   parseSeat,
-  parseString,
 } from '../../../platform/protocol/runtimeDecoder';
 import { createSeededRng, randomIntInclusive } from '../../../platform/random';
-import { buildRoomSeatProfile, type RoomSeatProfile } from '../../../platform/room/roster';
+import { parseRoomRoster } from '../../../platform/room/roster';
 import type { BotSeatOccupant } from '../../../platform/room/seating';
 import type { UndercoverRole } from '../domain/rules';
 import { normalizeUndercoverState } from './normalize';
@@ -53,58 +51,6 @@ function parseConfig(value: unknown, path: string): UndercoverConfig {
     },
     path,
   );
-}
-
-function parseProfile(value: unknown, path: string): RoomSeatProfile {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    buildRoomSeatProfile({
-      displayName: parseNonEmptyString(raw.displayName, `${path}.displayName`),
-      avatarUrl: parseOptional(raw.avatarUrl, `${path}.avatarUrl`, parseString),
-      avatarFrame: parseOptional(raw.avatarFrame, `${path}.avatarFrame`, parseString),
-      seatFlair: parseOptional(raw.seatFlair, `${path}.seatFlair`, parseString),
-      seatAnimation: parseOptional(raw.seatAnimation, `${path}.seatAnimation`, parseString),
-      nameStyle: parseOptional(raw.nameStyle, `${path}.nameStyle`, parseString),
-      revealEffect: parseOptional(raw.revealEffect, `${path}.revealEffect`, parseString),
-      level: parseOptional(raw.level, `${path}.level`, parseInteger),
-    }),
-    path,
-  );
-}
-
-function parseRoster(
-  value: unknown,
-  path: string,
-): Readonly<Record<number, UndercoverHumanSeat | BotSeatOccupant>> {
-  const raw = parseObject(value, path);
-  const roster: Record<number, UndercoverHumanSeat | BotSeatOccupant> = {};
-  for (const [key, value] of Object.entries(raw)) {
-    const seat = parseSeat(Number(key), `${path}.${key}`);
-    if (String(seat) !== key) return failDecode(`${path}.${key}`, 'a canonical seat index');
-    const occupant = parseObject(value, `${path}.${key}`);
-    if (occupant.kind === 'bot') {
-      roster[seat] = finishObject(
-        occupant,
-        {
-          seat: parseSeat(occupant.seat, `${path}.${key}.seat`),
-          kind: 'bot' as const,
-        },
-        `${path}.${key}`,
-      );
-    } else {
-      roster[seat] = finishObject(
-        occupant,
-        {
-          seat: parseSeat(occupant.seat, `${path}.${key}.seat`),
-          userId: parseNonEmptyString(occupant.userId, `${path}.${key}.userId`),
-          profile: parseProfile(occupant.profile, `${path}.${key}.profile`),
-        },
-        `${path}.${key}`,
-      );
-    }
-  }
-  return roster;
 }
 
 function parseWordPair(value: unknown, path: string): UndercoverWordPair {
@@ -177,7 +123,7 @@ export function parseUndercoverState(value: unknown): UndercoverState {
     roomCode: parseNonEmptyString(raw.roomCode, `${path}.roomCode`),
     hostUserId: parseNonEmptyString(raw.hostUserId, `${path}.hostUserId`),
     config: parseConfig(raw.config, `${path}.config`),
-    roster: parseRoster(raw.roster, `${path}.roster`),
+    roster: parseRoomRoster(raw.roster, `${path}.roster`),
     usedWordPairIds: parseArray(
       raw.usedWordPairIds,
       `${path}.usedWordPairIds`,
@@ -275,7 +221,7 @@ export function migratePersistedUndercoverState(value: unknown): UndercoverState
         };
   // v1-v3 stored humans and bots separately; merge both into the unified roster.
   const roster: Record<number, UndercoverHumanSeat | BotSeatOccupant> = {
-    ...parseRoster(raw.realSeats, 'UndercoverState.realSeats'),
+    ...parseRoomRoster(raw.realSeats, 'UndercoverState.realSeats'),
   };
   for (const seat of parseArray(raw.botSeats, 'UndercoverState.botSeats', parseSeat)) {
     if (roster[seat] !== undefined)
