@@ -76,8 +76,8 @@ ${edited}
    \`packages/api-worker/src/games/${gameId}\`、\`src/games/${gameId}\`），逐个填掉：
    身份/回合的玩法状态机在 \`domain/decision.ts\` 与 \`engine.ts\` 的 TODO 接缝处接入，
    视图投影在 \`domain/visibility.ts\` 补齐隐私裁剪。
-3. **奖励数值确认**：注册表与参数表里的三数是占位值（见上表），按新游戏的档位改
-   \`games/registry.ts\` 与 \`product/rewards/earnings.ts\` 两处（contract 会验两处一致）。
+3. **奖励数值确认**：参数表里的三数是占位值（见上表），按新游戏的档位修改
+   \`product/rewards/earnings.ts\`；\`games/registry.ts\` 直接引用同一份常量。
 4. **审 migration**：\`packages/api-worker/migrations/${migrationName}\` 是从上一份注册
    migration 机械派生的骨架——应用前人工核对重建表集合与现行 schema 一致；
    游戏自有表按文件末尾的 TODO 补进同一份 migration。

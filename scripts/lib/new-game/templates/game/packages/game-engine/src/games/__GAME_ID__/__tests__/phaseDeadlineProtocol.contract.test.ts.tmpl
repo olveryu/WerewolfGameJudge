@@ -1,0 +1,162 @@
+/**
+ * Phase Deadline Protocol — __GAME_ID__ scenario (E-2).
+ *
+//#cap internalSettleOnly
+ * __GAME_PASCAL__'s registered assembly: system only — there is no public
+ * expire command at all; the scheduled `__GAME_ID__.settle.due` effect is
+ * the sole expiry channel and dispatches the internal settleExpired
+ * command on the system channel. The command carries no revision;
+ * correctness rides on the worker's pinned-arming staleness gate.
+ * Same-named scenario files live in each switched game's __tests__.
+//#end
+//#cap publicExpire
+ * Public uncontrolled-user expiry and internal system settlement share
+ * the same deadline guard. Commands carry no revision; the Worker pins
+ * the scheduled settlement to its original arming.
+//#end
+ */
+
+import type { CommandContext } from '../../../platform/engine';
+import { applyDecision } from '../../../platform/engine/__tests__/engineSession';
+import {
+  describePhaseDeadlineProtocol,
+  type PhaseDeadlineSession,
+} from '../../../platform/room/__tests__/phaseDeadlineScenarios';
+import type { __GAME_PASCAL__Command } from '../commands/types';
+import { __GAME_UPPER___REASONS, type __GAME_PASCAL__Decision } from '../domain/decision';
+import { __GAME_CAMEL__Engine } from '../engine';
+import { parse__GAME_PASCAL__State } from '../state/parseState';
+import { DEFAULT___GAME_UPPER___CONFIG, type __GAME_PASCAL__State } from '../state/types';
+
+interface __GAME_PASCAL__Harness {
+  readonly state: () => __GAME_PASCAL__State;
+  userContext(userId: string, controlledSeat: number | null, nowMs: number): CommandContext;
+  systemContext(nowMs: number): CommandContext;
+  attempt(command: __GAME_PASCAL__Command, context: CommandContext): __GAME_PASCAL__Decision;
+}
+
+function createHarness(): __GAME_PASCAL__Harness {
+  let state: __GAME_PASCAL__State = __GAME_CAMEL__Engine.createInitialState(
+    { ...DEFAULT___GAME_UPPER___CONFIG, numberOfPlayers: 4 },
+    { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
+  );
+  let commandNumber = 0;
+  const userContext = (
+    userId: string,
+    controlledSeat: number | null,
+    nowMs: number,
+  ): CommandContext => ({
+    actor: { kind: 'user', userId },
+    controlledSeat,
+    nowMs,
+    commandId: `command:${commandNumber++}`,
+    randomSeed: 'phase-deadline',
+  });
+  const systemContext = (nowMs: number): CommandContext => ({
+    actor: { kind: 'system', effectId: 'settle' },
+    controlledSeat: null,
+    nowMs,
+    commandId: `command:${commandNumber++}`,
+    randomSeed: 'phase-deadline',
+  });
+  const attempt = (command: __GAME_PASCAL__Command, context: CommandContext): __GAME_PASCAL__Decision => {
+    const decision = __GAME_CAMEL__Engine.decide(state, command, context);
+    if (decision.kind === 'commit') {
+      state = applyDecision(__GAME_CAMEL__Engine, state, decision, parse__GAME_PASCAL__State);
+    }
+    return decision;
+  };
+  return { state: () => state, userContext, systemContext, attempt };
+}
+
+const seatUser = (seat: number) => (seat === 0 ? 'host' : `u${seat}`);
+
+/** Four seated humans driven into the playing stage with its deadline armed. */
+function armedHarness(): __GAME_PASCAL__Harness {
+  const harness = createHarness();
+  const send = (command: __GAME_PASCAL__Command, context: CommandContext) => {
+    const decision = harness.attempt(command, context);
+    if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+  };
+  const asUser = (userId: string) => harness.userContext(userId, null, 1000);
+  for (let seat = 0; seat < 4; seat += 1) {
+    send(
+      { type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } },
+      asUser(seatUser(seat)),
+    );
+  }
+//#cap identityViewing
+  send({ type: '__GAME_ID__.roles.assign' }, asUser('host'));
+  for (let seat = 0; seat < 4; seat += 1) {
+    send({ type: '__GAME_ID__.role.viewed' }, asUser(seatUser(seat)));
+  }
+//#end
+  send({ type: '__GAME_ID__.game.begin' }, asUser('host'));
+  if (harness.state().phase.kind !== 'playing') {
+    throw new Error('Expected the playing stage with an armed deadline');
+  }
+  return harness;
+}
+
+function makeSession(): PhaseDeadlineSession {
+  const harness = armedHarness();
+  const armedPhase = harness.state().phase;
+  const current = () => harness.state();
+//#cap internalSettleOnly
+  const noPublicExpire = (): never => {
+    throw new Error('__GAME_PASCAL__ has no public expire command');
+  };
+//#end
+
+  return {
+//#cap internalSettleOnly
+    expireAsUser: noPublicExpire,
+    expireAsControlledUser: noPublicExpire,
+    expirePublicAsSystem: noPublicExpire,
+//#end
+//#cap publicExpire
+    expireAsUser: (nowMs) =>
+      harness.attempt({ type: '__GAME_ID__.phase.expire' }, harness.userContext('host', null, nowMs)),
+    expireAsControlledUser: (nowMs) =>
+      harness.attempt({ type: '__GAME_ID__.phase.expire' }, harness.userContext('host', 0, nowMs)),
+    expirePublicAsSystem: (nowMs) =>
+      harness.attempt({ type: '__GAME_ID__.phase.expire' }, harness.systemContext(nowMs)),
+//#end
+    expireSettleAsSystem: (nowMs) =>
+      harness.attempt({ type: '__GAME_ID__.phase.settleExpired' }, harness.systemContext(nowMs)),
+    expireSettleAsUser: (nowMs) =>
+      harness.attempt(
+        { type: '__GAME_ID__.phase.settleExpired' },
+        harness.userContext('host', null, nowMs),
+      ),
+    expireWithStaleRevision: () => {
+      throw new Error('__GAME_PASCAL__ settle commands carry no revision');
+    },
+    deadlineAt: () => {
+      const phase = current().phase;
+      if (phase.kind !== 'playing' || phase.deadlineAt === null) {
+        throw new Error('Expected the playing stage with an armed deadline');
+      }
+      return phase.deadlineAt;
+    },
+    hasAdvanced: () => current().phase !== armedPhase,
+  };
+}
+
+describePhaseDeadlineProtocol({
+  game: '__GAME_ID__',
+  makeSession,
+  expectations: {
+    notExpiredReason: __GAME_UPPER___REASONS.deadline,
+//#cap internalSettleOnly
+    publicChannel: null,
+//#end
+//#cap publicExpire
+    publicChannel: 'uncontrolledUser',
+//#end
+    hasSettleCommand: true,
+    stalePolicy: 'none',
+    staleReason: null,
+    dispatchAdvances: true,
+  },
+});

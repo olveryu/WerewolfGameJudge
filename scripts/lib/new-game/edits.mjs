@@ -79,7 +79,7 @@ export function editGameTypes(content, { gameId }) {
 }
 
 /** Append the registration metadata entry (flat rewards, production flag per --production, no workflows/routes yet). */
-export function editRegistry(content, { gameId, rewards, production }) {
+export function editRegistry(content, { gameId, production }) {
   const file = 'games/registry.ts';
   if (content.includes(`gameType: '${gameId}'`)) fail(file, `'${gameId}' is already registered.`);
   const entry = [
@@ -88,8 +88,7 @@ export function editRegistry(content, { gameId, rewards, production }) {
     `    enginePublicExport: './games/${gameId}/public',`,
     `    clientModulePath: 'src/games/${gameId}/module.ts',`,
     `    isProduction: ${production},`,
-    `    // TODO(new-game): confirm the completion reward amounts for ${gameId}.`,
-    `    rewards: { policy: 'flat', xpEarned: ${rewards.xpEarned}, normalDrawsEarned: ${rewards.normalDrawsEarned}, dailyCompletionTarget: ${rewards.dailyCompletionTarget} },`,
+    `    rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.${gameId} },`,
     `    workerWorkflows: [],`,
     `    httpRoutes: [],`,
     `  },`,
@@ -103,7 +102,31 @@ export function editRegistry(content, { gameId, rewards, production }) {
   );
 }
 
-/** Add the flat completion-reward parameter row welded to the registry entry. */
+/** Register the generated deadline assembly in the exhaustive protocol contract. */
+export function editExpectedPhaseDeadlineVariants(content, { gameId, capabilities, publicExpire }) {
+  const file = 'phaseDeadlineVariants.contract.test.ts';
+  if (content.includes(`  ${gameId}: {`)) fail(file, `'${gameId}' is already registered.`);
+  const entry = capabilities.stageDeadline
+    ? `  ${gameId}: {
+    adoption: 'switched',
+    variant: {
+      actorChannel: '${publicExpire ? 'dualChannel' : 'systemOnly'}',
+      revisionPolicy: 'none',
+      settlePin: 'sequence+deadline',
+      lateSubmission: 'noSurface',
+    },
+  },
+`
+    : `  ${gameId}: { adoption: 'outOfDomain', domain: 'noStageDeadline' },\n`;
+  return replaceOnce(
+    file,
+    content,
+    /(const EXPECTED_PHASE_DEADLINE_VARIANTS:[\s\S]*?\n)(\};)/,
+    (_match, head, tail) => `${head}${entry}${tail}`,
+  );
+}
+
+/** Add the flat completion-reward parameter row referenced by the registry entry. */
 export function editCompletionRewards(content, { gameId, rewards }) {
   const file = 'product/rewards/earnings.ts';
   if (new RegExp(`^  ${gameId}:`, 'm').test(content))
@@ -349,6 +372,7 @@ export function editTestClientCatalog(content, { gameId, camel, home }) {
     `          subtitle: '${home.subtitle}',`,
     `          iconName: '${home.iconName}',`,
     `          tier: '${home.tier}',`,
+    `          gradient: [lighten(colors.primary, 0.45), colors.primary],`,
     `        },`,
     `        spotlight: null,`,
     `        announcementTabs: [],`,
