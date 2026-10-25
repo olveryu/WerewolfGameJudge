@@ -71,6 +71,23 @@ Demo, Avalon, DrawGuess and Story Relay share their standard setup composition:
 The new-game room hook template emits both shared bindings. Update that template with Demo so
 new games do not regenerate copies of the execution branches or controller wiring.
 
+## Shell Model Assembly
+
+All eight game adapters use `src/features/room/model/createRoomShellModel.ts` to assemble
+the public shell fields and seat board. Game adapter inputs inherit the shared contract,
+omitting fields that the game computes rather than duplicating common field declarations.
+The factory copies only declared output fields; spreading a game adapter input into it does
+not expose game state, controllers or private projection inputs on the returned model.
+
+- `RoomShellModelInput` accepts standard header callbacks and gacha status; the factory delegates
+  header construction to `buildRoomHeaderModel`.
+- `RoomShellModelWithHeaderInput` accepts a complete header. Werewolf retains its precomputed
+  ticket count and avatar callback instead of reconstructing gacha state.
+- Games supply authoritative `phase` and nullable `step`, seat-source projections, profile and
+  confirmation models, bottom actions, host management, and bot-control projections. The factory
+  does not infer phases, lock seats or decide permissions.
+- The new-game adapter template uses the same factory and input contract as Demo.
+
 ## Room Content
 
 `RoomShell` owns the shared header, connection/status ribbon, seat control banner, bottom actions, profile, invitation, and host-management surfaces. Game screens provide models and content, not another copy of those surfaces.

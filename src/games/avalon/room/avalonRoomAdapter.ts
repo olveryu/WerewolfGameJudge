@@ -23,14 +23,14 @@ import type { RoomProfileSelection } from '@/features/room/controllers/useRoomPr
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
 import type { BoardInfoSection, RoleDisplayItem } from '@/features/room/model/BoardInfoSection';
-import {
-  buildRoomHeaderModel,
-  type RoomHeaderGachaStatus,
-} from '@/features/room/model/buildRoomHeaderModel';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
+import {
+  createRoomShellModel,
+  type RoomShellModelInput,
+} from '@/features/room/model/createRoomShellModel';
 import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
@@ -66,8 +66,7 @@ import {
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
-import type { RoomShareModel } from '@/features/room/model/RoomShare';
-import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
+import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { colors } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
@@ -633,28 +632,24 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
   return { kind: 'stacked', message, progress: null, layout: { primary, secondary, ghost } };
 }
 
-export interface AvalonRoomShellModelInput {
-  readonly roomCode: string;
-  readonly capabilities: RoomCapabilities;
-  readonly onBack: () => void;
-  readonly onTitlePress: () => void;
-  readonly onTitleLongPress: () => void;
-  readonly user: { readonly id: string; readonly avatarUrl?: string | null } | null;
-  readonly gachaStatus: RoomHeaderGachaStatus | null | undefined;
-  readonly onUserActionPress: () => void;
-  readonly connection: RoomConnectionViewModel;
+export interface AvalonRoomShellModelInput extends Omit<
+  RoomShellModelInput,
+  | 'phase'
+  | 'step'
+  | 'seatSource'
+  | 'seatConfirmation'
+  | 'profile'
+  | 'bottomActions'
+  | 'controlledSeat'
+> {
   readonly state: AvalonState;
   readonly revision: number;
   readonly userId: string;
   readonly controlledSeat: number | null;
-  readonly seatsVisuallyDisabled: boolean;
-  readonly onSeatPress: (seat: number, disabledReason?: string) => void;
-  readonly onBotSeatLongPress: ((seat: number) => void) | null;
   readonly seatController: RoomSeatController;
   readonly profileSelection: RoomProfileSelection | null;
   readonly onProfileClose: () => void;
   readonly onProfileLeaveSeat: () => void;
-  readonly share: RoomShareModel;
   readonly isLobby: boolean;
   readonly isHost: boolean;
   readonly mySeat: number | null;
@@ -672,7 +667,6 @@ export interface AvalonRoomShellModelInput {
   readonly onReviewPress: () => void;
   readonly strikePickMode: boolean;
   readonly onCancelEarlyStrikePress: () => void;
-  readonly hostManagement: RoomHostManagementModel | null;
   readonly canControlBots: boolean;
   readonly releaseBot: () => void;
 }
@@ -872,30 +866,14 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
     userId: input.userId,
     controlledSeat: input.controlledSeat,
   });
-  return {
-    roomCode: input.roomCode,
-    capabilities: input.capabilities,
+  return createRoomShellModel({
+    ...input,
+    seatSource,
     phase: state.phase.kind,
     // The step anchor: only the night phase carries a step (its three
     // confirmation steps, verbatim from the phase). Every other phase
     // kind is already the finest-grained state, so no step there.
     step: state.phase.kind === 'night' ? state.phase.step : null,
-    header: buildRoomHeaderModel({
-      onBack: input.onBack,
-      onTitlePress: input.onTitlePress,
-      onTitleLongPress: input.onTitleLongPress,
-      user: input.user,
-      gachaStatus: input.gachaStatus,
-      onUserActionPress: input.onUserActionPress,
-    }),
-    connection: input.connection,
-    seats: {
-      source: seatSource,
-      visuallyDisabled: input.seatsVisuallyDisabled,
-      onSeatPress: input.onSeatPress,
-      // 对齐其他有座位游戏：长按机器人座位接管/释放。
-      onBotSeatLongPress: input.onBotSeatLongPress,
-    },
     seatConfirmation: createRoomSeatConfirmationModel(input.seatController),
     profile: createRoomProfileCardModel({
       selection: input.profileSelection,
@@ -903,7 +881,6 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       onClose: input.onProfileClose,
       onLeaveSeat: input.onProfileLeaveSeat,
     }),
-    share: input.share,
     bottomActions: createAvalonBottomActions({
       state,
       isLobby: input.isLobby,
@@ -925,7 +902,6 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       strikePickMode: input.strikePickMode,
       onCancelEarlyStrikePress: input.onCancelEarlyStrikePress,
     }),
-    hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({
       controlledSeat: input.controlledSeat,
       controlledBotName:
@@ -935,5 +911,5 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       release: input.releaseBot,
       gameName: 'Avalon',
     }),
-  };
+  });
 }

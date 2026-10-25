@@ -12,11 +12,11 @@ import {
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
-import {
-  buildRoomHeaderModel,
-  type RoomHeaderGachaStatus,
-} from '@/features/room/model/buildRoomHeaderModel';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
+import {
+  createRoomShellModel,
+  type RoomShellModelInput,
+} from '@/features/room/model/createRoomShellModel';
 import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
@@ -37,7 +37,6 @@ import {
   viewedProgressReason,
 } from '@/features/room/model/hostManagementActions';
 import type {
-  RoomBottomActionModel,
   RoomBottomButton,
   RoomBottomStackModel,
 } from '@/features/room/model/RoomBottomActions';
@@ -60,16 +59,9 @@ import {
   type RoomHostManagementModel,
   type RoomHostManagementSection,
 } from '@/features/room/model/RoomHostManagement';
-import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
-import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
-import type { RoomShareModel } from '@/features/room/model/RoomShare';
-import type {
-  RoomConnectionViewModel,
-  RoomControlledSeatModel,
-  RoomShellModel,
-} from '@/features/room/model/RoomShellModel';
+import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -554,59 +546,15 @@ export function createFibBoardInfoSections(playerCount: number): readonly BoardI
   ];
 }
 
-export interface FibRoomShellModelInput {
-  readonly roomCode: string;
-  readonly capabilities: RoomCapabilities;
-  readonly onBack: () => void;
-  readonly onTitlePress: () => void;
-  readonly onTitleLongPress: () => void;
-  readonly user: { readonly id: string; readonly avatarUrl?: string | null } | null;
-  readonly gachaStatus: RoomHeaderGachaStatus | null | undefined;
-  readonly onUserActionPress: () => void;
-  readonly connection: RoomConnectionViewModel;
+export interface FibRoomShellModelInput extends Omit<RoomShellModelInput, 'phase' | 'step'> {
   readonly state: FibState;
-  readonly seatSource: RoomSeatDataSource;
-  readonly seatsVisuallyDisabled: boolean;
-  readonly onSeatPress: (seat: number, disabledReason?: string) => void;
-  readonly onBotSeatLongPress: ((seat: number) => void) | null;
-  readonly seatConfirmation: RoomSeatConfirmationModel | null;
-  readonly profile: RoomProfileCardModel | null;
-  readonly share: RoomShareModel;
-  readonly bottomActions: RoomBottomActionModel;
-  readonly hostManagement: RoomHostManagementModel | null;
-  readonly controlledSeat: RoomControlledSeatModel | null;
 }
 
 /** Assembles the FibKing RoomShellModel from the hook's projections. */
 export function createFibRoomShellModel(input: FibRoomShellModelInput): RoomShellModel {
-  return {
-    roomCode: input.roomCode,
-    capabilities: input.capabilities,
+  return createRoomShellModel({
+    ...input,
     phase: input.state.phase,
-    // The step anchor: null while this game has no sub-phase step in
-    // its state. If a phase later grows a step field (the way Avalon's
-    // night phase carries one), supply it verbatim here instead.
     step: null,
-    header: buildRoomHeaderModel({
-      onBack: input.onBack,
-      onTitlePress: input.onTitlePress,
-      onTitleLongPress: input.onTitleLongPress,
-      user: input.user,
-      gachaStatus: input.gachaStatus,
-      onUserActionPress: input.onUserActionPress,
-    }),
-    connection: input.connection,
-    seats: {
-      source: input.seatSource,
-      visuallyDisabled: input.seatsVisuallyDisabled,
-      onSeatPress: input.onSeatPress,
-      onBotSeatLongPress: input.onBotSeatLongPress,
-    },
-    seatConfirmation: input.seatConfirmation,
-    profile: input.profile,
-    share: input.share,
-    bottomActions: input.bottomActions,
-    hostManagement: input.hostManagement,
-    controlledSeat: input.controlledSeat,
-  };
+  });
 }
