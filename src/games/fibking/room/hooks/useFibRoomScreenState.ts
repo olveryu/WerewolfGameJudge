@@ -15,18 +15,15 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
-import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
 import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomRosterController } from '@/features/room/controllers/useRoomRosterController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
-import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
-import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
@@ -97,7 +94,6 @@ export function useFibRoomScreenState({
   entryController,
   session,
 }: UseFibRoomScreenStateParams): FibRoomScreenState {
-  const { handleTitlePress, handleTitleLongPress } = useRoomTitleActions();
   const { user } = useAuthContext();
   if (user === null) {
     throw new Error('[FAIL-FAST] Ready FibKing room requires an authenticated user');
@@ -122,15 +118,20 @@ export function useFibRoomScreenState({
   });
   const { selection: profileSelection, close: closeProfile } = profileController;
   const { controlledSeat, takeOver: takeOverBot, release: releaseBot } = useRoomBotControl();
-  const share = useRoomShareController({
+  const {
+    share,
+    titleActions: { handleTitlePress, handleTitleLongPress },
+    gachaStatus,
+  } = useRoomPresentationController({
     roomCode: room.roomCode,
     gameDisplayName: FIB_DISPLAY_NAME,
+    isHost,
+    entryReason,
   });
   const openShare = share.open;
   const { isSubmitting: isCommandSubmitting, submit: submitRoomCommand } = useRoomCommandSubmission(
     getFibRoomCommandFailureMessage,
   );
-  const { data: gachaStatus } = useGachaStatusQuery();
   const [isIdentityVisible, setIsIdentityVisible] = useState(false);
   // 大聪明选人模式（房主本地状态，按 roundId 锚定，镜像卧底揭晓选择）。
   const [guessRoundId, setGuessRoundId] = useState<string | null>(null);
@@ -526,8 +527,6 @@ export function useFibRoomScreenState({
       user,
     ],
   );
-
-  useAutoShowRoomShareQr({ isHost, entryReason, openShare });
 
   return {
     shellModel,

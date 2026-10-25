@@ -23,7 +23,6 @@ import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
-import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { deriveRemainingRevealCards } from '@/features/room/model/RevealRoleData';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -129,7 +128,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
 
   const {
     shellModel,
-    roomShare,
     gameState,
     isHost,
     roomStatus,
@@ -182,7 +180,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     bottomCardDisabledIndices,
     bottomCardDisabledHint,
     bottomCardSubtitle,
-  } = useWerewolfRoomScreenState({ room, navigation, entryController, client });
+  } = useWerewolfRoomScreenState({ room, entryReason, navigation, entryController, client });
 
   const mvpSelectionStyles = useMemo(() => createMvpSelectionStyles(), []);
 
@@ -229,9 +227,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
       setStrategyBoardName(matchedStrategyName);
     }
   }, [matchedStrategyName]);
-
-  // ─── Auto-show QR invite card after room creation ─────────────────────
-  useAutoShowRoomShareQr({ isHost, entryReason, openShare: roomShare.open });
 
   const renderProfileDetails = useCallback(
     (statsUserId: string) => <WerewolfProfileDetails userId={statsUserId} />,

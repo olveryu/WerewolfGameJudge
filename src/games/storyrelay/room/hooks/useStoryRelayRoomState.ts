@@ -10,9 +10,7 @@ import {
 import { useCallback } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
-import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
 import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import {
@@ -21,10 +19,9 @@ import {
 } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
-import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
-import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import {
   createBotTakeoverCapability,
   type RoomCapabilities,
@@ -75,7 +72,12 @@ export function useStoryRelayRoomState(
   const isLobby = state.phase === 'lobby';
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot } = botControl;
-  const share = useRoomShareController({ roomCode: room.roomCode, gameDisplayName: '故事接龙' });
+  const { share, titleActions, gachaStatus } = useRoomPresentationController({
+    roomCode: room.roomCode,
+    gameDisplayName: '故事接龙',
+    isHost,
+    entryReason: props.entryReason,
+  });
   const {
     seatController,
     profile,
@@ -97,8 +99,6 @@ export function useStoryRelayRoomState(
       }),
     shareRoom: share.open,
   });
-  const titleActions = useRoomTitleActions();
-  const { data: gachaStatus } = useGachaStatusQuery();
   const submission = useRoomCommandSubmission(getStoryRelayRoomCommandFailureMessage);
   const submit = (label: string, command: StoryRelayCommand) =>
     submission.submit(label, () => session.dispatch(command, { controlledSeat: null, label }));
@@ -170,8 +170,6 @@ export function useStoryRelayRoomState(
     hostManagement,
     releaseBot,
   });
-  const openShare = share.open;
-  useAutoShowRoomShareQr({ isHost, entryReason: props.entryReason, openShare });
   return {
     state,
     shellModel,

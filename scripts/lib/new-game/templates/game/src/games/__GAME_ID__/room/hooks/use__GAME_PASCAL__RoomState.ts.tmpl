@@ -24,9 +24,7 @@ import { useCallback } from 'react';
 //#end
 
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
-import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
 import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import {
@@ -37,8 +35,7 @@ import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCom
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
-import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
-import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 //#cap publicExpire
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 //#end
@@ -148,9 +145,11 @@ export function use__GAME_PASCAL__RoomState(
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot, takeOver } = botControl;
   const effectiveSeat = controlledSeat ?? mySeat;
-  const share = useRoomShareController({
+  const { share, titleActions, gachaStatus } = useRoomPresentationController({
     roomCode: room.roomCode,
     gameDisplayName: '__GAME_DISPLAY_NAME__',
+    isHost,
+    entryReason: props.entryReason,
   });
   const { seatController, profile, capabilities: setupCapabilities } = useRoomSetupController({
     session,
@@ -169,8 +168,6 @@ export function use__GAME_PASCAL__RoomState(
       }),
     shareRoom: share.open,
   });
-  const titleActions = useRoomTitleActions();
-  const { data: gachaStatus } = useGachaStatusQuery();
   const submission = useRoomCommandSubmission(get__GAME_PASCAL__RoomCommandFailureMessage);
   // 派发纪律（#149 定版）：默认不带接管座位。房主命令的平台门只认未接管
 //#cap identityViewing
@@ -329,8 +326,6 @@ export function use__GAME_PASCAL__RoomState(
     hostManagement,
     releaseBot,
   });
-  const openShare = share.open;
-  useAutoShowRoomShareQr({ isHost, entryReason: props.entryReason, openShare });
 //#cap identityViewing
   const viewModel = isLobby ? null : get__GAME_PASCAL__ViewModel(state, effectiveSeat);
   const roleCardShouldPlay =

@@ -14,9 +14,7 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
-import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
 import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import {
@@ -25,10 +23,9 @@ import {
 } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
-import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
-import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import {
   createBotTakeoverCapability,
@@ -109,7 +106,12 @@ export function useDrawGuessRoomState(
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot, takeOver } = botControl;
   const effectiveSeat = controlledSeat ?? mySeat;
-  const share = useRoomShareController({ roomCode: room.roomCode, gameDisplayName: '你画我猜' });
+  const { share, titleActions, gachaStatus } = useRoomPresentationController({
+    roomCode: room.roomCode,
+    gameDisplayName: '你画我猜',
+    isHost,
+    entryReason: props.entryReason,
+  });
   const {
     seatController,
     profile,
@@ -131,8 +133,6 @@ export function useDrawGuessRoomState(
       }),
     shareRoom: share.open,
   });
-  const titleActions = useRoomTitleActions();
-  const { data: gachaStatus } = useGachaStatusQuery();
   const submission = useRoomCommandSubmission(getDrawGuessRoomCommandFailureMessage);
   // 派发纪律（#149 定版，与阿瓦隆/卧底 submit 同形态）：默认不带接管座位。
   // 房主命令的平台门只认未接管身份（resolveHostActorId），挂着接管座位发
@@ -246,8 +246,6 @@ export function useDrawGuessRoomState(
     hostManagement,
     releaseBot,
   });
-  const openShare = share.open;
-  useAutoShowRoomShareQr({ isHost, entryReason: props.entryReason, openShare });
   return {
     state,
     shellModel,

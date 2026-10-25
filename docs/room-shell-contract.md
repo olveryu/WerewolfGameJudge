@@ -62,6 +62,12 @@ The shared controller does not synthesize configs or change host-command dispatc
 
 ## Room Controller Composition
 
+All eight room hooks and the new-game hook template use
+`src/features/room/controllers/useRoomPresentationController.ts` for the share controller,
+once-per-created-entry QR presentation, title gestures and gacha status. Games supply their
+display name, room code, authoritative host flag and entry reason. This composition does not
+interpret game phases; Werewolf supplies its entry reason through the Screen-to-hook contract.
+
 `src/features/room/controllers/useRoomRosterController.ts` binds standard seat commands,
 seat confirmations, profiles and host clear/fill confirmations to one authenticated session.
 It exposes the controllers and their capability actions without deciding lifecycle permissions.

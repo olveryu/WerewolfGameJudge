@@ -7,13 +7,10 @@ import {
 import { useMemo } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
-import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
-import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
-import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -58,12 +55,20 @@ export function useUndercoverRoomScreenState({
 }: UndercoverRoomScreenStateInput): UndercoverRoomScreenState {
   const { user } = useAuthContext();
   const snapshot = useRoomSessionSnapshot(session);
-  const title = useRoomTitleActions();
-  const { data: gachaStatus } = useGachaStatusQuery();
   if (user === null || snapshot.phase !== 'ready')
     throw new Error('Undercover content requires an authenticated ready session');
   const state = snapshot.snapshot.state;
-  const share = useRoomShareController({ roomCode: room.roomCode, gameDisplayName: '谁是卧底' });
+  const isHost = state.hostUserId === user.id;
+  const {
+    share,
+    titleActions: title,
+    gachaStatus,
+  } = useRoomPresentationController({
+    roomCode: room.roomCode,
+    gameDisplayName: '谁是卧底',
+    isHost,
+    entryReason,
+  });
   const configure = () =>
     navigation.navigate('GameConfig', {
       gameType: 'undercover',
@@ -91,9 +96,6 @@ export function useUndercoverRoomScreenState({
       })),
     );
   }, [state.config.hasBlank, state.config.numberOfPlayers]);
-  const isHost = state.hostUserId === user.id;
-  const openShare = share.open;
-  useAutoShowRoomShareQr({ isHost, entryReason, openShare });
   const shellModel: RoomShellModel = createUndercoverRoomShellModel({
     roomCode: room.roomCode,
     capabilities: roster.capabilities,

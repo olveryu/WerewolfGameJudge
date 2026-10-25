@@ -12,8 +12,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useMemo } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
-import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
 import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import {
@@ -22,11 +20,10 @@ import {
 } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import type { RoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomRosterController } from '@/features/room/controllers/useRoomRosterController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
-import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
-import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
@@ -104,7 +101,6 @@ export function usePictionaryRoomScreenState({
   entryController,
   session,
 }: UsePictionaryRoomScreenStateParams): PictionaryRoomScreenState {
-  const { handleTitlePress, handleTitleLongPress } = useRoomTitleActions();
   const { user } = useAuthContext();
   if (user === null) throw new Error('[FAIL-FAST] Ready Pictionary room requires a user');
   const snapshot = useRoomSessionSnapshot(session);
@@ -125,13 +121,17 @@ export function usePictionaryRoomScreenState({
     user,
     mySeat,
   });
-  const share = useRoomShareController({
+  const {
+    share,
+    titleActions: { handleTitlePress, handleTitleLongPress },
+    gachaStatus,
+  } = useRoomPresentationController({
     roomCode: room.roomCode,
     gameDisplayName: PICTIONARY_DISPLAY_NAME,
+    isHost,
+    entryReason,
   });
-  const openShare = share.open;
   const commandSubmission = useRoomCommandSubmission(getPictionaryRoomCommandFailureMessage);
-  const { data: gachaStatus } = useGachaStatusQuery();
   const effectiveSeat = controlledSeat ?? mySeat;
 
   // 接管是房主权限，无阶段条件（与入口 capability 同源，见 pictionaryRoomAdapter）。
@@ -353,8 +353,6 @@ export function usePictionaryRoomScreenState({
       user,
     ],
   );
-
-  useAutoShowRoomShareQr({ isHost, entryReason, openShare });
 
   return {
     shellModel,
