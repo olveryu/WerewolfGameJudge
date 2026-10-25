@@ -332,7 +332,7 @@ interface QuestRoundScript {
   readonly questResult?: QuestResultExpectation;
 }
 
-const LEADER_PICK_PATTERN = /点座位盘点选 \d+ 名队员/;
+const LEADER_PICK_PATTERN = /点「预选队伍」打开选人/;
 const LADY_PICK_PATTERN = /点座位盘点选一名没当过湖仙的玩家/;
 
 async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoundScript) {
