@@ -109,7 +109,11 @@ const VALID_FIB_PUBLIC_COMMAND_BY_TYPE = {
   'fibking.config.update': { type: 'fibking.config.update', numberOfPlayers: 8 },
   'fibking.game.returnToLobby': { type: 'fibking.game.returnToLobby' },
   'fibking.roles.assign': { type: 'fibking.roles.assign' },
+  'fibking.role.viewed': { type: 'fibking.role.viewed' },
+  'fibking.bots.markAllBotsViewed': { type: 'fibking.bots.markAllBotsViewed' },
+  'fibking.game.begin': { type: 'fibking.game.begin' },
   'fibking.round.cancelPreparing': { type: 'fibking.round.cancelPreparing' },
+  'fibking.round.guess': { type: 'fibking.round.guess', seat: 0 },
   'fibking.round.reveal': { type: 'fibking.round.reveal' },
 } as const satisfies {
   readonly [Type in FibPublicCommand['type']]: Extract<FibPublicCommand, { readonly type: Type }>;

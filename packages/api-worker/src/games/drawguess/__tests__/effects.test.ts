@@ -34,7 +34,9 @@ function effectContext() {
     roomIdentity: { roomId: 'drawguess-room', roomCode: '1234', creationId: 'drawguess-creation' },
     createdRevision: 10,
     deliveryAttemptCount: 1,
-    publishUserEvent: vi.fn(async () => undefined),
+    publishUserEvent: vi.fn<
+      Parameters<typeof drawGuessWorkerModule.handleEffect>[1]['publishUserEvent']
+    >(async () => undefined),
     dispatchInternal: vi.fn(() => {
       throw new Error('Rewards must not dispatch a game command');
     }),

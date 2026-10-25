@@ -156,13 +156,14 @@ function armedVoteState(): AvalonState {
   state = ackAudio(state);
   // Every participant of each night step confirms (engine passNight).
   while (state.phase.kind === 'night') {
-    const participants = getAvalonNightParticipants(state.roles, state.phase.step);
+    const { step } = state.phase;
+    const participants = getAvalonNightParticipants(state.roles, step);
     for (const seat of participants) {
       state = applyPublic(
         state,
         { type: 'avalon.night.confirm' },
         seatUser(seat),
-        `night-${state.phase.step}-${seat}`,
+        `night-${step}-${seat}`,
       );
     }
     state = ackAudio(state);
