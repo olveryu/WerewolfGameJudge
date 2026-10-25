@@ -7,10 +7,19 @@
  * Runs in the Workers runtime via @cloudflare/vitest-pool-workers with D1.
  */
 
+import {
+  GAME_WORD_GAMES,
+  type GameWordsStats,
+  type TriggerSupplyResult,
+} from '@game-judge/game-engine/product/wordSupply';
 import { env, SELF } from 'cloudflare:test';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { triggerGameWordSupply } from '../gameWords';
 
 const ADMIN_TOKEN = 'test-admin-token-do-not-use-in-production';
+
+afterEach(() => vi.restoreAllMocks());
 
 const fetchWordsStats = (path: string, token: string | null): Promise<Response> =>
   SELF.fetch(`https://test.local${path}`, {
@@ -50,14 +59,7 @@ describe('GET /admin/games/words/stats', () => {
   it('returns the fibking dashboard shape', async () => {
     const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
     expect(resp.status).toBe(200);
-    const body = (await resp.json()) as {
-      game: string;
-      wordsByCategory: Array<{ category: string; active: number; total: number }>;
-      monthlySupply: { month: string; reserved: number; published: number } | null;
-      reviewDecisions: unknown[];
-      queryLeaderboard: unknown[];
-      supplyEnabled: boolean;
-    };
+    const body = await resp.json<GameWordsStats>();
     expect(body.game).toBe('fibking');
     expect(body.wordsByCategory).toEqual([{ category: 'literary', active: 1, total: 1 }]);
     expect(body.monthlySupply).toMatchObject({ month: '2026-09', reserved: 3, published: 2 });
@@ -93,9 +95,7 @@ describe('GET /admin/games/words/stats', () => {
     ]);
     const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
     expect(resp.status).toBe(200);
-    const body = (await resp.json()) as {
-      reviewCheckStats: Array<{ check: string; failCount: number }>;
-    };
+    const body = await resp.json<GameWordsStats>();
     expect(body.reviewCheckStats).toEqual([
       { check: 'isEstablishedTerm', failCount: 0 },
       { check: 'isDefinitionAccurate', failCount: 1 },
@@ -140,10 +140,7 @@ describe('GET /admin/games/words/stats', () => {
     ]);
     const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
     expect(resp.status).toBe(200);
-    const body = (await resp.json()) as {
-      tavilyRequestsUsed: number;
-      tavilyMonthlyQuota: number;
-    };
+    const body = await resp.json<GameWordsStats>();
     // generation/review are Gemini model calls; the previous-month pack is another month.
     expect(body.tavilyRequestsUsed).toBe(3);
     expect(body.tavilyMonthlyQuota).toBe(1000);
@@ -152,10 +149,7 @@ describe('GET /admin/games/words/stats', () => {
   it('returns null Tavily usage for games that do not use Tavily', async () => {
     const resp = await fetchWordsStats('/admin/games/words/stats?game=undercover', ADMIN_TOKEN);
     expect(resp.status).toBe(200);
-    const body = (await resp.json()) as {
-      tavilyRequestsUsed: number | null;
-      tavilyMonthlyQuota: number | null;
-    };
+    const body = await resp.json<GameWordsStats>();
     expect(body.tavilyRequestsUsed).toBeNull();
     expect(body.tavilyMonthlyQuota).toBeNull();
   });
@@ -178,9 +172,7 @@ describe('GET /admin/games/words/stats', () => {
     ]);
     const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
     expect(resp.status).toBe(200);
-    const body = (await resp.json()) as {
-      queryLeaderboard: Array<{ publishedWords: number; packs: number }>;
-    };
+    const body = await resp.json<GameWordsStats>();
     // Grouped by (search_index, prompt_version): p1 published 1 word, p2 failed with no cycle.
     expect(body.queryLeaderboard).toHaveLength(2);
     const totalPacks = body.queryLeaderboard.reduce((sum, row) => sum + row.packs, 0);
@@ -189,13 +181,16 @@ describe('GET /admin/games/words/stats', () => {
     expect(totalWords).toBe(1);
   });
 
-  it('returns the undercover dashboard shape without a monthly budget', async () => {
-    const resp = await fetchWordsStats('/admin/games/words/stats?game=undercover', ADMIN_TOKEN);
-    expect(resp.status).toBe(200);
-    const body = (await resp.json()) as { game: string; monthlySupply: unknown };
-    expect(body.game).toBe('undercover');
-    expect(body.monthlySupply).toBeNull();
-  });
+  it.each(['undercover', 'drawguess'] as const)(
+    'returns the %s dashboard without a monthly budget',
+    async (game) => {
+      const resp = await fetchWordsStats(`/admin/games/words/stats?game=${game}`, ADMIN_TOKEN);
+      expect(resp.status).toBe(200);
+      const body = await resp.json<GameWordsStats>();
+      expect(body.game).toBe(game);
+      expect(body.monthlySupply).toBeNull();
+    },
+  );
 
   it('rejects unknown games and missing tokens', async () => {
     const badGame = await fetchWordsStats('/admin/games/words/stats?game=mahjong', ADMIN_TOKEN);
@@ -206,15 +201,32 @@ describe('GET /admin/games/words/stats', () => {
 });
 
 describe('POST /admin/games/words/trigger-supply', () => {
-  it('enqueues a workflow run and echoes the request', async () => {
+  it.each(GAME_WORD_GAMES)('enqueues a %s workflow run and echoes the request', async (game) => {
     const resp = await postTriggerSupply('/admin/games/words/trigger-supply', ADMIN_TOKEN, {
-      game: 'fibking',
+      game,
       force: true,
     });
     expect(resp.status).toBe(202);
-    const body = (await resp.json()) as { game: string; force: boolean; workflowId: string };
-    expect(body).toMatchObject({ game: 'fibking', force: true });
-    expect(body.workflowId).toMatch(/^fibking-manual-\d+$/);
+    const body = await resp.json<TriggerSupplyResult>();
+    expect(body).toMatchObject({ game, force: true });
+    expect(body.workflowId).toMatch(new RegExp(`^${game}-manual-\\d+$`));
+  });
+
+  it.each(GAME_WORD_GAMES)('selects only the %s workflow binding', async (game) => {
+    const workflows = {
+      fibking: vi.spyOn(env.FIB_WORD_SUPPLY, 'createBatch').mockResolvedValue([]),
+      undercover: vi.spyOn(env.UNDERCOVER_WORD_SUPPLY, 'createBatch').mockResolvedValue([]),
+      drawguess: vi.spyOn(env.DRAWGUESS_WORD_SUPPLY, 'createBatch').mockResolvedValue([]),
+    };
+    const result = await triggerGameWordSupply(env, { game });
+    for (const candidateGame of GAME_WORD_GAMES) {
+      expect(workflows[candidateGame]).toHaveBeenCalledTimes(candidateGame === game ? 1 : 0);
+    }
+    const request = workflows[game].mock.calls[0][0][0];
+    expect(request.id).toBe(result.workflowId);
+    expect(request.params?.day).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(request.params?.force).toBe(false);
+    expect(request.params?.runId).toEqual(expect.any(String));
   });
 
   it('rejects invalid bodies and missing tokens', async () => {

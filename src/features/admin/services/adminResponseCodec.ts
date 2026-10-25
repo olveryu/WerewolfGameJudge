@@ -2,6 +2,7 @@
 
 import { parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
+import { isGameWordGame } from '@game-judge/game-engine/product/wordSupply';
 
 import type {
   AdminAIUsage,
@@ -518,7 +519,7 @@ export function parseAdminRequestTrafficResponse(value: unknown): AdminRequestTr
 }
 
 function parseGameWordGame(value: unknown, label: string): GameWordGame {
-  if (value === 'fibking' || value === 'undercover' || value === 'drawguess') return value;
+  if (isGameWordGame(value)) return value;
   throw new Error(`${label} has unsupported game`);
 }
 

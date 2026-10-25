@@ -5,6 +5,7 @@
  * leaderboard, and manual supply triggers (normal + force + batch x10).
  */
 
+import { GAME_WORD_GAMES } from '@game-judge/game-engine/product/wordSupply';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -17,11 +18,11 @@ import { borderRadius, colors, spacing, typography } from '@/theme';
 
 import { AdminEmptyState, BarChart, MetricCard, Pagination } from '../components';
 
-const GAMES: Array<{ id: GameWordGame; label: string }> = [
-  { id: 'fibking', label: '瞎掰王' },
-  { id: 'undercover', label: '谁是卧底' },
-  { id: 'drawguess', label: '你画我猜' },
-];
+const GAME_WORD_LABELS: Readonly<Record<GameWordGame, string>> = {
+  fibking: '瞎掰王',
+  undercover: '谁是卧底',
+  drawguess: '你画我猜',
+};
 
 /** Rows per page for the fibking query leaderboard list. */
 const LEADERBOARD_PAGE_SIZE = 15;
@@ -58,15 +59,18 @@ const DRAWGUESS_CATEGORY_NAMES: Readonly<Record<string, string>> = {
   internetMemes: '网络梗',
 };
 
+const GAME_WORD_CATEGORY_NAMES: Readonly<Record<GameWordGame, Readonly<Record<string, string>>>> = {
+  fibking: FIBKING_CATEGORY_NAMES,
+  undercover: UNDERCOVER_CATEGORY_NAMES,
+  drawguess: DRAWGUESS_CATEGORY_NAMES,
+};
+
 function localizeCategory(game: GameWordGame, category: string): string {
-  if (game === 'fibking') return FIBKING_CATEGORY_NAMES[category] ?? category;
-  if (game === 'drawguess') return DRAWGUESS_CATEGORY_NAMES[category] ?? category;
-  const names: Readonly<Record<string, string>> = UNDERCOVER_CATEGORY_NAMES;
-  return names[category] ?? category;
+  return GAME_WORD_CATEGORY_NAMES[game][category] ?? category;
 }
 
 export const GamesTab: React.FC = () => {
-  const [game, setGame] = useState<GameWordGame>('fibking');
+  const [game, setGame] = useState<GameWordGame>(GAME_WORD_GAMES[0]);
   const [data, setData] = useState<GameWordsStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +97,7 @@ export const GamesTab: React.FC = () => {
     void load(game);
   }, [game, load]);
 
-  const gameLabel = GAMES.find((g) => g.id === game)?.label ?? game;
+  const gameLabel = GAME_WORD_LABELS[game];
 
   const confirmMessage = useMemo(() => {
     if (confirm === null) return '';
@@ -207,20 +211,20 @@ export const GamesTab: React.FC = () => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       <View style={styles.segmented}>
-        {GAMES.map((g) => {
-          const selected = g.id === game;
+        {GAME_WORD_GAMES.map((gameType) => {
+          const selected = gameType === game;
           return (
             <Pressable
-              key={g.id}
+              key={gameType}
               accessibilityRole="button"
               onPress={() => {
-                setGame(g.id);
+                setGame(gameType);
                 setLeaderboardPage(1);
               }}
               style={[styles.segment, selected && styles.segmentSelected]}
             >
               <Text style={[styles.segmentLabel, selected && styles.segmentLabelSelected]}>
-                {g.label}
+                {GAME_WORD_LABELS[gameType]}
               </Text>
             </Pressable>
           );

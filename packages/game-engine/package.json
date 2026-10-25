@@ -107,6 +107,10 @@
     "./product/rewards": {
       "types": "./src/product/rewards/index.ts",
       "default": "./dist/product/rewards/index.js"
+    },
+    "./product/wordSupply": {
+      "types": "./src/product/wordSupply/index.ts",
+      "default": "./dist/product/wordSupply/index.js"
     }
   },
   "scripts": {

@@ -2642,6 +2642,12 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   client、response contracts 和 exact runtime codec 属于 `features/admin`。Admin API 不再在 screen 目录访问
   MMKV，也不再把 `response.json()` 直接断言为 UI 类型；未知字段、非法 game type、负数统计与错误 envelope
   直接失败。原 `src/screens/AdminScreen/adminApi.ts` 已删除，没有 forwarding file。
+- 词库后台的支持列表、`GameWordGame`、`GameWordsStats` 和 `TriggerSupplyResult` 统一由
+  `packages/game-engine/src/product/wordSupply/index.ts` 提供；该模块不依赖 D1、Workflow 或 UI。
+  Worker 的 `gameWordGameSchema`、客户端 exact codec 和 `GamesTab` 使用同一支持列表。
+  新增词库游戏时，在该列表登记，并补齐 `features/admin/gameWords.ts` 的 `GAME_WORD_ADAPTERS`、
+  `GamesTab` 的名称及分类映射；缺项由类型检查拦截。统计 SQL、配额和 Workflow 绑定仍留在 Worker，
+  不为不使用词库的游戏创建空 adapter，也不将未知游戏默认分发到已有游戏。
 - Recent rooms 从全局 room-code 数组切到 user-scoped、versioned immutable identity：每项必须同时包含
   `{ roomCode, roomId, gameType }`，按 `roomId` 判断同一个房间实例，公开 code 被复用时替换旧实例。登录切换只清理
   原用户自己的历史；modal 并发检查绑定 effect generation，旧用户或已关闭 modal 的 response 不能写回新视图。

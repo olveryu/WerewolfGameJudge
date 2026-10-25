@@ -58,6 +58,7 @@ const EXPECTED_PACKAGE_EXPORTS = [
   './platform/room/roster',
   './product/growth',
   './product/rewards',
+  './product/wordSupply',
 ] as const;
 const FORBIDDEN_HANDLER_CONTRACT_IDENTIFIERS = new Set([
   'SideEffect',

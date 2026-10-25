@@ -2,6 +2,12 @@
 
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
+export type {
+  GameWordGame,
+  GameWordsStats,
+  TriggerSupplyResult,
+} from '@game-judge/game-engine/product/wordSupply';
+
 export interface AdminUser {
   id: string;
   displayName: string | null;
@@ -131,36 +137,3 @@ export interface AdminRoomPlayersResponse {
 }
 
 export type TimePreset = '1h' | '24h' | 'today' | '7d' | '30d' | 'custom';
-
-export type GameWordGame = 'fibking' | 'undercover' | 'drawguess';
-
-export interface GameWordsStats {
-  game: GameWordGame;
-  wordsByCategory: Array<{ category: string; active: number; total: number }>;
-  monthlySupply: {
-    month: string;
-    reserved: number;
-    published: number;
-    batchLimit: number;
-    wordTarget: number;
-  } | null;
-  /** This month's Tavily usage (upper bound on credits). Null when unused by the game. */
-  tavilyRequestsUsed: number | null;
-  /** Tavily free-plan monthly credit quota. Null when unused by the game. */
-  tavilyMonthlyQuota: number | null;
-  reviewDecisions: Array<{ decision: string; count: number }>;
-  reviewCheckStats: Array<{ check: string; failCount: number }>;
-  queryLeaderboard: Array<{
-    label: string;
-    detail: string | null;
-    publishedWords: number;
-    packs: number;
-  }>;
-  supplyEnabled: boolean;
-}
-
-export interface TriggerSupplyResult {
-  game: GameWordGame;
-  force: boolean;
-  workflowId: string;
-}

@@ -1,24 +1,28 @@
 /**
  * Admin word-supply dashboard backend.
  *
- * Per-game supply stats (fibking / undercover) and manual supply triggers.
+ * Per-game supply stats and manual supply triggers through exhaustive adapters.
  * Game names are whitelisted to table/binding mappings — user input never
  * reaches SQL or env bindings directly.
  */
 
+import {
+  GAME_WORD_GAMES,
+  type GameWordGame,
+  type GameWordsStats,
+  type TriggerSupplyResult,
+} from '@game-judge/game-engine/product/wordSupply';
 import { z } from 'zod';
 
 import type { Env } from '../../env';
+import { FIB_WORD_REVIEW_VERSION } from '../../games/fibking/wordProviders/prompt';
 import {
   FIB_WORD_MONTHLY_BATCH_LIMIT,
   FIB_WORD_MONTHLY_TARGET,
   FIB_WORD_TAVILY_FREE_MONTHLY_CREDITS,
 } from '../../games/fibking/wordPublication';
-import { FIB_WORD_REVIEW_VERSION } from '../../games/fibking/wordProviders/prompt';
 import { createFibWordSearchQuery } from '../../games/fibking/wordSearchPlan';
-
-const GAME_WORD_GAMES = ['fibking', 'undercover', 'drawguess'] as const;
-export type GameWordGame = (typeof GAME_WORD_GAMES)[number];
+import type { WordSupplyParams } from '../../platform/wordSupply/wordSupplyWorkflow';
 
 export const gameWordGameSchema = z.enum(GAME_WORD_GAMES);
 
@@ -27,41 +31,6 @@ export const triggerSupplySchema = z.strictObject({
   force: z.boolean().optional(),
 });
 export type TriggerSupplyInput = z.output<typeof triggerSupplySchema>;
-
-export interface GameWordsStats {
-  game: GameWordGame;
-  wordsByCategory: Array<{ category: string; active: number; total: number }>;
-  /** Null for games without a monthly budget (undercover). */
-  monthlySupply: {
-    month: string;
-    reserved: number;
-    published: number;
-    batchLimit: number;
-    wordTarget: number;
-  } | null;
-  /**
-   * This month's Tavily usage (upper bound on credits: every fibking Tavily
-   * operation costs at most one credit). Null for games that don't use Tavily.
-   */
-  tavilyRequestsUsed: number | null;
-  /** Tavily free-plan monthly credit quota. Null for games that don't use Tavily. */
-  tavilyMonthlyQuota: number | null;
-  reviewDecisions: Array<{ decision: string; count: number }>;
-  /**
-   * Fibking only: how many rejected reviews failed each quality check in the
-   * last 30 days under the current review rubric. Empty for undercover.
-   */
-  reviewCheckStats: Array<{ check: string; failCount: number }>;
-  /** Per search query (fibking) or per category (undercover). */
-  queryLeaderboard: Array<{
-    label: string;
-    detail: string | null;
-    publishedWords: number;
-    /** Packs attempted (reserved) for this row; denominator of the yield rate. */
-    packs: number;
-  }>;
-  supplyEnabled: boolean;
-}
 
 async function queryWordsByCategory(
   db: D1Database,
@@ -80,26 +49,25 @@ async function queryWordsByCategory(
   }));
 }
 
-export async function getGameWordsStats(env: Env, game: GameWordGame): Promise<GameWordsStats> {
+async function getFibWordStats(env: Env): Promise<GameWordsStats> {
   const db = env.DB;
-  if (game === 'fibking') {
-    const wordsByCategory = await queryWordsByCategory(db, 'fib_words');
-    const monthRow = await db
-      .prepare(
-        `SELECT id AS month, requests_reserved AS reserved, published_count AS published
+  const wordsByCategory = await queryWordsByCategory(db, 'fib_words');
+  const monthRow = await db
+    .prepare(
+      `SELECT id AS month, requests_reserved AS reserved, published_count AS published
          FROM fib_word_supply_months ORDER BY id DESC LIMIT 1`,
-      )
-      .first<{ month: string; reserved: number; published: number }>();
-    const reviewRows = await db
-      .prepare(
-        `SELECT decision, COUNT(*) AS count FROM fib_word_candidate_reviews
+    )
+    .first<{ month: string; reserved: number; published: number }>();
+  const reviewRows = await db
+    .prepare(
+      `SELECT decision, COUNT(*) AS count FROM fib_word_candidate_reviews
          WHERE reviewed_at >= datetime('now', '-30 days')
          GROUP BY decision ORDER BY decision`,
-      )
-      .all<{ decision: string; count: number }>();
-    const checkStatsRow = await db
-      .prepare(
-        `SELECT
+    )
+    .all<{ decision: string; count: number }>();
+  const checkStatsRow = await db
+    .prepare(
+      `SELECT
            SUM(CASE WHEN decision = 'rejected' AND is_established_term = 0 THEN 1 ELSE 0 END) AS isEstablishedTerm,
            SUM(CASE WHEN decision = 'rejected' AND is_definition_accurate = 0 THEN 1 ELSE 0 END) AS isDefinitionAccurate,
            SUM(CASE WHEN decision = 'rejected' AND is_meaning_unfamiliar_to_most_players = 0 THEN 1 ELSE 0 END) AS isMeaningUnfamiliarToMostPlayers,
@@ -108,41 +76,41 @@ export async function getGameWordsStats(env: Env, game: GameWordGame): Promise<G
            SUM(CASE WHEN decision = 'rejected' AND has_reveal_value = 0 THEN 1 ELSE 0 END) AS hasRevealValue
          FROM fib_word_candidate_reviews
          WHERE reviewed_at >= datetime('now', '-30 days') AND review_version = ?`,
-      )
-      .bind(FIB_WORD_REVIEW_VERSION)
-      .first<{
-        isEstablishedTerm: number | null;
-        isDefinitionAccurate: number | null;
-        isMeaningUnfamiliarToMostPlayers: number | null;
-        isMeaningDistinctFromLiteralReading: number | null;
-        hasMultiplePlausibleWrongDefinitions: number | null;
-        hasRevealValue: number | null;
-      }>();
-    const reviewCheckStats = (
-      [
-        'isEstablishedTerm',
-        'isDefinitionAccurate',
-        'isMeaningUnfamiliarToMostPlayers',
-        'isMeaningDistinctFromLiteralReading',
-        'hasMultiplePlausibleWrongDefinitions',
-        'hasRevealValue',
-      ] as const
-    ).map((check) => ({ check, failCount: Number(checkStatsRow?.[check] ?? 0) }));
-    // Pack ids start with the UTC date, so the prefix selects this month's packs.
-    // Only Tavily operations count (discovery/extraction and their verification
-    // variants); generation/review are Gemini model calls, not Tavily.
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    const tavilyRow = await db
-      .prepare(
-        `SELECT COUNT(*) AS used FROM fib_word_provider_requests
+    )
+    .bind(FIB_WORD_REVIEW_VERSION)
+    .first<{
+      isEstablishedTerm: number | null;
+      isDefinitionAccurate: number | null;
+      isMeaningUnfamiliarToMostPlayers: number | null;
+      isMeaningDistinctFromLiteralReading: number | null;
+      hasMultiplePlausibleWrongDefinitions: number | null;
+      hasRevealValue: number | null;
+    }>();
+  const reviewCheckStats = (
+    [
+      'isEstablishedTerm',
+      'isDefinitionAccurate',
+      'isMeaningUnfamiliarToMostPlayers',
+      'isMeaningDistinctFromLiteralReading',
+      'hasMultiplePlausibleWrongDefinitions',
+      'hasRevealValue',
+    ] as const
+  ).map((check) => ({ check, failCount: Number(checkStatsRow?.[check] ?? 0) }));
+  // Pack ids start with the UTC date, so the prefix selects this month's packs.
+  // Only Tavily operations count (discovery/extraction and their verification
+  // variants); generation/review are Gemini model calls, not Tavily.
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const tavilyRow = await db
+    .prepare(
+      `SELECT COUNT(*) AS used FROM fib_word_provider_requests
          WHERE pack_id LIKE ?
            AND (operation IN ('discovery', 'extraction') OR operation LIKE 'verification-%')`,
-      )
-      .bind(`${currentMonth}-%`)
-      .first<{ used: number }>();
-    const boardRows = await db
-      .prepare(
-        `SELECT p.search_index AS searchIndex, c.prompt_version AS promptVersion,
+    )
+    .bind(`${currentMonth}-%`)
+    .first<{ used: number }>();
+  const boardRows = await db
+    .prepare(
+      `SELECT p.search_index AS searchIndex, c.prompt_version AS promptVersion,
                 COUNT(DISTINCT p.id) AS packs, COUNT(w.id) AS publishedWords
          FROM fib_word_packs p
          LEFT JOIN fib_word_generation_cycles c ON c.id = p.id
@@ -150,95 +118,96 @@ export async function getGameWordsStats(env: Env, game: GameWordGame): Promise<G
          WHERE p.search_index IS NOT NULL
          GROUP BY p.search_index, c.prompt_version
          ORDER BY publishedWords DESC`,
-      )
-      .all<{
-        searchIndex: number;
-        promptVersion: string | null;
-        packs: number;
-        publishedWords: number;
-      }>();
-    const queryLeaderboard = (boardRows.results ?? []).map((r) => {
-      let label = `查询 #${r.searchIndex}`;
-      try {
-        label = createFibWordSearchQuery(r.searchIndex);
-      } catch {
-        // Search plan shrank since this pack was reserved; keep the fallback label.
-      }
-      return {
-        label,
-        detail: r.promptVersion === null ? null : `prompt v${r.promptVersion}`,
-        publishedWords: Number(r.publishedWords),
-        packs: Number(r.packs),
-      };
-    });
+    )
+    .all<{
+      searchIndex: number;
+      promptVersion: string | null;
+      packs: number;
+      publishedWords: number;
+    }>();
+  const queryLeaderboard = (boardRows.results ?? []).map((r) => {
+    let label = `查询 #${r.searchIndex}`;
+    try {
+      label = createFibWordSearchQuery(r.searchIndex);
+    } catch {
+      // Search plan shrank since this pack was reserved; keep the fallback label.
+    }
     return {
-      game,
-      wordsByCategory,
-      monthlySupply:
-        monthRow === null
-          ? null
-          : {
-              month: monthRow.month,
-              reserved: Number(monthRow.reserved),
-              published: Number(monthRow.published),
-              batchLimit: FIB_WORD_MONTHLY_BATCH_LIMIT,
-              wordTarget: FIB_WORD_MONTHLY_TARGET,
-            },
-      reviewDecisions: (reviewRows.results ?? []).map((r) => ({
-        decision: r.decision,
-        count: Number(r.count),
-      })),
-      reviewCheckStats,
-      tavilyRequestsUsed: Number(tavilyRow?.used ?? 0),
-      tavilyMonthlyQuota: FIB_WORD_TAVILY_FREE_MONTHLY_CREDITS,
-      queryLeaderboard,
-      supplyEnabled: env.FIB_WORD_SUPPLY_ENABLED === 'true',
+      label,
+      detail: r.promptVersion === null ? null : `prompt v${r.promptVersion}`,
+      publishedWords: Number(r.publishedWords),
+      packs: Number(r.packs),
     };
-  }
+  });
+  return {
+    game: 'fibking',
+    wordsByCategory,
+    monthlySupply:
+      monthRow === null
+        ? null
+        : {
+            month: monthRow.month,
+            reserved: Number(monthRow.reserved),
+            published: Number(monthRow.published),
+            batchLimit: FIB_WORD_MONTHLY_BATCH_LIMIT,
+            wordTarget: FIB_WORD_MONTHLY_TARGET,
+          },
+    reviewDecisions: (reviewRows.results ?? []).map((r) => ({
+      decision: r.decision,
+      count: Number(r.count),
+    })),
+    reviewCheckStats,
+    tavilyRequestsUsed: Number(tavilyRow?.used ?? 0),
+    tavilyMonthlyQuota: FIB_WORD_TAVILY_FREE_MONTHLY_CREDITS,
+    queryLeaderboard,
+    supplyEnabled: env.FIB_WORD_SUPPLY_ENABLED === 'true',
+  };
+}
 
-  // undercover: no monthly budget; category is chosen dynamically per pack.
-  if (game === 'undercover') {
-    const wordsByCategory = await queryWordsByCategory(db, 'undercover_word_pairs');
-    const reviewRows = await db
-      .prepare(
-        `SELECT status AS decision, COUNT(*) AS count FROM undercover_word_candidates
+async function getUndercoverWordStats(env: Env): Promise<GameWordsStats> {
+  const db = env.DB;
+  const wordsByCategory = await queryWordsByCategory(db, 'undercover_word_pairs');
+  const reviewRows = await db
+    .prepare(
+      `SELECT status AS decision, COUNT(*) AS count FROM undercover_word_candidates
        WHERE reviewed_at >= datetime('now', '-30 days') AND status IN ('accepted', 'rejected')
        GROUP BY status ORDER BY status`,
-      )
-      .all<{ decision: string; count: number }>();
-    const boardRows = await db
-      .prepare(
-        `SELECT p.category AS category,
+    )
+    .all<{ decision: string; count: number }>();
+  const boardRows = await db
+    .prepare(
+      `SELECT p.category AS category,
               COUNT(DISTINCT p.id) AS packs, COUNT(DISTINCT pair.id) AS publishedPairs
        FROM undercover_word_packs p
        LEFT JOIN undercover_word_candidates c
          ON c.claimed_pack_id = p.id AND c.status = 'accepted'
        LEFT JOIN undercover_word_pairs pair ON pair.id = c.id AND pair.status = 'active'
        GROUP BY p.category ORDER BY publishedPairs DESC`,
-      )
-      .all<{ category: string; packs: number; publishedPairs: number }>();
-    return {
-      game,
-      wordsByCategory,
-      monthlySupply: null,
-      tavilyRequestsUsed: null,
-      tavilyMonthlyQuota: null,
-      reviewDecisions: (reviewRows.results ?? []).map((r) => ({
-        decision: r.decision,
-        count: Number(r.count),
-      })),
-      reviewCheckStats: [],
-      queryLeaderboard: (boardRows.results ?? []).map((r) => ({
-        label: r.category,
-        detail: 'active 词对',
-        publishedWords: Number(r.publishedPairs),
-        packs: Number(r.packs),
-      })),
-      supplyEnabled: env.UNDERCOVER_WORD_SUPPLY_ENABLED === 'true',
-    };
-  }
+    )
+    .all<{ category: string; packs: number; publishedPairs: number }>();
+  return {
+    game: 'undercover',
+    wordsByCategory,
+    monthlySupply: null,
+    tavilyRequestsUsed: null,
+    tavilyMonthlyQuota: null,
+    reviewDecisions: (reviewRows.results ?? []).map((r) => ({
+      decision: r.decision,
+      count: Number(r.count),
+    })),
+    reviewCheckStats: [],
+    queryLeaderboard: (boardRows.results ?? []).map((r) => ({
+      label: r.category,
+      detail: 'active 词对',
+      publishedWords: Number(r.publishedPairs),
+      packs: Number(r.packs),
+    })),
+    supplyEnabled: env.UNDERCOVER_WORD_SUPPLY_ENABLED === 'true',
+  };
+}
 
-  // drawguess: no monthly budget; category with fewest active words is picked per pack.
+async function getDrawGuessWordStats(env: Env): Promise<GameWordsStats> {
+  const db = env.DB;
   const wordsByCategory = await queryWordsByCategory(db, 'drawguess_words');
   const reviewRows = await db
     .prepare(
@@ -259,7 +228,7 @@ export async function getGameWordsStats(env: Env, game: GameWordGame): Promise<G
     )
     .all<{ category: string; packs: number; publishedWords: number }>();
   return {
-    game,
+    game: 'drawguess',
     wordsByCategory,
     monthlySupply: null,
     tavilyRequestsUsed: null,
@@ -279,25 +248,44 @@ export async function getGameWordsStats(env: Env, game: GameWordGame): Promise<G
   };
 }
 
+const GAME_WORD_ADAPTERS = {
+  fibking: {
+    getStats: getFibWordStats,
+    getWorkflow: (env: Env) => env.FIB_WORD_SUPPLY,
+  },
+  undercover: {
+    getStats: getUndercoverWordStats,
+    getWorkflow: (env: Env) => env.UNDERCOVER_WORD_SUPPLY,
+  },
+  drawguess: {
+    getStats: getDrawGuessWordStats,
+    getWorkflow: (env: Env) => env.DRAWGUESS_WORD_SUPPLY,
+  },
+} satisfies Record<
+  GameWordGame,
+  {
+    getStats: (env: Env) => Promise<GameWordsStats>;
+    getWorkflow: (env: Env) => Workflow<WordSupplyParams>;
+  }
+>;
+
+/** Read the selected game's dashboard without exposing table names to callers. */
+export async function getGameWordsStats(env: Env, game: GameWordGame): Promise<GameWordsStats> {
+  return GAME_WORD_ADAPTERS[game].getStats(env);
+}
+
+/** Enqueue a validated manual run; workflow failures propagate to the route error handler. */
 export async function triggerGameWordSupply(
   env: Env,
   input: TriggerSupplyInput,
-): Promise<{ game: GameWordGame; force: boolean; workflowId: string }> {
+): Promise<TriggerSupplyResult> {
   const parsed = triggerSupplySchema.parse(input);
   const force = parsed.force === true;
   const day = new Date().toISOString().slice(0, 10);
   const runId = crypto.randomUUID();
   const workflowId = `${parsed.game}-manual-${Date.now()}`;
-  if (parsed.game === 'fibking') {
-    await env.FIB_WORD_SUPPLY.createBatch([{ id: workflowId, params: { day, force, runId } }]);
-  } else if (parsed.game === 'undercover') {
-    await env.UNDERCOVER_WORD_SUPPLY.createBatch([
-      { id: workflowId, params: { day, force, runId } },
-    ]);
-  } else {
-    await env.DRAWGUESS_WORD_SUPPLY.createBatch([
-      { id: workflowId, params: { day, force, runId } },
-    ]);
-  }
+  await GAME_WORD_ADAPTERS[parsed.game]
+    .getWorkflow(env)
+    .createBatch([{ id: workflowId, params: { day, force, runId } }]);
   return { game: parsed.game, force, workflowId };
 }
