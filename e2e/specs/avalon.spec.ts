@@ -747,6 +747,12 @@ test.describe('Avalon full game', () => {
           await expect(row).toContainText(roles[seat]!);
           await expect(row).toContainText(EVIL_ROLES.has(roles[seat]!) ? '坏人' : '好人');
         }
+        // 复盘湖仙节必带查验结果（湖仙一查中坏人）；对局记录则不带结果。
+        const reviewLake = hostPage.getByTestId('avalon-review-lake');
+        await expect(reviewLake).toContainText(
+          `${lady1.holderSeat + 1} 号查验了 ${lady1.targetSeat + 1} 号（坏人）`,
+        );
+        await expect(reviewLake).not.toContainText('查验结果只给当时持有人看');
         await hostPage.getByTestId('avalon-review-close').click();
         await expect(hostPage.getByTestId('avalon-history-summary')).toContainText(
           '本局结束 · 坏人获胜',

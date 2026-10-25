@@ -1,8 +1,15 @@
 /**
  * 阿瓦隆记录共享件：单轮湖仙节。
  *
- * 只写公开事实，不写查验结果（好 / 坏）：
- * - 已完成：持有人查验了谁 → 新持有人即被查验者；
+ * 查验结果（好 / 坏）只在调用方显式传入时写出：
+ * - 对局记录不传 checkedFaction：已完成行只写“持有人查验了谁 →
+ *   新持有人即被查验者”，并保留“查验结果只给当时持有人看，不进记录”
+ *   的说明——记录里看不到结果是正常的（2026-10-24 用户裁决）；
+ * - 本局复盘必传 checkedFaction（从终局已公开的身份推导被查者阵营）：
+ *   已完成行写成“X 号查验了 Y 号（好人 / 坏人）”，不写上述说明——
+ *   复盘身份全公开，结果在复盘里不属秘密（2026-10-24 用户裁决）。
+ *   checkedFaction 为 null 表示复盘里推导不出被查者阵营（终局本不应
+ *   发生），此时只写查验了谁，同样不写说明。
  * - 进行中：只写持有人查验进行中，不写被选目标——token 尚未移交，
  *   目标公开的时点是 acknowledge，不是 check；
  * - 终局未发生：仅终局时渲染，局中不渲染未来轮次的未发生行。
@@ -22,6 +29,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SeatDot } from '@/components/SeatDot';
 import { borderRadius, colors, spacing, textStyles, typography, withAlpha } from '@/theme';
 
+import { getAvalonCheckedFactionDisplayName } from '../../model/avalonRoleDisplay';
+
 export function AvalonRecordLakeSection({
   afterRound,
   record,
@@ -29,6 +38,7 @@ export function AvalonRecordLakeSection({
   inProgressHolderSeat,
   ended,
   testIDPrefix,
+  checkedFaction,
 }: {
   readonly afterRound: number;
   readonly record: AvalonRoundRecordView | null;
@@ -36,11 +46,21 @@ export function AvalonRecordLakeSection({
   readonly inProgressHolderSeat: number | null;
   readonly ended: boolean;
   readonly testIDPrefix?: string;
+  /**
+   * 查验结果阵营：undefined = 对局记录模式（不写结果，保留说明）；
+   * 'good' | 'evil' = 本局复盘模式（写出结果，不写说明）；
+   * null = 复盘模式但推导不出阵营（只写查验了谁，不写说明）。
+   */
+  readonly checkedFaction?: 'good' | 'evil' | null;
 }) {
   const ladyRounds: readonly number[] = AVALON_LADY_ROUNDS;
   if (!ladyRounds.includes(afterRound)) return null;
   const prefix = testIDPrefix ?? `avalon-history-lake-${afterRound}`;
   if (completed !== null) {
+    const resultText =
+      checkedFaction === undefined || checkedFaction === null
+        ? null
+        : `${getAvalonCheckedFactionDisplayName(checkedFaction)}人`;
     return (
       <View style={styles.section} testID={prefix}>
         <Text style={styles.title}>湖仙查验</Text>
@@ -48,11 +68,14 @@ export function AvalonRecordLakeSection({
           <SeatDot seat={completed.holderSeat} size="sm" />
           <Text style={styles.text}>
             {completed.holderSeat + 1} 号查验了 {completed.targetSeat + 1} 号
+            {resultText !== null ? `（${resultText}）` : ''}
           </Text>
           <SeatDot seat={completed.targetSeat} size="sm" />
           <Text style={styles.text}>→ 新持有人 {completed.targetSeat + 1} 号</Text>
         </View>
-        <Text style={styles.note}>查验结果只给当时持有人看，不进记录。</Text>
+        {checkedFaction === undefined ? (
+          <Text style={styles.note}>查验结果只给当时持有人看，不进记录。</Text>
+        ) : null}
       </View>
     );
   }

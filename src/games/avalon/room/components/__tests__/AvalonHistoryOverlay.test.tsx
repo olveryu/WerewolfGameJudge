@@ -354,7 +354,7 @@ describe('AvalonHistoryOverlay', () => {
       ladyHistory: [{ afterRound: 2, holderSeat: 1, targetSeat: 3 }],
       questResults: ['success', 'success'],
     });
-    expect(getByTestId('avalon-history-lake-2')).toBeTruthy();
+    expect(getByTestId('avalon-history-round-lake-2')).toBeTruthy();
     expect(getByText('2 号查验了 4 号')).toBeTruthy();
     expect(getByText('→ 新持有人 4 号')).toBeTruthy();
     expect(queryByText(/好人|坏人/)).toBeNull();

@@ -4,8 +4,10 @@
  * 段顺序固定：① 终局结论（复用 AVALON_END_REASON_COPY +
  * resolveEndedInstruction，不新写文案表）② 全员身份（结构化行，不用
  * “·”连读串）③ 配置 ④ 湖仙查验完整版（共享 AvalonRecordLakeSection，
- * 未发生轮次写具体原因）⑤ 任务进程（共享 AvalonRecordTrack +
- * AvalonRecordRound，与对局记录同一份实现）。只在 phase === 'ended'
+ * 未发生轮次写具体原因；已完成行必带查验结果——复盘身份全公开，
+ * 结果不属秘密，对局记录则不带结果）⑤ 任务进程（共享 AvalonRecordTrack +
+ * AvalonRecordRound，与对局记录同一份实现；轮末湖仙节同样带结果）。
+ * 只在 phase === 'ended'
  * 时渲染内容；非终局返回 null，入口本身也只在终局出现。
  */
 
@@ -13,7 +15,9 @@ import {
   AVALON_LADY_MIN_PLAYERS,
   AVALON_LADY_ROUNDS,
   AVALON_QUEST_SIZES,
+  type AvalonLadyCheckRecordView,
   type AvalonViewModel,
+  isAvalonEvilRole,
   isAvalonPlayerCount,
 } from '@game-judge/game-engine/games/avalon/public';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -33,6 +37,20 @@ import { AVALON_END_REASON_COPY, resolveEndedInstruction } from '../policy/avalo
 import { AvalonRecordLakeSection } from './AvalonRecordLakeSection';
 import { AvalonRecordRound } from './AvalonRecordRound';
 import { AvalonRecordTrack } from './AvalonRecordTrack';
+
+/**
+ * 复盘湖仙结果：被查者阵营从终局已公开的身份推导，不改引擎、不存历史字段。
+ * 终局座位全公开，推导不出（角色为空）时返回 null，湖仙节只写查验了谁。
+ */
+function lakeCheckedFaction(
+  viewModel: AvalonViewModel,
+  completed: AvalonLadyCheckRecordView | null,
+): 'good' | 'evil' | null {
+  if (completed === null) return null;
+  const seatView = viewModel.seats.find((seat) => seat.seat === completed.targetSeat);
+  if (seatView === undefined || seatView.role === null) return null;
+  return isAvalonEvilRole(seatView.role) ? 'evil' : 'good';
+}
 
 export function AvalonReviewOverlay({
   visible,
@@ -156,19 +174,22 @@ export function AvalonReviewOverlay({
 
             <Text style={styles.sectionTitle}>湖仙查验</Text>
             <View style={styles.lakeList} testID="avalon-review-lake">
-              {AVALON_LADY_ROUNDS.map((round) => (
-                <AvalonRecordLakeSection
-                  key={round}
-                  afterRound={round}
-                  record={rounds.find((record) => record.round === round) ?? null}
-                  completed={
-                    viewModel.ladyHistory.find((record) => record.afterRound === round) ?? null
-                  }
-                  inProgressHolderSeat={null}
-                  ended
-                  testIDPrefix={`avalon-review-lake-${round}`}
-                />
-              ))}
+              {AVALON_LADY_ROUNDS.map((round) => {
+                const completed =
+                  viewModel.ladyHistory.find((record) => record.afterRound === round) ?? null;
+                return (
+                  <AvalonRecordLakeSection
+                    key={round}
+                    afterRound={round}
+                    record={rounds.find((record) => record.round === round) ?? null}
+                    completed={completed}
+                    inProgressHolderSeat={null}
+                    ended
+                    testIDPrefix={`avalon-review-lake-${round}`}
+                    checkedFaction={lakeCheckedFaction(viewModel, completed)}
+                  />
+                );
+              })}
             </View>
 
             <Text style={styles.sectionTitle}>任务进程</Text>
@@ -181,18 +202,21 @@ export function AvalonReviewOverlay({
               testIDPrefix="avalon-review-track"
             />
             <View style={styles.roundList}>
-              {rounds.map((record) => (
-                <AvalonRecordRound
-                  key={record.round}
-                  record={record}
-                  completedLadyCheck={
-                    viewModel.ladyHistory.find((item) => item.afterRound === record.round) ?? null
-                  }
-                  inProgressLadyHolderSeat={null}
-                  ended
-                  testIDPrefix="avalon-review"
-                />
-              ))}
+              {rounds.map((record) => {
+                const completedLadyCheck =
+                  viewModel.ladyHistory.find((item) => item.afterRound === record.round) ?? null;
+                return (
+                  <AvalonRecordRound
+                    key={record.round}
+                    record={record}
+                    completedLadyCheck={completedLadyCheck}
+                    inProgressLadyHolderSeat={null}
+                    ended
+                    testIDPrefix="avalon-review"
+                    lakeCheckedFaction={lakeCheckedFaction(viewModel, completedLadyCheck)}
+                  />
+                );
+              })}
             </View>
           </ScrollView>
           <Button variant="secondary" size="lg" onPress={onClose} testID="avalon-review-close">
