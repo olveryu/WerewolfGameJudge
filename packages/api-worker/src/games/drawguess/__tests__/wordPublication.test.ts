@@ -21,7 +21,7 @@ beforeEach(async () => {
 });
 
 describe('DrawGuess editorial publication', () => {
-  it('resumes failed material and publishes once with pinyin initials', async () => {
+  it('resumes failed material and atomically publishes once with pinyin initials', async () => {
     const first = await reserveDrawGuessWordPack(env.DB, '2026-09-01', 0);
     if (first === null) throw new Error('Expected reservation');
     expect(await reserveDrawGuessWordPack(env.DB, '2026-09-01', 0)).toBeNull();
@@ -50,6 +50,28 @@ describe('DrawGuess editorial publication', () => {
       },
       reason: '常见动物，外形特征明确，好画好猜。',
     };
+    await env.DB.prepare(
+      `CREATE TRIGGER reject_pack_completion BEFORE UPDATE OF status ON drawguess_word_packs
+      WHEN NEW.status = 'published' BEGIN SELECT RAISE(ABORT, 'publication failed'); END`,
+    ).run();
+    try {
+      await expect(
+        publishDrawGuessWordPack(env.DB, second, candidates, [reviewPayload]),
+      ).rejects.toThrow('publication failed');
+    } finally {
+      await env.DB.prepare('DROP TRIGGER reject_pack_completion').run();
+    }
+    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM drawguess_words').first()).toEqual({
+      count: 0,
+    });
+    expect(
+      await env.DB.prepare('SELECT status, review_json FROM drawguess_word_candidates').first(),
+    ).toEqual({ status: 'pending', review_json: null });
+    expect(
+      await env.DB.prepare('SELECT status FROM drawguess_word_packs WHERE id = ?')
+        .bind(second.id)
+        .first(),
+    ).toEqual({ status: 'reserved' });
     await publishDrawGuessWordPack(env.DB, second, candidates, [reviewPayload]);
     await publishDrawGuessWordPack(env.DB, second, candidates, [reviewPayload]);
     expect(
