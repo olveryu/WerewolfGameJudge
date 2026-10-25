@@ -253,62 +253,62 @@ describe('useAvalonRoomState takeover dispatch discipline', () => {
   });
 });
 
-describe('useAvalonRoomState takeover nomination mirror', () => {
+describe('useAvalonRoomState takeover nomination modal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('mirrors picks and dispatches drafts as the taken-over bot leader', async () => {
+  it('dispatches the modal-confirmed draft and preselect as the taken-over bot leader', async () => {
     const state = nominateStateWithBotLeader();
     const { result, dispatch } = renderRoomState(state);
     const leaderSeat = state.leaderSeat;
     const picked = 0;
     const team: readonly number[] = [leaderSeat, picked];
 
-    // The host's own seat does not lead: the picking mirror is keyed
-    // on the effective seat, so the override stays inert here even
-    // though it was pushed in.
-    act(() => {
-      result.current.setNominationDraftOverride(team);
-    });
-    expect(result.current.shellModel.seats.source.getSeat(picked).statusBadge).toBeNull();
+    // The host's own seat does not lead: no preselect button is
+    // offered to a non-leader viewer at all.
+    const bottomBefore = result.current.shellModel.bottomActions;
+    if (bottomBefore.kind !== 'stacked')
+      throw new Error('expected stacked bottom actions in nominate');
+    expect(
+      bottomBefore.layout.primary.find((action) => action.testID === 'avalon-nominate-preselect'),
+    ).toBeUndefined();
 
-    // Take over the bot leader seat: the same override now derives
-    // the leader's screen — badge and full-draft gate included.
+    // Take over the bot leader seat: the leader's screen now offers
+    // the preselect button (the modal entry, enabled even with an
+    // empty server draft — the full gate lives on the modal confirm).
     act(() => {
       result.current.shellModel.seats.onBotSeatLongPress?.(leaderSeat);
     });
     expect(result.current.controlledSeat).toBe(leaderSeat);
-    expect(result.current.shellModel.seats.source.getSeat(picked).statusBadge).toEqual({
-      label: '队员',
-      tone: 'success',
-    });
     const bottom = result.current.shellModel.bottomActions;
     if (bottom.kind !== 'stacked') throw new Error('expected stacked bottom actions in nominate');
-    const propose = bottom.layout.primary.find(
-      (action) => action.testID === 'avalon-nominate-submit',
+    // No preselect echo yet, so the stage main action is the preselect
+    // button (the final button only appears after the preselect echo).
+    const preselect = bottom.layout.primary.find(
+      (action) => action.testID === 'avalon-nominate-preselect',
     );
-    if (propose === undefined) throw new Error('propose action not found under takeover');
-    expect(propose.isEnabled).toBe(true);
-    // The authoritative state and the returned view model still carry
-    // the (empty) server draft: the mirror only fed the derivation.
-    const phase = result.current.state.phase;
-    if (phase.kind !== 'nominate') throw new Error('expected nominate phase');
-    expect(phase.draftSeats).toEqual([]);
-    expect(result.current.viewModel?.draftSeats).toEqual([]);
+    if (preselect === undefined) throw new Error('preselect action not found under takeover');
+    expect(preselect.isEnabled).toBe(true);
+    if (!preselect.isEnabled) throw new Error('preselect action must be enabled under takeover');
 
-    // Draft dispatches go out under the controlled bot leader seat.
-    let draftDispatch!: Promise<boolean>;
+    // Modal confirm dispatches the draft then the preselect, both
+    // under the controlled bot leader seat.
     act(() => {
-      draftDispatch = result.current.submitTeamDraft(team);
+      preselect.onPress?.();
     });
+    expect(result.current.teamPickModal).toBe('preselect');
     await act(async () => {
-      await draftDispatch;
+      await result.current.confirmTeamPick(team);
     });
-    await expect(draftDispatch).resolves.toBe(true);
+    expect(result.current.teamPickModal).toBeNull();
     expect(dispatch).toHaveBeenCalledWith(
       { type: 'avalon.team.updateDraft', seats: team },
       expect.objectContaining({ controlledSeat: leaderSeat, label: '更新草稿' }),
+    );
+    expect(dispatch).toHaveBeenCalledWith(
+      { type: 'avalon.team.preselect' },
+      expect.objectContaining({ controlledSeat: leaderSeat, label: '预选队伍' }),
     );
   });
 });

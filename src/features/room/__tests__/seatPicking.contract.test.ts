@@ -41,13 +41,29 @@ describe('seat picking — shared mechanism boundary', () => {
 });
 
 describe('seat picking — avalon consumers', () => {
-  it('all four picking points in the room screen go through useSeatPicking', () => {
+  it('the three remaining picking points in the room screen go through useSeatPicking', () => {
     const screen = readSource('games/avalon/room/AvalonRoomScreen.tsx');
-    expect(screen.match(/useSeatPicking\(\{/g)).toHaveLength(4);
+    // Nomination left seat picking (2026-10-25, user-approved): team
+    // selection goes through the team-pick modal, so only early
+    // strike, lady, and assassin remain as picking points here.
+    expect(screen.match(/useSeatPicking\(\{/g)).toHaveLength(3);
     // The leader-local picking state must not come back: the nomination
     // draft lives on the server and reaches the screen via the view model.
     expect(screen).not.toMatch(/nominateSelection/);
     expect(screen).not.toMatch(/pickedSeats/);
+  });
+
+  it('nomination goes through the team-pick modal, not seat picking', () => {
+    const screen = readSource('games/avalon/room/AvalonRoomScreen.tsx');
+    expect(screen).toMatch(/AvalonTeamPickModal/);
+    expect(screen).toMatch(/teamPickModal/);
+    // The removed board-tap nomination plumbing must not come back:
+    // no nominate picking point, no draft mirror, no draft dispatch
+    // from the screen.
+    expect(screen).not.toMatch(/nominatePicking/);
+    expect(screen).not.toMatch(/nominateTap/);
+    expect(screen).not.toMatch(/NominationDraftOverride/);
+    expect(screen).not.toMatch(/submitTeamDraft/);
   });
 
   it('the room state and adapter carry no picked-seats plumbing', () => {

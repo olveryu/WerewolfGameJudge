@@ -33,6 +33,7 @@ import {
   type AvalonStrikeConfirmation,
   AvalonStrikeConfirmModal,
 } from './components/AvalonStrikeConfirmModal';
+import { AvalonTeamPickModal } from './components/AvalonTeamPickModal';
 import { AvalonVoteModal } from './components/AvalonVoteModal';
 import { AvalonVoteResultPanel } from './components/AvalonVoteResultPanel';
 import { useAvalonRoomState } from './hooks/useAvalonRoomState';
@@ -41,7 +42,6 @@ import {
   eligibleStrikeTargets,
   resolveAssassinInstruction,
   resolveLadyInstruction,
-  resolveNominateInstruction,
   resolveQuestInstruction,
   resolveVoteInstruction,
 } from './policy/avalonInteractionPolicy';
@@ -213,17 +213,13 @@ function AvalonRoomContent(
   const showLadyResult = ladyResult !== null && ladyResultWatermark.shouldReveal;
   const seatDisplayName = (seat: number) =>
     `${seat + 1} 号 · ${viewModel?.seats.find((entry) => entry.seat === seat)?.displayName ?? `座位${seat + 1}`}`;
-  const { setSeatPickHandler, strikePickMode, submitTeamDraft, setNominationDraftOverride } =
-    screen;
-  // 座位盘点选全部经共享点选机制（useSeatPicking）：四个消费点各一份配置，
+  const { setSeatPickHandler, strikePickMode } = screen;
+  // 座位盘点选全部经共享点选机制（useSeatPicking）：三个消费点各一份配置，
   // 资格集仍由 avalonInteractionPolicy 产出，本组件只做装配。注册桥按现行
   // 优先级合成单个 handler：提前刺杀选人模式开启时独占点按（遮蔽其余
-  // 点选，与原先的提前返回注册一致），其余按提名 → 湖仙 → 刺杀指认的
+  // 点选，与原先的提前返回注册一致），其余按湖仙 → 刺杀指认的
   // 顺序逐个尝试消费；都不消费时落回默认座位语义。
-  const nominateInstruction =
-    viewModel !== null && viewModel.phase === 'nominate'
-      ? resolveNominateInstruction(viewModel, viewModel.mySeat)
-      : null;
+  // 组队选人已改走底部按钮打开的 modal（见 teamPickModal），不再占座位盘点选。
   const ladyInstruction =
     viewModel !== null && viewModel.phase === 'lady' ? resolveLadyInstruction(viewModel) : null;
   const assassinInstruction =
@@ -238,24 +234,6 @@ function AvalonRoomContent(
     onPick: (seat) => {
       setStrikePickMode(false);
       setStrikeConfirm({ seat, mode: 'earlyStrike' });
-    },
-  });
-  const nominatePicking = useSeatPicking({
-    // 提名草稿住服务端：selection 是 VM 投影，点选先落机制的乐观镜像
-    // 即时显示、变化经 updateDraft 整集提交；镜像经 onMirrorChange 同步
-    // 进 room-state 的派生覆盖（徽标与满员判断读镜像，见
-    // useAvalonRoomState 的 shellState），派发结果回传机制回滚被拒的
-    // 镜像，服务端草稿始终是权威。点未入座座位落回默认语义。
-    active: nominateInstruction?.isLeader === true,
-    mode: 'toggle',
-    eligibleSeats: viewModel === null ? [] : viewModel.seats.map((entry) => entry.seat),
-    maxSize: nominateInstruction?.requiredSize,
-    ineligibleTap: 'fallthrough',
-    storage: {
-      kind: 'room',
-      selection: viewModel?.draftSeats ?? [],
-      onSelectionChange: (nextSelection) => submitTeamDraft(nextSelection),
-      onMirrorChange: (mirror) => setNominationDraftOverride(mirror),
     },
   });
   const ladyPicking = useSeatPicking({
@@ -274,7 +252,6 @@ function AvalonRoomContent(
   });
   const strikePickActive = strikePickMode && viewModel !== null && viewModel.canEarlyStrike;
   const strikeTap = strikePicking.handleSeatTap;
-  const nominateTap = nominatePicking.handleSeatTap;
   const ladyTap = ladyPicking.handleSeatTap;
   const assassinTap = assassinPicking.handleSeatTap;
   useEffect(() => {
@@ -283,17 +260,9 @@ function AvalonRoomContent(
       return;
     }
     setSeatPickHandler((seat) =>
-      strikePickActive ? strikeTap(seat) : nominateTap(seat) || ladyTap(seat) || assassinTap(seat),
+      strikePickActive ? strikeTap(seat) : ladyTap(seat) || assassinTap(seat),
     );
-  }, [
-    viewModel,
-    setSeatPickHandler,
-    strikePickActive,
-    strikeTap,
-    nominateTap,
-    ladyTap,
-    assassinTap,
-  ]);
+  }, [viewModel, setSeatPickHandler, strikePickActive, strikeTap, ladyTap, assassinTap]);
   // 晚上阶段：座位盘保持可见（对齐狼人杀），确认信息走弹窗。
   // 全程座位盘保持可见；阶段交互按落点总规则分布（盘上点选 / 弹窗 / 底部
   // 动作区），座位盘下方不放任何阶段 UI——与全平台各家一致。
@@ -395,6 +364,15 @@ function AvalonRoomContent(
                     )
                   }
                   onClose={() => setVoteModalOpen(false)}
+                />
+              ) : null}
+              {screen.teamPickModal !== null && viewModel.phase === 'nominate' ? (
+                <AvalonTeamPickModal
+                  viewModel={viewModel}
+                  kind={screen.teamPickModal}
+                  isSubmitting={screen.isSubmitting}
+                  onConfirm={(seats) => void screen.confirmTeamPick(seats)}
+                  onClose={() => screen.setTeamPickModal(null)}
                 />
               ) : null}
               {screen.questModalOpen && viewModel.phase === 'quest' ? (

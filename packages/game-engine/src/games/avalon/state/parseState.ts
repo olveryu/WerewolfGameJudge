@@ -266,11 +266,16 @@ function phase(value: unknown, path: string): AvalonPhase {
           requiredSize: parseInteger(raw.requiredSize, `${path}.requiredSize`),
           // States persisted before the nomination draft existed carry
           // no draftSeats; like vote.deadlineAt on v3 phases, a missing
-          // field parses as the empty value (no draft yet).
+          // field parses as the empty value (no draft yet). The same
+          // holds for preselectedSeats on pre-v8 states (no preselect).
           draftSeats:
             raw.draftSeats === undefined
               ? []
               : parseArray(raw.draftSeats, `${path}.draftSeats`, parseSeat),
+          preselectedSeats:
+            raw.preselectedSeats === undefined
+              ? []
+              : parseArray(raw.preselectedSeats, `${path}.preselectedSeats`, parseSeat),
         },
         path,
       );
@@ -488,6 +493,12 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
   // v5 -> v6 adds roundHistory, derived from what the old state stored
   // (see deriveLegacyRoundHistory); v3/v4 take the same derivation.
   // v6 -> v7 adds ladyHistory, derived from examinedSeats (see above).
+  // v7 -> v8 adds preselectedSeats; the nominate parser defaults a
+  // missing field to the empty value (no preselect yet), so migration
+  // is a pure version bump.
+  if (raw.stateVersion === 7) {
+    return parseAvalonState({ ...raw, stateVersion: AVALON_STATE_VERSION });
+  }
   if (raw.stateVersion === 3 || raw.stateVersion === 4 || raw.stateVersion === 5) {
     return parseAvalonState({
       ...raw,

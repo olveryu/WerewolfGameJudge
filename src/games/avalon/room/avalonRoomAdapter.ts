@@ -124,12 +124,18 @@ function avalonSeatStatusLabel(state: AvalonState, seat: number): string | null 
     (phase.kind === 'nominate' && phase.draftSeats.includes(seat)) ||
     (phase.kind === 'vote' && phase.proposedSeats.includes(seat)) ||
     (phase.kind === 'quest' && phase.teamSeats.includes(seat));
+  // 预选事实：nominate 阶段组队者确认的锁定记录（服务端权威、全房
+  // 可见）。最终队伍以草稿为准：同时在两套里时只亮「队员」，预选
+  // 独有的座位才亮「预选」——预选发生与否另由底部 message 宣告。
+  const isPreselected = phase.kind === 'nominate' && phase.preselectedSeats.includes(seat);
   // 组队者只是本轮选队伍的人、不是队伍领袖：被选进队伍时两个事实同显，
   // 不许组队者标把队员标遮住（组队者选自己进队，座位必须有反馈）。
   if (isPicker && isTeamMember) return '组队者 · 队员';
+  if (isPicker && isPreselected) return '组队者 · 预选';
   if (isPicker) return '组队者';
   if (phase.kind === 'lady' && phase.holderSeat === seat) return '湖仙';
   if (isTeamMember) return '队员';
+  if (isPreselected) return '预选';
   return null;
 }
 
@@ -201,7 +207,9 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
                 ? 'success'
                 : combinedLabel === '队员'
                   ? 'success'
-                  : 'warning',
+                  : combinedLabel === '预选' || combinedLabel === '组队者 · 预选'
+                    ? 'info'
+                    : 'warning',
           };
     },
   });
@@ -342,6 +350,7 @@ export interface AvalonBottomActionsInput {
   readonly onNightInfoPress: () => void;
   readonly onOpenVotePress: () => void;
   readonly onOpenQuestPress: () => void;
+  readonly onPreselectTeamPress: () => void;
   readonly onProposeTeamPress: () => void;
   readonly onLadyAcknowledgePress: () => void;
   readonly onLadyResultPress: () => void;
@@ -356,7 +365,7 @@ export interface AvalonBottomActionsInput {
 /**
  * 阿瓦隆底部动作区：全游戏个人动作与个人指令的唯一落点（落点总规则）——
  * 查看身份局内常驻；夜晚信息步两步确认（按钮 → 弹窗）；白天各阶段的主按钮
- * （提交队伍 / 去投票 / 去出牌 / 查看查验请求）与个人状态走 message；
+ * （预选队伍 / 最终队伍 / 去投票 / 去出牌 / 查看查验请求）与个人状态走 message；
  * 夜晚步进走底部细进度行、公开阶段状态归摘要条、逐座状态归座位盘、
  * 一次性信息归弹窗。
  */
@@ -475,43 +484,65 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
   switch (phase.kind) {
     case 'nominate': {
       const instruction = resolveNominateInstruction(vm, vm.mySeat);
+      // 两段式组队（引擎规则）：按钮阶段由服务端预选记录驱动——
+      // 未预选时主按钮是「预选队伍」，预选回声到后翻成「最终队伍」；
+      // 选人与确认都在 modal 里做（满员门在 modal 确认按钮上），
+      // 底部按钮只负责打开 modal，不再按草稿满员设门。
+      const preselected = vm.preselectedSeats !== null && vm.preselectedSeats.length > 0;
       if (instruction.isLeader) {
-        message = `点座位盘点选 ${instruction.requiredSize} 名队员（可含自己），选中的座位会亮起「队员」徽标，再点一次取消。`;
-        const isFull = vm.draftSeats !== null && vm.draftSeats.length === instruction.requiredSize;
-        if (isFull && !input.isSubmitting) {
-          primary.push({
-            key: 'proposeTeam',
-            label: '提交队伍',
-            variant: 'primary',
-            size: 'md',
-            isEnabled: true,
-            onPress: input.onProposeTeamPress,
-            testID: 'avalon-nominate-submit',
-          });
-        } else if (isFull) {
-          primary.push({
-            key: 'proposeTeam',
-            label: '提交队伍',
-            variant: 'primary',
-            size: 'md',
-            isEnabled: false,
-            disabledReason: null,
-            isLoading: true,
-            testID: 'avalon-nominate-submit',
-          });
+        if (!preselected) {
+          message = `点「预选队伍」打开选人，在里面选 ${instruction.requiredSize} 名队员，确认后全房可见。`;
+          if (!input.isSubmitting) {
+            primary.push({
+              key: 'preselectTeam',
+              label: '预选队伍',
+              variant: 'primary',
+              size: 'md',
+              isEnabled: true,
+              onPress: input.onPreselectTeamPress,
+              testID: 'avalon-nominate-preselect',
+            });
+          } else {
+            primary.push({
+              key: 'preselectTeam',
+              label: '预选队伍',
+              variant: 'primary',
+              size: 'md',
+              isEnabled: false,
+              disabledReason: null,
+              isLoading: true,
+              testID: 'avalon-nominate-preselect',
+            });
+          }
         } else {
-          primary.push({
-            key: 'proposeTeam',
-            label: '提交队伍',
-            variant: 'primary',
-            size: 'md',
-            isEnabled: false,
-            disabledReason: `队员人数必须为 ${instruction.requiredSize} 人`,
-            testID: 'avalon-nominate-submit',
-          });
+          message = '预选已确认，点「最终队伍」打开选人调整最终队伍。';
+          if (!input.isSubmitting) {
+            primary.push({
+              key: 'proposeTeam',
+              label: '最终队伍',
+              variant: 'primary',
+              size: 'md',
+              isEnabled: true,
+              onPress: input.onProposeTeamPress,
+              testID: 'avalon-nominate-submit',
+            });
+          } else {
+            primary.push({
+              key: 'proposeTeam',
+              label: '最终队伍',
+              variant: 'primary',
+              size: 'md',
+              isEnabled: false,
+              disabledReason: null,
+              isLoading: true,
+              testID: 'avalon-nominate-submit',
+            });
+          }
         }
       } else {
-        message = `等待组队者组队（${instruction.leaderSeat + 1} 号座位），本轮需要 ${instruction.requiredSize} 名队员。`;
+        message = preselected
+          ? '队长已预选，正在定最终队伍。'
+          : `等待组队者组队（${instruction.leaderSeat + 1} 号座位），本轮需要 ${instruction.requiredSize} 名队员。`;
       }
       break;
     }
@@ -665,6 +696,7 @@ export interface AvalonRoomShellModelInput {
   readonly settleCountdownSeconds: number | null;
   readonly onOpenVotePress: () => void;
   readonly onOpenQuestPress: () => void;
+  readonly onPreselectTeamPress: () => void;
   readonly onProposeTeamPress: () => void;
   readonly onLadyAcknowledgePress: () => void;
   readonly onLadyResultPress: () => void;
@@ -917,6 +949,7 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       onNightInfoPress: input.onNightInfoPress,
       onOpenVotePress: input.onOpenVotePress,
       onOpenQuestPress: input.onOpenQuestPress,
+      onPreselectTeamPress: input.onPreselectTeamPress,
       onProposeTeamPress: input.onProposeTeamPress,
       onLadyAcknowledgePress: input.onLadyAcknowledgePress,
       onLadyResultPress: input.onLadyResultPress,

@@ -34,6 +34,7 @@ function historyViewModel(roundHistory: readonly AvalonRoundRecordView[]): Avalo
     unviewedRoleSeats: [],
     requiredSize: 2,
     draftSeats: null,
+    preselectedSeats: null,
     proposedSeats: null,
     teamSeats: null,
     myBallot: null,

@@ -103,6 +103,7 @@ function armedHarness(): AvalonHarness {
   }
   const leader = harness.state().leaderSeat;
   send({ type: 'avalon.team.updateDraft', seats: [0, 1] }, asUser(seatUser(leader)));
+  send({ type: 'avalon.team.preselect' }, asUser(seatUser(leader)));
   send({ type: 'avalon.team.propose' }, asUser(seatUser(leader)));
   for (let seat = 0; seat < 5; seat += 1) {
     send({ type: 'avalon.team.vote', vote: 'approve' }, asUser(seatUser(seat)));

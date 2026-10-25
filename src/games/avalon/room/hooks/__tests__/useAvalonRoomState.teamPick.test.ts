@@ -1,11 +1,12 @@
 /**
- * Nomination draft mirror wiring: the leader's own screen derives the
- * seat badges and the propose button's full-draft gate from the picking
- * mirror (pushed in through setNominationDraftOverride) so a tap shows
- * before the server echo, while the authoritative state and the
- * returned view model keep carrying the server draft. Draft dispatches
- * serialize through submitTeamDraft (the shared submission lock is
- * single-flight), and propose waits for the chain tail to settle.
+ * Nomination team-pick modal wiring: the leader's bottom buttons only
+ * open the modal (preselect / final by the server preselect record),
+ * and the modal confirm syncs the draft then dispatches preselect /
+ * propose. The modal selection is local until confirm — there is no
+ * board-tap mirror anymore: badges and buttons read the server draft
+ * only. Draft dispatches serialize through the shared submission
+ * chain, and a confirm whose draft write is rejected still dispatches
+ * its followup (the engine's own validation takes it from there).
  * States come from the real engine; the session is a fake dispatch.
  */
 import {
@@ -110,7 +111,7 @@ function createFakeSession(state: AvalonState, userId: string) {
     identity: { room: { roomCode: '1234' }, userId },
     lastCommand: null,
     error: null,
-    snapshot: { gameType: 'avalon', stateVersion: 7, revision: 1, state },
+    snapshot: { gameType: 'avalon', stateVersion: 8, revision: 1, state },
   } as const;
   const session = {
     getSnapshot: () => snapshot,
@@ -160,171 +161,159 @@ function findProposeAction(result: RoomStateResult): RoomBottomButton {
   return action;
 }
 
-describe('useAvalonRoomState nomination draft mirror', () => {
+function findPreselectAction(result: RoomStateResult): RoomBottomButton {
+  const bottom = result.current.shellModel.bottomActions;
+  if (bottom.kind !== 'stacked') throw new Error('expected stacked bottom actions in nominate');
+  const action = bottom.layout.primary.find(
+    (candidate) => candidate.testID === 'avalon-nominate-preselect',
+  );
+  if (action === undefined) throw new Error('preselect action not found');
+  return action;
+}
+
+/** Walks a nominate state through a full draft + preselect (real engine). */
+function preselectState(state: AvalonState): AvalonState {
+  if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+  const leader = state.leaderSeat;
+  const team = [leader, (leader + 1) % 5];
+  let commandNumber = 100;
+  let next = state;
+  const send = (command: AvalonPublicCommand) => {
+    const context: CommandContext = {
+      actor: { kind: 'user', userId: seatUserOf(leader) },
+      controlledSeat: null,
+      nowMs: 1000,
+      commandId: `command:${commandNumber++}`,
+      randomSeed: `seed:${commandNumber}`,
+    };
+    const decision = avalonEngine.decide(next, command, context);
+    if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+    next = decision.events.reduce(avalonEngine.evolve, next);
+  };
+  send({ type: 'avalon.team.updateDraft', seats: team });
+  send({ type: 'avalon.team.preselect' });
+  if (next.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+  return next;
+}
+
+describe('useAvalonRoomState nomination team pick', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockAuth.currentUserId = 'host';
   });
 
-  it('lights the 队员 badge from the mirror before any echo, state untouched', () => {
+  it('offers an enabled preselect button on an empty draft, opening the modal', () => {
     const state = nominateState();
     mockAuth.currentUserId = seatUserOf(state.leaderSeat);
     const { result } = renderRoomState(state);
-    const picked = (state.leaderSeat + 1) % 5;
-    // The server draft is still empty: no badge anywhere yet.
-    expect(result.current.shellModel.seats.source.getSeat(picked).statusBadge).toBeNull();
-    act(() => {
-      result.current.setNominationDraftOverride([picked]);
-    });
-    expect(result.current.shellModel.seats.source.getSeat(picked).statusBadge).toEqual({
-      label: '队员',
-      tone: 'success',
-    });
-    // The authoritative state and the returned view model still carry
-    // the (empty) server draft: the mirror only fed the derivation.
-    const phase = result.current.state.phase;
-    if (phase.kind !== 'nominate') throw new Error('expected nominate phase');
-    expect(phase.draftSeats).toEqual([]);
-    expect(result.current.viewModel?.draftSeats).toEqual([]);
-    act(() => {
-      result.current.setNominationDraftOverride(null);
-    });
-    expect(result.current.shellModel.seats.source.getSeat(picked).statusBadge).toBeNull();
-  });
-
-  it('gates the propose button on the mirrored draft reaching full size', () => {
-    const state = nominateState();
-    mockAuth.currentUserId = seatUserOf(state.leaderSeat);
-    const { result } = renderRoomState(state);
-    // Server draft is empty (0 of 2): the button stays disabled.
-    expect(findProposeAction(result).isEnabled).toBe(false);
-    act(() => {
-      result.current.setNominationDraftOverride([state.leaderSeat, (state.leaderSeat + 1) % 5]);
-    });
-    expect(findProposeAction(result).isEnabled).toBe(true);
-  });
-
-  it('ignores the override for a non-leader viewer', () => {
-    const state = nominateState();
-    mockAuth.currentUserId = seatUserOf((state.leaderSeat + 2) % 5);
-    const { result } = renderRoomState(state);
-    const picked = (state.leaderSeat + 1) % 5;
-    act(() => {
-      result.current.setNominationDraftOverride([picked]);
-    });
-    // The picked seat is not in the server draft and this viewer does
-    // not lead: the mirror is the leader's own affair and must not
-    // leak — no badge, and no propose action is offered at all.
-    expect(result.current.shellModel.seats.source.getSeat(picked).statusBadge).toBeNull();
+    // The server draft is empty (0 of 2): the button no longer gates
+    // on draft fullness — the full gate lives on the modal confirm —
+    // and the final button does not exist before the preselect echo.
+    const preselectAction = findPreselectAction(result);
+    expect(preselectAction.isEnabled).toBe(true);
     const bottom = result.current.shellModel.bottomActions;
     if (bottom.kind !== 'stacked') throw new Error('expected stacked bottom actions in nominate');
     expect(
       bottom.layout.primary.find((candidate) => candidate.testID === 'avalon-nominate-submit'),
     ).toBeUndefined();
-  });
-
-  it('serializes rapid draft dispatches instead of tripping the submission lock', async () => {
-    const state = nominateState();
-    mockAuth.currentUserId = seatUserOf(state.leaderSeat);
-    const { result, dispatch } = renderRoomState(state);
-    const first: readonly number[] = [state.leaderSeat];
-    const second: readonly number[] = [state.leaderSeat, (state.leaderSeat + 1) % 5];
-
-    let resolveFirst!: (outcome: typeof successOutcome) => void;
-    const firstSettled = new Promise<typeof successOutcome>((resolve) => {
-      resolveFirst = resolve;
-    });
-    dispatch.mockImplementationOnce(() => firstSettled);
-
-    let firstDispatch!: Promise<boolean>;
-    let secondDispatch!: Promise<boolean>;
+    if (!preselectAction.isEnabled) throw new Error('preselect action must be enabled');
     act(() => {
-      firstDispatch = result.current.submitTeamDraft(first);
-      secondDispatch = result.current.submitTeamDraft(second);
+      preselectAction.onPress?.();
     });
-    // The second set must not go out while the first is in flight: the
-    // shared submission lock refuses overlapping submits outright, so
-    // an unserialized second tap would lose its whole set (and roll
-    // the mirror back) instead of compounding on the first.
-    expect(dispatch).toHaveBeenCalledTimes(1);
-    expect(dispatch).toHaveBeenCalledWith(
-      { type: 'avalon.team.updateDraft', seats: first },
-      expect.objectContaining({ label: '更新草稿' }),
-    );
-
-    await act(async () => {
-      resolveFirst(successOutcome);
-      await firstDispatch;
-    });
-    expect(dispatch).toHaveBeenCalledTimes(2);
-    expect(dispatch).toHaveBeenNthCalledWith(
-      2,
-      { type: 'avalon.team.updateDraft', seats: second },
-      expect.objectContaining({ label: '更新草稿' }),
-    );
-    await expect(firstDispatch).resolves.toBe(true);
-    await expect(secondDispatch).resolves.toBe(true);
+    expect(result.current.teamPickModal).toBe('preselect');
   });
 
-  it('holds propose until the last in-flight draft dispatch settles', async () => {
+  it('opens the final modal from the final button after the preselect echo', () => {
+    const state = preselectState(nominateState());
+    mockAuth.currentUserId = seatUserOf(state.leaderSeat);
+    const { result } = renderRoomState(state);
+    const proposeAction = findProposeAction(result);
+    expect(proposeAction.isEnabled).toBe(true);
+    const bottom = result.current.shellModel.bottomActions;
+    if (bottom.kind !== 'stacked') throw new Error('expected stacked bottom actions in nominate');
+    expect(
+      bottom.layout.primary.find((candidate) => candidate.testID === 'avalon-nominate-preselect'),
+    ).toBeUndefined();
+    if (!proposeAction.isEnabled) throw new Error('propose action must be enabled');
+    act(() => {
+      proposeAction.onPress?.();
+    });
+    expect(result.current.teamPickModal).toBe('final');
+  });
+
+  it('preselect confirm dispatches the draft then preselect, and closes the modal', async () => {
     const state = nominateState();
     mockAuth.currentUserId = seatUserOf(state.leaderSeat);
     const { result, dispatch } = renderRoomState(state);
     const team: readonly number[] = [state.leaderSeat, (state.leaderSeat + 1) % 5];
     act(() => {
-      result.current.setNominationDraftOverride(team);
+      result.current.setTeamPickModal('preselect');
     });
-    const proposeAction = findProposeAction(result);
-    if (!proposeAction.isEnabled || proposeAction.onPress === undefined)
-      throw new Error('propose action must be enabled with a full mirrored draft');
-    const pressPropose = proposeAction.onPress;
-
-    let resolveDraft!: (outcome: typeof successOutcome) => void;
-    const draftSettled = new Promise<typeof successOutcome>((resolve) => {
-      resolveDraft = resolve;
+    await act(async () => {
+      await result.current.confirmTeamPick(team);
     });
-    dispatch.mockImplementationOnce(() => draftSettled);
-    let draftDispatch!: Promise<boolean>;
-    act(() => {
-      draftDispatch = result.current.submitTeamDraft(team);
-    });
-    expect(dispatch).toHaveBeenCalledTimes(1);
-    expect(dispatch).toHaveBeenCalledWith(
+    expect(result.current.teamPickModal).toBeNull();
+    expect(dispatch).toHaveBeenNthCalledWith(
+      1,
       { type: 'avalon.team.updateDraft', seats: team },
       expect.objectContaining({ label: '更新草稿' }),
     );
+    expect(dispatch).toHaveBeenNthCalledWith(
+      2,
+      { type: 'avalon.team.preselect' },
+      expect.objectContaining({ label: '预选队伍' }),
+    );
+  });
 
-    // A propose press racing the in-flight draft must not dispatch yet.
-    await act(async () => {
-      pressPropose();
+  it('final confirm dispatches the draft then propose', async () => {
+    const state = preselectState(nominateState());
+    mockAuth.currentUserId = seatUserOf(state.leaderSeat);
+    const { result, dispatch } = renderRoomState(state);
+    const team: readonly number[] = [state.leaderSeat, (state.leaderSeat + 2) % 5];
+    act(() => {
+      result.current.setTeamPickModal('final');
     });
-    expect(
-      dispatch.mock.calls.filter(([command]) => command.type === 'avalon.team.propose'),
-    ).toHaveLength(0);
+    await act(async () => {
+      await result.current.confirmTeamPick(team);
+    });
+    expect(result.current.teamPickModal).toBeNull();
+    expect(dispatch).toHaveBeenNthCalledWith(
+      1,
+      { type: 'avalon.team.updateDraft', seats: team },
+      expect.objectContaining({ label: '更新草稿' }),
+    );
+    expect(dispatch).toHaveBeenNthCalledWith(
+      2,
+      { type: 'avalon.team.propose' },
+      expect.objectContaining({ label: '提交队伍' }),
+    );
+  });
 
-    await act(async () => {
-      resolveDraft(successOutcome);
-      await draftDispatch;
+  it('skips the draft dispatch when the confirmed set equals the server draft', async () => {
+    const state = preselectState(nominateState());
+    mockAuth.currentUserId = seatUserOf(state.leaderSeat);
+    const { result, dispatch } = renderRoomState(state);
+    // The final modal opens pre-checked with the preselect; confirming
+    // unchanged must not waste a draft write — propose goes out alone.
+    const team: readonly number[] = [state.leaderSeat, (state.leaderSeat + 1) % 5];
+    act(() => {
+      result.current.setTeamPickModal('final');
     });
+    await act(async () => {
+      await result.current.confirmTeamPick(team);
+    });
+    expect(dispatch).toHaveBeenCalledTimes(1);
     expect(dispatch).toHaveBeenCalledWith(
       { type: 'avalon.team.propose' },
       expect.objectContaining({ label: '提交队伍' }),
     );
-    await expect(draftDispatch).resolves.toBe(true);
   });
 
-  it('still dispatches propose after the in-flight draft dispatch is rejected', async () => {
-    const state = nominateState();
+  it('still dispatches propose after the draft dispatch is rejected', async () => {
+    const state = preselectState(nominateState());
     mockAuth.currentUserId = seatUserOf(state.leaderSeat);
     const { result, dispatch } = renderRoomState(state);
-    const team: readonly number[] = [state.leaderSeat, (state.leaderSeat + 1) % 5];
-    act(() => {
-      result.current.setNominationDraftOverride(team);
-    });
-    const proposeAction = findProposeAction(result);
-    if (!proposeAction.isEnabled || proposeAction.onPress === undefined)
-      throw new Error('propose action must be enabled with a full mirrored draft');
-    const pressPropose = proposeAction.onPress;
+    const team: readonly number[] = [state.leaderSeat, (state.leaderSeat + 2) % 5];
 
     // The server refuses the draft write: the submission resolves
     // false and surfaces the failure, but the rejection must not
@@ -336,27 +325,66 @@ describe('useAvalonRoomState nomination draft mirror', () => {
     dispatch.mockImplementationOnce(
       async () => rejectedOutcome as unknown as typeof successOutcome,
     );
-    let draftDispatch!: Promise<boolean>;
     act(() => {
-      draftDispatch = result.current.submitTeamDraft(team);
+      result.current.setTeamPickModal('final');
     });
     await act(async () => {
-      await draftDispatch;
+      await result.current.confirmTeamPick(team);
     });
-    await expect(draftDispatch).resolves.toBe(false);
     expect(showErrorAlert).toHaveBeenCalledWith('更新草稿失败', expect.any(String));
-    expect(
-      dispatch.mock.calls.filter(([command]) => command.type === 'avalon.team.propose'),
-    ).toHaveLength(0);
-
-    // Propose still goes out against the server draft; the engine's
-    // own validation and failure presentation take it from there.
-    await act(async () => {
-      pressPropose();
-    });
     expect(dispatch).toHaveBeenCalledWith(
       { type: 'avalon.team.propose' },
       expect.objectContaining({ label: '提交队伍' }),
     );
+  });
+
+  it('serializes a second confirm behind the first confirm chain', async () => {
+    const state = nominateState();
+    mockAuth.currentUserId = seatUserOf(state.leaderSeat);
+    const { result, dispatch } = renderRoomState(state);
+    const first: readonly number[] = [state.leaderSeat, (state.leaderSeat + 1) % 5];
+    const second: readonly number[] = [state.leaderSeat, (state.leaderSeat + 2) % 5];
+
+    let resolveFirst!: (outcome: typeof successOutcome) => void;
+    const firstSettled = new Promise<typeof successOutcome>((resolve) => {
+      resolveFirst = resolve;
+    });
+    dispatch.mockImplementationOnce(() => firstSettled);
+
+    let firstConfirm!: Promise<void>;
+    let secondConfirm!: Promise<void>;
+    act(() => {
+      result.current.setTeamPickModal('preselect');
+    });
+    act(() => {
+      firstConfirm = result.current.confirmTeamPick(first);
+    });
+    // The second confirm's draft must not go out while the first
+    // confirm's draft is in flight: the shared submission lock
+    // refuses overlapping submits outright.
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch).toHaveBeenCalledWith(
+      { type: 'avalon.team.updateDraft', seats: first },
+      expect.objectContaining({ label: '更新草稿' }),
+    );
+    act(() => {
+      result.current.setTeamPickModal('final');
+    });
+    act(() => {
+      secondConfirm = result.current.confirmTeamPick(second);
+    });
+    expect(dispatch).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveFirst(successOutcome);
+      await firstConfirm;
+      await secondConfirm;
+    });
+    expect(dispatch.mock.calls.map(([command]) => command.type)).toEqual([
+      'avalon.team.updateDraft',
+      'avalon.team.preselect',
+      'avalon.team.updateDraft',
+      'avalon.team.propose',
+    ]);
   });
 });

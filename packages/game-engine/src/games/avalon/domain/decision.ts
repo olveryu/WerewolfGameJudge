@@ -60,6 +60,7 @@ export const AVALON_REASONS = {
   invalidTarget: 'avalon_invalid_target',
   audioPlaying: 'avalon_audio_playing',
   notHostAckAudio: 'avalon_not_host_ack_audio',
+  notPreselected: 'avalon_not_preselected',
 } as const;
 
 /** Team-size rejection: stable code plus the required size as a parameter. */
@@ -92,6 +93,7 @@ export type AvalonEvent =
     }
   | { readonly type: 'avalon.audio.cleared' }
   | { readonly type: 'avalon.team.draftUpdated'; readonly seats: readonly number[] }
+  | { readonly type: 'avalon.team.preselected'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.proposed'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.vote.cast'; readonly seat: number; readonly vote: AvalonBallot }
   | { readonly type: 'avalon.vote.allCast'; readonly deadlineAt: number }

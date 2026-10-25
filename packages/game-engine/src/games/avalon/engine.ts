@@ -298,11 +298,34 @@ function updateTeamDraft(
   return commitAvalon([{ type: 'avalon.team.draftUpdated', seats: [...seats] }]);
 }
 
-/** Leader confirms the current draft as the proposal (may include the leader). */
+/**
+ * Leader locks the current full draft as the preselect: the whole room
+ * sees it, and it never changes afterwards (later draft edits shape the
+ * final team, not the preselect record). Preselect is a mandated first
+ * step, not UI guidance — propose below refuses without it.
+ */
+function preselectTeam(state: AvalonState, context: CommandContext): AvalonDecision {
+  if (state.phase.kind !== 'nominate') return reject(AVALON_REASONS.phase);
+  const leaderRejection = requireAvalonLeader(state, context);
+  if (leaderRejection !== null) return leaderRejection;
+  const draftSeats = state.phase.draftSeats;
+  if (draftSeats.length !== state.phase.requiredSize)
+    return reject(teamSizeReason(state.phase.requiredSize));
+  const seatRejection = validateTeamSeats(state, draftSeats);
+  if (seatRejection !== null) return seatRejection;
+  return commitAvalon([{ type: 'avalon.team.preselected', seats: [...draftSeats] }]);
+}
+
+/**
+ * Leader confirms the current draft as the proposal (may include the
+ * leader). The draft is the final team now: it may differ from the
+ * preselect, but proposing without any preselect is an illegal move.
+ */
 function proposeTeam(state: AvalonState, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'nominate') return reject(AVALON_REASONS.phase);
   const leaderRejection = requireAvalonLeader(state, context);
   if (leaderRejection !== null) return leaderRejection;
+  if (state.phase.preselectedSeats.length === 0) return reject(AVALON_REASONS.notPreselected);
   const draftSeats = state.phase.draftSeats;
   if (draftSeats.length !== state.phase.requiredSize)
     return reject(teamSizeReason(state.phase.requiredSize));
@@ -699,6 +722,8 @@ function decideCommand(
       return confirmNight(state, context);
     case 'avalon.team.updateDraft':
       return updateTeamDraft(state, command.seats, context);
+    case 'avalon.team.preselect':
+      return preselectTeam(state, context);
     case 'avalon.team.propose':
       return proposeTeam(state, context);
     case 'avalon.team.vote':
