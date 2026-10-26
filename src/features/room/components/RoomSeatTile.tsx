@@ -33,6 +33,7 @@ import { STATUS_ICONS, UI_ICONS } from '@/config/iconTokens';
 import {
   formatRoomSeat,
   type RoomSeatHighlight,
+  type RoomSeatIndicators,
   type RoomSeatStatusBadge,
 } from '@/features/room/model/RoomSeatDataSource';
 import { TESTIDS } from '@/testids';
@@ -46,6 +47,12 @@ import {
   typography,
   withAlpha,
 } from '@/theme';
+
+import {
+  createRoomSeatIndicatorStyles,
+  RoomSeatMarkers,
+  RoomSeatProgress,
+} from './RoomSeatIndicators';
 
 const GRID_COLUMNS = 4;
 
@@ -69,7 +76,7 @@ export function getGridColumns(screenWidth: number): number {
  * Pre-computed styles for SeatTile.
  * Created once in PlayerGrid and passed to all SeatTile instances.
  */
-export interface RoomSeatTileStyles {
+export interface RoomSeatTileStyles extends ReturnType<typeof createRoomSeatIndicatorStyles> {
   tileWrapper: ViewStyle;
   playerTile: ViewStyle;
   mySpotTile: ViewStyle;
@@ -142,6 +149,7 @@ export interface RoomSeatTileProps {
   showReadyBadge: boolean;
   /** Game-owned semantic status rendered over the seat. */
   statusBadge: RoomSeatStatusBadge | null;
+  indicators: RoomSeatIndicators | null;
   /** Independent emphasis that does not replace selected / controlled / danger rings. */
   isStatusEmphasized: boolean;
   /** Player level (from growth system). */
@@ -179,6 +187,7 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
   secondaryLabel,
   showReadyBadge,
   statusBadge,
+  indicators,
   isStatusEmphasized,
   playerLevel,
   showLevel,
@@ -389,10 +398,24 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
       <Animated.View style={tileAnimatedStyle}>
         <TouchableOpacity
           testID={TESTIDS.seatTilePressable(seat)}
-          accessibilityLabel={
+          accessibilityLabel={[
             playerDisplayName
               ? `${formatRoomSeat(seat)}座位 ${playerDisplayName}`
-              : `${formatRoomSeat(seat)}座位`
+              : `${formatRoomSeat(seat)}座位`,
+            ...(indicators === null
+              ? []
+              : [
+                  ...indicators.markers.map((marker) => marker.label),
+                  indicators.selection?.label,
+                  indicators.progressLabel,
+                ]),
+          ]
+            .filter(Boolean)
+            .join('，')}
+          accessibilityState={
+            indicators === null
+              ? undefined
+              : { selected: indicators.selection?.kind === 'selected' }
           }
           style={[
             styles.playerTile,
@@ -482,6 +505,10 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
             </Animated.View>
           )}
 
+          {indicators !== null && hasPlayer && (
+            <RoomSeatMarkers seat={seat} indicators={indicators} styles={styles} />
+          )}
+
           {statusBadge !== null && hasPlayer && (
             <View
               style={[styles.statusBadge, getStatusBadgeToneStyle(statusBadge.tone, styles)]}
@@ -518,6 +545,9 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
             {isBot && ' '}
             {playerDisplayName}
           </NameStyleText>
+          {indicators !== null && (
+            <RoomSeatProgress seat={seat} indicators={indicators} styles={styles} />
+          )}
           {secondaryLabel && (
             <Text style={styles.botRoleName} numberOfLines={1}>
               {secondaryLabel}
@@ -576,6 +606,7 @@ export function createRoomSeatTileStyles(
     elevation: 6,
   });
   return StyleSheet.create({
+    ...createRoomSeatIndicatorStyles(colors, tileSize),
     tileWrapper: {
       width: tileSize,
       alignItems: 'center',

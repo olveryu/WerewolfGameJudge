@@ -1,7 +1,7 @@
 /**
  * createAvalonSeatDataSource badges: the quest phase marks team seats that
  * have already played with 已出牌 (existence only, never the card content),
- * mirroring the vote phase's 已投票 badge. States come from the real engine.
+ * without per-seat vote progress. States come from the real engine.
  */
 import {
   avalonEngine,
@@ -94,7 +94,20 @@ describe('createAvalonSeatDataSource — quest played badge', () => {
       userId: 'host',
       controlledSeat: null,
     });
-    expect(beforePlay.getSeat(leader).statusBadge?.label).toBe('组队者 · 队员');
+    expect(beforePlay.getSeat(leader)).toMatchObject({
+      statusBadge: null,
+      indicators: {
+        selection: { kind: 'selected', label: '队员' },
+        markers: [
+          {
+            key: 'leader',
+            label: '组队者',
+            tone: 'warning',
+          },
+        ],
+        progressLabel: null,
+      },
+    });
     session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(leader));
     const source = createAvalonSeatDataSource({
       state: session.state,
@@ -102,14 +115,29 @@ describe('createAvalonSeatDataSource — quest played badge', () => {
       userId: 'host',
       controlledSeat: null,
     });
-    expect(source.getSeat(leader).statusBadge).toEqual({
-      label: '组队者 · 队员 · 已出牌',
-      tone: 'success',
+    expect(source.getSeat(leader).indicators).toEqual({
+      selection: { kind: 'selected', label: '队员' },
+      markers: [
+        {
+          key: 'leader',
+          label: '组队者',
+          tone: 'warning',
+        },
+      ],
+      progressLabel: '已出牌',
     });
     const other = (leader + 1) % 5;
-    expect(source.getSeat(other).statusBadge).toEqual({ label: '队员', tone: 'success' });
+    expect(source.getSeat(other).indicators).toEqual({
+      markers: [],
+      selection: { kind: 'selected', label: '队员' },
+      progressLabel: null,
+    });
     const outsider = (leader + 2) % 5;
-    expect(source.getSeat(outsider).statusBadge).toBeNull();
+    expect(source.getSeat(outsider).indicators).toEqual({
+      markers: [],
+      selection: null,
+      progressLabel: null,
+    });
   });
 });
 
@@ -220,7 +248,7 @@ describe('createAvalonSeatDataSource — night badges', () => {
       userId: session.seatUser(secondEvil),
       controlledSeat: null,
     });
-    expect(evilView.getSeat(firstEvil).statusBadge?.label).toContain('已确认');
+    expect(evilView.getSeat(firstEvil).indicators?.progressLabel).toBe('已确认');
     // A non-participant (good player) sees nothing about the private confirm.
     const goodSeat = [0, 1, 2, 3, 4].find((seat) => !evilSeats.includes(seat));
     if (goodSeat === undefined) throw new Error('expected a good seat');
@@ -230,7 +258,7 @@ describe('createAvalonSeatDataSource — night badges', () => {
       userId: session.seatUser(goodSeat),
       controlledSeat: null,
     });
-    expect(goodView.getSeat(firstEvil).statusBadge?.label ?? '').not.toContain('已确认');
+    expect(goodView.getSeat(firstEvil).indicators?.progressLabel).toBeNull();
   });
 });
 
@@ -250,7 +278,7 @@ describe('createAvalonSeatDataSource — night badge window closes', () => {
 });
 
 describe('createAvalonSeatDataSource — nominate picked badge', () => {
-  it('marks locally picked seats as 队员 during nomination (leader in draft shows 组队者 · 队员)', () => {
+  it('keeps selection independent of the leader and distinguishes replaced preselected seats', () => {
     let commandNumber = 0;
     let state: AvalonState = avalonEngine.createInitialState(
       { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
@@ -298,9 +326,12 @@ describe('createAvalonSeatDataSource — nominate picked badge', () => {
       userId: 'host',
       controlledSeat: null,
     });
-    expect(source.getSeat(pickedSeat).statusBadge).toEqual({ label: '队员', tone: 'success' });
-    expect(source.getSeat(leader).statusBadge?.label).toBe('组队者 · 队员');
-    expect(source.getSeat(unpickedSeat).statusBadge).toBeNull();
+    expect(source.getSeat(pickedSeat).indicators?.selection?.kind).toBe('selected');
+    expect(source.getSeat(leader).indicators).toMatchObject({
+      selection: { kind: 'selected' },
+      markers: [{ key: 'leader' }],
+    });
+    expect(source.getSeat(unpickedSeat).indicators?.selection).toBeNull();
     // 预选锁定后两套并存时最终队伍优先：都在的仍亮「队员」。
     send({ type: 'avalon.team.preselect' }, seatUser(leader));
     const preselected = createAvalonSeatDataSource({
@@ -309,11 +340,11 @@ describe('createAvalonSeatDataSource — nominate picked badge', () => {
       userId: 'host',
       controlledSeat: null,
     });
-    expect(preselected.getSeat(pickedSeat).statusBadge).toEqual({
-      label: '队员',
-      tone: 'success',
+    expect(preselected.getSeat(pickedSeat).indicators?.selection?.kind).toBe('selected');
+    expect(preselected.getSeat(leader).indicators).toMatchObject({
+      selection: { kind: 'selected' },
+      markers: [{ key: 'leader' }],
     });
-    expect(preselected.getSeat(leader).statusBadge?.label).toBe('组队者 · 队员');
     // 改选最终队伍：被换出的座位只剩预选事实，亮「预选」。
     send({ type: 'avalon.team.updateDraft', seats: [unpickedSeat, leader] }, seatUser(leader));
     const edited = createAvalonSeatDataSource({
@@ -322,9 +353,12 @@ describe('createAvalonSeatDataSource — nominate picked badge', () => {
       userId: 'host',
       controlledSeat: null,
     });
-    expect(edited.getSeat(pickedSeat).statusBadge).toEqual({ label: '预选', tone: 'info' });
-    expect(edited.getSeat(unpickedSeat).statusBadge).toEqual({ label: '队员', tone: 'success' });
-    expect(edited.getSeat(leader).statusBadge?.label).toBe('组队者 · 队员');
+    expect(edited.getSeat(pickedSeat).indicators?.selection?.kind).toBe('preselected');
+    expect(edited.getSeat(unpickedSeat).indicators?.selection?.kind).toBe('selected');
+    expect(edited.getSeat(leader).indicators).toMatchObject({
+      selection: { kind: 'selected' },
+      markers: [{ key: 'leader' }],
+    });
   });
 });
 
@@ -381,8 +415,10 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
       controlledSeat: null,
     });
     for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
-      const label = source.getSeat(seat).statusBadge?.label ?? null;
-      if (label !== null && label.includes('组队者')) return label;
+      const marker = source
+        .getSeat(seat)
+        .indicators?.markers.find((entry) => entry.key === 'leader');
+      if (marker !== undefined) return marker.label;
     }
     return null;
   }
@@ -470,22 +506,66 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
       ['viewing', null],
       ['night', null],
       ['nominate', '组队者'],
-      ['vote', '组队者 · 队员'],
-      ['quest', '组队者 · 队员'],
+      ['vote', '组队者'],
+      ['quest', '组队者'],
       ['nominate', '组队者'],
     ]);
   });
 
-  it('shows the leader badge during the lady phase of a 9-player game', () => {
-    // 湖中仙女只存在于 9/10 人局（引擎规则），故此用例开 9 人局。
-    const session = startSession(9);
-    beginGame(session);
-    walkNightSteps(session);
-    playSuccessfulRound(session);
-    playSuccessfulRound(session);
-    if (session.state.phase.kind !== 'lady') throw new Error('expected lady phase');
-    expect(leaderBadgeLabel(session.state)).toBe('组队者');
-  });
+  it.each([9, 10] as const)(
+    'shows the Lady from dealing and transfers it independently in a %i-player game',
+    (numberOfPlayers) => {
+      const session = startSession(numberOfPlayers);
+      const source = () =>
+        createAvalonSeatDataSource({
+          state: session.state,
+          revision: 1,
+          userId: 'host',
+          controlledSeat: null,
+        });
+      const ladySeats = () => {
+        const seats = source();
+        return Array.from({ length: numberOfPlayers }, (_entry, seat) => seat).filter((seat) =>
+          seats.getSeat(seat).indicators?.markers.some((marker) => marker.key === 'lady'),
+        );
+      };
+      expect(ladySeats()).toEqual([]);
+      session.send({ type: 'avalon.roles.assign' });
+      const holder = session.state.ladyHolderSeat;
+      if (holder === null) throw new Error('expected initial Lady holder');
+      expect(session.state.phase.kind).toBe('viewing');
+      expect(ladySeats()).toEqual([holder]);
+      for (let seat = 0; seat < numberOfPlayers; seat += 1) {
+        session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
+      }
+      session.send({ type: 'avalon.game.begin' });
+      if (session.state.isAudioPlaying) session.send({ type: 'avalon.audio.ack' });
+      expect(ladySeats()).toEqual([holder]);
+      walkNightSteps(session);
+      expect(ladySeats()).toEqual([holder]);
+      playSuccessfulRound(session);
+      playSuccessfulRound(session);
+      if (session.state.phase.kind !== 'lady') throw new Error('expected lady phase');
+      expect(leaderBadgeLabel(session.state)).toBe('组队者');
+      const target = (session.state.leaderSeat + 1) % numberOfPlayers;
+      session.send({ type: 'avalon.lady.check', seat: target }, session.seatUser(holder));
+      expect(ladySeats()).toEqual([holder]);
+      session.send({ type: 'avalon.lady.acknowledge' }, session.seatUser(target));
+      expect(ladySeats()).toEqual([target]);
+      proposeTeam(session);
+      expect(source().getSeat(target).indicators).toMatchObject({
+        selection: { kind: 'selected', label: '队员' },
+        markers: [{ key: 'leader' }, { key: 'lady' }],
+        progressLabel: null,
+      });
+      session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(target));
+      expect(source().getSeat(target).indicators?.progressLabel).toBeNull();
+      expect(source().getSeat(target).indicators?.selection).toEqual({
+        kind: 'selected',
+        label: '队员',
+      });
+    },
+  );
 
   it('shows the leader badge in the assassin phase and drops it once ended', () => {
     const session = startSession(5);

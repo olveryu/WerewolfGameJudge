@@ -68,7 +68,11 @@ import {
   type RoomHostManagementAction,
   type RoomHostManagementSection,
 } from '@/features/room/model/RoomHostManagement';
-import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
+import type {
+  RoomSeatDataSource,
+  RoomSeatIndicators,
+  RoomSeatMarker,
+} from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { TESTIDS } from '@/testids';
@@ -118,29 +122,41 @@ const AVALON_LEADER_BADGE_PHASES: Readonly<Record<AvalonPhaseKind, boolean>> = {
   ended: false,
 };
 
-function avalonSeatStatusLabel(state: AvalonState, seat: number): string | null {
+function avalonSeatIndicators(
+  state: AvalonState,
+  seat: number,
+  progressLabel: string | null,
+): RoomSeatIndicators | null {
   const phase = state.phase;
+  if (phase.kind === 'lobby') return null;
   const isPicker = state.leaderSeat === seat && AVALON_LEADER_BADGE_PHASES[phase.kind];
-  // 队员事实：提名草稿（服务端权威、全房可见）/ 投票提案 / 任务队伍。
-  // 本函数读的是调用方给的派生输入：组队者本人屏幕由 room-state 以点选
-  // 镜像覆盖 draftSeats（未回声先按镜像亮），其余视角恒为服务端草稿。
   const isTeamMember =
     (phase.kind === 'nominate' && phase.draftSeats.includes(seat)) ||
     (phase.kind === 'vote' && phase.proposedSeats.includes(seat)) ||
     (phase.kind === 'quest' && phase.teamSeats.includes(seat));
-  // 预选事实：nominate 阶段组队者确认的锁定记录（服务端权威、全房
-  // 可见）。最终队伍以草稿为准：同时在两套里时只亮「队员」，预选
-  // 独有的座位才亮「预选」——预选发生与否另由底部 message 宣告。
   const isPreselected = phase.kind === 'nominate' && phase.preselectedSeats.includes(seat);
-  // 组队者只是本轮选队伍的人、不是队伍领袖：被选进队伍时两个事实同显，
-  // 不许组队者标把队员标遮住（组队者选自己进队，座位必须有反馈）。
-  if (isPicker && isTeamMember) return '组队者 · 队员';
-  if (isPicker && isPreselected) return '组队者 · 预选';
-  if (isPicker) return '组队者';
-  if (phase.kind === 'lady' && phase.holderSeat === seat) return '湖仙';
-  if (isTeamMember) return '队员';
-  if (isPreselected) return '预选';
-  return null;
+  const markers: RoomSeatMarker[] = [];
+  if (isPicker)
+    markers.push({
+      key: 'leader',
+      label: '组队者',
+      tone: 'warning',
+    });
+  if (state.ladyHolderSeat === seat)
+    markers.push({
+      key: 'lady',
+      label: '湖仙',
+      tone: 'info',
+    });
+  return {
+    markers,
+    selection: isTeamMember
+      ? { kind: 'selected', label: '队员' }
+      : isPreselected
+        ? { kind: 'preselected', label: '预选' }
+        : null,
+    progressLabel,
+  };
 }
 
 /** 创建共享座位表数据源：含组队者 / 队员 / 湖仙状态徽标（不暴露角色）。 */
@@ -182,39 +198,12 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
     // （begin 进夜晚）即清（展示契约 §3.3 徽标命题，与狼人杀口径一致）。
     resolveShowReadyBadge: (seat) =>
       state.phase.kind === 'viewing' && state.roleViewedSeats.includes(seat),
-    resolveStatusBadge: (seat) => {
-      const statusLabel = avalonSeatStatusLabel(state, seat);
-      // 投票/任务阶段显示已投票/已出牌；夜晚给参与者显示同伴已确认（只暴露是否行动）。
-      const hasVoted = state.phase.kind === 'vote' && state.phase.ballots[seat] !== undefined;
+    resolveIndicators: (seat) => {
       const hasPlayed = state.phase.kind === 'quest' && state.phase.plays[seat] !== undefined;
       const nightConfirmed =
         nightPhase !== null && viewerIsStepParticipant && nightPhase.confirmedSeats.includes(seat);
-      const progressLabel = hasVoted
-        ? '已投票'
-        : hasPlayed
-          ? '已出牌'
-          : nightConfirmed
-            ? '已确认'
-            : null;
-      const combinedLabel =
-        statusLabel !== null && progressLabel !== null
-          ? `${statusLabel} · ${progressLabel}`
-          : (progressLabel ?? statusLabel);
-      return combinedLabel === null
-        ? null
-        : {
-            label: combinedLabel,
-            tone:
-              combinedLabel.includes('已投票') ||
-              combinedLabel.includes('已出牌') ||
-              combinedLabel.includes('已确认')
-                ? 'success'
-                : combinedLabel === '队员'
-                  ? 'success'
-                  : combinedLabel === '预选' || combinedLabel === '组队者 · 预选'
-                    ? 'info'
-                    : 'warning',
-          };
+      const progressLabel = hasPlayed ? '已出牌' : nightConfirmed ? '已确认' : null;
+      return avalonSeatIndicators(state, seat, progressLabel);
     },
   });
 }

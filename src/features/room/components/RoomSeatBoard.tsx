@@ -142,6 +142,7 @@ const RoomSeatBoardComponent: React.FC<RoomSeatBoardProps> = ({
                 secondaryLabel={seatModel.secondaryLabel}
                 showReadyBadge={seatModel.showReadyBadge}
                 statusBadge={seatModel.statusBadge}
+                indicators={seatModel.indicators}
                 isStatusEmphasized={seatModel.isStatusEmphasized}
                 playerLevel={seatModel.player?.level}
                 showLevel={seatModel.showLevel}

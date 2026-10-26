@@ -293,13 +293,17 @@ async function confirmNightInfo(
 // Nomination / vote / quest
 // ---------------------------------------------------------------------------
 
-async function pickTeam(pages: Page[], leaderSeat: number, team: readonly number[]) {
+async function pickTeam(
+  pages: Page[],
+  leaderSeat: number,
+  team: readonly number[],
+  shouldCaptureLayout: boolean,
+) {
   const leaderPage = pages[leaderSeat]!;
-  const leaderRoom = new RoomPage(leaderPage);
   // 组队选人只在 modal 里做：板子点选已停用，modal 本地选择在确认前
   // 不落服务端、不向全房显示；确认后服务端回声才是全房可见的阵容。
   const observerSeat = (leaderSeat + 1) % PLAYER_COUNT;
-  const observerRoom = new RoomPage(pages[observerSeat]!);
+  const observerPage = pages[observerSeat]!;
   // 改选探针座位：不在最终队伍里，用于取消探针与最终改选探针。
   const probeSeat = Array.from({ length: PLAYER_COUNT }, (_, seat) => seat).find(
     (seat) => seat !== leaderSeat && !team.includes(seat),
@@ -320,11 +324,15 @@ async function pickTeam(pages: Page[], leaderSeat: number, team: readonly number
   await expect(pickCount).toContainText(`已选 1/${team.length}`, { timeout: 10_000 });
   await leaderPage.getByTestId('avalon-team-pick-cancel').click();
   await expect(pickModal).toBeHidden({ timeout: 10_000 });
-  await expect(leaderRoom.getSeatTile(probeSeat)).not.toContainText('队员', { timeout: 10_000 });
-  await expect(observerRoom.getSeatTile(probeSeat)).not.toContainText('队员', { timeout: 10_000 });
+  await expect(
+    leaderPage.getByTestId(TESTIDS.seatTilePressable(probeSeat)),
+  ).not.toHaveAccessibleName(/队员/);
+  await expect(
+    observerPage.getByTestId(TESTIDS.seatTilePressable(probeSeat)),
+  ).not.toHaveAccessibleName(/队员/);
 
   // 重开预选 modal 选满最终队伍并确认：服务端回声到后，队员徽标同步
-  // 到组队者与观察者页面（含组队者本人的「组队者 · 队员」）。
+  // 到组队者与观察者页面；组队者身份标记与队伍选择相互独立。
   await preselect.click();
   await expect(pickModal).toBeVisible({ timeout: 10_000 });
   for (const seat of team) {
@@ -336,16 +344,42 @@ async function pickTeam(pages: Page[], leaderSeat: number, team: readonly number
   await pickConfirm.click();
   await expect(pickModal).toBeHidden({ timeout: 10_000 });
   for (const seat of team) {
-    await expect(leaderRoom.getSeatTile(seat)).toContainText('队员', { timeout: 10_000 });
-    await expect(observerRoom.getSeatTile(seat)).toContainText('队员', { timeout: 10_000 });
+    await expect(leaderPage.getByTestId(TESTIDS.seatProgress(seat))).toContainText('队员', {
+      timeout: 10_000,
+    });
+    await expect(observerPage.getByTestId(TESTIDS.seatProgress(seat))).toContainText('队员', {
+      timeout: 10_000,
+    });
     if (seat === leaderSeat) {
-      await expect(leaderRoom.getSeatTile(seat)).toContainText('组队者 · 队员', {
-        timeout: 10_000,
-      });
-      await expect(observerRoom.getSeatTile(seat)).toContainText('组队者 · 队员', {
-        timeout: 10_000,
+      await expect(leaderPage.getByTestId(TESTIDS.seatMarker(seat, 'leader'))).toHaveAccessibleName(
+        '组队者',
+      );
+      await expect(
+        observerPage.getByTestId(TESTIDS.seatMarker(seat, 'leader')),
+      ).toHaveAccessibleName('组队者');
+    }
+  }
+  if (shouldCaptureLayout) {
+    const leaderMarker = leaderPage.getByTestId(TESTIDS.seatMarker(leaderSeat, 'leader'));
+    const ladyMarker = leaderPage.getByTestId(/^seat-marker-\d+-lady$/);
+    for (const viewport of [VIEWPORT, { width: 320, height: 640 }]) {
+      await leaderPage.setViewportSize(viewport);
+      await expect(leaderMarker).toHaveText('组队者');
+      await expect(ladyMarker).toHaveText('湖仙');
+      await leaderMarker.scrollIntoViewIfNeeded();
+      await expect(leaderMarker).toBeVisible();
+      await ladyMarker.scrollIntoViewIfNeeded();
+      await expect(ladyMarker).toBeVisible();
+      await expect(leaderPage.getByTestId('avalon-team-pick-modal')).toBeHidden();
+      expect(
+        await leaderPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      ).toBe(true);
+      await test.info().attach(`avalon-seat-indicators-${viewport.width}`, {
+        body: await leaderPage.screenshot(),
+        contentType: 'image/png',
       });
     }
+    await leaderPage.setViewportSize(VIEWPORT);
   }
   // 预选回声到后，组队者底部主按钮翻成「最终队伍」，非组队者页面宣告预选状态。
   const submit = leaderPage.getByTestId('avalon-nominate-submit');
@@ -373,10 +407,18 @@ async function pickTeam(pages: Page[], leaderSeat: number, team: readonly number
   await expect(pickCount).toContainText(`已选 ${team.length}/${team.length}`, {
     timeout: 10_000,
   });
-  await expect(leaderRoom.getSeatTile(editedOut)).toContainText('队员', { timeout: 10_000 });
-  await expect(observerRoom.getSeatTile(editedOut)).toContainText('队员', { timeout: 10_000 });
-  await expect(leaderRoom.getSeatTile(probeSeat)).not.toContainText('队员', { timeout: 10_000 });
-  await expect(observerRoom.getSeatTile(probeSeat)).not.toContainText('队员', { timeout: 10_000 });
+  await expect(leaderPage.getByTestId(TESTIDS.seatProgress(editedOut))).toContainText('队员', {
+    timeout: 10_000,
+  });
+  await expect(observerPage.getByTestId(TESTIDS.seatProgress(editedOut))).toContainText('队员', {
+    timeout: 10_000,
+  });
+  await expect(
+    leaderPage.getByTestId(TESTIDS.seatTilePressable(probeSeat)),
+  ).not.toHaveAccessibleName(/队员/);
+  await expect(
+    observerPage.getByTestId(TESTIDS.seatTilePressable(probeSeat)),
+  ).not.toHaveAccessibleName(/队员/);
   await pickRow(probeSeat).click();
   await pickRow(editedOut).click();
   await expect(pickCount).toContainText(`已选 ${team.length}/${team.length}`, {
@@ -490,7 +532,7 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
   const leaderSeat = await test.step(`任务${script.round}：定位组队者并组队`, async () => {
     const seat = await findSeatByProbe(pages, LEADER_PICK_PATTERN, '组队者组队提示');
     team = script.teamFor(seat);
-    await pickTeam(pages, seat, team);
+    await pickTeam(pages, seat, team, script.round === 1 && !script.voteResult.approved);
     return seat;
   });
 
@@ -606,10 +648,14 @@ async function runLadyCheck(
 
   // 被查验者先在自己界面确认展示，持有人随后才看到结果。
   const ackModal = targetPage.getByTestId('avalon-lady-acknowledge-modal');
+  await expect(bystanderPage.getByTestId(TESTIDS.seatMarker(holderSeat, 'lady'))).toBeVisible();
+  await expect(bystanderPage.getByTestId(TESTIDS.seatMarker(targetSeat, 'lady'))).toHaveCount(0);
   await expect(ackModal).toBeVisible({ timeout: 15_000 });
   await expect(ackModal).toContainText(`${holderSeat + 1} 号`);
   await targetPage.getByTestId('avalon-lady-acknowledge').click();
   await expect(ackModal).toBeHidden({ timeout: 10_000 });
+  await expect(bystanderPage.getByTestId(TESTIDS.seatMarker(targetSeat, 'lady'))).toBeVisible();
+  await expect(bystanderPage.getByTestId(TESTIDS.seatMarker(holderSeat, 'lady'))).toHaveCount(0);
 
   const resultModal = holderPage.getByTestId('avalon-lady-result-modal');
   await expect(resultModal).toBeVisible({ timeout: 15_000 });
@@ -681,6 +727,8 @@ test.describe('Avalon full game', () => {
           timeout: 15_000,
         });
         const captured: RoleName[] = [];
+        await expect(hostPage.getByTestId(/^seat-marker-\d+-lady$/)).toHaveCount(1);
+        await expect(pages[PLAYER_COUNT - 1]!.getByTestId(/^seat-marker-\d+-lady$/)).toHaveCount(1);
         for (const page of pages) captured.push(await viewAndCaptureRole(page));
         await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
           '开始游戏',

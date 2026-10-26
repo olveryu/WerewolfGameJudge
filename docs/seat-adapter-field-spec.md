@@ -14,6 +14,7 @@
 | `disabledReason`     | `string?`                     | 座位禁用原因（可选）          | 座位不可点时填原因，否则省略                                          |
 | `showReadyBadge`     | `boolean`                     | 是否显示准备徽章              | 大厅阶段已准备的玩家填 true                                           |
 | `statusBadge`        | `RoomSeatStatusBadge \| null` | 状态徽章                      | 有状态（如掉线、托管）则填，否则 null                                 |
+| `indicators`         | `RoomSeatIndicators \| null`  | 独立身份、选择与行动进度      | 不启用时填 null，保持原有徽标布局；标记位置、选择文字和进度由游戏提供 |
 | `isStatusEmphasized` | `boolean`                     | 状态是否强调显示              | 需要引起注意的状态填 true                                             |
 | `showLevel`          | `boolean`                     | 是否显示玩家等级              | 游戏决定；一般填 true                                                 |
 | `decorationsEnabled` | `boolean`                     | 是否启用装饰                  | 玩家装备了装饰则 true                                                 |
@@ -29,7 +30,10 @@
 ### Avalon
 
 - [x] `secondaryLabel`：bot 身份显示（2026-10-08 补）
-- [ ] `highlight`：投票/任务阶段高亮（待补）
+- [x] `indicators.selection`：昵称下方用队员／预选文字区分，不增加入队边框或勾选；不影响接管高亮。
+- [x] `indicators.markers`：头像底部内侧直接显示组队者、湖仙文字，无需点击；双身份并列，窄屏不足时换行。
+- [x] 湖仙读取 `state.ladyHolderSeat`，9/10 人从发牌后持续显示，仅在服务端确认转移后移动；不显示查验结果。
+- [x] `indicators.progressLabel`：昵称下方紧凑显示已出牌或可见的夜间确认进度，不显示逐座已投票；队员／预选单独保留，无内容不预留空行。
 
 ### Fibking
 
