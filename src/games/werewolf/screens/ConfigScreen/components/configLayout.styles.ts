@@ -1,15 +1,13 @@
 /**
- * ConfigScreen layout / scaffold styles -- container, headers, cards, scroll, loading.
+ * ConfigScreen layout / scaffold styles -- header center, cards, scroll.
  *
  * Used primarily by ConfigScreen.tsx itself.
  */
 import type { TextStyle, ViewStyle } from 'react-native';
-import { StyleSheet } from 'react-native';
 
 import {
   borderRadius,
   componentSizes,
-  createSharedStyles,
   fixed,
   layout,
   shadows,
@@ -20,103 +18,10 @@ import {
 
 /** Create ConfigScreen layout styles. */
 export const createConfigLayoutStyles = (colors: ThemeColors) => ({
-  container: {
-    flex: 1,
-    backgroundColor: colors.transparent,
-    overflow: 'hidden', // Ensures flex children respect height constraints on web
-  } satisfies ViewStyle,
-
-  // ── Header row: ← | Seer-Witch-Hunter-Villager▾ 12p | ⋯ ────────────
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: layout.screenPaddingH,
-    paddingVertical: layout.headerPaddingV,
-    backgroundColor: colors.surface,
-    borderBottomWidth: fixed.borderWidth,
-    borderBottomColor: colors.border,
-  } satisfies ViewStyle,
-  headerBtn: {
-    ...createSharedStyles(colors).iconButton,
-    borderRadius: borderRadius.full,
-    overflow: 'hidden',
-  } satisfies ViewStyle,
-  headerBtnText: {
-    fontSize: typography.title,
-    lineHeight: typography.lineHeights.title,
-    color: colors.text,
-  } satisfies TextStyle,
+  // ── ScreenHeader center: board pill + player count ──
   headerCenter: {
-    ...StyleSheet.absoluteFill,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.small,
-    pointerEvents: 'box-none',
-  } satisfies ViewStyle,
-  headerTitle: {
-    fontSize: layout.headerTitleSize,
-    lineHeight: layout.headerTitleLineHeight,
-    fontWeight: typography.weights.bold,
-    color: colors.text,
-  } satisfies TextStyle,
-
-  // ── Overflow (⋯) popup menu ──────────────────────
-  overflowMenuOverlay: {
-    ...StyleSheet.absoluteFill,
-    zIndex: 100,
-  } satisfies ViewStyle,
-  overflowMenu: {
-    position: 'absolute',
-    top: spacing.medium + componentSizes.avatar.md + spacing.tight,
-    right: layout.screenPaddingH,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.medium,
-    paddingVertical: spacing.tight,
-    ...shadows.md,
-    zIndex: 101,
-    minWidth: componentSizes.menu.compactMinWidth,
-  } satisfies ViewStyle,
-  overflowMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.medium,
-    paddingVertical: spacing.small + spacing.tight,
-    gap: spacing.small,
-  } satisfies ViewStyle,
-  overflowMenuItemIcon: {
-    width: componentSizes.icon.md,
-    textAlign: 'center',
-  } satisfies TextStyle,
-  overflowMenuItemText: {
-    fontSize: typography.secondary,
-    lineHeight: typography.lineHeights.secondary,
-    color: colors.text,
-    fontWeight: typography.weights.medium,
-  } satisfies TextStyle,
-
-  // ── Card A: template + faction tabs (merged card) ──
-  cardA: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.large,
-    marginHorizontal: layout.screenPaddingH,
-    marginTop: spacing.small,
-    overflow: 'hidden',
-    ...shadows.md,
-  } satisfies ViewStyle,
-  cardADivider: {
-    height: fixed.divider,
-    backgroundColor: colors.border,
-    marginHorizontal: layout.cardPadding,
-  } satisfies ViewStyle,
-
-  // ── Template row (inside cardA) ──
-  templateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.small + spacing.tight,
     gap: spacing.small,
   } satisfies ViewStyle,
   templatePill: {
@@ -136,36 +41,21 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     fontWeight: typography.weights.semibold,
     color: colors.text,
   } satisfies TextStyle,
-  templatePillArrow: {
-    fontSize: typography.secondary,
-    lineHeight: typography.lineHeights.secondary,
-    color: colors.textSecondary,
-    marginLeft: spacing.tight,
-  } satisfies TextStyle,
   playerCount: {
     fontSize: typography.subtitle,
     lineHeight: typography.lineHeights.subtitle,
     fontWeight: typography.weights.medium,
     color: colors.textSecondary,
   } satisfies TextStyle,
-  clearBtn: {
-    paddingHorizontal: spacing.small,
-    paddingVertical: spacing.tight,
-  } satisfies ViewStyle,
-  clearBtnText: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    color: colors.error,
-  } satisfies TextStyle,
 
-  // ── Bottom create button ────────────────────
-  bottomCreateBar: {
-    paddingHorizontal: layout.screenPaddingH,
-    paddingVertical: spacing.medium,
+  // ── Card A: faction tabs ──
+  cardA: {
     backgroundColor: colors.surface,
-    borderTopWidth: fixed.borderWidth,
-    borderTopColor: colors.border,
-    ...shadows.lgUpward,
+    borderRadius: borderRadius.large,
+    marginHorizontal: layout.screenPaddingH,
+    marginTop: spacing.small,
+    overflow: 'hidden',
+    ...shadows.md,
   } satisfies ViewStyle,
 
   // ── Card B: stepper + role sections ──
@@ -199,17 +89,4 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     flexGrow: 1,
     paddingBottom: spacing.large,
   } satisfies ViewStyle,
-
-  // ── Loading ─────────────────────────────────
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  } satisfies ViewStyle,
-  loadingText: {
-    marginTop: spacing.medium,
-    fontSize: typography.body,
-    lineHeight: typography.lineHeights.body,
-    color: colors.textSecondary,
-  } satisfies TextStyle,
 });

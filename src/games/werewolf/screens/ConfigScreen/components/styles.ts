@@ -9,39 +9,17 @@ import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 import type { ThemeColors } from '@/theme';
 
 import { createConfigLayoutStyles } from './configLayout.styles';
-import { createDropdownStyles } from './dropdown.styles';
 import { createFactionTabsStyles } from './factionTabs.styles';
 import { createRoleSelectorStyles } from './roleSelector.styles';
-import { createSheetStyles } from './sheet.styles';
 
 export interface ConfigScreenStyles {
-  container: ViewStyle;
-  // Header row (back + template pill · count + ⋯)
-  header: ViewStyle;
-  headerBtn: ViewStyle;
-  headerBtnText: TextStyle;
+  // ScreenHeader center (board pill + player count)
   headerCenter: ViewStyle;
-  headerTitle: TextStyle;
-  // Overflow (⋯) menu
-  overflowMenuOverlay: ViewStyle;
-  overflowMenu: ViewStyle;
-  overflowMenuItem: ViewStyle;
-  overflowMenuItemIcon: TextStyle;
-  overflowMenuItemText: TextStyle;
-  // Card A (faction tabs)
-  cardA: ViewStyle;
-  cardADivider: ViewStyle;
-  // Header row 2 (template pill + player count, inside cardA)
-  templateRow: ViewStyle;
   templatePill: ViewStyle;
   templatePillText: TextStyle;
-  templatePillArrow: TextStyle;
   playerCount: TextStyle;
-  clearBtn: ViewStyle;
-  clearBtnText: TextStyle;
-  // Bottom create button
-  bottomCreateBar: ViewStyle;
-  // Faction tab bar (inside cardA)
+  // Card A (faction tabs)
+  cardA: ViewStyle;
   tabBar: ViewStyle;
   tab: ViewStyle;
   tabActive: ViewStyle;
@@ -51,18 +29,7 @@ export interface ConfigScreenStyles {
   // Card B (stepper + role sections)
   cardB: ViewStyle;
   cardBDivider: ViewStyle;
-  // Settings row (used by Dropdown)
-  settingsRow: ViewStyle;
-  settingsItem: ViewStyle;
-  settingsLabel: TextStyle;
-  settingsSelector: ViewStyle;
-  settingsSelectorText: TextStyle;
-  settingsSelectorArrow: TextStyle;
-  // Settings sheet (Animation + BGM)
-  settingsSheetOverlay: ViewStyle;
-  settingsSheetContent: ViewStyle;
-  settingsSheetHandle: ViewStyle;
-  settingsSheetTitle: TextStyle;
+  cardBFooterHint: TextStyle;
   // Section (within tab content) — iOS Grouped Card
   section: ViewStyle;
   sectionTitle: TextStyle;
@@ -78,8 +45,6 @@ export interface ConfigScreenStyles {
   chipText: TextStyle;
   chipTextSelected: TextStyle;
   chipVariant: ViewStyle;
-  cardBFooterHint: TextStyle;
-
   // Role stepper
   stepperRow: ViewStyle;
   stepperLabel: TextStyle;
@@ -93,29 +58,6 @@ export interface ConfigScreenStyles {
   // Scroll area
   scrollView: ViewStyle;
   scrollContent: ViewStyle;
-  // Loading
-  loadingContainer: ViewStyle;
-  loadingText: TextStyle;
-  // Settings chip group (SettingsSheet / TemplatePicker)
-  settingsChipGroup: ViewStyle;
-  settingsChipGroupLabel: TextStyle;
-  settingsChipWrap: ViewStyle;
-  settingsChip: ViewStyle;
-  settingsChipSelected: ViewStyle;
-  settingsChipText: TextStyle;
-  settingsChipTextSelected: TextStyle;
-  // Modal styles (for Dropdown)
-  modalOverlay: ViewStyle;
-  modalContent: ViewStyle;
-  modalHeader: ViewStyle;
-  modalTitle: TextStyle;
-  modalCloseBtn: ViewStyle;
-  modalCloseBtnText: TextStyle;
-  modalOption: ViewStyle;
-  modalOptionSelected: ViewStyle;
-  modalOptionText: TextStyle;
-  modalOptionTextSelected: TextStyle;
-  modalOptionCheck: TextStyle;
 }
 
 export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyles =>
@@ -123,6 +65,4 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     ...createConfigLayoutStyles(colors),
     ...createFactionTabsStyles(colors),
     ...createRoleSelectorStyles(colors),
-    ...createDropdownStyles(colors),
-    ...createSheetStyles(colors),
   });

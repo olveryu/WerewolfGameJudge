@@ -1,7 +1,6 @@
 /**
  * ConfigScreen components barrel export
  */
-export { Dropdown } from './Dropdown';
 export type { FactionTabItem } from './FactionTabs';
 export { FactionTabs } from './FactionTabs';
 export type { FactionColorKey } from './RoleChip';

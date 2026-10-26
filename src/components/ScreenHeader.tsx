@@ -15,8 +15,8 @@ import { componentSizes, fixed, layout, spacing, typography } from '@/theme/toke
 import { Button } from './Button';
 
 interface ScreenHeaderProps {
-  /** Header title text. */
-  title: string;
+  /** Header title text, or a custom (possibly interactive) center node. */
+  title: string | React.ReactNode;
   /** Back button callback. */
   onBack: () => void;
   /** Custom right-side content. */
@@ -52,8 +52,12 @@ export const ScreenHeader = memo<ScreenHeaderProps>(function ScreenHeader({
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
         </Button>
       </View>
-      <View style={styles.centerContainer}>
-        <Text style={styles.title}>{title}</Text>
+      <View
+        style={styles.centerContainer}
+        // A custom center node may be tappable; plain titles must not block side buttons.
+        pointerEvents={typeof title === 'string' ? 'none' : 'box-none'}
+      >
+        {typeof title === 'string' ? <Text style={styles.title}>{title}</Text> : title}
       </View>
       <View style={styles.sideContainer}>{headerRight}</View>
     </View>
@@ -81,7 +85,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
-    pointerEvents: 'none',
   },
   title: {
     fontSize: layout.headerTitleSize,

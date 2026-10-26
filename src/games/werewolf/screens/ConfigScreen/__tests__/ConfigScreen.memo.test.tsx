@@ -8,7 +8,6 @@ import { fireEvent, render } from '@testing-library/react-native';
 import {
   type ConfigScreenStyles,
   createConfigScreenStyles,
-  Dropdown,
   RoleChip,
   Section,
 } from '@/games/werewolf/screens/ConfigScreen/components';
@@ -59,48 +58,20 @@ describe('ConfigScreen Performance Optimizations', () => {
   describe('createConfigScreenStyles', () => {
     it('should return styles with all required keys', () => {
       const expectedKeys = [
-        'container',
-        'header',
-        'headerBtn',
-        'headerBtnText',
         'headerCenter',
-        'headerTitle',
-        'overflowMenuOverlay',
-        'overflowMenu',
-        'overflowMenuItem',
-        'overflowMenuItemIcon',
-        'overflowMenuItemText',
-        'templateRow',
         'templatePill',
         'templatePillText',
-        'templatePillArrow',
         'playerCount',
-        'clearBtn',
-        'clearBtnText',
-        'bottomCreateBar',
+        'cardA',
         'tabBar',
         'tab',
         'tabActive',
         'tabLabel',
         'tabLabelActive',
         'tabIndicator',
-        'settingsRow',
-        'settingsItem',
-        'settingsLabel',
-        'settingsSelector',
-        'settingsSelectorText',
-        'settingsSelectorArrow',
-        'settingsSheetOverlay',
-        'settingsSheetContent',
-        'settingsSheetHandle',
-        'settingsSheetTitle',
-        'settingsChipGroup',
-        'settingsChipGroupLabel',
-        'settingsChipWrap',
-        'settingsChip',
-        'settingsChipSelected',
-        'settingsChipText',
-        'settingsChipTextSelected',
+        'cardB',
+        'cardBDivider',
+        'cardBFooterHint',
         'section',
         'sectionTitle',
         'sectionCard',
@@ -113,6 +84,7 @@ describe('ConfigScreen Performance Optimizations', () => {
         'chipSelectedThird',
         'chipText',
         'chipTextSelected',
+        'chipVariant',
         'stepperRow',
         'stepperLabel',
         'stepperPill',
@@ -123,19 +95,7 @@ describe('ConfigScreen Performance Optimizations', () => {
         'stepperBtnTextDisabled',
         'stepperCount',
         'scrollView',
-        'loadingContainer',
-        'loadingText',
-        'modalOverlay',
-        'modalContent',
-        'modalHeader',
-        'modalTitle',
-        'modalCloseBtn',
-        'modalCloseBtnText',
-        'modalOption',
-        'modalOptionSelected',
-        'modalOptionText',
-        'modalOptionTextSelected',
-        'modalOptionCheck',
+        'scrollContent',
       ];
 
       for (const key of expectedKeys) {
@@ -147,7 +107,7 @@ describe('ConfigScreen Performance Optimizations', () => {
       const styles1 = createConfigScreenStyles(mockColors);
       const styles2 = createConfigScreenStyles(mockColors);
 
-      expect(styles1.container).toEqual(styles2.container);
+      expect(styles1.cardB).toEqual(styles2.cardB);
       expect(styles1.chip).toEqual(styles2.chip);
       expect(styles1.chipSelected).toEqual(styles2.chipSelected);
     });
@@ -197,34 +157,6 @@ describe('ConfigScreen Performance Optimizations', () => {
 
       expect(getByText('神职')).toBeTruthy();
       expect(getByText('预言家')).toBeTruthy();
-    });
-  });
-
-  describe('Dropdown component', () => {
-    const mockSelect = jest.fn();
-    const options = [
-      { value: 'a', label: 'Option A' },
-      { value: 'b', label: 'Option B' },
-      { value: 'c', label: 'Option C' },
-    ];
-
-    beforeEach(() => {
-      mockSelect.mockClear();
-    });
-
-    it('should render with selected value label', () => {
-      const { getByText } = render(
-        <Dropdown
-          label="Test Dropdown"
-          value="b"
-          options={options}
-          onSelect={mockSelect}
-          styles={styles}
-        />,
-      );
-
-      expect(getByText('Test Dropdown')).toBeTruthy();
-      expect(getByText('Option B')).toBeTruthy();
     });
   });
 
