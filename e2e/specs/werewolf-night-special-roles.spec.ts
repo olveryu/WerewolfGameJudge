@@ -92,9 +92,9 @@ test.describe('Werewolf Night — Special Roles: TreasureMaster', () => {
 
         for (const wIdx of wolfIndices) {
           await dismissAlert(pages[wIdx]!);
-          const emptyKillBtn = pages[wIdx]!.locator('[data-testid="bottom-action-panel"]')
-            .getByText('放弃袭击', { exact: false })
-            .first();
+          const emptyKillBtn = pages[wIdx]!.locator(
+            '[data-testid="bottom-action-panel"]',
+          ).getByRole('button', { name: '确认放弃袭击', exact: true });
           await emptyKillBtn.waitFor({ state: 'visible', timeout: 5000 });
           await emptyKillBtn.click();
           await dismissAlert(pages[wIdx]!);

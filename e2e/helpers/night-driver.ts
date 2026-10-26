@@ -263,7 +263,7 @@ const ADVANCE_BUTTONS = [
   '不用技能',
   '发动状态',
   '查看技能状态',
-  '跳过（技能被封锁）', // nightmare-blocked roles
+  '确认跳过', // nightmare-blocked roles
 ];
 
 /**
@@ -305,7 +305,7 @@ export async function tryClickAdvanceButton(
   // Check bottom action panel
   const panel = page.locator('[data-testid="bottom-action-panel"]');
   for (const text of buttons) {
-    const btn = panel.getByText(text, { exact: true }).first();
+    const btn = panel.getByRole('button', { name: text, exact: true });
     if (await btn.isVisible().catch(() => false)) {
       if (await clickCapped(btn, `advance panel "${text}"`)) {
         log(`tryClickAdvanceButton${tag} — panel "${text}" clicked`);
