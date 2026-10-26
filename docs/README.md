@@ -5,17 +5,18 @@
 
 ## 1. 平台架构（现行）
 
-| 文档                                                         | 说明                                                                                   |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| [multigame-platform-design.md](multigame-platform-design.md) | 多游戏平台三层架构（Platform / Game module / Catalog）、不变量与第 25 节新游戏接入清单 |
-| [room-shell-contract.md](room-shell-contract.md)             | config / guide / room 共享组件归属契约与完整状态验收矩阵                               |
-| [seat-adapter-field-spec.md](seat-adapter-field-spec.md)     | `RoomSeatViewModel` 字段语义与各游戏座位 adapter 填充规则                              |
-| [roomscreen-state-machine.md](roomscreen-state-machine.md)   | 狼人杀 RoomScreen UI 状态机（GameStatus → 按钮 / Schema Kind → 交互模式）              |
-| [room-session-lifecycle.md](room-session-lifecycle.md)       | `RoomSession` 所有权、独占租约、连接与退出生命周期                                     |
-| [network-resilience-design.md](network-resilience-design.md) | 多游戏网络层：fetch 重试、命令恢复、WebSocket 重连策略                                 |
-| [outbox-recovery.md](outbox-recovery.md)                     | DO transactional outbox 的终态投递与管理端结算重放                                     |
-| [auth-session-design.md](auth-session-design.md)             | 身份会话、`AuthSession` 缓存与用户资料的状态归属                                       |
-| [DESIGN.md](DESIGN.md)                                       | 视觉基准与主题 token（以狼人杀为主）                                                   |
+| 文档                                                         | 说明                                                                                    |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| [multigame-platform-design.md](multigame-platform-design.md) | 多游戏平台三层架构（Platform / Game module / Catalog）、不变量与第 25 节新游戏接入清单  |
+| [room-shell-contract.md](room-shell-contract.md)             | config / guide / room 共享组件归属契约与完整状态验收矩阵                                |
+| [game-config-schema-design.md](game-config-schema-design.md) | 游戏配置 Schema 驱动设计（设计稿）：引擎单源描述符 → worker zod → 客户端 GameConfigForm |
+| [seat-adapter-field-spec.md](seat-adapter-field-spec.md)     | `RoomSeatViewModel` 字段语义与各游戏座位 adapter 填充规则                               |
+| [roomscreen-state-machine.md](roomscreen-state-machine.md)   | 狼人杀 RoomScreen UI 状态机（GameStatus → 按钮 / Schema Kind → 交互模式）               |
+| [room-session-lifecycle.md](room-session-lifecycle.md)       | `RoomSession` 所有权、独占租约、连接与退出生命周期                                      |
+| [network-resilience-design.md](network-resilience-design.md) | 多游戏网络层：fetch 重试、命令恢复、WebSocket 重连策略                                  |
+| [outbox-recovery.md](outbox-recovery.md)                     | DO transactional outbox 的终态投递与管理端结算重放                                      |
+| [auth-session-design.md](auth-session-design.md)             | 身份会话、`AuthSession` 缓存与用户资料的状态归属                                        |
+| [DESIGN.md](DESIGN.md)                                       | 视觉基准与主题 token（以狼人杀为主）                                                    |
 
 ## 2. 各游戏设计
 
