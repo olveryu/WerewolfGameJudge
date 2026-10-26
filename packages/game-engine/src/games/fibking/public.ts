@@ -41,6 +41,8 @@ export { type FibPublicStats, parseFibPublicStats } from './publicStats';
 export { FIB_STATE_CODEC } from './state/codec';
 export { migratePersistedFibState, parseFibState } from './state/parseState';
 export {
+  DEFAULT_FIB_CONFIG,
+  FIB_CONFIG_SCHEMA,
   FIB_DEFAULT_PLAYERS,
   FIB_DEFINITION_FIELD_MAX_LENGTH,
   FIB_DEFINITION_FIELD_MIN_LENGTH,
@@ -79,6 +81,7 @@ export {
   isFibPreparationStage,
   isFibRoomFull,
   isFibWordSource,
+  isValidFibConfig,
   isValidFibDefinitionField,
   isValidFibPlayerCount,
   isValidFibWord,

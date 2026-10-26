@@ -1,6 +1,7 @@
 /** Undercover room mounts exclusively through shared authentication, session and shell boundaries. */
 import {
   getUndercoverOccupiedSeatCount,
+  UNDERCOVER_CATEGORY_NAMES,
   type UndercoverRole,
 } from '@game-judge/game-engine/games/undercover/public';
 import { useCallback, useMemo, useState } from 'react';
@@ -28,11 +29,7 @@ import {
 } from './components/UndercoverRoleCardAdapter';
 import { UndercoverWordModal } from './components/UndercoverWordModal';
 import { useUndercoverRoomScreenState } from './hooks/useUndercoverRoomScreenState';
-import {
-  createUndercoverBoardInfoSections,
-  UNDERCOVER_CATEGORY_NAMES,
-  UNDERCOVER_ROLE_NAMES,
-} from './undercoverRoomAdapter';
+import { createUndercoverBoardInfoSections, UNDERCOVER_ROLE_NAMES } from './undercoverRoomAdapter';
 
 interface UndercoverRoomScreenProps extends GameRoomScreenProps<'undercover'> {
   readonly session: UndercoverRoomSession;

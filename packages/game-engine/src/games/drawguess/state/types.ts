@@ -1,5 +1,7 @@
 /** Authoritative DrawGuess (经典你画我猜) state; Gartic-style draw-and-guess, pure logic without IO. */
 
+import type { GameConfigSchema } from '../../../platform/config/configSchema';
+import { isValidConfig } from '../../../platform/config/configSchema';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
 import {
@@ -66,6 +68,24 @@ export const DEFAULT_DRAWGUESS_CONFIG: DrawGuessConfig = {
   wordSelectSeconds: DRAWGUESS_WORD_SELECT_SECONDS,
   roundEndSeconds: DRAWGUESS_ROUND_END_SECONDS,
   hintRevealIntervalSeconds: DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS,
+};
+
+export const DRAWGUESS_CONFIG_SCHEMA: GameConfigSchema<DrawGuessConfig> = {
+  fields: {
+    numberOfPlayers: {
+      kind: 'count',
+      label: '玩家人数',
+      min: DRAWGUESS_MIN_PLAYERS,
+      max: DRAWGUESS_MAX_PLAYERS,
+    },
+    drawingDurationSeconds: { kind: 'fixed', value: DRAWGUESS_DRAWING_DURATION_SECONDS },
+    roundsPerDrawer: { kind: 'fixed', value: DRAWGUESS_ROUNDS_PER_DRAWER },
+    wordSelectSeconds: { kind: 'fixed', value: DRAWGUESS_WORD_SELECT_SECONDS },
+    roundEndSeconds: { kind: 'fixed', value: DRAWGUESS_ROUND_END_SECONDS },
+    hintRevealIntervalSeconds: { kind: 'fixed', value: DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS },
+  },
+  defaults: DEFAULT_DRAWGUESS_CONFIG,
+  validate: () => null,
 };
 
 export interface DrawGuessHumanSeat extends SeatOccupant {
@@ -206,16 +226,7 @@ export interface DrawGuessState extends BaseGameState<typeof DRAWGUESS_GAME_TYPE
 
 /** Checks supported lobby settings without replacing invalid values. */
 export function isValidDrawGuessConfig(config: DrawGuessConfig): boolean {
-  return (
-    Number.isSafeInteger(config.numberOfPlayers) &&
-    config.numberOfPlayers >= DRAWGUESS_MIN_PLAYERS &&
-    config.numberOfPlayers <= DRAWGUESS_MAX_PLAYERS &&
-    config.drawingDurationSeconds === DRAWGUESS_DRAWING_DURATION_SECONDS &&
-    config.roundsPerDrawer === DRAWGUESS_ROUNDS_PER_DRAWER &&
-    config.wordSelectSeconds === DRAWGUESS_WORD_SELECT_SECONDS &&
-    config.roundEndSeconds === DRAWGUESS_ROUND_END_SECONDS &&
-    config.hintRevealIntervalSeconds === DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS
-  );
+  return isValidConfig(DRAWGUESS_CONFIG_SCHEMA, config);
 }
 
 /** Returns the seat held by a user, or null when they hold no seat. */

@@ -16,6 +16,7 @@ export {
   getStoryRelayOccupiedSeatCount,
   getStoryRelayUserSeat,
   isValidStoryRelayConfig,
+  STORY_RELAY_CONFIG_SCHEMA,
   STORY_RELAY_GALLERY_DURATIONS,
   STORY_RELAY_GAME_TYPE,
   STORY_RELAY_MAX_PLAYERS,

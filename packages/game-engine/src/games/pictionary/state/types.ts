@@ -1,5 +1,7 @@
 /** Authoritative compact state for Pictionary relay rooms. */
 
+import type { GameConfigSchema } from '../../../platform/config/configSchema';
+import { isValidConfig } from '../../../platform/config/configSchema';
 import type { PictionaryGameType } from '../../../platform/protocol/gameTypes';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
@@ -52,6 +54,43 @@ export const DEFAULT_PICTIONARY_CONFIG: PictionaryConfig = {
   guessDurationSeconds: 45,
   transitionDurationSeconds: 5,
   galleryItemDurationSeconds: 5,
+};
+
+export const PICTIONARY_CONFIG_SCHEMA: GameConfigSchema<PictionaryConfig> = {
+  fields: {
+    numberOfPlayers: {
+      kind: 'count',
+      label: '玩家人数',
+      min: PICTIONARY_MIN_PLAYERS,
+      max: PICTIONARY_MAX_PLAYERS,
+    },
+    drawingDurationSeconds: {
+      kind: 'duration',
+      label: '绘画时间',
+      hint: '默认 120 秒，足够画清重点',
+      values: PICTIONARY_DRAWING_DURATIONS,
+    },
+    guessDurationSeconds: {
+      kind: 'duration',
+      label: '文字作答时间',
+      hint: '用于开场出题和看图猜词',
+      values: PICTIONARY_GUESS_DURATIONS,
+    },
+    transitionDurationSeconds: {
+      kind: 'duration',
+      label: '每棒间隔',
+      hint: '给大家留一点换手时间',
+      values: PICTIONARY_TRANSITION_DURATIONS,
+    },
+    galleryItemDurationSeconds: {
+      kind: 'duration',
+      label: '结果播放',
+      hint: '不限时会改为房主手动翻页',
+      values: PICTIONARY_GALLERY_ITEM_DURATIONS,
+    },
+  },
+  defaults: DEFAULT_PICTIONARY_CONFIG,
+  validate: () => null,
 };
 
 export type PictionarySeatProfile = RoomSeatProfile;
@@ -157,14 +196,6 @@ const C0_CONTROL_CHARACTER_END = 0x1f;
 const DELETE_CONTROL_CHARACTER = 0x7f;
 const C1_CONTROL_CHARACTER_END = 0x9f;
 
-export function isValidPictionaryPlayerCount(value: number): boolean {
-  return (
-    Number.isSafeInteger(value) &&
-    value >= PICTIONARY_MIN_PLAYERS &&
-    value <= PICTIONARY_MAX_PLAYERS
-  );
-}
-
 export function getPictionaryTextGraphemeCount(value: string): number {
   return Array.from(PICTIONARY_GRAPHEME_SEGMENTER.segment(value)).length;
 }
@@ -190,13 +221,7 @@ export function isValidPictionaryText(value: string): boolean {
 }
 
 export function isValidPictionaryConfig(config: PictionaryConfig): boolean {
-  return (
-    isValidPictionaryPlayerCount(config.numberOfPlayers) &&
-    PICTIONARY_DRAWING_DURATIONS.includes(config.drawingDurationSeconds) &&
-    PICTIONARY_GUESS_DURATIONS.includes(config.guessDurationSeconds) &&
-    PICTIONARY_TRANSITION_DURATIONS.includes(config.transitionDurationSeconds) &&
-    PICTIONARY_GALLERY_ITEM_DURATIONS.includes(config.galleryItemDurationSeconds)
-  );
+  return isValidConfig(PICTIONARY_CONFIG_SCHEMA, config);
 }
 
 export function getPictionaryExpectedKind(stepIndex: number): PictionaryExpectedEntryKind {

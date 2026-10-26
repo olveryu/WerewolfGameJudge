@@ -1,5 +1,7 @@
 /** Authoritative Story Relay state; plain text only, without IO. */
 
+import type { GameConfigSchema } from '../../../platform/config/configSchema';
+import { isValidConfig } from '../../../platform/config/configSchema';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
 import {
@@ -38,6 +40,35 @@ export const DEFAULT_STORY_RELAY_CONFIG: StoryRelayConfig = {
   writingDurationSeconds: 90,
   transitionDurationSeconds: 3,
   galleryItemDurationSeconds: null,
+};
+
+export const STORY_RELAY_CONFIG_SCHEMA: GameConfigSchema<StoryRelayConfig> = {
+  fields: {
+    numberOfPlayers: {
+      kind: 'count',
+      label: '玩家人数',
+      min: STORY_RELAY_MIN_PLAYERS,
+      max: STORY_RELAY_MAX_PLAYERS,
+    },
+    writingDurationSeconds: {
+      kind: 'duration',
+      label: '写作时间',
+      values: STORY_RELAY_WRITING_DURATIONS,
+    },
+    transitionDurationSeconds: {
+      kind: 'duration',
+      label: '每棒间隔',
+      values: STORY_RELAY_TRANSITION_DURATIONS,
+    },
+    galleryItemDurationSeconds: {
+      kind: 'duration',
+      label: '每段回放',
+      values: STORY_RELAY_GALLERY_DURATIONS,
+      nullLabel: '手动翻页',
+    },
+  },
+  defaults: DEFAULT_STORY_RELAY_CONFIG,
+  validate: () => null,
 };
 
 export interface StoryRelayHumanSeat extends SeatOccupant {
@@ -101,14 +132,7 @@ export interface StoryRelayTask {
 
 /** Checks supported lobby settings without replacing invalid values. */
 export function isValidStoryRelayConfig(config: StoryRelayConfig): boolean {
-  return (
-    Number.isSafeInteger(config.numberOfPlayers) &&
-    config.numberOfPlayers >= STORY_RELAY_MIN_PLAYERS &&
-    config.numberOfPlayers <= STORY_RELAY_MAX_PLAYERS &&
-    STORY_RELAY_WRITING_DURATIONS.includes(config.writingDurationSeconds) &&
-    STORY_RELAY_TRANSITION_DURATIONS.includes(config.transitionDurationSeconds) &&
-    STORY_RELAY_GALLERY_DURATIONS.includes(config.galleryItemDurationSeconds)
-  );
+  return isValidConfig(STORY_RELAY_CONFIG_SCHEMA, config);
 }
 
 /** Counts occupied seats (humans and bots). */

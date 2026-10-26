@@ -64,8 +64,8 @@ import {
   getFibRole,
   getFibViewingParticipants,
   isFibRoomFull,
+  isValidFibConfig,
   isValidFibDefinitionField,
-  isValidFibPlayerCount,
   isValidFibWord,
   type PendingFibRound,
 } from './state/types';
@@ -368,7 +368,7 @@ function decideCompleteFibRound(
 }
 
 function createInitialFibState(config: FibConfig, context: CreateGameContext): FibState {
-  if (!isValidFibPlayerCount(config.numberOfPlayers)) {
+  if (!isValidFibConfig(config)) {
     throw new Error(
       `Invalid Fib config: numberOfPlayers must be an integer between ${FIB_MIN_PLAYERS} and ${FIB_MAX_PLAYERS}`,
     );

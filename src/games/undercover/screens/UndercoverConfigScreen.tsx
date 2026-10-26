@@ -3,6 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   getUndercoverRoleCounts,
   isValidUndercoverConfig,
+  UNDERCOVER_CATEGORY_NAMES,
   UNDERCOVER_DEFAULT_PLAYERS,
   UNDERCOVER_MAX_PLAYERS,
   UNDERCOVER_MIN_PLAYERS,
@@ -37,7 +38,6 @@ import { configLog } from '@/utils/logger';
 
 import type { UndercoverRoomSession } from '../model/UndercoverRoomSession';
 import { parseUndercoverConfigRouteParams } from '../navigation/undercoverGameNavigation';
-import { UNDERCOVER_CATEGORY_NAMES } from '../room/undercoverRoomAdapter';
 import { getUndercoverRoomCommandFailureMessage } from '../room/undercoverRoomCommandFailureMessage';
 import { undercoverInventoryOptions } from '../services/undercoverInventory';
 

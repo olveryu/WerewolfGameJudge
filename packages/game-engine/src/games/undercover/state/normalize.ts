@@ -1,35 +1,16 @@
 /** Fail-fast Undercover invariants for the trusted typed engine state. */
 
 import { isBotOccupant } from '../../../platform/room/seating';
-import {
-  getUndercoverRoleCounts,
-  getUndercoverWinner,
-  UNDERCOVER_BLANK_MIN_PLAYERS,
-  UNDERCOVER_MAX_PLAYERS,
-  UNDERCOVER_MIN_PLAYERS,
-} from '../domain/rules';
+import { getUndercoverRoleCounts, getUndercoverWinner } from '../domain/rules';
 import {
   getUndercoverOccupiedSeatCount,
   isUndercoverSeat,
+  isValidUndercoverConfig,
   UNDERCOVER_CATEGORIES,
-  type UndercoverConfig,
   type UndercoverState,
   type UndercoverWordPair,
 } from './types';
 import { UNDERCOVER_STATE_VERSION } from './version';
-
-/** Validates a configuration without substituting defaults. */
-export function isValidUndercoverConfig(config: UndercoverConfig): boolean {
-  return (
-    Number.isSafeInteger(config.numberOfPlayers) &&
-    config.numberOfPlayers >= UNDERCOVER_MIN_PLAYERS &&
-    config.numberOfPlayers <= UNDERCOVER_MAX_PLAYERS &&
-    typeof config.hasBlank === 'boolean' &&
-    (!config.hasBlank || config.numberOfPlayers >= UNDERCOVER_BLANK_MIN_PLAYERS) &&
-    (config.category === 'all' ||
-      UNDERCOVER_CATEGORIES.some((category) => category === config.category))
-  );
-}
 
 /** Validates a selected word pair; content quality belongs to the supply review pipeline. */
 export function isValidUndercoverWordPair(pair: UndercoverWordPair): boolean {
