@@ -106,7 +106,70 @@ not expose game state, controllers or private projection inputs on the returned 
   does not infer phases, lock seats or decide permissions.
 - The new-game adapter template uses the same factory and input contract as Demo.
 
+### Narration Status
+
+`RoomShellModel.isAudioPlaying` is a required presentation input. Games with narration project
+the authoritative room snapshot's playback flag; games without narration explicitly supply
+`false`. Never derive this shared status from the host device's local audio player or introduce
+another stored playback flag.
+
+`RoomShell` forwards the flag to `RoomBottomActionPanel`, which owns the narration text and its
+position for hosts, players and spectators, in both stacked and dock layouts. Narration remains
+visible without buttons, preserves progress, and does not replace game-owned guidance or step
+navigation. The text disappears when the authoritative flag clears. Games must not place the
+same narration text in their own message or an inert button.
+
+The flag does not disable actions in the renderer. Games retain their existing interaction
+policies: Werewolf hides its night action guidance and actions during playback; Avalon allows
+night information confirmation alongside narration. Host-management audio locks remain separate.
+
+The adapter generator binds `state.isAudioPlaying` when `audioOrchestration` is enabled and
+emits `false` otherwise. Demo stays the no-audio reference. Generator acceptance executes the
+audio-enabled output's queue-to-shell-to-panel and acknowledgement transition, as well as the
+existing preset checks and Demo parity.
+
+### Avalon Host Controls and Music
+
+Avalon uses the shared host-management surface for role assignment, bot identity viewing,
+start, review, next round and return to lobby. During an unfinished game it also exposes
+abort, plus bot confirmation when the current night step has unconfirmed bot participants.
+Host commands remain subject to submission and narration locks. Setup controls do not become
+available during play, and vote/quest settlement remains automatic.
+
+`avalon.game.abort` resets the current game to lobby, preserving seats, configuration and
+game sequence without emitting a winner or reward settlement. `avalon.bots.markAllBotsGroupConfirmed`
+confirms only bots participating in the current night step. Human confirmations and narration
+acknowledgement are still required before advancing.
+
+Only the host runs BGM, using the existing music catalog, saved settings and audio service.
+Music settings are available in lobby, identity viewing and after the game. The room's
+play/pause tool stays separate from narration state. Automatic playback starts at night;
+manual pause survives active phase changes. Return to lobby, completed terminal narration,
+loss of host ownership and leaving the room stop BGM.
+
 ## Room Content
+
+### Room Action Hierarchy
+
+- All games use the shared bottom panel for status, current actions and persistent tools,
+  with a separated host-management block. Hosting is an additional capability, not a
+  replacement for the user's player or spectator actions.
+- Waiting and narration are status messages, never inert primary buttons. A dock may have
+  no primary action. Real unavailable commands retain their disabled state and reason.
+- Emphasis follows intent, not array order: confirmation is primary; cancellation, optional
+  alternatives and repeated viewing are secondary. Equal game choices keep equal emphasis.
+- Identity viewing stays primary during the viewing step and secondary afterward. It remains
+  a labelled button, not a borderless action. Review tools use labelled icons. Games retain
+  their existing visibility and information permissions, including spectator permissions.
+- When a current primary action is available or submitting, host advancement remains reachable
+  with secondary emphasis. The management entry is always neutral. Advancement uses its action
+  label without a generic next-step prefix. Dangerous commands retain explicit danger semantics.
+- Room buttons share the existing capsule geometry and md sizing. Tool hit targets are at
+  least 44 logical pixels; secondary and tool rows wrap on narrow screens. Management sheets
+  use the same secondary fill as the bottom panel. Do not override geometry or color by role.
+- Server hint applicability is resolved once for the actor's effective role. Restricted-action
+  reasons render as status text; their confirmation buttons keep short action labels and the
+  original submission intent. Narration status preserves the authoritative progress row.
 
 `RoomShell` owns the shared header, connection/status ribbon, seat control banner, bottom actions, profile, invitation, and host-management surfaces. Game screens provide models and content, not another copy of those surfaces.
 

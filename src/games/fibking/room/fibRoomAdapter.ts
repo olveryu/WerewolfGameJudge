@@ -548,7 +548,10 @@ export function createFibBoardInfoSections(playerCount: number): readonly BoardI
   ];
 }
 
-export interface FibRoomShellModelInput extends Omit<RoomShellModelInput, 'phase' | 'step'> {
+export interface FibRoomShellModelInput extends Omit<
+  RoomShellModelInput,
+  'phase' | 'step' | 'isAudioPlaying'
+> {
   readonly state: FibState;
 }
 
@@ -556,6 +559,7 @@ export interface FibRoomShellModelInput extends Omit<RoomShellModelInput, 'phase
 export function createFibRoomShellModel(input: FibRoomShellModelInput): RoomShellModel {
   return createRoomShellModel({
     ...input,
+    isAudioPlaying: false,
     phase: input.state.phase,
     step: null,
   });

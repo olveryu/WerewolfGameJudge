@@ -121,24 +121,34 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
     }
   });
 
-  it('disables seats and hides the action message while audio is playing', async () => {
-    mockUseWerewolfRoomReturn = createWerewolfRoomMock({
-      schemaId: 'seerCheck',
-      currentActionRole: 'seer',
-      myRole: 'seer',
-      mySeat: 0,
-      numberOfPlayers: 4,
-      isAudioPlaying: true,
-    });
+  it.each(['host', 'player', 'spectator'] as const)(
+    'projects narration and keeps seats locked for %s',
+    async (viewer) => {
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+        schemaId: 'seerCheck',
+        currentActionRole: 'seer',
+        myRole: 'seer',
+        mySeat: 0,
+        isHost: viewer === 'host',
+        numberOfPlayers: 4,
+        isAudioPlaying: true,
+        hookOverrides:
+          viewer === 'spectator'
+            ? { mySeat: null, myRole: null, effectiveSeat: null, effectiveRole: null }
+            : {},
+      });
 
-    const model = await captureModel(renderRoom());
+      const model = await captureModel(renderRoom());
 
-    expect(model.seats.visuallyDisabled).toBe(true);
-    expect(model.bottomActions.kind).toBe('stacked');
-    if (model.bottomActions.kind === 'stacked') {
-      expect(model.bottomActions.message).toBeNull();
-    }
-  });
+      expect(model.isAudioPlaying).toBe(true);
+      expect(model.seats.visuallyDisabled).toBe(true);
+      expect(model.bottomActions.kind).toBe('stacked');
+      if (model.bottomActions.kind === 'stacked') {
+        expect(model.bottomActions.message).toBeNull();
+        expect(model.bottomActions.layout).toEqual({ primary: [], secondary: [], ghost: [] });
+      }
+    },
+  );
 
   it('includes host management only for the host', async () => {
     mockUseWerewolfRoomReturn = createWerewolfRoomMock({
@@ -254,7 +264,7 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
         key: 'sheriff-register',
         label: '报名上警',
         variant: 'primary',
-        size: 'lg',
+        size: 'md',
         testID: 'sheriff-register-button',
         isEnabled: true,
       });

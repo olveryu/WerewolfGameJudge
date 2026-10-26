@@ -35,7 +35,7 @@ import {
  * Keys that represent "skip / empty vote" semantics — the user's primary
  * action is tapping a seat, so these buttons are secondary alternatives.
  */
-const SECONDARY_KEYS = new Set(['skip', 'wolfEmpty']);
+const SECONDARY_KEYS = new Set(['skip', 'wolfEmpty', 'wolfCancel']);
 
 /**
  * Classify a schema button into primary or secondary tier.
@@ -43,27 +43,15 @@ const SECONDARY_KEYS = new Set(['skip', 'wolfEmpty']);
  * Rules:
  * - Single button with a skip/empty key → secondary (main action = tap seat)
  * - Single button with a confirm key → primary
- * - Multiple buttons → first is primary, rest are secondary
- * - Hint override (single button) → primary
+ * - Confirmation commands are primary; alternatives retain secondary emphasis regardless of order.
  */
 function classifySchemaButtons(buttons: readonly BottomButton[]): {
   primary: readonly BottomButton[];
   secondary: readonly BottomButton[];
 } {
-  if (buttons.length === 0) return { primary: [], secondary: [] };
-
-  if (buttons.length === 1) {
-    const btn = buttons[0]!;
-    if (SECONDARY_KEYS.has(btn.key)) {
-      return { primary: [], secondary: [btn] };
-    }
-    return { primary: [btn], secondary: [] };
-  }
-
-  // Multiple buttons: first = primary, rest = secondary
   return {
-    primary: [buttons[0]!],
-    secondary: buttons.slice(1),
+    primary: buttons.filter((button) => !SECONDARY_KEYS.has(button.key)),
+    secondary: buttons.filter((button) => SECONDARY_KEYS.has(button.key)),
   };
 }
 
@@ -86,8 +74,9 @@ function materializeStaticButton(
   const base = {
     key: id,
     label: def.label,
+    icon: def.icon,
     variant: def.variantOverride ?? tier,
-    size: tier === 'primary' ? 'lg' : 'md',
+    size: 'md',
     testID: def.testID,
   } as const;
 
@@ -95,27 +84,11 @@ function materializeStaticButton(
     return { ...base, isEnabled: false, disabledReason: AUDIO_PLAYBACK_LOCK_REASON };
   }
 
-  switch (id) {
-    case 'waitForHost':
-      return {
-        ...base,
-        isEnabled: false,
-        disabledReason: '等待房主开始分配角色',
-      };
-    case 'audioWaiting':
-      return {
-        ...base,
-        isEnabled: false,
-        disabledReason: null,
-      };
-
-    default:
-      return {
-        ...base,
-        isEnabled: true,
-        behavior: { kind: 'static', action: id },
-      };
-  }
+  return {
+    ...base,
+    isEnabled: true,
+    behavior: { kind: 'static', action: id },
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -145,7 +118,7 @@ function materializeSlots(
           label: btn.label,
           // Schema buttons in primary slot → primary variant; in secondary slot → secondary variant
           variant: tier === 'ghost' ? 'ghost' : tier,
-          size: tier === 'primary' ? 'lg' : 'md',
+          size: 'md',
           isEnabled: true,
           behavior: { kind: 'intent', intent: btn.intent },
         });

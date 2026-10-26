@@ -27,13 +27,13 @@ export interface BottomActionPanelStyles {
   buttonRow: ViewStyle;
   secondaryRow: ViewStyle;
   secondaryButton: ViewStyle;
+  actionButton: ViewStyle;
+  secondaryAction: ViewStyle;
+  hostManagementBlock: ViewStyle;
   compactManagementStack: ViewStyle;
   ghostRow: ViewStyle;
-  dockRow: ViewStyle;
-  dockCenter: ViewStyle;
   dockPrimary: ViewStyle;
   dockToolRow: ViewStyle;
-  toolSlot: ViewStyle;
   dockExpandedToolSlot: ViewStyle;
   hostManagementEntry: ViewStyle;
   hostManagementContent: ViewStyle;
@@ -43,8 +43,6 @@ export interface BottomActionPanelStyles {
   hostManagementExpandLabel: TextStyle;
   hostManagementPending: TextStyle;
   nextStepReady: ViewStyle;
-  nextStepContent: ViewStyle;
-  nextStepReadyLabel: TextStyle;
   nextStepBlocked: ViewStyle;
   nextStepBlockedText: ViewStyle;
   nextStepBlockedLabel: TextStyle;

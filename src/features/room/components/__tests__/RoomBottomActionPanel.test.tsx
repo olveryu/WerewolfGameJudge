@@ -2,6 +2,7 @@ import { fireEvent, render } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
 import type { RoomBottomActionModel } from '@/features/room/model/RoomBottomActions';
+import { AUDIO_WAITING_LABEL } from '@/features/room/model/RoomBottomActions';
 import type {
   RoomHostManagementAction,
   RoomHostManagementModel,
@@ -20,10 +21,12 @@ function renderPanel(
   model: RoomBottomActionModel,
   hostManagement: RoomHostManagementModel | null = null,
   onOpenHostManagement: () => void = jest.fn(),
+  isAudioPlaying = false,
 ) {
   return render(
     <RoomBottomActionPanel
       model={model}
+      isAudioPlaying={isAudioPlaying}
       hostManagement={hostManagement}
       onOpenHostManagement={onOpenHostManagement}
       styles={styles}
@@ -45,6 +48,59 @@ const emptyStackedModel: RoomBottomActionModel = {
 };
 
 describe('RoomBottomActionPanel', () => {
+  it.each<RoomBottomActionModel>([
+    emptyStackedModel,
+    { kind: 'dock', message: null, progress: null, leading: null, primary: null, trailing: null },
+  ])('shows narration without actions in a $kind panel, then removes the empty panel', (model) => {
+    const screen = renderPanel(model, null, jest.fn(), true);
+    expect(screen.getByText(AUDIO_WAITING_LABEL)).toBeTruthy();
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+
+    screen.rerender(
+      <RoomBottomActionPanel
+        model={model}
+        isAudioPlaying={false}
+        hostManagement={null}
+        onOpenHostManagement={jest.fn()}
+        styles={styles}
+        progressStyles={progressStyles}
+        bottomInset={0}
+      />,
+    );
+    expect(screen.queryByText(AUDIO_WAITING_LABEL)).toBeNull();
+    expect(screen.queryByTestId(TESTIDS.bottomActionPanel)).toBeNull();
+  });
+
+  it('keeps game guidance, progress and enabled actions available during narration', () => {
+    const onPress = jest.fn();
+    const model: RoomBottomActionModel = {
+      kind: 'stacked',
+      message: '请确认信息',
+      progress: { current: 1, total: 3, label: '坏人互认' },
+      layout: {
+        primary: [
+          {
+            key: 'confirm',
+            label: '确认信息',
+            variant: 'primary',
+            size: 'md',
+            isEnabled: true,
+            onPress,
+          },
+        ],
+        secondary: [],
+        ghost: [],
+      },
+    };
+    const screen = renderPanel(model, null, jest.fn(), true);
+
+    expect(screen.getByText(AUDIO_WAITING_LABEL)).toBeTruthy();
+    expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('请确认信息');
+    expect(screen.getByTestId(TESTIDS.roomProgressIndicator)).toBeTruthy();
+    fireEvent.press(screen.getByText('确认信息'));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
   it('renders game-provided message and dispatches an enabled action', () => {
     const onPress = jest.fn();
     const model: RoomBottomActionModel = {
@@ -97,6 +153,7 @@ describe('RoomBottomActionPanel', () => {
     const { getByTestId, getByText } = render(
       <RoomBottomActionPanel
         model={model}
+        isAudioPlaying={false}
         hostManagement={null}
         onOpenHostManagement={jest.fn()}
         styles={styles}
@@ -175,6 +232,20 @@ describe('RoomBottomActionPanel', () => {
     expect(queryByTestId(TESTIDS.bottomActionPanel)).toBeNull();
   });
 
+  it('renders a spectator waiting message without an inert action button', () => {
+    const screen = renderPanel({
+      kind: 'dock',
+      message: '等待投票完成',
+      progress: null,
+      leading: null,
+      primary: null,
+      trailing: null,
+    });
+
+    expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('等待投票完成');
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+  });
+
   it('does not emit an action-message node for an empty message', () => {
     const model: RoomBottomActionModel = {
       kind: 'stacked',
@@ -201,7 +272,7 @@ describe('RoomBottomActionPanel', () => {
     expect(screen.queryByTestId(TESTIDS.actionMessage)).toBeNull();
   });
 
-  it('opens Host management from the dark full-width entry without executing a command', () => {
+  it('opens Host management from a neutral entry without executing a command', () => {
     const openHostManagement = jest.fn();
     const model: RoomBottomActionModel = {
       kind: 'stacked',
@@ -226,10 +297,10 @@ describe('RoomBottomActionPanel', () => {
 
     expect(screen.getByText('全部操作')).toBeTruthy();
     expect(screen.getByTestId(TESTIDS.roomHostManagementButton)).toHaveStyle({
-      backgroundColor: colors.text,
-      borderColor: colors.text,
+      backgroundColor: colors.surfaceHover,
+      borderColor: colors.border,
     });
-    expect(screen.getByText('主持管理')).toHaveStyle({ color: colors.textInverse });
+    expect(screen.getByText('主持管理')).toHaveStyle({ color: colors.textSecondary });
     fireEvent.press(screen.getByLabelText('主持管理'));
     expect(openHostManagement).toHaveBeenCalledTimes(1);
   });
@@ -441,6 +512,49 @@ describe('RoomBottomActionPanel', () => {
   });
 
   describe('host console primary', () => {
+    it('keeps the player command prominent and host advancement available', () => {
+      const onPlayerPress = jest.fn();
+      const onHostPress = jest.fn();
+      const screen = renderPanel(
+        {
+          ...emptyStackedModel,
+          layout: {
+            primary: [
+              {
+                key: 'submit',
+                label: '提交答案',
+                variant: 'primary',
+                size: 'md',
+                isEnabled: true,
+                onPress: onPlayerPress,
+              },
+            ],
+            secondary: [],
+            ghost: [],
+          },
+        },
+        hostModelWith([
+          {
+            key: 'advance',
+            label: '结束作答',
+            icon: 'arrow-forward',
+            variant: 'primary',
+            isPrimary: true,
+            isEnabled: true,
+            onPress: onHostPress,
+          },
+        ]),
+      );
+
+      expect(screen.getByTestId(TESTIDS.roomNextStepButton)).toHaveStyle({
+        backgroundColor: colors.surfaceHover,
+      });
+      fireEvent.press(screen.getByLabelText('提交答案'));
+      fireEvent.press(screen.getByLabelText('结束作答'));
+      expect(onPlayerPress).toHaveBeenCalledTimes(1);
+      expect(onHostPress).toHaveBeenCalledTimes(1);
+    });
+
     it('runs the ready primary through the action’s own onPress', () => {
       const onPress = jest.fn();
       const screen = renderPanel(
@@ -458,7 +572,7 @@ describe('RoomBottomActionPanel', () => {
         ]),
       );
       const strip = screen.getByTestId(TESTIDS.roomNextStepButton);
-      expect(strip.props.accessibilityLabel).toBe('下一步：开始游戏');
+      expect(strip.props.accessibilityLabel).toBe('开始游戏');
       fireEvent.press(strip);
       expect(onPress).toHaveBeenCalledTimes(1);
     });

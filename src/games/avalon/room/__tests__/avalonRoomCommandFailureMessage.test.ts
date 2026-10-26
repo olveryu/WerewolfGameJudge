@@ -36,7 +36,7 @@ describe('getAvalonRoomCommandFailureMessage', () => {
       getAvalonRoomCommandFailureMessage(
         rejectedRoomCommand<AvalonState>('avalon_not_host_mark_bots', 'command-4'),
       ),
-    ).toBe('只有房主可以标记机器人已查看');
+    ).toBe('只有房主可以标记机器人');
     expect(
       getAvalonRoomCommandFailureMessage(
         rejectedRoomCommand<AvalonState>('avalon_deadline_not_reached', 'command-5'),

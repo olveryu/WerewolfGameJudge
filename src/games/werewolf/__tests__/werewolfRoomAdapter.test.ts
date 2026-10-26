@@ -435,6 +435,7 @@ describe('createWerewolfRoomShellModel', () => {
         actionMessage: '请选择要查验的玩家',
       }),
     );
+    expect(audioPlaying.isAudioPlaying).toBe(true);
     expect(audioPlaying.bottomActions).toMatchObject({ kind: 'stacked', message: null });
   });
 
@@ -853,12 +854,10 @@ describe('createWerewolfRoomShellModel', () => {
     });
   });
 
-  it('scopes the night waiting sentence to non-actioners, including during audio', () => {
+  it('shows narration status and retains night progress for actors and observers', () => {
     const gameState = createLocalGameState();
     const plan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
     const step = plan.steps[0];
-    // The actioner does not read a wait sentence about their own step,
-    // not even while the step narration audio is playing.
     const actionerAudio = createWerewolfRoomShellModel(
       createShellModelInput({
         roomStatus: GameStatus.Ongoing,
@@ -868,8 +867,12 @@ describe('createWerewolfRoomShellModel', () => {
         actionMessage: '请选择要袭击的玩家',
       }),
     );
-    expect(actionerAudio.bottomActions).toMatchObject({ kind: 'stacked', message: null });
-    // Non-actioners keep the waiting sentence during audio.
+    expect(actionerAudio.isAudioPlaying).toBe(true);
+    expect(actionerAudio.bottomActions).toMatchObject({
+      kind: 'stacked',
+      message: null,
+      progress: { label: step?.displayName },
+    });
     const watcherAudio = createWerewolfRoomShellModel(
       createShellModelInput({
         roomStatus: GameStatus.Ongoing,
@@ -877,9 +880,11 @@ describe('createWerewolfRoomShellModel', () => {
         isAudioPlaying: true,
       }),
     );
+    expect(watcherAudio.isAudioPlaying).toBe(true);
     expect(watcherAudio.bottomActions).toMatchObject({
       kind: 'stacked',
-      message: `正在等待 ${step?.displayName} 行动`,
+      message: null,
+      progress: { label: step?.displayName },
     });
   });
 });

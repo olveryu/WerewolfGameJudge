@@ -237,7 +237,7 @@ test.describe('Werewolf Night — Block', () => {
         const wolfBlocked = await waitForRoleTurn(pages[allWolfIndices[0]!]!, 'wolfKill', pages);
         expect(wolfBlocked, 'Wolves should see kill-disabled prompt').toBe(true);
 
-        // When wolfKillDisabled, the button label is "放弃袭击（被封锁）".
+        // When wolfKillDisabled, the button label is "确认放弃袭击".
         // Each wolf must click it to submit empty vote.
         for (const wIdx of allWolfIndices) {
           const wPage = pages[wIdx]!;
@@ -245,7 +245,7 @@ test.describe('Werewolf Night — Block', () => {
 
           // Wait for the blocked button to appear in the bottom panel
           const panel = wPage.locator('[data-testid="bottom-action-panel"]');
-          const blockedBtn = panel.getByText('放弃袭击').first();
+          const blockedBtn = panel.getByRole('button', { name: '确认放弃袭击', exact: true });
           await blockedBtn.waitFor({ state: 'visible', timeout: 5000 });
           await blockedBtn.click();
 

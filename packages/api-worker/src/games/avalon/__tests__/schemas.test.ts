@@ -64,6 +64,8 @@ describe('Avalon public command schema', () => {
         config: { numberOfPlayers: 8, voteMode: 'secret', vetoLimit: 4 },
       },
       { type: 'avalon.roles.assign' },
+      { type: 'avalon.game.abort' },
+      { type: 'avalon.bots.markAllBotsGroupConfirmed' },
       { type: 'avalon.game.returnToLobby' },
       { type: 'avalon.night.confirm' },
       { type: 'avalon.team.updateDraft', seats: [0, 1, 2] },

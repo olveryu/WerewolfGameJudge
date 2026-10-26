@@ -196,7 +196,13 @@ export function createUndercoverBoardInfoSections(
 
 export interface UndercoverRoomShellModelInput extends Omit<
   RoomShellModelInput,
-  'phase' | 'step' | 'seatSource' | 'bottomActions' | 'hostManagement' | 'controlledSeat'
+  | 'phase'
+  | 'step'
+  | 'isAudioPlaying'
+  | 'seatSource'
+  | 'bottomActions'
+  | 'hostManagement'
+  | 'controlledSeat'
 > {
   readonly state: UndercoverState;
   readonly revision: number;
@@ -409,6 +415,7 @@ export function createUndercoverRoomShellModel(
   });
   return createRoomShellModel({
     ...input,
+    isAudioPlaying: false,
     seatSource,
     phase: state.phase,
     step: null,

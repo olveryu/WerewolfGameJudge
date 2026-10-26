@@ -62,6 +62,8 @@ export interface RoomShellModel {
    * interprets the value, and it must never carry display copy.
    */
   readonly step: string | null;
+  /** Authoritative narration status; presentation only, never an interaction gate. */
+  readonly isAudioPlaying: boolean;
   readonly capabilities: RoomCapabilities;
   readonly header: RoomHeaderModel;
   readonly connection: RoomConnectionViewModel;

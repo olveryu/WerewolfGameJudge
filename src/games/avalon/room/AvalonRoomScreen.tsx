@@ -2,8 +2,10 @@
  * 阿瓦隆房间：按权威阶段渲染大厅（座位表）、晚上、组队、投票、出牌、湖仙、刺杀与终局。
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { Button } from '@/components/Button';
 import { createBoardInfoStyles } from '@/features/room/components/boardInfo.styles';
 import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardModal';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
@@ -15,7 +17,9 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer';
 import type { AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
+import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
+import { componentSizes } from '@/theme/tokens';
 
 import { toRevealRoleData } from '../components/AvalonRoleCardAdapter';
 import { createAvalonHistorySummary } from './avalonRoomAdapter';
@@ -326,7 +330,22 @@ function AvalonRoomContent(
               afterSeatBoard: null,
             }
       }
-      leadingExtraActions={null}
+      leadingExtraActions={
+        screen.isHost ? (
+          <Button
+            variant="icon"
+            onPress={screen.bgm.isBgmPlaying ? screen.bgm.stopBgm : screen.bgm.playBgm}
+            testID={TESTIDS.bgmToggleButton}
+            accessibilityLabel={screen.bgm.isBgmPlaying ? '暂停音乐' : '播放音乐'}
+          >
+            <Ionicons
+              name={screen.bgm.isBgmPlaying ? 'pause' : 'musical-notes'}
+              size={componentSizes.icon.md}
+              color={screen.bgm.isBgmPlaying ? colors.primary : colors.text}
+            />
+          </Button>
+        ) : null
+      }
       trailingExtraActions={null}
       gameOverlays={
         <>

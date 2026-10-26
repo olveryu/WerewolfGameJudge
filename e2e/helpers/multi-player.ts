@@ -106,14 +106,14 @@ async function waitForPresenceStable(
     const isReadyToPrepare = await hostPage
       .getByTestId(TESTIDS.roomNextStepButton)
       .getAttribute('aria-label')
-      .then((label) => label === '下一步：分配角色')
+      .then((label) => label === '分配角色')
       .catch(() => false);
     if (isReadyToPrepare) return;
   }
 
   // Hard fail: collect diagnostics for debugging
   const visibleTexts: string[] = [];
-  for (const text of ['下一步：分配角色', '等待玩家', '开始游戏']) {
+  for (const text of ['分配角色', '等待玩家', '开始游戏']) {
     const visible = await hostPage
       .getByText(text)
       .isVisible()
@@ -130,7 +130,7 @@ async function waitForPresenceStable(
       `Expected ${joinerPages.length + 1} players seated. ` +
       `Visible seat tiles: ${seatCount}. ` +
       `Visible UI texts: [${visibleTexts.join(', ')}]. ` +
-      `Host management never showed "下一步：分配角色" — presence not stable.`,
+      `Host management never showed "分配角色" — presence not stable.`,
   );
 }
 

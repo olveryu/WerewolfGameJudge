@@ -99,7 +99,7 @@ describe('createDemoRoomShellModel', () => {
     const caps = capabilities();
     const hostManagement = { sections: [] };
     const onSeatPress = jest.fn();
-    const model = createDemoRoomShellModel({
+    const input: Parameters<typeof createDemoRoomShellModel>[0] = {
       roomCode: '1234',
       capabilities: caps,
       onBack: jest.fn(),
@@ -126,8 +126,10 @@ describe('createDemoRoomShellModel', () => {
       mySeat: 0,
       hostManagement,
       releaseBot: jest.fn(),
-    });
+    };
+    const model = createDemoRoomShellModel(input);
     expect(model.roomCode).toBe('1234');
+    expect(model.isAudioPlaying).toBe(false);
     // The shell phase anchor carries the demo phase kind verbatim.
     expect(model.phase).toBe('lobby');
     expect(model.seats.source.count).toBe(4);

@@ -130,6 +130,7 @@ function renderSurfaces(shell: RoomShellModel) {
   const bottom = render(
     <RoomBottomActionPanel
       model={shell.bottomActions}
+      isAudioPlaying={shell.isAudioPlaying}
       hostManagement={shell.hostManagement}
       onOpenHostManagement={jest.fn()}
       styles={featureStyles.bottomActionPanel}
@@ -167,7 +168,7 @@ function expectReasonExactlyOnce(shell: RoomShellModel, reason: string, primaryL
 
 function expectReadyConsole(shell: RoomShellModel, primaryLabel: string) {
   const bottom = renderSurfaces(shell);
-  expect(bottom.getByText(`下一步：${primaryLabel}`)).toBeTruthy();
+  expect(bottom.getByRole('button', { name: primaryLabel })).toBeTruthy();
   bottom.unmount();
 }
 
@@ -306,7 +307,7 @@ describe('room guidance console: one reason, one screen (cross-game)', () => {
   it('demo: a full lobby offers the assign console action with no blocked reason', () => {
     const shell = demoShell(demoState(true));
     const bottom = renderSurfaces(shell);
-    expect(bottom.getByText('下一步：分配角色')).toBeTruthy();
+    expect(bottom.getByRole('button', { name: '分配角色' })).toBeTruthy();
     expect(bottom.queryAllByText(/座位尚未坐满/)).toHaveLength(0);
     bottom.unmount();
   });

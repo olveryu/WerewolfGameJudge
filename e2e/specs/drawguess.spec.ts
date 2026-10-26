@@ -86,7 +86,7 @@ test('create, guide, full-room gating, fill bots, and wordSelect', async ({ brow
       // The host management panel closes after fill bots; the full room
       // shows through the console primary in the lobby.
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-        '下一步：开始游戏',
+        '开始游戏',
       );
     });
 

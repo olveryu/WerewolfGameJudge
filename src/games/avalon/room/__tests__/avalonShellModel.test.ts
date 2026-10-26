@@ -330,6 +330,20 @@ describe('createAvalonRoomShellModel', () => {
     });
     if (nightInfo && nightInfo.isEnabled) nightInfo.onPress();
     expect(onNightInfoPress).toHaveBeenCalledTimes(2);
+
+    for (const state of [nightInput.state, running.state]) {
+      for (const mySeat of [0, 1, null]) {
+        const model = createAvalonRoomShellModel({
+          ...baseInput(state),
+          isLobby: false,
+          userId: mySeat === null ? 'spectator' : seatUser(mySeat),
+          isHost: mySeat === 0,
+          mySeat,
+          effectiveSeat: mySeat,
+        });
+        expect(model.isAudioPlaying).toBe(state.isAudioPlaying);
+      }
+    }
   });
 
   it('lets a night participant confirm while the narration is still queued', () => {
@@ -608,7 +622,8 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const assassinBottom = shellFor(running, assassin, { onEarlyStrikePress });
     const strike = findStageAction(assassinBottom, 'earlyStrike');
     expect(strike).toMatchObject({ label: '刺杀', isEnabled: true, testID: 'avalon-early-strike' });
-    expect(findTierAction(assassinBottom, 'primary', 'earlyStrike')).toBe(strike);
+    expect(findTierAction(assassinBottom, 'secondary', 'earlyStrike')).toBe(strike);
+    expect(strike).toMatchObject({ variant: 'secondary' });
     if (strike && strike.isEnabled) strike.onPress();
     expect(onEarlyStrikePress).toHaveBeenCalledTimes(1);
     const merlinBottom = shellFor(running, roleSeat(running, 'merlin'));

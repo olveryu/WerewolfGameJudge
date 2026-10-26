@@ -19,8 +19,11 @@ import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { createAvalonHostManagement } from '../avalonRoomAdapter';
+
+jest.mock('@/utils/alertPresets', () => ({ showConfirmAlert: jest.fn() }));
 
 type CommandContext = Parameters<typeof avalonEngine.decide>[2];
 
@@ -59,6 +62,7 @@ function build(state: AvalonState, isHost: boolean, isSetup: boolean, isSubmitti
     controlledSeat: null,
     releaseBot,
     onReviewPress: jest.fn(),
+    onMusicSettings: jest.fn(),
     submit,
   });
 }
@@ -233,14 +237,15 @@ describe('createAvalonHostManagement', () => {
     expect(action).not.toHaveProperty('onPress');
   });
 
-  it('pins the nominate panel: always-present room section only', () => {
+  it('keeps abort available during nomination without empty management sections', () => {
     const game = session();
     game.seatHost();
     game.fill();
     game.startToNominate();
     expect(game.state.phase.kind).toBe('nominate');
     const model = build(game.state, true, false);
-    expect(model?.sections.map((section) => section.key)).toEqual(['room']);
+    expect(model?.sections.map((section) => section.key)).toEqual(['danger']);
+    expect(model?.sections[0]?.actions[0]).toMatchObject({ key: 'abort-game', isEnabled: true });
     expect(resolveHostConsolePrimary(model!)).toBeNull();
   });
 
@@ -253,24 +258,29 @@ describe('createAvalonHostManagement', () => {
     const model = build(game.state, true, false);
     // Viewing panel: begin waits for the checkpoint (only the host has
     // viewed), the scaffold action fills the bot records.
-    expect(model?.sections.map((entry) => entry.key)).toEqual(['game', 'bot-viewing', 'room']);
+    expect(model?.sections.map((entry) => entry.key)).toEqual(['game', 'tools', 'danger']);
     expect(model?.sections[0]?.actions[0]).toMatchObject({
       key: 'start-game',
       label: '开始游戏',
       isEnabled: false,
       disabledReason: '1/6 位玩家已查看身份，等待剩余玩家',
     });
-    const section = model?.sections.find((entry) => entry.key === 'bot-viewing');
-    expect(section?.actions.map((action) => action.key)).toEqual(['mark-bots-viewed']);
-    expect(section?.actions[0]).toMatchObject({ label: '标记机器人已查看', variant: 'secondary' });
+    const section = model?.sections.find((entry) => entry.key === 'tools');
+    expect(section?.actions.map((action) => action.key)).toEqual([
+      'music-settings',
+      'mark-bots-viewed',
+    ]);
+    expect(section?.actions[1]).toMatchObject({ label: '标记机器人已查看', variant: 'secondary' });
 
     game.send({ type: 'avalon.bots.markAllBotsViewed' });
     const after = build(game.state, true, false);
-    expect(after?.sections.find((entry) => entry.key === 'bot-viewing')).toBeUndefined();
+    expect(
+      after?.sections.find((entry) => entry.key === 'tools')?.actions.map((action) => action.key),
+    ).toEqual(['music-settings']);
     expect(after?.sections[0]?.actions[0]).toMatchObject({ key: 'start-game', isEnabled: true });
   });
 
-  it('pins the vote and quest panels: no manual settle actions, room section only', () => {
+  it('keeps abort available in vote and quest without restoring manual settlement', () => {
     const game = session();
     game.seatHost();
     game.fill();
@@ -282,15 +292,18 @@ describe('createAvalonHostManagement', () => {
     game.sendAsSeat({ type: 'avalon.team.preselect' }, game.state.leaderSeat);
     game.sendAsSeat({ type: 'avalon.team.propose' }, game.state.leaderSeat);
     expect(game.state.phase.kind).toBe('vote');
-    // 手动结算已删：投票阶段房主管理只有常驻房间区，关轮靠全员投完后倒计时到期。
     const voteModel = build(game.state, true, false);
-    expect(voteModel?.sections.map((section) => section.key)).toEqual(['room']);
+    expect(
+      voteModel?.sections.flatMap((section) => section.actions.map((action) => action.key)),
+    ).toEqual(['abort-game']);
     for (let seat = 0; seat < PLAYER_COUNT; seat += 1)
       game.sendAsSeat({ type: 'avalon.team.vote', vote: 'approve' }, seat);
     game.settle();
     expect(game.state.phase.kind).toBe('quest');
     const questModel = build(game.state, true, false);
-    expect(questModel?.sections.map((section) => section.key)).toEqual(['room']);
+    expect(
+      questModel?.sections.flatMap((section) => section.actions.map((action) => action.key)),
+    ).toEqual(['abort-game']);
   });
 
   describe('console primary', () => {
@@ -368,6 +381,40 @@ describe('createAvalonHostManagement', () => {
     );
   });
 
+  it('dispatches abort only after the host confirms', async () => {
+    const game = session();
+    game.seatHost();
+    game.fill();
+    game.startToNominate();
+    const action = build(game.state, true, false)
+      ?.sections.flatMap((section) => section.actions)
+      .find((entry) => entry.key === 'abort-game');
+    if (!action?.isEnabled) throw new Error('expected enabled abort');
+    action.onPress();
+    expect(submit).not.toHaveBeenCalled();
+    const confirm = jest.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
+    if (confirm === undefined) throw new Error('expected abort confirmation');
+    await confirm();
+    expect(submit).toHaveBeenCalledWith('中止本局', { type: 'avalon.game.abort' });
+  });
+
+  it('exposes bot confirmation after narration and submits the host command without takeover', () => {
+    const game = session();
+    game.fill();
+    game.send({ type: 'avalon.roles.assign' });
+    game.send({ type: 'avalon.bots.markAllBotsViewed' });
+    game.send({ type: 'avalon.game.begin' });
+    game.ackAudio();
+    const action = build(game.state, true, false)
+      ?.sections.flatMap((section) => section.actions)
+      .find((entry) => entry.key === 'mark-bots-confirmed');
+    if (!action?.isEnabled) throw new Error('expected enabled bot confirmation');
+    action.onPress();
+    expect(submit).toHaveBeenCalledWith('标记机器人已确认', {
+      type: 'avalon.bots.markAllBotsGroupConfirmed',
+    });
+  });
+
   it('pins the terminal panel on the shared builders after three failed quests', () => {
     const game = session();
     game.seatHost();
@@ -405,6 +452,7 @@ describe('createAvalonHostManagement', () => {
       controlledSeat: null,
       releaseBot,
       onReviewPress,
+      onMusicSettings: jest.fn(),
       submit,
     });
     const review = model?.sections[0]?.actions.find((action) => action.key === 'avalonReview');
