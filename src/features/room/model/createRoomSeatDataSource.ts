@@ -18,6 +18,7 @@ import type { RoomSeatProfile } from '@game-judge/game-engine/platform/room/rost
 import type {
   RoomSeatDataSource,
   RoomSeatHighlight,
+  RoomSeatIndicators,
   RoomSeatPlayer,
   RoomSeatStatusBadge,
 } from './RoomSeatDataSource';
@@ -68,6 +69,7 @@ export interface CreateRoomSeatDataSourceInput {
     player: RoomSeatPlayer | null,
   ) => RoomSeatStatusBadge | null;
   readonly resolveShowReadyBadge?: (seat: number) => boolean;
+  readonly resolveIndicators?: (seat: number) => RoomSeatIndicators | null;
   readonly resolveIsStatusEmphasized?: (seat: number) => boolean;
   /** Return undefined to fall back to the controlled-seat highlight. */
   readonly resolveHighlight?: (seat: number) => RoomSeatHighlight | undefined;
@@ -112,6 +114,7 @@ export function createRoomSeatDataSource(input: CreateRoomSeatDataSourceInput): 
           (player === null && !isLobby ? input.lockedSeatReason : undefined),
         showReadyBadge: input.resolveShowReadyBadge?.(seat) ?? false,
         statusBadge: input.resolveStatusBadge?.(seat, player) ?? null,
+        indicators: input.resolveIndicators?.(seat) ?? null,
         isStatusEmphasized: input.resolveIsStatusEmphasized?.(seat) ?? false,
         showLevel: isLobby,
         decorationsEnabled: isLobby,

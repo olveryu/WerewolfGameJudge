@@ -20,6 +20,7 @@ function createProps(overrides: Partial<RoomSeatTileProps> = {}): RoomSeatTilePr
     secondaryLabel: null,
     showReadyBadge: false,
     statusBadge: null,
+    indicators: null,
     isStatusEmphasized: false,
     showLevel: false,
     isAppVisible: true,
@@ -32,6 +33,70 @@ function createProps(overrides: Partial<RoomSeatTileProps> = {}): RoomSeatTilePr
 }
 
 describe('RoomSeatTile', () => {
+  it('keeps identities, selection and progress independent of bot control', () => {
+    const onPress = jest.fn();
+    const props = createProps({
+      highlight: 'controlled',
+      onPress,
+      indicators: {
+        selection: { kind: 'selected', label: '队员' },
+        markers: [
+          {
+            key: 'leader',
+            label: '组队者',
+            tone: 'warning',
+          },
+          { key: 'lady', label: '湖仙', tone: 'info' },
+        ],
+        progressLabel: '已投票',
+      },
+    });
+    const screen = render(<RoomSeatTile {...props} />);
+    expect(screen.queryByTestId('seat-selection-0')).toBeNull();
+    expect(screen.getByTestId('seat-tile-pressable-0')).toHaveStyle(styles.controlledRing);
+    expect(screen.getByTestId('seat-tile-pressable-0')).toHaveProp('accessibilityState', {
+      selected: true,
+    });
+    expect(screen.getByTestId('seat-progress-0')).toHaveTextContent(/已投票/);
+    expect(screen.getByTestId('seat-progress-0')).toHaveTextContent(/队员/);
+    expect(screen.getByTestId('seat-progress-0')).toHaveStyle({ flexDirection: 'row' });
+    expect(styles.progressRows).not.toHaveProperty('height');
+    expect(screen.queryByTestId('seat-status-badge-0')).toBeNull();
+    expect(screen.getByText('组队者')).toBeTruthy();
+    expect(screen.getByText('湖仙')).toBeTruthy();
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+    expect(screen.getByTestId('seat-tile-pressable-0')).toContainElement(
+      screen.getByTestId('seat-marker-0-lady'),
+    );
+    fireEvent.press(screen.getByTestId('seat-tile-pressable-0'));
+    expect(onPress).toHaveBeenCalledWith(0, undefined);
+
+    screen.rerender(
+      <RoomSeatTile
+        {...props}
+        indicators={{
+          selection: { kind: 'preselected', label: '预选' },
+          markers: [],
+          progressLabel: null,
+        }}
+      />,
+    );
+    expect(screen.queryByTestId('seat-selection-0')).toBeNull();
+    expect(screen.getByText('预选')).toBeTruthy();
+    expect(screen.getByTestId('seat-tile-pressable-0')).toHaveProp('accessibilityState', {
+      selected: false,
+    });
+  });
+
+  it('does not reserve metadata space when there are no indicators to display', () => {
+    const screen = render(
+      <RoomSeatTile
+        {...createProps({ indicators: { markers: [], selection: null, progressLabel: null } })}
+      />,
+    );
+    expect(screen.queryByTestId('seat-progress-0')).toBeNull();
+  });
+
   it('reports the exact zero-based seat and disabled reason', () => {
     const onPress = jest.fn();
     const { getByTestId } = render(

@@ -178,6 +178,7 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
           sheriffStatusBadge ??
           (seat.wolfVoteBadge === undefined ? null : { label: seat.wolfVoteBadge, tone: 'danger' }),
         isStatusEmphasized: false,
+        indicators: null,
         showLevel: input.showLevels,
         decorationsEnabled: input.decorationsEnabled,
       };

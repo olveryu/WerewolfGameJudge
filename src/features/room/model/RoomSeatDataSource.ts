@@ -7,6 +7,20 @@ export interface RoomSeatStatusBadge {
   readonly tone: 'primary' | 'info' | 'success' | 'warning' | 'muted' | 'danger';
 }
 
+/** Public seat identity, independent of selection and action completion. */
+export interface RoomSeatMarker {
+  readonly key: string;
+  readonly label: string;
+  readonly tone: 'warning' | 'info';
+}
+
+/** Opt-in layered presentation; null retains the game's existing seat presentation. */
+export interface RoomSeatIndicators {
+  readonly markers: readonly RoomSeatMarker[];
+  readonly selection: { readonly kind: 'preselected' | 'selected'; readonly label: string } | null;
+  readonly progressLabel: string | null;
+}
+
 export interface RoomSeatPlayer {
   readonly kind: 'human' | 'bot';
   readonly userId: string;
@@ -30,6 +44,7 @@ export interface RoomSeatViewModel {
   readonly disabledReason?: string;
   readonly showReadyBadge: boolean;
   readonly statusBadge: RoomSeatStatusBadge | null;
+  readonly indicators: RoomSeatIndicators | null;
   readonly isStatusEmphasized: boolean;
   readonly showLevel: boolean;
   readonly decorationsEnabled: boolean;
