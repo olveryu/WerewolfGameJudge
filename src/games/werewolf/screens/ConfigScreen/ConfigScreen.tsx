@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { GameScreen, GameScreenFooter, gameScreenStyles } from '@/components/GameScreen';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { useServices } from '@/contexts/ServiceContext';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
@@ -24,7 +25,7 @@ import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameCl
 import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes, layout } from '@/theme';
+import { colors, componentSizes } from '@/theme';
 
 import {
   createConfigScreenStyles,
@@ -112,42 +113,41 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
     <GameScreen
       testID={TESTIDS.configScreenRoot}
       header={
-        <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
-          <Button
-            variant="icon"
-            onPress={handleGoBack}
-            testID={TESTIDS.configBackButton}
-            accessibilityLabel="返回"
-          >
-            <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-          </Button>
-          <View style={styles.headerCenter}>
-            <TouchableOpacity
-              style={styles.templatePill}
-              activeOpacity={0.7}
-              onPress={handleTemplatePillPress}
-              testID={TESTIDS.configTemplatePill}
-              accessibilityRole="button"
-              accessibilityLabel={`选择板子：${selectedTemplateLabel}`}
+        <ScreenHeader
+          topInset={insets.top}
+          onBack={handleGoBack}
+          backTestID={TESTIDS.configBackButton}
+          title={
+            <View style={styles.headerCenter}>
+              <TouchableOpacity
+                style={styles.templatePill}
+                activeOpacity={0.7}
+                onPress={handleTemplatePillPress}
+                testID={TESTIDS.configTemplatePill}
+                accessibilityRole="button"
+                accessibilityLabel={`选择板子：${selectedTemplateLabel}`}
+              >
+                <Text style={styles.templatePillText}>{selectedTemplateLabel}</Text>
+                <Ionicons
+                  name="chevron-down"
+                  size={componentSizes.icon.xs}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+              <Text style={styles.playerCount}>{totalCount}人</Text>
+            </View>
+          }
+          headerRight={
+            <Button
+              variant="icon"
+              onPress={handleClearSelection}
+              testID={TESTIDS.configOverflowReset}
+              accessibilityLabel="重置配置"
             >
-              <Text style={styles.templatePillText}>{selectedTemplateLabel}</Text>
-              <Ionicons
-                name="chevron-down"
-                size={componentSizes.icon.xs}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-            <Text style={styles.playerCount}>{totalCount}人</Text>
-          </View>
-          <Button
-            variant="icon"
-            onPress={handleClearSelection}
-            testID={TESTIDS.configOverflowReset}
-            accessibilityLabel="重置配置"
-          >
-            <Ionicons name="trash-outline" size={componentSizes.icon.md} color={colors.text} />
-          </Button>
-        </View>
+              <Ionicons name="trash-outline" size={componentSizes.icon.md} color={colors.text} />
+            </Button>
+          }
+        />
       }
     >
       <View style={gameScreenStyles.catalog}>
