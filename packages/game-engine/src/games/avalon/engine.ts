@@ -18,7 +18,7 @@ import {
   haveAllViewed,
 } from '../../platform/room/identityViewing';
 import { buildSettleDueEffect, guardPhaseExpiry } from '../../platform/room/phaseDeadline';
-import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
+import { getHumanSeatMap, isBotSeat, isRoomFull } from '../../platform/room/seating';
 import { decideSettleCountdownArm } from '../../platform/room/settleCountdown';
 import type { AvalonCommand } from './commands/types';
 import {
@@ -200,6 +200,27 @@ function confirmNight(state: AvalonState, context: CommandContext): AvalonDecisi
   if (!participants.includes(resolved.value)) return reject(AVALON_REASONS.notNightParticipant);
   if (state.phase.confirmedSeats.includes(resolved.value)) return commitAvalon([]);
   return commitAvalon([{ type: 'avalon.night.confirmed', seat: resolved.value }]);
+}
+
+/** Records only the current step's bot confirmations; normal night progression still applies. */
+function markAllBotsGroupConfirmed(state: AvalonState, context: CommandContext): AvalonDecision {
+  const hostRejection = requireHost<AvalonEvent, AvalonEffect>(
+    context,
+    state.hostUserId,
+    AVALON_REASONS.notHostMarkBots,
+  );
+  if (hostRejection !== null) return hostRejection;
+  const phase = state.phase;
+  if (phase.kind !== 'night') return reject(AVALON_REASONS.phase);
+  const participants = getAvalonNightParticipants(state.roles, phase.step).filter((seat) =>
+    isBotSeat(state.roster, seat),
+  );
+  if (participants.length === 0) return reject(AVALON_REASONS.noBotSeats);
+  return commitAvalon(
+    participants
+      .filter((seat) => !phase.confirmedSeats.includes(seat))
+      .map((seat) => ({ type: 'avalon.night.confirmed', seat })),
+  );
 }
 
 /**
@@ -669,6 +690,21 @@ function earlyStrike(state: AvalonState, target: number, context: CommandContext
   );
 }
 
+/** Aborts an unfinished game without completion rewards or roster changes. */
+function abortGame(state: AvalonState, context: CommandContext): AvalonDecision {
+  const hostRejection = requireHost<AvalonEvent, AvalonEffect>(
+    context,
+    state.hostUserId,
+    AVALON_REASONS.notHostAbort,
+  );
+  if (hostRejection !== null) return hostRejection;
+  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
+    return reject(AVALON_REASONS.phase);
+  const audioReason = guardAudioPlayback(state, AVALON_REASONS.audioPlaying);
+  if (audioReason !== null) return reject(audioReason);
+  return commitAvalon([{ type: 'avalon.game.returnedToLobby' }]);
+}
+
 function returnToLobby(state: AvalonState, context: CommandContext): AvalonDecision {
   const hostRejection = requireHost<AvalonEvent, AvalonEffect>(
     context,
@@ -714,10 +750,14 @@ function decideCommand(
       return startGame(state, context);
     case 'avalon.game.begin':
       return beginGame(state, context);
+    case 'avalon.game.abort':
+      return abortGame(state, context);
     case 'avalon.role.viewed':
       return markRoleViewed(state, context);
     case 'avalon.bots.markAllBotsViewed':
       return markAllBotsViewed(state, context);
+    case 'avalon.bots.markAllBotsGroupConfirmed':
+      return markAllBotsGroupConfirmed(state, context);
     case 'avalon.night.confirm':
       return confirmNight(state, context);
     case 'avalon.team.updateDraft':
@@ -755,8 +795,8 @@ function decideCommand(
  * Decides public and worker-internal commands against the authoritative state.
  *
  * @remarks Night completion is evaluated here, at the engine's single
- * decide exit, for the two commands that can complete a night step —
- * a participant's confirmation and the host's audio ack (the same
+ * decide exit, for the commands that can complete a night step —
+ * participant or bot confirmations and the host's audio ack (the same
  * shape as werewolf's progressAfterSuccess): the command's own events
  * are evolved into an in-memory intermediate state, completion is
  * evaluated once against it, and any progression events join the same
@@ -768,7 +808,11 @@ export function decideAvalonCommand(
   context: CommandContext,
 ): AvalonDecision {
   const decision = decideCommand(state, command, context);
-  if (command.type !== 'avalon.night.confirm' && command.type !== 'avalon.audio.ack')
+  if (
+    command.type !== 'avalon.night.confirm' &&
+    command.type !== 'avalon.bots.markAllBotsGroupConfirmed' &&
+    command.type !== 'avalon.audio.ack'
+  )
     return decision;
   if (decision.kind !== 'commit') return decision;
   let intermediate = state;

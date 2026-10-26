@@ -16,6 +16,7 @@ import {
   getAvalonViewingParticipants,
   getAvalonViewModel,
   isAvalonPlayerCount,
+  isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
@@ -34,11 +35,14 @@ import {
 import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
+  buildAbortGameAction,
   buildAssignRolesAction,
   buildClearSeatsAction,
+  buildEnabledHostAction,
   buildFillBotsAction,
   buildMarkBotsViewedAction,
   buildNextRoundAction,
+  buildPendingAwareHostAction,
   buildReturnLobbyAction,
   buildRoomConfigAction,
   buildStartGameAction,
@@ -67,6 +71,7 @@ import {
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
@@ -718,6 +723,7 @@ export interface AvalonHostManagementInput {
   readonly releaseBot: () => void;
   /** 本局复盘入口：与底部按钮共用的唯一处理器。 */
   readonly onReviewPress: () => void;
+  readonly onMusicSettings: () => void;
   readonly submit: (
     label: string,
     command: AvalonPublicCommand,
@@ -725,8 +731,119 @@ export interface AvalonHostManagementInput {
   ) => Promise<boolean>;
 }
 
-/** Avalon's panel carries no read-only actions, so nothing is exempt from the audio lock. */
+/** Avalon management actions remain subject to the authoritative narration lock. */
 const AVALON_AUDIO_LOCK_EXEMPT_ACTION_KEYS: ReadonlySet<string> = new Set();
+
+function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostManagementSection[] {
+  const { state } = input;
+  const sections: RoomHostManagementSection[] = [];
+  const actions: RoomHostManagementAction[] = [];
+  if (
+    state.phase.kind === 'lobby' ||
+    state.phase.kind === 'viewing' ||
+    state.phase.kind === 'ended'
+  )
+    actions.push(
+      buildEnabledHostAction(
+        {
+          key: 'music-settings',
+          label: '音乐设置',
+          icon: 'musical-notes-outline',
+          variant: 'secondary',
+          testID: TESTIDS.roomMusicSettingsButton,
+        },
+        input.onMusicSettings,
+      ),
+    );
+  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
+    return [{ key: 'tools', title: '辅助工具', actions }];
+  if (
+    getAvalonViewingParticipants(state).some(
+      (participant) => participant.isBot && !state.roleViewedSeats.includes(participant.seat),
+    )
+  )
+    actions.push(
+      buildMarkBotsViewedAction({
+        onPress: () =>
+          void input.submit('标记机器人已查看', { type: 'avalon.bots.markAllBotsViewed' }),
+        isEnabled: !input.isSubmitting,
+        isLoading: input.isSubmitting,
+      }),
+    );
+  const phase = state.phase;
+  if (
+    phase.kind === 'night' &&
+    getAvalonNightParticipants(state.roles, phase.step).some(
+      (seat) => isBotSeat(state.roster, seat) && !phase.confirmedSeats.includes(seat),
+    )
+  )
+    actions.push(
+      buildPendingAwareHostAction(
+        {
+          key: 'mark-bots-confirmed',
+          label: '标记机器人已确认',
+          icon: 'checkmark-done-outline',
+          variant: 'secondary',
+          isLoading: input.isSubmitting,
+        },
+        input.isSubmitting,
+        () =>
+          void input.submit('标记机器人已确认', { type: 'avalon.bots.markAllBotsGroupConfirmed' }),
+      ),
+    );
+  if (actions.length > 0) sections.push({ key: 'tools', title: '辅助工具', actions });
+  sections.push({
+    key: 'danger',
+    title: '危险操作',
+    actions: [
+      buildAbortGameAction({
+        onPress: () =>
+          showConfirmAlert(
+            HOST_FLOW_CONFIRM.abortTitle,
+            '清除当前对局并返回大厅，保留座位和设置，不结算奖励。',
+            () => void input.submit('中止本局', { type: 'avalon.game.abort' }),
+          ),
+        isEnabled: !input.isSubmitting,
+        isLoading: input.isSubmitting,
+      }),
+    ],
+  });
+  return sections;
+}
+
+function createAvalonEndedActions(input: AvalonHostManagementInput): RoomHostManagementAction[] {
+  return [
+    {
+      key: 'avalonReview',
+      label: '本局复盘',
+      icon: 'document-text-outline',
+      variant: 'secondary',
+      testID: 'avalon-review-open',
+      isEnabled: true,
+      onPress: input.onReviewPress,
+    },
+    buildNextRoundAction({
+      onPress: () =>
+        showConfirmAlert(
+          HOST_FLOW_CONFIRM.nextRoundTitle,
+          '重新发牌并清零比分，开始新的一局。',
+          () => void input.submit('再来一局', { type: 'avalon.roles.assign' }),
+        ),
+      isEnabled: !input.isSubmitting,
+      isLoading: input.isSubmitting,
+    }),
+    buildReturnLobbyAction({
+      onPress: () =>
+        showConfirmAlert(
+          HOST_FLOW_CONFIRM.returnLobbyTitle,
+          HOST_FLOW_CONFIRM.returnLobbyBody,
+          () => void input.submit('返回大厅', { type: 'avalon.game.returnToLobby' }),
+        ),
+      isEnabled: !input.isSubmitting,
+      isLoading: input.isSubmitting,
+    }),
+  ];
+}
 
 /** Assembles the Avalon host panel for the current phase. */
 export function createAvalonHostManagement(
@@ -739,10 +856,18 @@ export function createAvalonHostManagement(
   // night narration plays, panel actions render disabled and their
   // presses are unreachable instead of relying on engine rejection.
   const applyLock = (model: RoomHostManagementModel): RoomHostManagementModel =>
-    applyAudioPlaybackLock(model, {
-      isAudioPlaying: state.isAudioPlaying,
-      exemptActionKeys: AVALON_AUDIO_LOCK_EXEMPT_ACTION_KEYS,
-    }) ?? model;
+    applyAudioPlaybackLock(
+      {
+        sections: [
+          ...model.sections.filter((section) => section.actions.length > 0),
+          ...createAvalonHostTools(input),
+        ],
+      },
+      {
+        isAudioPlaying: state.isAudioPlaying,
+        exemptActionKeys: AVALON_AUDIO_LOCK_EXEMPT_ACTION_KEYS,
+      },
+    ) ?? model;
   const roomActions: RoomHostManagementAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
     roomActions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
@@ -811,22 +936,6 @@ export function createAvalonHostManagement(
         actions: [beginAction],
       },
     ];
-    const hasUnviewedBot = participants.some(
-      (participant) => participant.isBot && !state.roleViewedSeats.includes(participant.seat),
-    );
-    if (hasUnviewedBot)
-      sections.push({
-        key: 'bot-viewing',
-        title: '身份查看',
-        actions: [
-          buildMarkBotsViewedAction({
-            onPress: () =>
-              void submit('标记机器人已查看', { type: 'avalon.bots.markAllBotsViewed' }),
-            isEnabled: !input.isSubmitting,
-            isLoading: input.isSubmitting,
-          }),
-        ],
-      });
     sections.push({ key: 'room', title: '房间管理', actions: roomActions });
     return applyLock({ sections });
   }
@@ -836,59 +945,13 @@ export function createAvalonHostManagement(
         {
           key: 'current-flow',
           title: '当前流程',
-          actions: [
-            {
-              key: 'avalonReview',
-              label: '本局复盘',
-              icon: 'document-text-outline',
-              variant: 'secondary',
-              testID: 'avalon-review-open',
-              isEnabled: true,
-              onPress: input.onReviewPress,
-            },
-            buildNextRoundAction({
-              onPress: () =>
-                showConfirmAlert(
-                  HOST_FLOW_CONFIRM.nextRoundTitle,
-                  '重新发牌并清零比分，开始新的一局。',
-                  () => void submit('再来一局', { type: 'avalon.roles.assign' }),
-                ),
-            }),
-            buildReturnLobbyAction({
-              onPress: () =>
-                showConfirmAlert(
-                  HOST_FLOW_CONFIRM.returnLobbyTitle,
-                  HOST_FLOW_CONFIRM.returnLobbyBody,
-                  () => void submit('返回大厅', { type: 'avalon.game.returnToLobby' }),
-                ),
-            }),
-          ],
+          actions: createAvalonEndedActions(input),
         },
       ],
     });
   }
-  const inGameSections: RoomHostManagementSection[] = [];
-  // 身份查看脚手架（对齐狼人杀）：还有机器人座位未落查看记录时，
-  // 房主可一键标记；引擎不自动落标记，检查点对 bot 同样生效。
-  const hasUnviewedBot = getAvalonViewingParticipants(state).some(
-    (participant) => participant.isBot && !state.roleViewedSeats.includes(participant.seat),
-  );
-  if (hasUnviewedBot)
-    inGameSections.push({
-      key: 'bot-viewing',
-      title: '身份查看',
-      actions: [
-        buildMarkBotsViewedAction({
-          onPress: () => void submit('标记机器人已查看', { type: 'avalon.bots.markAllBotsViewed' }),
-          isEnabled: !input.isSubmitting,
-          isLoading: input.isSubmitting,
-        }),
-      ],
-    });
-  // 房主管理常驻（对齐狼人杀）：局内任何时候房主都能点开，房间管理区始终有。
-  // 投票/任务阶段没有手动结算入口：全员投完/出完后倒计时到期自动结算（唯一关轮路径）。
   return applyLock({
-    sections: [...inGameSections, { key: 'room', title: '房间管理', actions: roomActions }],
+    sections: [{ key: 'room', title: '房间管理', actions: roomActions }],
   });
 }
 

@@ -128,6 +128,25 @@ emits `false` otherwise. Demo stays the no-audio reference. Generator acceptance
 audio-enabled output's queue-to-shell-to-panel and acknowledgement transition, as well as the
 existing preset checks and Demo parity.
 
+### Avalon Host Controls and Music
+
+Avalon uses the shared host-management surface for role assignment, bot identity viewing,
+start, review, next round and return to lobby. During an unfinished game it also exposes
+abort, plus bot confirmation when the current night step has unconfirmed bot participants.
+Host commands remain subject to submission and narration locks. Setup controls do not become
+available during play, and vote/quest settlement remains automatic.
+
+`avalon.game.abort` resets the current game to lobby, preserving seats, configuration and
+game sequence without emitting a winner or reward settlement. `avalon.bots.markAllBotsGroupConfirmed`
+confirms only bots participating in the current night step. Human confirmations and narration
+acknowledgement are still required before advancing.
+
+Only the host runs BGM, using the existing music catalog, saved settings and audio service.
+Music settings are available in lobby, identity viewing and after the game. The room's
+play/pause tool stays separate from narration state. Automatic playback starts at night;
+manual pause survives active phase changes. Return to lobby, completed terminal narration,
+loss of host ownership and leaving the room stop BGM.
+
 ## Room Content
 
 ### Room Action Hierarchy

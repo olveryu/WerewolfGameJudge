@@ -21,6 +21,146 @@ test.setTimeout(1_200_000);
 const PLAYER_COUNT = 10;
 const VIEWPORT = { width: 1280, height: 900 };
 
+test('Avalon host tools, real BGM playback and abort preserve the room', async ({
+  browser,
+}, testInfo) => {
+  test.setTimeout(180_000);
+  const fixture = await createPlayerContexts(browser, 2);
+  const hostPage = fixture.pages[0];
+  const spectatorPage = fixture.pages[1]!;
+  const hostRoom = new RoomPage(hostPage);
+  const [hostAudio, spectatorAudio] = await Promise.all(
+    fixture.pages.map((page) =>
+      page.evaluateHandle(() => {
+        const elements = new Set<HTMLMediaElement>();
+        // eslint-disable-next-line @typescript-eslint/unbound-method -- Forwarded below with its original receiver.
+        const originalPlay = HTMLMediaElement.prototype.play;
+        HTMLMediaElement.prototype.play = function (this: HTMLMediaElement) {
+          const audioUrl = new URL(this.src);
+          if (
+            audioUrl.pathname.includes('/bgm/') ||
+            audioUrl.searchParams.get('unstable_path')?.includes('/bgm/')
+          )
+            elements.add(this);
+          return originalPlay.call(this);
+        };
+        return elements;
+      }),
+    ),
+  );
+  if (hostAudio === undefined || spectatorAudio === undefined)
+    throw new Error('expected two audio probes');
+
+  try {
+    await test.step('Create a bot room and open existing music settings', async () => {
+      await hostPage.setViewportSize(VIEWPORT);
+      await new HomePage(hostPage).clickCreateRoom('avalon');
+      await hostPage.getByTestId('avalon-config-submit').click();
+      await hostRoom.waitForReady('host');
+      await new RoomPage(spectatorPage).joinViaCode(await hostRoom.getRoomCode());
+      await expect(spectatorPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveCount(0);
+      await expect(spectatorPage.getByTestId(TESTIDS.roomHostManagementButton)).toHaveCount(0);
+      await hostRoom.clickHostManagementAction(TESTIDS.roomMusicSettingsButton);
+      await expect(hostPage.getByText('背景音乐', { exact: true })).toBeVisible();
+      await hostPage.getByText('The Godfather Waltz', { exact: true }).click();
+      await hostPage.getByTestId('music-settings-back').click();
+      await hostRoom.clickHostManagementAction(TESTIDS.roomFillBotsButton);
+      await hostPage.getByText('确定', { exact: true }).click();
+    });
+    let panel = await hostRoom.openHostManagement();
+    await expect(panel.getByTestId(TESTIDS.assignRolesButton)).toBeEnabled();
+    await hostRoom.closeHostManagement();
+    const tiles = hostPage.getByTestId(/^seat-tile-\d+$/);
+    const seatsBefore = await tiles.allTextContents();
+    await hostRoom.clickHostManagementActionAndConfirm(TESTIDS.assignRolesButton, '分配角色？');
+    panel = await hostRoom.openHostManagement();
+    await panel.getByRole('button', { name: '标记机器人已查看', exact: true }).click();
+    await expect(panel).toBeHidden();
+    await hostRoom.startGame();
+
+    await test.step('Auto-play actual music, then preserve a manual pause across a night step', async () => {
+      await expect(hostPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveAccessibleName('暂停音乐');
+      await expect
+        .poll(
+          () =>
+            hostAudio.evaluate((elements) =>
+              [...elements].some(
+                (audio) => !audio.paused && audio.currentTime > 0 && audio.error === null,
+              ),
+            ),
+          { timeout: 30_000 },
+        )
+        .toBe(true);
+      expect(await spectatorAudio.evaluate((elements) => elements.size)).toBe(0);
+      await testInfo.attach('actual-bgm-playback', {
+        body: JSON.stringify(
+          await hostAudio.evaluate((elements) =>
+            [...elements].map((audio) => ({
+              src: audio.currentSrc,
+              currentTime: audio.currentTime,
+              paused: audio.paused,
+            })),
+          ),
+        ),
+        contentType: 'application/json',
+      });
+      await hostPage.getByTestId(TESTIDS.bgmToggleButton).click();
+      await expect
+        .poll(() => hostAudio.evaluate((elements) => [...elements].every((audio) => audio.paused)))
+        .toBe(true);
+      panel = await hostRoom.openHostManagement();
+      const markBots = panel.getByRole('button', { name: '标记机器人已确认', exact: true });
+      await expect(markBots).toBeEnabled({ timeout: 45_000 });
+      for (const viewport of [VIEWPORT, { width: 320, height: 640 }]) {
+        await hostPage.setViewportSize(viewport);
+        await expect(markBots).toBeInViewport({ ratio: 1 });
+        await expect(panel.getByTestId(TESTIDS.abortGameButton)).toBeInViewport({ ratio: 1 });
+        expect(
+          await hostPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        ).toBe(true);
+        await testInfo.attach(`host-tools-${viewport.width}`, {
+          body: await hostPage.screenshot(),
+          contentType: 'image/png',
+        });
+      }
+      await markBots.click();
+      await expect(panel).toBeHidden();
+      await expect(hostPage.getByTestId(TESTIDS.bottomActionPanel)).toContainText(/第2步/);
+      await expect(hostPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveAccessibleName('播放音乐');
+      await hostPage.getByTestId(TESTIDS.bgmToggleButton).click();
+      await expect
+        .poll(
+          () =>
+            hostAudio.evaluate((elements) =>
+              [...elements].some((audio) => !audio.paused && audio.currentTime > 0),
+            ),
+          { timeout: 15_000 },
+        )
+        .toBe(true);
+    });
+
+    await test.step('Abort through confirmation, retaining bots and stopping music', async () => {
+      panel = await hostRoom.openHostManagement();
+      const abort = panel.getByTestId(TESTIDS.abortGameButton);
+      await expect(abort).toBeEnabled({ timeout: 45_000 });
+      await abort.click();
+      await hostRoom.confirmHostActionDialog('中止本局？');
+      await expect(hostPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveAccessibleName('播放音乐');
+      await expect
+        .poll(() => hostAudio.evaluate((elements) => [...elements].every((audio) => audio.paused)))
+        .toBe(true);
+      panel = await hostRoom.openHostManagement();
+      await expect(panel.getByTestId(TESTIDS.assignRolesButton)).toBeEnabled();
+      await expect(panel.getByTestId(TESTIDS.abortGameButton)).toHaveCount(0);
+      await hostRoom.closeHostManagement();
+      await expect(tiles).toHaveText(seatsBefore);
+      await expect(spectatorPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveCount(0);
+    });
+  } finally {
+    await closeAll(fixture);
+  }
+});
+
 const ROLE_NAMES = [
   '派西维尔',
   '莫德雷德',

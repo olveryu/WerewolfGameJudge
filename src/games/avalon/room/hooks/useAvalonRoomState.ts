@@ -57,6 +57,7 @@ import {
 import { getAvalonRoomCommandFailureMessage } from '../avalonRoomCommandFailureMessage';
 import type { AvalonTeamPickKind } from '../components/AvalonTeamPickModal';
 import { useAvalonAudioOrchestration } from './useAvalonAudioOrchestration';
+import { useAvalonBgmControl } from './useAvalonBgmControl';
 
 /**
  * 阿瓦隆房间 Screen 的显式契约（P-2b，对齐狼人杀 WerewolfRoomScreenState 形态）：
@@ -74,6 +75,7 @@ export interface AvalonRoomScreenState {
   readonly controlledSeat: number | null;
   readonly isHost: boolean;
   readonly canControlBots: boolean;
+  readonly bgm: ReturnType<typeof useAvalonBgmControl>;
   readonly equippedRevealEffect: RevealEffectType | null;
   readonly submit: (
     label: string,
@@ -142,6 +144,7 @@ export function useAvalonRoomState(
     throw new Error('Avalon requires an authenticated ready session');
   const state = snapshot.snapshot.state;
   const isHost = state.hostUserId === user.id;
+  const bgm = useAvalonBgmControl(isHost, state.phase.kind, state.isAudioPlaying);
   // 第一晚播报：房主按序播放服务端队列，播完 ack。
   useAvalonAudioOrchestration({
     session,
@@ -305,6 +308,10 @@ export function useAvalonRoomState(
     controlledSeat,
     releaseBot,
     onReviewPress: callbacks.onReviewPress,
+    onMusicSettings: () => {
+      bgm.stopBgm();
+      navigation.navigate('MusicSettings', { roomCode: room.roomCode });
+    },
     submit,
   });
 
@@ -409,6 +416,7 @@ export function useAvalonRoomState(
     isHost,
     canControlBots,
     equippedRevealEffect: resolveEquippedRevealEffect(user.equippedEffect, room.roomCode, user.id),
+    bgm,
     phaseRemainingSeconds,
     submit,
     teamPickModal,

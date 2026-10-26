@@ -253,6 +253,90 @@ describe('Avalon engine', () => {
     session.expectReject({ type: 'avalon.bots.markAllBotsViewed' }, 'avalon_no_bot_seats');
   });
 
+  it('aborts viewing without changing the roster, config or game sequence', () => {
+    const session = game({ numberOfPlayers: 6 });
+    session.send({ type: 'avalon.roles.assign' });
+    session.send({ type: 'avalon.role.viewed' });
+    const { roster, config, gameSequence } = session.state;
+    session.expectReject({ type: 'avalon.game.abort' }, 'avalon_not_host_abort', 'u1');
+    session.send({ type: 'avalon.game.abort' });
+    expect(session.state).toMatchObject({
+      phase: { kind: 'lobby' },
+      roster,
+      config,
+      gameSequence,
+      roles: {},
+      roleViewedSeats: [],
+      pendingAudioEffects: [],
+      isAudioPlaying: false,
+      xpSettled: false,
+    });
+    expect(session.effects).toEqual([]);
+    session.expectReject({ type: 'avalon.game.abort' }, 'avalon_phase_invalid');
+    session.send({ type: 'avalon.roles.assign' });
+    expect(session.state.gameSequence).toBe(gameSequence + 1);
+  });
+
+  it('aborts an armed vote without settling the game or allowing a late timer to advance it', () => {
+    const session = game({ numberOfPlayers: 6 });
+    session.startGame();
+    session.passNight();
+    session.proposeTeam([0, 1]);
+    session.voteAll('approve');
+    const phase = session.phase();
+    if (phase.kind !== 'vote' || phase.deadlineAt === null) throw new Error('expected armed vote');
+    const { roster, config, gameSequence } = session.state;
+    session.send({ type: 'avalon.game.abort' });
+    session.setNow(phase.deadlineAt);
+    expect(session.decideSystem({ type: 'avalon.phase.settleExpired' }).kind).toBe('reject');
+    expect(session.state).toMatchObject({
+      phase: { kind: 'lobby' },
+      roster,
+      config,
+      gameSequence,
+      questResults: [],
+      questHistory: [],
+      roundHistory: [],
+      lastVoteResult: null,
+      xpSettled: false,
+    });
+    expect(session.effects.some((effect) => effect.type === 'avalon.game.completed')).toBe(false);
+  });
+
+  it('marks only current night participants who are bots and still waits for humans and audio', () => {
+    const session = game({ numberOfPlayers: 6 }, 4);
+    session.send({ type: 'room.seat.fillBots' });
+    session.send({ type: 'avalon.roles.assign' });
+    for (let seat = 0; seat < 4; seat += 1)
+      session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
+    session.send({ type: 'avalon.bots.markAllBotsViewed' });
+    session.send({ type: 'avalon.game.begin' });
+    session.expectReject(
+      { type: 'avalon.bots.markAllBotsGroupConfirmed' },
+      'avalon_not_host_mark_bots',
+      'u1',
+    );
+    while (session.state.phase.kind === 'night') {
+      const phase = session.state.phase;
+      const participants = getAvalonNightParticipants(session.state.roles, phase.step);
+      const bots = participants.filter((seat) => isBotSeat(session.state.roster, seat));
+      const humans = participants.filter((seat) => !isBotSeat(session.state.roster, seat));
+      if (bots.length > 0) {
+        session.send({ type: 'avalon.bots.markAllBotsGroupConfirmed' });
+        session.send({ type: 'avalon.bots.markAllBotsGroupConfirmed' });
+        expect(session.state.phase).toEqual({ ...phase, confirmedSeats: bots });
+      }
+      expect(session.state.isAudioPlaying).toBe(true);
+      session.ackAudio();
+      if (humans.length > 0) {
+        expect(session.state.phase).toEqual({ ...phase, confirmedSeats: bots });
+        for (const seat of humans)
+          session.send({ type: 'avalon.night.confirm' }, session.seatUser(seat));
+      }
+    }
+    expect(session.state.phase.kind).toBe('nominate');
+  });
+
   it('fills implicit bot seats and lets the host take them over', () => {
     const session = game({ numberOfPlayers: 6 }, 4);
     session.send({ type: 'room.seat.fillBots' });
