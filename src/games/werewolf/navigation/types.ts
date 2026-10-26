@@ -44,8 +44,8 @@ export type WerewolfConfigStackParamList = {
       }
     | undefined;
   Rules: {
+    roles: readonly RoleId[];
     rules: GameRuleOverrides;
     existingRoomCode?: string;
-    nominateMode?: { roomCode: string };
   };
 };

@@ -75,11 +75,18 @@ export function createWerewolfConfigFlowScreen(): React.FC<WerewolfConfigFlowScr
               client={client}
               onExitFlow={handleExitFlow}
               onReturnToRoom={handleReturnToRoom}
+            />
+          )}
+        </Stack.Screen>
+        <Stack.Screen name="Rules">
+          {() => (
+            <GameRulesScreen
+              client={client}
+              onExitFlow={handleExitFlow}
               onRoomCreated={handleRoomCreated}
             />
           )}
         </Stack.Screen>
-        <Stack.Screen name="Rules" component={GameRulesScreen} />
       </Stack.Navigator>
     );
   };

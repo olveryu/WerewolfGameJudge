@@ -1,8 +1,8 @@
 /** Shared settings controls; callers own the displayed values, editing and validation. */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Switch, Text, TextInput, View } from 'react-native';
 
-import { colors } from '@/theme';
+import { colors, withAlpha } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
 
 import { Button } from './Button';
@@ -58,6 +58,37 @@ export function GameSettingsStepper({
           <Ionicons name="add" size={componentSizes.icon.sm} color={colors.text} />
         </Button>
       </View>
+    </View>
+  );
+}
+
+/** Labelled boolean row; callers render any hint below it inside their own section. */
+export function GameSettingsSwitch({
+  label,
+  value,
+  onValueChange,
+  accentColor = colors.primary,
+  testID,
+  accessibilityLabel = label,
+}: {
+  readonly label: string;
+  readonly value: boolean;
+  readonly onValueChange: (value: boolean) => void;
+  readonly accentColor?: string;
+  readonly testID?: string;
+  readonly accessibilityLabel?: string;
+}) {
+  return (
+    <View style={styles.row}>
+      <Text style={styles.label}>{label}</Text>
+      <Switch
+        testID={testID}
+        accessibilityLabel={accessibilityLabel}
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: colors.border, true: withAlpha(accentColor, 0.4) }}
+        thumbColor={value ? accentColor : colors.textSecondary}
+      />
     </View>
   );
 }

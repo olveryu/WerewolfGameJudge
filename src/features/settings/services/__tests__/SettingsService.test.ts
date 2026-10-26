@@ -53,36 +53,49 @@ describe('SettingsService', () => {
     });
   });
 
-  describe('isSheriffElectionEnabled', () => {
-    it('defaults to enabled when no sheriff preference has been saved', async () => {
+  describe('remembered Werewolf rules', () => {
+    it('defaults to sheriff on and witch self-heal off when nothing has been saved', async () => {
       jest.mocked(storage.getString).mockReturnValue(JSON.stringify({ bgmEnabled: false }));
 
       await service.load();
 
-      expect(service.isSheriffElectionEnabled()).toBe(true);
+      expect(service.getRememberedWerewolfRules()).toEqual({
+        isSheriffElectionEnabled: true,
+        witchCanSelfHeal: false,
+      });
     });
 
-    it.each([false, true])(
-      'persists and reloads the choice %s',
-      async (isSheriffElectionEnabled) => {
-        await service.load();
-        await service.setSheriffElectionEnabled(isSheriffElectionEnabled);
+    it('keeps a sheriff preference saved before witch self-heal existed', async () => {
+      jest
+        .mocked(storage.getString)
+        .mockReturnValue(JSON.stringify({ isSheriffElectionEnabled: false }));
 
-        expect(service.isSheriffElectionEnabled()).toBe(isSheriffElectionEnabled);
-        const persistedSettings = jest.mocked(storage.set).mock.calls.at(-1)![1];
-        if (typeof persistedSettings !== 'string')
-          throw new Error('Expected persisted JSON settings');
-        expect(storage.set).toHaveBeenLastCalledWith(
-          USER_SETTINGS_KEY,
-          expect.stringContaining(`"isSheriffElectionEnabled":${isSheriffElectionEnabled}`),
-        );
-        jest.mocked(storage.getString).mockReturnValue(persistedSettings);
-        service = new SettingsService();
-        await service.load();
+      await service.load();
 
-        expect(service.isSheriffElectionEnabled()).toBe(isSheriffElectionEnabled);
-      },
-    );
+      expect(service.getRememberedWerewolfRules()).toEqual({
+        isSheriffElectionEnabled: false,
+        witchCanSelfHeal: false,
+      });
+    });
+
+    it.each([
+      ['isSheriffElectionEnabled', false],
+      ['witchCanSelfHeal', true],
+    ] as const)('persists and reloads %s = %s', async (key, value) => {
+      await service.load();
+      await service.setRememberedWerewolfRule(key, value);
+
+      expect(service.getRememberedWerewolfRules()[key]).toBe(value);
+      const persistedSettings = jest.mocked(storage.set).mock.calls.at(-1)?.[1];
+      if (typeof persistedSettings !== 'string')
+        throw new Error('Expected persisted JSON settings');
+      expect(persistedSettings).toContain(`"${key}":${value}`);
+      jest.mocked(storage.getString).mockReturnValue(persistedSettings);
+      service = new SettingsService();
+      await service.load();
+
+      expect(service.getRememberedWerewolfRules()[key]).toBe(value);
+    });
   });
 
   describe('gameAudioVolume', () => {

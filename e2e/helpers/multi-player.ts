@@ -230,16 +230,17 @@ export async function setupNPlayerGame(
   await boardPicker.waitForReady();
   await boardPicker.selectDefaultTemplate();
   const config = new ConfigPage(hostPage);
-  await config.waitForCreateMode();
+  await config.waitForReady();
 
   if (configureTemplate) {
     await configureTemplate(config);
   }
+  const rules = await config.clickNext();
   if (startGame && !isSheriffElectionEnabled) {
-    await config.setSheriffElectionEnabled(false);
+    await rules.setSheriffElectionEnabled(false);
   }
 
-  await config.clickCreate();
+  await rules.clickCreate();
   await waitForRoomScreenReady(hostPage, { role: 'host' });
 
   const roomCode = await extractRoomCode(hostPage);
@@ -310,16 +311,17 @@ export async function setupNPlayerGameWithRoles(
   await boardPicker2.waitForReady();
   await boardPicker2.selectDefaultTemplate();
   const config = new ConfigPage(hostPage);
-  await config.waitForCreateMode();
+  await config.waitForReady();
 
   if (configureTemplate) {
     await configureTemplate(config);
   }
+  const rules = await config.clickNext();
   if (!isSheriffElectionEnabled) {
-    await config.setSheriffElectionEnabled(false);
+    await rules.setSheriffElectionEnabled(false);
   }
 
-  await config.clickCreate();
+  await rules.clickCreate();
   await waitForRoomScreenReady(hostPage, { role: 'host' });
 
   const roomCode = await extractRoomCode(hostPage);

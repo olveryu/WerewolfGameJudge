@@ -136,7 +136,7 @@ test.describe('App — Entry Flow: Enter room via join flow', () => {
     await boardPicker.waitForReady();
     await boardPicker.selectDefaultTemplate();
     const config = new ConfigPage(hostPage);
-    await config.waitForCreateMode();
+    await config.waitForReady();
     await config.clickCreate();
     await waitForRoomScreenReady(hostPage, { role: 'host' });
 
@@ -183,7 +183,7 @@ test.describe('App — Entry Flow: Direct room URL', () => {
     await boardPicker1.waitForReady();
     await boardPicker1.selectDefaultTemplate();
     const config = new ConfigPage(hostPage);
-    await config.waitForCreateMode();
+    await config.waitForReady();
     await config.clickCreate();
     await waitForRoomScreenReady(hostPage, { role: 'host' });
 
@@ -223,7 +223,7 @@ test.describe('App — Entry Flow: Direct room URL', () => {
     await boardPicker2.waitForReady();
     await boardPicker2.selectDefaultTemplate();
     const config = new ConfigPage(hostPage);
-    await config.waitForCreateMode();
+    await config.waitForReady();
     await config.clickCreate();
     await waitForRoomScreenReady(hostPage, { role: 'host' });
 

@@ -1599,7 +1599,10 @@ stack 也通过组合后的同一个 definition 解析。游戏不支持某 rout
 
 Root stack 不注册 `BoardPicker`、`Config`、`GameRules`、`Encyclopedia` 或 `Notepad` 等狼人杀页面。狼人杀的
 `BoardPicker -> Config -> Rules` 是 `WerewolfConfigFlowScreen` 内部 native stack；创建、编辑、板子提案三种
-入口先由纯 `werewolfConfigFlow.ts` 严格解析，再映射到内部初始 route。跨出 flow 的行为只有三个显式回调：
+入口先由纯 `werewolfConfigFlow.ts` 严格解析，再映射到内部初始 route。`Config` 只负责板子（角色增减）并校验，
+`Rules` 是创建 / 保存的最后一步，承载全部房规开关（首日警长竞选、女巫可自救、黑死病模式）与提交；板子提案
+模式没有房规，在 `Config` 直接提交。首日警长竞选与女巫可自救切换后立即写入本地偏好，作为下次新房默认；
+黑死病模式每局单独选择。跨出 flow 的行为只有三个显式回调：
 
 - 退出配置 flow。
 - 返回权威 `Room` route。

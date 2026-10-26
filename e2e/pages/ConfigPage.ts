@@ -1,8 +1,8 @@
 import { expect, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
-import { getVisibleText } from '../helpers/ui';
 import { BoardPickerPage } from './BoardPickerPage';
+import { RulesPage } from './RulesPage';
 
 /**
  * Variant → base role mapping.
@@ -26,7 +26,7 @@ const VARIANT_TO_BASE: Record<string, string> = {
  * - Template selection
  * - Role chip toggling
  * - Player count reading
- * - Create / Save actions
+ * - Handoff to the Rules step (which owns create / save)
  */
 export class ConfigPage {
   constructor(private readonly page: Page) {}
@@ -35,12 +35,8 @@ export class ConfigPage {
   // Selectors
   // ---------------------------------------------------------------------------
 
-  private get createButton() {
-    return getVisibleText(this.page, '创建房间');
-  }
-
-  private get saveButton() {
-    return getVisibleText(this.page, '保存配置');
+  private get nextButton() {
+    return this.page.getByTestId(TESTIDS.configNextButton);
   }
 
   private get backButton() {
@@ -51,14 +47,10 @@ export class ConfigPage {
   // Waits
   // ---------------------------------------------------------------------------
 
-  /** Wait until the config screen is ready (create mode). */
-  async waitForCreateMode() {
-    await expect(this.createButton).toBeVisible({ timeout: 15000 });
-  }
-
-  /** Wait until the config screen is ready (edit/save mode). */
-  async waitForSaveMode() {
-    await expect(this.saveButton).toBeVisible({ timeout: 10000 });
+  /** Wait until the config screen is ready (create or edit mode). */
+  async waitForReady() {
+    await expect(this.page.getByTestId(TESTIDS.configScreenRoot)).toBeVisible({ timeout: 15000 });
+    await expect(this.nextButton).toHaveText('下一步：规则');
   }
 
   // ---------------------------------------------------------------------------
@@ -96,23 +88,6 @@ export class ConfigPage {
     // The template pill shows the short label (e.g. "预女猎白"), not the full name
     const root = this.page.locator(`[data-testid="${TESTIDS.configScreenRoot}"]`);
     await expect(root.getByText('预女猎白')).toBeVisible();
-  }
-
-  /** Set the first-day sheriff-election rule directly on the config screen. */
-  async setSheriffElectionEnabled(isEnabled: boolean): Promise<void> {
-    const electionSwitch = this.page.getByRole('switch', {
-      name: '首日警长竞选',
-      exact: true,
-    });
-    await expect(electionSwitch).toBeVisible();
-    if ((await electionSwitch.isChecked()) !== isEnabled) {
-      await electionSwitch.click();
-    }
-    if (isEnabled) {
-      await expect(electionSwitch).toBeChecked();
-    } else {
-      await expect(electionSwitch).not.toBeChecked();
-    }
   }
 
   // ---------------------------------------------------------------------------
@@ -339,12 +314,24 @@ export class ConfigPage {
   // Actions
   // ---------------------------------------------------------------------------
 
-  async clickCreate() {
-    await this.createButton.click();
+  /** Go to the Rules step with the current board. */
+  async clickNext(): Promise<RulesPage> {
+    await this.nextButton.click();
+    const rules = new RulesPage(this.page);
+    await rules.waitForReady();
+    return rules;
   }
 
+  /** Create the room with the current board and the rules as they come up. */
+  async clickCreate() {
+    const rules = await this.clickNext();
+    await rules.clickCreate();
+  }
+
+  /** Save the edited board with the room's current rules. */
   async clickSave() {
-    await this.saveButton.click();
+    const rules = await this.clickNext();
+    await rules.clickSave();
   }
 
   async clickBack() {

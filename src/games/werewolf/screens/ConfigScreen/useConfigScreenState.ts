@@ -11,7 +11,6 @@
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { Faction } from '@game-judge/game-engine/games/werewolf/public';
 import {
-  createCustomTemplate,
   type GameRuleOverrides,
   isValidRoleId,
   PRESET_TEMPLATES,
@@ -24,14 +23,12 @@ import { toast } from 'sonner-native';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { hasPreviousRouteInCurrentNavigator } from '@/features/navigation/model/navigationState';
-import { useRoomCreationController } from '@/features/room/controllers/useRoomCreationController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
 } from '@/features/room/session/roomCommandResult';
 import type { SettingsService } from '@/features/settings/services/SettingsService';
-import { isExpectedStorageError } from '@/features/settings/services/SettingsService';
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { colors } from '@/theme';
@@ -67,7 +64,6 @@ interface UseConfigScreenStateParams {
   settingsService: SettingsService;
   onExitFlow: () => void;
   onReturnToRoom: (roomCode: string) => void;
-  onRoomCreated: (roomCode: string) => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -84,7 +80,6 @@ export function useConfigScreenState({
   settingsService,
   onExitFlow,
   onReturnToRoom,
-  onRoomCreated,
 }: UseConfigScreenStateParams) {
   const { user } = useAuthContext();
   const { roomSession } = client;
@@ -114,15 +109,12 @@ export function useConfigScreenState({
     presetInitial?.matchedPreset ??
       (isEditMode || isNominateMode ? (PRESET_TEMPLATES[0]?.name ?? '') : '__custom__'),
   );
-  const [bgmEnabled, setBgmEnabled] = useState(true);
-  const [overflowVisible, setOverflowVisible] = useState(false);
   const [variantOverrides, setVariantOverrides] = useState<VariantOverrides>(
     () => presetInitial?.variantOverrides ?? {},
   );
+  // Edit mode loads the room's rules below; new rooms start from the remembered preferences.
   const [rules, setRules] = useState<GameRuleOverrides>(() =>
-    isEditMode || isNominateMode
-      ? {}
-      : { isSheriffElectionEnabled: settingsService.isSheriffElectionEnabled() },
+    isEditMode || isNominateMode ? {} : settingsService.getRememberedWerewolfRules(),
   );
 
   const totalCount = useMemo(
@@ -169,32 +161,13 @@ export function useConfigScreenState({
         if (state) {
           setRules(state.rules ?? {});
         }
-        setBgmEnabled(settingsService.isBgmEnabled());
       } catch (error) {
         handleError(error, { label: '加载房间', logger: configLog, feedback: false });
       } finally {
         setIsLoading(false);
       }
     }
-  }, [
-    presetName,
-    isEditMode,
-    isNominateMode,
-    existingRoomCode,
-    nominateMode,
-    gameState,
-    settingsService,
-  ]);
-
-  // ── Load settings (animation + BGM) for new rooms ────────────────────────
-
-  useEffect(() => {
-    if (!existingRoomCode) {
-      setBgmEnabled(settingsService.isBgmEnabled());
-    }
-  }, [existingRoomCode, settingsService]);
-
-  // ── Apply rules returned from GameRulesScreen ────────────────────────────
+  }, [presetName, isEditMode, isNominateMode, existingRoomCode, nominateMode, gameState]);
 
   useEffect(() => {
     if (updatedRules) {
@@ -245,36 +218,10 @@ export function useConfigScreenState({
     setSelectedTemplate('__custom__');
   }, []);
 
-  /** Navigate to GameRulesScreen */
-  const handleOpenGameRules = useCallback(() => {
-    navigation.navigate('Rules', {
-      rules,
-      ...(existingRoomCode ? { existingRoomCode } : {}),
-      ...(nominateMode ? { nominateMode } : {}),
-    });
-  }, [navigation, rules, existingRoomCode, nominateMode]);
-
-  const handleSheriffElectionChange = useCallback(
-    async (isSheriffElectionEnabled: boolean) => {
-      try {
-        await settingsService.setSheriffElectionEnabled(isSheriffElectionEnabled);
-        setRules((prev) => ({ ...prev, isSheriffElectionEnabled }));
-      } catch (error) {
-        handleError(error, {
-          label: '保存警长设置',
-          logger: configLog,
-          alertMessage: '设置未保存，请检查浏览器存储权限后重试',
-          isExpected: isExpectedStorageError,
-        });
-      }
-    },
-    [settingsService],
-  );
-
-  const { createRoom, isCreating: isRoomCreating } = useRoomCreationController();
-  const handleCreateRoom = useCallback(async () => {
+  /** Nominate mode submits the board directly; otherwise the Rules step owns create/save. */
+  const handleContinue = useCallback(async () => {
     if (isLoading) {
-      throw new Error('[FAIL-FAST] Werewolf config cannot submit before room state is loaded');
+      throw new Error('[FAIL-FAST] Werewolf config cannot continue before room state is loaded');
     }
     const roles = selectionToRoles(selection, variantOverrides);
     if (roles.length === 0) {
@@ -288,87 +235,49 @@ export function useConfigScreenState({
       return;
     }
 
+    if (!nominateMode) {
+      navigation.navigate('Rules', {
+        roles,
+        rules,
+        ...(existingRoomCode ? { existingRoomCode } : {}),
+      });
+      return;
+    }
+
     setIsWorkflowSubmitting(true);
     try {
-      // ── Nominate mode: submit board nomination ──
-      if (nominateMode) {
-        const displayName = user?.displayName ?? '匿名玩家';
-        const result = await client.boardNominate(displayName, roles);
-        if (!isSuccessfulRoomCommand(result)) {
-          const reason = getRoomCommandFailureReason(result);
-          showErrorAlert('提交失败', translateReasonCode(reason));
-          return;
-        }
-        if (result.decision.outcome.reason === 'DEDUPLICATED') {
-          toast.info('已有相同板子建议，已自动为你投票');
-        }
-        onReturnToRoom(nominateMode.roomCode);
+      const displayName = user?.displayName ?? '匿名玩家';
+      const result = await client.boardNominate(displayName, roles);
+      if (!isSuccessfulRoomCommand(result)) {
+        const reason = getRoomCommandFailureReason(result);
+        showErrorAlert('提交失败', translateReasonCode(reason));
         return;
       }
-
-      const template = createCustomTemplate(roles);
-      if (Object.values(rules).some((value) => value !== undefined)) {
-        template.rules = rules;
+      if (result.decision.outcome.reason === 'DEDUPLICATED') {
+        toast.info('已有相同板子建议，已自动为你投票');
       }
-
-      await settingsService.setBgmEnabled(bgmEnabled);
-
-      if (isEditMode && existingRoomCode) {
-        const result = await client.updateTemplate(template);
-        if (!isSuccessfulRoomCommand(result)) {
-          const reason = getRoomCommandFailureReason(result);
-          showErrorAlert('更新失败', translateReasonCode(reason));
-          return;
-        }
-        onExitFlow();
-      } else {
-        // Create room record in DB first — get confirmed/final roomCode
-        if (user === null) {
-          throw new Error('[FAIL-FAST] Werewolf room creation requires an authenticated user');
-        }
-        const record = await createRoom({
-          expectedHostUserId: user.id,
-          gameType: 'werewolf',
-          config: {
-            templateRoles: template.roles,
-            ...(template.rules === undefined ? {} : { rules: template.rules }),
-          },
-        });
-        const roomCode = record.roomCode;
-        onRoomCreated(roomCode);
-      }
+      onReturnToRoom(nominateMode.roomCode);
     } catch (e) {
       handleError(e, {
-        label: isEditMode ? '更新房间' : '创建房间',
+        label: '提交板子建议',
         logger: configLog,
-        alertMessage: isEditMode ? '更新房间失败，请重试' : '创建房间失败，请重试',
+        alertMessage: '提交板子建议失败，请重试',
       });
     } finally {
       setIsWorkflowSubmitting(false);
     }
   }, [
     selection,
-    isEditMode,
     nominateMode,
     existingRoomCode,
     client,
-    settingsService,
-    bgmEnabled,
     isLoading,
-    createRoom,
+    navigation,
     variantOverrides,
     rules,
     user,
-    onExitFlow,
     onReturnToRoom,
-    onRoomCreated,
   ]);
-
-  // ── Template label ───────────────────────────────────────────────────────
-
-  const handleBgmChange = useCallback((v: string) => {
-    setBgmEnabled(v === 'on');
-  }, []);
 
   // ── Role info card (long-press any chip → RoleCardSimple with variant bar) ──
 
@@ -440,18 +349,6 @@ export function useConfigScreenState({
 
   const handleTabPress = useCallback((key: Faction) => {
     setActiveTab(key);
-  }, []);
-
-  // ── Settings sheet ───────────────────────────────────────────────────────
-
-  const [settingsSheetVisible, setSettingsSheetVisible] = useState(false);
-
-  const handleOpenSettings = useCallback(() => {
-    setSettingsSheetVisible(true);
-  }, []);
-
-  const handleCloseSettings = useCallback(() => {
-    setSettingsSheetVisible(false);
   }, []);
 
   // ── Template label ───────────────────────────────────────────────────────
@@ -548,14 +445,13 @@ export function useConfigScreenState({
     [activeTab],
   );
 
-  const isSubmitting = isWorkflowSubmitting || isRoomCreating;
+  const isSubmitting = isWorkflowSubmitting;
   const isDisabled = isSubmitting || isLoading;
 
   // ── Return bag ───────────────────────────────────────────────────────────
 
   return {
     // Mode
-    isEditMode,
     isNominateMode,
     isDisabled,
     isLoading,
@@ -565,32 +461,18 @@ export function useConfigScreenState({
     selection,
     totalCount,
     variantOverrides,
-    overflowVisible,
-    setOverflowVisible,
 
     // Navigation
     handleGoBack,
     handleTemplatePillPress,
-    handleCreateRoom,
+    handleContinue,
 
     // Role toggling
     toggleRole,
     handleClearSelection,
 
-    // Game rules
-    rules,
-    handleOpenGameRules,
-    handleSheriffElectionChange,
-
     // Template
     selectedTemplateLabel,
-
-    // Settings
-    bgmEnabled,
-    settingsSheetVisible,
-    handleOpenSettings,
-    handleCloseSettings,
-    handleBgmChange,
 
     // Role info (with variant switching)
     roleInfoId,

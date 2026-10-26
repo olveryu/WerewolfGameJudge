@@ -12,21 +12,13 @@ import { type RouteProp, useNavigation, useRoute } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  FlatList,
-  type ListRenderItemInfo,
-  Pressable,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from 'react-native';
+import { FlatList, type ListRenderItemInfo, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { Button } from '@/components/Button';
 import { GameScreen, GameScreenContent, GameScreenFooter } from '@/components/GameScreen';
-import { GameSettingsStepper } from '@/components/GameSettings';
+import { GameSettingsStepper, GameSettingsSwitch } from '@/components/GameSettings';
 import { gameSettingsStyles } from '@/components/GameSettings.styles';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -37,7 +29,7 @@ import {
   returnToActiveRoom,
 } from '@/features/room/navigation/roomFlowNavigation';
 import type { RootStackParamList } from '@/navigation/types';
-import { colors, spacing, withAlpha } from '@/theme';
+import { colors, spacing } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -188,16 +180,12 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
           <Text style={gameSettingsStyles.hint}>支持 4 至 12 人，启用白板至少需要 6 人</Text>
         </View>
         <View style={gameSettingsStyles.section}>
-          <View style={gameSettingsStyles.row}>
-            <Text style={gameSettingsStyles.label}>白板</Text>
-            <Switch
-              accessibilityLabel="启用白板"
-              value={config.hasBlank}
-              onValueChange={(hasBlank) => setConfig({ ...config, hasBlank })}
-              trackColor={{ false: colors.border, true: withAlpha(colors.primary, 0.4) }}
-              thumbColor={config.hasBlank ? colors.primary : colors.textSecondary}
-            />
-          </View>
+          <GameSettingsSwitch
+            label="白板"
+            accessibilityLabel="启用白板"
+            value={config.hasBlank}
+            onValueChange={(hasBlank) => setConfig({ ...config, hasBlank })}
+          />
           <Text style={gameSettingsStyles.hint}>白板没有词语，替换一名平民。</Text>
         </View>
         <View style={gameSettingsStyles.section}>

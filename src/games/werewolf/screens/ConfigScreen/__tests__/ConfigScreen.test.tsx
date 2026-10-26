@@ -14,7 +14,6 @@ let mockNavigationIndex = 0;
 const flowCallbacks = {
   onExitFlow: jest.fn(),
   onReturnToRoom: jest.fn(),
-  onRoomCreated: jest.fn(),
 };
 
 jest.mock('@react-navigation/native', () => ({
@@ -116,13 +115,13 @@ describe('ConfigScreen', () => {
       expect(getByText('神职')).toBeTruthy();
     });
 
-    it('should render create button at bottom', () => {
+    it('should render the next-step button at bottom', () => {
       const { getByText } = renderWithClient(
         <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
       );
 
-      // Bottom sticky button shows "创建房间"
-      expect(getByText('创建房间')).toBeTruthy();
+      // Bottom sticky button leads to the rules step; creation happens there
+      expect(getByText('下一步：规则')).toBeTruthy();
     });
 
     it('should render header with player count and reset button', () => {
