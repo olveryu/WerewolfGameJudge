@@ -198,13 +198,14 @@ When in doubt, ask first. Do not fabricate repository facts.
 
 ## Key Documentation
 
-- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Deployment architecture & environment config
-- [docs/gacha-system-design.md](docs/gacha-system-design.md) — Gacha system design
-- [docs/growth-system-design.md](docs/growth-system-design.md) — XP/level growth system
-- [docs/network-resilience-design.md](docs/network-resilience-design.md) — Reconnection strategy
-- [docs/roomscreen-state-machine.md](docs/roomscreen-state-machine.md) — RoomScreen state machine
-- [docs/PRESET_BOARDS.md](docs/PRESET_BOARDS.md) — Preset board list
-- [e2e/helpers/README.md](e2e/helpers/README.md) — E2E helper architecture
+Full index: [docs/README.md](docs/README.md) (every file under `docs/` is registered there). Must-reads by task:
+
+- Adding a game / touching shared room UI → [docs/multigame-platform-design.md](docs/multigame-platform-design.md) §25 + [docs/room-shell-contract.md](docs/room-shell-contract.md)
+- Werewolf room UI → [docs/roomscreen-state-machine.md](docs/roomscreen-state-machine.md)
+- Networking / reconnection → [docs/network-resilience-design.md](docs/network-resilience-design.md)
+- Release / deploy → [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- Agent rules maintenance → [docs/agent-config.md](docs/agent-config.md)
+- E2E helpers → [e2e/helpers/README.md](e2e/helpers/README.md)
 
 ---
 

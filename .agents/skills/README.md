@@ -6,3 +6,5 @@ GitHub Copilot, Cursor, and Gemini CLI discover this directory directly. `pnpm r
 validates every skill and mirrors it to `.claude/skills/` for Claude Code.
 
 After editing, run `pnpm run sync:agents`, then `pnpm run sync:agents:check` before committing.
+
+Full reference: [docs/agent-config.md](../../docs/agent-config.md).

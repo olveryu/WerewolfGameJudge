@@ -173,10 +173,11 @@ pnpm -F @game-judge/api-worker db:seed:local
 
 ## 📚 文档
 
-- [多游戏平台设计](docs/multigame-platform-design.md) · [房间壳契约](docs/room-shell-contract.md)
+完整索引见 [docs/README.md](docs/README.md)。常用入口：
+
+- [多游戏平台设计](docs/multigame-platform-design.md) · [房间壳契约](docs/room-shell-contract.md) · [部署指南](docs/DEPLOYMENT.md)
 - 各游戏设计：[阿瓦隆](docs/avalon-game-design.md) · [瞎掰王供词](docs/fibking-word-supply.md) · [谁是卧底](docs/undercover-game-design.md) · [你画我猜接龙](docs/pictionary-game-design.md) · [经典你画我猜](docs/drawguess-game-design.md) · [故事接龙](docs/story-relay-game-design.md)
-- [部署指南](docs/DEPLOYMENT.md) · [设计系统](docs/DESIGN.md) · [网络韧性设计](docs/network-resilience-design.md)
-- [扭蛋系统](docs/gacha-system-design.md) · [等级成长](docs/growth-system-design.md) · [线下玩法 SOP](docs/offline-sop.md)
+- AI 编码助手配置：[AGENTS.md](AGENTS.md) · [docs/agent-config.md](docs/agent-config.md)
 
 ---
 
