@@ -435,7 +435,8 @@ describe('createWerewolfRoomShellModel', () => {
         actionMessage: '请选择要查验的玩家',
       }),
     );
-    expect(audioPlaying.bottomActions).toMatchObject({ kind: 'stacked', message: '语音播报中…' });
+    expect(audioPlaying.isAudioPlaying).toBe(true);
+    expect(audioPlaying.bottomActions).toMatchObject({ kind: 'stacked', message: null });
   });
 
   it('exposes the current night step as the shell step anchor only while Ongoing', () => {
@@ -866,9 +867,10 @@ describe('createWerewolfRoomShellModel', () => {
         actionMessage: '请选择要袭击的玩家',
       }),
     );
+    expect(actionerAudio.isAudioPlaying).toBe(true);
     expect(actionerAudio.bottomActions).toMatchObject({
       kind: 'stacked',
-      message: '语音播报中…',
+      message: null,
       progress: { label: step?.displayName },
     });
     const watcherAudio = createWerewolfRoomShellModel(
@@ -878,9 +880,10 @@ describe('createWerewolfRoomShellModel', () => {
         isAudioPlaying: true,
       }),
     );
+    expect(watcherAudio.isAudioPlaying).toBe(true);
     expect(watcherAudio.bottomActions).toMatchObject({
       kind: 'stacked',
-      message: '语音播报中…',
+      message: null,
       progress: { label: step?.displayName },
     });
   });

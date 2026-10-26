@@ -332,7 +332,7 @@ export function createPictionaryHostManagement(
 
 export interface PictionaryRoomShellModelInput extends Omit<
   RoomShellModelInput,
-  'phase' | 'step' | 'bottomActions'
+  'phase' | 'step' | 'isAudioPlaying' | 'bottomActions'
 > {
   readonly state: PictionaryState;
   readonly isHost: boolean;
@@ -345,6 +345,7 @@ export function createPictionaryRoomShellModel(
 ): RoomShellModel {
   return createRoomShellModel({
     ...input,
+    isAudioPlaying: false,
     phase: input.state.phase,
     step: null,
     bottomActions: createPictionaryBottomActions(input.state, input.isHost, input.mySeat),

@@ -20,10 +20,7 @@ import type {
   RoomBottomActionModel,
   RoomBottomButton,
 } from '@/features/room/model/RoomBottomActions';
-import {
-  AUDIO_WAITING_LABEL,
-  buildStepActorWaitingMessage,
-} from '@/features/room/model/RoomBottomActions';
+import { buildStepActorWaitingMessage } from '@/features/room/model/RoomBottomActions';
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
@@ -567,7 +564,7 @@ function createWerewolfBottomActions(
   return {
     kind: 'stacked',
     message: isAudioPlaybackLocked(input.isAudioPlaying)
-      ? AUDIO_WAITING_LABEL
+      ? null
       : input.imActioner ||
           (input.isPlagueMode && input.isHost && input.roomStatus === GameStatus.Ready)
         ? input.isPlagueMode && input.isHost && input.roomStatus === GameStatus.Ready

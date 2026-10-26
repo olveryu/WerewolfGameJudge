@@ -92,6 +92,7 @@ export interface DrawGuessRoomShellModelInput extends Omit<
   RoomShellModelInput,
   | 'phase'
   | 'step'
+  | 'isAudioPlaying'
   | 'seatSource'
   | 'seatConfirmation'
   | 'profile'
@@ -212,6 +213,7 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
   });
   return createRoomShellModel({
     ...input,
+    isAudioPlaying: false,
     seatSource,
     phase: state.phase.kind,
     step: null,

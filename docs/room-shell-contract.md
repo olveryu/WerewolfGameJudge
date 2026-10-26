@@ -106,6 +106,28 @@ not expose game state, controllers or private projection inputs on the returned 
   does not infer phases, lock seats or decide permissions.
 - The new-game adapter template uses the same factory and input contract as Demo.
 
+### Narration Status
+
+`RoomShellModel.isAudioPlaying` is a required presentation input. Games with narration project
+the authoritative room snapshot's playback flag; games without narration explicitly supply
+`false`. Never derive this shared status from the host device's local audio player or introduce
+another stored playback flag.
+
+`RoomShell` forwards the flag to `RoomBottomActionPanel`, which owns the narration text and its
+position for hosts, players and spectators, in both stacked and dock layouts. Narration remains
+visible without buttons, preserves progress, and does not replace game-owned guidance or step
+navigation. The text disappears when the authoritative flag clears. Games must not place the
+same narration text in their own message or an inert button.
+
+The flag does not disable actions in the renderer. Games retain their existing interaction
+policies: Werewolf hides its night action guidance and actions during playback; Avalon allows
+night information confirmation alongside narration. Host-management audio locks remain separate.
+
+The adapter generator binds `state.isAudioPlaying` when `audioOrchestration` is enabled and
+emits `false` otherwise. Demo stays the no-audio reference. Generator acceptance executes the
+audio-enabled output's queue-to-shell-to-panel and acknowledgement transition, as well as the
+existing preset checks and Demo parity.
+
 ## Room Content
 
 ### Room Action Hierarchy

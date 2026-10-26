@@ -330,6 +330,20 @@ describe('createAvalonRoomShellModel', () => {
     });
     if (nightInfo && nightInfo.isEnabled) nightInfo.onPress();
     expect(onNightInfoPress).toHaveBeenCalledTimes(2);
+
+    for (const state of [nightInput.state, running.state]) {
+      for (const mySeat of [0, 1, null]) {
+        const model = createAvalonRoomShellModel({
+          ...baseInput(state),
+          isLobby: false,
+          userId: mySeat === null ? 'spectator' : seatUser(mySeat),
+          isHost: mySeat === 0,
+          mySeat,
+          effectiveSeat: mySeat,
+        });
+        expect(model.isAudioPlaying).toBe(state.isAudioPlaying);
+      }
+    }
   });
 
   it('lets a night participant confirm while the narration is still queued', () => {

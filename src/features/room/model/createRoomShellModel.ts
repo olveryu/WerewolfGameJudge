@@ -27,6 +27,7 @@ export function createRoomShellModel(
     roomCode: input.roomCode,
     phase: input.phase,
     step: input.step,
+    isAudioPlaying: input.isAudioPlaying,
     capabilities: input.capabilities,
     header: 'header' in input ? input.header : buildRoomHeaderModel(input),
     connection: input.connection,

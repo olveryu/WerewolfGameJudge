@@ -43,6 +43,7 @@ function buildModel(phase: string, step: string | null = null): RoomShellModel {
     roomCode: '1234',
     phase,
     step,
+    isAudioPlaying: false,
     capabilities: deniedCapabilities,
     header: {
       onBack: jest.fn(),

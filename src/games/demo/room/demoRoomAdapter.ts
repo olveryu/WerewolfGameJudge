@@ -91,6 +91,7 @@ export interface DemoRoomShellModelInput extends Omit<
   RoomShellModelInput,
   | 'phase'
   | 'step'
+  | 'isAudioPlaying'
   | 'seatSource'
   | 'seatConfirmation'
   | 'profile'
@@ -266,6 +267,7 @@ export function createDemoRoomShellModel(input: DemoRoomShellModelInput): RoomSh
   });
   return createRoomShellModel({
     ...input,
+    isAudioPlaying: false,
     seatSource,
     phase: state.phase.kind,
     step: null,

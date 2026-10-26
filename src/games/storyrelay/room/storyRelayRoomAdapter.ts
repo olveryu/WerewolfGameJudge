@@ -119,6 +119,7 @@ export interface StoryRelayRoomShellModelInput extends Omit<
   RoomShellModelInput,
   | 'phase'
   | 'step'
+  | 'isAudioPlaying'
   | 'seatSource'
   | 'seatConfirmation'
   | 'profile'
@@ -299,6 +300,7 @@ export function createStoryRelayRoomShellModel(
   });
   return createRoomShellModel({
     ...input,
+    isAudioPlaying: false,
     seatSource,
     phase: state.phase,
     step: null,

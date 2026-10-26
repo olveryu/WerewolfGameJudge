@@ -572,7 +572,7 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
   const wiringMarkers = [
     // Engine state slice + strict parse of the queue.
     'pendingAudioEffects',
-    'isAudioPlaying',
+    'isAudioPlaying: state.isAudioPlaying',
     // Ack command across commands/types, engine decide and worker schemas.
     `'demoproto.audio.ack'`,
     // Queue/clear events and their evolve landing on the shared machine.
@@ -614,6 +614,39 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
       .includes('audioOrchestration: false'),
     'audio-off engine declares the capability false',
   );
+  assert.ok(
+    off.get('src/games/demoproto/room/demoprotoRoomAdapter.ts').includes('isAudioPlaying: false'),
+    'audio-off shell explicitly declares no narration',
+  );
+
+  const root = makeRealRepoCopy();
+  try {
+    generateNewGame({ rootDir: root, gameId: 'demoproto', preset: 'identity' });
+    for (const [file, content] of on) {
+      const destination = path.join(root, file);
+      fs.mkdirSync(path.dirname(destination), { recursive: true });
+      fs.writeFileSync(destination, content);
+    }
+    const require = createRequire(path.join(root, 'package.json'));
+    execFileSync(process.execPath, [require.resolve('typescript/bin/tsc'), '--noEmit'], {
+      cwd: root,
+      stdio: 'pipe',
+      encoding: 'utf8',
+    });
+    execFileSync(
+      process.execPath,
+      [
+        require.resolve('jest/bin/jest'),
+        '--runInBand',
+        '--no-coverage',
+        '--runTestsByPath',
+        'src/games/demoproto/room/__tests__/demoprotoShellModel.test.ts',
+      ],
+      { cwd: root, stdio: 'pipe', encoding: 'utf8' },
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('production: true registers the new game as production and reports the list-only go-live step', () => {

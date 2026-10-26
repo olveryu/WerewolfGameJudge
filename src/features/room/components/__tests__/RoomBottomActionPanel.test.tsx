@@ -2,6 +2,7 @@ import { fireEvent, render } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
 import type { RoomBottomActionModel } from '@/features/room/model/RoomBottomActions';
+import { AUDIO_WAITING_LABEL } from '@/features/room/model/RoomBottomActions';
 import type {
   RoomHostManagementAction,
   RoomHostManagementModel,
@@ -20,10 +21,12 @@ function renderPanel(
   model: RoomBottomActionModel,
   hostManagement: RoomHostManagementModel | null = null,
   onOpenHostManagement: () => void = jest.fn(),
+  isAudioPlaying = false,
 ) {
   return render(
     <RoomBottomActionPanel
       model={model}
+      isAudioPlaying={isAudioPlaying}
       hostManagement={hostManagement}
       onOpenHostManagement={onOpenHostManagement}
       styles={styles}
@@ -45,6 +48,59 @@ const emptyStackedModel: RoomBottomActionModel = {
 };
 
 describe('RoomBottomActionPanel', () => {
+  it.each<RoomBottomActionModel>([
+    emptyStackedModel,
+    { kind: 'dock', message: null, progress: null, leading: null, primary: null, trailing: null },
+  ])('shows narration without actions in a $kind panel, then removes the empty panel', (model) => {
+    const screen = renderPanel(model, null, jest.fn(), true);
+    expect(screen.getByText(AUDIO_WAITING_LABEL)).toBeTruthy();
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+
+    screen.rerender(
+      <RoomBottomActionPanel
+        model={model}
+        isAudioPlaying={false}
+        hostManagement={null}
+        onOpenHostManagement={jest.fn()}
+        styles={styles}
+        progressStyles={progressStyles}
+        bottomInset={0}
+      />,
+    );
+    expect(screen.queryByText(AUDIO_WAITING_LABEL)).toBeNull();
+    expect(screen.queryByTestId(TESTIDS.bottomActionPanel)).toBeNull();
+  });
+
+  it('keeps game guidance, progress and enabled actions available during narration', () => {
+    const onPress = jest.fn();
+    const model: RoomBottomActionModel = {
+      kind: 'stacked',
+      message: '请确认信息',
+      progress: { current: 1, total: 3, label: '坏人互认' },
+      layout: {
+        primary: [
+          {
+            key: 'confirm',
+            label: '确认信息',
+            variant: 'primary',
+            size: 'md',
+            isEnabled: true,
+            onPress,
+          },
+        ],
+        secondary: [],
+        ghost: [],
+      },
+    };
+    const screen = renderPanel(model, null, jest.fn(), true);
+
+    expect(screen.getByText(AUDIO_WAITING_LABEL)).toBeTruthy();
+    expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('请确认信息');
+    expect(screen.getByTestId(TESTIDS.roomProgressIndicator)).toBeTruthy();
+    fireEvent.press(screen.getByText('确认信息'));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
   it('renders game-provided message and dispatches an enabled action', () => {
     const onPress = jest.fn();
     const model: RoomBottomActionModel = {
@@ -97,6 +153,7 @@ describe('RoomBottomActionPanel', () => {
     const { getByTestId, getByText } = render(
       <RoomBottomActionPanel
         model={model}
+        isAudioPlaying={false}
         hostManagement={null}
         onOpenHostManagement={jest.fn()}
         styles={styles}

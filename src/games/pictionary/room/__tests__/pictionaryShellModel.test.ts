@@ -91,6 +91,7 @@ describe('createPictionaryRoomShellModel', () => {
       'controlledSeat',
       'header',
       'hostManagement',
+      'isAudioPlaying',
       'phase',
       'profile',
       'roomCode',
@@ -99,6 +100,7 @@ describe('createPictionaryRoomShellModel', () => {
       'share',
       'step',
     ]);
+    expect(model.isAudioPlaying).toBe(false);
     expect(model.roomCode).toBe('2468');
     expect(model.header.onBack).toBe(onBack);
     expect(model.header.userAction?.ticketCount).toBeNull();

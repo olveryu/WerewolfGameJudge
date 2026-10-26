@@ -669,6 +669,7 @@ export interface AvalonRoomShellModelInput extends Omit<
   RoomShellModelInput,
   | 'phase'
   | 'step'
+  | 'isAudioPlaying'
   | 'seatSource'
   | 'seatConfirmation'
   | 'profile'
@@ -902,6 +903,7 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
   });
   return createRoomShellModel({
     ...input,
+    isAudioPlaying: state.isAudioPlaying,
     seatSource,
     phase: state.phase.kind,
     // The step anchor: only the night phase carries a step (its three

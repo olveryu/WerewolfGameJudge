@@ -15,6 +15,7 @@ import type {
   RoomBottomToolButton,
   RoomPanelStep,
 } from '@/features/room/model/RoomBottomActions';
+import { AUDIO_WAITING_LABEL } from '@/features/room/model/RoomBottomActions';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
@@ -28,6 +29,7 @@ const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 interface RoomBottomActionPanelProps {
   readonly model: RoomBottomActionModel;
+  readonly isAudioPlaying: boolean;
   readonly hostManagement: RoomHostManagementModel | null;
   readonly onOpenHostManagement: () => void;
   readonly styles: BottomActionPanelStyles;
@@ -39,6 +41,7 @@ interface RoomBottomActionPanelProps {
 
 const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
   model,
+  isAudioPlaying,
   hostManagement,
   onOpenHostManagement,
   styles,
@@ -81,7 +84,9 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
   const steps = model.kind === 'stacked' ? (model.steps ?? null) : null;
   const hint = model.kind === 'stacked' ? (model.hint ?? null) : null;
   const hasMessage = steps === null && message !== null && message.length > 0;
-  if (!hasButtons && !hasMessage && steps === null && model.progress === null) return null;
+  if (!isAudioPlaying && !hasButtons && !hasMessage && steps === null && model.progress === null) {
+    return null;
+  }
 
   const isCompact = isCompactHeight === true;
   const containerStyle = [
@@ -103,6 +108,12 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
             isCompact={isCompact}
           />
         </View>
+      )}
+
+      {isAudioPlaying && (
+        <Text style={[styles.message, isCompact && styles.messageCompact]}>
+          {AUDIO_WAITING_LABEL}
+        </Text>
       )}
 
       {steps !== null ? (

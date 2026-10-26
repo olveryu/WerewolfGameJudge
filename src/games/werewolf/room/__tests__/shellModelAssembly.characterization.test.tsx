@@ -11,7 +11,6 @@
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { render } from '@testing-library/react-native';
 
-import { AUDIO_WAITING_LABEL } from '@/features/room/model/RoomBottomActions';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import {
   createWerewolfRoomMock,
@@ -122,24 +121,34 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
     }
   });
 
-  it('disables seats and replaces action guidance with narration status while audio is playing', async () => {
-    mockUseWerewolfRoomReturn = createWerewolfRoomMock({
-      schemaId: 'seerCheck',
-      currentActionRole: 'seer',
-      myRole: 'seer',
-      mySeat: 0,
-      numberOfPlayers: 4,
-      isAudioPlaying: true,
-    });
+  it.each(['host', 'player', 'spectator'] as const)(
+    'projects narration and keeps seats locked for %s',
+    async (viewer) => {
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+        schemaId: 'seerCheck',
+        currentActionRole: 'seer',
+        myRole: 'seer',
+        mySeat: 0,
+        isHost: viewer === 'host',
+        numberOfPlayers: 4,
+        isAudioPlaying: true,
+        hookOverrides:
+          viewer === 'spectator'
+            ? { mySeat: null, myRole: null, effectiveSeat: null, effectiveRole: null }
+            : {},
+      });
 
-    const model = await captureModel(renderRoom());
+      const model = await captureModel(renderRoom());
 
-    expect(model.seats.visuallyDisabled).toBe(true);
-    expect(model.bottomActions.kind).toBe('stacked');
-    if (model.bottomActions.kind === 'stacked') {
-      expect(model.bottomActions.message).toBe(AUDIO_WAITING_LABEL);
-    }
-  });
+      expect(model.isAudioPlaying).toBe(true);
+      expect(model.seats.visuallyDisabled).toBe(true);
+      expect(model.bottomActions.kind).toBe('stacked');
+      if (model.bottomActions.kind === 'stacked') {
+        expect(model.bottomActions.message).toBeNull();
+        expect(model.bottomActions.layout).toEqual({ primary: [], secondary: [], ghost: [] });
+      }
+    },
+  );
 
   it('includes host management only for the host', async () => {
     mockUseWerewolfRoomReturn = createWerewolfRoomMock({

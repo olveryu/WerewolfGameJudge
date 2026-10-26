@@ -130,6 +130,7 @@ function renderSurfaces(shell: RoomShellModel) {
   const bottom = render(
     <RoomBottomActionPanel
       model={shell.bottomActions}
+      isAudioPlaying={shell.isAudioPlaying}
       hostManagement={shell.hostManagement}
       onOpenHostManagement={jest.fn()}
       styles={featureStyles.bottomActionPanel}

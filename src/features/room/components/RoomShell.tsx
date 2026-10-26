@@ -252,6 +252,7 @@ export const RoomShell: React.FC<RoomShellProps> = ({
 
       <RoomBottomActionPanel
         model={model.bottomActions}
+        isAudioPlaying={model.isAudioPlaying}
         hostManagement={model.hostManagement}
         onOpenHostManagement={openHostManagement}
         styles={componentStyles.bottomActionPanel}

@@ -14,6 +14,15 @@ import {
   __GAME_CAMEL__Engine,
   type __GAME_PASCAL__State,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
+//#cap audioOrchestration
+import { render } from '@testing-library/react-native';
+import { createElement } from 'react';
+
+import { RoomBottomActionPanel } from '@/features/room/components/RoomBottomActionPanel';
+import { createRoomFeatureStyles } from '@/features/room/components/styles';
+import { AUDIO_WAITING_LABEL } from '@/features/room/model/RoomBottomActions';
+import { colors } from '@/theme';
+//#end
 
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 //#cap identityViewing
@@ -111,7 +120,7 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
     const caps = capabilities();
     const hostManagement = { sections: [] };
     const onSeatPress = jest.fn();
-    const model = create__GAME_PASCAL__RoomShellModel({
+    const input: Parameters<typeof create__GAME_PASCAL__RoomShellModel>[0] = {
       roomCode: '1234',
       capabilities: caps,
       onBack: jest.fn(),
@@ -138,8 +147,10 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
       mySeat: 0,
       hostManagement,
       releaseBot: jest.fn(),
-    });
+    };
+    const model = create__GAME_PASCAL__RoomShellModel(input);
     expect(model.roomCode).toBe('1234');
+    expect(model.isAudioPlaying).toBe(false);
     // The shell phase anchor carries the __GAME_ID__ phase kind verbatim.
     expect(model.phase).toBe('lobby');
     expect(model.seats.source.count).toBe(4);
@@ -149,6 +160,38 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
     expect(model.share).toBe(share);
     expect(model.hostManagement).toBe(hostManagement);
     expect(model.controlledSeat).toBeNull();
+//#cap audioOrchestration
+    const featureStyles = createRoomFeatureStyles(colors);
+    const renderPanel = (model: ReturnType<typeof create__GAME_PASCAL__RoomShellModel>) =>
+      createElement(RoomBottomActionPanel, {
+        model: model.bottomActions,
+        isAudioPlaying: model.isAudioPlaying,
+        hostManagement: model.hostManagement,
+        onOpenHostManagement: jest.fn(),
+        styles: featureStyles.bottomActionPanel,
+        progressStyles: featureStyles.progressIndicator,
+        bottomInset: 0,
+      });
+    const screen = render(renderPanel(model));
+    expect(screen.queryByText(AUDIO_WAITING_LABEL)).toBeNull();
+
+    const queued = __GAME_CAMEL__Engine.evolve(state, {
+      type: '__GAME_ID__.audio.queued',
+      effects: [{ audioKey: 'night' }],
+    });
+    const during = create__GAME_PASCAL__RoomShellModel({ ...input, state: queued });
+    expect(during.isAudioPlaying).toBe(true);
+    screen.rerender(renderPanel(during));
+    expect(screen.getByText(AUDIO_WAITING_LABEL)).toBeTruthy();
+
+    const after = create__GAME_PASCAL__RoomShellModel({
+      ...input,
+      state: drive(queued, { type: '__GAME_ID__.audio.ack' }),
+    });
+    expect(after.isAudioPlaying).toBe(false);
+    screen.rerender(renderPanel(after));
+    expect(screen.queryByText(AUDIO_WAITING_LABEL)).toBeNull();
+//#end
   });
 //#cap identityViewing
 
