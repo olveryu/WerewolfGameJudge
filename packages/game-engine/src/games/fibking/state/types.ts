@@ -1,5 +1,7 @@
 /** Authoritative compact state for FibKing rooms. */
 
+import type { GameConfigSchema } from '../../../platform/config/configSchema';
+import { isValidConfig } from '../../../platform/config/configSchema';
 import type { FibKingGameType } from '../../../platform/protocol/gameTypes';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import type { HostRevelation } from '../../../platform/room/hostReveal';
@@ -182,6 +184,27 @@ export type FibState =
 
 export interface FibConfig {
   readonly numberOfPlayers: number;
+}
+
+export const DEFAULT_FIB_CONFIG: FibConfig = { numberOfPlayers: FIB_DEFAULT_PLAYERS };
+
+export const FIB_CONFIG_SCHEMA: GameConfigSchema<FibConfig> = {
+  fields: {
+    numberOfPlayers: {
+      kind: 'count',
+      label: '玩家人数',
+      hint: '1 位大聪明、1 位老实人，其余玩家都是瞎掰王。',
+      min: FIB_MIN_PLAYERS,
+      max: FIB_MAX_PLAYERS,
+    },
+  },
+  defaults: DEFAULT_FIB_CONFIG,
+  validate: () => null,
+};
+
+/** Checks supported lobby settings without replacing invalid values. */
+export function isValidFibConfig(config: FibConfig): boolean {
+  return isValidConfig(FIB_CONFIG_SCHEMA, config);
 }
 
 export function getFibRole(roles: FibRoleAssignment, seat: number): FibRole {

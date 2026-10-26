@@ -5,7 +5,6 @@ import {
   getUndercoverOccupiedSeatCount,
   getUndercoverUserSeat,
   getUndercoverViewingParticipants,
-  type UndercoverCategory,
   type UndercoverRole,
   type UndercoverRoleCounts,
   type UndercoverState,
@@ -65,19 +64,6 @@ export const UNDERCOVER_ROLE_NAMES: Readonly<Record<UndercoverRole, string>> = {
   civilian: '平民',
   undercover: '卧底',
   blank: '白板',
-};
-export const UNDERCOVER_CATEGORY_NAMES: Readonly<Record<UndercoverCategory | 'all', string>> = {
-  all: '全部分类',
-  food: '吃喝美食',
-  dailyLife: '日常生活',
-  school: '校园学习',
-  work: '职场工作',
-  relationships: '人际关系',
-  actions: '动作状态',
-  entertainment: '文娱休闲',
-  sportsAndGames: '运动游戏',
-  travel: '出行旅行',
-  nature: '自然世界',
 };
 
 /** Resolve only public roster identity, never the secret role or word. */

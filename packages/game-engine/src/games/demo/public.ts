@@ -15,6 +15,7 @@ export { DEMO_STATE_CODEC } from './state/codec';
 export { migratePersistedDemoState, parseDemoConfig, parseDemoState } from './state/parseState';
 export {
   DEFAULT_DEMO_CONFIG,
+  DEMO_CONFIG_SCHEMA,
   DEMO_DEFAULT_PLAYERS,
   DEMO_GAME_TYPE,
   DEMO_MAX_PLAYERS,

@@ -3,8 +3,7 @@
 import { type CommandContext, reject } from '../../../platform/engine';
 import { decideRoomCommands } from '../../../platform/room/roomCommands';
 import type { UndercoverPublicCommand } from '../commands/types';
-import { isValidUndercoverConfig } from '../state/normalize';
-import type { UndercoverState } from '../state/types';
+import { isValidUndercoverConfig, type UndercoverState } from '../state/types';
 import { commitUndercover, UNDERCOVER_REASONS, type UndercoverDecision } from './decision';
 
 type RoomCommand = Extract<

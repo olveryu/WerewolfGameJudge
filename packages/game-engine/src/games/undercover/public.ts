@@ -22,14 +22,18 @@ export {
 export { getUndercoverWordCard, type UndercoverWordCard } from './domain/visibility';
 export { type UndercoverEngine, undercoverEngine } from './engine';
 export { UNDERCOVER_STATE_CODEC } from './state/codec';
-export { isValidUndercoverConfig, isValidUndercoverWordPair } from './state/normalize';
+export { isValidUndercoverWordPair } from './state/normalize';
 export { migratePersistedUndercoverState } from './state/parseState';
 export {
+  DEFAULT_UNDERCOVER_CONFIG,
   getUndercoverOccupiedSeatCount,
   getUndercoverUserSeat,
   getUndercoverViewingParticipants,
   isUndercoverSeat,
+  isValidUndercoverConfig,
   UNDERCOVER_CATEGORIES,
+  UNDERCOVER_CATEGORY_NAMES,
+  UNDERCOVER_CONFIG_SCHEMA,
   type UndercoverCategory,
   type UndercoverConfig,
   type UndercoverHumanSeat,

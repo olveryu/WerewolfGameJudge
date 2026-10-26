@@ -41,6 +41,7 @@ export {
 } from './state/parseState';
 export {
   AVALON_BOARDS,
+  AVALON_CONFIG_SCHEMA,
   AVALON_DEFAULT_VETO_LIMIT,
   AVALON_DEFAULT_VOTE_MODE,
   AVALON_END_REASONS,
@@ -92,7 +93,6 @@ export {
   isAvalonPlayerCount,
   isAvalonQuestRound,
   isAvalonVetoLimit,
-  isAvalonVoteMode,
   isValidAvalonConfig,
 } from './state/types';
 export { AVALON_STATE_IDENTITY, AVALON_STATE_VERSION } from './state/version';

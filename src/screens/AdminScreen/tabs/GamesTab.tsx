@@ -5,6 +5,7 @@
  * leaderboard, and manual supply triggers (normal + force + batch x10).
  */
 
+import { UNDERCOVER_CATEGORY_NAMES } from '@game-judge/game-engine/games/undercover/public';
 import { GAME_WORD_GAMES } from '@game-judge/game-engine/product/wordSupply';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -13,7 +14,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AlertModal } from '@/components/AlertModal';
 import type { GameWordGame, GameWordsStats } from '@/features/admin/model/adminContracts';
 import { fetchGameWordsStats, triggerGameWordSupply } from '@/features/admin/services/adminApi';
-import { UNDERCOVER_CATEGORY_NAMES } from '@/games/undercover/room/undercoverRoomAdapter';
 import { borderRadius, colors, spacing, typography } from '@/theme';
 
 import { AdminEmptyState, BarChart, MetricCard, Pagination } from '../components';

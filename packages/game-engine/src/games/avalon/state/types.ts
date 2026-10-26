@@ -1,6 +1,8 @@
 /** Authoritative Avalon （阿瓦隆） state; identity deduction with fixed boards, pure logic without IO. */
 
 import type { AudioEffect } from '../../../platform/audio';
+import type { GameConfigSchema } from '../../../platform/config/configSchema';
+import { isValidConfig } from '../../../platform/config/configSchema';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import {
   buildRosterViewingParticipants,
@@ -83,11 +85,6 @@ export function isAvalonVetoLimit(value: number): value is 3 | 4 | 5 {
   return value === 3 || value === 4 || value === 5;
 }
 
-/** Narrows an untrusted string to a supported vote mode without assertions. */
-export function isAvalonVoteMode(value: string): value is AvalonVoteMode {
-  return value === 'public' || value === 'secret';
-}
-
 /**
  * 固定板子（D2）：人数即板子，角色构成与人数严格对应。
  * 忠臣 = 亚瑟的忠臣，爪牙 = 莫德雷德的爪牙；梅林 / 刺客每局必备。
@@ -159,13 +156,39 @@ export const DEFAULT_AVALON_CONFIG: AvalonConfig = {
   vetoLimit: AVALON_DEFAULT_VETO_LIMIT,
 };
 
+export const AVALON_CONFIG_SCHEMA: GameConfigSchema<AvalonConfig> = {
+  fields: {
+    numberOfPlayers: {
+      kind: 'count',
+      label: '玩家人数',
+      hint: '人数即板子：5–10 人各对应一张固定板子。',
+      min: AVALON_MIN_PLAYERS,
+      max: AVALON_MAX_PLAYERS,
+    },
+    voteMode: {
+      kind: 'choice',
+      label: '组队投票',
+      hint: '公投：投票结算后同时亮票，每人投了什么全员可见；暗投：只公布赞成 / 反对数量。任务出牌永远是暗投。',
+      options: [
+        { value: 'public', label: '公投' },
+        { value: 'secret', label: '暗投' },
+      ],
+    },
+    vetoLimit: {
+      kind: 'count',
+      label: '否决上限',
+      hint: '单轮连续否决达到上限，坏人直接获胜（官方规则为 5）。',
+      min: AVALON_VETO_LIMIT_MIN,
+      max: AVALON_VETO_LIMIT_MAX,
+    },
+  },
+  defaults: DEFAULT_AVALON_CONFIG,
+  validate: () => null,
+};
+
 /** Checks supported lobby settings without replacing invalid values. */
 export function isValidAvalonConfig(config: AvalonConfig): boolean {
-  return (
-    isAvalonPlayerCount(config.numberOfPlayers) &&
-    isAvalonVoteMode(config.voteMode) &&
-    isAvalonVetoLimit(config.vetoLimit)
-  );
+  return isValidConfig(AVALON_CONFIG_SCHEMA, config);
 }
 
 export type AvalonQuestRound = 1 | 2 | 3 | 4 | 5;

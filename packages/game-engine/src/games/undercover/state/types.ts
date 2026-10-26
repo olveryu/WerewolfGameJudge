@@ -1,5 +1,7 @@
 /** Undercover state contracts; authoritative data only, no UI or IO. */
 
+import type { GameConfigSchema } from '../../../platform/config/configSchema';
+import { isValidConfig } from '../../../platform/config/configSchema';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import type { HostRevelation } from '../../../platform/room/hostReveal';
 import {
@@ -13,7 +15,13 @@ import {
   type RosterMap,
   type SeatOccupant,
 } from '../../../platform/room/seating';
-import type { UndercoverRole } from '../domain/rules';
+import {
+  UNDERCOVER_BLANK_MIN_PLAYERS,
+  UNDERCOVER_DEFAULT_PLAYERS,
+  UNDERCOVER_MAX_PLAYERS,
+  UNDERCOVER_MIN_PLAYERS,
+  type UndercoverRole,
+} from '../domain/rules';
 
 export const UNDERCOVER_CATEGORIES = [
   'food',
@@ -29,10 +37,65 @@ export const UNDERCOVER_CATEGORIES = [
 ] as const;
 export type UndercoverCategory = (typeof UNDERCOVER_CATEGORIES)[number];
 
+export const UNDERCOVER_CATEGORY_NAMES: Readonly<Record<UndercoverCategory | 'all', string>> = {
+  all: '全部分类',
+  food: '吃喝美食',
+  dailyLife: '日常生活',
+  school: '校园学习',
+  work: '职场工作',
+  relationships: '人际关系',
+  actions: '动作状态',
+  entertainment: '文娱休闲',
+  sportsAndGames: '运动游戏',
+  travel: '出行旅行',
+  nature: '自然世界',
+};
+
 export interface UndercoverConfig {
   readonly numberOfPlayers: number;
   readonly hasBlank: boolean;
   readonly category: UndercoverCategory | 'all';
+}
+
+export const DEFAULT_UNDERCOVER_CONFIG: UndercoverConfig = {
+  numberOfPlayers: UNDERCOVER_DEFAULT_PLAYERS,
+  hasBlank: false,
+  category: 'all',
+};
+
+export const UNDERCOVER_CONFIG_SCHEMA: GameConfigSchema<UndercoverConfig> = {
+  fields: {
+    numberOfPlayers: {
+      kind: 'count',
+      label: '玩家人数',
+      hint: `启用白板至少需要 ${UNDERCOVER_BLANK_MIN_PLAYERS} 人`,
+      min: UNDERCOVER_MIN_PLAYERS,
+      max: UNDERCOVER_MAX_PLAYERS,
+    },
+    hasBlank: {
+      kind: 'toggle',
+      label: '白板',
+      hint: '白板没有词语，替换一名平民。',
+    },
+    category: {
+      kind: 'choice',
+      label: '词语分类',
+      options: (['all', ...UNDERCOVER_CATEGORIES] as const).map((category) => ({
+        value: category,
+        label: UNDERCOVER_CATEGORY_NAMES[category],
+      })),
+    },
+  },
+  defaults: DEFAULT_UNDERCOVER_CONFIG,
+  validate: (config) =>
+    config.hasBlank && config.numberOfPlayers < UNDERCOVER_BLANK_MIN_PLAYERS
+      ? { field: 'hasBlank', message: `启用白板至少需要 ${UNDERCOVER_BLANK_MIN_PLAYERS} 人` }
+      : null,
+};
+
+/** Validates a configuration without substituting defaults. */
+export function isValidUndercoverConfig(config: UndercoverConfig): boolean {
+  return isValidConfig(UNDERCOVER_CONFIG_SCHEMA, config);
 }
 
 export interface UndercoverHumanSeat extends SeatOccupant {

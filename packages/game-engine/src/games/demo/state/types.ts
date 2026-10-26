@@ -1,5 +1,7 @@
 /** Authoritative Demo state; secret identities with the identity-viewing checkpoint. */
 
+import type { GameConfigSchema } from '../../../platform/config/configSchema';
+import { isValidConfig } from '../../../platform/config/configSchema';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import {
   buildRosterViewingParticipants,
@@ -28,13 +30,23 @@ export const DEFAULT_DEMO_CONFIG: DemoConfig = {
   numberOfPlayers: DEMO_DEFAULT_PLAYERS,
 };
 
+export const DEMO_CONFIG_SCHEMA: GameConfigSchema<DemoConfig> = {
+  fields: {
+    numberOfPlayers: {
+      kind: 'count',
+      label: '玩家人数',
+      hint: '开局要求坐满全部座位（可填充机器人）。',
+      min: DEMO_MIN_PLAYERS,
+      max: DEMO_MAX_PLAYERS,
+    },
+  },
+  defaults: DEFAULT_DEMO_CONFIG,
+  validate: () => null,
+};
+
 /** Checks supported lobby settings without replacing invalid values. */
 export function isValidDemoConfig(config: DemoConfig): boolean {
-  return (
-    Number.isSafeInteger(config.numberOfPlayers) &&
-    config.numberOfPlayers >= DEMO_MIN_PLAYERS &&
-    config.numberOfPlayers <= DEMO_MAX_PLAYERS
-  );
+  return isValidConfig(DEMO_CONFIG_SCHEMA, config);
 }
 
 export type DemoPhase =
