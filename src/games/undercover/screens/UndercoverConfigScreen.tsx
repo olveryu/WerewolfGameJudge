@@ -232,7 +232,7 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
           variant="primary"
           size="lg"
           onPress={() => void submit()}
-          loading={creation.isCreating || submission.isSubmitting}
+          loading={inventory.isPending || creation.isCreating || submission.isSubmitting}
           testID="undercover-config-submit"
         >
           {params.mode === 'edit' ? '保存设置' : '创建房间'}
