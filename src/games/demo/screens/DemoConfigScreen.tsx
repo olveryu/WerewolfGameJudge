@@ -28,6 +28,8 @@ import type { RootStackParamList } from '@/navigation/types';
 import { showErrorAlert } from '@/utils/alertPresets';
 
 // TODO(gameplay): 玩法配置项（时长、模式等）按设计文档加进本页与引擎 Config。
+// 共享控件：GameSettingsStepper（计数）、GameSettingsDurationOptions（时长单选）、
+// GameSettingsSwitch（布尔开关）；每项包在 styles.section 内，说明文字用 styles.hint。
 
 /** 创建/编辑设置；保存走共享建房与命令控制器。 */
 export function DemoConfigScreen({ session }: { readonly session: DemoRoomSession }) {

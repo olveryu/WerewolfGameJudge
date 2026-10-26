@@ -118,8 +118,8 @@ test.describe('App — Room Lifecycle', () => {
       await config.switchToFactionTab('Wolf');
       await config.decreaseStepper('wolf', 4);
 
-      // Try to create — should fail validation
-      await config.clickCreate();
+      // Try to continue — board validation rejects before the Rules step
+      await config.pressNext();
 
       // Expect validation error: "请至少选择一个角色"
       await expect(page.getByText('请至少选择一个角色')).toBeVisible({ timeout: 5000 });

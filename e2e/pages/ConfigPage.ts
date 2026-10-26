@@ -314,9 +314,14 @@ export class ConfigPage {
   // Actions
   // ---------------------------------------------------------------------------
 
+  /** Press "下一步" without expecting the Rules step (board validation may reject). */
+  async pressNext() {
+    await this.nextButton.click();
+  }
+
   /** Go to the Rules step with the current board. */
   async clickNext(): Promise<RulesPage> {
-    await this.nextButton.click();
+    await this.pressNext();
     const rules = new RulesPage(this.page);
     await rules.waitForReady();
     return rules;
