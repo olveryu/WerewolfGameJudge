@@ -31,9 +31,24 @@ export const isExpectedStorageError = (err: unknown): boolean =>
 const MIN_VOLUME = 0;
 const MAX_VOLUME = 1;
 
-interface UserSettings {
-  /** Default sheriff election choice for new Werewolf rooms. */
+/** Werewolf house rules remembered for the next new room; plague mode is intentionally excluded. */
+export interface RememberedWerewolfRules {
   isSheriffElectionEnabled: boolean;
+  witchCanSelfHeal: boolean;
+}
+
+export type RememberedWerewolfRuleKey = keyof RememberedWerewolfRules;
+
+const REMEMBERED_WEREWOLF_RULE_KEYS: readonly RememberedWerewolfRuleKey[] = [
+  'isSheriffElectionEnabled',
+  'witchCanSelfHeal',
+];
+
+export function isRememberedWerewolfRuleKey(key: string): key is RememberedWerewolfRuleKey {
+  return REMEMBERED_WEREWOLF_RULE_KEYS.some((ruleKey) => ruleKey === key);
+}
+
+interface UserSettings extends RememberedWerewolfRules {
   /** Whether to play background music during night phase (default: true) */
   bgmEnabled: boolean;
   /** Selected BGM track or 'random' for shuffle playlist (default: 'random') */
@@ -46,6 +61,7 @@ interface UserSettings {
 
 const DEFAULT_SETTINGS: UserSettings = {
   isSheriffElectionEnabled: true,
+  witchCanSelfHeal: false,
   bgmEnabled: true,
   bgmTrack: 'random',
   bgmVolume: BGM_VOLUME,
@@ -98,6 +114,11 @@ function parsePersistedSettings(value: unknown): UserSettings {
       Reflect.get(value, 'isSheriffElectionEnabled'),
       'isSheriffElectionEnabled',
       DEFAULT_SETTINGS.isSheriffElectionEnabled,
+    ),
+    witchCanSelfHeal: readPersistedBoolean(
+      Reflect.get(value, 'witchCanSelfHeal'),
+      'witchCanSelfHeal',
+      DEFAULT_SETTINGS.witchCanSelfHeal,
     ),
     bgmEnabled: readPersistedBoolean(
       Reflect.get(value, 'bgmEnabled'),
@@ -165,14 +186,17 @@ export class SettingsService {
     this.#notifyListeners();
   }
 
-  /** Get the sheriff election preference for new Werewolf rooms. */
-  isSheriffElectionEnabled(): boolean {
-    return this.#settings.isSheriffElectionEnabled;
+  /** Remembered Werewolf house rules applied to the next new room. */
+  getRememberedWerewolfRules(): RememberedWerewolfRules {
+    return {
+      isSheriffElectionEnabled: this.#settings.isSheriffElectionEnabled,
+      witchCanSelfHeal: this.#settings.witchCanSelfHeal,
+    };
   }
 
-  /** Persist the sheriff election preference without changing any room state. */
-  async setSheriffElectionEnabled(isSheriffElectionEnabled: boolean): Promise<void> {
-    await this.#save({ ...this.#settings, isSheriffElectionEnabled });
+  /** Persist one remembered Werewolf rule without changing any room state. */
+  async setRememberedWerewolfRule(key: RememberedWerewolfRuleKey, value: boolean): Promise<void> {
+    await this.#save({ ...this.#settings, [key]: value });
   }
 
   /**

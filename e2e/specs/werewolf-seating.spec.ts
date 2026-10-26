@@ -96,7 +96,7 @@ test.describe('Werewolf — Seating', () => {
       await bp.waitForReady();
       await bp.selectDefaultTemplate();
       const config = new ConfigPage(page);
-      await config.waitForCreateMode();
+      await config.waitForReady();
       await config.clickCreate();
 
       const room = new RoomPage(page);
@@ -136,7 +136,7 @@ test.describe('Werewolf — Seating', () => {
       await bp1.waitForReady();
       await bp1.selectDefaultTemplate();
       const config = new ConfigPage(pageA);
-      await config.waitForCreateMode();
+      await config.waitForReady();
       await config.clickCreate();
 
       const roomA = new RoomPage(pageA);
@@ -189,7 +189,7 @@ test.describe('Werewolf — Seating', () => {
       await bp2.waitForReady();
       await bp2.selectDefaultTemplate();
       const config = new ConfigPage(pageA);
-      await config.waitForCreateMode();
+      await config.waitForReady();
       await config.clickCreate();
 
       const roomA = new RoomPage(pageA);
@@ -246,7 +246,7 @@ test.describe('Werewolf — Seating', () => {
       await bp3.waitForReady();
       await bp3.selectDefaultTemplate();
       const config = new ConfigPage(pageA);
-      await config.waitForCreateMode();
+      await config.waitForReady();
       await config.clickCreate();
 
       const roomA = new RoomPage(pageA);
@@ -295,7 +295,7 @@ test.describe('Werewolf — Seating', () => {
       await bp4.waitForReady();
       await bp4.selectDefaultTemplate();
       const config = new ConfigPage(pageA);
-      await config.waitForCreateMode();
+      await config.waitForReady();
       await config.clickCreate();
 
       const roomA = new RoomPage(pageA);
@@ -353,7 +353,7 @@ test.describe('Werewolf — Seating', () => {
       await bp5.waitForReady();
       await bp5.selectDefaultTemplate();
       const config = new ConfigPage(pageA);
-      await config.waitForCreateMode();
+      await config.waitForReady();
       await config.clickCreate();
 
       const roomA = new RoomPage(pageA);

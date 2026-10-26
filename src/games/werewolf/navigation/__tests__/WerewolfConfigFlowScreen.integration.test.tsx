@@ -26,11 +26,16 @@ interface BoardPickerProbeProps {
 interface ConfigProbeProps {
   readonly onExitFlow: () => void;
   readonly onReturnToRoom: (roomCode: string) => void;
+}
+
+interface RulesProbeProps {
+  readonly onExitFlow: () => void;
   readonly onRoomCreated: (roomCode: string) => void;
 }
 
 const mockBoardPickerProps: { current: BoardPickerProbeProps | null } = { current: null };
 const mockConfigProps: { current: ConfigProbeProps | null } = { current: null };
+const mockRulesProps: { current: RulesProbeProps | null } = { current: null };
 const mockNestedNavigation: {
   current: NativeStackNavigationProp<WerewolfConfigStackParamList, 'BoardPicker'> | null;
 } = { current: null };
@@ -59,7 +64,10 @@ jest.mock('@/games/werewolf/screens/ConfigScreen/ConfigScreen', () => ({
 }));
 
 jest.mock('@/games/werewolf/screens/GameRulesScreen/GameRulesScreen', () => ({
-  GameRulesScreen: () => null,
+  GameRulesScreen: (props: RulesProbeProps) => {
+    mockRulesProps.current = props;
+    return null;
+  },
 }));
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -131,6 +139,7 @@ describe('WerewolfConfigFlowScreen root boundary', () => {
   beforeEach(() => {
     mockBoardPickerProps.current = null;
     mockConfigProps.current = null;
+    mockRulesProps.current = null;
     mockNestedNavigation.current = null;
   });
 
@@ -151,7 +160,9 @@ describe('WerewolfConfigFlowScreen root boundary', () => {
 
     act(() => mockNestedNavigation.current?.popTo('Config', { presetName: '预女猎白' }));
     await waitFor(() => expect(mockConfigProps.current).not.toBeNull());
-    act(() => mockConfigProps.current?.onRoomCreated('7777'));
+    act(() => mockNestedNavigation.current?.navigate('Rules', { roles: [], rules: {} }));
+    await waitFor(() => expect(mockRulesProps.current).not.toBeNull());
+    act(() => mockRulesProps.current?.onRoomCreated('7777'));
 
     await waitFor(() => expect(screen.getByTestId('room-probe')).toHaveTextContent('7777:created'));
     fireEvent.press(screen.getByTestId('leave-room'));

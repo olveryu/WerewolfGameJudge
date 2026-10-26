@@ -1,66 +1,69 @@
 /**
- * GameRulesScreen — Game rule overrides (modes + role rules)
+ * GameRulesScreen — final Werewolf config step: house rules + create/save.
  *
- * Displays toggleable house rules grouped by category (game modes vs role-specific rules).
- * Receives current rules via navigation params, returns modified rules via popTo.
+ * Receives validated roles and current rules via route params. Sheriff election and witch
+ * self-heal are remembered locally as soon as they are toggled; plague mode never is.
+ * Back returns the edited rules to ConfigScreen so re-entering keeps them.
  */
-import Ionicons from '@expo/vector-icons/Ionicons';
 import type { GameRuleOverrides } from '@game-judge/game-engine/games/werewolf/public';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { type ComponentProps, type FC, useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { type FC, useCallback, useState } from 'react';
+import { Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
+import { GameScreen, GameScreenContent, GameScreenFooter } from '@/components/GameScreen';
+import { GameSettingsSwitch } from '@/components/GameSettings';
+import { gameSettingsStyles as styles } from '@/components/GameSettings.styles';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
-import { TESTIDS } from '@/testids';
+import { useServices } from '@/contexts/ServiceContext';
 import {
-  borderRadius,
-  colors,
-  componentSizes,
-  fixed,
-  layout,
-  shadows,
-  spacing,
-  typography,
-  withAlpha,
-} from '@/theme';
+  isExpectedStorageError,
+  isRememberedWerewolfRuleKey,
+} from '@/features/settings/services/SettingsService';
+import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import { TESTIDS } from '@/testids';
+import { colors } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
+import { handleError } from '@/utils/errorPipeline';
+import { configLog } from '@/utils/logger';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
+import { useGameRulesSubmission } from './useGameRulesSubmission';
 
 type NavigationProp = NativeStackNavigationProp<WerewolfConfigStackParamList, 'Rules'>;
 type ScreenRouteProp = RouteProp<WerewolfConfigStackParamList, 'Rules'>;
 
 interface RuleItemConfig {
-  key: keyof GameRuleOverrides;
-  icon: ComponentProps<typeof Ionicons>['name'];
-  iconColor: string;
-  label: string;
-  description: string;
-  /** If true, show confirm dialog before enabling */
-  confirmOnEnable?: {
-    title: string;
-    message: string;
-    confirmText: string;
+  readonly key: keyof GameRuleOverrides;
+  readonly label: string;
+  readonly hint: string;
+  readonly accentColor?: string;
+  /** If set, enabling requires confirmation first. */
+  readonly confirmOnEnable?: {
+    readonly title: string;
+    readonly message: string;
+    readonly confirmText: string;
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Rule definitions (data-driven)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const MODE_RULES: RuleItemConfig[] = [
+const RULES: readonly RuleItemConfig[] = [
+  {
+    key: 'isSheriffElectionEnabled',
+    label: '首日警长竞选',
+    hint: '首夜结束后先进行警长竞选，再公布夜间结果。',
+  },
+  {
+    key: 'witchCanSelfHeal',
+    label: '女巫可自救',
+    hint: '允许女巫对自己使用解药（默认规则：女巫不能自救）。',
+  },
   {
     key: 'isPlagueMode',
-    icon: 'skull-outline',
-    iconColor: colors.warning,
     label: '黑死病模式',
-    description: '所有狼人牌暗中替换为平民，玩家看到的板子仍显示有狼',
+    hint: '所有狼人牌暗中替换为平民，玩家看到的板子仍显示有狼。此项每局单独选择，不会记住。',
+    accentColor: colors.warning,
     confirmOnEnable: {
       title: '💀 黑死病模式',
       message:
@@ -70,170 +73,103 @@ const MODE_RULES: RuleItemConfig[] = [
   },
 ];
 
-const ROLE_RULES: RuleItemConfig[] = [
-  {
-    key: 'witchCanSelfHeal',
-    icon: 'flask-outline',
-    iconColor: colors.god,
-    label: '女巫可自救',
-    description: '允许女巫对自己使用解药（默认规则：女巫不能自救）',
-  },
-];
+interface GameRulesScreenProps {
+  readonly client: WerewolfGameClient;
+  readonly onExitFlow: () => void;
+  readonly onRoomCreated: (roomCode: string) => void;
+}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const GameRulesScreen: FC = () => {
+export const GameRulesScreen: FC<GameRulesScreenProps> = ({
+  client,
+  onExitFlow,
+  onRoomCreated,
+}) => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ScreenRouteProp>();
   const insets = useSafeAreaInsets();
-  const initialRules = route.params.rules;
-  const existingRoomCode = route.params.existingRoomCode;
-  const nominateMode = route.params.nominateMode;
+  const { settingsService } = useServices();
+  const { roles, existingRoomCode } = route.params;
 
-  const [rules, setRules] = useState<GameRuleOverrides>(initialRules);
+  const [rules, setRules] = useState<GameRuleOverrides>(route.params.rules);
+
+  const { submit, isSubmitting, isEditMode } = useGameRulesSubmission({
+    client,
+    roles,
+    existingRoomCode,
+    onExitFlow,
+    onRoomCreated,
+  });
 
   const handleGoBack = useCallback(() => {
-    navigation.goBack();
-  }, [navigation]);
+    navigation.popTo('Config', { updatedRules: rules }, { merge: true });
+  }, [navigation, rules]);
 
-  const handleDone = useCallback(() => {
-    navigation.popTo('Config', {
-      updatedRules: rules,
-      ...(existingRoomCode ? { existingRoomCode } : {}),
-      ...(nominateMode ? { nominateMode } : {}),
-    });
-  }, [navigation, rules, existingRoomCode, nominateMode]);
+  const applyRule = useCallback(
+    (key: keyof GameRuleOverrides, value: boolean) => {
+      setRules((prev) => ({ ...prev, [key]: value }));
+      if (!isRememberedWerewolfRuleKey(key)) return;
+      settingsService.setRememberedWerewolfRule(key, value).catch((error: unknown) => {
+        setRules((prev) => ({ ...prev, [key]: !value }));
+        handleError(error, {
+          label: '保存规则偏好',
+          logger: configLog,
+          alertMessage: '偏好未保存，请检查浏览器存储权限后重试',
+          isExpected: isExpectedStorageError,
+        });
+      });
+    },
+    [settingsService],
+  );
 
   const handleToggle = useCallback(
-    (item: RuleItemConfig) => {
-      const currentValue = rules[item.key] ?? false;
-
-      if (!currentValue && item.confirmOnEnable) {
+    (item: RuleItemConfig, value: boolean) => {
+      if (value && item.confirmOnEnable) {
         showConfirmAlert(
           item.confirmOnEnable.title,
           item.confirmOnEnable.message,
-          () => {
-            setRules((prev) => ({ ...prev, [item.key]: true }));
-          },
+          () => applyRule(item.key, true),
           { confirmText: item.confirmOnEnable.confirmText },
         );
-      } else {
-        setRules((prev) => ({ ...prev, [item.key]: !currentValue }));
+        return;
       }
+      applyRule(item.key, value);
     },
-    [rules],
-  );
-
-  const renderRuleItem = useCallback(
-    (item: RuleItemConfig) => {
-      const isEnabled = rules[item.key] ?? false;
-      const trackColor = item.key === 'isPlagueMode' ? colors.warning : colors.primary;
-
-      return (
-        <View key={item.key} style={styles.ruleCard}>
-          <View style={styles.ruleHeader}>
-            <Ionicons name={item.icon} size={componentSizes.icon.md} color={item.iconColor} />
-            <Text style={styles.ruleLabel}>{item.label}</Text>
-            <Switch
-              testID={TESTIDS.gameRuleSwitch(item.key)}
-              value={isEnabled}
-              onValueChange={() => handleToggle(item)}
-              trackColor={{ false: colors.border, true: withAlpha(trackColor, 0.4) }}
-              thumbColor={isEnabled ? trackColor : colors.textSecondary}
-            />
-          </View>
-          <Text style={styles.ruleDescription}>{item.description}</Text>
-        </View>
-      );
-    },
-    [rules, handleToggle],
+    [applyRule],
   );
 
   return (
-    <SafeAreaView
-      style={styles.container}
-      edges={['left', 'right']}
+    <GameScreen
       testID={TESTIDS.gameRulesScreenRoot}
+      header={<ScreenHeader title="游戏规则" onBack={handleGoBack} topInset={insets.top} />}
     >
-      <ScreenHeader title="游戏规则" onBack={handleGoBack} topInset={insets.top} />
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Game Modes section */}
-        <Text style={styles.sectionHeader}>游戏模式</Text>
-        {MODE_RULES.map(renderRuleItem)}
-
-        {/* Role Rules section */}
-        <Text style={styles.sectionHeader}>角色规则</Text>
-        {ROLE_RULES.map(renderRuleItem)}
-      </ScrollView>
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom || spacing.medium }]}>
-        <Button variant="primary" onPress={handleDone}>
-          完成
+      <GameScreenContent contentContainerStyle={styles.content}>
+        {RULES.map((item) => (
+          <View key={item.key} style={styles.section}>
+            <GameSettingsSwitch
+              label={item.label}
+              value={rules[item.key] === true}
+              onValueChange={(value) => handleToggle(item, value)}
+              accentColor={item.accentColor}
+              testID={TESTIDS.gameRuleSwitch(item.key)}
+            />
+            <Text style={styles.hint}>{item.hint}</Text>
+          </View>
+        ))}
+      </GameScreenContent>
+      <GameScreenFooter>
+        <Text style={styles.summary}>板子 {roles.length} 人</Text>
+        <Button
+          variant="primary"
+          size="lg"
+          onPress={() => {
+            void submit(rules);
+          }}
+          loading={isSubmitting}
+          testID={TESTIDS.gameRulesSubmitButton}
+        >
+          {isEditMode ? '保存配置' : '创建房间'}
         </Button>
-      </View>
-    </SafeAreaView>
+      </GameScreenFooter>
+    </GameScreen>
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacing.medium,
-    paddingBottom: spacing.xlarge,
-  },
-  bottomBar: {
-    paddingHorizontal: layout.screenPaddingH,
-    paddingVertical: spacing.medium,
-    backgroundColor: colors.surface,
-    borderTopWidth: fixed.borderWidth,
-    borderTopColor: colors.border,
-    ...shadows.lgUpward,
-  },
-  sectionHeader: {
-    fontSize: typography.secondary,
-    fontWeight: typography.weights.semibold,
-    color: colors.textSecondary,
-    marginTop: spacing.medium,
-    marginBottom: spacing.small,
-    marginLeft: spacing.tight,
-  },
-  ruleCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.medium,
-    padding: spacing.medium,
-    marginBottom: spacing.small,
-  },
-  ruleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.small,
-  },
-  ruleLabel: {
-    flex: 1,
-    fontSize: typography.body,
-    fontWeight: typography.weights.semibold,
-    color: colors.text,
-  },
-  ruleDescription: {
-    fontSize: typography.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.tight,
-    marginLeft: componentSizes.icon.md + spacing.small,
-    lineHeight: typography.caption * 1.5,
-  },
-});

@@ -11,7 +11,7 @@ import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -24,15 +24,7 @@ import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameCl
 import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import { TESTIDS } from '@/testids';
-import {
-  borderRadius,
-  colors,
-  componentSizes,
-  layout,
-  spacing,
-  typography,
-  withAlpha,
-} from '@/theme';
+import { colors, componentSizes, layout } from '@/theme';
 
 import {
   createConfigScreenStyles,
@@ -43,40 +35,6 @@ import {
 } from './components';
 import { expandSlotToChipEntries, FACTION_COLOR_MAP } from './configHelpers';
 import { useConfigScreenState } from './useConfigScreenState';
-
-const rulesEntryStyles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: borderRadius.small,
-    backgroundColor: withAlpha(colors.primary, 0.05),
-    paddingHorizontal: spacing.medium,
-    paddingVertical: spacing.small,
-    marginBottom: spacing.small,
-  },
-  label: {
-    flex: 1,
-    fontSize: typography.secondary,
-    fontWeight: typography.weights.semibold,
-    color: colors.text,
-    marginLeft: spacing.small,
-  },
-  badge: {
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.full,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    paddingHorizontal: spacing.tight,
-    marginRight: spacing.tight,
-  },
-  badgeText: {
-    fontSize: typography.caption,
-    fontWeight: typography.weights.bold,
-    color: colors.textInverse,
-  },
-});
 
 // ============================================
 // Main Component
@@ -89,15 +47,13 @@ interface ConfigScreenProps {
   readonly client: WerewolfGameClient;
   readonly onExitFlow: () => void;
   readonly onReturnToRoom: (roomCode: string) => void;
-  readonly onRoomCreated: (roomCode: string) => void;
 }
 
-/** Role configuration screen. */
+/** Role configuration screen; the Rules step that follows owns create/save. */
 export const ConfigScreen: React.FC<ConfigScreenProps> = ({
   client,
   onExitFlow,
   onReturnToRoom,
-  onRoomCreated,
 }) => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createConfigScreenStyles(colors), []);
@@ -121,11 +77,9 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
     settingsService,
     onExitFlow,
     onReturnToRoom,
-    onRoomCreated,
   });
 
   const {
-    isEditMode,
     isNominateMode,
     isDisabled,
     isLoading,
@@ -135,12 +89,9 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
     variantOverrides,
     handleGoBack,
     handleTemplatePillPress,
-    handleCreateRoom,
+    handleContinue,
     toggleRole,
     handleClearSelection,
-    rules,
-    handleSheriffElectionChange,
-    handleOpenGameRules,
     selectedTemplateLabel,
     roleInfoId,
     roleInfoVariantIds,
@@ -156,8 +107,6 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
     handleBulkCountChange,
     getFactionAccentColor,
   } = state;
-
-  const activeRuleCount = [rules.witchCanSelfHeal, rules.isPlagueMode].filter(Boolean).length;
 
   return (
     <GameScreen
@@ -280,56 +229,6 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
                   );
                 })}
               </View>
-              <View style={styles.cardB}>
-                {!isNominateMode && (
-                  <View style={rulesEntryStyles.container}>
-                    <Ionicons
-                      name="people-outline"
-                      size={componentSizes.icon.sm}
-                      color={colors.primary}
-                    />
-                    <Text style={rulesEntryStyles.label}>首日警长竞选</Text>
-                    <Switch
-                      testID={TESTIDS.gameRuleSwitch('isSheriffElectionEnabled')}
-                      accessibilityLabel="首日警长竞选"
-                      value={rules.isSheriffElectionEnabled === true}
-                      onValueChange={(isSheriffElectionEnabled) => {
-                        void handleSheriffElectionChange(isSheriffElectionEnabled);
-                      }}
-                      trackColor={{ false: colors.border, true: withAlpha(colors.primary, 0.4) }}
-                      thumbColor={
-                        rules.isSheriffElectionEnabled ? colors.primary : colors.textSecondary
-                      }
-                    />
-                  </View>
-                )}
-                {/* Game Rules Entry (hidden in nominate mode only) */}
-                {!isNominateMode && (
-                  <TouchableOpacity
-                    style={rulesEntryStyles.container}
-                    activeOpacity={0.7}
-                    onPress={handleOpenGameRules}
-                    testID={TESTIDS.configGameRulesButton}
-                  >
-                    <Ionicons
-                      name="settings-outline"
-                      size={componentSizes.icon.sm}
-                      color={colors.primary}
-                    />
-                    <Text style={rulesEntryStyles.label}>游戏规则</Text>
-                    {activeRuleCount > 0 && (
-                      <View style={rulesEntryStyles.badge}>
-                        <Text style={rulesEntryStyles.badgeText}>{activeRuleCount}</Text>
-                      </View>
-                    )}
-                    <Ionicons
-                      name="chevron-forward"
-                      size={componentSizes.icon.sm}
-                      color={colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                )}
-              </View>
             </ScrollView>
           </>
         )}
@@ -340,12 +239,13 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
           variant="primary"
           size="lg"
           onPress={() => {
-            void handleCreateRoom();
+            void handleContinue();
           }}
           disabled={isDisabled}
           loading={isSubmitting}
+          testID={TESTIDS.configNextButton}
         >
-          {isNominateMode ? '提交建议' : isEditMode ? '保存配置' : '创建房间'}
+          {isNominateMode ? '提交建议' : '下一步：规则'}
         </Button>
       </GameScreenFooter>
 

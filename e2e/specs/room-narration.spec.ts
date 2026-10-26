@@ -31,7 +31,7 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
           await boardPicker.waitForReady();
           await boardPicker.selectDefaultTemplate();
           const config = new ConfigPage(hostPage);
-          await config.waitForCreateMode();
+          await config.waitForReady();
           await config.configureCustomTemplate({ wolves: 1, villagers: 2 });
           await config.clickCreate();
         } else {

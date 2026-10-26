@@ -22,10 +22,16 @@ test.describe('Werewolf — Config Screen', () => {
     await boardPicker.selectDefaultTemplate();
 
     const config = new ConfigPage(app.page);
-    await config.waitForCreateMode();
+    await config.waitForReady();
     await config.expectTemplateVisible();
-    await expect(app.page.getByRole('button', { name: '创建房间', exact: true })).toBeInViewport();
+    await expect(app.page.getByTestId(TESTIDS.configNextButton)).toBeInViewport();
     await app.page.screenshot({ path: test.info().outputPath('werewolf-config.png') });
+
+    const rules = await config.clickNext();
+    await expect(app.page.getByRole('switch', { name: '首日警长竞选', exact: true })).toBeChecked();
+    await rules.setSheriffElectionEnabled(false);
+    await expect(app.page.getByTestId(TESTIDS.gameRulesSubmitButton)).toBeInViewport();
+    await app.page.screenshot({ path: test.info().outputPath('werewolf-rules.png') });
   });
 
   test('can select different templates via board picker', async ({ app }) => {
@@ -37,7 +43,7 @@ test.describe('Werewolf — Config Screen', () => {
     await boardPicker.selectTemplate('狼美守卫');
 
     const config = new ConfigPage(app.page);
-    await config.waitForCreateMode();
+    await config.waitForReady();
 
     // Verify the selected template is shown
     const configRoot = app.page.locator(`[data-testid="config-screen-root"]`);
@@ -55,13 +61,13 @@ test.describe('Werewolf — Config Screen', () => {
     await boardPicker.selectDefaultTemplate();
 
     const config = new ConfigPage(app.page);
-    await config.waitForCreateMode();
+    await config.waitForReady();
 
     // Go back to BoardPicker and select a different template
     await config.selectTemplate('狼美守卫');
 
     // Should be back on config screen with new template
-    await config.waitForCreateMode();
+    await config.waitForReady();
     const configRoot2 = app.page.locator(`[data-testid="config-screen-root"]`);
     await expect(configRoot2.getByText('狼美守卫')).toBeVisible({ timeout: 5000 });
 

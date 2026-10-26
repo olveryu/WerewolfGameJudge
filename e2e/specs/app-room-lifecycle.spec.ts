@@ -107,7 +107,7 @@ test.describe('App — Room Lifecycle', () => {
 
       const { ConfigPage } = await import('../pages/ConfigPage');
       const config = new ConfigPage(page);
-      await config.waitForCreateMode();
+      await config.waitForReady();
 
       // Default Seer-Witch-Hunter-Villager board: 4w + seer + witch + hunter + idiot + 4v = 12
       // Deselect all special roles

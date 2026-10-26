@@ -41,7 +41,7 @@ export const TESTIDS = {
   configScreenRoot: 'config-screen-root',
   configBackButton: 'config-back-button',
   configTemplatePill: 'config-template-pill',
-  configGameRulesButton: 'config-game-rules-button',
+  configNextButton: 'config-next-button',
 
   boardPickerScreenRoot: 'board-picker-screen-root',
 
@@ -55,6 +55,7 @@ export const TESTIDS = {
   configFactionTab: (key: string) => `config-faction-tab-${key}`,
   gameRulesScreenRoot: 'game-rules-screen-root',
   gameRuleSwitch: (rule: string) => `game-rule-switch-${rule}`,
+  gameRulesSubmitButton: 'game-rules-submit-button',
   fibPlayerCountInput: 'fib-player-count-input',
   fibConfigSubmitButton: 'fib-config-submit-button',
   fibRulesScreenRoot: 'fib-rules-screen-root',
