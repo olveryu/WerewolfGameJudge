@@ -570,7 +570,7 @@ export function updateLedger({ existingBody, additions, today, runId, runUrl }) 
  * Find the ledger issue in a list of issues (pull requests excluded). When
  * more than one matches — a listing that once missed the ledger made a run
  * create a second one — the lowest-numbered issue is the ledger, so history
- * keeps accumulating in one place; the duplicates are reported for manual
+ * keeps accumulating in one place; open duplicates are reported for manual
  * closure instead of silently becoming the live ledger.
  */
 export function findLedgerIssue(issues, warn = (message) => console.warn(message)) {
@@ -583,7 +583,8 @@ export function findLedgerIssue(issues, warn = (message) => console.warn(message
         issue.body.includes(LEDGER_MARKER),
     )
     .sort((a, b) => a.number - b.number);
-  const [ledger, ...duplicates] = matches;
+  const [ledger, ...rest] = matches;
+  const duplicates = rest.filter((issue) => issue.state === 'open');
   if (duplicates.length > 0) {
     warn(
       `Ledger: ${duplicates.length} duplicate ledger issue(s) found (${duplicates
