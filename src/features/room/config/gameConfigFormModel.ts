@@ -24,6 +24,17 @@ export function parseCountDraft(text: string): number | null {
   return INTEGER_TEXT.test(text) ? Number(text) : null;
 }
 
+/**
+ * Removes one draft, returning the same object when nothing changes. Written as
+ * an explicit filter: a computed-key rest destructure (`{ [key]: _, ...rest }`)
+ * kept the key in the production web bundle because the unused binding was
+ * eliminated before the rest pattern was lowered.
+ */
+export function dropCountDraft(drafts: CountDrafts, key: string): CountDrafts {
+  if (!(key in drafts)) return drafts;
+  return Object.fromEntries(Object.entries(drafts).filter(([draftKey]) => draftKey !== key));
+}
+
 /** Applies one field value to a config without disturbing its other keys. */
 export function withFieldValue<TConfig extends object>(
   config: TConfig,

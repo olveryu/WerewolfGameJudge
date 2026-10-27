@@ -2,6 +2,7 @@ import type { GameConfigSchema } from '@game-judge/game-engine/platform/config/c
 
 import {
   describeDefaultSummary,
+  dropCountDraft,
   parseCountDraft,
   readFieldValue,
   resolveConfigIssue,
@@ -87,5 +88,13 @@ describe('summary and record helpers', () => {
     const record = toConfigRecord(SCHEMA.defaults);
     expect(record).toEqual(SCHEMA.defaults);
     expect(record).not.toBe(SCHEMA.defaults);
+  });
+});
+
+describe('dropCountDraft', () => {
+  it('removes only the requested key and returns the same object when absent', () => {
+    const drafts = { numberOfPlayers: '4', vetoLimit: '' };
+    expect(dropCountDraft(drafts, 'numberOfPlayers')).toEqual({ vetoLimit: '' });
+    expect(dropCountDraft(drafts, 'missing')).toBe(drafts);
   });
 });

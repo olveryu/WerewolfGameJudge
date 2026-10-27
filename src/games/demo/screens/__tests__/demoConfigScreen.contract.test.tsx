@@ -132,6 +132,16 @@ describe('createGameConfigScreen (demo)', () => {
     expect(screen.getByTestId(playerCount()).props.value).toBe('4');
   });
 
+  it('stepping after typing a count continues from the typed value', () => {
+    mockRouteParams = { gameType: 'demo', mode: 'create' };
+    const screen = render(<DemoConfigScreen session={createSession(null)} />);
+    fireEvent.changeText(screen.getByTestId(playerCount()), '5');
+    fireEvent.press(screen.getByLabelText('增加人数'));
+    expect(screen.getByTestId(playerCount()).props.value).toBe('6');
+    fireEvent.press(screen.getByLabelText('增加人数'));
+    expect(screen.getByTestId(playerCount()).props.value).toBe('7');
+  });
+
   it('reset restores the schema defaults', () => {
     mockRouteParams = { gameType: 'demo', mode: 'create' };
     const screen = render(<DemoConfigScreen session={createSession(null)} />);
