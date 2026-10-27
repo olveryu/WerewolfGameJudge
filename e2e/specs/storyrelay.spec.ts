@@ -25,8 +25,12 @@ async function createRoom(page: Page): Promise<RoomPage> {
   await expect(page.getByTestId(TESTIDS.gameConfigScreenRoot('storyrelay'))).toBeVisible();
   await page.getByRole('button', { name: '减少人数' }).click();
   await page.getByRole('button', { name: '减少人数' }).click();
-  await page.getByRole('radio', { name: '写作时间 不限时', exact: true }).click();
-  await page.getByRole('radio', { name: '每棒间隔 0 秒', exact: true }).click();
+  await page
+    .getByTestId(TESTIDS.gameConfigFieldOption('storyrelay', 'writingDurationSeconds', 'unlimited'))
+    .click();
+  await page
+    .getByTestId(TESTIDS.gameConfigFieldOption('storyrelay', 'transitionDurationSeconds', '0'))
+    .click();
   await page.getByTestId(TESTIDS.gameConfigSubmit('storyrelay')).click();
   const room = new RoomPage(page);
   await room.waitForReady();
