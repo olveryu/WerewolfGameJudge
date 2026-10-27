@@ -76,11 +76,11 @@ test.describe('Werewolf — Config Screen', () => {
 });
 
 for (const game of [
-  { gameType: 'fibking', title: '瞎掰王设置', submit: TESTIDS.fibConfigSubmitButton },
+  { gameType: 'fibking', title: '瞎掰王设置', submit: TESTIDS.gameConfigSubmit('fibking') },
   {
     gameType: 'pictionary',
     title: '你画我猜接龙设置',
-    submit: TESTIDS.pictionaryConfigSubmitButton,
+    submit: TESTIDS.gameConfigSubmit('pictionary'),
   },
   { gameType: 'undercover', title: '谁是卧底设置', submit: 'undercover-config-submit' },
 ] as const) {

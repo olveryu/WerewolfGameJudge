@@ -64,8 +64,6 @@ export const TESTIDS = {
   gameConfigFieldIssue: (gameType: string, key: string) => `${gameType}-config-issue-${key}`,
   gameConfigReset: (gameType: string) => `${gameType}-config-reset`,
   gameConfigSubmit: (gameType: string) => `${gameType}-config-submit`,
-  fibPlayerCountInput: 'fib-player-count-input',
-  fibConfigSubmitButton: 'fib-config-submit-button',
   fibRulesScreenRoot: 'fib-rules-screen-root',
 
   roomScreenRoot: 'room-screen-root',
@@ -169,10 +167,6 @@ export const TESTIDS = {
   fibViewResultButton: 'fib-view-result-button',
 
   // Pictionary
-  pictionaryConfigPlayerCount: 'pictionary-config-player-count',
-  pictionaryConfigDurationOption: (setting: string, value: number | 'unlimited') =>
-    `pictionary-config-${setting}-${value}`,
-  pictionaryConfigSubmitButton: 'pictionary-config-submit-button',
   pictionaryStageFrame: 'pictionary-stage-frame',
   pictionaryDrawingCanvas: 'pictionary-drawing-canvas',
   pictionaryDrawingSubmitButton: 'pictionary-drawing-submit-button',

@@ -3,7 +3,10 @@ import { expect, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
 
-/** FibKing-owned config interactions over the shared GameConfig route. */
+const PLAYER_COUNT = TESTIDS.gameConfigField('fibking', 'numberOfPlayers');
+const SUBMIT = TESTIDS.gameConfigSubmit('fibking');
+
+/** FibKing-owned config interactions over the shared schema-driven GameConfig screen. */
 export class FibConfigPage {
   constructor(private readonly page: Page) {}
 
@@ -12,8 +15,8 @@ export class FibConfigPage {
       timeout: 10_000,
     });
     await expect(this.page.getByText('瞎掰王设置', { exact: true })).toBeVisible();
-    await expect(this.page.getByTestId(TESTIDS.fibPlayerCountInput)).toHaveValue('8');
-    await expect(this.page.getByTestId(TESTIDS.fibConfigSubmitButton)).toHaveText('创建房间');
+    await expect(this.page.getByTestId(PLAYER_COUNT)).toHaveValue('8');
+    await expect(this.page.getByTestId(SUBMIT)).toHaveText('创建房间');
   }
 
   async setPlayerCount(count: number): Promise<void> {
@@ -22,7 +25,7 @@ export class FibConfigPage {
         `FibConfigPage requires ${FIB_MIN_PLAYERS}-${FIB_MAX_PLAYERS} players, received ${count}`,
       );
     }
-    const input = this.page.getByTestId(TESTIDS.fibPlayerCountInput);
+    const input = this.page.getByTestId(PLAYER_COUNT);
     await input.fill(String(count));
     await expect(input).toHaveValue(String(count));
   }
@@ -31,26 +34,23 @@ export class FibConfigPage {
     await this.page.getByRole('button', { name: '增加人数' }).click();
   }
 
-  async expectMaximumPlayerCountAlert(): Promise<void> {
-    await expect(this.page.getByText('人数设置有误', { exact: true })).toBeVisible();
-    await expect(
-      this.page.getByText(`最多支持 ${FIB_MAX_PLAYERS} 人`, { exact: true }),
-    ).toBeVisible();
-    await this.page.getByText('确定', { exact: true }).click();
-    await expect(this.page.getByTestId(TESTIDS.alertModalOverlay)).not.toBeVisible();
+  /** At the maximum the increment control is disabled instead of alerting. */
+  async expectIncrementDisabledAtMaximum(): Promise<void> {
+    await expect(this.page.getByRole('button', { name: '增加人数' })).toBeDisabled();
+    await expect(this.page.getByTestId(PLAYER_COUNT)).toHaveValue(String(FIB_MAX_PLAYERS));
   }
 
   async expectPlayerCount(count: number): Promise<void> {
-    await expect(this.page.getByTestId(TESTIDS.fibPlayerCountInput)).toHaveValue(String(count));
+    await expect(this.page.getByTestId(PLAYER_COUNT)).toHaveValue(String(count));
   }
 
   async createRoom(): Promise<void> {
-    await this.page.getByTestId(TESTIDS.fibConfigSubmitButton).click();
+    await this.page.getByTestId(SUBMIT).click();
   }
 
   async save(): Promise<void> {
-    await expect(this.page.getByTestId(TESTIDS.fibConfigSubmitButton)).toHaveText('保存设置');
-    await this.page.getByTestId(TESTIDS.fibConfigSubmitButton).click();
+    await expect(this.page.getByTestId(SUBMIT)).toHaveText('保存设置');
+    await this.page.getByTestId(SUBMIT).click();
   }
 
   async saveExpectingRejectedShrink(): Promise<void> {

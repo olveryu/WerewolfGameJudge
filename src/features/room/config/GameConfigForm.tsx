@@ -57,6 +57,9 @@ interface FieldViewProps {
 
 type ChoiceValue = string | number | null;
 
+/** Radio groups are already titled, so each option is announced by its own label. */
+const bareOptionLabel = (_value: ChoiceValue, optionLabel: string): string => optionLabel;
+
 function optionKey(value: ChoiceValue): string {
   return value === null ? 'unlimited' : String(value);
 }
@@ -165,6 +168,7 @@ const FieldView: React.FC<FieldViewProps> = ({
             optionTestID={(option) =>
               TESTIDS.gameConfigFieldOption(gameType, fieldKey, optionKey(option))
             }
+            optionAccessibilityLabel={bareOptionLabel}
           />
           <IssueText gameType={gameType} fieldKey={fieldKey} message={issueMessage} />
         </View>
@@ -187,6 +191,7 @@ const FieldView: React.FC<FieldViewProps> = ({
             optionTestID={(option) =>
               TESTIDS.gameConfigFieldOption(gameType, fieldKey, optionKey(option))
             }
+            optionAccessibilityLabel={bareOptionLabel}
           />
           <IssueText gameType={gameType} fieldKey={fieldKey} message={issueMessage} />
         </View>

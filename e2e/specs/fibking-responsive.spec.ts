@@ -71,7 +71,7 @@ test('FibKing config, room, rules, and identity fit the small-mobile viewport', 
     await config.waitForCreateMode();
     await config.setPlayerCount(4);
     await expectNoHorizontalOverflow(hostPage);
-    await expectInsideViewport(hostPage, TESTIDS.fibConfigSubmitButton);
+    await expectInsideViewport(hostPage, TESTIDS.gameConfigSubmit('fibking'));
     await testInfo.attach('fibking-mobile-config.png', {
       body: await hostPage.screenshot(),
       contentType: 'image/png',

@@ -22,12 +22,12 @@ const MIN_EDITOR_VIEWPORT_FRACTION = 0.1;
 
 async function createRoom(page: Page): Promise<RoomPage> {
   await new HomePage(page).clickCreateRoom('storyrelay');
-  await expect(page.getByTestId('storyrelay-config')).toBeVisible();
+  await expect(page.getByTestId(TESTIDS.gameConfigScreenRoot('storyrelay'))).toBeVisible();
   await page.getByRole('button', { name: '减少人数' }).click();
   await page.getByRole('button', { name: '减少人数' }).click();
   await page.getByRole('radio', { name: '写作时间 不限时', exact: true }).click();
   await page.getByRole('radio', { name: '每棒间隔 0 秒', exact: true }).click();
-  await page.getByTestId('storyrelay-config-submit').click();
+  await page.getByTestId(TESTIDS.gameConfigSubmit('storyrelay')).click();
   const room = new RoomPage(page);
   await room.waitForReady();
   return room;

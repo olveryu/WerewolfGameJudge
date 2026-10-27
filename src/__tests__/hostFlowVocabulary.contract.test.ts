@@ -139,13 +139,7 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
   });
 
   it('config saves dispatch under the one chassis label', () => {
-    for (const file of [
-      'src/games/fibking/screens/ConfigScreen/useFibConfigScreenState.ts',
-      'src/games/pictionary/screens/ConfigScreen/usePictionaryConfigScreenState.ts',
-    ]) {
-      const source = readSource(file);
-      expect(source).not.toMatch(/update[A-Z]\w*Config/);
-      expect(source.includes("label: '保存设置'")).toBe(true);
-    }
+    const source = readSource('src/features/room/config/useGameConfigScreenState.ts');
+    expect(source.includes("label: '保存设置'")).toBe(true);
   });
 });
