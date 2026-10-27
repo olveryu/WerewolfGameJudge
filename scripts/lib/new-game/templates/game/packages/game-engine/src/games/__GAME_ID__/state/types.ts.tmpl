@@ -5,6 +5,8 @@
 /** Authoritative __GAME_DISPLAY_NAME__ state; stage/turn play with a stage deadline. */
 //#end
 
+import type { GameConfigSchema } from '../../../platform/config/configSchema';
+import { isValidConfig } from '../../../platform/config/configSchema';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 //#cap audioOrchestration
 import type { AudioEffect } from '../../../platform/audio';
@@ -38,13 +40,23 @@ export const DEFAULT___GAME_UPPER___CONFIG: __GAME_PASCAL__Config = {
   numberOfPlayers: __GAME_UPPER___DEFAULT_PLAYERS,
 };
 
+export const __GAME_UPPER___CONFIG_SCHEMA: GameConfigSchema<__GAME_PASCAL__Config> = {
+  fields: {
+    numberOfPlayers: {
+      kind: 'count',
+      label: '玩家人数',
+      hint: '开局要求坐满全部座位（可填充机器人）。',
+      min: __GAME_UPPER___MIN_PLAYERS,
+      max: __GAME_UPPER___MAX_PLAYERS,
+    },
+  },
+  defaults: DEFAULT___GAME_UPPER___CONFIG,
+  validate: () => null,
+};
+
 /** Checks supported lobby settings without replacing invalid values. */
 export function isValid__GAME_PASCAL__Config(config: __GAME_PASCAL__Config): boolean {
-  return (
-    Number.isSafeInteger(config.numberOfPlayers) &&
-    config.numberOfPlayers >= __GAME_UPPER___MIN_PLAYERS &&
-    config.numberOfPlayers <= __GAME_UPPER___MAX_PLAYERS
-  );
+  return isValidConfig(__GAME_UPPER___CONFIG_SCHEMA, config);
 }
 
 export type __GAME_PASCAL__Phase =
