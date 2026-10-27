@@ -35,7 +35,7 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
           await config.configureCustomTemplate({ wolves: 1, villagers: 2 });
           await config.clickCreate();
         } else {
-          await hostPage.getByTestId('avalon-config-submit').click();
+          await hostPage.getByTestId(TESTIDS.gameConfigSubmit('avalon')).click();
         }
         await hostRoom.waitForReady('host');
         const roomCode = await hostRoom.getRoomCode();
