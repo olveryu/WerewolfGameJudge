@@ -3,6 +3,7 @@
  */
 
 import {
+  DEMO_CONFIG_SCHEMA,
   DEMO_STATE_CODEC,
   type DemoCommand,
   type DemoState,
@@ -12,10 +13,12 @@ import {
 import { defineClientGameModule } from '@/games/model/defineClientGameModule';
 
 import { demoHomeContribution } from './home';
-import { demoGameNavigation } from './navigation/demoGameNavigation';
+import { demoGameNavigation, parseDemoConfigRouteParams } from './navigation/demoGameNavigation';
+import { getDemoRoomCommandFailureMessage } from './room/demoRoomCommandFailureMessage';
 import { DemoRoomScreen } from './room/DemoRoomScreen';
-import { DemoConfigScreen } from './screens/DemoConfigScreen';
 import { DemoRulesScreen } from './screens/DemoRulesScreen';
+
+// TODO(gameplay): 玩法配置项（时长、模式等）按设计文档加进引擎 DEMO_CONFIG_SCHEMA。
 
 export const createDemoUiModule = defineClientGameModule<'demo', DemoState, DemoCommand>({
   gameType: 'demo',
@@ -23,7 +26,15 @@ export const createDemoUiModule = defineClientGameModule<'demo', DemoState, Demo
   home: demoHomeContribution,
   navigation: demoGameNavigation,
   RoomScreen: DemoRoomScreen,
-  ConfigScreen: DemoConfigScreen,
+  config: (define) =>
+    define({
+      schema: DEMO_CONFIG_SCHEMA,
+      parseRouteParams: parseDemoConfigRouteParams,
+      readConfig: (state) => (state.phase.kind === 'lobby' ? state.config : null),
+      buildUpdateCommand: (config) => ({ type: 'demo.config.update', config }),
+      getFailureMessage: getDemoRoomCommandFailureMessage,
+      creationLabel: '创建Demo房间',
+    }),
   GuideScreen: DemoRulesScreen,
   isUserSeated: (state, userId) => getDemoUserSeat(state, userId) !== null,
   canSwitchAccount: (state) => state.phase.kind === 'lobby',

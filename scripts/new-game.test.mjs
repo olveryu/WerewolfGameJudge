@@ -155,7 +155,6 @@ function expectedCreatedFiles(gameId, preset) {
     `${client}/home/index.ts`,
     `${client}/navigation/${gameId}GameNavigation.ts`,
     `${client}/model/${pascal}RoomSession.ts`,
-    `${client}/screens/${pascal}ConfigScreen.tsx`,
     `${client}/screens/${pascal}RulesScreen.tsx`,
     `${client}/room/${pascal}RoomScreen.tsx`,
     `${client}/room/${gameId}RoomAdapter.ts`,
@@ -997,6 +996,7 @@ const DEMO_BODY_ONLY_FILES = [
   'packages/game-engine/src/games/demo/__tests__/fullChain.test.ts',
   'packages/game-engine/src/games/demo/__tests__/roomCommands.contract.test.ts',
   'src/games/demo/room/__tests__/demoGuidanceMatrix.test.ts',
+  'src/games/demo/screens/__tests__/demoConfigScreen.contract.test.tsx',
 ];
 
 function applyDemoCompareExceptions(file, bodyText, consumed) {

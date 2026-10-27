@@ -38,6 +38,10 @@ import {
 } from '@/features/navigation/model/GameNavigationContribution';
 import type { GameAudioPreviewContribution } from '@/features/product/model/GameAudioPreview';
 import type { GameProductUiContribution } from '@/features/product/model/GameProductUi';
+import {
+  createGameConfigDefiner,
+  type GameConfigDefiner,
+} from '@/features/room/config/createGameConfigScreen';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { createSessionRoomAccountCapability } from '@/features/room/session/SessionRoomAccountCapability';
 import type { RoomSessionClient } from '@/features/room/session/types';
@@ -55,7 +59,6 @@ const EMPTY_PRODUCT_UI: GameProductUiContribution = {
 interface ClientGameModuleDefinitionBase<
   TGameType extends GameType,
   TState extends BaseGameState<TGameType>,
-  TCommand extends object,
 > {
   readonly gameType: TGameType;
   readonly stateCodec: GameStateCodec<TState>;
@@ -66,40 +69,62 @@ interface ClientGameModuleDefinitionBase<
     SupportedGameNavigationRoute,
     UnsupportedGameNavigationRoute
   >;
-  readonly ConfigScreen: React.ComponentType<{
-    readonly session: RoomSessionClient<TState, TCommand>;
-  }>;
   readonly GuideScreen: React.ComponentType;
   readonly isUserSeated: (state: TState, userId: string) => boolean;
   readonly canSwitchAccount: (state: TState) => boolean;
 }
+
+/**
+ * Lobby configuration surface. `config` declares the schema-driven screen
+ * (src/features/room/config); `ConfigScreen` is the legacy hand-written screen
+ * kept only until every game has moved onto the schema.
+ */
+type ClientGameModuleConfigDefinition<
+  TGameType extends GameType,
+  TState extends BaseGameState<TGameType>,
+  TCommand extends object,
+> =
+  | {
+      readonly config: (
+        define: GameConfigDefiner<TGameType, TState, TCommand>,
+      ) => React.ComponentType<{ readonly session: RoomSessionClient<TState, TCommand> }>;
+      readonly ConfigScreen?: undefined;
+    }
+  | {
+      readonly config?: undefined;
+      readonly ConfigScreen: React.ComponentType<{
+        readonly session: RoomSessionClient<TState, TCommand>;
+      }>;
+    };
 
 export type ClientGameModuleDefinition<
   TGameType extends GameType,
   TState extends BaseGameState<TGameType>,
   TCommand extends object,
   TAudio = undefined,
-> =
-  | (ClientGameModuleDefinitionBase<TGameType, TState, TCommand> & {
-      readonly RoomScreen: React.ComponentType<
-        GameRoomScreenProps<TGameType> & {
-          readonly session: RoomSessionClient<TState, TCommand>;
-        }
-      >;
-      readonly audio?: undefined;
-    })
-  | (ClientGameModuleDefinitionBase<TGameType, TState, TCommand> & {
-      readonly RoomScreen: React.ComponentType<
-        GameRoomScreenProps<TGameType> & {
-          readonly session: RoomSessionClient<TState, TCommand>;
-          readonly audio: TAudio;
-        }
-      >;
-      readonly audio: {
-        readonly create: (audioService: AudioService) => TAudio;
-        readonly preview: (audio: TAudio) => GameAudioPreviewContribution;
-      };
-    });
+> = ClientGameModuleConfigDefinition<TGameType, TState, TCommand> &
+  (
+    | (ClientGameModuleDefinitionBase<TGameType, TState> & {
+        readonly RoomScreen: React.ComponentType<
+          GameRoomScreenProps<TGameType> & {
+            readonly session: RoomSessionClient<TState, TCommand>;
+          }
+        >;
+        readonly audio?: undefined;
+      })
+    | (ClientGameModuleDefinitionBase<TGameType, TState> & {
+        readonly RoomScreen: React.ComponentType<
+          GameRoomScreenProps<TGameType> & {
+            readonly session: RoomSessionClient<TState, TCommand>;
+            readonly audio: TAudio;
+          }
+        >;
+        readonly audio: {
+          readonly create: (audioService: AudioService) => TAudio;
+          readonly preview: (audio: TAudio) => GameAudioPreviewContribution;
+        };
+      })
+  );
 
 /** Assemble one session-based client game module from its game-owned parts. */
 export function defineClientGameModule<
@@ -131,8 +156,14 @@ function buildClientGameModule<
       canSwitchAccount: definition.canSwitchAccount,
     });
 
+    const ConfigScreen =
+      definition.config === undefined
+        ? definition.ConfigScreen
+        : definition.config(
+            createGameConfigDefiner(definition.gameType, definition.home.mode.displayName),
+          );
     function BoundConfigScreen() {
-      return createElement(definition.ConfigScreen, { session });
+      return createElement(ConfigScreen, { session });
     }
 
     const shared = {
