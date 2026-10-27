@@ -1,8 +1,7 @@
 /** Strict external schemas for the __GAME_PASCAL__ Worker module boundary. */
 
 import {
-  __GAME_UPPER___MAX_PLAYERS,
-  __GAME_UPPER___MIN_PLAYERS,
+  __GAME_UPPER___CONFIG_SCHEMA,
   type __GAME_PASCAL__Config,
   type __GAME_PASCAL__InternalCommand,
   type __GAME_PASCAL__PublicCommand,
@@ -11,10 +10,10 @@ import { z } from 'zod';
 
 import { definePublicCommandOptions } from '../../platform/room/commandOptions';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
+import { configSchemaToZod } from '../../platform/room/configSchemaZod';
 
-const __GAME_CAMEL__ConfigSchema = z.strictObject({
-  numberOfPlayers: z.int().min(__GAME_UPPER___MIN_PLAYERS).max(__GAME_UPPER___MAX_PLAYERS),
-}) satisfies z.ZodType<__GAME_PASCAL__Config>;
+const __GAME_CAMEL__ConfigSchema: z.ZodType<__GAME_PASCAL__Config> =
+  configSchemaToZod(__GAME_UPPER___CONFIG_SCHEMA);
 
 export const __GAME_CAMEL__CreateConfigSchema: z.ZodType<__GAME_PASCAL__Config> =
   __GAME_CAMEL__ConfigSchema;

@@ -82,8 +82,10 @@ XP/结算、测试计划。
 
 - [ ] 大厅：复用 `RoomShell` + 共享房主管理面板（填充机器人、清空座位、配置、踢人），
       不自建第二套大厅 UI。
-- [ ] 配置页：复用 `GameSettings` / `GameSettingsStepper` / `GameScreen`；
-      人数之外的配置项说明为什么不能复用现有模式。
+- [ ] 配置页：不写页面。配置项全部声明在引擎 `<GAME>_CONFIG_SCHEMA`
+      （count / toggle / choice / duration / fixed），客户端 `module.ts` 的
+      `config: (define) => define({...})` 由共享 `GameConfigForm` 渲染；
+      schema 表达不了的控件才用 `fieldRenderers` / `Extra`，并说明原因。
 - [ ] 规则说明：复用 `GameGuide`；玩法介绍写清目标、流程、房主职责、工具边界。
 - [ ] 机器人：开局门槛计数方式（真人+机器人如何计）、接管权限（仅房主？）、
       受控席位提示、未接管时的默认行为，与现有小游戏一致。身份型游戏另有

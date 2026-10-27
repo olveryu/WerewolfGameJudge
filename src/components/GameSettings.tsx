@@ -17,6 +17,7 @@ export function GameSettingsStepper({
   onDecrement,
   onIncrement,
   isDecrementDisabled = false,
+  isIncrementDisabled = false,
 }: {
   readonly label: string;
   readonly value: string;
@@ -25,6 +26,7 @@ export function GameSettingsStepper({
   readonly onDecrement: () => void;
   readonly onIncrement: () => void;
   readonly isDecrementDisabled?: boolean;
+  readonly isIncrementDisabled?: boolean;
 }) {
   return (
     <View style={styles.row}>
@@ -54,7 +56,12 @@ export function GameSettingsStepper({
             {value}
           </Text>
         )}
-        <Button variant="icon" onPress={onIncrement} accessibilityLabel="增加人数">
+        <Button
+          variant="icon"
+          onPress={onIncrement}
+          disabled={isIncrementDisabled}
+          accessibilityLabel="增加人数"
+        >
           <Ionicons name="add" size={componentSizes.icon.sm} color={colors.text} />
         </Button>
       </View>
@@ -94,12 +101,74 @@ export function GameSettingsSwitch({
 }
 
 /**
- * Shared duration radio group for game settings: one titled section of
- * second options, where a null option means "no time limit". Callers own
- * the candidate values and the selected value; presentation is shared.
- * The accessibility label defaults to `${title} ${optionLabel}`; a caller
- * whose established form is the bare option label passes
- * `optionAccessibilityLabel` to keep it.
+ * Shared radio-pill option group for game settings: one titled section whose
+ * options carry caller-owned values and labels. Callers own the candidate
+ * values and the selected value; presentation is shared. The accessibility
+ * label defaults to `${title} ${optionLabel}`.
+ */
+export function GameSettingsChoice<TValue extends string | number | null>({
+  title,
+  hint,
+  options,
+  value,
+  onChange,
+  optionTestID,
+  optionAccessibilityLabel,
+}: {
+  readonly title: string;
+  readonly hint?: string;
+  readonly options: readonly { readonly value: TValue; readonly label: string }[];
+  readonly value: TValue;
+  readonly onChange: (value: TValue) => void;
+  readonly optionTestID?: (value: TValue) => string;
+  readonly optionAccessibilityLabel?: (value: TValue, optionLabel: string) => string;
+}) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.label}>{title}</Text>
+      {hint !== undefined ? <Text style={styles.hint}>{hint}</Text> : null}
+      <View style={styles.optionRow}>
+        {options.map((option) => {
+          const selected = option.value === value;
+          return (
+            <Pressable
+              key={option.value === null ? 'null' : String(option.value)}
+              onPress={() => onChange(option.value)}
+              testID={optionTestID?.(option.value)}
+              accessibilityRole="radio"
+              accessibilityLabel={
+                optionAccessibilityLabel
+                  ? optionAccessibilityLabel(option.value, option.label)
+                  : `${title} ${option.label}`
+              }
+              accessibilityState={{ checked: selected }}
+              aria-checked={selected}
+              style={[styles.option, selected && styles.optionSelected]}
+            >
+              <Ionicons
+                name={selected ? 'radio-button-on' : 'radio-button-off'}
+                size={componentSizes.icon.sm}
+                color={selected ? colors.primary : colors.textSecondary}
+              />
+              <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+/** Label for one second-count option; `null` means no time limit. */
+export function formatDurationOption(value: number | null, nullLabel = '不限时'): string {
+  return value === null ? nullLabel : `${value} 秒`;
+}
+
+/**
+ * Shared duration radio group: `GameSettingsChoice` over second counts, where
+ * a null option renders as `nullLabel`.
  */
 export function GameSettingsDurationOptions<TDuration extends number | null>({
   title,
@@ -121,40 +190,17 @@ export function GameSettingsDurationOptions<TDuration extends number | null>({
   readonly optionAccessibilityLabel?: (value: TDuration, optionLabel: string) => string;
 }) {
   return (
-    <View style={styles.section}>
-      <Text style={styles.label}>{title}</Text>
-      {hint !== undefined ? <Text style={styles.hint}>{hint}</Text> : null}
-      <View style={styles.optionRow}>
-        {values.map((option) => {
-          const selected = option === value;
-          const optionLabel = option === null ? nullLabel : `${option} 秒`;
-          return (
-            <Pressable
-              key={option ?? 'unlimited'}
-              onPress={() => onChange(option)}
-              testID={optionTestID?.(option)}
-              accessibilityRole="radio"
-              accessibilityLabel={
-                optionAccessibilityLabel
-                  ? optionAccessibilityLabel(option, optionLabel)
-                  : `${title} ${optionLabel}`
-              }
-              accessibilityState={{ checked: selected }}
-              aria-checked={selected}
-              style={[styles.option, selected && styles.optionSelected]}
-            >
-              <Ionicons
-                name={selected ? 'radio-button-on' : 'radio-button-off'}
-                size={componentSizes.icon.sm}
-                color={selected ? colors.primary : colors.textSecondary}
-              />
-              <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
-                {optionLabel}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
+    <GameSettingsChoice
+      title={title}
+      hint={hint}
+      options={values.map((option) => ({
+        value: option,
+        label: formatDurationOption(option, nullLabel),
+      }))}
+      value={value}
+      onChange={onChange}
+      optionTestID={optionTestID}
+      optionAccessibilityLabel={optionAccessibilityLabel}
+    />
   );
 }

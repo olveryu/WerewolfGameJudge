@@ -88,6 +88,14 @@ export type AnyConfigFieldSpec =
   | DurationFieldSpec<unknown>
   | FixedFieldSpec<unknown>;
 
+/** Every runtime value a schema-driven field widget can emit. */
+export type ConfigFieldValue = number | boolean | string | null;
+
+/** Hint text derived from a count range so copy cannot drift from the limit. */
+export function describeCountRange(spec: CountFieldSpec): string {
+  return `支持 ${spec.min} 至 ${spec.max} 人`;
+}
+
 export interface ConfigValidationIssue<TConfig extends object> {
   /** `null` reports a whole-config problem from the cross-field hook. */
   readonly field: keyof TConfig | null;

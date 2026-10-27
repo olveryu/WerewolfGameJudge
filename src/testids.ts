@@ -56,6 +56,14 @@ export const TESTIDS = {
   gameRulesScreenRoot: 'game-rules-screen-root',
   gameRuleSwitch: (rule: string) => `game-rule-switch-${rule}`,
   gameRulesSubmitButton: 'game-rules-submit-button',
+  // Schema-driven config form (src/features/room/config); shared by every non-Werewolf game.
+  gameConfigScreenRoot: (gameType: string) => `${gameType}-config`,
+  gameConfigField: (gameType: string, key: string) => `${gameType}-config-field-${key}`,
+  gameConfigFieldOption: (gameType: string, key: string, value: string) =>
+    `${gameType}-config-field-${key}-${value}`,
+  gameConfigFieldIssue: (gameType: string, key: string) => `${gameType}-config-issue-${key}`,
+  gameConfigReset: (gameType: string) => `${gameType}-config-reset`,
+  gameConfigSubmit: (gameType: string) => `${gameType}-config-submit`,
   fibPlayerCountInput: 'fib-player-count-input',
   fibConfigSubmitButton: 'fib-config-submit-button',
   fibRulesScreenRoot: 'fib-rules-screen-root',
