@@ -433,13 +433,28 @@ test('findLedgerIssue keeps the oldest ledger and reports duplicates', () => {
   const warnings = [];
   const found = findLedgerIssue(
     [
-      { number: 292, title: LEDGER_TITLE, body: ledgerBody },
-      { number: 220, title: LEDGER_TITLE, body: ledgerBody },
+      { number: 292, state: 'open', title: LEDGER_TITLE, body: ledgerBody },
+      { number: 220, state: 'open', title: LEDGER_TITLE, body: ledgerBody },
+      { number: 150, state: 'closed', title: LEDGER_TITLE, body: ledgerBody },
+    ],
+    (message) => warnings.push(message),
+  );
+  assert.equal(found.number, 150);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /#220, #292/);
+  assert.match(warnings[0], /using #150/);
+});
+
+test('findLedgerIssue stays quiet once duplicates are closed', () => {
+  const ledgerBody = applyLedger(undefined, e2eLedgerAdditions([flakyEntry()])).body;
+  const warnings = [];
+  const found = findLedgerIssue(
+    [
+      { number: 292, state: 'closed', title: LEDGER_TITLE, body: ledgerBody },
+      { number: 220, state: 'open', title: LEDGER_TITLE, body: ledgerBody },
     ],
     (message) => warnings.push(message),
   );
   assert.equal(found.number, 220);
-  assert.equal(warnings.length, 1);
-  assert.match(warnings[0], /#292/);
-  assert.match(warnings[0], /using #220/);
+  assert.deepEqual(warnings, []);
 });
