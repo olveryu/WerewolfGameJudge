@@ -16,6 +16,7 @@ import {
   PRESET_TEMPLATES,
   type RoleId,
   validateTemplateRoles,
+  WEREWOLF_RULES_SCHEMA,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -114,7 +115,9 @@ export function useConfigScreenState({
   );
   // Edit mode loads the room's rules below; new rooms start from the remembered preferences.
   const [rules, setRules] = useState<GameRuleOverrides>(() =>
-    isEditMode || isNominateMode ? {} : settingsService.getRememberedWerewolfRules(),
+    isEditMode || isNominateMode
+      ? {}
+      : settingsService.getRememberedGameConfig('werewolf', WEREWOLF_RULES_SCHEMA),
   );
 
   const totalCount = useMemo(

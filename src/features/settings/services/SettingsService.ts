@@ -14,6 +14,14 @@
  * - load() must be called once at app startup; subsequent reads are synchronous
  * - Reads may use defaults when MMKV is unavailable; writes reject without changing state
  */
+import {
+  type AnyConfigFieldSpec,
+  type ConfigFieldValue,
+  type GameConfigSchema,
+  validateConfigFieldValue,
+} from '@game-judge/game-engine/platform/config/configSchema';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+
 import { USER_SETTINGS_KEY } from '@/config/storageKeys';
 import type { BgmTrackSetting } from '@/features/product/model/BgmCatalog';
 import { BGM_VOLUME, isBgmTrackSetting } from '@/features/product/model/BgmCatalog';
@@ -31,24 +39,17 @@ export const isExpectedStorageError = (err: unknown): boolean =>
 const MIN_VOLUME = 0;
 const MAX_VOLUME = 1;
 
-/** Werewolf house rules remembered for the next new room; plague mode is intentionally excluded. */
-export interface RememberedWerewolfRules {
-  isSheriffElectionEnabled: boolean;
-  witchCanSelfHeal: boolean;
-}
+/** Remembered lobby-config fields per game: `gameType -> fieldKey -> value`. */
+type RememberedGameConfigs = Readonly<Record<string, Readonly<Record<string, ConfigFieldValue>>>>;
 
-export type RememberedWerewolfRuleKey = keyof RememberedWerewolfRules;
+/**
+ * Werewolf house rules were stored as top-level settings before remembered
+ * config became schema-driven; they fold into rememberedGameConfigs.werewolf.
+ */
+const LEGACY_WEREWOLF_RULE_KEYS = ['isSheriffElectionEnabled', 'witchCanSelfHeal'] as const;
 
-const REMEMBERED_WEREWOLF_RULE_KEYS: readonly RememberedWerewolfRuleKey[] = [
-  'isSheriffElectionEnabled',
-  'witchCanSelfHeal',
-];
-
-export function isRememberedWerewolfRuleKey(key: string): key is RememberedWerewolfRuleKey {
-  return REMEMBERED_WEREWOLF_RULE_KEYS.some((ruleKey) => ruleKey === key);
-}
-
-interface UserSettings extends RememberedWerewolfRules {
+interface UserSettings {
+  rememberedGameConfigs: RememberedGameConfigs;
   /** Whether to play background music during night phase (default: true) */
   bgmEnabled: boolean;
   /** Selected BGM track or 'random' for shuffle playlist (default: 'random') */
@@ -60,8 +61,7 @@ interface UserSettings extends RememberedWerewolfRules {
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
-  isSheriffElectionEnabled: true,
-  witchCanSelfHeal: false,
+  rememberedGameConfigs: {},
   bgmEnabled: true,
   bgmTrack: 'random',
   bgmVolume: BGM_VOLUME,
@@ -103,6 +103,51 @@ function readPersistedBgmTrack(value: unknown): BgmTrackSetting {
   return DEFAULT_SETTINGS.bgmTrack;
 }
 
+function isPlainRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isConfigFieldValue(value: unknown): value is ConfigFieldValue {
+  return (
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'string' ||
+    value === null
+  );
+}
+
+/** Keeps only primitive leaves; schema validation happens at read time against the live schema. */
+function readPersistedRememberedGameConfigs(value: unknown): RememberedGameConfigs {
+  if (value === undefined) return {};
+  if (!isPlainRecord(value)) {
+    settingsServiceLog.warn('Invalid persisted rememberedGameConfigs, resetting to default', value);
+    return {};
+  }
+  const result: Record<string, Record<string, ConfigFieldValue>> = {};
+  for (const [gameType, fields] of Object.entries(value)) {
+    if (!isPlainRecord(fields)) continue;
+    const entries: Record<string, ConfigFieldValue> = {};
+    for (const [key, fieldValue] of Object.entries(fields)) {
+      if (isConfigFieldValue(fieldValue)) entries[key] = fieldValue;
+    }
+    result[gameType] = entries;
+  }
+  return result;
+}
+
+function migrateLegacyWerewolfRules(
+  value: object,
+  remembered: RememberedGameConfigs,
+): RememberedGameConfigs {
+  const current = remembered['werewolf'] ?? {};
+  const migrated: Record<string, ConfigFieldValue> = { ...current };
+  for (const key of LEGACY_WEREWOLF_RULE_KEYS) {
+    const legacy: unknown = Reflect.get(value, key);
+    if (typeof legacy === 'boolean' && !(key in current)) migrated[key] = legacy;
+  }
+  return { ...remembered, werewolf: migrated };
+}
+
 function parsePersistedSettings(value: unknown): UserSettings {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     settingsServiceLog.warn('Invalid persisted settings payload, resetting to defaults', value);
@@ -110,15 +155,9 @@ function parsePersistedSettings(value: unknown): UserSettings {
   }
 
   return {
-    isSheriffElectionEnabled: readPersistedBoolean(
-      Reflect.get(value, 'isSheriffElectionEnabled'),
-      'isSheriffElectionEnabled',
-      DEFAULT_SETTINGS.isSheriffElectionEnabled,
-    ),
-    witchCanSelfHeal: readPersistedBoolean(
-      Reflect.get(value, 'witchCanSelfHeal'),
-      'witchCanSelfHeal',
-      DEFAULT_SETTINGS.witchCanSelfHeal,
+    rememberedGameConfigs: migrateLegacyWerewolfRules(
+      value,
+      readPersistedRememberedGameConfigs(Reflect.get(value, 'rememberedGameConfigs')),
     ),
     bgmEnabled: readPersistedBoolean(
       Reflect.get(value, 'bgmEnabled'),
@@ -186,17 +225,47 @@ export class SettingsService {
     this.#notifyListeners();
   }
 
-  /** Remembered Werewolf house rules applied to the next new room. */
-  getRememberedWerewolfRules(): RememberedWerewolfRules {
-    return {
-      isSheriffElectionEnabled: this.#settings.isSheriffElectionEnabled,
-      witchCanSelfHeal: this.#settings.witchCanSelfHeal,
-    };
+  /**
+   * Remembered values for every `isRemembered` field of a game's schema: the
+   * stored value when it still passes the field spec, otherwise the schema
+   * default. Fields that are not remembered are absent.
+   */
+  getRememberedGameConfig<TConfig extends object>(
+    gameType: GameType,
+    schema: GameConfigSchema<TConfig>,
+  ): Partial<TConfig> {
+    const stored = this.#settings.rememberedGameConfigs[gameType] ?? {};
+    const defaults: Readonly<Record<string, unknown>> = Object.fromEntries(
+      Object.entries(schema.defaults),
+    );
+    let remembered: Partial<TConfig> = {};
+    for (const key in schema.fields) {
+      const spec: AnyConfigFieldSpec = schema.fields[key];
+      if (spec.kind === 'fixed' || spec.isRemembered !== true) continue;
+      const candidate = stored[key];
+      const value =
+        candidate !== undefined && validateConfigFieldValue(spec, candidate) === null
+          ? candidate
+          : defaults[key];
+      remembered = { ...remembered, [key]: value };
+    }
+    return remembered;
   }
 
-  /** Persist one remembered Werewolf rule without changing any room state. */
-  async setRememberedWerewolfRule(key: RememberedWerewolfRuleKey, value: boolean): Promise<void> {
-    await this.#save({ ...this.#settings, [key]: value });
+  /** Persist one remembered lobby-config field without changing any room state. */
+  async setRememberedGameConfigField(
+    gameType: GameType,
+    key: string,
+    value: ConfigFieldValue,
+  ): Promise<void> {
+    const current = this.#settings.rememberedGameConfigs[gameType] ?? {};
+    await this.#save({
+      ...this.#settings,
+      rememberedGameConfigs: {
+        ...this.#settings.rememberedGameConfigs,
+        [gameType]: { ...current, [key]: value },
+      },
+    });
   }
 
   /**

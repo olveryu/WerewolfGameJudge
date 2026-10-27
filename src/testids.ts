@@ -54,7 +54,8 @@ export const TESTIDS = {
   configStepperCount: (roleId: string) => `config-stepper-count-${roleId}`,
   configFactionTab: (key: string) => `config-faction-tab-${key}`,
   gameRulesScreenRoot: 'game-rules-screen-root',
-  gameRuleSwitch: (rule: string) => `game-rule-switch-${rule}`,
+  /** Werewolf rules render through the shared config form; alias kept for existing callers. */
+  gameRuleSwitch: (rule: string) => `werewolf-config-field-${rule}`,
   gameRulesSubmitButton: 'game-rules-submit-button',
   // Schema-driven config form (src/features/room/config); shared by every non-Werewolf game.
   gameConfigScreenRoot: (gameType: string) => `${gameType}-config`,

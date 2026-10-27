@@ -84,6 +84,8 @@ export {
   TEMPLATE_CATEGORY_LABELS,
   TemplateCategory,
   validateTemplateRoles,
+  WEREWOLF_RULES_SCHEMA,
+  type WerewolfRules,
 } from './domain/models/Template';
 export { type CurrentNightStep, resolveCurrentNightStep } from './domain/nightStep';
 export {
