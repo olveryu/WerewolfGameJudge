@@ -230,34 +230,49 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
         ? hostMessageTask('有机器人尚未确认本步信息', { actionKey: 'mark-bots-confirmed' })
         : null;
     case GameStatus.Day: {
-      // The election runs before the night result is announced (the
-      // last-night dialog itself warns 昨夜信息可能影响警长竞选): while an
-      // election is in progress the host's task is the election's; the
-      // dawn flow's first step takes over once it completes.
-      const election = input.sheriffElection;
-      if (election !== null && election.view.phase !== 'completed') {
-        if (election.view.phase === 'firstVote' || election.view.phase === 'runoffVote') {
-          const progress = election.view.voteProgress;
-          return hostMessageTask(
-            progress === null
-              ? '等待投票完成'
-              : `等待投票完成 · ${progress.submittedCount}/${progress.eligibleCount} 已提交`,
-          );
-        }
-        return election.view.canAdvance && election.view.advanceLabel !== null
-          ? hostActionTask('sheriff-advance')
-          : null;
-      }
+      // Dawn: announcing the night result and running the election are
+      // both the host's legitimate next moves (a wolf may self-destruct
+      // mid-election, after which the result is read at once). While
+      // the election offers an advance, the two are an equal choice;
+      // during a vote only the info remains, with the vote progress as
+      // the note. Once the info is confirmed the election task is alone.
       const flow = {
         roomStatus: input.roomStatus,
         progress: input.panelFlow,
         reviewShared: input.isReviewShared,
       };
-      return resolvePanelFlowCurrentStep(flow) === 'lastNightInfo'
-        ? hostActionTask(PANEL_FLOW_ACTION_KEYS.lastNightInfo, {
-            steps: buildPanelFlowSteps(flow) ?? undefined,
-          })
-        : null;
+      const infoPending = resolvePanelFlowCurrentStep(flow) === 'lastNightInfo';
+      const election = input.sheriffElection;
+      const isVoting =
+        election !== null &&
+        (election.view.phase === 'firstVote' || election.view.phase === 'runoffVote');
+      const voteNote =
+        election === null || !isVoting
+          ? undefined
+          : election.view.voteProgress === null
+            ? '等待投票完成'
+            : `等待投票完成 · ${election.view.voteProgress.submittedCount}/${election.view.voteProgress.eligibleCount} 已提交`;
+      const canAdvance =
+        election !== null &&
+        election.view.phase !== 'completed' &&
+        election.view.canAdvance &&
+        election.view.advanceLabel !== null;
+      const steps = buildPanelFlowSteps(flow) ?? undefined;
+      if (infoPending && canAdvance) {
+        return {
+          kind: 'choice',
+          actionKeys: ['sheriff-advance', PANEL_FLOW_ACTION_KEYS.lastNightInfo],
+          steps,
+        };
+      }
+      if (infoPending) {
+        return hostActionTask(PANEL_FLOW_ACTION_KEYS.lastNightInfo, {
+          steps,
+          ...(voteNote === undefined ? {} : { note: voteNote }),
+        });
+      }
+      if (canAdvance) return hostActionTask('sheriff-advance');
+      return voteNote === undefined ? null : hostMessageTask(voteNote);
     }
     case GameStatus.Ended: {
       const flow = {

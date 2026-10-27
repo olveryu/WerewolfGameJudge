@@ -295,18 +295,18 @@ Test anchors are stable: the task's action button carries `roomNextStepButton`, 
 
 **Phase × task across games** (the declared mapping; each game's host-management test pins it):
 
-| Phase                                         | Task                                                                                                                                                         |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Lobby / setup                                 | `action: start-game \| assign-roles` (seat shortage → disabled reason + `remedyActionKey: share-room`)                                                       |
-| Identity viewing                              | `action: start-game` — blocked by the viewing-progress reason until every seat viewed; `remedyActionKey: mark-bots-viewed` while an unviewed bot seat exists |
-| In play, host advance available               | `action: <game advance key>`                                                                                                                                 |
-| In play, waiting on players                   | `message: <waiting sentence>`                                                                                                                                |
-| Host-owned local mode (Undercover pick)       | `message: 点座位盘选择出局玩家`, `actionKey: cancel-selection`                                                                                               |
-| Werewolf Day, election running                | The election's own task (`sheriff-advance`, or a waiting message during votes); no steps — the night result is announced after the election                  |
-| Werewolf Day, election done, info unconfirmed | `action: last-night-info`, steps `[昨夜信息 ● → 本局复盘 → 收尾]`                                                                                            |
-| Werewolf Ended                                | `last-night-info` → `night-review` (note = share reminder, completes once shared) → `choice: [next-round, return-lobby]`; steps shown throughout             |
-| Ended (other games)                           | `choice: [next-round, return-lobby]`                                                                                                                         |
-| Pictionary / Story Relay, cannot abort        | `null`; the sheet stays present with abort disabled and its reason (the host panel is never hidden mid-game)                                                 |
+| Phase                                   | Task                                                                                                                                                                                                   |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Lobby / setup                           | `action: start-game \| assign-roles` (seat shortage → disabled reason + `remedyActionKey: share-room`)                                                                                                 |
+| Identity viewing                        | `action: start-game` — blocked by the viewing-progress reason until every seat viewed; `remedyActionKey: mark-bots-viewed` while an unviewed bot seat exists                                           |
+| In play, host advance available         | `action: <game advance key>`                                                                                                                                                                           |
+| In play, waiting on players             | `message: <waiting sentence>`                                                                                                                                                                          |
+| Host-owned local mode (Undercover pick) | `message: 点座位盘选择出局玩家`, `actionKey: cancel-selection`                                                                                                                                         |
+| Werewolf Day, info unconfirmed          | `choice: [sheriff-advance, last-night-info]` with steps while the election offers an advance (a self-destruct can end it early); during votes `action: last-night-info` with the vote progress as note |
+| Werewolf Day, info confirmed            | The election's own task (`sheriff-advance`, or a vote-waiting message); `null` once completed                                                                                                          |
+| Werewolf Ended                          | `last-night-info` → `night-review` (note = share reminder, completes once shared) → `choice: [next-round, return-lobby]`; steps shown throughout                                                       |
+| Ended (other games)                     | `choice: [next-round, return-lobby]`                                                                                                                                                                   |
+| Pictionary / Story Relay, cannot abort  | `null`; the sheet stays present with abort disabled and its reason (the host panel is never hidden mid-game)                                                                                           |
 
 The bottom panel carries **no** host flow: no step bar, no hint, no host buttons. Werewolf's
 bottom host rules keep only the participant actions (view identity); the review stays a bottom

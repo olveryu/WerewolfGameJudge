@@ -164,7 +164,7 @@ describe('createWerewolfHostManagement', () => {
     expect(onHostControl).toHaveBeenCalledWith('prepareToFlip');
   });
 
-  it('surfaces sheriff advancement as the Day task while the election runs', () => {
+  it('offers election advance and last-night info as an equal Day choice while both apply', () => {
     const requestAdvance = jest.fn();
     const sheriffElection = createSheriffElection({}, { requestAdvance });
     const model = createWerewolfHostManagement(
@@ -176,11 +176,33 @@ describe('createWerewolfHostManagement', () => {
     );
 
     expect(actionLabels(model)).toEqual(['结束报名', '本局复盘', '昨夜信息', '中止本局']);
-    expect(model.task).toEqual({ kind: 'action', actionKey: 'sheriff-advance' });
+    expect(model.task).toMatchObject({
+      kind: 'choice',
+      actionKeys: ['sheriff-advance', 'last-night-info'],
+      steps: [
+        { key: 'lastNightInfo', state: 'current' },
+        { key: 'nightReview', state: 'upcoming' },
+        { key: 'closing', state: 'upcoming' },
+      ],
+    });
     const body = hostTaskBody(model);
-    if (body?.kind !== 'ready') throw new Error('Expected a ready sheriff advancement task');
-    body.action.onPress();
+    if (body?.kind !== 'choice') throw new Error('Expected a choice task');
+    const advance = body.actions[0];
+    if (advance?.isEnabled !== true) throw new Error('Expected enabled sheriff advancement');
+    advance.onPress();
     expect(requestAdvance).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps sheriff advancement alone as the Day task once the info is confirmed', () => {
+    const model = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Day,
+        panelFlow: { lastNightInfoConfirmed: true, nightReviewOpened: false },
+        sheriffElection: createSheriffElection(),
+        capabilities: deniedRoomCapabilities,
+      }),
+    );
+    expect(model.task).toEqual({ kind: 'action', actionKey: 'sheriff-advance' });
   });
 
   it('offers last-night info as the Day task once the election completed, until confirmed', () => {
@@ -247,8 +269,21 @@ describe('createWerewolfHostManagement', () => {
       const actions = model.sections.flatMap((section) => section.actions);
       expect(actions.map((action) => action.label)).not.toContain('推进竞选');
       expect(actions.find((action) => action.key === 'sheriff-advance')).toBeUndefined();
-      // Voting has no host advance: the task is the waiting message with progress.
-      expect(hostTaskBody(model)).toEqual({
+      // Voting has no host advance: the info stays the task, the vote progress is the note.
+      expect(model.task).toMatchObject({
+        kind: 'action',
+        actionKey: 'last-night-info',
+        note: '等待投票完成 · 1/3 已提交',
+      });
+      const confirmed = createWerewolfHostManagement(
+        createInput({
+          roomStatus: GameStatus.Day,
+          panelFlow: { lastNightInfoConfirmed: true, nightReviewOpened: false },
+          sheriffElection,
+          capabilities: deniedRoomCapabilities,
+        }),
+      );
+      expect(hostTaskBody(confirmed)).toEqual({
         kind: 'message',
         text: '等待投票完成 · 1/3 已提交',
         escape: null,

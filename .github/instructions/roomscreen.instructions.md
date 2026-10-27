@@ -50,8 +50,10 @@ night UI must remain in this game-owned directory. State machine reference:
 - The Day/Ended dawn flow (昨夜信息 → 本局复盘 → 收尾) is the host task: `panelFlow.ts` derives
   `steps` and the current step, `createWerewolfHostManagement` sets `task` (`action` on
   `last-night-info` / `night-review`, then `choice` on `next-round` / `return-lobby`) and the
-  sheet carries those actions. On Day the sheriff election's own task (advance / waiting message)
-  comes first; the dawn flow's first step takes over once the election completes.
+  sheet carries those actions. On Day, while the info is unconfirmed, `last-night-info` and the
+  election's `sheriff-advance` are an equal `choice` (a self-destruct can end the election early);
+  during votes the info is the task with the vote progress as note. After confirmation the election
+  task stands alone.
 - `createWerewolfHostManagement` has no host guard; `createWerewolfRoomShellModel` passes it as
   `buildHostManagement` and the shell factory gates on `viewer.isHost`.
 - The sheriff dock sets `trailing: null` for the host (the review reaches the host through the
