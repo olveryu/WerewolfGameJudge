@@ -33,6 +33,7 @@ import { configLog } from '@/utils/logger';
 
 import {
   type CountDrafts,
+  dropCountDraft,
   parseCountDraft,
   readFieldValue,
   resolveConfigIssue,
@@ -114,11 +115,7 @@ export function useGameConfigScreenState<
   const setFieldValue = useCallback(
     (key: keyof TConfig, value: ConfigFieldValue) => {
       setConfig((current) => withFieldValue(current, key, value));
-      setCountDrafts((current) => {
-        if (!(String(key) in current)) return current;
-        const { [String(key)]: _dropped, ...rest } = current;
-        return rest;
-      });
+      setCountDrafts((current) => dropCountDraft(current, String(key)));
       const spec: AnyConfigFieldSpec = schema.fields[key];
       if (spec.kind === 'fixed' || spec.isRemembered !== true) return;
       settingsService
