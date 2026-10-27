@@ -1389,7 +1389,7 @@ Rules screen 使用相同的：
 - typography hierarchy
 - safe-area 和滚动 padding
 
-Config screen 也使用统一 screen shell。数值使用 stepper + numeric input，不用普通文本按钮替代增减 control。
+Config screen 由 `src/features/room/config/` 按引擎 `GameConfigSchema` 生成（见 [game-config-schema-design.md](game-config-schema-design.md)）：数值使用 stepper + numeric input，开关用 switch，枚举和时长用 radio pill；越界在字段下内联提示并禁用提交，不弹 alert。游戏不再手写 config 页面。
 
 ### 21.9 响应式和可访问性
 
@@ -1654,7 +1654,7 @@ games/<game>/
 3. 为 state、command、event、normalize、lifecycle 添加 engine test。
 4. 实现一个 Worker module，包含 create/command schema 和 effect。
 5. 加入穷尽式 Worker catalog。
-6. 实现一个 client game module、Home contribution、game-owned config flow、room adapter 和玩法 screen。
+6. 实现一个 client game module、Home contribution、room adapter 和玩法 screen；lobby config 通过引擎 `<GAME>_CONFIG_SCHEMA` + `defineClientGameModule({ config: (define) => define({...}) })` 声明，不写 config 页面（狼人杀的角色选择 flow 是唯一例外）。
 7. 加入穷尽式 client catalog。
 8. 添加 create、join、deep link、room shell 和主玩法测试。
 9. 按 [跨游戏 UI 契约](room-shell-contract.md) 列出 config、guide、房间各阶段及关联弹窗的组件归属和状态矩阵；以狼人杀为视觉基准。
@@ -1772,7 +1772,7 @@ Metrics 区分：
 ### 28.3 Worker/DO tests
 
 - Unknown game type 在 initialization write 前失败。
-- Config schema 与 engine config type 一致。
+- Worker create/update config schema 由 `configSchemaToZod(<GAME>_CONFIG_SCHEMA)` 生成，与 engine `isValid<Game>Config` 同源。
 - Initialization 按 `creationId` idempotent。
 - 使用不同 metadata 重复初始化失败。
 - State/game-type mismatch fail fast。
