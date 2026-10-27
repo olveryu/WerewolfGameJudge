@@ -163,9 +163,11 @@ acknowledgement are still required before advancing.
 
 Only the host runs BGM, using the existing music catalog, saved settings and audio service.
 Music settings are available in lobby, identity viewing and after the game. The room's
-play/pause tool stays separate from narration state. Automatic playback starts at night;
-manual pause survives active phase changes. Return to lobby, completed terminal narration,
-loss of host ownership and leaving the room stop BGM.
+play/pause tool stays separate from narration state. Automatic playback covers the night
+only: it starts when the night opens and the shared audio core (`RoomAudioOrchestrator`)
+stops it right before the dawn narration (`NIGHT_END_AUDIO_KEY`), so music never overlaps
+the dawn voice. Day phases never auto-play; a host's manual play/pause survives day phase
+changes. Return to lobby, game end, loss of host ownership and leaving the room stop BGM.
 
 ## Room Content
 

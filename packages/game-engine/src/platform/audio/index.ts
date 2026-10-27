@@ -5,5 +5,6 @@ export {
   acknowledgeAudioQueue,
   type AudioEffect,
   type AudioQueueSlice,
+  NIGHT_END_AUDIO_KEY,
   queueAudioBatch,
 } from './audioQueue';

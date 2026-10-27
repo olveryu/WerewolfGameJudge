@@ -16,7 +16,12 @@
  * No IO.
  */
 
-import { type AudioEffect, guardAudioPlayback, queueAudioBatch } from '../../../platform/audio';
+import {
+  type AudioEffect,
+  guardAudioPlayback,
+  NIGHT_END_AUDIO_KEY,
+  queueAudioBatch,
+} from '../../../platform/audio';
 import { AVALON_NIGHT_STEPS, type AvalonState } from '../state/types';
 import { AVALON_REASONS, type AvalonEvent } from './decision';
 import { getAvalonNightStepDef, getAvalonNightStepEndKey } from './nightSteps';
@@ -51,7 +56,7 @@ export function evaluateAvalonNightCompletion(state: AvalonState): readonly Aval
       { type: 'avalon.night.completed' },
       queueAudio([
         { audioKey: getAvalonNightStepEndKey(def), isEndAudio: true },
-        { audioKey: 'night_end' },
+        { audioKey: NIGHT_END_AUDIO_KEY },
       ]),
     ];
   }

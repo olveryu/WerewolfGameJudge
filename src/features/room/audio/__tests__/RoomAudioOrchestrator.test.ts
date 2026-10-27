@@ -14,6 +14,7 @@
  * the post-ack recheck can observe the second queue.
  */
 
+import { NIGHT_END_AUDIO_KEY } from '@game-judge/game-engine/platform/audio';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import { successfulRoomCommand, testRoomState } from '@/test-utils/roomCommand';
@@ -43,6 +44,7 @@ function createHarness() {
   let listener: ((next: Snapshot | null) => void) | null = null;
   let emissionCount = 0;
   const playedKeys: string[] = [];
+  const timeline: string[] = [];
   const preparedBatches: (readonly TestEffect[])[] = [];
   const preparedCommands: TestPrepared[] = [];
   const dispatchedCommands: TestPrepared[] = [];
@@ -66,6 +68,10 @@ function createHarness() {
     player: {
       playEffect: async (effect) => {
         playedKeys.push(effect.audioKey);
+        timeline.push(`play:${effect.audioKey}`);
+      },
+      stopBgm: () => {
+        timeline.push('stopBgm');
       },
       prepareQueue: async (effects) => {
         preparedBatches.push(effects);
@@ -102,6 +108,7 @@ function createHarness() {
     emitCurrent,
     getEmissionCount: () => emissionCount,
     playedKeys,
+    timeline,
     preparedBatches,
     preparedCommands,
     dispatchedCommands,
@@ -129,6 +136,27 @@ describe('RoomAudioOrchestrator ack recheck chaining', () => {
       'ack-2',
     ]);
     expect(harness.dispatchedCommands).toEqual(harness.preparedCommands);
+
+    harness.orchestrator.dispose();
+  });
+});
+
+describe('RoomAudioOrchestrator dawn timing', () => {
+  it('stops BGM immediately before the night_end effect and before no other effect', async () => {
+    const harness = createHarness();
+    harness.setQueue([{ audioKey: 'percival_reveal' }, { audioKey: NIGHT_END_AUDIO_KEY }]);
+
+    harness.emitCurrent();
+    await flushPlayback();
+
+    // The trailing merlin_reveal is the harness's chained second queue
+    // released by the first ack; it must not trigger another BGM stop.
+    expect(harness.timeline).toEqual([
+      'play:percival_reveal',
+      'stopBgm',
+      `play:${NIGHT_END_AUDIO_KEY}`,
+      'play:merlin_reveal',
+    ]);
 
     harness.orchestrator.dispose();
   });

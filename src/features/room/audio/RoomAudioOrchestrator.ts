@@ -31,6 +31,7 @@
  *   resent, so interrupted playback is never acked away unheard.
  */
 
+import { NIGHT_END_AUDIO_KEY } from '@game-judge/game-engine/platform/audio';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
@@ -57,9 +58,14 @@ export interface RoomAudioQueueSource<TEffect> {
  * finished (or was skipped by the platform player). A missing-asset error
  * (asset registry gap = programming error) must be reported through
  * `isMissingAssetError` so the core can fail fast instead of skipping it.
+ * `stopBgm` is the shared dawn timing hook: the core calls it right before
+ * playing the NIGHT_END_AUDIO_KEY effect so music never overlaps the dawn
+ * voice (idempotent; replays on reconnect call it again).
  */
 export interface RoomAudioPlayerPort<TEffect> {
   playEffect(effect: TEffect): Promise<void>;
+  /** Stops host background music immediately; must be idempotent. */
+  stopBgm(): void;
   /** Optional batch preparation (asset preload) before sequential playback. */
   prepareQueue?(effects: readonly TEffect[]): Promise<void>;
   /** Whether an error is a missing-asset failure (fail-fast, never skipped). */
@@ -325,6 +331,8 @@ export class RoomAudioOrchestrator<
         for (const effect of currentEffects) {
           if (this.#deps.isAborted()) break;
           try {
+            // Dawn timing: BGM must be silent before the dawn voice starts.
+            if (effect.audioKey === NIGHT_END_AUDIO_KEY) player.stopBgm();
             await player.playEffect(effect);
           } catch (e) {
             if (player.isMissingAssetError?.(e) === true) throw e;

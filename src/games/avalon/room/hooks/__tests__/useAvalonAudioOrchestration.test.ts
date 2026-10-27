@@ -5,6 +5,7 @@
  * reconnect, the shared core replays it in full before resending the
  * retained ack (an interrupted narration is never acked away unheard).
  */
+import { NIGHT_END_AUDIO_KEY } from '@game-judge/game-engine/platform/audio';
 import { act, renderHook } from '@testing-library/react-native';
 
 import type { AvalonRoomSession } from '../../../model/AvalonRoomSession';
@@ -12,17 +13,19 @@ import { useAvalonAudioOrchestration } from '../useAvalonAudioOrchestration';
 
 type Listener = () => void;
 
-function createFakeSession() {
+function createFakeSession(
+  initialQueue: readonly { audioKey: string; isEndAudio?: boolean }[] = [
+    { audioKey: 'night' },
+    { audioKey: 'evil_reveal' },
+  ],
+) {
   const listeners = new Set<Listener>();
   let connection: 'live' | 'reconnecting' = 'live';
   // The queue lives in the session's authoritative snapshot state, the
   // way the real session exposes it to the shared core. A committed ack
   // clears the queue there before the dispatch outcome returns (the
   // real session applies the post-command snapshot first).
-  let pendingAudioEffects: readonly { audioKey: string }[] = [
-    { audioKey: 'night' },
-    { audioKey: 'evil_reveal' },
-  ];
+  let pendingAudioEffects: readonly { audioKey: string; isEndAudio?: boolean }[] = initialQueue;
   let prepareCount = 0;
   const preparedObjects: unknown[] = [];
   const dispatchedPrepared: unknown[] = [];
@@ -73,8 +76,11 @@ function createFakeSession() {
 
 const audio = {
   preload: jest.fn(async () => undefined),
-  playEffect: jest.fn(async () => undefined),
+  playEffect: jest.fn<Promise<void>, [audioKey: string, isEndAudio?: boolean]>(
+    async () => undefined,
+  ),
   stopNarration: jest.fn(),
+  stopBgm: jest.fn<void, []>(),
 };
 
 describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
@@ -123,5 +129,32 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
     });
     expect(fake.dispatchPrepared).toHaveBeenCalledTimes(2);
     expect(audio.playEffect).toHaveBeenCalledTimes(4);
+  });
+
+  it('forwards the shared dawn timing: BGM stops right before night_end and for no other key', async () => {
+    const fake = createFakeSession([
+      { audioKey: 'percival_reveal', isEndAudio: true },
+      { audioKey: NIGHT_END_AUDIO_KEY },
+    ]);
+    const timeline: string[] = [];
+    audio.playEffect.mockImplementation(async (audioKey: string) => {
+      timeline.push(`play:${audioKey}`);
+    });
+    audio.stopBgm.mockImplementation(() => {
+      timeline.push('stopBgm');
+    });
+    renderHook(() =>
+      useAvalonAudioOrchestration({
+        session: fake.session,
+        isHost: true,
+        pendingAudioEffects: [],
+        audio,
+      }),
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(timeline).toEqual(['play:percival_reveal', 'stopBgm', `play:${NIGHT_END_AUDIO_KEY}`]);
   });
 });

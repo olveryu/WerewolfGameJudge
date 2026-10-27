@@ -246,6 +246,7 @@ function screenElement(session: AvalonRoomSession) {
       preload: jest.fn(async () => undefined),
       playEffect: jest.fn(async () => undefined),
       stopNarration: jest.fn(),
+      stopBgm: jest.fn(),
     },
   } as unknown as ComponentProps<typeof AvalonRoomScreen>;
   return <AvalonRoomScreen {...props} />;

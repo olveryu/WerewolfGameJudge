@@ -20,7 +20,7 @@
  * UI hint calculation → uiHint.ts
  */
 
-import type { AudioEffect } from '../../../../platform/audio';
+import { type AudioEffect, NIGHT_END_AUDIO_KEY } from '../../../../platform/audio';
 import { createSeededRng } from '../../../../platform/random';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
 import { createAudioQueueActions } from '../audioQueue';
@@ -243,5 +243,8 @@ export function handleEndNight(
     payload: { deaths, deathReasons },
   };
 
-  return handlerSuccess([endNightAction, ...createAudioQueueActions([{ audioKey: 'night_end' }])]);
+  return handlerSuccess([
+    endNightAction,
+    ...createAudioQueueActions([{ audioKey: NIGHT_END_AUDIO_KEY }]),
+  ]);
 }

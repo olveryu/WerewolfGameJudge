@@ -15,6 +15,8 @@ export interface AvalonAudioRuntime {
   readonly playEffect: (audioKey: string, isEndAudio?: boolean) => Promise<void>;
   readonly preload: () => Promise<void>;
   readonly stopNarration: () => void;
+  /** Stops host BGM; the shared audio core calls it right before the dawn narration. */
+  readonly stopBgm: () => void;
 }
 
 export class AvalonAudioPlayer implements AvalonAudioRuntime {
@@ -34,4 +36,6 @@ export class AvalonAudioPlayer implements AvalonAudioRuntime {
   readonly preload = (): Promise<void> => this.#audioService.preloadClips(getAvalonPreloadAudio());
 
   readonly stopNarration = (): void => this.#audioService.stop();
+
+  readonly stopBgm = (): void => this.#audioService.stopBgm();
 }

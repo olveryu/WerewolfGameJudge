@@ -12,6 +12,7 @@
  *   快照为 null（核心静默）。
  * - player port：AvalonAudioPlayer 的 playEffect；prepareQueue 承接原队列
  *   播放前的整批 preload（失败只告警、不阻塞播放，与原行为一致）；
+ *   stopBgm 供核心在 night_end 播报前停 BGM（天亮时序，全游戏统一）；
  *   MissingAvalonAudioError 仍是 fail-fast。
  * - ack port：session.prepare/dispatchPrepared 制 `avalon.audio.ack`，
  *   envelope 由核心保留至终局决定（服务端按 commandId 幂等）。
@@ -113,6 +114,13 @@ export function useAvalonAudioOrchestration(deps: UseAvalonAudioOrchestrationDep
               throw new Error('[FAIL-FAST] Avalon audio playback requires a ready audio runtime');
             }
             return player.playEffect(effect.audioKey, effect.isEndAudio);
+          },
+          stopBgm: () => {
+            const player = audioRef.current;
+            if (player === null) {
+              throw new Error('[FAIL-FAST] Avalon BGM stop requires a ready audio runtime');
+            }
+            player.stopBgm();
           },
           prepareQueue: async () => {
             const player = audioRef.current;

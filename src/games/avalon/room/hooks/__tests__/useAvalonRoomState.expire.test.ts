@@ -194,6 +194,7 @@ function renderRoomState(state: AvalonState, pendingCommandCount = 0) {
       preload: jest.fn(async () => undefined),
       playEffect: jest.fn(async () => undefined),
       stopNarration: jest.fn(),
+      stopBgm: jest.fn(),
     },
   } as unknown as Parameters<typeof useAvalonRoomState>[0];
   const rendered = renderHook(() => useAvalonRoomState(props, { onReviewPress: jest.fn() }));

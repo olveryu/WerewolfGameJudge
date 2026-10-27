@@ -99,8 +99,9 @@ export function useWerewolfBgmControl(
   }, [isHost, gameStatus, settingsService, audioService]);
 
   // ── State-driven: gameStatus transitions to Ended -> stop BGM ──
-  // Audio-timing-level stopBgm (e.g. stopping BGM before "天亮了" voice) is handled by AudioOrchestrator;
-  // here it serves as lifecycle cleanup to ensure BGM doesn't linger in ended state. stopBgm() is idempotent.
+  // Audio-timing-level stopBgm (stopping BGM before "天亮了" voice) is handled by the shared
+  // RoomAudioOrchestrator; here it serves as lifecycle cleanup to ensure BGM doesn't linger in
+  // ended state. stopBgm() is idempotent.
   useEffect(() => {
     if (!isHost) return;
     if (gameStatus === GameStatus.Ended && !isAudioPlaying) {

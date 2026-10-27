@@ -21,6 +21,14 @@
  */
 
 /**
+ * Reserved dawn narration key shared by every night game. The host
+ * client's shared audio core stops BGM right before playing this effect
+ * so music never overlaps the dawn voice; engines must queue the end of
+ * night with this key rather than a game-local string.
+ */
+export const NIGHT_END_AUDIO_KEY = 'night_end';
+
+/**
  * Audio effect descriptor.
  *
  * Produced by server-side progression, written to the pending audio
@@ -29,7 +37,7 @@
  * ignore the queue.
  */
 export interface AudioEffect {
-  /** Audio resource key (role ID / 'night' / 'night_end') */
+  /** Audio resource key (role ID / 'night' / NIGHT_END_AUDIO_KEY) */
   readonly audioKey: string;
   /** Whether this is end audio (true -> audio_end directory) */
   readonly isEndAudio?: boolean;

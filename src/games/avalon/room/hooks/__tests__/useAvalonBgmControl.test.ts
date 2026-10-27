@@ -43,7 +43,7 @@ beforeEach(() => {
   mockAudioService.startBgm.mockResolvedValue(undefined);
 });
 
-it('starts at night, preserves a manual pause across phases, and stops on return to lobby', async () => {
+it('starts at night, keeps a manual pause through the dawn tail, and stops on return to lobby', async () => {
   const { result, rerender, unmount } = renderMusic();
   await waitFor(() => expect(mockAudioService.setGameAudioVolume).toHaveBeenCalledWith(0.8));
   expect(mockAudioService.startBgm).not.toHaveBeenCalled();
@@ -60,6 +60,31 @@ it('starts at night, preserves a manual pause across phases, and stops on return
   expect(result.current.isBgmPlaying).toBe(false);
   mockAudioService.stopBgm.mockClear();
   unmount();
+  expect(mockAudioService.stopBgm).toHaveBeenCalledTimes(1);
+});
+
+it('plays through the dawn tail, stops on the dawn ack, and never auto-plays during the day', async () => {
+  const { result, rerender } = renderMusic(true, 'night', true);
+  await waitFor(() => expect(result.current.isBgmPlaying).toBe(true));
+  // The engine advances to nominate before night_end is acked: still the auto window.
+  rerender({ isHost: true, phase: 'nominate', isAudioPlaying: true });
+  expect(result.current.isBgmPlaying).toBe(true);
+  expect(mockAudioService.startBgm).toHaveBeenCalledTimes(1);
+  // Dawn ack: the lifecycle leaves auto, the control syncs to the stopped player.
+  rerender({ isHost: true, phase: 'nominate', isAudioPlaying: false });
+  expect(result.current.isBgmPlaying).toBe(false);
+  expect(mockAudioService.stopBgm).toHaveBeenCalled();
+  // Day phases are manual-only: no auto start, and a host start survives phase changes.
+  rerender({ isHost: true, phase: 'vote', isAudioPlaying: false });
+  expect(mockAudioService.startBgm).toHaveBeenCalledTimes(1);
+  act(() => result.current.playBgm());
+  mockAudioService.stopBgm.mockClear();
+  rerender({ isHost: true, phase: 'quest', isAudioPlaying: false });
+  expect(result.current.isBgmPlaying).toBe(true);
+  expect(mockAudioService.stopBgm).not.toHaveBeenCalled();
+  // Leaving play stops the manual session too.
+  rerender({ isHost: true, phase: 'ended', isAudioPlaying: false });
+  expect(result.current.isBgmPlaying).toBe(false);
   expect(mockAudioService.stopBgm).toHaveBeenCalledTimes(1);
 });
 

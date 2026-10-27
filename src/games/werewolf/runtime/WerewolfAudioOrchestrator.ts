@@ -6,8 +6,8 @@
  * `RoomAudioOrchestrator` (src/features/room/audio). This class keeps only
  * the Werewolf-owned parts:
  * - Player adapter: maps an AudioEffect to the Werewolf runtime's play
- *   methods (night / night_end BGM stop / beginning / ending) and treats
- *   MissingWerewolfAudioError as fail-fast.
+ *   methods (night / night_end / beginning / ending), exposes stopBgm for
+ *   the core's dawn timing, and treats MissingWerewolfAudioError as fail-fast.
  * - Ack adapter: prepares/dispatches `werewolf.audio.ack` through
  *   werewolfGameActions.
  * - Rejoin resume extension: replays the current step's beginning audio
@@ -22,6 +22,7 @@
 import type { AudioEffect, GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { getStepSpec } from '@game-judge/game-engine/games/werewolf/public';
 import { resolveSeerAudioKey } from '@game-judge/game-engine/games/werewolf/public';
+import { NIGHT_END_AUDIO_KEY } from '@game-judge/game-engine/platform/audio';
 
 import {
   RoomAudioOrchestrator,
@@ -79,14 +80,13 @@ function createWerewolfPlayerPort(audio: WerewolfAudioRuntime): RoomAudioPlayerP
         await audio.playEnding(effect.audioKey);
       } else if (effect.audioKey === 'night') {
         await audio.playNight();
-      } else if (effect.audioKey === 'night_end') {
-        // Audio timing: stop BGM immediately before dawn audio to avoid BGM overlapping with "dawn" voice.
-        audio.stopBgm();
+      } else if (effect.audioKey === NIGHT_END_AUDIO_KEY) {
         await audio.playNightEnd();
       } else {
         await audio.playBeginning(effect.audioKey);
       }
     },
+    stopBgm: audio.stopBgm,
     isMissingAssetError: (error) => error instanceof MissingWerewolfAudioError,
   };
 }

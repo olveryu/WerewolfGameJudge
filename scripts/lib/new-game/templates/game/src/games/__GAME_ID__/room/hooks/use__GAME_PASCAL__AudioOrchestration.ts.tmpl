@@ -11,6 +11,7 @@
  *   重渲染滞后而重播已确认的队列）。session 非 ready 或播放器未就绪时
  *   快照为 null（核心静默）。
  * - player port：本游戏音频运行时（__GAME_PASCAL__AudioRuntime）的 playEffect；
+ *   stopBgm 供核心在 night_end 播报前停 BGM（天亮时序，全游戏统一）；
  *   播放器与音频资源 registry 是本游戏资产，骨架只定 port 形状，运行时由
  *   use__GAME_PASCAL__RoomState 的调用点注入（骨架阶段传 null，绑定静默）。
  * - ack port：session.prepare/dispatchPrepared 制 `__GAME_ID__.audio.ack`，
@@ -47,6 +48,8 @@ export interface __GAME_PASCAL__AudioRuntime {
   playEffect(effect: AudioEffect): Promise<void>;
   /** 停止正在播的播报（绑定卸载时调用）。 */
   stopNarration(): void;
+  /** 停止房主 BGM（幂等）；共享核心在 NIGHT_END_AUDIO_KEY 播报前调用，天亮时序全游戏统一。 */
+  stopBgm(): void;
 }
 
 interface Use__GAME_PASCAL__AudioOrchestrationDeps {
@@ -119,6 +122,13 @@ export function use__GAME_PASCAL__AudioOrchestration(
               );
             }
             return player.playEffect(effect);
+          },
+          stopBgm: () => {
+            const player = audioRef.current;
+            if (player === null) {
+              throw new Error('[FAIL-FAST] __GAME_PASCAL__ BGM stop requires a ready audio runtime');
+            }
+            player.stopBgm();
           },
         },
         ack: {

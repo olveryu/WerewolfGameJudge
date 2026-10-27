@@ -84,6 +84,10 @@
       "types": "./src/platform/engine/index.ts",
       "default": "./dist/platform/engine/index.js"
     },
+    "./platform/audio": {
+      "types": "./src/platform/audio/index.ts",
+      "default": "./dist/platform/audio/index.js"
+    },
     "./platform/room/roster": {
       "types": "./src/platform/room/roster.ts",
       "default": "./dist/platform/room/roster.js"
