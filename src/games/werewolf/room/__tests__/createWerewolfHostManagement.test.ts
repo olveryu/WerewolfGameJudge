@@ -205,6 +205,45 @@ describe('createWerewolfHostManagement', () => {
     expect(model.task).toEqual({ kind: 'action', actionKey: 'sheriff-advance' });
   });
 
+  it('puts self-destruct on the card during speeches: end speech, self-destruct, last-night info', () => {
+    const requestEndBySelfDestruct = jest.fn();
+    const sheriffElection = createSheriffElection(
+      { phase: 'candidateSpeech', advanceLabel: '结束发言' },
+      { requestEndBySelfDestruct },
+    );
+    const model = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Day,
+        sheriffElection,
+        capabilities: deniedRoomCapabilities,
+      }),
+    );
+    expect(model.task).toMatchObject({
+      kind: 'choice',
+      actionKeys: ['sheriff-advance', 'sheriff-self-destruct', 'last-night-info'],
+    });
+    const body = hostTaskBody(model);
+    if (body?.kind !== 'choice') throw new Error('Expected a choice task');
+    const selfDestruct = body.actions[1];
+    if (selfDestruct?.isEnabled !== true) throw new Error('Expected enabled self-destruct');
+    expect(selfDestruct.variant).toBe('danger');
+    selfDestruct.onPress();
+    expect(requestEndBySelfDestruct).toHaveBeenCalledTimes(1);
+
+    const confirmed = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Day,
+        panelFlow: { lastNightInfoConfirmed: true, nightReviewOpened: false },
+        sheriffElection,
+        capabilities: deniedRoomCapabilities,
+      }),
+    );
+    expect(confirmed.task).toEqual({
+      kind: 'choice',
+      actionKeys: ['sheriff-advance', 'sheriff-self-destruct'],
+    });
+  });
+
   it('offers last-night info as the Day task once the election completed, until confirmed', () => {
     const model = createWerewolfHostManagement(
       createInput({

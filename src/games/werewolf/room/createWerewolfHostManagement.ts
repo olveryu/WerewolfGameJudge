@@ -231,11 +231,12 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
         : null;
     case GameStatus.Day: {
       // Dawn: announcing the night result and running the election are
-      // both the host's legitimate next moves (a wolf may self-destruct
-      // mid-election, after which the result is read at once). While
-      // the election offers an advance, the two are an equal choice;
-      // during a vote only the info remains, with the vote progress as
-      // the note. Once the info is confirmed the election task is alone.
+      // both the host's legitimate next moves, and during a speech a
+      // wolf may self-destruct at any moment — the host must end the
+      // election on the spot. Every move that applies right now is one
+      // equal choice on the card; during a vote only the info remains,
+      // with the vote progress as the note. Once the info is confirmed
+      // the election's own moves stand alone.
       const flow = {
         roomStatus: input.roomStatus,
         progress: input.panelFlow,
@@ -252,26 +253,35 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
           : election.view.voteProgress === null
             ? '等待投票完成'
             : `等待投票完成 · ${election.view.voteProgress.submittedCount}/${election.view.voteProgress.eligibleCount} 已提交`;
-      const canAdvance =
+      const electionMoves: string[] = [];
+      if (
         election !== null &&
         election.view.phase !== 'completed' &&
         election.view.canAdvance &&
-        election.view.advanceLabel !== null;
-      const steps = buildPanelFlowSteps(flow) ?? undefined;
-      if (infoPending && canAdvance) {
-        return {
-          kind: 'choice',
-          actionKeys: ['sheriff-advance', PANEL_FLOW_ACTION_KEYS.lastNightInfo],
-          steps,
-        };
+        election.view.advanceLabel !== null
+      ) {
+        electionMoves.push('sheriff-advance');
       }
-      if (infoPending) {
-        return hostActionTask(PANEL_FLOW_ACTION_KEYS.lastNightInfo, {
-          steps,
+      if (
+        election !== null &&
+        (election.view.phase === 'candidateSpeech' || election.view.phase === 'runoffSpeech')
+      ) {
+        electionMoves.push('sheriff-self-destruct');
+      }
+      const steps = buildPanelFlowSteps(flow) ?? undefined;
+      const moves = infoPending
+        ? [...electionMoves, PANEL_FLOW_ACTION_KEYS.lastNightInfo]
+        : electionMoves;
+      if (moves.length > 1) {
+        return { kind: 'choice', actionKeys: moves, ...(infoPending ? { steps } : {}) };
+      }
+      const [onlyMove] = moves;
+      if (onlyMove !== undefined) {
+        return hostActionTask(onlyMove, {
+          ...(infoPending ? { steps } : {}),
           ...(voteNote === undefined ? {} : { note: voteNote }),
         });
       }
-      if (canAdvance) return hostActionTask('sheriff-advance');
       return voteNote === undefined ? null : hostMessageTask(voteNote);
     }
     case GameStatus.Ended: {
