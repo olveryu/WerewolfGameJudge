@@ -22,19 +22,38 @@ component owns the complete geometry, including the value area, not just its out
 
 ## Configuration and Guide
 
-| Surface                                      | Existing owner                                                 | Caller responsibility                                                                   |
-| -------------------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Page frame, bounded scroll and fixed actions | `src/components/GameScreen.tsx`                                | Header, content and submission intent; actions stay outside scrolling content           |
-| Player-count control                         | `src/components/GameSettings.tsx` and `GameSettings.styles.ts` | String value, optional editing callback, increment/decrement callbacks and minimum gate |
-| Reading sections and notices                 | `src/components/GameGuide.tsx`                                 | Accurate game-owned rules and tool limitations                                          |
-| Room title, subtitle and guide action        | `src/features/room/components/RoomGameSummary.tsx`             | Public summary and navigation; visible action label is `玩法`                           |
-| Centered room details                        | `src/features/room/components/RoomDialog.tsx`                  | Title, scrollable details, close intent and fixed footer                                |
+| Surface                                      | Existing owner                                                                                       | Caller responsibility                                                                                                                                     |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Page frame, bounded scroll and fixed actions | `src/components/GameScreen.tsx`                                                                      | Header, content and submission intent; actions stay outside scrolling content                                                                             |
+| Schema-driven config screen                  | `src/features/room/config/` (`createGameConfigScreen`, `GameConfigForm`, `useGameConfigScreenState`) | Engine `GameConfigSchema`, route parser, lobby `readConfig`, update command, failure copy; optional `summary`, `fieldRenderers`, `Extra`, `useSubmitGate` |
+| Count / switch / radio controls              | `src/components/GameSettings.tsx` and `GameSettings.styles.ts`                                       | Values and intent callbacks; the form supplies them from the schema                                                                                       |
+| Reading sections and notices                 | `src/components/GameGuide.tsx`                                                                       | Accurate game-owned rules and tool limitations                                                                                                            |
+| Room title, subtitle and guide action        | `src/features/room/components/RoomGameSummary.tsx`                                                   | Public summary and navigation; visible action label is `玩法`                                                                                             |
+| Centered room details                        | `src/features/room/components/RoomDialog.tsx`                                                        | Title, scrollable details, close intent and fixed footer                                                                                                  |
 
 - Use the compact Werewolf settings hierarchy. Settings pages configure a game; long gameplay
   explanations belong in the guide. Preserve specialized editors such as Werewolf role selection.
-- `GameSettingsStepper` accepts `value`, `onChangeText`, `testID`, `onDecrement`, `onIncrement`
-  and `isDecrementDisabled`. It owns both editable and display-only count geometry. Do not
-  recreate its center with arbitrary children or copy its styles into game-owned inputs.
+- Session-based games do not write a config screen. They declare their lobby config once as an
+  engine `GameConfigSchema` (`packages/game-engine/src/platform/config/configSchema.ts`:
+  `count` / `toggle` / `choice` / `duration` / `fixed`, plus a cross-field `validate` hook) and
+  register it through `defineClientGameModule({ config: (define) => define({...}) })`. The same
+  schema backs `isValid<Game>Config`, the Worker zod boundary (`configSchemaToZod`) and the
+  client form, so a limit is declared exactly once. See
+  [game-config-schema-design.md](game-config-schema-design.md).
+- The shared screen renders `${displayName}设置`, a reset action, one widget per schema field with
+  its hint, inline validation under the offending field, and a footer summary plus
+  创建房间 / 保存设置. Out-of-range counts disable the stepper at the bounds and report typed
+  text inline; they do not alert. Fields marked `isRemembered` seed the next new room through
+  `SettingsService.getRememberedGameConfig` and persist on change.
+- Controls the schema cannot express plug in through `fieldRenderers` (e.g. the Undercover
+  category list filtered by the live word inventory) or an `Extra` block below the form (e.g.
+  the Avalon board preview); `useSubmitGate` blocks submission on asynchronous preconditions.
+  None of these may bypass schema validation.
+- `GameSettingsStepper` accepts `value`, `onChangeText`, `testID`, `onDecrement`, `onIncrement`,
+  `isDecrementDisabled` and `isIncrementDisabled`. `GameSettingsChoice` is the radio-pill group
+  for choice and duration fields; options are announced by their bare label.
+- Werewolf keeps its role-selection `ConfigScreen` and `BoardPickerScreen`; its rules step renders
+  `WEREWOLF_RULES_SCHEMA` through the same `GameConfigForm`.
 - Preserve each game's input capabilities and validation. Do not silently change limits or
   add fallback values to make a common control fit.
 - Provide a usable gameplay introduction: goals, basic flow, player/host responsibilities,
@@ -50,15 +69,16 @@ component owns the complete geometry, including the value area, not just its out
 
 ## Configuration Submission
 
-Demo, Avalon, DrawGuess, Story Relay and the shared new-game settings template use
-`src/features/room/controllers/useRoomConfigSubmission.ts` for create/edit submission.
+`useGameConfigScreenState` submits through
+`src/features/room/controllers/useRoomConfigSubmission.ts` for every schema-driven game.
 It composes the creation and command controllers, exposes their combined pending state,
 returns to the active room only after an accepted edit, and replaces the config route after
-successful creation. Creation failures keep the game-specific error label and shared error pipeline.
+successful creation. Creation failures keep the game-specific `creationLabel` and the shared
+error pipeline; Werewolf's rules step keeps its own `useGameRulesSubmission`.
 
-Games retain authoritative configuration initialization, field validation, authentication
-preconditions, creation payloads, typed update commands and command-failure presentation.
-The shared controller does not synthesize configs or change host-command dispatch options.
+Games retain the authoritative lobby read (`readConfig` returns null outside the lobby and the
+screen fails fast), typed update commands, creation payloads and command-failure copy. The
+shared layer does not synthesize configs or change host-command dispatch options.
 
 ## Room Controller Composition
 

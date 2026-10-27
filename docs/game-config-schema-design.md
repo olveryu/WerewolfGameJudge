@@ -1,6 +1,6 @@
 # 游戏配置 Schema 驱动设计
 
-> 状态：实施中。步 1（引擎 schema）已完成；决策记录见 §2，实施顺序见 §9。
+> 状态：已实施（PR #325，2026-10-27）。§1 记录改造前的现状供追溯；§4–§8 描述当前实现；决策记录见 §2。
 > 关联：[room-shell-contract.md](room-shell-contract.md) §Configuration、[multigame-platform-design.md](multigame-platform-design.md) §21.8 / §25。
 
 ## 1. 现状
@@ -244,180 +244,141 @@ export function configSchemaToZod<TConfig extends object>(
 
 7 个手写的 `<game>CreateConfigSchema` 替换为 `configSchemaToZod(<GAME>_CONFIG_SCHEMA)`。`<game>.config.update` 命令的 `config` 字段同样引用它。worker 侧的 `schemas.test.ts` 保留，断言生成的 zod 对边界内外输入的接受/拒绝结果与迁移前一致。
 
-## 6. Layer 2 — 客户端：`GameConfigForm` 与 `createGameConfigScreen`
+## 6. Layer 2 — 客户端：`src/features/room/config/`
 
-目录：`src/features/room/config/`。
+| 文件                            | 职责                                                                                                                                                                                                                                                                             |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GameConfigScreenDefinition.ts` | 游戏提供的契约：`schema`、`parseRouteParams`、`readConfig(state) → TConfig \| null`、`buildUpdateCommand`、`getFailureMessage`、`creationLabel`；可选 `buildCreateConfig`、`summary`、`fieldRenderers`、`Extra`、`useSubmitGate(config)`                                         |
+| `gameConfigFormModel.ts`        | 纯函数：`parseCountDraft`、`withFieldValue`、`readFieldValue`、`resolveConfigIssue`（草稿不可解析 → 字段级 issue，否则 `validateConfig`）、`toConfigRecord`、`describeDefaultSummary`                                                                                            |
+| `useGameConfigScreenState.ts`   | 状态编排：create 初始 = `schema.defaults` ⊕ `SettingsService.getRememberedGameConfig`；edit 初始 = `session.getSnapshot()` → 校验 roomCode → `readConfig`，null 即 `[FAIL-FAST]`；`setFieldValue` 对 `isRemembered` 字段写回偏好；提交走 `useRoomConfigSubmission`               |
+| `GameConfigForm.tsx`            | 纯渲染：按 `fields` 声明顺序，count → `GameSettingsStepper`（可输入，min/max 处禁用 +/−）、toggle → `GameSettingsSwitch`（`tone: 'warning'` 取 `colors.warning`，`confirmOnEnable` 走 `showConfirmAlert`）、choice / duration → `GameSettingsChoice`；issue 内联显示在对应字段下 |
+| `createGameConfigScreen.tsx`    | 组装 `ScreenHeader(${displayName}设置, 重置)` + `GameScreenContent(form + Extra)` + `GameScreenFooter(summary + 创建房间/保存设置)`；`GameConfigDefiner` 供 `defineClientGameModule` 注入 gameType / displayName                                                                 |
 
-### 6.1 `GameConfigForm`（纯渲染）
-
-```ts
-interface GameConfigFormProps<TConfig extends object> {
-  readonly schema: GameConfigSchema<TConfig>;
-  readonly value: TConfig;
-  readonly onChange: (next: TConfig) => void;
-  readonly issue: ConfigValidationIssue<TConfig> | null; // 内联显示在对应字段下
-  readonly fieldRenderers?: Partial<Record<keyof TConfig, ConfigFieldRenderer<TConfig>>>;
-  readonly testIDPrefix: string; // 见 §8
-}
-```
-
-字段 → 控件映射（全部复用现有组件）：
-
-| kind     | 控件                                                                                                 | 行为变化                                                                                                                              |
-| -------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| count    | `GameSettingsStepper`（可输入）                                                                      | 到达 min/max 时禁用对应按钮（`isDecrementDisabled` 已有，补 `isIncrementDisabled`）；手输越界显示内联错误并禁用提交，**不再弹 alert** |
-| toggle   | `GameSettingsSwitch`                                                                                 | `tone: 'warning'` → `accentColor: colors.warning`；`confirmOnEnable` → `showConfirmAlert`（沿用 `GameRulesScreen.handleToggle`）      |
-| choice   | 新增 `GameSettingsChoice`（分段，≤ 3 项）/ 复用 `GameSettingsDurationOptions` 的单选行样式（> 3 项） | 替代 avalon 两颗 `Button`、undercover 自写的 `BaseCenterModal` 列表                                                                   |
-| duration | `GameSettingsDurationOptions`                                                                        | 不变                                                                                                                                  |
-| fixed    | 不渲染                                                                                               |                                                                                                                                       |
-
-hint 文案：`count` 用 `describeCountRange(spec)` 生成，`spec.hint` 作为追加句。
-
-### 6.2 `createGameConfigScreen(definition)`
+游戏侧注册（[defineClientGameModule](../src/games/model/defineClientGameModule.ts)）：
 
 ```ts
-interface GameConfigScreenDefinition<TGameType, TState, TCommand, TConfig> {
-  readonly schema: GameConfigSchema<TConfig>;
-  readonly readConfig: (state: TState) => TConfig;                 // edit 模式从 snapshot 取
-  readonly buildUpdateCommand: (config: TConfig) => TCommand;      // 如 { type: 'undercover.config.update', config }
-  readonly buildCreateConfig?: (config: TConfig) => Record<string, unknown>;  // 默认 identity
-  readonly getFailureMessage: (result: RoomCommandDispatchOutcome<TState>) => string;
-  readonly summary?: (config: TConfig) => string;                  // footer，默认 `共 ${numberOfPlayers} 人`
-  readonly fieldRenderers?: ...;
-  readonly extra?: React.ComponentType<{ readonly config: TConfig }>;  // 表单下方插槽（阿瓦隆板子预览、你画我猜预计时长）
-  readonly isSubmitReady?: () => { readonly ready: boolean; readonly message?: string };  // 异步前置（词库 inventory）
-}
+config: (define) =>
+  define({
+    schema: UNDERCOVER_CONFIG_SCHEMA,
+    parseRouteParams: parseUndercoverConfigRouteParams,
+    readConfig: (state) => (state.phase === 'lobby' ? state.config : null),
+    buildUpdateCommand: (config) => ({ type: 'undercover.config.update', config }),
+    getFailureMessage: getUndercoverRoomCommandFailureMessage,
+    creationLabel: '创建谁是卧底房间',
+    summary: (config) => '平民 … · 卧底 … · 白板 …',
+    fieldRenderers: { category: UndercoverCategoryField },
+    useSubmitGate: useUndercoverConfigSubmitGate,
+  }),
 ```
 
-返回 `React.ComponentType<{ readonly session: RoomSessionClient<TState, TCommand> }>`，即现在 `defineClientGameModule.ConfigScreen` 的签名。`defineClientGameModule` 新增 `config` 字段，内部调用工厂；原 `ConfigScreen` 字段删除。
+`define` 回调让 `TConfig` 从 `schema` 推断，游戏不重复写类型参数。
 
-页面结构（对齐狼人杀）：
+### 6.1 各游戏的逃生口
 
-```
-ScreenHeader
-  title   = home.mode.displayName          ← 统一取自 GameHomeContribution，不再各写各的
-  onBack  = goBack-or-Home
-  right   = 重置 icon（trash-outline）：create → schema.defaults；edit → 重新读 snapshot
-GameScreenContent
-  <GameConfigForm ... />
-  <definition.extra config={config} />
-GameScreenFooter
-  summary(config)
-  Button primary lg：create → '创建房间'；edit → '保存设置'；disabled = issue !== null || !ready
-```
+| 游戏       | 机制                                                    | 内容                                                                         |
+| ---------- | ------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| drawguess  | `Extra`                                                 | `DrawGuessConfigEstimate`：每人轮数、总轮数、预计时长（固定时长常量派生）    |
+| storyrelay | `summary`                                               | `N 个故事 · 每人 N 棒`                                                       |
+| avalon     | `Extra`                                                 | `AvalonBoardPreview`：按人数的固定板子与任务人数；人数越界时不渲染           |
+| undercover | `fieldRenderers.category` + `useSubmitGate` + `summary` | 分类按词库 inventory 过滤为可选项；inventory 未就绪 / 所选分类无词时禁用提交 |
+| fibking    | `readConfig` 适配                                       | state 直接持有 `numberOfPlayers`，`readConfig` 组装 `{ numberOfPlayers }`    |
 
-### 6.3 `useGameConfigScreenState`
+### 6.2 记住上次配置
 
-统一的状态编排，取代 7 份 `readInitialConfig` + 提交代码：
+`SettingsService.getRememberedGameConfig(gameType, schema)` 对每个 `isRemembered` 字段返回已存且仍通过 `validateConfigFieldValue` 的值，否则返回 schema 默认值；`setRememberedGameConfigField(gameType, key, value)` 持久化到 `rememberedGameConfigs.<gameType>.<key>`。旧的顶层 `isSheriffElectionEnabled` / `witchCanSelfHeal` 在读取时并入 `rememberedGameConfigs.werewolf`。
 
-初始配置优先级（create）：`rememberedConfig(gameType)` 覆盖 `schema.defaults`。
-初始配置（edit）：`session.getSnapshot()` → 校验 `phase === 'ready'` && `roomCode` 匹配 && `state.phase === 'lobby'`，否则 `throw new Error('[FAIL-FAST] ...')`（沿用现有行为）→ `definition.readConfig(state)`。
+### 6.3 行为变化（相对改造前）
 
-提交：`useRoomConfigSubmission`（已有），`createRequest = () => ({ expectedHostUserId: user.id, gameType, config: buildCreateConfig(config) })`，`updateConfig = () => session.dispatch(buildUpdateCommand(config), { controlledSeat: null, label: '保存设置' })`。
-
-路由解析：`createStandardConfigRouteParser({ gameType, displayName })`（已有）。每游戏现有的 `parse<Game>ConfigRouteParams` 保留在各自 `navigation/` 下，由工厂接收。
-
-### 6.4 记住上次配置
-
-`SettingsService` 泛化：
-
-```ts
-getRememberedGameConfig<TConfig>(gameType: GameType, schema: GameConfigSchema<TConfig>): Partial<TConfig>;
-setRememberedGameConfigField<TConfig, K extends keyof TConfig>(gameType, key: K, value: TConfig[K]): Promise<void>;
-```
-
-只持久化 `isRemembered: true` 的字段，存储键 `rememberedConfig.<gameType>.<key>`。现有 `getRememberedWerewolfRules` / `setRememberedWerewolfRule` 改为该接口的狼人杀特化并做一次存储键迁移（旧键 → 新键，读到旧键即搬迁）。写失败沿用 `GameRulesScreen.applyRule` 的回滚 + `handleError(isExpectedStorageError)`。
-
-### 6.5 逃生口：自定义字段渲染器
-
-```ts
-type ConfigFieldRenderer<TConfig> = React.ComponentType<{
-  readonly field: ConfigFieldSpec<TConfig>;
-  readonly value: TConfig[keyof TConfig];
-  readonly onChange: (value: TConfig[keyof TConfig]) => void;
-  readonly issue: ConfigValidationIssue<TConfig> | null;
-}>;
-```
-
-谁是卧底 `category`：`UndercoverCategoryField` 内部 `useQuery(undercoverInventoryOptions)`，用 schema 的 `options` 做全集、inventory 做可用集；inventory 未就绪或为空时通过 `isSubmitReady` 阻止提交（文案沿用 `'分类尚未就绪'` / `'暂无可用词语'`）。渲染器用 `GameSettingsChoice` 的单选行样式，不再自写 modal。
+- 越界反馈：stepper 到边界即禁用，手输越界在字段下显示 `玩家人数需为 4 至 12 的整数` 并禁用提交；不再弹 alert。
+- 单选项的无障碍名统一为选项本身（如 `不限时`），不再带分组标题前缀。
+- 谁是卧底的分类选择从居中 modal 改为内联 radio pill。
+- 所有游戏 header 右上角新增「重置配置」。
 
 ## 7. Layer 3 — 狼人杀
 
-- `GameRulesScreen`：删除 `RULES` 常量与手写 map，改为 `<GameConfigForm schema={WEREWOLF_RULES_SCHEMA} value={rules} onChange={setRules} ... />`。`applyRule` 的记忆写入改走 §6.4 接口；`isRememberedWerewolfRuleKey` 由 schema `isRemembered` 取代。
-- `useGameRulesSubmission`、`ConfigScreen`、`BoardPickerScreen`、`WerewolfConfigFlowScreen` 不动。
-- `RootStackParamList['GameConfig']` 与 `WerewolfConfigStackParamList` 不动。
+- 引擎 [Template.ts](../packages/game-engine/src/games/werewolf/domain/models/Template.ts) 导出 `WerewolfRules = Required<GameRuleOverrides>` 与 `WEREWOLF_RULES_SCHEMA`（三个 toggle，警长 / 女巫 `isRemembered`，黑死病 `tone: 'warning'` + `confirmOnEnable`）。
+- [GameRulesScreen](../src/games/werewolf/screens/GameRulesScreen/GameRulesScreen.tsx) 用 `GameConfigForm` 渲染该 schema，但状态仍是 `GameRuleOverrides`（部分对象）：只有用户设置过的 key 作为 override 提交，缺省 key 保持引擎默认；表单看到的是 `toWerewolfRules(rules)` 解析后的完整视图。
+- `useConfigScreenState` 新房间初始规则 = `getRememberedGameConfig('werewolf', WEREWOLF_RULES_SCHEMA)`。
+- 角色选择 `ConfigScreen`、`BoardPickerScreen`、`WerewolfConfigFlowScreen`、`useGameRulesSubmission` 不变。
 
 ## 8. testID 规范
 
-新增到 `src/testids.ts`：
+[src/testids.ts](../src/testids.ts)：
 
 ```ts
-gameConfigScreenRoot: (gameType: string) => `${gameType}-config-screen-root`,
-gameConfigField: (gameType: string, key: string) => `${gameType}-config-field-${key}`,
-gameConfigFieldOption: (gameType: string, key: string, value: string) => `${gameType}-config-field-${key}-${value}`,
-gameConfigReset: (gameType: string) => `${gameType}-config-reset`,
-gameConfigSubmit: (gameType: string) => `${gameType}-config-submit`,
+gameConfigScreenRoot: (gameType) => `${gameType}-config`,                       // GameScreenContent
+gameConfigField: (gameType, key) => `${gameType}-config-field-${key}`,          // 控件 / 自定义渲染器根
+gameConfigFieldOption: (gameType, key, value) => `${gameType}-config-field-${key}-${value}`, // null → 'unlimited'
+gameConfigFieldIssue: (gameType, key) => `${gameType}-config-issue-${key}`,
+gameConfigReset: (gameType) => `${gameType}-config-reset`,
+gameConfigSubmit: (gameType) => `${gameType}-config-submit`,
+gameRuleSwitch: (rule) => `werewolf-config-field-${rule}`,                       // 别名，狼人杀 rules 页
 ```
 
-迁移现有：`fibConfigSubmitButton`、`pictionaryConfigPlayerCount`、`pictionaryConfigDurationOption`、`pictionaryConfigSubmitButton`、裸字符串 `'undercover-player-count'`。狼人杀 `gameRuleSwitch(key)` 保留别名指向 `gameConfigField('werewolf', key)`，E2E spec 同步改。
+`TESTIDS.configScreenRoot`（`config-screen-root`）仍在 `GameScreen` 根上，与狼人杀 ConfigScreen 一致。
 
 ## 9. 迁移计划
 
 每步独立可合并，每步结束跑 `pnpm exec tsc --noEmit` + 对应 workspace 测试；最后一步跑 `pnpm run quality` + `pnpm run e2e`。
 
-| 步   | 内容                                                                                                                                                             | DoD                                                                                 |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| 1 ✅ | 引擎 `platform/config/` 类型 + `validateConfig` + 单测；7 游戏导出 `<GAME>_CONFIG_SCHEMA`，`isValid<Game>Config` 改为委托；`UNDERCOVER_CATEGORY_NAMES` 搬入引擎  | 引擎 168 个测试文件全绿；`fields` 映射类型在编译期保证覆盖 `keyof TConfig`          |
-| 2    | worker `configSchemaToZod`，替换 7 个 `<game>CreateConfigSchema`                                                                                                 | worker `schemas.test.ts` 全绿；新增边界内外对照测试                                 |
-| 3    | 客户端 `GameConfigForm` + `GameSettingsChoice` + `useGameConfigScreenState` + `createGameConfigScreen`；demo 切换                                                | demo 的 config E2E 通过；Board UI contract test 覆盖 create/edit/reset/内联错误四态 |
-| 4    | pictionary / fibking / storyrelay / drawguess 切换（纯字段 + `summary` / `extra`）                                                                               | 各游戏 config E2E 通过；旧 ConfigScreen 文件删除                                    |
-| 5    | avalon（`choice` + `extra: AvalonBoardPreview`）、undercover（`fieldRenderers.category` + `isSubmitReady`）                                                      | 同上                                                                                |
-| 6    | `SettingsService` 泛化 + 旧键迁移；狼人杀 `GameRulesScreen` 切 `GameConfigForm`                                                                                  | 狼人杀 config/rules E2E 通过；`rulesHandoff.contract.test.tsx` 通过                 |
-| 7    | 新游戏生成器模板 `__GAME_PASCAL__ConfigScreen.tsx.tmpl` 删除，`module.ts.tmpl` 改为 `config: {...}`；`scripts/new-game.test.mjs`、`.agents/skills/new-game` 同步 | `pnpm run sync:agents:check` 通过；生成一个临时游戏跑通 config E2E 后删除           |
-| 8    | 文档：`room-shell-contract.md` §Configuration 改写为 schema 契约；`multigame-platform-design.md` §25 接入清单更新；本文件状态改为"已实施"                        | `docs/README.md` 索引一致                                                           |
+| 步   | 内容                                                                                                                                                                                   | DoD                                                                                 |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 1 ✅ | 引擎 `platform/config/` 类型 + `validateConfig` + 单测；7 游戏导出 `<GAME>_CONFIG_SCHEMA`，`isValid<Game>Config` 改为委托；`UNDERCOVER_CATEGORY_NAMES` 搬入引擎                        | 引擎 168 个测试文件全绿；`fields` 映射类型在编译期保证覆盖 `keyof TConfig`          |
+| 2 ✅ | worker `configSchemaToZod`，替换 7 个 `<game>CreateConfigSchema`                                                                                                                       | worker `schemas.test.ts` 全绿；新增边界内外对照测试                                 |
+| 3 ✅ | 客户端 `GameConfigForm` + `GameSettingsChoice` + `useGameConfigScreenState` + `createGameConfigScreen`；demo 切换                                                                      | demo 的 config E2E 通过；Board UI contract test 覆盖 create/edit/reset/内联错误四态 |
+| 4 ✅ | pictionary / fibking / storyrelay / drawguess 切换（纯字段 + `summary` / `extra`）                                                                                                     | 各游戏 config E2E 通过；旧 ConfigScreen 文件删除                                    |
+| 5 ✅ | avalon（`choice` + `extra: AvalonBoardPreview`）、undercover（`fieldRenderers.category` + `useSubmitGate`）                                                                            | 同上                                                                                |
+| 6 ✅ | `SettingsService` 泛化 + 旧键迁移；狼人杀 `GameRulesScreen` 切 `GameConfigForm`                                                                                                        | 狼人杀 config/rules E2E 通过；`rulesHandoff.contract.test.tsx` 通过                 |
+| 7 ✅ | 新游戏生成器模板 `__GAME_PASCAL__ConfigScreen.tsx.tmpl` 删除，`module.ts.tmpl` 改为 `config: (define) => define({...})`；`scripts/new-game.test.mjs`、`.agents/skills/new-game` 同步   | `pnpm run sync:agents:check` 通过；生成一个临时游戏跑通 config E2E 后删除           |
+| 8 ✅ | 文档：`room-shell-contract.md` §Configuration 改写为 schema 契约；`multigame-platform-design.md` §21.8 / §25 / §28.3 更新；`agents/path-rules/screens.md` 更新；本文件状态改为"已实施" | `docs/README.md` 索引一致；`pnpm run sync:agents:check` 通过                        |
 
-## 10. 风险与应对
+## 10. 风险与处置结果
 
-| 风险                                                          | 应对                                                                                                                                                                                                                                            |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 越界反馈从 alert 改为禁用 + 内联，是可见行为变化              | 列入步 3 验收截图；E2E 中依赖 alert 文案的断言改为断言 submit disabled + 内联文案                                                                                                                                                               |
-| `AvalonPlayerCount` 等字面量联合与 `count` 的 `number` 不兼容 | `count` 的 key 约束为 `TConfig[K] extends number`；`onChange` 处由 `validateConfig` 保证值 ∈ [min,max]，类型层用 `as AvalonPlayerCount` 以外的方式：在 avalon schema 上提供 `coerce: (n: number) => AvalonPlayerCount` 的窄化函数，失败即 issue |
-| `RoomCreationRequest.config` 仍是 `Record<string, unknown>`   | 本设计不改；`buildCreateConfig` 默认 identity，类型收紧留作后续                                                                                                                                                                                 |
-| fibking state 不持有 `config` 对象                            | 引擎补 `isValidFibConfig`；客户端 `readConfig: (state) => ({ numberOfPlayers: state.numberOfPlayers })`                                                                                                                                         |
-| 记忆存储键迁移                                                | 读旧键 → 写新键 → 删旧键，单测覆盖三种起始状态                                                                                                                                                                                                  |
-| 生成器模板与 skill 漂移                                       | 步 7 单独一步，`sync:agents:check` 为门禁                                                                                                                                                                                                       |
+| 风险                                                          | 处置                                                                                                                                                              |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 越界反馈从 alert 改为禁用 + 内联，是可见行为变化              | 已落地；`FibConfigPage.expectIncrementDisabledAtMaximum` 替代原 alert 断言；demo contract test 覆盖 inline issue + submit disabled                                |
+| `AvalonPlayerCount` 等字面量联合与 `count` 的 `number` 不兼容 | `ConfigFieldSpec<TValue>` 用 `[TValue] extends [number]` 接受字面量联合；UI 中间态可能持有越界 number，`AvalonBoardPreview` 用 `isAvalonPlayerCount` 守卫后再索引 |
+| `RoomCreationRequest.config` 仍是 `Record<string, unknown>`   | 未改；`toConfigRecord(config)` 为默认创建载荷                                                                                                                     |
+| fibking state 不持有 `config` 对象                            | 引擎补 `isValidFibConfig` / `DEFAULT_FIB_CONFIG`；客户端 `readConfig` 组装 `{ numberOfPlayers }`                                                                  |
+| 记忆存储键迁移                                                | 读取时将顶层旧键并入 `rememberedGameConfigs.werewolf`，嵌套值优先；`SettingsService.test` 覆盖无存储 / 仅旧键 / 新旧并存三种起始状态                              |
+| 生成器模板与 demo 漂移                                        | `scripts/new-game.test.mjs` 第 8 条逐字节对比生成的 demo 与仓库 demo，模板在步 2 / 步 3 同步                                                                      |
+| 引擎禁止 `as`                                                 | `isConfig` 用类型谓词链（`isRecord` → `hasValidFields`）完成 unknown → `TConfig` 收窄，架构契约测试通过                                                           |
 
-## 11. 文件清单
+## 11. 文件清单（实际落地）
 
 ### 新增
 
-- `packages/game-engine/src/platform/config/configSchema.ts`、`validateConfig.ts`、`__tests__/`
-- `packages/api-worker/src/platform/room/configSchemaZod.ts` + 测试
-- `src/features/room/config/GameConfigForm.tsx`、`useGameConfigScreenState.ts`、`createGameConfigScreen.tsx`、`ConfigFieldRenderer.ts`、`__tests__/`
-- `src/components/GameSettingsChoice.tsx`
+- `packages/game-engine/src/platform/config/configSchema.ts` + `__tests__/configSchema.test.ts`
+- `packages/api-worker/src/platform/room/configSchemaZod.ts` + `__tests__/configSchemaZod.test.ts`
+- `src/features/room/config/{GameConfigScreenDefinition,gameConfigFormModel,useGameConfigScreenState}.ts`、`{GameConfigForm,createGameConfigScreen}.tsx`、`__tests__/gameConfigFormModel.test.ts`
+- `src/games/demo/screens/__tests__/demoConfigScreen.contract.test.tsx`
+- `src/games/drawguess/screens/DrawGuessConfigEstimate.tsx`
+- `src/games/avalon/screens/AvalonBoardPreview.tsx`
 - `src/games/undercover/screens/UndercoverCategoryField.tsx`
-- `src/games/avalon/screens/AvalonBoardPreview.tsx`（从现有 ConfigScreen 拆出）
 
 ### 修改
 
-- 7 个 `packages/game-engine/src/games/<game>/state/types.ts|normalize.ts` + `public.ts`
+- 7 个 `packages/game-engine/src/games/<game>/state/types.ts`（+ undercover `normalize.ts`、fibking `engine.ts`）与 `public.ts`；`werewolf/domain/models/Template.ts`
+- `packages/game-engine/package.json` exports、`platform/__tests__/architecture.contract.test.ts`
 - 7 个 `packages/api-worker/src/games/<game>/schemas.ts`
-- `src/games/model/defineClientGameModule.ts`（`ConfigScreen` → `config`）
+- `src/games/model/defineClientGameModule.ts`（`ConfigScreen` → `config: (define) => …`）
 - 7 个 `src/games/<game>/module.ts`
-- `src/games/werewolf/screens/GameRulesScreen/GameRulesScreen.tsx`
+- `src/games/werewolf/screens/GameRulesScreen/GameRulesScreen.tsx`、`ConfigScreen/useConfigScreenState.ts`
 - `src/features/settings/services/SettingsService.ts`
-- `src/components/GameSettings.tsx`（`isIncrementDisabled`）
-- `src/testids.ts`、相关 `e2e/**`
-- `scripts/lib/new-game/templates/**`、`scripts/new-game.test.mjs`、`.agents/skills/new-game/**`
-- `docs/room-shell-contract.md`、`docs/multigame-platform-design.md`、`docs/README.md`
+- `src/components/GameSettings.tsx`（`isIncrementDisabled`、`GameSettingsChoice`、`formatDurationOption`）、`GameSettings.styles.ts`（`issue`）
+- `src/testids.ts`、`jest.setup.ts`、`e2e/pages/{Fib,Pictionary}ConfigPage.ts`、`e2e/specs/{avalon,undercover,drawguess,storyrelay,fibking,fibking-responsive,werewolf-config,room-narration}.spec.ts`
+- `scripts/lib/new-game/templates/**`（engine `types.ts` / `public.ts`、worker `schemas.ts`、client `module.ts`）、`scripts/new-game.test.mjs`、`.agents/skills/new-game/SKILL.md`
+- `docs/room-shell-contract.md`、`docs/multigame-platform-design.md`、`agents/path-rules/screens.md`、`docs/README.md`
 
 ### 删除
 
 - `src/games/{avalon,demo,drawguess,undercover,storyrelay}/screens/*ConfigScreen.tsx`
 - `src/games/fibking/screens/ConfigScreen/`、`src/games/pictionary/screens/ConfigScreen/`
+- `src/games/{fibking,pictionary}/navigation/types.ts`（无引用）
+- `GameSettingsDurationOptions`、`isAvalonVoteMode`、`isValidPictionaryPlayerCount`
 - `scripts/lib/new-game/templates/shared/src/games/__GAME_ID__/screens/__GAME_PASCAL__ConfigScreen.tsx.tmpl`
 
-## 12. 开放问题
+## 12. 开放问题（已关闭）
 
-1. `confirmOnEnable` 的中文文案放在引擎 schema 里（与 `ROLE_SPECS.displayName` 同策略）还是客户端覆盖表？本设计选引擎，与现有角色文案归属一致。
-2. `choice` 分段控件的阈值（≤ 3 项用分段、> 3 项用单选行）是否需要显式 `presentation` 字段而不是按数量推断？实施步 3 时按阿瓦隆（2 项）与卧底（≥ 6 项）两个实例验证后定。
+1. `confirmOnEnable` 等中文文案归属：放在引擎 schema，与 `ROLE_SPECS.displayName` 同策略。已按此实施。
+2. `choice` 的呈现：统一用 `GameSettingsChoice` radio pill（阿瓦隆 2 项、卧底 11 项均可换行排布），不再区分分段 / 单选行，不加 `presentation` 字段。

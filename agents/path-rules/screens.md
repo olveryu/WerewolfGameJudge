@@ -12,7 +12,8 @@ applyTo: 'src/screens/**,src/components/**,src/games/*/screens/**,src/games/*/co
 - Werewolf is the primary UI reference. Align other games with its established config controls, room hierarchy, typography, selection states and dialogs; do not redesign Werewolf merely to introduce shared components.
 - A request to unify config and room pages includes their controls, game-owned panels, dialogs, drawers, loading, empty, error and submission states, not just page frames or navigation entries.
 - Shared controls own their complete visual geometry. Callers supply values and intent callbacks; do not leave core count/selection rendering to arbitrary children when identical appearance is required. Preserve existing input capabilities and game validation.
-- Reuse `GameSettingsStepper`, `GameScreen`, `RoomShell`, `RoomGameSummary` and `RoomDialog` where their contracts fit. Inspect current implementations before use; sharing a component or passing type/unit checks does not establish visual equivalence.
+- Lobby config for session-based games is declared, not drawn: put fields in the engine `<GAME>_CONFIG_SCHEMA` and register `config: (define) => define({...})` in the game module; `src/features/room/config/` renders it. Use `fieldRenderers` / `Extra` / `useSubmitGate` only for controls the schema kinds cannot express. Do not add a per-game config screen.
+- Reuse `GameSettingsStepper`, `GameSettingsSwitch`, `GameSettingsChoice`, `GameScreen`, `RoomShell`, `RoomGameSummary` and `RoomDialog` where their contracts fit. Inspect current implementations before use; sharing a component or passing type/unit checks does not establish visual equivalence.
 - Prefer focused tests/type/lint checks during iteration. Consolidate necessary browser acceptance across representative games, states and mobile/desktop sizes; do not repeat screenshots after every edit. Report unverified visual behavior explicitly.
 
 ## Three-Tier Separation (RoomScreen)
