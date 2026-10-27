@@ -14,12 +14,14 @@ test.use({ actionTimeout: 15_000 });
 
 async function createDrawGuessRoom(page: Page): Promise<RoomPage> {
   await new HomePage(page).clickCreateRoom('drawguess');
-  await expect(page.getByTestId('drawguess-config')).toBeVisible();
+  await expect(page.getByTestId(TESTIDS.gameConfigScreenRoot('drawguess'))).toBeVisible();
   // Default 6 players; shrink to 4 for a compact room.
   await page.getByRole('button', { name: '减少人数' }).click();
   await page.getByRole('button', { name: '减少人数' }).click();
-  await expect(page.getByTestId('drawguess-config')).toContainText('共 8 轮');
-  await page.getByTestId('drawguess-config-submit').click();
+  await expect(page.getByTestId(TESTIDS.gameConfigScreenRoot('drawguess'))).toContainText(
+    '共 8 轮',
+  );
+  await page.getByTestId(TESTIDS.gameConfigSubmit('drawguess')).click();
   const room = new RoomPage(page);
   await room.waitForReady();
   return room;
