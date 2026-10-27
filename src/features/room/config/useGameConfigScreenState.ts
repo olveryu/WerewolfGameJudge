@@ -87,7 +87,7 @@ export function useGameConfigScreenState<
     readInitialConfig(gameType, definition, session, params),
   );
   const [countDrafts, setCountDrafts] = useState<CountDrafts>({});
-  const gate = definition.useSubmitGate?.();
+  const gate = definition.useSubmitGate?.(config);
 
   const issue = useMemo(
     () => resolveConfigIssue(schema, config, countDrafts),

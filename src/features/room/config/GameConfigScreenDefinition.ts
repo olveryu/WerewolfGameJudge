@@ -60,6 +60,6 @@ export interface GameConfigScreenDefinition<
   readonly fieldRenderers?: { readonly [K in keyof TConfig]?: ConfigFieldRenderer };
   /** Rendered below the form inside the scrolling content. */
   readonly Extra?: React.ComponentType<{ readonly config: TConfig }>;
-  /** Hook evaluated on every render; must follow the rules of hooks. */
-  readonly useSubmitGate?: () => ConfigSubmitGate;
+  /** Hook evaluated on every render with the current config; must follow the rules of hooks. */
+  readonly useSubmitGate?: (config: TConfig) => ConfigSubmitGate;
 }

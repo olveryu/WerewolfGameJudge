@@ -3,6 +3,7 @@
  */
 
 import {
+  AVALON_CONFIG_SCHEMA,
   AVALON_STATE_CODEC,
   type AvalonPublicCommand,
   type AvalonState,
@@ -13,9 +14,13 @@ import { defineClientGameModule } from '@/games/model/defineClientGameModule';
 
 import { AvalonAudioPlayer } from './audio/AvalonAudioPlayer';
 import { avalonHomeContribution } from './home';
-import { avalonGameNavigation } from './navigation/avalonGameNavigation';
+import {
+  avalonGameNavigation,
+  parseAvalonConfigRouteParams,
+} from './navigation/avalonGameNavigation';
+import { getAvalonRoomCommandFailureMessage } from './room/avalonRoomCommandFailureMessage';
 import { AvalonRoomScreen } from './room/AvalonRoomScreen';
-import { AvalonConfigScreen } from './screens/AvalonConfigScreen';
+import { AvalonBoardPreview } from './screens/AvalonBoardPreview';
 import { AvalonGuideScreen } from './screens/AvalonGuideScreen';
 
 export const createAvalonUiModule = defineClientGameModule<
@@ -29,7 +34,16 @@ export const createAvalonUiModule = defineClientGameModule<
   home: avalonHomeContribution,
   navigation: avalonGameNavigation,
   RoomScreen: AvalonRoomScreen,
-  ConfigScreen: AvalonConfigScreen,
+  config: (define) =>
+    define({
+      schema: AVALON_CONFIG_SCHEMA,
+      parseRouteParams: parseAvalonConfigRouteParams,
+      readConfig: (state) => (state.phase.kind === 'lobby' ? state.config : null),
+      buildUpdateCommand: (config) => ({ type: 'avalon.config.update', config }),
+      getFailureMessage: getAvalonRoomCommandFailureMessage,
+      creationLabel: '创建阿瓦隆房间',
+      Extra: AvalonBoardPreview,
+    }),
   GuideScreen: AvalonGuideScreen,
   isUserSeated: (state, userId) => getAvalonUserSeat(state, userId) !== null,
   canSwitchAccount: (state) => state.phase.kind === 'lobby',

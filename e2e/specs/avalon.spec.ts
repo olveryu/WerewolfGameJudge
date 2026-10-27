@@ -55,7 +55,7 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
     await test.step('Create a bot room and open existing music settings', async () => {
       await hostPage.setViewportSize(VIEWPORT);
       await new HomePage(hostPage).clickCreateRoom('avalon');
-      await hostPage.getByTestId('avalon-config-submit').click();
+      await hostPage.getByTestId(TESTIDS.gameConfigSubmit('avalon')).click();
       await hostRoom.waitForReady('host');
       await new RoomPage(spectatorPage).joinViaCode(await hostRoom.getRoomCode());
       await expect(spectatorPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveCount(0);
@@ -685,22 +685,27 @@ test.describe('Avalon full game', () => {
 
       await test.step('房主建房并配置 10 人局（公投）', async () => {
         await new HomePage(hostPage).clickCreateRoom('avalon');
-        await expect(hostPage.getByTestId('avalon-config')).toBeVisible({ timeout: 15_000 });
+        await expect(hostPage.getByTestId(TESTIDS.gameConfigScreenRoot('avalon'))).toBeVisible({
+          timeout: 15_000,
+        });
         // 人数与否决上限共用同一个步进器按钮名，用人数 testID 的父级作用域消歧。
-        const count = hostPage.getByTestId('avalon-player-count');
-        await expect(count).toHaveText('6');
+        const countTestId = TESTIDS.gameConfigField('avalon', 'numberOfPlayers');
+        const count = hostPage.getByTestId(countTestId);
+        await expect(count).toHaveValue('6');
         const countControls = hostPage.locator(
-          'xpath=//*[@data-testid="avalon-player-count"]/ancestor::div[1]',
+          `xpath=//*[@data-testid="${countTestId}"]/ancestor::div[1]`,
         );
         for (let expected = 7; expected <= 10; expected += 1) {
           await countControls.getByRole('button', { name: '增加人数' }).click();
-          await expect(count).toHaveText(String(expected));
+          await expect(count).toHaveValue(String(expected));
         }
-        await hostPage.getByTestId('avalon-vote-mode-public').click();
+        await hostPage
+          .getByTestId(TESTIDS.gameConfigFieldOption('avalon', 'voteMode', 'public'))
+          .click();
         await expect(hostPage.getByText(/公投：投票结算后同时亮票/)).toBeVisible();
         await expect(hostPage.getByText('本局板子（10 人）')).toBeVisible();
         await expect(hostPage.getByText(/任务人数：3-4-4-5-5/)).toBeVisible();
-        await hostPage.getByTestId('avalon-config-submit').click();
+        await hostPage.getByTestId(TESTIDS.gameConfigSubmit('avalon')).click();
         await rooms[0]!.waitForReady('host');
       });
 

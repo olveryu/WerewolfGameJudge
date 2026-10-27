@@ -74,28 +74,16 @@ interface ClientGameModuleDefinitionBase<
   readonly canSwitchAccount: (state: TState) => boolean;
 }
 
-/**
- * Lobby configuration surface. `config` declares the schema-driven screen
- * (src/features/room/config); `ConfigScreen` is the legacy hand-written screen
- * kept only until every game has moved onto the schema.
- */
-type ClientGameModuleConfigDefinition<
+/** Lobby configuration: the game declares its schema-driven screen through the definer. */
+interface ClientGameModuleConfigDefinition<
   TGameType extends GameType,
   TState extends BaseGameState<TGameType>,
   TCommand extends object,
-> =
-  | {
-      readonly config: (
-        define: GameConfigDefiner<TGameType, TState, TCommand>,
-      ) => React.ComponentType<{ readonly session: RoomSessionClient<TState, TCommand> }>;
-      readonly ConfigScreen?: undefined;
-    }
-  | {
-      readonly config?: undefined;
-      readonly ConfigScreen: React.ComponentType<{
-        readonly session: RoomSessionClient<TState, TCommand>;
-      }>;
-    };
+> {
+  readonly config: (
+    define: GameConfigDefiner<TGameType, TState, TCommand>,
+  ) => React.ComponentType<{ readonly session: RoomSessionClient<TState, TCommand> }>;
+}
 
 export type ClientGameModuleDefinition<
   TGameType extends GameType,
@@ -156,12 +144,9 @@ function buildClientGameModule<
       canSwitchAccount: definition.canSwitchAccount,
     });
 
-    const ConfigScreen =
-      definition.config === undefined
-        ? definition.ConfigScreen
-        : definition.config(
-            createGameConfigDefiner(definition.gameType, definition.home.mode.displayName),
-          );
+    const ConfigScreen = definition.config(
+      createGameConfigDefiner(definition.gameType, definition.home.mode.displayName),
+    );
     function BoundConfigScreen() {
       return createElement(ConfigScreen, { session });
     }

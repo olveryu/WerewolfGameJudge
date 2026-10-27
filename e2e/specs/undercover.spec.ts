@@ -22,16 +22,17 @@ for (const viewport of [
     const allPages = [hostPage, ...joinerPages];
     try {
       await new HomePage(hostPage).clickCreateRoom('undercover');
-      await hostPage.getByTestId('undercover-category').click();
+      // 分类来自线上词库 inventory：e2e 词库只有部分分类，schema 全集里的其余分类不可选。
       await expect(hostPage.getByRole('radio', { name: '吃喝美食', exact: true })).toBeVisible();
       await expect(hostPage.getByRole('radio', { name: '自然世界', exact: true })).toHaveCount(0);
-      await hostPage.getByRole('button', { name: '关闭', exact: true }).click();
-      await expect(hostPage.getByRole('button', { name: '关闭', exact: true })).toHaveCount(0);
-      await hostPage.getByTestId('undercover-player-count').fill('6');
-      await expect(hostPage.getByTestId('undercover-player-count')).toHaveValue('6');
-      await hostPage.getByRole('switch', { name: '启用白板' }).click();
+      const playerCount = hostPage.getByTestId(
+        TESTIDS.gameConfigField('undercover', 'numberOfPlayers'),
+      );
+      await playerCount.fill('6');
+      await expect(playerCount).toHaveValue('6');
+      await hostPage.getByRole('switch', { name: '白板' }).click();
       await expect(hostPage.getByRole('switch', { name: '测试模式' })).toHaveCount(0);
-      await hostPage.getByTestId('undercover-config-submit').click();
+      await hostPage.getByTestId(TESTIDS.gameConfigSubmit('undercover')).click();
       await hostRoom.waitForReady('host');
       await expect(hostPage.getByRole('button', { name: '查看谁是卧底玩法说明' })).toBeInViewport();
       await hostPage.screenshot({

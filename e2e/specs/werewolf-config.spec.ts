@@ -82,7 +82,7 @@ for (const game of [
     title: '你画我猜接龙设置',
     submit: TESTIDS.gameConfigSubmit('pictionary'),
   },
-  { gameType: 'undercover', title: '谁是卧底设置', submit: 'undercover-config-submit' },
+  { gameType: 'undercover', title: '谁是卧底设置', submit: TESTIDS.gameConfigSubmit('undercover') },
 ] as const) {
   test(`${game.gameType} config keeps its primary action visible while content scrolls`, async ({
     app: { page },
