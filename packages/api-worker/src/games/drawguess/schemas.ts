@@ -8,28 +8,17 @@ import type {
   DrawGuessWordChoice,
 } from '@game-judge/game-engine/games/drawguess/public';
 import {
-  DRAWGUESS_DRAWING_DURATION_SECONDS,
-  DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS,
-  DRAWGUESS_MAX_PLAYERS,
-  DRAWGUESS_MIN_PLAYERS,
-  DRAWGUESS_ROUND_END_SECONDS,
-  DRAWGUESS_ROUNDS_PER_DRAWER,
-  DRAWGUESS_WORD_SELECT_SECONDS,
+  DRAWGUESS_CONFIG_SCHEMA,
   isValidGuessText,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { z } from 'zod';
 
 import { definePublicCommandOptions } from '../../platform/room/commandOptions';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
+import { configSchemaToZod } from '../../platform/room/configSchemaZod';
 
-const drawGuessConfigSchema = z.strictObject({
-  numberOfPlayers: z.int().min(DRAWGUESS_MIN_PLAYERS).max(DRAWGUESS_MAX_PLAYERS),
-  drawingDurationSeconds: z.literal(DRAWGUESS_DRAWING_DURATION_SECONDS),
-  roundsPerDrawer: z.literal(DRAWGUESS_ROUNDS_PER_DRAWER),
-  wordSelectSeconds: z.literal(DRAWGUESS_WORD_SELECT_SECONDS),
-  roundEndSeconds: z.literal(DRAWGUESS_ROUND_END_SECONDS),
-  hintRevealIntervalSeconds: z.literal(DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS),
-}) satisfies z.ZodType<DrawGuessConfig>;
+const drawGuessConfigSchema: z.ZodType<DrawGuessConfig> =
+  configSchemaToZod(DRAWGUESS_CONFIG_SCHEMA);
 
 export const drawGuessCreateConfigSchema: z.ZodType<DrawGuessConfig> = drawGuessConfigSchema;
 

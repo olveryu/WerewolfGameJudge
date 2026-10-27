@@ -7,29 +7,20 @@ import type {
 } from '@game-judge/game-engine/games/pictionary/public';
 import {
   isValidPictionaryText,
-  PICTIONARY_DRAWING_DURATIONS,
+  PICTIONARY_CONFIG_SCHEMA,
   PICTIONARY_DRAWING_HEIGHT,
   PICTIONARY_DRAWING_MAX_BYTES,
   PICTIONARY_DRAWING_WIDTH,
-  PICTIONARY_GALLERY_ITEM_DURATIONS,
-  PICTIONARY_GUESS_DURATIONS,
-  PICTIONARY_MAX_PLAYERS,
-  PICTIONARY_MIN_PLAYERS,
-  PICTIONARY_TRANSITION_DURATIONS,
 } from '@game-judge/game-engine/games/pictionary/public';
 import { z } from 'zod';
 
 import { gameCompletionPayloadSchema } from '../../features/account/settleGameRewards';
 import { definePublicCommandOptions } from '../../platform/room/commandOptions';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
+import { configSchemaToZod } from '../../platform/room/configSchemaZod';
 
-const pictionaryConfigSchema = z.strictObject({
-  numberOfPlayers: z.int().min(PICTIONARY_MIN_PLAYERS).max(PICTIONARY_MAX_PLAYERS),
-  drawingDurationSeconds: z.literal(PICTIONARY_DRAWING_DURATIONS),
-  guessDurationSeconds: z.literal(PICTIONARY_GUESS_DURATIONS),
-  transitionDurationSeconds: z.literal(PICTIONARY_TRANSITION_DURATIONS),
-  galleryItemDurationSeconds: z.literal(PICTIONARY_GALLERY_ITEM_DURATIONS),
-}) satisfies z.ZodType<PictionaryConfig>;
+const pictionaryConfigSchema: z.ZodType<PictionaryConfig> =
+  configSchemaToZod(PICTIONARY_CONFIG_SCHEMA);
 
 export const pictionaryCreateConfigSchema: z.ZodType<PictionaryConfig> = pictionaryConfigSchema;
 

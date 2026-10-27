@@ -5,26 +5,15 @@ import type {
   AvalonInternalCommand,
   AvalonPublicCommand,
 } from '@game-judge/game-engine/games/avalon/public';
-import {
-  AVALON_PLAYER_COUNTS,
-  AVALON_VOTE_MODES,
-} from '@game-judge/game-engine/games/avalon/public';
+import { AVALON_CONFIG_SCHEMA } from '@game-judge/game-engine/games/avalon/public';
 import { z } from 'zod';
 
 import { definePublicCommandOptions } from '../../platform/room/commandOptions';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
+import { configSchemaToZod } from '../../platform/room/configSchemaZod';
 
-/**
- * Lobby config: 5-10 players select the fixed board (D6-Q2); vote mode (D7) and
- * veto limit (D8) are required fields — the D7/D8 defaults (public / 5) are
- * applied by the client ConfigScreen, mirroring the other five games which all
- * require full configs. Unknown fields are rejected.
- */
-const avalonConfigSchema = z.strictObject({
-  numberOfPlayers: z.literal(AVALON_PLAYER_COUNTS),
-  voteMode: z.enum(AVALON_VOTE_MODES),
-  vetoLimit: z.literal([3, 4, 5] as const),
-}) satisfies z.ZodType<AvalonConfig>;
+/** Lobby config rules (board by player count, vote mode, veto limit) live in AVALON_CONFIG_SCHEMA. */
+const avalonConfigSchema: z.ZodType<AvalonConfig> = configSchemaToZod(AVALON_CONFIG_SCHEMA);
 
 export const avalonCreateConfigSchema: z.ZodType<AvalonConfig> = avalonConfigSchema;
 

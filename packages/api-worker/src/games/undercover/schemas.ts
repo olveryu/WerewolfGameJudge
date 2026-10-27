@@ -1,11 +1,10 @@
 /** Strict Undercover boundary schemas; public callers cannot submit internal word effects. */
 
 import {
-  isValidUndercoverConfig,
   isValidUndercoverWordPair,
   UNDERCOVER_CATEGORIES,
+  UNDERCOVER_CONFIG_SCHEMA,
   UNDERCOVER_MAX_PLAYERS,
-  UNDERCOVER_MIN_PLAYERS,
   type UndercoverConfig,
   type UndercoverEffect,
   type UndercoverInternalCommand,
@@ -17,14 +16,10 @@ import { z } from 'zod';
 import { gameCompletionPayloadSchema } from '../../features/account/settleGameRewards';
 import { definePublicCommandOptions } from '../../platform/room/commandOptions';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
+import { configSchemaToZod } from '../../platform/room/configSchemaZod';
 
-export const undercoverCreateConfigSchema: z.ZodType<UndercoverConfig> = z
-  .strictObject({
-    numberOfPlayers: z.int().min(UNDERCOVER_MIN_PLAYERS).max(UNDERCOVER_MAX_PLAYERS),
-    hasBlank: z.boolean(),
-    category: z.union([z.literal('all'), z.enum(UNDERCOVER_CATEGORIES)]),
-  })
-  .refine(isValidUndercoverConfig);
+export const undercoverCreateConfigSchema: z.ZodType<UndercoverConfig> =
+  configSchemaToZod(UNDERCOVER_CONFIG_SCHEMA);
 
 export const undercoverWordPairSchema: z.ZodType<UndercoverWordPair> = z
   .strictObject({
