@@ -181,23 +181,23 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
 
     expect(model.bottomActions.kind).toBe('stacked');
     if (model.bottomActions.kind === 'stacked') {
-      // The host's Ended bottom is the panel flow: the step bar takes
-      // the message row, the current step is the only primary, and
-      // view identity is a secondary tool.
-      expect(model.bottomActions.message).toBeNull();
-      expect(model.bottomActions.steps?.map((step) => [step.key, step.state])).toEqual([
-        ['lastNightInfo', 'current'],
-        ['nightReview', 'upcoming'],
-        ['closing', 'upcoming'],
-      ]);
-      expect(model.bottomActions.layout.primary.map((a) => [a.key, a.label, a.variant])).toEqual([
-        ['lastNightInfo', '昨夜信息', 'primary'],
-      ]);
+      // The host's Ended bottom is their own participant surface (view
+      // identity as a secondary tool); the dawn flow is the host task.
+      expect(model.bottomActions.layout.primary).toEqual([]);
       expect(model.bottomActions.layout.secondary.map((a) => [a.key, a.label, a.variant])).toEqual([
         ['viewRole', '查看身份', 'secondary'],
       ]);
       expect(model.bottomActions.layout.ghost.map((a) => [a.key, a.label, a.variant])).toEqual([]);
     }
+    expect(model.hostManagement?.task).toMatchObject({
+      kind: 'action',
+      actionKey: 'last-night-info',
+      steps: [
+        { key: 'lastNightInfo', state: 'current' },
+        { key: 'nightReview', state: 'upcoming' },
+        { key: 'closing', state: 'upcoming' },
+      ],
+    });
   });
 
   it('gives a player no panel flow once the game has ended', async () => {
@@ -215,10 +215,10 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
 
     expect(model.bottomActions.kind).toBe('stacked');
     if (model.bottomActions.kind === 'stacked') {
-      // The flow is the host's alone: a player gets no step bar and
-      // no host buttons at Ended — only their own secondary tool, with
-      // the plain message row.
-      expect(model.bottomActions.steps).toBeUndefined();
+      // The flow is the host's alone: a player gets no host management
+      // and no host buttons at Ended — only their own secondary tool,
+      // with the plain message row.
+      expect(model.hostManagement).toBeNull();
       expect(model.bottomActions.message).toBe('请选择要查验的玩家，如不使用请点击「不用技能」');
       expect(model.bottomActions.layout.primary).toEqual([]);
       expect(model.bottomActions.layout.secondary.map((a) => [a.key, a.label, a.variant])).toEqual([
@@ -289,11 +289,14 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
 
     const model = await captureModel(renderRoom());
 
+    // The judge instruction is the host task; the bottom message stays the participant channel.
+    expect(model.hostManagement?.task).toEqual({
+      kind: 'message',
+      text: '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程',
+    });
     expect(model.bottomActions.kind).toBe('stacked');
     if (model.bottomActions.kind === 'stacked') {
-      expect(model.bottomActions.message).toBe(
-        '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程',
-      );
+      expect(model.bottomActions.message).toBeNull();
     }
   });
 

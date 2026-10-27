@@ -17,7 +17,10 @@
  * exemption reason instead.
  */
 
-export type RoomGuidanceViewer = 'host' | 'seated' | 'spectator';
+import type { RoomViewerAudience } from './RoomViewer';
+
+/** The viewer axis of the matrix: the shared audience projection. */
+export type RoomGuidanceViewer = RoomViewerAudience;
 
 export type RoomGuidanceCell =
   | { readonly kind: 'message' }

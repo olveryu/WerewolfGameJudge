@@ -11,7 +11,7 @@ describe('RoomHostManagementPanel', () => {
     const restart = jest.fn();
     const close = jest.fn(() => calls.push('close'));
     const model: RoomHostManagementModel = {
-      hasPendingAction: true,
+      task: { kind: 'action', actionKey: 'advance' },
       sections: [
         {
           key: 'current-flow',
@@ -59,6 +59,7 @@ describe('RoomHostManagementPanel', () => {
   it('keeps the panel open and fires nothing when a disabled action is pressed', () => {
     const close = jest.fn();
     const model: RoomHostManagementModel = {
+      task: null,
       sections: [
         {
           key: 'current-flow',
@@ -87,6 +88,7 @@ describe('RoomHostManagementPanel', () => {
 
   it('shows the disabled reason as a caption under a disabled non-primary action', () => {
     const model: RoomHostManagementModel = {
+      task: null,
       sections: [
         {
           key: 'current-flow',
@@ -128,8 +130,9 @@ describe('RoomHostManagementPanel', () => {
     expect(screen.getByText('房间设置')).toBeTruthy();
   });
 
-  it('renders no caption for the primary action: its reason lives on the console only', () => {
+  it('renders no caption for the task action: its reason lives on the task card', () => {
     const model: RoomHostManagementModel = {
+      task: { kind: 'action', actionKey: 'start-round' },
       sections: [
         {
           key: 'current-flow',
@@ -142,7 +145,6 @@ describe('RoomHostManagementPanel', () => {
               variant: 'primary',
               isEnabled: false,
               disabledReason: '座位尚未坐满（还差 2 人）',
-              isPrimary: true,
             },
           ],
         },
@@ -164,6 +166,7 @@ describe('RoomHostManagementPanel', () => {
 
   it('does not render while closed', () => {
     const model: RoomHostManagementModel = {
+      task: null,
       sections: [],
     };
 

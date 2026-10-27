@@ -204,8 +204,7 @@ export class FibRoomPage extends RoomPage {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.returnLobbyButton).click();
     await this.expectHostManagementClosed();
-    await expect(this.page.getByText('返回大厅', { exact: true })).toBeVisible();
-    await this.page.getByText('确定', { exact: true }).click();
+    await this.confirmHostActionDialog('返回大厅');
     await expect(this.page.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
       '分配角色',
       { timeout: 15_000 },

@@ -3,6 +3,7 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
 import { buildNightPlan } from '@game-judge/game-engine/games/werewolf/public';
 
+import { resolveHostTaskView } from '@/features/room/model/resolveHostTaskView';
 import { EMPTY_LAYOUT } from '@/games/werewolf/room/hooks/bottomLayoutConfig';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
 import type { SeatViewModel } from '@/games/werewolf/room/werewolfRoom.helpers';
@@ -17,6 +18,7 @@ import {
   deriveWerewolfBottomProgress,
   type WerewolfRoomShellModelInput,
 } from '@/games/werewolf/werewolfRoomAdapter';
+import { viewerFor } from '@/test-utils/roomViewer';
 
 function createLocalGameState(overrides: Partial<GameState> = {}): LocalGameState {
   return toWerewolfLocalState({
@@ -270,6 +272,7 @@ describe('werewolfRoomAdapter', () => {
           {
             key: 'startGame',
             label: '开始游戏',
+            audience: 'participant',
             variant: 'primary',
             size: 'lg',
             isEnabled: false,
@@ -297,6 +300,7 @@ describe('werewolfRoomAdapter', () => {
           {
             key: 'waitForHost',
             label: '等待房主开始',
+            audience: 'participant',
             variant: 'primary',
             size: 'lg',
             isEnabled: false,
@@ -328,6 +332,7 @@ describe('werewolfRoomAdapter', () => {
           {
             key: 'skip',
             label: '跳过',
+            audience: 'participant',
             variant: 'primary',
             size: 'lg',
             isEnabled: true,
@@ -351,11 +356,14 @@ describe('werewolfRoomAdapter', () => {
 });
 
 describe('createWerewolfRoomShellModel', () => {
+  const HOST_VIEWER = viewerFor('host', { hostUserId: 'user-1' });
+  const PLAYER_VIEWER = viewerFor('seated', { seatedUserId: 'user-1' });
   function createShellModelInput(
     overrides: Partial<WerewolfRoomShellModelInput> = {},
   ): WerewolfRoomShellModelInput {
     return {
       roomCode: '1234',
+      viewer: PLAYER_VIEWER,
       capabilities: createWerewolfRoomCapabilities(createCapabilityInput()),
       connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
       seatConfirmation: null,
@@ -376,7 +384,7 @@ describe('createWerewolfRoomShellModel', () => {
       onTitleLongPress: jest.fn(),
       onAvatarPress: jest.fn(),
       roomStatus: GameStatus.Ready,
-      isHost: false,
+      panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
       isAudioPlaying: false,
       isActionSubmitting: false,
       isStartingGame: false,
@@ -462,13 +470,14 @@ describe('createWerewolfRoomShellModel', () => {
     expect(noStep.step).toBeNull();
   });
 
-  it('shows the plague-mode host message in Ready regardless of actioner state', () => {
+  it('puts the plague-mode host instruction on the host task, not the bottom message', () => {
     const model = createWerewolfRoomShellModel(
-      createShellModelInput({ isHost: true, isPlagueMode: true }),
+      createShellModelInput({ viewer: HOST_VIEWER, isPlagueMode: true }),
     );
-    expect(model.bottomActions).toMatchObject({
-      kind: 'stacked',
-      message: '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程',
+    expect(model.bottomActions).toMatchObject({ kind: 'stacked', message: null });
+    expect(model.hostManagement?.task).toEqual({
+      kind: 'message',
+      text: '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程',
     });
   });
 
@@ -477,6 +486,7 @@ describe('createWerewolfRoomShellModel', () => {
       ({
         key,
         label,
+        audience: 'participant',
         variant: 'secondary',
         size: 'md',
         isEnabled: true,
@@ -502,102 +512,101 @@ describe('createWerewolfRoomShellModel', () => {
     }
   });
 
-  it('renders the Ended panel flow as a step bar instead of a message', () => {
+  it('keeps the Ended bottom panel a participant surface and puts the host flow on the task card', () => {
     const onLastNightInfo = jest.fn();
     const onNightReview = jest.fn();
     const model = createWerewolfRoomShellModel(
       createShellModelInput({
         roomStatus: GameStatus.Ended,
-        isHost: true,
+        viewer: HOST_VIEWER,
         actionMessage: '对局结束',
         panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
         onLastNightInfo,
         onNightReview,
       }),
     );
-    expect(model.bottomActions.kind).toBe('stacked');
-    if (model.bottomActions.kind === 'stacked') {
-      expect(model.bottomActions.message).toBeNull();
-      expect(model.bottomActions.hint).toBeNull();
-      expect(model.bottomActions.steps?.map((step) => [step.key, step.state])).toEqual([
-        ['lastNightInfo', 'current'],
-        ['nightReview', 'upcoming'],
-        ['closing', 'upcoming'],
-      ]);
-      // The current step press is the same handler as the panel primary.
-      model.bottomActions.steps?.[0]?.onPress?.();
-      expect(onLastNightInfo).toHaveBeenCalledTimes(1);
-      // Upcoming steps are inert.
-      expect(model.bottomActions.steps?.[1]?.onPress).toBeUndefined();
-    }
+    // The bottom panel carries the game's own message and no host flow.
+    expect(model.bottomActions).toMatchObject({ kind: 'stacked', message: '对局结束' });
+    // The host task is the first flow step, with the steps on the task.
+    expect(model.hostManagement?.task).toMatchObject({
+      kind: 'action',
+      actionKey: 'last-night-info',
+      steps: [
+        { key: 'lastNightInfo', state: 'current' },
+        { key: 'nightReview', state: 'upcoming' },
+        { key: 'closing', state: 'upcoming' },
+      ],
+    });
+    const view = resolveHostTaskView(model.hostManagement!);
+    if (view?.body.kind !== 'ready') throw new Error('expected a ready task');
+    view.body.action.onPress();
+    expect(onLastNightInfo).toHaveBeenCalledTimes(1);
+    // Upcoming steps are inert; the current step revisits through the same action.
+    expect(view.steps?.[1]?.onPress).toBeUndefined();
+    view.steps?.[0]?.onPress?.();
+    expect(onLastNightInfo).toHaveBeenCalledTimes(2);
   });
 
-  it('gives a spectator no step bar at Ended (their panel is the review button)', () => {
+  it('gives a non-host no host management at Ended; their bottom panel keeps the message', () => {
     const model = createWerewolfRoomShellModel(
       createShellModelInput({
         roomStatus: GameStatus.Ended,
-        isHost: false,
+        viewer: PLAYER_VIEWER,
         actionMessage: '对局结束',
         panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
-        panelFlowViewer: { role: 'spectator', reviewShared: false },
       }),
     );
-    expect(model.bottomActions.kind).toBe('stacked');
-    if (model.bottomActions.kind === 'stacked') {
-      expect(model.bottomActions.steps).toBeUndefined();
-      expect(model.bottomActions.hint).toBeUndefined();
-      expect(model.bottomActions.message).toBe('对局结束');
-    }
+    expect(model.hostManagement).toBeNull();
+    expect(model.bottomActions).toMatchObject({ kind: 'stacked', message: '对局结束' });
   });
 
-  it('shows the host share hint while the Ended review step is current', () => {
-    const model = createWerewolfRoomShellModel(
+  it('carries the share reminder on the Ended review task, then offers the closing choice', () => {
+    const reviewStep = createWerewolfRoomShellModel(
       createShellModelInput({
         roomStatus: GameStatus.Ended,
-        isHost: true,
+        viewer: HOST_VIEWER,
         panelFlow: { lastNightInfoConfirmed: true, nightReviewOpened: false },
       }),
     );
-    expect(model.bottomActions.kind).toBe('stacked');
-    if (model.bottomActions.kind === 'stacked') {
-      expect(model.bottomActions.hint).toBe('记得把复盘分享给第一天出局的玩家');
-      expect(model.bottomActions.steps?.map((step) => step.state)).toEqual([
-        'complete',
-        'current',
-        'upcoming',
-      ]);
-    }
+    expect(reviewStep.hostManagement?.task).toMatchObject({
+      kind: 'action',
+      actionKey: 'night-review',
+      note: '记得把复盘分享给第一天出局的玩家',
+      steps: [{ state: 'complete' }, { state: 'current' }, { state: 'upcoming' }],
+    });
 
-    const guest = createWerewolfRoomShellModel(
+    const closing = createWerewolfRoomShellModel(
       createShellModelInput({
         roomStatus: GameStatus.Ended,
-        isHost: false,
-        panelFlow: { lastNightInfoConfirmed: true, nightReviewOpened: false },
+        viewer: HOST_VIEWER,
+        panelFlow: { lastNightInfoConfirmed: true, nightReviewOpened: true },
+        gameState: createLocalGameState({ nightReviewAllowedSeats: [2] }),
       }),
     );
-    if (guest.bottomActions.kind === 'stacked') {
-      // No flow for a player: the Ended model carries no hint field
-      // at all (same shape as the spectator's).
-      expect(guest.bottomActions.hint).toBeUndefined();
-    }
+    expect(closing.hostManagement?.task).toMatchObject({
+      kind: 'choice',
+      actionKeys: ['next-round', 'return-lobby'],
+      steps: [{ state: 'complete' }, { state: 'complete' }, { state: 'current' }],
+    });
   });
 
-  it('puts the step bar on the host Day panel too (first step = last-night info)', () => {
+  it('puts the first flow step on the host Day task when no election is running', () => {
     const model = createWerewolfRoomShellModel(
       createShellModelInput({
         roomStatus: GameStatus.Day,
-        isHost: true,
+        viewer: HOST_VIEWER,
         panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
       }),
     );
-    expect(model.bottomActions.kind).toBe('stacked');
-    if (model.bottomActions.kind === 'stacked') {
-      expect(model.bottomActions.steps?.map((step) => [step.key, step.state])).toEqual([
-        ['lastNightInfo', 'current'],
-        ['nightReview', 'upcoming'],
-        ['closing', 'upcoming'],
-      ]);
-    }
+    expect(model.hostManagement?.task).toMatchObject({
+      kind: 'action',
+      actionKey: 'last-night-info',
+      steps: [
+        { key: 'lastNightInfo', state: 'current' },
+        { key: 'nightReview', state: 'upcoming' },
+        { key: 'closing', state: 'upcoming' },
+      ],
+    });
   });
 
   it('disables the seat board visually during host audio or action submission', () => {
@@ -646,10 +655,10 @@ describe('createWerewolfRoomShellModel', () => {
   });
 
   it('builds host management only for the host', () => {
-    const guest = createWerewolfRoomShellModel(createShellModelInput({ isHost: false }));
+    const guest = createWerewolfRoomShellModel(createShellModelInput({ viewer: PLAYER_VIEWER }));
     expect(guest.hostManagement).toBeNull();
 
-    const host = createWerewolfRoomShellModel(createShellModelInput({ isHost: true }));
+    const host = createWerewolfRoomShellModel(createShellModelInput({ viewer: HOST_VIEWER }));
     expect(host.hostManagement).not.toBeNull();
   });
 
@@ -673,7 +682,7 @@ describe('createWerewolfRoomShellModel', () => {
       });
     const unviewed = createWerewolfRoomShellModel(
       createShellModelInput({
-        isHost: true,
+        viewer: HOST_VIEWER,
         hasBots: true,
         roomStatus: GameStatus.Assigned,
         gameState: botState(false),
@@ -682,7 +691,7 @@ describe('createWerewolfRoomShellModel', () => {
     expect(actionKeys(unviewed)).toContain('mark-bots-viewed');
     const allViewed = createWerewolfRoomShellModel(
       createShellModelInput({
-        isHost: true,
+        viewer: HOST_VIEWER,
         hasBots: true,
         roomStatus: GameStatus.Assigned,
         gameState: botState(true),
@@ -693,7 +702,7 @@ describe('createWerewolfRoomShellModel', () => {
     // for unviewed bot seats.
     const humanUnviewedBotViewed = createWerewolfRoomShellModel(
       createShellModelInput({
-        isHost: true,
+        viewer: HOST_VIEWER,
         hasBots: true,
         roomStatus: GameStatus.Assigned,
         gameState: createLocalGameState({
@@ -720,7 +729,7 @@ describe('createWerewolfRoomShellModel', () => {
     // must never vanish, whatever the other inputs say.
     const visible = createWerewolfRoomShellModel(
       createShellModelInput({
-        isHost: true,
+        viewer: HOST_VIEWER,
         hasBots: true,
         roomStatus: GameStatus.Ongoing,
         controlledSeat: 2,
@@ -731,7 +740,7 @@ describe('createWerewolfRoomShellModel', () => {
     expect(typeof visible.controlledSeat?.onRelease).toBe('function');
     const controlledNoBots = createWerewolfRoomShellModel(
       createShellModelInput({
-        isHost: true,
+        viewer: HOST_VIEWER,
         hasBots: false,
         roomStatus: GameStatus.Ongoing,
         controlledSeat: 2,
@@ -743,7 +752,7 @@ describe('createWerewolfRoomShellModel', () => {
     // No active takeover: no banner, whatever the host or bot inputs say.
     const hostWithBots = createWerewolfRoomShellModel(
       createShellModelInput({
-        isHost: true,
+        viewer: HOST_VIEWER,
         hasBots: true,
         roomStatus: GameStatus.Unseated,
         controlledSeat: null,
@@ -752,12 +761,12 @@ describe('createWerewolfRoomShellModel', () => {
     expect(hostWithBots.controlledSeat).toBeNull();
 
     const hostNoBots = createWerewolfRoomShellModel(
-      createShellModelInput({ isHost: true, hasBots: false, controlledSeat: null }),
+      createShellModelInput({ viewer: HOST_VIEWER, hasBots: false, controlledSeat: null }),
     );
     expect(hostNoBots.controlledSeat).toBeNull();
 
     const guestWithBots = createWerewolfRoomShellModel(
-      createShellModelInput({ isHost: false, hasBots: true, controlledSeat: null }),
+      createShellModelInput({ viewer: PLAYER_VIEWER, hasBots: true, controlledSeat: null }),
     );
     expect(guestWithBots.controlledSeat).toBeNull();
   });

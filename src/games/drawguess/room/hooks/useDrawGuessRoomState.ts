@@ -33,6 +33,7 @@ import {
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import { resolveEffectiveSeat, type RoomViewer } from '@/features/room/model/RoomViewer';
 import { type DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
 
 import {
@@ -102,10 +103,11 @@ export function useDrawGuessRoomState(
   const state = snapshot.snapshot.state;
   const isHost = state.hostUserId === user.id;
   const mySeat = getDrawGuessUserSeat(state, user.id);
+  const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
   const isLobby = state.phase.kind === 'lobby';
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot, takeOver } = botControl;
-  const effectiveSeat = controlledSeat ?? mySeat;
+  const effectiveSeat = resolveEffectiveSeat(viewer, controlledSeat);
   const { share, titleActions, gachaStatus } = useRoomPresentationController({
     roomCode: room.roomCode,
     gameDisplayName: '你画我猜',
@@ -210,16 +212,17 @@ export function useDrawGuessRoomState(
     seatController,
   });
   const selection = profile.selection;
-  const hostManagement = createDrawGuessHostManagement({
-    state,
-    isHost,
-    capabilities,
-    isSubmitting: submission.isSubmitting,
-    submit,
-  });
+  const buildHostManagement = () =>
+    createDrawGuessHostManagement({
+      state,
+      capabilities,
+      isSubmitting: submission.isSubmitting,
+      submit,
+    });
 
   const shellModel: RoomShellModel = createDrawGuessRoomShellModel({
     roomCode: room.roomCode,
+    viewer,
     capabilities,
     onBack: () => entryController.requestExit(capabilities.shouldConfirmExit),
     onTitlePress: titleActions.handleTitlePress,
@@ -230,7 +233,6 @@ export function useDrawGuessRoomState(
     connection: entryController.connection,
     state,
     revision: snapshot.snapshot.revision,
-    userId: user.id,
     controlledSeat,
     seatsVisuallyDisabled: submission.isSubmitting || seatController.isSubmitting,
     onSeatPress,
@@ -241,9 +243,7 @@ export function useDrawGuessRoomState(
     onProfileLeaveSeat: profile.leaveSelf,
     share,
     isLobby,
-    isHost,
-    mySeat,
-    hostManagement,
+    buildHostManagement,
     releaseBot,
   });
   return {

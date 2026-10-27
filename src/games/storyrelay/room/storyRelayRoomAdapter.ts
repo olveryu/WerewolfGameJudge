@@ -26,18 +26,20 @@ import {
   buildNextRoundAction,
   buildReturnLobbyAction,
   buildRoomConfigAction,
+  buildShareRoomAction,
   buildStartGameAction,
+  HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
+  hostActionTask,
+  hostClosingTask,
+  hostStartTask,
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
 import type { NightStepProgress } from '@/features/room/model/nightProgress';
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
-import {
-  buildShareRoomRemedy,
-  type RoomHostManagementAction,
-} from '@/features/room/model/RoomHostManagement';
+import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
 import type {
   RoomSeatDataSource,
   RoomSeatStatusBadge,
@@ -128,21 +130,17 @@ export interface StoryRelayRoomShellModelInput extends Omit<
 > {
   readonly state: StoryRelayState;
   readonly revision: number;
-  readonly userId: string;
   readonly controlledSeat: number | null;
   readonly seatController: RoomSeatController;
   readonly profileSelection: RoomProfileSelection | null;
   readonly onProfileClose: () => void;
   readonly onProfileLeaveSeat: () => void;
   readonly isLobby: boolean;
-  readonly isHost: boolean;
-  readonly mySeat: number | null;
   readonly releaseBot: () => void;
 }
 
 export interface StoryRelayHostManagementInput {
   readonly state: StoryRelayState;
-  readonly isHost: boolean;
   readonly capabilities: Pick<
     RoomCapabilities,
     'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'
@@ -151,11 +149,10 @@ export interface StoryRelayHostManagementInput {
   readonly submit: (label: string, command: StoryRelayCommand) => Promise<boolean>;
 }
 
-/** Assembles the Story Relay host panel for the current phase. */
+/** Assembles the Story Relay host panel for the current phase. Host gating belongs to the shell factory. */
 export function createStoryRelayHostManagement(
   input: StoryRelayHostManagementInput,
-): RoomHostManagementModel | null {
-  if (!input.isHost) return null;
+): RoomHostManagementModel {
   const { state, capabilities } = input;
   const submit = input.submit;
   const roomActions: RoomHostManagementAction[] = [];
@@ -177,23 +174,28 @@ export function createStoryRelayHostManagement(
         ? null
         : seatShortageReason(state.config.numberOfPlayers, getStoryRelayOccupiedSeatCount(state)),
       isLoading: input.isSubmitting,
-      isPrimary: true,
-      remedy: buildShareRoomRemedy(capabilities.canShareRoom),
     });
     return {
+      task: hostStartTask(HOST_ACTION_KEYS.startGame),
       sections: [
         {
           key: 'game',
           title: '游戏',
           actions: [startAction],
         },
-        { key: 'room', title: '房间管理', actions: roomActions },
+        {
+          key: 'room',
+          title: '房间管理',
+          actions: [...roomActions, buildShareRoomAction(capabilities.canShareRoom)],
+        },
       ],
     };
   }
   const isTerminal = state.phase === 'ended' || state.phase === 'aborted';
   if (isTerminal) {
     return {
+      task:
+        state.phase === 'ended' ? hostClosingTask() : hostActionTask(HOST_ACTION_KEYS.returnLobby),
       sections: [
         {
           key: 'current-flow',
@@ -230,8 +232,9 @@ export function createStoryRelayHostManagement(
   }
   const canAbort =
     ['answering', 'settling', 'transition'].includes(state.phase) && state.completedAt === null;
-  if (!canAbort) return null;
+  // 局中房主面板常驻：中止不可用时禁用并给原因，而不是整块消失。
   return {
+    task: state.phase === 'answering' ? hostActionTask('finish-phase') : null,
     sections: [
       ...(state.phase === 'answering'
         ? [
@@ -278,7 +281,8 @@ export function createStoryRelayHostManagement(
                   });
                 },
               ),
-            isEnabled: !input.isSubmitting,
+            isEnabled: canAbort && !input.isSubmitting,
+            disabledReason: canAbort ? null : '故事已完成，不能中止',
             isLoading: input.isSubmitting,
           }),
         ],
@@ -295,7 +299,7 @@ export function createStoryRelayRoomShellModel(
   const seatSource = createStoryRelaySeatDataSource({
     state,
     revision: input.revision,
-    userId: input.userId,
+    userId: input.viewer.userId,
     controlledSeat: input.controlledSeat,
   });
   return createRoomShellModel({
@@ -313,11 +317,7 @@ export function createStoryRelayRoomShellModel(
     }),
     bottomActions: {
       kind: 'stacked',
-      message: buildLobbyHostStartMessage({
-        isLobby: input.isLobby,
-        isHost: input.isHost,
-        mySeat: input.mySeat,
-      }),
+      message: buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
       progress: deriveStoryRelayBottomProgress(state),
       layout: { primary: [], secondary: [], ghost: [] },
     },

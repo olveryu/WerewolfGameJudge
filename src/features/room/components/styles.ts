@@ -16,14 +16,12 @@ export interface BottomActionPanelStyles {
   message: TextStyle;
   messageCompact: TextStyle;
   stepsRow: ViewStyle;
-  stepsRowCompact: ViewStyle;
   stepItem: ViewStyle;
   stepLabelComplete: TextStyle;
   stepLabelCurrent: TextStyle;
   stepLabelUpcoming: TextStyle;
   stepSeparator: TextStyle;
   hint: TextStyle;
-  hintCompact: TextStyle;
   buttonRow: ViewStyle;
   secondaryRow: ViewStyle;
   secondaryButton: ViewStyle;
@@ -41,7 +39,6 @@ export interface BottomActionPanelStyles {
   hostManagementTitle: TextStyle;
   hostManagementExpandRow: ViewStyle;
   hostManagementExpandLabel: TextStyle;
-  hostManagementPending: TextStyle;
   nextStepReady: ViewStyle;
   nextStepBlocked: ViewStyle;
   nextStepBlockedText: ViewStyle;

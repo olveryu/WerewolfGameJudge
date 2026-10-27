@@ -1,11 +1,7 @@
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
-import { TERMINAL_ACTION_VARIANT } from '@/features/room/model/hostManagementActions';
-import { TESTIDS } from '@/testids';
-
 import type { BottomButton } from '../bottomActionBuilder';
 import type { BottomLayout, LayoutContext } from '../bottomLayoutConfig';
-import { STATIC_BUTTONS } from '../bottomLayoutConfig';
 import { resolveBottomLayout } from '../resolveBottomLayout';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -20,13 +16,9 @@ function makeCtx(overrides: Partial<LayoutContext> = {}): LayoutContext {
     imActioner: false,
     isAudioPlaying: false,
     nightReviewAllowedSeats: [],
-    panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
     ...overrides,
   };
 }
-
-const FLOW_INFO_CONFIRMED = { lastNightInfoConfirmed: true, nightReviewOpened: false } as const;
-const FLOW_DONE = { lastNightInfoConfirmed: true, nightReviewOpened: true } as const;
 
 /** Extract keys from a tier for concise assertions. */
 function keys(layout: BottomLayout, tier: 'primary' | 'secondary' | 'ghost'): string[] {
@@ -438,35 +430,14 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Day', () => {
-    it('host, flow step pending → primary: lastNightInfo, secondary: viewRole, ghost: nightReview', () => {
+    it('host → secondary: viewRole only; the dawn flow lives on the host task card', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Day, isHost: true, effectiveSeat: 0 }),
       );
 
-      expect(keys(layout, 'primary')).toEqual(['lastNightInfo']);
-      expect(layout.primary[0]).toMatchObject({
-        label: '昨夜信息',
-        testID: TESTIDS.lastNightInfoBottomButton,
-        isEnabled: true,
-      });
-      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
-      expect(keys(layout, 'ghost')).toEqual(['nightReview']);
-      expect(layout.ghost[0]).toMatchObject({ testID: TESTIDS.nightReviewBottomButton });
-    });
-
-    it('host, info confirmed → flow pauses: secondary viewRole + ghost tools', () => {
-      const layout = resolveBottomLayout(
-        makeCtx({
-          roomStatus: GameStatus.Day,
-          isHost: true,
-          effectiveSeat: 0,
-          panelFlow: FLOW_INFO_CONFIRMED,
-        }),
-      );
-
       expect(keys(layout, 'primary')).toEqual([]);
       expect(keys(layout, 'secondary')).toEqual(['viewRole']);
-      expect(keys(layout, 'ghost')).toEqual(['lastNightInfo', 'nightReview']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
     it('player, info confirmed, no review permission → secondary: viewRole only (no host buttons)', () => {
@@ -475,7 +446,6 @@ describe('resolveBottomLayout', () => {
           roomStatus: GameStatus.Day,
           isHost: false,
           effectiveSeat: 1,
-          panelFlow: FLOW_INFO_CONFIRMED,
         }),
       );
 
@@ -572,7 +542,6 @@ describe('resolveBottomLayout', () => {
           roomStatus: GameStatus.Day,
           isHost: false,
           effectiveSeat: null,
-          panelFlow: FLOW_INFO_CONFIRMED,
         }),
       );
       expect(keys(infoConfirmed, 'primary')).toEqual(['nightReview']);
@@ -586,100 +555,13 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Ended', () => {
-    it('host, fresh progress → primary: lastNightInfo, secondary: viewRole', () => {
+    it('host → secondary: viewRole only; closing and review live on the host task card', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Ended, isHost: true, effectiveSeat: 0 }),
       );
-      expect(keys(layout, 'primary')).toEqual(['lastNightInfo']);
-      expect(layout.primary[0]).toMatchObject({
-        label: '昨夜信息',
-        testID: TESTIDS.lastNightInfoBottomButton,
-      });
-      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
-      expect(keys(layout, 'ghost')).toEqual([]);
-    });
-
-    it('host, info confirmed in Day → Ended starts at the review step (progress carries over)', () => {
-      const layout = resolveBottomLayout(
-        makeCtx({
-          roomStatus: GameStatus.Ended,
-          isHost: true,
-          effectiveSeat: 0,
-          panelFlow: FLOW_INFO_CONFIRMED,
-        }),
-      );
-      expect(keys(layout, 'primary')).toEqual(['nightReview']);
-      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
-      expect(layout.primary[0]).toMatchObject({
-        label: '本局复盘',
-        testID: TESTIDS.nightReviewBottomButton,
-      });
-      expect(keys(layout, 'ghost')).toEqual([]);
-    });
-
-    it('host, review opened but not shared → still on the review step (share gate)', () => {
-      const layout = resolveBottomLayout(
-        makeCtx({
-          roomStatus: GameStatus.Ended,
-          isHost: true,
-          effectiveSeat: 0,
-          panelFlow: FLOW_DONE,
-        }),
-      );
-      expect(keys(layout, 'primary')).toEqual(['nightReview']);
-      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
-      expect(keys(layout, 'ghost')).toEqual([]);
-    });
-
-    it('host, flow done (opened + shared) → danger closing row: nextRound + returnToLobby', () => {
-      const layout = resolveBottomLayout(
-        makeCtx({
-          roomStatus: GameStatus.Ended,
-          isHost: true,
-          effectiveSeat: 0,
-          panelFlow: FLOW_DONE,
-          nightReviewAllowedSeats: [1],
-        }),
-      );
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual(['nextRound', 'returnToLobby', 'viewRole']);
-      expect(layout.secondary.map((button) => button.label)).toEqual([
-        '再来一局',
-        '返回大厅',
-        '查看身份',
-      ]);
-      expect(layout.secondary.map((button) => button.variant)).toEqual([
-        'danger',
-        'danger',
-        'secondary',
-      ]);
-      expect(layout.secondary.map((button) => button.testID)).toEqual([
-        TESTIDS.nextRoundBottomButton,
-        TESTIDS.returnLobbyBottomButton,
-        undefined,
-      ]);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
       expect(keys(layout, 'ghost')).toEqual([]);
-    });
-
-    it('host, flow done, audio playing → closing actions held by the audio lock', () => {
-      const layout = resolveBottomLayout(
-        makeCtx({
-          roomStatus: GameStatus.Ended,
-          isHost: true,
-          effectiveSeat: 0,
-          panelFlow: FLOW_DONE,
-          nightReviewAllowedSeats: [1],
-          isAudioPlaying: true,
-        }),
-      );
-      expect(keys(layout, 'secondary')).toEqual(['nextRound', 'returnToLobby', 'viewRole']);
-      for (const button of layout.secondary.filter((button) => button.key !== 'viewRole')) {
-        expect(button).toMatchObject({ isEnabled: false, disabledReason: '语音播报中，请稍候' });
-      }
-      // The read-only view tool stays available under the lock (it is not a closing action).
-      expect(layout.secondary.find((button) => button.key === 'viewRole')).toMatchObject({
-        isEnabled: true,
-      });
     });
 
     it('player, fresh progress → secondary: viewRole only (no flow, no host buttons)', () => {
@@ -704,7 +586,6 @@ describe('resolveBottomLayout', () => {
           roomStatus: GameStatus.Ended,
           isHost: false,
           effectiveSeat: 2,
-          panelFlow: FLOW_DONE,
           nightReviewAllowedSeats: [2],
         }),
       );
@@ -719,7 +600,6 @@ describe('resolveBottomLayout', () => {
           roomStatus: GameStatus.Ended,
           isHost: false,
           effectiveSeat: 2,
-          panelFlow: FLOW_INFO_CONFIRMED,
           nightReviewAllowedSeats: [2],
         }),
       );
@@ -734,7 +614,6 @@ describe('resolveBottomLayout', () => {
           roomStatus: GameStatus.Ended,
           isHost: false,
           effectiveSeat: 2,
-          panelFlow: FLOW_INFO_CONFIRMED,
           nightReviewAllowedSeats: [0, 4],
         }),
       );
@@ -762,7 +641,6 @@ describe('resolveBottomLayout', () => {
           roomStatus: GameStatus.Ended,
           isHost: false,
           effectiveSeat: null,
-          panelFlow: FLOW_DONE,
         }),
       );
       expect(keys(layout, 'primary')).toEqual(['nightReview']);
@@ -817,22 +695,12 @@ describe('resolveBottomLayout', () => {
 
     it('variant correctness: primary buttons get variant=primary', () => {
       const layout = resolveBottomLayout(
-        makeCtx({ roomStatus: GameStatus.Day, isHost: true, effectiveSeat: 0 }),
+        makeCtx({ roomStatus: GameStatus.Assigned, isHost: true, effectiveSeat: 0 }),
       );
       expect(layout.primary.length).toBeGreaterThan(0);
       for (const btn of layout.primary) {
         expect(btn.variant).toBe('primary');
       }
     });
-  });
-});
-
-describe('closing action variant (single source)', () => {
-  it('the panel closing buttons read the shared builders TERMINAL_ACTION_VARIANT', () => {
-    // Identity, not just equality: the panel must reference the one
-    // definition in hostManagementActions, never restate the literal.
-    expect(STATIC_BUTTONS.nextRound.variantOverride).toBe(TERMINAL_ACTION_VARIANT);
-    expect(STATIC_BUTTONS.returnToLobby.variantOverride).toBe(TERMINAL_ACTION_VARIANT);
-    expect(TERMINAL_ACTION_VARIANT).toBe('danger');
   });
 });

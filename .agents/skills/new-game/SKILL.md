@@ -93,6 +93,11 @@ XP/结算、测试计划。
       用手动脚手架填（见 3c-3），设计阶段就定死，不许留到实现期自创。
 - [ ] 房间外壳：`RoomShell` 的 `content` 用 `seats` 还是 `workspace`，
       参照 contract 中各游戏的选择并说明理由。
+- [ ] 按钮归属与主持任务：按 contract「Action Ownership / Host Task」逐阶段列出 host / seated /
+      spectator 各看到什么——host 命令只进 `hostManagement`（`buildHostManagement`，不写 `isHost`
+      守卫），底部每个按钮声明 `audience: participant | anyone`（没有 host 档）；每个阶段写明
+      `task`（`action` / `choice` / `message`，引用面板动作 key），阻塞原因只在面板动作的
+      `disabledReason` 上写一次。
 - [ ] 结算：XP/完成效应、再来一局、返回大厅、终局排名、匿名玩家显示。
 - [ ] 失败文案：命令失败有中文映射，走 `AlertModal`（`Alert.alert` 在 web 上是空实现，禁用）。
 - [ ] 预设与能力：按 1a 的判据定预设；逐项过能力开关表（Phase 2），

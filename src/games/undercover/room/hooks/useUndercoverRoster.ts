@@ -100,6 +100,7 @@ export function useUndercoverRoster(
     gameName: 'Undercover',
   });
   return {
+    mySeat,
     capabilities,
     profile,
     controlledSeat,

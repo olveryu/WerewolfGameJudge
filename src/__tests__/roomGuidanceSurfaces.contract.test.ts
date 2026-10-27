@@ -3,13 +3,13 @@
  * guidance redesign).
  *
  * The top status ribbon, the next-step strip model and the disabled-press
- * popup channel were removed as mechanisms: host guidance is one action
- * data set rendered two ways (collapsed console + expanded panel), step
- * progress travels inside the bottom-actions model, and a disabled
- * action's reason renders as a caption where the action sits. The flat
- * info bottom model was likewise removed: the stacked three-tier layout
- * (plus the sheriff dock) is the only bottom-actions model. These
- * identifiers must not reappear in room production code or in the
+ * popup channel were removed as mechanisms: host guidance is one declared
+ * task (room-shell-contract "Host Task") rendered on the host task card
+ * and referencing the sheet's actions by key; a disabled action's reason
+ * renders as a caption where the action sits. The flat info bottom model
+ * was likewise removed: the stacked three-tier layout (plus the sheriff
+ * dock) is the only bottom-actions model, and it carries no host flow.
+ * These identifiers must not reappear in room production code or in the
  * new-game generator templates that distribute the same parts.
  */
 
@@ -35,6 +35,20 @@ const FORBIDDEN_PATTERNS: readonly { readonly pattern: RegExp; readonly label: s
   { pattern: /onDisabledPress/, label: 'disabled-press popup channel' },
   { pattern: /长按座位可接管机器人/, label: 'takeover hint copy' },
   { pattern: /RoomBottomInfoModel/, label: 'flat info bottom model (stacked/dock only)' },
+  {
+    pattern: /resolveHostConsolePrimary|RoomHostConsolePrimary/,
+    label: 'console primary derivation (host task replaces it)',
+  },
+  { pattern: /isPrimary\b/, label: 'isPrimary action flag (the task declares the current action)' },
+  {
+    pattern: /consoleBlockedReason/,
+    label: 'console-only blocked reason (the sheet action carries the one reason)',
+  },
+  {
+    pattern: /hasPendingAction\b/,
+    label: 'pending-action badge flag (the task card is the signal)',
+  },
+  { pattern: /RoomPanelStep\b/, label: 'bottom-panel step bar (host flow steps live on the task)' },
 ];
 
 function getAllTsFiles(dir: string): string[] {
@@ -76,7 +90,7 @@ describe('room guidance surfaces contract', () => {
     expect(violations).toEqual([]);
   });
 
-  it('the host management model carries no preview, status or next-step fields', () => {
+  it('the host management model declares the task and carries no preview, status or next-step fields', () => {
     const model = readFileSync(
       join(__dirname, '../features/room/model/RoomHostManagement.ts'),
       'utf-8',
@@ -84,8 +98,14 @@ describe('room guidance surfaces contract', () => {
     expect(model).not.toMatch(/readonly preview:/);
     expect(model).not.toMatch(/readonly status:/);
     expect(model).not.toMatch(/readonly nextStep:/);
-    expect(model).toMatch(/readonly isPrimary\?: boolean;/);
-    expect(model).toMatch(/readonly remedy\?: RoomHostRemedy \| null;/);
+    expect(model).toMatch(/readonly task: RoomHostTask \| null;/);
+    // The task references sheet actions by key; it never carries a handler.
+    const taskType = model.slice(
+      model.indexOf('export type RoomHostTask'),
+      model.indexOf('export interface RoomHostManagementModel'),
+    );
+    expect(taskType).toMatch(/actionKey: string/);
+    expect(taskType).not.toMatch(/onPress/);
   });
 
   it('the shell model carries no status ribbon slot', () => {

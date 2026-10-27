@@ -26,6 +26,8 @@ import { TESTIDS } from '@/testids';
 interface SheriffElectionDockInput {
   readonly election: SheriffElectionPanelModel;
   readonly roomTools: RoomBottomActionLayout;
+  /** The host's review lives in host management; the dock's trailing review tool is for everyone else. */
+  readonly isHost: boolean;
   readonly isInspectorVisible: boolean;
   readonly isAudioPlaying: boolean;
   readonly openDetails: () => void;
@@ -54,7 +56,14 @@ function createRoomTool(
   tone: RoomBottomToolButton['tone'],
 ): RoomBottomToolButton | null {
   if (button === null) return null;
-  const base = { key: button.key, label, tone, icon: button.icon, testID: button.testID } as const;
+  const base = {
+    key: button.key,
+    label,
+    audience: button.audience,
+    tone,
+    icon: button.icon,
+    testID: button.testID,
+  } as const;
   if (button.isEnabled) return { ...base, isEnabled: true, onPress: button.onPress };
   return {
     ...base,
@@ -72,6 +81,8 @@ function createCommandButton(
   const base = {
     key: action.key,
     label: action.label,
+    // Election commands are the viewer's own seat actions.
+    audience: 'participant' as const,
     variant: action.variant,
     size: 'md' as const,
     testID: action.testID,
@@ -172,11 +183,11 @@ export function createSheriffElectionDockModel(
   input: SheriffElectionDockInput,
 ): RoomBottomDockModel {
   const leading = createRoomTool(findRoomTool(input.roomTools, 'viewRole'), '查看身份', 'default');
-  const trailing = createRoomTool(
-    findRoomTool(input.roomTools, 'nightReview'),
-    '本局复盘',
-    'default',
-  );
+  // The host reaches the review from host management (its block takes
+  // the dock's tool slot); the trailing tool is the non-host entry.
+  const trailing = input.isHost
+    ? null
+    : createRoomTool(findRoomTool(input.roomTools, 'nightReview'), '本局复盘', 'default');
 
   const personalAction = getPersonalAction(input);
   const message =

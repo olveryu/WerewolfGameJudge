@@ -1,17 +1,16 @@
-/** Render-ready host management model. Games own action availability and execution. */
+/**
+ * Render-ready host management model. Games own action availability and execution.
+ *
+ * Two parts (docs/room-shell-contract.md "Host Task"): `sections` is the
+ * complete command inventory — every host command's onPress lives there and
+ * only there; `task` is the one declared "what the host does now", which
+ * references sheet actions by key and never carries a handler of its own.
+ */
 
 import type Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps } from 'react';
 
-import type { RoomCapability } from './RoomCapabilities';
-
 type RoomHostManagementIconName = ComponentProps<typeof Ionicons>['name'];
-
-/** A concrete remedy offered beside a blocked primary action (e.g. share the room to fill seats). */
-export interface RoomHostRemedy {
-  readonly label: string;
-  readonly onPress: () => void;
-}
 
 type RoomHostManagementActionAvailability =
   | {
@@ -30,23 +29,6 @@ interface RoomHostManagementActionBase {
   readonly variant: 'primary' | 'secondary' | 'ghost' | 'danger';
   readonly testID?: string;
   readonly isLoading?: boolean;
-  /**
-   * Marks the phase's single primary action. The collapsed host console
-   * re-presents it above the management entry; the expanded panel renders
-   * the same action inside its section. At most one action per model may
-   * carry this mark.
-   */
-  readonly isPrimary?: boolean;
-  /** Remedy offered beside this action when the console renders it blocked. */
-  readonly remedy?: RoomHostRemedy | null;
-  /**
-   * Console-only blocked reason for a primary action that stays enabled in
-   * the panel because its gate lives in a later layer (e.g. a dialog the
-   * panel action opens). When set to a non-empty string, the console
-   * renders the action blocked with this reason even though the action
-   * itself is enabled.
-   */
-  readonly consoleBlockedReason?: string | null;
 }
 
 export type RoomHostManagementAction = RoomHostManagementActionBase &
@@ -58,14 +40,40 @@ export interface RoomHostManagementSection {
   readonly actions: readonly RoomHostManagementAction[];
 }
 
-/** The share-room remedy for a seat-blocked primary, from the room's share capability. */
-export function buildShareRoomRemedy(canShareRoom: RoomCapability): RoomHostRemedy | null {
-  return canShareRoom.isAllowed ? { label: '分享房间', onPress: canShareRoom.execute } : null;
+/** One step of a multi-step host flow rendered on the task card. */
+export interface RoomHostTaskStep {
+  readonly key: string;
+  readonly label: string;
+  readonly state: 'complete' | 'current' | 'upcoming';
+  /** A completed step may be revisited through this sheet action. */
+  readonly actionKey?: string;
 }
 
+interface RoomHostTaskBase {
+  /** Multi-step flow progress; omitted for a single step. At most one `current`. */
+  readonly steps?: readonly RoomHostTaskStep[];
+  /** Reminder rendered under the task. */
+  readonly note?: string;
+  /** A concrete remedy for a blocked action, referenced by sheet key. */
+  readonly remedyActionKey?: string;
+}
+
+/**
+ * The host's one current task. It has no handler: every key resolves to a
+ * sheet action whose onPress, enabled state and disabled reason the card
+ * renders — one command, one execution path.
+ */
+export type RoomHostTask = RoomHostTaskBase &
+  (
+    | { readonly kind: 'action'; readonly actionKey: string }
+    | { readonly kind: 'choice'; readonly actionKeys: readonly string[] }
+    | { readonly kind: 'message'; readonly text: string; readonly actionKey?: string }
+  );
+
 export interface RoomHostManagementModel {
-  /** When true, a host action awaits the host now; the console entry marks it as pending. */
-  readonly hasPendingAction?: boolean;
+  /** The one thing the host should do now; null when nothing awaits the host. */
+  readonly task: RoomHostTask | null;
+  /** The complete command inventory (the sheet). */
   readonly sections: readonly RoomHostManagementSection[];
 }
 

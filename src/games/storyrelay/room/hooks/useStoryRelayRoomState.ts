@@ -28,6 +28,7 @@ import {
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import { resolveEffectiveSeat, type RoomViewer } from '@/features/room/model/RoomViewer';
 import { type StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 
 import {
@@ -69,6 +70,7 @@ export function useStoryRelayRoomState(
   const state = snapshot.snapshot.state;
   const isHost = state.hostUserId === user.id;
   const mySeat = getStoryRelayUserSeat(state, user.id);
+  const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
   const isLobby = state.phase === 'lobby';
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot } = botControl;
@@ -133,17 +135,18 @@ export function useStoryRelayRoomState(
     profile,
     seatController,
   });
-  const hostManagement = createStoryRelayHostManagement({
-    state,
-    isHost,
-    capabilities,
-    isSubmitting: submission.isSubmitting,
-    submit,
-  });
+  const buildHostManagement = () =>
+    createStoryRelayHostManagement({
+      state,
+      capabilities,
+      isSubmitting: submission.isSubmitting,
+      submit,
+    });
 
   const selection = profile.selection;
   const shellModel: RoomShellModel = createStoryRelayRoomShellModel({
     roomCode: room.roomCode,
+    viewer,
     capabilities,
     onBack: () => entryController.requestExit(capabilities.shouldConfirmExit),
     onTitlePress: titleActions.handleTitlePress,
@@ -154,7 +157,6 @@ export function useStoryRelayRoomState(
     connection: entryController.connection,
     state,
     revision: snapshot.snapshot.revision,
-    userId: user.id,
     controlledSeat,
     seatsVisuallyDisabled: submission.isSubmitting || seatController.isSubmitting,
     onSeatPress,
@@ -165,16 +167,14 @@ export function useStoryRelayRoomState(
     onProfileLeaveSeat: profile.leaveSelf,
     share,
     isLobby,
-    isHost,
-    mySeat,
-    hostManagement,
+    buildHostManagement,
     releaseBot,
   });
   return {
     state,
     shellModel,
     userId: user.id,
-    effectiveSeat: controlledSeat ?? mySeat,
+    effectiveSeat: resolveEffectiveSeat(viewer, controlledSeat),
     controlledSeat,
     releaseBot,
     isHost,

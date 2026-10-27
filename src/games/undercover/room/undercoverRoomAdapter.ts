@@ -3,7 +3,6 @@
 import {
   getBotSeats,
   getUndercoverOccupiedSeatCount,
-  getUndercoverUserSeat,
   getUndercoverViewingParticipants,
   type UndercoverRole,
   type UndercoverRoleCounts,
@@ -24,6 +23,7 @@ import {
   buildAbortGameAction,
   buildAssignRolesAction,
   buildClearSeatsAction,
+  buildEnabledHostAction,
   buildFillBotsAction,
   buildMarkBotsViewedAction,
   buildNextRoundAction,
@@ -31,9 +31,15 @@ import {
   buildRestartGameAction,
   buildReturnLobbyAction,
   buildRoomConfigAction,
+  buildShareRoomAction,
   buildStartGameAction,
   createViewingBeginGate,
+  HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
+  hostActionTask,
+  hostClosingTask,
+  hostMessageTask,
+  hostStartTask,
   projectViewingProgress,
   seatShortageReason,
   viewedProgressReason,
@@ -46,11 +52,11 @@ import {
   type RoomProfileTarget,
   type RoomSetupCapabilitiesInput,
 } from '@/features/room/model/RoomCapabilities';
-import {
-  buildShareRoomRemedy,
-  type RoomHostManagementAction,
-  type RoomHostManagementModel,
-  type RoomHostManagementSection,
+import type {
+  RoomHostManagementAction,
+  RoomHostManagementModel,
+  RoomHostManagementSection,
+  RoomHostTask,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -187,35 +193,32 @@ export interface UndercoverRoomShellModelInput extends Omit<
   | 'isAudioPlaying'
   | 'seatSource'
   | 'bottomActions'
-  | 'hostManagement'
+  | 'buildHostManagement'
   | 'controlledSeat'
 > {
   readonly state: UndercoverState;
   readonly revision: number;
-  readonly myUserId: string;
   readonly controlledSeat: number | null;
   readonly selectedSeat: number | null;
   readonly isSelecting: boolean;
-  readonly isHost: boolean;
   readonly controls: UndercoverRoundControls;
   readonly release: () => void;
 }
 
 export interface UndercoverHostManagementInput {
   readonly state: UndercoverState;
-  readonly isHost: boolean;
   readonly capabilities: RoomCapabilities;
   readonly controls: UndercoverRoundControls;
 }
 
-/** Assembles the Undercover host panel from room facts and round controls. */
+/** Assembles the Undercover host panel from room facts and round controls. Host gating belongs to the shell factory. */
 export function createUndercoverHostManagement(
   input: UndercoverHostManagementInput,
-): RoomHostManagementModel | null {
-  const { state, isHost, capabilities, controls } = input;
-  if (!isHost) return null;
+): RoomHostManagementModel {
+  const { state, capabilities, controls } = input;
   const actions: RoomHostManagementAction[] = [];
   const roomActions: RoomHostManagementAction[] = [];
+  let task: RoomHostTask | null = null;
   const abortAction = () =>
     buildAbortGameAction({
       onPress: controls.abort,
@@ -252,10 +255,9 @@ export function createUndercoverHostManagement(
           showConfirmAlert(HOST_FLOW_CONFIRM.assignTitle, '将为每位玩家分配词卡', controls.start),
         isEnabled: !controls.isSubmitting && occupiedSeatCount === state.config.numberOfPlayers,
         disabledReason: startDisabledReason,
-        isPrimary: true,
-        remedy: buildShareRoomRemedy(capabilities.canShareRoom),
       });
       actions.push(startAction);
+      task = hostStartTask(HOST_ACTION_KEYS.assignRoles);
       if (capabilities.canConfigureGame.isAllowed)
         roomActions.push(
           buildRoomConfigAction({
@@ -274,9 +276,12 @@ export function createUndercoverHostManagement(
             onPress: capabilities.canClearSeats.execute,
           }),
         );
+      // 分享房间常驻大厅房间区，是座位不满时任务卡的补救。
+      roomActions.push(buildShareRoomAction(capabilities.canShareRoom));
       break;
     }
     case 'preparing':
+      // The preparing status is the shared bottom message; nothing awaits the host.
       actions.push(abortAction());
       break;
     case 'viewing': {
@@ -303,10 +308,12 @@ export function createUndercoverHostManagement(
           ),
         isEnabled: beginGate.isEnabled,
         disabledReason: beginGate.disabledReason,
-        isPrimary: true,
       });
       actions.push(beginAction);
-      if (getBotSeats(state.roster).some((seat) => !state.round.confirmedSeats.includes(seat)))
+      const hasUnviewedBot = getBotSeats(state.roster).some(
+        (seat) => !state.round.confirmedSeats.includes(seat),
+      );
+      if (hasUnviewedBot)
         actions.push(
           buildMarkBotsViewedAction({
             onPress: controls.markAllBotsViewed,
@@ -315,6 +322,12 @@ export function createUndercoverHostManagement(
           }),
         );
       actions.push(abortAction());
+      // The task is the start; until every seat viewed it is blocked by the
+      // sheet action's reason, with the bot scaffold as the remedy.
+      task = hostActionTask(
+        HOST_ACTION_KEYS.startGame,
+        hasUnviewedBot ? { remedyActionKey: HOST_ACTION_KEYS.markBotsViewed } : {},
+      );
       break;
     }
     case 'preparationFailed':
@@ -331,6 +344,7 @@ export function createUndercoverHostManagement(
           controls.retry,
         ),
       );
+      task = hostActionTask('retry');
       if (state.failureCode === 'inventoryExhausted')
         actions.push(
           buildPendingAwareHostAction(
@@ -348,19 +362,38 @@ export function createUndercoverHostManagement(
       actions.push(returnLobbyAction());
       break;
     case 'ongoing':
-      actions.push(
-        buildPendingAwareHostAction(
-          {
-            key: 'select-player',
-            label: '选择出局玩家',
-            icon: 'person-remove-outline',
-            variant: 'primary',
-            testID: 'undercover-select-player',
-          },
-          controls.isSubmitting,
-          controls.beginSelection,
-        ),
-      );
+      // 选人是房主本地模式：进入与退出是一对面板动作；选人中任务卡给
+      // 座位盘指示并以「取消选择」为退出。
+      if (controls.isSelecting) {
+        actions.push(
+          buildEnabledHostAction(
+            {
+              key: 'cancel-selection',
+              label: '取消选择',
+              icon: 'close-circle-outline',
+              variant: 'secondary',
+              testID: 'undercover-cancel-selection',
+            },
+            controls.cancelSelection,
+          ),
+        );
+        task = hostMessageTask('点座位盘选择本次出局玩家', { actionKey: 'cancel-selection' });
+      } else {
+        actions.push(
+          buildPendingAwareHostAction(
+            {
+              key: 'select-player',
+              label: '选择出局玩家',
+              icon: 'person-remove-outline',
+              variant: 'primary',
+              testID: 'undercover-select-player',
+            },
+            controls.isSubmitting,
+            controls.beginSelection,
+          ),
+        );
+        task = hostActionTask('select-player');
+      }
       actions.push(abortAction());
       break;
     case 'ended':
@@ -378,12 +411,14 @@ export function createUndercoverHostManagement(
         }),
       );
       actions.push(returnLobbyAction());
+      task =
+        state.phase === 'ended' ? hostClosingTask() : hostActionTask(HOST_ACTION_KEYS.returnLobby);
       break;
   }
   const sections: RoomHostManagementSection[] = [{ key: 'game', title: '游戏', actions }];
   if (roomActions.length > 0)
     sections.push({ key: 'room', title: '房间管理', actions: roomActions });
-  return { sections };
+  return { task, sections };
 }
 
 /** Assembles the Undercover RoomShellModel from the hook's projections. */
@@ -394,7 +429,7 @@ export function createUndercoverRoomShellModel(
   const seatSource = createUndercoverSeatDataSource({
     state,
     revision: input.revision,
-    myUserId: input.myUserId,
+    myUserId: input.viewer.userId,
     controlledSeat: input.controlledSeat,
     selectedSeat: input.selectedSeat,
     isSelecting: input.isSelecting,
@@ -405,16 +440,13 @@ export function createUndercoverRoomShellModel(
     seatSource,
     phase: state.phase,
     step: null,
-    bottomActions: createUndercoverBottomActions(input.controls, state, {
-      isHost: input.isHost,
-      mySeat: getUndercoverUserSeat(state, input.myUserId),
-    }),
-    hostManagement: createUndercoverHostManagement({
-      state,
-      isHost: input.isHost,
-      capabilities: input.capabilities,
-      controls: input.controls,
-    }),
+    bottomActions: createUndercoverBottomActions(input.controls, state, input.viewer),
+    buildHostManagement: () =>
+      createUndercoverHostManagement({
+        state,
+        capabilities: input.capabilities,
+        controls: input.controls,
+      }),
     controlledSeat: createControlledSeatModel({
       controlledSeat: input.controlledSeat,
       controlledBotName:

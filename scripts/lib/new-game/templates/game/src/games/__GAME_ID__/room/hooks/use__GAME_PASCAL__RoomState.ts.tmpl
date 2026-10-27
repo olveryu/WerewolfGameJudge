@@ -54,6 +54,7 @@ import {
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import { resolveEffectiveSeat, type RoomViewer } from '@/features/room/model/RoomViewer';
 //#cap identityViewing
 import { toRevealRoleData } from '@/games/__GAME_ID__/components/__GAME_PASCAL__RoleCardAdapter';
 //#end
@@ -141,10 +142,11 @@ export function use__GAME_PASCAL__RoomState(
   const state = snapshot.snapshot.state;
   const isHost = state.hostUserId === user.id;
   const mySeat = get__GAME_PASCAL__UserSeat(state, user.id);
+  const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
   const isLobby = state.phase.kind === 'lobby';
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot, takeOver } = botControl;
-  const effectiveSeat = controlledSeat ?? mySeat;
+  const effectiveSeat = resolveEffectiveSeat(viewer, controlledSeat);
   const { share, titleActions, gachaStatus } = useRoomPresentationController({
     roomCode: room.roomCode,
     gameDisplayName: '__GAME_DISPLAY_NAME__',
@@ -274,32 +276,33 @@ export function use__GAME_PASCAL__RoomState(
   // 面板）同时生效。工厂本体多出口且各出口在其他 cap 段内，无法在工厂
   // 里再嵌一层 cap，故锁点在本 hook 的组装出口——模型到达任何渲染面
   // 之前必经此处，与已落地两家「组装后统一过锁」的语义一致。
-  const hostManagement = applyAudioPlaybackLock(
+  const buildHostManagement = () =>
+    applyAudioPlaybackLock(
+      create__GAME_PASCAL__HostManagement({
+        state,
+        capabilities,
+        isSubmitting: submission.isSubmitting,
+        submit,
+      }),
+      {
+        isAudioPlaying: state.isAudioPlaying,
+        exemptActionKeys: __GAME_UPPER___AUDIO_LOCK_EXEMPT_ACTION_KEYS,
+      },
+    );
+//#end
+//#cap !audioOrchestration
+  const buildHostManagement = () =>
     create__GAME_PASCAL__HostManagement({
       state,
-      isHost,
       capabilities,
       isSubmitting: submission.isSubmitting,
       submit,
-    }),
-    {
-      isAudioPlaying: state.isAudioPlaying,
-      exemptActionKeys: __GAME_UPPER___AUDIO_LOCK_EXEMPT_ACTION_KEYS,
-    },
-  );
-//#end
-//#cap !audioOrchestration
-  const hostManagement = create__GAME_PASCAL__HostManagement({
-    state,
-    isHost,
-    capabilities,
-    isSubmitting: submission.isSubmitting,
-    submit,
-  });
+    });
 //#end
 
   const shellModel: RoomShellModel = create__GAME_PASCAL__RoomShellModel({
     roomCode: room.roomCode,
+    viewer,
     capabilities,
     onBack: () => entryController.requestExit(capabilities.shouldConfirmExit),
     onTitlePress: titleActions.handleTitlePress,
@@ -310,7 +313,6 @@ export function use__GAME_PASCAL__RoomState(
     connection: entryController.connection,
     state,
     revision: snapshot.snapshot.revision,
-    userId: user.id,
     controlledSeat,
     seatsVisuallyDisabled: submission.isSubmitting || seatController.isSubmitting,
     onSeatPress,
@@ -321,9 +323,7 @@ export function use__GAME_PASCAL__RoomState(
     onProfileLeaveSeat: profile.leaveSelf,
     share,
     isLobby,
-    isHost,
-    mySeat,
-    hostManagement,
+    buildHostManagement,
     releaseBot,
   });
 //#cap identityViewing

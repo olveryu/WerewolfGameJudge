@@ -33,6 +33,7 @@ import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { ROOM_SEAT_TAP_BLOCKED_TITLE } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import { resolveEffectiveSeat, type RoomViewer } from '@/features/room/model/RoomViewer';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
@@ -111,6 +112,10 @@ export function usePictionaryRoomScreenState({
   const revision = snapshot.snapshot.revision;
   const isHost = state.hostUserId === user.id;
   const mySeat = getPictionaryUserSeat(state, user.id);
+  const viewer = useMemo(
+    (): RoomViewer => ({ userId: user.id, isHost, seat: mySeat }),
+    [isHost, mySeat, user.id],
+  );
   const { controlledSeat, takeOver: takeOverBot, release: releaseBot } = useRoomBotControl();
   const {
     seatController,
@@ -132,7 +137,7 @@ export function usePictionaryRoomScreenState({
     entryReason,
   });
   const commandSubmission = useRoomCommandSubmission(getPictionaryRoomCommandFailureMessage);
-  const effectiveSeat = controlledSeat ?? mySeat;
+  const effectiveSeat = resolveEffectiveSeat(viewer, controlledSeat);
 
   // 接管是房主权限，无阶段条件（与入口 capability 同源，见 pictionaryRoomAdapter）。
   useBotTakeoverGuard({
@@ -250,11 +255,10 @@ export function usePictionaryRoomScreenState({
       }),
     [controlledSeat, revision, state, user.id],
   );
-  const hostManagement = useMemo(
+  const buildHostManagement = useCallback(
     () =>
       createPictionaryHostManagement({
         state,
-        isHost,
         isCommandSubmitting: commandSubmission.isSubmitting,
         capabilities,
         startRound,
@@ -287,7 +291,6 @@ export function usePictionaryRoomScreenState({
     [
       capabilities,
       commandSubmission.isSubmitting,
-      isHost,
       nextRound,
       returnToLobby,
       startRound,
@@ -308,6 +311,7 @@ export function usePictionaryRoomScreenState({
     (): RoomShellModel =>
       createPictionaryRoomShellModel({
         roomCode: room.roomCode,
+        viewer,
         capabilities,
         onBack: () => entryController.requestExit(capabilities.shouldConfirmExit),
         onTitlePress: handleTitlePress,
@@ -317,8 +321,6 @@ export function usePictionaryRoomScreenState({
         onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
         connection: entryController.connection,
         state,
-        isHost,
-        mySeat: effectiveSeat,
         seatSource,
         seatsVisuallyDisabled: commandSubmission.isSubmitting || seatController.isSubmitting,
         onSeatPress,
@@ -326,20 +328,18 @@ export function usePictionaryRoomScreenState({
         seatConfirmation,
         profile,
         share,
-        hostManagement,
+        buildHostManagement,
         controlledSeat: controlledSeatModel,
       }),
     [
+      buildHostManagement,
       capabilities,
       commandSubmission.isSubmitting,
       controlledSeatModel,
-      effectiveSeat,
       entryController,
       gachaStatus,
       handleTitlePress,
       handleTitleLongPress,
-      hostManagement,
-      isHost,
       navigation,
       onSeatLongPress,
       onSeatPress,
@@ -351,6 +351,7 @@ export function usePictionaryRoomScreenState({
       share,
       state,
       user,
+      viewer,
     ],
   );
 

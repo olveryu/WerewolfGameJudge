@@ -45,9 +45,14 @@ import {
   buildPendingAwareHostAction,
   buildReturnLobbyAction,
   buildRoomConfigAction,
+  buildShareRoomAction,
   buildStartGameAction,
   createViewingBeginGate,
+  HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
+  hostActionTask,
+  hostClosingTask,
+  hostStartTask,
   projectViewingProgress,
   seatShortageReason,
   viewedProgressReason,
@@ -63,10 +68,9 @@ import {
 } from '@/features/room/model/RoomBottomActions';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
-import {
-  buildShareRoomRemedy,
-  type RoomHostManagementAction,
-  type RoomHostManagementSection,
+import type {
+  RoomHostManagementAction,
+  RoomHostManagementSection,
 } from '@/features/room/model/RoomHostManagement';
 import type {
   RoomSeatDataSource,
@@ -75,6 +79,7 @@ import type {
 } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -332,8 +337,8 @@ export function isAvalonRoleId(roleId: string): roleId is AvalonRoleId {
 export interface AvalonBottomActionsInput {
   readonly state: AvalonState;
   readonly isLobby: boolean;
-  readonly isHost: boolean;
-  readonly mySeat: number | null;
+  readonly viewer: RoomViewer;
+  /** The seat the viewer acts as (own or taken-over bot); null for a spectator. */
   readonly effectiveSeat: number | null;
   readonly isSubmitting: boolean;
   readonly canControlBots: boolean;
@@ -370,7 +375,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
   let message: string | null = null;
   if (input.isLobby) {
     // 大厅客人等分配（个人提示）；房主走房主面板。
-    if (!input.isHost && input.mySeat !== null) message = '等待房主分配角色';
+    if (!input.viewer.isHost && input.viewer.seat !== null) message = '等待房主分配角色';
     return { kind: 'stacked', message, progress: null, layout: { primary, secondary, ghost } };
   }
   // 查看身份：局内常驻（对齐狼人杀）。用 effectiveSeat：房主代打 bot 时也能看 bot 的身份。
@@ -386,6 +391,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
       buildViewIdentityButton(viewIdentityAction, {
         key: 'viewRole',
         variant: isViewingStep ? 'primary' : 'secondary',
+        audience: 'participant',
         testID: 'avalon-view-role',
       }),
     );
@@ -418,6 +424,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
         primary.push({
           key: 'nightInfo',
           label: '确认信息',
+          audience: 'participant',
           variant: 'primary',
           size: 'md',
           isEnabled: true,
@@ -443,6 +450,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
       secondary.push({
         key: 'earlyStrike',
         label: '取消刺杀',
+        audience: 'participant',
         variant: 'secondary',
         size: 'md',
         isEnabled: true,
@@ -456,6 +464,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
     secondary.push({
       key: 'earlyStrike',
       label: '刺杀',
+      audience: 'participant',
       variant: 'secondary',
       size: 'md',
       isEnabled: true,
@@ -469,6 +478,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
     secondary.push({
       key: 'ladyResult',
       label: '查验结果',
+      audience: 'participant',
       variant: 'secondary',
       size: 'md',
       isEnabled: true,
@@ -491,6 +501,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
             primary.push({
               key: 'preselectTeam',
               label: '预选队伍',
+              audience: 'participant',
               variant: 'primary',
               size: 'md',
               isEnabled: true,
@@ -501,6 +512,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
             primary.push({
               key: 'preselectTeam',
               label: '预选队伍',
+              audience: 'participant',
               variant: 'primary',
               size: 'md',
               isEnabled: false,
@@ -515,6 +527,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
             primary.push({
               key: 'proposeTeam',
               label: '最终队伍',
+              audience: 'participant',
               variant: 'primary',
               size: 'md',
               isEnabled: true,
@@ -525,6 +538,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
             primary.push({
               key: 'proposeTeam',
               label: '最终队伍',
+              audience: 'participant',
               variant: 'primary',
               size: 'md',
               isEnabled: false,
@@ -547,6 +561,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
         primary.push({
           key: 'openVote',
           label: instruction.myBallot === null ? '去投票' : '修改投票',
+          audience: 'participant',
           variant: 'primary',
           size: 'md',
           isEnabled: true,
@@ -572,6 +587,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
         primary.push({
           key: 'openQuest',
           label: instruction.myPlay === null ? '去出牌' : '修改出牌',
+          audience: 'participant',
           variant: 'primary',
           size: 'md',
           isEnabled: true,
@@ -604,6 +620,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           primary.push({
             key: 'ladyAcknowledge',
             label: '查看查验请求',
+            audience: 'participant',
             variant: 'primary',
             size: 'md',
             isEnabled: true,
@@ -641,17 +658,14 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
       secondary.push({
         key: 'avalonReview',
         label: '本局复盘',
+        audience: 'anyone',
         variant: 'secondary',
         size: 'md',
         isEnabled: true,
         onPress: input.onReviewPress,
         testID: 'avalon-review-open',
       });
-      message = buildEndedWaitingMessage({
-        isEnded: true,
-        isHost: input.isHost,
-        mySeat: input.mySeat,
-      });
+      message = buildEndedWaitingMessage({ isEnded: true, viewer: input.viewer });
       break;
     default:
       break;
@@ -672,15 +686,12 @@ export interface AvalonRoomShellModelInput extends Omit<
 > {
   readonly state: AvalonState;
   readonly revision: number;
-  readonly userId: string;
   readonly controlledSeat: number | null;
   readonly seatController: RoomSeatController;
   readonly profileSelection: RoomProfileSelection | null;
   readonly onProfileClose: () => void;
   readonly onProfileLeaveSeat: () => void;
   readonly isLobby: boolean;
-  readonly isHost: boolean;
-  readonly mySeat: number | null;
   readonly effectiveSeat: number | null;
   readonly onViewRolePress: () => void;
   readonly onNightInfoPress: () => void;
@@ -702,7 +713,6 @@ export interface AvalonRoomShellModelInput extends Omit<
 
 export interface AvalonHostManagementInput {
   readonly state: AvalonState;
-  readonly isHost: boolean;
   readonly capabilities: Pick<
     RoomCapabilities,
     'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'
@@ -834,11 +844,10 @@ function createAvalonEndedActions(input: AvalonHostManagementInput): RoomHostMan
   ];
 }
 
-/** Assembles the Avalon host panel for the current phase. */
+/** Assembles the Avalon host panel for the current phase. Host gating belongs to the shell factory. */
 export function createAvalonHostManagement(
   input: AvalonHostManagementInput,
-): RoomHostManagementModel | null {
-  if (!input.isHost) return null;
+): RoomHostManagementModel {
   const { state, capabilities } = input;
   const submit = input.submit;
   // Every exit passes through the one audio playback lock: while the
@@ -847,6 +856,7 @@ export function createAvalonHostManagement(
   const applyLock = (model: RoomHostManagementModel): RoomHostManagementModel =>
     applyAudioPlaybackLock(
       {
+        task: model.task,
         sections: [
           ...model.sections.filter((section) => section.actions.length > 0),
           ...createAvalonHostTools(input),
@@ -881,17 +891,20 @@ export function createAvalonHostManagement(
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
-      isPrimary: true,
-      remedy: buildShareRoomRemedy(capabilities.canShareRoom),
     });
     return applyLock({
+      task: hostStartTask(HOST_ACTION_KEYS.assignRoles),
       sections: [
         {
           key: 'game',
           title: '游戏',
           actions: [assignAction],
         },
-        { key: 'room', title: '房间管理', actions: roomActions },
+        {
+          key: 'room',
+          title: '房间管理',
+          actions: [...roomActions, buildShareRoomAction(capabilities.canShareRoom)],
+        },
       ],
     });
   }
@@ -916,7 +929,6 @@ export function createAvalonHostManagement(
       isEnabled: beginGate.isEnabled,
       disabledReason: beginGate.disabledReason,
       isLoading: input.isSubmitting,
-      isPrimary: true,
     });
     const sections: RoomHostManagementSection[] = [
       {
@@ -926,10 +938,22 @@ export function createAvalonHostManagement(
       },
     ];
     sections.push({ key: 'room', title: '房间管理', actions: roomActions });
-    return applyLock({ sections });
+    const hasUnviewedBot = participants.some(
+      (participant) => participant.isBot && !state.roleViewedSeats.includes(participant.seat),
+    );
+    // The task is the start; until every seat viewed it is blocked by the
+    // sheet action's reason, with the bot scaffold as the remedy.
+    return applyLock({
+      task: hostActionTask(
+        HOST_ACTION_KEYS.startGame,
+        hasUnviewedBot ? { remedyActionKey: HOST_ACTION_KEYS.markBotsViewed } : {},
+      ),
+      sections,
+    });
   }
   if (state.phase.kind === 'ended') {
     return applyLock({
+      task: hostClosingTask(),
       sections: [
         {
           key: 'current-flow',
@@ -939,7 +963,9 @@ export function createAvalonHostManagement(
       ],
     });
   }
+  // 局中投票 / 任务自动结算，房主无推进命令：此刻没有待操作。
   return applyLock({
+    task: null,
     sections: [{ key: 'room', title: '房间管理', actions: roomActions }],
   });
 }
@@ -950,7 +976,7 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
   const seatSource = createAvalonSeatDataSource({
     state,
     revision: input.revision,
-    userId: input.userId,
+    userId: input.viewer.userId,
     controlledSeat: input.controlledSeat,
   });
   return createRoomShellModel({
@@ -972,8 +998,7 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
     bottomActions: createAvalonBottomActions({
       state,
       isLobby: input.isLobby,
-      isHost: input.isHost,
-      mySeat: input.mySeat,
+      viewer: input.viewer,
       effectiveSeat: input.effectiveSeat,
       isSubmitting: input.isSubmitting,
       canControlBots: input.canControlBots,

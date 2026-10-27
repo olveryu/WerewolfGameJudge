@@ -43,8 +43,7 @@ import type {
   StaticButtonAction,
 } from '@/games/werewolf/room/hooks/bottomLayoutConfig';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
-import type { PanelFlowProgress, PanelFlowViewer } from '@/games/werewolf/room/panelFlow';
-import { buildPanelFlowSteps, resolvePanelFlowHint } from '@/games/werewolf/room/panelFlow';
+import type { PanelFlowProgress } from '@/games/werewolf/room/panelFlow';
 import type { ActionIntent, HostControlEvent } from '@/games/werewolf/room/policy/types';
 import { createSheriffElectionDockModel } from '@/games/werewolf/room/sheriffElectionDockModel';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
@@ -271,6 +270,7 @@ export function createWerewolfBottomActionLayout(input: {
     const base = {
       key: button.key,
       label: button.label,
+      audience: button.audience,
       icon: button.icon,
       variant: button.variant,
       size: button.size,
@@ -317,6 +317,7 @@ export function createWerewolfBottomActionLayout(input: {
 export interface WerewolfRoomShellModelInput extends Pick<
   RoomShellModelWithHeaderInput,
   | 'roomCode'
+  | 'viewer'
   | 'capabilities'
   | 'connection'
   | 'seatConfirmation'
@@ -333,7 +334,6 @@ export interface WerewolfRoomShellModelInput extends Pick<
   readonly onAvatarPress: () => void;
   // Room facts.
   readonly roomStatus: GameStatus;
-  readonly isHost: boolean;
   readonly isAudioPlaying: boolean;
   readonly isActionSubmitting: boolean;
   readonly isStartingGame: boolean;
@@ -346,20 +346,8 @@ export interface WerewolfRoomShellModelInput extends Pick<
   readonly actionMessage: string | null;
   /** Non-host phase hint; the bottom action message is its single home. Null for the host. */
   readonly guideMessage: string | null;
-  /**
-   * Local Day/Ended panel-flow progress for the current game (see
-   * panelFlow.ts). Optional so focused unit tests of the message
-   * channel can omit it; the Screen always supplies it.
-   */
-  readonly panelFlow?: PanelFlowProgress;
-  /**
-   * Panel-flow viewer facts for the current user (see panelFlow.ts).
-   * Optional alongside panelFlow for the same focused tests; when
-   * omitted it defaults from isHost to a participant viewer (host
-   * when host, otherwise an authorized player). The Screen always
-   * supplies the real viewer — spectators get no step bar.
-   */
-  readonly panelFlowViewer?: PanelFlowViewer;
+  /** Local Day/Ended host flow progress for the current game (see panelFlow.ts). */
+  readonly panelFlow: PanelFlowProgress;
   readonly gameState: LocalGameState;
   // Seats and takeover.
   readonly seatViewModels: readonly SeatViewModel[];
@@ -397,46 +385,49 @@ export interface WerewolfRoomShellModelInput extends Pick<
  * Screen cannot drift from the factories' contracts.
  */
 export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput): RoomShellModel {
-  const hostManagement = createWerewolfHostManagement({
-    isHost: input.isHost,
-    roomStatus: input.roomStatus,
-    isPlagueMode: input.isPlagueMode,
-    seatedCount: input.seatedCount,
-    viewedCount: input.viewedCount,
-    totalSeats: input.totalSeats,
-    isAudioPlaying: input.isAudioPlaying,
-    isStartingGame: input.isStartingGame,
-    isHostActionSubmitting: input.isHostActionSubmitting,
-    mvpSeat: input.mvpSeat,
-    onSelectMvp: input.onSelectMvp,
-    // AU-17: scaffold actions key off bot existence. The mark action
-    // additionally requires an unviewed bot seat, matching the other
-    // games: once every bot is marked there is nothing left to mark.
-    canMarkAllBotsViewed:
-      input.hasBots &&
-      input.roomStatus === GameStatus.Assigned &&
-      Array.from(input.gameState.players.values()).some(
-        (player) => player?.isBot === true && !player.hasViewedRole,
-      ),
-    canMarkAllBotsGroupConfirmed:
-      input.hasBots &&
-      !input.isAudioPlaying &&
-      input.roomStatus === GameStatus.Ongoing &&
-      input.currentSchemaKind === 'groupConfirm',
-    capabilities: input.capabilities,
-    sheriffElection: input.sheriffElectionPanel,
-    onHostControl: input.onHostControl,
-    onMusicSettings: input.onMusicSettings,
-    onMarkAllBotsViewed: input.onMarkAllBotsViewed,
-    onMarkAllBotsGroupConfirmed: input.onMarkAllBotsGroupConfirmed,
-    onNightReview: input.onNightReview,
-    onLastNightInfo: input.onLastNightInfo,
-  });
+  const isHost = input.viewer.isHost;
+  const buildHostManagement = () =>
+    createWerewolfHostManagement({
+      roomStatus: input.roomStatus,
+      panelFlow: input.panelFlow,
+      isReviewShared: (input.gameState.nightReviewAllowedSeats ?? []).length > 0,
+      isPlagueMode: input.isPlagueMode,
+      seatedCount: input.seatedCount,
+      viewedCount: input.viewedCount,
+      totalSeats: input.totalSeats,
+      isAudioPlaying: input.isAudioPlaying,
+      isStartingGame: input.isStartingGame,
+      isHostActionSubmitting: input.isHostActionSubmitting,
+      mvpSeat: input.mvpSeat,
+      onSelectMvp: input.onSelectMvp,
+      // AU-17: scaffold actions key off bot existence. The mark action
+      // additionally requires an unviewed bot seat, matching the other
+      // games: once every bot is marked there is nothing left to mark.
+      canMarkAllBotsViewed:
+        input.hasBots &&
+        input.roomStatus === GameStatus.Assigned &&
+        Array.from(input.gameState.players.values()).some(
+          (player) => player?.isBot === true && !player.hasViewedRole,
+        ),
+      canMarkAllBotsGroupConfirmed:
+        input.hasBots &&
+        !input.isAudioPlaying &&
+        input.roomStatus === GameStatus.Ongoing &&
+        input.currentSchemaKind === 'groupConfirm',
+      capabilities: input.capabilities,
+      sheriffElection: input.sheriffElectionPanel,
+      onHostControl: input.onHostControl,
+      onMusicSettings: input.onMusicSettings,
+      onMarkAllBotsViewed: input.onMarkAllBotsViewed,
+      onMarkAllBotsGroupConfirmed: input.onMarkAllBotsGroupConfirmed,
+      onNightReview: input.onNightReview,
+      onLastNightInfo: input.onLastNightInfo,
+    });
 
   const seatSource = createWerewolfSeatDataSource({
     seats: input.seatViewModels,
     controlledSeat: input.controlledSeat,
-    showBotRoles: input.hasBots && input.isHost,
+    showBotRoles: input.hasBots && isHost,
     showLevels: input.roomStatus !== GameStatus.Ongoing && input.roomStatus !== GameStatus.Day,
     decorationsEnabled:
       input.roomStatus !== GameStatus.Ongoing && input.roomStatus !== GameStatus.Day,
@@ -485,7 +476,7 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
       ? input.onSeatLongPressed
       : null,
     bottomActions,
-    hostManagement,
+    buildHostManagement,
     controlledSeat: controlledSeatModel,
   });
 }
@@ -498,51 +489,14 @@ function createWerewolfBottomActions(
     return createSheriffElectionDockModel({
       election: input.sheriffElectionPanel,
       roomTools: roomBottomActionLayout,
+      isHost: input.viewer.isHost,
       isInspectorVisible: input.isSheriffInspectorVisible,
       isAudioPlaying: input.isAudioPlaying,
       openDetails: input.openSheriffDetails,
     });
   }
 
-  // Day/Ended panel flow: the step bar takes the message row whenever
-  // the Screen supplies flow progress. buildPanelFlowSteps is null for
-  // every other status, so this only ever engages at Day/Ended.
-  const panelFlow = input.panelFlow;
-  const flowViewer: PanelFlowViewer = input.panelFlowViewer ?? {
-    role: input.isHost ? 'host' : 'player',
-    reviewShared: false,
-  };
-  const flowSteps =
-    panelFlow === undefined
-      ? null
-      : buildPanelFlowSteps({
-          roomStatus: input.roomStatus,
-          progress: panelFlow,
-          viewer: flowViewer,
-          onOpenLastNightInfo: input.onLastNightInfo,
-          onOpenNightReview: input.onNightReview,
-        });
-  const flowHint =
-    panelFlow === undefined
-      ? null
-      : resolvePanelFlowHint({
-          roomStatus: input.roomStatus,
-          isHost: input.isHost,
-          progress: panelFlow,
-          reviewShared: flowViewer.reviewShared,
-        });
-
   if (input.roomStatus === GameStatus.Ended) {
-    if (flowSteps !== null) {
-      return {
-        kind: 'stacked',
-        message: null,
-        progress: null,
-        steps: flowSteps,
-        hint: flowHint,
-        layout: roomBottomActionLayout,
-      };
-    }
     return {
       kind: 'stacked',
       // The live actionMessage is '' (not null) once no action role remains,
@@ -564,17 +518,14 @@ function createWerewolfBottomActions(
       : null;
   return {
     kind: 'stacked',
+    // The plague-mode host instruction is the host task (card); the
+    // bottom message stays the participant channel.
     message: isAudioPlaybackLocked(input.isAudioPlaying)
       ? null
-      : input.imActioner ||
-          (input.isPlagueMode && input.isHost && input.roomStatus === GameStatus.Ready)
-        ? input.isPlagueMode && input.isHost && input.roomStatus === GameStatus.Ready
-          ? '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程'
-          : input.actionMessage
+      : input.imActioner
+        ? input.actionMessage
         : (stepWaitingMessage ?? input.guideMessage),
     progress,
-    steps: input.isAudioPlaying ? null : flowSteps,
-    hint: input.isAudioPlaying ? null : flowHint,
     layout: roomBottomActionLayout,
   };
 }

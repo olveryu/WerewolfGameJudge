@@ -125,7 +125,6 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
     connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
     state,
     revision: 7,
-    userId: 'host',
     controlledSeat: null,
     seatsVisuallyDisabled: false,
     onSeatPress: jest.fn(),
@@ -136,8 +135,7 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
     onProfileLeaveSeat: jest.fn(),
     share,
     isLobby: true,
-    isHost: true,
-    mySeat: 0,
+    viewer: { userId: 'host', isHost: true, seat: 0 },
     effectiveSeat: 0,
     onViewRolePress: jest.fn(),
     onNightInfoPress: jest.fn(),
@@ -153,7 +151,7 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
     onReviewPress: jest.fn(),
     strikePickMode: false,
     onCancelEarlyStrikePress: jest.fn(),
-    hostManagement: null,
+    buildHostManagement: () => null,
     canControlBots: true,
     releaseBot: jest.fn(),
   };
@@ -205,8 +203,7 @@ describe('createAvalonRoomShellModel', () => {
     const { state } = session(5);
     const model = createAvalonRoomShellModel({
       ...baseInput(state),
-      isHost: false,
-      mySeat: 2,
+      viewer: { userId: 'u2', isHost: false, seat: 2 },
       effectiveSeat: 2,
     });
     expect(model.bottomActions).toEqual({
@@ -281,9 +278,12 @@ describe('createAvalonRoomShellModel', () => {
     const nightInput = {
       ...baseInput(running.state),
       isLobby: false,
-      mySeat: evilSeat,
+      viewer: {
+        userId: evilSeat === 0 ? 'host' : `u${evilSeat}`,
+        isHost: evilSeat === 0,
+        seat: evilSeat,
+      },
       effectiveSeat: evilSeat,
-      userId: evilSeat === 0 ? 'host' : `u${evilSeat}`,
       onNightInfoPress,
     };
     // Confirmation runs parallel to the narration: right after the
@@ -336,9 +336,11 @@ describe('createAvalonRoomShellModel', () => {
         const model = createAvalonRoomShellModel({
           ...baseInput(state),
           isLobby: false,
-          userId: mySeat === null ? 'spectator' : seatUser(mySeat),
-          isHost: mySeat === 0,
-          mySeat,
+          viewer: {
+            userId: mySeat === null ? 'spectator' : seatUser(mySeat),
+            isHost: mySeat === 0,
+            seat: mySeat,
+          },
           effectiveSeat: mySeat,
         });
         expect(model.isAudioPlaying).toBe(state.isAudioPlaying);
@@ -365,9 +367,12 @@ describe('createAvalonRoomShellModel', () => {
     const model = createAvalonRoomShellModel({
       ...baseInput(running.state),
       isLobby: false,
-      mySeat: evilSeat,
+      viewer: {
+        userId: evilSeat === 0 ? 'host' : `u${evilSeat}`,
+        isHost: evilSeat === 0,
+        seat: evilSeat,
+      },
       effectiveSeat: evilSeat,
-      userId: evilSeat === 0 ? 'host' : `u${evilSeat}`,
       onNightInfoPress,
     });
     if (model.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
@@ -478,10 +483,8 @@ function shellFor(
   const model = createAvalonRoomShellModel({
     ...baseInput(running.state),
     isLobby: false,
-    isHost: seat === 0,
-    mySeat: seat,
+    viewer: { userId: seatUser(seat), isHost: seat === 0, seat },
     effectiveSeat: seat,
-    userId: seatUser(seat),
     ...overrides,
   });
   if (model.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');

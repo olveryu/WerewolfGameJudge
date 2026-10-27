@@ -51,6 +51,14 @@ function lockAction(
  * as-is. Games call this once at their host-management factory exit.
  */
 export function applyAudioPlaybackLock(
+  model: RoomHostManagementModel,
+  input: AudioPlaybackLockInput,
+): RoomHostManagementModel;
+export function applyAudioPlaybackLock(
+  model: RoomHostManagementModel | null,
+  input: AudioPlaybackLockInput,
+): RoomHostManagementModel | null;
+export function applyAudioPlaybackLock(
   model: RoomHostManagementModel | null,
   input: AudioPlaybackLockInput,
 ): RoomHostManagementModel | null {

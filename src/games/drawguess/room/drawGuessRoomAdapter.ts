@@ -26,17 +26,18 @@ import {
   buildNextRoundAction,
   buildReturnLobbyAction,
   buildRoomConfigAction,
+  buildShareRoomAction,
   buildStartGameAction,
+  HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
+  hostClosingTask,
+  hostStartTask,
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
-import {
-  buildShareRoomRemedy,
-  type RoomHostManagementAction,
-} from '@/features/room/model/RoomHostManagement';
+import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -101,21 +102,17 @@ export interface DrawGuessRoomShellModelInput extends Omit<
 > {
   readonly state: DrawGuessState;
   readonly revision: number;
-  readonly userId: string;
   readonly controlledSeat: number | null;
   readonly seatController: RoomSeatController;
   readonly profileSelection: RoomProfileSelection | null;
   readonly onProfileClose: () => void;
   readonly onProfileLeaveSeat: () => void;
   readonly isLobby: boolean;
-  readonly isHost: boolean;
-  readonly mySeat: number | null;
   readonly releaseBot: () => void;
 }
 
 export interface DrawGuessHostManagementInput {
   readonly state: DrawGuessState;
-  readonly isHost: boolean;
   readonly capabilities: Pick<
     RoomCapabilities,
     'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'
@@ -124,11 +121,10 @@ export interface DrawGuessHostManagementInput {
   readonly submit: (label: string, command: DrawGuessCommand) => Promise<boolean>;
 }
 
-/** Assembles the DrawGuess host panel for the current phase. */
+/** Assembles the DrawGuess host panel for the current phase. Host gating belongs to the shell factory. */
 export function createDrawGuessHostManagement(
   input: DrawGuessHostManagementInput,
-): RoomHostManagementModel | null {
-  if (!input.isHost) return null;
+): RoomHostManagementModel {
   const { state, capabilities } = input;
   const roomActions: RoomHostManagementAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
@@ -150,22 +146,26 @@ export function createDrawGuessHostManagement(
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
-      isPrimary: true,
-      remedy: buildShareRoomRemedy(capabilities.canShareRoom),
     });
     return {
+      task: hostStartTask(HOST_ACTION_KEYS.startGame),
       sections: [
         {
           key: 'game',
           title: '游戏',
           actions: [startAction],
         },
-        { key: 'room', title: '房间管理', actions: roomActions },
+        {
+          key: 'room',
+          title: '房间管理',
+          actions: [...roomActions, buildShareRoomAction(capabilities.canShareRoom)],
+        },
       ],
     };
   }
   if (state.phase.kind === 'ended') {
     return {
+      task: hostClosingTask(),
       sections: [
         {
           key: 'current-flow',
@@ -196,8 +196,9 @@ export function createDrawGuessHostManagement(
       ],
     };
   }
-  // 局中房主面板常驻（裁决⑧，对齐狼人杀/阿瓦隆）：房间管理区始终在。
+  // 局中房主面板常驻（裁决⑧，对齐狼人杀/阿瓦隆）：房间管理区始终在；此刻没有待操作。
   return {
+    task: null,
     sections: [{ key: 'room', title: '房间管理', actions: roomActions }],
   };
 }
@@ -208,7 +209,7 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
   const seatSource = createDrawGuessSeatDataSource({
     state,
     revision: input.revision,
-    userId: input.userId,
+    userId: input.viewer.userId,
     controlledSeat: input.controlledSeat,
   });
   return createRoomShellModel({
@@ -231,11 +232,7 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
       message:
         state.phase.kind === 'roundEnd'
           ? '等待本轮结算'
-          : buildLobbyHostStartMessage({
-              isLobby: input.isLobby,
-              isHost: input.isHost,
-              mySeat: input.mySeat,
-            }),
+          : buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
       progress: null,
       layout: { primary: [], secondary: [], ghost: [] },
     },

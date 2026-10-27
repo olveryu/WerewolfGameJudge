@@ -47,6 +47,7 @@ const ROOM_TOOLS: RoomBottomActionLayout = {
     {
       key: 'viewRole',
       label: '查看身份',
+      audience: 'participant',
       icon: 'eye-outline',
       variant: 'primary',
       size: 'lg',
@@ -59,6 +60,7 @@ const ROOM_TOOLS: RoomBottomActionLayout = {
     {
       key: 'restart',
       label: '重新开始',
+      audience: 'participant',
       variant: 'ghost',
       size: 'md',
       isEnabled: true,
@@ -76,6 +78,7 @@ describe('createSheriffElectionDockModel', () => {
     const dock = createSheriffElectionDockModel({
       election: createElection({ canRegister: true }),
       roomTools: ROOM_TOOLS,
+      isHost: false,
       isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: jest.fn(),
@@ -104,6 +107,7 @@ describe('createSheriffElectionDockModel', () => {
     const dock = createSheriffElectionDockModel({
       election,
       roomTools: ROOM_TOOLS,
+      isHost: false,
       isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: jest.fn(),
@@ -131,6 +135,7 @@ describe('createSheriffElectionDockModel', () => {
     const dock = createSheriffElectionDockModel({
       election,
       roomTools: ROOM_TOOLS,
+      isHost: false,
       isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: jest.fn(),
@@ -150,6 +155,7 @@ describe('createSheriffElectionDockModel', () => {
     const dock = createSheriffElectionDockModel({
       election,
       roomTools: ROOM_TOOLS,
+      isHost: false,
       isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: jest.fn(),
@@ -174,6 +180,7 @@ describe('createSheriffElectionDockModel', () => {
     const dock = createSheriffElectionDockModel({
       election,
       roomTools: ROOM_TOOLS,
+      isHost: false,
       isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: jest.fn(),
@@ -188,6 +195,7 @@ describe('createSheriffElectionDockModel', () => {
     const dock = createSheriffElectionDockModel({
       election,
       roomTools: ROOM_TOOLS,
+      isHost: false,
       isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: jest.fn(),
@@ -204,6 +212,7 @@ describe('createSheriffElectionDockModel', () => {
     const dock = createSheriffElectionDockModel({
       election,
       roomTools: ROOM_TOOLS,
+      isHost: false,
       isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: jest.fn(),
@@ -227,6 +236,7 @@ describe('createSheriffElectionDockModel', () => {
     const dock = createSheriffElectionDockModel({
       election,
       roomTools: ROOM_TOOLS,
+      isHost: false,
       isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails,
@@ -255,6 +265,7 @@ describe('createSheriffElectionDockModel', () => {
           {
             key: 'nightReview',
             label: '本局复盘',
+            audience: 'anyone',
             variant: 'secondary',
             size: 'md',
             testID: TESTIDS.nightReviewBottomButton,
@@ -263,6 +274,7 @@ describe('createSheriffElectionDockModel', () => {
           },
         ],
       },
+      isHost: false,
       isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: jest.fn(),
@@ -281,6 +293,39 @@ describe('createSheriffElectionDockModel', () => {
     expect(openNightReview).toHaveBeenCalledTimes(1);
   });
 
+  it('leaves the trailing review tool to non-hosts: the host reaches the review from host management', () => {
+    const dock = createSheriffElectionDockModel({
+      election: createElection({
+        phase: 'firstVote',
+        canVote: true,
+        myBallot: { kind: 'notSubmitted' },
+        voteProgress: { submittedCount: 0, eligibleCount: 2 },
+      }),
+      roomTools: {
+        ...ROOM_TOOLS,
+        secondary: [
+          {
+            key: 'nightReview',
+            label: '本局复盘',
+            audience: 'anyone',
+            variant: 'secondary',
+            size: 'md',
+            testID: TESTIDS.nightReviewBottomButton,
+            isEnabled: true,
+            onPress: jest.fn(),
+          },
+        ],
+      },
+      isHost: true,
+      isInspectorVisible: false,
+      isAudioPlaying: false,
+      openDetails: jest.fn(),
+    });
+
+    expect(dock.trailing).toBeNull();
+    expect(dock.leading).toMatchObject({ key: 'viewRole' });
+  });
+
   it('directs wide-layout voting to the persistent inspector', () => {
     const election = createElection({
       phase: 'firstVote',
@@ -291,6 +336,7 @@ describe('createSheriffElectionDockModel', () => {
     const dock = createSheriffElectionDockModel({
       election,
       roomTools: ROOM_TOOLS,
+      isHost: false,
       isInspectorVisible: true,
       isAudioPlaying: false,
       openDetails: jest.fn(),
@@ -305,6 +351,7 @@ describe('createSheriffElectionDockModel', () => {
     const dock = createSheriffElectionDockModel({
       election,
       roomTools: ROOM_TOOLS,
+      isHost: false,
       isInspectorVisible: false,
       isAudioPlaying: true,
       openDetails: jest.fn(),
@@ -324,6 +371,7 @@ describe('createSheriffElectionDockModel', () => {
     const cancelDock = createSheriffElectionDockModel({
       election: createElection({ canCancelRegistration: true }),
       roomTools: ROOM_TOOLS,
+      isHost: false,
       isInspectorVisible: false,
       isAudioPlaying: true,
       openDetails: jest.fn(),
@@ -338,6 +386,7 @@ describe('createSheriffElectionDockModel', () => {
     const withdrawDock = createSheriffElectionDockModel({
       election: createElection({ canWithdraw: true }),
       roomTools: ROOM_TOOLS,
+      isHost: false,
       isInspectorVisible: false,
       isAudioPlaying: true,
       openDetails: jest.fn(),
@@ -361,6 +410,7 @@ describe('createSheriffElectionDockModel', () => {
         voteProgress: { submittedCount: 0, eligibleCount: 2 },
       }),
       roomTools: ROOM_TOOLS,
+      isHost: false,
       isInspectorVisible: false,
       isAudioPlaying: true,
       openDetails,
@@ -380,6 +430,7 @@ describe('createSheriffElectionDockModel', () => {
     const dock = createSheriffElectionDockModel({
       election,
       roomTools: ROOM_TOOLS,
+      isHost: false,
       isInspectorVisible: false,
       isAudioPlaying: true,
       openDetails: jest.fn(),
@@ -404,6 +455,7 @@ describe('createSheriffElectionDockModel', () => {
           {
             key: 'viewRole',
             label: '查看身份',
+            audience: 'participant',
             variant: 'primary',
             size: 'lg',
             isEnabled: true,
@@ -411,6 +463,7 @@ describe('createSheriffElectionDockModel', () => {
           },
         ],
       },
+      isHost: false,
       isInspectorVisible: false,
       isAudioPlaying: true,
       openDetails: jest.fn(),

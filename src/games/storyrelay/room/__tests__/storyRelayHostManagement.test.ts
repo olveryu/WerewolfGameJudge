@@ -11,11 +11,11 @@ import {
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
 
-import { resolveHostConsolePrimary } from '@/features/room/model/resolveHostConsolePrimary';
 import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import { hostTaskBody } from '@/test-utils/hostTask';
 
 import { createStoryRelayHostManagement } from '../storyRelayRoomAdapter';
 
@@ -44,10 +44,9 @@ function capabilities(
 
 const submit = jest.fn(async () => true);
 
-function build(state: StoryRelayState, isHost: boolean, isSetup: boolean) {
+function build(state: StoryRelayState, isSetup: boolean) {
   return createStoryRelayHostManagement({
     state,
-    isHost,
     capabilities: capabilities(isSetup),
     isSubmitting: false,
     submit,
@@ -123,16 +122,10 @@ function session() {
 }
 
 describe('createStoryRelayHostManagement', () => {
-  it('returns null for non-hosts', () => {
-    const game = session();
-    game.seatHost();
-    expect(build(game.state, false, true)).toBeNull();
-  });
-
   it('pins the lobby panel: start gated on a full room, room trio present', () => {
     const game = session();
     game.seatHost();
-    const model = build(game.state, true, true);
+    const model = build(game.state, true);
     const start = model?.sections[0]?.actions[0];
     expect(start).toMatchObject({
       key: 'start-game',
@@ -144,25 +137,26 @@ describe('createStoryRelayHostManagement', () => {
       'configure-game',
       'fill-bots',
       'clear-seats',
+      'share-room',
     ]);
     game.send({ type: 'room.seat.fillBots' });
-    expect(build(game.state, true, true)?.sections[0]?.actions[0]).toMatchObject({
+    expect(build(game.state, true)?.sections[0]?.actions[0]).toMatchObject({
       isEnabled: true,
     });
   });
 
-  it('derives the console primary from the lobby start gate', () => {
+  it('derives the task body from the lobby start gate', () => {
     const game = session();
     game.seatHost();
-    const blocked = resolveHostConsolePrimary(build(game.state, true, true)!);
-    expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
-    if (blocked?.kind !== 'blocked') throw new Error('expected a blocked console primary');
+    const blocked = hostTaskBody(build(game.state, true));
+    expect(blocked).toMatchObject({ action: { key: 'start-game', label: '开始游戏' } });
+    if (blocked?.kind !== 'blocked') throw new Error('expected a blocked task body');
     expect(blocked.reason).toBe('座位尚未坐满（还差 3 人）');
     expect(blocked.remedy?.label).toBe('分享房间');
 
     game.send({ type: 'room.seat.fillBots' });
-    const ready = resolveHostConsolePrimary(build(game.state, true, true)!);
-    if (ready?.kind !== 'ready') throw new Error('expected a ready console primary');
+    const ready = hostTaskBody(build(game.state, true));
+    if (ready?.kind !== 'ready') throw new Error('expected a ready task body');
   });
 
   it('pins the answering panel: finish-phase plus abort', () => {
@@ -170,7 +164,7 @@ describe('createStoryRelayHostManagement', () => {
     game.seatHost();
     game.fillAndStart();
     expect(game.state.phase).toBe('answering');
-    const model = build(game.state, true, false);
+    const model = build(game.state, false);
     expect(model?.sections.map((section) => section.key)).toEqual(['current-flow', 'danger']);
     expect(model?.sections[0]?.actions[0]).toMatchObject({
       key: 'finish-phase',
@@ -186,7 +180,7 @@ describe('createStoryRelayHostManagement', () => {
     game.fillAndStart();
     game.finishStep();
     expect(game.state.phase).toBe('transition');
-    const model = build(game.state, true, false);
+    const model = build(game.state, false);
     expect(model?.sections.map((section) => section.key)).toEqual(['danger']);
   });
 
@@ -196,17 +190,21 @@ describe('createStoryRelayHostManagement', () => {
     game.fillAndStart();
     game.send({ type: 'storyrelay.game.abort', phaseRevision: game.state.phaseRevision });
     expect(game.state.phase).toBe('aborted');
-    const model = build(game.state, true, false);
+    const model = build(game.state, false);
     expect(model?.sections[0]?.actions.map((action) => action.key)).toEqual(['return-lobby']);
   });
 
-  it('returns null in the gallery phase (no abort window)', () => {
+  it('keeps the host panel in the gallery phase with abort disabled and its reason', () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
     game.playToGallery();
     expect(game.state.phase).toBe('gallery');
-    expect(build(game.state, true, false)).toBeNull();
+    const model = build(game.state, false);
+    expect(model.task).toBeNull();
+    expect(model.sections.flatMap((section) => section.actions)).toMatchObject([
+      { key: 'abort-game', isEnabled: false, disabledReason: '故事已完成，不能中止' },
+    ]);
   });
 
   it('pins the ended terminal on the shared builders', () => {
@@ -216,7 +214,7 @@ describe('createStoryRelayHostManagement', () => {
     game.playToGallery();
     game.send({ type: 'storyrelay.gallery.finish', phaseRevision: game.state.phaseRevision });
     expect(game.state.phase).toBe('ended');
-    const model = build(game.state, true, false);
+    const model = build(game.state, false);
     const actions = model?.sections[0]?.actions ?? [];
     expect(actions.map((action) => action.key)).toEqual(['next-round', 'return-lobby']);
     expect(actions.map((action) => action.testID)).toEqual([

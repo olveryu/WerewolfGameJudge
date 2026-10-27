@@ -10,6 +10,9 @@ import {
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
 
+import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
+import { viewerFor } from '@/test-utils/roomViewer';
+
 import type { UndercoverRoundControls } from '../hooks/useUndercoverRoundControls';
 import { createUndercoverBottomActions } from '../undercoverActionModels';
 import { UNDERCOVER_GUIDANCE_MATRIX } from '../undercoverGuidanceMatrix';
@@ -195,14 +198,9 @@ function controlsFor(state: UndercoverState, viewerSeat: number | null): Underco
   };
 }
 
-type Viewer = 'host' | 'seated' | 'spectator';
-
-function bottomMessage(state: UndercoverState, viewer: Viewer): string | null {
-  const mySeat = viewer === 'host' ? 0 : viewer === 'seated' ? 2 : null;
-  return createUndercoverBottomActions(controlsFor(state, mySeat), state, {
-    isHost: viewer === 'host',
-    mySeat,
-  }).message;
+function bottomMessage(state: UndercoverState, audience: RoomViewerAudience): string | null {
+  const viewer = viewerFor(audience, { seatedSeat: 2 });
+  return createUndercoverBottomActions(controlsFor(state, viewer.seat), state, viewer).message;
 }
 
 describe('UNDERCOVER_GUIDANCE_MATRIX', () => {

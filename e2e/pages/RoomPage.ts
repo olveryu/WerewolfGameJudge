@@ -173,10 +173,12 @@ export class RoomPage {
 
   /** Confirm the dialog a Host action opens: wait for its title, then press 确定. */
   async confirmHostActionDialog(dialogTitle: string): Promise<void> {
-    await expect(this.page.getByText(dialogTitle, { exact: true })).toBeVisible({
+    // Scoped to the alert box: the host task card may show the same label as a button.
+    const dialog = this.page.getByTestId(TESTIDS.alertModal);
+    await expect(dialog.getByText(dialogTitle, { exact: true })).toBeVisible({
       timeout: 3000,
     });
-    await this.page.getByText('确定', { exact: true }).click();
+    await dialog.getByText('确定', { exact: true }).click();
   }
 
   /** Run a Host action that asks for confirmation, and confirm its dialog. */

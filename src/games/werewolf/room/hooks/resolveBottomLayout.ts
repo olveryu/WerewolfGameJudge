@@ -10,10 +10,7 @@
 
 import type { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
-import {
-  AUDIO_PLAYBACK_LOCK_REASON,
-  isAudioPlaybackLocked,
-} from '@/features/room/model/audioPlaybackLock';
+import { resolveRoomViewerAudience } from '@/features/room/model/RoomViewer';
 
 import type { BottomButton } from './bottomActionBuilder';
 import {
@@ -59,30 +56,20 @@ function classifySchemaButtons(buttons: readonly BottomButton[]): {
 // Static button materialization
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Closing actions: state-changing, so the audio playback lock holds them like the sheet's copies. */
-const AUDIO_LOCKED_STATIC_BUTTONS: ReadonlySet<StaticButtonId> = new Set([
-  'nextRound',
-  'returnToLobby',
-]);
-
 function materializeStaticButton(
   id: StaticButtonId,
   tier: 'primary' | 'secondary' | 'ghost',
-  ctx: LayoutContext,
 ): ButtonConfig {
   const def = STATIC_BUTTONS[id];
   const base = {
     key: id,
     label: def.label,
+    audience: def.audience,
     icon: def.icon,
-    variant: def.variantOverride ?? tier,
+    variant: tier,
     size: 'md',
     testID: def.testID,
   } as const;
-
-  if (AUDIO_LOCKED_STATIC_BUTTONS.has(id) && isAudioPlaybackLocked(ctx.isAudioPlaying)) {
-    return { ...base, isEnabled: false, disabledReason: AUDIO_PLAYBACK_LOCK_REASON };
-  }
 
   return {
     ...base,
@@ -107,7 +94,7 @@ function materializeSlots(
     if (slot.source === 'static') {
       // Invariant: viewRole requires a seat (you need a role to view)
       if (slot.button === 'viewRole' && ctx.effectiveSeat === null) continue;
-      result.push(materializeStaticButton(slot.button, tier, ctx));
+      result.push(materializeStaticButton(slot.button, tier));
     } else {
       // Schema slot — pick from classified primary or secondary
       const source =
@@ -116,6 +103,8 @@ function materializeSlots(
         result.push({
           key: btn.key,
           label: btn.label,
+          // Schema buttons are the actioner's own night commands: seat actions.
+          audience: 'participant',
           // Schema buttons in primary slot → primary variant; in secondary slot → secondary variant
           variant: tier === 'ghost' ? 'ghost' : tier,
           size: 'md',
@@ -132,14 +121,6 @@ function materializeSlots(
 // ─────────────────────────────────────────────────────────────────────────────
 // Rule matching
 // ─────────────────────────────────────────────────────────────────────────────
-
-type UserRole = 'host' | 'player' | 'spectator';
-
-function getUserRole(ctx: LayoutContext): UserRole {
-  if (ctx.isHost) return 'host';
-  if (ctx.effectiveSeat !== null) return 'player';
-  return 'spectator';
-}
 
 function isGameStatusList(
   ruleStatus: GameStatus | readonly GameStatus[],
@@ -168,7 +149,7 @@ export function resolveBottomLayout(
   ctx: LayoutContext,
   schemaButtons: readonly BottomButton[] = [],
 ): BottomLayout {
-  const role = getUserRole(ctx);
+  const role = resolveRoomViewerAudience({ isHost: ctx.isHost, seat: ctx.effectiveSeat });
 
   // Find first matching rule
   const rule = LAYOUT_RULES.find(

@@ -1,9 +1,9 @@
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
-import { resolveHostConsolePrimary } from '@/features/room/model/resolveHostConsolePrimary';
 import type { RoomCapability } from '@/features/room/model/RoomCapabilities';
 import { createWerewolfHostManagement } from '@/games/werewolf/room/createWerewolfHostManagement';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
+import { hostTaskBody } from '@/test-utils/hostTask';
 
 const deniedCapability: RoomCapability = { isAllowed: false, reason: '不可用' };
 const deniedRoomCapabilities = {
@@ -15,8 +15,9 @@ const deniedRoomCapabilities = {
 
 function createInput(overrides: Record<string, unknown> = {}) {
   return {
-    isHost: true,
     roomStatus: GameStatus.Unseated,
+    panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
+    isReviewShared: false,
     isPlagueMode: false,
     seatedCount: 0,
     viewedCount: 0,
@@ -97,7 +98,7 @@ describe('createWerewolfHostManagement', () => {
         onSelectMvp,
       }),
     );
-    const actions = model!.sections.flatMap((section) => section.actions);
+    const actions = model.sections.flatMap((section) => section.actions);
     expect(actions.find((action) => action.key === 'select-mvp')).toMatchObject({
       label: '本局 MVP：3号',
       isEnabled: false,
@@ -120,7 +121,7 @@ describe('createWerewolfHostManagement', () => {
         onHostControl,
       }),
     );
-    const actions = model!.sections.flatMap((section) => section.actions);
+    const actions = model.sections.flatMap((section) => section.actions);
     const nextRound = actions.find((action) => action.key === 'next-round');
     const returnLobby = actions.find((action) => action.key === 'return-lobby');
     if (nextRound?.isEnabled !== true || returnLobby?.isEnabled !== true) {
@@ -130,10 +131,6 @@ describe('createWerewolfHostManagement', () => {
     expect(onHostControl).toHaveBeenCalledWith('redeal');
     returnLobby.onPress();
     expect(onHostControl).toHaveBeenCalledWith('returnToLobby');
-  });
-
-  it('returns null for a non-Host player', () => {
-    expect(createWerewolfHostManagement(createInput({ isHost: false }))).toBeNull();
   });
 
   it('places role assignment and room setup actions in named sections', () => {
@@ -153,11 +150,12 @@ describe('createWerewolfHostManagement', () => {
     );
 
     expect(model).not.toBeNull();
-    expect(actionLabels(model!)).toEqual([
+    expect(actionLabels(model)).toEqual([
       '分配角色',
       '房间设置',
       '填充机器人',
       '清空座位',
+      '分享房间',
       '音乐设置',
     ]);
     const assignRoles = model?.sections[0]?.actions[0];
@@ -166,7 +164,7 @@ describe('createWerewolfHostManagement', () => {
     expect(onHostControl).toHaveBeenCalledWith('prepareToFlip');
   });
 
-  it('surfaces sheriff advancement as the current task and keeps restart separate', () => {
+  it('offers election advance and last-night info as an equal Day choice while both apply', () => {
     const requestAdvance = jest.fn();
     const sheriffElection = createSheriffElection({}, { requestAdvance });
     const model = createWerewolfHostManagement(
@@ -177,13 +175,57 @@ describe('createWerewolfHostManagement', () => {
       }),
     );
 
-    expect(model?.hasPendingAction).toBe(true);
-    expect(actionLabels(model!)).toEqual(['结束报名', '本局复盘', '昨夜信息', '中止本局']);
-    const advanceAction = model?.sections[0]?.actions[0];
-    if (advanceAction?.isEnabled !== true) throw new Error('Expected enabled sheriff advancement');
-    expect(advanceAction.isPrimary).toBe(true);
-    advanceAction.onPress();
+    expect(actionLabels(model)).toEqual(['结束报名', '本局复盘', '昨夜信息', '中止本局']);
+    expect(model.task).toMatchObject({
+      kind: 'choice',
+      actionKeys: ['sheriff-advance', 'last-night-info'],
+      steps: [
+        { key: 'lastNightInfo', state: 'current' },
+        { key: 'nightReview', state: 'upcoming' },
+        { key: 'closing', state: 'upcoming' },
+      ],
+    });
+    const body = hostTaskBody(model);
+    if (body?.kind !== 'choice') throw new Error('Expected a choice task');
+    const advance = body.actions[0];
+    if (advance?.isEnabled !== true) throw new Error('Expected enabled sheriff advancement');
+    advance.onPress();
     expect(requestAdvance).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps sheriff advancement alone as the Day task once the info is confirmed', () => {
+    const model = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Day,
+        panelFlow: { lastNightInfoConfirmed: true, nightReviewOpened: false },
+        sheriffElection: createSheriffElection(),
+        capabilities: deniedRoomCapabilities,
+      }),
+    );
+    expect(model.task).toEqual({ kind: 'action', actionKey: 'sheriff-advance' });
+  });
+
+  it('offers last-night info as the Day task once the election completed, until confirmed', () => {
+    const model = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Day,
+        sheriffElection: createSheriffElection({
+          phase: 'completed',
+          canAdvance: false,
+          advanceLabel: null,
+        }),
+        capabilities: deniedRoomCapabilities,
+      }),
+    );
+    expect(model.task).toMatchObject({
+      kind: 'action',
+      actionKey: 'last-night-info',
+      steps: [
+        { key: 'lastNightInfo', state: 'current', actionKey: 'last-night-info' },
+        { key: 'nightReview', state: 'upcoming', actionKey: 'night-review' },
+        { key: 'closing', state: 'upcoming' },
+      ],
+    });
   });
 
   it('routes advancement through the request entry during speech phases too', () => {
@@ -224,19 +266,28 @@ describe('createWerewolfHostManagement', () => {
           capabilities: deniedRoomCapabilities,
         }),
       );
-      const actions = model!.sections.flatMap((section) => section.actions);
+      const actions = model.sections.flatMap((section) => section.actions);
       expect(actions.map((action) => action.label)).not.toContain('推进竞选');
       expect(actions.find((action) => action.key === 'sheriff-advance')).toBeUndefined();
-      const waiting = actions.find((action) => action.key === 'sheriff-waiting-vote');
-      expect(waiting).toMatchObject({
-        label: '等待投票完成',
-        isPrimary: true,
-        isEnabled: false,
-        disabledReason: '1/3 已提交，等待剩余玩家',
+      // Voting has no host advance: the info stays the task, the vote progress is the note.
+      expect(model.task).toMatchObject({
+        kind: 'action',
+        actionKey: 'last-night-info',
+        note: '等待投票完成 · 1/3 已提交',
       });
-      const primary = resolveHostConsolePrimary(model!);
-      if (primary?.kind !== 'blocked') throw new Error('Expected a blocked console primary');
-      expect(primary.reason).toBe('1/3 已提交，等待剩余玩家');
+      const confirmed = createWerewolfHostManagement(
+        createInput({
+          roomStatus: GameStatus.Day,
+          panelFlow: { lastNightInfoConfirmed: true, nightReviewOpened: false },
+          sheriffElection,
+          capabilities: deniedRoomCapabilities,
+        }),
+      );
+      expect(hostTaskBody(confirmed)).toEqual({
+        kind: 'message',
+        text: '等待投票完成 · 1/3 已提交',
+        escape: null,
+      });
     },
   );
 
@@ -282,8 +333,8 @@ describe('createWerewolfHostManagement', () => {
       }),
     );
 
-    expect(actionLabels(model!)).not.toContain('开始游戏');
-    expect(actionLabels(model!)).toContain('中止本局');
+    expect(actionLabels(model)).not.toContain('开始游戏');
+    expect(actionLabels(model)).toContain('中止本局');
   });
 
   // Audio playback lock (supersedes the former "keeps abort available"
@@ -322,7 +373,7 @@ describe('createWerewolfHostManagement', () => {
         capabilities: deniedRoomCapabilities,
       }),
     );
-    const actions = model!.sections.flatMap((section) => section.actions);
+    const actions = model.sections.flatMap((section) => section.actions);
     for (const key of ['select-mvp', 'next-round', 'return-lobby']) {
       const action = actions.find((entry) => entry.key === key);
       expect(action).toMatchObject({ isEnabled: false, disabledReason: '语音播报中，请稍候' });
@@ -344,7 +395,7 @@ describe('createWerewolfHostManagement', () => {
           onLastNightInfo,
         }),
       );
-      const actions = model!.sections.flatMap((section) => section.actions);
+      const actions = model.sections.flatMap((section) => section.actions);
       const reviewAction = actions.find((action) => action.key === 'night-review');
       const infoAction = actions.find((action) => action.key === 'last-night-info');
       if (reviewAction?.isEnabled !== true || infoAction?.isEnabled !== true) {
@@ -367,7 +418,7 @@ describe('createWerewolfHostManagement', () => {
         capabilities: deniedRoomCapabilities,
       }),
     );
-    const actions = model!.sections.flatMap((section) => section.actions);
+    const actions = model.sections.flatMap((section) => section.actions);
     for (const key of ['sheriff-advance', 'sheriff-self-destruct']) {
       const action = actions.find((entry) => entry.key === key);
       expect(action).toMatchObject({ isEnabled: false, disabledReason: '语音播报中，请稍候' });
@@ -390,7 +441,7 @@ describe('createWerewolfHostManagement', () => {
       '赛后管理',
       '辅助工具',
     ]);
-    expect(actionLabels(model!)).toEqual([
+    expect(actionLabels(model)).toEqual([
       '评选 MVP',
       '再来一局',
       '返回大厅',
@@ -411,8 +462,8 @@ describe('createWerewolfHostManagement', () => {
       const model = createWerewolfHostManagement(
         createInput({ roomStatus: GameStatus.Unseated, seatedCount: 0, totalSeats: 9 }),
       );
-      expect(actionLabels(model!)).toContain('分配角色');
-      const primary = resolveHostConsolePrimary(model!);
+      expect(actionLabels(model)).toContain('分配角色');
+      const primary = hostTaskBody(model);
       if (primary?.kind !== 'blocked') throw new Error('Expected a blocked console primary');
       expect(primary.reason).toBe('座位尚未坐满（还差 9 人）');
     });
@@ -420,8 +471,8 @@ describe('createWerewolfHostManagement', () => {
     it('blocks role assignment while seats are open and offers room sharing as the remedy', () => {
       const input = createInput({ roomStatus: GameStatus.Seated, seatedCount: 6, totalSeats: 9 });
       const model = createWerewolfHostManagement(input);
-      const primary = resolveHostConsolePrimary(model!);
-      expect(primary).toMatchObject({ actionKey: 'assign-roles', label: '分配角色' });
+      const primary = hostTaskBody(model);
+      expect(primary).toMatchObject({ action: { key: 'assign-roles', label: '分配角色' } });
       if (primary?.kind !== 'blocked') throw new Error('Expected a blocked console primary');
       expect(primary.reason).toBe('座位尚未坐满（还差 3 人）');
       expect(primary.remedy?.label).toBe('分享房间');
@@ -445,7 +496,7 @@ describe('createWerewolfHostManagement', () => {
           capabilities: deniedRoomCapabilities,
         }),
       );
-      const primary = resolveHostConsolePrimary(model!);
+      const primary = hostTaskBody(model);
       if (primary?.kind !== 'blocked') throw new Error('Expected a blocked console primary');
       expect(primary.remedy).toBeNull();
     });
@@ -453,49 +504,53 @@ describe('createWerewolfHostManagement', () => {
     it('runs role assignment through the host-control channel once every seat is taken', () => {
       const input = createInput({ roomStatus: GameStatus.Seated, seatedCount: 9, totalSeats: 9 });
       const model = createWerewolfHostManagement(input);
-      const primary = resolveHostConsolePrimary(model!);
+      const primary = hostTaskBody(model);
       if (primary?.kind !== 'ready') throw new Error('Expected a ready console primary');
-      primary.onPress();
+      primary.action.onPress();
       expect(input.onHostControl).toHaveBeenCalledWith('prepareToFlip');
     });
 
     it('offers game start once roles are assigned, except in plague mode', () => {
       const input = createInput({ roomStatus: GameStatus.Ready });
       const model = createWerewolfHostManagement(input);
-      const primary = resolveHostConsolePrimary(model!);
-      expect(primary).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
+      const primary = hostTaskBody(model);
+      expect(primary).toMatchObject({ action: { key: 'start-game', label: '开始游戏' } });
       if (primary?.kind !== 'ready') throw new Error('Expected a ready console primary');
-      primary.onPress();
+      primary.action.onPress();
       expect(input.onHostControl).toHaveBeenCalledWith('startGame');
 
       const plague = createWerewolfHostManagement(
         createInput({ roomStatus: GameStatus.Ready, isPlagueMode: true }),
       );
-      expect(resolveHostConsolePrimary(plague!)).toBeNull();
+      expect(hostTaskBody(plague)).toEqual({
+        kind: 'message',
+        text: '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程',
+        escape: null,
+      });
     });
 
-    it('carries the viewing count as the Assigned start reason, exactly once on the console', () => {
+    it('shows the viewing progress as the Assigned task, with the bot scaffold as escape', () => {
       const model = createWerewolfHostManagement(
         createInput({
           roomStatus: GameStatus.Assigned,
           seatedCount: 9,
           viewedCount: 4,
           totalSeats: 9,
+          canMarkAllBotsViewed: true,
         }),
       );
-      const primary = resolveHostConsolePrimary(model!);
-      expect(primary).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
-      if (primary?.kind !== 'blocked') throw new Error('Expected a blocked console primary');
-      expect(primary.reason).toBe('4/9 位玩家已查看角色，等待剩余玩家');
-      // The same sentence is the panel action's disabledReason, and the
-      // panel renders no caption for a primary — the console is its only
-      // rendered surface.
+      expect(hostTaskBody(model)).toMatchObject({
+        kind: 'blocked',
+        action: { key: 'start-game' },
+        reason: '4/9 位玩家已查看角色，等待剩余玩家',
+        remedy: { label: '标记机器人已查看' },
+      });
+      // The sheet start action carries the same sentence as its disabled reason.
       const startAction = model?.sections
         .flatMap((section) => section.actions)
         .find((action) => action.key === 'start-game');
       expect(startAction).toMatchObject({
         isEnabled: false,
-        isPrimary: true,
         disabledReason: '4/9 位玩家已查看角色，等待剩余玩家',
       });
     });
@@ -514,13 +569,13 @@ describe('createWerewolfHostManagement', () => {
       if (startAction?.isEnabled !== true) {
         throw new Error('Expected an enabled start action once all players viewed');
       }
-      const primary = resolveHostConsolePrimary(model!);
+      const primary = hostTaskBody(model);
       if (primary?.kind !== 'ready') throw new Error('Expected a ready console primary');
-      primary.onPress();
+      primary.action.onPress();
       expect(input.onHostControl).toHaveBeenCalledWith('startGame');
     });
 
-    it('suppresses the console primary while a host action is submitting', () => {
+    it('renders the task blocked without a reason while a host action is submitting', () => {
       const model = createWerewolfHostManagement(
         createInput({
           roomStatus: GameStatus.Seated,
@@ -528,7 +583,7 @@ describe('createWerewolfHostManagement', () => {
           isHostActionSubmitting: true,
         }),
       );
-      expect(resolveHostConsolePrimary(model!)).toBeNull();
+      expect(hostTaskBody(model)).toMatchObject({ kind: 'blocked', reason: null });
     });
   });
 });

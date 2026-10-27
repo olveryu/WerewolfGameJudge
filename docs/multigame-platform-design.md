@@ -1368,6 +1368,21 @@ Active flow 中如果不能 kick，不能只隐藏按钮却仍保留可调用 ca
 Disabled button 使用 `isEnabled: false` 分支，只能携带显式 `onDisabledPress` 反馈或 `null`；不能保留可提交
 mutation 的 `onPress` 再通过 `fireWhenDisabled` 绕过 disabled 状态。
 
+按钮归属是声明式合同（详见 [room-shell-contract.md](room-shell-contract.md#action-ownership)）：
+
+- `RoomShellModel.viewer`（`{ userId, isHost, seat }`）是唯一身份声明；`resolveRoomViewerAudience`
+  投影为 `host | seated | spectator`，各游戏不得自派生。
+- 底部面板只放观看者**自己的**动作：每个底部按钮必填 `audience: 'participant' | 'anyone'`，
+  `participant` 需有效座位，`createRoomShellModel` 逐按钮校验并抛错。底部没有 host 档：host 命令
+  永不出现在底部面板（含步骤条、hint）。
+- host 命令一律进 `hostManagement`；adapter 提供 `buildHostManagement`，由工厂按 `viewer.isHost` 决定
+  是否调用。adapter 内不再写 `if (!isHost) return null`。
+- host 的"下一步"只有一个出口——**主持任务卡**：`RoomHostManagementModel.task`（`action` / `choice` /
+  `message`，可带 `steps`、`note`、`remedyActionKey`）只按 `key` 引用面板动作，自身没有 `onPress`；
+  `resolveHostTaskView` 在组装期校验引用并解析出卡片视图。动作不再有 `isPrimary` /
+  `remedy` / `consoleBlockedReason`，模型不再有 `hasPendingAction`。
+- 渲染层不读角色：`RoomBottomActionPanel` 对 host / player / spectator 的布局完全一致。
+
 ### 21.7 Modal 和 menu
 
 - 选择游戏模式使用现有 centered modal，不使用侧边弹层或自造浮层。
@@ -1503,12 +1518,12 @@ Fib 上限为 20，adapter 仍通过同一个 lazy source contract 投影座位�
 
 ### 22.5 Phase 与按钮
 
-| Phase       | Host action                      | Player action    | Seat change |
-| ----------- | -------------------------------- | ---------------- | ----------- |
-| `lobby`     | 配置、填 bot、清空座位、开始本轮 | 入座、换座、离座 | 允许        |
-| `preparing` | 需要时取消准备                   | 等待             | 锁定        |
-| `ongoing`   | 公布答案、查看身份、接管 bot     | 查看本人身份     | 锁定        |
-| `ended`     | 下一轮、结束游戏                 | 查看公开结果     | 锁定        |
+| Phase       | Host action（`hostManagement`）  | Player action（`bottomActions`，`participant`） | Spectator（`bottomActions`，`anyone`） | Seat change |
+| ----------- | -------------------------------- | ----------------------------------------------- | -------------------------------------- | ----------- |
+| `lobby`     | 配置、填 bot、清空座位、开始本轮 | 入座、换座、离座（座位盘）；底部只有等待句      | 无                                     | 允许        |
+| `preparing` | 需要时取消准备                   | 等待                                            | 等待                                   | 锁定        |
+| `ongoing`   | 公布答案、查看身份、接管 bot     | 查看本人身份                                    | 查看题目                               | 锁定        |
+| `ended`     | 下一轮、结束游戏                 | 查看公开结果                                    | 查看公开结果                           | 锁定        |
 
 `下一轮` 保留座位和 used-word history，创建新 `roundId`、抽新词、重新分配身份。`结束游戏` 清除当前公开结果并返回 lobby，同样保留座位和 used-word history，让共享清空座位、移出玩家和房间设置能力恢复。
 

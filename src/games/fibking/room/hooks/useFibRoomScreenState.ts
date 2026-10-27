@@ -38,6 +38,7 @@ import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { ROOM_SEAT_TAP_BLOCKED_TITLE } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import { resolveEffectiveSeat, type RoomViewer } from '@/features/room/model/RoomViewer';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
@@ -107,6 +108,10 @@ export function useFibRoomScreenState({
   const revision = sessionSnapshot.snapshot.revision;
   const isHost = state.hostUserId === user.id;
   const mySeat = getFibUserSeat(state, user.id);
+  const viewer = useMemo(
+    (): RoomViewer => ({ userId: user.id, isHost, seat: mySeat }),
+    [isHost, mySeat, user.id],
+  );
   const {
     seatController,
     profile: profileController,
@@ -141,7 +146,7 @@ export function useFibRoomScreenState({
     state.round !== null &&
     guessRoundId === state.round.roundId;
 
-  const effectiveSeat = controlledSeat ?? mySeat;
+  const effectiveSeat = resolveEffectiveSeat(viewer, controlledSeat);
   const roundView = useMemo(() => getFibRoundView(state, effectiveSeat), [effectiveSeat, state]);
 
   // 接管是房主权限，无阶段条件（与入口 capability 同源，见 fibRoomAdapter）。
@@ -441,10 +446,10 @@ export function useFibRoomScreenState({
 
   // Derived inline like the Avalon room state: the command callbacks
   // are plain functions in the parameterized-submit form, so a memo
-  // keyed on them would recompute every render anyway.
+  // keyed on them would recompute every render anyway. The shell factory
+  // still only reads it for the host (buildHostManagement below).
   const hostManagement = createFibHostManagement({
     state,
-    isHost,
     isCommandSubmitting,
     capabilities,
     startRound,
@@ -484,6 +489,7 @@ export function useFibRoomScreenState({
     (): RoomShellModel =>
       createFibRoomShellModel({
         roomCode: room.roomCode,
+        viewer,
         capabilities,
         onBack: () => entryController.requestExit(capabilities.shouldConfirmExit),
         onTitlePress: handleTitlePress,
@@ -501,11 +507,12 @@ export function useFibRoomScreenState({
         profile,
         share,
         bottomActions,
-        hostManagement,
+        buildHostManagement: () => hostManagement,
         controlledSeat: controlledSeatModel,
       }),
     [
       bottomActions,
+      hostManagement,
       capabilities,
       controlledSeatModel,
       entryController,
@@ -516,7 +523,6 @@ export function useFibRoomScreenState({
       onSeatLongPress,
       onSeatPress,
       isCommandSubmitting,
-      hostManagement,
       profile,
       room.roomCode,
       seatConfirmation,
@@ -525,6 +531,7 @@ export function useFibRoomScreenState({
       share,
       state,
       user,
+      viewer,
     ],
   );
 

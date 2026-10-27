@@ -11,11 +11,11 @@ import {
   type DrawGuessWordChoice,
 } from '@game-judge/game-engine/games/drawguess/public';
 
-import { resolveHostConsolePrimary } from '@/features/room/model/resolveHostConsolePrimary';
 import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import { hostTaskBody } from '@/test-utils/hostTask';
 
 import { createDrawGuessHostManagement } from '../drawGuessRoomAdapter';
 
@@ -114,10 +114,9 @@ function capabilities(
 
 const submit = jest.fn(async () => true);
 
-function build(state: DrawGuessState, isHost: boolean, isSetup: boolean) {
+function build(state: DrawGuessState, isSetup: boolean) {
   return createDrawGuessHostManagement({
     state,
-    isHost,
     capabilities: capabilities(isSetup),
     isSubmitting: false,
     submit,
@@ -125,16 +124,10 @@ function build(state: DrawGuessState, isHost: boolean, isSetup: boolean) {
 }
 
 describe('createDrawGuessHostManagement', () => {
-  it('returns null for non-hosts', () => {
-    const game = session();
-    game.seatHost();
-    expect(build(game.state, false, true)).toBeNull();
-  });
-
   it('pins the lobby panel: start disabled until the room is full, room trio present', () => {
     const game = session();
     game.seatHost();
-    const model = build(game.state, true, true);
+    const model = build(game.state, true);
     expect(model?.sections.map((section) => section.key)).toEqual(['game', 'room']);
     const start = model?.sections[0]?.actions[0];
     expect(start).toMatchObject({
@@ -148,6 +141,7 @@ describe('createDrawGuessHostManagement', () => {
       'configure-game',
       'fill-bots',
       'clear-seats',
+      'share-room',
     ]);
   });
 
@@ -155,22 +149,22 @@ describe('createDrawGuessHostManagement', () => {
     const game = session();
     game.seatHost();
     game.send({ type: 'room.seat.fillBots' });
-    const start = build(game.state, true, true)?.sections[0]?.actions[0];
+    const start = build(game.state, true)?.sections[0]?.actions[0];
     expect(start).toMatchObject({ key: 'start-game', isEnabled: true });
   });
 
-  it('derives the console primary from the lobby start gate', () => {
+  it('derives the task body from the lobby start gate', () => {
     const game = session();
     game.seatHost();
-    const blocked = resolveHostConsolePrimary(build(game.state, true, true)!);
-    expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
-    if (blocked?.kind !== 'blocked') throw new Error('expected a blocked console primary');
+    const blocked = hostTaskBody(build(game.state, true));
+    expect(blocked).toMatchObject({ action: { key: 'start-game', label: '开始游戏' } });
+    if (blocked?.kind !== 'blocked') throw new Error('expected a blocked task body');
     expect(blocked.reason).toBe('座位尚未坐满（还差 3 人）');
     expect(blocked.remedy?.label).toBe('分享房间');
 
     game.send({ type: 'room.seat.fillBots' });
-    const ready = resolveHostConsolePrimary(build(game.state, true, true)!);
-    if (ready?.kind !== 'ready') throw new Error('expected a ready console primary');
+    const ready = hostTaskBody(build(game.state, true));
+    if (ready?.kind !== 'ready') throw new Error('expected a ready task body');
   });
 
   it('keeps an always-present in-game panel with the room section (ruling 8)', () => {
@@ -178,7 +172,7 @@ describe('createDrawGuessHostManagement', () => {
     game.seatHost();
     game.fillAndStart();
     expect(game.state.phase.kind).toBe('wordSelect');
-    const model = build(game.state, true, false);
+    const model = build(game.state, false);
     expect(model?.sections.map((section) => section.key)).toEqual(['room']);
     // Setup capabilities are all denied mid-game, exactly like Avalon.
     expect(model?.sections[0]?.actions).toEqual([]);
@@ -190,7 +184,7 @@ describe('createDrawGuessHostManagement', () => {
     game.fillAndStart();
     game.playToEnd();
     expect(game.state.phase.kind).toBe('ended');
-    const model = build(game.state, true, false);
+    const model = build(game.state, false);
     const actions = model?.sections[0]?.actions ?? [];
     expect(actions.map((action) => action.key)).toEqual(['next-round', 'return-lobby']);
     expect(actions.map((action) => action.testID)).toEqual([

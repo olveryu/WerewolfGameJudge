@@ -1,4 +1,8 @@
-/** Shared three-tier room action panel. Games provide only render-ready button models. */
+/**
+ * Shared three-tier room action panel plus the host task card.
+ * Games provide only render-ready button models; the card renders the
+ * host's declared task by resolving its sheet-action references.
+ */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
@@ -6,17 +10,19 @@ import { Fragment, memo, useEffect, useMemo, useRef } from 'react';
 import { Animated, Platform, Pressable, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
-import type { RoomHostConsolePrimary } from '@/features/room/model/resolveHostConsolePrimary';
-import { resolveHostConsolePrimary } from '@/features/room/model/resolveHostConsolePrimary';
+import type { RoomHostTaskBody, RoomHostTaskView } from '@/features/room/model/resolveHostTaskView';
+import { resolveHostTaskView } from '@/features/room/model/resolveHostTaskView';
 import type {
   RoomBottomActionModel,
   RoomBottomButton,
   RoomBottomDockModel,
   RoomBottomToolButton,
-  RoomPanelStep,
 } from '@/features/room/model/RoomBottomActions';
 import { AUDIO_WAITING_LABEL } from '@/features/room/model/RoomBottomActions';
-import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
+import type {
+  RoomHostManagementAction,
+  RoomHostManagementModel,
+} from '@/features/room/model/RoomHostManagement';
 import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes } from '@/theme';
@@ -81,10 +87,8 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
         model.layout.secondary.length > 0 ||
         model.layout.ghost.length > 0);
   const message = model.message;
-  const steps = model.kind === 'stacked' ? (model.steps ?? null) : null;
-  const hint = model.kind === 'stacked' ? (model.hint ?? null) : null;
-  const hasMessage = steps === null && message !== null && message.length > 0;
-  if (!isAudioPlaying && !hasButtons && !hasMessage && steps === null && model.progress === null) {
+  const hasMessage = message !== null && message.length > 0;
+  if (!isAudioPlaying && !hasButtons && !hasMessage && model.progress === null) {
     return null;
   }
 
@@ -116,25 +120,17 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
         </Text>
       )}
 
-      {steps !== null ? (
-        <PanelStepsRow steps={steps} styles={styles} isCompact={isCompact} />
-      ) : (
-        hasMessage && (
-          <Animated.Text
-            style={[
-              styles.message,
-              isCompact && styles.messageCompact,
-              { opacity: messageFade, transform: [{ translateY: messageSlide }] },
-            ]}
-            testID={TESTIDS.actionMessage}
-          >
-            {message}
-          </Animated.Text>
-        )
-      )}
-
-      {hint !== null && hint.length > 0 && (
-        <Text style={[styles.hint, isCompact && styles.hintCompact]}>{hint}</Text>
+      {hasMessage && (
+        <Animated.Text
+          style={[
+            styles.message,
+            isCompact && styles.messageCompact,
+            { opacity: messageFade, transform: [{ translateY: messageSlide }] },
+          ]}
+          testID={TESTIDS.actionMessage}
+        >
+          {message}
+        </Animated.Text>
       )}
 
       {model.kind === 'dock' ? (
@@ -157,16 +153,15 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
 };
 
 /**
- * Guided step flow rendered in the panel's message row. Completed
+ * Multi-step host flow rendered at the top of the task card. Completed
  * steps show a check; the current step is highlighted; only steps
- * carrying an onPress (completed / current) respond to taps.
+ * carrying an onPress (completed / current with a sheet action) respond.
  */
-const PanelStepsRow: React.FC<{
-  readonly steps: readonly RoomPanelStep[];
+const TaskStepsRow: React.FC<{
+  readonly steps: NonNullable<RoomHostTaskView['steps']>;
   readonly styles: BottomActionPanelStyles;
-  readonly isCompact: boolean;
-}> = ({ steps, styles, isCompact }) => (
-  <View style={[styles.stepsRow, isCompact && styles.stepsRowCompact]}>
+}> = ({ steps, styles }) => (
+  <View style={styles.stepsRow}>
     {steps.map((step, index) => (
       <Fragment key={step.key}>
         {index > 0 && <Text style={styles.stepSeparator}>→</Text>}
@@ -216,10 +211,10 @@ const DockActions: React.FC<{
       {model.primary !== null && (
         <LayoutButton model={model.primary} style={styles.dockPrimary} styles={styles} />
       )}
-      {(model.leading !== null || (hostManagement === null && model.trailing !== null)) && (
+      {(model.leading !== null || model.trailing !== null) && (
         <View style={styles.dockToolRow}>
           <DockTool model={model.leading} styles={styles} />
-          {hostManagement === null && <DockTool model={model.trailing} styles={styles} />}
+          <DockTool model={model.trailing} styles={styles} />
         </View>
       )}
       {hostManagement !== null && (
@@ -286,75 +281,159 @@ const StackedActions: React.FC<{
   );
 };
 
+/**
+ * The host task card: the one always-visible host surface. Steps, then the
+ * task body (action / blocked / choice / message), then the note, then the
+ * sheet entry. Every button runs a sheet action's own onPress.
+ */
 const HostManagementBlock: React.FC<{
   readonly model: RoomHostManagementModel;
   readonly hasPrimaryAction: boolean;
   readonly onOpenHostManagement: () => void;
   readonly styles: BottomActionPanelStyles;
 }> = ({ model, hasPrimaryAction, onOpenHostManagement, styles }) => {
-  const primary = resolveHostConsolePrimary(model);
+  const view = resolveHostTaskView(model);
   return (
-    <View style={styles.hostManagementBlock}>
-      {primary !== null && (
-        <HostConsolePrimary primary={primary} hasPrimaryAction={hasPrimaryAction} styles={styles} />
+    <View style={styles.hostManagementBlock} testID={TESTIDS.roomHostTaskCard}>
+      {view !== null && view.steps !== null && <TaskStepsRow steps={view.steps} styles={styles} />}
+      {view !== null && (
+        <HostTaskBody body={view.body} hasPrimaryAction={hasPrimaryAction} styles={styles} />
       )}
-      <HostManagementEntry model={model} onPress={onOpenHostManagement} styles={styles} />
+      {view !== null && view.note !== null && view.note.length > 0 && (
+        <Text style={styles.hint}>{view.note}</Text>
+      )}
+      <HostManagementEntry onPress={onOpenHostManagement} styles={styles} />
     </View>
   );
 };
 
-const HostConsolePrimary: React.FC<{
-  readonly primary: RoomHostConsolePrimary;
+const HostTaskBody: React.FC<{
+  readonly body: RoomHostTaskBody;
   readonly hasPrimaryAction: boolean;
   readonly styles: BottomActionPanelStyles;
-}> = ({ primary, hasPrimaryAction, styles }) => {
-  if (primary.kind === 'ready') {
+}> = ({ body, hasPrimaryAction, styles }) => {
+  switch (body.kind) {
+    case 'ready':
+      return (
+        <Button
+          variant={hasPrimaryAction ? 'secondary' : 'primary'}
+          size="md"
+          loading={body.action.isLoading}
+          onPress={body.action.onPress}
+          testID={TESTIDS.roomNextStepButton}
+          accessibilityLabel={body.action.label}
+          style={[styles.nextStepReady, hasPrimaryAction && styles.secondaryAction]}
+          icon={
+            <Ionicons
+              name="arrow-forward"
+              size={componentSizes.icon.sm}
+              color={hasPrimaryAction ? colors.text : colors.textInverse}
+            />
+          }
+        >
+          {body.action.label}
+        </Button>
+      );
+    case 'blocked':
+      return (
+        <View style={styles.nextStepBlocked}>
+          <View style={styles.nextStepBlockedText}>
+            <Text style={styles.nextStepBlockedLabel}>{body.action.label}</Text>
+            {body.reason !== null && body.reason.length > 0 && (
+              <Text style={styles.nextStepBlockedReason}>{body.reason}</Text>
+            )}
+          </View>
+          {body.remedy !== null && (
+            <Button
+              variant="secondary"
+              size="md"
+              onPress={body.remedy.onPress}
+              testID={TESTIDS.roomNextStepRemedyButton}
+            >
+              {body.remedy.label}
+            </Button>
+          )}
+        </View>
+      );
+    case 'choice':
+      return (
+        <View style={styles.secondaryRow}>
+          {body.actions.map((action) => (
+            <HostTaskActionButton
+              key={action.key}
+              action={action}
+              testID={`${TESTIDS.roomHostTaskCard}-${action.key}`}
+              style={styles.secondaryButton}
+              styles={styles}
+            />
+          ))}
+        </View>
+      );
+    case 'message':
+      return (
+        <View style={styles.nextStepBlocked}>
+          <View style={styles.nextStepBlockedText}>
+            <Text style={styles.nextStepBlockedLabel}>{body.text}</Text>
+          </View>
+          {body.escape !== null && (
+            <HostTaskActionButton
+              action={body.escape}
+              testID={`${TESTIDS.roomHostTaskCard}-escape`}
+              styles={styles}
+            />
+          )}
+        </View>
+      );
+  }
+};
+
+/**
+ * A sheet action rendered on the card with its own variant and availability.
+ * The card carries its own testIDs: the sheet's anchors stay unique per surface.
+ */
+const HostTaskActionButton: React.FC<{
+  readonly action: RoomHostManagementAction;
+  readonly testID: string;
+  readonly style?: BottomActionPanelStyles['secondaryButton'];
+  readonly styles: BottomActionPanelStyles;
+}> = ({ action, testID, style, styles }) => {
+  const iconColor = !action.isEnabled
+    ? colors.textMuted
+    : action.variant === 'primary' || action.variant === 'danger'
+      ? colors.textInverse
+      : colors.textSecondary;
+  const visualProps = {
+    variant: action.variant,
+    size: 'md' as const,
+    loading: action.isLoading,
+    testID,
+    accessibilityLabel: action.label,
+    icon: <Ionicons name={action.icon} size={componentSizes.icon.sm} color={iconColor} />,
+    style: [styles.actionButton, action.variant === 'secondary' && styles.secondaryAction, style],
+  };
+  if (action.isEnabled) {
     return (
-      <Button
-        variant={hasPrimaryAction ? 'secondary' : 'primary'}
-        size="md"
-        onPress={primary.onPress}
-        testID={TESTIDS.roomNextStepButton}
-        accessibilityLabel={primary.label}
-        style={[styles.nextStepReady, hasPrimaryAction && styles.secondaryAction]}
-        icon={
-          <Ionicons
-            name="arrow-forward"
-            size={componentSizes.icon.sm}
-            color={hasPrimaryAction ? colors.text : colors.textInverse}
-          />
-        }
-      >
-        {primary.label}
+      <Button {...visualProps} onPress={action.onPress}>
+        {action.label}
       </Button>
     );
   }
-  const { reason, remedy } = primary;
   return (
-    <View style={styles.nextStepBlocked}>
-      <View style={styles.nextStepBlockedText}>
-        <Text style={styles.nextStepBlockedLabel}>{primary.label}</Text>
-        <Text style={styles.nextStepBlockedReason}>{reason}</Text>
-      </View>
-      {remedy !== null && (
-        <Button
-          variant="secondary"
-          size="md"
-          onPress={remedy.onPress}
-          testID={TESTIDS.roomNextStepRemedyButton}
-        >
-          {remedy.label}
-        </Button>
+    <View style={style}>
+      <Button {...visualProps} disabled>
+        {action.label}
+      </Button>
+      {action.disabledReason !== null && action.disabledReason.length > 0 && (
+        <DisabledReasonCaption reason={action.disabledReason} />
       )}
     </View>
   );
 };
 
 const HostManagementEntry: React.FC<{
-  readonly model: RoomHostManagementModel;
   readonly onPress: () => void;
   readonly styles: BottomActionPanelStyles;
-}> = ({ model, onPress, styles }) => (
+}> = ({ onPress, styles }) => (
   <Button
     variant="secondary"
     size="md"
@@ -375,11 +454,6 @@ const HostManagementEntry: React.FC<{
         </Text>
       </View>
       <View style={styles.hostManagementExpandRow}>
-        {model.hasPendingAction === true && (
-          <Text style={styles.hostManagementPending} numberOfLines={1}>
-            待处理
-          </Text>
-        )}
         <Text style={styles.hostManagementExpandLabel} numberOfLines={1}>
           全部操作
         </Text>

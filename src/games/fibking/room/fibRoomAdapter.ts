@@ -29,15 +29,22 @@ import {
   buildPendingAwareHostAction,
   buildReturnLobbyAction,
   buildRoomConfigAction,
+  buildShareRoomAction,
   buildStartGameAction,
   createViewingBeginGate,
+  HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
+  hostActionTask,
+  hostClosingTask,
+  hostMessageTask,
+  hostStartTask,
   projectViewingProgress,
   seatShortageReason,
   viewedProgressReason,
 } from '@/features/room/model/hostManagementActions';
 import type {
   RoomBottomButton,
+  RoomBottomButtonAudience,
   RoomBottomStackModel,
 } from '@/features/room/model/RoomBottomActions';
 import {
@@ -53,11 +60,11 @@ import {
   type RoomCapabilities,
   type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
-import {
-  buildShareRoomRemedy,
-  type RoomHostManagementAction,
-  type RoomHostManagementModel,
-  type RoomHostManagementSection,
+import type {
+  RoomHostManagementAction,
+  RoomHostManagementModel,
+  RoomHostManagementSection,
+  RoomHostTask,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
@@ -179,7 +186,6 @@ export function createFibSeatDataSource(input: FibSeatSourceInput): RoomSeatData
 
 interface FibHostManagementInput {
   readonly state: FibState;
-  readonly isHost: boolean;
   readonly isCommandSubmitting: boolean;
   readonly capabilities: Pick<
     RoomCapabilities,
@@ -224,7 +230,6 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
           isEnabled: beginGate.isEnabled,
           isLoading: input.isCommandSubmitting || undefined,
           disabledReason: beginGate.disabledReason,
-          isPrimary: true,
         }),
       ];
       const hasUnviewedBot = participants.some(
@@ -255,8 +260,6 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
           disabledReason: input.isCommandSubmitting
             ? null
             : seatShortageReason(input.state.numberOfPlayers, getFibOccupiedSeatCount(input.state)),
-          isPrimary: true,
-          remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
         }),
       ];
     }
@@ -285,9 +288,6 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
             variant: 'primary',
             testID: TESTIDS.fibRetryPreparationButton,
             isLoading: input.isCommandSubmitting || undefined,
-            // Re-preparation is the recovery path out of a failed state:
-            // the console re-presents it directly, with no confirm.
-            isPrimary: true,
           },
           input.isCommandSubmitting,
           input.startRound,
@@ -381,7 +381,48 @@ function createFibRoomManagementActions(input: FibHostManagementInput): RoomHost
       }),
     );
   }
+  // 分享房间常驻大厅房间区，是座位不满时任务卡的补救。
+  if (input.state.phase === 'lobby') {
+    actions.push(buildShareRoomAction(input.capabilities.canShareRoom));
+  }
   return actions;
+}
+
+/**
+ * The host's declared task per phase (room-shell-contract "Host Task").
+ * Keys reference the sheet actions assembled above.
+ */
+function createFibHostTask(input: FibHostManagementInput): RoomHostTask | null {
+  switch (input.state.phase) {
+    case 'lobby':
+      return hostStartTask(HOST_ACTION_KEYS.assignRoles);
+    case 'viewing': {
+      const round = input.state.round;
+      if (round === null) return null;
+      const participants = getFibViewingParticipants(input.state);
+      // The task is the start; until every seat viewed it is blocked by
+      // the sheet action's reason, with the bot scaffold as the remedy.
+      const hasUnviewedBot = participants.some(
+        (participant) => participant.isBot && !round.viewedSeats.includes(participant.seat),
+      );
+      return hostActionTask(
+        HOST_ACTION_KEYS.startGame,
+        hasUnviewedBot ? { remedyActionKey: HOST_ACTION_KEYS.markBotsViewed } : {},
+      );
+    }
+    case 'preparing':
+      return hostMessageTask('正在准备本轮词语', { actionKey: 'cancel-preparing' });
+    case 'preparationFailed':
+      // Re-preparation is the recovery path out of a failed state.
+      return hostActionTask('retry-preparation');
+    case 'ongoing':
+      // 大聪明选人中：点座位盘选人，退出走同一个切换动作。
+      return input.isGuessing
+        ? hostMessageTask('点座位盘选择大聪明猜中的玩家', { actionKey: 'guess-seat' })
+        : hostActionTask('reveal-round');
+    case 'ended':
+      return hostClosingTask();
+  }
 }
 
 function createFibDangerActions(input: FibHostManagementInput): RoomHostManagementAction[] {
@@ -411,11 +452,8 @@ function createFibHostSection(
   return actions.length === 0 ? null : { key, title, actions };
 }
 
-/** Build the complete FibKing Host-only command surface from current room facts. */
-export function createFibHostManagement(
-  input: FibHostManagementInput,
-): RoomHostManagementModel | null {
-  if (!input.isHost) return null;
+/** Build the complete FibKing Host-only command surface from current room facts. Host gating belongs to the shell factory. */
+export function createFibHostManagement(input: FibHostManagementInput): RoomHostManagementModel {
   const sections = [
     createFibHostSection('current-flow', '当前流程', createFibCurrentFlowActions(input)),
     createFibHostSection('room', '房间管理', createFibRoomManagementActions(input)),
@@ -426,6 +464,7 @@ export function createFibHostManagement(
     throw new Error('FibKing Host management must expose at least one action');
   }
   return {
+    task: createFibHostTask(input),
     sections,
   };
 }
@@ -433,6 +472,7 @@ export function createFibHostManagement(
 function enabledButton(
   key: string,
   label: string,
+  audience: RoomBottomButtonAudience,
   variant: RoomBottomButton['variant'],
   testID: string,
   onPress: () => void,
@@ -440,6 +480,7 @@ function enabledButton(
   return {
     key,
     label,
+    audience,
     variant,
     size: variant === 'primary' ? 'lg' : 'md',
     testID,
@@ -451,6 +492,7 @@ function enabledButton(
 interface FibBottomActionsInput {
   readonly state: FibState;
   readonly isHost: boolean;
+  /** The effective seat (own or taken-over bot); null for a spectator. */
   readonly viewerSeat: number | null;
   readonly openIdentity: () => void;
 }
@@ -467,8 +509,9 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
       break;
     case 'viewing':
     case 'ongoing': {
-      // 查看动作定义走共享解析：旁观者看题目、在座玩家看身份，同一命令两种内容。
-      // 层级按 2026 规则：查看阶段是 primary，其余阶段是 secondary，永不进 ghost。
+      // 查看动作定义走共享解析：旁观者看题目、在座玩家看身份，同一命令两种内容，
+      // 故受众是 anyone。层级按 2026 规则：查看阶段是 primary，其余阶段是
+      // secondary，永不进 ghost。
       const viewIdentityAction = resolveViewIdentityAction({
         isVisible: true,
         label: input.viewerSeat === null ? '查看题目' : VIEW_IDENTITY_LABEL,
@@ -479,6 +522,7 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
           buildViewIdentityButton(viewIdentityAction, {
             key: 'view-identity',
             variant: input.state.phase === 'viewing' ? 'primary' : 'secondary',
+            audience: 'anyone',
             testID: TESTIDS.fibViewIdentityButton,
           }),
         );
@@ -490,6 +534,7 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
         enabledButton(
           'view-result',
           '查看结果',
+          'anyone',
           'secondary',
           TESTIDS.fibViewResultButton,
           input.openIdentity,

@@ -10,6 +10,7 @@
 import type { GameState, RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus, WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
 
+import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
 import { EMPTY_LAYOUT } from '@/games/werewolf/room/hooks/bottomLayoutConfig';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
@@ -21,6 +22,7 @@ import {
   createWerewolfRoomShellModel,
   type WerewolfRoomShellModelInput,
 } from '@/games/werewolf/werewolfRoomAdapter';
+import { viewerFor } from '@/test-utils/roomViewer';
 
 import { WEREWOLF_GUIDANCE_MATRIX } from '../room/werewolfGuidanceMatrix';
 
@@ -118,16 +120,16 @@ function createElection(): SheriffElectionPanelModel {
   };
 }
 
-type Viewer = 'host' | 'seated' | 'spectator';
-
-function bottomFor(status: GameStatus, viewer: Viewer): { kind: string; message: string | null } {
-  const isHost = viewer === 'host';
-  const mySeat = viewer === 'host' ? 0 : viewer === 'seated' ? 1 : null;
+function bottomFor(
+  status: GameStatus,
+  audience: RoomViewerAudience,
+): { kind: string; message: string | null } {
+  const viewer = viewerFor(audience, { hostUserId: 'HOST', seatedUserId: 'p1' });
   const gameState = createLocalGameState({ status });
   const guideMessage = buildWerewolfGuideMessage({
-    isHost,
+    isHost: viewer.isHost,
     roomStatus: status,
-    mySeat,
+    mySeat: viewer.seat,
     gameState,
   });
   // Entry state of the night: the first planned step is running, the
@@ -135,6 +137,8 @@ function bottomFor(status: GameStatus, viewer: Viewer): { kind: string; message:
   // (actors read the schema action sentence instead — same cell).
   const input: WerewolfRoomShellModelInput = {
     roomCode: '1234',
+    viewer,
+    panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
     capabilities: createWerewolfRoomCapabilities(createCapabilityInput()),
     connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
     seatConfirmation: null,
@@ -148,14 +152,13 @@ function bottomFor(status: GameStatus, viewer: Viewer): { kind: string; message:
       copyLink: jest.fn(async () => undefined),
       shareImage: jest.fn(async () => undefined),
     },
-    user: { id: isHost ? 'HOST' : 'p1' },
+    user: { id: viewer.userId },
     ticketCount: null,
     onBack: jest.fn(),
     onTitlePress: jest.fn(),
     onTitleLongPress: jest.fn(),
     onAvatarPress: jest.fn(),
     roomStatus: status,
-    isHost,
     isAudioPlaying: false,
     isActionSubmitting: false,
     isStartingGame: false,
