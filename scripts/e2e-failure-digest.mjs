@@ -566,16 +566,32 @@ export function updateLedger({ existingBody, additions, today, runId, runUrl }) 
   return { body, changed: body !== existingBody, rows: kept };
 }
 
-/** Find the ledger issue in a list of issues (pull requests excluded). */
-export function findLedgerIssue(issues) {
-  const found = issues.find(
-    (issue) =>
-      !issue.pull_request &&
-      issue.title === LEDGER_TITLE &&
-      typeof issue.body === 'string' &&
-      issue.body.includes(LEDGER_MARKER),
-  );
-  return found ?? null;
+/**
+ * Find the ledger issue in a list of issues (pull requests excluded). When
+ * more than one matches — a listing that once missed the ledger made a run
+ * create a second one — the lowest-numbered issue is the ledger, so history
+ * keeps accumulating in one place; the duplicates are reported for manual
+ * closure instead of silently becoming the live ledger.
+ */
+export function findLedgerIssue(issues, warn = (message) => console.warn(message)) {
+  const matches = issues
+    .filter(
+      (issue) =>
+        !issue.pull_request &&
+        issue.title === LEDGER_TITLE &&
+        typeof issue.body === 'string' &&
+        issue.body.includes(LEDGER_MARKER),
+    )
+    .sort((a, b) => a.number - b.number);
+  const [ledger, ...duplicates] = matches;
+  if (duplicates.length > 0) {
+    warn(
+      `Ledger: ${duplicates.length} duplicate ledger issue(s) found (${duplicates
+        .map((issue) => `#${issue.number}`)
+        .join(', ')}); using #${ledger.number}. Close the duplicates manually.`,
+    );
+  }
+  return ledger ?? null;
 }
 
 function parseArgs(argv) {

@@ -427,3 +427,19 @@ test('findLedgerIssue matches title + marker and skips pull requests', () => {
   assert.equal(found.number, 3);
   assert.equal(findLedgerIssue([{ number: 1, title: 'other', body: 'x' }]), null);
 });
+
+test('findLedgerIssue keeps the oldest ledger and reports duplicates', () => {
+  const ledgerBody = applyLedger(undefined, e2eLedgerAdditions([flakyEntry()])).body;
+  const warnings = [];
+  const found = findLedgerIssue(
+    [
+      { number: 292, title: LEDGER_TITLE, body: ledgerBody },
+      { number: 220, title: LEDGER_TITLE, body: ledgerBody },
+    ],
+    (message) => warnings.push(message),
+  );
+  assert.equal(found.number, 220);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /#292/);
+  assert.match(warnings[0], /using #220/);
+});
