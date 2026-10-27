@@ -19,10 +19,15 @@ import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
+import { getLatestEntryOffset } from '../galleryAlbumLayout';
 import { usePictionaryStageCommand } from '../hooks/usePictionaryStageCommand';
 import { PictionaryAlbumExport } from './PictionaryAlbumExport';
 import { PictionaryDrawingImage } from './PictionaryDrawingImage';
 import { PictionaryStageHeading } from './PictionaryStageFrame';
+
+/** Album content container spacing; the scroll target math in galleryAlbumLayout mirrors it. */
+const ALBUM_GAP = spacing.large;
+const ALBUM_PADDING = spacing.medium;
 
 interface GalleryEntryViewProps {
   readonly state: PictionaryState;
@@ -95,13 +100,21 @@ const PictionaryAlbumStage: React.FC<PictionaryAlbumStageProps> = ({
 }) => {
   const listRef = useRef<FlatList<PictionaryEntry>>(null);
   const [viewportHeight, setViewportHeight] = useState(0);
-  const [contentHeight, setContentHeight] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState<number | null>(null);
   const [entryHeights, setEntryHeights] = useState<Readonly<Record<string, number>>>({});
   const latestEntryId = entries.at(-1)?.id;
   const latestEntryHeight = latestEntryId === undefined ? undefined : entryHeights[latestEntryId];
+  // Leaves room below the latest entry so it can sit at the viewport top.
   const footerHeight = shouldFollowLatestEntry
     ? Math.max(0, viewportHeight - (latestEntryHeight ?? 0))
     : 0;
+  const latestEntryOffset = getLatestEntryOffset({
+    entryIds: entries.map((entry) => entry.id),
+    entryHeights,
+    headerHeight,
+    gap: ALBUM_GAP,
+    paddingTop: ALBUM_PADDING,
+  });
   const renderEntry = useCallback(
     ({ item, index }: ListRenderItemInfo<PictionaryEntry>) => (
       <View
@@ -119,14 +132,14 @@ const PictionaryAlbumStage: React.FC<PictionaryAlbumStageProps> = ({
   );
   const getEntryKey = useCallback((entry: PictionaryEntry) => entry.id, []);
 
+  // The target depends only on content above the latest entry, so banner-driven
+  // viewport changes cannot move it. footerHeight stays a dependency because the
+  // browser clamps scrollTop while the viewport grows before the footer catches
+  // up; re-issuing the same offset after the footer commit restores alignment.
   useEffect(() => {
-    if (!shouldFollowLatestEntry || latestEntryHeight === undefined || contentHeight === 0) return;
-    const offset =
-      entries.length === 1
-        ? 0
-        : contentHeight - footerHeight - spacing.large - spacing.medium - latestEntryHeight;
-    listRef.current?.scrollToOffset({ offset: Math.max(0, offset), animated: true });
-  }, [contentHeight, entries.length, footerHeight, latestEntryHeight, shouldFollowLatestEntry]);
+    if (!shouldFollowLatestEntry || latestEntryOffset === null) return;
+    listRef.current?.scrollToOffset({ offset: latestEntryOffset, animated: true });
+  }, [footerHeight, latestEntryOffset, shouldFollowLatestEntry]);
 
   return (
     <View style={styles.albumStage} testID={TESTIDS.pictionaryStageFrame}>
@@ -138,18 +151,19 @@ const PictionaryAlbumStage: React.FC<PictionaryAlbumStageProps> = ({
         keyExtractor={getEntryKey}
         initialNumToRender={state.stepIndex + 1}
         onLayout={({ nativeEvent }) => setViewportHeight(nativeEvent.layout.height)}
-        onContentSizeChange={(_width, height) => setContentHeight(height)}
         contentContainerStyle={styles.albumContent}
         ListFooterComponent={
           shouldFollowLatestEntry ? <View style={{ height: footerHeight }} /> : null
         }
         ListHeaderComponent={
-          <PictionaryStageHeading
-            eyebrow={eyebrow}
-            title={title}
-            description={description}
-            remainingSeconds={remainingSeconds}
-          />
+          <View onLayout={({ nativeEvent }) => setHeaderHeight(nativeEvent.layout.height)}>
+            <PictionaryStageHeading
+              eyebrow={eyebrow}
+              title={title}
+              description={description}
+              remainingSeconds={remainingSeconds}
+            />
+          </View>
         }
       />
       <View style={styles.controlsDock}>{controls}</View>
@@ -300,8 +314,8 @@ const styles = StyleSheet.create({
   },
   albumContent: {
     flexGrow: 1,
-    gap: spacing.large,
-    padding: spacing.medium,
+    gap: ALBUM_GAP,
+    padding: ALBUM_PADDING,
   },
   controlsDock: {
     paddingHorizontal: spacing.medium,
