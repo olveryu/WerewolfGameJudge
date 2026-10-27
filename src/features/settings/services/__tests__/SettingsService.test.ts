@@ -1,6 +1,8 @@
 /**
  * SettingsService.test.ts - Tests for the settings service
  */
+import { WEREWOLF_RULES_SCHEMA } from '@game-judge/game-engine/games/werewolf/public';
+
 import { USER_SETTINGS_KEY } from '@/config/storageKeys';
 import { SettingsService } from '@/features/settings/services/SettingsService';
 import { storage } from '@/services/infra/localStorage';
@@ -53,27 +55,52 @@ describe('SettingsService', () => {
     });
   });
 
-  describe('remembered Werewolf rules', () => {
-    it('defaults to sheriff on and witch self-heal off when nothing has been saved', async () => {
+  describe('remembered game config', () => {
+    const rememberedWerewolf = () =>
+      service.getRememberedGameConfig('werewolf', WEREWOLF_RULES_SCHEMA);
+
+    it('returns schema defaults for remembered fields when nothing has been saved', async () => {
       jest.mocked(storage.getString).mockReturnValue(JSON.stringify({ bgmEnabled: false }));
 
       await service.load();
 
-      expect(service.getRememberedWerewolfRules()).toEqual({
+      expect(rememberedWerewolf()).toEqual({
         isSheriffElectionEnabled: true,
         witchCanSelfHeal: false,
       });
     });
 
-    it('keeps a sheriff preference saved before witch self-heal existed', async () => {
+    it('migrates the legacy top-level Werewolf rule keys', async () => {
       jest
         .mocked(storage.getString)
         .mockReturnValue(JSON.stringify({ isSheriffElectionEnabled: false }));
 
       await service.load();
 
-      expect(service.getRememberedWerewolfRules()).toEqual({
+      expect(rememberedWerewolf()).toEqual({
         isSheriffElectionEnabled: false,
+        witchCanSelfHeal: false,
+      });
+    });
+
+    it('prefers the nested store over a legacy key and drops values the schema rejects', async () => {
+      jest.mocked(storage.getString).mockReturnValue(
+        JSON.stringify({
+          isSheriffElectionEnabled: false,
+          rememberedGameConfigs: {
+            werewolf: {
+              isSheriffElectionEnabled: true,
+              witchCanSelfHeal: 'yes',
+              isPlagueMode: true,
+            },
+          },
+        }),
+      );
+
+      await service.load();
+
+      expect(rememberedWerewolf()).toEqual({
+        isSheriffElectionEnabled: true,
         witchCanSelfHeal: false,
       });
     });
@@ -81,20 +108,22 @@ describe('SettingsService', () => {
     it.each([
       ['isSheriffElectionEnabled', false],
       ['witchCanSelfHeal', true],
-    ] as const)('persists and reloads %s = %s', async (key, value) => {
+    ] as const)('persists and reloads %s = %s under the game key', async (key, value) => {
       await service.load();
-      await service.setRememberedWerewolfRule(key, value);
+      await service.setRememberedGameConfigField('werewolf', key, value);
 
-      expect(service.getRememberedWerewolfRules()[key]).toBe(value);
+      expect(rememberedWerewolf()[key]).toBe(value);
       const persistedSettings = jest.mocked(storage.set).mock.calls.at(-1)?.[1];
       if (typeof persistedSettings !== 'string')
         throw new Error('Expected persisted JSON settings');
-      expect(persistedSettings).toContain(`"${key}":${value}`);
+      expect(JSON.parse(persistedSettings)).toMatchObject({
+        rememberedGameConfigs: { werewolf: { [key]: value } },
+      });
       jest.mocked(storage.getString).mockReturnValue(persistedSettings);
       service = new SettingsService();
       await service.load();
 
-      expect(service.getRememberedWerewolfRules()[key]).toBe(value);
+      expect(rememberedWerewolf()[key]).toBe(value);
     });
   });
 

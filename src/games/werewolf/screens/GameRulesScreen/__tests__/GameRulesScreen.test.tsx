@@ -3,7 +3,11 @@
  * back carries edited rules to Config, and the final button creates/saves with roles + rules.
  */
 
-import type { GameRuleOverrides, RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  type GameRuleOverrides,
+  type RoleId,
+  WEREWOLF_RULES_SCHEMA,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { useServices } from '@/contexts/ServiceContext';
@@ -81,7 +85,7 @@ describe('GameRulesScreen', () => {
     );
     fireEvent(screen.getByTestId(TESTIDS.gameRuleSwitch('witchCanSelfHeal')), 'valueChange', true);
     await waitFor(() =>
-      expect(settingsService.getRememberedWerewolfRules()).toEqual({
+      expect(settingsService.getRememberedGameConfig('werewolf', WEREWOLF_RULES_SCHEMA)).toEqual({
         isSheriffElectionEnabled: false,
         witchCanSelfHeal: true,
       }),
@@ -96,7 +100,7 @@ describe('GameRulesScreen', () => {
       expect(screen.getByTestId(TESTIDS.gameRuleSwitch('isPlagueMode')).props.value).toBe(true),
     );
     expect(storage.set).toHaveBeenCalledTimes(2);
-    expect(settingsService.getRememberedWerewolfRules()).toEqual({
+    expect(settingsService.getRememberedGameConfig('werewolf', WEREWOLF_RULES_SCHEMA)).toEqual({
       isSheriffElectionEnabled: false,
       witchCanSelfHeal: true,
     });
@@ -122,7 +126,10 @@ describe('GameRulesScreen', () => {
     expect(screen.getByTestId(TESTIDS.gameRuleSwitch('isSheriffElectionEnabled')).props.value).toBe(
       true,
     );
-    expect(settingsService.getRememberedWerewolfRules().isSheriffElectionEnabled).toBe(true);
+    expect(
+      settingsService.getRememberedGameConfig('werewolf', WEREWOLF_RULES_SCHEMA)
+        .isSheriffElectionEnabled,
+    ).toBe(true);
   });
 
   it('returns edited rules to Config on back without dropping its params', () => {

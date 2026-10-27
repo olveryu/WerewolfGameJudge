@@ -118,7 +118,7 @@ describe('ConfigScreen → Rules handoff contract', () => {
   });
 
   it('hands the validated preset roles and remembered rules to the Rules step for a new room', async () => {
-    await mockSettingsService.setRememberedWerewolfRule('witchCanSelfHeal', true);
+    await mockSettingsService.setRememberedGameConfigField('werewolf', 'witchCanSelfHeal', true);
     const preset = PRESET_TEMPLATES.find((template) => template.name === '预女猎白');
     if (preset === undefined) throw new Error('Missing preset 预女猎白');
     const rendered = renderConfigScreen();
@@ -150,7 +150,8 @@ describe('ConfigScreen → Rules handoff contract', () => {
   it.each([true, false])(
     'uses the existing room sheriff setting %s instead of the remembered preference in edit mode',
     async (isSheriffElectionEnabled) => {
-      await mockSettingsService.setRememberedWerewolfRule(
+      await mockSettingsService.setRememberedGameConfigField(
+        'werewolf',
         'isSheriffElectionEnabled',
         !isSheriffElectionEnabled,
       );

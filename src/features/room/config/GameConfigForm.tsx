@@ -39,8 +39,10 @@ interface GameConfigFormProps<TConfig extends object> {
   readonly issue: ConfigValidationIssue<TConfig> | null;
   readonly fieldRenderers?: { readonly [K in keyof TConfig]?: ConfigFieldRenderer };
   readonly onFieldChange: (key: keyof TConfig, value: ConfigFieldValue) => void;
-  readonly onCountDraftChange: (key: keyof TConfig, text: string) => void;
-  readonly onStepCount: (key: keyof TConfig, delta: number) => void;
+  /** Required when the schema has a count field. */
+  readonly onCountDraftChange?: (key: keyof TConfig, text: string) => void;
+  /** Required when the schema has a count field. */
+  readonly onStepCount?: (key: keyof TConfig, delta: number) => void;
 }
 
 interface FieldViewProps {
@@ -199,6 +201,13 @@ const FieldView: React.FC<FieldViewProps> = ({
   }
 };
 
+function requireCountHandler<THandler>(handler: THandler | undefined, key: string): THandler {
+  if (handler === undefined) {
+    throw new Error(`[FAIL-FAST] count field ${key} rendered without its count handlers`);
+  }
+  return handler;
+}
+
 export function GameConfigForm<TConfig extends object>({
   gameType,
   schema,
@@ -241,8 +250,8 @@ export function GameConfigForm<TConfig extends object>({
             draft={countDrafts[key]}
             issueMessage={issueMessage}
             onChange={(next) => onFieldChange(key, next)}
-            onDraftChange={(text) => onCountDraftChange(key, text)}
-            onStep={(delta) => onStepCount(key, delta)}
+            onDraftChange={(text) => requireCountHandler(onCountDraftChange, key)(key, text)}
+            onStep={(delta) => requireCountHandler(onStepCount, key)(key, delta)}
           />
         );
       })}

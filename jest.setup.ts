@@ -494,10 +494,22 @@ jest.mock('./src/contexts/ServiceContext', () => {
     },
     settingsService: {
       load: jest.fn().mockResolvedValue(undefined),
-      getRememberedWerewolfRules: jest
-        .fn()
-        .mockReturnValue({ isSheriffElectionEnabled: true, witchCanSelfHeal: false }),
-      setRememberedWerewolfRule: jest.fn().mockResolvedValue(undefined),
+      // Mirrors SettingsService with nothing stored: schema defaults for every remembered field.
+      getRememberedGameConfig: jest.fn(
+        (
+          _gameType: string,
+          schema: {
+            fields: Record<string, { kind: string; isRemembered?: boolean }>;
+            defaults: Record<string, unknown>;
+          },
+        ) =>
+          Object.fromEntries(
+            Object.entries(schema.fields)
+              .filter(([, spec]) => spec.kind !== 'fixed' && spec.isRemembered === true)
+              .map(([key]) => [key, schema.defaults[key]]),
+          ),
+      ),
+      setRememberedGameConfigField: jest.fn().mockResolvedValue(undefined),
       isBgmEnabled: jest.fn().mockReturnValue(true),
       toggleBgm: jest.fn().mockResolvedValue(false),
       getBgmTrack: jest.fn().mockReturnValue('random'),

@@ -4,6 +4,7 @@
  * Defines the GameTemplate interface, template validation, preset templates, and template factories.
  * Exports type definitions, pure-function validators/factories, and preset constants. No service deps, side effects, or IO.
  */
+import type { GameConfigSchema } from '../../../../platform/config/configSchema';
 import {
   countBottomCardRoles,
   getBottomCardCount,
@@ -116,6 +117,46 @@ export interface GameRuleOverrides {
   /** Allow witch to save herself (default: false — witch cannot self-heal) */
   witchCanSelfHeal?: boolean;
 }
+
+/** Every house rule resolved to an explicit value; the shape the rules form edits. */
+export type WerewolfRules = Required<GameRuleOverrides>;
+
+/**
+ * House-rule schema for the Werewolf rules step. Defaults mirror the engine's
+ * fallbacks when an override is absent (sheriff election on, the rest off).
+ * Sheriff election and witch self-heal are remembered for the next room;
+ * plague mode is chosen per game and asks for confirmation before enabling.
+ */
+export const WEREWOLF_RULES_SCHEMA: GameConfigSchema<WerewolfRules> = {
+  fields: {
+    isSheriffElectionEnabled: {
+      kind: 'toggle',
+      label: '首日警长竞选',
+      hint: '首夜结束后先进行警长竞选，再公布夜间结果。',
+      isRemembered: true,
+    },
+    witchCanSelfHeal: {
+      kind: 'toggle',
+      label: '女巫可自救',
+      hint: '允许女巫对自己使用解药（默认规则：女巫不能自救）。',
+      isRemembered: true,
+    },
+    isPlagueMode: {
+      kind: 'toggle',
+      label: '黑死病模式',
+      hint: '所有狼人牌暗中替换为平民，玩家看到的板子仍显示有狼。此项每局单独选择，不会记住。',
+      tone: 'warning',
+      confirmOnEnable: {
+        title: '💀 黑死病模式',
+        message:
+          '• 发牌时，所有狼人牌将暗中替换为平民\n• 玩家看到的板子配置仍显示有狼\n• 发牌后请由房主担任真人法官主持后续流程\n• 建议提前线下安排好"演员"',
+        confirmText: '确认开启',
+      },
+    },
+  },
+  defaults: { isSheriffElectionEnabled: true, witchCanSelfHeal: false, isPlagueMode: false },
+  validate: () => null,
+};
 
 /**
  * GameTemplate - defines the player composition for a game.

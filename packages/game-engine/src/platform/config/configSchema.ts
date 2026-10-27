@@ -111,7 +111,8 @@ export interface GameConfigSchema<TConfig extends object> {
   readonly validate: (config: TConfig) => ConfigValidationIssue<TConfig> | null;
 }
 
-function validateFieldValue(spec: AnyConfigFieldSpec, value: unknown): string | null {
+/** Field-level check for one spec; null when the value is acceptable. */
+export function validateConfigFieldValue(spec: AnyConfigFieldSpec, value: unknown): string | null {
   switch (spec.kind) {
     case 'count':
       if (
@@ -145,7 +146,7 @@ export function validateConfig<TConfig extends object>(
 ): ConfigValidationIssue<TConfig> | null {
   for (const key in schema.fields) {
     const spec: AnyConfigFieldSpec = schema.fields[key];
-    const message = validateFieldValue(spec, config[key]);
+    const message = validateConfigFieldValue(spec, config[key]);
     if (message !== null) return { field: key, message };
   }
   return schema.validate(config);
@@ -169,7 +170,7 @@ function hasValidFields<TConfig extends object>(
 ): record is Record<string, unknown> & TConfig {
   for (const key in schema.fields) {
     const spec: AnyConfigFieldSpec = schema.fields[key];
-    if (validateFieldValue(spec, record[key]) !== null) return false;
+    if (validateConfigFieldValue(spec, record[key]) !== null) return false;
   }
   return true;
 }

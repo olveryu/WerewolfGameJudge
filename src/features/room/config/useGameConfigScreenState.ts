@@ -8,18 +8,28 @@
  * through the shared create/edit controller.
  */
 
-import type { ConfigFieldValue } from '@game-judge/game-engine/platform/config/configSchema';
+import type {
+  AnyConfigFieldSpec,
+  ConfigFieldValue,
+} from '@game-judge/game-engine/platform/config/configSchema';
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useMemo, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useServices } from '@/contexts/ServiceContext';
 import type { StandardConfigRouteParams } from '@/features/navigation/model/standardRouteParsers';
 import { useRoomConfigSubmission } from '@/features/room/controllers/useRoomConfigSubmission';
 import type { RoomSessionClient } from '@/features/room/session/types';
+import {
+  isExpectedStorageError,
+  type SettingsService,
+} from '@/features/settings/services/SettingsService';
 import type { RootStackParamList } from '@/navigation/types';
 import { showErrorAlert } from '@/utils/alertPresets';
+import { handleError } from '@/utils/errorPipeline';
+import { configLog } from '@/utils/logger';
 
 import {
   type CountDrafts,
@@ -56,8 +66,14 @@ function readInitialConfig<
   definition: GameConfigScreenDefinition<TGameType, TState, TCommand, TConfig>,
   session: RoomSessionClient<TState, TCommand>,
   params: StandardConfigRouteParams<TGameType>,
+  settingsService: SettingsService,
 ): TConfig {
-  if (params.mode === 'create') return definition.schema.defaults;
+  if (params.mode === 'create') {
+    return {
+      ...definition.schema.defaults,
+      ...settingsService.getRememberedGameConfig(gameType, definition.schema),
+    };
+  }
   const snapshot = session.getSnapshot();
   if (snapshot.phase !== 'ready' || snapshot.identity.room.roomCode !== params.roomCode) {
     throw new Error(`[FAIL-FAST] ${gameType} config edit requires its active room session`);
@@ -82,9 +98,10 @@ export function useGameConfigScreenState<
   navigation,
 }: UseGameConfigScreenStateParams<TGameType, TState, TCommand, TConfig>) {
   const { user } = useAuthContext();
+  const { settingsService } = useServices();
   const { schema } = definition;
   const [config, setConfig] = useState<TConfig>(() =>
-    readInitialConfig(gameType, definition, session, params),
+    readInitialConfig(gameType, definition, session, params, settingsService),
   );
   const [countDrafts, setCountDrafts] = useState<CountDrafts>({});
   const gate = definition.useSubmitGate?.(config);
@@ -94,14 +111,29 @@ export function useGameConfigScreenState<
     [schema, config, countDrafts],
   );
 
-  const setFieldValue = useCallback((key: keyof TConfig, value: ConfigFieldValue) => {
-    setConfig((current) => withFieldValue(current, key, value));
-    setCountDrafts((current) => {
-      if (!(String(key) in current)) return current;
-      const { [String(key)]: _dropped, ...rest } = current;
-      return rest;
-    });
-  }, []);
+  const setFieldValue = useCallback(
+    (key: keyof TConfig, value: ConfigFieldValue) => {
+      setConfig((current) => withFieldValue(current, key, value));
+      setCountDrafts((current) => {
+        if (!(String(key) in current)) return current;
+        const { [String(key)]: _dropped, ...rest } = current;
+        return rest;
+      });
+      const spec: AnyConfigFieldSpec = schema.fields[key];
+      if (spec.kind === 'fixed' || spec.isRemembered !== true) return;
+      settingsService
+        .setRememberedGameConfigField(gameType, String(key), value)
+        .catch((error: unknown) => {
+          handleError(error, {
+            label: '保存设置偏好',
+            logger: configLog,
+            alertMessage: '偏好未保存，请检查浏览器存储权限后重试',
+            isExpected: isExpectedStorageError,
+          });
+        });
+    },
+    [gameType, schema, settingsService],
+  );
 
   const setCountDraft = useCallback((key: keyof TConfig, text: string) => {
     setCountDrafts((current) => ({ ...current, [String(key)]: text }));
@@ -121,9 +153,9 @@ export function useGameConfigScreenState<
   );
 
   const reset = useCallback(() => {
-    setConfig(readInitialConfig(gameType, definition, session, params));
+    setConfig(readInitialConfig(gameType, definition, session, params, settingsService));
     setCountDrafts({});
-  }, [definition, gameType, params, session]);
+  }, [definition, gameType, params, session, settingsService]);
 
   const submission = useRoomConfigSubmission({
     params,
