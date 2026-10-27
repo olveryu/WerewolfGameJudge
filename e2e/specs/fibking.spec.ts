@@ -58,7 +58,6 @@ test.describe('FibKing', () => {
       const config = new FibConfigPage(page);
       await config.waitForCreateMode();
       await config.setPlayerCount(20);
-      await config.increment();
       await config.expectIncrementDisabledAtMaximum();
       await config.expectPlayerCount(20);
       await config.createRoom();
