@@ -35,6 +35,26 @@ Shared room shell and controllers live in `src/features/room/`. Werewolf policy,
 night UI must remain in this game-owned directory. State machine reference:
 `docs/roomscreen-state-machine.md`.
 
+## Button Ownership
+
+`docs/room-shell-contract.md` → "Action Ownership" / "Host Task" is binding here too. In Werewolf terms:
+
+- `LAYOUT_RULES` (`hooks/bottomLayoutConfig.ts`) match on the shared audience
+  `host | seated | spectator` from `resolveRoomViewerAudience({ isHost, seat: effectiveSeat })`.
+  Do not introduce another role enum.
+- The bottom panel is a participant surface only. `STATIC_BUTTONS` are `viewRole` → `participant`
+  and `nightReview` → `anyone` (shared seats, spectators). Schema (night action) buttons are
+  `participant`. There are no host buttons, no step bar and no hint on the bottom panel.
+- The Day/Ended dawn flow (昨夜信息 → 本局复盘 → 收尾) is the host task: `panelFlow.ts` derives
+  `steps` and the current step, `createWerewolfHostManagement` sets `task` (`action` on
+  `last-night-info` / `night-review`, then `choice` on `next-round` / `return-lobby`) and the
+  sheet carries those actions. On Day the sheriff election's own task (advance / waiting message)
+  comes first; the dawn flow's first step takes over once the election completes.
+- `createWerewolfHostManagement` has no host guard; `createWerewolfRoomShellModel` passes it as
+  `buildHostManagement` and the shell factory gates on `viewer.isHost`.
+- The sheriff dock sets `trailing: null` for the host (the review reaches the host through the
+  task card and sheet); the renderer does not hide tools by role.
+
 ## Anti-Drift Rule（2026-10-07 用户立规矩）
 
 "One game cannot import another game" 禁的是游戏间**直接 import**，不是禁共享。

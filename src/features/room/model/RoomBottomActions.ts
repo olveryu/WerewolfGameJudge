@@ -4,6 +4,21 @@ import type Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps } from 'react';
 
 import type { NightStepProgress } from './nightProgress';
+import type { RoomViewer } from './RoomViewer';
+
+/**
+ * Who a bottom button is for — the declared ownership of every action
+ * the bottom panel renders, checked by `createRoomShellModel` against
+ * the shell's viewer:
+ *
+ * - `participant`: a seat action (view identity, vote, confirm, skip).
+ *   Requires an effective seat — own or taken-over bot seat.
+ * - `anyone`: open to spectators too (a shared review, a public result).
+ *
+ * There is no host audience: host commands live in host management and
+ * reach the host through the host task card, never the bottom panel.
+ */
+export type RoomBottomButtonAudience = 'participant' | 'anyone';
 
 type RoomBottomActionAvailability =
   | {
@@ -18,6 +33,7 @@ type RoomBottomActionAvailability =
 interface RoomBottomButtonBase {
   readonly key: string;
   readonly label: string;
+  readonly audience: RoomBottomButtonAudience;
   readonly icon?: ComponentProps<typeof Ionicons>['name'];
   readonly variant: 'primary' | 'secondary' | 'ghost' | 'danger';
   readonly size: 'lg' | 'md';
@@ -35,6 +51,7 @@ export const AUDIO_WAITING_LABEL = '语音播报中…';
 interface RoomBottomToolButtonBase {
   readonly key: string;
   readonly label: string;
+  readonly audience: RoomBottomButtonAudience;
   readonly icon?: ComponentProps<typeof Ionicons>['name'];
   readonly tone: 'default' | 'danger';
   readonly testID?: string;
@@ -50,10 +67,11 @@ export type RoomBottomToolButton = RoomBottomToolButtonBase & RoomBottomActionAv
  */
 export function buildLobbyHostStartMessage(input: {
   readonly isLobby: boolean;
-  readonly isHost: boolean;
-  readonly mySeat: number | null;
+  readonly viewer: RoomViewer;
 }): string | null {
-  return input.isLobby && !input.isHost && input.mySeat !== null ? '等待房主开始游戏' : null;
+  return input.isLobby && !input.viewer.isHost && input.viewer.seat !== null
+    ? '等待房主开始游戏'
+    : null;
 }
 
 /**
@@ -66,10 +84,11 @@ export const ENDED_WAITING_MESSAGE = '等待房主操作（再来一局 / 返回
 
 export function buildEndedWaitingMessage(input: {
   readonly isEnded: boolean;
-  readonly isHost: boolean;
-  readonly mySeat: number | null;
+  readonly viewer: RoomViewer;
 }): string | null {
-  return input.isEnded && !input.isHost && input.mySeat !== null ? ENDED_WAITING_MESSAGE : null;
+  return input.isEnded && !input.viewer.isHost && input.viewer.seat !== null
+    ? ENDED_WAITING_MESSAGE
+    : null;
 }
 
 /**
@@ -128,8 +147,10 @@ export function resolveViewIdentityAction(input: {
  * step is the viewing step: the viewing step renders primary, every
  * other phase renders secondary. Ghost is never a view-identity tier:
  * viewing your own secret is always a real button (filled or outlined),
- * never a borderless text action. Size is fixed md across games; only
- * the key, the tier and the testID remain the surface's own anchors.
+ * never a borderless text action. Size is fixed md across games; the
+ * key, the tier, the audience and the testID remain the surface's own
+ * anchors (a spectator-readable variant such as FibKing's 查看题目
+ * declares `anyone`; viewing one's own secret declares `participant`).
  * The button is always enabled (a hidden action is expressed by
  * resolving to null, never by a disabled view button).
  */
@@ -138,12 +159,14 @@ export function buildViewIdentityButton(
   surface: {
     readonly key: string;
     readonly variant: 'primary' | 'secondary';
+    readonly audience: RoomBottomButtonAudience;
     readonly testID?: string;
   },
 ): RoomBottomButton {
   return {
     key: surface.key,
     label: action.label,
+    audience: surface.audience,
     icon: 'eye-outline',
     variant: surface.variant,
     size: 'md',
@@ -162,26 +185,12 @@ export function buildViewIdentityButton(
  * rather than the review-tool grouping: it is the viewing step's main
  * action (primary) in the viewing step and a persistent secondary
  * tool in every other phase — it is never ghost. The review button
- * (nightReview) remains a ghost tool.
+ * (nightReview) remains a ghost tool. Host flow never renders here.
  */
 export interface RoomBottomActionLayout {
   readonly primary: readonly RoomBottomButton[];
   readonly secondary: readonly RoomBottomButton[];
   readonly ghost: readonly RoomBottomButton[];
-}
-
-/**
- * One entry of a guided step flow rendered in place of the stacked
- * panel's message line (e.g. a phase's "next action" sequence). The
- * current step mirrors the panel's primary button; completed steps may
- * carry an onPress to revisit their surface, upcoming steps are inert.
- * Games that never run a step flow simply never set `steps`.
- */
-export interface RoomPanelStep {
-  readonly key: string;
-  readonly label: string;
-  readonly state: 'complete' | 'current' | 'upcoming';
-  readonly onPress?: () => void;
 }
 
 export interface RoomBottomStackModel {
@@ -190,13 +199,6 @@ export interface RoomBottomStackModel {
   /** Step progress for stepped phases (night sequences, relay chains); null elsewhere. */
   readonly progress: NightStepProgress | null;
   readonly layout: RoomBottomActionLayout;
-  /**
-   * Guided step flow for the message row. When non-null it replaces
-   * the message text line; null/absent keeps the plain message line.
-   */
-  readonly steps?: readonly RoomPanelStep[] | null;
-  /** Small caption rendered directly above the buttons (e.g. a step reminder); null/absent renders nothing. */
-  readonly hint?: string | null;
 }
 
 export interface RoomBottomDockModel {

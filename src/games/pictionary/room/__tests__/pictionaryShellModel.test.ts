@@ -72,8 +72,7 @@ describe('createPictionaryRoomShellModel', () => {
       onUserActionPress: jest.fn(),
       connection,
       state,
-      isHost: true,
-      mySeat: null,
+      viewer: { userId: 'host', isHost: true, seat: null },
       seatSource,
       seatsVisuallyDisabled: false,
       onSeatPress,
@@ -81,7 +80,7 @@ describe('createPictionaryRoomShellModel', () => {
       seatConfirmation: null,
       profile: null,
       share,
-      hostManagement: null,
+      buildHostManagement: () => null,
       controlledSeat: null,
     });
     expect(Object.keys(model).sort()).toEqual([
@@ -99,6 +98,7 @@ describe('createPictionaryRoomShellModel', () => {
       'seats',
       'share',
       'step',
+      'viewer',
     ]);
     expect(model.isAudioPlaying).toBe(false);
     expect(model.roomCode).toBe('2468');
@@ -132,8 +132,7 @@ describe('createPictionaryRoomShellModel', () => {
       onUserActionPress: jest.fn(),
       connection,
       state: { ...state, phase: 'ended' },
-      isHost: true,
-      mySeat: null,
+      viewer: { userId: 'host', isHost: true, seat: null },
       seatSource,
       seatsVisuallyDisabled: false,
       onSeatPress,
@@ -141,7 +140,7 @@ describe('createPictionaryRoomShellModel', () => {
       seatConfirmation: null,
       profile: null,
       share,
-      hostManagement: null,
+      buildHostManagement: () => null,
       controlledSeat: null,
     });
     expect(endedModel.phase).toBe('ended');

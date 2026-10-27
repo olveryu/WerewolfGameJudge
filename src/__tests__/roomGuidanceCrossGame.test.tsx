@@ -49,6 +49,7 @@ import {
   createStoryRelayHostManagement,
   createStoryRelayRoomShellModel,
 } from '@/games/storyrelay/room/storyRelayRoomAdapter';
+import { viewerFor } from '@/test-utils/roomViewer';
 import { colors } from '@/theme';
 
 const featureStyles = createRoomFeatureStyles(colors);
@@ -109,7 +110,7 @@ function shellInput() {
     onUserActionPress: jest.fn(),
     connection: { status: 'live' as const, pendingCommandCount: 0, onManualReconnect: jest.fn() },
     revision: 1,
-    userId: 'host',
+    viewer: viewerFor('host'),
     controlledSeat: null,
     seatsVisuallyDisabled: false,
     onSeatPress: jest.fn(),
@@ -120,8 +121,6 @@ function shellInput() {
     onProfileLeaveSeat: jest.fn(),
     share,
     isLobby: true,
-    isHost: true,
-    mySeat: 0,
     releaseBot: jest.fn(),
   };
 }
@@ -203,13 +202,13 @@ function demoShell(state: DemoState): RoomShellModel {
   return createDemoRoomShellModel({
     ...shellInput(),
     state,
-    hostManagement: createDemoHostManagement({
-      state,
-      isHost: true,
-      capabilities: capabilities(),
-      isSubmitting: false,
-      submit,
-    }),
+    buildHostManagement: () =>
+      createDemoHostManagement({
+        state,
+        capabilities: capabilities(),
+        isSubmitting: false,
+        submit,
+      }),
   });
 }
 
@@ -243,13 +242,13 @@ function drawGuessShell(state: DrawGuessState): RoomShellModel {
   return createDrawGuessRoomShellModel({
     ...shellInput(),
     state,
-    hostManagement: createDrawGuessHostManagement({
-      state,
-      isHost: true,
-      capabilities: capabilities(),
-      isSubmitting: false,
-      submit,
-    }),
+    buildHostManagement: () =>
+      createDrawGuessHostManagement({
+        state,
+        capabilities: capabilities(),
+        isSubmitting: false,
+        submit,
+      }),
   });
 }
 
@@ -289,13 +288,13 @@ function storyRelayShell(state: StoryRelayState): RoomShellModel {
   return createStoryRelayRoomShellModel({
     ...shellInput(),
     state,
-    hostManagement: createStoryRelayHostManagement({
-      state,
-      isHost: true,
-      capabilities: capabilities(),
-      isSubmitting: false,
-      submit,
-    }),
+    buildHostManagement: () =>
+      createStoryRelayHostManagement({
+        state,
+        capabilities: capabilities(),
+        isSubmitting: false,
+        submit,
+      }),
   });
 }
 

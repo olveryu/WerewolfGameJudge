@@ -6,6 +6,7 @@ import { AUDIO_WAITING_LABEL } from '@/features/room/model/RoomBottomActions';
 import type {
   RoomHostManagementAction,
   RoomHostManagementModel,
+  RoomHostTask,
 } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
@@ -36,8 +37,11 @@ function renderPanel(
   );
 }
 
-function hostModelWith(actions: RoomHostManagementAction[]): RoomHostManagementModel {
-  return { sections: [{ key: 'game', title: '游戏', actions }] };
+function hostModelWith(
+  actions: RoomHostManagementAction[],
+  task: RoomHostTask | null = null,
+): RoomHostManagementModel {
+  return { task, sections: [{ key: 'game', title: '游戏', actions }] };
 }
 
 const emptyStackedModel: RoomBottomActionModel = {
@@ -82,6 +86,7 @@ describe('RoomBottomActionPanel', () => {
           {
             key: 'confirm',
             label: '确认信息',
+            audience: 'participant',
             variant: 'primary',
             size: 'md',
             isEnabled: true,
@@ -112,6 +117,7 @@ describe('RoomBottomActionPanel', () => {
           {
             key: 'confirm',
             label: '确认',
+            audience: 'participant',
             variant: 'primary',
             size: 'lg',
             isEnabled: true,
@@ -178,6 +184,7 @@ describe('RoomBottomActionPanel', () => {
           {
             key: 'waiting',
             label: '等待房主开始',
+            audience: 'participant',
             variant: 'primary',
             size: 'lg',
             isEnabled: false,
@@ -202,6 +209,7 @@ describe('RoomBottomActionPanel', () => {
           {
             key: 'waiting',
             label: '等待房主开始',
+            audience: 'participant',
             variant: 'primary',
             size: 'lg',
             isEnabled: false,
@@ -256,6 +264,7 @@ describe('RoomBottomActionPanel', () => {
           {
             key: 'restart',
             label: '重新开始',
+            audience: 'participant',
             variant: 'primary',
             size: 'lg',
             isEnabled: true,
@@ -283,6 +292,7 @@ describe('RoomBottomActionPanel', () => {
           {
             key: 'view-role',
             label: '查看身份',
+            audience: 'participant',
             variant: 'primary',
             size: 'lg',
             isEnabled: true,
@@ -293,7 +303,7 @@ describe('RoomBottomActionPanel', () => {
         ghost: [],
       },
     };
-    const screen = renderPanel(model, { sections: [] }, openHostManagement);
+    const screen = renderPanel(model, { task: null, sections: [] }, openHostManagement);
 
     expect(screen.getByText('全部操作')).toBeTruthy();
     expect(screen.getByTestId(TESTIDS.roomHostManagementButton)).toHaveStyle({
@@ -305,13 +315,7 @@ describe('RoomBottomActionPanel', () => {
     expect(openHostManagement).toHaveBeenCalledTimes(1);
   });
 
-  it('marks the entry as pending when the model carries a pending action', () => {
-    const screen = renderPanel(emptyStackedModel, { hasPendingAction: true, sections: [] });
-
-    expect(screen.getByText('待处理')).toBeTruthy();
-  });
-
-  it('keeps the Host player action when management occupies the dock tool slot', () => {
+  it('renders the dock trailing tool next to the management block when the model carries one', () => {
     const openPlayerAction = jest.fn();
     const openHostManagement = jest.fn();
     const trailingAction = jest.fn();
@@ -323,6 +327,7 @@ describe('RoomBottomActionPanel', () => {
       primary: {
         key: 'sheriff-action',
         label: '我要竞选',
+        audience: 'participant',
         variant: 'primary',
         size: 'lg',
         testID: 'sheriff-player-action',
@@ -330,22 +335,23 @@ describe('RoomBottomActionPanel', () => {
         onPress: openPlayerAction,
       },
       trailing: {
-        key: 'legacy-host-action',
-        label: '推进流程',
+        key: 'review',
+        label: '本局复盘',
+        audience: 'anyone',
         tone: 'default',
-        testID: 'legacy-host-action',
+        testID: 'review-action',
         isEnabled: true,
         onPress: trailingAction,
       },
     };
-    const screen = renderPanel(model, { hasPendingAction: true, sections: [] }, openHostManagement);
+    const screen = renderPanel(model, { task: null, sections: [] }, openHostManagement);
 
     fireEvent.press(screen.getByTestId('sheriff-player-action'));
     fireEvent.press(screen.getByTestId(TESTIDS.roomHostManagementButton));
+    fireEvent.press(screen.getByTestId('review-action'));
     expect(openPlayerAction).toHaveBeenCalledTimes(1);
     expect(openHostManagement).toHaveBeenCalledTimes(1);
-    expect(screen.queryByTestId('legacy-host-action')).toBeNull();
-    expect(trailingAction).not.toHaveBeenCalled();
+    expect(trailingAction).toHaveBeenCalledTimes(1);
   });
 
   it('stacks the primary action above two equally available dock tools', () => {
@@ -356,6 +362,7 @@ describe('RoomBottomActionPanel', () => {
       leading: {
         key: 'view-role',
         label: '查看身份',
+        audience: 'participant',
         tone: 'default',
         testID: 'view-role-action',
         isEnabled: true,
@@ -364,6 +371,7 @@ describe('RoomBottomActionPanel', () => {
       primary: {
         key: 'sheriff-action',
         label: '选择投票',
+        audience: 'participant',
         variant: 'primary',
         size: 'lg',
         testID: 'sheriff-player-action',
@@ -373,6 +381,7 @@ describe('RoomBottomActionPanel', () => {
       trailing: {
         key: 'night-review',
         label: '本局复盘',
+        audience: 'participant',
         tone: 'default',
         testID: 'night-review-action',
         isEnabled: true,
@@ -398,6 +407,7 @@ describe('RoomBottomActionPanel', () => {
       leading: {
         key: 'view-role',
         label: '查看身份',
+        audience: 'participant',
         tone: 'default',
         testID: 'view-role-action',
         isEnabled: false,
@@ -406,6 +416,7 @@ describe('RoomBottomActionPanel', () => {
       primary: {
         key: 'sheriff-action',
         label: '选择投票',
+        audience: 'participant',
         variant: 'primary',
         size: 'lg',
         testID: 'sheriff-player-action',
@@ -432,6 +443,7 @@ describe('RoomBottomActionPanel', () => {
             {
               key: 'view-role',
               label: '查看身份',
+              audience: 'participant',
               variant: 'ghost',
               size: 'md',
               isEnabled: true,
@@ -440,7 +452,7 @@ describe('RoomBottomActionPanel', () => {
           ],
         },
       },
-      { sections: [] },
+      { task: null, sections: [] },
     );
 
     expect(screen.getByText('查看身份')).toBeTruthy();
@@ -461,6 +473,7 @@ describe('RoomBottomActionPanel', () => {
           {
             key: 'night-review',
             label: '本局复盘',
+            audience: 'participant',
             variant: 'secondary',
             size: 'md',
             isEnabled: true,
@@ -471,6 +484,7 @@ describe('RoomBottomActionPanel', () => {
           {
             key: 'view-role',
             label: '查看身份',
+            audience: 'participant',
             variant: 'ghost',
             size: 'md',
             isEnabled: true,
@@ -496,6 +510,7 @@ describe('RoomBottomActionPanel', () => {
           {
             key: 'night-review',
             label: '本局复盘',
+            audience: 'participant',
             variant: 'secondary',
             size: 'md',
             isEnabled: true,
@@ -511,8 +526,8 @@ describe('RoomBottomActionPanel', () => {
     expect(screen.queryByTestId(TESTIDS.roomHostManagementButton)).toBeNull();
   });
 
-  describe('host console primary', () => {
-    it('keeps the player command prominent and host advancement available', () => {
+  describe('host task card', () => {
+    it('keeps the player command prominent and the host task available', () => {
       const onPlayerPress = jest.fn();
       const onHostPress = jest.fn();
       const screen = renderPanel(
@@ -523,6 +538,7 @@ describe('RoomBottomActionPanel', () => {
               {
                 key: 'submit',
                 label: '提交答案',
+                audience: 'participant',
                 variant: 'primary',
                 size: 'md',
                 isEnabled: true,
@@ -533,17 +549,19 @@ describe('RoomBottomActionPanel', () => {
             ghost: [],
           },
         },
-        hostModelWith([
-          {
-            key: 'advance',
-            label: '结束作答',
-            icon: 'arrow-forward',
-            variant: 'primary',
-            isPrimary: true,
-            isEnabled: true,
-            onPress: onHostPress,
-          },
-        ]),
+        hostModelWith(
+          [
+            {
+              key: 'advance',
+              label: '结束作答',
+              icon: 'arrow-forward',
+              variant: 'primary',
+              isEnabled: true,
+              onPress: onHostPress,
+            },
+          ],
+          { kind: 'action', actionKey: 'advance' },
+        ),
       );
 
       expect(screen.getByTestId(TESTIDS.roomNextStepButton)).toHaveStyle({
@@ -555,176 +573,181 @@ describe('RoomBottomActionPanel', () => {
       expect(onHostPress).toHaveBeenCalledTimes(1);
     });
 
-    it('runs the ready primary through the action’s own onPress', () => {
+    it('runs an action task through the sheet action’s own onPress', () => {
       const onPress = jest.fn();
       const screen = renderPanel(
         emptyStackedModel,
-        hostModelWith([
-          {
-            key: 'start-game',
-            label: '开始游戏',
-            icon: 'play-outline',
-            variant: 'primary',
-            isEnabled: true,
-            onPress,
-            isPrimary: true,
-          },
-        ]),
+        hostModelWith(
+          [
+            {
+              key: 'start-game',
+              label: '开始游戏',
+              icon: 'play-outline',
+              variant: 'primary',
+              isEnabled: true,
+              onPress,
+            },
+          ],
+          { kind: 'action', actionKey: 'start-game' },
+        ),
       );
-      const strip = screen.getByTestId(TESTIDS.roomNextStepButton);
-      expect(strip.props.accessibilityLabel).toBe('开始游戏');
-      fireEvent.press(strip);
+      const button = screen.getByTestId(TESTIDS.roomNextStepButton);
+      expect(button.props.accessibilityLabel).toBe('开始游戏');
+      fireEvent.press(button);
       expect(onPress).toHaveBeenCalledTimes(1);
     });
 
-    it('shows the blocked reason on the console and runs the remedy from its button', () => {
+    it('shows a blocked action with its reason and runs the remedy from the sheet action', () => {
       const onRemedy = jest.fn();
       const screen = renderPanel(
         emptyStackedModel,
-        hostModelWith([
-          {
-            key: 'start-game',
-            label: '分配角色',
-            icon: 'play-outline',
-            variant: 'primary',
-            isEnabled: false,
-            disabledReason: '座位尚未坐满（还差 2 人）',
-            isPrimary: true,
-            remedy: { label: '分享房间', onPress: onRemedy },
-          },
-        ]),
+        hostModelWith(
+          [
+            {
+              key: 'assign-roles',
+              label: '分配角色',
+              icon: 'play-outline',
+              variant: 'primary',
+              isEnabled: false,
+              disabledReason: '座位尚未坐满（还差 2 人）',
+            },
+            {
+              key: 'share-room',
+              label: '分享房间',
+              icon: 'share-social-outline',
+              variant: 'secondary',
+              isEnabled: true,
+              onPress: onRemedy,
+            },
+          ],
+          { kind: 'action', actionKey: 'assign-roles', remedyActionKey: 'share-room' },
+        ),
       );
+      expect(screen.queryByTestId(TESTIDS.roomNextStepButton)).toBeNull();
       expect(screen.getByText('分配角色')).toBeTruthy();
       expect(screen.getByText('座位尚未坐满（还差 2 人）')).toBeTruthy();
       fireEvent.press(screen.getByTestId(TESTIDS.roomNextStepRemedyButton));
       expect(onRemedy).toHaveBeenCalledTimes(1);
     });
 
-    it('renders the console blocked while the primary stays enabled behind a console-only reason', () => {
+    it('renders a choice as equal side-by-side actions with their own variants', () => {
+      const next = jest.fn();
+      const lobby = jest.fn();
       const screen = renderPanel(
         emptyStackedModel,
-        hostModelWith([
-          {
-            key: 'prepare-to-flip',
-            label: '翻牌分配身份',
-            icon: 'play-outline',
-            variant: 'primary',
-            isEnabled: true,
-            onPress: jest.fn(),
-            isPrimary: true,
-            consoleBlockedReason: '还有 2 个空位等待入座',
-            remedy: { label: '分享房间', onPress: jest.fn() },
-          },
-        ]),
-      );
-      expect(screen.queryByTestId(TESTIDS.roomNextStepButton)).toBeNull();
-      expect(screen.getByText('还有 2 个空位等待入座')).toBeTruthy();
-      expect(screen.getByTestId(TESTIDS.roomNextStepRemedyButton)).toBeTruthy();
-    });
-
-    it('renders no console row when the model carries no primary', () => {
-      const screen = renderPanel(emptyStackedModel, { sections: [] });
-      expect(screen.queryByTestId(TESTIDS.roomNextStepButton)).toBeNull();
-      expect(screen.queryByTestId(TESTIDS.roomNextStepRemedyButton)).toBeNull();
-    });
-
-    it('renders no console row for a primary locked by a transient submission', () => {
-      const screen = renderPanel(
-        emptyStackedModel,
-        hostModelWith([
-          {
-            key: 'start-game',
-            label: '开始游戏',
-            icon: 'play-outline',
-            variant: 'primary',
-            isEnabled: false,
-            disabledReason: null,
-            isPrimary: true,
-          },
-        ]),
-      );
-      expect(screen.queryByTestId(TESTIDS.roomNextStepButton)).toBeNull();
-      expect(screen.queryByTestId(TESTIDS.roomNextStepRemedyButton)).toBeNull();
-    });
-  });
-
-  describe('guided step flow', () => {
-    const dangerButton = (key: string, label: string, testID: string) => ({
-      key,
-      label,
-      variant: 'danger' as const,
-      size: 'md' as const,
-      isEnabled: true as const,
-      onPress: jest.fn(),
-      testID,
-    });
-
-    it('renders secondary actions side by side, each flexing to equal width', () => {
-      const model: RoomBottomActionModel = {
-        kind: 'stacked',
-        message: null,
-        progress: null,
-        layout: {
-          primary: [],
-          secondary: [
-            dangerButton('nextRound', '再来一局', TESTIDS.nextRoundBottomButton),
-            dangerButton('returnToLobby', '返回大厅', TESTIDS.returnLobbyBottomButton),
+        hostModelWith(
+          [
+            {
+              key: 'next-round',
+              label: '再来一局',
+              icon: 'play-forward-outline',
+              variant: 'danger',
+              testID: TESTIDS.nextRoundButton,
+              isEnabled: true,
+              onPress: next,
+            },
+            {
+              key: 'return-lobby',
+              label: '返回大厅',
+              icon: 'return-down-back-outline',
+              variant: 'danger',
+              testID: TESTIDS.returnLobbyButton,
+              isEnabled: true,
+              onPress: lobby,
+            },
           ],
-          ghost: [],
-        },
-      };
-      const { getByTestId } = renderPanel(model);
-
-      for (const testID of [TESTIDS.nextRoundBottomButton, TESTIDS.returnLobbyBottomButton]) {
-        const element = getByTestId(testID);
-        expect(element).toBeTruthy();
+          { kind: 'choice', actionKeys: ['next-round', 'return-lobby'] },
+        ),
+      );
+      // The card carries its own anchors; the sheet's testIDs stay unique to the sheet.
+      for (const key of ['next-round', 'return-lobby']) {
+        const element = screen.getByTestId(`${TESTIDS.roomHostTaskCard}-${key}`);
         expect(StyleSheet.flatten(element.props.style)).toMatchObject({ flex: 1 });
       }
+      expect(screen.queryByTestId(TESTIDS.nextRoundButton)).toBeNull();
+      fireEvent.press(screen.getByTestId(`${TESTIDS.roomHostTaskCard}-next-round`));
+      fireEvent.press(screen.getByTestId(`${TESTIDS.roomHostTaskCard}-return-lobby`));
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(lobby).toHaveBeenCalledTimes(1);
+      expect(screen.queryByTestId(TESTIDS.roomNextStepButton)).toBeNull();
     });
 
-    it('renders the step bar in place of the message and wires complete/current presses', () => {
+    it('renders a message task with its escape action', () => {
+      const onEscape = jest.fn();
+      const screen = renderPanel(
+        emptyStackedModel,
+        hostModelWith(
+          [
+            {
+              key: 'cancel-selection',
+              label: '取消选择',
+              icon: 'close-circle-outline',
+              variant: 'secondary',
+              isEnabled: true,
+              onPress: onEscape,
+            },
+          ],
+          { kind: 'message', text: '点座位盘选择本次出局玩家', actionKey: 'cancel-selection' },
+        ),
+      );
+      expect(screen.getByText('点座位盘选择本次出局玩家')).toBeTruthy();
+      fireEvent.press(screen.getByLabelText('取消选择'));
+      expect(onEscape).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders the steps above the task and wires complete/current presses; upcoming is inert', () => {
       const onRevisit = jest.fn();
       const onCurrent = jest.fn();
-      const model: RoomBottomActionModel = {
-        kind: 'stacked',
-        message: '不应出现的消息',
-        progress: null,
-        steps: [
-          { key: 'lastNightInfo', label: '昨夜信息', state: 'complete', onPress: onRevisit },
-          { key: 'nightReview', label: '本局复盘', state: 'current', onPress: onCurrent },
-          { key: 'closing', label: '收尾', state: 'upcoming' },
-        ],
-        layout: { primary: [], secondary: [], ghost: [] },
-      };
-      const { getByText, queryByText, queryByTestId } = renderPanel(model);
-
-      expect(queryByTestId(TESTIDS.actionMessage)).toBeNull();
-      expect(queryByText('不应出现的消息')).toBeNull();
-      expect(getByText('昨夜信息')).toBeTruthy();
-      expect(getByText('本局复盘')).toBeTruthy();
-      expect(getByText('收尾')).toBeTruthy();
-
-      fireEvent.press(getByText('昨夜信息'));
+      const screen = renderPanel(
+        { ...emptyStackedModel, message: '玩家自己的消息' },
+        hostModelWith(
+          [
+            {
+              key: 'last-night-info',
+              label: '昨夜信息',
+              icon: 'moon-outline',
+              variant: 'secondary',
+              isEnabled: true,
+              onPress: onRevisit,
+            },
+            {
+              key: 'night-review',
+              label: '本局复盘',
+              icon: 'document-text-outline',
+              variant: 'secondary',
+              isEnabled: true,
+              onPress: onCurrent,
+            },
+          ],
+          {
+            kind: 'action',
+            actionKey: 'night-review',
+            note: '记得把复盘分享给第一天出局的玩家',
+            steps: [
+              { key: 'a', label: '昨夜信息', state: 'complete', actionKey: 'last-night-info' },
+              { key: 'b', label: '本局复盘', state: 'current', actionKey: 'night-review' },
+              { key: 'c', label: '收尾', state: 'upcoming' },
+            ],
+          },
+        ),
+      );
+      // The participant message row is untouched by the host flow.
+      expect(screen.getByTestId(TESTIDS.actionMessage)).toBeTruthy();
+      expect(screen.getByText('记得把复盘分享给第一天出局的玩家')).toBeTruthy();
+      fireEvent.press(screen.getByLabelText('昨夜信息'));
       expect(onRevisit).toHaveBeenCalledTimes(1);
-      fireEvent.press(getByText('本局复盘'));
+      fireEvent.press(screen.getByTestId(TESTIDS.roomNextStepButton));
+      expect(onCurrent).toHaveBeenCalledTimes(1);
+      fireEvent.press(screen.getByLabelText('收尾'));
+      expect(onRevisit).toHaveBeenCalledTimes(1);
       expect(onCurrent).toHaveBeenCalledTimes(1);
     });
 
-    it('renders the hint line above the buttons', () => {
-      const model: RoomBottomActionModel = {
-        kind: 'stacked',
-        message: null,
-        progress: null,
-        steps: [
-          { key: 'lastNightInfo', label: '昨夜信息', state: 'complete' },
-          { key: 'nightReview', label: '本局复盘', state: 'current' },
-          { key: 'closing', label: '收尾', state: 'upcoming' },
-        ],
-        hint: '记得把复盘分享给第一天出局的玩家',
-        layout: { primary: [], secondary: [], ghost: [] },
-      };
-      const { getByText } = renderPanel(model);
-      expect(getByText('记得把复盘分享给第一天出局的玩家')).toBeTruthy();
+    it('renders only the entry when the host has no task', () => {
+      const screen = renderPanel(emptyStackedModel, { task: null, sections: [] });
+      expect(screen.queryByTestId(TESTIDS.roomNextStepButton)).toBeNull();
+      expect(screen.queryByTestId(TESTIDS.roomNextStepRemedyButton)).toBeNull();
+      expect(screen.getByTestId(TESTIDS.roomHostManagementButton)).toBeTruthy();
     });
   });
 });

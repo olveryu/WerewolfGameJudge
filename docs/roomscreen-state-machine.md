@@ -1,25 +1,29 @@
 # RoomScreen UI State Machine Reference
 
-## GameStatus → Bottom Button Mapping
+## GameStatus → Bottom Buttons and Host Task
 
-| GameStatus | Host Bottom Buttons                                       | Non-Host Bottom Buttons                        |
-| ---------- | --------------------------------------------------------- | ---------------------------------------------- |
-| `Unseated` | Room Config                                               | (none)                                         |
-| `Seated`   | Room Config, Assign Roles                                 | (none)                                         |
-| `Assigned` | Restart, View Role                                        | View Role                                      |
-| `Ready`    | Restart, Start Game, View Role                            | View Role                                      |
-| `Ongoing`  | Restart, View Role, (schema action button if actioner)    | View Role, (schema action button if actioner)  |
-| `Day`      | Identity, Host advance, personal election action, Restart | Identity when seated, personal election action |
-| `Ended`    | Restart, Last Night Info, Night Review, View Role         | View Role, (Night Review if allowed)           |
+The bottom panel is the viewer's own participant surface. Host commands live in host management
+and reach the host through the **host task card** (`docs/room-shell-contract.md` → "Host Task").
 
-Host transition controls are disabled while their submission is pending. During Day audio, election
-commands and Restart are disabled while Identity remains available.
+| GameStatus | Participant bottom buttons (host included)   | Spectator bottom | Host task (card)                                                                                                                      |
+| ---------- | -------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `Unseated` | (none)                                       | (none)           | `assign-roles`, blocked by the seat-count reason; remedy `share-room`                                                                 |
+| `Seated`   | (none)                                       | (none)           | `assign-roles` (blocked until full, same remedy)                                                                                      |
+| `Assigned` | View Role (primary)                          | (none)           | `start-game`, blocked by the viewing-progress reason; remedy `mark-bots-viewed` while a bot is unviewed                               |
+| `Ready`    | View Role (primary)                          | (none)           | `start-game`; plague mode: message 黑死病模式…                                                                                        |
+| `Ongoing`  | View Role, schema action buttons if actioner | (none)           | `null`; message 等待本步玩家确认 + escape `mark-bots-confirmed` while bots are unconfirmed                                            |
+| `Day`      | Election dock: personal action + View Role   | Night Review     | While the election runs: `sheriff-advance` or a vote-waiting message; once it completes: `last-night-info` with steps until confirmed |
+| `Ended`    | View Role; Night Review if shared            | Night Review     | steps 昨夜信息 → 本局复盘 (note: share reminder) → choice `next-round` / `return-lobby`                                               |
 
-`Day` uses a dedicated compact dock instead of the night action layout. Host advance is the primary
-command and any personal Host action is secondary; a player's personal action is primary. When no
-command is available, the center button reports the current election state. Voting is performed only
-in the election details surface: seat taps retain their ordinary room semantics. The Worker remains
-the only authority for candidate eligibility, ballots, phase changes, and the final result.
+Host transition controls are disabled while their submission is pending; the card then shows the
+task blocked without a reason. During narration the audio lock disables the sheet's commands and
+the card shows the lock reason; View Role stays available.
+
+`Day` uses a dedicated compact dock for the participant surface: the personal election action is
+the dock primary; the host's dock has no trailing review tool (the review reaches the host through
+the task card and sheet). Voting is performed only in the election details surface: seat taps
+retain their ordinary room semantics. The Worker remains the only authority for candidate
+eligibility, ballots, phase changes, and the final result.
 
 ## First-Day Sheriff Election
 

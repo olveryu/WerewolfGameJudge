@@ -30,9 +30,14 @@ import {
   buildNextRoundAction,
   buildReturnLobbyAction,
   buildRoomConfigAction,
+  buildShareRoomAction,
   buildStartGameAction,
   createViewingBeginGate,
+  HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
+  hostActionTask,
+  hostClosingTask,
+  hostStartTask,
   projectViewingProgress,
   seatShortageReason,
   viewedProgressReason,
@@ -42,11 +47,10 @@ import {
   buildLobbyHostStartMessage,
 } from '@/features/room/model/RoomBottomActions';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
-import {
-  buildShareRoomRemedy,
-  type RoomHostManagementAction,
-  type RoomHostManagementModel,
-  type RoomHostManagementSection,
+import type {
+  RoomHostManagementAction,
+  RoomHostManagementModel,
+  RoomHostManagementSection,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
@@ -100,21 +104,17 @@ export interface DemoRoomShellModelInput extends Omit<
 > {
   readonly state: DemoState;
   readonly revision: number;
-  readonly userId: string;
   readonly controlledSeat: number | null;
   readonly seatController: RoomSeatController;
   readonly profileSelection: RoomProfileSelection | null;
   readonly onProfileClose: () => void;
   readonly onProfileLeaveSeat: () => void;
   readonly isLobby: boolean;
-  readonly isHost: boolean;
-  readonly mySeat: number | null;
   readonly releaseBot: () => void;
 }
 
 export interface DemoHostManagementInput {
   readonly state: DemoState;
-  readonly isHost: boolean;
   readonly capabilities: Pick<
     RoomCapabilities,
     'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'
@@ -123,11 +123,8 @@ export interface DemoHostManagementInput {
   readonly submit: (label: string, command: DemoCommand) => Promise<boolean>;
 }
 
-/** Assembles the Demo host panel for the current phase. */
-export function createDemoHostManagement(
-  input: DemoHostManagementInput,
-): RoomHostManagementModel | null {
-  if (!input.isHost) return null;
+/** Assembles the Demo host panel for the current phase. Host gating belongs to the shell factory. */
+export function createDemoHostManagement(input: DemoHostManagementInput): RoomHostManagementModel {
   const { state, capabilities } = input;
   const roomActions: RoomHostManagementAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
@@ -153,17 +150,21 @@ export function createDemoHostManagement(
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
-      isPrimary: true,
-      remedy: buildShareRoomRemedy(capabilities.canShareRoom),
     });
+    // 分享房间常驻大厅房间区（禁用时带原因），是座位不满时任务卡的补救。
     return {
+      task: hostStartTask(HOST_ACTION_KEYS.assignRoles),
       sections: [
         {
           key: 'game',
           title: '游戏',
           actions: [assignAction],
         },
-        { key: 'room', title: '房间管理', actions: roomActions },
+        {
+          key: 'room',
+          title: '房间管理',
+          actions: [...roomActions, buildShareRoomAction(capabilities.canShareRoom)],
+        },
       ],
     };
   }
@@ -188,7 +189,6 @@ export function createDemoHostManagement(
       isEnabled: beginGate.isEnabled,
       disabledReason: beginGate.disabledReason,
       isLoading: input.isSubmitting,
-      isPrimary: true,
     });
     const sections: RoomHostManagementSection[] = [
       {
@@ -216,10 +216,16 @@ export function createDemoHostManagement(
         ],
       });
     sections.push({ key: 'room', title: '房间管理', actions: roomActions });
-    return { sections };
+    // 任务始终是开始游戏：看齐前它被查看进度阻塞，机器人脚手架是补救。
+    const task = hostActionTask(
+      HOST_ACTION_KEYS.startGame,
+      hasUnviewedBot ? { remedyActionKey: HOST_ACTION_KEYS.markBotsViewed } : {},
+    );
+    return { task, sections };
   }
   if (state.phase.kind === 'ended') {
     return {
+      task: hostClosingTask(),
       sections: [
         {
           key: 'current-flow',
@@ -250,8 +256,9 @@ export function createDemoHostManagement(
       ],
     };
   }
-  // 局中房主面板常驻：房间管理区始终在。
+  // 局中房主面板常驻：房间管理区始终在；此刻没有待操作。
   return {
+    task: null,
     sections: [{ key: 'room', title: '房间管理', actions: roomActions }],
   };
 }
@@ -262,7 +269,7 @@ export function createDemoRoomShellModel(input: DemoRoomShellModelInput): RoomSh
   const seatSource = createDemoSeatDataSource({
     state,
     revision: input.revision,
-    userId: input.userId,
+    userId: input.viewer.userId,
     controlledSeat: input.controlledSeat,
   });
   return createRoomShellModel({
@@ -280,18 +287,11 @@ export function createDemoRoomShellModel(input: DemoRoomShellModelInput): RoomSh
     }),
     bottomActions: {
       kind: 'stacked',
+      // 底部按钮必须声明 audience（participant / host / anyone），壳工厂按 viewer 校验。
       message:
         state.phase.kind === 'ended'
-          ? buildEndedWaitingMessage({
-              isEnded: true,
-              isHost: input.isHost,
-              mySeat: input.mySeat,
-            })
-          : buildLobbyHostStartMessage({
-              isLobby: input.isLobby,
-              isHost: input.isHost,
-              mySeat: input.mySeat,
-            }),
+          ? buildEndedWaitingMessage({ isEnded: true, viewer: input.viewer })
+          : buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
       progress: null,
       layout: { primary: [], secondary: [], ghost: [] },
     },

@@ -74,9 +74,6 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         marginBottom: spacing.small,
         paddingHorizontal: spacing.small,
       },
-      stepsRowCompact: {
-        marginBottom: spacing.tight,
-      },
       stepItem: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -104,9 +101,6 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         color: colors.textSecondary,
         marginBottom: spacing.small,
         paddingHorizontal: spacing.small,
-      },
-      hintCompact: {
-        marginBottom: spacing.tight,
       },
       buttonRow: {
         flexDirection: 'column',
@@ -196,12 +190,6 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       hostManagementExpandLabel: {
         ...textStyles.caption,
         color: colors.textSecondary,
-        flexShrink: 1,
-      },
-      hostManagementPending: {
-        ...textStyles.caption,
-        color: colors.text,
-        fontWeight: typography.weights.semibold,
         flexShrink: 1,
       },
       nextStepReady: {

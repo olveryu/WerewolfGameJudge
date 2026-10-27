@@ -6,8 +6,14 @@ import {
   buildPendingAwareHostAction,
   buildRestartGameAction,
   buildReturnLobbyAction,
+  buildShareRoomAction,
   buildStartGameAction,
   createViewingBeginGate,
+  HOST_ACTION_KEYS,
+  hostActionTask,
+  hostClosingTask,
+  hostMessageTask,
+  hostStartTask,
   projectViewingProgress,
   type RoomHostActionDescriptor,
   TERMINAL_ACTION_VARIANT,
@@ -74,16 +80,43 @@ describe('host management action builders', () => {
     expect(action).toMatchObject({ isEnabled: false, disabledReason: null });
   });
 
-  it('carries the primary and remedy fields into the built action', () => {
-    const remedy = { label: '分享房间', onPress: jest.fn() };
-    const action = buildStartGameAction({
-      onPress: () => undefined,
-      isEnabled: false,
-      disabledReason: '座位尚未坐满',
-      isPrimary: true,
-      remedy,
+  it('builds the share-room action from the capability, disabled with its reason when denied', () => {
+    const execute = jest.fn();
+    expect(buildShareRoomAction({ isAllowed: true, execute })).toMatchObject({
+      key: 'share-room',
+      label: '分享房间',
+      isEnabled: true,
+      onPress: execute,
     });
-    expect(action).toMatchObject({ isPrimary: true, remedy });
+    expect(
+      buildShareRoomAction({ isAllowed: false, reason: '当前阶段不能分享房间' }),
+    ).toMatchObject({
+      key: 'share-room',
+      isEnabled: false,
+      disabledReason: '当前阶段不能分享房间',
+    });
+  });
+
+  it('builds host tasks that reference sheet actions by key only', () => {
+    expect(hostStartTask(HOST_ACTION_KEYS.startGame)).toEqual({
+      kind: 'action',
+      actionKey: 'start-game',
+      remedyActionKey: 'share-room',
+    });
+    expect(hostClosingTask()).toEqual({
+      kind: 'choice',
+      actionKeys: ['next-round', 'return-lobby'],
+    });
+    expect(hostMessageTask('等待', { actionKey: 'mark-bots-viewed' })).toEqual({
+      kind: 'message',
+      text: '等待',
+      actionKey: 'mark-bots-viewed',
+    });
+    expect(hostActionTask('x', { note: 'n' })).toEqual({
+      kind: 'action',
+      actionKey: 'x',
+      note: 'n',
+    });
   });
 
   it('builds the terminal pair with unified keys and testIDs', () => {

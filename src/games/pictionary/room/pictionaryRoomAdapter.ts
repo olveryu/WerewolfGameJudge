@@ -24,8 +24,13 @@ import {
   buildPendingAwareHostAction,
   buildReturnLobbyAction,
   buildRoomConfigAction,
+  buildShareRoomAction,
   buildStartGameAction,
+  HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
+  hostActionTask,
+  hostClosingTask,
+  hostStartTask,
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
 import type { NightStepProgress } from '@/features/room/model/nightProgress';
@@ -38,11 +43,10 @@ import {
   type RoomCapabilities,
   type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
-import {
-  buildShareRoomRemedy,
-  type RoomHostManagementAction,
-  type RoomHostManagementModel,
-  type RoomHostManagementSection,
+import type {
+  RoomHostManagementAction,
+  RoomHostManagementModel,
+  RoomHostManagementSection,
 } from '@/features/room/model/RoomHostManagement';
 import type {
   RoomSeatDataSource,
@@ -50,6 +54,7 @@ import type {
 } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 export const PICTIONARY_DISPLAY_NAME = '你画我猜接龙';
@@ -180,14 +185,9 @@ export function derivePictionaryBottomProgress(state: PictionaryState): NightSte
 
 function createPictionaryBottomActions(
   state: PictionaryState,
-  isHost: boolean,
-  mySeat: number | null,
+  viewer: RoomViewer,
 ): RoomBottomStackModel {
-  const message = buildLobbyHostStartMessage({
-    isLobby: state.phase === 'lobby',
-    isHost,
-    mySeat,
-  });
+  const message = buildLobbyHostStartMessage({ isLobby: state.phase === 'lobby', viewer });
   return {
     kind: 'stacked',
     message,
@@ -198,7 +198,6 @@ function createPictionaryBottomActions(
 
 interface PictionaryHostManagementInput {
   readonly state: PictionaryState;
-  readonly isHost: boolean;
   readonly isCommandSubmitting: boolean;
   readonly capabilities: Pick<
     RoomCapabilities,
@@ -211,10 +210,10 @@ interface PictionaryHostManagementInput {
   readonly abortRound: () => void;
 }
 
+/** Assembles the Pictionary host panel for the current phase. Host gating belongs to the shell factory. */
 export function createPictionaryHostManagement(
   input: PictionaryHostManagementInput,
-): RoomHostManagementModel | null {
-  if (!input.isHost) return null;
+): RoomHostManagementModel {
   if (input.state.phase === 'ended' || input.state.phase === 'aborted') {
     const actions: RoomHostManagementAction[] = [];
     if (input.state.phase === 'ended')
@@ -243,17 +242,23 @@ export function createPictionaryHostManagement(
       }),
     );
     return {
+      task:
+        input.state.phase === 'ended'
+          ? hostClosingTask()
+          : hostActionTask(HOST_ACTION_KEYS.returnLobby),
       sections: [{ key: 'current-flow', title: '当前流程', actions }],
     };
   }
   if (input.state.phase !== 'lobby') {
+    const isLastTransition =
+      input.state.phase === 'transition' &&
+      input.state.stepIndex === input.state.config.numberOfPlayers - 1;
     const canAbort =
-      ['answering', 'settling', 'transition'].includes(input.state.phase) &&
-      !(
-        input.state.phase === 'transition' &&
-        input.state.stepIndex === input.state.config.numberOfPlayers - 1
-      );
-    if (!canAbort) return null;
+      ['answering', 'settling', 'transition'].includes(input.state.phase) && !isLastTransition;
+    // 局中房主面板常驻：中止不可用时禁用并给原因，而不是整块消失。
+    const abortDisabledReason = isLastTransition
+      ? '最后一棒已收齐，即将进入揭晓，不能中止'
+      : '当前阶段不能中止';
     const sections: RoomHostManagementSection[] = [];
     if (input.state.phase === 'answering')
       sections.push({
@@ -278,12 +283,16 @@ export function createPictionaryHostManagement(
       actions: [
         buildAbortGameAction({
           onPress: input.abortRound,
-          isEnabled: !input.isCommandSubmitting,
+          isEnabled: canAbort && !input.isCommandSubmitting,
+          disabledReason: canAbort ? null : abortDisabledReason,
           isLoading: input.isCommandSubmitting || undefined,
         }),
       ],
     });
-    return { sections };
+    return {
+      task: input.state.phase === 'answering' ? hostActionTask('finish-phase') : null,
+      sections,
+    };
   }
   const startAction: RoomHostManagementAction = buildStartGameAction({
     onPress: () =>
@@ -296,8 +305,6 @@ export function createPictionaryHostManagement(
           input.state.config.numberOfPlayers,
           getPictionaryOccupiedSeatCount(input.state),
         ),
-    isPrimary: true,
-    remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
   });
   const roomActions: RoomHostManagementAction[] = [];
   if (input.capabilities.canConfigureGame.isAllowed) {
@@ -321,13 +328,12 @@ export function createPictionaryHostManagement(
       }),
     );
   }
+  roomActions.push(buildShareRoomAction(input.capabilities.canShareRoom));
   const sections: RoomHostManagementSection[] = [
     { key: 'current-flow', title: '当前流程', actions: [startAction] },
+    { key: 'room', title: '房间管理', actions: roomActions },
   ];
-  if (roomActions.length > 0) {
-    sections.push({ key: 'room', title: '房间管理', actions: roomActions });
-  }
-  return { sections };
+  return { task: hostStartTask(HOST_ACTION_KEYS.startGame), sections };
 }
 
 export interface PictionaryRoomShellModelInput extends Omit<
@@ -335,8 +341,6 @@ export interface PictionaryRoomShellModelInput extends Omit<
   'phase' | 'step' | 'isAudioPlaying' | 'bottomActions'
 > {
   readonly state: PictionaryState;
-  readonly isHost: boolean;
-  readonly mySeat: number | null;
 }
 
 /** Assembles the Pictionary RoomShellModel from the hook's projections. */
@@ -348,6 +352,6 @@ export function createPictionaryRoomShellModel(
     isAudioPlaying: false,
     phase: input.state.phase,
     step: null,
-    bottomActions: createPictionaryBottomActions(input.state, input.isHost, input.mySeat),
+    bottomActions: createPictionaryBottomActions(input.state, input.viewer),
   });
 }

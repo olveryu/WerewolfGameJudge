@@ -31,6 +31,7 @@ import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { RoomEntryReason } from '@/features/room/model/RoomUiModule';
+import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { isWerewolfLocalBotSeat } from '@/games/werewolf/state/isWerewolfLocalBotSeat';
@@ -48,7 +49,7 @@ import {
   readPanelFlowProgress,
   recordPanelFlowProgress,
 } from '../../services/panelFlowProgressStore';
-import type { PanelFlowProgress, PanelFlowViewer } from '../panelFlow';
+import type { PanelFlowProgress } from '../panelFlow';
 import type { ActionIntent, HostControlEvent } from '../policy/types';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
 import { useRoomHostDialogs } from '../useRoomHostDialogs';
@@ -894,6 +895,10 @@ export function useWerewolfRoomScreenState(
 
   const { user } = useAuthContext();
   const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
+  const viewer = useMemo(
+    (): RoomViewer => ({ userId: myUserId, isHost, seat: mySeat }),
+    [isHost, myUserId, mySeat],
+  );
 
   const handleAvatarPress = useCallback(() => {
     navigation.navigate('Settings', { roomCode });
@@ -928,7 +933,6 @@ export function useWerewolfRoomScreenState(
       imActioner,
       isAudioPlaying,
       nightReviewAllowedSeats: gameState.nightReviewAllowedSeats ?? [],
-      panelFlow: panelFlowProgress,
     }),
     [
       roomStatus,
@@ -937,7 +941,6 @@ export function useWerewolfRoomScreenState(
       imActioner,
       isAudioPlaying,
       gameState.nightReviewAllowedSeats,
-      panelFlowProgress,
     ],
   );
   const bottomLayout = useBottomLayout({ ctx: layoutCtx, schemaVM: getBottomAction() });
@@ -962,29 +965,13 @@ export function useWerewolfRoomScreenState(
         case 'nightReview':
           handleOpenNightReview();
           break;
-        case 'lastNightInfo':
-          handleLastNightInfo();
-          break;
-        case 'nextRound':
-          // Same host-control event as the sheet's 再来一局 action.
-          dispatchInteraction({ kind: 'HOST_CONTROL', action: 'redeal' });
-          break;
-        case 'returnToLobby':
-          // Host: the sheet's 返回大厅 host control. Everyone else:
-          // leaving the room, the same path as the header back button.
-          if (isHost) {
-            dispatchInteraction({ kind: 'HOST_CONTROL', action: 'returnToLobby' });
-          } else {
-            dispatchInteraction({ kind: 'LEAVE_ROOM' });
-          }
-          break;
         default: {
           const exhaustiveAction: never = action;
           throw new Error(`Unhandled Werewolf static button action: ${exhaustiveAction}`);
         }
       }
     },
-    [dispatchInteraction, handleLastNightInfo, handleOpenNightReview, isHost],
+    [dispatchInteraction, handleOpenNightReview],
   );
 
   const handleHostControl = useCallback(
@@ -1018,6 +1005,7 @@ export function useWerewolfRoomScreenState(
     (): RoomShellModel =>
       createWerewolfRoomShellModel({
         roomCode,
+        viewer,
         capabilities,
         connection: roomConnection.connection,
         seatConfirmation,
@@ -1030,7 +1018,6 @@ export function useWerewolfRoomScreenState(
         onTitleLongPress: handleTitleLongPress,
         onAvatarPress: handleAvatarPress,
         roomStatus,
-        isHost,
         isAudioPlaying,
         isActionSubmitting,
         isStartingGame,
@@ -1041,10 +1028,6 @@ export function useWerewolfRoomScreenState(
         actionMessage: derived.actionMessage,
         guideMessage,
         panelFlow: panelFlowProgress,
-        panelFlowViewer: {
-          role: isHost ? 'host' : effectiveSeat !== null ? 'player' : 'spectator',
-          reviewShared: (gameState.nightReviewAllowedSeats ?? []).length > 0,
-        } satisfies PanelFlowViewer,
         gameState,
         seatViewModels: derived.seatViewModels,
         controlledSeat,
@@ -1078,6 +1061,7 @@ export function useWerewolfRoomScreenState(
       }),
     [
       roomCode,
+      viewer,
       capabilities,
       roomConnection,
       seatConfirmation,
@@ -1090,7 +1074,6 @@ export function useWerewolfRoomScreenState(
       handleAvatarPress,
       dispatchInteraction,
       roomStatus,
-      isHost,
       isAudioPlaying,
       isActionSubmitting,
       isStartingGame,
@@ -1114,7 +1097,6 @@ export function useWerewolfRoomScreenState(
       executeMarkAllBotsGroupConfirmed,
       handleOpenNightReview,
       panelFlowProgress,
-      effectiveSeat,
       handleLastNightInfo,
       bottomLayout,
       handleSchemaButtonPress,

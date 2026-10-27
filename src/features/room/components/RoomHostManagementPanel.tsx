@@ -101,7 +101,12 @@ const ManagementContent: React.FC<{
           <Text style={styles.sectionTitle}>{section.title}</Text>
           <View style={styles.actionList}>
             {section.actions.map((action) => (
-              <ManagementAction key={action.key} action={action} onClose={onClose} />
+              <ManagementAction
+                key={action.key}
+                action={action}
+                isTaskAction={model.task?.kind === 'action' && model.task.actionKey === action.key}
+                onClose={onClose}
+              />
             ))}
           </View>
         </View>
@@ -112,8 +117,10 @@ const ManagementContent: React.FC<{
 
 const ManagementAction: React.FC<{
   readonly action: RoomHostManagementAction;
+  /** The task card already renders this action's blocked reason; the sheet row carries no caption. */
+  readonly isTaskAction: boolean;
   readonly onClose: () => void;
-}> = ({ action, onClose }) => {
+}> = ({ action, isTaskAction, onClose }) => {
   const iconColor = !action.isEnabled
     ? colors.textMuted
     : action.variant === 'primary' || action.variant === 'danger'
@@ -147,13 +154,8 @@ const ManagementAction: React.FC<{
       {action.label}
     </Button>
   );
-  // The primary action's blocked reason renders once, on the collapsed
-  // console; the panel row for the same action carries no caption.
-  if (
-    action.isPrimary === true ||
-    action.disabledReason === null ||
-    action.disabledReason.length === 0
-  ) {
+  // One reason, one screen: the task action's reason lives on the card.
+  if (isTaskAction || action.disabledReason === null || action.disabledReason.length === 0) {
     return button;
   }
   return (

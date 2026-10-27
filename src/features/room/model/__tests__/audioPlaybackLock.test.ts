@@ -28,7 +28,7 @@ function disabledAction(key: string, disabledReason: string | null): RoomHostMan
 }
 
 function modelWith(actions: readonly RoomHostManagementAction[]): RoomHostManagementModel {
-  return { sections: [{ key: 'flow', title: '流程', actions }] };
+  return { task: null, sections: [{ key: 'flow', title: '流程', actions }] };
 }
 
 describe('isAudioPlaybackLocked', () => {
@@ -65,7 +65,7 @@ describe('applyAudioPlaybackLock', () => {
       exemptActionKeys: new Set(),
     });
 
-    const locked = result!.sections[0]!.actions[0]!;
+    const locked = result.sections[0]!.actions[0]!;
     expect(locked).toMatchObject({
       key: 'abort-game',
       isEnabled: false,
@@ -84,8 +84,8 @@ describe('applyAudioPlaybackLock', () => {
       exemptActionKeys: new Set(['night-review']),
     });
 
-    expect(result!.sections[0]!.actions[0]).toBe(review);
-    expect(result!.sections[0]!.actions[1]).toMatchObject({ isEnabled: false });
+    expect(result.sections[0]!.actions[0]).toBe(review);
+    expect(result.sections[0]!.actions[1]).toMatchObject({ isEnabled: false });
   });
 
   it('keeps already-disabled actions and their own reason untouched', () => {
@@ -97,12 +97,12 @@ describe('applyAudioPlaybackLock', () => {
       exemptActionKeys: new Set(),
     });
 
-    expect(result!.sections[0]!.actions[0]).toBe(gated);
+    expect(result.sections[0]!.actions[0]).toBe(gated);
   });
 
   it('applies the lock across every section and preserves model fields', () => {
     const model: RoomHostManagementModel = {
-      hasPendingAction: true,
+      task: { kind: 'action', actionKey: 'next-round' },
       sections: [
         { key: 'flow', title: '流程', actions: [enabledAction('next-round')] },
         { key: 'danger', title: '危险操作', actions: [enabledAction('abort-game')] },
@@ -114,9 +114,9 @@ describe('applyAudioPlaybackLock', () => {
       exemptActionKeys: new Set(),
     });
 
-    expect(result!.hasPendingAction).toBe(true);
-    expect(result!.sections.map((section) => section.key)).toEqual(['flow', 'danger']);
-    for (const section of result!.sections) {
+    expect(result.task).toEqual({ kind: 'action', actionKey: 'next-round' });
+    expect(result.sections.map((section) => section.key)).toEqual(['flow', 'danger']);
+    for (const section of result.sections) {
       for (const action of section.actions) {
         expect(action.isEnabled).toBe(false);
       }

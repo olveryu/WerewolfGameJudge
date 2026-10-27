@@ -22,6 +22,7 @@ import { View } from 'react-native';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import { viewerFor } from '@/test-utils/roomViewer';
 import { TESTIDS } from '@/testids';
 
 const deniedCapabilities: RoomCapabilities = {
@@ -41,6 +42,7 @@ const deniedCapabilities: RoomCapabilities = {
 function buildModel(phase: string, step: string | null = null): RoomShellModel {
   return {
     roomCode: '1234',
+    viewer: viewerFor('spectator'),
     phase,
     step,
     isAudioPlaying: false,

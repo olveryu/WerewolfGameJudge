@@ -52,7 +52,6 @@ export class SheriffElectionPage {
     await expect(hostManagementButton).toHaveAccessibleName('主持管理');
     await this.expectSingleLineButtonLabel(personalButton, personalLabel);
     await this.expectSingleLineButtonLabel(hostManagementButton, '主持管理');
-    await this.expectSingleLineButtonLabel(hostManagementButton, '待处理');
     const consoleButton = this.page.getByTestId(TESTIDS.roomNextStepButton);
     await expect(consoleButton).toHaveAccessibleName('结束报名');
 

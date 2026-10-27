@@ -98,6 +98,7 @@ export function useUndercoverRoomScreenState({
   }, [state.config.hasBlank, state.config.numberOfPlayers]);
   const shellModel: RoomShellModel = createUndercoverRoomShellModel({
     roomCode: room.roomCode,
+    viewer: { userId: user.id, isHost, seat: roster.mySeat },
     capabilities: roster.capabilities,
     onBack: () => entryController.requestExit(roster.capabilities.shouldConfirmExit),
     onTitlePress: title.handleTitlePress,
@@ -108,7 +109,6 @@ export function useUndercoverRoomScreenState({
     connection: entryController.connection,
     state,
     revision: snapshot.snapshot.revision,
-    myUserId: user.id,
     controlledSeat: roster.controlledSeat,
     selectedSeat: controls.selectedSeat,
     isSelecting: controls.isSelecting,
@@ -121,7 +121,6 @@ export function useUndercoverRoomScreenState({
     seatConfirmation: roster.seatConfirmation,
     profile: roster.profile,
     share,
-    isHost,
     controls,
     release: roster.release,
   });

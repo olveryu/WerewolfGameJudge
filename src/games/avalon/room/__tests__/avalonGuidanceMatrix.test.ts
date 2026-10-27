@@ -202,7 +202,6 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
     connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
     state,
     revision: 7,
-    userId: 'host',
     controlledSeat: null,
     seatsVisuallyDisabled: false,
     onSeatPress: jest.fn(),
@@ -221,8 +220,7 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
       shareImage: jest.fn(async () => undefined),
     },
     isLobby,
-    isHost: true,
-    mySeat: 0,
+    viewer: { userId: 'host', isHost: true, seat: 0 },
     effectiveSeat: 0,
     onViewRolePress: jest.fn(),
     onNightInfoPress: jest.fn(),
@@ -238,7 +236,7 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
     onReviewPress: jest.fn(),
     strikePickMode: false,
     onCancelEarlyStrikePress: jest.fn(),
-    hostManagement: null,
+    buildHostManagement: () => null,
     canControlBots: true,
     releaseBot: jest.fn(),
   };
@@ -247,16 +245,12 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
       ? {}
       : viewer === 'seated'
         ? {
-            userId: seatUser(seatedSeat),
-            isHost: false,
-            mySeat: seatedSeat,
+            viewer: { userId: seatUser(seatedSeat), isHost: false, seat: seatedSeat },
             effectiveSeat: seatedSeat,
             canControlBots: false,
           }
         : {
-            userId: 'spectator',
-            isHost: false,
-            mySeat: null,
+            viewer: { userId: 'spectator', isHost: false, seat: null },
             effectiveSeat: null,
             canControlBots: false,
           };

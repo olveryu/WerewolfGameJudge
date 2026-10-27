@@ -8,6 +8,7 @@ import type { RoomProfileCardModel } from './RoomProfile';
 import type { RoomSeatConfirmationModel } from './RoomSeatConfirmation';
 import type { RoomSeatDataSource } from './RoomSeatDataSource';
 import type { RoomShareModel } from './RoomShare';
+import type { RoomViewer } from './RoomViewer';
 
 export interface RoomConnectionViewModel {
   readonly status: RoomConnectionStatus;
@@ -46,6 +47,12 @@ export interface RoomControlledSeatModel {
 export interface RoomShellModel {
   readonly roomCode: string;
   /**
+   * Who is looking at this shell. The one identity declaration the
+   * shell's ownership checks read: host management exists only for
+   * `viewer.isHost`; bottom buttons declare their audience against it.
+   */
+  readonly viewer: RoomViewer;
+  /**
    * The game's own phase identifier — its state machine's current status,
    * verbatim (e.g. werewolf 'Ongoing' / 'Day' / 'Ended'). Rendered on the
    * shell header as the `data-phase` anchor: the machine-readable contract
@@ -72,6 +79,7 @@ export interface RoomShellModel {
   readonly profile: RoomProfileCardModel | null;
   readonly share: RoomShareModel;
   readonly bottomActions: RoomBottomActionModel;
+  /** Host management surface; always null for non-hosts, null for a host only when the phase offers nothing to manage. */
   readonly hostManagement: RoomHostManagementModel | null;
   readonly controlledSeat: RoomControlledSeatModel | null;
 }

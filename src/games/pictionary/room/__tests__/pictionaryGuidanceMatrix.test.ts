@@ -18,6 +18,9 @@ import {
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 
+import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
+import { viewerFor } from '@/test-utils/roomViewer';
+
 import { PICTIONARY_GUIDANCE_MATRIX } from '../pictionaryGuidanceMatrix';
 import {
   createPictionaryRoomCapabilities,
@@ -144,15 +147,12 @@ function stateFor(phase: PictionaryPhase): PictionaryState {
 /** Reads the phase through a call so TS narrowing never goes stale across dispatches. */
 const phaseOf = (session: Session): PictionaryPhase => session.state.phase;
 
-type Viewer = 'host' | 'seated' | 'spectator';
-
-function bottomMessage(state: PictionaryState, viewer: Viewer): string | null {
-  const isHost = viewer === 'host';
-  const mySeat = viewer === 'host' ? 0 : viewer === 'seated' ? 1 : null;
+function bottomMessage(state: PictionaryState, audience: RoomViewerAudience): string | null {
+  const viewer = viewerFor(audience);
   const capabilities = createPictionaryRoomCapabilities({
     state,
-    isHost,
-    mySeat,
+    isHost: viewer.isHost,
+    mySeat: viewer.seat,
     requestTakeSeat: jest.fn(),
     requestMoveSeat: jest.fn(),
     leaveSeat: jest.fn(),
@@ -166,21 +166,20 @@ function bottomMessage(state: PictionaryState, viewer: Viewer): string | null {
   });
   const model = createPictionaryRoomShellModel({
     roomCode: '2468',
+    viewer,
     capabilities,
     onBack: jest.fn(),
     onTitlePress: jest.fn(),
     onTitleLongPress: jest.fn(),
-    user: { id: isHost ? 'host' : 'u1', avatarUrl: null },
+    user: { id: viewer.userId, avatarUrl: null },
     gachaStatus: null,
     onUserActionPress: jest.fn(),
     connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
     state,
-    isHost,
-    mySeat,
     seatSource: createPictionarySeatDataSource({
       state,
       revision: 1,
-      myUserId: isHost ? 'host' : 'u1',
+      myUserId: viewer.userId,
       controlledSeat: null,
     }),
     seatsVisuallyDisabled: false,
@@ -197,7 +196,7 @@ function bottomMessage(state: PictionaryState, viewer: Viewer): string | null {
       copyLink: jest.fn(async () => undefined),
       shareImage: jest.fn(async () => undefined),
     },
-    hostManagement: null,
+    buildHostManagement: () => null,
     controlledSeat: null,
   });
   return model.bottomActions.message;

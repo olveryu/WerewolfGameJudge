@@ -21,6 +21,8 @@ import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
+import { viewerFor } from '@/test-utils/roomViewer';
 
 import { DRAWGUESS_GUIDANCE_MATRIX } from '../drawGuessGuidanceMatrix';
 import { createDrawGuessRoomShellModel } from '../drawGuessRoomAdapter';
@@ -212,24 +214,21 @@ const seatController: RoomSeatController = {
   cancel: jest.fn(),
 };
 
-type Viewer = 'host' | 'seated' | 'spectator';
-
-function bottomMessage(state: DrawGuessState, viewer: Viewer): string | null {
-  const isHost = viewer === 'host';
-  const mySeat = viewer === 'host' ? 0 : viewer === 'seated' ? 1 : null;
+function bottomMessage(state: DrawGuessState, audience: RoomViewerAudience): string | null {
+  const viewer = viewerFor(audience);
   const model = createDrawGuessRoomShellModel({
     roomCode: '1234',
+    viewer,
     capabilities: capabilities(),
     onBack: jest.fn(),
     onTitlePress: jest.fn(),
     onTitleLongPress: jest.fn(),
-    user: { id: isHost ? 'host' : 'u1', avatarUrl: null },
+    user: { id: viewer.userId, avatarUrl: null },
     gachaStatus: null,
     onUserActionPress: jest.fn(),
     connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
     state,
     revision: 5,
-    userId: isHost ? 'host' : 'u1',
     controlledSeat: null,
     seatsVisuallyDisabled: false,
     onSeatPress: jest.fn(),
@@ -248,9 +247,7 @@ function bottomMessage(state: DrawGuessState, viewer: Viewer): string | null {
       shareImage: jest.fn(async () => undefined),
     },
     isLobby: state.phase.kind === 'lobby',
-    isHost,
-    mySeat,
-    hostManagement: null,
+    buildHostManagement: () => null,
     releaseBot: jest.fn(),
   });
   return model.bottomActions.message;

@@ -389,11 +389,15 @@ describe('Delegation Seat Identity Contract', () => {
       expect(configContent).toMatch(/effectiveSeat:\s*number\s*\|\s*null/);
       expect(configContent).not.toMatch(/mySeat/);
 
-      // 2. resolveBottomLayout derives userRole from effectiveSeat
+      // 2. resolveBottomLayout derives the viewer audience from effectiveSeat
+      //    through the shared projection, and gates viewRole on it.
       const resolverContent = readFileContent(
         'src/games/werewolf/room/hooks/resolveBottomLayout.ts',
       );
-      expect(resolverContent).toMatch(/ctx\.effectiveSeat\s*!==\s*null/);
+      expect(resolverContent).toMatch(
+        /resolveRoomViewerAudience\(\{\s*isHost:\s*ctx\.isHost,\s*seat:\s*ctx\.effectiveSeat\s*\}\)/,
+      );
+      expect(resolverContent).toMatch(/ctx\.effectiveSeat\s*===\s*null/);
       expect(resolverContent).not.toMatch(/mySeat/);
 
       // 3. useWerewolfRoomScreenState constructs LayoutContext with effectiveSeat

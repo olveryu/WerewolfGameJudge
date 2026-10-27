@@ -11,7 +11,12 @@
 
 import { TESTIDS } from '@/testids';
 
-import type { RoomHostManagementAction, RoomHostRemedy } from './RoomHostManagement';
+import type { RoomCapability } from './RoomCapabilities';
+import type {
+  RoomHostManagementAction,
+  RoomHostTask,
+  RoomHostTaskStep,
+} from './RoomHostManagement';
 
 /**
  * Variant of the two terminal (closing) actions — 再来一局 and
@@ -27,12 +32,6 @@ interface ActionInput {
   readonly isEnabled?: boolean;
   readonly disabledReason?: string | null;
   readonly isLoading?: boolean;
-  /** Marks this action as the phase's primary for the collapsed host console. */
-  readonly isPrimary?: boolean;
-  /** Remedy offered beside this action when the console renders it blocked. */
-  readonly remedy?: RoomHostRemedy | null;
-  /** Console-only blocked reason while the panel action stays enabled. */
-  readonly consoleBlockedReason?: string | null;
 }
 
 function buildAction(
@@ -50,9 +49,6 @@ function buildAction(
     variant,
     testID,
     isLoading: input.isLoading,
-    isPrimary: input.isPrimary,
-    remedy: input.remedy,
-    consoleBlockedReason: input.consoleBlockedReason,
   };
   if (input.isEnabled === false) {
     return {
@@ -81,12 +77,6 @@ export interface RoomHostActionDescriptor {
   readonly variant: RoomHostManagementAction['variant'];
   readonly testID?: string;
   readonly isLoading?: boolean;
-  /** Marks this action as the phase's primary for the collapsed host console. */
-  readonly isPrimary?: boolean;
-  /** Remedy offered beside this action when the console renders it blocked. */
-  readonly remedy?: RoomHostRemedy | null;
-  /** Console-only blocked reason while the panel action stays enabled. */
-  readonly consoleBlockedReason?: string | null;
 }
 
 /** Bind a descriptor to its press handler as an enabled action. */
@@ -322,4 +312,87 @@ export function buildRoomConfigAction(input: ActionInput): RoomHostManagementAct
     TESTIDS.roomSettingsButton,
     input,
   );
+}
+
+/** Canonical sheet keys referenced by host tasks across games. */
+export const HOST_ACTION_KEYS = {
+  startGame: 'start-game',
+  assignRoles: 'assign-roles',
+  restart: 'restart',
+  abortGame: 'abort-game',
+  nextRound: 'next-round',
+  returnLobby: 'return-lobby',
+  fillBots: 'fill-bots',
+  markBotsViewed: 'mark-bots-viewed',
+  clearSeats: 'clear-seats',
+  configureGame: 'configure-game',
+  shareRoom: 'share-room',
+} as const;
+
+/**
+ * "分享房间" — the room section's share entry, from the room's share
+ * capability. It is the remedy a seat-blocked start task references.
+ */
+export function buildShareRoomAction(canShareRoom: RoomCapability): RoomHostManagementAction {
+  return canShareRoom.isAllowed
+    ? {
+        key: HOST_ACTION_KEYS.shareRoom,
+        label: '分享房间',
+        icon: 'share-social-outline',
+        variant: 'secondary',
+        testID: TESTIDS.roomShareHostActionButton,
+        isEnabled: true,
+        onPress: canShareRoom.execute,
+      }
+    : {
+        key: HOST_ACTION_KEYS.shareRoom,
+        label: '分享房间',
+        icon: 'share-social-outline',
+        variant: 'secondary',
+        testID: TESTIDS.roomShareHostActionButton,
+        isEnabled: false,
+        disabledReason: canShareRoom.reason,
+      };
+}
+
+interface HostTaskExtras {
+  readonly steps?: readonly RoomHostTaskStep[];
+  readonly note?: string;
+  readonly remedyActionKey?: string;
+}
+
+/** The one declared host task: do the referenced sheet action. */
+export function hostActionTask(actionKey: string, extras: HostTaskExtras = {}): RoomHostTask {
+  return { kind: 'action', actionKey, ...extras };
+}
+
+/** Waiting on others or following a board instruction, with an optional escape action. */
+export function hostMessageTask(
+  text: string,
+  extras: HostTaskExtras & { readonly actionKey?: string } = {},
+): RoomHostTask {
+  return { kind: 'message', text, ...extras };
+}
+
+/**
+ * The shared closing task every game ends on: equal options
+ * (再来一局 / 返回大厅), never one primary and one buried option.
+ */
+export function hostClosingTask(extras: HostTaskExtras = {}): RoomHostTask {
+  return {
+    kind: 'choice',
+    actionKeys: [HOST_ACTION_KEYS.nextRound, HOST_ACTION_KEYS.returnLobby],
+    ...extras,
+  };
+}
+
+/**
+ * The shared lobby start task: the start/assign action, with the share-room
+ * remedy whenever the sheet carries one (the card renders it only while the
+ * action is blocked).
+ */
+export function hostStartTask(
+  actionKey: typeof HOST_ACTION_KEYS.startGame | typeof HOST_ACTION_KEYS.assignRoles,
+): RoomHostTask {
+  return hostActionTask(actionKey, { remedyActionKey: HOST_ACTION_KEYS.shareRoom });
 }

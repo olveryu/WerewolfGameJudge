@@ -15,26 +15,42 @@ import {
   buildPendingAwareHostAction,
   buildReturnLobbyAction,
   buildRoomConfigAction,
+  buildShareRoomAction,
   buildStartGameAction,
   createViewingBeginGate,
+  HOST_ACTION_KEYS,
+  hostActionTask,
+  hostClosingTask,
+  hostMessageTask,
+  hostStartTask,
   type RoomHostActionDescriptor,
   seatShortageReason,
   viewedProgressReason,
 } from '@/features/room/model/hostManagementActions';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
-import {
-  buildShareRoomRemedy,
-  type RoomHostManagementAction,
-  type RoomHostManagementModel,
-  type RoomHostManagementSection,
+import type {
+  RoomHostManagementAction,
+  RoomHostManagementModel,
+  RoomHostManagementSection,
+  RoomHostTask,
 } from '@/features/room/model/RoomHostManagement';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
+import {
+  buildPanelFlowSteps,
+  PANEL_FLOW_ACTION_KEYS,
+  PANEL_FLOW_SHARE_HINT,
+  type PanelFlowProgress,
+  resolvePanelFlowCurrentStep,
+} from '@/games/werewolf/room/panelFlow';
 import type { HostControlEvent } from '@/games/werewolf/room/policy/types';
 import { TESTIDS } from '@/testids';
 
 interface WerewolfHostManagementInput {
-  readonly isHost: boolean;
   readonly roomStatus: GameStatus;
+  /** Client-local Day/Ended flow progress (panelFlow.ts). */
+  readonly panelFlow: PanelFlowProgress;
+  /** The host has shared the review with at least one seat (engine nightReviewAllowedSeats). */
+  readonly isReviewShared: boolean;
   readonly isPlagueMode: boolean;
   readonly seatedCount: number;
   readonly viewedCount: number;
@@ -70,36 +86,10 @@ function createSheriffAdvanceAction(
     variant: 'primary',
     testID: TESTIDS.sheriffAdvanceButton,
     isLoading: election.pendingAction?.kind === 'advance',
-    isPrimary: true,
   };
   return buildPendingAwareHostAction(descriptor, election.pendingAction !== null, () =>
     election.requestAdvance(),
   );
-}
-
-/**
- * Voting phases have no Host advance: the console's current task is
- * the waiting-progress form (the sheriff dock's 「等待投票完成」
- * language), a disabled primary carrying the submission progress
- * until the settle countdown closes the round on expiry.
- */
-function createSheriffWaitingVoteAction(
-  election: SheriffElectionPanelModel,
-): RoomHostManagementAction | null {
-  if (election.view.phase !== 'firstVote' && election.view.phase !== 'runoffVote') return null;
-  const progress = election.view.voteProgress;
-  return {
-    key: 'sheriff-waiting-vote',
-    label: '等待投票完成',
-    icon: 'time-outline',
-    variant: 'primary',
-    isPrimary: true,
-    isEnabled: false,
-    disabledReason:
-      progress === null
-        ? null
-        : `${progress.submittedCount}/${progress.eligibleCount} 已提交，等待剩余玩家`,
-  };
 }
 
 function createSheriffSelfDestructAction(
@@ -142,8 +132,6 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
             ? seatShortageReason(input.totalSeats, input.seatedCount)
             : null,
           isLoading: input.isHostActionSubmitting,
-          isPrimary: true,
-          remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
         }),
       ];
     }
@@ -155,19 +143,14 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
               onPress: () => input.onHostControl('startGame'),
               isEnabled: !input.isHostActionSubmitting,
               isLoading: input.isHostActionSubmitting,
-              isPrimary: true,
             }),
           ];
     case GameStatus.Day: {
       if (input.sheriffElection === null) return [];
       const actions: RoomHostManagementAction[] = [];
       const advanceAction = createSheriffAdvanceAction(input.sheriffElection);
-      const waitingVoteAction = createSheriffWaitingVoteAction(input.sheriffElection);
       const selfDestructAction = createSheriffSelfDestructAction(input.sheriffElection);
-      // A voting phase presents the waiting form instead of the
-      // advance — never both (one primary per phase).
-      if (waitingVoteAction !== null) actions.push(waitingVoteAction);
-      else if (advanceAction !== null) actions.push(advanceAction);
+      if (advanceAction !== null) actions.push(advanceAction);
       if (selfDestructAction !== null) actions.push(selfDestructAction);
       return actions;
     }
@@ -212,12 +195,90 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
           isEnabled: beginGate.isEnabled,
           disabledReason: beginGate.disabledReason,
           isLoading: input.isHostActionSubmitting,
-          isPrimary: true,
         }),
       ];
     }
     case GameStatus.Ongoing:
       return [];
+  }
+}
+
+/**
+ * The host's declared task per status (room-shell-contract "Host Task").
+ * Every key references a sheet action assembled in this module; the Day /
+ * Ended flow steps come from panelFlow.ts.
+ */
+function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null {
+  switch (input.roomStatus) {
+    case GameStatus.Unseated:
+    case GameStatus.Seated:
+      return hostStartTask(HOST_ACTION_KEYS.assignRoles);
+    case GameStatus.Assigned:
+      // The task is the start; until every seat viewed it is blocked by the
+      // sheet action's reason, with the bot scaffold as the remedy.
+      return hostActionTask(
+        HOST_ACTION_KEYS.startGame,
+        input.canMarkAllBotsViewed ? { remedyActionKey: HOST_ACTION_KEYS.markBotsViewed } : {},
+      );
+    case GameStatus.Ready:
+      return input.isPlagueMode
+        ? hostMessageTask('黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程')
+        : hostActionTask(HOST_ACTION_KEYS.startGame);
+    case GameStatus.Ongoing:
+      // The night runs on player actions; the host only scaffolds bots.
+      return input.canMarkAllBotsGroupConfirmed
+        ? hostMessageTask('有机器人尚未确认本步信息', { actionKey: 'mark-bots-confirmed' })
+        : null;
+    case GameStatus.Day: {
+      // The election runs before the night result is announced (the
+      // last-night dialog itself warns 昨夜信息可能影响警长竞选): while an
+      // election is in progress the host's task is the election's; the
+      // dawn flow's first step takes over once it completes.
+      const election = input.sheriffElection;
+      if (election !== null && election.view.phase !== 'completed') {
+        if (election.view.phase === 'firstVote' || election.view.phase === 'runoffVote') {
+          const progress = election.view.voteProgress;
+          return hostMessageTask(
+            progress === null
+              ? '等待投票完成'
+              : `等待投票完成 · ${progress.submittedCount}/${progress.eligibleCount} 已提交`,
+          );
+        }
+        return election.view.canAdvance && election.view.advanceLabel !== null
+          ? hostActionTask('sheriff-advance')
+          : null;
+      }
+      const flow = {
+        roomStatus: input.roomStatus,
+        progress: input.panelFlow,
+        reviewShared: input.isReviewShared,
+      };
+      return resolvePanelFlowCurrentStep(flow) === 'lastNightInfo'
+        ? hostActionTask(PANEL_FLOW_ACTION_KEYS.lastNightInfo, {
+            steps: buildPanelFlowSteps(flow) ?? undefined,
+          })
+        : null;
+    }
+    case GameStatus.Ended: {
+      const flow = {
+        roomStatus: input.roomStatus,
+        progress: input.panelFlow,
+        reviewShared: input.isReviewShared,
+      };
+      const steps = buildPanelFlowSteps(flow) ?? undefined;
+      switch (resolvePanelFlowCurrentStep(flow)) {
+        case 'lastNightInfo':
+          return hostActionTask(PANEL_FLOW_ACTION_KEYS.lastNightInfo, { steps });
+        case 'nightReview':
+          return hostActionTask(PANEL_FLOW_ACTION_KEYS.nightReview, {
+            steps,
+            note: PANEL_FLOW_SHARE_HINT,
+          });
+        case 'closing':
+        case null:
+          return hostClosingTask({ steps });
+      }
+    }
   }
 }
 
@@ -245,6 +306,10 @@ function createRoomManagementActions(
         onPress: input.capabilities.canClearSeats.execute,
       }),
     );
+  }
+  // 分享房间常驻入座期房间区，是座位不满时任务卡的补救。
+  if (input.roomStatus === GameStatus.Unseated || input.roomStatus === GameStatus.Seated) {
+    actions.push(buildShareRoomAction(input.capabilities.canShareRoom));
   }
   return actions;
 }
@@ -294,7 +359,7 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostMana
   return [
     buildEnabledHostAction(
       {
-        key: 'night-review',
+        key: PANEL_FLOW_ACTION_KEYS.nightReview,
         label: '本局复盘',
         icon: 'document-text-outline',
         variant: 'secondary',
@@ -304,7 +369,7 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostMana
     ),
     buildEnabledHostAction(
       {
-        key: 'last-night-info',
+        key: PANEL_FLOW_ACTION_KEYS.lastNightInfo,
         label: '昨夜信息',
         icon: 'moon-outline',
         variant: 'secondary',
@@ -349,12 +414,10 @@ const AUDIO_LOCK_EXEMPT_ACTION_KEYS: ReadonlySet<string> = new Set([
   'last-night-info',
 ]);
 
-/** Build the complete Host-only command surface from current room facts. */
+/** Build the complete Host-only command surface from current room facts. Host gating belongs to the shell factory. */
 export function createWerewolfHostManagement(
   input: WerewolfHostManagementInput,
-): RoomHostManagementModel | null {
-  if (!input.isHost) return null;
-
+): RoomHostManagementModel {
   const sections = [
     createSection('current-flow', '当前流程', createCurrentFlowActions(input)),
     createSection('room', '房间管理', createRoomManagementActions(input)),
@@ -367,20 +430,7 @@ export function createWerewolfHostManagement(
     throw new Error('Werewolf Host management must expose at least one action');
   }
   return applyAudioPlaybackLock(
-    {
-      hasPendingAction: getHasPendingAction(input),
-      sections,
-    },
+    { task: createHostTask(input), sections },
     { isAudioPlaying: input.isAudioPlaying, exemptActionKeys: AUDIO_LOCK_EXEMPT_ACTION_KEYS },
-  );
-}
-
-function getHasPendingAction(input: WerewolfHostManagementInput): boolean {
-  if (input.roomStatus === GameStatus.Seated) return true;
-  if (input.roomStatus === GameStatus.Ready && !input.isPlagueMode) return true;
-  return (
-    input.roomStatus === GameStatus.Day &&
-    input.sheriffElection?.view.canAdvance === true &&
-    input.sheriffElection.view.advanceLabel !== null
   );
 }

@@ -89,10 +89,11 @@ describe('createStoryRelayRoomShellModel', () => {
   it('assembles the lobby shell from the hook projections', () => {
     const state = lobbyState(true);
     const caps = capabilities();
-    const hostManagement = { sections: [] };
+    const hostManagement = { task: null, sections: [] };
     const onSeatPress = jest.fn();
     const model = createStoryRelayRoomShellModel({
       roomCode: '1234',
+      viewer: { userId: 'host', isHost: true, seat: 0 },
       capabilities: caps,
       onBack: jest.fn(),
       onTitlePress: jest.fn(),
@@ -103,7 +104,6 @@ describe('createStoryRelayRoomShellModel', () => {
       connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
       state,
       revision: 2,
-      userId: 'host',
       controlledSeat: null,
       seatsVisuallyDisabled: true,
       onSeatPress,
@@ -114,9 +114,7 @@ describe('createStoryRelayRoomShellModel', () => {
       onProfileLeaveSeat: jest.fn(),
       share,
       isLobby: true,
-      isHost: true,
-      mySeat: 0,
-      hostManagement,
+      buildHostManagement: () => hostManagement,
       releaseBot: jest.fn(),
     });
     expect(model.roomCode).toBe('1234');
@@ -141,6 +139,7 @@ describe('createStoryRelayRoomShellModel', () => {
 
     const endedModel = createStoryRelayRoomShellModel({
       roomCode: '1234',
+      viewer: { userId: 'host', isHost: true, seat: 0 },
       capabilities: caps,
       onBack: jest.fn(),
       onTitlePress: jest.fn(),
@@ -151,7 +150,6 @@ describe('createStoryRelayRoomShellModel', () => {
       connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
       state: { ...state, phase: 'ended' },
       revision: 2,
-      userId: 'host',
       controlledSeat: null,
       seatsVisuallyDisabled: true,
       onSeatPress,
@@ -162,9 +160,7 @@ describe('createStoryRelayRoomShellModel', () => {
       onProfileLeaveSeat: jest.fn(),
       share,
       isLobby: false,
-      isHost: true,
-      mySeat: 0,
-      hostManagement,
+      buildHostManagement: () => hostManagement,
       releaseBot: jest.fn(),
     });
     expect(endedModel.phase).toBe('ended');
@@ -174,6 +170,7 @@ describe('createStoryRelayRoomShellModel', () => {
     const state = lobbyState(false);
     const model = createStoryRelayRoomShellModel({
       roomCode: '1234',
+      viewer: { userId: 'u1', isHost: false, seat: 0 },
       capabilities: capabilities(),
       onBack: jest.fn(),
       onTitlePress: jest.fn(),
@@ -184,7 +181,6 @@ describe('createStoryRelayRoomShellModel', () => {
       connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
       state,
       revision: 1,
-      userId: 'u1',
       controlledSeat: null,
       seatsVisuallyDisabled: false,
       onSeatPress: jest.fn(),
@@ -195,9 +191,7 @@ describe('createStoryRelayRoomShellModel', () => {
       onProfileLeaveSeat: jest.fn(),
       share,
       isLobby: true,
-      isHost: false,
-      mySeat: 0,
-      hostManagement: null,
+      buildHostManagement: () => null,
       releaseBot: jest.fn(),
     });
     expect(model.bottomActions).toEqual({

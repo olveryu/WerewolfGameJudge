@@ -4,7 +4,6 @@ import {
   type FibState,
 } from '@game-judge/game-engine/games/fibking/public';
 
-import { resolveHostConsolePrimary } from '@/features/room/model/resolveHostConsolePrimary';
 import {
   createFibBoardInfoSections,
   createFibBottomActions,
@@ -15,6 +14,7 @@ import {
   getFibProfileTarget,
   getFibSeatTapIntent,
 } from '@/games/fibking/room/fibRoomAdapter';
+import { hostTaskBody } from '@/test-utils/hostTask';
 import { TESTIDS } from '@/testids';
 
 const callbacks = {
@@ -93,7 +93,6 @@ describe('FibKing room adapter', () => {
     const build = (state: FibState) =>
       createFibHostManagement({
         state,
-        isHost: true,
         isCommandSubmitting: false,
         capabilities: createFibRoomCapabilities({
           state,
@@ -135,7 +134,6 @@ describe('FibKing room adapter', () => {
     const build = (state: FibState) =>
       createFibHostManagement({
         state,
-        isHost: true,
         isCommandSubmitting: true,
         capabilities: createFibRoomCapabilities({
           state,
@@ -398,7 +396,6 @@ describe('FibKing room adapter', () => {
     });
     const lobbyManagement = createFibHostManagement({
       state: lobby,
-      isHost: true,
       isCommandSubmitting: false,
       capabilities: lobbyCapabilities,
       startRound,
@@ -418,11 +415,16 @@ describe('FibKing room adapter', () => {
       { label: '房间设置', isEnabled: true },
       { label: '填充机器人', isEnabled: true },
       { label: '清空座位', isEnabled: true },
+      { label: '分享房间', key: 'share-room' },
     ]);
     const startAction = lobbyManagement?.sections[0]?.actions[0];
     if (startAction?.isEnabled !== false) throw new Error('Expected a disabled Fib start');
     expect(startAction).not.toHaveProperty('onPress');
-    expect(startAction.isPrimary).toBe(true);
+    expect(lobbyManagement.task).toMatchObject({
+      kind: 'action',
+      actionKey: 'assign-roles',
+      remedyActionKey: 'share-room',
+    });
 
     const ongoing = createOngoing();
     const ongoingCapabilities = createFibRoomCapabilities({
@@ -433,7 +435,6 @@ describe('FibKing room adapter', () => {
     });
     const ongoingManagement = createFibHostManagement({
       state: ongoing,
-      isHost: true,
       isCommandSubmitting: false,
       capabilities: ongoingCapabilities,
       startRound,
@@ -484,7 +485,6 @@ describe('FibKing room adapter', () => {
     });
     const endedManagement = createFibHostManagement({
       state: ended,
-      isHost: true,
       isCommandSubmitting: false,
       capabilities: endedCapabilities,
       startRound,
@@ -565,7 +565,6 @@ describe('FibKing room adapter', () => {
     });
     const hostManagement = createFibHostManagement({
       state: failed,
-      isHost: true,
       isCommandSubmitting: false,
       capabilities,
       startRound,
@@ -645,13 +644,12 @@ describe('FibKing room adapter', () => {
   });
 });
 
-describe('createFibHostManagement console primary', () => {
+describe('createFibHostManagement task body', () => {
   beforeEach(() => jest.clearAllMocks());
 
   const build = (state: FibState) =>
     createFibHostManagement({
       state,
-      isHost: true,
       isCommandSubmitting: false,
       capabilities: createFibRoomCapabilities({ state, isHost: true, mySeat: 0, ...callbacks }),
       startRound: jest.fn(),
@@ -667,9 +665,9 @@ describe('createFibHostManagement console primary', () => {
     });
 
   it('blocks the round start in a non-full lobby and offers room sharing as the remedy', () => {
-    const step = resolveHostConsolePrimary(build(createLobby(4))!);
-    expect(step).toMatchObject({ actionKey: 'assign-roles', label: '分配角色' });
-    if (step?.kind !== 'blocked') throw new Error('expected a blocked console primary');
+    const step = hostTaskBody(build(createLobby(4)));
+    expect(step).toMatchObject({ action: { key: 'assign-roles', label: '分配角色' } });
+    if (step?.kind !== 'blocked') throw new Error('expected a blocked task body');
     expect(step.reason).toBe('座位尚未坐满（还差 3 人）');
     expect(step.remedy?.label).toBe('分享房间');
     step.remedy?.onPress();
@@ -677,20 +675,21 @@ describe('createFibHostManagement console primary', () => {
   });
 
   it('offers the round start once every seat is taken', () => {
-    const step = resolveHostConsolePrimary(build(withBotSeats(createLobby(4), [1, 2, 3]))!);
-    expect(step).toMatchObject({ actionKey: 'assign-roles', label: '分配角色' });
-    if (step?.kind !== 'ready') throw new Error('expected a ready console primary');
+    const step = hostTaskBody(build(withBotSeats(createLobby(4), [1, 2, 3])));
+    expect(step).toMatchObject({ action: { key: 'assign-roles', label: '分配角色' } });
+    if (step?.kind !== 'ready') throw new Error('expected a ready task body');
   });
 
   it('blocks game start until every seat has viewed, then offers it', () => {
-    const blocked = resolveHostConsolePrimary(build(createViewing([0]))!);
-    expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
-    if (blocked?.kind !== 'blocked') throw new Error('expected a blocked console primary');
+    const blocked = hostTaskBody(build(createViewing([0])));
+    expect(blocked).toMatchObject({ action: { key: 'start-game', label: '开始游戏' } });
+    if (blocked?.kind !== 'blocked') throw new Error('expected a blocked task body');
     expect(blocked.reason).toBe('1/4 位玩家已查看身份，等待剩余玩家');
-    expect(blocked.remedy).toBeNull();
+    // The bot scaffold is the remedy while a bot seat is unviewed.
+    expect(blocked.remedy?.label).toBe('标记机器人已查看');
 
-    const ready = resolveHostConsolePrimary(build(createViewing([0, 1, 2, 3]))!);
-    if (ready?.kind !== 'ready') throw new Error('expected a ready console primary');
+    const ready = hostTaskBody(build(createViewing([0, 1, 2, 3])));
+    if (ready?.kind !== 'ready') throw new Error('expected a ready task body');
   });
 
   it('offers re-preparation directly after a failed preparation', () => {
@@ -706,13 +705,16 @@ describe('createFibHostManagement console primary', () => {
       },
       round: null,
     };
-    const step = resolveHostConsolePrimary(build(failed)!);
-    expect(step).toMatchObject({ actionKey: 'retry-preparation', label: '重新准备' });
-    if (step?.kind !== 'ready') throw new Error('expected a ready console primary');
+    const step = hostTaskBody(build(failed));
+    expect(step).toMatchObject({ action: { key: 'retry-preparation', label: '重新准备' } });
+    if (step?.kind !== 'ready') throw new Error('expected a ready task body');
   });
 
-  it('has no console primary while a round is ongoing', () => {
-    expect(resolveHostConsolePrimary(build(createOngoing())!)).toBeNull();
+  it('offers the reveal as the ongoing task', () => {
+    expect(hostTaskBody(build(createOngoing()))).toMatchObject({
+      kind: 'ready',
+      action: { key: 'reveal-round', label: '公布答案' },
+    });
   });
 });
 
@@ -764,6 +766,7 @@ describe('createFibRoomShellModel', () => {
     const onSeatPress = jest.fn();
     const model = createFibRoomShellModel({
       roomCode: '1234',
+      viewer: { userId: 'host', isHost: true, seat: 0 },
       capabilities,
       onBack,
       onTitlePress: jest.fn(),
@@ -781,7 +784,7 @@ describe('createFibRoomShellModel', () => {
       profile: null,
       share,
       bottomActions,
-      hostManagement: null,
+      buildHostManagement: () => null,
       controlledSeat: null,
     });
     expect(model.roomCode).toBe('1234');
@@ -807,6 +810,7 @@ describe('createFibRoomShellModel', () => {
     const state = createOngoing();
     const model = createFibRoomShellModel({
       roomCode: '1234',
+      viewer: { userId: 'host', isHost: true, seat: 0 },
       capabilities: createFibRoomCapabilities({ state, isHost: true, mySeat: null, ...callbacks }),
       onBack: jest.fn(),
       onTitlePress: jest.fn(),
@@ -846,7 +850,7 @@ describe('createFibRoomShellModel', () => {
         progress: null,
         layout: { primary: [], secondary: [], ghost: [] },
       },
-      hostManagement: null,
+      buildHostManagement: () => null,
       controlledSeat: null,
     });
     expect(model.phase).toBe('ongoing');

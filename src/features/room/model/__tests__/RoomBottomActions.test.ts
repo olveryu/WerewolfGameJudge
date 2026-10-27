@@ -1,3 +1,5 @@
+import { viewerFor } from '@/test-utils/roomViewer';
+
 import {
   buildEndedWaitingMessage,
   buildLobbyHostStartMessage,
@@ -10,41 +12,50 @@ import {
 
 describe('buildLobbyHostStartMessage', () => {
   it('shows the hint to a seated non-host player in the lobby', () => {
-    expect(buildLobbyHostStartMessage({ isLobby: true, isHost: false, mySeat: 2 })).toBe(
-      '等待房主开始游戏',
-    );
+    expect(
+      buildLobbyHostStartMessage({ isLobby: true, viewer: viewerFor('seated', { seatedSeat: 2 }) }),
+    ).toBe('等待房主开始游戏');
   });
 
   it('hides the hint from the host', () => {
-    expect(buildLobbyHostStartMessage({ isLobby: true, isHost: true, mySeat: 0 })).toBeNull();
+    expect(buildLobbyHostStartMessage({ isLobby: true, viewer: viewerFor('host') })).toBeNull();
   });
 
   it('hides the hint from a lobby spectator without a seat', () => {
-    expect(buildLobbyHostStartMessage({ isLobby: true, isHost: false, mySeat: null })).toBeNull();
+    expect(
+      buildLobbyHostStartMessage({ isLobby: true, viewer: viewerFor('spectator') }),
+    ).toBeNull();
   });
 
   it('hides the hint once the game has left the lobby', () => {
-    expect(buildLobbyHostStartMessage({ isLobby: false, isHost: false, mySeat: 2 })).toBeNull();
+    expect(
+      buildLobbyHostStartMessage({
+        isLobby: false,
+        viewer: viewerFor('seated', { seatedSeat: 2 }),
+      }),
+    ).toBeNull();
   });
 });
 
 describe('buildEndedWaitingMessage', () => {
   it('shows the hint to a seated non-host player once the game has ended', () => {
-    expect(buildEndedWaitingMessage({ isEnded: true, isHost: false, mySeat: 3 })).toBe(
-      '等待房主操作（再来一局 / 返回大厅）',
-    );
+    expect(
+      buildEndedWaitingMessage({ isEnded: true, viewer: viewerFor('seated', { seatedSeat: 3 }) }),
+    ).toBe('等待房主操作（再来一局 / 返回大厅）');
   });
 
   it('hides the hint from the host, who holds the rematch actions', () => {
-    expect(buildEndedWaitingMessage({ isEnded: true, isHost: true, mySeat: 0 })).toBeNull();
+    expect(buildEndedWaitingMessage({ isEnded: true, viewer: viewerFor('host') })).toBeNull();
   });
 
   it('hides the hint from a spectator without a seat', () => {
-    expect(buildEndedWaitingMessage({ isEnded: true, isHost: false, mySeat: null })).toBeNull();
+    expect(buildEndedWaitingMessage({ isEnded: true, viewer: viewerFor('spectator') })).toBeNull();
   });
 
   it('hides the hint before the game has ended', () => {
-    expect(buildEndedWaitingMessage({ isEnded: false, isHost: false, mySeat: 3 })).toBeNull();
+    expect(
+      buildEndedWaitingMessage({ isEnded: false, viewer: viewerFor('seated', { seatedSeat: 3 }) }),
+    ).toBeNull();
   });
 });
 
@@ -91,11 +102,13 @@ describe('resolveViewIdentityAction / buildViewIdentityButton', () => {
       buildViewIdentityButton(action, {
         key: 'viewRole',
         variant: 'primary',
+        audience: 'participant',
         testID: 'avalon-view-role',
       }),
     ).toEqual({
       key: 'viewRole',
       label: '查看身份',
+      audience: 'participant',
       icon: 'eye-outline',
       variant: 'primary',
       size: 'md',
@@ -115,9 +128,11 @@ describe('resolveViewIdentityAction / buildViewIdentityButton', () => {
     const button = buildViewIdentityButton(action, {
       key: 'view-identity',
       variant: 'secondary',
+      audience: 'anyone',
     });
     expect('testID' in button).toBe(false);
     expect(button.variant).toBe('secondary');
+    expect(button.audience).toBe('anyone');
   });
 });
 

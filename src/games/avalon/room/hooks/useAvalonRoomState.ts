@@ -45,6 +45,7 @@ import {
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import { resolveEffectiveSeat, type RoomViewer } from '@/features/room/model/RoomViewer';
 import { type AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 
 import type { AvalonAudioRuntime } from '../../audio/AvalonAudioPlayer';
@@ -153,6 +154,7 @@ export function useAvalonRoomState(
     audio,
   });
   const mySeat = getAvalonUserSeat(state, user.id);
+  const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
   const isLobby = state.phase.kind === 'lobby';
   // 查看身份：角色卡弹窗状态（对齐狼人杀）。
   const [roleCardVisible, setRoleCardVisible] = useState(false);
@@ -180,7 +182,7 @@ export function useAvalonRoomState(
   }, [nightStep]);
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot, takeOver } = botControl;
-  const effectiveSeat = controlledSeat ?? mySeat;
+  const effectiveSeat = resolveEffectiveSeat(viewer, controlledSeat);
   const { share, titleActions, gachaStatus } = useRoomPresentationController({
     roomCode: room.roomCode,
     gameDisplayName: '阿瓦隆',
@@ -300,20 +302,20 @@ export function useAvalonRoomState(
     isBotSeat: (seat) => isBotSeat(state.roster, seat),
     gameName: 'Avalon',
   });
-  const hostManagement = createAvalonHostManagement({
-    state,
-    isHost,
-    capabilities,
-    isSubmitting: submission.isSubmitting,
-    controlledSeat,
-    releaseBot,
-    onReviewPress: callbacks.onReviewPress,
-    onMusicSettings: () => {
-      bgm.stopBgm();
-      navigation.navigate('MusicSettings', { roomCode: room.roomCode });
-    },
-    submit,
-  });
+  const buildHostManagement = () =>
+    createAvalonHostManagement({
+      state,
+      capabilities,
+      isSubmitting: submission.isSubmitting,
+      controlledSeat,
+      releaseBot,
+      onReviewPress: callbacks.onReviewPress,
+      onMusicSettings: () => {
+        bgm.stopBgm();
+        navigation.navigate('MusicSettings', { roomCode: room.roomCode });
+      },
+      submit,
+    });
 
   const selection = profile.selection;
   // 组队选人 modal 确认：先同步草稿（与服务端草稿同集时跳过），再按
@@ -345,6 +347,7 @@ export function useAvalonRoomState(
   };
   const shellModel: RoomShellModel = createAvalonRoomShellModel({
     roomCode: room.roomCode,
+    viewer,
     capabilities,
     onBack: () => entryController.requestExit(capabilities.shouldConfirmExit),
     onTitlePress: titleActions.handleTitlePress,
@@ -355,7 +358,6 @@ export function useAvalonRoomState(
     connection: entryController.connection,
     state,
     revision: snapshot.snapshot.revision,
-    userId: user.id,
     controlledSeat,
     seatsVisuallyDisabled:
       isAudioPlaybackLocked(state.isAudioPlaying) ||
@@ -369,8 +371,6 @@ export function useAvalonRoomState(
     onProfileLeaveSeat: profile.leaveSelf,
     share,
     isLobby,
-    isHost,
-    mySeat,
     effectiveSeat,
     onViewRolePress: () => {
       setRoleCardVisible(true);
@@ -399,7 +399,7 @@ export function useAvalonRoomState(
     onReviewPress: callbacks.onReviewPress,
     strikePickMode,
     onCancelEarlyStrikePress: () => setStrikePickMode(false),
-    hostManagement,
+    buildHostManagement,
     canControlBots,
     releaseBot,
   });
