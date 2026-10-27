@@ -1,8 +1,7 @@
 /** Strict external schemas for the Demo Worker module boundary. */
 
 import {
-  DEMO_MAX_PLAYERS,
-  DEMO_MIN_PLAYERS,
+  DEMO_CONFIG_SCHEMA,
   type DemoConfig,
   type DemoInternalCommand,
   type DemoPublicCommand,
@@ -11,10 +10,9 @@ import { z } from 'zod';
 
 import { definePublicCommandOptions } from '../../platform/room/commandOptions';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
+import { configSchemaToZod } from '../../platform/room/configSchemaZod';
 
-const demoConfigSchema = z.strictObject({
-  numberOfPlayers: z.int().min(DEMO_MIN_PLAYERS).max(DEMO_MAX_PLAYERS),
-}) satisfies z.ZodType<DemoConfig>;
+const demoConfigSchema: z.ZodType<DemoConfig> = configSchemaToZod(DEMO_CONFIG_SCHEMA);
 
 export const demoCreateConfigSchema: z.ZodType<DemoConfig> = demoConfigSchema;
 

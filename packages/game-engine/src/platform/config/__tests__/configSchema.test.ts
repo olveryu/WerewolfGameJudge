@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type ConfigValidationIssue,
   type GameConfigSchema,
+  isConfig,
   isValidConfig,
   validateConfig,
 } from '../configSchema';
@@ -123,5 +124,27 @@ describe('validateConfig', () => {
         numberOfPlayers: 3,
       }),
     ).toEqual({ field: 'numberOfPlayers', message: '玩家人数需为 4 至 12 的整数' });
+  });
+});
+
+describe('isConfig', () => {
+  it('accepts an object with exactly the schema keys and valid values', () => {
+    expect(isConfig(SAMPLE_SCHEMA, { ...SAMPLE_SCHEMA.defaults })).toBe(true);
+  });
+
+  it.each([null, undefined, 6, 'config', [], [6]])('rejects non-object input %p', (value) => {
+    expect(isConfig(SAMPLE_SCHEMA, value)).toBe(false);
+  });
+
+  it('rejects missing, extra and invalid fields', () => {
+    const { rounds: _rounds, ...missing } = SAMPLE_SCHEMA.defaults;
+    expect(isConfig(SAMPLE_SCHEMA, missing)).toBe(false);
+    expect(isConfig(SAMPLE_SCHEMA, { ...SAMPLE_SCHEMA.defaults, extra: true })).toBe(false);
+    expect(isConfig(SAMPLE_SCHEMA, { ...SAMPLE_SCHEMA.defaults, numberOfPlayers: '6' })).toBe(
+      false,
+    );
+    expect(
+      isConfig(SAMPLE_SCHEMA, { ...SAMPLE_SCHEMA.defaults, hasBlank: true, numberOfPlayers: 5 }),
+    ).toBe(false);
   });
 });

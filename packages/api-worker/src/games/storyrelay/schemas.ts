@@ -1,12 +1,8 @@
 /** Strict ordinary Story Relay command and completion schemas; no manuscript logging. */
 
 import {
-  STORY_RELAY_GALLERY_DURATIONS,
-  STORY_RELAY_MAX_PLAYERS,
-  STORY_RELAY_MIN_PLAYERS,
+  STORY_RELAY_CONFIG_SCHEMA,
   STORY_RELAY_TEXT_MAX_LENGTH,
-  STORY_RELAY_TRANSITION_DURATIONS,
-  STORY_RELAY_WRITING_DURATIONS,
   type StoryRelayCommand,
   type StoryRelayConfig,
 } from '@game-judge/game-engine/games/storyrelay/public';
@@ -15,13 +11,10 @@ import { z } from 'zod';
 import { gameCompletionPayloadSchema } from '../../features/account/settleGameRewards';
 import { definePublicCommandOptions } from '../../platform/room/commandOptions';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
+import { configSchemaToZod } from '../../platform/room/configSchemaZod';
 
-export const storyRelayCreateConfigSchema = z.strictObject({
-  numberOfPlayers: z.int().min(STORY_RELAY_MIN_PLAYERS).max(STORY_RELAY_MAX_PLAYERS),
-  writingDurationSeconds: z.literal(STORY_RELAY_WRITING_DURATIONS),
-  transitionDurationSeconds: z.literal(STORY_RELAY_TRANSITION_DURATIONS),
-  galleryItemDurationSeconds: z.literal(STORY_RELAY_GALLERY_DURATIONS),
-}) satisfies z.ZodType<StoryRelayConfig>;
+export const storyRelayCreateConfigSchema: z.ZodType<StoryRelayConfig> =
+  configSchemaToZod(STORY_RELAY_CONFIG_SCHEMA);
 
 const roundTask = { roundId: z.string().min(1), stepIndex: z.int().nonnegative() };
 const task = { ...roundTask, chainId: z.string().min(1) };

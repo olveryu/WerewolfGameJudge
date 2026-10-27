@@ -42,6 +42,7 @@ const EXPECTED_PACKAGE_EXPORTS = [
   './games/undercover/public',
   './games/werewolf/public',
   './games/demo/public',
+  './platform/config/configSchema',
   './platform/engine',
   './platform/identifiers',
   './platform/protocol/canonicalJson',

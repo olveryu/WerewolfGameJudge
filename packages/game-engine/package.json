@@ -76,6 +76,10 @@
       "types": "./src/platform/protocol/roomSnapshot.ts",
       "default": "./dist/platform/protocol/roomSnapshot.js"
     },
+    "./platform/config/configSchema": {
+      "types": "./src/platform/config/configSchema.ts",
+      "default": "./dist/platform/config/configSchema.js"
+    },
     "./platform/engine": {
       "types": "./src/platform/engine/index.ts",
       "default": "./dist/platform/engine/index.js"

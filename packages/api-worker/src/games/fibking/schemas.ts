@@ -6,31 +6,29 @@ import type {
   FibPublicCommand,
 } from '@game-judge/game-engine/games/fibking/public';
 import {
+  FIB_CONFIG_SCHEMA,
   FIB_DEFINITION_FIELD_MAX_LENGTH,
   FIB_DEFINITION_FIELD_MIN_LENGTH,
-  FIB_MAX_PLAYERS,
-  FIB_MIN_PLAYERS,
   FIB_PREPARATION_FAILURE_CODES,
   FIB_PREPARATION_STAGES,
   FIB_WORD_MAX_LENGTH,
   FIB_WORD_MIN_LENGTH,
   FIB_WORD_SOURCES,
+  isValidFibConfig,
 } from '@game-judge/game-engine/games/fibking/public';
 import { z } from 'zod';
 
 import { definePublicCommandOptions } from '../../platform/room/commandOptions';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
+import { configSchemaToZod } from '../../platform/room/configSchemaZod';
 
-export const fibCreateConfigSchema: z.ZodType<FibConfig> = z.strictObject({
-  numberOfPlayers: z.int().min(FIB_MIN_PLAYERS).max(FIB_MAX_PLAYERS),
-});
+export const fibCreateConfigSchema: z.ZodType<FibConfig> = configSchemaToZod(FIB_CONFIG_SCHEMA);
 
 const publicCommandOptions = definePublicCommandOptions<FibPublicCommand>()([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
-  z.strictObject({
-    type: z.literal('fibking.config.update'),
-    numberOfPlayers: z.int().min(FIB_MIN_PLAYERS).max(FIB_MAX_PLAYERS),
-  }),
+  z
+    .strictObject({ type: z.literal('fibking.config.update'), numberOfPlayers: z.int() })
+    .refine((command) => isValidFibConfig({ numberOfPlayers: command.numberOfPlayers })),
   z.strictObject({ type: z.literal('fibking.game.returnToLobby') }),
   z.strictObject({ type: z.literal('fibking.roles.assign') }),
   z.strictObject({ type: z.literal('fibking.round.cancelPreparing') }),

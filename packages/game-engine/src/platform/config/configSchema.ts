@@ -149,3 +149,37 @@ export function isValidConfig<TConfig extends object>(
 ): boolean {
   return validateConfig(schema, config) === null;
 }
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** Every declared field passes its spec; combined with an exact key set this is the `TConfig` shape. */
+function hasValidFields<TConfig extends object>(
+  schema: GameConfigSchema<TConfig>,
+  record: Record<string, unknown>,
+): record is Record<string, unknown> & TConfig {
+  for (const key in schema.fields) {
+    const spec: AnyConfigFieldSpec = schema.fields[key];
+    if (validateFieldValue(spec, record[key]) !== null) return false;
+  }
+  return true;
+}
+
+/**
+ * Narrows an untrusted value to `TConfig`: a plain object with exactly the
+ * schema's keys whose fields and cross-field invariants all pass. This is the
+ * single point where unknown input becomes a typed config, so transport
+ * boundaries (Worker zod) build on it instead of restating field rules.
+ */
+export function isConfig<TConfig extends object>(
+  schema: GameConfigSchema<TConfig>,
+  value: unknown,
+): value is TConfig {
+  if (!isRecord(value)) return false;
+  const expectedKeys = Object.keys(schema.fields);
+  if (Object.keys(value).length !== expectedKeys.length) return false;
+  if (!expectedKeys.every((key) => Object.hasOwn(value, key))) return false;
+  if (!hasValidFields(schema, value)) return false;
+  return schema.validate(value) === null;
+}
