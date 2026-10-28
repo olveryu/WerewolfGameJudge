@@ -53,6 +53,7 @@ describe('RoomSeatBoard', () => {
     };
     const view = render(
       <RoomSeatBoard
+        presence={new Set<string>()}
         model={createModel(source)}
         header={<View />}
         footer={null}
@@ -89,6 +90,7 @@ describe('RoomSeatBoard', () => {
     };
     const { findByTestId } = render(
       <RoomSeatBoard
+        presence={new Set<string>()}
         model={createModel(source, onSeatPress, true)}
         header={<View />}
         footer={null}
@@ -109,6 +111,7 @@ describe('RoomSeatBoard', () => {
     };
     const { findByTestId } = render(
       <RoomSeatBoard
+        presence={new Set<string>()}
         model={createModel(source, onSeatPress)}
         header={<View />}
         footer={null}
@@ -137,6 +140,7 @@ describe('RoomSeatBoard', () => {
     };
     const view = render(
       <RoomSeatBoard
+        presence={new Set<string>()}
         model={{ ...createModel(source), onBotSeatLongPress }}
         header={<View />}
         footer={null}
@@ -155,6 +159,7 @@ describe('RoomSeatBoard', () => {
     const source: RoomSeatDataSource = { count: 10_000, revision: 1, getSeat };
     const { findByTestId } = render(
       <RoomSeatBoard
+        presence={new Set<string>()}
         model={createModel(source)}
         header={<View />}
         footer={null}
@@ -174,6 +179,7 @@ describe('RoomSeatBoard', () => {
     };
     const view = render(
       <RoomSeatBoard
+        presence={new Set<string>()}
         model={createModel(source)}
         header={<View />}
         footer={null}
@@ -196,6 +202,7 @@ describe('RoomSeatBoard', () => {
     };
     const view = render(
       <RoomSeatBoard
+        presence={new Set<string>()}
         model={createModel(source)}
         header={<View />}
         footer={null}
@@ -216,6 +223,7 @@ describe('RoomSeatBoard', () => {
     };
     const { findByTestId, rerender } = render(
       <RoomSeatBoard
+        presence={new Set<string>()}
         model={createModel(source, first)}
         header={<View />}
         footer={null}
@@ -224,6 +232,7 @@ describe('RoomSeatBoard', () => {
     );
     rerender(
       <RoomSeatBoard
+        presence={new Set<string>()}
         model={createModel(source, second)}
         header={<View />}
         footer={null}
@@ -234,6 +243,37 @@ describe('RoomSeatBoard', () => {
     fireEvent.press(await findByTestId(TESTIDS.seatTilePressable(0)));
     expect(first).not.toHaveBeenCalled();
     expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  it('derives the offline dot from link presence for human seats only', async () => {
+    const human = (seat: number, userId: string): RoomSeatViewModel => ({
+      ...emptySeat(seat),
+      player: { kind: 'human', userId, displayName: userId, isAnonymous: false },
+    });
+    const bot = (seat: number): RoomSeatViewModel => ({
+      ...emptySeat(seat),
+      player: { kind: 'bot', userId: `bot-${seat}`, displayName: '机器人', isAnonymous: false },
+    });
+    const seats = [human(0, 'online-user'), human(1, 'offline-user'), bot(2), emptySeat(3)];
+    const source: RoomSeatDataSource = {
+      count: seats.length,
+      revision: 1,
+      getSeat: (index) => seats[index]!,
+    };
+    const { findByTestId, queryByTestId } = render(
+      <RoomSeatBoard
+        presence={new Set(['online-user'])}
+        model={createModel(source)}
+        header={<View />}
+        footer={null}
+        contentContainerStyle={styles.content}
+      />,
+    );
+
+    expect(await findByTestId(TESTIDS.seatOfflineDot(1))).toBeTruthy();
+    expect(queryByTestId(TESTIDS.seatOfflineDot(0))).toBeNull();
+    expect(queryByTestId(TESTIDS.seatOfflineDot(2))).toBeNull();
+    expect(queryByTestId(TESTIDS.seatOfflineDot(3))).toBeNull();
   });
 });
 

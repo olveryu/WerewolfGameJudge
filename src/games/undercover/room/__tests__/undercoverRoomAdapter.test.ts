@@ -426,6 +426,7 @@ describe('createUndercoverRoomShellModel', () => {
     const connection = {
       status: { kind: 'live' as const },
       pendingDurableCount: 0,
+      presence: new Set<string>(),
       onRetryNow: jest.fn(),
     };
     const onSeatPress = jest.fn();
@@ -535,6 +536,7 @@ describe('createUndercoverRoomShellModel', () => {
       connection: {
         status: { kind: 'live' as const },
         pendingDurableCount: 0,
+        presence: new Set<string>(),
         onRetryNow: jest.fn(),
       },
       state,

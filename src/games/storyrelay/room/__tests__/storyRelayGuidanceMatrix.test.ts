@@ -219,7 +219,12 @@ function bottomMessage(state: StoryRelayState, audience: RoomViewerAudience): st
     user: { id: viewer.userId, avatarUrl: null },
     gachaStatus: undefined,
     onUserActionPress: jest.fn(),
-    connection: { status: { kind: 'live' }, pendingDurableCount: 0, onRetryNow: jest.fn() },
+    connection: {
+      status: { kind: 'live' },
+      pendingDurableCount: 0,
+      presence: new Set<string>(),
+      onRetryNow: jest.fn(),
+    },
     state,
     revision: 2,
     controlledSeat: null,

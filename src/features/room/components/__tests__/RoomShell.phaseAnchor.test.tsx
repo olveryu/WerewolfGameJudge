@@ -53,7 +53,12 @@ function buildModel(phase: string, step: string | null = null): RoomShellModel {
       onTitleLongPress: jest.fn(),
       userAction: null,
     },
-    connection: { status: { kind: 'live' }, pendingDurableCount: 0, onRetryNow: jest.fn() },
+    connection: {
+      status: { kind: 'live' },
+      pendingDurableCount: 0,
+      presence: new Set<string>(),
+      onRetryNow: jest.fn(),
+    },
     seats: {
       source: {
         count: 0,

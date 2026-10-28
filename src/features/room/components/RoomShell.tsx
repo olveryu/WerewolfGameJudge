@@ -232,6 +232,7 @@ export const RoomShell: React.FC<RoomShellProps> = ({
             )}
             <RoomSeatBoard
               model={model.seats}
+              presence={model.connection.presence}
               header={content.beforeSeatBoard}
               footer={content.afterSeatBoard}
               contentContainerStyle={styles.scrollContent}

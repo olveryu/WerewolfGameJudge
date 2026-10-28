@@ -1,9 +1,12 @@
 /**
- * ConnectionStatusBar - disconnect banner + indeterminate progress bar / manual reconnect button (memoized)
+ * ConnectionStatusBar — banner for every non-live link status (memoized).
  *
- * Shows "连接断开，正在重连…" with a sliding bottom progress bar when not in Live state.
- * Failed state (auto-retry exhausted) shows "连接失败" + "重新连接" button.
- * Community-standard approach: indeterminate progress bar (similar to Slack/Discord) indicates ongoing reconnect.
+ * - connecting / syncing: sliding indeterminate bar.
+ * - waiting(backoff): countdown to the next attempt + 「立即重连」.
+ * - waiting(offline | hidden): explains what the link is waiting for.
+ * - closed: terminal reason copy (the entry boundary offers re-entry; this bar only informs).
+ * - live with pending durable commands: 「正在确认提交结果」.
+ * Returns null when live with nothing pending.
  */
 import type React from 'react';
 import { memo, useEffect, useState } from 'react';
@@ -17,53 +20,88 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
+import { getLinkCloseMessage } from '@/features/room/model/linkCloseMessages';
+import type { LinkStatus } from '@/platform/realtime/types';
 import { TESTIDS } from '@/testids';
 
 import { type ConnectionStatusBarStyles } from './styles';
 
 interface ConnectionStatusBarProps {
-  /** Current connection state */
-  status: RoomConnectionStatus;
-  /** Confirmed commands retained until the Worker returns a final decision. */
-  pendingCommandCount: number;
-  /** Trigger manual reconnect through the shared room entry controller. */
-  onManualReconnect: () => void;
-  /** Pre-created styles from parent */
-  styles: ConnectionStatusBarStyles;
+  readonly status: LinkStatus;
+  /** Durable commands retained until the Worker returns a decision. */
+  readonly pendingDurableCount: number;
+  /** Reconnect immediately; only meaningful while `status.kind === 'waiting'`. */
+  readonly onRetryNow: () => void;
+  readonly styles: ConnectionStatusBarStyles;
+  /** Injected clock for deterministic countdown tests. */
+  readonly now?: () => number;
 }
 
-/** Width of the sliding bar relative to container width */
 const BAR_WIDTH_RATIO = 0.3;
-/** Full cycle duration for the sliding animation */
 const ANIMATION_DURATION_MS = 1_500;
+const COUNTDOWN_TICK_MS = 250;
 
-/**
- * Disconnection banner with indeterminate progress bar or manual reconnect.
- *
- * Uses `onLayout` to measure container width, then loops a Reanimated timing
- * translateX from off-screen left to off-screen right. The container's
- * `overflow: 'hidden'` clips the bar at rounded corners.
- * Returns null when connection is Live.
- */
+/** Seconds until `atMs`, never below 1 so the copy never reads 「0 秒后」. */
+function secondsUntil(atMs: number, nowMs: number): number {
+  return Math.max(1, Math.ceil((atMs - nowMs) / 1000));
+}
+
+function useCountdown(atMs: number | null, now: () => number): number | null {
+  const [seconds, setSeconds] = useState<number | null>(
+    atMs === null ? null : secondsUntil(atMs, now()),
+  );
+  useEffect(() => {
+    if (atMs === null) {
+      setSeconds(null);
+      return;
+    }
+    setSeconds(secondsUntil(atMs, now()));
+    const timer = setInterval(() => setSeconds(secondsUntil(atMs, now())), COUNTDOWN_TICK_MS);
+    return () => clearInterval(timer);
+  }, [atMs, now]);
+  return seconds;
+}
+
+function describe(
+  status: LinkStatus,
+  pendingDurableCount: number,
+  countdown: number | null,
+): string {
+  const hasPending = pendingDurableCount > 0;
+  switch (status.kind) {
+    case 'live':
+      return '正在确认提交结果';
+    case 'idle':
+    case 'connecting':
+    case 'syncing':
+      return hasPending ? '行动已保存，连接后将自动确认' : '正在连接房间';
+    case 'waiting':
+      if (status.cause === 'offline') return '网络已断开，恢复后自动重连';
+      if (status.cause === 'hidden') return '应用在后台，返回后自动重连';
+      return countdown === null ? '连接断开，正在重连' : `连接断开，${countdown} 秒后重试`;
+    case 'closed':
+      return getLinkCloseMessage(status.reason);
+  }
+}
+
 const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
   status,
-  pendingCommandCount,
-  onManualReconnect,
+  pendingDurableCount,
+  onRetryNow,
   styles,
+  now = Date.now,
 }) => {
   const [containerWidth, setContainerWidth] = useState(0);
   const progressValue = useSharedValue(0);
+  const retryAtMs = status.kind === 'waiting' ? status.nextRetryAtMs : null;
+  const countdown = useCountdown(retryAtMs, now);
 
-  const isDisconnected = status !== 'live';
-  const isFailed = status === 'failed';
-  const hasPendingCommand = pendingCommandCount > 0;
-  const shouldShowStatus = isDisconnected || hasPendingCommand;
+  const isLive = status.kind === 'live';
+  const shouldShow = !isLive || pendingDurableCount > 0;
+  const isAnimating = status.kind === 'connecting' || status.kind === 'syncing' || isLive;
 
-  // Start / stop the sliding animation based on connection status
-  // Skip animation for Failed state (no auto-retry happening)
   useEffect(() => {
-    if (containerWidth === 0 || !shouldShowStatus || isFailed) {
+    if (containerWidth === 0 || !shouldShow || !isAnimating) {
       cancelAnimation(progressValue);
       progressValue.value = 0;
       return;
@@ -71,54 +109,47 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
     progressValue.value = 0;
     progressValue.value = withRepeat(withTiming(1, { duration: ANIMATION_DURATION_MS }), -1);
     return () => cancelAnimation(progressValue);
-  }, [progressValue, containerWidth, shouldShowStatus, isFailed]);
+  }, [progressValue, containerWidth, shouldShow, isAnimating]);
 
   const barPixelWidth = containerWidth * BAR_WIDTH_RATIO;
-
   const progressBarStyle = useAnimatedStyle(() => ({
     width: barPixelWidth,
     transform: [
-      {
-        translateX: interpolate(progressValue.value, [0, 1], [-barPixelWidth, containerWidth]),
-      },
+      { translateX: interpolate(progressValue.value, [0, 1], [-barPixelWidth, containerWidth]) },
     ],
   }));
 
-  if (!shouldShowStatus) return null;
+  if (!shouldShow) return null;
 
-  // Failed state: manual reconnect button (auto-retry exhausted)
-  if (isFailed) {
+  if (status.kind === 'waiting') {
     return (
       <View style={styles.container} testID={TESTIDS.connectionStatusContainer}>
         <View style={styles.failedRow}>
-          <Text style={styles.text}>
-            {hasPendingCommand ? '行动已保存，重连后将自动确认' : '连接失败'}
-          </Text>
-          <Pressable onPress={onManualReconnect} style={styles.reconnectButton}>
-            <Text style={styles.reconnectText}>重新连接</Text>
+          <Text style={styles.text}>{describe(status, pendingDurableCount, countdown)}</Text>
+          <Pressable
+            onPress={onRetryNow}
+            style={styles.reconnectButton}
+            testID={TESTIDS.connectionRetryNowButton}
+          >
+            <Text style={styles.reconnectText}>立即重连</Text>
           </Pressable>
         </View>
       </View>
     );
   }
 
-  // Reconnecting state: progress bar animation
   return (
     <View
       style={styles.container}
-      testID={TESTIDS.connectionStatusContainer}
-      onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+      testID={isLive ? TESTIDS.connectionPendingContainer : TESTIDS.connectionStatusContainer}
+      onLayout={(event) => setContainerWidth(event.nativeEvent.layout.width)}
     >
-      <Text style={styles.text}>
-        {hasPendingCommand
-          ? isDisconnected
-            ? '行动已保存，重连后将自动确认'
-            : '正在确认提交结果'
-          : '连接断开，正在重连'}
-      </Text>
-      <View style={styles.progressBarTrack}>
-        <Animated.View style={[styles.progressBar, progressBarStyle]} />
-      </View>
+      <Text style={styles.text}>{describe(status, pendingDurableCount, countdown)}</Text>
+      {isAnimating && (
+        <View style={styles.progressBarTrack}>
+          <Animated.View style={[styles.progressBar, progressBarStyle]} />
+        </View>
+      )}
     </View>
   );
 };

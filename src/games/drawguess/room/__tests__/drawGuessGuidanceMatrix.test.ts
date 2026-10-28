@@ -226,7 +226,12 @@ function bottomMessage(state: DrawGuessState, audience: RoomViewerAudience): str
     user: { id: viewer.userId, avatarUrl: null },
     gachaStatus: null,
     onUserActionPress: jest.fn(),
-    connection: { status: { kind: 'live' }, pendingDurableCount: 0, onRetryNow: jest.fn() },
+    connection: {
+      status: { kind: 'live' },
+      pendingDurableCount: 0,
+      presence: new Set<string>(),
+      onRetryNow: jest.fn(),
+    },
     state,
     revision: 5,
     controlledSeat: null,
