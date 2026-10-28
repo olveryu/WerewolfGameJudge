@@ -164,7 +164,7 @@ function findBoundaryViolations(
   allowedFiles: readonly string[] = [],
 ): readonly string[] {
   return getModuleSpecifiers(filePath, source).filter((specifier) => {
-    if (!specifier.startsWith('.')) return true;
+    if (!specifier.startsWith('.')) return !declaredDependencies.has(specifier);
     const resolvedPath = path.resolve(path.dirname(filePath), specifier);
     return (
       !allowedDirectories.some((directory) => isPathWithin(directory, resolvedPath)) &&
@@ -172,6 +172,23 @@ function findBoundaryViolations(
     );
   });
 }
+
+/** Runtime packages the engine declares; anything else from node_modules is a boundary violation. */
+function readDeclaredDependencies(): ReadonlySet<string> {
+  const packageJson: unknown = JSON.parse(
+    fs.readFileSync(path.join(packageDirectory, 'package.json'), 'utf8'),
+  );
+  if (typeof packageJson !== 'object' || packageJson === null || !('dependencies' in packageJson)) {
+    throw new Error('game-engine package.json must declare dependencies');
+  }
+  const dependencies = packageJson.dependencies;
+  if (typeof dependencies !== 'object' || dependencies === null || Array.isArray(dependencies)) {
+    throw new Error('game-engine package.json dependencies must contain an object');
+  }
+  return new Set(Object.keys(dependencies));
+}
+
+const declaredDependencies = readDeclaredDependencies();
 
 function readPackageExports(): readonly PackageExportEntry[] {
   const packageJson: unknown = JSON.parse(

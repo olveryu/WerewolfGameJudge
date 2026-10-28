@@ -87,12 +87,10 @@ export type ServerFrame<TState extends BaseGameState<string>> =
   | PresenceFrame
   | InboxHintFrame;
 
-/** Server frame schemas close over the game codec, so they are built once per codec. */
-const serverFrameSchemas = new WeakMap<
-  GameStateCodec<BaseGameState<string>>,
-  z.ZodType<ServerFrame<BaseGameState<string>>>
->();
-
+/**
+ * Server frame schemas close over the game codec. Building one per parse keeps the schema typed
+ * by the caller's codec; the construction cost is negligible next to decoding a snapshot.
+ */
 function createServerFrameSchema<TState extends BaseGameState<string>>(
   codec: GameStateCodec<TState>,
 ): z.ZodType<ServerFrame<TState>> {
@@ -122,16 +120,6 @@ function createServerFrameSchema<TState extends BaseGameState<string>>(
     presenceFrameSchema,
     inboxHintFrameSchema,
   ]);
-}
-
-function serverFrameSchemaFor<TState extends BaseGameState<string>>(
-  codec: GameStateCodec<TState>,
-): z.ZodType<ServerFrame<TState>> {
-  const cached = serverFrameSchemas.get(codec);
-  if (cached !== undefined) return cached as z.ZodType<ServerFrame<TState>>;
-  const created = createServerFrameSchema(codec);
-  serverFrameSchemas.set(codec, created);
-  return created;
 }
 
 // ─── Constructors ───────────────────────────────────────────────────────────
@@ -205,5 +193,5 @@ export function parseServerFrame<TState extends BaseGameState<string>>(
   value: unknown,
   codec: GameStateCodec<TState>,
 ): ServerFrame<TState> {
-  return build('ServerFrame', serverFrameSchemaFor(codec), value);
+  return build('ServerFrame', createServerFrameSchema(codec), value);
 }
