@@ -13,6 +13,8 @@
  * - endNight calls calculateDeaths and produces correct deaths
  */
 
+import { handleSubmitAction as executeSubmitAction } from '@game-judge/game-engine/games/werewolf/domain/handlers/actionHandler';
+import { handleAudioAck } from '@game-judge/game-engine/games/werewolf/domain/handlers/commandHandlers';
 import {
   handleAdvanceNight as executeAdvanceNight,
   handleEndNight as executeEndNight,
@@ -21,6 +23,7 @@ import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/doma
 import type {
   AdvanceNightIntent,
   EndNightIntent,
+  SubmitActionIntent,
 } from '@game-judge/game-engine/games/werewolf/domain/intents/types';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
@@ -295,7 +298,8 @@ describe('nightFlowHandler', () => {
 
         const success = expectSuccess(result);
         // Domain transition actions are followed by one authoritative audio queue batch.
-        expect(success.actions).toHaveLength(5);
+        // Passing wolfKill also settles the wolf-kill target (no votes here, so no kill).
+        expect(success.actions).toHaveLength(6);
 
         const advanceAction = success.actions[0]!;
         expect(advanceAction.type).toBe('ADVANCE_TO_NEXT_ACTION');
@@ -307,16 +311,21 @@ describe('nightFlowHandler', () => {
           });
         }
 
+        expect(success.actions[1]).toEqual({
+          type: 'SET_RESOLVED_WOLF_KILL_TARGET',
+          payload: { target: null, verdict: { type: 'allAbstain' } },
+        });
+
         // Progressing from wolfKill with witch present, should have SET_WITCH_CONTEXT action
-        const witchContextAction = success.actions[1]!;
+        const witchContextAction = success.actions[2]!;
         expect(witchContextAction.type).toBe('SET_WITCH_CONTEXT');
 
         // Should have SET_UI_HINT action to clear current hint
-        const uiHintAction = success.actions[2]!;
+        const uiHintAction = success.actions[3]!;
         expect(uiHintAction.type).toBe('SET_UI_HINT');
 
-        expect(success.actions[3]?.type).toBe('SET_PENDING_AUDIO_EFFECTS');
-        expect(success.actions[4]).toEqual({
+        expect(success.actions[4]?.type).toBe('SET_PENDING_AUDIO_EFFECTS');
+        expect(success.actions[5]).toEqual({
           type: 'SET_AUDIO_PLAYING',
           payload: { isPlaying: true },
         });
@@ -488,19 +497,24 @@ describe('nightFlowHandler', () => {
         const result = handleEndNight(intent, context);
 
         const success = expectSuccess(result);
-        expect(success.actions).toHaveLength(3);
+        expect(success.actions).toHaveLength(4);
 
-        const action = success.actions[0]!;
+        expect(success.actions[0]).toEqual({
+          type: 'SET_RESOLVED_WOLF_KILL_TARGET',
+          payload: { target: null, verdict: { type: 'allAbstain' } },
+        });
+
+        const action = success.actions.find((a) => a.type === 'END_NIGHT')!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           expect(action.payload.deaths).toEqual([]);
         }
 
-        expect(success.actions[1]).toEqual({
+        expect(success.actions[2]).toEqual({
           type: 'SET_PENDING_AUDIO_EFFECTS',
           payload: { effects: [{ audioKey: 'night_end' }] },
         });
-        expect(success.actions[2]).toEqual({
+        expect(success.actions[3]).toEqual({
           type: 'SET_AUDIO_PLAYING',
           payload: { isPlaying: true },
         });
@@ -521,7 +535,7 @@ describe('nightFlowHandler', () => {
         const result = handleEndNight(intent, context);
 
         const success = expectSuccess(result);
-        const action = success.actions[0]!;
+        const action = success.actions.find((a) => a.type === 'END_NIGHT')!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           expect(action.payload.deaths).toContain(4);
@@ -543,7 +557,7 @@ describe('nightFlowHandler', () => {
         const result = handleEndNight(intent, context);
 
         const success = expectSuccess(result);
-        const action = success.actions[0]!;
+        const action = success.actions.find((a) => a.type === 'END_NIGHT')!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           // Tie = randomly pick one to kill
@@ -552,16 +566,227 @@ describe('nightFlowHandler', () => {
         }
       });
 
-      it('uses the same tied wolf target for witch context and final settlement', () => {
-        const state = createOngoingState({
+      it('uses the same tied wolf target for witch context and final settlement across seeds', () => {
+        const baseState = createOngoingState({
           nightStep: { kind: 'exhausted' },
           currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 5 } },
         });
         const witchContextAction = maybeCreateWitchContextAction(
           'witchAction',
-          state,
-          createSeededRng(`${TEST_HANDLER_EXECUTION.randomSeed}:wolf-vote`),
+          baseState,
+          createSeededRng('witch-command-seed:wolf-vote'),
         );
+        expect(witchContextAction).not.toBeNull();
+        // The advance step persists the witch context's target; the
+        // settlement command carries a different seed and must reuse it.
+        const state = {
+          ...baseState,
+          resolvedWolfKillTarget: witchContextAction!.payload.killedSeat,
+        };
+        const context: HandlerContext = {
+          state,
+          myUserId: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = executeEndNight({ type: 'END_NIGHT' }, context, {
+          ...TEST_HANDLER_EXECUTION,
+          randomSeed: 'settlement-command-seed',
+        });
+        const success = expectSuccess(result);
+        const endNightAction = success.actions.find((a) => a.type === 'END_NIGHT');
+
+        expect(endNightAction?.type).toBe('END_NIGHT');
+        expect(success.actions.some((a) => a.type === 'SET_RESOLVED_WOLF_KILL_TARGET')).toBe(false);
+        if (witchContextAction && endNightAction?.type === 'END_NIGHT') {
+          expect(endNightAction.payload.deaths).toContain(witchContextAction.payload.killedSeat);
+        }
+      });
+
+      it('keeps one settled tied target across advance, witch submission and settlement under different seeds', () => {
+        // True end-to-end chain, not a manually pre-seeded settlement:
+        // advance to witch (settles + context) -> witch submission
+        // under a second seed (saves the context target) -> advance to
+        // exhausted -> END_NIGHT under a third seed. Every command
+        // carries a different randomSeed, so a re-roll anywhere in the
+        // chain would change the target; the chain must emit exactly
+        // one SET_RESOLVED_WOLF_KILL_TARGET, carrying the target and
+        // the verdict together, and the saved target, the settled
+        // target and the verdict target must all be the same seat
+        // (so the saved target survives the night).
+        const contextFor = (state: GameState): HandlerContext => ({
+          state,
+          myUserId: 'host-uid',
+          mySeat: null,
+        });
+        const apply = (state: GameState, actions: readonly Parameters<typeof gameReducer>[1][]) => {
+          let next = state;
+          for (const action of actions) next = gameReducer(next, action);
+          return next;
+        };
+        const acknowledgeAudio = (state: GameState) => {
+          const acked = expectSuccess(handleAudioAck(contextFor(state)));
+          return apply(state, acked.actions);
+        };
+        const countSettled = (actions: readonly { type: string }[]) =>
+          actions.filter((action) => action.type === 'SET_RESOLVED_WOLF_KILL_TARGET').length;
+
+        let state = createOngoingState({
+          nightStep: { kind: 'inStep', stepId: 'wolfKill' },
+          currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 5 } },
+        });
+
+        // Command 1: advance wolfKill -> witchAction, first seed.
+        const advanceToWitch = expectSuccess(
+          executeAdvanceNight({ type: 'ADVANCE_NIGHT' }, contextFor(state), {
+            ...TEST_HANDLER_EXECUTION,
+            commandId: 'advance-to-witch',
+            randomSeed: 'advance-to-witch-seed',
+          }),
+        );
+        expect(countSettled(advanceToWitch.actions)).toBe(1);
+        const settledAction = advanceToWitch.actions.find(
+          (action) => action.type === 'SET_RESOLVED_WOLF_KILL_TARGET',
+        );
+        expect(settledAction?.type).toBe('SET_RESOLVED_WOLF_KILL_TARGET');
+        if (settledAction?.type === 'SET_RESOLVED_WOLF_KILL_TARGET') {
+          // The one SET carries the verdict twin of the target: a
+          // tied vote settles to tiePicked with the picked seat.
+          expect([4, 5]).toContain(settledAction.payload.target);
+          expect(settledAction.payload.verdict).toEqual({
+            type: 'tiePicked',
+            targetSeat: settledAction.payload.target,
+          });
+        }
+        const advanceStep = advanceToWitch.actions.find(
+          (action) => action.type === 'ADVANCE_TO_NEXT_ACTION',
+        );
+        expect(advanceStep?.type).toBe('ADVANCE_TO_NEXT_ACTION');
+        if (advanceStep?.type === 'ADVANCE_TO_NEXT_ACTION') {
+          expect(advanceStep.payload.nightStep).toEqual({
+            kind: 'inStep',
+            stepId: 'witchAction',
+          });
+        }
+        state = acknowledgeAudio(apply(state, advanceToWitch.actions));
+        expect(state.witchContext).toBeDefined();
+        const contextTarget = state.witchContext!.killedSeat;
+        expect([4, 5]).toContain(contextTarget);
+        expect(state.resolvedWolfKillTarget).toBe(contextTarget);
+        expect(state.resolvedWolfKillVerdict).toEqual({
+          type: 'tiePicked',
+          targetSeat: contextTarget,
+        });
+
+        // Command 2: witch submission under a second seed, saving the
+        // context target. This must be accepted against the stored
+        // settlement, not a fresh tie-break.
+        const submitIntent: SubmitActionIntent = {
+          type: 'SUBMIT_ACTION',
+          payload: {
+            seat: 3,
+            role: 'witch',
+            actionInput: {
+              schemaId: 'witchAction',
+              stepResults: { save: contextTarget, poison: null },
+            },
+          },
+        };
+        const submit = expectSuccess(
+          executeSubmitAction(submitIntent, contextFor(state), {
+            ...TEST_HANDLER_EXECUTION,
+            commandId: 'witch-submit',
+            randomSeed: 'witch-submit-seed',
+          }),
+        );
+        expect(countSettled(submit.actions)).toBe(0);
+        state = apply(state, submit.actions);
+        expect(state.currentNightResults?.savedSeat).toBe(contextTarget);
+        expect(state.resolvedWolfKillTarget).toBe(contextTarget);
+        expect(state.resolvedWolfKillVerdict).toEqual({
+          type: 'tiePicked',
+          targetSeat: contextTarget,
+        });
+
+        // Commands 3-4: advance witchAction -> seerCheck -> exhausted,
+        // each under its own seed. Neither may emit a second SET.
+        for (const seed of ['advance-to-seer-seed', 'advance-to-exhausted-seed']) {
+          const advance = expectSuccess(
+            executeAdvanceNight({ type: 'ADVANCE_NIGHT' }, contextFor(state), {
+              ...TEST_HANDLER_EXECUTION,
+              commandId: `advance-${seed}`,
+              randomSeed: seed,
+            }),
+          );
+          expect(countSettled(advance.actions)).toBe(0);
+          state = acknowledgeAudio(apply(state, advance.actions));
+          expect(state.resolvedWolfKillTarget).toBe(contextTarget);
+          expect(state.resolvedWolfKillVerdict).toEqual({
+            type: 'tiePicked',
+            targetSeat: contextTarget,
+          });
+        }
+        expect(state.nightStep).toEqual({ kind: 'exhausted' });
+
+        // Command 5: END_NIGHT under a third seed.
+        const endNight = expectSuccess(
+          executeEndNight({ type: 'END_NIGHT' }, contextFor(state), {
+            ...TEST_HANDLER_EXECUTION,
+            commandId: 'end-night',
+            randomSeed: 'end-night-seed',
+          }),
+        );
+        expect(countSettled(endNight.actions)).toBe(0);
+        const endNightAction = endNight.actions.find((action) => action.type === 'END_NIGHT');
+        expect(endNightAction?.type).toBe('END_NIGHT');
+        if (endNightAction?.type === 'END_NIGHT') {
+          // The saved target is the settled target, so it survives;
+          // a divergent settlement would have killed the other tied
+          // target instead.
+          expect(endNightAction.payload.deaths).toEqual([]);
+        }
+        state = apply(state, endNight.actions);
+        expect(state.resolvedWolfKillTarget).toBe(contextTarget);
+        expect(state.resolvedWolfKillVerdict).toEqual({
+          type: 'tiePicked',
+          targetSeat: contextTarget,
+        });
+      });
+
+      it('reuses the witch context target for a pre-field room at settlement', () => {
+        const state = createOngoingState({
+          nightStep: { kind: 'exhausted' },
+          currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 5 } },
+          witchContext: { killedSeat: 5, canSave: true, canPoison: true },
+        });
+        const context: HandlerContext = {
+          state,
+          myUserId: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = executeEndNight({ type: 'END_NIGHT' }, context, {
+          ...TEST_HANDLER_EXECUTION,
+          randomSeed: 'legacy-settlement-seed',
+        });
+        const success = expectSuccess(result);
+        const endNightAction = success.actions.find((a) => a.type === 'END_NIGHT');
+
+        expect(success.actions[0]).toEqual({
+          type: 'SET_RESOLVED_WOLF_KILL_TARGET',
+          payload: { target: 5, verdict: { type: 'tiePicked', targetSeat: 5 } },
+        });
+        expect(endNightAction?.type).toBe('END_NIGHT');
+        if (endNightAction?.type === 'END_NIGHT') {
+          expect(endNightAction.payload.deaths).toContain(5);
+        }
+      });
+
+      it('persists the freshly settled tied target through the reducer', () => {
+        const state = createOngoingState({
+          nightStep: { kind: 'exhausted' },
+          currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 5 } },
+        });
         const context: HandlerContext = {
           state,
           myUserId: 'host-uid',
@@ -570,13 +795,20 @@ describe('nightFlowHandler', () => {
 
         const result = executeEndNight({ type: 'END_NIGHT' }, context, TEST_HANDLER_EXECUTION);
         const success = expectSuccess(result);
-        const endNightAction = success.actions[0];
-
-        expect(witchContextAction).not.toBeNull();
+        const endNightAction = success.actions.find((a) => a.type === 'END_NIGHT');
         expect(endNightAction?.type).toBe('END_NIGHT');
-        if (witchContextAction && endNightAction?.type === 'END_NIGHT') {
-          expect(endNightAction.payload.deaths).toContain(witchContextAction.payload.killedSeat);
+        if (endNightAction?.type !== 'END_NIGHT') return;
+
+        let nextState = state;
+        for (const action of success.actions) {
+          nextState = gameReducer(nextState, action);
         }
+        expect(nextState.resolvedWolfKillTarget).toBe(endNightAction.payload.deaths[0]);
+        expect(nextState.resolvedWolfKillVerdict).toEqual({
+          type: 'tiePicked',
+          targetSeat: endNightAction.payload.deaths[0],
+        });
+        expect(endNightAction.payload.deaths).toHaveLength(1);
       });
 
       it('should return empty deaths when wolfKillOverride set (nightmare blocked wolf)', () => {
@@ -598,7 +830,7 @@ describe('nightFlowHandler', () => {
         const result = handleEndNight(intent, context);
 
         const success = expectSuccess(result);
-        const action = success.actions[0]!;
+        const action = success.actions.find((a) => a.type === 'END_NIGHT')!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           expect(action.payload.deaths).toEqual([]);
@@ -631,7 +863,7 @@ describe('nightFlowHandler', () => {
         const result = handleEndNight(intent, context);
 
         const success = expectSuccess(result);
-        const action = success.actions[0]!;
+        const action = success.actions.find((a) => a.type === 'END_NIGHT')!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           // Protected by guard, no death
@@ -670,7 +902,7 @@ describe('nightFlowHandler', () => {
 
         const result = handleEndNight(intent, context);
         const success = expectSuccess(result);
-        const action = success.actions[0]!;
+        const action = success.actions.find((a) => a.type === 'END_NIGHT')!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           // seat 2 originally dies, after swap seat 4 dies (seat 2 alive)
@@ -709,7 +941,7 @@ describe('nightFlowHandler', () => {
 
         const result = handleEndNight(intent, context);
         const success = expectSuccess(result);
-        const action = success.actions[0]!;
+        const action = success.actions.find((a) => a.type === 'END_NIGHT')!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           // Seer does not die (spiritKnight identity is at seat 4, not seat 2)
@@ -746,7 +978,7 @@ describe('nightFlowHandler', () => {
 
         const result = handleEndNight(intent, context);
         const success = expectSuccess(result);
-        const action = success.actions[0]!;
+        const action = success.actions.find((a) => a.type === 'END_NIGHT')!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           // Seer checked the post-swap spiritKnight → killed by reflection
@@ -778,7 +1010,7 @@ describe('nightFlowHandler', () => {
 
         const result = handleEndNight(intent, context);
         const success = expectSuccess(result);
-        const action = success.actions[0]!;
+        const action = success.actions.find((a) => a.type === 'END_NIGHT')!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           // Attack villager → seat 4 dies

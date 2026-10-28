@@ -15,7 +15,17 @@ function resolveWolfKillSeatFromVotes(
   wolfVotesBySeat: Readonly<Record<string, number>> | undefined,
   isWolfVoteUnanimityRequired: boolean,
   rng: Rng,
+  resolvedWolfKillTarget?: number | null,
 ): number | undefined {
+  // The settled target wins: validating a save against a fresh
+  // tie-break here is how a witch could be told one target and then
+  // have her save rejected, or saved, against another. The fresh
+  // resolution below is only a fallback for direct resolver calls
+  // without a stored settlement; production state always carries one
+  // by the witch step.
+  if (resolvedWolfKillTarget !== undefined) {
+    return resolvedWolfKillTarget === null ? undefined : resolvedWolfKillTarget;
+  }
   if (!wolfVotesBySeat) return undefined;
   const votes = new Map<number, number>();
   for (const [seatStr, targetSeat] of Object.entries(wolfVotesBySeat)) {
@@ -94,6 +104,7 @@ export const witchActionResolver: ResolverFn = (context, input): ResolverResult 
       currentNightResults.wolfVotesBySeat,
       context.gameState.isWolfVoteUnanimityRequired,
       context.rng,
+      context.gameState.resolvedWolfKillTarget,
     );
     const witchCanSelfHeal = context.gameState.witchCanSelfHeal ?? false;
     const error = validateSaveAction(

@@ -54,6 +54,7 @@ import { maybeCreateConfirmStatusAction } from './confirmContext';
 import type { HandlerContext, HandlerExecutionContext, HandlerResult } from './types';
 import { handlerError, handlerSuccess } from './types';
 import { maybeCreateWitchContextAction } from './witchContext';
+import { maybeCreateResolvedWolfKillTargetAction } from './wolfKillResolution';
 
 /**
  * Handle assign roles (only seated -> assigned)
@@ -257,13 +258,31 @@ export function handleStartNight(
   };
   actions.push(startNightAction);
 
-  // Use unified function to check if witchContext needs to be set (no-wolf board where first step is witchAction)
-  const witchContextAction = maybeCreateWitchContextAction(
-    firstStepId,
-    state,
-    createSeededRng(`${execution.randomSeed}:wolf-vote`),
-  );
+  // Use unified function to check if witchContext needs to be set (no-wolf board where first step is witchAction).
+  // Settle first, then build the context from the settled state, so
+  // the context target, the persisted target and the persisted
+  // verdict are one settlement, not three computations. The SET is
+  // only emitted together with the context, exactly as before: if
+  // no context is needed, nothing is settled early here. On a
+  // no-wolf board this is a settled no-kill; a wolf board never
+  // opens on witchAction, so no live votes are settled early here.
+  const wolfVoteRng = createSeededRng(`${execution.randomSeed}:wolf-vote`);
+  const settledAction =
+    firstStepId === 'witchAction'
+      ? maybeCreateResolvedWolfKillTargetAction(state, wolfVoteRng)
+      : null;
+  const settledState = settledAction
+    ? {
+        ...state,
+        resolvedWolfKillTarget: settledAction.payload.target,
+        resolvedWolfKillVerdict: settledAction.payload.verdict,
+      }
+    : state;
+  const witchContextAction = maybeCreateWitchContextAction(firstStepId, settledState, wolfVoteRng);
   if (witchContextAction) {
+    if (settledAction) {
+      actions.push(settledAction);
+    }
     actions.push(witchContextAction);
   }
 

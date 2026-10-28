@@ -104,6 +104,8 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     isAudioPlaying: false,
     actions: [],
     currentNightResults: undefined,
+    resolvedWolfKillTarget: undefined,
+    resolvedWolfKillVerdict: undefined,
     resolvedNightEffects: [],
     lastNightDeaths: undefined,
     deathReasons: undefined,

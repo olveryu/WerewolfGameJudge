@@ -47,6 +47,8 @@ function makeGameState(
     seedWolfInfectionResult: LocalGameState['seedWolfInfectionResult'];
     sheriffElection: SheriffElectionState;
     sheriffElectionResult: SheriffElectionResult;
+    resolvedWolfKillTarget: number | null;
+    resolvedWolfKillVerdict: LocalGameState['resolvedWolfKillVerdict'];
   }> = {},
 ): LocalGameState {
   return {
@@ -69,6 +71,8 @@ function makeGameState(
     seedWolfInfectionResult: overrides.seedWolfInfectionResult,
     sheriffElection: overrides.sheriffElection,
     sheriffElectionResult: overrides.sheriffElectionResult,
+    resolvedWolfKillTarget: overrides.resolvedWolfKillTarget,
+    resolvedWolfKillVerdict: overrides.resolvedWolfKillVerdict,
   } as unknown as LocalGameState;
 }
 
@@ -733,6 +737,8 @@ describe('NightReview.helpers', () => {
             savedSeat: 3,
           },
           lastNightDeaths: [3],
+          resolvedWolfKillTarget: 3,
+          resolvedWolfKillVerdict: { type: 'sharedTarget', targetSeat: 3 },
         }),
       );
       expect(entries).toContainEqual(
@@ -1091,8 +1097,8 @@ describe('NightReview.helpers', () => {
 
     it('does not let an abstention manufacture a tie for the guard-save conflict', () => {
       // One real vote on seat 4 (index 3) plus one abstention: the engine
-      // tally ignores the abstention, so the wolf target still resolves and
-      // the 同守同救 annotation (guard + save on that target) stays reachable.
+      // verdict still names seat 3 as the wolf target, so the 同守同救
+      // annotation (guard + save on that target) stays reachable.
       const players = new Map<number, LocalPlayer | null>([
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'wolf')],
@@ -1109,6 +1115,8 @@ describe('NightReview.helpers', () => {
             savedSeat: 3,
           },
           lastNightDeaths: [3],
+          resolvedWolfKillTarget: 3,
+          resolvedWolfKillVerdict: { type: 'sharedTarget', targetSeat: 3 },
         }),
       );
       expect(entries).toContainEqual(
@@ -1151,6 +1159,8 @@ describe('NightReview.helpers', () => {
           seerReveal: { targetSeat: 0, result: '狼人' },
           lastNightDeaths: [4],
           deathReasons: { 4: 'wolfKill' },
+          resolvedWolfKillTarget: 4,
+          resolvedWolfKillVerdict: { type: 'sharedTarget', targetSeat: 4 },
         }),
       );
       const kinds: NightReviewActionEntry['kind'][] = entries.map((entry) => entry.kind);
@@ -1971,7 +1981,9 @@ describe('NightReview.helpers', () => {
 
   // ── 2026 report fact layer: stats, wolf verdict, death annotations ────
   describe('report derivations', () => {
-    it('derives all four wolf verdict states', () => {
+    it('maps all six engine wolf verdict states', () => {
+      // The mapping is pure: the verdict field decides, the votes
+      // are display only and are never tallied here.
       expect(
         deriveWolfVerdict({
           kind: 'wolfAttack',
@@ -1980,6 +1992,7 @@ describe('NightReview.helpers', () => {
             { voterSeat: 1, targetSeat: 5 },
           ],
           abstainSeats: [],
+          verdict: { type: 'sharedTarget', targetSeat: 5 },
         }),
       ).toEqual({ type: 'sharedTarget', targetSeat: 5 });
       expect(
@@ -1991,6 +2004,7 @@ describe('NightReview.helpers', () => {
             { voterSeat: 2, targetSeat: 6 },
           ],
           abstainSeats: [],
+          verdict: { type: 'splitKilled', targetSeat: 5 },
         }),
       ).toEqual({ type: 'splitKilled', targetSeat: 5 });
       expect(
@@ -2001,11 +2015,165 @@ describe('NightReview.helpers', () => {
             { voterSeat: 1, targetSeat: 6 },
           ],
           abstainSeats: [],
+          verdict: { type: 'tiePicked', targetSeat: 5 },
+        }),
+      ).toEqual({ type: 'tiePicked', targetSeat: 5 });
+      expect(
+        deriveWolfVerdict({
+          kind: 'wolfAttack',
+          votes: [
+            { voterSeat: 0, targetSeat: 5 },
+            { voterSeat: 1, targetSeat: 6 },
+          ],
+          abstainSeats: [],
+          verdict: { type: 'splitTied' },
         }),
       ).toEqual({ type: 'splitTied' });
-      expect(deriveWolfVerdict({ kind: 'wolfAttack', votes: [], abstainSeats: [0, 1] })).toEqual({
-        type: 'allAbstain',
+      expect(
+        deriveWolfVerdict({
+          kind: 'wolfAttack',
+          votes: [],
+          abstainSeats: [0, 1],
+          verdict: { type: 'allAbstain' },
+        }),
+      ).toEqual({ type: 'allAbstain' });
+    });
+
+    it('does not invent a verdict from the votes without an engine verdict', () => {
+      // Unanimous votes with no settlement recorded must not render
+      // as a kill: the verdict is pending, not shared.
+      expect(
+        deriveWolfVerdict({
+          kind: 'wolfAttack',
+          votes: [
+            { voterSeat: 0, targetSeat: 5 },
+            { voterSeat: 1, targetSeat: 5 },
+          ],
+          abstainSeats: [],
+        }),
+      ).toEqual({ type: 'tiePending' });
+      expect(
+        deriveWolfVerdict({
+          kind: 'wolfAttack',
+          votes: [
+            { voterSeat: 0, targetSeat: 5 },
+            { voterSeat: 1, targetSeat: 6 },
+          ],
+          abstainSeats: [],
+        }),
+      ).toEqual({ type: 'tiePending' });
+      // A null verdict (wolf-kill override, no vote verdict) is also
+      // never reported as splitTied.
+      expect(
+        deriveWolfVerdict({
+          kind: 'wolfAttack',
+          votes: [
+            { voterSeat: 0, targetSeat: 5 },
+            { voterSeat: 1, targetSeat: 6 },
+          ],
+          abstainSeats: [],
+          verdict: null,
+        }),
+      ).toEqual({ type: 'tiePending' });
+    });
+
+    it('lets the engine verdict win over a contradicting tally', () => {
+      // The engine is the authority: even a tally that would name
+      // another target must not override the recorded verdict.
+      expect(
+        deriveWolfVerdict({
+          kind: 'wolfAttack',
+          votes: [
+            { voterSeat: 0, targetSeat: 5 },
+            { voterSeat: 1, targetSeat: 5 },
+          ],
+          abstainSeats: [],
+          verdict: { type: 'splitKilled', targetSeat: 6 },
+        }),
+      ).toEqual({ type: 'splitKilled', targetSeat: 6 });
+    });
+
+    it('renders a cupid 2-to-1 engine verdict as no kill and emits no wolf-target save note', () => {
+      // Under cupid unanimity a 2-to-1 vote settles to splitTied
+      // (no kill); the tally alone must not be read as a plurality
+      // kill, and no "wolf target not saved" note may be derived
+      // from it.
+      const votes = [
+        { voterSeat: 0, targetSeat: 5 },
+        { voterSeat: 1, targetSeat: 5 },
+        { voterSeat: 2, targetSeat: 6 },
+      ];
+      expect(
+        deriveWolfVerdict({
+          kind: 'wolfAttack',
+          votes,
+          abstainSeats: [],
+          verdict: { type: 'splitTied' },
+        }),
+      ).toEqual({ type: 'splitTied' });
+      expect(
+        deriveWolfVerdict({
+          kind: 'wolfAttack',
+          votes,
+          abstainSeats: [],
+          verdict: { type: 'splitKilled', targetSeat: 5 },
+        }),
+      ).toEqual({ type: 'splitKilled', targetSeat: 5 });
+
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'wolf')],
+        [1, makePlayer(1, 'wolf')],
+        [2, makePlayer(2, 'wolf')],
+        [3, makePlayer(3, 'witch')],
+        [5, makePlayer(5, 'villager')],
+        [6, makePlayer(6, 'villager')],
+      ]);
+      const data = buildNightReviewData(
+        makeGameState({
+          players,
+          currentNightResults: { wolfVotesBySeat: { '0': 5, '1': 5, '2': 6 } },
+          resolvedWolfKillTarget: null,
+          resolvedWolfKillVerdict: { type: 'splitTied' },
+        }),
+      );
+      const wolfEntry = data.actions.find((entry) => entry.kind === 'wolfAttack');
+      expect(wolfEntry?.kind).toBe('wolfAttack');
+      if (wolfEntry?.kind === 'wolfAttack') {
+        expect(deriveWolfVerdict(wolfEntry)).toEqual({ type: 'splitTied' });
+      }
+      expect(deriveWolfTargetSaveNote(data)).toBeNull();
+    });
+
+    it('does not recover a verdict from a recorded save without an engine verdict', () => {
+      // A recorded save proves the witch saved a seat, not how the
+      // wolf vote resolved: with no engine verdict, the report must
+      // show the vote as pending, never as a picked target.
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'wolf')],
+        [1, makePlayer(1, 'wolf')],
+        [2, makePlayer(2, 'witch')],
+        [4, makePlayer(4, 'villager')],
+        [5, makePlayer(5, 'villager')],
+      ]);
+      const entries = buildActionEntries(
+        makeGameState({
+          players,
+          currentNightResults: { wolfVotesBySeat: { '0': 5, '1': 4 }, savedSeat: 5 },
+        }),
+      );
+      const wolfEntry = entries.find((entry) => entry.kind === 'wolfAttack');
+      expect(wolfEntry).toEqual({
+        kind: 'wolfAttack',
+        votes: [
+          { voterSeat: 0, targetSeat: 5 },
+          { voterSeat: 1, targetSeat: 4 },
+        ],
+        abstainSeats: [],
       });
+      if (wolfEntry?.kind === 'wolfAttack') {
+        expect(wolfEntry.verdict).toBeUndefined();
+        expect(deriveWolfVerdict(wolfEntry)).toEqual({ type: 'tiePending' });
+      }
     });
 
     it('derives stats from the entries and cross-checks them against the deaths', () => {
@@ -2092,6 +2260,8 @@ describe('NightReview.helpers', () => {
           },
           lastNightDeaths: [5, 11],
           deathReasons: { 5: 'wolfKill', 11: 'poison' },
+          resolvedWolfKillTarget: 5,
+          resolvedWolfKillVerdict: { type: 'splitKilled', targetSeat: 5 },
         }),
       );
       const notes = deriveDeathNotes(data);
@@ -2109,6 +2279,8 @@ describe('NightReview.helpers', () => {
         makeGameState({
           players,
           currentNightResults: { wolfVotesBySeat: { '6': 5 }, savedSeat: 5 },
+          resolvedWolfKillTarget: 5,
+          resolvedWolfKillVerdict: { type: 'sharedTarget', targetSeat: 5 },
         }),
       );
       expect(deriveWolfTargetSaveNote(data)).toBeNull();

@@ -27,6 +27,7 @@ import type {
   RecordActionAction,
   SetAudioPlayingAction,
   SetConfirmStatusAction,
+  SetResolvedWolfKillTargetAction,
   SetWitchContextAction,
   SetWolfKillOverrideAction,
   SetWolfRobotHunterStatusViewedAction,
@@ -46,6 +47,8 @@ export function handleStartNight(state: GameState, action: StartNightAction): Ga
     // Audio queue events own isAudioPlaying; step transitions never infer it.
     actions: [],
     currentNightResults: {},
+    resolvedWolfKillTarget: undefined,
+    resolvedWolfKillVerdict: undefined,
     resolvedNightEffects: [],
     pendingRevealAcks: [],
     seedWolfInfectionResult: undefined,
@@ -258,6 +261,18 @@ export function handleSetWitchContext(state: GameState, action: SetWitchContextA
   return {
     ...state,
     witchContext: action.payload,
+  };
+}
+
+/** Persist the wolf-kill target and verdict settled exactly once for this night. */
+export function handleSetResolvedWolfKillTarget(
+  state: GameState,
+  action: SetResolvedWolfKillTargetAction,
+): GameState {
+  return {
+    ...state,
+    resolvedWolfKillTarget: action.payload.target,
+    resolvedWolfKillVerdict: action.payload.verdict,
   };
 }
 

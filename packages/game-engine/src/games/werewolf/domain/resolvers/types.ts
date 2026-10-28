@@ -122,6 +122,14 @@ export interface ResolverContext {
   readonly gameState: {
     readonly isNight1: boolean;
     readonly isWolfVoteUnanimityRequired: boolean;
+    /**
+     * The settled wolf-kill target, when known: a seat number, or
+     * null for a settled no-kill. undefined means no settlement is
+     * stored yet, and the witch resolver falls back to re-resolving
+     * the votes (only for direct resolver calls; production state
+     * always carries a stored target by the witch step).
+     */
+    readonly resolvedWolfKillTarget?: number | null;
     /** Accumulated hypnotized seats (piper) — needed to reject already-hypnotized targets */
     readonly hypnotizedSeats?: readonly number[];
     /** Whether witch is allowed to save herself (house rule override) */

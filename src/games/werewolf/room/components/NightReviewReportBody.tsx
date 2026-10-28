@@ -64,11 +64,14 @@ import {
   NIGHT_REPORT_WOLF_TAG_ABSTAIN,
   NIGHT_REPORT_WOLF_TAG_KILLED,
   NIGHT_REPORT_WOLF_TAG_SURVIVED,
+  NIGHT_REPORT_WOLF_TAG_TIE_PENDING,
   NIGHT_REPORT_WOLF_TAG_TIED,
   NIGHT_REPORT_WOLF_VERDICT_ALL_ABSTAIN,
   NIGHT_REPORT_WOLF_VERDICT_SHARED,
   NIGHT_REPORT_WOLF_VERDICT_SPLIT_KILLED,
   NIGHT_REPORT_WOLF_VERDICT_SPLIT_TIED,
+  NIGHT_REPORT_WOLF_VERDICT_TIE_PENDING,
+  NIGHT_REPORT_WOLF_VERDICT_TIE_PICKED,
   NIGHT_REVIEW_IDENTITIES_TITLE,
   NIGHT_REVIEW_PEACEFUL_HEADLINE,
 } from '../nightReviewLayout';
@@ -728,8 +731,12 @@ function verdictText(verdict: NightReviewWolfVerdict): string {
       return NIGHT_REPORT_WOLF_VERDICT_SHARED;
     case 'splitKilled':
       return NIGHT_REPORT_WOLF_VERDICT_SPLIT_KILLED;
+    case 'tiePicked':
+      return NIGHT_REPORT_WOLF_VERDICT_TIE_PICKED;
     case 'splitTied':
       return NIGHT_REPORT_WOLF_VERDICT_SPLIT_TIED;
+    case 'tiePending':
+      return NIGHT_REPORT_WOLF_VERDICT_TIE_PENDING;
     case 'allAbstain':
       return NIGHT_REPORT_WOLF_VERDICT_ALL_ABSTAIN;
   }
@@ -747,7 +754,9 @@ function WolfTeamCard({
   if (entry.kind === 'wolfAttack') {
     const verdict = deriveWolfVerdict(entry);
     const resolvedTarget =
-      verdict.type === 'sharedTarget' || verdict.type === 'splitKilled'
+      verdict.type === 'sharedTarget' ||
+      verdict.type === 'splitKilled' ||
+      verdict.type === 'tiePicked'
         ? verdict.targetSeat
         : undefined;
     tag = (
@@ -755,13 +764,21 @@ function WolfTeamCard({
         text={
           verdict.type === 'splitTied'
             ? NIGHT_REPORT_WOLF_TAG_TIED
-            : verdict.type === 'allAbstain'
-              ? NIGHT_REPORT_WOLF_TAG_ABSTAIN
-              : resolvedTarget !== undefined && context.deadSeats.has(resolvedTarget)
-                ? NIGHT_REPORT_WOLF_TAG_KILLED
-                : NIGHT_REPORT_WOLF_TAG_SURVIVED
+            : verdict.type === 'tiePending'
+              ? NIGHT_REPORT_WOLF_TAG_TIE_PENDING
+              : verdict.type === 'allAbstain'
+                ? NIGHT_REPORT_WOLF_TAG_ABSTAIN
+                : resolvedTarget !== undefined && context.deadSeats.has(resolvedTarget)
+                  ? NIGHT_REPORT_WOLF_TAG_KILLED
+                  : NIGHT_REPORT_WOLF_TAG_SURVIVED
         }
-        tone={verdict.type === 'sharedTarget' || verdict.type === 'splitKilled' ? 'bad' : 'muted'}
+        tone={
+          verdict.type === 'sharedTarget' ||
+          verdict.type === 'splitKilled' ||
+          verdict.type === 'tiePicked'
+            ? 'bad'
+            : 'muted'
+        }
       />
     );
     body = (

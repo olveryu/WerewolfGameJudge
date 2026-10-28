@@ -317,8 +317,13 @@ describe('handleStartNight', () => {
 
     const success = expectSuccess(result);
 
-    // START_NIGHT + SET_WITCH_CONTEXT + authoritative audio queue pair.
-    expect(success.actions.length).toBe(4);
+    // START_NIGHT + SET_RESOLVED_WOLF_KILL_TARGET + SET_WITCH_CONTEXT
+    // + authoritative audio queue pair.
+    expect(success.actions.length).toBe(5);
+    expect(success.actions.find((a) => a.type === 'SET_RESOLVED_WOLF_KILL_TARGET')).toEqual({
+      type: 'SET_RESOLVED_WOLF_KILL_TARGET',
+      payload: { target: null, verdict: { type: 'allAbstain' } },
+    });
 
     const startNightAction = success.actions.find((a) => a.type === 'START_NIGHT');
     expect(startNightAction).toBeDefined();
