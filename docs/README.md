@@ -14,6 +14,7 @@
 | [roomscreen-state-machine.md](roomscreen-state-machine.md)   | 狼人杀 RoomScreen UI 状态机（GameStatus → 按钮 / Schema Kind → 交互模式）              |
 | [room-session-lifecycle.md](room-session-lifecycle.md)       | `RoomSession` 所有权、独占租约、连接与退出生命周期                                     |
 | [network-resilience-design.md](network-resilience-design.md) | 多游戏网络层：fetch 重试、命令恢复、WebSocket 重连策略                                 |
+| [realtime-link-redesign.md](realtime-link-redesign.md)       | 实时链路从零重做方案（RoomLink v3）：删除清单、新契约、协议 v2、Worker 网关、迁移顺序  |
 | [outbox-recovery.md](outbox-recovery.md)                     | DO transactional outbox 的终态投递与管理端结算重放                                     |
 | [auth-session-design.md](auth-session-design.md)             | 身份会话、`AuthSession` 缓存与用户资料的状态归属                                       |
 | [DESIGN.md](DESIGN.md)                                       | 视觉基准与主题 token（以狼人杀为主）                                                   |
