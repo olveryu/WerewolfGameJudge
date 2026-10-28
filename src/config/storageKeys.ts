@@ -8,8 +8,8 @@
 /** Unacknowledged room creation intents used for exact retry after restart. */
 export const ROOM_CREATION_INTENTS_KEY = '@room_creation_intents';
 
-/** Confirmed room commands awaiting one authoritative decision. */
-export const ROOM_COMMAND_RECOVERY_KEY = '@room_command_recovery';
+/** Durable room commands awaiting one authoritative decision (RoomLink CommandOutbox v2). */
+export const ROOM_COMMAND_OUTBOX_KEY = '@room_command_outbox_v2';
 
 /** Pending asset operations partitioned by authenticated user. */
 export const GACHA_OPERATION_KEY = '@gacha_operation';
