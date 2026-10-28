@@ -15,10 +15,10 @@
  * - Relies on cfUpload for token injection and error interception
  */
 
+import { apiClient } from '@/platform/http/client';
 import type { IAvatarUploadService } from '@/services/types/IAvatarUploadService';
 import { log } from '@/utils/logger';
 
-import { cfUpload } from './cfFetch';
 import { parseUrlResponse } from './responseCodecs';
 
 const avatarLog = log.extend('CFAvatar');
@@ -46,7 +46,14 @@ export class CFAvatarUploadService implements IAvatarUploadService {
     const formData = new FormData();
     formData.append('file', blob, 'avatar.jpg');
 
-    const data = await cfUpload('/avatar/upload', formData, parseUrlResponse);
+    const data = await apiClient.json({
+      method: 'POST',
+      path: '/avatar/upload',
+      auth: 'required',
+      idempotent: true,
+      body: formData,
+      decode: parseUrlResponse,
+    });
     avatarLog.debug('Avatar uploaded', { url: data.url });
     return data.url;
   }

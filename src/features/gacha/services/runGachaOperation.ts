@@ -1,5 +1,5 @@
 /** Execute persisted asset intent under its originating authenticated session. */
-import { CloudflareHttpError } from '@/services/cloudflare/cfFetch';
+import { ApiError } from '@/platform/http/ApiError';
 import type { IAuthService } from '@/services/types/IAuthService';
 
 import {
@@ -43,7 +43,8 @@ export async function runGachaOperation<TResponse>(
       throw new DOMException('Authentication changed', 'AbortError');
     if (
       authService.getAuthSession() === session &&
-      error instanceof CloudflareHttpError &&
+      error instanceof ApiError &&
+      error.isHttp() &&
       TERMINAL_GACHA_REJECTIONS.has(error.reason)
     ) {
       store.complete(operation);

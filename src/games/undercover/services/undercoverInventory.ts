@@ -5,7 +5,7 @@ import {
 } from '@game-judge/game-engine/games/undercover/public';
 import { queryOptions } from '@tanstack/react-query';
 
-import { cfGet } from '@/services/cloudflare/cfFetch';
+import { apiClient } from '@/platform/http/client';
 
 function parseInventory(value: unknown): readonly UndercoverCategory[] {
   if (
@@ -25,6 +25,13 @@ function parseInventory(value: unknown): readonly UndercoverCategory[] {
 
 export const undercoverInventoryOptions = queryOptions({
   queryKey: ['games', 'undercover', 'inventory', 'categories'] as const,
-  queryFn: () => cfGet('/api/games/undercover/inventory/categories', parseInventory),
+  queryFn: () =>
+    apiClient.json({
+      method: 'GET',
+      path: '/api/games/undercover/inventory/categories',
+      auth: 'required',
+      idempotent: true,
+      decode: parseInventory,
+    }),
   staleTime: 0,
 });

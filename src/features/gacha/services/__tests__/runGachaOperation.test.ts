@@ -1,5 +1,5 @@
 /** Failed delivery retries the original persisted key rather than initiating another debit. */
-import { CloudflareHttpError } from '@/services/cloudflare/cfFetch';
+import { ApiError } from '@/platform/http/ApiError';
 import type { IAuthService } from '@/services/types/IAuthService';
 
 import { GachaOperationStore } from '../GachaOperationStore';
@@ -80,7 +80,9 @@ it('ends a definite business rejection without blocking a new intent', async () 
   });
   const session = { userId: 'user', initialUser: null };
   const auth = { getAuthSession: () => session } as IAuthService;
-  const rejection = new CloudflareHttpError({
+  const rejection = new ApiError({
+    kind: 'http',
+    path: '/api/gacha/exchange',
     status: 400,
     reason: 'INSUFFICIENT_SHARDS',
     body: {},

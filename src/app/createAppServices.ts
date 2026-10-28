@@ -7,6 +7,7 @@ import { RoomCreationService } from '@/features/room/services/RoomCreationServic
 import { SettingsService } from '@/features/settings/services/SettingsService';
 import { createClientGameCatalog } from '@/games/catalog';
 import type { ClientGameCatalog } from '@/games/model/ClientGameCatalog';
+import { apiClient, authTokenStore } from '@/platform/http/client';
 import { CFAuthService } from '@/services/cloudflare/CFAuthService';
 import { CFAvatarUploadService } from '@/services/cloudflare/CFAvatarUploadService';
 import { CFRoomDirectoryService } from '@/services/cloudflare/CFRoomDirectoryService';
@@ -17,7 +18,7 @@ export function createAppServices(): {
   readonly services: ServiceContextValue;
   readonly gameCatalog: ClientGameCatalog;
 } {
-  const authService = new CFAuthService();
+  const authService = new CFAuthService({ apiClient, tokens: authTokenStore });
   const roomDirectory = new CFRoomDirectoryService();
   const roomCreator = new RoomCreationService(roomDirectory, new RoomCreationIntentStore());
   const settingsService = new SettingsService();

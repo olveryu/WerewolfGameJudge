@@ -9,14 +9,9 @@ import type {
   GameStateCodec,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
-import { cfGetBinary, cfPutBinary } from '@/services/cloudflare/cfFetch';
+import { apiClient } from '@/platform/http/client';
 
 import { createDrawingMediaTransport } from '../createDrawingMediaTransport';
-
-jest.mock('@/services/cloudflare/cfFetch', () => ({
-  cfGetBinary: jest.fn(),
-  cfPutBinary: jest.fn(),
-}));
 
 jest.mock('@game-judge/game-engine/platform/protocol/commandResult', () => {
   const actual = jest.requireActual<
@@ -36,8 +31,8 @@ const transport = createDrawingMediaTransport<FakeState>({
   stateCodec: fakeCodec,
 });
 
-const mockPut = cfPutBinary as jest.MockedFunction<typeof cfPutBinary>;
-const mockGet = cfGetBinary as jest.MockedFunction<typeof cfGetBinary>;
+const mockPut = jest.spyOn(apiClient, 'json');
+const mockGet = jest.spyOn(apiClient, 'binary');
 const mockParse = parseRoomCommandResult as jest.MockedFunction<typeof parseRoomCommandResult>;
 
 beforeEach(() => {
@@ -45,23 +40,27 @@ beforeEach(() => {
 });
 
 describe('createDrawingMediaTransport.uploadDrawing', () => {
-  it('PUTs to the game submissions route without a seat query', async () => {
+  it('PUTs the PNG to the game submissions route without a seat query', async () => {
     mockPut.mockResolvedValue('ok');
     const png = new Blob(['x'], { type: 'image/png' });
     await transport.uploadDrawing('ROOM 1', 'sub/2', png, null);
     expect(mockPut).toHaveBeenCalledWith(
-      '/api/games/pictionary/rooms/ROOM%201/submissions/sub%2F2',
-      png,
-      'image/png',
-      expect.any(Function),
-      { signal: undefined },
+      expect.objectContaining({
+        method: 'PUT',
+        path: '/api/games/pictionary/rooms/ROOM%201/submissions/sub%2F2',
+        auth: 'required',
+        idempotent: true,
+        body: png,
+        headers: { 'Content-Type': 'image/png' },
+        signal: undefined,
+      }),
     );
   });
 
   it('appends the controlledSeat query when controlling a bot', async () => {
     mockPut.mockResolvedValue('ok');
     await transport.uploadDrawing('R1', 'S1', new Blob(['x']), 3);
-    expect(mockPut.mock.calls[0]?.[0]).toBe(
+    expect(mockPut.mock.calls[0]?.[0].path).toBe(
       '/api/games/pictionary/rooms/R1/submissions/S1?controlledSeat=3',
     );
   });
@@ -81,10 +80,7 @@ describe('createDrawingMediaTransport.uploadDrawing', () => {
   });
 
   it('verifies the response commandId against the game media-commit id', async () => {
-    mockPut.mockImplementation(
-      async (_url: string, _body: unknown, _type: string, parse: (value: unknown) => unknown) =>
-        parse({}),
-    );
+    mockPut.mockImplementation(async (spec) => spec.decode({}));
     mockParse.mockReturnValue({ commandId: 'other:cmd' } as RoomCommandResult<FakeState>);
     await expect(transport.uploadDrawing('R1', 'S1', new Blob(['x']), null)).rejects.toThrow(
       'Pictionary media commandId mismatch: expected pictionary-media-commit:S1, received other:cmd',
@@ -96,7 +92,12 @@ describe('createDrawingMediaTransport.readDrawingDataUri', () => {
   it('GETs the media route and returns a base64 PNG data URI', async () => {
     mockGet.mockResolvedValue(new Uint8Array([104, 105]).buffer);
     const uri = await transport.readDrawingDataUri('R1', 'E1', null);
-    expect(mockGet).toHaveBeenCalledWith('/api/games/pictionary/rooms/R1/media/E1', 'image/png', {
+    expect(mockGet).toHaveBeenCalledWith({
+      method: 'GET',
+      path: '/api/games/pictionary/rooms/R1/media/E1',
+      auth: 'required',
+      idempotent: true,
+      contentType: 'image/png',
       signal: undefined,
     });
     expect(uri).toBe('data:image/png;base64,aGk=');

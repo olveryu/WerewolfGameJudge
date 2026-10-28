@@ -8,12 +8,12 @@
 import * as Sentry from '@sentry/react-native';
 import { focusManager, MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
 
-import { appVisibilityStore } from '@/services/infra/appVisibility';
+import { platformEnvironment } from '@/platform/env/PlatformEnvironment';
 import { isAbortError, isExpectedError, isNetworkError } from '@/utils/errorUtils';
 
 focusManager.setEventListener((setFocused) => {
-  const syncFocus = (): void => setFocused(appVisibilityStore.getSnapshot());
-  const unsubscribe = appVisibilityStore.subscribe(syncFocus);
+  const syncFocus = (): void => setFocused(platformEnvironment.getSnapshot().visible);
+  const unsubscribe = platformEnvironment.subscribe(syncFocus);
   syncFocus();
   return unsubscribe;
 });

@@ -2,11 +2,7 @@
 
 import { type GameType, isGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
-import {
-  parseRoomId,
-  parseRoomLocator,
-  type RoomLocator,
-} from '@game-judge/game-engine/platform/protocol/roomLocator';
+import { parseRoomId } from '@game-judge/game-engine/platform/protocol/roomLocator';
 
 import type {
   RoomCreationTransportRequest,
@@ -14,9 +10,8 @@ import type {
   RoomRecord,
 } from '@/features/room/model/RoomDirectory';
 import { UnsupportedRoomGameTypeError } from '@/features/room/model/RoomDirectory';
-import { roomLog } from '@/utils/logger';
+import { apiClient } from '@/platform/http/client';
 
-import { cfPost } from './cfFetch';
 import { assertExactRoomResponseKeys, isRoomResponseRecord } from './roomResponseValidation';
 
 function parseCreatedAt(value: unknown): Date {
@@ -63,15 +58,19 @@ export class CFRoomDirectoryService implements RoomDirectory {
     if (request.creationId.length === 0 || request.creationId.length > 128) {
       throw new Error('createRoom.creationId must contain 1..128 characters');
     }
-    return cfPost(
-      '/room/create',
-      {
+    return apiClient.json({
+      method: 'POST',
+      path: '/room/create',
+      auth: 'required',
+      // creationId drives the server-side create saga, so a repeated request resolves the same room.
+      idempotent: true,
+      body: {
         gameType: request.gameType,
         config: request.config,
         creationId: request.creationId,
       },
-      (value) => this.#parseCreatedRoom(value, request),
-    );
+      decode: (value) => this.#parseCreatedRoom(value, request),
+    });
   }
 
   #parseCreatedRoom(value: unknown, request: RoomCreationTransportRequest): RoomRecord {
@@ -86,7 +85,14 @@ export class CFRoomDirectoryService implements RoomDirectory {
 
   async getRoom(roomCode: string): Promise<RoomRecord | null> {
     parseRoomCode(roomCode);
-    return cfPost('/room/get', { roomCode }, (value) => this.#parseFetchedRoom(value, roomCode));
+    return apiClient.json({
+      method: 'POST',
+      path: '/room/get',
+      auth: 'required',
+      idempotent: true,
+      body: { roomCode },
+      decode: (value) => this.#parseFetchedRoom(value, roomCode),
+    });
   }
 
   #parseFetchedRoom(value: unknown, expectedRoomCode: string): RoomRecord | null {
@@ -96,21 +102,5 @@ export class CFRoomDirectoryService implements RoomDirectory {
     const room = parseRoomRecord(value.room);
     if (room.roomCode !== expectedRoomCode) throw new Error('/room/get returned another room code');
     return room;
-  }
-
-  async deleteRoom(room: RoomLocator): Promise<void> {
-    const locator = parseRoomLocator({ roomCode: room.roomCode, roomId: room.roomId });
-    roomLog.info('deleteRoom', locator);
-    await cfPost('/room/delete', { ...locator }, (value) => {
-      this.#parseDeletedRoom(value);
-    });
-  }
-
-  #parseDeletedRoom(value: unknown): void {
-    if (!isRoomResponseRecord(value)) throw new Error('Invalid /room/delete response envelope');
-    assertExactRoomResponseKeys(value, ['success', 'pending'], '/room/delete response');
-    if (value.success !== true || typeof value.pending !== 'boolean') {
-      throw new Error('/room/delete returned an invalid result');
-    }
   }
 }

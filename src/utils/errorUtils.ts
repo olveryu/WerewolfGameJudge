@@ -5,6 +5,8 @@
  * No React / service / game state / Sentry dependencies.
  */
 
+import { ApiError } from '@/platform/http/ApiError';
+
 import { ROOM_CHASSIS_REASON_MESSAGES } from './roomChassisReasonMessages';
 
 /**
@@ -45,7 +47,15 @@ function messageMatchesAbort(message: string): boolean {
   return message.toLowerCase().includes(WECHAT_ABORT_MESSAGE);
 }
 
-function errorOrCauseMatches(err: unknown, matches: (candidate: unknown) => boolean): boolean {
+/**
+ * Walk `err` and its `cause` chain. `ApiError` carries its own classification and is a terminal
+ * verdict; other candidates are matched heuristically and the walk continues on a miss.
+ */
+function errorOrCauseMatches(
+  err: unknown,
+  classifyApiError: (error: ApiError) => boolean,
+  matches: (candidate: unknown) => boolean,
+): boolean {
   let candidate = err;
   const visitedErrors = new Set<Error>();
 
@@ -53,6 +63,7 @@ function errorOrCauseMatches(err: unknown, matches: (candidate: unknown) => bool
     if (visitedErrors.has(candidate)) return false;
     visitedErrors.add(candidate);
 
+    if (candidate instanceof ApiError) return classifyApiError(candidate);
     if (matches(candidate)) return true;
     candidate = candidate.cause;
   }
@@ -71,22 +82,26 @@ function errorOrCauseMatches(err: unknown, matches: (candidate: unknown) => bool
  * - Any supported shape nested through standard `Error.cause` links
  */
 export function isAbortError(err: unknown): boolean {
-  return errorOrCauseMatches(err, (candidate) => {
-    if (candidate instanceof DOMException) {
-      return candidate.name === 'AbortError' || candidate.name === 'TimeoutError';
-    }
-    if (candidate instanceof Error) {
-      return (
-        candidate.name === 'AbortError' ||
-        candidate.name === 'TimeoutError' ||
-        messageMatchesAbort(candidate.message)
-      );
-    }
-    if (candidate != null && typeof candidate === 'object' && 'message' in candidate) {
-      return messageMatchesAbort(String(candidate.message));
-    }
-    return false;
-  });
+  return errorOrCauseMatches(
+    err,
+    (error) => error.kind === 'aborted',
+    (candidate) => {
+      if (candidate instanceof DOMException) {
+        return candidate.name === 'AbortError' || candidate.name === 'TimeoutError';
+      }
+      if (candidate instanceof Error) {
+        return (
+          candidate.name === 'AbortError' ||
+          candidate.name === 'TimeoutError' ||
+          messageMatchesAbort(candidate.message)
+        );
+      }
+      if (candidate != null && typeof candidate === 'object' && 'message' in candidate) {
+        return messageMatchesAbort(String(candidate.message));
+      }
+      return false;
+    },
+  );
 }
 
 /**
@@ -123,21 +138,25 @@ const NETWORK_ERROR_PATTERNS = [
  * Standard `Error.cause` links are traversed so transport wrappers preserve this classification.
  */
 export function isNetworkError(err: unknown): boolean {
-  return errorOrCauseMatches(err, (candidate) => {
-    if (candidate instanceof NetworkTimeoutError) return true;
+  return errorOrCauseMatches(
+    err,
+    (error) => error.kind === 'network' || error.kind === 'timeout',
+    (candidate) => {
+      if (candidate instanceof NetworkTimeoutError) return true;
 
-    // TypeError is the standard error type thrown by fetch() for network failures
-    const message =
-      candidate instanceof Error
-        ? candidate.message.toLowerCase()
-        : candidate != null && typeof candidate === 'object' && 'message' in candidate
-          ? String(candidate.message).toLowerCase()
-          : '';
+      // TypeError is the standard error type thrown by fetch() for network failures
+      const message =
+        candidate instanceof Error
+          ? candidate.message.toLowerCase()
+          : candidate != null && typeof candidate === 'object' && 'message' in candidate
+            ? String(candidate.message).toLowerCase()
+            : '';
 
-    if (!message) return false;
+      if (!message) return false;
 
-    return NETWORK_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
-  });
+      return NETWORK_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+    },
+  );
 }
 
 /** Server reason code → user-friendly Chinese message map */

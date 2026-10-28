@@ -1,13 +1,16 @@
-import { parseAccessTokenClaims } from '../accessTokenClaims';
+import {
+  isAccessTokenClaimsExpired,
+  parseAccessTokenClaims,
+} from '@/platform/auth/accessTokenClaims';
+import { parseTokenPairResponse } from '@/platform/auth/tokenPair';
+
 import {
   parseAnonymousAuthResponse,
   parseClaimAuthResponse,
   parseCurrentUserResponse,
   parseEmailAuthResponse,
-  parseRefreshResponse,
   parseResetPasswordResponse,
 } from '../authResponseCodec';
-import { isAccessTokenExpired } from '../cfFetch';
 
 const USER_METADATA = {
   display_name: null,
@@ -63,10 +66,13 @@ describe('auth response codecs', () => {
         user: { ...emailResponse.user, has_wechat: true },
       }).user.has_wechat,
     ).toBe(true);
-    expect(parseRefreshResponse({ access_token: 'next', refresh_token: 'rotated' })).toEqual({
+    expect(parseTokenPairResponse({ access_token: 'next', refresh_token: 'rotated' })).toEqual({
       access_token: 'next',
       refresh_token: 'rotated',
     });
+    expect(() =>
+      parseTokenPairResponse({ access_token: 'next', refresh_token: 'rotated', extra: 1 }),
+    ).toThrow();
     expect(
       parseCurrentUserResponse({
         data: {
@@ -114,13 +120,13 @@ describe('access token claims', () => {
   });
 
   it('uses the documented 30-second freshness buffer', () => {
-    jest.spyOn(Date, 'now').mockReturnValue(1_000_000);
+    const nowMs = 1_000_000;
     const fresh = createUnsignedAccessToken({ sub: 'user-1', ver: 0, iat: 900, exp: 1_060 });
     const expiring = createUnsignedAccessToken({ sub: 'user-1', ver: 0, iat: 900, exp: 1_020 });
 
-    expect(isAccessTokenExpired(fresh)).toBe(false);
-    expect(isAccessTokenExpired(expiring)).toBe(true);
-    expect(isAccessTokenExpired('not-a-jwt')).toBe(true);
+    expect(isAccessTokenClaimsExpired(parseAccessTokenClaims(fresh), nowMs)).toBe(false);
+    expect(isAccessTokenClaimsExpired(parseAccessTokenClaims(expiring), nowMs)).toBe(true);
+    expect(() => parseAccessTokenClaims('not-a-jwt')).toThrow();
   });
 
   it('rejects unissued claims instead of treating arbitrary JWT JSON as a session', () => {

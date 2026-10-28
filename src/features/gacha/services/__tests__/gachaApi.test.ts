@@ -1,26 +1,22 @@
 import { REWARD_POOL } from '@game-judge/game-engine/product/rewards';
 
-import { cfGet, cfPost } from '@/services/cloudflare/cfFetch';
+import { respondWithJson, spyOnApiJson } from '@/test-utils/apiClient';
 
 import { claimDailyReward, exchangeShard, fetchGachaStatus, performDraw } from '../gachaApi';
 
-jest.mock('@/services/cloudflare/cfFetch', () => ({ cfGet: jest.fn(), cfPost: jest.fn() }));
-
-const mockCfGet = jest.mocked(cfGet);
-const mockCfPost = jest.mocked(cfPost);
+const jsonSpy = spyOnApiJson();
 
 function respondToGet(value: unknown): void {
-  mockCfGet.mockImplementationOnce(async (_path, decode) => decode(value));
+  respondWithJson(jsonSpy, value);
 }
 
 function respondToPost(value: unknown): void {
-  mockCfPost.mockImplementationOnce(async (_path, _body, decode) => decode(value));
+  respondWithJson(jsonSpy, value);
 }
 
 describe('gachaApi response contracts', () => {
   beforeEach(() => {
-    mockCfGet.mockReset();
-    mockCfPost.mockReset();
+    jsonSpy.mockReset();
   });
 
   it('decodes every gacha response variant', async () => {

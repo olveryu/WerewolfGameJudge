@@ -1,18 +1,16 @@
-import { cfGet } from '@/services/cloudflare/cfFetch';
+import { requestSpecAt, respondWithJson as queueJson, spyOnApiJson } from '@/test-utils/apiClient';
 
 import { fetchWerewolfPublicStats, werewolfPublicStatsOptions } from '../werewolfStats';
 
-jest.mock('@/services/cloudflare/cfFetch', () => ({ cfGet: jest.fn() }));
-
-const mockCfGet = jest.mocked(cfGet);
+const jsonSpy = spyOnApiJson();
 
 function respondWithJson(value: unknown): void {
-  mockCfGet.mockImplementationOnce(async (_path, decode) => decode(value));
+  queueJson(jsonSpy, value);
 }
 
 describe('werewolfStats', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    jsonSpy.mockReset();
   });
 
   it('requests the game-namespaced user stats endpoint and parses its identity', async () => {
@@ -31,10 +29,11 @@ describe('werewolfStats', () => {
         counts: { wolf: 1, god: 1, villager: 1, third: 0 },
       },
     });
-    expect(mockCfGet).toHaveBeenCalledWith(
-      '/api/games/werewolf/users/user%20%2F%201/stats',
-      expect.any(Function),
-    );
+    expect(requestSpecAt(jsonSpy, 0)).toMatchObject({
+      method: 'GET',
+      path: '/api/games/werewolf/users/user%20%2F%201/stats',
+      auth: 'required',
+    });
   });
 
   it('rejects a malformed server payload', async () => {

@@ -17,7 +17,7 @@ import {
   parseGachaStatus,
 } from '@game-judge/game-engine/product/rewards';
 
-import { cfGet, cfPost } from '@/services/cloudflare/cfFetch';
+import { apiClient } from '@/platform/http/client';
 
 export type DrawResultItem = GachaDrawResultItem;
 export type DrawResponse = GachaDrawResponse;
@@ -26,27 +26,55 @@ export type ExchangeResponse = GachaExchangeResponse;
 
 /** Gets the current user's gacha status */
 export async function fetchGachaStatus(signal?: AbortSignal): Promise<GachaStatus> {
-  return cfGet('/api/gacha/status', parseGachaStatus, { signal });
+  return apiClient.json({
+    method: 'GET',
+    path: '/api/gacha/status',
+    auth: 'required',
+    idempotent: true,
+    decode: parseGachaStatus,
+    signal,
+  });
 }
 
-/** Performs a draw (idempotent: retrying with the same idempotencyKey returns the same result) */
+/** Performs a draw; the server replays the cached response for a repeated idempotencyKey. */
 export async function performDraw(
   drawType: 'normal' | 'golden',
   count: number,
   idempotencyKey: string,
 ): Promise<DrawResponse> {
-  return cfPost('/api/gacha/draw', { drawType, count, idempotencyKey }, parseGachaDrawResponse);
+  return apiClient.json({
+    method: 'POST',
+    path: '/api/gacha/draw',
+    auth: 'required',
+    idempotent: true,
+    body: { drawType, count, idempotencyKey },
+    decode: parseGachaDrawResponse,
+  });
 }
 
-/** Claims daily login reward (1-5 normal draws + 1 golden draw) */
+/** Claims the daily login reward; the server's cooldown rejects a duplicate claim. */
 export async function claimDailyReward(): Promise<DailyRewardResponse> {
-  return cfPost('/api/gacha/daily-reward', {}, parseGachaDailyRewardResponse);
+  return apiClient.json({
+    method: 'POST',
+    path: '/api/gacha/daily-reward',
+    auth: 'required',
+    idempotent: true,
+    body: {},
+    decode: parseGachaDailyRewardResponse,
+  });
 }
 
-/** Exchanges shards for the specified item (idempotent: retrying with the same idempotencyKey returns the same result) */
+/** Exchanges shards for an item; the server replays the cached response for a repeated idempotencyKey. */
 export async function exchangeShard(
   rewardId: string,
   idempotencyKey: string,
 ): Promise<ExchangeResponse> {
-  return cfPost('/api/gacha/exchange', { rewardId, idempotencyKey }, parseGachaExchangeResponse);
+  return apiClient.json({
+    method: 'POST',
+    path: '/api/gacha/exchange',
+    auth: 'required',
+    idempotent: true,
+    body: { rewardId, idempotencyKey },
+    decode: parseGachaExchangeResponse,
+  });
 }

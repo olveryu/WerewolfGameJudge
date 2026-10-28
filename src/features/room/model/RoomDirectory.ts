@@ -25,7 +25,6 @@ export interface RoomCreationTransportRequest extends RoomCreationRequest {
 export interface RoomDirectory {
   createRoom(request: RoomCreationTransportRequest): Promise<RoomRecord>;
   getRoom(roomCode: string): Promise<RoomRecord | null>;
-  deleteRoom(room: RoomLocator): Promise<void>;
 }
 
 export interface RoomCreator {

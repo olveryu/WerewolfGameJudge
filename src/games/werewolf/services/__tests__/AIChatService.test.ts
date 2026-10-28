@@ -15,9 +15,9 @@ jest.mock('@/config/api', () => ({
   API_BASE_URL: 'https://test-api.workers.dev',
 }));
 
-// Mock cfFetch token provider
-jest.mock('@/services/cloudflare/cfFetch', () => ({
-  getCurrentToken: () => 'test-jwt-token',
+// Mock the composed API client token accessor
+jest.mock('@/platform/http/client', () => ({
+  apiClient: { currentAccessToken: () => 'test-jwt-token' },
 }));
 
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';

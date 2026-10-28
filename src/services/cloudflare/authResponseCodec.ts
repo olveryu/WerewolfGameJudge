@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 
+import { tokenPairSchema } from '@/platform/auth/tokenPair';
 import type { GetCurrentUserResponse } from '@/services/types/IAuthService';
 
 const userMetadataSchema = z.strictObject({
@@ -14,11 +15,6 @@ const userMetadataSchema = z.strictObject({
   equipped_effect: z.string().nullable(),
   seat_animation: z.string().nullable(),
 });
-
-const tokenPairSchema = {
-  access_token: z.string().min(1),
-  refresh_token: z.string().min(1),
-};
 
 const authUserSchema = z.strictObject({
   id: z.string().min(1),
@@ -49,8 +45,6 @@ const claimAuthResponseSchema = z.strictObject({
   user: authUserSchema,
 });
 
-const refreshResponseSchema = z.strictObject(tokenPairSchema);
-
 const currentUserResponseSchema = z.strictObject({
   data: z.strictObject({ user: authUserSchema }),
 });
@@ -59,7 +53,6 @@ type AnonymousAuthResponse = z.infer<typeof anonymousAuthResponseSchema>;
 type EmailAuthResponse = z.infer<typeof emailAuthResponseSchema>;
 type ResetPasswordResponse = z.infer<typeof resetPasswordResponseSchema>;
 type ClaimAuthResponse = z.infer<typeof claimAuthResponseSchema>;
-type TokenPairResponse = z.infer<typeof refreshResponseSchema>;
 
 export function parseAnonymousAuthResponse(value: unknown): AnonymousAuthResponse {
   const parsed = anonymousAuthResponseSchema.parse(value);
@@ -91,10 +84,6 @@ export function parseClaimAuthResponse(value: unknown): ClaimAuthResponse {
     throw new Error('WeChat claim response must contain a bound user');
   }
   return parsed;
-}
-
-export function parseRefreshResponse(value: unknown): TokenPairResponse {
-  return refreshResponseSchema.parse(value);
 }
 
 export function parseCurrentUserResponse(value: unknown): GetCurrentUserResponse {
