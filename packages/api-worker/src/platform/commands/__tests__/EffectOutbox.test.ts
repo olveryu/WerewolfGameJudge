@@ -3,13 +3,13 @@ import { FIB_STATE_CODEC } from '@game-judge/game-engine/games/fibking/public';
 import { env, runInDurableObject } from 'cloudflare:test';
 import { expect, it } from 'vitest';
 
-import { EffectOutbox, OUTBOX_MAX_ATTEMPTS } from '../effectOutbox';
+import { EffectOutbox, OUTBOX_MAX_ATTEMPTS } from '../EffectOutbox';
 import { initializeRoomStorage } from '../storageSchema';
 
 it('leases exhausted work without prematurely marking it failed', async () => {
   const stub = env.GAME_ROOM.get(env.GAME_ROOM.newUniqueId());
   await runInDurableObject(stub, async (_instance, state) => {
-    initializeRoomStorage(state.storage, Date.now());
+    await initializeRoomStorage(state.storage, Date.now());
     state.storage.sql.exec(
       `INSERT INTO effect_outbox (
       id, origin_command_id, scope, game_type, effect_type, business_key, payload_json,
@@ -30,19 +30,19 @@ it('leases exhausted work without prematurely marking it failed', async () => {
     outbox.markFailed(claimed.effect, new Error('terminal failure'), 2);
     expect(outbox.hasPendingEffects()).toBe(false);
     expect(outbox.hasOutstandingEffects()).toBe(true);
-    await outbox.replayFailedEffect('replay', 'effect', 'dependency repaired', () => true);
-    await outbox.replayFailedEffect('replay', 'effect', 'dependency repaired', () => true);
+    await outbox.replayFailedEffect('replay', 'effect', 'dependency repaired', 3, () => true);
+    await outbox.replayFailedEffect('replay', 'effect', 'dependency repaired', 3, () => true);
     expect(outbox.readReplay('replay')).toMatchObject({
       effect_id: 'effect',
       status: 'pending',
       requested_by: 'admin-token',
     });
     await expect(
-      outbox.replayFailedEffect('replay', 'effect', 'different reason', () => true),
+      outbox.replayFailedEffect('replay', 'effect', 'different reason', 3, () => true),
     ).rejects.toThrow('identity conflict');
-    outbox.markSucceeded('effect');
+    outbox.markSucceeded('effect', 4);
     expect(outbox.readReplay('replay')).toMatchObject({ effect_id: 'effect', status: 'succeeded' });
-    await outbox.replayFailedEffect('replay', 'effect', 'dependency repaired', () => true);
+    await outbox.replayFailedEffect('replay', 'effect', 'dependency repaired', 5, () => true);
     expect(outbox.hasPendingEffects()).toBe(false);
     await state.storage.deleteAlarm();
   });

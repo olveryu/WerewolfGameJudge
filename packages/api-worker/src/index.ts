@@ -38,8 +38,8 @@ import { getWorkerGameModule, WORKER_GAME_HTTP_ROUTES } from './games/catalog';
 import { publicGameStatsRoutes } from './games/publicStatsRoutes';
 import { readCloudflareRequestMetadata } from './platform/http/requestMetadata';
 import { createLogger } from './platform/observability/logger';
+import { createRoomSocketHandler } from './platform/realtime/gatewayRoute';
 import { createRoomRoutes } from './platform/room/routes';
-import { createRoomWebSocketHandler } from './platform/room/webSocketRoutes';
 import {
   recordHttpRequestTraffic,
   resolveHttpRequestRoute,
@@ -50,15 +50,15 @@ import { telemetryRoutes } from './platform/telemetry/routes';
 // Re-export Durable Object class for wrangler
 export { GameRoom } from './app/GameRoom';
 export { WeChatAuthProxy } from './features/auth/wechat/WeChatAuthProxy';
+export { DrawGuessWordSupplyWorkflow } from './games/drawguess/wordSupplyWorkflow';
 export { FibWordSupplyWorkflow } from './games/fibking/wordSupplyWorkflow';
 export { UndercoverWordSupplyWorkflow } from './games/undercover/wordSupplyWorkflow';
-export { DrawGuessWordSupplyWorkflow } from './games/drawguess/wordSupplyWorkflow';
 
 // ── App ─────────────────────────────────────────────────────────────────────
 
 const app = new Hono<AppEnv>();
 const roomRoutes = createRoomRoutes(getWorkerGameModule, requireAuth);
-const roomWebSocketHandler = createRoomWebSocketHandler(async (token, env) => {
+const roomWebSocketHandler = createRoomSocketHandler(async (token, env) => {
   const authentication = await authenticateAccessToken(token, env);
   return authentication.kind === 'authenticated' ? authentication.principal.userId : null;
 });

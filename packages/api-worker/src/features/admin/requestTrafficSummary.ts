@@ -210,7 +210,7 @@ export function createAdminRequestTrafficSummary(
   };
   for (const row of realtimeRows) {
     switch (row.messageType) {
-      case 'STATE_SYNC_REQUEST':
+      case 'SYNC':
         realtime.stateSyncRequests += row.messageCount;
         break;
       case 'STATE_UPDATE':
@@ -220,7 +220,9 @@ export function createAdminRequestTrafficSummary(
         realtime.downlinkDeliveries += row.deliveryCount;
         realtime.downlinkBytes += row.transferredBytes;
         break;
-      case 'STATE_SYNC_RESPONSE':
+      case 'SYNC_RESULT':
+      case 'PRESENCE':
+      case 'INBOX_HINT':
         realtime.downlinkDeliveries += row.deliveryCount;
         realtime.downlinkBytes += row.transferredBytes;
         break;

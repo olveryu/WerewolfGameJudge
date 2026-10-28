@@ -11,8 +11,8 @@ import { createRoomCommandResult } from '@game-judge/game-engine/platform/protoc
 import { env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 
+import { OUTBOX_MAX_ATTEMPTS } from '../../../platform/commands/EffectOutbox';
 import type { WorkerEffectContext } from '../../../platform/gameModules/workerModule';
-import { OUTBOX_MAX_ATTEMPTS } from '../../../platform/room/effectOutbox';
 import { getFibEffectFailureCommand, handleFibEffect } from '../effects';
 
 const EFFECT: FibSelectWordEffect = {

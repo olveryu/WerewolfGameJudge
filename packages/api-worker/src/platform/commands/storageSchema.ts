@@ -1,8 +1,14 @@
-/** Durable Object SQLite schema bootstrap and strict version validation. */
+/**
+ * Durable Object SQLite schema for one room: single current version, no migration chain.
+ *
+ * Storage created by any earlier schema is discarded on wake (rooms are short-lived party sessions
+ * and old rooms are not carried across a platform storage redesign). Game state version evolution
+ * inside `room_state.game_state` remains the game module's own concern.
+ */
 
-const ROOM_STORAGE_SCHEMA_VERSION = 2;
+export const ROOM_STORAGE_SCHEMA_VERSION = 3;
 
-const TARGET_ROOM_STATE_COLUMNS = [
+const ROOM_STATE_COLUMNS = [
   'id',
   'creation_id',
   'initialization_json',
@@ -47,6 +53,18 @@ const EFFECT_OUTBOX_COLUMNS = [
   'last_error',
 ] as const;
 
+const EFFECT_REPLAY_COLUMNS = [
+  'id',
+  'effect_id',
+  'reason',
+  'requested_by',
+  'requested_at',
+  'original_effect_json',
+  'status',
+  'completed_at',
+  'last_error',
+] as const;
+
 interface ColumnInfoRow extends Record<string, SqlStorageValue> {
   readonly name: SqlStorageValue;
 }
@@ -55,29 +73,64 @@ interface SchemaVersionRow extends Record<string, SqlStorageValue> {
   readonly version: SqlStorageValue;
 }
 
-function readColumnNames(sql: SqlStorage, table: string): string[] {
-  const rows = sql.exec<ColumnInfoRow>(`PRAGMA table_info(${table})`).toArray();
-  return rows.map((row, index) => {
-    if (typeof row.name !== 'string') {
-      throw new Error(`${table} column ${index} has an invalid name`);
-    }
-    return row.name;
-  });
+interface TableNameRow extends Record<string, SqlStorageValue> {
+  readonly name: SqlStorageValue;
 }
 
-function hasExactColumns(actual: readonly string[], expected: readonly string[]): boolean {
-  return actual.length === expected.length && expected.every((column) => actual.includes(column));
+export type RoomStorageInitialization = 'created' | 'current' | 'discarded';
+
+function readColumnNames(sql: SqlStorage, table: string): string[] {
+  return sql
+    .exec<ColumnInfoRow>(`PRAGMA table_info(${table})`)
+    .toArray()
+    .map((row, index) => {
+      if (typeof row.name !== 'string') {
+        throw new Error(`${table} column ${index} has an invalid name`);
+      }
+      return row.name;
+    });
 }
 
 function assertExactColumns(sql: SqlStorage, table: string, expected: readonly string[]): void {
   const actual = readColumnNames(sql, table);
-  if (!hasExactColumns(actual, expected)) {
+  const matches =
+    actual.length === expected.length && expected.every((column) => actual.includes(column));
+  if (!matches) {
     throw new Error(`Unsupported ${table} schema: ${actual.join(',')}`);
   }
 }
 
-function createFreshSchema(sql: SqlStorage): void {
+function readUserTableNames(sql: SqlStorage): string[] {
+  return sql
+    .exec<TableNameRow>(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'",
+    )
+    .toArray()
+    .map((row) => {
+      if (typeof row.name !== 'string') throw new Error('sqlite_master returned a non-string name');
+      return row.name;
+    });
+}
+
+function readSchemaVersion(sql: SqlStorage): number | null {
+  const tables = readUserTableNames(sql);
+  if (tables.length === 0) return null;
+  if (!tables.includes('room_schema')) return 0;
+  const row = sql.exec<SchemaVersionRow>('SELECT version FROM room_schema WHERE id = 1').one();
+  if (typeof row.version !== 'number' || !Number.isSafeInteger(row.version) || row.version < 1) {
+    throw new Error('room_schema.version is invalid');
+  }
+  return row.version;
+}
+
+function createSchema(sql: SqlStorage, nowMs: number): void {
   sql.exec(`
+    CREATE TABLE room_schema (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      version INTEGER NOT NULL CHECK (version > 0),
+      created_at INTEGER NOT NULL CHECK (created_at >= 0)
+    ) STRICT;
+
     CREATE TABLE room_state (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       creation_id TEXT NOT NULL UNIQUE CHECK (length(creation_id) BETWEEN 1 AND 128),
@@ -134,76 +187,54 @@ function createFreshSchema(sql: SqlStorage): void {
     CREATE INDEX effect_outbox_pending_idx
       ON effect_outbox(available_at, created_at, id)
       WHERE status = 'pending';
+
+    CREATE TABLE effect_replays (
+      id TEXT PRIMARY KEY,
+      effect_id TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      requested_by TEXT NOT NULL,
+      requested_at INTEGER NOT NULL,
+      original_effect_json TEXT NOT NULL CHECK (json_valid(original_effect_json)),
+      status TEXT NOT NULL CHECK (status IN ('pending', 'succeeded', 'failed')),
+      completed_at INTEGER,
+      last_error TEXT
+    ) STRICT;
+    CREATE UNIQUE INDEX effect_replays_pending_idx
+      ON effect_replays(effect_id) WHERE status = 'pending';
   `);
+  sql.exec(
+    'INSERT INTO room_schema (id, version, created_at) VALUES (1, ?, ?)',
+    ROOM_STORAGE_SCHEMA_VERSION,
+    nowMs,
+  );
 }
 
-function assertTargetSchema(sql: SqlStorage): void {
-  assertExactColumns(sql, 'room_state', TARGET_ROOM_STATE_COLUMNS);
+function assertCurrentSchema(sql: SqlStorage): void {
+  assertExactColumns(sql, 'room_state', ROOM_STATE_COLUMNS);
   assertExactColumns(sql, 'command_receipts', COMMAND_RECEIPT_COLUMNS);
   assertExactColumns(sql, 'effect_outbox', EFFECT_OUTBOX_COLUMNS);
+  assertExactColumns(sql, 'effect_replays', EFFECT_REPLAY_COLUMNS);
 }
 
-/** Initialize a new room store or validate the exact current schema. */
-export function initializeRoomStorage(storage: DurableObjectStorage, nowMs: number): void {
+/**
+ * Create the current schema on empty storage, validate it when current, or discard everything
+ * (including any alarm) when the stored schema is not the current version.
+ */
+export async function initializeRoomStorage(
+  storage: DurableObjectStorage,
+  nowMs: number,
+): Promise<RoomStorageInitialization> {
   const sql = storage.sql;
-  storage.transactionSync(() => {
-    sql.exec(`
-      CREATE TABLE IF NOT EXISTS _sql_schema_migrations (
-        id INTEGER PRIMARY KEY,
-        applied_at INTEGER NOT NULL
-      ) STRICT
-    `);
-
-    const currentVersion = sql
-      .exec<SchemaVersionRow>('SELECT COALESCE(MAX(id), 0) AS version FROM _sql_schema_migrations')
-      .one().version;
-    if (
-      typeof currentVersion !== 'number' ||
-      !Number.isSafeInteger(currentVersion) ||
-      currentVersion < 0
-    ) {
-      throw new Error('Invalid Durable Object schema version');
-    }
-    if (currentVersion > ROOM_STORAGE_SCHEMA_VERSION) {
-      throw new Error(`Unsupported Durable Object schema version: ${currentVersion}`);
-    }
-
-    if (currentVersion === 0) {
-      const existingColumns = readColumnNames(sql, 'room_state');
-      if (existingColumns.length > 0) {
-        throw new Error(`Unsupported unversioned room_state schema: ${existingColumns.join(',')}`);
-      }
-      createFreshSchema(sql);
-      sql.exec('INSERT INTO _sql_schema_migrations (id, applied_at) VALUES (?, ?)', 1, nowMs);
-    }
-
-    if (currentVersion < 2) {
-      sql.exec(`CREATE TABLE effect_replays (
-        id TEXT PRIMARY KEY,
-        effect_id TEXT NOT NULL,
-        reason TEXT NOT NULL,
-        requested_by TEXT NOT NULL,
-        requested_at INTEGER NOT NULL,
-        original_effect_json TEXT NOT NULL CHECK (json_valid(original_effect_json)),
-        status TEXT NOT NULL CHECK (status IN ('pending', 'succeeded', 'failed')),
-        completed_at INTEGER,
-        last_error TEXT
-      ) STRICT;
-      CREATE UNIQUE INDEX effect_replays_pending_idx ON effect_replays(effect_id) WHERE status = 'pending'`);
-      sql.exec('INSERT INTO _sql_schema_migrations (id, applied_at) VALUES (2, ?)', nowMs);
-    }
-
-    assertTargetSchema(sql);
-    assertExactColumns(sql, 'effect_replays', [
-      'id',
-      'effect_id',
-      'reason',
-      'requested_by',
-      'requested_at',
-      'original_effect_json',
-      'status',
-      'completed_at',
-      'last_error',
-    ]);
-  });
+  const version = readSchemaVersion(sql);
+  if (version === ROOM_STORAGE_SCHEMA_VERSION) {
+    assertCurrentSchema(sql);
+    return 'current';
+  }
+  if (version !== null) {
+    await storage.deleteAll();
+    storage.transactionSync(() => createSchema(sql, nowMs));
+    return 'discarded';
+  }
+  storage.transactionSync(() => createSchema(sql, nowMs));
+  return 'created';
 }

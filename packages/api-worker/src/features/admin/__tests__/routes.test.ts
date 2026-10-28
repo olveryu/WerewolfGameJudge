@@ -143,7 +143,7 @@ describe('GET /admin/request-traffic', () => {
         return Response.json({
           data: [
             {
-              messageType: 'STATE_SYNC_REQUEST',
+              messageType: 'SYNC',
               messageCount: 2,
               deliveryCount: 2,
               transferredBytes: 160,

@@ -1,4 +1,4 @@
-/** Generic room authority: typed RPC dispatch, atomic storage, realtime, and outbox drain. */
+/** Generic room authority: typed RPC dispatch, atomic command pipeline, realtime gateway, outbox drain. */
 
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import {
@@ -6,37 +6,30 @@ import {
   REASON_NOT_HOST,
   REASON_ROOM_EFFECTS_PENDING,
 } from '@game-judge/game-engine/platform/protocol/reasons';
-import {
-  type BaseGameState,
-  createStateSyncResponseMessage,
-  createStateUpdateMessage,
-  parseStateSyncRequestMessage,
-  type RoomSnapshot,
-  type StateSyncRequestMessage,
+import type {
+  BaseGameState,
+  RoomSnapshot,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+import { REALTIME_CLOSE_CODE } from '@game-judge/game-engine/platform/realtime/closeCodes';
 import * as Sentry from '@sentry/cloudflare';
 import { DurableObject } from 'cloudflare:workers';
 
 import type { Env } from '../../env';
+import { type CommandDispatch, CommandPipeline } from '../commands/CommandPipeline';
+import { EffectOutbox, OUTBOX_MAX_ATTEMPTS } from '../commands/EffectOutbox';
+import { RoomStateStore } from '../commands/RoomStateStore';
+import { initializeRoomStorage } from '../commands/storageSchema';
 import { createEffectCommandId } from '../gameModules/effectCommandId';
 import type {
   RuntimeWorkerGameModule,
   WorkerGameModuleResolver,
 } from '../gameModules/runtimeGameModule';
 import { createLogger } from '../observability/logger';
-import {
-  getWebSocketMessageByteLength,
-  type RealtimeTrafficMessageType,
-  recordRealtimeTraffic,
-} from '../telemetry/realtimeTraffic';
-import { enqueueUserEvent } from '../userEvents/inbox';
-import { dispatchRoomCommand } from './actionPipeline';
-import { EffectOutbox, OUTBOX_MAX_ATTEMPTS } from './effectOutbox';
+import { RoomGateway } from '../realtime/RoomGateway';
+import { enqueueUserEvent } from '../userInbox/inbox';
 import type { IGameRoomRPC } from './IGameRoomRPC';
 import { handlePlatformRoomEffect, parsePlatformRoomEffect } from './platformEffects';
 import { assertRoomEffectDirectory } from './roomDirectory';
-import { RoomRepository } from './roomRepository';
-import { initializeRoomStorage } from './storageSchema';
 import type {
   AuthorizeRoomDeletionCommand,
   AuthorizeRoomDeletionResult,
@@ -56,13 +49,8 @@ import type {
 } from './types';
 
 const OUTBOX_DRAIN_BATCH_SIZE = 16;
-const USER_SOCKET_TAG_PREFIX = 'user:';
 
 const log = createLogger('GameRoom');
-
-function userSocketTag(userId: string): string {
-  return `${USER_SOCKET_TAG_PREFIX}${userId}`;
-}
 
 function assertEffectType(effect: PendingOutboxEffect): void {
   if (
@@ -75,9 +63,17 @@ function assertEffectType(effect: PendingOutboxEffect): void {
   }
 }
 
+function toRpcResult(dispatch: CommandDispatch): DispatchRoomResult {
+  return dispatch.kind === 'unavailable'
+    ? dispatch
+    : { kind: 'decided', result: dispatch.result, isReplay: dispatch.isReplay };
+}
+
 export abstract class GameRoomRuntime extends DurableObject<Env> implements IGameRoomRPC {
-  readonly #repository: RoomRepository;
+  readonly #roomState: RoomStateStore;
   readonly #outbox: EffectOutbox;
+  readonly #pipeline: CommandPipeline;
+  readonly #gateway: RoomGateway;
   readonly #gameModuleResolver: WorkerGameModuleResolver;
   #isStorageDeleted = false;
 
@@ -86,21 +82,36 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.#gameModuleResolver = (gameType) => this.resolveGameModule(gameType);
-    this.#repository = new RoomRepository(ctx.storage, this.#gameModuleResolver);
+    this.#roomState = new RoomStateStore(ctx.storage, this.#gameModuleResolver);
     this.#outbox = new EffectOutbox(ctx.storage);
-    ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
+    this.#pipeline = new CommandPipeline({
+      storage: ctx.storage,
+      roomState: this.#roomState,
+      outbox: this.#outbox,
+      resolveGameModule: this.#gameModuleResolver,
+    });
+    this.#gateway = new RoomGateway(ctx, env, {
+      readSnapshot: () => (this.#isStorageDeleted ? null : this.#roomState.readSnapshot()),
+    });
     void ctx.blockConcurrencyWhile(async () => {
-      initializeRoomStorage(ctx.storage, Date.now());
+      const initialization = await initializeRoomStorage(ctx.storage, Date.now());
+      if (initialization === 'discarded') {
+        log.warn('discarded room storage with an unsupported schema', {
+          roomId: ctx.id.toString(),
+        });
+      }
       await this.#schedulePendingOutbox();
     });
   }
+
+  // ─── RPC ──────────────────────────────────────────────────────────────────
 
   async initializeRoom(command: InitializeRoomCommand): Promise<InitializeRoomResult> {
     if (this.#isStorageDeleted) {
       throw new Error('Deleted room storage cannot be initialized again');
     }
     this.#readRoomInstance(command);
-    return this.#repository.initialize(command, Date.now());
+    return this.#roomState.initialize(command, Date.now());
   }
 
   async dispatchUserCommand(command: DispatchUserRoomCommand): Promise<DispatchRoomResult> {
@@ -129,44 +140,18 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     });
   }
 
-  async #dispatchCommand(
-    identity: RoomInstanceIdentity,
-    command: DispatchRoomCommand,
-  ): Promise<DispatchRoomResult> {
-    if (this.#isStorageDeleted) {
-      return { kind: 'unavailable', reason: REASON_NO_STATE };
-    }
-    const room = this.#readRoomInstance(identity);
-    if (room === null) {
-      return { kind: 'unavailable', reason: REASON_NO_STATE };
-    }
-    const pipeline = await dispatchRoomCommand(
-      this.#repository,
-      this.#gameModuleResolver,
-      command,
-      Date.now(),
-    );
-    if (
-      pipeline.rpc.kind === 'decided' &&
-      !pipeline.rpc.isReplay &&
-      pipeline.rpc.result.kind === 'committed' &&
-      pipeline.broadcast === 'state'
-    ) {
-      this.#broadcast(pipeline.rpc.result.snapshot, pipeline.commandType);
-    }
-    return pipeline.rpc;
-  }
-
   /** Requeue only effects whose owning game explicitly permits audited recovery. */
   async replayFailedEffect(command: ReplayFailedEffectCommand): Promise<void> {
     const room = this.#readRoomInstance(command);
     if (room === null) throw new Error('Cannot replay an effect without its room');
-    if (command.id.trim().length === 0 || command.reason.trim().length === 0)
+    if (command.id.trim().length === 0 || command.reason.trim().length === 0) {
       throw new Error('Replay requires a request ID and reason');
+    }
     await this.#outbox.replayFailedEffect(
       command.id,
       command.effectId,
       command.reason,
+      Date.now(),
       (effect) => {
         if (effect.scope !== 'game' || effect.gameType !== room.gameType) return false;
         assertEffectType(effect);
@@ -188,7 +173,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
   ): Promise<RoomSnapshot<BaseGameState<GameType>> | null> {
     if (this.#isStorageDeleted) return null;
     this.#readRoomInstance(command);
-    return this.#repository.readSnapshot();
+    return this.#roomState.readSnapshot();
   }
 
   async authorizeRoomDeletion(
@@ -222,14 +207,13 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       });
     }
 
-    for (const socket of this.ctx.getWebSockets()) {
-      socket.close(1000, 'room_deleted');
-    }
-    await this.ctx.storage.deleteAlarm();
+    this.#gateway.closeAll(REALTIME_CLOSE_CODE.ROOM_DELETED, 'room_deleted');
     await this.ctx.storage.deleteAll();
     this.#isStorageDeleted = true;
     return { success: true };
   }
+
+  // ─── Outbox drain ─────────────────────────────────────────────────────────
 
   async alarm(): Promise<void> {
     if (this.#isStorageDeleted) return;
@@ -246,10 +230,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
           attemptCount: claim.effect.attemptCount,
         });
         Sentry.captureException(exhausted, {
-          tags: {
-            gameType: claim.effect.gameType,
-            effectType: claim.effect.effectType,
-          },
+          tags: { gameType: claim.effect.gameType, effectType: claim.effect.effectType },
           extra: { effectId: claim.effect.id },
         });
         await this.#terminalizeEffect(claim.effect, exhausted);
@@ -258,7 +239,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       const { effect } = claim;
       try {
         await this.#executeEffect(effect);
-        this.#outbox.markSucceeded(effect.id);
+        this.#outbox.markSucceeded(effect.id, Date.now());
       } catch (error) {
         const cause = error instanceof Error ? error : new Error(String(error));
         log.error('outbox effect failed', {
@@ -268,10 +249,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
           error: cause.message,
         });
         Sentry.captureException(cause, {
-          tags: {
-            gameType: effect.gameType,
-            effectType: effect.effectType,
-          },
+          tags: { gameType: effect.gameType, effectType: effect.effectType },
           extra: { effectId: effect.id, attemptCount: effect.attemptCount },
         });
         if (effect.attemptCount >= OUTBOX_MAX_ATTEMPTS) {
@@ -284,63 +262,123 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     await this.#schedulePendingOutbox();
   }
 
+  // ─── WebSocket (Hibernation API) ──────────────────────────────────────────
+
+  async fetch(request: Request): Promise<Response> {
+    if (this.#isStorageDeleted) return new Response('Room deleted', { status: 404 });
+    const url = new URL(request.url);
+    if (url.pathname !== '/websocket') return new Response('Not Found', { status: 404 });
+
+    const userId = url.searchParams.get('userId');
+    const roomCode = url.searchParams.get('roomCode');
+    const roomId = url.searchParams.get('roomId');
+    const creationId = url.searchParams.get('creationId');
+    if (!userId || !roomCode || !roomId || !creationId) {
+      return new Response('userId and room identity required', { status: 400 });
+    }
+    const room = this.#readRoomInstance({ roomCode, roomId, creationId });
+    if (room === null) return new Response('Room not initialized', { status: 404 });
+
+    const pair = new WebSocketPair();
+    this.#gateway.accept(pair[1], userId, Date.now());
+    return new Response(null, { status: 101, webSocket: pair[0] });
+  }
+
+  async webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    if (this.#isStorageDeleted) {
+      socket.close(REALTIME_CLOSE_CODE.ROOM_DELETED, 'room_deleted');
+      return;
+    }
+    this.#gateway.handleMessage(socket, message);
+  }
+
+  async webSocketClose(): Promise<void> {
+    if (this.#isStorageDeleted) return;
+    this.#gateway.handleClose(Date.now());
+  }
+
+  async webSocketError(socket: WebSocket, error: unknown): Promise<void> {
+    log.warn('websocket error', { error: error instanceof Error ? error.message : String(error) });
+    socket.close(1011, 'socket_error');
+  }
+
+  // ─── Internals ────────────────────────────────────────────────────────────
+
+  async #dispatchCommand(
+    identity: RoomInstanceIdentity,
+    command: DispatchRoomCommand,
+  ): Promise<DispatchRoomResult> {
+    if (this.#isStorageDeleted) return { kind: 'unavailable', reason: REASON_NO_STATE };
+    if (this.#readRoomInstance(identity) === null) {
+      return { kind: 'unavailable', reason: REASON_NO_STATE };
+    }
+    return toRpcResult(await this.#runPipeline(command));
+  }
+
+  /** Every command path funnels here so broadcasting has exactly one trigger. */
+  async #runPipeline(command: DispatchRoomCommand): Promise<CommandDispatch> {
+    const dispatch = await this.#pipeline.dispatch(command, Date.now());
+    this.#broadcastIfCommitted(dispatch);
+    return dispatch;
+  }
+
+  #broadcastIfCommitted(dispatch: CommandDispatch): void {
+    if (
+      dispatch.kind === 'decided' &&
+      !dispatch.isReplay &&
+      dispatch.shouldBroadcast &&
+      dispatch.result.kind === 'committed'
+    ) {
+      this.#gateway.broadcastState(dispatch.result.snapshot, dispatch.commandType);
+    }
+  }
+
   async #terminalizeEffect(effect: PendingOutboxEffect, cause: Error): Promise<void> {
     const commandId = await createEffectCommandId('outbox:terminal-failure', effect.id);
+    assertEffectType(effect);
+    const room = this.#roomState.read();
+    if (room === null || room.gameType !== effect.gameType) {
+      throw new Error(`Cannot terminalize effect ${effect.id} without its room`);
+    }
+    const command =
+      effect.scope === 'game'
+        ? this.#gameModuleResolver(room.gameType).getEffectFailureCommand(
+            effect.payload,
+            room.state,
+          )
+        : null;
+    // The failure command and the terminal outbox mark commit together; broadcast only after.
     const dispatched = await this.ctx.storage.transaction(async () => {
-      assertEffectType(effect);
-      const room = this.#repository.readRoom();
-      if (room === null || room.gameType !== effect.gameType)
-        throw new Error(`Cannot terminalize effect ${effect.id} without its room`);
-      const command =
-        effect.scope === 'game'
-          ? this.#gameModuleResolver(room.gameType).getEffectFailureCommand(
-              effect.payload,
-              room.state,
-            )
-          : null;
-      const result =
-        command === null
-          ? null
-          : await dispatchRoomCommand(
-              this.#repository,
-              this.#gameModuleResolver,
-              {
-                roomCode: room.roomCode,
-                commandId,
-                actor: { kind: 'system', effectId: effect.id },
-                controlledSeat: null,
-                command,
-              },
-              Date.now(),
-            );
-      if (
-        result !== null &&
-        (result.rpc.kind !== 'decided' ||
-          result.rpc.result.kind !== 'committed' ||
-          result.rpc.result.outcome.kind !== 'success')
-      ) {
-        throw new Error(`Outbox terminal command ${commandId} did not commit successfully`);
+      let terminal: CommandDispatch | null = null;
+      if (command !== null) {
+        terminal = await this.#pipeline.dispatch(
+          {
+            roomCode: room.roomCode,
+            commandId,
+            actor: { kind: 'system', effectId: effect.id },
+            controlledSeat: null,
+            command,
+          },
+          Date.now(),
+        );
+        if (
+          terminal.kind !== 'decided' ||
+          terminal.result.kind !== 'committed' ||
+          terminal.result.outcome.kind !== 'success'
+        ) {
+          throw new Error(`Outbox terminal command ${commandId} did not commit successfully`);
+        }
       }
       this.#outbox.markFailed(effect, cause, Date.now());
-      return result;
+      return terminal;
     });
-    if (
-      dispatched !== null &&
-      dispatched.rpc.kind === 'decided' &&
-      dispatched.rpc.result.kind === 'committed' &&
-      !dispatched.rpc.isReplay &&
-      dispatched.broadcast === 'state'
-    ) {
-      this.#broadcast(dispatched.rpc.result.snapshot, dispatched.commandType);
-    }
+    if (dispatched !== null) this.#broadcastIfCommitted(dispatched);
   }
 
   async #executeEffect(effect: PendingOutboxEffect): Promise<void> {
     assertEffectType(effect);
-    const room = this.#repository.readRoom();
-    if (room === null) {
-      throw new Error(`Room effect ${effect.id} has no room state`);
-    }
+    const room = this.#roomState.read();
+    if (room === null) throw new Error(`Room effect ${effect.id} has no room state`);
     if (room.gameType !== effect.gameType) {
       throw new Error(`Game effect ${effect.id} does not match its room`);
     }
@@ -360,8 +398,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       return;
     }
 
-    const module = this.#gameModuleResolver(room.gameType);
-    await module.handleEffect(effect.payload, {
+    await this.#gameModuleResolver(room.gameType).handleEffect(effect.payload, {
       bindings: this.env,
       effectId: effect.id,
       state: room.state,
@@ -369,32 +406,22 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       createdRevision: effect.createdRevision,
       deliveryAttemptCount: effect.attemptCount,
       dispatchInternal: async (commandId, command) => {
-        const dispatched = await dispatchRoomCommand(
-          this.#repository,
-          this.#gameModuleResolver,
-          {
-            roomCode: room.roomCode,
-            commandId,
-            actor: { kind: 'system', effectId: effect.id },
-            controlledSeat: null,
-            command,
-          },
-          Date.now(),
-        );
-        if (dispatched.rpc.kind !== 'decided') {
+        const dispatched = await this.#runPipeline({
+          roomCode: room.roomCode,
+          commandId,
+          actor: { kind: 'system', effectId: effect.id },
+          controlledSeat: null,
+          command,
+        });
+        if (dispatched.kind !== 'decided') {
           throw new Error(`Internal effect command ${commandId} has no room state`);
         }
-        if (
-          !dispatched.rpc.isReplay &&
-          dispatched.rpc.result.kind === 'committed' &&
-          dispatched.broadcast === 'state'
-        ) {
-          this.#broadcast(dispatched.rpc.result.snapshot, dispatched.commandType);
-        }
-        return dispatched.rpc.result;
+        return dispatched.result;
       },
-      publishUserEvent: (userId, eventId, message) =>
-        enqueueUserEvent(this.env.DB, { userId, eventId, message }),
+      publishUserEvent: async (userId, eventId, message) => {
+        await enqueueUserEvent(this.env.DB, { userId, eventId, message });
+        this.#gateway.notifyInbox(userId);
+      },
     });
   }
 
@@ -408,69 +435,6 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     if (existingAlarm === null || existingAlarm > nextAvailableAt) {
       await this.ctx.storage.setAlarm(nextAvailableAt);
     }
-  }
-
-  #recordRealtimeTraffic(
-    messageType: RealtimeTrafficMessageType,
-    message: string | ArrayBuffer,
-    deliveryCount: number,
-  ): void {
-    recordRealtimeTraffic(this.env.REQUEST_TRAFFIC, {
-      messageType,
-      payloadBytes: getWebSocketMessageByteLength(message),
-      deliveryCount,
-      deploymentId: this.env.CF_VERSION_METADATA.id,
-    });
-  }
-
-  #broadcast(snapshot: RoomSnapshot<BaseGameState<GameType>>, commandType: string | null): void {
-    const message = JSON.stringify(createStateUpdateMessage(snapshot, commandType));
-    let deliveryCount = 0;
-    for (const socket of this.ctx.getWebSockets()) {
-      try {
-        socket.send(message);
-        deliveryCount += 1;
-      } catch (error) {
-        log.warn('state broadcast skipped closed socket', {
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
-    this.#recordRealtimeTraffic('STATE_UPDATE', message, deliveryCount);
-  }
-
-  async fetch(request: Request): Promise<Response> {
-    if (this.#isStorageDeleted) return new Response('Room deleted', { status: 404 });
-    const url = new URL(request.url);
-    if (url.pathname !== '/websocket') {
-      return new Response('Not Found', { status: 404 });
-    }
-    return this.#handleWebSocketUpgrade(url);
-  }
-
-  async #handleWebSocketUpgrade(url: URL): Promise<Response> {
-    const userId = url.searchParams.get('userId');
-    const roomCode = url.searchParams.get('roomCode');
-    const roomId = url.searchParams.get('roomId');
-    const creationId = url.searchParams.get('creationId');
-    if (
-      userId === null ||
-      userId.length === 0 ||
-      roomCode === null ||
-      roomCode.length === 0 ||
-      roomId === null ||
-      roomId.length === 0 ||
-      creationId === null ||
-      creationId.length === 0
-    ) {
-      return new Response('userId and room identity required', { status: 400 });
-    }
-    const room = this.#readRoomInstance({ roomCode, roomId, creationId });
-    if (room === null) return new Response('Room not initialized', { status: 404 });
-
-    const pair = new WebSocketPair();
-    this.ctx.acceptWebSocket(pair[1], [userSocketTag(userId)]);
-    return new Response(null, { status: 101, webSocket: pair[0] });
   }
 
   #assertIdentityFields(identity: RoomInstanceIdentity): void {
@@ -488,89 +452,26 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
 
   #assertRoomStorageIdentity(
     identity: RoomInstanceIdentity,
-    storedIdentity: Pick<RoomInstanceIdentity, 'roomCode' | 'creationId'>,
+    stored: Pick<RoomInstanceIdentity, 'roomCode' | 'creationId'>,
   ): void {
-    if (
-      storedIdentity.roomCode !== identity.roomCode ||
-      storedIdentity.creationId !== identity.creationId
-    ) {
+    if (stored.roomCode !== identity.roomCode || stored.creationId !== identity.creationId) {
       throw new Error('Room identity does not match Durable Object storage');
     }
   }
 
-  #readRoomInitialization(
-    identity: RoomInstanceIdentity,
-  ): ReturnType<RoomRepository['readRoomInitialization']> {
+  #readRoomInitialization(identity: RoomInstanceIdentity) {
     this.#assertIdentityFields(identity);
-    const initialization = this.#repository.readRoomInitialization();
+    const initialization = this.#roomState.readInitialization();
     if (initialization === null) return null;
     this.#assertRoomStorageIdentity(identity, initialization);
     return initialization;
   }
 
-  #readRoomInstance(identity: RoomInstanceIdentity): ReturnType<RoomRepository['readRoom']> {
+  #readRoomInstance(identity: RoomInstanceIdentity) {
     this.#assertIdentityFields(identity);
-    const room = this.#repository.readRoom();
+    const room = this.#roomState.read();
     if (room === null) return null;
     this.#assertRoomStorageIdentity(identity, room);
     return room;
-  }
-
-  async webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): Promise<void> {
-    if (this.#isStorageDeleted) {
-      socket.close(1000, 'room_deleted');
-      return;
-    }
-    let clientMessage: StateSyncRequestMessage;
-    try {
-      if (typeof message !== 'string') {
-        throw new Error('WebSocket client message must be text');
-      }
-      const decodedMessage: unknown = JSON.parse(message);
-      clientMessage = parseStateSyncRequestMessage(decodedMessage);
-    } catch (error) {
-      this.#recordRealtimeTraffic('INVALID_CLIENT_MESSAGE', message, 1);
-      log.error('invalid websocket client message', {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      Sentry.captureException(error);
-      socket.close(1002, 'protocol_error');
-      return;
-    }
-
-    this.#recordRealtimeTraffic(clientMessage.type, message, 1);
-
-    if (clientMessage.type === 'STATE_SYNC_REQUEST') {
-      const snapshot = this.#repository.readSnapshot();
-      if (snapshot === null) {
-        const error = new Error('Initialized room has no authoritative snapshot');
-        log.error('state sync failed', { error: error.message });
-        Sentry.captureException(error);
-        socket.close(1011, 'state_unavailable');
-        return;
-      }
-      const response = JSON.stringify(
-        createStateSyncResponseMessage(clientMessage.requestId, snapshot),
-      );
-      socket.send(response);
-      this.#recordRealtimeTraffic('STATE_SYNC_RESPONSE', response, 1);
-      return;
-    }
-  }
-
-  async webSocketClose(
-    socket: WebSocket,
-    _code: number,
-    _reason: string,
-    _wasClean: boolean,
-  ): Promise<void> {
-    socket.close();
-  }
-
-  async webSocketError(socket: WebSocket, error: unknown): Promise<void> {
-    log.warn('websocket error', {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    socket.close();
   }
 }

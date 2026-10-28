@@ -14,24 +14,41 @@ import { getLevelTitle } from '@game-judge/game-engine/product/growth';
 import { parseUnlockedRewardIds } from '@game-judge/game-engine/product/rewards';
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
+import { z } from 'zod';
 
 import { createDb } from '../../db';
 import type { AppEnv } from '../../env';
-import { acknowledgeUserEvent, readNextUserEvent } from '../../platform/userEvents/inbox';
+import { jsonBody } from '../../platform/http/jsonBody';
+import {
+  acknowledgeUserEvents,
+  readUserEvents,
+  USER_INBOX_MAX_BATCH,
+} from '../../platform/userInbox/inbox';
 import { requireAuth, requireNonAnonymous } from '../auth/tokenAuth';
 import { users, userStats } from './dbSchema';
+
+const inboxLimitSchema = z.coerce.number().int().min(1).max(USER_INBOX_MAX_BATCH);
+const inboxAckSchema = z.strictObject({
+  eventIds: z.array(z.string().min(1)).min(1).max(USER_INBOX_MAX_BATCH),
+});
 
 /** User stats/profile routes. */
 export const accountRoutes = new Hono<AppEnv>();
 
-accountRoutes.get('/user/events/next', requireAuth, async (c) => {
+/** GET /api/user/events?limit=N — oldest unacknowledged inbox events for the caller. */
+accountRoutes.get('/user/events', requireAuth, async (c) => {
+  const parsedLimit = inboxLimitSchema.safeParse(c.req.query('limit') ?? USER_INBOX_MAX_BATCH);
+  if (!parsedLimit.success) {
+    return c.json({ success: false as const, reason: 'INVALID_LIMIT' }, 400);
+  }
   c.header('Cache-Control', 'no-store');
-  return c.json({ event: await readNextUserEvent(c.env.DB, c.var.userId) });
+  return c.json(await readUserEvents(c.env.DB, c.var.userId, parsedLimit.data));
 });
 
-accountRoutes.post('/user/events/:eventId/ack', requireAuth, async (c) => {
-  await acknowledgeUserEvent(c.env.DB, c.var.userId, c.req.param('eventId'));
-  return c.json({ success: true });
+/** POST /api/user/events/ack — delete the caller's own events after they were consumed. */
+accountRoutes.post('/user/events/ack', requireAuth, jsonBody(inboxAckSchema), async (c) => {
+  const { eventIds } = c.req.valid('json');
+  return c.json({ acknowledged: await acknowledgeUserEvents(c.env.DB, c.var.userId, eventIds) });
 });
 
 /** GET /api/user/:userId/profile — view another player's public profile */
