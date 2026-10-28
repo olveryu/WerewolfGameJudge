@@ -15,6 +15,7 @@ function createProps(overrides: Partial<RoomSeatTileProps> = {}): RoomSeatTilePr
     highlight: 'none',
     isBot: false,
     playerUserId: 'user-1',
+    isPlayerOffline: false,
     playerDisplayName: '玩家一',
     isPlayerAnonymous: true,
     secondaryLabel: null,
@@ -145,5 +146,18 @@ describe('RoomSeatTile', () => {
 
     expect(screen.getByTestId('seat-status-badge-0')).toHaveTextContent('发言');
     expect(screen.getByTestId('seat-tile-pressable-0')).toHaveStyle(styles.dangerRing);
+  });
+
+  it('marks a human seat whose user has no open room socket as offline', () => {
+    const offline = render(<RoomSeatTile {...createProps({ isPlayerOffline: true })} />);
+    expect(offline.getByTestId('seat-offline-dot-0')).toBeTruthy();
+
+    const online = render(<RoomSeatTile {...createProps({ isPlayerOffline: false })} />);
+    expect(online.queryByTestId('seat-offline-dot-0')).toBeNull();
+
+    const empty = render(
+      <RoomSeatTile {...createProps({ playerUserId: null, isPlayerOffline: true })} />,
+    );
+    expect(empty.queryByTestId('seat-offline-dot-0')).toBeNull();
   });
 });

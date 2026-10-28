@@ -189,6 +189,7 @@ export function useRoomEntryController<
     connection: {
       status,
       pendingDurableCount: snapshot.pendingDurableCount,
+      presence: snapshot.presence,
       onRetryNow: retryNow,
     },
     retry,

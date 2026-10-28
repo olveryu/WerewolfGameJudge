@@ -15,6 +15,8 @@ export interface RoomConnectionViewModel {
   readonly status: LinkStatus;
   /** Durable commands persisted locally and still awaiting a Worker decision. */
   readonly pendingDurableCount: number;
+  /** User IDs with an open room socket per the latest PRESENCE frame; empty until one arrives. */
+  readonly presence: ReadonlySet<string>;
   /** Reconnect now while `status.kind === 'waiting'`. */
   readonly onRetryNow: () => void;
 }

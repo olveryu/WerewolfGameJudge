@@ -111,6 +111,7 @@ function shellInput() {
     connection: {
       status: { kind: 'live' as const },
       pendingDurableCount: 0,
+      presence: new Set<string>(),
       onRetryNow: jest.fn(),
     },
     revision: 1,

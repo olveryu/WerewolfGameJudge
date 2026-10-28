@@ -108,7 +108,12 @@ function renderRoomState(state: AvalonState) {
     navigation: { navigate: jest.fn() },
     entryController: {
       requestExit: jest.fn(),
-      connection: { status: { kind: 'live' }, pendingDurableCount: 0, onRetryNow: jest.fn() },
+      connection: {
+        status: { kind: 'live' },
+        pendingDurableCount: 0,
+        presence: new Set<string>(),
+        onRetryNow: jest.fn(),
+      },
     },
     audio: {
       preload: jest.fn(async () => undefined),

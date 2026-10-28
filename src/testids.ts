@@ -19,6 +19,7 @@ export const TESTIDS = {
   // Purpose: avoid duplicate testID collisions when the wrapper View also has seatTile.
   seatTilePressable: (seat: number) => `seat-tile-pressable-${seat}`,
   seatStatusBadge: (seat: number) => `seat-status-badge-${seat}`,
+  seatOfflineDot: (seat: number) => `seat-offline-dot-${seat}`,
   seatMarker: (seat: number, key: string) => `seat-marker-${seat}-${key}`,
   seatProgress: (seat: number) => `seat-progress-${seat}`,
   mySeatBadge: 'my-seat-badge',
@@ -103,6 +104,8 @@ export const TESTIDS = {
   chooseBottomCardOption: (cardIndex: number) => `choose-bottom-card-option-${cardIndex}`,
   bgmToggleButton: 'bgm-toggle-button',
   connectionStatusContainer: 'connection-status-container',
+  connectionPendingContainer: 'connection-pending-container',
+  connectionRetryNowButton: 'connection-retry-now-button',
 
   // Werewolf sheriff election
   sheriffElectionPanel: 'sheriff-election-panel',

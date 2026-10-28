@@ -99,6 +99,7 @@ export interface RoomSeatTileStyles extends ReturnType<typeof createRoomSeatIndi
   mySeatBadge: ViewStyle;
   readyBadgeContainer: ViewStyle;
   readyBadgeIcon: TextStyle;
+  offlineDot: ViewStyle;
   petWrapper: ViewStyle;
   statusBadge: ViewStyle;
   statusBadgePrimary: ViewStyle;
@@ -130,6 +131,8 @@ export interface RoomSeatTileProps {
   isBot: boolean;
   // Player info (null if empty seat)
   playerUserId: string | null;
+  /** Human seat whose user has no open room socket (per PRESENCE); bots and empty seats are false. */
+  isPlayerOffline: boolean;
   playerAvatarUrl?: string;
   playerAvatarFrame?: string;
   /** Seat flair ID (decoration animation around the tile). */
@@ -176,6 +179,7 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
   highlight,
   isBot,
   playerUserId,
+  isPlayerOffline,
   playerAvatarUrl,
   playerAvatarFrame,
   playerSeatFlair,
@@ -493,6 +497,15 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
             <View pointerEvents="none" style={styles.statusEmphasis} />
           )}
 
+          {isPlayerOffline && hasPlayer && (
+            <View
+              pointerEvents="none"
+              style={styles.offlineDot}
+              testID={TESTIDS.seatOfflineDot(seat)}
+              accessibilityLabel="离线"
+            />
+          )}
+
           {showReadyBadge && hasPlayer && (
             <Animated.View
               style={[styles.readyBadgeContainer, { transform: [{ scale: readyBadgeScale }] }]}
@@ -676,6 +689,18 @@ export function createRoomSeatTileStyles(
     },
     readyBadgeIcon: {
       color: colors.success,
+    },
+    offlineDot: {
+      position: 'absolute',
+      top: spacing.tight,
+      right: spacing.tight,
+      width: componentSizes.icon.xs,
+      height: componentSizes.icon.xs,
+      borderRadius: componentSizes.icon.xs / 2,
+      backgroundColor: colors.textMuted,
+      borderWidth: 2,
+      borderColor: colors.surface,
+      zIndex: 10,
     },
     petWrapper: {
       position: 'absolute',

@@ -44,6 +44,7 @@ function createController(isReady: boolean): RoomEntryController {
     connection: {
       status: isReady ? { kind: 'live' } : { kind: 'connecting', attempt: 1 },
       pendingDurableCount: 0,
+      presence: new Set<string>(),
       onRetryNow: jest.fn(),
     },
     retry: jest.fn(),

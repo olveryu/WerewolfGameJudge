@@ -122,7 +122,12 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
     user: { id: 'host', avatarUrl: null },
     gachaStatus: { normalDraws: 3, goldenDraws: 2 },
     onUserActionPress: jest.fn(),
-    connection: { status: { kind: 'live' }, pendingDurableCount: 0, onRetryNow: jest.fn() },
+    connection: {
+      status: { kind: 'live' },
+      pendingDurableCount: 0,
+      presence: new Set<string>(),
+      onRetryNow: jest.fn(),
+    },
     state,
     revision: 7,
     controlledSeat: null,
