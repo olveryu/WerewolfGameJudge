@@ -1,5 +1,5 @@
 > Historical document: this plan predates the authenticated generic room command pipeline. Current behavior is defined
-> in `docs/network-resilience-design.md`; endpoint and retry descriptions below are retained only as implementation history.
+> in `docs/realtime-link-redesign.md`; endpoint and retry descriptions below are retained only as implementation history.
 
 # Network Resilience Design
 
