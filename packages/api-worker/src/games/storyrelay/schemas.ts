@@ -46,7 +46,6 @@ const commands = definePublicCommandOptions<StoryRelayCommand>()([
   z.strictObject({
     type: z.literal([
       'storyrelay.phase.expire',
-      'storyrelay.phase.finish',
       'storyrelay.game.abort',
       'storyrelay.gallery.pause',
       'storyrelay.gallery.resume',

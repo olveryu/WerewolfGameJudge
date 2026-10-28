@@ -48,7 +48,7 @@ Gartic 模式的 7 个关键行为在本设计中的落点：轮流作画见 §3
 → 房主开始游戏，服务端生成画手队列（座位升序）
 → wordSelect：当前画手从 3 个候选词中选 1 个（15 秒）
 → drawing：画手作画（90 秒），猜题者在聊天框猜词，笔画整笔广播，拼音首字母每 20 秒揭示一个
-→ 超时 / 画手放弃 → roundEnd：公布答案、展示画作、本轮得分（8 秒）
+→ 超时 → roundEnd：公布答案、展示画作、本轮得分（8 秒）
   （Gartic.io 规则：猜中不提前结束，只等计时器；2026-10-04 实测第三方攻略确认）
 → 下一画手进入 wordSelect，直到每人画完 2 轮
 → ended：总分排名
@@ -120,7 +120,8 @@ drawerScore = DRAWER_PER_GUESS_SCORE × 本轮猜中人数
 
 - 作画不许写字、数字（Gartic 规则）。画布工具不提供文字工具（沿用接龙版约束），属房间规则页明示的房间规则。
 - 沿用仓库「同桌面信任模型」：不做笔画内容的自动检测与判罚。
-- 画手可随时"放弃本轮"（`drawguess.round.finish`，需二次确认），直接进入 `roundEnd` 公布答案。
+- 不提供画手提前结束本轮的操作，作画统一等倒计时结束。
+- 房主可在主持管理中确认「中止本局」（`drawguess.game.abort`），直接返回大厅；清除本局画作、猜词记录和比分，保留座位、设置及对局序号，不发完成奖励。
 
 ## 4. 房间设置
 
@@ -151,7 +152,7 @@ $$
 - 6 人局（默认）约 23 分钟。
 - 12 人局约 45 分钟。
 
-实际绘画阶段可因全员提前猜中或画手放弃而缩短；配置页按固定公式估算并注明"提前猜中会缩短"。
+实际选词等待可因画手提前选词而缩短；绘画阶段按固定倒计时结束，不因全员猜中而提前结束。
 
 ## 5. 状态机与计时
 
@@ -161,11 +162,14 @@ stateDiagram-v2
     Lobby --> WordSelect: game.begin
     WordSelect --> Drawing: word.choose
     WordSelect --> Drawing: wordSelect deadline (server auto-assign)
-    Drawing --> RoundEnd: all guessed / deadline / round.finish
+    Drawing --> RoundEnd: deadline
     RoundEnd --> WordSelect: next drawer (phase.expire)
     RoundEnd --> Ended: all turns complete (phase.expire)
     Ended --> WordSelect: game.begin (next game)
     Ended --> Lobby: game.returnToLobby
+    WordSelect --> Lobby: game.abort
+    Drawing --> Lobby: game.abort
+    RoundEnd --> Lobby: game.abort
 ```
 
 平台 lifecycle 映射：
@@ -191,10 +195,11 @@ stateDiagram-v2
 
 - `wordSelect` 到期画手未选词：服务端从 3 个候选中随机指派一个（用命令 `randomSeed`），直接进入 `drawing`，不卡住全房。
 - `wordSelect` / `drawing` 轮到未被接管的机器人画手：不跳过，等待真人接管；若 deadline 到达时仍无人接管（或无有效作画），按画手超时处理，本轮直接进入 `roundEnd`、无人得分。
-- `drawing` 结束条件：`deadlineAt` 到达；画手或房主执行 `round.finish`（画手放弃需二次确认）。
+- `drawing` 正常结束条件：`deadlineAt` 到达，不提供单轮手动结束命令。
   （Gartic.io 规则：无"全员猜中提前结束"；2026-10-04 实测确认）
 - `roundEnd` 8 秒后由 `phase.expire` 自动推进到下一画手的 `wordSelect`；全部回合完成后推进到 `ended`。
 - `ended` 由房主执行 `game.begin` 再来一局（重新生成队列、清零比分）或 `game.returnToLobby` 返回大厅。
+- `wordSelect`（含准备题目期间）、`drawing`、`roundEnd` 可由房主确认中止整局，直接回到 `lobby`，不进入排名页、不发完成奖励。
 
 ### 5.3 拼音首字母揭示计时
 
@@ -305,23 +310,25 @@ Codec 必须用 `z.strictObject` 精确验证：座位范围、笔画字段、�
 
 ### 7.1 Public commands
 
-| 命令                           | 发送方                                     | 阶段              | 说明                                                               |
-| ------------------------------ | ------------------------------------------ | ----------------- | ------------------------------------------------------------------ |
-| `drawguess.config.update`      | 房主                                       | `lobby`           | 修改配置（人数）                                                   |
-| `drawguess.game.begin`         | 房主                                       | `lobby` / `ended` | 开始游戏：生成画手队列、清零比分；`ended` 时为再来一局             |
-| `drawguess.word.choose`        | 画手（或接管人）                           | `wordSelect`      | 从 3 个候选中选定题目，生成 `revealOrder`                          |
-| `drawguess.stroke.add`         | 画手（或接管人）                           | `drawing`         | 整笔提交（客户端 `onElementComplete` 触发）                        |
-| `drawguess.stroke.undo`        | 画手（或接管人）                           | `drawing`         | 撤销最后一笔（广播，否则画面分叉）；V1 无重做                      |
-| `drawguess.stroke.clear`       | 画手（或接管人）                           | `drawing`         | 清空画布（客户端二次确认）                                         |
-| `drawguess.guess.submit`       | 已入座的非画手、未锁定猜题者（或其接管人） | `drawing`         | 提交猜词；客户端节流 1 次/2 秒，服务端 per-seat 速率限制（见 §13） |
-| `drawguess.drawing.reserve`    | 画手                                       | `roundEnd`        | 获取终稿 PNG 的一次性 `submissionId`                               |
-| `drawguess.round.finish`       | 画手 / 房主                                | `drawing`         | 画手放弃本轮（画手需二次确认），直接进入 `roundEnd`                |
-| `drawguess.phase.expire`       | 任一已认证房间成员                         | 任意              | deadline 到点推进；幂等（匹配 `phaseRevision`）                    |
-| `drawguess.game.returnToLobby` | 房主                                       | `ended`           | 返回大厅                                                           |
+| 命令                           | 发送方                                     | 阶段                                  | 说明                                                               |
+| ------------------------------ | ------------------------------------------ | ------------------------------------- | ------------------------------------------------------------------ |
+| `drawguess.config.update`      | 房主                                       | `lobby`                               | 修改配置（人数）                                                   |
+| `drawguess.game.begin`         | 房主                                       | `lobby` / `ended`                     | 开始游戏：生成画手队列、清零比分；`ended` 时为再来一局             |
+| `drawguess.word.choose`        | 画手（或接管人）                           | `wordSelect`                          | 从 3 个候选中选定题目，生成 `revealOrder`                          |
+| `drawguess.stroke.add`         | 画手（或接管人）                           | `drawing`                             | 整笔提交（客户端 `onElementComplete` 触发）                        |
+| `drawguess.stroke.undo`        | 画手（或接管人）                           | `drawing`                             | 撤销最后一笔（广播，否则画面分叉）；V1 无重做                      |
+| `drawguess.stroke.clear`       | 画手（或接管人）                           | `drawing`                             | 清空画布（客户端二次确认）                                         |
+| `drawguess.guess.submit`       | 已入座的非画手、未锁定猜题者（或其接管人） | `drawing`                             | 提交猜词；客户端节流 1 次/2 秒，服务端 per-seat 速率限制（见 §13） |
+| `drawguess.drawing.reserve`    | 画手                                       | `roundEnd`                            | 获取终稿 PNG 的一次性 `submissionId`                               |
+| `drawguess.game.abort`         | 房主                                       | `wordSelect` / `drawing` / `roundEnd` | 中止整局并清除本局数据，保留座位和设置返回大厅，不发完成奖励       |
+| `drawguess.phase.expire`       | 任一已认证房间成员                         | 任意                                  | deadline 到点推进；幂等（匹配 `phaseRevision`）                    |
+| `drawguess.game.returnToLobby` | 房主                                       | `ended`                               | 返回大厅                                                           |
 
 共享入座、离座、踢人和房间操作继续使用平台命令，不复制 DrawGuess 版本。
 
 `word.choose` / `stroke.*` / `guess.submit` 必须携带 `phaseRevision`（和 `turnIndex`），客户端在用户操作时绑定当时的快照；旧回合命令明确拒绝。
+
+`game.abort` 必须携带当前 `gameSequence`，旧确认不能中止新一局。该命令绑定整局而非笔画版本，确认期间的正常作画、猜词或阶段推进不使其失效；房主以未接管身份发送，服务端校验权限和局中阶段。
 
 ### 7.2 Internal commands
 
@@ -331,8 +338,8 @@ Codec 必须用 `z.strictObject` 精确验证：座位范围、笔画字段、�
 
 | 操作                                                      | 权限                                                                               |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| 修改配置、开始游戏、再来一局、返回大厅、结束绘画轮        | 房主，且阶段合法                                                                   |
-| 选词、作画（笔画/撤销/清空）、放弃本轮                    | 当前画手席位对应的已入座用户；机器人席位仅房主可接管代打                           |
+| 修改配置、开始游戏、再来一局、中止本局、返回大厅          | 房主，且阶段合法                                                                   |
+| 选词、作画（笔画/撤销/清空）                              | 当前画手席位对应的已入座用户；机器人席位仅房主可接管代打                           |
 | 提交猜词                                                  | `drawing` 阶段中、非画手、未锁定（未猜中）的已入座用户；机器人席位仅房主可接管代猜 |
 | 获取 PNG 预留                                             | 当前画手                                                                           |
 | 提交图片元数据                                            | Worker 内部媒体路由                                                                |
@@ -413,7 +420,7 @@ GET /api/games/drawguess/rooms/:roomCode/media/:entryId
 - `drawing`：上方为题目条（答案+字数），下方为 4:3 画布与单行工具栏，右侧/下方为猜词聊天流（D8=A）。
 - 工具栏：画笔、橡皮擦、直线、矩形、椭圆、填充桶、颜色、笔宽、撤销、清空（复用接龙版工具规格，不提供文字工具）。
 - **关键差异**：撤销、清空不再是纯本地操作，而是发送 `stroke.undo` / `stroke.clear` 命令并等待服务端广播；本地先乐观更新，冲突时以权威快照为准。
-- "放弃本轮"按钮在工具面板内，需二次确认，发送 `round.finish`。
+- 画手工具面板不提供提前结束本轮的按钮；房主的「中止本局」仅位于主持管理的危险操作区，需二次确认。
 - 画手在聊天流中看到所有猜词（含"xxx 猜中了"提示），可据此调整画法。
 
 ### 9.3 猜题者视图
@@ -463,7 +470,7 @@ GET /api/games/drawguess/rooms/:roomCode/media/:entryId
 - 读屏：作画阶段将画布描述为"画手正在作画"，不得朗读答案；`roundEnd` 公布答案后才可朗读。
 - 猜中提示使用 polite live region；倒计时最后 3 秒有限播报；速率限制与提交失败使用 assertive 提示。
 - 遵循系统 reduced motion：取消数字缩放与闪烁，保留瞬时状态变化。
-- 放弃本轮、清空画布使用独立二次确认；不使用时间戳 debounce 掩盖事件穿透。
+- 中止本局、清空画布使用独立二次确认；不使用时间戳 debounce 掩盖事件穿透。
 
 ### 9.9 客户端组件边界
 
@@ -471,7 +478,7 @@ GET /api/games/drawguess/rooms/:roomCode/media/:entryId
 | ------------------------ | ------------------------------------------------------------- |
 | `DrawGuessRoomScreen`    | 根据权威 phase 选择画手/猜题者/结算视图，不实现各阶段业务细节 |
 | `DrawGuessCanvas`        | 指针事件、归一化笔画、只读渲染（从接龙版复制）                |
-| `DrawGuessToolbar`       | 工具、色板、笔宽、撤销、清空、放弃本轮                        |
+| `DrawGuessToolbar`       | 工具、色板、笔宽、撤销、清空                                  |
 | `DrawGuessGuessPanel`    | 猜词输入、节流、聊天流渲染、锁定态                            |
 | `DrawGuessHintBar`       | 字数 + 拼音首字母提示展示                                     |
 | `DrawGuessScoreboard`    | 本轮得分与总分榜                                              |
@@ -597,7 +604,7 @@ V1 不新增 D1 对局表。游戏权威状态保存在 DO SQLite，R2 保存终
 
 记录不含用户内容的结构化数据：
 
-- 阶段类型、人数、阶段实际耗时、结束原因分布（超时/放弃）。
+- 阶段类型、人数、阶段实际耗时、结束原因分布（超时/中止整局）。
 - `guess.submit` 次数、猜中率、平均猜中耗时、速率限制命中数。
 - `stroke.add` 数量分布、单轮笔画字节数分布。
 - stale command、重复命令和权限拒绝数量。
@@ -610,7 +617,8 @@ V1 不新增 D1 对局表。游戏权威状态保存在 DO SQLite，R2 保存终
 - 3、6、12 人 initial state；2 和 13 人拒绝。
 - `drawerQueue` 为座位升序，总回合数 = 人数 × 2；`turnIndex` 上界正确。
 - `wordSelect` 15 秒超时服务端随机指派；机器人画手回合不跳过，等待接管，超时按画手超时处理。
-- `drawing` 超时/`round.finish` 进入 `roundEnd`；计分公式按剩余时间正确递减（边界：开局猜中 150 分，压哨 50 分）。
+- `drawing` 超时进入 `roundEnd`；计分公式按剩余时间正确递减（边界：开局猜中 150 分，压哨 50 分）。
+- 房主在三个局中阶段（含题目准备期间）均可中止；清除本局数据并保留座位、设置和对局序号，不发完成奖励。非房主、接管身份、旧 `gameSequence` 以及大厅、终局的中止请求均拒绝。
 - 画手每被一人猜中 +20；`roundScores` 与 `scores` 累加一致。
 - D5：猜中者锁定后再次 `guess.submit` 被拒绝；画手本人猜词被拒绝。
 - 首字母揭示：`revealOrder` 由 `randomSeed` 确定且重连不变；`revealedCount` 按 `phaseStartAt` 推导。

@@ -10,6 +10,15 @@ import { WORKER_GAME_CATALOG } from '../../catalog';
 import { storyRelayCreateConfigSchema, storyRelayPublicCommandSchema } from '../schemas';
 
 describe('Story Relay Worker', () => {
+  it('rejects the removed host finish command', () => {
+    expect(
+      storyRelayPublicCommandSchema.safeParse({
+        type: 'storyrelay.phase.finish',
+        phaseRevision: 1,
+      }).success,
+    ).toBe(false);
+  });
+
   it('creates a room with the registered codec and strict ordinary settings', () => {
     const result = WORKER_GAME_CATALOG.storyrelay.createInitialState(DEFAULT_STORY_RELAY_CONFIG, {
       roomCode: '1234',

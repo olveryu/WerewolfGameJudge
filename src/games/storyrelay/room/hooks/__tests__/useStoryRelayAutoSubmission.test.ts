@@ -2,6 +2,7 @@
 
 import {
   DEFAULT_STORY_RELAY_CONFIG,
+  getStoryRelayTaskForSeat,
   type StoryRelayCommand,
   storyRelayEngine,
   type StoryRelayState,
@@ -37,7 +38,20 @@ function createCollection() {
   execute({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
   execute({ type: 'room.seat.fillBots' });
   execute({ type: 'storyrelay.game.begin' });
-  execute({ type: 'storyrelay.phase.finish', phaseRevision: state.phaseRevision });
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+    const task = getStoryRelayTaskForSeat(state, seat);
+    if (task === null) throw new Error('Missing task');
+    execute(
+      {
+        type: 'storyrelay.task.ready.set',
+        roundId: task.roundId,
+        stepIndex: task.stepIndex,
+        chainId: task.chainId,
+        isReady: true,
+      },
+      seat === 0 ? null : seat,
+    );
+  }
   let snapshot: Extract<RoomSessionSnapshot<StoryRelayState>, { phase: 'ready' }> = {
     phase: 'ready',
     epoch: 1,
@@ -199,10 +213,14 @@ it('lets a non-host player submit only their own seat, never bot seats', async (
     { ...DEFAULT_STORY_RELAY_CONFIG, numberOfPlayers: 4 },
     { roomCode: '2468', hostUserId: 'host', commandId: 'create', nowMs: 1000 },
   );
-  const execute = (command: StoryRelayCommand, actorUserId: string) => {
+  const execute = (
+    command: StoryRelayCommand,
+    actorUserId: string,
+    controlledSeat: number | null = null,
+  ) => {
     const decision = storyRelayEngine.decide(state, command, {
       actor: { kind: 'user', userId: actorUserId },
-      controlledSeat: null,
+      controlledSeat,
       nowMs: 1000,
       commandId: `command-${sequence++}`,
       randomSeed: 'round',
@@ -213,7 +231,21 @@ it('lets a non-host player submit only their own seat, never bot seats', async (
   execute({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Player' } }, 'player');
   execute({ type: 'room.seat.fillBots' }, 'host');
   execute({ type: 'storyrelay.game.begin' }, 'host');
-  execute({ type: 'storyrelay.phase.finish', phaseRevision: state.phaseRevision }, 'host');
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+    const task = getStoryRelayTaskForSeat(state, seat);
+    if (task === null) throw new Error('Missing task');
+    execute(
+      {
+        type: 'storyrelay.task.ready.set',
+        roundId: task.roundId,
+        stepIndex: task.stepIndex,
+        chainId: task.chainId,
+        isReady: true,
+      },
+      seat === 0 ? 'player' : 'host',
+      seat === 0 ? null : seat,
+    );
+  }
 
   const dispatch = jest.fn<
     ReturnType<StoryRelayRoomSession['dispatch']>,

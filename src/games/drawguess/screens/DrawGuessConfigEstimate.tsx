@@ -37,7 +37,7 @@ export const DrawGuessConfigEstimate: React.FC<{ readonly config: DrawGuessConfi
     <Text style={styles.hint}>
       约 {estimateTotalMinutes(config.numberOfPlayers)} 分钟（选词 {DRAWGUESS_WORD_SELECT_SECONDS}{' '}
       秒 + 作画 {DRAWGUESS_DRAWING_DURATION_SECONDS} 秒 + 结算 {DRAWGUESS_ROUND_END_SECONDS}{' '}
-      秒）。全员提前猜中或画手放弃会缩短。
+      秒）。提前选词会缩短选词等待；作画按倒计时结束。
     </Text>
   </View>
 );

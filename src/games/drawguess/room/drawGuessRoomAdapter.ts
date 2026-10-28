@@ -21,6 +21,7 @@ import {
 } from '@/features/room/model/createRoomShellModel';
 import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
 import {
+  buildAbortGameAction,
   buildClearSeatsAction,
   buildFillBotsAction,
   buildNextRoundAction,
@@ -196,10 +197,32 @@ export function createDrawGuessHostManagement(
       ],
     };
   }
-  // 局中房主面板常驻（裁决⑧，对齐狼人杀/阿瓦隆）：房间管理区始终在；此刻没有待操作。
   return {
     task: null,
-    sections: [{ key: 'room', title: '房间管理', actions: roomActions }],
+    sections: [
+      { key: 'room', title: '房间管理', actions: roomActions },
+      {
+        key: 'danger',
+        title: '危险操作',
+        actions: [
+          buildAbortGameAction({
+            onPress: () =>
+              showConfirmAlert(
+                HOST_FLOW_CONFIRM.abortTitle,
+                '将清除本局画作、猜词记录和比分，保留座位和设置并返回大厅；本局不发完成奖励。',
+                async () => {
+                  await input.submit('中止本局', {
+                    type: 'drawguess.game.abort',
+                    gameSequence: state.gameSequence,
+                  });
+                },
+              ),
+            isEnabled: !input.isSubmitting,
+            isLoading: input.isSubmitting,
+          }),
+        ],
+      },
+    ],
   };
 }
 

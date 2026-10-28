@@ -21,7 +21,6 @@ import {
   buildClearSeatsAction,
   buildFillBotsAction,
   buildNextRoundAction,
-  buildPendingAwareHostAction,
   buildReturnLobbyAction,
   buildRoomConfigAction,
   buildShareRoomAction,
@@ -206,7 +205,6 @@ interface PictionaryHostManagementInput {
   readonly startRound: () => void;
   readonly nextRound: () => void;
   readonly returnToLobby: () => void;
-  readonly finishPhase: () => void;
   readonly abortRound: () => void;
 }
 
@@ -259,39 +257,22 @@ export function createPictionaryHostManagement(
     const abortDisabledReason = isLastTransition
       ? '最后一棒已收齐，即将进入揭晓，不能中止'
       : '当前阶段不能中止';
-    const sections: RoomHostManagementSection[] = [];
-    if (input.state.phase === 'answering')
-      sections.push({
-        key: 'current-flow',
-        title: '当前流程',
-        actions: [
-          buildPendingAwareHostAction(
-            {
-              key: 'finish-phase',
-              label: '结束本棒',
-              icon: 'stop-circle-outline',
-              variant: 'secondary',
-            },
-            input.isCommandSubmitting,
-            input.finishPhase,
-          ),
-        ],
-      });
-    sections.push({
-      key: 'danger',
-      title: '危险操作',
-      actions: [
-        buildAbortGameAction({
-          onPress: input.abortRound,
-          isEnabled: canAbort && !input.isCommandSubmitting,
-          disabledReason: canAbort ? null : abortDisabledReason,
-          isLoading: input.isCommandSubmitting || undefined,
-        }),
-      ],
-    });
     return {
-      task: input.state.phase === 'answering' ? hostActionTask('finish-phase') : null,
-      sections,
+      task: null,
+      sections: [
+        {
+          key: 'danger',
+          title: '危险操作',
+          actions: [
+            buildAbortGameAction({
+              onPress: input.abortRound,
+              isEnabled: canAbort && !input.isCommandSubmitting,
+              disabledReason: canAbort ? null : abortDisabledReason,
+              isLoading: input.isCommandSubmitting || undefined,
+            }),
+          ],
+        },
+      ],
     };
   }
   const startAction: RoomHostManagementAction = buildStartGameAction({

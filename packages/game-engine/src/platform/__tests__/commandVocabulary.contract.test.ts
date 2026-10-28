@@ -92,7 +92,7 @@ const EXPECTED_LIFECYCLE: Record<GameId, readonly string[]> = {
     'storyrelay.game.returnToLobby',
     'storyrelay.game.abort',
   ],
-  drawguess: ['drawguess.game.begin', 'drawguess.game.returnToLobby'],
+  drawguess: ['drawguess.game.begin', 'drawguess.game.abort', 'drawguess.game.returnToLobby'],
   demo: ['demo.roles.assign', 'demo.game.begin', 'demo.game.returnToLobby', 'demo.role.viewed'],
 };
 

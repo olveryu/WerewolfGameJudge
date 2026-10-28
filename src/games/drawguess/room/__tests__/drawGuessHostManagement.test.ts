@@ -16,8 +16,11 @@ import {
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
 import { hostTaskBody } from '@/test-utils/hostTask';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { createDrawGuessHostManagement } from '../drawGuessRoomAdapter';
+
+jest.mock('@/utils/alertPresets', () => ({ showConfirmAlert: jest.fn() }));
 
 type CommandContext = Parameters<typeof drawGuessEngine.decide>[2];
 
@@ -114,16 +117,20 @@ function capabilities(
 
 const submit = jest.fn(async () => true);
 
-function build(state: DrawGuessState, isSetup: boolean) {
+function build(state: DrawGuessState, isSetup: boolean, isSubmitting = false) {
   return createDrawGuessHostManagement({
     state,
     capabilities: capabilities(isSetup),
-    isSubmitting: false,
+    isSubmitting,
     submit,
   });
 }
 
 describe('createDrawGuessHostManagement', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('pins the lobby panel: start disabled until the room is full, room trio present', () => {
     const game = session();
     game.seatHost();
@@ -167,15 +174,52 @@ describe('createDrawGuessHostManagement', () => {
     if (ready?.kind !== 'ready') throw new Error('expected a ready task body');
   });
 
-  it('keeps an always-present in-game panel with the room section (ruling 8)', () => {
+  it.each(['wordSelect', 'drawing', 'roundEnd'] as const)(
+    'keeps the room section and offers only abort during %s',
+    (phase) => {
+      const game = session();
+      game.seatHost();
+      game.fillAndStart();
+      if (phase !== 'wordSelect') game.expire();
+      if (phase === 'roundEnd') game.expire();
+      expect(game.state.phase.kind).toBe(phase);
+      const model = build(game.state, false);
+      expect(model.task).toBeNull();
+      expect(model.sections.map((section) => section.key)).toEqual(['room', 'danger']);
+      // Setup capabilities are all denied mid-game, exactly like Avalon.
+      expect(model?.sections[0]?.actions).toEqual([]);
+      expect(model.sections[1]!.actions).toMatchObject([
+        { key: 'abort-game', label: '中止本局', isEnabled: true, variant: 'danger' },
+      ]);
+    },
+  );
+
+  it('submits the game-scoped abort only after confirmation', async () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
-    expect(game.state.phase.kind).toBe('wordSelect');
-    const model = build(game.state, false);
-    expect(model?.sections.map((section) => section.key)).toEqual(['room']);
-    // Setup capabilities are all denied mid-game, exactly like Avalon.
-    expect(model?.sections[0]?.actions).toEqual([]);
+    const action = build(game.state, false).sections[1]!.actions[0]!;
+    if (!action.isEnabled) throw new Error('Expected enabled abort');
+    action.onPress();
+    expect(submit).not.toHaveBeenCalled();
+    const confirmation = jest.mocked(showConfirmAlert).mock.calls[0];
+    if (confirmation === undefined) throw new Error('Expected abort confirmation');
+    expect(confirmation[0]).toBe('中止本局？');
+    expect(confirmation[1]).toContain('本局不发完成奖励');
+    await confirmation[2]();
+    expect(submit).toHaveBeenCalledWith('中止本局', {
+      type: 'drawguess.game.abort',
+      gameSequence: game.state.gameSequence,
+    });
+  });
+
+  it('disables abort while another command is submitting', () => {
+    const game = session();
+    game.seatHost();
+    game.fillAndStart();
+    const action = build(game.state, false, true).sections[1]!.actions[0]!;
+    expect(action.isEnabled).toBe(false);
+    expect(action).not.toHaveProperty('onPress');
   });
 
   it('pins the terminal panel on the shared next-round / return-lobby builders', () => {

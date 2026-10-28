@@ -59,7 +59,20 @@ it('persists 400 maximum-length paragraphs and replays the final receipt without
   await send({ type: 'storyrelay.game.begin' });
   const text = '\u0001'.repeat(STORY_RELAY_TEXT_MAX_LENGTH);
   for (let stepIndex = 0; stepIndex < STORY_RELAY_MAX_PLAYERS; stepIndex += 1) {
-    await send({ type: 'storyrelay.phase.finish', phaseRevision: state.phaseRevision });
+    for (let seat = 0; seat < STORY_RELAY_MAX_PLAYERS; seat += 1) {
+      const task = getStoryRelayTaskForSeat(state, seat);
+      if (task === null) throw new Error('Expected current writing task');
+      await send(
+        {
+          type: 'storyrelay.task.ready.set',
+          roundId: task.roundId,
+          chainId: task.chainId,
+          stepIndex: task.stepIndex,
+          isReady: true,
+        },
+        seat,
+      );
+    }
     for (let seat = 0; seat < STORY_RELAY_MAX_PLAYERS; seat += 1) {
       const task = getStoryRelayTaskForSeat(state, seat);
       if (task === null) throw new Error('Expected current writing task');

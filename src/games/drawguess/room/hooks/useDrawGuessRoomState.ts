@@ -138,8 +138,8 @@ export function useDrawGuessRoomState(
   const submission = useRoomCommandSubmission(getDrawGuessRoomCommandFailureMessage);
   // 派发纪律（#149 定版，与阿瓦隆/卧底 submit 同形态）：默认不带接管座位。
   // 房主命令的平台门只认未接管身份（resolveHostActorId），挂着接管座位发
-  // 开始游戏/再来一局/返回大厅必然被拒；座位动作（以被接管机器人画手
-  // 身份发出的选词、放弃本轮）由调用方显式传 controlledSeat。
+  // 开始游戏/再来一局/中止本局/返回大厅必然被拒；座位动作（以被接管机器人画手
+  // 身份发出的选词）由调用方显式传 controlledSeat。
   const submit = (label: string, command: DrawGuessCommand, control: number | null = null) =>
     submission.submit(label, () => session.dispatch(command, { controlledSeat: control, label }));
   // 阶段截止：剩余秒数与到期推进（原在 Screen 的 DrawGuessStage 内组装，P-2b 下沉）。

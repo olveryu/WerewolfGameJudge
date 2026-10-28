@@ -264,18 +264,6 @@ export function usePictionaryRoomScreenState({
         startRound,
         nextRound,
         returnToLobby,
-        finishPhase: () =>
-          showConfirmAlert(
-            '结束编辑并收稿？',
-            '将自动收取当前文字和画作，没有内容时自动交空白。全部送达后进入下一棒。',
-            async () => {
-              await submitCommand(
-                '结束本棒',
-                createPictionaryCommand(state, { type: 'pictionary.phase.finish' }, null),
-              );
-            },
-            { confirmText: '结束本棒' },
-          ),
         abortRound: () =>
           showConfirmAlert(
             HOST_FLOW_CONFIRM.abortTitle,

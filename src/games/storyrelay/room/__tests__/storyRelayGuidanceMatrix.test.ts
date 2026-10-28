@@ -2,7 +2,7 @@
  * StoryRelay guidance matrix: every (phase × viewer) cell declared in
  * storyRelayGuidanceMatrix.ts is held true against
  * createStoryRelayRoomShellModel, with states produced by the real
- * engine (host finishes each writing step, every seat resolves its
+ * engine (all seats mark each writing step ready, every seat resolves its
  * settling task with an empty entry, timed phases expire at their
  * deadlines).
  */
@@ -113,7 +113,21 @@ function settleStep(session: Session) {
 }
 
 function finishWriting(session: Session) {
-  session.send({ type: 'storyrelay.phase.finish', phaseRevision: session.state.phaseRevision });
+  for (let seat = 0; seat < session.state.config.numberOfPlayers; seat += 1) {
+    const task = getStoryRelayTaskForSeat(session.state, seat);
+    if (task === null) throw new Error(`no task for seat ${seat}`);
+    session.send(
+      {
+        type: 'storyrelay.task.ready.set',
+        roundId: task.roundId,
+        stepIndex: task.stepIndex,
+        chainId: task.chainId,
+        isReady: true,
+      },
+      'host',
+      seat === 0 ? null : seat,
+    );
+  }
   if (session.state.phase !== 'settling') throw new Error('expected settling');
 }
 

@@ -221,7 +221,7 @@ card. They are never merged and the renderer never reads role.
 
 Content-local host controls that belong to a game workspace (gallery playback, a drawer's
 give-up, board-nomination adopt, the BGM toggle) stay in that workspace; the flow commands
-(finish step, abort, next round) do not — see the Story Relay rule below.
+(abort, next round) do not — see the Story Relay rule below.
 
 #### Host Task
 
@@ -331,7 +331,7 @@ selection, waiting, retry and results use the shared hierarchy and theme. Preser
 behavior such as canvas gestures and automatic submission. Relay inputs live only in the current page and turn; refreshing or leaving discards unsubmitted input. `RoomTaskViewport` keeps task content and completion actions above native and web keyboards. Pictionary's guide action is lobby-only;
 do not insert it into the drawing/task workspace. Define guide visibility explicitly for new games.
 
-Relay host commands such as finish-step and abort-round belong in the host-management panel, not a second footer in the task workspace. Story Relay keeps the writing workspace fixed; previous text and the editor scroll internally. Completed stories remain scrollable for reading.
+Relay host commands such as abort-round belong in the host-management panel, not a second footer in the task workspace. Writing and drawing enter collection automatically when all seats are ready or the deadline expires; there is no host command to force collection. Story Relay keeps the writing workspace fixed; previous text and the editor scroll internally. Completed stories remain scrollable for reading.
 
 ## New-Game Acceptance Checklist
 

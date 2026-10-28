@@ -8,7 +8,6 @@ import {
   type GameEngineDefinition,
   reject,
   requireHost,
-  resolveUncontrolledUserActorId,
 } from '../../platform/engine';
 import { createSeededRng, randomPick } from '../../platform/random';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
@@ -363,16 +362,18 @@ function commitDrawing(
   ]);
 }
 
-/** Drawer or host gives up the current drawing round. */
-function finishRound(state: DrawGuessState, context: CommandContext): DrawGuessDecision {
-  if (state.phase.kind !== 'drawing') return reject(DRAWGUESS_REASONS.phase);
-  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
-  if (resolved.kind === 'rejected') return reject(resolved.reason);
-  const actor = resolveUncontrolledUserActorId(context);
-  const isHost = actor.kind === 'resolved' && actor.value === state.hostUserId;
-  if (resolved.value !== state.phase.drawerSeat && !isHost)
-    return reject(DRAWGUESS_REASONS.notDrawer);
-  return endRound(state, context);
+/** Aborts the displayed unfinished game without rewards or roster changes. */
+function abortGame(
+  state: DrawGuessState,
+  gameSequence: number,
+  context: CommandContext,
+): DrawGuessDecision {
+  const hostRejection = requireHost<DrawGuessEvent, DrawGuessEffect>(context, state.hostUserId);
+  if (hostRejection !== null) return hostRejection;
+  if (state.gameSequence !== gameSequence) return reject(DRAWGUESS_REASONS.stale);
+  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
+    return reject(DRAWGUESS_REASONS.phase);
+  return commitDrawGuess([{ type: 'drawguess.game.returnedToLobby' }]);
 }
 
 /** The deadline the expiry guard reads; phases that cannot expire carry none. */
@@ -487,8 +488,8 @@ function decidePublicCommand(
       return submitGuess(state, command.text, command.phaseRevision, command.turnIndex, context);
     case 'drawguess.drawing.reserve':
       return reserveDrawing(state, context);
-    case 'drawguess.round.finish':
-      return finishRound(state, context);
+    case 'drawguess.game.abort':
+      return abortGame(state, command.gameSequence, context);
     case 'drawguess.phase.expire':
       return expirePhase(state, command.phaseRevision, command.turnIndex, context);
     case 'drawguess.game.returnToLobby':

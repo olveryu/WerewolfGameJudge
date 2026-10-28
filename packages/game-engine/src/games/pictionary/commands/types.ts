@@ -27,7 +27,6 @@ export type PictionaryCommandInput =
   | { readonly type: 'pictionary.drawing.reserve' }
   | { readonly type: 'pictionary.game.abort' }
   | { readonly type: 'pictionary.phase.expire'; readonly phaseRevision: number }
-  | { readonly type: 'pictionary.phase.finish' }
   | { readonly type: 'pictionary.gallery.pause' }
   | { readonly type: 'pictionary.gallery.resume' }
   | { readonly type: 'pictionary.gallery.advance' }
@@ -57,7 +56,6 @@ type PhaseCommand = Extract<
   PictionaryCommandInput,
   {
     readonly type:
-      | 'pictionary.phase.finish'
       | 'pictionary.game.abort'
       | 'pictionary.gallery.pause'
       | 'pictionary.gallery.resume'
@@ -94,7 +92,6 @@ export function createPictionaryCommand(
         chainId: task.chain.id,
       };
     }
-    case 'pictionary.phase.finish':
     case 'pictionary.game.abort':
     case 'pictionary.gallery.pause':
     case 'pictionary.gallery.resume':
