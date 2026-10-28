@@ -15,6 +15,7 @@ import {
   INBOX_HINT_FRAME,
   parseClientFrame,
   parseServerFrame,
+  RealtimeProtocolError,
 } from '../protocol';
 
 const TEMPLATE: GameTemplate = {
@@ -47,36 +48,37 @@ describe('realtime protocol v2 — client frames', () => {
   it.each([
     [
       { type: 'SYNC', requestId: '', knownRevision: null },
-      'SyncFrame.requestId must be a non-empty string',
+      'Too small: expected string to have >=1 characters\n  → at requestId',
     ],
     [
       { type: 'SYNC', requestId: 'r', knownRevision: 0 },
-      'SyncFrame.knownRevision must be a positive revision',
+      'Too small: expected number to be >0\n  → at knownRevision',
     ],
     [
       { type: 'SYNC', requestId: 'r', knownRevision: 1.5 },
-      'SyncFrame.knownRevision must be a safe integer',
+      'Invalid input: expected int, received number\n  → at knownRevision',
     ],
-    [{ type: 'SYNC', requestId: 'r' }, 'SyncFrame.knownRevision must be a finite number'],
     [
-      { type: 'SYNC', requestId: 'r', knownRevision: null, extra: 1 },
-      'SyncFrame contains unknown field: extra',
+      { type: 'SYNC', requestId: 'r' },
+      'Invalid input: expected number, received undefined\n  → at knownRevision',
     ],
+    [{ type: 'SYNC', requestId: 'r', knownRevision: null, extra: 1 }, 'Unrecognized key: "extra"'],
     [
       { type: 'STATE_SYNC_REQUEST', requestId: 'r' },
-      'ClientFrame.type must be a supported client frame type',
+      "Invalid discriminator value. Expected 'SYNC'\n  → at type",
     ],
-    ['ping', 'ClientFrame must be an object'],
+    ['ping', 'Invalid input: expected object, received string'],
   ])('rejects malformed client frame %j', (frame, message) => {
-    expect(() => parseClientFrame(frame)).toThrow(message);
+    expect(() => parseClientFrame(frame)).toThrow(RealtimeProtocolError);
+    expect(() => parseClientFrame(frame)).toThrow(`ClientFrame is malformed:\n✖ ${message}`);
   });
 
   it('rejects constructing SYNC with an invalid known revision', () => {
     expect(() => createSyncFrame('req', -1)).toThrow(
-      'SyncFrame.knownRevision must be a positive revision',
+      'SyncFrame is malformed:\n✖ Too small: expected number to be >0\n  → at knownRevision',
     );
     expect(() => createSyncFrame('', null)).toThrow(
-      'SyncFrame.requestId must be a non-empty string',
+      'SyncFrame is malformed:\n✖ Too small: expected string to have >=1 characters\n  → at requestId',
     );
   });
 });
@@ -132,19 +134,19 @@ describe('realtime protocol v2 — server frames', () => {
   it.each([
     [
       { type: 'SYNC_RESULT', requestId: 'r', outcome: 'current', revision: 0 },
-      'SyncResultFrame.revision must be a positive revision',
+      'Too small: expected number to be >0\n  → at revision',
     ],
     [
       { type: 'SYNC_RESULT', requestId: 'r', outcome: 'stale', revision: 1 },
-      "SyncResultFrame.outcome must be 'current' or 'snapshot'",
+      "Invalid discriminator value. Expected 'current' | 'snapshot'\n  → at outcome",
     ],
     [
       { type: 'SYNC_RESULT', requestId: 'r', outcome: 'current', revision: 1, snapshot: {} },
-      'SyncResultFrame contains unknown field: snapshot',
+      'Unrecognized key: "snapshot"',
     ],
     [
       { type: 'STATE_UPDATE', snapshot: createSnapshot(1), commandType: '' },
-      'StateUpdateFrame.commandType must be a non-empty string',
+      'Too small: expected string to have >=1 characters\n  → at commandType',
     ],
     [
       {
@@ -153,24 +155,27 @@ describe('realtime protocol v2 — server frames', () => {
         commandType: null,
         lastCommandType: null,
       },
-      'StateUpdateFrame contains unknown field: lastCommandType',
+      'Unrecognized key: "lastCommandType"',
     ],
     [
       { type: 'PRESENCE', onlineUserIds: ['a', 'a'] },
-      'PresenceFrame.onlineUserIds must be a list of distinct user IDs',
+      'user IDs must be distinct\n  → at onlineUserIds',
     ],
     [
       { type: 'PRESENCE', onlineUserIds: ['a', ''] },
-      'PresenceFrame.onlineUserIds[1] must be a non-empty string',
+      'Too small: expected string to have >=1 characters\n  → at onlineUserIds[1]',
     ],
-    [{ type: 'INBOX_HINT', eventId: 'x' }, 'InboxHintFrame contains unknown field: eventId'],
+    [{ type: 'INBOX_HINT', eventId: 'x' }, 'Unrecognized key: "eventId"'],
     [
       { type: 'STATE_SYNC_RESPONSE', requestId: 'r' },
-      'ServerFrame.type must be a supported server frame type',
+      "Invalid discriminator value. Expected 'SYNC_RESULT' | 'STATE_UPDATE' | 'PRESENCE' | 'INBOX_HINT'\n  → at type",
     ],
-    [[], 'ServerFrame must be an object'],
+    [[], 'Invalid input: expected object, received array'],
   ])('rejects malformed server frame %j', (frame, message) => {
-    expect(() => parseServerFrame(frame, WEREWOLF_STATE_CODEC)).toThrow(message);
+    expect(() => parseServerFrame(frame, WEREWOLF_STATE_CODEC)).toThrow(RealtimeProtocolError);
+    expect(() => parseServerFrame(frame, WEREWOLF_STATE_CODEC)).toThrow(
+      `ServerFrame is malformed:\n✖ ${message}`,
+    );
   });
 
   it('delegates snapshot payload validation to the game codec', () => {
@@ -179,7 +184,7 @@ describe('realtime protocol v2 — server frames', () => {
     };
     frame.snapshot.state = { ...frame.snapshot.state, status: 'not-a-status' };
 
-    expect(() => parseServerFrame(frame, WEREWOLF_STATE_CODEC)).toThrow();
+    expect(() => parseServerFrame(frame, WEREWOLF_STATE_CODEC)).toThrow(/status/);
   });
 });
 

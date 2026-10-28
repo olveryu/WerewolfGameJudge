@@ -153,7 +153,7 @@ type ServerFrame<TState> =
   | { type: 'INBOX_HINT' };
 ```
 
-- parser 沿用 game-engine 既有的 `platform/protocol/runtimeDecoder.ts`（`parseObject` + `finishObject` 严格键集），game-engine 不引入 zod 依赖；多余字段即协议错误。
+- parser 用 zod v4 `strictObject` + `discriminatedUnion`（game-engine 新增 `zod` 运行时依赖，与 Worker 同版本），多余字段即协议错误；失败抛 `RealtimeProtocolError`，message 为 `z.prettifyError` 输出。
 - `RoomSnapshot` 的 `state` 仍由各游戏 `GameStateCodec` 解码；解码失败即协议错误。
 
 ### 3.2 关闭码（`platform/realtime/closeCodes.ts`）
