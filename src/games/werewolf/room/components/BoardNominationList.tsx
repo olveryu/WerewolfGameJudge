@@ -22,7 +22,7 @@ import { BaseCenterModal } from '@/components/BaseCenterModal';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
-} from '@/features/room/session/roomCommandResult';
+} from '@/features/room/link/roomCommandResult';
 import { FactionRoleList } from '@/games/werewolf/components/FactionRoleList';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import type {

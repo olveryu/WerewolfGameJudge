@@ -4,8 +4,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button } from '@/components/Button';
 import { AppModal } from '@/components/AppModal/AppModal';
+import { Button } from '@/components/Button';
 import { borderRadius, colors, componentSizes, fixed, spacing, textStyles } from '@/theme';
 
 import type { BotTakeoverBot, BotTakeoverStatus } from './BotTakeover';

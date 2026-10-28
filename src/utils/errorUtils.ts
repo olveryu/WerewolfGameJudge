@@ -212,6 +212,7 @@ const REASON_CODE_MAP: Record<string, string> = {
   SERVER_ERROR: '服务暂时不可用，请稍后重试',
   TIMEOUT: '请求超时，请稍后重试',
   NOT_CONNECTED: '未连接到房间',
+  LINK_CANCELLED: '房间连接已结束，请重新进入',
   // Night flow
   not_ongoing: '游戏不在进行中',
   no_pending_acks: '无待确认的操作',

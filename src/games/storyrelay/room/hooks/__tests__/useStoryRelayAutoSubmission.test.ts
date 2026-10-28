@@ -10,9 +10,10 @@ import {
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { act, renderHook } from '@testing-library/react-native';
 
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
-import type { RoomSessionSnapshot } from '@/features/room/session/types';
+import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
+import type { ReadyLinkSnapshot } from '@/platform/realtime/types';
+import { readyLinkSnapshot } from '@/test-utils/linkSnapshot';
 
 import { useStoryRelayAutoSubmission } from '../useStoryRelayAutoSubmission';
 
@@ -52,15 +53,8 @@ function createCollection() {
       seat === 0 ? null : seat,
     );
   }
-  let snapshot: Extract<RoomSessionSnapshot<StoryRelayState>, { phase: 'ready' }> = {
-    phase: 'ready',
-    epoch: 1,
-    connection: 'live',
-    pendingCommandCount: 0,
-    lastRecoveredCommandRejection: null,
-    lastCommand: null,
-    error: null,
-    identity: {
+  let snapshot: ReadyLinkSnapshot<StoryRelayState> = readyLinkSnapshot(
+    {
       userId: 'host',
       room: {
         roomId: 'room-id',
@@ -70,24 +64,21 @@ function createCollection() {
         createdAt: new Date(),
       },
     },
-    snapshot: createRoomSnapshot(state, sequence),
-  };
+    createRoomSnapshot(state, sequence),
+  );
   const listeners = new Set<() => void>();
   const publish = () => {
-    snapshot = { ...snapshot, snapshot: createRoomSnapshot(state, sequence) };
+    snapshot = { ...snapshot, room: createRoomSnapshot(state, sequence) };
     for (const listener of listeners) listener();
   };
   const acknowledge = (command: StoryRelayCommand, controlledSeat: number | null) => {
     execute(command, controlledSeat);
     publish();
     return {
-      kind: 'decided' as const,
-      decision: {
-        kind: 'committed' as const,
-        commandId: `command-${sequence}`,
-        snapshot: snapshot.snapshot,
-        outcome: { kind: 'success' as const },
-      },
+      kind: 'committed' as const,
+      commandId: `command-${sequence}`,
+      snapshot: snapshot.room,
+      outcome: { kind: 'success' as const },
     };
   };
   const dispatch = jest.fn<
@@ -111,14 +102,14 @@ function createCollection() {
     publish,
     execute,
     pending(count: number) {
-      snapshot = { ...snapshot, pendingCommandCount: count };
+      snapshot = { ...snapshot, pendingDurableCount: count };
       publish();
     },
     mount() {
       return renderHook(() => {
-        const current = useRoomSessionSnapshot(session);
+        const current = useRoomLinkSnapshot(session);
         if (current.phase !== 'ready') throw new Error('Not ready');
-        return useStoryRelayAutoSubmission(current.snapshot.state, 'host', session, inputs);
+        return useStoryRelayAutoSubmission(current.room.state, 'host', session, inputs);
       });
     },
   };
@@ -137,7 +128,7 @@ it('automatically submits all owned inputs with original whitespace', async () =
   });
   expect(fixture.dispatch).toHaveBeenCalledTimes(4);
   expect(fixture.session.getSnapshot()).toMatchObject({
-    snapshot: { state: { phase: 'transition' } },
+    room: { state: { phase: 'transition' } },
   });
   expect(
     fixture.dispatch.mock.calls.map(([command]) => ('text' in command ? command.text : null)),
@@ -158,22 +149,27 @@ it('automatically submits blank for every owned seat without current-page input'
   ).toBe(true);
 });
 
-it('waits for the shared pending command to settle without creating a second delivery', async () => {
+it('waits for the durable command to settle without creating a second delivery', async () => {
   const fixture = createCollection();
   fixture.inputs.set(0, '待确认原文');
-  fixture.dispatch.mockImplementationOnce(async () => {
+  let settle: ((outcome: Awaited<ReturnType<typeof fixture.acknowledge>>) => void) | null = null;
+  fixture.dispatch.mockImplementationOnce(() => {
     fixture.pending(1);
-    return { kind: 'deliveryUnknown', commandId: 'pending', reason: 'NETWORK_ERROR' };
+    return new Promise((resolve) => {
+      settle = resolve;
+    });
   });
   fixture.mount();
   await act(async () => {
     await Promise.resolve();
     fixture.publish();
   });
+  // The durable dispatch is still undecided: no second delivery of the same task.
   expect(fixture.dispatch).toHaveBeenCalledTimes(1);
   await act(async () => {
-    fixture.acknowledge(fixture.dispatch.mock.calls[0]![0], null);
+    const outcome = fixture.acknowledge(fixture.dispatch.mock.calls[0]![0], null);
     fixture.pending(0);
+    settle!(outcome);
   });
   expect(fixture.dispatch).toHaveBeenCalledTimes(4);
 });
@@ -251,21 +247,18 @@ it('lets a non-host player submit only their own seat, never bot seats', async (
     ReturnType<StoryRelayRoomSession['dispatch']>,
     Parameters<StoryRelayRoomSession['dispatch']>
   >(async () => ({
-    kind: 'decided',
-    decision: {
-      kind: 'committed',
-      commandId: `command-${sequence}`,
-      snapshot: createRoomSnapshot(state, sequence),
-      outcome: { kind: 'success' },
-    },
+    kind: 'committed',
+    commandId: `command-${sequence}`,
+    snapshot: createRoomSnapshot(state, sequence),
+    outcome: { kind: 'success' },
   }));
   const inputs = new Map<number, string>([[0, '我的稿件']]);
   const session = {
     getSnapshot: () => ({
       phase: 'ready' as const,
-      connection: 'live' as const,
-      pendingCommandCount: 0,
-      snapshot: { state },
+      status: { kind: 'live' as const },
+      pendingDurableCount: 0,
+      room: { state },
     }),
     subscribe: () => () => {},
     dispatch,

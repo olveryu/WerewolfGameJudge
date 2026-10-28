@@ -3,12 +3,12 @@
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
-} from '@/features/room/session/roomCommandResult';
-import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
+} from '@/features/room/link/roomCommandResult';
+import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
+import type { DispatchOutcome } from '@/platform/realtime/types';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { translateReasonCode } from '@/utils/errorUtils';
@@ -16,8 +16,8 @@ import { roomScreenLog } from '@/utils/logger';
 
 interface UseRoomProfileControllerParams<TState extends BaseGameState<string>> {
   readonly myUserId: string | null;
-  readonly kickSeat: (seat: number) => Promise<RoomCommandDispatchOutcome<TState>>;
-  readonly leaveSeat: () => Promise<RoomCommandDispatchOutcome<TState>>;
+  readonly kickSeat: (seat: number) => Promise<DispatchOutcome<TState>>;
+  readonly leaveSeat: () => Promise<DispatchOutcome<TState>>;
 }
 
 export interface RoomProfileSelection {
@@ -57,7 +57,7 @@ export function useRoomProfileController<TState extends BaseGameState<string>>({
   leaveSeat,
 }: UseRoomProfileControllerParams<TState>): RoomProfileController {
   const [target, setTarget] = useState<RoomProfileTarget | null>(null);
-  const submissionRef = useRef<Promise<RoomCommandDispatchOutcome<TState>> | null>(null);
+  const submissionRef = useRef<Promise<DispatchOutcome<TState>> | null>(null);
 
   const open = useCallback(
     (nextTarget: RoomProfileTarget) => {
@@ -81,7 +81,7 @@ export function useRoomProfileController<TState extends BaseGameState<string>>({
   }, [target]);
 
   const submit = useCallback(
-    (command: RoomProfileCommand, execute: () => Promise<RoomCommandDispatchOutcome<TState>>) => {
+    (command: RoomProfileCommand, execute: () => Promise<DispatchOutcome<TState>>) => {
       if (submissionRef.current !== null) {
         throw new Error('Room profile command is already in progress');
       }

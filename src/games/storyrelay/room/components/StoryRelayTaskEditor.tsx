@@ -67,7 +67,7 @@ export function StoryRelayTaskEditor({
           chainId: task.chainId,
           isReady: !isReady,
         },
-        { controlledSeat, label: '更新准备状态' },
+        { controlledSeat, label: '更新准备状态', durable: false },
       ),
     );
   };

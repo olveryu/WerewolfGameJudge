@@ -5,6 +5,6 @@ import type {
   PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 
-import type { RoomSessionClient } from '@/features/room/session/types';
+import type { RoomLink } from '@/platform/realtime/types';
 
-export type PictionaryRoomSession = RoomSessionClient<PictionaryState, PictionaryPublicCommand>;
+export type PictionaryRoomSession = RoomLink<PictionaryState, PictionaryPublicCommand>;

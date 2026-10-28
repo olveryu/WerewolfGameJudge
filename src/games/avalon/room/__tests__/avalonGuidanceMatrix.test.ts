@@ -199,7 +199,7 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
     user: { id: 'host', avatarUrl: null },
     gachaStatus: null,
     onUserActionPress: jest.fn(),
-    connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
+    connection: { status: { kind: 'live' }, pendingDurableCount: 0, onRetryNow: jest.fn() },
     state,
     revision: 7,
     controlledSeat: null,

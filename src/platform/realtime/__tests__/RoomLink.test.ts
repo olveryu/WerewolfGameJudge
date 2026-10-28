@@ -1,7 +1,8 @@
 import { REALTIME_CLOSE_CODE } from '@game-judge/game-engine/platform/realtime/closeCodes';
+import { z } from 'zod';
 
 import { ApiError } from '@/platform/http/ApiError';
-import { jsonResponse } from '@/test-utils/httpClient';
+import { jsonResponse, requestJson } from '@/test-utils/httpClient';
 import {
   closeAllLinks,
   createLinkHarness,
@@ -11,6 +12,9 @@ import {
   snapshotAt,
   testState,
 } from '@/test-utils/roomLink';
+
+/** Only the fields these tests assert on; the Worker schema validates the full body. */
+const commandBodySchema = z.looseObject({ commandId: z.string(), command: z.unknown() });
 
 afterEach(() => {
   closeAllLinks();
@@ -170,7 +174,7 @@ describe('RoomLink commands', () => {
     const harness = createLinkHarness();
     await harness.goLive(1);
     harness.network.respond((request) => {
-      const body = JSON.parse(request.body as string) as { commandId: string; command: unknown };
+      const body = commandBodySchema.parse(requestJson(request));
       expect(body.command).toEqual({ type: 'test.increment', amount: 2 });
       return committed(body.commandId, 2);
     });
@@ -188,7 +192,7 @@ describe('RoomLink commands', () => {
     const harness = createLinkHarness();
     await harness.goLive();
     harness.network.respond((request) => {
-      const body = JSON.parse(request.body as string) as { commandId: string };
+      const body = commandBodySchema.parse(requestJson(request));
       return committed(body.commandId, 2);
     });
 
@@ -228,7 +232,7 @@ describe('RoomLink commands', () => {
       socket.serverOpen();
       const sync = JSON.parse(socket.sent[0]!) as { requestId: string };
       harness.network.respond((request) => {
-        const body = JSON.parse(request.body as string) as { commandId: string };
+        const body = commandBodySchema.parse(requestJson(request));
         expect(body.commandId).toBe('cmd-1');
         return committed(body.commandId, 2);
       });
@@ -262,7 +266,7 @@ describe('RoomLink commands', () => {
 
     const second = createLinkHarness({ outboxStorage: first.outboxStorage });
     second.network.respond((request) => {
-      const body = JSON.parse(request.body as string) as { commandId: string; command: unknown };
+      const body = commandBodySchema.parse(requestJson(request));
       expect(body.command).toEqual({ type: 'test.increment', amount: 9 });
       return committed(body.commandId, 2);
     });
@@ -310,14 +314,15 @@ describe('RoomLink commands', () => {
   });
 });
 
-describe('RoomLink presence and inbox hints', () => {
-  it('publishes PRESENCE as a set and forwards INBOX_HINT', async () => {
+describe('RoomLink presence and inbox wakes', () => {
+  it('publishes PRESENCE as a set and wakes the inbox on live and on INBOX_HINT', async () => {
     const harness = createLinkHarness();
     await harness.goLive();
+    expect(harness.inboxWakes).toEqual(['live']);
     const socket = harness.sockets.latest();
     socket.serverSend({ type: 'PRESENCE', onlineUserIds: ['host-user', 'guest'] });
     expect([...harness.link.getSnapshot().presence]).toEqual(['host-user', 'guest']);
     socket.serverSend({ type: 'INBOX_HINT' });
-    expect(harness.inboxHints.count).toBe(1);
+    expect(harness.inboxWakes).toEqual(['live', 'hint']);
   });
 });

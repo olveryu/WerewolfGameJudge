@@ -3,27 +3,27 @@
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
+import {
+  createLinkRoomAccountCapability,
+  type LinkRoomAccountCapability,
+} from '@/features/room/link/LinkRoomAccountCapability';
 import type {
   RoomAccountCapability,
   RoomAccountCommandOutcome,
   RoomProfilePatch,
 } from '@/features/room/model/RoomAccountCapability';
-import {
-  createSessionRoomAccountCapability,
-  type SessionRoomAccountCapability,
-} from '@/features/room/session/SessionRoomAccountCapability';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 
 export class WerewolfRoomAccountCapability implements RoomAccountCapability<'werewolf'> {
   readonly gameType = 'werewolf' as const;
-  readonly #delegate: SessionRoomAccountCapability<'werewolf', GameState>;
+  readonly #delegate: LinkRoomAccountCapability<'werewolf', GameState>;
 
   constructor(client: WerewolfGameClient) {
     const session = client.roomSession;
-    this.#delegate = createSessionRoomAccountCapability({
+    this.#delegate = createLinkRoomAccountCapability({
       gameType: 'werewolf',
-      session,
+      link: session,
       isUserSeated: (state, userId) => getWerewolfUserSeat(state, userId) !== null,
       canSwitchAccount: (state) =>
         state.status === GameStatus.Unseated || state.status === GameStatus.Seated,

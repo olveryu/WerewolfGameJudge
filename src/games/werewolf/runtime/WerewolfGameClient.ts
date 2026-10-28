@@ -9,13 +9,13 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 
-import type { RoomCommandDispatchOutcome, RoomSessionClient } from '@/features/room/session/types';
+import type { DispatchOutcome, RoomLink } from '@/platform/realtime/types';
 
-export type WerewolfCommandDispatchOutcome = RoomCommandDispatchOutcome<GameState>;
+export type WerewolfCommandDispatchOutcome = DispatchOutcome<GameState>;
 
 /** Werewolf game client composed around the single shared room session. */
 export interface WerewolfGameClient {
-  readonly roomSession: RoomSessionClient<GameState, WerewolfPublicCommand>;
+  readonly roomSession: RoomLink<GameState, WerewolfPublicCommand>;
 
   // === Game Control (Host-only) ===
   /**

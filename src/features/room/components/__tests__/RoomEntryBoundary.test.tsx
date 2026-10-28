@@ -4,7 +4,7 @@ import { Text } from 'react-native';
 import type { useAuthContext } from '@/contexts/AuthContext';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import type { RoomSessionClient } from '@/features/room/session/types';
+import type { RoomLink } from '@/platform/realtime/types';
 
 const mockUseAuthContext = jest.fn<ReturnType<typeof useAuthContext>, []>();
 const mockUseRoomEntryController = jest.fn<RoomEntryController, [unknown]>();
@@ -25,7 +25,7 @@ const room = {
   createdAt: new Date('2026-07-11T12:00:00.000Z'),
 };
 
-const session = {} as RoomSessionClient<
+const session = {} as RoomLink<
   {
     readonly gameType: 'werewolf';
     readonly stateVersion: 1;
@@ -42,9 +42,9 @@ function createController(isReady: boolean): RoomEntryController {
     loadingMessage: '正在加入房间',
     showRetryButton: false,
     connection: {
-      status: isReady ? 'live' : 'connecting',
-      pendingCommandCount: 0,
-      onManualReconnect: jest.fn(),
+      status: isReady ? { kind: 'live' } : { kind: 'connecting', attempt: 1 },
+      pendingDurableCount: 0,
+      onRetryNow: jest.fn(),
     },
     retry: jest.fn(),
     requestExit: jest.fn(),

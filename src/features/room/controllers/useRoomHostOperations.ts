@@ -3,16 +3,16 @@
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useMemo } from 'react';
 
-import { getRoomCommandFailureReason } from '@/features/room/session/roomCommandResult';
-import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
+import { getRoomCommandFailureReason } from '@/features/room/link/roomCommandResult';
+import type { DispatchOutcome } from '@/platform/realtime/types';
 import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 import { translateReasonCode } from '@/utils/errorUtils';
 
 import { useRoomCommandSubmission } from './useRoomCommandSubmission';
 
 interface UseRoomHostOperationsParams<TState extends BaseGameState<string>> {
-  readonly clearSeats: () => Promise<RoomCommandDispatchOutcome<TState>>;
-  readonly fillBots: () => Promise<RoomCommandDispatchOutcome<TState>>;
+  readonly clearSeats: () => Promise<DispatchOutcome<TState>>;
+  readonly fillBots: () => Promise<DispatchOutcome<TState>>;
 }
 
 export interface RoomHostOperations {
@@ -24,7 +24,7 @@ export function useRoomHostOperations<TState extends BaseGameState<string>>({
   clearSeats,
   fillBots,
 }: UseRoomHostOperationsParams<TState>): RoomHostOperations {
-  const getFailureMessage = useCallback((result: RoomCommandDispatchOutcome<TState>): string => {
+  const getFailureMessage = useCallback((result: DispatchOutcome<TState>): string => {
     const reason = getRoomCommandFailureReason(result);
     return translateReasonCode(reason);
   }, []);

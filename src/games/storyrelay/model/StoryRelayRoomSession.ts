@@ -5,6 +5,6 @@ import type {
   StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
 
-import type { RoomSessionClient } from '@/features/room/session/types';
+import type { RoomLink } from '@/platform/realtime/types';
 
-export type StoryRelayRoomSession = RoomSessionClient<StoryRelayState, StoryRelayCommand>;
+export type StoryRelayRoomSession = RoomLink<StoryRelayState, StoryRelayCommand>;

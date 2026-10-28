@@ -113,7 +113,6 @@ function createBaseWerewolfRoomMock(overrides?: Record<string, unknown>) {
     viewModel,
 
     // Connection
-    connectionStatus: 'live',
 
     // Host/role/step info used by WerewolfRoomScreen
     isHost: false,

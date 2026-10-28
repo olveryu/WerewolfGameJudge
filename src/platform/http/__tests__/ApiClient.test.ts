@@ -29,8 +29,8 @@ describe('ApiClient', () => {
       method: 'POST',
       body: '{"a":1}',
       headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${tokens.accessToken}`,
+        'content-type': 'application/json',
+        authorization: `Bearer ${tokens.accessToken}`,
       },
     });
   });
@@ -112,7 +112,7 @@ describe('ApiClient', () => {
       'https://api.test/me',
     ]);
     expect(network.requests[1]?.body).toBe('{"refresh_token":"old-refresh"}');
-    expect(network.requests[2]?.headers.Authorization).toBe(`Bearer ${rotated}`);
+    expect(network.requests[2]?.headers.authorization).toBe(`Bearer ${rotated}`);
     expect(tokens.refreshToken).toBe('new-refresh');
   });
 
@@ -172,7 +172,7 @@ describe('ApiClient', () => {
       }),
     ).rejects.toMatchObject({ status: 401, reason: 'UNAUTHORIZED' });
     expect(network.requests).toHaveLength(1);
-    expect(network.requests[0]?.headers.Authorization).toBeDefined();
+    expect(network.requests[0]?.headers.authorization).toBeDefined();
 
     network.respond(() => jsonResponse(401, { reason: 'INVALID_CREDENTIALS' }));
     await expect(
@@ -184,7 +184,7 @@ describe('ApiClient', () => {
         decode: (v) => v,
       }),
     ).rejects.toMatchObject({ status: 401, reason: 'INVALID_CREDENTIALS' });
-    expect(network.requests[1]?.headers.Authorization).toBeUndefined();
+    expect(network.requests[1]?.headers.authorization).toBeUndefined();
   });
 
   it('shares one refresh round trip between concurrent callers', async () => {

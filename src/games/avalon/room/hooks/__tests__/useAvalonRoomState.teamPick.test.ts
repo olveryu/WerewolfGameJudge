@@ -16,12 +16,15 @@ import {
   DEFAULT_AVALON_CONFIG,
   getAvalonNightParticipants,
 } from '@game-judge/game-engine/games/avalon/public';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { act, renderHook } from '@testing-library/react-native';
 
 import type { RoomBottomButton } from '@/features/room/model/RoomBottomActions';
+import type { DispatchOutcome } from '@/platform/realtime/types';
+import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
+import { rejectedRoomCommand, successfulRoomCommand } from '@/test-utils/roomCommand';
 import { showErrorAlert } from '@/utils/alertPresets';
 
-import type { AvalonRoomSession } from '../../../model/AvalonRoomSession';
 import { useAvalonRoomState } from '../useAvalonRoomState';
 
 const mockAuth = { currentUserId: 'host' };
@@ -89,44 +92,12 @@ function nominateState(): AvalonState {
   return state;
 }
 
-const successOutcome = {
-  kind: 'decided',
-  decision: { kind: 'committed', outcome: { kind: 'success' } },
-} as const;
-
 function createFakeSession(state: AvalonState, userId: string) {
-  // Typed parameters so mock.calls carries the command (an untyped
-  // jest.fn has an empty call tuple and fails tsc under
-  // noUncheckedIndexedAccess when a test inspects the calls).
-  const dispatch = jest.fn(
-    async (_command: AvalonPublicCommand, _options: unknown) => successOutcome,
+  const session = createFakeRoomLink<AvalonState, AvalonPublicCommand>(
+    readyLinkSnapshot(testIdentity('avalon', { userId }), createRoomSnapshot(state, 1)),
+    async () => successfulRoomCommand(state),
   );
-  // useSyncExternalStore requires a stable snapshot reference across renders.
-  const snapshot = {
-    epoch: 1,
-    phase: 'ready',
-    connection: 'live',
-    pendingCommandCount: 0,
-    lastRecoveredCommandRejection: null,
-    identity: { room: { roomCode: '1234' }, userId },
-    lastCommand: null,
-    error: null,
-    snapshot: { gameType: 'avalon', stateVersion: 8, revision: 1, state },
-  } as const;
-  const session = {
-    getSnapshot: () => snapshot,
-    subscribe: () => () => undefined,
-    dispatch,
-    dispatchPrepared: jest.fn(async () => successOutcome),
-    prepare: jest.fn(() => {
-      throw new Error('prepare is not used by these scenarios');
-    }),
-    connect: jest.fn(async () => ({ kind: 'connected' })),
-    reconnect: jest.fn(async () => ({ kind: 'connected' })),
-    disconnect: jest.fn(),
-    acknowledgeRecoveredCommandRejection: jest.fn(),
-  };
-  return { session: session as unknown as AvalonRoomSession, dispatch };
+  return { session, dispatch: session.dispatch };
 }
 
 function renderRoomState(state: AvalonState) {
@@ -137,7 +108,7 @@ function renderRoomState(state: AvalonState) {
     navigation: { navigate: jest.fn() },
     entryController: {
       requestExit: jest.fn(),
-      connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
+      connection: { status: { kind: 'live' }, pendingDurableCount: 0, onRetryNow: jest.fn() },
     },
     audio: {
       preload: jest.fn(async () => undefined),
@@ -319,12 +290,8 @@ describe('useAvalonRoomState nomination team pick', () => {
     // The server refuses the draft write: the submission resolves
     // false and surfaces the failure, but the rejection must not
     // poison the chain tail that propose waits on.
-    const rejectedOutcome = {
-      kind: 'decided',
-      decision: { kind: 'rejected', commandId: 'command:draft', reason: 'avalon_wrong_phase' },
-    } as const;
-    dispatch.mockImplementationOnce(
-      async () => rejectedOutcome as unknown as typeof successOutcome,
+    dispatch.mockImplementationOnce(async () =>
+      rejectedRoomCommand<AvalonState>('avalon_wrong_phase', 'command:draft'),
     );
     act(() => {
       result.current.setTeamPickModal('final');
@@ -346,8 +313,8 @@ describe('useAvalonRoomState nomination team pick', () => {
     const first: readonly number[] = [state.leaderSeat, (state.leaderSeat + 1) % 5];
     const second: readonly number[] = [state.leaderSeat, (state.leaderSeat + 2) % 5];
 
-    let resolveFirst!: (outcome: typeof successOutcome) => void;
-    const firstSettled = new Promise<typeof successOutcome>((resolve) => {
+    let resolveFirst!: (outcome: DispatchOutcome<AvalonState>) => void;
+    const firstSettled = new Promise<DispatchOutcome<AvalonState>>((resolve) => {
       resolveFirst = resolve;
     });
     dispatch.mockImplementationOnce(() => firstSettled);
@@ -377,7 +344,7 @@ describe('useAvalonRoomState nomination team pick', () => {
     expect(dispatch).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      resolveFirst(successOutcome);
+      resolveFirst(successfulRoomCommand(state));
       await firstConfirm;
       await secondConfirm;
     });

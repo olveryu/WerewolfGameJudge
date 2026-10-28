@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
-import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
+import type { DispatchOutcome } from '@/platform/realtime/types';
 import {
   rejectedRoomCommand,
   successfulRoomCommand,
@@ -17,7 +17,7 @@ jest.mock('@/utils/alert', () => ({
 const mockShowAlert = showAlert as jest.MockedFunction<typeof showAlert>;
 const state = testRoomState('werewolf');
 
-function createSuccess(): Promise<RoomCommandDispatchOutcome<typeof state>> {
+function createSuccess(): Promise<DispatchOutcome<typeof state>> {
   return Promise.resolve(successfulRoomCommand(state, 'seat-success'));
 }
 

@@ -23,8 +23,8 @@ import {
 } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import {
@@ -97,10 +97,10 @@ export function useDrawGuessRoomState(
 ): DrawGuessRoomScreenState {
   const { session, room, navigation, entryController } = props;
   const { user } = useAuthContext();
-  const snapshot = useRoomSessionSnapshot(session);
+  const snapshot = useRoomLinkSnapshot(session);
   if (user === null || snapshot.phase !== 'ready')
     throw new Error('DrawGuess requires an authenticated ready session');
-  const state = snapshot.snapshot.state;
+  const state = snapshot.room.state;
   const isHost = state.hostUserId === user.id;
   const mySeat = getDrawGuessUserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
@@ -141,7 +141,9 @@ export function useDrawGuessRoomState(
   // 开始游戏/再来一局/中止本局/返回大厅必然被拒；座位动作（以被接管机器人画手
   // 身份发出的选词）由调用方显式传 controlledSeat。
   const submit = (label: string, command: DrawGuessCommand, control: number | null = null) =>
-    submission.submit(label, () => session.dispatch(command, { controlledSeat: control, label }));
+    submission.submit(label, () =>
+      session.dispatch(command, { controlledSeat: control, label, durable: false }),
+    );
   // 阶段截止：剩余秒数与到期推进（原在 Screen 的 DrawGuessStage 内组装，P-2b 下沉）。
   const deadlineAt =
     state.phase.kind === 'wordSelect' ||
@@ -153,9 +155,9 @@ export function useDrawGuessRoomState(
     const current = session.getSnapshot();
     return (
       current.phase === 'ready' &&
-      current.connection === 'live' &&
-      current.pendingCommandCount === 0 &&
-      current.snapshot.state.phaseRevision === state.phaseRevision
+      current.status.kind === 'live' &&
+      current.pendingDurableCount === 0 &&
+      current.room.state.phaseRevision === state.phaseRevision
     );
   }, [session, state.phaseRevision]);
   const onExpire = useCallback(
@@ -166,7 +168,7 @@ export function useDrawGuessRoomState(
           phaseRevision: state.phaseRevision,
           turnIndex: state.turnIndex,
         },
-        { controlledSeat: null, label: '推进作画阶段', isRecoverable: true },
+        { controlledSeat: null, label: '推进作画阶段', durable: true },
       ),
     [session, state.phaseRevision, state.turnIndex],
   );
@@ -232,7 +234,7 @@ export function useDrawGuessRoomState(
     onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
     connection: entryController.connection,
     state,
-    revision: snapshot.snapshot.revision,
+    revision: snapshot.room.revision,
     controlledSeat,
     seatsVisuallyDisabled: submission.isSubmitting || seatController.isSubmitting,
     onSeatPress,

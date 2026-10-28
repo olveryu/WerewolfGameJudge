@@ -22,16 +22,18 @@ import { createCommandTransport } from './commandTransport';
 import type { LinkContext } from './linkReducer';
 import { LinkRuntime } from './LinkRuntime';
 import type { OutboxStorage } from './outboxStorage';
-import { SocketChannel } from './SocketChannel';
+import { type RealtimeSocket, SocketChannel } from './SocketChannel';
 import type {
   DispatchOptions,
   DispatchOutcome,
+  InboxWakeReason,
   LinkSnapshot,
   LinkStatus,
-  PreparedCommand,
   RoomIdentity,
   RoomLink,
+  TimerHandle,
 } from './types';
+import { RoomLinkClosedError } from './types';
 
 /** Grants one room at a time across every game module in the app. */
 export interface RoomLease {
@@ -63,20 +65,31 @@ export interface RoomLinkOptions<TState extends BaseGameState<string>> {
   readonly environment: PlatformEnvironment;
   readonly outboxStorage: OutboxStorage;
   readonly newCommandId: () => string;
-  readonly createSocket: (url: string) => WebSocket;
+  readonly createSocket: (url: string) => RealtimeSocket;
   readonly now: () => number;
   readonly random: () => number;
-  readonly setTimeout: (callback: () => void, delayMs: number) => unknown;
-  readonly clearTimeout: (handle: unknown) => void;
+  readonly setTimeout: (callback: () => void, delayMs: number) => TimerHandle;
+  readonly clearTimeout: (handle: TimerHandle) => void;
   readonly onProtocolError: (error: Error) => void;
-  readonly onInboxHint: () => void;
+  readonly onInboxWake: (reason: InboxWakeReason) => void;
 }
 
 const EMPTY_PRESENCE: ReadonlySet<string> = Object.freeze(new Set<string>());
 const IDLE_STATUS: LinkStatus = Object.freeze({ kind: 'idle' as const });
 
-function idleSnapshot<TState extends BaseGameState<string>>(epoch: number): LinkSnapshot<TState> {
-  return Object.freeze({
+/** Flat fields the link mutates; `buildSnapshot` derives the phase-discriminated snapshot. */
+interface LinkFields<TState extends BaseGameState<string>> {
+  readonly epoch: number;
+  readonly identity: RoomIdentity<TState['gameType']> | null;
+  readonly status: LinkStatus;
+  readonly room: RoomSnapshot<TState> | null;
+  readonly lastCommand: { readonly revision: number; readonly type: string } | null;
+  readonly pendingDurableCount: number;
+  readonly presence: ReadonlySet<string>;
+}
+
+function idleFields<TState extends BaseGameState<string>>(epoch: number): LinkFields<TState> {
+  return {
     epoch,
     identity: null,
     status: IDLE_STATUS,
@@ -84,7 +97,24 @@ function idleSnapshot<TState extends BaseGameState<string>>(epoch: number): Link
     lastCommand: null,
     pendingDurableCount: 0,
     presence: EMPTY_PRESENCE,
-  });
+  };
+}
+
+function buildSnapshot<TState extends BaseGameState<string>>(
+  fields: LinkFields<TState>,
+): LinkSnapshot<TState> {
+  const { identity, room, status, ...rest } = fields;
+  if (identity === null) {
+    if (room !== null || status.kind === 'closed') {
+      throw new Error('[FAIL-FAST] Link without identity cannot hold a room or be closed');
+    }
+    return Object.freeze({ ...rest, status, phase: 'idle', identity, room });
+  }
+  if (status.kind === 'closed') {
+    return Object.freeze({ ...rest, status, phase: 'closed', identity, room });
+  }
+  if (room === null) return Object.freeze({ ...rest, status, phase: 'entering', identity, room });
+  return Object.freeze({ ...rest, status, phase: 'ready', identity, room });
 }
 
 interface ActiveEpoch<TState extends BaseGameState<string>> {
@@ -103,7 +133,8 @@ export class RoomLinkImpl<
 > implements RoomLink<TState, TCommand> {
   readonly #options: RoomLinkOptions<TState>;
   readonly #listeners = new Set<() => void>();
-  #snapshot: LinkSnapshot<TState> = idleSnapshot(0);
+  #fields: LinkFields<TState> = idleFields(0);
+  #snapshot: LinkSnapshot<TState> = buildSnapshot(this.#fields);
   #active: ActiveEpoch<TState> | null = null;
 
   constructor(options: RoomLinkOptions<TState>) {
@@ -132,20 +163,10 @@ export class RoomLinkImpl<
     signal.throwIfAborted();
 
     const releaseLease = this.#options.lease.acquire();
-    const epoch = this.#snapshot.epoch + 1;
+    const epoch = this.#fields.epoch + 1;
     const active = this.#createEpoch(epoch, identity, releaseLease);
     this.#active = active;
-    this.#publish(
-      Object.freeze({
-        epoch,
-        identity,
-        status: IDLE_STATUS,
-        room: null,
-        lastCommand: null,
-        pendingDurableCount: 0,
-        presence: EMPTY_PRESENCE,
-      }),
-    );
+    this.#replace({ ...idleFields<TState>(epoch), identity });
 
     const connected = new Promise<void>((resolve, reject) => {
       active.connectWaiters.push({ resolve, reject });
@@ -163,22 +184,8 @@ export class RoomLinkImpl<
     }
   }
 
-  prepare<TPrepared extends TCommand>(
-    command: TPrepared,
-    controlledSeat: number | null,
-  ): PreparedCommand<TPrepared> {
-    return this.#requireActive().outbox.prepare(command, controlledSeat);
-  }
-
   dispatch(command: TCommand, options: DispatchOptions): Promise<DispatchOutcome<TState>> {
     return this.#requireActive().outbox.dispatch(command, options);
-  }
-
-  dispatchPrepared<TPrepared extends TCommand>(
-    prepared: PreparedCommand<TPrepared>,
-    label: string,
-  ): Promise<DispatchOutcome<TState>> {
-    return this.#requireActive().outbox.dispatchPrepared(prepared, label);
   }
 
   retryNow(): void {
@@ -192,10 +199,10 @@ export class RoomLinkImpl<
     active.outbox.dispose();
     active.runtime.close();
     active.releaseLease();
-    const released = new Error('Room link released');
+    const released = new RoomLinkClosedError('released');
     for (const waiter of active.connectWaiters) waiter.reject(released);
     active.connectWaiters.length = 0;
-    this.#publish(idleSnapshot(this.#snapshot.epoch));
+    this.#replace(idleFields(this.#fields.epoch));
   }
 
   // ─── Epoch wiring ─────────────────────────────────────────────────────────
@@ -257,8 +264,8 @@ export class RoomLinkImpl<
         if (active !== null) this.#applySnapshot(active, outcome.snapshot, null);
       },
       onPendingDurableCount: (count) => {
-        if (forEpoch() === null || this.#snapshot.pendingDurableCount === count) return;
-        this.#publish(Object.freeze({ ...this.#snapshot, pendingDurableCount: count }));
+        if (forEpoch() === null || this.#fields.pendingDurableCount === count) return;
+        this.#update({ pendingDurableCount: count });
       },
     });
     return {
@@ -274,16 +281,17 @@ export class RoomLinkImpl<
 
   #handleStatus(active: ActiveEpoch<TState>, status: LinkStatus, context: LinkContext): void {
     if (this.#active !== active) return;
-    this.#publish(Object.freeze({ ...this.#snapshot, status }));
+    this.#update({ status });
     active.outbox.setLiveGeneration(status.kind === 'live' ? context.socketGeneration : null);
     if (status.kind === 'live') {
-      if (this.#snapshot.room === null) {
+      if (this.#fields.room === null) {
         throw new Error('[FAIL-FAST] Link became live without a room snapshot');
       }
       for (const waiter of active.connectWaiters) waiter.resolve();
       active.connectWaiters.length = 0;
+      this.#options.onInboxWake('live');
     } else if (status.kind === 'closed') {
-      const error = new Error(`Room link closed: ${status.reason}`);
+      const error = new RoomLinkClosedError(status.reason);
       for (const waiter of active.connectWaiters) waiter.reject(error);
       active.connectWaiters.length = 0;
       active.outbox.dispose();
@@ -296,13 +304,10 @@ export class RoomLinkImpl<
       case 'SYNC_RESULT':
         if (frame.outcome === 'snapshot') {
           this.#applySnapshot(active, frame.snapshot, null);
-        } else if (
-          this.#snapshot.room === null ||
-          this.#snapshot.room.revision !== frame.revision
-        ) {
+        } else if (this.#fields.room === null || this.#fields.room.revision !== frame.revision) {
           active.runtime.failProtocol(
             new Error(
-              `SYNC_RESULT current at revision ${frame.revision} but client holds ${this.#snapshot.room?.revision ?? 'none'}`,
+              `SYNC_RESULT current at revision ${frame.revision} but client holds ${this.#fields.room?.revision ?? 'none'}`,
             ),
           );
         }
@@ -311,15 +316,10 @@ export class RoomLinkImpl<
         this.#applySnapshot(active, frame.snapshot, frame.commandType);
         return;
       case 'PRESENCE':
-        this.#publish(
-          Object.freeze({
-            ...this.#snapshot,
-            presence: Object.freeze(new Set(frame.onlineUserIds)),
-          }),
-        );
+        this.#update({ presence: Object.freeze(new Set(frame.onlineUserIds)) });
         return;
       case 'INBOX_HINT':
-        this.#options.onInboxHint();
+        this.#options.onInboxWake('hint');
         return;
     }
   }
@@ -331,7 +331,7 @@ export class RoomLinkImpl<
     commandType: string | null,
   ): void {
     if (this.#active !== active) return;
-    const current = this.#snapshot;
+    const current = this.#fields;
     const identity = current.identity;
     if (identity === null) throw new Error('[FAIL-FAST] Snapshot arrived without an identity');
     if (
@@ -354,26 +354,17 @@ export class RoomLinkImpl<
           return;
         }
         if (commandType === null || current.lastCommand?.type === commandType) return;
-        this.#publish(
-          Object.freeze({
-            ...current,
-            lastCommand: { revision: snapshot.revision, type: commandType },
-          }),
-        );
+        this.#update({ lastCommand: { revision: snapshot.revision, type: commandType } });
         return;
       }
     }
 
     active.snapshotFingerprint = fingerprint;
     active.runtime.noteRevision(snapshot.revision);
-    this.#publish(
-      Object.freeze({
-        ...current,
-        room: snapshot,
-        lastCommand:
-          commandType === null ? null : { revision: snapshot.revision, type: commandType },
-      }),
-    );
+    this.#update({
+      room: snapshot,
+      lastCommand: commandType === null ? null : { revision: snapshot.revision, type: commandType },
+    });
   }
 
   #requireActive(): ActiveEpoch<TState> {
@@ -381,8 +372,13 @@ export class RoomLinkImpl<
     return this.#active;
   }
 
-  #publish(snapshot: LinkSnapshot<TState>): void {
-    this.#snapshot = snapshot;
+  #update(patch: Partial<LinkFields<TState>>): void {
+    this.#replace({ ...this.#fields, ...patch });
+  }
+
+  #replace(fields: LinkFields<TState>): void {
+    this.#fields = fields;
+    this.#snapshot = buildSnapshot(fields);
     for (const listener of this.#listeners) listener();
   }
 }

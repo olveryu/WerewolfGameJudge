@@ -5,12 +5,13 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
-import type {
-  PreparedRoomCommand,
-  RoomSessionClient,
-  RoomSessionSnapshot,
-} from '@/features/room/session/types';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
+import type { LinkSnapshot, RoomLink } from '@/platform/realtime/types';
+import {
+  enteringLinkSnapshot,
+  idleLinkSnapshot,
+  readyLinkSnapshot,
+} from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
@@ -39,96 +40,47 @@ function createAudio(): jest.Mocked<WerewolfAudioRuntime> {
 
 function createRoomSession() {
   const listeners = new Set<() => void>();
-  let snapshot: RoomSessionSnapshot<GameState> = {
-    phase: 'idle',
-    epoch: 0,
-    identity: null,
-    connection: 'disconnected',
-    pendingCommandCount: 0,
-    lastRecoveredCommandRejection: null,
-    snapshot: null,
-    lastCommand: null,
-    error: null,
-  };
+  let snapshot: LinkSnapshot<GameState> = idleLinkSnapshot<GameState>();
   let commandSequence = 0;
   const dispatch = jest.fn(async (_command: WerewolfPublicCommand) => {
     commandSequence += 1;
     const commandId = `command-${commandSequence}`;
     if (snapshot.phase !== 'ready') throw new Error('test session is not ready');
-    return successfulRoomCommand(
-      snapshot.snapshot.state,
-      commandId,
-      snapshot.snapshot.revision + 1,
-    );
+    return successfulRoomCommand(snapshot.room.state, commandId, snapshot.room.revision + 1);
   });
-  const session: RoomSessionClient<GameState, WerewolfPublicCommand> = {
+  const session: RoomLink<GameState, WerewolfPublicCommand> = {
     getSnapshot: () => snapshot,
     subscribe: (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    connect: async () => ({ kind: 'connected' }),
-    reconnect: async () => ({ kind: 'connected' }),
-    disconnect: jest.fn(),
-    prepare: <TCommand extends WerewolfPublicCommand>(
-      command: TCommand,
-      controlledSeat: number | null,
-    ): PreparedRoomCommand<TCommand> => ({
-      sessionEpoch: snapshot.epoch,
-      roomCode: room.roomCode,
-      roomId: room.roomId,
-      commandId: 'prepared-command',
-      command,
-      controlledSeat,
-    }),
+    connect: async () => undefined,
     dispatch,
-    dispatchPrepared: jest.fn(async () => {
-      throw new Error('dispatchPrepared is not used by this test');
-    }),
-    acknowledgeRecoveredCommandRejection: jest.fn(),
+    retryNow: jest.fn(),
+    close: jest.fn(),
   };
 
   return {
     session,
     dispatch,
-    emit(next: RoomSessionSnapshot<GameState>) {
+    emit(next: LinkSnapshot<GameState>) {
       snapshot = next;
       for (const listener of listeners) listener();
     },
   };
 }
 
-function enteringSnapshot(userId = 'host-user'): RoomSessionSnapshot<GameState> {
-  return {
-    phase: 'entering',
-    epoch: 1,
-    identity: { room, userId },
-    connection: 'connecting',
-    pendingCommandCount: 0,
-    lastRecoveredCommandRejection: null,
-    snapshot: null,
-    lastCommand: null,
-    error: null,
-  };
+function enteringSnapshot(userId = 'host-user'): LinkSnapshot<GameState> {
+  return enteringLinkSnapshot<GameState>({ room, userId });
 }
 
-function readySnapshot(status: GameStatus, userId = 'host-user'): RoomSessionSnapshot<GameState> {
+function readySnapshot(status: GameStatus, userId = 'host-user'): LinkSnapshot<GameState> {
   const state = buildWerewolfTestState({
     roomCode: room.roomCode,
     hostUserId: room.hostUserId,
     status,
   });
-  return {
-    phase: 'ready',
-    epoch: 1,
-    identity: { room, userId },
-    connection: 'live',
-    pendingCommandCount: 0,
-    lastRecoveredCommandRejection: null,
-    snapshot: createRoomSnapshot(state, 1),
-    lastCommand: null,
-    error: null,
-  };
+  return readyLinkSnapshot<GameState>({ room, userId }, createRoomSnapshot(state, 1));
 }
 
 function createClient() {
@@ -168,7 +120,7 @@ describe('WerewolfGameClientRuntime composition', () => {
     expect(audio.clearPreloaded).toHaveBeenCalledTimes(1);
     expect(roomSession.dispatch).toHaveBeenCalledWith(
       { type: 'werewolf.game.abort' },
-      { controlledSeat: null, label: '中止本局' },
+      { controlledSeat: null, label: '中止本局', durable: false },
     );
   });
 
@@ -183,7 +135,7 @@ describe('WerewolfGameClientRuntime composition', () => {
     expect(audio.clearPreloaded).toHaveBeenCalledTimes(1);
     expect(roomSession.dispatch).toHaveBeenCalledWith(
       { type: 'werewolf.game.returnToLobby' },
-      { controlledSeat: null, label: '返回大厅' },
+      { controlledSeat: null, label: '返回大厅', durable: false },
     );
   });
 
@@ -198,7 +150,7 @@ describe('WerewolfGameClientRuntime composition', () => {
     expect(audio.clearPreloaded).toHaveBeenCalledTimes(1);
     expect(roomSession.dispatch).toHaveBeenCalledWith(
       { type: 'werewolf.game.redeal' },
-      { controlledSeat: null, label: '再来一局' },
+      { controlledSeat: null, label: '再来一局', durable: false },
     );
   });
 
@@ -210,54 +162,44 @@ describe('WerewolfGameClientRuntime composition', () => {
     await client.registerSheriffCandidate(3);
     expect(roomSession.dispatch).toHaveBeenLastCalledWith(
       { type: 'werewolf.sheriff.register' },
-      { controlledSeat: 3, label: 'registerSheriffCandidate' },
+      { controlledSeat: 3, label: 'registerSheriffCandidate', durable: false },
     );
 
     await client.cancelSheriffRegistration(3);
     expect(roomSession.dispatch).toHaveBeenLastCalledWith(
       { type: 'werewolf.sheriff.cancelRegistration' },
-      { controlledSeat: 3, label: 'cancelSheriffRegistration' },
+      { controlledSeat: 3, label: 'cancelSheriffRegistration', durable: false },
     );
 
     await client.withdrawSheriffCandidate(3);
     expect(roomSession.dispatch).toHaveBeenLastCalledWith(
       { type: 'werewolf.sheriff.withdraw' },
-      { controlledSeat: 3, label: 'withdrawSheriffCandidate' },
+      { controlledSeat: 3, label: 'withdrawSheriffCandidate', durable: false },
     );
 
     await client.castSheriffVote(null, 3);
     expect(roomSession.dispatch).toHaveBeenLastCalledWith(
       { type: 'werewolf.sheriff.vote', targetSeat: null },
-      { controlledSeat: 3, label: 'castSheriffVote' },
+      { controlledSeat: 3, label: 'castSheriffVote', durable: false },
     );
 
     await client.advanceSheriffElection();
     expect(roomSession.dispatch).toHaveBeenLastCalledWith(
       { type: 'werewolf.sheriff.advance' },
-      { controlledSeat: null, label: 'advanceSheriffElection' },
+      { controlledSeat: null, label: 'advanceSheriffElection', durable: false },
     );
   });
 
-  it('reacts to session teardown without owning disconnect', () => {
+  it('reacts to link teardown without owning close', () => {
     const { roomSession, audio } = createClient();
     roomSession.emit(enteringSnapshot());
     roomSession.emit(readySnapshot(GameStatus.Seated));
 
-    roomSession.emit({
-      phase: 'idle',
-      epoch: 2,
-      identity: null,
-      connection: 'disconnected',
-      pendingCommandCount: 0,
-      lastRecoveredCommandRejection: null,
-      snapshot: null,
-      lastCommand: null,
-      error: null,
-    });
+    roomSession.emit(idleLinkSnapshot<GameState>({ epoch: 2 }));
 
     expect(audio.stopNarration).toHaveBeenCalledTimes(1);
     expect(audio.stopBgm).toHaveBeenCalledTimes(1);
     expect(audio.clearPreloaded).toHaveBeenCalledTimes(1);
-    expect(roomSession.session.disconnect).not.toHaveBeenCalled();
+    expect(roomSession.session.close).not.toHaveBeenCalled();
   });
 });

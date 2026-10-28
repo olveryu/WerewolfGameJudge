@@ -40,9 +40,9 @@ describe('createPictionaryRoomShellModel', () => {
       shareImage: jest.fn(async () => undefined),
     };
     const connection = {
-      status: 'live' as const,
-      pendingCommandCount: 0,
-      onManualReconnect: jest.fn(),
+      status: { kind: 'live' as const },
+      pendingDurableCount: 0,
+      onRetryNow: jest.fn(),
     };
     const onBack = jest.fn();
     const onSeatPress = jest.fn();

@@ -4,6 +4,6 @@
 
 import type { AvalonPublicCommand, AvalonState } from '@game-judge/game-engine/games/avalon/public';
 
-import type { RoomSessionClient } from '@/features/room/session/types';
+import type { RoomLink } from '@/platform/realtime/types';
 
-export type AvalonRoomSession = RoomSessionClient<AvalonState, AvalonPublicCommand>;
+export type AvalonRoomSession = RoomLink<AvalonState, AvalonPublicCommand>;

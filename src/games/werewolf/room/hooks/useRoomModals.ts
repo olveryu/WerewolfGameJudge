@@ -9,7 +9,7 @@
 import { isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
+import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { DISMISS_BUTTON, dismissAlert, getAlertGeneration, showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';

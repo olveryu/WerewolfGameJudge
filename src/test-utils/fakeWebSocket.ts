@@ -1,18 +1,20 @@
 /** Scriptable WebSocket double for realtime tests. */
 
+import type { RealtimeSocket } from '@/platform/realtime/SocketChannel';
+
 const CONNECTING = 0;
 const OPEN = 1;
 const CLOSED = 3;
 
-export class FakeWebSocket {
+export class FakeWebSocket implements RealtimeSocket {
   readonly url: string;
   readyState: number = CONNECTING;
   readonly sent: string[] = [];
   closedWith: { code: number; reason: string } | null = null;
-  onopen: ((event: Event) => void) | null = null;
-  onmessage: ((event: MessageEvent) => void) | null = null;
-  onclose: ((event: CloseEvent) => void) | null = null;
-  onerror: ((event: Event) => void) | null = null;
+  onopen: (() => void) | null = null;
+  onmessage: ((event: { readonly data: unknown }) => void) | null = null;
+  onclose: ((event: { readonly code: number; readonly reason: string }) => void) | null = null;
+  onerror: (() => void) | null = null;
 
   constructor(url: string) {
     this.url = url;
@@ -32,24 +34,23 @@ export class FakeWebSocket {
 
   serverOpen(): void {
     this.readyState = OPEN;
-    this.onopen?.(new Event('open'));
+    this.onopen?.();
   }
 
   serverSend(data: unknown): void {
-    const payload = typeof data === 'string' ? data : JSON.stringify(data);
-    this.onmessage?.({ data: payload } as MessageEvent);
+    this.onmessage?.({ data: typeof data === 'string' ? data : JSON.stringify(data) });
   }
 
   serverClose(code: number, reason = ''): void {
     this.readyState = CLOSED;
-    this.onclose?.({ code, reason, wasClean: true } as CloseEvent);
+    this.onclose?.({ code, reason });
   }
 }
 
 /** Create FakeWebSockets and keep them for assertions. */
 export function createSocketFactory(): {
   readonly sockets: FakeWebSocket[];
-  readonly create: (url: string) => WebSocket;
+  readonly create: (url: string) => RealtimeSocket;
   readonly latest: () => FakeWebSocket;
 } {
   const sockets: FakeWebSocket[] = [];
@@ -58,7 +59,7 @@ export function createSocketFactory(): {
     create: (url) => {
       const socket = new FakeWebSocket(url);
       sockets.push(socket);
-      return socket as unknown as WebSocket;
+      return socket;
     },
     latest: () => {
       const socket = sockets[sockets.length - 1];

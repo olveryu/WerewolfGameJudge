@@ -6,8 +6,8 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
-} from '@/features/room/session/roomCommandResult';
-import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
+} from '@/features/room/link/roomCommandResult';
+import type { DispatchOutcome } from '@/platform/realtime/types';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -16,21 +16,18 @@ export interface RoomCommandSubmission<TState extends BaseGameState<string>> {
   readonly isSubmitting: boolean;
   readonly submit: (
     label: string,
-    operation: () => Promise<RoomCommandDispatchOutcome<TState>>,
+    operation: () => Promise<DispatchOutcome<TState>>,
   ) => Promise<boolean>;
 }
 
 export function useRoomCommandSubmission<TState extends BaseGameState<string>>(
-  getFailureMessage: (result: RoomCommandDispatchOutcome<TState>) => string,
+  getFailureMessage: (result: DispatchOutcome<TState>) => string,
 ): RoomCommandSubmission<TState> {
-  const submissionRef = useRef<Promise<RoomCommandDispatchOutcome<TState>> | null>(null);
+  const submissionRef = useRef<Promise<DispatchOutcome<TState>> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submit = useCallback(
-    async (
-      label: string,
-      operation: () => Promise<RoomCommandDispatchOutcome<TState>>,
-    ): Promise<boolean> => {
+    async (label: string, operation: () => Promise<DispatchOutcome<TState>>): Promise<boolean> => {
       if (submissionRef.current !== null) {
         throw new Error(`Room operation is already in progress while requesting ${label}`);
       }

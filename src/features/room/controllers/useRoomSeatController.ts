@@ -3,12 +3,12 @@
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useReducer, useRef } from 'react';
 
-import type { RoomSeatPendingAction } from '@/features/room/model/RoomSeatConfirmation';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
-} from '@/features/room/session/roomCommandResult';
-import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
+} from '@/features/room/link/roomCommandResult';
+import type { RoomSeatPendingAction } from '@/features/room/model/RoomSeatConfirmation';
+import type { DispatchOutcome } from '@/platform/realtime/types';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { translateReasonCode } from '@/utils/errorUtils';
@@ -27,7 +27,7 @@ type RoomSeatControllerEvent =
 
 interface UseRoomSeatControllerParams<TState extends BaseGameState<string>> {
   readonly currentSeat: number | null;
-  readonly takeSeat: (seat: number) => Promise<RoomCommandDispatchOutcome<TState>>;
+  readonly takeSeat: (seat: number) => Promise<DispatchOutcome<TState>>;
 }
 
 export interface RoomSeatController {
@@ -79,7 +79,7 @@ export function useRoomSeatController<TState extends BaseGameState<string>>({
   takeSeat,
 }: UseRoomSeatControllerParams<TState>): RoomSeatController {
   const [state, dispatch] = useReducer(transitionRoomSeatController, { kind: 'idle' });
-  const submissionRef = useRef<Promise<RoomCommandDispatchOutcome<TState>> | null>(null);
+  const submissionRef = useRef<Promise<DispatchOutcome<TState>> | null>(null);
 
   const requestTakeSeat = useCallback(
     (seat: number) => {
@@ -131,7 +131,7 @@ export function useRoomSeatController<TState extends BaseGameState<string>>({
     dispatch({ kind: 'SUBMIT' });
 
     let settled:
-      | { readonly kind: 'result'; readonly result: RoomCommandDispatchOutcome<TState> }
+      | { readonly kind: 'result'; readonly result: DispatchOutcome<TState> }
       | { readonly kind: 'error'; readonly error: unknown };
     try {
       settled = await submission.then(

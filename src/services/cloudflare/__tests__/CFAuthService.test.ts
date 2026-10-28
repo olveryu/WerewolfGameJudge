@@ -130,7 +130,7 @@ describe('CFAuthService session restore', () => {
     expect(tokens.refreshToken).toBe('rotated-refresh');
     expect(network.requests[1]).toMatchObject({
       url: 'https://api.test/auth/user',
-      headers: { Authorization: `Bearer ${refreshedToken}` },
+      headers: { authorization: `Bearer ${refreshedToken}` },
     });
   });
 

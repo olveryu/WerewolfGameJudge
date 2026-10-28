@@ -25,8 +25,8 @@ import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
-import type { RoomSessionClient } from '@/features/room/session/types';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
+import type { RoomLink } from '@/platform/realtime/types';
 import { werewolfRuntimeLog } from '@/utils/logger';
 
 import {
@@ -46,7 +46,7 @@ import type { WerewolfCommandDispatchOutcome, WerewolfGameClient } from './Werew
  */
 interface WerewolfGameClientRuntimeDeps {
   /** Single shared room session instance. */
-  roomSession: RoomSessionClient<GameState, WerewolfPublicCommand>;
+  roomSession: RoomLink<GameState, WerewolfPublicCommand>;
   /** Game-owned narration runtime. */
   audio: WerewolfAudioRuntime;
 }
@@ -55,7 +55,7 @@ interface WerewolfGameClientRuntimeDeps {
  * Werewolf command/audio client layered over the shared session.
  */
 export class WerewolfGameClientRuntime implements WerewolfGameClient {
-  readonly roomSession: RoomSessionClient<GameState, WerewolfPublicCommand>;
+  readonly roomSession: RoomLink<GameState, WerewolfPublicCommand>;
   readonly #audio: WerewolfAudioRuntime;
   readonly #audioOrchestrator: WerewolfAudioOrchestrator;
   #activeEpoch: number | null = null;
@@ -366,7 +366,7 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
       this.#initializedSnapshotEpoch = session.epoch;
       this.#audioOrchestrator.setWasAudioInterrupted(
         session.identity.room.hostUserId === session.identity.userId &&
-          session.snapshot.state.status === GameStatus.Ongoing,
+          session.room.state.status === GameStatus.Ongoing,
       );
     }
   }
@@ -376,13 +376,13 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
     if (session.phase !== 'ready') {
       throw new Error('[FAIL-FAST] Werewolf command requires a ready room session');
     }
-    return session.snapshot.state;
+    return session.room.state;
   }
 
   #getAudioRoomSnapshot(): WerewolfAudioRoomSnapshot | null {
     const session = this.roomSession.getSnapshot();
     if (session.phase !== 'ready') return null;
-    return { state: session.snapshot.state, connection: session.connection };
+    return { state: session.room.state };
   }
 
   #isActiveUserHost(): boolean {

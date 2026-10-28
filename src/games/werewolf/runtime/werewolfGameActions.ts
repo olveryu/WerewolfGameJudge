@@ -15,40 +15,27 @@ import {
   type WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
 
-import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
-import type {
-  PreparedRoomCommand,
-  RoomCommandDispatchOutcome,
-  RoomSessionClient,
-} from '@/features/room/session/types';
+import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
+import type { DispatchOutcome, RoomLink } from '@/platform/realtime/types';
 import { werewolfRuntimeLog } from '@/utils/logger';
 
 export interface GameActionsContext {
   readonly getState: () => GameState;
   readonly audio: WerewolfAudioRuntime;
-  readonly commands: RoomSessionClient<GameState, WerewolfPublicCommand>;
+  readonly commands: RoomLink<GameState, WerewolfPublicCommand>;
 }
 
-type WerewolfCommandDispatchOutcome = RoomCommandDispatchOutcome<GameState>;
-
-type AudioAckCommand = Extract<WerewolfPublicCommand, { readonly type: 'werewolf.audio.ack' }>;
-
-/** Audio ack envelope retained by the orchestrator until one receipt is observed. */
-export type PreparedAudioAck = PreparedRoomCommand<AudioAckCommand>;
+type WerewolfCommandDispatchOutcome = DispatchOutcome<GameState>;
 
 async function dispatchWerewolfCommand(
   ctx: GameActionsContext,
   command: WerewolfPublicCommand,
   controlledSeat: number | null,
   label: string,
-  isRecoverable = false,
+  durable = false,
 ): Promise<WerewolfCommandDispatchOutcome> {
-  return ctx.commands.dispatch(command, {
-    controlledSeat,
-    label,
-    ...(isRecoverable ? { isRecoverable: true } : {}),
-  });
+  return ctx.commands.dispatch(command, { controlledSeat, label, durable });
 }
 
 function getExpectedActionStep(state: GameState): WerewolfExpectedStep {
@@ -222,17 +209,9 @@ export function setWolfRobotHunterStatusViewed(
   );
 }
 
-/** Prepare one audio ack command for its initial send and any later recovery sends. */
-export function prepareAudioAck(ctx: GameActionsContext): PreparedAudioAck {
-  return ctx.commands.prepare({ type: 'werewolf.audio.ack' }, null);
-}
-
-/** Dispatch the exact prepared audio ack without minting a new command id. */
-export async function dispatchPreparedAudioAck(
-  ctx: GameActionsContext,
-  prepared: PreparedAudioAck,
-): Promise<WerewolfCommandDispatchOutcome> {
-  return ctx.commands.dispatchPrepared(prepared, 'postAudioAck');
+/** Durable audio ack: RoomLink replays it across sockets until the server decides. */
+export function postAudioAck(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
+  return dispatchWerewolfCommand(ctx, { type: 'werewolf.audio.ack' }, null, '音频确认', true);
 }
 
 export function postProgression(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {

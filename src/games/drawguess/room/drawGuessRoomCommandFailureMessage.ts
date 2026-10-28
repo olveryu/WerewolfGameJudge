@@ -14,7 +14,7 @@ import {
   ROOM_COMMAND_FAILURE_OCCUPIED_OUT_OF_RANGE,
   ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
   ROOM_COMMAND_FAILURE_WRONG_PHASE,
-} from '@/features/room/session/createRoomCommandFailureMessage';
+} from '@/features/room/link/createRoomCommandFailureMessage';
 
 /** 把房间命令的失败原因翻译成用户可读的中文。 */
 export const getDrawGuessRoomCommandFailureMessage =

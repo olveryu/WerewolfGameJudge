@@ -90,7 +90,7 @@ export function createPlatformEnvironment({
 }
 
 /** Browser source: visibility + focus/pageshow for WebView resume, online/offline for connectivity. */
-export function createWebEnvironmentSource(): EnvironmentSource {
+function createWebEnvironmentSource(): EnvironmentSource {
   return {
     readVisible: () => document.visibilityState === 'visible',
     readOnline: () => navigator.onLine,
@@ -112,7 +112,7 @@ export function createWebEnvironmentSource(): EnvironmentSource {
 }
 
 /** React Native source: AppState only; connectivity is unknown and reported as online. */
-export function createNativeEnvironmentSource(): EnvironmentSource {
+function createNativeEnvironmentSource(): EnvironmentSource {
   return {
     readVisible: () => AppState.currentState === 'active',
     readOnline: () => true,

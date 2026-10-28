@@ -174,7 +174,7 @@ function bottomMessage(state: PictionaryState, audience: RoomViewerAudience): st
     user: { id: viewer.userId, avatarUrl: null },
     gachaStatus: null,
     onUserActionPress: jest.fn(),
-    connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
+    connection: { status: { kind: 'live' }, pendingDurableCount: 0, onRetryNow: jest.fn() },
     state,
     seatSource: createPictionarySeatDataSource({
       state,

@@ -30,9 +30,9 @@ import {
 
 import { Modal } from '@/components/AppModal';
 import { UI_ICONS } from '@/config/iconTokens';
-import type { ActiveRoomIdentity } from '@/features/room/session/types';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { DisplayMessage } from '@/games/werewolf/state/WerewolfAIChatState';
+import type { RoomIdentity } from '@/platform/realtime/types';
 import { colors, componentSizes, fixed, typography } from '@/theme';
 
 import { BUBBLE_PULSE_MAX_SCALE, createStyles, getChatHeight } from './AIChatBubble.styles';
@@ -49,7 +49,7 @@ const PULSE_DURATION = 1000;
 
 interface AIChatBubbleProps {
   readonly client: WerewolfGameClient;
-  readonly identity: ActiveRoomIdentity<'werewolf'>;
+  readonly identity: RoomIdentity<'werewolf'>;
   /** When this transitions from false -> true, trigger a pulse animation */
   triggerPulse?: boolean;
 }

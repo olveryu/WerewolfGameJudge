@@ -15,7 +15,7 @@ import { getMvpGoldenDraws } from '@game-judge/game-engine/product/rewards';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useRef, useState } from 'react';
 
-import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
+import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import type { RootStackParamList } from '@/navigation/types';

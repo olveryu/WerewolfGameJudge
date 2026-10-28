@@ -758,9 +758,9 @@ describe('createFibRoomShellModel', () => {
       layout: { primary: [], secondary: [], ghost: [] },
     };
     const connection = {
-      status: 'live' as const,
-      pendingCommandCount: 0,
-      onManualReconnect: jest.fn(),
+      status: { kind: 'live' as const },
+      pendingDurableCount: 0,
+      onRetryNow: jest.fn(),
     };
     const onBack = jest.fn();
     const onSeatPress = jest.fn();
@@ -819,9 +819,9 @@ describe('createFibRoomShellModel', () => {
       gachaStatus: null,
       onUserActionPress: jest.fn(),
       connection: {
-        status: 'live' as const,
-        pendingCommandCount: 0,
-        onManualReconnect: jest.fn(),
+        status: { kind: 'live' as const },
+        pendingDurableCount: 0,
+        onRetryNow: jest.fn(),
       },
       state,
       seatSource: createFibSeatDataSource({

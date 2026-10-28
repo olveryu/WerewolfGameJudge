@@ -17,7 +17,7 @@ import type { WerewolfViewModel } from '@game-judge/game-engine/games/werewolf/p
 import type { UseMutationResult } from '@tanstack/react-query';
 import type { MutableRefObject } from 'react';
 
-import type { SuccessfulRoomCommandDispatchOutcome } from '@/features/room/session/roomCommandResult';
+import type { SuccessfulDispatchOutcome } from '@/features/room/link/roomCommandResult';
 import type { RevealAckPresentationGuard } from '@/games/werewolf/room/executors/presentRevealAckDialog';
 import type { ActionIntent, ActionIntentType } from '@/games/werewolf/room/policy/types';
 import type { UseRoomActionDialogsResult } from '@/games/werewolf/room/useRoomActionDialogs';
@@ -56,7 +56,7 @@ export interface ExecutorContext {
   proceedWithAction: (input: WerewolfActionInput) => Promise<WerewolfCommandDispatchOutcome>;
   confirmThenAct: (
     targetSeat: number,
-    onAccepted: (result: SuccessfulRoomCommandDispatchOutcome<GameState>) => Promise<void> | void,
+    onAccepted: (result: SuccessfulDispatchOutcome<GameState>) => Promise<void> | void,
     opts?: { title?: string; message?: string },
   ) => void;
 

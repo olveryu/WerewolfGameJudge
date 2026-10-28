@@ -26,7 +26,7 @@ import { NETWORK_ERROR, SERVER_ERROR } from '@/config/errorMessages';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
-} from '@/features/room/session/roomCommandResult';
+} from '@/features/room/link/roomCommandResult';
 import type {
   WerewolfCommandDispatchOutcome,
   WerewolfGameClient,
@@ -62,16 +62,18 @@ function handleCommandOutcome(
   onBusinessError?: BusinessErrorHandler,
 ): void {
   if (isSuccessfulRoomCommand(result)) return;
+  // The link epoch ended before a decision; a durable command replays on the next epoch.
+  if (result.kind === 'cancelled') return;
   const reason = getRoomCommandFailureReason(result);
 
   // No authoritative Worker decision is available, so the UI must not continue the workflow.
-  if (result.kind !== 'decided') {
+  if (result.kind === 'undelivered' || result.kind === 'unavailable') {
     showErrorAlert(`${actionLabel}失败`, reason === 'NETWORK_ERROR' ? NETWORK_ERROR : SERVER_ERROR);
     return;
   }
 
   // Pre-commit rejection has no state-driven rejection event, so it must be presented here.
-  if (result.decision.kind === 'rejected') {
+  if (result.kind === 'rejected') {
     (onBusinessError ?? toastError)(
       `${actionLabel}失败`,
       getWerewolfRoomCommandFailureMessage(result),
@@ -271,14 +273,14 @@ interface WerewolfGameActionsDeps {
 
   // Submit action. effectiveSeat is a UI eligibility check; only controlledSeat crosses the wire.
   // Business rejection UX is handled by the state-driven actionRejected effect
-  // in useActionOrchestrator. Network/server errors handled by handleMutationResult.
+  // in useActionOrchestrator. The command is durable: it resolves only with a decision.
   const submitAction = useCallback(
     async (input: WerewolfActionInput): Promise<WerewolfCommandDispatchOutcome> => {
       if (botControl.effectiveSeat === null) {
         throw new Error('[FAIL-FAST] Submitting a Werewolf action requires an effective seat');
       }
       const result = await client.submitAction(input, botControl.controlledSeat);
-      if (result.kind !== 'deliveryUnknown') handleCommandOutcome(result, '提交行动');
+      handleCommandOutcome(result, '提交行动');
       return result;
     },
     [botControl.controlledSeat, botControl.effectiveSeat, client],
@@ -328,7 +330,7 @@ interface WerewolfGameActionsDeps {
   const boardNominate = useCallback(
     async (displayName: string, roles: RoleId[]): Promise<void> => {
       const result = await client.boardNominate(displayName, roles);
-      if (isSuccessfulRoomCommand(result) && result.decision.outcome.reason === 'DEDUPLICATED') {
+      if (isSuccessfulRoomCommand(result) && result.outcome.reason === 'DEDUPLICATED') {
         toast.info('已有相同板子建议，已自动为你投票');
         return;
       }

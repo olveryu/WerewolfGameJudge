@@ -9,12 +9,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Animated, GestureResponderEvent } from 'react-native';
 
-import type { ActiveRoomIdentity } from '@/features/room/session/types';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { setAIChatBridgeListener } from '@/games/werewolf/services/aiChatBridge';
 import type { AIChatStorageOwner } from '@/games/werewolf/services/aiChatLocalStore';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import type { DisplayMessage } from '@/games/werewolf/state/WerewolfAIChatState';
+import type { RoomIdentity } from '@/platform/realtime/types';
 
 import { generateQuickQuestions } from './quickQuestions';
 import { useBubbleDrag } from './useBubbleDrag';
@@ -60,7 +60,7 @@ interface UseAIChatReturn {
 
 export function useAIChat(
   werewolfClient: WerewolfGameClient,
-  identity: ActiveRoomIdentity<'werewolf'>,
+  identity: RoomIdentity<'werewolf'>,
 ): UseAIChatReturn {
   const { roomSession } = werewolfClient;
   const storageOwner = useMemo<AIChatStorageOwner>(
@@ -97,7 +97,7 @@ export function useAIChat(
   useEffect(() => {
     if (isOpen) {
       const room = roomSession.getSnapshot();
-      const gameState = room.phase === 'ready' ? room.snapshot.state : null;
+      const gameState = room.phase === 'ready' ? room.room.state : null;
       const identity = room.phase === 'idle' ? null : room.identity;
       const mySeat = getWerewolfUserSeat(gameState, identity?.userId ?? null);
       setContextQuestions(generateQuickQuestions(gameState, mySeat));
@@ -109,7 +109,7 @@ export function useAIChat(
   useEffect(() => {
     if (prevStreamingRef.current && !chat.isStreaming) {
       const room = roomSession.getSnapshot();
-      const gameState = room.phase === 'ready' ? room.snapshot.state : null;
+      const gameState = room.phase === 'ready' ? room.room.state : null;
       const identity = room.phase === 'idle' ? null : room.identity;
       const mySeat = getWerewolfUserSeat(gameState, identity?.userId ?? null);
       setContextQuestions(generateQuickQuestions(gameState, mySeat));

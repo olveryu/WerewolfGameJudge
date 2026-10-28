@@ -15,9 +15,12 @@ import {
   getAvalonNightParticipants,
   isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { act, renderHook } from '@testing-library/react-native';
 
-import type { AvalonRoomSession } from '../../../model/AvalonRoomSession';
+import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
+
 import { useAvalonRoomState } from '../useAvalonRoomState';
 
 jest.mock('@/contexts/AuthContext', () => ({
@@ -145,50 +148,25 @@ function armedQuestState(): AvalonState {
   return game.state;
 }
 
-const successOutcome = {
-  kind: 'decided',
-  decision: { kind: 'committed', outcome: { kind: 'success' } },
-} as const;
-
-function createFakeSession(state: AvalonState, pendingCommandCount = 0) {
-  const dispatch = jest.fn(async () => successOutcome);
-  // useSyncExternalStore requires a stable snapshot reference across renders.
-  const snapshot = {
-    epoch: 1,
-    phase: 'ready',
-    connection: 'live',
-    pendingCommandCount,
-    lastRecoveredCommandRejection: null,
-    identity: { room: { roomCode: '1234' }, userId: 'host' },
-    lastCommand: null,
-    error: null,
-    snapshot: { gameType: 'avalon', stateVersion: 5, revision: 1, state },
-  } as const;
-  const session = {
-    getSnapshot: () => snapshot,
-    subscribe: () => () => undefined,
-    dispatch,
-    dispatchPrepared: jest.fn(async () => successOutcome),
-    prepare: jest.fn(() => {
-      throw new Error('prepare is not used by these scenarios');
+function createFakeSession(state: AvalonState, pendingDurableCount = 0) {
+  const session = createFakeRoomLink<AvalonState, AvalonPublicCommand>(
+    readyLinkSnapshot(testIdentity('avalon'), createRoomSnapshot(state, 1), {
+      pendingDurableCount,
     }),
-    connect: jest.fn(async () => ({ kind: 'connected' })),
-    reconnect: jest.fn(async () => ({ kind: 'connected' })),
-    disconnect: jest.fn(),
-    acknowledgeRecoveredCommandRejection: jest.fn(),
-  };
-  return { session: session as unknown as AvalonRoomSession, dispatch };
+    async () => successfulRoomCommand(state),
+  );
+  return { session, dispatch: session.dispatch };
 }
 
-function renderRoomState(state: AvalonState, pendingCommandCount = 0) {
-  const fake = createFakeSession(state, pendingCommandCount);
+function renderRoomState(state: AvalonState, pendingDurableCount = 0) {
+  const fake = createFakeSession(state, pendingDurableCount);
   const props = {
     session: fake.session,
     room: { roomCode: '1234' },
     navigation: { navigate: jest.fn() },
     entryController: {
       requestExit: jest.fn(),
-      connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
+      connection: { status: { kind: 'live' }, pendingDurableCount: 0, onRetryNow: jest.fn() },
     },
     audio: {
       preload: jest.fn(async () => undefined),
@@ -219,7 +197,7 @@ describe('useAvalonRoomState countdown expiry wiring', () => {
     });
     expect(dispatch).toHaveBeenCalledWith(
       { type: 'avalon.phase.expire' },
-      expect.objectContaining({ controlledSeat: null, isRecoverable: true }),
+      expect.objectContaining({ controlledSeat: null, durable: true }),
     );
     unmount();
   });
@@ -232,7 +210,7 @@ describe('useAvalonRoomState countdown expiry wiring', () => {
     });
     expect(dispatch).toHaveBeenCalledWith(
       { type: 'avalon.phase.expire' },
-      expect.objectContaining({ controlledSeat: null, isRecoverable: true }),
+      expect.objectContaining({ controlledSeat: null, durable: true }),
     );
     unmount();
   });

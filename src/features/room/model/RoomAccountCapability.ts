@@ -4,7 +4,7 @@ import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTyp
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import type { RoomProfileUpdate } from '@game-judge/game-engine/platform/room/roster';
 
-import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
+import type { DispatchOutcome, LinkPhase } from '@/platform/realtime/types';
 
 export interface RoomProfilePatch {
   readonly displayName?: string;
@@ -30,14 +30,15 @@ export function toRoomProfileUpdate(patch: RoomProfilePatch): RoomProfileUpdate 
 
 export interface GameRoomAccountSnapshot<TGameType extends string = GameType> {
   readonly gameType: TGameType;
-  readonly phase: 'idle' | 'entering' | 'ready' | 'failed';
+  readonly phase: LinkPhase;
   readonly isSeated: boolean;
   readonly canSwitchAccount: boolean;
   readonly canSyncProfile: boolean;
 }
 
-export type RoomAccountCommandOutcome<TGameType extends string = GameType> =
-  RoomCommandDispatchOutcome<BaseGameState<TGameType>>;
+export type RoomAccountCommandOutcome<TGameType extends string = GameType> = DispatchOutcome<
+  BaseGameState<TGameType>
+>;
 
 export interface RoomAccountCapability<TGameType extends string = GameType> {
   readonly gameType: TGameType;
@@ -57,7 +58,7 @@ export type ActiveRoomAccountSnapshot =
       readonly canSyncProfile: false;
     }
   | {
-      readonly phase: 'entering' | 'ready' | 'failed';
+      readonly phase: 'entering' | 'ready' | 'closed';
       readonly gameType: GameType;
       readonly isSeated: boolean;
       readonly canSwitchAccount: boolean;

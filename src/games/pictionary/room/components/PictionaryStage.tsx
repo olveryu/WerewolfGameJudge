@@ -7,8 +7,8 @@ import { StyleSheet, View } from 'react-native';
 
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
+import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
-import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -58,15 +58,15 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
     const current = session.getSnapshot();
     return (
       current.phase === 'ready' &&
-      current.connection === 'live' &&
-      current.pendingCommandCount === 0 &&
-      current.snapshot.state.phaseRevision === state.phaseRevision
+      current.status.kind === 'live' &&
+      current.pendingDurableCount === 0 &&
+      current.room.state.phaseRevision === state.phaseRevision
     );
   }, [canExpire, session, state.phaseRevision]);
   const onExpire = useCallback(async () => {
     const result = await session.dispatch(
       { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
-      { controlledSeat: null, label: '推进接龙阶段', isRecoverable: true },
+      { controlledSeat: null, label: '推进接龙阶段', durable: true },
     );
     if (!isSuccessfulRoomCommand(result)) {
       roomScreenLog.warn('Pictionary phase expiry was not accepted', {

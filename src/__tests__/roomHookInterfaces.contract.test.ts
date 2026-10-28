@@ -157,9 +157,9 @@ describe('stage deadline snapshot guard (AU-25/AU-47)', () => {
     const source = readSource(path);
     expect(source).toMatch(/getSnapshot\(\)/);
     expect(source).toMatch(/phase === 'ready'/);
-    expect(source).toMatch(/connection === 'live'/);
-    expect(source).toMatch(/pendingCommandCount === 0/);
-    expect(source).toMatch(/snapshot\.state\.phaseRevision === state\.phaseRevision/);
+    expect(source).toMatch(/status\.kind === 'live'/);
+    expect(source).toMatch(/pendingDurableCount === 0/);
+    expect(source).toMatch(/room\.state\.phaseRevision === state\.phaseRevision/);
   });
 });
 

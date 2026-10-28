@@ -151,7 +151,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     mockUseWerewolfRoomReturn = {
       gameState: toMockGameState(realState),
       viewModel: getWerewolfViewModel(realState, MY_SEAT),
-      connectionStatus: 'live',
       isHost: false,
       roomStatus: GameStatus.Ongoing,
       currentActionRole: 'witch',
@@ -252,7 +251,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     mockUseWerewolfRoomReturn = {
       gameState: toMockGameState(realState),
       viewModel: getWerewolfViewModel(realState, seerSeat),
-      connectionStatus: 'live',
       isHost: false,
       roomStatus: GameStatus.Ongoing,
       currentActionRole: 'seer',

@@ -20,10 +20,10 @@ import {
 } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import type { RoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomRosterController } from '@/features/room/controllers/useRoomRosterController';
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
@@ -104,12 +104,12 @@ export function usePictionaryRoomScreenState({
 }: UsePictionaryRoomScreenStateParams): PictionaryRoomScreenState {
   const { user } = useAuthContext();
   if (user === null) throw new Error('[FAIL-FAST] Ready Pictionary room requires a user');
-  const snapshot = useRoomSessionSnapshot(session);
+  const snapshot = useRoomLinkSnapshot(session);
   if (snapshot.phase !== 'ready') {
     throw new Error('[FAIL-FAST] Pictionary room content requires a ready session');
   }
-  const state = snapshot.snapshot.state;
-  const revision = snapshot.snapshot.revision;
+  const state = snapshot.room.state;
+  const revision = snapshot.room.revision;
   const isHost = state.hostUserId === user.id;
   const mySeat = getPictionaryUserSeat(state, user.id);
   const viewer = useMemo(
@@ -160,7 +160,7 @@ export function usePictionaryRoomScreenState({
   const submitCommand = useCallback(
     (label: string, command: PictionaryPublicCommand) =>
       commandSubmission.submit(label, () =>
-        session.dispatch(command, { controlledSeat: null, label }),
+        session.dispatch(command, { controlledSeat: null, label, durable: false }),
       ),
     [commandSubmission, session],
   );

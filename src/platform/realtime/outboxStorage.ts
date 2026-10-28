@@ -14,7 +14,7 @@ export interface DurableCommandRecord {
   readonly roomId: string;
   readonly userId: string;
   readonly commandId: string;
-  readonly command: Readonly<Record<string, unknown>>;
+  readonly command: object;
   readonly controlledSeat: number | null;
   readonly label: string;
   readonly createdAtMs: number;
@@ -53,6 +53,13 @@ function requireString(value: unknown, field: string): string {
   return value;
 }
 
+function requireInteger(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value)) {
+    throw new Error(`Outbox record ${field} must be an integer`);
+  }
+  return value;
+}
+
 function parseRecord(value: unknown): DurableCommandRecord {
   if (!isRecord(value)) throw new Error('Outbox record must be an object');
   const keys = Object.keys(value).sort().join(',');
@@ -60,21 +67,16 @@ function parseRecord(value: unknown): DurableCommandRecord {
     throw new Error(`Outbox record has unexpected fields: ${keys}`);
   }
   if (!isRecord(value.command)) throw new Error('Outbox record command must be an object');
-  if (value.controlledSeat !== null && !Number.isSafeInteger(value.controlledSeat)) {
-    throw new Error('Outbox record controlledSeat must be null or an integer');
-  }
-  if (!Number.isSafeInteger(value.createdAtMs)) {
-    throw new Error('Outbox record createdAtMs must be an integer');
-  }
   return {
     roomCode: requireString(value.roomCode, 'roomCode'),
     roomId: requireString(value.roomId, 'roomId'),
     userId: requireString(value.userId, 'userId'),
     commandId: requireString(value.commandId, 'commandId'),
     command: value.command,
-    controlledSeat: value.controlledSeat as number | null,
+    controlledSeat:
+      value.controlledSeat === null ? null : requireInteger(value.controlledSeat, 'controlledSeat'),
     label: requireString(value.label, 'label'),
-    createdAtMs: value.createdAtMs as number,
+    createdAtMs: requireInteger(value.createdAtMs, 'createdAtMs'),
   };
 }
 

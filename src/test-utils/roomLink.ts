@@ -5,6 +5,7 @@ import type {
   RoomSnapshot,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+import { parseClientFrame } from '@game-judge/game-engine/platform/realtime/protocol';
 
 import {
   createPlatformEnvironment,
@@ -13,7 +14,7 @@ import {
 } from '@/platform/env/PlatformEnvironment';
 import { createOutboxStorage, type OutboxStorage } from '@/platform/realtime/outboxStorage';
 import { createRoomLease, RoomLinkImpl } from '@/platform/realtime/RoomLink';
-import type { RoomIdentity } from '@/platform/realtime/types';
+import type { InboxWakeReason, RoomIdentity } from '@/platform/realtime/types';
 import { createSocketFactory } from '@/test-utils/fakeWebSocket';
 import {
   createMemoryTokenStorage,
@@ -34,19 +35,26 @@ export const TEST_CODEC: GameStateCodec<TestState> = {
   gameType: 'werewolf',
   stateVersion: 1,
   parse(value: unknown): TestState {
-    if (typeof value !== 'object' || value === null)
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
       throw new Error('Test state must be an object');
-    const state = value as Record<string, unknown>;
+    }
+    const fields: Partial<Record<keyof TestState, unknown>> = { ...value };
     if (
-      state.gameType !== 'werewolf' ||
-      state.stateVersion !== 1 ||
-      typeof state.roomCode !== 'string' ||
-      typeof state.hostUserId !== 'string' ||
-      typeof state.counter !== 'number'
+      fields.gameType !== 'werewolf' ||
+      fields.stateVersion !== 1 ||
+      typeof fields.roomCode !== 'string' ||
+      typeof fields.hostUserId !== 'string' ||
+      typeof fields.counter !== 'number'
     ) {
       throw new Error('Test state has invalid fields');
     }
-    return state as unknown as TestState;
+    return {
+      gameType: 'werewolf',
+      stateVersion: 1,
+      roomCode: fields.roomCode,
+      hostUserId: fields.hostUserId,
+      counter: fields.counter,
+    };
   },
 };
 
@@ -105,7 +113,7 @@ export interface LinkHarness {
   readonly env: FakeEnvironment;
   readonly outboxStorage: OutboxStorage;
   readonly protocolErrors: Error[];
-  readonly inboxHints: { count: number };
+  readonly inboxWakes: InboxWakeReason[];
   /** Drive connect() through socket open + sync so the link is live at `revision`. */
   goLive(revision?: number): Promise<void>;
 }
@@ -133,7 +141,7 @@ export function createLinkHarness(options?: {
   const outboxStorage =
     options?.outboxStorage ?? createOutboxStorage(createMemoryTokenStorage(), Date.now);
   const protocolErrors: Error[] = [];
-  const inboxHints = { count: 0 };
+  const inboxWakes: InboxWakeReason[] = [];
   let commandCounter = 0;
   const link = new RoomLinkImpl<TestState, TestCommand>({
     codec: TEST_CODEC,
@@ -147,10 +155,10 @@ export function createLinkHarness(options?: {
     now: Date.now,
     random: () => 0.5,
     setTimeout: (callback, delayMs) => setTimeout(callback, delayMs),
-    clearTimeout: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
+    clearTimeout: (handle) => clearTimeout(handle),
     onProtocolError: (error) => protocolErrors.push(error),
-    onInboxHint: () => {
-      inboxHints.count += 1;
+    onInboxWake: (reason) => {
+      inboxWakes.push(reason);
     },
   });
   openLinks.add(link);
@@ -162,13 +170,13 @@ export function createLinkHarness(options?: {
     env,
     outboxStorage,
     protocolErrors,
-    inboxHints,
+    inboxWakes,
     goLive: async (revision = 1) => {
       const connected = link.connect(IDENTITY, new AbortController().signal);
       await flush();
       const socket = sockets.latest();
       socket.serverOpen();
-      const sync = JSON.parse(socket.sent[0] ?? '{}') as { requestId: string };
+      const sync = parseClientFrame(JSON.parse(socket.sent[0] ?? '{}'));
       socket.serverSend({
         type: 'SYNC_RESULT',
         requestId: sync.requestId,

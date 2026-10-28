@@ -15,8 +15,8 @@ jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ canGoBack: () => true, goBack: mockGoBack }),
   useRoute: () => ({ params: mockRouteParams }),
 }));
-jest.mock('@/features/room/controllers/useRoomSessionSnapshot', () => ({
-  useRoomSessionSnapshot: () => mockSnapshot(),
+jest.mock('@/features/room/controllers/useRoomLinkSnapshot', () => ({
+  useRoomLinkSnapshot: () => mockSnapshot(),
 }));
 jest.mock('../RolesGuideContent', () => ({ RolesGuideContent: () => null }));
 jest.mock('../BoardsGuideContent', () => ({ BoardsGuideContent: () => null }));
@@ -67,7 +67,7 @@ describe('EncyclopediaScreen gameplay guide', () => {
     mockSnapshot.mockReturnValue({
       phase: 'ready',
       identity: { room: { roomCode: '1234' }, userId: 'player' },
-      snapshot: {
+      room: {
         state: {
           hostUserId: 'host',
           templateRoles: ['wolf', 'witch', 'villager'],
@@ -83,7 +83,7 @@ describe('EncyclopediaScreen gameplay guide', () => {
     mockSnapshot.mockReturnValue({
       phase: 'ready',
       identity: { room: { roomCode: '1234' }, userId: 'host' },
-      snapshot: {
+      room: {
         state: {
           hostUserId: 'host',
           templateRoles: ['wolf', 'witch', 'villager'],

@@ -29,11 +29,11 @@ import { RoomShell } from '@/features/room/components/RoomShell';
 import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
 import { StageFrame } from '@/features/room/components/StageFrame';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
 import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 import { ENDED_WAITING_MESSAGE } from '@/features/room/model/RoomBottomActions';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
-import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
 import type { DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
 import { ApiError } from '@/platform/http/ApiError';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
@@ -395,7 +395,7 @@ function DrawGuessDrawingView({
             phaseRevision: state.phaseRevision,
             turnIndex: state.turnIndex,
           },
-          { controlledSeat, label: '提交猜词' },
+          { controlledSeat, label: '提交猜词', durable: false },
         );
         if (!isSuccessfulRoomCommand(result))
           showErrorAlert('提交猜词失败', getDrawGuessRoomCommandFailureMessage(result));
@@ -518,7 +518,10 @@ function DrawGuessRoundEndView({
     if (!isDrawer || phase.reservation !== null || reserveFlight.current) return;
     reserveFlight.current = true;
     void session
-      .dispatch({ type: 'drawguess.drawing.reserve' }, { controlledSeat, label: '预留画作上传' })
+      .dispatch(
+        { type: 'drawguess.drawing.reserve' },
+        { controlledSeat, label: '预留画作上传', durable: false },
+      )
       .catch((error: unknown) => {
         reserveFlight.current = false;
         handleError(error, {

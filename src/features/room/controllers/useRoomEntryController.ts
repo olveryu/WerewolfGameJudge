@@ -1,14 +1,16 @@
-/** Single auth, entry, reconnect, retry, and exit controller for resolved rooms. */
+/** Single auth, entry, retry, and exit controller for resolved rooms. */
 
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
+import { getLinkCloseMessage } from '@/features/room/model/linkCloseMessages';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { RoomConnectionViewModel } from '@/features/room/model/RoomShellModel';
 import { addRecentRoom } from '@/features/room/services/recentRooms';
-import type { ActiveRoomIdentity, RoomSessionClient } from '@/features/room/session/types';
+import type { RoomIdentity, RoomLink } from '@/platform/realtime/types';
+import { RoomLinkClosedError } from '@/platform/realtime/types';
 import { showConfirmAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -20,7 +22,7 @@ interface UseRoomEntryControllerParams<
   TCommand extends object,
 > {
   readonly room: RoomRecord<TState['gameType']>;
-  readonly session: RoomSessionClient<TState, TCommand>;
+  readonly link: RoomLink<TState, TCommand>;
   readonly authUserId: string | null;
   readonly isAuthLoading: boolean;
   readonly onExit: () => void;
@@ -30,6 +32,7 @@ export interface RoomEntryController {
   readonly isReady: boolean;
   readonly isAuthRequired: boolean;
   readonly loadingMessage: string;
+  /** The link ended on a terminal reason; entering again requires a fresh connect. */
   readonly showRetryButton: boolean;
   readonly connection: RoomConnectionViewModel;
   readonly retry: () => void;
@@ -37,7 +40,7 @@ export interface RoomEntryController {
 }
 
 function matchesIdentity<TGameType extends string>(
-  identity: ActiveRoomIdentity<TGameType>,
+  identity: RoomIdentity<TGameType>,
   room: RoomRecord<TGameType>,
   userId: string,
 ): boolean {
@@ -55,15 +58,15 @@ export function useRoomEntryController<
   TCommand extends object,
 >({
   room,
-  session,
+  link,
   authUserId,
   isAuthLoading,
   onExit,
 }: UseRoomEntryControllerParams<TState, TCommand>): RoomEntryController {
-  const sessionSnapshot = useRoomSessionSnapshot(session);
+  const snapshot = useRoomLinkSnapshot(link);
+  const phase = snapshot.phase;
   const [retryGeneration, setRetryGeneration] = useState(0);
   const [isSlowConnection, setIsSlowConnection] = useState(false);
-  const reconnectAbortRef = useRef<AbortController | null>(null);
   const roomCreatedAtMs = room.createdAt.getTime();
   const stableRoom = useMemo<RoomRecord<TState['gameType']>>(
     () => ({
@@ -77,9 +80,9 @@ export function useRoomEntryController<
   );
 
   useEffect(() => {
-    if (authUserId === null || sessionSnapshot.phase !== 'ready') return;
-    const current = session.getSnapshot();
-    if (current.phase !== 'ready' || !matchesIdentity(current.identity, stableRoom, authUserId)) {
+    if (authUserId === null || phase !== 'ready') return;
+    const current = link.getSnapshot();
+    if (current.identity === null || !matchesIdentity(current.identity, stableRoom, authUserId)) {
       throw new Error('[FAIL-FAST] Ready room does not match recent-room identity');
     }
     try {
@@ -95,41 +98,33 @@ export function useRoomEntryController<
         alertMessage: '最近房间记录保存失败',
       });
     }
-  }, [authUserId, session, sessionSnapshot.phase, stableRoom]);
+  }, [authUserId, link, phase, stableRoom]);
 
   useEffect(() => {
     if (isAuthLoading || authUserId === null) return;
 
     const controller = new AbortController();
-    const identity: ActiveRoomIdentity<TState['gameType']> = {
-      room: stableRoom,
-      userId: authUserId,
-    };
+    const identity: RoomIdentity<TState['gameType']> = { room: stableRoom, userId: authUserId };
 
     const enter = async (): Promise<void> => {
-      const current = session.getSnapshot();
-      if (current.phase === 'ready') {
+      const current = link.getSnapshot();
+      if (current.identity !== null && current.status.kind !== 'closed') {
         if (!matchesIdentity(current.identity, stableRoom, authUserId)) {
-          throw new Error('[FAIL-FAST] Resolved room does not match the active room session');
+          throw new Error('[FAIL-FAST] Resolved room does not match the active room link');
         }
         return;
       }
-      if (current.phase === 'failed') {
-        if (!matchesIdentity(current.identity, stableRoom, authUserId)) {
-          throw new Error('[FAIL-FAST] Failed room identity changed before retry');
-        }
-        session.disconnect();
-      } else if (current.phase !== 'idle') {
-        throw new Error(`[FAIL-FAST] Room entry started while session was ${current.phase}`);
-      }
-
-      const outcome = await session.connect(identity, controller.signal);
-      if (outcome.kind === 'superseded' && !controller.signal.aborted) {
-        throw new Error('[FAIL-FAST] Room entry was superseded without effect cleanup');
-      }
+      // A terminal close keeps its identity until released; retry starts a fresh epoch.
+      if (current.status.kind === 'closed') link.close();
+      await link.connect(identity, controller.signal);
     };
 
     void enter().catch((error: unknown) => {
+      // Terminal closes are presented by the entry boundary from the link status itself.
+      if (controller.signal.aborted || error instanceof RoomLinkClosedError) {
+        roomScreenLog.warn('room entry ended', { error: String(error) });
+        return;
+      }
       handleError(error, {
         label: '加入房间',
         logger: roomScreenLog,
@@ -139,61 +134,35 @@ export function useRoomEntryController<
 
     return () => {
       controller.abort();
-      const current = session.getSnapshot();
-      if (current.phase !== 'idle' && matchesIdentity(current.identity, stableRoom, authUserId)) {
-        session.disconnect();
+      const current = link.getSnapshot();
+      if (current.identity !== null && matchesIdentity(current.identity, stableRoom, authUserId)) {
+        link.close();
       }
     };
-  }, [authUserId, isAuthLoading, retryGeneration, session, stableRoom]);
+  }, [authUserId, isAuthLoading, retryGeneration, link, stableRoom]);
 
   useEffect(() => {
-    if (sessionSnapshot.phase !== 'entering') {
+    if (phase !== 'entering') {
       setIsSlowConnection(false);
       return;
     }
     const timeout = setTimeout(() => setIsSlowConnection(true), SLOW_CONNECTION_HINT_MS);
     return () => clearTimeout(timeout);
-  }, [sessionSnapshot.phase, sessionSnapshot.epoch]);
+  }, [phase, snapshot.epoch]);
 
   const retry = useCallback(() => {
-    if (session.getSnapshot().phase !== 'failed') {
-      throw new Error('[FAIL-FAST] Room entry retry requires a failed session');
+    if (link.getSnapshot().status.kind !== 'closed') {
+      throw new Error('[FAIL-FAST] Room entry retry requires a closed link');
     }
     setRetryGeneration((generation) => generation + 1);
-  }, [session]);
+  }, [link]);
 
-  const manualReconnect = useCallback(() => {
-    if (reconnectAbortRef.current !== null) {
-      throw new Error('[FAIL-FAST] Room reconnect is already in progress');
-    }
-    const controller = new AbortController();
-    reconnectAbortRef.current = controller;
-    void session
-      .reconnect(controller.signal)
-      .catch((error: unknown) => {
-        handleError(error, {
-          label: '重新连接房间',
-          logger: roomScreenLog,
-          alertMessage: '重新连接失败，请稍后重试',
-        });
-      })
-      .finally(() => {
-        if (reconnectAbortRef.current === controller) reconnectAbortRef.current = null;
-      });
-  }, [session]);
-
-  useEffect(
-    () => () => {
-      reconnectAbortRef.current?.abort();
-      reconnectAbortRef.current = null;
-    },
-    [],
-  );
+  const retryNow = useCallback(() => link.retryNow(), [link]);
 
   const performExit = useCallback(() => {
-    session.disconnect();
+    link.close();
     onExit();
-  }, [onExit, session]);
+  }, [onExit, link]);
 
   const requestExit = useCallback(
     (shouldConfirm: boolean) => {
@@ -206,20 +175,21 @@ export function useRoomEntryController<
     [performExit],
   );
 
+  const status = snapshot.status;
   return {
-    isReady: sessionSnapshot.phase === 'ready',
+    isReady: phase === 'ready',
     isAuthRequired: !isAuthLoading && authUserId === null,
     loadingMessage:
-      sessionSnapshot.phase === 'failed'
-        ? '加入房间失败，请重试'
+      status.kind === 'closed'
+        ? getLinkCloseMessage(status.reason)
         : isSlowConnection
           ? '网络较慢，请耐心等待'
           : '正在加入房间',
-    showRetryButton: sessionSnapshot.phase === 'failed',
+    showRetryButton: status.kind === 'closed' && status.reason !== 'released',
     connection: {
-      status: sessionSnapshot.connection,
-      pendingCommandCount: sessionSnapshot.pendingCommandCount,
-      onManualReconnect: manualReconnect,
+      status,
+      pendingDurableCount: snapshot.pendingDurableCount,
+      onRetryNow: retryNow,
     },
     retry,
     requestExit,

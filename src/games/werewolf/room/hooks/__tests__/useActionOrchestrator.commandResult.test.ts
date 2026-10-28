@@ -6,13 +6,14 @@ import {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react-native';
 
-import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
 import type { UseRoomActionDialogsResult } from '@/games/werewolf/room/useRoomActionDialogs';
 import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
+import type { DispatchOutcome } from '@/platform/realtime/types';
 import {
   domainRejectedRoomCommand,
   rejectedRoomCommand,
   successfulRoomCommand,
+  undeliveredRoomCommand,
 } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
@@ -35,7 +36,7 @@ function createDialogs(onConfirmDialog: (callback: ConfirmCallback) => void) {
 }
 
 function createParams(
-  commandResult: RoomCommandDispatchOutcome<GameState>,
+  commandResult: DispatchOutcome<GameState>,
   dialogs: UseRoomActionDialogsResult,
 ) {
   const state = buildWerewolfTestState({ status: GameStatus.Ongoing });
@@ -77,20 +78,13 @@ function requireCallback(callback: ConfirmCallback | null): ConfirmCallback {
 describe('useActionOrchestrator command decisions', () => {
   const state = buildWerewolfTestState({ status: GameStatus.Ongoing });
 
-  it.each<[string, RoomCommandDispatchOutcome<GameState>, boolean]>([
+  it.each<[string, DispatchOutcome<GameState>, boolean]>([
     ['committed success', successfulRoomCommand(state), true],
     ['committed domain rejection', domainRejectedRoomCommand(state, 'invalid_action'), false],
     ['pre-commit rejection', rejectedRoomCommand<GameState>('invalid_session'), false],
-    [
-      'not decided',
-      { kind: 'notDecided', commandId: 'not-decided', reason: 'SERVER_ERROR' },
-      false,
-    ],
-    [
-      'delivery unknown',
-      { kind: 'deliveryUnknown', commandId: 'unknown', reason: 'NETWORK_ERROR' },
-      false,
-    ],
+    ['room unavailable', { kind: 'unavailable', commandId: 'unavailable' }, false],
+    ['undelivered', undeliveredRoomCommand<GameState>('network', 'undelivered'), false],
+    ['cancelled', { kind: 'cancelled', commandId: 'cancelled' }, false],
   ])(
     'uses the authoritative acceptance state for %s',
     async (_label, commandResult, shouldClear) => {

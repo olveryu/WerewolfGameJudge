@@ -12,9 +12,15 @@ import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/ro
 
 import type { CommandTransport } from './commandTransport';
 import type { DurableCommandRecord, OutboxStorage } from './outboxStorage';
-import type { DispatchOptions, DispatchOutcome, PreparedCommand, RoomIdentity } from './types';
+import type {
+  DispatchOptions,
+  DispatchOutcome,
+  PreparedCommand,
+  RoomIdentity,
+  TimerHandle,
+} from './types';
 
-export const REPLAY_LADDER_MS = [1_000, 3_000, 10_000, 30_000] as const;
+const REPLAY_LADDER_MS = [1_000, 3_000, 10_000, 30_000] as const;
 
 interface PendingIntent<TState extends BaseGameState<string>> {
   readonly prepared: PreparedCommand<object>;
@@ -39,8 +45,8 @@ export interface CommandOutboxOptions<TState extends BaseGameState<string>> {
   readonly storage: OutboxStorage;
   readonly newCommandId: () => string;
   readonly now: () => number;
-  readonly setTimeout: (callback: () => void, delayMs: number) => unknown;
-  readonly clearTimeout: (handle: unknown) => void;
+  readonly setTimeout: (callback: () => void, delayMs: number) => TimerHandle;
+  readonly clearTimeout: (handle: TimerHandle) => void;
   /** Called with every committed snapshot so the link can converge before the caller sees it. */
   readonly onCommitted: (outcome: Extract<DispatchOutcome<TState>, { kind: 'committed' }>) => void;
   readonly onPendingDurableCount: (count: number) => void;
@@ -51,7 +57,7 @@ export class CommandOutbox<TState extends BaseGameState<string>> {
   readonly #intents = new Map<string, PendingIntent<TState>>();
   readonly #abort = new AbortController();
   #liveGeneration: number | null = null;
-  #replayTimer: unknown = null;
+  #replayTimer: TimerHandle | null = null;
   #disposed = false;
 
   constructor(options: CommandOutboxOptions<TState>) {
@@ -85,14 +91,6 @@ export class CommandOutbox<TState extends BaseGameState<string>> {
     this.#publishCount();
   }
 
-  prepare<TCommand extends object>(
-    command: TCommand,
-    controlledSeat: number | null,
-  ): PreparedCommand<TCommand> {
-    this.#assertActive();
-    return this.#prepare(command, controlledSeat, this.#options.newCommandId());
-  }
-
   dispatch(command: object, options: DispatchOptions): Promise<DispatchOutcome<TState>> {
     this.#assertActive();
     const probe = this.#prepare(command, options.controlledSeat, 'probe');
@@ -105,26 +103,6 @@ export class CommandOutbox<TState extends BaseGameState<string>> {
       throw new Error('[FAIL-FAST] Durability changed for one pending intent');
     }
     return this.#await(key, intent);
-  }
-
-  /** Send an already prepared envelope once; never durable. */
-  dispatchPrepared(
-    prepared: PreparedCommand<object>,
-    label: string,
-  ): Promise<DispatchOutcome<TState>> {
-    this.#assertActive();
-    if (prepared.epoch !== this.#options.epoch) {
-      throw new Error('[FAIL-FAST] Prepared command belongs to a stale link epoch');
-    }
-    const key = intentKey(prepared);
-    const existing = this.#intents.get(key);
-    if (existing !== undefined) {
-      if (existing.prepared.commandId !== prepared.commandId) {
-        throw new Error('[FAIL-FAST] Two command IDs for one pending intent');
-      }
-      return this.#await(key, existing);
-    }
-    return this.#await(key, this.#register(key, prepared, label, false));
   }
 
   /** The link became live on `generation`; replay every durable intent not yet tried on it. */
@@ -190,7 +168,7 @@ export class CommandOutbox<TState extends BaseGameState<string>> {
         roomId: prepared.roomId,
         userId: identity.userId,
         commandId: prepared.commandId,
-        command: prepared.command as Record<string, unknown>,
+        command: prepared.command,
         controlledSeat: prepared.controlledSeat,
         label,
         createdAtMs: now(),

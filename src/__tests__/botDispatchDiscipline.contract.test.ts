@@ -91,12 +91,16 @@ function expectParameterizedSubmit(source: string): void {
   expect(source).toMatch(
     /const submit = \(label: string, command: \w+, control: number \| null = null\)/,
   );
-  expect(source).toMatch(/session\.dispatch\(command, \{ controlledSeat: control, label \}\)/);
+  expect(source).toMatch(
+    /session\.dispatch\(command, \{ controlledSeat: control, label, durable: false \}\)/,
+  );
   expect(source).not.toMatch(AMBIENT_CONTROLLED_SEAT_FUNNEL);
 }
 
 function expectHardcodedNullSubmit(source: string): void {
-  expect(source).toMatch(/session\.dispatch\(command, \{ controlledSeat: null, label \}\)/);
+  expect(source).toMatch(
+    /session\.dispatch\(command, \{ controlledSeat: null, label, durable: false \}\)/,
+  );
   expect(source).not.toMatch(AMBIENT_CONTROLLED_SEAT_FUNNEL);
 }
 

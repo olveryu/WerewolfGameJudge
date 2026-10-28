@@ -1,4 +1,4 @@
-/** Shared RoomSession projection for product-level account operations. */
+/** Shared RoomLink projection for product-level account operations. */
 
 import type {
   RoomProfileUpdateCommand,
@@ -17,19 +17,17 @@ import type {
   RoomProfilePatch,
 } from '@/features/room/model/RoomAccountCapability';
 import { toRoomProfileUpdate } from '@/features/room/model/RoomAccountCapability';
-import { updateRoomProfile } from '@/features/room/session/roomProfileCommandClient';
+import type { DispatchOutcome, LinkSnapshot } from '@/platform/realtime/types';
+
+import { updateRoomProfile } from './roomProfileCommandClient';
 import {
   leaveRoomSeat,
+  type RoomCommandContext,
   type RoomSeatCommandContext,
-} from '@/features/room/session/roomSeatCommandClient';
-import type {
-  RoomCommandContext,
-  RoomCommandDispatchOutcome,
-  RoomSessionSnapshot,
-} from '@/features/room/session/types';
+} from './roomSeatCommandClient';
 
-interface RoomAccountSession<TState extends BaseGameState<string>> {
-  getSnapshot(): RoomSessionSnapshot<TState>;
+interface RoomAccountLink<TState extends BaseGameState<string>> {
+  getSnapshot(): LinkSnapshot<TState>;
   subscribe(listener: () => void): () => void;
 }
 
@@ -37,41 +35,41 @@ type RoomAccountCommand =
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | RoomSeatCommand<RoomSeatProfile>;
 
-interface RoomAccountCommandSession<TState extends BaseGameState<string>>
-  extends RoomAccountSession<TState>, RoomCommandContext<TState, RoomAccountCommand> {}
+interface RoomAccountCommandLink<TState extends BaseGameState<string>>
+  extends RoomAccountLink<TState>, RoomCommandContext<TState, RoomAccountCommand> {}
 
-interface SessionRoomAccountCapabilityDeps<
+interface LinkRoomAccountCapabilityDeps<
   TGameType extends string,
   TState extends BaseGameState<TGameType>,
 > {
   readonly gameType: TGameType;
-  readonly session: RoomAccountSession<TState>;
+  readonly link: RoomAccountLink<TState>;
   readonly isUserSeated: (state: TState, userId: string) => boolean;
   readonly canSwitchAccount: (state: TState) => boolean;
-  readonly updateProfile: (patch: RoomProfilePatch) => Promise<RoomCommandDispatchOutcome<TState>>;
-  readonly leaveSeat: () => Promise<RoomCommandDispatchOutcome<TState>>;
+  readonly updateProfile: (patch: RoomProfilePatch) => Promise<DispatchOutcome<TState>>;
+  readonly leaveSeat: () => Promise<DispatchOutcome<TState>>;
 }
 
-interface CreateSessionRoomAccountCapabilityParams<
+interface CreateLinkRoomAccountCapabilityParams<
   TGameType extends string,
   TState extends BaseGameState<TGameType>,
 > {
   readonly gameType: TGameType;
-  readonly session: RoomAccountCommandSession<TState>;
+  readonly link: RoomAccountCommandLink<TState>;
   readonly isUserSeated: (state: TState, userId: string) => boolean;
   readonly canSwitchAccount: (state: TState) => boolean;
 }
 
-export class SessionRoomAccountCapability<
+export class LinkRoomAccountCapability<
   TGameType extends string,
   TState extends BaseGameState<TGameType>,
 > implements RoomAccountCapability<TGameType> {
   readonly gameType: TGameType;
-  readonly #deps: SessionRoomAccountCapabilityDeps<TGameType, TState>;
-  #lastSessionSnapshot: RoomSessionSnapshot<TState> | null = null;
+  readonly #deps: LinkRoomAccountCapabilityDeps<TGameType, TState>;
+  #lastLinkSnapshot: LinkSnapshot<TState> | null = null;
   #lastSnapshot: GameRoomAccountSnapshot<TGameType>;
 
-  constructor(deps: SessionRoomAccountCapabilityDeps<TGameType, TState>) {
+  constructor(deps: LinkRoomAccountCapabilityDeps<TGameType, TState>) {
     this.gameType = deps.gameType;
     this.#deps = deps;
     this.#lastSnapshot = Object.freeze({
@@ -84,56 +82,44 @@ export class SessionRoomAccountCapability<
   }
 
   getSnapshot(): GameRoomAccountSnapshot<TGameType> {
-    const session = this.#deps.session.getSnapshot();
-    if (session === this.#lastSessionSnapshot) return this.#lastSnapshot;
-    this.#lastSessionSnapshot = session;
+    const link = this.#deps.link.getSnapshot();
+    if (link === this.#lastLinkSnapshot) return this.#lastSnapshot;
+    this.#lastLinkSnapshot = link;
 
-    if (session.phase === 'idle') {
+    if (link.phase !== 'ready') {
       this.#lastSnapshot = Object.freeze({
         gameType: this.gameType,
-        phase: 'idle',
+        phase: link.phase,
         isSeated: false,
-        canSwitchAccount: true,
-        canSyncProfile: false,
-      });
-      return this.#lastSnapshot;
-    }
-    if (session.phase !== 'ready') {
-      this.#lastSnapshot = Object.freeze({
-        gameType: this.gameType,
-        phase: session.phase,
-        isSeated: false,
-        canSwitchAccount: false,
+        canSwitchAccount: link.phase === 'idle',
         canSyncProfile: false,
       });
       return this.#lastSnapshot;
     }
 
-    const isSeated = this.#deps.isUserSeated(session.snapshot.state, session.identity.userId);
+    const isSeated = this.#deps.isUserSeated(link.room.state, link.identity.userId);
     this.#lastSnapshot = Object.freeze({
       gameType: this.gameType,
       phase: 'ready',
       isSeated,
-      canSwitchAccount: this.#deps.canSwitchAccount(session.snapshot.state),
+      canSwitchAccount: this.#deps.canSwitchAccount(link.room.state),
       canSyncProfile: isSeated,
     });
     return this.#lastSnapshot;
   }
 
   subscribe(listener: () => void): () => void {
-    return this.#deps.session.subscribe(listener);
+    return this.#deps.link.subscribe(listener);
   }
 
-  readonly updateProfile = async (
-    patch: RoomProfilePatch,
-  ): Promise<RoomCommandDispatchOutcome<TState>> => {
+  readonly updateProfile = async (patch: RoomProfilePatch): Promise<DispatchOutcome<TState>> => {
     if (!this.getSnapshot().canSyncProfile) {
       throw new Error('[FAIL-FAST] Active room profile sync requires a seated player');
     }
     return this.#deps.updateProfile(patch);
   };
 
-  readonly leaveSeat = async (): Promise<RoomCommandDispatchOutcome<TState>> => {
+  readonly leaveSeat = async (): Promise<DispatchOutcome<TState>> => {
     if (!this.getSnapshot().isSeated) {
       throw new Error('[FAIL-FAST] Active room leave requires a seated player');
     }
@@ -141,34 +127,34 @@ export class SessionRoomAccountCapability<
   };
 }
 
-export function createSessionRoomAccountCapability<
+export function createLinkRoomAccountCapability<
   TGameType extends string,
   TState extends BaseGameState<TGameType>,
 >({
   gameType,
-  session,
+  link,
   isUserSeated,
   canSwitchAccount,
-}: CreateSessionRoomAccountCapabilityParams<TGameType, TState>): SessionRoomAccountCapability<
+}: CreateLinkRoomAccountCapabilityParams<TGameType, TState>): LinkRoomAccountCapability<
   TGameType,
   TState
 > {
   const profileContext: RoomCommandContext<TState, RoomProfileUpdateCommand<RoomProfileUpdate>> = {
-    dispatch: (command, options) => session.dispatch(command, options),
+    dispatch: (command, options) => link.dispatch(command, options),
   };
   const seatContext: RoomSeatCommandContext<TState, RoomSeatProfile> = {
-    dispatch: (command, options) => session.dispatch(command, options),
+    dispatch: (command, options) => link.dispatch(command, options),
   };
 
-  return new SessionRoomAccountCapability({
+  return new LinkRoomAccountCapability({
     gameType,
-    session,
+    link,
     isUserSeated,
     canSwitchAccount,
     updateProfile: (patch) => {
-      const snapshot = session.getSnapshot();
+      const snapshot = link.getSnapshot();
       if (snapshot.phase !== 'ready') {
-        throw new Error('[FAIL-FAST] Room profile update requires a ready room session');
+        throw new Error('[FAIL-FAST] Room profile update requires a ready room link');
       }
       const profile = toRoomProfileUpdate({
         ...patch,

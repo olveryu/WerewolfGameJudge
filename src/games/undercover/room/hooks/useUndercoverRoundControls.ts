@@ -144,7 +144,9 @@ export function useUndercoverRoundControls(
     };
   }, []);
   const submit = (label: string, command: UndercoverPublicCommand, control: number | null = null) =>
-    submission.submit(label, () => session.dispatch(command, { controlledSeat: control, label }));
+    submission.submit(label, () =>
+      session.dispatch(command, { controlledSeat: control, label, durable: false }),
+    );
   const roundId =
     state.phase === 'preparing' || state.phase === 'preparationFailed'
       ? state.pendingRound.roundId

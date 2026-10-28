@@ -23,8 +23,8 @@ import {
 } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
 import {
   deriveRemainingRevealCards,
@@ -91,10 +91,10 @@ export function useDemoRoomState(
 ): DemoRoomScreenState {
   const { session, room, navigation, entryController } = props;
   const { user } = useAuthContext();
-  const snapshot = useRoomSessionSnapshot(session);
+  const snapshot = useRoomLinkSnapshot(session);
   if (user === null || snapshot.phase !== 'ready')
     throw new Error('Demo requires an authenticated ready session');
-  const state = snapshot.snapshot.state;
+  const state = snapshot.room.state;
   const isHost = state.hostUserId === user.id;
   const mySeat = getDemoUserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
@@ -134,7 +134,9 @@ export function useDemoRoomState(
   // 身份；座位动作（以被接管机器人身份发出的查看等）由调用方显式传
   // controlledSeat。
   const submit = (label: string, command: DemoCommand, control: number | null = null) =>
-    submission.submit(label, () => session.dispatch(command, { controlledSeat: control, label }));
+    submission.submit(label, () =>
+      session.dispatch(command, { controlledSeat: control, label, durable: false }),
+    );
   const [roleCardVisible, setRoleCardVisible] = useState(false);
   const onViewRolePress = () => {
     setRoleCardVisible(true);
@@ -202,7 +204,7 @@ export function useDemoRoomState(
     onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
     connection: entryController.connection,
     state,
-    revision: snapshot.snapshot.revision,
+    revision: snapshot.room.revision,
     controlledSeat,
     seatsVisuallyDisabled: submission.isSubmitting || seatController.isSubmitting,
     onSeatPress,

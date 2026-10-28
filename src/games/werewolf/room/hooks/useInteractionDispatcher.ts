@@ -15,9 +15,9 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useMemo, useRef } from 'react';
 import { toast } from 'sonner-native';
 
+import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
 import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
-import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
 import { useWerewolfPendingAcks } from '@/games/werewolf/hooks/useWerewolfPendingAcks';
 import {
   getInteractionResult,

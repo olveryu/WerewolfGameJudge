@@ -14,12 +14,14 @@ import {
   getAvalonNightParticipants,
   isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { act, renderHook } from '@testing-library/react-native';
 
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
+import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { showErrorAlert } from '@/utils/alertPresets';
 
-import type { AvalonRoomSession } from '../../../model/AvalonRoomSession';
 import { useAvalonRoomState } from '../useAvalonRoomState';
 
 jest.mock('@/contexts/AuthContext', () => ({
@@ -126,39 +128,12 @@ function buildNominateWithBots(): AvalonState {
   return state;
 }
 
-const successOutcome = {
-  kind: 'decided',
-  decision: { kind: 'committed', outcome: { kind: 'success' } },
-} as const;
-
 function createFakeSession(state: AvalonState) {
-  const dispatch = jest.fn(async () => successOutcome);
-  // useSyncExternalStore requires a stable snapshot reference across renders.
-  const snapshot = {
-    epoch: 1,
-    phase: 'ready',
-    connection: 'live',
-    pendingCommandCount: 0,
-    lastRecoveredCommandRejection: null,
-    identity: { room: { roomCode: '1234' }, userId: 'host' },
-    lastCommand: null,
-    error: null,
-    snapshot: { gameType: 'avalon', stateVersion: 7, revision: 1, state },
-  } as const;
-  const session = {
-    getSnapshot: () => snapshot,
-    subscribe: () => () => undefined,
-    dispatch,
-    dispatchPrepared: jest.fn(async () => successOutcome),
-    prepare: jest.fn(() => {
-      throw new Error('prepare is not used by these scenarios');
-    }),
-    connect: jest.fn(async () => ({ kind: 'connected' })),
-    reconnect: jest.fn(async () => ({ kind: 'connected' })),
-    disconnect: jest.fn(),
-    acknowledgeRecoveredCommandRejection: jest.fn(),
-  };
-  return { session: session as unknown as AvalonRoomSession, dispatch };
+  const session = createFakeRoomLink<AvalonState, AvalonPublicCommand>(
+    readyLinkSnapshot(testIdentity('avalon'), createRoomSnapshot(state, 1)),
+    async () => successfulRoomCommand(state),
+  );
+  return { session, dispatch: session.dispatch };
 }
 
 function renderRoomState(state: AvalonState) {
@@ -169,7 +144,7 @@ function renderRoomState(state: AvalonState) {
     navigation: { navigate: jest.fn() },
     entryController: {
       requestExit: jest.fn(),
-      connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
+      connection: { status: { kind: 'live' }, pendingDurableCount: 0, onRetryNow: jest.fn() },
     },
     audio: {
       preload: jest.fn(async () => undefined),
@@ -305,11 +280,11 @@ describe('useAvalonRoomState takeover nomination modal', () => {
     expect(result.current.teamPickModal).toBeNull();
     expect(dispatch).toHaveBeenCalledWith(
       { type: 'avalon.team.updateDraft', seats: team },
-      expect.objectContaining({ controlledSeat: leaderSeat, label: '更新草稿' }),
+      expect.objectContaining({ controlledSeat: leaderSeat, label: '更新草稿', durable: false }),
     );
     expect(dispatch).toHaveBeenCalledWith(
       { type: 'avalon.team.preselect' },
-      expect.objectContaining({ controlledSeat: leaderSeat, label: '预选队伍' }),
+      expect.objectContaining({ controlledSeat: leaderSeat, label: '预选队伍', durable: false }),
     );
   });
 });

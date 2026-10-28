@@ -7,7 +7,7 @@ import {
   replaceWithCreatedRoom,
   returnToActiveRoom,
 } from '@/features/room/navigation/roomFlowNavigation';
-import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
+import type { DispatchOutcome } from '@/platform/realtime/types';
 import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
 
@@ -19,9 +19,9 @@ interface RoomConfigSubmissionInput<TState extends BaseGameState<string>> {
     | { readonly mode: 'create' }
     | { readonly mode: 'edit'; readonly roomCode: string };
   readonly navigation: Parameters<typeof returnToActiveRoom>[0];
-  readonly getFailureMessage: (result: RoomCommandDispatchOutcome<TState>) => string;
+  readonly getFailureMessage: (result: DispatchOutcome<TState>) => string;
   readonly createRequest: () => RoomCreationRequest;
-  readonly updateConfig: () => Promise<RoomCommandDispatchOutcome<TState>>;
+  readonly updateConfig: () => Promise<DispatchOutcome<TState>>;
   readonly creationLabel: string;
 }
 

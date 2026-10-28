@@ -19,8 +19,8 @@ import { Button } from '@/components/Button';
 import { GameScreen, GameScreenContent, GameScreenFooter } from '@/components/GameScreen';
 import { gameSettingsStyles as styles } from '@/components/GameSettings.styles';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import type { RoomSessionClient } from '@/features/room/session/types';
 import type { RootStackParamList } from '@/navigation/types';
+import type { RoomLink } from '@/platform/realtime/types';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes } from '@/theme';
 
@@ -50,16 +50,12 @@ export function createGameConfigScreen<
   displayName,
   definition,
 }: CreateGameConfigScreenInput<TGameType, TState, TCommand, TConfig>): React.ComponentType<{
-  readonly session: RoomSessionClient<TState, TCommand>;
+  readonly session: RoomLink<TState, TCommand>;
 }> {
   const Extra = definition.Extra;
   const summary = definition.summary ?? describeDefaultSummary;
 
-  function GameConfigScreen({
-    session,
-  }: {
-    readonly session: RoomSessionClient<TState, TCommand>;
-  }) {
+  function GameConfigScreen({ session }: { readonly session: RoomLink<TState, TCommand> }) {
     const navigation = useNavigation<ConfigNavigation>();
     const route = useRoute<RouteProp<RootStackParamList, 'GameConfig'>>();
     const params = definition.parseRouteParams(route.params);
@@ -142,7 +138,7 @@ export type GameConfigDefiner<
   TCommand extends object,
 > = <TConfig extends object>(
   definition: GameConfigScreenDefinition<TGameType, TState, TCommand, TConfig>,
-) => React.ComponentType<{ readonly session: RoomSessionClient<TState, TCommand> }>;
+) => React.ComponentType<{ readonly session: RoomLink<TState, TCommand> }>;
 
 export function createGameConfigDefiner<
   TGameType extends GameType,

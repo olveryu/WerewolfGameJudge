@@ -252,11 +252,12 @@ export class RoomStateStore {
     ) {
       throw new Error('Game engine created state with mismatched room metadata');
     }
+    const config: unknown = JSON.parse(created.configJson);
     const initializationJson = JSON.stringify({
       roomCode: command.roomCode,
       gameType,
       hostUserId: command.hostUserId,
-      config: JSON.parse(created.configJson) as unknown,
+      config,
       creationId: command.creationId,
     });
 

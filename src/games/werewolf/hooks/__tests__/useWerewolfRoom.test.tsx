@@ -9,13 +9,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 
-import type { RoomSessionClient } from '@/features/room/session/types';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type { RoomLink } from '@/platform/realtime/types';
+import { readyLinkSnapshot } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 
 let mockAuthUserId = 'host-user';
-const mockShowErrorAlert = jest.fn();
 
 jest.mock('@/contexts/AuthContext', () => ({
   useAuthContext: () => ({
@@ -37,12 +37,6 @@ jest.mock('@/contexts/AuthContext', () => ({
     isAuthenticated: true,
     refreshUser: jest.fn(async () => undefined),
   }),
-}));
-jest.mock('@/utils/alertPresets', () => ({
-  ...jest.requireActual<typeof import('@/utils/alertPresets')>('@/utils/alertPresets'),
-  showErrorAlert: (title: string, message: string) => {
-    mockShowErrorAlert(title, message);
-  },
 }));
 
 function createGameState(overrides: Partial<GameState> = {}): GameState {
@@ -77,8 +71,7 @@ function createGameState(overrides: Partial<GameState> = {}): GameState {
 function createRoomSession(
   state: GameState,
   userId: string,
-  lastRecoveredCommandRejection: { readonly commandId: string; readonly reason: string } | null,
-): RoomSessionClient<GameState, WerewolfPublicCommand> {
+): RoomLink<GameState, WerewolfPublicCommand> {
   const room = {
     roomCode: state.roomCode,
     roomId: 'room-id-1234',
@@ -86,51 +79,27 @@ function createRoomSession(
     hostUserId: state.hostUserId,
     createdAt: new Date('2026-07-11T12:00:00.000Z'),
   };
-  let snapshot = {
-    phase: 'ready' as const,
-    epoch: 1,
-    identity: { room, userId },
-    connection: 'live' as const,
-    pendingCommandCount: 0,
-    lastRecoveredCommandRejection,
-    snapshot: createRoomSnapshot(state, 7),
-    lastCommand: null,
-    error: null,
-  };
+  const snapshot = readyLinkSnapshot<GameState>({ room, userId }, createRoomSnapshot(state, 7));
   return {
     getSnapshot: () => snapshot,
     subscribe: () => () => undefined,
-    connect: jest.fn(async () => ({ kind: 'connected' })),
-    reconnect: jest.fn(async () => ({ kind: 'connected' })),
-    disconnect: jest.fn(),
-    prepare: jest.fn(),
+    connect: jest.fn(async () => undefined),
     dispatch: jest.fn(),
-    dispatchPrepared: jest.fn(),
-    acknowledgeRecoveredCommandRejection: jest.fn((commandId: string) => {
-      if (snapshot.lastRecoveredCommandRejection?.commandId !== commandId) return;
-      snapshot = { ...snapshot, lastRecoveredCommandRejection: null };
-    }),
-  } as unknown as WerewolfGameClient['roomSession'];
+    retryNow: jest.fn(),
+    close: jest.fn(),
+  };
 }
 
 function createClient(options?: {
   readonly state?: GameState;
   readonly userId?: string;
   readonly wasAudioInterrupted?: boolean;
-  readonly lastRecoveredCommandRejection?: {
-    readonly commandId: string;
-    readonly reason: string;
-  };
 }): WerewolfGameClient {
   const state = options?.state ?? createGameState();
   const success = () => successfulRoomCommand(state);
   mockAuthUserId = options?.userId ?? 'host-user';
   return {
-    roomSession: createRoomSession(
-      state,
-      mockAuthUserId,
-      options?.lastRecoveredCommandRejection ?? null,
-    ),
+    roomSession: createRoomSession(state, mockAuthUserId),
     assignRoles: jest.fn(async () => success()),
     updateTemplate: jest.fn(async () => success()),
     startNight: jest.fn(async () => success()),
@@ -171,9 +140,7 @@ function createWrapper(): React.FC<React.PropsWithChildren> {
 }
 
 describe('useWerewolfRoom shared-session composition', () => {
-  beforeEach(() => mockShowErrorAlert.mockClear());
-
-  it('derives identity, seat, role, revision, and connection from one room session', () => {
+  it('derives identity, seat, role and revision from one room link', () => {
     const client = createClient();
     const { result } = renderHook(() => useWerewolfRoom(client), {
       wrapper: createWrapper(),
@@ -184,7 +151,6 @@ describe('useWerewolfRoom shared-session composition', () => {
     expect(result.current.mySeat).toBe(0);
     expect(result.current.myRole).toBe('wolf');
     expect(result.current.stateRevision).toBe(7);
-    expect(result.current.connectionStatus).toBe('live');
   });
 
   it('exposes sheriff election commands from the shared game action hook', async () => {
@@ -243,33 +209,6 @@ describe('useWerewolfRoom shared-session composition', () => {
     });
 
     expect(result.current.needsContinueOverlay).toBe(false);
-  });
-
-  it('tells the player to select again after stale background recovery is rejected', async () => {
-    const client = createClient({
-      lastRecoveredCommandRejection: {
-        commandId: 'recovered-command',
-        reason: 'action_step_changed',
-      },
-    });
-
-    const firstMount = renderHook(() => useWerewolfRoom(client), { wrapper: createWrapper() });
-
-    await waitFor(() =>
-      expect(mockShowErrorAlert).toHaveBeenCalledWith(
-        '行动未提交',
-        '当前行动步骤已变化，请重新选择',
-      ),
-    );
-    expect(client.roomSession.acknowledgeRecoveredCommandRejection).toHaveBeenCalledWith(
-      'recovered-command',
-    );
-
-    firstMount.unmount();
-    renderHook(() => useWerewolfRoom(client), { wrapper: createWrapper() });
-    await act(async () => undefined);
-
-    expect(mockShowErrorAlert).toHaveBeenCalledTimes(1);
   });
 });
 

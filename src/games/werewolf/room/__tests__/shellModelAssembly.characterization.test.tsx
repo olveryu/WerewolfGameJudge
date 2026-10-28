@@ -83,7 +83,7 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
     const model = await captureModel(renderRoom());
 
     expect(model.roomCode).toBe('1234');
-    expect(model.connection.status).toBe('live');
+    expect(model.connection.status).toEqual({ kind: 'live' });
     expect(model.header.userAction).not.toBeNull();
     expect(model.header.userAction?.ticketCount).toBeNull();
     expect(model.seats.visuallyDisabled).toBe(false);

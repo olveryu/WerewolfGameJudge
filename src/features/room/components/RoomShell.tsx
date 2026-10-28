@@ -212,8 +212,8 @@ export const RoomShell: React.FC<RoomShellProps> = ({
           takeover banner follows it. */}
       <ConnectionStatusBar
         status={model.connection.status}
-        pendingCommandCount={model.connection.pendingCommandCount}
-        onManualReconnect={model.connection.onManualReconnect}
+        pendingDurableCount={model.connection.pendingDurableCount}
+        onRetryNow={model.connection.onRetryNow}
         styles={componentStyles.connectionStatusBar}
       />
 

@@ -28,9 +28,8 @@ import { useIsFocused } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
-import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
 import type { PendingRevealAck } from '@/games/werewolf/room/policy/pendingRevealAck';
 import { derivePendingRevealAck } from '@/games/werewolf/room/policy/pendingRevealAck';
 import type {
@@ -41,8 +40,6 @@ import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat'
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
 import { setAlertBlocked } from '@/utils/alert';
-import { showErrorAlert } from '@/utils/alertPresets';
-import { translateReasonCode } from '@/utils/errorUtils';
 import { gameRoomLog } from '@/utils/logger';
 
 import { useWerewolfBgmControl } from './useWerewolfBgmControl';
@@ -92,9 +89,6 @@ interface UseWerewolfRoomResult {
    * ack is pending for the effective actor.
    */
   pendingRevealAck: PendingRevealAck | null;
-
-  // Connection (from shared RoomSession)
-  connectionStatus: RoomConnectionStatus;
 
   takeSeat: (seat: number) => Promise<WerewolfCommandDispatchOutcome>;
   leaveSeat: () => Promise<WerewolfCommandDispatchOutcome>;
@@ -158,7 +152,7 @@ interface UseWerewolfRoomResult {
   const session = client.roomSession;
   const isFocused = useIsFocused();
   const { user } = useAuthContext();
-  const sessionSnapshot = useRoomSessionSnapshot(session, isFocused);
+  const sessionSnapshot = useRoomLinkSnapshot(session, isFocused);
   if (sessionSnapshot.phase !== 'ready') {
     throw new Error('[FAIL-FAST] Werewolf room hooks mounted before the room session was ready');
   }
@@ -173,7 +167,7 @@ interface UseWerewolfRoomResult {
   // Rejoin overlay state: shown when Host rejoins an ongoing game
   const [showContinueOverlay, setShowContinueOverlay] = useState(false);
 
-  const snapshot = sessionSnapshot.snapshot.state;
+  const snapshot = sessionSnapshot.room.state;
   const gameState = useMemo(() => toWerewolfLocalState(snapshot), [snapshot]);
   const { identity } = sessionSnapshot;
   const myUserId = identity.userId;
@@ -187,13 +181,6 @@ interface UseWerewolfRoomResult {
     mySeat,
     isFocused,
   });
-
-  useEffect(() => {
-    const rejection = sessionSnapshot.lastRecoveredCommandRejection;
-    if (!isFocused || rejection === null) return;
-    session.acknowledgeRecoveredCommandRejection(rejection.commandId);
-    showErrorAlert('行动未提交', translateReasonCode(rejection.reason));
-  }, [isFocused, session, sessionSnapshot.lastRecoveredCommandRejection]);
 
   // Toast notifications for XP gain / level-up after valid game settlement
 
@@ -292,7 +279,7 @@ interface UseWerewolfRoomResult {
   return {
     gameState,
     viewModel,
-    stateRevision: sessionSnapshot.snapshot.revision,
+    stateRevision: sessionSnapshot.room.revision,
     isHost,
     myUserId,
     mySeat,
@@ -314,8 +301,6 @@ interface UseWerewolfRoomResult {
     currentSchemaId: nightDerived.currentSchemaId,
     currentSchema: nightDerived.currentSchema,
     currentStepId: nightDerived.currentStepId,
-    // Connection
-    connectionStatus: sessionSnapshot.connection,
     takeSeat: seatCommands.takeSeat,
     leaveSeat: seatCommands.leaveSeat,
     kickPlayer: seatCommands.kickSeat,

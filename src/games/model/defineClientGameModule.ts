@@ -42,11 +42,11 @@ import {
   createGameConfigDefiner,
   type GameConfigDefiner,
 } from '@/features/room/config/createGameConfigScreen';
+import { createLinkRoomAccountCapability } from '@/features/room/link/LinkRoomAccountCapability';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
-import { createSessionRoomAccountCapability } from '@/features/room/session/SessionRoomAccountCapability';
-import type { RoomSessionClient } from '@/features/room/session/types';
 import type { ClientGameModule } from '@/games/model/ClientGameCatalog';
 import type { ClientGameModuleDependencies } from '@/games/model/ClientGamePlugin';
+import type { RoomLink } from '@/platform/realtime/types';
 import type { AudioService } from '@/services/infra/AudioService';
 
 const EmptyAccountStatsSection: React.FC<{ readonly userId: string }> = () => null;
@@ -82,7 +82,7 @@ interface ClientGameModuleConfigDefinition<
 > {
   readonly config: (
     define: GameConfigDefiner<TGameType, TState, TCommand>,
-  ) => React.ComponentType<{ readonly session: RoomSessionClient<TState, TCommand> }>;
+  ) => React.ComponentType<{ readonly session: RoomLink<TState, TCommand> }>;
 }
 
 export type ClientGameModuleDefinition<
@@ -95,7 +95,7 @@ export type ClientGameModuleDefinition<
     | (ClientGameModuleDefinitionBase<TGameType, TState> & {
         readonly RoomScreen: React.ComponentType<
           GameRoomScreenProps<TGameType> & {
-            readonly session: RoomSessionClient<TState, TCommand>;
+            readonly session: RoomLink<TState, TCommand>;
           }
         >;
         readonly audio?: undefined;
@@ -103,7 +103,7 @@ export type ClientGameModuleDefinition<
     | (ClientGameModuleDefinitionBase<TGameType, TState> & {
         readonly RoomScreen: React.ComponentType<
           GameRoomScreenProps<TGameType> & {
-            readonly session: RoomSessionClient<TState, TCommand>;
+            readonly session: RoomLink<TState, TCommand>;
             readonly audio: TAudio;
           }
         >;
@@ -134,12 +134,10 @@ function buildClientGameModule<
   definition: ClientGameModuleDefinition<TGameType, TState, object, TAudio>,
 ): (dependencies: ClientGameModuleDependencies) => ClientGameModule<TGameType> {
   return ({ sessionFactory, audioService }) => {
-    const session = sessionFactory.create<TState, object>({
-      stateCodec: definition.stateCodec,
-    });
-    const roomAccount = createSessionRoomAccountCapability<TGameType, TState>({
+    const session = sessionFactory.create<TState, object>(definition.stateCodec);
+    const roomAccount = createLinkRoomAccountCapability<TGameType, TState>({
       gameType: definition.gameType,
-      session,
+      link: session,
       isUserSeated: definition.isUserSeated,
       canSwitchAccount: definition.canSwitchAccount,
     });
