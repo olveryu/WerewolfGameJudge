@@ -361,9 +361,9 @@ src/
 │       │   ├── RoomSeatDataSource.ts
 │       │   └── RoomShellModel.ts
 │       ├── services/
-│       ├── session/
-│       │   ├── GameSessionFactory.ts
-│       │   └── RoomSession.ts
+│       ├── link/
+│       │   ├── roomCommandResult.ts
+│       │   └── LinkRoomAccountCapability.ts
 │       └── screens/
 │           └── RoomResolverScreen.tsx
 ├── games/
@@ -1127,36 +1127,37 @@ authoritative round 的词；新一轮选题优先使用所有当前真人均未
 D1 batch 中执行，因此表大小按用户有界；已删除账号先与 `users` 相交，不会让一个 stale participant 阻断其他玩家
 的历史。若写入在 command commit 后失败，独立 usage outbox effect 重试相同幂等账本，再补写 exposure。
 
-## 19. 客户端 Session 架构
+## 19. 客户端链路架构
 
-### 19.1 Shared RoomSession
+### 19.1 Shared RoomLink
 
-连接、snapshot store、command submission 和 reconnect 全部通用：
+连接、snapshot store、command dispatch、重连和在线表全部通用（`src/platform/realtime/`，设计见
+`docs/realtime-link-redesign.md`）：
 
 ```ts
-interface RoomSession<TState, TCommand> {
-  getSnapshot(): RoomSnapshot<TState> | null;
+interface RoomLink<TState, TCommand> {
+  getSnapshot(): LinkSnapshot<TState>;
   subscribe(listener: () => void): () => void;
-  connect(roomCode: string, userId: string): Promise<void>;
-  disconnect(): void;
-  reconnect(): void;
-  dispatch(command: TCommand, options?: DispatchOptions): Promise<RoomCommandResult>;
+  connect(identity: RoomIdentity, signal: AbortSignal): Promise<void>;
+  dispatch(command: TCommand, options: DispatchOptions): Promise<DispatchOutcome<TState>>;
+  retryNow(): void;
+  close(): void;
 }
 ```
 
-只有一个实现。狼人杀可以在它外面 compose audio orchestration，但不能重新实现 connection 和基础 room command。瞎掰王也不再建立一套平行 facade 去重复 connection status mapping。
+只有一个实现。狼人杀可以在它外面 compose audio orchestration，但不能重新实现 connection 和基础 room command。瞎掰王也不再建立一套平行 facade 去重复 link status mapping。
 
 ### 19.2 Composition root
 
-App composition root 提供 infrastructure 和 game-session factory，不再每加入一个游戏就新增一个 provider 和一个 context accessor：
+App composition root 提供 infrastructure 和 `RoomLinkFactory`，不再每加入一个游戏就新增一个 provider 和一个 context accessor：
 
 ```ts
-interface GameSessionFactory {
-  create<TGameType extends GameType>(gameType: TGameType): SessionFor<TGameType>;
+interface RoomLinkFactory {
+  create<TState, TCommand>(codec: GameStateCodec<TState>): RoomLink<TState, TCommand>;
 }
 ```
 
-Active room host screen 使用已解析的 game module 创建或选择 typed session。测试注入相同 contract。
+Active room host screen 使用已解析的 game module 的 codec 创建 typed link；`RoomLease` 保证同一时刻只有一条 link 持有房间。测试注入相同 contract（`src/test-utils/roomLink.ts`）。
 
 ### 19.3 Deep link
 

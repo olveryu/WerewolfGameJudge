@@ -1,21 +1,24 @@
 ---
 name: 'Services'
-description: 'Service layer standards: Cloudflare adapters, transport ports, connection management, storage, and audio playback. Use when: editing services, audio infrastructure, connection management, or realtime transport'
-applyTo: 'src/services/**'
+description: 'Service and platform layer standards: Cloudflare adapters, ApiClient, RoomLink realtime link, PlatformEnvironment, storage, and audio playback. Use when: editing services, platform http/realtime/env/inbox, audio infrastructure, or realtime transport'
+applyTo: 'src/services/**,src/platform/**'
 ---
 
 # Service Layer Standards
 
 ## Source Code Location
 
-Game logic: `@game-judge/game-engine` (see `game-engine.instructions.md`). `src/services/` only owns
-Cloudflare adapters, connection management, infrastructure implementations, and transport ports. Product APIs and
-React controllers live under their owning `src/features/*`; game-owned APIs live under `src/games/<gameType>/`.
+Game logic: `@game-judge/game-engine` (see `game-engine.instructions.md`). `src/platform/` owns the client platform
+layer: `env/` (`PlatformEnvironment`, the single visible/online source), `auth/` (`AuthTokenStore`), `http/`
+(`ApiClient`, `ApiError`, composed instance in `client.ts`), `realtime/` (`RoomLink`, `linkReducer`, `LinkRuntime`,
+`SocketChannel`, `CommandOutbox`) and `inbox/` (`AccountInbox`). `src/services/` only owns Cloudflare adapters,
+infrastructure implementations (audio, local storage) and transport ports. Product APIs and React controllers live
+under their owning `src/features/*`; game-owned APIs live under `src/games/<gameType>/`.
 
 ## Owned Application APIs
 
-Feature APIs may call `src/services/cloudflare/cfFetch`, but screens/components call the feature API or controller, not
-the infrastructure adapter directly.
+Feature APIs call the composed `ApiClient` from `src/platform/http/client.ts`; screens/components call the feature API
+or controller, not the client directly. Room commands go through `RoomLink.dispatch`, never through `ApiClient`.
 
 | Owner          | File                                                    | Responsibility                                  |
 | -------------- | ------------------------------------------------------- | ----------------------------------------------- |
@@ -30,9 +33,14 @@ the infrastructure adapter directly.
 
 - Resolvers / calculators / validators are pure functions. IO/UI is forbidden.
 - Server-side business logic (night flow / death calc / state transition / reducer) is executed by Cloudflare Worker (Durable Objects).
-- `RoomSession` handles command submission and realtime snapshots. A game-owned runtime may orchestrate audio and
-  local UI state; client-side resolvers, reducers, and death calculation remain forbidden.
+- `RoomLink` is the only client room transport: `dispatch()` for commands (HTTP, correlated by `commandId`),
+  `getSnapshot()` / `subscribe()` for the authoritative state, presence and link status. A game-owned runtime may orchestrate
+  audio and local UI state; client-side resolvers, reducers, and death calculation remain forbidden.
 - Room command methods return the typed protocol result. Returning bare `boolean` or a loose result shape is forbidden.
+- Realtime protocol v2 (`@game-judge/game-engine/platform/realtime/protocol`) is parsed with zod `strictObject`;
+  an unknown frame is a protocol error that closes the socket (1002). Compatibility readers are forbidden.
+- Reconnection is unbounded and driven by `linkReducer` (pure); only terminal close codes 4000–4003 stop it. Adding
+  timers, retries or `online` listeners outside `LinkRuntime` / `PlatformEnvironment` is forbidden.
 - Infra services may use platform APIs (MMKV / Platform / expo-audio etc.).
 - Pure type files (`src/services/types/**`) may be `import type`'d by any layer.
 - Cross-night state (`previousActions` / `lastNightTarget` etc.) is forbidden.
@@ -64,9 +72,12 @@ the infrastructure adapter directly.
 
 Services holding mutable state (flags / players / subscriptions) must reset **all** mutable fields on `createRoom` / `joinRoom` / `leaveRoom`. AudioService must `stop()` first then `clearPreloaded()`. Omission = previous game's state leaks into next game.
 
-## HTTP Response Defense
+## HTTP Errors
 
-After `fetch`, must first check `res.ok` + `content-type` contains `application/json` before calling `.json()`. Non-JSON responses (502/503 HTML) return structured error (`{ success: false, reason: 'SERVER_ERROR' }`). Don't let `SyntaxError` propagate to Sentry.
+Every HTTP failure is an `ApiError` (`kind: 'http' | 'network' | 'timeout' | 'aborted' | 'contract'`) thrown by
+`ApiClient`; non-JSON bodies (502/503 HTML) become `kind: 'http', reason: 'SERVER_ERROR'`, response bodies that fail
+their codec become `kind: 'contract'`. Callers never parse `Response` themselves and never let `SyntaxError` reach
+Sentry. Idempotent requests are retried by `ApiClient` only.
 
 ## Native Resource Lifecycle
 
@@ -89,16 +100,15 @@ Single orchestration source: Engine commits authoritative audio events → game 
   `werewolf.audio.ack`. Wolf vote deadline expiry submits `werewolf.progress.request`.
 - **UI**: reads `isAudioPlaying` only. useEffect playing audio is forbidden. UI toggling `setAudioPlaying` is forbidden.
 - `isAudioPlaying` is factual state; sole modification path: `SET_AUDIO_PLAYING` action. Other actions "incidentally" setting it is forbidden.
-- **Rejoin recovery**: `RoomSession` restores the authoritative snapshot; the game audio runtime resumes the pending
+- **Rejoin recovery**: `RoomLink` restores the authoritative snapshot; the game audio runtime resumes the pending
   batch after a user gesture when Web autoplay requires one, then dispatches the same audio ACK command.
-- **Audio-ack disconnect retry** (two-layer mutual exclusion):
-  - **L1: Status listener** — WebSocket truly disconnects, SDK reconnects → `ConnectionStatus.Live` → retry `postAudioAck`. Covers real network disconnect.
-  - **L2: Browser `online` event** — `window.addEventListener('online', ...)` zero-delay network recovery detection → retry `postAudioAck`. Covers scenario where WebSocket hasn't disconnected but HTTP has (e.g., Playwright `setOffline`, brief DNS failure). Web platform only (`typeof globalThis.window?.addEventListener === 'function'` capability check); native covered by L1.
-  - Whichever layer triggers first clears the other. `leaveRoom` / `createRoom` / `joinRoom` clean up uniformly.
+- **Audio ack is a durable command**: `werewolf.audio.ack` is dispatched with `durable: true`, so `CommandOutbox`
+  persists it and replays the same `commandId` after any disconnect. Ad-hoc retry layers (status listeners,
+  `window.online` handlers, polling) around the ack are forbidden.
 
 ## JSDoc Standards
 
 - **Service class**: class header `@remarks` explains core design decisions (re-entry guard, lock strategy, cleanup order).
 - **Connect / init methods**: annotate `@pre` (e.g., roomCode already set) and `@remarks` (timeout, retry strategy).
 - **Public methods**: methods with IO or async side effects annotate `@throws` (network error, token expiration).
-- **FSM context / options interfaces**: fields with non-obvious semantics get inline `/** ... */` comments (null meaning, counter upper limit, etc.).
+- **FSM context / options interfaces**: fields with non-obvious semantics get inline `/** ... */` comments (null meaning, counter upper limit, etc.). `linkReducer.ts` `LinkContext` / `LinkStatus` are the reference.

@@ -1,4 +1,7 @@
-# 房间会话生命周期
+# 房间会话生命周期（已归档）
+
+> 历史文档：`RoomSession` / `LazyRoomSession` / `ActiveRoomSessionOwner` 已被 `RoomLink` + `RoomLease`
+> （`src/platform/realtime/RoomLink.ts`）取代。现行行为见 `docs/realtime-link-redesign.md` §4。
 
 ## 所有权
 

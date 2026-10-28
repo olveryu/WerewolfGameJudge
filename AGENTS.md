@@ -202,7 +202,7 @@ Full index: [docs/README.md](docs/README.md) (every file under `docs/` is regist
 
 - Adding a game / touching shared room UI → [docs/multigame-platform-design.md](docs/multigame-platform-design.md) §25 + [docs/room-shell-contract.md](docs/room-shell-contract.md)
 - Werewolf room UI → [docs/roomscreen-state-machine.md](docs/roomscreen-state-machine.md)
-- Networking / reconnection → [docs/network-resilience-design.md](docs/network-resilience-design.md)
+- Networking / reconnection → [docs/realtime-link-redesign.md](docs/realtime-link-redesign.md)
 - Release / deploy → [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - Agent rules maintenance → [docs/agent-config.md](docs/agent-config.md)
 - E2E helpers → [e2e/helpers/README.md](e2e/helpers/README.md)

@@ -1,7 +1,8 @@
-# 网络韧性设计
+# 网络韧性设计（v2，已归档）
 
-> 本文描述当前多游戏平台的网络与重放语义。旧的 pre-command-pipeline 方案已归档到
-> `docs/archive/network-resilience-design-v1.md`，不得作为现行实现依据。
+> 历史文档：本文描述的 `ConnectionManager` / `RoomSession` / `RoomCommandRecovery` / `cfFetch` 已被 RoomLink v3
+> 整体删除。现行行为见 `docs/realtime-link-redesign.md`；更早的 pre-command-pipeline 方案在
+> `docs/archive/network-resilience-design-v1.md`。两者均不得作为现行实现依据。
 
 ## 1. 目标与边界
 
