@@ -5,9 +5,12 @@
  * edge by the Durable Object auto-response and never parsed here.
  * Server → client frames: `SYNC_RESULT`, `STATE_UPDATE`, `PRESENCE`, `INBOX_HINT`.
  *
- * Every parser is fail-fast: unknown fields, wrong types and unsupported discriminators throw.
- * Callers that read frames off a socket treat any throw as a protocol error (close 1002).
+ * Every parser is fail-fast: unknown fields, wrong types and unsupported discriminators throw
+ * {@link RealtimeProtocolError}. Callers that read frames off a socket treat any throw as a
+ * protocol error (close 1002). Snapshot payloads are decoded by the game's `GameStateCodec`.
  */
+
+import { z } from 'zod';
 
 import {
   type BaseGameState,
@@ -15,28 +18,48 @@ import {
   parseRoomSnapshot,
   type RoomSnapshot,
 } from '../protocol/roomSnapshot';
-import {
-  failDecode,
-  finishObject,
-  parseArray,
-  parseInteger,
-  parseNonEmptyString,
-  parseNullable,
-  parseObject,
-} from '../protocol/runtimeDecoder';
 
-// ─── Client → Server ────────────────────────────────────────────────────────
-
-export interface SyncFrame {
-  readonly type: 'SYNC';
-  readonly requestId: string;
-  /** Revision the client already holds, or null when it has no snapshot yet. */
-  readonly knownRevision: number | null;
+/** A frame that violates the realtime wire contract. */
+export class RealtimeProtocolError extends Error {
+  constructor(label: string, issue: z.ZodError) {
+    super(`${label} is malformed:\n${z.prettifyError(issue)}`, { cause: issue });
+    this.name = 'RealtimeProtocolError';
+  }
 }
 
-export type ClientFrame = SyncFrame;
+const requestIdSchema = z.string().min(1);
+const revisionSchema = z.number().int().positive();
+const userIdSchema = z.string().min(1);
+const commandTypeSchema = z.string().min(1).nullable();
+const syncResultHeaderSchema = z.strictObject({ requestId: requestIdSchema });
+
+// ─── Client → Server ────────────────────────────────────────────────────────────────────────────
+
+const syncFrameSchema = z.strictObject({
+  type: z.literal('SYNC'),
+  requestId: requestIdSchema,
+  /** Revision the client already holds, or null when it has no snapshot yet. */
+  knownRevision: revisionSchema.nullable(),
+});
+
+const clientFrameSchema = z.discriminatedUnion('type', [syncFrameSchema]);
+
+export type SyncFrame = z.infer<typeof syncFrameSchema>;
+export type ClientFrame = z.infer<typeof clientFrameSchema>;
 
 // ─── Server → Client ────────────────────────────────────────────────────────
+
+const presenceFrameSchema = z.strictObject({
+  type: z.literal('PRESENCE'),
+  onlineUserIds: z
+    .array(userIdSchema)
+    .refine((ids) => new Set(ids).size === ids.length, 'user IDs must be distinct'),
+});
+
+const inboxHintFrameSchema = z.strictObject({ type: z.literal('INBOX_HINT') });
+
+export type PresenceFrame = z.infer<typeof presenceFrameSchema>;
+export type InboxHintFrame = z.infer<typeof inboxHintFrameSchema>;
 
 export type SyncResultFrame<TState extends BaseGameState<string>> =
   | {
@@ -58,41 +81,79 @@ export interface StateUpdateFrame<TState extends BaseGameState<string>> {
   readonly commandType: string | null;
 }
 
-export interface PresenceFrame {
-  readonly type: 'PRESENCE';
-  readonly onlineUserIds: readonly string[];
-}
-
-export interface InboxHintFrame {
-  readonly type: 'INBOX_HINT';
-}
-
 export type ServerFrame<TState extends BaseGameState<string>> =
   | SyncResultFrame<TState>
   | StateUpdateFrame<TState>
   | PresenceFrame
   | InboxHintFrame;
 
+/** Server frame schemas close over the game codec, so they are built once per codec. */
+const serverFrameSchemas = new WeakMap<
+  GameStateCodec<BaseGameState<string>>,
+  z.ZodType<ServerFrame<BaseGameState<string>>>
+>();
+
+function createServerFrameSchema<TState extends BaseGameState<string>>(
+  codec: GameStateCodec<TState>,
+): z.ZodType<ServerFrame<TState>> {
+  const snapshot = z.unknown().transform((value) => parseRoomSnapshot(value, codec));
+  const syncResult = z.discriminatedUnion('outcome', [
+    z.strictObject({
+      type: z.literal('SYNC_RESULT'),
+      requestId: requestIdSchema,
+      outcome: z.literal('current'),
+      revision: revisionSchema,
+    }),
+    z.strictObject({
+      type: z.literal('SYNC_RESULT'),
+      requestId: requestIdSchema,
+      outcome: z.literal('snapshot'),
+      snapshot,
+    }),
+  ]);
+  const stateUpdate = z.strictObject({
+    type: z.literal('STATE_UPDATE'),
+    snapshot,
+    commandType: commandTypeSchema,
+  });
+  return z.discriminatedUnion('type', [
+    syncResult,
+    stateUpdate,
+    presenceFrameSchema,
+    inboxHintFrameSchema,
+  ]);
+}
+
+function serverFrameSchemaFor<TState extends BaseGameState<string>>(
+  codec: GameStateCodec<TState>,
+): z.ZodType<ServerFrame<TState>> {
+  const cached = serverFrameSchemas.get(codec);
+  if (cached !== undefined) return cached as z.ZodType<ServerFrame<TState>>;
+  const created = createServerFrameSchema(codec);
+  serverFrameSchemas.set(codec, created);
+  return created;
+}
+
 // ─── Constructors ───────────────────────────────────────────────────────────
 
-function parsePositiveRevision(value: unknown, path: string): number {
-  const parsed = parseInteger(value, path);
-  if (parsed < 1) return failDecode(path, 'a positive revision');
-  return parsed;
+function build<T>(label: string, schema: z.ZodType<T>, value: unknown): T {
+  const result = schema.safeParse(value);
+  if (!result.success) throw new RealtimeProtocolError(label, result.error);
+  return result.data;
 }
 
 export function createSyncFrame(requestId: string, knownRevision: number | null): SyncFrame {
-  parseNonEmptyString(requestId, 'SyncFrame.requestId');
-  if (knownRevision !== null) parsePositiveRevision(knownRevision, 'SyncFrame.knownRevision');
-  return { type: 'SYNC', requestId, knownRevision };
+  return build('SyncFrame', syncFrameSchema, { type: 'SYNC', requestId, knownRevision });
 }
 
 export function createSyncCurrentFrame<TState extends BaseGameState<string>>(
   requestId: string,
   revision: number,
 ): SyncResultFrame<TState> {
-  parseNonEmptyString(requestId, 'SyncResultFrame.requestId');
-  parsePositiveRevision(revision, 'SyncResultFrame.revision');
+  build('SyncResultFrame', syncResultHeaderSchema.extend({ revision: revisionSchema }), {
+    requestId,
+    revision,
+  });
   return { type: 'SYNC_RESULT', requestId, outcome: 'current', revision };
 }
 
@@ -100,7 +161,7 @@ export function createSyncSnapshotFrame<TState extends BaseGameState<string>>(
   requestId: string,
   snapshot: RoomSnapshot<TState>,
 ): SyncResultFrame<TState> {
-  parseNonEmptyString(requestId, 'SyncResultFrame.requestId');
+  build('SyncResultFrame', syncResultHeaderSchema, { requestId });
   assertSnapshotIdentity(snapshot);
   return { type: 'SYNC_RESULT', requestId, outcome: 'snapshot', snapshot };
 }
@@ -110,14 +171,15 @@ export function createStateUpdateFrame<TState extends BaseGameState<string>>(
   commandType: string | null,
 ): StateUpdateFrame<TState> {
   assertSnapshotIdentity(snapshot);
-  if (commandType !== null) parseNonEmptyString(commandType, 'StateUpdateFrame.commandType');
+  build('StateUpdateFrame', z.strictObject({ commandType: commandTypeSchema }), { commandType });
   return { type: 'STATE_UPDATE', snapshot, commandType };
 }
 
 export function createPresenceFrame(onlineUserIds: Iterable<string>): PresenceFrame {
-  const unique = [...new Set(onlineUserIds)].sort();
-  for (const userId of unique) parseNonEmptyString(userId, 'PresenceFrame.onlineUserIds[]');
-  return { type: 'PRESENCE', onlineUserIds: unique };
+  return build('PresenceFrame', presenceFrameSchema, {
+    type: 'PRESENCE',
+    onlineUserIds: [...new Set(onlineUserIds)].sort(),
+  });
 }
 
 export const INBOX_HINT_FRAME: InboxHintFrame = Object.freeze({ type: 'INBOX_HINT' });
@@ -136,94 +198,12 @@ function assertSnapshotIdentity<TState extends BaseGameState<string>>(
 // ─── Parsers ────────────────────────────────────────────────────────────────
 
 export function parseClientFrame(value: unknown): ClientFrame {
-  const raw = parseObject(value, 'ClientFrame');
-  if (raw.type !== 'SYNC') {
-    return failDecode('ClientFrame.type', 'a supported client frame type');
-  }
-  return finishObject(
-    raw,
-    {
-      type: 'SYNC' as const,
-      requestId: parseNonEmptyString(raw.requestId, 'SyncFrame.requestId'),
-      knownRevision: parseNullable(
-        raw.knownRevision,
-        'SyncFrame.knownRevision',
-        parsePositiveRevision,
-      ),
-    },
-    'SyncFrame',
-  );
+  return build('ClientFrame', clientFrameSchema, value);
 }
 
 export function parseServerFrame<TState extends BaseGameState<string>>(
   value: unknown,
   codec: GameStateCodec<TState>,
 ): ServerFrame<TState> {
-  const raw = parseObject(value, 'ServerFrame');
-  switch (raw.type) {
-    case 'SYNC_RESULT':
-      return parseSyncResultFrame(raw, codec);
-    case 'STATE_UPDATE':
-      return finishObject(
-        raw,
-        {
-          type: 'STATE_UPDATE' as const,
-          snapshot: parseRoomSnapshot(raw.snapshot, codec),
-          commandType: parseNullable(
-            raw.commandType,
-            'StateUpdateFrame.commandType',
-            parseNonEmptyString,
-          ),
-        },
-        'StateUpdateFrame',
-      );
-    case 'PRESENCE': {
-      const onlineUserIds = parseArray(
-        raw.onlineUserIds,
-        'PresenceFrame.onlineUserIds',
-        parseNonEmptyString,
-      );
-      if (new Set(onlineUserIds).size !== onlineUserIds.length) {
-        return failDecode('PresenceFrame.onlineUserIds', 'a list of distinct user IDs');
-      }
-      return finishObject(raw, { type: 'PRESENCE' as const, onlineUserIds }, 'PresenceFrame');
-    }
-    case 'INBOX_HINT':
-      return finishObject(raw, { type: 'INBOX_HINT' as const }, 'InboxHintFrame');
-    default:
-      return failDecode('ServerFrame.type', 'a supported server frame type');
-  }
-}
-
-function parseSyncResultFrame<TState extends BaseGameState<string>>(
-  raw: Record<string, unknown>,
-  codec: GameStateCodec<TState>,
-): SyncResultFrame<TState> {
-  const requestId = parseNonEmptyString(raw.requestId, 'SyncResultFrame.requestId');
-  switch (raw.outcome) {
-    case 'current':
-      return finishObject(
-        raw,
-        {
-          type: 'SYNC_RESULT' as const,
-          requestId,
-          outcome: 'current' as const,
-          revision: parsePositiveRevision(raw.revision, 'SyncResultFrame.revision'),
-        },
-        'SyncResultFrame',
-      );
-    case 'snapshot':
-      return finishObject(
-        raw,
-        {
-          type: 'SYNC_RESULT' as const,
-          requestId,
-          outcome: 'snapshot' as const,
-          snapshot: parseRoomSnapshot(raw.snapshot, codec),
-        },
-        'SyncResultFrame',
-      );
-    default:
-      return failDecode('SyncResultFrame.outcome', "'current' or 'snapshot'");
-  }
+  return build('ServerFrame', serverFrameSchemaFor(codec), value);
 }
