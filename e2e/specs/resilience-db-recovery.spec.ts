@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { closeAll } from '../fixtures/app.fixture';
 import { setupNPlayerGame } from '../helpers/multi-player';
-import { DISCONNECTED_BANNER_TEXT, waitForRoomScreenReady } from '../helpers/waits';
+import { linkStatusBanner, waitForRoomScreenReady } from '../helpers/waits';
 import { runNightFlowLoop } from '../pages/NightFlowPage';
 import { RoomPage } from '../pages/RoomPage';
 
@@ -67,7 +67,7 @@ test.describe('Resilience — WebSocket state recovery after network interruptio
       await joinerContext.setOffline(true);
 
       // Step 4: Wait for the disconnect to register
-      const disconnectedBanner = joinerPage.getByText(DISCONNECTED_BANNER_TEXT, { exact: true });
+      const disconnectedBanner = linkStatusBanner(joinerPage);
       const isDisconnected = await disconnectedBanner
         .waitFor({ state: 'visible', timeout: 10_000 })
         .then(() => true)
@@ -173,7 +173,7 @@ test.describe('Resilience — WebSocket state recovery after network interruptio
         await joinerContext.setOffline(true);
 
         // Soft check: disconnect banner may take time to appear
-        const joinerBanner = joinerPage.getByText(DISCONNECTED_BANNER_TEXT, { exact: true });
+        const joinerBanner = linkStatusBanner(joinerPage);
         const joinerSawDisconnect = await joinerBanner
           .waitFor({ state: 'visible', timeout: 15_000 })
           .then(() => true)

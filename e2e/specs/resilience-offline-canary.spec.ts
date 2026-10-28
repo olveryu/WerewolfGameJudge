@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { closeAll } from '../fixtures/app.fixture';
 import { setupNPlayerGame } from '../helpers/multi-player';
-import { DISCONNECTED_BANNER_TEXT, waitForRoomScreenReady } from '../helpers/waits';
+import { linkStatusBanner, waitForRoomScreenReady } from '../helpers/waits';
 import { RoomPage } from '../pages/RoomPage';
 
 /**
@@ -28,8 +28,7 @@ test.describe('Resilience — Offline recovery canary', () => {
     try {
       await test.step('joiner goes offline', async () => {
         await joinerContext.setOffline(true);
-        await joinerPage
-          .getByText(DISCONNECTED_BANNER_TEXT, { exact: true })
+        await linkStatusBanner(joinerPage)
           .waitFor({ state: 'visible', timeout: 15_000 })
           .catch(() => {});
       });

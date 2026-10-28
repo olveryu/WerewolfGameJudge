@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { type BrowserContext, expect, type Page, test } from '@playwright/test';
 
 import { type GameSetupWithRolesResult, setupNPlayerGameWithRoles } from '../helpers/multi-player';
 import {
@@ -10,670 +10,226 @@ import {
   waitForNightEnd,
   waitForRoleTurn,
 } from '../helpers/night-driver';
-import { DISCONNECTED_BANNER_TEXT, waitForRoomScreenReady } from '../helpers/waits';
+import { dropRoomSockets, seatOfflineDot, setOffline, setPageHidden } from '../helpers/resilience';
+import { linkStatusBanner, waitForLinkLive } from '../helpers/waits';
 
 /**
- * Reconnect E2E Tests
+ * RoomLink resilience during the werewolf night.
  *
- * Verifies that players can fully disconnect for 5-10 seconds and
- * reconnect during the night phase. Tests:
- * 1. Connection status transitions (live -> disconnected -> live)
- * 2. Game continues normally after reconnection
+ * Every scenario injects one fault on one player, then proves the link returns to
+ * live (the not-live banner disappears) and the night still completes: guard
+ * protects, wolf votes, night ends, result is shown. The 3-player board
+ * (wolf + villager + guard) keeps the night short; the guard is the first wake-up
+ * role so faults land before or during its turn.
  *
- * Two scenarios:
- * - Non-host player disconnects and reconnects
- * - Host disconnects and reconnects
- *
- * Uses a 3-player board (wolf + villager + guard). Guard is the first
- * wake-up role, so the disconnect happens before/during the guard's turn.
+ * Faults: 5s offline (joiner / host), 30s offline, 5× online/offline flapping,
+ * 30s in the background then foreground, and the server dropping every socket
+ * (deploy simulation). Presence is asserted through the other players' seat dots.
  */
 
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(300_000);
 
-test.describe('Resilience — Network reconnect during night', () => {
-  test('non-host player reconnects after 5s disconnect and completes guard action', async ({
+interface NightCast {
+  readonly setup: GameSetupWithRolesResult;
+  readonly pages: Page[];
+  readonly contexts: BrowserContext[];
+  readonly guardIdx: number;
+  readonly wolfIdx: number;
+  readonly villagerIdx: number;
+  /** A non-host page to fault (prefers the villager, who has no night turn). */
+  readonly joinerIdx: number;
+}
+
+async function castNight(
+  browser: Parameters<typeof setupNPlayerGameWithRoles>[0],
+): Promise<NightCast> {
+  const setup = await setupNPlayerGameWithRoles(browser, {
+    playerCount: 3,
+    configureTemplate: async (config) =>
+      config.configureCustomTemplate({ wolves: 1, villagers: 1, goodRoles: ['guard'] }),
+  });
+  const { roleMap } = setup;
+  const guardIdx = findRolePageIndex(roleMap, '守卫');
+  const wolfIdx = findRolePageIndex(roleMap, '狼人');
+  const villagerIdx = findRolePageIndex(roleMap, '平民');
+  expect(guardIdx).not.toBe(-1);
+  expect(wolfIdx).not.toBe(-1);
+  expect(villagerIdx).not.toBe(-1);
+  const joinerIdx = villagerIdx !== 0 ? villagerIdx : guardIdx !== 0 ? guardIdx : wolfIdx;
+  return {
+    setup,
+    pages: setup.fixture.pages,
+    contexts: setup.fixture.contexts,
+    guardIdx,
+    wolfIdx,
+    villagerIdx,
+    joinerIdx,
+  };
+}
+
+/** Guard protects the villager, wolf targets the villager → peaceful night. */
+async function finishNight(cast: NightCast): Promise<void> {
+  const { pages, guardIdx, wolfIdx, villagerIdx, setup } = cast;
+  const villagerSeat = setup.roleMap.get(villagerIdx)!.seat;
+
+  await test.step('guard protects villager', async () => {
+    expect(await waitForRoleTurn(pages[guardIdx]!, 'guardProtect', pages, 180_000)).toBe(true);
+    await clickSeatAndConfirm(pages[guardIdx]!, villagerSeat);
+  });
+  await test.step('wolf votes villager', async () => {
+    expect(await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages, 180_000)).toBe(true);
+    await driveWolfVote(pages, [wolfIdx], villagerSeat);
+  });
+  await test.step('night ends with a result', async () => {
+    expect(await waitForNightEnd(pages, 180_000)).toBe(true);
+    await viewLastNightInfo(pages[0]!);
+    const peaceful = await isTextVisible(pages[0]!, '平安夜');
+    const death = await isTextVisible(pages[0]!, '死亡');
+    expect(peaceful || death).toBe(true);
+  });
+}
+
+async function teardown(cast: NightCast | undefined): Promise<void> {
+  if (cast === undefined) return;
+  for (const context of cast.contexts) await setOffline(context, false).catch(() => {});
+  for (const context of cast.contexts) await context.close().catch(() => {});
+}
+
+test.describe('RoomLink resilience during the night', () => {
+  test('joiner offline 5s: banner shows, link recovers, night completes', async ({ browser }) => {
+    let cast: NightCast | undefined;
+    try {
+      cast = await castNight(browser);
+      const page = cast.pages[cast.joinerIdx]!;
+      const context = cast.contexts[cast.joinerIdx]!;
+
+      await test.step('offline 5s shows the not-live banner', async () => {
+        await setOffline(context, true);
+        await expect(linkStatusBanner(page)).toBeVisible({ timeout: 40_000 });
+        await page.waitForTimeout(5_000);
+      });
+      await test.step('back online → live', async () => {
+        await setOffline(context, false);
+        await waitForLinkLive(page);
+      });
+      await finishNight(cast);
+    } finally {
+      await teardown(cast);
+    }
+  });
+
+  test('host offline 5s: link recovers and the host completes the night', async ({ browser }) => {
+    let cast: NightCast | undefined;
+    try {
+      cast = await castNight(browser);
+      const hostPage = cast.pages[0]!;
+      const hostContext = cast.contexts[0]!;
+
+      await setOffline(hostContext, true);
+      await expect(linkStatusBanner(hostPage)).toBeVisible({ timeout: 40_000 });
+      await hostPage.waitForTimeout(5_000);
+      await setOffline(hostContext, false);
+      await waitForLinkLive(hostPage);
+      await finishNight(cast);
+    } finally {
+      await teardown(cast);
+    }
+  });
+
+  test('joiner silently offline: others see the offline dot, link recovers', async ({
     browser,
-  }, testInfo) => {
-    let setup: GameSetupWithRolesResult | undefined;
-
+  }) => {
+    let cast: NightCast | undefined;
     try {
-      // Step 1: Setup 3-player game with guard
-      setup = await setupNPlayerGameWithRoles(browser, {
-        playerCount: 3,
-        configureTemplate: async (config) =>
-          config.configureCustomTemplate({
-            wolves: 1,
-            villagers: 1,
-            goodRoles: ['guard'],
-          }),
+      cast = await castNight(browser);
+      const page = cast.pages[cast.joinerIdx]!;
+      const context = cast.contexts[cast.joinerIdx]!;
+      const joinerSeat = cast.setup.roleMap.get(cast.joinerIdx)!.seat;
+      const observer = cast.pages[0]!;
+
+      await test.step('offline until the server marks the seat offline', async () => {
+        await setOffline(context, true);
+        await expect(linkStatusBanner(page)).toBeVisible({ timeout: 40_000 });
+        // Server side: 60s stale threshold + 30s sweep cadence before PRESENCE drops the user.
+        await expect(seatOfflineDot(observer, joinerSeat)).toBeVisible({ timeout: 100_000 });
       });
-
-      const { fixture, roleMap } = setup;
-      const pages = fixture.pages;
-
-      const guardIdx = findRolePageIndex(roleMap, '守卫');
-      const wolfIdx = findRolePageIndex(roleMap, '狼人');
-      const villagerIdx = findRolePageIndex(roleMap, '平民');
-      expect(guardIdx).not.toBe(-1);
-      expect(wolfIdx).not.toBe(-1);
-
-      // The guard must be a non-host joiner (pageIdx >= 1)
-      // If guard is host (idx 0), the test still works but we disconnect the villager instead
-      // to test reconnect. The key is disconnecting a non-host player.
-      const disconnectIdx = guardIdx !== 0 ? guardIdx : villagerIdx !== -1 ? villagerIdx : 1;
-      const disconnectContext = fixture.contexts[disconnectIdx]!;
-      const disconnectPage = pages[disconnectIdx]!;
-
-      await test.step('screenshot: pre-disconnect state', async () => {
-        await disconnectPage.screenshot().then((s) =>
-          testInfo.attach('reconnect-01-pre-disconnect.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
+      await test.step('back online → live and present', async () => {
+        await setOffline(context, false);
+        await waitForLinkLive(page, 45_000);
+        await expect(seatOfflineDot(observer, joinerSeat)).toBeHidden({ timeout: 15_000 });
       });
-
-      // Step 2: Disconnect the non-host player
-      await test.step('disconnect player', async () => {
-        await disconnectContext.setOffline(true);
-
-        // Soft check: WebSocket heartbeat may take time to detect network loss.
-        // Like db-recovery.spec.ts, don't hard-fail if indicator doesn't appear immediately.
-        const disconnectedBanner = disconnectPage.getByText(DISCONNECTED_BANNER_TEXT, {
-          exact: true,
-        });
-        const sawDisconnected = await disconnectedBanner
-          .waitFor({ state: 'visible', timeout: 15_000 })
-          .then(() => true)
-          .catch(() => false);
-
-        await disconnectPage.screenshot().then((s) =>
-          testInfo.attach('reconnect-02-disconnected.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-
-        await testInfo.attach('disconnect-detected.txt', {
-          body: `Disconnect indicator visible: ${sawDisconnected}`,
-          contentType: 'text/plain',
-        });
-      });
-
-      // Step 3: Wait 5 seconds (simulating real-world disconnect)
-      // SDK heartbeat timeout (~25s) will detect the disconnect.
-      await test.step('wait 5s while disconnected', async () => {
-        await disconnectPage.waitForTimeout(5_000);
-
-        const disconnectedBanner = disconnectPage.getByText(DISCONNECTED_BANNER_TEXT, {
-          exact: true,
-        });
-        // After L0 (browser offline) removal, disconnect detection relies on
-        // SDK heartbeat (~25s). After 5s offline the banner may or may not be
-        // visible yet — soft-check only.
-        const sawDisconnected = await disconnectedBanner
-          .waitFor({ state: 'visible', timeout: 20_000 })
-          .then(() => true)
-          .catch(() => false);
-
-        await testInfo.attach('disconnect-after-5s.txt', {
-          body: `Disconnect banner visible after wait: ${sawDisconnected}`,
-          contentType: 'text/plain',
-        });
-
-        await disconnectPage.screenshot().then((s) =>
-          testInfo.attach('reconnect-02b-after-10s.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-      });
-
-      // Step 4: Restore network and verify reconnection
-      await test.step('reconnect player', async () => {
-        await disconnectContext.setOffline(false);
-
-        // Wait for connection to restore (banner disappears when Live)
-        await waitForRoomScreenReady(disconnectPage, {
-          role: 'joiner',
-          liveTimeoutMs: 30_000,
-        });
-
-        await disconnectPage.screenshot().then((s) =>
-          testInfo.attach('reconnect-03-reconnected.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-      });
-
-      // Step 5: Drive night flow — guard protects, then wolf votes
-      await test.step('guard protects villager', async () => {
-        const targetSeat =
-          villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(wolfIdx)!.seat;
-
-        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, 'guardProtect', pages, 180_000);
-        expect(guardTurn, 'Guard turn should be detected after reconnect').toBe(true);
-
-        await clickSeatAndConfirm(pages[guardIdx]!, targetSeat);
-      });
-
-      await test.step('wolf votes', async () => {
-        const targetSeat =
-          villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(guardIdx)!.seat;
-
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages, 180_000);
-        expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
-        await driveWolfVote(pages, [wolfIdx], targetSeat);
-      });
-
-      // Step 6: Verify night completes
-      await test.step('verify night end', async () => {
-        const ended = await waitForNightEnd(pages, 180_000);
-        expect(ended, 'Night should have ended after reconnect').toBe(true);
-
-        await viewLastNightInfo(pages[0]);
-
-        // With guard + wolf targeting the same villager, should be peaceful night
-        const peaceful = await isTextVisible(pages[0], '平安夜');
-        const death = await isTextVisible(pages[0], '死亡');
-        expect(peaceful || death, 'Night result should show').toBe(true);
-
-        await pages[0].screenshot().then((s) =>
-          testInfo.attach('reconnect-04-night-result.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-      });
-
-      await testInfo.attach('reconnect-summary.txt', {
-        body: [
-          `Guard page index: ${guardIdx}`,
-          `Wolf page index: ${wolfIdx}`,
-          `Disconnected page index: ${disconnectIdx}`,
-          `Guard is host: ${guardIdx === 0}`,
-        ].join('\n'),
-        contentType: 'text/plain',
-      });
+      await finishNight(cast);
     } finally {
-      // Ensure network is restored before cleanup
-      if (setup) {
-        for (const ctx of setup.fixture.contexts) {
-          await ctx.setOffline(false).catch(() => {});
-        }
-        // ctx.close() can fail with ENOENT when Playwright trace files are
-        // corrupted by the offline simulation. Catch individually so all
-        // contexts are cleaned up.
-        for (const ctx of setup.fixture.contexts) {
-          await ctx.close().catch(() => {});
-        }
-      }
+      await teardown(cast);
     }
   });
 
-  test('host reconnects after 5s disconnect and completes night', async ({ browser }, testInfo) => {
-    let setup: GameSetupWithRolesResult | undefined;
-
-    try {
-      // Step 1: Setup 3-player game with guard
-      setup = await setupNPlayerGameWithRoles(browser, {
-        playerCount: 3,
-        configureTemplate: async (config) =>
-          config.configureCustomTemplate({
-            wolves: 1,
-            villagers: 1,
-            goodRoles: ['guard'],
-          }),
-      });
-
-      const { fixture, roleMap } = setup;
-      const pages = fixture.pages;
-
-      const guardIdx = findRolePageIndex(roleMap, '守卫');
-      const wolfIdx = findRolePageIndex(roleMap, '狼人');
-      const villagerIdx = findRolePageIndex(roleMap, '平民');
-      expect(guardIdx).not.toBe(-1);
-      expect(wolfIdx).not.toBe(-1);
-
-      // Host is always page index 0
-      const hostContext = fixture.contexts[0]!;
-      const hostPage = pages[0];
-
-      await test.step('screenshot: pre-disconnect state', async () => {
-        await hostPage.screenshot().then((s) =>
-          testInfo.attach('host-reconnect-01-pre-disconnect.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-      });
-
-      // Step 2: Disconnect the host
-      await test.step('disconnect host', async () => {
-        await hostContext.setOffline(true);
-
-        const disconnectedBanner = hostPage.getByText(DISCONNECTED_BANNER_TEXT, { exact: true });
-        const sawDisconnected = await disconnectedBanner
-          .waitFor({ state: 'visible', timeout: 15_000 })
-          .then(() => true)
-          .catch(() => false);
-
-        await hostPage.screenshot().then((s) =>
-          testInfo.attach('host-reconnect-02-disconnected.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-
-        await testInfo.attach('host-disconnect-detected.txt', {
-          body: `Disconnect indicator visible: ${sawDisconnected}`,
-          contentType: 'text/plain',
-        });
-      });
-
-      // Step 3: Wait 5 seconds while host is offline
-      await test.step('wait 5s while disconnected', async () => {
-        await hostPage.waitForTimeout(5_000);
-
-        const disconnectedBanner = hostPage.getByText(DISCONNECTED_BANNER_TEXT, { exact: true });
-        // SDK heartbeat ~25s — soft-check after 5s
-        const sawDisconnected = await disconnectedBanner
-          .waitFor({ state: 'visible', timeout: 20_000 })
-          .then(() => true)
-          .catch(() => false);
-
-        await testInfo.attach('host-disconnect-after-5s.txt', {
-          body: `Disconnect banner visible after wait: ${sawDisconnected}`,
-          contentType: 'text/plain',
-        });
-
-        await hostPage.screenshot().then((s) =>
-          testInfo.attach('host-reconnect-02b-after-10s.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-      });
-
-      // Step 4: Restore network and verify host reconnection
-      await test.step('reconnect host', async () => {
-        await hostContext.setOffline(false);
-
-        // Wait for connection to restore (banner disappears when Live)
-        await waitForRoomScreenReady(hostPage, {
-          role: 'joiner',
-          liveTimeoutMs: 30_000,
-        });
-
-        await hostPage.screenshot().then((s) =>
-          testInfo.attach('host-reconnect-03-reconnected.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-      });
-
-      // Step 5: Drive night flow — guard protects, then wolf votes
-      await test.step('guard protects', async () => {
-        const targetSeat =
-          villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(wolfIdx)!.seat;
-
-        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, 'guardProtect', pages, 180_000);
-        expect(guardTurn, 'Guard turn should be detected after host reconnect').toBe(true);
-
-        await clickSeatAndConfirm(pages[guardIdx]!, targetSeat);
-      });
-
-      await test.step('wolf votes', async () => {
-        const targetSeat =
-          villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(guardIdx)!.seat;
-
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages, 180_000);
-        expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
-        await driveWolfVote(pages, [wolfIdx], targetSeat);
-      });
-
-      // Step 6: Verify night completes
-      await test.step('verify night end', async () => {
-        const ended = await waitForNightEnd(pages, 180_000);
-        expect(ended, 'Night should have ended after host reconnect').toBe(true);
-
-        await viewLastNightInfo(pages[0]);
-
-        const peaceful = await isTextVisible(pages[0], '平安夜');
-        const death = await isTextVisible(pages[0], '死亡');
-        expect(peaceful || death, 'Night result should show').toBe(true);
-
-        await pages[0].screenshot().then((s) =>
-          testInfo.attach('host-reconnect-04-night-result.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-      });
-
-      await testInfo.attach('host-reconnect-summary.txt', {
-        body: [
-          `Guard page index: ${guardIdx}`,
-          `Wolf page index: ${wolfIdx}`,
-          `Villager page index: ${villagerIdx}`,
-          `Host role: ${roleMap.get(0)?.displayName ?? 'unknown'}`,
-        ].join('\n'),
-        contentType: 'text/plain',
-      });
-    } finally {
-      if (setup) {
-        for (const ctx of setup.fixture.contexts) {
-          await ctx.setOffline(false).catch(() => {});
-        }
-        for (const ctx of setup.fixture.contexts) {
-          await ctx.close().catch(() => {});
-        }
-      }
-    }
-  });
-
-  test('player recovers after 30s extended disconnect', async ({ browser }, testInfo) => {
-    let setup: GameSetupWithRolesResult | undefined;
-
-    try {
-      // Step 1: Setup 3-player game with guard
-      setup = await setupNPlayerGameWithRoles(browser, {
-        playerCount: 3,
-        configureTemplate: async (config) =>
-          config.configureCustomTemplate({
-            wolves: 1,
-            villagers: 1,
-            goodRoles: ['guard'],
-          }),
-      });
-
-      const { fixture, roleMap } = setup;
-      const pages = fixture.pages;
-
-      const guardIdx = findRolePageIndex(roleMap, '守卫');
-      const wolfIdx = findRolePageIndex(roleMap, '狼人');
-      const villagerIdx = findRolePageIndex(roleMap, '平民');
-      expect(guardIdx).not.toBe(-1);
-      expect(wolfIdx).not.toBe(-1);
-
-      // Disconnect a non-host player. Prefer villager since they have no active
-      // role turn, minimizing interference with the night flow.
-      const disconnectIdx =
-        villagerIdx !== -1 && villagerIdx !== 0 ? villagerIdx : guardIdx !== 0 ? guardIdx : 1;
-      const disconnectContext = fixture.contexts[disconnectIdx]!;
-      const disconnectPage = pages[disconnectIdx]!;
-
-      await test.step('screenshot: pre-disconnect state', async () => {
-        await disconnectPage.screenshot().then((s) =>
-          testInfo.attach('long-offline-01-pre-disconnect.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-      });
-
-      // Step 2: Disconnect the player
-      await test.step('disconnect player for 30s', async () => {
-        await disconnectContext.setOffline(true);
-
-        // Soft check: banner may take time to appear due to SDK heartbeat
-        const disconnectedBanner = disconnectPage.getByText(DISCONNECTED_BANNER_TEXT, {
-          exact: true,
-        });
-        const sawDisconnected = await disconnectedBanner
-          .waitFor({ state: 'visible', timeout: 15_000 })
-          .then(() => true)
-          .catch(() => false);
-
-        await testInfo.attach('long-offline-disconnect-detected.txt', {
-          body: `Disconnect indicator visible: ${sawDisconnected}`,
-          contentType: 'text/plain',
-        });
-
-        await disconnectPage.screenshot().then((s) =>
-          testInfo.attach('long-offline-02-disconnected.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-      });
-
-      // Step 3: Wait 30 seconds — long enough to trigger dead channel detection (>=5s)
-      // and heartbeat timeout (~25s). This exercises L5 dead channel recovery.
-      await test.step('wait 30s while disconnected', async () => {
-        await disconnectPage.waitForTimeout(30_000);
-
-        await disconnectPage.screenshot().then((s) =>
-          testInfo.attach('long-offline-03-after-30s.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-      });
-
-      // Step 4: Restore network and verify reconnection
-      await test.step('reconnect player after extended offline', async () => {
-        await disconnectContext.setOffline(false);
-
-        // Extended timeout: dead channel recovery may need extra time to
-        // tear down and rebuild the channel after long disconnect.
-        await waitForRoomScreenReady(disconnectPage, {
-          role: 'joiner',
-          liveTimeoutMs: 45_000,
-        });
-
-        await disconnectPage.screenshot().then((s) =>
-          testInfo.attach('long-offline-04-reconnected.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-      });
-
-      // Step 5: Drive night flow — guard protects, then wolf votes
-      await test.step('guard protects', async () => {
-        const targetSeat =
-          villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(wolfIdx)!.seat;
-
-        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, 'guardProtect', pages, 180_000);
-        expect(guardTurn, 'Guard turn should be detected after extended reconnect').toBe(true);
-
-        await clickSeatAndConfirm(pages[guardIdx]!, targetSeat);
-      });
-
-      await test.step('wolf votes', async () => {
-        const targetSeat =
-          villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(guardIdx)!.seat;
-
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages, 180_000);
-        expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
-        await driveWolfVote(pages, [wolfIdx], targetSeat);
-      });
-
-      // Step 6: Verify night completes
-      await test.step('verify night end', async () => {
-        const ended = await waitForNightEnd(pages, 180_000);
-        expect(ended, 'Night should have ended after extended reconnect').toBe(true);
-
-        await viewLastNightInfo(pages[0]);
-
-        const peaceful = await isTextVisible(pages[0], '平安夜');
-        const death = await isTextVisible(pages[0], '死亡');
-        expect(peaceful || death, 'Night result should show').toBe(true);
-
-        await pages[0].screenshot().then((s) =>
-          testInfo.attach('long-offline-05-night-result.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-      });
-
-      await testInfo.attach('long-offline-summary.txt', {
-        body: [
-          `Guard page index: ${guardIdx}`,
-          `Wolf page index: ${wolfIdx}`,
-          `Disconnected page index: ${disconnectIdx}`,
-          `Disconnect role: ${roleMap.get(disconnectIdx)?.displayName ?? 'unknown'}`,
-          `Offline duration: 30s`,
-        ].join('\n'),
-        contentType: 'text/plain',
-      });
-    } finally {
-      if (setup) {
-        for (const ctx of setup.fixture.contexts) {
-          await ctx.setOffline(false).catch(() => {});
-        }
-        for (const ctx of setup.fixture.contexts) {
-          await ctx.close().catch(() => {});
-        }
-      }
-    }
-  });
-
-  test('player recovers after rapid online/offline flapping (5 cycles)', async ({
+  test('joiner flaps online/offline 5×: backoff absorbs it and the link settles live', async ({
     browser,
-  }, testInfo) => {
-    let setup: GameSetupWithRolesResult | undefined;
-
+  }) => {
+    let cast: NightCast | undefined;
     try {
-      // Step 1: Setup 3-player game with guard
-      setup = await setupNPlayerGameWithRoles(browser, {
-        playerCount: 3,
-        configureTemplate: async (config) =>
-          config.configureCustomTemplate({
-            wolves: 1,
-            villagers: 1,
-            goodRoles: ['guard'],
-          }),
-      });
+      cast = await castNight(browser);
+      const page = cast.pages[cast.joinerIdx]!;
+      const context = cast.contexts[cast.joinerIdx]!;
 
-      const { fixture, roleMap } = setup;
-      const pages = fixture.pages;
-
-      const guardIdx = findRolePageIndex(roleMap, '守卫');
-      const wolfIdx = findRolePageIndex(roleMap, '狼人');
-      const villagerIdx = findRolePageIndex(roleMap, '平民');
-      expect(guardIdx).not.toBe(-1);
-      expect(wolfIdx).not.toBe(-1);
-
-      // Disconnect a non-host player
-      const disconnectIdx = guardIdx !== 0 ? guardIdx : villagerIdx !== -1 ? villagerIdx : 1;
-      const disconnectContext = fixture.contexts[disconnectIdx]!;
-      const disconnectPage = pages[disconnectIdx]!;
-
-      await test.step('screenshot: pre-flap state', async () => {
-        await disconnectPage.screenshot().then((s) =>
-          testInfo.attach('flap-01-pre.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-      });
-
-      // Step 2: Rapid online/offline flapping — 5 cycles
-      const FLAP_CYCLES = 5;
-      const FLAP_OFFLINE_MS = 1_000;
-      const FLAP_ONLINE_MS = 1_000;
-
-      await test.step(`rapid flap: ${FLAP_CYCLES} cycles`, async () => {
-        for (let cycle = 1; cycle <= FLAP_CYCLES; cycle++) {
-          await disconnectContext.setOffline(true);
-          await disconnectPage.waitForTimeout(FLAP_OFFLINE_MS);
-          await disconnectContext.setOffline(false);
-          if (cycle < FLAP_CYCLES) {
-            await disconnectPage.waitForTimeout(FLAP_ONLINE_MS);
-          }
-        }
-
-        await disconnectPage.screenshot().then((s) =>
-          testInfo.attach('flap-02-after-cycles.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-      });
-
-      // Step 3: Ensure final state is online and wait for live status
-      await test.step('stabilize after flapping', async () => {
-        // Ensure definitively online
-        await disconnectContext.setOffline(false);
-
-        await waitForRoomScreenReady(disconnectPage, {
-          role: 'joiner',
-          liveTimeoutMs: 30_000,
-        });
-
-        await disconnectPage.screenshot().then((s) =>
-          testInfo.attach('flap-03-stabilized.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-      });
-
-      // Step 4: Drive night flow — guard protects, then wolf votes
-      await test.step('guard protects', async () => {
-        const targetSeat =
-          villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(wolfIdx)!.seat;
-
-        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, 'guardProtect', pages, 180_000);
-        expect(guardTurn, 'Guard turn should be detected after flap recovery').toBe(true);
-
-        await clickSeatAndConfirm(pages[guardIdx]!, targetSeat);
-      });
-
-      await test.step('wolf votes', async () => {
-        const targetSeat =
-          villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(guardIdx)!.seat;
-
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages, 180_000);
-        expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
-        await driveWolfVote(pages, [wolfIdx], targetSeat);
-      });
-
-      // Step 5: Verify night completes
-      await test.step('verify night end', async () => {
-        const ended = await waitForNightEnd(pages, 180_000);
-        expect(ended, 'Night should have ended after flap recovery').toBe(true);
-
-        await viewLastNightInfo(pages[0]);
-
-        const peaceful = await isTextVisible(pages[0], '平安夜');
-        const death = await isTextVisible(pages[0], '死亡');
-        expect(peaceful || death, 'Night result should show').toBe(true);
-
-        await pages[0].screenshot().then((s) =>
-          testInfo.attach('flap-04-night-result.png', {
-            body: s,
-            contentType: 'image/png',
-          }),
-        );
-      });
-
-      await testInfo.attach('flap-summary.txt', {
-        body: [
-          `Guard page index: ${guardIdx}`,
-          `Wolf page index: ${wolfIdx}`,
-          `Disconnected page index: ${disconnectIdx}`,
-          `Flap cycles: ${FLAP_CYCLES}`,
-          `Offline per cycle: ${FLAP_OFFLINE_MS}ms`,
-          `Online per cycle: ${FLAP_ONLINE_MS}ms`,
-        ].join('\n'),
-        contentType: 'text/plain',
-      });
-    } finally {
-      if (setup) {
-        for (const ctx of setup.fixture.contexts) {
-          await ctx.setOffline(false).catch(() => {});
-        }
-        for (const ctx of setup.fixture.contexts) {
-          await ctx.close().catch(() => {});
-        }
+      for (let cycle = 0; cycle < 5; cycle += 1) {
+        await setOffline(context, true);
+        await page.waitForTimeout(1_000);
+        await setOffline(context, false);
+        await page.waitForTimeout(1_000);
       }
+      await waitForLinkLive(page);
+      await finishNight(cast);
+    } finally {
+      await teardown(cast);
+    }
+  });
+
+  test('joiner backgrounded 30s then foregrounded: fresh socket, link live', async ({
+    browser,
+  }) => {
+    let cast: NightCast | undefined;
+    try {
+      cast = await castNight(browser);
+      const page = cast.pages[cast.joinerIdx]!;
+
+      await test.step('hidden 30s', async () => {
+        await setPageHidden(page, true);
+        await page.waitForTimeout(30_000);
+      });
+      await test.step('foreground → reconnect past the fast-resume window → live', async () => {
+        await setPageHidden(page, false);
+        await waitForLinkLive(page, 20_000);
+      });
+      await finishNight(cast);
+    } finally {
+      await teardown(cast);
+    }
+  });
+
+  test('server drops every socket (deploy): all players reconnect without a reload', async ({
+    browser,
+  }) => {
+    let cast: NightCast | undefined;
+    try {
+      cast = await castNight(browser);
+      const { pages, setup } = cast;
+
+      await test.step('server closes all sockets with 1012 service restart', async () => {
+        const closed = await dropRoomSockets(pages[0]!, setup.roomCode, {
+          code: 1012,
+          reason: 'service_restart',
+        });
+        expect(closed).toBe(pages.length);
+      });
+      await test.step('every page returns to live', async () => {
+        await Promise.all(pages.map((page) => waitForLinkLive(page, 20_000)));
+      });
+      await finishNight(cast);
+    } finally {
+      await teardown(cast);
     }
   });
 });

@@ -383,6 +383,8 @@ side effect：`OPEN_SOCKET(generation) | CLOSE_SOCKET(generation, code) | SEND_S
 
 `PRESENCE` 到达即替换 `snapshot.presence`。`RoomSeatViewModel` 新增 `isOnline: boolean`（真人座位且 userId ∈ presence）；机器人座位恒 `true`。
 
+静默断网（飞行模式、进程被杀、WiFi 断开）不会产生 Close 帧，ping/pong 又由运行时 auto-response 回答、不唤醒 DO，所以服务端只能靠周期性扫描发现半开 socket。离线点从断网到出现的上界 = 60 秒陈旧阈值 + 30 秒扫描间隔。
+
 ---
 
 ## 5. Worker 行为规范
@@ -407,7 +409,7 @@ side effect：`OPEN_SOCKET(generation) | CLOSE_SOCKET(generation, code) | SEND_S
 - `ctx.acceptWebSocket(ws, [\`user:${userId}\`])`+`ws.serializeAttachment({ userId, connectedAtMs })`（≤ 16 KB）。
 - `webSocketMessage`：只接受文本帧；解析失败 → `close(1002)`；`SYNC`：`knownRevision === room.revision` → `current`，否则 `snapshot`；房间无快照 → `close(4003)` + Sentry。
 - 广播：`CommandPipeline` 返回 `{ decision, broadcast }`，`RoomGateway.broadcastState()` 是 DO 内唯一的广播入口；`GameRoom` 不再在三处手工调用。
-- 在线表：accept / close 时，按 tag 去重 userId，广播 `PRESENCE`；计算时对 `getWebSocketAutoResponseTimestamp(ws)` 距今 > 60 秒且 `connectedAtMs` 距今 > 60 秒的 socket 调用 `close(1001)`。事件驱动，不加 alarm。
+- 在线表：accept / close 时，按 tag 去重 userId，广播 `PRESENCE`；计算时对 `getWebSocketAutoResponseTimestamp(ws)` 距今 > 60 秒且 `connectedAtMs` 距今 > 60 秒的 socket 调用 `close(1001)`。有 OPEN socket 期间每 30 秒由 DO alarm 执行一次 `sweep()`：在线集合与上次广播相同则静默，否则广播；无 OPEN socket 时不续约。DO 的单一 alarm 由 `GameRoomRuntime.#scheduleAlarm()` 取 outbox 下一到期时间与下一次扫描时间的最小值。服务端发起的 `close()` 在对端应答前仍会出现在 `getWebSockets()` 中，所有遍历只看 `readyState === OPEN` 的 socket。
 - `INBOX_HINT`：`publishUserEvent` 写入 D1 成功后，对 `getWebSockets(\`user:${userId}\`)` 发送一帧。无 socket 时静默（客户端其他触发时机覆盖）。
 - 流量记录：所有出入帧经 `recordRealtimeTraffic`。
 

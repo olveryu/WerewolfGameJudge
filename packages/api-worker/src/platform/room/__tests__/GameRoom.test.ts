@@ -23,6 +23,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
 import { initializeRoomStorage } from '../../commands/storageSchema';
+import { PRESENCE_SWEEP_INTERVAL_MS } from '../../realtime/RoomGateway';
 import { enqueueUserEvent } from '../../userInbox/inbox';
 import type { GameRoomRuntime as GameRoom } from '../GameRoomRuntime';
 import type { DispatchRoomResult, InitializeRoomResult } from '../types';
@@ -658,11 +659,11 @@ describe('GameRoom command receipts', () => {
     await expect(stub.getSnapshot(roomIdentity(stub))).resolves.toBeNull();
   });
 
-  function acceptTestSocket(state: DurableObjectState, userId: string) {
+  function acceptTestSocket(state: DurableObjectState, userId: string, connectedAtMs = Date.now()) {
     const sockets = new WebSocketPair();
     // Mirrors RoomGateway.accept(): tag plus attachment, without the presence broadcast.
     state.acceptWebSocket(sockets[1], [`user:${userId}`]);
-    sockets[1].serializeAttachment({ userId, connectedAtMs: Date.now() });
+    sockets[1].serializeAttachment({ userId, connectedAtMs });
     const messages: unknown[] = [];
     const closed = new Promise<{ code: number; reason: string }>((resolve) => {
       sockets[0].addEventListener('close', (event) =>
@@ -759,7 +760,7 @@ describe('GameRoom command receipts', () => {
     });
   });
 
-  it('publishes PRESENCE on admission and answers SYNC over the upgraded socket', async () => {
+  it('publishes PRESENCE on admission, arms the sweep alarm and answers SYNC', async () => {
     const stub = getStub();
     await initialize(stub);
     await enqueueUserEvent(env.DB, {
@@ -768,6 +769,7 @@ describe('GameRoom command receipts', () => {
       message: { type: 'SETTLE_RESULT', eventId: 'offline-event', settlementId: 'game-1' },
     });
 
+    const acceptedAt = Date.now();
     const response = await stub.fetch(
       new Request(
         `https://room.test/websocket?roomCode=${ROOM_CODE}&roomId=${encodeURIComponent(
@@ -779,6 +781,12 @@ describe('GameRoom command receipts', () => {
     expect(response.status).toBe(101);
     const socket = response.webSocket;
     if (socket === null) throw new Error('Expected a WebSocket upgrade response');
+    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
+      const alarmAt = await state.storage.getAlarm();
+      if (alarmAt === null) throw new Error('Expected the sweep alarm to be armed on accept');
+      expect(alarmAt).toBeGreaterThanOrEqual(acceptedAt + PRESENCE_SWEEP_INTERVAL_MS);
+      expect(alarmAt).toBeLessThanOrEqual(Date.now() + PRESENCE_SWEEP_INTERVAL_MS);
+    });
     const frames: unknown[] = [];
     const received = (count: number) =>
       new Promise<void>((resolve) => {
@@ -839,6 +847,44 @@ describe('GameRoom command receipts', () => {
     await expect(closed).resolves.toEqual({
       code: REALTIME_CLOSE_CODE.ROOM_DELETED,
       reason: 'room_deleted',
+    });
+  });
+
+  it('sweep closes a socket with no keepalive for 60s and publishes the shrunken presence', async () => {
+    const stub = getStub();
+    await initialize(stub);
+
+    await runInDurableObject(stub, async (instance: GameRoom, state) => {
+      const host = acceptTestSocket(state, 'host-1');
+      const stale = acceptTestSocket(state, 'player-1', Date.now() - 61_000);
+
+      await instance.alarm();
+      await settle();
+
+      await expect(stale.closed).resolves.toEqual({ code: 1001, reason: 'keepalive_timeout' });
+      expect(host.messages).toEqual([{ type: 'PRESENCE', onlineUserIds: ['host-1'] }]);
+      // The surviving socket keeps the sweep armed.
+      const alarmAt = await state.storage.getAlarm();
+      if (alarmAt === null) throw new Error('Expected the sweep alarm to stay armed');
+      expect(alarmAt).toBeLessThanOrEqual(Date.now() + PRESENCE_SWEEP_INTERVAL_MS);
+
+      // Unchanged set: the next sweep stays silent.
+      await instance.alarm();
+      await settle();
+      expect(host.messages).toHaveLength(1);
+      host.client.close();
+    });
+  });
+
+  it('sweep disarms the alarm once no open socket remains and the outbox is empty', async () => {
+    const stub = getStub();
+    await initialize(stub);
+
+    await runInDurableObject(stub, async (instance: GameRoom, state) => {
+      const stale = acceptTestSocket(state, 'player-1', Date.now() - 61_000);
+      await instance.alarm();
+      await expect(stale.closed).resolves.toEqual({ code: 1001, reason: 'keepalive_timeout' });
+      expect(await state.storage.getAlarm()).toBeNull();
     });
   });
 });
