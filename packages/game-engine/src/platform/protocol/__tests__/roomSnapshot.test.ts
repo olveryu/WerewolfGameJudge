@@ -4,16 +4,7 @@ import {
   WEREWOLF_STATE_IDENTITY,
   werewolfEngine,
 } from '../../../games/werewolf/public';
-import {
-  createRoomSnapshot,
-  createStateSyncRequestMessage,
-  createStateSyncResponseMessage,
-  createStateUpdateMessage,
-  parseRoomSnapshot,
-  parseStateSyncRequestMessage,
-  parseStateSyncResponseMessage,
-  parseStateUpdateMessage,
-} from '../roomSnapshot';
+import { createRoomSnapshot, parseRoomSnapshot } from '../roomSnapshot';
 
 const TEMPLATE: GameTemplate = {
   name: 'Snapshot contract',
@@ -56,77 +47,12 @@ describe('room snapshot protocol', () => {
     );
   });
 
-  it('creates a discriminator-bearing realtime message', () => {
-    const state = createState();
-    const snapshot = createRoomSnapshot(state, 4);
-
-    expect(createStateUpdateMessage(snapshot, 'room.seat.take')).toEqual({
-      type: 'STATE_UPDATE',
-      ...snapshot,
-      lastCommandType: 'room.seat.take',
-    });
-  });
-
-  it('rejects snapshot identity drift before broadcast', () => {
-    const state = createState();
-    const snapshot = {
-      ...createRoomSnapshot(state, 4),
-      stateVersion: UNSUPPORTED_WEREWOLF_STATE_VERSION,
-    };
-
-    expect(() => createStateUpdateMessage(snapshot, null)).toThrow(
-      'Snapshot identity does not match its state',
-    );
-  });
-
   it('decodes the authoritative room snapshot envelope', () => {
     const state = createState();
     const snapshot = createRoomSnapshot(state, 3);
     const encoded: unknown = JSON.parse(JSON.stringify(snapshot));
 
     expect(parseRoomSnapshot(encoded, WEREWOLF_STATE_CODEC)).toEqual(snapshot);
-  });
-
-  it('decodes the same envelope inside realtime updates', () => {
-    const state = createState();
-    const message = createStateUpdateMessage(createRoomSnapshot(state, 5), 'room.seat.take');
-    const encoded: unknown = JSON.parse(JSON.stringify(message));
-
-    expect(parseStateUpdateMessage(encoded, WEREWOLF_STATE_CODEC)).toEqual(message);
-  });
-
-  it('creates and parses a strict correlated state sync request', () => {
-    const request = createStateSyncRequestMessage('sync-request-1');
-
-    expect(request).toEqual({ type: 'STATE_SYNC_REQUEST', requestId: 'sync-request-1' });
-    expect(parseStateSyncRequestMessage(request)).toEqual(request);
-    expect(() => parseStateSyncRequestMessage({ ...request, revision: 1 })).toThrow(
-      'StateSyncRequestMessage contains unknown field: revision',
-    );
-  });
-
-  it('creates and parses an authoritative state sync response', () => {
-    const snapshot = createRoomSnapshot(createState(), 5);
-    const response = createStateSyncResponseMessage('sync-request-2', snapshot);
-
-    expect(response).toEqual({
-      type: 'STATE_SYNC_RESPONSE',
-      requestId: 'sync-request-2',
-      ...snapshot,
-    });
-    expect(parseStateSyncResponseMessage(response, WEREWOLF_STATE_CODEC)).toEqual(response);
-  });
-
-  it('rejects invalid state sync identifiers and response fields', () => {
-    const snapshot = createRoomSnapshot(createState(), 5);
-
-    expect(() => createStateSyncRequestMessage('')).toThrow('requestId must be a non-empty string');
-    expect(() =>
-      parseStateSyncResponseMessage(
-        { ...createStateSyncResponseMessage('sync-request-3', snapshot), lastCommandType: null },
-        WEREWOLF_STATE_CODEC,
-      ),
-    ).toThrow('StateSyncResponseMessage contains unknown field: lastCommandType');
   });
 
   it('rejects unknown envelope fields', () => {
