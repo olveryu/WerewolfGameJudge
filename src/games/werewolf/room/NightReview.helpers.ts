@@ -643,14 +643,16 @@ export function nightReviewActorRoleId(entry: NightReviewActionEntry): RoleId | 
 }
 
 /**
- * Derive how a wolfAttack entry's votes resolved. Plurality wins; a
- * tie follows the engine rule, not a "tie = no kill" assumption: the
- * normal engine rule settles a tie once by random pick, so a tied
- * entry is tiePicked when its settled target is recorded, splitTied
- * only when it is settled to no kill (cupid unanimity), and
- * tiePending when no settlement is recorded at all. The entry's
- * votes already exclude abstentions, which were split into
- * abstainSeats by the builder.
+ * Derive how a wolfAttack entry's votes resolved. The settled target
+ * wins over the raw tally, tie or not: the engine settles a vote once
+ * (a tie by random pick in the normal rule, no kill under cupid
+ * unanimity), so a recorded settlement of null is splitTied even
+ * when the votes are not tied — a cupid 2-to-1 vote settles to no
+ * kill, never to a plurality kill — and a recorded seat is the
+ * verdict target even when the tally alone would name another.
+ * Only when no settlement is recorded does the tally speak: a tie
+ * is tiePending, never "no kill". The entry's votes already exclude
+ * abstentions, which were split into abstainSeats by the builder.
  */
 export function deriveWolfVerdict(
   entry: Extract<NightReviewActionEntry, { kind: 'wolfAttack' }>,
@@ -672,14 +674,14 @@ export function deriveWolfVerdict(
       tied = true;
     }
   }
-  if (tied) {
-    if (entry.resolvedTargetSeat !== undefined) {
-      return entry.resolvedTargetSeat === null
-        ? { type: 'splitTied' }
-        : { type: 'tiePicked', targetSeat: entry.resolvedTargetSeat };
-    }
-    return { type: 'tiePending' };
+  if (entry.resolvedTargetSeat !== undefined) {
+    if (entry.resolvedTargetSeat === null) return { type: 'splitTied' };
+    if (tied) return { type: 'tiePicked', targetSeat: entry.resolvedTargetSeat };
+    return counts.size === 1
+      ? { type: 'sharedTarget', targetSeat: entry.resolvedTargetSeat }
+      : { type: 'splitKilled', targetSeat: entry.resolvedTargetSeat };
   }
+  if (tied) return { type: 'tiePending' };
   if (maxTarget === undefined) return { type: 'allAbstain' };
   return counts.size === 1
     ? { type: 'sharedTarget', targetSeat: maxTarget }

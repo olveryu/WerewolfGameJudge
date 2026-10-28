@@ -13,6 +13,8 @@
  * - endNight calls calculateDeaths and produces correct deaths
  */
 
+import { handleSubmitAction as executeSubmitAction } from '@game-judge/game-engine/games/werewolf/domain/handlers/actionHandler';
+import { handleAudioAck } from '@game-judge/game-engine/games/werewolf/domain/handlers/commandHandlers';
 import {
   handleAdvanceNight as executeAdvanceNight,
   handleEndNight as executeEndNight,
@@ -21,6 +23,7 @@ import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/doma
 import type {
   AdvanceNightIntent,
   EndNightIntent,
+  SubmitActionIntent,
 } from '@game-judge/game-engine/games/werewolf/domain/intents/types';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
@@ -598,6 +601,125 @@ describe('nightFlowHandler', () => {
         if (witchContextAction && endNightAction?.type === 'END_NIGHT') {
           expect(endNightAction.payload.deaths).toContain(witchContextAction.payload.killedSeat);
         }
+      });
+
+      it('keeps one settled tied target across advance, witch submission and settlement under different seeds', () => {
+        // True end-to-end chain, not a manually pre-seeded settlement:
+        // advance to witch (settles + context) -> witch submission
+        // under a second seed (saves the context target) -> advance to
+        // exhausted -> END_NIGHT under a third seed. Every command
+        // carries a different randomSeed, so a re-roll anywhere in the
+        // chain would change the target; the chain must emit exactly
+        // one SET_RESOLVED_WOLF_KILL_TARGET, and the saved target must
+        // be the settled target (so it survives the night).
+        const contextFor = (state: GameState): HandlerContext => ({
+          state,
+          myUserId: 'host-uid',
+          mySeat: null,
+        });
+        const apply = (state: GameState, actions: readonly Parameters<typeof gameReducer>[1][]) => {
+          let next = state;
+          for (const action of actions) next = gameReducer(next, action);
+          return next;
+        };
+        const acknowledgeAudio = (state: GameState) => {
+          const acked = expectSuccess(handleAudioAck(contextFor(state)));
+          return apply(state, acked.actions);
+        };
+        const countSettled = (actions: readonly { type: string }[]) =>
+          actions.filter((action) => action.type === 'SET_RESOLVED_WOLF_KILL_TARGET').length;
+
+        let state = createOngoingState({
+          nightStep: { kind: 'inStep', stepId: 'wolfKill' },
+          currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 5 } },
+        });
+
+        // Command 1: advance wolfKill -> witchAction, first seed.
+        const advanceToWitch = expectSuccess(
+          executeAdvanceNight({ type: 'ADVANCE_NIGHT' }, contextFor(state), {
+            ...TEST_HANDLER_EXECUTION,
+            commandId: 'advance-to-witch',
+            randomSeed: 'advance-to-witch-seed',
+          }),
+        );
+        expect(countSettled(advanceToWitch.actions)).toBe(1);
+        const advanceStep = advanceToWitch.actions.find(
+          (action) => action.type === 'ADVANCE_TO_NEXT_ACTION',
+        );
+        expect(advanceStep?.type).toBe('ADVANCE_TO_NEXT_ACTION');
+        if (advanceStep?.type === 'ADVANCE_TO_NEXT_ACTION') {
+          expect(advanceStep.payload.nightStep).toEqual({
+            kind: 'inStep',
+            stepId: 'witchAction',
+          });
+        }
+        state = acknowledgeAudio(apply(state, advanceToWitch.actions));
+        expect(state.witchContext).toBeDefined();
+        const contextTarget = state.witchContext!.killedSeat;
+        expect([4, 5]).toContain(contextTarget);
+        expect(state.resolvedWolfKillTarget).toBe(contextTarget);
+
+        // Command 2: witch submission under a second seed, saving the
+        // context target. This must be accepted against the stored
+        // settlement, not a fresh tie-break.
+        const submitIntent: SubmitActionIntent = {
+          type: 'SUBMIT_ACTION',
+          payload: {
+            seat: 3,
+            role: 'witch',
+            actionInput: {
+              schemaId: 'witchAction',
+              stepResults: { save: contextTarget, poison: null },
+            },
+          },
+        };
+        const submit = expectSuccess(
+          executeSubmitAction(submitIntent, contextFor(state), {
+            ...TEST_HANDLER_EXECUTION,
+            commandId: 'witch-submit',
+            randomSeed: 'witch-submit-seed',
+          }),
+        );
+        expect(countSettled(submit.actions)).toBe(0);
+        state = apply(state, submit.actions);
+        expect(state.currentNightResults?.savedSeat).toBe(contextTarget);
+        expect(state.resolvedWolfKillTarget).toBe(contextTarget);
+
+        // Commands 3-4: advance witchAction -> seerCheck -> exhausted,
+        // each under its own seed. Neither may emit a second SET.
+        for (const seed of ['advance-to-seer-seed', 'advance-to-exhausted-seed']) {
+          const advance = expectSuccess(
+            executeAdvanceNight({ type: 'ADVANCE_NIGHT' }, contextFor(state), {
+              ...TEST_HANDLER_EXECUTION,
+              commandId: `advance-${seed}`,
+              randomSeed: seed,
+            }),
+          );
+          expect(countSettled(advance.actions)).toBe(0);
+          state = acknowledgeAudio(apply(state, advance.actions));
+          expect(state.resolvedWolfKillTarget).toBe(contextTarget);
+        }
+        expect(state.nightStep).toEqual({ kind: 'exhausted' });
+
+        // Command 5: END_NIGHT under a third seed.
+        const endNight = expectSuccess(
+          executeEndNight({ type: 'END_NIGHT' }, contextFor(state), {
+            ...TEST_HANDLER_EXECUTION,
+            commandId: 'end-night',
+            randomSeed: 'end-night-seed',
+          }),
+        );
+        expect(countSettled(endNight.actions)).toBe(0);
+        const endNightAction = endNight.actions.find((action) => action.type === 'END_NIGHT');
+        expect(endNightAction?.type).toBe('END_NIGHT');
+        if (endNightAction?.type === 'END_NIGHT') {
+          // The saved target is the settled target, so it survives;
+          // a divergent settlement would have killed the other tied
+          // target instead.
+          expect(endNightAction.payload.deaths).toEqual([]);
+        }
+        state = apply(state, endNight.actions);
+        expect(state.resolvedWolfKillTarget).toBe(contextTarget);
       });
 
       it('reuses the witch context target for a pre-field room at settlement', () => {

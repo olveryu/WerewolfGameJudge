@@ -128,10 +128,13 @@ export function handleAdvanceNight(
 
   // Unified entry: if about to enter witchAction, set witchContext
   // Guard: nextStepId must exist (undefined at night end — should not set witchContext)
-  // When the settlement above just ran, witchContext reads the stored
-  // value; when it did not run (witch entry on a no-wolf board, where
-  // the advance never passes wolfKill), the context's own fresh
-  // resolution is persisted right after it, from its payload.
+  // The settlement above always runs before a witch entry: witchAction
+  // sits after wolfKill in NIGHT_STEP_ORDER, so pastWolfKill is true
+  // here and the block above already persisted the target (to null
+  // on a no-wolf board, where there are no votes to settle). The
+  // context therefore always reads the stored value; there is no
+  // second SET to emit after it. A night that opens directly on
+  // witchAction is handled by START_NIGHT, not by this advance.
   const witchContextAction = nextStepId
     ? maybeCreateWitchContextAction(
         nextStepId,
@@ -142,14 +145,6 @@ export function handleAdvanceNight(
       )
     : null;
   if (witchContextAction) {
-    if (settledWolfKillTarget === undefined) {
-      const killedSeat = witchContextAction.payload.killedSeat;
-      actions.push({
-        type: 'SET_RESOLVED_WOLF_KILL_TARGET',
-        payload: { target: killedSeat >= 0 ? killedSeat : null },
-      });
-      settledWolfKillTarget = killedSeat >= 0 ? killedSeat : null;
-    }
     actions.push(witchContextAction);
   }
 

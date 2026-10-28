@@ -2032,6 +2032,55 @@ describe('NightReview.helpers', () => {
       });
     });
 
+    it('settles a cupid 2-to-1 vote to no kill and emits no wolf-target save note', () => {
+      // Under cupid unanimity a 2-to-1 vote settles to null (no kill);
+      // the tally alone must not be read as a plurality kill, and no
+      // "wolf target not saved" note may be derived from it.
+      const votes = [
+        { voterSeat: 0, targetSeat: 5 },
+        { voterSeat: 1, targetSeat: 5 },
+        { voterSeat: 2, targetSeat: 6 },
+      ];
+      expect(
+        deriveWolfVerdict({
+          kind: 'wolfAttack',
+          votes,
+          abstainSeats: [],
+          resolvedTargetSeat: null,
+        }),
+      ).toEqual({ type: 'splitTied' });
+      expect(
+        deriveWolfVerdict({
+          kind: 'wolfAttack',
+          votes,
+          abstainSeats: [],
+          resolvedTargetSeat: 5,
+        }),
+      ).toEqual({ type: 'splitKilled', targetSeat: 5 });
+
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'wolf')],
+        [1, makePlayer(1, 'wolf')],
+        [2, makePlayer(2, 'wolf')],
+        [3, makePlayer(3, 'witch')],
+        [5, makePlayer(5, 'villager')],
+        [6, makePlayer(6, 'villager')],
+      ]);
+      const data = buildNightReviewData(
+        makeGameState({
+          players,
+          currentNightResults: { wolfVotesBySeat: { '0': 5, '1': 5, '2': 6 } },
+          resolvedWolfKillTarget: null,
+        }),
+      );
+      const wolfEntry = data.actions.find((entry) => entry.kind === 'wolfAttack');
+      expect(wolfEntry?.kind).toBe('wolfAttack');
+      if (wolfEntry?.kind === 'wolfAttack') {
+        expect(deriveWolfVerdict(wolfEntry)).toEqual({ type: 'splitTied' });
+      }
+      expect(deriveWolfTargetSaveNote(data)).toBeNull();
+    });
+
     it('recovers a tied vote from the recorded save on a pre-field night review', () => {
       const players = new Map<number, LocalPlayer | null>([
         [0, makePlayer(0, 'wolf')],

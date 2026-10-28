@@ -15,7 +15,7 @@
  * @remarks Exact canShoot conditions:
  *   canShoot = true only when the cause of death is wolfKill or exile (daytime exile vote).
  *   The following causes cannot shoot: poison (witch/poisoner), couple (lover suicide), dream (dreamcatcher chain), charm (eclipse wolf queen charm).
- *   Check order: witchContext.killedSeat -> coupleDeathVictim -> dreamLinkedDeath -> wolfQueenCharm.
+ *   Check order: resolvedWolfKillTarget (settled) -> witchContext.killedSeat -> coupleDeathVictim -> dreamLinkedDeath -> wolfQueenCharm.
  *   deriveConfirmStepRoleMap() builds a static mapping from ROLE_SPECS at module load time.
  */
 
