@@ -50,7 +50,6 @@ import {
   type PictionaryConfig,
   type PictionaryDrawingReservation,
   type PictionaryEntry,
-  type PictionaryGalleryState,
   type PictionaryMedia,
   type PictionaryState,
 } from './state/types';
@@ -85,20 +84,6 @@ function decideStartPictionaryRound(
   }
   if (!isPictionaryRoomFull(state)) return reject(REASON_PICTIONARY_ROOM_NOT_FULL);
   return commitPictionary([createRound(state, context)]);
-}
-
-function phaseChangedEvent(
-  state: PictionaryState,
-  phase: PictionaryState['phase'],
-  stepIndex: number,
-  deadlineAt: number | null,
-  gallery: PictionaryGalleryState | null = null,
-): PictionaryEvent {
-  return { type: 'pictionary.phase.changed', phase, stepIndex, deadlineAt, gallery };
-}
-
-function settlingEvent(state: PictionaryState): PictionaryEvent {
-  return phaseChangedEvent(state, 'settling', state.stepIndex, null);
 }
 
 function decideReservePictionaryDrawing(
@@ -171,10 +156,6 @@ function decideCommitPictionaryDrawing(
   );
 }
 
-function expireAnsweringPhase(state: PictionaryState): PictionaryDecision {
-  return commitPictionary([settlingEvent(state)]);
-}
-
 function decideExpirePictionaryPhase(
   state: PictionaryState,
   phaseRevision: number,
@@ -203,18 +184,6 @@ function decideExpirePictionaryPhase(
     notExpiredReason: REASON_PICTIONARY_PHASE_NOT_EXPIRED,
     dispatch: (nowMs) => expirePictionaryPhase(state, nowMs),
   });
-}
-
-function decideFinishPictionaryPhase(
-  state: PictionaryState,
-  context: CommandContext,
-): PictionaryDecision {
-  const hostRejection = requireHost<PictionaryEvent, PictionaryEffect>(context, state.hostUserId);
-  if (hostRejection !== null) return hostRejection;
-  if (state.phase !== 'answering') {
-    return reject(REASON_PICTIONARY_PHASE_INVALID);
-  }
-  return expireAnsweringPhase(state);
 }
 
 function decidePausePictionaryGallery(
@@ -356,8 +325,6 @@ export function decidePictionaryCommand(
       return decideCommitPictionaryDrawing(state, command.submissionId, command.media, context);
     case 'pictionary.phase.expire':
       return decideExpirePictionaryPhase(state, command.phaseRevision, context);
-    case 'pictionary.phase.finish':
-      return decideFinishPictionaryPhase(state, context);
     case 'pictionary.gallery.pause':
       return decidePausePictionaryGallery(state, context);
     case 'pictionary.gallery.resume':

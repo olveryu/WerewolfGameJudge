@@ -58,9 +58,21 @@ function botGame(seatHost: boolean) {
   if (seatHost) send({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
   send({ type: 'room.seat.fillBots' });
   send({ type: 'storyrelay.game.begin' });
-  // Host ends the writing step, like tapping finish-step in the UI; the phase
-  // becomes settling, which is when text submissions are accepted.
-  send({ type: 'storyrelay.phase.finish', phaseRevision: state.phaseRevision });
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+    const task = getStoryRelayTaskForSeat(state, seat);
+    if (task === null) throw new Error('Missing task');
+    send(
+      {
+        type: 'storyrelay.task.ready.set',
+        roundId: task.roundId,
+        stepIndex: task.stepIndex,
+        chainId: task.chainId,
+        isReady: true,
+      },
+      'host',
+      seatHost && seat === 0 ? null : seat,
+    );
+  }
   return {
     get state() {
       return state;

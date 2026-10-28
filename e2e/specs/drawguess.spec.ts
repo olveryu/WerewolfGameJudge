@@ -1,4 +1,4 @@
-/** Browser acceptance for DrawGuess: create/config/guide/lobby gating/fill-bots/wordSelect. */
+/** Browser acceptance for DrawGuess setup, guessing, host abort and return to the same lobby. */
 
 import { expect, type Page, test } from '@playwright/test';
 
@@ -39,7 +39,9 @@ async function confirm(page: Page): Promise<void> {
   await page.getByText('确定', { exact: true }).click();
 }
 
-test('create, guide, full-room gating, fill bots, and wordSelect', async ({ browser }) => {
+test('create, guess, cancel or confirm host abort, and restart without losing seats', async ({
+  browser,
+}) => {
   const fixture = await createPlayerContexts(browser, 2);
   const hostPage = fixture.pages[0];
   const joinerPage = fixture.pages[1];
@@ -105,6 +107,7 @@ test('create, guide, full-room gating, fill bots, and wordSelect', async ({ brow
     });
 
     await test.step('drawer selects a word and drawing begins', async () => {
+      const word = await hostPage.getByTestId('drawguess-word-choice-0').innerText();
       // Click the first word choice button (words are dealt randomly).
       // Use testID for reliable targeting (getByRole was flaky with RNW Pressable).
       await hostPage.getByTestId('drawguess-word-choice-0').click();
@@ -112,6 +115,50 @@ test('create, guide, full-room gating, fill bots, and wordSelect', async ({ brow
       // (Exact drawing-phase assertions depend on the phase transition;
       // at minimum the word choices should disappear.)
       await expect(hostPage.getByText('请选择本轮题目')).not.toBeVisible({ timeout: 15000 });
+      await expect(hostPage.getByTestId('drawguess-drawing-canvas')).toBeVisible();
+      for (const page of fixture.pages)
+        await expect(page.getByRole('button', { name: '放弃本轮', exact: true })).toHaveCount(0);
+      await expect(joinerPage.getByTestId(TESTIDS.roomHostManagementButton)).toHaveCount(0);
+      await joinerPage.getByLabel('猜词输入框', { exact: true }).fill(word);
+      await joinerPage.getByRole('button', { name: '发送猜词', exact: true }).click();
+      await expect(joinerPage.getByLabel('已猜中，等待本轮结束', { exact: true })).toBeVisible();
+    });
+
+    await test.step('cancel keeps the current game and confirmation returns everyone to the lobby', async () => {
+      await room.clickHostManagementAction(TESTIDS.abortGameButton);
+      const dialog = hostPage.getByTestId(TESTIDS.alertModal);
+      await expect(dialog.getByText('中止本局？', { exact: true })).toBeVisible();
+      await expect(dialog).toContainText('本局不发完成奖励');
+      await dialog.getByText('取消', { exact: true }).click();
+      await expect(hostPage.getByTestId('drawguess-drawing-canvas')).toBeVisible();
+      await expect(joinerPage.getByLabel('已猜中，等待本轮结束', { exact: true })).toBeVisible();
+
+      await room.clickHostManagementActionAndConfirm(TESTIDS.abortGameButton, '中止本局？');
+      for (const page of fixture.pages) {
+        await expect(page.getByText('你画我猜 · 4人局', { exact: true })).toBeVisible();
+        await expect(page.getByTestId('drawguess-drawing-canvas')).toHaveCount(0);
+        await expect(page.getByLabel('猜词消息', { exact: true })).toHaveCount(0);
+        await expect(page.getByTestId(TESTIDS.mySeatBadge)).toBeVisible();
+      }
+      expect(await room.getRoomCode()).toBe(code);
+      expect(await room.getSeatCount()).toBe(4);
+      await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
+        '开始游戏',
+      );
+      await joinerPage.reload();
+      await waitForRoomScreenReady(joinerPage, { role: 'joiner' });
+      await expect(joinerPage.getByText('你画我猜 · 4人局', { exact: true })).toBeVisible();
+      await expect(joinerPage.getByTestId(TESTIDS.mySeatBadge)).toBeVisible();
+    });
+
+    await test.step('the preserved room starts again and can also abort during word selection', async () => {
+      await room.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
+      await expect(hostPage.getByText('请选择本轮题目（3 选 1）')).toBeVisible({
+        timeout: 30_000,
+      });
+      await room.clickHostManagementActionAndConfirm(TESTIDS.abortGameButton, '中止本局？');
+      for (const page of fixture.pages)
+        await expect(page.getByText('你画我猜 · 4人局', { exact: true })).toBeVisible();
     });
   } finally {
     await closeAll(fixture);

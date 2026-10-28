@@ -300,7 +300,8 @@ describe('Pictionary relay-chain contract', () => {
     const afterStart = revision();
     session.send({ type: 'pictionary.task.ready.set', isReady: true });
     expect(revision()).toBe(afterStart);
-    session.send({ type: 'pictionary.phase.finish' });
+    for (let seat = 1; seat < NUMBER_OF_PLAYERS; seat += 1)
+      session.send({ type: 'pictionary.task.ready.set', isReady: true }, `user-${seat}`);
     expect(revision()).toBe(afterStart + 1);
     session.send({ type: 'pictionary.text.submit', text: 'first' });
     expect(revision()).toBe(afterStart + 1);
@@ -320,7 +321,7 @@ describe('Pictionary relay-chain contract', () => {
   it('never lets a stale-revision command change state', () => {
     const session = game();
     const staleRevision = session.state.phaseRevision;
-    session.send({ type: 'pictionary.phase.finish' });
+    session.expireCurrentPhase();
     for (let seat = 0; seat < NUMBER_OF_PLAYERS; seat += 1)
       session.send({ type: 'pictionary.text.submit', text: `seat-${seat}` }, `user-${seat}`);
     expect(session.state.phase).toBe('transition');

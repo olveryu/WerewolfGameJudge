@@ -37,7 +37,7 @@ import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResu
 import type { DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
 import { CloudflareHttpError } from '@/services/cloudflare/cfFetch';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
-import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
+import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -353,7 +353,7 @@ function DrawGuessDrawingView({
   readonly viewModel: DrawGuessViewModel;
   readonly remainingSeconds: number | null;
 }) {
-  const { state, session, effectiveSeat, controlledSeat, isHost, submit } = screen;
+  const { state, session, effectiveSeat, controlledSeat } = screen;
   const { width: windowWidth } = useWindowDimensions();
   const isWideLayout = windowWidth >= DRAWGUESS_WIDE_LAYOUT_BREAKPOINT;
   const isDrawer = effectiveSeat === phase.drawerSeat;
@@ -413,13 +413,6 @@ function DrawGuessDrawingView({
     })();
   };
 
-  const giveUp = () => {
-    showConfirmAlert('放弃本轮', '将直接进入结算并公布答案，确定放弃本轮作画吗？', () => {
-      // 放弃本轮按当前有效座位裁决（画手本人或被接管的机器人画手）。
-      void submit('放弃本轮', { type: 'drawguess.round.finish' }, controlledSeat);
-    });
-  };
-
   return (
     <>
       <DrawGuessTakeover
@@ -468,13 +461,6 @@ function DrawGuessDrawingView({
                     onRedo={sync.redo}
                     onClear={clearDrawing}
                   />
-                  <View style={styles.drawerActions}>
-                    {(isDrawer || isHost) && (
-                      <Button variant="danger" size="sm" onPress={giveUp}>
-                        放弃本轮
-                      </Button>
-                    )}
-                  </View>
                   <Text style={styles.hint}>作画不许写字、写数字。猜词聊天流：</Text>
                 </>
               ) : null}
@@ -735,10 +721,6 @@ const styles = StyleSheet.create({
   hint: {
     ...textStyles.secondary,
     color: colors.textSecondary,
-  },
-  drawerActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
   },
   drawingBodyNarrow: {
     width: '100%',

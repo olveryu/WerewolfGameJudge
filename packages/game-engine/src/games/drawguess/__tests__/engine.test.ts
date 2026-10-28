@@ -1,7 +1,14 @@
 /** Exercises DrawGuess through authoritative commands, never injecting progressed state. */
 
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
+import {
+  REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+  REASON_NOT_HOST,
+  REASON_USER_ACTOR_REQUIRED,
+} from '../../../platform/protocol/reasons';
+import { isBotSeat } from '../../../platform/room/seating';
 import type { DrawGuessCommand, DrawGuessPublicCommand } from '../commands/types';
+import { DRAWGUESS_REASONS } from '../domain/decision';
 import { computeGuesserScore, isCorrectGuess, normalizeGuessText } from '../domain/rules';
 import { getDrawGuessViewModel } from '../domain/visibility';
 import { drawGuessEngine } from '../engine';
@@ -60,6 +67,9 @@ function game(numberOfPlayers = 4) {
       return session.state;
     },
     effects: session.effects,
+    decide: session.decide,
+    decideAs: session.decideAs,
+    systemContext: session.systemContext,
     send,
     sendInternal,
     seatUser,
@@ -428,6 +438,174 @@ describe('DrawGuess engine', () => {
       },
     );
     expect(decision.kind).toBe('reject');
+  });
+});
+
+describe('DrawGuess abort', () => {
+  it.each(['wordSelect', 'drawing', 'roundEnd'] as const)(
+    'clears an unfinished %s game without rewards and preserves seats and settings',
+    (phase) => {
+      const session = game();
+      session.startGame();
+      if (phase !== 'wordSelect') {
+        session.chooseFirstWord(0);
+        session.send({
+          type: 'drawguess.stroke.add',
+          stroke: testStroke('abort-drawing', 0),
+          ...session.revision(),
+        });
+        session.guess(1, CHOICES[0]!.word);
+        expect(session.state.scores[1]).toBeGreaterThan(0);
+        if (phase === 'roundEnd') session.expire();
+      }
+      const before = session.state;
+      const effectCount = session.effects.length;
+      expect(before.phase.kind).toBe(phase);
+      session.send({ type: 'drawguess.game.abort', gameSequence: before.gameSequence });
+      expect(session.state).toMatchObject({
+        phase: { kind: 'lobby' },
+        phaseRevision: before.phaseRevision + 1,
+        gameSequence: before.gameSequence,
+        roster: before.roster,
+        config: before.config,
+        drawerQueue: [],
+        turnIndex: 0,
+        scores: {},
+        usedWords: [],
+      });
+      expect(session.state.phase).toEqual({ kind: 'lobby' });
+      expect(session.effects).toHaveLength(effectCount);
+      expect(session.effects.some((effect) => effect.type === 'drawguess.game.completed')).toBe(
+        false,
+      );
+      session.startGame();
+      expect(session.state.gameSequence).toBe(before.gameSequence + 1);
+      expect(session.state.scores).toEqual({});
+    },
+  );
+
+  it('lets an unseated host abort while words are still being prepared', () => {
+    const session = game();
+    session.send({ type: 'room.seat.leave' });
+    session.send({ type: 'room.seat.fillBots' });
+    session.send({ type: 'drawguess.game.begin' });
+    expect(session.state.phase).toMatchObject({
+      kind: 'wordSelect',
+      choices: [],
+      deadlineAt: null,
+    });
+    session.send({ type: 'drawguess.game.abort', gameSequence: session.state.gameSequence });
+    expect(session.state.phase.kind).toBe('lobby');
+    expect(isBotSeat(session.state.roster, 0)).toBe(true);
+    expect(
+      session.decideAs(
+        { type: 'drawguess.words.dealt', turnIndex: 0, choices: CHOICES },
+        session.systemContext('delayed-words'),
+      ),
+    ).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.stale });
+  });
+
+  it('rejects players, spectators, system actors and host commands sent as a controlled seat', () => {
+    const session = game();
+    session.startGame();
+    const command: DrawGuessPublicCommand = {
+      type: 'drawguess.game.abort',
+      gameSequence: session.state.gameSequence,
+    };
+    for (const userId of ['u1', 'spectator'])
+      expect(session.decide(command, userId)).toEqual({ kind: 'reject', reason: REASON_NOT_HOST });
+    expect(session.decide(command, 'host', 1)).toEqual({
+      kind: 'reject',
+      reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+    });
+    expect(session.decideAs(command, session.systemContext('not-a-host'))).toEqual({
+      kind: 'reject',
+      reason: REASON_USER_ACTOR_REQUIRED,
+    });
+    expect(session.state.phase.kind).toBe('wordSelect');
+  });
+
+  it('does not let a confirmation from an aborted game stop the next game', () => {
+    const session = game();
+    session.startGame();
+    const command: DrawGuessPublicCommand = {
+      type: 'drawguess.game.abort',
+      gameSequence: session.state.gameSequence,
+    };
+    session.send(command);
+    session.startGame();
+    expect(session.decide(command)).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.stale });
+    expect(session.state.phase.kind).toBe('wordSelect');
+  });
+
+  it('rejects a pending PNG commit after the host aborts', () => {
+    const session = game();
+    session.startGame();
+    session.chooseFirstWord(0);
+    session.expire();
+    session.send({ type: 'drawguess.drawing.reserve' });
+    const phase = session.state.phase;
+    if (phase.kind !== 'roundEnd' || phase.reservation === null)
+      throw new Error('Expected pending drawing reservation');
+    const command: DrawGuessCommand = {
+      type: 'drawguess.drawing.committed',
+      turnIndex: session.state.turnIndex,
+      submissionId: phase.reservation.submissionId,
+      objectKey: 'drawguess/aborted/turn-0/drawing.png',
+      byteLength: 1234,
+      sha256: 'aborted-drawing',
+    };
+    session.send({ type: 'drawguess.game.abort', gameSequence: session.state.gameSequence });
+    expect(session.decideAs(command, session.systemContext('delayed-upload'))).toEqual({
+      kind: 'reject',
+      reason: DRAWGUESS_REASONS.stale,
+    });
+    expect(session.state.phase).toEqual({ kind: 'lobby' });
+  });
+
+  it('still accepts the game-scoped confirmation after drawing and guessing advance the revision', () => {
+    const session = game();
+    session.startGame();
+    const command: DrawGuessPublicCommand = {
+      type: 'drawguess.game.abort',
+      gameSequence: session.state.gameSequence,
+    };
+    session.chooseFirstWord(0);
+    session.send({
+      type: 'drawguess.stroke.add',
+      stroke: testStroke('after-confirm-opened', 0),
+      ...session.revision(),
+    });
+    session.guess(1, CHOICES[0]!.word);
+    session.send(command);
+    expect(session.state.phase.kind).toBe('lobby');
+  });
+
+  it('rejects aborts in the lobby and after normal completion', () => {
+    const session = game();
+    expect(
+      session.decide({ type: 'drawguess.game.abort', gameSequence: session.state.gameSequence }),
+    ).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.phase });
+    session.startGame();
+    const totalTurns = session.state.config.numberOfPlayers * session.state.config.roundsPerDrawer;
+    for (let turnIndex = 0; turnIndex < totalTurns; turnIndex += 1) {
+      session.chooseFirstWord(turnIndex % session.state.config.numberOfPlayers);
+      session.expire();
+      session.expire();
+      if (session.state.phase.kind === 'wordSelect')
+        session.sendInternal({
+          type: 'drawguess.words.dealt',
+          turnIndex: session.state.turnIndex,
+          choices: CHOICES,
+        });
+    }
+    expect(session.state.phase.kind).toBe('ended');
+    expect(
+      session.decide({ type: 'drawguess.game.abort', gameSequence: session.state.gameSequence }),
+    ).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.phase });
+    expect(
+      session.effects.filter((effect) => effect.type === 'drawguess.game.completed'),
+    ).toHaveLength(1);
   });
 });
 

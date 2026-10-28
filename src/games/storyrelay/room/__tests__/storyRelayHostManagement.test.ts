@@ -91,7 +91,20 @@ function session() {
       send({ type: 'storyrelay.game.begin' });
     },
     finishStep() {
-      send({ type: 'storyrelay.phase.finish', phaseRevision: state.phaseRevision });
+      for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+        const task = getStoryRelayTaskForSeat(state, seat);
+        if (task === null) throw new Error('Missing task');
+        send(
+          {
+            type: 'storyrelay.task.ready.set',
+            roundId: task.roundId,
+            stepIndex: task.stepIndex,
+            chainId: task.chainId,
+            isReady: true,
+          },
+          seat === 0 ? null : seat,
+        );
+      }
       for (let seat = 0; seat < 4; seat += 1) {
         const task = getStoryRelayTaskForSeat(state, seat);
         if (task === null) throw new Error('Missing task');
@@ -159,19 +172,15 @@ describe('createStoryRelayHostManagement', () => {
     if (ready?.kind !== 'ready') throw new Error('expected a ready task body');
   });
 
-  it('pins the answering panel: finish-phase plus abort', () => {
+  it('keeps only abort during writing with no host advancement task', () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
     expect(game.state.phase).toBe('answering');
     const model = build(game.state, false);
-    expect(model?.sections.map((section) => section.key)).toEqual(['current-flow', 'danger']);
-    expect(model?.sections[0]?.actions[0]).toMatchObject({
-      key: 'finish-phase',
-      label: '结束本棒',
-      testID: 'storyrelay-finish-step',
-    });
-    expect(model?.sections[1]?.actions[0]).toMatchObject({ key: 'abort-game', label: '中止本局' });
+    expect(model.task).toBeNull();
+    expect(model.sections.map((section) => section.key)).toEqual(['danger']);
+    expect(model.sections[0]!.actions.map((action) => action.key)).toEqual(['abort-game']);
   });
 
   it('keeps only the abort action outside answering while the round can abort', () => {

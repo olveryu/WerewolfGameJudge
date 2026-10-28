@@ -234,37 +234,8 @@ export function createStoryRelayHostManagement(
     ['answering', 'settling', 'transition'].includes(state.phase) && state.completedAt === null;
   // 局中房主面板常驻：中止不可用时禁用并给原因，而不是整块消失。
   return {
-    task: state.phase === 'answering' ? hostActionTask('finish-phase') : null,
+    task: null,
     sections: [
-      ...(state.phase === 'answering'
-        ? [
-            {
-              key: 'current-flow',
-              title: '当前流程',
-              actions: [
-                {
-                  key: 'finish-phase',
-                  label: '结束本棒',
-                  icon: 'stop-circle-outline' as const,
-                  variant: 'secondary' as const,
-                  isEnabled: true as const,
-                  testID: 'storyrelay-finish-step',
-                  onPress: () =>
-                    showConfirmAlert(
-                      '结束本棒',
-                      '将自动收取当前文字，没有内容时自动交空白。',
-                      async () => {
-                        await submit('结束本棒', {
-                          type: 'storyrelay.phase.finish',
-                          phaseRevision: state.phaseRevision,
-                        });
-                      },
-                    ),
-                },
-              ],
-            },
-          ]
-        : []),
       {
         key: 'danger',
         title: '危险操作',

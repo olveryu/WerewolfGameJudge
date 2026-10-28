@@ -7,13 +7,18 @@ import { storyRelayEngine } from '../engine';
 import { parseStoryRelayState } from '../state/parseState';
 import { DEFAULT_STORY_RELAY_CONFIG } from '../state/types';
 
-function game(numberOfPlayers = 4, galleryItemDurationSeconds: 10 | null = null) {
+function game(
+  numberOfPlayers = 4,
+  galleryItemDurationSeconds: 10 | null = null,
+  writingDurationSeconds = DEFAULT_STORY_RELAY_CONFIG.writingDurationSeconds,
+) {
   const session = createEngineSession(storyRelayEngine, {
     config: {
       ...DEFAULT_STORY_RELAY_CONFIG,
       numberOfPlayers,
       transitionDurationSeconds: 0,
       galleryItemDurationSeconds,
+      writingDurationSeconds,
     },
     parse: parseStoryRelayState,
     randomSeed: 'round',
@@ -39,10 +44,11 @@ function game(numberOfPlayers = 4, galleryItemDurationSeconds: 10 | null = null)
       return { roundId: task.roundId, stepIndex: task.stepIndex, chainId: task.chainId };
     },
     finish() {
-      return send({
-        type: 'storyrelay.phase.finish',
-        phaseRevision: session.state.phaseRevision,
-      });
+      for (let seat = 0; seat < numberOfPlayers; seat += 1)
+        send(
+          { type: 'storyrelay.task.ready.set', ...this.task(seat), isReady: true },
+          seat === 0 ? null : seat,
+        );
     },
     expire() {
       if (session.state.deadlineAt === null) throw new Error('Missing deadline');
@@ -152,32 +158,46 @@ describe('Story Relay engine', () => {
     expect(session.effects).toHaveLength(0);
   });
 
-  it('moves to settling only when all seats are ready and rejects invalid or unauthorized text', () => {
-    const session = game();
-    session.send({ type: 'storyrelay.task.ready.set', ...session.task(0), isReady: true });
-    session.send({ type: 'storyrelay.task.ready.set', ...session.task(0), isReady: false });
-    expect(session.state.readySeats).toEqual([]);
-    for (let seat = 0; seat < 4; seat += 1)
-      session.send(
-        { type: 'storyrelay.task.ready.set', ...session.task(seat), isReady: true },
-        seat === 0 ? null : seat,
-      );
-    expect(session.state.phase).toBe('settling');
-    for (const text of ['   ', 'x'.repeat(513)])
+  it.each([null, DEFAULT_STORY_RELAY_CONFIG.writingDurationSeconds])(
+    'collects only after all seats are ready with writing duration %s and rejects invalid text',
+    (writingDurationSeconds) => {
+      const session = game(4, null, writingDurationSeconds);
+      session.send({ type: 'storyrelay.task.ready.set', ...session.task(0), isReady: true });
+      session.send({ type: 'storyrelay.task.ready.set', ...session.task(0), isReady: false });
+      expect(session.state.readySeats).toEqual([]);
+      for (let seat = 0; seat < 3; seat += 1)
+        session.send(
+          { type: 'storyrelay.task.ready.set', ...session.task(seat), isReady: true },
+          seat === 0 ? null : seat,
+        );
+      expect(session.state.phase).toBe('answering');
+      session.send({ type: 'storyrelay.task.ready.set', ...session.task(3), isReady: true }, 3);
+      expect(session.state.phase).toBe('settling');
+      for (const text of ['   ', 'x'.repeat(513)])
+        expect(
+          storyRelayEngine.decide(
+            session.state,
+            { type: 'storyrelay.text.submit', ...session.task(0), text },
+            session.context(),
+          ).kind,
+        ).toBe('reject');
       expect(
         storyRelayEngine.decide(
           session.state,
-          { type: 'storyrelay.text.submit', ...session.task(0), text },
-          session.context(),
+          { type: 'storyrelay.text.submit', ...session.task(0), text: 'impersonation' },
+          session.context(0),
         ).kind,
       ).toBe('reject');
-    expect(
-      storyRelayEngine.decide(
-        session.state,
-        { type: 'storyrelay.text.submit', ...session.task(0), text: 'impersonation' },
-        session.context(0),
-      ).kind,
-    ).toBe('reject');
+    },
+  );
+
+  it('enters collection when the writing deadline expires without ready players', () => {
+    const session = game();
+    expect(session.state.readySeats).toEqual([]);
+    session.expire();
+    expect(session.state.phase).toBe('settling');
+    expect(session.state.deadlineAt).toBeNull();
+    expect(session.state.chains.every((chain) => chain.entries.length === 0)).toBe(true);
   });
 
   it('preserves remaining playback time across pause and resume', () => {

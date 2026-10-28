@@ -51,10 +51,11 @@ function game(galleryItemDurationSeconds: 10 | null = 10) {
       session.expectReject(command, reason, 'host'),
     taskIdentity,
     finish() {
-      return send({
-        type: 'storyrelay.phase.finish',
-        phaseRevision: session.state.phaseRevision,
-      });
+      for (let seat = 0; seat < NUMBER_OF_PLAYERS; seat += 1)
+        send(
+          { type: 'storyrelay.task.ready.set', ...taskIdentity(seat), isReady: true },
+          seat === 0 ? null : seat,
+        );
     },
     expire() {
       if (session.state.deadlineAt === null) throw new Error('Missing deadline');

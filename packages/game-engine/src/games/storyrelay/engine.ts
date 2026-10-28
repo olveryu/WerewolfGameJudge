@@ -27,7 +27,6 @@ import {
   createStoryRelayRelayKit,
   decideStoryRelayTask,
   STORY_RELAY_EXPIRE_HOOKS,
-  storyRelayPhase,
 } from './domain/relay';
 import { decideStoryRelayRoom } from './domain/seating';
 import { normalizeStoryRelayState } from './state/normalize';
@@ -143,10 +142,6 @@ export function decideStoryRelayCommand(
   const hostRejection = requireHost<StoryRelayEvent, StoryRelayEffect>(context, state.hostUserId);
   if (hostRejection !== null) return hostRejection;
   switch (command.type) {
-    case 'storyrelay.phase.finish':
-      return state.phase === 'answering'
-        ? commitStoryRelay([storyRelayPhase(state, 'settling', null)])
-        : reject(STORY_RELAY_REASONS.phase);
     case 'storyrelay.game.abort':
       return ['answering', 'settling', 'transition'].includes(state.phase) &&
         state.completedAt === null

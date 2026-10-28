@@ -352,8 +352,28 @@ describe('Pictionary spectator media', () => {
       null,
     );
     await dispatchCommand(room, host.access_token, { type: 'room.seat.fillBots' }, null);
-    await dispatchCommand(room, host.access_token, { type: 'pictionary.game.begin' }, null);
-    await dispatchCommand(room, host.access_token, { type: 'pictionary.phase.finish' }, null);
+    let state = await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'pictionary.game.begin' },
+      null,
+    );
+    const removedCommand = await postJson(
+      '/room/command',
+      {
+        ...room,
+        commandId: 'removed-finish',
+        controlledSeat: null,
+        command: {
+          type: 'pictionary.phase.finish',
+          roundId: state.roundId,
+          phaseRevision: state.phaseRevision,
+        },
+      },
+      host.access_token,
+    );
+    expect(removedCommand.status).toBe(400);
+    state = await markEverySeatReady(room, host.access_token, state);
     const oldProtocol = await postJson(
       '/room/command',
       {
@@ -372,7 +392,7 @@ describe('Pictionary spectator media', () => {
         { type: 'pictionary.task.empty.submit' },
         seat,
       );
-    let state = await dispatchCommand(
+    state = await dispatchCommand(
       room,
       host.access_token,
       { type: 'pictionary.text.submit', text: '题目' },
@@ -381,13 +401,13 @@ describe('Pictionary spectator media', () => {
     expect(
       state.chains.flatMap((chain) => chain.entries).filter((entry) => entry.kind === 'missed'),
     ).toHaveLength(3);
-    await dispatchCommand(
+    state = await dispatchCommand(
       room,
       host.access_token,
       { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
       null,
     );
-    await dispatchCommand(room, host.access_token, { type: 'pictionary.phase.finish' }, null);
+    state = await markEverySeatReady(room, host.access_token, state);
     state = await commitSeatDrawing(room, host.access_token, 0, null);
     const accepted = state.chains
       .flatMap((chain) => chain.entries)

@@ -42,7 +42,7 @@ import {
 } from './decision';
 
 /** Builds a phase event; absolute deadlines are decided only by the server. */
-export function storyRelayPhase(
+function storyRelayPhase(
   state: StoryRelayState,
   phase: StoryRelayState['phase'],
   deadlineAt: number | null,

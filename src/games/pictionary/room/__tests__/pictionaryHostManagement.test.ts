@@ -73,13 +73,23 @@ function build(state: PictionaryState) {
     startRound: jest.fn(),
     nextRound: jest.fn(),
     returnToLobby: jest.fn(),
-    finishPhase: jest.fn(),
     abortRound: jest.fn(),
   });
   return { model, shareRoom };
 }
 
 describe('createPictionaryHostManagement task body', () => {
+  it('keeps only abort during editing with no host advancement task', () => {
+    const session = createSession();
+    session.dispatch({ type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } });
+    session.dispatch({ type: 'room.seat.fillBots' });
+    session.dispatch({ type: 'pictionary.game.begin' });
+    const { model } = build(session.state);
+    expect(model.task).toBeNull();
+    expect(model.sections.map((section) => section.key)).toEqual(['danger']);
+    expect(model.sections[0]!.actions.map((action) => action.key)).toEqual(['abort-game']);
+  });
+
   it('blocks game start in a non-full lobby and offers room sharing as the remedy', () => {
     const session = createSession();
     session.dispatch({ type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } });

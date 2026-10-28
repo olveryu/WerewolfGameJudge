@@ -55,7 +55,6 @@ const publicCommandOptions = definePublicCommandOptions<PictionaryPublicCommand>
     type: z.literal('pictionary.phase.expire'),
     phaseRevision: z.int().nonnegative(),
   }),
-  z.strictObject({ type: z.literal('pictionary.phase.finish'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.gallery.pause'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.gallery.resume'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.gallery.advance'), ...phaseIdentityShape }),

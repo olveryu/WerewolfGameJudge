@@ -22,9 +22,9 @@ export type DrawGuessPublicCommand =
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | { readonly type: 'drawguess.config.update'; readonly config: DrawGuessConfig }
   | { readonly type: 'drawguess.game.begin' }
+  | { readonly type: 'drawguess.game.abort'; readonly gameSequence: number }
   | { readonly type: 'drawguess.game.returnToLobby' }
   | { readonly type: 'drawguess.drawing.reserve' }
-  | { readonly type: 'drawguess.round.finish' }
   | (PhaseRevisionCommand & {
       readonly type: 'drawguess.word.choose';
       readonly word: string;

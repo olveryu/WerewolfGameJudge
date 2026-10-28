@@ -65,6 +65,9 @@ test.describe('Pictionary', () => {
         const config = new PictionaryConfigPage(hostPage);
         await config.waitForCreateMode();
         await config.configureFourPlayerManualGame();
+        await hostPage
+          .getByTestId(TESTIDS.gameConfigFieldOption('pictionary', 'drawingDurationSeconds', '90'))
+          .click();
         await config.createRoom();
         await hostRoom.waitForReady('host');
 
@@ -85,6 +88,9 @@ test.describe('Pictionary', () => {
 
       await test.step('start with a private prompt from every player', async () => {
         await hostRoom.startRound();
+        await expect(hostPage.getByRole('button', { name: '结束本棒', exact: true })).toHaveCount(
+          0,
+        );
         await Promise.all(rooms.map((room) => room.expectPromptStep(1, RELAY_STEP_COUNT)));
         await expect(
           hostPage.getByRole('button', { name: '查看你画我猜接龙玩法说明' }),
@@ -206,13 +212,9 @@ test.describe('Pictionary', () => {
             failedUploads += 1;
             await route.abort('failed');
           });
-          await (await hostRoom.openHostManagement())
-            .getByRole('button', { name: '结束本棒', exact: true })
-            .click();
-          await hostPage.getByRole('dialog').getByText('结束本棒', { exact: true }).click();
           await expect(
             unfinishedPage.getByText('发送暂未成功，正在自动重试。', { exact: true }),
-          ).toBeVisible({ timeout: 20_000 });
+          ).toBeVisible({ timeout: 120_000 });
           expect(failedUploads).toBeGreaterThanOrEqual(FETCH_RETRY_COUNT + 1);
           await expect(
             hostPage
@@ -384,10 +386,9 @@ test.describe('Pictionary', () => {
       await hostPage.getByRole('dialog').getByText('确定', { exact: true }).click();
       await hostRoom.startRound();
       await hostPage.getByTestId(TESTIDS.pictionaryTextInput).fill('保留的原始题目');
-      await (await hostRoom.openHostManagement())
-        .getByRole('button', { name: '结束本棒', exact: true })
-        .click();
-      await hostPage.getByRole('dialog').getByText('结束本棒', { exact: true }).click();
+      await expect(hostPage.getByText('把这句话画出来', { exact: true })).toBeVisible({
+        timeout: 60_000,
+      });
       await Promise.all([
         hostRoom.expectDrawingStep(2, RELAY_STEP_COUNT),
         guestRoom.expectDrawingStep(2, RELAY_STEP_COUNT),

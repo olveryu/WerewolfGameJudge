@@ -176,9 +176,8 @@ describe('bot dispatch discipline — drawguess seat actions pass the seat expli
     expect(screen()).toMatch(/submit\(\s*'选择题目',\s*\{[^}]*\},\s*controlledSeat,?\s*\)/);
   });
 
-  it('giving up the round (a drawer seat action) passes controlledSeat explicitly', () => {
-    expect(screen()).toMatch(
-      /submit\(\s*'放弃本轮',\s*\{ type: 'drawguess\.round\.finish' \},\s*controlledSeat,?\s*\)/,
-    );
+  it('the drawing workspace exposes neither give-up nor host abort commands', () => {
+    expect(screen()).not.toContain('drawguess.round.finish');
+    expect(screen()).not.toContain('drawguess.game.abort');
   });
 });

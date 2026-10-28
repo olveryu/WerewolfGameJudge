@@ -45,7 +45,20 @@ function settlingState(): StoryRelayState {
   dispatch({ type: 'room.seat.take', seat: 1, profile: { displayName: 'Guest' } }, user('guest'));
   dispatch({ type: 'room.seat.fillBots' }, user('host'));
   dispatch({ type: 'storyrelay.game.begin' }, user('host'));
-  dispatch({ type: 'storyrelay.phase.finish', phaseRevision: state.phaseRevision }, user('host'));
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+    const task = getStoryRelayTaskForSeat(state, seat);
+    if (task === null) throw new Error('Missing task');
+    dispatch(
+      {
+        type: 'storyrelay.task.ready.set',
+        roundId: task.roundId,
+        stepIndex: task.stepIndex,
+        chainId: task.chainId,
+        isReady: true,
+      },
+      seat === 1 ? user('guest') : user('host', seat === 0 ? null : seat),
+    );
+  }
   if (state.phase !== 'settling') throw new Error('Expected settling phase');
   return state;
 }

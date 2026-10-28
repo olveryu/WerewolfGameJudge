@@ -16,7 +16,6 @@ export interface StoryRelayTaskIdentity {
 type RevisionCommand = { readonly phaseRevision: number } & {
   readonly type:
     | 'storyrelay.phase.expire'
-    | 'storyrelay.phase.finish'
     | 'storyrelay.game.abort'
     | 'storyrelay.gallery.pause'
     | 'storyrelay.gallery.resume'

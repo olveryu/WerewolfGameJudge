@@ -53,7 +53,8 @@ function createCollection() {
     );
   }
   dispatchEngine({ type: 'pictionary.game.begin' });
-  dispatchEngine({ type: 'pictionary.phase.finish' });
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1)
+    dispatchEngine({ type: 'pictionary.task.ready.set', isReady: true }, `user-${seat}`);
   const collection = state;
   let snapshot: Extract<RoomSessionSnapshot<PictionaryState>, { phase: 'ready' }> = {
     phase: 'ready',
