@@ -76,6 +76,14 @@
       "types": "./src/platform/protocol/roomSnapshot.ts",
       "default": "./dist/platform/protocol/roomSnapshot.js"
     },
+    "./platform/realtime/protocol": {
+      "types": "./src/platform/realtime/protocol.ts",
+      "default": "./dist/platform/realtime/protocol.js"
+    },
+    "./platform/realtime/closeCodes": {
+      "types": "./src/platform/realtime/closeCodes.ts",
+      "default": "./dist/platform/realtime/closeCodes.js"
+    },
     "./platform/config/configSchema": {
       "types": "./src/platform/config/configSchema.ts",
       "default": "./dist/platform/config/configSchema.js"
