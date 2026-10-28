@@ -41,6 +41,7 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   // Execution state
   'actions',
   'currentNightResults',
+  'resolvedWolfKillTarget',
   'resolvedNightEffects',
   'pendingRevealAcks',
   'lastNightDeaths',

@@ -26,7 +26,7 @@ import { resolveSeerAudioKey } from '../audioKeyOverride';
 import { createAudioQueueActions } from '../audioQueue';
 import type { AdvanceNightIntent, EndNightIntent } from '../intents/types';
 import { type SchemaId } from '../models';
-import { buildNightPlan, getStepSpec } from '../models/roles/spec';
+import { buildNightPlan, getStepSpec, NIGHT_STEP_ORDER } from '../models/roles/spec';
 import { resolveCurrentNightStep } from '../nightStep';
 import type {
   AdvanceToNextActionAction,
@@ -35,17 +35,18 @@ import type {
   StateAction,
 } from '../reducer/types';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
-import {
-  buildNightActions,
-  calculateNightDeaths,
-  resolveSeedWolfInfectionResult,
-} from './deathResolution';
+import { calculateNightDeaths, resolveSeedWolfInfectionResult } from './deathResolution';
 import { buildRevealPayload } from './revealPayload';
 import { validateNightFlowPreconditions } from './stepTransitionGuards';
 import type { HandlerContext, HandlerExecutionContext, HandlerResult } from './types';
 import { handlerError, handlerSuccess } from './types';
 import { maybeCreateUiHintAction } from './uiHint';
 import { maybeCreateWitchContextAction } from './witchContext';
+import {
+  getLegacyWolfKillTarget,
+  maybeCreateResolvedWolfKillTargetAction,
+  resolveWolfKillTargetFromVotes,
+} from './wolfKillResolution';
 
 // =============================================================================
 // ADVANCE_NIGHT Handler
@@ -102,24 +103,62 @@ export function handleAdvanceNight(
     actions.push(...createSeedWolfFinalizationActions(state));
   }
 
+  // Single wolf-kill settlement for this night. Once the advance moves
+  // past the wolfKill step (or the night ends), the wolf votes are
+  // final, so settle them exactly once here and persist the target;
+  // every later consumer in this command and in later commands reuses
+  // the local / stored value instead of rolling a tied vote again.
+  // The witch entry below is the one case where the settlement and
+  // the context are created in the same command: the context is
+  // computed from the stored value when it exists, otherwise from a
+  // fresh resolution whose result is persisted here as the same
+  // target, so the two can never disagree.
+  const wolfVoteRng = createSeededRng(`${execution.randomSeed}:wolf-vote`);
+  const pastWolfKill =
+    nextStepId === null ||
+    NIGHT_STEP_ORDER.indexOf(nextStepId) > NIGHT_STEP_ORDER.indexOf('wolfKill');
+  let settledWolfKillTarget = state.resolvedWolfKillTarget;
+  if (pastWolfKill && settledWolfKillTarget === undefined) {
+    const resolvedAction = maybeCreateResolvedWolfKillTargetAction(state, wolfVoteRng);
+    if (resolvedAction) {
+      actions.push(resolvedAction);
+      settledWolfKillTarget = resolvedAction.payload.target;
+    }
+  }
+
   // Unified entry: if about to enter witchAction, set witchContext
   // Guard: nextStepId must exist (undefined at night end — should not set witchContext)
+  // When the settlement above just ran, witchContext reads the stored
+  // value; when it did not run (witch entry on a no-wolf board, where
+  // the advance never passes wolfKill), the context's own fresh
+  // resolution is persisted right after it, from its payload.
   const witchContextAction = nextStepId
     ? maybeCreateWitchContextAction(
         nextStepId,
-        state,
-        createSeededRng(`${execution.randomSeed}:wolf-vote`),
+        settledWolfKillTarget !== undefined
+          ? { ...state, resolvedWolfKillTarget: settledWolfKillTarget }
+          : state,
+        wolfVoteRng,
       )
     : null;
   if (witchContextAction) {
+    if (settledWolfKillTarget === undefined) {
+      const killedSeat = witchContextAction.payload.killedSeat;
+      actions.push({
+        type: 'SET_RESOLVED_WOLF_KILL_TARGET',
+        payload: { target: killedSeat >= 0 ? killedSeat : null },
+      });
+      settledWolfKillTarget = killedSeat >= 0 ? killedSeat : null;
+    }
     actions.push(witchContextAction);
   }
 
   // Unified entry: if about to enter hunterConfirm / darkWolfKingConfirm, set confirmStatus
-  const wolfVoteRng = createSeededRng(`${execution.randomSeed}:wolf-vote`);
   const wolfKillTarget =
     nextStepId === 'seedWolfInfect'
-      ? buildNightActions(state, { kind: 'votes', rng: wolfVoteRng }).wolfKill
+      ? settledWolfKillTarget === null
+        ? undefined
+        : settledWolfKillTarget
       : undefined;
   const confirmStatusAction = nextStepId
     ? maybeCreateConfirmStatusAction(nextStepId, state, wolfKillTarget)
@@ -209,7 +248,10 @@ function createSeedWolfFinalizationActions(state: HandlerContext['state']): Stat
  * 4. night_not_complete (nightStep must be exhausted - all steps must be finished)
  *
  * Logic:
- * - Call resolveWolfVotes on wolfVotes to derive wolfKill
+ * - Reuse the settled wolf-kill target (stored, or the legacy
+ *   fallback for pre-field rooms); only when neither exists is the
+ *   target settled fresh here, and that settlement is persisted in
+ *   this same command so the night review reads the same target.
  * - Build NightActions from actions
  * - Call calculateDeaths to compute deaths
  * - Return END_NIGHT action
@@ -233,18 +275,27 @@ export function handleEndNight(
     return handlerError('night_not_complete');
   }
 
-  const { deaths, deathReasons } = calculateNightDeaths(
-    state,
-    createSeededRng(`${execution.randomSeed}:wolf-vote`),
-  );
+  const legacyTarget = getLegacyWolfKillTarget(state);
+  const settledTarget =
+    legacyTarget !== undefined
+      ? legacyTarget
+      : resolveWolfKillTargetFromVotes(state, createSeededRng(`${execution.randomSeed}:wolf-vote`));
+  const { deaths, deathReasons } = calculateNightDeaths(state, settledTarget);
 
   const endNightAction: EndNightAction = {
     type: 'END_NIGHT',
     payload: { deaths, deathReasons },
   };
 
-  return handlerSuccess([
-    endNightAction,
-    ...createAudioQueueActions([{ audioKey: NIGHT_END_AUDIO_KEY }]),
-  ]);
+  const actions: StateAction[] = [];
+  if (state.resolvedWolfKillTarget === undefined) {
+    actions.push({
+      type: 'SET_RESOLVED_WOLF_KILL_TARGET',
+      payload: { target: settledTarget },
+    });
+  }
+  actions.push(endNightAction);
+  actions.push(...createAudioQueueActions([{ audioKey: NIGHT_END_AUDIO_KEY }]));
+
+  return handlerSuccess(actions);
 }

@@ -36,6 +36,7 @@ import { isWolfVoteAllComplete } from './progressionEvaluator';
 import { buildRevealPayload, WOLF_ROBOT_GATE_ROLES } from './revealPayload';
 import type { HandlerContext, HandlerExecutionContext, HandlerResult } from './types';
 import { handlerRejection, handlerSuccess } from './types';
+import { getLegacyWolfKillTarget } from './wolfKillResolution';
 
 /**
  * Build resolver context
@@ -68,6 +69,9 @@ function buildResolverContext(
     gameState: {
       isNight1: true, // Night-1 only
       isWolfVoteUnanimityRequired: state.templateRoles.includes('cupid'),
+      // The settled target (or its legacy fallback) for witch
+      // validation; never a fresh tie-break at submission time.
+      resolvedWolfKillTarget: getLegacyWolfKillTarget(state),
       hypnotizedSeats: state.hypnotizedSeats ?? [],
       witchCanSelfHeal: state.rules?.witchCanSelfHeal ?? false,
       ...(state.confirmStatus?.role === 'seedWolf'

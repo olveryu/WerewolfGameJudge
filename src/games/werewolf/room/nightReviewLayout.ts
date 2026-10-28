@@ -142,13 +142,16 @@ export const NIGHT_REPORT_STAT_LABELS = {
 /** Wolf-team verdict lines (card footer / text channel), by verdict type. */
 export const NIGHT_REPORT_WOLF_VERDICT_SHARED = '狼队共同目标';
 export const NIGHT_REPORT_WOLF_VERDICT_SPLIT_KILLED = '狼队目标不一致 — 按多数票击杀';
+export const NIGHT_REPORT_WOLF_VERDICT_TIE_PICKED = '狼队目标不一致 — 平票抽中目标';
 export const NIGHT_REPORT_WOLF_VERDICT_SPLIT_TIED = '狼队目标不一致 — 平票，未击杀';
+export const NIGHT_REPORT_WOLF_VERDICT_TIE_PENDING = '狼队目标不一致 — 平票，目标未记录';
 export const NIGHT_REPORT_WOLF_VERDICT_ALL_ABSTAIN = '狼队全员空刀';
 
 /** Wolf-team card header tags, by outcome. */
 export const NIGHT_REPORT_WOLF_TAG_KILLED = '击杀成立';
 export const NIGHT_REPORT_WOLF_TAG_SURVIVED = '目标存活';
 export const NIGHT_REPORT_WOLF_TAG_TIED = '平票未击杀';
+export const NIGHT_REPORT_WOLF_TAG_TIE_PENDING = '平票未记录';
 export const NIGHT_REPORT_WOLF_TAG_ABSTAIN = '空刀';
 
 /** Roster cell status for a seat still alive. */

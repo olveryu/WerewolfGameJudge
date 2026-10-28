@@ -165,6 +165,7 @@ export function normalizeState(raw: GameState): GameState {
     // Execution state (boundary normalize: undefined → [], so internal code doesn't need ?? [])
     actions: raw.actions ?? [],
     currentNightResults,
+    resolvedWolfKillTarget: raw.resolvedWolfKillTarget,
     resolvedNightEffects: raw.resolvedNightEffects ?? [],
     pendingRevealAcks: raw.pendingRevealAcks ?? [],
     lastNightDeaths: raw.lastNightDeaths,

@@ -110,10 +110,17 @@ function willDieTonight(seat: number, gameState: LocalGameState): boolean {
 
   if (nr.poisonedSeat === seat) return true;
 
-  const wolfKillTarget = gameState.witchContext?.killedSeat;
-  if (wolfKillTarget !== undefined && wolfKillTarget >= 0 && wolfKillTarget === seat) {
-    if (nr.savedSeat === seat) return false;
-    return true;
+  // The settled target wins over witchContext, which is cleared on
+  // the advance out of the witch step and is usually absent by the
+  // time the review is built.
+  const storedTarget = gameState.resolvedWolfKillTarget;
+  const wolfKillTarget =
+    storedTarget !== undefined ? storedTarget : gameState.witchContext?.killedSeat;
+  if (wolfKillTarget !== null && wolfKillTarget !== undefined && wolfKillTarget >= 0) {
+    if (wolfKillTarget === seat) {
+      if (nr.savedSeat === seat) return false;
+      return true;
+    }
   }
 
   return false;
@@ -154,16 +161,24 @@ function canShootForSeat(seat: number, gameState: LocalGameState): boolean {
 }
 
 /**
- * Resolve wolf kill target from majority vote. Tie = no kill.
- * Abstentions (target -1, the sentinel the engine's wolfKillResolver records
- * for an empty vote) do not participate in the count — this mirrors the
- * engine's resolveWolfVotes convention, which filters -1 before tallying;
- * counting an abstention as a target would manufacture ties and suppress
- * the guard-save-conflict annotation on nights a wolf abstained.
+ * Resolve wolf kill target from majority vote, with the settled target
+ * taking precedence on a tie. Abstentions (target -1, the sentinel the
+ * engine's wolfKillResolver records for an empty vote) do not
+ * participate in the count — this mirrors the engine's resolveWolfVotes
+ * convention, which filters -1 before tallying; counting an abstention
+ * as a target would manufacture ties and suppress the
+ * guard-save-conflict annotation on nights a wolf abstained.
+ * A tie is NOT a no-kill in the normal engine rule: it is settled once
+ * by random pick, so a tied vote without a settled target resolves to
+ * undefined (unknown), never to "no kill".
  */
 function resolveWolfKillTarget(
   wolfVotesBySeat: Readonly<Record<string, number>> | undefined,
+  resolvedTargetSeat?: number | null,
 ): number | undefined {
+  if (resolvedTargetSeat !== undefined) {
+    return resolvedTargetSeat === null ? undefined : resolvedTargetSeat;
+  }
   if (!wolfVotesBySeat) return undefined;
   const entries = Object.entries(wolfVotesBySeat);
   if (entries.length === 0) return undefined;
@@ -185,6 +200,44 @@ function resolveWolfKillTarget(
     }
   }
   return tied ? undefined : maxTarget;
+}
+
+/**
+ * The settled wolf-kill target to carry on a wolfAttack entry, for
+ * states that may predate the stored field. Order: the stored
+ * settlement, then the live witch context, then the witch's recorded
+ * save (a save was only accepted when it equalled the wolf-kill
+ * target at submission time), then the wolf-kill death on an ended
+ * night. A magician swap moves the death off the wolf target and
+ * re-labels it, so the death fallback only matches a seat that was
+ * actually voted for — it never invents a target from a swapped death.
+ */
+function resolveWolfAttackEntryTarget(
+  gameState: LocalGameState,
+  votes: readonly NightReviewWolfVote[],
+): number | null | undefined {
+  if (gameState.resolvedWolfKillTarget !== undefined) {
+    return gameState.resolvedWolfKillTarget;
+  }
+  const killedSeat = gameState.witchContext?.killedSeat;
+  if (killedSeat !== undefined) {
+    return killedSeat >= 0 ? killedSeat : null;
+  }
+  const savedSeat = gameState.currentNightResults.savedSeat;
+  if (savedSeat !== undefined) {
+    return savedSeat;
+  }
+  const votedTargets = new Set(votes.map((vote) => vote.targetSeat));
+  const deathReasons = gameState.deathReasons;
+  if (deathReasons) {
+    for (const [seatStr, reason] of Object.entries(deathReasons)) {
+      const seat = Number(seatStr);
+      if (reason === 'wolfKill' && votedTargets.has(seat)) {
+        return seat;
+      }
+    }
+  }
+  return undefined;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -228,6 +281,14 @@ export type NightReviewActionEntry =
       readonly kind: 'wolfAttack';
       readonly votes: readonly NightReviewWolfVote[];
       readonly abstainSeats: readonly number[];
+      /**
+       * The settled wolf-kill target for this night, when known: a
+       * seat number, or null for a settled no-kill. undefined means
+       * no settlement is recorded on the state (a pre-field room, or
+       * a review built before settlement) — the verdict must not
+       * claim "no kill" from a tie in that case.
+       */
+      readonly resolvedTargetSeat?: number | null;
     }
   | { readonly kind: 'wolfNoTarget' }
   | { readonly kind: 'wolfGiveUp'; readonly reason: NightReviewWolfGiveUpReason }
@@ -441,13 +502,18 @@ export interface NightReportStats {
 
 /**
  * How the wolf team's votes resolved, derived from a wolfAttack entry:
- * one shared target, a split vote that still produced a plurality kill, a
- * split vote tied at the top (no kill), or every wolf abstaining.
+ * one shared target, a split vote that still produced a plurality kill,
+ * a tied vote settled to one target (tiePicked), a tied vote settled
+ * to no kill (splitTied — only the cupid unanimity rule settles a tie
+ * to no kill), a tied vote with no settlement recorded (tiePending),
+ * or every wolf abstaining.
  */
 export type NightReviewWolfVerdict =
   | { readonly type: 'sharedTarget'; readonly targetSeat: number }
   | { readonly type: 'splitKilled'; readonly targetSeat: number }
+  | { readonly type: 'tiePicked'; readonly targetSeat: number }
   | { readonly type: 'splitTied' }
+  | { readonly type: 'tiePending' }
   | { readonly type: 'allAbstain' };
 
 /** A factual annotation on one death, for the report's death cards. */
@@ -577,9 +643,13 @@ export function nightReviewActorRoleId(entry: NightReviewActionEntry): RoleId | 
 }
 
 /**
- * Derive how a wolfAttack entry's votes resolved. The tally mirrors
- * resolveWolfKillTarget (plurality wins, a tie at the top kills nobody);
- * the entry's votes already exclude abstentions, which were split into
+ * Derive how a wolfAttack entry's votes resolved. Plurality wins; a
+ * tie follows the engine rule, not a "tie = no kill" assumption: the
+ * normal engine rule settles a tie once by random pick, so a tied
+ * entry is tiePicked when its settled target is recorded, splitTied
+ * only when it is settled to no kill (cupid unanimity), and
+ * tiePending when no settlement is recorded at all. The entry's
+ * votes already exclude abstentions, which were split into
  * abstainSeats by the builder.
  */
 export function deriveWolfVerdict(
@@ -602,7 +672,15 @@ export function deriveWolfVerdict(
       tied = true;
     }
   }
-  if (tied || maxTarget === undefined) return { type: 'splitTied' };
+  if (tied) {
+    if (entry.resolvedTargetSeat !== undefined) {
+      return entry.resolvedTargetSeat === null
+        ? { type: 'splitTied' }
+        : { type: 'tiePicked', targetSeat: entry.resolvedTargetSeat };
+    }
+    return { type: 'tiePending' };
+  }
+  if (maxTarget === undefined) return { type: 'allAbstain' };
   return counts.size === 1
     ? { type: 'sharedTarget', targetSeat: maxTarget }
     : { type: 'splitKilled', targetSeat: maxTarget };
@@ -676,7 +754,12 @@ export function deriveWolfTargetSaveNote(
   const wolfEntry = data.actions.find((entry) => entry.kind === 'wolfAttack');
   if (wolfEntry?.kind !== 'wolfAttack') return null;
   const verdict = deriveWolfVerdict(wolfEntry);
-  if (verdict.type !== 'sharedTarget' && verdict.type !== 'splitKilled') return null;
+  if (
+    verdict.type !== 'sharedTarget' &&
+    verdict.type !== 'splitKilled' &&
+    verdict.type !== 'tiePicked'
+  )
+    return null;
   const saved = data.actions.some(
     (entry) => entry.kind === 'save' && entry.targetSeat === verdict.targetSeat,
   );
@@ -842,7 +925,12 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
         );
       }
     }
-    entries.push({ kind: 'wolfAttack', votes, abstainSeats });
+    entries.push({
+      kind: 'wolfAttack',
+      votes,
+      abstainSeats,
+      resolvedTargetSeat: resolveWolfAttackEntryTarget(gameState, votes),
+    });
   } else if (
     !nr.wolfKillOverride &&
     Array.from(gameState.players.values()).some(
@@ -1194,8 +1282,17 @@ export function buildActionEntries(gameState: LocalGameState): NightReviewAction
 
   // ── Interaction annotations ──
 
-  // Same-guard-same-save warning
-  const wolfTarget = resolveWolfKillTarget(nr.wolfVotesBySeat);
+  // Same-guard-same-save warning. The settled target (or its
+  // legacy fallback) wins over a fresh majority tally, so a tied
+  // vote saved by the witch is not silently dropped here.
+  const wolfTarget = resolveWolfKillTarget(
+    nr.wolfVotesBySeat,
+    gameState.resolvedWolfKillTarget !== undefined
+      ? gameState.resolvedWolfKillTarget
+      : nr.savedSeat !== undefined
+        ? nr.savedSeat
+        : undefined,
+  );
   if (wolfTarget !== undefined && nr.guardedSeat === wolfTarget && nr.savedSeat === wolfTarget) {
     entries.push({ kind: 'guardSaveConflict', targetSeat: wolfTarget });
   }

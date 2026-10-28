@@ -20,7 +20,7 @@ import type { SchemaId } from '../models/roles/spec';
 import { isVacantBottomCardStep, resolveNightStepActor } from '../playerHelpers';
 import type { GameState } from '../protocol/types';
 import type { SetWitchContextAction } from '../reducer/types';
-import { resolveWolfVotes } from '../resolveWolfVotes';
+import { getStoredWolfKillTarget, resolveWolfKillTargetFromVotes } from './wolfKillResolution';
 
 /**
  * Compute the witch context (pure function)
@@ -41,27 +41,23 @@ function computeWitchContext(
   canSave: boolean;
   canPoison: boolean;
 } {
-  // 1. Compute the attack target (killedSeat)
+  // 1. Compute the attack target (killedSeat). The stored settled
+  // target wins: re-resolving a tied vote here with a fresh seed is
+  // exactly how the witch could be shown one target while settlement
+  // later picked another. Only when nothing is stored yet (the caller
+  // persists the same target in this command) is a fresh resolution
+  // allowed, and it must be the command's single settlement.
   let killedSeat = -1;
 
-  if (!state.wolfKillOverride) {
+  const storedTarget = getStoredWolfKillTarget(state);
+  if (storedTarget !== undefined) {
+    killedSeat = storedTarget === null ? -1 : storedTarget;
+  } else if (!state.wolfKillOverride) {
     if (!state.currentNightResults && state.status !== GameStatus.Ready) {
       throw new Error('[FAIL-FAST] witchAction step has no currentNightResults');
     }
-    const wolfVotesBySeat = state.currentNightResults?.wolfVotesBySeat ?? {};
-    const votes = new Map<number, number>();
-    for (const [seatStr, targetSeat] of Object.entries(wolfVotesBySeat)) {
-      const seat = Number.parseInt(seatStr, 10);
-      if (!Number.isSafeInteger(seat)) {
-        throw new Error(`[FAIL-FAST] Invalid wolf-vote seat key: ${seatStr}`);
-      }
-      votes.set(seat, targetSeat);
-    }
-    const resolved = resolveWolfVotes(votes, {
-      requireUnanimity: state.templateRoles.includes('cupid'),
-      rng,
-    });
-    if (typeof resolved === 'number') {
+    const resolved = resolveWolfKillTargetFromVotes(state, rng);
+    if (resolved !== null) {
       killedSeat = resolved;
     }
   }

@@ -230,6 +230,21 @@ export interface SetWitchContextAction {
   };
 }
 
+/**
+ * Persist the wolf-kill target settled exactly once for this night.
+ * A seat number is the settled kill target; null is a settled no-kill.
+ * Emitted by the first handler that settles the votes (advance past
+ * wolfKill, witch entry, or END_NIGHT legacy settlement); later
+ * handlers reuse GameState.resolvedWolfKillTarget and never emit it
+ * again for the same night.
+ */
+export interface SetResolvedWolfKillTargetAction {
+  type: 'SET_RESOLVED_WOLF_KILL_TARGET';
+  payload: {
+    target: number | null;
+  };
+}
+
 export interface SetConfirmStatusAction {
   type: 'SET_CONFIRM_STATUS';
   payload: ConfirmStatus;
@@ -544,6 +559,7 @@ export type StateAction =
   | ApplyResolverResultAction
   | FinalizeSeedWolfInfectionAction
   | SetWitchContextAction
+  | SetResolvedWolfKillTargetAction
   | SetConfirmStatusAction
   | ClearRevealStateAction
   // Wolf related

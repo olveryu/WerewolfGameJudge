@@ -38,6 +38,7 @@ import {
   handleRecordAction,
   handleSetAudioPlaying,
   handleSetConfirmStatus,
+  handleSetResolvedWolfKillTarget,
   handleSetWitchContext,
   handleSetWolfKillOverride,
   handleSetWolfRobotHunterStatusViewed,
@@ -117,6 +118,8 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handleFinalizeSeedWolfInfection(state, action);
     case 'SET_WITCH_CONTEXT':
       return handleSetWitchContext(state, action);
+    case 'SET_RESOLVED_WOLF_KILL_TARGET':
+      return handleSetResolvedWolfKillTarget(state, action);
     case 'SET_CONFIRM_STATUS':
       return handleSetConfirmStatus(state, action);
     case 'SET_WOLF_KILL_OVERRIDE':

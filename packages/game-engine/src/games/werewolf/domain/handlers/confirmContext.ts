@@ -194,11 +194,16 @@ function willDieTonight(seat: number, state: GameState): boolean {
   // Poisoned
   if (results?.poisonedSeat === seat) return true;
 
-  // Wolf-killed and not saved by witch
-  const wolfKillTarget = state.witchContext?.killedSeat;
-  if (wolfKillTarget !== undefined && wolfKillTarget >= 0 && wolfKillTarget === seat) {
-    if (results?.savedSeat === seat) return false;
-    return true;
+  // Wolf-killed and not saved by witch. The settled target wins
+  // over witchContext, which is cleared on the advance out of the
+  // witch step and therefore is usually absent by confirm time.
+  const storedTarget = state.resolvedWolfKillTarget;
+  const wolfKillTarget = storedTarget !== undefined ? storedTarget : state.witchContext?.killedSeat;
+  if (wolfKillTarget !== null && wolfKillTarget !== undefined && wolfKillTarget >= 0) {
+    if (wolfKillTarget === seat) {
+      if (results?.savedSeat === seat) return false;
+      return true;
+    }
   }
 
   return false;

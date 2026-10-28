@@ -15,7 +15,6 @@
  *   Death priority is determined internally by DeathCalculator: wolfKill > poison > couple > dream > charm.
  */
 
-import type { Rng } from '../../../../platform/random';
 import {
   calculateDeathsDetailed,
   type DeathsDetailed,
@@ -36,7 +35,6 @@ import { Team } from '../models/roles/spec/types';
 import { buildSeatRoleMap } from '../playerHelpers';
 import type { GameState, ProtocolAction, SeedWolfInfectionResult } from '../protocol/types';
 import { getRoleAfterSwap } from '../resolvers/types';
-import { resolveWolfVotes } from '../resolveWolfVotes';
 
 /**
  * Build RoleSeatMap from state.players (magician swap aware)
@@ -275,42 +273,25 @@ function extractWitchAction(currentNightResults?: {
  * All seat numbers are physical seats (0-based), consistent coordinate space.
  */
 type WolfKillResolution =
-  | { readonly kind: 'votes'; readonly rng: Rng }
+  | { readonly kind: 'stored'; readonly target: number | null }
   | { readonly kind: 'fixed'; readonly targetSeat: number };
 
-export function buildNightActions(
-  state: GameState,
-  wolfKillResolution: WolfKillResolution,
-): NightActions {
+function buildNightActions(state: GameState, wolfKillResolution: WolfKillResolution): NightActions {
   const actions = state.actions;
   const nightActions: NightActions = {};
 
-  // Wolf kill - resolve final target from wolfVotesBySeat
-  // Single source of truth is the votes table; final target is derived.
+  // Wolf kill - the settled target is supplied by the caller, never
+  // re-resolved from the votes here. Re-resolving a tied vote with a
+  // fresh seed is how settlement could pick a different target than
+  // the one the witch was shown and saved. 'stored' is the single
+  // settlement (GameState.resolvedWolfKillTarget); 'fixed' is the Seed
+  // Wolf infection check, which asks whether a given seat would die
+  // as the wolf-kill target.
   if (!state.wolfKillOverride) {
-    if (!state.currentNightResults) {
-      throw new Error(
-        '[FAIL-FAST] buildNightActions: currentNightResults missing in ongoing state',
-      );
-    }
-    const wolfVotesBySeat = state.currentNightResults.wolfVotesBySeat ?? {};
-    const votes = new Map<number, number>();
-    for (const [seatStr, targetSeat] of Object.entries(wolfVotesBySeat)) {
-      const seat = Number.parseInt(seatStr, 10);
-      if (!Number.isFinite(seat) || typeof targetSeat !== 'number') continue;
-      votes.set(seat, targetSeat);
-    }
-
     if (wolfKillResolution.kind === 'fixed') {
       nightActions.wolfKill = wolfKillResolution.targetSeat;
-    } else {
-      const resolved = resolveWolfVotes(votes, {
-        requireUnanimity: state.templateRoles.includes('cupid'),
-        rng: wolfKillResolution.rng,
-      });
-      if (typeof resolved === 'number') {
-        nightActions.wolfKill = resolved;
-      }
+    } else if (wolfKillResolution.target !== null) {
+      nightActions.wolfKill = wolfKillResolution.target;
     }
   }
 
@@ -377,9 +358,18 @@ function calculateNightDeathsFromActions(
   return calculateDeathsDetailed(nightActions, roleSeatMap);
 }
 
-/** Build all death-calculation inputs from authoritative state and settle the night. */
-export function calculateNightDeaths(state: GameState, rng: Rng): DeathsDetailed {
-  return calculateNightDeathsFromActions(state, buildNightActions(state, { kind: 'votes', rng }));
+/**
+ * Build all death-calculation inputs from authoritative state and
+ * settle the night from the settled wolf-kill target.
+ * @pre target is the single settlement for this night
+ *   (GameState.resolvedWolfKillTarget, or a legacy fallback the caller
+ *   persists in the same command); it is never re-resolved here.
+ */
+export function calculateNightDeaths(state: GameState, target: number | null): DeathsDetailed {
+  return calculateNightDeathsFromActions(
+    state,
+    buildNightActions(state, { kind: 'stored', target }),
+  );
 }
 
 /** Resolve Seed Wolf infection against its already-confirmed wolf-kill target. */

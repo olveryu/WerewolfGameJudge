@@ -305,6 +305,19 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   /** Current night accumulated results (type-only from resolver types, single source of truth) */
   currentNightResults?: CurrentNightResults;
 
+  /**
+   * The wolf-kill target settled exactly once for this night.
+   * undefined = not yet settled; null = settled to no kill (all abstain,
+   * cupid unanimity disagreement, or a wolf-kill override); a seat number
+   * = the settled kill target. Once set, witch context, witch validation,
+   * Seed Wolf confirmation and END_NIGHT must all reuse this value and
+   * never re-resolve the wolf votes, so a tied vote cannot pick one
+   * target for the witch and another for settlement. Cleared on
+   * START_NIGHT and RESTART_GAME; a top-level field (not inside
+   * currentNightResults) so Seed Wolf finalization replay cannot clear it.
+   */
+  resolvedWolfKillTarget?: number | null;
+
   /** Resolver outputs with their actor seat, used to invalidate one converted actor atomically. */
   resolvedNightEffects?: readonly ResolvedNightEffect[];
 

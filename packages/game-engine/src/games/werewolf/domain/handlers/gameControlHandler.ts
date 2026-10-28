@@ -264,6 +264,15 @@ export function handleStartNight(
     createSeededRng(`${execution.randomSeed}:wolf-vote`),
   );
   if (witchContextAction) {
+    // Persist the settlement the context was computed from, so later
+    // commands reuse it instead of re-rolling the votes. On a no-wolf
+    // board this is a settled no-kill; a wolf board never opens on
+    // witchAction, so no live votes are settled early here.
+    const killedSeat = witchContextAction.payload.killedSeat;
+    actions.push({
+      type: 'SET_RESOLVED_WOLF_KILL_TARGET',
+      payload: { target: killedSeat >= 0 ? killedSeat : null },
+    });
     actions.push(witchContextAction);
   }
 

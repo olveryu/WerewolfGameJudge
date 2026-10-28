@@ -63,12 +63,14 @@ function makeGameState(
     bottomCards: LocalGameState['bottomCards'];
     sheriffElection: SheriffElectionState;
     sheriffElectionResult: SheriffElectionResult;
+    resolvedWolfKillTarget: number | null;
   }> = {},
 ): LocalGameState {
   return {
     currentNightResults: overrides.currentNightResults ?? {},
     lastNightDeaths: overrides.lastNightDeaths ?? [],
     deathReasons: overrides.deathReasons,
+    resolvedWolfKillTarget: overrides.resolvedWolfKillTarget,
     bottomCards: overrides.bottomCards,
     players: overrides.players ?? new Map(),
     actions: new Map(),
@@ -268,7 +270,7 @@ describe('NightReviewModal', () => {
     expect(filled).toHaveLength(1);
   });
 
-  it('marks tied split wolf votes with the tie verdict', () => {
+  it('marks tied split wolf votes without a settlement as tie pending, not as no kill', () => {
     const players = new Map<number, LocalPlayer | null>([
       [0, makePlayer(0, 'wolf')],
       [1, makePlayer(1, 'wolf')],
@@ -288,13 +290,67 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    expect(view.getByText('狼队目标不一致 — 平票，未击杀')).toBeTruthy();
-    expect(view.getByText('平票未击杀')).toBeTruthy();
+    expect(view.getByText('狼队目标不一致 — 平票，目标未记录')).toBeTruthy();
+    expect(view.getByText('平票未记录')).toBeTruthy();
+    expect(view.queryByText('狼队目标不一致 — 平票，未击杀')).toBeNull();
     expect(view.queryByText('狼队共同目标')).toBeNull();
     // One target medal per group even though two wolves voted; equal counts
     // order groups by target seat ascending.
     const sequence = collectTextSequence(view.toJSON());
     expect(sequence.indexOf('5')).toBeLessThan(sequence.indexOf('6'));
+  });
+
+  it('marks a tied split wolf vote settled to a kill with the tie-picked verdict', () => {
+    const players = new Map<number, LocalPlayer | null>([
+      [0, makePlayer(0, 'wolf')],
+      [1, makePlayer(1, 'wolf')],
+      [4, makePlayer(4, 'villager')],
+      [5, makePlayer(5, 'villager')],
+    ]);
+    const view = render(
+      <NightReviewModal
+        visible
+        data={buildNightReviewData(
+          makeGameState({
+            players,
+            currentNightResults: { wolfVotesBySeat: { '0': 5, '1': 4 } },
+            lastNightDeaths: [5],
+            deathReasons: { 5: 'wolfKill' },
+            resolvedWolfKillTarget: 5,
+          }),
+        )}
+        onClose={jest.fn()}
+      />,
+    );
+
+    expect(view.getByText('狼队目标不一致 — 平票抽中目标')).toBeTruthy();
+    expect(view.getByText('击杀成立')).toBeTruthy();
+    expect(view.queryByText('狼队目标不一致 — 平票，未击杀')).toBeNull();
+  });
+
+  it('keeps the no-kill verdict only for a tied split vote settled to no kill', () => {
+    const players = new Map<number, LocalPlayer | null>([
+      [0, makePlayer(0, 'wolf')],
+      [1, makePlayer(1, 'wolf')],
+      [4, makePlayer(4, 'villager')],
+      [5, makePlayer(5, 'villager')],
+    ]);
+    const view = render(
+      <NightReviewModal
+        visible
+        data={buildNightReviewData(
+          makeGameState({
+            players,
+            currentNightResults: { wolfVotesBySeat: { '0': 5, '1': 4 } },
+            resolvedWolfKillTarget: null,
+          }),
+        )}
+        onClose={jest.fn()}
+      />,
+    );
+
+    expect(view.getByText('狼队目标不一致 — 平票，未击杀')).toBeTruthy();
+    expect(view.getByText('平票未击杀')).toBeTruthy();
   });
 
   it('merges the witch poison and unused antidote into one card', () => {

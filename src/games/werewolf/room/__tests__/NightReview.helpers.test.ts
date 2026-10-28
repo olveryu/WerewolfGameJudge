@@ -47,6 +47,7 @@ function makeGameState(
     seedWolfInfectionResult: LocalGameState['seedWolfInfectionResult'];
     sheriffElection: SheriffElectionState;
     sheriffElectionResult: SheriffElectionResult;
+    resolvedWolfKillTarget: number | null;
   }> = {},
 ): LocalGameState {
   return {
@@ -69,6 +70,7 @@ function makeGameState(
     seedWolfInfectionResult: overrides.seedWolfInfectionResult,
     sheriffElection: overrides.sheriffElection,
     sheriffElectionResult: overrides.sheriffElectionResult,
+    resolvedWolfKillTarget: overrides.resolvedWolfKillTarget,
   } as unknown as LocalGameState;
 }
 
@@ -1971,7 +1973,7 @@ describe('NightReview.helpers', () => {
 
   // ── 2026 report fact layer: stats, wolf verdict, death annotations ────
   describe('report derivations', () => {
-    it('derives all four wolf verdict states', () => {
+    it('derives all six wolf verdict states', () => {
       expect(
         deriveWolfVerdict({
           kind: 'wolfAttack',
@@ -2002,9 +2004,61 @@ describe('NightReview.helpers', () => {
           ],
           abstainSeats: [],
         }),
+      ).toEqual({ type: 'tiePending' });
+      expect(
+        deriveWolfVerdict({
+          kind: 'wolfAttack',
+          votes: [
+            { voterSeat: 0, targetSeat: 5 },
+            { voterSeat: 1, targetSeat: 6 },
+          ],
+          abstainSeats: [],
+          resolvedTargetSeat: 5,
+        }),
+      ).toEqual({ type: 'tiePicked', targetSeat: 5 });
+      expect(
+        deriveWolfVerdict({
+          kind: 'wolfAttack',
+          votes: [
+            { voterSeat: 0, targetSeat: 5 },
+            { voterSeat: 1, targetSeat: 6 },
+          ],
+          abstainSeats: [],
+          resolvedTargetSeat: null,
+        }),
       ).toEqual({ type: 'splitTied' });
       expect(deriveWolfVerdict({ kind: 'wolfAttack', votes: [], abstainSeats: [0, 1] })).toEqual({
         type: 'allAbstain',
+      });
+    });
+
+    it('recovers a tied vote from the recorded save on a pre-field night review', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'wolf')],
+        [1, makePlayer(1, 'wolf')],
+        [2, makePlayer(2, 'witch')],
+        [4, makePlayer(4, 'villager')],
+        [5, makePlayer(5, 'villager')],
+      ]);
+      const entries = buildActionEntries(
+        makeGameState({
+          players,
+          currentNightResults: { wolfVotesBySeat: { '0': 5, '1': 4 }, savedSeat: 5 },
+        }),
+      );
+      const wolfEntry = entries.find((entry) => entry.kind === 'wolfAttack');
+      expect(wolfEntry).toEqual({
+        kind: 'wolfAttack',
+        votes: [
+          { voterSeat: 0, targetSeat: 5 },
+          { voterSeat: 1, targetSeat: 4 },
+        ],
+        abstainSeats: [],
+        resolvedTargetSeat: 5,
+      });
+      expect(wolfEntry?.kind === 'wolfAttack' && deriveWolfVerdict(wolfEntry)).toEqual({
+        type: 'tiePicked',
+        targetSeat: 5,
       });
     });
 
