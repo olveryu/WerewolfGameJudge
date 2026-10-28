@@ -1,75 +1,57 @@
 /**
- * AU-33: the avalon audio ack reuses one prepared envelope across
- * reconnect retries and never prepares a second command for the same
- * queue. When the queue is still in the authoritative state on
- * reconnect, the shared core replays it in full before resending the
- * retained ack (an interrupted narration is never acked away unheard).
+ * AU-33: the avalon audio ack is one durable room command. The hook plays the
+ * authoritative queue once, dispatches a single `avalon.audio.ack` with
+ * `durable: true`, and never starts a second playback while that ack is still
+ * awaiting the server decision — reconnects are the link's business, not the
+ * orchestrator's. Once the committed ack empties the queue, nothing replays.
  */
+import type {
+  AudioEffect,
+  AvalonPublicCommand,
+  AvalonState,
+} from '@game-judge/game-engine/games/avalon/public';
 import { NIGHT_END_AUDIO_KEY } from '@game-judge/game-engine/platform/audio';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { act, renderHook } from '@testing-library/react-native';
 
-import type { AvalonRoomSession } from '../../../model/AvalonRoomSession';
+import type { DispatchOutcome } from '@/platform/realtime/types';
+import { buildAvalonTestState } from '@/test-utils/avalonState';
+import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
+
 import { useAvalonAudioOrchestration } from '../useAvalonAudioOrchestration';
 
-type Listener = () => void;
-
-function createFakeSession(
-  initialQueue: readonly { audioKey: string; isEndAudio?: boolean }[] = [
-    { audioKey: 'night' },
-    { audioKey: 'evil_reveal' },
-  ],
-) {
-  const listeners = new Set<Listener>();
-  let connection: 'live' | 'reconnecting' = 'live';
-  // The queue lives in the session's authoritative snapshot state, the
-  // way the real session exposes it to the shared core. A committed ack
-  // clears the queue there before the dispatch outcome returns (the
-  // real session applies the post-command snapshot first).
-  let pendingAudioEffects: readonly { audioKey: string; isEndAudio?: boolean }[] = initialQueue;
-  let prepareCount = 0;
-  const preparedObjects: unknown[] = [];
-  const dispatchedPrepared: unknown[] = [];
-  const dispatchPrepared = jest
-    .fn(async (prepared: unknown) => {
-      dispatchedPrepared.push(prepared);
-      if (dispatchedPrepared.length === 1) {
-        return { kind: 'notDecided', commandId: 'ack-1', reason: 'NETWORK_ERROR' };
-      }
-      pendingAudioEffects = [];
-      return { kind: 'decided', decision: { kind: 'committed', outcome: { kind: 'success' } } };
-    })
-    .mockName('dispatchPrepared');
-  const session = {
-    getSnapshot: () => ({
-      phase: 'ready',
-      connection,
-      pendingCommandCount: 0,
-      snapshot: { state: { pendingAudioEffects } },
-    }),
-    subscribe: (listener: Listener) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    prepare: jest.fn(() => {
-      prepareCount += 1;
-      const prepared = { commandId: `ack-${prepareCount}` };
-      preparedObjects.push(prepared);
-      return prepared;
-    }),
-    dispatchPrepared,
-    dispatch: jest.fn(async () => {
-      throw new Error('the orchestration must use dispatchPrepared for the ack');
-    }),
-  };
+function createFakeLink(queue: readonly AudioEffect[]) {
+  const initialState = buildAvalonTestState({ pendingAudioEffects: queue });
+  let revision = 1;
+  let settleAck: ((outcome: DispatchOutcome<AvalonState>) => void) | null = null;
+  const link = createFakeRoomLink<AvalonState, AvalonPublicCommand>(
+    readyLinkSnapshot(testIdentity('avalon'), createRoomSnapshot(initialState, revision)),
+    () =>
+      new Promise((resolve) => {
+        settleAck = resolve;
+      }),
+  );
+  const dispatch = link.dispatch;
   return {
-    session: session as unknown as AvalonRoomSession,
-    dispatchPrepared,
-    dispatchedPrepared,
-    preparedObjects,
-    getPrepareCount: () => prepareCount,
-    setConnection: (next: 'live' | 'reconnecting') => {
-      connection = next;
-      for (const listener of listeners) listener();
+    link,
+    dispatch,
+    /** Server commits the ack: the queue empties in the authoritative state, then the promise settles. */
+    commitAck: () => {
+      const resolve = settleAck;
+      if (resolve === null) throw new Error('no ack in flight');
+      settleAck = null;
+      revision += 1;
+      const emptied = buildAvalonTestState({ pendingAudioEffects: [] });
+      link.publishRoom(createRoomSnapshot(emptied, revision));
+      resolve(successfulRoomCommand(emptied, 'ack-1', revision));
+    },
+    /** Reconnect: the link republishes the same authoritative room after a socket swap. */
+    republish: () => {
+      const current = link.getSnapshot();
+      if (current.phase !== 'ready') throw new Error('expected a ready link');
+      link.publish({ ...current, status: { kind: 'syncing' } });
+      link.publish({ ...current, status: { kind: 'live' } });
     },
   };
 }
@@ -83,56 +65,54 @@ const audio = {
   stopBgm: jest.fn<void, []>(),
 };
 
+async function flushPlayback(): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+}
+
 describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('replays the queue in full and retries the same prepared ack on reconnect', async () => {
-    const fake = createFakeSession();
+  it('plays the queue once and holds a single durable ack across reconnect', async () => {
+    const fake = createFakeLink([{ audioKey: 'night' }, { audioKey: 'evil_reveal' }]);
     renderHook(() =>
       useAvalonAudioOrchestration({
-        session: fake.session,
+        session: fake.link,
         isHost: true,
         pendingAudioEffects: [{ audioKey: 'night' }, { audioKey: 'evil_reveal' }],
         audio,
       }),
     );
 
-    // Queue plays once; the first ack attempt lands undecided.
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    });
+    await flushPlayback();
     expect(audio.playEffect).toHaveBeenCalledTimes(2);
-    expect(fake.dispatchPrepared).toHaveBeenCalledTimes(1);
-    expect(fake.getPrepareCount()).toBe(1);
+    expect(fake.dispatch).toHaveBeenCalledTimes(1);
+    expect(fake.dispatch).toHaveBeenCalledWith(
+      { type: 'avalon.audio.ack' },
+      { controlledSeat: null, label: '播报确认', durable: true },
+    );
 
-    // Reconnect: the queue is still in the authoritative state, so it
-    // replays in full before the SAME prepared envelope is retried.
-    await act(async () => {
-      fake.setConnection('reconnecting');
-    });
-    await act(async () => {
-      fake.setConnection('live');
-    });
-    expect(fake.dispatchPrepared).toHaveBeenCalledTimes(2);
-    expect(fake.dispatchedPrepared[1]).toBe(fake.preparedObjects[0]);
-    expect(fake.getPrepareCount()).toBe(1);
-    expect(audio.playEffect).toHaveBeenCalledTimes(4);
+    // Reconnect while the durable ack is pending: the link replays the command;
+    // the orchestrator must not start the queue again or dispatch a second ack.
+    await act(async () => fake.republish());
+    await flushPlayback();
+    expect(audio.playEffect).toHaveBeenCalledTimes(2);
+    expect(fake.dispatch).toHaveBeenCalledTimes(1);
 
-    // Once committed, further reconnects resend nothing.
-    await act(async () => {
-      fake.setConnection('reconnecting');
-    });
-    await act(async () => {
-      fake.setConnection('live');
-    });
-    expect(fake.dispatchPrepared).toHaveBeenCalledTimes(2);
-    expect(audio.playEffect).toHaveBeenCalledTimes(4);
+    // Server decision arrives with an emptied queue: nothing more to play or ack.
+    await act(async () => fake.commitAck());
+    await flushPlayback();
+    await act(async () => fake.republish());
+    await flushPlayback();
+    expect(audio.playEffect).toHaveBeenCalledTimes(2);
+    expect(fake.dispatch).toHaveBeenCalledTimes(1);
   });
 
   it('forwards the shared dawn timing: BGM stops right before night_end and for no other key', async () => {
-    const fake = createFakeSession([
+    const fake = createFakeLink([
       { audioKey: 'percival_reveal', isEndAudio: true },
       { audioKey: NIGHT_END_AUDIO_KEY },
     ]);
@@ -145,16 +125,14 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
     });
     renderHook(() =>
       useAvalonAudioOrchestration({
-        session: fake.session,
+        session: fake.link,
         isHost: true,
         pendingAudioEffects: [],
         audio,
       }),
     );
 
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    });
+    await flushPlayback();
     expect(timeline).toEqual(['play:percival_reveal', 'stopBgm', `play:${NIGHT_END_AUDIO_KEY}`]);
   });
 });

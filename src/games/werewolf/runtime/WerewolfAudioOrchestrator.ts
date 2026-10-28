@@ -1,21 +1,18 @@
 /**
  * WerewolfAudioOrchestrator — Werewolf binding of the shared room audio core.
  *
- * The lifecycle (reactive playback, prepared-envelope ack, three-layer
- * reconnect recovery, ack recheck chaining) lives in the shared
- * `RoomAudioOrchestrator` (src/features/room/audio). This class keeps only
- * the Werewolf-owned parts:
- * - Player adapter: maps an AudioEffect to the Werewolf runtime's play
- *   methods (night / night_end / beginning / ending), exposes stopBgm for
- *   the core's dawn timing, and treats MissingWerewolfAudioError as fail-fast.
- * - Ack adapter: prepares/dispatches `werewolf.audio.ack` through
- *   werewolfGameActions.
- * - Rejoin resume extension: replays the current step's beginning audio
- *   (seer label resolution is Werewolf-owned) and releases the gate
- *   through the core's retained ack envelope.
+ * The lifecycle (reactive playback, durable ack, ack recheck chaining) lives in the shared
+ * `RoomAudioOrchestrator` (src/features/room/audio). This class keeps only the Werewolf-owned
+ * parts:
+ * - Player adapter: maps an AudioEffect to the Werewolf runtime's play methods (night /
+ *   night_end / beginning / ending), exposes stopBgm for the core's dawn timing, and treats
+ *   MissingWerewolfAudioError as fail-fast.
+ * - Ack adapter: dispatches the durable `werewolf.audio.ack` through werewolfGameActions.
+ * - Rejoin resume extension: replays the current step's beginning audio (seer label
+ *   resolution is Werewolf-owned) and releases the gate through the core's ack.
  *
  * Boundary constraints:
- * - Only active for Host role (the core plays/retries only when isHost())
+ * - Only active for Host role (the core plays only when isHost())
  * - Not reusable after dispose(), must create a new instance
  */
 
@@ -29,19 +26,16 @@ import {
   type RoomAudioPlayerPort,
   type RoomAudioQueueSnapshot,
 } from '@/features/room/audio/RoomAudioOrchestrator';
-import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
 import { MissingWerewolfAudioError } from '@/games/werewolf/audio/audioRegistry';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import { handleError } from '@/utils/errorPipeline';
 import { werewolfRuntimeLog } from '@/utils/logger';
 
-import type { GameActionsContext, PreparedAudioAck } from './werewolfGameActions';
+import type { GameActionsContext } from './werewolfGameActions';
 import * as gameActions from './werewolfGameActions';
 
-/** WerewolfAudioOrchestrator injectable dependencies. */
 export interface WerewolfAudioRoomSnapshot {
   readonly state: GameState;
-  readonly connection: RoomConnectionStatus;
 }
 
 export interface WerewolfAudioRoomSource {
@@ -50,7 +44,7 @@ export interface WerewolfAudioRoomSource {
 }
 
 export interface WerewolfAudioOrchestratorDeps {
-  /** Combined Werewolf room state + connection source. */
+  /** Werewolf room state source. */
   roomSource: WerewolfAudioRoomSource;
   /** Game-owned narration runtime. */
   audio: WerewolfAudioRuntime;
@@ -66,10 +60,7 @@ function toQueueSnapshot(
   snapshot: WerewolfAudioRoomSnapshot | null,
 ): RoomAudioQueueSnapshot<AudioEffect> | null {
   if (snapshot === null) return null;
-  return {
-    pendingAudioEffects: snapshot.state.pendingAudioEffects,
-    connection: snapshot.connection,
-  };
+  return { pendingAudioEffects: snapshot.state.pendingAudioEffects };
 }
 
 /** Werewolf player adapter: effect -> WerewolfAudioRuntime play methods. */
@@ -100,23 +91,19 @@ function createWerewolfPlayerPort(audio: WerewolfAudioRuntime): RoomAudioPlayerP
  */
 export class WerewolfAudioOrchestrator {
   readonly #deps: WerewolfAudioOrchestratorDeps;
-  readonly #core: RoomAudioOrchestrator<AudioEffect, PreparedAudioAck, GameState>;
+  readonly #core: RoomAudioOrchestrator<AudioEffect, GameState>;
 
   constructor(deps: WerewolfAudioOrchestratorDeps) {
     this.#deps = deps;
 
-    this.#core = new RoomAudioOrchestrator<AudioEffect, PreparedAudioAck, GameState>({
+    this.#core = new RoomAudioOrchestrator<AudioEffect, GameState>({
       queueSource: {
         getSnapshot: () => toQueueSnapshot(deps.roomSource.getSnapshot()),
         subscribe: (listener) =>
           deps.roomSource.subscribe((snapshot) => listener(toQueueSnapshot(snapshot))),
       },
       player: createWerewolfPlayerPort(deps.audio),
-      ack: {
-        prepare: () => gameActions.prepareAudioAck(deps.getActionsContext()),
-        dispatch: (prepared) =>
-          gameActions.dispatchPreparedAudioAck(deps.getActionsContext(), prepared),
-      },
+      ack: { dispatch: () => gameActions.postAudioAck(deps.getActionsContext()) },
       isHost: deps.isHost,
       isAborted: deps.isAborted,
       logger: werewolfRuntimeLog,
@@ -144,7 +131,7 @@ export class WerewolfAudioOrchestrator {
     this.#core.reset();
   }
 
-  /** Cleanup all handlers and timers when the session epoch ends. */
+  /** Stop observing the room when the link epoch ends. */
   dispose(): void {
     this.#core.dispose();
   }

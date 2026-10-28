@@ -26,7 +26,6 @@ import {
 } from '../RoomAudioOrchestrator';
 
 type TestEffect = { readonly audioKey: string };
-type TestPrepared = { readonly commandId: string };
 type TestState = BaseGameState<'test'>;
 type Snapshot = RoomAudioQueueSnapshot<TestEffect>;
 
@@ -46,11 +45,10 @@ function createHarness() {
   const playedKeys: string[] = [];
   const timeline: string[] = [];
   const preparedBatches: (readonly TestEffect[])[] = [];
-  const preparedCommands: TestPrepared[] = [];
-  const dispatchedCommands: TestPrepared[] = [];
+  let ackCount = 0;
 
   const setQueue = (effects: readonly TestEffect[]) => {
-    snapshot = { pendingAudioEffects: effects, connection: 'live' };
+    snapshot = { pendingAudioEffects: effects };
   };
 
   const queueSource: RoomAudioQueueSource<TestEffect> = {
@@ -63,7 +61,7 @@ function createHarness() {
     },
   };
 
-  const orchestrator = new RoomAudioOrchestrator<TestEffect, TestPrepared, TestState>({
+  const orchestrator = new RoomAudioOrchestrator<TestEffect, TestState>({
     queueSource,
     player: {
       playEffect: async (effect) => {
@@ -78,18 +76,13 @@ function createHarness() {
       },
     },
     ack: {
-      prepare: () => {
-        const prepared: TestPrepared = { commandId: `ack-${preparedCommands.length + 1}` };
-        preparedCommands.push(prepared);
-        return prepared;
-      },
-      dispatch: async (prepared) => {
-        dispatchedCommands.push(prepared);
+      dispatch: async () => {
+        ackCount += 1;
         // The committed ack applies the progressed snapshot before the
         // outcome returns: ack 1 leaves the second queue in place, ack 2
         // leaves the queue drained. Neither swap emits a snapshot.
-        setQueue(dispatchedCommands.length === 1 ? secondQueue : []);
-        return successfulRoomCommand(testRoomState('test'), prepared.commandId);
+        setQueue(ackCount === 1 ? secondQueue : []);
+        return successfulRoomCommand(testRoomState('test'), `ack-${ackCount}`);
       },
     },
     isHost: () => true,
@@ -110,8 +103,7 @@ function createHarness() {
     playedKeys,
     timeline,
     preparedBatches,
-    preparedCommands,
-    dispatchedCommands,
+    getAckCount: () => ackCount,
   };
 }
 
@@ -130,12 +122,8 @@ describe('RoomAudioOrchestrator ack recheck chaining', () => {
     expect(harness.playedKeys).toEqual(['night', 'evil_reveal', 'merlin_reveal']);
     expect(harness.preparedBatches).toEqual([firstQueue, secondQueue]);
 
-    // Each batch was released by its own prepared ack envelope.
-    expect(harness.preparedCommands.map((prepared) => prepared.commandId)).toEqual([
-      'ack-1',
-      'ack-2',
-    ]);
-    expect(harness.dispatchedCommands).toEqual(harness.preparedCommands);
+    // Each batch was released by its own durable ack.
+    expect(harness.getAckCount()).toBe(2);
 
     harness.orchestrator.dispose();
   });

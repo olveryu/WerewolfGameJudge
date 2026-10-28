@@ -1,28 +1,19 @@
 /**
  * __GAME_DISPLAY_NAME__播报 — 共享房间音频运行核（RoomAudioOrchestrator）的 React 薄绑定。
  *
- * 生命周期（队列身份识别、顺序播放、prepared envelope ack、三层连接恢复、
- * 重连整队重播、ack 后 recheck 链式续播）已搬入共享核心
- * （src/features/room/audio/RoomAudioOrchestrator），全平台只此一份。本 hook
- * 只做适配，不再自维护 ack/重试/去重逻辑：
- * - queue source：直接读 session 权威快照（连接状态 + state.pendingAudioEffects）。
- *   必须读快照而非 React prop：ack 提交后 session 先应用新快照再返回结果，
- *   核心的 ack 后 recheck 只有读快照才能同步看到已清的队列（读 prop 会因
- *   重渲染滞后而重播已确认的队列）。session 非 ready 或播放器未就绪时
- *   快照为 null（核心静默）。
+ * 生命周期（队列识别、顺序播放、durable ack、ack 后 recheck 链式续播）已搬入共享核心
+ * （src/features/room/audio/RoomAudioOrchestrator），全平台只此一份。本 hook 只做适配：
+ * - queue source：直接读 link 权威快照的 state.pendingAudioEffects。必须读快照而非 React
+ *   prop：ack 提交后 link 先应用新快照再返回结果，核心的 ack 后 recheck 只有读快照才能同步
+ *   看到已清的队列。link 非 ready 或播放器未就绪时快照为 null（核心静默）。
  * - player port：本游戏音频运行时（__GAME_PASCAL__AudioRuntime）的 playEffect；
  *   stopBgm 供核心在 night_end 播报前停 BGM（天亮时序，全游戏统一）；
  *   播放器与音频资源 registry 是本游戏资产，骨架只定 port 形状，运行时由
  *   use__GAME_PASCAL__RoomState 的调用点注入（骨架阶段传 null，绑定静默）。
- * - ack port：session.prepare/dispatchPrepared 制 `__GAME_ID__.audio.ack`，
- *   envelope 由核心保留至终局决定（服务端按 commandId 幂等）。
+ * - ack port：`__GAME_ID__.audio.ack` 以 durable 命令发送，由 RoomLink 跨连接重放直到服务端裁决。
  */
 
-import type {
-  AudioEffect,
-  __GAME_PASCAL__PublicCommand,
-  __GAME_PASCAL__State,
-} from '@game-judge/game-engine/games/__GAME_ID__/public';
+import type { AudioEffect, __GAME_PASCAL__State } from '@game-judge/game-engine/games/__GAME_ID__/public';
 import { useEffect, useRef } from 'react';
 
 import {
@@ -30,7 +21,6 @@ import {
   type RoomAudioQueueSnapshot,
   type RoomAudioQueueSource,
 } from '@/features/room/audio/RoomAudioOrchestrator';
-import type { PreparedRoomCommand } from '@/features/room/session/types';
 import { log } from '@/utils/logger';
 
 import type { __GAME_PASCAL__RoomSession } from '../../model/__GAME_PASCAL__RoomSession';
@@ -59,11 +49,7 @@ interface Use__GAME_PASCAL__AudioOrchestrationDeps {
   readonly audio: __GAME_PASCAL__AudioRuntime | null;
 }
 
-type __GAME_PASCAL__AudioCore = RoomAudioOrchestrator<
-  AudioEffect,
-  PreparedRoomCommand<__GAME_PASCAL__PublicCommand>,
-  __GAME_PASCAL__State
->;
+type __GAME_PASCAL__AudioCore = RoomAudioOrchestrator<AudioEffect, __GAME_PASCAL__State>;
 
 export function use__GAME_PASCAL__AudioOrchestration(
   deps: Use__GAME_PASCAL__AudioOrchestrationDeps,
@@ -89,10 +75,7 @@ export function use__GAME_PASCAL__AudioOrchestration(
     const readSnapshot = (): RoomAudioQueueSnapshot<AudioEffect> | null => {
       const current = sessionRef.current.getSnapshot();
       if (current.phase !== 'ready' || audioRef.current === null) return null;
-      return {
-        pendingAudioEffects: current.snapshot.state.pendingAudioEffects,
-        connection: current.connection,
-      };
+      return { pendingAudioEffects: current.room.state.pendingAudioEffects };
     };
 
     if (coreRef.current === null) {
@@ -107,11 +90,7 @@ export function use__GAME_PASCAL__AudioOrchestration(
           };
         },
       };
-      coreRef.current = new RoomAudioOrchestrator<
-        AudioEffect,
-        PreparedRoomCommand<__GAME_PASCAL__PublicCommand>,
-        __GAME_PASCAL__State
-      >({
+      coreRef.current = new RoomAudioOrchestrator<AudioEffect, __GAME_PASCAL__State>({
         queueSource,
         player: {
           playEffect: (effect) => {
@@ -132,8 +111,11 @@ export function use__GAME_PASCAL__AudioOrchestration(
           },
         },
         ack: {
-          prepare: () => sessionRef.current.prepare({ type: '__GAME_ID__.audio.ack' }, null),
-          dispatch: (prepared) => sessionRef.current.dispatchPrepared(prepared, '播报确认'),
+          dispatch: () =>
+            sessionRef.current.dispatch(
+              { type: '__GAME_ID__.audio.ack' },
+              { controlledSeat: null, label: '播报确认', durable: true },
+            ),
         },
         isHost: () => isHostRef.current,
         isAborted: () => abortedRef.current,
