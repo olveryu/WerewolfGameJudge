@@ -73,7 +73,7 @@ describe('request traffic summary', () => {
       ],
       [
         {
-          messageType: 'STATE_SYNC_REQUEST',
+          messageType: 'SYNC',
           messageCount: 6,
           deliveryCount: 6,
           transferredBytes: 600,
@@ -85,7 +85,7 @@ describe('request traffic summary', () => {
           transferredBytes: 2400,
         },
         {
-          messageType: 'STATE_SYNC_RESPONSE',
+          messageType: 'SYNC_RESULT',
           messageCount: 2,
           deliveryCount: 2,
           transferredBytes: 600,

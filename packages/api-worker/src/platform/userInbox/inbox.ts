@@ -1,8 +1,11 @@
-/** D1-backed at-least-once delivery inbox for authenticated user events. */
+/** D1-backed at-least-once delivery inbox for authenticated user events; batch read and ack. */
 
 import type { userEventInbox } from './dbSchema';
 
 type UserEventInboxInsert = typeof userEventInbox.$inferInsert;
+
+/** Upper bound for one batch read; the client pages with `hasMore`. */
+export const USER_INBOX_MAX_BATCH = 50;
 
 interface RawUserEventRow {
   readonly event_id: unknown;
@@ -19,6 +22,11 @@ export interface PublishUserEvent {
 export interface PendingUserEvent {
   readonly eventId: string;
   readonly message: Record<string, unknown>;
+}
+
+export interface UserInboxBatch {
+  readonly events: readonly PendingUserEvent[];
+  readonly hasMore: boolean;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -99,36 +107,48 @@ export async function enqueueUserEvent(db: D1Database, input: PublishUserEvent):
   }
 }
 
-/** Read the oldest unacknowledged event for one authenticated user. */
-export async function readNextUserEvent(
+/** Read the oldest unacknowledged events for one authenticated user, oldest first. */
+export async function readUserEvents(
   db: D1Database,
   userId: string,
-): Promise<PendingUserEvent | null> {
+  limit: number,
+): Promise<UserInboxBatch> {
   requireNonEmptyString(userId, 'User event userId');
-  const row = await db
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > USER_INBOX_MAX_BATCH) {
+    throw new Error(`User inbox batch limit must be between 1 and ${USER_INBOX_MAX_BATCH}`);
+  }
+  const { results } = await db
     .prepare(
       `SELECT event_id, event_type, payload_json
       FROM user_event_inbox
       WHERE user_id = ?1
       ORDER BY created_at, event_id
-      LIMIT 1`,
+      LIMIT ?2`,
     )
-    .bind(userId)
-    .first<RawUserEventRow>();
-  return row === null ? null : parsePendingUserEvent(row);
+    .bind(userId, limit + 1)
+    .all<RawUserEventRow>();
+  const hasMore = results.length > limit;
+  return {
+    events: results.slice(0, limit).map(parsePendingUserEvent),
+    hasMore,
+  };
 }
 
-/** Delete only an event owned by the authenticated account. */
-export async function acknowledgeUserEvent(
+/** Delete only events owned by the authenticated account; returns how many rows were removed. */
+export async function acknowledgeUserEvents(
   db: D1Database,
   userId: string,
-  eventId: string,
-): Promise<boolean> {
+  eventIds: readonly string[],
+): Promise<number> {
   requireNonEmptyString(userId, 'User event userId');
-  requireNonEmptyString(eventId, 'User event eventId');
+  if (eventIds.length === 0 || eventIds.length > USER_INBOX_MAX_BATCH) {
+    throw new Error(`User inbox ack batch must contain 1 to ${USER_INBOX_MAX_BATCH} event IDs`);
+  }
+  for (const eventId of eventIds) requireNonEmptyString(eventId, 'User event eventId');
+  const placeholders = eventIds.map((_, index) => `?${index + 2}`).join(', ');
   const result = await db
-    .prepare('DELETE FROM user_event_inbox WHERE user_id = ?1 AND event_id = ?2')
-    .bind(userId, eventId)
+    .prepare(`DELETE FROM user_event_inbox WHERE user_id = ?1 AND event_id IN (${placeholders})`)
+    .bind(userId, ...eventIds)
     .run();
-  return result.meta.changes === 1;
+  return result.meta.changes;
 }

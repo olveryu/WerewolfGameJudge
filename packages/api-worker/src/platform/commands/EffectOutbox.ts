@@ -1,8 +1,10 @@
-/** Durable Object transactional outbox reader, delivery lease, and retry policy. */
+/** `effect_outbox` + `effect_replays`: transactional outbox lease, retry policy and admin replay. */
 
-import { parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import type { GameEffect } from '@game-judge/game-engine/platform/engine';
+import { type GameType, parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
-import type { EffectScope, PendingOutboxEffect } from './types';
+import type { EffectScope, PendingOutboxEffect } from '../room/types';
+import { parseNonEmptyString, parseNonNegativeInteger, parsePositiveInteger } from './sqlValues';
 
 export const OUTBOX_MAX_ATTEMPTS = 7;
 const OUTBOX_DELIVERY_WATCHDOG_MS = 2 * 60_000;
@@ -35,24 +37,14 @@ export type ClaimOutboxResult =
   | { readonly kind: 'empty' }
   | { readonly kind: 'exhausted'; readonly effect: PendingOutboxEffect };
 
-function parseNonEmptyString(value: unknown, label: string): string {
-  if (typeof value !== 'string' || value.length === 0) {
-    throw new Error(`${label} must be a non-empty string`);
-  }
-  return value;
-}
-
-function parseNonNegativeInteger(value: unknown, label: string): number {
-  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
-    throw new Error(`${label} must be a non-negative safe integer`);
-  }
-  return value;
-}
-
-function parsePositiveInteger(value: unknown, label: string): number {
-  const parsed = parseNonNegativeInteger(value, label);
-  if (parsed === 0) throw new Error(`${label} must be positive`);
-  return parsed;
+export interface NewOutboxEffect {
+  readonly id: string;
+  readonly businessKey: string;
+  readonly scope: EffectScope;
+  readonly gameType: GameType;
+  readonly effect: GameEffect;
+  /** Delivery time (epoch ms); null delivers immediately. */
+  readonly availableAt: number | null;
 }
 
 function parseScope(value: unknown): EffectScope {
@@ -88,20 +80,39 @@ export class EffectOutbox {
     this.#sql = storage.sql;
   }
 
+  /** Insert new effects for one committed command; the caller owns the surrounding transaction. */
+  insertMany(
+    originCommandId: string,
+    effects: readonly NewOutboxEffect[],
+    createdRevision: number,
+    nowMs: number,
+  ): void {
+    for (const effect of effects) {
+      this.#sql.exec(
+        `INSERT INTO effect_outbox (
+          id, origin_command_id, scope, game_type, effect_type, business_key, payload_json,
+          status, attempt_count, available_at, created_revision, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?, ?)`,
+        effect.id,
+        originCommandId,
+        effect.scope,
+        effect.gameType,
+        effect.effect.type,
+        effect.businessKey,
+        JSON.stringify(effect.effect),
+        effect.availableAt ?? nowMs,
+        createdRevision,
+        nowMs,
+      );
+    }
+  }
+
   async claimNextDue(nowMs: number): Promise<ClaimOutboxResult> {
     return this.#storage.transaction(async () => {
       const rows = this.#sql
         .exec<RawOutboxEffect>(
-          `SELECT
-            id,
-            scope,
-            game_type,
-            effect_type,
-            payload_json,
-            attempt_count,
-            available_at,
-            created_revision,
-            created_at
+          `SELECT id, scope, game_type, effect_type, payload_json, attempt_count, available_at,
+            created_revision, created_at
           FROM effect_outbox
           WHERE status = 'pending' AND available_at <= ?
           ORDER BY available_at, created_at, id
@@ -115,14 +126,12 @@ export class EffectOutbox {
       }
 
       const effect = parseOutboxEffect(rows[0]);
+      const watchdogAt = nowMs + OUTBOX_DELIVERY_WATCHDOG_MS;
       if (effect.attemptCount >= OUTBOX_MAX_ATTEMPTS) {
-        const watchdogAt = nowMs + OUTBOX_DELIVERY_WATCHDOG_MS;
         this.#sql
           .exec(
-            `UPDATE effect_outbox
-          SET available_at = ?, last_error = ?
-          WHERE id = ? AND status = 'pending' AND attempt_count = ?
-          RETURNING id`,
+            `UPDATE effect_outbox SET available_at = ?, last_error = ?
+            WHERE id = ? AND status = 'pending' AND attempt_count = ? RETURNING id`,
             watchdogAt,
             'delivery interrupted at maximum attempt',
             effect.id,
@@ -134,13 +143,10 @@ export class EffectOutbox {
       }
 
       const attemptCount = effect.attemptCount + 1;
-      const watchdogAt = nowMs + OUTBOX_DELIVERY_WATCHDOG_MS;
       this.#sql
         .exec(
-          `UPDATE effect_outbox
-        SET attempt_count = ?, available_at = ?
-        WHERE id = ? AND status = 'pending' AND attempt_count = ?
-        RETURNING id`,
+          `UPDATE effect_outbox SET attempt_count = ?, available_at = ?
+          WHERE id = ? AND status = 'pending' AND attempt_count = ? RETURNING id`,
           attemptCount,
           watchdogAt,
           effect.id,
@@ -148,19 +154,14 @@ export class EffectOutbox {
         )
         .one();
       await this.#storage.setAlarm(watchdogAt);
-      return {
-        kind: 'claimed',
-        effect: { ...effect, attemptCount, availableAt: watchdogAt },
-      };
+      return { kind: 'claimed', effect: { ...effect, attemptCount, availableAt: watchdogAt } };
     });
   }
 
   readNextAvailableAt(): number | null {
     const row = this.#sql
       .exec<AvailableAtRow>(
-        `SELECT MIN(available_at) AS available_at
-        FROM effect_outbox
-        WHERE status = 'pending'`,
+        "SELECT MIN(available_at) AS available_at FROM effect_outbox WHERE status = 'pending'",
       )
       .one();
     return row.available_at === null
@@ -172,8 +173,7 @@ export class EffectOutbox {
     const row = this.#sql
       .exec<EffectCountRow>('SELECT COUNT(*) AS effect_count FROM effect_outbox')
       .one();
-    const effectCount = parseNonNegativeInteger(row.effect_count, 'effect_outbox count');
-    return effectCount > 0;
+    return parseNonNegativeInteger(row.effect_count, 'effect_outbox count') > 0;
   }
 
   hasPendingEffects(): boolean {
@@ -182,8 +182,7 @@ export class EffectOutbox {
         "SELECT COUNT(*) AS effect_count FROM effect_outbox WHERE status = 'pending'",
       )
       .one();
-    const effectCount = parseNonNegativeInteger(row.effect_count, 'pending effect_outbox count');
-    return effectCount > 0;
+    return parseNonNegativeInteger(row.effect_count, 'pending effect_outbox count') > 0;
   }
 
   discardFailedEffects(): number {
@@ -192,11 +191,11 @@ export class EffectOutbox {
       .toArray().length;
   }
 
-  markSucceeded(effectId: string): void {
+  markSucceeded(effectId: string, nowMs: number): void {
     this.#storage.transactionSync(() => {
       this.#sql.exec(
         "UPDATE effect_replays SET status = 'succeeded', completed_at = ? WHERE effect_id = ? AND status = 'pending'",
-        Date.now(),
+        nowMs,
         effectId,
       );
       this.#sql.exec('DELETE FROM effect_outbox WHERE id = ? RETURNING id', effectId).one();
@@ -208,6 +207,7 @@ export class EffectOutbox {
     id: string,
     effectId: string,
     reason: string,
+    nowMs: number,
     canReplay: (effect: PendingOutboxEffect) => boolean,
   ): Promise<void> {
     await this.#storage.transaction(async () => {
@@ -215,8 +215,9 @@ export class EffectOutbox {
         .exec('SELECT effect_id, reason FROM effect_replays WHERE id = ?', id)
         .toArray()[0];
       if (previous !== undefined) {
-        if (previous.effect_id !== effectId || previous.reason !== reason)
+        if (previous.effect_id !== effectId || previous.reason !== reason) {
           throw new Error('Replay request identity conflict');
+        }
         return;
       }
       const row = this.#sql
@@ -227,7 +228,6 @@ export class EffectOutbox {
         .one();
       const effect = parseOutboxEffect(row);
       if (!canReplay(effect)) throw new Error('Game effect does not allow administrative replay');
-      const nowMs = Date.now();
       this.#sql.exec(
         "INSERT INTO effect_replays (id, effect_id, reason, requested_by, requested_at, original_effect_json, status) VALUES (?, ?, ?, 'admin-token', ?, ?, 'pending')",
         id,
@@ -248,7 +248,7 @@ export class EffectOutbox {
   }
 
   /** Read an audit entry without allowing callers to alter its original effect. */
-  readReplay(id: string) {
+  readReplay(id: string): Record<string, SqlStorageValue> | null {
     return this.#sql.exec('SELECT * FROM effect_replays WHERE id = ?', id).toArray()[0] ?? null;
   }
 
@@ -257,30 +257,26 @@ export class EffectOutbox {
       throw new Error(`Outbox effect was not claimed before failure: ${effect.id}`);
     }
     const lastError = error.message.slice(0, OUTBOX_ERROR_MAX_LENGTH);
+    const isTerminal = effect.attemptCount >= OUTBOX_MAX_ATTEMPTS;
     this.#storage.transactionSync(() => {
-      const cursor =
-        effect.attemptCount >= OUTBOX_MAX_ATTEMPTS
-          ? this.#sql.exec(
-              `UPDATE effect_outbox
-              SET status = 'failed', last_error = ?
-              WHERE id = ? AND status = 'pending' AND attempt_count = ?
-              RETURNING id`,
-              lastError,
-              effect.id,
-              effect.attemptCount,
-            )
-          : this.#sql.exec(
-              `UPDATE effect_outbox
-              SET available_at = ?, last_error = ?
-              WHERE id = ? AND status = 'pending' AND attempt_count = ?
-              RETURNING id`,
-              nowMs + retryDelayMs(effect.attemptCount),
-              lastError,
-              effect.id,
-              effect.attemptCount,
-            );
+      const cursor = isTerminal
+        ? this.#sql.exec(
+            `UPDATE effect_outbox SET status = 'failed', last_error = ?
+            WHERE id = ? AND status = 'pending' AND attempt_count = ? RETURNING id`,
+            lastError,
+            effect.id,
+            effect.attemptCount,
+          )
+        : this.#sql.exec(
+            `UPDATE effect_outbox SET available_at = ?, last_error = ?
+            WHERE id = ? AND status = 'pending' AND attempt_count = ? RETURNING id`,
+            nowMs + retryDelayMs(effect.attemptCount),
+            lastError,
+            effect.id,
+            effect.attemptCount,
+          );
       cursor.one();
-      if (effect.attemptCount >= OUTBOX_MAX_ATTEMPTS) {
+      if (isTerminal) {
         this.#sql.exec(
           "UPDATE effect_replays SET status = 'failed', completed_at = ?, last_error = ? WHERE effect_id = ? AND status = 'pending'",
           nowMs,

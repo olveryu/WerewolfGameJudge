@@ -17,8 +17,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
 import { createAnonymousSession } from '../../../../test/uploadTestSupport';
+import { RoomStateStore } from '../../../platform/commands/RoomStateStore';
 import type { GameRoomRuntime } from '../../../platform/room/GameRoomRuntime';
-import { RoomRepository } from '../../../platform/room/roomRepository';
 import { getWorkerGameModule } from '../../catalog';
 
 interface RoomIdentity {
@@ -276,8 +276,8 @@ describe('Pictionary current persisted relay state', () => {
         game_state = json_set(game_state, '$.stateVersion', 7)`);
       const before = sql.exec('SELECT * FROM room_state').one();
       const receipts = sql.exec('SELECT * FROM command_receipts ORDER BY command_id').toArray();
-      const repository = new RoomRepository(durableState.storage, getWorkerGameModule);
-      expect(() => repository.readRoom()).toThrow('state version');
+      const roomState = new RoomStateStore(durableState.storage, getWorkerGameModule);
+      expect(() => roomState.read()).toThrow('state version');
       expect(sql.exec('SELECT * FROM room_state').one()).toEqual(before);
       expect(sql.exec('SELECT * FROM command_receipts ORDER BY command_id').toArray()).toEqual(
         receipts,

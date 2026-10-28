@@ -12,18 +12,19 @@ import {
   REASON_NOT_HOST,
   REASON_SEAT_EMPTY,
 } from '@game-judge/game-engine/platform/protocol/reasons';
+import { REALTIME_CLOSE_CODE } from '@game-judge/game-engine/platform/realtime/closeCodes';
 import {
-  createStateSyncRequestMessage,
-  parseStateSyncResponseMessage,
-} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+  createSyncFrame,
+  parseServerFrame,
+} from '@game-judge/game-engine/platform/realtime/protocol';
 import { runInDurableObject, SELF } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
-import { enqueueUserEvent } from '../../userEvents/inbox';
+import { initializeRoomStorage } from '../../commands/storageSchema';
+import { enqueueUserEvent } from '../../userInbox/inbox';
 import type { GameRoomRuntime as GameRoom } from '../GameRoomRuntime';
-import { initializeRoomStorage } from '../storageSchema';
 import type { DispatchRoomResult, InitializeRoomResult } from '../types';
 
 const ROOM_CODE = '1234';
@@ -166,26 +167,34 @@ describe('GameRoom initialization', () => {
     await stub.getSnapshot(roomIdentity(stub));
 
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-      initializeRoomStorage(state.storage, Date.now());
-      initializeRoomStorage(state.storage, Date.now() + 1);
-
-      expect(
-        state.storage.sql.exec('SELECT id FROM _sql_schema_migrations ORDER BY id').toArray(),
-      ).toEqual([{ id: 1 }, { id: 2 }]);
+      await expect(initializeRoomStorage(state.storage, Date.now())).resolves.toBe('current');
+      await expect(initializeRoomStorage(state.storage, Date.now() + 1)).resolves.toBe('current');
+      expect(state.storage.sql.exec('SELECT version FROM room_schema').one()).toEqual({
+        version: 3,
+      });
     });
   });
 
-  it('upgrades schema one without replacing the room or receipts', async () => {
+  it('discards storage created by the migration-chain schema instead of migrating it', async () => {
     const stub = getStub();
     await initialize(stub);
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-      const before = state.storage.sql.exec('SELECT * FROM room_state').one();
-      state.storage.sql.exec('DROP TABLE effect_replays');
-      state.storage.sql.exec('DELETE FROM _sql_schema_migrations WHERE id = 2');
-      initializeRoomStorage(state.storage, Date.now());
-      expect(state.storage.sql.exec('SELECT * FROM room_state').one()).toEqual(before);
-      expect(state.storage.sql.exec('SELECT COUNT(*) AS count FROM effect_replays').one()).toEqual({
+      state.storage.sql.exec('DROP TABLE room_schema');
+      state.storage.sql.exec(`
+        CREATE TABLE _sql_schema_migrations (id INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL) STRICT;
+        INSERT INTO _sql_schema_migrations (id, applied_at) VALUES (1, 0), (2, 0);
+      `);
+      await expect(initializeRoomStorage(state.storage, Date.now())).resolves.toBe('discarded');
+      expect(state.storage.sql.exec('SELECT COUNT(*) AS count FROM room_state').one()).toEqual({
         count: 0,
+      });
+      expect(
+        state.storage.sql
+          .exec("SELECT name FROM sqlite_master WHERE name = '_sql_schema_migrations'")
+          .toArray(),
+      ).toEqual([]);
+      expect(state.storage.sql.exec('SELECT version FROM room_schema').one()).toEqual({
+        version: 3,
       });
     });
   });
@@ -256,12 +265,11 @@ describe('GameRoom initialization', () => {
     });
   });
 
-  it('rejects an unversioned room schema without replacing it', async () => {
+  it('discards an unversioned room schema and recreates the current one', async () => {
     const stub = getStub();
     await stub.getSnapshot(roomIdentity(stub));
 
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-      await state.storage.deleteAlarm();
       await state.storage.deleteAll();
       state.storage.sql.exec(`
         CREATE TABLE room_state (
@@ -274,35 +282,29 @@ describe('GameRoom initialization', () => {
         "INSERT INTO room_state (id, game_state, revision) VALUES (1, '{}', 3)",
       );
 
-      expect(() => initializeRoomStorage(state.storage, Date.now())).toThrow(
-        'Unsupported unversioned room_state schema: id,game_state,revision',
-      );
+      await expect(initializeRoomStorage(state.storage, Date.now())).resolves.toBe('discarded');
       expect(
         state.storage.sql
           .exec<{ name: string }>('PRAGMA table_info(room_state)')
           .toArray()
           .map((column) => column.name),
-      ).toEqual(['id', 'game_state', 'revision']);
+      ).toContain('initialization_json');
+      expect(state.storage.sql.exec('SELECT COUNT(*) AS count FROM room_state').one()).toEqual({
+        count: 0,
+      });
     });
   });
 
-  it('rejects a future schema version', async () => {
+  it('discards a different room_schema version', async () => {
     const stub = getStub();
     await stub.getSnapshot(roomIdentity(stub));
 
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-      await state.storage.deleteAll();
-      state.storage.sql.exec(`
-        CREATE TABLE _sql_schema_migrations (
-          id INTEGER PRIMARY KEY,
-          applied_at INTEGER NOT NULL
-        ) STRICT;
-        INSERT INTO _sql_schema_migrations (id, applied_at) VALUES (3, 0);
-      `);
-
-      expect(() => initializeRoomStorage(state.storage, Date.now())).toThrow(
-        'Unsupported Durable Object schema version: 3',
-      );
+      state.storage.sql.exec('UPDATE room_schema SET version = 99');
+      await expect(initializeRoomStorage(state.storage, Date.now())).resolves.toBe('discarded');
+      expect(state.storage.sql.exec('SELECT version FROM room_schema').one()).toEqual({
+        version: 3,
+      });
     });
   });
 });
@@ -656,97 +658,114 @@ describe('GameRoom command receipts', () => {
     await expect(stub.getSnapshot(roomIdentity(stub))).resolves.toBeNull();
   });
 
-  it('does not consume account events through the room socket', async () => {
+  function acceptTestSocket(state: DurableObjectState, userId: string) {
+    const sockets = new WebSocketPair();
+    // Mirrors RoomGateway.accept(): tag plus attachment, without the presence broadcast.
+    state.acceptWebSocket(sockets[1], [`user:${userId}`]);
+    sockets[1].serializeAttachment({ userId, connectedAtMs: Date.now() });
+    const messages: unknown[] = [];
+    const closed = new Promise<{ code: number; reason: string }>((resolve) => {
+      sockets[0].addEventListener('close', (event) =>
+        resolve({ code: event.code, reason: event.reason }),
+      );
+    });
+    sockets[0].addEventListener('message', (event) => {
+      if (typeof event.data !== 'string') throw new Error('Expected text frame');
+      messages.push(JSON.parse(event.data));
+    });
+    sockets[0].accept();
+    return { client: sockets[0], server: sockets[1], messages, closed };
+  }
+
+  async function settle(): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  it('closes 1002 on a client frame the protocol does not define', async () => {
     const stub = getStub();
     await initialize(stub);
-    await enqueueUserEvent(env.DB, {
-      userId: 'host-1',
-      eventId: 'socket-event',
-      message: { type: 'SETTLE_RESULT', eventId: 'socket-event' },
-    });
 
     await runInDurableObject(stub, async (instance: GameRoom, state) => {
-      const sockets = new WebSocketPair();
-      state.acceptWebSocket(sockets[1], ['user:host-1']);
+      const socket = acceptTestSocket(state, 'host-1');
       await instance.webSocketMessage(
-        sockets[1],
+        socket.server,
         JSON.stringify({ type: 'USER_EVENT_ACK', eventId: 'socket-event' }),
       );
+      await expect(socket.closed).resolves.toEqual({
+        code: REALTIME_CLOSE_CODE.PROTOCOL_ERROR,
+        reason: 'protocol_error',
+      });
     });
-
-    expect(
-      await env.DB.prepare(
-        "SELECT event_id FROM user_event_inbox WHERE event_id = 'socket-event'",
-      ).first(),
-    ).not.toBeNull();
   });
 
-  it('returns the authoritative snapshot for a correlated socket sync request', async () => {
+  it('answers SYNC with a snapshot when the client holds no revision', async () => {
     const stub = getStub();
     await initialize(stub);
 
     await runInDurableObject(stub, async (instance: GameRoom, state) => {
-      const sockets = new WebSocketPair();
-      state.acceptWebSocket(sockets[1], ['user:host-1']);
-      const received = new Promise<unknown>((resolve, reject) => {
-        sockets[0].addEventListener('message', (event) => {
-          try {
-            if (typeof event.data !== 'string') throw new Error('Expected text sync response');
-            resolve(JSON.parse(event.data));
-          } catch (error) {
-            if (!(error instanceof Error)) throw error;
-            reject(error);
-          }
-        });
-      });
-      sockets[0].accept();
-
+      const socket = acceptTestSocket(state, 'host-1');
       await instance.webSocketMessage(
-        sockets[1],
-        JSON.stringify(createStateSyncRequestMessage('sync-request-1')),
+        socket.server,
+        JSON.stringify(createSyncFrame('sync-request-1', null)),
       );
-
-      expect(parseStateSyncResponseMessage(await received, WEREWOLF_STATE_CODEC)).toMatchObject({
-        type: 'STATE_SYNC_RESPONSE',
+      await settle();
+      const frame = parseServerFrame(socket.messages.at(-1), WEREWOLF_STATE_CODEC);
+      expect(frame).toMatchObject({
+        type: 'SYNC_RESULT',
         requestId: 'sync-request-1',
-        revision: 1,
+        outcome: 'snapshot',
+        snapshot: { revision: 1 },
       });
-      sockets[0].close();
+      socket.client.close();
     });
   });
 
-  it('closes with 1011 when an initialized room has no authoritative snapshot', async () => {
+  it('answers SYNC with current when the client already holds the latest revision', async () => {
+    const stub = getStub();
+    await initialize(stub);
+
+    await runInDurableObject(stub, async (instance: GameRoom, state) => {
+      const socket = acceptTestSocket(state, 'host-1');
+      await instance.webSocketMessage(
+        socket.server,
+        JSON.stringify(createSyncFrame('sync-request-2', 1)),
+      );
+      await settle();
+      expect(parseServerFrame(socket.messages.at(-1), WEREWOLF_STATE_CODEC)).toEqual({
+        type: 'SYNC_RESULT',
+        requestId: 'sync-request-2',
+        outcome: 'current',
+        revision: 1,
+      });
+      socket.client.close();
+    });
+  });
+
+  it('closes with 4003 when an initialized room has no authoritative snapshot', async () => {
     const stub = getStub();
     await initialize(stub);
 
     await runInDurableObject(stub, async (instance: GameRoom, state) => {
       state.storage.sql.exec('DELETE FROM room_state');
-      const sockets = new WebSocketPair();
-      state.acceptWebSocket(sockets[1], ['user:host-1']);
-      const closed = new Promise<{ code: number; reason: string }>((resolve) => {
-        sockets[0].addEventListener('close', (event) => {
-          resolve({ code: event.code, reason: event.reason });
-        });
-      });
-      sockets[0].accept();
-
+      const socket = acceptTestSocket(state, 'host-1');
       await instance.webSocketMessage(
-        sockets[1],
-        JSON.stringify(createStateSyncRequestMessage('missing-snapshot-request')),
+        socket.server,
+        JSON.stringify(createSyncFrame('missing-snapshot-request', null)),
       );
-
-      await expect(closed).resolves.toEqual({ code: 1011, reason: 'state_unavailable' });
+      await expect(socket.closed).resolves.toEqual({
+        code: REALTIME_CLOSE_CODE.STATE_UNAVAILABLE,
+        reason: 'state_unavailable',
+      });
     });
   });
 
-  it('syncs room state instead of sending pending account events on reconnect', async () => {
+  it('publishes PRESENCE on admission and answers SYNC over the upgraded socket', async () => {
     const stub = getStub();
     await initialize(stub);
-    const message = { type: 'SETTLE_RESULT', eventId: 'offline-event', settlementId: 'game-1' };
     await enqueueUserEvent(env.DB, {
       userId: 'host-1',
       eventId: 'offline-event',
-      message,
+      message: { type: 'SETTLE_RESULT', eventId: 'offline-event', settlementId: 'game-1' },
     });
 
     const response = await stub.fetch(
@@ -754,33 +773,72 @@ describe('GameRoom command receipts', () => {
         `https://room.test/websocket?roomCode=${ROOM_CODE}&roomId=${encodeURIComponent(
           stub.id.toString(),
         )}&creationId=creation-1&userId=host-1`,
-        {
-          headers: { Upgrade: 'websocket' },
-        },
+        { headers: { Upgrade: 'websocket' } },
       ),
     );
     expect(response.status).toBe(101);
     const socket = response.webSocket;
     if (socket === null) throw new Error('Expected a WebSocket upgrade response');
-    const received = new Promise<unknown>((resolve, reject) => {
-      socket.addEventListener('message', (event) => {
-        try {
-          if (typeof event.data !== 'string') throw new Error('Expected text user event');
-          resolve(JSON.parse(event.data));
-        } catch (error) {
-          if (!(error instanceof Error)) throw error;
-          reject(error);
-        }
+    const frames: unknown[] = [];
+    const received = (count: number) =>
+      new Promise<void>((resolve) => {
+        const check = () => {
+          if (frames.length >= count) resolve();
+        };
+        socket.addEventListener('message', (event) => {
+          if (typeof event.data !== 'string') throw new Error('Expected text frame');
+          frames.push(JSON.parse(event.data));
+          check();
+        });
+        check();
       });
+    socket.accept();
+
+    socket.send(JSON.stringify(createSyncFrame('account-independent-sync', null)));
+    await received(2);
+    const parsed = frames.map((frame) => parseServerFrame(frame, WEREWOLF_STATE_CODEC));
+    expect(parsed[0]).toEqual({ type: 'PRESENCE', onlineUserIds: ['host-1'] });
+    expect(parsed[1]).toMatchObject({
+      type: 'SYNC_RESULT',
+      requestId: 'account-independent-sync',
+      outcome: 'snapshot',
+      snapshot: { revision: 1 },
+    });
+    // The inbox row stays untouched: account events travel over HTTP, never the room socket.
+    expect(
+      await env.DB.prepare(
+        "SELECT event_id FROM user_event_inbox WHERE event_id = 'offline-event'",
+      ).first(),
+    ).not.toBeNull();
+    socket.close();
+  });
+
+  it('closes every socket with 4000 when the room storage is deleted', async () => {
+    const stub = getStub();
+    await initialize(stub);
+    const response = await stub.fetch(
+      new Request(
+        `https://room.test/websocket?roomCode=${ROOM_CODE}&roomId=${encodeURIComponent(
+          stub.id.toString(),
+        )}&creationId=creation-1&userId=host-1`,
+        { headers: { Upgrade: 'websocket' } },
+      ),
+    );
+    const socket = response.webSocket;
+    if (socket === null) throw new Error('Expected a WebSocket upgrade response');
+    const closed = new Promise<{ code: number; reason: string }>((resolve) => {
+      socket.addEventListener('close', (event) =>
+        resolve({ code: event.code, reason: event.reason }),
+      );
     });
     socket.accept();
 
-    socket.send(JSON.stringify(createStateSyncRequestMessage('account-independent-sync')));
-    expect(parseStateSyncResponseMessage(await received, WEREWOLF_STATE_CODEC)).toMatchObject({
-      type: 'STATE_SYNC_RESPONSE',
-      requestId: 'account-independent-sync',
-      revision: 1,
+    await expect(
+      stub.deleteRoomStorage({ ...roomIdentity(stub), shouldDiscardFailedEffects: false }),
+    ).resolves.toEqual({ success: true });
+    await expect(closed).resolves.toEqual({
+      code: REALTIME_CLOSE_CODE.ROOM_DELETED,
+      reason: 'room_deleted',
     });
-    socket.close();
   });
 });
