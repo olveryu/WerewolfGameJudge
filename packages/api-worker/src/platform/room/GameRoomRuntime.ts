@@ -100,7 +100,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
           roomId: ctx.id.toString(),
         });
       }
-      await this.#schedulePendingOutbox();
+      await this.#scheduleAlarm();
     });
   }
 
@@ -213,10 +213,11 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     return { success: true };
   }
 
-  // ─── Outbox drain ─────────────────────────────────────────────────────────
+  // ─── Alarm: presence sweep + outbox drain ─────────────────────────────────
 
   async alarm(): Promise<void> {
     if (this.#isStorageDeleted) return;
+    this.#gateway.sweep(Date.now());
     for (let processed = 0; processed < OUTBOX_DRAIN_BATCH_SIZE; processed += 1) {
       const claim = await this.#outbox.claimNextDue(Date.now());
       if (claim.kind === 'empty') break;
@@ -259,7 +260,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
         }
       }
     }
-    await this.#schedulePendingOutbox();
+    await this.#scheduleAlarm();
   }
 
   // ─── WebSocket (Hibernation API) ──────────────────────────────────────────
@@ -280,7 +281,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     if (room === null) return new Response('Room not initialized', { status: 404 });
 
     const pair = new WebSocketPair();
-    this.#gateway.accept(pair[1], userId, Date.now());
+    await this.#gateway.accept(pair[1], userId, Date.now());
     return new Response(null, { status: 101, webSocket: pair[0] });
   }
 
@@ -425,15 +426,20 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     });
   }
 
-  async #schedulePendingOutbox(): Promise<void> {
-    const nextAvailableAt = this.#outbox.readNextAvailableAt();
-    if (nextAvailableAt === null) {
+  /** The DO has one alarm; it fires at the earliest of the next outbox effect and the next sweep. */
+  async #scheduleAlarm(): Promise<void> {
+    const nowMs = Date.now();
+    const dueAt = [this.#outbox.readNextAvailableAt(), this.#gateway.nextSweepAt(nowMs)].filter(
+      (at): at is number => at !== null,
+    );
+    if (dueAt.length === 0) {
       await this.ctx.storage.deleteAlarm();
       return;
     }
+    const nextAt = Math.min(...dueAt);
     const existingAlarm = await this.ctx.storage.getAlarm();
-    if (existingAlarm === null || existingAlarm > nextAvailableAt) {
-      await this.ctx.storage.setAlarm(nextAvailableAt);
+    if (existingAlarm === null || existingAlarm > nextAt) {
+      await this.ctx.storage.setAlarm(nextAt);
     }
   }
 

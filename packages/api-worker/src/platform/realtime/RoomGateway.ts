@@ -5,6 +5,10 @@
  *
  * Uses the Hibernation API: sockets carry a `user:<id>` tag plus a serialized attachment so the
  * gateway can rebuild presence after the object is evicted and woken.
+ *
+ * Presence is recomputed on accept / close and by a periodic sweep driven from the DO alarm:
+ * keepalive pings are answered by the runtime without waking the object, so only the sweep can
+ * notice a peer that vanished without a Close frame (airplane mode, killed process).
  */
 
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
@@ -34,6 +38,8 @@ import {
 const USER_SOCKET_TAG_PREFIX = 'user:';
 /** A socket with no keepalive for this long is treated as half-open and closed. */
 const STALE_SOCKET_MS = 60_000;
+/** Alarm cadence for the half-open sweep while at least one socket is attached. */
+export const PRESENCE_SWEEP_INTERVAL_MS = 30_000;
 const KEEPALIVE_REQUEST = 'ping';
 const KEEPALIVE_RESPONSE = 'pong';
 
@@ -70,10 +76,18 @@ function readAttachment(socket: WebSocket): SocketAttachment {
   return { userId: attachment.userId, connectedAtMs: attachment.connectedAtMs };
 }
 
+function isSameSet(left: ReadonlySet<string>, right: ReadonlySet<string>): boolean {
+  if (left.size !== right.size) return false;
+  for (const value of left) if (!right.has(value)) return false;
+  return true;
+}
+
 export class RoomGateway {
   readonly #ctx: DurableObjectState;
   readonly #env: Env;
   readonly #deps: RoomGatewayDeps;
+  /** Last published online set; null after a cold start so the first sweep republishes. */
+  #lastPresence: ReadonlySet<string> | null = null;
 
   constructor(ctx: DurableObjectState, env: Env, deps: RoomGatewayDeps) {
     this.#ctx = ctx;
@@ -84,13 +98,16 @@ export class RoomGateway {
     );
   }
 
-  /** Accept an authenticated socket and publish the new presence set. */
-  accept(socket: WebSocket, userId: string, nowMs: number): void {
+  /** Accept an authenticated socket, publish the new presence set and arm the sweep alarm. */
+  async accept(socket: WebSocket, userId: string, nowMs: number): Promise<void> {
     if (userId.length === 0) throw new Error('Room socket requires a non-empty userId');
     this.#ctx.acceptWebSocket(socket, [userSocketTag(userId)]);
     const attachment: SocketAttachment = { userId, connectedAtMs: nowMs };
     socket.serializeAttachment(attachment);
-    this.broadcastPresence(nowMs);
+    this.#publishPresence(this.#collectPresence(nowMs));
+    const sweepAt = nowMs + PRESENCE_SWEEP_INTERVAL_MS;
+    const armed = await this.#ctx.storage.getAlarm();
+    if (armed === null || armed > sweepAt) await this.#ctx.storage.setAlarm(sweepAt);
   }
 
   /** Handle one inbound frame. Any protocol violation closes the socket with 1002. */
@@ -127,7 +144,19 @@ export class RoomGateway {
 
   /** Called from the hibernation close handler; republishes presence without the closed socket. */
   handleClose(nowMs: number): void {
-    this.broadcastPresence(nowMs);
+    this.#publishPresence(this.#collectPresence(nowMs));
+  }
+
+  /** Alarm entry: close half-open sockets and publish presence only when the online set changed. */
+  sweep(nowMs: number): void {
+    const online = this.#collectPresence(nowMs);
+    if (this.#lastPresence !== null && isSameSet(online, this.#lastPresence)) return;
+    this.#publishPresence(online);
+  }
+
+  /** When the next sweep should run, or null once no open socket is attached. */
+  nextSweepAt(nowMs: number): number | null {
+    return this.#openSockets().length === 0 ? null : nowMs + PRESENCE_SWEEP_INTERVAL_MS;
   }
 
   broadcastState(
@@ -137,10 +166,10 @@ export class RoomGateway {
     this.#broadcast('STATE_UPDATE', JSON.stringify(createStateUpdateFrame(snapshot, commandType)));
   }
 
-  /** Recompute the online set from live sockets, closing half-open ones along the way. */
-  broadcastPresence(nowMs: number): void {
+  /** Recompute the online set from open sockets, closing half-open ones along the way. */
+  #collectPresence(nowMs: number): ReadonlySet<string> {
     const onlineUserIds = new Set<string>();
-    for (const socket of this.#ctx.getWebSockets()) {
+    for (const socket of this.#openSockets()) {
       const attachment = readAttachment(socket);
       const lastKeepaliveAt = this.#ctx.getWebSocketAutoResponseTimestamp(socket);
       const lastSeenMs =
@@ -151,26 +180,38 @@ export class RoomGateway {
       }
       onlineUserIds.add(attachment.userId);
     }
+    return onlineUserIds;
+  }
+
+  #publishPresence(onlineUserIds: ReadonlySet<string>): void {
+    this.#lastPresence = onlineUserIds;
     this.#broadcast('PRESENCE', JSON.stringify(createPresenceFrame(onlineUserIds)));
+  }
+
+  /** A server-initiated close keeps the socket listed until the peer answers; skip those. */
+  #openSockets(tag?: string): WebSocket[] {
+    return this.#ctx
+      .getWebSockets(tag)
+      .filter((socket) => socket.readyState === WebSocket.READY_STATE_OPEN);
   }
 
   /** Tell one user's sockets that their account inbox has new rows. Silent when offline. */
   notifyInbox(userId: string): void {
     const message = JSON.stringify(INBOX_HINT_FRAME);
     let deliveryCount = 0;
-    for (const socket of this.#ctx.getWebSockets(userSocketTag(userId))) {
+    for (const socket of this.#openSockets(userSocketTag(userId))) {
       if (this.#trySend(socket, message)) deliveryCount += 1;
     }
     if (deliveryCount > 0) this.#record('INBOX_HINT', message, deliveryCount);
   }
 
   closeAll(code: number, reason: string): void {
-    for (const socket of this.#ctx.getWebSockets()) socket.close(code, reason);
+    for (const socket of this.#openSockets()) socket.close(code, reason);
   }
 
   #broadcast(messageType: RealtimeTrafficMessageType, message: string): void {
     let deliveryCount = 0;
-    for (const socket of this.#ctx.getWebSockets()) {
+    for (const socket of this.#openSockets()) {
       if (this.#trySend(socket, message)) deliveryCount += 1;
     }
     this.#record(messageType, message, deliveryCount);

@@ -1,50 +1,33 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
 
-/** Text shown in the disconnected banner */
-export const DISCONNECTED_BANNER_TEXT = '连接断开，正在重连';
-
-// ---------------------------------------------------------------------------
-// Disconnect recovery (used inside poll loops)
-// ---------------------------------------------------------------------------
-
-/** Max time to wait for SDK auto-reconnect before forcing a page reload. */
+/** Max time to wait for the link to return to live after a disconnect. */
 const RECONNECT_TIMEOUT_MS = 30_000;
 
+/** The not-live banner; absent while the link is live (even with pending durable commands). */
+export function linkStatusBanner(page: Page): Locator {
+  return page.getByTestId(TESTIDS.connectionStatusContainer);
+}
+
 /**
- * Check if a page shows the disconnected banner.
- * Returns false for pages not on the room screen (banner component returns null).
+ * Whether a page's room link is not live. Pages that are not on the room screen
+ * have no banner and read as connected.
  */
-async function isDisconnected(page: Page): Promise<boolean> {
-  return page
-    .getByText(DISCONNECTED_BANNER_TEXT, { exact: true })
+export async function isDisconnected(page: Page): Promise<boolean> {
+  return linkStatusBanner(page)
     .isVisible()
     .catch(() => false);
 }
 
-/**
- * Wait for a single page to reconnect (banner disappears).
- * If the banner doesn't disappear within `RECONNECT_TIMEOUT_MS`, reload the page
- * to trigger a fresh WebSocket snapshot sync, then wait for room screen ready.
- */
-async function waitForPageReconnect(page: Page): Promise<void> {
-  const start = Date.now();
-  const pollInterval = 500;
-
-  while (Date.now() - start < RECONNECT_TIMEOUT_MS) {
-    if (!(await isDisconnected(page))) return;
-    await page.waitForTimeout(pollInterval);
-  }
-
-  // In-place reconnect failed; reload to establish a new socket and snapshot sync.
-  await page.reload();
-  await waitForRoomScreenReady(page, { role: 'joiner', liveTimeoutMs: 30_000 });
+/** Wait until the not-live banner is gone; fails when the link does not recover in time. */
+export async function waitForLinkLive(page: Page, timeoutMs = RECONNECT_TIMEOUT_MS): Promise<void> {
+  await expect(linkStatusBanner(page)).toBeHidden({ timeout: timeoutMs });
 }
 
 /**
- * Ensure all pages are connected. If any page shows the disconnected banner,
- * pause and wait for reconnection before returning.
+ * Ensure all pages are connected. If any page shows the not-live banner, wait
+ * for its link to recover before returning.
  *
  * Designed to be called inside poll loops (pollUntil, waitForRoleTurn, etc.)
  * with near-zero overhead when all pages are connected (~1ms per page).
@@ -52,14 +35,10 @@ async function waitForPageReconnect(page: Page): Promise<void> {
 export async function ensureConnected(pages: Page[]): Promise<void> {
   const disconnected: Page[] = [];
   for (const page of pages) {
-    if (await isDisconnected(page)) {
-      disconnected.push(page);
-    }
+    if (await isDisconnected(page)) disconnected.push(page);
   }
   if (disconnected.length === 0) return;
-
-  // Wait for all disconnected pages to reconnect in parallel
-  await Promise.all(disconnected.map((p) => waitForPageReconnect(p)));
+  await Promise.all(disconnected.map((page) => waitForLinkLive(page)));
 }
 
 /**
@@ -101,23 +80,6 @@ async function waitForRoomHeaderOrRetry(page: Page, maxRetries: number): Promise
   }
 }
 
-async function waitForJoinerLive(page: Page, liveTimeoutMs: number): Promise<void> {
-  const startTime = Date.now();
-  const pollInterval = 300;
-
-  while (Date.now() - startTime < liveTimeoutMs) {
-    // Live = disconnected banner is not visible (component returns null)
-    const disconnectedBanner = page.getByText(DISCONNECTED_BANNER_TEXT, { exact: true });
-    if (!(await disconnectedBanner.isVisible().catch(() => false))) {
-      return;
-    }
-
-    await page.waitForTimeout(pollInterval);
-  }
-
-  throw new Error(`[waitForRoomScreenReady] Joiner not live after ${liveTimeoutMs}ms`);
-}
-
 /**
  * Wait for RoomScreen to be ready.
  *
@@ -150,5 +112,5 @@ export async function waitForRoomScreenReady(
     return;
   }
 
-  await waitForJoinerLive(page, liveTimeoutMs);
+  await waitForLinkLive(page, liveTimeoutMs);
 }
