@@ -19,7 +19,7 @@ import { WxLoginFailedScreen } from '@/components/WxLoginFailedScreen';
 import { APP_VERSION } from '@/config/version';
 import { AuthProvider, ServiceProvider } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useAccountEvents } from '@/features/account/hooks/useAccountEvents';
+import { useAccountInbox } from '@/features/account/controllers/useAccountInbox';
 import { useUnreadFeedback } from '@/features/feedback/queries/useUnreadFeedback';
 import { useAutoClaimDailyReward } from '@/features/gacha/queries/useGachaQuery';
 import { ClientGameCatalogProvider, useClientGameCatalog } from '@/games/ClientGameCatalogContext';
@@ -238,7 +238,7 @@ function dismissWebSplash() {
 }
 
 function AppContent() {
-  useAccountEvents();
+  useAccountInbox();
   useAutoClaimDailyReward();
   useUnreadFeedback();
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
