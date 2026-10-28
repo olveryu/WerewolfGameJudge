@@ -10,7 +10,7 @@ import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import { API_BASE_URL } from '@/config/api';
 import { NETWORK_ERROR } from '@/config/errorMessages';
-import { getCurrentToken } from '@/services/cloudflare/cfFetch';
+import { apiClient } from '@/platform/http/client';
 import { composeAbortSignals, createTimeoutSignal } from '@/utils/abortSignal';
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
@@ -177,7 +177,7 @@ export async function* streamChatMessage(
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  const token = getCurrentToken();
+  const token = apiClient.currentAccessToken();
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }

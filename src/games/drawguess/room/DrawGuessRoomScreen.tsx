@@ -35,7 +35,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
 import type { DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
-import { CloudflareHttpError } from '@/services/cloudflare/cfFetch';
+import { ApiError } from '@/platform/http/ApiError';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -400,7 +400,7 @@ function DrawGuessDrawingView({
         if (!isSuccessfulRoomCommand(result))
           showErrorAlert('提交猜词失败', getDrawGuessRoomCommandFailureMessage(result));
       } catch (error: unknown) {
-        if (error instanceof CloudflareHttpError && error.status === 429) {
+        if (error instanceof ApiError && error.status === 429) {
           showErrorAlert('猜得太快了', '猜得太快了，稍后再试');
           return;
         }

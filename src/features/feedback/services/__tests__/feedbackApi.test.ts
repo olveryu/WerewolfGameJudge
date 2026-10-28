@@ -1,4 +1,4 @@
-import { cfGet, cfPost } from '@/services/cloudflare/cfFetch';
+import { requestSpecAt, respondWithJson, spyOnApiJson } from '@/test-utils/apiClient';
 
 import {
   getFeedbackHistory,
@@ -10,23 +10,19 @@ import {
   syncFeedbackDelivery,
 } from '../feedbackApi';
 
-jest.mock('@/services/cloudflare/cfFetch', () => ({ cfGet: jest.fn(), cfPost: jest.fn() }));
-
-const mockCfGet = jest.mocked(cfGet);
-const mockCfPost = jest.mocked(cfPost);
+const jsonSpy = spyOnApiJson();
 
 function respondToGet(value: unknown): void {
-  mockCfGet.mockImplementationOnce(async (_path, decode) => decode(value));
+  respondWithJson(jsonSpy, value);
 }
 
 function respondToPost(value: unknown): void {
-  mockCfPost.mockImplementationOnce(async (_path, _body, decode) => decode(value));
+  respondWithJson(jsonSpy, value);
 }
 
 describe('feedbackApi response contracts', () => {
   beforeEach(() => {
-    mockCfGet.mockReset();
-    mockCfPost.mockReset();
+    jsonSpy.mockReset();
   });
 
   it('decodes submit, history, unread, and mutation acknowledgements', async () => {
@@ -63,11 +59,12 @@ describe('feedbackApi response contracts', () => {
       feedbackId: 'feedback-1',
       syncStatus: 'uncertain',
     });
-    expect(mockCfPost).toHaveBeenCalledWith(
-      '/api/feedback',
-      { id: 'feedback-1', content: '内容', appVersion: '1.0.0' },
-      expect.any(Function),
-    );
+    expect(requestSpecAt(jsonSpy, 0)).toMatchObject({
+      method: 'POST',
+      path: '/api/feedback',
+      body: { id: 'feedback-1', content: '内容', appVersion: '1.0.0' },
+      idempotent: true,
+    });
     await expect(getFeedbackHistory()).resolves.toMatchObject([
       { id: 'feedback-1', replies: [{ isAdmin: 1, isRead: 0 }] },
     ]);

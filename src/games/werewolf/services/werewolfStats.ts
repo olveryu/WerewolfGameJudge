@@ -6,13 +6,16 @@ import {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { queryOptions } from '@tanstack/react-query';
 
-import { cfGet } from '@/services/cloudflare/cfFetch';
+import { apiClient } from '@/platform/http/client';
 
 export async function fetchWerewolfPublicStats(userId: string): Promise<WerewolfPublicStats> {
-  return cfGet(
-    `/api/games/werewolf/users/${encodeURIComponent(userId)}/stats`,
-    parseWerewolfPublicStats,
-  );
+  return apiClient.json({
+    method: 'GET',
+    path: `/api/games/werewolf/users/${encodeURIComponent(userId)}/stats`,
+    auth: 'required',
+    idempotent: true,
+    decode: parseWerewolfPublicStats,
+  });
 }
 
 export const werewolfPublicStatsOptions = (userId: string) =>

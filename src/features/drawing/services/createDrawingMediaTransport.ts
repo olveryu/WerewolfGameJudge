@@ -18,7 +18,7 @@ import type {
   GameStateCodec,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
-import { cfGetBinary, cfPutBinary } from '@/services/cloudflare/cfFetch';
+import { apiClient } from '@/platform/http/client';
 
 const PNG_CONTENT_TYPE = 'image/png';
 
@@ -96,20 +96,27 @@ export function createDrawingMediaTransport<TState extends BaseGameState<string>
   return {
     async uploadDrawing(roomCode, submissionId, png, controlledSeat, signal) {
       const commandId = `${gameId}-media-commit:${submissionId}`;
-      return cfPutBinary(
-        `/api/games/${gameId}/rooms/${encodePathSegment(roomCode)}/submissions/${encodePathSegment(submissionId)}${controlledSeatQuery(controlledSeat)}`,
-        png,
-        PNG_CONTENT_TYPE,
-        (value) => parseUploadResponse(value, commandId),
-        { signal },
-      );
+      return apiClient.json({
+        method: 'PUT',
+        path: `/api/games/${gameId}/rooms/${encodePathSegment(roomCode)}/submissions/${encodePathSegment(submissionId)}${controlledSeatQuery(controlledSeat)}`,
+        auth: 'required',
+        // The upload commits a room command keyed by submissionId; the receipt makes replays safe.
+        idempotent: true,
+        body: png,
+        headers: { 'Content-Type': PNG_CONTENT_TYPE },
+        decode: (value) => parseUploadResponse(value, commandId),
+        signal,
+      });
     },
     async readDrawingDataUri(roomCode, entryId, controlledSeat, signal) {
-      const bytes = await cfGetBinary(
-        `/api/games/${gameId}/rooms/${encodePathSegment(roomCode)}/media/${encodePathSegment(entryId)}${controlledSeatQuery(controlledSeat)}`,
-        PNG_CONTENT_TYPE,
-        { signal },
-      );
+      const bytes = await apiClient.binary({
+        method: 'GET',
+        path: `/api/games/${gameId}/rooms/${encodePathSegment(roomCode)}/media/${encodePathSegment(entryId)}${controlledSeatQuery(controlledSeat)}`,
+        auth: 'required',
+        idempotent: true,
+        contentType: PNG_CONTENT_TYPE,
+        signal,
+      });
       return `data:${PNG_CONTENT_TYPE};base64,${encodeBase64(bytes)}`;
     },
   };

@@ -1,17 +1,15 @@
-import { cfGet } from '@/services/cloudflare/cfFetch';
+import { requestSpecAt, respondWithJson as queueJson, spyOnApiJson } from '@/test-utils/apiClient';
 
 import { fetchUserProfile, fetchUserStats, fetchUserUnlocks } from '../accountApi';
 
-jest.mock('@/services/cloudflare/cfFetch', () => ({ cfGet: jest.fn() }));
-
-const mockCfGet = jest.mocked(cfGet);
+const jsonSpy = spyOnApiJson();
 
 function respondWithJson(value: unknown): void {
-  mockCfGet.mockImplementationOnce(async (_path, decode) => decode(value));
+  queueJson(jsonSpy, value);
 }
 
 describe('accountApi response contracts', () => {
-  beforeEach(() => mockCfGet.mockReset());
+  beforeEach(() => jsonSpy.mockReset());
 
   it('decodes stats, public profile, and unlock responses', async () => {
     respondWithJson({ xp: 10, level: 2, gamesPlayed: 3, unlockedItems: ['avatar-wolf'] });
@@ -39,7 +37,12 @@ describe('accountApi response contracts', () => {
     await expect(fetchUserUnlocks('user-1')).resolves.toEqual({
       unlockedItems: ['avatar-wolf'],
     });
-    expect(mockCfGet.mock.calls[1]?.[0]).toBe('/api/user/user%20%2F%201/profile');
+    expect(requestSpecAt(jsonSpy, 1)).toMatchObject({
+      method: 'GET',
+      path: '/api/user/user%20%2F%201/profile',
+      auth: 'required',
+      idempotent: true,
+    });
   });
 
   it('rejects negative counters and undeclared response fields', async () => {

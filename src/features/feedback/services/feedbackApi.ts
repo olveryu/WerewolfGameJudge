@@ -10,7 +10,7 @@
 
 import { z } from 'zod';
 
-import { cfGet, cfPost } from '@/services/cloudflare/cfFetch';
+import { apiClient } from '@/platform/http/client';
 
 const nonnegativeIntegerSchema = z.number().int().nonnegative();
 const sqliteBooleanSchema = z.union([z.literal(0), z.literal(1)]);
@@ -80,17 +80,26 @@ export async function submitFeedback(
   appVersion: string,
   id: string,
 ): Promise<SubmitFeedbackResult> {
-  const res = await cfPost('/api/feedback', { id, content, appVersion }, (value) =>
-    submitFeedbackResponseSchema.parse(value),
-  );
+  const res = await apiClient.json({
+    method: 'POST',
+    path: '/api/feedback',
+    auth: 'required',
+    idempotent: true,
+    body: { id, content, appVersion },
+    decode: (value) => submitFeedbackResponseSchema.parse(value),
+  });
   return { feedbackId: res.feedbackId, syncStatus: res.syncStatus };
 }
 
 /** Fetches the current user's feedback history (including replies). */
 export async function getFeedbackHistory(): Promise<FeedbackItem[]> {
-  const res = await cfGet('/api/feedback/history', (value) =>
-    feedbackHistoryResponseSchema.parse(value),
-  );
+  const res = await apiClient.json({
+    method: 'GET',
+    path: '/api/feedback/history',
+    auth: 'required',
+    idempotent: true,
+    decode: (value) => feedbackHistoryResponseSchema.parse(value),
+  });
   return res.feedbacks;
 }
 
@@ -101,32 +110,52 @@ export async function getFeedbackHistory(): Promise<FeedbackItem[]> {
  * @param content - reply body
  */
 export async function replyToFeedback(feedbackId: string, content: string, id: string) {
-  return cfPost(`/api/feedback/${feedbackId}/reply`, { id, content }, (value) =>
-    replyResponseSchema.parse(value),
-  );
+  return apiClient.json({
+    method: 'POST',
+    path: `/api/feedback/${feedbackId}/reply`,
+    auth: 'required',
+    idempotent: true,
+    body: { id, content },
+    decode: (value) => replyResponseSchema.parse(value),
+  });
 }
 
 /** Reconcile a previously accepted delivery; uncertain creates are never repeated. */
 export async function syncFeedbackDelivery(id: string) {
-  return cfPost(`/api/feedback/deliveries/${id}/sync`, {}, (value) =>
-    syncResponseSchema.parse(value),
-  );
+  return apiClient.json({
+    method: 'POST',
+    path: `/api/feedback/deliveries/${id}/sync`,
+    auth: 'required',
+    idempotent: true,
+    body: {},
+    decode: (value) => syncResponseSchema.parse(value),
+  });
 }
 
 /** Fetches the count of unread admin replies. */
 export async function getUnreadFeedbackCount(signal?: AbortSignal): Promise<number> {
-  const res = await cfGet(
-    '/api/feedback/unread-count',
-    (value) => unreadCountResponseSchema.parse(value),
-    { signal },
-  );
+  const res = await apiClient.json({
+    method: 'GET',
+    path: '/api/feedback/unread-count',
+    auth: 'required',
+    idempotent: true,
+    decode: (value) => unreadCountResponseSchema.parse(value),
+    signal,
+  });
   return res.count;
 }
 
 /** Marks replies for the specified feedback as read. */
 export async function markFeedbackRead(feedbackId: string): Promise<void> {
-  await cfPost('/api/feedback/mark-read', { feedbackId }, (value) => {
-    successResponseSchema.parse(value);
+  await apiClient.json({
+    method: 'POST',
+    path: '/api/feedback/mark-read',
+    auth: 'required',
+    idempotent: true,
+    body: { feedbackId },
+    decode: (value) => {
+      successResponseSchema.parse(value);
+    },
   });
 }
 
@@ -140,7 +169,14 @@ export async function resolveFeedback(
   feedbackId: string,
   action: 'resolve' | 'reopen',
 ): Promise<void> {
-  await cfPost(`/api/feedback/${feedbackId}/resolve`, { action }, (value) => {
-    successResponseSchema.parse(value);
+  await apiClient.json({
+    method: 'POST',
+    path: `/api/feedback/${feedbackId}/resolve`,
+    auth: 'required',
+    idempotent: true,
+    body: { action },
+    decode: (value) => {
+      successResponseSchema.parse(value);
+    },
   });
 }

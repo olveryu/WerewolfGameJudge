@@ -1,25 +1,25 @@
 /**
- * useAppVisibility — detects foreground/background visibility of the app.
+ * useAppVisibility — foreground/background visibility of the app from the shared environment.
  *
- * Web: document.visibilitychange (visible / hidden)
- * Native: AppState.addEventListener('change') (active vs background/inactive)
- *
- * Returns boolean: true = foreground visible, false = background/hidden.
- * Used to unmount decorative animations (flair / pet) when the app is not visible, reducing CPU/GPU overhead.
+ * Used to unmount decorative animations (flair / pet) when the app is not visible.
  */
 import { useSyncExternalStore } from 'react';
 
-import { getAppVisibility, subscribeToAppVisibility } from '@/services/infra/appVisibility';
+import { platformEnvironment } from '@/platform/env/PlatformEnvironment';
 
-// ── Server snapshot (SSR safety) ──────────────────────────────────────
+function getVisible(): boolean {
+  return platformEnvironment.getSnapshot().visible;
+}
+
+function subscribe(listener: () => void): () => void {
+  return platformEnvironment.subscribe(listener);
+}
 
 function getServerSnapshot(): boolean {
   return true;
 }
 
-// ── Hook ──────────────────────────────────────────────────────────────
-
-/** Returns whether the app is visible in the foreground (web: document.visibilityState / native: AppState). */
+/** Returns whether the app is visible in the foreground. */
 export function useAppVisibility(): boolean {
-  return useSyncExternalStore(subscribeToAppVisibility, getAppVisibility, getServerSnapshot);
+  return useSyncExternalStore(subscribe, getVisible, getServerSnapshot);
 }

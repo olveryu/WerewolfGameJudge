@@ -1,20 +1,18 @@
 import { UnsupportedRoomGameTypeError } from '@/features/room/model/RoomDirectory';
+import { requestSpecAt, respondWithJson as queueJson, spyOnApiJson } from '@/test-utils/apiClient';
 
-import { cfPost } from '../cfFetch';
 import { CFRoomDirectoryService } from '../CFRoomDirectoryService';
 
-jest.mock('../cfFetch', () => ({ cfPost: jest.fn() }));
-
 const TEMPLATE_ROLES = ['wolf', 'seer', 'villager', 'villager'] as const;
-const mockCfPost = jest.mocked(cfPost);
+const jsonSpy = spyOnApiJson();
 
 function respondWithJson(value: unknown): void {
-  mockCfPost.mockImplementationOnce(async (_path, _body, decode) => decode(value));
+  queueJson(jsonSpy, value);
 }
 
 describe('CFRoomDirectoryService', () => {
   beforeEach(() => {
-    mockCfPost.mockReset();
+    jsonSpy.mockReset();
   });
 
   it('sends the creation ID supplied by the room-creation service', async () => {
@@ -37,19 +35,20 @@ describe('CFRoomDirectoryService', () => {
       }),
     ).resolves.toMatchObject({ roomCode: '2345', roomId: 'room-id-2345' });
 
-    expect(mockCfPost).toHaveBeenCalledWith(
-      '/room/create',
-      {
+    const spec = requestSpecAt(jsonSpy, 0);
+    expect(spec).toMatchObject({
+      method: 'POST',
+      path: '/room/create',
+      auth: 'required',
+      idempotent: true,
+      body: {
         gameType: 'werewolf',
         config: { templateRoles: TEMPLATE_ROLES },
         creationId: 'creation-id-2345',
       },
-      expect.any(Function),
-    );
-    const body = mockCfPost.mock.calls[0]?.[1];
-    if (body === undefined) throw new Error('Missing create-room request body');
-    expect(body).not.toHaveProperty('initialState');
-    expect(body).not.toHaveProperty('hostUserId');
+    });
+    expect(spec.body).not.toHaveProperty('initialState');
+    expect(spec.body).not.toHaveProperty('hostUserId');
   });
 
   it('fails fast when created room identity differs from the authenticated request', async () => {

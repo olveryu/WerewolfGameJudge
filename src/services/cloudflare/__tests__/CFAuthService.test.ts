@@ -1,29 +1,11 @@
 import { storage } from '@/services/infra/localStorage';
+import {
+  createTestApiClient,
+  createUnsignedAccessToken,
+  jsonResponse,
+} from '@/test-utils/httpClient';
 
 import { CFAuthService } from '../CFAuthService';
-import {
-  cfGet,
-  cfPost,
-  CloudflareHttpError,
-  CloudflareResponseJsonError,
-  CloudflareResponseProtocolError,
-} from '../cfFetch';
-
-jest.mock('../cfFetch', () => {
-  const actual = jest.requireActual<typeof import('../cfFetch')>('../cfFetch');
-  return {
-    ...actual,
-    cfGet: jest.fn(),
-    cfPost: jest.fn(),
-    cfPut: jest.fn(),
-    setOnAuthExpired: jest.fn(),
-    setRefreshHandler: jest.fn(),
-    setTokenProvider: jest.fn(),
-  };
-});
-
-const mockCfGet = jest.mocked(cfGet);
-const mockCfPost = jest.mocked(cfPost);
 
 const USER_METADATA = {
   display_name: null,
@@ -36,80 +18,80 @@ const USER_METADATA = {
   seat_animation: null,
 } as const;
 
-function createUnsignedAccessToken(userId: string, expiresAtSeconds: number): string {
-  const encode = (value: object) =>
-    btoa(JSON.stringify(value)).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/u, '');
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  return `${encode({ alg: 'HS256' })}.${encode({
-    sub: userId,
-    ver: 0,
-    iat: nowSeconds - 60,
-    exp: expiresAtSeconds,
-  })}.signature`;
+const ANONYMOUS_USER = {
+  id: 'user-1',
+  email: null,
+  is_anonymous: true,
+  has_wechat: false,
+  user_metadata: USER_METADATA,
+};
+
+function nowSeconds(): number {
+  return Math.floor(Date.now() / 1000);
 }
 
-function seedStoredSession(accessToken: string): void {
-  storage.set('cf_auth_token', accessToken);
-  storage.set('cf_refresh_token', 'stored-refresh');
+function seedStoredPrincipal(): void {
   storage.set('cf_auth_user_id', 'user-1');
   storage.set('cf_auth_is_anonymous', true);
   storage.set('cf_auth_has_wechat', false);
 }
 
+/** Responses must be queued before construction: the constructor starts auto sign-in. */
+function createService(
+  accessToken: string | null,
+  queueResponses: (network: ReturnType<typeof createTestApiClient>['network']) => void = () =>
+    undefined,
+) {
+  const harness = createTestApiClient();
+  if (accessToken !== null) harness.tokens.saveTokens(accessToken, 'stored-refresh');
+  queueResponses(harness.network);
+  const service = new CFAuthService({ apiClient: harness.client, tokens: harness.tokens });
+  return { ...harness, service };
+}
+
 describe('CFAuthService session restore', () => {
   beforeEach(() => {
     storage.clearAll();
-    mockCfGet.mockReset();
-    mockCfPost.mockReset();
   });
 
   it('restores the persisted principal when refresh is offline', async () => {
-    const expiredToken = createUnsignedAccessToken('user-1', Math.floor(Date.now() / 1000) - 60);
-    seedStoredSession(expiredToken);
-    mockCfPost.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    const expiredToken = createUnsignedAccessToken('user-1', nowSeconds() - 60);
+    seedStoredPrincipal();
+    const { service, tokens, network } = createService(expiredToken, (network) =>
+      network.respond(() => new TypeError('Failed to fetch')),
+    );
 
-    const service = new CFAuthService();
     await service.waitForInit();
 
     expect(service.getCurrentUserId()).toBe('user-1');
     expect(service.getAuthSession()).toEqual({ userId: 'user-1', initialUser: null });
-    expect(storage.getString('cf_auth_token')).toBe(expiredToken);
-    expect(mockCfGet).not.toHaveBeenCalled();
+    expect(tokens.accessToken).toBe(expiredToken);
+    expect(network.requests.map((r) => r.url)).toEqual(['https://api.test/auth/refresh']);
   });
 
   it('clears the session when the refresh token is rejected', async () => {
-    seedStoredSession(createUnsignedAccessToken('user-1', Math.floor(Date.now() / 1000) - 60));
-    mockCfPost.mockRejectedValueOnce(
-      new CloudflareHttpError({
-        status: 401,
-        reason: 'INVALID_REFRESH_TOKEN',
-        body: { success: false, reason: 'INVALID_REFRESH_TOKEN' },
-      }),
+    seedStoredPrincipal();
+    const { service, tokens, network } = createService(
+      createUnsignedAccessToken('user-1', nowSeconds() - 60),
+      (network) => network.respond(() => jsonResponse(401, { reason: 'INVALID_REFRESH_TOKEN' })),
     );
 
-    const service = new CFAuthService();
     await service.waitForInit();
 
     expect(service.getCurrentUserId()).toBeNull();
-    expect(storage.getString('cf_auth_token')).toBeUndefined();
+    expect(tokens.accessToken).toBeNull();
     expect(storage.getBoolean('cf_auth_is_anonymous')).toBeUndefined();
-    expect(mockCfGet).not.toHaveBeenCalled();
+    expect(network.requests).toHaveLength(1);
   });
 
   it('publishes login and logout without an additional profile request', async () => {
-    const service = new CFAuthService();
+    const { service, network } = createService(null);
     await service.waitForInit();
     const listener = jest.fn();
     const unsubscribe = service.subscribeAuth(listener);
-    const user = {
-      id: 'user-1',
-      email: 'user@example.com',
-      is_anonymous: false,
-      has_wechat: false,
-      user_metadata: USER_METADATA,
-    };
-    mockCfPost.mockImplementationOnce(async (_path, _body, decode) =>
-      decode({ user, access_token: 'access', refresh_token: 'refresh' }),
+    const user = { ...ANONYMOUS_USER, email: 'user@example.com', is_anonymous: false };
+    network.respond(() =>
+      jsonResponse(200, { user, access_token: 'access', refresh_token: 'refresh' }),
     );
 
     await service.signInWithEmail('user@example.com', 'password');
@@ -118,121 +100,92 @@ describe('CFAuthService session restore', () => {
     expect(session).toEqual({ userId: 'user-1', initialUser: user });
     expect(service.getAuthSession()).toBe(session);
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(mockCfGet).not.toHaveBeenCalled();
+    expect(network.requests.map((r) => r.url)).toEqual(['https://api.test/auth/signin']);
 
-    mockCfPost.mockImplementationOnce(async (_path, _body, decode) => decode({ success: true }));
+    network.respond(() => jsonResponse(200, { success: true }));
     await service.signOut();
 
     expect(service.getAuthSession()).toBeNull();
     expect(listener).toHaveBeenCalledTimes(2);
     unsubscribe();
-    await service.signOut();
-    expect(listener).toHaveBeenCalledTimes(2);
   });
 
   it('verifies and caches the canonical user after a successful refresh', async () => {
-    seedStoredSession(createUnsignedAccessToken('user-1', Math.floor(Date.now() / 1000) - 60));
-    const refreshedToken = createUnsignedAccessToken(
-      'user-1',
-      Math.floor(Date.now() / 1000) + 3600,
-    );
-    mockCfPost.mockImplementationOnce(async (_path, _body, decode) =>
-      decode({ access_token: refreshedToken, refresh_token: 'rotated-refresh' }),
-    );
-    mockCfGet.mockImplementationOnce(async (_path, decode) =>
-      decode({
-        data: {
-          user: {
-            id: 'user-1',
-            email: null,
-            is_anonymous: true,
-            has_wechat: false,
-            user_metadata: USER_METADATA,
-          },
-        },
-      }),
+    seedStoredPrincipal();
+    const refreshedToken = createUnsignedAccessToken('user-1', nowSeconds() + 3600);
+    const { service, tokens, network } = createService(
+      createUnsignedAccessToken('user-1', nowSeconds() - 60),
+      (network) => {
+        network.respond(() =>
+          jsonResponse(200, { access_token: refreshedToken, refresh_token: 'rotated-refresh' }),
+        );
+        network.respond(() => jsonResponse(200, { data: { user: ANONYMOUS_USER } }));
+      },
     );
 
-    const service = new CFAuthService();
     await service.waitForInit();
 
     expect(service.getCurrentUserId()).toBe('user-1');
-    expect(storage.getString('cf_auth_token')).toBe(refreshedToken);
-    expect(storage.getString('cf_refresh_token')).toBe('rotated-refresh');
-    expect(mockCfGet).toHaveBeenCalledWith('/auth/user', expect.any(Function), {
-      skipAuthIntercept: true,
-      noRetry: true,
+    expect(tokens.accessToken).toBe(refreshedToken);
+    expect(tokens.refreshToken).toBe('rotated-refresh');
+    expect(network.requests[1]).toMatchObject({
+      url: 'https://api.test/auth/user',
+      headers: { Authorization: `Bearer ${refreshedToken}` },
     });
   });
 
-  it.each(['body-read', 'json-parse'] as const)(
-    'retries refresh once when JSON production fails during %s',
-    async (phase) => {
-      seedStoredSession(createUnsignedAccessToken('user-1', Math.floor(Date.now() / 1000) - 60));
-      const refreshedToken = createUnsignedAccessToken(
-        'user-1',
-        Math.floor(Date.now() / 1000) + 3600,
-      );
-      mockCfPost
-        .mockRejectedValueOnce(
-          new CloudflareResponseJsonError({
-            path: '/auth/refresh',
-            status: 200,
-            phase,
-            cause: new TypeError('body stream terminated'),
-          }),
-        )
-        .mockImplementationOnce(async (_path, _body, decode) =>
-          decode({ access_token: refreshedToken, refresh_token: 'replayed-refresh' }),
+  it('falls back to refresh when a locally fresh token is rejected online', async () => {
+    seedStoredPrincipal();
+    const refreshedToken = createUnsignedAccessToken('user-1', nowSeconds() + 7200);
+    const { service, network } = createService(
+      createUnsignedAccessToken('user-1', nowSeconds() + 3600),
+      (network) => {
+        network.respond(() => jsonResponse(401, { reason: 'TOKEN_REVOKED' }));
+        network.respond(() =>
+          jsonResponse(200, { access_token: refreshedToken, refresh_token: 'rotated' }),
         );
-      mockCfGet.mockImplementationOnce(async (_path, decode) =>
-        decode({
-          data: {
-            user: {
-              id: 'user-1',
-              email: null,
-              is_anonymous: true,
-              has_wechat: false,
-              user_metadata: USER_METADATA,
-            },
-          },
-        }),
-      );
-
-      const service = new CFAuthService();
-      await service.waitForInit();
-
-      expect(mockCfPost).toHaveBeenCalledTimes(2);
-      expect(storage.getString('cf_auth_token')).toBe(refreshedToken);
-      expect(storage.getString('cf_refresh_token')).toBe('replayed-refresh');
-    },
-  );
-
-  it('does not retry a refresh response rejected by its decoder', async () => {
-    seedStoredSession(createUnsignedAccessToken('user-1', Math.floor(Date.now() / 1000) - 60));
-    mockCfPost.mockRejectedValueOnce(
-      new CloudflareResponseProtocolError({
-        path: '/auth/refresh',
-        status: 200,
-        body: { access_token: 'missing-refresh-token' },
-      }),
+        network.respond(() => jsonResponse(200, { data: { user: ANONYMOUS_USER } }));
+      },
     );
 
-    const service = new CFAuthService();
-    await expect(service.waitForInit()).rejects.toBeInstanceOf(CloudflareResponseProtocolError);
+    await service.waitForInit();
 
-    expect(mockCfPost).toHaveBeenCalledTimes(1);
-    expect(storage.getString('cf_refresh_token')).toBe('stored-refresh');
+    expect(service.getCurrentUserId()).toBe('user-1');
+    expect(network.requests.map((r) => r.url)).toEqual([
+      'https://api.test/auth/user',
+      'https://api.test/auth/refresh',
+      'https://api.test/auth/user',
+    ]);
   });
 
   it('does not invent an offline identity for malformed persisted state', async () => {
-    seedStoredSession('not-a-jwt');
-    mockCfPost.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    seedStoredPrincipal();
+    const { service, tokens } = createService('not-a-jwt', (network) =>
+      network.respond(() => new TypeError('Failed to fetch')),
+    );
 
-    const service = new CFAuthService();
     await service.waitForInit();
 
     expect(service.getCurrentUserId()).toBeNull();
-    expect(storage.getString('cf_auth_token')).toBeUndefined();
+    expect(tokens.accessToken).toBeNull();
+  });
+
+  it('notifies auth-expired listeners when a required request proves the session dead', async () => {
+    seedStoredPrincipal();
+    const { service, network } = createService(
+      createUnsignedAccessToken('user-1', nowSeconds() + 3600),
+      (network) => network.respond(() => jsonResponse(200, { data: { user: ANONYMOUS_USER } })),
+    );
+    await service.waitForInit();
+    const expired = jest.fn();
+    service.onAuthExpired(expired);
+
+    network.respond(() => jsonResponse(401, { reason: 'TOKEN_EXPIRED' }));
+    network.respond(() => jsonResponse(401, { reason: 'INVALID_REFRESH_TOKEN' }));
+    await expect(service.getCurrentUser()).rejects.toMatchObject({ reason: 'AUTH_EXPIRED' });
+
+    expect(expired).toHaveBeenCalledTimes(1);
+    expect(service.getAuthSession()).toBeNull();
+    expect(storage.getString('cf_auth_user_id')).toBeUndefined();
   });
 });

@@ -167,8 +167,8 @@ export const settingsServiceLog = log.extend('SettingsService');
 export const bgmLog = log.extend('BGM');
 /** AI Chat log */
 export const chatLog = log.extend('Chat');
-/** cfFetch network layer log */
-export const cfFetchLog = log.extend('cfFetch');
+/** HTTP API client log */
+export const apiLog = log.extend('Api');
 /** Stats / personal data log */
 export const statsLog = log.extend('Stats');
 /** Share feature log */
