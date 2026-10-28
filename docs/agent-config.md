@@ -42,6 +42,14 @@ MUSE.md
 
 不生成 `.github/copilot-instructions.md`，避免与 `AGENTS.md` 重复注入。同理，不生成 `.github/skills/`、`.cursor/skills/` 或根 `skills/`；支持的宿主直接读取 `.agents/skills/`。
 
+## MCP 配置
+
+本工作区的 VS Code Agent Host Copilot harness 迁移目标为 [`.mcp.json`](../.mcp.json)，使用 `mcpServers` 保存 `context7` 和 `github`。原有 [`.vscode/mcp.json`](../.vscode/mcp.json) 使用 `servers`，保留供 VS Code 原入口使用。
+
+两份 MCP 配置均为手工维护，不由 `sync:agents` 生成，也不会自动同步。修改服务命令、参数、地址或工具范围时，应分别检查需要支持的宿主。`tools: ["*"]` 允许目标使用服务暴露的全部工具，包括 GitHub 写操作工具；不要在配置中提交令牌或其他凭据。
+
+迁移后的 JSON 静态校验不能证明目标 harness 已加载配置。应在所选 harness 的新会话中确认服务发现、启动、工具调用及所需认证；当前会话已有的同名工具不算目标配置加载证据。删除原入口或源服务条目前，必须另行确认。
+
 ## 校验契约
 
 生成器会在写文件前完成以下检查：
