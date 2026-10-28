@@ -166,6 +166,7 @@ export function normalizeState(raw: GameState): GameState {
     actions: raw.actions ?? [],
     currentNightResults,
     resolvedWolfKillTarget: raw.resolvedWolfKillTarget,
+    resolvedWolfKillVerdict: raw.resolvedWolfKillVerdict,
     resolvedNightEffects: raw.resolvedNightEffects ?? [],
     pendingRevealAcks: raw.pendingRevealAcks ?? [],
     lastNightDeaths: raw.lastNightDeaths,

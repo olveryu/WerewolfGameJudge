@@ -31,6 +31,7 @@ import type {
   Player,
   ProtocolAction,
   ResolvedNightEffect,
+  ResolvedWolfKillVerdict,
   SeedWolfDeferredReveal,
   SeedWolfInfectionResult,
   SheriffElectionResult,
@@ -411,6 +412,25 @@ function parseWitchContext(value: unknown, path: string): NonNullable<GameState[
     },
     path,
   );
+}
+
+function parseResolvedWolfKillVerdict(value: unknown, path: string): ResolvedWolfKillVerdict {
+  const raw = parseObject(value, path);
+  switch (raw.type) {
+    case 'sharedTarget':
+    case 'splitKilled':
+    case 'tiePicked':
+      return finishObject(
+        raw,
+        { type: raw.type, targetSeat: parseSeat(raw.targetSeat, `${path}.targetSeat`) },
+        path,
+      );
+    case 'splitTied':
+    case 'allAbstain':
+      return finishObject(raw, { type: raw.type }, path);
+    default:
+      return fail(path, 'a valid wolf-kill verdict');
+  }
 }
 
 function parseConfirmStatus(value: unknown, path: string): ConfirmStatus {
@@ -950,6 +970,11 @@ export function parseWerewolfState(value: unknown): GameState {
       'GameState.resolvedWolfKillTarget',
       (value, path) => (value === null ? null : parseSeat(value, path)),
     ),
+    resolvedWolfKillVerdict: parseOptional(
+      raw.resolvedWolfKillVerdict,
+      'GameState.resolvedWolfKillVerdict',
+      (value, path) => (value === null ? null : parseResolvedWolfKillVerdict(value, path)),
+    ),
     resolvedNightEffects: parseOptional(
       raw.resolvedNightEffects,
       'GameState.resolvedNightEffects',
@@ -1105,11 +1130,12 @@ export function parseWerewolfState(value: unknown): GameState {
 /**
  * Entry point for persisted state.
  * v12 payloads migrate to v13 by a pure version bump: v12 has no
- * resolvedWolfKillTarget, so the migrated state carries it as absent
- * (unresolved) and the engine's legacy fallback supplies it at the
- * next settlement point. Payloads at v11 or older are still rejected,
- * not migrated. @throws When the stored state carries any other
- * version, or when the current-version payload is malformed.
+ * resolvedWolfKillTarget or resolvedWolfKillVerdict, so the migrated
+ * state carries them as absent (unresolved) and the engine's legacy
+ * fallback supplies them at the next settlement point. Payloads at
+ * v11 or older are still rejected, not migrated. @throws When the
+ * stored state carries any other version, or when the
+ * current-version payload is malformed.
  */
 export function migratePersistedWerewolfState(value: unknown): GameState {
   const raw = parseObject(value, 'GameState');

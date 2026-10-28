@@ -251,6 +251,18 @@ export type WerewolfNightStep =
     }
   | { readonly kind: 'exhausted' };
 
+/**
+ * How the wolf team's votes resolved for one night. The targetSeat
+ * variants always name the settled kill target; splitTied and
+ * allAbstain carry no target because they settle to no kill.
+ */
+export type ResolvedWolfKillVerdict =
+  | { readonly type: 'sharedTarget'; readonly targetSeat: number }
+  | { readonly type: 'splitKilled'; readonly targetSeat: number }
+  | { readonly type: 'tiePicked'; readonly targetSeat: number }
+  | { readonly type: 'splitTied' }
+  | { readonly type: 'allAbstain' };
+
 export interface GameState extends BaseGameState<WerewolfGameType> {
   // --- Core fields (existing) ---
   roomCode: string;
@@ -306,6 +318,19 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   currentNightResults?: CurrentNightResults;
 
   /**
+   * How the wolf team's votes resolved, settled together with
+   * resolvedWolfKillTarget in the same SET (see wolfKillResolution).
+   * sharedTarget = one target voted by all non-abstaining wolves;
+   * splitKilled = several targets, the plurality target killed;
+   * tiePicked = tied at the top, the random pick killed;
+   * splitTied = settled to no kill because cupid unanimity was
+   * required and the votes disagreed; allAbstain = no non-abstaining
+   * vote. The verdict's targetSeat, when present, is always the same
+   * seat as resolvedWolfKillTarget; the two are never computed apart.
+   */
+  resolvedWolfKillVerdict?: ResolvedWolfKillVerdict | null;
+
+  /**
    * The wolf-kill target settled exactly once for this night.
    * undefined = not yet settled; null = settled to no kill (all abstain,
    * cupid unanimity disagreement, or a wolf-kill override); a seat number
@@ -315,6 +340,10 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    * target for the witch and another for settlement. Cleared on
    * START_NIGHT and RESTART_GAME; a top-level field (not inside
    * currentNightResults) so Seed Wolf finalization replay cannot clear it.
+   * Its verdict twin, resolvedWolfKillVerdict, is null exactly when
+   * the no-kill comes from a wolf-kill override: an override has no
+   * vote verdict to report (the night report's wolfGiveUp card carries
+   * the cause), and it must never be reported as splitTied.
    */
   resolvedWolfKillTarget?: number | null;
 

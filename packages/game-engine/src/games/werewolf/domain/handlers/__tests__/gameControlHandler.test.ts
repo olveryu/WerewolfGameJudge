@@ -322,7 +322,7 @@ describe('handleStartNight', () => {
     expect(success.actions.length).toBe(5);
     expect(success.actions.find((a) => a.type === 'SET_RESOLVED_WOLF_KILL_TARGET')).toEqual({
       type: 'SET_RESOLVED_WOLF_KILL_TARGET',
-      payload: { target: null },
+      payload: { target: null, verdict: { type: 'allAbstain' } },
     });
 
     const startNightAction = success.actions.find((a) => a.type === 'START_NIGHT');

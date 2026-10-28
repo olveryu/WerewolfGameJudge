@@ -14,6 +14,7 @@ import type {
   Player,
   ProtocolAction,
   ResolvedNightEffect,
+  ResolvedWolfKillVerdict,
   SeedWolfInfectionResult,
   SheriffElectionResult,
   SheriffElectionRoundResult,
@@ -231,17 +232,22 @@ export interface SetWitchContextAction {
 }
 
 /**
- * Persist the wolf-kill target settled exactly once for this night.
- * A seat number is the settled kill target; null is a settled no-kill.
+ * Persist the wolf-kill target and verdict settled exactly once for
+ * this night, in this one action. A seat number is the settled kill
+ * target; null is a settled no-kill. The verdict is null exactly when
+ * the no-kill comes from a wolf-kill override (no vote verdict); in
+ * every other settled case it is the verdict twin of the target.
  * Emitted by the first handler that settles the votes (advance past
  * wolfKill, witch entry, or END_NIGHT legacy settlement); later
- * handlers reuse GameState.resolvedWolfKillTarget and never emit it
- * again for the same night.
+ * handlers reuse GameState.resolvedWolfKillTarget and
+ * GameState.resolvedWolfKillVerdict and never emit it again for the
+ * same night.
  */
 export interface SetResolvedWolfKillTargetAction {
   type: 'SET_RESOLVED_WOLF_KILL_TARGET';
   payload: {
     target: number | null;
+    verdict: ResolvedWolfKillVerdict | null;
   };
 }
 

@@ -48,6 +48,7 @@ export function handleStartNight(state: GameState, action: StartNightAction): Ga
     actions: [],
     currentNightResults: {},
     resolvedWolfKillTarget: undefined,
+    resolvedWolfKillVerdict: undefined,
     resolvedNightEffects: [],
     pendingRevealAcks: [],
     seedWolfInfectionResult: undefined,
@@ -263,7 +264,7 @@ export function handleSetWitchContext(state: GameState, action: SetWitchContextA
   };
 }
 
-/** Persist the wolf-kill target settled exactly once for this night. */
+/** Persist the wolf-kill target and verdict settled exactly once for this night. */
 export function handleSetResolvedWolfKillTarget(
   state: GameState,
   action: SetResolvedWolfKillTargetAction,
@@ -271,6 +272,7 @@ export function handleSetResolvedWolfKillTarget(
   return {
     ...state,
     resolvedWolfKillTarget: action.payload.target,
+    resolvedWolfKillVerdict: action.payload.verdict,
   };
 }
 

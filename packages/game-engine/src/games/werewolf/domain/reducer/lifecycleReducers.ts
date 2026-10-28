@@ -105,6 +105,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     actions: [],
     currentNightResults: undefined,
     resolvedWolfKillTarget: undefined,
+    resolvedWolfKillVerdict: undefined,
     resolvedNightEffects: [],
     lastNightDeaths: undefined,
     deathReasons: undefined,

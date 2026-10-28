@@ -103,6 +103,7 @@ export type {
   GameState,
   Player,
   ProtocolAction,
+  ResolvedWolfKillVerdict,
   SheriffElectionResult,
   SheriffElectionRoundResult,
   SheriffElectionState,

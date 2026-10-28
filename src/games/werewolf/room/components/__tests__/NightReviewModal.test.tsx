@@ -64,6 +64,7 @@ function makeGameState(
     sheriffElection: SheriffElectionState;
     sheriffElectionResult: SheriffElectionResult;
     resolvedWolfKillTarget: number | null;
+    resolvedWolfKillVerdict: LocalGameState['resolvedWolfKillVerdict'];
   }> = {},
 ): LocalGameState {
   return {
@@ -71,6 +72,7 @@ function makeGameState(
     lastNightDeaths: overrides.lastNightDeaths ?? [],
     deathReasons: overrides.deathReasons,
     resolvedWolfKillTarget: overrides.resolvedWolfKillTarget,
+    resolvedWolfKillVerdict: overrides.resolvedWolfKillVerdict,
     bottomCards: overrides.bottomCards,
     players: overrides.players ?? new Map(),
     actions: new Map(),
@@ -119,6 +121,8 @@ function composedNightState(): LocalGameState {
     seerReveal: { targetSeat: 0, result: '狼人' },
     lastNightDeaths: [4],
     deathReasons: { 4: 'wolfKill' },
+    resolvedWolfKillTarget: 4,
+    resolvedWolfKillVerdict: { type: 'sharedTarget', targetSeat: 4 },
   });
 }
 
@@ -255,6 +259,8 @@ describe('NightReviewModal', () => {
             currentNightResults: {
               wolfVotesBySeat: { '0': 4, '1': 4, '2': 4, '3': 4 },
             },
+            resolvedWolfKillTarget: 4,
+            resolvedWolfKillVerdict: { type: 'sharedTarget', targetSeat: 4 },
           }),
         )}
         onClose={jest.fn()}
@@ -317,6 +323,7 @@ describe('NightReviewModal', () => {
             lastNightDeaths: [5],
             deathReasons: { 5: 'wolfKill' },
             resolvedWolfKillTarget: 5,
+            resolvedWolfKillVerdict: { type: 'tiePicked', targetSeat: 5 },
           }),
         )}
         onClose={jest.fn()}
@@ -343,6 +350,7 @@ describe('NightReviewModal', () => {
             players,
             currentNightResults: { wolfVotesBySeat: { '0': 5, '1': 4 } },
             resolvedWolfKillTarget: null,
+            resolvedWolfKillVerdict: { type: 'splitTied' },
           }),
         )}
         onClose={jest.fn()}
@@ -369,6 +377,8 @@ describe('NightReviewModal', () => {
             currentNightResults: { wolfVotesBySeat: { '0': 1 }, poisonedSeat: 3 },
             lastNightDeaths: [3],
             deathReasons: { 3: 'poison' },
+            resolvedWolfKillTarget: 1,
+            resolvedWolfKillVerdict: { type: 'sharedTarget', targetSeat: 1 },
           }),
         )}
         onClose={jest.fn()}
@@ -418,6 +428,8 @@ describe('NightReviewModal', () => {
             seerReveal: { targetSeat: 4, result: '好人' },
             lastNightDeaths: [5, 11],
             deathReasons: { 5: 'wolfKill', 11: 'poison' },
+            resolvedWolfKillTarget: 5,
+            resolvedWolfKillVerdict: { type: 'splitKilled', targetSeat: 5 },
           }),
         )}
         onClose={jest.fn()}
@@ -472,6 +484,8 @@ describe('NightReviewModal', () => {
           makeGameState({
             players,
             currentNightResults: { wolfVotesBySeat: { '0': -1, '1': -1 } },
+            resolvedWolfKillTarget: null,
+            resolvedWolfKillVerdict: { type: 'allAbstain' },
           }),
         )}
         onClose={jest.fn()}

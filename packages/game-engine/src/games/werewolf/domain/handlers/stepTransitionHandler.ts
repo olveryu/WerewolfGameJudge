@@ -43,9 +43,10 @@ import { handlerError, handlerSuccess } from './types';
 import { maybeCreateUiHintAction } from './uiHint';
 import { maybeCreateWitchContextAction } from './witchContext';
 import {
+  classifyWolfKillVerdict,
   getLegacyWolfKillTarget,
   maybeCreateResolvedWolfKillTargetAction,
-  resolveWolfKillTargetFromVotes,
+  settleWolfKillFromVotes,
 } from './wolfKillResolution';
 
 // =============================================================================
@@ -105,24 +106,27 @@ export function handleAdvanceNight(
 
   // Single wolf-kill settlement for this night. Once the advance moves
   // past the wolfKill step (or the night ends), the wolf votes are
-  // final, so settle them exactly once here and persist the target;
-  // every later consumer in this command and in later commands reuses
-  // the local / stored value instead of rolling a tied vote again.
-  // The witch entry below is the one case where the settlement and
-  // the context are created in the same command: the context is
-  // computed from the stored value when it exists, otherwise from a
-  // fresh resolution whose result is persisted here as the same
-  // target, so the two can never disagree.
+  // final, so settle them exactly once here and persist the target
+  // and the verdict in the same SET; every later consumer in this
+  // command and in later commands reuses the local / stored values
+  // instead of rolling a tied vote again. The witch entry below is
+  // the one case where the settlement and the context are created in
+  // the same command: the context is computed from the stored values
+  // when they exist, otherwise from a fresh settlement whose result
+  // is persisted here as the same target and verdict, so the three
+  // can never disagree.
   const wolfVoteRng = createSeededRng(`${execution.randomSeed}:wolf-vote`);
   const pastWolfKill =
     nextStepId === null ||
     NIGHT_STEP_ORDER.indexOf(nextStepId) > NIGHT_STEP_ORDER.indexOf('wolfKill');
   let settledWolfKillTarget = state.resolvedWolfKillTarget;
+  let settledWolfKillVerdict = state.resolvedWolfKillVerdict;
   if (pastWolfKill && settledWolfKillTarget === undefined) {
     const resolvedAction = maybeCreateResolvedWolfKillTargetAction(state, wolfVoteRng);
     if (resolvedAction) {
       actions.push(resolvedAction);
       settledWolfKillTarget = resolvedAction.payload.target;
+      settledWolfKillVerdict = resolvedAction.payload.verdict;
     }
   }
 
@@ -139,7 +143,11 @@ export function handleAdvanceNight(
     ? maybeCreateWitchContextAction(
         nextStepId,
         settledWolfKillTarget !== undefined
-          ? { ...state, resolvedWolfKillTarget: settledWolfKillTarget }
+          ? {
+              ...state,
+              resolvedWolfKillTarget: settledWolfKillTarget,
+              resolvedWolfKillVerdict: settledWolfKillVerdict,
+            }
           : state,
         wolfVoteRng,
       )
@@ -270,12 +278,16 @@ export function handleEndNight(
     return handlerError('night_not_complete');
   }
 
+  // The target and the verdict settle in the same SET. A legacy
+  // target is classified deterministically from the votes and that
+  // already-known target (no re-roll); a fresh settlement computes
+  // both from one resolveWolfVotes call.
   const legacyTarget = getLegacyWolfKillTarget(state);
-  const settledTarget =
+  const settled =
     legacyTarget !== undefined
-      ? legacyTarget
-      : resolveWolfKillTargetFromVotes(state, createSeededRng(`${execution.randomSeed}:wolf-vote`));
-  const { deaths, deathReasons } = calculateNightDeaths(state, settledTarget);
+      ? { target: legacyTarget, verdict: classifyWolfKillVerdict(state, legacyTarget) }
+      : settleWolfKillFromVotes(state, createSeededRng(`${execution.randomSeed}:wolf-vote`));
+  const { deaths, deathReasons } = calculateNightDeaths(state, settled.target);
 
   const endNightAction: EndNightAction = {
     type: 'END_NIGHT',
@@ -286,7 +298,7 @@ export function handleEndNight(
   if (state.resolvedWolfKillTarget === undefined) {
     actions.push({
       type: 'SET_RESOLVED_WOLF_KILL_TARGET',
-      payload: { target: settledTarget },
+      payload: { target: settled.target, verdict: settled.verdict },
     });
   }
   actions.push(endNightAction);

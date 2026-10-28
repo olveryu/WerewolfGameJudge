@@ -27,12 +27,13 @@
  * eligible ballot is in, the round arms a deadline and closes on
  * expiry instead of a Host advance. Hard cut: v11-and-older
  * payloads are rejected, not migrated.
- * v13 adds resolvedWolfKillTarget (the wolf-kill target settled
- * exactly once per night; see GameState). v12 payloads migrate by a
- * pure version bump: the new field is absent (unresolved) and the
- * engine's legacy fallback (saved seat, then witch context, then a
- * single END_NIGHT settlement) supplies it. v11-and-older payloads
- * are still rejected, not migrated.
+ * v13 adds resolvedWolfKillTarget and resolvedWolfKillVerdict (the
+ * wolf-kill target and its verdict, settled together exactly once
+ * per night; see GameState). v12 payloads migrate by a pure version
+ * bump: the new fields are absent (unresolved) and the engine's
+ * legacy fallback (saved seat, then witch context, then a single
+ * END_NIGHT settlement) supplies them. v11-and-older payloads are
+ * still rejected, not migrated.
  */
 
 import { WEREWOLF_GAME_TYPE } from '../../../platform/protocol/gameTypes';

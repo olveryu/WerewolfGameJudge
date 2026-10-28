@@ -47,6 +47,8 @@ function makeGameState(
     players: Map<number, LocalPlayer | null>;
     seerReveal: { targetSeat: number; result: '好人' | '狼人' };
     bottomCards: LocalGameState['bottomCards'];
+    resolvedWolfKillTarget: number | null;
+    resolvedWolfKillVerdict: LocalGameState['resolvedWolfKillVerdict'];
   }> = {},
 ): LocalGameState {
   return {
@@ -57,6 +59,8 @@ function makeGameState(
     players: overrides.players ?? new Map(),
     actions: new Map(),
     seerReveal: overrides.seerReveal,
+    resolvedWolfKillTarget: overrides.resolvedWolfKillTarget,
+    resolvedWolfKillVerdict: overrides.resolvedWolfKillVerdict,
   } as unknown as LocalGameState;
 }
 
@@ -78,6 +82,8 @@ function composedNightState(): LocalGameState {
     seerReveal: { targetSeat: 0, result: '狼人' },
     lastNightDeaths: [4],
     deathReasons: { 4: 'wolfKill' },
+    resolvedWolfKillTarget: 4,
+    resolvedWolfKillVerdict: { type: 'sharedTarget', targetSeat: 4 },
   });
 }
 
@@ -148,6 +154,8 @@ describe('NightReviewShareCard', () => {
           makeGameState({
             players,
             currentNightResults: { wolfVotesBySeat: { '0': 4, '1': -1 } },
+            resolvedWolfKillTarget: 4,
+            resolvedWolfKillVerdict: { type: 'sharedTarget', targetSeat: 4 },
           }),
         )}
         roomCode="1234"

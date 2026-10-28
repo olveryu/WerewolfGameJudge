@@ -110,6 +110,7 @@ describe('persisted state version gate (v13, v12 migrates)', () => {
     const migrated = migratePersistedWerewolfState(legacy);
     expect(migrated.stateVersion).toBe(13);
     expect(migrated.resolvedWolfKillTarget).toBeUndefined();
+    expect(migrated.resolvedWolfKillVerdict).toBeUndefined();
     expect(parseWerewolfState(migrated)).toEqual(migrated);
   });
 
