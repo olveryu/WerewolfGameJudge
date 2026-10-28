@@ -190,9 +190,7 @@ export class RoomGateway {
 
   /** A server-initiated close keeps the socket listed until the peer answers; skip those. */
   #openSockets(tag?: string): WebSocket[] {
-    return this.#ctx
-      .getWebSockets(tag)
-      .filter((socket) => socket.readyState === WebSocket.READY_STATE_OPEN);
+    return this.#ctx.getWebSockets(tag).filter((socket) => socket.readyState === WebSocket.OPEN);
   }
 
   /** Tell one user's sockets that their account inbox has new rows. Silent when offline. */
