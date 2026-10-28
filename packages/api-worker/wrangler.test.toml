@@ -4,7 +4,7 @@
 # run locally via miniflare without Cloudflare auth.
 name = "werewolf-api"
 main = "src/index.ts"
-compatibility_date = "2025-04-01"
+compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_compat"]
 
 # ── Env vars (test-only) ─────────────────────────────────────────────────────
