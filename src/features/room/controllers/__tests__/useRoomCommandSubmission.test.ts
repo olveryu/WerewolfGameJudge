@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
 
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
-import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
+import type { DispatchOutcome } from '@/platform/realtime/types';
 import {
   rejectedRoomCommand,
   successfulRoomCommand,
@@ -40,9 +40,7 @@ describe('useRoomCommandSubmission', () => {
   it('presents an authoritative rejection through the supplied game message policy', async () => {
     const rejection = rejectedRoomCommand<typeof state>('invalid_status', 'clear-command');
     const getFailureMessage = jest.fn(() => '当前状态不允许此操作');
-    const operation = jest.fn(
-      async (): Promise<RoomCommandDispatchOutcome<typeof state>> => rejection,
-    );
+    const operation = jest.fn(async (): Promise<DispatchOutcome<typeof state>> => rejection);
     const { result } = renderHook(() => useRoomCommandSubmission(getFailureMessage));
     let succeeded: boolean | null = null;
 

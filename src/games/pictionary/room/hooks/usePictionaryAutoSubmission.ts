@@ -16,12 +16,12 @@ import type { DrawingDraft } from '@/features/drawing/model/drawing';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
-} from '@/features/room/session/roomCommandResult';
+} from '@/features/room/link/roomCommandResult';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { pictionaryMediaTransport } from '@/games/pictionary/services/pictionaryMediaTransport';
 import { renderPictionaryDrawing } from '@/games/pictionary/services/renderPictionaryDrawing';
-import { CloudflareHttpError, CloudflareResponseJsonError } from '@/services/cloudflare/cfFetch';
-import { calculateBackoff } from '@/services/connection/backoff';
+import { ApiError } from '@/platform/http/ApiError';
+import type { DispatchOutcome } from '@/platform/realtime/types';
 import { handleError } from '@/utils/errorPipeline';
 import { isAbortError, isNetworkError } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
@@ -41,18 +41,28 @@ interface LocallyOwnedTask {
   readonly task: PictionaryTask;
 }
 
-/** Delivery is unresolved; RoomSession retains the exact command for recovery. */
-class PictionaryDeliveryPendingError extends Error {}
+/** Media upload retry ladder; room commands are durable and need no local retry. */
+const UPLOAD_RETRY_LADDER_MS = [1_000, 3_000, 10_000] as const;
+
+/** The link epoch ended before the durable command was decided; the next epoch replays it. */
+class PictionaryLinkCancelledError extends Error {}
 
 function isRetryableDeliveryError(error: unknown): boolean {
   return (
-    error instanceof PictionaryDeliveryPendingError ||
     isNetworkError(error) ||
     isAbortError(error) ||
-    (error instanceof CloudflareResponseJsonError && error.phase === 'body-read') ||
-    (error instanceof CloudflareHttpError &&
+    (error instanceof ApiError &&
+      error.isHttp() &&
       (error.status === 408 || error.status === 429 || error.status >= 500))
   );
+}
+
+/** Durable dispatch: committed success passes; cancellation aborts; rejection is terminal. */
+function assertDurableSuccess(result: DispatchOutcome<PictionaryState>, label: string): void {
+  if (result.kind === 'cancelled') throw new PictionaryLinkCancelledError(label);
+  if (!isSuccessfulRoomCommand(result)) {
+    throw new Error(`${label} was rejected: ${getRoomCommandFailureReason(result)}`);
+  }
 }
 
 function collectionKeyFor(state: PictionaryState): string | null {
@@ -95,12 +105,9 @@ async function submitTextInput(
   }
   const result = await session.dispatch(
     createPictionaryCommand(state, { type: 'pictionary.text.submit', text }, ownedTask.seat),
-    { controlledSeat: ownedTask.controlledSeat, label: '发送最终文字', isRecoverable: true },
+    { controlledSeat: ownedTask.controlledSeat, label: '发送最终文字', durable: true },
   );
-  if (result.kind !== 'decided') throw new PictionaryDeliveryPendingError(result.reason);
-  if (!isSuccessfulRoomCommand(result)) {
-    throw new Error(`Final Pictionary text was rejected: ${getRoomCommandFailureReason(result)}`);
-  }
+  assertDurableSuccess(result, 'Final Pictionary text');
 }
 
 async function reserveDrawing(
@@ -112,15 +119,11 @@ async function reserveDrawing(
   if (existingReservation !== null) return existingReservation;
   const result = await session.dispatch(
     createPictionaryCommand(state, { type: 'pictionary.drawing.reserve' }, ownedTask.seat),
-    { controlledSeat: ownedTask.controlledSeat, label: '预留最终画作', isRecoverable: true },
+    { controlledSeat: ownedTask.controlledSeat, label: '预留最终画作', durable: true },
   );
-  if (result.kind !== 'decided') throw new PictionaryDeliveryPendingError(result.reason);
-  if (!isSuccessfulRoomCommand(result)) {
-    throw new Error(
-      `Final Pictionary drawing reservation was rejected: ${getRoomCommandFailureReason(result)}`,
-    );
-  }
-  const reservation = findDrawingReservation(result.decision.snapshot.state, ownedTask.seat);
+  assertDurableSuccess(result, 'Final Pictionary drawing reservation');
+  if (result.kind !== 'committed') throw new Error('unreachable');
+  const reservation = findDrawingReservation(result.snapshot.state, ownedTask.seat);
   if (reservation === null) {
     throw new Error('[FAIL-FAST] Successful final drawing reservation is missing from snapshot');
   }
@@ -186,14 +189,9 @@ async function submitAllInputs(
               { type: 'pictionary.task.empty.submit' },
               ownedTask.seat,
             ),
-            { controlledSeat: ownedTask.controlledSeat, label: '提交空白', isRecoverable: true },
+            { controlledSeat: ownedTask.controlledSeat, label: '提交空白', durable: true },
           );
-          if (result.kind !== 'decided') throw new PictionaryDeliveryPendingError(result.reason);
-          if (!isSuccessfulRoomCommand(result)) {
-            throw new Error(
-              `Empty Pictionary task was rejected: ${getRoomCommandFailureReason(result)}`,
-            );
-          }
+          assertDurableSuccess(result, 'Empty Pictionary task');
           return null;
         }
         await submitOwnedTask(state, ownedTask, input, session, signal);
@@ -235,16 +233,17 @@ export function usePictionaryAutoSubmission(
     let retryCount = 0;
     const initial = session.getSnapshot();
     if (initial.phase !== 'ready') return;
-    const pendingTasks = getLocallyOwnedTasks(initial.snapshot.state, userId);
+    const initialState = initial.room.state;
+    const pendingTasks = getLocallyOwnedTasks(initialState, userId);
     const reconcile = (): boolean => {
       const current = session.getSnapshot();
       if (current.phase !== 'ready') return false;
-      const latest = current.snapshot.state;
+      const latest = current.room.state;
       const unresolved = pendingTasks.filter(({ task }) => {
         const entry = latest.chains.find((chain) => chain.id === task.chain.id)?.entries[
-          initial.snapshot.state.stepIndex
+          initialState.stepIndex
         ];
-        if (latest.roundId !== initial.snapshot.state.roundId || entry === undefined) return true;
+        if (latest.roundId !== initialState.roundId || entry === undefined) return true;
         return false;
       });
       return unresolved.length === 0;
@@ -260,28 +259,30 @@ export function usePictionaryAutoSubmission(
       }
       if (
         current.phase !== 'ready' ||
-        current.connection !== 'live' ||
-        current.pendingCommandCount > 0
+        current.status.kind !== 'live' ||
+        current.pendingDurableCount > 0
       ) {
         setStatus('retrying');
         return;
       }
-      if (collectionKeyFor(current.snapshot.state) !== collectionKey) return;
+      if (collectionKeyFor(current.room.state) !== collectionKey) return;
       isSubmitting = true;
       setStatus(retryCount === 0 ? 'submitting' : 'retrying');
       try {
-        await submitCurrentInputs(current.snapshot.state, controller.signal);
+        await submitCurrentInputs(current.room.state, controller.signal);
         if (!controller.signal.aborted) setStatus('waiting');
       } catch (error: unknown) {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted || error instanceof PictionaryLinkCancelledError) return;
         if (reconcile()) {
           setStatus('waiting');
         } else if (isRetryableDeliveryError(error)) {
           roomScreenLog.warn('Pictionary submission pending; retry scheduled', { error });
           setStatus('retrying');
+          const delayMs =
+            UPLOAD_RETRY_LADDER_MS[Math.min(retryCount, UPLOAD_RETRY_LADDER_MS.length - 1)]!;
           timer = setTimeout(() => {
             void run();
-          }, calculateBackoff(retryCount));
+          }, delayMs);
           retryCount += 1;
         } else {
           hasTerminalFailure = true;
@@ -300,9 +301,9 @@ export function usePictionaryAutoSubmission(
     const unsubscribe = session.subscribe(() => {
       const current = session.getSnapshot();
       const hasRecovered =
-        current.connection === 'live' &&
-        (previous.connection !== 'live' ||
-          (previous.pendingCommandCount > 0 && current.pendingCommandCount === 0));
+        current.status.kind === 'live' &&
+        (previous.status.kind !== 'live' ||
+          (previous.pendingDurableCount > 0 && current.pendingDurableCount === 0));
       previous = current;
       if (hasRecovered || reconcile()) void run();
     });

@@ -98,7 +98,7 @@ describe('SocketChannel', () => {
     const socket = sockets.latest();
     socket.serverOpen();
     const data = payload();
-    socket.onmessage?.({ data } as MessageEvent);
+    socket.onmessage?.({ data });
     expect(socket.closedWith).toEqual({ code: 1002, reason: 'protocol_error' });
     expect(events.onProtocolError).toHaveBeenCalledTimes(1);
     expect(events.onFrame).not.toHaveBeenCalled();

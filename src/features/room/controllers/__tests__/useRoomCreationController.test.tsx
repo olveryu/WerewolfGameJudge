@@ -8,7 +8,7 @@ import { useServices } from '@/contexts/ServiceContext';
 import { useRoomConfigSubmission } from '@/features/room/controllers/useRoomConfigSubmission';
 import { useRoomCreationController } from '@/features/room/controllers/useRoomCreationController';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
-import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
+import type { DispatchOutcome } from '@/platform/realtime/types';
 import {
   rejectedRoomCommand,
   successfulRoomCommand,
@@ -188,10 +188,10 @@ describe('useRoomConfigSubmission', () => {
       const createRoom = jest.fn();
       mockUseServices.mockReturnValue({ roomCreator: { createRoom } });
       const input = createInput();
-      let resolveUpdate: ((outcome: RoomCommandDispatchOutcome<typeof state>) => void) | undefined;
+      let resolveUpdate: ((outcome: DispatchOutcome<typeof state>) => void) | undefined;
       const updateConfig = jest.fn(
         () =>
-          new Promise<RoomCommandDispatchOutcome<typeof state>>((resolve) => {
+          new Promise<DispatchOutcome<typeof state>>((resolve) => {
             resolveUpdate = resolve;
           }),
       );

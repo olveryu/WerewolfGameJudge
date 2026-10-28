@@ -37,19 +37,54 @@ export type LinkStatus =
     }
   | { readonly kind: 'closed'; readonly reason: RealtimeCloseReason };
 
-export interface LinkSnapshot<TState extends BaseGameState<string>> {
+/**
+ * Entry phase derived from identity, room and status by the link itself:
+ * - `idle`: no identity bound.
+ * - `entering`: identity bound, no authoritative room snapshot yet.
+ * - `ready`: a room snapshot is held (whatever the socket status).
+ * - `closed`: the link ended on a terminal reason; the room must be re-entered.
+ */
+export type LinkPhase = 'idle' | 'entering' | 'ready' | 'closed';
+
+/** Why the link asks the account inbox consumer to read: a server hint or a fresh live socket. */
+export type InboxWakeReason = 'hint' | 'live';
+
+/** Platform timer handle; injected so tests can drive time without a global clock. */
+export type TimerHandle = ReturnType<typeof setTimeout>;
+
+interface LinkSnapshotBase {
   /** Incremented on every connect(); results bound to an older epoch are discarded. */
   readonly epoch: number;
-  readonly identity: RoomIdentity<TState['gameType']> | null;
   readonly status: LinkStatus;
-  /** Authoritative room snapshot; null until the first sync or committed command arrives. */
-  readonly room: RoomSnapshot<TState> | null;
   readonly lastCommand: { readonly revision: number; readonly type: string } | null;
   /** Durable commands persisted locally whose server decision has not arrived. */
   readonly pendingDurableCount: number;
   /** User IDs with an open socket in this room; empty until the first PRESENCE frame. */
   readonly presence: ReadonlySet<string>;
 }
+
+export type LinkSnapshot<TState extends BaseGameState<string>> =
+  | (LinkSnapshotBase & { readonly phase: 'idle'; readonly identity: null; readonly room: null })
+  | (LinkSnapshotBase & {
+      readonly phase: 'entering';
+      readonly identity: RoomIdentity<TState['gameType']>;
+      readonly room: null;
+    })
+  | (LinkSnapshotBase & {
+      readonly phase: 'ready';
+      readonly identity: RoomIdentity<TState['gameType']>;
+      readonly room: RoomSnapshot<TState>;
+    })
+  | (LinkSnapshotBase & {
+      readonly phase: 'closed';
+      readonly identity: RoomIdentity<TState['gameType']>;
+      readonly room: RoomSnapshot<TState> | null;
+    });
+
+export type ReadyLinkSnapshot<TState extends BaseGameState<string>> = Extract<
+  LinkSnapshot<TState>,
+  { readonly phase: 'ready' }
+>;
 
 export interface DispatchOptions {
   readonly controlledSeat: number | null;
@@ -88,42 +123,25 @@ export type DispatchOutcome<TState extends BaseGameState<string>> =
   /** The link epoch ended before a decision arrived. */
   | { readonly kind: 'cancelled'; readonly commandId: string };
 
+/** `connect()` rejection: the link ended before (or instead of) becoming live. */
+export class RoomLinkClosedError extends Error {
+  readonly reason: RealtimeCloseReason;
+
+  constructor(reason: RealtimeCloseReason) {
+    super(`Room link closed: ${reason}`);
+    this.name = 'RoomLinkClosedError';
+    this.reason = reason;
+  }
+}
+
 export interface RoomLink<TState extends BaseGameState<string>, TCommand extends object> {
   getSnapshot(): LinkSnapshot<TState>;
   subscribe(listener: () => void): () => void;
-  /** Resolves on the first live snapshot; rejects only on a terminal close or abort. */
+  /** Resolves on the first live snapshot; rejects with RoomLinkClosedError or the abort reason. */
   connect(identity: RoomIdentity<TState['gameType']>, signal: AbortSignal): Promise<void>;
-  prepare<TPrepared extends TCommand>(
-    command: TPrepared,
-    controlledSeat: number | null,
-  ): PreparedCommand<TPrepared>;
   dispatch(command: TCommand, options: DispatchOptions): Promise<DispatchOutcome<TState>>;
-  dispatchPrepared<TPrepared extends TCommand>(
-    prepared: PreparedCommand<TPrepared>,
-    label: string,
-  ): Promise<DispatchOutcome<TState>>;
   /** Reconnect immediately from `waiting`; any other status is a programming error. */
   retryNow(): void;
   /** Release the room: closes the socket, cancels pending work, moves to `closed(released)`. */
   close(): void;
-}
-
-/** Narrow a dispatch to the committed branch whose domain outcome is success. */
-export function isCommittedSuccess<TState extends BaseGameState<string>>(
-  outcome: DispatchOutcome<TState>,
-): outcome is Extract<DispatchOutcome<TState>, { readonly kind: 'committed' }> & {
-  readonly outcome: { readonly kind: 'success' };
-} {
-  return outcome.kind === 'committed' && outcome.outcome.kind === 'success';
-}
-
-/** Server-side rejection reason, whether transport-level or domain-level; null when none. */
-export function getDispatchRejectionReason<TState extends BaseGameState<string>>(
-  outcome: DispatchOutcome<TState>,
-): string | null {
-  if (outcome.kind === 'rejected') return outcome.reason;
-  if (outcome.kind === 'committed' && outcome.outcome.kind === 'domainRejected') {
-    return outcome.outcome.reason;
-  }
-  return null;
 }

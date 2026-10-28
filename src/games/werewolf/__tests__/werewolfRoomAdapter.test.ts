@@ -365,7 +365,7 @@ describe('createWerewolfRoomShellModel', () => {
       roomCode: '1234',
       viewer: PLAYER_VIEWER,
       capabilities: createWerewolfRoomCapabilities(createCapabilityInput()),
-      connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
+      connection: { status: { kind: 'live' }, pendingDurableCount: 0, onRetryNow: jest.fn() },
       seatConfirmation: null,
       profile: null,
       share: {

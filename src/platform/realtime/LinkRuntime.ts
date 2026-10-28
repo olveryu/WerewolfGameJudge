@@ -24,7 +24,7 @@ import {
   type TimerKind,
 } from './linkReducer';
 import type { SocketChannel } from './SocketChannel';
-import type { LinkStatus } from './types';
+import type { LinkStatus, TimerHandle } from './types';
 
 export interface LinkRuntimeOwner<TState extends BaseGameState<string>> {
   onStatus(status: LinkStatus, context: LinkContext): void;
@@ -39,13 +39,13 @@ export interface LinkRuntimeOptions<TState extends BaseGameState<string>> {
   readonly owner: LinkRuntimeOwner<TState>;
   readonly now: () => number;
   readonly random: () => number;
-  readonly setTimeout: (callback: () => void, delayMs: number) => unknown;
-  readonly clearTimeout: (handle: unknown) => void;
+  readonly setTimeout: (callback: () => void, delayMs: number) => TimerHandle;
+  readonly clearTimeout: (handle: TimerHandle) => void;
 }
 
 export class LinkRuntime<TState extends BaseGameState<string>> {
   readonly #options: LinkRuntimeOptions<TState>;
-  readonly #timers = new Map<TimerKind, unknown>();
+  readonly #timers = new Map<TimerKind, TimerHandle>();
   #context: LinkContext;
   #room: RoomLocator | null = null;
   #unsubscribeEnvironment: (() => void) | null = null;

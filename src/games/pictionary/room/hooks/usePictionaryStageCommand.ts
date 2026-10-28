@@ -11,8 +11,8 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
-  type SuccessfulRoomCommandDispatchOutcome,
-} from '@/features/room/session/roomCommandResult';
+  type SuccessfulDispatchOutcome,
+} from '@/features/room/link/roomCommandResult';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -25,12 +25,12 @@ interface PictionaryStageCommand {
   readonly submit: (
     label: string,
     command: PictionaryCommandInput,
-  ) => Promise<SuccessfulRoomCommandDispatchOutcome<PictionaryState> | null>;
+  ) => Promise<SuccessfulDispatchOutcome<PictionaryState> | null>;
 }
 
 interface InFlightStageCommand {
   readonly commandType: PictionaryPublicCommand['type'];
-  readonly promise: Promise<SuccessfulRoomCommandDispatchOutcome<PictionaryState> | null>;
+  readonly promise: Promise<SuccessfulDispatchOutcome<PictionaryState> | null>;
 }
 
 /** Keep task and gallery controls single-flight while preserving the full command snapshot. */
@@ -47,7 +47,7 @@ export function usePictionaryStageCommand(
     (
       label: string,
       command: PictionaryCommandInput,
-    ): Promise<SuccessfulRoomCommandDispatchOutcome<PictionaryState> | null> => {
+    ): Promise<SuccessfulDispatchOutcome<PictionaryState> | null> => {
       if (inFlight.current !== null) {
         if (inFlight.current.commandType === command.type) return inFlight.current.promise;
         throw new Error(
@@ -58,7 +58,7 @@ export function usePictionaryStageCommand(
         .dispatch(createPictionaryCommand(state, command, effectiveSeat), {
           controlledSeat,
           label,
-          isRecoverable: true,
+          durable: true,
         })
         .then((result) => {
           if (isSuccessfulRoomCommand(result)) return result;

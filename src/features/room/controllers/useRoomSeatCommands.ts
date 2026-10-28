@@ -11,34 +11,34 @@ import {
   leaveRoomSeat,
   type RoomSeatCommandContext,
   takeRoomSeat,
-} from '@/features/room/session/roomSeatCommandClient';
+} from '@/features/room/link/roomSeatCommandClient';
 import type {
-  ActiveRoomIdentity,
-  RoomCommandDispatchOptions,
-  RoomCommandDispatchOutcome,
-  RoomSessionSnapshot,
-} from '@/features/room/session/types';
+  DispatchOptions,
+  DispatchOutcome,
+  LinkSnapshot,
+  RoomIdentity,
+} from '@/platform/realtime/types';
 
 export interface RoomSeatSession<TState extends BaseGameState<string>, TProfile> {
-  getSnapshot(): RoomSessionSnapshot<TState>;
+  getSnapshot(): LinkSnapshot<TState>;
   dispatch(
     command: RoomSeatCommand<TProfile>,
-    options: RoomCommandDispatchOptions,
-  ): Promise<RoomCommandDispatchOutcome<TState>>;
+    options: DispatchOptions,
+  ): Promise<DispatchOutcome<TState>>;
 }
 
 export interface RoomSeatCommandOperations<TState extends BaseGameState<string>> {
-  readonly takeSeat: (seat: number) => Promise<RoomCommandDispatchOutcome<TState>>;
-  readonly leaveSeat: () => Promise<RoomCommandDispatchOutcome<TState>>;
-  readonly kickSeat: (seat: number) => Promise<RoomCommandDispatchOutcome<TState>>;
-  readonly clearSeats: () => Promise<RoomCommandDispatchOutcome<TState>>;
-  readonly fillBots: () => Promise<RoomCommandDispatchOutcome<TState>>;
+  readonly takeSeat: (seat: number) => Promise<DispatchOutcome<TState>>;
+  readonly leaveSeat: () => Promise<DispatchOutcome<TState>>;
+  readonly kickSeat: (seat: number) => Promise<DispatchOutcome<TState>>;
+  readonly clearSeats: () => Promise<DispatchOutcome<TState>>;
+  readonly fillBots: () => Promise<DispatchOutcome<TState>>;
 }
 
 interface UseRoomSeatCommandsParams<TState extends BaseGameState<string>, TProfile> {
   readonly session: RoomSeatSession<TState, TProfile>;
   readonly userId: string;
-  readonly createProfile: (identity: ActiveRoomIdentity<TState['gameType']>) => TProfile;
+  readonly createProfile: (identity: RoomIdentity<TState['gameType']>) => TProfile;
 }
 
 export function useRoomSeatCommands<TState extends BaseGameState<string>, TProfile>({

@@ -19,7 +19,7 @@ import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/ro
 import type React from 'react';
 
 import type { StandardConfigRouteParams } from '@/features/navigation/model/standardRouteParsers';
-import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
+import type { DispatchOutcome } from '@/platform/realtime/types';
 
 export interface ConfigFieldRendererProps {
   readonly spec: AnyConfigFieldSpec;
@@ -52,7 +52,7 @@ export interface GameConfigScreenDefinition<
   readonly buildUpdateCommand: (config: TConfig) => TCommand;
   /** Creation payload; defaults to the config object itself. */
   readonly buildCreateConfig?: (config: TConfig) => Readonly<Record<string, unknown>>;
-  readonly getFailureMessage: (result: RoomCommandDispatchOutcome<TState>) => string;
+  readonly getFailureMessage: (result: DispatchOutcome<TState>) => string;
   /** Error-pipeline label for creation failures, e.g. `创建谁是卧底房间`. */
   readonly creationLabel: string;
   /** Footer summary line; defaults to `共 N 人` from `numberOfPlayers` when present. */

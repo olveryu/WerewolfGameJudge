@@ -108,7 +108,11 @@ function shellInput() {
     user: { id: 'host', avatarUrl: null },
     gachaStatus: null,
     onUserActionPress: jest.fn(),
-    connection: { status: 'live' as const, pendingCommandCount: 0, onManualReconnect: jest.fn() },
+    connection: {
+      status: { kind: 'live' as const },
+      pendingDurableCount: 0,
+      onRetryNow: jest.fn(),
+    },
     revision: 1,
     viewer: viewerFor('host'),
     controlledSeat: null,

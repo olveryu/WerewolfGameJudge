@@ -18,7 +18,7 @@ export interface FakeFetch {
   respond(handler: FetchHandler): void;
 }
 
-export function createFakeFetch(): FakeFetch {
+function createFakeFetch(): FakeFetch {
   const queue: FetchHandler[] = [];
   const requests: RecordedRequest[] = [];
   return {
@@ -43,7 +43,7 @@ export function createFakeFetch(): FakeFetch {
       const recorded: RecordedRequest = {
         url: input,
         method: init?.method ?? 'GET',
-        headers: { ...(init?.headers as Record<string, string> | undefined) },
+        headers: Object.fromEntries(new Headers(init?.headers)),
         body: body ?? null,
       };
       requests.push(recorded);
@@ -72,6 +72,13 @@ export function jsonResponse(status: number, body: unknown): Response {
     status,
     headers: { 'content-type': 'application/json' },
   });
+}
+
+/** Parse a recorded request's JSON body; throws when the request had no string body. */
+export function requestJson(request: RecordedRequest | undefined): unknown {
+  if (request === undefined) throw new Error('No request was recorded');
+  if (typeof request.body !== 'string') throw new Error('Recorded request has no JSON body');
+  return JSON.parse(request.body);
 }
 
 export function createMemoryTokenStorage(): TokenStorage & {

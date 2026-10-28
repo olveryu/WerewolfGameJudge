@@ -143,14 +143,10 @@ export const realtimeLog = log.extend('Realtime');
 export const audioLog = log.extend('Audio');
 /** Auth flow log */
 export const authLog = log.extend('Auth');
-/** Room management log */
-export const roomLog = log.extend('Room');
 /** Shared room session and command lifecycle log */
 export const roomSessionLog = log.extend('RoomSession');
 /** GameRoom hook log */
 export const gameRoomLog = log.extend('GameRoom');
-/** WebSocket connection lifecycle log */
-export const connectionLog = log.extend('Connection');
 /** Config loading log */
 export const configLog = log.extend('Config');
 /** RoomScreen log */

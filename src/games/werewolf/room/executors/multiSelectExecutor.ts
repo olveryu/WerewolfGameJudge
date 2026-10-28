@@ -9,7 +9,7 @@
 
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
-import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
+import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
 import { roomScreenLog } from '@/utils/logger';
 
 import type { IntentExecutor } from './types';

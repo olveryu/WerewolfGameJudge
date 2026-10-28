@@ -6,7 +6,7 @@
  * inside `room_state.game_state` remains the game module's own concern.
  */
 
-export const ROOM_STORAGE_SCHEMA_VERSION = 3;
+const ROOM_STORAGE_SCHEMA_VERSION = 3;
 
 const ROOM_STATE_COLUMNS = [
   'id',

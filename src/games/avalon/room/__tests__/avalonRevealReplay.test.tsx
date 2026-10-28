@@ -16,11 +16,14 @@ import {
   getAvalonNightParticipants,
   isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import type { ComponentProps } from 'react';
 import { Animated } from 'react-native';
 
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
+import { createFakeRoomLink, readyLinkSnapshot } from '@/test-utils/linkSnapshot';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
 
 import type { AvalonRoomSession } from '../../model/AvalonRoomSession';
 import { AvalonRoomScreen } from '../AvalonRoomScreen';
@@ -166,11 +169,6 @@ function midGameAfterFirstQuest(): DrivenGame {
   return game;
 }
 
-const successOutcome = {
-  kind: 'decided',
-  decision: { kind: 'committed', outcome: { kind: 'success' } },
-} as const;
-
 const ROOM: RoomRecord<'avalon'> = {
   roomCode: '1234',
   roomId: 'room-1234',
@@ -179,59 +177,18 @@ const ROOM: RoomRecord<'avalon'> = {
   createdAt: new Date(DRIVE_NOW),
 };
 
-/** Fake session whose snapshot can be replaced mid-test, notifying subscribers like production. */
+/** Fake link whose room snapshot can be replaced mid-test, notifying subscribers like production. */
 function createMutableSession(initialState: AvalonState, userId: string) {
-  let state = initialState;
-  let revision = 0;
-  const listeners = new Set<() => void>();
-  const buildSnapshot = () => {
-    revision += 1;
-    return {
-      epoch: 1,
-      phase: 'ready',
-      connection: 'live',
-      pendingCommandCount: 0,
-      lastRecoveredCommandRejection: null,
-      identity: {
-        room: {
-          roomCode: '1234',
-          roomId: 'room-1234',
-          gameType: 'avalon',
-          hostUserId: 'host',
-          createdAt: new Date(DRIVE_NOW),
-        },
-        userId,
-      },
-      lastCommand: null,
-      error: null,
-      snapshot: { gameType: 'avalon', stateVersion: 7, revision, state },
-    } as const;
-  };
-  let snapshot = buildSnapshot();
-  const session = {
-    getSnapshot: () => snapshot,
-    subscribe: (listener: () => void) => {
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-      };
-    },
-    dispatch: jest.fn(async () => successOutcome),
-    dispatchPrepared: jest.fn(async () => successOutcome),
-    prepare: jest.fn(() => {
-      throw new Error('prepare is not used by these scenarios');
-    }),
-    connect: jest.fn(async () => ({ kind: 'connected' })),
-    reconnect: jest.fn(async () => ({ kind: 'connected' })),
-    disconnect: jest.fn(),
-    acknowledgeRecoveredCommandRejection: jest.fn(),
-  };
+  let revision = 1;
+  const link = createFakeRoomLink<AvalonState, AvalonPublicCommand>(
+    readyLinkSnapshot({ room: ROOM, userId }, createRoomSnapshot(initialState, revision)),
+    async () => successfulRoomCommand(initialState),
+  );
   return {
-    session: session as unknown as AvalonRoomSession,
+    session: link,
     push(nextState: AvalonState) {
-      state = nextState;
-      snapshot = buildSnapshot();
-      for (const listener of listeners) listener();
+      revision += 1;
+      link.publishRoom(createRoomSnapshot(nextState, revision));
     },
   };
 }

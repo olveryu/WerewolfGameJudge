@@ -29,8 +29,8 @@ import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeo
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
@@ -140,10 +140,10 @@ export function useAvalonRoomState(
 ): AvalonRoomScreenState {
   const { session, room, navigation, entryController, audio } = props;
   const { user } = useAuthContext();
-  const snapshot = useRoomSessionSnapshot(session);
+  const snapshot = useRoomLinkSnapshot(session);
   if (user === null || snapshot.phase !== 'ready')
     throw new Error('Avalon requires an authenticated ready session');
-  const state = snapshot.snapshot.state;
+  const state = snapshot.room.state;
   const isHost = state.hostUserId === user.id;
   const bgm = useAvalonBgmControl(isHost, state.phase.kind, state.isAudioPlaying);
   // 第一晚播报：房主按序播放服务端队列，播完 ack。
@@ -215,7 +215,9 @@ export function useAvalonRoomState(
   // 只认未接管身份（resolveHostActorId），挂着接管座位发房主命令必然被拒；
   // 座位动作（以被接管机器人的身份发出）由调用方显式传 controlledSeat。
   const submit = (label: string, command: AvalonPublicCommand, control: number | null = null) =>
-    submission.submit(label, () => session.dispatch(command, { controlledSeat: control, label }));
+    submission.submit(label, () =>
+      session.dispatch(command, { controlledSeat: control, label, durable: false }),
+    );
   // 组队选人 modal 开关：选人与确认都在 modal 里做（见 confirmTeamPick），
   // 板子点选已停用，不再有派生镜像覆盖草稿。
   const [teamPickModal, setTeamPickModal] = useState<AvalonTeamPickKind | null>(null);
@@ -243,12 +245,12 @@ export function useAvalonRoomState(
     if (state.phase.kind === 'vote') {
       await session.dispatch(
         { type: 'avalon.phase.expire' },
-        { controlledSeat: null, label: '投票超时结算', isRecoverable: true },
+        { controlledSeat: null, label: '投票超时结算', durable: true },
       );
     } else if (state.phase.kind === 'quest') {
       await session.dispatch(
         { type: 'avalon.phase.expire' },
-        { controlledSeat: null, label: '任务超时结算', isRecoverable: true },
+        { controlledSeat: null, label: '任务超时结算', durable: true },
       );
     }
   }, [state.phase.kind, session]);
@@ -257,9 +259,9 @@ export function useAvalonRoomState(
     const current = session.getSnapshot();
     return (
       current.phase === 'ready' &&
-      current.connection === 'live' &&
-      current.pendingCommandCount === 0 &&
-      current.snapshot.state.phaseRevision === state.phaseRevision
+      current.status.kind === 'live' &&
+      current.pendingDurableCount === 0 &&
+      current.room.state.phaseRevision === state.phaseRevision
     );
   }, [phaseDeadlineAt, controlledSeat, session, state.phaseRevision]);
   const phaseRemainingSeconds = useStageDeadline({
@@ -357,7 +359,7 @@ export function useAvalonRoomState(
     onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
     connection: entryController.connection,
     state,
-    revision: snapshot.snapshot.revision,
+    revision: snapshot.room.revision,
     controlledSeat,
     seatsVisuallyDisabled:
       isAudioPlaybackLocked(state.isAudioPlaying) ||

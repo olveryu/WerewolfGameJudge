@@ -24,11 +24,11 @@ import { toast } from 'sonner-native';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { hasPreviousRouteInCurrentNavigator } from '@/features/navigation/model/navigationState';
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
-} from '@/features/room/session/roomCommandResult';
+} from '@/features/room/link/roomCommandResult';
 import type { SettingsService } from '@/features/settings/services/SettingsService';
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
@@ -84,8 +84,8 @@ export function useConfigScreenState({
 }: UseConfigScreenStateParams) {
   const { user } = useAuthContext();
   const { roomSession } = client;
-  const room = useRoomSessionSnapshot(roomSession);
-  const gameState = room.phase === 'ready' ? room.snapshot.state : null;
+  const room = useRoomLinkSnapshot(roomSession);
+  const gameState = room.phase === 'ready' ? room.room.state : null;
   const isEditMode = !!existingRoomCode;
   const isNominateMode = !!nominateMode;
 
@@ -256,7 +256,7 @@ export function useConfigScreenState({
         showErrorAlert('提交失败', translateReasonCode(reason));
         return;
       }
-      if (result.decision.outcome.reason === 'DEDUPLICATED') {
+      if (result.outcome.reason === 'DEDUPLICATED') {
         toast.info('已有相同板子建议，已自动为你投票');
       }
       onReturnToRoom(nominateMode.roomCode);

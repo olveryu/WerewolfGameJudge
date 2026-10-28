@@ -28,7 +28,6 @@ function createHarness() {
   const directory: RoomDirectory = {
     createRoom,
     getRoom: jest.fn(),
-    deleteRoom: jest.fn(),
   };
   const intentStore: RoomCreationIntentRepository = { getOrCreate, remove };
   return {

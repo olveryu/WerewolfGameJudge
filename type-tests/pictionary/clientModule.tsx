@@ -54,21 +54,15 @@ const pictionaryRoomAccount: RoomAccountCapability<typeof UNREGISTERED_GAME_TYPE
   subscribe: () => () => undefined,
   updateProfile: () =>
     Promise.resolve({
-      kind: 'decided',
-      decision: {
-        kind: 'rejected',
-        commandId: 'pictionary-profile',
-        reason: 'compile-only',
-      },
+      kind: 'rejected',
+      commandId: 'pictionary-profile',
+      reason: 'compile-only',
     }),
   leaveSeat: () =>
     Promise.resolve({
-      kind: 'decided',
-      decision: {
-        kind: 'rejected',
-        commandId: 'pictionary-leave',
-        reason: 'compile-only',
-      },
+      kind: 'rejected',
+      commandId: 'pictionary-leave',
+      reason: 'compile-only',
     }),
 };
 
@@ -101,10 +95,10 @@ const pictionaryClientPlugin = {
   gameType: UNREGISTERED_GAME_TYPE,
   navigation: pictionaryNavigationDefinition,
   createModule: (dependencies) => {
-    const session = dependencies.sessionFactory.create<PictionaryState, PictionaryCommand>({
-      stateCodec: pictionaryStateCodec,
-    });
-    void session;
+    const link = dependencies.sessionFactory.create<PictionaryState, PictionaryCommand>(
+      pictionaryStateCodec,
+    );
+    void link;
     return pictionaryClientModule;
   },
 } satisfies ClientGamePluginDefinition<typeof UNREGISTERED_GAME_TYPE>;

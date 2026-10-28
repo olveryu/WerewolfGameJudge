@@ -26,11 +26,11 @@ import type { WerewolfViewModel } from '@game-judge/game-engine/games/werewolf/p
 import { GameStatus, getSchema } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import {
   isSuccessfulRoomCommand,
-  type SuccessfulRoomCommandDispatchOutcome,
-} from '@/features/room/session/roomCommandResult';
+  type SuccessfulDispatchOutcome,
+} from '@/features/room/link/roomCommandResult';
+import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import { useWerewolfAckMutation } from '@/games/werewolf/hooks/useWerewolfAckMutation';
 import type { PendingRevealAck } from '@/games/werewolf/room/policy/pendingRevealAck';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
@@ -217,7 +217,7 @@ export function useActionOrchestrator({
   const confirmThenAct = useCallback(
     (
       targetSeat: number,
-      onAccepted: (result: SuccessfulRoomCommandDispatchOutcome<GameState>) => Promise<void> | void,
+      onAccepted: (result: SuccessfulDispatchOutcome<GameState>) => Promise<void> | void,
       opts?: { title?: string; message?: string },
     ) => {
       const title = opts?.title ?? currentSchema?.ui?.confirmTitle ?? '确认操作';

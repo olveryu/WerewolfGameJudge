@@ -9,7 +9,6 @@ import { createElement } from 'react';
 
 import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
-import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
 import { WerewolfAudioPlayer } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import { WerewolfAccountStatsSection } from '@/games/werewolf/components/WerewolfAccountStatsSection';
 import { WerewolfAppOverlay } from '@/games/werewolf/components/WerewolfAppOverlay';
@@ -22,10 +21,11 @@ import { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
 import { WerewolfGameClientRuntime } from '@/games/werewolf/runtime/WerewolfGameClientRuntime';
 import { EncyclopediaScreen } from '@/games/werewolf/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { NotepadScreen } from '@/games/werewolf/screens/NotepadScreen/NotepadScreen';
+import type { RoomLinkFactory } from '@/platform/realtime/RoomLinkFactory';
 import type { AudioService } from '@/services/infra/AudioService';
 
 interface CreateWerewolfUiModuleDeps {
-  readonly sessionFactory: GameSessionFactory;
+  readonly sessionFactory: RoomLinkFactory;
   readonly audioService: AudioService;
 }
 
@@ -33,9 +33,7 @@ export function createWerewolfUiModule({
   sessionFactory,
   audioService,
 }: CreateWerewolfUiModuleDeps) {
-  const roomSession = sessionFactory.create<GameState, WerewolfPublicCommand>({
-    stateCodec: WEREWOLF_STATE_CODEC,
-  });
+  const roomSession = sessionFactory.create<GameState, WerewolfPublicCommand>(WEREWOLF_STATE_CODEC);
   const audio = new WerewolfAudioPlayer(audioService);
   const client = new WerewolfGameClientRuntime({ roomSession, audio });
   const roomAccount = new WerewolfRoomAccountCapability(client);

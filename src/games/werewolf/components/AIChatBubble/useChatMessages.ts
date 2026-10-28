@@ -13,7 +13,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard } from 'react-native';
 
 import { NETWORK_ERROR } from '@/config/errorMessages';
-import type { RoomSessionSnapshot } from '@/features/room/session/types';
 import {
   type AIChatStorageOwner,
   clearAIChatMessages,
@@ -27,6 +26,7 @@ import {
 } from '@/games/werewolf/services/AIChatService';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import type { DisplayMessage } from '@/games/werewolf/state/WerewolfAIChatState';
+import type { LinkSnapshot } from '@/platform/realtime/types';
 import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { getUserFacingMessage, isNetworkError } from '@/utils/errorUtils';
@@ -62,7 +62,7 @@ export interface UseChatMessagesReturn {
 }
 
 interface WerewolfRoomContextSource {
-  getSnapshot(): RoomSessionSnapshot<GameState>;
+  getSnapshot(): LinkSnapshot<GameState>;
 }
 
 /**
@@ -152,7 +152,7 @@ export function useChatMessages(
       ) {
         throw new Error('[FAIL-FAST] AI chat owner does not match the active room session');
       }
-      const gameState = room.snapshot.state;
+      const gameState = room.room.state;
       const mySeat = getWerewolfUserSeat(gameState, owner.userId);
       const gameContext = buildPlayerContext(gameState, getWerewolfViewModel(gameState, mySeat));
       if (!isAIChatReady()) {

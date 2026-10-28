@@ -1,16 +1,25 @@
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus, WEREWOLF_STATE_VERSION } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { resolveRandomAnimation } from '@game-judge/game-engine/product/rewards';
 
-import type { RoomSessionSnapshot } from '@/features/room/session/types';
 import { WerewolfRoomAccountCapability } from '@/games/werewolf/profile/WerewolfRoomAccountCapability';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type { ReadyLinkSnapshot } from '@/platform/realtime/types';
+import { readyLinkSnapshot } from '@/test-utils/linkSnapshot';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
+import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
-function createReadySnapshot(isSeated: boolean): RoomSessionSnapshot<GameState> {
-  return {
-    phase: 'ready',
-    epoch: 1,
-    identity: {
+function createReadySnapshot(isSeated: boolean): ReadyLinkSnapshot<GameState> {
+  const state = buildWerewolfTestState({
+    roomCode: '1234',
+    hostUserId: 'u1',
+    status: GameStatus.Seated,
+    players: isSeated ? { 0: null, 1: { seat: 1, role: null } } : {},
+    roster: isSeated ? { 1: { seat: 1, userId: 'u1', profile: { displayName: 'P' } } } : {},
+  });
+  return readyLinkSnapshot<GameState>(
+    {
       room: {
         roomCode: '1234',
         roomId: 'room-id',
@@ -20,34 +29,14 @@ function createReadySnapshot(isSeated: boolean): RoomSessionSnapshot<GameState> 
       },
       userId: 'u1',
     },
-    connection: 'live',
-    pendingCommandCount: 0,
-    lastRecoveredCommandRejection: null,
-    snapshot: {
-      gameType: 'werewolf',
-      stateVersion: WEREWOLF_STATE_VERSION,
-      revision: 1,
-      state: {
-        status: GameStatus.Seated,
-        players: isSeated ? { 0: null, 1: { seat: 1, role: null, hasViewedRole: false } } : {},
-        roster: isSeated ? { 1: { seat: 1, userId: 'u1', profile: { displayName: 'P' } } } : {},
-      } as GameState,
-    },
-    lastCommand: null,
-    error: null,
-  };
+    createRoomSnapshot(state, 1),
+  );
 }
 
 function createClient(isSeated: boolean) {
-  const dispatch = jest.fn(async () => ({
-    kind: 'decided' as const,
-    decision: {
-      kind: 'committed' as const,
-      commandId: 'command-id',
-      snapshot: createReadySnapshot(false).snapshot,
-      outcome: { kind: 'applied' as const },
-    },
-  }));
+  const dispatch = jest.fn(async () =>
+    successfulRoomCommand(createReadySnapshot(false).room.state, 'command-id'),
+  );
   const roomSession = {
     getSnapshot: () => createReadySnapshot(isSeated),
     subscribe: () => () => {},
@@ -92,7 +81,7 @@ describe('WerewolfRoomAccountCapability', () => {
           seatAnimation: undefined,
         },
       },
-      { controlledSeat: null, label: 'updateRoomProfile' },
+      { controlledSeat: null, label: '同步资料', durable: false },
     );
   });
 
@@ -104,7 +93,7 @@ describe('WerewolfRoomAccountCapability', () => {
 
     expect(dispatch).toHaveBeenCalledWith(
       { type: 'room.seat.leave' },
-      { controlledSeat: null, label: 'leaveRoomSeat' },
+      { controlledSeat: null, label: '离座', durable: false },
     );
   });
 
@@ -127,7 +116,7 @@ describe('WerewolfRoomAccountCapability', () => {
           seatAnimation: undefined,
         },
       },
-      { controlledSeat: null, label: 'updateRoomProfile' },
+      { controlledSeat: null, label: '同步资料', durable: false },
     );
   });
 
@@ -150,7 +139,7 @@ describe('WerewolfRoomAccountCapability', () => {
           seatAnimation: undefined,
         },
       },
-      { controlledSeat: null, label: 'updateRoomProfile' },
+      { controlledSeat: null, label: '同步资料', durable: false },
     );
   });
 

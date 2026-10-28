@@ -9,8 +9,8 @@ import { useMemo } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -54,10 +54,10 @@ export function useUndercoverRoomScreenState({
   entryController,
 }: UndercoverRoomScreenStateInput): UndercoverRoomScreenState {
   const { user } = useAuthContext();
-  const snapshot = useRoomSessionSnapshot(session);
+  const snapshot = useRoomLinkSnapshot(session);
   if (user === null || snapshot.phase !== 'ready')
     throw new Error('Undercover content requires an authenticated ready session');
-  const state = snapshot.snapshot.state;
+  const state = snapshot.room.state;
   const isHost = state.hostUserId === user.id;
   const {
     share,
@@ -108,7 +108,7 @@ export function useUndercoverRoomScreenState({
     onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
     connection: entryController.connection,
     state,
-    revision: snapshot.snapshot.revision,
+    revision: snapshot.room.revision,
     controlledSeat: roster.controlledSeat,
     selectedSeat: controls.selectedSeat,
     isSelecting: controls.isSelecting,

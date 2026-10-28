@@ -585,7 +585,10 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
     );
 
     expect(entryImports).toContain('./games/catalog');
-    expect(concreteGameImports).toEqual(declaredWorkflows.map((workflow) => workflow.modulePath));
+    // Export order belongs to simple-import-sort; the contract is the exact set of workflows.
+    expect([...concreteGameImports].sort()).toEqual(
+      declaredWorkflows.map((workflow) => workflow.modulePath).sort(),
+    );
     for (const workflow of declaredWorkflows) {
       expect(workerEntry).toContain(
         `export { ${workflow.exportName} } from '${workflow.modulePath}';`,
@@ -886,15 +889,17 @@ describe('Worker ownership: source tree is exact', () => {
   it('defines the exact shared platform ownership roots', () => {
     expect(getTopLevelProductionDirectories(workerPlatformDir)).toEqual([
       'ai',
+      'commands',
       'crypto',
       'gameModules',
       'http',
       'observability',
+      'realtime',
       'room',
       'storage',
       'telemetry',
       'time',
-      'userEvents',
+      'userInbox',
       'wordSupply',
     ]);
     expect(getTopLevelProductionFiles(path.join(workerPlatformDir, 'time'))).toEqual([
@@ -1161,18 +1166,15 @@ describe('Client storage ownership', () => {
     ]);
   });
 
-  it('keeps direct local-storage access inside service ownership', () => {
+  it('keeps direct local-storage access inside service or platform ownership', () => {
     const consumers = srcFiles.filter((filePath) =>
       getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8')).includes(
         '@/services/infra/localStorage',
       ),
     );
     const offenders = consumers.filter((filePath) => {
-      const relativePath = path.relative(srcDir, filePath);
-      return (
-        !relativePath.startsWith(`services${path.sep}`) &&
-        !relativePath.split(path.sep).includes('services')
-      );
+      const segments = path.relative(srcDir, filePath).split(path.sep);
+      return segments[0] !== 'platform' && !segments.includes('services');
     });
 
     expect(offenders.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([]);
@@ -1335,25 +1337,39 @@ describe('Client ownership: generic audio and avatar utilities stay game-neutral
   });
 });
 
-describe('Client ownership: RoomSession has one implementation', () => {
-  it('defines exactly one RoomSession class in production client code', () => {
+describe('Client ownership: RoomLink has one implementation', () => {
+  it('defines exactly one RoomLink implementation in production client code', () => {
     const implementations = srcFiles.filter((filePath) =>
-      /\bclass\s+RoomSession\b/.test(fs.readFileSync(filePath, 'utf-8')),
+      /\bclass\s+RoomLinkImpl\b/.test(fs.readFileSync(filePath, 'utf-8')),
     );
 
     expect(implementations.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([
-      'src/features/room/session/RoomSession.ts',
+      'src/platform/realtime/RoomLink.ts',
     ]);
   });
 
-  it('is instantiated only by the production game-session factory', () => {
+  it('is instantiated only by the production room-link factory and its test harness', () => {
     const constructors = srcFiles.filter((filePath) =>
-      /\bnew\s+RoomSession\s*</.test(fs.readFileSync(filePath, 'utf-8')),
+      /\bnew\s+RoomLinkImpl\b/.test(fs.readFileSync(filePath, 'utf-8')),
     );
 
-    expect(constructors.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([
-      'src/app/CloudflareGameSessionFactory.ts',
+    expect(constructors.map((filePath) => path.relative(process.cwd(), filePath)).sort()).toEqual([
+      'src/platform/realtime/RoomLinkFactory.ts',
+      'src/test-utils/roomLink.ts',
     ]);
+  });
+
+  it('does not restore the previous session or connection layer', () => {
+    for (const relativePath of [
+      'src/features/room/session',
+      'src/services/connection',
+      'src/services/cloudflare/CFRealtimeService.ts',
+      'src/services/cloudflare/cfFetch.ts',
+      'src/services/infra/appVisibility.ts',
+      'src/app/CloudflareGameSessionFactory.ts',
+    ]) {
+      expect(fs.existsSync(path.join(process.cwd(), relativePath))).toBe(false);
+    }
   });
 });
 

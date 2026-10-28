@@ -4,13 +4,9 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useRoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { RecentRoomIdentity } from '@/features/room/services/recentRooms';
-import type {
-  ActiveRoomIdentity,
-  RoomCommandDispatchOutcome,
-  RoomConnectOutcome,
-  RoomSessionClient,
-  RoomSessionSnapshot,
-} from '@/features/room/session/types';
+import type { LinkSnapshot, RoomIdentity, RoomLink } from '@/platform/realtime/types';
+import { RoomLinkClosedError } from '@/platform/realtime/types';
+import { idleLinkSnapshot, readyLinkSnapshot } from '@/test-utils/linkSnapshot';
 import type { handleError } from '@/utils/errorPipeline';
 
 const mockHandleError = jest.fn<ReturnType<typeof handleError>, Parameters<typeof handleError>>();
@@ -47,99 +43,63 @@ function createRoom(): RoomRecord<'werewolf'> {
   };
 }
 
-function idleSnapshot(epoch = 0): RoomSessionSnapshot<TestState> {
-  return {
-    phase: 'idle',
-    epoch,
-    identity: null,
-    connection: 'disconnected',
-    pendingCommandCount: 0,
-    lastRecoveredCommandRejection: null,
-    snapshot: null,
-    lastCommand: null,
-    error: null,
-  };
+function roomSnapshotFor(identity: RoomIdentity<'werewolf'>) {
+  return createRoomSnapshot<TestState>(
+    {
+      gameType: 'werewolf',
+      stateVersion: 1,
+      roomCode: identity.room.roomCode,
+      hostUserId: identity.room.hostUserId,
+    },
+    1,
+  );
 }
 
-function readySnapshot(
-  identity: ActiveRoomIdentity<'werewolf'>,
-  connection: 'live' | 'failed' = 'live',
-): RoomSessionSnapshot<TestState> {
+function readySnapshot(identity: RoomIdentity<'werewolf'>): LinkSnapshot<TestState> {
+  return readyLinkSnapshot<TestState>(identity, roomSnapshotFor(identity));
+}
+
+function closedSnapshot(identity: RoomIdentity<'werewolf'>): LinkSnapshot<TestState> {
   return {
-    phase: 'ready',
     epoch: 1,
-    identity,
-    connection,
-    pendingCommandCount: 0,
-    lastRecoveredCommandRejection: null,
-    snapshot: createRoomSnapshot(
-      {
-        gameType: 'werewolf',
-        stateVersion: 1,
-        roomCode: identity.room.roomCode,
-        hostUserId: identity.room.hostUserId,
-      },
-      1,
-    ),
+    status: { kind: 'closed', reason: 'roomDeleted' },
     lastCommand: null,
-    error: null,
+    pendingDurableCount: 0,
+    presence: new Set(),
+    phase: 'closed',
+    identity,
+    room: null,
   };
 }
 
-function failedSnapshot(identity: ActiveRoomIdentity<'werewolf'>): RoomSessionSnapshot<TestState> {
-  return {
-    phase: 'failed',
-    epoch: 1,
-    identity,
-    connection: 'failed',
-    pendingCommandCount: 0,
-    lastRecoveredCommandRejection: null,
-    snapshot: null,
-    lastCommand: null,
-    error: new Error('connection failed'),
-  };
-}
-
-function createSession(initial: RoomSessionSnapshot<TestState> = idleSnapshot()) {
+function createLink(initial: LinkSnapshot<TestState> = idleLinkSnapshot()) {
   let snapshot = initial;
   const listeners = new Set<() => void>();
-  const emit = (next: RoomSessionSnapshot<TestState>): void => {
+  const emit = (next: LinkSnapshot<TestState>): void => {
     snapshot = next;
     for (const listener of listeners) listener();
   };
-  const connect = jest.fn<
-    Promise<RoomConnectOutcome>,
-    [ActiveRoomIdentity<'werewolf'>, AbortSignal?]
-  >();
-  const reconnect = jest.fn<Promise<RoomConnectOutcome>, [AbortSignal?]>();
-  const disconnect = jest.fn(() => emit(idleSnapshot(snapshot.epoch + 1)));
+  const connect = jest.fn<Promise<void>, [RoomIdentity<'werewolf'>, AbortSignal]>();
+  const close = jest.fn(() => emit(idleLinkSnapshot({ epoch: snapshot.epoch + 1 })));
+  const retryNow = jest.fn();
   connect.mockImplementation(async (identity) => {
     emit(readySnapshot(identity));
-    return { kind: 'connected' };
   });
-  reconnect.mockResolvedValue({ kind: 'connected' });
 
-  const session: RoomSessionClient<TestState, TestCommand> = {
+  const link: RoomLink<TestState, TestCommand> = {
     getSnapshot: () => snapshot,
     subscribe(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
     connect,
-    reconnect,
-    disconnect,
-    prepare: jest.fn(() => {
+    close,
+    retryNow,
+    dispatch: jest.fn(() => {
       throw new Error('not used');
     }),
-    dispatch: jest.fn<Promise<RoomCommandDispatchOutcome<TestState>>, []>(() => {
-      throw new Error('not used');
-    }),
-    dispatchPrepared: jest.fn<Promise<RoomCommandDispatchOutcome<TestState>>, []>(() => {
-      throw new Error('not used');
-    }),
-    acknowledgeRecoveredCommandRejection: jest.fn(),
   };
-  return { connect, disconnect, emit, reconnect, session };
+  return { connect, close, emit, retryNow, link };
 }
 
 beforeEach(() => {
@@ -149,11 +109,11 @@ beforeEach(() => {
 
 describe('useRoomEntryController', () => {
   it('does not connect before authentication is available', () => {
-    const { session, connect } = createSession();
+    const { link, connect } = createLink();
     const { result } = renderHook(() =>
       useRoomEntryController({
         room: createRoom(),
-        session,
+        link,
         authUserId: null,
         isAuthLoading: false,
         onExit: jest.fn(),
@@ -164,14 +124,14 @@ describe('useRoomEntryController', () => {
     expect(connect).not.toHaveBeenCalled();
   });
 
-  it('connects one exact identity, ignores equivalent room objects, and disconnects on unmount', async () => {
+  it('connects one exact identity, ignores equivalent room objects, and closes on unmount', async () => {
     const room = createRoom();
-    const { session, connect, disconnect } = createSession();
+    const { link, connect, close } = createLink();
     const { result, rerender, unmount } = renderHook(
       ({ resolvedRoom }: { resolvedRoom: RoomRecord<'werewolf'> }) =>
         useRoomEntryController({
           room: resolvedRoom,
-          session,
+          link,
           authUserId: 'host-user',
           isAuthLoading: false,
           onExit: jest.fn(),
@@ -191,29 +151,28 @@ describe('useRoomEntryController', () => {
 
     rerender({ resolvedRoom: createRoom() });
     expect(connect).toHaveBeenCalledTimes(1);
-    expect(disconnect).not.toHaveBeenCalled();
+    expect(close).not.toHaveBeenCalled();
 
     unmount();
-    expect(disconnect).toHaveBeenCalledTimes(1);
+    expect(close).toHaveBeenCalledTimes(1);
   });
 
-  it('retries only after an explicit retry from a failed session', async () => {
+  it('shows the close message and retries only after an explicit retry from a closed link', async () => {
     const room = createRoom();
     const identity = { room, userId: 'host-user' };
-    const testSession = createSession();
-    testSession.connect
+    const testLink = createLink();
+    testLink.connect
       .mockImplementationOnce(async () => {
-        testSession.emit(failedSnapshot(identity));
-        throw new Error('first attempt failed');
+        testLink.emit(closedSnapshot(identity));
+        throw new RoomLinkClosedError('roomDeleted');
       })
       .mockImplementationOnce(async () => {
-        testSession.emit(readySnapshot(identity));
-        return { kind: 'connected' };
+        testLink.emit(readySnapshot(identity));
       });
     const { result } = renderHook(() =>
       useRoomEntryController({
         room,
-        session: testSession.session,
+        link: testLink.link,
         authUserId: 'host-user',
         isAuthLoading: false,
         onExit: jest.fn(),
@@ -221,17 +180,39 @@ describe('useRoomEntryController', () => {
     );
 
     await waitFor(() => expect(result.current.showRetryButton).toBe(true));
-    expect(testSession.connect).toHaveBeenCalledTimes(1);
+    expect(result.current.loadingMessage).toBe('房间已过期关闭');
+    expect(testLink.connect).toHaveBeenCalledTimes(1);
     expect(mockAddRecentRoom).not.toHaveBeenCalled();
+    // A terminal close is presented from the link status, never as an unexpected error.
+    expect(mockHandleError).not.toHaveBeenCalled();
 
     act(() => result.current.retry());
 
     await waitFor(() => expect(result.current.isReady).toBe(true));
-    expect(testSession.connect).toHaveBeenCalledTimes(2);
+    // Retry releases the closed epoch before connecting again.
+    expect(testLink.close).toHaveBeenCalledTimes(1);
+    expect(testLink.connect).toHaveBeenCalledTimes(2);
     expect(mockAddRecentRoom).toHaveBeenCalledTimes(1);
-    expect(mockHandleError).toHaveBeenCalledWith(
-      expect.any(Error),
-      expect.objectContaining({ label: '加入房间' }),
+  });
+
+  it('reports an unexpected connect failure through the error pipeline', async () => {
+    const testLink = createLink();
+    testLink.connect.mockRejectedValueOnce(new Error('directory exploded'));
+    renderHook(() =>
+      useRoomEntryController({
+        room: createRoom(),
+        link: testLink.link,
+        authUserId: 'host-user',
+        isAuthLoading: false,
+        onExit: jest.fn(),
+      }),
+    );
+
+    await waitFor(() =>
+      expect(mockHandleError).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({ label: '加入房间' }),
+      ),
     );
   });
 
@@ -239,11 +220,11 @@ describe('useRoomEntryController', () => {
     mockAddRecentRoom.mockImplementation(() => {
       throw new Error('storage unavailable');
     });
-    const { session } = createSession();
+    const { link } = createLink();
     const { result } = renderHook(() =>
       useRoomEntryController({
         room: createRoom(),
-        session,
+        link,
         authUserId: 'host-user',
         isAuthLoading: false,
         onExit: jest.fn(),
@@ -257,26 +238,33 @@ describe('useRoomEntryController', () => {
     );
   });
 
-  it('fails fast when manual reconnect is requested twice concurrently', () => {
+  it('exposes the link status and forwards retry-now to the link', () => {
     const room = createRoom();
     const identity = { room, userId: 'host-user' };
-    const testSession = createSession(readySnapshot(identity, 'failed'));
-    testSession.reconnect.mockImplementation(() => new Promise(() => undefined));
+    const testLink = createLink(readySnapshot(identity));
     const { result } = renderHook(() =>
       useRoomEntryController({
         room,
-        session: testSession.session,
+        link: testLink.link,
         authUserId: 'host-user',
         isAuthLoading: false,
         onExit: jest.fn(),
       }),
     );
 
-    act(() => result.current.connection.onManualReconnect());
+    expect(testLink.connect).not.toHaveBeenCalled();
+    expect(result.current.connection.status).toEqual({ kind: 'live' });
 
-    expect(() => result.current.connection.onManualReconnect()).toThrow(
-      'Room reconnect is already in progress',
+    act(() =>
+      testLink.emit(
+        readyLinkSnapshot<TestState>(identity, roomSnapshotFor(identity), {
+          status: { kind: 'waiting', cause: 'backoff', attempt: 2, nextRetryAtMs: 5_000 },
+          pendingDurableCount: 1,
+        }),
+      ),
     );
-    expect(testSession.reconnect).toHaveBeenCalledTimes(1);
+    expect(result.current.connection.pendingDurableCount).toBe(1);
+    act(() => result.current.connection.onRetryNow());
+    expect(testLink.retryNow).toHaveBeenCalledTimes(1);
   });
 });

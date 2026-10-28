@@ -1,12 +1,12 @@
 /** Open authoring contract for one client game plugin before production registration. */
 
 import type { GameNavigationDefinition } from '@/features/navigation/model/GameNavigationContribution';
-import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
 import type { ClientGameModule } from '@/games/model/ClientGameCatalog';
+import type { RoomLinkFactory } from '@/platform/realtime/RoomLinkFactory';
 import type { AudioService } from '@/services/infra/AudioService';
 
 export interface ClientGameModuleDependencies {
-  readonly sessionFactory: GameSessionFactory;
+  readonly sessionFactory: RoomLinkFactory;
   readonly audioService: AudioService;
 }
 

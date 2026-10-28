@@ -19,7 +19,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { UI_ICONS } from '@/config/iconTokens';
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { buildNotepadSummary } from '@/games/werewolf/components/AIChatBubble/notepadSummary';
 import { NotepadPanel } from '@/games/werewolf/components/NotepadPanel';
 import { useNotepad } from '@/games/werewolf/hooks/useNotepad';
@@ -44,13 +44,13 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
   const route = useRoute<RouteProp<RootStackParamList, 'GameNotepad'>>();
   const { roomCode } = parseWerewolfNotepadRouteParams(route.params);
 
-  const room = useRoomSessionSnapshot(client.roomSession);
+  const room = useRoomLinkSnapshot(client.roomSession);
   const activeNotepadRoom =
     room.phase === 'ready' && room.identity.room.roomCode === roomCode
       ? {
           userId: room.identity.userId,
           roomId: room.identity.room.roomId,
-          gameState: room.snapshot.state,
+          gameState: room.room.state,
         }
       : null;
   const gameState = activeNotepadRoom?.gameState ?? null;

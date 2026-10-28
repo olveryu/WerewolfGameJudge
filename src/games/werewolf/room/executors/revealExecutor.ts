@@ -33,7 +33,7 @@ export const revealExecutor: IntentExecutor = (intent, ctx) => {
   const revealKind = intent.revealKind;
 
   confirmThenAct(intent.targetSeat, async (accepted) => {
-    const state = toWerewolfLocalState(accepted.decision.snapshot.state);
+    const state = toWerewolfLocalState(accepted.snapshot.state);
     const result = presentRevealAckDialog({
       state,
       schema: currentSchema,

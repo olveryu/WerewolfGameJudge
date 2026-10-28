@@ -13,8 +13,9 @@ import {
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { act, renderHook } from '@testing-library/react-native';
 
-import type { RoomSessionSnapshot } from '@/features/room/session/types';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
+import type { LinkStatus, ReadyLinkSnapshot } from '@/platform/realtime/types';
+import { readyLinkSnapshot } from '@/test-utils/linkSnapshot';
 import { handleError } from '@/utils/errorPipeline';
 
 import {
@@ -56,42 +57,33 @@ function createCollection() {
   for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1)
     dispatchEngine({ type: 'pictionary.task.ready.set', isReady: true }, `user-${seat}`);
   const collection = state;
-  let snapshot: Extract<RoomSessionSnapshot<PictionaryState>, { phase: 'ready' }> = {
-    phase: 'ready',
-    epoch: 1,
-    connection: 'live',
-    pendingCommandCount: 0,
-    lastRecoveredCommandRejection: null,
-    lastCommand: null,
-    error: null,
-    identity: {
-      userId: 'user-0',
-      room: {
-        roomCode: '2468',
-        roomId: 'room-id',
-        gameType: 'pictionary',
-        hostUserId: 'user-0',
-        createdAt: new Date(),
-      },
+  const identity = {
+    userId: 'user-0',
+    room: {
+      roomCode: '2468',
+      roomId: 'room-id',
+      gameType: 'pictionary' as const,
+      hostUserId: 'user-0',
+      createdAt: new Date(),
     },
-    snapshot: createRoomSnapshot(state, sequence),
   };
+  let snapshot: ReadyLinkSnapshot<PictionaryState> = readyLinkSnapshot(
+    identity,
+    createRoomSnapshot(state, sequence),
+  );
   const listeners = new Set<() => void>();
   const publish = () => {
     for (const listener of listeners) listener();
   };
   const acknowledge = (command: PictionaryPublicCommand) => {
     dispatchEngine(command);
-    snapshot = { ...snapshot, snapshot: createRoomSnapshot(state, sequence) };
+    snapshot = { ...snapshot, room: createRoomSnapshot(state, sequence) };
     publish();
     return {
-      kind: 'decided' as const,
-      decision: {
-        kind: 'committed' as const,
-        commandId: `command-${sequence}`,
-        snapshot: snapshot.snapshot,
-        outcome: { kind: 'success' as const },
-      },
+      kind: 'committed' as const,
+      commandId: `command-${sequence}`,
+      snapshot: snapshot.room,
+      outcome: { kind: 'success' as const },
     };
   };
   const dispatch = jest.fn<
@@ -108,8 +100,8 @@ function createCollection() {
     },
     dispatch,
   } as unknown as PictionaryRoomSession;
-  const setConnection = (connection: typeof snapshot.connection) => {
-    snapshot = { ...snapshot, connection };
+  const setConnection = (status: LinkStatus) => {
+    snapshot = { ...snapshot, status };
     publish();
   };
   const inputs = new Map<number, PictionaryTaskInput>([[0, ' 还没写完\n']]);
@@ -142,7 +134,7 @@ it('retains raw text through a transient failure and automatically retries', asy
       { type: 'pictionary.text.submit', text: ' 还没写完\n' },
       0,
     ),
-    expect.objectContaining({ isRecoverable: true }),
+    expect.objectContaining({ durable: true }),
   );
   expect(result.current.status).toBe('waiting');
   expect(handleError).not.toHaveBeenCalled();
@@ -150,14 +142,14 @@ it('retains raw text through a transient failure and automatically retries', asy
 
 it('resumes on an authoritative live connection without a manual retry', async () => {
   const fixture = createCollection();
-  fixture.setConnection('disconnected');
+  fixture.setConnection({ kind: 'waiting', cause: 'offline', attempt: 1, nextRetryAtMs: null });
   const { result } = renderHook(() =>
     usePictionaryAutoSubmission(fixture.collection, 'user-0', fixture.session, fixture.inputs),
   );
   expect(result.current.status).toBe('retrying');
   expect(fixture.dispatch).not.toHaveBeenCalled();
   await act(async () => {
-    fixture.setConnection('live');
+    fixture.setConnection({ kind: 'live' });
   });
   expect(fixture.dispatch).toHaveBeenCalledTimes(1);
   expect(result.current.status).toBe('waiting');
@@ -183,12 +175,9 @@ it('accepts a snapshot acknowledgement when the successful HTTP response is lost
 it('reports an explicit domain rejection without retrying indefinitely', async () => {
   const fixture = createCollection();
   fixture.dispatch.mockResolvedValueOnce({
-    kind: 'decided',
-    decision: {
-      kind: 'rejected',
-      commandId: 'rejected',
-      reason: 'pictionary_text_invalid',
-    },
+    kind: 'rejected',
+    commandId: 'rejected',
+    reason: 'pictionary_text_invalid',
   });
   const { result } = renderHook(() =>
     usePictionaryAutoSubmission(fixture.collection, 'user-0', fixture.session, fixture.inputs),
@@ -213,7 +202,7 @@ it('automatically submits an empty input', async () => {
   expect(fixture.dispatch).toHaveBeenCalledTimes(1);
   expect(fixture.dispatch).toHaveBeenCalledWith(
     expect.objectContaining({ type: 'pictionary.task.empty.submit' }),
-    expect.objectContaining({ isRecoverable: true }),
+    expect.objectContaining({ durable: true }),
   );
   expect(result.current.status).toBe('waiting');
 });
@@ -221,14 +210,14 @@ it('automatically submits an empty input', async () => {
 it('waits for reconnection and retries automatic blank delivery after a network failure', async () => {
   const fixture = createCollection();
   fixture.inputs.clear();
-  fixture.setConnection('disconnected');
+  fixture.setConnection({ kind: 'waiting', cause: 'offline', attempt: 1, nextRetryAtMs: null });
   fixture.dispatch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
   const { result } = renderHook(() =>
     usePictionaryAutoSubmission(fixture.collection, 'user-0', fixture.session, fixture.inputs),
   );
   expect(fixture.dispatch).not.toHaveBeenCalled();
   await act(async () => {
-    fixture.setConnection('live');
+    fixture.setConnection({ kind: 'live' });
   });
   expect(result.current.status).toBe('retrying');
   await act(async () => {
@@ -237,7 +226,7 @@ it('waits for reconnection and retries automatic blank delivery after a network 
   expect(fixture.dispatch).toHaveBeenCalledTimes(2);
   expect(fixture.dispatch).toHaveBeenLastCalledWith(
     expect.objectContaining({ type: 'pictionary.task.empty.submit' }),
-    expect.objectContaining({ isRecoverable: true }),
+    expect.objectContaining({ durable: true }),
   );
   expect(result.current.status).toBe('waiting');
   expect(handleError).not.toHaveBeenCalled();

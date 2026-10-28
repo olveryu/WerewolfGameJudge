@@ -10,6 +10,7 @@ import { createContext, use, useMemo } from 'react';
 
 import type { RoomCreator, RoomDirectory } from '@/features/room/model/RoomDirectory';
 import type { SettingsService } from '@/features/settings/services/SettingsService';
+import type { InboxWakeSignal } from '@/platform/inbox/inboxWake';
 import type { AudioService } from '@/services/infra/AudioService';
 import type { IAuthService } from '@/services/types/IAuthService';
 import type { IAvatarUploadService } from '@/services/types/IAvatarUploadService';
@@ -22,6 +23,8 @@ export interface ServiceContextValue {
   settingsService: SettingsService;
   audioService: AudioService;
   avatarUploadService: IAvatarUploadService;
+  /** Room links emit on `live` and INBOX_HINT; the account inbox consumer drains on it. */
+  inboxWakes: InboxWakeSignal;
 }
 
 const ServiceContext = createContext<ServiceContextValue | null>(null);

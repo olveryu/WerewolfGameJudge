@@ -21,9 +21,9 @@ import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeo
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomRosterController } from '@/features/room/controllers/useRoomRosterController';
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
@@ -100,12 +100,12 @@ export function useFibRoomScreenState({
     throw new Error('[FAIL-FAST] Ready FibKing room requires an authenticated user');
   }
 
-  const sessionSnapshot = useRoomSessionSnapshot(session);
+  const sessionSnapshot = useRoomLinkSnapshot(session);
   if (sessionSnapshot.phase !== 'ready') {
     throw new Error('[FAIL-FAST] FibKing room content requires a ready room session');
   }
-  const state = sessionSnapshot.snapshot.state;
-  const revision = sessionSnapshot.snapshot.revision;
+  const state = sessionSnapshot.room.state;
+  const revision = sessionSnapshot.room.revision;
   const isHost = state.hostUserId === user.id;
   const mySeat = getFibUserSeat(state, user.id);
   const viewer = useMemo(
@@ -184,7 +184,9 @@ export function useFibRoomScreenState({
   // 只认未接管身份（resolveHostActorId），挂着接管座位发房主命令必然被拒；
   // 座位动作（以被接管机器人的身份发出）由调用方显式传 controlledSeat。
   const submit = (label: string, command: FibPublicCommand, control: number | null = null) =>
-    submitRoomCommand(label, () => session.dispatch(command, { controlledSeat: control, label }));
+    submitRoomCommand(label, () =>
+      session.dispatch(command, { controlledSeat: control, label, durable: false }),
+    );
 
   const startRound = () => {
     const label =

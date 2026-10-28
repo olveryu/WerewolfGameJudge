@@ -14,7 +14,29 @@ import { realtimeLog } from '@/utils/logger';
 
 import { createOutboxStorage } from './outboxStorage';
 import { createRoomLease, type RoomLease, RoomLinkImpl } from './RoomLink';
-import type { RoomLink } from './types';
+import type { RealtimeSocket } from './SocketChannel';
+import type { InboxWakeReason, RoomLink } from './types';
+
+/** Project the browser WebSocket onto the channel port; handlers receive only what the port names. */
+function openBrowserSocket(url: string): RealtimeSocket {
+  const socket = new WebSocket(url);
+  const port: RealtimeSocket = {
+    get readyState() {
+      return socket.readyState;
+    },
+    onopen: null,
+    onmessage: null,
+    onclose: null,
+    onerror: null,
+    send: (data) => socket.send(data),
+    close: (code, reason) => socket.close(code, reason),
+  };
+  socket.onopen = () => port.onopen?.();
+  socket.onmessage = (event) => port.onmessage?.({ data: event.data });
+  socket.onclose = (event) => port.onclose?.({ code: event.code, reason: event.reason });
+  socket.onerror = () => port.onerror?.();
+  return port;
+}
 
 export interface RoomLinkFactory {
   create<TState extends BaseGameState<string>, TCommand extends object>(
@@ -23,8 +45,8 @@ export interface RoomLinkFactory {
 }
 
 export interface RoomLinkFactoryOptions {
-  /** Called on every INBOX_HINT frame; wired to the account inbox consumer. */
-  readonly onInboxHint: () => void;
+  /** Called on every INBOX_HINT frame and whenever a link becomes live. */
+  readonly onInboxWake: (reason: InboxWakeReason) => void;
 }
 
 export function createRoomLinkFactory(options: RoomLinkFactoryOptions): RoomLinkFactory {
@@ -41,16 +63,16 @@ export function createRoomLinkFactory(options: RoomLinkFactoryOptions): RoomLink
         environment: platformEnvironment,
         outboxStorage,
         newCommandId: newRequestId,
-        createSocket: (url) => new WebSocket(url),
+        createSocket: openBrowserSocket,
         now: Date.now,
         random: Math.random,
         setTimeout: (callback, delayMs) => setTimeout(callback, delayMs),
-        clearTimeout: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
+        clearTimeout: (handle) => clearTimeout(handle),
         onProtocolError: (error) => {
           realtimeLog.error('realtime protocol error', { error: error.message });
           Sentry.captureException(error);
         },
-        onInboxHint: options.onInboxHint,
+        onInboxWake: options.onInboxWake,
       }),
   };
 }

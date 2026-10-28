@@ -4,6 +4,6 @@ import type {
   UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
 
-import type { RoomSessionClient } from '@/features/room/session/types';
+import type { RoomLink } from '@/platform/realtime/types';
 
-export type UndercoverRoomSession = RoomSessionClient<UndercoverState, UndercoverPublicCommand>;
+export type UndercoverRoomSession = RoomLink<UndercoverState, UndercoverPublicCommand>;

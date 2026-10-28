@@ -283,7 +283,7 @@ it('requires confirmation to restart an active round and exposes restart in host
   });
   expect(session.dispatch).toHaveBeenCalledWith(
     { type: 'undercover.game.redeal', roundId: state.round.roundId },
-    { controlledSeat: null, label: '重新开始' },
+    { controlledSeat: null, label: '重新开始', durable: false },
   );
   const aborted = dispatch(state, { type: 'undercover.game.abort', roundId: state.round.roundId });
   rerender({ currentState: aborted });
@@ -424,9 +424,9 @@ describe('createUndercoverRoomShellModel', () => {
       shareImage: jest.fn(async () => undefined),
     };
     const connection = {
-      status: 'live' as const,
-      pendingCommandCount: 0,
-      onManualReconnect: jest.fn(),
+      status: { kind: 'live' as const },
+      pendingDurableCount: 0,
+      onRetryNow: jest.fn(),
     };
     const onSeatPress = jest.fn();
     const onBotSeatLongPress = jest.fn();
@@ -533,9 +533,9 @@ describe('createUndercoverRoomShellModel', () => {
       gachaStatus: null,
       onUserActionPress: jest.fn(),
       connection: {
-        status: 'live' as const,
-        pendingCommandCount: 0,
-        onManualReconnect: jest.fn(),
+        status: { kind: 'live' as const },
+        pendingDurableCount: 0,
+        onRetryNow: jest.fn(),
       },
       state,
       revision: 3,

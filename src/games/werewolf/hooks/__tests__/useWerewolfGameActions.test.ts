@@ -16,7 +16,11 @@ import type {
   WerewolfGameClient,
 } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
-import { domainRejectedRoomCommand, successfulRoomCommand } from '@/test-utils/roomCommand';
+import {
+  domainRejectedRoomCommand,
+  successfulRoomCommand,
+  undeliveredRoomCommand,
+} from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
 // Mock showAlert
@@ -45,15 +49,19 @@ function domainRejected(
   return domainRejectedRoomCommand(protocolState, reason, commandId);
 }
 
-function deliveryUnknown(
-  reason: string,
+function undelivered(
+  cause: 'network' | 'timeout' | 'server',
   commandId = 'test-command',
 ): WerewolfCommandDispatchOutcome {
-  return { kind: 'deliveryUnknown', commandId, reason };
+  return undeliveredRoomCommand(cause, commandId);
 }
 
-function notDecided(reason: string, commandId = 'test-command'): WerewolfCommandDispatchOutcome {
-  return { kind: 'notDecided', commandId, reason };
+function unavailable(commandId = 'test-command'): WerewolfCommandDispatchOutcome {
+  return { kind: 'unavailable', commandId };
+}
+
+function cancelled(commandId = 'test-command'): WerewolfCommandDispatchOutcome {
+  return { kind: 'cancelled', commandId };
 }
 
 type MockClient = {
@@ -306,7 +314,7 @@ describe('useWerewolfGameActions - game control', () => {
   it('postProgression should return false on failure for host', async () => {
     const deps = createDeps({
       client: createMockClient({
-        postProgression: jest.fn().mockResolvedValue(deliveryUnknown('NETWORK_ERROR')),
+        postProgression: jest.fn().mockResolvedValue(undelivered('network')),
       }),
     });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
@@ -578,9 +586,9 @@ describe('useWerewolfGameActions - handleCommandOutcome', () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it('keeps a recoverable action pending without presenting network uncertainty as failure', async () => {
+  it('stays silent when the durable action is cancelled with its link epoch', async () => {
     const client = createMockClient({
-      submitAction: jest.fn().mockResolvedValue(deliveryUnknown('NETWORK_ERROR')),
+      submitAction: jest.fn().mockResolvedValue(cancelled()),
     });
     const deps = createDeps({
       client,
@@ -591,26 +599,12 @@ describe('useWerewolfGameActions - handleCommandOutcome', () => {
     await act(() => result.current.submitAction({ kind: 'target', target: 2 }));
 
     expect(mockShowAlert).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it('keeps a recoverable action pending when the server outcome is unknown', async () => {
+  it('presents a missing room so the player can retry the action', async () => {
     const client = createMockClient({
-      submitAction: jest.fn().mockResolvedValue(deliveryUnknown('SERVER_ERROR')),
-    });
-    const deps = createDeps({
-      client,
-      botControl: createMockBotControl({ effectiveSeat: 1, effectiveRole: 'wolf' }),
-    });
-    const { result } = renderHook(() => useWerewolfGameActions(deps));
-
-    await act(() => result.current.submitAction({ kind: 'target', target: 2 }));
-
-    expect(mockShowAlert).not.toHaveBeenCalled();
-  });
-
-  it('presents definitive non-delivery so the player can retry the action', async () => {
-    const client = createMockClient({
-      submitAction: jest.fn().mockResolvedValue(notDecided('no_state')),
+      submitAction: jest.fn().mockResolvedValue(unavailable()),
     });
     const deps = createDeps({
       client,
@@ -653,9 +647,9 @@ describe('useWerewolfGameActions - handleCommandOutcome', () => {
     });
   });
 
-  it('should alert on NETWORK_ERROR even with toastError callback', async () => {
+  it('should alert on network non-delivery even with toastError callback', async () => {
     const client = createMockClient({
-      submitRevealAck: jest.fn().mockResolvedValue(deliveryUnknown('NETWORK_ERROR')),
+      submitRevealAck: jest.fn().mockResolvedValue(undelivered('network')),
     });
     const deps = createDeps({ client });
     const { result } = renderHook(() => useWerewolfGameActions(deps));

@@ -14,7 +14,7 @@ import type { LinkStatus } from './types';
 // ─── Tunables (sources in docs/realtime-link-redesign.md §4) ────────────────
 
 /** First retry is immediate; later retries use full-jitter exponential backoff. */
-export const BACKOFF_BASE_MS = 1_000;
+const BACKOFF_BASE_MS = 1_000;
 /** PartySocket default maxReconnectionDelay. */
 export const BACKOFF_CAP_MS = 10_000;
 /** PartySocket default minUptime: the attempt counter resets only after this much live time. */

@@ -27,12 +27,12 @@ import {
   useSignOut,
 } from '@/features/auth/controllers/useAuthMutations';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
-import type { RoomProfilePatch } from '@/features/room/model/RoomAccountCapability';
-import { clearRecentRooms } from '@/features/room/services/recentRooms';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
-} from '@/features/room/session/roomCommandResult';
+} from '@/features/room/link/roomCommandResult';
+import type { RoomProfilePatch } from '@/features/room/model/RoomAccountCapability';
+import { clearRecentRooms } from '@/features/room/services/recentRooms';
 import { useActiveRoomAccount, useClientGameCatalog } from '@/games/ClientGameCatalogContext';
 import { getClientGameModules } from '@/games/model/ClientGameCatalog';
 import { type RootStackParamList } from '@/navigation/types';

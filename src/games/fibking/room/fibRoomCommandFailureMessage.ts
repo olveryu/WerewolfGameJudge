@@ -20,7 +20,7 @@ import {
 import {
   createRoomCommandFailureMessage,
   ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
-} from '@/features/room/session/createRoomCommandFailureMessage';
+} from '@/features/room/link/createRoomCommandFailureMessage';
 
 export const getFibRoomCommandFailureMessage = createRoomCommandFailureMessage<FibState>({
   [REASON_FIB_GAME_NOT_ENDED]: '当前游戏尚未结束',

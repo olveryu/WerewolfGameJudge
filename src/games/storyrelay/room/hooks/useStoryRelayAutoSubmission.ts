@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
-} from '@/features/room/session/roomCommandResult';
+} from '@/features/room/link/roomCommandResult';
 import { type StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -67,22 +67,22 @@ export function useStoryRelayAutoSubmission(
       if (!isMounted || isRunning || hasFailure) return;
       const current = session.getSnapshot();
       if (current.phase !== 'ready') return;
-      if (current.connection !== 'live' || current.pendingCommandCount > 0) {
+      if (current.status.kind !== 'live' || current.pendingDurableCount > 0) {
         setStatus('retrying');
         return;
       }
       if (
-        current.snapshot.state.roundId !== roundId ||
-        current.snapshot.state.stepIndex !== stepIndex ||
-        current.snapshot.state.phase !== 'settling'
+        current.room.state.roundId !== roundId ||
+        current.room.state.stepIndex !== stepIndex ||
+        current.room.state.phase !== 'settling'
       )
         return;
       isRunning = true;
       setStatus('submitting');
       try {
-        const mySeat = getStoryRelayUserSeat(current.snapshot.state, userId);
+        const mySeat = getStoryRelayUserSeat(current.room.state, userId);
         let hasInvalidInputs = false;
-        for (const task of getStoryRelayOwnedTasks(current.snapshot.state, userId)) {
+        for (const task of getStoryRelayOwnedTasks(current.room.state, userId)) {
           if (task.isSubmitted) continue;
           const text = inputs.get(task.authorSeat) ?? '';
           if (text.length > STORY_RELAY_TEXT_MAX_LENGTH) {
@@ -101,19 +101,17 @@ export function useStoryRelayAutoSubmission(
             {
               controlledSeat: task.authorSeat === mySeat ? null : task.authorSeat,
               label: '提交故事稿件',
-              isRecoverable: true,
+              durable: true,
             },
           );
           if (!isMounted) return;
-          if (result.kind !== 'decided') {
-            setStatus('retrying');
-            return;
-          }
+          // The link epoch ended; the next epoch replays the persisted command.
+          if (result.kind === 'cancelled') return;
           if (!isSuccessfulRoomCommand(result)) {
             const latest = session.getSnapshot();
             if (latest.phase === 'ready') {
               if (
-                latest.snapshot.state.chains.find((chain) => chain.id === task.chainId)?.entries[
+                latest.room.state.chains.find((chain) => chain.id === task.chainId)?.entries[
                   task.stepIndex
                 ] !== undefined
               )

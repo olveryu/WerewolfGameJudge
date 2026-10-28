@@ -19,7 +19,7 @@ import { getGameRoomStub } from '../room/roomStub';
 export type RoomSocketAuthenticator = (token: string, bindings: Env) => Promise<string | null>;
 
 /** Upgrade and immediately close so the client observes `code` instead of an opaque 1006. */
-export function rejectUpgrade(code: RealtimeCloseCode, reason: string): Response {
+function rejectUpgrade(code: RealtimeCloseCode, reason: string): Response {
   const pair = new WebSocketPair();
   pair[1].accept();
   pair[1].close(code, reason);

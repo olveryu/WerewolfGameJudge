@@ -9,7 +9,7 @@ import {
   ROOM_COMMAND_FAILURE_OCCUPIED_OUT_OF_RANGE_WITH_MOVE,
   ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
   ROOM_COMMAND_FAILURE_WRONG_PHASE,
-} from '@/features/room/session/createRoomCommandFailureMessage';
+} from '@/features/room/link/createRoomCommandFailureMessage';
 
 export const getUndercoverRoomCommandFailureMessage =
   createRoomCommandFailureMessage<UndercoverState>({

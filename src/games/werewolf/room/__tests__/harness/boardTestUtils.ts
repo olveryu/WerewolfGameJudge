@@ -426,7 +426,6 @@ export function createWerewolfRoomMock(options: WerewolfRoomMockOptions) {
     viewModel,
     stateRevision: 1,
 
-    connectionStatus: 'live',
     isHost,
     roomStatus: GameStatus.Ongoing,
     currentActionRole,

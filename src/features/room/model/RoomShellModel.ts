@@ -1,8 +1,9 @@
 /** Complete game-neutral model rendered by RoomShell. */
 
+import type { LinkStatus } from '@/platform/realtime/types';
+
 import type { RoomBottomActionModel } from './RoomBottomActions';
 import type { RoomCapabilities } from './RoomCapabilities';
-import type { RoomConnectionStatus } from './RoomConnection';
 import type { RoomHostManagementModel } from './RoomHostManagement';
 import type { RoomProfileCardModel } from './RoomProfile';
 import type { RoomSeatConfirmationModel } from './RoomSeatConfirmation';
@@ -11,10 +12,11 @@ import type { RoomShareModel } from './RoomShare';
 import type { RoomViewer } from './RoomViewer';
 
 export interface RoomConnectionViewModel {
-  readonly status: RoomConnectionStatus;
-  /** Number of this user's confirmed commands still awaiting a Worker decision. */
-  readonly pendingCommandCount: number;
-  readonly onManualReconnect: () => void;
+  readonly status: LinkStatus;
+  /** Durable commands persisted locally and still awaiting a Worker decision. */
+  readonly pendingDurableCount: number;
+  /** Reconnect now while `status.kind === 'waiting'`. */
+  readonly onRetryNow: () => void;
 }
 
 export interface RoomHeaderUserAction {

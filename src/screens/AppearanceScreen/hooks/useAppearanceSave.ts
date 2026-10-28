@@ -11,14 +11,14 @@ import { toast } from 'sonner-native';
 import type { FrameId } from '@/components/avatarFrames';
 import type { FlairId } from '@/components/seatFlairs';
 import { refreshSavedProfile } from '@/features/account/controllers/refreshSavedProfile';
+import {
+  getRoomCommandFailureReason,
+  isSuccessfulRoomCommand,
+} from '@/features/room/link/roomCommandResult';
 import type {
   ActiveRoomAccountSnapshot,
   RoomProfilePatch,
 } from '@/features/room/model/RoomAccountCapability';
-import {
-  getRoomCommandFailureReason,
-  isSuccessfulRoomCommand,
-} from '@/features/room/session/roomCommandResult';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import { makeBuiltinAvatarUrl } from '@/utils/avatar';
 import { getErrorMessage } from '@/utils/errorUtils';

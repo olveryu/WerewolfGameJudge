@@ -27,11 +27,25 @@ export interface SocketChannelEvents<TState extends BaseGameState<string>> {
   onProtocolError(generation: number, error: Error): void;
 }
 
+/** Structural subset of the WebSocket API this channel uses; browser `WebSocket` satisfies it. */
+export interface RealtimeSocket {
+  readonly readyState: number;
+  onopen: (() => void) | null;
+  onmessage: ((event: { readonly data: unknown }) => void) | null;
+  onclose: ((event: { readonly code: number; readonly reason: string }) => void) | null;
+  onerror: (() => void) | null;
+  send(data: string): void;
+  close(code: number, reason: string): void;
+}
+
+/** `WebSocket.OPEN`; duplicated so the channel does not read a global constructor. */
+const SOCKET_OPEN = 1;
+
 export interface SocketChannelOptions<TState extends BaseGameState<string>> {
   readonly baseUrl: string;
   readonly codec: GameStateCodec<TState>;
   readonly accessToken: () => Promise<string | null>;
-  readonly createSocket: (url: string) => WebSocket;
+  readonly createSocket: (url: string) => RealtimeSocket;
   readonly events: SocketChannelEvents<TState>;
 }
 
@@ -40,7 +54,7 @@ const PONG_TEXT = 'pong';
 
 interface ActiveSocket {
   readonly generation: number;
-  readonly socket: WebSocket;
+  readonly socket: RealtimeSocket;
   lastRevision: number;
 }
 
@@ -83,11 +97,11 @@ export class SocketChannel<TState extends BaseGameState<string>> {
       if (this.#active !== active) return;
       this.#options.events.onOpen(generation);
     };
-    socket.onmessage = (event: MessageEvent) => {
+    socket.onmessage = (event) => {
       if (this.#active !== active) return;
       this.#receive(active, event.data);
     };
-    socket.onclose = (event: CloseEvent) => {
+    socket.onclose = (event) => {
       if (this.#active !== active) return;
       this.#active = null;
       this.#options.events.onClose(generation, event.code, event.reason);
@@ -127,7 +141,7 @@ export class SocketChannel<TState extends BaseGameState<string>> {
   #sendText(generation: number, text: string): boolean {
     const active = this.#active;
     if (active === null || active.generation !== generation) return false;
-    if (active.socket.readyState !== WebSocket.OPEN) return false;
+    if (active.socket.readyState !== SOCKET_OPEN) return false;
     active.socket.send(text);
     return true;
   }

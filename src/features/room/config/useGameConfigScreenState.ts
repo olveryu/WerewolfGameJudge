@@ -21,12 +21,12 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
 import type { StandardConfigRouteParams } from '@/features/navigation/model/standardRouteParsers';
 import { useRoomConfigSubmission } from '@/features/room/controllers/useRoomConfigSubmission';
-import type { RoomSessionClient } from '@/features/room/session/types';
 import {
   isExpectedStorageError,
   type SettingsService,
 } from '@/features/settings/services/SettingsService';
 import type { RootStackParamList } from '@/navigation/types';
+import type { RoomLink } from '@/platform/realtime/types';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
@@ -52,7 +52,7 @@ interface UseGameConfigScreenStateParams<
 > {
   readonly gameType: TGameType;
   readonly definition: GameConfigScreenDefinition<TGameType, TState, TCommand, TConfig>;
-  readonly session: RoomSessionClient<TState, TCommand>;
+  readonly session: RoomLink<TState, TCommand>;
   readonly params: StandardConfigRouteParams<TGameType>;
   readonly navigation: ConfigNavigation;
 }
@@ -65,7 +65,7 @@ function readInitialConfig<
 >(
   gameType: TGameType,
   definition: GameConfigScreenDefinition<TGameType, TState, TCommand, TConfig>,
-  session: RoomSessionClient<TState, TCommand>,
+  session: RoomLink<TState, TCommand>,
   params: StandardConfigRouteParams<TGameType>,
   settingsService: SettingsService,
 ): TConfig {
@@ -79,7 +79,7 @@ function readInitialConfig<
   if (snapshot.phase !== 'ready' || snapshot.identity.room.roomCode !== params.roomCode) {
     throw new Error(`[FAIL-FAST] ${gameType} config edit requires its active room session`);
   }
-  const config = definition.readConfig(snapshot.snapshot.state);
+  const config = definition.readConfig(snapshot.room.state);
   if (config === null) {
     throw new Error(`[FAIL-FAST] ${gameType} config can only be edited in the lobby`);
   }
@@ -175,6 +175,7 @@ export function useGameConfigScreenState<
       session.dispatch(definition.buildUpdateCommand(config), {
         controlledSeat: null,
         label: '保存设置',
+        durable: false,
       }),
   });
 

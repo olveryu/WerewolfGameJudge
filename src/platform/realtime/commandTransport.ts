@@ -19,7 +19,7 @@ import { ApiError } from '@/platform/http/ApiError';
 
 import type { DispatchOutcome, PreparedCommand } from './types';
 
-export const ROOM_COMMAND_PATH = '/room/command';
+const ROOM_COMMAND_PATH = '/room/command';
 
 export interface CommandTransport<TState extends BaseGameState<string>> {
   send(prepared: PreparedCommand<object>, signal: AbortSignal): Promise<DispatchOutcome<TState>>;

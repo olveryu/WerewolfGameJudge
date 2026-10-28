@@ -2,6 +2,6 @@
 
 import type { FibPublicCommand, FibState } from '@game-judge/game-engine/games/fibking/public';
 
-import type { RoomSessionClient } from '@/features/room/session/types';
+import type { RoomLink } from '@/platform/realtime/types';
 
-export type FibRoomSession = RoomSessionClient<FibState, FibPublicCommand>;
+export type FibRoomSession = RoomLink<FibState, FibPublicCommand>;

@@ -15,7 +15,7 @@ import {
   type DrawingWidth,
   isDrawingColor,
 } from '@/features/drawing/model/drawing';
-import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
+import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
 import type { DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -191,7 +191,7 @@ export function useDrawGuessStrokeSync({
               phaseRevision: latest.phaseRevision,
               turnIndex: latest.turnIndex,
             },
-            { controlledSeat: latest.controlledSeat, label: '同步笔画' },
+            { controlledSeat: latest.controlledSeat, label: '同步笔画', durable: false },
           );
           // 成功或被服务端拒绝都出队：拒绝（如笔画上限、过期）以权威快照为准，不重试。
           pendingRef.current.delete(id);
@@ -290,7 +290,7 @@ export function useDrawGuessStrokeSync({
             phaseRevision: latest.phaseRevision,
             turnIndex: latest.turnIndex,
           },
-          { controlledSeat: latest.controlledSeat, label: '撤销笔画' },
+          { controlledSeat: latest.controlledSeat, label: '撤销笔画', durable: false },
         );
       } catch (error: unknown) {
         // 失败回滚：恢复显示，弹出重做栈
@@ -327,7 +327,7 @@ export function useDrawGuessStrokeSync({
             phaseRevision: latest.phaseRevision,
             turnIndex: latest.turnIndex,
           },
-          { controlledSeat: latest.controlledSeat, label: '清空画布' },
+          { controlledSeat: latest.controlledSeat, label: '清空画布', durable: false },
         );
         setOptimisticallyCleared(true);
       } catch (error: unknown) {

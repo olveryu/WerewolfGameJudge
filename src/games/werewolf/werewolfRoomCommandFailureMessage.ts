@@ -2,7 +2,7 @@
 
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 
-import { createRoomCommandFailureMessage } from '@/features/room/session/createRoomCommandFailureMessage';
+import { createRoomCommandFailureMessage } from '@/features/room/link/createRoomCommandFailureMessage';
 
 /**
  * Werewolf owns no reason map of its own: every reason goes through the

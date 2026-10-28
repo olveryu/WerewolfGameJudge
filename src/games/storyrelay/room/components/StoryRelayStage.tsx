@@ -142,16 +142,16 @@ function StoryRelayStageContent({
     const current = session.getSnapshot();
     return (
       current.phase === 'ready' &&
-      current.connection === 'live' &&
-      current.pendingCommandCount === 0 &&
-      current.snapshot.state.phaseRevision === state.phaseRevision
+      current.status.kind === 'live' &&
+      current.pendingDurableCount === 0 &&
+      current.room.state.phaseRevision === state.phaseRevision
     );
   }, [session, state.phaseRevision]);
   const onExpire = useCallback(
     () =>
       session.dispatch(
         { type: 'storyrelay.phase.expire', phaseRevision: state.phaseRevision },
-        { controlledSeat: null, label: '推进故事阶段', isRecoverable: true },
+        { controlledSeat: null, label: '推进故事阶段', durable: true },
       ),
     [session, state.phaseRevision],
   );
@@ -166,7 +166,9 @@ function StoryRelayStageContent({
   const finalizer = useStoryRelayAutoSubmission(state, userId, session, inputs);
   const submission = useRoomCommandSubmission(getStoryRelayRoomCommandFailureMessage);
   const submit = (label: string, command: StoryRelayCommand) =>
-    submission.submit(label, () => session.dispatch(command, { controlledSeat: null, label }));
+    submission.submit(label, () =>
+      session.dispatch(command, { controlledSeat: null, label, durable: false }),
+    );
   const task = effectiveSeat === null ? null : getStoryRelayTaskForSeat(state, effectiveSeat);
   const isGallery =
     state.phase === 'gallery' || state.phase === 'ended' || state.phase === 'aborted';

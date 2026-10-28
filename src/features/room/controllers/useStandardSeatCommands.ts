@@ -20,7 +20,7 @@ import {
   useRoomSeatCommands,
 } from '@/features/room/controllers/useRoomSeatCommands';
 import { createSeatProfile } from '@/features/room/model/createSeatProfile';
-import type { ActiveRoomIdentity } from '@/features/room/session/types';
+import type { RoomIdentity } from '@/platform/realtime/types';
 
 /** Handles every seat mutation through the shared command client with the standard profile fields. */
 export function useStandardSeatCommands<TState extends BaseGameState<string>>(
@@ -29,7 +29,7 @@ export function useStandardSeatCommands<TState extends BaseGameState<string>>(
 ): RoomSeatCommandOperations<TState> {
   const queryClient = useQueryClient();
   const createProfile = useCallback(
-    (identity: ActiveRoomIdentity<TState['gameType']>): RoomSeatProfile => {
+    (identity: RoomIdentity<TState['gameType']>): RoomSeatProfile => {
       const profile = createSeatProfile(user, queryClient, identity.room.roomCode);
       return profile;
     },

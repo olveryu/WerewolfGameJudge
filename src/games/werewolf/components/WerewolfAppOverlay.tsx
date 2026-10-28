@@ -3,7 +3,7 @@
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
 
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { AIChatBubble } from '@/games/werewolf/components/AIChatBubble';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 
@@ -12,12 +12,11 @@ interface WerewolfAppOverlayProps {
 }
 
 export const WerewolfAppOverlay: React.FC<WerewolfAppOverlayProps> = ({ client }) => {
-  const room = useRoomSessionSnapshot(client.roomSession);
+  const room = useRoomLinkSnapshot(client.roomSession);
   if (room.phase !== 'ready') return null;
 
   const triggerPulse =
-    room.snapshot.state.status !== GameStatus.Unseated &&
-    room.snapshot.state.status !== GameStatus.Seated;
+    room.room.state.status !== GameStatus.Unseated && room.room.state.status !== GameStatus.Seated;
 
   return (
     <AIChatBubble

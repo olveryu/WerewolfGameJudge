@@ -7,13 +7,16 @@
 
 import {
   DEFAULT_STORY_RELAY_CONFIG,
+  type StoryRelayCommand,
   storyRelayEngine,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { fireEvent, render } from '@testing-library/react-native';
 
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
-import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
+import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
 
 import { StoryRelayStage } from '../StoryRelayStage';
 
@@ -49,20 +52,10 @@ function botRoundState(): StoryRelayState {
 describe('StoryRelayStage bot drafts', () => {
   it('keeps each taken-over bot seat on its own draft', () => {
     const state = botRoundState();
-    const dispatch = jest.fn(async () => ({
-      kind: 'decided',
-      decision: { kind: 'committed', outcome: { kind: 'success' } },
-    }));
-    const session = {
-      getSnapshot: () => ({
-        phase: 'ready',
-        connection: 'live',
-        pendingCommandCount: 0,
-        snapshot: { state },
-      }),
-      subscribe: () => () => {},
-      dispatch,
-    } as unknown as StoryRelayRoomSession;
+    const session = createFakeRoomLink<StoryRelayState, StoryRelayCommand>(
+      readyLinkSnapshot(testIdentity('storyrelay'), createRoomSnapshot(state, 1)),
+      async () => successfulRoomCommand(state),
+    );
 
     const takeover = { effectiveSeat: 0, controlledSeat: null as number | null };
     const seatModel = {

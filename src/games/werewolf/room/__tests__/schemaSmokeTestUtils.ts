@@ -128,8 +128,6 @@ export function createBaseWerewolfRoomMock({
     gameState,
     viewModel,
 
-    connectionStatus: 'live',
-
     isHost: false,
     roomStatus: GameStatus.Ongoing,
 

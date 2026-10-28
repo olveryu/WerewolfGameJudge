@@ -6,7 +6,11 @@
  * edit mode starts from the room's own rules. Nominate mode submits directly.
  */
 
-import type { GameRuleOverrides, RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type {
+  GameRuleOverrides,
+  GameState,
+  RoleId,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { PRESET_TEMPLATES } from '@game-judge/game-engine/games/werewolf/public';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
@@ -15,6 +19,7 @@ import { useServices } from '@/contexts/ServiceContext';
 import { SettingsService } from '@/features/settings/services/SettingsService';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen';
+import { readyLinkSnapshot } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 import { TESTIDS } from '@/testids';
@@ -86,26 +91,21 @@ function renderConfigScreen(mockClient = createMockClient()) {
 
 function mockReadyRoom(mockClient: WerewolfGameClient, rules: GameRuleOverrides) {
   const state = buildWerewolfTestState({ rules, templateRoles: [...BOARD] });
-  jest.spyOn(mockClient.roomSession, 'getSnapshot').mockReturnValue({
-    phase: 'ready' as const,
-    epoch: 1,
-    identity: {
-      room: {
-        roomCode: state.roomCode,
-        roomId: 'room-id-1234',
-        gameType: 'werewolf' as const,
-        hostUserId: state.hostUserId,
-        createdAt: new Date(),
+  jest.spyOn(mockClient.roomSession, 'getSnapshot').mockReturnValue(
+    readyLinkSnapshot<GameState>(
+      {
+        room: {
+          roomCode: state.roomCode,
+          roomId: 'room-id-1234',
+          gameType: 'werewolf' as const,
+          hostUserId: state.hostUserId,
+          createdAt: new Date(),
+        },
+        userId: state.hostUserId,
       },
-      userId: state.hostUserId,
-    },
-    connection: 'live' as const,
-    pendingCommandCount: 0,
-    lastRecoveredCommandRejection: null,
-    snapshot: createRoomSnapshot(state, 1),
-    lastCommand: null,
-    error: null,
-  });
+      createRoomSnapshot(state, 1),
+    ),
+  );
   return state;
 }
 

@@ -10,14 +10,21 @@ import {
   type DemoCommand,
   type DemoState,
 } from '@game-judge/game-engine/games/demo/public';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { createGameConfigScreen } from '@/features/room/config/createGameConfigScreen';
 import type { RoomCreationRequest, RoomRecord } from '@/features/room/model/RoomDirectory';
-import type { RoomSessionClient } from '@/features/room/session/types';
 import { buildDemoTestState } from '@/games/demo/__tests__/buildDemoTestState';
 import { parseDemoConfigRouteParams } from '@/games/demo/navigation/demoGameNavigation';
 import { getDemoRoomCommandFailureMessage } from '@/games/demo/room/demoRoomCommandFailureMessage';
+import type { RoomLink } from '@/platform/realtime/types';
+import {
+  createFakeRoomLink,
+  idleLinkSnapshot,
+  readyLinkSnapshot,
+  testIdentity,
+} from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { TESTIDS } from '@/testids';
 
@@ -67,23 +74,16 @@ const DemoConfigScreen = createGameConfigScreen<
   },
 });
 
-function createSession(state: DemoState | null): RoomSessionClient<DemoState, DemoCommand> {
-  const dispatch = jest
-    .fn<ReturnType<RoomSessionClient<DemoState, DemoCommand>['dispatch']>, []>()
-    .mockResolvedValue(successfulRoomCommand(state ?? buildDemoTestState()));
-  const snapshot =
+function createSession(state: DemoState | null): RoomLink<DemoState, DemoCommand> {
+  return createFakeRoomLink<DemoState, DemoCommand>(
     state === null
-      ? { phase: 'idle' as const }
-      : {
-          phase: 'ready' as const,
-          identity: { room: { roomCode: state.roomCode }, userId: 'test-uid' },
-          snapshot: { state },
-        };
-  // Only the members the config screen touches; the rest of the session client is unused here.
-  return { dispatch, getSnapshot: () => snapshot } as unknown as RoomSessionClient<
-    DemoState,
-    DemoCommand
-  >;
+      ? idleLinkSnapshot()
+      : readyLinkSnapshot(
+          testIdentity('demo', { roomCode: state.roomCode, userId: 'test-uid' }),
+          createRoomSnapshot(state, 1),
+        ),
+    async () => successfulRoomCommand(state ?? buildDemoTestState()),
+  );
 }
 
 const playerCount = () => TESTIDS.gameConfigField('demo', 'numberOfPlayers');
@@ -180,7 +180,7 @@ describe('createGameConfigScreen (demo)', () => {
     await waitFor(() =>
       expect(session.dispatch).toHaveBeenCalledWith(
         { type: 'demo.config.update', config: { numberOfPlayers: 7 } },
-        { controlledSeat: null, label: '保存设置' },
+        { controlledSeat: null, label: '保存设置', durable: false },
       ),
     );
     await waitFor(() =>

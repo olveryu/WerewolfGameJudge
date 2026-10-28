@@ -11,10 +11,8 @@ import type { User } from '@/contexts/AuthContext';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
 import { useStandardSeatCommands } from '@/features/room/controllers/useStandardSeatCommands';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
-import type {
-  RoomCommandDispatchOptions,
-  RoomSessionSnapshot,
-} from '@/features/room/session/types';
+import type { DispatchOptions, LinkSnapshot } from '@/platform/realtime/types';
+import { readyLinkSnapshot } from '@/test-utils/linkSnapshot';
 import { rejectedRoomCommand, successfulRoomCommand } from '@/test-utils/roomCommand';
 
 type TestState = BaseGameState<'werewolf'>;
@@ -40,11 +38,9 @@ const user: User = {
   isAnonymous: false,
 };
 
-function createReadySnapshot(userId = 'user-1'): RoomSessionSnapshot<TestState> {
-  return {
-    phase: 'ready',
-    epoch: 1,
-    identity: {
+function createReadySnapshot(userId = 'user-1'): LinkSnapshot<TestState> {
+  return readyLinkSnapshot<TestState>(
+    {
       room: {
         roomCode: '1234',
         roomId: 'room-id',
@@ -54,13 +50,8 @@ function createReadySnapshot(userId = 'user-1'): RoomSessionSnapshot<TestState> 
       },
       userId,
     },
-    connection: 'live',
-    pendingCommandCount: 0,
-    lastRecoveredCommandRejection: null,
-    snapshot: { gameType: 'werewolf', stateVersion: 1, revision: 1, state },
-    lastCommand: null,
-    error: null,
-  };
+    { gameType: 'werewolf', stateVersion: 1, revision: 1, state },
+  );
 }
 
 const cachedStats = { xp: 120, level: 7, gamesPlayed: 3, unlockedItems: [] };
@@ -86,7 +77,7 @@ describe('useRoomSetupController', () => {
   it('binds capabilities to real controllers and recalculates them when the game leaves setup', async () => {
     const queryClient = installQueryClient(cachedStats);
     const dispatch = jest.fn(
-      async (_command: RoomSeatCommand<RoomSeatProfile>, _options: RoomCommandDispatchOptions) =>
+      async (_command: RoomSeatCommand<RoomSeatProfile>, _options: DispatchOptions) =>
         successfulRoomCommand(state, 'setup-command'),
     );
     const session = { getSnapshot: () => createReadySnapshot(), dispatch };
@@ -116,7 +107,7 @@ describe('useRoomSetupController', () => {
     await act(async () => result.current.seatController.confirm());
     expect(dispatch).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'room.seat.take', seat: 2 }),
-      { controlledSeat: null, label: 'takeRoomSeat' },
+      { controlledSeat: null, label: '入座', durable: false },
     );
 
     const target: RoomProfileTarget = {
@@ -154,7 +145,7 @@ describe('useStandardSeatCommands', () => {
   it('binds the shared controller to the user profile built from the room identity', async () => {
     const queryClient = installQueryClient(cachedStats);
     const dispatch = jest.fn(
-      async (_command: RoomSeatCommand<RoomSeatProfile>, _options: RoomCommandDispatchOptions) =>
+      async (_command: RoomSeatCommand<RoomSeatProfile>, _options: DispatchOptions) =>
         rejectedRoomCommand<TestState>('test-rejection', 'command-id'),
     );
     const session = { getSnapshot: () => createReadySnapshot(), dispatch };
@@ -181,15 +172,18 @@ describe('useStandardSeatCommands', () => {
             level: 7,
           },
         },
-        { controlledSeat: null, label: 'takeRoomSeat' },
+        { controlledSeat: null, label: '入座', durable: false },
       ],
-      [{ type: 'room.seat.leave' }, { controlledSeat: null, label: 'leaveRoomSeat' }],
+      [{ type: 'room.seat.leave' }, { controlledSeat: null, label: '离座', durable: false }],
       [
         { type: 'room.seat.kick', seat: 2 },
-        { controlledSeat: null, label: 'kickRoomSeat' },
+        { controlledSeat: null, label: '请离玩家', durable: false },
       ],
-      [{ type: 'room.seat.clear' }, { controlledSeat: null, label: 'clearRoomSeats' }],
-      [{ type: 'room.seat.fillBots' }, { controlledSeat: null, label: 'fillRoomSeatsWithBots' }],
+      [{ type: 'room.seat.clear' }, { controlledSeat: null, label: '清空座位', durable: false }],
+      [
+        { type: 'room.seat.fillBots' },
+        { controlledSeat: null, label: '填充机器人', durable: false },
+      ],
     ]);
   });
 
@@ -197,7 +191,7 @@ describe('useStandardSeatCommands', () => {
     const queryClient = installQueryClient(cachedStats);
     const anonymousUser: User = { ...user, displayName: null, isAnonymous: true };
     const dispatch = jest.fn(
-      async (_command: RoomSeatCommand<RoomSeatProfile>, _options: RoomCommandDispatchOptions) =>
+      async (_command: RoomSeatCommand<RoomSeatProfile>, _options: DispatchOptions) =>
         rejectedRoomCommand<TestState>('test-rejection', 'command-id'),
     );
     const session = { getSnapshot: () => createReadySnapshot(), dispatch };
@@ -216,7 +210,7 @@ describe('useStandardSeatCommands', () => {
           seat: 1,
           profile: { displayName: '匿名玩家', avatarUrl: 'https://example.com/alice.png' },
         },
-        { controlledSeat: null, label: 'takeRoomSeat' },
+        { controlledSeat: null, label: '入座', durable: false },
       ],
     ]);
   });

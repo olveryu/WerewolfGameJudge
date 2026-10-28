@@ -19,8 +19,8 @@ import {
 } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
 import {
   createBotTakeoverCapability,
@@ -64,10 +64,10 @@ export function useStoryRelayRoomState(
 ): StoryRelayRoomScreenState {
   const { session, room, navigation, entryController } = props;
   const { user } = useAuthContext();
-  const snapshot = useRoomSessionSnapshot(session);
+  const snapshot = useRoomLinkSnapshot(session);
   if (user === null || snapshot.phase !== 'ready')
     throw new Error('Story Relay requires an authenticated ready session');
-  const state = snapshot.snapshot.state;
+  const state = snapshot.room.state;
   const isHost = state.hostUserId === user.id;
   const mySeat = getStoryRelayUserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
@@ -103,7 +103,9 @@ export function useStoryRelayRoomState(
   });
   const submission = useRoomCommandSubmission(getStoryRelayRoomCommandFailureMessage);
   const submit = (label: string, command: StoryRelayCommand) =>
-    submission.submit(label, () => session.dispatch(command, { controlledSeat: null, label }));
+    submission.submit(label, () =>
+      session.dispatch(command, { controlledSeat: null, label, durable: false }),
+    );
   const canControlBots = isHost;
   useBotTakeoverGuard({
     controlledSeat,
@@ -156,7 +158,7 @@ export function useStoryRelayRoomState(
     onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
     connection: entryController.connection,
     state,
-    revision: snapshot.snapshot.revision,
+    revision: snapshot.room.revision,
     controlledSeat,
     seatsVisuallyDisabled: submission.isSubmitting || seatController.isSubmitting,
     onSeatPress,

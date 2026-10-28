@@ -3,10 +3,8 @@ import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/ro
 import { act, renderHook } from '@testing-library/react-native';
 
 import { useRoomSeatCommands } from '@/features/room/controllers/useRoomSeatCommands';
-import type {
-  RoomCommandDispatchOptions,
-  RoomSessionSnapshot,
-} from '@/features/room/session/types';
+import type { DispatchOptions, LinkSnapshot } from '@/platform/realtime/types';
+import { idleLinkSnapshot, readyLinkSnapshot } from '@/test-utils/linkSnapshot';
 import { rejectedRoomCommand } from '@/test-utils/roomCommand';
 
 type TestState = BaseGameState<'werewolf'>;
@@ -19,11 +17,9 @@ const state: TestState = {
   hostUserId: 'user-1',
 };
 
-function createReadySnapshot(userId = 'user-1'): RoomSessionSnapshot<TestState> {
-  return {
-    phase: 'ready',
-    epoch: 1,
-    identity: {
+function createReadySnapshot(userId = 'user-1'): LinkSnapshot<TestState> {
+  return readyLinkSnapshot<TestState>(
+    {
       room: {
         roomCode: '1234',
         roomId: 'room-id',
@@ -33,19 +29,14 @@ function createReadySnapshot(userId = 'user-1'): RoomSessionSnapshot<TestState> 
       },
       userId,
     },
-    connection: 'live',
-    pendingCommandCount: 0,
-    lastRecoveredCommandRejection: null,
-    snapshot: { gameType: 'werewolf', stateVersion: 1, revision: 1, state },
-    lastCommand: null,
-    error: null,
-  };
+    { gameType: 'werewolf', stateVersion: 1, revision: 1, state },
+  );
 }
 
 describe('useRoomSeatCommands', () => {
   it('dispatches every canonical seat command through one shared controller', async () => {
     const dispatch = jest.fn(
-      async (_command: RoomSeatCommand<TestProfile>, _options: RoomCommandDispatchOptions) =>
+      async (_command: RoomSeatCommand<TestProfile>, _options: DispatchOptions) =>
         rejectedRoomCommand<TestState>('test-rejection', 'command-id'),
     );
     const createProfile = jest.fn(() => ({ displayName: 'Alice' }));
@@ -66,15 +57,18 @@ describe('useRoomSeatCommands', () => {
     expect(dispatch.mock.calls).toEqual([
       [
         { type: 'room.seat.take', seat: 3, profile: { displayName: 'Alice' } },
-        { controlledSeat: null, label: 'takeRoomSeat' },
+        { controlledSeat: null, label: '入座', durable: false },
       ],
-      [{ type: 'room.seat.leave' }, { controlledSeat: null, label: 'leaveRoomSeat' }],
+      [{ type: 'room.seat.leave' }, { controlledSeat: null, label: '离座', durable: false }],
       [
         { type: 'room.seat.kick', seat: 2 },
-        { controlledSeat: null, label: 'kickRoomSeat' },
+        { controlledSeat: null, label: '请离玩家', durable: false },
       ],
-      [{ type: 'room.seat.clear' }, { controlledSeat: null, label: 'clearRoomSeats' }],
-      [{ type: 'room.seat.fillBots' }, { controlledSeat: null, label: 'fillRoomSeatsWithBots' }],
+      [{ type: 'room.seat.clear' }, { controlledSeat: null, label: '清空座位', durable: false }],
+      [
+        { type: 'room.seat.fillBots' },
+        { controlledSeat: null, label: '填充机器人', durable: false },
+      ],
     ]);
   });
 
@@ -96,18 +90,7 @@ describe('useRoomSeatCommands', () => {
   });
 
   it('fails fast before creating commands when the room session is not ready', () => {
-    const idleSnapshot: RoomSessionSnapshot<TestState> = {
-      phase: 'idle',
-      epoch: 0,
-      identity: null,
-      connection: 'disconnected',
-      pendingCommandCount: 0,
-      lastRecoveredCommandRejection: null,
-      snapshot: null,
-      lastCommand: null,
-      error: null,
-    };
-    const session = { getSnapshot: () => idleSnapshot, dispatch: jest.fn() };
+    const session = { getSnapshot: () => idleLinkSnapshot<TestState>(), dispatch: jest.fn() };
 
     expect(() =>
       renderHook(() =>

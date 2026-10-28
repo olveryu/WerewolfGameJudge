@@ -61,7 +61,7 @@ function parseDecisionKind(value: unknown): RoomCommandResult<BaseGameState<Game
 }
 
 /** Command type read from the request body; every command object carries a string `type`. */
-export function readCommandType(command: unknown): string {
+function readCommandType(command: unknown): string {
   if (!isRecord(command)) throw new Error('DispatchRoomCommand.command must be an object');
   return parseNonEmptyString(command.type, 'command.type');
 }

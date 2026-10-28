@@ -11,7 +11,7 @@ import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
-} from '@/features/room/session/roomCommandResult';
+} from '@/features/room/link/roomCommandResult';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 

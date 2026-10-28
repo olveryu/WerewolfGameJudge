@@ -20,7 +20,7 @@ import {
   EncyclopediaShell,
 } from '@/features/encyclopedia/EncyclopediaShell';
 import { useEncyclopediaRolesState } from '@/features/encyclopedia/useEncyclopediaRolesState';
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { parseWerewolfGuideRouteParams } from '@/games/werewolf/navigation/werewolfGameNavigation';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { RootStackParamList } from '@/navigation/types';
@@ -49,10 +49,10 @@ export const EncyclopediaScreen: React.FC<{ readonly client: WerewolfGameClient 
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'GameGuide'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'GameGuide'>>();
   const routeParams = parseWerewolfGuideRouteParams(route.params);
-  const room = useRoomSessionSnapshot(client.roomSession);
+  const room = useRoomLinkSnapshot(client.roomSession);
   const gameState =
     room.phase === 'ready' && room.identity.room.roomCode === routeParams.roomCode
-      ? room.snapshot.state
+      ? room.room.state
       : null;
   const isHost =
     room.phase === 'ready' && gameState !== null && gameState.hostUserId === room.identity.userId;
