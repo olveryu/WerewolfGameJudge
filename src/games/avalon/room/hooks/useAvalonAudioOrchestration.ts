@@ -1,36 +1,20 @@
 /**
  * 阿瓦隆第一晚播报 — 共享房间音频运行核（RoomAudioOrchestrator）的 React 薄绑定。
  *
- * 生命周期（队列身份识别、顺序播放、prepared envelope ack、三层连接恢复、
- * 重连整队重播、ack 后 recheck 链式续播）已搬入共享核心
- * （src/features/room/audio/RoomAudioOrchestrator），全平台只此一份。本 hook
- * 只做适配，不再自维护 ack/重试/去重逻辑：
- * - queue source：直接读 session 权威快照（连接状态 + state.pendingAudioEffects）。
- *   必须读快照而非 React prop：ack 提交后 session 先应用新快照再返回结果，
- *   核心的 ack 后 recheck 只有读快照才能同步看到已清的队列（读 prop 会因
- *   重渲染滞后而重播已确认的队列）。session 非 ready 或播放器未就绪时
- *   快照为 null（核心静默）。
- * - player port：AvalonAudioPlayer 的 playEffect；prepareQueue 承接原队列
- *   播放前的整批 preload（失败只告警、不阻塞播放，与原行为一致）；
- *   stopBgm 供核心在 night_end 播报前停 BGM（天亮时序，全游戏统一）；
- *   MissingAvalonAudioError 仍是 fail-fast。
- * - ack port：session.prepare/dispatchPrepared 制 `avalon.audio.ack`，
- *   envelope 由核心保留至终局决定（服务端按 commandId 幂等）。
+ * 生命周期（队列识别、顺序播放、durable ack、ack 后 recheck 链式续播）已搬入共享核心
+ * （src/features/room/audio/RoomAudioOrchestrator），全平台只此一份。本 hook 只做适配：
+ * - queue source：直接读 link 权威快照的 state.pendingAudioEffects。必须读快照而非 React
+ *   prop：ack 提交后 link 先应用新快照再返回结果，核心的 ack 后 recheck 只有读快照才能同步
+ *   看到已清的队列。link 非 ready 或播放器未就绪时快照为 null（核心静默）。
+ * - player port：AvalonAudioPlayer 的 playEffect；prepareQueue 承接整批 preload（失败只告警）；
+ *   stopBgm 供核心在 night_end 播报前停 BGM；MissingAvalonAudioError 仍是 fail-fast。
+ * - ack port：`avalon.audio.ack` 以 durable 命令发送，由 RoomLink 跨连接重放直到服务端裁决。
  *
- * 入参 pendingAudioEffects 与快照里的同一字段是同一个数组（调用方
- * useAvalonRoomState 正是从快照取出后传入），保留在签名上供调用方表达
- * 队列输入；绑定本身以快照为准。
- *
- * 与原自维护实现的口径变化（按狼人杀基准，对齐方案 E3 §4）：队列已播完但
- * ack 未确认时，重连不再只重试 ack——核心按队列仍在权威状态中为准，整队
- * 重播后再 ack，避免播放被打断时未播完的播报被 ack 清掉。
+ * 入参 pendingAudioEffects 与快照里的同一字段是同一个数组，保留在签名上供调用方表达队列输入；
+ * 绑定本身以快照为准。
  */
 
-import type {
-  AudioEffect,
-  AvalonPublicCommand,
-  AvalonState,
-} from '@game-judge/game-engine/games/avalon/public';
+import type { AudioEffect, AvalonState } from '@game-judge/game-engine/games/avalon/public';
 import { useEffect, useRef } from 'react';
 
 import {
@@ -38,7 +22,6 @@ import {
   type RoomAudioQueueSnapshot,
   type RoomAudioQueueSource,
 } from '@/features/room/audio/RoomAudioOrchestrator';
-import type { PreparedRoomCommand } from '@/features/room/session/types';
 import { log } from '@/utils/logger';
 
 import type { AvalonAudioRuntime } from '../../audio/AvalonAudioPlayer';
@@ -55,11 +38,7 @@ interface UseAvalonAudioOrchestrationDeps {
   readonly audio: AvalonAudioRuntime | null;
 }
 
-type AvalonAudioCore = RoomAudioOrchestrator<
-  AudioEffect,
-  PreparedRoomCommand<AvalonPublicCommand>,
-  AvalonState
->;
+type AvalonAudioCore = RoomAudioOrchestrator<AudioEffect, AvalonState>;
 
 export function useAvalonAudioOrchestration(deps: UseAvalonAudioOrchestrationDeps): void {
   const { session, isHost, audio } = deps;
@@ -83,10 +62,7 @@ export function useAvalonAudioOrchestration(deps: UseAvalonAudioOrchestrationDep
     const readSnapshot = (): RoomAudioQueueSnapshot<AudioEffect> | null => {
       const current = sessionRef.current.getSnapshot();
       if (current.phase !== 'ready' || audioRef.current === null) return null;
-      return {
-        pendingAudioEffects: current.snapshot.state.pendingAudioEffects,
-        connection: current.connection,
-      };
+      return { pendingAudioEffects: current.room.state.pendingAudioEffects };
     };
 
     if (coreRef.current === null) {
@@ -101,11 +77,7 @@ export function useAvalonAudioOrchestration(deps: UseAvalonAudioOrchestrationDep
           };
         },
       };
-      coreRef.current = new RoomAudioOrchestrator<
-        AudioEffect,
-        PreparedRoomCommand<AvalonPublicCommand>,
-        AvalonState
-      >({
+      coreRef.current = new RoomAudioOrchestrator<AudioEffect, AvalonState>({
         queueSource,
         player: {
           playEffect: (effect) => {
@@ -134,8 +106,11 @@ export function useAvalonAudioOrchestration(deps: UseAvalonAudioOrchestrationDep
           isMissingAssetError: (error) => error instanceof MissingAvalonAudioError,
         },
         ack: {
-          prepare: () => sessionRef.current.prepare({ type: 'avalon.audio.ack' }, null),
-          dispatch: (prepared) => sessionRef.current.dispatchPrepared(prepared, '播报确认'),
+          dispatch: () =>
+            sessionRef.current.dispatch(
+              { type: 'avalon.audio.ack' },
+              { controlledSeat: null, label: '播报确认', durable: true },
+            ),
         },
         isHost: () => isHostRef.current,
         isAborted: () => abortedRef.current,
@@ -149,8 +124,7 @@ export function useAvalonAudioOrchestration(deps: UseAvalonAudioOrchestrationDep
     for (const listener of listenersRef.current) listener(snapshot);
   });
 
-  // Unmount: stop the lifecycle (timers, subscriptions, retained ack) and
-  // stop any in-flight narration, mirroring the previous hook's cleanup.
+  // Unmount: stop the lifecycle (subscriptions) and any in-flight narration.
   useEffect(
     () => () => {
       abortedRef.current = true;
