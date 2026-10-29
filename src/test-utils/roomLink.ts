@@ -110,6 +110,7 @@ export interface LinkHarness {
   readonly link: RoomLinkImpl<TestState, TestCommand>;
   readonly sockets: ReturnType<typeof createSocketFactory>;
   readonly network: ReturnType<typeof createTestApiClient>['network'];
+  readonly tokens: ReturnType<typeof createTestApiClient>['tokens'];
   readonly env: FakeEnvironment;
   readonly outboxStorage: OutboxStorage;
   readonly protocolErrors: Error[];
@@ -167,6 +168,7 @@ export function createLinkHarness(options?: {
     link,
     sockets,
     network,
+    tokens,
     env,
     outboxStorage,
     protocolErrors,

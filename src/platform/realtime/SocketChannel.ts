@@ -41,10 +41,19 @@ export interface RealtimeSocket {
 /** `WebSocket.OPEN`; duplicated so the channel does not read a global constructor. */
 const SOCKET_OPEN = 1;
 
+/**
+ * Outcome of a token lookup before an upgrade. `none` is terminal (no session → 4002);
+ * `unavailable` is a transient failure to reach the auth endpoint and counts as one failed attempt.
+ */
+export type AccessTokenOutcome =
+  | { readonly kind: 'token'; readonly token: string }
+  | { readonly kind: 'none' }
+  | { readonly kind: 'unavailable' };
+
 export interface SocketChannelOptions<TState extends BaseGameState<string>> {
   readonly baseUrl: string;
   readonly codec: GameStateCodec<TState>;
-  readonly accessToken: () => Promise<string | null>;
+  readonly accessToken: () => Promise<AccessTokenOutcome>;
   readonly createSocket: (url: string) => RealtimeSocket;
   readonly events: SocketChannelEvents<TState>;
 }
@@ -72,23 +81,27 @@ export class SocketChannel<TState extends BaseGameState<string>> {
   }
 
   /**
-   * Open a socket for `generation`. Rejects with `authRejected` semantics by closing 4002 when no
-   * token is available, so the reducer sees one consistent terminal path.
+   * Open a socket for `generation`. A missing session closes 4002 and an unreachable auth
+   * endpoint closes 1006, so the reducer sees the same close path as a failed upgrade.
    */
   async open(generation: number, room: RoomLocator): Promise<void> {
     this.closeActive(1000, 'superseded');
     this.#opening = generation;
-    const token = await this.#options.accessToken();
+    const outcome = await this.#options.accessToken();
     if (this.#opening !== generation) return;
     this.#opening = null;
-    if (token === null) {
+    if (outcome.kind === 'none') {
       this.#options.events.onClose(generation, REALTIME_CLOSE_CODE.AUTH_REJECTED, 'no_token');
+      return;
+    }
+    if (outcome.kind === 'unavailable') {
+      this.#options.events.onClose(generation, 1006, 'token_unavailable');
       return;
     }
 
     const url =
       `${this.#options.baseUrl}/ws?roomCode=${encodeURIComponent(room.roomCode)}` +
-      `&roomId=${encodeURIComponent(room.roomId)}&token=${encodeURIComponent(token)}`;
+      `&roomId=${encodeURIComponent(room.roomId)}&token=${encodeURIComponent(outcome.token)}`;
     const socket = this.#options.createSocket(url);
     const active: ActiveSocket = { generation, socket, lastRevision: 0 };
     this.#active = active;

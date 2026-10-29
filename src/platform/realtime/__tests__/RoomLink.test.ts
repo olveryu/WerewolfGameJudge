@@ -2,7 +2,7 @@ import { REALTIME_CLOSE_CODE } from '@game-judge/game-engine/platform/realtime/c
 import { z } from 'zod';
 
 import { ApiError } from '@/platform/http/ApiError';
-import { jsonResponse, requestJson } from '@/test-utils/httpClient';
+import { createUnsignedAccessToken, jsonResponse, requestJson } from '@/test-utils/httpClient';
 import {
   closeAllLinks,
   createLinkHarness,
@@ -42,6 +42,36 @@ describe('RoomLink connect and sync', () => {
     expect(snapshot.status).toEqual({ kind: 'live' });
     expect(snapshot.room?.revision).toBe(3);
     expect(snapshot.epoch).toBe(1);
+  });
+
+  it('an unreachable refresh endpoint counts as one failed attempt and is retried', async () => {
+    jest.useFakeTimers();
+    const harness = createLinkHarness();
+    harness.tokens.saveTokens(createUnsignedAccessToken('host-user', 1), 'r');
+    harness.network.respond(() => jsonResponse(503, { reason: 'SERVER_ERROR' }));
+
+    const connected = harness.link.connect(IDENTITY, new AbortController().signal);
+    const rejection = connected.catch((error: unknown) => error);
+    // The 503 body is read on a macrotask; advance fake time by 0 to settle it.
+    await jest.advanceTimersByTimeAsync(0);
+    expect(harness.sockets.sockets).toHaveLength(0);
+    expect(harness.link.getSnapshot().status).toMatchObject({
+      kind: 'waiting',
+      cause: 'backoff',
+      attempt: 1,
+    });
+
+    harness.network.respond(() =>
+      jsonResponse(200, {
+        access_token: createUnsignedAccessToken('host-user', Math.floor(Date.now() / 1000) + 3600),
+        refresh_token: 'r2',
+      }),
+    );
+    await jest.advanceTimersByTimeAsync(1_000);
+    expect(harness.sockets.sockets).toHaveLength(1);
+    expect(harness.link.getSnapshot().status).toEqual({ kind: 'connecting', attempt: 1 });
+    harness.link.close();
+    await expect(rejection).resolves.toBeInstanceOf(Error);
   });
 
   it('applies broadcasts by revision rule: older ignored, equal must match, newer replaces', async () => {
