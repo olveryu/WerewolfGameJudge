@@ -1,7 +1,7 @@
 /**
  * RoomMiniProgramAuthFailure — Room-entry login failure inside the WeChat mini-program.
  *
- * Rendered by the room entry boundary when mini-program authentication is unavailable.
+ * Rendered by `RoomResolverScreen` when mini-program authentication is unavailable.
  * Provides a "重新进入" button that calls wx.miniProgram.reLaunch to restart the login flow.
  */
 import type React from 'react';

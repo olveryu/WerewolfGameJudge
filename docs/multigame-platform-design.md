@@ -1167,7 +1167,7 @@ Active room host screen 使用已解析的 game module 的 codec 创建 typed li
 /room/:roomCode
 ```
 
-`RoomResolverScreen` 先读取 room metadata，再选择 client game module。用户和 QR code 不需要知道 `/fib/room` 与 `/room` 的区别。
+`RoomResolverScreen` 先要求登录（无 session 时渲染 `RoomAuthGate` / 小程序 `RoomMiniProgramAuthFailure`，因为 `POST /room/get` 需鉴权），再读取 room metadata，最后选择 client game module。游戏 room screen 永远不会在没有用户的情况下挂载。用户和 QR code 不需要知道 `/fib/room` 与 `/room` 的区别。
 
 失败行为：
 

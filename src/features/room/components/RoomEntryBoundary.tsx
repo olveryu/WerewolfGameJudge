@@ -1,4 +1,8 @@
-/** Resolved-room auth and session boundary; game hooks mount only after a snapshot exists. */
+/**
+ * Resolved-room session boundary; game hooks mount only after a snapshot exists.
+ *
+ * Authentication is settled upstream by `RoomResolverScreen`; this boundary never renders without a user.
+ */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
@@ -16,11 +20,8 @@ import {
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { RoomLink } from '@/platform/realtime/types';
 import { colors, componentSizes } from '@/theme';
-import { isMiniProgram } from '@/utils/miniProgram';
 
-import { RoomAuthGate } from './RoomAuthGate';
 import { roomEntryStyles as styles } from './roomEntry.styles';
-import { RoomMiniProgramAuthFailure } from './RoomMiniProgramAuthFailure';
 
 interface RoomEntryBoundaryProps<TState extends BaseGameState<GameType>, TCommand extends object> {
   readonly room: RoomRecord<TState['gameType']>;
@@ -35,23 +36,16 @@ export function RoomEntryBoundary<TState extends BaseGameState<GameType>, TComma
   onExit,
   children,
 }: RoomEntryBoundaryProps<TState, TCommand>): React.ReactNode {
-  const { user, loading: isAuthLoading } = useAuthContext();
+  const { user } = useAuthContext();
+  if (user === null) {
+    throw new Error('[FAIL-FAST] RoomEntryBoundary rendered without an authenticated user');
+  }
   const controller = useRoomEntryController({
     room,
     link: session,
-    authUserId: user?.id ?? null,
-    isAuthLoading,
+    authUserId: user.id,
     onExit,
   });
-
-  if (controller.isAuthRequired) {
-    if (isMiniProgram()) {
-      return <RoomMiniProgramAuthFailure onCancel={() => controller.requestExit(false)} />;
-    }
-    return (
-      <RoomAuthGate onSuccess={() => undefined} onCancel={() => controller.requestExit(false)} />
-    );
-  }
 
   if (controller.isReady) return children(controller);
 
