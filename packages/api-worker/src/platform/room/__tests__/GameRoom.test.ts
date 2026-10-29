@@ -821,17 +821,17 @@ describe('GameRoom command receipts', () => {
     socket.close();
   });
 
-  it('closes every socket with 4000 when the room storage is deleted', async () => {
-    const stub = getStub();
-    await initialize(stub);
-    const response = await stub.fetch(
-      new Request(
-        `https://room.test/websocket?roomCode=${ROOM_CODE}&roomId=${encodeURIComponent(
-          stub.id.toString(),
-        )}&creationId=creation-1&userId=host-1`,
-        { headers: { Upgrade: 'websocket' } },
-      ),
+  function admissionRequest(stub: DurableObjectStub<GameRoom>): Request {
+    return new Request(
+      `https://room.test/websocket?roomCode=${ROOM_CODE}&roomId=${encodeURIComponent(
+        stub.id.toString(),
+      )}&creationId=creation-1&userId=host-1`,
+      { headers: { Upgrade: 'websocket' } },
     );
+  }
+
+  async function admissionClose(response: Response): Promise<{ code: number; reason: string }> {
+    expect(response.status).toBe(101);
     const socket = response.webSocket;
     if (socket === null) throw new Error('Expected a WebSocket upgrade response');
     const closed = new Promise<{ code: number; reason: string }>((resolve) => {
@@ -840,6 +840,16 @@ describe('GameRoom command receipts', () => {
       );
     });
     socket.accept();
+    return closed;
+  }
+
+  it('closes every socket with 4000 when the room storage is deleted and disarms the alarm', async () => {
+    const stub = getStub();
+    await initialize(stub);
+    const closed = admissionClose(await stub.fetch(admissionRequest(stub)));
+    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
+      expect(await state.storage.getAlarm()).not.toBeNull();
+    });
 
     await expect(
       stub.deleteRoomStorage({ ...roomIdentity(stub), shouldDiscardFailedEffects: false }),
@@ -847,6 +857,23 @@ describe('GameRoom command receipts', () => {
     await expect(closed).resolves.toEqual({
       code: REALTIME_CLOSE_CODE.ROOM_DELETED,
       reason: 'room_deleted',
+    });
+    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
+      expect(await state.storage.getAlarm()).toBeNull();
+    });
+    // A late admission after deletion is terminal too, never an opaque 1006.
+    await expect(admissionClose(await stub.fetch(admissionRequest(stub)))).resolves.toEqual({
+      code: REALTIME_CLOSE_CODE.ROOM_DELETED,
+      reason: 'room_deleted',
+    });
+  });
+
+  it('closes 4003 when the directory points at an object that holds no state for the instance', async () => {
+    const stub = getStub();
+    // Never initialized: the same object a discarded-schema room ends up as.
+    await expect(admissionClose(await stub.fetch(admissionRequest(stub)))).resolves.toEqual({
+      code: REALTIME_CLOSE_CODE.STATE_UNAVAILABLE,
+      reason: 'state_unavailable',
     });
   });
 
