@@ -1,11 +1,9 @@
 /**
  * Sheriff-election public record — the single derivation shared by the
- * election panel (sheriffElectionViewModel) and the night report
- * (NightReview.helpers).
+ * client election panel and the night review projection.
  *
- * Pure functions only: no React, no styles, no gameState access. The panel
- * shell keeps its own occupied-seat assertions around these derivations;
- * this module never sees a player roster.
+ * Pure functions only: no state writes, no roster access. Consumers keep
+ * their own occupied-seat assertions around these derivations.
  *
  * Two facts are derived here and nowhere else:
  * - one closed round's tally, re-derived from its ballots alone (stored
@@ -17,10 +15,7 @@
  * the records are null and the report shows a status only.
  */
 
-import type {
-  SheriffElectionRoundResult,
-  SheriffElectionState,
-} from '@game-judge/game-engine/games/werewolf/public';
+import type { SheriffElectionRoundResult, SheriffElectionState } from '../protocol/types';
 
 /**
  * One closed sheriff-election voting round, re-derived from the round's

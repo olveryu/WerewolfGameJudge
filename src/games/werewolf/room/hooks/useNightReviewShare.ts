@@ -1,9 +1,9 @@
 /** Owns report capture and sharing for one room, user and report; never changes game state. */
 
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import type { WerewolfNightReview } from '@game-judge/game-engine/games/werewolf/public';
 import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
 import type { RefObject } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { View } from 'react-native';
 
 import type {
@@ -16,7 +16,6 @@ import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 import { isMiniProgram, wxPreviewImage } from '@/utils/miniProgram';
 
-import { buildNightReviewData } from '../NightReview.helpers';
 import {
   captureNightReviewCard,
   captureNightReviewCardSegmented,
@@ -57,17 +56,13 @@ export function useNightReviewShare(
   roomId: string,
   roomCode: string,
   userId: string | null,
-  gameState: Parameters<typeof buildNightReviewData>[0] | null,
+  nightReviewData: WerewolfNightReview | null,
+  roundNonce: string | null,
 ) {
-  const nightReviewData = useMemo(() => {
-    if (!gameState?.currentNightResults) return null;
-    if (gameState.status !== GameStatus.Day && gameState.status !== GameStatus.Ended) return null;
-    return buildNightReviewData(gameState);
-  }, [gameState]);
   const reportScopeKey = canonicalJson({
     roomId,
     userId,
-    round: gameState?.roleRevealRandomNonce ?? null,
+    round: roundNonce,
     nightReviewData,
   });
   const nightReviewShareCardRef = useRef<View>(null);

@@ -5,6 +5,7 @@
  * presentation itself lives in NightReviewReportBody, shared with the share
  * card so the two surfaces cannot drift.
  */
+import type { WerewolfNightReview } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions } from 'react-native';
@@ -14,13 +15,12 @@ import { CloseButton } from '@/components/CloseButton';
 import { TESTIDS } from '@/testids';
 import { borderRadius, spacing, typography } from '@/theme';
 
-import type { NightReviewData } from '../NightReview.helpers';
 import { NIGHT_REPORT_PALETTE, NIGHT_REVIEW_CARD_WIDTH_RATIO } from '../nightReviewLayout';
 import { NightReviewReportBody } from './NightReviewReportBody';
 
 interface NightReviewModalProps {
   visible: boolean;
-  data: NightReviewData;
+  data: WerewolfNightReview;
   onClose: () => void;
 }
 

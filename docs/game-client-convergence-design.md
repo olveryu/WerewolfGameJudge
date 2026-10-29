@@ -194,14 +194,14 @@ AU-39 golden 测试补新字段与 host 视角。
 
 ### 6.3 引擎：复盘事实
 
-`END_NIGHT` 只持久化 `lastNightDeaths` + `deathReasons`（每座位一个主因）；同一次 `calculateDeathsDetailed` 算出的 `deathSources`（每座位全部来源）被丢弃。客户端 `NightReview.helpers.ts` 的 `willDieTonight` / `canShootForSeat` / `deriveDeathNotes` / `buildActionEntries` 因此只能重算规则——第二份实现。
+客户端 `NightReview.helpers.ts` 的 `willDieTonight` / `canShootForSeat` / `deriveDeathNotes` / `buildActionEntries` 重算死亡与开枪规则——第二份实现。
 
-处置：服务端裁决持久化一次，读侧只读不算。
+处置：复盘事实层整体迁入引擎 `domain/review/`，读侧只读引擎已有裁决，不重算。
 
-- `END_NIGHT` payload 加 `deathSources: Record<number, readonly DeathReason[]>`；`GameState.deathSources` 与 `deathReasons` 同可选性（夜一前 undefined）；`parseState` / `normalize` 同步。
-- 状态版本 v14 硬切：v13 及更早 payload 拒绝不迁移（与 v10–v13 既定做法一致）。
-- 新增 `domain/nightReview.ts` 的 `getWerewolfNightReview(state: GameState): WerewolfNightReview`：死亡与来源读 `lastNightDeaths / deathReasons / deathSources`；开枪资格调 `deathResolution.ts` 现有纯函数（输入 `deathSources`）；行动条目读 `state.actions` + `currentNightResults`。不调用 `calculateNightDeaths*`。
-- 测试经真实 `decide → gameReducer` 构造状态；旧断言不变，若失败先判定哪边错。
+- `domain/review/nightReview.ts` 的 `getWerewolfNightReview(state: GameState): WerewolfNightReview`：死亡读 `lastNightDeaths / deathReasons`；狼刀裁决读 `resolvedWolfKillVerdict`（不从票重计）；开枪资格调引擎步进时用的同一函数 `handlers/confirmContext.ts#computeCanShootForSeat`；行动条目读 `state.actions` + `currentNightResults`。不调用 `calculateNightDeaths*`。
+- 不新增持久化字段：实现时发现 `computeCanShootForSeat` 已存在且与步进共用，`deathSources` 持久化（v3 初稿）无需求，撤回；状态版本不因本节变动。
+- 警长发言顺序从字符串 `speakingInstruction` 改为结构 `speakingOrder: { startSeat, direction }`，文案由客户端 `formatSpeakingOrder` 渲染。
+- `sheriffElectionRecord.ts` 同迁 `domain/review/`；两套测试以 `GameState` fixture 原样移植（151 用例）。
 
 ### 6.4 目标文件树
 
@@ -490,7 +490,7 @@ type NightInteractionModel =
 | --- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | D1  | `getActorIdentity` 的 drift 分支 | 删除。两个输入来自同一个 `useRoomBotControl` 状态，按构造不可达；软失败 `{null,null}` 违反 fail-fast                                                                                                                                                                                                                                                                                            |
 | D2  | 阶段到期结算归属（§6.2）         | A：时钟归服务端（`settle.due`），播报归 host（`audio.ack`），与阿瓦隆同款。曾一度改为 B（host 客户端 `shouldExpire: () => isHost`），复核后否决：B 把本该在服务端的时钟留在 host 手机上；host 对每段播报的控制在 A 里一分不少                                                                                                                                                                   |
-| D3  | 复盘事实迁引擎（§6.3）           | 做。`END_NIGHT` 持久化 `deathSources`，状态 v14 硬切；读侧只读不算                                                                                                                                                                                                                                                                                                                              |
+| D3  | 复盘事实迁引擎（§6.3）           | 做。读侧调引擎既有 `computeCanShootForSeat`，不重算；`deathSources` 持久化撤回（实现时发现无需求）                                                                                                                                                                                                                                                                                              |
 | D4  | 身份查看协议                     | **以狼人杀为基准**：先确认后弹卡，六家跟上（§5.3 `useRoleViewing`）。v2/v3 曾写"狼人杀改为六家的先弹卡"，因把六家当基准而否决                                                                                                                                                                                                                                                                   |
 | D5  | `WerewolfGameClient` 门面        | 删除。命令内联经 `submit`；AI 聊天 / 记事本 / 图鉴 / AppOverlay 改吃 `session`                                                                                                                                                                                                                                                                                                                  |
 | D6  | 房间交互层                       | **重建而非改造**（v3）。`executors/` + `useActionOrchestrator` + `useInteractionDispatcher` + `useRoomActions` + policy 两层 + 底栏三件（~4,400 行命令式链）→ `night/` 声明式 `NightInteractionModel`（~1,200 行纯函数）。v2 曾决定保留 `executors/`，因它是旧架构的形状而否决                                                                                                                  |
@@ -498,7 +498,7 @@ type NightInteractionModel =
 | D8  | 行动身份两个事实                 | `actorRole`（raw）与 `actorEffectiveRole`（底牌派生）并存；新模型只读 `isActioner` + `actionSchema`，现有"raw 当派生用"的分支消失                                                                                                                                                                                                                                                               |
 | D9  | 机器人身份                       | **机器人不需要 userId**。平台 roster 已是 `{ seat, kind: 'bot' }`；假 id 只为满足 `userId: string`，是类型不诚实。共享类型改判别联合；狼人杀 `actionRejected.targetUserId → targetSeat`、`gameEnded` 参与者判别联合、结算指纹只算 human（随 v14 硬切）。部署瞬间已投递未 ack 的 `gameEnded` 重放会 FAIL-FAST，走 outbox-recovery runbook。v2 曾决定"格式各自保留只迁定义"，因回答错了问题而否决 |
 | D10 | 交互预先禁用                     | 预先禁用是平台数据（`audioPlaybackLock` / `RoomCapability`），不是"预判"；狼人杀 `NightInteractionModel.blocked` 与六家同口径。v3 曾写"删预判，等服务端拒绝再 toast"，因平台本就有该机制且狼人杀体验更好而否决。pending ack 排他、host-only 对话框保留为 `werewolfInteractionPolicy.ts`                                                                                                         |
-| D11 | 复盘事实投影方式                 | 同 D3。v2 曾写"不新增持久化、读时重算"，因让读侧重跑结算函数、违背 `GameState` 单一事实而否决                                                                                                                                                                                                                                                                                                   |
+| D11 | 复盘事实投影方式                 | 同 D3。否决的是"读侧重跑结算函数"；复用步进共用的 `computeCanShootForSeat` 不是重跑结算，不违背单一事实                                                                                                                                                                                                                                                                                         |
 | D12 | 音频编排宿主                     | 与阿瓦隆同：room-state hook 按 `session.epoch` 重建。Room 卸载 ⇒ `useRoomEntryController` cleanup `link.close()`，hook 与 ready link 同生命周期是结构保证，不是前提                                                                                                                                                                                                                             |
 | D13 | 引擎承接行动者判定               | `determineActionerState` 的规则部分进引擎 `visibility.ts` 为 `night.isActioner`；客户端不再算"我是不是行动者"                                                                                                                                                                                                                                                                                   |
 | D15 | §9 第 3 步过渡编辑               | 第 3 步改旧 `useStepDeadlineCountdown` 发带 pin 的 `phase.expire`，第 5 步整文件删除。接受这 ~10 行一次性改动，换每个 commit 端到端完整（引擎命令有消费者、无死代码）；不接受在引擎里暂留 `progress.request` 两路并存                                                                                                                                                                           |
@@ -517,7 +517,7 @@ type NightInteractionModel =
 | 4   | MAJOR   | `effectiveRole` 收成一个 `actorRole`——raw 与底牌派生是两个事实          | §6.8 / D8                                                                                               |
 | 5   | MAJOR   | `LocalPlayer` 只读 5 个字段——实读 11 个；host 看机器人底牌需投影        | §6.1：资料走 roster；`visibleRole` 加 host 视角                                                         |
 | 6   | MAJOR   | 验收提"死亡标记"——当前实现不渲染                                        | 范围 = 复现当前输出                                                                                     |
-| 7   | MAJOR   | "读 `deathReasons` 即可"——只持久化主因                                  | §6.3 / D11：持久化 `deathSources`，v14 硬切（v2 曾写"读时重算"，v3 自审否决）                           |
+| 7   | MAJOR   | "读 `deathReasons` 即可"——只持久化主因                                  | §6.3 / D11：复盘迁引擎，开枪资格复用引擎 `computeCanShootForSeat`（`deathSources` 持久化在实现时撤回）  |
 | 8   | MAJOR   | 音频 hook 生命周期未论证                                                | §6.6 / D12：Room 卸载 ⇒ link 关闭是结构保证（v2 曾写"前提 + 必测"，v3 自审改为结构论证）                |
 | 9   | MAJOR   | 整删 `RoomInteractionPolicy`——它还管 pending ack / 资料 / 对话框路由    | D10                                                                                                     |
 | 10  | MAJOR   | 契约"禁止 `policy/` 目录"——阿瓦隆就有                                   | §8 契约 4                                                                                               |
@@ -538,3 +538,8 @@ v3 初稿默认"六家是基准、狼人杀向六家看齐"，把两处狼人杀
 ### v3 行为清查修订
 
 四份逐文件清查（§6.9 来源）补齐 v3 初稿遗漏：草稿跨刷新、查验结果 ack 刷新重入、自动弹一次提示、提交单飞、拒绝定向去重、音频锁豁免、ack 未落排他、底牌可选性规则（客户端重算 → 引擎投影）、被动 toast、BGM 生命周期、host 任务流持久化。`NightInteractionModel` 从 9 kind 扩为 13 kind；§6.1 投影补 6 个字段；§5.1 补 `useScopedDraft` / `useLastActionToast`；§5.3 补 4 项。
+
+### v3 实施修订（步骤 1–2）
+
+- 步骤 1：状态版本落为 **v15**（v14 已被占用），`migratePersistedWerewolfState` 迁 v12–14；`recordedActions` 投影字段无消费者，删除。
+- 步骤 2：`deathSources` 持久化撤回（§6.3 / D3 / D11）；`speakingInstruction` → `speakingOrder` 结构化；`sheriffElectionRecord` 与复盘测试随事实层迁入引擎。

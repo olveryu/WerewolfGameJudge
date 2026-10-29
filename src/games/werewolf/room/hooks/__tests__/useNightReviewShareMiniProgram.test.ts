@@ -2,12 +2,12 @@
  * Mini-program report sharing uses the segmented capture and shares the
  * same pre-capture cache as other platforms instead of capturing on tap.
  */
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { getWerewolfNightReview } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react-native';
 
 import type { CaptureProgressCallback } from '@/features/room/services/captureViewSegmentedPngBase64';
 import { uploadShareImage } from '@/features/room/services/uploadShareImage';
-import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
+import { makeReviewState } from '@/test-utils/werewolfNightReview';
 import { handleError } from '@/utils/errorPipeline';
 import { wxPreviewImage } from '@/utils/miniProgram';
 
@@ -28,14 +28,8 @@ jest.mock('@/features/room/services/uploadShareImage', () => ({
   uploadShareImage: jest.fn(),
 }));
 
-const gameState = {
-  status: GameStatus.Day,
-  currentNightResults: {},
-  players: new Map(),
-  actions: new Map(),
-  lastNightDeaths: [],
-  roleRevealRandomNonce: 'round-1',
-} as unknown as LocalGameState;
+const nightReview = getWerewolfNightReview(makeReviewState({ roleRevealRandomNonce: 'round-1' }));
+const ROUND_NONCE = 'round-1';
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -54,7 +48,9 @@ it('mounts the share card for the segmented capture and previews the uploaded im
     complete = resolve;
   });
   jest.mocked(captureNightReviewCardSegmented).mockReturnValue(capture);
-  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+  const { result } = renderHook(() =>
+    useNightReviewShare('room-1', '1234', 'user-1', nightReview, ROUND_NONCE),
+  );
 
   let sharePromise!: Promise<boolean>;
   await act(async () => {
@@ -80,7 +76,9 @@ it('mounts the share card for the segmented capture and previews the uploaded im
 
 it('reuses the pre-captured image when sharing after the review opened', async () => {
   jest.mocked(captureNightReviewCardSegmented).mockResolvedValue('segmented-image');
-  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+  const { result } = renderHook(() =>
+    useNightReviewShare('room-1', '1234', 'user-1', nightReview, ROUND_NONCE),
+  );
 
   await act(async () => {
     await result.current.beginReportCapture();
@@ -104,7 +102,9 @@ it('joins the in-flight pre-capture instead of capturing twice when sharing earl
     complete = resolve;
   });
   jest.mocked(captureNightReviewCardSegmented).mockReturnValue(capture);
-  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+  const { result } = renderHook(() =>
+    useNightReviewShare('room-1', '1234', 'user-1', nightReview, ROUND_NONCE),
+  );
 
   let pending!: Promise<string | null>;
   let sharePromise!: Promise<boolean>;
@@ -138,7 +138,9 @@ it('exposes band progress during capture and clears it when capture settles', as
     onProgress?.(0, 3);
     return capture;
   });
-  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+  const { result } = renderHook(() =>
+    useNightReviewShare('room-1', '1234', 'user-1', nightReview, ROUND_NONCE),
+  );
 
   let pending!: Promise<string | null>;
   await act(async () => {
@@ -163,7 +165,9 @@ it('surfaces a segmented capture failure instead of sharing', async () => {
   jest
     .mocked(captureNightReviewCardSegmented)
     .mockRejectedValue(new Error('segmented capture failed'));
-  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+  const { result } = renderHook(() =>
+    useNightReviewShare('room-1', '1234', 'user-1', nightReview, ROUND_NONCE),
+  );
 
   let shared!: boolean;
   await act(async () => {
@@ -193,7 +197,9 @@ it('presents the share run from tap through generation and upload until the prev
         completeUpload = resolve;
       }),
   );
-  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+  const { result } = renderHook(() =>
+    useNightReviewShare('room-1', '1234', 'user-1', nightReview, ROUND_NONCE),
+  );
 
   let sharePromise!: Promise<boolean>;
   await act(async () => {
@@ -233,7 +239,9 @@ it('cancelling during generation detaches the preview but keeps the capture for 
     completeCapture = resolve;
   });
   jest.mocked(captureNightReviewCardSegmented).mockReturnValue(capture);
-  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+  const { result } = renderHook(() =>
+    useNightReviewShare('room-1', '1234', 'user-1', nightReview, ROUND_NONCE),
+  );
 
   let sharePromise!: Promise<boolean>;
   await act(async () => {
@@ -275,7 +283,9 @@ it('cancelling during upload keeps the sent upload from opening the preview', as
         completeUpload = resolve;
       }),
   );
-  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+  const { result } = renderHook(() =>
+    useNightReviewShare('room-1', '1234', 'user-1', nightReview, ROUND_NONCE),
+  );
 
   let sharePromise!: Promise<boolean>;
   await act(async () => {
@@ -306,7 +316,9 @@ it('skips the generating phase entirely when the image is already cached', async
         completeUpload = resolve;
       }),
   );
-  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+  const { result } = renderHook(() =>
+    useNightReviewShare('room-1', '1234', 'user-1', nightReview, ROUND_NONCE),
+  );
 
   await act(async () => {
     await result.current.beginReportCapture();
@@ -333,7 +345,9 @@ it('clears the share run when generation fails', async () => {
   jest
     .mocked(captureNightReviewCardSegmented)
     .mockRejectedValue(new Error('segmented capture failed'));
-  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+  const { result } = renderHook(() =>
+    useNightReviewShare('room-1', '1234', 'user-1', nightReview, ROUND_NONCE),
+  );
 
   let shared!: boolean;
   await act(async () => {
@@ -347,7 +361,9 @@ it('clears the share run when generation fails', async () => {
 it('clears the share run when the upload fails', async () => {
   jest.mocked(captureNightReviewCardSegmented).mockResolvedValue('segmented-image');
   jest.mocked(uploadShareImage).mockRejectedValue(new Error('upload failed'));
-  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+  const { result } = renderHook(() =>
+    useNightReviewShare('room-1', '1234', 'user-1', nightReview, ROUND_NONCE),
+  );
 
   let shared!: boolean;
   await act(async () => {

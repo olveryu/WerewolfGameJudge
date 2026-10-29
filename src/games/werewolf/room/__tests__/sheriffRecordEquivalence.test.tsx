@@ -19,6 +19,7 @@
  */
 
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { deriveSheriffSection } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { render } from '@testing-library/react-native';
 
@@ -30,8 +31,7 @@ import { NightReviewReportBody } from '../components/NightReviewReportBody';
 import { SheriffElectionPanel } from '../components/SheriffElectionPanel';
 import { createSheriffElectionPanelStyles } from '../components/sheriffElectionPanel.styles';
 import type { SheriffElectionPanelModel } from '../hooks/useSheriffElection';
-import { deriveSheriffSection } from '../NightReview.helpers';
-import { createSheriffElectionViewModel } from '../sheriffElectionViewModel';
+import { createSheriffElectionViewModel, formatSpeakingOrder } from '../sheriffElectionViewModel';
 
 const FIRST_ROUND: NonNullable<GameState['sheriffElection']>['completedRounds'][number] = {
   round: 'first',
@@ -62,18 +62,17 @@ function makeLocalState(
     players[seat] = { seat, role: 'villager' };
     roster[seat] = { seat, userId: `user-${seat}`, profile: { displayName: `P${seat}` } };
   }
-  return toWerewolfLocalState(
-    buildWerewolfTestState({
-      status: GameStatus.Day,
-      templateRoles: Array.from({ length: 10 }, () => 'villager' as const),
-      players,
-      roleViewedSeats: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-      roster,
-      rules: { isSheriffElectionEnabled: true },
-      sheriffElection: election,
-      sheriffElectionResult: result,
-    }),
-  );
+  const gameState = buildWerewolfTestState({
+    status: GameStatus.Day,
+    templateRoles: Array.from({ length: 10 }, () => 'villager' as const),
+    players,
+    roleViewedSeats: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    roster,
+    rules: { isSheriffElectionEnabled: true },
+    sheriffElection: election,
+    sheriffElectionResult: result,
+  });
+  return { gameState, localState: toWerewolfLocalState(gameState) };
 }
 
 interface JsonNode {
@@ -105,11 +104,11 @@ describe('panel and report derive the same sheriff record', () => {
       { kind: 'elected', sheriffSeat: 2 },
     );
     const view = createSheriffElectionViewModel({
-      gameState: state,
+      gameState: state.localState,
       effectiveSeat: 0,
       isHost: false,
     });
-    const section = deriveSheriffSection(state);
+    const section = deriveSheriffSection(state.gameState);
     if (section?.kind !== 'completed') throw new Error('expected a completed section');
 
     expect(view?.completedRounds).toEqual([
@@ -143,7 +142,7 @@ describe('panel and report derive the same sheriff record', () => {
       { kind: 'elected', sheriffSeat: 2 },
     );
     const view = createSheriffElectionViewModel({
-      gameState: state,
+      gameState: state.localState,
       effectiveSeat: 0,
       isHost: false,
     });
@@ -164,7 +163,7 @@ describe('panel and report derive the same sheriff record', () => {
         <SheriffElectionPanel model={model} styles={createSheriffElectionPanelStyles(colors)} />,
       ).toJSON(),
     );
-    const section = deriveSheriffSection(state);
+    const section = deriveSheriffSection(state.gameState);
     if (section === undefined) throw new Error('expected a report section');
     const reportTexts = collectTexts(
       render(
@@ -193,12 +192,12 @@ describe('panel and report derive the same sheriff record', () => {
       completedRounds: [],
     });
     const view = createSheriffElectionViewModel({
-      gameState: state,
+      gameState: state.localState,
       effectiveSeat: 0,
       isHost: false,
     });
     expect(view?.candidateRecords).toBeNull();
-    expect(deriveSheriffSection(state)).toEqual({ kind: 'registration' });
+    expect(deriveSheriffSection(state.gameState)).toEqual({ kind: 'registration' });
   });
 
   it('runoff speech: a first-phase withdrawal is never a runoff candidate', () => {
@@ -212,11 +211,11 @@ describe('panel and report derive the same sheriff record', () => {
       speakingDirection: 'clockwise',
     });
     const view = createSheriffElectionViewModel({
-      gameState: state,
+      gameState: state.localState,
       effectiveSeat: 0,
       isHost: false,
     });
-    const section = deriveSheriffSection(state);
+    const section = deriveSheriffSection(state.gameState);
     if (section?.kind !== 'inProgress') throw new Error('expected an in-progress section');
 
     // Both surfaces agree on the record itself.
@@ -231,7 +230,8 @@ describe('panel and report derive the same sheriff record', () => {
 
     // Speaking line: panel and report compute it from the same function.
     expect(view?.speakingInstruction).toBe('从 3号开始，顺时针发言');
-    expect(section.speakingInstruction).toBe(view?.speakingInstruction);
+    if (!section.speakingOrder) throw new Error('expected a speaking order');
+    expect(formatSpeakingOrder(section.speakingOrder)).toBe(view?.speakingInstruction);
 
     // Card channel, now in panel UI: the 平票候选 row holds exactly the
     // runoff candidates. The withdrawn seat appears in the 上警 row
