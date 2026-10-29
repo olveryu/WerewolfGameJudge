@@ -4,6 +4,7 @@ import type { GameEffect } from '@game-judge/game-engine/platform/engine';
 import { type GameType, parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
 import type { EffectScope, PendingOutboxEffect } from '../room/types';
+import { requestWakeNoLaterThan } from './roomAlarm';
 import { parseNonEmptyString, parseNonNegativeInteger, parsePositiveInteger } from './sqlValues';
 
 export const OUTBOX_MAX_ATTEMPTS = 7;
@@ -138,7 +139,7 @@ export class EffectOutbox {
             effect.attemptCount,
           )
           .one();
-        await this.#storage.setAlarm(watchdogAt);
+        await requestWakeNoLaterThan(this.#storage, watchdogAt);
         return { kind: 'exhausted', effect: { ...effect, availableAt: watchdogAt } };
       }
 
@@ -153,7 +154,7 @@ export class EffectOutbox {
           effect.attemptCount,
         )
         .one();
-      await this.#storage.setAlarm(watchdogAt);
+      await requestWakeNoLaterThan(this.#storage, watchdogAt);
       return { kind: 'claimed', effect: { ...effect, attemptCount, availableAt: watchdogAt } };
     });
   }
@@ -243,7 +244,7 @@ export class EffectOutbox {
           effectId,
         )
         .one();
-      await this.#storage.setAlarm(nowMs);
+      await requestWakeNoLaterThan(this.#storage, nowMs);
     });
   }
 

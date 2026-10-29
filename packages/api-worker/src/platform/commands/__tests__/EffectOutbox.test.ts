@@ -6,6 +6,28 @@ import { expect, it } from 'vitest';
 import { EffectOutbox, OUTBOX_MAX_ATTEMPTS } from '../EffectOutbox';
 import { initializeRoomStorage } from '../storageSchema';
 
+it('a delivery watchdog never pushes an earlier alarm (presence sweep) later', async () => {
+  const stub = env.GAME_ROOM.get(env.GAME_ROOM.newUniqueId());
+  await runInDurableObject(stub, async (_instance, state) => {
+    await initializeRoomStorage(state.storage, Date.now());
+    state.storage.sql.exec(
+      `INSERT INTO effect_outbox (
+      id, origin_command_id, scope, game_type, effect_type, business_key, payload_json,
+      status, attempt_count, available_at, created_revision, created_at
+    ) VALUES ('effect', 'command', 'game', 'fibking', 'fibking.word.select', 'round',
+      '{"type":"fibking.word.select","payload":{"roundId":"round","avoidWords":[]}}',
+      'pending', 0, 0, 1, 0)`,
+    );
+    const now = Date.now();
+    const sweepAt = now + 5_000;
+    await state.storage.setAlarm(sweepAt);
+    const outbox = new EffectOutbox(state.storage);
+    const claimed = await outbox.claimNextDue(now);
+    expect(claimed.kind).toBe('claimed');
+    expect(await state.storage.getAlarm()).toBe(sweepAt);
+  });
+});
+
 it('leases exhausted work without prematurely marking it failed', async () => {
   const stub = env.GAME_ROOM.get(env.GAME_ROOM.newUniqueId());
   await runInDurableObject(stub, async (_instance, state) => {
