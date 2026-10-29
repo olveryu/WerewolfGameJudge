@@ -8,8 +8,9 @@
  *   night_end / beginning / ending), exposes stopBgm for the core's dawn timing, and treats
  *   MissingWerewolfAudioError as fail-fast.
  * - Ack adapter: dispatches the durable `werewolf.audio.ack` through werewolfGameActions.
- * - Rejoin resume extension: replays the current step's beginning audio (seer label
- *   resolution is Werewolf-owned) and releases the gate through the core's ack.
+ * - Rejoin resume extension: resolves the current step's beginning audio (seer label
+ *   resolution is Werewolf-owned) and hands the replay to the core, which runs it under the
+ *   shared re-entry guard, acks the interrupted batch and chains newer batches.
  *
  * Boundary constraints:
  * - Only active for Host role (the core plays only when isHost())
@@ -147,58 +148,39 @@ export class WerewolfAudioOrchestrator {
   // =========================================================================
 
   /**
-   * Called after Host rejoin + user clicks "resume game".
-   * Triggers user gesture -> unlocks Web AudioContext.
+   * Called after Host rejoin + user clicks "resume game" (user gesture unlocks Web AudioContext).
    *
-   * Behavior:
-   * 1. If BGM setting is on -> start BGM (called by useWerewolfRoom)
-   * 2. If audio was playing when disconnected -> replay current step begin audio
-   * 3. After audio ends, POST audio-ack to unlock gate
-   *
-   * The authoritative audio gate remains active in the persisted snapshot during replay.
+   * When the authoritative gate is still closed (`isAudioPlaying`), the current step's beginning
+   * audio is replayed and the interrupted batch acked — both inside the core's re-entry guard.
+   * With the gate open there is nothing to replay; BGM restoration is the caller's job.
    */
   async resumeAfterRejoin(): Promise<void> {
-    // Early clear — prevent listener from re-setting overlay + prevent multiple click re-entry
-    if (!this.#core.wasAudioInterrupted) return;
-    this.#core.setWasAudioInterrupted(false);
-
     const state = this.#deps.roomSource.getSnapshot()?.state;
     if (!state) return;
-    // The batch that was playing when the host dropped; a later batch must not be cleared by this ack.
-    const { audioBatchId } = state;
+    if (!state.isAudioPlaying) {
+      this.#core.setWasAudioInterrupted(false);
+      return;
+    }
 
+    // Outside a night step (e.g. night end) the gate closes on a batch with nothing to replay here.
+    const stepId = state.nightStep?.kind === 'inStep' ? state.nightStep.stepId : null;
+    const stepSpec = stepId === null ? null : getStepSpec(stepId);
+    if (stepSpec === undefined) {
+      throw new Error(`[FAIL-FAST] Night step has no spec: ${stepId}`);
+    }
+    const replay =
+      stepSpec === null
+        ? async () => undefined
+        : async () => {
+            werewolfRuntimeLog.info('Replaying current step audio after rejoin', {
+              audioKey: stepSpec.audioKey,
+            });
+            await this.#deps.audio.playBeginning(
+              resolveSeerAudioKey(stepSpec.audioKey, state.seerLabelMap),
+            );
+          };
     try {
-      // If audio not playing (isAudioPlaying=false in DB), only need to restore BGM (caller already handles)
-      // Server inline progression handles subsequent steps automatically
-      if (!state.isAudioPlaying) {
-        return;
-      }
-
-      // Replay current step audio (isAudioPlaying persists as true from DB, gate is active)
-      if (state.nightStep?.kind === 'inStep') {
-        const stepSpec = getStepSpec(state.nightStep.stepId);
-        if (stepSpec) {
-          werewolfRuntimeLog.info('Replaying current step audio after rejoin', {
-            stepId: state.nightStep.stepId,
-            audioKey: stepSpec.audioKey,
-          });
-          try {
-            const resolvedKey = resolveSeerAudioKey(stepSpec.audioKey, state.seerLabelMap);
-            await this.#deps.audio.playBeginning(resolvedKey);
-          } finally {
-            // After audio completes (or fails), POST audio-ack to release gate + trigger progression
-            if (!this.#deps.isAborted()) {
-              await this.#core.dispatchAudioAck('resumeAfterRejoin', audioBatchId);
-            }
-          }
-        } else {
-          // No stepSpec (shouldn't happen), fallback release gate
-          await this.#core.dispatchAudioAck('resumeAfterRejoin', audioBatchId);
-        }
-      } else {
-        // No live night step, fallback release gate
-        await this.#core.dispatchAudioAck('resumeAfterRejoin', audioBatchId);
-      }
+      await this.#core.resumeInterrupted(replay, state.audioBatchId);
     } catch (e) {
       // Caller uses fire-and-forget `void` — catch here to prevent unhandled rejection
       handleError(e, {

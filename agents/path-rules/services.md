@@ -100,8 +100,10 @@ Single orchestration source: Engine commits authoritative audio events → game 
   `werewolf.audio.ack`. Wolf vote deadline expiry submits `werewolf.progress.request`.
 - **UI**: reads `isAudioPlaying` only. useEffect playing audio is forbidden. UI toggling `setAudioPlaying` is forbidden.
 - `isAudioPlaying` is factual state; sole modification path: `SET_AUDIO_PLAYING` action. Other actions "incidentally" setting it is forbidden.
-- **Rejoin recovery**: `RoomLink` restores the authoritative snapshot; the game audio runtime resumes the pending
-  batch after a user gesture when Web autoplay requires one, then dispatches the same audio ACK command.
+- **Rejoin recovery**: `RoomLink` restores the authoritative snapshot; after the user gesture Web autoplay
+  requires, the game hands its replay to `RoomAudioOrchestrator.resumeInterrupted(replay, audioBatchId)`. The core
+  runs it under the same re-entry guard as reactive playback, acks that batch and chains newer ones. Game code
+  never acks or clears `wasAudioInterrupted` itself.
 - **Audio ack is a durable command that names its batch**: `<game>.audio.ack` carries the `audioBatchId` of the
   batch the host played and is dispatched with `durable: true`, so `CommandOutbox` persists it and replays the
   same `commandId` after any disconnect. The id is what keeps the outbox's payload-equality intent key safe: two
