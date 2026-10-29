@@ -15,7 +15,6 @@ jest.mock('@/contexts/AuthContext', () => ({
 jest.mock('@/features/room/controllers/useRoomEntryController', () => ({
   useRoomEntryController: (params: unknown) => mockUseRoomEntryController(params),
 }));
-jest.mock('@/utils/miniProgram', () => ({ isMiniProgram: () => false }));
 
 const room = {
   roomCode: '1234',
@@ -38,7 +37,6 @@ const session = {} as RoomLink<
 function createController(isReady: boolean): RoomEntryController {
   return {
     isReady,
-    isAuthRequired: false,
     loadingMessage: '正在加入房间',
     showRetryButton: false,
     connection: {

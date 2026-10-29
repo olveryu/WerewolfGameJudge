@@ -4,6 +4,7 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { Text } from 'react-native';
 
+import type { useAuthContext } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
 import type { RoomDirectory, RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { RoomUiModule } from '@/features/room/model/RoomUiModule';
@@ -13,8 +14,40 @@ import { RoomResolverScreen } from '../RoomResolverScreen';
 
 jest.mock('@sentry/react-native');
 jest.mock('@/contexts/ServiceContext', () => ({ useServices: jest.fn() }));
+jest.mock('@/contexts/AuthContext', () => ({ useAuthContext: () => mockUseAuthContext() }));
+jest.mock('@/features/room/components/RoomAuthGate', () => ({
+  RoomAuthGate: () => mockRoomAuthGate(),
+}));
 
 const mockUseServices = jest.mocked(useServices);
+const mockUseAuthContext = jest.fn<ReturnType<typeof useAuthContext>, []>();
+const mockRoomAuthGate = jest.fn<React.ReactNode, []>(() => <Text>登录门</Text>);
+
+function authState(user: ReturnType<typeof useAuthContext>['user'], loading = false) {
+  return {
+    user,
+    loading,
+    error: null,
+    isAuthenticated: user !== null,
+    needsWechatLogin: false,
+    refreshUser: jest.fn<Promise<void>, []>().mockResolvedValue(undefined),
+    retryInit: jest.fn<void, []>(),
+  } satisfies ReturnType<typeof useAuthContext>;
+}
+
+const signedInUser: NonNullable<ReturnType<typeof useAuthContext>['user']> = {
+  id: 'viewer-1',
+  email: null,
+  displayName: '访客',
+  avatarUrl: null,
+  customAvatarUrl: null,
+  avatarFrame: null,
+  seatFlair: null,
+  nameStyle: null,
+  equippedEffect: null,
+  seatAnimation: null,
+  isAnonymous: true,
+};
 const getRoom = jest.fn<Promise<RoomRecord | null>, [string]>();
 const roomDirectory = { getRoom } as unknown as RoomDirectory;
 const navigation = {
@@ -44,6 +77,43 @@ describe('RoomResolverScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseServices.mockReturnValue({ roomDirectory } as ReturnType<typeof useServices>);
+    mockUseAuthContext.mockReturnValue(authState(signedInUser));
+  });
+
+  it('gates on login before the authenticated room lookup, then resolves once a user exists', async () => {
+    mockUseAuthContext.mockReturnValue(authState(null, true));
+    const view = renderResolver();
+    expect(view.getByText('正在查找房间')).toBeTruthy();
+    expect(mockRoomAuthGate).not.toHaveBeenCalled();
+
+    mockUseAuthContext.mockReturnValue(authState(null));
+    view.rerender(
+      <RoomResolverScreen
+        route={{ key: 'room', name: 'Room', params: { roomCode: '1234' } }}
+        navigation={navigation}
+        getGameModule={getGameModule}
+      />,
+    );
+    expect(view.getByText('登录门')).toBeTruthy();
+    expect(getRoom).not.toHaveBeenCalled();
+
+    getRoom.mockResolvedValue({
+      roomCode: '1234',
+      roomId: 'room-id-1234',
+      gameType: 'werewolf',
+      hostUserId: 'host-1',
+      createdAt: new Date('2026-07-10T12:00:00.000Z'),
+    });
+    mockUseAuthContext.mockReturnValue(authState(signedInUser));
+    view.rerender(
+      <RoomResolverScreen
+        route={{ key: 'room', name: 'Room', params: { roomCode: '1234' } }}
+        navigation={navigation}
+        getGameModule={getGameModule}
+      />,
+    );
+    await waitFor(() => expect(view.getByText('狼人杀房间 1234')).toBeTruthy());
+    expect(getRoom).toHaveBeenCalledTimes(1);
   });
 
   it('resolves metadata before selecting the registered game screen', async () => {

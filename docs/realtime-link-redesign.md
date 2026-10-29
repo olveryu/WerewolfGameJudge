@@ -412,7 +412,7 @@ side effect：`OPEN_SOCKET(generation) | CLOSE_SOCKET(generation, code) | SEND_S
 ### 5.2 `RoomGateway`
 
 - 准入：`gatewayRoute` 完成鉴权与目录解析；任何失败都升级后 `close(4002 / 4001 / 4000)`；预算用尽 `close(4004)`（可重试）。
-- **授权模型（capability）**：知道房间码就是观看该房间的授权——旁观是平台功能（`host | seated | spectator`，`audience: 'anyone'`），`room_participants` 只在入座时写入，所以**准入不校验参与者**（会砍掉旁观、打断"先看板再选座"的入座流程）。这个模型成立的唯一前提是房间码不可枚举：4 位码只有 9000 个，因此 `POST /room/get` 必须鉴权且按 `userId` 限速，WS 升级共用同一预算，`POST /auth/anonymous` 按客户端 IP 限速（免费账号不能放大预算）。三处限速都走 Cloudflare Rate Limiting binding（`[[ratelimits]]`，`platform/http/rateLimit.ts`），阈值只在 wrangler 配置里。服务端按 viewer 投影状态（真正的防作弊）是另一个架构决策，不在本方案内。
+- **授权模型（capability）**：知道房间码就是观看该房间的授权——旁观是平台功能（`host | seated | spectator`，`audience: 'anyone'`），`room_participants` 只在入座时写入，所以**准入不校验参与者**（会砍掉旁观、打断"先看板再选座"的入座流程）。这个模型成立的唯一前提是房间码不可枚举：4 位码只有 9000 个，因此 `POST /room/get` 必须鉴权（客户端 `RoomResolverScreen` 无 session 时先渲染 `RoomAuthGate`，登录后才查房间）且按 `userId` 限速，WS 升级共用同一预算，`POST /auth/anonymous` 按客户端 IP 限速（免费账号不能放大预算）。三处限速都走 Cloudflare Rate Limiting binding（`[[ratelimits]]`，`platform/http/rateLimit.ts`），阈值只在 wrangler 配置里。服务端按 viewer 投影状态（真正的防作弊）是另一个架构决策，不在本方案内。
 - `ctx.acceptWebSocket(ws, [\`user:${userId}\`])`+`ws.serializeAttachment({ userId, connectedAtMs })`（≤ 16 KB）。
 - `webSocketMessage`：只接受文本帧；解析失败 → `close(1002)`；`SYNC`：`knownRevision === room.revision` → `current`，否则 `snapshot`；房间无快照 → `close(4003)` + Sentry。
 - 广播：`CommandPipeline` 返回 `{ decision, broadcast }`，`RoomGateway.broadcastState()` 是 DO 内唯一的广播入口；`GameRoom` 不再在三处手工调用。

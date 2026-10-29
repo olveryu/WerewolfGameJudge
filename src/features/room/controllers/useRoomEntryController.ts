@@ -1,4 +1,4 @@
-/** Single auth, entry, retry, and exit controller for resolved rooms. */
+/** Single entry, retry, and exit controller for resolved rooms of an authenticated user. */
 
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
@@ -23,14 +23,12 @@ interface UseRoomEntryControllerParams<
 > {
   readonly room: RoomRecord<TState['gameType']>;
   readonly link: RoomLink<TState, TCommand>;
-  readonly authUserId: string | null;
-  readonly isAuthLoading: boolean;
+  readonly authUserId: string;
   readonly onExit: () => void;
 }
 
 export interface RoomEntryController {
   readonly isReady: boolean;
-  readonly isAuthRequired: boolean;
   readonly loadingMessage: string;
   /** The link ended on a terminal reason; entering again requires a fresh connect. */
   readonly showRetryButton: boolean;
@@ -60,7 +58,6 @@ export function useRoomEntryController<
   room,
   link,
   authUserId,
-  isAuthLoading,
   onExit,
 }: UseRoomEntryControllerParams<TState, TCommand>): RoomEntryController {
   const snapshot = useRoomLinkSnapshot(link);
@@ -80,7 +77,7 @@ export function useRoomEntryController<
   );
 
   useEffect(() => {
-    if (authUserId === null || phase !== 'ready') return;
+    if (phase !== 'ready') return;
     const current = link.getSnapshot();
     if (current.identity === null || !matchesIdentity(current.identity, stableRoom, authUserId)) {
       throw new Error('[FAIL-FAST] Ready room does not match recent-room identity');
@@ -101,8 +98,6 @@ export function useRoomEntryController<
   }, [authUserId, link, phase, stableRoom]);
 
   useEffect(() => {
-    if (isAuthLoading || authUserId === null) return;
-
     const controller = new AbortController();
     const identity: RoomIdentity<TState['gameType']> = { room: stableRoom, userId: authUserId };
 
@@ -139,7 +134,7 @@ export function useRoomEntryController<
         link.close();
       }
     };
-  }, [authUserId, isAuthLoading, retryGeneration, link, stableRoom]);
+  }, [authUserId, retryGeneration, link, stableRoom]);
 
   useEffect(() => {
     if (phase !== 'entering') {
@@ -178,7 +173,6 @@ export function useRoomEntryController<
   const status = snapshot.status;
   return {
     isReady: phase === 'ready',
-    isAuthRequired: !isAuthLoading && authUserId === null,
     loadingMessage:
       status.kind === 'closed'
         ? getLinkCloseMessage(status.reason)

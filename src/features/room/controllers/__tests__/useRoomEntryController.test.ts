@@ -108,22 +108,6 @@ beforeEach(() => {
 });
 
 describe('useRoomEntryController', () => {
-  it('does not connect before authentication is available', () => {
-    const { link, connect } = createLink();
-    const { result } = renderHook(() =>
-      useRoomEntryController({
-        room: createRoom(),
-        link,
-        authUserId: null,
-        isAuthLoading: false,
-        onExit: jest.fn(),
-      }),
-    );
-
-    expect(result.current.isAuthRequired).toBe(true);
-    expect(connect).not.toHaveBeenCalled();
-  });
-
   it('connects one exact identity, ignores equivalent room objects, and closes on unmount', async () => {
     const room = createRoom();
     const { link, connect, close } = createLink();
@@ -133,7 +117,6 @@ describe('useRoomEntryController', () => {
           room: resolvedRoom,
           link,
           authUserId: 'host-user',
-          isAuthLoading: false,
           onExit: jest.fn(),
         }),
       { initialProps: { resolvedRoom: room } },
@@ -174,7 +157,6 @@ describe('useRoomEntryController', () => {
         room,
         link: testLink.link,
         authUserId: 'host-user',
-        isAuthLoading: false,
         onExit: jest.fn(),
       }),
     );
@@ -203,7 +185,6 @@ describe('useRoomEntryController', () => {
         room: createRoom(),
         link: testLink.link,
         authUserId: 'host-user',
-        isAuthLoading: false,
         onExit: jest.fn(),
       }),
     );
@@ -226,7 +207,6 @@ describe('useRoomEntryController', () => {
         room: createRoom(),
         link,
         authUserId: 'host-user',
-        isAuthLoading: false,
         onExit: jest.fn(),
       }),
     );
@@ -247,7 +227,6 @@ describe('useRoomEntryController', () => {
         room,
         link: testLink.link,
         authUserId: 'host-user',
-        isAuthLoading: false,
         onExit: jest.fn(),
       }),
     );

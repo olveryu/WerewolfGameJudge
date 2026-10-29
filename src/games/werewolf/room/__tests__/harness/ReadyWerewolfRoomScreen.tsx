@@ -14,7 +14,6 @@ export const WerewolfRoomScreen: React.FC<GameRoomScreenProps<'werewolf'>> = (pr
   const entryController = useMemo<RoomEntryController>(
     () => ({
       isReady: true,
-      isAuthRequired: false,
       loadingMessage: '房间已连接',
       showRetryButton: false,
       connection: {

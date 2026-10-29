@@ -1,4 +1,9 @@
-/** Canonical room URL resolver: metadata first, then one registered game UI module. */
+/**
+ * Canonical room URL resolver: session first, then metadata, then one registered game UI module.
+ *
+ * `/room/get` is authenticated (room codes must not be enumerable), so the login gate lives here;
+ * a game screen never mounts without a signed-in user.
+ */
 
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { isRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
@@ -7,13 +12,17 @@ import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
+import { RoomAuthGate } from '@/features/room/components/RoomAuthGate';
+import { RoomMiniProgramAuthFailure } from '@/features/room/components/RoomMiniProgramAuthFailure';
 import { type RoomRecord, UnsupportedRoomGameTypeError } from '@/features/room/model/RoomDirectory';
 import type { RegisteredRoomUiModule } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RootStackParamList } from '@/navigation/types';
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
+import { isMiniProgram } from '@/utils/miniProgram';
 
 type NavigationProps = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -38,10 +47,13 @@ export const RoomResolverScreen: React.FC<RoomResolverScreenProps> = ({
   getGameModule,
 }) => {
   const { roomDirectory } = useServices();
+  const { user, loading: isAuthLoading } = useAuthContext();
+  const isAuthenticated = user !== null;
   const [retryGeneration, setRetryGeneration] = useState(0);
   const [state, setState] = useState<ResolverState>({ kind: 'loading' });
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     let isCurrent = true;
     const roomCode = route.params.roomCode;
     if (!isRoomCode(roomCode)) {
@@ -80,13 +92,18 @@ export const RoomResolverScreen: React.FC<RoomResolverScreenProps> = ({
     return () => {
       isCurrent = false;
     };
-  }, [getGameModule, retryGeneration, roomDirectory, route.params.roomCode]);
+  }, [getGameModule, isAuthenticated, retryGeneration, roomDirectory, route.params.roomCode]);
 
   const handleRetry = useCallback(() => {
     setRetryGeneration((generation) => generation + 1);
   }, []);
   const handleBack = useCallback(() => exitRoomFlow(navigation), [navigation]);
 
+  if (isAuthLoading) return <LoadingScreen message="正在查找房间" />;
+  if (!isAuthenticated) {
+    if (isMiniProgram()) return <RoomMiniProgramAuthFailure onCancel={handleBack} />;
+    return <RoomAuthGate onCancel={handleBack} />;
+  }
   if (state.kind === 'loading') return <LoadingScreen message="正在查找房间" />;
   if (state.kind === 'error') {
     return <LoadingScreen error={state.message} onRetry={handleRetry} onBack={handleBack} />;
