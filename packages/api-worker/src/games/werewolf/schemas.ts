@@ -116,7 +116,10 @@ const publicCommandOptions = definePublicCommandOptions<WerewolfPublicCommand>()
   }),
   z.strictObject({ type: z.literal('werewolf.sheriff.advance') }),
   z.strictObject({ type: z.literal('werewolf.sheriff.endBySelfDestruct') }),
-  z.strictObject({ type: z.literal('werewolf.audio.ack') }),
+  z.strictObject({
+    type: z.literal('werewolf.audio.ack'),
+    audioBatchId: z.number().int().nonnegative(),
+  }),
   z.strictObject({ type: z.literal('werewolf.progress.request') }),
   z.strictObject({ type: z.literal('werewolf.reveal.ack') }),
   z.strictObject({ type: z.literal('werewolf.wolfRobot.ackHunterStatus') }),

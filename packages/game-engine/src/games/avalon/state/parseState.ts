@@ -1,6 +1,6 @@
 /** Strict Avalon persistence and transport codec; v1 payloads migrate through migratePersistedAvalonState. */
 
-import type { AudioEffect } from '../../../platform/audio';
+import { type AudioEffect, parseAudioBatchId } from '../../../platform/audio';
 import { materializeLegacyRoster } from '../../../platform/protocol/legacyRoster';
 import {
   failDecode,
@@ -393,6 +393,7 @@ export function parseAvalonState(value: unknown): AvalonState {
           audioEffect,
         ),
         isAudioPlaying: parseBoolean(raw.isAudioPlaying, `${path}.isAudioPlaying`),
+        audioBatchId: parseAudioBatchId(raw.audioBatchId, `${path}.audioBatchId`),
       },
       path,
     ),
@@ -496,8 +497,10 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
   // v7 -> v8 adds preselectedSeats; the nominate parser defaults a
   // missing field to the empty value (no preselect yet), so migration
   // is a pure version bump.
-  if (raw.stateVersion === 7) {
-    return parseAvalonState({ ...raw, stateVersion: AVALON_STATE_VERSION });
+  // v8 -> v9 adds audioBatchId; every older payload starts at 0 and the
+  // host acks a queue written before ids as batch 0.
+  if (raw.stateVersion === 7 || raw.stateVersion === 8) {
+    return parseAvalonState({ ...raw, stateVersion: AVALON_STATE_VERSION, audioBatchId: 0 });
   }
   if (raw.stateVersion === 3 || raw.stateVersion === 4 || raw.stateVersion === 5) {
     return parseAvalonState({
@@ -505,6 +508,7 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
       stateVersion: AVALON_STATE_VERSION,
       roundHistory: deriveLegacyRoundHistory(raw),
       ladyHistory: deriveLegacyLadyHistory(raw),
+      audioBatchId: 0,
     });
   }
   if (raw.stateVersion === 6) {
@@ -512,6 +516,7 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
       ...raw,
       stateVersion: AVALON_STATE_VERSION,
       ladyHistory: deriveLegacyLadyHistory(raw),
+      audioBatchId: 0,
     });
   }
   if (raw.stateVersion !== 1 && raw.stateVersion !== 2) return parseAvalonState(raw);
@@ -540,5 +545,6 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
     roster,
     roundHistory: deriveLegacyRoundHistory(rest),
     ladyHistory: deriveLegacyLadyHistory(rest),
+    audioBatchId: 0,
   });
 }

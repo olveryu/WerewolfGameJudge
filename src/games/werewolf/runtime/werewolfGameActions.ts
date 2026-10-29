@@ -209,9 +209,18 @@ export function setWolfRobotHunterStatusViewed(
   );
 }
 
-/** Durable audio ack: RoomLink replays it across sockets until the server decides. */
-export function postAudioAck(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
-  return dispatchWerewolfCommand(ctx, { type: 'werewolf.audio.ack' }, null, '音频确认', true);
+/** Durable audio ack for one batch: RoomLink replays it across sockets until the server decides. */
+export function postAudioAck(
+  ctx: GameActionsContext,
+  audioBatchId: number,
+): Promise<WerewolfCommandDispatchOutcome> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.audio.ack', audioBatchId },
+    null,
+    '音频确认',
+    true,
+  );
 }
 
 export function postProgression(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {

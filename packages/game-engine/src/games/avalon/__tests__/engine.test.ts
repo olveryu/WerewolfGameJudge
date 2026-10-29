@@ -36,6 +36,11 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
     controlledSeat: number | null = null,
   ) => session.decide(command, userId, controlledSeat);
   const seatUser = (seat: number) => (seat === 0 ? 'host' : `u${seat}`);
+  /** The host ack for the batch currently queued in the session state. */
+  const currentAck = (): AvalonCommand => ({
+    type: 'avalon.audio.ack',
+    audioBatchId: session.state.audioBatchId,
+  });
   const seatCount = humanCount ?? numberOfPlayers;
   for (let seat = 0; seat < seatCount; seat += 1) {
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
@@ -51,6 +56,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
     send,
     decideAs,
     seatUser,
+    currentAck,
     expectReject(
       command: AvalonCommand,
       reason: string,
@@ -97,16 +103,16 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
       // 三段式：全员查看齐后房主开始游戏，才进夜晚并排开局播报。
       send({ type: 'avalon.game.begin' });
       // 开局播报由房主 ack（测试模拟房主已播完）。
-      if (session.state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+      if (session.state.isAudioPlaying) send(currentAck(), 'host');
     },
     /** 步进转场后的播报由房主 ack。 */
     ackAudio() {
-      if (session.state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+      if (session.state.isAudioPlaying) send(currentAck(), 'host');
     },
     /** 确认当前 night 步骤的全部参与者，直到天亮（机器人席位由房主接管确认）。 */
     passNight() {
       // 开局播报先 ack（确认与 ack 顺序无关，本 helper 取先 ack 的驱动顺序）。
-      if (session.state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+      if (session.state.isAudioPlaying) send(currentAck(), 'host');
       while (session.state.phase.kind === 'night') {
         const participants = getAvalonNightParticipants(
           session.state.roles,
@@ -120,7 +126,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
           }
         }
         // 每步转场都排播报，ack 后才能继续。
-        if (session.state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+        if (session.state.isAudioPlaying) send(currentAck(), 'host');
       }
     },
     setNow(ms: number) {
@@ -1484,7 +1490,7 @@ describe('Avalon engine', () => {
       session.send({ type: 'avalon.role.viewed' }, userOf(seat));
     }
     session.send({ type: 'avalon.game.begin' });
-    if (session.state.isAudioPlaying) session.send({ type: 'avalon.audio.ack' }, 'host');
+    if (session.state.isAudioPlaying) session.send(session.currentAck(), 'host');
     while (session.state.phase.kind === 'night') {
       const participants = getAvalonNightParticipants(
         session.state.roles,
@@ -1493,7 +1499,7 @@ describe('Avalon engine', () => {
       for (const seat of participants) {
         session.send({ type: 'avalon.night.confirm' }, userOf(seat));
       }
-      if (session.state.isAudioPlaying) session.send({ type: 'avalon.audio.ack' }, 'host');
+      if (session.state.isAudioPlaying) session.send(session.currentAck(), 'host');
     }
     expect(session.state.phase.kind).toBe('nominate');
   });
@@ -1883,13 +1889,9 @@ describe('Avalon engine', () => {
     expect(raw.state.pendingAudioEffects.map((e) => e.audioKey)).toEqual(['night', 'evil_reveal']);
     // 非房主 ack 被拒绝（确保用非 0 号座位，莫甘娜可能随机分到房主座位）。
     const nonHostSeat = morgana === 0 ? 1 : morgana;
-    raw.expectReject(
-      { type: 'avalon.audio.ack' },
-      'avalon_not_host_ack_audio',
-      raw.seatUser(nonHostSeat),
-    );
+    raw.expectReject(raw.currentAck(), 'avalon_not_host_ack_audio', raw.seatUser(nonHostSeat));
     // 房主 ack 清队（仅莫甘娜一人确认、未齐，不推进、只开门）。
-    raw.send({ type: 'avalon.audio.ack' }, 'host');
+    raw.send(raw.currentAck(), 'host');
     expect(raw.state.isAudioPlaying).toBe(false);
     expect(raw.state.pendingAudioEffects).toEqual([]);
   });
@@ -1907,7 +1909,7 @@ describe('Avalon engine', () => {
       'night',
       'evil_reveal',
     ]);
-    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(session.currentAck(), 'host');
     // 走完 evilReveal → merlinReveal：evil_reveal end + merlin_reveal begin。
     for (const seat of [session.seatOfRole('morgana'), session.seatOfRole('assassin')]) {
       session.send({ type: 'avalon.night.confirm' }, session.seatUser(seat));
@@ -1916,14 +1918,14 @@ describe('Avalon engine', () => {
       { audioKey: 'evil_reveal', isEndAudio: true },
       { audioKey: 'merlin_reveal' },
     ]);
-    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(session.currentAck(), 'host');
     // 走完 merlinReveal → percivalReveal。
     session.send({ type: 'avalon.night.confirm' }, session.seatUser(session.seatOfRole('merlin')));
     expect(session.state.pendingAudioEffects).toEqual([
       { audioKey: 'merlin_reveal', isEndAudio: true },
       { audioKey: 'percival_reveal' },
     ]);
-    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(session.currentAck(), 'host');
     // 走完 percivalReveal → 天亮：percival_reveal end + night_end。
     session.send(
       { type: 'avalon.night.confirm' },
@@ -1963,7 +1965,7 @@ describe('Avalon engine', () => {
       'evil_reveal',
     ]);
     // 推进落在房主 ack 的 decision：步进、清确认集、转场批入队。
-    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(session.currentAck(), 'host');
     const advanced = session.state.phase;
     expect(advanced.kind).toBe('night');
     if (advanced.kind === 'night') {
@@ -1989,7 +1991,7 @@ describe('Avalon engine', () => {
     };
     // 先 ack 后确认：推进落在第二笔确认的 decision。
     const ackFirst = beginNight();
-    ackFirst.send({ type: 'avalon.audio.ack' }, 'host');
+    ackFirst.send(ackFirst.currentAck(), 'host');
     ackFirst.send(
       { type: 'avalon.night.confirm' },
       ackFirst.seatUser(ackFirst.seatOfRole('morgana')),
@@ -2008,7 +2010,7 @@ describe('Avalon engine', () => {
       { type: 'avalon.night.confirm' },
       confirmFirst.seatUser(confirmFirst.seatOfRole('assassin')),
     );
-    confirmFirst.send({ type: 'avalon.audio.ack' }, 'host');
+    confirmFirst.send(confirmFirst.currentAck(), 'host');
     // 两条路径终局逐字段相等（事件总数相同，phaseRevision 亦同）。
     const endState = (state: typeof ackFirst.state) => ({
       phase: state.phase,
@@ -2035,7 +2037,7 @@ describe('Avalon engine', () => {
     const percival = session.seatOfRole('percival');
     // evilReveal：莫甘娜先确认（只记账）→ 房主 ack（未齐，只清队不推进）→ 刺客确认（当场推进）。
     session.send({ type: 'avalon.night.confirm' }, session.seatUser(morgana));
-    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(session.currentAck(), 'host');
     let phase = session.state.phase;
     expect(phase.kind).toBe('night');
     if (phase.kind === 'night') {
@@ -2063,7 +2065,7 @@ describe('Avalon engine', () => {
       expect(phase.step).toBe('merlinReveal');
       expect(phase.confirmedSeats).toEqual([merlin]);
     }
-    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(session.currentAck(), 'host');
     phase = session.state.phase;
     expect(phase.kind).toBe('night');
     if (phase.kind === 'night') {
@@ -2076,7 +2078,7 @@ describe('Avalon engine', () => {
     ]);
     // percivalReveal：派西维尔先确认（只记账）→ 房主 ack 后夜晚完成。
     session.send({ type: 'avalon.night.confirm' }, session.seatUser(percival));
-    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(session.currentAck(), 'host');
     phase = session.state.phase;
     expect(phase.kind).toBe('nominate');
     if (phase.kind === 'nominate') expect(phase.round).toBe(1);
@@ -2143,9 +2145,9 @@ describe('Avalon engine', () => {
       session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
     }
     session.send({ type: 'avalon.game.begin' });
-    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(session.currentAck(), 'host');
     // 未齐时多发一笔 ack：空 decision 成功、不推进、无事件。
-    const idle = session.decideAs({ type: 'avalon.audio.ack' }, 'host');
+    const idle = session.decideAs(session.currentAck(), 'host');
     expect(idle.kind).toBe('commit');
     if (idle.kind === 'commit') expect(idle.events).toEqual([]);
     let phase = session.state.phase;
@@ -2158,9 +2160,9 @@ describe('Avalon engine', () => {
     for (const seat of [session.seatOfRole('morgana'), session.seatOfRole('assassin')]) {
       session.send({ type: 'avalon.night.confirm' }, session.seatUser(seat));
     }
-    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(session.currentAck(), 'host');
     session.send({ type: 'avalon.night.confirm' }, session.seatUser(session.seatOfRole('merlin')));
-    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(session.currentAck(), 'host');
     session.send(
       { type: 'avalon.night.confirm' },
       session.seatUser(session.seatOfRole('percival')),
@@ -2169,12 +2171,72 @@ describe('Avalon engine', () => {
     expect(phase.kind).toBe('nominate');
     expect(session.state.isAudioPlaying).toBe(true);
     // nominate 阶段 ack 夜终批：只清队列，不触发任何夜晚评估副作用。
-    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(session.currentAck(), 'host');
     phase = session.state.phase;
     expect(phase.kind).toBe('nominate');
     if (phase.kind === 'nominate') expect(phase.round).toBe(1);
     expect(session.state.isAudioPlaying).toBe(false);
     expect(session.state.pendingAudioEffects).toEqual([]);
+  });
+
+  it('clears the queue on an ack carrying the current batch id', () => {
+    const session = game({ numberOfPlayers: 7 });
+    session.send({ type: 'avalon.roles.assign' });
+    for (let seat = 0; seat < 7; seat += 1) {
+      session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
+    }
+    session.send({ type: 'avalon.game.begin' });
+    expect(session.state.audioBatchId).toBe(1);
+    expect(session.state.isAudioPlaying).toBe(true);
+    const decision = session.decideAs(session.currentAck(), 'host');
+    expect(decision.kind).toBe('commit');
+    if (decision.kind === 'commit') {
+      expect(decision.events).toEqual([{ type: 'avalon.audio.cleared', audioBatchId: 1 }]);
+    }
+    session.send(session.currentAck(), 'host');
+    expect(session.state.isAudioPlaying).toBe(false);
+    expect(session.state.pendingAudioEffects).toEqual([]);
+    expect(session.state.audioBatchId).toBe(1);
+  });
+
+  it('treats an ack for an older batch as a no-op that commits nothing', () => {
+    const session = game({ numberOfPlayers: 7 });
+    session.send({ type: 'avalon.roles.assign' });
+    for (let seat = 0; seat < 7; seat += 1) {
+      session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
+    }
+    session.send({ type: 'avalon.game.begin' });
+    // 批次 1 已 ack；走到批次 2（转场播报）后再次 ack 批次 1。
+    session.send(session.currentAck(), 'host');
+    for (const seat of [session.seatOfRole('morgana'), session.seatOfRole('assassin')]) {
+      session.send({ type: 'avalon.night.confirm' }, session.seatUser(seat));
+    }
+    expect(session.state.audioBatchId).toBe(2);
+    expect(session.state.isAudioPlaying).toBe(true);
+    const before = session.state;
+    const stale = session.decideAs({ type: 'avalon.audio.ack', audioBatchId: 1 }, 'host');
+    expect(stale.kind).toBe('commit');
+    if (stale.kind === 'commit') expect(stale.events).toEqual([]);
+    session.send({ type: 'avalon.audio.ack', audioBatchId: 1 }, 'host');
+    // 旧批次 ack 不得清掉新批次，也不推 revision。
+    expect(session.state.isAudioPlaying).toBe(true);
+    expect(session.state.pendingAudioEffects).toEqual(before.pendingAudioEffects);
+    expect(session.state.phaseRevision).toBe(before.phaseRevision);
+    expect(session.state).toEqual(before);
+  });
+
+  it('rejects an ack for a batch id above the current one', () => {
+    const session = game({ numberOfPlayers: 7 });
+    session.send({ type: 'avalon.roles.assign' });
+    for (let seat = 0; seat < 7; seat += 1) {
+      session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
+    }
+    session.send({ type: 'avalon.game.begin' });
+    session.expectReject(
+      { type: 'avalon.audio.ack', audioBatchId: session.state.audioBatchId + 1 },
+      'avalon_unknown_audio_batch',
+    );
+    expect(session.state.isAudioPlaying).toBe(true);
   });
 
   it('blocks returnToLobby while audio is playing', () => {
@@ -2186,14 +2248,14 @@ describe('Avalon engine', () => {
     }
     session.send({ type: 'avalon.game.begin' });
     // 不 ack 开局播报，手动走完 night（每步 ack 转场播报，但保留最后的 night_end 未 ack）。
-    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(session.currentAck(), 'host');
     const evilSeats = [session.seatOfRole('morgana'), session.seatOfRole('assassin')];
     for (const seat of evilSeats) {
       session.send({ type: 'avalon.night.confirm' }, session.seatUser(seat));
     }
-    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(session.currentAck(), 'host');
     session.send({ type: 'avalon.night.confirm' }, session.seatUser(session.seatOfRole('merlin')));
-    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(session.currentAck(), 'host');
     session.send(
       { type: 'avalon.night.confirm' },
       session.seatUser(session.seatOfRole('percival')),
@@ -2209,7 +2271,7 @@ describe('Avalon engine', () => {
     // ended 但音频未播完，returnToLobby 被门控阻塞。
     session.expectReject({ type: 'avalon.game.returnToLobby' }, 'avalon_audio_playing');
     // ack 后放行。
-    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(session.currentAck(), 'host');
     session.send({ type: 'avalon.game.returnToLobby' });
     expect(session.state.phase.kind).toBe('lobby');
   });

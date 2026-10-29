@@ -66,6 +66,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     roleViewedSeats: [],
     nightStep: { kind: 'exhausted' },
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],

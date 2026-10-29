@@ -104,9 +104,11 @@ Single orchestration source: Engine commits authoritative audio events → game 
 - `isAudioPlaying` is factual state; sole modification path: `SET_AUDIO_PLAYING` action. Other actions "incidentally" setting it is forbidden.
 - **Rejoin recovery**: `RoomLink` restores the authoritative snapshot; the game audio runtime resumes the pending
   batch after a user gesture when Web autoplay requires one, then dispatches the same audio ACK command.
-- **Audio ack is a durable command**: `werewolf.audio.ack` is dispatched with `durable: true`, so `CommandOutbox`
-  persists it and replays the same `commandId` after any disconnect. Ad-hoc retry layers (status listeners,
-  `window.online` handlers, polling) around the ack are forbidden.
+- **Audio ack is a durable command that names its batch**: `<game>.audio.ack` carries the `audioBatchId` of the
+  batch the host played and is dispatched with `durable: true`, so `CommandOutbox` persists it and replays the
+  same `commandId` after any disconnect. The id is what keeps the outbox's payload-equality intent key safe: two
+  batches never produce identical acks. Ad-hoc retry layers (status listeners, `window.online` handlers, polling)
+  around the ack are forbidden.
 
 ## JSDoc Standards
 

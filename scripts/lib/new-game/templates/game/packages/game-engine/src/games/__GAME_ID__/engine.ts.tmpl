@@ -75,6 +75,7 @@ function createInitialState(
 //#cap audioOrchestration
     pendingAudioEffects: [],
     isAudioPlaying: false,
+    audioBatchId: 0,
 //#end
   });
 }
@@ -308,17 +309,27 @@ function returnToLobby(state: __GAME_PASCAL__State, context: CommandContext): __
 }
 //#cap audioOrchestration
 
-/** 房主播完播报后提交 ack，清空队列、释放音频门（共享音频机器，与阿瓦隆 ackAudio 同一份 ack 转移）。 */
-function ackAudio(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
+/** 房主播完指定批次后提交 ack：当前批次清空队列、释放音频门；旧批次幂等空转；未入队的批次拒绝。 */
+function ackAudio(
+  state: __GAME_PASCAL__State,
+  audioBatchId: number,
+  context: CommandContext,
+): __GAME_PASCAL__Decision {
   const hostRejection = requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
     context,
     state.hostUserId,
     __GAME_UPPER___REASONS.notHostAckAudio,
   );
   if (hostRejection !== null) return hostRejection;
-  // 队列已空且未在播时 ack 是幂等空转：不发事件、不 bump 修订号。
-  if (acknowledgeAudioQueue(state) === null) return commit__GAME_PASCAL__([]);
-  return commit__GAME_PASCAL__([{ type: '__GAME_ID__.audio.cleared' }]);
+  const ack = acknowledgeAudioQueue(state, audioBatchId);
+  switch (ack.kind) {
+    case 'alreadyAcknowledged':
+      return commit__GAME_PASCAL__([]);
+    case 'unknownBatch':
+      return reject(__GAME_UPPER___REASONS.unknownAudioBatch);
+    case 'cleared':
+      return commit__GAME_PASCAL__([{ type: '__GAME_ID__.audio.cleared', audioBatchId }]);
+  }
 }
 //#end
 
@@ -388,7 +399,7 @@ function decideCommand(
       return returnToLobby(state, context);
 //#cap audioOrchestration
     case '__GAME_ID__.audio.ack':
-      return ackAudio(state, context);
+      return ackAudio(state, command.audioBatchId, context);
 //#end
     case '__GAME_ID__.gameplay.example':
       // TODO(gameplay): 示例玩法命令——接上真实玩法后删除或替换。

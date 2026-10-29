@@ -45,6 +45,7 @@ function createFullState(): GameState {
     },
     nightStep: null,
     isAudioPlaying: true,
+    audioBatchId: 1,
     roleRevealRandomNonce: 'nonce',
     actions: [{ schemaId: 'wolfKill', actorSeat: 0, targetSeat: 1, timestamp: 1 }],
     currentNightResults: {
@@ -371,6 +372,22 @@ describe('parseWerewolfState', () => {
     const { actions: _actions, ...encoded } = createFullState();
 
     expect(() => parseWerewolfState(encoded)).toThrow('GameState.actions must be an array');
+  });
+
+  it('rejects a current-version payload missing audioBatchId', () => {
+    const { audioBatchId: _audioBatchId, ...encoded } = createFullState();
+
+    expect(() => parseWerewolfState(encoded)).toThrow(
+      'GameState.audioBatchId must be a finite number',
+    );
+  });
+
+  it('rejects a negative audioBatchId', () => {
+    const encoded = { ...createFullState(), audioBatchId: -1 };
+
+    expect(() => parseWerewolfState(encoded)).toThrow(
+      'GameState.audioBatchId must be a non-negative integer',
+    );
   });
 
   it('rejects a different state version', () => {

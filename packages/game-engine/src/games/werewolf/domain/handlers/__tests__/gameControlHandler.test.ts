@@ -40,6 +40,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     roleViewedSeats: [],
     nightStep: null,
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],
@@ -263,7 +264,7 @@ describe('handleStartNight', () => {
     const result = handleStartNight(intent, context);
 
     const success = expectSuccess(result);
-    expect(success.actions).toHaveLength(3);
+    expect(success.actions).toHaveLength(2);
     expect(success.actions[0]!.type).toBe('START_NIGHT');
   });
 
@@ -318,8 +319,8 @@ describe('handleStartNight', () => {
     const success = expectSuccess(result);
 
     // START_NIGHT + SET_RESOLVED_WOLF_KILL_TARGET + SET_WITCH_CONTEXT
-    // + authoritative audio queue pair.
-    expect(success.actions.length).toBe(5);
+    // + one authoritative audio queue action.
+    expect(success.actions.length).toBe(4);
     expect(success.actions.find((a) => a.type === 'SET_RESOLVED_WOLF_KILL_TARGET')).toEqual({
       type: 'SET_RESOLVED_WOLF_KILL_TARGET',
       payload: { target: null, verdict: { type: 'allAbstain' } },
@@ -410,10 +411,9 @@ describe('handleStartNight', () => {
         ],
       },
     });
-    expect(success.actions).toContainEqual({
-      type: 'SET_AUDIO_PLAYING',
-      payload: { isPlaying: true },
-    });
+    expect(
+      success.actions.filter((action) => action.type === 'SET_PENDING_AUDIO_EFFECTS'),
+    ).toHaveLength(1);
   });
 
   it('initializes and ends an empty night plan with canonical results', () => {

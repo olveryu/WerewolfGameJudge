@@ -61,6 +61,7 @@ export const AVALON_REASONS = {
   invalidTarget: 'avalon_invalid_target',
   audioPlaying: 'avalon_audio_playing',
   notHostAckAudio: 'avalon_not_host_ack_audio',
+  unknownAudioBatch: 'avalon_unknown_audio_batch',
   notPreselected: 'avalon_not_preselected',
 } as const;
 
@@ -92,7 +93,7 @@ export type AvalonEvent =
       readonly type: 'avalon.audio.queued';
       readonly effects: readonly AudioEffect[];
     }
-  | { readonly type: 'avalon.audio.cleared' }
+  | { readonly type: 'avalon.audio.cleared'; readonly audioBatchId: number }
   | { readonly type: 'avalon.team.draftUpdated'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.preselected'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.proposed'; readonly seats: readonly number[] }

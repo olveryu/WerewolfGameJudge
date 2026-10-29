@@ -17,9 +17,10 @@ import type { AudioQueueSlice } from '../audioQueue';
 const PLAYING: AudioQueueSlice = {
   pendingAudioEffects: [{ audioKey: 'night' }],
   isAudioPlaying: true,
+  audioBatchId: 1,
 };
 
-const IDLE: AudioQueueSlice = { pendingAudioEffects: [], isAudioPlaying: false };
+const IDLE: AudioQueueSlice = { pendingAudioEffects: [], isAudioPlaying: false, audioBatchId: 0 };
 
 describe('audio playback gate guard contract', () => {
   it('returns the injected reason verbatim while playback is running', () => {
@@ -37,12 +38,17 @@ describe('audio playback gate guard contract', () => {
     const queuedNotPlaying: AudioQueueSlice = {
       pendingAudioEffects: [{ audioKey: 'night' }],
       isAudioPlaying: false,
+      audioBatchId: 1,
     };
     expect(guardAudioPlayback(queuedNotPlaying, 'forbidden_while_audio_playing')).toBeNull();
   });
 
   it('reads only isAudioPlaying: playback with an empty queue is still locked', () => {
-    const playingNoQueue: AudioQueueSlice = { pendingAudioEffects: [], isAudioPlaying: true };
+    const playingNoQueue: AudioQueueSlice = {
+      pendingAudioEffects: [],
+      isAudioPlaying: true,
+      audioBatchId: 1,
+    };
     expect(guardAudioPlayback(playingNoQueue, 'forbidden_while_audio_playing')).toBe(
       'forbidden_while_audio_playing',
     );

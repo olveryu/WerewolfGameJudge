@@ -242,13 +242,13 @@ describe('canonical Werewolf command builders', () => {
     expect(ctx.audio.preloadRoles).not.toHaveBeenCalled();
   });
 
-  it('dispatches the audio ack as one durable command', async () => {
+  it('dispatches the audio ack for one batch as one durable command', async () => {
     const ctx = createContext();
 
-    await postAudioAck(ctx);
+    await postAudioAck(ctx, 3);
 
     expect(dispatchMock).toHaveBeenCalledWith(
-      { type: 'werewolf.audio.ack' },
+      { type: 'werewolf.audio.ack', audioBatchId: 3 },
       { controlledSeat: null, label: '音频确认', durable: true },
     );
   });

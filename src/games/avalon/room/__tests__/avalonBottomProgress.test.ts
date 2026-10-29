@@ -60,7 +60,8 @@ function beginGame(session: ReturnType<typeof startFivePlayerGame>) {
     session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
   }
   session.send({ type: 'avalon.game.begin' });
-  if (session.state.isAudioPlaying) session.send({ type: 'avalon.audio.ack' }, 'host');
+  if (session.state.isAudioPlaying)
+    session.send({ type: 'avalon.audio.ack', audioBatchId: session.state.audioBatchId }, 'host');
 }
 
 describe('deriveAvalonBottomProgress', () => {
@@ -87,11 +88,19 @@ describe('deriveAvalonBottomProgress', () => {
     const steps = ['evilReveal', 'merlinReveal', 'percivalReveal'] as const;
     for (const step of steps) {
       if (session.state.phase.kind !== 'night') break;
-      if (session.state.isAudioPlaying) session.send({ type: 'avalon.audio.ack' }, 'host');
+      if (session.state.isAudioPlaying)
+        session.send(
+          { type: 'avalon.audio.ack', audioBatchId: session.state.audioBatchId },
+          'host',
+        );
       for (const seat of getAvalonNightParticipants(session.state.roles, step)) {
         session.send({ type: 'avalon.night.confirm' }, session.seatUser(seat));
       }
-      if (session.state.isAudioPlaying) session.send({ type: 'avalon.audio.ack' }, 'host');
+      if (session.state.isAudioPlaying)
+        session.send(
+          { type: 'avalon.audio.ack', audioBatchId: session.state.audioBatchId },
+          'host',
+        );
     }
     expect(session.state.phase.kind).not.toBe('night');
     expect(deriveAvalonBottomProgress(session.state)).toBeNull();

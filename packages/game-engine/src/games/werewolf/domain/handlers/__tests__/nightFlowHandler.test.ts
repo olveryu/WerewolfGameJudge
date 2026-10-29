@@ -82,6 +82,7 @@ function createOngoingState(overrides?: Partial<GameState>): GameState {
     roleViewedSeats: [],
     nightStep: { kind: 'inStep', stepId: NIGHT_STEPS[0]!.id },
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],
@@ -299,7 +300,7 @@ describe('nightFlowHandler', () => {
         const success = expectSuccess(result);
         // Domain transition actions are followed by one authoritative audio queue batch.
         // Passing wolfKill also settles the wolf-kill target (no votes here, so no kill).
-        expect(success.actions).toHaveLength(6);
+        expect(success.actions).toHaveLength(5);
 
         const advanceAction = success.actions[0]!;
         expect(advanceAction.type).toBe('ADVANCE_TO_NEXT_ACTION');
@@ -325,10 +326,6 @@ describe('nightFlowHandler', () => {
         expect(uiHintAction.type).toBe('SET_UI_HINT');
 
         expect(success.actions[4]?.type).toBe('SET_PENDING_AUDIO_EFFECTS');
-        expect(success.actions[5]).toEqual({
-          type: 'SET_AUDIO_PLAYING',
-          payload: { isPlaying: true },
-        });
       });
 
       it('should set nightStep to exhausted when no more steps', () => {
@@ -386,6 +383,7 @@ describe('nightFlowHandler', () => {
           hostUserId: 'HOST',
           status: GameStatus.Ongoing,
           isAudioPlaying: false,
+          audioBatchId: 0,
           templateRoles: ['wolf', 'villager'],
           players: {
             0: {
@@ -497,7 +495,7 @@ describe('nightFlowHandler', () => {
         const result = handleEndNight(intent, context);
 
         const success = expectSuccess(result);
-        expect(success.actions).toHaveLength(4);
+        expect(success.actions).toHaveLength(3);
 
         expect(success.actions[0]).toEqual({
           type: 'SET_RESOLVED_WOLF_KILL_TARGET',
@@ -513,10 +511,6 @@ describe('nightFlowHandler', () => {
         expect(success.actions[2]).toEqual({
           type: 'SET_PENDING_AUDIO_EFFECTS',
           payload: { effects: [{ audioKey: 'night_end' }] },
-        });
-        expect(success.actions[3]).toEqual({
-          type: 'SET_AUDIO_PLAYING',
-          payload: { isPlaying: true },
         });
       });
 
@@ -625,7 +619,7 @@ describe('nightFlowHandler', () => {
           return next;
         };
         const acknowledgeAudio = (state: GameState) => {
-          const acked = expectSuccess(handleAudioAck(contextFor(state)));
+          const acked = expectSuccess(handleAudioAck(state.audioBatchId, contextFor(state)));
           return apply(state, acked.actions);
         };
         const countSettled = (actions: readonly { type: string }[]) =>

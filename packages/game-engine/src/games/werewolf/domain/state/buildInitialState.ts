@@ -32,6 +32,7 @@ export function buildInitialGameState(
     roster: {},
     nightStep: null,
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],

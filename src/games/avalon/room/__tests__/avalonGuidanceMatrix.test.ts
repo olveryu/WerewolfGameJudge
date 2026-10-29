@@ -100,7 +100,8 @@ function beginNight(s: Session) {
     s.send({ type: 'avalon.role.viewed' }, seatUser(seat));
   }
   s.send({ type: 'avalon.game.begin' });
-  if (s.state.isAudioPlaying) s.send({ type: 'avalon.audio.ack' }, 'host');
+  if (s.state.isAudioPlaying)
+    s.send({ type: 'avalon.audio.ack', audioBatchId: s.state.audioBatchId }, 'host');
   if (s.state.phase.kind !== 'night') throw new Error('expected night');
 }
 
@@ -110,7 +111,8 @@ function completeNight(s: Session) {
     for (const seat of getAvalonNightParticipants(s.state.roles, step)) {
       s.send({ type: 'avalon.night.confirm' }, seatUser(seat));
     }
-    if (s.state.isAudioPlaying) s.send({ type: 'avalon.audio.ack' }, 'host');
+    if (s.state.isAudioPlaying)
+      s.send({ type: 'avalon.audio.ack', audioBatchId: s.state.audioBatchId }, 'host');
   }
   if (s.state.phase.kind !== 'nominate') throw new Error('expected nominate');
 }
@@ -311,7 +313,8 @@ describe('AVALON_GUIDANCE_MATRIX', () => {
     // declares. Non-participants reject the confirm and already wait.
     s.trySend({ type: 'avalon.night.confirm' }, seatUser(0));
     s.trySend({ type: 'avalon.night.confirm' }, seatUser(2));
-    if (s.state.isAudioPlaying) s.send({ type: 'avalon.audio.ack' }, 'host');
+    if (s.state.isAudioPlaying)
+      s.send({ type: 'avalon.audio.ack', audioBatchId: s.state.audioBatchId }, 'host');
     expect(s.state.phase.kind).toBe('night');
     expectCell('night', s.state);
   });

@@ -20,6 +20,7 @@ function makeBaseGameState(overrides: Partial<GameState> = {}): GameState {
     roleViewedSeats: [0, 1, 2],
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],

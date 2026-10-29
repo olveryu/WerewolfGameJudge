@@ -32,6 +32,7 @@ function createMinimalState(overrides?: Partial<LocalGameState>): LocalGameState
     wolfVotes: new Map(),
     nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     lastNightDeaths: [],
     currentNightResults: {},

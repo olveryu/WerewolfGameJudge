@@ -10,6 +10,7 @@
  * This file retains only switch routing and minimal inline cases.
  */
 
+import { queueAudioBatch } from '../../../../platform/audio';
 import { buildRoomSeatProfile } from '../../../../platform/room/roster';
 import { findRosterSeatByUserId, isBotOccupant } from '../../../../platform/room/seating';
 import type { GameState } from '../protocol/types';
@@ -36,7 +37,6 @@ import {
   handleEndNight,
   handleFinalizeSeedWolfInfection,
   handleRecordAction,
-  handleSetAudioPlaying,
   handleSetConfirmStatus,
   handleSetResolvedWolfKillTarget,
   handleSetWitchContext,
@@ -126,8 +126,6 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handleSetWolfKillOverride(state, action);
     case 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED':
       return handleSetWolfRobotHunterStatusViewed(state, action);
-    case 'SET_AUDIO_PLAYING':
-      return handleSetAudioPlaying(state, action);
     case 'ACTION_REJECTED':
       return handleActionRejected(state, action);
     case 'ADD_REVEAL_ACK':
@@ -182,11 +180,18 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return { ...state, nightStep: stepWithoutDeadline };
     }
 
-    case 'SET_PENDING_AUDIO_EFFECTS':
-      return { ...state, pendingAudioEffects: action.payload.effects };
+    case 'SET_PENDING_AUDIO_EFFECTS': {
+      const queued = queueAudioBatch(state, action.payload.effects);
+      return {
+        ...state,
+        pendingAudioEffects: [...queued.pendingAudioEffects],
+        isAudioPlaying: queued.isAudioPlaying,
+        audioBatchId: queued.audioBatchId,
+      };
+    }
 
     case 'CLEAR_PENDING_AUDIO_EFFECTS':
-      return { ...state, pendingAudioEffects: [] };
+      return { ...state, pendingAudioEffects: [], isAudioPlaying: false };
 
     case 'SET_NIGHT_REVIEW_ALLOWED_SEATS':
       return { ...state, nightReviewAllowedSeats: action.allowedSeats };

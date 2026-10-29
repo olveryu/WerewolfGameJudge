@@ -143,14 +143,14 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
       };
     }
     case 'avalon.audio.queued': {
-      // The shared machine owns the transition (replace + gate close);
+      // The shared machine owns the transition (replace + gate close + next batch id);
       // an empty batch cannot reach here — queueing fail-fasts in decide.
-      return { ...bumped, ...queueAudioBatch(event.effects) };
+      return { ...bumped, ...queueAudioBatch(state, event.effects) };
     }
     case 'avalon.audio.cleared': {
-      const cleared = acknowledgeAudioQueue(state);
-      if (cleared === null) return state;
-      return { ...bumped, ...cleared };
+      const ack = acknowledgeAudioQueue(state, event.audioBatchId);
+      if (ack.kind !== 'cleared') return state;
+      return { ...bumped, ...ack.slice };
     }
     case 'avalon.team.draftUpdated': {
       if (state.phase.kind !== 'nominate') return state;

@@ -71,10 +71,10 @@ function nightState(): AvalonState {
   while (state.isAudioPlaying) {
     state = commitState(
       state,
-      { type: 'avalon.audio.ack' },
+      { type: 'avalon.audio.ack', audioBatchId: state.audioBatchId },
       HOST,
       null,
-      `ack-${state.pendingAudioEffects.length}`,
+      `ack-${state.audioBatchId}`,
     );
   }
   return state;

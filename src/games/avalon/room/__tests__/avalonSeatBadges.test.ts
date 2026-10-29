@@ -50,13 +50,15 @@ function questPhaseSession() {
     send({ type: 'avalon.role.viewed' }, seatUser(seat));
   }
   send({ type: 'avalon.game.begin' });
-  if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+  if (state.isAudioPlaying)
+    send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId }, 'host');
   for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
     if (state.phase.kind !== 'night') break;
     for (const seat of getAvalonNightParticipants(state.roles, step)) {
       send({ type: 'avalon.night.confirm' }, seatUser(seat));
     }
-    if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+    if (state.isAudioPlaying)
+      send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId }, 'host');
   }
   const leader = state.leaderSeat;
   send({ type: 'avalon.team.updateDraft', seats: [leader, (leader + 1) % 5] }, seatUser(leader));
@@ -170,7 +172,8 @@ describe('createAvalonSeatDataSource — night badges', () => {
       send({ type: 'avalon.role.viewed' }, seatUser(seat));
     }
     send({ type: 'avalon.game.begin' });
-    if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+    if (state.isAudioPlaying)
+      send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId }, 'host');
     if (state.phase.kind !== 'night') throw new Error('expected night phase');
     return {
       get state() {
@@ -306,13 +309,15 @@ describe('createAvalonSeatDataSource — nominate picked badge', () => {
       send({ type: 'avalon.role.viewed' }, seatUser(seat));
     }
     send({ type: 'avalon.game.begin' });
-    if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+    if (state.isAudioPlaying)
+      send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId }, 'host');
     for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
       if (state.phase.kind !== 'night') break;
       for (const seat of getAvalonNightParticipants(state.roles, step)) {
         send({ type: 'avalon.night.confirm' }, seatUser(seat));
       }
-      if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+      if (state.isAudioPlaying)
+        send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId }, 'host');
     }
     if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
     const leader = state.leaderSeat;
@@ -429,7 +434,8 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
       session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
     }
     session.send({ type: 'avalon.game.begin' });
-    if (session.state.isAudioPlaying) session.send({ type: 'avalon.audio.ack' }, 'host');
+    if (session.state.isAudioPlaying)
+      session.send({ type: 'avalon.audio.ack', audioBatchId: session.state.audioBatchId }, 'host');
   }
 
   function walkNightSteps(session: Session) {
@@ -438,7 +444,11 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
       for (const seat of getAvalonNightParticipants(session.state.roles, step)) {
         session.send({ type: 'avalon.night.confirm' }, session.seatUser(seat));
       }
-      if (session.state.isAudioPlaying) session.send({ type: 'avalon.audio.ack' }, 'host');
+      if (session.state.isAudioPlaying)
+        session.send(
+          { type: 'avalon.audio.ack', audioBatchId: session.state.audioBatchId },
+          'host',
+        );
     }
   }
 
@@ -485,7 +495,8 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
       session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
     }
     session.send({ type: 'avalon.game.begin' });
-    if (session.state.isAudioPlaying) session.send({ type: 'avalon.audio.ack' }, 'host');
+    if (session.state.isAudioPlaying)
+      session.send({ type: 'avalon.audio.ack', audioBatchId: session.state.audioBatchId }, 'host');
     record();
     walkNightSteps(session);
     record();
@@ -539,7 +550,8 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
         session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
       }
       session.send({ type: 'avalon.game.begin' });
-      if (session.state.isAudioPlaying) session.send({ type: 'avalon.audio.ack' });
+      if (session.state.isAudioPlaying)
+        session.send({ type: 'avalon.audio.ack', audioBatchId: session.state.audioBatchId });
       expect(ladySeats()).toEqual([holder]);
       walkNightSteps(session);
       expect(ladySeats()).toEqual([holder]);

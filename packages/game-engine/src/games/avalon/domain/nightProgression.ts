@@ -16,20 +16,18 @@
  * No IO.
  */
 
-import {
-  type AudioEffect,
-  guardAudioPlayback,
-  NIGHT_END_AUDIO_KEY,
-  queueAudioBatch,
-} from '../../../platform/audio';
+import { type AudioEffect, guardAudioPlayback, NIGHT_END_AUDIO_KEY } from '../../../platform/audio';
 import { AVALON_NIGHT_STEPS, type AvalonState } from '../state/types';
 import { AVALON_REASONS, type AvalonEvent } from './decision';
 import { getAvalonNightStepDef, getAvalonNightStepEndKey } from './nightSteps';
 import { getAvalonNightParticipants } from './rules';
 
-/** 夜晚播报队列事件；入队纪律（空批 fail-fast＋整批拷贝）由共享音频机器负责。 */
+/** 夜晚播报队列事件；入队纪律（空批 fail-fast＋整批拷贝＋批次 id）由 evolve 里的共享音频机器负责。 */
 export function queueAudio(effects: readonly AudioEffect[]): AvalonEvent {
-  return { type: 'avalon.audio.queued', effects: queueAudioBatch(effects).pendingAudioEffects };
+  if (effects.length === 0) {
+    throw new Error('[FAIL-FAST] Audio queue requires at least one effect');
+  }
+  return { type: 'avalon.audio.queued', effects: [...effects] };
 }
 
 /**

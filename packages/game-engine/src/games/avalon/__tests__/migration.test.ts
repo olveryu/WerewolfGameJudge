@@ -24,6 +24,17 @@ function dispatch(state: AvalonState, command: AvalonCommand, actor = 'host'): A
   return avalonEngine.normalize(decision.events.reduce(avalonEngine.evolve, state));
 }
 
+/** Host acks the batch currently queued; no-op when nothing is playing. */
+function ackAudio(state: AvalonState): AvalonState {
+  if (!state.isAudioPlaying) return state;
+  return dispatch(state, { type: 'avalon.audio.ack', audioBatchId: state.audioBatchId });
+}
+
+/** The state an older document (written before batch ids) migrates to. */
+function asMigrated(state: AvalonState): AvalonState {
+  return { ...state, audioBatchId: 0 };
+}
+
 /** Fires the armed countdown through the public expire command at its deadline. */
 function dispatchSettle(state: AvalonState): AvalonState {
   const phase = state.phase;
@@ -60,6 +71,7 @@ function downgradeToV2(state: AvalonState): Record<string, unknown> {
   const humans = getHumanSeatMap(state.roster, state.config.numberOfPlayers);
   const bots = getBotSeats(state.roster);
   delete raw.roster;
+  delete raw.audioBatchId;
   return {
     ...raw,
     stateVersion: 2,
@@ -184,7 +196,7 @@ describe('Avalon v3 -> v4 countdown migration', () => {
       state = dispatch(state, { type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `user-${seat}`);
     }
     state = dispatch(state, { type: 'avalon.game.begin' });
-    if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+    state = ackAudio(state);
     while (state.phase.kind === 'night') {
       const participants = getAvalonNightParticipants(state.roles, state.phase.step);
       for (const seat of participants) {
@@ -194,7 +206,7 @@ describe('Avalon v3 -> v4 countdown migration', () => {
           seat === 0 ? 'host' : `user-${seat}`,
         );
       }
-      if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+      state = ackAudio(state);
     }
     const leader = state.leaderSeat;
     state = dispatch(
@@ -223,6 +235,7 @@ describe('Avalon v3 -> v4 countdown migration', () => {
     const phase = raw.phase as Record<string, unknown>;
     delete phase.deadlineAt;
     delete raw.roundHistory;
+    delete raw.audioBatchId;
     return { ...raw, stateVersion: 3 };
   }
 
@@ -230,11 +243,11 @@ describe('Avalon v3 -> v4 countdown migration', () => {
     const state = votePhaseState();
     if (state.phase.kind !== 'vote') throw new Error('expected vote phase');
     const migrated = migratePersistedAvalonState(downgradeToV3(state));
-    expect(migrated.stateVersion).toBe(8);
+    expect(migrated.stateVersion).toBe(9);
     if (migrated.phase.kind !== 'vote') throw new Error('expected vote phase');
     expect(migrated.phase.deadlineAt).toBeNull();
     expect(migrated.phase.ballots).toEqual(state.phase.kind === 'vote' ? state.phase.ballots : {});
-    expect({ ...migrated, phase: state.phase }).toEqual(state);
+    expect({ ...migrated, phase: state.phase }).toEqual(asMigrated(state));
     // The migrated document (null deadline) must round-trip through the strict parser.
     expect(parseAvalonState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
   });
@@ -254,7 +267,7 @@ describe('Avalon v3 -> v4 countdown migration', () => {
     const migrated = migratePersistedAvalonState(downgradeToV3(state));
     if (migrated.phase.kind !== 'quest') throw new Error('expected quest phase');
     expect(migrated.phase.deadlineAt).toBeNull();
-    expect({ ...migrated, phase: state.phase }).toEqual(state);
+    expect({ ...migrated, phase: state.phase }).toEqual(asMigrated(state));
     expect(parseAvalonState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
   });
 });
@@ -265,13 +278,14 @@ describe('Avalon v4 -> v5 viewing-stage migration', () => {
     // v4 phases are a subset of v5 phases; v4 predates roundHistory.
     const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
     delete raw.roundHistory;
+    delete raw.audioBatchId;
     return { ...raw, stateVersion: 4 };
   }
 
   it('migrates a lobby state field-for-field', () => {
     const state = lobby(3);
     const migrated = migratePersistedAvalonState(downgradeToV4(state));
-    expect(migrated.stateVersion).toBe(8);
+    expect(migrated.stateVersion).toBe(9);
     expect(migrated).toEqual(state);
   });
 
@@ -286,8 +300,8 @@ describe('Avalon v4 -> v5 viewing-stage migration', () => {
     state = dispatch(state, { type: 'avalon.game.begin' });
     if (state.phase.kind !== 'night') throw new Error('expected night phase');
     const migrated = migratePersistedAvalonState(downgradeToV4(state));
-    expect(migrated.stateVersion).toBe(8);
-    expect(migrated).toEqual(state);
+    expect(migrated.stateVersion).toBe(9);
+    expect(migrated).toEqual(asMigrated(state));
     expect(parseAvalonState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
   });
 });
@@ -297,6 +311,7 @@ describe('Avalon v5 -> v6 round-history migration', () => {
   function downgradeToV5(state: AvalonState): Record<string, unknown> {
     const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
     delete raw.roundHistory;
+    delete raw.audioBatchId;
     return { ...raw, stateVersion: 5 };
   }
 
@@ -312,13 +327,13 @@ describe('Avalon v5 -> v6 round-history migration', () => {
       state = dispatch(state, { type: 'avalon.role.viewed' }, actorOf(seat));
     }
     state = dispatch(state, { type: 'avalon.game.begin' });
-    if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+    state = ackAudio(state);
     while (state.phase.kind === 'night') {
       const participants = getAvalonNightParticipants(state.roles, state.phase.step);
       for (const seat of participants) {
         state = dispatch(state, { type: 'avalon.night.confirm' }, actorOf(seat));
       }
-      if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+      state = ackAudio(state);
     }
     if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
     return state;
@@ -360,8 +375,8 @@ describe('Avalon v5 -> v6 round-history migration', () => {
     state = settleQuest(state);
     expect(state.roundHistory).toHaveLength(1);
     const migrated = migratePersistedAvalonState(downgradeToV5(state));
-    expect(migrated.stateVersion).toBe(8);
-    expect(migrated).toEqual(state);
+    expect(migrated.stateVersion).toBe(9);
+    expect(migrated).toEqual(asMigrated(state));
     expect(parseAvalonState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
   });
 
@@ -371,7 +386,7 @@ describe('Avalon v5 -> v6 round-history migration', () => {
     if (state.phase.kind !== 'quest') throw new Error('expected quest phase');
     expect(state.roundHistory[0]?.quest).toBeNull();
     const migrated = migratePersistedAvalonState(downgradeToV5(state));
-    expect(migrated).toEqual(state);
+    expect(migrated).toEqual(asMigrated(state));
   });
 
   it('keeps the settled quest but cannot resurrect pre-v6 rejections', () => {
@@ -401,7 +416,7 @@ describe('Avalon nomination draft field (pre-draft persisted states)', () => {
       state = dispatch(state, { type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `user-${seat}`);
     }
     state = dispatch(state, { type: 'avalon.game.begin' });
-    if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+    state = ackAudio(state);
     while (state.phase.kind === 'night') {
       const participants = getAvalonNightParticipants(state.roles, state.phase.step);
       for (const seat of participants) {
@@ -411,7 +426,7 @@ describe('Avalon nomination draft field (pre-draft persisted states)', () => {
           seat === 0 ? 'host' : `user-${seat}`,
         );
       }
-      if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+      state = ackAudio(state);
     }
     if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
     const leader = state.leaderSeat;
@@ -445,7 +460,7 @@ describe('Avalon v7 -> v8 preselect migration', () => {
       state = dispatch(state, { type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `user-${seat}`);
     }
     state = dispatch(state, { type: 'avalon.game.begin' });
-    if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+    state = ackAudio(state);
     while (state.phase.kind === 'night') {
       const participants = getAvalonNightParticipants(state.roles, state.phase.step);
       for (const seat of participants) {
@@ -455,7 +470,7 @@ describe('Avalon v7 -> v8 preselect migration', () => {
           seat === 0 ? 'host' : `user-${seat}`,
         );
       }
-      if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+      state = ackAudio(state);
     }
     if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
     const leader = state.leaderSeat;
@@ -467,9 +482,11 @@ describe('Avalon v7 -> v8 preselect migration', () => {
     if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
     const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
     raw.stateVersion = 7;
+    delete raw.audioBatchId;
     delete (raw.phase as Record<string, unknown>).preselectedSeats;
     const migrated = migratePersistedAvalonState(raw);
-    expect(migrated.stateVersion).toBe(8);
+    expect(migrated.stateVersion).toBe(9);
+    expect(migrated.audioBatchId).toBe(0);
     if (migrated.phase.kind !== 'nominate') throw new Error('expected nominate phase');
     expect(migrated.phase.draftSeats).toEqual([leader, (leader + 1) % 5]);
     expect(migrated.phase.preselectedSeats).toEqual([]);
@@ -502,13 +519,13 @@ describe('Avalon v6 -> v7 lady-history migration', () => {
       state = dispatch(state, { type: 'avalon.role.viewed' }, actorOf(seat));
     }
     state = dispatch(state, { type: 'avalon.game.begin' });
-    if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+    state = ackAudio(state);
     while (state.phase.kind === 'night') {
       const participants = getAvalonNightParticipants(state.roles, state.phase.step);
       for (const seat of participants) {
         state = dispatch(state, { type: 'avalon.night.confirm' }, actorOf(seat));
       }
-      if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+      state = ackAudio(state);
     }
     if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
     for (const size of [3, 4]) {
@@ -553,9 +570,10 @@ describe('Avalon v6 -> v7 lady-history migration', () => {
     expect(state.ladyHistory).toEqual([{ afterRound: 2, holderSeat: holder, targetSeat: target }]);
     const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
     delete raw.ladyHistory;
+    delete raw.audioBatchId;
     const migrated = migratePersistedAvalonState({ ...raw, stateVersion: 6 });
-    expect(migrated.stateVersion).toBe(8);
-    expect(migrated).toEqual(state);
+    expect(migrated.stateVersion).toBe(9);
+    expect(migrated).toEqual(asMigrated(state));
     expect(parseAvalonState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
   });
 
@@ -577,7 +595,7 @@ describe('Avalon v6 -> v7 lady-history migration', () => {
     const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
     delete raw.ladyHistory;
     const migrated = migratePersistedAvalonState({ ...raw, stateVersion: 6 });
-    expect(migrated.stateVersion).toBe(8);
+    expect(migrated.stateVersion).toBe(9);
     expect(migrated.ladyHistory).toEqual([]);
     if (migrated.phase.kind !== 'lady') throw new Error('expected lady phase');
     expect(migrated.phase.holderSeat).toBe(holder);
@@ -614,7 +632,7 @@ describe('Avalon v6 -> v7 lady-history migration', () => {
     );
     state = dispatch(state, { type: 'avalon.assassin.accuse', seat: innocent }, actorOf(assassin));
     if (state.phase.kind !== 'ended') throw new Error('expected ended phase');
-    if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+    state = ackAudio(state);
     state = dispatch(state, { type: 'avalon.game.returnToLobby' });
     if (state.phase.kind !== 'lobby') throw new Error('expected lobby phase');
     expect(state.ladyHistory).toEqual([]);
@@ -643,13 +661,13 @@ describe('Avalon v6 -> v7 lady-history migration', () => {
       state = dispatch(state, { type: 'avalon.role.viewed' }, actorOf(seat));
     }
     state = dispatch(state, { type: 'avalon.game.begin' });
-    if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+    state = ackAudio(state);
     while (state.phase.kind === 'night') {
       const participants = getAvalonNightParticipants(state.roles, state.phase.step);
       for (const seat of participants) {
         state = dispatch(state, { type: 'avalon.night.confirm' }, actorOf(seat));
       }
-      if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+      state = ackAudio(state);
     }
     if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
     expect(state.ladyHistory).toEqual([]);
@@ -659,5 +677,59 @@ describe('Avalon v6 -> v7 lady-history migration', () => {
     const migrated = migratePersistedAvalonState({ ...raw, stateVersion: 6 });
     expect(migrated.ladyHistory).toEqual([]);
     expect(migrated.ladyHolderSeat).toBeNull();
+  });
+});
+
+describe('Avalon v8 -> v9 audio batch id migration', () => {
+  /** A 5-human game right after begin: the opening batch (id 1) is queued and unacked. */
+  function openingNightState(): AvalonState {
+    let state = lobby(5);
+    state = dispatch(state, { type: 'avalon.roles.assign' });
+    for (let seat = 0; seat < 5; seat += 1) {
+      state = dispatch(state, { type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `user-${seat}`);
+    }
+    state = dispatch(state, { type: 'avalon.game.begin' });
+    if (!state.isAudioPlaying || state.audioBatchId !== 1) {
+      throw new Error('expected the opening batch to be queued as batch 1');
+    }
+    return state;
+  }
+
+  it('migrates a v8 document without audioBatchId to v9 with the batch id at 0', () => {
+    const state = openingNightState();
+    const { audioBatchId: _dropped, ...raw } = state;
+    const migrated = migratePersistedAvalonState({ ...raw, stateVersion: 8 });
+    expect(migrated.stateVersion).toBe(9);
+    expect(migrated.audioBatchId).toBe(0);
+    expect(migrated.isAudioPlaying).toBe(true);
+    expect(migrated).toEqual(asMigrated(state));
+    expect(parseAvalonState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
+  });
+
+  it('starts the batch id at 0 through the legacy v2 chain', () => {
+    const state = openingNightState();
+    const migrated = migratePersistedAvalonState(downgradeToV2(state));
+    expect(migrated.stateVersion).toBe(9);
+    expect(migrated).toEqual(asMigrated(state));
+  });
+
+  it('passes a current-version document through with its batch id intact', () => {
+    const state = openingNightState();
+    expect(migratePersistedAvalonState(JSON.parse(JSON.stringify(state)))).toEqual(state);
+  });
+
+  it('rejects a current-version document missing audioBatchId', () => {
+    const { audioBatchId: _dropped, ...raw } = openingNightState();
+    expect(() => migratePersistedAvalonState(raw)).toThrow(
+      'AvalonState.audioBatchId must be a finite number',
+    );
+    expect(() => parseAvalonState(raw)).toThrow('AvalonState.audioBatchId must be a finite number');
+  });
+
+  it('rejects a negative audioBatchId', () => {
+    const raw = { ...openingNightState(), audioBatchId: -1 };
+    expect(() => parseAvalonState(raw)).toThrow(
+      'AvalonState.audioBatchId must be a non-negative integer',
+    );
   });
 });

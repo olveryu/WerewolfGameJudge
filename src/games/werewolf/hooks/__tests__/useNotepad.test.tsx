@@ -37,6 +37,7 @@ function createGameState(
     roster: {},
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],

@@ -50,6 +50,7 @@ function createState(): LocalGameState {
     wolfVotes: new Map(),
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     lastNightDeaths: [],
     currentNightResults: {},

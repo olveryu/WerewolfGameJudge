@@ -23,7 +23,7 @@
 import { type AudioEffect, NIGHT_END_AUDIO_KEY } from '../../../../platform/audio';
 import { createSeededRng } from '../../../../platform/random';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
-import { createAudioQueueActions } from '../audioQueue';
+import { createAudioQueueAction } from '../audioQueue';
 import type { AdvanceNightIntent, EndNightIntent } from '../intents/types';
 import { type SchemaId } from '../models';
 import { buildNightPlan, getStepSpec, NIGHT_STEP_ORDER } from '../models/roles/spec';
@@ -208,7 +208,7 @@ export function handleAdvanceNight(
   }
 
   if (audioEffects.length > 0) {
-    actions.push(...createAudioQueueActions(audioEffects));
+    actions.push(createAudioQueueAction(audioEffects));
   }
   return handlerSuccess(actions);
 }
@@ -302,7 +302,7 @@ export function handleEndNight(
     });
   }
   actions.push(endNightAction);
-  actions.push(...createAudioQueueActions([{ audioKey: NIGHT_END_AUDIO_KEY }]));
+  actions.push(createAudioQueueAction([{ audioKey: NIGHT_END_AUDIO_KEY }]));
 
   return handlerSuccess(actions);
 }

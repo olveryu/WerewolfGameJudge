@@ -41,7 +41,7 @@ function session() {
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, userOf(seat));
   }
   const ackAudio = () => {
-    if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' });
+    if (state.isAudioPlaying) send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId });
   };
   /** 全员投完/出完后把时钟推到 deadline 并发公开 expire——唯一关轮路径（手动结算已删）。 */
   const settlePhase = () => {

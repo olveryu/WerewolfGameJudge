@@ -7,16 +7,17 @@ import { resolveCurrentNightStep } from '../nightStep';
 import type { StateAction } from '../reducer/types';
 import { type HandlerContext, handlerError, type HandlerResult, handlerSuccess } from './types';
 
-export function handleAudioAck(context: HandlerContext): HandlerResult {
-  const cleared = acknowledgeAudioQueue(context.state);
-  if (cleared === null) {
-    return handlerSuccess([]);
+/** Host acknowledges the batch it played; earlier ids are replayed/coalesced acks and change nothing. */
+export function handleAudioAck(audioBatchId: number, context: HandlerContext): HandlerResult {
+  const ack = acknowledgeAudioQueue(context.state, audioBatchId);
+  switch (ack.kind) {
+    case 'alreadyAcknowledged':
+      return handlerSuccess([]);
+    case 'unknownBatch':
+      return handlerError('unknown_audio_batch');
+    case 'cleared':
+      return handlerSuccess([{ type: 'CLEAR_PENDING_AUDIO_EFFECTS' }]);
   }
-
-  return handlerSuccess([
-    { type: 'CLEAR_PENDING_AUDIO_EFFECTS' },
-    { type: 'SET_AUDIO_PLAYING', payload: { isPlaying: cleared.isAudioPlaying } },
-  ]);
 }
 
 export function handleProgressionRequest(context: HandlerContext): HandlerResult {

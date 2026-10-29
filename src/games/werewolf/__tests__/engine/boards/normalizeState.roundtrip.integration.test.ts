@@ -134,17 +134,11 @@ describe('normalizeState round-trip (integration with real board state)', () => 
       undefined,
       { nowMs: wolfVoteDeadline },
     );
-    ctx.dispatchOrThrow({ type: 'werewolf.audio.ack' }, 'complete wolfKill to witchAction audio');
+    ctx.acknowledgePendingAudioOrThrow('complete wolfKill to witchAction audio');
     submitActionOrThrow(ctx, 9, { kind: 'skip' }, 'witchAction');
-    ctx.dispatchOrThrow(
-      { type: 'werewolf.audio.ack' },
-      'complete witchAction to hunterConfirm audio',
-    );
+    ctx.acknowledgePendingAudioOrThrow('complete witchAction to hunterConfirm audio');
     submitActionOrThrow(ctx, 10, { kind: 'confirm' }, 'hunterConfirm');
-    ctx.dispatchOrThrow(
-      { type: 'werewolf.audio.ack' },
-      'complete hunterConfirm to seerCheck audio',
-    );
+    ctx.acknowledgePendingAudioOrThrow('complete hunterConfirm to seerCheck audio');
 
     // seer checks seat 4 (wolf → bad)
     submitActionOrThrow(ctx, 8, { kind: 'target', target: 4 }, 'seerCheck');

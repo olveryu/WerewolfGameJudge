@@ -126,6 +126,8 @@ export interface __GAME_PASCAL__State extends BaseGameState<typeof __GAME_UPPER_
   readonly pendingAudioEffects: readonly AudioEffect[];
   /** 播报进行中标记：为真时音频门关闭（引擎 guardAudioPlayback、客户端播报锁）。 */
   readonly isAudioPlaying: boolean;
+  /** 最近一次入队批次的 id（共享音频切片）；`__GAME_ID__.audio.ack` 必须指名它播完的批次。 */
+  readonly audioBatchId: number;
 //#end
 }
 

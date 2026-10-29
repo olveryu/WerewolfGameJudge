@@ -154,6 +154,7 @@ function createMinimalState(
     },
     nightStep: { kind: 'inStep', stepId: schemaId },
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],

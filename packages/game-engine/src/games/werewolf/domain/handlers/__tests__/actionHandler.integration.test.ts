@@ -42,6 +42,7 @@ const baseContext: HandlerContext = {
     seedWolfInfectionRevealAcks: [],
     nightStep: { kind: 'inStep', stepId: 'seerCheck' },
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     currentNightResults: {},
   },

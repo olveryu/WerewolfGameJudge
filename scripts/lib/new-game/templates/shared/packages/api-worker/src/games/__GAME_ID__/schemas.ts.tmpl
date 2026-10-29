@@ -39,7 +39,10 @@ const __GAME_CAMEL__PublicCommandOptions = definePublicCommandOptions<__GAME_PAS
 //#end
   z.strictObject({ type: z.literal('__GAME_ID__.game.returnToLobby') }),
 //#cap audioOrchestration
-  z.strictObject({ type: z.literal('__GAME_ID__.audio.ack') }),
+  z.strictObject({
+    type: z.literal('__GAME_ID__.audio.ack'),
+    audioBatchId: z.number().int().nonnegative(),
+  }),
 //#end
   z.strictObject({ type: z.literal('__GAME_ID__.gameplay.example') }),
 ]);

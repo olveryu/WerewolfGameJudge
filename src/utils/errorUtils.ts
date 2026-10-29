@@ -217,6 +217,7 @@ const REASON_CODE_MAP: Record<string, string> = {
   // Night flow
   not_ongoing: '游戏不在进行中',
   no_pending_acks: '无待确认的操作',
+  unknown_audio_batch: '语音批次不存在，请刷新房间',
   no_current_step: '当前步骤异常',
   not_group_confirm_step: '当前非确认步骤',
   no_player_at_seat: '该座位没有玩家',
