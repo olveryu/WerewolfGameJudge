@@ -25,6 +25,7 @@ import type {
   WorkerGameModuleResolver,
 } from '../gameModules/runtimeGameModule';
 import { createLogger } from '../observability/logger';
+import { rejectUpgrade } from '../realtime/rejectUpgrade';
 import { RoomGateway } from '../realtime/RoomGateway';
 import { enqueueUserEvent } from '../userInbox/inbox';
 import type { IGameRoomRPC } from './IGameRoomRPC';
@@ -208,6 +209,8 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     }
 
     this.#gateway.closeAll(REALTIME_CLOSE_CODE.ROOM_DELETED, 'room_deleted');
+    // deleteAll() leaves the alarm armed; an orphaned alarm would wake and re-initialize this object.
+    await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.deleteAll();
     this.#isStorageDeleted = true;
     return { success: true };
@@ -265,20 +268,26 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
 
   // ─── WebSocket (Hibernation API) ──────────────────────────────────────────
 
+  /** Admission after the public route authenticated, verified the upgrade and resolved the directory. */
   async fetch(request: Request): Promise<Response> {
-    if (this.#isStorageDeleted) return new Response('Room deleted', { status: 404 });
     const url = new URL(request.url);
     if (url.pathname !== '/websocket') return new Response('Not Found', { status: 404 });
+    if (this.#isStorageDeleted) {
+      return rejectUpgrade(REALTIME_CLOSE_CODE.ROOM_DELETED, 'room_deleted');
+    }
 
     const userId = url.searchParams.get('userId');
     const roomCode = url.searchParams.get('roomCode');
     const roomId = url.searchParams.get('roomId');
     const creationId = url.searchParams.get('creationId');
     if (!userId || !roomCode || !roomId || !creationId) {
-      return new Response('userId and room identity required', { status: 400 });
+      throw new Error('Room socket admission requires userId and the full room identity');
     }
-    const room = this.#readRoomInstance({ roomCode, roomId, creationId });
-    if (room === null) return new Response('Room not initialized', { status: 404 });
+    // The directory still points here but this object holds no state for that instance
+    // (storage discarded on an unsupported schema, or never initialized): terminal for the client.
+    if (this.#readRoomInstance({ roomCode, roomId, creationId }) === null) {
+      return rejectUpgrade(REALTIME_CLOSE_CODE.STATE_UNAVAILABLE, 'state_unavailable');
+    }
 
     const pair = new WebSocketPair();
     await this.#gateway.accept(pair[1], userId, Date.now());

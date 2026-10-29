@@ -5,26 +5,16 @@
  */
 
 import { isRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
-import {
-  REALTIME_CLOSE_CODE,
-  type RealtimeCloseCode,
-} from '@game-judge/game-engine/platform/realtime/closeCodes';
+import { REALTIME_CLOSE_CODE } from '@game-judge/game-engine/platform/realtime/closeCodes';
 import type { Handler } from 'hono';
 
 import type { AppEnv, Env } from '../../env';
 import { callDurableObject } from '../http/callDurableObject';
 import { resolveActiveRoom } from '../room/roomDirectory';
 import { getGameRoomStub } from '../room/roomStub';
+import { rejectUpgrade } from './rejectUpgrade';
 
 export type RoomSocketAuthenticator = (token: string, bindings: Env) => Promise<string | null>;
-
-/** Upgrade and immediately close so the client observes `code` instead of an opaque 1006. */
-function rejectUpgrade(code: RealtimeCloseCode, reason: string): Response {
-  const pair = new WebSocketPair();
-  pair[1].accept();
-  pair[1].close(code, reason);
-  return new Response(null, { status: 101, webSocket: pair[0] });
-}
 
 export function createRoomSocketHandler(authenticate: RoomSocketAuthenticator): Handler<AppEnv> {
   return async (c) => {
