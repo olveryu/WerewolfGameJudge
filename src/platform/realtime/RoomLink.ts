@@ -139,7 +139,8 @@ interface ActiveEpoch<TState extends BaseGameState<string>> {
   readonly outbox: CommandOutbox<TState>;
   readonly channel: SocketChannel<TState>;
   readonly releaseLease: () => void;
-  snapshotFingerprint: string | null;
+  /** Canonical JSON of the applied room snapshot, computed only when an equal revision arrives. */
+  appliedFingerprint: string | null;
   readonly connectWaiters: Array<{ resolve(): void; reject(error: Error): void }>;
 }
 
@@ -213,7 +214,8 @@ export class RoomLinkImpl<
   }
 
   retryNow(): void {
-    this.#requireActive().runtime.retryNow();
+    // The button renders only while waiting; a press that lands after close() has nothing to retry.
+    this.#active?.runtime.retryNow();
   }
 
   close(): void {
@@ -298,7 +300,7 @@ export class RoomLinkImpl<
       runtime,
       outbox,
       releaseLease,
-      snapshotFingerprint: null,
+      appliedFingerprint: null,
       connectWaiters: [],
     };
   }
@@ -367,11 +369,12 @@ export class RoomLinkImpl<
       return;
     }
 
-    const fingerprint = canonicalJson(snapshot);
     if (current.room !== null) {
       if (snapshot.revision < current.room.revision) return;
       if (snapshot.revision === current.room.revision) {
-        if (fingerprint !== active.snapshotFingerprint) {
+        // Own commands arrive twice at one revision (HTTP result + broadcast); compare bytes then.
+        active.appliedFingerprint ??= canonicalJson(current.room);
+        if (canonicalJson(snapshot) !== active.appliedFingerprint) {
           active.runtime.failProtocol(
             new Error(`Room revision ${snapshot.revision} changed its snapshot payload`),
           );
@@ -383,7 +386,7 @@ export class RoomLinkImpl<
       }
     }
 
-    active.snapshotFingerprint = fingerprint;
+    active.appliedFingerprint = null;
     active.runtime.noteRevision(snapshot.revision);
     this.#update({
       room: snapshot,

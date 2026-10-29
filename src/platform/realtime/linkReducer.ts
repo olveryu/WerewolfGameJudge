@@ -3,7 +3,8 @@
  *
  * Six statuses: idle | connecting | syncing | live | waiting | closed. Environment changes,
  * timers and manual retries all funnel through one gate: an attempt is made only while the app
- * is visible and online. Reconnection is unbounded; only terminal close codes stop it.
+ * is visible and online; going offline drops an open socket at once. Reconnection is unbounded;
+ * only terminal close codes stop it.
  *
  * Effects are data; `LinkRuntime` executes them. No I/O, no timers, no Date here.
  */
@@ -397,9 +398,8 @@ function timer(context: LinkContext, kind: TimerKind, input: ReducerInput): Tran
 }
 
 function retryNow(context: LinkContext, input: ReducerInput): Transition {
-  if (context.status.kind !== 'waiting') {
-    throw new Error(`[FAIL-FAST] RETRY_NOW requires waiting, received ${context.status.kind}`);
-  }
+  // The button renders only while waiting; a press that lands after the retry timer fired is a race.
+  if (context.status.kind !== 'waiting') return { context, effects: [] };
   const reset = { ...context, attempt: 0 };
   if (!canAttempt(reset)) return attemptOrWait(reset, input);
   return openSocket(reset, input);
@@ -421,6 +421,10 @@ function environment(
   const { status } = next;
 
   if (status.kind === 'idle') return { context: next, effects: [] };
+
+  // The platform says the network is gone: the socket cannot survive it, so drop it now and
+  // wait on the environment instead of discovering the loss through the ping/pong timers.
+  if (!next.online && hasOpenSocket(next)) return failAttempt(next, input, 1000);
 
   if (status.kind === 'waiting') {
     if (!canAttempt(next)) {
@@ -457,7 +461,6 @@ function environment(
       if (hiddenForMs < FAST_RESUME_MAX_HIDDEN_MS) return startSync(next, input);
       return reopenNow(next, input);
     }
-    // Going offline while live: the socket reports its own failure; nothing to do yet.
     return { context: next, effects: [] };
   }
 
