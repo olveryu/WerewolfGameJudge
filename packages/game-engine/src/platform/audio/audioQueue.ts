@@ -5,13 +5,17 @@
  * Werewolf domain (`games/werewolf/domain/audioQueue.ts`) so every game
  * with night narration runs the same machine instead of a per-game copy:
  *
- * - Queue: a non-empty batch replaces the pending queue wholesale and
- *   marks playback as running (`isAudioPlaying: true`), which closes the
- *   progression gate. An empty batch is a programming error (fail-fast).
- * - Acknowledge: the Host device acks after playback. Ack on an idle
- *   queue (not playing, nothing pending) is an idempotent no-op and
- *   returns `null` so adapters can skip their state write entirely;
- *   any other ack clears the queue and reopens the gate.
+ * - Queue: a non-empty batch replaces the pending queue wholesale, takes
+ *   the next batch id and marks playback as running (`isAudioPlaying:
+ *   true`), which closes the progression gate. An empty batch is a
+ *   programming error (fail-fast).
+ * - Acknowledge: the Host device acks the batch id it played. The id is
+ *   what makes acks safe to replay and to coalesce: identical ack
+ *   payloads mean the same batch, never two batches in a row. An ack for
+ *   the current batch clears the queue and reopens the gate; an ack for
+ *   an earlier batch (already cleared or replaced) is an idempotent
+ *   no-op; an ack for a batch that was never queued is a client bug the
+ *   game rejects.
  * - Gate: progression is blocked while playback is running; the gate
  *   predicate reads the same slice the transitions write.
  *
@@ -19,6 +23,8 @@
  * StateAction values, Avalon into domain events. Neither re-implements
  * the transitions.
  */
+
+import { failDecode, parseInteger } from '../protocol/runtimeDecoder';
 
 /**
  * Reserved dawn narration key shared by every night game. The host
@@ -51,34 +57,66 @@ export interface AudioEffect {
 export interface AudioQueueSlice {
   readonly pendingAudioEffects: readonly AudioEffect[];
   readonly isAudioPlaying: boolean;
+  /** Id of the most recently queued batch; 0 before the first batch. Monotonic per game state. */
+  readonly audioBatchId: number;
 }
 
+/** Outcome of acknowledging a batch; see `acknowledgeAudioQueue`. */
+export type AudioAckResult =
+  | { readonly kind: 'cleared'; readonly slice: AudioQueueSlice }
+  /** The batch was already cleared or replaced: nothing to write. */
+  | { readonly kind: 'alreadyAcknowledged' }
+  /** The id was never queued: the client is acknowledging a batch that does not exist. */
+  | { readonly kind: 'unknownBatch' };
+
 /**
- * Queues one playback batch: replaces any pending batch and closes the
- * progression gate until the Host acknowledges playback.
+ * Queues one playback batch: replaces any pending batch, assigns the next
+ * batch id and closes the progression gate until the Host acknowledges it.
  *
  * @throws Error with `[FAIL-FAST]` when the batch is empty.
  */
-export function queueAudioBatch(effects: readonly AudioEffect[]): AudioQueueSlice {
+export function queueAudioBatch(
+  slice: Pick<AudioQueueSlice, 'audioBatchId'>,
+  effects: readonly AudioEffect[],
+): AudioQueueSlice {
   if (effects.length === 0) {
     throw new Error('[FAIL-FAST] Audio queue requires at least one effect');
   }
-  return { pendingAudioEffects: [...effects], isAudioPlaying: true };
+  return {
+    pendingAudioEffects: [...effects],
+    isAudioPlaying: true,
+    audioBatchId: slice.audioBatchId + 1,
+  };
 }
 
 /**
- * Acknowledges a played batch. Returns the cleared slice, or `null`
- * when the queue is already idle (not playing and nothing pending) so
- * the ack stays an idempotent no-op with no state write.
+ * Acknowledges the batch `audioBatchId`. Only the current, still-playing
+ * batch clears; older ids are idempotent no-ops (replayed or coalesced
+ * acks); ids above the current one were never queued.
  */
-export function acknowledgeAudioQueue(slice: AudioQueueSlice): AudioQueueSlice | null {
+export function acknowledgeAudioQueue(
+  slice: AudioQueueSlice,
+  audioBatchId: number,
+): AudioAckResult {
+  if (audioBatchId > slice.audioBatchId) return { kind: 'unknownBatch' };
+  if (audioBatchId < slice.audioBatchId) return { kind: 'alreadyAcknowledged' };
   if (!slice.isAudioPlaying && slice.pendingAudioEffects.length === 0) {
-    return null;
+    return { kind: 'alreadyAcknowledged' };
   }
-  return { pendingAudioEffects: [], isAudioPlaying: false };
+  return {
+    kind: 'cleared',
+    slice: { pendingAudioEffects: [], isAudioPlaying: false, audioBatchId: slice.audioBatchId },
+  };
 }
 
 /** The progression gate is open only while no playback is running. */
 export function isAudioGateOpen(slice: AudioQueueSlice): boolean {
   return !slice.isAudioPlaying;
+}
+
+/** Decoder for a persisted or transported `audioBatchId`: a non-negative safe integer. */
+export function parseAudioBatchId(value: unknown, path: string): number {
+  const parsed = parseInteger(value, path);
+  if (parsed < 0) return failDecode(path, 'a non-negative integer');
+  return parsed;
 }

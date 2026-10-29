@@ -60,7 +60,10 @@ function toQueueSnapshot(
   snapshot: WerewolfAudioRoomSnapshot | null,
 ): RoomAudioQueueSnapshot<AudioEffect> | null {
   if (snapshot === null) return null;
-  return { pendingAudioEffects: snapshot.state.pendingAudioEffects };
+  return {
+    pendingAudioEffects: snapshot.state.pendingAudioEffects,
+    audioBatchId: snapshot.state.audioBatchId,
+  };
 }
 
 /** Werewolf player adapter: effect -> WerewolfAudioRuntime play methods. */
@@ -103,7 +106,10 @@ export class WerewolfAudioOrchestrator {
           deps.roomSource.subscribe((snapshot) => listener(toQueueSnapshot(snapshot))),
       },
       player: createWerewolfPlayerPort(deps.audio),
-      ack: { dispatch: () => gameActions.postAudioAck(deps.getActionsContext()) },
+      ack: {
+        dispatch: (audioBatchId) =>
+          gameActions.postAudioAck(deps.getActionsContext(), audioBatchId),
+      },
       isHost: deps.isHost,
       isAborted: deps.isAborted,
       logger: werewolfRuntimeLog,
@@ -158,6 +164,8 @@ export class WerewolfAudioOrchestrator {
 
     const state = this.#deps.roomSource.getSnapshot()?.state;
     if (!state) return;
+    // The batch that was playing when the host dropped; a later batch must not be cleared by this ack.
+    const { audioBatchId } = state;
 
     try {
       // If audio not playing (isAudioPlaying=false in DB), only need to restore BGM (caller already handles)
@@ -179,15 +187,17 @@ export class WerewolfAudioOrchestrator {
             await this.#deps.audio.playBeginning(resolvedKey);
           } finally {
             // After audio completes (or fails), POST audio-ack to release gate + trigger progression
-            if (!this.#deps.isAborted()) await this.#core.dispatchAudioAck('resumeAfterRejoin');
+            if (!this.#deps.isAborted()) {
+              await this.#core.dispatchAudioAck('resumeAfterRejoin', audioBatchId);
+            }
           }
         } else {
           // No stepSpec (shouldn't happen), fallback release gate
-          await this.#core.dispatchAudioAck('resumeAfterRejoin');
+          await this.#core.dispatchAudioAck('resumeAfterRejoin', audioBatchId);
         }
       } else {
         // No live night step, fallback release gate
-        await this.#core.dispatchAudioAck('resumeAfterRejoin');
+        await this.#core.dispatchAudioAck('resumeAfterRejoin', audioBatchId);
       }
     } catch (e) {
       // Caller uses fire-and-forget `void` — catch here to prevent unhandled rejection

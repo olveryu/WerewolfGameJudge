@@ -455,7 +455,12 @@ function decideWerewolfCommandRules(
     case 'werewolf.audio.ack': {
       const actor = resolveHostActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
-      return decideHandler(state, handleAudioAck(actor.value.handlerContext), context, true);
+      return decideHandler(
+        state,
+        handleAudioAck(command.audioBatchId, actor.value.handlerContext),
+        context,
+        true,
+      );
     }
     case 'werewolf.progress.request': {
       const actor = resolveHostActor(state, context);

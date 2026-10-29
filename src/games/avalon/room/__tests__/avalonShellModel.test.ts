@@ -319,7 +319,7 @@ describe('createAvalonRoomShellModel', () => {
     // Drain the queued narration; the confirm action stays the same.
     let guard = 0;
     while (running.state.isAudioPlaying && guard < 10) {
-      running.send({ type: 'avalon.audio.ack' });
+      running.send({ type: 'avalon.audio.ack', audioBatchId: running.state.audioBatchId });
       guard += 1;
     }
     expect(running.state.isAudioPlaying).toBe(false);
@@ -411,13 +411,15 @@ function daytimeSession() {
     running.send({ type: 'avalon.role.viewed' }, seatUser(seat));
   }
   running.send({ type: 'avalon.game.begin' });
-  if (running.state.isAudioPlaying) running.send({ type: 'avalon.audio.ack' }, 'host');
+  if (running.state.isAudioPlaying)
+    running.send({ type: 'avalon.audio.ack', audioBatchId: running.state.audioBatchId }, 'host');
   for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
     if (running.state.phase.kind !== 'night') break;
     for (const seat of getAvalonNightParticipants(running.state.roles, step)) {
       running.send({ type: 'avalon.night.confirm' }, seatUser(seat));
     }
-    if (running.state.isAudioPlaying) running.send({ type: 'avalon.audio.ack' }, 'host');
+    if (running.state.isAudioPlaying)
+      running.send({ type: 'avalon.audio.ack', audioBatchId: running.state.audioBatchId }, 'host');
   }
   if (running.state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
   return running;
@@ -456,13 +458,15 @@ function ninePlayerDaytimeSession(): RunningSession {
     send({ type: 'avalon.role.viewed' }, seatUser(seat));
   }
   send({ type: 'avalon.game.begin' });
-  if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+  if (state.isAudioPlaying)
+    send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId }, 'host');
   for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
     if (state.phase.kind !== 'night') break;
     for (const seat of getAvalonNightParticipants(state.roles, step)) {
       send({ type: 'avalon.night.confirm' }, seatUser(seat));
     }
-    if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+    if (state.isAudioPlaying)
+      send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId }, 'host');
   }
   if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
   const settle = () => {
@@ -798,7 +802,8 @@ function nightSession() {
     running.send({ type: 'avalon.role.viewed' }, seatUser(seat));
   }
   running.send({ type: 'avalon.game.begin' });
-  if (running.state.isAudioPlaying) running.send({ type: 'avalon.audio.ack' }, 'host');
+  if (running.state.isAudioPlaying)
+    running.send({ type: 'avalon.audio.ack', audioBatchId: running.state.audioBatchId }, 'host');
   if (running.state.phase.kind !== 'night') throw new Error('expected night phase');
   return running;
 }

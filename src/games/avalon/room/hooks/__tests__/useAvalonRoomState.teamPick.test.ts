@@ -80,13 +80,15 @@ function nominateState(): AvalonState {
     send({ type: 'avalon.role.viewed' }, seatUser(seat));
   }
   send({ type: 'avalon.game.begin' });
-  if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+  if (state.isAudioPlaying)
+    send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId }, 'host');
   for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
     if (state.phase.kind !== 'night') break;
     for (const seat of getAvalonNightParticipants(state.roles, step)) {
       send({ type: 'avalon.night.confirm' }, seatUser(seat));
     }
-    if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+    if (state.isAudioPlaying)
+      send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId }, 'host');
   }
   if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
   return state;

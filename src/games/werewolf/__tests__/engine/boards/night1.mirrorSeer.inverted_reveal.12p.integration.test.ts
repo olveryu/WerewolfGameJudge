@@ -250,7 +250,10 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
       });
       expect(ctx.getGameState().nightStep).toEqual({ kind: 'inStep', stepId: 'seerCheck' });
 
-      const audioAckResult = ctx.dispatch({ type: 'werewolf.audio.ack' });
+      const audioAckResult = ctx.dispatch({
+        type: 'werewolf.audio.ack',
+        audioBatchId: ctx.getGameState().audioBatchId,
+      });
       expect(audioAckResult).toMatchObject({
         kind: 'committed',
         outcome: { kind: 'success' },

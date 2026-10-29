@@ -375,12 +375,14 @@ side effect：`OPEN_SOCKET(generation) | CLOSE_SOCKET(generation, code) | SEND_S
 
 ### 4.6 `CommandOutbox`
 
-- 意图键：`canonicalJson({ controlledSeat, command })`；同键共享一个 `commandId` 与一个 in-flight promise。
-- `durable: true` 的意图在首次发送前写入 `outboxStorage`（key 含 `roomId + userId`），`committed / rejected` 时删除；`unavailable / undelivered` 保留。
+- 意图键：`canonicalJson({ controlledSeat, command })`；同键共享一个 `commandId` 与一个 in-flight promise。**推论：字节相同的命令在 pending 期间被视为同一意图，因此任何“连续两次语义不同但 payload 相同”的命令必须在 payload 里携带区分字段（见音频 ACK）。**
+- `durable: true` 的意图在首次发送前写入 `outboxStorage`（key 含 `roomId + userId`），`committed / rejected` 时删除；`unavailable / undelivered`（含 HTTP 429 → `throttled`）保留。其他 4xx 是服务端已应答的非决策（客户端 bug / 鉴权状态）：删记录并向调用方抛出。
+- `outboxStorage` 文档解析失败（版本不对 / 字段非法 / 非 JSON）时 `log.error + Sentry` 并整份丢弃，不阻塞之后的 `connect()`：服务端 receipt 是权威，本地缓存损坏不能让设备进不了任何房间。
 - 单次发送：`ApiClient.request({ idempotent: true })`，不在 transport 层再做业务重试。
 - 重放：只在 `status.kind === 'live'` 时进行；每条记录绑定 `socketGeneration`，同一代只重放一次；换代后立即重放。失败后下一次重放等待 `live` 且 `[1s, 3s, 10s, 30s]` 递进。
 - 命令结果到达时若 `epoch` 已变 → `cancelled`，不应用快照。
 - **音频 ACK 是一条 `durable: true` 的普通命令**，没有任何独立重试逻辑；重连后若快照里仍有 `pendingAudioEffects`，音频编排器按快照重新播放再 ACK，receipt 保证同 ID 幂等。
+- **ACK 指名批次**：共享音频切片（`platform/audio`）持有单调 `audioBatchId`，每次入队 +1；`<game>.audio.ack` 携带 `audioBatchId`。引擎：等于当前批次 → 清队开闸；小于 → 幂等空转（重放 / 被合并的旧 ACK）；大于 → 拒绝 `unknown_audio_batch`。没有这个字段，意图键会把“第二批的 ACK”合并进还在飞的第一批 ACK，第二批永远不被确认。狼人杀 v14 / 阿瓦隆 v9 迁移：旧快照 `audioBatchId = 0`。
 
 ### 4.7 在线状态
 

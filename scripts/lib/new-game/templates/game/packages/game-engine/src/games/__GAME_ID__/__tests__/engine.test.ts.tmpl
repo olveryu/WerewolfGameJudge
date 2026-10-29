@@ -285,20 +285,22 @@ describe('__GAME_PASCAL__ audio queue and ack', () => {
     });
     expect(queued.pendingAudioEffects).toEqual([{ audioKey: 'night' }]);
     expect(queued.isAudioPlaying).toBe(true);
+    expect(queued.audioBatchId).toBe(1);
     const decision = __GAME_CAMEL__Engine.decide(
       queued,
-      { type: '__GAME_ID__.audio.ack' },
+      { type: '__GAME_ID__.audio.ack', audioBatchId: queued.audioBatchId },
       session.session.context('host'),
     );
     expect(decision.kind).toBe('commit');
     if (decision.kind !== 'commit') return;
-    expect(decision.events).toEqual([{ type: '__GAME_ID__.audio.cleared' }]);
+    expect(decision.events).toEqual([{ type: '__GAME_ID__.audio.cleared', audioBatchId: 1 }]);
     const cleared = decision.events.reduce(__GAME_CAMEL__Engine.evolve, queued);
     expect(cleared.pendingAudioEffects).toEqual([]);
     expect(cleared.isAudioPlaying).toBe(false);
+    expect(cleared.audioBatchId).toBe(1);
   });
 
-  it('rejects ack from a non-host and treats an idle ack as a no-op commit', () => {
+  it('rejects ack from a non-host; stale and unknown batch ids never clear a later batch', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
     const queued = __GAME_CAMEL__Engine.evolve(session.state, {
       type: '__GAME_ID__.audio.queued',
@@ -306,15 +308,37 @@ describe('__GAME_PASCAL__ audio queue and ack', () => {
     });
     const nonHost = __GAME_CAMEL__Engine.decide(
       queued,
-      { type: '__GAME_ID__.audio.ack' },
+      { type: '__GAME_ID__.audio.ack', audioBatchId: queued.audioBatchId },
       session.session.context('u1'),
     );
     expect(nonHost.kind).toBe('reject');
     if (nonHost.kind === 'reject')
       expect(nonHost.reason).toBe(__GAME_UPPER___REASONS.notHostAckAudio);
-    const idle = session.decideAs({ type: '__GAME_ID__.audio.ack' });
+    const idle = session.decideAs({ type: '__GAME_ID__.audio.ack', audioBatchId: 0 });
     expect(idle.kind).toBe('commit');
     if (idle.kind === 'commit') expect(idle.events).toEqual([]);
+
+    // A replayed ack for batch 1 arriving after batch 2 was queued is a no-op: batch 2 keeps playing.
+    const second = __GAME_CAMEL__Engine.evolve(queued, {
+      type: '__GAME_ID__.audio.queued',
+      effects: [{ audioKey: 'night_end', isEndAudio: true }],
+    });
+    expect(second.audioBatchId).toBe(2);
+    const stale = __GAME_CAMEL__Engine.decide(
+      second,
+      { type: '__GAME_ID__.audio.ack', audioBatchId: 1 },
+      session.session.context('host'),
+    );
+    expect(stale.kind).toBe('commit');
+    if (stale.kind === 'commit') expect(stale.events).toEqual([]);
+    const unknown = __GAME_CAMEL__Engine.decide(
+      second,
+      { type: '__GAME_ID__.audio.ack', audioBatchId: 3 },
+      session.session.context('host'),
+    );
+    expect(unknown.kind).toBe('reject');
+    if (unknown.kind === 'reject')
+      expect(unknown.reason).toBe(__GAME_UPPER___REASONS.unknownAudioBatch);
   });
 
   it('blocks returnToLobby while playback is running, then releases it after ack', () => {
@@ -333,7 +357,7 @@ describe('__GAME_PASCAL__ audio queue and ack', () => {
     if (blocked.kind === 'reject') expect(blocked.reason).toBe(__GAME_UPPER___REASONS.audioPlaying);
     const ack = __GAME_CAMEL__Engine.decide(
       playing,
-      { type: '__GAME_ID__.audio.ack' },
+      { type: '__GAME_ID__.audio.ack', audioBatchId: playing.audioBatchId },
       session.session.context('host'),
     );
     expect(ack.kind).toBe('commit');

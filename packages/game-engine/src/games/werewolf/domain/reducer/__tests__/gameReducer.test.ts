@@ -14,7 +14,7 @@ import type {
   PlayerLeaveAction,
   PlayerViewedRoleAction,
   RecordActionAction,
-  SetAudioPlayingAction,
+  SetPendingAudioEffectsAction,
   StartNightAction,
   StateAction,
   UpdatePlayerProfileAction,
@@ -51,6 +51,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     roleViewedSeats: [],
     nightStep: null,
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],
@@ -793,37 +794,44 @@ describe('gameReducer', () => {
   });
 
   // ==========================================================================
-  // PR7: SET_AUDIO_PLAYING Tests
+  // Audio queue: SET_PENDING_AUDIO_EFFECTS / CLEAR_PENDING_AUDIO_EFFECTS
   // ==========================================================================
-  describe('SET_AUDIO_PLAYING', () => {
-    it('should set isAudioPlaying to true', () => {
+  describe('SET_PENDING_AUDIO_EFFECTS', () => {
+    it('queues the batch, marks playback running and assigns the next batch id', () => {
       const state = createMinimalState({
         status: GameStatus.Ongoing,
         isAudioPlaying: false,
+        audioBatchId: 0,
       });
-      const action: SetAudioPlayingAction = {
-        type: 'SET_AUDIO_PLAYING',
-        payload: { isPlaying: true },
+      const action: SetPendingAudioEffectsAction = {
+        type: 'SET_PENDING_AUDIO_EFFECTS',
+        payload: { effects: [{ audioKey: 'wolfKill' }] },
       };
 
       const newState = gameReducer(state, action);
 
+      expect(newState.pendingAudioEffects).toEqual([{ audioKey: 'wolfKill' }]);
       expect(newState.isAudioPlaying).toBe(true);
+      expect(newState.audioBatchId).toBe(1);
     });
 
-    it('should set isAudioPlaying to false', () => {
+    it('replaces a pending batch and bumps the batch id monotonically', () => {
       const state = createMinimalState({
         status: GameStatus.Ongoing,
         isAudioPlaying: true,
+        audioBatchId: 3,
+        pendingAudioEffects: [{ audioKey: 'wolfKill' }],
       });
-      const action: SetAudioPlayingAction = {
-        type: 'SET_AUDIO_PLAYING',
-        payload: { isPlaying: false },
+      const action: SetPendingAudioEffectsAction = {
+        type: 'SET_PENDING_AUDIO_EFFECTS',
+        payload: { effects: [{ audioKey: 'seerCheck' }] },
       };
 
       const newState = gameReducer(state, action);
 
-      expect(newState.isAudioPlaying).toBe(false);
+      expect(newState.pendingAudioEffects).toEqual([{ audioKey: 'seerCheck' }]);
+      expect(newState.isAudioPlaying).toBe(true);
+      expect(newState.audioBatchId).toBe(4);
     });
 
     it('should not change other state fields', () => {
@@ -832,9 +840,9 @@ describe('gameReducer', () => {
         nightStep: { kind: 'inStep', stepId: 'seerCheck' },
         isAudioPlaying: false,
       });
-      const action: SetAudioPlayingAction = {
-        type: 'SET_AUDIO_PLAYING',
-        payload: { isPlaying: true },
+      const action: SetPendingAudioEffectsAction = {
+        type: 'SET_PENDING_AUDIO_EFFECTS',
+        payload: { effects: [{ audioKey: 'seerCheck' }] },
       };
 
       const newState = gameReducer(state, action);
@@ -844,10 +852,27 @@ describe('gameReducer', () => {
     });
   });
 
+  describe('CLEAR_PENDING_AUDIO_EFFECTS', () => {
+    it('empties the queue and stops playback while keeping the batch id', () => {
+      const state = createMinimalState({
+        status: GameStatus.Ongoing,
+        isAudioPlaying: true,
+        audioBatchId: 2,
+        pendingAudioEffects: [{ audioKey: 'wolfKill' }],
+      });
+
+      const newState = gameReducer(state, { type: 'CLEAR_PENDING_AUDIO_EFFECTS' });
+
+      expect(newState.pendingAudioEffects).toEqual([]);
+      expect(newState.isAudioPlaying).toBe(false);
+      expect(newState.audioBatchId).toBe(2);
+    });
+  });
+
   // ==========================================================================
   // Contract: isAudioPlaying is fact-based gate and must NOT be derived
   // ==========================================================================
-  describe('contract: only SET_AUDIO_PLAYING may change isAudioPlaying', () => {
+  describe('contract: only the audio-queue actions may change isAudioPlaying', () => {
     it('should keep isAudioPlaying unchanged for all other actions', () => {
       const baseState = createMinimalState({
         status: GameStatus.Ongoing,

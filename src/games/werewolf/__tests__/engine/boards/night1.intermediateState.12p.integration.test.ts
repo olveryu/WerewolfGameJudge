@@ -111,7 +111,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     // Witch should see who was killed
     expect(beforeWitch.witchContext).toBeDefined();
     expect(beforeWitch.witchContext?.killedSeat).toBe(0);
-    ctx.dispatchOrThrow({ type: 'werewolf.audio.ack' }, 'complete wolfKill to witchAction audio');
+    ctx.acknowledgePendingAudioOrThrow('complete wolfKill to witchAction audio');
 
     // Witch skips (no save, no poison)
     submitActionOrThrow(ctx, 9, { kind: 'skip' }, 'witchAction');
@@ -128,10 +128,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     // confirmStatus should be set for hunter
     expect(beforeHunter.confirmStatus).toBeDefined();
     expect(beforeHunter.confirmStatus?.role).toBe('hunter');
-    ctx.dispatchOrThrow(
-      { type: 'werewolf.audio.ack' },
-      'complete witchAction to hunterConfirm audio',
-    );
+    ctx.acknowledgePendingAudioOrThrow('complete witchAction to hunterConfirm audio');
 
     submitActionOrThrow(ctx, 10, { kind: 'confirm' }, 'hunterConfirm');
 
@@ -142,10 +139,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     // --- Step 4: seerCheck ---
     ctx.assertStep('seerCheck');
     expect(afterHunter.isAudioPlaying).toBe(true);
-    ctx.dispatchOrThrow(
-      { type: 'werewolf.audio.ack' },
-      'complete hunterConfirm to seerCheck audio',
-    );
+    ctx.acknowledgePendingAudioOrThrow('complete hunterConfirm to seerCheck audio');
 
     // Seer checks seat 1 (villager → should be 'good')
     submitActionOrThrow(ctx, 8, { kind: 'target', target: 1 }, 'seerCheck');
@@ -198,7 +192,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
       undefined,
       { nowMs: wolfVoteDeadline },
     );
-    ctx.dispatchOrThrow({ type: 'werewolf.audio.ack' }, 'complete wolfKill to witchAction audio');
+    ctx.acknowledgePendingAudioOrThrow('complete wolfKill to witchAction audio');
 
     // witchAction: save seat 0
     ctx.assertStep('witchAction');
@@ -208,18 +202,12 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
       { kind: 'witch', saveTarget: 0, poisonTarget: null },
       'witchAction save',
     );
-    ctx.dispatchOrThrow(
-      { type: 'werewolf.audio.ack' },
-      'complete witchAction to hunterConfirm audio',
-    );
+    ctx.acknowledgePendingAudioOrThrow('complete witchAction to hunterConfirm audio');
 
     // hunterConfirm
     ctx.assertStep('hunterConfirm');
     submitActionOrThrow(ctx, 10, { kind: 'confirm' }, 'hunterConfirm');
-    ctx.dispatchOrThrow(
-      { type: 'werewolf.audio.ack' },
-      'complete hunterConfirm to seerCheck audio',
-    );
+    ctx.acknowledgePendingAudioOrThrow('complete hunterConfirm to seerCheck audio');
 
     // seerCheck
     ctx.assertStep('seerCheck');
@@ -255,7 +243,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
       undefined,
       { nowMs: wolfVoteDeadline },
     );
-    ctx.dispatchOrThrow({ type: 'werewolf.audio.ack' }, 'complete wolfKill to witchAction audio');
+    ctx.acknowledgePendingAudioOrThrow('complete wolfKill to witchAction audio');
 
     // witchAction: don't save, poison seat 2
     ctx.assertStep('witchAction');
@@ -265,18 +253,12 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
       { kind: 'witch', saveTarget: null, poisonTarget: 2 },
       'witchAction poison',
     );
-    ctx.dispatchOrThrow(
-      { type: 'werewolf.audio.ack' },
-      'complete witchAction to hunterConfirm audio',
-    );
+    ctx.acknowledgePendingAudioOrThrow('complete witchAction to hunterConfirm audio');
 
     // hunterConfirm
     ctx.assertStep('hunterConfirm');
     submitActionOrThrow(ctx, 10, { kind: 'confirm' }, 'hunterConfirm');
-    ctx.dispatchOrThrow(
-      { type: 'werewolf.audio.ack' },
-      'complete hunterConfirm to seerCheck audio',
-    );
+    ctx.acknowledgePendingAudioOrThrow('complete hunterConfirm to seerCheck audio');
 
     // seerCheck
     ctx.assertStep('seerCheck');

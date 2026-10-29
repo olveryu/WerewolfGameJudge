@@ -21,8 +21,14 @@ import { successfulRoomCommand } from '@/test-utils/roomCommand';
 
 import { useAvalonAudioOrchestration } from '../useAvalonAudioOrchestration';
 
+const QUEUED_BATCH_ID = 1;
+
 function createFakeLink(queue: readonly AudioEffect[]) {
-  const initialState = buildAvalonTestState({ pendingAudioEffects: queue });
+  const initialState = buildAvalonTestState({
+    pendingAudioEffects: queue,
+    isAudioPlaying: true,
+    audioBatchId: QUEUED_BATCH_ID,
+  });
   let revision = 1;
   let settleAck: ((outcome: DispatchOutcome<AvalonState>) => void) | null = null;
   const link = createFakeRoomLink<AvalonState, AvalonPublicCommand>(
@@ -42,7 +48,11 @@ function createFakeLink(queue: readonly AudioEffect[]) {
       if (resolve === null) throw new Error('no ack in flight');
       settleAck = null;
       revision += 1;
-      const emptied = buildAvalonTestState({ pendingAudioEffects: [] });
+      const emptied = buildAvalonTestState({
+        pendingAudioEffects: [],
+        isAudioPlaying: false,
+        audioBatchId: QUEUED_BATCH_ID,
+      });
       link.publishRoom(createRoomSnapshot(emptied, revision));
       resolve(successfulRoomCommand(emptied, 'ack-1', revision));
     },
@@ -91,7 +101,7 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
     expect(audio.playEffect).toHaveBeenCalledTimes(2);
     expect(fake.dispatch).toHaveBeenCalledTimes(1);
     expect(fake.dispatch).toHaveBeenCalledWith(
-      { type: 'avalon.audio.ack' },
+      { type: 'avalon.audio.ack', audioBatchId: QUEUED_BATCH_ID },
       { controlledSeat: null, label: '播报确认', durable: true },
     );
 

@@ -186,7 +186,7 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
 
     const after = create__GAME_PASCAL__RoomShellModel({
       ...input,
-      state: drive(queued, { type: '__GAME_ID__.audio.ack' }),
+      state: drive(queued, { type: '__GAME_ID__.audio.ack', audioBatchId: queued.audioBatchId }),
     });
     expect(after.isAudioPlaying).toBe(false);
     screen.rerender(renderPanel(after));

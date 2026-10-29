@@ -115,7 +115,7 @@ async function readState(stub: DurableObjectStub<GameRoom>): Promise<AvalonState
 async function ackAudio(stub: DurableObjectStub<GameRoom>): Promise<void> {
   let state = await readState(stub);
   while (state.isAudioPlaying) {
-    await send(stub, HOST, { type: 'avalon.audio.ack' });
+    await send(stub, HOST, { type: 'avalon.audio.ack', audioBatchId: state.audioBatchId });
     state = await readState(stub);
   }
 }

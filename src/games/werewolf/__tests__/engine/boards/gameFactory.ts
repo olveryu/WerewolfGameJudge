@@ -231,10 +231,13 @@ export function createGame(
   };
 
   const acknowledgePendingAudioOrThrow = (context: string): void => {
-    if (!internal.state.isAudioPlaying || internal.state.pendingAudioEffects?.length === 0) {
+    if (!internal.state.isAudioPlaying || internal.state.pendingAudioEffects.length === 0) {
       throw new Error(`[FAIL-FAST] ${context}: no authoritative audio batch is pending`);
     }
-    dispatchOrThrow({ type: 'werewolf.audio.ack' }, context);
+    dispatchOrThrow(
+      { type: 'werewolf.audio.ack', audioBatchId: internal.state.audioBatchId },
+      context,
+    );
   };
 
   const assertStep = (expectedStepId: SchemaId): void => {

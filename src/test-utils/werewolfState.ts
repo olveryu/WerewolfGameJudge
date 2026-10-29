@@ -15,6 +15,7 @@ export function buildWerewolfTestState(overrides: Partial<GameState> = {}): Game
     roster: {},
     nightStep: null,
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],

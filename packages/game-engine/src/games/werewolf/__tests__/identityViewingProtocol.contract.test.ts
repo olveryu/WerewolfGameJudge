@@ -72,6 +72,7 @@ function createAssignedState(): GameState {
     roleViewedSeats: [],
     nightStep: null,
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],

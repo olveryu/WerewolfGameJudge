@@ -18,7 +18,7 @@
 
 import type { AudioEffect } from '../../../platform/audio';
 import { createSeededRng, randomIntInclusive } from '../../../platform/random';
-import { createAudioQueueActions, isAudioQueueAction } from './audioQueue';
+import { createAudioQueueAction, isAudioQueueAction } from './audioQueue';
 import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
 import { closeSheriffVotingRound } from './handlers/sheriffElectionHandler';
 import { isWolfRobotHunterStatusGatePending } from './handlers/stepTransitionGuards';
@@ -155,29 +155,16 @@ interface ProgressionActionBatch {
   readonly audioEffects: AudioEffect[];
 }
 
-/** Delay the audio gate until all immediately available transitions have been composed. */
+/** Delay the audio queue until all immediately available transitions have been composed. */
 function splitProgressionActions(actions: readonly StateAction[]): ProgressionActionBatch {
   const stateActions: StateAction[] = [];
   const audioEffects: AudioEffect[] = [];
-  let hasAudioGate = false;
-
   for (const action of actions) {
-    if (!isAudioQueueAction(action)) {
-      stateActions.push(action);
-      continue;
-    }
-    if (action.type === 'SET_PENDING_AUDIO_EFFECTS') {
+    if (isAudioQueueAction(action)) {
       audioEffects.push(...action.payload.effects);
       continue;
     }
-    if (!action.payload.isPlaying) {
-      throw new Error('[FAIL-FAST] Progression cannot clear the audio gate');
-    }
-    hasAudioGate = true;
-  }
-
-  if (hasAudioGate !== audioEffects.length > 0) {
-    throw new Error('[FAIL-FAST] Progression audio queue and gate must be emitted together');
+    stateActions.push(action);
   }
   return { stateActions, audioEffects };
 }
@@ -308,13 +295,11 @@ export function runInlineProgression(
     allActions.push(setDeadlineAction);
   }
 
-  // If there are audio effects, add SET_PENDING_AUDIO_EFFECTS + SET_AUDIO_PLAYING actions
+  // If there are audio effects, queue them as one batch (gate + batch id applied by the reducer)
   if (allAudioEffects.length > 0) {
-    const audioQueueActions = createAudioQueueActions(allAudioEffects);
-    for (const action of audioQueueActions) {
-      currentState = gameReducer(currentState, action);
-    }
-    allActions.push(...audioQueueActions);
+    const audioQueueAction = createAudioQueueAction(allAudioEffects);
+    currentState = gameReducer(currentState, audioQueueAction);
+    allActions.push(audioQueueAction);
   }
 
   return {

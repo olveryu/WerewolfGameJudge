@@ -141,7 +141,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       { nowMs: wolfVoteDeadline },
     );
     ctx.assertStep('witchAction');
-    ctx.dispatchOrThrow({ type: 'werewolf.audio.ack' }, 'complete wolfKill to witchAction audio');
+    ctx.acknowledgePendingAudioOrThrow('complete wolfKill to witchAction audio');
 
     // 2. Get real broadcast state at witchAction
     const realState = ctx.getGameState();
@@ -231,18 +231,12 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       undefined,
       { nowMs: wolfVoteDeadline },
     );
-    ctx.dispatchOrThrow({ type: 'werewolf.audio.ack' }, 'complete wolfKill to witchAction audio');
+    ctx.acknowledgePendingAudioOrThrow('complete wolfKill to witchAction audio');
     submitActionOrThrow(ctx, 9, { kind: 'skip' }, 'witchAction');
-    ctx.dispatchOrThrow(
-      { type: 'werewolf.audio.ack' },
-      'complete witchAction to hunterConfirm audio',
-    );
+    ctx.acknowledgePendingAudioOrThrow('complete witchAction to hunterConfirm audio');
     submitActionOrThrow(ctx, 10, { kind: 'confirm' }, 'hunterConfirm');
     ctx.assertStep('seerCheck');
-    ctx.dispatchOrThrow(
-      { type: 'werewolf.audio.ack' },
-      'complete hunterConfirm to seerCheck audio',
-    );
+    ctx.acknowledgePendingAudioOrThrow('complete hunterConfirm to seerCheck audio');
 
     const realState = ctx.getGameState();
     const seerSeat = 8;

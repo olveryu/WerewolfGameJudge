@@ -56,6 +56,7 @@ function createGameState(overrides: Partial<GameState> = {}): GameState {
     roster: { 0: { seat: 0, userId: 'host-user', profile: { displayName: 'Host' } } },
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],

@@ -78,7 +78,10 @@ function armedHarness(): AvalonHarness {
   const asUser = (userId: string) => harness.userContext(userId, null, 1000);
   const ackAudio = () => {
     while (harness.state().isAudioPlaying) {
-      send({ type: 'avalon.audio.ack' }, asUser('host'));
+      send(
+        { type: 'avalon.audio.ack', audioBatchId: harness.state().audioBatchId },
+        asUser('host'),
+      );
     }
   };
   for (let seat = 0; seat < 5; seat += 1) {

@@ -78,7 +78,7 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
   'werewolf.sheriff.endBySelfDestruct': {
     type: 'werewolf.sheriff.endBySelfDestruct',
   },
-  'werewolf.audio.ack': { type: 'werewolf.audio.ack' },
+  'werewolf.audio.ack': { type: 'werewolf.audio.ack', audioBatchId: 0 },
   'werewolf.progress.request': { type: 'werewolf.progress.request' },
   'werewolf.reveal.ack': { type: 'werewolf.reveal.ack' },
   'werewolf.wolfRobot.ackHunterStatus': { type: 'werewolf.wolfRobot.ackHunterStatus' },

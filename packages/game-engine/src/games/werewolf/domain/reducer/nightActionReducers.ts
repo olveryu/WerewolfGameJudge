@@ -9,7 +9,6 @@
  *   - handleAdvanceToNextAction: @pre status === 'Ongoing'
  *   - handleEndNight: @pre status === 'Ongoing' && nightStep is exhausted
  *   - handleApplyResolverResult: @pre status === 'Ongoing'
- *   - handleSetAudioPlaying: accepts authoritative audio-queue state events
  *   - handleSetWitchContext: @pre status === 'Ongoing'
  *   - handleSetWolfKillOverride: @pre status === 'Ongoing'
  */
@@ -25,7 +24,6 @@ import type {
   EndNightAction,
   FinalizeSeedWolfInfectionAction,
   RecordActionAction,
-  SetAudioPlayingAction,
   SetConfirmStatusAction,
   SetResolvedWolfKillTargetAction,
   SetWitchContextAction,
@@ -313,14 +311,6 @@ export function handleSetWolfRobotHunterStatusViewed(
   return {
     ...state,
     wolfRobotHunterStatusViewed: action.payload.viewed,
-  };
-}
-
-/** Set audio playing status. */
-export function handleSetAudioPlaying(state: GameState, action: SetAudioPlayingAction): GameState {
-  return {
-    ...state,
-    isAudioPlaying: action.payload.isPlaying,
   };
 }
 

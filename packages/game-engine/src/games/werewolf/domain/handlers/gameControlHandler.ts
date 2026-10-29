@@ -14,7 +14,7 @@
 import { type AudioEffect, guardAudioPlayback } from '../../../../platform/audio';
 import { createSeededRng, randomPick, type Rng, shuffleArray } from '../../../../platform/random';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
-import { createAudioQueueActions } from '../audioQueue';
+import { createAudioQueueAction } from '../audioQueue';
 import type {
   AbortGameIntent,
   AssignRolesIntent,
@@ -316,7 +316,7 @@ export function handleStartNight(
     });
   }
 
-  actions.push(...createAudioQueueActions(audioEffects));
+  actions.push(createAudioQueueAction(audioEffects));
   return handlerSuccess(actions);
 }
 

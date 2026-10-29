@@ -34,11 +34,15 @@
  * legacy fallback (saved seat, then witch context, then a single
  * END_NIGHT settlement) supplies them. v11-and-older payloads are
  * still rejected, not migrated.
+ * v14 adds audioBatchId (shared audio-queue slice): every queued batch
+ * takes the next id and `werewolf.audio.ack` names the batch it played,
+ * so replayed or coalesced acks can never clear a later batch. v12 and
+ * v13 payloads migrate with audioBatchId = 0.
  */
 
 import { WEREWOLF_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 
-export const WEREWOLF_STATE_VERSION = 13;
+export const WEREWOLF_STATE_VERSION = 14;
 
 export const WEREWOLF_STATE_IDENTITY = {
   gameType: WEREWOLF_GAME_TYPE,

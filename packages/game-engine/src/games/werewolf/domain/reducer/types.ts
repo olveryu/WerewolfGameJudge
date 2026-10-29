@@ -296,17 +296,6 @@ export interface SetUiHintAction {
 }
 
 // =============================================================================
-// Audio state actions
-// =============================================================================
-
-export interface SetAudioPlayingAction {
-  type: 'SET_AUDIO_PLAYING';
-  payload: {
-    isPlaying: boolean;
-  };
-}
-
-// =============================================================================
 // Player state actions
 // =============================================================================
 
@@ -414,8 +403,8 @@ export interface ClearStepDeadlineAction {
 // =============================================================================
 
 /**
- * Set pending audio queue (produced by server-side inline progression)
- * Written to pendingAudioEffects after server progression.
+ * Queue one playback batch (produced by server-side inline progression).
+ * The reducer applies the shared audio-queue transition: effects, gate and batch id together.
  */
 export interface SetPendingAudioEffectsAction {
   type: 'SET_PENDING_AUDIO_EFFECTS';
@@ -425,8 +414,8 @@ export interface SetPendingAudioEffectsAction {
 }
 
 /**
- * Clear pending audio queue
- * Cleared via POST audio-ack after Host playback.
+ * Clear the pending audio queue and reopen the gate.
+ * Emitted by a committed `werewolf.audio.ack` for the current batch.
  */
 export interface ClearPendingAudioEffectsAction {
   type: 'CLEAR_PENDING_AUDIO_EFFECTS';
@@ -574,8 +563,6 @@ export type StateAction =
   | SetWolfRobotHunterStatusViewedAction
   // UI Hint (Host broadcast driven)
   | SetUiHintAction
-  // Audio
-  | SetAudioPlayingAction
   // Player state
   | PlayerViewedRoleAction
   // Error

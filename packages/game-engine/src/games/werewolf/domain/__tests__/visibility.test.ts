@@ -80,6 +80,7 @@ function createState(spec: StateSpec): GameState {
     roster,
     nightStep: spec.stepId ? { kind: 'inStep', stepId: spec.stepId } : null,
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],

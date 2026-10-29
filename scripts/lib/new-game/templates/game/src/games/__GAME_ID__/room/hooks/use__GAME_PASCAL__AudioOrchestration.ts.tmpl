@@ -75,7 +75,10 @@ export function use__GAME_PASCAL__AudioOrchestration(
     const readSnapshot = (): RoomAudioQueueSnapshot<AudioEffect> | null => {
       const current = sessionRef.current.getSnapshot();
       if (current.phase !== 'ready' || audioRef.current === null) return null;
-      return { pendingAudioEffects: current.room.state.pendingAudioEffects };
+      return {
+        pendingAudioEffects: current.room.state.pendingAudioEffects,
+        audioBatchId: current.room.state.audioBatchId,
+      };
     };
 
     if (coreRef.current === null) {
@@ -111,9 +114,9 @@ export function use__GAME_PASCAL__AudioOrchestration(
           },
         },
         ack: {
-          dispatch: () =>
+          dispatch: (audioBatchId) =>
             sessionRef.current.dispatch(
-              { type: '__GAME_ID__.audio.ack' },
+              { type: '__GAME_ID__.audio.ack', audioBatchId },
               { controlledSeat: null, label: '播报确认', durable: true },
             ),
         },

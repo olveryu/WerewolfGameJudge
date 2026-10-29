@@ -83,6 +83,20 @@ function readySnapshot(status: GameStatus, userId = 'host-user'): LinkSnapshot<G
   return readyLinkSnapshot<GameState>({ room, userId }, createRoomSnapshot(state, 1));
 }
 
+/** Host reconnects mid-night: the current step's batch is still gated on the server. */
+function interruptedNightSnapshot(audioBatchId: number): LinkSnapshot<GameState> {
+  const state = buildWerewolfTestState({
+    roomCode: room.roomCode,
+    hostUserId: room.hostUserId,
+    status: GameStatus.Ongoing,
+    nightStep: { kind: 'inStep', stepId: 'seerCheck' },
+    isAudioPlaying: true,
+    audioBatchId,
+    pendingAudioEffects: [{ audioKey: 'seer' }],
+  });
+  return readyLinkSnapshot<GameState>({ room, userId: 'host-user' }, createRoomSnapshot(state, 1));
+}
+
 function createClient() {
   const roomSession = createRoomSession();
   const audio = createAudio();
@@ -107,6 +121,24 @@ describe('WerewolfGameClientRuntime composition', () => {
     roomSession.emit(readySnapshot(GameStatus.Ongoing, 'player-user'));
 
     expect(client.wasAudioInterrupted).toBe(false);
+  });
+
+  it('resume after rejoin replays the current step and acks the interrupted batch by id', async () => {
+    const { client, roomSession, audio } = createClient();
+    roomSession.emit(enteringSnapshot());
+    roomSession.emit(interruptedNightSnapshot(3));
+    expect(client.wasAudioInterrupted).toBe(true);
+    // The interrupted batch must not auto-play; only the user's resume gesture replays it.
+    expect(audio.playBeginning).not.toHaveBeenCalled();
+
+    await client.resumeAfterRejoin();
+
+    expect(audio.playBeginning).toHaveBeenCalledWith('seer');
+    expect(roomSession.dispatch).toHaveBeenCalledTimes(1);
+    expect(roomSession.dispatch).toHaveBeenCalledWith(
+      { type: 'werewolf.audio.ack', audioBatchId: 3 },
+      { controlledSeat: null, label: '音频确认', durable: true },
+    );
   });
 
   it('stops prepared audio before dispatching a Werewolf abort command', async () => {

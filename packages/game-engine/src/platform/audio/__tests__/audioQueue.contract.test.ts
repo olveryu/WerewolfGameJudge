@@ -1,10 +1,11 @@
 /**
  * Contract tests for the shared audio-queue state machine.
  *
- * Pins the four invariants every game with night narration relies on:
- * empty batches fail fast, queueing replaces the pending batch and
- * closes the gate, ack clears the queue and reopens the gate, and ack
- * on an idle queue is an idempotent no-op (`null`, no state write).
+ * Pins the invariants every game with night narration relies on: empty
+ * batches fail fast, queueing replaces the pending batch, assigns the
+ * next batch id and closes the gate, acking the current batch clears the
+ * queue and reopens the gate, acking an earlier batch is an idempotent
+ * no-op, and acking an id that was never queued is reported as unknown.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -16,62 +17,82 @@ import {
   queueAudioBatch,
 } from '../audioQueue';
 
-const IDLE: AudioQueueSlice = { pendingAudioEffects: [], isAudioPlaying: false };
+const IDLE: AudioQueueSlice = { pendingAudioEffects: [], isAudioPlaying: false, audioBatchId: 0 };
 
 describe('audio queue contract', () => {
   it('fails fast on an empty batch', () => {
-    expect(() => queueAudioBatch([])).toThrow(
+    expect(() => queueAudioBatch(IDLE, [])).toThrow(
       '[FAIL-FAST] Audio queue requires at least one effect',
     );
   });
 
-  it('replaces the pending batch and closes the gate', () => {
-    const first = queueAudioBatch([{ audioKey: 'night' }, { audioKey: 'evil_reveal' }]);
+  it('replaces the pending batch, assigns the next batch id and closes the gate', () => {
+    const first = queueAudioBatch(IDLE, [{ audioKey: 'night' }, { audioKey: 'evil_reveal' }]);
     expect(first).toEqual({
       pendingAudioEffects: [{ audioKey: 'night' }, { audioKey: 'evil_reveal' }],
       isAudioPlaying: true,
+      audioBatchId: 1,
     });
     expect(isAudioGateOpen(first)).toBe(false);
 
-    const replaced = queueAudioBatch([{ audioKey: 'night_end', isEndAudio: true }]);
+    const replaced = queueAudioBatch(first, [{ audioKey: 'night_end', isEndAudio: true }]);
     expect(replaced.pendingAudioEffects).toEqual([{ audioKey: 'night_end', isEndAudio: true }]);
     expect(replaced.isAudioPlaying).toBe(true);
+    expect(replaced.audioBatchId).toBe(2);
   });
 
   it('copies the batch so later caller mutations cannot leak into the queue', () => {
     const batch = [{ audioKey: 'night' }];
-    const queued = queueAudioBatch(batch);
+    const queued = queueAudioBatch(IDLE, batch);
     batch.push({ audioKey: 'evil_reveal' });
     expect(queued.pendingAudioEffects).toEqual([{ audioKey: 'night' }]);
   });
 
-  it('ack clears the queue and reopens the gate', () => {
-    const cleared = acknowledgeAudioQueue(queueAudioBatch([{ audioKey: 'night' }]));
-    expect(cleared).toEqual({ pendingAudioEffects: [], isAudioPlaying: false });
-    if (cleared === null) throw new Error('expected a cleared slice');
-    expect(isAudioGateOpen(cleared)).toBe(true);
+  it('acking the current batch clears the queue, keeps the id and reopens the gate', () => {
+    const queued = queueAudioBatch(IDLE, [{ audioKey: 'night' }]);
+    const ack = acknowledgeAudioQueue(queued, 1);
+    expect(ack).toEqual({
+      kind: 'cleared',
+      slice: { pendingAudioEffects: [], isAudioPlaying: false, audioBatchId: 1 },
+    });
+    if (ack.kind !== 'cleared') throw new Error('expected a cleared slice');
+    expect(isAudioGateOpen(ack.slice)).toBe(true);
   });
 
-  it('ack clears a non-empty queue even when playback is not marked running', () => {
+  it('acking the current batch clears a non-empty queue even when playback is not marked running', () => {
     const orphaned: AudioQueueSlice = {
       pendingAudioEffects: [{ audioKey: 'night' }],
       isAudioPlaying: false,
+      audioBatchId: 3,
     };
-    expect(acknowledgeAudioQueue(orphaned)).toEqual({
-      pendingAudioEffects: [],
-      isAudioPlaying: false,
+    expect(acknowledgeAudioQueue(orphaned, 3)).toEqual({
+      kind: 'cleared',
+      slice: { pendingAudioEffects: [], isAudioPlaying: false, audioBatchId: 3 },
     });
   });
 
-  it('ack on an idle queue is an idempotent no-op', () => {
-    expect(acknowledgeAudioQueue(IDLE)).toBeNull();
-    const cleared = acknowledgeAudioQueue(queueAudioBatch([{ audioKey: 'night' }]));
-    if (cleared === null) throw new Error('expected a cleared slice');
-    expect(acknowledgeAudioQueue(cleared)).toBeNull();
+  it('acking an earlier batch (replayed or coalesced ack) is an idempotent no-op', () => {
+    const first = queueAudioBatch(IDLE, [{ audioKey: 'night' }]);
+    const second = queueAudioBatch(first, [{ audioKey: 'wolf' }]);
+    expect(acknowledgeAudioQueue(second, 1)).toEqual({ kind: 'alreadyAcknowledged' });
+    expect(second.isAudioPlaying).toBe(true);
+
+    const ack = acknowledgeAudioQueue(second, 2);
+    if (ack.kind !== 'cleared') throw new Error('expected a cleared slice');
+    expect(acknowledgeAudioQueue(ack.slice, 2)).toEqual({ kind: 'alreadyAcknowledged' });
+    expect(acknowledgeAudioQueue(IDLE, 0)).toEqual({ kind: 'alreadyAcknowledged' });
+  });
+
+  it('acking a batch that was never queued is unknown', () => {
+    expect(acknowledgeAudioQueue(IDLE, 1)).toEqual({ kind: 'unknownBatch' });
+    const queued = queueAudioBatch(IDLE, [{ audioKey: 'night' }]);
+    expect(acknowledgeAudioQueue(queued, 2)).toEqual({ kind: 'unknownBatch' });
   });
 
   it('gate is open exactly when no playback is running', () => {
     expect(isAudioGateOpen(IDLE)).toBe(true);
-    expect(isAudioGateOpen({ pendingAudioEffects: [], isAudioPlaying: true })).toBe(false);
+    expect(
+      isAudioGateOpen({ pendingAudioEffects: [], isAudioPlaying: true, audioBatchId: 1 }),
+    ).toBe(false);
   });
 });

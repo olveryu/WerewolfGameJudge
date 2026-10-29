@@ -102,6 +102,8 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     status: GameStatus.Seated,
     nightStep: null, // consistent with buildInitialGameState
     isAudioPlaying: false,
+    // Batch ids stay monotonic across restarts so a late ack for the previous game can never clear.
+    audioBatchId: state.audioBatchId,
     actions: [],
     currentNightResults: undefined,
     resolvedWolfKillTarget: undefined,

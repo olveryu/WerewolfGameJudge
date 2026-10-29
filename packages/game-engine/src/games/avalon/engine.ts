@@ -90,6 +90,7 @@ function createInitialState(config: AvalonConfig, context: CreateGameContext): A
     xpSettled: false,
     pendingAudioEffects: [],
     isAudioPlaying: false,
+    audioBatchId: 0,
   });
 }
 
@@ -719,17 +720,27 @@ function returnToLobby(state: AvalonState, context: CommandContext): AvalonDecis
   return commitAvalon([{ type: 'avalon.game.returnedToLobby' }]);
 }
 
-/** 房主播完第一晚播报后提交 ack，清空队列、释放门控（共享音频机器，与狼人杀 handleAudioAck 同一份 ack 转移）。 */
-function ackAudio(state: AvalonState, context: CommandContext): AvalonDecision {
+/** 房主播完指定批次后提交 ack：当前批次清空队列、释放门控；旧批次幂等空转；未入队的批次拒绝。 */
+function ackAudio(
+  state: AvalonState,
+  audioBatchId: number,
+  context: CommandContext,
+): AvalonDecision {
   const hostRejection = requireHost<AvalonEvent, AvalonEffect>(
     context,
     state.hostUserId,
     AVALON_REASONS.notHostAckAudio,
   );
   if (hostRejection !== null) return hostRejection;
-  // 队列已空且未在播时 ack 是幂等空转：不发事件、不 bump 修订号。
-  if (acknowledgeAudioQueue(state) === null) return commitAvalon([]);
-  return commitAvalon([{ type: 'avalon.audio.cleared' }]);
+  const ack = acknowledgeAudioQueue(state, audioBatchId);
+  switch (ack.kind) {
+    case 'alreadyAcknowledged':
+      return commitAvalon([]);
+    case 'unknownBatch':
+      return reject(AVALON_REASONS.unknownAudioBatch);
+    case 'cleared':
+      return commitAvalon([{ type: 'avalon.audio.cleared', audioBatchId }]);
+  }
 }
 
 function decideCommand(
@@ -785,7 +796,7 @@ function decideCommand(
     case 'avalon.game.returnToLobby':
       return returnToLobby(state, context);
     case 'avalon.audio.ack':
-      return ackAudio(state, context);
+      return ackAudio(state, command.audioBatchId, context);
     default:
       return reject(AVALON_REASONS.phase);
   }

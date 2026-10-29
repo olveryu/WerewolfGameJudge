@@ -89,14 +89,14 @@ export function evolve__GAME_PASCAL__State(
 //#end
 //#cap audioOrchestration
     case '__GAME_ID__.audio.queued': {
-      // The shared machine owns the transition (replace + gate close);
+      // The shared machine owns the transition (replace + gate close + next batch id);
       // an empty batch cannot reach here — queueing fail-fasts in decide.
-      return { ...bumped, ...queueAudioBatch(event.effects) };
+      return { ...bumped, ...queueAudioBatch(state, event.effects) };
     }
     case '__GAME_ID__.audio.cleared': {
-      const cleared = acknowledgeAudioQueue(state);
-      if (cleared === null) return state;
-      return { ...bumped, ...cleared };
+      const ack = acknowledgeAudioQueue(state, event.audioBatchId);
+      if (ack.kind !== 'cleared') return state;
+      return { ...bumped, ...ack.slice };
     }
 //#end
     // TODO(gameplay): 玩法事件在这里逐个落状态；阶段推进只许由事件驱动。

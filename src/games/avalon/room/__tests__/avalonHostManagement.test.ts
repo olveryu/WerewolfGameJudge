@@ -100,7 +100,7 @@ function session() {
     send({ type: 'avalon.phase.expire' });
   };
   const ackAudio = () => {
-    if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' });
+    if (state.isAudioPlaying) send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId });
   };
   return {
     get state() {

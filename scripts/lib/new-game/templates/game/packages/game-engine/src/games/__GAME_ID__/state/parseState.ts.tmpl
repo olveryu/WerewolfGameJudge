@@ -19,7 +19,7 @@ import {
 //#end
 } from '../../../platform/protocol/runtimeDecoder';
 //#cap audioOrchestration
-import type { AudioEffect } from '../../../platform/audio';
+import { type AudioEffect, parseAudioBatchId } from '../../../platform/audio';
 //#end
 import { parseRoomRoster } from '../../../platform/room/roster';
 import { normalize__GAME_PASCAL__State } from './normalize';
@@ -151,6 +151,7 @@ export function parse__GAME_PASCAL__State(value: unknown): __GAME_PASCAL__State 
           `${path}.pendingAudioEffects`,
         ),
         isAudioPlaying: parseBoolean(raw.isAudioPlaying, `${path}.isAudioPlaying`),
+        audioBatchId: parseAudioBatchId(raw.audioBatchId, `${path}.audioBatchId`),
 //#end
       },
       path,

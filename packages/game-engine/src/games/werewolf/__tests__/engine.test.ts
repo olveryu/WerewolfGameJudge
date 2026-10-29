@@ -564,7 +564,7 @@ describe('Werewolf engine definition and catalog', () => {
     'werewolf.sheriff.endBySelfDestruct': {
       type: 'werewolf.sheriff.endBySelfDestruct',
     },
-    'werewolf.audio.ack': { type: 'werewolf.audio.ack' },
+    'werewolf.audio.ack': { type: 'werewolf.audio.ack', audioBatchId: 0 },
     'werewolf.progress.request': { type: 'werewolf.progress.request' },
     'werewolf.reveal.ack': { type: 'werewolf.reveal.ack' },
     'werewolf.wolfRobot.ackHunterStatus': {
@@ -884,7 +884,11 @@ describe('Werewolf engine definition and catalog', () => {
       pendingAudioEffects: [{ audioKey: 'night_end' }],
       sheriffElection: { phase: 'registration', registeredSeats: [] },
     });
-    state = evolveCommittedCommand(state, { type: 'werewolf.audio.ack' }, userContext('host'));
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.audio.ack', audioBatchId: state.audioBatchId },
+      userContext('host'),
+    );
     expect(state).toMatchObject({
       status: GameStatus.Day,
       isAudioPlaying: false,
@@ -1359,6 +1363,7 @@ describe('Werewolf engine definition and catalog', () => {
       status: GameStatus.Day,
       rules: { isSheriffElectionEnabled: true },
       isAudioPlaying: true,
+      audioBatchId: 1,
       pendingAudioEffects: [{ audioKey: 'night_end' }],
     };
     const audioRejection = { kind: 'reject', reason: 'forbidden_while_audio_playing' } as const;
@@ -1454,7 +1459,11 @@ describe('Werewolf engine definition and catalog', () => {
         completedRounds: [],
       },
     });
-    state = evolveCommittedCommand(state, { type: 'werewolf.audio.ack' }, userContext('host'));
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.audio.ack', audioBatchId: state.audioBatchId },
+      userContext('host'),
+    );
     expect(state.isAudioPlaying).toBe(false);
 
     state = evolveCommittedCommand(

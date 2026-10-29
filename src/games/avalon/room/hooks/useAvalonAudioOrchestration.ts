@@ -62,7 +62,10 @@ export function useAvalonAudioOrchestration(deps: UseAvalonAudioOrchestrationDep
     const readSnapshot = (): RoomAudioQueueSnapshot<AudioEffect> | null => {
       const current = sessionRef.current.getSnapshot();
       if (current.phase !== 'ready' || audioRef.current === null) return null;
-      return { pendingAudioEffects: current.room.state.pendingAudioEffects };
+      return {
+        pendingAudioEffects: current.room.state.pendingAudioEffects,
+        audioBatchId: current.room.state.audioBatchId,
+      };
     };
 
     if (coreRef.current === null) {
@@ -106,9 +109,9 @@ export function useAvalonAudioOrchestration(deps: UseAvalonAudioOrchestrationDep
           isMissingAssetError: (error) => error instanceof MissingAvalonAudioError,
         },
         ack: {
-          dispatch: () =>
+          dispatch: (audioBatchId) =>
             sessionRef.current.dispatch(
-              { type: 'avalon.audio.ack' },
+              { type: 'avalon.audio.ack', audioBatchId },
               { controlledSeat: null, label: '播报确认', durable: true },
             ),
         },

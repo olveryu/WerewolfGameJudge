@@ -298,6 +298,8 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   /** Night step position; null outside the night (status !== Ongoing). */
   nightStep: WerewolfNightStep | null;
   isAudioPlaying: boolean;
+  /** Id of the most recently queued audio batch (shared slice in `platform/audio`); 0 before the first. */
+  audioBatchId: number;
 
   /**
    * Random seed for role reveal animation (used for random parsing + speech order RNG)
@@ -499,13 +501,14 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   /**
    * Pending audio list written during server-side progression.
    *
-   * Host device consumes and plays in order, then submits `werewolf.audio.ack`.
-   * Non-Host devices ignore this.
+   * Host device consumes and plays in order, then submits `werewolf.audio.ack`
+   * naming `audioBatchId`. Non-Host devices ignore this.
    *
    * Lifecycle:
    * - Write: composed from authoritative audio-queue events during inline progression
    * - Consume: Host device watches state changes -> detects non-empty -> plays -> POST ack clears
-   * - Clear: committed `werewolf.audio.ack` empties the array and releases the audio gate
+   * - Clear: committed `werewolf.audio.ack` for the current batch empties the array and
+   *   releases the audio gate
    *
    * Always present (the shared audio-queue slice in `platform/audio`);
    * an empty array means nothing is pending. Legacy persisted states

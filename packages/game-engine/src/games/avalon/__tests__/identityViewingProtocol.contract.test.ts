@@ -65,6 +65,11 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
     controlledSeat: number | null = null,
   ) => avalonEngine.decide(state, command, context(userId, controlledSeat));
   const seatUser = (seat: number) => (seat === 0 ? 'host' : `u${seat}`);
+  /** The host ack for the batch currently queued in the harness state. */
+  const currentAck = (): AvalonCommand => ({
+    type: 'avalon.audio.ack',
+    audioBatchId: state.audioBatchId,
+  });
   const seatCount = humanCount ?? numberOfPlayers;
   for (let seat = 0; seat < seatCount; seat += 1) {
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
@@ -81,13 +86,14 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
     send,
     decideAs,
     seatUser,
+    currentAck,
     startGame() {
       send({ type: 'avalon.roles.assign' });
     },
     /** Begins play from the viewing stage; acks the opening narration. */
     begin() {
       send({ type: 'avalon.game.begin' });
-      if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+      if (state.isAudioPlaying) send(currentAck(), 'host');
     },
     view(seat: number) {
       send({ type: 'avalon.role.viewed' }, seatUser(seat));
@@ -104,7 +110,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
     walkNight() {
       for (const step of AVALON_NIGHT_STEPS) {
         if (state.phase.kind !== 'night') break;
-        if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+        if (state.isAudioPlaying) send(currentAck(), 'host');
         const participants = getAvalonNightParticipants(state.roles, step);
         for (const seat of participants) {
           if (isBotSeat(state.roster, seat)) {
@@ -114,7 +120,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
           }
         }
       }
-      if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+      if (state.isAudioPlaying) send(currentAck(), 'host');
     },
     seatOfRole(role: string): number {
       const seat = Object.keys(state.roles).find((key) => state.roles[Number(key)] === role);
@@ -196,7 +202,7 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
       'night',
       'evil_reveal',
     ]);
-    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(session.currentAck(), 'host');
     session.walkNight();
     expect(session.state.phase.kind).toBe('nominate');
     expect(

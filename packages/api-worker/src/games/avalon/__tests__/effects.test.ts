@@ -146,9 +146,9 @@ function armedVoteState(): AvalonState {
     while (next.isAudioPlaying) {
       next = applyPublic(
         next,
-        { type: 'avalon.audio.ack' },
+        { type: 'avalon.audio.ack', audioBatchId: next.audioBatchId },
         SETTLE_HOST,
-        `ack-${next.pendingAudioEffects.length}`,
+        `ack-${next.audioBatchId}`,
       );
     }
     return next;

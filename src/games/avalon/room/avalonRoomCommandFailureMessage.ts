@@ -46,6 +46,7 @@ export const getAvalonRoomCommandFailureMessage = createRoomCommandFailureMessag
     [AVALON_REASONS.invalidTarget]: '目标座位无效，请重试',
     [AVALON_REASONS.audioPlaying]: '播报尚未结束，请稍候',
     [AVALON_REASONS.notHostAckAudio]: '只有房主可以确认播报',
+    [AVALON_REASONS.unknownAudioBatch]: '播报批次不存在，请刷新房间',
     [AVALON_REASONS.notHostMarkBots]: '只有房主可以标记机器人',
     [AVALON_REASONS.noBotSeats]: '当前没有可标记的机器人',
     [AVALON_REASONS.notPreselected]: '请先预选队伍，再确认最终队伍',

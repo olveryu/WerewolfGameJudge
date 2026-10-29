@@ -51,6 +51,7 @@ function createState(overrides: Partial<GameState> = {}): GameState {
     },
     nightStep: { kind: 'exhausted' },
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],
@@ -138,13 +139,9 @@ describe('Werewolf command handlers', () => {
     // A GameState with an absent queue is unrepresentable now that the
     // field is required; legacy states missing it are defaulted to []
     // at the parse/normalize boundary (migration tests there pin that).
-    const noOpCases: ReadonlyArray<{
-      name: string;
-      pendingAudioEffects: GameState['pendingAudioEffects'];
-    }> = [{ name: 'an empty queue', pendingAudioEffects: [] }];
-
-    it.each(noOpCases)('is an idempotent no-op with $name', ({ pendingAudioEffects }) => {
-      const result = handleAudioAck(createContext(createState({ pendingAudioEffects })));
+    it('is an idempotent no-op when the current batch has an empty queue and nothing is playing', () => {
+      const state = createState({ pendingAudioEffects: [] });
+      const result = handleAudioAck(state.audioBatchId, createContext(state));
 
       expect(expectSuccess(result).actions).toEqual([]);
     });
@@ -152,19 +149,41 @@ describe('Werewolf command handlers', () => {
     it.each([
       {
         name: 'audio is marked as playing',
-        state: { isAudioPlaying: true },
+        state: { isAudioPlaying: true, audioBatchId: 1 },
       },
       {
         name: 'the pending queue is non-empty',
-        state: { pendingAudioEffects: [{ audioKey: 'night' }] },
+        state: { pendingAudioEffects: [{ audioKey: 'night' }], audioBatchId: 1 },
       },
-    ])('clears audio state when $name', ({ state }) => {
-      const result = handleAudioAck(createContext(createState(state)));
+    ])('clears audio state when the current batch is acked and $name', ({ state }) => {
+      const queued = createState(state);
+      const result = handleAudioAck(queued.audioBatchId, createContext(queued));
 
-      expect(expectSuccess(result).actions).toEqual([
-        { type: 'CLEAR_PENDING_AUDIO_EFFECTS' },
-        { type: 'SET_AUDIO_PLAYING', payload: { isPlaying: false } },
-      ]);
+      expect(expectSuccess(result).actions).toEqual([{ type: 'CLEAR_PENDING_AUDIO_EFFECTS' }]);
+    });
+
+    it('treats an ack for an older batch as a no-op success with no actions', () => {
+      const state = createState({
+        isAudioPlaying: true,
+        pendingAudioEffects: [{ audioKey: 'night' }],
+        audioBatchId: 2,
+      });
+
+      const result = handleAudioAck(1, createContext(state));
+
+      expect(expectSuccess(result).actions).toEqual([]);
+    });
+
+    it('rejects an ack for a batch id above the current one', () => {
+      const state = createState({
+        isAudioPlaying: true,
+        pendingAudioEffects: [{ audioKey: 'night' }],
+        audioBatchId: 1,
+      });
+
+      const result = handleAudioAck(2, createContext(state));
+
+      expect(expectError(result).reason).toBe('unknown_audio_batch');
     });
   });
 

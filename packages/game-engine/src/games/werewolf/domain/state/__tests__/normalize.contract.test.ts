@@ -34,6 +34,7 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'roster',
   'nightStep',
   'isAudioPlaying',
+  'audioBatchId',
 
   // Role reveal animation config
   'roleRevealRandomNonce',
@@ -139,6 +140,7 @@ describe('normalizeState contract', () => {
         1: { seat: 1, userId: 'p1', profile: { displayName: 'P1' } },
       },
       isAudioPlaying: false,
+      audioBatchId: 0,
 
       // Role reveal animation config
       roleRevealRandomNonce: 'nonce-123',
@@ -276,6 +278,7 @@ describe('normalizeState contract', () => {
       roleViewedSeats: [],
       nightStep: null,
       isAudioPlaying: false,
+      audioBatchId: 0,
       pendingAudioEffects: [],
       actions: [],
       pendingRevealAcks: [],

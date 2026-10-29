@@ -1,6 +1,6 @@
 /** Runtime decoder for persisted and transported Werewolf state. */
 
-import type { AudioEffect } from '../../../platform/audio';
+import { type AudioEffect, parseAudioBatchId } from '../../../platform/audio';
 import { WEREWOLF_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 import {
   failDecode as fail,
@@ -954,6 +954,7 @@ export function parseWerewolfState(value: unknown): GameState {
     roster: parseSeatRoster(raw.roster, 'GameState.roster'),
     nightStep: parseNightStep(raw.nightStep, 'GameState.nightStep'),
     isAudioPlaying: parseBoolean(raw.isAudioPlaying, 'GameState.isAudioPlaying'),
+    audioBatchId: parseAudioBatchId(raw.audioBatchId, 'GameState.audioBatchId'),
     roleRevealRandomNonce: parseOptional(
       raw.roleRevealRandomNonce,
       'GameState.roleRevealRandomNonce',
@@ -1129,18 +1130,18 @@ export function parseWerewolfState(value: unknown): GameState {
 
 /**
  * Entry point for persisted state.
- * v12 payloads migrate to v13 by a pure version bump: v12 has no
- * resolvedWolfKillTarget or resolvedWolfKillVerdict, so the migrated
- * state carries them as absent (unresolved) and the engine's legacy
- * fallback supplies them at the next settlement point. Payloads at
- * v11 or older are still rejected, not migrated. @throws When the
- * stored state carries any other version, or when the
+ * v12 and v13 payloads migrate to v14: v13 adds nothing the parser
+ * cannot default (resolvedWolfKillTarget / Verdict absent = unresolved)
+ * and v14 adds audioBatchId, which starts at 0 for a room whose queue
+ * was written before batches had ids; the host acks that batch as 0.
+ * Payloads at v11 or older are still rejected, not migrated. @throws
+ * When the stored state carries any other version, or when the
  * current-version payload is malformed.
  */
 export function migratePersistedWerewolfState(value: unknown): GameState {
   const raw = parseObject(value, 'GameState');
-  if (raw.stateVersion === WEREWOLF_STATE_VERSION - 1) {
-    return parseWerewolfState({ ...raw, stateVersion: WEREWOLF_STATE_VERSION });
+  if (raw.stateVersion === 12 || raw.stateVersion === 13) {
+    return parseWerewolfState({ ...raw, stateVersion: WEREWOLF_STATE_VERSION, audioBatchId: 0 });
   }
   if (raw.stateVersion !== WEREWOLF_STATE_VERSION) {
     throw new Error(`Unsupported werewolf state version: ${String(raw.stateVersion)}`);

@@ -29,6 +29,7 @@ export const __GAME_UPPER___REASONS = {
 //#cap audioOrchestration
   audioPlaying: '__GAME_ID___audio_playing',
   notHostAckAudio: '__GAME_ID___not_host_ack_audio',
+  unknownAudioBatch: '__GAME_ID___unknown_audio_batch',
 //#end
   occupied: '__GAME_ID___occupied_seat_out_of_range',
 //#cap stageDeadline
@@ -74,7 +75,7 @@ export type __GAME_PASCAL__Event =
       readonly type: '__GAME_ID__.audio.queued';
       readonly effects: readonly AudioEffect[];
     }
-  | { readonly type: '__GAME_ID__.audio.cleared' }
+  | { readonly type: '__GAME_ID__.audio.cleared'; readonly audioBatchId: number }
 //#end
   // TODO(gameplay): 玩法事件随玩法状态机加在这里，evolve.ts 逐个落状态。
   | { readonly type: '__GAME_ID__.game.ended' }

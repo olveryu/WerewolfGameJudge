@@ -112,7 +112,7 @@ function drivenGame(numberOfPlayers: AvalonPlayerCount, botSeats: readonly numbe
   if (botSeats.length > 0) send({ type: 'avalon.bots.markAllBotsViewed' });
   send({ type: 'avalon.game.begin' });
   const ackAudio = () => {
-    if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' });
+    if (state.isAudioPlaying) send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId });
   };
   ackAudio();
   while (state.phase.kind === 'night') {

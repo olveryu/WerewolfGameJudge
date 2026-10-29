@@ -454,6 +454,8 @@ export interface AvalonState extends BaseGameState<typeof AVALON_GAME_TYPE> {
   readonly pendingAudioEffects: readonly AudioEffect[];
   /** true 时阻塞 night 确认与回大厅，直到房主 ack（对齐狼人杀 progression gate）。 */
   readonly isAudioPlaying: boolean;
+  /** 最近一次入队批次的 id（共享音频切片）；`avalon.audio.ack` 必须指名它播完的批次。 */
+  readonly audioBatchId: number;
 }
 
 /** Returns the seat held by a user, or null when they hold no seat. */

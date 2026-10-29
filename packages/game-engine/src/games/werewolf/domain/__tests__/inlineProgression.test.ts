@@ -45,6 +45,7 @@ function make2PlayerState(overrides: Partial<GameState> = {}): GameState {
     roleViewedSeats: [],
     nightStep: { kind: 'inStep', stepId: plan.steps[0]!.stepId },
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],
@@ -80,6 +81,7 @@ function make5PlayerState(overrides: Partial<GameState> = {}): GameState {
     roleViewedSeats: [],
     nightStep: { kind: 'inStep', stepId: plan.steps[0]!.stepId },
     isAudioPlaying: false,
+    audioBatchId: 0,
     pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],
@@ -244,9 +246,11 @@ describe('runInlineProgression', () => {
       expect(result.finalState.pendingAudioEffects?.length).toBeGreaterThan(0);
       // Final state should be GameStatus.Ended
       expect(result.finalState.status).toBe(GameStatus.Ended);
-      // Should have SET_PENDING_AUDIO_EFFECTS + SET_AUDIO_PLAYING in actions
+      // Should have SET_PENDING_AUDIO_EFFECTS in actions (one shared queue transition)
       const hasPendingAudio = result.actions.some((a) => a.type === 'SET_PENDING_AUDIO_EFFECTS');
       expect(hasPendingAudio).toBe(true);
+      expect(result.finalState.isAudioPlaying).toBe(true);
+      expect(result.finalState.audioBatchId).toBe(state.audioBatchId + 1);
     });
   });
 
@@ -336,6 +340,7 @@ describe('runInlineProgression', () => {
         roleViewedSeats: [],
         nightStep: { kind: 'inStep', stepId: 'witchAction' },
         isAudioPlaying: false,
+        audioBatchId: 0,
         pendingAudioEffects: [],
         actions: [],
         resolvedNightEffects: [],
@@ -399,6 +404,7 @@ describe('runInlineProgression', () => {
         roleViewedSeats: [],
         nightStep: { kind: 'inStep', stepId: 'witchAction', stepDeadline: nowMs - 1000 },
         isAudioPlaying: false,
+        audioBatchId: 0,
         pendingAudioEffects: [],
         actions: [],
         resolvedNightEffects: [],
@@ -464,6 +470,7 @@ describe('runInlineProgression', () => {
         roleViewedSeats: [],
         nightStep: { kind: 'inStep', stepId: 'wolfKill' },
         isAudioPlaying: false,
+        audioBatchId: 0,
         pendingAudioEffects: [],
         actions: [{ schemaId: 'wolfKill', actorSeat: 1, timestamp: 1 }],
         resolvedNightEffects: [],
@@ -499,8 +506,9 @@ describe('runInlineProgression', () => {
           ? result.finalState.nightStep.stepDeadline
           : undefined,
       ).toBeUndefined();
-      // isAudioPlaying should be set (audio effects → SET_AUDIO_PLAYING)
+      // isAudioPlaying should be set (audio effects → SET_PENDING_AUDIO_EFFECTS closes the gate)
       expect(result.finalState.isAudioPlaying).toBe(true);
+      expect(result.finalState.audioBatchId).toBe(1);
     });
   });
 });

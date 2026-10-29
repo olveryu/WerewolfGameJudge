@@ -115,14 +115,14 @@ function buildNominateWithBots(): AvalonState {
   send({ type: 'avalon.role.viewed' });
   send({ type: 'avalon.bots.markAllBotsViewed' });
   send({ type: 'avalon.game.begin' });
-  if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' });
+  if (state.isAudioPlaying) send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId });
   while (state.phase.kind === 'night') {
     const participants = getAvalonNightParticipants(state.roles, state.phase.step);
     for (const seat of participants) {
       if (isBotSeat(state.roster, seat)) send({ type: 'avalon.night.confirm' }, 'host', seat);
       else send({ type: 'avalon.night.confirm' });
     }
-    if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' });
+    if (state.isAudioPlaying) send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId });
   }
   if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
   return state;
