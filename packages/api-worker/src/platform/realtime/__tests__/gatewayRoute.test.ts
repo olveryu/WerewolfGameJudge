@@ -1,6 +1,9 @@
 /** Public WebSocket admission contract: every rejection is an upgraded socket closed with 4xxx. */
 
-import { REALTIME_CLOSE_CODE } from '@game-judge/game-engine/platform/realtime/closeCodes';
+import {
+  readTerminalCloseReason,
+  REALTIME_CLOSE_CODE,
+} from '@game-judge/game-engine/platform/realtime/closeCodes';
 import { SELF } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 
@@ -78,5 +81,28 @@ describe('GET /ws', () => {
       code: REALTIME_CLOSE_CODE.ROOM_DELETED,
       reason: 'room_not_found',
     });
+  });
+
+  it('closes 4004 (retryable) once a user exhausts the admission budget', async () => {
+    const signup = await SELF.fetch('https://test.local/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'ws-throttled@test.local', password: 'pass123' }),
+    });
+    const { access_token: token } = await signup.json<{ access_token: string }>();
+
+    let throttled = false;
+    // Budget is configured in wrangler.test.toml ([[ratelimits]] ROOM_LOOKUP_LIMITER).
+    for (let attempt = 0; attempt < 40 && !throttled; attempt += 1) {
+      const closed = await connect(`?roomCode=9999&roomId=missing-room&token=${token}`);
+      if (closed.code === REALTIME_CLOSE_CODE.RATE_LIMITED) {
+        expect(closed.reason).toBe('rate_limited');
+        throttled = true;
+      } else {
+        expect(closed.code).toBe(REALTIME_CLOSE_CODE.ROOM_DELETED);
+      }
+    }
+    expect(throttled).toBe(true);
+    expect(readTerminalCloseReason(REALTIME_CLOSE_CODE.RATE_LIMITED)).toBeNull();
   });
 });

@@ -33,6 +33,7 @@ pnpm exec wrangler --version
 The official deployment requires:
 
 - A Cloudflare account with the D1 database, R2 bucket, Durable Object namespaces, Analytics Engine datasets, Worker custom domain, and Pages project named in the Wrangler configuration.
+- Rate Limiting bindings (`[[ratelimits]]`) need no provisioning; `namespace_id` values are account-unique integers chosen in `wrangler.toml` and counters are per Cloudflare location.
 - A GitHub repository with Actions enabled and the deployment secrets listed below.
 - The npm package `werewolf-judge-cdn` configured with a GitHub Actions trusted publisher for this repository and workflow `ci.yml`.
 - GitHub Pages configured to deploy from GitHub Actions for the merged Playwright report.

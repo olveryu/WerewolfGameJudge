@@ -943,6 +943,7 @@ describe('Worker request boundary: client objects are strict', () => {
     expect(getTopLevelProductionFiles(path.join(workerPlatformDir, 'http'))).toEqual([
       'callDurableObject.ts',
       'jsonBody.ts',
+      'rateLimit.ts',
       'requestMetadata.ts',
     ]);
   });

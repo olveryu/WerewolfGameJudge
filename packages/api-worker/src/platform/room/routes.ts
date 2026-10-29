@@ -13,6 +13,7 @@ import type { AppEnv } from '../../env';
 import type { WorkerGameModuleResolver } from '../gameModules/runtimeGameModule';
 import { callDurableObject } from '../http/callDurableObject';
 import { jsonBody } from '../http/jsonBody';
+import { REASON_RATE_LIMITED, takeRateLimitToken } from '../http/rateLimit';
 import { createLogger } from '../observability/logger';
 import {
   createRoomSchema,
@@ -136,7 +137,12 @@ export function createRoomRoutes(
     return c.json(dispatched.result, 200);
   });
 
-  roomRoutes.post('/get', jsonBody(roomCodeBodySchema), async (c) => {
+  // Knowing a room code is the authorization to watch that room (spectating is a feature), so the
+  // directory lookup must not be an enumeration oracle: authenticated and throttled per user.
+  roomRoutes.post('/get', requireAuthentication, jsonBody(roomCodeBodySchema), async (c) => {
+    if (!(await takeRateLimitToken(c.env.ROOM_LOOKUP_LIMITER, c.var.userId))) {
+      return c.json({ success: false as const, reason: REASON_RATE_LIMITED }, 429);
+    }
     const { roomCode } = c.req.valid('json');
     const room = await findActiveRoom(c.env, roomCode);
     return c.json(

@@ -26,6 +26,11 @@ import { Hono } from 'hono';
 import { createDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
+import {
+  REASON_RATE_LIMITED,
+  requestClientIp,
+  takeRateLimitToken,
+} from '../../platform/http/rateLimit';
 import { readCloudflareRequestMetadata } from '../../platform/http/requestMetadata';
 import { createLogger } from '../../platform/observability/logger';
 import { requireDatabaseGrowthCapacity } from '../../platform/storage/capacity';
@@ -222,6 +227,10 @@ async function mergeUserStats(
 // ─────────────────────────────────────────────────────────────────────────────
 authRoutes.post('/anonymous', async (c) => {
   const env = c.env;
+  // Free accounts multiply every per-user budget (room lookups); cap them per client IP.
+  if (!(await takeRateLimitToken(env.ANONYMOUS_SIGNUP_LIMITER, requestClientIp(c.req.raw)))) {
+    return c.json({ success: false, reason: REASON_RATE_LIMITED }, 429);
+  }
   await requireDatabaseGrowthCapacity(env.DB);
   const db = createDb(env.DB);
   const userId = crypto.randomUUID();

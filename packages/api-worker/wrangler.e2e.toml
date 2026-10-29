@@ -30,6 +30,27 @@ bucket_name = "werewolf-game-media"
 binding = "REQUEST_TRAFFIC"
 dataset = "request_traffic_e2e"
 
+# ── Rate limiting (capability model: knowing a room code is the authorization,
+#    so the code must not be enumerable; see docs/realtime-link-redesign.md §5.2) ──
+# Room directory lookups and socket upgrades per authenticated user.
+[[ratelimits]]
+name = "ROOM_LOOKUP_LIMITER"
+namespace_id = "1001"
+
+  # E2E drives whole boards from 127.0.0.1; budgets exist for binding parity, not enforcement.
+  [ratelimits.simple]
+  limit = 10000
+  period = 60
+
+# Anonymous sign-ups per client IP (free accounts must not multiply the lookup budget).
+[[ratelimits]]
+name = "ANONYMOUS_SIGNUP_LIMITER"
+namespace_id = "1002"
+
+  [ratelimits.simple]
+  limit = 10000
+  period = 60
+
 [durable_objects]
 bindings = [
   { name = "GAME_ROOM", class_name = "GameRoom" }

@@ -10,6 +10,7 @@ import type { Handler } from 'hono';
 
 import type { AppEnv, Env } from '../../env';
 import { callDurableObject } from '../http/callDurableObject';
+import { takeRateLimitToken } from '../http/rateLimit';
 import { resolveActiveRoom } from '../room/roomDirectory';
 import { getGameRoomStub } from '../room/roomStub';
 import { rejectUpgrade } from './rejectUpgrade';
@@ -38,6 +39,10 @@ export function createRoomSocketHandler(authenticate: RoomSocketAuthenticator): 
     const userId = await authenticate(token, c.env);
     if (userId === null) {
       return rejectUpgrade(REALTIME_CLOSE_CODE.AUTH_REJECTED, 'unauthorized');
+    }
+    // Same budget as the directory lookup: an upgrade also resolves a room code.
+    if (!(await takeRateLimitToken(c.env.ROOM_LOOKUP_LIMITER, userId))) {
+      return rejectUpgrade(REALTIME_CLOSE_CODE.RATE_LIMITED, 'rate_limited');
     }
 
     const resolution = await resolveActiveRoom(c.env, roomCode, roomId);

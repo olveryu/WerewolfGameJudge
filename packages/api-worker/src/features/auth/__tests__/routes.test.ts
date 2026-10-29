@@ -40,8 +40,19 @@ interface TokenPairResponse {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
+/** Distinct client addresses so anonymous sign-up budgets never collide across tests. */
+let clientIpCounter = 0;
+function nextClientIp(): string {
+  clientIpCounter += 1;
+  return `203.0.113.${clientIpCounter % 200}`;
+}
+
 async function postJson(path: string, body: unknown, token?: string): Promise<Response> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  // SELF.fetch bypasses the edge; the Worker requires the header Cloudflare always sets.
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'CF-Connecting-IP': nextClientIp(),
+  };
   if (token) headers.Authorization = `Bearer ${token}`;
   return SELF.fetch(`https://test.local${path}`, {
     method: 'POST',
@@ -79,6 +90,26 @@ beforeEach(async () => {
 // ── POST /auth/anonymous ────────────────────────────────────────────────────
 
 describe('POST /auth/anonymous', () => {
+  it('throttles anonymous sign-ups per client IP', async () => {
+    const sameIp = (): Promise<Response> =>
+      SELF.fetch('https://test.local/auth/anonymous', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '198.51.100.7' },
+        body: '{}',
+      });
+    let throttled: Response | null = null;
+    // Budget is configured in wrangler.test.toml ([[ratelimits]] ANONYMOUS_SIGNUP_LIMITER).
+    for (let attempt = 0; attempt < 10 && throttled === null; attempt += 1) {
+      const response = await sameIp();
+      if (response.status === 429) throttled = response;
+      else expect(response.status).toBe(200);
+    }
+    if (throttled === null) throw new Error('Expected the sign-up budget to run out');
+    expect(await throttled.json()).toEqual({ success: false, reason: 'RATE_LIMITED' });
+    // A different address is unaffected.
+    expect((await postJson('/auth/anonymous', {})).status).toBe(200);
+  });
+
   it('rejects new accounts at the storage protection watermark', async () => {
     await env.DB.prepare("UPDATE database_capacity SET state = 'protected' WHERE id = 1").run();
     const response = await postJson('/auth/anonymous', {});
