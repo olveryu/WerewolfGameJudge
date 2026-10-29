@@ -118,7 +118,7 @@ export type DispatchOutcome<TState extends BaseGameState<string>> =
   | {
       readonly kind: 'undelivered';
       readonly commandId: string;
-      readonly cause: 'network' | 'timeout' | 'server';
+      readonly cause: 'network' | 'timeout' | 'server' | 'throttled';
     }
   /** The link epoch ended before a decision arrived. */
   | { readonly kind: 'cancelled'; readonly commandId: string };

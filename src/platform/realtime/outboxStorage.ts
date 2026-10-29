@@ -2,8 +2,9 @@
  * outboxStorage — persistence for durable room commands.
  *
  * One JSON document per device holding every durable command that has not received a server
- * decision. Records are partitioned by (roomId, userId) at read time. Malformed persisted data
- * is a programming error on this device and throws; it is not silently discarded.
+ * decision. Records are partitioned by (roomId, userId) at read time. A document this build cannot
+ * read is reported through `onUnreadable` and dropped: the server's command receipts remain the
+ * authority, and a corrupt local cache must not lock the device out of every room.
  */
 import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
 
@@ -80,10 +81,12 @@ function parseRecord(value: unknown): DurableCommandRecord {
   };
 }
 
-export function createOutboxStorage(storage: KeyValueStorage, now: () => number): OutboxStorage {
-  function read(): readonly DurableCommandRecord[] {
-    const raw = storage.getString(ROOM_COMMAND_OUTBOX_KEY);
-    if (raw === undefined) return [];
+export function createOutboxStorage(
+  storage: KeyValueStorage,
+  now: () => number,
+  onUnreadable: (error: Error) => void,
+): OutboxStorage {
+  function parseDocument(raw: string): readonly DurableCommandRecord[] {
     const parsed: unknown = JSON.parse(raw);
     if (
       !isRecord(parsed) ||
@@ -92,8 +95,22 @@ export function createOutboxStorage(storage: KeyValueStorage, now: () => number)
     ) {
       throw new Error('Outbox document is not version 2');
     }
+    return parsed.records.map(parseRecord);
+  }
+
+  function read(): readonly DurableCommandRecord[] {
+    const raw = storage.getString(ROOM_COMMAND_OUTBOX_KEY);
+    if (raw === undefined) return [];
+    let records: readonly DurableCommandRecord[];
+    try {
+      records = parseDocument(raw);
+    } catch (error) {
+      storage.remove(ROOM_COMMAND_OUTBOX_KEY);
+      onUnreadable(error instanceof Error ? error : new Error(String(error)));
+      return [];
+    }
     const cutoff = now() - RETENTION_MS;
-    return parsed.records.map(parseRecord).filter((record) => record.createdAtMs >= cutoff);
+    return records.filter((record) => record.createdAtMs >= cutoff);
   }
 
   function write(records: readonly DurableCommandRecord[]): void {

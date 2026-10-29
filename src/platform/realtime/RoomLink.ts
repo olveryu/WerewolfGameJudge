@@ -194,6 +194,14 @@ export class RoomLinkImpl<
     try {
       active.outbox.restore();
       active.runtime.start(identity.room);
+    } catch (error) {
+      // Start-up failed before any socket existed: give the lease back so the error is retryable.
+      signal.removeEventListener('abort', onAbort);
+      connected.catch(() => undefined);
+      this.close();
+      throw error;
+    }
+    try {
       await connected;
     } finally {
       signal.removeEventListener('abort', onAbort);

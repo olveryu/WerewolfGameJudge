@@ -2,6 +2,7 @@ import { REALTIME_CLOSE_CODE } from '@game-judge/game-engine/platform/realtime/c
 import { z } from 'zod';
 
 import { ApiError } from '@/platform/http/ApiError';
+import type { OutboxStorage } from '@/platform/realtime/outboxStorage';
 import { createUnsignedAccessToken, jsonResponse, requestJson } from '@/test-utils/httpClient';
 import {
   closeAllLinks,
@@ -197,6 +198,30 @@ describe('RoomLink reconnection', () => {
     await harness.goLive();
     expect(harness.link.getSnapshot().epoch).toBe(2);
   });
+
+  it('a start-up failure in connect() gives the lease back and leaves the link idle', async () => {
+    let shouldFailRestore = true;
+    const outboxStorage: OutboxStorage = {
+      load: () => {
+        if (shouldFailRestore)
+          throw new Error('[FAIL-FAST] Durable commands contain duplicate intents');
+        return [];
+      },
+      save: () => undefined,
+      remove: () => undefined,
+    };
+    const harness = createLinkHarness({ outboxStorage });
+    await expect(harness.link.connect(IDENTITY, new AbortController().signal)).rejects.toThrow(
+      'duplicate intents',
+    );
+    expect(harness.link.getSnapshot()).toMatchObject({ status: { kind: 'idle' }, identity: null });
+    expect(harness.sockets.sockets).toHaveLength(0);
+
+    // Not wedged: the same link and lease can be entered again.
+    shouldFailRestore = false;
+    await harness.goLive();
+    expect(harness.link.getSnapshot().status).toEqual({ kind: 'live' });
+  });
 });
 
 describe('RoomLink commands', () => {
@@ -283,6 +308,45 @@ describe('RoomLink commands', () => {
     }
   });
 
+  it('a 429 keeps a durable command for replay while a 4xx decision error drops it', async () => {
+    jest.useFakeTimers();
+    try {
+      const harness = createLinkHarness();
+      await harness.goLive();
+
+      harness.network.respond(() => jsonResponse(429, { reason: 'RATE_LIMITED' }));
+      const throttled = harness.link.dispatch(
+        { type: 'test.increment', amount: 1 },
+        { controlledSeat: null, label: '限流', durable: true },
+      );
+      await jest.advanceTimersByTimeAsync(0);
+      expect(harness.outboxStorage.load('room-id-1234', 'host-user')).toHaveLength(1);
+      expect(harness.link.getSnapshot().pendingDurableCount).toBe(1);
+      // First rung of the replay ladder: the same commandId goes out again.
+      harness.network.respond((request) => {
+        const body = commandBodySchema.parse(requestJson(request));
+        expect(body.commandId).toBe('cmd-1');
+        return committed(body.commandId, 2);
+      });
+      await jest.advanceTimersByTimeAsync(1_000);
+      await expect(throttled).resolves.toMatchObject({ kind: 'committed', commandId: 'cmd-1' });
+      expect(harness.outboxStorage.load('room-id-1234', 'host-user')).toHaveLength(0);
+
+      harness.network.respond(() => jsonResponse(403, { reason: 'forbidden' }));
+      const forbidden = harness.link.dispatch(
+        { type: 'test.increment', amount: 2 },
+        { controlledSeat: null, label: '拒绝', durable: true },
+      );
+      const settled = forbidden.catch((error: unknown) => error);
+      await jest.advanceTimersByTimeAsync(0);
+      await expect(settled).resolves.toBeInstanceOf(ApiError);
+      expect(harness.outboxStorage.load('room-id-1234', 'host-user')).toHaveLength(0);
+      expect(harness.link.getSnapshot().pendingDurableCount).toBe(0);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('restores persisted durable commands into a new link and replays them once live', async () => {
     const first = createLinkHarness();
     await first.goLive();
@@ -306,7 +370,7 @@ describe('RoomLink commands', () => {
     expect(second.link.getSnapshot().pendingDurableCount).toBe(0);
   });
 
-  it('a 404 no_state keeps the intent as unavailable; a 4xx answer throws to the caller', async () => {
+  it('a 404 no_state is unavailable, a 429 is undelivered, any other 4xx throws to the caller', async () => {
     const harness = createLinkHarness();
     await harness.goLive();
     harness.network.respond(() => jsonResponse(404, { success: false, reason: 'no_state' }));
@@ -321,6 +385,14 @@ describe('RoomLink commands', () => {
     await expect(
       harness.link.dispatch(
         { type: 'test.increment', amount: 2 },
+        { controlledSeat: null, label: 'x', durable: false },
+      ),
+    ).resolves.toEqual({ kind: 'undelivered', commandId: 'cmd-2', cause: 'throttled' });
+
+    harness.network.respond(() => jsonResponse(403, { success: false, reason: 'forbidden' }));
+    await expect(
+      harness.link.dispatch(
+        { type: 'test.increment', amount: 3 },
         { controlledSeat: null, label: 'x', durable: false },
       ),
     ).rejects.toBeInstanceOf(ApiError);

@@ -51,7 +51,10 @@ export interface RoomLinkFactoryOptions {
 
 export function createRoomLinkFactory(options: RoomLinkFactoryOptions): RoomLinkFactory {
   const lease: RoomLease = createRoomLease();
-  const outboxStorage = createOutboxStorage(storage, Date.now);
+  const outboxStorage = createOutboxStorage(storage, Date.now, (error) => {
+    realtimeLog.error('dropped unreadable room command outbox', { error: error.message });
+    Sentry.captureException(error);
+  });
   const socketBaseUrl = API_BASE_URL.replace(/^http/, 'ws');
   return {
     create: (codec) =>

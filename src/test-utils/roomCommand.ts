@@ -69,7 +69,7 @@ export function rejectedRoomCommand<TState extends BaseGameState<string>>(
 }
 
 export function undeliveredRoomCommand<TState extends BaseGameState<string>>(
-  cause: 'network' | 'timeout' | 'server' = 'network',
+  cause: 'network' | 'timeout' | 'server' | 'throttled' = 'network',
   commandId = 'test-command',
 ): DispatchOutcome<TState> {
   return { kind: 'undelivered', commandId, cause };
