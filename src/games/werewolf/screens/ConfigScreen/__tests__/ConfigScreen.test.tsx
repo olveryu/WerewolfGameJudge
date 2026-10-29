@@ -72,7 +72,7 @@ const createMockClient = (): WerewolfGameClient => {
     markViewedRole: jest.fn(),
     submitAction: jest.fn(),
     submitRevealAck: jest.fn(),
-    postProgression: jest.fn(),
+    expirePhase: jest.fn(),
     sendWolfRobotHunterStatusViewed: jest.fn(),
     get wasAudioInterrupted() {
       return false;

@@ -46,6 +46,7 @@ function createFullState(): GameState {
     nightStep: null,
     isAudioPlaying: true,
     audioBatchId: 1,
+    gameSequence: 0,
     roleRevealRandomNonce: 'nonce',
     actions: [{ schemaId: 'wolfKill', actorSeat: 0, targetSeat: 1, timestamp: 1 }],
     currentNightResults: {

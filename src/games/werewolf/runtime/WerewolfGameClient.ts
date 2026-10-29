@@ -139,11 +139,13 @@ export interface WerewolfGameClient {
     controlledSeat: number | null,
   ): Promise<WerewolfCommandDispatchOutcome>;
 
-  // === Night Flow (Host-only) ===
+  // === Deadline expiry (any foreground client) ===
   /**
-   * Host: trigger server-side progression after wolf vote deadline expires
+   * Accelerate an armed deadline that has been reached (wolf-vote or
+   * sheriff-vote settle countdown, vacant bottom-card auto-skip). The
+   * server's scheduled `werewolf.settle.due` is the correctness path.
    */
-  postProgression(): Promise<WerewolfCommandDispatchOutcome>;
+  expirePhase(): Promise<WerewolfCommandDispatchOutcome>;
 
   /**
    * Whether audio was interrupted after Host rejoin

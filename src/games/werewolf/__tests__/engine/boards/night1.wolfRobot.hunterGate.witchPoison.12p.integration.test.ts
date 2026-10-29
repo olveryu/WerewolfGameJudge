@@ -26,7 +26,10 @@
  * Architecture: intents -> handlers -> resolver -> GameState
  */
 
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  REASON_DEADLINE_NOT_REACHED,
+  type RoleId,
+} from '@game-judge/game-engine/games/werewolf/public';
 
 import type { GameContext } from './gameContext';
 import { cleanupGame, createGame } from './gameFactory';
@@ -117,11 +120,11 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       // Assertion 4: current step is still wolfRobotLearn (blocked by gate)
       expect(stateAfterLearn.nightStep).toEqual({ kind: 'inStep', stepId: 'wolfRobotLearn' });
 
-      // Step 3: a production progression request commits but cannot bypass either ACK gate
-      const blockedProgressResult = ctx.dispatch({ type: 'werewolf.progress.request' });
-      expect(blockedProgressResult).toMatchObject({
-        kind: 'committed',
-        outcome: { kind: 'success' },
+      // Step 3: a client expiry cannot bypass the gate — no deadline is armed on this step
+      const blockedExpireResult = ctx.dispatch({ type: 'werewolf.phase.expire' });
+      expect(blockedExpireResult).toMatchObject({
+        kind: 'rejected',
+        reason: REASON_DEADLINE_NOT_REACHED,
       });
       expect(ctx.getGameState().nightStep).toEqual({ kind: 'inStep', stepId: 'wolfRobotLearn' });
 

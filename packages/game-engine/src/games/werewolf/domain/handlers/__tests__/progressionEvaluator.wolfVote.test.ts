@@ -39,6 +39,7 @@ function createWolfKillState(overrides: Partial<GameState> = {}): GameState {
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     audioBatchId: 0,
+    gameSequence: 0,
     pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],

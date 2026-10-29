@@ -42,11 +42,15 @@
  * of a synthesized user id: bots have no user id, the seat is the identity.
  * The field is transient UI feedback, so v12–v14 payloads migrate by
  * dropping it.
+ * v16 adds gameSequence (0 for the first deal, +1 per RESTART_GAME): the
+ * game identity that pins scheduled `werewolf.settle.due` effects, so a
+ * delivery armed by a previous game can never settle the current one.
+ * v12–v15 payloads migrate with gameSequence = 0.
  */
 
 import { WEREWOLF_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 
-export const WEREWOLF_STATE_VERSION = 15;
+export const WEREWOLF_STATE_VERSION = 16;
 
 export const WEREWOLF_STATE_IDENTITY = {
   gameType: WEREWOLF_GAME_TYPE,

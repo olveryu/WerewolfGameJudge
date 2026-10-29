@@ -162,6 +162,7 @@ export function normalizeState(raw: GameState): GameState {
     nightStep: requireField(raw.nightStep, 'nightStep'),
     isAudioPlaying: requireField(raw.isAudioPlaying, 'isAudioPlaying'),
     audioBatchId: requireField(raw.audioBatchId, 'audioBatchId'),
+    gameSequence: requireField(raw.gameSequence, 'gameSequence'),
 
     // Execution state (boundary normalize: undefined → [], so internal code doesn't need ?? [])
     actions: raw.actions ?? [],

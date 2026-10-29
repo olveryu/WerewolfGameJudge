@@ -102,6 +102,12 @@ function parseGameStatus(value: unknown, path: string): GameStatus {
   }
 }
 
+function parseGameSequence(value: unknown, path: string): number {
+  const parsed = parseInteger(value, path);
+  if (parsed < 0) return fail(path, 'a non-negative integer');
+  return parsed;
+}
+
 function parseTeam(value: unknown, path: string): Team {
   switch (value) {
     case Team.Wolf:
@@ -955,6 +961,7 @@ export function parseWerewolfState(value: unknown): GameState {
     nightStep: parseNightStep(raw.nightStep, 'GameState.nightStep'),
     isAudioPlaying: parseBoolean(raw.isAudioPlaying, 'GameState.isAudioPlaying'),
     audioBatchId: parseAudioBatchId(raw.audioBatchId, 'GameState.audioBatchId'),
+    gameSequence: parseGameSequence(raw.gameSequence, 'GameState.gameSequence'),
     roleRevealRandomNonce: parseOptional(
       raw.roleRevealRandomNonce,
       'GameState.roleRevealRandomNonce',
@@ -1130,12 +1137,14 @@ export function parseWerewolfState(value: unknown): GameState {
 
 /**
  * Entry point for persisted state.
- * v12–v14 payloads migrate to v15: v13 adds nothing the parser cannot
+ * v12–v15 payloads migrate to v16: v13 adds nothing the parser cannot
  * default (resolvedWolfKillTarget / Verdict absent = unresolved); v14
  * adds audioBatchId, which starts at 0 for a room whose queue was
  * written before batches had ids; v15 re-addresses `actionRejected` to
  * a seat, and the old user-id form is transient feedback that is simply
- * dropped. Payloads at v11 or older are still rejected, not migrated.
+ * dropped; v16 adds gameSequence, which starts at 0 for a room written
+ * before games were numbered. Payloads at v11 or older are still
+ * rejected, not migrated.
  * @throws When the stored state carries any other version, or when the
  * current-version payload is malformed.
  */
@@ -1143,11 +1152,19 @@ export function migratePersistedWerewolfState(value: unknown): GameState {
   const raw = parseObject(value, 'GameState');
   if (raw.stateVersion === 12 || raw.stateVersion === 13) {
     const { actionRejected: _dropped, ...rest } = raw;
-    return parseWerewolfState({ ...rest, stateVersion: WEREWOLF_STATE_VERSION, audioBatchId: 0 });
+    return parseWerewolfState({
+      ...rest,
+      stateVersion: WEREWOLF_STATE_VERSION,
+      audioBatchId: 0,
+      gameSequence: 0,
+    });
   }
   if (raw.stateVersion === 14) {
     const { actionRejected: _dropped, ...rest } = raw;
-    return parseWerewolfState({ ...rest, stateVersion: WEREWOLF_STATE_VERSION });
+    return parseWerewolfState({ ...rest, stateVersion: WEREWOLF_STATE_VERSION, gameSequence: 0 });
+  }
+  if (raw.stateVersion === 15) {
+    return parseWerewolfState({ ...raw, stateVersion: WEREWOLF_STATE_VERSION, gameSequence: 0 });
   }
   if (raw.stateVersion !== WEREWOLF_STATE_VERSION) {
     throw new Error(`Unsupported werewolf state version: ${String(raw.stateVersion)}`);

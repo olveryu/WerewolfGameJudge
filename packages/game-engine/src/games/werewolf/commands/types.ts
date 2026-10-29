@@ -74,7 +74,12 @@ type WerewolfGameCommand =
   | { readonly type: 'werewolf.sheriff.advance' }
   | { readonly type: 'werewolf.sheriff.endBySelfDestruct' }
   | { readonly type: 'werewolf.audio.ack'; readonly audioBatchId: number }
-  | { readonly type: 'werewolf.progress.request' }
+  /**
+   * Client acceleration of an armed deadline that has been reached
+   * (any foreground client); the scheduled `werewolf.settle.due` is
+   * the correctness path.
+   */
+  | { readonly type: 'werewolf.phase.expire' }
   | { readonly type: 'werewolf.reveal.ack' }
   | { readonly type: 'werewolf.wolfRobot.ackHunterStatus' }
   | { readonly type: 'werewolf.groupConfirm.ack' }
@@ -87,6 +92,18 @@ export interface WerewolfApplyRosterLevelsCommand {
   readonly levels: Readonly<Record<string, number>>;
 }
 
-export type WerewolfInternalCommand = WerewolfApplyRosterLevelsCommand;
+/**
+ * Worker-originated settle command: the room runtime delivers the armed
+ * `werewolf.settle.due` effect at its deadline and dispatches this on
+ * the system channel; it runs the same expiry guard and inline
+ * progression as the public expire command.
+ */
+export interface WerewolfSettleExpiredCommand {
+  readonly type: 'werewolf.phase.settleExpired';
+}
+
+export type WerewolfInternalCommand =
+  | WerewolfApplyRosterLevelsCommand
+  | WerewolfSettleExpiredCommand;
 
 export type WerewolfCommand = WerewolfPublicCommand | WerewolfInternalCommand;

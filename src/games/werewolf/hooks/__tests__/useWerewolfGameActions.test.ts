@@ -111,7 +111,7 @@ function createMockClient(overrides: Partial<MockClient> = {}): MockClient {
     advanceSheriffElection: jest
       .fn<Promise<MutationResult>, []>()
       .mockResolvedValue(successfulCommand()),
-    postProgression: jest.fn<Promise<MutationResult>, []>().mockResolvedValue(successfulCommand()),
+    expirePhase: jest.fn<Promise<MutationResult>, []>().mockResolvedValue(successfulCommand()),
     ...overrides,
   } as MockClient;
 }
@@ -298,47 +298,47 @@ describe('useWerewolfGameActions - game control', () => {
     expect(deps.client.shareNightReview).toHaveBeenCalledWith([1, 3, 5]);
   });
 
-  it('postProgression should return true on success for host', async () => {
+  it('expirePhase should return true on success', async () => {
     const deps = createDeps();
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
     let ok: boolean | undefined;
     await act(async () => {
-      ok = await result.current.postProgression();
+      ok = await result.current.expirePhase();
     });
 
-    expect(deps.client.postProgression).toHaveBeenCalled();
+    expect(deps.client.expirePhase).toHaveBeenCalled();
     expect(ok).toBe(true);
   });
 
-  it('postProgression should return false on failure for host', async () => {
+  it('expirePhase should return false on failure', async () => {
     const deps = createDeps({
       client: createMockClient({
-        postProgression: jest.fn().mockResolvedValue(undelivered('network')),
+        expirePhase: jest.fn().mockResolvedValue(undelivered('network')),
       }),
     });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
     let ok: boolean | undefined;
     await act(async () => {
-      ok = await result.current.postProgression();
+      ok = await result.current.expirePhase();
     });
 
-    expect(deps.client.postProgression).toHaveBeenCalled();
+    expect(deps.client.expirePhase).toHaveBeenCalled();
     expect(ok).toBe(false);
   });
 
-  it('postProgression should return false for non-host', async () => {
+  it('expirePhase is sent by any client, not only the host', async () => {
     const deps = createDeps({ isHost: false });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
     let ok: boolean | undefined;
     await act(async () => {
-      ok = await result.current.postProgression();
+      ok = await result.current.expirePhase();
     });
 
-    expect(deps.client.postProgression).not.toHaveBeenCalled();
-    expect(ok).toBe(false);
+    expect(deps.client.expirePhase).toHaveBeenCalled();
+    expect(ok).toBe(true);
   });
 });
 

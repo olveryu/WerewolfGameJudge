@@ -300,6 +300,13 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   isAudioPlaying: boolean;
   /** Id of the most recently queued audio batch (shared slice in `platform/audio`); 0 before the first. */
   audioBatchId: number;
+  /**
+   * Ordinal of the current game in this room: 0 for the first deal,
+   * +1 on every RESTART_GAME. Pins scheduled settle.due effects to
+   * the game that armed them (a late delivery for a previous game can
+   * never settle the current one).
+   */
+  gameSequence: number;
 
   /**
    * Random seed for role reveal animation (used for random parsing + speech order RNG)

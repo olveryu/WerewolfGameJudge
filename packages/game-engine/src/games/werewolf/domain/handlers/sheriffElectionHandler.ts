@@ -15,6 +15,7 @@
 import { guardAudioPlayback } from '../../../../platform/audio';
 import { createSeededRng, randomBool, randomIntInclusive } from '../../../../platform/random';
 import { decideSettleCountdownArm } from '../../../../platform/room/settleCountdown';
+import { werewolfSettleDueEffect } from '../../effects/settleDue';
 import type {
   AdvanceSheriffElectionIntent,
   CancelSheriffRegistrationIntent,
@@ -425,16 +426,23 @@ export function handleCastSheriffVote(
     armedDeadlineAt: tempElection.deadline ?? null,
     nowMs: execution.nowMs,
   });
-  const actions: StateAction[] = [action];
   if (timerAction.type === 'set') {
-    actions.push({
-      type: 'SET_SHERIFF_ELECTION_DEADLINE',
-      payload: { deadline: timerAction.deadlineAt },
-    });
-  } else if (timerAction.type === 'clear') {
-    actions.push({ type: 'CLEAR_SHERIFF_ELECTION_DEADLINE' });
+    return handlerSuccess(
+      [
+        action,
+        { type: 'SET_SHERIFF_ELECTION_DEADLINE', payload: { deadline: timerAction.deadlineAt } },
+      ],
+      {
+        effects: [
+          werewolfSettleDueEffect(context.state, tempElection.phase, timerAction.deadlineAt),
+        ],
+      },
+    );
   }
-  return handlerSuccess(actions);
+  if (timerAction.type === 'clear') {
+    return handlerSuccess([action, { type: 'CLEAR_SHERIFF_ELECTION_DEADLINE' }]);
+  }
+  return handlerSuccess([action]);
 }
 
 /** @pre `state.status === GameStatus.Day` and actor is Host. */

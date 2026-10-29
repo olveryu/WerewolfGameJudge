@@ -33,6 +33,7 @@ function createMinimalState(overrides?: Partial<LocalGameState>): LocalGameState
     nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
     isAudioPlaying: false,
     audioBatchId: 0,
+    gameSequence: 0,
     pendingAudioEffects: [],
     lastNightDeaths: [],
     currentNightResults: {},

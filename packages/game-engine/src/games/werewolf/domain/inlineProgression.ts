@@ -18,6 +18,8 @@
 
 import type { AudioEffect } from '../../../platform/audio';
 import { createSeededRng, randomIntInclusive } from '../../../platform/random';
+import { werewolfSettleDueEffect } from '../effects/settleDue';
+import type { WerewolfEffect } from '../effects/types';
 import { createAudioQueueAction, isAudioQueueAction } from './audioQueue';
 import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
 import { closeSheriffVotingRound } from './handlers/sheriffElectionHandler';
@@ -40,9 +42,11 @@ const MAX_PROGRESSION_LOOPS = 20;
 /**
  * Inline progression result
  */
-interface InlineProgressionResult {
+export interface InlineProgressionResult {
   /** All StateActions accumulated during progression (excluding the trigger action itself) */
   actions: StateAction[];
+  /** Effects armed during progression (the settle.due of an auto-skip deadline this pass wrote). */
+  effects: WerewolfEffect[];
   /** Final state after applying all actions (may differ from input) */
   finalState: GameState;
   /** Number of steps advanced (0 = no progression); each ADVANCE_NIGHT or END_NIGHT counts as 1 */
@@ -196,16 +200,18 @@ export function runInlineProgression(
   if (state.status === GameStatus.Day) {
     const expiryAction = evaluateSheriffElectionExpiry(state, execution.nowMs);
     if (expiryAction === null) {
-      return { actions: [], finalState: state, stepsAdvanced: 0 };
+      return { actions: [], effects: [], finalState: state, stepsAdvanced: 0 };
     }
     return {
       actions: [expiryAction],
+      effects: [],
       finalState: gameReducer(state, expiryAction),
       stepsAdvanced: 1,
     };
   }
 
   const allActions: StateAction[] = [];
+  const allEffects: WerewolfEffect[] = [];
   const allAudioEffects: AudioEffect[] = [];
   let currentState = state;
   let stepsAdvanced = 0;
@@ -291,6 +297,7 @@ export function runInlineProgression(
       type: 'SET_STEP_DEADLINE',
       payload: { deadline },
     };
+    allEffects.push(werewolfSettleDueEffect(currentState, currentState.nightStep.stepId, deadline));
     currentState = gameReducer(currentState, setDeadlineAction);
     allActions.push(setDeadlineAction);
   }
@@ -304,6 +311,7 @@ export function runInlineProgression(
 
   return {
     actions: allActions,
+    effects: allEffects,
     finalState: currentState,
     stepsAdvanced,
   };

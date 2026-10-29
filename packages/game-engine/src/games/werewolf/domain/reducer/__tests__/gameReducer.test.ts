@@ -52,6 +52,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     nightStep: null,
     isAudioPlaying: false,
     audioBatchId: 0,
+    gameSequence: 0,
     pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],
@@ -802,6 +803,7 @@ describe('gameReducer', () => {
         status: GameStatus.Ongoing,
         isAudioPlaying: false,
         audioBatchId: 0,
+        gameSequence: 0,
       });
       const action: SetPendingAudioEffectsAction = {
         type: 'SET_PENDING_AUDIO_EFFECTS',
@@ -820,6 +822,7 @@ describe('gameReducer', () => {
         status: GameStatus.Ongoing,
         isAudioPlaying: true,
         audioBatchId: 3,
+        gameSequence: 0,
         pendingAudioEffects: [{ audioKey: 'wolfKill' }],
       });
       const action: SetPendingAudioEffectsAction = {
@@ -858,6 +861,7 @@ describe('gameReducer', () => {
         status: GameStatus.Ongoing,
         isAudioPlaying: true,
         audioBatchId: 2,
+        gameSequence: 0,
         pendingAudioEffects: [{ audioKey: 'wolfKill' }],
       });
 

@@ -52,6 +52,7 @@ function createLocalGameState(overrides: Partial<GameState> = {}): LocalGameStat
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     audioBatchId: 0,
+    gameSequence: 0,
     pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],

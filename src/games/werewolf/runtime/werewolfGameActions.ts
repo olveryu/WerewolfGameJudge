@@ -223,13 +223,9 @@ export function postAudioAck(
   );
 }
 
-export function postProgression(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
-  return dispatchWerewolfCommand(
-    ctx,
-    { type: 'werewolf.progress.request' },
-    null,
-    'postProgression',
-  );
+/** Accelerate an armed deadline that has been reached; the server's scheduled settle is authoritative. */
+export function expirePhase(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
+  return dispatchWerewolfCommand(ctx, { type: 'werewolf.phase.expire' }, null, 'expirePhase');
 }
 
 export function markAllBotsViewed(

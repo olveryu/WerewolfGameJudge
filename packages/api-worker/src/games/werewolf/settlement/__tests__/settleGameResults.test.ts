@@ -384,7 +384,9 @@ describe('Werewolf game-ended effect handler', () => {
     expect(new Set(dispatchCalls.map((call) => call.commandId)).size).toBe(1);
     const firstDispatch = dispatchCalls[0];
     if (firstDispatch === undefined) throw new Error('Missing internal dispatch');
-    expect(firstDispatch.command.type).toBe('werewolf.growth.applyRosterLevels');
+    if (firstDispatch.command.type !== 'werewolf.growth.applyRosterLevels') {
+      throw new Error(`Unexpected internal command ${firstDispatch.command.type}`);
+    }
     expect(typeof firstDispatch.command.levels['user-0']).toBe('number');
     for (const call of dispatchCalls) {
       expect(call.command).toEqual(firstDispatch.command);

@@ -113,7 +113,7 @@ function expectWerewolfClientInterface(source: string): void {
   // 房主方法：签名里根本没有 controlledSeat，结构上不可能挂接管座位。
   expect(source).toMatch(/advanceSheriffElection\(\)/);
   expect(source).toMatch(/endSheriffElectionBySelfDestruct\(\)/);
-  expect(source).toMatch(/postProgression\(\)/);
+  expect(source).toMatch(/expirePhase\(\)/);
 }
 
 function expectWerewolfActionsPlumbing(source: string): void {

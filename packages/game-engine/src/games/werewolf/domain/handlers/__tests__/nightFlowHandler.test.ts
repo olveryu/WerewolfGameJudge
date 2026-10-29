@@ -83,6 +83,7 @@ function createOngoingState(overrides?: Partial<GameState>): GameState {
     nightStep: { kind: 'inStep', stepId: NIGHT_STEPS[0]!.id },
     isAudioPlaying: false,
     audioBatchId: 0,
+    gameSequence: 0,
     pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],
@@ -384,6 +385,7 @@ describe('nightFlowHandler', () => {
           status: GameStatus.Ongoing,
           isAudioPlaying: false,
           audioBatchId: 0,
+          gameSequence: 0,
           templateRoles: ['wolf', 'villager'],
           players: {
             0: {

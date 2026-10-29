@@ -18,49 +18,43 @@
  *   guard yet (the weld is bidirectional, like the capabilities
  *   contract), so an unregistered early adoption fails here.
  * - 'outOfDomain': the game has no phase-level deadline domain.
- *   werewolf: its deadline is a night-step deadline inside the
- *   nightStep discriminated union, dispatched inline by
- *   inlineProgression and coupled to audio acknowledgement — a
- *   different domain, registered here as `nightStepInline` and
- *   never adopted into this chassis. fibking and undercover declare
- *   `stageDeadline: false` in the capabilities table (their phases
- *   advance on submissions, not clocks); the rows here mirror that
- *   declaration.
+ *   fibking and undercover declare `stageDeadline: false` in the
+ *   capabilities table (their phases advance on submissions, not
+ *   clocks); the rows here mirror that declaration.
+ *
+ * Werewolf (switched by the game-client convergence, see
+ * `docs/game-client-convergence-design.md` §6.2) is dual channel like
+ * avalon: `werewolf.phase.expire` on the uncontrolled-user channel,
+ * `werewolf.phase.settleExpired` on the system channel. Its deadline
+ * carriers are the night step's `stepDeadline` and a sheriff voting
+ * round's `deadline`; the pin is (game sequence, phase, deadline)
+ * where phase is the step id or the voting round — werewolf is
+ * night-1 only, so there is no round field. Dispatch is the ordinary
+ * inline progression pass, which keeps the audio-ack gate in front
+ * of every night transition.
  *
  * The scenario-suite weld follows the capabilities contract's
  * identityViewing weld: a switched game has its protocol contract
  * file; a game without one must not be marked switched.
  *
- * Client trigger registration (verified 2026-10-20): the four
- * games with a public expire command (avalon, drawguess, pictionary,
- * storyrelay) submit it automatically — the shared
- * `useStageDeadline` hook fires it when the countdown reaches zero,
- * from any foreground client, behind snapshot guards (live
- * connection, no pending command, unchanged phase revision). It is
- * never a host button. For avalon the command is only an
- * acceleration path; correctness rides on the scheduled settle.due
- * delivery. demo has no client expire surface at all.
- *
- * Werewolf's two client countdown hooks are not two
- * implementations of this domain (verified 2026-10-20):
- * `useStageDeadline` is the any-foreground-client expiry notifier
- * above, while `useStepDeadlineCountdown` is a host-only night-step
- * progression driver — only the host submits progression, it
- * retries every tick until the step lands, and it is coupled to
- * the engine's audio acknowledgement. Different duties, kept
- * separate on purpose (also registered in the useStageDeadline
- * header); this registry records the distinction and changes
- * neither hook.
+ * Client trigger registration: the games with a public expire
+ * command (avalon, drawguess, pictionary, storyrelay, werewolf)
+ * submit it automatically — the shared `useStageDeadline` hook
+ * fires it when the countdown reaches zero, from any foreground
+ * client, behind snapshot guards (live connection, no pending
+ * command, unchanged phase revision). It is never a host button.
+ * For avalon and werewolf the command is only an acceleration
+ * path; correctness rides on the scheduled settle.due delivery.
+ * demo has no client expire surface at all.
  *
  * Cross-reference to the E-3 registry
  * (`platform/room/__tests__/settleCountdown.contract.test.ts`):
- * the `deadlineAt` this table's avalon row pins through its
+ * the `deadlineAt` the avalon and werewolf rows pin through their
  * settlePin is produced by the E-3 skeleton arm
  * (`decideSettleCountdownArm`), not by an assembly dimension
- * here. The werewolf row's out-of-domain ruling is scoped to
- * the phase-level expiry gate only: werewolf's wolf-vote arm is
- * registered in the E-3 registry, and this row must not be
- * flipped to 'switched' on that account.
+ * here (werewolf's vacant bottom-card auto-skip arm is the one
+ * pinned deadline that the E-3 registry lists as a non-skeleton
+ * writer).
  */
 
 import fs from 'node:fs';
@@ -93,7 +87,11 @@ type PhaseDeadlineRevisionPolicy =
   | 'entryReject'
   | 'guardDualReject';
 
-type PhaseDeadlineSettlePin = 'none' | 'sequence+deadline' | 'sequence+phase+round+deadline';
+type PhaseDeadlineSettlePin =
+  | 'none'
+  | 'sequence+deadline'
+  | 'sequence+phase+deadline'
+  | 'sequence+phase+round+deadline';
 
 type PhaseDeadlineLateSubmission = 'sharedRelayTask' | 'gameGuard' | 'noneByDesign' | 'noSurface';
 
@@ -112,12 +110,20 @@ type PhaseDeadlineRow =
   | {
       readonly adoption: 'outOfDomain';
       /** Why this game has no phase-deadline row: see the file header. */
-      readonly domain: 'nightStepInline' | 'noStageDeadline';
+      readonly domain: 'noStageDeadline';
     };
 
 /** Registered phase-deadline assembly per game. */
 const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineRow>> = {
-  werewolf: { adoption: 'outOfDomain', domain: 'nightStepInline' },
+  werewolf: {
+    adoption: 'switched',
+    variant: {
+      actorChannel: 'dualChannel',
+      revisionPolicy: 'none',
+      settlePin: 'sequence+phase+deadline',
+      lateSubmission: 'noneByDesign',
+    },
+  },
   fibking: { adoption: 'outOfDomain', domain: 'noStageDeadline' },
   pictionary: {
     adoption: 'switched',

@@ -43,6 +43,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     nightStep: { kind: 'inStep', stepId: 'witchAction' },
     isAudioPlaying: false,
     audioBatchId: 0,
+    gameSequence: 0,
     pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],

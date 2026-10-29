@@ -104,6 +104,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     isAudioPlaying: false,
     // Batch ids stay monotonic across restarts so a late ack for the previous game can never clear.
     audioBatchId: state.audioBatchId,
+    gameSequence: state.gameSequence + 1,
     actions: [],
     currentNightResults: undefined,
     resolvedWolfKillTarget: undefined,

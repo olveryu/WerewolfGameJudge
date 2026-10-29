@@ -485,7 +485,7 @@ export function handleBoardNominate(
           type: 'UPVOTE_BOARD_NOMINATION',
           payload: { targetUserId: existingUid, voterUid: intent.payload.userId },
         };
-        return handlerSuccess([action], 'DEDUPLICATED');
+        return handlerSuccess([action], { reason: 'DEDUPLICATED' });
       }
     }
   }

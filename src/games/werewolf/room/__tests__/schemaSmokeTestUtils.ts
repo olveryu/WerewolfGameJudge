@@ -83,6 +83,7 @@ export function createBaseWerewolfRoomMock({
     nightStep: { kind: 'inStep', stepId: schemaId } as const,
     isAudioPlaying: false,
     audioBatchId: 0,
+    gameSequence: 0,
     pendingAudioEffects: [],
     lastNightDeaths: [] as number[],
     nightmareBlockedSeat: undefined as number | undefined,

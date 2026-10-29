@@ -127,6 +127,7 @@ function makeGameState(
     nightStep: null,
     isAudioPlaying: false,
     audioBatchId: 0,
+    gameSequence: 0,
     pendingAudioEffects: [],
     actions: toProtocolActions(overrides.actions ?? new Map(), players),
     pendingRevealAcks: [],
