@@ -140,7 +140,10 @@ export function createLinkHarness(options?: {
   );
   tokens.setSession({ userId: 'host-user', initialUser: null });
   const outboxStorage =
-    options?.outboxStorage ?? createOutboxStorage(createMemoryTokenStorage(), Date.now);
+    options?.outboxStorage ??
+    createOutboxStorage(createMemoryTokenStorage(), Date.now, (error) => {
+      throw error;
+    });
   const protocolErrors: Error[] = [];
   const inboxWakes: InboxWakeReason[] = [];
   let commandCounter = 0;

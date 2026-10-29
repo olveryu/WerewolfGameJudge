@@ -211,6 +211,7 @@ const REASON_CODE_MAP: Record<string, string> = {
   NETWORK_ERROR: '网络异常，请检查网络后重试',
   SERVER_ERROR: '服务暂时不可用，请稍后重试',
   TIMEOUT: '请求超时，请稍后重试',
+  RATE_LIMITED: '操作过于频繁，请稍后重试',
   NOT_CONNECTED: '未连接到房间',
   LINK_CANCELLED: '房间连接已结束，请重新进入',
   // Night flow

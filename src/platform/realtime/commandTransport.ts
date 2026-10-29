@@ -88,10 +88,12 @@ function classify<TState extends BaseGameState<string>>(
       if (error.status === 404 && error.reason === REASON_NO_STATE) {
         return { kind: 'unavailable', commandId };
       }
+      // Throttled: the server never evaluated the command; the intent is kept and replayed.
+      if (error.status === 429) return { kind: 'undelivered', commandId, cause: 'throttled' };
       if (error.status !== null && error.status >= 500) {
         return { kind: 'undelivered', commandId, cause: 'server' };
       }
-      // 400/401/403/409/422/429: the server answered; a client-side bug or auth state, not a decision.
+      // 400/401/403/409/422: the server answered; a client-side bug or auth state, not a decision.
       throw error;
     case 'contract':
       throw error;

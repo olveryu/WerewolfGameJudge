@@ -22,6 +22,7 @@ const DISPATCH_FAILURE_REASON = {
   network: 'NETWORK_ERROR',
   timeout: 'TIMEOUT',
   server: 'SERVER_ERROR',
+  throttled: 'RATE_LIMITED',
   cancelled: 'LINK_CANCELLED',
 } as const;
 
