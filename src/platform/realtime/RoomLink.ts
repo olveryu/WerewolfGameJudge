@@ -16,13 +16,14 @@ import type { ServerFrame } from '@game-judge/game-engine/platform/realtime/prot
 
 import type { PlatformEnvironment } from '@/platform/env/PlatformEnvironment';
 import type { ApiClient } from '@/platform/http/ApiClient';
+import { ApiError } from '@/platform/http/ApiError';
 
 import { CommandOutbox } from './CommandOutbox';
 import { createCommandTransport } from './commandTransport';
 import type { LinkContext } from './linkReducer';
 import { LinkRuntime } from './LinkRuntime';
 import type { OutboxStorage } from './outboxStorage';
-import { type RealtimeSocket, SocketChannel } from './SocketChannel';
+import { type AccessTokenOutcome, type RealtimeSocket, SocketChannel } from './SocketChannel';
 import type {
   DispatchOptions,
   DispatchOutcome,
@@ -76,6 +77,21 @@ export interface RoomLinkOptions<TState extends BaseGameState<string>> {
 
 const EMPTY_PRESENCE: ReadonlySet<string> = Object.freeze(new Set<string>());
 const IDLE_STATUS: LinkStatus = Object.freeze({ kind: 'idle' as const });
+
+/**
+ * Token lookup for the upgrade. A replaced session (`aborted`) means this link's user is gone:
+ * terminal. Any other `ApiError` is the auth endpoint being unreachable or broken, which ApiClient
+ * already logged: one failed attempt. Anything else is a programming error and propagates.
+ */
+async function readAccessToken(api: ApiClient): Promise<AccessTokenOutcome> {
+  try {
+    const token = await api.ensureFreshAccessToken();
+    return token === null ? { kind: 'none' } : { kind: 'token', token };
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+    return error.kind === 'aborted' ? { kind: 'none' } : { kind: 'unavailable' };
+  }
+}
 
 /** Flat fields the link mutates; `buildSnapshot` derives the phase-discriminated snapshot. */
 interface LinkFields<TState extends BaseGameState<string>> {
@@ -220,7 +236,7 @@ export class RoomLinkImpl<
     const channel = new SocketChannel<TState>({
       baseUrl: options.socketBaseUrl,
       codec: options.codec,
-      accessToken: () => options.api.ensureFreshAccessToken(),
+      accessToken: () => readAccessToken(options.api),
       createSocket: options.createSocket,
       events: {
         onOpen: (generation) => forEpoch()?.runtime.handleSocketOpen(generation),

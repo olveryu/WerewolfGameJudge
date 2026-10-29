@@ -1,13 +1,17 @@
 import { REALTIME_CLOSE_CODE } from '@game-judge/game-engine/platform/realtime/closeCodes';
 import type { ServerFrame } from '@game-judge/game-engine/platform/realtime/protocol';
 
-import { SocketChannel, type SocketChannelEvents } from '@/platform/realtime/SocketChannel';
+import {
+  type AccessTokenOutcome,
+  SocketChannel,
+  type SocketChannelEvents,
+} from '@/platform/realtime/SocketChannel';
 import { createSocketFactory } from '@/test-utils/fakeWebSocket';
 import { snapshotAt, TEST_CODEC, type TestState } from '@/test-utils/roomLink';
 
 const ROOM = { roomCode: '1234', roomId: 'room-id-1234' };
 
-function createChannel(token: string | null = 'token-1') {
+function createChannel(outcome: AccessTokenOutcome = { kind: 'token', token: 'token-1' }) {
   const sockets = createSocketFactory();
   const events: jest.Mocked<SocketChannelEvents<TestState>> = {
     onOpen: jest.fn(),
@@ -19,7 +23,7 @@ function createChannel(token: string | null = 'token-1') {
   const channel = new SocketChannel<TestState>({
     baseUrl: 'wss://api.test',
     codec: TEST_CODEC,
-    accessToken: async () => token,
+    accessToken: async () => outcome,
     createSocket: sockets.create,
     events,
   });
@@ -33,7 +37,7 @@ describe('SocketChannel', () => {
         new SocketChannel<TestState>({
           baseUrl: 'https://api.test',
           codec: TEST_CODEC,
-          accessToken: async () => 't',
+          accessToken: async () => ({ kind: 'token', token: 't' }),
           createSocket: () => {
             throw new Error('unreachable');
           },
@@ -49,10 +53,17 @@ describe('SocketChannel', () => {
   });
 
   it('reports a missing token as an AUTH_REJECTED close without creating a socket', async () => {
-    const { channel, sockets, events } = createChannel(null);
+    const { channel, sockets, events } = createChannel({ kind: 'none' });
     await channel.open(1, ROOM);
     expect(sockets.sockets).toHaveLength(0);
     expect(events.onClose).toHaveBeenCalledWith(1, REALTIME_CLOSE_CODE.AUTH_REJECTED, 'no_token');
+  });
+
+  it('reports an unreachable auth endpoint as a retryable 1006 close without creating a socket', async () => {
+    const { channel, sockets, events } = createChannel({ kind: 'unavailable' });
+    await channel.open(1, ROOM);
+    expect(sockets.sockets).toHaveLength(0);
+    expect(events.onClose).toHaveBeenCalledWith(1, 1006, 'token_unavailable');
   });
 
   it('delivers pong, parsed frames and close with the socket generation', async () => {
