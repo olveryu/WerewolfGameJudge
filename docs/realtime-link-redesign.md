@@ -341,8 +341,10 @@ side effect：`OPEN_SOCKET(generation) | CLOSE_SOCKET(generation, code) | SEND_S
 | live                                  | PONG_DEADLINE / SOCKET_CLOSED(可重试)      | waiting(backoff)                                 | CLOSE_SOCKET、ARM(retry)                           |
 | live                                  | ENV(visible=false)                         | live                                             | DISARM(ping, pong)                                 |
 | live                                  | ENV(visible=true)                          | syncing 或 connecting                            | 见 4.3                                             |
+| live / syncing / connecting           | ENV(online=false)                          | waiting(offline)                                 | CLOSE_SOCKET(1000)、DISARM(all)；计一次失败尝试    |
 | live / syncing / connecting / waiting | SOCKET_CLOSED(终态码)                      | closed(reason)                                   | DISARM(all)                                        |
 | waiting                               | TIMER(retry) / ENV / RETRY_NOW             | connecting 或 waiting                            | `canAttempt = online && visible` 决定              |
+| 非 waiting                            | RETRY_NOW                                  | 不变                                             | 无（按钮与 retry 计时器的竞态，不是编程错误）      |
 | 任意非 closed                         | CLOSE                                      | closed(released)                                 | CLOSE_SOCKET(1000)、DISARM(all)                    |
 
 - `attempt` 只在 `live` 持续 ≥ 5 秒（`MIN_UPTIME_MS`）后归零；抖动场景不会把退避重置为 0。来源：PartySocket `minUptime: 5000`。

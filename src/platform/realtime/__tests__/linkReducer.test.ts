@@ -227,12 +227,15 @@ describe('linkReducer reconnection', () => {
     expect(syncTimedOut.context.pendingSyncRequestId).toBeNull();
   });
 
-  it('RETRY_NOW resets the attempt counter and opens immediately', () => {
+  it('RETRY_NOW resets the attempt counter and opens immediately; outside waiting it is a no-op', () => {
     const waiting = run(goLive(), [{ type: 'SOCKET_CLOSED', generation: 1, code: 1006 }]).context;
     const { context, effects } = run(waiting, [{ type: 'RETRY_NOW' }]);
     expect(context.status).toEqual({ kind: 'connecting', attempt: 0 });
     expect(effects).toContainEqual({ type: 'OPEN_SOCKET', generation: 2 });
-    expect(() => run(context, [{ type: 'RETRY_NOW' }])).toThrow('[FAIL-FAST]');
+    // The button press that lands after the retry timer already fired.
+    const raced = run(context, [{ type: 'RETRY_NOW' }]);
+    expect(raced.context).toBe(context);
+    expect(raced.effects).toEqual([]);
   });
 });
 
@@ -296,6 +299,37 @@ describe('linkReducer environment gate', () => {
     expect(effects).toEqual([{ type: 'DISARM_TIMER', kind: 'retry' }]);
     const online = run(context, [{ type: 'ENV', online: true, visible: true }]);
     expect(online.context.status).toMatchObject({ kind: 'waiting', cause: 'backoff', attempt: 1 });
+  });
+
+  it('going offline while live drops the socket at once; coming back online reconnects', () => {
+    const live = goLive();
+    const offline = run(live, [{ type: 'ENV', online: false, visible: true }], T0 + MIN_UPTIME_MS);
+    expect(offline.effects).toContainEqual({ type: 'CLOSE_SOCKET', generation: 1, code: 1000 });
+    expect(offline.context.status).toEqual({
+      kind: 'waiting',
+      cause: 'offline',
+      attempt: 1,
+      nextRetryAtMs: null,
+    });
+    // The socket's own close event for the dropped generation changes nothing further.
+    const closed = run(offline.context, [{ type: 'SOCKET_CLOSED', generation: 1, code: 1006 }]);
+    expect(closed.context).toBe(offline.context);
+
+    const online = run(closed.context, [{ type: 'ENV', online: true, visible: true }]);
+    expect(online.context.status).toMatchObject({ kind: 'waiting', cause: 'backoff', attempt: 1 });
+    expect(online.effects).toContainEqual({ type: 'ARM_TIMER', kind: 'retry', atMs: T0 + 500 });
+  });
+
+  it('going offline while connecting or syncing fails the attempt instead of waiting for its timer', () => {
+    const syncing = run(initial(), [
+      { type: 'CONNECT' },
+      { type: 'SOCKET_OPEN', generation: 1 },
+    ]).context;
+    const { context, effects } = run(syncing, [{ type: 'ENV', online: false, visible: true }]);
+    expect(effects).toContainEqual({ type: 'CLOSE_SOCKET', generation: 1, code: 1000 });
+    expect(effects).toContainEqual({ type: 'DISARM_TIMER', kind: 'sync' });
+    expect(context.status).toMatchObject({ kind: 'waiting', cause: 'offline', attempt: 1 });
+    expect(context.pendingSyncRequestId).toBeNull();
   });
 
   it('hiding while live pauses the keepalive; a short hide resyncs on the same socket', () => {

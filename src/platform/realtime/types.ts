@@ -139,8 +139,12 @@ export interface RoomLink<TState extends BaseGameState<string>, TCommand extends
   subscribe(listener: () => void): () => void;
   /** Resolves on the first live snapshot; rejects with RoomLinkClosedError or the abort reason. */
   connect(identity: RoomIdentity<TState['gameType']>, signal: AbortSignal): Promise<void>;
+  /**
+   * Send one command. `command` is deep-frozen on entry because identical payloads share one
+   * commandId while pending: pass a fresh literal, never an object the caller keeps mutating.
+   */
   dispatch(command: TCommand, options: DispatchOptions): Promise<DispatchOutcome<TState>>;
-  /** Reconnect immediately from `waiting`; any other status is a programming error. */
+  /** Reconnect immediately from `waiting`; a no-op in any other status (button/timer race). */
   retryNow(): void;
   /** Release the room: closes the socket, cancels pending work, moves to `closed(released)`. */
   close(): void;

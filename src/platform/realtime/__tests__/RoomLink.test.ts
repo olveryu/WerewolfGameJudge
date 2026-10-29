@@ -157,15 +157,18 @@ describe('RoomLink reconnection', () => {
     }
   });
 
-  it('retryNow() reconnects immediately from waiting and throws otherwise', async () => {
+  it('retryNow() reconnects immediately from waiting and is a no-op otherwise', async () => {
     const harness = createLinkHarness();
     await harness.goLive();
-    expect(() => harness.link.retryNow()).toThrow('[FAIL-FAST]');
+    harness.link.retryNow();
+    expect(harness.link.getSnapshot().status).toEqual({ kind: 'live' });
     harness.sockets.latest().serverClose(1006);
     harness.link.retryNow();
     await flush();
     expect(harness.sockets.sockets).toHaveLength(2);
     expect(harness.link.getSnapshot().status).toEqual({ kind: 'connecting', attempt: 0 });
+    harness.link.close();
+    expect(() => harness.link.retryNow()).not.toThrow();
   });
 
   it('a terminal close ends the link with its reason and does not reconnect', async () => {
