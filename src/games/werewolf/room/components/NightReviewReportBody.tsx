@@ -1,18 +1,19 @@
 /**
  * NightReviewReportBody - The one presentation body for the night review report.
  *
- * 2026 report presentation (identical on every surface): a light-surface
- * "night report" in five sections — conclusion header (kicker, headline,
- * stats strip, one card per death) → key actions (one card per actor; the
- * wolf team shares one team card) → did-not-act strip → sheriff election
- * card (when an election exists) → identity wall → footer line.
+ * 2026 "verdict ticket" presentation (identical on every surface): a white
+ * page in five sections — conclusion header (accent bar, masthead,
+ * headline with the death count as the display numeral, one stamp per
+ * death, stats ledger) → key actions grouped by the actor's faction (one
+ * row per actor, idle actors as dimmed rows in their group; the wolf team
+ * shares one row plus a verdict band) → sheriff election group (when an
+ * election exists) → perforation → identity roster (two columns) → footer.
  *
  * Number discipline: a seat number appears exactly once per mention, on
  * its SeatMedal. Text next to a medal never repeats the number; role names
- * appear as card-head subjects and identity statements (death cards,
- * identity wall), plus payload annotations where the role itself is the
- * information (a learned identity, an immune target's role, a blocked
- * target's role).
+ * appear as row subjects and identity statements (death stamps, roster),
+ * plus payload annotations where the role itself is the information (a
+ * learned identity, an immune target's role, a blocked target's role).
  *
  * Consumed by NightReviewModal (in-room) and NightReviewShareCard (share
  * image); shells own only their frame. No service imports, no business
@@ -26,7 +27,6 @@ import {
   getRoleDisplayName,
   ROLE_SPECS,
 } from '@game-judge/game-engine/games/werewolf/public';
-import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -49,11 +49,12 @@ import {
   type NightReviewWolfVerdict,
 } from '../NightReview.helpers';
 import {
-  formatNightReviewOutcomeHeadline,
   NIGHT_REPORT_ACTIONS_TITLE,
   NIGHT_REPORT_DEATH_CAUSE_SUFFIX,
   NIGHT_REPORT_FOOTER_TEXT,
-  NIGHT_REPORT_IDLE_TITLE,
+  NIGHT_REPORT_HEADLINE_PREFIX,
+  NIGHT_REPORT_HEADLINE_SUFFIX,
+  NIGHT_REPORT_IDLE_TAG,
   NIGHT_REPORT_KICKER,
   NIGHT_REPORT_MEDAL_SIZES,
   NIGHT_REPORT_PALETTE,
@@ -83,7 +84,7 @@ const P = NIGHT_REPORT_PALETTE;
 // Shared primitives
 // ─────────────────────────────────────────────────────────────────────────────
 
-type MedalTone = 'neutral' | 'wolf' | 'god' | 'good' | 'dead' | 'rosterOut';
+type MedalTone = 'neutral' | 'wolf' | 'god' | 'good' | 'dead';
 
 const MEDAL_SLOTS: Record<
   MedalTone,
@@ -94,15 +95,22 @@ const MEDAL_SLOTS: Record<
   god: P.medalGod,
   good: P.medalGood,
   dead: P.medalDead,
-  rosterOut: P.rosterOutMedal,
 };
 type MedalSize = keyof typeof NIGHT_REPORT_MEDAL_SIZES;
 
 const MEDAL_TEXT_SIZES: Record<MedalSize, number> = {
-  large: typography.subtitle,
+  large: typography.title,
   medium: typography.secondary,
   small: typography.caption,
-  roster: typography.body,
+  roster: typography.caption,
+};
+
+/** Filled medal variants: the wolf team's resolved target / a death stamp. */
+type MedalFill = 'hit' | 'stamp';
+
+const MEDAL_FILLS: Record<MedalFill, { readonly bg: string; readonly text: string }> = {
+  hit: { bg: P.hitMedalBg, text: P.hitMedalText },
+  stamp: P.stampMedal,
 };
 
 /** Medal tone for a role: wolf red / god violet / villager green / neutral. */
@@ -124,8 +132,8 @@ interface SeatMedalProps {
   readonly seat: number;
   readonly size: MedalSize;
   readonly tone?: MedalTone;
-  /** Filled emphasis (the wolf team's resolved target). */
-  readonly filled?: boolean;
+  /** Filled emphasis variant. */
+  readonly fill?: MedalFill;
   /** Dimmed (out of the game / withdrawn). */
   readonly dimmed?: boolean;
   /** Glyph instead of a seat number (the wolf team medal). */
@@ -136,8 +144,9 @@ interface SeatMedalProps {
  * The one carrier of a seat number in the report. Every seat mention is a
  * medal; surrounding text never repeats the number.
  */
-function SeatMedal({ seat, size, tone = 'neutral', filled, dimmed, glyph }: SeatMedalProps) {
+function SeatMedal({ seat, size, tone = 'neutral', fill, dimmed, glyph }: SeatMedalProps) {
   const slot = MEDAL_SLOTS[tone];
+  const filled = fill === undefined ? undefined : MEDAL_FILLS[fill];
   const diameter = NIGHT_REPORT_MEDAL_SIZES[size];
   return (
     <View
@@ -146,8 +155,8 @@ function SeatMedal({ seat, size, tone = 'neutral', filled, dimmed, glyph }: Seat
         {
           width: diameter,
           height: diameter,
-          backgroundColor: filled ? P.hitMedalBg : slot.bg,
-          borderColor: filled ? P.hitMedalBg : slot.border,
+          backgroundColor: filled?.bg ?? slot.bg,
+          borderColor: filled?.bg ?? slot.border,
         },
         dimmed ? styles.medalDimmed : null,
       ]}
@@ -157,7 +166,7 @@ function SeatMedal({ seat, size, tone = 'neutral', filled, dimmed, glyph }: Seat
           styles.medalText,
           {
             fontSize: MEDAL_TEXT_SIZES[size],
-            color: filled ? P.hitMedalText : slot.text,
+            color: filled?.text ?? slot.text,
           },
         ]}
       >
@@ -199,11 +208,35 @@ function identityRoleText(entry: NightReviewIdentityEntry): string {
   return entry.isEmptySeat ? '空座' : entry.roleId ? getRoleDisplayName(entry.roleId) : '未分配';
 }
 
+interface GroupRowProps {
+  /** Subject medal (actor seat); absent for setup / warning subjects. */
+  readonly medal?: ReactNode;
+  readonly subject: string;
+  readonly tag?: ReactNode;
+  /** Dimmed row (actor did not act). */
+  readonly dimmed?: boolean;
+  readonly children?: ReactNode;
+}
+
+/** One row of a faction group: subject column · action column · right tag. */
+function GroupRow({ medal, subject, tag, dimmed, children }: GroupRowProps) {
+  return (
+    <View style={[styles.row, dimmed ? styles.rowDimmed : null]}>
+      <View style={styles.rowWho}>
+        {medal}
+        <Text style={styles.rowSubject}>{subject}</Text>
+      </View>
+      {children !== undefined && <View style={styles.rowWhat}>{children}</View>}
+      {tag !== undefined && <View style={styles.rowTag}>{tag}</View>}
+    </View>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Conclusion header: kicker, headline, stats strip, death cards
+// Conclusion header: accent bar, masthead, headline, death stamps, ledger
 // ─────────────────────────────────────────────────────────────────────────────
 
-function DeathCard({
+function DeathStamp({
   seat,
   identity,
   reason,
@@ -221,43 +254,44 @@ function DeathCard({
         ? `狼队 ${note.votes} 票锁定`
         : `${getRoleDisplayName(note.actorRoleId)}下毒`;
   return (
-    <View style={styles.deathCard}>
-      <SeatMedal
-        seat={seat}
-        size="large"
-        tone={
-          identity.roleId !== null && medalToneForRole(identity.roleId) === 'wolf' ? 'wolf' : 'dead'
-        }
-      />
-      <Text style={styles.deathRole}>{identityRoleText(identity)}</Text>
-      <View style={styles.deathWhy}>
-        <Text style={styles.deathCause}>
+    <View style={styles.stamp}>
+      <SeatMedal seat={seat} size="large" fill="stamp" />
+      <View style={styles.stampBody}>
+        <Text style={styles.stampRole}>{identityRoleText(identity)}</Text>
+        <Text style={styles.stampCause}>
           {reason !== null
             ? `${DEATH_REASON_LABELS[reason]}${NIGHT_REPORT_DEATH_CAUSE_SUFFIX}`
-            : '出局'}
+            : NIGHT_REPORT_DEATH_CAUSE_SUFFIX}
         </Text>
-        {byline !== null && <Text style={styles.deathByline}>{byline}</Text>}
+        {byline !== null && <Text style={styles.stampByline}>{byline}</Text>}
       </View>
     </View>
   );
 }
 
-function StatsStrip({ stats }: { readonly stats: NightReportStats }) {
-  const chips: readonly { readonly label: string; readonly count: number; readonly dot: string }[] =
-    [
-      { label: NIGHT_REPORT_STAT_LABELS.wolfKill, count: stats.wolfKills, dot: P.danger },
-      { label: NIGHT_REPORT_STAT_LABELS.poison, count: stats.poisonKills, dot: P.violet },
-      { label: NIGHT_REPORT_STAT_LABELS.save, count: stats.saves, dot: P.medalGood.text },
-      { label: NIGHT_REPORT_STAT_LABELS.check, count: stats.checks, dot: P.textSecondary },
-    ];
+/**
+ * Four-column stats ledger. Each cell is one Text (numeral + line break +
+ * label) so a zero count never surfaces as a bare 「0」 text node.
+ */
+function StatsLedger({ stats }: { readonly stats: NightReportStats }) {
+  const cells: readonly { readonly label: string; readonly count: number }[] = [
+    { label: NIGHT_REPORT_STAT_LABELS.wolfKill, count: stats.wolfKills },
+    { label: NIGHT_REPORT_STAT_LABELS.poison, count: stats.poisonKills },
+    { label: NIGHT_REPORT_STAT_LABELS.save, count: stats.saves },
+    { label: NIGHT_REPORT_STAT_LABELS.check, count: stats.checks },
+  ];
   return (
-    <View style={styles.statsRow}>
-      {chips.map((chip) => (
-        <View key={chip.label} style={styles.statChip}>
-          <Text style={styles.statChipText}>
-            <Text style={{ color: chip.dot }}>● </Text>
-            {`${chip.label} `}
-            <Text style={styles.statChipCount}>{chip.count}</Text>
+    <View style={styles.ledger}>
+      {cells.map((cell, index) => (
+        <View
+          key={cell.label}
+          style={[styles.ledgerCell, index > 0 ? styles.ledgerCellDivided : null]}
+        >
+          <Text style={styles.ledgerLabel}>
+            <Text style={[styles.ledgerValue, cell.count === 0 ? styles.ledgerValueZero : null]}>
+              {cell.count}
+            </Text>
+            {`\n${cell.label}`}
           </Text>
         </View>
       ))}
@@ -265,22 +299,37 @@ function StatsStrip({ stats }: { readonly stats: NightReportStats }) {
   );
 }
 
-function ReportHeader({ data }: { readonly data: NightReviewData }) {
+function ReportHeader({
+  data,
+  shareTitle,
+}: {
+  readonly data: NightReviewData;
+  readonly shareTitle: string | undefined;
+}) {
   const outcome = getNightReviewOutcome(data);
   const stats = deriveNightReportStats(data);
   const deathNotes = deriveDeathNotes(data);
   const identitiesBySeat = new Map(data.identities.map((entry) => [entry.seat, entry]));
   return (
     <View style={styles.header}>
-      <Text style={styles.kicker}>{NIGHT_REPORT_KICKER}</Text>
+      <View style={styles.accentBar} />
+      <View style={styles.masthead}>
+        <Text style={styles.kicker}>{NIGHT_REPORT_KICKER}</Text>
+        {shareTitle !== undefined && <Text style={styles.mastheadTitle}>{shareTitle}</Text>}
+      </View>
       <Text style={styles.headline}>
-        {outcome.type === 'peaceful'
-          ? NIGHT_REVIEW_PEACEFUL_HEADLINE
-          : formatNightReviewOutcomeHeadline(outcome.deaths.length)}
+        {outcome.type === 'peaceful' ? (
+          NIGHT_REVIEW_PEACEFUL_HEADLINE
+        ) : (
+          <>
+            {NIGHT_REPORT_HEADLINE_PREFIX}
+            <Text style={styles.headlineNumber}>{outcome.deaths.length}</Text>
+            {NIGHT_REPORT_HEADLINE_SUFFIX}
+          </>
+        )}
       </Text>
-      <StatsStrip stats={stats} />
       {outcome.type === 'deaths' && (
-        <View style={styles.deathList}>
+        <View style={styles.stampRow}>
           {outcome.deaths.map((death) => {
             const identity = identitiesBySeat.get(death.seat);
             if (identity === undefined) {
@@ -289,7 +338,7 @@ function ReportHeader({ data }: { readonly data: NightReviewData }) {
               );
             }
             return (
-              <DeathCard
+              <DeathStamp
                 key={death.seat}
                 seat={death.seat}
                 identity={identity}
@@ -300,16 +349,17 @@ function ReportHeader({ data }: { readonly data: NightReviewData }) {
           })}
         </View>
       )}
+      <StatsLedger stats={stats} />
     </View>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Action partitioning: cards vs the did-not-act strip
+// Action grouping: faction groups of rows
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Kinds that render in the muted did-not-act strip when they stand alone. */
-const STRIP_KINDS: ReadonlySet<NightReviewActionEntry['kind']> = new Set([
+/** Kinds that render as a dimmed did-not-act row when they stand alone. */
+const IDLE_KINDS: ReadonlySet<NightReviewActionEntry['kind']> = new Set([
   'nightmareIdle',
   'shelterIdle',
   'hiddenWolfConfirmed',
@@ -352,17 +402,52 @@ type ReportBlock =
       readonly type: 'potion';
       readonly actor: PotionActor;
       readonly entries: readonly NightReviewActionEntry[];
-    };
+    }
+  | { readonly type: 'idle'; readonly entry: NightReviewActionEntry };
+
+type ReportGroupKey = keyof typeof P.rail;
+
+/** Group order on the page: the kill first, then gods, villagers, third, notes. */
+const GROUP_ORDER: readonly ReportGroupKey[] = ['wolf', 'god', 'villager', 'third', 'neutral'];
+
+interface ReportGroup {
+  readonly key: ReportGroupKey;
+  readonly blocks: readonly ReportBlock[];
+}
+
+function groupKeyForRole(roleId: RoleId | null): ReportGroupKey {
+  if (roleId === null) return 'neutral';
+  switch (ROLE_SPECS[roleId]?.faction) {
+    case Faction.Wolf:
+      return 'wolf';
+    case Faction.God:
+      return 'god';
+    case Faction.Villager:
+      return 'villager';
+    case Faction.Special:
+      return 'third';
+    default:
+      return 'neutral';
+  }
+}
+
+function isWolfTeamKind(kind: NightReviewActionEntry['kind']): boolean {
+  return kind === 'wolfAttack' || kind === 'wolfNoTarget' || kind === 'wolfGiveUp';
+}
+
+function blockGroupKey(block: ReportBlock): ReportGroupKey {
+  if (block.type === 'potion') return groupKeyForRole(block.actor);
+  if (isWolfTeamKind(block.entry.kind)) return 'wolf';
+  return groupKeyForRole(nightReviewActorRoleId(block.entry));
+}
 
 /**
- * Partition the entries into timeline cards and strip entries. The potion
- * family merges into a single card per owner when the owner used a potion;
- * a family that did nothing at all dissolves into the strip.
+ * Turn the entries into faction groups of blocks, keeping each group's
+ * blocks in night order. The potion family merges into a single block per
+ * owner when the owner used a potion; a family that did nothing at all
+ * dissolves into idle rows.
  */
-function partitionEntries(actions: readonly NightReviewActionEntry[]): {
-  readonly blocks: readonly ReportBlock[];
-  readonly strip: readonly NightReviewActionEntry[];
-} {
+function groupEntries(actions: readonly NightReviewActionEntry[]): readonly ReportGroup[] {
   const familyEffective = new Map<PotionActor, boolean>();
   for (const entry of actions) {
     const actor = potionActorOf(entry);
@@ -372,7 +457,6 @@ function partitionEntries(actions: readonly NightReviewActionEntry[]): {
   }
 
   const blocks: ReportBlock[] = [];
-  const strip: NightReviewActionEntry[] = [];
   const potionBlocks = new Map<PotionActor, NightReviewActionEntry[]>();
   for (const entry of actions) {
     if (entry.kind === 'deaths' || entry.kind === 'peacefulNight') continue;
@@ -387,45 +471,34 @@ function partitionEntries(actions: readonly NightReviewActionEntry[]): {
         }
         family.push(entry);
       } else {
-        strip.push(entry);
+        blocks.push({ type: 'idle', entry });
       }
       continue;
     }
-    if (STRIP_KINDS.has(entry.kind)) {
-      strip.push(entry);
-      continue;
-    }
-    blocks.push({ type: 'card', entry });
+    blocks.push(IDLE_KINDS.has(entry.kind) ? { type: 'idle', entry } : { type: 'card', entry });
   }
-  return { blocks, strip };
+
+  const byKey = new Map<ReportGroupKey, ReportBlock[]>();
+  for (const block of blocks) {
+    const key = blockGroupKey(block);
+    const list = byKey.get(key);
+    if (list) list.push(block);
+    else byKey.set(key, [block]);
+  }
+  return GROUP_ORDER.flatMap((key) => {
+    const list = byKey.get(key);
+    return list === undefined ? [] : [{ key, blocks: list }];
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Action cards
+// Action rows
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface CardContext {
   readonly deadSeats: ReadonlySet<number>;
-  /** The wolf target the witch left unsaved (witch card annotation). */
+  /** The wolf target the witch left unsaved (witch row annotation). */
   readonly wolfTargetSaveNote: { readonly wolfTargetSeat: number } | null;
-}
-
-function CardHead({
-  actorSeat,
-  actorRoleId,
-  tag,
-}: {
-  readonly actorSeat: number;
-  readonly actorRoleId: RoleId;
-  readonly tag?: ReactNode;
-}) {
-  return (
-    <View style={styles.cardHead}>
-      <SeatMedal seat={actorSeat} size="medium" tone={medalToneForRole(actorRoleId)} />
-      <Text style={styles.cardRole}>{getRoleDisplayName(actorRoleId)}</Text>
-      {tag !== undefined && <View style={styles.cardTag}>{tag}</View>}
-    </View>
-  );
 }
 
 function ActionRow({ children }: { readonly children: ReactNode }) {
@@ -444,11 +517,15 @@ function TargetMedal({ seat }: { readonly seat: number }) {
   return <SeatMedal seat={seat} size="small" />;
 }
 
-/** One actor's card: head (medal + role subject) plus its action rows. */
-function ActorCard({ entry }: { readonly entry: NightReviewActionEntry }) {
+function ActorMedal({ seat, roleId }: { readonly seat: number; readonly roleId: RoleId }) {
+  return <SeatMedal seat={seat} size="medium" tone={medalToneForRole(roleId)} />;
+}
+
+/** One actor's row: subject (medal + role) plus its action content. */
+function ActorRow({ entry }: { readonly entry: NightReviewActionEntry }) {
   const actorRoleId = nightReviewActorRoleId(entry);
   if (actorRoleId === null || !('actorSeat' in entry)) {
-    throw new Error(`[FAIL-FAST] Night review actor card cannot head entry kind ${entry.kind}`);
+    throw new Error(`[FAIL-FAST] Night review actor row cannot head entry kind ${entry.kind}`);
   }
   const actorSeat = entry.actorSeat;
 
@@ -633,19 +710,22 @@ function ActorCard({ entry }: { readonly entry: NightReviewActionEntry }) {
       );
       break;
     default:
-      throw new Error(`[FAIL-FAST] Night review actor card received unhandled kind ${entry.kind}`);
+      throw new Error(`[FAIL-FAST] Night review actor row received unhandled kind ${entry.kind}`);
   }
 
   return (
-    <View style={styles.card}>
-      <CardHead actorSeat={actorSeat} actorRoleId={actorRoleId} tag={tag} />
+    <GroupRow
+      medal={<ActorMedal seat={actorSeat} roleId={actorRoleId} />}
+      subject={getRoleDisplayName(actorRoleId)}
+      tag={tag}
+    >
       {rows}
-    </View>
+    </GroupRow>
   );
 }
 
-/** The witch / poisoner card: one card per potion owner, idle facts as sub-lines. */
-function PotionCard({
+/** The witch / poisoner row: one row per potion owner, idle facts as a sub-line. */
+function PotionRow({
   actor,
   entries,
   context,
@@ -656,7 +736,7 @@ function PotionCard({
 }) {
   const first = entries[0];
   if (first === undefined || !('actorSeat' in first)) {
-    throw new Error('[FAIL-FAST] Night review potion card has no headed entry');
+    throw new Error('[FAIL-FAST] Night review potion row has no headed entry');
   }
   const subs: string[] = [];
   const rows: ReactNode[] = [];
@@ -693,16 +773,18 @@ function PotionCard({
     subs.push('狼刀目标未救');
   }
   return (
-    <View style={styles.card}>
-      <CardHead actorSeat={first.actorSeat} actorRoleId={actor} />
+    <GroupRow
+      medal={<ActorMedal seat={first.actorSeat} roleId={actor} />}
+      subject={getRoleDisplayName(actor)}
+    >
       {rows}
       {subs.length > 0 && <Text style={styles.subLine}>{subs.join(' · ')}</Text>}
-    </View>
+    </GroupRow>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Wolf team card
+// Wolf team row
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface WolfVoteGroup {
@@ -742,7 +824,8 @@ function verdictText(verdict: NightReviewWolfVerdict): string {
   }
 }
 
-function WolfTeamCard({
+/** The wolf team row plus, for a recorded attack, the verdict band under it. */
+function WolfTeamRow({
   entry,
   context,
 }: {
@@ -751,8 +834,10 @@ function WolfTeamCard({
 }) {
   let tag: ReactNode;
   let body: ReactNode;
+  let verdictLine: string | null = null;
   if (entry.kind === 'wolfAttack') {
     const verdict = deriveWolfVerdict(entry);
+    verdictLine = verdictText(verdict);
     const resolvedTarget =
       verdict.type === 'sharedTarget' ||
       verdict.type === 'splitKilled' ||
@@ -794,7 +879,7 @@ function WolfTeamCard({
             <SeatMedal
               seat={group.targetSeat}
               size="small"
-              filled={group.targetSeat === resolvedTarget}
+              fill={group.targetSeat === resolvedTarget ? 'hit' : undefined}
             />
           </View>
         ))}
@@ -809,7 +894,6 @@ function WolfTeamCard({
             <Text style={styles.abstainText}>空刀</Text>
           </View>
         )}
-        <Text style={styles.verdictLine}>{verdictText(verdict)}</Text>
       </>
     );
   } else if (entry.kind === 'wolfNoTarget') {
@@ -825,94 +909,89 @@ function WolfTeamCard({
       </Text>
     );
   } else {
-    throw new Error(`[FAIL-FAST] Night review wolf card received unhandled kind ${entry.kind}`);
+    throw new Error(`[FAIL-FAST] Night review wolf row received unhandled kind ${entry.kind}`);
   }
   return (
-    <View style={styles.card}>
-      <View style={styles.cardHead}>
-        <SeatMedal seat={0} size="medium" tone="wolf" glyph="狼" />
-        <Text style={styles.cardRole}>狼队</Text>
-        <View style={styles.cardTag}>{tag}</View>
-      </View>
-      {body}
-    </View>
+    <>
+      <GroupRow
+        medal={<SeatMedal seat={0} size="medium" tone="wolf" glyph="狼" />}
+        subject="狼队"
+        tag={tag}
+      >
+        {body}
+      </GroupRow>
+      {verdictLine !== null && (
+        <View style={styles.verdictBand}>
+          <Text style={styles.verdictText}>{verdictLine}</Text>
+        </View>
+      )}
+    </>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Setup & warning cards
+// Setup & warning rows (the neutral group)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function SetupCard({ entry }: { readonly entry: NightReviewActionEntry }) {
+function SetupRow({ entry }: { readonly entry: NightReviewActionEntry }) {
   if (entry.kind !== 'bottomCards') {
-    throw new Error(`[FAIL-FAST] Night review setup card received unhandled kind ${entry.kind}`);
+    throw new Error(`[FAIL-FAST] Night review setup row received unhandled kind ${entry.kind}`);
   }
   return (
-    <View style={styles.card}>
-      <Text style={styles.cardRole}>底牌组成</Text>
-      <View style={styles.actionRow}>
+    <GroupRow subject="底牌组成">
+      <ActionRow>
         {entry.roleIds.map((roleId, index) => (
           <Text key={`${roleId}-${index}`} style={styles.chosenRole}>
             {getRoleDisplayName(roleId)}
           </Text>
         ))}
-      </View>
-    </View>
+      </ActionRow>
+    </GroupRow>
   );
 }
 
-function WarningCard({ entry }: { readonly entry: NightReviewActionEntry }) {
+function WarningRow({ entry }: { readonly entry: NightReviewActionEntry }) {
   switch (entry.kind) {
     case 'guardSaveConflict':
       return (
-        <View style={styles.card}>
-          <Text style={styles.cardRole}>⚠ 同守同救</Text>
+        <GroupRow subject="⚠ 同守同救">
           <ActionRow>
             <TargetMedal seat={entry.targetSeat} />
             <AnnotationText text="仍然死亡" />
           </ActionRow>
-        </View>
+        </GroupRow>
       );
     case 'poisonImmune':
       return (
-        <View style={styles.card}>
-          <View style={styles.cardHead}>
-            <TargetMedal seat={entry.targetSeat} />
-            <Text style={styles.cardRole}>{getRoleDisplayName(entry.targetRoleId)}</Text>
-            <View style={styles.cardTag}>
-              <ReportTag text="免疫毒药" tone="info" />
-            </View>
-          </View>
-        </View>
+        <GroupRow
+          medal={<ActorMedal seat={entry.targetSeat} roleId={entry.targetRoleId} />}
+          subject={getRoleDisplayName(entry.targetRoleId)}
+          tag={<ReportTag text="免疫毒药" tone="info" />}
+        />
       );
     case 'reflectDamage':
       return (
-        <View style={styles.card}>
-          <View style={styles.cardHead}>
-            <Text style={styles.cardRole}>{`${getRoleDisplayName(entry.checkerRoleId)}查验`}</Text>
-            <View style={styles.cardTag}>
-              <ReportTag text="反伤" tone="bad" />
-            </View>
-          </View>
+        <GroupRow
+          subject={`${getRoleDisplayName(entry.checkerRoleId)}查验`}
+          tag={<ReportTag text="反伤" tone="bad" />}
+        >
           <ActionRow>
             <TargetMedal seat={entry.targetSeat} />
             <AnnotationText text={`（${getRoleDisplayName(entry.targetRoleId)}）`} />
           </ActionRow>
-        </View>
+        </GroupRow>
       );
     default:
-      throw new Error(
-        `[FAIL-FAST] Night review warning card received unhandled kind ${entry.kind}`,
-      );
+      throw new Error(`[FAIL-FAST] Night review warning row received unhandled kind ${entry.kind}`);
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Did-not-act strip
+// Did-not-act rows
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Idle / confirmation phrase per strip entry kind (subject is the medal text). */
-function stripPhrase(entry: NightReviewActionEntry): string {
+/** Idle / confirmation phrase per idle entry kind (subject is the row medal). */
+function idlePhrase(entry: NightReviewActionEntry): string {
   switch (entry.kind) {
     case 'nightmareIdle':
       return '未封锁';
@@ -953,39 +1032,81 @@ function stripPhrase(entry: NightReviewActionEntry): string {
     case 'poisonerNoPoison':
       return '未使用毒药';
     default:
-      throw new Error(`[FAIL-FAST] Night review strip received unhandled kind ${entry.kind}`);
+      throw new Error(`[FAIL-FAST] Night review idle row received unhandled kind ${entry.kind}`);
   }
 }
 
-function IdleStrip({ entries }: { readonly entries: readonly NightReviewActionEntry[] }) {
+function IdleRow({ entry }: { readonly entry: NightReviewActionEntry }) {
+  const roleId = nightReviewActorRoleId(entry);
+  if (roleId === null || !('actorSeat' in entry)) {
+    throw new Error(`[FAIL-FAST] Night review idle entry ${entry.kind} has no actor`);
+  }
   return (
-    <View style={styles.idleStrip}>
-      <Text style={styles.idleText}>
-        {entries.map((entry, index) => {
-          const roleId = nightReviewActorRoleId(entry);
-          if (roleId === null || !('actorSeat' in entry)) {
-            throw new Error(`[FAIL-FAST] Night review strip entry ${entry.kind} has no actor`);
-          }
-          return (
-            <Text key={`${entry.kind}-${entry.actorSeat}`}>
-              {index > 0 && <Text style={styles.idleText}> · </Text>}
-              <Text style={styles.idleStrong}>
-                {`${getRoleDisplayName(roleId)} ${formatSeat(entry.actorSeat)}`}
-              </Text>
-              {` ${stripPhrase(entry)}`}
-            </Text>
-          );
-        })}
-      </Text>
+    <GroupRow
+      medal={<ActorMedal seat={entry.actorSeat} roleId={roleId} />}
+      subject={getRoleDisplayName(roleId)}
+      tag={<ReportTag text={NIGHT_REPORT_IDLE_TAG} tone="muted" />}
+      dimmed
+    >
+      <Text style={styles.subLine}>{idlePhrase(entry)}</Text>
+    </GroupRow>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Faction group
+// ─────────────────────────────────────────────────────────────────────────────
+
+function renderBlock(block: ReportBlock, context: CardContext): ReactNode {
+  if (block.type === 'potion') {
+    return <PotionRow actor={block.actor} entries={block.entries} context={context} />;
+  }
+  if (block.type === 'idle') return <IdleRow entry={block.entry} />;
+  const { entry } = block;
+  if (isWolfTeamKind(entry.kind)) return <WolfTeamRow entry={entry} context={context} />;
+  if (entry.kind === 'bottomCards') return <SetupRow entry={entry} />;
+  if (
+    entry.kind === 'guardSaveConflict' ||
+    entry.kind === 'poisonImmune' ||
+    entry.kind === 'reflectDamage'
+  ) {
+    return <WarningRow entry={entry} />;
+  }
+  return <ActorRow entry={entry} />;
+}
+
+function blockKey(block: ReportBlock, index: number): string {
+  if (block.type === 'potion') return `potion-${block.actor}`;
+  return `${block.type}-${block.entry.kind}-${index}`;
+}
+
+/** One faction's rows behind a colored rail; a hairline separates blocks. */
+function ActionGroup({
+  group,
+  context,
+}: {
+  readonly group: ReportGroup;
+  readonly context: CardContext;
+}) {
+  return (
+    <View style={styles.group}>
+      <View style={[styles.groupRail, { backgroundColor: P.rail[group.key] }]} />
+      <View style={styles.groupInner}>
+        {group.blocks.map((block, index) => (
+          <View key={blockKey(block, index)} style={index > 0 ? styles.blockSeparator : null}>
+            {renderBlock(block, context)}
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Identity wall
+// Identity roster
 // ─────────────────────────────────────────────────────────────────────────────
 
-function RosterWall({ data }: { readonly data: NightReviewData }) {
+function RosterList({ data }: { readonly data: NightReviewData }) {
   const outcome = getNightReviewOutcome(data);
   const reasonBySeat = new Map<number, keyof typeof DEATH_REASON_LABELS | null>(
     outcome.type === 'deaths' ? outcome.deaths.map((death) => [death.seat, death.reason]) : [],
@@ -995,13 +1116,16 @@ function RosterWall({ data }: { readonly data: NightReviewData }) {
       {data.identities.map((entry) => {
         const reason = reasonBySeat.get(entry.seat);
         return (
-          <View key={entry.seat} style={styles.rosterCell}>
+          <View key={entry.seat} style={styles.rosterRow}>
             <SeatMedal
               seat={entry.seat}
               size="roster"
-              tone={entry.isAlive ? 'neutral' : 'rosterOut'}
+              tone={entry.isAlive ? medalToneForRole(entry.roleId) : 'dead'}
             />
-            <Text style={[styles.rosterName, entry.isAlive ? null : styles.rosterNameOut]}>
+            <Text
+              style={[styles.rosterName, entry.isAlive ? null : styles.rosterNameOut]}
+              numberOfLines={1}
+            >
               {identityRoleText(entry)}
             </Text>
             <Text style={[styles.rosterStatus, entry.isAlive ? null : styles.rosterStatusOut]}>
@@ -1022,8 +1146,14 @@ function RosterWall({ data }: { readonly data: NightReviewData }) {
 // Root
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function NightReviewReportBody({ data }: { readonly data: NightReviewData }) {
-  const { blocks, strip } = partitionEntries(data.actions);
+interface NightReviewReportBodyProps {
+  readonly data: NightReviewData;
+  /** Masthead title on the share image (room label); absent in the modal. */
+  readonly shareTitle?: string;
+}
+
+export function NightReviewReportBody({ data, shareTitle }: NightReviewReportBodyProps) {
+  const groups = groupEntries(data.actions);
   const context: CardContext = useMemo(
     () => ({
       deadSeats: new Set(
@@ -1036,58 +1166,30 @@ export function NightReviewReportBody({ data }: { readonly data: NightReviewData
 
   return (
     <View style={styles.root}>
-      <ReportHeader data={data} />
-      <SectionTitle text={NIGHT_REPORT_ACTIONS_TITLE} />
-      <View style={styles.cardList}>
-        {blocks.map((block, index) => {
-          if (block.type === 'potion') {
-            return (
-              <PotionCard
-                key={`potion-${block.actor}`}
-                actor={block.actor}
-                entries={block.entries}
-                context={context}
-              />
-            );
-          }
-          const { entry } = block;
-          if (
-            entry.kind === 'wolfAttack' ||
-            entry.kind === 'wolfNoTarget' ||
-            entry.kind === 'wolfGiveUp'
-          ) {
-            return <WolfTeamCard key={`${entry.kind}-${index}`} entry={entry} context={context} />;
-          }
-          if (entry.kind === 'bottomCards') {
-            return <SetupCard key={`bottomCards-${index}`} entry={entry} />;
-          }
-          if (
-            entry.kind === 'guardSaveConflict' ||
-            entry.kind === 'poisonImmune' ||
-            entry.kind === 'reflectDamage'
-          ) {
-            return <WarningCard key={`${entry.kind}-${index}`} entry={entry} />;
-          }
-          return <ActorCard key={`${entry.kind}-${index}`} entry={entry} />;
-        })}
+      <ReportHeader data={data} shareTitle={shareTitle} />
+      <View style={styles.page}>
+        <SectionTitle text={NIGHT_REPORT_ACTIONS_TITLE} />
+        <View style={styles.groupList}>
+          {groups.map((group) => (
+            <ActionGroup key={group.key} group={group} context={context} />
+          ))}
+        </View>
+        {data.sheriff !== undefined && (
+          <>
+            <SectionTitle text={NIGHT_REPORT_SHERIFF_TITLE} />
+            <View style={styles.group}>
+              <View style={[styles.groupRail, { backgroundColor: P.rail.neutral }]} />
+              <View style={[styles.groupInner, styles.sheriffInner]}>
+                <SheriffElectionReportSection section={data.sheriff} />
+              </View>
+            </View>
+          </>
+        )}
+        <View style={styles.perforation} />
+        <SectionTitle text={NIGHT_REVIEW_IDENTITIES_TITLE} />
+        <RosterList data={data} />
+        <Text style={styles.footer}>{NIGHT_REPORT_FOOTER_TEXT}</Text>
       </View>
-      {strip.length > 0 && (
-        <>
-          <SectionTitle text={NIGHT_REPORT_IDLE_TITLE} />
-          <IdleStrip entries={strip} />
-        </>
-      )}
-      {data.sheriff !== undefined && (
-        <>
-          <SectionTitle text={NIGHT_REPORT_SHERIFF_TITLE} />
-          <View style={styles.card}>
-            <SheriffElectionReportSection section={data.sheriff} />
-          </View>
-        </>
-      )}
-      <SectionTitle text={NIGHT_REVIEW_IDENTITIES_TITLE} />
-      <RosterWall data={data} />
-      <Text style={styles.footer}>{NIGHT_REPORT_FOOTER_TEXT}</Text>
     </View>
   );
 }
@@ -1100,84 +1202,126 @@ const styles = StyleSheet.create({
   root: {
     backgroundColor: P.background,
     borderRadius: borderRadius.xlarge,
-    padding: spacing.large,
+    overflow: 'hidden',
+  },
+  page: {
+    paddingHorizontal: spacing.large,
+    paddingBottom: spacing.large,
     gap: spacing.medium,
   },
+  // ── Conclusion header ──
   header: {
-    gap: spacing.small,
+    gap: spacing.medium,
+    paddingBottom: spacing.medium,
+  },
+  accentBar: {
+    height: spacing.small,
+    backgroundColor: P.accent,
+  },
+  masthead: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.large,
+    paddingTop: spacing.small,
   },
   kicker: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    fontWeight: typography.weights.bold,
-    color: P.textSecondary,
-  },
-  headline: {
-    fontSize: typography.hero,
-    lineHeight: typography.lineHeights.hero,
-    fontWeight: typography.weights.bold,
-    color: P.text,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.tight,
-  },
-  statChip: {
-    backgroundColor: P.card,
-    borderWidth: fixed.borderWidth,
-    borderColor: P.cardBorder,
-    borderRadius: borderRadius.full,
-    paddingHorizontal: spacing.small,
-    paddingVertical: spacing.tight,
-  },
-  statChipText: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    fontWeight: typography.weights.semibold,
-    color: P.textSecondary,
-  },
-  statChipCount: {
-    color: P.text,
-    fontWeight: typography.weights.bold,
-  },
-  deathList: {
-    gap: spacing.small,
-  },
-  deathCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.small,
-    backgroundColor: P.card,
-    borderWidth: fixed.borderWidth,
-    borderColor: P.cardBorder,
-    borderLeftWidth: fixed.borderWidthHighlight,
-    borderLeftColor: P.danger,
-    borderRadius: borderRadius.medium,
-    paddingHorizontal: spacing.medium,
-    paddingVertical: spacing.small,
-  },
-  deathRole: {
     fontSize: typography.body,
     lineHeight: typography.lineHeights.body,
     fontWeight: typography.weights.bold,
     color: P.text,
   },
-  deathWhy: {
-    marginLeft: 'auto',
-    alignItems: 'flex-end',
+  mastheadTitle: {
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    fontWeight: typography.weights.semibold,
+    color: P.textMuted,
   },
-  deathCause: {
-    fontSize: typography.secondary,
-    lineHeight: typography.lineHeights.secondary,
+  headline: {
+    paddingHorizontal: spacing.large,
+    fontSize: typography.title,
+    lineHeight: typography.lineHeights.display,
+    fontWeight: typography.weights.bold,
+    color: P.text,
+  },
+  headlineNumber: {
+    fontSize: typography.display,
+    lineHeight: typography.lineHeights.display,
     fontWeight: typography.weights.bold,
     color: P.danger,
   },
-  deathByline: {
+  stampRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.small,
+    paddingHorizontal: spacing.large,
+  },
+  stamp: {
+    flexGrow: 1,
+    flexBasis: '45%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.small,
+    borderWidth: fixed.borderWidthThick,
+    borderColor: P.stampBorder,
+    borderRadius: borderRadius.medium,
+    paddingHorizontal: spacing.small,
+    paddingVertical: spacing.small,
+  },
+  stampBody: {
+    flex: 1,
+  },
+  stampRole: {
+    fontSize: typography.body,
+    lineHeight: typography.lineHeights.secondary,
+    fontWeight: typography.weights.bold,
+    color: P.text,
+  },
+  stampCause: {
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    fontWeight: typography.weights.bold,
+    color: P.danger,
+    marginTop: spacing.micro,
+  },
+  stampByline: {
     fontSize: typography.captionSmall,
     lineHeight: typography.lineHeights.captionSmall,
     color: P.textMuted,
   },
+  ledger: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.large,
+    borderTopWidth: fixed.divider,
+    borderBottomWidth: fixed.divider,
+    borderColor: P.rule,
+  },
+  ledgerCell: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.small,
+  },
+  ledgerCellDivided: {
+    borderLeftWidth: fixed.divider,
+    borderLeftColor: P.divider,
+  },
+  ledgerLabel: {
+    textAlign: 'center',
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    fontWeight: typography.weights.bold,
+    color: P.textSecondary,
+  },
+  ledgerValue: {
+    fontSize: typography.title,
+    lineHeight: typography.lineHeights.title,
+    fontWeight: typography.weights.bold,
+    color: P.text,
+  },
+  ledgerValueZero: {
+    color: P.textFaint,
+  },
+  // ── Section titles ──
   sectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1187,37 +1331,69 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     lineHeight: typography.lineHeights.caption,
     fontWeight: typography.weights.bold,
-    color: P.textSecondary,
+    letterSpacing: spacing.micro,
+    color: P.text,
   },
   sectionDivider: {
     flex: 1,
     height: fixed.divider,
-    backgroundColor: P.divider,
+    backgroundColor: P.cardBorder,
   },
-  cardList: {
+  // ── Faction groups ──
+  groupList: {
     gap: spacing.small,
   },
-  card: {
-    backgroundColor: P.card,
+  group: {
+    flexDirection: 'row',
     borderWidth: fixed.borderWidth,
     borderColor: P.cardBorder,
-    borderRadius: borderRadius.medium,
-    padding: spacing.medium,
-    gap: spacing.small,
+    borderRadius: borderRadius.small,
+    overflow: 'hidden',
   },
-  cardHead: {
+  groupRail: {
+    width: spacing.tight + spacing.micro,
+  },
+  groupInner: {
+    flex: 1,
+    minWidth: 0,
+  },
+  sheriffInner: {
+    padding: spacing.medium,
+  },
+  blockSeparator: {
+    borderTopWidth: fixed.divider,
+    borderTopColor: P.divider,
+  },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.small,
+    paddingHorizontal: spacing.small + spacing.tight,
+    paddingVertical: spacing.small + spacing.micro,
   },
-  cardRole: {
-    fontSize: typography.body,
-    lineHeight: typography.lineHeights.body,
+  rowDimmed: {
+    opacity: fixed.disabledOpacity,
+  },
+  rowWho: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.tight + spacing.micro,
+    flexShrink: 0,
+  },
+  rowSubject: {
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
     fontWeight: typography.weights.bold,
     color: P.text,
   },
-  cardTag: {
+  rowWhat: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.tight,
+  },
+  rowTag: {
     marginLeft: 'auto',
+    flexShrink: 0,
   },
   actionRow: {
     flexDirection: 'row',
@@ -1291,55 +1467,54 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold,
     color: P.textSecondary,
   },
-  verdictLine: {
+  verdictBand: {
+    backgroundColor: P.verdictBg,
+    paddingHorizontal: spacing.small + spacing.tight,
+    paddingVertical: spacing.small,
+  },
+  verdictText: {
     fontSize: typography.caption,
     lineHeight: typography.lineHeights.caption,
     fontWeight: typography.weights.bold,
     color: P.medalWolf.text,
-    borderTopWidth: fixed.divider,
-    borderTopColor: P.divider,
-    paddingTop: spacing.small,
-    marginTop: spacing.tight,
   },
-  idleStrip: {
-    backgroundColor: P.idleBg,
-    borderWidth: fixed.borderWidth,
-    borderColor: P.idleBorder,
+  // ── Perforation + roster ──
+  perforation: {
+    borderTopWidth: fixed.borderWidthThick,
+    borderTopColor: P.cardBorder,
     borderStyle: 'dashed',
-    borderRadius: borderRadius.medium,
-    padding: spacing.medium,
-  },
-  idleText: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.secondary,
-    color: P.idleText,
-  },
-  idleStrong: {
-    color: P.idleStrong,
-    fontWeight: typography.weights.semibold,
+    marginTop: spacing.small,
   },
   roster: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    marginHorizontal: -spacing.small,
   },
-  rosterCell: {
-    width: '25%',
+  rosterRow: {
+    width: '50%',
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.tight,
-    paddingVertical: spacing.small,
+    gap: spacing.small,
+    paddingHorizontal: spacing.small,
+    paddingVertical: spacing.small - spacing.micro,
+    borderBottomWidth: fixed.divider,
+    borderBottomColor: P.divider,
   },
   rosterName: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    fontWeight: typography.weights.semibold,
+    flex: 1,
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
+    fontWeight: typography.weights.bold,
     color: P.text,
   },
   rosterNameOut: {
     color: P.textMuted,
+    textDecorationLine: 'line-through',
   },
   rosterStatus: {
     fontSize: typography.captionSmall,
     lineHeight: typography.lineHeights.captionSmall,
+    fontWeight: typography.weights.semibold,
     color: P.textMuted,
   },
   rosterStatusOut: {

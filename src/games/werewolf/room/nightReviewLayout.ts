@@ -18,10 +18,9 @@ export const NIGHT_REVIEW_IDENTITIES_TITLE = '全员身份';
 /** Outcome hero headline for a peaceful night (no deaths). */
 export const NIGHT_REVIEW_PEACEFUL_HEADLINE = '昨夜平安夜';
 
-/** Outcome hero headline for a night with deaths, by death count. */
-export function formatNightReviewOutcomeHeadline(deathCount: number): string {
-  return `昨夜 ${deathCount} 人出局`;
-}
+/** Outcome headline parts for a night with deaths: `昨夜 <N> 人出局`, N as the display numeral. */
+export const NIGHT_REPORT_HEADLINE_PREFIX = '昨夜 ';
+export const NIGHT_REPORT_HEADLINE_SUFFIX = ' 人出局';
 
 /** Title of the share card image. */
 export function formatNightReviewShareTitle(roomCode: string): string {
@@ -29,20 +28,20 @@ export function formatNightReviewShareTitle(roomCode: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2026 report spec — the light-surface night report.
+// 2026 report spec — the white "verdict ticket".
 //
 // The DOM body is printed on NIGHT_REPORT_PALETTE, a light palette aligned
 // with the app theme (flat colors only, no gradients — the segmented
 // screenshot capture composites bands and a gradient would seam). A seat
 // number appears exactly once per mention: on its SeatMedal. Copy that
-// names a role as a sentence subject lives on card heads and identity
-// statements; inline targets are medals.
+// names a role as a sentence subject lives on row subjects and identity
+// statements; inline targets are medals. Actions group by the actor's
+// faction, each group carrying a faction-colored rail.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Semantic slots of the report palette, composed from the theme hues. */
 export const NIGHT_REPORT_PALETTE = {
   background: NIGHT_REPORT_COLORS.background,
-  card: NIGHT_REPORT_COLORS.card,
   cardBorder: NIGHT_REPORT_COLORS.cardBorder,
   divider: NIGHT_REPORT_COLORS.divider,
   text: NIGHT_REPORT_COLORS.text,
@@ -50,8 +49,26 @@ export const NIGHT_REPORT_PALETTE = {
   textMuted: NIGHT_REPORT_COLORS.textMuted,
   textFaint: NIGHT_REPORT_COLORS.textFaint,
   danger: NIGHT_REPORT_COLORS.danger,
-  dangerText: NIGHT_REPORT_COLORS.dangerText,
-  violet: NIGHT_REPORT_COLORS.violet,
+  /** Top accent bar. */
+  accent: colors.primary,
+  /** Hairline rules of the stats ledger (dark, print-like). */
+  rule: NIGHT_REPORT_COLORS.text,
+  /** Death stamp: danger outline, filled danger medal with inverse numeral. */
+  stampBorder: NIGHT_REPORT_COLORS.danger,
+  stampMedal: {
+    bg: NIGHT_REPORT_COLORS.danger,
+    text: colors.textInverse,
+  },
+  /** Faction rail on the left edge of each action group. */
+  rail: {
+    wolf: NIGHT_REPORT_COLORS.wolfMedalText,
+    god: NIGHT_REPORT_COLORS.violet,
+    villager: NIGHT_REPORT_COLORS.goodMedalText,
+    third: colors.third,
+    neutral: NIGHT_REPORT_COLORS.textMuted,
+  },
+  /** Wolf verdict band under the wolf team row. */
+  verdictBg: NIGHT_REPORT_COLORS.wolfMedalBg,
   hitMedalBg: colors.primary,
   // The hit medal is a filled primary disc: its numeral stays inverse
   // (white) even though the report's text slots are now dark-on-light.
@@ -97,23 +114,14 @@ export const NIGHT_REPORT_PALETTE = {
     bg: NIGHT_REPORT_COLORS.neutralMedalBg,
     text: NIGHT_REPORT_COLORS.textSecondary,
   },
-  idleBg: NIGHT_REPORT_COLORS.idleBg,
-  idleBorder: NIGHT_REPORT_COLORS.cardBorder,
-  idleText: NIGHT_REPORT_COLORS.idleText,
-  idleStrong: NIGHT_REPORT_COLORS.idleStrong,
-  rosterOutMedal: {
-    bg: NIGHT_REPORT_COLORS.rosterOutMedalBg,
-    border: NIGHT_REPORT_COLORS.rosterOutMedalBorder,
-    text: NIGHT_REPORT_COLORS.rosterOutMedalText,
-  },
 } as const;
 
-/** SeatMedal diameters by slot (death card / card head / inline / roster). */
+/** SeatMedal diameters by slot (death stamp / group row / inline / roster row). */
 export const NIGHT_REPORT_MEDAL_SIZES = {
-  large: 42,
-  medium: 34,
+  large: 44,
+  medium: 28,
   small: 24,
-  roster: 38,
+  roster: 26,
 } as const;
 
 /** Kicker line at the top of the report. */
@@ -122,8 +130,8 @@ export const NIGHT_REPORT_KICKER = '🌙 第一夜 · 夜报';
 /** Section title above the key action cards. */
 export const NIGHT_REPORT_ACTIONS_TITLE = '关键行动';
 
-/** Section title above the did-not-act strip. */
-export const NIGHT_REPORT_IDLE_TITLE = '未行动';
+/** Row tag on an actor who did not use their ability tonight. */
+export const NIGHT_REPORT_IDLE_TAG = '未行动';
 
 /** Section title above the sheriff election card. */
 export const NIGHT_REPORT_SHERIFF_TITLE = '警长竞选';

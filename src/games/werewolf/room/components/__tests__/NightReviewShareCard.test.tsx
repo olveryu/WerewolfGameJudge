@@ -119,7 +119,7 @@ describe('NightReviewShareCard', () => {
     expect(view.queryByText('死亡')).toBeNull();
   });
 
-  it('renders the same header and strip as the modal', () => {
+  it('renders the same header and idle row as the modal', () => {
     const players = new Map<number, LocalPlayer | null>([
       [0, makePlayer(0, 'wolf')],
       [1, makePlayer(1, 'guard')],
@@ -138,8 +138,12 @@ describe('NightReviewShareCard', () => {
     );
 
     expect(view.getByText('昨夜平安夜')).toBeTruthy();
+    // The idle guard is a dimmed row in its group: subject + tag + phrase,
+    // seat on the medal only.
     expect(view.getByText('未行动')).toBeTruthy();
-    expect(view.getByText('守卫 2号 未守护')).toBeTruthy();
+    expect(view.getAllByText('守卫').length).toBeGreaterThanOrEqual(2);
+    expect(view.getByText('未守护')).toBeTruthy();
+    expect(view.queryByText('守卫 2号 未守护')).toBeNull();
   });
 
   it('renders wolf abstentions as an empty-attack group, never as seat 0', () => {

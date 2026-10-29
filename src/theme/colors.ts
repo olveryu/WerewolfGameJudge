@@ -56,7 +56,6 @@ export interface ThemeColors {
  */
 export const NIGHT_REPORT_COLORS = {
   background: '#FFFFFF',
-  card: '#FFFFFF',
   cardBorder: '#E4E4EC',
   divider: '#ECECF2',
   text: '#17171F',
@@ -79,12 +78,6 @@ export const NIGHT_REPORT_COLORS = {
   goodMedalBorder: '#A9D9BC',
   neutralMedalBg: '#F0F0F5',
   neutralMedalBorder: '#DCDCE6',
-  idleBg: '#FAFAFC',
-  idleText: '#8A8A99',
-  idleStrong: '#55566B',
-  rosterOutMedalBg: '#F7F0F0',
-  rosterOutMedalBorder: '#E3D3D3',
-  rosterOutMedalText: '#B08A8A',
 } as const;
 
 export const PICTIONARY_CANVAS_BACKGROUND = '#FFFFFF';

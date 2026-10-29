@@ -2,12 +2,12 @@
  * NightReviewModal component tests — 2026 report presentation.
  *
  * Asserts the full fact set of a composed night survives the report
- * rendering: conclusion header (headline, stats strip, death cards with
- * derived bylines), one card per actor (wolf team card with verdict,
- * merged potion card), the did-not-act strip, the sheriff card across the
- * election state matrix, and the identity wall. Number discipline is
- * pinned throughout: a seat number appears only on its medal, so no
- * 「N号」 text exists anywhere in the report.
+ * rendering: conclusion header (headline, stats ledger, death stamps with
+ * derived bylines), one row per actor inside faction groups (wolf team row
+ * with verdict band, merged potion row, dimmed idle rows), the sheriff
+ * group across the election state matrix, and the identity roster. Number
+ * discipline is pinned throughout: a seat number appears only on its
+ * medal, so no 「N号」 text exists anywhere in the report.
  */
 import type {
   SheriffElectionResult,
@@ -42,6 +42,11 @@ function collectTextSequence(node: JsonNode | (JsonNode | string)[] | string | n
   if (Array.isArray(node)) return node.flatMap((child) => collectTextSequence(child));
   if (node.type === 'Text') return [textOf(node)];
   return collectTextSequence(node.children);
+}
+
+/** One stats ledger cell as rendered: the count over its label in a single Text. */
+function ledgerCell(label: string, count: number): string {
+  return `${count}\n${label}`;
 }
 
 function makePlayer(seat: number, role: string | null): LocalPlayer {
@@ -142,12 +147,12 @@ describe('NightReviewModal', () => {
     expect(view.getByText('关键行动')).toBeTruthy();
     expect(view.getByText('全员身份')).toBeTruthy();
     expect(view.getByText(NIGHT_REPORT_FOOTER_TEXT)).toBeTruthy();
-    // Stats strip tallies for the composed night.
+    // Stats ledger tallies for the composed night.
     const sequence = collectTextSequence(view.toJSON());
-    expect(sequence).toContain('● 狼杀 1');
-    expect(sequence).toContain('● 毒杀 0');
-    expect(sequence).toContain('● 救活 0');
-    expect(sequence).toContain('● 查验 1');
+    expect(sequence).toContain(ledgerCell('狼杀', 1));
+    expect(sequence).toContain(ledgerCell('毒杀', 0));
+    expect(sequence).toContain(ledgerCell('救活', 0));
+    expect(sequence).toContain(ledgerCell('查验', 1));
   });
 
   it('renders every action fact of the composed night', () => {
@@ -237,8 +242,8 @@ describe('NightReviewModal', () => {
     expect(view.getByText('未分配')).toBeTruthy();
     expect(view.queryByText('狼杀出局')).toBeNull();
     const sequence = collectTextSequence(view.toJSON());
-    expect(sequence).toContain('● 狼杀 0');
-    expect(sequence).toContain('● 查验 0');
+    expect(sequence).toContain(ledgerCell('狼杀', 0));
+    expect(sequence).toContain(ledgerCell('查验', 0));
   });
 
   it('aggregates wolf votes by target with one filled target medal', () => {
@@ -439,10 +444,10 @@ describe('NightReviewModal', () => {
     // Conclusion header: both deaths, stats, derived bylines.
     expect(view.getByText('昨夜 2 人出局')).toBeTruthy();
     const sequence = collectTextSequence(view.toJSON());
-    expect(sequence).toContain('● 狼杀 1');
-    expect(sequence).toContain('● 毒杀 1');
-    expect(sequence).toContain('● 救活 0');
-    expect(sequence).toContain('● 查验 1');
+    expect(sequence).toContain(ledgerCell('狼杀', 1));
+    expect(sequence).toContain(ledgerCell('毒杀', 1));
+    expect(sequence).toContain(ledgerCell('救活', 0));
+    expect(sequence).toContain(ledgerCell('查验', 1));
     expect(view.getByText('狼队 2 票锁定')).toBeTruthy();
     expect(view.getByText('女巫下毒')).toBeTruthy();
     // Wolf team card: split verdict, kill成立 tag, abstention group.
@@ -501,7 +506,7 @@ describe('NightReviewModal', () => {
     expect(sequence).not.toContain('0号');
   });
 
-  it('drops idle entries into the strip between the cards and the identity wall', () => {
+  it('renders idle actors as dimmed rows inside their faction group', () => {
     const players = new Map<number, LocalPlayer | null>([
       [0, makePlayer(0, 'wolf')],
       [1, makePlayer(1, 'guard')],
@@ -527,11 +532,17 @@ describe('NightReviewModal', () => {
       expect(index).toBeGreaterThanOrEqual(0);
       return index;
     };
-    // The guard never guarded and the seer never checked: both land in the
-    // strip as flowing text, after the action cards, before the wall.
-    expect(indexOf('关键行动')).toBeLessThan(indexOf('未行动'));
-    expect(indexOf('未行动')).toBeLessThan(indexOf('守卫 2号 未守护 · 预言家 4号 未查验'));
-    expect(indexOf('守卫 2号 未守护 · 预言家 4号 未查验')).toBeLessThan(indexOf('全员身份'));
+    // The guard never guarded and the seer never checked: each is a row in
+    // the god group (after the wolf group, before the roster) carrying the
+    // idle tag and its phrase; the seat lives on the medal only.
+    expect(view.getAllByText('未行动')).toHaveLength(2);
+    expect(view.getByText('未守护')).toBeTruthy();
+    expect(view.getByText('未查验')).toBeTruthy();
+    expect(view.queryByText('守卫 2号 未守护')).toBeNull();
+    expect(indexOf('关键行动')).toBeLessThan(indexOf('狼队'));
+    expect(indexOf('狼队')).toBeLessThan(indexOf('未守护'));
+    expect(indexOf('未守护')).toBeLessThan(indexOf('未查验'));
+    expect(indexOf('未查验')).toBeLessThan(indexOf('全员身份'));
   });
 
   describe('sheriff card', () => {
