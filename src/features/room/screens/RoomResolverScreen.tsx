@@ -1,8 +1,9 @@
 /**
  * Canonical room URL resolver: session first, then metadata, then one registered game UI module.
  *
- * `/room/get` is authenticated (room codes must not be enumerable), so the login gate lives here;
- * a game screen never mounts without a signed-in user.
+ * `/room/get` is authenticated (room codes must not be enumerable), so `RoomResolverScreen` only
+ * renders the login gate until the auth context has a user; `RoomMetadataResolver` mounts with that
+ * user and unmounts with it, so its lookup state never outlives a session.
  */
 
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
@@ -41,19 +42,28 @@ type ResolverState =
 
 const resolverLog = log.extend('RoomResolver');
 
-export const RoomResolverScreen: React.FC<RoomResolverScreenProps> = ({
+export const RoomResolverScreen: React.FC<RoomResolverScreenProps> = (props) => {
+  const { user, loading: isAuthLoading } = useAuthContext();
+  const handleBack = useCallback(() => exitRoomFlow(props.navigation), [props.navigation]);
+
+  if (isAuthLoading) return <LoadingScreen message="正在查找房间" />;
+  if (user === null) {
+    if (isMiniProgram()) return <RoomMiniProgramAuthFailure onCancel={handleBack} />;
+    return <RoomAuthGate onCancel={handleBack} />;
+  }
+  return <RoomMetadataResolver {...props} />;
+};
+
+const RoomMetadataResolver: React.FC<RoomResolverScreenProps> = ({
   route,
   navigation,
   getGameModule,
 }) => {
   const { roomDirectory } = useServices();
-  const { user, loading: isAuthLoading } = useAuthContext();
-  const isAuthenticated = user !== null;
   const [retryGeneration, setRetryGeneration] = useState(0);
   const [state, setState] = useState<ResolverState>({ kind: 'loading' });
 
   useEffect(() => {
-    if (!isAuthenticated) return;
     let isCurrent = true;
     const roomCode = route.params.roomCode;
     if (!isRoomCode(roomCode)) {
@@ -92,18 +102,13 @@ export const RoomResolverScreen: React.FC<RoomResolverScreenProps> = ({
     return () => {
       isCurrent = false;
     };
-  }, [getGameModule, isAuthenticated, retryGeneration, roomDirectory, route.params.roomCode]);
+  }, [getGameModule, retryGeneration, roomDirectory, route.params.roomCode]);
 
   const handleRetry = useCallback(() => {
     setRetryGeneration((generation) => generation + 1);
   }, []);
   const handleBack = useCallback(() => exitRoomFlow(navigation), [navigation]);
 
-  if (isAuthLoading) return <LoadingScreen message="正在查找房间" />;
-  if (!isAuthenticated) {
-    if (isMiniProgram()) return <RoomMiniProgramAuthFailure onCancel={handleBack} />;
-    return <RoomAuthGate onCancel={handleBack} />;
-  }
   if (state.kind === 'loading') return <LoadingScreen message="正在查找房间" />;
   if (state.kind === 'error') {
     return <LoadingScreen error={state.message} onRetry={handleRetry} onBack={handleBack} />;
