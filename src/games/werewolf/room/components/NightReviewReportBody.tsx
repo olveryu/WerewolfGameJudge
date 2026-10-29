@@ -27,14 +27,7 @@ import {
   getRoleDisplayName,
   ROLE_SPECS,
 } from '@game-judge/game-engine/games/werewolf/public';
-import type { ReactNode } from 'react';
-import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-
-import { borderRadius, fixed, spacing, typography } from '@/theme';
-
 import {
-  DEATH_REASON_LABELS,
   deriveDeathNotes,
   deriveNightReportStats,
   deriveWolfTargetSaveNote,
@@ -43,11 +36,18 @@ import {
   type NightReportStats,
   type NightReviewActionEntry,
   nightReviewActorRoleId,
-  type NightReviewData,
   type NightReviewDeathNote,
   type NightReviewIdentityEntry,
   type NightReviewWolfVerdict,
-} from '../NightReview.helpers';
+  type WerewolfNightReview,
+} from '@game-judge/game-engine/games/werewolf/public';
+import type { ReactNode } from 'react';
+import { useMemo } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { borderRadius, fixed, spacing, typography } from '@/theme';
+
+import { DEATH_REASON_LABELS } from '../NightReview.helpers';
 import {
   NIGHT_REPORT_ACTIONS_TITLE,
   NIGHT_REPORT_DEATH_CAUSE_SUFFIX,
@@ -303,7 +303,7 @@ function ReportHeader({
   data,
   shareTitle,
 }: {
-  readonly data: NightReviewData;
+  readonly data: WerewolfNightReview;
   readonly shareTitle: string | undefined;
 }) {
   const outcome = getNightReviewOutcome(data);
@@ -1106,7 +1106,7 @@ function ActionGroup({
 // Identity roster
 // ─────────────────────────────────────────────────────────────────────────────
 
-function RosterList({ data }: { readonly data: NightReviewData }) {
+function RosterList({ data }: { readonly data: WerewolfNightReview }) {
   const outcome = getNightReviewOutcome(data);
   const reasonBySeat = new Map<number, keyof typeof DEATH_REASON_LABELS | null>(
     outcome.type === 'deaths' ? outcome.deaths.map((death) => [death.seat, death.reason]) : [],
@@ -1147,7 +1147,7 @@ function RosterList({ data }: { readonly data: NightReviewData }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface NightReviewReportBodyProps {
-  readonly data: NightReviewData;
+  readonly data: WerewolfNightReview;
   /** Masthead title on the share image (room label); absent in the modal. */
   readonly shareTitle?: string;
 }

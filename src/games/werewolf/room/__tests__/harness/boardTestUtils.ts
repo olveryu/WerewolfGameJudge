@@ -460,6 +460,7 @@ export function createWerewolfRoomMock(options: WerewolfRoomMockOptions) {
   return {
     gameState,
     viewModel,
+    nightReview: null,
     stateRevision: 1,
 
     isHost,

@@ -1,41 +1,98 @@
-import type { DeathReason } from '@game-judge/game-engine/games/werewolf/public';
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import type { RoleSpec } from '@game-judge/game-engine/games/werewolf/public';
+/**
+ * Night review projection — characterization suite ported from the client
+ * NightReview.helpers tests. Assertions are unchanged; fixtures are complete
+ * GameState values (players as a seat record, recorded actions as protocol
+ * actions) instead of the deleted LocalGameState.
+ */
+
+import { describe, expect, it } from 'vitest';
+
+import { WEREWOLF_STATE_IDENTITY } from '../../../state/version';
+import type { DeathReason } from '../../DeathCalculator';
+import { GameStatus, ROLE_SPECS, type RoleId } from '../../models';
+import { NIGHT_STEPS, type RoleSpec } from '../../models/roles/spec';
+import { getRoleStepId } from '../../models/roles/spec/nightSteps';
 import type {
+  GameState,
+  Player,
+  ProtocolAction,
   SheriffElectionResult,
   SheriffElectionRoundResult,
   SheriffElectionState,
-} from '@game-judge/game-engine/games/werewolf/public';
-import { makeActionTarget } from '@game-judge/game-engine/games/werewolf/public';
-import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
-import { NIGHT_STEPS } from '@game-judge/game-engine/games/werewolf/public';
-
-import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
-
+} from '../../protocol/types';
 import {
   buildActionEntries,
   buildIdentityEntries,
-  buildNightReviewData,
   deriveDeathNotes,
   deriveNightReportStats,
   deriveSheriffSection,
   deriveWolfTargetSaveNote,
   deriveWolfVerdict,
   getNightReviewOutcome,
+  getWerewolfNightReview,
   type NightReviewActionEntry,
   nightReviewActorRoleId,
-  type NightReviewData,
-} from '../NightReview.helpers';
+  type WerewolfNightReview,
+} from '../nightReview';
+
+type Players = Map<number, Player | null>;
+
+/** A recorded single-target action, in the fixture's role-keyed form. */
+function makeActionTarget(targetSeat: number): {
+  readonly kind: 'target';
+  readonly targetSeat: number;
+} {
+  return { kind: 'target', targetSeat };
+}
+
+/** Role-keyed fixture actions → protocol actions (the actor seat is the role's seat). */
+function toProtocolActions(
+  actions: ReadonlyMap<RoleId, ReturnType<typeof makeActionTarget>>,
+  players: Players,
+): ProtocolAction[] {
+  const result: ProtocolAction[] = [];
+  let timestamp = 1;
+  for (const [roleId, action] of actions) {
+    const actorSeat = [...players.entries()].find(([, p]) => p?.role === roleId)?.[0];
+    if (actorSeat === undefined) {
+      throw new Error(`Fixture records an action for ${roleId} with no seated player`);
+    }
+    result.push({
+      schemaId: getRoleStepId(roleId),
+      actorSeat,
+      targetSeat: action.targetSeat,
+      timestamp,
+    });
+    timestamp += 1;
+  }
+  return result;
+}
+
+function toPlayersRecord(players: Players): GameState['players'] {
+  const record: Record<number, Player | null> = {};
+  for (const [seat, player] of players) record[seat] = player;
+  return record;
+}
+
+function toRoster(players: Players): GameState['roster'] {
+  const roster: Record<number, { seat: number; userId: string; profile: { displayName: string } }> =
+    {};
+  for (const [seat, player] of players) {
+    if (player)
+      roster[seat] = { seat, userId: `uid-${seat}`, profile: { displayName: `P${seat}` } };
+  }
+  return roster;
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Build a minimal LocalGameState-like object for testing */
+/** Build a complete GameState for the review projection. */
 function makeGameState(
   overrides: Partial<{
-    currentNightResults: LocalGameState['currentNightResults'];
+    currentNightResults: NonNullable<GameState['currentNightResults']>;
     lastNightDeaths: number[];
     deathReasons: Record<number, DeathReason>;
-    players: Map<number, LocalPlayer | null>;
+    players: Players;
     actions: Map<RoleId, ReturnType<typeof makeActionTarget>>;
     seerReveal: { targetSeat: number; result: '好人' | '狼人' };
     wolfRobotReveal: { targetSeat: number; result: string; learnedRoleId: string };
@@ -44,14 +101,40 @@ function makeGameState(
     thiefChosenCard: RoleId;
     witchContext: { killedSeat: number; canSave: boolean; canPoison: boolean };
     loverSeats: readonly [number, number];
-    seedWolfInfectionResult: LocalGameState['seedWolfInfectionResult'];
+    seedWolfInfectionResult: GameState['seedWolfInfectionResult'];
     sheriffElection: SheriffElectionState;
     sheriffElectionResult: SheriffElectionResult;
     resolvedWolfKillTarget: number | null;
-    resolvedWolfKillVerdict: LocalGameState['resolvedWolfKillVerdict'];
+    resolvedWolfKillVerdict: GameState['resolvedWolfKillVerdict'];
+    mirrorSeerReveal: GameState['mirrorSeerReveal'];
+    drunkSeerReveal: GameState['drunkSeerReveal'];
+    psychicReveal: GameState['psychicReveal'];
+    gargoyleReveal: GameState['gargoyleReveal'];
+    pureWhiteReveal: GameState['pureWhiteReveal'];
+    wolfWitchReveal: GameState['wolfWitchReveal'];
   }> = {},
-): LocalGameState {
-  return {
+): GameState {
+  const players: Players = overrides.players ?? new Map<number, Player | null>();
+  const state: GameState = {
+    ...WEREWOLF_STATE_IDENTITY,
+    roomCode: 'REVIEW',
+    hostUserId: 'host',
+    status: GameStatus.Day,
+    templateRoles: [],
+    players: toPlayersRecord(players),
+    roleViewedSeats: [],
+    roster: toRoster(players),
+    nightStep: null,
+    isAudioPlaying: false,
+    audioBatchId: 0,
+    pendingAudioEffects: [],
+    actions: toProtocolActions(overrides.actions ?? new Map(), players),
+    pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     currentNightResults: {
       ...(overrides.currentNightResults ?? {}),
       ...(overrides.treasureMasterChosenCard
@@ -60,29 +143,43 @@ function makeGameState(
       ...(overrides.thiefChosenCard ? { thiefChosenCard: overrides.thiefChosenCard } : {}),
     },
     lastNightDeaths: overrides.lastNightDeaths ?? [],
-    deathReasons: overrides.deathReasons,
-    players: overrides.players ?? new Map(),
-    actions: overrides.actions ?? new Map(),
-    seerReveal: overrides.seerReveal,
-    wolfRobotReveal: overrides.wolfRobotReveal,
-    bottomCards: overrides.bottomCards,
-    witchContext: overrides.witchContext,
-    loverSeats: overrides.loverSeats,
-    seedWolfInfectionResult: overrides.seedWolfInfectionResult,
-    sheriffElection: overrides.sheriffElection,
-    sheriffElectionResult: overrides.sheriffElectionResult,
-    resolvedWolfKillTarget: overrides.resolvedWolfKillTarget,
-    resolvedWolfKillVerdict: overrides.resolvedWolfKillVerdict,
-  } as unknown as LocalGameState;
+  };
+  const optional: Partial<GameState> = {};
+  if (overrides.deathReasons) optional.deathReasons = overrides.deathReasons;
+  if (overrides.seerReveal) optional.seerReveal = overrides.seerReveal;
+  if (overrides.mirrorSeerReveal) optional.mirrorSeerReveal = overrides.mirrorSeerReveal;
+  if (overrides.drunkSeerReveal) optional.drunkSeerReveal = overrides.drunkSeerReveal;
+  if (overrides.psychicReveal) optional.psychicReveal = overrides.psychicReveal;
+  if (overrides.gargoyleReveal) optional.gargoyleReveal = overrides.gargoyleReveal;
+  if (overrides.pureWhiteReveal) optional.pureWhiteReveal = overrides.pureWhiteReveal;
+  if (overrides.wolfWitchReveal) optional.wolfWitchReveal = overrides.wolfWitchReveal;
+  if (overrides.wolfRobotReveal) {
+    optional.wolfRobotReveal = {
+      ...overrides.wolfRobotReveal,
+      learnedRoleId: overrides.wolfRobotReveal.learnedRoleId as RoleId,
+    };
+  }
+  if (overrides.bottomCards) optional.bottomCards = overrides.bottomCards;
+  if (overrides.witchContext) optional.witchContext = overrides.witchContext;
+  if (overrides.loverSeats) optional.loverSeats = overrides.loverSeats;
+  if (overrides.seedWolfInfectionResult) {
+    optional.seedWolfInfectionResult = overrides.seedWolfInfectionResult;
+  }
+  if (overrides.sheriffElection) optional.sheriffElection = overrides.sheriffElection;
+  if (overrides.sheriffElectionResult) {
+    optional.sheriffElectionResult = overrides.sheriffElectionResult;
+  }
+  if (overrides.resolvedWolfKillTarget !== undefined) {
+    optional.resolvedWolfKillTarget = overrides.resolvedWolfKillTarget;
+  }
+  if (overrides.resolvedWolfKillVerdict !== undefined) {
+    optional.resolvedWolfKillVerdict = overrides.resolvedWolfKillVerdict;
+  }
+  return { ...state, ...optional };
 }
 
-function makePlayer(seat: number, role: string | null): LocalPlayer {
-  return {
-    userId: `uid-${seat}`,
-    seat: seat,
-    role: role as LocalPlayer['role'],
-    hasViewedRole: true,
-  };
+function makePlayer(seat: number, role: string | null): Player {
+  return { seat, role: role as RoleId | null };
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
@@ -113,7 +210,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows guard protection', () => {
-      const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'guard')]]);
+      const players = new Map<number, Player | null>([[0, makePlayer(0, 'guard')]]);
       const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { guardedSeat: 1 } }),
       );
@@ -123,7 +220,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows witch save and poison', () => {
-      const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'witch')]]);
+      const players = new Map<number, Player | null>([[0, makePlayer(0, 'witch')]]);
       const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { savedSeat: 3, poisonedSeat: 5 } }),
       );
@@ -141,7 +238,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows nightmare block', () => {
-      const players = new Map<number, LocalPlayer | null>([[1, makePlayer(1, 'nightmare')]]);
+      const players = new Map<number, Player | null>([[1, makePlayer(1, 'nightmare')]]);
       const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { blockedSeat: 0 } }),
       );
@@ -156,7 +253,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows dreamcatcher protection', () => {
-      const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'dreamcatcher')]]);
+      const players = new Map<number, Player | null>([[0, makePlayer(0, 'dreamcatcher')]]);
       const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { dreamingSeat: 2 } }),
       );
@@ -166,7 +263,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows magician swap', () => {
-      const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'magician')]]);
+      const players = new Map<number, Player | null>([[0, makePlayer(0, 'magician')]]);
       const entries = buildActionEntries(
         makeGameState({ players, currentNightResults: { swappedSeats: [1, 4] } }),
       );
@@ -176,7 +273,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows seer reveal', () => {
-      const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'seer')]]);
+      const players = new Map<number, Player | null>([[0, makePlayer(0, 'seer')]]);
       const entries = buildActionEntries(
         makeGameState({ players, seerReveal: { targetSeat: 2, result: '狼人' } }),
       );
@@ -192,7 +289,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows wolf robot learn', () => {
-      const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'wolfRobot')]]);
+      const players = new Map<number, Player | null>([[0, makePlayer(0, 'wolfRobot')]]);
       const entries = buildActionEntries(
         makeGameState({
           players,
@@ -303,7 +400,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows treasureMaster chosen card', () => {
-      const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'treasureMaster')]]);
+      const players = new Map<number, Player | null>([[0, makePlayer(0, 'treasureMaster')]]);
       const entries = buildActionEntries(
         makeGameState({ players, treasureMasterChosenCard: 'seer' }),
       );
@@ -318,7 +415,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows slacker idol choice', () => {
-      const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'slacker')]]);
+      const players = new Map<number, Player | null>([[0, makePlayer(0, 'slacker')]]);
       const actions: Map<RoleId, ReturnType<typeof makeActionTarget>> = new Map([
         ['slacker', makeActionTarget(3)],
       ]);
@@ -334,7 +431,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows wildChild idol choice', () => {
-      const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'wildChild')]]);
+      const players = new Map<number, Player | null>([[0, makePlayer(0, 'wildChild')]]);
       const actions: Map<RoleId, ReturnType<typeof makeActionTarget>> = new Map([
         ['wildChild', makeActionTarget(1)],
       ]);
@@ -350,7 +447,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows wolfQueen charm', () => {
-      const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'wolfQueen')]]);
+      const players = new Map<number, Player | null>([[0, makePlayer(0, 'wolfQueen')]]);
       const actions: Map<RoleId, ReturnType<typeof makeActionTarget>> = new Map([
         ['wolfQueen', makeActionTarget(4)],
       ]);
@@ -361,7 +458,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows successful Seed Wolf infection', () => {
-      const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'seedWolf')]]);
+      const players = new Map<number, Player | null>([[0, makePlayer(0, 'seedWolf')]]);
       const entries = buildActionEntries(
         makeGameState({
           players,
@@ -374,7 +471,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows failed Seed Wolf infection', () => {
-      const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'seedWolf')]]);
+      const players = new Map<number, Player | null>([[0, makePlayer(0, 'seedWolf')]]);
       const entries = buildActionEntries(
         makeGameState({
           players,
@@ -387,7 +484,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows unused Seed Wolf infection', () => {
-      const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'seedWolf')]]);
+      const players = new Map<number, Player | null>([[0, makePlayer(0, 'seedWolf')]]);
       const entries = buildActionEntries(
         makeGameState({ players, seedWolfInfectionResult: { outcome: 'notUsed' } }),
       );
@@ -395,7 +492,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows hunter can shoot when not poisoned', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'hunter')],
         [1, makePlayer(1, 'wolf')],
       ]);
@@ -411,7 +508,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows hunter cannot shoot when poisoned', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'hunter')],
         [1, makePlayer(1, 'wolf')],
         [2, makePlayer(2, 'witch')],
@@ -430,7 +527,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows darkWolfKing can shoot when not poisoned', () => {
-      const players = new Map<number, LocalPlayer | null>([[2, makePlayer(2, 'darkWolfKing')]]);
+      const players = new Map<number, Player | null>([[2, makePlayer(2, 'darkWolfKing')]]);
       const entries = buildActionEntries(makeGameState({ players }));
       expect(entries).toContainEqual(
         expect.objectContaining({
@@ -443,7 +540,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows darkWolfKing cannot shoot when poisoned', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'witch')],
         [2, makePlayer(2, 'darkWolfKing')],
       ]);
@@ -461,7 +558,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows hunter cannot shoot when dream-linked death (dreamcatcher killed)', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'hunter')],
         [1, makePlayer(1, 'dreamcatcher')],
         [2, makePlayer(2, 'witch')],
@@ -483,7 +580,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows hunter can shoot when dream target but dreamcatcher alive', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'hunter')],
         [1, makePlayer(1, 'dreamcatcher')],
       ]);
@@ -504,7 +601,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows hunter cannot shoot when wolfQueen charm victim (wolfQueen killed)', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'hunter')],
         [1, makePlayer(1, 'wolfQueen')],
         [2, makePlayer(2, 'witch')],
@@ -526,7 +623,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows hunter cannot shoot when couple death (partner wolf-killed)', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'hunter')],
         [1, makePlayer(1, 'villager')],
         [2, makePlayer(2, 'cupid')],
@@ -551,7 +648,7 @@ describe('NightReview.helpers', () => {
     // ── P3: Wolf empty kill (empty knife) ──
 
     it('shows wolf empty kill when wolves present but no votes and no override', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -560,7 +657,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('does not show wolf empty kill when wolfKillOverride is present', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -581,7 +678,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('does not show wolf empty kill when no wolves in game', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'villager')],
         [1, makePlayer(1, 'seer')],
       ]);
@@ -593,7 +690,7 @@ describe('NightReview.helpers', () => {
     // ── P2: Nightmare block role name ──
 
     it('shows nightmare block with role name', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'guard')],
         [1, makePlayer(1, 'nightmare')],
       ]);
@@ -613,7 +710,7 @@ describe('NightReview.helpers', () => {
     // ── P1: Guard "did nothing" ──
 
     it('shows guard did nothing when guard present but not guarding', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'guard')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -622,7 +719,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('does not show guard did nothing when guard is blocked by nightmare', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'guard')],
         [1, makePlayer(1, 'nightmare')],
       ]);
@@ -636,7 +733,7 @@ describe('NightReview.helpers', () => {
     // ── P1: Witch "did nothing" ──
 
     it('shows witch did nothing when witch present and used neither potion', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -647,7 +744,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows witch did not use save when witch saved nothing but poisoned', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -662,7 +759,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows witch did not use poison when witch saved but did not poison', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -677,7 +774,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('does not show witch did nothing when witch is blocked by nightmare', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'nightmare')],
       ]);
@@ -691,7 +788,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows poisoner did nothing when poisoner present but did not poison', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'poisoner')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -702,7 +799,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('witch does not show poison unused when poisoner owns the poison', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'poisoner')],
       ]);
@@ -722,7 +819,7 @@ describe('NightReview.helpers', () => {
     // ── P2: double-save warning ──
 
     it('shows 同守同救 warning when guard and witch both save wolf target', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'guard')],
         [2, makePlayer(2, 'witch')],
@@ -749,7 +846,7 @@ describe('NightReview.helpers', () => {
     // ── P3: Poison immunity warning ──
 
     it('shows poison immunity warning when poisoned target is immune', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'witcher')],
       ]);
@@ -766,7 +863,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('does not show poison immunity for non-immune target', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -780,7 +877,7 @@ describe('NightReview.helpers', () => {
     // ── P3: Damage reflection warning ──
 
     it('shows reflection warning when seer checks a reflectsDamage target', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'seer')],
         [1, makePlayer(1, 'spiritKnight')],
       ]);
@@ -803,16 +900,16 @@ describe('NightReview.helpers', () => {
 
   describe('buildIdentityEntries', () => {
     it('returns empty for no players', () => {
-      expect(buildIdentityEntries(new Map(), new Set())).toEqual([]);
+      expect(buildIdentityEntries({}, new Set())).toEqual([]);
     });
 
     it('builds identity list sorted by seat', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [2, makePlayer(2, 'seer')],
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'villager')],
       ]);
-      expect(buildIdentityEntries(players, new Set())).toEqual([
+      expect(buildIdentityEntries(toPlayersRecord(players), new Set())).toEqual([
         { seat: 0, roleId: 'wolf', isEmptySeat: false, isAlive: true },
         { seat: 1, roleId: 'villager', isEmptySeat: false, isAlive: true },
         { seat: 2, roleId: 'seer', isEmptySeat: false, isAlive: true },
@@ -820,15 +917,15 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows empty seat', () => {
-      const players = new Map<number, LocalPlayer | null>([[0, null]]);
-      expect(buildIdentityEntries(players, new Set())).toEqual([
+      const players = new Map<number, Player | null>([[0, null]]);
+      expect(buildIdentityEntries(toPlayersRecord(players), new Set())).toEqual([
         { seat: 0, roleId: null, isEmptySeat: true, isAlive: true },
       ]);
     });
 
     it('shows unassigned role', () => {
-      const players = new Map([[0, makePlayer(0, null)]]);
-      expect(buildIdentityEntries(players, new Set())).toEqual([
+      const players = new Map<number, Player | null>([[0, makePlayer(0, null)]]);
+      expect(buildIdentityEntries(toPlayersRecord(players), new Set())).toEqual([
         { seat: 0, roleId: null, isEmptySeat: false, isAlive: true },
       ]);
     });
@@ -837,7 +934,7 @@ describe('NightReview.helpers', () => {
   describe('contract: every NIGHT_STEPS role produces an entry', () => {
     it('buildActionEntries covers all night-action roles', () => {
       // Build a maximal game state with ALL roles' night actions populated
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'nightmare')],
         [2, makePlayer(2, 'guard')],
@@ -879,7 +976,7 @@ describe('NightReview.helpers', () => {
         ['wolfQueen', makeActionTarget(2)],
       ]);
 
-      const gs = {
+      const gs = makeGameState({
         currentNightResults: {
           wolfVotesBySeat: { '0': 8 },
           blockedSeat: 3,
@@ -909,16 +1006,13 @@ describe('NightReview.helpers', () => {
         wolfWitchReveal: { targetSeat: 6, result: '猎人' },
         wolfRobotReveal: { targetSeat: 7, result: '猎人', learnedRoleId: 'hunter' },
         loverSeats: [28, 29],
-      } as unknown as LocalGameState;
+      });
 
-      const thiefState = {
+      const { treasureMasterChosenCard: _tm, ...withoutTreasureCard } = gs.currentNightResults!;
+      const thiefState: GameState = {
         ...gs,
-        currentNightResults: {
-          ...gs.currentNightResults,
-          treasureMasterChosenCard: undefined,
-          thiefChosenCard: 'villager',
-        },
-      } as unknown as LocalGameState;
+        currentNightResults: { ...withoutTreasureCard, thiefChosenCard: 'villager' },
+      };
       const entries = [...buildActionEntries(gs), ...buildActionEntries(thiefState)];
       const roles = new Set<RoleId>();
       for (const entry of entries) {
@@ -967,7 +1061,7 @@ describe('NightReview.helpers', () => {
       expect(canSkipRoleIds.length).toBeGreaterThanOrEqual(15);
 
       // Build players map with all canSkip roles, each on a separate seat
-      const players = new Map<number, LocalPlayer | null>();
+      const players = new Map<number, Player | null>();
       canSkipRoleIds.forEach((roleId, idx) => {
         players.set(idx, makePlayer(idx, roleId));
       });
@@ -998,13 +1092,13 @@ describe('NightReview.helpers', () => {
     });
   });
 
-  describe('buildNightReviewData', () => {
+  describe('buildWerewolfNightReview', () => {
     it('returns both sections', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'seer')],
       ]);
-      const data = buildNightReviewData(
+      const data = getWerewolfNightReview(
         makeGameState({
           players,
           seerReveal: { targetSeat: 0, result: '狼人' },
@@ -1099,7 +1193,7 @@ describe('NightReview.helpers', () => {
       // One real vote on seat 4 (index 3) plus one abstention: the engine
       // verdict still names seat 3 as the wolf target, so the 同守同救
       // annotation (guard + save on that target) stays reachable.
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'wolf')],
         [2, makePlayer(2, 'guard')],
@@ -1141,7 +1235,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('keeps the fact order of a composed night as an entry kind sequence', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'guard')],
         [2, makePlayer(2, 'witch')],
@@ -1176,12 +1270,12 @@ describe('NightReview.helpers', () => {
     });
 
     it('builds identity entries for empty and unassigned seats', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, null],
         [1, makePlayer(1, null)],
         [2, makePlayer(2, 'wolf')],
       ]);
-      const entries = buildIdentityEntries(players, new Set([2]));
+      const entries = buildIdentityEntries(toPlayersRecord(players), new Set([2]));
       expect(entries).toEqual([
         { seat: 0, roleId: null, isEmptySeat: true, isAlive: true },
         { seat: 1, roleId: null, isEmptySeat: false, isAlive: true },
@@ -1192,7 +1286,7 @@ describe('NightReview.helpers', () => {
 
   describe('getNightReviewOutcome', () => {
     it('derives the deaths outcome with seats and reasons from built data', () => {
-      const data = buildNightReviewData(
+      const data = getWerewolfNightReview(
         makeGameState({
           lastNightDeaths: [5, 2],
           deathReasons: { 5: 'poison', 2: 'wolfKill' },
@@ -1208,17 +1302,17 @@ describe('NightReview.helpers', () => {
     });
 
     it('derives the peaceful outcome when nobody died', () => {
-      const data = buildNightReviewData(makeGameState({}));
+      const data = getWerewolfNightReview(makeGameState({}));
       expect(getNightReviewOutcome(data)).toEqual({ type: 'peaceful' });
     });
 
     it('fails fast when the data carries no outcome entry', () => {
-      const data: NightReviewData = { actions: [{ kind: 'wolfNoTarget' }], identities: [] };
+      const data: WerewolfNightReview = { actions: [{ kind: 'wolfNoTarget' }], identities: [] };
       expect(() => getNightReviewOutcome(data)).toThrow(/no outcome entry/);
     });
 
     it('fails fast when the data carries more than one outcome entry', () => {
-      const data: NightReviewData = {
+      const data: WerewolfNightReview = {
         actions: [{ kind: 'peacefulNight' }, { kind: 'deaths', deaths: [] }],
         identities: [],
       };
@@ -1228,14 +1322,12 @@ describe('NightReview.helpers', () => {
 
   // ── 2026 report fact layer: actorSeat on every action entry ────────────
   describe('actorSeat', () => {
-    const roster = (
-      ...pairs: readonly (readonly [number, string])[]
-    ): Map<number, LocalPlayer | null> =>
+    const roster = (...pairs: readonly (readonly [number, string])[]): Players =>
       new Map(pairs.map(([seat, role]) => [seat, makePlayer(seat, role)]));
 
     const cases: readonly {
       readonly name: string;
-      readonly state: LocalGameState;
+      readonly state: GameState;
       readonly kind: NightReviewActionEntry['kind'];
       readonly actorSeat: number;
       readonly actorRoleId: string;
@@ -1698,7 +1790,7 @@ describe('NightReview.helpers', () => {
     };
 
     it('is absent when the game held no election', () => {
-      expect(buildNightReviewData(makeGameState()).sheriff).toBeUndefined();
+      expect(getWerewolfNightReview(makeGameState()).sheriff).toBeUndefined();
       expect(deriveSheriffSection(makeGameState())).toBeUndefined();
     });
 
@@ -1739,7 +1831,7 @@ describe('NightReview.helpers', () => {
         closedRounds: [],
         activeRound: null,
         voteProgress: null,
-        speakingInstruction: '从 3号开始，顺时针发言',
+        speakingOrder: { startSeat: 2, direction: 'clockwise' },
       });
     });
 
@@ -1763,7 +1855,7 @@ describe('NightReview.helpers', () => {
         closedRounds: [],
         activeRound: null,
         voteProgress: null,
-        speakingInstruction: null,
+        speakingOrder: null,
       });
     });
 
@@ -1790,7 +1882,7 @@ describe('NightReview.helpers', () => {
         closedRounds: [],
         activeRound: { round: 'first', candidateSeats: [2, 5] },
         voteProgress: { submittedCount: 2, eligibleCount: 7 },
-        speakingInstruction: null,
+        speakingOrder: null,
       });
       expect(JSON.stringify(section)).not.toContain('ballot');
       expect(JSON.stringify(section)).not.toContain('votes');
@@ -1820,7 +1912,7 @@ describe('NightReview.helpers', () => {
         closedRounds: [FIRST_ROUND_DERIVED],
         activeRound: null,
         voteProgress: null,
-        speakingInstruction: '从 3号开始，顺时针发言',
+        speakingOrder: { startSeat: 2, direction: 'clockwise' },
       });
     });
 
@@ -1847,7 +1939,7 @@ describe('NightReview.helpers', () => {
         closedRounds: [FIRST_ROUND_DERIVED],
         activeRound: { round: 'runoff', candidateSeats: [2, 5] },
         voteProgress: { submittedCount: 1, eligibleCount: 7 },
-        speakingInstruction: null,
+        speakingOrder: null,
       });
     });
 
@@ -2120,7 +2212,7 @@ describe('NightReview.helpers', () => {
         }),
       ).toEqual({ type: 'splitKilled', targetSeat: 5 });
 
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'wolf')],
         [2, makePlayer(2, 'wolf')],
@@ -2128,7 +2220,7 @@ describe('NightReview.helpers', () => {
         [5, makePlayer(5, 'villager')],
         [6, makePlayer(6, 'villager')],
       ]);
-      const data = buildNightReviewData(
+      const data = getWerewolfNightReview(
         makeGameState({
           players,
           currentNightResults: { wolfVotesBySeat: { '0': 5, '1': 5, '2': 6 } },
@@ -2148,7 +2240,7 @@ describe('NightReview.helpers', () => {
       // A recorded save proves the witch saved a seat, not how the
       // wolf vote resolved: with no engine verdict, the report must
       // show the vote as pending, never as a picked target.
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'wolf')],
         [2, makePlayer(2, 'witch')],
@@ -2177,11 +2269,11 @@ describe('NightReview.helpers', () => {
     });
 
     it('derives stats from the entries and cross-checks them against the deaths', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [3, makePlayer(3, 'seer')],
         [9, makePlayer(9, 'witch')],
       ]);
-      const data = buildNightReviewData(
+      const data = getWerewolfNightReview(
         makeGameState({
           players,
           currentNightResults: { savedSeat: 4, poisonedSeat: 11 },
@@ -2199,14 +2291,14 @@ describe('NightReview.helpers', () => {
     });
 
     it('does not count a save whose target died anyway', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'guard')],
         [2, makePlayer(2, 'witch')],
         [3, makePlayer(3, 'seer')],
         [4, makePlayer(4, 'villager')],
       ]);
-      const data = buildNightReviewData(
+      const data = getWerewolfNightReview(
         makeGameState({
           players,
           currentNightResults: {
@@ -2228,7 +2320,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('fails fast when the outcome lists a seat twice', () => {
-      const data: NightReviewData = {
+      const data: WerewolfNightReview = {
         actions: [
           {
             kind: 'deaths',
@@ -2244,14 +2336,14 @@ describe('NightReview.helpers', () => {
     });
 
     it('annotates deaths with the locking wolf votes and the poison owner', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [6, makePlayer(6, 'wolf')],
         [7, makePlayer(7, 'wolf')],
         [8, makePlayer(8, 'wolf')],
         [9, makePlayer(9, 'witch')],
         [11, makePlayer(11, 'wolf')],
       ]);
-      const data = buildNightReviewData(
+      const data = getWerewolfNightReview(
         makeGameState({
           players,
           currentNightResults: {
@@ -2271,11 +2363,11 @@ describe('NightReview.helpers', () => {
     });
 
     it('drops the save note once the witch saved the wolf target', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, Player | null>([
         [6, makePlayer(6, 'wolf')],
         [9, makePlayer(9, 'witch')],
       ]);
-      const data = buildNightReviewData(
+      const data = getWerewolfNightReview(
         makeGameState({
           players,
           currentNightResults: { wolfVotesBySeat: { '6': 5 }, savedSeat: 5 },

@@ -1,8 +1,8 @@
 /** Report capture lifetimes preserve only the current room/user's image. */
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { getWerewolfNightReview } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react-native';
 
-import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
+import { makeReviewState } from '@/test-utils/werewolfNightReview';
 import { handleError } from '@/utils/errorPipeline';
 
 import { captureNightReviewCard, shareNightReviewReportImage } from '../../shareNightReview';
@@ -12,14 +12,8 @@ jest.mock('../../shareNightReview');
 jest.mock('@/utils/errorPipeline', () => ({ handleError: jest.fn() }));
 jest.mock('@/utils/miniProgram', () => ({ isMiniProgram: () => false }));
 
-const gameState = {
-  status: GameStatus.Day,
-  currentNightResults: {},
-  players: new Map(),
-  actions: new Map(),
-  lastNightDeaths: [],
-  roleRevealRandomNonce: 'round-1',
-} as unknown as LocalGameState;
+const nightReview = getWerewolfNightReview(makeReviewState({ roleRevealRandomNonce: 'round-1' }));
+const ROUND_NONCE = 'round-1';
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -41,7 +35,8 @@ it('discards an old capture after account change and shares only the current ima
     .mockResolvedValueOnce('new-image');
   jest.mocked(shareNightReviewReportImage).mockResolvedValue('shared');
   const { result, rerender } = renderHook(
-    ({ userId }: { userId: string }) => useNightReviewShare('room-1', '1234', userId, gameState),
+    ({ userId }: { userId: string }) =>
+      useNightReviewShare('room-1', '1234', userId, nightReview, ROUND_NONCE),
     { initialProps: { userId: 'old-user' } },
   );
   let pending!: Promise<string | null>;
@@ -69,7 +64,9 @@ it('shares through the in-flight capture instead of starting a second one', asyn
   });
   jest.mocked(captureNightReviewCard).mockReturnValue(capture);
   jest.mocked(shareNightReviewReportImage).mockResolvedValue('shared');
-  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+  const { result } = renderHook(() =>
+    useNightReviewShare('room-1', '1234', 'user-1', nightReview, ROUND_NONCE),
+  );
 
   let pending!: Promise<string | null>;
   let sharePromise!: Promise<boolean>;
@@ -103,7 +100,9 @@ it('tracks the share run through generation and ends it at the platform handoff'
         finishShare = resolve;
       }),
   );
-  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+  const { result } = renderHook(() =>
+    useNightReviewShare('room-1', '1234', 'user-1', nightReview, ROUND_NONCE),
+  );
 
   let sharePromise!: Promise<boolean>;
   await act(async () => {
@@ -135,7 +134,9 @@ it('reports capture failure and allows a fresh attempt', async () => {
     .mocked(captureNightReviewCard)
     .mockRejectedValueOnce(new Error('capture failed'))
     .mockResolvedValueOnce('retried-image');
-  const { result } = renderHook(() => useNightReviewShare('room-1', '1234', 'user-1', gameState));
+  const { result } = renderHook(() =>
+    useNightReviewShare('room-1', '1234', 'user-1', nightReview, ROUND_NONCE),
+  );
   await act(async () => {
     await result.current.beginReportCapture();
   });

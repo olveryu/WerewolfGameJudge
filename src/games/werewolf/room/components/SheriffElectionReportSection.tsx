@@ -17,11 +17,15 @@
  * which the section projects from the panel's own computation.
  */
 
+import type {
+  NightReviewSheriffRound,
+  NightReviewSheriffSection,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { useMemo } from 'react';
 
 import { colors } from '@/theme';
 
-import type { NightReviewSheriffRound, NightReviewSheriffSection } from '../NightReview.helpers';
+import { formatSpeakingOrder } from '../sheriffElectionViewModel';
 import {
   getSheriffElectionRoundTitle,
   SHERIFF_ELECTION_PHASE_CONTENT,
@@ -83,7 +87,9 @@ export function SheriffElectionReportSection({
             activeCandidateSeats: section.candidateSeats,
           }}
           phase={section.phase}
-          speakingInstruction={section.speakingInstruction}
+          speakingInstruction={
+            section.speakingOrder === null ? null : formatSpeakingOrder(section.speakingOrder)
+          }
           styles={styles}
         />
         {section.voteProgress !== null && (

@@ -4,11 +4,7 @@
  * report. A tally or candidate set computed anywhere else is a drift bug.
  */
 
-import type {
-  SheriffElectionRoundResult,
-  SheriffElectionState,
-} from '@game-judge/game-engine/games/werewolf/public';
-
+import type { SheriffElectionRoundResult, SheriffElectionState } from '../../protocol/types';
 import { deriveSheriffRoundRecord, getSheriffCandidateRecords } from '../sheriffElectionRecord';
 
 const FIRST_ROUND: SheriffElectionRoundResult = {

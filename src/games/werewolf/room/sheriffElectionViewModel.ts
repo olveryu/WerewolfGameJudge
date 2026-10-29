@@ -12,17 +12,19 @@ import type {
   SheriffElectionState,
   SheriffSpeakingDirection,
 } from '@game-judge/game-engine/games/werewolf/public';
-import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
-
-import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
-import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
-
-import type { SheriffCandidateRecords, SheriffRoundRecord } from './sheriffElectionRecord';
+import type {
+  SheriffCandidateRecords,
+  SheriffRoundRecord,
+} from '@game-judge/game-engine/games/werewolf/public';
 import {
   deriveSheriffRoundRecord,
   getSheriffCandidateRecords,
   getSheriffVoteProgress,
-} from './sheriffElectionRecord';
+} from '@game-judge/game-engine/games/werewolf/public';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
+
+import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 export interface SheriffCandidateOptionViewModel {
   readonly seat: number;
@@ -140,14 +142,24 @@ function assertOccupiedSeats(gameState: LocalGameState, seats: readonly number[]
  * Only speech phases produce one; the occupied-seat assertion stays here
  * in the shell — the core never sees a player roster.
  */
-export function getSpeakingInstruction(
+function getSpeakingInstruction(
   gameState: LocalGameState,
   election: SheriffElectionState,
 ): string | null {
   if (election.phase !== 'candidateSpeech' && election.phase !== 'runoffSpeech') return null;
   assertOccupiedSeat(gameState, election.speakingStartSeat);
-  const direction = SPEAKING_DIRECTION_LABELS[election.speakingDirection];
-  return `从 ${formatSeat(election.speakingStartSeat)}开始，${direction}发言`;
+  return formatSpeakingOrder({
+    startSeat: election.speakingStartSeat,
+    direction: election.speakingDirection,
+  });
+}
+
+/** The one speaking-order line: the panel and the night report render the same text. */
+export function formatSpeakingOrder(order: {
+  readonly startSeat: number;
+  readonly direction: SheriffSpeakingDirection;
+}): string {
+  return `从 ${formatSeat(order.startSeat)}开始，${SPEAKING_DIRECTION_LABELS[order.direction]}发言`;
 }
 
 function getAdvanceLabel(election: SheriffElectionState): string | null {

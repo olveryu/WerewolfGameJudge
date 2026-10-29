@@ -9,20 +9,21 @@
  * discipline is pinned throughout: a seat number appears only on its
  * medal, so no 「N号」 text exists anywhere in the report.
  */
-import type {
-  SheriffElectionResult,
-  SheriffElectionState,
-} from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState, Player } from '@game-judge/game-engine/games/werewolf/public';
+import { getWerewolfNightReview } from '@game-judge/game-engine/games/werewolf/public';
 import { render } from '@testing-library/react-native';
 import type { StyleProp } from 'react-native';
 import { StyleSheet } from 'react-native';
 import type { ReactTestInstance } from 'react-test-renderer';
 
-import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
+import {
+  makeReviewPlayer,
+  makeReviewState,
+  type ReviewPlayers,
+} from '@/test-utils/werewolfNightReview';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 
-import { buildNightReviewData } from '../../NightReview.helpers';
 import { NIGHT_REPORT_FOOTER_TEXT, NIGHT_REPORT_KICKER } from '../../nightReviewLayout';
 import { NightReviewModal } from '../NightReviewModal';
 
@@ -49,44 +50,6 @@ function ledgerCell(label: string, count: number): string {
   return `${count}\n${label}`;
 }
 
-function makePlayer(seat: number, role: string | null): LocalPlayer {
-  return {
-    userId: `uid-${seat}`,
-    seat,
-    role: role as LocalPlayer['role'],
-    hasViewedRole: true,
-  };
-}
-
-function makeGameState(
-  overrides: Partial<{
-    currentNightResults: LocalGameState['currentNightResults'];
-    lastNightDeaths: number[];
-    deathReasons: LocalGameState['deathReasons'];
-    players: Map<number, LocalPlayer | null>;
-    seerReveal: { targetSeat: number; result: '好人' | '狼人' };
-    bottomCards: LocalGameState['bottomCards'];
-    sheriffElection: SheriffElectionState;
-    sheriffElectionResult: SheriffElectionResult;
-    resolvedWolfKillTarget: number | null;
-    resolvedWolfKillVerdict: LocalGameState['resolvedWolfKillVerdict'];
-  }> = {},
-): LocalGameState {
-  return {
-    currentNightResults: overrides.currentNightResults ?? {},
-    lastNightDeaths: overrides.lastNightDeaths ?? [],
-    deathReasons: overrides.deathReasons,
-    resolvedWolfKillTarget: overrides.resolvedWolfKillTarget,
-    resolvedWolfKillVerdict: overrides.resolvedWolfKillVerdict,
-    bottomCards: overrides.bottomCards,
-    players: overrides.players ?? new Map(),
-    actions: new Map(),
-    seerReveal: overrides.seerReveal,
-    sheriffElection: overrides.sheriffElection,
-    sheriffElectionResult: overrides.sheriffElectionResult,
-  } as unknown as LocalGameState;
-}
-
 interface FlatColorStyle {
   color?: string;
   backgroundColor?: string;
@@ -108,15 +71,15 @@ function enclosingBackgroundColor(node: ReactTestInstance): string | undefined {
   return undefined;
 }
 
-function composedNightState(): LocalGameState {
-  const players = new Map<number, LocalPlayer | null>([
-    [0, makePlayer(0, 'wolf')],
-    [1, makePlayer(1, 'guard')],
-    [2, makePlayer(2, 'witch')],
-    [3, makePlayer(3, 'seer')],
-    [4, makePlayer(4, 'villager')],
+function composedNightState(): GameState {
+  const players = new Map<number, Player | null>([
+    [0, makeReviewPlayer(0, 'wolf')],
+    [1, makeReviewPlayer(1, 'guard')],
+    [2, makeReviewPlayer(2, 'witch')],
+    [3, makeReviewPlayer(3, 'seer')],
+    [4, makeReviewPlayer(4, 'villager')],
   ]);
-  return makeGameState({
+  return makeReviewState({
     players,
     currentNightResults: {
       wolfVotesBySeat: { '0': 4 },
@@ -136,7 +99,7 @@ describe('NightReviewModal', () => {
     const view = render(
       <NightReviewModal
         visible
-        data={buildNightReviewData(composedNightState())}
+        data={getWerewolfNightReview(composedNightState())}
         onClose={jest.fn()}
       />,
     );
@@ -159,7 +122,7 @@ describe('NightReviewModal', () => {
     const view = render(
       <NightReviewModal
         visible
-        data={buildNightReviewData(composedNightState())}
+        data={getWerewolfNightReview(composedNightState())}
         onClose={jest.fn()}
       />,
     );
@@ -190,7 +153,7 @@ describe('NightReviewModal', () => {
     const view = render(
       <NightReviewModal
         visible
-        data={buildNightReviewData(composedNightState())}
+        data={getWerewolfNightReview(composedNightState())}
         onClose={jest.fn()}
       />,
     );
@@ -207,12 +170,12 @@ describe('NightReviewModal', () => {
   });
 
   it('renders bottom cards and villager identities on the report', () => {
-    const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'villager')]]);
+    const players = new Map<number, Player | null>([[0, makeReviewPlayer(0, 'villager')]]);
     const view = render(
       <NightReviewModal
         visible
-        data={buildNightReviewData(
-          makeGameState({ players, bottomCards: ['villager', 'seer', 'guard'] }),
+        data={getWerewolfNightReview(
+          makeReviewState({ players, bottomCards: ['villager', 'seer', 'guard'] }),
         )}
         onClose={jest.fn()}
       />,
@@ -225,14 +188,14 @@ describe('NightReviewModal', () => {
   });
 
   it('renders a peaceful night and placeholder identities', () => {
-    const players = new Map<number, LocalPlayer | null>([
+    const players = new Map<number, Player | null>([
       [0, null],
-      [1, makePlayer(1, null)],
+      [1, makeReviewPlayer(1, null)],
     ]);
     const view = render(
       <NightReviewModal
         visible
-        data={buildNightReviewData(makeGameState({ players }))}
+        data={getWerewolfNightReview(makeReviewState({ players }))}
         onClose={jest.fn()}
       />,
     );
@@ -247,19 +210,19 @@ describe('NightReviewModal', () => {
   });
 
   it('aggregates wolf votes by target with one filled target medal', () => {
-    const players = new Map<number, LocalPlayer | null>([
-      [0, makePlayer(0, 'wolf')],
-      [1, makePlayer(1, 'wolf')],
-      [2, makePlayer(2, 'wolf')],
-      [3, makePlayer(3, 'wolf')],
-      [4, makePlayer(4, 'villager')],
-      [5, makePlayer(5, 'seer')],
+    const players = new Map<number, Player | null>([
+      [0, makeReviewPlayer(0, 'wolf')],
+      [1, makeReviewPlayer(1, 'wolf')],
+      [2, makeReviewPlayer(2, 'wolf')],
+      [3, makeReviewPlayer(3, 'wolf')],
+      [4, makeReviewPlayer(4, 'villager')],
+      [5, makeReviewPlayer(5, 'seer')],
     ]);
     const view = render(
       <NightReviewModal
         visible
-        data={buildNightReviewData(
-          makeGameState({
+        data={getWerewolfNightReview(
+          makeReviewState({
             players,
             currentNightResults: {
               wolfVotesBySeat: { '0': 4, '1': 4, '2': 4, '3': 4 },
@@ -282,17 +245,17 @@ describe('NightReviewModal', () => {
   });
 
   it('marks tied split wolf votes without a settlement as tie pending, not as no kill', () => {
-    const players = new Map<number, LocalPlayer | null>([
-      [0, makePlayer(0, 'wolf')],
-      [1, makePlayer(1, 'wolf')],
-      [4, makePlayer(4, 'villager')],
-      [5, makePlayer(5, 'villager')],
+    const players = new Map<number, Player | null>([
+      [0, makeReviewPlayer(0, 'wolf')],
+      [1, makeReviewPlayer(1, 'wolf')],
+      [4, makeReviewPlayer(4, 'villager')],
+      [5, makeReviewPlayer(5, 'villager')],
     ]);
     const view = render(
       <NightReviewModal
         visible
-        data={buildNightReviewData(
-          makeGameState({
+        data={getWerewolfNightReview(
+          makeReviewState({
             players,
             currentNightResults: { wolfVotesBySeat: { '0': 5, '1': 4 } },
           }),
@@ -312,17 +275,17 @@ describe('NightReviewModal', () => {
   });
 
   it('marks a tied split wolf vote settled to a kill with the tie-picked verdict', () => {
-    const players = new Map<number, LocalPlayer | null>([
-      [0, makePlayer(0, 'wolf')],
-      [1, makePlayer(1, 'wolf')],
-      [4, makePlayer(4, 'villager')],
-      [5, makePlayer(5, 'villager')],
+    const players = new Map<number, Player | null>([
+      [0, makeReviewPlayer(0, 'wolf')],
+      [1, makeReviewPlayer(1, 'wolf')],
+      [4, makeReviewPlayer(4, 'villager')],
+      [5, makeReviewPlayer(5, 'villager')],
     ]);
     const view = render(
       <NightReviewModal
         visible
-        data={buildNightReviewData(
-          makeGameState({
+        data={getWerewolfNightReview(
+          makeReviewState({
             players,
             currentNightResults: { wolfVotesBySeat: { '0': 5, '1': 4 } },
             lastNightDeaths: [5],
@@ -341,17 +304,17 @@ describe('NightReviewModal', () => {
   });
 
   it('keeps the no-kill verdict only for a tied split vote settled to no kill', () => {
-    const players = new Map<number, LocalPlayer | null>([
-      [0, makePlayer(0, 'wolf')],
-      [1, makePlayer(1, 'wolf')],
-      [4, makePlayer(4, 'villager')],
-      [5, makePlayer(5, 'villager')],
+    const players = new Map<number, Player | null>([
+      [0, makeReviewPlayer(0, 'wolf')],
+      [1, makeReviewPlayer(1, 'wolf')],
+      [4, makeReviewPlayer(4, 'villager')],
+      [5, makeReviewPlayer(5, 'villager')],
     ]);
     const view = render(
       <NightReviewModal
         visible
-        data={buildNightReviewData(
-          makeGameState({
+        data={getWerewolfNightReview(
+          makeReviewState({
             players,
             currentNightResults: { wolfVotesBySeat: { '0': 5, '1': 4 } },
             resolvedWolfKillTarget: null,
@@ -367,17 +330,17 @@ describe('NightReviewModal', () => {
   });
 
   it('merges the witch poison and unused antidote into one card', () => {
-    const players = new Map<number, LocalPlayer | null>([
-      [0, makePlayer(0, 'wolf')],
-      [1, makePlayer(1, 'villager')],
-      [2, makePlayer(2, 'witch')],
-      [3, makePlayer(3, 'villager')],
+    const players = new Map<number, Player | null>([
+      [0, makeReviewPlayer(0, 'wolf')],
+      [1, makeReviewPlayer(1, 'villager')],
+      [2, makeReviewPlayer(2, 'witch')],
+      [3, makeReviewPlayer(3, 'villager')],
     ]);
     const view = render(
       <NightReviewModal
         visible
-        data={buildNightReviewData(
-          makeGameState({
+        data={getWerewolfNightReview(
+          makeReviewState({
             players,
             currentNightResults: { wolfVotesBySeat: { '0': 1 }, poisonedSeat: 3 },
             lastNightDeaths: [3],
@@ -406,25 +369,25 @@ describe('NightReviewModal', () => {
     // The user-reported night (room 2219), seats 0-based: wolves on seats
     // 7/8/9/12号 vote 6号 + 5号, 12号 abstains; the witch poisons 12号 (a
     // wolf), the seer checks 5号, the hunter sits on 3号.
-    const players = new Map<number, LocalPlayer | null>([
-      [0, makePlayer(0, 'villager')],
-      [1, makePlayer(1, 'villager')],
-      [2, makePlayer(2, 'hunter')],
-      [3, makePlayer(3, 'seer')],
-      [4, makePlayer(4, 'villager')],
-      [5, makePlayer(5, 'villager')],
-      [6, makePlayer(6, 'wolf')],
-      [7, makePlayer(7, 'wolf')],
-      [8, makePlayer(8, 'wolf')],
-      [9, makePlayer(9, 'witch')],
-      [10, makePlayer(10, 'villager')],
-      [11, makePlayer(11, 'wolf')],
+    const players = new Map<number, Player | null>([
+      [0, makeReviewPlayer(0, 'villager')],
+      [1, makeReviewPlayer(1, 'villager')],
+      [2, makeReviewPlayer(2, 'hunter')],
+      [3, makeReviewPlayer(3, 'seer')],
+      [4, makeReviewPlayer(4, 'villager')],
+      [5, makeReviewPlayer(5, 'villager')],
+      [6, makeReviewPlayer(6, 'wolf')],
+      [7, makeReviewPlayer(7, 'wolf')],
+      [8, makeReviewPlayer(8, 'wolf')],
+      [9, makeReviewPlayer(9, 'witch')],
+      [10, makeReviewPlayer(10, 'villager')],
+      [11, makeReviewPlayer(11, 'wolf')],
     ]);
     const view = render(
       <NightReviewModal
         visible
-        data={buildNightReviewData(
-          makeGameState({
+        data={getWerewolfNightReview(
+          makeReviewState({
             players,
             currentNightResults: {
               wolfVotesBySeat: { '6': 5, '7': 5, '8': 4, '11': -1 },
@@ -477,16 +440,16 @@ describe('NightReviewModal', () => {
   });
 
   it('renders an all-abstain wolf night with only the abstain group', () => {
-    const players = new Map<number, LocalPlayer | null>([
-      [0, makePlayer(0, 'wolf')],
-      [1, makePlayer(1, 'wolf')],
-      [2, makePlayer(2, 'villager')],
+    const players = new Map<number, Player | null>([
+      [0, makeReviewPlayer(0, 'wolf')],
+      [1, makeReviewPlayer(1, 'wolf')],
+      [2, makeReviewPlayer(2, 'villager')],
     ]);
     const view = render(
       <NightReviewModal
         visible
-        data={buildNightReviewData(
-          makeGameState({
+        data={getWerewolfNightReview(
+          makeReviewState({
             players,
             currentNightResults: { wolfVotesBySeat: { '0': -1, '1': -1 } },
             resolvedWolfKillTarget: null,
@@ -507,17 +470,17 @@ describe('NightReviewModal', () => {
   });
 
   it('renders idle actors as dimmed rows inside their faction group', () => {
-    const players = new Map<number, LocalPlayer | null>([
-      [0, makePlayer(0, 'wolf')],
-      [1, makePlayer(1, 'guard')],
-      [3, makePlayer(3, 'seer')],
-      [4, makePlayer(4, 'villager')],
+    const players = new Map<number, Player | null>([
+      [0, makeReviewPlayer(0, 'wolf')],
+      [1, makeReviewPlayer(1, 'guard')],
+      [3, makeReviewPlayer(3, 'seer')],
+      [4, makeReviewPlayer(4, 'villager')],
     ]);
     const view = render(
       <NightReviewModal
         visible
-        data={buildNightReviewData(
-          makeGameState({
+        data={getWerewolfNightReview(
+          makeReviewState({
             players,
             currentNightResults: { wolfVotesBySeat: { '0': 4 } },
           }),
@@ -554,15 +517,17 @@ describe('NightReviewModal', () => {
       voteCounts: { 2: 4, 5: 2 },
       abstainingSeats: [4],
     } as const;
-    const sevenVillagers = (): Map<number, LocalPlayer | null> =>
-      new Map([0, 1, 2, 3, 4, 5, 6].map((seat) => [seat, makePlayer(seat, 'villager')] as const));
+    const sevenVillagers = (): ReviewPlayers =>
+      new Map(
+        [0, 1, 2, 3, 4, 5, 6].map((seat) => [seat, makeReviewPlayer(seat, 'villager')] as const),
+      );
 
     it('renders the full public record for a completed election', () => {
       const view = render(
         <NightReviewModal
           visible
-          data={buildNightReviewData(
-            makeGameState({
+          data={getWerewolfNightReview(
+            makeReviewState({
               players: sevenVillagers(),
               sheriffElection: {
                 phase: 'completed',
@@ -597,8 +562,8 @@ describe('NightReviewModal', () => {
       const view = render(
         <NightReviewModal
           visible
-          data={buildNightReviewData(
-            makeGameState({
+          data={getWerewolfNightReview(
+            makeReviewState({
               players: sevenVillagers(),
               sheriffElection: {
                 phase: 'registration',
@@ -630,8 +595,8 @@ describe('NightReviewModal', () => {
       const view = render(
         <NightReviewModal
           visible
-          data={buildNightReviewData(
-            makeGameState({
+          data={getWerewolfNightReview(
+            makeReviewState({
               players: sevenVillagers(),
               sheriffElection: {
                 phase: 'firstVote',

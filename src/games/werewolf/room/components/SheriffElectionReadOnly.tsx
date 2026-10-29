@@ -14,11 +14,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { SheriffElectionResult } from '@game-judge/game-engine/games/werewolf/public';
 import type { SheriffElectionState } from '@game-judge/game-engine/games/werewolf/public';
+import type { SheriffCandidateRecords } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { Text, View } from 'react-native';
 
 import { SeatDot } from '@/components/SeatDot';
-import type { SheriffCandidateRecords } from '@/games/werewolf/room/sheriffElectionRecord';
 import type { SheriffElectionRoundViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';

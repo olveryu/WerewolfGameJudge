@@ -198,6 +198,7 @@ export function useWerewolfRoomScreenState(
   const {
     gameState,
     viewModel,
+    nightReview,
     stateRevision,
     isHost,
     mySeat,
@@ -576,7 +577,13 @@ export function useWerewolfRoomScreenState(
     cancelReportShare,
     beginReportCapture,
     shareNightReviewReportDirectly,
-  } = useNightReviewShare(room.roomId, roomCode, myUserId, gameState);
+  } = useNightReviewShare(
+    room.roomId,
+    roomCode,
+    myUserId,
+    nightReview,
+    gameState.roleRevealRandomNonce ?? null,
+  );
 
   const {
     handleSettingsPress,

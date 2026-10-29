@@ -115,6 +115,36 @@ export { RESOLVERS } from './domain/resolvers';
 export type { BottomCardChoice, BottomCardOption } from './domain/resolvers/bottomCardChoice';
 export type { ActionInput, CurrentNightResults, ResolverContext } from './domain/resolvers/types';
 export {
+  buildActionEntries,
+  buildIdentityEntries,
+  deriveDeathNotes,
+  deriveNightReportStats,
+  deriveSheriffSection,
+  deriveWolfTargetSaveNote,
+  deriveWolfVerdict,
+  getNightReviewOutcome,
+  getWerewolfNightReview,
+  type NightReportStats,
+  type NightReviewActionEntry,
+  nightReviewActorRoleId,
+  type NightReviewDeathNote,
+  type NightReviewIdentityEntry,
+  type NightReviewOutcome,
+  type NightReviewSheriffRound,
+  type NightReviewSheriffSection,
+  type NightReviewWolfGiveUpReason,
+  type NightReviewWolfVerdict,
+  type NightReviewWolfVote,
+  type WerewolfNightReview,
+} from './domain/review/nightReview';
+export {
+  deriveSheriffRoundRecord,
+  getSheriffCandidateRecords,
+  getSheriffVoteProgress,
+  type SheriffCandidateRecords,
+  type SheriffRoundRecord,
+} from './domain/review/sheriffElectionRecord';
+export {
   getWerewolfViewModel,
   type WerewolfNightView,
   type WerewolfPendingReveal,

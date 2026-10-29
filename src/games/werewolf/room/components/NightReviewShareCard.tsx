@@ -5,10 +5,10 @@
  * NightReviewReportBody, shared with NightReviewModal so the two surfaces
  * cannot drift; the share title prints on the report's masthead.
  */
+import type { WerewolfNightReview } from '@game-judge/game-engine/games/werewolf/public';
 import { type Ref, useMemo } from 'react';
 import { StyleSheet, useWindowDimensions, View as RNView, type View } from 'react-native';
 
-import type { NightReviewData } from '../NightReview.helpers';
 import {
   formatNightReviewShareTitle,
   NIGHT_REPORT_PALETTE,
@@ -17,7 +17,7 @@ import {
 import { NightReviewReportBody } from './NightReviewReportBody';
 
 interface NightReviewShareCardProps {
-  data: NightReviewData;
+  data: WerewolfNightReview;
   roomCode: string;
   ref?: Ref<View>;
 }

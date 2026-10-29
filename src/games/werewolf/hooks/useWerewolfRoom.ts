@@ -21,7 +21,9 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ActionSchema, SchemaId } from '@game-judge/game-engine/games/werewolf/public';
 import {
   GameStatus,
+  getWerewolfNightReview,
   getWerewolfViewModel,
+  type WerewolfNightReview,
   type WerewolfViewModel,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { useIsFocused } from '@react-navigation/native';
@@ -89,6 +91,9 @@ interface UseWerewolfRoomResult {
    * ack is pending for the effective actor.
    */
   pendingRevealAck: PendingRevealAck | null;
+
+  /** Night report facts (engine projection); null until the night has settled. */
+  nightReview: WerewolfNightReview | null;
 
   takeSeat: (seat: number) => Promise<WerewolfCommandDispatchOutcome>;
   leaveSeat: () => Promise<WerewolfCommandDispatchOutcome>;
@@ -253,6 +258,16 @@ interface UseWerewolfRoomResult {
     [snapshot, botControl.effectiveSeat, isHost],
   );
 
+  // The night report's facts, projected by the engine from the raw snapshot
+  // once the night has settled (Day / Ended). Null while the night is live.
+  const nightReview = useMemo(
+    () =>
+      snapshot.status === GameStatus.Day || snapshot.status === GameStatus.Ended
+        ? getWerewolfNightReview(snapshot)
+        : null,
+    [snapshot],
+  );
+
   // State-driven reveal-ack re-entry: the ack the effective actor still owes
   // per room state (the action committed, then the page reloaded before the
   // reveal dialog was confirmed). Derived from the raw snapshot because the
@@ -279,6 +294,7 @@ interface UseWerewolfRoomResult {
   return {
     gameState,
     viewModel,
+    nightReview,
     stateRevision: sessionSnapshot.room.revision,
     isHost,
     myUserId,

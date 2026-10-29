@@ -4,11 +4,12 @@
  * matches the in-room NightReviewModal exactly; only the shell (card frame
  * + share title) is its own.
  */
+import type { GameState, Player } from '@game-judge/game-engine/games/werewolf/public';
+import { getWerewolfNightReview } from '@game-judge/game-engine/games/werewolf/public';
 import { render } from '@testing-library/react-native';
 
-import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
+import { makeReviewPlayer, makeReviewState } from '@/test-utils/werewolfNightReview';
 
-import { buildNightReviewData } from '../../NightReview.helpers';
 import { NIGHT_REPORT_FOOTER_TEXT } from '../../nightReviewLayout';
 import { NightReviewShareCard } from '../NightReviewShareCard';
 
@@ -30,49 +31,15 @@ function collectTextSequence(node: JsonNode | (JsonNode | string)[] | string | n
   return collectTextSequence(node.children);
 }
 
-function makePlayer(seat: number, role: string | null): LocalPlayer {
-  return {
-    userId: `uid-${seat}`,
-    seat,
-    role: role as LocalPlayer['role'],
-    hasViewedRole: true,
-  };
-}
-
-function makeGameState(
-  overrides: Partial<{
-    currentNightResults: LocalGameState['currentNightResults'];
-    lastNightDeaths: number[];
-    deathReasons: LocalGameState['deathReasons'];
-    players: Map<number, LocalPlayer | null>;
-    seerReveal: { targetSeat: number; result: '好人' | '狼人' };
-    bottomCards: LocalGameState['bottomCards'];
-    resolvedWolfKillTarget: number | null;
-    resolvedWolfKillVerdict: LocalGameState['resolvedWolfKillVerdict'];
-  }> = {},
-): LocalGameState {
-  return {
-    currentNightResults: overrides.currentNightResults ?? {},
-    lastNightDeaths: overrides.lastNightDeaths ?? [],
-    deathReasons: overrides.deathReasons,
-    bottomCards: overrides.bottomCards,
-    players: overrides.players ?? new Map(),
-    actions: new Map(),
-    seerReveal: overrides.seerReveal,
-    resolvedWolfKillTarget: overrides.resolvedWolfKillTarget,
-    resolvedWolfKillVerdict: overrides.resolvedWolfKillVerdict,
-  } as unknown as LocalGameState;
-}
-
-function composedNightState(): LocalGameState {
-  const players = new Map<number, LocalPlayer | null>([
-    [0, makePlayer(0, 'wolf')],
-    [1, makePlayer(1, 'guard')],
-    [2, makePlayer(2, 'witch')],
-    [3, makePlayer(3, 'seer')],
-    [4, makePlayer(4, 'villager')],
+function composedNightState(): GameState {
+  const players = new Map<number, Player | null>([
+    [0, makeReviewPlayer(0, 'wolf')],
+    [1, makeReviewPlayer(1, 'guard')],
+    [2, makeReviewPlayer(2, 'witch')],
+    [3, makeReviewPlayer(3, 'seer')],
+    [4, makeReviewPlayer(4, 'villager')],
   ]);
-  return makeGameState({
+  return makeReviewState({
     players,
     currentNightResults: {
       wolfVotesBySeat: { '0': 4 },
@@ -90,7 +57,7 @@ function composedNightState(): LocalGameState {
 describe('NightReviewShareCard', () => {
   it('renders the share title and the shared presentation sections', () => {
     const view = render(
-      <NightReviewShareCard data={buildNightReviewData(composedNightState())} roomCode="1234" />,
+      <NightReviewShareCard data={getWerewolfNightReview(composedNightState())} roomCode="1234" />,
     );
 
     expect(view.getByText('房间 1234 战报')).toBeTruthy();
@@ -101,7 +68,7 @@ describe('NightReviewShareCard', () => {
 
   it('renders the same action facts as the modal presentation', () => {
     const view = render(
-      <NightReviewShareCard data={buildNightReviewData(composedNightState())} roomCode="1234" />,
+      <NightReviewShareCard data={getWerewolfNightReview(composedNightState())} roomCode="1234" />,
     );
 
     expect(view.getByText('狼队')).toBeTruthy();
@@ -120,15 +87,15 @@ describe('NightReviewShareCard', () => {
   });
 
   it('renders the same header and idle row as the modal', () => {
-    const players = new Map<number, LocalPlayer | null>([
-      [0, makePlayer(0, 'wolf')],
-      [1, makePlayer(1, 'guard')],
-      [4, makePlayer(4, 'villager')],
+    const players = new Map<number, Player | null>([
+      [0, makeReviewPlayer(0, 'wolf')],
+      [1, makeReviewPlayer(1, 'guard')],
+      [4, makeReviewPlayer(4, 'villager')],
     ]);
     const view = render(
       <NightReviewShareCard
-        data={buildNightReviewData(
-          makeGameState({
+        data={getWerewolfNightReview(
+          makeReviewState({
             players,
             currentNightResults: { wolfVotesBySeat: { '0': 4 } },
           }),
@@ -147,15 +114,15 @@ describe('NightReviewShareCard', () => {
   });
 
   it('renders wolf abstentions as an empty-attack group, never as seat 0', () => {
-    const players = new Map<number, LocalPlayer | null>([
-      [0, makePlayer(0, 'wolf')],
-      [1, makePlayer(1, 'wolf')],
-      [4, makePlayer(4, 'villager')],
+    const players = new Map<number, Player | null>([
+      [0, makeReviewPlayer(0, 'wolf')],
+      [1, makeReviewPlayer(1, 'wolf')],
+      [4, makeReviewPlayer(4, 'villager')],
     ]);
     const view = render(
       <NightReviewShareCard
-        data={buildNightReviewData(
-          makeGameState({
+        data={getWerewolfNightReview(
+          makeReviewState({
             players,
             currentNightResults: { wolfVotesBySeat: { '0': 4, '1': -1 } },
             resolvedWolfKillTarget: 4,
@@ -180,7 +147,7 @@ describe('NightReviewShareCard', () => {
 
   it('renders the identity wall with exactly one out seat', () => {
     const view = render(
-      <NightReviewShareCard data={buildNightReviewData(composedNightState())} roomCode="1234" />,
+      <NightReviewShareCard data={getWerewolfNightReview(composedNightState())} roomCode="1234" />,
     );
 
     expect(view.getAllByText('守卫').length).toBeGreaterThanOrEqual(1);
@@ -193,7 +160,7 @@ describe('NightReviewShareCard', () => {
 
   it('does not render the legacy plain-text summary lines', () => {
     const view = render(
-      <NightReviewShareCard data={buildNightReviewData(composedNightState())} roomCode="1234" />,
+      <NightReviewShareCard data={getWerewolfNightReview(composedNightState())} roomCode="1234" />,
     );
 
     // The pre-extraction card printed plain-text summary lines verbatim
