@@ -60,6 +60,7 @@ const createMockGameState = (playerCount: number): LocalGameState => {
     nightStep: { kind: 'exhausted' },
     isAudioPlaying: false,
     audioBatchId: 0,
+    gameSequence: 0,
     pendingAudioEffects: [],
     lastNightDeaths: [],
     currentNightResults: {},

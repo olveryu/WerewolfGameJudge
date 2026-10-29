@@ -96,12 +96,9 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     if (wolfVoteDeadline === undefined) {
       throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
     }
-    ctx.dispatchOrThrow(
-      { type: 'werewolf.progress.request' },
-      'past wolfKill deadline',
-      undefined,
-      { nowMs: wolfVoteDeadline },
-    );
+    ctx.dispatchOrThrow({ type: 'werewolf.phase.expire' }, 'past wolfKill deadline', undefined, {
+      nowMs: wolfVoteDeadline,
+    });
 
     // --- Step 2: witchAction ---
     ctx.assertStep('witchAction');
@@ -186,12 +183,9 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     if (wolfVoteDeadline === undefined) {
       throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
     }
-    ctx.dispatchOrThrow(
-      { type: 'werewolf.progress.request' },
-      'past wolfKill deadline',
-      undefined,
-      { nowMs: wolfVoteDeadline },
-    );
+    ctx.dispatchOrThrow({ type: 'werewolf.phase.expire' }, 'past wolfKill deadline', undefined, {
+      nowMs: wolfVoteDeadline,
+    });
     ctx.acknowledgePendingAudioOrThrow('complete wolfKill to witchAction audio');
 
     // witchAction: save seat 0
@@ -237,12 +231,9 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     if (wolfVoteDeadline === undefined) {
       throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
     }
-    ctx.dispatchOrThrow(
-      { type: 'werewolf.progress.request' },
-      'past wolfKill deadline',
-      undefined,
-      { nowMs: wolfVoteDeadline },
-    );
+    ctx.dispatchOrThrow({ type: 'werewolf.phase.expire' }, 'past wolfKill deadline', undefined, {
+      nowMs: wolfVoteDeadline,
+    });
     ctx.acknowledgePendingAudioOrThrow('complete wolfKill to witchAction audio');
 
     // witchAction: don't save, poison seat 2

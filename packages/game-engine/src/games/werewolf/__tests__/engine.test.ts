@@ -29,6 +29,7 @@ import { handlerError, handlerRejection, handlerSuccess } from '../domain/handle
 import type { SubmitActionIntent } from '../domain/intents/types';
 import { GameStatus, type GameTemplate, type RoleId } from '../domain/models';
 import type { SchemaId } from '../domain/models/roles/spec';
+import { REASON_DEADLINE_NOT_REACHED } from '../domain/phaseExpiry';
 import type { GameState, SheriffElectionState } from '../domain/protocol/types';
 import type { StateAction } from '../domain/reducer/types';
 import { buildInitialGameState } from '../domain/state/buildInitialState';
@@ -79,6 +80,30 @@ function systemContext(): CommandContext {
     randomSeed: 'seed-1',
   };
 }
+
+/** Ongoing wolfKill step with every wolf voted and the settle countdown armed at 6000. */
+function armedWolfVoteState(): GameState {
+  return createState({
+    status: GameStatus.Ongoing,
+    nightStep: { kind: 'inStep', stepId: 'wolfKill', stepDeadline: 6_000 },
+    currentNightResults: { wolfVotesBySeat: { '0': 1 } },
+    isAudioPlaying: false,
+  });
+}
+
+/**
+ * A hand-built exhausted night rests behind the audio gate (in a live
+ * room the inline pass ends the night in the same request that
+ * exhausts it); the host's audio ack is the trigger that releases it.
+ */
+const NIGHT_END_AUDIO_ACK: WerewolfCommand = { type: 'werewolf.audio.ack', audioBatchId: 1 };
+const EXHAUSTED_BEHIND_AUDIO: Partial<GameState> = {
+  status: GameStatus.Ongoing,
+  nightStep: { kind: 'exhausted' },
+  isAudioPlaying: true,
+  audioBatchId: 1,
+  pendingAudioEffects: [{ audioKey: 'wolf_close' }],
+};
 
 function evolveCommittedCommand(
   state: GameState,
@@ -565,7 +590,8 @@ describe('Werewolf engine definition and catalog', () => {
       type: 'werewolf.sheriff.endBySelfDestruct',
     },
     'werewolf.audio.ack': { type: 'werewolf.audio.ack', audioBatchId: 0 },
-    'werewolf.progress.request': { type: 'werewolf.progress.request' },
+    'werewolf.phase.expire': { type: 'werewolf.phase.expire' },
+    'werewolf.phase.settleExpired': { type: 'werewolf.phase.settleExpired' },
     'werewolf.reveal.ack': { type: 'werewolf.reveal.ack' },
     'werewolf.wolfRobot.ackHunterStatus': {
       type: 'werewolf.wolfRobot.ackHunterStatus',
@@ -589,7 +615,8 @@ describe('Werewolf engine definition and catalog', () => {
 
     for (const command of commands) {
       const context =
-        command.type === 'werewolf.growth.applyRosterLevels'
+        command.type === 'werewolf.growth.applyRosterLevels' ||
+        command.type === 'werewolf.phase.settleExpired'
           ? systemContext()
           : userContext('host');
       const decisionState =
@@ -646,7 +673,6 @@ describe('Werewolf engine definition and catalog', () => {
     'werewolf.game.begin',
     'werewolf.sheriff.advance',
     'werewolf.audio.ack',
-    'werewolf.progress.request',
     'werewolf.groupConfirm.ackBots',
   ] as const)('rejects non-host execution of %s', (type) => {
     expect(
@@ -685,8 +711,16 @@ describe('Werewolf engine definition and catalog', () => {
     ]);
 
     for (const command of Object.values(commandByType)) {
-      if (command.type === 'werewolf.growth.applyRosterLevels') continue;
-      const decision = werewolfEngine.decide(createState(), command, userContext('host', 2));
+      if (
+        command.type === 'werewolf.growth.applyRosterLevels' ||
+        command.type === 'werewolf.phase.settleExpired'
+      ) {
+        continue;
+      }
+      // The expiry guard rejects a non-expirable phase ahead of the actor gate.
+      const decisionState =
+        command.type === 'werewolf.phase.expire' ? armedWolfVoteState() : createState();
+      const decision = werewolfEngine.decide(decisionState, command, userContext('host', 2));
 
       if (allowedTypes.has(command.type)) {
         expect(decision).not.toEqual({
@@ -774,17 +808,11 @@ describe('Werewolf engine definition and catalog', () => {
 
   it('emits one game-ended effect with every human participant on the ended transition (bots are not participants)', () => {
     const state = createState({
-      status: GameStatus.Ongoing,
-      nightStep: { kind: 'exhausted' },
+      ...EXHAUSTED_BEHIND_AUDIO,
       currentNightResults: { wolfVotesBySeat: { '0': 1 } },
-      isAudioPlaying: false,
     });
 
-    const decision = werewolfEngine.decide(
-      state,
-      commandByType['werewolf.progress.request'],
-      userContext('host'),
-    );
+    const decision = werewolfEngine.decide(state, NIGHT_END_AUDIO_ACK, userContext('host'));
     if (decision.kind === 'reject') {
       throw new Error(`Expected ended transition commit, received ${decision.reason}`);
     }
@@ -816,8 +844,11 @@ describe('Werewolf engine definition and catalog', () => {
       createState({
         status: GameStatus.Ongoing,
         nightStep: { kind: 'inStep', stepId: 'seerCheck' },
+        isAudioPlaying: true,
+        audioBatchId: 1,
+        pendingAudioEffects: [{ audioKey: 'seer_open' }],
       }),
-      commandByType['werewolf.progress.request'],
+      NIGHT_END_AUDIO_ACK,
       userContext('host'),
     );
     expect(noTransition).toMatchObject({ kind: 'commit', effects: [] });
@@ -832,19 +863,17 @@ describe('Werewolf engine definition and catalog', () => {
 
   it('fails fast when an occupied seat has no role at the ended transition', () => {
     const state = createState({
-      status: GameStatus.Ongoing,
-      nightStep: { kind: 'exhausted' },
+      ...EXHAUSTED_BEHIND_AUDIO,
       currentNightResults: { wolfVotesBySeat: { '0': 1 } },
-      isAudioPlaying: false,
       players: {
         ...createState().players,
         1: { seat: 1 },
       },
     });
 
-    expect(() =>
-      werewolfEngine.decide(state, commandByType['werewolf.progress.request'], userContext('host')),
-    ).toThrow('[FAIL-FAST] Ended Werewolf game has no assigned role for occupied seat 1');
+    expect(() => werewolfEngine.decide(state, NIGHT_END_AUDIO_ACK, userContext('host'))).toThrow(
+      '[FAIL-FAST] Ended Werewolf game has no assigned role for occupied seat 1',
+    );
   });
 
   it('excludes all registered seats from first voting and only runoff candidates from runoff voting', () => {
@@ -853,9 +882,8 @@ describe('Werewolf engine definition and catalog', () => {
       templateRoles: ['wolf', 'seer', 'hunter', 'villager', 'villager'],
       rules: { isSheriffElectionEnabled: true },
       roleRevealRandomNonce: 's4',
-      nightStep: { kind: 'exhausted' },
+      ...EXHAUSTED_BEHIND_AUDIO,
       currentNightResults: {},
-      isAudioPlaying: false,
       players: {
         0: { seat: 0, role: 'wolf' },
         1: { seat: 1, role: 'seer' },
@@ -872,11 +900,7 @@ describe('Werewolf engine definition and catalog', () => {
       },
     });
 
-    state = evolveCommittedCommand(
-      state,
-      { type: 'werewolf.progress.request' },
-      userContext('host'),
-    );
+    state = evolveCommittedCommand(state, NIGHT_END_AUDIO_ACK, userContext('host'));
     expect(state).toMatchObject({
       status: GameStatus.Day,
       isAudioPlaying: true,
@@ -975,15 +999,17 @@ describe('Werewolf engine definition and catalog', () => {
       werewolfEngine.decide(state, { type: 'werewolf.sheriff.advance' }, userContext('host')),
     ).toEqual({ kind: 'reject', reason: 'invalid_election_phase' });
 
-    state = evolveCommittedCommand(
-      state,
-      { type: 'werewolf.progress.request' },
-      { ...userContext('host'), nowMs: 5999 },
-    );
+    expect(
+      werewolfEngine.decide(
+        state,
+        { type: 'werewolf.phase.expire' },
+        { ...userContext('host'), nowMs: 5999 },
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_DEADLINE_NOT_REACHED });
     expect(state.sheriffElection?.phase).toBe('firstVote');
     state = evolveCommittedCommand(
       state,
-      { type: 'werewolf.progress.request' },
+      { type: 'werewolf.phase.expire' },
       { ...userContext('host'), nowMs: 6000 },
     );
     expect(state.sheriffElection).toMatchObject({
@@ -1036,7 +1062,7 @@ describe('Werewolf engine definition and catalog', () => {
     expect(state.sheriffElection.deadline).toBe(6000);
     const finalDecision = werewolfEngine.decide(
       state,
-      { type: 'werewolf.progress.request' },
+      { type: 'werewolf.phase.expire' },
       { ...userContext('host'), nowMs: 6000 },
     );
     if (finalDecision.kind === 'reject') {
@@ -1100,15 +1126,17 @@ describe('Werewolf engine definition and catalog', () => {
     expect(state.sheriffElection.ballots).toEqual({ 2: 1 });
     expect(state.sheriffElection.deadline).toBe(7000);
 
-    state = evolveCommittedCommand(
-      state,
-      { type: 'werewolf.progress.request' },
-      { ...userContext('host'), nowMs: 6999 },
-    );
+    expect(
+      werewolfEngine.decide(
+        state,
+        { type: 'werewolf.phase.expire' },
+        { ...userContext('host'), nowMs: 6999 },
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_DEADLINE_NOT_REACHED });
     expect(state.sheriffElection?.phase).toBe('firstVote');
     state = evolveCommittedCommand(
       state,
-      { type: 'werewolf.progress.request' },
+      { type: 'werewolf.phase.expire' },
       { ...userContext('host'), nowMs: 7000 },
     );
     expect(state).toMatchObject({
@@ -1139,7 +1167,7 @@ describe('Werewolf engine definition and catalog', () => {
     });
     const heldState = evolveCommittedCommand(
       audible,
-      { type: 'werewolf.progress.request' },
+      { type: 'werewolf.phase.expire' },
       { ...userContext('host'), nowMs: 6000 },
     );
     expect(heldState.sheriffElection?.phase).toBe('firstVote');
@@ -1152,7 +1180,7 @@ describe('Werewolf engine definition and catalog', () => {
     });
     const closedState = evolveCommittedCommand(
       silent,
-      { type: 'werewolf.progress.request' },
+      { type: 'werewolf.phase.expire' },
       { ...userContext('host'), nowMs: 6000 },
     );
     expect(closedState).toMatchObject({
@@ -1363,6 +1391,7 @@ describe('Werewolf engine definition and catalog', () => {
       rules: { isSheriffElectionEnabled: true },
       isAudioPlaying: true,
       audioBatchId: 1,
+      gameSequence: 0,
       pendingAudioEffects: [{ audioKey: 'night_end' }],
     };
     const audioRejection = { kind: 'reject', reason: 'forbidden_while_audio_playing' } as const;

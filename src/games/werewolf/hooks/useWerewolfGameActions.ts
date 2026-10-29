@@ -110,7 +110,7 @@ interface WerewolfGameActionsState {
   submitGroupConfirmAck: () => Promise<WerewolfCommandDispatchOutcome>;
   sendWolfRobotHunterStatusViewed: () => Promise<WerewolfCommandDispatchOutcome>;
   /** Host: triggers server progression after wolf vote deadline. Returns success status (used for retry guard). */
-  postProgression: () => Promise<boolean>;
+  expirePhase: () => Promise<boolean>;
 
   // Board nomination (any connected player)
   boardNominate: (displayName: string, roles: RoleId[]) => Promise<void>;
@@ -316,12 +316,11 @@ interface WerewolfGameActionsDeps {
       return result;
     }, [botControl.controlledSeat, botControl.effectiveSeat, client]);
 
-  // Post progression (host only) — triggered by client when wolf vote deadline expires
-  const postProgression = useCallback(async (): Promise<boolean> => {
-    if (!isHost) return false;
-    const result = await client.postProgression();
+  // Deadline expiry acceleration — the server's scheduled settle is authoritative
+  const expirePhase = useCallback(async (): Promise<boolean> => {
+    const result = await client.expirePhase();
     return isSuccessfulRoomCommand(result);
-  }, [client, isHost]);
+  }, [client]);
 
   // =========================================================================
   // Board Nomination (any connected player)
@@ -475,7 +474,7 @@ interface WerewolfGameActionsDeps {
     submitRevealAck,
     submitGroupConfirmAck,
     sendWolfRobotHunterStatusViewed,
-    postProgression,
+    expirePhase,
     boardNominate,
     boardUpvote,
     boardWithdraw,

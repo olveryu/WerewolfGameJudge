@@ -79,7 +79,7 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
     type: 'werewolf.sheriff.endBySelfDestruct',
   },
   'werewolf.audio.ack': { type: 'werewolf.audio.ack', audioBatchId: 0 },
-  'werewolf.progress.request': { type: 'werewolf.progress.request' },
+  'werewolf.phase.expire': { type: 'werewolf.phase.expire' },
   'werewolf.reveal.ack': { type: 'werewolf.reveal.ack' },
   'werewolf.wolfRobot.ackHunterStatus': { type: 'werewolf.wolfRobot.ackHunterStatus' },
   'werewolf.groupConfirm.ack': { type: 'werewolf.groupConfirm.ack' },
@@ -91,10 +91,18 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
   >;
 };
 
-const VALID_INTERNAL_COMMAND = {
-  type: 'werewolf.growth.applyRosterLevels',
-  levels: { 'user-1': 3 },
-} as const satisfies WerewolfInternalCommand;
+const VALID_INTERNAL_COMMAND_BY_TYPE = {
+  'werewolf.growth.applyRosterLevels': {
+    type: 'werewolf.growth.applyRosterLevels',
+    levels: { 'user-1': 3 },
+  },
+  'werewolf.phase.settleExpired': { type: 'werewolf.phase.settleExpired' },
+} as const satisfies {
+  readonly [Type in WerewolfInternalCommand['type']]: Extract<
+    WerewolfInternalCommand,
+    { readonly type: Type }
+  >;
+};
 
 const VALID_FIB_PUBLIC_COMMAND_BY_TYPE = {
   'room.seat.take': { type: 'room.seat.take', seat: 0, profile: { displayName: '玩家' } },
@@ -220,16 +228,16 @@ describe('Worker game catalog', () => {
   it('keeps all Werewolf public command discriminants separate from the internal schema', () => {
     const publicCommands = Object.values(VALID_PUBLIC_COMMAND_BY_TYPE);
 
+    const internalCommands = Object.values(VALID_INTERNAL_COMMAND_BY_TYPE);
+
     for (const command of publicCommands) {
       expect(werewolfPublicCommandSchema.parse(command)).toEqual(command);
+      expect(() => werewolfInternalCommandSchema.parse(command)).toThrow();
     }
-    expect(werewolfInternalCommandSchema.parse(VALID_INTERNAL_COMMAND)).toEqual(
-      VALID_INTERNAL_COMMAND,
-    );
-    expect(() => werewolfPublicCommandSchema.parse(VALID_INTERNAL_COMMAND)).toThrow();
-    expect(() =>
-      werewolfInternalCommandSchema.parse(VALID_PUBLIC_COMMAND_BY_TYPE['room.seat.take']),
-    ).toThrow();
+    for (const command of internalCommands) {
+      expect(werewolfInternalCommandSchema.parse(command)).toEqual(command);
+      expect(() => werewolfPublicCommandSchema.parse(command)).toThrow();
+    }
   });
 
   it('keeps every Fib public command separate from its internal commands', () => {

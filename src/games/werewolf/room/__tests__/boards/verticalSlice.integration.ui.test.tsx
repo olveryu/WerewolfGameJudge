@@ -134,12 +134,9 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     if (wolfVoteDeadline === undefined) {
       throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
     }
-    ctx.dispatchOrThrow(
-      { type: 'werewolf.progress.request' },
-      'past wolfKill deadline',
-      undefined,
-      { nowMs: wolfVoteDeadline },
-    );
+    ctx.dispatchOrThrow({ type: 'werewolf.phase.expire' }, 'past wolfKill deadline', undefined, {
+      nowMs: wolfVoteDeadline,
+    });
     ctx.assertStep('witchAction');
     ctx.acknowledgePendingAudioOrThrow('complete wolfKill to witchAction audio');
 
@@ -225,12 +222,9 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     if (wolfVoteDeadline === undefined) {
       throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
     }
-    ctx.dispatchOrThrow(
-      { type: 'werewolf.progress.request' },
-      'past wolfKill deadline',
-      undefined,
-      { nowMs: wolfVoteDeadline },
-    );
+    ctx.dispatchOrThrow({ type: 'werewolf.phase.expire' }, 'past wolfKill deadline', undefined, {
+      nowMs: wolfVoteDeadline,
+    });
     ctx.acknowledgePendingAudioOrThrow('complete wolfKill to witchAction audio');
     submitActionOrThrow(ctx, 9, { kind: 'skip' }, 'witchAction');
     ctx.acknowledgePendingAudioOrThrow('complete witchAction to hunterConfirm audio');

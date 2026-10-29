@@ -15,12 +15,12 @@ import {
   cancelSheriffRegistration,
   castSheriffVote,
   endSheriffElectionBySelfDestruct,
+  expirePhase,
   type GameActionsContext,
   markAllBotsGroupConfirmed,
   markAllBotsViewed,
   markViewedRole,
   postAudioAck,
-  postProgression,
   redealGame,
   registerSheriffCandidate,
   returnToLobby,
@@ -124,8 +124,8 @@ describe('canonical Werewolf command builders', () => {
     expectCommand({ type: 'werewolf.game.redeal' }, null);
     await shareNightReview(ctx, [1, 3]);
     expectCommand({ type: 'werewolf.review.share', allowedSeats: [1, 3] }, null);
-    await postProgression(ctx);
-    expectCommand({ type: 'werewolf.progress.request' }, null);
+    await expirePhase(ctx);
+    expectCommand({ type: 'werewolf.phase.expire' }, null);
     await markAllBotsViewed(ctx);
     expectCommand({ type: 'werewolf.bots.markAllBotsViewed' }, null);
     await markAllBotsGroupConfirmed(ctx);

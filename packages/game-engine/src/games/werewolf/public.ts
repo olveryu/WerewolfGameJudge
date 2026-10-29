@@ -89,6 +89,11 @@ export {
 } from './domain/models/Template';
 export { type CurrentNightStep, resolveCurrentNightStep } from './domain/nightStep';
 export {
+  readArmedDeadline,
+  REASON_DEADLINE_NOT_REACHED,
+  REASON_PHASE_NOT_EXPIRABLE,
+} from './domain/phaseExpiry';
+export {
   buildSeatRoleMap,
   findSeatByRole,
   forEachSeatedPlayer,
@@ -158,9 +163,11 @@ export {
 } from './domain/visibility';
 export { createWerewolfGameEndedEffect } from './effects/gameEnded';
 export type {
+  WerewolfDeadlinePhase,
   WerewolfEffect,
   WerewolfGameEndedEffect,
   WerewolfGameEndedParticipant,
+  WerewolfSettleDueEffect,
 } from './effects/types';
 export {
   decideWerewolfCommand,

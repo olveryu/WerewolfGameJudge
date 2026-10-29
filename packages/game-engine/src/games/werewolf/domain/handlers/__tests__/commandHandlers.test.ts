@@ -14,7 +14,6 @@ import {
   handleAudioAck,
   handleGroupConfirmAck,
   handleMarkBotsGroupConfirmed,
-  handleProgressionRequest,
   handleRevealAck,
 } from '../commandHandlers';
 
@@ -52,6 +51,7 @@ function createState(overrides: Partial<GameState> = {}): GameState {
     nightStep: { kind: 'exhausted' },
     isAudioPlaying: false,
     audioBatchId: 0,
+    gameSequence: 0,
     pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],
@@ -167,6 +167,7 @@ describe('Werewolf command handlers', () => {
         isAudioPlaying: true,
         pendingAudioEffects: [{ audioKey: 'night' }],
         audioBatchId: 2,
+        gameSequence: 0,
       });
 
       const result = handleAudioAck(1, createContext(state));
@@ -179,27 +180,12 @@ describe('Werewolf command handlers', () => {
         isAudioPlaying: true,
         pendingAudioEffects: [{ audioKey: 'night' }],
         audioBatchId: 1,
+        gameSequence: 0,
       });
 
       const result = handleAudioAck(2, createContext(state));
 
       expect(expectError(result).reason).toBe('unknown_audio_batch');
-    });
-  });
-
-  describe('handleProgressionRequest', () => {
-    it('rejects when the game is not ongoing', () => {
-      const result = handleProgressionRequest(
-        createContext(createState({ status: GameStatus.Ended })),
-      );
-
-      expect(expectError(result).reason).toBe('not_ongoing');
-    });
-
-    it('accepts an ongoing game without emitting an action', () => {
-      const result = handleProgressionRequest(createContext(createState()));
-
-      expect(expectSuccess(result).actions).toEqual([]);
     });
   });
 

@@ -34,10 +34,12 @@
  *   `relayImmediate`; there is no such code symbol): the last
  *   ready seat transitions the phase immediately with a null
  *   deadline in `platform/room/relay/tasks.ts`.
- * - werewolf's expiry side (`inlineProgression`) is out of
- *   domain, and its empty-step AUTO_SKIP arming is the second
- *   writer of the werewolf `stepDeadline` carrier — registered
+ * - werewolf's empty-step AUTO_SKIP arming (`inlineProgression`)
+ *   is the second writer of the werewolf `stepDeadline` carrier —
+ *   a random auto-skip delay, not a settle countdown — registered
  *   here so the countdown welds never mistake it for an adopter.
+ *   Its expiry side is the shared phase-expiry chassis (E-2), like
+ *   every werewolf deadline.
  *
  * Deadline arithmetic weld (bidirectional, below): every
  * now-anchored deadline addition in the scanned sources must

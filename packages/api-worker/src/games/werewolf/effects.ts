@@ -1,12 +1,25 @@
-/** Worker-side validation and execution for Werewolf domain effects. */
+/**
+ * Worker-side validation and execution for Werewolf domain effects:
+ * game-ended growth settlement, MVP reward, and the scheduled deadline
+ * settlement (`werewolf.settle.due`).
+ */
 
 import type {
+  WerewolfDeadlinePhase,
   WerewolfEffect,
   WerewolfGameEndedEffect,
   WerewolfInternalCommand,
+  WerewolfSettleDueEffect,
 } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
-import { isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  isValidRoleId,
+  isValidSchemaId,
+  readArmedDeadline,
+  REASON_DEADLINE_NOT_REACHED,
+  REASON_PHASE_NOT_EXPIRABLE,
+  type RoleId,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { z } from 'zod';
 
 import {
@@ -14,11 +27,18 @@ import {
   publishGameRewards,
 } from '../../features/account/settleGameRewards';
 import { dispatchEffectCommand } from '../../platform/gameModules/effectDispatch';
+import { createSettleDueHandler } from '../../platform/gameModules/settleDue';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 import { settleGameResults } from './settlement/settleGameResults';
 
 const roleIdSchema = z.custom<RoleId>(
   (value): value is RoleId => typeof value === 'string' && isValidRoleId(value),
+);
+
+const deadlinePhaseSchema = z.custom<WerewolfDeadlinePhase>(
+  (value): value is WerewolfDeadlinePhase =>
+    typeof value === 'string' &&
+    (value === 'firstVote' || value === 'runoffVote' || isValidSchemaId(value)),
 );
 
 export const werewolfEffectSchema: z.ZodType<WerewolfEffect> = z.discriminatedUnion('type', [
@@ -33,7 +53,53 @@ export const werewolfEffectSchema: z.ZodType<WerewolfEffect> = z.discriminatedUn
     type: z.literal('werewolf.mvp.awarded'),
     payload: gameCompletionPayloadSchema.extend({ humanPlayerCount: z.number().int().min(6) }),
   }),
+  z.strictObject({
+    type: z.literal('werewolf.settle.due'),
+    payload: z.strictObject({
+      gameSequence: z.int().nonnegative(),
+      phase: deadlinePhaseSchema,
+      deadlineAt: z.int().nonnegative(),
+    }),
+  }),
 ]);
+
+/**
+ * A settle command rejected on the phase or deadline guard means the
+ * arming it targeted is already gone (a client expire or an audio-ack
+ * progression settled first, or the phase moved on): the delivery is
+ * done, not failed.
+ */
+const SUPERSEDED_SETTLE_REASONS: readonly string[] = [
+  REASON_PHASE_NOT_EXPIRABLE,
+  REASON_DEADLINE_NOT_REACHED,
+];
+
+/**
+ * Scheduled deadline settlement through the shared settle.due handler.
+ * The staleness gate compares the pinned arming field by field (game
+ * sequence, phase, deadline) against the deadline the state currently
+ * carries: if the room has moved on (step advanced, round closed, vote
+ * refreshed, new game), the delivery is a no-op.
+ */
+const handleWerewolfSettleDueEffect = createSettleDueHandler<
+  GameState,
+  WerewolfSettleDueEffect['payload'],
+  WerewolfInternalCommand
+>({
+  namespace: 'werewolf:settle',
+  label: 'Werewolf settle',
+  command: { type: 'werewolf.phase.settleExpired' },
+  supersededReasons: SUPERSEDED_SETTLE_REASONS,
+  isCurrent: (state, payload) => {
+    const armed = readArmedDeadline(state);
+    return (
+      armed !== null &&
+      state.gameSequence === payload.gameSequence &&
+      armed.phase === payload.phase &&
+      armed.deadlineAt === payload.deadlineAt
+    );
+  },
+});
 
 /**
  * Applying roster levels is never superseded: the roster state it
@@ -91,9 +157,15 @@ export async function handleWerewolfEffect(
   effect: WerewolfEffect,
   context: WorkerEffectContext<GameState, WerewolfInternalCommand>,
 ): Promise<void> {
-  if (effect.type === 'werewolf.mvp.awarded') {
-    await publishGameRewards({ ...effect.payload, kind: 'mvp', gameType: 'werewolf' }, context);
-  } else {
-    await handleGameEnded(effect, context);
+  switch (effect.type) {
+    case 'werewolf.mvp.awarded':
+      await publishGameRewards({ ...effect.payload, kind: 'mvp', gameType: 'werewolf' }, context);
+      return;
+    case 'werewolf.settle.due':
+      await handleWerewolfSettleDueEffect(effect, context);
+      return;
+    case 'werewolf.game.ended':
+      await handleGameEnded(effect, context);
+      return;
   }
 }

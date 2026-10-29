@@ -102,6 +102,7 @@ function createState(spec: StateSpec): GameState {
     nightStep: spec.stepId ? { kind: 'inStep', stepId: spec.stepId } : null,
     isAudioPlaying: false,
     audioBatchId: 0,
+    gameSequence: 0,
     pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],

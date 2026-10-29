@@ -41,6 +41,7 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
     nightStep: { kind: 'inStep', stepId: 'hunterConfirm' },
     isAudioPlaying: false,
     audioBatchId: 0,
+    gameSequence: 0,
     pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],

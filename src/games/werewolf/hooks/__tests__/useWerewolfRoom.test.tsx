@@ -57,6 +57,7 @@ function createGameState(overrides: Partial<GameState> = {}): GameState {
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     audioBatchId: 0,
+    gameSequence: 0,
     pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],
@@ -125,7 +126,7 @@ function createClient(options?: {
     submitRevealAck: jest.fn(async () => success()),
     submitGroupConfirmAck: jest.fn(async () => success()),
     sendWolfRobotHunterStatusViewed: jest.fn(async () => success()),
-    postProgression: jest.fn(async () => success()),
+    expirePhase: jest.fn(async () => success()),
     wasAudioInterrupted: options?.wasAudioInterrupted ?? false,
     resumeAfterRejoin: jest.fn(async () => undefined),
   };

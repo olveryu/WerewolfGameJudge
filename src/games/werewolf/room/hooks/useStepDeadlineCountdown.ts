@@ -6,10 +6,10 @@
  * - wolf vote countdown (wolfKill step: all voted → 5s countdown)
  * - vacant bottom card step auto-skip (random 5–10s delay)
  *
- * When the deadline expires, the Host fires `postProgression` and retries
- * every tick until it succeeds (success-gated via `postProgressionFiredRef`).
- * On success, new state arrives → deadline changes → useEffect
- * cleanup stops the interval.
+ * When the deadline expires, the Host fires `expirePhase` (the client
+ * acceleration of the server's scheduled settle) and retries every tick
+ * until the step lands (gated via `expireFiredRef`). On success, new
+ * state arrives → deadline changes → useEffect cleanup stops the interval.
  *
  * Does not render UI — returns `countdownTick` for downstream consumers
  * (e.g. `useRoomActions.getBottomAction` countdown display).
@@ -29,7 +29,7 @@ import { roomScreenLog } from '@/utils/logger';
 interface UseStepDeadlineCountdownParams {
   stepDeadline: number | undefined;
   isHost: boolean;
-  postProgression: () => Promise<boolean>;
+  expirePhase: () => Promise<boolean>;
 }
 
 /**
@@ -39,44 +39,44 @@ interface UseStepDeadlineCountdownParams {
 export function useStepDeadlineCountdown({
   stepDeadline,
   isHost,
-  postProgression,
+  expirePhase,
 }: UseStepDeadlineCountdownParams): number {
   const [countdownTick, setCountdownTick] = useState(0);
-  const postProgressionFiredRef = useRef(false);
+  const expireFiredRef = useRef(false);
 
   // Reset fire-guard when deadline changes (new deadline = new countdown)
   useEffect(() => {
-    postProgressionFiredRef.current = false;
+    expireFiredRef.current = false;
   }, [stepDeadline]);
 
   useEffect(() => {
     if (stepDeadline == null) return;
 
-    const tryProgression = (): void => {
-      if (!isHost || postProgressionFiredRef.current) return;
-      postProgressionFiredRef.current = true;
+    const tryExpire = (): void => {
+      if (!isHost || expireFiredRef.current) return;
+      expireFiredRef.current = true;
       fireAndForget(
-        postProgression().then(() => {
-          // Always reset — server may no-op (same revision) when stepDeadline
-          // hasn't passed yet. The 1s interval provides natural rate limiting;
-          // when progression truly succeeds, stepDeadline changes and
+        expirePhase().then(() => {
+          // Always reset — the server rejects while the deadline is not yet
+          // reached (clock skew). The 1s interval provides natural rate
+          // limiting; when the step lands, stepDeadline changes and the
           // useEffect cleanup stops the interval.
-          postProgressionFiredRef.current = false;
+          expireFiredRef.current = false;
         }),
-        '[postProgression] fire failed',
+        '[expirePhase] fire failed',
         roomScreenLog,
       );
     };
 
     // Already expired on mount — fire immediately (Host only)
     if (Date.now() >= stepDeadline) {
-      tryProgression();
+      tryExpire();
       // Non-host: nothing to tick or retry
       if (!isHost) return;
     }
 
     // Interval: countdown ticks + Host retry on failure.
-    // For Host, the interval keeps running until postProgression succeeds
+    // For Host, the interval keeps running until expirePhase lands the step
     // (new state arrives → deadline changes → useEffect cleanup).
     // For non-host, clears once deadline expires.
     const interval = setInterval(() => {
@@ -84,7 +84,7 @@ export function useStepDeadlineCountdown({
       const expired = now >= stepDeadline;
       if (expired) {
         if (isHost) {
-          tryProgression();
+          tryExpire();
         } else {
           clearInterval(interval);
         }
@@ -92,7 +92,7 @@ export function useStepDeadlineCountdown({
       setCountdownTick((t) => t + 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, [stepDeadline, isHost, postProgression]);
+  }, [stepDeadline, isHost, expirePhase]);
 
   return countdownTick;
 }

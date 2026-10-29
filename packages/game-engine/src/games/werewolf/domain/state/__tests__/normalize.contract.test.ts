@@ -35,6 +35,7 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'nightStep',
   'isAudioPlaying',
   'audioBatchId',
+  'gameSequence',
 
   // Role reveal animation config
   'roleRevealRandomNonce',
@@ -141,6 +142,7 @@ describe('normalizeState contract', () => {
       },
       isAudioPlaying: false,
       audioBatchId: 0,
+      gameSequence: 0,
 
       // Role reveal animation config
       roleRevealRandomNonce: 'nonce-123',
@@ -279,6 +281,7 @@ describe('normalizeState contract', () => {
       nightStep: null,
       isAudioPlaying: false,
       audioBatchId: 0,
+      gameSequence: 0,
       pendingAudioEffects: [],
       actions: [],
       pendingRevealAcks: [],

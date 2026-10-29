@@ -48,6 +48,7 @@ function mkOngoingState(overrides: Partial<GameState> = {}): GameState {
     nightStep: { kind: 'inStep', stepId: 'thiefChoose' },
     isAudioPlaying: false,
     audioBatchId: 0,
+    gameSequence: 0,
     pendingAudioEffects: [],
     actions: [],
     currentNightResults: {},

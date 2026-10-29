@@ -238,8 +238,8 @@ export function useWerewolfRoomScreenState(
     releaseBot,
     effectiveSeat,
     effectiveRole,
-    // Progression
-    postProgression,
+    // Deadline expiry
+    expirePhase,
     // Board nomination
     boardUpvote,
     boardWithdraw,
@@ -319,7 +319,7 @@ export function useWerewolfRoomScreenState(
   const countdownTick = useStepDeadlineCountdown({
     stepDeadline: activeStepDeadline,
     isHost,
-    postProgression,
+    expirePhase,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════

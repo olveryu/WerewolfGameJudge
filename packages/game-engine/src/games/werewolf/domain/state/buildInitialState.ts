@@ -33,6 +33,7 @@ export function buildInitialGameState(
     nightStep: null,
     isAudioPlaying: false,
     audioBatchId: 0,
+    gameSequence: 0,
     pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],

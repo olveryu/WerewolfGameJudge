@@ -187,10 +187,13 @@ AU-39 golden 测试补新字段与 host 视角。
 
 引擎现状：`WerewolfEffect` 仅 gameEnded / MVP；`handlerResultToDecision` 不产效果；`stageDeadline: false`；`werewolf.progress.request` 走 `resolveHostActor`、无 pin、唯一调用者是 `useStepDeadlineCountdown`。新建：
 
-- 命令：删 `werewolf.progress.request`；新 `werewolf.phase.expire`（public，uncontrolledUser）与 `werewolf.phase.settleExpired`（system），payload 均为完整 pin `{ gameSequence, phase: stepId | 'sheriffVote', round, deadlineAt }`，经 `guardPhaseExpiry` 逐字段比对。Worker `schemas.ts:123` 同步。
-- 效果：`WerewolfEffect` 加 `WerewolfSettleDueEffect`。`HandlerSuccess` 与 `InlineProgressionResult` 加必填 `effects: readonly WerewolfEffect[]`；三个装弹现场（`actionHandler` 狼投票、`inlineProgression` 空底牌步、`sheriffElectionHandler`）在返回 `SET_STEP_DEADLINE` / 警长 deadline 事件的同一处显式返回 `buildSettleDueEffect(pin)`——与阿瓦隆 `commitAvalon(events, [settleDueEffect(...)])` 同款。`handlerResultToDecision` 透传效果，不做派生。契约测试断言不变量：任一 decision 的事件含 deadline 写入 ⇔ 效果含且仅含一条 pin 到该 deadline 的 `settle.due`。reducer 保持纯函数。
-- 能力 `stageDeadline: true`；`phaseDeadlineVariants.contract.test.ts` 登记 werewolf。
-- Worker：`games/werewolf/module.ts` 注册 zod schema、business key、投递时间、`createSettleDueHandler`。
+- 命令：删 `werewolf.progress.request`；新 `werewolf.phase.expire`（public，uncontrolledUser）与 `werewolf.phase.settleExpired`（system）。两者与阿瓦隆同款**无 payload**：pin 只在效果上，由 Worker `isCurrent` 逐字段比对（`gameSequence` / `phase` / `deadlineAt` 对 `readArmedDeadline(state)`）；引擎侧 `guardPhaseExpiry` 只需"当前阶段有载体 + 已到期"——到期即应结算，与客户端以为在加速哪次装弹无关（v3 初稿写"命令带完整 pin"，实现时否决：命令上的 pin 不增加正确性）。Worker `schemas.ts` 同步。
+- 游戏身份：`GameState.gameSequence`（首局 0，`RESTART_GAME` +1），状态 **v16**，v12–v15 迁移补 0。pin 形状 `{ gameSequence, phase: SchemaId | 'firstVote' | 'runoffVote', deadlineAt }`——夜一无 round。
+- 效果：`WerewolfEffect` 加 `WerewolfSettleDueEffect`。`HandlerSuccess` 与 `InlineProgressionResult` 加必填 `effects: readonly WerewolfEffect[]`；三个装弹现场（`actionHandler` 狼投票、`inlineProgression` 空底牌步、`sheriffElectionHandler`）在返回 `SET_STEP_DEADLINE` / 警长 deadline 事件的同一处显式返回 `werewolfSettleDueEffect(state, phase, deadlineAt)`（`effects/settleDue.ts`，包 `buildSettleDueEffect`）——与阿瓦隆 `commitAvalon(events, [settleDueEffect(...)])` 同款。`handlerResultToDecision` 透传效果，不做派生。`domain/__tests__/phaseExpiry.test.ts` 断言不变量：任一 decision 的事件含 deadline 写入 ⇔ 效果含且仅含一条 pin 到该 deadline 的 `settle.due`。reducer 保持纯函数。
+- 到期派发：`domain/phaseExpiry.ts#decidePhaseExpiry` = `guardPhaseExpiry` + `runInlineProgression`，夜间音频门（`isAudioPlaying`）仍在每次推进前；白天警长结算无音频门，pin 为唯一防线。
+- 能力 `stageDeadline: true`；`phaseDeadlineVariants.contract.test.ts` 登记 werewolf（`dualChannel` / `none` / `sequence+phase+deadline` / `noneByDesign`），`__tests__/phaseDeadlineProtocol.contract.test.ts` 跑共享场景。
+- Worker：`games/werewolf/effects.ts` zod schema + `createSettleDueHandler`（superseded = `phase_not_expirable` / `deadline_not_reached`）；`module.ts` business key `werewolf:settle:<seq>:<phase>:<deadline>` 与投递时间。
+- 客户端（本步最小改动）：`postProgression` → `expirePhase` 发 `werewolf.phase.expire`，去掉 host 门（非 host 命令）；`useStepDeadlineCountdown` 仍只在 host 端加速，步骤 5 由 `useStageDeadline` 取代。
 
 ### 6.3 引擎：复盘事实
 
@@ -543,3 +546,4 @@ v3 初稿默认"六家是基准、狼人杀向六家看齐"，把两处狼人杀
 
 - 步骤 1：状态版本落为 **v15**（v14 已被占用），`migratePersistedWerewolfState` 迁 v12–14；`recordedActions` 投影字段无消费者，删除。
 - 步骤 2：`deathSources` 持久化撤回（§6.3 / D3 / D11）；`speakingInstruction` → `speakingOrder` 结构化；`sheriffElectionRecord` 与复盘测试随事实层迁入引擎。
+- 步骤 3：到期命令无 payload（同阿瓦隆，pin 只在效果上）；新增 `GameState.gameSequence`，状态 v16；`handleProgressionRequest` 删除，hand-built "exhausted" 测试状态改经音频 ack 触发收夜（线上 exhausted 态只会停在音频/确认门后）。

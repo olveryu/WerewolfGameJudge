@@ -53,6 +53,7 @@ function createState(): LocalGameState {
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     audioBatchId: 0,
+    gameSequence: 0,
     pendingAudioEffects: [],
     lastNightDeaths: [],
     currentNightResults: {},

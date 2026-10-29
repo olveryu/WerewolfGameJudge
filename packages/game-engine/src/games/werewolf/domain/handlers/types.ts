@@ -8,6 +8,7 @@
  */
 
 import type { CommandExecutionContext } from '../../../../platform/engine';
+import type { WerewolfEffect } from '../../effects/types';
 import type { GameState } from '../protocol/types';
 import type { StateAction } from '../reducer/types';
 
@@ -44,6 +45,11 @@ export type HandlerResult = HandlerSuccess | HandlerRejection | HandlerError;
 export interface HandlerSuccess {
   readonly kind: 'success';
   readonly actions: StateAction[];
+  /**
+   * Effects this handler arms alongside its actions (a settle.due for
+   * a deadline it writes). Always explicit: never derived from actions.
+   */
+  readonly effects: readonly WerewolfEffect[];
   /** Optional metadata (e.g., 'DEDUPLICATED'); does not affect success semantics, used by client toast */
   readonly reason?: string;
 }
@@ -61,8 +67,16 @@ export interface HandlerError {
 
 // ── Factory functions ───────────────────────────────────────────────────────
 
-export function handlerSuccess(actions: StateAction[], reason?: string): HandlerSuccess {
-  return { kind: 'success', actions, reason };
+export interface HandlerSuccessOptions {
+  readonly effects?: readonly WerewolfEffect[];
+  readonly reason?: string;
+}
+
+export function handlerSuccess(
+  actions: StateAction[],
+  options: HandlerSuccessOptions = {},
+): HandlerSuccess {
+  return { kind: 'success', actions, effects: options.effects ?? [], reason: options.reason };
 }
 
 export function handlerRejection(reason: string, actions: StateAction[]): HandlerRejection {

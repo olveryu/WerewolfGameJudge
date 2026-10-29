@@ -118,9 +118,9 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
    *
    * Called when client countdown expires, server executes inline progression.
    */
-  async postProgression(): Promise<WerewolfCommandDispatchOutcome> {
-    werewolfRuntimeLog.debug('postProgression');
-    return gameActions.postProgression(this.#getActionsContext());
+  async expirePhase(): Promise<WerewolfCommandDispatchOutcome> {
+    werewolfRuntimeLog.debug('expirePhase');
+    return gameActions.expirePhase(this.#getActionsContext());
   }
 
   // =========================================================================

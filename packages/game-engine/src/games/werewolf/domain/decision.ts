@@ -47,16 +47,21 @@ export function handlerResultToDecision(
     });
   }
 
+  const effects: WerewolfEffect[] = [...result.effects];
+
   if (options.progressAfterSuccess) {
     let stateAfterHandler = state;
     for (const event of events) {
       stateAfterHandler = gameReducer(stateAfterHandler, event);
     }
-    events.push(...runInlineProgression(stateAfterHandler, state.hostUserId, context).actions);
+    const progression = runInlineProgression(stateAfterHandler, state.hostUserId, context);
+    events.push(...progression.actions);
+    effects.push(...progression.effects);
   }
 
   return commit<StateAction, WerewolfEffect>({
     events,
+    effects,
     ...(result.reason === undefined ? {} : { reason: result.reason }),
   });
 }

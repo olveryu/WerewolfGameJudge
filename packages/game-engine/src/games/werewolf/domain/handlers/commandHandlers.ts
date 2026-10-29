@@ -20,19 +20,6 @@ export function handleAudioAck(audioBatchId: number, context: HandlerContext): H
   }
 }
 
-export function handleProgressionRequest(context: HandlerContext): HandlerResult {
-  const state = context.state;
-
-  // Ongoing drives the night progression; Day drives the sheriff
-  // election's settle-countdown expiry evaluation. Both run through
-  // the same inline progression pass after this no-op success.
-  if (state.status !== GameStatus.Ongoing && state.status !== GameStatus.Day) {
-    return handlerError('not_ongoing');
-  }
-
-  return handlerSuccess([]);
-}
-
 export function handleRevealAck(context: HandlerContext): HandlerResult {
   const state = context.state;
 

@@ -505,7 +505,7 @@ export function createWerewolfRoomMock(options: WerewolfRoomMockOptions) {
     submitRevealAck: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
     submitGroupConfirmAck: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
-    postProgression: jest.fn().mockResolvedValue(true),
+    expirePhase: jest.fn().mockResolvedValue(true),
 
     // Board nominations
     boardNominate: jest.fn().mockResolvedValue(undefined),

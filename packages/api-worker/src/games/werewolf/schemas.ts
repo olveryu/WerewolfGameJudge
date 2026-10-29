@@ -120,7 +120,7 @@ const publicCommandOptions = definePublicCommandOptions<WerewolfPublicCommand>()
     type: z.literal('werewolf.audio.ack'),
     audioBatchId: z.number().int().nonnegative(),
   }),
-  z.strictObject({ type: z.literal('werewolf.progress.request') }),
+  z.strictObject({ type: z.literal('werewolf.phase.expire') }),
   z.strictObject({ type: z.literal('werewolf.reveal.ack') }),
   z.strictObject({ type: z.literal('werewolf.wolfRobot.ackHunterStatus') }),
   z.strictObject({ type: z.literal('werewolf.groupConfirm.ack') }),
@@ -132,7 +132,11 @@ export const werewolfPublicCommandSchema: z.ZodType<WerewolfPublicCommand> = z.d
   publicCommandOptions,
 );
 
-export const werewolfInternalCommandSchema: z.ZodType<WerewolfInternalCommand> = z.strictObject({
-  type: z.literal('werewolf.growth.applyRosterLevels'),
-  levels: z.record(z.string().min(1), z.number().int().nonnegative()),
-});
+export const werewolfInternalCommandSchema: z.ZodType<WerewolfInternalCommand> =
+  z.discriminatedUnion('type', [
+    z.strictObject({
+      type: z.literal('werewolf.growth.applyRosterLevels'),
+      levels: z.record(z.string().min(1), z.number().int().nonnegative()),
+    }),
+    z.strictObject({ type: z.literal('werewolf.phase.settleExpired') }),
+  ]);

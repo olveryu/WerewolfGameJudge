@@ -11,6 +11,7 @@
 
 import { createSeededRng, type Rng } from '../../../../platform/random';
 import { decideSettleCountdownArm } from '../../../../platform/room/settleCountdown';
+import { werewolfSettleDueEffect } from '../../effects/settleDue';
 import type { SubmitActionIntent } from '../intents/types';
 import { ROLE_SPECS, type RoleId, type SchemaId, Team } from '../models';
 import { buildSeatRoleMap } from '../playerHelpers';
@@ -261,17 +262,19 @@ export function handleSubmitAction(
       nowMs: execution.nowMs,
     });
 
-    const extraActions: StateAction[] = [];
+    // Arming writes the deadline and its scheduled settle together;
+    // clearing leaves the earlier settle.due to no-op on its stale pin.
     if (timerAction.type === 'set') {
-      extraActions.push({
-        type: 'SET_STEP_DEADLINE' as const,
-        payload: { deadline: timerAction.deadlineAt },
-      });
-    } else if (timerAction.type === 'clear') {
-      extraActions.push({ type: 'CLEAR_STEP_DEADLINE' as const });
+      return handlerSuccess(
+        [
+          ...handlerResult.actions,
+          { type: 'SET_STEP_DEADLINE', payload: { deadline: timerAction.deadlineAt } },
+        ],
+        { effects: [werewolfSettleDueEffect(state, schemaId, timerAction.deadlineAt)] },
+      );
     }
-    if (extraActions.length > 0) {
-      return handlerSuccess([...handlerResult.actions, ...extraActions]);
+    if (timerAction.type === 'clear') {
+      return handlerSuccess([...handlerResult.actions, { type: 'CLEAR_STEP_DEADLINE' }]);
     }
   }
 

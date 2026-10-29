@@ -117,7 +117,7 @@ interface UseWerewolfRoomResult {
   getCurseInfo: () => string | null;
   hasWolfVoted: (seat: number) => boolean;
   /** Host: triggers server progression after wolf vote deadline expires. Returns whether successful (used by retry guard). */
-  postProgression: () => Promise<boolean>;
+  expirePhase: () => Promise<boolean>;
 
   // Board nomination (any connected player)
   boardNominate: (displayName: string, roles: RoleId[]) => Promise<void>;
@@ -337,7 +337,7 @@ interface UseWerewolfRoomResult {
     getLastNightInfo: actions.getLastNightInfo,
     getCurseInfo: actions.getCurseInfo,
     hasWolfVoted: actions.hasWolfVoted,
-    postProgression: actions.postProgression,
+    expirePhase: actions.expirePhase,
     // Board nomination
     boardNominate: actions.boardNominate,
     boardUpvote: actions.boardUpvote,

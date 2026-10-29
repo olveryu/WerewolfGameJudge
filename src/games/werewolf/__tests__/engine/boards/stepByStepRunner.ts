@@ -121,7 +121,7 @@ function releaseStepDeadline(ctx: GameContext): boolean {
     deadlineState.nightStep?.kind === 'inStep' ? deadlineState.nightStep.stepDeadline : undefined;
   if (deadline === undefined) return false;
   ctx.dispatchOrThrow(
-    { type: 'werewolf.progress.request' },
+    { type: 'werewolf.phase.expire' },
     `release step deadline at ${deadline}`,
     undefined,
     { nowMs: deadline },
@@ -172,8 +172,10 @@ export function executeRemainingSteps(
       throw new Error(`[FAIL-FAST] Night runner received lifecycle ${state.status}`);
     }
     if (currentStepIdOf(state) === undefined) {
-      ctx.dispatchOrThrow({ type: 'werewolf.progress.request' }, 'finish Night-1');
-      continue;
+      // The inline pass ends the night in the request that exhausts it; an
+      // exhausted step at rest can only be waiting on an audio / reveal ack,
+      // which settleCompletedStep above already drained.
+      throw new Error('[FAIL-FAST] Night runner found an exhausted night with nothing pending');
     }
     executeCurrentStep(ctx, customActions);
   }

@@ -14,9 +14,9 @@
  *   the audio machinery, the gallery flow). The stageDeadline marker
  *   is the guard call itself, not the `deadlineAt` field name: the
  *   settle countdown skeleton (E-3) also names its arm field
- *   `deadlineAt`, and werewolf — stageDeadline false, its deadline
- *   is the night-step domain — calls that skeleton, so the field
- *   name no longer discriminates this capability.
+ *   `deadlineAt`, and fibking / undercover — stageDeadline false —
+ *   never touch either, so the field name alone would not
+ *   discriminate this capability.
  * - `identityViewing`: the per-game protocol scenario suite
  *   (`identityViewingProtocol.contract.test.ts`) exists exactly for
  *   the games that declare it; those suites pin the behavior itself.
@@ -68,7 +68,7 @@ const EXPECTED_CAPABILITIES: Readonly<Record<GameType, GameEngineCapabilities>> 
     botsAndTakeover: true,
     identityViewing: true,
     revealAnimation: true,
-    stageDeadline: false,
+    stageDeadline: true,
     audioOrchestration: true,
     wordLibrary: false,
     gallery: false,
