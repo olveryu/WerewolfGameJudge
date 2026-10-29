@@ -20,6 +20,7 @@ import {
   toGameRoomLike,
 } from '@/games/werewolf/room/werewolfRoom.helpers';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
+import { emptyWerewolfNight, werewolfSeatView } from '@/test-utils/werewolfViewModel';
 
 /**
  * AU-39: buildSeatViewModels reads wolf visibility, wolf-vote badges and
@@ -37,26 +38,29 @@ function viewModelFor(
   const seats: WerewolfSeatView[] = [];
   state.players.forEach((player, seat) => {
     if (!player) return;
-    seats.push({
-      seat,
-      displayName: player.displayName || '玩家',
-      isBot: player.isBot === true,
-      visibleRole: null,
-      isWolfPackPeer: wolfPackSeats?.includes(seat) ?? false,
-      hasViewedRole: player.hasViewedRole,
-    });
+    seats.push(
+      werewolfSeatView(seat, {
+        displayName: player.displayName || '玩家',
+        isBot: player.isBot === true,
+        isWolfPackPeer: wolfPackSeats?.includes(seat) ?? false,
+        hasViewedRole: player.hasViewedRole,
+      }),
+    );
   });
   return {
     status: state.status,
     mySeat: null,
     myRole: null,
     myEffectiveRole: null,
+    template: state.template,
     seats,
     wolfPackSeats,
     viewedSeats: seats
       .filter((seatView) => seatView.hasViewedRole)
       .map((seatView) => seatView.seat),
-    night: { stepSchemaKind: null, confirmStatus: null, reveals: [], wolfVotesBySeat },
+    night: emptyWerewolfNight({
+      wolfVote: wolfVotesBySeat ? { votes: wolfVotesBySeat, myVote: null, deadlineAt: null } : null,
+    }),
     day: { sheriffSeat: null, mvpSeat: null },
   };
 }

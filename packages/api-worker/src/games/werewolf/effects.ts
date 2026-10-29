@@ -26,15 +26,7 @@ export const werewolfEffectSchema: z.ZodType<WerewolfEffect> = z.discriminatedUn
     type: z.literal('werewolf.game.ended'),
     payload: z.strictObject({
       roomCode: z.string().min(1),
-      participants: z
-        .array(
-          z.strictObject({
-            userId: z.string().min(1),
-            role: roleIdSchema,
-            isBot: z.boolean(),
-          }),
-        )
-        .min(1),
+      participants: z.array(z.strictObject({ userId: z.string().min(1), role: roleIdSchema })),
     }),
   }),
   z.strictObject({

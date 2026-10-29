@@ -7,8 +7,8 @@
  * Contains no IO (network / audio / Alert).
  */
 
-import { getBottomCardCountForRole, ROLE_SPECS } from '../models';
-import { Faction } from '../models/roles/spec/types';
+import { getBottomCardCountForRole } from '../models';
+import { rejectBottomCardChoice } from './bottomCardChoice';
 import type { ResolverFn } from './types';
 
 /** Must choose a deck card */
@@ -16,9 +16,6 @@ const REJECT_MUST_CHOOSE = '必须选择一张底牌' as const;
 
 /** cardIndex out of range */
 const REJECT_INVALID_INDEX = '无效的卡牌索引' as const;
-
-/** Wolf-faction deck card not selectable */
-const REJECT_WOLF_CARD = '不可选择狼人阵营底牌' as const;
 
 export const treasureMasterChooseResolver: ResolverFn = (context, input) => {
   const { actorSeat, currentNightResults, bottomCardContext } = context;
@@ -57,10 +54,9 @@ export const treasureMasterChooseResolver: ResolverFn = (context, input) => {
     throw new Error('[FAIL-FAST] Valid treasure-master card index resolved to no card');
   }
 
-  // Reject wolf-faction card selection
-  const chosenSpec = ROLE_SPECS[chosenRoleId];
-  if (chosenSpec.faction === Faction.Wolf) {
-    return { valid: false, rejectReason: REJECT_WOLF_CARD };
+  const choiceReason = rejectBottomCardChoice('treasureMaster', bottomCards, chosenRoleId);
+  if (choiceReason !== null) {
+    return { valid: false, rejectReason: choiceReason };
   }
 
   return {

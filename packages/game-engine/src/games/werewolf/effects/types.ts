@@ -2,16 +2,17 @@
 
 import type { RoleId } from '../domain/models';
 
+/** A human player in the ended game. Bots have no user id and nothing to settle, so they are not participants. */
 export interface WerewolfGameEndedParticipant {
   readonly userId: string;
   readonly role: RoleId;
-  readonly isBot: boolean;
 }
 
 export interface WerewolfGameEndedEffect {
   readonly type: 'werewolf.game.ended';
   readonly payload: {
     readonly roomCode: string;
+    /** Human participants only; may be empty for an all-bot room. */
     readonly participants: readonly WerewolfGameEndedParticipant[];
   };
 }

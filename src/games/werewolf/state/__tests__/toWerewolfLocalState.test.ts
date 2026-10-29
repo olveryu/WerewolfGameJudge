@@ -62,7 +62,7 @@ describe('toWerewolfLocalState', () => {
       actionRejected: {
         action: 'seerCheck',
         reason: 'invalid_step',
-        targetUserId: 'p2',
+        targetSeat: 2,
         rejectionId: 'test-1',
       },
     });
@@ -84,7 +84,7 @@ describe('toWerewolfLocalState', () => {
     expect(local.actionRejected).toEqual({
       action: 'seerCheck',
       reason: 'invalid_step',
-      targetUserId: 'p2',
+      targetSeat: 2,
       rejectionId: 'test-1',
     });
   });

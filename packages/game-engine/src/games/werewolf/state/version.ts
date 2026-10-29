@@ -38,11 +38,15 @@
  * takes the next id and `werewolf.audio.ack` names the batch it played,
  * so replayed or coalesced acks can never clear a later batch. v12 and
  * v13 payloads migrate with audioBatchId = 0.
+ * v15 addresses `actionRejected` to the acting seat (`targetSeat`) instead
+ * of a synthesized user id: bots have no user id, the seat is the identity.
+ * The field is transient UI feedback, so v12–v14 payloads migrate by
+ * dropping it.
  */
 
 import { WEREWOLF_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 
-export const WEREWOLF_STATE_VERSION = 14;
+export const WEREWOLF_STATE_VERSION = 15;
 
 export const WEREWOLF_STATE_IDENTITY = {
   gameType: WEREWOLF_GAME_TYPE,

@@ -234,7 +234,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       reactiveMock.simulateHostReject({
         action: 'seerCheck',
         reason: BLOCKED_UI_DEFAULTS.message,
-        targetUserId: 'p8',
+        targetSeat: 8,
         rejectionId: 'nightmare-block-1',
       });
 
@@ -292,7 +292,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       reactiveMock.simulateHostReject({
         action: 'witchAction',
         reason: BLOCKED_UI_DEFAULTS.message,
-        targetUserId: 'p9',
+        targetSeat: 9,
         rejectionId: 'nightmare-block-2',
       });
 

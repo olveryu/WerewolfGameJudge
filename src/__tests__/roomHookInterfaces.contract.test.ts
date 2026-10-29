@@ -166,14 +166,16 @@ describe('stage deadline snapshot guard (AU-25/AU-47)', () => {
 describe('werewolf view-model projection — AU-39', () => {
   it('the view model is assembled in useWerewolfRoom for the effective seat, not in the Screen', () => {
     const hook = readSource('games/werewolf/hooks/useWerewolfRoom.ts');
-    expect(hook).toMatch(/getWerewolfViewModel\(snapshot, botControl\.effectiveSeat\)/);
+    expect(hook).toMatch(
+      /getWerewolfViewModel\(snapshot, \{ seat: botControl\.effectiveSeat, isHost \}\)/,
+    );
     const screen = readSource('games/werewolf/room/WerewolfRoomScreen.tsx');
     expect(screen).not.toMatch(/getWerewolfViewModel/);
   });
 
   it('seat projections read wolf visibility from the view model, never local role rules', () => {
     const helpers = readSource('games/werewolf/room/werewolfRoom.helpers.ts');
-    expect(helpers).toMatch(/viewModel\.night\.wolfVotesBySeat/);
+    expect(helpers).toMatch(/viewModel\.night\.wolfVote\?\.votes/);
     expect(helpers).toMatch(/isWolfPackPeer/);
     expect(helpers).not.toMatch(/canRoleSeeWolves/);
     const derived = readSource('games/werewolf/room/hooks/useRoomDerived.ts');

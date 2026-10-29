@@ -154,7 +154,11 @@ export function useChatMessages(
       }
       const gameState = room.room.state;
       const mySeat = getWerewolfUserSeat(gameState, owner.userId);
-      const gameContext = buildPlayerContext(gameState, getWerewolfViewModel(gameState, mySeat));
+      // The AI assistant speaks to the player's own card: it never gets the host's view of bots.
+      const gameContext = buildPlayerContext(
+        gameState,
+        getWerewolfViewModel(gameState, { seat: mySeat, isHost: false }),
+      );
       if (!isAIChatReady()) {
         showErrorAlert('AI 助手', 'AI 助手暂不可用');
         return;

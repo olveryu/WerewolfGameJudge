@@ -85,7 +85,7 @@ function createHarness() {
 function createParams(state: GameState, dialogs: UseRoomActionDialogsResult) {
   return {
     gameState: toWerewolfLocalState(state),
-    viewModel: getWerewolfViewModel(state, 0),
+    viewModel: getWerewolfViewModel(state, { seat: 0, isHost: false }),
     roomStatus: GameStatus.Ongoing,
     currentActionRole: 'seer' as const,
     currentSchema: getSchema('seerCheck'),
@@ -96,7 +96,6 @@ function createParams(state: GameState, dialogs: UseRoomActionDialogsResult) {
     actorSeatForUi: 0,
     imActioner: true,
     isAudioPlaying: false,
-    myUserId: 'player-0',
     hasPendingActionCommand: false,
     needsContinueOverlay: false,
     firstSwapSeat: null,

@@ -249,8 +249,8 @@ interface UseWerewolfRoomResult {
   // the local-state conversion, for the effective viewer (the controlled bot
   // seat while the host is delegating, otherwise the user's own seat).
   const viewModel = useMemo(
-    () => getWerewolfViewModel(snapshot, botControl.effectiveSeat),
-    [snapshot, botControl.effectiveSeat],
+    () => getWerewolfViewModel(snapshot, { seat: botControl.effectiveSeat, isHost }),
+    [snapshot, botControl.effectiveSeat, isHost],
   );
 
   // State-driven reveal-ack re-entry: the ack the effective actor still owes
@@ -269,7 +269,7 @@ interface UseWerewolfRoomResult {
       ? null
       : botControl.effectiveSeat === mySeat
         ? viewModel.myRole
-        : getWerewolfViewModel(snapshot, mySeat).myRole;
+        : getWerewolfViewModel(snapshot, { seat: mySeat, isHost }).myRole;
 
   const roomStatus = gameState.status;
 
