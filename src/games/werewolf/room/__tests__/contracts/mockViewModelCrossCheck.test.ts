@@ -7,7 +7,7 @@
  * through both builders and pins agreement on the fields the seat board
  * actually consumes from the view model (werewolfRoom.helpers reads
  * seats[].isWolfPackPeer, seats[].hasViewedRole and
- * night.wolfVotesBySeat; wolfPackSeats / viewedSeats are the same facts
+ * night.wolfVote.votes; wolfPackSeats / viewedSeats are the same facts
  * in list form. night.stepSchemaKind is pinned as well: both builders
  * derive the current step, and parity here keeps the mock's step
  * derivation honest against the real VM).
@@ -103,14 +103,14 @@ function seatBoardSurface(viewModel: ReturnType<typeof getWerewolfViewModel>) {
     })),
     wolfPackSeats: viewModel.wolfPackSeats,
     viewedSeats: viewModel.viewedSeats,
-    wolfVotesBySeat: viewModel.night.wolfVotesBySeat,
-    stepSchemaKind: viewModel.night.stepSchemaKind,
+    wolfVotes: viewModel.night.wolfVote?.votes ?? null,
+    stepSchemaKind: viewModel.night.actionSchema?.kind ?? null,
   };
 }
 
 describe('buildMockWerewolfViewModel × getWerewolfViewModel cross-check', () => {
   it('agrees on the seat-board surface for a wolf viewer at the wolf step', () => {
-    const real = getWerewolfViewModel(buildEngineState(), 0);
+    const real = getWerewolfViewModel(buildEngineState(), { seat: 0, isHost: false });
     const mock = buildMockWerewolfViewModel({
       mySeat: 0,
       myRole: 'wolf',
@@ -129,7 +129,7 @@ describe('buildMockWerewolfViewModel × getWerewolfViewModel cross-check', () =>
   });
 
   it('agrees on the seat-board surface for a seer viewer who cannot see the pack', () => {
-    const real = getWerewolfViewModel(buildEngineState(), 2);
+    const real = getWerewolfViewModel(buildEngineState(), { seat: 2, isHost: false });
     const mock = buildMockWerewolfViewModel({
       mySeat: 2,
       myRole: 'seer',
@@ -142,6 +142,6 @@ describe('buildMockWerewolfViewModel × getWerewolfViewModel cross-check', () =>
     });
     expect(seatBoardSurface(mock)).toEqual(seatBoardSurface(real));
     expect(real.wolfPackSeats).toBeNull();
-    expect(real.night.wolfVotesBySeat).toBeNull();
+    expect(real.night.wolfVote).toBeNull();
   });
 });

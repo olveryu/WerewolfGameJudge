@@ -9,6 +9,7 @@
 
 import type { ActionSchema, RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { WerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
+import { createTemplateFromRoles } from '@game-judge/game-engine/games/werewolf/public';
 import {
   GameStatus,
   SCHEMAS,
@@ -18,6 +19,7 @@ import { renderHook } from '@testing-library/react-native';
 
 import { useRoomDerived } from '@/games/werewolf/room/hooks/useRoomDerived';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
+import { emptyWerewolfNight, werewolfSeatView } from '@/test-utils/werewolfViewModel';
 
 // =============================================================================
 // Fixture: four ack families with one distinct acked seat each
@@ -85,19 +87,12 @@ function viewModelForSchema(currentSchema: ActionSchema): WerewolfViewModel {
     mySeat: 5,
     myRole: null,
     myEffectiveRole: null,
-    seats: [0, 1, 2, 3, 4, 5].map((seat) => ({
-      seat,
-      displayName: `P${seat}`,
-      isBot: false,
-      visibleRole: null,
-      isWolfPackPeer: false,
-      hasViewedRole: false,
-    })),
+    template: createTemplateFromRoles([]),
+    seats: [0, 1, 2, 3, 4, 5].map((seat) => werewolfSeatView(seat)),
     wolfPackSeats: null,
     viewedSeats: [],
-    night: {
-      stepSchemaKind: 'groupConfirm',
-      confirmStatus: null,
+    night: emptyWerewolfNight({
+      actionSchema: currentSchema,
       reveals:
         ackedSeats === undefined
           ? []
@@ -111,8 +106,7 @@ function viewModelForSchema(currentSchema: ActionSchema): WerewolfViewModel {
                 ackedSeats,
               },
             ],
-      wolfVotesBySeat: null,
-    },
+    }),
     day: { sheriffSeat: null, mvpSeat: null },
   };
 }

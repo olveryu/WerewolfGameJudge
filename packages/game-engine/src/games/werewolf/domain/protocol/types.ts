@@ -488,11 +488,12 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    */
   confirmStatus?: ConfirmStatus;
 
-  /** Action rejected feedback - only display to the rejected player via UI filter */
+  /** Action rejected feedback; the view-model projection shows it only to `targetSeat`. */
   actionRejected?: {
     action: string;
     reason: string;
-    targetUserId: string;
+    /** The acting seat whose action was rejected (bots have no user id; the seat is the identity). */
+    targetSeat: number;
     /** Unique id for this rejection event (UI uses it for dedupe). */
     rejectionId: string;
   };

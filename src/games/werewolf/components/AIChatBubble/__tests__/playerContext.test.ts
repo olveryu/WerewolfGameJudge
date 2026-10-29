@@ -9,6 +9,8 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameState, Player } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus, getWerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
 
+import { buildWerewolfTestState } from '@/test-utils/werewolfState';
+
 import { buildPlayerContext } from '../playerContext';
 
 /**
@@ -31,32 +33,15 @@ function viewModelFor(state: GameState, viewerSeat: number | null) {
     roster,
     nightStep: state.nightStep,
   };
-  return getWerewolfViewModel(completed, viewerSeat);
+  return getWerewolfViewModel(completed, { seat: viewerSeat, isHost: false });
 }
 
 function makeState(overrides: Partial<GameState> = {}): GameState {
-  return {
-    roomCode: 'ABCD',
-    status: GameStatus.Ongoing,
-    phase: 'night',
-    currentStep: null,
-    players: {},
-    roleViewedSeats: [],
-    templateRoles: [],
-    wolfVotes: {},
-    lastNightDeaths: [],
-    ...overrides,
-  } as GameState;
+  return buildWerewolfTestState({ status: GameStatus.Ongoing, ...overrides });
 }
 
 function makePlayer(overrides: Partial<Player> = {}): Player {
-  return {
-    seat: 1,
-    displayName: 'Player1',
-    isAlive: true,
-    role: null,
-    ...overrides,
-  } as Player;
+  return { seat: 1, role: null, ...overrides };
 }
 
 describe('buildPlayerContext', () => {

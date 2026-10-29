@@ -546,7 +546,6 @@ export function useWerewolfRoomScreenState(
     actorSeatForUi,
     imActioner,
     isAudioPlaying,
-    myUserId,
     hasPendingActionCommand: roomConnection.connection.pendingDurableCount > 0,
     needsContinueOverlay,
     firstSwapSeat,

@@ -195,7 +195,7 @@ describe('normalizeState contract', () => {
       actionRejected: {
         action: 'witchAction',
         reason: 'already_used',
-        targetUserId: 'p1',
+        targetSeat: 1,
         rejectionId: 'rej-1',
       },
 

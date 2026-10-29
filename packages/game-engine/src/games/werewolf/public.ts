@@ -112,13 +112,19 @@ export type {
   WerewolfNightStep,
 } from './domain/protocol/types';
 export { RESOLVERS } from './domain/resolvers';
+export type { BottomCardChoice, BottomCardOption } from './domain/resolvers/bottomCardChoice';
 export type { ActionInput, CurrentNightResults, ResolverContext } from './domain/resolvers/types';
 export {
   getWerewolfViewModel,
   type WerewolfNightView,
+  type WerewolfPendingReveal,
+  type WerewolfRejectionView,
   type WerewolfRevealView,
   type WerewolfSeatView,
+  type WerewolfViewer,
   type WerewolfViewModel,
+  type WerewolfWolfRobotView,
+  type WerewolfWolfVoteView,
 } from './domain/visibility';
 export { createWerewolfGameEndedEffect } from './effects/gameEnded';
 export type {

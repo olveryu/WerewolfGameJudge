@@ -14,12 +14,17 @@ import type {
   WerewolfRevealView,
   WerewolfViewModel,
 } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus, getSchema } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  createTemplateFromRoles,
+  GameStatus,
+  getSchema,
+} from '@game-judge/game-engine/games/werewolf/public';
 
 import { groupConfirmAckExecutor } from '@/games/werewolf/room/executors/groupConfirmExecutor';
 import type { ExecutorContext } from '@/games/werewolf/room/executors/types';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
+import { emptyWerewolfNight } from '@/test-utils/werewolfViewModel';
 
 // =============================================================================
 // Fixture helpers
@@ -100,15 +105,11 @@ function viewModelWith(reveal: WerewolfRevealView): WerewolfViewModel {
     mySeat: null,
     myRole: null,
     myEffectiveRole: null,
+    template: createTemplateFromRoles([]),
     seats: [],
     wolfPackSeats: null,
     viewedSeats: [],
-    night: {
-      stepSchemaKind: 'groupConfirm',
-      confirmStatus: null,
-      reveals: [reveal],
-      wolfVotesBySeat: null,
-    },
+    night: emptyWerewolfNight({ actionSchema: getSchema(reveal.stepId), reveals: [reveal] }),
     day: { sheriffSeat: null, mvpSeat: null },
   };
 }

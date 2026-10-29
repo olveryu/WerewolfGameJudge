@@ -406,7 +406,7 @@ describe('Werewolf handler decision adapter', () => {
       payload: {
         action: 'seerCheck',
         reason: 'blocked',
-        targetUserId: 'user-1',
+        targetSeat: 1,
         rejectionId: 'command-1',
       },
     };
@@ -772,7 +772,7 @@ describe('Werewolf engine definition and catalog', () => {
     expect(getWerewolfLifecycle(createState({ status }))).toBe(lifecycle);
   });
 
-  it('emits one game-ended effect with every occupied participant on the ended transition', () => {
+  it('emits one game-ended effect with every human participant on the ended transition (bots are not participants)', () => {
     const state = createState({
       status: GameStatus.Ongoing,
       nightStep: { kind: 'exhausted' },
@@ -795,9 +795,8 @@ describe('Werewolf engine definition and catalog', () => {
         payload: {
           roomCode: '1234',
           participants: [
-            { userId: 'host', role: 'wolf', isBot: false },
-            { userId: 'user-1', role: 'seer', isBot: false },
-            { userId: 'bot-2', role: 'hunter', isBot: true },
+            { userId: 'host', role: 'wolf' },
+            { userId: 'user-1', role: 'seer' },
           ],
         },
       },

@@ -26,7 +26,11 @@ import {
   isBottomCardWolfVoteExcluded,
   isWolfRole,
 } from '@game-judge/game-engine/games/werewolf/public';
-import { getSchema, SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  createTemplateFromRoles,
+  getSchema,
+  SCHEMAS,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { Team } from '@game-judge/game-engine/games/werewolf/public';
 import { fireEvent, waitFor } from '@testing-library/react-native';
 import React from 'react';
@@ -39,6 +43,7 @@ import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/We
 import type { LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
+import { emptyWerewolfNight } from '@/test-utils/werewolfViewModel';
 import { TESTIDS } from '@/testids';
 
 import { type RoomScreenTestHarness } from './RoomScreenTestHarness';
@@ -161,7 +166,7 @@ interface WerewolfRoomMockOptions {
   actionRejected?: {
     action: string;
     reason: string;
-    targetUserId: string;
+    targetSeat: number;
     rejectionId?: string;
   } | null;
   /** Reveal data */
@@ -205,6 +210,12 @@ export function buildMockWerewolfViewModel(input: {
   conversionRevealAcks?: readonly number[];
   cupidLoversRevealAcks?: readonly number[];
   seedWolfInfectionRevealAcks?: readonly number[];
+  actionRejected?: {
+    action: string;
+    reason: string;
+    targetSeat: number;
+    rejectionId?: string;
+  } | null;
 }): WerewolfViewModel {
   const { mySeat, myRole, currentSchema } = input;
   const { showWolves } = determineActionerState(
@@ -237,6 +248,7 @@ export function buildMockWerewolfViewModel(input: {
       displayName: player.displayName || '玩家',
       isBot: player.isBot === true,
       visibleRole: null,
+      disabledReason: null,
       isWolfPackPeer,
       hasViewedRole: player.hasViewedRole,
     });
@@ -297,11 +309,25 @@ export function buildMockWerewolfViewModel(input: {
     mySeat,
     myRole,
     myEffectiveRole: myRole ? getBottomCardEffectiveRole(myRole, input.currentNightResults) : null,
+    template: createTemplateFromRoles(
+      [...input.players.values()]
+        .map((player) => player.role)
+        .filter((role): role is RoleId => role !== null),
+    ),
     seats,
     wolfPackSeats: showWolves ? wolfPackSeats : null,
     viewedSeats: seats.filter((seat) => seat.hasViewedRole).map((seat) => seat.seat),
-    night: {
-      stepSchemaKind: currentSchema.kind,
+    night: emptyWerewolfNight({
+      actionSchema: currentSchema,
+      currentActionRole: input.currentActionRole,
+      rejection:
+        input.actionRejected && input.actionRejected.targetSeat === mySeat
+          ? {
+              rejectionId: input.actionRejected.rejectionId ?? 'mock-rejection',
+              action: input.actionRejected.action,
+              reason: input.actionRejected.reason,
+            }
+          : null,
       confirmStatus:
         currentSchema.kind === 'confirm' &&
         input.confirmStatus &&
@@ -309,8 +335,17 @@ export function buildMockWerewolfViewModel(input: {
           ? input.confirmStatus
           : null,
       reveals,
-      wolfVotesBySeat: showWolves ? (input.currentNightResults.wolfVotesBySeat ?? null) : null,
-    },
+      wolfVote: showWolves
+        ? {
+            votes: input.currentNightResults.wolfVotesBySeat ?? {},
+            myVote:
+              mySeat === null
+                ? null
+                : (input.currentNightResults.wolfVotesBySeat?.[String(mySeat)] ?? null),
+            deadlineAt: null,
+          }
+        : null,
+    }),
     day: { sheriffSeat: null, mvpSeat: null },
   };
 }
@@ -415,6 +450,7 @@ export function createWerewolfRoomMock(options: WerewolfRoomMockOptions) {
     convertedSeat: stateFacts.convertedSeat ?? null,
     loverSeats: stateFacts.loverSeats ?? null,
     seedWolfInfectionResult: stateFacts.seedWolfInfectionResult ?? null,
+    actionRejected,
     piperRevealAcks: stateFacts.piperRevealAcks,
     conversionRevealAcks: stateFacts.conversionRevealAcks,
     cupidLoversRevealAcks: stateFacts.cupidLoversRevealAcks,
@@ -536,7 +572,7 @@ export function tapSeat(getByTestId: (id: string) => ReactTestInstance, seat: nu
 interface ActionRejection {
   action: string;
   reason: string;
-  targetUserId: string;
+  targetSeat: number;
   rejectionId?: string;
 }
 
@@ -1248,7 +1284,7 @@ export async function coverageChainNightmareBlocked(
   reactiveMock.simulateHostReject({
     action: blockedSchemaId,
     reason: blockedMessage,
-    targetUserId: `p${blockedSeat}`,
+    targetSeat: blockedSeat,
     rejectionId: `nightmare-block-coverage`,
   });
 

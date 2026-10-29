@@ -117,7 +117,6 @@ function collectHumanParticipants(effect: WerewolfGameEndedEffect): readonly Hum
       );
     }
     seenUserIds.add(participant.userId);
-    if (participant.isBot) continue;
     humans.push({ userId: participant.userId, camp: getRoleCamp(participant.role) });
   }
 
@@ -127,7 +126,7 @@ function collectHumanParticipants(effect: WerewolfGameEndedEffect): readonly Hum
 async function createParticipantFingerprint(effect: WerewolfGameEndedEffect): Promise<string> {
   const participants = [...effect.payload.participants]
     .sort(compareUserIds)
-    .map(({ userId, role, isBot }) => ({ userId, role, isBot }));
+    .map(({ userId, role }) => ({ userId, role }));
   return sha256Hex(JSON.stringify({ roomCode: effect.payload.roomCode, participants }));
 }
 

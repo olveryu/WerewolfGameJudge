@@ -19,25 +19,18 @@ import { settleGameResults } from '../settleGameResults';
 
 const ROLES: readonly RoleId[] = ['wolf', 'seer', 'villager', 'villager', 'villager', 'villager'];
 
-function buildEndedEffect(
-  roomCode: string,
-  playerCount = ROLES.length,
-  botSeats: readonly number[] = [],
-): WerewolfGameEndedEffect {
+/** Human participants only — the engine never lists bot seats in the ended effect. */
+function buildEndedEffect(roomCode: string, humanCount = ROLES.length): WerewolfGameEndedEffect {
   return {
     type: 'werewolf.game.ended',
     payload: {
       roomCode,
-      participants: Array.from({ length: playerCount }, (_, seat) => {
+      participants: Array.from({ length: humanCount }, (_, seat) => {
         const role = ROLES[seat];
         if (role === undefined) {
           throw new Error(`Missing settlement test role for seat ${seat}`);
         }
-        return {
-          userId: `user-${seat}`,
-          role,
-          isBot: botSeats.includes(seat),
-        };
+        return { userId: `user-${seat}`, role };
       }),
     },
   };
@@ -178,8 +171,8 @@ describe('settleGameResults', () => {
     expect((await readStats('user-0')).games_played).toBe(1);
   });
 
-  it('excludes bots from the human threshold', async () => {
-    const effect = buildEndedEffect('SETTLE-BOTS', 6, [5]);
+  it('a six-seat room with one bot has five humans and misses the threshold', async () => {
+    const effect = buildEndedEffect('SETTLE-BOTS', 5);
     await insertEffectUsers(['user-0']);
 
     await expect(settleGameResults('effect-bots', effect, env)).resolves.toEqual([]);
@@ -324,7 +317,7 @@ describe('Werewolf game-ended effect handler', () => {
         type: 'werewolf.game.ended',
         payload: {
           roomCode: 'SCHEMA',
-          participants: [{ userId: 'user-0', isBot: false }],
+          participants: [{ userId: 'user-0' }],
         },
       }),
     ).toThrow();

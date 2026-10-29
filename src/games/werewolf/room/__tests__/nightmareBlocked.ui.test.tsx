@@ -80,19 +80,23 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
   });
 
   it('actionRejected with blocked reason shows rejection alert on initial render', async () => {
-    mockUseWerewolfRoomReturn = {
-      ...makeBlockedPlayerMock(),
-      myUserId: 'p0',
-      gameState: {
-        ...makeBlockedPlayerMock().gameState,
+    // The rejection reaches the UI through the projection (night.rejection),
+    // so it must enter the mock as state, not be patched onto gameState.
+    mockUseWerewolfRoomReturn = createBaseWerewolfRoomMock({
+      schemaId: 'seerCheck',
+      currentActionRole: 'seer',
+      myRole: 'seer',
+      mySeat: 0,
+      gameStateOverrides: {
+        nightmareBlockedSeat: 0,
         actionRejected: {
           action: 'seerCheck',
           reason: BLOCKED_UI_DEFAULTS.message,
-          targetUserId: 'p0',
+          targetSeat: 0,
           rejectionId: 'test-rejection-1',
         },
       },
-    } as unknown as MockReturn;
+    });
 
     render(<WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />);
 

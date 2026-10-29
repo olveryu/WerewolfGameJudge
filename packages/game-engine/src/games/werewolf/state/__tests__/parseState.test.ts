@@ -134,7 +134,7 @@ function createFullState(): GameState {
     actionRejected: {
       action: 'wolfKill',
       reason: 'rejected',
-      targetUserId: 'host',
+      targetSeat: 0,
       rejectionId: 'rejection',
     },
     pendingAudioEffects: [{ audioKey: 'wolfKill', isEndAudio: false }],

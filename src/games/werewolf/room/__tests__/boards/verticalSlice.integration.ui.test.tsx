@@ -150,7 +150,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     const currentSchema = getSchema('witchAction');
     mockUseWerewolfRoomReturn = {
       gameState: toMockGameState(realState),
-      viewModel: getWerewolfViewModel(realState, MY_SEAT),
+      viewModel: getWerewolfViewModel(realState, { seat: MY_SEAT, isHost: false }),
       isHost: false,
       roomStatus: GameStatus.Ongoing,
       currentActionRole: 'witch',
@@ -244,7 +244,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     const currentSchema = getSchema('seerCheck');
     mockUseWerewolfRoomReturn = {
       gameState: toMockGameState(realState),
-      viewModel: getWerewolfViewModel(realState, seerSeat),
+      viewModel: getWerewolfViewModel(realState, { seat: seerSeat, isHost: false }),
       isHost: false,
       roomStatus: GameStatus.Ongoing,
       currentActionRole: 'seer',

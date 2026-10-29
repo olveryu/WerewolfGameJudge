@@ -13,12 +13,18 @@
 import type { ConfirmStatus } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { WerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus, getSchema, Team } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  createTemplateFromRoles,
+  GameStatus,
+  getSchema,
+  Team,
+} from '@game-judge/game-engine/games/werewolf/public';
 
 import { confirmTriggerExecutor } from '@/games/werewolf/room/executors/promptExecutor';
 import type { ExecutorContext } from '@/games/werewolf/room/executors/types';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
+import { emptyWerewolfNight } from '@/test-utils/werewolfViewModel';
 
 // =============================================================================
 // Fixture helpers
@@ -40,10 +46,11 @@ function viewModelWith(confirmStatus: ConfirmStatus | null): WerewolfViewModel {
     mySeat: null,
     myRole: null,
     myEffectiveRole: null,
+    template: createTemplateFromRoles([]),
     seats: [],
     wolfPackSeats: null,
     viewedSeats: [],
-    night: { stepSchemaKind: 'confirm', confirmStatus, reveals: [], wolfVotesBySeat: null },
+    night: emptyWerewolfNight({ confirmStatus }),
     day: { sheriffSeat: null, mvpSeat: null },
   };
 }

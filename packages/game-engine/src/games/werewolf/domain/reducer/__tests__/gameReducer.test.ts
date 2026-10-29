@@ -709,7 +709,7 @@ describe('gameReducer', () => {
         payload: {
           action: 'seerCheck',
           reason: '不能选择自己',
-          targetUserId: 'p1',
+          targetSeat: 1,
           rejectionId: 'r1',
         },
       };
@@ -719,7 +719,7 @@ describe('gameReducer', () => {
       expect(newState.actionRejected).toEqual({
         action: 'seerCheck',
         reason: '不能选择自己',
-        targetUserId: 'p1',
+        targetSeat: 1,
         rejectionId: 'r1',
       });
     });
@@ -731,7 +731,7 @@ describe('gameReducer', () => {
         payload: {
           action: 'seerCheck',
           reason: 'test_reason',
-          targetUserId: 'p1',
+          targetSeat: 1,
           rejectionId: 'r2',
         },
       };
@@ -750,7 +750,7 @@ describe('gameReducer', () => {
         actionRejected: {
           action: 'oldAction',
           reason: 'old_reason',
-          targetUserId: 'old-uid',
+          targetSeat: 2,
           rejectionId: 'old',
         },
       });
@@ -759,7 +759,7 @@ describe('gameReducer', () => {
         payload: {
           action: 'newAction',
           reason: 'new_reason',
-          targetUserId: 'new-uid',
+          targetSeat: 3,
           rejectionId: 'r3',
         },
       };
@@ -769,7 +769,7 @@ describe('gameReducer', () => {
       expect(newState.actionRejected).toEqual({
         action: 'newAction',
         reason: 'new_reason',
-        targetUserId: 'new-uid',
+        targetSeat: 3,
         rejectionId: 'r3',
       });
     });
@@ -782,7 +782,7 @@ describe('gameReducer', () => {
         actionRejected: {
           action: 'seerCheck',
           reason: 'test',
-          targetUserId: 'p1',
+          targetSeat: 1,
           rejectionId: 'r4',
         },
       });

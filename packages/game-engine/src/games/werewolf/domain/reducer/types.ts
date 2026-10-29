@@ -315,7 +315,8 @@ export interface ActionRejectedAction {
   payload: {
     action: string;
     reason: string;
-    targetUserId: string;
+    /** The acting seat whose action was rejected. */
+    targetSeat: number;
     /**
      * Unique id for this rejection event.
      * Used by UI to avoid accidentally deduping distinct rejections that share the same reason.

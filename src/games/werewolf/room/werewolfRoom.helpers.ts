@@ -388,7 +388,7 @@ export function buildSeatViewModels(
   // Wolf vote progress comes from the view model (viewer-gated; null while
   // the viewer may not see wolf votes): reuse ✅ badge on wolf seats that
   // have voted (ongoing phase only, mutually exclusive with assigned/ready badge)
-  const wolfVotesBySeat = viewModel.night.wolfVotesBySeat;
+  const wolfVotesBySeat = viewModel.night.wolfVote?.votes ?? null;
   const seatViewBySeat = new Map(viewModel.seats.map((seatView) => [seatView.seat, seatView]));
 
   const playerRoles = gameState.template.roles.slice(0, gameState.template.numberOfPlayers);

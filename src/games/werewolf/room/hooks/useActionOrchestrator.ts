@@ -73,7 +73,6 @@ interface UseActionOrchestratorParams {
   actorSeatForUi: number | null;
   imActioner: boolean;
   isAudioPlaying: boolean;
-  myUserId: string | null;
   /** True while a confirmed action is persisted and awaiting an authoritative decision. */
   hasPendingActionCommand: boolean;
 
@@ -130,7 +129,6 @@ export function useActionOrchestrator({
   actorSeatForUi,
   imActioner,
   isAudioPlaying,
-  myUserId,
   hasPendingActionCommand,
   needsContinueOverlay,
   firstSwapSeat,
@@ -234,19 +232,14 @@ export function useActionOrchestrator({
 
   // ─── Rejection effect ────────────────────────────────────────────────────
 
+  // The projection already addresses the rejection to the viewer's effective
+  // seat (own seat, or the bot seat the host controls); nothing else is visible.
   useEffect(() => {
-    const rejected = gameState?.actionRejected;
+    const rejected = viewModel.night.rejection;
     if (!rejected) {
       lastRejectedKeyRef.current = null;
       return;
     }
-
-    // In debug mode, Host controls bot seats, so also check effectiveSeat's userId
-    const effectiveUid =
-      effectiveSeat === null ? null : gameState?.players.get(effectiveSeat)?.userId;
-    const isTargetMatch =
-      rejected.targetUserId === myUserId || rejected.targetUserId === effectiveUid;
-    if (!myUserId || !isTargetMatch) return;
 
     // Deduplicate repeated broadcasts of the same rejection
     const key = rejected.rejectionId;
@@ -256,10 +249,10 @@ export function useActionOrchestrator({
     roomScreenLog.warn('Action rejected by server', {
       action: rejected.action,
       reason: rejected.reason,
-      targetUserId: rejected.targetUserId,
+      rejectionId: rejected.rejectionId,
     });
     actionDialogs.showActionRejectedAlert(rejected.reason);
-  }, [gameState?.actionRejected, gameState?.players, myUserId, effectiveSeat, actionDialogs]);
+  }, [viewModel.night.rejection, actionDialogs]);
 
   // ─── Intent handler (executor dispatch) ──────────────────────────────────
 

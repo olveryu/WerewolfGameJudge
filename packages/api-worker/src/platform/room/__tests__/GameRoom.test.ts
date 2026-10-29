@@ -215,7 +215,7 @@ describe('GameRoom initialization', () => {
           type: 'werewolf.game.ended',
           payload: {
             roomCode: ROOM_CODE,
-            participants: [{ userId: 'host-1', role: 'wolf', isBot: false }],
+            participants: [{ userId: 'host-1', role: 'wolf' }],
           },
         }),
       );

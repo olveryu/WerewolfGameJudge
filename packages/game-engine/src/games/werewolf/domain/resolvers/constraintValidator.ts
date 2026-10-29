@@ -28,6 +28,9 @@ interface ConstraintValidationContext {
   seedWolfInfectedSeat?: number;
 }
 
+/** Rejection reason for a NotSelf violation; the projection renders the same text on the viewer's own seat. */
+export const CONSTRAINT_REJECT_NOT_SELF = '不能选择自己' as const;
+
 type ConstraintValidationResult =
   | { readonly valid: true; readonly rejectReason?: never }
   | { readonly valid: false; readonly rejectReason: string };
@@ -49,7 +52,7 @@ export function validateConstraints(
     switch (constraint) {
       case TargetConstraint.NotSelf:
         if (target === actorSeat && !context.shelterRedirected) {
-          return { valid: false, rejectReason: '不能选择自己' };
+          return { valid: false, rejectReason: CONSTRAINT_REJECT_NOT_SELF };
         }
         break;
       case TargetConstraint.NotWolfFaction: {

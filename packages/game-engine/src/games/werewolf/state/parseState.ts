@@ -628,7 +628,7 @@ function parseActionRejected(
     {
       action: parseString(raw.action, `${path}.action`),
       reason: parseString(raw.reason, `${path}.reason`),
-      targetUserId: parseNonEmptyString(raw.targetUserId, `${path}.targetUserId`),
+      targetSeat: parseSeat(raw.targetSeat, `${path}.targetSeat`),
       rejectionId: parseNonEmptyString(raw.rejectionId, `${path}.rejectionId`),
     },
     path,
@@ -1130,18 +1130,24 @@ export function parseWerewolfState(value: unknown): GameState {
 
 /**
  * Entry point for persisted state.
- * v12 and v13 payloads migrate to v14: v13 adds nothing the parser
- * cannot default (resolvedWolfKillTarget / Verdict absent = unresolved)
- * and v14 adds audioBatchId, which starts at 0 for a room whose queue
- * was written before batches had ids; the host acks that batch as 0.
- * Payloads at v11 or older are still rejected, not migrated. @throws
- * When the stored state carries any other version, or when the
+ * v12–v14 payloads migrate to v15: v13 adds nothing the parser cannot
+ * default (resolvedWolfKillTarget / Verdict absent = unresolved); v14
+ * adds audioBatchId, which starts at 0 for a room whose queue was
+ * written before batches had ids; v15 re-addresses `actionRejected` to
+ * a seat, and the old user-id form is transient feedback that is simply
+ * dropped. Payloads at v11 or older are still rejected, not migrated.
+ * @throws When the stored state carries any other version, or when the
  * current-version payload is malformed.
  */
 export function migratePersistedWerewolfState(value: unknown): GameState {
   const raw = parseObject(value, 'GameState');
   if (raw.stateVersion === 12 || raw.stateVersion === 13) {
-    return parseWerewolfState({ ...raw, stateVersion: WEREWOLF_STATE_VERSION, audioBatchId: 0 });
+    const { actionRejected: _dropped, ...rest } = raw;
+    return parseWerewolfState({ ...rest, stateVersion: WEREWOLF_STATE_VERSION, audioBatchId: 0 });
+  }
+  if (raw.stateVersion === 14) {
+    const { actionRejected: _dropped, ...rest } = raw;
+    return parseWerewolfState({ ...rest, stateVersion: WEREWOLF_STATE_VERSION });
   }
   if (raw.stateVersion !== WEREWOLF_STATE_VERSION) {
     throw new Error(`Unsupported werewolf state version: ${String(raw.stateVersion)}`);

@@ -1,4 +1,4 @@
-/** Build the settlement trigger from an authoritative ended Werewolf state. */
+/** Build the settlement trigger from an authoritative ended Werewolf state. Bots are not participants. */
 
 import { isBotOccupant } from '../../../platform/room/seating';
 import type { GameState } from '../domain/protocol/types';
@@ -20,11 +20,8 @@ export function createWerewolfGameEndedEffect(state: GameState): WerewolfGameEnd
         `[FAIL-FAST] Ended Werewolf game has no roster occupant for seat ${player.seat}`,
       );
     }
-    participants.push({
-      userId: isBotOccupant(occupant) ? `bot-${player.seat}` : occupant.userId,
-      role: player.role,
-      isBot: isBotOccupant(occupant),
-    });
+    if (isBotOccupant(occupant)) continue;
+    participants.push({ userId: occupant.userId, role: player.role });
   }
 
   return {

@@ -104,6 +104,7 @@ export function createBaseWerewolfRoomMock({
     convertedSeat?: number;
     loverSeats?: [number, number];
     seedWolfInfectionResult?: { outcome: string; targetSeat: number };
+    actionRejected?: { action: string; reason: string; targetSeat: number; rejectionId: string };
   };
   const viewModel = buildMockWerewolfViewModel({
     mySeat,
@@ -123,6 +124,7 @@ export function createBaseWerewolfRoomMock({
     conversionRevealAcks: gameState.conversionRevealAcks,
     cupidLoversRevealAcks: gameState.cupidLoversRevealAcks,
     seedWolfInfectionRevealAcks: gameState.seedWolfInfectionRevealAcks,
+    actionRejected: stateFacts.actionRejected ?? null,
   });
 
   return {
