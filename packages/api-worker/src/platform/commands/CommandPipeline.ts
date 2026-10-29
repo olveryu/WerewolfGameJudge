@@ -30,6 +30,7 @@ import {
 import type { DispatchRoomCommand, StoredRoomRow } from '../room/types';
 import { CommandReceipts, serializeCommandRequest } from './CommandReceipts';
 import { type EffectOutbox, type NewOutboxEffect } from './EffectOutbox';
+import { requestWakeNoLaterThan } from './roomAlarm';
 import type { RoomStateStore } from './RoomStateStore';
 
 type RoomState = BaseGameState<GameType>;
@@ -265,7 +266,6 @@ export class CommandPipeline {
     if (effects.length === 0) return;
     let earliest = Number.POSITIVE_INFINITY;
     for (const effect of effects) earliest = Math.min(earliest, effect.availableAt ?? nowMs);
-    const armed = await this.#deps.storage.getAlarm();
-    if (armed === null || earliest < armed) await this.#deps.storage.setAlarm(earliest);
+    await requestWakeNoLaterThan(this.#deps.storage, earliest);
   }
 }

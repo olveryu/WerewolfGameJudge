@@ -28,6 +28,7 @@ import {
 import * as Sentry from '@sentry/cloudflare';
 
 import type { Env } from '../../env';
+import { requestWakeNoLaterThan } from '../commands/roomAlarm';
 import { createLogger } from '../observability/logger';
 import {
   getWebSocketMessageByteLength,
@@ -105,9 +106,7 @@ export class RoomGateway {
     const attachment: SocketAttachment = { userId, connectedAtMs: nowMs };
     socket.serializeAttachment(attachment);
     this.#publishPresence(this.#collectPresence(nowMs));
-    const sweepAt = nowMs + PRESENCE_SWEEP_INTERVAL_MS;
-    const armed = await this.#ctx.storage.getAlarm();
-    if (armed === null || armed > sweepAt) await this.#ctx.storage.setAlarm(sweepAt);
+    await requestWakeNoLaterThan(this.#ctx.storage, nowMs + PRESENCE_SWEEP_INTERVAL_MS);
   }
 
   /** Handle one inbound frame. Any protocol violation closes the socket with 1002. */
