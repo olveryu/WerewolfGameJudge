@@ -33,8 +33,19 @@ interface CreateRoomResponse {
 
 const TEMPLATE_ROLES = ['wolf', 'seer', 'villager', 'villager'] as const;
 
+/** Distinct client addresses so anonymous sign-up budgets never collide across tests. */
+let clientIpCounter = 0;
+function nextClientIp(): string {
+  clientIpCounter += 1;
+  return `203.0.113.${clientIpCounter % 200}`;
+}
+
 async function postJson(path: string, body: unknown, token?: string): Promise<Response> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  // SELF.fetch bypasses the edge; the Worker requires the header Cloudflare always sets.
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'CF-Connecting-IP': nextClientIp(),
+  };
   if (token !== undefined) headers.Authorization = `Bearer ${token}`;
   return SELF.fetch(`https://test.local${path}`, {
     method: 'POST',
@@ -110,8 +121,33 @@ describe('POST /room/create', () => {
     });
     expect(snapshot.revision).toBe(1);
 
-    const directory = await postJson('/room/get', { roomCode: body.room.roomCode });
+    // Knowing the code authorizes watching the room; the lookup itself still needs a session.
+    expect((await postJson('/room/get', { roomCode: body.room.roomCode })).status).toBe(401);
+    const directory = await postJson(
+      '/room/get',
+      { roomCode: body.room.roomCode },
+      auth.access_token,
+    );
     expect(await directory.json()).toEqual({ room: body.room });
+  });
+
+  it('throttles room lookups per user so 4-digit codes cannot be enumerated', async () => {
+    const auth = await createAnonymousUser();
+    let throttled: Response | null = null;
+    // Budget is configured in wrangler.test.toml ([[ratelimits]] ROOM_LOOKUP_LIMITER).
+    for (let attempt = 0; attempt < 40 && throttled === null; attempt += 1) {
+      const response = await postJson('/room/get', { roomCode: '1234' }, auth.access_token);
+      if (response.status === 429) throttled = response;
+      else expect(response.status).toBe(200);
+    }
+    if (throttled === null) throw new Error('Expected the lookup budget to run out');
+    expect(await throttled.json()).toEqual({ success: false, reason: 'RATE_LIMITED' });
+
+    // Another user has their own budget.
+    const other = await createAnonymousUser();
+    expect((await postJson('/room/get', { roomCode: '1234' }, other.access_token)).status).toBe(
+      200,
+    );
   });
 
   it('rejects client routing fields, unknown games, and invalid config before D1 claim', async () => {
@@ -307,7 +343,9 @@ describe('POST /room/delete', () => {
       success: false,
       reason: 'room_effects_pending',
     });
-    expect(await (await postJson('/room/get', { roomCode })).json()).toMatchObject({
+    expect(
+      await (await postJson('/room/get', { roomCode }, auth.access_token)).json(),
+    ).toMatchObject({
       room: { roomCode },
     });
 
@@ -317,7 +355,9 @@ describe('POST /room/delete', () => {
     const deleted = await postJson('/room/delete', { roomCode, roomId }, auth.access_token);
     expect(deleted.status).toBe(200);
     expect(await deleted.json()).toEqual({ success: true, pending: false });
-    expect(await (await postJson('/room/get', { roomCode })).json()).toEqual({ room: null });
+    expect(await (await postJson('/room/get', { roomCode }, auth.access_token)).json()).toEqual({
+      room: null,
+    });
     await expect(
       stub.getSnapshot({ roomCode, roomId, creationId: 'delete-outbox-create' }),
     ).resolves.toBeNull();

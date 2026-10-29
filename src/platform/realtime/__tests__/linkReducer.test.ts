@@ -258,6 +258,17 @@ describe('linkReducer terminal closes', () => {
     expect(after.context).toBe(context);
   });
 
+  it('RATE_LIMITED (4004) is not terminal: the link backs off and retries', () => {
+    const live = goLive();
+    const { context, effects } = run(
+      live,
+      [{ type: 'SOCKET_CLOSED', generation: 1, code: REALTIME_CLOSE_CODE.RATE_LIMITED }],
+      T0 + 1_000,
+    );
+    expect(context.status).toMatchObject({ kind: 'waiting', cause: 'backoff', attempt: 1 });
+    expect(effects).toContainEqual({ type: 'ARM_TIMER', kind: 'retry', atMs: T0 + 1_000 + 500 });
+  });
+
   it('CLOSE releases the link and closes the socket with 1000', () => {
     const { context, effects } = run(goLive(), [{ type: 'CLOSE' }]);
     expect(context.status).toEqual({ kind: 'closed', reason: 'released' });

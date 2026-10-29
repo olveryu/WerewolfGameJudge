@@ -11,6 +11,8 @@ export const REALTIME_CLOSE_CODE = {
   ROOM_INSTANCE_MISMATCH: 4001,
   AUTH_REJECTED: 4002,
   STATE_UNAVAILABLE: 4003,
+  /** Admission throttled for this user; not terminal — the client backs off and retries. */
+  RATE_LIMITED: 4004,
 } as const;
 
 export type RealtimeCloseCode = (typeof REALTIME_CLOSE_CODE)[keyof typeof REALTIME_CLOSE_CODE];

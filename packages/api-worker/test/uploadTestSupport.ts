@@ -10,10 +10,18 @@ interface AnonymousAuthResponse {
   };
 }
 
+/** Distinct client addresses so anonymous sign-up budgets never collide across tests. */
+let clientIpCounter = 0;
+function nextClientIp(): string {
+  clientIpCounter += 1;
+  return `198.51.100.${clientIpCounter % 200}`;
+}
+
 export async function createAnonymousSession(): Promise<AnonymousAuthResponse> {
   const response = await SELF.fetch('https://test.local/auth/anonymous', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    // SELF.fetch bypasses the edge; the Worker requires the header Cloudflare always sets.
+    headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': nextClientIp() },
     body: '{}',
   });
   expect(response.status).toBe(200);
