@@ -179,6 +179,73 @@ describe('RoomAudioOrchestrator batch-id acks', () => {
   });
 });
 
+describe('RoomAudioOrchestrator resume after rejoin', () => {
+  it('holds the re-entry guard across the replay: a snapshot republish mid-replay does not start a second playback', async () => {
+    const harness = createHarness(drainAckedBatch);
+    harness.setQueue(firstQueue, 3);
+    harness.orchestrator.setWasAudioInterrupted(true);
+    // The interrupted flag suppresses reactive playback of the persisted batch.
+    harness.emitCurrent();
+    await flushPlayback();
+    expect(harness.playedKeys).toEqual([]);
+
+    const replayGate = Promise.withResolvers<void>();
+    const resumed = harness.orchestrator.resumeInterrupted(() => replayGate.promise, 3);
+    await flushPlayback();
+    expect(harness.orchestrator.wasAudioInterrupted).toBe(false);
+
+    // Same epoch, same batch, broadcast again while the replay is still playing.
+    harness.emitCurrent();
+    await flushPlayback();
+    expect(harness.playedKeys).toEqual([]);
+    expect(harness.ackedBatchIds).toEqual([]);
+
+    replayGate.resolve();
+    await resumed;
+    expect(harness.ackedBatchIds).toEqual([3]);
+    expect(harness.playedKeys).toEqual([]);
+
+    harness.orchestrator.dispose();
+  });
+
+  it('after the resume ack, chains a strictly newer batch like reactive playback', async () => {
+    const harness = createHarness(progressIntoSecondQueue);
+    harness.setQueue(firstQueue, 1);
+    harness.orchestrator.setWasAudioInterrupted(true);
+
+    await harness.orchestrator.resumeInterrupted(async () => undefined, 1);
+
+    expect(harness.ackedBatchIds).toEqual([1, 2]);
+    expect(harness.playedKeys).toEqual(['merlin_reveal']);
+
+    harness.orchestrator.dispose();
+  });
+
+  it('a failed replay still acks the interrupted batch so the gate reopens', async () => {
+    const harness = createHarness(drainAckedBatch);
+    harness.setQueue(firstQueue, 4);
+    harness.orchestrator.setWasAudioInterrupted(true);
+
+    await harness.orchestrator.resumeInterrupted(async () => {
+      throw new Error('autoplay blocked');
+    }, 4);
+
+    expect(harness.ackedBatchIds).toEqual([4]);
+    harness.orchestrator.dispose();
+  });
+
+  it('is a no-op when nothing was interrupted', async () => {
+    const harness = createHarness(drainAckedBatch);
+    const replay = jest.fn(async () => undefined);
+
+    await harness.orchestrator.resumeInterrupted(replay, 1);
+
+    expect(replay).not.toHaveBeenCalled();
+    expect(harness.ackedBatchIds).toEqual([]);
+    harness.orchestrator.dispose();
+  });
+});
+
 describe('RoomAudioOrchestrator dawn timing', () => {
   it('stops BGM immediately before the night_end effect and before no other effect', async () => {
     const harness = createHarness(progressIntoSecondQueue);

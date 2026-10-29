@@ -13,15 +13,17 @@
  * - After a successful ack, re-check the queue source and chain-play any new queue the ack's
  *   progression produced.
  * - Rejoin bookkeeping: `wasAudioInterrupted` marks that playback was interrupted; the game-side
- *   resume flow replays and acks through `dispatchAudioAck`.
+ *   resume flow hands its replay to `resumeInterrupted`, which runs it under the same re-entry
+ *   guard as reactive playback, acks the interrupted batch and chains any newer batch.
  *
  * Boundary constraints:
  * - Only active for the host (plays only when isHost() === true).
  * - Not reusable after dispose(); create a new instance per link epoch.
  *
- * @remarks #isPlayingEffects re-entry guard: one effect queue plays at a time, and the guard
- *   stays held while a durable ack awaits its decision so a reconnect cannot start a second
- *   playback of the same queue. MAX iterations = 20 bounds chained queues.
+ * @remarks #isPlayingEffects re-entry guard: one playback runs at a time — reactive or resumed —
+ *   and the guard stays held while a durable ack awaits its decision so a reconnect or a snapshot
+ *   republish cannot start a second playback of the same batch. MAX iterations = 20 bounds
+ *   chained queues.
  */
 
 import { NIGHT_END_AUDIO_KEY } from '@game-judge/game-engine/platform/audio';
@@ -131,9 +133,7 @@ export class RoomAudioOrchestrator<
   }
 
   /**
-   * Dispatch the durable audio ack for `audioBatchId` and wait for the server decision. Used by
-   * the playback loop and by game-side resume flows that replay audio themselves and then
-   * release the gate for the batch they replayed.
+   * Dispatch the durable audio ack for `audioBatchId` and wait for the server decision.
    */
   async dispatchAudioAck(source: string, audioBatchId: number): Promise<DispatchOutcome<TState>> {
     const outcome = await this.#deps.ack.dispatch(audioBatchId);
@@ -151,6 +151,39 @@ export class RoomAudioOrchestrator<
   }
 
   /**
+   * Host resumes after a rejoin that interrupted batch `audioBatchId`: run the game-owned
+   * `replay` under the re-entry guard, ack that batch, then chain any newer batch exactly like
+   * reactive playback. `wasAudioInterrupted` clears only once the guard is held, so a snapshot
+   * republish during the replay cannot start a second playback of the same batch.
+   *
+   * A replay failure still acks: the authoritative gate must not stay closed because a clip
+   * could not play on this device. Missing-asset errors propagate (programming error).
+   */
+  async resumeInterrupted(replay: () => Promise<void>, audioBatchId: number): Promise<void> {
+    if (!this.#wasAudioInterrupted || this.#isPlayingEffects) return;
+    this.#isPlayingEffects = true;
+    this.#wasAudioInterrupted = false;
+    try {
+      try {
+        await replay();
+      } catch (error) {
+        if (this.#deps.player.isMissingAssetError?.(error) === true) throw error;
+        this.#deps.logger.warn('Interrupted batch replay failed, acking anyway', {
+          audioBatchId,
+          error,
+        });
+      }
+      if (this.#deps.isAborted()) return;
+      const ackResult = await this.dispatchAudioAck('resumeAfterRejoin', audioBatchId);
+      if (!isSuccessfulRoomCommand(ackResult)) return;
+      const next = this.#nextBatchAfter(audioBatchId);
+      if (next !== null) await this.#playBatches(next);
+    } finally {
+      this.#isPlayingEffects = false;
+    }
+  }
+
+  /**
    * Host reactively plays the pending batch, acks it by id, then re-checks for a chained
    * batch produced by the ack's progression (the source emission during playback was skipped
    * by the re-entry guard).
@@ -158,49 +191,57 @@ export class RoomAudioOrchestrator<
   async #playPendingAudioEffects(batch: RoomAudioQueueSnapshot<TEffect>): Promise<void> {
     if (this.#isPlayingEffects) return;
     this.#isPlayingEffects = true;
-
-    const { player } = this.#deps;
     try {
-      let current: RoomAudioQueueSnapshot<TEffect> | null = batch;
-      let iteration = 0;
-
-      while (current !== null && current.pendingAudioEffects.length > 0) {
-        if (++iteration > MAX_CHAINED_QUEUES) {
-          this.#deps.logger.warn('playPendingAudioEffects exceeded max iterations, breaking', {
-            maxIterations: MAX_CHAINED_QUEUES,
-          });
-          break;
-        }
-        if (player.prepareQueue) await player.prepareQueue(current.pendingAudioEffects);
-        for (const effect of current.pendingAudioEffects) {
-          if (this.#deps.isAborted()) break;
-          try {
-            if (effect.audioKey === NIGHT_END_AUDIO_KEY) player.stopBgm();
-            await player.playEffect(effect);
-          } catch (error) {
-            if (player.isMissingAssetError?.(error) === true) throw error;
-            this.#deps.logger.warn('Audio effect playback failed, continuing', {
-              audioKey: effect.audioKey,
-              error,
-            });
-          }
-        }
-
-        if (this.#deps.isAborted()) break;
-        const ackResult = await this.dispatchAudioAck('playback', current.audioBatchId);
-        if (!isSuccessfulRoomCommand(ackResult)) break;
-
-        const postAckSnapshot = this.#deps.queueSource.getSnapshot();
-        current =
-          postAckSnapshot !== null &&
-          postAckSnapshot.audioBatchId > current.audioBatchId &&
-          this.#deps.isHost() &&
-          !this.#wasAudioInterrupted
-            ? postAckSnapshot
-            : null;
-      }
+      await this.#playBatches(batch);
     } finally {
       this.#isPlayingEffects = false;
     }
+  }
+
+  /** Guard must already be held. Plays `batch`, acks it, chains strictly newer batches. */
+  async #playBatches(batch: RoomAudioQueueSnapshot<TEffect>): Promise<void> {
+    const { player } = this.#deps;
+    let current: RoomAudioQueueSnapshot<TEffect> | null = batch;
+    let iteration = 0;
+
+    while (current !== null && current.pendingAudioEffects.length > 0) {
+      if (++iteration > MAX_CHAINED_QUEUES) {
+        this.#deps.logger.warn('playPendingAudioEffects exceeded max iterations, breaking', {
+          maxIterations: MAX_CHAINED_QUEUES,
+        });
+        break;
+      }
+      if (player.prepareQueue) await player.prepareQueue(current.pendingAudioEffects);
+      for (const effect of current.pendingAudioEffects) {
+        if (this.#deps.isAborted()) break;
+        try {
+          if (effect.audioKey === NIGHT_END_AUDIO_KEY) player.stopBgm();
+          await player.playEffect(effect);
+        } catch (error) {
+          if (player.isMissingAssetError?.(error) === true) throw error;
+          this.#deps.logger.warn('Audio effect playback failed, continuing', {
+            audioKey: effect.audioKey,
+            error,
+          });
+        }
+      }
+
+      if (this.#deps.isAborted()) break;
+      const ackResult = await this.dispatchAudioAck('playback', current.audioBatchId);
+      if (!isSuccessfulRoomCommand(ackResult)) break;
+      current = this.#nextBatchAfter(current.audioBatchId);
+    }
+  }
+
+  /** The batch to chain into after acking `ackedBatchId`, or null when nothing newer is pending. */
+  #nextBatchAfter(ackedBatchId: number): RoomAudioQueueSnapshot<TEffect> | null {
+    const snapshot = this.#deps.queueSource.getSnapshot();
+    return snapshot !== null &&
+      snapshot.audioBatchId > ackedBatchId &&
+      snapshot.pendingAudioEffects.length > 0 &&
+      this.#deps.isHost() &&
+      !this.#wasAudioInterrupted
+      ? snapshot
+      : null;
   }
 }
