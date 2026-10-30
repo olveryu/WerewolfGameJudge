@@ -4,14 +4,19 @@
  * Narration audio is a chassis mechanism: while it plays, every
  * state-changing flow control must render disabled and its press must
  * be unreachable — in every phase, night steps and the day / ended
- * announcement window alike. Read-only actions stay available; which
- * actions are read-only is each game's own content, so each game
- * declares its exemption list where it assembles its model.
+ * announcement window alike. An action counts as read-only only when
+ * it sends no server command, writes no flow progress and starts no
+ * capture or share; which actions meet that test is each game's own
+ * content, so each game declares its exemption list where it
+ * assembles its model.
  *
  * The predicate is the single source every consumer reads (interaction
  * policy gates, seat greying, bottom-layout collapse, and the
  * host-management combinator below), so the lock cannot drift per
- * surface the way per-surface copies of the expression did.
+ * surface the way per-surface copies of the expression did. The host
+ * task card carries no handler of its own: it resolves the sheet
+ * action its task references, so locking the sheet action locks the
+ * task body and its steps as well.
  */
 
 import type { RoomHostManagementAction, RoomHostManagementModel } from './RoomHostManagement';
@@ -46,9 +51,12 @@ function lockAction(
  * with the one lock reason; the press handler drops with the enabled
  * branch, so the press is unreachable, not just greyed — on both
  * render surfaces of the model (collapsed console and expanded panel).
- * Already-disabled actions keep their own reason, exempt actions pass
- * through untouched, and when audio is idle the model is returned
- * as-is. Games call this once at their host-management factory exit.
+ * The task is not rewritten: it references sheet actions, and the
+ * card renders the locked action's disabled state and reason, with
+ * no press on its steps. Already-disabled actions keep their own
+ * reason, exempt actions pass through untouched, and when audio is
+ * idle the model is returned as-is. Games call this once at their
+ * host-management factory exit.
  */
 export function applyAudioPlaybackLock(
   model: RoomHostManagementModel,

@@ -1,5 +1,6 @@
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
+import { resolveHostTaskView } from '@/features/room/model/resolveHostTaskView';
 import type { RoomCapability } from '@/features/room/model/RoomCapabilities';
 import { createWerewolfHostManagement } from '@/games/werewolf/room/createWerewolfHostManagement';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
@@ -379,7 +380,10 @@ describe('createWerewolfHostManagement', () => {
   // Audio playback lock (supersedes the former "keeps abort available"
   // pin, which contradicted the interaction policy's audio gate): while
   // narration plays, flow actions are disabled with the shared lock
-  // reason and carry no press handler; read-only review tools stay live.
+  // reason and carry no press handler. The review tools are not
+  // exempt: confirming or opening them advances the panel flow, so
+  // they lock like every other flow action — on the task card as
+  // well as in the sheet.
   it.each([GameStatus.Ongoing, GameStatus.Day])(
     'disables abort during audio playback in %s',
     (roomStatus) => {
@@ -421,7 +425,7 @@ describe('createWerewolfHostManagement', () => {
   });
 
   it.each([GameStatus.Day, GameStatus.Ended])(
-    'keeps the read-only review tools available during audio playback in %s',
+    'locks the review tools during audio playback in %s, on the task card and in the sheet',
     (roomStatus) => {
       const onNightReview = jest.fn();
       const onLastNightInfo = jest.fn();
@@ -435,17 +439,59 @@ describe('createWerewolfHostManagement', () => {
         }),
       );
       const actions = model.sections.flatMap((section) => section.actions);
-      const reviewAction = actions.find((action) => action.key === 'night-review');
-      const infoAction = actions.find((action) => action.key === 'last-night-info');
-      if (reviewAction?.isEnabled !== true || infoAction?.isEnabled !== true) {
-        throw new Error(`Expected review tools to stay enabled during ${roomStatus} audio`);
+      for (const key of ['night-review', 'last-night-info']) {
+        const action = actions.find((entry) => entry.key === key);
+        expect(action).toMatchObject({
+          isEnabled: false,
+          disabledReason: '语音播报中，请稍候',
+        });
+        expect(action).not.toHaveProperty('onPress');
       }
-      reviewAction.onPress();
-      infoAction.onPress();
-      expect(onNightReview).toHaveBeenCalledTimes(1);
-      expect(onLastNightInfo).toHaveBeenCalledTimes(1);
+      const view = resolveHostTaskView(model);
+      if (view === null) {
+        throw new Error(`Expected a host task during ${roomStatus} audio`);
+      }
+      expect(hostTaskBody(model)).toMatchObject({
+        kind: 'blocked',
+        reason: '语音播报中，请稍候',
+      });
+      for (const step of view.steps ?? []) {
+        expect(step.onPress).toBeUndefined();
+      }
+      expect(onNightReview).not.toHaveBeenCalled();
+      expect(onLastNightInfo).not.toHaveBeenCalled();
     },
   );
+
+  it('locks every choice move, including last-night info, during Day audio with an election running', () => {
+    const sheriffElection = createSheriffElection({ phase: 'candidateSpeech' });
+    const model = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Day,
+        isAudioPlaying: true,
+        sheriffElection,
+        capabilities: deniedRoomCapabilities,
+      }),
+    );
+    const body = hostTaskBody(model);
+    if (body?.kind !== 'choice') {
+      throw new Error('Expected a choice task during Day audio');
+    }
+    for (const action of body.actions) {
+      expect(action).toMatchObject({
+        isEnabled: false,
+        disabledReason: '语音播报中，请稍候',
+      });
+      expect(action).not.toHaveProperty('onPress');
+    }
+    const view = resolveHostTaskView(model);
+    if (view === null) {
+      throw new Error('Expected a host task view during Day audio');
+    }
+    for (const step of view.steps ?? []) {
+      expect(step.onPress).toBeUndefined();
+    }
+  });
 
   it('disables the sheriff flow actions during audio playback in Day', () => {
     const sheriffElection = createSheriffElection({ phase: 'candidateSpeech' });
