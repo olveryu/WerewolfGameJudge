@@ -75,7 +75,6 @@ function reviewViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMo
     hasViewedRole: true,
     unviewedRoleSeats: [],
     requiredSize: null,
-    draftSeats: null,
     preselectedSeats: null,
     proposedSeats: null,
     teamSeats: null,

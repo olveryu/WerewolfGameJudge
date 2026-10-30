@@ -264,14 +264,8 @@ function phase(value: unknown, path: string): AvalonPhase {
           kind: 'nominate' as const,
           round: questRound(raw.round, `${path}.round`),
           requiredSize: parseInteger(raw.requiredSize, `${path}.requiredSize`),
-          // States persisted before the nomination draft existed carry
-          // no draftSeats; like vote.deadlineAt on v3 phases, a missing
-          // field parses as the empty value (no draft yet). The same
-          // holds for preselectedSeats on pre-v8 states (no preselect).
-          draftSeats:
-            raw.draftSeats === undefined
-              ? []
-              : parseArray(raw.draftSeats, `${path}.draftSeats`, parseSeat),
+          // Pre-v8 states carry no preselectedSeats; like vote.deadlineAt
+          // on v3 phases, a missing field parses as the empty value.
           preselectedSeats:
             raw.preselectedSeats === undefined
               ? []
@@ -486,6 +480,13 @@ function deriveLegacyLadyHistory(
  * old derivation would have called bots.
  * @throws When the stored state is malformed or invalid after migration.
  */
+/** v<10 nominate phases carried the leader's draft; it is not part of the state any more. */
+function dropNominateDraft(phase: unknown): unknown {
+  if (typeof phase !== 'object' || phase === null || !('draftSeats' in phase)) return phase;
+  const { draftSeats: _dropped, ...rest } = phase;
+  return rest;
+}
+
 export function migratePersistedAvalonState(value: unknown): AvalonState {
   const raw = parseObject(value, 'AvalonState');
   // v3/v4 predate the viewing stage; their phases all exist unchanged
@@ -499,13 +500,29 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
   // is a pure version bump.
   // v8 -> v9 adds audioBatchId; every older payload starts at 0 and the
   // host acks a queue written before ids as batch 0.
+  // v9 -> v10 removes the nominate draft (`phase.draftSeats`): the team
+  // now travels on preselect / propose. A persisted draft was never a
+  // commitment, so it is dropped.
+  if (raw.stateVersion === 9) {
+    return parseAvalonState({
+      ...raw,
+      stateVersion: AVALON_STATE_VERSION,
+      phase: dropNominateDraft(raw.phase),
+    });
+  }
   if (raw.stateVersion === 7 || raw.stateVersion === 8) {
-    return parseAvalonState({ ...raw, stateVersion: AVALON_STATE_VERSION, audioBatchId: 0 });
+    return parseAvalonState({
+      ...raw,
+      stateVersion: AVALON_STATE_VERSION,
+      phase: dropNominateDraft(raw.phase),
+      audioBatchId: 0,
+    });
   }
   if (raw.stateVersion === 3 || raw.stateVersion === 4 || raw.stateVersion === 5) {
     return parseAvalonState({
       ...raw,
       stateVersion: AVALON_STATE_VERSION,
+      phase: dropNominateDraft(raw.phase),
       roundHistory: deriveLegacyRoundHistory(raw),
       ladyHistory: deriveLegacyLadyHistory(raw),
       audioBatchId: 0,
@@ -515,6 +532,7 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
     return parseAvalonState({
       ...raw,
       stateVersion: AVALON_STATE_VERSION,
+      phase: dropNominateDraft(raw.phase),
       ladyHistory: deriveLegacyLadyHistory(raw),
       audioBatchId: 0,
     });
@@ -541,6 +559,7 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
   return parseAvalonState({
     ...rest,
     stateVersion: AVALON_STATE_VERSION,
+    phase: dropNominateDraft(rest.phase),
     roleViewedSeats: raw.stateVersion === 1 ? [] : raw.roleViewedSeats,
     roster,
     roundHistory: deriveLegacyRoundHistory(rest),

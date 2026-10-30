@@ -239,7 +239,7 @@ describe('useAvalonRoomState takeover nomination modal', () => {
     jest.clearAllMocks();
   });
 
-  it('dispatches the modal-confirmed draft and preselect as the taken-over bot leader', async () => {
+  it('dispatches the modal-confirmed preselect as the taken-over bot leader', async () => {
     const state = nominateStateWithBotLeader();
     const { result, dispatch } = renderRoomState(state);
     const leaderSeat = state.leaderSeat;
@@ -256,8 +256,8 @@ describe('useAvalonRoomState takeover nomination modal', () => {
     ).toBeUndefined();
 
     // Take over the bot leader seat: the leader's screen now offers
-    // the preselect button (the modal entry, enabled even with an
-    // empty server draft — the full gate lives on the modal confirm).
+    // the preselect button (the modal entry; the full-team gate lives
+    // on the modal confirm).
     act(() => {
       result.current.shellModel.seats.onBotSeatLongPress?.(leaderSeat);
     });
@@ -273,7 +273,7 @@ describe('useAvalonRoomState takeover nomination modal', () => {
     expect(preselect.isEnabled).toBe(true);
     if (!preselect.isEnabled) throw new Error('preselect action must be enabled under takeover');
 
-    // Modal confirm dispatches the draft then the preselect, both
+    // Modal confirm dispatches the preselect, team on the command,
     // under the controlled bot leader seat.
     act(() => {
       preselect.onPress?.();
@@ -283,12 +283,9 @@ describe('useAvalonRoomState takeover nomination modal', () => {
       await result.current.confirmTeamPick(team);
     });
     expect(result.current.teamPickModal).toBeNull();
+    expect(dispatch).toHaveBeenCalledTimes(1);
     expect(dispatch).toHaveBeenCalledWith(
-      { type: 'avalon.team.updateDraft', seats: team },
-      expect.objectContaining({ controlledSeat: leaderSeat, label: '更新草稿', durable: false }),
-    );
-    expect(dispatch).toHaveBeenCalledWith(
-      { type: 'avalon.team.preselect' },
+      { type: 'avalon.team.preselect', seats: team },
       expect.objectContaining({ controlledSeat: leaderSeat, label: '预选队伍', durable: false }),
     );
   });

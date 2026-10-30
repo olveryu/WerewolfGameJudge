@@ -26,7 +26,6 @@ function voteViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMode
     hasViewedRole: true,
     unviewedRoleSeats: [],
     requiredSize: 2,
-    draftSeats: null,
     preselectedSeats: null,
     proposedSeats: [0, 1],
     teamSeats: null,

@@ -133,7 +133,6 @@ function avalonSeatIndicators(
   if (phase.kind === 'lobby') return null;
   const isPicker = state.leaderSeat === seat && AVALON_LEADER_BADGE_PHASES[phase.kind];
   const isTeamMember =
-    (phase.kind === 'nominate' && phase.draftSeats.includes(seat)) ||
     (phase.kind === 'vote' && phase.proposedSeats.includes(seat)) ||
     (phase.kind === 'quest' && phase.teamSeats.includes(seat));
   const isPreselected = phase.kind === 'nominate' && phase.preselectedSeats.includes(seat);

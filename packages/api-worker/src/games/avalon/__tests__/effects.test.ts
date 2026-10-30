@@ -171,12 +171,16 @@ function armedVoteState(): AvalonState {
   const leader = state.leaderSeat;
   state = applyPublic(
     state,
-    { type: 'avalon.team.updateDraft', seats: [0, 1] },
+    { type: 'avalon.team.preselect', seats: [0, 1] },
     seatUser(leader),
-    'draft',
+    'preselect',
   );
-  state = applyPublic(state, { type: 'avalon.team.preselect' }, seatUser(leader), 'preselect');
-  state = applyPublic(state, { type: 'avalon.team.propose' }, seatUser(leader), 'propose');
+  state = applyPublic(
+    state,
+    { type: 'avalon.team.propose', seats: [0, 1] },
+    seatUser(leader),
+    'propose',
+  );
   for (let seat = 0; seat < 5; seat += 1) {
     state = applyPublic(
       state,

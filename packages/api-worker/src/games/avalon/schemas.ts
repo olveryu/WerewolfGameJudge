@@ -33,11 +33,13 @@ const avalonPublicCommandOptions = definePublicCommandOptions<AvalonPublicComman
     audioBatchId: z.number().int().nonnegative(),
   }),
   z.strictObject({
-    type: z.literal('avalon.team.updateDraft'),
+    type: z.literal('avalon.team.preselect'),
     seats: z.array(z.number().int().nonnegative()).readonly(),
   }),
-  z.strictObject({ type: z.literal('avalon.team.preselect') }),
-  z.strictObject({ type: z.literal('avalon.team.propose') }),
+  z.strictObject({
+    type: z.literal('avalon.team.propose'),
+    seats: z.array(z.number().int().nonnegative()).readonly(),
+  }),
   z.strictObject({
     type: z.literal('avalon.team.vote'),
     vote: z.enum(['approve', 'reject']),

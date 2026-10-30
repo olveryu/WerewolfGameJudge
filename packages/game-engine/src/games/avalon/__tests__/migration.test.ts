@@ -7,6 +7,7 @@ import { getAvalonNightParticipants } from '../domain/rules';
 import { avalonEngine } from '../engine';
 import { migratePersistedAvalonState, parseAvalonState } from '../state/parseState';
 import { type AvalonState, DEFAULT_AVALON_CONFIG } from '../state/types';
+import { AVALON_STATE_VERSION } from '../state/version';
 
 function context(actorUserId: string, commandId: string): CommandContext {
   return {
@@ -211,17 +212,12 @@ describe('Avalon v3 -> v4 countdown migration', () => {
     const leader = state.leaderSeat;
     state = dispatch(
       state,
-      { type: 'avalon.team.updateDraft', seats: [leader, (leader + 1) % 5] },
+      { type: 'avalon.team.preselect', seats: [leader, (leader + 1) % 5] },
       leader === 0 ? 'host' : `user-${leader}`,
     );
     state = dispatch(
       state,
-      { type: 'avalon.team.preselect' },
-      leader === 0 ? 'host' : `user-${leader}`,
-    );
-    state = dispatch(
-      state,
-      { type: 'avalon.team.propose' },
+      { type: 'avalon.team.propose', seats: [leader, (leader + 1) % 5] },
       leader === 0 ? 'host' : `user-${leader}`,
     );
     state = dispatch(state, { type: 'avalon.team.vote', vote: 'approve' }, 'host');
@@ -243,7 +239,7 @@ describe('Avalon v3 -> v4 countdown migration', () => {
     const state = votePhaseState();
     if (state.phase.kind !== 'vote') throw new Error('expected vote phase');
     const migrated = migratePersistedAvalonState(downgradeToV3(state));
-    expect(migrated.stateVersion).toBe(9);
+    expect(migrated.stateVersion).toBe(AVALON_STATE_VERSION);
     if (migrated.phase.kind !== 'vote') throw new Error('expected vote phase');
     expect(migrated.phase.deadlineAt).toBeNull();
     expect(migrated.phase.ballots).toEqual(state.phase.kind === 'vote' ? state.phase.ballots : {});
@@ -285,7 +281,7 @@ describe('Avalon v4 -> v5 viewing-stage migration', () => {
   it('migrates a lobby state field-for-field', () => {
     const state = lobby(3);
     const migrated = migratePersistedAvalonState(downgradeToV4(state));
-    expect(migrated.stateVersion).toBe(9);
+    expect(migrated.stateVersion).toBe(AVALON_STATE_VERSION);
     expect(migrated).toEqual(state);
   });
 
@@ -300,7 +296,7 @@ describe('Avalon v4 -> v5 viewing-stage migration', () => {
     state = dispatch(state, { type: 'avalon.game.begin' });
     if (state.phase.kind !== 'night') throw new Error('expected night phase');
     const migrated = migratePersistedAvalonState(downgradeToV4(state));
-    expect(migrated.stateVersion).toBe(9);
+    expect(migrated.stateVersion).toBe(AVALON_STATE_VERSION);
     expect(migrated).toEqual(asMigrated(state));
     expect(parseAvalonState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
   });
@@ -350,9 +346,8 @@ describe('Avalon v5 -> v6 round-history migration', () => {
       { length: state.phase.requiredSize },
       (_, index) => (leader + index) % 5,
     );
-    let next = dispatch(state, { type: 'avalon.team.updateDraft', seats }, actorOf(leader));
-    next = dispatch(next, { type: 'avalon.team.preselect' }, actorOf(leader));
-    next = dispatch(next, { type: 'avalon.team.propose' }, actorOf(leader));
+    let next = dispatch(state, { type: 'avalon.team.preselect', seats }, actorOf(leader));
+    next = dispatch(next, { type: 'avalon.team.propose', seats }, actorOf(leader));
     for (let seat = 0; seat < 5; seat += 1) {
       next = dispatch(next, { type: 'avalon.team.vote', vote: ballotOf(seat) }, actorOf(seat));
     }
@@ -375,7 +370,7 @@ describe('Avalon v5 -> v6 round-history migration', () => {
     state = settleQuest(state);
     expect(state.roundHistory).toHaveLength(1);
     const migrated = migratePersistedAvalonState(downgradeToV5(state));
-    expect(migrated.stateVersion).toBe(9);
+    expect(migrated.stateVersion).toBe(AVALON_STATE_VERSION);
     expect(migrated).toEqual(asMigrated(state));
     expect(parseAvalonState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
   });
@@ -405,11 +400,8 @@ describe('Avalon v5 -> v6 round-history migration', () => {
   });
 });
 
-describe('Avalon nomination draft field (pre-draft persisted states)', () => {
-  it('parses a nominate phase without draftSeats as an empty draft', () => {
-    // Drive a 5-human game into nominate and set a draft, then rebuild
-    // the document a pre-draft store would have persisted (same version,
-    // the field simply absent) — it must parse with an empty draft.
+describe('Avalon v9 -> v10 nomination draft removal', () => {
+  function nominateState(): AvalonState {
     let state = lobby(5);
     state = dispatch(state, { type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 5; seat += 1) {
@@ -429,31 +421,39 @@ describe('Avalon nomination draft field (pre-draft persisted states)', () => {
       state = ackAudio(state);
     }
     if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+    return state;
+  }
+
+  it('drops a persisted v9 draft and bumps the version; the preselect record survives', () => {
+    const state = nominateState();
     const leader = state.leaderSeat;
-    state = dispatch(
+    const preselected = dispatch(
       state,
-      { type: 'avalon.team.updateDraft', seats: [leader, (leader + 1) % 5] },
+      { type: 'avalon.team.preselect', seats: [leader, (leader + 1) % 5] },
       leader === 0 ? 'host' : `user-${leader}`,
     );
-    if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
-    expect(state.phase.draftSeats).toEqual([leader, (leader + 1) % 5]);
-    const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
-    delete (raw.phase as Record<string, unknown>).draftSeats;
-    const parsed = parseAvalonState(raw);
-    if (parsed.phase.kind !== 'nominate') throw new Error('expected nominate phase');
-    expect(parsed.phase.draftSeats).toEqual([]);
-    expect(migratePersistedAvalonState(raw)).toEqual(parsed);
-    // A document that does carry the field round-trips untouched.
-    expect(parseAvalonState(JSON.parse(JSON.stringify(state)))).toEqual(state);
+    const raw = JSON.parse(JSON.stringify(preselected)) as Record<string, unknown>;
+    raw.stateVersion = 9;
+    (raw.phase as Record<string, unknown>).draftSeats = [leader];
+    const migrated = migratePersistedAvalonState(raw);
+    expect(migrated).toEqual(preselected);
+    if (migrated.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+    expect('draftSeats' in migrated.phase).toBe(false);
+  });
+
+  it('rejects a current-version nominate document that still carries draftSeats', () => {
+    const raw = JSON.parse(JSON.stringify(nominateState())) as Record<string, unknown>;
+    (raw.phase as Record<string, unknown>).draftSeats = [];
+    expect(() => parseAvalonState(raw)).toThrow('draftSeats');
   });
 });
 
 describe('Avalon v7 -> v8 preselect migration', () => {
   it('bumps a v7 nominate document to v8 with an empty preselect', () => {
-    // Drive a 5-human game into nominate with a draft, then rebuild
-    // the document a v7 store would have persisted (version 7, no
-    // preselectedSeats field) — migration must bump the version and
-    // default the preselect to empty while preserving the draft.
+    // Drive a 5-human game into nominate, then rebuild the document a v7
+    // store would have persisted (version 7, no preselectedSeats, a
+    // draftSeats field) — migration must bump the version, default the
+    // preselect to empty and drop the draft.
     let state = lobby(5);
     state = dispatch(state, { type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 5; seat += 1) {
@@ -474,21 +474,16 @@ describe('Avalon v7 -> v8 preselect migration', () => {
     }
     if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
     const leader = state.leaderSeat;
-    state = dispatch(
-      state,
-      { type: 'avalon.team.updateDraft', seats: [leader, (leader + 1) % 5] },
-      leader === 0 ? 'host' : `user-${leader}`,
-    );
-    if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
     const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
     raw.stateVersion = 7;
     delete raw.audioBatchId;
     delete (raw.phase as Record<string, unknown>).preselectedSeats;
+    (raw.phase as Record<string, unknown>).draftSeats = [leader, (leader + 1) % 5];
     const migrated = migratePersistedAvalonState(raw);
-    expect(migrated.stateVersion).toBe(9);
+    expect(migrated.stateVersion).toBe(AVALON_STATE_VERSION);
     expect(migrated.audioBatchId).toBe(0);
     if (migrated.phase.kind !== 'nominate') throw new Error('expected nominate phase');
-    expect(migrated.phase.draftSeats).toEqual([leader, (leader + 1) % 5]);
+    expect('draftSeats' in migrated.phase).toBe(false);
     expect(migrated.phase.preselectedSeats).toEqual([]);
   });
 });
@@ -531,9 +526,8 @@ describe('Avalon v6 -> v7 lady-history migration', () => {
     for (const size of [3, 4]) {
       const leader = state.leaderSeat;
       const team = Array.from({ length: size }, (_, index) => (leader + index) % 9);
-      state = dispatch(state, { type: 'avalon.team.updateDraft', seats: team }, actorOf(leader));
-      state = dispatch(state, { type: 'avalon.team.preselect' }, actorOf(leader));
-      state = dispatch(state, { type: 'avalon.team.propose' }, actorOf(leader));
+      state = dispatch(state, { type: 'avalon.team.preselect', seats: team }, actorOf(leader));
+      state = dispatch(state, { type: 'avalon.team.propose', seats: team }, actorOf(leader));
       for (let seat = 0; seat < 9; seat += 1) {
         state = dispatch(state, { type: 'avalon.team.vote', vote: 'approve' }, actorOf(seat));
       }
@@ -572,7 +566,7 @@ describe('Avalon v6 -> v7 lady-history migration', () => {
     delete raw.ladyHistory;
     delete raw.audioBatchId;
     const migrated = migratePersistedAvalonState({ ...raw, stateVersion: 6 });
-    expect(migrated.stateVersion).toBe(9);
+    expect(migrated.stateVersion).toBe(AVALON_STATE_VERSION);
     expect(migrated).toEqual(asMigrated(state));
     expect(parseAvalonState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
   });
@@ -595,7 +589,7 @@ describe('Avalon v6 -> v7 lady-history migration', () => {
     const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
     delete raw.ladyHistory;
     const migrated = migratePersistedAvalonState({ ...raw, stateVersion: 6 });
-    expect(migrated.stateVersion).toBe(9);
+    expect(migrated.stateVersion).toBe(AVALON_STATE_VERSION);
     expect(migrated.ladyHistory).toEqual([]);
     if (migrated.phase.kind !== 'lady') throw new Error('expected lady phase');
     expect(migrated.phase.holderSeat).toBe(holder);
@@ -611,9 +605,8 @@ describe('Avalon v6 -> v7 lady-history migration', () => {
     expect(state.ladyHistory).toHaveLength(1);
     const leader = state.leaderSeat;
     const team = Array.from({ length: 4 }, (_, index) => (leader + index) % 9);
-    state = dispatch(state, { type: 'avalon.team.updateDraft', seats: team }, actorOf(leader));
-    state = dispatch(state, { type: 'avalon.team.preselect' }, actorOf(leader));
-    state = dispatch(state, { type: 'avalon.team.propose' }, actorOf(leader));
+    state = dispatch(state, { type: 'avalon.team.preselect', seats: team }, actorOf(leader));
+    state = dispatch(state, { type: 'avalon.team.propose', seats: team }, actorOf(leader));
     for (let seat = 0; seat < 9; seat += 1) {
       state = dispatch(state, { type: 'avalon.team.vote', vote: 'approve' }, actorOf(seat));
     }
@@ -699,7 +692,7 @@ describe('Avalon v8 -> v9 audio batch id migration', () => {
     const state = openingNightState();
     const { audioBatchId: _dropped, ...raw } = state;
     const migrated = migratePersistedAvalonState({ ...raw, stateVersion: 8 });
-    expect(migrated.stateVersion).toBe(9);
+    expect(migrated.stateVersion).toBe(AVALON_STATE_VERSION);
     expect(migrated.audioBatchId).toBe(0);
     expect(migrated.isAudioPlaying).toBe(true);
     expect(migrated).toEqual(asMigrated(state));
@@ -709,7 +702,7 @@ describe('Avalon v8 -> v9 audio batch id migration', () => {
   it('starts the batch id at 0 through the legacy v2 chain', () => {
     const state = openingNightState();
     const migrated = migratePersistedAvalonState(downgradeToV2(state));
-    expect(migrated.stateVersion).toBe(9);
+    expect(migrated.stateVersion).toBe(AVALON_STATE_VERSION);
     expect(migrated).toEqual(asMigrated(state));
   });
 

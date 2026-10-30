@@ -61,9 +61,8 @@ function questPhaseSession() {
       send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId }, 'host');
   }
   const leader = state.leaderSeat;
-  send({ type: 'avalon.team.updateDraft', seats: [leader, (leader + 1) % 5] }, seatUser(leader));
-  send({ type: 'avalon.team.preselect' }, seatUser(leader));
-  send({ type: 'avalon.team.propose' }, seatUser(leader));
+  send({ type: 'avalon.team.preselect', seats: [leader, (leader + 1) % 5] }, seatUser(leader));
+  send({ type: 'avalon.team.propose', seats: [leader, (leader + 1) % 5] }, seatUser(leader));
   for (let seat = 0; seat < 5; seat += 1) {
     send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
   }
@@ -323,44 +322,45 @@ describe('createAvalonSeatDataSource — nominate picked badge', () => {
     const leader = state.leaderSeat;
     const pickedSeat = (leader + 1) % 5;
     const unpickedSeat = (leader + 2) % 5;
-    // 场景来源：组队者经 updateDraft 把两人写进服务端草稿（徽标读草稿）。
-    send({ type: 'avalon.team.updateDraft', seats: [pickedSeat, leader] }, seatUser(leader));
-    const source = createAvalonSeatDataSource({
+    // 选人在组队者的弹窗里，不是房间状态：预选前座位盘没有任何选择徽标。
+    const before = createAvalonSeatDataSource({
       state,
       revision: 1,
       userId: 'host',
       controlledSeat: null,
     });
-    expect(source.getSeat(pickedSeat).indicators?.selection?.kind).toBe('selected');
-    expect(source.getSeat(leader).indicators).toMatchObject({
-      selection: { kind: 'selected' },
+    expect(before.getSeat(pickedSeat).indicators?.selection).toBeNull();
+    expect(before.getSeat(leader).indicators).toMatchObject({
+      selection: null,
       markers: [{ key: 'leader' }],
     });
-    expect(source.getSeat(unpickedSeat).indicators?.selection).toBeNull();
-    // 预选锁定后两套并存时最终队伍优先：都在的仍亮「队员」。
-    send({ type: 'avalon.team.preselect' }, seatUser(leader));
+    // 预选锁定后全房看到「预选」；组队者徽标与选择独立。
+    send({ type: 'avalon.team.preselect', seats: [pickedSeat, leader] }, seatUser(leader));
     const preselected = createAvalonSeatDataSource({
       state,
       revision: 2,
       userId: 'host',
       controlledSeat: null,
     });
-    expect(preselected.getSeat(pickedSeat).indicators?.selection?.kind).toBe('selected');
+    expect(preselected.getSeat(pickedSeat).indicators?.selection?.kind).toBe('preselected');
     expect(preselected.getSeat(leader).indicators).toMatchObject({
-      selection: { kind: 'selected' },
+      selection: { kind: 'preselected' },
       markers: [{ key: 'leader' }],
     });
-    // 改选最终队伍：被换出的座位只剩预选事实，亮「预选」。
-    send({ type: 'avalon.team.updateDraft', seats: [unpickedSeat, leader] }, seatUser(leader));
-    const edited = createAvalonSeatDataSource({
+    expect(preselected.getSeat(unpickedSeat).indicators?.selection).toBeNull();
+    // 最终队伍与预选不同：进入投票后只有最终队伍亮「队员」，预选不再显示。
+    send({ type: 'avalon.team.propose', seats: [unpickedSeat, leader] }, seatUser(leader));
+    const afterPropose: AvalonState = state;
+    if (afterPropose.phase.kind !== 'vote') throw new Error('expected vote phase');
+    const proposed = createAvalonSeatDataSource({
       state,
       revision: 3,
       userId: 'host',
       controlledSeat: null,
     });
-    expect(edited.getSeat(pickedSeat).indicators?.selection?.kind).toBe('preselected');
-    expect(edited.getSeat(unpickedSeat).indicators?.selection?.kind).toBe('selected');
-    expect(edited.getSeat(leader).indicators).toMatchObject({
+    expect(proposed.getSeat(pickedSeat).indicators?.selection).toBeNull();
+    expect(proposed.getSeat(unpickedSeat).indicators?.selection?.kind).toBe('selected');
+    expect(proposed.getSeat(leader).indicators).toMatchObject({
       selection: { kind: 'selected' },
       markers: [{ key: 'leader' }],
     });
@@ -461,11 +461,10 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
       if (!team.includes(seat)) team.push(seat);
     }
     session.send(
-      { type: 'avalon.team.updateDraft', seats: team },
+      { type: 'avalon.team.preselect', seats: team },
       session.seatUser(state.leaderSeat),
     );
-    session.send({ type: 'avalon.team.preselect' }, session.seatUser(state.leaderSeat));
-    session.send({ type: 'avalon.team.propose' }, session.seatUser(state.leaderSeat));
+    session.send({ type: 'avalon.team.propose', seats: team }, session.seatUser(state.leaderSeat));
     return team;
   }
 

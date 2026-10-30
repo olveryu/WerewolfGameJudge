@@ -120,9 +120,8 @@ function completeNight(s: Session) {
 function proposeTeam(s: Session, team: readonly number[]) {
   if (s.state.phase.kind !== 'nominate') throw new Error('expected nominate');
   const leader = s.state.leaderSeat;
-  s.send({ type: 'avalon.team.updateDraft', seats: [...team] }, seatUser(leader));
-  s.send({ type: 'avalon.team.preselect' }, seatUser(leader));
-  s.send({ type: 'avalon.team.propose' }, seatUser(leader));
+  s.send({ type: 'avalon.team.preselect', seats: [...team] }, seatUser(leader));
+  s.send({ type: 'avalon.team.propose', seats: [...team] }, seatUser(leader));
   if (phaseKind(s) !== 'vote') throw new Error('expected vote');
 }
 

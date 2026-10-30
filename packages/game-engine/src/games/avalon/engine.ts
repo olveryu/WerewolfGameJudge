@@ -299,13 +299,42 @@ function validateTeamSeats(state: AvalonState, seats: readonly number[]): Avalon
   return null;
 }
 
+/** The leader's exact-size, valid team for a nomination command; null when accepted. */
+function rejectTeam(
+  state: AvalonState,
+  requiredSize: number,
+  seats: readonly number[],
+  context: CommandContext,
+): AvalonDecision | null {
+  const leaderRejection = requireAvalonLeader(state, context);
+  if (leaderRejection !== null) return leaderRejection;
+  if (seats.length !== requiredSize) return reject(teamSizeReason(requiredSize));
+  return validateTeamSeats(state, seats);
+}
+
 /**
- * Leader replaces the nomination draft as a whole. The draft is public
- * (the view model projects it to the whole room) so the team can discuss
- * before the leader confirms; its size is capped at requiredSize — the
- * final exact-size check belongs to the proposal.
+ * Leader locks a full team as the preselect: the whole room sees it, and
+ * it never changes afterwards (the final proposal may differ). Preselect
+ * is a mandated first step, not UI guidance — propose below refuses
+ * without it. The team travels on the command; picking happens in the
+ * leader's modal and is not room state.
  */
-function updateTeamDraft(
+function preselectTeam(
+  state: AvalonState,
+  seats: readonly number[],
+  context: CommandContext,
+): AvalonDecision {
+  if (state.phase.kind !== 'nominate') return reject(AVALON_REASONS.phase);
+  const rejection = rejectTeam(state, state.phase.requiredSize, seats, context);
+  if (rejection !== null) return rejection;
+  return commitAvalon([{ type: 'avalon.team.preselected', seats: [...seats] }]);
+}
+
+/**
+ * Leader proposes the final team (may include the leader). It may differ
+ * from the preselect, but proposing without any preselect is an illegal move.
+ */
+function proposeTeam(
   state: AvalonState,
   seats: readonly number[],
   context: CommandContext,
@@ -313,47 +342,10 @@ function updateTeamDraft(
   if (state.phase.kind !== 'nominate') return reject(AVALON_REASONS.phase);
   const leaderRejection = requireAvalonLeader(state, context);
   if (leaderRejection !== null) return leaderRejection;
-  if (seats.length > state.phase.requiredSize)
-    return reject(teamSizeReason(state.phase.requiredSize));
-  const seatRejection = validateTeamSeats(state, seats);
-  if (seatRejection !== null) return seatRejection;
-  return commitAvalon([{ type: 'avalon.team.draftUpdated', seats: [...seats] }]);
-}
-
-/**
- * Leader locks the current full draft as the preselect: the whole room
- * sees it, and it never changes afterwards (later draft edits shape the
- * final team, not the preselect record). Preselect is a mandated first
- * step, not UI guidance — propose below refuses without it.
- */
-function preselectTeam(state: AvalonState, context: CommandContext): AvalonDecision {
-  if (state.phase.kind !== 'nominate') return reject(AVALON_REASONS.phase);
-  const leaderRejection = requireAvalonLeader(state, context);
-  if (leaderRejection !== null) return leaderRejection;
-  const draftSeats = state.phase.draftSeats;
-  if (draftSeats.length !== state.phase.requiredSize)
-    return reject(teamSizeReason(state.phase.requiredSize));
-  const seatRejection = validateTeamSeats(state, draftSeats);
-  if (seatRejection !== null) return seatRejection;
-  return commitAvalon([{ type: 'avalon.team.preselected', seats: [...draftSeats] }]);
-}
-
-/**
- * Leader confirms the current draft as the proposal (may include the
- * leader). The draft is the final team now: it may differ from the
- * preselect, but proposing without any preselect is an illegal move.
- */
-function proposeTeam(state: AvalonState, context: CommandContext): AvalonDecision {
-  if (state.phase.kind !== 'nominate') return reject(AVALON_REASONS.phase);
-  const leaderRejection = requireAvalonLeader(state, context);
-  if (leaderRejection !== null) return leaderRejection;
   if (state.phase.preselectedSeats.length === 0) return reject(AVALON_REASONS.notPreselected);
-  const draftSeats = state.phase.draftSeats;
-  if (draftSeats.length !== state.phase.requiredSize)
-    return reject(teamSizeReason(state.phase.requiredSize));
-  const seatRejection = validateTeamSeats(state, draftSeats);
-  if (seatRejection !== null) return seatRejection;
-  return commitAvalon([{ type: 'avalon.team.proposed', seats: [...draftSeats] }]);
+  const rejection = rejectTeam(state, state.phase.requiredSize, seats, context);
+  if (rejection !== null) return rejection;
+  return commitAvalon([{ type: 'avalon.team.proposed', seats: [...seats] }]);
 }
 
 /** Builds the settlement event + effect for a ballot set (the countdown-timeout settle). */
@@ -771,12 +763,10 @@ function decideCommand(
       return markAllBotsGroupConfirmed(state, context);
     case 'avalon.night.confirm':
       return confirmNight(state, context);
-    case 'avalon.team.updateDraft':
-      return updateTeamDraft(state, command.seats, context);
     case 'avalon.team.preselect':
-      return preselectTeam(state, context);
+      return preselectTeam(state, command.seats, context);
     case 'avalon.team.propose':
-      return proposeTeam(state, context);
+      return proposeTeam(state, command.seats, context);
     case 'avalon.team.vote':
       return castVote(state, command.vote, context);
     case 'avalon.quest.play':

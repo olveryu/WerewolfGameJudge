@@ -599,7 +599,7 @@ v3 初稿默认"六家是基准、狼人杀向六家看齐"，把两处狼人杀
 **撤回的正文声明（代码为准）**
 
 - §5.1 `useReadyRoomSession.submit(label, command, controlledSeat = null)`：实际为 `submit(label, command, { controlledSeat?, durable?, domainRejection?, transportFailure? })`，并返回 `isSubmitting` / `lastCommand`。
-- §5.3「阿瓦隆组队选人草稿、fibking 座位选择接入 `useScopedDraft`」：未做。阿瓦隆组队草稿是服务端状态（比本地持久化更强），fibking 选人是单击触发二次确认，无可持久化的草稿。只有狼人杀夜间草稿用 `useScopedDraft`。
+- §5.3「阿瓦隆组队选人草稿、fibking 座位选择接入 `useScopedDraft`」：未做。阿瓦隆选人已是弹窗本地勾选（2026-10-25 板子点选停用），弹窗语义下刷新即放弃，无跨刷新草稿需求；fibking 选人是单击触发二次确认，无可持久化的草稿。只有狼人杀夜间草稿用 `useScopedDraft`。顺带：服务端 `draftSeats` / `avalon.team.updateDraft` 是板子点选时代留下的「两步提交中间态」（确认时写入、紧接着被读取），不是草稿——本 PR 删除，`preselect` / `propose` 直接携带 `seats`，阿瓦隆状态 v10（avalon-game-design D24）。
 - §5.3「每家 `getXViewModel(state, viewer: { seat, isHost })`」：只有狼人杀需要 host 视角；其余六家保持 `(state, viewerSeat)`。
 - §5.3「ack 未落排他进 `RoomCapabilities`，阿瓦隆夜晚接入」：未做。狼人杀经 `NightInteractionModel.locks.hasPendingCommand` 实现；阿瓦隆夜间确认非 durable，单飞锁已覆盖。
 - §6.2 / D9 / §9 步骤 1「gameEnded 参与者判别联合 `{ kind: 'human' } | { kind: 'bot'; seat }`」：实际实现为只含真人参与者（机器人无 userId、无可结算内容），不是联合。

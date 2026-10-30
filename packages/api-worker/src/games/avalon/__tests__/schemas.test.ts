@@ -68,8 +68,8 @@ describe('Avalon public command schema', () => {
       { type: 'avalon.bots.markAllBotsGroupConfirmed' },
       { type: 'avalon.game.returnToLobby' },
       { type: 'avalon.night.confirm' },
-      { type: 'avalon.team.updateDraft', seats: [0, 1, 2] },
-      { type: 'avalon.team.propose' },
+      { type: 'avalon.team.preselect', seats: [0, 1] },
+      { type: 'avalon.team.propose', seats: [0, 1, 2] },
       { type: 'avalon.team.vote', vote: 'approve' },
       { type: 'avalon.team.vote', vote: 'reject' },
       { type: 'avalon.quest.play', play: 'success' },
@@ -103,12 +103,15 @@ describe('Avalon public command schema', () => {
       avalonPublicCommandSchema.safeParse({ type: 'avalon.quest.play', play: 'maybe' }).success,
     ).toBe(false);
     expect(
-      avalonPublicCommandSchema.safeParse({ type: 'avalon.team.updateDraft', seats: [0.5] })
-        .success,
+      avalonPublicCommandSchema.safeParse({ type: 'avalon.team.preselect', seats: [0.5] }).success,
     ).toBe(false);
-    // propose no longer carries a payload: the old seats field is an extra field now.
+    // The team travels on the command; a bare propose is malformed.
+    expect(avalonPublicCommandSchema.safeParse({ type: 'avalon.team.propose' }).success).toBe(
+      false,
+    );
     expect(
-      avalonPublicCommandSchema.safeParse({ type: 'avalon.team.propose', seats: [0, 1] }).success,
+      avalonPublicCommandSchema.safeParse({ type: 'avalon.team.updateDraft', seats: [0, 1] })
+        .success,
     ).toBe(false);
     expect(avalonPublicCommandSchema.safeParse({ type: 'avalon.lady.check' }).success).toBe(false);
     expect(

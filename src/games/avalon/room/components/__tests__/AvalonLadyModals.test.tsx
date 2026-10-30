@@ -28,7 +28,6 @@ function ladyViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMode
     hasViewedRole: true,
     unviewedRoleSeats: [],
     requiredSize: null,
-    draftSeats: null,
     preselectedSeats: null,
     proposedSeats: null,
     teamSeats: null,

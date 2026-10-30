@@ -197,7 +197,7 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
   it('host rejoin during the dawn batch replays nothing and acks (the gate closes on the ack)', async () => {
     const fake = createFakeLink(
       [{ audioKey: 'percival_reveal', isEndAudio: true }, { audioKey: NIGHT_END_AUDIO_KEY }],
-      { kind: 'nominate', round: 1, requiredSize: 2, draftSeats: [], preselectedSeats: [] },
+      { kind: 'nominate', round: 1, requiredSize: 2, preselectedSeats: [] },
     );
     const { result } = renderHook(() =>
       useAvalonAudioOrchestration({ session: fake.link, isHost: true, audio }),
