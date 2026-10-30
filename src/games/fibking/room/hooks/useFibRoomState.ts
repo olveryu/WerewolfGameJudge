@@ -330,6 +330,7 @@ export function useFibRoomState({
       state,
       isHost,
       viewerSeat: effectiveSeat,
+      isSubmitting,
       openIdentity,
     }),
     buildHostManagement: () => hostManagement,

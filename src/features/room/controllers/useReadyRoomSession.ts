@@ -59,17 +59,14 @@ export function useReadyRoomSession<TState extends BaseGameState<string>, TComma
   const snapshot = useRoomLinkSnapshot(session);
   const submission = useRoomCommandSubmission(getFailureMessage);
   const submit = useCallback(
-    (label: string, command: TCommand, options: ReadyRoomSubmitOptions = {}) =>
-      submission.submit(
+    (label: string, command: TCommand, options: ReadyRoomSubmitOptions = {}) => {
+      const { controlledSeat = null, durable = false, ...presentation } = options;
+      return submission.submit(
         label,
-        () =>
-          session.dispatch(command, {
-            controlledSeat: options.controlledSeat ?? null,
-            label,
-            durable: options.durable ?? false,
-          }),
-        { domainRejection: options.domainRejection },
-      ),
+        () => session.dispatch(command, { controlledSeat, label, durable }),
+        presentation,
+      );
+    },
     [session, submission],
   );
   if (user === null) {

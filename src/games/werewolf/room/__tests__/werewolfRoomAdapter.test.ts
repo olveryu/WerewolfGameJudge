@@ -290,7 +290,12 @@ describe('progress, board info and counts', () => {
       ...state,
       templateRoles: [...roles, 'villager', 'villager'],
     };
-    expect(deriveWerewolfSeatCounts(bottomCardBoard).totalSeats).toBe(4);
+    expect(
+      deriveWerewolfSeatCounts(
+        bottomCardBoard,
+        getWerewolfViewModel(bottomCardBoard, { seat: null, isHost: true }),
+      ).totalSeats,
+    ).toBe(4);
   });
 
   it('counts seated, viewed and total seats for the host panel', () => {
@@ -299,7 +304,9 @@ describe('progress, board info and counts', () => {
       stepId: 'seerCheck',
       overrides: { roleViewedSeats: [0, 1] },
     });
-    expect(deriveWerewolfSeatCounts(state)).toEqual({
+    expect(
+      deriveWerewolfSeatCounts(state, getWerewolfViewModel(state, { seat: null, isHost: true })),
+    ).toEqual({
       seatedCount: 6,
       viewedCount: 2,
       totalSeats: 6,

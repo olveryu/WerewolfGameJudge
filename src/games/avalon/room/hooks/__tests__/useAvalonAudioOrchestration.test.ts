@@ -27,23 +27,34 @@ import { useAvalonAudioOrchestration } from '../useAvalonAudioOrchestration';
 
 const QUEUED_BATCH_ID = 1;
 
-function queuedState(queue: readonly AudioEffect[]): AvalonState {
+function queuedState(queue: readonly AudioEffect[], phase?: AvalonState['phase']): AvalonState {
   return buildAvalonTestState({
+    ...(phase === undefined ? {} : { phase }),
     pendingAudioEffects: queue,
     isAudioPlaying: true,
     audioBatchId: QUEUED_BATCH_ID,
   });
 }
 
+const FIRST_NIGHT_STEP: AvalonState['phase'] = {
+  kind: 'night',
+  step: 'evilReveal',
+  confirmedSeats: [],
+};
+
 /**
  * `mountedMidNarration`: the link's first ready snapshot already carries the
  * queue (host rejoin). Otherwise the link starts idle and `queueNarration`
  * publishes the batch later, as a game start would.
  */
-function createFakeLink(queue: readonly AudioEffect[], mountedMidNarration = false) {
-  const initialState = mountedMidNarration
-    ? queuedState(queue)
-    : buildAvalonTestState({ audioBatchId: 0 });
+function createFakeLink(
+  queue: readonly AudioEffect[],
+  mountedMidNarration: AvalonState['phase'] | null = null,
+) {
+  const initialState =
+    mountedMidNarration === null
+      ? buildAvalonTestState({ audioBatchId: 0 })
+      : queuedState(queue, mountedMidNarration);
   let revision = 1;
   let settleAck: ((outcome: DispatchOutcome<AvalonState>) => void) | null = null;
   const link = createFakeRoomLink<AvalonState, AvalonPublicCommand>(
@@ -154,9 +165,11 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
     expect(timeline).toEqual(['play:percival_reveal', 'stopBgm', `play:${NIGHT_END_AUDIO_KEY}`]);
   });
 
-  it('host rejoin mid-narration: queue stays silent until resumeAfterRejoin replays and acks', async () => {
+  it('host rejoin mid-step: queue stays silent; resumeAfterRejoin replays only the current step opening and acks', async () => {
+    // The batch carries the game-start line and the step opening; after a rejoin
+    // only the step opening is heard again (werewolf baseline), never the whole batch.
     const queue: readonly AudioEffect[] = [{ audioKey: 'night' }, { audioKey: 'evil_reveal' }];
-    const fake = createFakeLink(queue, true);
+    const fake = createFakeLink(queue, FIRST_NIGHT_STEP);
     const { result } = renderHook(() =>
       useAvalonAudioOrchestration({ session: fake.link, isHost: true, audio }),
     );
@@ -173,10 +186,7 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
       await resumed;
     });
     expect(result.current.readWasAudioInterrupted()).toBe(false);
-    expect(audio.playEffect.mock.calls.map(([audioKey]) => audioKey)).toEqual([
-      'night',
-      'evil_reveal',
-    ]);
+    expect(audio.playEffect.mock.calls.map(([audioKey]) => audioKey)).toEqual(['evil_reveal']);
     expect(fake.dispatch).toHaveBeenCalledTimes(1);
     expect(fake.dispatch).toHaveBeenCalledWith(
       { type: 'avalon.audio.ack', audioBatchId: QUEUED_BATCH_ID },
@@ -184,8 +194,28 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
     );
   });
 
+  it('host rejoin during the dawn batch replays nothing and acks (the gate closes on the ack)', async () => {
+    const fake = createFakeLink(
+      [{ audioKey: 'percival_reveal', isEndAudio: true }, { audioKey: NIGHT_END_AUDIO_KEY }],
+      { kind: 'nominate', round: 1, requiredSize: 2, draftSeats: [], preselectedSeats: [] },
+    );
+    const { result } = renderHook(() =>
+      useAvalonAudioOrchestration({ session: fake.link, isHost: true, audio }),
+    );
+    await flushPlayback();
+    expect(result.current.readWasAudioInterrupted()).toBe(true);
+    await act(async () => {
+      const resumed = result.current.resumeAfterRejoin();
+      await flushPlayback();
+      fake.commitAck();
+      await resumed;
+    });
+    expect(audio.playEffect).not.toHaveBeenCalled();
+    expect(fake.dispatch).toHaveBeenCalledTimes(1);
+  });
+
   it('a non-host mounting mid-narration is never marked interrupted', async () => {
-    const fake = createFakeLink([{ audioKey: 'night' }], true);
+    const fake = createFakeLink([{ audioKey: 'night' }], FIRST_NIGHT_STEP);
     const { result } = renderHook(() =>
       useAvalonAudioOrchestration({ session: fake.link, isHost: false, audio }),
     );

@@ -370,6 +370,7 @@ describe('FibKing room adapter', () => {
       isHost: true,
       viewerSeat: null,
       openIdentity: jest.fn(),
+      isSubmitting: false,
     });
 
     expect(actions.layout.primary).toEqual([]);
@@ -510,6 +511,7 @@ describe('FibKing room adapter', () => {
     const common = {
       isHost: true,
       viewerSeat: 0,
+      isSubmitting: false,
       openIdentity,
     };
 
@@ -553,6 +555,7 @@ describe('FibKing room adapter', () => {
     const common = {
       viewerSeat: null,
       openIdentity: jest.fn(),
+      isSubmitting: false,
     };
 
     const capabilities = createFibRoomCapabilities({
@@ -603,6 +606,7 @@ describe('FibKing room adapter', () => {
       isHost: false,
       viewerSeat: null,
       openIdentity,
+      isSubmitting: false,
     });
     expect(lobby.layout).toEqual({ primary: [], secondary: [], ghost: [] });
     expect(lobby.message).toBeNull();
@@ -612,6 +616,7 @@ describe('FibKing room adapter', () => {
       isHost: false,
       viewerSeat: 0,
       openIdentity,
+      isSubmitting: false,
     });
     expect(ongoingPlayer.layout.primary).toEqual([]);
     expect(ongoingPlayer.layout.secondary).toMatchObject([
@@ -629,6 +634,7 @@ describe('FibKing room adapter', () => {
       isHost: false,
       viewerSeat: null,
       openIdentity,
+      isSubmitting: false,
     });
     expect(ongoingSpectator.layout.secondary).toMatchObject([
       {

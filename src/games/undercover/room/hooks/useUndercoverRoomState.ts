@@ -134,11 +134,10 @@ export function useUndercoverRoomState({
   // expanded per seat-kind. Kinds and counts are public; which seat
   // holds which kind is never included.
   const revealPool = useMemo((): readonly RevealRoleData[] => {
-    const counts = getUndercoverRoleCounts(state.config.numberOfPlayers, state.config.hasBlank);
     const kinds = [
-      { id: 'civilian', name: UNDERCOVER_ROLE_NAMES.civilian, count: counts.civilian },
-      { id: 'undercover', name: UNDERCOVER_ROLE_NAMES.undercover, count: counts.undercover },
-      { id: 'blank', name: UNDERCOVER_ROLE_NAMES.blank, count: counts.blank },
+      { id: 'civilian', name: UNDERCOVER_ROLE_NAMES.civilian, count: roleCounts.civilian },
+      { id: 'undercover', name: UNDERCOVER_ROLE_NAMES.undercover, count: roleCounts.undercover },
+      { id: 'blank', name: UNDERCOVER_ROLE_NAMES.blank, count: roleCounts.blank },
     ] as const;
     return kinds.flatMap((kind) =>
       Array.from({ length: kind.count }, () => ({
@@ -147,7 +146,7 @@ export function useUndercoverRoomState({
         alignment: 'neutral' as const,
       })),
     );
-  }, [state.config.hasBlank, state.config.numberOfPlayers]);
+  }, [roleCounts]);
   const shellModel: RoomShellModel = createUndercoverRoomShellModel({
     roomCode: room.roomCode,
     viewer,

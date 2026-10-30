@@ -15,7 +15,7 @@ import {
   type RoleId,
 } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -137,12 +137,10 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = (props) =
   }, []);
   const closeSkillPreview = useCallback(() => setSkillPreviewRoleId(null), []);
   const [strategyBoardName, setStrategyBoardName] = useState<string | null>(null);
-  const [isNominationListOpen, setIsNominationListOpen] = useState(false);
-
   const isSetup = isWerewolfSetup(status);
-  useEffect(() => {
-    if (!isSetup) setIsNominationListOpen(false);
-  }, [isSetup]);
+  // The list is a setup-only surface: leaving setup closes it by derivation.
+  const [isNominationListRequested, setIsNominationListOpen] = useState(false);
+  const isNominationListOpen = isSetup && isNominationListRequested;
 
   const nominations = state.boardNominations ?? {};
   const nominationCount = Object.keys(nominations).length;

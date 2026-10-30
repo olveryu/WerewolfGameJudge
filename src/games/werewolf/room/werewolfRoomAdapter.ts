@@ -40,6 +40,7 @@ import type { NightStepProgress } from '@/features/room/model/nightProgress';
 import { resolveStepProgress } from '@/features/room/model/nightProgress';
 import {
   buildStepActorWaitingMessage,
+  buildViewIdentityButton,
   type RoomBottomActionLayout,
   type RoomBottomActionModel,
   type RoomBottomButton,
@@ -448,16 +449,10 @@ function viewRoleButton(
   input: WerewolfBottomLayoutInput,
   variant: 'primary' | 'secondary',
 ): RoomBottomButton {
-  return {
-    key: 'viewRole',
-    label: VIEW_IDENTITY_LABEL,
-    audience: 'participant',
-    icon: 'eye-outline',
-    variant,
-    size: 'md',
-    isEnabled: true,
-    onPress: input.onViewRole,
-  };
+  return buildViewIdentityButton(
+    { label: VIEW_IDENTITY_LABEL, onPress: input.onViewRole },
+    { key: 'viewRole', variant, audience: 'participant', isSubmitting: input.isActionSubmitting },
+  );
 }
 
 function nightReviewButton(
@@ -700,15 +695,17 @@ export interface WerewolfRoomShellModelInput extends Pick<
 }
 
 /** Counts the host panel gates on: seated, viewed, total. */
-export function deriveWerewolfSeatCounts(state: GameState): {
+export function deriveWerewolfSeatCounts(
+  state: GameState,
+  viewModel: WerewolfViewModel,
+): {
   readonly seatedCount: number;
   readonly viewedCount: number;
   readonly totalSeats: number;
 } {
-  const occupied = Object.values(state.players).filter((player) => player !== null);
   return {
-    seatedCount: occupied.length,
-    viewedCount: state.roleViewedSeats.length,
+    seatedCount: viewModel.seats.length,
+    viewedCount: viewModel.viewedSeats.length,
     // Bottom-card boards (thief / treasure master) carry more roles than seats.
     totalSeats: getPlayerCount(state.templateRoles),
   };
@@ -717,7 +714,7 @@ export function deriveWerewolfSeatCounts(state: GameState): {
 export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput): RoomShellModel {
   const { state, viewModel, night, controlledSeat } = input;
   const hasBots = Object.values(state.roster).some((occupant) => isBotOccupant(occupant));
-  const counts = deriveWerewolfSeatCounts(state);
+  const counts = deriveWerewolfSeatCounts(state, viewModel);
 
   const buildHostManagement = () =>
     createWerewolfHostManagement({

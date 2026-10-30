@@ -2,6 +2,7 @@
 
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner-native';
 
 import {
   getRoomCommandFailureReason,
@@ -19,8 +20,28 @@ import { roomScreenLog } from '@/utils/logger';
  */
 export type DomainRejectionPresentation = 'alert' | 'state';
 
+/**
+ * How a transport failure (thrown error, `undelivered`, `unavailable`) is
+ * presented. `alert` (default) shows the modal error. `toastAndRethrow` is
+ * for a submit issued from an open dialog's button: the failure shows as a
+ * toast and the promise rejects, which is the `AlertModal` protocol for
+ * "keep the dialog open and let the user retry" — a modal alert would
+ * replace that dialog. Decisions (rejections) are never rethrown: the
+ * dialog's request was answered, so it closes.
+ */
+export type TransportFailurePresentation = 'alert' | 'toastAndRethrow';
+
 export interface RoomCommandSubmitOptions {
   readonly domainRejection?: DomainRejectionPresentation;
+  readonly transportFailure?: TransportFailurePresentation;
+}
+
+/** A transport failure rethrown to an open dialog so it stays up for retry (already presented). */
+class RoomCommandUndeliveredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RoomCommandUndeliveredError';
+  }
 }
 
 export interface RoomCommandSubmission<TState extends BaseGameState<string>> {
@@ -56,23 +77,36 @@ export function useRoomCommandSubmission<TState extends BaseGameState<string>>(
           (result) => ({ kind: 'result', result }) as const,
           (error: unknown) => ({ kind: 'error', error }) as const,
         );
+        const rethrow = options.transportFailure === 'toastAndRethrow';
         if (settled.kind === 'error') {
           handleError(settled.error, {
             label,
             logger: roomScreenLog,
+            feedback: rethrow ? 'toast' : 'alert',
             alertMessage: `${label}失败，请稍后重试`,
           });
+          if (rethrow) throw settled.error;
           return false;
         }
 
         const result = settled.result;
         if (isSuccessfulRoomCommand(result)) return true;
         const reason = getRoomCommandFailureReason(result);
+        const message = getFailureMessage(result);
+        if (result.kind === 'undelivered' || result.kind === 'unavailable') {
+          roomScreenLog.warn('room operation not delivered', { label, reason });
+          if (rethrow) {
+            toast.error(message);
+            throw new RoomCommandUndeliveredError(reason);
+          }
+          showErrorAlert(`${label}失败`, message);
+          return false;
+        }
         roomScreenLog.warn('room operation rejected', { label, reason });
         const isDomainRejection =
           result.kind === 'committed' && result.outcome.kind === 'domainRejected';
         if (!(isDomainRejection && options.domainRejection === 'state')) {
-          showErrorAlert(`${label}失败`, getFailureMessage(result));
+          showErrorAlert(`${label}失败`, message);
         }
         return false;
       } finally {

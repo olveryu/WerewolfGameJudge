@@ -160,13 +160,22 @@ describe('game client shape (§8) — client policy never recomputes engine rule
 });
 
 describe('game client shape (§8) — deadlines are server facts', () => {
-  it('no useStageDeadline call takes isHost', () => {
+  it('no expiry gate reads isHost: the call, the shouldExpire body, or a host alias feeding it', () => {
     const offenders: string[] = [];
     for (const file of productionFiles(join(SRC_ROOT, 'games'))) {
       const source = readFileSync(file, 'utf8');
+      if (!source.includes('useStageDeadline(')) continue;
       for (const call of source.matchAll(/useStageDeadline\(\{[\s\S]*?\}\)/g)) {
-        if (/\bisHost\b/.test(call[0])) offenders.push(file);
+        if (/\bisHost\b/.test(call[0])) offenders.push(`${file}: call`);
       }
+      // The predicate passed as shouldExpire, however it is named.
+      for (const body of source.matchAll(
+        /const (\w*[sS]houldExpire\w*) = useCallback\(\(\) => \{([\s\S]*?)\}, \[/g,
+      )) {
+        if (/\bisHost\b/.test(body[2] ?? '')) offenders.push(`${file}: ${body[1]} body`);
+      }
+      // A boolean derived from isHost that the predicate could consult (`canExpire = isHost || …`).
+      if (/const \w*[eE]xpire\w* = [^;]*\bisHost\b/.test(source)) offenders.push(`${file}: alias`);
     }
     expect(offenders).toEqual([]);
   });

@@ -69,9 +69,13 @@ export function useScopedDraft<T>(options: ScopedDraftOptions<T>): ScopedDraft<T
     () => readScopedDraft(draftStorage, storageKey, scopeKey, initial, parse),
     [draftStorage, storageKey, scopeKey, initial, parse],
   );
+  // The in-memory edit belongs to one scope; a scope change drops it so the
+  // storage slot (already cleared as stale) is the only truth for the new
+  // scope — and for the old one, should it come back.
   const [edited, setEdited] = useState<{ readonly scopeKey: string; readonly value: T } | null>(
     null,
   );
+  if (edited !== null && edited.scopeKey !== scopeKey) setEdited(null);
   const draft = edited !== null && edited.scopeKey === scopeKey ? edited.value : loaded.value;
 
   useEffect(() => {

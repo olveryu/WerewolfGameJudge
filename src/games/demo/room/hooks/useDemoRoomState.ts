@@ -54,6 +54,7 @@ export interface DemoRoomScreenState {
   readonly isHost: boolean;
   /** 平台单飞提交：座位动作由调用点显式传 `{ controlledSeat }`，房主命令不传。 */
   readonly submit: ReadyRoomSession<DemoState, DemoCommand>['submit'];
+  readonly isSubmitting: boolean;
   readonly session: DemoRoomSession;
   readonly openRules: () => void;
   /** 身份卡：先落查看记录、确认后再弹卡（平台 useRoleViewing）。 */
@@ -180,6 +181,7 @@ export function useDemoRoomState(
     controlledSeat,
     isHost,
     submit,
+    isSubmitting,
     session,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: 'demo', roomCode: room.roomCode }),

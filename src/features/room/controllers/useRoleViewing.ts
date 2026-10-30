@@ -36,8 +36,11 @@ export interface RoleViewingOptions {
   readonly viewedSeatCount: number;
   /**
    * Submit `role.viewed` for the effective seat; resolves true only on a
-   * committed success and never throws (failures are presented by the
-   * submission itself, as `useReadyRoomSession.submit` does).
+   * committed success. Failures are presented by the submission itself
+   * (`useReadyRoomSession.submit`). It rejects only on the room's
+   * single-flight lock — a programming error: every entry that calls
+   * `open` is disabled while a command is in flight
+   * (`buildViewIdentityButton.isSubmitting`).
    */
   readonly submitViewed: () => Promise<boolean>;
 }

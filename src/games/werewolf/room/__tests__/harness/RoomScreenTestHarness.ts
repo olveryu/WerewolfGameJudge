@@ -392,7 +392,7 @@ export class RoomScreenTestHarness {
     if (!last) {
       throw new Error(`[pressButton] No dialog recorded. Cannot press "${label}".`);
     }
-    this.#pressButtonOnEvent(last, label);
+    void this.#pressButtonOnEvent(last, label);
   }
 
   /**
@@ -416,7 +416,7 @@ export class RoomScreenTestHarness {
           `Last dialog "${last.title}" has ${last.buttons.length} button(s): [${last.buttons.join(', ')}]`,
       );
     }
-    this.#pressButtonOnEvent(last, last.buttons[index]!);
+    void this.#pressButtonOnEvent(last, last.buttons[index]!);
   }
 
   /**
@@ -437,7 +437,7 @@ export class RoomScreenTestHarness {
           `Total events: ${this.#events.length}`,
       );
     }
-    this.#pressButtonOnEvent(event, label);
+    void this.#pressButtonOnEvent(event, label);
   }
 
   /**
@@ -453,7 +453,7 @@ export class RoomScreenTestHarness {
       throw new Error(`[pressLastPrimary] Dialog ("${event.title}") has no buttons.`);
     }
     const primaryLabel = this.#findPrimaryButton(event);
-    this.#pressButtonOnEvent(event, primaryLabel);
+    void this.#pressButtonOnEvent(event, primaryLabel);
   }
 
   /**
@@ -474,7 +474,19 @@ export class RoomScreenTestHarness {
       throw new Error(`[pressPrimaryOnType] Dialog '${type}' ("${event.title}") has no buttons.`);
     }
     const primaryLabel = this.#findPrimaryButton(event);
-    this.#pressButtonOnEvent(event, primaryLabel);
+    void this.#pressButtonOnEvent(event, primaryLabel);
+  }
+
+  /**
+   * Press a button on the last dialog of a type and return the callback's
+   * result, for asserting the AlertModal retry protocol (a rejecting callback
+   * keeps the dialog open). `label` defaults to the primary button.
+   */
+  pressAndSettle(type: DialogType, label?: string): Promise<void> {
+    const event = this.getLastEventOfType(type);
+    if (!event) throw new Error(`[pressAndSettle] No dialog of type '${type}' found.`);
+    const result = this.#pressButtonOnEvent(event, label ?? this.#findPrimaryButton(event));
+    return Promise.resolve(result);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -497,7 +509,7 @@ export class RoomScreenTestHarness {
   /**
    * Internal: press a button on a specific event, with fail-fast.
    */
-  #pressButtonOnEvent(event: DialogEvent, label: string): void {
+  #pressButtonOnEvent(event: DialogEvent, label: string): void | Promise<void> {
     const callback = event._callbacks.get(label);
     if (callback === undefined && !event._callbacks.has(label)) {
       throw new Error(
@@ -507,7 +519,7 @@ export class RoomScreenTestHarness {
       );
     }
     // callback may be undefined (button exists but no onPress) — that's valid, just a no-op
-    void callback?.();
+    return callback?.();
   }
 
   /**

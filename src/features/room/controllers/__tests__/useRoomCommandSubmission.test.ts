@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react-native';
+import { toast } from 'sonner-native';
 
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { DispatchOutcome } from '@/platform/realtime/types';
@@ -10,6 +11,8 @@ import {
   undeliveredRoomCommand,
 } from '@/test-utils/roomCommand';
 import { showErrorAlert } from '@/utils/alertPresets';
+
+jest.mock('sonner-native', () => ({ toast: { error: jest.fn() } }));
 
 jest.mock('@/utils/alertPresets', () => ({
   ...jest.requireActual<typeof import('@/utils/alertPresets')>('@/utils/alertPresets'),
@@ -94,5 +97,53 @@ describe('useRoomCommandSubmission', () => {
     });
 
     expect(mockShowErrorAlert).toHaveBeenCalledWith('操作失败', '网络异常，请检查网络后重试');
+  });
+
+  it('toastAndRethrow: an undelivered command toasts and rejects so an open dialog stays up for retry', async () => {
+    const outcome = undeliveredRoomCommand<typeof state>('network', 'night-command');
+    const getFailureMessage = jest.fn(() => '网络异常，请检查网络后重试');
+    const operation = jest.fn(async (): Promise<DispatchOutcome<typeof state>> => outcome);
+    const { result } = renderHook(() => useRoomCommandSubmission(getFailureMessage));
+
+    await act(async () => {
+      await expect(
+        result.current.submit('确认查验结果', operation, { transportFailure: 'toastAndRethrow' }),
+      ).rejects.toMatchObject({ name: 'RoomCommandUndeliveredError' });
+    });
+
+    expect(jest.mocked(toast.error)).toHaveBeenCalledWith('网络异常，请检查网络后重试');
+    expect(mockShowErrorAlert).not.toHaveBeenCalled();
+    expect(result.current.isSubmitting).toBe(false);
+  });
+
+  it('toastAndRethrow: a thrown transport error toasts and rethrows the same error', async () => {
+    const error = new Error('socket closed');
+    const operation = jest.fn(async (): Promise<DispatchOutcome<typeof state>> => {
+      throw error;
+    });
+    const { result } = renderHook(() => useRoomCommandSubmission(() => '不应读取失败文案'));
+
+    await act(async () => {
+      await expect(
+        result.current.submit('确认查验结果', operation, { transportFailure: 'toastAndRethrow' }),
+      ).rejects.toBe(error);
+    });
+    expect(mockShowErrorAlert).not.toHaveBeenCalled();
+  });
+
+  it('toastAndRethrow never rethrows a decision: a rejection resolves false and alerts', async () => {
+    const rejection = rejectedRoomCommand<typeof state>('action_step_changed', 'night-command');
+    const operation = jest.fn(async (): Promise<DispatchOutcome<typeof state>> => rejection);
+    const { result } = renderHook(() => useRoomCommandSubmission(() => '当前行动步骤已变化'));
+    let succeeded: boolean | null = null;
+
+    await act(async () => {
+      succeeded = await result.current.submit('操作', operation, {
+        transportFailure: 'toastAndRethrow',
+      });
+    });
+
+    expect(succeeded).toBe(false);
+    expect(mockShowErrorAlert).toHaveBeenCalledWith('操作失败', '当前行动步骤已变化');
   });
 });

@@ -343,14 +343,15 @@ export function editDispatchDiscipline(content, { gameId, pascal }) {
   if (content.includes(`games/${gameId}/room/hooks/`))
     fail(file, `'${gameId}' is already registered.`);
   const entry = `  ${gameId}: ['games/${gameId}/room/hooks/use${pascal}RoomState.ts'],\n`;
-  // Anchor on the record close alone: the previous entry's closing shape is
+  // Anchor on the record close plus the header of the block that follows
+  // (the direct-dispatch allow-list): the previous entry's closing shape is
   // not stable across generations (the formatting pass collapses a short
   // generated entry onto one line), so keying on it would make the second
   // generation into the same repository fail to find its anchor.
   return replaceOnce(
     file,
     content,
-    /(\n)(\};\n\nfunction expectSharedReadySessionSubmit)/,
+    /(\n)(\};\n\n\/\*\*\n \* 允许绕过平台漏斗直接 `session\.dispatch` 的站点)/,
     (match, newline, head) => `${newline}${entry}${head}`,
   );
 }

@@ -21,13 +21,9 @@ import type { NightPrompt } from './NightInteractionModel';
 
 type ActorHint = NonNullable<WerewolfNightView['actorHint']>;
 
-const GENERIC_NIGHT_TITLE = '夜间行动';
-
 /** `{role}行动`, the title of every role's step dialog. */
-export function nightStepTitle(currentActionRole: RoleId | null): string {
-  return currentActionRole === null
-    ? GENERIC_NIGHT_TITLE
-    : `${getRoleDisplayName(currentActionRole)}行动`;
+export function nightStepTitle(currentActionRole: RoleId): string {
+  return `${getRoleDisplayName(currentActionRole)}行动`;
 }
 
 /** A required schema.ui field; absence is a spec bug. */
@@ -48,7 +44,7 @@ export function requireSchemaText(
  */
 export function renderStepPrompt(
   schema: ActionSchema,
-  currentActionRole: RoleId | null,
+  currentActionRole: RoleId,
   actorHint: ActorHint | null,
 ): NightPrompt {
   if (actorHint?.promptOverride !== undefined) {

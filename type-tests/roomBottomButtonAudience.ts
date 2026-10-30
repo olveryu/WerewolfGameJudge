@@ -55,14 +55,14 @@ acceptButton({
 
 buildViewIdentityButton(
   { label: '查看身份', onPress },
-  { key: 'view', variant: 'primary', audience: 'participant' },
+  { key: 'view', variant: 'primary', audience: 'participant', isSubmitting: false },
 );
 buildViewIdentityButton(
   { label: '查看题目', onPress },
-  { key: 'view', variant: 'secondary', audience: 'anyone' },
+  { key: 'view', variant: 'secondary', audience: 'anyone', isSubmitting: false },
 );
 buildViewIdentityButton(
   { label: '查看身份', onPress },
   // @ts-expect-error Viewing an identity is never a host-only command.
-  { key: 'view', variant: 'primary', audience: 'host' },
+  { key: 'view', variant: 'primary', audience: 'host', isSubmitting: false },
 );

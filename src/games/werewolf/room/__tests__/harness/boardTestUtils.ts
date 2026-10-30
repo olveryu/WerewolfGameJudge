@@ -107,9 +107,9 @@ function successfulWerewolfActionCommand(
 ): WerewolfDispatchOutcome {
   const schema = getSchema(schemaId);
   const revealKind = schema.kind === 'chooseSeat' ? schema.ui?.revealKind : undefined;
-  if (revealKind === undefined) return successfulWerewolfCommand();
-  if (input.kind !== 'target' || input.target === null) {
-    throw new Error(`[TEST] Reveal schema ${schemaId} requires a numeric target command`);
+  // A skip on a reveal schema produces no reveal; only a target does.
+  if (revealKind === undefined || input.kind !== 'target' || input.target === null) {
+    return successfulWerewolfCommand();
   }
   return successfulWerewolfCommand(revealState(revealKind, input.target));
 }
@@ -158,6 +158,8 @@ export interface WerewolfRoomMockOptions {
   hookOverrides?: {
     /** Handles every `werewolf.action.submit`; defaults to a success carrying the step's reveal. */
     submitAction?: SubmitActionMock;
+    /** Handles every other command (acks, host flow); defaults to a committed success. */
+    dispatchCommand?: (command: WerewolfPublicCommand) => Promise<WerewolfDispatchOutcome>;
     /** Room status when not Ongoing (Day / Ended perspectives). */
     roomStatus?: GameStatus;
   };
@@ -319,7 +321,7 @@ function createRoomMockForState(
     async (command) =>
       command.type === 'werewolf.action.submit'
         ? submitAction(command.input)
-        : successfulWerewolfCommand(),
+        : (options.hookOverrides?.dispatchCommand?.(command) ?? successfulWerewolfCommand()),
   );
   return {
     options,

@@ -17,6 +17,7 @@
 
 import type {
   ActionSchema,
+  RoleId,
   WerewolfViewModel,
 } from '@game-judge/game-engine/games/werewolf/public';
 import {
@@ -120,14 +121,22 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
 
   const schema = night.actionSchema;
   if (schema === null || !night.isActioner) return { kind: 'idle' };
+  // Both derive from the current step / the viewer's seat: an actioner on a
+  // step always has a role and a seat.
+  const actionRole = night.currentActionRole;
+  if (actionRole === null) {
+    throw new Error(`[FAIL-FAST] Night step ${schema.id} has a schema but no acting role`);
+  }
+  const mySeat = viewModel.mySeat;
+  if (mySeat === null) throw new Error('[FAIL-FAST] Night actioner has no seat');
 
   // The wolf robot's learn step: once learned, the robot waits on the
   // hunter gate (if any) and is otherwise done for the night.
   if (schema.id === 'wolfRobotLearn' && night.wolfRobot !== null) {
-    return resolveWolfRobotGate(viewModel) ?? { kind: 'idle' };
+    return resolveWolfRobotGate(viewModel, actionRole) ?? { kind: 'idle' };
   }
 
-  const prompt = renderStepPrompt(schema, night.currentActionRole, night.actorHint);
+  const prompt = renderStepPrompt(schema, actionRole, night.actorHint);
   const hint = night.actorHint;
 
   if (hint?.bottomAction === 'skipOnly') {
@@ -154,7 +163,7 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
       if (wolfVote === null) {
         throw new Error('[FAIL-FAST] Wolf actioner has no wolf vote projection');
       }
-      const wolfName = `${formatSeat(viewModel.mySeat ?? -1)}狼人`;
+      const wolfName = `${formatSeat(mySeat)}狼人`;
       return {
         kind: 'wolfVote',
         selectable: selectableSeats(viewModel),
@@ -455,6 +464,7 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
  */
 function resolveWolfRobotGate(
   viewModel: WerewolfViewModel,
+  actionRole: RoleId,
 ): Extract<NightInteractionModel, { kind: 'ackHunterStatus' }> | null {
   const { night } = viewModel;
   const schema = night.actionSchema;
@@ -467,7 +477,7 @@ function resolveWolfRobotGate(
     kind: 'ackHunterStatus',
     canShoot,
     prompt: {
-      title: nightStepTitle(night.currentActionRole),
+      title: nightStepTitle(actionRole),
       text: requireSchemaText(schema, 'hunterGatePrompt', ui?.hunterGatePrompt),
     },
     dialog: {

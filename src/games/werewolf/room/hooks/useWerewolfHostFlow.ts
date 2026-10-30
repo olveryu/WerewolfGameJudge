@@ -171,7 +171,9 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
   const mvpSelection = ((): MvpSelection | null => {
     if (!isMvpOpen || !canSelectMvp) return null;
     const participants = state.startingParticipants;
-    if (participants === undefined) return null;
+    if (participants === undefined) {
+      throw new Error('[FAIL-FAST] MVP selection is open without a starting roster');
+    }
     return {
       participants: participants.map((participant) => {
         const occupant = state.roster[participant.seat];
@@ -185,10 +187,13 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
       }),
       goldenDraws: getMvpGoldenDraws(participants.length),
       onSelect: async (mvpUserId) => {
-        const ok = await submit('评选 MVP', {
-          type: 'werewolf.mvp.select',
-          selection: { roleRevealRandomNonce, mvpUserId },
-        });
+        // One-shot per deal (pinned by roleRevealRandomNonce): durable so a
+        // dropped connection replays it instead of losing the pick.
+        const ok = await submit(
+          '评选 MVP',
+          { type: 'werewolf.mvp.select', selection: { roleRevealRandomNonce, mvpUserId } },
+          { durable: true },
+        );
         if (ok) setIsMvpOpen(false);
       },
     };

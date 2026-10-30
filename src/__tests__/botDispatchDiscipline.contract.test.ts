@@ -53,6 +53,73 @@ const DISPATCH_SITES: Record<GameType, readonly string[]> = {
   demo: ['games/demo/room/hooks/useDemoRoomState.ts'],
 };
 
+/**
+ * 允许绕过平台漏斗直接 `session.dispatch` 的站点，每条登记 `文件 → 命令类型集合`；
+ * 出现未登记的直接派发，或登记站点派发了未登记的命令类型，CI 直接失败。
+ * - 系统性派发：阶段到期（全场竞速、pin 去重）、截止驱动的自动提交（消费
+ *   committed 快照）、笔画流（高频、无单飞语义）、猜词（聊天式连发，单飞
+ *   会把第二条当编程错误）。
+ * - 狼人杀配置流（`screens/ConfigScreen` / `GameRulesScreen`）：房间壳未挂载的
+ *   独立导航流，持有自己的流程提交态；板子建议还要读 committed outcome 的
+ *   `DEDUPLICATED` 原因做提示，布尔型平台 submit 不暴露该事实。房主命令，
+ *   `controlledSeat` 恒 null。
+ */
+const DIRECT_DISPATCH_ALLOW_LIST: Readonly<Record<string, readonly string[]>> = {
+  'games/werewolf/room/hooks/useWerewolfRoomState.ts': ['werewolf.phase.expire'],
+  'games/avalon/room/hooks/useAvalonRoomState.ts': ['avalon.phase.expire'],
+  'games/drawguess/room/hooks/useDrawGuessRoomState.ts': ['drawguess.phase.expire'],
+  'games/drawguess/room/hooks/useDrawGuessStrokeSync.ts': [
+    'drawguess.stroke.add',
+    'drawguess.stroke.undo',
+    'drawguess.stroke.clear',
+  ],
+  'games/drawguess/room/DrawGuessRoomScreen.tsx': ['drawguess.guess.submit'],
+  'games/pictionary/room/components/PictionaryStage.tsx': ['pictionary.phase.expire'],
+  'games/pictionary/room/hooks/usePictionaryAutoSubmission.ts': [
+    'pictionary.text.submit',
+    'pictionary.drawing.reserve',
+    'pictionary.task.empty.submit',
+  ],
+  'games/storyrelay/room/components/StoryRelayStage.tsx': ['storyrelay.phase.expire'],
+  'games/storyrelay/room/hooks/useStoryRelayAutoSubmission.ts': ['storyrelay.task.empty.submit'],
+  'games/werewolf/screens/ConfigScreen/useConfigScreenState.ts': ['werewolf.board.nominate'],
+  'games/werewolf/screens/GameRulesScreen/useGameRulesSubmission.ts': ['werewolf.config.update'],
+};
+
+function collectProductionFiles(dir: string): string[] {
+  const results: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    const fullPath = join(dir, entry);
+    if (statSync(fullPath).isDirectory()) {
+      if (entry === '__tests__' || entry === '__mocks__') continue;
+      results.push(...collectProductionFiles(fullPath));
+    } else if (
+      (entry.endsWith('.ts') || entry.endsWith('.tsx')) &&
+      !entry.includes('.test.') &&
+      !entry.includes('.spec.') &&
+      !entry.includes('.stories.')
+    ) {
+      results.push(fullPath);
+    }
+  }
+  return results;
+}
+
+/** Command types named in the object literal / `createXCommand(state, { type })` of each direct dispatch. */
+function directDispatchCommandTypes(source: string): string[] {
+  const types: string[] = [];
+  const pattern = /session\.dispatch\(([\s\S]*?)\{\s*controlledSeat/g;
+  for (const match of source.matchAll(pattern)) {
+    const head = match[1] ?? '';
+    const type = /type:\s*'([a-z]+\.[a-zA-Z.]+)'/.exec(head)?.[1];
+    if (type === undefined) {
+      throw new Error(`direct session.dispatch without a literal command type: ${head.trim()}`);
+    }
+    types.push(type);
+  }
+  return types;
+}
+
 function expectSharedReadySessionSubmit(source: string): void {
   // The file either owns the platform submit (the room hook) or receives it
   // as an input (stage components); it never opens its own dispatch funnel.
@@ -71,7 +138,10 @@ describe('bot dispatch discipline — registration covers every game', () => {
 describe('bot dispatch discipline — every command goes through the platform submit', () => {
   it('the platform submit defaults to the uncontrolled identity', () => {
     const shared = readSource('features/room/controllers/useReadyRoomSession.ts');
-    expect(shared).toMatch(/controlledSeat: options\.controlledSeat \?\? null/);
+    expect(shared).toMatch(
+      /const \{ controlledSeat = null, durable = false, \.\.\.presentation \} = options;/,
+    );
+    expect(shared).toMatch(/session\.dispatch\(command, \{ controlledSeat, label, durable \}\)/);
   });
 
   for (const gameType of GAME_TYPES) {
@@ -83,31 +153,26 @@ describe('bot dispatch discipline — every command goes through the platform su
   }
 });
 
-describe('bot dispatch discipline — no game file reintroduces the ambient hang', () => {
-  function collectProductionFiles(dir: string): string[] {
-    const results: string[] = [];
-    for (const entry of readdirSync(dir)) {
-      const fullPath = join(dir, entry);
-      if (statSync(fullPath).isDirectory()) {
-        if (entry === '__tests__' || entry === '__mocks__') continue;
-        results.push(...collectProductionFiles(fullPath));
-      } else if (
-        (entry.endsWith('.ts') || entry.endsWith('.tsx')) &&
-        !entry.includes('.test.') &&
-        !entry.includes('.spec.') &&
-        !entry.includes('.stories.')
-      ) {
-        results.push(fullPath);
-      }
-    }
-    return results;
-  }
+describe('bot dispatch discipline — direct dispatches are the registered system sites only', () => {
+  const gameFiles = collectProductionFiles(join(SRC_ROOT, 'games'));
 
   it('the ambient controlledSeat funnel pattern appears nowhere under src/games', () => {
-    const offenders = collectProductionFiles(join(SRC_ROOT, 'games')).filter((file) =>
+    const offenders = gameFiles.filter((file) =>
       AMBIENT_CONTROLLED_SEAT_FUNNEL.test(readFileSync(file, 'utf8')),
     );
     expect(offenders).toEqual([]);
+  });
+
+  it('every direct session.dispatch is an allow-listed file dispatching its allow-listed command types', () => {
+    const actual: Record<string, string[]> = {};
+    for (const file of gameFiles) {
+      const types = directDispatchCommandTypes(readFileSync(file, 'utf8'));
+      if (types.length > 0) actual[file.slice(SRC_ROOT.length + 1)] = [...new Set(types)].sort();
+    }
+    const expected = Object.fromEntries(
+      Object.entries(DIRECT_DISPATCH_ALLOW_LIST).map(([file, types]) => [file, [...types].sort()]),
+    );
+    expect(actual).toEqual(expected);
   });
 });
 

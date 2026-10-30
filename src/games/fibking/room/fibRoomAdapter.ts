@@ -488,6 +488,7 @@ interface FibBottomActionsInput {
   readonly isHost: boolean;
   /** The effective seat (own or taken-over bot); null for a spectator. */
   readonly viewerSeat: number | null;
+  readonly isSubmitting: boolean;
   readonly openIdentity: () => void;
 }
 
@@ -514,6 +515,7 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
       if (viewIdentityAction !== null) {
         (input.state.phase === 'viewing' ? primary : secondary).push(
           buildViewIdentityButton(viewIdentityAction, {
+            isSubmitting: input.isSubmitting,
             key: 'view-identity',
             variant: input.state.phase === 'viewing' ? 'primary' : 'secondary',
             audience: 'anyone',
