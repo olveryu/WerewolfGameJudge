@@ -28,8 +28,10 @@ import {
 } from './domain/decision';
 import { evolveDrawGuessState } from './domain/evolve';
 import {
+  computeDeadlineAfterGuess,
   computeDrawerScore,
   computeGuesserScore,
+  computeScoringRemainingMs,
   createRevealOrder,
   isCorrectGuess,
   isValidGuessText,
@@ -297,8 +299,19 @@ function submitGuess(
     return reject(DRAWGUESS_REASONS.rateLimited);
   }
   const correct = isCorrectGuess(text, state.phase.word);
-  const remainingMs = Math.max(0, state.phase.deadlineAt - context.nowMs);
-  const events: DrawGuessEvent[] = [
+  const guesserScore = correct
+    ? computeGuesserScore(computeScoringRemainingMs(state.phase.phaseStartAt, context.nowMs))
+    : 0;
+  // 开局要求满员且座位只在大厅变动，猜题者数 = 席位数 − 画手；机器人席位由房主接管猜词，一样计入。
+  const deadlineAt = correct
+    ? computeDeadlineAfterGuess(
+        state.phase.deadlineAt,
+        context.nowMs,
+        state.phase.guessedSeats.length + 1,
+        state.config.numberOfPlayers - 1,
+      )
+    : state.phase.deadlineAt;
+  return commitDrawGuess([
     {
       type: 'drawguess.guess.submitted',
       turnIndex,
@@ -306,13 +319,11 @@ function submitGuess(
       text,
       correct,
       at: context.nowMs,
-      guesserScore: correct ? computeGuesserScore(remainingMs) : 0,
-      drawerScore: correct ? computeDrawerScore(1) : 0,
+      guesserScore,
+      drawerScore: computeDrawerScore(guesserScore),
+      deadlineAt,
     },
-  ];
-  // Gartic.io 规则：猜中不提前结束回合，只等计时器
-  // （删掉了原来的 "everyone guessed → round.ended" 逻辑）
-  return commitDrawGuess(events);
+  ]);
 }
 
 function reserveDrawing(state: DrawGuessState, context: CommandContext): DrawGuessDecision {
