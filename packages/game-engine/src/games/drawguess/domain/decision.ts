@@ -79,6 +79,8 @@ export type DrawGuessEvent =
       readonly at: number;
       readonly guesserScore: number;
       readonly drawerScore: number;
+      /** 本次猜词后的作画截止时间；猜中会压缩，猜错不变。 */
+      readonly deadlineAt: number;
     }
   | {
       readonly type: 'drawguess.round.ended';

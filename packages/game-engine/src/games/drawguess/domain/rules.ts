@@ -2,8 +2,10 @@
 
 import { createSeededRng, shuffleArray } from '../../../platform/random';
 import {
-  DRAWGUESS_DRAWER_PER_GUESS_SCORE,
+  DRAWGUESS_ALL_GUESSED_REMAINING_SECONDS,
+  DRAWGUESS_DRAWER_SHARE,
   DRAWGUESS_DRAWING_DURATION_SECONDS,
+  DRAWGUESS_FIRST_GUESS_REMAINING_CAP_SECONDS,
   DRAWGUESS_GUESS_BASE_SCORE,
   DRAWGUESS_GUESS_SPEED_BONUS_MAX,
   DRAWGUESS_GUESS_TEXT_MAX_LENGTH,
@@ -46,6 +48,8 @@ export function isValidGuessText(text: string): boolean {
 /**
  * 猜中者得分：50 + round(100 × 剩余毫秒 / 90000)。
  * 开局即猜中得 150 分，压哨猜中得 50 分。
+ * remainingMs 来自 computeScoringRemainingMs（作画开始时刻为基准），
+ * 猜中压缩 deadline 不影响后续猜中者的速度分。
  */
 export function computeGuesserScore(remainingMs: number): number {
   const clamped = Math.max(0, remainingMs);
@@ -57,9 +61,37 @@ export function computeGuesserScore(remainingMs: number): number {
   );
 }
 
-/** 画手得分：20 × 本轮猜中人数。 */
-export function computeDrawerScore(guessCount: number): number {
-  return DRAWGUESS_DRAWER_PER_GUESS_SCORE * Math.max(0, guessCount);
+/** 速度分基准剩余毫秒：完整作画时长减去已进行时间，与被压缩的 deadlineAt 无关。 */
+export function computeScoringRemainingMs(phaseStartAt: number, nowMs: number): number {
+  return phaseStartAt + DRAWGUESS_DRAWING_DURATION_SECONDS * 1000 - nowMs;
+}
+
+/**
+ * 画手每被一人猜中即时所得：round(该猜中者得分 × 0.5)。
+ * 作画收入占整局总分比例恒为 SHARE / (1 + SHARE)，与房间人数无关。
+ */
+export function computeDrawerScore(guesserScore: number): number {
+  return Math.round(Math.max(0, guesserScore) * DRAWGUESS_DRAWER_SHARE);
+}
+
+/**
+ * 猜中后的作画截止时间（只缩短，不延长）：
+ * 首个猜中 → 剩余至多 30 秒；除画手外全部席位猜中 → 剩余至多 3 秒。
+ */
+export function computeDeadlineAfterGuess(
+  deadlineAt: number,
+  nowMs: number,
+  guessedCount: number,
+  guesserCount: number,
+): number {
+  let next = deadlineAt;
+  if (guessedCount === 1) {
+    next = Math.min(next, nowMs + DRAWGUESS_FIRST_GUESS_REMAINING_CAP_SECONDS * 1000);
+  }
+  if (guessedCount >= guesserCount) {
+    next = Math.min(next, nowMs + DRAWGUESS_ALL_GUESSED_REMAINING_SECONDS * 1000);
+  }
+  return next;
 }
 
 /** 首字母揭示顺序：用 randomSeed 洗牌，保证所有客户端一致、重连不重新随机。 */

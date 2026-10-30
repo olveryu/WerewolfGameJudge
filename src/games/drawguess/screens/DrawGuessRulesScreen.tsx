@@ -10,7 +10,7 @@ export function DrawGuessRulesScreen() {
     <GameGuide
       title="你画我猜玩法"
       heading="一人作画，其余人猜"
-      intro="每轮一人当画手作画，其他人在聊天框里打字猜词。猜得越快分越高，画手按猜中人数得分。"
+      intro="每轮一人当画手作画，其他人在聊天框里打字猜词。猜得越快分越高，画手按每位猜中者得分的一半累计得分。"
     >
       <GameGuideSection title="一轮怎么玩">
         <RuleItem
@@ -21,7 +21,7 @@ export function DrawGuessRulesScreen() {
         <RuleItem
           icon="timer-outline"
           title="90 秒作画"
-          description="画手有 90 秒作画。画布提供画笔、橡皮、直线、矩形、椭圆和填充工具；作画不许写字、写数字，这是房间规则。"
+          description="画手有 90 秒作画。第一人猜中后剩余时间最多留 30 秒；除画手外全部猜中后 3 秒结束本轮。画布提供画笔、橡皮、直线、矩形、椭圆和填充工具；作画不许写字、写数字，这是房间规则。"
         />
         <RuleItem
           icon="chatbubbles-outline"
@@ -33,12 +33,12 @@ export function DrawGuessRulesScreen() {
         <RuleItem
           icon="flash-outline"
           title="猜中按速度计分"
-          description="猜中得 50 分保底 + 最高 100 分速度加成：开局即猜中得 150 分，压哨猜中得 50 分。"
+          description="猜中得 50 分保底 + 最高 100 分速度加成：开局即猜中得 150 分，压哨猜中得 50 分。速度按作画开始时间计算，倒计时被压缩不影响得分。"
         />
         <RuleItem
           icon="brush-outline"
-          title="画手按猜中人数得分"
-          description="每被一人猜中，画手得 20 分。画得越清楚，全员猜中越快，双方都拿高分。"
+          title="画手分成猜中者得分"
+          description="每被一人猜中，画手即时获得该猜中者得分的一半。画得越清楚，猜中的人越多越快，画手得分越高；无人猜中则画手 0 分。"
         />
         <RuleItem
           icon="trophy-outline"

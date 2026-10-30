@@ -259,6 +259,28 @@ const EXPECTED_DEADLINE_ARITHMETIC: readonly DeadlineArithmeticRegistration[] = 
     domain: 'e2StageDeadline',
   },
   {
+    // Guesser speed score is anchored on the full drawing window so
+    // the guess-driven deadline compression below never lowers it.
+    file: 'games/drawguess/domain/rules.ts',
+    symbol: 'computeScoringRemainingMs',
+    expression: 'phaseStartAt + DRAWGUESS_DRAWING_DURATION_SECONDS',
+    domain: 'e2StageDeadline',
+  },
+  {
+    // First correct guess caps the remaining drawing time.
+    file: 'games/drawguess/domain/rules.ts',
+    symbol: 'computeDeadlineAfterGuess',
+    expression: 'nowMs + DRAWGUESS_FIRST_GUESS_REMAINING_CAP_SECONDS',
+    domain: 'e2StageDeadline',
+  },
+  {
+    // Every non-drawer seat guessed: the round closes shortly after.
+    file: 'games/drawguess/domain/rules.ts',
+    symbol: 'computeDeadlineAfterGuess',
+    expression: 'nowMs + DRAWGUESS_ALL_GUESSED_REMAINING_SECONDS',
+    domain: 'e2StageDeadline',
+  },
+  {
     file: 'platform/room/relay/clock.ts',
     symbol: 'relayDeadline',
     expression: 'nowMs + seconds',

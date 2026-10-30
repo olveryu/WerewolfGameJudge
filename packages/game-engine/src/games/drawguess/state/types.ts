@@ -30,7 +30,12 @@ export const DRAWGUESS_WORD_CHOICE_COUNT = 3;
 
 export const DRAWGUESS_GUESS_BASE_SCORE = 50;
 export const DRAWGUESS_GUESS_SPEED_BONUS_MAX = 100;
-export const DRAWGUESS_DRAWER_PER_GUESS_SCORE = 20;
+/** 画手每被一人猜中，按该猜中者得分的这一比例即时加分。 */
+export const DRAWGUESS_DRAWER_SHARE = 0.5;
+/** 首个猜中后，剩余作画时间压缩到至多这么多秒。 */
+export const DRAWGUESS_FIRST_GUESS_REMAINING_CAP_SECONDS = 30;
+/** 除画手外全部席位猜中后，剩余作画时间压缩到至多这么多秒。 */
+export const DRAWGUESS_ALL_GUESSED_REMAINING_SECONDS = 3;
 export const DRAWGUESS_MAX_STROKES_PER_TURN = 300;
 export const DRAWGUESS_GUESS_TEXT_MAX_LENGTH = 32;
 
@@ -189,6 +194,7 @@ export type DrawGuessPhase =
       /** 本轮各席位得分（猜中者+画手），结算时复制到 roundScores。 */
       readonly turnScores: Readonly<Record<number, number>>;
       readonly phaseStartAt: number;
+      /** 猜中会压缩截止时间；速度分与首字母揭示均以 phaseStartAt 为基准，不受影响。 */
       readonly deadlineAt: number;
     }
   | {

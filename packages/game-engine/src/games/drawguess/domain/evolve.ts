@@ -120,6 +120,7 @@ export function evolveDrawGuessState(state: DrawGuessState, event: DrawGuessEven
             { seat: event.seat, text: event.text, correct: event.correct, at: event.at },
           ],
           turnScores,
+          deadlineAt: event.deadlineAt,
         },
         scores,
         phaseRevision: state.phaseRevision + 1,

@@ -9,7 +9,13 @@ import {
 import { isBotSeat } from '../../../platform/room/seating';
 import type { DrawGuessCommand, DrawGuessPublicCommand } from '../commands/types';
 import { DRAWGUESS_REASONS } from '../domain/decision';
-import { computeGuesserScore, isCorrectGuess, normalizeGuessText } from '../domain/rules';
+import {
+  computeDeadlineAfterGuess,
+  computeDrawerScore,
+  computeGuesserScore,
+  isCorrectGuess,
+  normalizeGuessText,
+} from '../domain/rules';
 import { getDrawGuessViewModel } from '../domain/visibility';
 import { drawGuessEngine } from '../engine';
 import { parseDrawGuessState } from '../state/parseState';
@@ -249,10 +255,10 @@ describe('DrawGuess engine', () => {
     const session = game();
     session.startGame();
     session.chooseFirstWord(0);
-    // Guess immediately: full speed bonus = 150.
+    // Guess immediately: full speed bonus = 150; drawer takes half of it.
     session.guess(1, '大熊猫');
     expect(session.state.scores[1]).toBe(150);
-    expect(session.state.scores[0]).toBe(20);
+    expect(session.state.scores[0]).toBe(75);
     if (session.state.phase.kind !== 'drawing') throw new Error('phase');
     expect(session.state.phase.guessedSeats).toContain(1);
     // Locked guesser cannot guess again.
@@ -280,15 +286,95 @@ describe('DrawGuess engine', () => {
     expect(computeGuesserScore(-100)).toBe(50);
   });
 
-  it('does NOT end the round early when all have guessed (Gartic.io rule: wait for timer)', () => {
+  it('pays the drawer half of each guesser score', () => {
+    expect(computeDrawerScore(150)).toBe(75);
+    expect(computeDrawerScore(101)).toBe(51);
+    expect(computeDrawerScore(50)).toBe(25);
+    expect(computeDrawerScore(0)).toBe(0);
+  });
+
+  it('only ever shortens the deadline after a guess', () => {
+    const deadlineAt = 100_000;
+    // First guess caps the remainder at 30s; already shorter stays put.
+    expect(computeDeadlineAfterGuess(deadlineAt, 10_000, 1, 3)).toBe(40_000);
+    expect(computeDeadlineAfterGuess(deadlineAt, 80_000, 1, 3)).toBe(100_000);
+    // Middle guesses leave the deadline alone.
+    expect(computeDeadlineAfterGuess(40_000, 20_000, 2, 3)).toBe(40_000);
+    // The last guesser caps it at 3s; a single-guesser room gets 3s straight away.
+    expect(computeDeadlineAfterGuess(40_000, 20_000, 3, 3)).toBe(23_000);
+    expect(computeDeadlineAfterGuess(deadlineAt, 10_000, 1, 1)).toBe(13_000);
+  });
+
+  it('caps the remaining drawing time at 30s after the first correct guess', () => {
+    const session = game();
+    session.startGame();
+    session.chooseFirstWord(0);
+    if (session.state.phase.kind !== 'drawing') throw new Error('phase');
+    const phaseStartAt = session.state.phase.phaseStartAt;
+    session.advanceTime(10_000);
+    session.guess(1, '大熊猫');
+    if (session.state.phase.kind !== 'drawing') throw new Error('phase');
+    expect(session.state.phase.deadlineAt).toBe(session.nowMs + 30_000);
+    // A second correct guess neither re-caps nor extends.
+    session.advanceTime(5_000);
+    session.guess(2, '大熊猫');
+    if (session.state.phase.kind !== 'drawing') throw new Error('phase');
+    expect(session.state.phase.deadlineAt).toBe(phaseStartAt + 40_000);
+    // Wrong guesses never touch the deadline.
+    session.guess(3, '小狗');
+    if (session.state.phase.kind !== 'drawing') throw new Error('phase');
+    expect(session.state.phase.deadlineAt).toBe(phaseStartAt + 40_000);
+  });
+
+  it('scores guessers against phaseStartAt so the shortened deadline costs them nothing', () => {
+    const session = game();
+    session.startGame();
+    session.chooseFirstWord(0);
+    session.advanceTime(10_000);
+    session.guess(1, '大熊猫');
+    // 35s in: 5s left on the capped clock, but 55s left on the scoring clock.
+    session.advanceTime(25_000);
+    session.guess(2, '大熊猫');
+    expect(session.state.scores[2]).toBe(computeGuesserScore(55_000));
+    expect(session.state.scores[2]).toBe(111);
+  });
+
+  it('shortens the deadline to 3s once every non-drawer seat has guessed', () => {
     const session = game();
     session.startGame();
     session.chooseFirstWord(0);
     session.guess(1, '大熊猫');
     session.guess(2, '大熊猫');
+    session.advanceTime(5_000);
     session.guess(3, '大熊猫');
-    // Gartic.io: 猜中不提前结束，只等计时器
     expect(session.state.phase.kind).toBe('drawing');
+    if (session.state.phase.kind !== 'drawing') throw new Error('phase');
+    expect(session.state.phase.deadlineAt).toBe(session.nowMs + 3_000);
+    // Late guesser kept its full speed-based score despite the compressed clock.
+    expect(session.state.scores[3]).toBe(computeGuesserScore(85_000));
+    session.expire();
+    expect(session.state.phase.kind).toBe('roundEnd');
+  });
+
+  it('counts a host-controlled bot seat toward all-guessed', () => {
+    const session = game(5);
+    session.send({ type: 'room.seat.fillBots' });
+    expect(isBotSeat(session.state.roster, 4)).toBe(true);
+    session.startGame();
+    session.chooseFirstWord(0);
+    session.guess(1, '大熊猫');
+    session.guess(2, '大熊猫');
+    session.guess(3, '大熊猫');
+    if (session.state.phase.kind !== 'drawing') throw new Error('phase');
+    // Bot seat 4 has not guessed: only the 30s first-guess cap applies.
+    expect(session.state.phase.deadlineAt).toBe(session.nowMs + 30_000);
+    session.send(
+      { type: 'drawguess.guess.submit', text: '大熊猫', ...session.revision() },
+      'host',
+      4,
+    );
+    if (session.state.phase.kind !== 'drawing') throw new Error('phase');
+    expect(session.state.phase.deadlineAt).toBe(session.nowMs + 3_000);
   });
 
   it('rate-limits guesses to 5 per seat per 10 seconds', () => {
