@@ -96,10 +96,15 @@ export interface RoomSeatTileStyles extends ReturnType<typeof createRoomSeatIndi
   seatNumberText: TextStyle;
   avatarContainer: ViewStyle;
   entranceAvatarBox: ViewStyle;
+  /**
+   * Wraps avatar + frame + flair + pet. Offline dims this whole layer instead of drawing a corner
+   * dot, so the presence signal can never be covered by a decoration.
+   */
+  decoratedAvatarLayer: ViewStyle;
+  decoratedAvatarLayerOffline: ViewStyle;
   mySeatBadge: ViewStyle;
   readyBadgeContainer: ViewStyle;
   readyBadgeIcon: TextStyle;
-  offlineDot: ViewStyle;
   petWrapper: ViewStyle;
   statusBadge: ViewStyle;
   statusBadgePrimary: ViewStyle;
@@ -116,6 +121,7 @@ export interface RoomSeatTileStyles extends ReturnType<typeof createRoomSeatIndi
   emptyTile: ViewStyle;
   playerName: TextStyle;
   playerNameHighlight: TextStyle;
+  playerNameOffline: TextStyle;
   playerNamePlaceholder: ViewStyle;
   botRoleName: TextStyle;
 }
@@ -388,6 +394,14 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
     ? tileSize - spacing.tight
     : tileSize - spacing.tight - fixed.borderWidthThick * 2;
   const avatarRadius = hasFrame ? borderRadius.large : borderRadius.large - fixed.borderWidthThick;
+  // Offline drops the cosmetic name style too: the whole seat reads as "faded" until the device
+  // reconnects, matching the dimmed decoratedAvatarLayer above it.
+  let playerNameTextStyle: TextStyle = isPlayerAnonymous
+    ? styles.playerName
+    : styles.playerNameHighlight;
+  if (isPlayerOffline) {
+    playerNameTextStyle = styles.playerNameOffline;
+  }
   let highlightRingStyle: ViewStyle | null = null;
   if (highlight === 'controlled') {
     highlightRingStyle = hasFrame ? styles.controlledRingFramed : styles.controlledRing;
@@ -433,77 +447,79 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
           delayLongPress={500}
           activeOpacity={disabled || disabledReason ? 1 : fixed.activeOpacity}
         >
-          {hasPlayer && seatDecorationsEnabled && isPlayingEntrance && AnimComponent ? (
-            // Entrance animations clip their children with `overflow: hidden`. Keep only the plain
-            // avatar inside the clip; render the decorative frame as a non-clipped sibling so its
-            // outward decorations are never cut. The frame stays static while the avatar slides in.
-            <View style={styles.entranceAvatarBox}>
-              <LoopingSeatAnimation
-                Component={AnimComponent}
-                size={tileSize - spacing.tight}
-                borderRadius={borderRadius.large}
-                loopDelay={ENTRANCE_LOOP_DELAY_MS}
-                onActiveChange={handleAnimActiveChange}
-              >
-                <Avatar
-                  value={playerAvatarSeed}
-                  size={avatarSize}
-                  avatarUrl={playerAvatarUrl}
-                  borderRadius={avatarRadius}
-                  hideBackground={hasFrame}
-                />
-              </LoopingSeatAnimation>
-              {hasFrame && (
-                <FrameOverlay
-                  frameId={effectiveFrame}
-                  size={avatarSize}
-                  borderRadius={avatarRadius}
-                />
+          {hasPlayer && (
+            <View
+              pointerEvents="none"
+              style={[
+                styles.decoratedAvatarLayer,
+                isPlayerOffline && styles.decoratedAvatarLayerOffline,
+              ]}
+            >
+              {seatDecorationsEnabled && isPlayingEntrance && AnimComponent ? (
+                // Entrance animations clip their children with `overflow: hidden`. Keep only the
+                // plain avatar inside the clip; render the decorative frame as a non-clipped sibling
+                // so its outward decorations are never cut. The frame stays static while the avatar
+                // slides in.
+                <View style={styles.entranceAvatarBox}>
+                  <LoopingSeatAnimation
+                    Component={AnimComponent}
+                    size={tileSize - spacing.tight}
+                    borderRadius={borderRadius.large}
+                    loopDelay={ENTRANCE_LOOP_DELAY_MS}
+                    onActiveChange={handleAnimActiveChange}
+                  >
+                    <Avatar
+                      value={playerAvatarSeed}
+                      size={avatarSize}
+                      avatarUrl={playerAvatarUrl}
+                      borderRadius={avatarRadius}
+                      hideBackground={hasFrame}
+                    />
+                  </LoopingSeatAnimation>
+                  {hasFrame && (
+                    <FrameOverlay
+                      frameId={effectiveFrame}
+                      size={avatarSize}
+                      borderRadius={avatarRadius}
+                    />
+                  )}
+                </View>
+              ) : (
+                <Animated.View style={[styles.avatarContainer, avatarAnimatedStyle]}>
+                  <AvatarWithFrame
+                    value={playerAvatarSeed}
+                    size={avatarSize}
+                    avatarUrl={playerAvatarUrl}
+                    borderRadius={avatarRadius}
+                    frameId={effectiveFrame}
+                  />
+                </Animated.View>
               )}
+
+              {/* Seat flair animation layer — hidden during Ongoing phase, while entrance animation is actively playing, or app is in background */}
+              {seatDecorationsEnabled &&
+                isAppVisible &&
+                !(isPlayingEntrance && isAnimActive) &&
+                FlairComponent && (
+                  <FlairComponent size={flairSize} borderRadius={borderRadius.large} />
+                )}
+
+              {/* Seat pet — hidden during Ongoing phase, while entrance animation is actively playing, or app is in background */}
+              {seatDecorationsEnabled &&
+                isAppVisible &&
+                !(isPlayingEntrance && isAnimActive) &&
+                PetComponent && (
+                  <View style={styles.petWrapper}>
+                    <PetComponent size={petSize} />
+                  </View>
+                )}
             </View>
-          ) : hasPlayer ? (
-            <Animated.View style={[styles.avatarContainer, avatarAnimatedStyle]}>
-              <AvatarWithFrame
-                value={playerAvatarSeed}
-                size={avatarSize}
-                avatarUrl={playerAvatarUrl}
-                borderRadius={avatarRadius}
-                frameId={effectiveFrame}
-              />
-            </Animated.View>
-          ) : null}
-
-          {/* Seat flair animation layer — hidden during Ongoing phase, while entrance animation is actively playing, or app is in background */}
-          {hasPlayer &&
-            seatDecorationsEnabled &&
-            isAppVisible &&
-            !(isPlayingEntrance && isAnimActive) &&
-            FlairComponent && <FlairComponent size={flairSize} borderRadius={borderRadius.large} />}
-
-          {/* Seat pet — hidden during Ongoing phase, while entrance animation is actively playing, or app is in background */}
-          {hasPlayer &&
-            seatDecorationsEnabled &&
-            isAppVisible &&
-            !(isPlayingEntrance && isAnimActive) &&
-            PetComponent && (
-              <View style={styles.petWrapper}>
-                <PetComponent size={petSize} />
-              </View>
-            )}
+          )}
 
           {!hasPlayer && <Text style={styles.emptyIndicator}>+</Text>}
 
           {isStatusEmphasized && hasPlayer && (
             <View pointerEvents="none" style={styles.statusEmphasis} />
-          )}
-
-          {isPlayerOffline && hasPlayer && (
-            <View
-              pointerEvents="none"
-              style={styles.offlineDot}
-              testID={TESTIDS.seatOfflineDot(seat)}
-              accessibilityLabel="离线"
-            />
           )}
 
           {showReadyBadge && hasPlayer && (
@@ -549,11 +565,20 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
       {hasPlayer ? (
         <>
           <NameStyleText
-            styleId={playerNameStyle}
-            style={isPlayerAnonymous ? styles.playerName : styles.playerNameHighlight}
+            styleId={isPlayerOffline ? undefined : playerNameStyle}
+            style={playerNameTextStyle}
             numberOfLines={1}
             ellipsizeMode="tail"
           >
+            {isPlayerOffline && (
+              <Ionicons
+                name={STATUS_ICONS.OFFLINE}
+                size={typography.caption}
+                testID={TESTIDS.seatOfflineIndicator(seat)}
+                accessibilityLabel="离线"
+              />
+            )}
+            {isPlayerOffline && ' '}
             {isBot && <Ionicons name={UI_ICONS.BOT} size={typography.caption} />}
             {isBot && ' '}
             {playerDisplayName}
@@ -677,6 +702,15 @@ export function createRoomSeatTileStyles(
       height: tileSize - spacing.tight,
       overflow: 'visible' as const,
     },
+    decoratedAvatarLayer: {
+      ...StyleSheet.absoluteFill,
+      justifyContent: 'center',
+      alignItems: 'center',
+      overflow: 'visible' as const,
+    },
+    decoratedAvatarLayerOffline: {
+      opacity: fixed.offlineOpacity,
+    },
     mySeatBadge: {
       backgroundColor: colors.success,
       boxShadow: `0px 0px 6px ${withAlpha(colors.success, 0.4)}`,
@@ -689,18 +723,6 @@ export function createRoomSeatTileStyles(
     },
     readyBadgeIcon: {
       color: colors.success,
-    },
-    offlineDot: {
-      position: 'absolute',
-      top: spacing.tight,
-      right: spacing.tight,
-      width: componentSizes.icon.xs,
-      height: componentSizes.icon.xs,
-      borderRadius: componentSizes.icon.xs / 2,
-      backgroundColor: colors.textMuted,
-      borderWidth: 2,
-      borderColor: colors.surface,
-      zIndex: 10,
     },
     petWrapper: {
       position: 'absolute',
@@ -788,6 +810,15 @@ export function createRoomSeatTileStyles(
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
       color: colors.primary,
+      textAlign: 'center',
+      marginTop: spacing.tight,
+      width: tileSize - spacing.tight,
+      height: typography.subtitle,
+    },
+    playerNameOffline: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      color: colors.textMuted,
       textAlign: 'center',
       marginTop: spacing.tight,
       width: tileSize - spacing.tight,

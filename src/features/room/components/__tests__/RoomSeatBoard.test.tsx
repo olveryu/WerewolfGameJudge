@@ -269,10 +269,10 @@ describe('RoomSeatBoard', () => {
       />,
     );
 
-    expect(await findByTestId(TESTIDS.seatOfflineDot(1))).toBeTruthy();
-    expect(queryByTestId(TESTIDS.seatOfflineDot(0))).toBeNull();
-    expect(queryByTestId(TESTIDS.seatOfflineDot(2))).toBeNull();
-    expect(queryByTestId(TESTIDS.seatOfflineDot(3))).toBeNull();
+    expect(await findByTestId(TESTIDS.seatOfflineIndicator(1))).toBeTruthy();
+    expect(queryByTestId(TESTIDS.seatOfflineIndicator(0))).toBeNull();
+    expect(queryByTestId(TESTIDS.seatOfflineIndicator(2))).toBeNull();
+    expect(queryByTestId(TESTIDS.seatOfflineIndicator(3))).toBeNull();
   });
 });
 

@@ -20,6 +20,7 @@ type IoniconsName = ComponentProps<typeof Ionicons>['name'];
     PEACEFUL_NIGHT: 'moon-outline',
     DEATH: 'skull-outline',
     SPEAKING: 'mic-outline',
+    OFFLINE: 'cloud-offline-outline',
   } as const satisfies Record<string, IoniconsName>;
 
 // ── Generic UI icons ─────────────────────────────────────────

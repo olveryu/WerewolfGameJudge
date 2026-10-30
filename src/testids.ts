@@ -19,7 +19,7 @@ export const TESTIDS = {
   // Purpose: avoid duplicate testID collisions when the wrapper View also has seatTile.
   seatTilePressable: (seat: number) => `seat-tile-pressable-${seat}`,
   seatStatusBadge: (seat: number) => `seat-status-badge-${seat}`,
-  seatOfflineDot: (seat: number) => `seat-offline-dot-${seat}`,
+  seatOfflineIndicator: (seat: number) => `seat-offline-indicator-${seat}`,
   seatMarker: (seat: number, key: string) => `seat-marker-${seat}-${key}`,
   seatProgress: (seat: number) => `seat-progress-${seat}`,
   mySeatBadge: 'my-seat-badge',

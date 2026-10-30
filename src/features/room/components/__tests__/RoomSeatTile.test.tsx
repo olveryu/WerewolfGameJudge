@@ -1,5 +1,6 @@
 import { fireEvent, render } from '@testing-library/react-native';
 
+import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 
 import { createRoomSeatTileStyles, RoomSeatTile, type RoomSeatTileProps } from '../RoomSeatTile';
@@ -150,14 +151,16 @@ describe('RoomSeatTile', () => {
 
   it('marks a human seat whose user has no open room socket as offline', () => {
     const offline = render(<RoomSeatTile {...createProps({ isPlayerOffline: true })} />);
-    expect(offline.getByTestId('seat-offline-dot-0')).toBeTruthy();
+    expect(offline.getByTestId(TESTIDS.seatOfflineIndicator(0))).toBeTruthy();
+    expect(offline.getByText(/玩家一/)).toHaveStyle(styles.playerNameOffline);
 
     const online = render(<RoomSeatTile {...createProps({ isPlayerOffline: false })} />);
-    expect(online.queryByTestId('seat-offline-dot-0')).toBeNull();
+    expect(online.queryByTestId(TESTIDS.seatOfflineIndicator(0))).toBeNull();
+    expect(online.getByText('玩家一')).toHaveStyle(styles.playerName);
 
     const empty = render(
       <RoomSeatTile {...createProps({ playerAvatarSeed: null, isPlayerOffline: true })} />,
     );
-    expect(empty.queryByTestId('seat-offline-dot-0')).toBeNull();
+    expect(empty.queryByTestId(TESTIDS.seatOfflineIndicator(0))).toBeNull();
   });
 });
