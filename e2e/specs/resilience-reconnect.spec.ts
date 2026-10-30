@@ -10,7 +10,12 @@ import {
   waitForNightEnd,
   waitForRoleTurn,
 } from '../helpers/night-driver';
-import { dropRoomSockets, seatOfflineDot, setOffline, setPageHidden } from '../helpers/resilience';
+import {
+  dropRoomSockets,
+  seatOfflineIndicator,
+  setOffline,
+  setPageHidden,
+} from '../helpers/resilience';
 import { linkStatusBanner, waitForLinkLive } from '../helpers/waits';
 
 /**
@@ -152,12 +157,12 @@ test.describe('RoomLink resilience during the night', () => {
         await setOffline(context, true);
         await expect(linkStatusBanner(page)).toBeVisible({ timeout: 40_000 });
         // Server side: 60s stale threshold + 30s sweep cadence before PRESENCE drops the user.
-        await expect(seatOfflineDot(observer, joinerSeat)).toBeVisible({ timeout: 100_000 });
+        await expect(seatOfflineIndicator(observer, joinerSeat)).toBeVisible({ timeout: 100_000 });
       });
       await test.step('back online → live and present', async () => {
         await setOffline(context, false);
         await waitForLinkLive(page, 45_000);
-        await expect(seatOfflineDot(observer, joinerSeat)).toBeHidden({ timeout: 15_000 });
+        await expect(seatOfflineIndicator(observer, joinerSeat)).toBeHidden({ timeout: 15_000 });
       });
       await finishNight(cast);
     } finally {

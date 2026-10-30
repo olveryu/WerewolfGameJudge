@@ -6,12 +6,18 @@ import type React from 'react';
 import { Text } from 'react-native';
 
 function createIconMock(familyName: string) {
-  const IconMock: React.FC<{ name: string; size?: number; color?: string }> = ({
-    name,
-    size,
-    color,
-  }) => (
-    <Text testID={`${familyName}-icon-${name}`} style={{ fontSize: size, color }}>
+  const IconMock: React.FC<{
+    name: string;
+    size?: number;
+    color?: string;
+    testID?: string;
+    accessibilityLabel?: string;
+  }> = ({ name, size, color, testID, accessibilityLabel }) => (
+    <Text
+      testID={testID ?? `${familyName}-icon-${name}`}
+      accessibilityLabel={accessibilityLabel}
+      style={{ fontSize: size, color }}
+    >
       {name}
     </Text>
   );

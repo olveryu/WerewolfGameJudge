@@ -57,7 +57,7 @@ export async function dropRoomSockets(
   return closed;
 }
 
-/** The seat-level offline dot other players see for `seat`. */
-export function seatOfflineDot(page: Page, seat: number) {
-  return page.getByTestId(TESTIDS.seatOfflineDot(seat));
+/** The seat-level offline indicator (name-row icon) other players see for `seat`. */
+export function seatOfflineIndicator(page: Page, seat: number) {
+  return page.getByTestId(TESTIDS.seatOfflineIndicator(seat));
 }
