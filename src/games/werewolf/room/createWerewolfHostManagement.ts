@@ -437,14 +437,14 @@ function createSection(
 }
 
 /**
- * Read-only actions exempt from the audio playback lock: the post-game
- * review tools only open dialogs over finished information, matching
- * the interaction policy's read-only exemptions.
+ * No host-management action is exempt from the audio playback lock.
+ * An action counts as read-only only when it sends no server command,
+ * writes no panel-flow progress and starts no review capture or
+ * share; every action assembled here fails that test — the review
+ * tools advance the panel flow on confirm/open — and identity
+ * viewing lives on the bottom panel, not in this model.
  */
-const AUDIO_LOCK_EXEMPT_ACTION_KEYS: ReadonlySet<string> = new Set([
-  'night-review',
-  'last-night-info',
-]);
+const AUDIO_LOCK_EXEMPT_ACTION_KEYS: ReadonlySet<string> = new Set();
 
 /** Build the complete Host-only command surface from current room facts. Host gating belongs to the shell factory. */
 export function createWerewolfHostManagement(

@@ -510,7 +510,11 @@ export function createWerewolfBottomActionLayout(
     }
     case GameStatus.Day:
     case GameStatus.Ended: {
-      if (viewModel.status === GameStatus.Day && night.kind === 'blocked') return EMPTY_LAYOUT;
+      // The night-end announcement window: narration is still playing
+      // after the status has moved on. Every audience collapses,
+      // spectators included — opening the review starts capture and
+      // writes flow progress, so it is not read-only.
+      if (isAudioPlaybackLocked(input.isAudioPlaying)) return EMPTY_LAYOUT;
       if (audience === 'spectator') {
         return { primary: [nightReviewButton(input, 'primary')], secondary: [], ghost: [] };
       }

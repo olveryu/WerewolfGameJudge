@@ -246,6 +246,34 @@ describe('createWerewolfBottomActionLayout', () => {
     expect(bystander.secondary.map((button) => button.key)).toEqual(['viewRole']);
   });
 
+  it('hides every button, spectators included, while the night-end announcement plays in Day and Ended', () => {
+    const viewers: ReadonlyArray<readonly [number | null, boolean]> = [
+      [0, true],
+      [1, false],
+      [null, false],
+    ];
+    for (const status of [GameStatus.Day, GameStatus.Ended]) {
+      const state: GameState = { ...night, status, nightStep: null };
+      for (const [seat, isHost] of viewers) {
+        expect(
+          layoutFor(state, seat, isHost, { isAudioPlaying: true, canOpenNightReview: true }),
+        ).toEqual({ primary: [], secondary: [], ghost: [] });
+      }
+    }
+  });
+
+  it('shows the Day and Ended buttons again once the announcement ends', () => {
+    const day: GameState = { ...night, status: GameStatus.Day, nightStep: null };
+    expect(layoutFor(day, 0, true).secondary.map((button) => button.key)).toEqual(['viewRole']);
+    expect(layoutFor(day, null, false).primary.map((button) => button.key)).toEqual([
+      'nightReview',
+    ]);
+    const ended: GameState = { ...night, status: GameStatus.Ended, nightStep: null };
+    expect(
+      layoutFor(ended, 1, false, { canOpenNightReview: true }).ghost.map((button) => button.key),
+    ).toEqual(['nightReview']);
+  });
+
   it('gives spectators the review as primary and shared seats a ghost tool; the host uses the panel', () => {
     const ended: GameState = { ...night, status: GameStatus.Ended, nightStep: null };
     expect(layoutFor(ended, null, false).primary.map((button) => button.key)).toEqual([
