@@ -118,9 +118,8 @@ function drivenGame(withBots: boolean): DrivenGame {
 
 function armedVoteState(withBots: boolean): AvalonState {
   const game = drivenGame(withBots);
-  game.actAs(game.state.leaderSeat, { type: 'avalon.team.updateDraft', seats: [0, 1] });
-  game.actAs(game.state.leaderSeat, { type: 'avalon.team.preselect' });
-  game.actAs(game.state.leaderSeat, { type: 'avalon.team.propose' });
+  game.actAs(game.state.leaderSeat, { type: 'avalon.team.preselect', seats: [0, 1] });
+  game.actAs(game.state.leaderSeat, { type: 'avalon.team.propose', seats: [0, 1] });
   for (let seat = 0; seat < 5; seat += 1) {
     game.actAs(seat, { type: 'avalon.team.vote', vote: 'approve' });
   }
@@ -132,9 +131,8 @@ function armedVoteState(withBots: boolean): AvalonState {
 
 function armedQuestState(): AvalonState {
   const game = drivenGame(false);
-  game.actAs(game.state.leaderSeat, { type: 'avalon.team.updateDraft', seats: [0, 1] });
-  game.actAs(game.state.leaderSeat, { type: 'avalon.team.preselect' });
-  game.actAs(game.state.leaderSeat, { type: 'avalon.team.propose' });
+  game.actAs(game.state.leaderSeat, { type: 'avalon.team.preselect', seats: [0, 1] });
+  game.actAs(game.state.leaderSeat, { type: 'avalon.team.propose', seats: [0, 1] });
   for (let seat = 0; seat < 5; seat += 1) {
     game.actAs(seat, { type: 'avalon.team.vote', vote: 'approve' });
   }

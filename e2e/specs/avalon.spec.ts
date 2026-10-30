@@ -331,8 +331,9 @@ async function pickTeam(
     observerPage.getByTestId(TESTIDS.seatTilePressable(probeSeat)),
   ).not.toHaveAccessibleName(/队员/);
 
-  // 重开预选 modal 选满最终队伍并确认：服务端回声到后，队员徽标同步
-  // 到组队者与观察者页面；组队者身份标记与队伍选择相互独立。
+  // 重开预选 modal 选满并确认：预选记录回声到后，「预选」徽标同步到
+  // 组队者与观察者页面（D24：队伍随命令，没有服务端草稿；「队员」在提交
+  // 进投票后才出现）；组队者身份标记与队伍选择相互独立。
   await preselect.click();
   await expect(pickModal).toBeVisible({ timeout: 10_000 });
   for (const seat of team) {
@@ -344,10 +345,10 @@ async function pickTeam(
   await pickConfirm.click();
   await expect(pickModal).toBeHidden({ timeout: 10_000 });
   for (const seat of team) {
-    await expect(leaderPage.getByTestId(TESTIDS.seatProgress(seat))).toContainText('队员', {
+    await expect(leaderPage.getByTestId(TESTIDS.seatProgress(seat))).toContainText('预选', {
       timeout: 10_000,
     });
-    await expect(observerPage.getByTestId(TESTIDS.seatProgress(seat))).toContainText('队员', {
+    await expect(observerPage.getByTestId(TESTIDS.seatProgress(seat))).toContainText('预选', {
       timeout: 10_000,
     });
     if (seat === leaderSeat) {
@@ -390,7 +391,7 @@ async function pickTeam(
   ).toBeVisible({ timeout: 10_000 });
 
   // 最终队伍可改选探针：modal 里换出一名非组队者队员再换回——确认前
-  // 板子仍是预选阵容（换出座位仍是队员、换入座位仍不是）；换回确认后
+  // 板子仍是预选阵容（换出座位仍标预选、换入座位没有徽标）；换回确认后
   // 最终队伍恢复为预选阵容，下游步骤不受影响。
   const editedOut = team.find((seat) => seat !== leaderSeat);
   if (editedOut === undefined) throw new Error('pickTeam: team has no non-leader member');
@@ -407,26 +408,34 @@ async function pickTeam(
   await expect(pickCount).toContainText(`已选 ${team.length}/${team.length}`, {
     timeout: 10_000,
   });
-  await expect(leaderPage.getByTestId(TESTIDS.seatProgress(editedOut))).toContainText('队员', {
+  await expect(leaderPage.getByTestId(TESTIDS.seatProgress(editedOut))).toContainText('预选', {
     timeout: 10_000,
   });
-  await expect(observerPage.getByTestId(TESTIDS.seatProgress(editedOut))).toContainText('队员', {
+  await expect(observerPage.getByTestId(TESTIDS.seatProgress(editedOut))).toContainText('预选', {
     timeout: 10_000,
   });
   await expect(
     leaderPage.getByTestId(TESTIDS.seatTilePressable(probeSeat)),
-  ).not.toHaveAccessibleName(/队员/);
+  ).not.toHaveAccessibleName(/预选|队员/);
   await expect(
     observerPage.getByTestId(TESTIDS.seatTilePressable(probeSeat)),
-  ).not.toHaveAccessibleName(/队员/);
+  ).not.toHaveAccessibleName(/预选|队员/);
   await pickRow(probeSeat).click();
   await pickRow(editedOut).click();
   await expect(pickCount).toContainText(`已选 ${team.length}/${team.length}`, {
     timeout: 10_000,
   });
-  // 最终队伍 modal 确认即提交进投票。
+  // 最终队伍 modal 确认即提交进投票：队伍随 propose 发出，「队员」徽标随投票阶段回声到。
   await pickConfirm.click();
   await expect(pickModal).toBeHidden({ timeout: 10_000 });
+  for (const seat of team) {
+    await expect(leaderPage.getByTestId(TESTIDS.seatProgress(seat))).toContainText('队员', {
+      timeout: 10_000,
+    });
+    await expect(observerPage.getByTestId(TESTIDS.seatProgress(seat))).toContainText('队员', {
+      timeout: 10_000,
+    });
+  }
 }
 
 async function castVote(page: Page, ballot: Ballot): Promise<void> {

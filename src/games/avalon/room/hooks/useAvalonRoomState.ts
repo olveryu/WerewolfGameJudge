@@ -84,11 +84,7 @@ export interface AvalonRoomScreenState {
   /** 组队选人弹窗开关：null 关闭，preselect / final 为两段 modal。 */
   readonly teamPickModal: AvalonTeamPickKind | null;
   readonly setTeamPickModal: (modal: AvalonTeamPickKind | null) => void;
-  /**
-   * 组队选人 modal 确认：先同步草稿（与服务端草稿同集时跳过派发），
-   * 再按当前 modal 段发 preselect / propose；确认即关闭 modal。
-   * 组队命令全链串行，下一笔等上一笔 followup 落定再发。
-   */
+  /** 组队选人 modal 确认：按当前 modal 段发 preselect / propose（队伍随命令）；确认即关闭 modal。 */
   readonly confirmTeamPick: (seats: readonly number[]) => Promise<void>;
   readonly isSubmitting: boolean;
   readonly session: AvalonRoomSession;
@@ -219,22 +215,8 @@ export function useAvalonRoomState(
     viewedSeatCount: state.roleViewedSeats.length,
     submitViewed: () => submit('查看身份', { type: 'avalon.role.viewed' }, { controlledSeat }),
   });
-  // 组队选人 modal 开关：选人与确认都在 modal 里做（见 confirmTeamPick），
-  // 板子点选已停用，不再有派生镜像覆盖草稿。
+  // 组队选人 modal 开关：选人与确认都在 modal 里做（见 confirmTeamPick）。
   const [teamPickModal, setTeamPickModal] = useState<AvalonTeamPickKind | null>(null);
-  const lastTeamDraftDispatchRef = useRef<Promise<boolean> | null>(null);
-  const submitTeamDraft = (seats: readonly number[]): Promise<boolean> => {
-    // submission 是单飞锁：后一笔组队命令若与在飞的前一笔重叠，会被
-    // 锁以「已有操作进行中」直接拒绝。故按发送顺序逐笔接续——等前一笔
-    // 落定再发本笔，本笔返回值仍是它自己的派发结果；confirmTeamPick
-    // 把 followup 也接进同一条链，下一笔等 followup 落定再发。
-    const dispatchNow = () =>
-      submit('更新草稿', { type: 'avalon.team.updateDraft', seats }, { controlledSeat });
-    const previous = lastTeamDraftDispatchRef.current;
-    const dispatch = previous === null ? dispatchNow() : previous.then(dispatchNow, dispatchNow);
-    lastTeamDraftDispatchRef.current = dispatch;
-    return dispatch;
-  };
   // 投票/任务倒计时：结算的正确性由服务端定时投递保证（引擎武装倒计时的
   // 同时排下 avalon.settle.due，Worker 到点以系统身份内部结算）。客户端
   // 这条 expire 派发只是加速路径：抢先提交同一个超时结算，先到者生效。
@@ -307,32 +289,18 @@ export function useAvalonRoomState(
     });
 
   const selection = profile.selection;
-  // 组队选人 modal 确认：先同步草稿（与服务端草稿同集时跳过），再按
-  // 当前 modal 段发 preselect / propose。组队命令全链串行：followup
-  // 返回 submit 链、链尾记回 ref，下一笔组队命令等上一笔 followup
-  // 落定再发，免得被单飞锁以「已有操作进行中」拒绝；草稿被拒时
-  // followup 照常发出，由引擎校验承接。
+  // 组队选人 modal 确认：队伍随命令发出（preselect / propose），引擎校验尺寸与座位。
   const confirmTeamPick = (seats: readonly number[]): Promise<void> => {
     const kind = teamPickModal;
     setTeamPickModal(null);
     if (kind === null || state.phase.kind !== 'nominate') return Promise.resolve();
-    const serverDraft = state.phase.draftSeats;
-    const sameSet =
-      serverDraft.length === seats.length && seats.every((seat) => serverDraft.includes(seat));
-    const followup = () =>
-      submit(
-        kind === 'preselect' ? '预选队伍' : '提交队伍',
-        kind === 'preselect' ? { type: 'avalon.team.preselect' } : { type: 'avalon.team.propose' },
-        { controlledSeat },
-      );
-    const previous = lastTeamDraftDispatchRef.current;
-    const chained = sameSet
-      ? previous === null
-        ? followup()
-        : previous.then(followup, followup)
-      : submitTeamDraft(seats).then(followup, followup);
-    lastTeamDraftDispatchRef.current = chained;
-    return chained.then(() => undefined);
+    return submit(
+      kind === 'preselect' ? '预选队伍' : '提交队伍',
+      kind === 'preselect'
+        ? { type: 'avalon.team.preselect', seats }
+        : { type: 'avalon.team.propose', seats },
+      { controlledSeat },
+    ).then(() => undefined);
   };
   const shellModel: RoomShellModel = createAvalonRoomShellModel({
     roomCode: room.roomCode,

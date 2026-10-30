@@ -33,7 +33,6 @@ function historyViewModel(roundHistory: readonly AvalonRoundRecordView[]): Avalo
     hasViewedRole: true,
     unviewedRoleSeats: [],
     requiredSize: 2,
-    draftSeats: null,
     preselectedSeats: null,
     proposedSeats: null,
     teamSeats: null,
