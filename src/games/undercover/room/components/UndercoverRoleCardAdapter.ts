@@ -6,17 +6,14 @@
  * 与词卡的区别：词卡按产品规则不显示所属阵营（alignment 恒 neutral），
  * 预览展示的是板子构成层面的公开分类，与 BoardInfo 分区定色一致。
  */
-import type { UndercoverRole } from '@game-judge/game-engine/games/undercover/public';
+import {
+  UNDERCOVER_ROLE_NAMES,
+  type UndercoverRole,
+} from '@game-judge/game-engine/games/undercover/public';
 
 import type { RevealAlignment, RevealRoleData } from '@/features/room/model/RevealRoleData';
 
 import { getRoleAvatar } from '../../assets/roleAvatars';
-
-const ROLE_NAMES: Readonly<Record<UndercoverRole, string>> = {
-  civilian: '平民',
-  undercover: '卧底',
-  blank: '白板',
-};
 
 const ROLE_ALIGNMENTS: Readonly<Record<UndercoverRole, RevealAlignment>> = {
   civilian: 'villager',
@@ -55,7 +52,7 @@ export function toUndercoverRolePreviewData(role: UndercoverRole): RevealRoleDat
   const description = ROLE_DESCRIPTIONS[role];
   return {
     id: `undercover-${role}`,
-    name: ROLE_NAMES[role],
+    name: UNDERCOVER_ROLE_NAMES[role],
     alignment: ROLE_ALIGNMENTS[role],
     image: getRoleAvatar(role),
     description: [

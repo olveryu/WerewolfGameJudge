@@ -4,7 +4,7 @@ import {
   getBotSeats,
   getUndercoverOccupiedSeatCount,
   getUndercoverViewingParticipants,
-  type UndercoverRole,
+  UNDERCOVER_ROLE_NAMES,
   type UndercoverRoleCounts,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
@@ -44,10 +44,10 @@ import {
   viewedProgressReason,
 } from '@/features/room/model/hostManagementActions';
 import {
-  createBotTakeoverCapability,
   createRoomSetupCapabilities,
   createViewProfilesCapability,
   type RoomCapabilities,
+  type RoomCapability,
   type RoomProfileTarget,
   type RoomSetupCapabilitiesInput,
 } from '@/features/room/model/RoomCapabilities';
@@ -58,6 +58,7 @@ import type {
   RoomHostTask,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
+import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { colors } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -65,17 +66,16 @@ import { showConfirmAlert } from '@/utils/alertPresets';
 import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
 import { createUndercoverBottomActions } from './undercoverActionModels';
 
-export const UNDERCOVER_ROLE_NAMES: Readonly<Record<UndercoverRole, string>> = {
-  civilian: '平民',
-  undercover: '卧底',
-  blank: '白板',
-};
-
 /** Resolve only public roster identity, never the secret role or word. */
 export const getUndercoverProfileTarget = (
   state: UndercoverState,
   seat: number,
 ): RoomProfileTarget | null => getRoomProfileTarget(state.roster, seat);
+
+/** Project Undercover seating into the shared room seat-tap contract. */
+export const getUndercoverSeatTapIntent = createRoomSeatTapIntentResolver(
+  getUndercoverProfileTarget,
+);
 
 interface UndercoverCapabilitiesInput extends Omit<
   RoomSetupCapabilitiesInput,
@@ -83,7 +83,7 @@ interface UndercoverCapabilitiesInput extends Omit<
 > {
   readonly state: UndercoverState;
   readonly openProfile: (target: RoomProfileTarget) => void;
-  readonly takeOverBot: (seat: number) => void;
+  readonly takeOverBots: RoomCapability<readonly [seat: number]>;
 }
 
 /** Bind shared lobby permissions and game-owned robot authority. */
@@ -100,7 +100,7 @@ export function createUndercoverRoomCapabilities(
         getUndercoverOccupiedSeatCount(input.state) === input.state.config.numberOfPlayers,
     }),
     canViewProfiles: createViewProfilesCapability(true, input.openProfile),
-    canTakeOverBots: createBotTakeoverCapability(input.isHost, input.takeOverBot),
+    canTakeOverBots: input.takeOverBots,
   };
 }
 

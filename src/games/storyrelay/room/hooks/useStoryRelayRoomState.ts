@@ -7,28 +7,20 @@ import {
   type StoryRelayCommand,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
-import { useCallback } from 'react';
 
-import { useAuthContext } from '@/contexts/AuthContext';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
-import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
-import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
+import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import {
-  type RoomBotControl,
-  useRoomBotControl,
-} from '@/features/room/controllers/useRoomBotControl';
-import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
+  type ReadyRoomSession,
+  useReadyRoomSession,
+} from '@/features/room/controllers/useReadyRoomSession';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
-import {
-  createBotTakeoverCapability,
-  type RoomCapabilities,
-} from '@/features/room/model/RoomCapabilities';
+import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
-import { resolveEffectiveSeat, type RoomViewer } from '@/features/room/model/RoomViewer';
+import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import { type StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 
 import {
@@ -49,9 +41,12 @@ export interface StoryRelayRoomScreenState {
   readonly userId: string;
   readonly effectiveSeat: number | null;
   readonly controlledSeat: number | null;
-  readonly releaseBot: RoomBotControl['release'];
+  readonly releaseBot: () => void;
   readonly isHost: boolean;
   readonly canControlBots: boolean;
+  /** 平台单飞提交：座位动作由调用点显式传 `{ controlledSeat }`，房主命令不传。 */
+  readonly submit: ReadyRoomSession<StoryRelayState, StoryRelayCommand>['submit'];
+  readonly isSubmitting: boolean;
   readonly openRules: () => void;
 }
 
@@ -63,17 +58,21 @@ export function useStoryRelayRoomState(
   },
 ): StoryRelayRoomScreenState {
   const { session, room, navigation, entryController } = props;
-  const { user } = useAuthContext();
-  const snapshot = useRoomLinkSnapshot(session);
-  if (user === null || snapshot.phase !== 'ready')
-    throw new Error('Story Relay requires an authenticated ready session');
-  const state = snapshot.room.state;
+  const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
+    session,
+    getStoryRelayRoomCommandFailureMessage,
+  );
   const isHost = state.hostUserId === user.id;
   const mySeat = getStoryRelayUserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
   const isLobby = state.phase === 'lobby';
-  const botControl = useRoomBotControl();
-  const { controlledSeat, release: releaseBot } = botControl;
+  // 机器人接管：房主随时可接管；失去房主身份或座位不再是机器人时由共享守卫释放。
+  const bots = useBotTakeover({
+    viewer,
+    isBotSeat: (seat) => isBotSeat(state.roster, seat),
+    gameName: 'StoryRelay',
+  });
+  const { controlledSeat, effectiveSeat } = bots;
   const { share, titleActions, gachaStatus } = useRoomPresentationController({
     roomCode: room.roomCode,
     gameDisplayName: '故事接龙',
@@ -101,34 +100,10 @@ export function useStoryRelayRoomState(
       }),
     shareRoom: share.open,
   });
-  const submission = useRoomCommandSubmission(getStoryRelayRoomCommandFailureMessage);
-  const submit = (label: string, command: StoryRelayCommand) =>
-    submission.submit(label, () =>
-      session.dispatch(command, { controlledSeat: null, label, durable: false }),
-    );
-  const canControlBots = isHost;
-  useBotTakeoverGuard({
-    controlledSeat,
-    canControlBots,
-    seatStillBot: controlledSeat === null || isBotSeat(state.roster, controlledSeat),
-    release: releaseBot,
-  });
   const capabilities: RoomCapabilities = {
     ...setupCapabilities,
-    canTakeOverBots: createBotTakeoverCapability(canControlBots, botControl.takeOver),
+    canTakeOverBots: bots.capability,
   };
-  const isSeatBot = useCallback((seat: number) => isBotSeat(state.roster, seat), [state]);
-  const onBotSeatLongPress = useBotTakeoverLongPress({
-    controlledSeat,
-    takeOver: botControl.takeOver,
-    release: releaseBot,
-    canTakeOver: capabilities.canTakeOverBots.isAllowed,
-    deniedReason: capabilities.canTakeOverBots.isAllowed
-      ? undefined
-      : (capabilities.canTakeOverBots.reason ?? undefined),
-    isBotSeat: isSeatBot,
-    gameName: 'StoryRelay',
-  });
   const onSeatPress = createRoomSeatPressHandler({
     isSetup: isLobby,
     state,
@@ -141,11 +116,10 @@ export function useStoryRelayRoomState(
     createStoryRelayHostManagement({
       state,
       capabilities,
-      isSubmitting: submission.isSubmitting,
+      isSubmitting,
       submit,
     });
 
-  const selection = profile.selection;
   const shellModel: RoomShellModel = createStoryRelayRoomShellModel({
     roomCode: room.roomCode,
     viewer,
@@ -158,29 +132,31 @@ export function useStoryRelayRoomState(
     onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
     connection: entryController.connection,
     state,
-    revision: snapshot.room.revision,
+    revision,
     controlledSeat,
-    seatsVisuallyDisabled: submission.isSubmitting || seatController.isSubmitting,
+    seatsVisuallyDisabled: isSubmitting || seatController.isSubmitting,
     onSeatPress,
-    onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,
+    onBotSeatLongPress: bots.capability.isAllowed ? bots.onBotSeatLongPress : null,
     seatController,
-    profileSelection: selection,
+    profileSelection: profile.selection,
     onProfileClose: profile.close,
     onProfileLeaveSeat: profile.leaveSelf,
     share,
     isLobby,
     buildHostManagement,
-    releaseBot,
+    releaseBot: bots.release,
   });
   return {
     state,
     shellModel,
     userId: user.id,
-    effectiveSeat: resolveEffectiveSeat(viewer, controlledSeat),
+    effectiveSeat,
     controlledSeat,
-    releaseBot,
+    releaseBot: bots.release,
     isHost,
-    canControlBots,
+    canControlBots: bots.capability.isAllowed,
+    submit,
+    isSubmitting,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: 'storyrelay', roomCode: room.roomCode }),
   };

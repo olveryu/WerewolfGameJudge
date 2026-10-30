@@ -1,6 +1,6 @@
 ---
 'name': 'WerewolfRoom'
-'description': 'Werewolf room feature standards: policy/hooks/executors/seatTap/components/share layering. Shared room shell code belongs in src/features/room.'
+'description': 'Werewolf room feature standards: adapter/night/day/hooks/components/share layering. Shared room shell code belongs in src/features/room.'
 'applyTo': 'src/games/werewolf/room/**'
 ---
 
@@ -10,14 +10,19 @@
 
 ## Subdirectories
 
-| Directory     | Responsibility                                            |
-| ------------- | --------------------------------------------------------- |
-| `policy/`     | Pure logic policy functions (input → Instruction)         |
-| `hooks/`      | Werewolf screen hooks (`useWerewolfRoomScreenState` etc.) |
-| `components/` | Werewolf-only room UI components                          |
-| `executors/`  | Action executors (execution layer extracted from hooks)   |
-| `seatTap/`    | Seat tap interaction logic                                |
-| `share*.ts`   | Werewolf-only night-review sharing                        |
+| Location                          | Responsibility                                                                                                                 |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `werewolfRoomAdapter.ts`          | Pure projections into the shared shell (capabilities, seat source, bottom actions, shell model)                                |
+| `night/`                          | Declarative night model: `resolveNightInteraction` (state → `NightInteractionModel`), `buildNightCommand`, `nightPrompt`       |
+| `day/`                            | Sheriff election view models + `useSheriffElection`, dawn host task flow (`panelFlow.ts`)                                      |
+| `hooks/`                          | `useWerewolfRoomState` (composition root), `useNightInteraction`, `useNightDraft`, `useWerewolfHostFlow`, audio / BGM / modals |
+| `components/`                     | Werewolf-only room UI (role card, night review, sheriff panels, bottom-card / MVP modals)                                      |
+| `createWerewolfHostManagement.ts` | Host management sheet model                                                                                                    |
+| `share*.ts`                       | Werewolf-only night-review sharing                                                                                             |
+
+There is no `policy/`, `executors/` or `seatTap/` tree: night interaction is one declarative model
+consumed by the hook; seat presses go through the shared `createRoomSeatPressHandler.inGameAction`.
+`src/games/__tests__/gameClientShape.contract.test.ts` enforces this for every game.
 
 ## UI Ownership
 
@@ -33,21 +38,22 @@ The visual standards in `agents/path-rules/screens.md` also apply to room UI. We
 the cross-game visual baseline; share presentation where appropriate without moving
 Werewolf-specific night policy or identity visibility into generic room components.
 
-Shared room shell and controllers live in `src/features/room/`. Werewolf policy, executors, and
-night UI must remain in this game-owned directory. State machine reference:
+Shared room shell and controllers live in `src/features/room/` (`useReadyRoomSession`,
+`useBotTakeover`, `useRoleViewing`, `useStageDeadline`, `useRoomAudioResume`, …). The werewolf
+night model and night UI must remain in this game-owned directory. State machine reference:
 `docs/roomscreen-state-machine.md`.
 
 ## Button Ownership
 
 `docs/room-shell-contract.md` → "Action Ownership" / "Host Task" is binding here too. In Werewolf terms:
 
-- `LAYOUT_RULES` (`hooks/bottomLayoutConfig.ts`) match on the shared audience
+- `LAYOUT_RULES` (`werewolfRoomAdapter.ts`) match on the shared audience
   `host | seated | spectator` from `resolveRoomViewerAudience({ isHost, seat: effectiveSeat })`.
   Do not introduce another role enum.
 - The bottom panel is a participant surface only. `STATIC_BUTTONS` are `viewRole` → `participant`
   and `nightReview` → `anyone` (shared seats, spectators). Schema (night action) buttons are
   `participant`. There are no host buttons, no step bar and no hint on the bottom panel.
-- The Day/Ended dawn flow (昨夜信息 → 本局复盘 → 收尾) is the host task: `panelFlow.ts` derives
+- The Day/Ended dawn flow (昨夜信息 → 本局复盘 → 收尾) is the host task: `day/panelFlow.ts` derives
   `steps` and the current step, `createWerewolfHostManagement` sets `task` (`action` on
   `last-night-info` / `night-review`, then `choice` on `next-round` / `return-lobby`) and the
   sheet carries those actions. On Day the card is an equal `choice` of every host move that

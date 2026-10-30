@@ -13,28 +13,20 @@ import {
 } from '@game-judge/game-engine/games/drawguess/public';
 import { useCallback } from 'react';
 
-import { useAuthContext } from '@/contexts/AuthContext';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
-import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
-import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
+import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import {
-  type RoomBotControl,
-  useRoomBotControl,
-} from '@/features/room/controllers/useRoomBotControl';
-import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
+  type ReadyRoomSession,
+  useReadyRoomSession,
+} from '@/features/room/controllers/useReadyRoomSession';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
-import { NOW_MS_DEFAULT_INTERVAL_MS, useNowMs } from '@/features/room/hooks/useNowMs';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
-import {
-  createBotTakeoverCapability,
-  type RoomCapabilities,
-} from '@/features/room/model/RoomCapabilities';
+import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
-import { resolveEffectiveSeat, type RoomViewer } from '@/features/room/model/RoomViewer';
+import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import { type DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
 
 import {
@@ -62,13 +54,9 @@ export interface DrawGuessRoomScreenState {
   readonly controlledSeat: number | null;
   readonly isHost: boolean;
   readonly canControlBots: boolean;
-  readonly takeOver: RoomBotControl['takeOver'];
-  readonly releaseBot: RoomBotControl['release'];
-  readonly submit: (
-    label: string,
-    command: DrawGuessCommand,
-    control?: number | null,
-  ) => Promise<boolean>;
+  readonly releaseBot: () => void;
+  /** 平台单飞提交：座位动作由调用点显式传 `{ controlledSeat }`，房主命令不传。 */
+  readonly submit: ReadyRoomSession<DrawGuessState, DrawGuessCommand>['submit'];
   readonly session: DrawGuessRoomSession;
   readonly openRules: () => void;
 }
@@ -81,18 +69,21 @@ export function useDrawGuessRoomState(
   },
 ): DrawGuessRoomScreenState {
   const { session, room, navigation, entryController } = props;
-  const { user } = useAuthContext();
-  const snapshot = useRoomLinkSnapshot(session);
-  if (user === null || snapshot.phase !== 'ready')
-    throw new Error('DrawGuess requires an authenticated ready session');
-  const state = snapshot.room.state;
+  const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
+    session,
+    getDrawGuessRoomCommandFailureMessage,
+  );
   const isHost = state.hostUserId === user.id;
   const mySeat = getDrawGuessUserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
   const isLobby = state.phase.kind === 'lobby';
-  const botControl = useRoomBotControl();
-  const { controlledSeat, release: releaseBot, takeOver } = botControl;
-  const effectiveSeat = resolveEffectiveSeat(viewer, controlledSeat);
+  // 机器人接管：房主随时可接管；失去房主身份或座位不再是机器人时由共享守卫释放。
+  const bots = useBotTakeover({
+    viewer,
+    isBotSeat: (seat) => isBotSeat(state.roster, seat),
+    gameName: 'DrawGuess',
+  });
+  const { controlledSeat, effectiveSeat } = bots;
   const { share, titleActions, gachaStatus } = useRoomPresentationController({
     roomCode: room.roomCode,
     gameDisplayName: '你画我猜',
@@ -120,15 +111,6 @@ export function useDrawGuessRoomState(
       }),
     shareRoom: share.open,
   });
-  const submission = useRoomCommandSubmission(getDrawGuessRoomCommandFailureMessage);
-  // 派发纪律（#149 定版，与阿瓦隆/卧底 submit 同形态）：默认不带接管座位。
-  // 房主命令的平台门只认未接管身份（resolveHostActorId），挂着接管座位发
-  // 开始游戏/再来一局/中止本局/返回大厅必然被拒；座位动作（以被接管机器人画手
-  // 身份发出的选词）由调用方显式传 controlledSeat。
-  const submit = (label: string, command: DrawGuessCommand, control: number | null = null) =>
-    submission.submit(label, () =>
-      session.dispatch(command, { controlledSeat: control, label, durable: false }),
-    );
   // 阶段截止：剩余秒数与到期推进（原在 Screen 的 DrawGuessStage 内组装，P-2b 下沉）。
   const deadlineAt =
     state.phase.kind === 'wordSelect' ||
@@ -157,40 +139,19 @@ export function useDrawGuessRoomState(
       ),
     [session, state.phaseRevision, state.turnIndex],
   );
-  const { remainingSeconds } = useStageDeadline({
+  // 拼音首字母揭示按秒推进：时钟来自截止 hook（有截止的阶段才每秒重渲染）。
+  const { remainingSeconds, nowMs } = useStageDeadline({
     deadlineAt,
     shouldExpire,
     onExpire,
     label: '推进作画阶段',
     silentExpire: true,
   });
-  // 拼音首字母揭示按秒推进；大厅不挂载阶段视图，不走每秒重渲染。
-  const nowMs = useNowMs(NOW_MS_DEFAULT_INTERVAL_MS, !isLobby);
   const viewModel = getDrawGuessViewModel(state, effectiveSeat, nowMs);
-  // 机器人接管：房主随时可接管（无阶段条件）；失去房主身份或座位不再是机器人时自动释放。
-  const canControlBots = isHost;
-  useBotTakeoverGuard({
-    controlledSeat,
-    canControlBots,
-    seatStillBot: controlledSeat === null || isBotSeat(state.roster, controlledSeat),
-    release: releaseBot,
-  });
   const capabilities: RoomCapabilities = {
     ...setupCapabilities,
-    canTakeOverBots: createBotTakeoverCapability(canControlBots, takeOver),
+    canTakeOverBots: bots.capability,
   };
-  const isSeatBot = useCallback((seat: number) => isBotSeat(state.roster, seat), [state]);
-  const onBotSeatLongPress = useBotTakeoverLongPress({
-    controlledSeat,
-    takeOver,
-    release: releaseBot,
-    canTakeOver: capabilities.canTakeOverBots.isAllowed,
-    deniedReason: capabilities.canTakeOverBots.isAllowed
-      ? undefined
-      : (capabilities.canTakeOverBots.reason ?? undefined),
-    isBotSeat: isSeatBot,
-    gameName: 'DrawGuess',
-  });
   const onSeatPress = createRoomSeatPressHandler({
     isSetup: isLobby,
     state,
@@ -199,12 +160,11 @@ export function useDrawGuessRoomState(
     profile,
     seatController,
   });
-  const selection = profile.selection;
   const buildHostManagement = () =>
     createDrawGuessHostManagement({
       state,
       capabilities,
-      isSubmitting: submission.isSubmitting,
+      isSubmitting,
       submit,
     });
 
@@ -220,19 +180,19 @@ export function useDrawGuessRoomState(
     onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
     connection: entryController.connection,
     state,
-    revision: snapshot.room.revision,
+    revision,
     controlledSeat,
-    seatsVisuallyDisabled: submission.isSubmitting || seatController.isSubmitting,
+    seatsVisuallyDisabled: isSubmitting || seatController.isSubmitting,
     onSeatPress,
-    onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,
+    onBotSeatLongPress: bots.capability.isAllowed ? bots.onBotSeatLongPress : null,
     seatController,
-    profileSelection: selection,
+    profileSelection: profile.selection,
     onProfileClose: profile.close,
     onProfileLeaveSeat: profile.leaveSelf,
     share,
     isLobby,
     buildHostManagement,
-    releaseBot,
+    releaseBot: bots.release,
   });
   return {
     state,
@@ -245,9 +205,8 @@ export function useDrawGuessRoomState(
     effectiveSeat,
     controlledSeat,
     isHost,
-    canControlBots,
-    takeOver,
-    releaseBot,
+    canControlBots: bots.capability.isAllowed,
+    releaseBot: bots.release,
     submit,
     session,
     openRules: () =>

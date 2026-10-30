@@ -1,27 +1,27 @@
 /**
  * 阿瓦隆第一晚播报 — 共享房间音频运行核（RoomAudioOrchestrator）的 React 薄绑定。
  *
- * 生命周期（队列识别、顺序播放、durable ack、ack 后 recheck 链式续播）已搬入共享核心
- * （src/features/room/audio/RoomAudioOrchestrator），全平台只此一份。本 hook 只做适配：
- * - queue source：直接读 link 权威快照的 state.pendingAudioEffects。必须读快照而非 React
- *   prop：ack 提交后 link 先应用新快照再返回结果，核心的 ack 后 recheck 只有读快照才能同步
- *   看到已清的队列。link 非 ready 或播放器未就绪时快照为 null（核心静默）。
- * - player port：AvalonAudioPlayer 的 playEffect；prepareQueue 承接整批 preload（失败只告警）；
- *   stopBgm 供核心在 night_end 播报前停 BGM；MissingAvalonAudioError 仍是 fail-fast。
- * - ack port：`avalon.audio.ack` 以 durable 命令发送，由 RoomLink 跨连接重放直到服务端裁决。
+ * 与狼人杀 useWerewolfAudioOrchestration 同形：每个 link epoch 一个核心；新 epoch 的
+ * 首个 ready 快照到达时重置核心，若此时本端是房主且播报仍在进行（isAudioPlaying），
+ * 则标记为「播报被打断」——重连后的设备没有音频手势，由 RoomAudioResumeDialog 的
+ * 继续手势（resumeAfterRejoin）重放整批待播队列并 ack，而不是让队列订阅自动起播。
  *
- * 入参 pendingAudioEffects 与快照里的同一字段是同一个数组，保留在签名上供调用方表达队列输入；
- * 绑定本身以快照为准。
+ * - queue source：读 link 权威快照的 state.pendingAudioEffects（ack 后 recheck 需同步看到
+ *   已清的队列，React prop 做不到）。
+ * - player port：AvalonAudioPlayer.playEffect；prepareQueue 承接整批 preload（失败只告警）；
+ *   stopBgm 供核心在 night_end 前停 BGM；MissingAvalonAudioError 仍 fail-fast。
+ * - ack port：`avalon.audio.ack` 以 durable 命令发送，由 RoomLink 跨连接重放直到服务端裁决。
  */
 
 import type { AudioEffect, AvalonState } from '@game-judge/game-engine/games/avalon/public';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import {
   RoomAudioOrchestrator,
   type RoomAudioQueueSnapshot,
   type RoomAudioQueueSource,
 } from '@/features/room/audio/RoomAudioOrchestrator';
+import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
 
 import type { AvalonAudioRuntime } from '../../audio/AvalonAudioPlayer';
@@ -33,108 +33,129 @@ const avalonAudioLog = log.extend('AvalonAudio');
 interface UseAvalonAudioOrchestrationDeps {
   readonly session: AvalonRoomSession;
   readonly isHost: boolean;
-  /** The session snapshot's queue, passed by the caller; the binding reads the authoritative queue from the session snapshot itself (see header). */
-  readonly pendingAudioEffects: readonly AudioEffect[];
-  readonly audio: AvalonAudioRuntime | null;
+  readonly audio: AvalonAudioRuntime;
+}
+
+export interface AvalonAudioOrchestration {
+  /** The core's interruption mark, read fresh (not React state). */
+  readonly readWasAudioInterrupted: () => boolean;
+  /** Replay the pending batch after a host rejoin and ack it. */
+  readonly resumeAfterRejoin: () => Promise<void>;
 }
 
 type AvalonAudioCore = RoomAudioOrchestrator<AudioEffect, AvalonState>;
 
-export function useAvalonAudioOrchestration(deps: UseAvalonAudioOrchestrationDeps): void {
-  const { session, isHost, audio } = deps;
-  const sessionRef = useRef(session);
+function readQueueSnapshot(session: AvalonRoomSession): RoomAudioQueueSnapshot<AudioEffect> | null {
+  const current = session.getSnapshot();
+  if (current.phase !== 'ready') return null;
+  return {
+    pendingAudioEffects: current.room.state.pendingAudioEffects,
+    audioBatchId: current.room.state.audioBatchId,
+  };
+}
+
+export function useAvalonAudioOrchestration({
+  session,
+  isHost,
+  audio,
+}: UseAvalonAudioOrchestrationDeps): AvalonAudioOrchestration {
   const isHostRef = useRef(isHost);
-  const audioRef = useRef(audio);
   const abortedRef = useRef(false);
   const coreRef = useRef<AvalonAudioCore | null>(null);
-  const listenersRef = useRef(
-    new Set<(snapshot: RoomAudioQueueSnapshot<AudioEffect> | null) => void>(),
-  );
+  const epochRef = useRef<number | null>(null);
 
-  // Sync latest inputs and poke the core with the current snapshot on every
-  // render: host/player changes arrive as props, queue/connection changes
-  // arrive through the queue source's session forwarding below.
   useEffect(() => {
-    sessionRef.current = session;
     isHostRef.current = isHost;
-    audioRef.current = audio;
+  }, [isHost]);
 
-    const readSnapshot = (): RoomAudioQueueSnapshot<AudioEffect> | null => {
-      const current = sessionRef.current.getSnapshot();
-      if (current.phase !== 'ready' || audioRef.current === null) return null;
-      return {
-        pendingAudioEffects: current.room.state.pendingAudioEffects,
-        audioBatchId: current.room.state.audioBatchId,
-      };
+  useEffect(() => {
+    const queueSource: RoomAudioQueueSource<AudioEffect> = {
+      getSnapshot: () => readQueueSnapshot(session),
+      subscribe: (listener) => session.subscribe(() => listener(readQueueSnapshot(session))),
     };
-
-    if (coreRef.current === null) {
-      const queueSource: RoomAudioQueueSource<AudioEffect> = {
-        getSnapshot: readSnapshot,
-        subscribe: (listener) => {
-          listenersRef.current.add(listener);
-          const unsubscribeSession = sessionRef.current.subscribe(() => listener(readSnapshot()));
-          return () => {
-            listenersRef.current.delete(listener);
-            unsubscribeSession();
-          };
+    const core = new RoomAudioOrchestrator<AudioEffect, AvalonState>({
+      queueSource,
+      player: {
+        playEffect: (effect) => audio.playEffect(effect.audioKey, effect.isEndAudio),
+        stopBgm: audio.stopBgm,
+        prepareQueue: async () => {
+          try {
+            await audio.preload();
+          } catch (error) {
+            avalonAudioLog.warn('avalon audio preload failed', { error });
+          }
         },
-      };
-      coreRef.current = new RoomAudioOrchestrator<AudioEffect, AvalonState>({
-        queueSource,
-        player: {
-          playEffect: (effect) => {
-            const player = audioRef.current;
-            if (player === null) {
-              throw new Error('[FAIL-FAST] Avalon audio playback requires a ready audio runtime');
-            }
-            return player.playEffect(effect.audioKey, effect.isEndAudio);
-          },
-          stopBgm: () => {
-            const player = audioRef.current;
-            if (player === null) {
-              throw new Error('[FAIL-FAST] Avalon BGM stop requires a ready audio runtime');
-            }
-            player.stopBgm();
-          },
-          prepareQueue: async () => {
-            const player = audioRef.current;
-            if (player === null) return;
-            try {
-              await player.preload();
-            } catch (error) {
-              avalonAudioLog.warn('avalon audio preload failed', { error });
-            }
-          },
-          isMissingAssetError: (error) => error instanceof MissingAvalonAudioError,
-        },
-        ack: {
-          dispatch: (audioBatchId) =>
-            sessionRef.current.dispatch(
-              { type: 'avalon.audio.ack', audioBatchId },
-              { controlledSeat: null, label: '播报确认', durable: true },
-            ),
-        },
-        isHost: () => isHostRef.current,
-        isAborted: () => abortedRef.current,
-        logger: avalonAudioLog,
-        onError: (error, label) =>
-          avalonAudioLog.warn('avalon audio orchestration failed', { label, error }),
-      });
-    }
+        isMissingAssetError: (error) => error instanceof MissingAvalonAudioError,
+      },
+      ack: {
+        dispatch: (audioBatchId) =>
+          session.dispatch(
+            { type: 'avalon.audio.ack', audioBatchId },
+            { controlledSeat: null, label: '播报确认', durable: true },
+          ),
+      },
+      isHost: () => isHostRef.current,
+      isAborted: () => abortedRef.current,
+      logger: avalonAudioLog,
+      onError: (error, label) =>
+        avalonAudioLog.warn('avalon audio orchestration failed', { label, error }),
+    });
+    coreRef.current = core;
+    abortedRef.current = false;
 
-    const snapshot = readSnapshot();
-    for (const listener of listenersRef.current) listener(snapshot);
-  });
+    // Per epoch, once the first ready snapshot arrives: reset the core and mark
+    // a reconnecting host mid-narration as interrupted, so the resume gate —
+    // not the queue subscription — replays the batch.
+    const syncEpoch = () => {
+      const snapshot = session.getSnapshot();
+      if (snapshot.phase !== 'ready' || epochRef.current === snapshot.epoch) return;
+      epochRef.current = snapshot.epoch;
+      core.reset();
+      core.setWasAudioInterrupted(isHostRef.current && snapshot.room.state.isAudioPlaying);
+    };
+    syncEpoch();
+    const unsubscribe = session.subscribe(syncEpoch);
 
-  // Unmount: stop the lifecycle (subscriptions) and any in-flight narration.
-  useEffect(
-    () => () => {
+    return () => {
       abortedRef.current = true;
-      coreRef.current?.dispose();
+      unsubscribe();
+      core.dispose();
       coreRef.current = null;
-      audioRef.current?.stopNarration();
-    },
+      epochRef.current = null;
+      audio.stopNarration();
+    };
+  }, [audio, session]);
+
+  const readWasAudioInterrupted = useCallback(
+    () => coreRef.current?.wasAudioInterrupted ?? false,
     [],
   );
+
+  // The interrupted batch is still the authoritative pending queue (unacked),
+  // so the replay is the queue itself, in order.
+  const resumeAfterRejoin = useCallback(async (): Promise<void> => {
+    const core = coreRef.current;
+    const snapshot = session.getSnapshot();
+    if (core === null || snapshot.phase !== 'ready') return;
+    const state = snapshot.room.state;
+    if (!state.isAudioPlaying) {
+      core.setWasAudioInterrupted(false);
+      return;
+    }
+    const batch = state.pendingAudioEffects;
+    const replay = async () => {
+      avalonAudioLog.info('Replaying pending narration after rejoin', {
+        audioBatchId: state.audioBatchId,
+        count: batch.length,
+      });
+      for (const effect of batch) await audio.playEffect(effect.audioKey, effect.isEndAudio);
+    };
+    try {
+      await core.resumeInterrupted(replay, state.audioBatchId);
+    } catch (error) {
+      handleError(error, { label: 'resumeAfterRejoin', logger: avalonAudioLog, feedback: false });
+    }
+  }, [audio, session]);
+
+  return { readWasAudioInterrupted, resumeAfterRejoin };
 }

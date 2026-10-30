@@ -12,12 +12,8 @@
  * （本游戏引擎的机器人座位判定）。不许另写一份保持条件，更不许手写等价
  * effect。
  *
- * 消费者（七家全量）：狼人杀 useWerewolfRoom、阿瓦隆 useAvalonRoomState、
- * 瞎掰王 useFibRoomScreenState、卧底 useUndercoverRoster、你画我猜
- * usePictionaryRoomScreenState、故事接龙 useStoryRelayRoomState、
- * drawguess useDrawGuessRoomState。
- * 有座位表的游戏（含狼人杀）长按入口统一走 useBotTakeoverLongPress；
- * 无座位表的游戏走 BotTakeover 菜单/浮钮。入口形态不同，守卫规则同一。
+ * 唯一消费者是平台 useBotTakeover（控制 + 守卫 + 长按入口的组合）；各家
+ * 房间 hook 只调用 useBotTakeover，不直接接本守卫。
  */
 
 import { useEffect } from 'react';

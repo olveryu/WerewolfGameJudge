@@ -67,12 +67,13 @@ describe('role viewing protocol — avalon (batch C)', () => {
     expect(modal).toMatch(/<RevealAnimationGate/);
     expect(modal).not.toMatch(/animationDone/);
     const hook = readSource('games/avalon/room/hooks/useAvalonRoomState.ts');
-    // Opening the card records the view for the effective seat (the
-    // controlled seat is passed explicitly; the submit default is null).
+    // The shared protocol records the view for the effective seat before the
+    // card opens (the controlled seat is passed explicitly; the default is null).
+    expect(hook).toMatch(/useRoleViewing\(\{/);
     expect(hook).toMatch(
-      /void submit\('查看身份', \{ type: 'avalon\.role\.viewed' \}, controlledSeat\)/,
+      /submit\('查看身份', \{ type: 'avalon\.role\.viewed' \}, \{ controlledSeat \}\)/,
     );
-    expect(hook).toMatch(/!state\.roleViewedSeats\.includes\(effectiveSeat\)/);
+    expect(hook).toMatch(/state\.roleViewedSeats\.includes\(effectiveSeat\)/);
     const screen = readSource('games/avalon/room/AvalonRoomScreen.tsx');
     expect(screen).toMatch(/<RevealRoleCardModal/);
     // D-1: a controlled bot's card never plays the controller's effect.
@@ -93,23 +94,22 @@ describe('role viewing protocol — undercover (batch B)', () => {
 });
 
 describe('role viewing protocol — fibking (batch D)', () => {
-  it('the fibking identity card renders through the shared gate with the viewedSeats anchor', () => {
+  it('the fibking identity card runs the shared useRoleViewing protocol through the shared gate', () => {
     const modal = readSource('games/fibking/room/components/FibIdentityModal.tsx');
     expect(modal).toMatch(/<RevealAnimationGate/);
     expect(modal).not.toMatch(/animationDone/);
     expect(modal).not.toMatch(/RoleRevealAnimator/);
-    const hook = readSource('games/fibking/room/hooks/useFibRoomScreenState.ts');
-    // The anchor is the server-side per-round viewed record.
+    const hook = readSource('games/fibking/room/hooks/useFibRoomState.ts');
+    // The anchor is the server-side per-round viewed record, read by the shared protocol.
+    expect(hook).toMatch(/useRoleViewing\(\{/);
     expect(hook).toMatch(/state\.round\.viewedSeats\.includes\(effectiveSeat\)/);
-    // The modal confirm submits the viewing record while in the viewing phase.
-    expect(hook).toMatch(/\{ type: 'fibking\.role\.viewed' \}/);
-    // D-2: the confirm is a seat action — under bot takeover it must
-    // carry the controlled seat explicitly (the baseline Avalon shape),
-    // never the dispatch funnel's default null.
-    expect(hook).toMatch(/viewed' \}, controlledSeat\)/);
+    // D-2: the view record is a seat action — under bot takeover it carries
+    // the controlled seat explicitly, never the dispatch funnel's default null.
+    expect(hook).toMatch(/\{ type: 'fibking\.role\.viewed' \}, \{ controlledSeat \}\)/);
     const screen = readSource('games/fibking/room/FibRoomScreen.tsx');
     // D-1: a controlled bot's card never plays the controller's effect.
     expect(screen).toMatch(/screen\.isBotTakeoverActive \? null : screen\.equippedRevealEffect/);
+    expect(screen).toMatch(/shouldPlay=\{screen\.roleViewing\.shouldPlayAnimation\}/);
   });
 });
 

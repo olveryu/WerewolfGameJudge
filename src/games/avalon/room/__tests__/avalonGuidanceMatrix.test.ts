@@ -244,7 +244,6 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
     strikePickMode: false,
     onCancelEarlyStrikePress: jest.fn(),
     buildHostManagement: () => null,
-    canControlBots: true,
     releaseBot: jest.fn(),
   };
   const overrides: Partial<AvalonRoomShellModelInput> =
@@ -254,12 +253,18 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
         ? {
             viewer: { userId: seatUser(seatedSeat), isHost: false, seat: seatedSeat },
             effectiveSeat: seatedSeat,
-            canControlBots: false,
+            capabilities: {
+              ...capabilities(),
+              canTakeOverBots: createBotTakeoverCapability(false, jest.fn()),
+            },
           }
         : {
             viewer: { userId: 'spectator', isHost: false, seat: null },
             effectiveSeat: null,
-            canControlBots: false,
+            capabilities: {
+              ...capabilities(),
+              canTakeOverBots: createBotTakeoverCapability(false, jest.fn()),
+            },
           };
   return createAvalonRoomShellModel({ ...base, ...overrides }).bottomActions.message;
 }

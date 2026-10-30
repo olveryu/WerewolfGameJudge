@@ -146,11 +146,12 @@ export class FibRoomPage extends RoomPage {
     await expect(modal).not.toBeVisible();
   }
 
-  /** Viewing phase: confirm this round's role view (releases the checkpoint). */
+  /**
+   * Viewing phase: the view record is submitted before the card opens
+   * (shared role-viewing protocol), so closing the card is all that is left.
+   */
   async confirmIdentityView(): Promise<void> {
-    const modal = this.page.getByTestId(TESTIDS.fibIdentityModal);
-    await modal.getByText('我已看清', { exact: true }).click();
-    await expect(modal).not.toBeVisible();
+    await this.closeIdentity();
   }
 
   async revealRound(): Promise<void> {

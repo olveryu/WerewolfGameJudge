@@ -41,14 +41,18 @@ describe('seat picking — shared mechanism boundary', () => {
 });
 
 describe('seat picking — avalon consumers', () => {
-  it('the three remaining picking points in the room screen go through useSeatPicking', () => {
-    const screen = readSource('games/avalon/room/AvalonRoomScreen.tsx');
+  it('the three remaining picking points live in useAvalonSeatPicking and feed inGameAction', () => {
+    const picking = readSource('games/avalon/room/hooks/useAvalonSeatPicking.ts');
     // Nomination left seat picking (2026-10-25, user-approved): team
     // selection goes through the team-pick modal, so only early
     // strike, lady, and assassin remain as picking points here.
-    expect(screen.match(/useSeatPicking\(\{/g)).toHaveLength(3);
-    // The leader-local picking state must not come back: the nomination
-    // draft lives on the server and reaches the screen via the view model.
+    expect(picking.match(/useSeatPicking\(\{/g)).toHaveLength(3);
+    const state = readSource('games/avalon/room/hooks/useAvalonRoomState.ts');
+    expect(state).toMatch(/inGameAction: seatPicking\.handleSeatTap/);
+    // No ref-registered seat handler and no leader-local picking state.
+    expect(state).not.toMatch(/seatPickHandlerRef|setSeatPickHandler/);
+    const screen = readSource('games/avalon/room/AvalonRoomScreen.tsx');
+    expect(screen).not.toMatch(/useSeatPicking|setSeatPickHandler/);
     expect(screen).not.toMatch(/nominateSelection/);
     expect(screen).not.toMatch(/pickedSeats/);
   });
@@ -87,9 +91,10 @@ describe('seat picking — undercover consumer', () => {
 
 describe('seat picking — fibking consumer', () => {
   it('the guessing branch picks through useSeatPicking in trigger mode', () => {
-    const screenState = readSource('games/fibking/room/hooks/useFibRoomScreenState.ts');
+    const screenState = readSource('games/fibking/room/hooks/useFibRoomState.ts');
     expect(screenState).toMatch(/useSeatPicking\(\{/);
     expect(screenState).toMatch(/mode: 'trigger'/);
-    expect(screenState).toMatch(/guessTap\(seat\)/);
+    // The guess tap is the in-game branch of the shared seat-press handler.
+    expect(screenState).toMatch(/if \(isGuessing\) return guessPicking\.handleSeatTap\(seat\);/);
   });
 });

@@ -157,7 +157,6 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
     strikePickMode: false,
     onCancelEarlyStrikePress: jest.fn(),
     buildHostManagement: () => null,
-    canControlBots: true,
     releaseBot: jest.fn(),
   };
 }

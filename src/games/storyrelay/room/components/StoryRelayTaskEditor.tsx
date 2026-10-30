@@ -3,6 +3,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   STORY_RELAY_TEXT_MAX_LENGTH,
+  type StoryRelayCommand,
   type StoryRelayState,
   type StoryRelayTask,
 } from '@game-judge/game-engine/games/storyrelay/public';
@@ -12,13 +13,11 @@ import { ScrollView, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
-import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
-import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
+import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { colors, componentSizes } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 
 import type { StoryRelayFinalizationStatus } from '../hooks/useStoryRelayAutoSubmission';
-import { getStoryRelayRoomCommandFailureMessage } from '../storyRelayRoomCommandFailureMessage';
 import { storyRelayStyles as styles } from './StoryRelayStage.styles';
 
 /** Remounts per task so switching authors cannot carry another manuscript into the editor. */
@@ -27,7 +26,8 @@ export function StoryRelayTaskEditor({
   task,
   inputs,
   controlledSeat,
-  session,
+  submit,
+  isSubmitting,
   finalization,
   isExpired,
 }: {
@@ -35,7 +35,8 @@ export function StoryRelayTaskEditor({
   readonly task: StoryRelayTask;
   readonly inputs: Map<number, string>;
   readonly controlledSeat: number | null;
-  readonly session: StoryRelayRoomSession;
+  readonly submit: ReadyRoomSession<StoryRelayState, StoryRelayCommand>['submit'];
+  readonly isSubmitting: boolean;
   readonly finalization: StoryRelayFinalizationStatus;
   readonly isExpired: boolean;
 }) {
@@ -45,7 +46,6 @@ export function StoryRelayTaskEditor({
   const [text, setText] = useState(
     () => inputs.get(task.authorSeat) ?? (entry?.kind === 'text' ? entry.text : ''),
   );
-  const submission = useRoomCommandSubmission(getStoryRelayRoomCommandFailureMessage);
   const isReady = state.readySeats.includes(task.authorSeat);
   const canEdit = state.phase === 'answering' && !isReady && !isExpired;
   const isValid = text.length <= STORY_RELAY_TEXT_MAX_LENGTH;
@@ -58,17 +58,16 @@ export function StoryRelayTaskEditor({
       showErrorAlert('无法准备', '正文超过 512 字符，请缩短后再准备');
       return;
     }
-    void submission.submit('更新准备状态', () =>
-      session.dispatch(
-        {
-          type: 'storyrelay.task.ready.set',
-          roundId: task.roundId,
-          stepIndex: task.stepIndex,
-          chainId: task.chainId,
-          isReady: !isReady,
-        },
-        { controlledSeat, label: '更新准备状态', durable: false },
-      ),
+    void submit(
+      '更新准备状态',
+      {
+        type: 'storyrelay.task.ready.set',
+        roundId: task.roundId,
+        stepIndex: task.stepIndex,
+        chainId: task.chainId,
+        isReady: !isReady,
+      },
+      { controlledSeat },
     );
   };
   const previous = task.previousEntry;
@@ -122,7 +121,7 @@ export function StoryRelayTaskEditor({
         </View>
         {state.phase === 'answering' && (
           <Button
-            disabled={isExpired || submission.isSubmitting}
+            disabled={isExpired || isSubmitting}
             testID="storyrelay-ready"
             onPress={ready}
             icon={

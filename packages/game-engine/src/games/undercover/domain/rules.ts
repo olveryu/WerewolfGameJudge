@@ -7,6 +7,13 @@ export const UNDERCOVER_BLANK_MIN_PLAYERS = 6;
 
 export type UndercoverRole = 'civilian' | 'undercover' | 'blank';
 
+/** Single source of the role display names (Chinese), shared by every client surface. */
+export const UNDERCOVER_ROLE_NAMES: Readonly<Record<UndercoverRole, string>> = {
+  civilian: '平民',
+  undercover: '卧底',
+  blank: '白板',
+};
+
 export interface UndercoverRoleCounts {
   readonly civilian: number;
   readonly undercover: number;

@@ -1,9 +1,12 @@
 /** Synchronized Pictionary gallery and post-round local browser. */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type {
-  PictionaryEntry,
-  PictionaryState,
+import {
+  createPictionaryCommand,
+  type PictionaryCommandInput,
+  type PictionaryEntry,
+  type PictionaryPublicCommand,
+  type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -13,14 +16,13 @@ import { GalleryPagerControls } from '@/features/room/components/GalleryPagerCon
 import { GalleryPlaybackControls } from '@/features/room/components/GalleryPlaybackControls';
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import { STAGE_FRAME_MAX_WIDTH } from '@/features/room/components/StageFrame';
-import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
+import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { getPictionarySeatDisplayName } from '@/games/pictionary/model/pictionarySelectors';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { getLatestEntryOffset } from '../galleryAlbumLayout';
-import { usePictionaryStageCommand } from '../hooks/usePictionaryStageCommand';
 import { PictionaryAlbumExport } from './PictionaryAlbumExport';
 import { PictionaryDrawingImage } from './PictionaryDrawingImage';
 import { PictionaryStageHeading } from './PictionaryStageFrame';
@@ -174,14 +176,16 @@ const PictionaryAlbumStage: React.FC<PictionaryAlbumStageProps> = ({
 interface PictionaryGalleryStageProps {
   readonly state: PictionaryState;
   readonly isHost: boolean;
-  readonly session: PictionaryRoomSession;
+  readonly submit: ReadyRoomSession<PictionaryState, PictionaryPublicCommand>['submit'];
+  readonly isSubmitting: boolean;
   readonly remainingSeconds: number | null;
 }
 
 export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
   state,
   isHost,
-  session,
+  submit,
+  isSubmitting,
   remainingSeconds,
 }) => {
   if (state.phase !== 'gallery' || state.gallery === null) {
@@ -193,7 +197,9 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
   if (chain.entries[gallery.entryIndex] === undefined) {
     throw new Error('[FAIL-FAST] Pictionary gallery entry is missing');
   }
-  const command = usePictionaryStageCommand(session, null, state);
+  // 画廊导航是房主命令：不带接管座位、durable（跨重连重放到服务端裁决）。
+  const galleryCommand = (label: string, input: PictionaryCommandInput) =>
+    submit(label, createPictionaryCommand(state, input, null), { durable: true });
   const isFirstEntry = gallery.chainIndex === 0 && gallery.entryIndex === 0;
   const isAlbumEnd = gallery.entryIndex === chain.entries.length - 1;
   const isFinalEntry =
@@ -211,27 +217,27 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
       isPlaying={gallery.isPlaying}
       canTogglePlay={!isAlbumEnd && state.config.galleryItemDurationSeconds !== null}
       isFirst={isFirstEntry}
-      isSubmitting={command.isSubmitting}
+      isSubmitting={isSubmitting}
       advanceForm={isAlbumEnd ? 'primary' : 'icon'}
       advanceLabel={isFinalEntry ? '结束揭晓' : isAlbumEnd ? '下一本' : '下一项'}
       rewindLabel="上一项"
       playLabel="播放"
       pauseLabel="暂停"
       finishLabel="全部揭晓"
-      onRewind={() => void command.submit('上一项', { type: 'pictionary.gallery.rewind' })}
+      onRewind={() => void galleryCommand('上一项', { type: 'pictionary.gallery.rewind' })}
       onAdvance={() =>
-        void command.submit(isFinalEntry ? '结束揭晓' : isAlbumEnd ? '下一本' : '下一项', {
+        void galleryCommand(isFinalEntry ? '结束揭晓' : isAlbumEnd ? '下一本' : '下一项', {
           type: 'pictionary.gallery.advance',
         })
       }
       onTogglePlay={() =>
-        void command.submit(gallery.isPlaying ? '暂停揭晓' : '继续揭晓', {
+        void galleryCommand(gallery.isPlaying ? '暂停揭晓' : '继续揭晓', {
           type: gallery.isPlaying ? 'pictionary.gallery.pause' : 'pictionary.gallery.resume',
         })
       }
       onFinish={() =>
         showConfirmAlert('全部揭晓？', '立即公开全部画册并结束同步回放。', async () => {
-          await command.submit('全部揭晓', { type: 'pictionary.gallery.finish' });
+          await galleryCommand('全部揭晓', { type: 'pictionary.gallery.finish' });
         })
       }
       advanceTestID={TESTIDS.pictionaryGalleryAdvanceButton}

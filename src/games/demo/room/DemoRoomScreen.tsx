@@ -70,14 +70,14 @@ function DemoRoomContent(
       trailingExtraActions={null}
       gameOverlays={
         <RevealRoleCardModal
-          visible={screen.roleCardVisible}
+          visible={screen.roleViewing.isOpen}
           roleKey={screen.viewModel?.myIdentity ?? null}
           toRoleData={toRevealRoleData}
           effectType={null}
-          shouldPlay={screen.roleCardShouldPlay}
+          shouldPlay={screen.roleViewing.shouldPlayAnimation}
           allRoles={screen.roleCardAllRoles}
-          remainingCards={screen.roleCardRemainingCards}
-          onClose={() => screen.setRoleCardVisible(false)}
+          remainingCards={screen.roleViewing.remainingCards}
+          onClose={screen.roleViewing.close}
         />
       }
     />
@@ -96,7 +96,7 @@ function DemoStageArea({ screen }: { readonly screen: DemoRoomScreenState }) {
   const viewIdentityAction = resolveViewIdentityAction({
     isVisible: phase.kind !== 'ended',
     label: '查看我的身份',
-    onPress: screen.onViewRolePress,
+    onPress: screen.roleViewing.open,
   });
   return (
     <View style={styles.stageArea}>

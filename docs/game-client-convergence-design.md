@@ -29,7 +29,7 @@
 | 每秒 ticker                | drawguess `useDrawGuessNowMs` 与 `useStageDeadline` 并行两个 1s `setInterval`，前者未接 `useAppVisibility`                                                                                                                                                     |
 | Bot userId                 | 平台 roster 里机器人是 `{ seat, kind: 'bot' }`，无 id；但共享 `RoomSeatPlayer.userId: string` 迫使每个游戏捏一个假 id：pictionary / fibking 引擎导出函数，另五家 adapter 两处字面量，狼人杀 `bot-${seat}` 写进引擎广播与 D1 指纹——7 种格式满足一个不诚实的类型 |
 | 座位数据源默认文案         | `lockedSeatReason: '游戏进行中不能入座'`、`outOfRangeError` 五处相同                                                                                                                                                                                           |
-| 卧底角色名表               | `平民 / 卧底 / 白板` 在 `undercoverRoomAdapter`、`UndercoverRoleCardAdapter`、`useUndercoverRoomScreenState` 三处重复                                                                                                                                          |
+| 卧底角色名表               | `平民 / 卧底 / 白板` 在 `undercoverRoomAdapter`、`UndercoverRoleCardAdapter`、`useUndercoverRoomState` 三处重复                                                                                                                                                |
 | 画布 props 接口            | `PictionaryDrawingCanvasProps` 与 `DrawGuessDrawingCanvasProps` 逐字相同；drawguess testID 为裸字符串                                                                                                                                                          |
 
 ### 1.4 狼人杀与平台的分歧（全部）
@@ -461,8 +461,8 @@ type NightInteractionModel =
 1. 每家 `module.ts` 必须通过 `defineClientGameModule`（源码断言不得 `import` `RoomLinkFactory`）。
 2. 每家 `room/hooks/use*RoomState.ts` 必须调用 `useReadyRoomSession` 与 `useBotTakeover`，不得直接调用 `useRoomBotControl` / `useBotTakeoverGuard` / `useBotTakeoverLongPress` / `useRoomLinkSnapshot`。
 3. 机器人是纯平台概念：`src/games/**` 与 `packages/game-engine/src/games/**` 不得出现 bot id 合成（`bot-` / `-bot:` 字面量或 `*BotUserId` 函数）；共享层 `RoomSeatPlayer` / `RoomProfileTarget` 的 bot 分支无 `userId` 字段。
-4. 游戏自有纯交互策略合法（阿瓦隆 `avalonInteractionPolicy.ts`、狼人杀 `werewolfInteractionPolicy.ts`）；禁止的是客户端重算引擎规则——断言 `src/games/**/policy/**` 与 `room/night/**` 只读 `viewModel` / `state` 字段，不 import `packages/game-engine/.../domain/handlers` 或 `DeathCalculator` 等规则模块。狼人杀允许额外存在 `room/executors/`；任何游戏不得存在 `room/seatTap/`。
-5. 任何游戏的 `useStageDeadline` 调用参数里不得出现 `isHost`（到期是服务端事实，客户端只加速）；`src/games/**` 不得直接调用 `setInterval`。
+4. 游戏自有纯交互策略合法（阿瓦隆 `avalonInteractionPolicy.ts`、狼人杀 `werewolfInteractionPolicy.ts`）；禁止的是客户端重算引擎规则——断言 `src/games/**/policy/**` 与 `room/night/**` 只读 `viewModel` / `state` 字段，不 import `packages/game-engine/.../domain/handlers` 或 `DeathCalculator` 等规则模块。任何游戏不得存在 `room/seatTap/` 或 `room/executors/`。
+5. 任何游戏的 `useStageDeadline` 调用参数里不得出现 `isHost`（到期是服务端事实，客户端只加速）；`src/games/**` 不得自建倒计时时钟（唯一的时钟是 `useStageDeadline` 的 tick）。
 
 ## 9. 实施顺序
 
@@ -559,3 +559,16 @@ v3 初稿默认"六家是基准、狼人杀向六家看齐"，把两处狼人杀
   - 板子 UI 测试 harness 重写为「真 `GameState` + `createFakeRoomLink`」：`createWerewolfRoomMock(options)` 写出权威状态（含引擎 `maybeCreateUiHintAction` 的步骤提示、confirm 步骤默认 `confirmStatus`），视图模型与对话框全部走真投影；`buildMockWerewolfViewModel` 与 `mockShapeContract` / `mockViewModelCrossCheck` 两份"看守手写镜像"的契约随之删除。32 个板子文件只改 `jest.mock` 目标与断言对象（`mock.dispatch` / `mock.submitAction`）。
   - 底牌选择弹窗改吃引擎 `BottomCardChoice`（每张牌自带 `isSelectable / reason`）；`BoardNominationModal` 不再持有 client，采纳由房间状态 hook 的 `boardNominations.adopt` 执行（人数变化先清座再 `config.update`）。
   - `botDispatchDiscipline` 契约新增 `shared-ready-session-submit` 形态（漏斗在平台 `useReadyRoomSession`，`controlledSeat` 默认 null）；狼人杀是第一家登记者。
+
+### v3 实施修订（步骤 6–7）
+
+- 步骤 6（六家收敛）：
+  - 七家房间 hook 统一为 `use<Game>RoomState.ts`（fibking / undercover / pictionary 的 `*RoomScreenState` 改名），全部 `useReadyRoomSession` + `useBotTakeover` + `createRoomSeatPressHandler`；自有 `useRoomCommandSubmission` 漏斗、`useRoomBotControl` / `useBotTakeoverGuard` / `useBotTakeoverLongPress` 直调、`useRoomLinkSnapshot` / `useAuthContext` 直读全部删除。`botDispatchDiscipline` 契约只剩一种形态（平台 submit，`{ controlledSeat }` 显式传）；`botTakeoverGuard.contract` 删除，`rosterUnification.contract` 只保留 `ImplicitBotSeat` 禁令，接管组合由 §8 契约 2 看守。
+  - §7「pictionary / fibking → `useRoomSetupController`」只对 pictionary 成立（资料卡大厅限定）；fibking 与 undercover 的资料卡全程可开（狼人杀基线），同狼人杀走 `useRoomRosterController` + 本家能力表，并在 `createRoomSeatPressHandler.inGameAction` 里开资料卡。本家能力表的 `takeOverBots` 改收 `RoomCapability`（`useBotTakeover` 产出），不再各自 `createBotTakeoverCapability`；pictionary 的 `createPictionaryRoomCapabilities` 与 `useRoomSetupController` 逐字相同，删除。
+  - 查看身份：avalon / fibking 接入 `useRoleViewing`（先 `role.viewed`、确认后弹卡）。fibking 的「我已看清」确认按钮随之消失（记录在弹卡前已落），`FibIdentityModal.confirmText / onConfirm` → `onClose`；旁观者的「查看题目 / 查看结果」是公开信息，走独立的 `isPublicViewOpen`，不进查看协议。`useRoleViewing` 新增必填 `identityKey`（werewolf / demo / avalon 用 `gameSequence`，fibking 用 `roundId`，无可看身份时 `null`）：发牌变化或回大厅时关卡——否则卡片因 `roleId` 变 null 而隐身、`isOpen` 卡死，下次点「查看身份」成空操作（狼人杀新树同样修掉）。
+  - avalon：`seatPickHandlerRef` / `setSeatPickHandler` 删除，三处 `useSeatPicking` 迁入 `useAvalonSeatPicking`（含刺杀 / 湖仙待确认目标），经 `inGameAction` 消费；音频编排改为狼人杀同形（每 link epoch 一个核心，房主重连时 `isAudioPlaying` 即标记打断），`resumeAfterRejoin` 重放待播队列后 ack，`useAvalonBgmControl.startBgmIfEnabled` 供续播手势；`RoomAudioResumeDialog` 接入。adapter 的 `canControlBots` 输入删除，改读 `capabilities.canTakeOverBots.isAllowed`。
+  - undercover：`UNDERCOVER_ROLE_NAMES` 迁引擎 `domain/rules.ts`（三处改引用）；`useUndercoverRoster` 删除；`useUndercoverRoundControls` 改收 `{ state, userId, controlledSeat, submit, isSubmitting }`。
+  - pictionary：`usePictionaryStageCommand`（自有 durable 漏斗、同类型去重）删除，`PictionaryTaskStage` / `PictionaryGalleryStage` 改收平台 `submit`（`{ controlledSeat, durable: true }`）；`PictionaryAlbumExport` 与 storyrelay `useStoryRelayImageShare` 的 share 块改走 `useShareImageAction`。`usePictionaryAutoSubmission` 的 `session.dispatch`（截止驱动的系统性自动提交，消费 committed 快照）保留，与 expire / 音频 ack 同类。
+  - storyrelay：`StoryRelayStage` / `StoryRelayTaskEditor` 改收 `submit` / `isSubmitting`，自有漏斗删除。
+  - 引擎：`getFibBotUserId` / `getPictionaryBotUserId` 删除。
+- 步骤 7：`src/games/__tests__/gameClientShape.contract.test.ts` 落地 §8 五条（按 `GAME_TYPES` 穷举）。§8 契约 4 的「狼人杀允许额外存在 `room/executors/`」作废——步骤 5 已整删，契约改为任何游戏不得存在 `room/seatTap/` / `room/executors/`。§8 契约 5 的 `setInterval` 禁令收窄为「不得自建倒计时时钟（平台 `useNowMs` 只由 `useStageDeadline` 消费）」：drawguess 笔画同步的批量 flush 与狼人杀 AI 聊天打字机是非时钟用途。

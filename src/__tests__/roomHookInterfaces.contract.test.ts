@@ -55,8 +55,9 @@ describe('room hook interfaces — drawguess (P-2b batch 2)', () => {
   it('view model, stage deadline and tick are assembled in the hook, not the Screen', () => {
     const hook = readSource('games/drawguess/room/hooks/useDrawGuessRoomState.ts');
     expect(hook).toMatch(/getDrawGuessViewModel\(state, effectiveSeat, nowMs\)/);
-    expect(hook).toMatch(/useStageDeadline\(\{/);
-    expect(hook).toMatch(/useNowMs\(NOW_MS_DEFAULT_INTERVAL_MS, !isLobby\)/);
+    // The clock is the stage deadline's tick; no second ticker in the game.
+    expect(hook).toMatch(/const \{ remainingSeconds, nowMs \} = useStageDeadline\(\{/);
+    expect(hook).not.toMatch(/useNowMs/);
     const screen = readSource('games/drawguess/room/DrawGuessRoomScreen.tsx');
     expect(screen).not.toMatch(/getDrawGuessViewModel/);
     expect(screen).not.toMatch(/useStageDeadline/);
@@ -67,14 +68,14 @@ describe('room hook interfaces — drawguess (P-2b batch 2)', () => {
 
 describe('room hook interfaces — pictionary (P-2b batch 3)', () => {
   it('the hook exports PictionaryRoomScreenState and annotates its return', () => {
-    const hook = readSource('games/pictionary/room/hooks/usePictionaryRoomScreenState.ts');
+    const hook = readSource('games/pictionary/room/hooks/usePictionaryRoomState.ts');
     expect(hook).toMatch(/export interface PictionaryRoomScreenState/);
     expect(hook).toMatch(/\): PictionaryRoomScreenState \{/);
     expectNoReturnSpread(hook);
   });
 
   it('the occupied seat count is assembled in the hook, not the Screen', () => {
-    const hook = readSource('games/pictionary/room/hooks/usePictionaryRoomScreenState.ts');
+    const hook = readSource('games/pictionary/room/hooks/usePictionaryRoomState.ts');
     expect(hook).toMatch(/occupiedSeatCount: getPictionaryOccupiedSeatCount\(state\)/);
     const screen = readSource('games/pictionary/room/PictionaryRoomScreen.tsx');
     expect(screen).not.toMatch(/getPictionaryOccupiedSeatCount/);
@@ -100,7 +101,7 @@ describe('room hook interfaces — storyrelay (P-2b batch 4)', () => {
 
 describe('room hook interfaces — undercover (P-2b batch 5)', () => {
   it('the hook exports UndercoverRoomScreenState and annotates its return', () => {
-    const hook = readSource('games/undercover/room/hooks/useUndercoverRoomScreenState.ts');
+    const hook = readSource('games/undercover/room/hooks/useUndercoverRoomState.ts');
     expect(hook).toMatch(/export interface UndercoverRoomScreenState/);
     expect(hook).toMatch(/\): UndercoverRoomScreenState \{/);
     expectNoReturnSpread(hook);
@@ -114,7 +115,7 @@ describe('room hook interfaces — undercover (P-2b batch 5)', () => {
   });
 
   it('the reveal pool is assembled in the hook, not the Screen', () => {
-    const hook = readSource('games/undercover/room/hooks/useUndercoverRoomScreenState.ts');
+    const hook = readSource('games/undercover/room/hooks/useUndercoverRoomState.ts');
     expect(hook).toMatch(/getUndercoverRoleCounts\(state\.config\.numberOfPlayers/);
     const screen = readSource('games/undercover/room/UndercoverRoomScreen.tsx');
     expect(screen).not.toMatch(/getUndercoverRoleCounts/);
@@ -122,7 +123,7 @@ describe('room hook interfaces — undercover (P-2b batch 5)', () => {
   });
 
   it('the BoardInfo role counts come from the engine counts via the hook', () => {
-    const hook = readSource('games/undercover/room/hooks/useUndercoverRoomScreenState.ts');
+    const hook = readSource('games/undercover/room/hooks/useUndercoverRoomState.ts');
     expect(hook).toMatch(/roleCounts = getUndercoverRoleCounts\(/);
     const screen = readSource('games/undercover/room/UndercoverRoomScreen.tsx');
     // AU-06: the Screen hands the hook's counts to the adapter factory,

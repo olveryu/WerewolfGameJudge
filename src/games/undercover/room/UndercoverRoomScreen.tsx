@@ -2,6 +2,7 @@
 import {
   getUndercoverOccupiedSeatCount,
   UNDERCOVER_CATEGORY_NAMES,
+  UNDERCOVER_ROLE_NAMES,
   type UndercoverRole,
 } from '@game-judge/game-engine/games/undercover/public';
 import { useCallback, useMemo, useState } from 'react';
@@ -28,8 +29,8 @@ import {
   toUndercoverRolePreviewData,
 } from './components/UndercoverRoleCardAdapter';
 import { UndercoverWordModal } from './components/UndercoverWordModal';
-import { useUndercoverRoomScreenState } from './hooks/useUndercoverRoomScreenState';
-import { createUndercoverBoardInfoSections, UNDERCOVER_ROLE_NAMES } from './undercoverRoomAdapter';
+import { useUndercoverRoomState } from './hooks/useUndercoverRoomState';
+import { createUndercoverBoardInfoSections } from './undercoverRoomAdapter';
 
 interface UndercoverRoomScreenProps extends GameRoomScreenProps<'undercover'> {
   readonly session: UndercoverRoomSession;
@@ -56,7 +57,7 @@ function UndercoverRoomContent(
     revealPool,
     roleCounts,
     openRules,
-  } = useUndercoverRoomScreenState(props);
+  } = useUndercoverRoomState(props);
   const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
   // BoardInfo 角色预览（纯展示状态）：只显示种类说明，不走身份查看协议。
   const [previewRole, setPreviewRole] = useState<UndercoverRole | null>(null);

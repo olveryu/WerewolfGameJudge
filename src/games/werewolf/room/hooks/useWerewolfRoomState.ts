@@ -308,6 +308,7 @@ export function useWerewolfRoomState(
   const myRole = viewModel.myRole;
   const roleViewing = useRoleViewing({
     effectiveSeat,
+    identityKey: myRole === null ? null : state.gameSequence,
     hasViewed: effectiveSeat !== null && state.roleViewedSeats.includes(effectiveSeat),
     occupiedSeatCount: viewModel.seats.length,
     viewedSeatCount: state.roleViewedSeats.length,

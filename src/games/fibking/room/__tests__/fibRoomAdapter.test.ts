@@ -4,6 +4,7 @@ import {
   type FibState,
 } from '@game-judge/game-engine/games/fibking/public';
 
+import { createBotTakeoverCapability } from '@/features/room/model/RoomCapabilities';
 import {
   createFibBoardInfoSections,
   createFibBottomActions,
@@ -26,7 +27,7 @@ const callbacks = {
   fillBots: jest.fn(),
   configureGame: jest.fn(),
   openProfile: jest.fn(),
-  takeOverBot: jest.fn(),
+  takeOverBots: createBotTakeoverCapability(true, jest.fn()),
   shareRoom: jest.fn(),
 };
 

@@ -8,13 +8,10 @@ import {
 import { useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 
-import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
+import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import { HOST_FLOW_CONFIRM } from '@/features/room/model/hostManagementActions';
 import { showConfirmAlert } from '@/utils/alertPresets';
-
-import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
-import { getUndercoverRoomCommandFailureMessage } from '../undercoverRoomCommandFailureMessage';
 
 function requestUndercoverRestart(
   state: UndercoverState,
@@ -51,7 +48,7 @@ function requestUndercoverRestart(
 
 /**
  * 卧底回合控制的显式契约（P-2b）：词卡可见性、揭晓选择与回合命令的唯一出口，
- * 由 useUndercoverRoomScreenState 的接口以 controls 字段引用。
+ * 由 useUndercoverRoomState 的接口以 controls 字段引用。
  */
 export interface UndercoverRoundControls {
   readonly isSubmitting: boolean;
@@ -81,13 +78,22 @@ export interface UndercoverRoundControls {
   readonly allowRepeated: () => void;
 }
 
-export function useUndercoverRoundControls(
-  state: UndercoverState,
-  session: UndercoverRoomSession,
-  userId: string,
-  controlledSeat: number | null,
-): UndercoverRoundControls {
-  const submission = useRoomCommandSubmission(getUndercoverRoomCommandFailureMessage);
+export interface UndercoverRoundControlsInput {
+  readonly state: UndercoverState;
+  readonly userId: string;
+  readonly controlledSeat: number | null;
+  /** The ready session's single-flight submit (useReadyRoomSession). */
+  readonly submit: ReadyRoomSession<UndercoverState, UndercoverPublicCommand>['submit'];
+  readonly isSubmitting: boolean;
+}
+
+export function useUndercoverRoundControls({
+  state,
+  userId,
+  controlledSeat,
+  submit,
+  isSubmitting,
+}: UndercoverRoundControlsInput): UndercoverRoundControls {
   const [visibleCardKey, setVisibleCardKey] = useState<string | null>(null);
   // 选人模式本身（锚定的 roundId）是本家的模式状态；选中的座位经共享
   // 点选机制持有（replace 模式，锚 = selectionRoundId，换锚自动清空）。
@@ -101,7 +107,7 @@ export function useUndercoverRoundControls(
   // 资格 = 尚未揭晓的座位（与原 selectSeat 的静默守卫同集）：已揭晓座位
   // 的点按被机制吞掉（swallow），不落回默认座位行为。
   const picking = useSeatPicking({
-    active: isSelecting && !submission.isSubmitting,
+    active: isSelecting && !isSubmitting,
     mode: 'replace',
     eligibleSeats:
       state.phase === 'ongoing'
@@ -143,10 +149,6 @@ export function useUndercoverRoundControls(
         document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);
-  const submit = (label: string, command: UndercoverPublicCommand, control: number | null = null) =>
-    submission.submit(label, () =>
-      session.dispatch(command, { controlledSeat: control, label, durable: false }),
-    );
   const roundId =
     state.phase === 'preparing' || state.phase === 'preparationFailed'
       ? state.pendingRound.roundId
@@ -179,7 +181,7 @@ export function useUndercoverRoundControls(
     void submit(
       '确认词卡',
       { type: 'undercover.role.viewed', roundId: state.round.roundId },
-      controlledSeat,
+      { controlledSeat },
     );
   };
   const reveal = () => {
@@ -203,7 +205,7 @@ export function useUndercoverRoundControls(
       },
     );
   return {
-    isSubmitting: submission.isSubmitting,
+    isSubmitting,
     controlledSeat,
     card: visibleCardKey !== null && visibleCardKey === cardKey ? card : null,
     canViewCard: card !== null,
@@ -241,7 +243,7 @@ export function useUndercoverRoundControls(
       picking.reset();
     },
     cancelRevelation: () => {
-      if (!submission.isSubmitting && isSelecting) picking.reset();
+      if (!isSubmitting && isSelecting) picking.reset();
     },
     cancelSelection: exitSelection,
     start: () => {

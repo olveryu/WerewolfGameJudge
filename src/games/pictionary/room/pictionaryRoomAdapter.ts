@@ -34,9 +34,6 @@ import type { NightStepProgress } from '@/features/room/model/nightProgress';
 import type { RoomBottomStackModel } from '@/features/room/model/RoomBottomActions';
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
 import {
-  createBotTakeoverCapability,
-  createRoomSetupCapabilities,
-  createViewProfilesCapability,
   type RoomCapabilities,
   type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
@@ -55,49 +52,6 @@ import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 export const PICTIONARY_DISPLAY_NAME = '你画我猜接龙';
-
-interface PictionaryCapabilitiesInput {
-  readonly state: PictionaryState;
-  readonly isHost: boolean;
-  readonly mySeat: number | null;
-  readonly requestTakeSeat: (seat: number) => void;
-  readonly requestMoveSeat: (seat: number) => void;
-  readonly leaveSeat: () => void;
-  readonly kickSeat: (seat: number) => void;
-  readonly clearSeats: () => void;
-  readonly fillBots: () => void;
-  readonly configureGame: () => void;
-  readonly openProfile: (target: RoomProfileTarget) => void;
-  readonly takeOverBot: (seat: number) => void;
-  readonly shareRoom: () => void;
-}
-
-export function createPictionaryRoomCapabilities(
-  input: PictionaryCapabilitiesInput,
-): RoomCapabilities {
-  const isLobby = input.state.phase === 'lobby';
-  const setupCapabilities = createRoomSetupCapabilities({
-    isSetup: isLobby,
-    isHost: input.isHost,
-    supportsBots: true,
-    mySeat: input.mySeat,
-    hasOccupiedSeats: getPictionaryOccupiedSeatCount(input.state) > 0,
-    isRoomFull: isPictionaryRoomFull(input.state),
-    requestTakeSeat: input.requestTakeSeat,
-    requestMoveSeat: input.requestMoveSeat,
-    leaveSeat: input.leaveSeat,
-    kickSeat: input.kickSeat,
-    clearSeats: input.clearSeats,
-    fillBots: input.fillBots,
-    configureGame: input.configureGame,
-    shareRoom: input.shareRoom,
-  });
-  return {
-    ...setupCapabilities,
-    canViewProfiles: createViewProfilesCapability(isLobby, input.openProfile),
-    canTakeOverBots: createBotTakeoverCapability(input.isHost, input.takeOverBot),
-  };
-}
 
 interface PictionarySeatSourceInput {
   readonly state: PictionaryState;

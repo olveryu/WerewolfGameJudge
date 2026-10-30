@@ -336,7 +336,8 @@ export interface AvalonBottomActionsInput {
   /** The seat the viewer acts as (own or taken-over bot); null for a spectator. */
   readonly effectiveSeat: number | null;
   readonly isSubmitting: boolean;
-  readonly canControlBots: boolean;
+  /** 机器人接管能力（房主）：决定「长按接管后投票」类引导文案。 */
+  readonly canTakeOverBots: boolean;
   /** 投票/出牌结算倒计时剩余秒数（screen 的 tick 派生）；未武装为 null。 */
   readonly settleCountdownSeconds: number | null;
   readonly onViewRolePress: () => void;
@@ -572,7 +573,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               ? `你已投：${instruction.myBallot === 'approve' ? '赞成' : '反对'}（揭晓前可改票）· 已投 ${Object.keys(phase.ballots).length}/${getAvalonOccupiedSeatCount(state)}`
               : null;
       } else {
-        message = input.canControlBots ? '长按机器人座位接管后投票。' : '你不在座位上，无法投票。';
+        message = input.canTakeOverBots ? '长按机器人座位接管后投票。' : '你不在座位上，无法投票。';
       }
       break;
     }
@@ -702,7 +703,6 @@ export interface AvalonRoomShellModelInput extends Omit<
   readonly onReviewPress: () => void;
   readonly strikePickMode: boolean;
   readonly onCancelEarlyStrikePress: () => void;
-  readonly canControlBots: boolean;
   readonly releaseBot: () => void;
 }
 
@@ -718,11 +718,7 @@ export interface AvalonHostManagementInput {
   /** 本局复盘入口：与底部按钮共用的唯一处理器。 */
   readonly onReviewPress: () => void;
   readonly onMusicSettings: () => void;
-  readonly submit: (
-    label: string,
-    command: AvalonPublicCommand,
-    control?: number | null,
-  ) => Promise<boolean>;
+  readonly submit: (label: string, command: AvalonPublicCommand) => Promise<boolean>;
 }
 
 /** Avalon management actions remain subject to the authoritative narration lock. */
@@ -996,7 +992,7 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       viewer: input.viewer,
       effectiveSeat: input.effectiveSeat,
       isSubmitting: input.isSubmitting,
-      canControlBots: input.canControlBots,
+      canTakeOverBots: input.capabilities.canTakeOverBots.isAllowed,
       settleCountdownSeconds: input.settleCountdownSeconds,
       onViewRolePress: input.onViewRolePress,
       onNightInfoPress: input.onNightInfoPress,

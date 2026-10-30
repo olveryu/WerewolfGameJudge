@@ -21,7 +21,7 @@ import { FibIdentityModal } from './components/FibIdentityModal';
 import { isFibRole, toFibRolePreviewData } from './components/FibRoleCardAdapter';
 import { FibRoomSummary } from './components/FibRoomSummary';
 import { createFibBoardInfoSections } from './fibRoomAdapter';
-import { useFibRoomScreenState } from './hooks/useFibRoomScreenState';
+import { useFibRoomState } from './hooks/useFibRoomState';
 
 interface FibRoomScreenProps extends GameRoomScreenProps<'fibking'> {
   readonly session: FibRoomSession;
@@ -60,7 +60,7 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
   session,
   entryController,
 }) => {
-  const screen = useFibRoomScreenState({
+  const screen = useFibRoomState({
     room,
     entryReason,
     navigation,
@@ -109,15 +109,24 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
       }}
       gameOverlays={
         <>
-          {screen.isIdentityVisible && screen.roundView !== null ? (
+          {screen.roleViewing.isOpen && screen.roundView !== null ? (
             <FibIdentityModal
               view={screen.roundView}
               effectType={screen.isBotTakeoverActive ? null : screen.equippedRevealEffect}
-              shouldPlay={screen.identityShouldPlay}
+              shouldPlay={screen.roleViewing.shouldPlayAnimation}
               allRoles={screen.identityAllRoles}
-              remainingCards={screen.identityRemainingCards}
-              confirmText={screen.identityConfirmText}
-              onConfirm={screen.confirmIdentity}
+              remainingCards={screen.roleViewing.remainingCards}
+              onClose={screen.roleViewing.close}
+            />
+          ) : null}
+          {screen.isPublicViewOpen && screen.roundView !== null ? (
+            <FibIdentityModal
+              view={screen.roundView}
+              effectType={null}
+              shouldPlay={false}
+              allRoles={screen.identityAllRoles}
+              remainingCards={0}
+              onClose={screen.closePublicView}
             />
           ) : null}
           {previewRole !== null ? (

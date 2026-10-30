@@ -16,6 +16,7 @@ export {
   UNDERCOVER_DEFAULT_PLAYERS,
   UNDERCOVER_MAX_PLAYERS,
   UNDERCOVER_MIN_PLAYERS,
+  UNDERCOVER_ROLE_NAMES,
   type UndercoverRole,
   type UndercoverRoleCounts,
 } from './domain/rules';
