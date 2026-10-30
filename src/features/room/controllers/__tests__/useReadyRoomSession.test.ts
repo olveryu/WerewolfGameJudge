@@ -96,7 +96,7 @@ describe('useReadyRoomSession', () => {
     const { result } = renderHook(() => useReadyRoomSession(link, failureMessage));
     let ok = false;
     await act(async () => {
-      ok = await result.current.submit('测试', { type: 'demo.noop' }, 3);
+      ok = await result.current.submit('测试', { type: 'demo.noop' }, { controlledSeat: 3 });
     });
     expect(ok).toBe(true);
     expect(link.dispatch).toHaveBeenCalledWith(

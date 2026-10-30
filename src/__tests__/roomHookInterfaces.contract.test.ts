@@ -164,31 +164,27 @@ describe('stage deadline snapshot guard (AU-25/AU-47)', () => {
 });
 
 describe('werewolf view-model projection — AU-39', () => {
-  it('the view model is assembled in useWerewolfRoom for the effective seat, not in the Screen', () => {
-    const hook = readSource('games/werewolf/hooks/useWerewolfRoom.ts');
-    expect(hook).toMatch(
-      /getWerewolfViewModel\(snapshot, \{ seat: botControl\.effectiveSeat, isHost \}\)/,
-    );
+  it('the view model is assembled in useWerewolfRoomState for the effective seat, not in the Screen', () => {
+    const hook = readSource('games/werewolf/room/hooks/useWerewolfRoomState.ts');
+    expect(hook).toMatch(/getWerewolfViewModel\(state, \{ seat: effectiveSeat, isHost \}\)/);
     const screen = readSource('games/werewolf/room/WerewolfRoomScreen.tsx');
     expect(screen).not.toMatch(/getWerewolfViewModel/);
   });
 
   it('seat projections read wolf visibility from the view model, never local role rules', () => {
-    const helpers = readSource('games/werewolf/room/werewolfRoom.helpers.ts');
-    expect(helpers).toMatch(/viewModel\.night\.wolfVote\?\.votes/);
-    expect(helpers).toMatch(/isWolfPackPeer/);
-    expect(helpers).not.toMatch(/canRoleSeeWolves/);
-    const derived = readSource('games/werewolf/room/hooks/useRoomDerived.ts');
-    expect(derived).toMatch(/buildSeatViewModels\(gameState, viewModel/);
-    expect(derived).not.toMatch(/showWolves/);
+    const adapter = readSource('games/werewolf/room/werewolfRoomAdapter.ts');
+    expect(adapter).toMatch(/viewModel\.night\.wolfVote\?\.votes/);
+    expect(adapter).toMatch(/isWolfPackPeer/);
+    expect(adapter).not.toMatch(/canRoleSeeWolves/);
+    expect(adapter).not.toMatch(/showWolves/);
   });
 
-  it('night gating facts are read from viewModel.night by the executors', () => {
-    const prompt = readSource('games/werewolf/room/executors/promptExecutor.ts');
-    expect(prompt).toMatch(/viewModel\.night\.confirmStatus/);
-    expect(prompt).not.toMatch(/gameState\.confirmStatus/);
-    const groupConfirm = readSource('games/werewolf/room/executors/groupConfirmExecutor.ts');
-    expect(groupConfirm).toMatch(/viewModel\.night\.reveals/);
+  it('night gating facts are read from viewModel.night by the night model', () => {
+    const night = readSource('games/werewolf/room/night/resolveNightInteraction.ts');
+    expect(night).toMatch(/night\.confirmStatus/);
+    expect(night).toMatch(/night\.reveals/);
+    expect(night).toMatch(/night\.pendingReveal/);
+    expect(night).not.toMatch(/state\.confirmStatus/);
     const playerContext = readSource('games/werewolf/components/AIChatBubble/playerContext.ts');
     expect(playerContext).toMatch(/viewModel\.myRole/);
     expect(playerContext).not.toMatch(/state\.players\[/);

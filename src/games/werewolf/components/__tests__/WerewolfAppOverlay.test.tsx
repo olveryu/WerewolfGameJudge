@@ -2,7 +2,7 @@ import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus, WEREWOLF_STATE_VERSION } from '@game-judge/game-engine/games/werewolf/public';
 import { render } from '@testing-library/react-native';
 
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import type { LinkSnapshot, RoomIdentity } from '@/platform/realtime/types';
 import { idleLinkSnapshot, readyLinkSnapshot } from '@/test-utils/linkSnapshot';
 
@@ -31,7 +31,7 @@ jest.mock('@/games/werewolf/components/AIChatBubble', () => ({
   },
 }));
 
-const client = { roomSession: {} } as unknown as WerewolfGameClient;
+const session = {} as WerewolfRoomSession;
 
 function readySnapshot(status: GameStatus): LinkSnapshot<GameState> {
   return readyLinkSnapshot<GameState>(
@@ -62,7 +62,7 @@ describe('WerewolfAppOverlay', () => {
   it('does not mount Werewolf UI without an active Werewolf room session', () => {
     mockUseRoomSessionSnapshot.mockReturnValue(idleLinkSnapshot<GameState>());
 
-    render(<WerewolfAppOverlay client={client} />);
+    render(<WerewolfAppOverlay session={session} />);
 
     expect(mockAIChatBubble).not.toHaveBeenCalled();
   });
@@ -73,7 +73,7 @@ describe('WerewolfAppOverlay', () => {
   ])('mounts for a ready Werewolf room with pulse=%s', (status, triggerPulse) => {
     mockUseRoomSessionSnapshot.mockReturnValue(readySnapshot(status));
 
-    render(<WerewolfAppOverlay client={client} />);
+    render(<WerewolfAppOverlay session={session} />);
 
     const props = mockAIChatBubble.mock.calls[0]?.[0];
     if (props === undefined) throw new Error('AI chat bubble was not rendered');

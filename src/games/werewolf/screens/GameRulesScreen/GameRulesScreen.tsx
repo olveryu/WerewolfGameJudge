@@ -26,8 +26,8 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { useServices } from '@/contexts/ServiceContext';
 import { GameConfigForm } from '@/features/room/config/GameConfigForm';
 import { isExpectedStorageError } from '@/features/settings/services/SettingsService';
+import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { TESTIDS } from '@/testids';
 import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
@@ -47,13 +47,13 @@ function toWerewolfRules(overrides: GameRuleOverrides): WerewolfRules {
 }
 
 interface GameRulesScreenProps {
-  readonly client: WerewolfGameClient;
+  readonly session: WerewolfRoomSession;
   readonly onExitFlow: () => void;
   readonly onRoomCreated: (roomCode: string) => void;
 }
 
 export const GameRulesScreen: FC<GameRulesScreenProps> = ({
-  client,
+  session,
   onExitFlow,
   onRoomCreated,
 }) => {
@@ -66,7 +66,7 @@ export const GameRulesScreen: FC<GameRulesScreenProps> = ({
   const [rules, setRules] = useState<GameRuleOverrides>(route.params.rules);
 
   const { submit, isSubmitting, isEditMode } = useGameRulesSubmission({
-    client,
+    session,
     roles,
     existingRoomCode,
     onExitFlow,

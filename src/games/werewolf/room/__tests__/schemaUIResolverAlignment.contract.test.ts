@@ -9,6 +9,9 @@
  * If any layer drifts, this test fails.
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ActionInput, ResolverContext } from '@game-judge/game-engine/games/werewolf/public';
 import {
@@ -228,26 +231,22 @@ describe('Schema notSelf constraint - single source of truth', () => {
 
 // === UI reads from schema (no hardcode) ===
 
-describe('UI reads constraints from schema (no hardcode)', () => {
+describe('UI reads seat eligibility from the projection (no hardcode)', () => {
   /**
-   * This test verifies buildSeatViewModels in werewolfRoom.helpers.ts
-   * disables seats only based on passed-in schemaConstraints, no hardcode.
-   *
-   * Related code:
-   * - WerewolfRoomScreen.tsx: currentSchemaConstraints = currentSchema.constraints
-   * - werewolfRoom.helpers.ts: if (options?.schemaConstraints?.includes('notSelf') && seat === actorSeat)
+   * Seat eligibility is decided by the engine projection
+   * (`WerewolfSeatView.disabledReason`); the room adapter only renders it
+   * and the night model only lists the seats the projection left enabled.
    */
-  it('buildSeatViewModels uses schemaConstraints parameter (not hardcoded role checks)', () => {
-    // This test is covered in detail by werewolfRoom.helpers.test.ts
-    // Here we just do an existence assertion
-    const { buildSeatViewModels } = require('@/games/werewolf/room/werewolfRoom.helpers') as {
-      buildSeatViewModels: (...args: unknown[]) => unknown;
-    };
-    expect(typeof buildSeatViewModels).toBe('function');
-
-    // Function signature contains schemaConstraints parameter
-    const fnStr = buildSeatViewModels.toString();
-    expect(fnStr).toContain('schemaConstraints');
+  it('the adapter and the night model never evaluate constraints themselves', () => {
+    const adapter = readFileSync(join(__dirname, '..', 'werewolfRoomAdapter.ts'), 'utf8');
+    const night = readFileSync(
+      join(__dirname, '..', 'night', 'resolveNightInteraction.ts'),
+      'utf8',
+    );
+    expect(adapter).toContain('disabledReason: seatView?.disabledReason');
+    expect(adapter).not.toMatch(/constraints|notSelf/);
+    expect(night).toContain('seat.disabledReason === null');
+    expect(night).not.toMatch(/constraints|notSelf/);
   });
 });
 

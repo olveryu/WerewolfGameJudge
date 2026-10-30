@@ -45,7 +45,6 @@ import {
   mockNavigation,
   mockRoom,
   RoomScreenTestHarness,
-  successfulWerewolfCommand,
   tapSeat,
   waitForRoomScreen,
 } from '@/games/werewolf/room/__tests__/harness';
@@ -77,24 +76,6 @@ jest.mock('@/utils/alert', () => ({
   showAlert: jest.fn(),
 }));
 
-jest.mock('../../useRoomHostDialogs', () => ({
-  useRoomHostDialogs: () => ({
-    showPrepareToFlipDialog: jest.fn(),
-    showStartGameDialog: jest.fn(),
-    showAbortDialog: jest.fn(),
-    showRedealDialog: jest.fn(),
-    showReturnToLobbyDialog: jest.fn(),
-    handleSettingsPress: jest.fn(),
-  }),
-}));
-
-jest.mock('../../hooks/useActionerState', () => ({
-  useActionerState: () => ({
-    imActioner: true,
-    showWolves: true,
-  }),
-}));
-
 // =============================================================================
 // Test Setup
 // =============================================================================
@@ -105,8 +86,8 @@ const _board = getBoardByName(BOARD_NAME)!;
 let harness: RoomScreenTestHarness;
 let mockUseWerewolfRoomReturn: ReturnType<typeof createWerewolfRoomMock>;
 
-jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
+jest.mock('@/games/werewolf/room/__tests__/harness/activeRoomMock', () => ({
+  getActiveRoomMock: () => mockUseWerewolfRoomReturn,
 }));
 
 // =============================================================================
@@ -214,16 +195,8 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
         currentActionRole: 'wolfRobot',
         myRole: 'wolfRobot',
         mySeat: 7,
-        gameStateOverrides: {
-          wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
-          wolfRobotHunterStatusViewed: false,
-        },
-        hookOverrides: {
-          getWolfRobotHunterStatus: jest.fn().mockReturnValue({
-            learned: true,
-            viewed: false,
-          }),
-        },
+        wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+        wolfRobotHunterStatusViewed: false,
       });
 
       const { getByTestId, getByText } = render(
@@ -254,23 +227,14 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
      * This test ensures that pressing the primary button in the hunter status dialog
      * actually triggers the wire protocol message to the server.
      */
-    it('pressing confirm calls sendWolfRobotHunterStatusViewed', async () => {
-      const sendWolfRobotHunterStatusViewedMock = jest
-        .fn()
-        .mockResolvedValue(successfulWerewolfCommand());
-
+    it('pressing confirm dispatches werewolf.wolfRobot.ackHunterStatus', async () => {
       mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'wolfRobotLearn',
         currentActionRole: 'wolfRobot',
         myRole: 'wolfRobot',
         mySeat: 7,
-        gameStateOverrides: {
-          wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
-          wolfRobotHunterStatusViewed: false,
-        },
-        hookOverrides: {
-          sendWolfRobotHunterStatusViewed: sendWolfRobotHunterStatusViewedMock,
-        },
+        wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+        wolfRobotHunterStatusViewed: false,
       });
 
       const { getByTestId, getByText } = render(
@@ -290,9 +254,12 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       // Press primary button (confirm)
       harness.pressPrimaryOnType('wolfRobotHunterStatus');
 
-      // CRITICAL ASSERTION: sendWolfRobotHunterStatusViewed must be called
+      // CRITICAL ASSERTION: the hunter-status ack must be dispatched
       await waitFor(() => {
-        expect(sendWolfRobotHunterStatusViewedMock).toHaveBeenCalledTimes(1);
+        expect(mockUseWerewolfRoomReturn.dispatch).toHaveBeenCalledWith(
+          { type: 'werewolf.wolfRobot.ackHunterStatus' },
+          expect.anything(),
+        );
       });
     });
 
@@ -302,7 +269,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
      * This test uses reactive mock with connect() to simulate the state update that occurs
      * after sendWolfRobotHunterStatusViewed succeeds. The button should disappear.
      *
-     * NOTE: Uses createReactiveWerewolfRoomMock with connect() for clean server state simulation.
+     * NOTE: Uses createReactiveWerewolfRoomMock to push the server state through the fake link.
      */
     it('gate button disappears after wolfRobotHunterStatusViewed becomes true', async () => {
       // Initial state: gate not viewed - use reactive mock
@@ -311,24 +278,14 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
         currentActionRole: 'wolfRobot',
         myRole: 'wolfRobot',
         mySeat: 7,
-        gameStateOverrides: {
-          wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
-          wolfRobotHunterStatusViewed: false,
-        },
+        wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+        wolfRobotHunterStatusViewed: false,
       });
-      mockUseWerewolfRoomReturn = reactiveMock.getMock();
+      mockUseWerewolfRoomReturn = reactiveMock.mock;
 
-      const { getByTestId, getByText, queryByText, rerender } = render(
+      const { getByTestId, getByText, queryByText } = render(
         <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
       );
-
-      // Connect rerender for automatic updates when server state changes
-      reactiveMock.connect((newMock) => {
-        mockUseWerewolfRoomReturn = newMock;
-        rerender(
-          <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
-        );
-      });
 
       await waitForRoomScreen(getByTestId);
 
@@ -337,18 +294,14 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
       // Simulate state update: server broadcasts wolfRobotHunterStatusViewed = true
       reactiveMock.simulateStateUpdate({
-        gameStateOverrides: {
-          wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
-          wolfRobotHunterStatusViewed: true, // Changed to true
-        },
+        wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+        wolfRobotHunterStatusViewed: true,
       });
 
       // CRITICAL ASSERTION: Button should disappear
       await waitFor(() => {
         expect(queryByText(getWolfRobotHunterGateButtonText())).toBeNull();
       });
-
-      reactiveMock.disconnect();
     });
 
     /**
@@ -364,10 +317,8 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
         currentActionRole: 'wolfRobot',
         myRole: 'wolfRobot',
         mySeat: 7,
-        gameStateOverrides: {
-          wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
-          wolfRobotHunterStatusViewed: true, // Gate already cleared
-        },
+        wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+        wolfRobotHunterStatusViewed: true,
       });
 
       const { getByTestId, queryByText } = render(
@@ -401,10 +352,8 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
         currentActionRole: 'wolfRobot',
         myRole: 'wolfRobot',
         mySeat: 7,
-        gameStateOverrides: {
-          wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
-          wolfRobotHunterStatusViewed: false, // Gate not yet cleared
-        },
+        wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+        wolfRobotHunterStatusViewed: false,
       });
 
       const { getByTestId } = render(
@@ -440,10 +389,8 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
         currentActionRole: 'wolfRobot',
         myRole: 'wolfRobot',
         mySeat: 7,
-        gameStateOverrides: {
-          wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
-          wolfRobotHunterStatusViewed: false, // Gate not yet cleared
-        },
+        wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+        wolfRobotHunterStatusViewed: false,
       });
 
       const { getByTestId } = render(
@@ -480,10 +427,8 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
         currentActionRole: 'wolfRobot',
         myRole: 'wolfRobot',
         mySeat: 7,
-        gameStateOverrides: {
-          wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
-          wolfRobotHunterStatusViewed: false, // Gate not yet cleared
-        },
+        wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+        wolfRobotHunterStatusViewed: false,
       });
 
       const { getByTestId, queryByText } = render(
@@ -775,13 +720,16 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
       // Step 3: wolfRobotHunterStatus gate → press primary → sendWolfRobotHunterStatusViewed called
       // CRITICAL: parameter-level assertion on sendWolfRobotHunterStatusViewed (prevent identity drift)
-      const { sendWolfRobotHunterStatusViewed } = await coverageChainWolfRobotHunterStatus(
+      const { dispatch } = await coverageChainWolfRobotHunterStatus(
         harness,
         setMock,
         renderRoom,
         7,
       );
-      expect(sendWolfRobotHunterStatusViewed).toHaveBeenCalledTimes(1);
+      expect(dispatch).toHaveBeenCalledWith(
+        { type: 'werewolf.wolfRobot.ackHunterStatus' },
+        expect.anything(),
+      );
 
       // Step 4: witchSavePrompt
       await coverageChainWitchSavePrompt(harness, setMock, renderRoom, 9);

@@ -24,7 +24,7 @@ function readSource(relativePath: string): string {
 /** Assembly + flow-hook files that carry host-flow vocabulary. */
 const HOST_FLOW_FILES = [
   'src/games/werewolf/room/createWerewolfHostManagement.ts',
-  'src/games/werewolf/room/useWerewolfHostControl.ts',
+  'src/games/werewolf/room/hooks/useWerewolfHostFlow.ts',
   'src/games/avalon/room/avalonRoomAdapter.ts',
   'src/games/demo/room/demoRoomAdapter.ts',
   'src/games/fibking/room/fibRoomAdapter.ts',

@@ -13,11 +13,14 @@ describe('ChooseBottomCardModal', () => {
     const view = render(
       <ChooseBottomCardModal
         visible
-        bottomCards={['villager', 'wolf']}
+        choice={{
+          cards: [
+            { roleId: 'villager', isSelectable: false, reason: '不可选择' },
+            { roleId: 'wolf', isSelectable: true, reason: null },
+          ],
+          hint: '底牌含狼人阵营',
+        }}
         confirmText="选择这张底牌"
-        disabledIndices={[0]}
-        disabledHint="不可选择"
-        subtitle="底牌含狼人阵营"
         onChoose={jest.fn()}
         onClose={jest.fn()}
       />,
@@ -36,5 +39,7 @@ describe('ChooseBottomCardModal', () => {
     expect(view.getByTestId(TESTIDS.chooseBottomCardOption(1)).props.accessibilityState).toEqual({
       disabled: false,
     });
+    expect(view.getByText('不可选择')).toBeTruthy();
+    expect(view.getByText('底牌含狼人阵营')).toBeTruthy();
   });
 });

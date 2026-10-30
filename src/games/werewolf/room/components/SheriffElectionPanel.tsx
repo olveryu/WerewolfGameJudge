@@ -13,11 +13,11 @@ import type React from 'react';
 import { memo, useCallback } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
+import type { SheriffBallotSelectionViewModel } from '@/games/werewolf/room/day/sheriffElectionViewModel';
 import type {
   SheriffElectionPanelModel,
   SheriffElectionPendingAction,
-} from '@/games/werewolf/room/hooks/useSheriffElection';
-import type { SheriffBallotSelectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
+} from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 import { componentSizes } from '@/theme/tokens';

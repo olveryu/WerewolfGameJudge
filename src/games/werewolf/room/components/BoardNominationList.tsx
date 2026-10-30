@@ -10,7 +10,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { BoardNomination } from '@game-judge/game-engine/games/werewolf/public';
 import {
-  createCustomTemplate,
   findMatchingPresetName,
   getPlayerCount,
   isValidRoleId,
@@ -19,16 +18,8 @@ import { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
-import {
-  getRoomCommandFailureReason,
-  isSuccessfulRoomCommand,
-} from '@/features/room/link/roomCommandResult';
 import { FactionRoleList } from '@/games/werewolf/components/FactionRoleList';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
-import type {
-  WerewolfCommandDispatchOutcome,
-  WerewolfGameClient,
-} from '@/games/werewolf/runtime/WerewolfGameClient';
 import { computeFactionStats } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
 import {
   borderRadius,
@@ -40,11 +31,8 @@ import {
   typography,
   withAlpha,
 } from '@/theme';
-import { showErrorAlert } from '@/utils/alertPresets';
-import { translateReasonCode } from '@/utils/errorUtils';
 
 interface BoardNominationModalProps {
-  readonly client: WerewolfGameClient;
   /** Whether the modal is visible */
   visible: boolean;
   /** userId → BoardNomination record */
@@ -53,14 +41,12 @@ interface BoardNominationModalProps {
   myUserId: string | null;
   /** Whether current user is host */
   isHost: boolean;
-  /** Current template player count (for mismatch detection) */
-  currentPlayerCount: number;
   /** Upvote a nomination */
   onUpvote: (targetUserId: string) => void;
   /** Withdraw own nomination */
   onWithdraw: () => void;
-  /** Clear all seats (called before adopt when player count changes) */
-  clearAllSeats: () => Promise<WerewolfCommandDispatchOutcome>;
+  /** Host adopts a nominated board (the caller clears seats first when the count changes). */
+  onAdopt: (roles: readonly RoleId[]) => Promise<void>;
   /** Close the modal */
   onClose: () => void;
 }
@@ -213,38 +199,21 @@ function NominationCard({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const BoardNominationModal = memo(function BoardNominationModal({
-  client,
   visible,
   nominations,
   myUserId,
   isHost,
-  currentPlayerCount,
   onUpvote,
   onWithdraw,
-  clearAllSeats,
+  onAdopt,
   onClose,
 }: BoardNominationModalProps) {
   const handleAdopt = useCallback(
     async (roles: readonly RoleId[]) => {
-      const newCount = getPlayerCount(roles);
-      if (newCount !== currentPlayerCount) {
-        const clearResult = await clearAllSeats();
-        if (!isSuccessfulRoomCommand(clearResult)) {
-          const reason = getRoomCommandFailureReason(clearResult);
-          showErrorAlert('采纳失败', translateReasonCode(reason));
-          return;
-        }
-      }
-      const template = createCustomTemplate([...roles]);
-      const result = await client.updateTemplate(template);
-      if (!isSuccessfulRoomCommand(result)) {
-        const reason = getRoomCommandFailureReason(result);
-        showErrorAlert('采纳失败', translateReasonCode(reason));
-        return;
-      }
+      await onAdopt(roles);
       onClose();
     },
-    [currentPlayerCount, clearAllSeats, client, onClose],
+    [onAdopt, onClose],
   );
 
   const entries = useMemo(() => {

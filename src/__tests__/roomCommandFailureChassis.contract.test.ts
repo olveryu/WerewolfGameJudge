@@ -46,7 +46,7 @@ import { getFibRoomCommandFailureMessage } from '@/games/fibking/room/fibRoomCom
 import { getPictionaryRoomCommandFailureMessage } from '@/games/pictionary/room/pictionaryRoomCommandFailureMessage';
 import { getStoryRelayRoomCommandFailureMessage } from '@/games/storyrelay/room/storyRelayRoomCommandFailureMessage';
 import { getUndercoverRoomCommandFailureMessage } from '@/games/undercover/room/undercoverRoomCommandFailureMessage';
-import { getWerewolfRoomCommandFailureMessage } from '@/games/werewolf/werewolfRoomCommandFailureMessage';
+import { getWerewolfRoomCommandFailureMessage } from '@/games/werewolf/room/werewolfRoomCommandFailureMessage';
 import { rejectedRoomCommand } from '@/test-utils/roomCommand';
 import { translateReasonCode } from '@/utils/errorUtils';
 import { ROOM_CHASSIS_REASON_MESSAGES } from '@/utils/roomChassisReasonMessages';
@@ -162,7 +162,7 @@ const PRESENTER_SOURCES = [
   'src/games/pictionary/room/pictionaryRoomCommandFailureMessage.ts',
   'src/games/storyrelay/room/storyRelayRoomCommandFailureMessage.ts',
   'src/games/undercover/room/undercoverRoomCommandFailureMessage.ts',
-  'src/games/werewolf/werewolfRoomCommandFailureMessage.ts',
+  'src/games/werewolf/room/werewolfRoomCommandFailureMessage.ts',
   'scripts/lib/new-game/templates/shared/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomCommandFailureMessage.ts.tmpl',
 ];
 

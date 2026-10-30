@@ -12,7 +12,7 @@ import {
   replaceWithCreatedRoom,
   returnToActiveRoom,
 } from '@/features/room/navigation/roomFlowNavigation';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import { BoardPickerScreen } from '@/games/werewolf/screens/BoardPickerScreen/BoardPickerScreen';
 import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen';
 import { GameRulesScreen } from '@/games/werewolf/screens/GameRulesScreen/GameRulesScreen';
@@ -23,14 +23,14 @@ import type { WerewolfConfigStackParamList } from './types';
 import { getWerewolfConfigFlowStart } from './werewolfConfigFlow';
 
 interface WerewolfConfigFlowScreenProps {
-  readonly client: WerewolfGameClient;
+  readonly session: WerewolfRoomSession;
 }
 
-/** Create one nested navigator when the Werewolf client module is composed. */
+/** Create one nested navigator when the Werewolf module is composed. */
 export function createWerewolfConfigFlowScreen(): React.FC<WerewolfConfigFlowScreenProps> {
   const Stack = createNativeStackNavigator<WerewolfConfigStackParamList>();
 
-  const WerewolfConfigFlowScreen: React.FC<WerewolfConfigFlowScreenProps> = ({ client }) => {
+  const WerewolfConfigFlowScreen: React.FC<WerewolfConfigFlowScreenProps> = ({ session }) => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'GameConfig'>>();
     const route = useRoute<RouteProp<RootStackParamList, 'GameConfig'>>();
     const start = getWerewolfConfigFlowStart(route.params);
@@ -72,7 +72,7 @@ export function createWerewolfConfigFlowScreen(): React.FC<WerewolfConfigFlowScr
         <Stack.Screen name="Config" initialParams={start.configParams}>
           {() => (
             <ConfigScreen
-              client={client}
+              session={session}
               onExitFlow={handleExitFlow}
               onReturnToRoom={handleReturnToRoom}
             />
@@ -81,7 +81,7 @@ export function createWerewolfConfigFlowScreen(): React.FC<WerewolfConfigFlowScr
         <Stack.Screen name="Rules">
           {() => (
             <GameRulesScreen
-              client={client}
+              session={session}
               onExitFlow={handleExitFlow}
               onRoomCreated={handleRoomCreated}
             />

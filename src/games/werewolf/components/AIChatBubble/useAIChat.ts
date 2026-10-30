@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Animated, GestureResponderEvent } from 'react-native';
 
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import { setAIChatBridgeListener } from '@/games/werewolf/services/aiChatBridge';
 import type { AIChatStorageOwner } from '@/games/werewolf/services/aiChatLocalStore';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
@@ -59,10 +59,9 @@ interface UseAIChatReturn {
 // ══════════════════════════════════════════════════════════
 
 export function useAIChat(
-  werewolfClient: WerewolfGameClient,
+  roomSession: WerewolfRoomSession,
   identity: RoomIdentity<'werewolf'>,
 ): UseAIChatReturn {
-  const { roomSession } = werewolfClient;
   const storageOwner = useMemo<AIChatStorageOwner>(
     () => ({ userId: identity.userId, roomId: identity.room.roomId }),
     [identity.room.roomId, identity.userId],

@@ -34,16 +34,23 @@ import type {
   RoomHostManagementSection,
   RoomHostTask,
 } from '@/features/room/model/RoomHostManagement';
-import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
 import {
   buildPanelFlowSteps,
   PANEL_FLOW_ACTION_KEYS,
   PANEL_FLOW_SHARE_HINT,
   type PanelFlowProgress,
   resolvePanelFlowCurrentStep,
-} from '@/games/werewolf/room/panelFlow';
-import type { HostControlEvent } from '@/games/werewolf/room/policy/types';
+} from '@/games/werewolf/room/day/panelFlow';
+import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
+
+/** The host flow controls the panel can trigger; each opens its confirm dialog. */
+export type WerewolfHostControlAction =
+  | 'prepareToFlip'
+  | 'startGame'
+  | 'abort'
+  | 'redeal'
+  | 'returnToLobby';
 
 interface WerewolfHostManagementInput {
   readonly roomStatus: GameStatus;
@@ -67,7 +74,7 @@ interface WerewolfHostManagementInput {
     'canConfigureGame' | 'canClearSeats' | 'canFillBots' | 'canShareRoom'
   >;
   readonly sheriffElection: SheriffElectionPanelModel | null;
-  readonly onHostControl: (action: HostControlEvent['action']) => void;
+  readonly onHostControl: (action: WerewolfHostControlAction) => void;
   readonly onMusicSettings: () => void;
   readonly onMarkAllBotsViewed: () => void;
   readonly onMarkAllBotsGroupConfirmed: () => void;

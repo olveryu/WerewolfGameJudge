@@ -1,8 +1,8 @@
 /** Unit tests for the sheriff-election HUD summary copy. */
 
 import { getHudSummary } from '@/games/werewolf/room/components/SheriffElectionHud';
-import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
-import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
+import type { SheriffElectionViewModel } from '@/games/werewolf/room/day/sheriffElectionViewModel';
+import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 
 const BASE_VIEW: SheriffElectionViewModel = {
   phase: 'firstVote',

@@ -57,9 +57,15 @@ const EMPTY_PRODUCT_UI: GameProductUiContribution = {
   getRevealEffectPresentation: () => null,
 };
 
+type SessionScreen<
+  TState extends BaseGameState<string>,
+  TCommand extends object,
+> = React.ComponentType<{ readonly session: RoomLink<TState, TCommand> }>;
+
 interface ClientGameModuleDefinitionBase<
   TGameType extends GameType,
   TState extends BaseGameState<TGameType>,
+  TCommand extends object,
 > {
   readonly gameType: TGameType;
   readonly stateCodec: GameStateCodec<TState>;
@@ -75,7 +81,8 @@ interface ClientGameModuleDefinitionBase<
     SupportedGameNavigationRoute,
     GameNavigationRouteDefinition
   >;
-  readonly GuideScreen: React.ComponentType;
+  /** The guide route; receives the session for games whose guide reads the room (werewolf). */
+  readonly GuideScreen: SessionScreen<TState, TCommand>;
   readonly isUserSeated: (state: TState, userId: string) => boolean;
   readonly canSwitchAccount: (state: TState) => boolean;
 }
@@ -92,10 +99,6 @@ interface ClientGameModuleConfigDefinition<
 }
 
 /** Session-bound screen: receives the room session like the room screen. */
-type SessionScreen<
-  TState extends BaseGameState<string>,
-  TCommand extends object,
-> = React.ComponentType<{ readonly session: RoomLink<TState, TCommand> }>;
 
 /** Contributions most games leave at the shared defaults. */
 export interface ClientGameModuleExtras<
@@ -127,7 +130,7 @@ export type ClientGameModuleDefinition<
 > = ClientGameModuleConfigDefinition<TGameType, TState, TCommand> &
   ClientGameModuleExtrasDefinition<TState, TCommand> &
   (
-    | (ClientGameModuleDefinitionBase<TGameType, TState> & {
+    | (ClientGameModuleDefinitionBase<TGameType, TState, TCommand> & {
         readonly RoomScreen: React.ComponentType<
           GameRoomScreenProps<TGameType> & {
             readonly session: RoomLink<TState, TCommand>;
@@ -135,7 +138,7 @@ export type ClientGameModuleDefinition<
         >;
         readonly audio?: undefined;
       })
-    | (ClientGameModuleDefinitionBase<TGameType, TState> & {
+    | (ClientGameModuleDefinitionBase<TGameType, TState, TCommand> & {
         readonly RoomScreen: React.ComponentType<
           GameRoomScreenProps<TGameType> & {
             readonly session: RoomLink<TState, TCommand>;
@@ -191,6 +194,10 @@ function buildClientGameModule<
       }
       return createElement(NotepadScreen, { session });
     }
+    const GuideScreen = definition.GuideScreen;
+    function BoundGuideScreen() {
+      return createElement(GuideScreen, { session });
+    }
     const AppOverlay = extras.appOverlay;
     function BoundAppOverlay() {
       if (AppOverlay === undefined) {
@@ -204,7 +211,7 @@ function buildClientGameModule<
       home: definition.home,
       navigation: bindGameNavigation(definition.navigation, {
         config: BoundConfigScreen,
-        guide: definition.GuideScreen,
+        guide: BoundGuideScreen,
         ...(NotepadScreen === undefined ? {} : { notepad: BoundNotepadScreen }),
       }),
       roomAccount,

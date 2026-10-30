@@ -40,6 +40,7 @@ import {
   GameStatus,
   type GameTemplate,
   getSchema,
+  getWolfKillImmuneRoleIds,
   isWolfRole,
   type RevealKind,
   type RoleId,
@@ -94,6 +95,14 @@ export interface WerewolfPendingReveal {
   readonly schemaId: SchemaId;
   /** Reveal kind declared by that schema's ui — the key of the reveal data in state. */
   readonly revealKind: RevealKind;
+  /** The checked seat. */
+  readonly targetSeat: number;
+  /** The check result: a faction label for factionCheck reveals, a role id otherwise. */
+  readonly result: string;
+  /** How `result` reads: a plain faction label, or a role id to name. */
+  readonly resultFormat: 'factionCheck' | 'roleName';
+  /** Dialog title prefix declared by the schema (e.g. 查验结果). */
+  readonly titlePrefix: string;
 }
 
 /** The engine's rejection of the viewer's own last action. */
@@ -105,12 +114,16 @@ export interface WerewolfRejectionView {
 
 /** The wolf meeting as a participating wolf sees it. */
 export interface WerewolfWolfVoteView {
+  /** Seats that vote in this meeting (participating wolf roles, bottom-card exclusion applied). */
+  readonly voterSeats: readonly number[];
   /** Every wolf's current vote by seat; -1 is an empty vote. */
   readonly votes: Readonly<Record<string, number>>;
   /** The viewer's own vote; null until cast. */
   readonly myVote: number | null;
   /** When the step settles after every wolf voted; null until armed. */
   readonly deadlineAt: number | null;
+  /** Occupied seats whose role is immune to the wolf kill (the confirm notes it). */
+  readonly immuneSeats: readonly number[];
 }
 
 /** Wolf robot's learned identity and the hunter-status gate, for the wolf robot only. */
@@ -371,9 +384,49 @@ function derivePendingReveal(
     .find((candidate) => state.pendingRevealAcks.includes(candidate.schemaId));
   if (action === undefined || action.actorSeat !== viewerSeat) return null;
   const schema = getSchema(action.schemaId);
-  const revealKind = schema.kind !== 'compound' ? schema.ui?.revealKind : undefined;
-  if (revealKind === undefined) return null;
-  return { schemaId: action.schemaId, revealKind };
+  const ui = schema.kind !== 'compound' ? schema.ui : undefined;
+  if (ui?.revealKind === undefined) return null;
+  const revealKind = ui.revealKind;
+  const reveal = readRevealSlot(state, revealKind);
+  if (reveal === undefined) {
+    throw new Error(`[FAIL-FAST] Pending ${revealKind} reveal has no result in state`);
+  }
+  if (ui.revealTitlePrefix === undefined) {
+    throw new Error(`[FAIL-FAST] Reveal schema ${action.schemaId} declares no revealTitlePrefix`);
+  }
+  return {
+    schemaId: action.schemaId,
+    revealKind,
+    targetSeat: reveal.targetSeat,
+    result: reveal.result,
+    resultFormat: ui.revealResultFormat ?? 'roleName',
+    titlePrefix: ui.revealTitlePrefix,
+  };
+}
+
+/** The state slot a reveal kind writes its result to. */
+function readRevealSlot(
+  state: GameState,
+  kind: RevealKind,
+): { readonly targetSeat: number; readonly result: string } | undefined {
+  switch (kind) {
+    case 'seer':
+      return state.seerReveal;
+    case 'psychic':
+      return state.psychicReveal;
+    case 'gargoyle':
+      return state.gargoyleReveal;
+    case 'wolfRobot':
+      return state.wolfRobotReveal;
+    case 'pureWhite':
+      return state.pureWhiteReveal;
+    case 'wolfWitch':
+      return state.wolfWitchReveal;
+    case 'mirrorSeer':
+      return state.mirrorSeerReveal;
+    case 'drunkSeer':
+      return state.drunkSeerReveal;
+  }
 }
 
 function deriveRejection(
@@ -387,16 +440,31 @@ function deriveRejection(
 
 function deriveWolfVote(
   state: GameState,
+  occupiedSeats: readonly number[],
   viewerSeat: number | null,
   showWolves: boolean,
 ): WerewolfWolfVoteView | null {
   if (!showWolves) return null;
   const votes = state.currentNightResults?.wolfVotesBySeat ?? {};
   const myVote = viewerSeat === null ? undefined : votes[String(viewerSeat)];
+  const immuneRoleIds = getWolfKillImmuneRoleIds();
+  const voterSeats: number[] = [];
+  const immuneSeats: number[] = [];
+  for (const seat of occupiedSeats) {
+    const role = state.players[seat]!.role;
+    if (!role) continue;
+    const effectiveRole = getBottomCardEffectiveRole(role, state.currentNightResults);
+    if (doesRoleParticipateInWolfVote(effectiveRole) && !isBottomCardWolfVoteExcluded(role)) {
+      voterSeats.push(seat);
+    }
+    if (immuneRoleIds.includes(role)) immuneSeats.push(seat);
+  }
   return {
+    voterSeats,
     votes,
     myVote: myVote ?? null,
     deadlineAt: state.nightStep?.kind === 'inStep' ? (state.nightStep.stepDeadline ?? null) : null,
+    immuneSeats,
   };
 }
 
@@ -572,7 +640,7 @@ export function getWerewolfViewModel(state: GameState, viewer: WerewolfViewer): 
       isActioner,
       confirmStatus: deriveConfirmStatus(state, step, viewerSeat),
       reveals: reveal ? [reveal] : [],
-      wolfVote: deriveWolfVote(state, viewerSeat, showWolves),
+      wolfVote: deriveWolfVote(state, occupiedSeats, viewerSeat, showWolves),
       pendingReveal: derivePendingReveal(state, viewerSeat),
       rejection: deriveRejection(state, viewerSeat),
       witchContext:

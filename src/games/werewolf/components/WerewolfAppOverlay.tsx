@@ -1,18 +1,18 @@
-/** Werewolf-owned global overlay bound to one Werewolf client runtime. */
+/** Werewolf-owned global overlay bound to one Werewolf room session. */
 
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
 
 import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { AIChatBubble } from '@/games/werewolf/components/AIChatBubble';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 
 interface WerewolfAppOverlayProps {
-  readonly client: WerewolfGameClient;
+  readonly session: WerewolfRoomSession;
 }
 
-export const WerewolfAppOverlay: React.FC<WerewolfAppOverlayProps> = ({ client }) => {
-  const room = useRoomLinkSnapshot(client.roomSession);
+export const WerewolfAppOverlay: React.FC<WerewolfAppOverlayProps> = ({ session }) => {
+  const room = useRoomLinkSnapshot(session);
   if (room.phase !== 'ready') return null;
 
   const triggerPulse =
@@ -21,7 +21,7 @@ export const WerewolfAppOverlay: React.FC<WerewolfAppOverlayProps> = ({ client }
   return (
     <AIChatBubble
       key={`${room.identity.userId}:${room.identity.room.roomId}`}
-      client={client}
+      session={session}
       identity={room.identity}
       triggerPulse={triggerPulse}
     />

@@ -30,8 +30,8 @@ import {
   isSuccessfulRoomCommand,
 } from '@/features/room/link/roomCommandResult';
 import type { SettingsService } from '@/features/settings/services/SettingsService';
+import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -61,7 +61,7 @@ interface UseConfigScreenStateParams {
   nominateMode: { roomCode: string } | undefined;
   updatedRules: GameRuleOverrides | undefined;
   navigation: ConfigNavigationProp;
-  client: WerewolfGameClient;
+  session: WerewolfRoomSession;
   settingsService: SettingsService;
   onExitFlow: () => void;
   onReturnToRoom: (roomCode: string) => void;
@@ -77,14 +77,13 @@ export function useConfigScreenState({
   nominateMode,
   updatedRules,
   navigation,
-  client,
+  session,
   settingsService,
   onExitFlow,
   onReturnToRoom,
 }: UseConfigScreenStateParams) {
   const { user } = useAuthContext();
-  const { roomSession } = client;
-  const room = useRoomLinkSnapshot(roomSession);
+  const room = useRoomLinkSnapshot(session);
   const gameState = room.phase === 'ready' ? room.room.state : null;
   const isEditMode = !!existingRoomCode;
   const isNominateMode = !!nominateMode;
@@ -250,7 +249,10 @@ export function useConfigScreenState({
     setIsWorkflowSubmitting(true);
     try {
       const displayName = user?.displayName ?? '匿名玩家';
-      const result = await client.boardNominate(displayName, roles);
+      const result = await session.dispatch(
+        { type: 'werewolf.board.nominate', displayName, roles: [...roles] },
+        { controlledSeat: null, label: '提交板子建议', durable: false },
+      );
       if (!isSuccessfulRoomCommand(result)) {
         const reason = getRoomCommandFailureReason(result);
         showErrorAlert('提交失败', translateReasonCode(reason));
@@ -273,7 +275,7 @@ export function useConfigScreenState({
     selection,
     nominateMode,
     existingRoomCode,
-    client,
+    session,
     isLoading,
     navigation,
     variantOverrides,

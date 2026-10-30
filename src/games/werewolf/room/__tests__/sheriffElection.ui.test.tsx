@@ -26,19 +26,8 @@ jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
   }),
 }));
 
-jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
-}));
-
-jest.mock('../useRoomHostDialogs', () => ({
-  useRoomHostDialogs: () => ({
-    showPrepareToFlipDialog: jest.fn(),
-    showStartGameDialog: jest.fn(),
-    showAbortDialog: jest.fn(),
-    showRedealDialog: jest.fn(),
-    showReturnToLobbyDialog: jest.fn(),
-    handleSettingsPress: jest.fn(),
-  }),
+jest.mock('@/games/werewolf/room/__tests__/harness/activeRoomMock', () => ({
+  getActiveRoomMock: () => mockUseWerewolfRoomReturn,
 }));
 
 function createDayRoomMock(
@@ -122,11 +111,14 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
 
     fireEvent.press(screen.getByTestId(TESTIDS.seatTilePressable(0)));
 
-    expect(mockUseWerewolfRoomReturn.castSheriffVote).not.toHaveBeenCalled();
+    expect(mockUseWerewolfRoomReturn.dispatch).not.toHaveBeenCalled();
 
     fireEvent.press(screen.getByTestId(TESTIDS.sheriffCandidateButton(0)));
     await waitFor(() => {
-      expect(mockUseWerewolfRoomReturn.castSheriffVote).toHaveBeenCalledWith(0);
+      expect(mockUseWerewolfRoomReturn.dispatch).toHaveBeenCalledWith(
+        { type: 'werewolf.sheriff.vote', targetSeat: 0 },
+        expect.anything(),
+      );
     });
   });
 

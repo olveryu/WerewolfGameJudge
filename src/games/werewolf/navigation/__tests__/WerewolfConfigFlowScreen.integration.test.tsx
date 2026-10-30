@@ -14,9 +14,9 @@ import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { Pressable, Text } from 'react-native';
 
+import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
 import { createWerewolfConfigFlowScreen } from '@/games/werewolf/navigation/WerewolfConfigFlowScreen';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { RootStackParamList } from '@/navigation/types';
 
 interface BoardPickerProbeProps {
@@ -72,7 +72,7 @@ jest.mock('@/games/werewolf/screens/GameRulesScreen/GameRulesScreen', () => ({
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const WerewolfConfigFlowScreen = createWerewolfConfigFlowScreen();
-const mockClient = {} as WerewolfGameClient;
+const mockSession = {} as WerewolfRoomSession;
 
 const HomeProbe: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Home'>>();
@@ -127,7 +127,7 @@ function renderFlow() {
       <RootStack.Navigator initialRouteName="Home" screenOptions={{ headerShown: false }}>
         <RootStack.Screen name="Home" component={HomeProbe} />
         <RootStack.Screen name="GameConfig">
-          {() => <WerewolfConfigFlowScreen client={mockClient} />}
+          {() => <WerewolfConfigFlowScreen session={mockSession} />}
         </RootStack.Screen>
         <RootStack.Screen name="Room" component={RoomProbe} />
       </RootStack.Navigator>

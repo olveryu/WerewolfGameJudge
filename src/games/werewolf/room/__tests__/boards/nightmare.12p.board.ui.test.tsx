@@ -61,24 +61,6 @@ jest.mock('@/utils/alert', () => ({
   showAlert: jest.fn(),
 }));
 
-jest.mock('../../useRoomHostDialogs', () => ({
-  useRoomHostDialogs: () => ({
-    showPrepareToFlipDialog: jest.fn(),
-    showStartGameDialog: jest.fn(),
-    showAbortDialog: jest.fn(),
-    showRedealDialog: jest.fn(),
-    showReturnToLobbyDialog: jest.fn(),
-    handleSettingsPress: jest.fn(),
-  }),
-}));
-
-jest.mock('../../hooks/useActionerState', () => ({
-  useActionerState: () => ({
-    imActioner: true,
-    showWolves: true,
-  }),
-}));
-
 // =============================================================================
 // Test Setup
 // =============================================================================
@@ -89,8 +71,8 @@ const board = getBoardByName(BOARD_NAME)!;
 let harness: RoomScreenTestHarness;
 let mockUseWerewolfRoomReturn: ReturnType<typeof createWerewolfRoomMock>;
 
-jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
+jest.mock('@/games/werewolf/room/__tests__/harness/activeRoomMock', () => ({
+  getActiveRoomMock: () => mockUseWerewolfRoomReturn,
 }));
 
 // =============================================================================
@@ -195,7 +177,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
      * 3. Server rejects with actionRejected containing BLOCKED_UI_DEFAULTS.message
      * 4. UI shows actionRejected dialog with correct message
      *
-     * NOTE: Uses createReactiveWerewolfRoomMock with connect() for clean state simulation.
+     * NOTE: Uses createReactiveWerewolfRoomMock to push server state through the fake link.
      */
     it('blocked seer: tapSeat triggers action → server rejects → shows actionRejected with BLOCKED_UI_DEFAULTS', async () => {
       // Seer is blocked by nightmare - use reactive mock
@@ -209,19 +191,11 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
           blockedSeat: 8,
         },
       });
-      mockUseWerewolfRoomReturn = reactiveMock.getMock();
+      mockUseWerewolfRoomReturn = reactiveMock.mock;
 
-      const { getByTestId, rerender } = render(
+      const { getByTestId } = render(
         <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
       );
-
-      // Connect rerender for automatic updates when server state changes
-      reactiveMock.connect((newMock) => {
-        mockUseWerewolfRoomReturn = newMock;
-        rerender(
-          <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
-        );
-      });
 
       await waitForRoomScreen(getByTestId);
       harness.clear();
@@ -230,7 +204,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       tapSeat(getByTestId, 1);
 
       // Simulate server rejecting the action due to nightmare block
-      // Uses reactive mock - connect() auto-triggers rerender
+      // The fake link publishes the rejection like a server broadcast
       reactiveMock.simulateHostReject({
         action: 'seerCheck',
         reason: BLOCKED_UI_DEFAULTS.message,
@@ -247,8 +221,6 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       const rejectedEvents = harness.eventsOfType('actionRejected');
       expect(rejectedEvents.length).toBeGreaterThan(0);
       expect(rejectedEvents[0]!.message).toContain(BLOCKED_UI_DEFAULTS.message);
-
-      reactiveMock.disconnect();
     });
 
     it('blocked witch: tapSeat triggers action → server rejects → shows actionRejected', async () => {
@@ -268,19 +240,11 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
           canPoison: true,
         },
       });
-      mockUseWerewolfRoomReturn = reactiveMock.getMock();
+      mockUseWerewolfRoomReturn = reactiveMock.mock;
 
-      const { getByTestId, rerender } = render(
+      const { getByTestId } = render(
         <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
       );
-
-      // Connect rerender for automatic updates
-      reactiveMock.connect((newMock) => {
-        mockUseWerewolfRoomReturn = newMock;
-        rerender(
-          <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
-        );
-      });
 
       await waitForRoomScreen(getByTestId);
       harness.clear();
@@ -299,8 +263,6 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       await waitFor(() => {
         expect(harness.hasSeen('actionRejected')).toBe(true);
       });
-
-      reactiveMock.disconnect();
     });
   });
 

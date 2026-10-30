@@ -23,8 +23,8 @@ import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnap
 import { buildNotepadSummary } from '@/games/werewolf/components/AIChatBubble/notepadSummary';
 import { NotepadPanel } from '@/games/werewolf/components/NotepadPanel';
 import { useNotepad } from '@/games/werewolf/hooks/useNotepad';
+import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import { parseWerewolfNotepadRouteParams } from '@/games/werewolf/navigation/werewolfGameNavigation';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { requestAIChatMessage } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
@@ -35,16 +35,17 @@ import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import { createNotepadScreenStyles } from './NotepadScreen.styles';
 
 // ── Component ────────────────────────────────────────────
-/** Notepad screen. */ export const NotepadScreen: React.FC<{
-  readonly client: WerewolfGameClient;
-}> = ({ client }) => {
+/** Notepad screen. */
+export const NotepadScreen: React.FC<{
+  readonly session: WerewolfRoomSession;
+}> = ({ session }) => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createNotepadScreenStyles(colors), []);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'GameNotepad'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'GameNotepad'>>();
   const { roomCode } = parseWerewolfNotepadRouteParams(route.params);
 
-  const room = useRoomLinkSnapshot(client.roomSession);
+  const room = useRoomLinkSnapshot(session);
   const activeNotepadRoom =
     room.phase === 'ready' && room.identity.room.roomCode === roomCode
       ? {

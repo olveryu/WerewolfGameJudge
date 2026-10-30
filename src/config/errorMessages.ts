@@ -9,5 +9,3 @@
 // ── Network & server errors ──────────────────────────────────────
 /** User-facing message for network unreachable / fetch errors. */
 export const NETWORK_ERROR = '网络异常，请检查网络后重试';
-/** User-facing message for server 5xx or unavailable errors. */
-export const SERVER_ERROR = '服务暂时不可用，请稍后重试';

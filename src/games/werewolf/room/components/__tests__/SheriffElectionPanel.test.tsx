@@ -6,11 +6,11 @@ import type { ReactTestInstance } from 'react-test-renderer';
 
 import { SheriffElectionPanel } from '@/games/werewolf/room/components/SheriffElectionPanel';
 import { createSheriffElectionPanelStyles } from '@/games/werewolf/room/components/sheriffElectionPanel.styles';
+import type { SheriffElectionViewModel } from '@/games/werewolf/room/day/sheriffElectionViewModel';
 import type {
   SheriffElectionPanelModel,
   SheriffElectionPendingAction,
-} from '@/games/werewolf/room/hooks/useSheriffElection';
-import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
+} from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 

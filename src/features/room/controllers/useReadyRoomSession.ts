@@ -17,13 +17,18 @@ import { useCallback } from 'react';
 import { useAuthContext, type User } from '@/contexts/AuthContext';
 import type { DispatchOutcome, RoomLink } from '@/platform/realtime/types';
 
-import { useRoomCommandSubmission } from './useRoomCommandSubmission';
+import {
+  type RoomCommandSubmitOptions,
+  useRoomCommandSubmission,
+} from './useRoomCommandSubmission';
 import { useRoomLinkSnapshot } from './useRoomLinkSnapshot';
 
 export interface ReadyRoomSession<TState extends BaseGameState<string>, TCommand extends object> {
   readonly user: User;
   readonly state: TState;
   readonly revision: number;
+  /** The command that produced the current revision, for passive toasts. */
+  readonly lastCommand: { readonly revision: number; readonly type: string } | null;
   readonly session: RoomLink<TState, TCommand>;
   /** True while a `submit` is in flight; a second `submit` meanwhile throws. */
   readonly isSubmitting: boolean;
@@ -31,12 +36,19 @@ export interface ReadyRoomSession<TState extends BaseGameState<string>, TCommand
    * Submit one public command through the shared single-flight lock:
    * a rejection shows the game's failure message, a transport error goes
    * through the error pipeline; resolves true only on a committed success.
+   * `durable` persists the command locally and replays it across
+   * connections until the server decides (night actions, audio acks).
    */
   readonly submit: (
     label: string,
     command: TCommand,
-    controlledSeat?: number | null,
+    options?: ReadyRoomSubmitOptions,
   ) => Promise<boolean>;
+}
+
+export interface ReadyRoomSubmitOptions extends RoomCommandSubmitOptions {
+  readonly controlledSeat?: number | null;
+  readonly durable?: boolean;
 }
 
 export function useReadyRoomSession<TState extends BaseGameState<string>, TCommand extends object>(
@@ -47,9 +59,16 @@ export function useReadyRoomSession<TState extends BaseGameState<string>, TComma
   const snapshot = useRoomLinkSnapshot(session);
   const submission = useRoomCommandSubmission(getFailureMessage);
   const submit = useCallback(
-    (label: string, command: TCommand, controlledSeat: number | null = null) =>
-      submission.submit(label, () =>
-        session.dispatch(command, { controlledSeat, label, durable: false }),
+    (label: string, command: TCommand, options: ReadyRoomSubmitOptions = {}) =>
+      submission.submit(
+        label,
+        () =>
+          session.dispatch(command, {
+            controlledSeat: options.controlledSeat ?? null,
+            label,
+            durable: options.durable ?? false,
+          }),
+        { domainRejection: options.domainRejection },
       ),
     [session, submission],
   );
@@ -63,6 +82,7 @@ export function useReadyRoomSession<TState extends BaseGameState<string>, TComma
     user,
     state: snapshot.room.state,
     revision: snapshot.room.revision,
+    lastCommand: snapshot.lastCommand,
     session,
     isSubmitting: submission.isSubmitting,
     submit,
