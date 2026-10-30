@@ -37,10 +37,10 @@ export type LoopSampler<G> = (t: number, size: number) => G;
  * Samples per loop cycle. 60 linear segments reproduce the sinusoidal / circular trajectories
  * used by seat flairs without visible faceting at cycle lengths of 3–10 s.
  */
-export const LOOP_SAMPLE_COUNT = 60;
+const LOOP_SAMPLE_COUNT = 60;
 
 /** Evaluates `sample` at `t = i / LOOP_SAMPLE_COUNT` for `i ∈ [0, LOOP_SAMPLE_COUNT)`. */
-export function sampleLoop<G>(sample: LoopSampler<G>, size: number): G[] {
+function sampleLoop<G>(sample: LoopSampler<G>, size: number): G[] {
   return Array.from({ length: LOOP_SAMPLE_COUNT }, (_, i) => sample(i / LOOP_SAMPLE_COUNT, size));
 }
 
@@ -61,7 +61,7 @@ function toKeyframeBlock(frame: LoopFrame) {
  * Builds a shared keyframes rule from `LOOP_SAMPLE_COUNT` frames (frame `i` is
  * `t = i / LOOP_SAMPLE_COUNT`). `100%` re-uses frame 0 so the loop closes without a seam.
  */
-export function buildLoopRule(frames: readonly LoopFrame[]): CSSKeyframesRule {
+function buildLoopRule(frames: readonly LoopFrame[]): CSSKeyframesRule {
   if (frames.length !== LOOP_SAMPLE_COUNT) {
     throw new Error(`buildLoopRule expects ${LOOP_SAMPLE_COUNT} frames, received ${frames.length}`);
   }

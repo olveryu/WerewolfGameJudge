@@ -1,66 +1,53 @@
 /**
- * FireflyFlair - Fireflies
+ * FireflyFlair — fireflies
  *
- * Multiple firefly dots that move randomly and blink independently.
- * Rare-tier seat flair template - 6 particles with pseudo-random paths.
+ * Six fireflies wander on independent sine paths and blink. Rare-tier seat flair template.
  */
-import { memo, useRef } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type DotSampler, LoopDot } from '@/components/loopMotion';
 
 import type { FlairProps } from '../FlairProps';
-import { AnimatedCircle } from '../svgAnimatedPrimitives';
 import type { FlairColorSet } from './palette';
 
 interface ColoredFlairProps extends FlairProps {
   colors: FlairColorSet;
 }
 
-const FLY_COUNT = 6;
+const LOOP_MS = 7000;
 
-/** Deterministic seed-based angles for each firefly so they don't all clump. */
 const SEEDS = [0.13, 0.47, 0.73, 0.29, 0.61, 0.89] as const;
 
-export const FireflyFlair = memo<ColoredFlairProps>(({ size, colors }) => {
-  const progress = useLoopProgress(7000);
-  const seedRef = useRef(SEEDS);
-
-  const flyProps = Array.from({ length: FLY_COUNT }, (_, i) => {
-    const seed = seedRef.current[i]!;
-    const freqX = 1.0 + seed * 2;
-    const freqY = 0.8 + seed * 1.5;
-    const freqBlink = 2 + seed * 3;
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    return useAnimatedProps(() => {
-      'worklet';
-      const t = progress.value;
-      const cx =
-        size * 0.2 + size * 0.6 * (0.5 + 0.5 * Math.sin(t * Math.PI * 2 * freqX + seed * 10));
-      const cy =
-        size * 0.2 + size * 0.6 * (0.5 + 0.5 * Math.cos(t * Math.PI * 2 * freqY + seed * 7));
-      const blink = Math.sin(t * Math.PI * 2 * freqBlink + seed * 5);
-      const alpha = 0.2 + blink * blink * 0.4; // squared for sharper blink
-      return { cx, cy, r: size * 0.01, opacity: alpha };
-    });
-  });
-
-  return (
-    <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {flyProps.map((props, i) => (
-          <AnimatedCircle
-            key={i}
-            animatedProps={props}
-            fill={i % 2 === 0 ? colors.rgb : colors.rgbLight}
-          />
-        ))}
-      </Svg>
-    </View>
-  );
+const FLY_SAMPLERS: readonly DotSampler[] = SEEDS.map((seed) => {
+  const freqX = 1.0 + seed * 2;
+  const freqY = 0.8 + seed * 1.5;
+  const freqBlink = 2 + seed * 3;
+  return (t, size) => {
+    const blink = Math.sin(t * Math.PI * 2 * freqBlink + seed * 5);
+    return {
+      cx: size * 0.2 + size * 0.6 * (0.5 + 0.5 * Math.sin(t * Math.PI * 2 * freqX + seed * 10)),
+      cy: size * 0.2 + size * 0.6 * (0.5 + 0.5 * Math.cos(t * Math.PI * 2 * freqY + seed * 7)),
+      r: size * 0.01,
+      // Squared for a sharper blink
+      opacity: 0.2 + blink * blink * 0.4,
+    };
+  };
 });
+
+export const FireflyFlair = memo<ColoredFlairProps>(({ size, colors }) => (
+  <View style={[styles.wrapper, { width: size, height: size }]}>
+    {SEEDS.map((seed, i) => (
+      <LoopDot
+        key={`fly-${seed}`}
+        sample={FLY_SAMPLERS[i]!}
+        size={size}
+        durationMs={LOOP_MS}
+        color={i % 2 === 0 ? colors.rgb : colors.rgbLight}
+      />
+    ))}
+  </View>
+));
 FireflyFlair.displayName = 'FireflyFlair';
 
 const styles = StyleSheet.create({

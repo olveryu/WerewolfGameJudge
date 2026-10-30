@@ -3,115 +3,97 @@
  *
  * 4 small star points twinkle in the four corners. Common-tier seat decoration template.
  */
-import { memo, useMemo } from 'react';
+import { Fragment, memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type DotSampler, type LineSampler, LoopDot, LoopLine } from '@/components/loopMotion';
 
 import type { FlairProps } from '../FlairProps';
-import { AnimatedCircle, AnimatedLine } from '../svgAnimatedPrimitives';
 import type { FlairColorSet } from './palette';
 
 interface ColoredFlairProps extends FlairProps {
   colors: FlairColorSet;
 }
 
-interface StarSeed {
-  x: number;
-  y: number;
-  phase: number;
+const LOOP_MS = 2800;
+const ARM_STROKE = 0.8;
+
+const SEEDS = [
+  { x: 0.1, y: 0.1, phase: 0 },
+  { x: 0.9, y: 0.15, phase: 0.25 },
+  { x: 0.85, y: 0.9, phase: 0.5 },
+  { x: 0.15, y: 0.85, phase: 0.75 },
+] as const;
+
+function blinkAt(t: number): number {
+  const blink = Math.sin(t * Math.PI * 2);
+  return blink > 0 ? blink : 0;
 }
 
-const SparklePoint = memo<{
-  seed: StarSeed;
-  size: number;
-  progress: { value: number };
-  color: string;
-}>(({ seed, size, progress, color }) => {
-  const dotProps = useAnimatedProps(() => {
-    'worklet';
-    const t = (progress.value + seed.phase) % 1;
-    const blink = Math.sin(t * Math.PI * 2);
-    const alpha = blink > 0 ? blink * 0.7 : 0;
-    return {
-      cx: seed.x * size,
-      cy: seed.y * size,
-      r: size * 0.012,
-      opacity: alpha,
-    };
-  });
+const DOT_SAMPLERS: readonly DotSampler[] = SEEDS.map((seed) => (t, size) => ({
+  cx: seed.x * size,
+  cy: seed.y * size,
+  r: size * 0.012,
+  opacity: blinkAt(t) * 0.7,
+}));
 
-  const hLineProps = useAnimatedProps(() => {
-    'worklet';
-    const t = (progress.value + seed.phase) % 1;
-    const blink = Math.sin(t * Math.PI * 2);
-    const alpha = blink > 0 ? blink * 0.5 : 0;
-    const arm = size * 0.025;
-    const cx = seed.x * size;
-    const cy = seed.y * size;
-    return {
-      x1: cx - arm,
-      y1: cy,
-      x2: cx + arm,
-      y2: cy,
-      opacity: alpha,
-      strokeWidth: 0.8,
-    };
-  });
-
-  const vLineProps = useAnimatedProps(() => {
-    'worklet';
-    const t = (progress.value + seed.phase) % 1;
-    const blink = Math.sin(t * Math.PI * 2);
-    const alpha = blink > 0 ? blink * 0.5 : 0;
-    const arm = size * 0.025;
-    const cx = seed.x * size;
-    const cy = seed.y * size;
-    return {
-      x1: cx,
-      y1: cy - arm,
-      x2: cx,
-      y2: cy + arm,
-      opacity: alpha,
-      strokeWidth: 0.8,
-    };
-  });
-
-  return (
-    <>
-      <AnimatedCircle animatedProps={dotProps} fill={color} />
-      <AnimatedLine animatedProps={hLineProps} stroke={color} />
-      <AnimatedLine animatedProps={vLineProps} stroke={color} />
-    </>
-  );
+const H_ARM_SAMPLERS: readonly LineSampler[] = SEEDS.map((seed) => (t, size) => {
+  const arm = size * 0.025;
+  const cx = seed.x * size;
+  const cy = seed.y * size;
+  return {
+    x1: cx - arm,
+    y1: cy,
+    x2: cx + arm,
+    y2: cy,
+    strokeWidth: ARM_STROKE,
+    opacity: blinkAt(t) * 0.5,
+  };
 });
-SparklePoint.displayName = 'SparklePoint';
 
-export const SparkleFlair = memo<ColoredFlairProps>(({ size, colors }) => {
-  const progress = useLoopProgress(2800);
-
-  const seeds = useMemo<StarSeed[]>(
-    () => [
-      { x: 0.1, y: 0.1, phase: 0 },
-      { x: 0.9, y: 0.15, phase: 0.25 },
-      { x: 0.85, y: 0.9, phase: 0.5 },
-      { x: 0.15, y: 0.85, phase: 0.75 },
-    ],
-    [],
-  );
-
-  return (
-    <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {seeds.map((s, i) => (
-          <SparklePoint key={i} seed={s} size={size} progress={progress} color={colors.rgbLight} />
-        ))}
-      </Svg>
-    </View>
-  );
+const V_ARM_SAMPLERS: readonly LineSampler[] = SEEDS.map((seed) => (t, size) => {
+  const arm = size * 0.025;
+  const cx = seed.x * size;
+  const cy = seed.y * size;
+  return {
+    x1: cx,
+    y1: cy - arm,
+    x2: cx,
+    y2: cy + arm,
+    strokeWidth: ARM_STROKE,
+    opacity: blinkAt(t) * 0.5,
+  };
 });
+
+export const SparkleFlair = memo<ColoredFlairProps>(({ size, colors }) => (
+  <View style={[styles.wrapper, { width: size, height: size }]}>
+    {SEEDS.map((seed, i) => (
+      <Fragment key={`${seed.x}-${seed.y}`}>
+        <LoopDot
+          sample={DOT_SAMPLERS[i]!}
+          size={size}
+          durationMs={LOOP_MS}
+          phase={seed.phase}
+          color={colors.rgbLight}
+        />
+        <LoopLine
+          sample={H_ARM_SAMPLERS[i]!}
+          size={size}
+          durationMs={LOOP_MS}
+          phase={seed.phase}
+          color={colors.rgbLight}
+        />
+        <LoopLine
+          sample={V_ARM_SAMPLERS[i]!}
+          size={size}
+          durationMs={LOOP_MS}
+          phase={seed.phase}
+          color={colors.rgbLight}
+        />
+      </Fragment>
+    ))}
+  </View>
+));
 SparkleFlair.displayName = 'SparkleFlair';
 
 const styles = StyleSheet.create({
