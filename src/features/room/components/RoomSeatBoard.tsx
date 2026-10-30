@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 
 import { useAppVisibility } from '@/features/product/hooks/useAppVisibility';
+import { getRoomOccupantAvatarSeed } from '@/features/room/model/RoomOccupant';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import { TESTIDS } from '@/testids';
@@ -132,10 +133,15 @@ const RoomSeatBoardComponent: React.FC<RoomSeatBoardProps> = ({
                 disabledReason={seatModel.disabledReason}
                 isMySpot={seatModel.isSelf}
                 highlight={seatModel.highlight}
-                isBot={seatModel.player?.kind === 'bot'}
-                playerUserId={seatModel.player?.userId ?? null}
+                isBot={seatModel.player?.occupant.kind === 'bot'}
+                playerAvatarSeed={
+                  seatModel.player === null
+                    ? null
+                    : getRoomOccupantAvatarSeed(seatModel.player.occupant)
+                }
                 isPlayerOffline={
-                  seatModel.player?.kind === 'human' && !presence.has(seatModel.player.userId)
+                  seatModel.player?.occupant.kind === 'human' &&
+                  !presence.has(seatModel.player.occupant.userId)
                 }
                 playerAvatarUrl={seatModel.player?.avatarUrl}
                 playerAvatarFrame={seatModel.player?.avatarFrame}
@@ -157,7 +163,7 @@ const RoomSeatBoardComponent: React.FC<RoomSeatBoardProps> = ({
                 styles={tileStyles}
                 onPress={onSeatPress}
                 onLongPress={
-                  seatModel.player?.kind === 'bot' && model.onBotSeatLongPress !== null
+                  seatModel.player?.occupant.kind === 'bot' && model.onBotSeatLongPress !== null
                     ? onBotSeatLongPress
                     : null
                 }

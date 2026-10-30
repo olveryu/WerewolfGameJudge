@@ -1,5 +1,6 @@
 /** The one projection from a seat occupant's profile facts to the seat player model. */
 
+import type { RoomOccupant } from './RoomOccupant';
 import type { RoomSeatPlayer } from './RoomSeatDataSource';
 
 /**
@@ -9,8 +10,7 @@ import type { RoomSeatPlayer } from './RoomSeatDataSource';
  * differently maps it onto revealEffect at the call site.
  */
 export interface RoomSeatPlayerSource {
-  readonly kind: 'human' | 'bot';
-  readonly userId: string;
+  readonly occupant: RoomOccupant;
   readonly displayName: string;
   readonly avatarUrl?: string;
   readonly avatarFrame?: string;
@@ -30,8 +30,7 @@ export interface RoomSeatPlayerSource {
  */
 export function toRoomSeatPlayer(source: RoomSeatPlayerSource): RoomSeatPlayer {
   return {
-    kind: source.kind,
-    userId: source.userId,
+    occupant: source.occupant,
     displayName: source.displayName,
     avatarUrl: source.avatarUrl,
     avatarFrame: source.avatarFrame,

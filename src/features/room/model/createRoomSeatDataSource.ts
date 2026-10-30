@@ -6,10 +6,10 @@
  * index guard, human/bot player assembly, self/highlight derivation,
  * the lobby-only level/decoration flags and the locked-seat reason.
  * Only three fields genuinely differ per game — statusBadge,
- * secondaryLabel and showReadyBadge — so games inject those (plus
- * their wording and bot-id format) and the skeleton lives exactly
- * once. Werewolf does not use this factory: its source consumes
- * pre-built seat view models, a different input model (AU-39 line).
+ * secondaryLabel and showReadyBadge — so games inject those and the
+ * skeleton lives exactly once. The wording is shared too: the
+ * locked-seat reason and the out-of-range message have one default,
+ * overridable only where a game's copy genuinely differs.
  */
 
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
@@ -57,12 +57,12 @@ export interface CreateRoomSeatDataSourceInput {
   readonly controlledSeat: number | null;
   /** The game's own lobby test, in its phase vocabulary. */
   readonly isLobby: boolean;
-  /** The game's bot user-id format (the id formats stay game-owned). */
-  readonly botUserId: (seat: number) => string;
-  /** The game's fail-fast message for an out-of-range seat index. */
-  readonly outOfRangeError: (seat: number) => string;
-  /** The game's wording for tapping an empty seat after the lobby. */
-  readonly lockedSeatReason: string;
+  /** Game name for the default out-of-range fail-fast message. */
+  readonly gameName: string;
+  /** Overrides the default out-of-range fail-fast message. */
+  readonly outOfRangeError?: (seat: number) => string;
+  /** Overrides the default wording for tapping an empty seat after the lobby. */
+  readonly lockedSeatReason?: string;
   readonly resolveSecondaryLabel?: (seat: number, player: RoomSeatPlayer | null) => string | null;
   readonly resolveStatusBadge?: (
     seat: number,
@@ -80,25 +80,32 @@ export interface CreateRoomSeatDataSourceInput {
   ) => string | undefined;
 }
 
+const ROOM_SEAT_LOCKED_REASON = '游戏进行中不能入座';
+
 /** Assemble the shared seat-board data source for a roster game. */
 export function createRoomSeatDataSource(input: CreateRoomSeatDataSourceInput): RoomSeatDataSource {
   const { seatCount, roster, viewerUserId, controlledSeat, isLobby } = input;
+  const outOfRangeError =
+    input.outOfRangeError ?? ((seat: number) => `${input.gameName} seat out of range: ${seat}`);
+  const lockedSeatReason = input.lockedSeatReason ?? ROOM_SEAT_LOCKED_REASON;
   return {
     count: seatCount,
     revision: input.revisionKey ?? `${input.revision}:${controlledSeat ?? 'self'}`,
     getSeat(seat) {
       if (!Number.isSafeInteger(seat) || seat < 0 || seat >= seatCount) {
-        throw new Error(input.outOfRangeError(seat));
+        throw new Error(outOfRangeError(seat));
       }
       const occupant = roster[seat];
       const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
       const player =
         human !== undefined
-          ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
+          ? toRoomSeatPlayer({
+              occupant: { kind: 'human', userId: human.userId },
+              ...human.profile,
+            })
           : occupant != null && isBotOccupant(occupant)
             ? toRoomSeatPlayer({
-                kind: 'bot',
-                userId: input.botUserId(seat),
+                occupant: { kind: 'bot', seat },
                 displayName: getBotDisplayName(seat),
               })
             : null;
@@ -111,7 +118,7 @@ export function createRoomSeatDataSource(input: CreateRoomSeatDataSourceInput): 
         secondaryLabel: input.resolveSecondaryLabel?.(seat, player) ?? null,
         disabledReason:
           input.resolveDisabledReason?.(seat, player) ??
-          (player === null && !isLobby ? input.lockedSeatReason : undefined),
+          (player === null && !isLobby ? lockedSeatReason : undefined),
         showReadyBadge: input.resolveShowReadyBadge?.(seat) ?? false,
         statusBadge: input.resolveStatusBadge?.(seat, player) ?? null,
         indicators: input.resolveIndicators?.(seat) ?? null,

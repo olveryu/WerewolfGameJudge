@@ -8,7 +8,6 @@ import {
   type UndercoverRoleCounts,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
@@ -17,7 +16,7 @@ import {
   createRoomShellModel,
   type RoomShellModelInput,
 } from '@/features/room/model/createRoomShellModel';
-import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
   buildAbortGameAction,
@@ -73,10 +72,10 @@ export const UNDERCOVER_ROLE_NAMES: Readonly<Record<UndercoverRole, string>> = {
 };
 
 /** Resolve only public roster identity, never the secret role or word. */
-export const getUndercoverProfileTarget = createRoomProfileTargetResolver<UndercoverState>(
-  (roomCode, botSeat) => `undercover-bot:${roomCode}:${botSeat}`,
-  getBotDisplayName,
-);
+export const getUndercoverProfileTarget = (
+  state: UndercoverState,
+  seat: number,
+): RoomProfileTarget | null => getRoomProfileTarget(state.roster, seat);
 
 interface UndercoverCapabilitiesInput extends Omit<
   RoomSetupCapabilitiesInput,
@@ -128,9 +127,7 @@ export function createUndercoverSeatDataSource(
     viewerUserId: myUserId,
     controlledSeat,
     isLobby: state.phase === 'lobby',
-    botUserId: (seat) => `undercover-bot:${state.roomCode}:${seat}`,
-    outOfRangeError: (seat) => `Undercover seat source index is out of range: ${seat}`,
-    lockedSeatReason: '本局座位已锁定',
+    gameName: 'Undercover',
     resolveHighlight: (seat) => (selectedSeat === seat ? 'selected' : undefined),
     resolveSecondaryLabel: (seat) => {
       const revelation = state.round?.revelations.find((entry) => entry.seat === seat);

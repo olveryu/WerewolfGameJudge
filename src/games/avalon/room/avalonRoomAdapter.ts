@@ -18,7 +18,6 @@ import {
   isAvalonPlayerCount,
   isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
@@ -32,7 +31,7 @@ import {
   createRoomShellModel,
   type RoomShellModelInput,
 } from '@/features/room/model/createRoomShellModel';
-import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
   buildAbortGameAction,
@@ -66,7 +65,7 @@ import {
   type RoomBottomStackModel,
   VIEW_IDENTITY_LABEL,
 } from '@/features/room/model/RoomBottomActions';
-import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import type {
   RoomHostManagementAction,
@@ -103,10 +102,8 @@ function avalonSeatLabel(state: AvalonState, seat: number): string {
 }
 
 /** 为共享资料卡控件返回公开的席位身份。 */
-const getAvalonProfileTarget = createRoomProfileTargetResolver<AvalonState>(
-  (roomCode, botSeat) => `avalon-bot:${roomCode}:${botSeat}`,
-  getBotDisplayName,
-);
+const getAvalonProfileTarget = (state: AvalonState, seat: number): RoomProfileTarget | null =>
+  getRoomProfileTarget(state.roster, seat);
 
 /**
  * 组队者徽标的阶段门：组队者只在白天组队流程中有职能（组队 / 投票 /
@@ -191,12 +188,10 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
     viewerUserId: userId,
     controlledSeat,
     isLobby: state.phase.kind === 'lobby',
-    botUserId: (seat) => `avalon-bot:${state.roomCode}:${seat}`,
-    outOfRangeError: () => 'Avalon seat out of range',
-    lockedSeatReason: '游戏进行中不能入座',
+    gameName: 'Avalon',
     resolveSecondaryLabel: (seat, player) => {
       // 对齐狼人杀：bot 座位显示身份（state.roles 是公开广播的，D6-Q1）。
-      const botRole = player?.kind === 'bot' ? state.roles[seat] : undefined;
+      const botRole = player?.occupant.kind === 'bot' ? state.roles[seat] : undefined;
       return botRole !== undefined ? getAvalonRoleDisplayName(botRole) : null;
     },
     // 逐座位已查看身份徽标（公开信息）：勾只属于查看阶段——对局开始

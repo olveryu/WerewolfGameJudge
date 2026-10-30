@@ -1,28 +1,24 @@
 /**
  * useStageDeadline - Shared stage countdown hook.
  *
- * Recomputes remaining seconds from an authoritative absolute deadline.
- * When the countdown reaches zero and `shouldExpire` is true, invokes `onExpire`
- * (single-flight per tick). Foreground clients share the expiry duty.
+ * Derives remaining seconds from an authoritative absolute deadline and
+ * the room's one clock (`useNowMs`). When the countdown reaches zero and
+ * `shouldExpire` is true, invokes `onExpire` (single-flight: a dispatch
+ * in flight is never duplicated by later ticks; a failed one is retried
+ * on the next tick). Any foreground client shares the expiry duty; the
+ * server's scheduled settle is the correctness path for games that arm
+ * one (avalon, werewolf), so this is acceleration, never authority.
  *
- * Game-specific concerns (session snapshot guards, dispatch payload) stay with
- * the caller via `shouldExpire` and `onExpire`.
- *
- * Scope (AU-27, registered divergence): this hook is the any-foreground-
- * client expiry notifier for avalon/drawguess/pictionary/storyrelay.
- * It deliberately does NOT cover werewolf's step progression:
- * useStepDeadlineCountdown is a host-only progression driver with
- * retry-until-success and engine audio-ack coupling - a different
- * duty, kept separate on purpose.
+ * Game-specific concerns (session snapshot guards, dispatch payload) stay
+ * with the caller via `shouldExpire` and `onExpire`.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
-import { useAppVisibility } from '@/features/product/hooks/useAppVisibility';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
-const DEFAULT_REFRESH_MS = 1000;
+import { NOW_MS_DEFAULT_INTERVAL_MS, useNowMs } from './useNowMs';
 
 export interface UseStageDeadlineParams {
   /** Absolute deadline timestamp (ms); null means no countdown. */
@@ -47,59 +43,60 @@ export interface UseStageDeadlineParams {
   readonly silentExpire?: boolean;
 }
 
-/**
- * Returns remaining seconds (null if no deadline).
- * Recomputes from `deadlineAt - Date.now()` on each tick to survive timer throttling.
- */
+export interface StageDeadline {
+  /** Remaining whole seconds, 0 once reached; null without a deadline. */
+  readonly remainingSeconds: number | null;
+  /** The clock the countdown is derived from, for sibling countdowns. */
+  readonly nowMs: number;
+}
+
+/** Remaining whole seconds of `deadlineAt` at `nowMs`; null without a deadline. */
+function deriveRemainingSeconds(deadlineAt: number | null, nowMs: number): number | null {
+  return deadlineAt === null ? null : Math.max(0, Math.ceil((deadlineAt - nowMs) / 1000));
+}
+
 export function useStageDeadline({
   deadlineAt,
   shouldExpire,
   onExpire,
   label,
-  refreshIntervalMs = DEFAULT_REFRESH_MS,
+  refreshIntervalMs = NOW_MS_DEFAULT_INTERVAL_MS,
   silentExpire = false,
-}: UseStageDeadlineParams): number | null {
-  const isVisible = useAppVisibility();
-  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+}: UseStageDeadlineParams): StageDeadline {
+  const nowMs = useNowMs(refreshIntervalMs, deadlineAt !== null);
+  const remainingSeconds = deriveRemainingSeconds(deadlineAt, nowMs);
+  const inFlightRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    let isRunning = false;
-    let isMounted = true;
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
-    const tick = async (): Promise<void> => {
-      const remaining =
-        deadlineAt === null ? null : Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
-      setRemainingSeconds(remaining);
-      if (remaining !== 0 || isRunning || !shouldExpire()) return;
-      isRunning = true;
-      try {
-        await onExpire();
-      } catch (error: unknown) {
-        if (isMounted && silentExpire) {
+  // Re-evaluated on every tick (nowMs) while the deadline is reached, so a
+  // failed or rejected dispatch is retried next tick and an in-flight one
+  // is never duplicated.
+  useEffect(() => {
+    if (remainingSeconds !== 0 || inFlightRef.current || !shouldExpire()) return;
+    inFlightRef.current = true;
+    void onExpire()
+      .catch((error: unknown) => {
+        if (!isMountedRef.current) return;
+        if (silentExpire) {
           roomScreenLog.warn('stage expiry dispatch failed; retrying on next tick', {
             label,
             error: error instanceof Error ? error.message : String(error),
           });
-        } else if (isMounted) {
-          handleError(error, {
-            label,
-            logger: roomScreenLog,
-            alertMessage: `${label}失败，请重试`,
-          });
+          return;
         }
-      } finally {
-        isRunning = false;
-      }
-    };
+        handleError(error, { label, logger: roomScreenLog, alertMessage: `${label}失败，请重试` });
+      })
+      .finally(() => {
+        inFlightRef.current = false;
+      });
+  }, [remainingSeconds, nowMs, shouldExpire, onExpire, label, silentExpire]);
 
-    if (!isVisible) return;
-    void tick();
-    const interval = setInterval(() => void tick(), refreshIntervalMs);
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, [deadlineAt, isVisible, shouldExpire, onExpire, label, refreshIntervalMs, silentExpire]);
-
-  return remainingSeconds;
+  return { remainingSeconds, nowMs };
 }

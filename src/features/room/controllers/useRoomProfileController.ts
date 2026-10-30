@@ -8,6 +8,7 @@ import {
   isSuccessfulRoomCommand,
 } from '@/features/room/link/roomCommandResult';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
+import { getRoomOccupantUserId } from '@/features/room/model/RoomOccupant';
 import type { DispatchOutcome } from '@/platform/realtime/types';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -43,7 +44,7 @@ function assertProfileTarget(target: RoomProfileTarget): void {
   if (!Number.isSafeInteger(target.seat) || target.seat < 0) {
     throw new Error(`Profile target seat must be a non-negative safe integer: ${target.seat}`);
   }
-  if (target.userId.length === 0) {
+  if (target.occupant.kind === 'human' && target.occupant.userId.length === 0) {
     throw new Error('Profile target userId must be non-empty');
   }
   if (target.rosterName.length === 0) {
@@ -117,7 +118,7 @@ export function useRoomProfileController<TState extends BaseGameState<string>>({
       if (target.seat !== seat) {
         throw new Error(`Profile target seat ${target.seat} does not match kick seat ${seat}`);
       }
-      if (target.userId === myUserId) {
+      if (getRoomOccupantUserId(target.occupant) === myUserId) {
         throw new Error('Cannot kick the current user through the profile controller');
       }
       submit({ kind: 'kick', seat, label: '移出' }, () => kickSeat(seat));
@@ -128,15 +129,17 @@ export function useRoomProfileController<TState extends BaseGameState<string>>({
   const leaveSelf = useCallback(() => {
     if (target === null)
       throw new Error('Cannot leave a seat from a room profile when none is open');
-    if (target.userId !== myUserId) {
-      throw new Error(`Profile target ${target.userId} is not the current user`);
+    if (getRoomOccupantUserId(target.occupant) !== myUserId) {
+      throw new Error(`Profile target at seat ${target.seat} is not the current user`);
     }
     submit({ kind: 'leave', seat: target.seat, label: '离座' }, leaveSeat);
   }, [leaveSeat, myUserId, submit, target]);
 
   const selection = useMemo(
     (): RoomProfileSelection | null =>
-      target === null ? null : { target, isSelf: target.userId === myUserId },
+      target === null
+        ? null
+        : { target, isSelf: getRoomOccupantUserId(target.occupant) === myUserId },
     [myUserId, target],
   );
 

@@ -1,16 +1,13 @@
 /**
  * The one derivation from a roster seat to its public profile target.
  *
- * The six roster games (avalon, drawguess, fibking, pictionary,
- * storyrelay, undercover) each wrote this verbatim: a human occupant
- * contributes its own userId and profile display name; a bot occupant
- * has no identity in the roster, so the game synthesizes one from the
- * seat through its own botUserId / botDisplayName functions (the id
- * formats stay game-owned and are not unified here). Werewolf builds
- * its target from a LocalPlayer in its interaction dispatcher — a
- * different source model, so it does not use this function.
+ * A human occupant contributes its user id and profile display name; a
+ * bot occupant has no identity in the roster, so its target is the seat
+ * itself with the shared bot display name. Every roster game calls this
+ * with its engine roster; the werewolf rebuild reads the same roster.
  */
 
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import type { RoomSeatProfile } from '@game-judge/game-engine/platform/room/roster';
 
 import type { RoomProfileTarget } from './RoomCapabilities';
@@ -32,52 +29,19 @@ function isBotOccupant(occupant: RoomProfileTargetOccupant): occupant is RoomPro
   return 'kind' in occupant && occupant.kind === 'bot';
 }
 
-/** The state shape the resolver factory binds: a roster plus its room code. */
-export interface RoomProfileTargetState {
-  readonly roster: Readonly<Record<number, RoomProfileTargetOccupant | null | undefined>>;
-  readonly roomCode: string;
-}
-
-/**
- * Bind the shared derivation to one game's state and bot identity format.
- * The bot id format stays game-owned (see the module header); the factory
- * owns only the binding, so each game's adapter keeps a one-line resolver
- * instead of a hand-written forwarding function.
- */
-export function createRoomProfileTargetResolver<TState extends RoomProfileTargetState>(
-  botUserId: (roomCode: string, seat: number) => string,
-  botDisplayName: (seat: number) => string,
-): (state: TState, seat: number) => RoomProfileTarget | null {
-  return (state, seat) =>
-    getRoomProfileTarget(
-      state.roster,
-      seat,
-      (botSeat) => botUserId(state.roomCode, botSeat),
-      botDisplayName,
-    );
-}
-
 /** Resolve only public roster identity for the shared profile controls. */
 export function getRoomProfileTarget(
   roster: Readonly<Record<number, RoomProfileTargetOccupant | null | undefined>>,
   seat: number,
-  botUserId: (seat: number) => string,
-  botDisplayName: (seat: number) => string,
 ): RoomProfileTarget | null {
   const occupant = roster[seat];
-  if (occupant != null && !isBotOccupant(occupant))
-    return {
-      seat,
-      userId: occupant.userId,
-      occupantKind: 'human',
-      rosterName: occupant.profile.displayName,
-    };
-  return occupant != null && isBotOccupant(occupant)
-    ? {
-        seat,
-        userId: botUserId(seat),
-        occupantKind: 'bot',
-        rosterName: botDisplayName(seat),
-      }
-    : null;
+  if (occupant == null) return null;
+  if (isBotOccupant(occupant)) {
+    return { seat, occupant: { kind: 'bot', seat }, rosterName: getBotDisplayName(seat) };
+  }
+  return {
+    seat,
+    occupant: { kind: 'human', userId: occupant.userId },
+    rosterName: occupant.profile.displayName,
+  };
 }

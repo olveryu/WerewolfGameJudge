@@ -130,7 +130,7 @@ export interface RoomSeatTileProps {
   highlight: RoomSeatHighlight;
   isBot: boolean;
   // Player info (null if empty seat)
-  playerUserId: string | null;
+  playerAvatarSeed: string | null;
   /** Human seat whose user has no open room socket (per PRESENCE); bots and empty seats are false. */
   isPlayerOffline: boolean;
   playerAvatarUrl?: string;
@@ -178,7 +178,7 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
   isMySpot,
   highlight,
   isBot,
-  playerUserId,
+  playerAvatarSeed,
   isPlayerOffline,
   playerAvatarUrl,
   playerAvatarFrame,
@@ -211,7 +211,7 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
     onLongPress?.(seat);
   }, [onLongPress, seat]);
 
-  const hasPlayer = playerUserId !== null;
+  const hasPlayer = playerAvatarSeed !== null;
 
   // Track previous hasPlayer state for enter/leave animations
   const prevHasPlayerRef = useRef<boolean | null>(null);
@@ -446,7 +446,7 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
                 onActiveChange={handleAnimActiveChange}
               >
                 <Avatar
-                  value={playerUserId}
+                  value={playerAvatarSeed}
                   size={avatarSize}
                   avatarUrl={playerAvatarUrl}
                   borderRadius={avatarRadius}
@@ -464,7 +464,7 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
           ) : hasPlayer ? (
             <Animated.View style={[styles.avatarContainer, avatarAnimatedStyle]}>
               <AvatarWithFrame
-                value={playerUserId}
+                value={playerAvatarSeed}
                 size={avatarSize}
                 avatarUrl={playerAvatarUrl}
                 borderRadius={avatarRadius}

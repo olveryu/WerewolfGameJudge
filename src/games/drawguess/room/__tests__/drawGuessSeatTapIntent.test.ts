@@ -59,7 +59,10 @@ describe('getDrawGuessSeatTapIntent', () => {
     const intent = getDrawGuessSeatTapIntent({ state, seat: 0, currentSeat: null });
     expect(intent.kind).toBe('profile');
     if (intent.kind === 'profile') {
-      expect(intent.target).toMatchObject({ seat: 0, userId: 'host', occupantKind: 'human' });
+      expect(intent.target).toMatchObject({
+        seat: 0,
+        occupant: { kind: 'human', userId: 'host' },
+      });
     }
   });
 

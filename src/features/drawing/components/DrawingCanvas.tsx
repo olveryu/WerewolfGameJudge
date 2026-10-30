@@ -21,7 +21,7 @@ import type {
 const CANONICAL_CANVAS_WIDTH = 1024;
 const MIN_POINT_DISTANCE_SQUARED = 0.000_001;
 
-interface DrawingCanvasProps {
+export interface DrawingCanvasProps {
   readonly elements: readonly DrawingElement[];
   readonly tool: DrawingTool;
   readonly color: DrawingColor;
@@ -45,6 +45,15 @@ interface DrawingCanvasProps {
   /** Accessibility label. */
   readonly accessibilityLabel: string;
 }
+
+/**
+ * The props a game's canvas wrapper forwards unchanged: everything except
+ * the game-owned constants (path creator, background, name, test ids).
+ */
+export type DrawingCanvasGameProps = Omit<
+  DrawingCanvasProps,
+  'createElementPath' | 'canvasBackground' | 'gameName' | 'testID' | 'accessibilityLabel'
+>;
 
 interface CanvasSize {
   readonly width: number;

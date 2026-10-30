@@ -7,6 +7,7 @@ import { Modal } from '@/components/AppModal';
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/Button';
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
+import { getRoomOccupantAvatarSeed } from '@/features/room/model/RoomOccupant';
 import type { RoomSeatPlayer } from '@/features/room/model/RoomSeatDataSource';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import { colors, spacing } from '@/theme';
@@ -58,7 +59,7 @@ export function UndercoverRevealModal({
           >
             <View style={styles.revealIdentity}>
               <Avatar
-                value={player.userId}
+                value={getRoomOccupantAvatarSeed(player.occupant)}
                 avatarUrl={player.avatarUrl}
                 size={componentSizes.avatar.lg}
               />

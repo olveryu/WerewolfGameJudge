@@ -6,7 +6,6 @@ import {
   type StoryRelayCommand,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
@@ -18,7 +17,7 @@ import {
   createRoomShellModel,
   type RoomShellModelInput,
 } from '@/features/room/model/createRoomShellModel';
-import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildAbortGameAction,
   buildClearSeatsAction,
@@ -37,7 +36,7 @@ import {
 } from '@/features/room/model/hostManagementActions';
 import type { NightStepProgress } from '@/features/room/model/nightProgress';
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
-import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
 import type {
@@ -49,10 +48,10 @@ import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 /** Returns a public occupant identity for shared profile controls. */
-const getStoryRelayProfileTarget = createRoomProfileTargetResolver<StoryRelayState>(
-  (roomCode, botSeat) => `storyrelay-bot:${roomCode}:${botSeat}`,
-  getBotDisplayName,
-);
+const getStoryRelayProfileTarget = (
+  state: StoryRelayState,
+  seat: number,
+): RoomProfileTarget | null => getRoomProfileTarget(state.roster, seat);
 
 /** Creates the shared seat-board source including public readiness and receipt status. */
 export interface StoryRelaySeatSourceInput {
@@ -76,9 +75,7 @@ function createStoryRelaySeatDataSource(input: StoryRelaySeatSourceInput): RoomS
     viewerUserId: userId,
     controlledSeat,
     isLobby: state.phase === 'lobby',
-    botUserId: (seat) => `storyrelay-bot:${state.roomCode}:${seat}`,
-    outOfRangeError: () => 'Story Relay seat out of range',
-    lockedSeatReason: '游戏进行中不能入座',
+    gameName: 'StoryRelay',
     resolveStatusBadge: (seat, player) => {
       const task = getStoryRelayTaskForSeat(state, seat);
       const statusBadge: RoomSeatStatusBadge | null =

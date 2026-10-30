@@ -7,7 +7,6 @@ import {
   type DrawGuessState,
   getDrawGuessOccupiedSeatCount,
 } from '@game-judge/game-engine/games/drawguess/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
@@ -19,7 +18,7 @@ import {
   createRoomShellModel,
   type RoomShellModelInput,
 } from '@/features/room/model/createRoomShellModel';
-import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildAbortGameAction,
   buildClearSeatsAction,
@@ -36,7 +35,7 @@ import {
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
-import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
@@ -45,10 +44,8 @@ import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
-const getDrawGuessProfileTarget = createRoomProfileTargetResolver<DrawGuessState>(
-  (roomCode, botSeat) => `drawguess-bot:${roomCode}:${botSeat}`,
-  getBotDisplayName,
-);
+const getDrawGuessProfileTarget = (state: DrawGuessState, seat: number): RoomProfileTarget | null =>
+  getRoomProfileTarget(state.roster, seat);
 
 function drawerStatusLabel(state: DrawGuessState, seat: number): string | null {
   const phase = state.phase;
@@ -78,9 +75,7 @@ function createDrawGuessSeatDataSource(input: DrawGuessSeatSourceInput): RoomSea
     viewerUserId: userId,
     controlledSeat,
     isLobby: state.phase.kind === 'lobby',
-    botUserId: (seat) => `drawguess-bot:${state.roomCode}:${seat}`,
-    outOfRangeError: () => 'DrawGuess seat out of range',
-    lockedSeatReason: '游戏进行中不能入座',
+    gameName: 'DrawGuess',
     resolveStatusBadge: (seat) => {
       const statusLabel = drawerStatusLabel(state, seat);
       return statusLabel === null

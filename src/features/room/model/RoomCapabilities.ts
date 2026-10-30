@@ -1,5 +1,7 @@
 /** Executable room permissions derived by each game adapter. */
 
+import type { RoomOccupant } from './RoomOccupant';
+
 export type RoomCapability<TArgs extends readonly unknown[] = readonly [], TResult = void> =
   | {
       readonly isAllowed: false;
@@ -12,8 +14,7 @@ export type RoomCapability<TArgs extends readonly unknown[] = readonly [], TResu
 
 export interface RoomProfileTarget {
   readonly seat: number;
-  readonly userId: string;
-  readonly occupantKind: 'human' | 'bot';
+  readonly occupant: RoomOccupant;
   readonly rosterName: string;
 }
 

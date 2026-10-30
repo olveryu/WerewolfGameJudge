@@ -15,7 +15,6 @@ import {
   type __GAME_PASCAL__Command,
   type __GAME_PASCAL__State,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
@@ -24,7 +23,7 @@ import { createControlledSeatModel } from '@/features/room/model/createControlle
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
-import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
 //#cap identityViewing
   allViewedConfirmBody,
@@ -64,7 +63,7 @@ import {
   buildEndedWaitingMessage,
   buildLobbyHostStartMessage,
 } from '@/features/room/model/RoomBottomActions';
-import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type {
   RoomHostManagementAction,
   RoomHostManagementModel,
@@ -78,10 +77,10 @@ import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
-const get__GAME_PASCAL__ProfileTarget = createRoomProfileTargetResolver<__GAME_PASCAL__State>(
-  (roomCode, botSeat) => `__GAME_ID__-bot:${roomCode}:${botSeat}`,
-  getBotDisplayName,
-);
+const get__GAME_PASCAL__ProfileTarget = (
+  state: __GAME_PASCAL__State,
+  seat: number,
+): RoomProfileTarget | null => getRoomProfileTarget(state.roster, seat);
 
 export interface __GAME_PASCAL__SeatSourceInput {
   readonly state: __GAME_PASCAL__State;
@@ -104,9 +103,7 @@ function create__GAME_PASCAL__SeatDataSource(
     viewerUserId: userId,
     controlledSeat,
     isLobby: state.phase.kind === 'lobby',
-    botUserId: (seat) => `__GAME_ID__-bot:${state.roomCode}:${seat}`,
-    outOfRangeError: () => '__GAME_PASCAL__ seat out of range',
-    lockedSeatReason: '游戏进行中不能入座',
+    gameName: '__GAME_PASCAL__',
 //#cap identityViewing
     // 已查看勾只属于查看阶段（展示契约）：开始即消失。
     resolveShowReadyBadge: (seat) =>

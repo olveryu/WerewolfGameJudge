@@ -40,6 +40,10 @@ import { useUserProfileQuery } from '@/features/account/queries/useUserProfileQu
 import type { UserPublicProfile } from '@/features/account/services/accountApi';
 import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
 import type { ClientProductUi } from '@/features/product/model/ClientProductUi';
+import {
+  getRoomOccupantAvatarSeed,
+  getRoomOccupantUserId,
+} from '@/features/room/model/RoomOccupant';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { type RootStackParamList } from '@/navigation/types';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
@@ -311,16 +315,12 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
   const queryClient = useQueryClient();
   const productUi = useClientProductUi();
   const { target } = model;
-  const isBot = target.occupantKind === 'bot';
+  const isBot = target.occupant.kind === 'bot';
+  const humanUserId = getRoomOccupantUserId(target.occupant);
+  const avatarSeed = getRoomOccupantAvatarSeed(target.occupant);
 
-  // Fetch user public profile (shared cache via TanStack Query)
-  const {
-    data: profile,
-    isLoading: loading,
-    isError: error,
-  } = useUserProfileQuery(target.userId, {
-    enabled: !isBot,
-  });
+  // Fetch user public profile (shared cache via TanStack Query); a bot has no profile.
+  const { data: profile, isLoading: loading, isError: error } = useUserProfileQuery(humanUserId);
 
   const handleKick = useCallback(() => {
     if (model.onKick === null) throw new Error('Profile kick action is not available');
@@ -333,13 +333,14 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
   }, [model]);
 
   const handleViewUnlocks = useCallback(() => {
+    if (humanUserId === null) throw new Error('Unlocks are only viewable for a human occupant');
     model.onClose();
-    void queryClient.prefetchQuery(userUnlocksOptions(target.userId));
+    void queryClient.prefetchQuery(userUnlocksOptions(humanUserId));
     navigation.navigate('Unlocks', {
-      userId: target.userId,
+      userId: humanUserId,
       displayName: profile?.displayName,
     });
-  }, [model, navigation, profile?.displayName, queryClient, target.userId]);
+  }, [humanUserId, model, navigation, profile?.displayName, queryClient]);
 
   const xpProgress = useMemo(() => (profile ? getLevelProgress(profile.xp) : 0), [profile]);
 
@@ -395,7 +396,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
             </View>
             <View style={styles.avatarSection}>
               <View style={styles.avatarContainer}>
-                <Avatar value={target.userId} size={AVATAR_SIZE} borderRadius={AVATAR_SIZE / 2} />
+                <Avatar value={avatarSeed} size={AVATAR_SIZE} borderRadius={AVATAR_SIZE / 2} />
               </View>
             </View>
             <Text style={styles.displayName} numberOfLines={1}>
@@ -425,7 +426,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
             <View style={styles.avatarSection}>
               <View style={styles.avatarContainer}>
                 <AvatarWithFrame
-                  value={target.userId}
+                  value={avatarSeed}
                   size={AVATAR_SIZE}
                   avatarUrl={profile.avatarUrl}
                   frameId={profile.avatarFrame}

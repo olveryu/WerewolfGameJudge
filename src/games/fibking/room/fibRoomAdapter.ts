@@ -3,13 +3,11 @@
 import {
   type FibRole,
   type FibState,
-  getFibBotUserId,
   getFibOccupiedSeatCount,
   getFibRole,
   getFibViewingParticipants,
   isFibRoomFull,
 } from '@game-judge/game-engine/games/fibking/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
@@ -17,7 +15,7 @@ import {
   createRoomShellModel,
   type RoomShellModelInput,
 } from '@/features/room/model/createRoomShellModel';
-import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
   buildAbortGameAction,
@@ -124,10 +122,8 @@ export function createFibRoomCapabilities(input: FibCapabilitiesInput): RoomCapa
   };
 }
 
-export const getFibProfileTarget = createRoomProfileTargetResolver<FibState>(
-  getFibBotUserId,
-  getBotDisplayName,
-);
+export const getFibProfileTarget = (state: FibState, seat: number): RoomProfileTarget | null =>
+  getRoomProfileTarget(state.roster, seat);
 
 /** Project Fib sparse seating into the shared room seat-tap contract. */
 export const getFibSeatTapIntent = createRoomSeatTapIntentResolver(getFibProfileTarget);
@@ -172,9 +168,7 @@ export function createFibSeatDataSource(input: FibSeatSourceInput): RoomSeatData
     viewerUserId: input.myUserId,
     controlledSeat: input.controlledSeat,
     isLobby: state.phase === 'lobby',
-    botUserId: (seat) => getFibBotUserId(state.roomCode, seat),
-    outOfRangeError: (seat) => `Fib seat source index is out of range: ${seat}`,
-    lockedSeatReason: '当前阶段座位已锁定',
+    gameName: 'Fib',
     resolveSecondaryLabel: (seat, player) =>
       player === null ? null : getSeatRoleLabel(state, seat),
     // Per-seat viewed badge (public record): the check belongs to the

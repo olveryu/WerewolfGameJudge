@@ -1,21 +1,19 @@
 /** Pictionary-owned derivation of game-neutral RoomShell models. */
 
 import {
-  getPictionaryBotUserId,
   getPictionaryOccupiedSeatCount,
   getPictionaryRelayStepCount,
   getPictionaryTaskForSeat,
   isPictionaryRoomFull,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
 import {
   createRoomShellModel,
   type RoomShellModelInput,
 } from '@/features/room/model/createRoomShellModel';
-import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildAbortGameAction,
   buildClearSeatsAction,
@@ -135,18 +133,16 @@ export function createPictionarySeatDataSource(
     viewerUserId: input.myUserId,
     controlledSeat: input.controlledSeat,
     isLobby: state.phase === 'lobby',
-    botUserId: (seat) => getPictionaryBotUserId(state.roomCode, seat),
-    outOfRangeError: (seat) => `Pictionary seat source index is out of range: ${seat}`,
-    lockedSeatReason: '游戏进行中不能入座',
+    gameName: 'Pictionary',
     resolveStatusBadge: (seat, player) =>
       player === null ? null : getPictionarySeatStatus(state, seat),
   });
 }
 
-const getPictionaryProfileTarget = createRoomProfileTargetResolver<PictionaryState>(
-  getPictionaryBotUserId,
-  getBotDisplayName,
-);
+const getPictionaryProfileTarget = (
+  state: PictionaryState,
+  seat: number,
+): RoomProfileTarget | null => getRoomProfileTarget(state.roster, seat);
 
 export const getPictionarySeatTapIntent = createRoomSeatTapIntentResolver(
   getPictionaryProfileTarget,

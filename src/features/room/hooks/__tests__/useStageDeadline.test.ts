@@ -72,7 +72,7 @@ describe('useStageDeadline', () => {
         label: '推进阶段',
       }),
     );
-    expect(result.current).toBeNull();
+    expect(result.current.remainingSeconds).toBeNull();
   });
 });
 
@@ -119,9 +119,11 @@ describe('useStageDeadline silentExpire (AU-26)', () => {
         refreshIntervalMs: 250,
       }),
     );
+    // One attempt (the mount tick) → one alert; the next tick would retry.
     await act(async () => {
-      jest.advanceTimersByTime(250);
+      jest.advanceTimersByTime(100);
     });
+    expect(onExpire).toHaveBeenCalledTimes(1);
     expect(handleError).toHaveBeenCalledTimes(1);
   });
 });

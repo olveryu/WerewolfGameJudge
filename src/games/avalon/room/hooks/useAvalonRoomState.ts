@@ -264,7 +264,7 @@ export function useAvalonRoomState(
       current.room.state.phaseRevision === state.phaseRevision
     );
   }, [phaseDeadlineAt, controlledSeat, session, state.phaseRevision]);
-  const phaseRemainingSeconds = useStageDeadline({
+  const { remainingSeconds: phaseRemainingSeconds } = useStageDeadline({
     deadlineAt: phaseDeadlineAt,
     shouldExpire: shouldExpirePhase,
     onExpire: expirePhase,
@@ -283,18 +283,16 @@ export function useAvalonRoomState(
     ...setupCapabilities,
     canTakeOverBots: createBotTakeoverCapability(canControlBots, takeOver),
   };
-  const onRoomSeatPress = createRoomSeatPressHandler({
+  // 游戏进行中的座位点选（组队 / 刺杀选人）先交给当前登记的选人处理器。
+  const onSeatPress = createRoomSeatPressHandler({
     isSetup: isLobby,
+    inGameAction: (seat) => seatPickHandlerRef.current?.(seat) === true,
     state,
     currentSeat: mySeat,
     resolveIntent: getAvalonSeatTapIntent,
     profile,
     seatController,
   });
-  const onSeatPress = (seat: number, disabledReason?: string) => {
-    if (seatPickHandlerRef.current?.(seat) === true) return;
-    onRoomSeatPress(seat, disabledReason);
-  };
   // 长按机器人座位接管/释放：用共享 hook。
   const onBotSeatLongPress = useBotTakeoverLongPress({
     controlledSeat,

@@ -56,11 +56,11 @@ describe('room hook interfaces — drawguess (P-2b batch 2)', () => {
     const hook = readSource('games/drawguess/room/hooks/useDrawGuessRoomState.ts');
     expect(hook).toMatch(/getDrawGuessViewModel\(state, effectiveSeat, nowMs\)/);
     expect(hook).toMatch(/useStageDeadline\(\{/);
-    expect(hook).toMatch(/useDrawGuessNowMs\(!isLobby\)/);
+    expect(hook).toMatch(/useNowMs\(NOW_MS_DEFAULT_INTERVAL_MS, !isLobby\)/);
     const screen = readSource('games/drawguess/room/DrawGuessRoomScreen.tsx');
     expect(screen).not.toMatch(/getDrawGuessViewModel/);
     expect(screen).not.toMatch(/useStageDeadline/);
-    expect(screen).not.toMatch(/useDrawGuessNowMs/);
+    expect(screen).not.toMatch(/useNowMs/);
     expect(screen).toMatch(/screen\.viewModel|viewModel, remainingSeconds/);
   });
 });
