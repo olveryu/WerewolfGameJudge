@@ -10,6 +10,13 @@ import { showErrorAlert } from '@/utils/alertPresets';
 
 interface RoomSeatPressHandlerParams<TState, TTarget> {
   readonly isSetup: boolean;
+  /**
+   * The game's in-game seat interaction (a pick, a vote target, a night
+   * action): consulted first after setup; returning true means the tap
+   * was consumed. Otherwise the shared in-game outcome applies (the
+   * disabled-reason alert, or nothing).
+   */
+  readonly inGameAction?: (seat: number) => boolean;
   readonly state: TState;
   readonly currentSeat: number | null;
   readonly resolveIntent: (input: RoomSeatTapResolverInput<TState>) => RoomSeatTapIntent<TTarget>;
@@ -29,6 +36,7 @@ export function createRoomSeatPressHandler<TState, TTarget>(
 ): (seat: number, disabledReason?: string) => void {
   return (seat, disabledReason) => {
     if (!params.isSetup) {
+      if (params.inGameAction?.(seat) === true) return;
       const outcome = resolveRoomInGameSeatTap(disabledReason);
       if (outcome.kind === 'alert') {
         showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, outcome.reason);

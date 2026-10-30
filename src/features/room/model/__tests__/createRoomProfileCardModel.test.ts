@@ -3,11 +3,11 @@ import { createRoomProfileCardModel } from '../createRoomProfileCardModel';
 import type { RoomCapabilities } from '../RoomCapabilities';
 
 const OTHER: RoomProfileSelection = {
-  target: { seat: 2, userId: 'guest', rosterName: '客人', occupantKind: 'human' },
+  target: { seat: 2, occupant: { kind: 'human', userId: 'guest' }, rosterName: '客人' },
   isSelf: false,
 };
 const SELF: RoomProfileSelection = {
-  target: { seat: 0, userId: 'me', rosterName: '我', occupantKind: 'human' },
+  target: { seat: 0, occupant: { kind: 'human', userId: 'me' }, rosterName: '我' },
   isSelf: true,
 };
 

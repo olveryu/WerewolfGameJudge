@@ -100,8 +100,7 @@ describe('createViewProfilesCapability', () => {
     const capability = createViewProfilesCapability(true, openProfile);
     const target: RoomProfileTarget = {
       seat: 1,
-      userId: 'user-1',
-      occupantKind: 'human',
+      occupant: { kind: 'human', userId: 'user-1' },
       rosterName: '甲',
     };
 

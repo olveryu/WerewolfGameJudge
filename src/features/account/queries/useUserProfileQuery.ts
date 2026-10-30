@@ -4,11 +4,11 @@ import { userProfileOptions } from './accountQueryOptions';
 
 /**
  * useUserProfileQuery — public profile for a given user.
- * `enabled` defaults to requiring a non-empty userId.
+ * A null userId (no human to look up, e.g. a bot occupant) disables the query.
  */
-export function useUserProfileQuery(userId: string, options?: { enabled?: boolean }) {
+export function useUserProfileQuery(userId: string | null, options?: { enabled?: boolean }) {
   return useQuery({
-    ...userProfileOptions(userId),
-    enabled: !!userId && (options?.enabled ?? true),
+    ...userProfileOptions(userId ?? ''),
+    enabled: userId !== null && userId.length > 0 && (options?.enabled ?? true),
   });
 }

@@ -131,8 +131,7 @@ describe('RoomSeatBoard', () => {
       getSeat: (seat) => ({
         ...emptySeat(seat),
         player: {
-          kind: seat === 0 ? 'human' : 'bot',
-          userId: `user-${seat}`,
+          occupant: seat === 0 ? { kind: 'human', userId: `user-${seat}` } : { kind: 'bot', seat },
           displayName: `玩家${seat + 1}`,
           isAnonymous: true,
         },
@@ -248,11 +247,11 @@ describe('RoomSeatBoard', () => {
   it('derives the offline dot from link presence for human seats only', async () => {
     const human = (seat: number, userId: string): RoomSeatViewModel => ({
       ...emptySeat(seat),
-      player: { kind: 'human', userId, displayName: userId, isAnonymous: false },
+      player: { occupant: { kind: 'human', userId }, displayName: userId, isAnonymous: false },
     });
     const bot = (seat: number): RoomSeatViewModel => ({
       ...emptySeat(seat),
-      player: { kind: 'bot', userId: `bot-${seat}`, displayName: '机器人', isAnonymous: false },
+      player: { occupant: { kind: 'bot', seat }, displayName: '机器人', isAnonymous: false },
     });
     const seats = [human(0, 'online-user'), human(1, 'offline-user'), bot(2), emptySeat(3)];
     const source: RoomSeatDataSource = {

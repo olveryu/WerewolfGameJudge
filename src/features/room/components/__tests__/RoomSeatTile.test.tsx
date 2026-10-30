@@ -14,7 +14,7 @@ function createProps(overrides: Partial<RoomSeatTileProps> = {}): RoomSeatTilePr
     isMySpot: false,
     highlight: 'none',
     isBot: false,
-    playerUserId: 'user-1',
+    playerAvatarSeed: 'user-1',
     isPlayerOffline: false,
     playerDisplayName: '玩家一',
     isPlayerAnonymous: true,
@@ -156,7 +156,7 @@ describe('RoomSeatTile', () => {
     expect(online.queryByTestId('seat-offline-dot-0')).toBeNull();
 
     const empty = render(
-      <RoomSeatTile {...createProps({ playerUserId: null, isPlayerOffline: true })} />,
+      <RoomSeatTile {...createProps({ playerAvatarSeed: null, isPlayerOffline: true })} />,
     );
     expect(empty.queryByTestId('seat-offline-dot-0')).toBeNull();
   });

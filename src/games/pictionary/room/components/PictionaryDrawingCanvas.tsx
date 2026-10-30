@@ -2,31 +2,16 @@
 
 import type React from 'react';
 
-import { DrawingCanvas } from '@/features/drawing/components/DrawingCanvas';
-import type {
-  DrawingColor,
-  DrawingElement,
-  DrawingPoint,
-  DrawingTool,
-  DrawingWidth,
-} from '@/features/drawing/model/drawing';
+import {
+  DrawingCanvas,
+  type DrawingCanvasGameProps,
+} from '@/features/drawing/components/DrawingCanvas';
 import { TESTIDS } from '@/testids';
 import { PICTIONARY_CANVAS_BACKGROUND } from '@/theme';
 
 import { createPictionaryElementPath } from '../../services/renderPictionaryDrawing';
 
-interface PictionaryDrawingCanvasProps {
-  readonly elements: readonly DrawingElement[];
-  readonly tool: DrawingTool;
-  readonly color: DrawingColor;
-  readonly strokeWidth: DrawingWidth;
-  readonly isEnabled: boolean;
-  readonly onElementChange: (element: DrawingElement) => void;
-  readonly onElementComplete: (element: DrawingElement) => void;
-  readonly onFill: (point: DrawingPoint) => void;
-}
-
-export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (props) => (
+export const PictionaryDrawingCanvas: React.FC<DrawingCanvasGameProps> = (props) => (
   <DrawingCanvas
     {...props}
     createElementPath={createPictionaryElementPath}

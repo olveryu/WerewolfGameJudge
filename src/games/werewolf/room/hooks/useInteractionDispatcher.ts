@@ -368,8 +368,9 @@ export function useInteractionDispatcher({
           });
           capabilities.canViewProfiles.execute({
             seat: result.seat,
-            userId: result.targetUserId,
-            occupantKind: targetPlayer.isBot ? 'bot' : 'human',
+            occupant: targetPlayer.isBot
+              ? { kind: 'bot', seat: result.seat }
+              : { kind: 'human', userId: result.targetUserId },
             rosterName: targetPlayer.displayName ?? '匿名玩家',
           });
           return;

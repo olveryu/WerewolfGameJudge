@@ -163,7 +163,7 @@ describe('werewolfRoomAdapter', () => {
     expect(source.getSeat(0)).toMatchObject({
       highlight: 'selected',
       secondaryLabel: '预言家',
-      player: { kind: 'bot' },
+      player: { occupant: { kind: 'bot', seat: 0 } },
     });
     expect(() => source.getSeat(1)).toThrow('Werewolf seat source is not contiguous');
   });

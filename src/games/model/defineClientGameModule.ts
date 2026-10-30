@@ -8,9 +8,10 @@
  * defaults (empty account stats section, no product UI, no app overlay).
  * A game declares only its own data — codec, home, navigation, screens,
  * predicates — plus, for games with a room audio runtime, an `audio` block
- * whose room screen also receives the audio instance. Games with a custom
- * client runtime instead of a bare session (Werewolf) do not use this
- * factory.
+ * whose room screen also receives the audio instance, and optional
+ * `extras` for the contributions most games leave at their defaults
+ * (product UI, account stats section, app overlay, notepad screen); the
+ * session-bound extras receive the room session like the room screen.
  *
  * The public signature is generic over the game's command type so each
  * game's screens keep their precise session type. The implementation works
@@ -33,8 +34,8 @@ import type { GameHomeContribution } from '@/features/home/model/GameHomeContrib
 import {
   bindGameNavigation,
   type GameNavigationDefinition,
+  type GameNavigationRouteDefinition,
   type SupportedGameNavigationRoute,
-  type UnsupportedGameNavigationRoute,
 } from '@/features/navigation/model/GameNavigationContribution';
 import type { GameAudioPreviewContribution } from '@/features/product/model/GameAudioPreview';
 import type { GameProductUiContribution } from '@/features/product/model/GameProductUi';
@@ -63,11 +64,16 @@ interface ClientGameModuleDefinitionBase<
   readonly gameType: TGameType;
   readonly stateCodec: GameStateCodec<TState>;
   readonly home: GameHomeContribution;
+  /**
+   * Config and guide are always screens; the notepad route is a screen
+   * only when `extras.navigationScreens.notepad` binds one (bindRoute
+   * fails fast on a declared screen with no binding, or the reverse).
+   */
   readonly navigation: GameNavigationDefinition<
     TGameType,
     SupportedGameNavigationRoute,
     SupportedGameNavigationRoute,
-    UnsupportedGameNavigationRoute
+    GameNavigationRouteDefinition
   >;
   readonly GuideScreen: React.ComponentType;
   readonly isUserSeated: (state: TState, userId: string) => boolean;
@@ -85,12 +91,41 @@ interface ClientGameModuleConfigDefinition<
   ) => React.ComponentType<{ readonly session: RoomLink<TState, TCommand> }>;
 }
 
+/** Session-bound screen: receives the room session like the room screen. */
+type SessionScreen<
+  TState extends BaseGameState<string>,
+  TCommand extends object,
+> = React.ComponentType<{ readonly session: RoomLink<TState, TCommand> }>;
+
+/** Contributions most games leave at the shared defaults. */
+export interface ClientGameModuleExtras<
+  TState extends BaseGameState<string>,
+  TCommand extends object,
+> {
+  readonly productUi?: GameProductUiContribution;
+  readonly accountStatsSection?: React.ComponentType<{ readonly userId: string }>;
+  /** App-wide overlay mounted outside the room (e.g. XP toasts); session-bound. */
+  readonly appOverlay?: SessionScreen<TState, TCommand>;
+  readonly navigationScreens?: {
+    /** Notepad route screen; the navigation definition must declare the route as a screen. */
+    readonly notepad?: SessionScreen<TState, TCommand>;
+  };
+}
+
+interface ClientGameModuleExtrasDefinition<
+  TState extends BaseGameState<string>,
+  TCommand extends object,
+> {
+  readonly extras?: ClientGameModuleExtras<TState, TCommand>;
+}
+
 export type ClientGameModuleDefinition<
   TGameType extends GameType,
   TState extends BaseGameState<TGameType>,
   TCommand extends object,
   TAudio = undefined,
 > = ClientGameModuleConfigDefinition<TGameType, TState, TCommand> &
+  ClientGameModuleExtrasDefinition<TState, TCommand> &
   (
     | (ClientGameModuleDefinitionBase<TGameType, TState> & {
         readonly RoomScreen: React.ComponentType<
@@ -148,6 +183,21 @@ function buildClientGameModule<
     function BoundConfigScreen() {
       return createElement(ConfigScreen, { session });
     }
+    const extras = definition.extras ?? {};
+    const NotepadScreen = extras.navigationScreens?.notepad;
+    function BoundNotepadScreen() {
+      if (NotepadScreen === undefined) {
+        throw new Error(`[FAIL-FAST] ${definition.gameType} notepad screen is not bound`);
+      }
+      return createElement(NotepadScreen, { session });
+    }
+    const AppOverlay = extras.appOverlay;
+    function BoundAppOverlay() {
+      if (AppOverlay === undefined) {
+        throw new Error(`[FAIL-FAST] ${definition.gameType} app overlay is not bound`);
+      }
+      return createElement(AppOverlay, { session });
+    }
 
     const shared = {
       gameType: definition.gameType,
@@ -155,11 +205,12 @@ function buildClientGameModule<
       navigation: bindGameNavigation(definition.navigation, {
         config: BoundConfigScreen,
         guide: definition.GuideScreen,
+        ...(NotepadScreen === undefined ? {} : { notepad: BoundNotepadScreen }),
       }),
       roomAccount,
-      productUi: EMPTY_PRODUCT_UI,
-      accountStatsSection: EmptyAccountStatsSection,
-      appOverlay: null,
+      productUi: extras.productUi ?? EMPTY_PRODUCT_UI,
+      accountStatsSection: extras.accountStatsSection ?? EmptyAccountStatsSection,
+      appOverlay: AppOverlay === undefined ? null : BoundAppOverlay,
     };
 
     if (definition.audio !== undefined) {

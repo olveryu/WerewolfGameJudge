@@ -44,8 +44,7 @@ function createModel(overrides: Partial<RoomProfileCardModel> = {}): RoomProfile
   return {
     target: {
       seat: 2,
-      userId: 'bot-2',
-      occupantKind: 'bot',
+      occupant: { kind: 'bot', seat: 2 },
       rosterName: '机器人3号',
     },
     isSelf: false,
@@ -67,33 +66,26 @@ beforeEach(() => {
 });
 
 describe('PlayerProfileCard', () => {
-  it('uses explicit occupant kind for a bot and does not issue a profile query', () => {
+  it('renders a bot occupant without a user id and issues no profile query', () => {
     const view = renderProfile(createModel());
 
     expect(view.getByText('机器人3号')).toBeTruthy();
     expect(view.getByText('机器人')).toBeTruthy();
-    expect(mockUseUserProfileQuery).toHaveBeenCalledWith(
-      'bot-2',
-      expect.objectContaining({ enabled: false }),
-    );
+    expect(mockUseUserProfileQuery).toHaveBeenCalledWith(null);
   });
 
-  it('does not infer bot identity from a userId prefix', () => {
+  it('queries the profile of a human occupant by its user id', () => {
     renderProfile(
       createModel({
         target: {
           seat: 2,
-          userId: 'bot-looking-human-id',
-          occupantKind: 'human',
+          occupant: { kind: 'human', userId: 'bot-looking-human-id' },
           rosterName: '真人玩家',
         },
       }),
     );
 
-    expect(mockUseUserProfileQuery).toHaveBeenCalledWith(
-      'bot-looking-human-id',
-      expect.objectContaining({ enabled: true }),
-    );
+    expect(mockUseUserProfileQuery).toHaveBeenCalledWith('bot-looking-human-id');
   });
 
   it('shows kick only when the executable capability is present', () => {
@@ -124,8 +116,7 @@ describe('PlayerProfileCard', () => {
       createModel({
         target: {
           seat: 1,
-          userId: 'user-abc',
-          occupantKind: 'human',
+          occupant: { kind: 'human', userId: 'user-abc' },
           rosterName: 'Alice',
         },
         gameDetails: {
@@ -159,8 +150,7 @@ describe('PlayerProfileCard', () => {
       createModel({
         target: {
           seat: 1,
-          userId: 'user-abc',
-          occupantKind: 'human',
+          occupant: { kind: 'human', userId: 'user-abc' },
           rosterName: 'Alice',
         },
       }),
@@ -189,8 +179,7 @@ describe('PlayerProfileCard', () => {
       createModel({
         target: {
           seat: 1,
-          userId: 'user-abc',
-          occupantKind: 'human',
+          occupant: { kind: 'human', userId: 'user-abc' },
           rosterName: 'Alice',
         },
       }),

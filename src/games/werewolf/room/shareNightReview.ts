@@ -29,23 +29,17 @@ export async function captureNightReviewCardSegmented(
   return captureViewSegmentedPngBase64(ref, { onProgress });
 }
 
-function isShareCancelledError(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  const normalized = `${error.name} ${error.message}`.toLowerCase();
-  return (
-    normalized.includes('abort') || normalized.includes('cancel') || normalized.includes('dismiss')
-  );
-}
-
 export async function shareNightReviewReportImage(
   getBase64: () => Promise<string>,
   roomCode: string,
 ): Promise<ShareNightReviewResult> {
   try {
-    await shareImageBase64(getBase64, `room-${roomCode}-review.png`, `狼人杀房间 ${roomCode} 战报`);
-    return 'shared';
+    return await shareImageBase64(
+      getBase64,
+      `room-${roomCode}-review.png`,
+      `狼人杀房间 ${roomCode} 战报`,
+    );
   } catch (error) {
-    if (isShareCancelledError(error)) return 'cancelled';
     log.warn('Share night review failed', error);
     return 'failed';
   }

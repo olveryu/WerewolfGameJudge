@@ -253,11 +253,11 @@ describe('FibKing room adapter', () => {
 
     expect(source.count).toBe(FIB_MAX_PLAYERS);
     expect(source.getSeat(0)).toMatchObject({
-      player: { kind: 'human', userId: 'host' },
+      player: { occupant: { kind: 'human', userId: 'host' } },
       isSelf: true,
     });
     expect(source.getSeat(FIB_MAX_PLAYERS - 1)).toMatchObject({
-      player: { kind: 'bot' },
+      player: { occupant: { kind: 'bot', seat: FIB_MAX_PLAYERS - 1 } },
       highlight: 'controlled',
     });
     // Exactly one human is seated; every other seat is an explicit bot.
@@ -317,14 +317,12 @@ describe('FibKing room adapter', () => {
     const ongoing = createOngoing();
     expect(getFibProfileTarget(ongoing, 0)).toEqual({
       seat: 0,
-      userId: 'host',
-      occupantKind: 'human',
+      occupant: { kind: 'human', userId: 'host' },
       rosterName: '房主',
     });
     expect(getFibProfileTarget(ongoing, 3)).toEqual({
       seat: 3,
-      userId: 'fib-bot:4321:3',
-      occupantKind: 'bot',
+      occupant: { kind: 'bot', seat: 3 },
       rosterName: '机器人4号',
     });
   });
@@ -340,7 +338,7 @@ describe('FibKing room adapter', () => {
 
     expect(getFibProfileTarget(state, 2)).toBeNull();
     expect(source.getSeat(2).player).toBeNull();
-    expect(source.getSeat(3).player).toMatchObject({ kind: 'bot' });
+    expect(source.getSeat(3).player).toMatchObject({ occupant: { kind: 'bot', seat: 3 } });
   });
 
   it('routes a lobby bot seat through the shared profile intent', () => {
@@ -350,8 +348,7 @@ describe('FibKing room adapter', () => {
       kind: 'profile',
       target: {
         seat: 2,
-        userId: 'fib-bot:4321:2',
-        occupantKind: 'bot',
+        occupant: { kind: 'bot', seat: 2 },
         rosterName: '机器人3号',
       },
     });

@@ -17,7 +17,7 @@ describe('getRoomSeatTapIntent', () => {
   });
 
   it('opens the supplied profile target for any occupied seat', () => {
-    const target = { userId: 'bot-2', occupantKind: 'bot' as const };
+    const target = { occupant: { kind: 'bot' as const, seat: 2 } };
 
     expect(getRoomSeatTapIntent({ seat: 2, currentSeat: null, target })).toEqual({
       kind: 'profile',
@@ -74,13 +74,13 @@ describe('createRoomSeatTapIntentResolver', () => {
     const occupant = s.occupied[seat];
     return occupant === undefined
       ? null
-      : { seat, userId: occupant.userId, occupantKind: 'human' as const, rosterName: '甲' };
+      : { seat, occupant: { kind: 'human' as const, userId: occupant.userId }, rosterName: '甲' };
   });
 
   it('resolves the profile branch through the bound target resolver', () => {
     expect(resolveIntent({ state, seat: 2, currentSeat: null })).toEqual({
       kind: 'profile',
-      target: { seat: 2, userId: 'user-2', occupantKind: 'human', rosterName: '甲' },
+      target: { seat: 2, occupant: { kind: 'human', userId: 'user-2' }, rosterName: '甲' },
     });
   });
 

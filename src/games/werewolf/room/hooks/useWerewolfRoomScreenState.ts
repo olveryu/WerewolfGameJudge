@@ -27,6 +27,7 @@ import { createRoomProfileCardModel } from '@/features/room/model/createRoomProf
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
+import { getRoomOccupantUserId } from '@/features/room/model/RoomOccupant';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -888,10 +889,11 @@ export function useWerewolfRoomScreenState(
       capabilities,
       onClose: profileController.close,
       onLeaveSeat: handleProfileLeave,
-      gameDetails:
-        profileSelection === null
-          ? null
-          : { title: '阵营分布', statsUserId: profileSelection.target.userId },
+      gameDetails: (() => {
+        if (profileSelection === null) return null;
+        const statsUserId = getRoomOccupantUserId(profileSelection.target.occupant);
+        return statsUserId === null ? null : { title: '阵营分布', statsUserId };
+      })(),
     });
   }, [capabilities, handleProfileLeave, profileController.close, profileController.selection]);
 

@@ -19,9 +19,7 @@ function buildInput(
     viewerUserId: 'user-a',
     controlledSeat: null,
     isLobby: true,
-    botUserId: (seat) => `game-bot:room-1:${seat}`,
-    outOfRangeError: (seat) => `Game seat source index is out of range: ${seat}`,
-    lockedSeatReason: '游戏进行中不能入座',
+    gameName: 'Game',
     ...overrides,
   };
 }
@@ -38,8 +36,7 @@ describe('createRoomSeatDataSource', () => {
   it('projects a human occupant through the shared player projection', () => {
     const seat = createRoomSeatDataSource(buildInput()).getSeat(0);
     expect(seat.player).toEqual({
-      kind: 'human',
-      userId: 'user-a',
+      occupant: { kind: 'human', userId: 'user-a' },
       displayName: '阿珍',
       avatarUrl: 'https://example.test/a.png',
       avatarFrame: undefined,
@@ -53,10 +50,9 @@ describe('createRoomSeatDataSource', () => {
     expect(seat.isSelf).toBe(true);
   });
 
-  it('synthesizes a bot player from the game bot id and shared bot name', () => {
+  it('projects a bot occupant by seat with the shared bot name', () => {
     const seat = createRoomSeatDataSource(buildInput()).getSeat(1);
-    expect(seat.player?.kind).toBe('bot');
-    expect(seat.player?.userId).toBe('game-bot:room-1:1');
+    expect(seat.player?.occupant).toEqual({ kind: 'bot', seat: 1 });
     expect(seat.player?.displayName).toBe('机器人2号');
     expect(seat.isSelf).toBe(false);
   });
@@ -120,8 +116,8 @@ describe('createRoomSeatDataSource', () => {
 
   it('rejects out-of-range seats with the game message', () => {
     const source = createRoomSeatDataSource(buildInput());
-    expect(() => source.getSeat(4)).toThrow('Game seat source index is out of range: 4');
-    expect(() => source.getSeat(-1)).toThrow('Game seat source index is out of range: -1');
-    expect(() => source.getSeat(1.5)).toThrow('Game seat source index is out of range: 1.5');
+    expect(() => source.getSeat(4)).toThrow('Game seat out of range: 4');
+    expect(() => source.getSeat(-1)).toThrow('Game seat out of range: -1');
+    expect(() => source.getSeat(1.5)).toThrow('Game seat out of range: 1.5');
   });
 });

@@ -210,7 +210,7 @@ export function use__GAME_PASCAL__RoomState(
       ),
     [session],
   );
-  const remainingSeconds = useStageDeadline({
+  const { remainingSeconds } = useStageDeadline({
     deadlineAt,
     shouldExpire,
     onExpire,

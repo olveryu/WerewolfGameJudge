@@ -5,11 +5,9 @@ import { Platform, Share } from 'react-native';
 import { SITE_URL } from '@/config/api';
 import { shareLog } from '@/utils/logger';
 
-export type RoomShareResult = 'shared' | 'copied' | 'cancelled' | 'failed';
+import { isShareCancelled } from './shareImage';
 
-function isShareCancelled(error: unknown): boolean {
-  return error instanceof DOMException && error.name === 'AbortError';
-}
+export type RoomShareResult = 'shared' | 'copied' | 'cancelled' | 'failed';
 
 export function buildRoomUrl(roomCode: string): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {

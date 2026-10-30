@@ -2,32 +2,17 @@
 
 import type React from 'react';
 
-import { DrawingCanvas } from '@/features/drawing/components/DrawingCanvas';
-import type {
-  DrawingColor,
-  DrawingElement,
-  DrawingPoint,
-  DrawingTool,
-  DrawingWidth,
-} from '@/features/drawing/model/drawing';
+import {
+  DrawingCanvas,
+  type DrawingCanvasGameProps,
+} from '@/features/drawing/components/DrawingCanvas';
 
 import {
   createDrawGuessElementPath,
   DRAWGUESS_CANVAS_BACKGROUND,
 } from '../../services/drawGuessMediaApi';
 
-interface DrawGuessDrawingCanvasProps {
-  readonly elements: readonly DrawingElement[];
-  readonly tool: DrawingTool;
-  readonly color: DrawingColor;
-  readonly strokeWidth: DrawingWidth;
-  readonly isEnabled: boolean;
-  readonly onElementChange: (element: DrawingElement) => void;
-  readonly onElementComplete: (element: DrawingElement) => void;
-  readonly onFill: (point: DrawingPoint) => void;
-}
-
-export const DrawGuessDrawingCanvas: React.FC<DrawGuessDrawingCanvasProps> = (props) => (
+export const DrawGuessDrawingCanvas: React.FC<DrawingCanvasGameProps> = (props) => (
   <DrawingCanvas
     {...props}
     createElementPath={createDrawGuessElementPath}

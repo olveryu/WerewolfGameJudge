@@ -112,8 +112,7 @@ describe('useRoomSetupController', () => {
 
     const target: RoomProfileTarget = {
       seat: 1,
-      userId: 'user-2',
-      occupantKind: 'human',
+      occupant: { kind: 'human', userId: 'user-2' },
       rosterName: 'Bob',
     };
     const viewProfile = result.current.capabilities.canViewProfiles;

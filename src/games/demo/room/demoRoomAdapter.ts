@@ -8,7 +8,6 @@ import {
   getDemoOccupiedSeatCount,
   getDemoViewingParticipants,
 } from '@game-judge/game-engine/games/demo/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
@@ -20,7 +19,7 @@ import {
   createRoomShellModel,
   type RoomShellModelInput,
 } from '@/features/room/model/createRoomShellModel';
-import { createRoomProfileTargetResolver } from '@/features/room/model/getRoomProfileTarget';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
   buildAssignRolesAction,
@@ -46,7 +45,7 @@ import {
   buildEndedWaitingMessage,
   buildLobbyHostStartMessage,
 } from '@/features/room/model/RoomBottomActions';
-import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type {
   RoomHostManagementAction,
   RoomHostManagementModel,
@@ -58,10 +57,8 @@ import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
-const getDemoProfileTarget = createRoomProfileTargetResolver<DemoState>(
-  (roomCode, botSeat) => `demo-bot:${roomCode}:${botSeat}`,
-  getBotDisplayName,
-);
+const getDemoProfileTarget = (state: DemoState, seat: number): RoomProfileTarget | null =>
+  getRoomProfileTarget(state.roster, seat);
 
 export interface DemoSeatSourceInput {
   readonly state: DemoState;
@@ -82,9 +79,7 @@ function createDemoSeatDataSource(input: DemoSeatSourceInput): RoomSeatDataSourc
     viewerUserId: userId,
     controlledSeat,
     isLobby: state.phase.kind === 'lobby',
-    botUserId: (seat) => `demo-bot:${state.roomCode}:${seat}`,
-    outOfRangeError: () => 'Demo seat out of range',
-    lockedSeatReason: '游戏进行中不能入座',
+    gameName: 'Demo',
     // 已查看勾只属于查看阶段（展示契约）：开始即消失。
     resolveShowReadyBadge: (seat) =>
       state.phase.kind === 'viewing' && state.roleViewedSeats.includes(seat),

@@ -155,8 +155,9 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
         seat: seat.seat,
         player: seat.player
           ? toRoomSeatPlayer({
-              kind: seat.player.isBot ? 'bot' : 'human',
-              userId: seat.player.userId,
+              occupant: seat.player.isBot
+                ? { kind: 'bot', seat: seat.seat }
+                : { kind: 'human', userId: seat.player.userId },
               displayName: seat.player.displayName,
               avatarUrl: seat.player.avatarUrl,
               avatarFrame: seat.player.avatarFrame,

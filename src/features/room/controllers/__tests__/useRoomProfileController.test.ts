@@ -1,14 +1,14 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
+import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import { successfulRoomCommand, testRoomState } from '@/test-utils/roomCommand';
 
 const state = testRoomState('werewolf');
 
-const otherPlayer = {
+const otherPlayer: RoomProfileTarget = {
   seat: 4,
-  userId: 'user-other',
-  occupantKind: 'human' as const,
+  occupant: { kind: 'human', userId: 'user-other' },
   rosterName: '其他玩家',
 };
 
@@ -26,8 +26,7 @@ describe('useRoomProfileController', () => {
     act(() =>
       result.current.open({
         seat: 7,
-        userId: 'user-self',
-        occupantKind: 'human',
+        occupant: { kind: 'human', userId: 'user-self' },
         rosterName: '本人',
       }),
     );

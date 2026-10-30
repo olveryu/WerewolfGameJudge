@@ -4,8 +4,7 @@ describe('toRoomSeatPlayer', () => {
   it('projects a full human profile, renaming revealEffect to seatPetId', () => {
     expect(
       toRoomSeatPlayer({
-        kind: 'human',
-        userId: 'u1',
+        occupant: { kind: 'human', userId: 'u1' },
         displayName: '阿珍',
         avatarUrl: 'https://example.test/a.png',
         avatarFrame: 'gold',
@@ -16,8 +15,7 @@ describe('toRoomSeatPlayer', () => {
         level: 12,
       }),
     ).toEqual({
-      kind: 'human',
-      userId: 'u1',
+      occupant: { kind: 'human', userId: 'u1' },
       displayName: '阿珍',
       avatarUrl: 'https://example.test/a.png',
       avatarFrame: 'gold',
@@ -31,16 +29,20 @@ describe('toRoomSeatPlayer', () => {
   });
 
   it('marks a profile without an avatar as anonymous', () => {
-    const player = toRoomSeatPlayer({ kind: 'human', userId: 'u2', displayName: '匿名玩家' });
+    const player = toRoomSeatPlayer({
+      occupant: { kind: 'human', userId: 'u2' },
+      displayName: '匿名玩家',
+    });
     expect(player.isAnonymous).toBe(true);
     expect(player.seatPetId).toBeUndefined();
     expect(player.level).toBeUndefined();
   });
 
   it('projects a bot with no profile facts as anonymous', () => {
-    expect(toRoomSeatPlayer({ kind: 'bot', userId: 'bot-3', displayName: '机器人3号' })).toEqual({
-      kind: 'bot',
-      userId: 'bot-3',
+    expect(
+      toRoomSeatPlayer({ occupant: { kind: 'bot', seat: 2 }, displayName: '机器人3号' }),
+    ).toEqual({
+      occupant: { kind: 'bot', seat: 2 },
       displayName: '机器人3号',
       avatarUrl: undefined,
       avatarFrame: undefined,

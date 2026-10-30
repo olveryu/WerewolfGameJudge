@@ -67,9 +67,8 @@ describe('StoryRelayStage bot drafts', () => {
           player:
             seat < 2
               ? {
-                  kind: 'bot' as const,
+                  occupant: { kind: 'bot' as const, seat },
                   displayName: `机器人${seat}号`,
-                  userId: `bot-${seat}`,
                 }
               : null,
           isSelf: false,

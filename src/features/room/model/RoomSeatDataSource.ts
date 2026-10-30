@@ -1,5 +1,7 @@
 /** Lazy seat data consumed by the shared room board. */
 
+import type { RoomOccupant } from './RoomOccupant';
+
 export type RoomSeatHighlight = 'none' | 'danger' | 'selected' | 'controlled';
 
 export interface RoomSeatStatusBadge {
@@ -22,8 +24,7 @@ export interface RoomSeatIndicators {
 }
 
 export interface RoomSeatPlayer {
-  readonly kind: 'human' | 'bot';
-  readonly userId: string;
+  readonly occupant: RoomOccupant;
   readonly displayName: string;
   readonly avatarUrl?: string;
   readonly avatarFrame?: string;

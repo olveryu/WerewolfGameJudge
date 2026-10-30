@@ -11,7 +11,7 @@ import {
   getDrawGuessViewModel,
   isBotSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
@@ -26,6 +26,7 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
+import { NOW_MS_DEFAULT_INTERVAL_MS, useNowMs } from '@/features/room/hooks/useNowMs';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import {
   createBotTakeoverCapability,
@@ -42,22 +43,6 @@ import {
   getDrawGuessSeatTapIntent,
 } from '../drawGuessRoomAdapter';
 import { getDrawGuessRoomCommandFailureMessage } from '../drawGuessRoomCommandFailureMessage';
-
-/**
- * 每秒更新的本地时钟：驱动拼音首字母揭示的显示 tick（effect 内更新，render 保持纯）。
- * 仅在非大厅阶段激活——大厅不挂载阶段视图，也不应有每秒重渲染（原在 Screen 的
- * DrawGuessStage 内，随阶段视图挂载/卸载；P-2b 下沉后以 active 门保持同一节奏）。
- */
-function useDrawGuessNowMs(active: boolean): number {
-  const [nowMs, setNowMs] = useState(() => Date.now());
-  useEffect(() => {
-    if (!active) return;
-    setNowMs(Date.now());
-    const timer = setInterval(() => setNowMs(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [active]);
-  return nowMs;
-}
 
 /**
  * 你画我猜房间 Screen 的显式契约（P-2b，对齐狼人杀 WerewolfRoomScreenState 形态）：
@@ -172,14 +157,15 @@ export function useDrawGuessRoomState(
       ),
     [session, state.phaseRevision, state.turnIndex],
   );
-  const remainingSeconds = useStageDeadline({
+  const { remainingSeconds } = useStageDeadline({
     deadlineAt,
     shouldExpire,
     onExpire,
     label: '推进作画阶段',
     silentExpire: true,
   });
-  const nowMs = useDrawGuessNowMs(!isLobby);
+  // 拼音首字母揭示按秒推进；大厅不挂载阶段视图，不走每秒重渲染。
+  const nowMs = useNowMs(NOW_MS_DEFAULT_INTERVAL_MS, !isLobby);
   const viewModel = getDrawGuessViewModel(state, effectiveSeat, nowMs);
   // 机器人接管：房主随时可接管（无阶段条件）；失去房主身份或座位不再是机器人时自动释放。
   const canControlBots = isHost;

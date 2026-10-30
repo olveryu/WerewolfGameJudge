@@ -75,7 +75,7 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
       });
     }
   }, [session, state.phaseRevision]);
-  const remainingSeconds = useStageDeadline({
+  const { remainingSeconds } = useStageDeadline({
     deadlineAt: state.deadlineAt,
     shouldExpire,
     onExpire,
@@ -161,7 +161,7 @@ function PictionaryTakeover({
     for (let seat = 0; seat < seatModel.source.count; seat += 1) {
       const seatView = seatModel.source.getSeat(seat);
       const displayName = seatView.player?.displayName;
-      if (seatView.player?.kind !== 'bot' || displayName === undefined) continue;
+      if (seatView.player?.occupant.kind !== 'bot' || displayName === undefined) continue;
       result.push({
         seat,
         displayName,
