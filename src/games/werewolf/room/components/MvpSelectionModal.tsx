@@ -6,6 +6,7 @@ import { FlatList, type ListRenderItemInfo, Pressable, StyleSheet, Text, View } 
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { Button } from '@/components/Button';
+import { TESTIDS } from '@/testids';
 import { borderRadius, colors, spacing, typography } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
@@ -70,7 +71,7 @@ export function MvpSelectionModal({
       visible
       onClose={onClose}
       contentStyle={styles.content}
-      testID="mvp-selection-modal"
+      testID={TESTIDS.mvpSelectionModal}
     >
       <View style={styles.header}>
         <Ionicons name="trophy-outline" size={componentSizes.icon.lg} color={colors.warning} />

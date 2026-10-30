@@ -18,6 +18,7 @@ import {
   type SetStateAction,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -145,7 +146,7 @@ export function useAvalonRoomState(
   const orchestration = useAvalonAudioOrchestration({ session, isHost, audio });
   const audioResume = useRoomAudioResume({
     isHost,
-    isNarratedPhase: state.isAudioPlaying,
+    isNarratedPhase: state.phase.kind === 'night' || state.isAudioPlaying,
     isFocused,
     revision,
     readWasAudioInterrupted: orchestration.readWasAudioInterrupted,
@@ -275,7 +276,10 @@ export function useAvalonRoomState(
     ...setupCapabilities,
     canTakeOverBots: bots.capability,
   };
-  const viewModel = isLobby ? null : getAvalonViewModel(state, effectiveSeat);
+  const viewModel = useMemo(
+    () => (isLobby ? null : getAvalonViewModel(state, effectiveSeat)),
+    [effectiveSeat, isLobby, state],
+  );
   const seatPicking = useAvalonSeatPicking({ viewModel, strikePickMode, setStrikePickMode });
   // 对局中的座位点选（湖仙 / 刺杀选人）先于默认座位语义消费点按。
   const onSeatPress = createRoomSeatPressHandler({

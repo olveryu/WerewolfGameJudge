@@ -97,6 +97,7 @@ export interface __GAME_PASCAL__RoomScreenState {
   readonly isHost: boolean;
   /** 平台单飞提交：座位动作由调用点显式传 `{ controlledSeat }`，房主命令不传。 */
   readonly submit: ReadyRoomSession<__GAME_PASCAL__State, __GAME_PASCAL__Command>['submit'];
+  readonly isSubmitting: boolean;
   readonly session: __GAME_PASCAL__RoomSession;
   readonly openRules: () => void;
 //#cap identityViewing
@@ -289,6 +290,7 @@ export function use__GAME_PASCAL__RoomState(
     controlledSeat,
     isHost,
     submit,
+    isSubmitting,
     session,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: '__GAME_ID__', roomCode: room.roomCode }),

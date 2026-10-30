@@ -107,6 +107,9 @@ export const TESTIDS = {
   connectionPendingContainer: 'connection-pending-container',
   connectionRetryNowButton: 'connection-retry-now-button',
 
+  // Werewolf MVP selection (host, ended)
+  mvpSelectionModal: 'mvp-selection-modal',
+
   // Werewolf sheriff election
   sheriffElectionPanel: 'sheriff-election-panel',
   sheriffElectionHud: 'sheriff-election-hud',

@@ -309,9 +309,9 @@ export function useWerewolfRoomState(
   const roleViewing = useRoleViewing({
     effectiveSeat,
     identityKey: myRole === null ? null : state.gameSequence,
-    hasViewed: effectiveSeat !== null && state.roleViewedSeats.includes(effectiveSeat),
+    hasViewed: effectiveSeat !== null && viewModel.viewedSeats.includes(effectiveSeat),
     occupiedSeatCount: viewModel.seats.length,
-    viewedSeatCount: state.roleViewedSeats.length,
+    viewedSeatCount: viewModel.viewedSeats.length,
     submitViewed: () => submit('查看身份', { type: 'werewolf.role.viewed' }, { controlledSeat }),
   });
   const ownOccupant = mySeat === null ? null : state.roster[mySeat];

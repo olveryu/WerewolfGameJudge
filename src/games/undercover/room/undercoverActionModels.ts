@@ -11,6 +11,7 @@ import type {
 import {
   buildLobbyHostStartMessage,
   buildPreparationFailureMessage,
+  buildViewIdentityButton,
   resolveViewIdentityAction,
 } from '@/features/room/model/RoomBottomActions';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
@@ -89,16 +90,15 @@ export function createUndercoverBottomActions(
     onPress: controls.openCard,
   });
   if (viewCardAction !== null)
-    (isViewingStep ? primary : secondary).push({
-      key: 'card',
-      label: viewCardAction.label,
-      audience: 'participant',
-      variant: isViewingStep ? 'primary' : 'secondary',
-      size: 'md',
-      testID: 'undercover-view-word',
-      isEnabled: true,
-      onPress: viewCardAction.onPress,
-    });
+    (isViewingStep ? primary : secondary).push(
+      buildViewIdentityButton(viewCardAction, {
+        key: 'card',
+        variant: isViewingStep ? 'primary' : 'secondary',
+        audience: 'participant',
+        testID: 'undercover-view-word',
+        isSubmitting: controls.isSubmitting,
+      }),
+    );
   return {
     kind: 'stacked',
     message: resolveUndercoverBottomMessage(controls, state, viewer, cardLabel),

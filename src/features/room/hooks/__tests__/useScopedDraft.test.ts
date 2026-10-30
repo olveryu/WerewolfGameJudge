@@ -77,6 +77,18 @@ describe('useScopedDraft', () => {
     expect(draftStorage.map.has(KEY)).toBe(false);
   });
 
+  it('does not carry an edit across a scope round-trip (A → B → A reads the slot, which was cleared)', () => {
+    const draftStorage = memoryStorage();
+    const { result, rerender } = renderDraft(draftStorage, { step: 'wolfKill', actor: 2 });
+    act(() => result.current.setDraft({ seats: [1, 2] }));
+    // Host takes over a bot mid-step (actor changes), then releases it.
+    rerender({ scope: { step: 'wolfKill', actor: 5 } });
+    expect(result.current.draft).toEqual(INITIAL);
+    rerender({ scope: { step: 'wolfKill', actor: 2 } });
+    expect(result.current.draft).toEqual(INITIAL);
+    expect(draftStorage.map.has(KEY)).toBe(false);
+  });
+
   it('clears an undecodable slot instead of falling back to a partial value', () => {
     const draftStorage = memoryStorage();
     draftStorage.set(

@@ -151,8 +151,12 @@ export function resolveViewIdentityAction(input: {
  * key, the tier, the audience and the testID remain the surface's own
  * anchors (a spectator-readable variant such as FibKing's 查看题目
  * declares `anyone`; viewing one's own secret declares `participant`).
- * The button is always enabled (a hidden action is expressed by
- * resolving to null, never by a disabled view button).
+ * A hidden action is expressed by resolving to null, never by a disabled
+ * view button. The only disabled state is the room's single-flight
+ * command lock: the first view submits `role.viewed` through the same
+ * funnel as every other command (useRoleViewing), so while any command is
+ * in flight the entry is disabled — the lock treats a second concurrent
+ * submit as a programming error.
  */
 export function buildViewIdentityButton(
   action: RoomViewIdentityAction,
@@ -161,9 +165,10 @@ export function buildViewIdentityButton(
     readonly variant: 'primary' | 'secondary';
     readonly audience: RoomBottomButtonAudience;
     readonly testID?: string;
+    readonly isSubmitting: boolean;
   },
 ): RoomBottomButton {
-  return {
+  const base = {
     key: surface.key,
     label: action.label,
     audience: surface.audience,
@@ -171,9 +176,9 @@ export function buildViewIdentityButton(
     variant: surface.variant,
     size: 'md',
     ...(surface.testID !== undefined ? { testID: surface.testID } : {}),
-    isEnabled: true,
-    onPress: action.onPress,
-  };
+  } as const;
+  if (surface.isSubmitting) return { ...base, isEnabled: false, disabledReason: null };
+  return { ...base, isEnabled: true, onPress: action.onPress };
 }
 
 /**

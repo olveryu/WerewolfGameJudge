@@ -113,7 +113,12 @@ function DemoStageArea({ screen }: { readonly screen: DemoRoomScreenState }) {
           : 'TODO(gameplay):玩法阶段界面随玩法状态机落地。'}
       </Text>
       {viewIdentityAction !== null ? (
-        <Button variant="secondary" size="lg" onPress={viewIdentityAction.onPress}>
+        <Button
+          variant="secondary"
+          size="lg"
+          disabled={screen.isSubmitting}
+          onPress={viewIdentityAction.onPress}
+        >
           {viewIdentityAction.label}
         </Button>
       ) : null}

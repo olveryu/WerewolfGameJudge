@@ -461,7 +461,7 @@ type NightInteractionModel =
 1. 每家 `module.ts` 必须通过 `defineClientGameModule`（源码断言不得 `import` `RoomLinkFactory`）。
 2. 每家 `room/hooks/use*RoomState.ts` 必须调用 `useReadyRoomSession` 与 `useBotTakeover`，不得直接调用 `useRoomBotControl` / `useBotTakeoverGuard` / `useBotTakeoverLongPress` / `useRoomLinkSnapshot`。
 3. 机器人是纯平台概念：`src/games/**` 与 `packages/game-engine/src/games/**` 不得出现 bot id 合成（`bot-` / `-bot:` 字面量或 `*BotUserId` 函数）；共享层 `RoomSeatPlayer` / `RoomProfileTarget` 的 bot 分支无 `userId` 字段。
-4. 游戏自有纯交互策略合法（阿瓦隆 `avalonInteractionPolicy.ts`、狼人杀 `werewolfInteractionPolicy.ts`）；禁止的是客户端重算引擎规则——断言 `src/games/**/policy/**` 与 `room/night/**` 只读 `viewModel` / `state` 字段，不 import `packages/game-engine/.../domain/handlers` 或 `DeathCalculator` 等规则模块。任何游戏不得存在 `room/seatTap/` 或 `room/executors/`。
+4. 游戏自有纯交互策略合法（阿瓦隆 `policy/avalonInteractionPolicy.ts`、狼人杀 `night/resolveNightInteraction.ts` 声明式模型）；禁止的是客户端重算引擎规则——断言 `src/games/**/policy/**` 与 `room/night/**` 只读 `viewModel` / `state` 字段，不 import `packages/game-engine/.../domain/handlers` 或 `DeathCalculator` 等规则模块。任何游戏不得存在 `room/seatTap/` 或 `room/executors/`。
 5. 任何游戏的 `useStageDeadline` 调用参数里不得出现 `isHost`（到期是服务端事实，客户端只加速）；`src/games/**` 不得自建倒计时时钟（唯一的时钟是 `useStageDeadline` 的 tick）。
 
 ## 9. 实施顺序
@@ -572,3 +572,36 @@ v3 初稿默认"六家是基准、狼人杀向六家看齐"，把两处狼人杀
   - storyrelay：`StoryRelayStage` / `StoryRelayTaskEditor` 改收 `submit` / `isSubmitting`，自有漏斗删除。
   - 引擎：`getFibBotUserId` / `getPictionaryBotUserId` 删除。
 - 步骤 7：`src/games/__tests__/gameClientShape.contract.test.ts` 落地 §8 五条（按 `GAME_TYPES` 穷举）。§8 契约 4 的「狼人杀允许额外存在 `room/executors/`」作废——步骤 5 已整删，契约改为任何游戏不得存在 `room/seatTap/` / `room/executors/`。§8 契约 5 的 `setInterval` 禁令收窄为「不得自建倒计时时钟（平台 `useNowMs` 只由 `useStageDeadline` 消费）」：drawguess 笔画同步的批量 flush 与狼人杀 AI 聊天打字机是非时钟用途。
+
+### 对抗评审修订（PR #333 全量 diff，11 条发现）
+
+评审按五条规则（不臆想 / fail fast / 不打补丁 / 不防御 / 2026 实践）逐条核实，以下为确认成立并已修正的项，以及本文 v3 正文中与代码不符、在此撤回的声明。
+
+**行为契约回归（已修）**
+
+- §6.9「swap：取消清两座」：`useNightInteraction` 的交换确认取消只清了第二座，首选留在 `useScopedDraft` 里，下一次点座直接进确认。修为 `draft.clear()` + 清第二座；`cancelPaths.ui.test.tsx` 新增用例。
+- `werewolf.mvp.select` 丢了 `durable: true`（旧 `werewolfGameActions.ts` 显式 durable，其测试随旧树删除）。恢复 durable。
+- §6.9「网络错误 toast 并保留对话框可重试」：平台 `useRoomCommandSubmission` 对一切失败 `showErrorAlert`，会顶掉打开中的夜间对话框（查验结果 ack 对话框一次一弹、无底部按钮，丢了就卡住）。新增 `RoomCommandSubmitOptions.transportFailure: 'alert' | 'toastAndRethrow'`：传输失败（抛错 / `undelivered` / `unavailable`）toast 后 rethrow，`AlertModal` 协议据此保留对话框供重试；裁决（拒绝）照旧 resolve 关对话框。`useNightInteraction` 的对话框回调走 `'toastAndRethrow'`，按钮直发走 `'alert'`。顺带修掉 `useReadyRoomSession.submit` 只转发 `domainRejection`、吞掉其它提交选项的 bug。新增 `ackRetry.ui.test.tsx`。
+- `useRoleViewing` 声称 `submitViewed` 永不 throw，但平台单飞锁在并发时 throw，`isPending` 卡死。结构修法：查看身份入口与其它命令入口一样在 `isSubmitting` 时禁用——`buildViewIdentityButton` 收 `isSubmitting`（狼人杀 `viewRoleButton` 改用同一 builder，undercover 词卡按钮亦然；demo / 模板 stage 按钮 `disabled`），注释改为如实描述「只在编程错误时 reject」。
+
+**结构（已修）**
+
+- 狼人杀与阿瓦隆的音频编排 hook 是两份 ~170 行的复制，且「每 link epoch 重建核心」是假的：`RoomLink.connect()` 一开始就把 phase 置为 `entering`，`RoomEntryBoundary` 随之卸载房间，挂载中的 hook 永远看不到第二个 epoch；`syncEpoch` 订阅是死代码，同一核心实例上 `reset()` 违反核心「每 epoch 新建实例」的契约。抽成平台 `features/room/audio/useRoomAudioOrchestration`（挂载时按首个 ready 快照一次性打打断标记），两家只剩 player / ack / 叙述阶段 / 重放键四个端口；D12 / §12 步骤 6 的「每 epoch 一个核心」措辞以此为准。补回旧 `WerewolfGameClientRuntime.test.ts` 覆盖的三条（房主重连标记 / 非房主不标记 / 重放当前步骤并按 id ack）为 `useWerewolfAudioOrchestration.test.ts`。
+- 阿瓦隆重连重放原先自己循环整批队列（复制核心的逐条逻辑、漏掉 `night_end` 前 `stopBgm`，且重放了上一步的闭眼词）：改为与狼人杀同形——只重放当前夜晚步骤的开场音，黎明批次只 ack。
+- `useScopedDraft` 的内存编辑按 scopeKey 守卫但从不丢弃：A→B→A 会把已判为过期并清掉的草稿再写回。scope 变化即丢弃内存编辑。
+- `resolveNightInteraction` 的 `viewModel.mySeat ?? -1` 与 `nightPrompt` 的通用标题回落：两者的前提（行动者必有座位 / 有 schema 必有角色）由同一 step 派生，改为 fail-fast 收窄类型。
+- 投影字段 `viewModel.viewedSeats` 无消费者、客户端读原始 `state.roleViewedSeats`：`useRoleViewing` 与 `deriveWerewolfSeatCounts` 改读投影。
+- 防御重复：`useWerewolfHostFlow.mvpSelection` 不可达的第二道 `startingParticipants` 守卫改 throw；undercover `getUndercoverRoleCounts` 算两遍改一遍；`isChooseCardOpen` / `isNominationListOpen` 的重置 effect 改为按键派生；avalon `viewModel` 加 memo。
+- `MvpSelectionModal` 的裸字符串入 `TESTIDS.mvpSelectionModal`。
+- pictionary 到期加速原先 `isHost || effectiveSeat !== null` 门控，与其它六家（任意在线客户端可加速，pin 去重）不一致，删除；§8 契约 5 的断言从只扫调用处扩到 `shouldExpire` 函数体与 `isHost` 派生别名。
+- `botDispatchDiscipline` 契约原先只断言 `session.dispatch(command` 字面量、对其余直发一概放行：改为精确登记 `文件 → 命令类型集合` 的允许表（阶段到期 / 自动提交 / 笔画流 / 猜词连发，以及狼人杀配置流两处房主命令），未登记的直发或登记站点的未登记命令类型即失败。
+
+**撤回的正文声明（代码为准）**
+
+- §5.1 `useReadyRoomSession.submit(label, command, controlledSeat = null)`：实际为 `submit(label, command, { controlledSeat?, durable?, domainRejection?, transportFailure? })`，并返回 `isSubmitting` / `lastCommand`。
+- §5.3「阿瓦隆组队选人草稿、fibking 座位选择接入 `useScopedDraft`」：未做。阿瓦隆组队草稿是服务端状态（比本地持久化更强），fibking 选人是单击触发二次确认，无可持久化的草稿。只有狼人杀夜间草稿用 `useScopedDraft`。
+- §5.3「每家 `getXViewModel(state, viewer: { seat, isHost })`」：只有狼人杀需要 host 视角；其余六家保持 `(state, viewerSeat)`。
+- §5.3「ack 未落排他进 `RoomCapabilities`，阿瓦隆夜晚接入」：未做。狼人杀经 `NightInteractionModel.locks.hasPendingCommand` 实现；阿瓦隆夜间确认非 durable，单飞锁已覆盖。
+- §6.2 / D9 / §9 步骤 1「gameEnded 参与者判别联合 `{ kind: 'human' } | { kind: 'bot'; seat }`」：实际实现为只含真人参与者（机器人无 userId、无可结算内容），不是联合。
+- §6.9「`deriveWerewolfBottomProgress(viewModel)`」：实际签名 `(state)`，与阿瓦隆同经平台 `resolveStepProgress` 派生（步骤顺序来自引擎导出的 `buildNightPlan`，是数据不是规则重算）。
+- §6.5 / D10 / §8 契约 4 的 `werewolfInteractionPolicy.ts`：不存在；狼人杀的"策略"是 `room/night/resolveNightInteraction.ts` 声明式模型，契约 4 文字已改。

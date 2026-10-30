@@ -9,7 +9,7 @@
  */
 
 import { getSchema } from '@game-judge/game-engine/games/werewolf/public';
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import {
   createShowAlertMock,
@@ -218,6 +218,43 @@ describe('Cancel Paths (cross-board)', () => {
         harness.pressButton('取消');
       }
 
+      expect(submitAction).not.toHaveBeenCalled();
+    });
+  });
+
+  // ===========================================================================
+  // swap confirm cancel -> both picks cleared (§6.9 取消清两座)
+  // ===========================================================================
+
+  describe('swap confirm cancel', () => {
+    it('cancelling the magician swap confirm clears both picks: the next tap is a first pick again', async () => {
+      const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+        schemaId: 'magicianSwap',
+        currentActionRole: 'magician',
+        myRole: 'magician',
+        mySeat: 3,
+        hookOverrides: { submitAction },
+      });
+
+      const { getByTestId } = renderRoom();
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+
+      tapSeat(getByTestId, 1);
+      await waitFor(() => expect(harness.hasSeen('magicianFirst')).toBe(true));
+      harness.pressPrimaryOnType('magicianFirst');
+      tapSeat(getByTestId, 2);
+      await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
+
+      act(() => harness.pressButtonOnType('actionConfirm', '取消'));
+      expect(submitAction).not.toHaveBeenCalled();
+
+      // Both picks are gone: a tap now opens the first-pick dialog, not the confirm.
+      harness.clear();
+      tapSeat(getByTestId, 5);
+      await waitFor(() => expect(harness.hasSeen('magicianFirst')).toBe(true));
+      expect(harness.hasSeen('actionConfirm')).toBe(false);
       expect(submitAction).not.toHaveBeenCalled();
     });
   });

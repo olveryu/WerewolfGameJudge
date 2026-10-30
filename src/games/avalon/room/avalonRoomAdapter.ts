@@ -385,6 +385,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
   if (viewIdentityAction !== null) {
     (isViewingStep ? primary : secondary).push(
       buildViewIdentityButton(viewIdentityAction, {
+        isSubmitting: input.isSubmitting,
         key: 'viewRole',
         variant: isViewingStep ? 'primary' : 'secondary',
         audience: 'participant',

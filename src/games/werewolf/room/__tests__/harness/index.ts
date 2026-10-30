@@ -36,9 +36,11 @@ export {
   createWerewolfRoomMock,
   mockNavigation,
   mockRoom,
+  type SubmitActionMock,
   successfulWerewolfCommand,
   tapSeat,
   waitForRoomScreen,
+  type WerewolfDispatchOutcome,
 } from './boardTestUtils';
 export {
   createShowAlertMock,

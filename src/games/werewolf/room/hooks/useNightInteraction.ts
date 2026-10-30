@@ -127,8 +127,17 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
     ],
   );
 
+  /**
+   * Submit one confirmation. `surface: 'dialog'` is the §6.9 retry contract:
+   * a transport failure toasts and rethrows so the open dialog stays up for
+   * another tap (AlertModal keeps a dialog whose callback rejects); a
+   * decision closes it. Business rejections are presented from state.
+   */
   const dispatch = useCallback(
-    async (confirmation: NightConfirmation): Promise<boolean> => {
+    async (
+      confirmation: NightConfirmation,
+      surface: 'dialog' | 'button' = 'button',
+    ): Promise<boolean> => {
       if (stepId === null) {
         throw new Error('[FAIL-FAST] Night confirmation outside a night step');
       }
@@ -137,6 +146,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
         controlledSeat,
         durable: isDurableNightCommand(command),
         domainRejection: 'state',
+        transportFailure: surface === 'dialog' ? 'toastAndRethrow' : 'alert',
       });
       if (ok) {
         draft.clear();
@@ -150,7 +160,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
   /** A dialog callback that submits one confirmation. */
   const confirmWith = useCallback(
     (confirmation: NightConfirmation) => (): Promise<void> =>
-      dispatch(confirmation).then(() => undefined),
+      dispatch(confirmation, 'dialog').then(() => undefined),
     [dispatch],
   );
 
@@ -258,11 +268,17 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           if (seat === first) return true;
           if (stepId === null) throw new Error('[FAIL-FAST] Swap pick outside a night step');
           setSwapSecond({ stepId, seat });
+          // §6.9: cancelling the swap confirm clears both picks.
           showConfirmAlert(
             model.confirmTitle,
             model.confirmText,
             confirmWith({ kind: 'seats', seats: [first, seat] }),
-            { onCancel: () => setSwapSecond(null) },
+            {
+              onCancel: () => {
+                draft.clear();
+                setSwapSecond(null);
+              },
+            },
           );
           return true;
         }
@@ -303,10 +319,9 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
   );
 
   // ── Bottom buttons ──
-  const [isChooseCardOpen, setIsChooseCardOpen] = useState(false);
-  useEffect(() => {
-    if (model.kind !== 'chooseCard') setIsChooseCardOpen(false);
-  }, [model.kind]);
+  // Open for one step: a step change makes the stored key stale (no reset effect).
+  const [chooseCardOpenStepId, setChooseCardOpenStepId] = useState<string | null>(null);
+  const isChooseCardOpen = model.kind === 'chooseCard' && chooseCardOpenStepId === stepId;
 
   const onNightButton = useCallback(
     (action: NightButtonAction): void => {
@@ -385,7 +400,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           return;
         case 'openChooseCard':
           if (model.kind !== 'chooseCard') throw illegalButton(action, model);
-          setIsChooseCardOpen(true);
+          setChooseCardOpenStepId(stepId);
           return;
         case 'confirmMultiSelect': {
           if (model.kind !== 'multiSelect') throw illegalButton(action, model);
@@ -399,17 +414,17 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
         }
       }
     },
-    [confirmWith, dispatch, model],
+    [confirmWith, dispatch, model, stepId],
   );
 
   const chooseCardModal = useMemo((): NightChooseCardModal | null => {
     if (model.kind !== 'chooseCard' || !isChooseCardOpen) return null;
     return {
       model,
-      close: () => setIsChooseCardOpen(false),
+      close: () => setChooseCardOpenStepId(null),
       choose: async (cardIndex) => {
         const ok = await dispatch({ kind: 'card', cardIndex });
-        if (ok) setIsChooseCardOpen(false);
+        if (ok) setChooseCardOpenStepId(null);
       },
     };
   }, [dispatch, isChooseCardOpen, model]);

@@ -110,6 +110,7 @@ function bottomMessage(state: FibState, viewer: Viewer): string | null {
     isHost: viewer === 'host',
     viewerSeat: viewer === 'host' ? 0 : viewer === 'seated' ? 1 : null,
     openIdentity: jest.fn(),
+    isSubmitting: false,
   }).message;
 }
 

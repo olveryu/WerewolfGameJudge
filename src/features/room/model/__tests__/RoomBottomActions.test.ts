@@ -104,6 +104,7 @@ describe('resolveViewIdentityAction / buildViewIdentityButton', () => {
         variant: 'primary',
         audience: 'participant',
         testID: 'avalon-view-role',
+        isSubmitting: false,
       }),
     ).toEqual({
       key: 'viewRole',
@@ -129,10 +130,28 @@ describe('resolveViewIdentityAction / buildViewIdentityButton', () => {
       key: 'view-identity',
       variant: 'secondary',
       audience: 'anyone',
+      isSubmitting: false,
     });
     expect('testID' in button).toBe(false);
     expect(button.variant).toBe('secondary');
     expect(button.audience).toBe('anyone');
+  });
+
+  it('is disabled while a room command is in flight (the first view submits through the same lock)', () => {
+    const action = resolveViewIdentityAction({
+      isVisible: true,
+      label: '查看身份',
+      onPress: () => {},
+    });
+    if (action === null) throw new Error('expected a resolved action');
+    const button = buildViewIdentityButton(action, {
+      key: 'view-identity',
+      variant: 'primary',
+      audience: 'participant',
+      isSubmitting: true,
+    });
+    expect(button.isEnabled).toBe(false);
+    expect('onPress' in button).toBe(false);
   });
 });
 

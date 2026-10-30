@@ -10,6 +10,7 @@ export {
   type AvalonEvent,
   teamSizeReason,
 } from './domain/decision';
+export { getAvalonNightStepDef } from './domain/nightSteps';
 export {
   buildAvalonNightInfo,
   getAvalonFailsNeeded,
