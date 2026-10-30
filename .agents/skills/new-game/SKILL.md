@@ -292,22 +292,25 @@ blocked 带原因与补救（未坐满的补救是分享房间）；无单一明
 - **状态版本与迁移**：状态带 stateVersion；任何形状变更必须 bump 版本、
   写真 migratePersisted 并在 api-worker 模块注册（未注册 migrate 时版本
   bump 会砖化存量房间）、配逐座位迁移等价测试。
-- **接管入口唯一**：有座位表的游戏 = 房主长按机器人座位，走共享
-  `useBotTakeoverLongPress`；无座位表的游戏 = 走共享 `BotTakeover`
-  菜单/浮钮。接管 capability 只有房主条件、文案统一
+- **接管入口唯一**：房间 hook 只调共享 `useBotTakeover({ viewer, isBotSeat, gameName })`
+  （内部固定顺序 `useRoomBotControl → useBotTakeoverGuard → useBotTakeoverLongPress`，
+  游戏不得直接调这三个原语——`gameClientShape.contract.test.ts` §8-2 断言）。
+  有座位表的游戏 = 房主长按机器人座位（`useBotTakeover().onBotSeatLongPress`）；
+  无座位表的游戏 = 共享 `BotTakeover` 菜单/浮钮。接管 capability 只有房主条件、文案统一
   `'只有房主可以接管机器人'`——**接管全程无阶段条件**：只要有 bot
   座位，房主随时可接管（含大厅、任意阶段），**不许给接管加任何
   阶段/模式/音频条件**。也不许引入 debugMode 或任何同类产品门充当
   条件——debugMode 已整个删除（含状态字段），只许存在于迁移测试的
   历史样本里。
-- **自动释放只走共享守卫** `useBotTakeoverGuard`（必填 canControlBots +
-  seatStillBot）：失去房主身份、或被接管座位不再是机器人时释放；
-  不许手写等价 effect。
+- **自动释放由 `useBotTakeover` 内置守卫完成**：失去房主身份、或被接管座位
+  不再是机器人时释放；不许手写等价 effect。
 - **不许做"替换机器人入座"类菜单**：bot 座位点击就是普通座位行为（看资料）。
-- 防退化 contract 已锁定以上结构（引擎
-  `rosterUnification.contract.test.ts`、客户端同名 contract +
-  `botTakeoverGuard.contract.test.ts`）：新游戏的 state types 与房间 hook
-  必须补进这些 contract 的消费者/类型清单，contract 不绿不许合并。
+- 防退化 contract 已锁定以上结构（引擎 `platform/__tests__/rosterUnification.contract.test.ts`、
+  客户端 `src/__tests__/rosterUnification.contract.test.ts` +
+  `src/games/__tests__/gameClientShape.contract.test.ts`（穷举 `GAME_TYPES`）+
+  `src/__tests__/botDispatchDiscipline.contract.test.ts`）：新游戏的 state types、
+  `room/hooks/use<Game>RoomState.ts` 与 dispatch 站点必须补进这些 contract 的清单，
+  contract 不绿不许合并。
 
 ### 3c-3. 身份查看检查点与 bot 测试脚手架（身份型游戏标准件，必含）
 

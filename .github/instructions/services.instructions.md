@@ -98,8 +98,11 @@ UI state loaded from MMKV / DB (coordinates, enums, config values) must validate
 Single orchestration source: Engine commits authoritative audio events → game runtime executes → UI reads state.
 
 - **Handler** (server-side): writes `pendingAudioEffects`, `audioKey` / `audioEndKey` comes from `NIGHT_STEPS` — dual-writing in specs/steps is forbidden. Audio IO is forbidden.
-- **Game runtime** (client-side): reactively watches `pendingAudioEffects` → plays → submits
-  `werewolf.audio.ack`. Wolf vote deadline expiry submits `werewolf.progress.request`.
+- **Client** (platform `features/room/audio/useRoomAudioOrchestration.ts`, bound by each game's audio
+  hook with player / ack / narrated-phase / replay-key ports): reactively watches `pendingAudioEffects` →
+  plays → submits durable `werewolf.audio.ack`. Armed deadlines (wolf vote, empty bottom-card step,
+  sheriff vote) expire on the server clock; any foreground client's `useStageDeadline` submits
+  `werewolf.phase.expire` to accelerate and `isHost` never gates it (`gameClientShape` contract §8-5).
 - **UI**: reads `isAudioPlaying` only. useEffect playing audio is forbidden. UI toggling `setAudioPlaying` is forbidden.
 - `isAudioPlaying` is factual state; sole modification path: `SET_AUDIO_PLAYING` action. Other actions "incidentally" setting it is forbidden.
 - **Rejoin recovery**: `RoomLink` restores the authoritative snapshot; after the user gesture Web autoplay
