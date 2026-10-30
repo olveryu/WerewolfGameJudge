@@ -1,24 +1,37 @@
 /** Compose Undercover controls and projections into the existing RoomShell contract. */
 import {
   getUndercoverRoleCounts,
+  getUndercoverUserSeat,
+  isBotSeat,
+  UNDERCOVER_ROLE_NAMES,
   type UndercoverRoleCounts,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
 import { useMemo } from 'react';
 
-import { useAuthContext } from '@/contexts/AuthContext';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
+import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
+import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
+import { useReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
+import { useRoomRosterController } from '@/features/room/controllers/useRoomRosterController';
+import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
+import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import type { RoomViewer } from '@/features/room/model/RoomViewer';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
-import { createUndercoverRoomShellModel } from '../undercoverRoomAdapter';
-import { useUndercoverRoster } from './useUndercoverRoster';
+import {
+  createUndercoverRoomCapabilities,
+  createUndercoverRoomShellModel,
+  getUndercoverProfileTarget,
+  getUndercoverSeatTapIntent,
+} from '../undercoverRoomAdapter';
+import { getUndercoverRoomCommandFailureMessage } from '../undercoverRoomCommandFailureMessage';
 import {
   type UndercoverRoundControls,
   useUndercoverRoundControls,
@@ -46,19 +59,26 @@ export interface UndercoverRoomScreenState {
   readonly openRules: () => void;
 }
 
-export function useUndercoverRoomScreenState({
+export function useUndercoverRoomState({
   room,
   entryReason,
   navigation,
   session,
   entryController,
 }: UndercoverRoomScreenStateInput): UndercoverRoomScreenState {
-  const { user } = useAuthContext();
-  const snapshot = useRoomLinkSnapshot(session);
-  if (user === null || snapshot.phase !== 'ready')
-    throw new Error('Undercover content requires an authenticated ready session');
-  const state = snapshot.room.state;
+  const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
+    session,
+    getUndercoverRoomCommandFailureMessage,
+  );
   const isHost = state.hostUserId === user.id;
+  const mySeat = getUndercoverUserSeat(state, user.id);
+  const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
+  const isLobby = state.phase === 'lobby';
+  const bots = useBotTakeover({
+    viewer,
+    isBotSeat: (seat) => isBotSeat(state.roster, seat),
+    gameName: 'Undercover',
+  });
   const {
     share,
     titleActions: title,
@@ -75,19 +95,51 @@ export function useUndercoverRoomScreenState({
       mode: 'edit',
       roomCode: room.roomCode,
     });
-  const roster = useUndercoverRoster(state, session, user, configure, share.open);
-  const controls = useUndercoverRoundControls(state, session, user.id, roster.controlledSeat);
+  // 座位 / 资料卡：资料卡全程可开（对齐狼人杀），故用 roster 控制器 + 本家能力表。
+  const { seatController, profile, actions } = useRoomRosterController({ session, user, mySeat });
+  const capabilities = createUndercoverRoomCapabilities({
+    ...actions,
+    state,
+    isHost,
+    mySeat,
+    configureGame: configure,
+    shareRoom: share.open,
+    openProfile: profile.open,
+    takeOverBots: bots.capability,
+  });
+  const controls = useUndercoverRoundControls({
+    state,
+    userId: user.id,
+    controlledSeat: bots.controlledSeat,
+    submit,
+    isSubmitting,
+  });
+  // 对局中（非选人）点座位只开资料卡；空位与禁用座位按共享规则提示。
+  const onSeatPress = createRoomSeatPressHandler({
+    isSetup: isLobby,
+    inGameAction: (seat) => {
+      const target = getUndercoverProfileTarget(state, seat);
+      if (target === null) return false;
+      profile.open(target);
+      return true;
+    },
+    state,
+    currentSeat: mySeat,
+    resolveIntent: getUndercoverSeatTapIntent,
+    profile,
+    seatController,
+  });
   const roleCounts = getUndercoverRoleCounts(state.config.numberOfPlayers, state.config.hasBlank);
   // Reveal pool for the animator: kind counts from the public config,
   // expanded per seat-kind. Kinds and counts are public; which seat
   // holds which kind is never included.
   const revealPool = useMemo((): readonly RevealRoleData[] => {
     const counts = getUndercoverRoleCounts(state.config.numberOfPlayers, state.config.hasBlank);
-    const kinds: { readonly id: string; readonly name: string; readonly count: number }[] = [
-      { id: 'civilian', name: '平民', count: counts.civilian },
-      { id: 'undercover', name: '卧底', count: counts.undercover },
-      { id: 'blank', name: '白板', count: counts.blank },
-    ];
+    const kinds = [
+      { id: 'civilian', name: UNDERCOVER_ROLE_NAMES.civilian, count: counts.civilian },
+      { id: 'undercover', name: UNDERCOVER_ROLE_NAMES.undercover, count: counts.undercover },
+      { id: 'blank', name: UNDERCOVER_ROLE_NAMES.blank, count: counts.blank },
+    ] as const;
     return kinds.flatMap((kind) =>
       Array.from({ length: kind.count }, () => ({
         id: kind.id,
@@ -98,9 +150,9 @@ export function useUndercoverRoomScreenState({
   }, [state.config.hasBlank, state.config.numberOfPlayers]);
   const shellModel: RoomShellModel = createUndercoverRoomShellModel({
     roomCode: room.roomCode,
-    viewer: { userId: user.id, isHost, seat: roster.mySeat },
-    capabilities: roster.capabilities,
-    onBack: () => entryController.requestExit(roster.capabilities.shouldConfirmExit),
+    viewer,
+    capabilities,
+    onBack: () => entryController.requestExit(capabilities.shouldConfirmExit),
     onTitlePress: title.handleTitlePress,
     onTitleLongPress: title.handleTitleLongPress,
     user,
@@ -108,27 +160,30 @@ export function useUndercoverRoomScreenState({
     onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
     connection: entryController.connection,
     state,
-    revision: snapshot.room.revision,
-    controlledSeat: roster.controlledSeat,
+    revision,
+    controlledSeat: bots.controlledSeat,
     selectedSeat: controls.selectedSeat,
     isSelecting: controls.isSelecting,
-    seatsVisuallyDisabled: controls.isSubmitting || roster.isSubmitting,
-    onSeatPress: controls.isSelecting ? controls.selectSeat : roster.onSeatPress,
+    seatsVisuallyDisabled: isSubmitting || seatController.isSubmitting,
+    onSeatPress: controls.isSelecting ? controls.selectSeat : onSeatPress,
     onBotSeatLongPress:
-      !controls.isSelecting && roster.capabilities.canTakeOverBots.isAllowed
-        ? roster.onBotLongPress
-        : null,
-    seatConfirmation: roster.seatConfirmation,
-    profile: roster.profile,
+      !controls.isSelecting && bots.capability.isAllowed ? bots.onBotSeatLongPress : null,
+    seatConfirmation: createRoomSeatConfirmationModel(seatController),
+    profile: createRoomProfileCardModel({
+      selection: profile.selection,
+      capabilities,
+      onClose: profile.close,
+      onLeaveSeat: profile.leaveSelf,
+    }),
     share,
     controls,
-    release: roster.release,
+    release: bots.release,
   });
   return {
     state,
     shellModel,
     controls,
-    isControlled: roster.controlledSeat !== null,
+    isControlled: bots.controlledSeat !== null,
     equippedRevealEffect: resolveEquippedRevealEffect(user.equippedEffect, room.roomCode, user.id),
     revealPool,
     roleCounts,

@@ -67,6 +67,8 @@ function StoryRelayRoomContent(
                   canControlBots={screen.canControlBots}
                   seatModel={screen.shellModel.seats}
                   session={props.session}
+                  submit={screen.submit}
+                  isSubmitting={screen.isSubmitting}
                 />
               ),
             }

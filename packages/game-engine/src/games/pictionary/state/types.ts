@@ -244,7 +244,3 @@ export function getPictionaryOccupiedSeatCount(state: PictionaryState): number {
 export function isPictionaryRoomFull(state: PictionaryState): boolean {
   return isRoomFull(state.roster, state.config.numberOfPlayers);
 }
-
-export function getPictionaryBotUserId(roomCode: string, seat: number): string {
-  return `pictionary-bot:${roomCode}:${seat}`;
-}

@@ -1,27 +1,16 @@
 /**
- * Roster unification + takeover long-press — client contract.
+ * Roster unification — client contract.
  *
- * Two client-side locks from the roster unification:
- * - The retired implicit-bot derivation (ImplicitBotSeat) must not come
- *   back anywhere in client production code; bot identity is derived once
- *   from the server roster (e.g. werewolf's toWerewolfLocalState).
- * - Bot takeover starts from exactly one shared gesture implementation:
- *   every game's room hook routes its takeover entry through
- *   useBotTakeoverLongPress. Re-implementing a per-game long-press
- *   takeover (toggle logic, capability checks) is drift. Release is
- *   locked separately by botTakeoverGuard.contract.test.ts.
+ * The retired implicit-bot derivation (ImplicitBotSeat) must not come back
+ * anywhere in client production code; bot identity is derived once from the
+ * server roster. The takeover gesture / guard composition is locked by
+ * src/games/__tests__/gameClientShape.contract.test.ts.
  */
 
-import { existsSync, readdirSync, readFileSync } from 'fs';
+import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 const SRC_ROOT = join(__dirname, '..');
-
-function readSource(relativePath: string): string {
-  const fullPath = join(SRC_ROOT, relativePath);
-  if (!existsSync(fullPath)) throw new Error(`Expected source file to exist: ${relativePath}`);
-  return readFileSync(fullPath, 'utf8');
-}
 
 function productionSources(dir: string): string[] {
   const files: string[] = [];
@@ -41,27 +30,10 @@ function productionSources(dir: string): string[] {
   return files;
 }
 
-const LONG_PRESS_CONSUMERS = [
-  'games/werewolf/room/hooks/useWerewolfRoomState.ts',
-  'games/avalon/room/hooks/useAvalonRoomState.ts',
-  'games/fibking/room/hooks/useFibRoomScreenState.ts',
-  'games/undercover/room/hooks/useUndercoverRoster.ts',
-  'games/pictionary/room/hooks/usePictionaryRoomScreenState.ts',
-  'games/storyrelay/room/hooks/useStoryRelayRoomState.ts',
-  'games/drawguess/room/hooks/useDrawGuessRoomState.ts',
-] as const;
-
 describe('roster unification client contract', () => {
   it('no client production source references the retired implicit-bot derivation', () => {
     for (const file of productionSources(SRC_ROOT)) {
       expect(readFileSync(file, 'utf8')).not.toContain('ImplicitBotSeat');
-    }
-  });
-
-  it('every game routes bot takeover through the shared long-press hook', () => {
-    for (const consumer of LONG_PRESS_CONSUMERS) {
-      // useBotTakeover composes the long-press hook for the converged rooms.
-      expect(readSource(consumer)).toMatch(/useBotTakeover(LongPress)?\(/);
     }
   });
 });

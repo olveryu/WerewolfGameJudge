@@ -100,14 +100,14 @@ function __GAME_PASCAL__RoomContent(
 //#cap identityViewing
       gameOverlays={
         <RevealRoleCardModal
-          visible={screen.roleCardVisible}
+          visible={screen.roleViewing.isOpen}
           roleKey={screen.viewModel?.myIdentity ?? null}
           toRoleData={toRevealRoleData}
           effectType={null}
-          shouldPlay={screen.roleCardShouldPlay}
+          shouldPlay={screen.roleViewing.shouldPlayAnimation}
           allRoles={screen.roleCardAllRoles}
-          remainingCards={screen.roleCardRemainingCards}
-          onClose={() => screen.setRoleCardVisible(false)}
+          remainingCards={screen.roleViewing.remainingCards}
+          onClose={screen.roleViewing.close}
         />
       }
 //#end
@@ -135,7 +135,7 @@ function __GAME_PASCAL__StageArea({
   const viewIdentityAction = resolveViewIdentityAction({
     isVisible: phase.kind !== 'ended',
     label: '查看我的身份',
-    onPress: screen.onViewRolePress,
+    onPress: screen.roleViewing.open,
   });
   return (
     <View style={styles.stageArea}>

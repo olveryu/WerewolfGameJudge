@@ -340,23 +340,32 @@ function computeNewRoleConfirmStatus(state: NonNullState): NewRoleConfirmStatus 
 
 **Pipeline trigger chain**: `stepTransitionHandler.handleAdvanceNight()` → detects nextStepId → `maybeCreateConfirmStatusAction(nextStepId, state)` → looks up `CONFIRM_STEP_ROLE[stepId]` → `computeConfirmStatus()` → returns `SET_CONFIRM_STATUS` action → reducer writes to `GameState.confirmStatus` → broadcast.
 
-### 3. Client-side Display (`promptExecutor.ts`)
+### 3. Client-side Display (`resolveNightInteraction.ts`)
 
-**File**: `src/games/werewolf/room/executors/promptExecutor.ts`
+**File**: `src/games/werewolf/room/night/resolveNightInteraction.ts`
 
-Dispatch by `statusUi.kind` in `confirmTriggerExecutor`:
+The `confirm` case switches on `statusUi.kind` and returns a `confirmStatus` night model (dialog
+title/text, button label, optional skip label). Add a branch for the new kind; the hook and
+screen render the model without further branching:
 
 ```typescript
-if (statusUi.kind === 'newKind') {
-  // Read server-computed data from confirmStatus
-  const data = confirmStatus?.role === 'newRole' ? confirmStatus.someField : fallback;
-  statusMessage = formatMessage(statusUi, data);
-} else if (statusUi.kind === 'faction') {
-  // ...existing avenger
-} else {
-  // ...existing shoot (hunter/darkWolfKing)
+case 'newKind': {
+  if (status.role !== 'newRole') {
+    throw new Error('[FAIL-FAST] NewRole confirm step requires newRole status');
+  }
+  return {
+    kind: 'confirmStatus',
+    status,
+    prompt,
+    dialog: { title: dialogTitle, text: formatMessage(statusUi, status.someField) },
+    buttonLabel,
+    skipLabel: null,
+    isUnavailable: false,
+  };
 }
 ```
+
+Add the matching row to the night-model table test in `room/night/__tests__/`.
 
 ### 4. Resolver
 
@@ -694,18 +703,18 @@ Write a 30-80 character role description and append it after the universal prefi
 
 ## Conditional Steps Reference
 
-| Conditional Step       | When to Use                               | Key Files                                                           | Notes                                                           |
-| ---------------------- | ----------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------- |
-| C1 Reveal              | Check type                                | `schema.types.ts` RevealKind + resolver `result: { checkResult }`   | Use `resolveRoleForChecks()`                                    |
-| C2 Death Calculation   | Guard/chain-death/immunity                | `deathCalcRole` field + DeathCalculator                             | Add `deathCalcRole` to spec                                     |
-| C3 Confirm Pipeline    | Confirm type                              | See "Confirm Step Full Pipeline" section                            | protocol types + schema.types + confirmContext + promptExecutor |
-| C4 New GameState Field | Need to store new info in GameState       | `protocol/types.ts` + `normalize.ts`                                | Compile guard                                                   |
-| C5 Preset Template     | Preset board containing new role          | `packages/game-engine/src/games/werewolf/domain/models/Template.ts` | Use new-board skill                                             |
-| C6 E2E                 | By behavior category                      | `e2e/specs/werewolf-night-*.spec.ts`                                | Use new-e2e-spec skill                                          |
-| C7 multiChooseSeat     | Multi-target selection                    | abilities `target.count.max > 1` + resolver reads `input.targets`   |                                                                 |
-| C8 groupConfirm        | Group reveal                              | Second `nightStep` + `STEP_AUDIO` registration                      |                                                                 |
-| C9 Multi-step          | Same role has multiple nightSteps entries | Each step needs its own resolver + audio                            | Second step `audioKey` typically !== roleId                     |
-| C10 Immunity           | Immune to wolf attack/poison/etc.         | `immunities: [{ kind: 'wolfAttack' }]` + DeathCalculator            |                                                                 |
+| Conditional Step       | When to Use                               | Key Files                                                           | Notes                                                                    |
+| ---------------------- | ----------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| C1 Reveal              | Check type                                | `schema.types.ts` RevealKind + resolver `result: { checkResult }`   | Use `resolveRoleForChecks()`                                             |
+| C2 Death Calculation   | Guard/chain-death/immunity                | `deathCalcRole` field + DeathCalculator                             | Add `deathCalcRole` to spec                                              |
+| C3 Confirm Pipeline    | Confirm type                              | See "Confirm Step Full Pipeline" section                            | protocol types + schema.types + confirmContext + resolveNightInteraction |
+| C4 New GameState Field | Need to store new info in GameState       | `protocol/types.ts` + `normalize.ts`                                | Compile guard                                                            |
+| C5 Preset Template     | Preset board containing new role          | `packages/game-engine/src/games/werewolf/domain/models/Template.ts` | Use new-board skill                                                      |
+| C6 E2E                 | By behavior category                      | `e2e/specs/werewolf-night-*.spec.ts`                                | Use new-e2e-spec skill                                                   |
+| C7 multiChooseSeat     | Multi-target selection                    | abilities `target.count.max > 1` + resolver reads `input.targets`   |                                                                          |
+| C8 groupConfirm        | Group reveal                              | Second `nightStep` + `STEP_AUDIO` registration                      |                                                                          |
+| C9 Multi-step          | Same role has multiple nightSteps entries | Each step needs its own resolver + audio                            | Second step `audioKey` typically !== roleId                              |
+| C10 Immunity           | Immune to wolf attack/poison/etc.         | `immunities: [{ kind: 'wolfAttack' }]` + DeathCalculator            |                                                                          |
 
 ---
 
@@ -757,7 +766,7 @@ Confirm each item after implementation:
 - [ ] nightSteps ui fields complete, confirmStatusUi (if confirm type) correct
 - [ ] plan.ts step order correct
 - [ ] Resolver registered in resolvers/index.ts
-- [ ] confirm pipeline implemented end-to-end (if applicable): protocol types + schema.types + confirmContext + promptExecutor
+- [ ] confirm pipeline implemented end-to-end (if applicable): protocol types + schema.types + confirmContext + resolveNightInteraction
 - [ ] Audio generated + registered in AUDIO_REGISTRY
 - [ ] ConfigScreen group added
 - [ ] Contract test counts updated

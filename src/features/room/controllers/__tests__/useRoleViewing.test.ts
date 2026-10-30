@@ -2,7 +2,7 @@
  * useRoleViewing: first view submits, opens only on confirmation with
  * reveal facts frozen from the pre-confirm record; a rejection opens
  * nothing; an already-viewed seat opens immediately without animation;
- * a seat change closes the card.
+ * a seat change or a deal change closes the card.
  */
 import { act, renderHook } from '@testing-library/react-native';
 
@@ -10,15 +10,18 @@ import { useRoleViewing } from '../useRoleViewing';
 
 interface Props {
   effectiveSeat: number | null;
+  identityKey?: string | number | null;
   hasViewed: boolean;
   viewedSeatCount: number;
   submitViewed: () => Promise<boolean>;
 }
 
 function renderViewing(initial: Props) {
-  return renderHook((props: Props) => useRoleViewing({ ...props, occupiedSeatCount: 6 }), {
-    initialProps: initial,
-  });
+  return renderHook(
+    ({ identityKey = 1, ...props }: Props) =>
+      useRoleViewing({ ...props, identityKey, occupiedSeatCount: 6 }),
+    { initialProps: initial },
+  );
 }
 
 describe('useRoleViewing', () => {
@@ -90,7 +93,7 @@ describe('useRoleViewing', () => {
     expect(result.current.isOpen).toBe(false);
   });
 
-  it('fails fast without an effective seat or when already open', () => {
+  it('fails fast without an effective seat and ignores a repeated open', () => {
     const submitViewed = jest.fn(async () => true);
     const unseated = renderViewing({
       effectiveSeat: null,
@@ -101,6 +104,16 @@ describe('useRoleViewing', () => {
     expect(() => unseated.result.current.open()).toThrow(
       '[FAIL-FAST] Role viewing opened without an effective seat',
     );
+    const noDeal = renderViewing({
+      effectiveSeat: 1,
+      identityKey: null,
+      hasViewed: false,
+      viewedSeatCount: 0,
+      submitViewed,
+    });
+    expect(() => noDeal.result.current.open()).toThrow(
+      '[FAIL-FAST] Role viewing opened without a viewable identity',
+    );
 
     const viewed = renderViewing({
       effectiveSeat: 1,
@@ -109,8 +122,69 @@ describe('useRoleViewing', () => {
       submitViewed,
     });
     act(() => viewed.result.current.open());
-    expect(() => viewed.result.current.open()).toThrow(
-      '[FAIL-FAST] Role viewing opened while already open or pending',
+    act(() => viewed.result.current.open());
+    expect(viewed.result.current.isOpen).toBe(true);
+    expect(submitViewed).not.toHaveBeenCalled();
+  });
+
+  it('closes when the deal changes (return to lobby or a new deal)', () => {
+    const submitViewed = jest.fn(async () => true);
+    const { result, rerender } = renderViewing({
+      effectiveSeat: 1,
+      identityKey: 1,
+      hasViewed: true,
+      viewedSeatCount: 1,
+      submitViewed,
+    });
+    act(() => result.current.open());
+    expect(result.current.isOpen).toBe(true);
+    rerender({
+      effectiveSeat: 1,
+      identityKey: null,
+      hasViewed: false,
+      viewedSeatCount: 0,
+      submitViewed,
+    });
+    expect(result.current.isOpen).toBe(false);
+    rerender({
+      effectiveSeat: 1,
+      identityKey: 2,
+      hasViewed: true,
+      viewedSeatCount: 1,
+      submitViewed,
+    });
+    act(() => result.current.open());
+    expect(result.current.isOpen).toBe(true);
+    rerender({
+      effectiveSeat: 1,
+      identityKey: 3,
+      hasViewed: false,
+      viewedSeatCount: 0,
+      submitViewed,
+    });
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it('ignores a repeated open while the confirmation is pending', async () => {
+    let resolveViewed: (confirmed: boolean) => void = () => undefined;
+    const submitViewed = jest.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveViewed = resolve;
+        }),
     );
+    const { result } = renderViewing({
+      effectiveSeat: 1,
+      hasViewed: false,
+      viewedSeatCount: 0,
+      submitViewed,
+    });
+    act(() => result.current.open());
+    act(() => result.current.open());
+    expect(submitViewed).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolveViewed(true);
+    });
+    expect(result.current.isOpen).toBe(true);
   });
 });

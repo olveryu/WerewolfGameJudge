@@ -297,7 +297,7 @@ function DrawGuessWordSelectView({
         phaseRevision: state.phaseRevision,
         turnIndex: state.turnIndex,
       },
-      controlledSeat,
+      { controlledSeat },
     );
   };
   return (

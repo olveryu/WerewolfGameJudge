@@ -4,11 +4,13 @@ import {
   getUndercoverUserSeat,
   type UndercoverCommand,
   undercoverEngine,
+  type UndercoverPublicCommand,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
 import { act, renderHook } from '@testing-library/react-native';
 import { AppState } from 'react-native';
 
+import { createBotTakeoverCapability } from '@/features/room/model/RoomCapabilities';
 import { hostTaskBody } from '@/test-utils/hostTask';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
@@ -34,6 +36,14 @@ jest.mock('@/utils/alertPresets', () => ({
 beforeEach(() => {
   jest.spyOn(AppState, 'addEventListener').mockReturnValue({ remove: jest.fn() });
 });
+
+/** Mirrors useReadyRoomSession.submit on a bare session mock so dispatch assertions stay exact. */
+const submitVia =
+  (session: UndercoverRoomSession) =>
+  (label: string, command: UndercoverPublicCommand, options?: { controlledSeat?: number | null }) =>
+    session
+      .dispatch(command, { controlledSeat: options?.controlledSeat ?? null, label, durable: false })
+      .then((outcome) => outcome.kind === 'committed');
 
 function dispatch(state: UndercoverState, command: UndercoverCommand, isSystem = false) {
   const execution = { nowMs: 1, commandId: 'start', randomSeed: 'test' };
@@ -96,7 +106,14 @@ it('conceals cards on control changes, backgrounding and remount', () => {
     }: {
       currentState: UndercoverState;
       controlledSeat: number | null;
-    }) => useUndercoverRoundControls(currentState, session, 'host', controlledSeat),
+    }) =>
+      useUndercoverRoundControls({
+        state: currentState,
+        userId: 'host',
+        controlledSeat: controlledSeat,
+        submit: submitVia(session),
+        isSubmitting: false,
+      }),
     { initialProps: { currentState: state, controlledSeat: null } },
   );
   expect(result.current.card).toBeNull();
@@ -115,7 +132,15 @@ it('conceals cards on control changes, backgrounding and remount', () => {
   expect(result.current.card).toBeNull();
   act(() => result.current.openCard());
   unmount();
-  const remounted = renderHook(() => useUndercoverRoundControls(state, session, 'host', null));
+  const remounted = renderHook(() =>
+    useUndercoverRoundControls({
+      state: state,
+      userId: 'host',
+      controlledSeat: null,
+      submit: submitVia(session),
+      isSubmitting: false,
+    }),
+  );
   expect(remounted.result.current.card).toBeNull();
   remounted.unmount();
   listener.mockRestore();
@@ -124,7 +149,15 @@ it('conceals cards on control changes, backgrounding and remount', () => {
 it('offers unseated host bot filling and bulk viewing only while bots remain unconfirmed', () => {
   const state = createViewingState();
   const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
-  const { result } = renderHook(() => useUndercoverRoundControls(state, session, 'host', null));
+  const { result } = renderHook(() =>
+    useUndercoverRoundControls({
+      state: state,
+      userId: 'host',
+      controlledSeat: null,
+      submit: submitVia(session),
+      isSubmitting: false,
+    }),
+  );
   const capabilities = createUndercoverRoomCapabilities({
     state: dispatch(state, { type: 'undercover.game.abort', roundId: state.round!.roundId }),
     isHost: true,
@@ -138,7 +171,7 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
     configureGame: jest.fn(),
     shareRoom: jest.fn(),
     openProfile: jest.fn(),
-    takeOverBot: jest.fn(),
+    takeOverBots: createBotTakeoverCapability(true, jest.fn()),
   });
   const lobby = dispatch(
     dispatch(state, { type: 'undercover.game.abort', roundId: state.round!.roundId }),
@@ -158,7 +191,7 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
     configureGame: jest.fn(),
     shareRoom: jest.fn(),
     openProfile: jest.fn(),
-    takeOverBot: jest.fn(),
+    takeOverBots: createBotTakeoverCapability(true, jest.fn()),
   });
   expect(unseatedCapabilities.canFillBots.isAllowed).toBe(true);
   expect(
@@ -187,7 +220,13 @@ it('selects directly for confirmation, cancels without submission and invalidate
   const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
   const { result, rerender } = renderHook(
     ({ currentState }: { currentState: UndercoverState }) =>
-      useUndercoverRoundControls(currentState, session, 'host', 1),
+      useUndercoverRoundControls({
+        state: currentState,
+        userId: 'host',
+        controlledSeat: 1,
+        submit: submitVia(session),
+        isSubmitting: false,
+      }),
     { initialProps: { currentState: state } },
   );
   act(() => result.current.beginSelection());
@@ -228,7 +267,7 @@ it('selects directly for confirmation, cancels without submission and invalidate
     configureGame: jest.fn(),
     shareRoom: jest.fn(),
     openProfile: jest.fn(),
-    takeOverBot: jest.fn(),
+    takeOverBots: createBotTakeoverCapability(true, jest.fn()),
   });
   expect(
     createUndercoverHostManagement({ state, capabilities, controls: result.current }).task,
@@ -263,14 +302,17 @@ it('requires confirmation to restart an active round and exposes restart in host
   const state = createViewingState();
   if (state.round === null) throw new Error('Expected round');
   const session = {
-    dispatch: jest.fn().mockResolvedValue({
-      kind: 'decided',
-      decision: { kind: 'committed', outcome: { kind: 'success' } },
-    }),
+    dispatch: jest.fn().mockResolvedValue({ kind: 'committed', outcome: { kind: 'success' } }),
   } as unknown as UndercoverRoomSession;
   const { result, rerender } = renderHook(
     ({ currentState }: { currentState: UndercoverState }) =>
-      useUndercoverRoundControls(currentState, session, 'host', null),
+      useUndercoverRoundControls({
+        state: currentState,
+        userId: 'host',
+        controlledSeat: null,
+        submit: submitVia(session),
+        isSubmitting: false,
+      }),
     { initialProps: { currentState: state } },
   );
   act(() => result.current.restart());
@@ -311,7 +353,7 @@ it('requires confirmation to restart an active round and exposes restart in host
     configureGame: jest.fn(),
     shareRoom: jest.fn(),
     openProfile: jest.fn(),
-    takeOverBot: jest.fn(),
+    takeOverBots: createBotTakeoverCapability(true, jest.fn()),
   });
   const hostManagement = createUndercoverHostManagement({
     state: aborted,
@@ -412,7 +454,7 @@ describe('createUndercoverRoomShellModel', () => {
       configureGame: jest.fn(),
       shareRoom: jest.fn(),
       openProfile: jest.fn(),
-      takeOverBot: jest.fn(),
+      takeOverBots: createBotTakeoverCapability(true, jest.fn()),
     });
     const share = {
       isVisible: false,
@@ -493,7 +535,7 @@ describe('createUndercoverRoomShellModel', () => {
       configureGame: jest.fn(),
       shareRoom: jest.fn(),
       openProfile: jest.fn(),
-      takeOverBot: jest.fn(),
+      takeOverBots: createBotTakeoverCapability(true, jest.fn()),
     });
     const model = createUndercoverHostManagement({
       state,
@@ -525,7 +567,7 @@ describe('createUndercoverRoomShellModel', () => {
         configureGame: jest.fn(),
         shareRoom: jest.fn(),
         openProfile: jest.fn(),
-        takeOverBot: jest.fn(),
+        takeOverBots: createBotTakeoverCapability(true, jest.fn()),
       }),
       onBack: jest.fn(),
       onTitlePress: jest.fn(),
@@ -573,7 +615,13 @@ it('clears the self-hint once every seat has viewed', () => {
   const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
   const { result, rerender, unmount } = renderHook(
     ({ currentState }: { currentState: UndercoverState }) =>
-      useUndercoverRoundControls(currentState, session, 'host', null),
+      useUndercoverRoundControls({
+        state: currentState,
+        userId: 'host',
+        controlledSeat: null,
+        submit: submitVia(session),
+        isSubmitting: false,
+      }),
     { initialProps: { currentState: viewing } },
   );
   // 本人未确认：底部只出一处提示，指向查看按钮（展示契约 self-hint 态）。
@@ -625,7 +673,15 @@ it('clears the self-hint once every seat has viewed', () => {
 describe('createUndercoverHostManagement task body', () => {
   const buildFor = (state: UndercoverState) => {
     const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
-    const { result } = renderHook(() => useUndercoverRoundControls(state, session, 'host', null));
+    const { result } = renderHook(() =>
+      useUndercoverRoundControls({
+        state: state,
+        userId: 'host',
+        controlledSeat: null,
+        submit: submitVia(session),
+        isSubmitting: false,
+      }),
+    );
     const shareRoom = jest.fn();
     const capabilities = createUndercoverRoomCapabilities({
       state,
@@ -640,7 +696,7 @@ describe('createUndercoverHostManagement task body', () => {
       configureGame: jest.fn(),
       shareRoom,
       openProfile: jest.fn(),
-      takeOverBot: jest.fn(),
+      takeOverBots: createBotTakeoverCapability(true, jest.fn()),
     });
     const model = createUndercoverHostManagement({
       state,

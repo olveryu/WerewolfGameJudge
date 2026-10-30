@@ -1542,11 +1542,16 @@ describe('Room seat taps: in-game adjudication is the shared resolveRoomInGameSe
     },
   );
 
+  // Every game executes seat presses through the shared handler. Games whose
+  // profiles are lobby-only sit on useRoomSetupController; games that keep
+  // profiles open through play (werewolf baseline) own their capability set
+  // over the shared roster controller and open profiles from inGameAction.
   it.each([
     'games/demo/room/hooks/useDemoRoomState.ts',
     'games/avalon/room/hooks/useAvalonRoomState.ts',
     'games/storyrelay/room/hooks/useStoryRelayRoomState.ts',
     'games/drawguess/room/hooks/useDrawGuessRoomState.ts',
+    'games/pictionary/room/hooks/usePictionaryRoomState.ts',
   ])('%s delegates setup and seat-press execution to shared controllers', (relativePath) => {
     const source = fs.readFileSync(path.join(srcDir, relativePath), 'utf-8');
     expect(source).toContain('createRoomSeatPressHandler(');
@@ -1554,23 +1559,21 @@ describe('Room seat taps: in-game adjudication is the shared resolveRoomInGameSe
   });
 
   it.each([
-    'features/room/controllers/useRoomSetupController.ts',
-    'games/pictionary/room/hooks/usePictionaryRoomScreenState.ts',
-    'games/fibking/room/hooks/useFibRoomScreenState.ts',
-    'games/undercover/room/hooks/useUndercoverRoster.ts',
-    // Werewolf keeps profiles open through Assigned / Ready / Ended, so it
-    // owns its capability set over the shared roster controller.
+    'games/fibking/room/hooks/useFibRoomState.ts',
+    'games/undercover/room/hooks/useUndercoverRoomState.ts',
     'games/werewolf/room/hooks/useWerewolfRoomState.ts',
-  ])('%s shares roster wiring without moving game-owned permissions', (relativePath) => {
+  ])('%s keeps profiles open through play over the shared roster controller', (relativePath) => {
     const source = fs.readFileSync(path.join(srcDir, relativePath), 'utf-8');
     expect(source).toContain('useRoomRosterController(');
+    expect(source).toContain('createRoomSeatPressHandler(');
+    expect(source).toMatch(/inGameAction/);
   });
 
-  it('werewolf executes seat presses through the shared handler', () => {
+  it('the shared setup controller composes the shared roster controller', () => {
     const source = fs.readFileSync(
-      path.join(srcDir, 'games/werewolf/room/hooks/useWerewolfRoomState.ts'),
+      path.join(srcDir, 'features/room/controllers/useRoomSetupController.ts'),
       'utf-8',
     );
-    expect(source).toContain('createRoomSeatPressHandler(');
+    expect(source).toContain('useRoomRosterController(');
   });
 });

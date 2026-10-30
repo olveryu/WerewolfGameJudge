@@ -4,17 +4,18 @@ import type { StoryRelayState } from '@game-judge/game-engine/games/storyrelay/p
 import { useRef, useState } from 'react';
 import type { View } from 'react-native';
 
+import { useShareImageAction } from '@/features/room/controllers/useShareImageAction';
 import { captureViewPngBase64 } from '@/features/room/services/captureViewPngBase64';
-import { shareImagesBase64 } from '@/features/room/services/shareImage';
-import { handleError } from '@/utils/errorPipeline';
-import { roomScreenLog } from '@/utils/logger';
 
 import { formatStoryRelayStory } from '../storyRelayPresentation';
 
 /** Exports each selected story as its own complete PNG, never the virtualized gallery. */
 export function useStoryRelayImageShare(state: StoryRelayState) {
   const [selection, setSelection] = useState<readonly number[] | null>(null);
-  const [isSharing, setIsSharing] = useState(false);
+  const shareAction = useShareImageAction({
+    label: '分享故事图片',
+    alertMessage: '故事图片分享失败，请稍后重试。',
+  });
   const captureRefs = useRef(new Map<string, View>());
   const stories =
     selection?.map((chainIndex) => {
@@ -23,34 +24,22 @@ export function useStoryRelayImageShare(state: StoryRelayState) {
       return { id: chain.id, chainIndex, text: formatStoryRelayStory(state, chain, chainIndex) };
     }) ?? [];
 
-  const share = async () => {
-    setIsSharing(true);
-    try {
-      await shareImagesBase64(
-        stories.map((story) => ({
-          filename: `storyrelay-${state.roomCode}-${state.roundNumber}-${story.chainIndex + 1}.png`,
-          getBase64: () => {
-            const view = captureRefs.current.get(story.id);
-            if (view === undefined) throw new Error('Story image view is not mounted');
-            return captureViewPngBase64({ current: view });
-          },
-        })),
-        '故事接龙',
-      );
-    } catch (error) {
-      handleError(error, {
-        label: '分享故事图片',
-        logger: roomScreenLog,
-        alertMessage: '故事图片分享失败，请稍后重试。',
-      });
-    } finally {
-      setIsSharing(false);
-    }
-  };
+  const share = () =>
+    shareAction.share(
+      stories.map((story) => ({
+        filename: `storyrelay-${state.roomCode}-${state.roundNumber}-${story.chainIndex + 1}.png`,
+        getBase64: () => {
+          const view = captureRefs.current.get(story.id);
+          if (view === undefined) throw new Error('Story image view is not mounted');
+          return captureViewPngBase64({ current: view });
+        },
+      })),
+      '故事接龙',
+    );
 
   return {
     isOpen: selection !== null,
-    isSharing,
+    isSharing: shareAction.isSharing,
     stories,
     openStory: (chainIndex: number) => setSelection([chainIndex]),
     close: () => setSelection(null),

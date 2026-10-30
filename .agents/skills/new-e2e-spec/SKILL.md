@@ -157,7 +157,7 @@ Reference: `werewolf-night-completion.spec.ts` seer/guard skip test
 
 ```typescript
 const turn = await waitForRoleTurn(page, ['查看', '同伴'], allPages, 120);
-// 1. Dismiss initial prompt alert (promptExecutor's showRoleActionPrompt)
+// 1. Dismiss initial prompt alert (the night model's once-per-step prompt)
 await dismissAlert(page);
 // 2. Click bottom button to trigger the actual action
 await clickBottomButton(page, '查看同伴');

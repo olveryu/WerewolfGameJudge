@@ -333,19 +333,16 @@ export function editClientCatalog(content, { gameId, camel, pascal }) {
 }
 
 /**
- * Register the client's dispatch funnel in the bot dispatch discipline
+ * Register the client's dispatch site in the bot dispatch discipline
  * contract (#149): DISPATCH_SITES is exhaustive over GameType and the
- * generated room-state hook follows the parameterized-submit form
- * (control defaults to null; seat actions pass the seat explicitly).
+ * generated room-state hook dispatches only through the platform
+ * useReadyRoomSession.submit (seat actions pass `{ controlledSeat }`).
  */
 export function editDispatchDiscipline(content, { gameId, pascal }) {
   const file = 'botDispatchDiscipline.contract.test.ts';
   if (content.includes(`games/${gameId}/room/hooks/`))
     fail(file, `'${gameId}' is already registered.`);
-  const entry =
-    `  ${gameId}: [\n` +
-    `    { file: 'games/${gameId}/room/hooks/use${pascal}RoomState.ts', form: 'parameterized-submit' },\n` +
-    `  ],\n`;
+  const entry = `  ${gameId}: ['games/${gameId}/room/hooks/use${pascal}RoomState.ts'],\n`;
   // Anchor on the record close alone: the previous entry's closing shape is
   // not stable across generations (the formatting pass collapses a short
   // generated entry onto one line), so keying on it would make the second
@@ -353,7 +350,7 @@ export function editDispatchDiscipline(content, { gameId, pascal }) {
   return replaceOnce(
     file,
     content,
-    /(\n)(\};\n\nfunction expectParameterizedSubmit)/,
+    /(\n)(\};\n\nfunction expectSharedReadySessionSubmit)/,
     (match, newline, head) => `${newline}${entry}${head}`,
   );
 }

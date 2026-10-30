@@ -52,10 +52,10 @@ import {
   VIEW_IDENTITY_LABEL,
 } from '@/features/room/model/RoomBottomActions';
 import {
-  createBotTakeoverCapability,
   createRoomSetupCapabilities,
   createViewProfilesCapability,
   type RoomCapabilities,
+  type RoomCapability,
   type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
 import type {
@@ -91,7 +91,7 @@ interface FibCapabilitiesInput {
   readonly fillBots: () => void;
   readonly configureGame: () => void;
   readonly openProfile: (target: RoomProfileTarget) => void;
-  readonly takeOverBot: (seat: number) => void;
+  readonly takeOverBots: RoomCapability<readonly [seat: number]>;
   readonly shareRoom: () => void;
 }
 
@@ -118,7 +118,7 @@ export function createFibRoomCapabilities(input: FibCapabilitiesInput): RoomCapa
   return {
     ...setupCapabilities,
     canViewProfiles: createViewProfilesCapability(true, input.openProfile),
-    canTakeOverBots: createBotTakeoverCapability(input.isHost, input.takeOverBot),
+    canTakeOverBots: input.takeOverBots,
   };
 }
 

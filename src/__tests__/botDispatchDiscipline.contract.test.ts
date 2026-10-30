@@ -1,25 +1,17 @@
 /**
- * Bot takeover dispatch discipline — client contract (#149 定版).
+ * Bot takeover dispatch discipline — client contract (#149 定版，步骤 6 收敛后形态).
  *
  * 房主命令只能以未接管身份派发：引擎的房主门（resolveHostActorId）拒绝
  * 一切 controlledSeat 非空的 actor，挂着接管座位发房主命令必然失败
  * （#149 在阿瓦隆修掉、drawguess 漏网的正是这一类缺陷）。因此每家的
- * 通用 submit 漏斗默认必须是 controlledSeat: null，座位动作（以被接管
- * 机器人身份发出）只能由调用点显式传。本 contract 以源码扫描钉住这条
- * 纪律，登记表按 GAME_TYPES 驱动：任何游戏（含未来新游戏）没有登记
- * 其漏斗形态、或漏斗回退成「默认挂当前接管座位」，CI 直接失败。
+ * 命令漏斗必须默认 controlledSeat: null，座位动作（以被接管机器人身份
+ * 发出）只能由调用点显式传 `{ controlledSeat }`。
  *
- * 登记的三种等价形态（按各家现状事实登记，不是三套标准）：
- * - parameterized-submit：submit 第三参 control 默认 null，座位动作
- *   显式传（avalon / undercover / drawguess / fibking；fibking 原为
- *   hardcoded-null-submit，其确认查看命令是经漏斗发出的座位动作、
- *   写死 null 使房主代 bot 确认落到房主本人座位，D-2 对齐时改判此形态）。
- * - hardcoded-null-submit：漏斗写死 null，该家不存在经漏斗发出的座位
- *   动作（pictionary / storyrelay；storyrelay 的 Stage 组件另有一个
- *   同形态漏斗，一并登记）。
- * - shared-ready-session-submit：漏斗是平台 useReadyRoomSession.submit，
- *   其 options.controlledSeat 默认 null，座位动作由调用点显式传
- *   `{ controlledSeat }`（werewolf；步骤 6 后各家陆续迁入）。
+ * 七家只有一种漏斗：平台 useReadyRoomSession.submit。各家房间 hook 不得
+ * 再开自己的 `session.dispatch(command, …)` 漏斗；允许的直接 dispatch 只有
+ * 系统性派发（阶段到期 expire、播报 ack、自动提交），它们不是命令漏斗。
+ * 登记表按 GAME_TYPES 驱动：任何游戏（含未来新游戏）没有登记其房间 hook、
+ * 或 hook 重新打开自有漏斗，CI 直接失败。
  */
 
 import { GAME_TYPES, type GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
@@ -38,87 +30,37 @@ function readSource(relativePath: string): string {
 const AMBIENT_CONTROLLED_SEAT_FUNNEL =
   /dispatch\(command, \{\s*controlledSeat(?::\s*controlledSeat)?,\s*label\s*\}\)/;
 
-type DispatchForm =
-  | 'parameterized-submit'
-  | 'hardcoded-null-submit'
-  | 'shared-ready-session-submit';
-
-interface DispatchSiteRegistration {
-  readonly file: string;
-  readonly form: DispatchForm;
-}
-
-const DISPATCH_SITES: Record<GameType, readonly DispatchSiteRegistration[]> = {
-  werewolf: [
-    {
-      file: 'games/werewolf/room/hooks/useWerewolfRoomState.ts',
-      form: 'shared-ready-session-submit',
-    },
-  ],
-  avalon: [{ file: 'games/avalon/room/hooks/useAvalonRoomState.ts', form: 'parameterized-submit' }],
+/** 每家经平台漏斗派发的源文件（房间 hook；storyrelay / pictionary 的阶段组件接收 submit 入参）。 */
+const DISPATCH_SITES: Record<GameType, readonly string[]> = {
+  werewolf: ['games/werewolf/room/hooks/useWerewolfRoomState.ts'],
+  avalon: ['games/avalon/room/hooks/useAvalonRoomState.ts'],
   undercover: [
-    {
-      file: 'games/undercover/room/hooks/useUndercoverRoundControls.ts',
-      form: 'parameterized-submit',
-    },
+    'games/undercover/room/hooks/useUndercoverRoomState.ts',
+    'games/undercover/room/hooks/useUndercoverRoundControls.ts',
   ],
-  drawguess: [
-    { file: 'games/drawguess/room/hooks/useDrawGuessRoomState.ts', form: 'parameterized-submit' },
-  ],
-  fibking: [
-    { file: 'games/fibking/room/hooks/useFibRoomScreenState.ts', form: 'parameterized-submit' },
-  ],
+  drawguess: ['games/drawguess/room/hooks/useDrawGuessRoomState.ts'],
+  fibking: ['games/fibking/room/hooks/useFibRoomState.ts'],
   pictionary: [
-    {
-      file: 'games/pictionary/room/hooks/usePictionaryRoomScreenState.ts',
-      form: 'hardcoded-null-submit',
-    },
+    'games/pictionary/room/hooks/usePictionaryRoomState.ts',
+    'games/pictionary/room/components/PictionaryTaskStage.tsx',
+    'games/pictionary/room/components/PictionaryGalleryStage.tsx',
   ],
   storyrelay: [
-    {
-      file: 'games/storyrelay/room/hooks/useStoryRelayRoomState.ts',
-      form: 'hardcoded-null-submit',
-    },
-    {
-      file: 'games/storyrelay/room/components/StoryRelayStage.tsx',
-      form: 'hardcoded-null-submit',
-    },
+    'games/storyrelay/room/hooks/useStoryRelayRoomState.ts',
+    'games/storyrelay/room/components/StoryRelayStage.tsx',
+    'games/storyrelay/room/components/StoryRelayTaskEditor.tsx',
   ],
-  demo: [{ file: 'games/demo/room/hooks/useDemoRoomState.ts', form: 'parameterized-submit' }],
+  demo: ['games/demo/room/hooks/useDemoRoomState.ts'],
 };
-
-function expectParameterizedSubmit(source: string): void {
-  expect(source).toMatch(
-    /const submit = \(label: string, command: \w+, control: number \| null = null\)/,
-  );
-  expect(source).toMatch(
-    /session\.dispatch\(command, \{ controlledSeat: control, label, durable: false \}\)/,
-  );
-  expect(source).not.toMatch(AMBIENT_CONTROLLED_SEAT_FUNNEL);
-}
-
-function expectHardcodedNullSubmit(source: string): void {
-  expect(source).toMatch(
-    /session\.dispatch\(command, \{ controlledSeat: null, label, durable: false \}\)/,
-  );
-  expect(source).not.toMatch(AMBIENT_CONTROLLED_SEAT_FUNNEL);
-}
 
 function expectSharedReadySessionSubmit(source: string): void {
-  // The game funnels every command through the platform submit and never
-  // opens its own dispatch funnel; seat actions pass the seat explicitly.
-  expect(source).toMatch(/useReadyRoomSession\(/);
+  // The file either owns the platform submit (the room hook) or receives it
+  // as an input (stage components); it never opens its own dispatch funnel.
+  expect(source).toMatch(/useReadyRoomSession\(|ReadyRoomSession<[^>]+>\['submit'\]/);
+  expect(source).not.toMatch(/useRoomCommandSubmission\(/);
   expect(source).not.toMatch(/session\.dispatch\(command/);
   expect(source).not.toMatch(AMBIENT_CONTROLLED_SEAT_FUNNEL);
-  const shared = readSource('features/room/controllers/useReadyRoomSession.ts');
-  expect(shared).toMatch(/controlledSeat: options\.controlledSeat \?\? null/);
 }
-
-const FORM_ASSERTIONS: Record<DispatchForm, (source: string) => void> = {
-  'parameterized-submit': expectParameterizedSubmit,
-  'hardcoded-null-submit': expectHardcodedNullSubmit,
-  'shared-ready-session-submit': expectSharedReadySessionSubmit,
-};
 
 describe('bot dispatch discipline — registration covers every game', () => {
   it('every GAME_TYPES entry has a registered dispatch site, and no extras', () => {
@@ -126,11 +68,16 @@ describe('bot dispatch discipline — registration covers every game', () => {
   });
 });
 
-describe('bot dispatch discipline — submit funnels default to uncontrolled', () => {
+describe('bot dispatch discipline — every command goes through the platform submit', () => {
+  it('the platform submit defaults to the uncontrolled identity', () => {
+    const shared = readSource('features/room/controllers/useReadyRoomSession.ts');
+    expect(shared).toMatch(/controlledSeat: options\.controlledSeat \?\? null/);
+  });
+
   for (const gameType of GAME_TYPES) {
-    for (const site of DISPATCH_SITES[gameType]) {
-      it(`${gameType}: ${site.file} follows the ${site.form} form`, () => {
-        FORM_ASSERTIONS[site.form](readSource(site.file));
+    for (const file of DISPATCH_SITES[gameType]) {
+      it(`${gameType}: ${file} dispatches only through useReadyRoomSession.submit`, () => {
+        expectSharedReadySessionSubmit(readSource(file));
       });
     }
   }
@@ -168,7 +115,9 @@ describe('bot dispatch discipline — drawguess seat actions pass the seat expli
   const screen = () => readSource('games/drawguess/room/DrawGuessRoomScreen.tsx');
 
   it('word choosing (a drawer seat action) passes controlledSeat explicitly', () => {
-    expect(screen()).toMatch(/submit\(\s*'选择题目',\s*\{[^}]*\},\s*controlledSeat,?\s*\)/);
+    expect(screen()).toMatch(
+      /submit\(\s*'选择题目',\s*\{[^}]*\},\s*\{\s*controlledSeat\s*\},?\s*\)/,
+    );
   });
 
   it('the drawing workspace exposes neither give-up nor host abort commands', () => {

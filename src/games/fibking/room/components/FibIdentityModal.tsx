@@ -28,10 +28,8 @@ interface FibIdentityModalProps {
   readonly allRoles: readonly RevealRoleData[];
   /** 桌上未看牌数（已占座位数 − 已查看数）。 */
   readonly remainingCards: number;
-  /** 确认按钮文案：viewing 未确认时为「我已看清」，其余为「知道了」。 */
-  readonly confirmText: string;
-  /** 确认按钮动作：viewing 未确认时提交查看记录并关闭，其余等同关闭。 */
-  readonly onConfirm: () => void;
+  /** 关闭：查看记录已在弹卡前落下（useRoleViewing），这里只收起卡片。 */
+  readonly onClose: () => void;
 }
 
 const FibIdentityModalComponent: React.FC<FibIdentityModalProps> = ({
@@ -40,16 +38,15 @@ const FibIdentityModalComponent: React.FC<FibIdentityModalProps> = ({
   shouldPlay,
   allRoles,
   remainingCards,
-  confirmText,
-  onConfirm,
+  onClose,
 }) => {
   const role = toFibRevealRoleData(view);
   const card = (
     <RoleCardSimple
       visible={true}
       role={role}
-      onClose={onConfirm}
-      confirmText={confirmText}
+      onClose={onClose}
+      confirmText="知道了"
       testID={TESTIDS.fibIdentityModal}
       nameTestID={TESTIDS.fibIdentityRole}
     />

@@ -13,7 +13,7 @@ import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryR
 
 import { PictionaryRoomSummary } from './components/PictionaryRoomSummary';
 import { PictionaryStage } from './components/PictionaryStage';
-import { usePictionaryRoomScreenState } from './hooks/usePictionaryRoomScreenState';
+import { usePictionaryRoomState } from './hooks/usePictionaryRoomState';
 
 interface PictionaryRoomScreenProps extends GameRoomScreenProps<'pictionary'> {
   readonly session: PictionaryRoomSession;
@@ -36,7 +36,7 @@ const PictionaryRoomContent: React.FC<PictionaryRoomContentProps> = ({
   entryController,
   ...props
 }) => {
-  const screen = usePictionaryRoomScreenState({ ...props, entryController });
+  const screen = usePictionaryRoomState({ ...props, entryController });
   const isLobby = screen.state.phase === 'lobby';
   return (
     <RoomShell
@@ -71,6 +71,8 @@ const PictionaryRoomContent: React.FC<PictionaryRoomContentProps> = ({
                   canControlBots={screen.canControlBots}
                   seatModel={screen.shellModel.seats}
                   session={screen.session}
+                  submit={screen.submit}
+                  isSubmitting={screen.isSubmitting}
                 />
               ),
             }

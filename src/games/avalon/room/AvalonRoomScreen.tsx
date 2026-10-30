@@ -8,11 +8,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/Button';
 import { createBoardInfoStyles } from '@/features/room/components/boardInfo.styles';
 import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardModal';
+import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer';
@@ -33,18 +33,13 @@ import { AvalonNightConfirmModal } from './components/AvalonNightConfirmModal';
 import { AvalonQuestModal } from './components/AvalonQuestModal';
 import { AvalonQuestResultPanel } from './components/AvalonQuestResultPanel';
 import { AvalonReviewOverlay } from './components/AvalonReviewOverlay';
-import {
-  type AvalonStrikeConfirmation,
-  AvalonStrikeConfirmModal,
-} from './components/AvalonStrikeConfirmModal';
+import { AvalonStrikeConfirmModal } from './components/AvalonStrikeConfirmModal';
 import { AvalonTeamPickModal } from './components/AvalonTeamPickModal';
 import { AvalonVoteModal } from './components/AvalonVoteModal';
 import { AvalonVoteResultPanel } from './components/AvalonVoteResultPanel';
 import { useAvalonRoomState } from './hooks/useAvalonRoomState';
 import { useRevealWatermark } from './hooks/useRevealWatermark';
 import {
-  eligibleStrikeTargets,
-  resolveAssassinInstruction,
   resolveLadyInstruction,
   resolveQuestInstruction,
   resolveVoteInstruction,
@@ -83,7 +78,8 @@ function AvalonRoomContent(
   const historySummary = isLobby ? null : createAvalonHistorySummary(screen.state);
   // 刺杀二次确认住在 overlays 层：阶段切换不能把它吞掉。
   // 选人模式（strikePickMode）住在 hook：底部动作区的「刺杀」入口与此处共用。
-  const [strikeConfirm, setStrikeConfirm] = useState<AvalonStrikeConfirmation | null>(null);
+  const { strikeConfirm, setStrikeConfirm, ladyCheckTarget, setLadyCheckTarget } =
+    screen.seatPicking;
   const { setStrikePickMode } = screen;
   const closeStrike = () => {
     setStrikeConfirm(null);
@@ -93,13 +89,14 @@ function AvalonRoomContent(
     if (strikeConfirm === null) return;
     const { seat, mode } = strikeConfirm;
     setStrikeConfirm(null);
+    const controlledSeat = screen.controlledSeat;
     if (mode === 'accuse')
-      void screen.submit('指认', { type: 'avalon.assassin.accuse', seat }, screen.controlledSeat);
+      void screen.submit('指认', { type: 'avalon.assassin.accuse', seat }, { controlledSeat });
     else
       void screen.submit(
         '提前刺杀',
         { type: 'avalon.assassin.earlyStrike', seat },
-        screen.controlledSeat,
+        { controlledSeat },
       );
     setStrikePickMode(false);
   };
@@ -175,11 +172,6 @@ function AvalonRoomContent(
       : undefined;
   // 座位盘选人：提名（组队者点选切换服务端草稿）/ 湖仙（持有人点选→二次确认）/ 刺杀
   // （刺客点选→二次确认）/ 提前刺杀（选人模式开启时点选→二次确认，优先于阶段点选）。
-  const [ladyCheckTarget, setLadyCheckTarget] = useState<number | null>(null);
-  useEffect(() => {
-    if (viewModel?.phase !== 'lady') setLadyCheckTarget(null);
-    if (viewModel === null || !viewModel.canEarlyStrike) setStrikePickMode(false);
-  }, [viewModel, setStrikePickMode]);
   const { setLadyAckOpen } = screen;
   const ladyAckKeyRef = useRef<string | null>(null);
   useEffect(() => {
@@ -217,56 +209,6 @@ function AvalonRoomContent(
   const showLadyResult = ladyResult !== null && ladyResultWatermark.shouldReveal;
   const seatDisplayName = (seat: number) =>
     `${seat + 1} 号 · ${viewModel?.seats.find((entry) => entry.seat === seat)?.displayName ?? `座位${seat + 1}`}`;
-  const { setSeatPickHandler, strikePickMode } = screen;
-  // 座位盘点选全部经共享点选机制（useSeatPicking）：三个消费点各一份配置，
-  // 资格集仍由 avalonInteractionPolicy 产出，本组件只做装配。注册桥按现行
-  // 优先级合成单个 handler：提前刺杀选人模式开启时独占点按（遮蔽其余
-  // 点选，与原先的提前返回注册一致），其余按湖仙 → 刺杀指认的
-  // 顺序逐个尝试消费；都不消费时落回默认座位语义。
-  // 组队选人已改走底部按钮打开的 modal（见 teamPickModal），不再占座位盘点选。
-  const ladyInstruction =
-    viewModel !== null && viewModel.phase === 'lady' ? resolveLadyInstruction(viewModel) : null;
-  const assassinInstruction =
-    viewModel !== null && viewModel.phase === 'assassin'
-      ? resolveAssassinInstruction(viewModel)
-      : null;
-  const strikePicking = useSeatPicking({
-    active: strikePickMode && viewModel !== null && viewModel.canEarlyStrike,
-    mode: 'trigger',
-    eligibleSeats: viewModel === null ? [] : eligibleStrikeTargets(viewModel),
-    storage: { kind: 'local' },
-    onPick: (seat) => {
-      setStrikePickMode(false);
-      setStrikeConfirm({ seat, mode: 'earlyStrike' });
-    },
-  });
-  const ladyPicking = useSeatPicking({
-    active: ladyInstruction?.kind === 'holderPick',
-    mode: 'trigger',
-    eligibleSeats: ladyInstruction?.kind === 'holderPick' ? ladyInstruction.eligibleSeats : [],
-    storage: { kind: 'local' },
-    onPick: setLadyCheckTarget,
-  });
-  const assassinPicking = useSeatPicking({
-    active: assassinInstruction?.kind === 'assassinPick',
-    mode: 'trigger',
-    eligibleSeats: viewModel === null ? [] : eligibleStrikeTargets(viewModel),
-    storage: { kind: 'local' },
-    onPick: (seat) => setStrikeConfirm({ seat, mode: 'accuse' }),
-  });
-  const strikePickActive = strikePickMode && viewModel !== null && viewModel.canEarlyStrike;
-  const strikeTap = strikePicking.handleSeatTap;
-  const ladyTap = ladyPicking.handleSeatTap;
-  const assassinTap = assassinPicking.handleSeatTap;
-  useEffect(() => {
-    if (viewModel === null) {
-      setSeatPickHandler(null);
-      return;
-    }
-    setSeatPickHandler((seat) =>
-      strikePickActive ? strikeTap(seat) : ladyTap(seat) || assassinTap(seat),
-    );
-  }, [viewModel, setSeatPickHandler, strikePickActive, strikeTap, ladyTap, assassinTap]);
   // 晚上阶段：座位盘保持可见（对齐狼人杀），确认信息走弹窗。
   // 全程座位盘保持可见；阶段交互按落点总规则分布（盘上点选 / 弹窗 / 底部
   // 动作区），座位盘下方不放任何阶段 UI——与全平台各家一致。
@@ -293,10 +235,7 @@ function AvalonRoomContent(
                   />
                   <AvalonBoardInfoCard
                     playerCount={config.numberOfPlayers}
-                    onRolePress={(roleId) => {
-                      screen.setRolePreviewId(roleId);
-                      screen.setRoleCardVisible(true);
-                    }}
+                    onRolePress={screen.setRolePreviewId}
                     styles={boardInfoStyles}
                   />
                 </>
@@ -320,10 +259,7 @@ function AvalonRoomContent(
                 <AvalonBoardInfoCard
                   playerCount={config.numberOfPlayers}
                   collapsed
-                  onRolePress={(roleId) => {
-                    screen.setRolePreviewId(roleId);
-                    screen.setRoleCardVisible(true);
-                  }}
+                  onRolePress={screen.setRolePreviewId}
                   styles={boardInfoStyles}
                 />
               ),
@@ -389,7 +325,9 @@ function AvalonRoomContent(
                     void screen.submit(
                       '投票',
                       { type: 'avalon.team.vote', vote },
-                      screen.controlledSeat,
+                      {
+                        controlledSeat: screen.controlledSeat,
+                      },
                     )
                   }
                   onClose={() => setVoteModalOpen(false)}
@@ -413,7 +351,9 @@ function AvalonRoomContent(
                     void screen.submit(
                       '出牌',
                       { type: 'avalon.quest.play', play },
-                      screen.controlledSeat,
+                      {
+                        controlledSeat: screen.controlledSeat,
+                      },
                     )
                   }
                   onClose={() => setQuestModalOpen(false)}
@@ -428,7 +368,7 @@ function AvalonRoomContent(
                     void screen.submit(
                       '确认信息',
                       { type: 'avalon.night.confirm' },
-                      screen.controlledSeat,
+                      { controlledSeat: screen.controlledSeat },
                     );
                   }}
                   onClose={() => screen.setNightModalVisible(false)}
@@ -443,7 +383,7 @@ function AvalonRoomContent(
                   void screen.submit(
                     '查验',
                     { type: 'avalon.lady.check', seat },
-                    screen.controlledSeat,
+                    { controlledSeat: screen.controlledSeat },
                   );
                 }}
                 onClose={() => setLadyCheckTarget(null)}
@@ -457,7 +397,7 @@ function AvalonRoomContent(
                     void screen.submit(
                       '确认展示',
                       { type: 'avalon.lady.acknowledge' },
-                      screen.controlledSeat,
+                      { controlledSeat: screen.controlledSeat },
                     );
                   }}
                   onClose={() => setLadyAckOpen(false)}
@@ -472,8 +412,13 @@ function AvalonRoomContent(
               ) : null}
             </>
           )}
+          <RoomAudioResumeDialog
+            visible={screen.audioResume.isDue}
+            onContinue={screen.audioResume.continueGame}
+          />
+          {/* 身份卡（查看记录确认后弹）与板子信息的角色预览共用一个弹窗；预览无揭示动效。 */}
           <RevealRoleCardModal
-            visible={screen.roleCardVisible}
+            visible={screen.rolePreviewId !== null || screen.roleViewing.isOpen}
             roleKey={screen.rolePreviewId ?? viewModel?.myRole ?? null}
             toRoleData={toRevealRoleData}
             effectType={
@@ -481,12 +426,12 @@ function AvalonRoomContent(
                 ? null
                 : screen.equippedRevealEffect
             }
-            shouldPlay={screen.rolePreviewId === null && screen.roleCardShouldPlay}
+            shouldPlay={screen.rolePreviewId === null && screen.roleViewing.shouldPlayAnimation}
             allRoles={screen.roleCardAllRoles}
-            remainingCards={screen.roleCardRemainingCards}
+            remainingCards={screen.roleViewing.remainingCards}
             onClose={() => {
-              screen.setRoleCardVisible(false);
-              screen.setRolePreviewId(null);
+              if (screen.rolePreviewId !== null) screen.setRolePreviewId(null);
+              else screen.roleViewing.close();
             }}
           />
         </>

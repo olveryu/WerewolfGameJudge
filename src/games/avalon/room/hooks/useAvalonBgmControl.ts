@@ -105,5 +105,10 @@ export function useAvalonBgmControl(
     return stopBgm;
   }, [isHost, stopBgm]);
 
-  return { isBgmPlaying, playBgm, stopBgm };
+  // Resume-gate gesture (host rejoin mid-narration): restart music only if enabled.
+  const startBgmIfEnabled = useCallback(() => {
+    if (settingsService.isBgmEnabled()) playBgm();
+  }, [playBgm, settingsService]);
+
+  return { isBgmPlaying, playBgm, stopBgm, startBgmIfEnabled };
 }

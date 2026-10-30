@@ -103,6 +103,16 @@ describe('StoryRelayStage bot drafts', () => {
         canControlBots
         seatModel={seatModel}
         session={session}
+        submit={(label, command, options) =>
+          session
+            .dispatch(command, {
+              controlledSeat: options?.controlledSeat ?? null,
+              label,
+              durable: false,
+            })
+            .then((outcome) => outcome.kind === 'committed')
+        }
+        isSubmitting={false}
       />
     );
     const view = render(stageElement());

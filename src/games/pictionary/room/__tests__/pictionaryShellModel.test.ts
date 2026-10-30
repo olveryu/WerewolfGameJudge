@@ -4,15 +4,53 @@
  */
 import {
   DEFAULT_PICTIONARY_CONFIG,
+  getPictionaryOccupiedSeatCount,
+  isPictionaryRoomFull,
   pictionaryEngine,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 
 import {
-  createPictionaryRoomCapabilities,
+  createBotTakeoverCapability,
+  createRoomSetupCapabilities,
+  createViewProfilesCapability,
+  type RoomCapabilities,
+} from '@/features/room/model/RoomCapabilities';
+
+import {
   createPictionaryRoomShellModel,
   createPictionarySeatDataSource,
 } from '../pictionaryRoomAdapter';
+
+/** Mirrors the hook's capability assembly: shared setup capabilities + host-only takeover. */
+function testCapabilities(input: {
+  readonly state: PictionaryState;
+  readonly isHost: boolean;
+  readonly mySeat: number | null;
+  readonly shareRoom: () => void;
+}): RoomCapabilities {
+  const isLobby = input.state.phase === 'lobby';
+  return {
+    ...createRoomSetupCapabilities({
+      isSetup: isLobby,
+      isHost: input.isHost,
+      supportsBots: true,
+      mySeat: input.mySeat,
+      hasOccupiedSeats: getPictionaryOccupiedSeatCount(input.state) > 0,
+      isRoomFull: isPictionaryRoomFull(input.state),
+      requestTakeSeat: jest.fn(),
+      requestMoveSeat: jest.fn(),
+      leaveSeat: jest.fn(),
+      kickSeat: jest.fn(),
+      clearSeats: jest.fn(),
+      fillBots: jest.fn(),
+      configureGame: jest.fn(),
+      shareRoom: input.shareRoom,
+    }),
+    canViewProfiles: createViewProfilesCapability(isLobby, jest.fn()),
+    canTakeOverBots: createBotTakeoverCapability(input.isHost, jest.fn()),
+  };
+}
 
 function lobbyState(): PictionaryState {
   return pictionaryEngine.createInitialState(
@@ -47,19 +85,10 @@ describe('createPictionaryRoomShellModel', () => {
     };
     const onBack = jest.fn();
     const onSeatPress = jest.fn();
-    const capabilities = createPictionaryRoomCapabilities({
+    const capabilities = testCapabilities({
       state,
       isHost: true,
       mySeat: null,
-      requestTakeSeat: jest.fn(),
-      requestMoveSeat: jest.fn(),
-      leaveSeat: jest.fn(),
-      kickSeat: jest.fn(),
-      clearSeats: jest.fn(),
-      fillBots: jest.fn(),
-      configureGame: jest.fn(),
-      openProfile: jest.fn(),
-      takeOverBot: jest.fn(),
       shareRoom: jest.fn(),
     });
     const model = createPictionaryRoomShellModel({

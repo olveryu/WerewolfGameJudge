@@ -4,6 +4,10 @@
  * `durable: true`, and never starts a second playback while that ack is still
  * awaiting the server decision — reconnects are the link's business, not the
  * orchestrator's. Once the committed ack empties the queue, nothing replays.
+ *
+ * Rejoin (werewolf baseline): a host whose first ready snapshot of a link epoch
+ * already has narration in flight is marked interrupted — the queue subscription
+ * stays silent and `resumeAfterRejoin` replays the pending batch, then acks.
  */
 import type {
   AudioEffect,
@@ -23,12 +27,23 @@ import { useAvalonAudioOrchestration } from '../useAvalonAudioOrchestration';
 
 const QUEUED_BATCH_ID = 1;
 
-function createFakeLink(queue: readonly AudioEffect[]) {
-  const initialState = buildAvalonTestState({
+function queuedState(queue: readonly AudioEffect[]): AvalonState {
+  return buildAvalonTestState({
     pendingAudioEffects: queue,
     isAudioPlaying: true,
     audioBatchId: QUEUED_BATCH_ID,
   });
+}
+
+/**
+ * `mountedMidNarration`: the link's first ready snapshot already carries the
+ * queue (host rejoin). Otherwise the link starts idle and `queueNarration`
+ * publishes the batch later, as a game start would.
+ */
+function createFakeLink(queue: readonly AudioEffect[], mountedMidNarration = false) {
+  const initialState = mountedMidNarration
+    ? queuedState(queue)
+    : buildAvalonTestState({ audioBatchId: 0 });
   let revision = 1;
   let settleAck: ((outcome: DispatchOutcome<AvalonState>) => void) | null = null;
   const link = createFakeRoomLink<AvalonState, AvalonPublicCommand>(
@@ -42,6 +57,11 @@ function createFakeLink(queue: readonly AudioEffect[]) {
   return {
     link,
     dispatch,
+    /** The server queues the batch (e.g. game start). */
+    queueNarration: () => {
+      revision += 1;
+      link.publishRoom(createRoomSnapshot(queuedState(queue), revision));
+    },
     /** Server commits the ack: the queue empties in the authoritative state, then the promise settles. */
     commitAck: () => {
       const resolve = settleAck;
@@ -88,15 +108,9 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
 
   it('plays the queue once and holds a single durable ack across reconnect', async () => {
     const fake = createFakeLink([{ audioKey: 'night' }, { audioKey: 'evil_reveal' }]);
-    renderHook(() =>
-      useAvalonAudioOrchestration({
-        session: fake.link,
-        isHost: true,
-        pendingAudioEffects: [{ audioKey: 'night' }, { audioKey: 'evil_reveal' }],
-        audio,
-      }),
-    );
+    renderHook(() => useAvalonAudioOrchestration({ session: fake.link, isHost: true, audio }));
 
+    await act(async () => fake.queueNarration());
     await flushPlayback();
     expect(audio.playEffect).toHaveBeenCalledTimes(2);
     expect(fake.dispatch).toHaveBeenCalledTimes(1);
@@ -133,16 +147,50 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
     audio.stopBgm.mockImplementation(() => {
       timeline.push('stopBgm');
     });
-    renderHook(() =>
-      useAvalonAudioOrchestration({
-        session: fake.link,
-        isHost: true,
-        pendingAudioEffects: [],
-        audio,
-      }),
+    renderHook(() => useAvalonAudioOrchestration({ session: fake.link, isHost: true, audio }));
+
+    await act(async () => fake.queueNarration());
+    await flushPlayback();
+    expect(timeline).toEqual(['play:percival_reveal', 'stopBgm', `play:${NIGHT_END_AUDIO_KEY}`]);
+  });
+
+  it('host rejoin mid-narration: queue stays silent until resumeAfterRejoin replays and acks', async () => {
+    const queue: readonly AudioEffect[] = [{ audioKey: 'night' }, { audioKey: 'evil_reveal' }];
+    const fake = createFakeLink(queue, true);
+    const { result } = renderHook(() =>
+      useAvalonAudioOrchestration({ session: fake.link, isHost: true, audio }),
     );
 
     await flushPlayback();
-    expect(timeline).toEqual(['play:percival_reveal', 'stopBgm', `play:${NIGHT_END_AUDIO_KEY}`]);
+    expect(result.current.readWasAudioInterrupted()).toBe(true);
+    expect(audio.playEffect).not.toHaveBeenCalled();
+    expect(fake.dispatch).not.toHaveBeenCalled();
+
+    await act(async () => {
+      const resumed = result.current.resumeAfterRejoin();
+      await flushPlayback();
+      fake.commitAck();
+      await resumed;
+    });
+    expect(result.current.readWasAudioInterrupted()).toBe(false);
+    expect(audio.playEffect.mock.calls.map(([audioKey]) => audioKey)).toEqual([
+      'night',
+      'evil_reveal',
+    ]);
+    expect(fake.dispatch).toHaveBeenCalledTimes(1);
+    expect(fake.dispatch).toHaveBeenCalledWith(
+      { type: 'avalon.audio.ack', audioBatchId: QUEUED_BATCH_ID },
+      { controlledSeat: null, label: '播报确认', durable: true },
+    );
+  });
+
+  it('a non-host mounting mid-narration is never marked interrupted', async () => {
+    const fake = createFakeLink([{ audioKey: 'night' }], true);
+    const { result } = renderHook(() =>
+      useAvalonAudioOrchestration({ session: fake.link, isHost: false, audio }),
+    );
+    await flushPlayback();
+    expect(result.current.readWasAudioInterrupted()).toBe(false);
+    expect(audio.playEffect).not.toHaveBeenCalled();
   });
 });

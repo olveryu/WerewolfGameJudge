@@ -350,11 +350,17 @@ src/
 │       │   ├── ControlledSeatBanner.tsx
 │       │   └── QRCodeModal.tsx
 │       ├── controllers/
-│       │   ├── useRoomConnection.ts
+│       │   ├── useReadyRoomSession.ts
+│       │   ├── useBotTakeover.ts
+│       │   ├── useRoleViewing.ts
+│       │   ├── useRoomAudioResume.ts
+│       │   ├── useRoomSetupController.ts
+│       │   ├── useRoomRosterController.ts
 │       │   ├── useRoomSeatController.ts
 │       │   ├── useRoomProfileController.ts
 │       │   ├── useRoomShareController.ts
-│       │   └── useRoomBotControl.ts
+│       │   ├── useShareImageAction.ts
+│       │   └── createRoomSeatPressHandler.ts
 │       ├── model/
 │       │   ├── RoomUiAdapter.ts
 │       │   ├── RoomCapabilities.ts
@@ -387,16 +393,14 @@ src/
 │   │   ├── realtime/
 │   │   ├── room/
 │   │   │   ├── components/
-│   │   │   ├── executors/
+│   │   │   ├── day/
 │   │   │   ├── hooks/
-│   │   │   ├── policy/
-│   │   │   ├── seatTap/
+│   │   │   ├── night/
+│   │   │   ├── werewolfRoomAdapter.ts
 │   │   │   └── WerewolfRoomScreen.tsx
-│   │   ├── runtime/
 │   │   ├── screens/
 │   │   ├── services/
 │   │   ├── state/
-│   │   ├── werewolfRoomAdapter.ts
 │   │   └── module.ts
 │   ├── fibking/
 │   │   ├── home/
@@ -1255,11 +1259,14 @@ Capabilities 同时控制可见性和执行入口。一个 capability 如果计�
 
 共享 controller 按功能拆分：
 
-- `useRoomConnection`：connect、reconnect、disconnect、connection status。
-- `useRoomSeatController`：入座/换座/离座 pending confirmation 和 submission state。
-- `useRoomProfileController`：当前 profile、直接 kick、本人确认离座。
-- `useRoomShareController`：QR、copy、native share、share image。
-- `useRoomBotControl`：当前 controlled bot seat 和 release。
+- `useReadyRoomSession`：就绪快照守卫 + 唯一的命令提交漏斗（单飞、失败提示、`{ controlledSeat }` 显式传）。
+- `useBotTakeover`：机器人接管（控制 + 释放守卫 + 长按入口 + capability）；各家不直接碰其原语。
+- `useRoleViewing`：查看身份协议（先 `role.viewed`、确认后弹卡、按 `identityKey` 关卡）。
+- `useRoomAudioResume`：房主重连后的播报续播门。
+- `useRoomSetupController` / `useRoomRosterController` + `createRoomSeatPressHandler`：入座/换座/离座、资料卡、座位点按。
+- `useRoomShareController` / `useShareImageAction`：QR、copy、native share、share image。
+
+`src/games/__tests__/gameClientShape.contract.test.ts` 按 `GAME_TYPES` 穷举看守上述接法。
 
 不得建立一个同时接收所有 selector、copy、command callback、header factory、bottom-layout factory 和 phase adapter 的大 hook。允许有一个很薄的 composition hook，但它只能组合上述 controller，不能新增游戏语义。
 

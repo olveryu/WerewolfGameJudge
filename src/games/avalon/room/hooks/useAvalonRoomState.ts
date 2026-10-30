@@ -12,6 +12,7 @@ import {
   getAvalonViewModel,
   isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
+import { useIsFocused } from '@react-navigation/native';
 import {
   type Dispatch,
   type SetStateAction,
@@ -21,31 +22,29 @@ import {
   useState,
 } from 'react';
 
-import { useAuthContext } from '@/contexts/AuthContext';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
-import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
-import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
-import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
-import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
+import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
+import {
+  type ReadyRoomSession,
+  useReadyRoomSession,
+} from '@/features/room/controllers/useReadyRoomSession';
+import { type RoleViewing, useRoleViewing } from '@/features/room/controllers/useRoleViewing';
+import {
+  type RoomAudioResume,
+  useRoomAudioResume,
+} from '@/features/room/controllers/useRoomAudioResume';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
-import {
-  deriveRemainingRevealCards,
-  type RevealRoleData,
-} from '@/features/room/model/RevealRoleData';
-import {
-  createBotTakeoverCapability,
-  type RoomCapabilities,
-} from '@/features/room/model/RoomCapabilities';
+import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
+import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
-import { resolveEffectiveSeat, type RoomViewer } from '@/features/room/model/RoomViewer';
+import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import { type AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 
 import type { AvalonAudioRuntime } from '../../audio/AvalonAudioPlayer';
@@ -59,6 +58,7 @@ import { getAvalonRoomCommandFailureMessage } from '../avalonRoomCommandFailureM
 import type { AvalonTeamPickKind } from '../components/AvalonTeamPickModal';
 import { useAvalonAudioOrchestration } from './useAvalonAudioOrchestration';
 import { useAvalonBgmControl } from './useAvalonBgmControl';
+import { type AvalonSeatPicking, useAvalonSeatPicking } from './useAvalonSeatPicking';
 
 /**
  * 阿瓦隆房间 Screen 的显式契约（P-2b，对齐狼人杀 WerewolfRoomScreenState 形态）：
@@ -75,14 +75,11 @@ export interface AvalonRoomScreenState {
   readonly effectiveSeat: number | null;
   readonly controlledSeat: number | null;
   readonly isHost: boolean;
-  readonly canControlBots: boolean;
   readonly bgm: ReturnType<typeof useAvalonBgmControl>;
+  /** 房主重连后的播报续播门（平台 useRoomAudioResume）。 */
+  readonly audioResume: RoomAudioResume;
   readonly equippedRevealEffect: RevealEffectType | null;
-  readonly submit: (
-    label: string,
-    command: AvalonPublicCommand,
-    control?: number | null,
-  ) => Promise<boolean>;
+  readonly submit: ReadyRoomSession<AvalonState, AvalonPublicCommand>['submit'];
   /** 组队选人弹窗开关：null 关闭，preselect / final 为两段 modal。 */
   readonly teamPickModal: AvalonTeamPickKind | null;
   readonly setTeamPickModal: (modal: AvalonTeamPickKind | null) => void;
@@ -95,13 +92,11 @@ export interface AvalonRoomScreenState {
   readonly isSubmitting: boolean;
   readonly session: AvalonRoomSession;
   readonly openRules: () => void;
-  readonly roleCardVisible: boolean;
-  readonly setRoleCardVisible: Dispatch<SetStateAction<boolean>>;
+  /** 身份卡：先落查看记录、确认后再弹卡（平台 useRoleViewing）。 */
+  readonly roleViewing: RoleViewing;
+  /** 板子信息里点开的角色预览；与身份卡共用同一弹窗，无揭示动效。 */
   readonly rolePreviewId: AvalonRoleId | null;
   readonly setRolePreviewId: Dispatch<SetStateAction<AvalonRoleId | null>>;
-  /** 身份查看协议锚点：有效座位未在服务端记录已查看时才播揭示动画。 */
-  readonly roleCardShouldPlay: boolean;
-  readonly roleCardRemainingCards: number;
   /** Animator 候选池：公开的完整角色分布（按座位序）。 */
   readonly roleCardAllRoles: readonly RevealRoleData[];
   /** 投票/任务阶段倒计时剩余秒数；不在限时阶段或无截止时为 null。 */
@@ -122,8 +117,8 @@ export interface AvalonRoomScreenState {
   readonly setStrikePickMode: Dispatch<SetStateAction<boolean>>;
   /** 注册湖仙结果重开处理器（结果弹窗的已阅状态住在 Screen，adapter 底部入口经此触达）。 */
   readonly setLadyResultReopenHandler: (handler: (() => void) | null) => void;
-  /** 注册座位点选处理器：返回 true 表示本次点按已被选人消费，不走默认座位行为。 */
-  readonly setSeatPickHandler: (handler: ((seat: number) => boolean) | null) => void;
+  /** 对局中的座位盘点选（刺杀 / 湖仙）与其待确认目标。 */
+  readonly seatPicking: AvalonSeatPicking;
 }
 
 /** 把当前就绪 session 绑定到房间壳控制器与命令上。 */
@@ -139,25 +134,27 @@ export function useAvalonRoomState(
   },
 ): AvalonRoomScreenState {
   const { session, room, navigation, entryController, audio } = props;
-  const { user } = useAuthContext();
-  const snapshot = useRoomLinkSnapshot(session);
-  if (user === null || snapshot.phase !== 'ready')
-    throw new Error('Avalon requires an authenticated ready session');
-  const state = snapshot.room.state;
-  const isHost = state.hostUserId === user.id;
-  const bgm = useAvalonBgmControl(isHost, state.phase.kind, state.isAudioPlaying);
-  // 第一晚播报：房主按序播放服务端队列，播完 ack。
-  useAvalonAudioOrchestration({
+  const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
     session,
+    getAvalonRoomCommandFailureMessage,
+  );
+  const isHost = state.hostUserId === user.id;
+  const isFocused = useIsFocused();
+  const bgm = useAvalonBgmControl(isHost, state.phase.kind, state.isAudioPlaying);
+  // 第一晚播报：房主按序播放服务端队列，播完 ack；重连后经续播门重放。
+  const orchestration = useAvalonAudioOrchestration({ session, isHost, audio });
+  const audioResume = useRoomAudioResume({
     isHost,
-    pendingAudioEffects: state.pendingAudioEffects,
-    audio,
+    isNarratedPhase: state.isAudioPlaying,
+    isFocused,
+    revision,
+    readWasAudioInterrupted: orchestration.readWasAudioInterrupted,
+    resume: orchestration.resumeAfterRejoin,
+    onResumed: bgm.startBgmIfEnabled,
   });
   const mySeat = getAvalonUserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
   const isLobby = state.phase.kind === 'lobby';
-  // 查看身份：角色卡弹窗状态（对齐狼人杀）。
-  const [roleCardVisible, setRoleCardVisible] = useState(false);
   const [rolePreviewId, setRolePreviewId] = useState<AvalonRoleId | null>(null);
   // 晚上确认：两步流程（底部按钮 → 弹窗），对齐狼人杀丘比特。
   const [nightModalVisible, setNightModalVisible] = useState(false);
@@ -171,18 +168,18 @@ export function useAvalonRoomState(
   const setLadyResultReopenHandler = useCallback((handler: (() => void) | null) => {
     ladyResultReopenRef.current = handler;
   }, []);
-  const seatPickHandlerRef = useRef<((seat: number) => boolean) | null>(null);
-  const setSeatPickHandler = useCallback((handler: ((seat: number) => boolean) | null) => {
-    seatPickHandlerRef.current = handler;
-  }, []);
   // step 推进时重置弹窗状态，防止 stale（比如别人确认完推进了 step，自己开着的弹窗指令已失效）。
   const nightStep = state.phase.kind === 'night' ? state.phase.step : null;
   useEffect(() => {
     setNightModalVisible(false);
   }, [nightStep]);
-  const botControl = useRoomBotControl();
-  const { controlledSeat, release: releaseBot, takeOver } = botControl;
-  const effectiveSeat = resolveEffectiveSeat(viewer, controlledSeat);
+  // 机器人接管：房主随时可接管（无阶段条件）；失去房主身份或座位不再是机器人时自动释放。
+  const bots = useBotTakeover({
+    viewer,
+    isBotSeat: (seat) => isBotSeat(state.roster, seat),
+    gameName: 'Avalon',
+  });
+  const { controlledSeat, effectiveSeat } = bots;
   const { share, titleActions, gachaStatus } = useRoomPresentationController({
     roomCode: room.roomCode,
     gameDisplayName: '阿瓦隆',
@@ -210,14 +207,17 @@ export function useAvalonRoomState(
       }),
     shareRoom: share.open,
   });
-  const submission = useRoomCommandSubmission(getAvalonRoomCommandFailureMessage);
-  // 派发纪律（对齐卧底 submit 形态）：默认不带接管座位。房主命令的平台门
-  // 只认未接管身份（resolveHostActorId），挂着接管座位发房主命令必然被拒；
-  // 座位动作（以被接管机器人的身份发出）由调用方显式传 controlledSeat。
-  const submit = (label: string, command: AvalonPublicCommand, control: number | null = null) =>
-    submission.submit(label, () =>
-      session.dispatch(command, { controlledSeat: control, label, durable: false }),
-    );
+  // 身份查看协议：先落查看记录、服务端确认后再弹卡（接管时是被接管座位）。
+  const roleViewing = useRoleViewing({
+    effectiveSeat,
+    identityKey: isLobby ? null : state.gameSequence,
+    hasViewed:
+      state.phase.kind === 'ended' ||
+      (effectiveSeat !== null && state.roleViewedSeats.includes(effectiveSeat)),
+    occupiedSeatCount: getAvalonOccupiedSeatCount(state),
+    viewedSeatCount: state.roleViewedSeats.length,
+    submitViewed: () => submit('查看身份', { type: 'avalon.role.viewed' }, { controlledSeat }),
+  });
   // 组队选人 modal 开关：选人与确认都在 modal 里做（见 confirmTeamPick），
   // 板子点选已停用，不再有派生镜像覆盖草稿。
   const [teamPickModal, setTeamPickModal] = useState<AvalonTeamPickKind | null>(null);
@@ -228,7 +228,7 @@ export function useAvalonRoomState(
     // 落定再发本笔，本笔返回值仍是它自己的派发结果；confirmTeamPick
     // 把 followup 也接进同一条链，下一笔等 followup 落定再发。
     const dispatchNow = () =>
-      submit('更新草稿', { type: 'avalon.team.updateDraft', seats }, controlledSeat);
+      submit('更新草稿', { type: 'avalon.team.updateDraft', seats }, { controlledSeat });
     const previous = lastTeamDraftDispatchRef.current;
     const dispatch = previous === null ? dispatchNow() : previous.then(dispatchNow, dispatchNow);
     lastTeamDraftDispatchRef.current = dispatch;
@@ -271,44 +271,29 @@ export function useAvalonRoomState(
     label: '阶段超时结算',
     silentExpire: true,
   });
-  // 机器人接管：房主随时可接管（无阶段条件）；失去房主身份或座位不再是机器人时自动释放。
-  const canControlBots = isHost;
-  useBotTakeoverGuard({
-    controlledSeat,
-    canControlBots,
-    seatStillBot: controlledSeat === null || isBotSeat(state.roster, controlledSeat),
-    release: releaseBot,
-  });
   const capabilities: RoomCapabilities = {
     ...setupCapabilities,
-    canTakeOverBots: createBotTakeoverCapability(canControlBots, takeOver),
+    canTakeOverBots: bots.capability,
   };
-  // 游戏进行中的座位点选（组队 / 刺杀选人）先交给当前登记的选人处理器。
+  const viewModel = isLobby ? null : getAvalonViewModel(state, effectiveSeat);
+  const seatPicking = useAvalonSeatPicking({ viewModel, strikePickMode, setStrikePickMode });
+  // 对局中的座位点选（湖仙 / 刺杀选人）先于默认座位语义消费点按。
   const onSeatPress = createRoomSeatPressHandler({
     isSetup: isLobby,
-    inGameAction: (seat) => seatPickHandlerRef.current?.(seat) === true,
+    inGameAction: seatPicking.handleSeatTap,
     state,
     currentSeat: mySeat,
     resolveIntent: getAvalonSeatTapIntent,
     profile,
     seatController,
   });
-  // 长按机器人座位接管/释放：用共享 hook。
-  const onBotSeatLongPress = useBotTakeoverLongPress({
-    controlledSeat,
-    takeOver,
-    release: releaseBot,
-    canTakeOver: capabilities.canTakeOverBots.isAllowed,
-    isBotSeat: (seat) => isBotSeat(state.roster, seat),
-    gameName: 'Avalon',
-  });
   const buildHostManagement = () =>
     createAvalonHostManagement({
       state,
       capabilities,
-      isSubmitting: submission.isSubmitting,
+      isSubmitting,
       controlledSeat,
-      releaseBot,
+      releaseBot: bots.release,
       onReviewPress: callbacks.onReviewPress,
       onMusicSettings: () => {
         bgm.stopBgm();
@@ -334,7 +319,7 @@ export function useAvalonRoomState(
       submit(
         kind === 'preselect' ? '预选队伍' : '提交队伍',
         kind === 'preselect' ? { type: 'avalon.team.preselect' } : { type: 'avalon.team.propose' },
-        controlledSeat,
+        { controlledSeat },
       );
     const previous = lastTeamDraftDispatchRef.current;
     const chained = sameSet
@@ -357,14 +342,12 @@ export function useAvalonRoomState(
     onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
     connection: entryController.connection,
     state,
-    revision: snapshot.room.revision,
+    revision,
     controlledSeat,
     seatsVisuallyDisabled:
-      isAudioPlaybackLocked(state.isAudioPlaying) ||
-      submission.isSubmitting ||
-      seatController.isSubmitting,
+      isAudioPlaybackLocked(state.isAudioPlaying) || isSubmitting || seatController.isSubmitting,
     onSeatPress,
-    onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,
+    onBotSeatLongPress: bots.capability.isAllowed ? bots.onBotSeatLongPress : null,
     seatController,
     profileSelection: selection,
     onProfileClose: profile.close,
@@ -372,20 +355,9 @@ export function useAvalonRoomState(
     share,
     isLobby,
     effectiveSeat,
-    onViewRolePress: () => {
-      setRoleCardVisible(true);
-      // 身份查看协议：打开角色卡即为当前座位落查看记录
-      //（接管时是被接管座位；引擎幂等，终局后不发）。
-      if (
-        effectiveSeat !== null &&
-        state.phase.kind !== 'ended' &&
-        !state.roleViewedSeats.includes(effectiveSeat)
-      ) {
-        void submit('查看身份', { type: 'avalon.role.viewed' }, controlledSeat);
-      }
-    },
+    onViewRolePress: roleViewing.open,
     onNightInfoPress: () => setNightModalVisible(true),
-    isSubmitting: submission.isSubmitting,
+    isSubmitting,
     settleCountdownSeconds: phaseRemainingSeconds,
     onOpenVotePress: () => setVoteModalOpen(true),
     onOpenQuestPress: () => setQuestModalOpen(true),
@@ -400,10 +372,8 @@ export function useAvalonRoomState(
     strikePickMode,
     onCancelEarlyStrikePress: () => setStrikePickMode(false),
     buildHostManagement,
-    canControlBots,
-    releaseBot,
+    releaseBot: bots.release,
   });
-  const viewModel = isLobby ? null : getAvalonViewModel(state, effectiveSeat);
   return {
     state,
     shellModel,
@@ -414,29 +384,21 @@ export function useAvalonRoomState(
     effectiveSeat,
     controlledSeat,
     isHost,
-    canControlBots,
     equippedRevealEffect: resolveEquippedRevealEffect(user.equippedEffect, room.roomCode, user.id),
     bgm,
+    audioResume,
     phaseRemainingSeconds,
     submit,
     teamPickModal,
     setTeamPickModal,
     confirmTeamPick,
-    isSubmitting: submission.isSubmitting,
+    isSubmitting,
     session,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: 'avalon', roomCode: room.roomCode }),
-    // 查看身份弹窗（对齐狼人杀）。
-    roleCardVisible,
-    setRoleCardVisible,
+    roleViewing,
     rolePreviewId,
     setRolePreviewId,
-    // 身份查看协议：动画锚点（服务端记录）与候选池（公开的完整角色分布）。
-    roleCardShouldPlay: effectiveSeat !== null && !state.roleViewedSeats.includes(effectiveSeat),
-    roleCardRemainingCards: deriveRemainingRevealCards(
-      getAvalonOccupiedSeatCount(state),
-      state.roleViewedSeats.length,
-    ),
     roleCardAllRoles: Object.entries(state.roles)
       .sort(([seatA], [seatB]) => Number(seatA) - Number(seatB))
       .map(([, roleId]) => toRevealRoleData(roleId)),
@@ -452,6 +414,6 @@ export function useAvalonRoomState(
     strikePickMode,
     setStrikePickMode,
     setLadyResultReopenHandler,
-    setSeatPickHandler,
+    seatPicking,
   };
 }

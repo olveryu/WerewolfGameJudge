@@ -11,14 +11,13 @@ import { FlatList, Text, View } from 'react-native';
 
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
 import { Button } from '@/components/Button';
-import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
+import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 import { colors, componentSizes } from '@/theme';
 
 import { useStoryRelayAutoSubmission } from '../hooks/useStoryRelayAutoSubmission';
-import { getStoryRelayRoomCommandFailureMessage } from '../storyRelayRoomCommandFailureMessage';
 import { StoryRelayGallery } from './StoryRelayGallery';
 import { storyRelayStyles as styles } from './StoryRelayStage.styles';
 import { StoryRelayTaskEditor } from './StoryRelayTaskEditor';
@@ -125,6 +124,9 @@ interface StoryRelayStageProps {
   readonly canControlBots: boolean;
   readonly seatModel: RoomSeatBoardModel;
   readonly session: StoryRelayRoomSession;
+  /** The room's single-flight submit; seat actions pass `{ controlledSeat }`. */
+  readonly submit: ReadyRoomSession<StoryRelayState, StoryRelayCommand>['submit'];
+  readonly isSubmitting: boolean;
 }
 
 function StoryRelayStageContent({
@@ -137,6 +139,8 @@ function StoryRelayStageContent({
   canControlBots,
   seatModel,
   session,
+  submit,
+  isSubmitting,
 }: StoryRelayStageProps) {
   const shouldExpire = useCallback(() => {
     const current = session.getSnapshot();
@@ -164,11 +168,6 @@ function StoryRelayStageContent({
   });
   const [inputs] = useState(() => new Map<number, string>());
   const finalizer = useStoryRelayAutoSubmission(state, userId, session, inputs);
-  const submission = useRoomCommandSubmission(getStoryRelayRoomCommandFailureMessage);
-  const submit = (label: string, command: StoryRelayCommand) =>
-    submission.submit(label, () =>
-      session.dispatch(command, { controlledSeat: null, label, durable: false }),
-    );
   const task = effectiveSeat === null ? null : getStoryRelayTaskForSeat(state, effectiveSeat);
   const isGallery =
     state.phase === 'gallery' || state.phase === 'ended' || state.phase === 'aborted';
@@ -201,7 +200,7 @@ function StoryRelayStageContent({
           state={state}
           isHost={isHost}
           submit={submit}
-          isSubmitting={submission.isSubmitting}
+          isSubmitting={isSubmitting}
         />
       ) : (
         <>
@@ -232,7 +231,8 @@ function StoryRelayStageContent({
               task={task}
               inputs={inputs}
               controlledSeat={controlledSeat}
-              session={session}
+              submit={submit}
+              isSubmitting={isSubmitting}
               finalization={finalizer.status}
               isExpired={remainingSeconds === 0}
             />

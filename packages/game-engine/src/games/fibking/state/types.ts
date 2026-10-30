@@ -213,10 +213,6 @@ export function getFibRole(roles: FibRoleAssignment, seat: number): FibRole {
   return 'fibber';
 }
 
-export function getFibBotUserId(roomCode: string, seat: number): string {
-  return `fib-bot:${roomCode}:${seat}`;
-}
-
 export function getFibOccupiedSeatCount(state: FibState): number {
   return countOccupiedSeats(state.roster);
 }

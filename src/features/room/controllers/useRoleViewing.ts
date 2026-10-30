@@ -12,8 +12,9 @@
  * record opens immediately, without animation or a second submit.
  *
  * `isPending` is the in-flight window between submit and confirmation,
- * for the button's loading state. A change of the effective seat (bot
- * takeover switch) closes the card: a frozen reveal belongs to one seat.
+ * for the button's loading state. A frozen reveal belongs to one seat and
+ * one deal: a change of the effective seat (bot takeover switch) or of
+ * `identityKey` (new deal, return to lobby) closes the card.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -23,6 +24,11 @@ import { deriveRemainingRevealCards } from '../model/RevealRoleData';
 export interface RoleViewingOptions {
   /** The seat whose identity is viewed (own or controlled bot seat); null while unseated. */
   readonly effectiveSeat: number | null;
+  /**
+   * Identity of the deal the card belongs to (game sequence / round id);
+   * null while there is nothing to view. Any change closes the card.
+   */
+  readonly identityKey: string | number | null;
   /** Whether the server already records a view for the effective seat. */
   readonly hasViewed: boolean;
   readonly occupiedSeatCount: number;
@@ -55,6 +61,7 @@ interface OpenCard {
 
 export function useRoleViewing({
   effectiveSeat,
+  identityKey,
   hasViewed,
   occupiedSeatCount,
   viewedSeatCount,
@@ -73,15 +80,18 @@ export function useRoleViewing({
 
   useEffect(() => {
     close();
-  }, [close, effectiveSeat]);
+  }, [close, effectiveSeat, identityKey]);
 
   const open = useCallback(() => {
     if (effectiveSeat === null) {
       throw new Error('[FAIL-FAST] Role viewing opened without an effective seat');
     }
-    if (card !== null || isPending) {
-      throw new Error('[FAIL-FAST] Role viewing opened while already open or pending');
+    if (identityKey === null) {
+      throw new Error('[FAIL-FAST] Role viewing opened without a viewable identity');
     }
+    // A second tap while the card is open or the confirmation is in flight
+    // is the same request already being served; it is not an error.
+    if (card !== null || isPending) return;
     const remainingCards = deriveRemainingRevealCards(occupiedSeatCount, viewedSeatCount);
     if (hasViewed) {
       setCard({ shouldPlayAnimation: false, remainingCards });
@@ -95,7 +105,16 @@ export function useRoleViewing({
       setIsPending(false);
       if (confirmed) setCard({ shouldPlayAnimation: true, remainingCards });
     });
-  }, [card, effectiveSeat, hasViewed, isPending, occupiedSeatCount, submitViewed, viewedSeatCount]);
+  }, [
+    card,
+    effectiveSeat,
+    hasViewed,
+    identityKey,
+    isPending,
+    occupiedSeatCount,
+    submitViewed,
+    viewedSeatCount,
+  ]);
 
   return {
     isOpen: card !== null,

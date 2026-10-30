@@ -1,11 +1,15 @@
 /** Route authoritative Pictionary phases to task, transition, gallery, and ended surfaces. */
 
-import type { PictionaryState } from '@game-judge/game-engine/games/pictionary/public';
+import type {
+  PictionaryPublicCommand,
+  PictionaryState,
+} from '@game-judge/game-engine/games/pictionary/public';
 import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
+import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
@@ -29,6 +33,8 @@ interface PictionaryStageProps {
   readonly canControlBots: boolean;
   readonly seatModel: RoomSeatBoardModel;
   readonly session: PictionaryRoomSession;
+  readonly submit: ReadyRoomSession<PictionaryState, PictionaryPublicCommand>['submit'];
+  readonly isSubmitting: boolean;
 }
 
 export const PictionaryStage: React.FC<PictionaryStageProps> = (props) => (
@@ -48,6 +54,8 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
   canControlBots,
   seatModel,
   session,
+  submit,
+  isSubmitting,
 }) => {
   if (state.phase === 'lobby') {
     throw new Error('[FAIL-FAST] Pictionary lobby must use the shared seat workspace');
@@ -94,7 +102,8 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
         <PictionaryGalleryStage
           state={state}
           isHost={isHost}
-          session={session}
+          submit={submit}
+          isSubmitting={isSubmitting}
           remainingSeconds={deadline.remainingSeconds}
         />
       </View>
@@ -125,7 +134,8 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
         effectiveSeat={effectiveSeat}
         controlledSeat={controlledSeat}
         userId={userId}
-        session={session}
+        submit={submit}
+        isSubmitting={isSubmitting}
         remainingSeconds={deadline.remainingSeconds}
         isExpired={deadline.isExpired}
         autoSubmission={autoSubmission}

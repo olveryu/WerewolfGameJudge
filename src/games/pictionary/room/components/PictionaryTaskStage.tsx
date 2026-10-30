@@ -2,11 +2,13 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
+  createPictionaryCommand,
   getPictionaryRelayStepCount,
   getPictionaryTaskForSeat,
   getPictionaryTextGraphemeCount,
   isValidPictionaryText,
   PICTIONARY_TEXT_MAX_LENGTH,
+  type PictionaryPublicCommand,
   type PictionaryState,
   type PictionaryTask,
 } from '@game-judge/game-engine/games/pictionary/public';
@@ -32,7 +34,7 @@ import {
   reduceDrawingDraft,
 } from '@/features/drawing/model/drawing';
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
-import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
+import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { getPictionaryCompletedCount } from '@/games/pictionary/model/pictionarySelectors';
 import { createPictionaryFillElement } from '@/games/pictionary/services/renderPictionaryDrawing';
 import { TESTIDS } from '@/testids';
@@ -53,7 +55,6 @@ import type {
   PictionarySubmissionStatus,
   PictionaryTaskInput,
 } from '../hooks/usePictionaryAutoSubmission';
-import { usePictionaryStageCommand } from '../hooks/usePictionaryStageCommand';
 import { PictionaryDrawingCanvas } from './PictionaryDrawingCanvas';
 import { PictionaryDrawingImage } from './PictionaryDrawingImage';
 import { PictionaryStageFrame } from './PictionaryStageFrame';
@@ -98,7 +99,8 @@ interface PictionaryTaskStageProps {
   readonly effectiveSeat: number | null;
   readonly controlledSeat: number | null;
   readonly userId: string;
-  readonly session: PictionaryRoomSession;
+  readonly submit: ReadyRoomSession<PictionaryState, PictionaryPublicCommand>['submit'];
+  readonly isSubmitting: boolean;
   readonly remainingSeconds: number | null;
   readonly isExpired: boolean;
   readonly autoSubmission: {
@@ -113,7 +115,8 @@ interface TaskViewProps {
   readonly task: PictionaryTask;
   readonly effectiveSeat: number;
   readonly userId: string;
-  readonly session: PictionaryRoomSession;
+  readonly submit: ReadyRoomSession<PictionaryState, PictionaryPublicCommand>['submit'];
+  readonly isSubmitting: boolean;
   readonly controlledSeat: number | null;
   readonly remainingSeconds: number | null;
   readonly isExpired: boolean;
@@ -168,7 +171,8 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
   state,
   task,
   effectiveSeat,
-  session,
+  submit,
+  isSubmitting,
   controlledSeat,
   remainingSeconds,
   isExpired,
@@ -179,7 +183,6 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
     return input ?? '';
   });
   const [openingPromptExample] = useState(() => randomPick(PICTIONARY_OPENING_PROMPT_EXAMPLES));
-  const command = usePictionaryStageCommand(session, controlledSeat, state, effectiveSeat);
   const validationMessage = getTextValidationMessage(text);
   const graphemeCount = getPictionaryTextGraphemeCount(text);
   const isOpeningPrompt = state.stepIndex === 0;
@@ -198,10 +201,15 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
 
   const toggleReady = async (): Promise<void> => {
     if (!isReady && !isValidPictionaryText(text)) return;
-    await command.submit(isReady ? '继续编辑' : '完成编辑', {
-      type: 'pictionary.task.ready.set',
-      isReady: !isReady,
-    });
+    await submit(
+      isReady ? '继续编辑' : '完成编辑',
+      createPictionaryCommand(
+        state,
+        { type: 'pictionary.task.ready.set', isReady: !isReady },
+        effectiveSeat,
+      ),
+      { controlledSeat, durable: true },
+    );
   };
 
   return (
@@ -216,7 +224,7 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
               variant={isReady ? 'secondary' : 'primary'}
               onPress={() => void toggleReady()}
               disabled={(!isReady && validationMessage !== null) || isExpired}
-              loading={command.isSubmitting}
+              loading={isSubmitting}
               size="md"
               accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
               testID={TESTIDS.pictionaryTextSubmitButton}
@@ -234,7 +242,7 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
         <TextInput
           value={text}
           onChangeText={updateText}
-          editable={!isReady && !command.isSubmitting && !isExpired}
+          editable={!isReady && !isSubmitting && !isExpired}
           maxLength={PICTIONARY_TEXT_MAX_LENGTH}
           multiline
           placeholder={isOpeningPrompt ? `例如：${openingPromptExample}` : '写下你的猜测'}
@@ -275,7 +283,8 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   state,
   task,
   effectiveSeat,
-  session,
+  submit,
+  isSubmitting,
   controlledSeat,
   remainingSeconds,
   isExpired,
@@ -289,7 +298,6 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   const [color, setColor] = useState<DrawingColor>(DRAWING_PALETTE[0].value);
   const [strokeWidth, setStrokeWidth] = useState<DrawingWidth>(14);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const command = usePictionaryStageCommand(session, controlledSeat, state, effectiveSeat);
 
   const updateDraft = useCallback(
     (action: DrawingDraftAction): void => {
@@ -354,17 +362,22 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   const isReady = state.readySeats.includes(effectiveSeat);
   const toggleReady = async (): Promise<void> => {
     if (!isReady && draft.elements.length === 0) return;
-    await command.submit(isReady ? '继续编辑' : '完成编辑', {
-      type: 'pictionary.task.ready.set',
-      isReady: !isReady,
-    });
+    await submit(
+      isReady ? '继续编辑' : '完成编辑',
+      createPictionaryCommand(
+        state,
+        { type: 'pictionary.task.ready.set', isReady: !isReady },
+        effectiveSeat,
+      ),
+      { controlledSeat, durable: true },
+    );
   };
 
   const previousEntry = task.previousEntry;
   if (previousEntry === null || previousEntry.kind === 'drawing') {
     throw new Error('[FAIL-FAST] Pictionary drawing task requires a text or missed context');
   }
-  const isBusy = command.isSubmitting;
+  const isBusy = isSubmitting;
   const canEdit = !isReady && !isBusy && !isExpired;
   const canComplete = draft.elements.length > 0 && !isBusy && !isExpired;
 
@@ -502,7 +515,8 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
   effectiveSeat,
   controlledSeat,
   userId,
-  session,
+  submit,
+  isSubmitting,
   remainingSeconds,
   isExpired,
   autoSubmission,
@@ -563,7 +577,8 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
       task={task}
       effectiveSeat={effectiveSeat}
       userId={userId}
-      session={session}
+      submit={submit}
+      isSubmitting={isSubmitting}
       controlledSeat={controlledSeat}
       remainingSeconds={remainingSeconds}
       isExpired={isExpired}
@@ -576,7 +591,8 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
       task={task}
       effectiveSeat={effectiveSeat}
       userId={userId}
-      session={session}
+      submit={submit}
+      isSubmitting={isSubmitting}
       controlledSeat={controlledSeat}
       remainingSeconds={remainingSeconds}
       isExpired={isExpired}

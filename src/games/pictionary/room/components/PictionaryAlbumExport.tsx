@@ -10,8 +10,8 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
+import { useShareImageAction } from '@/features/room/controllers/useShareImageAction';
 import { captureViewPngBase64 } from '@/features/room/services/captureViewPngBase64';
-import { shareImageBase64 } from '@/features/room/services/shareImage';
 import { getPictionarySeatDisplayName } from '@/games/pictionary/model/pictionarySelectors';
 import { pictionaryMediaTransport } from '@/games/pictionary/services/pictionaryMediaTransport';
 import { colors, spacing, textStyles } from '@/theme';
@@ -55,7 +55,10 @@ function AlbumExportDialog({
   const [loaded, setLoaded] = useState<readonly string[]>([]);
   const [hasFailed, setHasFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [isSharing, setIsSharing] = useState(false);
+  const { isSharing, share: shareImages } = useShareImageAction({
+    label: '导出画册',
+    alertMessage: '导出画册失败，请稍后重试。',
+  });
   const drawings = chain.entries.filter((entry) => entry.kind === 'drawing');
   useEffect(() => {
     const controller = new AbortController();
@@ -88,24 +91,16 @@ function AlbumExportDialog({
   }, [attempt, chain, state.roomCode]);
   const isReady =
     images !== null && !hasFailed && drawings.every((entry) => loaded.includes(entry.id));
-  const share = async () => {
-    setIsSharing(true);
-    try {
-      await shareImageBase64(
-        () => captureViewPngBase64(ref),
-        `pictionary-${state.roomCode}-${state.roundNumber}-${chain.originSeat + 1}.png`,
-        '你画我猜接龙',
-      );
-    } catch (error) {
-      handleError(error, {
-        label: '导出画册',
-        logger: roomScreenLog,
-        alertMessage: '导出画册失败，请稍后重试。',
-      });
-    } finally {
-      setIsSharing(false);
-    }
-  };
+  const share = () =>
+    shareImages(
+      [
+        {
+          getBase64: () => captureViewPngBase64(ref),
+          filename: `pictionary-${state.roomCode}-${state.roundNumber}-${chain.originSeat + 1}.png`,
+        },
+      ],
+      '你画我猜接龙',
+    );
   return (
     <RoomDialog
       title="画册长图"

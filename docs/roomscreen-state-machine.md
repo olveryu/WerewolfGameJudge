@@ -118,18 +118,18 @@ election completes.
 
 ## Overlay / Modal Trigger Conditions
 
-| Component                  | Trigger Condition                                                                                                   | Visible To                |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| `RoomAuthGate`             | No session when entering room via deep link (rendered by `RoomResolverScreen` before the authenticated room lookup) | Unauthenticated users     |
-| AlertModal (Continue Game) | Host reconnect with `needsContinueOverlay`                                                                          | Host                      |
-| `SeatConfirmModal`         | Tap seat (Unseated/Seated phase)                                                                                    | Tapper                    |
-| `WerewolfRoleCardModal`    | Tap "View Role"                                                                                                     | Players with seat         |
-| `NightReviewModal`         | Tap "Night Review" (Ended phase)                                                                                    | Host + authorized players |
-| `ShareReviewModal`         | Host taps "Last Night Info"                                                                                         | Host                      |
-| `QRCodeModal`              | Tap "Share Room"                                                                                                    | All users                 |
-| `NotepadModal`             | Tap BoardInfoCard notepad icon                                                                                      | All users                 |
-| `SettingsSheet`            | Game settings in ConfigScreen                                                                                       | Host                      |
-| `SheriffElectionSheet`     | Day details requested below 1100 px                                                                                 | All users                 |
+| Component               | Trigger Condition                                                                                                   | Visible To                |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `RoomAuthGate`          | No session when entering room via deep link (rendered by `RoomResolverScreen` before the authenticated room lookup) | Unauthenticated users     |
+| `RoomAudioResumeDialog` | Host rejoin mid-narration (`useRoomAudioResume.isDue`; shared with avalon)                                          | Host                      |
+| `SeatConfirmModal`      | Tap seat (Unseated/Seated phase)                                                                                    | Tapper                    |
+| `WerewolfRoleCardModal` | Tap "View Role"                                                                                                     | Players with seat         |
+| `NightReviewModal`      | Tap "Night Review" (Ended phase)                                                                                    | Host + authorized players |
+| `ShareReviewModal`      | Host taps "Last Night Info"                                                                                         | Host                      |
+| `QRCodeModal`           | Tap "Share Room"                                                                                                    | All users                 |
+| `NotepadModal`          | Tap BoardInfoCard notepad icon                                                                                      | All users                 |
+| `SettingsSheet`         | Game settings in ConfigScreen                                                                                       | Host                      |
+| `SheriffElectionSheet`  | Day details requested below 1100 px                                                                                 | All users                 |
 
 ## SeatTile Visual States
 

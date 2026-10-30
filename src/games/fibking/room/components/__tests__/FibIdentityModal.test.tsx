@@ -74,8 +74,7 @@ const baseProps = {
   shouldPlay: false,
   allRoles: [],
   remainingCards: 4,
-  confirmText: '知道了',
-  onConfirm: jest.fn(),
+  onClose: jest.fn(),
 } as const;
 
 describe('FibIdentityModal', () => {
@@ -148,7 +147,7 @@ describe('FibIdentityModal', () => {
   });
 
   it('reveals every assignment after the round ends and closes through the shared action', () => {
-    const onConfirm = jest.fn();
+    const onClose = jest.fn();
     const view: Extract<FibRoundView, { phase: 'ended' }> = {
       phase: 'ended',
       roundId: 'round-1',
@@ -162,16 +161,14 @@ describe('FibIdentityModal', () => {
       guesserSeat: 0,
       honestSeat: 1,
     };
-    const screen = renderModal(
-      <FibIdentityModal view={view} {...baseProps} onConfirm={onConfirm} />,
-    );
+    const screen = renderModal(<FibIdentityModal view={view} {...baseProps} onClose={onClose} />);
 
     expect(screen.getByText('公开结果')).toBeTruthy();
     expect(screen.getByText('1号 · 大聪明')).toBeTruthy();
     expect(screen.getByText('2号 · 老实人')).toBeTruthy();
     expect(screen.getByText('其余座位 · 瞎掰王')).toBeTruthy();
     fireEvent.press(screen.getByText('知道了'));
-    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   describe('equipped reveal animation gate (server anchor)', () => {
@@ -221,23 +218,6 @@ describe('FibIdentityModal', () => {
 
       expect(view.queryByTestId('role-reveal-animator')).toBeNull();
       expect(view.getByTestId(TESTIDS.fibIdentityModal)).toBeTruthy();
-    });
-  });
-
-  describe('viewing confirmation', () => {
-    it('offers the viewing confirm label and submits through onConfirm', () => {
-      const onConfirm = jest.fn();
-      const view = renderModal(
-        <FibIdentityModal
-          view={createViewingView(false)}
-          {...baseProps}
-          confirmText="我已看清"
-          onConfirm={onConfirm}
-        />,
-      );
-
-      fireEvent.press(view.getByText('我已看清'));
-      expect(onConfirm).toHaveBeenCalledTimes(1);
     });
   });
 });

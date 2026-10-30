@@ -345,9 +345,7 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
     const dispatch = readFixture(root, 'src/__tests__/botDispatchDiscipline.contract.test.ts');
     assert.ok(dispatch.includes('demoproto: ['));
     assert.ok(
-      dispatch.includes(
-        `{ file: 'games/demoproto/room/hooks/useDemoprotoRoomState.ts', form: 'parameterized-submit' },`,
-      ),
+      dispatch.includes(`demoproto: ['games/demoproto/room/hooks/useDemoprotoRoomState.ts'],`),
     );
     const guidanceRegistry = readFixture(root, 'src/__tests__/roomGuidanceMatrix.contract.test.ts');
     assert.ok(
@@ -886,7 +884,7 @@ function stripShippedDemo(root) {
   removeExactText(
     root,
     'src/__tests__/botDispatchDiscipline.contract.test.ts',
-    "  demo: [{ file: 'games/demo/room/hooks/useDemoRoomState.ts', form: 'parameterized-submit' }],\n",
+    "  demo: ['games/demo/room/hooks/useDemoRoomState.ts'],\n",
   );
   removeExactText(
     root,

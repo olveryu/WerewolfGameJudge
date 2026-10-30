@@ -10,23 +10,60 @@ import {
   createPictionaryCommand,
   decidePictionaryCommand,
   DEFAULT_PICTIONARY_CONFIG,
+  getPictionaryOccupiedSeatCount,
   getPictionaryRelayStepCount,
   getPictionaryUserSeat,
+  isPictionaryRoomFull,
   type PictionaryCommandInput,
   pictionaryEngine,
   type PictionaryPhase,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 
+import {
+  createBotTakeoverCapability,
+  createRoomSetupCapabilities,
+  createViewProfilesCapability,
+  type RoomCapabilities,
+} from '@/features/room/model/RoomCapabilities';
 import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
 import { viewerFor } from '@/test-utils/roomViewer';
 
 import { PICTIONARY_GUIDANCE_MATRIX } from '../pictionaryGuidanceMatrix';
 import {
-  createPictionaryRoomCapabilities,
   createPictionaryRoomShellModel,
   createPictionarySeatDataSource,
 } from '../pictionaryRoomAdapter';
+
+/** Mirrors the hook's capability assembly: shared setup capabilities + host-only takeover. */
+function testCapabilities(input: {
+  readonly state: PictionaryState;
+  readonly isHost: boolean;
+  readonly mySeat: number | null;
+  readonly shareRoom: () => void;
+}): RoomCapabilities {
+  const isLobby = input.state.phase === 'lobby';
+  return {
+    ...createRoomSetupCapabilities({
+      isSetup: isLobby,
+      isHost: input.isHost,
+      supportsBots: true,
+      mySeat: input.mySeat,
+      hasOccupiedSeats: getPictionaryOccupiedSeatCount(input.state) > 0,
+      isRoomFull: isPictionaryRoomFull(input.state),
+      requestTakeSeat: jest.fn(),
+      requestMoveSeat: jest.fn(),
+      leaveSeat: jest.fn(),
+      kickSeat: jest.fn(),
+      clearSeats: jest.fn(),
+      fillBots: jest.fn(),
+      configureGame: jest.fn(),
+      shareRoom: input.shareRoom,
+    }),
+    canViewProfiles: createViewProfilesCapability(isLobby, jest.fn()),
+    canTakeOverBots: createBotTakeoverCapability(input.isHost, jest.fn()),
+  };
+}
 
 const PHASES: readonly PictionaryPhase[] = [
   'lobby',
@@ -149,19 +186,10 @@ const phaseOf = (session: Session): PictionaryPhase => session.state.phase;
 
 function bottomMessage(state: PictionaryState, audience: RoomViewerAudience): string | null {
   const viewer = viewerFor(audience);
-  const capabilities = createPictionaryRoomCapabilities({
+  const capabilities = testCapabilities({
     state,
     isHost: viewer.isHost,
     mySeat: viewer.seat,
-    requestTakeSeat: jest.fn(),
-    requestMoveSeat: jest.fn(),
-    leaveSeat: jest.fn(),
-    kickSeat: jest.fn(),
-    clearSeats: jest.fn(),
-    fillBots: jest.fn(),
-    configureGame: jest.fn(),
-    openProfile: jest.fn(),
-    takeOverBot: jest.fn(),
     shareRoom: jest.fn(),
   });
   const model = createPictionaryRoomShellModel({
