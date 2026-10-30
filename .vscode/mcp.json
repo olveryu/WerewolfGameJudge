@@ -1,13 +1,3 @@
 {
-  "servers": {
-    "context7": {
-      "type": "stdio",
-      "command": "/bin/zsh",
-      "args": ["-li", "-c", "npx -y --registry https://registry.npmjs.org/ @upstash/context7-mcp"]
-    },
-    "github": {
-      "type": "http",
-      "url": "https://api.githubcopilot.com/mcp/"
-    }
-  }
+  "servers": {}
 }
