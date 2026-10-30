@@ -3,6 +3,10 @@
  * back carries edited rules to Config, and the final button creates/saves with roles + rules.
  */
 
+import type {
+  GameState,
+  WerewolfPublicCommand,
+} from '@game-judge/game-engine/games/werewolf/public';
 import {
   type GameRuleOverrides,
   type RoleId,
@@ -13,9 +17,10 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { useServices } from '@/contexts/ServiceContext';
 import type { RoomCreationRequest, RoomRecord } from '@/features/room/model/RoomDirectory';
 import { SettingsService } from '@/features/settings/services/SettingsService';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import { GameRulesScreen } from '@/games/werewolf/screens/GameRulesScreen/GameRulesScreen';
 import { storage } from '@/services/infra/localStorage';
+import { createFakeRoomLink, idleLinkSnapshot } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 import { TESTIDS } from '@/testids';
@@ -51,13 +56,13 @@ const ROLES: readonly RoleId[] = ['wolf', 'seer', 'villager'];
 const flowCallbacks = { onExitFlow: jest.fn(), onRoomCreated: jest.fn() };
 let settingsService: SettingsService;
 
-const createMockClient = (): WerewolfGameClient =>
-  ({
-    updateTemplate: jest.fn().mockResolvedValue(successfulRoomCommand(buildWerewolfTestState())),
-  }) as unknown as WerewolfGameClient;
+const createMockSession = (): WerewolfRoomSession =>
+  createFakeRoomLink<GameState, WerewolfPublicCommand>(idleLinkSnapshot<GameState>(), () =>
+    Promise.resolve(successfulRoomCommand(buildWerewolfTestState())),
+  );
 
-function renderRules(client = createMockClient()) {
-  return render(<GameRulesScreen client={client} {...flowCallbacks} />);
+function renderRules(session = createMockSession()) {
+  return render(<GameRulesScreen session={session} {...flowCallbacks} />);
 }
 
 describe('GameRulesScreen', () => {
@@ -173,18 +178,21 @@ describe('GameRulesScreen', () => {
     expect(flowCallbacks.onRoomCreated).not.toHaveBeenCalled();
   });
 
-  it('saves an edited template through the client and exits the flow', async () => {
+  it('saves an edited template through the session and exits the flow', async () => {
     mockRouteParams = { roles: ROLES, rules: {}, existingRoomCode: '2468' };
-    const client = createMockClient();
-    const screen = renderRules(client);
+    const session = createMockSession();
+    const screen = renderRules(session);
 
     expect(screen.getByText('保存配置')).toBeTruthy();
     fireEvent.press(screen.getByTestId(TESTIDS.gameRulesSubmitButton));
 
     await waitFor(() => expect(flowCallbacks.onExitFlow).toHaveBeenCalledTimes(1));
-    const template = jest.mocked(client.updateTemplate).mock.calls[0]?.[0];
-    expect(template?.roles).toEqual(ROLES);
-    expect(template?.rules).toBeUndefined();
+    const command = jest.mocked(session.dispatch).mock.calls[0]?.[0];
+    expect(command).toEqual({
+      type: 'werewolf.config.update',
+      templateRoles: ROLES,
+      rules: undefined,
+    });
     expect(mockCreateRoom).not.toHaveBeenCalled();
   });
 });

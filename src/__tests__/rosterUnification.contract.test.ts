@@ -42,7 +42,7 @@ function productionSources(dir: string): string[] {
 }
 
 const LONG_PRESS_CONSUMERS = [
-  'games/werewolf/room/hooks/useWerewolfRoomScreenState.ts',
+  'games/werewolf/room/hooks/useWerewolfRoomState.ts',
   'games/avalon/room/hooks/useAvalonRoomState.ts',
   'games/fibking/room/hooks/useFibRoomScreenState.ts',
   'games/undercover/room/hooks/useUndercoverRoster.ts',
@@ -60,7 +60,8 @@ describe('roster unification client contract', () => {
 
   it('every game routes bot takeover through the shared long-press hook', () => {
     for (const consumer of LONG_PRESS_CONSUMERS) {
-      expect(readSource(consumer)).toMatch(/useBotTakeoverLongPress\(/);
+      // useBotTakeover composes the long-press hook for the converged rooms.
+      expect(readSource(consumer)).toMatch(/useBotTakeover(LongPress)?\(/);
     }
   });
 });

@@ -1,8 +1,13 @@
+import type {
+  GameState,
+  WerewolfPublicCommand,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { fireEvent, render } from '@testing-library/react-native';
 import type React from 'react';
 
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen';
+import { createFakeRoomLink, idleLinkSnapshot } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
@@ -46,41 +51,10 @@ jest.mock('@/utils/alert', () => ({
 
 // Services are injected via DI (ServiceContext), no concrete mocks needed here.
 
-const idleRoomSnapshot = {
-  phase: 'idle' as const,
-  epoch: 0,
-  identity: null,
-  connection: 'disconnected' as const,
-  snapshot: null,
-  lastCommand: null,
-  error: null,
-};
-
-// Mock Werewolf client for testing
-const createMockClient = (): WerewolfGameClient => {
-  const commandResult = successfulRoomCommand(buildWerewolfTestState());
-  return {
-    roomSession: {
-      getSnapshot: () => idleRoomSnapshot,
-      subscribe: jest.fn(() => () => undefined),
-    },
-    assignRoles: jest.fn(),
-    updateTemplate: jest.fn().mockResolvedValue(commandResult),
-    startNight: jest.fn(),
-    abortGame: jest.fn(),
-    returnToLobby: jest.fn(),
-    markViewedRole: jest.fn(),
-    submitAction: jest.fn(),
-    submitRevealAck: jest.fn(),
-    expirePhase: jest.fn(),
-    sendWolfRobotHunterStatusViewed: jest.fn(),
-    get wasAudioInterrupted() {
-      return false;
-    },
-    resumeAfterRejoin: jest.fn(),
-    markAllBotsViewed: jest.fn(),
-  } as unknown as WerewolfGameClient;
-};
+const createMockSession = (): WerewolfRoomSession =>
+  createFakeRoomLink<GameState, WerewolfPublicCommand>(idleLinkSnapshot<GameState>(), () =>
+    Promise.resolve(successfulRoomCommand(buildWerewolfTestState())),
+  );
 
 const renderWithClient = (ui: React.ReactElement) => {
   return render(ui);
@@ -95,7 +69,7 @@ describe('ConfigScreen', () => {
   describe('Rendering', () => {
     it('should render preset template buttons', () => {
       const { getByText } = renderWithClient(
-        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
+        <ConfigScreen session={createMockSession()} {...flowCallbacks} />,
       );
 
       // Template title in header shows short display name + arrow
@@ -104,7 +78,7 @@ describe('ConfigScreen', () => {
 
     it('should render role selection sections', () => {
       const { getByText, getByTestId } = renderWithClient(
-        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
+        <ConfigScreen session={createMockSession()} {...flowCallbacks} />,
       );
 
       // Check for faction tabs in tab bar (use testID to avoid emoji encoding issues)
@@ -117,7 +91,7 @@ describe('ConfigScreen', () => {
 
     it('should render the next-step button at bottom', () => {
       const { getByText } = renderWithClient(
-        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
+        <ConfigScreen session={createMockSession()} {...flowCallbacks} />,
       );
 
       // Bottom sticky button leads to the rules step; creation happens there
@@ -126,7 +100,7 @@ describe('ConfigScreen', () => {
 
     it('should render header with player count and reset button', () => {
       const { getByText, getByTestId } = renderWithClient(
-        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
+        <ConfigScreen session={createMockSession()} {...flowCallbacks} />,
       );
 
       // Header shows player count
@@ -139,7 +113,7 @@ describe('ConfigScreen', () => {
   describe('Template Selection', () => {
     it('should render template dropdown in header with default selected', () => {
       const { getByText } = renderWithClient(
-        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
+        <ConfigScreen session={createMockSession()} {...flowCallbacks} />,
       );
 
       // Template title in header shows short name + arrow indicator
@@ -150,7 +124,7 @@ describe('ConfigScreen', () => {
   describe('Role Selection', () => {
     it('should render role chips for active tab', () => {
       const { getByText, getByTestId } = renderWithClient(
-        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
+        <ConfigScreen session={createMockSession()} {...flowCallbacks} />,
       );
 
       // Default active tab is good -- god role chips should be visible
@@ -163,7 +137,7 @@ describe('ConfigScreen', () => {
   describe('Navigation', () => {
     it('should render back button', () => {
       const { getByTestId } = renderWithClient(
-        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
+        <ConfigScreen session={createMockSession()} {...flowCallbacks} />,
       );
 
       // Back button renders chevron-back icon
@@ -172,7 +146,7 @@ describe('ConfigScreen', () => {
 
     it('exits through the explicit flow boundary at the first nested route', () => {
       const { getByTestId } = renderWithClient(
-        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
+        <ConfigScreen session={createMockSession()} {...flowCallbacks} />,
       );
 
       fireEvent.press(getByTestId('config-back-button'));
@@ -184,7 +158,7 @@ describe('ConfigScreen', () => {
     it('goes back inside the nested flow when a previous local route exists', () => {
       mockNavigationIndex = 1;
       const { getByTestId } = renderWithClient(
-        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
+        <ConfigScreen session={createMockSession()} {...flowCallbacks} />,
       );
 
       fireEvent.press(getByTestId('config-back-button'));

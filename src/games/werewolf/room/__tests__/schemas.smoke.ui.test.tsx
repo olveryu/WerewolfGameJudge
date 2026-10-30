@@ -1,4 +1,4 @@
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState, RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { getAllSchemaIds, getSchema } from '@game-judge/game-engine/games/werewolf/public';
 import { render, waitFor } from '@testing-library/react-native';
 
@@ -11,55 +11,11 @@ jest.mock('@/utils/alert', () => ({
   showAlert: jest.fn(),
 }));
 
-let mockUseWerewolfRoomImpl: () => ReturnType<typeof createBaseWerewolfRoomMock>;
+let mockUseWerewolfRoomReturn: ReturnType<typeof createBaseWerewolfRoomMock>;
 
-jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseWerewolfRoomImpl(),
+jest.mock('@/games/werewolf/room/__tests__/harness/activeRoomMock', () => ({
+  getActiveRoomMock: () => mockUseWerewolfRoomReturn,
 }));
-
-jest.mock('../hooks/useActionerState', () => ({
-  useActionerState: () => ({
-    imActioner: true,
-    showWolves: false,
-  }),
-}));
-
-let mockUseRoomActionsImpl: () => unknown;
-
-jest.mock('../hooks/useRoomActions', () => {
-  const actual =
-    jest.requireActual<typeof import('../hooks/useRoomActions')>('../hooks/useRoomActions');
-  return {
-    ...actual,
-    useRoomActions: () => mockUseRoomActionsImpl(),
-  };
-});
-
-jest.mock('../useRoomHostDialogs', () => ({
-  useRoomHostDialogs: () => ({
-    showPrepareToFlipDialog: jest.fn(),
-    showStartGameDialog: jest.fn(),
-    showAbortDialog: jest.fn(),
-    showRedealDialog: jest.fn(),
-    showReturnToLobbyDialog: jest.fn(),
-    handleSettingsPress: jest.fn(),
-  }),
-}));
-
-// Keep action dialogs no-op for smoke rendering.
-jest.mock('../useRoomActionDialogs', () => ({
-  useRoomActionDialogs: () => ({
-    showWitchInfoPrompt: jest.fn(),
-    showConfirmDialog: jest.fn(),
-    showWolfVoteDialog: jest.fn(),
-    showActionRejectedAlert: jest.fn(),
-    showRevealDialog: jest.fn(),
-    showMagicianFirstAlert: jest.fn(),
-    showRoleActionPrompt: jest.fn(),
-  }),
-}));
-
-import { useRoomActionDialogs } from '@/games/werewolf/room/useRoomActionDialogs';
 
 const schemaToRole: Record<string, RoleId> = {
   // god
@@ -124,86 +80,34 @@ describe('WerewolfRoomScreen schema smoke (one-per-schema)', () => {
       const schema = getSchema(schemaId);
       const role = roleForSchemaId(schemaId);
 
-      // Some schemas require extra hook data to avoid hitting code paths that assume it.
-      const overrides: Record<string, unknown> = {};
-      const gameStateOverrides: Record<string, unknown> = {};
+      // Server facts the step needs on the wire before the actor can act.
+      const gameStateOverrides: Partial<GameState> = {};
       if (schemaId === 'witchAction') {
-        gameStateOverrides.witchContext = {
-          killedSeat: 2,
-          canSave: true,
-        };
+        gameStateOverrides.witchContext = { killedSeat: 2, canSave: true, canPoison: true };
+      }
+      if (schema.kind === 'chooseCard') {
+        gameStateOverrides.bottomCards = ['wolf', 'villager', 'seer'];
       }
 
-      mockUseWerewolfRoomImpl = () =>
-        createBaseWerewolfRoomMock({
-          schemaId,
-          currentActionRole: role,
-          myRole: role,
-          overrides,
-          gameStateOverrides,
-        });
+      mockUseWerewolfRoomReturn = createBaseWerewolfRoomMock({
+        schemaId,
+        currentActionRole: role,
+        myRole: role,
+        gameStateOverrides,
+      });
 
-      // Default: use the real hook logic (to keep WerewolfRoomScreen mount behavior realistic).
-      // IMPORTANT: useRoomActions signature is (gameContext, deps).
-      const actual =
-        jest.requireActual<typeof import('../hooks/useRoomActions')>('../hooks/useRoomActions');
-      const room = mockUseWerewolfRoomImpl();
-      mockUseRoomActionsImpl = () =>
-        actual.useRoomActions(
-          {
-            gameState: room.gameState,
-            roomStatus: room.roomStatus,
-            currentActionRole: room.currentActionRole,
-            currentSchema: room.currentSchema,
-            imActioner: true,
-            actorSeat: room.mySeat,
-            actorRole: room.myRole,
-            isAudioPlaying: false,
-            firstSwapSeat: null,
-            multiSelectedSeats: [],
-          },
-          {
-            hasWolfVoted: room.hasWolfVoted,
-            getWolfVoteSummary: () => '0/0 狼人已确认',
-            getWitchContext: () =>
-              ((room.gameState as Record<string, unknown>)?.witchContext ?? null) as {
-                killedSeat: number;
-                canSave: boolean;
-                canPoison: boolean;
-              } | null,
-          },
-        );
-
-      const { queryByText } = render(
+      const { getByText } = render(
         <WerewolfRoomScreen navigation={mockNavigation} room={mockRoom} entryReason={null} />,
       );
 
-      if (schemaId === 'wolfKill') {
-        // wolfKill is a wolfVote schema: its copy shows via dialog (showAlert), not in the tree.
-        // Deterministically trigger the wolfVote intent through the WerewolfRoomScreen hook contract.
-        const dialogs = useRoomActionDialogs();
-
-        // Deterministically trigger the dialog through a small shim.
-        dialogs.showWolfVoteDialog('1号狼人', 1, jest.fn(), undefined, schema);
-
-        await waitFor(() => {
-          expect(dialogs.showWolfVoteDialog).toHaveBeenCalled();
-          const lastCall = jest.mocked(dialogs.showWolfVoteDialog).mock.calls.at(-1);
-          // Schema is passed as 5th arg (schema-driven contract)
-          expect(lastCall?.[4]).toBe(schema);
-        });
-        return;
-      }
-
-      // Key-copy assertion: for non-wolfVote schemas, the prompt should render in the tree.
-      // (wolfVote prompts are shown via dialog.)
+      // Key-copy assertion: the actor's bottom message carries the schema prompt
+      // (the wolf vote appends its status line after it).
       const prompt = schema.ui?.prompt;
       if (typeof prompt !== 'string' || !prompt) {
         throw new Error(`[schemas.smoke.ui] Missing rendered text for schema: ${schemaId}`);
       }
-
       await waitFor(() => {
-        expect(queryByText(prompt)).not.toBeNull();
+        expect(getByText(prompt, { exact: false })).toBeTruthy();
       });
     });
   }

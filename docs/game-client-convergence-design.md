@@ -542,9 +542,20 @@ v3 初稿默认"六家是基准、狼人杀向六家看齐"，把两处狼人杀
 
 四份逐文件清查（§6.9 来源）补齐 v3 初稿遗漏：草稿跨刷新、查验结果 ack 刷新重入、自动弹一次提示、提交单飞、拒绝定向去重、音频锁豁免、ack 未落排他、底牌可选性规则（客户端重算 → 引擎投影）、被动 toast、BGM 生命周期、host 任务流持久化。`NightInteractionModel` 从 9 kind 扩为 13 kind；§6.1 投影补 6 个字段；§5.1 补 `useScopedDraft` / `useLastActionToast`；§5.3 补 4 项。
 
-### v3 实施修订（步骤 1–2）
+### v3 实施修订（步骤 1–5）
 
 - 步骤 1：状态版本落为 **v15**（v14 已被占用），`migratePersistedWerewolfState` 迁 v12–14；`recordedActions` 投影字段无消费者，删除。
 - 步骤 2：`deathSources` 持久化撤回（§6.3 / D3 / D11）；`speakingInstruction` → `speakingOrder` 结构化；`sheriffElectionRecord` 与复盘测试随事实层迁入引擎。
 - 步骤 4：`useNowMs(intervalMs, isActive)` 带激活门——无倒计时的房间（大厅）不每秒重渲染，`useStageDeadline` 以 `deadlineAt !== null` 激活并返回 `{ remainingSeconds, nowMs }`；drawguess 自建 ticker 删除。`shareImagesBase64` 返回 `'shared' | 'cancelled'`，取消判定只有 Web Share `AbortError`——`expo-sharing@56` 的 `shareAsync` 对关闭与完成一律 resolve void，原稿「expo-sharing dismiss 结果」不存在，撤回。`useRoleViewing` 冻结的 `remainingCards` 取**确认前**记录（自己的牌仍在桌上），不是原稿的「确认后排除本座位」——`CardPick` 的桌面牌数语义要求本人的牌在场。`useLastActionToast` 按**命令类型**匹配（`lastCommand.type` 是命令类型，狼人杀原 hook 匹配 `KICK_PLAYER` 等 action 名从未命中，是死代码）；「天亮了」类状态迁移提示不走此 hook。`RoomOccupant` 落地：`RoomSeatPlayer.occupant` / `RoomProfileTarget.occupant`，bot 头像种子 `bot:<seat>`，`createRoomProfileTargetResolver` 删除（各家直接 `getRoomProfileTarget(state.roster, seat)`），`useUserProfileQuery` 接受 `null`。`useScopedDraft` 的存储访问放 `services/scopedDraftStore.ts`（架构契约：直接存储访问只在 services / platform）。`RoomAudioResumeDialog` 只在 `onClose` 绑一次 continue（狼人杀原实现按钮与 onClose 双绑，continue 跑两次）。new-game 生成器模板同步。
 - 步骤 3：到期命令无 payload（同阿瓦隆，pin 只在效果上）；新增 `GameState.gameSequence`，状态 v16；`handleProgressionRequest` 删除，hand-built "exhausted" 测试状态改经音频 ack 触发收夜（线上 exhausted 态只会停在音频/确认门后）。
+- 步骤 5（狼人杀房间重做）：
+  - 投影补字段：`pendingReveal` 带 `targetSeat / result / resultFormat / titlePrefix`（查验结果对话框文案不再由客户端读 `seerReveal` 等原始字段拼出）；`wolfVote` 带 `voterSeats`（参与投票的狼座位，底牌排除已算入）与 `immuneSeats`（袭击免疫座位，确认对话框附注用）。
+  - `NightInteractionModel` 的 `ackGroupReveal` 多一个 `prompt`（进入步骤的自动提示用 schema prompt，个性化文案只在确认对话框里）；底栏文案统一为 schema `ui.prompt`（狼投票追加状态行与警告），与旧 `useRoomDerived.actionMessage` 口径一致。
+  - 命令全部经平台 `useReadyRoomSession.submit`；新增 `RoomCommandSubmitOptions.domainRejection: 'alert' | 'state'`——狼人杀夜间行动的业务拒绝由引擎 `commitDomainRejection` 落进状态（`night.rejection`），客户端按 `rejectionId` 去重后弹「操作失败」，提交路径不再重复弹；pre-commit 拒绝与网络失败仍由 submit 弹。`ReadyRoomSession` 暴露 `lastCommand` 给 `useLastActionToast`。
+  - `useSheriffElection` 改收 `{ gameState, effectiveSeat, isHost, submit }` 自建命令；`useRoomModals` 保留复盘入口 / 昨夜信息两条流（身份卡与技能预览已移出）；`createWerewolfHostManagement` 保留。
+  - 复盘子系统（`NightReview*` / `ShareProgressModal` / `useNightReviewShare` / `shareNightReview.ts` / `nightReviewLayout.ts`）**保留**，不按 §6.7 删除：`docs/game-review-share-design.md` 尚未实施，`review/toWerewolfReviewDocument.ts` 随该设计再做。
+  - `defineClientGameModule.GuideScreen` 改为 session 绑定组件（狼人杀百科读房间状态高亮板子）；狼人杀 `config` 返回自有的嵌套配置流（板子选择 → 角色 → 规则），不走 schema 配置屏。`WerewolfRoomAccountCapability` 删除，由 `createLinkRoomAccountCapability` 统一生成。
+  - 噩梦封锁：引擎在进入被封锁者步骤时已下发 `blocked_by_nightmare` 提示（`bottomAction: 'skipOnly'` + 提示覆盖），客户端据此只渲染跳过按钮，座位点击不再开确认；旧测试「被封锁者点座位弹确认」依赖的是没有提示的拼装状态，线上不存在。§6.9 第 379 行的「不预判」指客户端不自算封锁，保持。
+  - 板子 UI 测试 harness 重写为「真 `GameState` + `createFakeRoomLink`」：`createWerewolfRoomMock(options)` 写出权威状态（含引擎 `maybeCreateUiHintAction` 的步骤提示、confirm 步骤默认 `confirmStatus`），视图模型与对话框全部走真投影；`buildMockWerewolfViewModel` 与 `mockShapeContract` / `mockViewModelCrossCheck` 两份"看守手写镜像"的契约随之删除。32 个板子文件只改 `jest.mock` 目标与断言对象（`mock.dispatch` / `mock.submitAction`）。
+  - 底牌选择弹窗改吃引擎 `BottomCardChoice`（每张牌自带 `isSelectable / reason`）；`BoardNominationModal` 不再持有 client，采纳由房间状态 hook 的 `boardNominations.adopt` 执行（人数变化先清座再 `config.update`）。
+  - `botDispatchDiscipline` 契约新增 `shared-ready-session-submit` 形态（漏斗在平台 `useReadyRoomSession`，`controlledSeat` 默认 null）；狼人杀是第一家登记者。

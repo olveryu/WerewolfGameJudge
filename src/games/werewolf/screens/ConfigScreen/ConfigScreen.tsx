@@ -20,8 +20,8 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useServices } from '@/contexts/ServiceContext';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
+import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import { TESTIDS } from '@/testids';
@@ -45,14 +45,14 @@ type NavigationProp = NativeStackNavigationProp<WerewolfConfigStackParamList, 'C
 type ConfigRouteProp = RouteProp<WerewolfConfigStackParamList, 'Config'>;
 
 interface ConfigScreenProps {
-  readonly client: WerewolfGameClient;
+  readonly session: WerewolfRoomSession;
   readonly onExitFlow: () => void;
   readonly onReturnToRoom: (roomCode: string) => void;
 }
 
 /** Role configuration screen; the Rules step that follows owns create/save. */
 export const ConfigScreen: React.FC<ConfigScreenProps> = ({
-  client,
+  session,
   onExitFlow,
   onReturnToRoom,
 }) => {
@@ -74,7 +74,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
     nominateMode,
     updatedRules,
     navigation,
-    client,
+    session,
     settingsService,
     onExitFlow,
     onReturnToRoom,

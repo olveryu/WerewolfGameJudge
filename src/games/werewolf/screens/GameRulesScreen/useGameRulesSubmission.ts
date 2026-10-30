@@ -16,14 +16,14 @@ import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
 } from '@/features/room/link/roomCommandResult';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { translateReasonCode } from '@/utils/errorUtils';
 import { configLog } from '@/utils/logger';
 
 interface UseGameRulesSubmissionParams {
-  readonly client: WerewolfGameClient;
+  readonly session: WerewolfRoomSession;
   readonly roles: readonly RoleId[];
   readonly existingRoomCode: string | undefined;
   readonly onExitFlow: () => void;
@@ -31,7 +31,7 @@ interface UseGameRulesSubmissionParams {
 }
 
 export function useGameRulesSubmission({
-  client,
+  session,
   roles,
   existingRoomCode,
   onExitFlow,
@@ -52,7 +52,14 @@ export function useGameRulesSubmission({
       setIsWorkflowSubmitting(true);
       try {
         if (isEditMode) {
-          const result = await client.updateTemplate(template);
+          const result = await session.dispatch(
+            {
+              type: 'werewolf.config.update',
+              templateRoles: [...template.roles],
+              rules: template.rules === undefined ? undefined : { ...template.rules },
+            },
+            { controlledSeat: null, label: '保存设置', durable: false },
+          );
           if (!isSuccessfulRoomCommand(result)) {
             showErrorAlert('更新失败', translateReasonCode(getRoomCommandFailureReason(result)));
             return;
@@ -84,7 +91,7 @@ export function useGameRulesSubmission({
         setIsWorkflowSubmitting(false);
       }
     },
-    [roles, isEditMode, client, user, createRoom, onExitFlow, onRoomCreated],
+    [roles, isEditMode, session, user, createRoom, onExitFlow, onRoomCreated],
   );
 
   return { submit, isSubmitting: isWorkflowSubmitting || isCreating, isEditMode };

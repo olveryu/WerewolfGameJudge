@@ -2,7 +2,7 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { RoomCapability } from '@/features/room/model/RoomCapabilities';
 import { createWerewolfHostManagement } from '@/games/werewolf/room/createWerewolfHostManagement';
-import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
+import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { hostTaskBody } from '@/test-utils/hostTask';
 
 const deniedCapability: RoomCapability = { isAllowed: false, reason: '不可用' };

@@ -30,7 +30,7 @@ import {
 
 import { Modal } from '@/components/AppModal';
 import { UI_ICONS } from '@/config/iconTokens';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import type { DisplayMessage } from '@/games/werewolf/state/WerewolfAIChatState';
 import type { RoomIdentity } from '@/platform/realtime/types';
 import { colors, componentSizes, fixed, typography } from '@/theme';
@@ -48,14 +48,14 @@ const PULSE_CYCLES = 3;
 const PULSE_DURATION = 1000;
 
 interface AIChatBubbleProps {
-  readonly client: WerewolfGameClient;
+  readonly session: WerewolfRoomSession;
   readonly identity: RoomIdentity<'werewolf'>;
   /** When this transitions from false -> true, trigger a pulse animation */
   triggerPulse?: boolean;
 }
 
 export const AIChatBubble: React.FC<AIChatBubbleProps> = ({
-  client,
+  session,
   identity,
   triggerPulse = false,
 }) => {
@@ -64,7 +64,7 @@ export const AIChatBubble: React.FC<AIChatBubbleProps> = ({
   const flatListRef = useRef<FlatList>(null);
   const chatHeight = getChatHeight(screenHeight);
 
-  const chat = useAIChat(client, identity);
+  const chat = useAIChat(session, identity);
 
   // ── Pulse animation after roles are assigned ────────
   const pulseAnim = useRef(new Animated.Value(1)).current;

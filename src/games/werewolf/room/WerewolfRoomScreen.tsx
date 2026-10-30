@@ -1,45 +1,45 @@
 /**
- * WerewolfRoomScreen - Main game room screen (thin rendering shell)
+ * WerewolfRoomScreen — RoomEntryBoundary → useWerewolfRoomState → RoomShell
+ * plus the Werewolf overlays (identity card, night review, share, sheriff
+ * details, MVP, bottom card, board nominations, strategy).
  *
- * All hook wiring, derived state, and side-effects live in useWerewolfRoomScreenState.
- * This component only owns: styles, loading/error early returns, and JSX layout.
- * Creates theme-based styles, renders JSX (header, grid, bottom panel, modals),
- * and handles loading/error early returns. Does not wire hooks directly
- * (that's useWerewolfRoomScreenState), does not own local state, and does not import
- * services / policy / helpers.
+ * The screen owns only screen-local toggles (skill preview, strategy
+ * sheet, nomination list); every room fact comes from the state hook.
  */
+
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
-import { findClosestPresetName } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  findClosestPresetName,
+  GameStatus,
+  isValidRoleId,
+  type RoleId,
+} from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
-import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
-import { useAuthContext } from '@/contexts/AuthContext';
 import { createBoardInfoStyles } from '@/features/room/components/boardInfo.styles';
 import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
+import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import { deriveRemainingRevealCards } from '@/features/room/model/RevealRoleData';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
+import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import { BOARD_STRATEGY, BoardStrategyModal } from '@/games/werewolf/components/BoardStrategy';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import { useSkiaShaderWarmup } from '@/games/werewolf/components/SkiaShaderWarmup';
 import { WerewolfProfileDetails } from '@/games/werewolf/components/WerewolfProfileDetails';
-import { WerewolfRoleCardModal } from '@/games/werewolf/room/components/WerewolfRoleCardModal';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, fixed } from '@/theme';
 import { isMiniProgram } from '@/utils/miniProgram';
 
-import { createWerewolfBoardInfoSections } from '../werewolfRoomAdapter';
 import { BoardNominationModal } from './components/BoardNominationList';
 import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
 import { createMvpSelectionStyles, MvpSelectionModal } from './components/MvpSelectionModal';
@@ -53,185 +53,119 @@ import {
 } from './components/SheriffElectionDetailsSurfaces';
 import { SheriffElectionHud } from './components/SheriffElectionHud';
 import { createSheriffElectionPanelStyles } from './components/sheriffElectionPanel.styles';
-import { useWerewolfRoomScreenState } from './hooks/useWerewolfRoomScreenState';
+import { WerewolfRoleCardModal } from './components/WerewolfRoleCardModal';
+import { useWerewolfRoomState } from './hooks/useWerewolfRoomState';
+import { createWerewolfBoardInfoSections, isWerewolfSetup } from './werewolfRoomAdapter';
 import { createRoomScreenStyles } from './WerewolfRoomScreen.styles';
 
-// ── Strategy Modal ───────────────────────────────────────────────────────────
 const BOARD_STRATEGY_KEYS = new Set(Object.keys(BOARD_STRATEGY));
+const STRATEGY_MATCH_THRESHOLD = 0.1;
 
 interface WerewolfRoomScreenProps extends GameRoomScreenProps<'werewolf'> {
-  readonly client: WerewolfGameClient;
+  readonly session: WerewolfRoomSession;
+  readonly audio: WerewolfAudioRuntime;
 }
 
 export const WerewolfRoomScreen: React.FC<WerewolfRoomScreenProps> = ({
   room,
   entryReason,
   navigation,
-  client,
+  session,
+  audio,
 }) => {
   const handleExit = useCallback(() => exitRoomFlow(navigation), [navigation]);
 
   return (
-    <RoomEntryBoundary room={room} session={client.roomSession} onExit={handleExit}>
+    <RoomEntryBoundary room={room} session={session} onExit={handleExit}>
       {(entryController) => (
         <WerewolfRoomContent
           room={room}
           entryReason={entryReason}
           navigation={navigation}
           entryController={entryController}
-          client={client}
+          session={session}
+          audio={audio}
         />
       )}
     </RoomEntryBoundary>
   );
 };
 
-interface WerewolfRoomContentProps extends GameRoomScreenProps<'werewolf'> {
+interface WerewolfRoomContentProps extends WerewolfRoomScreenProps {
   readonly entryController: RoomEntryController;
-  readonly client: WerewolfGameClient;
 }
 
-export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
-  room,
-  entryReason,
-  navigation,
-  entryController,
-  client,
-}) => {
+export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = (props) => {
+  const { room, navigation } = props;
   const roomCode = room.roomCode;
-  const { user } = useAuthContext();
   const styles = useMemo(() => createRoomScreenStyles(colors), []);
   const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
   const sheriffElectionStyles = useMemo(() => createSheriffElectionPanelStyles(colors), []);
+  const mvpSelectionStyles = useMemo(() => createMvpSelectionStyles(), []);
 
-  // Pre-compile Skia GPU shaders for role reveal animations (eliminates first-frame jank).
-  // Moved here from App.tsx -- Skia is now lazy-loaded, so warmup runs when Skia is ready.
+  // Pre-compile Skia shaders for the reveal animations (no first-frame jank).
   useSkiaShaderWarmup();
 
-  // ─── Notepad ──────────────────────────────────────────────────────────
-  const handleNotepadPress = useCallback(() => {
-    navigation.navigate('GameNotepad', { gameType: 'werewolf', roomCode });
-  }, [navigation, roomCode]);
-
-  // ─── Strategy Modal ───────────────────────────────────────────────────
-  const [strategyBoardName, setStrategyBoardName] = useState<string | null>(null);
-
-  const handleStrategyClose = useCallback(() => {
-    setStrategyBoardName(null);
-  }, []);
-
-  const [nominationModalVisible, setNominationModalVisible] = useState(false);
-
-  const handleEncyclopedia = useCallback(() => {
-    navigation.navigate('GameGuide', { gameType: 'werewolf', roomCode });
-  }, [navigation, roomCode]);
-
   const {
+    state,
+    viewModel,
     shellModel,
-    gameState,
+    userId,
     isHost,
-    roomStatus,
-    isAudioPlaying,
-    resolvedRoleRevealAnimation,
-    effectiveSeat,
-    effectiveRole,
-    currentSchema,
-    clearAllSeats,
-    boardUpvote,
-    boardWithdraw,
+    bgm,
+    roleCard,
+    audioResume,
+    night,
     sheriffElectionPanel,
     isSheriffInspectorVisible,
     isSheriffDetailsVisible,
     openSheriffDetails,
     closeSheriffDetails,
-    isBgmPlaying,
-    playBgm,
-    stopBgm,
-    villagerCount,
-    wolfRoleItems,
-    godRoleItems,
-    specialRoleItems,
-    villagerRoleItems,
     mvpSelection,
     closeMvpSelection,
     isHostActionSubmitting,
-    roleCardVisible,
-    shouldPlayRevealAnimation,
-    isLoadingRole,
-    handleRoleCardClose,
-    skillPreviewRoleId,
-    handleSkillPreviewOpen,
-    handleSkillPreviewClose,
-    resumeAfterRejoin,
-    needsContinueOverlay,
-    nightReviewData,
-    nightReviewShareCardRef,
-    isCapturingShareCard,
-    shareRun,
-    cancelReportShare,
-    nightReviewVisible,
-    closeNightReview,
-    shareReviewVisible,
-    closeShareReview,
-    shareNightReview,
-    chooseCardModalVisible,
-    closeChooseCardModal,
-    handleChooseCard,
-    bottomCardDisabledIndices,
-    bottomCardDisabledHint,
-    bottomCardSubtitle,
-  } = useWerewolfRoomScreenState({ room, entryReason, navigation, entryController, client });
+    nightReview,
+    boardNominations,
+  } = useWerewolfRoomState(props);
+  const status = state.status;
 
-  const mvpSelectionStyles = useMemo(() => createMvpSelectionStyles(), []);
-
-  // ─── Board nomination callbacks ────────────────────────────────────────
-  const showNominations = roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated;
-
-  const nominationCount = gameState?.boardNominations
-    ? Object.keys(gameState.boardNominations).length
-    : 0;
-  const hasMyNomination = user?.id ? !!gameState?.boardNominations?.[user.id] : false;
-
-  const handleNominate = useCallback(() => {
-    navigation.navigate('GameConfig', {
-      gameType: 'werewolf',
-      mode: 'nominate',
-      roomCode,
-    });
-  }, [navigation, roomCode]);
-
-  const handleViewNominations = useCallback(() => {
-    setNominationModalVisible(true);
+  // ── Screen-local toggles ──
+  const [skillPreviewRoleId, setSkillPreviewRoleId] = useState<RoleId | null>(null);
+  const openSkillPreview = useCallback((roleId: string) => {
+    if (!isValidRoleId(roleId)) throw new Error(`[FAIL-FAST] Invalid role ID: ${roleId}`);
+    setSkillPreviewRoleId(roleId);
   }, []);
+  const closeSkillPreview = useCallback(() => setSkillPreviewRoleId(null), []);
+  const [strategyBoardName, setStrategyBoardName] = useState<string | null>(null);
+  const [isNominationListOpen, setIsNominationListOpen] = useState(false);
 
-  // Auto-close nomination modal when game progresses past setup phase
+  const isSetup = isWerewolfSetup(status);
   useEffect(() => {
-    if (!showNominations) {
-      setNominationModalVisible(false);
-    }
-  }, [showNominations]);
+    if (!isSetup) setIsNominationListOpen(false);
+  }, [isSetup]);
 
-  // ─── Strategy: find closest matching board with strategy data ──────────
+  const nominations = state.boardNominations ?? {};
+  const nominationCount = Object.keys(nominations).length;
+  const hasMyNomination = userId in nominations;
+
   const matchedStrategyName = useMemo(() => {
-    if (!gameState) return null;
-    const roles = gameState.template.roles;
-    // Exact match first (via name or roles)
-    const exactName = gameState.template.name;
-    if (exactName && BOARD_STRATEGY_KEYS.has(exactName)) return exactName;
-    // Fuzzy match -- only against boards that have strategy content
-    return findClosestPresetName(roles, 0.1, BOARD_STRATEGY_KEYS);
-  }, [gameState]);
-
-  const handleStrategyPress = useCallback(() => {
-    if (matchedStrategyName) {
-      setStrategyBoardName(matchedStrategyName);
-    }
-  }, [matchedStrategyName]);
+    const presetName = findClosestPresetName(state.templateRoles);
+    if (presetName !== null && BOARD_STRATEGY_KEYS.has(presetName)) return presetName;
+    return findClosestPresetName(
+      state.templateRoles,
+      STRATEGY_MATCH_THRESHOLD,
+      BOARD_STRATEGY_KEYS,
+    );
+  }, [state.templateRoles]);
 
   const renderProfileDetails = useCallback(
     (statsUserId: string) => <WerewolfProfileDetails userId={statsUserId} />,
     [],
   );
+
+  const seatCount = viewModel.template.numberOfPlayers;
+  const isBoardCollapsed =
+    status === GameStatus.Ongoing || status === GameStatus.Day || status === GameStatus.Ended;
 
   return (
     <RoomShell
@@ -250,40 +184,42 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
         beforeSeatBoard: (
           <RoomGameSummary
             icon="moon-outline"
-            title={`狼人杀 · ${gameState.template.numberOfPlayers}人局`}
-            subtitle={findClosestPresetName(gameState.template.roles) ?? '自定义配置'}
+            title={`狼人杀 · ${seatCount}人局`}
+            subtitle={findClosestPresetName(state.templateRoles) ?? '自定义配置'}
             headerRight={
               <RoomGuideButton
-                onPress={handleEncyclopedia}
+                onPress={() => navigation.navigate('GameGuide', { gameType: 'werewolf', roomCode })}
                 testID={TESTIDS.roomEncyclopediaButton}
                 label="角色百科"
               />
             }
           >
             <BoardInfoCard
-              playerCount={gameState.template.numberOfPlayers}
-              sections={createWerewolfBoardInfoSections({
-                wolfRoleItems,
-                godRoleItems,
-                specialRoleItems,
-                villagerRoleItems,
-                villagerCount,
-              })}
-              collapsed={
-                roomStatus === GameStatus.Ongoing ||
-                roomStatus === GameStatus.Day ||
-                roomStatus === GameStatus.Ended
+              playerCount={seatCount}
+              sections={createWerewolfBoardInfoSections(state.templateRoles)}
+              collapsed={isBoardCollapsed}
+              onRolePress={openSkillPreview}
+              onNotepadPress={() =>
+                navigation.navigate('GameNotepad', { gameType: 'werewolf', roomCode })
               }
-              onRolePress={handleSkillPreviewOpen}
-              onNotepadPress={handleNotepadPress}
-              onStrategyPress={matchedStrategyName ? handleStrategyPress : undefined}
+              onStrategyPress={
+                matchedStrategyName === null
+                  ? undefined
+                  : () => setStrategyBoardName(matchedStrategyName)
+              }
               styles={boardInfoStyles}
               footer={
-                <>
-                  {showNominations && (
+                isSetup ? (
+                  <>
                     <TouchableOpacity
                       style={boardInfoStyles.nominationBtn}
-                      onPress={handleNominate}
+                      onPress={() =>
+                        navigation.navigate('GameConfig', {
+                          gameType: 'werewolf',
+                          mode: 'nominate',
+                          roomCode,
+                        })
+                      }
                       activeOpacity={fixed.activeOpacity}
                     >
                       <Ionicons
@@ -295,24 +231,24 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
                         {hasMyNomination ? '修改建议' : '我来建议'}
                       </Text>
                     </TouchableOpacity>
-                  )}
-                  {showNominations && nominationCount > 0 && (
-                    <TouchableOpacity
-                      style={boardInfoStyles.nominationBtn}
-                      onPress={handleViewNominations}
-                      activeOpacity={fixed.activeOpacity}
-                    >
-                      <Ionicons
-                        name="list-outline"
-                        size={componentSizes.icon.sm}
-                        color={colors.primary}
-                      />
-                      <Text style={boardInfoStyles.nominationBtnText}>
-                        查看建议 ({nominationCount})
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </>
+                    {nominationCount > 0 && (
+                      <TouchableOpacity
+                        style={boardInfoStyles.nominationBtn}
+                        onPress={() => setIsNominationListOpen(true)}
+                        activeOpacity={fixed.activeOpacity}
+                      >
+                        <Ionicons
+                          name="list-outline"
+                          size={componentSizes.icon.sm}
+                          color={colors.primary}
+                        />
+                        <Text style={boardInfoStyles.nominationBtnText}>
+                          查看建议 ({nominationCount})
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                ) : null
               }
             />
           </RoomGameSummary>
@@ -324,17 +260,17 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
           ),
       }}
       leadingExtraActions={
-        roomStatus === GameStatus.Ended && !isAudioPlaying ? (
+        isHost ? (
           <Button
             variant="icon"
-            onPress={isBgmPlaying ? stopBgm : playBgm}
+            onPress={bgm.isBgmPlaying ? bgm.stopBgm : bgm.playBgm}
             testID={TESTIDS.bgmToggleButton}
-            accessibilityLabel={isBgmPlaying ? '暂停音乐' : '播放音乐'}
+            accessibilityLabel={bgm.isBgmPlaying ? '暂停音乐' : '播放音乐'}
           >
             <Ionicons
-              name={isBgmPlaying ? 'pause' : 'musical-notes'}
+              name={bgm.isBgmPlaying ? 'pause' : 'musical-notes'}
               size={componentSizes.icon.md}
-              color={isBgmPlaying ? colors.primary : colors.text}
+              color={bgm.isBgmPlaying ? colors.primary : colors.text}
             />
           </Button>
         ) : null
@@ -342,7 +278,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
       trailingExtraActions={null}
       gameOverlays={
         <>
-          {mvpSelection != null && (
+          {mvpSelection !== null && (
             <MvpSelectionModal
               {...mvpSelection}
               isSubmitting={isHostActionSubmitting}
@@ -359,133 +295,94 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
             />
           )}
 
-          {/* Continue Game Overlay -- shown after Host rejoin to unlock audio */}
-          <AlertModal
-            visible={needsContinueOverlay}
-            title="游戏已恢复"
-            message="点击下方按钮继续游戏并恢复音频"
-            buttons={[{ text: '继续游戏', onPress: resumeAfterRejoin }]}
-            onClose={resumeAfterRejoin}
+          <RoomAudioResumeDialog
+            visible={audioResume.isDue}
+            onContinue={audioResume.continueGame}
           />
 
-          {/* Role Card Modal */}
-          {(roleCardVisible || isLoadingRole) && effectiveRole && (
+          {(roleCard.viewing.isOpen || roleCard.viewing.isPending) && roleCard.roleId !== null && (
             <WerewolfRoleCardModal
-              visible={roleCardVisible}
-              isLoading={isLoadingRole}
-              roleId={effectiveRole}
-              resolvedAnimation={resolvedRoleRevealAnimation}
-              shouldPlayAnimation={shouldPlayRevealAnimation}
-              allRoleIds={gameState?.template.roles ?? []}
-              remainingCards={
-                gameState
-                  ? // Werewolf's viewed mark lands before the card shows
-                    // (the open waits for the POST), so the shared formula
-                    // already counts this card as viewed; +1 restores the
-                    // table semantics the other games get naturally
-                    // (their marks land on confirm).
-                    deriveRemainingRevealCards(
-                      Array.from(gameState.players.values()).filter((p) => p).length,
-                      Array.from(gameState.players.values()).filter((p) => p && p.hasViewedRole)
-                        .length,
-                    ) + (shouldPlayRevealAnimation ? 1 : 0)
-                  : 0
-              }
-              onClose={handleRoleCardClose}
-              seerLabelMap={gameState?.seerLabelMap}
+              visible={roleCard.viewing.isOpen}
+              isLoading={roleCard.viewing.isPending}
+              roleId={roleCard.roleId}
+              resolvedAnimation={roleCard.resolvedAnimation}
+              shouldPlayAnimation={roleCard.viewing.shouldPlayAnimation}
+              allRoleIds={[...state.templateRoles]}
+              remainingCards={roleCard.viewing.remainingCards}
+              onClose={roleCard.viewing.close}
+              seerLabelMap={state.seerLabelMap}
             />
           )}
 
-          {/* Skill Preview Modal -- triggered by tapping a role chip in BoardInfoCard */}
           <RoleCardSimple
             visible={skillPreviewRoleId !== null}
             roleId={skillPreviewRoleId}
-            onClose={handleSkillPreviewClose}
+            onClose={closeSkillPreview}
             showRealIdentity
             onAskAI={
-              isAIChatReady() ? (rid) => askAIAboutRole(rid, handleSkillPreviewClose) : undefined
+              isAIChatReady() ? (roleId) => askAIAboutRole(roleId, closeSkillPreview) : undefined
             }
           />
 
-          {/* Night Review Modal -- for Judge / spectators; shows night actions + all roles */}
-          {nightReviewVisible && nightReviewData && (
+          {nightReview.isVisible && nightReview.data !== null && (
             <NightReviewModal
-              visible={nightReviewVisible}
-              data={nightReviewData}
-              onClose={closeNightReview}
+              visible={nightReview.isVisible}
+              data={nightReview.data}
+              onClose={nightReview.close}
             />
           )}
 
-          {/* Share card -- mounted on-demand during capture only */}
-          {isCapturingShareCard && nightReviewData && (
+          {nightReview.isCapturingShareCard && nightReview.data !== null && (
             <View style={styles.hiddenShareCardContainer}>
               <NightReviewShareCard
-                ref={nightReviewShareCardRef}
-                data={nightReviewData}
+                ref={nightReview.shareCardRef}
+                data={nightReview.data}
                 roomCode={roomCode}
               />
             </View>
           )}
 
-          {/* Share progress -- the tapped share's visible lifecycle on the
-              mini program, from tap until the WeChat preview takes over */}
-          {shareRun !== null && isMiniProgram() && (
-            <ShareProgressModal run={shareRun} onCancel={cancelReportShare} />
+          {nightReview.shareRun !== null && isMiniProgram() && (
+            <ShareProgressModal run={nightReview.shareRun} onCancel={nightReview.cancelShare} />
           )}
 
-          {/* Share Review Modal -- Host picks seats whose details to share */}
-          {shareReviewVisible && gameState && (
+          {nightReview.isShareSeatsVisible && (
             <ShareReviewModal
-              visible={shareReviewVisible}
-              seats={Array.from(gameState.players.entries())
-                .filter(([seatNum, p]) => p !== null && seatNum !== effectiveSeat)
-                .map(([seatNum, p]) => ({
-                  seat: seatNum,
-                  displayName: p!.displayName ?? `玩家${seatNum + 1}`,
-                }))
-                .sort((a, b) => a.seat - b.seat)}
-              currentAllowedSeats={gameState.nightReviewAllowedSeats ?? []}
-              onConfirm={shareNightReview}
-              onClose={closeShareReview}
+              visible={nightReview.isShareSeatsVisible}
+              seats={[...nightReview.shareSeats]}
+              currentAllowedSeats={state.nightReviewAllowedSeats ?? []}
+              onConfirm={nightReview.shareToSeats}
+              onClose={nightReview.closeShareSeats}
             />
           )}
 
-          {/* Board Nomination Modal -- board suggestion list */}
-          {nominationModalVisible && (
+          {isNominationListOpen && (
             <BoardNominationModal
-              client={client}
-              visible={nominationModalVisible}
-              nominations={gameState?.boardNominations}
-              myUserId={user?.id ?? null}
+              visible={isNominationListOpen}
+              nominations={nominations}
+              myUserId={userId}
               isHost={isHost}
-              currentPlayerCount={gameState?.template.numberOfPlayers ?? 0}
-              onUpvote={(userId: string) => {
-                void boardUpvote(userId);
-              }}
-              onWithdraw={() => {
-                void boardWithdraw();
-              }}
-              clearAllSeats={clearAllSeats}
-              onClose={() => setNominationModalVisible(false)}
+              onUpvote={boardNominations.upvote}
+              onWithdraw={boardNominations.withdraw}
+              onAdopt={boardNominations.adopt}
+              onClose={() => setIsNominationListOpen(false)}
             />
           )}
 
-          {/* Choose Bottom Card Modal -- Treasure Master / Thief deck card selection */}
-          {chooseCardModalVisible && gameState?.bottomCards && (
+          {night.chooseCardModal !== null && (
             <ChooseBottomCardModal
-              visible={chooseCardModalVisible}
-              bottomCards={gameState.bottomCards}
-              confirmText={currentSchema?.ui?.confirmText ?? ''}
-              disabledIndices={bottomCardDisabledIndices}
-              disabledHint={bottomCardDisabledHint}
-              subtitle={bottomCardSubtitle}
-              onChoose={(idx) => handleChooseCard(idx)}
-              onClose={closeChooseCardModal}
+              visible
+              choice={night.chooseCardModal.model.choice}
+              confirmText={night.chooseCardModal.model.confirmText}
+              onChoose={night.chooseCardModal.choose}
+              onClose={night.chooseCardModal.close}
             />
           )}
 
-          {/* Board Strategy Modal -- strategy details */}
-          <BoardStrategyModal boardName={strategyBoardName} onClose={handleStrategyClose} />
+          <BoardStrategyModal
+            boardName={strategyBoardName}
+            onClose={() => setStrategyBoardName(null)}
+          />
         </>
       }
     />

@@ -12,11 +12,23 @@ import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
+/**
+ * Where a committed domain rejection is presented: by this submission
+ * (`alert`), or by the game from the rejection the engine committed into
+ * state (`state`, e.g. werewolf `actionRejected`), so it shows once.
+ */
+export type DomainRejectionPresentation = 'alert' | 'state';
+
+export interface RoomCommandSubmitOptions {
+  readonly domainRejection?: DomainRejectionPresentation;
+}
+
 export interface RoomCommandSubmission<TState extends BaseGameState<string>> {
   readonly isSubmitting: boolean;
   readonly submit: (
     label: string,
     operation: () => Promise<DispatchOutcome<TState>>,
+    options?: RoomCommandSubmitOptions,
   ) => Promise<boolean>;
 }
 
@@ -27,7 +39,11 @@ export function useRoomCommandSubmission<TState extends BaseGameState<string>>(
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submit = useCallback(
-    async (label: string, operation: () => Promise<DispatchOutcome<TState>>): Promise<boolean> => {
+    async (
+      label: string,
+      operation: () => Promise<DispatchOutcome<TState>>,
+      options: RoomCommandSubmitOptions = {},
+    ): Promise<boolean> => {
       if (submissionRef.current !== null) {
         throw new Error(`Room operation is already in progress while requesting ${label}`);
       }
@@ -53,7 +69,11 @@ export function useRoomCommandSubmission<TState extends BaseGameState<string>>(
         if (isSuccessfulRoomCommand(result)) return true;
         const reason = getRoomCommandFailureReason(result);
         roomScreenLog.warn('room operation rejected', { label, reason });
-        showErrorAlert(`${label}失败`, getFailureMessage(result));
+        const isDomainRejection =
+          result.kind === 'committed' && result.outcome.kind === 'domainRejected';
+        if (!(isDomainRejection && options.domainRejection === 'state')) {
+          showErrorAlert(`${label}失败`, getFailureMessage(result));
+        }
         return false;
       } finally {
         submissionRef.current = null;

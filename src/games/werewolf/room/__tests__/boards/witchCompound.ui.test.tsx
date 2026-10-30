@@ -36,24 +36,6 @@ jest.mock('@/utils/alert', () => ({
   showAlert: jest.fn(),
 }));
 
-jest.mock('../../useRoomHostDialogs', () => ({
-  useRoomHostDialogs: () => ({
-    showPrepareToFlipDialog: jest.fn(),
-    showStartGameDialog: jest.fn(),
-    showAbortDialog: jest.fn(),
-    showRedealDialog: jest.fn(),
-    showReturnToLobbyDialog: jest.fn(),
-    handleSettingsPress: jest.fn(),
-  }),
-}));
-
-jest.mock('../../hooks/useActionerState', () => ({
-  useActionerState: () => ({
-    imActioner: true,
-    showWolves: true,
-  }),
-}));
-
 // =============================================================================
 // Test Setup
 // =============================================================================
@@ -61,8 +43,8 @@ jest.mock('../../hooks/useActionerState', () => ({
 let harness: RoomScreenTestHarness;
 let mockUseWerewolfRoomReturn: ReturnType<typeof createWerewolfRoomMock>;
 
-jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
+jest.mock('@/games/werewolf/room/__tests__/harness/activeRoomMock', () => ({
+  getActiveRoomMock: () => mockUseWerewolfRoomReturn,
 }));
 
 describe('Witch Compound Sequence', () => {

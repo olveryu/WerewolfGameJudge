@@ -21,8 +21,8 @@ import {
 } from '@/features/encyclopedia/EncyclopediaShell';
 import { useEncyclopediaRolesState } from '@/features/encyclopedia/useEncyclopediaRolesState';
 import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
+import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import { parseWerewolfGuideRouteParams } from '@/games/werewolf/navigation/werewolfGameNavigation';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, spacing, withAlpha } from '@/theme';
@@ -43,13 +43,13 @@ const GUIDE_SEGMENTS: readonly EncyclopediaSegment[] = [
 // ── Component ─────────────────────────────────────────────────────────────────
 
 /** Role encyclopedia / board guide screen. */
-export const EncyclopediaScreen: React.FC<{ readonly client: WerewolfGameClient }> = ({
-  client,
+export const EncyclopediaScreen: React.FC<{ readonly session: WerewolfRoomSession }> = ({
+  session,
 }) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'GameGuide'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'GameGuide'>>();
   const routeParams = parseWerewolfGuideRouteParams(route.params);
-  const room = useRoomLinkSnapshot(client.roomSession);
+  const room = useRoomLinkSnapshot(session);
   const gameState =
     room.phase === 'ready' && room.identity.room.roomCode === routeParams.roomCode
       ? room.room.state

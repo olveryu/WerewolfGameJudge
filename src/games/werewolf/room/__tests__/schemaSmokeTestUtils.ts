@@ -1,179 +1,40 @@
-import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import type { ConfirmStatus } from '@game-judge/game-engine/games/werewolf/public';
-import type { CurrentNightResults } from '@game-judge/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
-import { getSchema, type SchemaId } from '@game-judge/game-engine/games/werewolf/public';
-import type React from 'react';
+/**
+ * Thin adapter over the board harness for the per-schema smoke and the
+ * schema-contract UI tests: same real-state mock, the older option names.
+ */
 
-import type { RoomRecord } from '@/features/room/model/RoomDirectory';
-import { buildMockWerewolfViewModel } from '@/games/werewolf/room/__tests__/harness/boardTestUtils';
-import type { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
-import type { LocalPlayer } from '@/games/werewolf/state/LocalGameState';
-import { successfulRoomCommand } from '@/test-utils/roomCommand';
-import { buildWerewolfTestState } from '@/test-utils/werewolfState';
+import type { GameState, RoleId, SchemaId } from '@game-judge/game-engine/games/werewolf/public';
 
-type RoomScreenProps = React.ComponentProps<typeof WerewolfRoomScreen>;
+import {
+  createWerewolfRoomMock,
+  type SubmitActionMock,
+  type WerewolfRoomMock,
+} from '@/games/werewolf/room/__tests__/harness/boardTestUtils';
 
-type CreateWerewolfRoomMockOptions = {
-  schemaId: SchemaId;
-  currentActionRole: RoleId;
-  myRole: RoleId;
-  mySeat?: number;
-  numberOfPlayers?: number;
-  /** Optional per-test override for hook return */
-  overrides?: Record<string, unknown>;
-  /** Optional override for gameState fields (merged into gameState) */
-  gameStateOverrides?: Record<string, unknown>;
-};
+export { mockNavigation, mockRoom } from '@/games/werewolf/room/__tests__/harness/boardTestUtils';
 
-export const mockNavigation = {
-  navigate: jest.fn(),
-  replace: jest.fn(),
-  goBack: jest.fn(),
-  setOptions: jest.fn(),
-} as unknown as RoomScreenProps['navigation'];
+interface CreateBaseWerewolfRoomMockOptions {
+  readonly schemaId: SchemaId;
+  readonly currentActionRole: RoleId;
+  readonly myRole: RoleId;
+  readonly mySeat?: number;
+  readonly numberOfPlayers?: number;
+  readonly roleAssignments?: Map<number, RoleId>;
+  readonly overrides?: { readonly submitAction?: SubmitActionMock };
+  readonly gameStateOverrides?: Partial<GameState>;
+}
 
-export const mockRoom: RoomRecord<'werewolf'> = {
-  roomCode: '1234',
-  roomId: 'room-id-1234',
-  gameType: 'werewolf',
-  hostUserId: 'host-uid',
-  createdAt: new Date(0),
-};
-
-export function createBaseWerewolfRoomMock({
-  schemaId,
-  currentActionRole,
-  myRole,
-  mySeat = 0,
-  numberOfPlayers = 12,
-  overrides,
-  gameStateOverrides,
-}: CreateWerewolfRoomMockOptions) {
-  const commandResult = successfulRoomCommand(buildWerewolfTestState());
-  const players = new Map<number, LocalPlayer>(
-    Array.from({ length: numberOfPlayers }).map((_, i) => [
-      i,
-      {
-        userId: `p${i}`,
-        seat: i,
-        displayName: `P${i + 1}`,
-        avatarUrl: undefined,
-        role: i === mySeat ? myRole : ('villager' satisfies RoleId),
-        hasViewedRole: true,
-      },
-    ]),
-  );
-
-  const gameState = {
-    ...WEREWOLF_STATE_IDENTITY,
-    status: GameStatus.Ongoing,
-    template: {
-      name: 'test',
-      numberOfPlayers,
-      roles: Array.from({ length: numberOfPlayers }).map((): RoleId => 'villager'),
-      actionOrder: [currentActionRole],
-    },
-    players,
-    roleViewedSeats: Array.from({ length: numberOfPlayers }, (_, i) => i),
-    actions: new Map<RoleId, RoleAction>(),
-    wolfVotes: new Map<number, number>(),
-    nightStep: { kind: 'inStep', stepId: schemaId } as const,
-    isAudioPlaying: false,
-    audioBatchId: 0,
-    gameSequence: 0,
-    pendingAudioEffects: [],
-    lastNightDeaths: [] as number[],
-    nightmareBlockedSeat: undefined as number | undefined,
-    templateRoles: [] as RoleId[],
-    hostUserId: 'host',
-    roomCode: '1234',
-    pendingRevealAcks: [] as string[],
-    hypnotizedSeats: [] as number[],
-    piperRevealAcks: [] as number[],
-    conversionRevealAcks: [] as number[],
-    cupidLoversRevealAcks: [] as number[],
-    seedWolfInfectionRevealAcks: [] as number[],
-    currentNightResults: {} as CurrentNightResults,
-    ...(gameStateOverrides ?? {}),
-  };
-
-  const stateFacts = gameState as unknown as {
-    confirmStatus?: ConfirmStatus;
-    convertedSeat?: number;
-    loverSeats?: [number, number];
-    seedWolfInfectionResult?: { outcome: string; targetSeat: number };
-    actionRejected?: { action: string; reason: string; targetSeat: number; rejectionId: string };
-  };
-  const viewModel = buildMockWerewolfViewModel({
-    mySeat,
-    myRole,
-    currentActionRole,
-    currentSchema: getSchema(schemaId),
-    players: gameState.players,
-    wolfVotes: gameState.wolfVotes,
-    actions: gameState.actions,
-    currentNightResults: gameState.currentNightResults,
-    confirmStatus: stateFacts.confirmStatus ?? null,
-    hypnotizedSeats: gameState.hypnotizedSeats,
-    convertedSeat: stateFacts.convertedSeat ?? null,
-    loverSeats: stateFacts.loverSeats ?? null,
-    seedWolfInfectionResult: stateFacts.seedWolfInfectionResult ?? null,
-    piperRevealAcks: gameState.piperRevealAcks,
-    conversionRevealAcks: gameState.conversionRevealAcks,
-    cupidLoversRevealAcks: gameState.cupidLoversRevealAcks,
-    seedWolfInfectionRevealAcks: gameState.seedWolfInfectionRevealAcks,
-    actionRejected: stateFacts.actionRejected ?? null,
+export function createBaseWerewolfRoomMock(
+  options: CreateBaseWerewolfRoomMockOptions,
+): WerewolfRoomMock {
+  return createWerewolfRoomMock({
+    schemaId: options.schemaId,
+    currentActionRole: options.currentActionRole,
+    myRole: options.myRole,
+    mySeat: options.mySeat,
+    numberOfPlayers: options.numberOfPlayers,
+    roleAssignments: options.roleAssignments,
+    gameStateOverrides: options.gameStateOverrides,
+    hookOverrides: { submitAction: options.overrides?.submitAction },
   });
-
-  return {
-    gameState,
-    viewModel,
-
-    isHost: false,
-    roomStatus: GameStatus.Ongoing,
-
-    currentActionRole,
-    currentSchema: getSchema(schemaId),
-    isAudioPlaying: false,
-
-    mySeat,
-    myRole,
-    myUserId: `p${mySeat}`,
-
-    // Debug mode fields
-    controlledSeat: null,
-    effectiveSeat: mySeat,
-    effectiveRole: myRole,
-    fillWithBots: jest.fn(),
-    markAllBotsViewed: jest.fn(),
-    markAllBotsGroupConfirmed: jest.fn(),
-    takeOverBot: jest.fn(),
-    releaseBot: jest.fn(),
-
-    takeSeat: jest.fn(),
-    leaveSeat: jest.fn(),
-    assignRoles: jest.fn().mockResolvedValue(commandResult),
-    startGame: jest.fn().mockResolvedValue(commandResult),
-    abortGame: jest.fn().mockResolvedValue(commandResult),
-    returnToLobby: jest.fn().mockResolvedValue(commandResult),
-
-    submitAction: jest.fn().mockResolvedValue(commandResult),
-
-    hasWolfVoted: () => false,
-    viewedRole: jest.fn(),
-
-    getLastNightInfo: jest.fn().mockReturnValue(''),
-
-    submitRevealAck: jest.fn().mockResolvedValue(commandResult),
-    submitGroupConfirmAck: jest.fn().mockResolvedValue(commandResult),
-
-    isBgmPlaying: false,
-    playBgm: jest.fn(),
-    stopBgm: jest.fn(),
-
-    ...(overrides ?? {}),
-  };
 }

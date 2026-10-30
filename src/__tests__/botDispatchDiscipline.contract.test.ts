@@ -17,10 +17,9 @@
  * - hardcoded-null-submit：漏斗写死 null，该家不存在经漏斗发出的座位
  *   动作（pictionary / storyrelay；storyrelay 的 Stage 组件另有一个
  *   同形态漏斗，一并登记）。
- * - werewolf 两件：WerewolfGameClient 接口按方法区分——座位动作方法
- *   带显式 controlledSeat 参数、房主方法无此参数（结构上不可能挂）；
- *   其 runtime 管道 dispatchWerewolfCommand 把 controlledSeat 收为
- *   必填参数转发，同样不设默认。
+ * - shared-ready-session-submit：漏斗是平台 useReadyRoomSession.submit，
+ *   其 options.controlledSeat 默认 null，座位动作由调用点显式传
+ *   `{ controlledSeat }`（werewolf；步骤 6 后各家陆续迁入）。
  */
 
 import { GAME_TYPES, type GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
@@ -42,8 +41,7 @@ const AMBIENT_CONTROLLED_SEAT_FUNNEL =
 type DispatchForm =
   | 'parameterized-submit'
   | 'hardcoded-null-submit'
-  | 'werewolf-client-interface'
-  | 'werewolf-actions-plumbing';
+  | 'shared-ready-session-submit';
 
 interface DispatchSiteRegistration {
   readonly file: string;
@@ -52,8 +50,10 @@ interface DispatchSiteRegistration {
 
 const DISPATCH_SITES: Record<GameType, readonly DispatchSiteRegistration[]> = {
   werewolf: [
-    { file: 'games/werewolf/runtime/WerewolfGameClient.ts', form: 'werewolf-client-interface' },
-    { file: 'games/werewolf/runtime/werewolfGameActions.ts', form: 'werewolf-actions-plumbing' },
+    {
+      file: 'games/werewolf/room/hooks/useWerewolfRoomState.ts',
+      form: 'shared-ready-session-submit',
+    },
   ],
   avalon: [{ file: 'games/avalon/room/hooks/useAvalonRoomState.ts', form: 'parameterized-submit' }],
   undercover: [
@@ -104,29 +104,20 @@ function expectHardcodedNullSubmit(source: string): void {
   expect(source).not.toMatch(AMBIENT_CONTROLLED_SEAT_FUNNEL);
 }
 
-function expectWerewolfClientInterface(source: string): void {
-  // 座位动作方法：controlledSeat 是显式参数（可为 null 表示本人）。
-  expect(source).toMatch(/markViewedRole\(controlledSeat: number \| null\)/);
-  expect(source).toMatch(/submitRevealAck\(controlledSeat: number \| null\)/);
-  expect(source).toMatch(/registerSheriffCandidate\(controlledSeat: number \| null\)/);
-  expect(source).toMatch(/submitGroupConfirmAck\(controlledSeat: number \| null\)/);
-  // 房主方法：签名里根本没有 controlledSeat，结构上不可能挂接管座位。
-  expect(source).toMatch(/advanceSheriffElection\(\)/);
-  expect(source).toMatch(/endSheriffElectionBySelfDestruct\(\)/);
-  expect(source).toMatch(/expirePhase\(\)/);
-}
-
-function expectWerewolfActionsPlumbing(source: string): void {
-  // 管道把 controlledSeat 收为必填参数逐次转发，不设任何默认。
-  expect(source).toMatch(/command: WerewolfPublicCommand,\s+controlledSeat: number \| null,/);
-  expect(source).not.toMatch(/controlledSeat: number \| null\s*=/);
+function expectSharedReadySessionSubmit(source: string): void {
+  // The game funnels every command through the platform submit and never
+  // opens its own dispatch funnel; seat actions pass the seat explicitly.
+  expect(source).toMatch(/useReadyRoomSession\(/);
+  expect(source).not.toMatch(/session\.dispatch\(command/);
+  expect(source).not.toMatch(AMBIENT_CONTROLLED_SEAT_FUNNEL);
+  const shared = readSource('features/room/controllers/useReadyRoomSession.ts');
+  expect(shared).toMatch(/controlledSeat: options\.controlledSeat \?\? null/);
 }
 
 const FORM_ASSERTIONS: Record<DispatchForm, (source: string) => void> = {
   'parameterized-submit': expectParameterizedSubmit,
   'hardcoded-null-submit': expectHardcodedNullSubmit,
-  'werewolf-client-interface': expectWerewolfClientInterface,
-  'werewolf-actions-plumbing': expectWerewolfActionsPlumbing,
+  'shared-ready-session-submit': expectSharedReadySessionSubmit,
 };
 
 describe('bot dispatch discipline — registration covers every game', () => {

@@ -19,7 +19,7 @@ import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { Text, View } from 'react-native';
 
 import { SeatDot } from '@/components/SeatDot';
-import type { SheriffElectionRoundViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
+import type { SheriffElectionRoundViewModel } from '@/games/werewolf/room/day/sheriffElectionViewModel';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 import { componentSizes } from '@/theme/tokens';

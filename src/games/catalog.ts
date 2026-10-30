@@ -33,8 +33,7 @@ export const CLIENT_GAME_PLUGIN_CATALOG = {
   werewolf: {
     gameType: 'werewolf',
     navigation: werewolfGameNavigation,
-    createModule: ({ sessionFactory, audioService }) =>
-      createWerewolfUiModule({ sessionFactory, audioService }),
+    createModule: createWerewolfUiModule,
   },
   fibking: {
     gameType: 'fibking',

@@ -41,7 +41,9 @@ describe('night ribbon derivation is shared by both nightPhase games', () => {
     fs.readFileSync(path.resolve(__dirname, '../../..', relativePath), 'utf8');
 
   it('werewolf and avalon adapters both derive through resolveStepProgress', () => {
-    expect(readSource('games/werewolf/werewolfRoomAdapter.ts')).toContain('resolveStepProgress(');
+    expect(readSource('games/werewolf/room/werewolfRoomAdapter.ts')).toContain(
+      'resolveStepProgress(',
+    );
     expect(readSource('games/avalon/room/avalonRoomAdapter.ts')).toContain('resolveStepProgress(');
   });
 });

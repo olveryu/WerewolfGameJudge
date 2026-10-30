@@ -138,26 +138,3 @@ export function handleError(err: unknown, opts: HandleErrorOptions): void {
     showAlert(`${label}失败`, message);
   }
 }
-
-/**
- * Fire-and-forget a promise, routing any rejection through `handleError` with no UI.
- *
- * Replaces the repetitive pattern:
- * ```ts
- * void someAction().catch((err) => {
- *   log.error(label, err);
- *   Sentry.captureException(err);
- * });
- * ```
- * Classification (abort / network / expected / unexpected → Sentry) is identical
- * to `handleError`, so background tasks stay consistent with foreground ones.
- *
- * @param promise - The promise to fire and forget
- * @param label - A descriptive label for logging / Sentry fingerprint
- * @param logger - The module's named logger
- */
-export function fireAndForget(promise: Promise<unknown>, label: string, logger: Logger): void {
-  void promise.catch((err: unknown) => {
-    handleError(err, { label, logger, feedback: false });
-  });
-}

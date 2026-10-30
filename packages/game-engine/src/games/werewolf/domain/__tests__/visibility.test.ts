@@ -201,7 +201,15 @@ function expectedWolfMeetingVm(
       isActioner: pack !== null,
       confirmStatus: null,
       reveals: [],
-      wolfVote: pack ? { votes: { ...WOLF_MEETING_VOTES }, myVote, deadlineAt: null } : null,
+      wolfVote: pack
+        ? {
+            voterSeats: [...WOLF_PACK],
+            votes: { ...WOLF_MEETING_VOTES },
+            myVote,
+            deadlineAt: null,
+            immuneSeats: [],
+          }
+        : null,
       pendingReveal: null,
       rejection: null,
       witchContext: null,
@@ -636,9 +644,11 @@ describe('getWerewolfViewModel — isActioner and seat constraints', () => {
     const vm = getWerewolfViewModel(wolfMeetingState(), player(0));
     expect(vm.night.isActioner).toBe(true);
     expect(vm.night.wolfVote).toEqual({
+      voterSeats: [...WOLF_PACK],
       votes: { ...WOLF_MEETING_VOTES },
       myVote: 5,
       deadlineAt: null,
+      immuneSeats: [],
     });
     expect(getWerewolfViewModel(wolfMeetingState(), player(1)).night.wolfVote?.myVote).toBeNull();
   });
@@ -666,19 +676,36 @@ describe('getWerewolfViewModel — isActioner and seat constraints', () => {
 });
 
 describe('getWerewolfViewModel — pendingReveal, rejection, witch, wolfRobot, chooseCard, hint', () => {
-  it('pendingReveal names the recorded actor only', () => {
+  it('pendingReveal names the recorded actor only and carries the reveal facts', () => {
+    const base = createState({ roles: ['wolf', 'seer', 'villager'], stepId: 'seerCheck' });
+    const state: GameState = {
+      ...base,
+      actions: [{ schemaId: 'seerCheck', actorSeat: 1, targetSeat: 0, timestamp: 1 }],
+      pendingRevealAcks: ['seerCheck'],
+      seerReveal: { targetSeat: 0, result: '狼人' },
+    };
+    expect(getWerewolfViewModel(state, player(1)).night.pendingReveal).toEqual({
+      schemaId: 'seerCheck',
+      revealKind: SCHEMAS.seerCheck.ui!.revealKind,
+      targetSeat: 0,
+      result: '狼人',
+      resultFormat: 'factionCheck',
+      titlePrefix: '查验结果',
+    });
+    expect(getWerewolfViewModel(state, player(0)).night.pendingReveal).toBeNull();
+    expect(getWerewolfViewModel(state, player(null)).night.pendingReveal).toBeNull();
+  });
+
+  it('pendingReveal fails fast when the recorded reveal has no result in state', () => {
     const base = createState({ roles: ['wolf', 'seer', 'villager'], stepId: 'seerCheck' });
     const state: GameState = {
       ...base,
       actions: [{ schemaId: 'seerCheck', actorSeat: 1, targetSeat: 0, timestamp: 1 }],
       pendingRevealAcks: ['seerCheck'],
     };
-    expect(getWerewolfViewModel(state, player(1)).night.pendingReveal).toEqual({
-      schemaId: 'seerCheck',
-      revealKind: SCHEMAS.seerCheck.ui!.revealKind,
-    });
-    expect(getWerewolfViewModel(state, player(0)).night.pendingReveal).toBeNull();
-    expect(getWerewolfViewModel(state, player(null)).night.pendingReveal).toBeNull();
+    expect(() => getWerewolfViewModel(state, player(1))).toThrow(
+      '[FAIL-FAST] Pending seer reveal has no result in state',
+    );
   });
 
   it('rejection is addressed to targetSeat only', () => {

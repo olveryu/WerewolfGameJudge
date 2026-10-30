@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
-import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
+import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, spacing } from '@/theme';
 

@@ -12,6 +12,7 @@ export type {
   WerewolfPublicCommand,
   WerewolfSeatProfile,
 } from './commands/types';
+export { REASON_ACTION_INPUT_MISMATCH, REASON_ACTION_STEP_CHANGED } from './domain/actionInput';
 export { resolveSeerAudioKey } from './domain/audioKeyOverride';
 export type { DeathReason } from './domain/DeathCalculator';
 export {

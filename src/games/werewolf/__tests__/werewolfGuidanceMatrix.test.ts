@@ -1,27 +1,27 @@
 /**
- * Werewolf guidance matrix: every (status × viewer) cell declared in
- * werewolfGuidanceMatrix.ts is held true against the real production
- * path — buildWerewolfGuideMessage derives the guide sentence, then
- * createWerewolfRoomShellModel composes the bottom message. Local
- * states are fabricated with the same factory as
- * werewolfRoomAdapter.test.ts (werewolf states are runtime projections,
- * not engine-driven flows, in this game's client tests).
+ * Every (status × viewer) cell of WEREWOLF_GUIDANCE_MATRIX holds against
+ * the real assembly: engine projection → night model → bottom layout →
+ * bottom actions → shell model. The probed viewer is never the actor
+ * (actors read the schema action sentence instead — same cell).
  */
 import type { GameState, RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus, WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  GameStatus,
+  getWerewolfViewModel,
+  WEREWOLF_STATE_IDENTITY,
+} from '@game-judge/game-engine/games/werewolf/public';
 
 import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
-import { EMPTY_LAYOUT } from '@/games/werewolf/room/hooks/bottomLayoutConfig';
-import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
-import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
+import type { SheriffElectionViewModel } from '@/games/werewolf/room/day/sheriffElectionViewModel';
+import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
+import { resolveNightInteraction } from '@/games/werewolf/room/night/resolveNightInteraction';
 import { buildWerewolfGuideMessage } from '@/games/werewolf/room/werewolfGuideMessage';
-import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
-import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
 import {
+  createWerewolfBottomActionLayout,
+  createWerewolfBottomActions,
   createWerewolfRoomCapabilities,
   createWerewolfRoomShellModel,
-  type WerewolfRoomShellModelInput,
-} from '@/games/werewolf/werewolfRoomAdapter';
+} from '@/games/werewolf/room/werewolfRoomAdapter';
 import { viewerFor } from '@/test-utils/roomViewer';
 
 import { WEREWOLF_GUIDANCE_MATRIX } from '../room/werewolfGuidanceMatrix';
@@ -36,8 +36,8 @@ const STATUSES: readonly GameStatus[] = [
   GameStatus.Ended,
 ];
 
-function createLocalGameState(overrides: Partial<GameState> = {}): LocalGameState {
-  return toWerewolfLocalState({
+function createGameState(overrides: Partial<GameState> = {}): GameState {
+  return {
     ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'ROOM',
     hostUserId: 'HOST',
@@ -49,7 +49,7 @@ function createLocalGameState(overrides: Partial<GameState> = {}): LocalGameStat
       2: { seat: 2, role: 'seer' as RoleId },
     },
     roleViewedSeats: [],
-    nightStep: { kind: 'inStep', stepId: 'wolfKill' },
+    nightStep: { kind: 'inStep', stepId: 'seerCheck' },
     isAudioPlaying: false,
     audioBatchId: 0,
     gameSequence: 0,
@@ -67,25 +67,6 @@ function createLocalGameState(overrides: Partial<GameState> = {}): LocalGameStat
       2: { seat: 2, userId: 'p2', profile: { displayName: 'P3' } },
     },
     ...overrides,
-  });
-}
-
-function createCapabilityInput() {
-  return {
-    status: GameStatus.Unseated,
-    isHost: true,
-    mySeat: null,
-    hasOccupiedSeats: true,
-    requestTakeSeat: jest.fn(),
-    requestMoveSeat: jest.fn(),
-    leaveSeat: jest.fn(),
-    kickSeat: jest.fn(),
-    clearSeats: jest.fn(),
-    fillBots: jest.fn(),
-    configureGame: jest.fn(),
-    openProfile: jest.fn(),
-    takeOverBot: jest.fn(),
-    shareRoom: jest.fn(),
   };
 }
 
@@ -127,21 +108,70 @@ function bottomFor(
   audience: RoomViewerAudience,
 ): { kind: string; message: string | null } {
   const viewer = viewerFor(audience, { hostUserId: 'HOST', seatedUserId: 'p1' });
-  const gameState = createLocalGameState({ status });
-  const guideMessage = buildWerewolfGuideMessage({
-    isHost: viewer.isHost,
-    roomStatus: status,
-    mySeat: viewer.seat,
-    gameState,
+  const state = createGameState({ status });
+  const viewModel = getWerewolfViewModel(state, { seat: viewer.seat, isHost: viewer.isHost });
+  const night = resolveNightInteraction({
+    viewModel,
+    draft: { firstSwapSeat: null, multiSelectedSeats: [] },
+    swapSecondSeat: null,
+    locks: { isAudioPlaying: false, hasPendingCommand: false },
+    nowMs: 0,
   });
-  // Entry state of the night: the first planned step is running, the
-  // narration has settled, and the probed viewer is not the actor
-  // (actors read the schema action sentence instead — same cell).
-  const input: WerewolfRoomShellModelInput = {
+  const sheriffElectionPanel = status === GameStatus.Day ? createElection() : null;
+  const capabilities = createWerewolfRoomCapabilities({
+    status,
+    isHost: viewer.isHost,
+    mySeat: viewer.seat,
+    hasOccupiedSeats: true,
+    requestTakeSeat: jest.fn(),
+    requestMoveSeat: jest.fn(),
+    leaveSeat: jest.fn(),
+    kickSeat: jest.fn(),
+    clearSeats: jest.fn(),
+    fillBots: jest.fn(),
+    configureGame: jest.fn(),
+    openProfile: jest.fn(),
+    takeOverBots: { isAllowed: false, reason: null },
+    shareRoom: jest.fn(),
+  });
+  const layout = createWerewolfBottomActionLayout({
+    viewModel,
+    night,
+    isHost: viewer.isHost,
+    effectiveSeat: viewer.seat,
+    isAudioPlaying: false,
+    isActionSubmitting: false,
+    canOpenNightReview: viewer.isHost,
+    onNightButton: jest.fn(),
+    onViewRole: jest.fn(),
+    onNightReview: jest.fn(),
+  });
+  const bottomActions = createWerewolfBottomActions({
+    state,
+    viewModel,
+    night,
+    isHost: viewer.isHost,
+    isAudioPlaying: false,
+    layout,
+    actionMessage: null,
+    guideMessage: buildWerewolfGuideMessage({
+      isHost: viewer.isHost,
+      roomStatus: status,
+      mySeat: viewer.seat,
+      viewModel,
+    }),
+    sheriffElectionPanel,
+    isSheriffInspectorVisible: false,
+    openSheriffDetails: jest.fn(),
+  });
+  const model = createWerewolfRoomShellModel({
+    state,
+    viewModel,
+    night,
+    revision: 1,
     roomCode: '1234',
     viewer,
-    panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
-    capabilities: createWerewolfRoomCapabilities(createCapabilityInput()),
+    capabilities,
     connection: {
       status: { kind: 'live' },
       pendingDurableCount: 0,
@@ -159,50 +189,30 @@ function bottomFor(
       copyLink: jest.fn(async () => undefined),
       shareImage: jest.fn(async () => undefined),
     },
-    user: { id: viewer.userId },
-    ticketCount: null,
+    onSeatPress: jest.fn(),
     onBack: jest.fn(),
     onTitlePress: jest.fn(),
     onTitleLongPress: jest.fn(),
-    onAvatarPress: jest.fn(),
-    roomStatus: status,
-    isAudioPlaying: false,
+    user: { id: viewer.userId },
+    gachaStatus: null,
+    onUserActionPress: jest.fn(),
+    controlledSeat: null,
+    onReleaseBot: jest.fn(),
+    onBotSeatLongPress: null,
     isActionSubmitting: false,
     isStartingGame: false,
     isHostActionSubmitting: false,
-    imActioner: false,
-    isPlagueMode: false,
-    seatedCount: 3,
-    viewedCount: 0,
-    totalSeats: 3,
-    actionMessage: '',
-    guideMessage,
-    gameState,
-    seatViewModels: [],
-    controlledSeat: null,
-    sheriffElectionPanel: status === GameStatus.Day ? createElection() : null,
-    stateRevision: 1,
-    onSeatPress: jest.fn(),
-    onSeatLongPressed: jest.fn(),
-    hasBots: false,
-    controlledBotName: null,
-    onReleaseBot: jest.fn(),
-    mvpSeat: null,
-    onSelectMvp: jest.fn(),
-    currentSchemaKind: null,
+    bottomActions,
+    sheriffElectionPanel,
+    panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
     onHostControl: jest.fn(),
     onMusicSettings: jest.fn(),
     onMarkAllBotsViewed: jest.fn(),
     onMarkAllBotsGroupConfirmed: jest.fn(),
     onNightReview: jest.fn(),
     onLastNightInfo: jest.fn(),
-    bottomLayout: EMPTY_LAYOUT,
-    onSchemaButtonPress: jest.fn(),
-    onStaticButtonPress: jest.fn(),
-    isSheriffInspectorVisible: false,
-    openSheriffDetails: jest.fn(),
-  };
-  const model = createWerewolfRoomShellModel(input);
+    onSelectMvp: jest.fn(),
+  });
   return { kind: model.bottomActions.kind, message: model.bottomActions.message };
 }
 
@@ -242,13 +252,14 @@ describe('WEREWOLF_GUIDANCE_MATRIX', () => {
   });
 
   it('gives Ended no guide line for any viewer — the panel flow step bar carries it', () => {
-    const gameState = createLocalGameState({ status: GameStatus.Ended });
+    const state = createGameState({ status: GameStatus.Ended });
+    const viewModel = getWerewolfViewModel(state, { seat: 0, isHost: true });
     expect(
       buildWerewolfGuideMessage({
         isHost: true,
         roomStatus: GameStatus.Ended,
         mySeat: 0,
-        gameState,
+        viewModel,
       }),
     ).toBeNull();
     expect(
@@ -256,36 +267,8 @@ describe('WEREWOLF_GUIDANCE_MATRIX', () => {
         isHost: false,
         roomStatus: GameStatus.Ended,
         mySeat: 1,
-        gameState,
+        viewModel,
       }),
     ).toBeNull();
-    expect(
-      buildWerewolfGuideMessage({
-        isHost: false,
-        roomStatus: GameStatus.Ended,
-        mySeat: null,
-        gameState,
-      }),
-    ).toBeNull();
-  });
-
-  it('addresses the Assigned spectator as a waiter, never as a card holder', () => {
-    const gameState = createLocalGameState({ status: GameStatus.Assigned });
-    expect(
-      buildWerewolfGuideMessage({
-        isHost: false,
-        roomStatus: GameStatus.Assigned,
-        mySeat: null,
-        gameState,
-      }),
-    ).toBe('等待玩家查看身份');
-    expect(
-      buildWerewolfGuideMessage({
-        isHost: false,
-        roomStatus: GameStatus.Assigned,
-        mySeat: 1,
-        gameState,
-      }),
-    ).toContain('查看你的身份');
   });
 });

@@ -1,14 +1,14 @@
-/** Werewolf client runtime registration. */
+/** Werewolf client module: session, audio, config flow, guide, notepad, overlay, product UI. */
 
-import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import {
+  type GameState,
+  GameStatus,
+  getWerewolfUserSeat,
   WEREWOLF_STATE_CODEC,
   type WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
-import { createElement } from 'react';
 
-import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
-import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import { defineClientGameModule } from '@/games/model/defineClientGameModule';
 import { WerewolfAudioPlayer } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import { WerewolfAccountStatsSection } from '@/games/werewolf/components/WerewolfAccountStatsSection';
 import { WerewolfAppOverlay } from '@/games/werewolf/components/WerewolfAppOverlay';
@@ -16,67 +16,40 @@ import { werewolfHomeContribution } from '@/games/werewolf/home';
 import { createWerewolfConfigFlowScreen } from '@/games/werewolf/navigation/WerewolfConfigFlowScreen';
 import { werewolfGameNavigation } from '@/games/werewolf/navigation/werewolfGameNavigation';
 import { werewolfProductUi } from '@/games/werewolf/productUi';
-import { WerewolfRoomAccountCapability } from '@/games/werewolf/profile/WerewolfRoomAccountCapability';
 import { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
-import { WerewolfGameClientRuntime } from '@/games/werewolf/runtime/WerewolfGameClientRuntime';
 import { EncyclopediaScreen } from '@/games/werewolf/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { NotepadScreen } from '@/games/werewolf/screens/NotepadScreen/NotepadScreen';
-import type { RoomLinkFactory } from '@/platform/realtime/RoomLinkFactory';
-import type { AudioService } from '@/services/infra/AudioService';
 
-interface CreateWerewolfUiModuleDeps {
-  readonly sessionFactory: RoomLinkFactory;
-  readonly audioService: AudioService;
-}
-
-export function createWerewolfUiModule({
-  sessionFactory,
-  audioService,
-}: CreateWerewolfUiModuleDeps) {
-  const roomSession = sessionFactory.create<GameState, WerewolfPublicCommand>(WEREWOLF_STATE_CODEC);
-  const audio = new WerewolfAudioPlayer(audioService);
-  const client = new WerewolfGameClientRuntime({ roomSession, audio });
-  const roomAccount = new WerewolfRoomAccountCapability(client);
-  const WerewolfConfigFlowScreen = createWerewolfConfigFlowScreen();
-
-  function BoundWerewolfRoomScreen(props: GameRoomScreenProps<'werewolf'>) {
-    return createElement(WerewolfRoomScreen, { ...props, client });
-  }
-
-  function BoundWerewolfAppOverlay() {
-    return createElement(WerewolfAppOverlay, { client });
-  }
-
-  function BoundWerewolfConfigFlowScreen() {
-    return createElement(WerewolfConfigFlowScreen, { client });
-  }
-
-  function BoundWerewolfNotepadScreen() {
-    return createElement(NotepadScreen, { client });
-  }
-
-  function BoundWerewolfGuideScreen() {
-    return createElement(EncyclopediaScreen, { client });
-  }
-
-  return {
-    gameType: 'werewolf' as const,
-    client,
-    home: werewolfHomeContribution,
-    navigation: bindGameNavigation(werewolfGameNavigation, {
-      config: BoundWerewolfConfigFlowScreen,
-      guide: BoundWerewolfGuideScreen,
-      notepad: BoundWerewolfNotepadScreen,
-    }),
-    roomScreen: BoundWerewolfRoomScreen,
-    roomAccount,
-    productUi: werewolfProductUi,
-    audioPreview: {
+export const createWerewolfUiModule = defineClientGameModule<
+  'werewolf',
+  GameState,
+  WerewolfPublicCommand,
+  WerewolfAudioPlayer
+>({
+  gameType: 'werewolf',
+  stateCodec: WEREWOLF_STATE_CODEC,
+  home: werewolfHomeContribution,
+  navigation: werewolfGameNavigation,
+  RoomScreen: WerewolfRoomScreen,
+  // Werewolf's board picker → role config → rules is its own nested flow,
+  // not the schema-driven config screen.
+  config: () => createWerewolfConfigFlowScreen(),
+  GuideScreen: EncyclopediaScreen,
+  isUserSeated: (state, userId) => getWerewolfUserSeat(state, userId) !== null,
+  canSwitchAccount: (state) =>
+    state.status === GameStatus.Unseated || state.status === GameStatus.Seated,
+  audio: {
+    create: (audioService) => new WerewolfAudioPlayer(audioService),
+    preview: (audio) => ({
       label: '试听效果',
       play: () => audio.playBeginning('wolf'),
       stop: audio.stopNarration,
-    },
+    }),
+  },
+  extras: {
+    productUi: werewolfProductUi,
     accountStatsSection: WerewolfAccountStatsSection,
-    appOverlay: BoundWerewolfAppOverlay,
-  };
-}
+    appOverlay: WerewolfAppOverlay,
+    navigationScreens: { notepad: NotepadScreen },
+  },
+});

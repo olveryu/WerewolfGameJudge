@@ -1,15 +1,15 @@
 /** Guide navigation and live public configuration; hidden modes remain host-only. */
 import { fireEvent, render } from '@testing-library/react-native';
 
+import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import type { WerewolfGuideRouteParams } from '@/games/werewolf/navigation/types';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 
 import { EncyclopediaScreen } from '../EncyclopediaScreen';
 
 let mockRouteParams: WerewolfGuideRouteParams;
 const mockSnapshot = jest.fn<unknown, []>();
 const mockGoBack = jest.fn();
-const mockClient = { roomSession: {} } as WerewolfGameClient;
+const mockSession = {} as WerewolfRoomSession;
 
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ canGoBack: () => true, goBack: mockGoBack }),
@@ -29,7 +29,7 @@ describe('EncyclopediaScreen gameplay guide', () => {
   });
 
   it('opens gameplay by default without catalog tools and preserves tab navigation', () => {
-    const view = render(<EncyclopediaScreen client={mockClient} />);
+    const view = render(<EncyclopediaScreen session={mockSession} />);
     expect(view.getByRole('tab', { name: '玩法' })).toHaveProp('accessibilityState', {
       selected: true,
     });
@@ -48,7 +48,7 @@ describe('EncyclopediaScreen gameplay guide', () => {
 
   it('keeps role links on the role tab', () => {
     mockRouteParams = { gameType: 'werewolf', roleId: 'seer' };
-    const view = render(<EncyclopediaScreen client={mockClient} />);
+    const view = render(<EncyclopediaScreen session={mockSession} />);
     expect(view.getByRole('tab', { name: /^角色/ })).toHaveProp('accessibilityState', {
       selected: true,
     });
@@ -56,7 +56,7 @@ describe('EncyclopediaScreen gameplay guide', () => {
 
   it('honors an explicit board tab', () => {
     mockRouteParams = { gameType: 'werewolf', initialTab: 'boards' };
-    const view = render(<EncyclopediaScreen client={mockClient} />);
+    const view = render(<EncyclopediaScreen session={mockSession} />);
     expect(view.getByRole('tab', { name: /^板子/ })).toHaveProp('accessibilityState', {
       selected: true,
     });
@@ -75,7 +75,7 @@ describe('EncyclopediaScreen gameplay guide', () => {
         },
       },
     });
-    const view = render(<EncyclopediaScreen client={mockClient} />);
+    const view = render(<EncyclopediaScreen session={mockSession} />);
     expect(view.getByText('本局板子 · 3 人')).toBeVisible();
     expect(view.getByText('已开启：女巫可以对自己使用解药。')).toBeVisible();
     expect(view.getByText('已开启：首夜结束后进行首日警长竞选。')).toBeVisible();
@@ -91,7 +91,7 @@ describe('EncyclopediaScreen gameplay guide', () => {
         },
       },
     });
-    view.rerender(<EncyclopediaScreen client={mockClient} />);
+    view.rerender(<EncyclopediaScreen session={mockSession} />);
     expect(view.getByText('黑死病模式（仅房主可见）')).toBeVisible();
     expect(view.getByText('未开启：女巫不能对自己使用解药。')).toBeVisible();
     expect(view.getByText('未开启：本局不进行首日警长竞选。')).toBeVisible();
@@ -100,7 +100,7 @@ describe('EncyclopediaScreen gameplay guide', () => {
   it('does not substitute another room configuration', () => {
     mockRouteParams = { gameType: 'werewolf', roomCode: '1234' };
     mockSnapshot.mockReturnValue({ phase: 'ready', identity: { room: { roomCode: '5678' } } });
-    const view = render(<EncyclopediaScreen client={mockClient} />);
+    const view = render(<EncyclopediaScreen session={mockSession} />);
     expect(view.getByText('暂未获取本局配置，请返回房间确认连接后重试。')).toBeVisible();
     expect(view.queryByText('女巫自救')).toBeNull();
   });

@@ -1532,10 +1532,7 @@ describe('Room layout: afterSeatBoard is always null in every game room screen',
 });
 
 describe('Room seat taps: in-game adjudication is the shared resolveRoomInGameSeatTap', () => {
-  const consumerPaths = [
-    'games/werewolf/room/seatTap/SeatTapPolicy.ts',
-    'features/room/controllers/createRoomSeatPressHandler.ts',
-  ];
+  const consumerPaths = ['features/room/controllers/createRoomSeatPressHandler.ts'];
 
   it.each(consumerPaths)(
     '%s routes in-game taps through the shared adjudicator',
@@ -1561,8 +1558,19 @@ describe('Room seat taps: in-game adjudication is the shared resolveRoomInGameSe
     'games/pictionary/room/hooks/usePictionaryRoomScreenState.ts',
     'games/fibking/room/hooks/useFibRoomScreenState.ts',
     'games/undercover/room/hooks/useUndercoverRoster.ts',
+    // Werewolf keeps profiles open through Assigned / Ready / Ended, so it
+    // owns its capability set over the shared roster controller.
+    'games/werewolf/room/hooks/useWerewolfRoomState.ts',
   ])('%s shares roster wiring without moving game-owned permissions', (relativePath) => {
     const source = fs.readFileSync(path.join(srcDir, relativePath), 'utf-8');
     expect(source).toContain('useRoomRosterController(');
+  });
+
+  it('werewolf executes seat presses through the shared handler', () => {
+    const source = fs.readFileSync(
+      path.join(srcDir, 'games/werewolf/room/hooks/useWerewolfRoomState.ts'),
+      'utf-8',
+    );
+    expect(source).toContain('createRoomSeatPressHandler(');
   });
 });

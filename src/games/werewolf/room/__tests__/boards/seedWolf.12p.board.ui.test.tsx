@@ -37,32 +37,14 @@ jest.mock('@/utils/alert', () => ({
   showAlert: jest.fn(),
 }));
 
-jest.mock('../../useRoomHostDialogs', () => ({
-  useRoomHostDialogs: () => ({
-    showPrepareToFlipDialog: jest.fn(),
-    showStartGameDialog: jest.fn(),
-    showAbortDialog: jest.fn(),
-    showRedealDialog: jest.fn(),
-    showReturnToLobbyDialog: jest.fn(),
-    handleSettingsPress: jest.fn(),
-  }),
-}));
-
-jest.mock('../../hooks/useActionerState', () => ({
-  useActionerState: () => ({
-    imActioner: true,
-    showWolves: true,
-  }),
-}));
-
 const board = getBoardByName('种狼骑士');
 if (!board) throw new Error('[TEST] Missing 种狼骑士 preset');
 
 let harness: RoomScreenTestHarness;
 let mockUseWerewolfRoomReturn: ReturnType<typeof createWerewolfRoomMock>;
 
-jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
+jest.mock('@/games/werewolf/room/__tests__/harness/activeRoomMock', () => ({
+  getActiveRoomMock: () => mockUseWerewolfRoomReturn,
 }));
 
 describe(`WerewolfRoomScreen UI: ${board.name}`, () => {
@@ -188,19 +170,16 @@ describe(`WerewolfRoomScreen UI: ${board.name}`, () => {
     await waitFor(() => expect(skipInfectionAction).toHaveBeenCalledWith({ kind: 'skip' }));
     skipScreen.unmount();
 
-    const submitGroupConfirmAck = jest.fn().mockResolvedValue(successfulWerewolfCommand());
-    setMock(
-      createWerewolfRoomMock({
-        schemaId: 'seedWolfInfectReveal',
-        currentActionRole: 'seedWolf',
-        myRole: 'wolf',
-        mySeat: 1,
-        gameStateOverrides: {
-          seedWolfInfectionResult: { outcome: 'converted', targetSeat: 1 },
-        },
-        hookOverrides: { submitGroupConfirmAck },
-      }),
-    );
+    const resultMock = createWerewolfRoomMock({
+      schemaId: 'seedWolfInfectReveal',
+      currentActionRole: 'seedWolf',
+      myRole: 'wolf',
+      mySeat: 1,
+      gameStateOverrides: {
+        seedWolfInfectionResult: { outcome: 'converted', targetSeat: 1 },
+      },
+    });
+    setMock(resultMock);
     const resultScreen = renderRoom();
     await waitForRoomScreen(resultScreen.getByTestId);
     const resultButtonText = getSchema('seedWolfInfectReveal').ui?.bottomActionText;
@@ -211,7 +190,12 @@ describe(`WerewolfRoomScreen UI: ${board.name}`, () => {
       '你已被种狼感染并转化为普通狼人',
     );
     harness.pressPrimaryOnType('seedWolfInfectionResult');
-    await waitFor(() => expect(submitGroupConfirmAck).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(resultMock.dispatch).toHaveBeenCalledWith(
+        { type: 'werewolf.groupConfirm.ack' },
+        expect.anything(),
+      ),
+    );
     resultScreen.unmount();
 
     harness.assertCoverage([

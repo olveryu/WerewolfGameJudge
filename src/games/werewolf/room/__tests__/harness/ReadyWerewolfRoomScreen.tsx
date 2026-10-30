@@ -1,4 +1,4 @@
-/** Ready-session adapter for game-owned room UI tests. */
+/** Ready-session adapter for game-owned room UI tests: mounts the room content on the active mock. */
 
 import type React from 'react';
 import { useMemo } from 'react';
@@ -6,11 +6,11 @@ import { useMemo } from 'react';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { WerewolfRoomContent } from '@/games/werewolf/room/WerewolfRoomScreen';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 
-const TEST_CLIENT = {} as WerewolfGameClient;
+import { getActiveRoomMock } from './activeRoomMock';
 
 export const WerewolfRoomScreen: React.FC<GameRoomScreenProps<'werewolf'>> = (props) => {
+  const mock = getActiveRoomMock();
   const entryController = useMemo<RoomEntryController>(
     () => ({
       isReady: true,
@@ -32,5 +32,12 @@ export const WerewolfRoomScreen: React.FC<GameRoomScreenProps<'werewolf'>> = (pr
     [props.navigation],
   );
 
-  return <WerewolfRoomContent {...props} entryController={entryController} client={TEST_CLIENT} />;
+  return (
+    <WerewolfRoomContent
+      {...props}
+      entryController={entryController}
+      session={mock.session}
+      audio={mock.audio}
+    />
+  );
 };

@@ -24,28 +24,32 @@ jest.mock('@/utils/alert', () => ({
 
 const mockShowAlert = jest.mocked(showAlert);
 
-const makeBlockedPlayerMock = (overrides: Record<string, unknown> = {}) => {
-  const base = createBaseWerewolfRoomMock({
+/** A nightmare-blocked actor at seat 0 (the engine hint follows from the blocked seat). */
+const makeBlockedPlayerMock = () =>
+  createBaseWerewolfRoomMock({
     schemaId: 'seerCheck',
     currentActionRole: 'seer',
     myRole: 'seer',
     mySeat: 0,
+    gameStateOverrides: { nightmareBlockedSeat: 0, currentNightResults: { blockedSeat: 0 } },
   });
-  return {
-    ...base,
-    gameState: {
-      ...base.gameState,
-      nightmareBlockedSeat: 0,
+
+const makeConfirmMock = (role: 'hunter' | 'darkWolfKing', isBlocked: boolean) =>
+  createBaseWerewolfRoomMock({
+    schemaId: role === 'hunter' ? 'hunterConfirm' : 'darkWolfKingConfirm',
+    currentActionRole: role,
+    myRole: role,
+    mySeat: 0,
+    gameStateOverrides: {
+      confirmStatus: { role, canShoot: true },
+      ...(isBlocked ? { nightmareBlockedSeat: 0, currentNightResults: { blockedSeat: 0 } } : {}),
     },
-    ...overrides,
-  };
-};
+  });
 
-type MockReturn = ReturnType<typeof createBaseWerewolfRoomMock>;
-let mockUseWerewolfRoomReturn: MockReturn;
+let mockUseWerewolfRoomReturn: ReturnType<typeof createBaseWerewolfRoomMock>;
 
-jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
+jest.mock('@/games/werewolf/room/__tests__/harness/activeRoomMock', () => ({
+  getActiveRoomMock: () => mockUseWerewolfRoomReturn,
 }));
 
 describe('Nightmare Blocked UI (server-authoritative)', () => {
@@ -54,29 +58,29 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
     mockUseWerewolfRoomReturn = makeBlockedPlayerMock();
   });
 
-  it('blocked player tapping a seat shows confirm dialog (not blocked alert)', async () => {
-    const { getByTestId } = render(
+  it('blocked player tapping a seat is inert: the engine hint leaves only the skip', async () => {
+    const { getByTestId, getByText } = render(
       <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {
       expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
     });
+    // The blocked prompt is the engine's override, shown once on entry.
+    await waitFor(() => {
+      expect(mockShowAlert).toHaveBeenCalledWith(
+        BLOCKED_UI_DEFAULTS.title,
+        BLOCKED_UI_DEFAULTS.message,
+        expect.any(Array),
+      );
+    });
+    expect(getByText(BLOCKED_UI_DEFAULTS.skipButtonText)).toBeTruthy();
 
     mockShowAlert.mockClear();
+    fireEvent.press(getByTestId(TESTIDS.seatTilePressable(1)));
 
-    const seat1 = getByTestId(TESTIDS.seatTilePressable(1));
-    fireEvent.press(seat1);
-
-    await waitFor(() => {
-      expect(mockShowAlert).toHaveBeenCalled();
-      const calls = mockShowAlert.mock.calls;
-      const hasBlockedAlert = calls.some(
-        (call: unknown[]) =>
-          call[0] === BLOCKED_UI_DEFAULTS.title && call[1] === BLOCKED_UI_DEFAULTS.message,
-      );
-      expect(hasBlockedAlert).toBe(false);
-    });
+    // No confirm, no client-side "blocked" alert: the client never re-judges the block.
+    expect(mockShowAlert).not.toHaveBeenCalled();
   });
 
   it('actionRejected with blocked reason shows rejection alert on initial render', async () => {
@@ -109,161 +113,43 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
     });
   });
 
-  it('confirm schema (hunter) shows skip button when blocked', async () => {
-    mockUseWerewolfRoomReturn = {
-      ...createBaseWerewolfRoomMock({
-        schemaId: 'hunterConfirm',
-        currentActionRole: 'hunter',
-        myRole: 'hunter',
-        mySeat: 0,
-      }),
-      gameState: {
-        ...createBaseWerewolfRoomMock({
-          schemaId: 'hunterConfirm',
-          currentActionRole: 'hunter',
-          myRole: 'hunter',
-          mySeat: 0,
-        }).gameState,
-        confirmStatus: { role: 'hunter', canShoot: true },
-        nightmareBlockedSeat: 0,
-        currentNightResults: {
-          blockedSeat: 0,
-        },
-        // Server-driven UI hint for blocked player (skip button)
-        ui: {
-          currentActorHint: {
-            bottomAction: 'skipOnly',
-            message: BLOCKED_UI_DEFAULTS.skipButtonText,
-            targetRoleIds: ['hunter'],
-          },
-        },
-      },
-    } as unknown as MockReturn;
+  it.each(['hunter', 'darkWolfKing'] as const)(
+    'confirm schema (%s) shows the skip button when blocked',
+    async (role) => {
+      mockUseWerewolfRoomReturn = makeConfirmMock(role, true);
 
-    const { getByTestId, queryByText, getByRole } = render(
-      <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
-    );
+      const { getByTestId, queryByText, getByRole } = render(
+        <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
+      );
 
-    await waitFor(() => {
-      expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
-    });
+      await waitFor(() => {
+        expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
+      });
 
-    // When blocked, hunter should see skip button instead of confirm
-    await waitFor(() => {
-      const skipButton = queryByText(BLOCKED_UI_DEFAULTS.skipButtonText);
-      expect(skipButton).toBeTruthy();
-      expect(getByRole('button', { name: '确认跳过' })).toBeTruthy();
-    });
-  });
+      // When blocked, the actor sees the skip button instead of the status confirm.
+      await waitFor(() => {
+        expect(queryByText(BLOCKED_UI_DEFAULTS.skipButtonText)).toBeTruthy();
+        expect(getByRole('button', { name: '确认跳过' })).toBeTruthy();
+      });
+    },
+  );
 
-  it('confirm schema (hunter) does NOT show skip button when NOT blocked', async () => {
-    mockUseWerewolfRoomReturn = {
-      ...createBaseWerewolfRoomMock({
-        schemaId: 'hunterConfirm',
-        currentActionRole: 'hunter',
-        myRole: 'hunter',
-        mySeat: 0,
-        gameStateOverrides: {
-          confirmStatus: { role: 'hunter', canShoot: true },
-          nightmareBlockedSeat: null, // No nightmare block
-          currentNightResults: {
-            blockedSeat: null,
-          },
-        },
-      }),
-    };
+  it.each(['hunter', 'darkWolfKing'] as const)(
+    'confirm schema (%s) does NOT show the skip button when not blocked',
+    async (role) => {
+      mockUseWerewolfRoomReturn = makeConfirmMock(role, false);
 
-    const { getByTestId, queryByText } = render(
-      <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
-    );
+      const { getByTestId, queryByText } = render(
+        <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
+      );
 
-    await waitFor(() => {
-      expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
-    });
+      await waitFor(() => {
+        expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
+      });
 
-    // When NOT blocked, hunter should NOT see skip button - only confirm button
-    await waitFor(() => {
-      const skipButton = queryByText(BLOCKED_UI_DEFAULTS.skipButtonText);
-      expect(skipButton).toBeNull();
-    });
-  });
-
-  it('confirm schema (darkWolfKing) does NOT show skip button when NOT blocked', async () => {
-    mockUseWerewolfRoomReturn = {
-      ...createBaseWerewolfRoomMock({
-        schemaId: 'darkWolfKingConfirm',
-        currentActionRole: 'darkWolfKing',
-        myRole: 'darkWolfKing',
-        mySeat: 0,
-        gameStateOverrides: {
-          confirmStatus: { role: 'darkWolfKing', canShoot: true },
-          nightmareBlockedSeat: null, // No nightmare block
-          currentNightResults: {
-            blockedSeat: null,
-          },
-        },
-      }),
-    };
-
-    const { getByTestId, queryByText } = render(
-      <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
-    );
-
-    await waitFor(() => {
-      expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
-    });
-
-    // When NOT blocked, darkWolfKing should NOT see skip button
-    await waitFor(() => {
-      const skipButton = queryByText(BLOCKED_UI_DEFAULTS.skipButtonText);
-      expect(skipButton).toBeNull();
-    });
-  });
-
-  it('confirm schema (darkWolfKing) shows skip button when blocked', async () => {
-    mockUseWerewolfRoomReturn = {
-      ...createBaseWerewolfRoomMock({
-        schemaId: 'darkWolfKingConfirm',
-        currentActionRole: 'darkWolfKing',
-        myRole: 'darkWolfKing',
-        mySeat: 0,
-      }),
-      gameState: {
-        ...createBaseWerewolfRoomMock({
-          schemaId: 'darkWolfKingConfirm',
-          currentActionRole: 'darkWolfKing',
-          myRole: 'darkWolfKing',
-          mySeat: 0,
-        }).gameState,
-        confirmStatus: { role: 'darkWolfKing', canShoot: true },
-        nightmareBlockedSeat: 0,
-        currentNightResults: {
-          blockedSeat: 0,
-        },
-        // Server-driven UI hint for blocked player (skip button)
-        ui: {
-          currentActorHint: {
-            bottomAction: 'skipOnly',
-            message: BLOCKED_UI_DEFAULTS.skipButtonText,
-            targetRoleIds: ['darkWolfKing'],
-          },
-        },
-      },
-    } as unknown as MockReturn;
-
-    const { getByTestId, queryByText, getByRole } = render(
-      <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
-    );
-
-    await waitFor(() => {
-      expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
-    });
-
-    // When blocked, darkWolfKing should see skip button
-    await waitFor(() => {
-      const skipButton = queryByText(BLOCKED_UI_DEFAULTS.skipButtonText);
-      expect(skipButton).toBeTruthy();
-      expect(getByRole('button', { name: '确认跳过' })).toBeTruthy();
-    });
-  });
+      await waitFor(() => {
+        expect(queryByText(BLOCKED_UI_DEFAULTS.skipButtonText)).toBeNull();
+      });
+    },
+  );
 });

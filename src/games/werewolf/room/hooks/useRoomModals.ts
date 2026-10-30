@@ -1,16 +1,15 @@
 /**
- * useRoomModals — Global modal/dialog state management for WerewolfRoomScreen
+ * useRoomModals — the night-review entry alerts and the last-night-info
+ * dialog of the Werewolf room.
  *
- * Extracted from useWerewolfRoomScreenState; centralizes visible state and open/close handlers for all modals.
- * Includes: role card, skill preview, night details, share details, last-night info.
- * Excludes shared room modals and Werewolf action dialogs.
+ * Owns: the "本局复盘" action sheet (host / shared seat / plain confirm),
+ * the share-review seat picker visibility, the review modal visibility,
+ * and the last-night-info confirm → info → curse chain. Identity viewing
+ * is the shared `useRoleViewing`; skill preview is screen-local state.
  */
 
-import { isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
-import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { DISMISS_BUTTON, dismissAlert, getAlertGeneration, showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 
@@ -25,8 +24,9 @@ interface UseRoomModalsDeps {
   canShareReport: boolean;
   /** Get last-night info text */
   getLastNightInfo: () => string; /** Get crow curse info; null if no crow */
-  getCurseInfo: () => string | null; /** Share night details to specified seats (HTTP API) */
-  shareNightReview: (allowedSeats: number[]) => Promise<WerewolfCommandDispatchOutcome>;
+  getCurseInfo: () => string | null;
+  /** Share night details to specified seats; resolves true when committed. */
+  shareNightReview: (allowedSeats: readonly number[]) => Promise<boolean>;
   /** Begin background capture of report; returns base64 (success) or null (failure) */
   beginReportCapture: () => Promise<string | null>;
   /** Band progress of the in-flight report capture; null while no capture runs */
@@ -49,20 +49,6 @@ interface UseRoomModalsDeps {
 
 /** useRoomModals return value */
 interface RoomModalsState {
-  // ── Role card modal ──
-  roleCardVisible: boolean;
-  shouldPlayRevealAnimation: boolean;
-  isLoadingRole: boolean;
-  setRoleCardVisible: (v: boolean) => void;
-  setShouldPlayRevealAnimation: (v: boolean) => void;
-  setIsLoadingRole: (v: boolean) => void;
-  handleRoleCardClose: () => void;
-
-  // ── Skill preview modal ──
-  skillPreviewRoleId: RoleId | null;
-  handleSkillPreviewOpen: (roleId: string) => void;
-  handleSkillPreviewClose: () => void;
-
   // ── Night review modal ──
   nightReviewVisible: boolean;
   openNightReview: () => void;
@@ -71,7 +57,7 @@ interface RoomModalsState {
   // ── Share review modal ──
   shareReviewVisible: boolean;
   closeShareReview: () => void;
-  handleShareNightReview: (allowedSeats: number[]) => Promise<void>;
+  handleShareNightReview: (allowedSeats: readonly number[]) => Promise<void>;
 
   // ── Last night info ──
   showLastNightInfo: () => void;
@@ -90,31 +76,6 @@ export function useRoomModals({
   isGameEnded,
   onLastNightInfoConfirmed,
 }: UseRoomModalsDeps): RoomModalsState {
-  // ── Role card modal ──
-  const [roleCardVisible, setRoleCardVisible] = useState(false);
-  const [shouldPlayRevealAnimation, setShouldPlayRevealAnimation] = useState(false);
-  const [isLoadingRole, setIsLoadingRole] = useState(false);
-
-  const handleRoleCardClose = useCallback(() => {
-    setRoleCardVisible(false);
-    setShouldPlayRevealAnimation(false);
-    setIsLoadingRole(false);
-  }, []);
-
-  // ── Skill preview modal ──
-  const [skillPreviewRoleId, setSkillPreviewRoleId] = useState<RoleId | null>(null);
-
-  const handleSkillPreviewOpen = useCallback((roleId: string) => {
-    if (!isValidRoleId(roleId)) {
-      throw new Error(`[useRoomModals] Invalid role ID: ${roleId}`);
-    }
-    setSkillPreviewRoleId(roleId);
-  }, []);
-
-  const handleSkillPreviewClose = useCallback(() => {
-    setSkillPreviewRoleId(null);
-  }, []);
-
   // ── Share review modal (declared before night review because openNightReview references setShareReviewVisible) ──
   const [shareReviewVisible, setShareReviewVisible] = useState(false);
 
@@ -131,10 +92,6 @@ export function useRoomModals({
     detailAlertRequestRef.current += 1;
     setNightReviewVisible(false);
     setShareReviewVisible(false);
-    setRoleCardVisible(false);
-    setShouldPlayRevealAnimation(false);
-    setIsLoadingRole(false);
-    setSkillPreviewRoleId(null);
     return () => {
       detailAlertOpenRef.current = false;
       detailAlertRequestRef.current += 1;
@@ -281,10 +238,10 @@ export function useRoomModals({
   const closeShareReview = useCallback(() => setShareReviewVisible(false), []);
 
   const handleShareNightReview = useCallback(
-    async (allowedSeats: number[]) => {
+    async (allowedSeats: readonly number[]) => {
       const requestId = detailAlertRequestRef.current;
-      const result = await shareNightReview(allowedSeats);
-      if (detailAlertRequestRef.current === requestId && isSuccessfulRoomCommand(result)) {
+      const ok = await shareNightReview(allowedSeats);
+      if (detailAlertRequestRef.current === requestId && ok) {
         setShareReviewVisible(false);
       }
     },
@@ -322,16 +279,6 @@ export function useRoomModals({
   }, [getLastNightInfo, getCurseInfo, isGameEnded, onLastNightInfoConfirmed]);
 
   return {
-    roleCardVisible,
-    shouldPlayRevealAnimation,
-    isLoadingRole,
-    setRoleCardVisible,
-    setShouldPlayRevealAnimation,
-    setIsLoadingRole,
-    handleRoleCardClose,
-    skillPreviewRoleId,
-    handleSkillPreviewOpen,
-    handleSkillPreviewClose,
     nightReviewVisible,
     openNightReview,
     closeNightReview,

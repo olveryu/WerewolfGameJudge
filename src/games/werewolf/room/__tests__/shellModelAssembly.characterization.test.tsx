@@ -28,19 +28,8 @@ jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
   default: () => ({ fontScale: 1, height: 844, scale: 1, width: 390 }),
 }));
 
-jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
-}));
-
-jest.mock('../useRoomHostDialogs', () => ({
-  useRoomHostDialogs: () => ({
-    showPrepareToFlipDialog: jest.fn(),
-    showStartGameDialog: jest.fn(),
-    showAbortDialog: jest.fn(),
-    showRedealDialog: jest.fn(),
-    showReturnToLobbyDialog: jest.fn(),
-    handleSettingsPress: jest.fn(),
-  }),
+jest.mock('@/games/werewolf/room/__tests__/harness/activeRoomMock', () => ({
+  getActiveRoomMock: () => mockUseWerewolfRoomReturn,
 }));
 
 jest.mock('@/features/room/components/RoomShell', () => {
@@ -90,7 +79,8 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
     expect(model.seats.onBotSeatLongPress).toBeNull();
     expect(model.bottomActions.kind).toBe('stacked');
     if (model.bottomActions.kind === 'stacked') {
-      expect(model.bottomActions.message).toBeNull();
+      // A non-actor reads the step's waiting line.
+      expect(model.bottomActions.message).toBe('正在等待 预言家 行动');
     }
     expect(model.hostManagement).toBeNull();
     expect(model.controlledSeat).toBeNull();
@@ -132,10 +122,7 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
         isHost: viewer === 'host',
         numberOfPlayers: 4,
         isAudioPlaying: true,
-        hookOverrides:
-          viewer === 'spectator'
-            ? { mySeat: null, myRole: null, effectiveSeat: null, effectiveRole: null }
-            : {},
+        isViewerSeated: viewer !== 'spectator',
       });
 
       const model = await captureModel(renderRoom());
@@ -217,9 +204,9 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
     if (model.bottomActions.kind === 'stacked') {
       // The flow is the host's alone: a player gets no host management
       // and no host buttons at Ended — only their own secondary tool,
-      // with the plain message row.
+      // and no guide line (the night step is cleared when the night ends).
       expect(model.hostManagement).toBeNull();
-      expect(model.bottomActions.message).toBe('请选择要查验的玩家，如不使用请点击「不用技能」');
+      expect(model.bottomActions.message).toBeNull();
       expect(model.bottomActions.layout.primary).toEqual([]);
       expect(model.bottomActions.layout.secondary.map((a) => [a.key, a.label, a.variant])).toEqual([
         ['viewRole', '查看身份', 'secondary'],

@@ -8,7 +8,7 @@ import {
 } from '@/games/werewolf/room/components/SheriffElectionDetailsSurfaces';
 import { SheriffElectionHud } from '@/games/werewolf/room/components/SheriffElectionHud';
 import { createSheriffElectionPanelStyles } from '@/games/werewolf/room/components/sheriffElectionPanel.styles';
-import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
+import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 

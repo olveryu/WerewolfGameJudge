@@ -10,6 +10,7 @@ import type {
   GameRuleOverrides,
   GameState,
   RoleId,
+  WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { PRESET_TEMPLATES } from '@game-judge/game-engine/games/werewolf/public';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
@@ -17,9 +18,13 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { useServices } from '@/contexts/ServiceContext';
 import { SettingsService } from '@/features/settings/services/SettingsService';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen';
-import { readyLinkSnapshot } from '@/test-utils/linkSnapshot';
+import {
+  createFakeRoomLink,
+  type FakeRoomLink,
+  idleLinkSnapshot,
+  readyLinkSnapshot,
+} from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 import { TESTIDS } from '@/testids';
@@ -55,27 +60,10 @@ jest.mock('@/services/infra/localStorage', () => ({
   },
 }));
 
-const idleRoomSnapshot = {
-  phase: 'idle' as const,
-  epoch: 0,
-  identity: null,
-  connection: 'disconnected' as const,
-  snapshot: null,
-  lastCommand: null,
-  error: null,
-};
-
-const createMockClient = (): WerewolfGameClient => {
-  const commandResult = successfulRoomCommand(buildWerewolfTestState());
-  return {
-    roomSession: {
-      getSnapshot: () => idleRoomSnapshot,
-      subscribe: jest.fn(() => () => undefined),
-    },
-    updateTemplate: jest.fn().mockResolvedValue(commandResult),
-    boardNominate: jest.fn().mockResolvedValue(commandResult),
-  } as unknown as WerewolfGameClient;
-};
+const createMockSession = (): FakeRoomLink<GameState, WerewolfPublicCommand> =>
+  createFakeRoomLink<GameState, WerewolfPublicCommand>(idleLinkSnapshot<GameState>(), () =>
+    Promise.resolve(successfulRoomCommand(buildWerewolfTestState())),
+  );
 
 const flowCallbacks = { onExitFlow: jest.fn(), onReturnToRoom: jest.fn() };
 const BOARD: readonly RoleId[] = ['villager', 'villager', 'wolf', 'wolf', 'seer', 'witch'];
@@ -85,13 +73,16 @@ function sameRoles(roles: readonly RoleId[]): unknown {
   return expect.arrayContaining(roles);
 }
 
-function renderConfigScreen(mockClient = createMockClient()) {
-  return render(<ConfigScreen client={mockClient} {...flowCallbacks} />);
+function renderConfigScreen(session = createMockSession()) {
+  return render(<ConfigScreen session={session} {...flowCallbacks} />);
 }
 
-function mockReadyRoom(mockClient: WerewolfGameClient, rules: GameRuleOverrides) {
+function mockReadyRoom(
+  session: FakeRoomLink<GameState, WerewolfPublicCommand>,
+  rules: GameRuleOverrides,
+) {
   const state = buildWerewolfTestState({ rules, templateRoles: [...BOARD] });
-  jest.spyOn(mockClient.roomSession, 'getSnapshot').mockReturnValue(
+  session.publish(
     readyLinkSnapshot<GameState>(
       {
         room: {
@@ -155,7 +146,7 @@ describe('ConfigScreen → Rules handoff contract', () => {
         'isSheriffElectionEnabled',
         !isSheriffElectionEnabled,
       );
-      const mockClient = createMockClient();
+      const mockClient = createMockSession();
       const state = mockReadyRoom(mockClient, { isSheriffElectionEnabled });
       mockRouteParams = { existingRoomCode: state.roomCode };
       const rendered = renderConfigScreen(mockClient);
@@ -174,7 +165,7 @@ describe('ConfigScreen → Rules handoff contract', () => {
   );
 
   it('submits a board nomination directly without visiting the Rules step', async () => {
-    const mockClient = createMockClient();
+    const mockClient = createMockSession();
     const state = mockReadyRoom(mockClient, {});
     mockRouteParams = { nominateMode: { roomCode: state.roomCode } };
     const rendered = renderConfigScreen(mockClient);
@@ -183,7 +174,10 @@ describe('ConfigScreen → Rules handoff contract', () => {
     fireEvent.press(rendered.getByTestId(TESTIDS.configNextButton));
 
     await waitFor(() => expect(flowCallbacks.onReturnToRoom).toHaveBeenCalledWith(state.roomCode));
-    expect(mockClient.boardNominate).toHaveBeenCalledWith(expect.any(String), sameRoles(BOARD));
+    expect(mockClient.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'werewolf.board.nominate', roles: sameRoles(BOARD) }),
+      expect.anything(),
+    );
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

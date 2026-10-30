@@ -1,11 +1,14 @@
 /**
  * ChooseBottomCardModal — Bottom card selection modal (shared by Treasure Master / Thief)
  *
- * Pure display component: caller controls which cards are greyed-out via disabledIndices.
- * Tapping a selectable card shows a confirmation dialog; on confirm, submits via onChoose(cardIndex) callback.
- * No service imports, no business logic.
+ * Pure display component over the engine's `BottomCardChoice`: each card
+ * carries its own selectability and rejection reason. Tapping a selectable
+ * card shows a confirmation dialog; on confirm, submits via onChoose(cardIndex).
  */
-import { getRoleDisplayName, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  type BottomCardChoice,
+  getRoleDisplayName,
+} from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
 import { memo, useMemo } from 'react';
 import {
@@ -24,21 +27,10 @@ import { TESTIDS } from '@/testids';
 import { borderRadius, colors, spacing, textStyles, type ThemeColors, typography } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
-interface BottomCardItem {
-  roleId: RoleId;
-  displayName: string;
-}
-
 interface ChooseBottomCardModalProps {
   visible: boolean;
-  bottomCards: readonly RoleId[];
+  choice: BottomCardChoice;
   confirmText: string;
-  /** Indices of cards that should be greyed out and non-clickable. */
-  disabledIndices: number[];
-  /** Hint text shown below disabled card names (e.g. "狼人阵营 · 不可选"). */
-  disabledHint?: string;
-  /** Full subtitle text displayed below the title. */
-  subtitle: string;
   onChoose: (cardIndex: number) => void | Promise<void>;
   onClose: () => void;
 }
@@ -123,30 +115,16 @@ function createStyles(colors: ThemeColors, screenHeight: number) {
 
 const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
   visible,
-  bottomCards,
+  choice,
   confirmText,
-  disabledIndices,
-  disabledHint,
-  subtitle,
   onChoose,
   onClose,
 }) => {
   const { height: screenHeight } = useWindowDimensions();
   const styles = useMemo(() => createStyles(colors, screenHeight), [screenHeight]);
 
-  const cards: BottomCardItem[] = useMemo(
-    () =>
-      bottomCards.map((roleId) => ({
-        roleId,
-        displayName: getRoleDisplayName(roleId),
-      })),
-    [bottomCards],
-  );
-
-  const handleCardPress = (cardIndex: number, card: BottomCardItem) => {
-    showConfirmAlert('确认选择', `${confirmText}\n\n${card.displayName}`, () =>
-      onChoose(cardIndex),
-    );
+  const handleCardPress = (cardIndex: number, displayName: string) => {
+    showConfirmAlert('确认选择', `${confirmText}\n\n${displayName}`, () => onChoose(cardIndex));
   };
 
   return (
@@ -154,14 +132,15 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.container} testID={TESTIDS.chooseBottomCardModal}>
           <Text style={styles.title}>选择底牌</Text>
-          <Text style={styles.teamSubtitle}>{subtitle}</Text>
+          <Text style={styles.teamSubtitle}>{choice.hint}</Text>
           <ScrollView
             style={styles.cardListScroll}
             contentContainerStyle={styles.cardList}
             showsVerticalScrollIndicator={false}
           >
-            {cards.map((card, index) => {
-              const isDisabled = disabledIndices.includes(index);
+            {choice.cards.map((card, index) => {
+              const isDisabled = !card.isSelectable;
+              const displayName = getRoleDisplayName(card.roleId);
               return (
                 <TouchableOpacity
                   key={`${card.roleId}-${index}`}
@@ -171,16 +150,14 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
                   accessibilityRole="button"
                   accessibilityState={{ disabled: isDisabled }}
                   activeOpacity={0.7}
-                  onPress={() => handleCardPress(index, card)}
+                  onPress={() => handleCardPress(index, displayName)}
                 >
                   <Image source={getRoleBadge(card.roleId)} style={styles.cardBadge} />
                   <View style={styles.cardInfo}>
                     <Text style={[styles.cardName, isDisabled && styles.cardNameDisabled]}>
-                      {card.displayName}
+                      {displayName}
                     </Text>
-                    {isDisabled && disabledHint && (
-                      <Text style={styles.cardHint}>{disabledHint}</Text>
-                    )}
+                    {card.reason !== null && <Text style={styles.cardHint}>{card.reason}</Text>}
                   </View>
                 </TouchableOpacity>
               );

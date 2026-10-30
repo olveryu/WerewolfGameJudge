@@ -23,14 +23,14 @@ import type {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { useMemo } from 'react';
 
-import { colors } from '@/theme';
-
-import { formatSpeakingOrder } from '../sheriffElectionViewModel';
+import { formatSpeakingOrder } from '@/games/werewolf/room/day/sheriffElectionViewModel';
 import {
   getSheriffElectionRoundTitle,
   SHERIFF_ELECTION_PHASE_CONTENT,
   type SheriffElectionRoundViewModel,
-} from '../sheriffElectionViewModel';
+} from '@/games/werewolf/room/day/sheriffElectionViewModel';
+import { colors } from '@/theme';
+
 import { createSheriffElectionPanelStyles } from './sheriffElectionPanel.styles';
 import {
   getSheriffCompletedRoundWinnerSeat,

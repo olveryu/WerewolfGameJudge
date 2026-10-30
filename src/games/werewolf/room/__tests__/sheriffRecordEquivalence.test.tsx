@@ -23,15 +23,17 @@ import { deriveSheriffSection } from '@game-judge/game-engine/games/werewolf/pub
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { render } from '@testing-library/react-native';
 
-import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
+import {
+  createSheriffElectionViewModel,
+  formatSpeakingOrder,
+} from '@/games/werewolf/room/day/sheriffElectionViewModel';
+import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 import { colors } from '@/theme';
 
 import { NightReviewReportBody } from '../components/NightReviewReportBody';
 import { SheriffElectionPanel } from '../components/SheriffElectionPanel';
 import { createSheriffElectionPanelStyles } from '../components/sheriffElectionPanel.styles';
-import type { SheriffElectionPanelModel } from '../hooks/useSheriffElection';
-import { createSheriffElectionViewModel, formatSpeakingOrder } from '../sheriffElectionViewModel';
 
 const FIRST_ROUND: NonNullable<GameState['sheriffElection']>['completedRounds'][number] = {
   round: 'first',
@@ -72,7 +74,7 @@ function makeLocalState(
     sheriffElection: election,
     sheriffElectionResult: result,
   });
-  return { gameState, localState: toWerewolfLocalState(gameState) };
+  return { gameState };
 }
 
 interface JsonNode {
@@ -104,7 +106,7 @@ describe('panel and report derive the same sheriff record', () => {
       { kind: 'elected', sheriffSeat: 2 },
     );
     const view = createSheriffElectionViewModel({
-      gameState: state.localState,
+      gameState: state.gameState,
       effectiveSeat: 0,
       isHost: false,
     });
@@ -142,7 +144,7 @@ describe('panel and report derive the same sheriff record', () => {
       { kind: 'elected', sheriffSeat: 2 },
     );
     const view = createSheriffElectionViewModel({
-      gameState: state.localState,
+      gameState: state.gameState,
       effectiveSeat: 0,
       isHost: false,
     });
@@ -192,7 +194,7 @@ describe('panel and report derive the same sheriff record', () => {
       completedRounds: [],
     });
     const view = createSheriffElectionViewModel({
-      gameState: state.localState,
+      gameState: state.gameState,
       effectiveSeat: 0,
       isHost: false,
     });
@@ -211,7 +213,7 @@ describe('panel and report derive the same sheriff record', () => {
       speakingDirection: 'clockwise',
     });
     const view = createSheriffElectionViewModel({
-      gameState: state.localState,
+      gameState: state.gameState,
       effectiveSeat: 0,
       isHost: false,
     });

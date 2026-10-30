@@ -8,11 +8,18 @@
  * - protocol: submitAction({ kind: 'witch', saveTarget, poisonTarget })
  */
 
-import type { CompoundSchema } from '@game-judge/game-engine/games/werewolf/public';
+import type {
+  CompoundSchema,
+  WerewolfActionInput,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
+import {
+  type SubmitActionMock,
+  successfulWerewolfCommand,
+} from '@/games/werewolf/room/__tests__/harness/boardTestUtils';
 import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
@@ -24,15 +31,10 @@ jest.mock('@/utils/alert', () => ({
   showAlert: jest.fn(),
 }));
 
-jest.mock('../hooks/useActionerState', () => ({
-  useActionerState: () => ({
-    imActioner: true,
-    showWolves: false,
-  }),
-}));
-
 const mockShowAlert = jest.mocked(showAlert);
-const mockSubmitAction = jest.fn();
+const mockSubmitAction: SubmitActionMock = jest.fn((_input: WerewolfActionInput) =>
+  Promise.resolve(successfulWerewolfCommand()),
+);
 
 const makeMock = (overrides?: { canSave?: boolean; killedSeat?: number }) =>
   createBaseWerewolfRoomMock({
@@ -55,8 +57,8 @@ const makeMock = (overrides?: { canSave?: boolean; killedSeat?: number }) =>
 
 let mockUseWerewolfRoomReturn: ReturnType<typeof makeMock>;
 
-jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
+jest.mock('@/games/werewolf/room/__tests__/harness/activeRoomMock', () => ({
+  getActiveRoomMock: () => mockUseWerewolfRoomReturn,
 }));
 
 describe('WerewolfRoomScreen witch save UI (contract)', () => {

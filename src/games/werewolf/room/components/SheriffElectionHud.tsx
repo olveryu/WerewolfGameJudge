@@ -7,8 +7,8 @@ import type React from 'react';
 import { memo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
-import { getSheriffVoteButtonLabel } from '@/games/werewolf/room/sheriffElectionDockModel';
+import { getSheriffVoteButtonLabel } from '@/games/werewolf/room/day/sheriffElectionDockModel';
+import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes } from '@/theme';
 
