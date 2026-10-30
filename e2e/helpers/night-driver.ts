@@ -1,4 +1,4 @@
-import { type Locator, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
 import { RoomPage } from '../pages/RoomPage';
@@ -628,10 +628,22 @@ export async function waitForNightEnd(
  * The flow: click "昨夜信息" → confirmation dialog ("请在警长竞选结束后再查看，请勿作弊")
  * → click "确定查看" → info alert.
  * Call this before asserting on '平安夜' or '玩家死亡'.
+ *
+ * The action is disabled while the night-end narration plays (audio
+ * playback lock), so wait for the lock to lift before clicking: the
+ * button itself is the gate, which holds whether the audio ack
+ * already landed or is still in flight.
  */
 export async function viewLastNightInfo(hostPage: Page): Promise<void> {
   const alertModal = hostPage.locator('[data-testid="alert-modal"]');
   const room = new RoomPage(hostPage);
+
+  await dismissAlert(hostPage);
+  const panel = await room.openHostManagement();
+  await expect(panel.getByTestId(TESTIDS.lastNightInfoButton)).toBeEnabled({
+    timeout: AUDIO_ACK_WAIT_MS,
+  });
+  await room.closeHostManagement();
 
   // Dismiss any stale alert, then click "昨夜信息"
   for (let i = 0; i < 3; i++) {
