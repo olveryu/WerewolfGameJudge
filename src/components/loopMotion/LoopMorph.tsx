@@ -107,7 +107,7 @@ export const LoopMorph = memo<LoopMorphProps>(
             style={[
               styles.node,
               { width: size, height: size },
-              loopAnimationProps(getRule(variantSampler, size).rule, durationMs, phase),
+              loopAnimationProps(getRule(variantSampler, size, durationMs).rule, durationMs, phase),
             ]}
           >
             {renderVariant(k, size)}

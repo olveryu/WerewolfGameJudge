@@ -59,7 +59,7 @@ const getRule = createLoopRuleCache<LayerFrame, null>((layers) => {
 
 export const LoopLayer = memo<LoopLayerProps>(
   ({ sample, size, durationMs, phase = 0, width, height, children }) => {
-    const { rule } = getRule(sample, size);
+    const { rule } = getRule(sample, size, durationMs);
     return (
       <Animated.View
         style={[

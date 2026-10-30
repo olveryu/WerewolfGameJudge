@@ -63,7 +63,7 @@ const getRule = createLoopRuleCache<LineFrame, { lengthMax: number; strokeMax: n
 );
 
 export const LoopLine = memo<LoopLineProps>(({ sample, size, durationMs, phase = 0, color }) => {
-  const { rule, layout } = getRule(sample, size);
+  const { rule, layout } = getRule(sample, size, durationMs);
   return (
     <Animated.View
       style={[

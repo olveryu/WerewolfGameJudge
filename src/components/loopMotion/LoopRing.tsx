@@ -106,7 +106,7 @@ function ringStyle(rMax: number, strokeWidth: number, color: string) {
 }
 
 export const LoopRing = memo<LoopRingProps>(({ sample, size, durationMs, phase = 0, color }) => {
-  const thin = getThinRule(sample, size);
+  const thin = getThinRule(sample, size, durationMs);
   const { rMax, strokeMin, strokeMax } = thin.layout;
   const hasVaryingStroke = strokeMax > strokeMin;
   return (
@@ -123,7 +123,7 @@ export const LoopRing = memo<LoopRingProps>(({ sample, size, durationMs, phase =
           style={[
             styles.node,
             ringStyle(rMax, strokeMax, color),
-            loopAnimationProps(getThickRule(sample, size).rule, durationMs, phase),
+            loopAnimationProps(getThickRule(sample, size, durationMs).rule, durationMs, phase),
           ]}
         />
       )}

@@ -34,14 +34,22 @@ export interface LoopFrame {
 export type LoopSampler<G> = (t: number, size: number) => G;
 
 /**
- * Samples per loop cycle. 60 linear segments reproduce the sinusoidal / circular trajectories
- * used by seat flairs without visible faceting at cycle lengths of 3–10 s.
+ * Wall-clock spacing between samples. 30 samples per animated second keeps linear segments
+ * invisible for the sinusoidal / circular trajectories used by seat flairs and still resolves
+ * sub-second flashes inside long cycles (e.g. a 1.2 s pulse in an 8 s loop).
  */
-const LOOP_SAMPLE_COUNT = 60;
+const LOOP_SAMPLE_INTERVAL_MS = 1000 / 30;
 
-/** Evaluates `sample` at `t = i / LOOP_SAMPLE_COUNT` for `i ∈ [0, LOOP_SAMPLE_COUNT)`. */
-function sampleLoop<G>(sample: LoopSampler<G>, size: number): G[] {
-  return Array.from({ length: LOOP_SAMPLE_COUNT }, (_, i) => sample(i / LOOP_SAMPLE_COUNT, size));
+function sampleCountFor(durationMs: number): number {
+  if (!(durationMs > 0)) {
+    throw new Error(`Loop duration must be positive, received ${durationMs}`);
+  }
+  return Math.ceil(durationMs / LOOP_SAMPLE_INTERVAL_MS);
+}
+
+/** Evaluates `sample` at `t = i / count` for `i ∈ [0, count)`. */
+function sampleLoop<G>(sample: LoopSampler<G>, size: number, count: number): G[] {
+  return Array.from({ length: count }, (_, i) => sample(i / count, size));
 }
 
 function toKeyframeBlock(frame: LoopFrame) {
@@ -58,16 +66,16 @@ function toKeyframeBlock(frame: LoopFrame) {
 }
 
 /**
- * Builds a shared keyframes rule from `LOOP_SAMPLE_COUNT` frames (frame `i` is
- * `t = i / LOOP_SAMPLE_COUNT`). `100%` re-uses frame 0 so the loop closes without a seam.
+ * Builds a shared keyframes rule from uniformly spaced frames (frame `i` is
+ * `t = i / frames.length`). `100%` re-uses frame 0 so the loop closes without a seam.
  */
 function buildLoopRule(frames: readonly LoopFrame[]): CSSKeyframesRule {
-  if (frames.length !== LOOP_SAMPLE_COUNT) {
-    throw new Error(`buildLoopRule expects ${LOOP_SAMPLE_COUNT} frames, received ${frames.length}`);
+  if (frames.length === 0) {
+    throw new Error('buildLoopRule requires at least one frame');
   }
   const keyframes: CSSAnimationKeyframes = {};
   frames.forEach((frame, i) => {
-    keyframes[`${(i / LOOP_SAMPLE_COUNT) * 100}%`] = toKeyframeBlock(frame);
+    keyframes[`${(i / frames.length) * 100}%`] = toKeyframeBlock(frame);
   });
   keyframes['100%'] = toKeyframeBlock(frames[0]!);
   return css.keyframes(keyframes);
@@ -80,25 +88,26 @@ export interface LoopRule<L> {
 }
 
 /**
- * Memoises `derive(samples)` per `(sampler, size)`. `derive` receives the sampled geometry and
- * returns the frames to animate plus any layout derived from them (e.g. the max radius that
- * sizes a dot's box).
+ * Memoises `derive(samples)` per `(sampler, size, durationMs)`. `derive` receives the sampled
+ * geometry and returns the frames to animate plus any layout derived from them (e.g. the max
+ * radius that sizes a dot's box).
  */
 export function createLoopRuleCache<G, L>(
   derive: (samples: readonly G[]) => { frames: LoopFrame[]; layout: L },
-): (sample: LoopSampler<G>, size: number) => LoopRule<L> {
-  const cache = new WeakMap<LoopSampler<G>, Map<number, LoopRule<L>>>();
-  return (sample, size) => {
-    let bySize = cache.get(sample);
-    if (!bySize) {
-      bySize = new Map();
-      cache.set(sample, bySize);
+): (sample: LoopSampler<G>, size: number, durationMs: number) => LoopRule<L> {
+  const cache = new WeakMap<LoopSampler<G>, Map<string, LoopRule<L>>>();
+  return (sample, size, durationMs) => {
+    let byKey = cache.get(sample);
+    if (!byKey) {
+      byKey = new Map();
+      cache.set(sample, byKey);
     }
-    const hit = bySize.get(size);
+    const key = `${size}:${durationMs}`;
+    const hit = byKey.get(key);
     if (hit) return hit;
-    const { frames, layout } = derive(sampleLoop(sample, size));
+    const { frames, layout } = derive(sampleLoop(sample, size, sampleCountFor(durationMs)));
     const entry: LoopRule<L> = { rule: buildLoopRule(frames), layout };
-    bySize.set(size, entry);
+    byKey.set(key, entry);
     return entry;
   };
 }

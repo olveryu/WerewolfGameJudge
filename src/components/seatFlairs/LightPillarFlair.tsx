@@ -1,18 +1,15 @@
 /**
- * LightPillarFlair — Four Light Pillars
+ * LightPillarFlair — Light Pillar
  *
- * Four short golden corner accents illuminate briefly in sequence, leaving the avatar unobscured.
- * react-native-svg + Reanimated useAnimatedProps。
+ * Four corner pillars of light rise in turn: a thin beam, a spark at its base and a fading glow
+ * trail. Each corner pulses for 1.2 s, staggered 1.5 s apart inside an 8 s loop.
  */
-import { memo, useMemo } from 'react';
+import { Fragment, memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type DotSampler, type LineSampler, LoopDot, LoopLine } from '@/components/loopMotion';
 
 import type { FlairProps } from './FlairProps';
-import { AnimatedCircle, AnimatedLine } from './svgAnimatedPrimitives';
 
 const GLOW_STEPS = 4;
 const PILLAR_CYCLE = 8000;
@@ -20,110 +17,88 @@ const PULSE_DURATION = 1200;
 const CORNER_STAGGER = 1500;
 const PILLAR_HEIGHT = 0.12;
 
-function getCornerPulse(progress: number, cornerIndex: number): number {
-  'worklet';
-  const elapsed = progress * PILLAR_CYCLE - cornerIndex * CORNER_STAGGER;
+const CORNERS = [
+  { xFrac: 0.08, yFrac: 1, dir: -1 },
+  { xFrac: 0.92, yFrac: 1, dir: -1 },
+  { xFrac: 0.05, yFrac: 0, dir: 1 },
+  { xFrac: 0.95, yFrac: 0, dir: 1 },
+] as const;
+
+type Corner = (typeof CORNERS)[number];
+
+function cornerPulse(t: number, cornerIndex: number): number {
+  const elapsed = t * PILLAR_CYCLE - cornerIndex * CORNER_STAGGER;
   if (elapsed <= 0 || elapsed >= PULSE_DURATION) return 0;
   return Math.sin((elapsed / PULSE_DURATION) * Math.PI) ** 2;
 }
 
-interface Corner {
-  bx: number;
-  by: number;
-  dir: number;
-}
-
-const GlowDot = memo<{
-  step: number;
-  cornerIndex: number;
-  corner: Corner;
-  size: number;
-  progress: { value: number };
-}>(({ step, cornerIndex, corner, size, progress }) => {
-  const props = useAnimatedProps(() => {
-    'worklet';
-    const pulse = getCornerPulse(progress.value, cornerIndex);
-    const height = size * PILLAR_HEIGHT * pulse;
-    const frac = step / GLOW_STEPS;
-    const y = corner.by + corner.dir * height * frac;
-    const alpha = (1 - frac) * pulse * 0.1;
-    return { cx: corner.bx, cy: y, r: size * 0.015, opacity: alpha };
-  });
-
-  return <AnimatedCircle animatedProps={props} fill="rgb(255,230,130)" />;
+const BEAM_SAMPLERS: readonly LineSampler[] = CORNERS.map((corner, cornerIndex) => (t, size) => {
+  const pulse = cornerPulse(t, cornerIndex);
+  const height = size * PILLAR_HEIGHT * pulse;
+  return {
+    x1: corner.xFrac * size,
+    y1: corner.yFrac * size,
+    x2: corner.xFrac * size,
+    y2: corner.yFrac * size + corner.dir * height * 0.8,
+    strokeWidth: 1,
+    opacity: pulse * 0.45,
+  };
 });
-GlowDot.displayName = 'GlowDot';
 
-const PillarParticle = memo<{
-  corner: Corner;
-  cornerIndex: number;
-  size: number;
-  progress: { value: number };
-}>(({ corner, cornerIndex, size, progress }) => {
-  const lineProps = useAnimatedProps(() => {
-    'worklet';
-    const pulse = getCornerPulse(progress.value, cornerIndex);
+const SPARK_SAMPLERS: readonly DotSampler[] = CORNERS.map((corner, cornerIndex) => (t, size) => ({
+  cx: corner.xFrac * size,
+  cy: corner.yFrac * size,
+  r: size * 0.01,
+  opacity: cornerPulse(t, cornerIndex) * 0.55,
+}));
+
+function createGlowSampler(corner: Corner, cornerIndex: number, step: number): DotSampler {
+  const frac = step / GLOW_STEPS;
+  return (t, size) => {
+    const pulse = cornerPulse(t, cornerIndex);
     const height = size * PILLAR_HEIGHT * pulse;
     return {
-      x1: corner.bx,
-      y1: corner.by,
-      x2: corner.bx,
-      y2: corner.by + corner.dir * height * 0.8,
-      opacity: pulse * 0.45,
-      strokeWidth: 1,
+      cx: corner.xFrac * size,
+      cy: corner.yFrac * size + corner.dir * height * frac,
+      r: size * 0.015,
+      opacity: (1 - frac) * pulse * 0.1,
     };
-  });
+  };
+}
 
-  const sparkProps = useAnimatedProps(() => {
-    'worklet';
-    const pulse = getCornerPulse(progress.value, cornerIndex);
-    return { cx: corner.bx, cy: corner.by, r: size * 0.01, opacity: pulse * 0.55 };
-  });
+const GLOW_SAMPLERS: readonly (readonly DotSampler[])[] = CORNERS.map((corner, cornerIndex) =>
+  Array.from({ length: GLOW_STEPS }, (_, step) => createGlowSampler(corner, cornerIndex, step)),
+);
 
-  const glowSteps = useMemo(() => Array.from({ length: GLOW_STEPS }, (_, i) => i), []);
-
-  return (
-    <>
-      {glowSteps.map((s) => (
-        <GlowDot
-          key={s}
-          step={s}
-          cornerIndex={cornerIndex}
-          corner={corner}
-          size={size}
-          progress={progress}
-        />
-      ))}
-      <AnimatedLine animatedProps={lineProps} stroke="rgb(255,240,180)" />
-      <AnimatedCircle animatedProps={sparkProps} fill="rgb(255,245,200)" />
-    </>
-  );
-});
-PillarParticle.displayName = 'PillarParticle';
-
-export const LightPillarFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useLoopProgress(PILLAR_CYCLE);
-
-  const corners = useMemo(
-    () => [
-      { bx: size * 0.08, by: size, dir: -1 },
-      { bx: size * 0.92, by: size, dir: -1 },
-      { bx: size * 0.05, by: 0, dir: 1 },
-      { bx: size * 0.95, by: 0, dir: 1 },
-    ],
-    [size],
-  );
-
-  return (
-    <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {corners.map((c, i) => (
-          <PillarParticle key={i} corner={c} cornerIndex={i} size={size} progress={progress} />
+export const LightPillarFlair = memo<FlairProps>(({ size }) => (
+  <View style={[styles.wrapper, { width: size, height: size }]}>
+    {CORNERS.map((corner, cornerIndex) => (
+      <Fragment key={`${corner.xFrac}-${corner.yFrac}`}>
+        {GLOW_SAMPLERS[cornerIndex]!.map((sampler, step) => (
+          <LoopDot
+            key={`glow-${step}`}
+            sample={sampler}
+            size={size}
+            durationMs={PILLAR_CYCLE}
+            color="rgb(255,230,130)"
+          />
         ))}
-      </Svg>
-    </View>
-  );
-});
+        <LoopLine
+          sample={BEAM_SAMPLERS[cornerIndex]!}
+          size={size}
+          durationMs={PILLAR_CYCLE}
+          color="rgb(255,240,180)"
+        />
+        <LoopDot
+          sample={SPARK_SAMPLERS[cornerIndex]!}
+          size={size}
+          durationMs={PILLAR_CYCLE}
+          color="rgb(255,245,200)"
+        />
+      </Fragment>
+    ))}
+  </View>
+));
 LightPillarFlair.displayName = 'LightPillarFlair';
 
 const styles = StyleSheet.create({

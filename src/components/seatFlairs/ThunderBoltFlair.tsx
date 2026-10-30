@@ -1,169 +1,116 @@
 /**
  * ThunderBoltFlair — Thunder Flash
  *
- * 6 short jagged lightning bolts strike outward from avatar edge, flashing in turn (flash→afterglow→fade).
- * react-native-svg + Reanimated useAnimatedProps.
+ * 6 short jagged lightning bolts strike outward from avatar edge, flashing in turn
+ * (flash→afterglow→fade). Bolt geometry is fixed per seed; only intensity animates.
  */
-import { memo, useMemo } from 'react';
+import { Fragment, memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type DotSampler, LoopDot, LoopPath, type PathSampler } from '@/components/loopMotion';
 
 import type { FlairProps } from './FlairProps';
-import { AnimatedCircle, AnimatedPath } from './svgAnimatedPrimitives';
 
+const LOOP_MS = 4000;
 const BOLT_COUNT = 6;
 const SEGS = 4;
 
-interface BoltSeed {
-  angle: number;
-  offsets: number[];
-  phase: number;
+const BOLT_SEEDS = Array.from({ length: BOLT_COUNT }, (_, i) => ({
+  angle: (i / BOLT_COUNT) * Math.PI * 2 - Math.PI / 2,
+  offsets: Array.from(
+    { length: SEGS + 1 },
+    (_, s) => (s % 2 === 0 ? 1 : -1) * (0.03 + ((i * 7 + s * 3) % 5) * 0.012),
+  ),
+  phase: i / BOLT_COUNT,
+}));
+
+type BoltSeed = (typeof BOLT_SEEDS)[number];
+
+/** Flash in over 15 % of the loop, decay to zero by 40 %, dark for the rest. */
+function intensityAt(t: number): number {
+  if (t < 0.15) return t / 0.15;
+  if (t < 0.4) return 1 - (t - 0.15) / 0.25;
+  return 0;
 }
 
-const BoltParticle = memo<{ seed: BoltSeed; size: number; progress: { value: number } }>(
-  ({ seed, size, progress }) => {
-    const cx = size / 2;
-    const cy = size / 2;
-    const innerR = size * 0.38;
-    const outerR = size * 0.52;
-    const cosA = Math.cos(seed.angle);
-    const sinA = Math.sin(seed.angle);
-    const perpX = -sinA;
-    const perpY = cosA;
+function boltPoints(seed: BoltSeed, size: number): { x: number; y: number }[] {
+  const cx = size / 2;
+  const cy = size / 2;
+  const innerR = size * 0.38;
+  const outerR = size * 0.52;
+  const cosA = Math.cos(seed.angle);
+  const sinA = Math.sin(seed.angle);
+  const perpX = -sinA;
+  const perpY = cosA;
+  return Array.from({ length: SEGS + 1 }, (_, s) => {
+    const r = innerR + (s / SEGS) * (outerR - innerR);
+    const lateralOff = seed.offsets[s]! * size;
+    return { x: cx + cosA * r + perpX * lateralOff, y: cy + sinA * r + perpY * lateralOff };
+  });
+}
 
-    const computePts = (intensity: number) => {
-      'worklet';
-      const pts: { x: number; y: number }[] = [];
-      for (let s = 0; s <= SEGS; s++) {
-        const frac = s / SEGS;
-        const r = innerR + frac * (outerR - innerR);
-        const lateralOff = seed.offsets[s]! * size;
-        pts.push({
-          x: cx + cosA * r + perpX * lateralOff,
-          y: cy + sinA * r + perpY * lateralOff,
-        });
-      }
-      return { pts, intensity };
-    };
+function boltPath(seed: BoltSeed, size: number): string {
+  return boltPoints(seed, size)
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
+    .join(' ');
+}
 
-    const getIntensity = (prog: number) => {
-      'worklet';
-      const cycle = (prog + seed.phase) % 1;
-      if (cycle < 0.15) return cycle / 0.15;
-      if (cycle < 0.4) return 1 - (cycle - 0.15) / 0.25;
-      return 0;
-    };
+const LAYERS = [
+  { stroke: 'rgb(80,160,255)', widthFrac: 0.05, alpha: 0.25 },
+  { stroke: 'rgb(140,200,255)', widthFrac: 0.025, alpha: 0.5 },
+  { stroke: 'rgb(220,240,255)', widthFrac: 0.012, alpha: 0.9 },
+] as const;
 
-    const buildD = (pts: { x: number; y: number }[]) => {
-      'worklet';
-      return `M ${pts[0]!.x} ${pts[0]!.y} L ${pts[1]!.x} ${pts[1]!.y} L ${pts[2]!.x} ${pts[2]!.y} L ${pts[3]!.x} ${pts[3]!.y} L ${pts[4]!.x} ${pts[4]!.y}`;
-    };
-
-    const layer1Props = useAnimatedProps(() => {
-      'worklet';
-      const intensity = getIntensity(progress.value);
-      const { pts } = computePts(intensity);
-      return {
-        d: buildD(pts),
-        opacity: intensity < 0.01 ? 0 : intensity * 0.25,
-        strokeWidth: size * 0.05,
-      };
-    });
-
-    const layer2Props = useAnimatedProps(() => {
-      'worklet';
-      const intensity = getIntensity(progress.value);
-      const { pts } = computePts(intensity);
-      return {
-        d: buildD(pts),
-        opacity: intensity < 0.01 ? 0 : intensity * 0.5,
-        strokeWidth: size * 0.025,
-      };
-    });
-
-    const layer3Props = useAnimatedProps(() => {
-      'worklet';
-      const intensity = getIntensity(progress.value);
-      const { pts } = computePts(intensity);
-      return {
-        d: buildD(pts),
-        opacity: intensity < 0.01 ? 0 : intensity * 0.9,
-        strokeWidth: size * 0.012,
-      };
-    });
-
-    const sparkProps = useAnimatedProps(() => {
-      'worklet';
-      const intensity = getIntensity(progress.value);
-      const { pts } = computePts(intensity);
-      const tip = pts[SEGS]!;
-      return {
-        cx: tip.x,
-        cy: tip.y,
-        r: intensity < 0.01 ? 0 : size * 0.015 * intensity,
-        opacity: intensity < 0.01 ? 0 : intensity * 0.7,
-      };
-    });
-
-    return (
-      <>
-        <AnimatedPath
-          animatedProps={layer1Props}
-          stroke="rgb(80,160,255)"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <AnimatedPath
-          animatedProps={layer2Props}
-          stroke="rgb(140,200,255)"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <AnimatedPath
-          animatedProps={layer3Props}
-          stroke="rgb(220,240,255)"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <AnimatedCircle animatedProps={sparkProps} fill="rgb(255,255,255)" />
-      </>
-    );
-  },
-);
-BoltParticle.displayName = 'BoltParticle';
-
-export const ThunderBoltFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useLoopProgress(4000);
-
-  const bolts = useMemo(
-    () =>
-      Array.from({ length: BOLT_COUNT }, (_, i) => ({
-        angle: (i / BOLT_COUNT) * Math.PI * 2 - Math.PI / 2,
-        offsets: Array.from(
-          { length: SEGS + 1 },
-          (_, s) => (s % 2 === 0 ? 1 : -1) * (0.03 + ((i * 7 + s * 3) % 5) * 0.012),
-        ),
-        phase: i / BOLT_COUNT,
-      })),
-    [],
-  );
-
-  return (
-    <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {bolts.map((s, i) => (
-          <BoltParticle key={i} seed={s} size={size} progress={progress} />
-        ))}
-      </Svg>
-    </View>
-  );
+const LAYER_SAMPLERS: readonly PathSampler[] = LAYERS.map((layer) => (t, size) => {
+  const intensity = intensityAt(t);
+  return {
+    strokeWidth: size * layer.widthFrac,
+    opacity: intensity < 0.01 ? 0 : intensity * layer.alpha,
+  };
 });
+
+const SPARK_SAMPLERS: readonly DotSampler[] = BOLT_SEEDS.map((seed) => (t, size) => {
+  const intensity = intensityAt(t);
+  const tip = boltPoints(seed, size)[SEGS]!;
+  return {
+    cx: tip.x,
+    cy: tip.y,
+    r: intensity < 0.01 ? 0 : size * 0.015 * intensity,
+    opacity: intensity < 0.01 ? 0 : intensity * 0.7,
+  };
+});
+
+export const ThunderBoltFlair = memo<FlairProps>(({ size }) => (
+  <View style={[styles.wrapper, { width: size, height: size }]}>
+    {BOLT_SEEDS.map((seed, i) => {
+      const d = boltPath(seed, size);
+      return (
+        <Fragment key={`bolt-${seed.phase}`}>
+          {LAYERS.map((layer, l) => (
+            <LoopPath
+              key={layer.stroke}
+              sample={LAYER_SAMPLERS[l]!}
+              size={size}
+              durationMs={LOOP_MS}
+              phase={seed.phase}
+              d={d}
+              stroke={layer.stroke}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ))}
+          <LoopDot
+            sample={SPARK_SAMPLERS[i]!}
+            size={size}
+            durationMs={LOOP_MS}
+            phase={seed.phase}
+            color="rgb(255,255,255)"
+          />
+        </Fragment>
+      );
+    })}
+  </View>
+));
 ThunderBoltFlair.displayName = 'ThunderBoltFlair';
 
 const styles = StyleSheet.create({

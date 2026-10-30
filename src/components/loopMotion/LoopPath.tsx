@@ -91,7 +91,7 @@ export const LoopPath = memo<LoopPathProps>(
     strokeLinejoin,
     strokeDasharray,
   }) => {
-    const thin = getThinRule(sample, size);
+    const thin = getThinRule(sample, size, durationMs);
     const { strokeMin, strokeMax } = thin.layout;
     const hasVaryingStroke = strokeMax > strokeMin;
     const pathProps = { d, stroke, fill, strokeLinecap, strokeLinejoin, strokeDasharray };
@@ -113,7 +113,7 @@ export const LoopPath = memo<LoopPathProps>(
             style={[
               styles.node,
               { width: size, height: size },
-              loopAnimationProps(getThickRule(sample, size).rule, durationMs, phase),
+              loopAnimationProps(getThickRule(sample, size, durationMs).rule, durationMs, phase),
             ]}
           >
             <Svg width={size} height={size}>

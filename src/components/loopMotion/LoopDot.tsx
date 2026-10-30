@@ -55,7 +55,7 @@ const getRule = createLoopRuleCache<DotFrame, { boxSize: number }>((dots) => {
 });
 
 export const LoopDot = memo<LoopDotProps>(({ sample, size, durationMs, phase = 0, color }) => {
-  const { rule, layout } = getRule(sample, size);
+  const { rule, layout } = getRule(sample, size, durationMs);
   return (
     <Animated.View
       style={[
