@@ -24,6 +24,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useDerivedValue,
@@ -375,6 +376,9 @@ export const FilmRewind: React.FC<RevealEffectProps> = ({
     return () => {
       clearTimeout(timer);
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      cancelAnimation(sprocketScroll);
+      cancelAnimation(flickerOpacity);
+      cancelAnimation(grainCycle);
     };
   }, [
     reducedMotion,

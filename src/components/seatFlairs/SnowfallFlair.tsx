@@ -2,130 +2,86 @@
  * SnowfallFlair — Snowfall
  *
  * 10 snowflakes drift down from above, each drawn as a 6-pointed star using 3 crossing lines, slowly rotating.
- * react-native-svg + Reanimated useAnimatedProps。
+ * The three lines and centre dot form a rigid star turning by `tt * π`, so each flake is one
+ * LoopLayer rotating a static group. Each flake runs at its own `speed`, so the phase stays
+ * inside the sampler.
  */
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
+import Svg, { Circle, Line } from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type LayerSampler, LoopLayer } from '@/components/loopMotion';
 
 import type { FlairProps } from './FlairProps';
-import { AnimatedCircle, AnimatedLine } from './svgAnimatedPrimitives';
 
+const LOOP_MS = 6000;
 const N = 10;
+const ARM_COUNT = 3;
+/** Layer box as a multiple of flake radius; leaves room for the stroke. */
+const BOX_FACTOR = 3;
+const RAD_TO_DEG = 180 / Math.PI;
 
-interface SnowflakeSeed {
-  xFrac: number;
-  phase: number;
-  rFrac: number;
-  speed: number;
-  sway: number;
+const SNOWFLAKE_SEEDS = Array.from({ length: N }, (_, i) => ({
+  xFrac: 0.05 + (i * 0.9) / (N - 1),
+  phase: i / N,
+  rFrac: 0.008 + (i % 3) * 0.005,
+  speed: 0.4 + (i % 4) * 0.1,
+  sway: 0.02 + (i % 3) * 0.015,
+}));
+
+type SnowflakeSeed = (typeof SNOWFLAKE_SEEDS)[number];
+
+const SNOWFLAKE_SAMPLERS: readonly LayerSampler[] = SNOWFLAKE_SEEDS.map((seed) => (t, size) => {
+  const tt = (t * seed.speed + seed.phase) % 1;
+  const y = tt * size;
+  const x = seed.xFrac * size + Math.sin(tt * Math.PI * 4) * size * seed.sway;
+  const alpha = tt < 0.05 ? tt / 0.05 : tt > 0.9 ? (1 - tt) / 0.1 : 0.7;
+  const ang = tt * Math.PI;
+  return { x, y, rotateDeg: ang * RAD_TO_DEG, scaleX: 1, scaleY: 1, opacity: alpha };
+});
+
+const ARM_ANGLES = Array.from({ length: ARM_COUNT }, (_, i) => (i / ARM_COUNT) * Math.PI);
+
+/** Static flake at `tt = 0`: three arms at 0 / 60 / 120 degrees plus the centre dot. */
+function SnowflakeArt({ seed, size }: { seed: SnowflakeSeed; size: number }) {
+  const r = seed.rFrac * size;
+  const box = r * BOX_FACTOR;
+  const half = box / 2;
+  return (
+    <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
+      {ARM_ANGLES.map((ang) => (
+        <Line
+          key={`arm-${ang}`}
+          x1={-Math.cos(ang) * r}
+          y1={-Math.sin(ang) * r}
+          x2={Math.cos(ang) * r}
+          y2={Math.sin(ang) * r}
+          stroke="rgb(220,230,255)"
+          strokeWidth={0.8}
+          opacity={0.8}
+        />
+      ))}
+      <Circle r={size * 0.005} fill="rgb(240,245,255)" opacity={0.9} />
+    </Svg>
+  );
 }
 
-const SnowflakeParticle = memo<{ seed: SnowflakeSeed; size: number; progress: { value: number } }>(
-  ({ seed, size, progress }) => {
-    const line0Props = useAnimatedProps(() => {
-      'worklet';
-      const tt = (progress.value * seed.speed + seed.phase) % 1;
-      const y = tt * size;
-      const x = seed.xFrac * size + Math.sin(tt * Math.PI * 4) * size * seed.sway;
-      const alpha = tt < 0.05 ? tt / 0.05 : tt > 0.9 ? (1 - tt) / 0.1 : 0.7;
-      const r = seed.rFrac * size;
-      const ang = (0 / 3) * Math.PI + tt * Math.PI;
-      return {
-        x1: x - Math.cos(ang) * r,
-        y1: y - Math.sin(ang) * r,
-        x2: x + Math.cos(ang) * r,
-        y2: y + Math.sin(ang) * r,
-        opacity: alpha * 0.8,
-        strokeWidth: 0.8,
-      };
-    });
-
-    const line1Props = useAnimatedProps(() => {
-      'worklet';
-      const tt = (progress.value * seed.speed + seed.phase) % 1;
-      const y = tt * size;
-      const x = seed.xFrac * size + Math.sin(tt * Math.PI * 4) * size * seed.sway;
-      const alpha = tt < 0.05 ? tt / 0.05 : tt > 0.9 ? (1 - tt) / 0.1 : 0.7;
-      const r = seed.rFrac * size;
-      const ang = (1 / 3) * Math.PI + tt * Math.PI;
-      return {
-        x1: x - Math.cos(ang) * r,
-        y1: y - Math.sin(ang) * r,
-        x2: x + Math.cos(ang) * r,
-        y2: y + Math.sin(ang) * r,
-        opacity: alpha * 0.8,
-        strokeWidth: 0.8,
-      };
-    });
-
-    const line2Props = useAnimatedProps(() => {
-      'worklet';
-      const tt = (progress.value * seed.speed + seed.phase) % 1;
-      const y = tt * size;
-      const x = seed.xFrac * size + Math.sin(tt * Math.PI * 4) * size * seed.sway;
-      const alpha = tt < 0.05 ? tt / 0.05 : tt > 0.9 ? (1 - tt) / 0.1 : 0.7;
-      const r = seed.rFrac * size;
-      const ang = (2 / 3) * Math.PI + tt * Math.PI;
-      return {
-        x1: x - Math.cos(ang) * r,
-        y1: y - Math.sin(ang) * r,
-        x2: x + Math.cos(ang) * r,
-        y2: y + Math.sin(ang) * r,
-        opacity: alpha * 0.8,
-        strokeWidth: 0.8,
-      };
-    });
-
-    const centerProps = useAnimatedProps(() => {
-      'worklet';
-      const tt = (progress.value * seed.speed + seed.phase) % 1;
-      const y = tt * size;
-      const x = seed.xFrac * size + Math.sin(tt * Math.PI * 4) * size * seed.sway;
-      const alpha = tt < 0.05 ? tt / 0.05 : tt > 0.9 ? (1 - tt) / 0.1 : 0.7;
-      return { cx: x, cy: y, r: size * 0.005, opacity: alpha * 0.9 };
-    });
-
-    return (
-      <>
-        <AnimatedLine animatedProps={line0Props} stroke="rgb(220,230,255)" />
-        <AnimatedLine animatedProps={line1Props} stroke="rgb(220,230,255)" />
-        <AnimatedLine animatedProps={line2Props} stroke="rgb(220,230,255)" />
-        <AnimatedCircle animatedProps={centerProps} fill="rgb(240,245,255)" />
-      </>
-    );
-  },
-);
-SnowflakeParticle.displayName = 'SnowflakeParticle';
-
-export const SnowfallFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useLoopProgress(6000);
-
-  const seeds = useMemo(
-    () =>
-      Array.from({ length: N }, (_, i) => ({
-        xFrac: 0.05 + (i * 0.9) / (N - 1),
-        phase: i / N,
-        rFrac: 0.008 + (i % 3) * 0.005,
-        speed: 0.4 + (i % 4) * 0.1,
-        sway: 0.02 + (i % 3) * 0.015,
-      })),
-    [],
-  );
-
-  return (
-    <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {seeds.map((s, i) => (
-          <SnowflakeParticle key={i} seed={s} size={size} progress={progress} />
-        ))}
-      </Svg>
-    </View>
-  );
-});
+export const SnowfallFlair = memo<FlairProps>(({ size }) => (
+  <View style={[styles.wrapper, { width: size, height: size }]}>
+    {SNOWFLAKE_SEEDS.map((seed, i) => (
+      <LoopLayer
+        key={`flake-${seed.xFrac}`}
+        sample={SNOWFLAKE_SAMPLERS[i]!}
+        size={size}
+        durationMs={LOOP_MS}
+        width={seed.rFrac * size * BOX_FACTOR}
+        height={seed.rFrac * size * BOX_FACTOR}
+      >
+        <SnowflakeArt seed={seed} size={size} />
+      </LoopLayer>
+    ))}
+  </View>
+));
 SnowfallFlair.displayName = 'SnowfallFlair';
 
 const styles = StyleSheet.create({

@@ -3,45 +3,79 @@
  *
  * Companion pet for the cardPick flip animation.
  * A green sprite sits on a playing card with gentle wing wobble + sparkle twinkle.
+ * Each wing is a static ellipse rotated about its own centre by a LoopLayer; sparkles are LoopDots.
  */
 import { memo } from 'react';
-import Animated, { useAnimatedProps } from 'react-native-reanimated';
-import Svg, { Circle, Path, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Ellipse, Path, Rect, Text as SvgText } from 'react-native-svg';
 
-import { type PetProps, useFloat, useLoop } from './PetProps';
-import { AnimatedCircle, AnimatedEllipse } from './svgAnimatedPrimitives';
+import { type DotSampler, type LayerSampler, LoopDot, LoopLayer } from '@/components/loopMotion';
+
+import { PetFloat } from './PetFloat';
+import { PET_VIEWBOX, type PetProps, petUnitsToPx } from './PetProps';
+
+const FLOAT_MS = 2700;
+const LOOP_MS = 1500;
+
+/** Wing ellipses (rx 4, ry 6) pivot on their own centre; box 16 covers ry at any angle. */
+const WING_BOX_UNITS = 16;
+const LEFT_WING = { cx: 25, cy: 22 } as const;
+const RIGHT_WING = { cx: 47, cy: 22 } as const;
+const WING_FILL = 'rgba(168,230,207,0.6)';
+const SPARKLE_FILL = '#ffd700';
+
+// Wing wobble
+const leftWingSampler: LayerSampler = (t, size) => {
+  const rot = Math.sin(t * Math.PI * 2) * 8;
+  return {
+    x: petUnitsToPx(LEFT_WING.cx, size),
+    y: petUnitsToPx(LEFT_WING.cy, size),
+    rotateDeg: rot,
+    scaleX: 1,
+    scaleY: 1,
+    opacity: 1,
+  };
+};
+const rightWingSampler: LayerSampler = (t, size) => {
+  const rot = Math.sin(t * Math.PI * 2 + 0.6) * 8;
+  return {
+    x: petUnitsToPx(RIGHT_WING.cx, size),
+    y: petUnitsToPx(RIGHT_WING.cy, size),
+    rotateDeg: rot,
+    scaleX: 1,
+    scaleY: 1,
+    opacity: 1,
+  };
+};
+
+// Sparkle twinkle
+const sparkle1Sampler: DotSampler = (t, size) => {
+  const s = 0.5 + Math.sin(t * Math.PI * 4) * 0.5;
+  return {
+    cx: petUnitsToPx(50, size),
+    cy: petUnitsToPx(14, size),
+    r: petUnitsToPx(1.2 * s + 0.3, size),
+    opacity: s,
+  };
+};
+const sparkle2Sampler: DotSampler = (t, size) => {
+  const s = 0.5 + Math.sin(t * Math.PI * 4 + 1) * 0.5;
+  return {
+    cx: petUnitsToPx(22, size),
+    cy: petUnitsToPx(16, size),
+    r: petUnitsToPx(1.0 * s + 0.2, size),
+    opacity: s,
+  };
+};
+
+function wingViewBox(wing: { cx: number; cy: number }): string {
+  return `${wing.cx - WING_BOX_UNITS / 2} ${wing.cy - WING_BOX_UNITS / 2} ${WING_BOX_UNITS} ${WING_BOX_UNITS}`;
+}
 
 export const CardSpritePet = memo<PetProps>(({ size }) => {
-  const { floatStyle } = useFloat(2700);
-  const t = useLoop(1500);
-
-  // Wing wobble
-  const leftWing = useAnimatedProps(() => {
-    'worklet';
-    const rot = Math.sin(t.value * Math.PI * 2) * 8;
-    return { rotation: rot };
-  });
-  const rightWing = useAnimatedProps(() => {
-    'worklet';
-    const rot = Math.sin(t.value * Math.PI * 2 + 0.6) * 8;
-    return { rotation: rot };
-  });
-
-  // Sparkle twinkle
-  const sparkle1 = useAnimatedProps(() => {
-    'worklet';
-    const s = 0.5 + Math.sin(t.value * Math.PI * 4) * 0.5;
-    return { r: 1.2 * s + 0.3, opacity: s };
-  });
-  const sparkle2 = useAnimatedProps(() => {
-    'worklet';
-    const s = 0.5 + Math.sin(t.value * Math.PI * 4 + 1) * 0.5;
-    return { r: 1.0 * s + 0.2, opacity: s };
-  });
-
+  const wingBox = petUnitsToPx(WING_BOX_UNITS, size);
   return (
-    <Animated.View style={[{ width: size, height: size }, floatStyle]}>
-      <Svg width={size} height={size} viewBox="0 0 72 72">
+    <PetFloat size={size} durationMs={FLOAT_MS}>
+      <Svg width={size} height={size} viewBox={`0 0 ${PET_VIEWBOX} ${PET_VIEWBOX}`}>
         {/* Card base */}
         <Rect
           x={22}
@@ -71,30 +105,34 @@ export const CardSpritePet = memo<PetProps>(({ size }) => {
           fill="none"
           strokeLinecap="round"
         />
-        {/* Wings */}
-        <AnimatedEllipse
-          animatedProps={leftWing}
-          cx={25}
-          cy={22}
-          rx={4}
-          ry={6}
-          fill="rgba(168,230,207,0.6)"
-          origin="25, 22"
-        />
-        <AnimatedEllipse
-          animatedProps={rightWing}
-          cx={47}
-          cy={22}
-          rx={4}
-          ry={6}
-          fill="rgba(168,230,207,0.6)"
-          origin="47, 22"
-        />
-        {/* Sparkles */}
-        <AnimatedCircle animatedProps={sparkle1} cx={50} cy={14} fill="#ffd700" />
-        <AnimatedCircle animatedProps={sparkle2} cx={22} cy={16} fill="#ffd700" />
       </Svg>
-    </Animated.View>
+      {/* Wings */}
+      <LoopLayer
+        sample={leftWingSampler}
+        size={size}
+        durationMs={LOOP_MS}
+        width={wingBox}
+        height={wingBox}
+      >
+        <Svg width={wingBox} height={wingBox} viewBox={wingViewBox(LEFT_WING)}>
+          <Ellipse cx={LEFT_WING.cx} cy={LEFT_WING.cy} rx={4} ry={6} fill={WING_FILL} />
+        </Svg>
+      </LoopLayer>
+      <LoopLayer
+        sample={rightWingSampler}
+        size={size}
+        durationMs={LOOP_MS}
+        width={wingBox}
+        height={wingBox}
+      >
+        <Svg width={wingBox} height={wingBox} viewBox={wingViewBox(RIGHT_WING)}>
+          <Ellipse cx={RIGHT_WING.cx} cy={RIGHT_WING.cy} rx={4} ry={6} fill={WING_FILL} />
+        </Svg>
+      </LoopLayer>
+      {/* Sparkles */}
+      <LoopDot sample={sparkle1Sampler} size={size} durationMs={LOOP_MS} color={SPARKLE_FILL} />
+      <LoopDot sample={sparkle2Sampler} size={size} durationMs={LOOP_MS} color={SPARKLE_FILL} />
+    </PetFloat>
   );
 });
 CardSpritePet.displayName = 'CardSpritePet';

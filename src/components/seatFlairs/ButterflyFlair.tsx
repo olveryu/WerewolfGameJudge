@@ -2,18 +2,16 @@
  * ButterflyFlair — Dancing Butterflies
  *
  * 4 butterflies fly around the periphery, wings flapping (simulated with dual circles), with body dots.
- * react-native-svg + Reanimated useAnimatedProps.
+ * The seed phase offsets orbit angle and flap, not time, so samplers keep it and no cycle shift is applied.
  */
-import { memo, useMemo } from 'react';
+import { Fragment, memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type DotSampler, LoopDot } from '@/components/loopMotion';
 
 import type { FlairProps } from './FlairProps';
-import { AnimatedCircle } from './svgAnimatedPrimitives';
 
+const LOOP_MS = 6000;
 const N = 6;
 const COLORS = [
   [180, 100, 220],
@@ -24,103 +22,73 @@ const COLORS = [
   [210, 130, 250],
 ] as const;
 
-interface ButterflySeed {
-  phase: number;
-  orbit: number;
-  speed: number;
+const BUTTERFLY_SEEDS = Array.from({ length: N }, (_, i) => ({
+  phase: i / N,
+  orbit: 0.28 + (i % 2) * 0.08,
+  speed: 0.6 + i * 0.1,
+}));
+
+type ButterflySeed = (typeof BUTTERFLY_SEEDS)[number];
+
+interface ButterflyPose {
+  x: number;
+  y: number;
+  angle: number;
+  wingFlap: number;
 }
 
-const ButterflyParticle = memo<{
-  seed: ButterflySeed;
-  colorIndex: number;
-  size: number;
-  progress: { value: number };
-}>(({ seed, colorIndex, size, progress }) => {
-  const [cr, cg, cb] = COLORS[colorIndex]!;
+function butterflyPose(t: number, size: number, seed: ButterflySeed): ButterflyPose {
+  const cx = size / 2;
+  const cy = size / 2;
+  const angle = (t * seed.speed + seed.phase) * Math.PI * 2;
+  const dist = seed.orbit * size + Math.sin(t * Math.PI * 4) * size * 0.03;
+  const x = cx + Math.cos(angle) * dist;
+  const y = cy + Math.sin(angle) * dist;
+  const wingFlap = Math.abs(Math.sin(t * Math.PI * 8 + seed.phase * 10));
+  return { x, y, angle, wingFlap };
+}
 
-  const wing1Props = useAnimatedProps(() => {
-    'worklet';
-    const t = progress.value;
-    const cx = size / 2;
-    const cy = size / 2;
-    const angle = (t * seed.speed + seed.phase) * Math.PI * 2;
-    const dist = seed.orbit * size + Math.sin(t * Math.PI * 4) * size * 0.03;
-    const x = cx + Math.cos(angle) * dist;
-    const y = cy + Math.sin(angle) * dist;
-    const wingFlap = Math.abs(Math.sin(t * Math.PI * 8 + seed.phase * 10));
+function wingSampler(seed: ButterflySeed, side: -1 | 1): DotSampler {
+  return (t, size) => {
+    const { x, y, angle, wingFlap } = butterflyPose(t, size, seed);
     const wingR = size * 0.02 * (0.3 + 0.7 * wingFlap);
     const alpha = 0.4 + 0.4 * wingFlap;
     const bodyAngle = angle + Math.PI / 2;
     const wdx = Math.cos(bodyAngle) * wingR * 0.5;
     const wdy = Math.sin(bodyAngle) * wingR * 0.5;
-    return { cx: x - wdx, cy: y - wdy, r: wingR, opacity: alpha };
-  });
+    return { cx: x + side * wdx, cy: y + side * wdy, r: wingR, opacity: alpha };
+  };
+}
 
-  const wing2Props = useAnimatedProps(() => {
-    'worklet';
-    const t = progress.value;
-    const cx = size / 2;
-    const cy = size / 2;
-    const angle = (t * seed.speed + seed.phase) * Math.PI * 2;
-    const dist = seed.orbit * size + Math.sin(t * Math.PI * 4) * size * 0.03;
-    const x = cx + Math.cos(angle) * dist;
-    const y = cy + Math.sin(angle) * dist;
-    const wingFlap = Math.abs(Math.sin(t * Math.PI * 8 + seed.phase * 10));
-    const wingR = size * 0.02 * (0.3 + 0.7 * wingFlap);
-    const alpha = 0.4 + 0.4 * wingFlap;
-    const bodyAngle = angle + Math.PI / 2;
-    const wdx = Math.cos(bodyAngle) * wingR * 0.5;
-    const wdy = Math.sin(bodyAngle) * wingR * 0.5;
-    return { cx: x + wdx, cy: y + wdy, r: wingR, opacity: alpha };
-  });
+const WING1_SAMPLERS: readonly DotSampler[] = BUTTERFLY_SEEDS.map((seed) => wingSampler(seed, -1));
+const WING2_SAMPLERS: readonly DotSampler[] = BUTTERFLY_SEEDS.map((seed) => wingSampler(seed, 1));
 
-  const bodyProps = useAnimatedProps(() => {
-    'worklet';
-    const t = progress.value;
-    const cx = size / 2;
-    const cy = size / 2;
-    const angle = (t * seed.speed + seed.phase) * Math.PI * 2;
-    const dist = seed.orbit * size + Math.sin(t * Math.PI * 4) * size * 0.03;
-    const x = cx + Math.cos(angle) * dist;
-    const y = cy + Math.sin(angle) * dist;
-    const wingFlap = Math.abs(Math.sin(t * Math.PI * 8 + seed.phase * 10));
-    const alpha = Math.min(1, 0.4 + 0.4 * wingFlap + 0.2);
-    return { cx: x, cy: y, r: size * 0.005, opacity: alpha };
-  });
-
-  return (
-    <>
-      <AnimatedCircle animatedProps={wing1Props} fill={`rgb(${cr},${cg},${cb})`} />
-      <AnimatedCircle animatedProps={wing2Props} fill={`rgb(${cr},${cg},${cb})`} />
-      <AnimatedCircle animatedProps={bodyProps} fill={`rgb(${cr - 40},${cg - 40},${cb - 40})`} />
-    </>
-  );
+const BODY_SAMPLERS: readonly DotSampler[] = BUTTERFLY_SEEDS.map((seed) => (t, size) => {
+  const { x, y, wingFlap } = butterflyPose(t, size, seed);
+  const alpha = Math.min(1, 0.4 + 0.4 * wingFlap + 0.2);
+  return { cx: x, cy: y, r: size * 0.005, opacity: alpha };
 });
-ButterflyParticle.displayName = 'ButterflyParticle';
 
-export const ButterflyFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useLoopProgress(6000);
-
-  const seeds = useMemo(
-    () =>
-      Array.from({ length: N }, (_, i) => ({
-        phase: i / N,
-        orbit: 0.28 + (i % 2) * 0.08,
-        speed: 0.6 + i * 0.1,
-      })),
-    [],
-  );
-
-  return (
-    <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {seeds.map((s, i) => (
-          <ButterflyParticle key={i} seed={s} colorIndex={i} size={size} progress={progress} />
-        ))}
-      </Svg>
-    </View>
-  );
-});
+export const ButterflyFlair = memo<FlairProps>(({ size }) => (
+  <View style={[styles.wrapper, { width: size, height: size }]}>
+    {BUTTERFLY_SEEDS.map((seed, i) => {
+      const [cr, cg, cb] = COLORS[i]!;
+      const wingColor = `rgb(${cr},${cg},${cb})`;
+      return (
+        <Fragment key={`butterfly-${seed.speed}`}>
+          <LoopDot sample={WING1_SAMPLERS[i]!} size={size} durationMs={LOOP_MS} color={wingColor} />
+          <LoopDot sample={WING2_SAMPLERS[i]!} size={size} durationMs={LOOP_MS} color={wingColor} />
+          <LoopDot
+            sample={BODY_SAMPLERS[i]!}
+            size={size}
+            durationMs={LOOP_MS}
+            color={`rgb(${cr - 40},${cg - 40},${cb - 40})`}
+          />
+        </Fragment>
+      );
+    })}
+  </View>
+));
 ButterflyFlair.displayName = 'ButterflyFlair';
 
 const styles = StyleSheet.create({

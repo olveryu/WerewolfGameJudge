@@ -1,6 +1,16 @@
-/** Accessible indeterminate progress bar shared by bounded loading surfaces. */
+/**
+ * Accessible indeterminate progress bar shared by bounded loading surfaces.
+ *
+ * The sweep is a Reanimated CSS animation (`animationName` keyframes): a real `@keyframes` rule
+ * on web and a Reanimated-core animation on native, so the loop never touches the JS thread.
+ * Honours the system reduced-motion preference by rendering the bar at rest.
+ *
+ * Owns only geometry (track height / radius / clipping, bar width ratio). Colours come from the
+ * caller through `style` / `barStyle`, so a status banner and a loading screen can share the
+ * sweep without one overriding the other's defaults.
+ */
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   type LayoutChangeEvent,
   type StyleProp,
@@ -9,69 +19,75 @@ import {
   type ViewStyle,
 } from 'react-native';
 import Animated, {
-  cancelAnimation,
-  interpolate,
-  useAnimatedStyle,
+  type CSSAnimationProperties,
+  cubicBezier,
   useReducedMotion,
-  useSharedValue,
-  withRepeat,
-  withTiming,
 } from 'react-native-reanimated';
 
-import { colors, componentSizes } from '@/theme';
+import { componentSizes } from '@/theme';
 
 const BAR_WIDTH_RATIO = 0.3;
 const PROGRESS_DURATION_MS = 1_500;
+/** Penner easeInOutQuad — matches Reanimated's `withTiming` default `Easing.inOut(Easing.quad)`. */
+const SWEEP_EASING = cubicBezier(0.455, 0.03, 0.515, 0.955);
 
 interface IndeterminateProgressBarProps {
-  readonly accessibilityLabel: string;
-  readonly style?: StyleProp<ViewStyle>;
+  /**
+   * Label for the progressbar role. Omit when a sibling `Text` already carries the same
+   * message; the bar is then hidden from assistive technology instead of read twice.
+   */
+  readonly accessibilityLabel?: string;
+  /** Track style: colour and layout; merged over the default full-width geometry. */
+  readonly style: StyleProp<ViewStyle>;
+  /** Moving bar style: colour; merged over the default geometry. */
+  readonly barStyle: StyleProp<ViewStyle>;
+}
+
+function sweepAnimation(barWidth: number, trackWidth: number): CSSAnimationProperties {
+  return {
+    animationName: {
+      from: { transform: [{ translateX: -barWidth }] },
+      to: { transform: [{ translateX: trackWidth }] },
+    },
+    animationDuration: PROGRESS_DURATION_MS,
+    animationTimingFunction: SWEEP_EASING,
+    animationIterationCount: 'infinite',
+  };
 }
 
 /** Render a looping progress track without implying a measurable completion percentage. */
 export function IndeterminateProgressBar({
   accessibilityLabel,
   style,
+  barStyle,
 }: IndeterminateProgressBarProps) {
   const reducedMotion = useReducedMotion();
-  const progressValue = useSharedValue(0);
   const [trackWidth, setTrackWidth] = useState(0);
   const barWidth = trackWidth * BAR_WIDTH_RATIO;
-
-  useEffect(() => {
-    if (reducedMotion || trackWidth === 0) {
-      cancelAnimation(progressValue);
-      progressValue.value = 0;
-      return;
-    }
-    progressValue.value = 0;
-    progressValue.value = withRepeat(withTiming(1, { duration: PROGRESS_DURATION_MS }), -1);
-    return () => cancelAnimation(progressValue);
-  }, [progressValue, reducedMotion, trackWidth]);
-
-  const progressStyle = useAnimatedStyle(() => ({
-    width: barWidth,
-    transform: [
-      {
-        translateX: reducedMotion
-          ? 0
-          : interpolate(progressValue.value, [0, 1], [-barWidth, trackWidth]),
-      },
-    ],
-  }));
+  const isSweeping = !reducedMotion && trackWidth > 0;
 
   const handleLayout = (event: LayoutChangeEvent): void => {
     setTrackWidth(event.nativeEvent.layout.width);
   };
 
+  const accessibility =
+    accessibilityLabel === undefined
+      ? {
+          accessibilityElementsHidden: true,
+          importantForAccessibility: 'no-hide-descendants' as const,
+        }
+      : { accessibilityLabel, accessibilityRole: 'progressbar' as const };
+
   return (
-    <View
-      accessibilityLabel={accessibilityLabel}
-      accessibilityRole="progressbar"
-      onLayout={handleLayout}
-      style={[styles.track, style]}
-    >
-      <Animated.View style={[styles.bar, progressStyle]} />
+    <View {...accessibility} onLayout={handleLayout} style={[styles.track, style]}>
+      <Animated.View
+        style={[
+          styles.bar,
+          barStyle,
+          { width: barWidth },
+          isSweeping && sweepAnimation(barWidth, trackWidth),
+        ]}
+      />
     </View>
   );
 }
@@ -82,11 +98,9 @@ const styles = StyleSheet.create({
     height: componentSizes.progressBar.height,
     borderRadius: componentSizes.progressBar.borderRadius,
     overflow: 'hidden',
-    backgroundColor: colors.border,
   },
   bar: {
     height: '100%',
     borderRadius: componentSizes.progressBar.borderRadius,
-    backgroundColor: colors.primary,
   },
 });

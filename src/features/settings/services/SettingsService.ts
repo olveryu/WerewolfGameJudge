@@ -11,7 +11,8 @@
  * - UI-layer settings panel rendering
  *
  * Boundary constraints:
- * - load() must be called once at app startup; subsequent reads are synchronous
+ * - load() is kicked off by the composition root (createAppServices) and notifies listeners
+ *   when storage has been read; subsequent reads are synchronous
  * - Reads may use defaults when MMKV is unavailable; writes reject without changing state
  */
 import {
@@ -58,6 +59,8 @@ interface UserSettings {
   bgmVolume: number;
   /** Foreground game audio volume 0.0–1.0 (default: 1.0) */
   gameAudioVolume: number;
+  /** Seat flairs / pets / arrivals in the room grid. Off saves battery on long sessions. */
+  seatDecorationsEnabled: boolean;
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
@@ -66,6 +69,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   bgmTrack: 'random',
   bgmVolume: BGM_VOLUME,
   gameAudioVolume: MAX_VOLUME,
+  seatDecorationsEnabled: true,
 };
 
 function clampVolume(volume: number): number {
@@ -175,6 +179,11 @@ function parsePersistedSettings(value: unknown): UserSettings {
       'gameAudioVolume',
       DEFAULT_SETTINGS.gameAudioVolume,
     ),
+    seatDecorationsEnabled: readPersistedBoolean(
+      Reflect.get(value, 'seatDecorationsEnabled'),
+      'seatDecorationsEnabled',
+      DEFAULT_SETTINGS.seatDecorationsEnabled,
+    ),
   };
 }
 
@@ -214,6 +223,9 @@ export class SettingsService {
       this.#settings = { ...DEFAULT_SETTINGS };
       this.#loaded = true;
     }
+    // Subscribers that rendered before storage was read (e.g. the room grid on a cold start)
+    // must re-read the persisted values.
+    this.#notifyListeners();
   }
 
   /**
@@ -333,6 +345,24 @@ export class SettingsService {
       ...this.#settings,
       gameAudioVolume: requireFiniteVolume(volume, 'gameAudioVolume'),
     });
+  }
+
+  // =========================================================================
+  // Display
+  // =========================================================================
+
+  /**
+   * Whether seat decorations (flairs / pets / arrival animations) render in the room grid.
+   */
+  isSeatDecorationsEnabled(): boolean {
+    return this.#settings.seatDecorationsEnabled;
+  }
+
+  /**
+   * Set seat decorations visibility and persist.
+   */
+  async setSeatDecorationsEnabled(enabled: boolean): Promise<void> {
+    await this.#save({ ...this.#settings, seatDecorationsEnabled: enabled });
   }
 
   // =========================================================================

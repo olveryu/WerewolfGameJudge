@@ -11,6 +11,7 @@ import React, { useEffect } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useSharedValue,
@@ -106,6 +107,10 @@ export const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ co
       ),
       -1,
     );
+    return () => {
+      cancelAnimation(cycle);
+      cancelAnimation(glowPulse);
+    };
   }, [animate, cycle, glowPulse]);
 
   const glowRadius = screenW * 0.6;

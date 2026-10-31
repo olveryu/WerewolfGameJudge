@@ -1,63 +1,47 @@
 /**
- * FlickerFlair — Flicker.
+ * FlickerFlair — flicker
  *
- * A single center dot that flickers with randomized intensity. Template for Common-tier seat flairs.
+ * A centre ember flickers irregularly inside a soft halo. Common-tier seat flair template.
  */
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type DotSampler, LoopDot } from '@/components/loopMotion';
 
 import type { FlairProps } from '../FlairProps';
-import { AnimatedCircle } from '../svgAnimatedPrimitives';
 import type { FlairColorSet } from './palette';
 
 interface ColoredFlairProps extends FlairProps {
   colors: FlairColorSet;
 }
 
-export const FlickerFlair = memo<ColoredFlairProps>(({ size, colors }) => {
-  const progress = useLoopProgress(1800);
+const LOOP_MS = 1800;
 
-  const coreProps = useAnimatedProps(() => {
-    'worklet';
-    const t = progress.value;
-    // Two overlapping sin waves for an irregular flicker
-    const a = Math.sin(t * Math.PI * 2) * 0.3;
-    const b = Math.sin(t * Math.PI * 6) * 0.15;
-    const alpha = 0.35 + a + b;
-    const r = size * 0.03 + Math.sin(t * Math.PI * 4) * size * 0.008;
-    return {
-      cx: size / 2,
-      cy: size / 2,
-      r,
-      opacity: Math.max(0, alpha),
-    };
-  });
+/** Two overlapping sine waves give an irregular flicker. */
+const coreSampler: DotSampler = (t, size) => {
+  const a = Math.sin(t * Math.PI * 2) * 0.3;
+  const b = Math.sin(t * Math.PI * 6) * 0.15;
+  return {
+    cx: size / 2,
+    cy: size / 2,
+    r: size * 0.03 + Math.sin(t * Math.PI * 4) * size * 0.008,
+    opacity: Math.max(0, 0.35 + a + b),
+  };
+};
 
-  const haloProps = useAnimatedProps(() => {
-    'worklet';
-    const t = progress.value;
-    const alpha = 0.15 + Math.sin(t * Math.PI * 2) * 0.15;
-    return {
-      cx: size / 2,
-      cy: size / 2,
-      r: size * 0.06,
-      opacity: Math.max(0, alpha),
-    };
-  });
-
-  return (
-    <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        <AnimatedCircle animatedProps={haloProps} fill={colors.rgbLight} />
-        <AnimatedCircle animatedProps={coreProps} fill={colors.rgb} />
-      </Svg>
-    </View>
-  );
+const haloSampler: DotSampler = (t, size) => ({
+  cx: size / 2,
+  cy: size / 2,
+  r: size * 0.06,
+  opacity: Math.max(0, 0.15 + Math.sin(t * Math.PI * 2) * 0.15),
 });
+
+export const FlickerFlair = memo<ColoredFlairProps>(({ size, colors }) => (
+  <View style={[styles.wrapper, { width: size, height: size }]}>
+    <LoopDot sample={haloSampler} size={size} durationMs={LOOP_MS} color={colors.rgbLight} />
+    <LoopDot sample={coreSampler} size={size} durationMs={LOOP_MS} color={colors.rgb} />
+  </View>
+));
 FlickerFlair.displayName = 'FlickerFlair';
 
 const styles = StyleSheet.create({

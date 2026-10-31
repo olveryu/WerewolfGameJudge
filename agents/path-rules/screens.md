@@ -69,17 +69,15 @@ Faction colors must uniformly use theme tokens. Hardcoded color values are forbi
 | `UserAvatar`      | `src/components/UserAvatar.tsx`      | User avatar button + level badge (shared by HomeScreen TopBar / RoomScreen HeaderActions) |
 | `AvatarWithFrame` | `src/components/AvatarWithFrame.tsx` | Avatar + decorative frame rendering (SeatTile / AppearanceScreen)                         |
 
-### Seat Flairs (seatFlairs)
+### Seat Flairs / Pets / Frames (persistent decorations)
 
-`src/components/seatFlairs/` — 10 Skia particle animation components, registry pattern same as `avatarFrames/`.
+`src/components/seatFlairs/`, `src/components/seatPets/`, `src/components/avatarFrames/` — registry pattern (`SEAT_FLAIRS` + `getFlairById`, `getPetByEffectId`, `AVATAR_FRAMES` + `getFrameById`).
 
-- `index.ts` exports `SEAT_FLAIRS` object + `getFlairComponent(flairId)` factory function.
-- Each Flair accepts `FlairProps` (`size` / `progress: SharedValue<number>`), renders with Skia Immediate Mode.
-- Adding flair: create component → register in `index.ts` → add to `product/rewards/catalog.ts` SEAT_FLAIR_IDS.
-
-### Avatar Frames (avatarFrames)
-
-`src/components/avatarFrames/` — Registry pattern, `getFrameComponent(frameId)` factory function. Adding frames follows same process.
+- These render on every seat for the whole room session, so their loops MUST be compositor-only: use the `src/components/loopMotion/` primitives (`LoopDot` / `LoopLine` / `LoopRing` / `LoopPath` / `LoopLayer` / `LoopMorph` / `LoopDashFlow`). `useAnimatedProps`, `useAnimatedStyle` driven by `withRepeat(..., -1)` and animated SVG attributes are forbidden here. Design: [docs/loop-motion-design.md](../../docs/loop-motion-design.md).
+- Motion is a module-level pure sampler `(t, size) => geometry`; the primitive samples it once per `(sampler, size, duration)` into a shared `css.keyframes()` rule. Phase offsets go through the `phase` prop (negative `animationDelay`), not into the sampler.
+- Flairs accept `FlairProps` (`size` / `borderRadius`), pets `PetProps` (`size`) inside `PetFloat`, frames `FrameProps` (`size` / `rx`) in the `-8 -8 116 116` viewBox (`frameViewBox.ts`). Perimeter highlights use `PerimeterSweep`.
+- Adding one: component → register in the folder's `index.ts` → add the id to `product/rewards/catalog.ts`.
+- The room grid gates all three through `seatDecorationsEnabled` (phase) AND `useSeatDecorationsPreference()` (settings switch + reduced motion).
 
 ## Actor Identity Three-Layer Semantics
 

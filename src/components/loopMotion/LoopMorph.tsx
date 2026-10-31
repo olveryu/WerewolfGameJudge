@@ -1,0 +1,177 @@
+/**
+ * LoopMorph — a shape whose geometry changes over the loop, rendered as K static variants.
+ *
+ * Boundary: presentation only. CSS animations cannot interpolate SVG path data, so the morph
+ * is discretised: `renderVariant(k)` draws the shape at loop progress `k / variantCount`, and
+ * each variant's opacity follows a window around its own phase. Alpha compositing is not
+ * linear, so the window shape depends on the artwork's opacity:
+ *
+ * - `'crossfade'` — triangular windows forming a partition of unity. For translucent strokes
+ *   (α ≲ 0.5) the blend tracks `sample(t).opacity` within ~α²/4. Opaque artwork would dip to
+ *   75 % coverage between poses.
+ * - `'stacked'` — in each segment the variant earlier in stacking order stays at full weight
+ *   and the later one fades (in when incoming, out when outgoing), so coverage never drops.
+ *   Correct for opaque artwork; translucent artwork would brighten where poses overlap.
+ * - `'step'` — box windows for shapes that should snap (lightning, sparks).
+ * `cyclesPerLoop` repeats the variant sequence that many times per loop, for motion that is
+ * periodic in a shorter interval than the loop (e.g. a dash pattern sliding along a path).
+ * Everything is compositor-only; see `loopKeyframes.ts`. `sample` must be a module-level pure
+ * function — together with `variantCount`, `mode` and `cyclesPerLoop` it is the cache key.
+ */
+import { memo, type ReactNode } from 'react';
+import { StyleSheet } from 'react-native';
+import Animated from 'react-native-reanimated';
+
+import {
+  createLoopRuleCache,
+  loopAnimationProps,
+  type LoopFrame,
+  type LoopSampler,
+} from './loopKeyframes';
+
+/** Base opacity at loop progress `t`; variant windows multiply into it. */
+export interface MorphFrame {
+  opacity: number;
+}
+
+export type MorphSampler = LoopSampler<MorphFrame>;
+
+export type MorphMode = 'crossfade' | 'stacked' | 'step';
+
+export interface LoopMorphProps {
+  sample: MorphSampler;
+  /** Tile pixel size: box edge and the value forwarded to `sample` / `renderVariant`. */
+  size: number;
+  /** Loop length in ms. */
+  durationMs: number;
+  /** Cycle offset in `[0, 1)`; defaults to 0. */
+  phase?: number;
+  /**
+   * Number of static variants; variant `k` is the shape at cycle phase `k / variantCount`.
+   */
+  variantCount: number;
+  mode: MorphMode;
+  /** Integer number of variant cycles per loop; defaults to 1 (one cycle spans the loop). */
+  cyclesPerLoop?: number;
+  /** Draws the static shape for variant `k` inside a `size × size` box. */
+  renderVariant: (k: number, size: number) => ReactNode;
+}
+
+const IDENTITY = { translateX: 0, translateY: 0, rotateDeg: 0, scaleX: 1, scaleY: 1 } as const;
+
+/** Signed distance from `t` to `centre` on the unit circle, in `[-0.5, 0.5]`. */
+function wrappedDistance(t: number, centre: number): number {
+  const d = t - centre;
+  return d - Math.round(d);
+}
+
+/** @internal exported for tests */
+export function windowWeight(
+  cyclePhase: number,
+  k: number,
+  variantCount: number,
+  mode: MorphMode,
+): number {
+  if (mode === 'stacked') return stackedWeight(cyclePhase, k, variantCount);
+  const d = wrappedDistance(cyclePhase, k / variantCount);
+  if (mode === 'step') {
+    return d >= 0 && d < 1 / variantCount ? 1 : 0;
+  }
+  return Math.max(0, 1 - Math.abs(d) * variantCount);
+}
+
+/**
+ * Segment `[k₀/N, (k₀+1)/N)` blends variant `k₀` (outgoing) with `(k₀+1) mod N` (incoming).
+ * The lower variant in stacking order (smaller index, rendered first) holds weight 1 while the
+ * upper one fades — in when it is the incoming pose, out when it is the outgoing one (the wrap
+ * segment, where the incoming pose `0` sits below `N−1`).
+ */
+function stackedWeight(cyclePhase: number, k: number, variantCount: number): number {
+  const scaled = ((cyclePhase % 1) + 1) % 1;
+  const outgoing = Math.floor(scaled * variantCount) % variantCount;
+  const incoming = (outgoing + 1) % variantCount;
+  const progress = scaled * variantCount - Math.floor(scaled * variantCount);
+  if (k !== outgoing && k !== incoming) return 0;
+  const lower = Math.min(outgoing, incoming);
+  if (k === lower) return 1;
+  return k === incoming ? progress : 1 - progress;
+}
+
+/**
+ * Per-variant samplers derived from the base sampler. Memoised so each
+ * `(sample, count, mode, cyclesPerLoop)` yields stable function references for the keyframes cache.
+ */
+const variantSamplerCache = new WeakMap<MorphSampler, Map<string, MorphSampler[]>>();
+
+function getVariantSamplers(
+  sample: MorphSampler,
+  variantCount: number,
+  mode: MorphMode,
+  cyclesPerLoop: number,
+): MorphSampler[] {
+  let byKey = variantSamplerCache.get(sample);
+  if (!byKey) {
+    byKey = new Map();
+    variantSamplerCache.set(sample, byKey);
+  }
+  const key = `${variantCount}:${mode}:${cyclesPerLoop}`;
+  const hit = byKey.get(key);
+  if (hit) return hit;
+  const samplers = Array.from({ length: variantCount }, (_, k): MorphSampler => {
+    return (t, size) => ({
+      opacity:
+        sample(t, size).opacity * windowWeight((t * cyclesPerLoop) % 1, k, variantCount, mode),
+    });
+  });
+  byKey.set(key, samplers);
+  return samplers;
+}
+
+const getRule = createLoopRuleCache<MorphFrame, null>((samples) => {
+  const frames: LoopFrame[] = samples.map((s) => ({ ...IDENTITY, opacity: s.opacity }));
+  return { frames, layout: null };
+});
+
+export const LoopMorph = memo<LoopMorphProps>(
+  ({
+    sample,
+    size,
+    durationMs,
+    phase = 0,
+    variantCount,
+    mode,
+    cyclesPerLoop = 1,
+    renderVariant,
+  }) => {
+    if (!Number.isInteger(variantCount) || variantCount < 2) {
+      throw new Error(`LoopMorph requires an integer variantCount >= 2, received ${variantCount}`);
+    }
+    if (!Number.isInteger(cyclesPerLoop) || cyclesPerLoop < 1) {
+      throw new Error(
+        `LoopMorph requires an integer cyclesPerLoop >= 1, received ${cyclesPerLoop}`,
+      );
+    }
+    const samplers = getVariantSamplers(sample, variantCount, mode, cyclesPerLoop);
+    return (
+      <>
+        {samplers.map((variantSampler, k) => (
+          <Animated.View
+            key={`variant-${k}`}
+            style={[
+              styles.node,
+              { width: size, height: size },
+              loopAnimationProps(getRule(variantSampler, size, durationMs).rule, durationMs, phase),
+            ]}
+          >
+            {renderVariant(k, size)}
+          </Animated.View>
+        ))}
+      </>
+    );
+  },
+);
+LoopMorph.displayName = 'LoopMorph';
+
+const styles = StyleSheet.create({
+  node: { position: 'absolute', top: 0, left: 0 },
+});

@@ -55,6 +55,7 @@ import {
   AvatarSection,
   ChangePasswordForm,
   createSettingsScreenStyles,
+  DisplaySection,
   GrowthSection,
   NameSection,
 } from './components';
@@ -619,6 +620,7 @@ export const SettingsScreen: React.FC = () => {
           {renderAuthSection()}
         </View>
 
+        <DisplaySection styles={styles} />
         <AboutSection styles={styles} />
       </ScrollView>
     </SafeAreaView>

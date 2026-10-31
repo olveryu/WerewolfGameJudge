@@ -4,103 +4,67 @@
  * Ripple rings expanding from random positions: 5 ripple sources fire at different times,
  * each producing 3 concentric rings that expand and fade.
  */
-import { memo, useMemo } from 'react';
+import { Fragment, memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { LoopRing, type RingSampler } from '@/components/loopMotion';
 
 import type { FlairProps } from './FlairProps';
-import { AnimatedCircle } from './svgAnimatedPrimitives';
 
+const LOOP_MS = 3500;
 const RINGS_PER_RIPPLE = 3;
 
-interface RippleSeed {
-  cx: number;
-  cy: number;
-  phase: number;
-}
+const RIPPLE_SEEDS = [
+  { cx: 0.25, cy: 0.3, phase: 0 },
+  { cx: 0.7, cy: 0.2, phase: 0.2 },
+  { cx: 0.5, cy: 0.6, phase: 0.45 },
+  { cx: 0.15, cy: 0.75, phase: 0.6 },
+  { cx: 0.8, cy: 0.8, phase: 0.8 },
+] as const;
 
-/** Extracted so useAnimatedProps is at component scope */
-const RippleRing = memo<{
-  ri: number;
-  seed: RippleSeed;
-  size: number;
-  cx: number;
-  cy: number;
-  progress: { value: number };
-}>(({ ri, seed, size, cx, cy, progress }) => {
+type RippleSeed = (typeof RIPPLE_SEEDS)[number];
+
+const RING_INDICES = Array.from({ length: RINGS_PER_RIPPLE }, (_, i) => i);
+
+function createRingSampler(seed: RippleSeed, ri: number): RingSampler {
   const ringDelay = ri * 0.1;
-  const ringProps = useAnimatedProps(() => {
-    'worklet';
-    const t = (progress.value + seed.phase) % 1;
+  return (t, size) => {
     const localT = Math.max(0, t - ringDelay);
     const expansion = localT / (1 - ringDelay);
     const r = expansion * size * 0.12;
     const alpha = expansion < 0.05 ? expansion / 0.05 : (1 - expansion) * 0.2;
     return {
-      cx,
-      cy,
+      cx: seed.cx * size,
+      cy: seed.cy * size,
       r: Math.max(0, r),
-      opacity: Math.max(0, alpha),
       strokeWidth: size * (0.004 - ri * 0.001),
+      opacity: Math.max(0, alpha),
     };
-  });
-  return <AnimatedCircle animatedProps={ringProps} fill="none" stroke="rgb(100,180,220)" />;
-});
-RippleRing.displayName = 'RippleRing';
+  };
+}
 
-const RippleSource = memo<{ seed: RippleSeed; size: number; progress: { value: number } }>(
-  ({ seed, size, progress }) => {
-    const cx = seed.cx * size;
-    const cy = seed.cy * size;
+const RING_SAMPLERS: readonly (readonly RingSampler[])[] = RIPPLE_SEEDS.map((seed) =>
+  RING_INDICES.map((ri) => createRingSampler(seed, ri)),
+);
 
-    const rings = useMemo(() => Array.from({ length: RINGS_PER_RIPPLE }, (_, i) => i), []);
-
-    return (
-      <>
-        {rings.map((ri) => (
-          <RippleRing
-            key={ri}
-            ri={ri}
-            seed={seed}
+export const TidePoolFlair = memo<FlairProps>(({ size }) => (
+  <View style={[styles.wrapper, { width: size, height: size }]}>
+    {RIPPLE_SEEDS.map((seed, i) => (
+      <Fragment key={`ripple-${seed.cx}-${seed.cy}`}>
+        {RING_SAMPLERS[i]!.map((sampler, ri) => (
+          <LoopRing
+            key={`ring-${ri}`}
+            sample={sampler}
             size={size}
-            cx={cx}
-            cy={cy}
-            progress={progress}
+            durationMs={LOOP_MS}
+            phase={seed.phase}
+            color="rgb(100,180,220)"
           />
         ))}
-      </>
-    );
-  },
-);
-RippleSource.displayName = 'RippleSource';
-
-export const TidePoolFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useLoopProgress(3500);
-
-  const seeds = useMemo<RippleSeed[]>(
-    () => [
-      { cx: 0.25, cy: 0.3, phase: 0 },
-      { cx: 0.7, cy: 0.2, phase: 0.2 },
-      { cx: 0.5, cy: 0.6, phase: 0.45 },
-      { cx: 0.15, cy: 0.75, phase: 0.6 },
-      { cx: 0.8, cy: 0.8, phase: 0.8 },
-    ],
-    [],
-  );
-
-  return (
-    <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {seeds.map((s, i) => (
-          <RippleSource key={i} seed={s} size={size} progress={progress} />
-        ))}
-      </Svg>
-    </View>
-  );
-});
+      </Fragment>
+    ))}
+  </View>
+));
 TidePoolFlair.displayName = 'TidePoolFlair';
 
 const styles = StyleSheet.create({

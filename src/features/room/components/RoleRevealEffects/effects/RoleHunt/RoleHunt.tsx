@@ -34,6 +34,7 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
+  cancelAnimation,
   Easing,
   interpolate,
   useAnimatedStyle,
@@ -370,6 +371,9 @@ const AnimatedAnimal: React.FC<AnimatedAnimalProps> = React.memo(
         ),
         -1,
       );
+      return () => {
+        cancelAnimation(bobValue);
+      };
     }, [bobValue, animal.id]);
 
     useEffect(() => {
@@ -833,6 +837,11 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
       ),
       -1,
     );
+    return () => {
+      ffDrifts.forEach((sv) => cancelAnimation(sv));
+      ffFlickers.forEach((sv) => cancelAnimation(sv));
+      cancelAnimation(hintOpacity);
+    };
   }, [reducedMotion, fireflies, ffDrifts, ffFlickers, hintOpacity]);
 
   // ── Animal spawning ──

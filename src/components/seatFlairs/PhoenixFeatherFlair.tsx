@@ -1,97 +1,79 @@
 /**
  * PhoenixFeatherFlair - Phoenix feather
  *
- * 8 gold-red feathers spiral up from the outer ring with curved trajectory and glow.
- * react-native-svg + Reanimated useAnimatedProps.
+ * 8 gold-red feathers spiral up from the outer ring with curved trajectory and glow. Each feather
+ * (line + glow disc) is a rigid group moved and rotated by one LoopLayer.
  */
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
+import Svg, { Circle, Line } from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type LayerSampler, LoopLayer } from '@/components/loopMotion';
 
 import type { FlairProps } from './FlairProps';
-import { AnimatedCircle, AnimatedLine } from './svgAnimatedPrimitives';
 
+const LOOP_MS = 5000;
 const N = 8;
+/** Layer box as a fraction of tile size; covers the 0.035 half-length line plus the 0.025 glow. */
+const FEATHER_BOX_FRAC = 0.1;
+const RAD_TO_DEG = 180 / Math.PI;
 
-interface FeatherSeed {
-  angle: number;
-  phase: number;
-  dist: number;
+const FEATHER_SEEDS = Array.from({ length: N }, (_, i) => ({
+  angle: (i / N) * Math.PI * 2,
+  phase: i / N,
+  dist: 0.25 + (i % 3) * 0.08,
+}));
+
+const FEATHER_SAMPLERS: readonly LayerSampler[] = FEATHER_SEEDS.map((seed) => (tt, size) => {
+  const cx = size / 2;
+  const cy = size / 2;
+  const spiralAngle = seed.angle + tt * Math.PI * 4;
+  const dist = (seed.dist + tt * 0.2) * size;
+  const y0 = cy - tt * size * 0.3;
+  const x0 = cx + Math.cos(spiralAngle) * dist * 0.3;
+  const alpha = tt < 0.1 ? tt / 0.1 : tt > 0.7 ? (1 - tt) / 0.3 : 0.9;
+  const ang = spiralAngle + Math.PI / 2;
+  return { x: x0, y: y0, rotateDeg: ang * RAD_TO_DEG, scaleX: 1, scaleY: 1, opacity: alpha };
+});
+
+/** Static feather artwork centred on the origin: horizontal line + glow disc. */
+function FeatherArt({ size }: { size: number }) {
+  const box = size * FEATHER_BOX_FRAC;
+  const half = box / 2;
+  const featherLen = size * 0.035;
+  return (
+    <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
+      <Line
+        x1={-featherLen}
+        y1={0}
+        x2={featherLen}
+        y2={0}
+        stroke="rgb(255,160,30)"
+        strokeWidth={2}
+        opacity={0.8}
+      />
+      <Circle r={size * 0.025} fill="rgb(255,100,20)" opacity={0.3} />
+    </Svg>
+  );
 }
 
-const FeatherParticle = memo<{ seed: FeatherSeed; size: number; progress: { value: number } }>(
-  ({ seed, size, progress }) => {
-    const cx = size / 2;
-    const cy = size / 2;
-
-    const lineProps = useAnimatedProps(() => {
-      'worklet';
-      const t = progress.value;
-      const tt = (t + seed.phase) % 1;
-      const spiralAngle = seed.angle + tt * Math.PI * 4;
-      const dist = (seed.dist + tt * 0.2) * size;
-      const y0 = cy - tt * size * 0.3;
-      const x0 = cx + Math.cos(spiralAngle) * dist * 0.3;
-      const alpha = tt < 0.1 ? tt / 0.1 : tt > 0.7 ? (1 - tt) / 0.3 : 0.9;
-      const featherLen = size * 0.035;
-      const ang = spiralAngle + Math.PI / 2;
-      const dx = Math.cos(ang) * featherLen;
-      const dy = Math.sin(ang) * featherLen;
-      return {
-        x1: x0 - dx,
-        y1: y0 - dy,
-        x2: x0 + dx,
-        y2: y0 + dy,
-        opacity: alpha * 0.8,
-        strokeWidth: 2,
-      };
-    });
-
-    const glowProps = useAnimatedProps(() => {
-      'worklet';
-      const t = progress.value;
-      const tt = (t + seed.phase) % 1;
-      const spiralAngle = seed.angle + tt * Math.PI * 4;
-      const dist = (seed.dist + tt * 0.2) * size;
-      const y0 = cy - tt * size * 0.3;
-      const x0 = cx + Math.cos(spiralAngle) * dist * 0.3;
-      const alpha = tt < 0.1 ? tt / 0.1 : tt > 0.7 ? (1 - tt) / 0.3 : 0.9;
-      return { cx: x0, cy: y0, r: size * 0.025, opacity: alpha * 0.3 };
-    });
-
-    return (
-      <>
-        <AnimatedLine animatedProps={lineProps} stroke="rgb(255,160,30)" />
-        <AnimatedCircle animatedProps={glowProps} fill="rgb(255,100,20)" />
-      </>
-    );
-  },
-);
-FeatherParticle.displayName = 'FeatherParticle';
-
-export const PhoenixFeatherFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useLoopProgress(5000);
-
-  const seeds = useMemo(
-    () =>
-      Array.from({ length: N }, (_, i) => ({
-        angle: (i / N) * Math.PI * 2,
-        phase: i / N,
-        dist: 0.25 + (i % 3) * 0.08,
-      })),
-    [],
-  );
-
+export const PhoenixFeatherFlair = memo<FlairProps>(({ size }) => {
+  const box = size * FEATHER_BOX_FRAC;
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {seeds.map((s, i) => (
-          <FeatherParticle key={i} seed={s} size={size} progress={progress} />
-        ))}
-      </Svg>
+      {FEATHER_SEEDS.map((seed, i) => (
+        <LoopLayer
+          key={`feather-${seed.phase}`}
+          sample={FEATHER_SAMPLERS[i]!}
+          size={size}
+          durationMs={LOOP_MS}
+          phase={seed.phase}
+          width={box}
+          height={box}
+        >
+          <FeatherArt size={size} />
+        </LoopLayer>
+      ))}
     </View>
   );
 });

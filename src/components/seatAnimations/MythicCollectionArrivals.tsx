@@ -18,8 +18,8 @@ import {
   type MythicCollection,
 } from '@/config/mythicVisual';
 
-import { AnimatedPath } from '../seatFlairs/svgAnimatedPrimitives';
 import type { SeatAnimationProps } from './SeatAnimationProps';
+import { AnimatedPath } from './svgAnimatedPrimitives';
 
 const containerStyle: ViewStyle = { overflow: 'hidden' };
 const contentPosition: ViewStyle = { position: 'absolute', bottom: 0, left: 0 };

@@ -41,6 +41,9 @@ export const TESTIDS = {
   homeAnonLoginButton: 'home-anon-login-button', // "👤 匿名登录" button in modal
   homeSettingsButton: 'home-settings-button', // Top bar settings icon
 
+  // SettingsScreen - Display section
+  settingsSeatDecorationsSwitch: 'settings-seat-decorations-switch',
+
   configScreenRoot: 'config-screen-root',
   configBackButton: 'config-back-button',
   configTemplatePill: 'config-template-pill',

@@ -4,112 +4,78 @@
  * A single large lightning bolt strikes from top to bottom in three layers (outer halo / mid / core) + 4 scattered sparks.
  * Periodic flash cycle: quick flash → afterglow → dark → repeat.
  */
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type DotSampler, LoopDot, LoopPath, type PathSampler } from '@/components/loopMotion';
 
 import type { FlairProps } from './FlairProps';
-import { AnimatedCircle, AnimatedPath } from './svgAnimatedPrimitives';
 
-interface SparkSeed {
-  dx: number;
-  dy: number;
-  phase: number;
+const LOOP_MS = 3000;
+
+const BOLT_LAYERS = [
+  { color: 'rgb(80,140,255)', widthMul: 0.04, opacityMul: 0.3 },
+  { color: 'rgb(160,200,255)', widthMul: 0.02, opacityMul: 0.6 },
+  { color: 'rgb(240,245,255)', widthMul: 0.008, opacityMul: 0.9 },
+] as const;
+
+const SPARK_SEEDS = [
+  { dx: -0.15, dy: -0.1, phase: 0 },
+  { dx: 0.12, dy: -0.08, phase: 0 },
+  { dx: -0.1, dy: 0.12, phase: 0 },
+  { dx: 0.14, dy: 0.1, phase: 0 },
+] as const;
+
+function boltPath(size: number): string {
+  const cx = size * 0.5;
+  return `M ${cx} 0 L ${cx - size * 0.08} ${size * 0.25} L ${cx + size * 0.05} ${size * 0.35} L ${cx - size * 0.1} ${size * 0.55} L ${cx + size * 0.06} ${size * 0.7} L ${cx - size * 0.04} ${size}`;
 }
 
-const BoltLayer = memo<{
-  size: number;
-  progress: { value: number };
-  color: string;
-  widthMul: number;
-  opacityMul: number;
-}>(({ size, progress, color, widthMul, opacityMul }) => {
-  const props = useAnimatedProps(() => {
-    'worklet';
-    const t = progress.value;
-    const flash =
-      t < 0.1
-        ? t / 0.1
-        : t < 0.2
-          ? 1 - ((t - 0.1) / 0.1) * 0.5
-          : t < 0.3
-            ? 0.5 - ((t - 0.2) / 0.1) * 0.5
-            : 0;
-    const cx = size * 0.5;
-    const d = `M ${cx} 0 L ${cx - size * 0.08} ${size * 0.25} L ${cx + size * 0.05} ${size * 0.35} L ${cx - size * 0.1} ${size * 0.55} L ${cx + size * 0.06} ${size * 0.7} L ${cx - size * 0.04} ${size}`;
-    return { d, opacity: flash * opacityMul, strokeWidth: size * widthMul };
-  });
-  return (
-    <AnimatedPath
-      animatedProps={props}
-      stroke={color}
-      fill="none"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  );
+const BOLT_SAMPLERS: readonly PathSampler[] = BOLT_LAYERS.map((layer) => (t, size) => {
+  const flash =
+    t < 0.1
+      ? t / 0.1
+      : t < 0.2
+        ? 1 - ((t - 0.1) / 0.1) * 0.5
+        : t < 0.3
+          ? 0.5 - ((t - 0.2) / 0.1) * 0.5
+          : 0;
+  return { opacity: flash * layer.opacityMul, strokeWidth: size * layer.widthMul };
 });
-BoltLayer.displayName = 'BoltLayer';
 
-const SparkDot = memo<{ seed: SparkSeed; size: number; progress: { value: number } }>(
-  ({ seed, size, progress }) => {
-    const props = useAnimatedProps(() => {
-      'worklet';
-      const t = progress.value;
-      const flash = t < 0.1 ? t / 0.1 : t < 0.25 ? 1 - (t - 0.1) / 0.15 : 0;
-      const cx = size * 0.5 + seed.dx * size * flash;
-      const cy = size * 0.5 + seed.dy * size * flash;
-      return { cx, cy, r: size * 0.01 * flash, opacity: flash * 0.6 };
-    });
-    return <AnimatedCircle animatedProps={props} fill="rgb(255,255,255)" />;
-  },
-);
-SparkDot.displayName = 'SparkDot';
+const SPARK_SAMPLERS: readonly DotSampler[] = SPARK_SEEDS.map((seed) => (t, size) => {
+  const flash = t < 0.1 ? t / 0.1 : t < 0.25 ? 1 - (t - 0.1) / 0.15 : 0;
+  const cx = size * 0.5 + seed.dx * size * flash;
+  const cy = size * 0.5 + seed.dy * size * flash;
+  return { cx, cy, r: size * 0.01 * flash, opacity: flash * 0.6 };
+});
 
-export const ThunderClapFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useLoopProgress(3000);
-
-  const sparks = useMemo<SparkSeed[]>(
-    () => [
-      { dx: -0.15, dy: -0.1, phase: 0 },
-      { dx: 0.12, dy: -0.08, phase: 0 },
-      { dx: -0.1, dy: 0.12, phase: 0 },
-      { dx: 0.14, dy: 0.1, phase: 0 },
-    ],
-    [],
-  );
-
+export const ThunderClapFlair = memo<FlairProps>(({ size }) => {
+  const d = boltPath(size);
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        <BoltLayer
+      {BOLT_LAYERS.map((layer, i) => (
+        <LoopPath
+          key={layer.color}
+          sample={BOLT_SAMPLERS[i]!}
           size={size}
-          progress={progress}
-          color="rgb(80,140,255)"
-          widthMul={0.04}
-          opacityMul={0.3}
+          durationMs={LOOP_MS}
+          d={d}
+          stroke={layer.color}
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
-        <BoltLayer
+      ))}
+      {SPARK_SEEDS.map((seed, i) => (
+        <LoopDot
+          key={`spark-${seed.dx}-${seed.dy}`}
+          sample={SPARK_SAMPLERS[i]!}
           size={size}
-          progress={progress}
-          color="rgb(160,200,255)"
-          widthMul={0.02}
-          opacityMul={0.6}
+          durationMs={LOOP_MS}
+          phase={seed.phase}
+          color="rgb(255,255,255)"
         />
-        <BoltLayer
-          size={size}
-          progress={progress}
-          color="rgb(240,245,255)"
-          widthMul={0.008}
-          opacityMul={0.9}
-        />
-        {sparks.map((s, i) => (
-          <SparkDot key={i} seed={s} size={size} progress={progress} />
-        ))}
-      </Svg>
+      ))}
     </View>
   );
 });

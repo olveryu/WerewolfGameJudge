@@ -11,6 +11,7 @@ import { Blur, Canvas, Group, Paint, Picture, RoundedRect, Skia } from '@shopify
 import type React from 'react';
 import { useEffect, useMemo } from 'react';
 import {
+  cancelAnimation,
   Easing,
   useDerivedValue,
   useSharedValue,
@@ -89,6 +90,9 @@ export const BreathingBorder: React.FC<BreathingBorderProps> = ({
         -1,
       ),
     );
+    return () => {
+      cancelAnimation(breathe);
+    };
   }, [animate, duration, breathe]);
 
   // Runner light — continuous loop along border perimeter
@@ -98,6 +102,9 @@ export const BreathingBorder: React.FC<BreathingBorderProps> = ({
       withTiming(1, { duration: duration * 2, easing: Easing.linear }),
       -1,
     );
+    return () => {
+      cancelAnimation(runnerProgress);
+    };
   }, [animate, duration, runnerProgress]);
 
   // ── Derived Skia values ──

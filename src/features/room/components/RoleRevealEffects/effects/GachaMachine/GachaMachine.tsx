@@ -295,6 +295,7 @@ export const GachaMachine: React.FC<RevealEffectProps> = ({
 
     return () => {
       cancelAnimation(bobble);
+      cancelAnimation(rotaryLightCycle);
       bobble.value = 0;
     };
   }, [phase, reducedMotion, bobble, rotaryLightCycle]);

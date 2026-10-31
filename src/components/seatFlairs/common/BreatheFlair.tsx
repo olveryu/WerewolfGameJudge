@@ -1,22 +1,21 @@
 /**
- * BreatheFlair — breathe
+ * BreatheFlair — breathing bokeh
  *
- * 3 soft-glow dots scattered inside, alternating breathing pulses (bokeh style). Common-tier seat decoration template.
+ * Three soft dots breathe in and out of focus with a wider halo. Common-tier seat flair template.
  */
-import { memo, useMemo } from 'react';
+import { Fragment, memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type DotSampler, LoopDot } from '@/components/loopMotion';
 
 import type { FlairProps } from '../FlairProps';
-import { AnimatedCircle } from '../svgAnimatedPrimitives';
 import type { FlairColorSet } from './palette';
 
 interface ColoredFlairProps extends FlairProps {
   colors: FlairColorSet;
 }
+
+const LOOP_MS = 3200;
 
 const DOTS = [
   { xFrac: 0.28, yFrac: 0.25, rFrac: 0.055, phase: 0 },
@@ -24,66 +23,45 @@ const DOTS = [
   { xFrac: 0.4, yFrac: 0.72, rFrac: 0.05, phase: 0.66 },
 ] as const;
 
-const BokehDot = memo<{
-  dot: (typeof DOTS)[number];
-  size: number;
-  progress: { value: number };
-  color: string;
-  lightColor: string;
-}>(({ dot, size, progress, color, lightColor }) => {
-  const coreProps = useAnimatedProps(() => {
-    'worklet';
-    const t = (progress.value + dot.phase) % 1;
-    const breath = Math.sin(t * Math.PI * 2);
-    const alpha = 0.2 + breath * 0.35;
-    const r = size * dot.rFrac * (0.85 + breath * 0.15);
-    return { cx: dot.xFrac * size, cy: dot.yFrac * size, r, opacity: alpha };
-  });
-
-  const haloProps = useAnimatedProps(() => {
-    'worklet';
-    const t = (progress.value + dot.phase) % 1;
-    const breath = Math.sin(t * Math.PI * 2);
-    const alpha = 0.08 + breath * 0.12;
-    return {
-      cx: dot.xFrac * size,
-      cy: dot.yFrac * size,
-      r: size * dot.rFrac * 1.8,
-      opacity: alpha,
-    };
-  });
-
-  return (
-    <>
-      <AnimatedCircle animatedProps={haloProps} fill={lightColor} />
-      <AnimatedCircle animatedProps={coreProps} fill={color} />
-    </>
-  );
+const CORE_SAMPLERS: readonly DotSampler[] = DOTS.map((dot) => (t, size) => {
+  const breath = Math.sin(t * Math.PI * 2);
+  return {
+    cx: dot.xFrac * size,
+    cy: dot.yFrac * size,
+    r: size * dot.rFrac * (0.85 + breath * 0.15),
+    opacity: 0.2 + breath * 0.35,
+  };
 });
-BokehDot.displayName = 'BokehDot';
 
-export const BreatheFlair = memo<ColoredFlairProps>(({ size, colors }) => {
-  const progress = useLoopProgress(3200);
+const HALO_SAMPLERS: readonly DotSampler[] = DOTS.map((dot) => (t, size) => ({
+  cx: dot.xFrac * size,
+  cy: dot.yFrac * size,
+  r: size * dot.rFrac * 1.8,
+  opacity: 0.08 + Math.sin(t * Math.PI * 2) * 0.12,
+}));
 
-  const dots = useMemo(() => DOTS, []);
-
-  return (
-    <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {dots.map((d, i) => (
-          <BokehDot
-            key={i}
-            dot={d}
-            size={size}
-            progress={progress}
-            color={colors.rgb}
-            lightColor={colors.rgbLight}
-          />
-        ))}
-      </Svg>
-    </View>
-  );
-});
+export const BreatheFlair = memo<ColoredFlairProps>(({ size, colors }) => (
+  <View style={[styles.wrapper, { width: size, height: size }]}>
+    {DOTS.map((dot, i) => (
+      <Fragment key={`${dot.xFrac}-${dot.yFrac}`}>
+        <LoopDot
+          sample={HALO_SAMPLERS[i]!}
+          size={size}
+          durationMs={LOOP_MS}
+          phase={dot.phase}
+          color={colors.rgbLight}
+        />
+        <LoopDot
+          sample={CORE_SAMPLERS[i]!}
+          size={size}
+          durationMs={LOOP_MS}
+          phase={dot.phase}
+          color={colors.rgb}
+        />
+      </Fragment>
+    ))}
+  </View>
+));
 BreatheFlair.displayName = 'BreatheFlair';
 
 const styles = StyleSheet.create({

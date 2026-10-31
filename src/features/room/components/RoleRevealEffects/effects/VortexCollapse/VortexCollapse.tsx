@@ -26,6 +26,7 @@ import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
+  cancelAnimation,
   Easing,
   makeMutable,
   useAnimatedStyle,
@@ -531,6 +532,7 @@ export const VortexCollapse: React.FC<RevealEffectProps> = ({
     return () => {
       clearTimeout(timer);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      cancelAnimation(timeSV);
     };
   }, [reducedMotion, timeSV, cardScale, cardOpacity, canvasOpacity, updateLoop]);
 

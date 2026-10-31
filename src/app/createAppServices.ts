@@ -23,6 +23,9 @@ export function createAppServices(): {
   const roomDirectory = new CFRoomDirectoryService();
   const roomCreator = new RoomCreationService(roomDirectory, new RoomCreationIntentStore());
   const settingsService = new SettingsService();
+  // Persisted preferences (seat decorations, audio) must be in memory before the first room
+  // renders; load() notifies listeners when storage has been read.
+  void settingsService.load();
   const audioService = new AudioService();
   const avatarUploadService = new CFAvatarUploadService();
   const inboxWakes = createInboxWakeSignal();

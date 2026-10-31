@@ -2,163 +2,110 @@
  * StarlightFlair — Starlight
  *
  * 6 four-pointed stars float around the avatar with cross + diagonal rays + glow halo + center dot.
- * react-native-svg + Reanimated useAnimatedProps。
+ * Each star is a rigid static SVG group (halo / rays / dot) carried by one LoopLayer; the twinkle
+ * envelope drives the layer opacity and the per-element alpha multipliers are static opacities.
+ * The orbit uses the raw loop progress while the twinkle uses the phased one, so the seed phase
+ * stays inside the sampler rather than becoming an animation delay.
  */
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
+import Svg, { Circle, Line } from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type LayerSampler, LoopLayer } from '@/components/loopMotion';
 
 import type { FlairProps } from './FlairProps';
-import { AnimatedCircle, AnimatedLine } from './svgAnimatedPrimitives';
 
+const LOOP_MS = 5000;
 const N = 6;
+const ARM_LEN_FRAC = 0.05;
+/** Layer box as a fraction of tile size; covers the arm length plus stroke on each side. */
+const BOX_FRAC = 0.12;
 
-interface StarSeed {
-  angle0: number;
-  dist: number;
-  phase: number;
-  drift: number;
+const STAR_SEEDS = Array.from({ length: N }, (_, i) => ({
+  angle0: (i / N) * Math.PI * 2,
+  dist: 0.35 + (i % 3) * 0.05,
+  phase: i / N,
+  drift: 0.4 + (i % 4) * 0.25,
+}));
+
+const STAR_SAMPLERS: readonly LayerSampler[] = STAR_SEEDS.map((seed) => (t, size) => {
+  const cx = size / 2;
+  const cy = size / 2;
+  const angle = seed.angle0 + t * Math.PI * 2 * seed.drift;
+  const d = seed.dist * size;
+  const x = cx + Math.cos(angle) * d;
+  const y = cy + Math.sin(angle) * d;
+  const pt = (t + seed.phase) % 1;
+  const tw = 0.3 + 0.7 * Math.max(0, Math.sin(pt * Math.PI * 2));
+  return { x, y, rotateDeg: 0, scaleX: 1, scaleY: 1, opacity: tw };
+});
+
+/** Static star artwork centred on the origin. */
+function StarArt({ size }: { size: number }) {
+  const box = size * BOX_FRAC;
+  const half = box / 2;
+  const armLen = size * ARM_LEN_FRAC;
+  const diagLen = armLen * 0.55;
+  return (
+    <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
+      <Circle cx={0} cy={0} r={armLen * 0.9} fill="rgb(255,250,200)" opacity={0.15} />
+      <Line
+        x1={-armLen}
+        y1={0}
+        x2={armLen}
+        y2={0}
+        stroke="rgb(255,253,224)"
+        strokeWidth={1.5}
+        opacity={0.8}
+      />
+      <Line
+        x1={0}
+        y1={-armLen}
+        x2={0}
+        y2={armLen}
+        stroke="rgb(255,253,224)"
+        strokeWidth={1.5}
+        opacity={0.8}
+      />
+      <Line
+        x1={-diagLen}
+        y1={-diagLen}
+        x2={diagLen}
+        y2={diagLen}
+        stroke="rgb(255,253,224)"
+        strokeWidth={1}
+        opacity={0.5}
+      />
+      <Line
+        x1={-diagLen}
+        y1={diagLen}
+        x2={diagLen}
+        y2={-diagLen}
+        stroke="rgb(255,253,224)"
+        strokeWidth={1}
+        opacity={0.5}
+      />
+      <Circle cx={0} cy={0} r={size * 0.008} fill="rgb(255,255,240)" opacity={0.9} />
+    </Svg>
+  );
 }
 
-const StarParticle = memo<{ seed: StarSeed; size: number; progress: { value: number } }>(
-  ({ seed, size, progress }) => {
-    const cx = size / 2;
-    const cy = size / 2;
-    const armLen = size * 0.05;
-    const diagLen = armLen * 0.55;
-
-    const haloProps = useAnimatedProps(() => {
-      'worklet';
-      const angle = seed.angle0 + progress.value * Math.PI * 2 * seed.drift;
-      const d = seed.dist * size;
-      const x = cx + Math.cos(angle) * d;
-      const y = cy + Math.sin(angle) * d;
-      const t = (progress.value + seed.phase) % 1;
-      const tw = 0.3 + 0.7 * Math.max(0, Math.sin(t * Math.PI * 2));
-      return { cx: x, cy: y, r: armLen * 0.9, opacity: tw * 0.15 };
-    });
-
-    const cross1Props = useAnimatedProps(() => {
-      'worklet';
-      const angle = seed.angle0 + progress.value * Math.PI * 2 * seed.drift;
-      const d = seed.dist * size;
-      const x = cx + Math.cos(angle) * d;
-      const y = cy + Math.sin(angle) * d;
-      const t = (progress.value + seed.phase) % 1;
-      const tw = 0.3 + 0.7 * Math.max(0, Math.sin(t * Math.PI * 2));
-      return {
-        x1: x - armLen,
-        y1: y,
-        x2: x + armLen,
-        y2: y,
-        opacity: tw * 0.8,
-        strokeWidth: 1.5,
-      };
-    });
-
-    const cross2Props = useAnimatedProps(() => {
-      'worklet';
-      const angle = seed.angle0 + progress.value * Math.PI * 2 * seed.drift;
-      const d = seed.dist * size;
-      const x = cx + Math.cos(angle) * d;
-      const y = cy + Math.sin(angle) * d;
-      const t = (progress.value + seed.phase) % 1;
-      const tw = 0.3 + 0.7 * Math.max(0, Math.sin(t * Math.PI * 2));
-      return {
-        x1: x,
-        y1: y - armLen,
-        x2: x,
-        y2: y + armLen,
-        opacity: tw * 0.8,
-        strokeWidth: 1.5,
-      };
-    });
-
-    const diag1Props = useAnimatedProps(() => {
-      'worklet';
-      const angle = seed.angle0 + progress.value * Math.PI * 2 * seed.drift;
-      const d = seed.dist * size;
-      const x = cx + Math.cos(angle) * d;
-      const y = cy + Math.sin(angle) * d;
-      const t = (progress.value + seed.phase) % 1;
-      const tw = 0.3 + 0.7 * Math.max(0, Math.sin(t * Math.PI * 2));
-      return {
-        x1: x - diagLen,
-        y1: y - diagLen,
-        x2: x + diagLen,
-        y2: y + diagLen,
-        opacity: tw * 0.5,
-        strokeWidth: 1,
-      };
-    });
-
-    const diag2Props = useAnimatedProps(() => {
-      'worklet';
-      const angle = seed.angle0 + progress.value * Math.PI * 2 * seed.drift;
-      const d = seed.dist * size;
-      const x = cx + Math.cos(angle) * d;
-      const y = cy + Math.sin(angle) * d;
-      const t = (progress.value + seed.phase) % 1;
-      const tw = 0.3 + 0.7 * Math.max(0, Math.sin(t * Math.PI * 2));
-      return {
-        x1: x - diagLen,
-        y1: y + diagLen,
-        x2: x + diagLen,
-        y2: y - diagLen,
-        opacity: tw * 0.5,
-        strokeWidth: 1,
-      };
-    });
-
-    const dotProps = useAnimatedProps(() => {
-      'worklet';
-      const angle = seed.angle0 + progress.value * Math.PI * 2 * seed.drift;
-      const d = seed.dist * size;
-      const x = cx + Math.cos(angle) * d;
-      const y = cy + Math.sin(angle) * d;
-      const t = (progress.value + seed.phase) % 1;
-      const tw = 0.3 + 0.7 * Math.max(0, Math.sin(t * Math.PI * 2));
-      return { cx: x, cy: y, r: size * 0.008, opacity: tw * 0.9 };
-    });
-
-    return (
-      <>
-        <AnimatedCircle animatedProps={haloProps} fill="rgb(255,250,200)" />
-        <AnimatedLine animatedProps={cross1Props} stroke="rgb(255,253,224)" />
-        <AnimatedLine animatedProps={cross2Props} stroke="rgb(255,253,224)" />
-        <AnimatedLine animatedProps={diag1Props} stroke="rgb(255,253,224)" />
-        <AnimatedLine animatedProps={diag2Props} stroke="rgb(255,253,224)" />
-        <AnimatedCircle animatedProps={dotProps} fill="rgb(255,255,240)" />
-      </>
-    );
-  },
-);
-StarParticle.displayName = 'StarParticle';
-
-export const StarlightFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useLoopProgress(5000);
-
-  const seeds = useMemo(
-    () =>
-      Array.from({ length: N }, (_, i) => ({
-        angle0: (i / N) * Math.PI * 2,
-        dist: 0.35 + (i % 3) * 0.05,
-        phase: i / N,
-        drift: 0.4 + (i % 4) * 0.25,
-      })),
-    [],
-  );
-
+export const StarlightFlair = memo<FlairProps>(({ size }) => {
+  const box = size * BOX_FRAC;
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {seeds.map((s, i) => (
-          <StarParticle key={i} seed={s} size={size} progress={progress} />
-        ))}
-      </Svg>
+      {STAR_SEEDS.map((seed, i) => (
+        <LoopLayer
+          key={`star-${seed.phase}`}
+          sample={STAR_SAMPLERS[i]!}
+          size={size}
+          durationMs={LOOP_MS}
+          width={box}
+          height={box}
+        >
+          <StarArt size={size} />
+        </LoopLayer>
+      ))}
     </View>
   );
 });

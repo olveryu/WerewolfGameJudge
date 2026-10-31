@@ -1,132 +1,127 @@
 /**
  * PrismShardFlair — Prism Shards
  *
- * 6 colorful triangular shards rotate and float at the periphery, colors shift over time, with top highlight dots.
- * react-native-svg + Reanimated useAnimatedProps.
+ * 6 colorful triangular shards rotate and float at the periphery, colors shift over time, with top
+ * highlight dots. Each shard is a rigid group (fill disc + outline + vertex sparkle) moved by one
+ * LoopLayer; the 60° hue drift is a cross-fade between the loop's start and end colours.
  */
-import { memo, useMemo } from 'react';
+import { Fragment, memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type LayerSampler, LoopLayer } from '@/components/loopMotion';
 
 import type { FlairProps } from './FlairProps';
-import { AnimatedCircle, AnimatedPath } from './svgAnimatedPrimitives';
 
-const N = 6;
+const LOOP_MS = 7000;
+const SHARD_COUNT = 6;
 const HUES = [0, 60, 120, 180, 240, 300] as const;
+/** Hue travelled over one loop. */
+const HUE_DRIFT = 60;
+const SHARD_R_FRAC = 0.028;
+/** Layer box as a multiple of shard radius; leaves room for the stroke. */
+const BOX_FACTOR = 3;
+const SPARKLE_COLOR = 'rgb(240,240,255)';
 
-interface ShardSeed {
-  angle0: number;
-  dist: number;
-  phase: number;
-  rotSpeed: number;
+const SHARD_SEEDS = Array.from({ length: SHARD_COUNT }, (_, i) => ({
+  angle0: (i / SHARD_COUNT) * Math.PI * 2 + i * 0.5,
+  dist: 0.36 + (i % 3) * 0.05,
+  phase: i / SHARD_COUNT,
+  rotSpeed: 1.5 + (i % 3) * 0.5,
+  hue0: HUES[i]!,
+}));
+
+type ShardSeed = (typeof SHARD_SEEDS)[number];
+
+function hueToRgb(hue: number, base: number, swing: number): string {
+  const r = base + Math.round(Math.cos((hue * Math.PI) / 180) * swing);
+  const g = base + Math.round(Math.cos(((hue - 120) * Math.PI) / 180) * swing);
+  const b = base + Math.round(Math.cos(((hue - 240) * Math.PI) / 180) * swing);
+  return `rgb(${r},${g},${b})`;
 }
 
-const PrismParticle = memo<{
-  seed: ShardSeed;
-  hue0: number;
-  size: number;
-  progress: { value: number };
-}>(({ seed, hue0, size, progress }) => {
-  const cx0 = size / 2;
-  const cy0 = size / 2;
-  const shardR = size * 0.028;
+function shardPulse(t: number, seed: ShardSeed): number {
+  return 0.35 + 0.65 * Math.abs(Math.sin((t * 2 + seed.phase * 5) * Math.PI));
+}
 
-  const fillProps = useAnimatedProps(() => {
-    'worklet';
-    const t = progress.value;
+function createShardSampler(seed: ShardSeed, colorWeight: (t: number) => number): LayerSampler {
+  return (t, size) => {
     const angle = seed.angle0 + Math.sin((t + seed.phase) * Math.PI * 1.2) * 0.5;
     const dist = seed.dist * size + Math.cos(t * Math.PI * 2 + seed.phase * 4) * size * 0.03;
-    const x = cx0 + Math.cos(angle) * dist;
-    const y = cy0 + Math.sin(angle) * dist;
-    const pulse = 0.35 + 0.65 * Math.abs(Math.sin((t * 2 + seed.phase * 5) * Math.PI));
-    const hue = hue0 + t * 60;
-    const rc = 128 + Math.round(Math.cos((hue * Math.PI) / 180) * 80);
-    const gc = 128 + Math.round(Math.cos(((hue - 120) * Math.PI) / 180) * 80);
-    const bc = 128 + Math.round(Math.cos(((hue - 240) * Math.PI) / 180) * 80);
     return {
-      cx: x,
-      cy: y,
-      r: shardR * 0.5,
-      opacity: pulse * 0.4,
-      fill: `rgb(${rc},${gc},${bc})`,
+      x: size / 2 + Math.cos(angle) * dist,
+      y: size / 2 + Math.sin(angle) * dist,
+      rotateDeg: t * 180 * seed.rotSpeed,
+      scaleX: 1,
+      scaleY: 1,
+      opacity: shardPulse(t, seed) * colorWeight(t),
     };
-  });
+  };
+}
 
-  const outlineProps = useAnimatedProps(() => {
-    'worklet';
-    const t = progress.value;
-    const angle = seed.angle0 + Math.sin((t + seed.phase) * Math.PI * 1.2) * 0.5;
-    const dist = seed.dist * size + Math.cos(t * Math.PI * 2 + seed.phase * 4) * size * 0.03;
-    const x = cx0 + Math.cos(angle) * dist;
-    const y = cy0 + Math.sin(angle) * dist;
-    const pulse = 0.35 + 0.65 * Math.abs(Math.sin((t * 2 + seed.phase * 5) * Math.PI));
-    const rot = t * Math.PI * seed.rotSpeed;
-    const p0x = x + Math.cos(rot - Math.PI / 2) * shardR;
-    const p0y = y + Math.sin(rot - Math.PI / 2) * shardR;
-    const p1x = x + Math.cos(rot + Math.PI * 0.3) * shardR * 0.7;
-    const p1y = y + Math.sin(rot + Math.PI * 0.3) * shardR * 0.7;
-    const p2x = x + Math.cos(rot + Math.PI * 1.2) * shardR * 0.7;
-    const p2y = y + Math.sin(rot + Math.PI * 1.2) * shardR * 0.7;
-    const hue = hue0 + t * 60;
-    const brc = 160 + Math.round(Math.cos((hue * Math.PI) / 180) * 60);
-    const bgc = 160 + Math.round(Math.cos(((hue - 120) * Math.PI) / 180) * 60);
-    const bbc = 160 + Math.round(Math.cos(((hue - 240) * Math.PI) / 180) * 60);
-    return {
-      d: `M ${p0x} ${p0y} L ${p1x} ${p1y} L ${p2x} ${p2y} Z`,
-      opacity: pulse * 0.7,
-      strokeWidth: 0.8,
-      stroke: `rgb(${brc},${bgc},${bbc})`,
-    };
-  });
+/** Start-of-loop colour layer fades out as the end-of-loop colour layer fades in. */
+const START_SAMPLERS: readonly LayerSampler[] = SHARD_SEEDS.map((seed) =>
+  createShardSampler(seed, (t) => 1 - t),
+);
+const END_SAMPLERS: readonly LayerSampler[] = SHARD_SEEDS.map((seed) =>
+  createShardSampler(seed, (t) => t),
+);
 
-  const sparkleProps = useAnimatedProps(() => {
-    'worklet';
-    const t = progress.value;
-    const angle = seed.angle0 + Math.sin((t + seed.phase) * Math.PI * 1.2) * 0.5;
-    const dist = seed.dist * size + Math.cos(t * Math.PI * 2 + seed.phase * 4) * size * 0.03;
-    const x = cx0 + Math.cos(angle) * dist;
-    const y = cy0 + Math.sin(angle) * dist;
-    const pulse = 0.35 + 0.65 * Math.abs(Math.sin((t * 2 + seed.phase * 5) * Math.PI));
-    const rot = t * Math.PI * seed.rotSpeed;
-    const p0x = x + Math.cos(rot - Math.PI / 2) * shardR;
-    const p0y = y + Math.sin(rot - Math.PI / 2) * shardR;
-    return { cx: p0x, cy: p0y, r: size * 0.006, opacity: pulse * 0.6 };
-  });
-
+/** Static shard artwork centred on the origin; `hue` picks the fill / outline colours. */
+function ShardArt({ size, hue }: { size: number; hue: number }) {
+  const shardR = size * SHARD_R_FRAC;
+  const box = shardR * BOX_FACTOR;
+  const half = box / 2;
+  const p0 = { x: Math.cos(-Math.PI / 2) * shardR, y: Math.sin(-Math.PI / 2) * shardR };
+  const p1 = {
+    x: Math.cos(Math.PI * 0.3) * shardR * 0.7,
+    y: Math.sin(Math.PI * 0.3) * shardR * 0.7,
+  };
+  const p2 = {
+    x: Math.cos(Math.PI * 1.2) * shardR * 0.7,
+    y: Math.sin(Math.PI * 1.2) * shardR * 0.7,
+  };
   return (
-    <>
-      <AnimatedCircle animatedProps={fillProps} />
-      <AnimatedPath animatedProps={outlineProps} fill="none" />
-      <AnimatedCircle animatedProps={sparkleProps} fill="rgb(240,240,255)" />
-    </>
+    <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
+      <Circle r={shardR * 0.5} fill={hueToRgb(hue, 128, 80)} opacity={0.4} />
+      <Path
+        d={`M ${p0.x} ${p0.y} L ${p1.x} ${p1.y} L ${p2.x} ${p2.y} Z`}
+        fill="none"
+        stroke={hueToRgb(hue, 160, 60)}
+        strokeWidth={0.8}
+        opacity={0.7}
+      />
+      <Circle cx={p0.x} cy={p0.y} r={size * 0.006} fill={SPARKLE_COLOR} opacity={0.6} />
+    </Svg>
   );
-});
-PrismParticle.displayName = 'PrismParticle';
+}
 
-export const PrismShardFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useLoopProgress(7000);
-
-  const seeds = useMemo(
-    () =>
-      Array.from({ length: N }, (_, i) => ({
-        angle0: (i / N) * Math.PI * 2 + i * 0.5,
-        dist: 0.36 + (i % 3) * 0.05,
-        phase: i / N,
-        rotSpeed: 1.5 + (i % 3) * 0.5,
-      })),
-    [],
-  );
-
+export const PrismShardFlair = memo<FlairProps>(({ size }) => {
+  const box = size * SHARD_R_FRAC * BOX_FACTOR;
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {seeds.map((s, i) => (
-          <PrismParticle key={i} seed={s} hue0={HUES[i]!} size={size} progress={progress} />
-        ))}
-      </Svg>
+      {SHARD_SEEDS.map((seed, i) => (
+        <Fragment key={`shard-${seed.hue0}`}>
+          <LoopLayer
+            sample={START_SAMPLERS[i]!}
+            size={size}
+            durationMs={LOOP_MS}
+            width={box}
+            height={box}
+          >
+            <ShardArt size={size} hue={seed.hue0} />
+          </LoopLayer>
+          <LoopLayer
+            sample={END_SAMPLERS[i]!}
+            size={size}
+            durationMs={LOOP_MS}
+            width={box}
+            height={box}
+          >
+            <ShardArt size={size} hue={seed.hue0 + HUE_DRIFT} />
+          </LoopLayer>
+        </Fragment>
+      ))}
     </View>
   );
 });

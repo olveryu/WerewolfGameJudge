@@ -127,7 +127,11 @@ export function LoadingScreen({
       ) : (
         <>
           <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
-          <IndeterminateProgressBar accessibilityLabel={message} style={styles.progressTrack} />
+          <IndeterminateProgressBar
+            accessibilityLabel={message}
+            style={styles.progressTrack}
+            barStyle={styles.progressBar}
+          />
         </>
       )}
     </View>
@@ -192,6 +196,10 @@ const styles = StyleSheet.create({
   progressTrack: {
     width: '60%',
     marginTop: spacing.large,
+    backgroundColor: colors.border,
+  },
+  progressBar: {
+    backgroundColor: colors.primary,
   },
   stepContainer: {
     alignItems: 'flex-start',
