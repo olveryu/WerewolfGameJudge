@@ -1,14 +1,15 @@
 /** Legendary frame highlight; one slow edge sweep without changing the frame silhouette. */
 import { memo } from 'react';
-import Animated, { useAnimatedProps } from 'react-native-reanimated';
-import Svg, { Rect } from 'react-native-svg';
+import { StyleSheet, View } from 'react-native';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { PerimeterSweep, roundedRectPerimeter, type SweepSampler } from './PerimeterSweep';
 
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
 const ORBIT_DURATION = 7000;
 const FRAME_SIDE = 100;
 const HIGHLIGHT_LENGTH = 12;
+const HIGHLIGHT_COLOR = '#FFFDE8';
+const HIGHLIGHT_STROKE = 1.2;
+const HIGHLIGHT_OPACITY = 0.45;
 
 interface LegendaryShimmerProps {
   /** SVG total size (with viewBox expansion, = avatar size * 116/100) */
@@ -17,32 +18,40 @@ interface LegendaryShimmerProps {
   rx: number;
 }
 
+/**
+ * One full lap per loop. The arc length depends on `rx`, so each distinct corner radius gets its
+ * own sampler (cached by `rx`).
+ */
+const lapSamplers = new Map<number, SweepSampler>();
+
+function getLapSampler(rx: number): SweepSampler {
+  const hit = lapSamplers.get(rx);
+  if (hit) return hit;
+  const perimeter = roundedRectPerimeter(rx);
+  const sampler: SweepSampler = (t) => ({ arcLength: t * perimeter, opacity: HIGHLIGHT_OPACITY });
+  lapSamplers.set(rx, sampler);
+  return sampler;
+}
+
 /** Adds a single restrained highlight to a legendary frame's rounded perimeter. */
 export const LegendaryShimmer = memo<LegendaryShimmerProps>(({ size, rx }) => {
-  const progress = useLoopProgress(ORBIT_DURATION);
   const cornerRadius = Math.min(rx, FRAME_SIDE / 2);
-  const perimeter = FRAME_SIDE * 4 - (8 - 2 * Math.PI) * cornerRadius;
-  const highlightProps = useAnimatedProps(() => ({
-    strokeDashoffset: -progress.value * perimeter,
-  }));
-
   return (
-    <Svg width={size} height={size} viewBox="-8 -8 116 116">
-      <AnimatedRect
-        x={0}
-        y={0}
-        width={FRAME_SIDE}
-        height={FRAME_SIDE}
+    <View style={[styles.layer, { width: size, height: size }]}>
+      <PerimeterSweep
+        size={size}
         rx={cornerRadius}
-        fill="none"
-        stroke="#FFFDE8"
-        strokeWidth={1.2}
-        strokeLinecap="round"
-        strokeDasharray={`${HIGHLIGHT_LENGTH} ${perimeter - HIGHLIGHT_LENGTH}`}
-        opacity={0.45}
-        animatedProps={highlightProps}
+        durationMs={ORBIT_DURATION}
+        sample={getLapSampler(cornerRadius)}
+        dashLength={HIGHLIGHT_LENGTH}
+        color={HIGHLIGHT_COLOR}
+        strokeWidth={HIGHLIGHT_STROKE}
       />
-    </Svg>
+    </View>
   );
 });
 LegendaryShimmer.displayName = 'LegendaryShimmer';
+
+const styles = StyleSheet.create({
+  layer: { overflow: 'visible' },
+});

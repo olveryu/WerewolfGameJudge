@@ -4,6 +4,7 @@
  * Replaces the `useLoopProgress` + `useAnimatedProps` pattern (JS-thread rAF + SVG attribute
  * writes on web) for persistent decorations such as seat flairs. See `loopKeyframes.ts`.
  */
+export { LoopDashFlow } from './LoopDashFlow';
 export { type DotFrame, type DotSampler, LoopDot } from './LoopDot';
 export { type LayerFrame, type LayerSampler, LoopLayer } from './LoopLayer';
 export { type LineFrame, type LineSampler, LoopLine } from './LoopLine';

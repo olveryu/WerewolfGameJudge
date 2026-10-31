@@ -6,8 +6,10 @@
  * each variant's opacity follows a window around its own phase. `'crossfade'` windows are
  * triangular and form a partition of unity, so the blend tracks `sample(t).opacity`;
  * `'step'` windows are box functions for shapes that should snap (lightning, sparks).
+ * `cyclesPerLoop` repeats the variant sequence that many times per loop, for motion that is
+ * periodic in a shorter interval than the loop (e.g. a dash pattern sliding along a path).
  * Everything is compositor-only; see `loopKeyframes.ts`. `sample` must be a module-level pure
- * function — together with `variantCount` and `mode` it is the cache key.
+ * function — together with `variantCount`, `mode` and `cyclesPerLoop` it is the cache key.
  */
 import { memo, type ReactNode } from 'react';
 import { StyleSheet } from 'react-native';
@@ -37,9 +39,13 @@ export interface LoopMorphProps {
   durationMs: number;
   /** Cycle offset in `[0, 1)`; defaults to 0. */
   phase?: number;
-  /** Number of static variants; variant `k` is the shape at `t = k / variantCount`. */
+  /**
+   * Number of static variants; variant `k` is the shape at cycle phase `k / variantCount`.
+   */
   variantCount: number;
   mode: MorphMode;
+  /** Integer number of variant cycles per loop; defaults to 1 (one cycle spans the loop). */
+  cyclesPerLoop?: number;
   /** Draws the static shape for variant `k` inside a `size × size` box. */
   renderVariant: (k: number, size: number) => ReactNode;
 }
@@ -52,8 +58,13 @@ function wrappedDistance(t: number, centre: number): number {
   return d - Math.round(d);
 }
 
-function windowWeight(t: number, k: number, variantCount: number, mode: MorphMode): number {
-  const d = wrappedDistance(t, k / variantCount);
+function windowWeight(
+  cyclePhase: number,
+  k: number,
+  variantCount: number,
+  mode: MorphMode,
+): number {
+  const d = wrappedDistance(cyclePhase, k / variantCount);
   if (mode === 'step') {
     return d >= 0 && d < 1 / variantCount ? 1 : 0;
   }
@@ -61,8 +72,8 @@ function windowWeight(t: number, k: number, variantCount: number, mode: MorphMod
 }
 
 /**
- * Per-variant samplers derived from the base sampler. Memoised so each `(sample, count, mode)`
- * yields stable function references for the keyframes cache.
+ * Per-variant samplers derived from the base sampler. Memoised so each
+ * `(sample, count, mode, cyclesPerLoop)` yields stable function references for the keyframes cache.
  */
 const variantSamplerCache = new WeakMap<MorphSampler, Map<string, MorphSampler[]>>();
 
@@ -70,18 +81,20 @@ function getVariantSamplers(
   sample: MorphSampler,
   variantCount: number,
   mode: MorphMode,
+  cyclesPerLoop: number,
 ): MorphSampler[] {
   let byKey = variantSamplerCache.get(sample);
   if (!byKey) {
     byKey = new Map();
     variantSamplerCache.set(sample, byKey);
   }
-  const key = `${variantCount}:${mode}`;
+  const key = `${variantCount}:${mode}:${cyclesPerLoop}`;
   const hit = byKey.get(key);
   if (hit) return hit;
   const samplers = Array.from({ length: variantCount }, (_, k): MorphSampler => {
     return (t, size) => ({
-      opacity: sample(t, size).opacity * windowWeight(t, k, variantCount, mode),
+      opacity:
+        sample(t, size).opacity * windowWeight((t * cyclesPerLoop) % 1, k, variantCount, mode),
     });
   });
   byKey.set(key, samplers);
@@ -94,11 +107,25 @@ const getRule = createLoopRuleCache<MorphFrame, null>((samples) => {
 });
 
 export const LoopMorph = memo<LoopMorphProps>(
-  ({ sample, size, durationMs, phase = 0, variantCount, mode, renderVariant }) => {
+  ({
+    sample,
+    size,
+    durationMs,
+    phase = 0,
+    variantCount,
+    mode,
+    cyclesPerLoop = 1,
+    renderVariant,
+  }) => {
     if (!Number.isInteger(variantCount) || variantCount < 2) {
       throw new Error(`LoopMorph requires an integer variantCount >= 2, received ${variantCount}`);
     }
-    const samplers = getVariantSamplers(sample, variantCount, mode);
+    if (!Number.isInteger(cyclesPerLoop) || cyclesPerLoop < 1) {
+      throw new Error(
+        `LoopMorph requires an integer cyclesPerLoop >= 1, received ${cyclesPerLoop}`,
+      );
+    }
+    const samplers = getVariantSamplers(sample, variantCount, mode, cyclesPerLoop);
     return (
       <>
         {samplers.map((variantSampler, k) => (
