@@ -35,17 +35,17 @@ async function joinRoom(page: Page, roomCode: string, seat: number): Promise<voi
   await new RoomPage(page).seatAt(seat);
 }
 
-async function confirm(page: Page): Promise<void> {
-  await page.getByText('确定', { exact: true }).click();
-}
-
 test('create, guess, cancel or confirm host abort, and restart without losing seats', async ({
   browser,
 }) => {
-  const fixture = await createPlayerContexts(browser, 2);
+  const fixture = await createPlayerContexts(browser, 4);
   const hostPage = fixture.pages[0];
   const joinerPage = fixture.pages[1];
   if (joinerPage === undefined) throw new Error('joiner page missing');
+  const secondJoinerPage = fixture.pages[2];
+  if (secondJoinerPage === undefined) throw new Error('second joiner page missing');
+  const thirdJoinerPage = fixture.pages[3];
+  if (thirdJoinerPage === undefined) throw new Error('third joiner page missing');
   try {
     const room = await createDrawGuessRoom(hostPage);
 
@@ -83,12 +83,10 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
       await room.closeHostManagement();
     });
 
-    await test.step('fill bots to reach a full room', async () => {
-      const panel = await room.openHostManagement();
-      await panel.getByRole('button', { name: '填充机器人', exact: true }).click();
-      await confirm(hostPage);
-      // The host management panel closes after fill bots; the full room
-      // shows through the console primary in the lobby.
+    await test.step('real players join to reach a full room', async () => {
+      await joinRoom(secondJoinerPage, code, 2);
+      await joinRoom(thirdJoinerPage, code, 3);
+      // The full room shows through the console primary in the lobby.
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
         '开始游戏',
       );
