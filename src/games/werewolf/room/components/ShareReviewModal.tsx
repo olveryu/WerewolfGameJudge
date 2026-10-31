@@ -4,11 +4,15 @@
  * Host selects seats allowed to view 「本局复盘」 during the ended phase.
  * Pure display component: renders a multi-select seat list + confirm/cancel buttons, reports selection via callback.
  * No service imports, no business logic.
+ *
+ * The selection draft is seeded once on mount from `currentAllowedSeats`; the
+ * caller mounts this component only while it is open, so every opening starts
+ * from the authoritative set and later room snapshots never overwrite the draft.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -29,16 +33,14 @@ interface SeatInfo {
 }
 
 interface ShareReviewModalProps {
-  visible: boolean;
-  seats: SeatInfo[];
-  /** Currently authorized seats (for pre-filling the selection). */
+  seats: readonly SeatInfo[];
+  /** Authorized seats at open time; seeds the selection draft. */
   currentAllowedSeats: readonly number[];
   onConfirm: (selectedSeats: number[]) => void | Promise<void>;
   onClose: () => void;
 }
 
 export const ShareReviewModal: React.FC<ShareReviewModalProps> = ({
-  visible,
   seats,
   currentAllowedSeats,
   onConfirm,
@@ -51,22 +53,12 @@ export const ShareReviewModal: React.FC<ShareReviewModalProps> = ({
     [screenWidth, screenHeight],
   );
 
-  // Visible seat numbers — used to filter out stale entries (e.g. host's own seat)
-  const visibleSeatSet = useMemo(() => new Set(seats.map((s) => s.seat)), [seats]);
-
-  // Initialize selection from currentAllowedSeats (filtered to visible seats)
-  const [selected, setSelected] = useState<Set<number>>(
-    () => new Set(currentAllowedSeats.filter((s) => visibleSeatSet.has(s))),
-  );
+  // Seed from the authorized set, dropping seats not offered (e.g. the host's own seat).
+  const [selected, setSelected] = useState<Set<number>>(() => {
+    const visibleSeatSet = new Set(seats.map((s) => s.seat));
+    return new Set(currentAllowedSeats.filter((s) => visibleSeatSet.has(s)));
+  });
   const [submitting, setSubmitting] = useState(false);
-
-  // Sync selection with currentAllowedSeats each time modal opens
-  useEffect(() => {
-    if (visible) {
-      setSelected(new Set(currentAllowedSeats.filter((s) => visibleSeatSet.has(s))));
-      setSubmitting(false);
-    }
-  }, [visible, currentAllowedSeats, visibleSeatSet]);
 
   const toggleSeat = useCallback((seat: number) => {
     setSelected((prev) => {
@@ -94,7 +86,7 @@ export const ShareReviewModal: React.FC<ShareReviewModalProps> = ({
 
   return (
     <BaseCenterModal
-      visible={visible}
+      visible
       onClose={onClose}
       contentStyle={contentStyle}
       testID={TESTIDS.shareReviewModal}

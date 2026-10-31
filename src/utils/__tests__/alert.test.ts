@@ -42,10 +42,24 @@ describe('alert utility', () => {
       showAlert('Test', 'Message');
 
       expect(mockListener).toHaveBeenCalledWith({
+        generation: getAlertGeneration(),
         title: 'Test',
         message: 'Message',
         buttons: [{ text: '确定' }],
       });
+    });
+
+    it('hands each alert its own generation so a replacement remounts the host modal', () => {
+      const mockListener = jest.fn<void, [AlertConfig | null]>();
+      setAlertListener(mockListener);
+
+      showAlert('First');
+      showAlert('Second');
+
+      const [first, second] = mockListener.mock.calls.map(([config]) => config);
+      expect(first?.generation).toBeDefined();
+      expect(second?.generation).toBe(getAlertGeneration());
+      expect(second?.generation).not.toBe(first?.generation);
     });
 
     it('should allow clearing the listener with null', () => {
@@ -68,6 +82,7 @@ describe('alert utility', () => {
       showAlert('Title Only');
 
       expect(mockListener).toHaveBeenCalledWith({
+        generation: getAlertGeneration(),
         title: 'Title Only',
         message: undefined,
         buttons: [{ text: '确定' }],
@@ -81,6 +96,7 @@ describe('alert utility', () => {
       showAlert('Title', 'This is a message');
 
       expect(mockListener).toHaveBeenCalledWith({
+        generation: getAlertGeneration(),
         title: 'Title',
         message: 'This is a message',
         buttons: [{ text: '确定' }],
@@ -99,6 +115,7 @@ describe('alert utility', () => {
       showAlert('Confirm', 'Are you sure?', buttons);
 
       expect(mockListener).toHaveBeenCalledWith({
+        generation: getAlertGeneration(),
         title: 'Confirm',
         message: 'Are you sure?',
         buttons,
@@ -116,6 +133,7 @@ describe('alert utility', () => {
       ]);
 
       expect(mockListener).toHaveBeenCalledWith({
+        generation: getAlertGeneration(),
         title: 'Delete',
         message: 'Delete this item?',
         buttons: [
@@ -129,6 +147,7 @@ describe('alert utility', () => {
   describe('AlertConfig type', () => {
     it('should have correct structure', () => {
       const config: AlertConfig = {
+        generation: 1,
         title: 'Test',
         message: 'Message',
         buttons: [{ text: '确定' }],
@@ -141,6 +160,7 @@ describe('alert utility', () => {
 
     it('should allow optional message', () => {
       const config: AlertConfig = {
+        generation: 1,
         title: 'Test',
         buttons: [{ text: '确定' }],
       };

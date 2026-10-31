@@ -68,6 +68,7 @@ function AlertHarness({ progress, apiRef }: HarnessProps) {
 
   return alertConfig ? (
     <AlertModal
+      key={alertConfig.generation}
       visible={true}
       title={alertConfig.title}
       message={alertConfig.message}

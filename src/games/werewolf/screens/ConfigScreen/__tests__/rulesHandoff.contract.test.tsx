@@ -14,7 +14,7 @@ import type {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { PRESET_TEMPLATES } from '@game-judge/game-engine/games/werewolf/public';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { useServices } from '@/contexts/ServiceContext';
 import { SettingsService } from '@/features/settings/services/SettingsService';
@@ -77,11 +77,11 @@ function renderConfigScreen(session = createMockSession()) {
   return render(<ConfigScreen session={session} {...flowCallbacks} />);
 }
 
-function mockReadyRoom(
+function publishRoom(
   session: FakeRoomLink<GameState, WerewolfPublicCommand>,
-  rules: GameRuleOverrides,
+  state: GameState,
+  revision: number,
 ) {
-  const state = buildWerewolfTestState({ rules, templateRoles: [...BOARD] });
   session.publish(
     readyLinkSnapshot<GameState>(
       {
@@ -94,9 +94,17 @@ function mockReadyRoom(
         },
         userId: state.hostUserId,
       },
-      createRoomSnapshot(state, 1),
+      createRoomSnapshot(state, revision),
     ),
   );
+}
+
+function mockReadyRoom(
+  session: FakeRoomLink<GameState, WerewolfPublicCommand>,
+  rules: GameRuleOverrides,
+) {
+  const state = buildWerewolfTestState({ rules, templateRoles: [...BOARD] });
+  publishRoom(session, state, 1);
   return state;
 }
 
@@ -163,6 +171,25 @@ describe('ConfigScreen → Rules handoff contract', () => {
       expect(handoff).toHaveProperty('roles.length', BOARD.length);
     },
   );
+
+  it('keeps the edited board when the room publishes a new revision', async () => {
+    const mockClient = createMockSession();
+    const state = mockReadyRoom(mockClient, {});
+    mockRouteParams = { existingRoomCode: state.roomCode };
+    const rendered = renderConfigScreen(mockClient);
+
+    fireEvent.press(rendered.getByTestId(TESTIDS.configRoleChip('hunter')));
+    // Another player takes a seat: the authoritative snapshot moves on.
+    act(() => publishRoom(mockClient, { ...state }, 2));
+    fireEvent.press(rendered.getByTestId(TESTIDS.configNextButton));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      'Rules',
+      expect.objectContaining({ roles: sameRoles([...BOARD, 'hunter']) }),
+    );
+    const handoff = mockNavigate.mock.calls[0]?.[1];
+    expect(handoff).toHaveProperty('roles.length', BOARD.length + 1);
+  });
 
   it('submits a board nomination directly without visiting the Rules step', async () => {
     const mockClient = createMockSession();

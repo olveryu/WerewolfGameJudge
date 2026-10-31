@@ -4,9 +4,14 @@
  * Replaces RN Alert.alert on web, providing unified Modal popup styles.
  * Supports optional text input (prompt mode).
  * Renders Modal UI and reports user actions via onPress callbacks. Imports no service, contains no business logic.
+ *
+ * Per-open state (typed input, pending button) lives in `AlertModalBody`, which
+ * `Modal` mounts only while visible, so every opening starts clean and parent
+ * re-renders with fresh `buttons` references never reset it. A host that swaps
+ * one alert for another while open must change `key` (see App.tsx).
  */
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -75,8 +80,13 @@ interface AlertModalProps {
   onClose: () => void;
 }
 
-export const AlertModal: React.FC<AlertModalProps> = ({
-  visible,
+export const AlertModal: React.FC<AlertModalProps> = ({ visible, onClose, ...body }) => (
+  <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
+    <AlertModalBody {...body} onClose={onClose} />
+  </Modal>
+);
+
+const AlertModalBody: React.FC<Omit<AlertModalProps, 'visible'>> = ({
   title,
   message,
   buttons,
@@ -92,14 +102,6 @@ export const AlertModal: React.FC<AlertModalProps> = ({
 
   const [inputValue, setInputValue] = useState(input?.defaultValue ?? '');
   const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
-
-  // Reset input value and loading state when modal opens or alert config changes
-  useEffect(() => {
-    if (visible) {
-      setInputValue(input?.defaultValue ?? '');
-      setLoadingIndex(null);
-    }
-  }, [visible, title, buttons, input?.defaultValue]);
 
   const handleButtonPress = useCallback(
     (button: AlertButton, index: number) => {
@@ -136,73 +138,69 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   );
 
   return (
-    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay} testID={TESTIDS.alertModalOverlay}>
-        <View style={styles.alertBox} testID={TESTIDS.alertModal}>
-          <Text style={styles.title} testID={TESTIDS.alertTitle}>
-            {title}
+    <View style={styles.overlay} testID={TESTIDS.alertModalOverlay}>
+      <View style={styles.alertBox} testID={TESTIDS.alertModal}>
+        <Text style={styles.title} testID={TESTIDS.alertTitle}>
+          {title}
+        </Text>
+        {message ? (
+          <Text style={styles.message} testID={TESTIDS.alertMessage}>
+            {message}
           </Text>
-          {message ? (
-            <Text style={styles.message} testID={TESTIDS.alertMessage}>
-              {message}
-            </Text>
-          ) : null}
+        ) : null}
 
-          {input ? (
-            <TextInput
-              style={styles.input}
-              value={inputValue}
-              onChangeText={setInputValue}
-              placeholder={input.placeholder}
-              placeholderTextColor={colors.textMuted}
-              autoFocus
-              testID={TESTIDS.alertInput}
-            />
-          ) : null}
+        {input ? (
+          <TextInput
+            style={styles.input}
+            value={inputValue}
+            onChangeText={setInputValue}
+            placeholder={input.placeholder}
+            placeholderTextColor={colors.textMuted}
+            autoFocus
+            testID={TESTIDS.alertInput}
+          />
+        ) : null}
 
-          <View style={styles.buttonContainer}>
-            {orderedButtons.map((button, index) => {
-              const isLoading = button.loading || loadingIndex === index;
-              const isDisabled = isLoading || button.disabled || loadingIndex !== null;
-              return (
-                <TouchableOpacity
-                  key={`alert-btn-${button.text}-${index}`}
-                  testID={TESTIDS.alertButton(index)}
-                  style={[
-                    styles.button,
-                    button.style === 'cancel' && styles.cancelButton,
-                    button.style === 'destructive' && styles.destructiveButton,
-                    isDisabled && styles.disabledButton,
-                  ]}
-                  onPress={() => handleButtonPress(button, index)}
-                  disabled={isDisabled}
-                >
-                  <View style={styles.buttonContent}>
-                    {isLoading ? (
-                      <ActivityIndicator
-                        size="small"
-                        color={
-                          button.style === 'cancel' ? colors.textSecondary : colors.textInverse
-                        }
-                      />
-                    ) : null}
-                    <Text
-                      style={[
-                        styles.buttonText,
-                        button.style === 'cancel' && styles.cancelButtonText,
-                        button.style === 'destructive' && styles.destructiveButtonText,
-                      ]}
-                    >
-                      {button.text}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+        <View style={styles.buttonContainer}>
+          {orderedButtons.map((button, index) => {
+            const isLoading = button.loading || loadingIndex === index;
+            const isDisabled = isLoading || button.disabled || loadingIndex !== null;
+            return (
+              <TouchableOpacity
+                key={`alert-btn-${button.text}-${index}`}
+                testID={TESTIDS.alertButton(index)}
+                style={[
+                  styles.button,
+                  button.style === 'cancel' && styles.cancelButton,
+                  button.style === 'destructive' && styles.destructiveButton,
+                  isDisabled && styles.disabledButton,
+                ]}
+                onPress={() => handleButtonPress(button, index)}
+                disabled={isDisabled}
+              >
+                <View style={styles.buttonContent}>
+                  {isLoading ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={button.style === 'cancel' ? colors.textSecondary : colors.textInverse}
+                    />
+                  ) : null}
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      button.style === 'cancel' && styles.cancelButtonText,
+                      button.style === 'destructive' && styles.destructiveButtonText,
+                    ]}
+                  >
+                    {button.text}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
-    </Modal>
+    </View>
   );
 };
 

@@ -2,6 +2,7 @@ import { fireEvent, render } from '@testing-library/react-native';
 import { ActivityIndicator } from 'react-native';
 
 import { type AlertButton, AlertModal } from '@/components/AlertModal';
+import { TESTIDS } from '@/testids';
 
 describe('AlertModal', () => {
   const defaultProps = {
@@ -176,6 +177,32 @@ describe('AlertModal', () => {
       expect(getAllByType(ActivityIndicator)).toHaveLength(1);
       // Modal stays open while the promise is pending
       expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('keeps the pending state when the parent re-renders with a fresh buttons array', () => {
+      const onPress = jest.fn(() => new Promise<void>(() => undefined));
+      const renderButtons = (): AlertButton[] => [{ text: '保存', onPress }];
+
+      const view = render(<AlertModal {...defaultProps} buttons={renderButtons()} />);
+      fireEvent.press(view.getByText('保存'));
+      view.rerender(<AlertModal {...defaultProps} buttons={renderButtons()} />);
+
+      expect(view.UNSAFE_getAllByType(ActivityIndicator)).toHaveLength(1);
+      expect(view.getByTestId(TESTIDS.alertButton(0)).props.disabled).toBe(true);
+    });
+
+    it('starts clean on each opening', () => {
+      const onPress = jest.fn(() => new Promise<void>(() => undefined));
+      const buttons: AlertButton[] = [{ text: '保存', onPress }];
+
+      const view = render(<AlertModal {...defaultProps} buttons={buttons} />);
+      fireEvent.press(view.getByText('保存'));
+      expect(view.UNSAFE_getAllByType(ActivityIndicator)).toHaveLength(1);
+
+      view.rerender(<AlertModal {...defaultProps} buttons={buttons} visible={false} />);
+      view.rerender(<AlertModal {...defaultProps} buttons={buttons} visible />);
+
+      expect(view.UNSAFE_queryAllByType(ActivityIndicator)).toHaveLength(0);
     });
 
     it('should not render a spinner for non-loading buttons', () => {

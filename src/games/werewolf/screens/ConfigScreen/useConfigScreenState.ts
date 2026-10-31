@@ -12,6 +12,7 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { Faction } from '@game-judge/game-engine/games/werewolf/public';
 import {
   type GameRuleOverrides,
+  type GameState,
   isValidRoleId,
   PRESET_TEMPLATES,
   type RoleId,
@@ -43,7 +44,6 @@ import { FACTION_GROUPS } from './configData';
 import {
   computeTotalCount,
   getEmptySelection,
-  getInitialSelection,
   restoreFromTemplateRoles,
   selectionToRoles,
   type VariantOverrides,
@@ -54,6 +54,82 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 type ConfigNavigationProp = NativeStackNavigationProp<WerewolfConfigStackParamList, 'Config'>;
+
+/** The host's unsaved board: role toggles, picked variants and the matched preset pill. */
+interface BoardDraft {
+  readonly selection: Record<string, boolean>;
+  readonly variantOverrides: VariantOverrides;
+  readonly selectedTemplate: string;
+}
+
+const CUSTOM_TEMPLATE = '__custom__';
+
+function restoreFromPreset(presetName: string): BoardDraft {
+  const preset = PRESET_TEMPLATES.find((p) => p.name === presetName);
+  if (preset === undefined) {
+    throw new Error(`[FAIL-FAST] Unknown werewolf preset: ${presetName}`);
+  }
+  const restored = restoreFromTemplateRoles(preset.roles);
+  return {
+    selection: restored.selection,
+    variantOverrides: restored.variantOverrides,
+    selectedTemplate: restored.matchedPreset ?? CUSTOM_TEMPLATE,
+  };
+}
+
+/** Edit/nominate mode reads the active room synchronously; the room screen opened this flow. */
+function readRoomState(roomCode: string, session: WerewolfRoomSession): GameState {
+  const snapshot = session.getSnapshot();
+  if (snapshot.phase !== 'ready' || snapshot.identity.room.roomCode !== roomCode) {
+    throw new Error('[FAIL-FAST] werewolf config edit requires its active room session');
+  }
+  return snapshot.room.state;
+}
+
+function readInitialBoardDraft({
+  presetName,
+  existingRoomCode,
+  nominateMode,
+  session,
+}: Pick<
+  UseConfigScreenStateParams,
+  'presetName' | 'existingRoomCode' | 'nominateMode' | 'session'
+>): BoardDraft {
+  if (presetName !== undefined) return restoreFromPreset(presetName);
+  const roomCode = existingRoomCode ?? nominateMode?.roomCode;
+  if (roomCode === undefined) {
+    return {
+      selection: getEmptySelection(),
+      variantOverrides: {},
+      selectedTemplate: CUSTOM_TEMPLATE,
+    };
+  }
+  const restored = restoreFromTemplateRoles(readRoomState(roomCode, session).templateRoles);
+  return {
+    selection: restored.selection,
+    variantOverrides: restored.variantOverrides,
+    selectedTemplate: restored.matchedPreset ?? CUSTOM_TEMPLATE,
+  };
+}
+
+/** Rules handed back from the Rules step win; existing rooms edit their own; new rooms start remembered. */
+function readInitialRules({
+  updatedRules,
+  existingRoomCode,
+  nominateMode,
+  session,
+  settingsService,
+}: Pick<
+  UseConfigScreenStateParams,
+  'updatedRules' | 'existingRoomCode' | 'nominateMode' | 'session' | 'settingsService'
+>): GameRuleOverrides {
+  if (updatedRules !== undefined) return updatedRules;
+  const roomCode = existingRoomCode ?? nominateMode?.roomCode;
+  if (roomCode === undefined) {
+    return settingsService.getRememberedGameConfig('werewolf', WEREWOLF_RULES_SCHEMA);
+  }
+  return readRoomState(roomCode, session).rules ?? {};
+}
 
 interface UseConfigScreenStateParams {
   existingRoomCode: string | undefined;
@@ -85,97 +161,40 @@ export function useConfigScreenState({
   const { user } = useAuthContext();
   const room = useRoomLinkSnapshot(session);
   const gameState = room.phase === 'ready' ? room.room.state : null;
-  const isEditMode = !!existingRoomCode;
   const isNominateMode = !!nominateMode;
 
   // ── Core state ────────────────────────────────────────────────────────────
+  //
+  // The draft is seeded once on mount; later room snapshots never overwrite
+  // it. Route params that change while this screen stays mounted (BoardPicker
+  // popTo with presetName, Rules goBack with updatedRules) are applied during
+  // render by comparing against the last applied value.
 
-  // Compute initial selection from presetName (if navigating from BoardPicker)
-  const presetInitial = useMemo(() => {
-    if (!presetName) return undefined;
-    const preset = PRESET_TEMPLATES.find((p) => p.name === presetName);
-    if (!preset) return undefined;
-    return restoreFromTemplateRoles(preset.roles);
-  }, [presetName]);
-
-  const [selection, setSelection] = useState(
-    () =>
-      presetInitial?.selection ??
-      (isEditMode || isNominateMode ? getInitialSelection() : getEmptySelection()),
+  const [draft, setDraft] = useState(() =>
+    readInitialBoardDraft({ presetName, existingRoomCode, nominateMode, session }),
   );
+  const { selection, variantOverrides, selectedTemplate } = draft;
   const [isWorkflowSubmitting, setIsWorkflowSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(isEditMode || isNominateMode);
-  const [selectedTemplate, setSelectedTemplate] = useState(
-    presetInitial?.matchedPreset ??
-      (isEditMode || isNominateMode ? (PRESET_TEMPLATES[0]?.name ?? '') : '__custom__'),
-  );
-  const [variantOverrides, setVariantOverrides] = useState<VariantOverrides>(
-    () => presetInitial?.variantOverrides ?? {},
-  );
-  // Edit mode loads the room's rules below; new rooms start from the remembered preferences.
   const [rules, setRules] = useState<GameRuleOverrides>(() =>
-    isEditMode || isNominateMode
-      ? {}
-      : settingsService.getRememberedGameConfig('werewolf', WEREWOLF_RULES_SCHEMA),
+    readInitialRules({ updatedRules, existingRoomCode, nominateMode, session, settingsService }),
   );
+
+  const [appliedPresetName, setAppliedPresetName] = useState(presetName);
+  if (presetName !== appliedPresetName) {
+    setAppliedPresetName(presetName);
+    if (presetName !== undefined) setDraft(restoreFromPreset(presetName));
+  }
+
+  const [appliedUpdatedRules, setAppliedUpdatedRules] = useState(updatedRules);
+  if (updatedRules !== appliedUpdatedRules) {
+    setAppliedUpdatedRules(updatedRules);
+    if (updatedRules !== undefined) setRules(updatedRules);
+  }
 
   const totalCount = useMemo(
     () => computeTotalCount(selection, variantOverrides),
     [selection, variantOverrides],
   );
-
-  // ── Apply preset when returning from BoardPicker (popTo updates params
-  //    but useState won't re-initialize on an already-mounted screen) ───────
-  // ── OR load current room's roles when in edit/nominate mode ──────────────
-  //
-  // Single effect with explicit priority:
-  //   1. presetName (user picked a board in BoardPicker) — always wins
-  //   2. room state (edit/nominate mode without preset) — load from client
-  //   3. neither — no-op (new room, empty selection already set by useState)
-
-  useEffect(() => {
-    // Priority 1: presetName — user explicitly chose a board
-    if (presetName) {
-      const preset = PRESET_TEMPLATES.find((p) => p.name === presetName);
-      if (preset) {
-        const restored = restoreFromTemplateRoles(preset.roles);
-        setSelection(restored.selection);
-        setVariantOverrides(restored.variantOverrides);
-        setSelectedTemplate(restored.matchedPreset ?? '__custom__');
-      }
-      setIsLoading(false);
-      return;
-    }
-
-    // Priority 2: edit/nominate mode — load current room roles from client
-    if ((isEditMode || isNominateMode) && (existingRoomCode || isNominateMode)) {
-      configLog.debug('Loading room roles', {
-        roomCode: existingRoomCode ?? nominateMode?.roomCode,
-      });
-      try {
-        const state = gameState;
-        if (state?.templateRoles && state.templateRoles.length > 0) {
-          const restored = restoreFromTemplateRoles(state.templateRoles);
-          setSelection(restored.selection);
-          setVariantOverrides(restored.variantOverrides);
-          setSelectedTemplate(restored.matchedPreset ?? '__custom__');
-        }
-        if (state) {
-          setRules(state.rules ?? {});
-        }
-      } catch (error) {
-        handleError(error, { label: '加载房间', logger: configLog, feedback: false });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  }, [presetName, isEditMode, isNominateMode, existingRoomCode, nominateMode, gameState]);
-
-  useEffect(() => {
-    if (updatedRules) {
-      setRules(updatedRules);
-    }
-  }, [updatedRules]);
 
   // ── Auto-navigate back when game progresses past nomination phase ───────
 
@@ -207,24 +226,23 @@ export function useConfigScreenState({
   }, [navigation, existingRoomCode, nominateMode]);
 
   const toggleRole = useCallback((key: string) => {
-    setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
-    setSelectedTemplate('__custom__');
+    setDraft((prev) => ({
+      ...prev,
+      selection: { ...prev.selection, [key]: !prev.selection[key] },
+      selectedTemplate: CUSTOM_TEMPLATE,
+    }));
   }, []);
 
   const handleClearSelection = useCallback(() => {
-    setSelection((prev) => {
+    setDraft((prev) => {
       const cleared: Record<string, boolean> = {};
-      Object.keys(prev).forEach((k) => (cleared[k] = false));
-      return cleared;
+      Object.keys(prev.selection).forEach((k) => (cleared[k] = false));
+      return { ...prev, selection: cleared, selectedTemplate: CUSTOM_TEMPLATE };
     });
-    setSelectedTemplate('__custom__');
   }, []);
 
   /** Nominate mode submits the board directly; otherwise the Rules step owns create/save. */
   const handleContinue = useCallback(async () => {
-    if (isLoading) {
-      throw new Error('[FAIL-FAST] Werewolf config cannot continue before room state is loaded');
-    }
     const roles = selectionToRoles(selection, variantOverrides);
     if (roles.length === 0) {
       showErrorAlert('配置有误', '请至少选择一个角色');
@@ -276,7 +294,6 @@ export function useConfigScreenState({
     nominateMode,
     existingRoomCode,
     session,
-    isLoading,
     navigation,
     variantOverrides,
     rules,
@@ -329,19 +346,21 @@ export function useConfigScreenState({
   const handleRoleInfoVariantSelect = useCallback(
     (variantId: RoleId) => {
       if (!roleInfoBaseId) return;
-      setVariantOverrides((prev) => {
+      setDraft((prev) => {
+        const variantOverrides = { ...prev.variantOverrides };
         if (variantId === roleInfoBaseId) {
-          const next = { ...prev };
-          delete next[roleInfoBaseId];
-          return next;
+          delete variantOverrides[roleInfoBaseId];
+        } else {
+          variantOverrides[roleInfoBaseId] = variantId;
         }
-        return { ...prev, [roleInfoBaseId]: variantId };
+        return {
+          selection: prev.selection[roleInfoBaseId]
+            ? prev.selection
+            : { ...prev.selection, [roleInfoBaseId]: true },
+          variantOverrides,
+          selectedTemplate: CUSTOM_TEMPLATE,
+        };
       });
-      setSelection((prev) => {
-        if (prev[roleInfoBaseId]) return prev;
-        return { ...prev, [roleInfoBaseId]: true };
-      });
-      setSelectedTemplate('__custom__');
     },
     [roleInfoBaseId],
   );
@@ -359,7 +378,7 @@ export function useConfigScreenState({
   // ── Template label ───────────────────────────────────────────────────────
 
   const selectedTemplateLabel = useMemo(() => {
-    if (selectedTemplate === '__custom__') return '自定义';
+    if (selectedTemplate === CUSTOM_TEMPLATE) return '自定义';
     const preset = PRESET_TEMPLATES.find((p) => p.name === selectedTemplate);
     return preset ? preset.name : selectedTemplate;
   }, [selectedTemplate]);
@@ -379,8 +398,8 @@ export function useConfigScreenState({
   );
 
   const handleBulkCountChange = useCallback((roleId: string, newCount: number) => {
-    setSelection((prev) => {
-      const next = { ...prev };
+    setDraft((prev) => {
+      const selection = { ...prev.selection };
       let maxCount = 1;
       for (const group of FACTION_GROUPS) {
         for (const section of group.sections) {
@@ -391,11 +410,10 @@ export function useConfigScreenState({
       }
       for (let i = 0; i < maxCount; i++) {
         const key = i === 0 ? roleId : `${roleId}${i}`;
-        next[key] = i < newCount;
+        selection[key] = i < newCount;
       }
-      return next;
+      return { ...prev, selection, selectedTemplate: CUSTOM_TEMPLATE };
     });
-    setSelectedTemplate('__custom__');
   }, []);
 
   const getFactionAccentColor = useCallback((faction: Faction): string => {
@@ -451,15 +469,13 @@ export function useConfigScreenState({
   );
 
   const isSubmitting = isWorkflowSubmitting;
-  const isDisabled = isSubmitting || isLoading;
 
   // ── Return bag ───────────────────────────────────────────────────────────
 
   return {
     // Mode
     isNominateMode,
-    isDisabled,
-    isLoading,
+    isDisabled: isSubmitting,
     isSubmitting,
 
     // Core state

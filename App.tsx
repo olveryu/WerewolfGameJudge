@@ -341,6 +341,7 @@ function AppContent() {
       <DebugPanel />
       {alertConfig && (
         <AlertModal
+          key={alertConfig.generation}
           visible={true}
           title={alertConfig.title}
           message={alertConfig.message}

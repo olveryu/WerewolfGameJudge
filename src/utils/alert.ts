@@ -53,6 +53,8 @@ export const setAlertBlocked = (blocked: boolean) => {
 };
 
 export interface AlertConfig {
+  /** Identity of this alert; a replacement alert carries a new generation. */
+  generation: number;
   title: string;
   message?: string;
   buttons: AlertButton[];
@@ -92,6 +94,7 @@ export const showAlert = (title: string, message?: string, buttons?: AlertButton
   // Use custom modal if listener is set (preferred for consistent UI)
   if (alertListener) {
     alertListener({
+      generation: alertGeneration,
       title,
       message,
       buttons: alertButtons,
@@ -168,7 +171,7 @@ export const showPrompt = (
 
   // Prefer custom modal
   if (alertListener) {
-    alertListener({ title, message, buttons, input });
+    alertListener({ generation: alertGeneration, title, message, buttons, input });
     return true;
   }
 

@@ -346,8 +346,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = (props) =
 
           {nightReview.isShareSeatsVisible && (
             <ShareReviewModal
-              visible={nightReview.isShareSeatsVisible}
-              seats={[...nightReview.shareSeats]}
+              seats={nightReview.shareSeats}
               currentAllowedSeats={state.nightReviewAllowedSeats ?? []}
               onConfirm={nightReview.shareToSeats}
               onClose={nightReview.closeShareSeats}
