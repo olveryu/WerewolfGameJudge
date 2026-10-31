@@ -27,6 +27,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useDerivedValue,
@@ -348,6 +349,9 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         if (finished) scheduleOnRN(setPhase, 'idle');
       },
     );
+    return () => {
+      cancelAnimation(gemPulse);
+    };
   }, [
     reducedMotion,
     wheelOpacity,

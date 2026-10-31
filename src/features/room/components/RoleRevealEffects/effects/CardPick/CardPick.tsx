@@ -22,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   interpolate,
   type SharedValue,
@@ -365,6 +366,9 @@ export const CardPick: React.FC<CardPickProps> = ({
       withTiming(Math.PI * 2, { duration: 4000, easing: Easing.linear }),
       -1,
     );
+    return () => {
+      cancelAnimation(chipBobble);
+    };
   }, [
     reducedMotion,
     spreadProgress,

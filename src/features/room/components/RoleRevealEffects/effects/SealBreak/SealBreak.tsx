@@ -25,6 +25,7 @@ import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'reac
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
+  cancelAnimation,
   Easing,
   interpolate,
   useAnimatedStyle,
@@ -658,6 +659,12 @@ export const SealBreak: FC<RevealEffectProps> = ({
       ),
       -1,
     );
+    return () => {
+      cancelAnimation(fogPulse);
+      cancelAnimation(emberCycle);
+      cancelAnimation(chainRattle);
+      cancelAnimation(sealPulseScale);
+    };
   }, [
     reducedMotion,
     sealOpacity,

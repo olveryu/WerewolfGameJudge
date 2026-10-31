@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   interpolate,
   useAnimatedStyle,
@@ -102,6 +103,9 @@ const AnimatedBulb: React.FC<{
     } else {
       anim.value = 0;
     }
+    return () => {
+      cancelAnimation(anim);
+    };
   }, [phase, reducedMotion, delay, anim]);
 
   const glowStyle = useAnimatedStyle(() => ({
@@ -239,6 +243,9 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
       ),
       -1,
     );
+    return () => {
+      cancelAnimation(frameGlowAnim);
+    };
   }, [frameGlowAnim, reducedMotion]);
 
   const targetIndex = useMemo(

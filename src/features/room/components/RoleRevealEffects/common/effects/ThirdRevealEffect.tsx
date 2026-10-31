@@ -26,6 +26,7 @@ import {
 import React, { useEffect, useMemo } from 'react';
 import type { SharedValue } from 'react-native-reanimated';
 import {
+  cancelAnimation,
   Easing,
   useDerivedValue,
   useSharedValue,
@@ -269,6 +270,13 @@ export const ThirdRevealEffect: React.FC<ThirdRevealEffectProps> = ({
         -1,
       ),
     );
+    return () => {
+      cancelAnimation(outerRotation);
+      cancelAnimation(innerRotation);
+      cancelAnimation(particleOrbit);
+      cancelAnimation(twinkleCycle);
+      cancelAnimation(corePulse);
+    };
   }, [
     animate,
     appear,

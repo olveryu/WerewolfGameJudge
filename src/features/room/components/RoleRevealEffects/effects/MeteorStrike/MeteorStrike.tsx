@@ -22,6 +22,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
+  cancelAnimation,
   Easing,
   makeMutable,
   useAnimatedStyle,
@@ -441,6 +442,7 @@ export const MeteorStrike: React.FC<RevealEffectProps> = ({
     return () => {
       clearTimeout(atmosphereTimer);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      cancelAnimation(starCycle);
     };
   }, [reducedMotion, starCycle, cardScale, cardOpacity, canvasOpacity, spawnMeteor, updateMeteor]);
 

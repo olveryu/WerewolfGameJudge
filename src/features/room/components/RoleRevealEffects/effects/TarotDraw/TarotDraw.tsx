@@ -321,6 +321,12 @@ export const TarotDraw: React.FC<RevealEffectProps> = ({
   const candleFlicker = useSharedValue(0);
   const crystalPulse = useSharedValue(0);
   const magicCircleRotation = useSharedValue(0);
+  useEffect(
+    () => () => {
+      cancelAnimation(magicCircleRotation);
+    },
+    [magicCircleRotation],
+  );
   const magicCircleOpacity = useSharedValue(0);
   const trailOpacity = useSharedValue(0);
   const trailOp = useDerivedValue(() => trailOpacity.value);
@@ -483,6 +489,12 @@ export const TarotDraw: React.FC<RevealEffectProps> = ({
     );
     // Velvet table fades in
     velvetOpacity.value = withTiming(1, { duration: 800 });
+    return () => {
+      cancelAnimation(wheelRotation);
+      cancelAnimation(starCycle);
+      cancelAnimation(candleFlicker);
+      cancelAnimation(crystalPulse);
+    };
   }, [
     reducedMotion,
     flipProgress,

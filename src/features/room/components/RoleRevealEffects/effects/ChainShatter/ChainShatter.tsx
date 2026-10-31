@@ -21,6 +21,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useDerivedValue,
@@ -699,6 +700,10 @@ export const ChainShatter: React.FC<RevealEffectProps> = ({
         if (finished) scheduleOnRN(setPhase, 'idle');
       },
     );
+    return () => {
+      cancelAnimation(dustProgress);
+      cancelAnimation(torchFlicker);
+    };
   }, [
     reducedMotion,
     chainOpacity,

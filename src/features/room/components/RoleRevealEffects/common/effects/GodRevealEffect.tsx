@@ -27,6 +27,7 @@ import {
 import React, { useEffect, useMemo } from 'react';
 import type { SharedValue } from 'react-native-reanimated';
 import {
+  cancelAnimation,
   Easing,
   useDerivedValue,
   useSharedValue,
@@ -185,6 +186,9 @@ export const GodRevealEffect: React.FC<GodRevealEffectProps> = ({
         -1,
       ),
     );
+    return () => {
+      cancelAnimation(twinkleCycle);
+    };
   }, [animate, progress, glowIntensity, particleProgress, twinkleCycle]);
 
   // ── Derived values ──

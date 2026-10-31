@@ -24,6 +24,7 @@ import {
 import React, { useEffect, useMemo } from 'react';
 import type { SharedValue } from 'react-native-reanimated';
 import {
+  cancelAnimation,
   Easing,
   useDerivedValue,
   useSharedValue,
@@ -244,6 +245,10 @@ export const VillagerRevealEffect: React.FC<VillagerRevealEffectProps> = ({
         -1,
       ),
     );
+    return () => {
+      cancelAnimation(fireflyCycle);
+      cancelAnimation(twinkleCycle);
+    };
   }, [animate, progress, appear, glowIntensity, fireflyCycle, twinkleCycle]);
 
   const glowR = useDerivedValue(() => cardWidth * 0.45 * (0.5 + glowIntensity.value * 0.5));

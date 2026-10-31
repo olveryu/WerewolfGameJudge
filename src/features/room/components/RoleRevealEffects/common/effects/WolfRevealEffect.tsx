@@ -27,6 +27,7 @@ import {
 import type React from 'react';
 import { useEffect, useMemo } from 'react';
 import {
+  cancelAnimation,
   Easing,
   useDerivedValue,
   useSharedValue,
@@ -180,6 +181,11 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
       AE.effectStartDelay,
       withRepeat(withTiming(1, { duration: 1000, easing: Easing.linear }), -1),
     );
+    return () => {
+      cancelAnimation(fogDrift);
+      cancelAnimation(eyePulse);
+      cancelAnimation(bloodCycle);
+    };
   }, [animate, progress, glowIntensity, fogDrift, eyePulse, bloodCycle]);
 
   // ── Derived values ──
