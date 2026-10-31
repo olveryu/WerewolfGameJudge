@@ -14,10 +14,28 @@
  *       nested files are plain markdown — frontmatter is NOT required
  *       on AGENTS.md files;
  *   (c) forbidden tool-specific files/directories are absent;
- *   (d) dead-reference scan: relative code-like paths mentioned in
- *       markdown files are checked for existence and reported as
- *       WARNINGS only (never failures), because the scan is
- *       conservative and must not produce false-positive failures;
+ *   (d) dead-reference scan (warnings only): in markdown files only,
+ *       substrings matching one of three forms are checked for
+ *       existence and reported as WARNINGS only (never failures):
+ *       (i) paths rooted at src/, packages/, scripts/, e2e/, docs/,
+ *       or agents/; (ii) paths rooted at .agents/; (iii)
+ *       references/... paths, resolved against the mentioning
+ *       file's skill root (the nearest ancestor directory holding
+ *       a SKILL.md, or, under .agents/skills/, the skill directory
+ *       itself) and checked only when such a skill root exists.
+ *       Because the match is a substring, a longer mention
+ *       containing a form as a suffix is checked as the matched
+ *       suffix only. The patterns match only path characters, so
+ *       mentions with placeholders (<...>), braces ({...}), or
+ *       globs (*) never yield a candidate; a matched candidate
+ *       containing a '..' segment is skipped. Also skipped: bare
+ *       filenames with no directory; a rooted-path match preceded
+ *       by '.' (the tail of a dotted path); a .agents/ match
+ *       preceded by a word character, '.', '/', or '-'; and a
+ *       references/... match preceded by a word character, '.',
+ *       '/', or '-'. Any other path form is never matched, hence
+ *       never checked, including references/... mentions in files
+ *       with no skill root.
  *   (e) duplicate-heading report: identical top-level headings across
  *       files are reported, never failed.
  *
@@ -357,38 +375,95 @@ function checkForbiddenFiles(files, dirs, failures) {
   }
 }
 
-// Conservative path-like pattern for the dead-reference scan (warnings
-// only). It matches only paths rooted at a known top-level directory,
-// containing only path characters, and ending in a path segment. Paths
-// containing placeholders (<...>, {...}), globs (*), or parent
-// references (..) are skipped, as are bare filenames with no directory.
+// Path-like patterns for the dead-reference scan (warnings only).
+// PATH_LIKE_PATTERN matches substrings rooted at a known top-level
+// directory, containing only path characters, and ending in a path
+// segment. DOT_AGENTS_PATTERN matches substrings rooted at .agents/.
+// SKILL_RELATIVE_PATTERN matches bare references/... mentions, which
+// extractPathCandidates resolves against the mentioning file's skill
+// root (passed as skillRoot) and ignores when no skill root is given.
+// Placeholders (<...>), braces ({...}), and globs (*) contain
+// characters outside the patterns, so they never match; candidates
+// with a '..' segment, bare filenames, and the guarded suffix forms
+// described in extractPathCandidates are skipped. See the script
+// header for the exact scan scope.
 const PATH_LIKE_PATTERN =
   /\b(?:src|packages|scripts|e2e|docs|agents)\/[A-Za-z0-9_.\/-]*[A-Za-z0-9_]/g;
+const DOT_AGENTS_PATTERN = /\.agents\/[A-Za-z0-9_.\/-]*[A-Za-z0-9_]/g;
+const SKILL_RELATIVE_PATTERN = /\breferences\/[A-Za-z0-9_.\/-]*[A-Za-z0-9_]/g;
 
-export function extractPathCandidates(line) {
+function cleanCandidate(raw) {
+  let candidate = raw.replace(/[.,;:!?)"'\]]+$/, '');
+  candidate = candidate.replace(/\/+$/, '');
+  if (candidate === '') return null;
+  if (candidate.includes('<') || candidate.includes('{') || candidate.includes('*')) return null;
+  if (candidate.split('/').includes('..')) return null;
+  return candidate;
+}
+
+export function extractPathCandidates(line, skillRoot = null) {
   const candidates = [];
   for (const match of line.matchAll(PATH_LIKE_PATTERN)) {
     // A match immediately preceded by '.' is the tail of a hidden
     // directory path (e.g. `.agents/skills/...`); the scan is
     // root-relative and the leading dot is part of the real path.
     if (match.index > 0 && line[match.index - 1] === '.') continue;
-    let candidate = match[0].replace(/[.,;:!?)"'\]]+$/, '');
-    candidate = candidate.replace(/\/+$/, '');
-    if (candidate === '') continue;
-    if (candidate.includes('<') || candidate.includes('{') || candidate.includes('*')) continue;
-    if (candidate.split('/').includes('..')) continue;
-    candidates.push(candidate);
+    const candidate = cleanCandidate(match[0]);
+    if (candidate !== null) candidates.push(candidate);
+  }
+  for (const match of line.matchAll(DOT_AGENTS_PATTERN)) {
+    // Only a root-relative .agents/ mention counts: a match preceded
+    // by a word character, '.', '/', or '-' is a suffix of a longer
+    // path (e.g. `foo.agents/...`), not a root-relative path. The
+    // rooted-pattern loop above already skipped the `agents/...`
+    // tail of a `.agents/...` mention, so a valid mention yields
+    // exactly one candidate here.
+    if (match.index > 0 && /[A-Za-z0-9_./-]/.test(line[match.index - 1])) continue;
+    const candidate = cleanCandidate(match[0]);
+    if (candidate !== null) candidates.push(candidate);
+  }
+  if (skillRoot !== null) {
+    for (const match of line.matchAll(SKILL_RELATIVE_PATTERN)) {
+      // A bare references/... mention is relative to the skill root,
+      // not to the mentioning file's own directory: a reference file
+      // in references/ means its sibling by the same form. A match
+      // preceded by a word character, '.', '/', or '-' is a suffix
+      // of a longer path, not a bare skill-relative mention.
+      if (match.index > 0 && /[A-Za-z0-9_./-]/.test(line[match.index - 1])) continue;
+      const cleaned = cleanCandidate(match[0]);
+      if (cleaned === null) continue;
+      candidates.push(skillRoot === '' ? cleaned : `${skillRoot}/${cleaned}`);
+    }
   }
   return candidates;
 }
 
+function skillRootForFile(rel, skillRoots) {
+  const dir = path.posix.dirname(rel);
+  let best = null;
+  for (const root of skillRoots) {
+    if (dir === root || dir.startsWith(`${root}/`)) {
+      if (best === null || root.length > best.length) best = root;
+    }
+  }
+  if (best !== null) return best === '.' ? '' : best;
+  const agentsMatch = /^\.agents\/skills\/[^/]+/.exec(rel);
+  return agentsMatch === null ? null : agentsMatch[0];
+}
+
 function scanDeadReferences(root, files, warnings) {
+  const skillRoots = new Set(
+    files
+      .filter((rel) => path.posix.basename(rel) === 'SKILL.md')
+      .map((rel) => path.posix.dirname(rel)),
+  );
   for (const rel of files) {
     if (!isMarkdown(rel)) continue;
     const text = readText(root, rel);
+    const skillRoot = skillRootForFile(rel, skillRoots);
     const lines = text.split('\n');
     lines.forEach((line, index) => {
-      for (const candidate of extractPathCandidates(line)) {
+      for (const candidate of extractPathCandidates(line, skillRoot)) {
         let exists = false;
         try {
           statSync(path.join(root, candidate));

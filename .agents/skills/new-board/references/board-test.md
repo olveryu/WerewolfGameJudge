@@ -18,7 +18,8 @@ seat-to-role assignment map; `executeFullNight` drives the whole
 first night. `GameContext` is imported as a type from
 `./gameContext` — not from `gameFactory`. A test must assert at
 least one topic-specific outcome (a reveal, a night result, or an
-action record), not deaths alone.
+action record), not deaths alone; `night1.boards.coverage.contract.test.ts`
+requires one of its assertion patterns.
 
 Name a new test file
 `night1.<topic>.<role-feature>.<N>p.integration.test.ts`, where `<N>`
@@ -38,9 +39,7 @@ and requires at least one theme assertion (night results, a reveal,
 a converted seat, or an action record). At drafting time the list
 has 14 of the 26 presets. A new board that seats 12 players joins
 this list (add the name and its regex). A board with any other seat
-count has no coverage-contract entry today: do not add it to the
-12-player list, and record the gap in the work notes instead of
-inventing a rule for it.
+count has no coverage-contract entry; record the gap in the work notes.
 
 ## Other contract tests
 
@@ -53,7 +52,6 @@ inventing a rule for it.
 ## E2E
 
 A board change does not automatically need a new E2E spec. If one is
-proposed, it follows the new-e2e-spec skill: report first, one spec
-per change, real multi-context seats. The board picker page object
-exposes `selectTemplate(name)` / `selectDefaultTemplate()` — there is
-no `selectPreset` method; do not write one into a spec.
+proposed, see the new-e2e-spec skill. The board picker page object
+exposes `selectTemplate(name)` / `selectDefaultTemplate()`; there is
+no `selectPreset` method.

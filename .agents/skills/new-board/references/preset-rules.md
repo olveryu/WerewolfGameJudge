@@ -30,8 +30,7 @@ count `roles` entries including bottom cards, not seats; the
 12 roles. Nothing in `Template.ts` or `validateTemplateRoles`
 requires 12 seats (`MINIMUM_PLAYERS = 1`); the uniform 12 is a
 property of the current list, not a rule. State the seat count from
-`getPlayerCount`, never from `roles.length` alone, and never write a
-"boards must be 12 players" rule.
+`getPlayerCount`, never from `roles.length` alone.
 
 ## Ordering convention (observed, not contract-enforced)
 
@@ -62,8 +61,7 @@ must contain the new preset, or the count assertion fails.
 `thief: 2`. At most one bottom-card actor per board. A treasure-master
 deal must be exactly one wolf, one god, and one villager, must include
 `wolf`, and must not include the actor or `cupid`; a thief deal may
-include at most one wolf. `getValidBottomCardDeals` decides legality —
-use it instead of hand-checking combinations.
+include at most one wolf. `getValidBottomCardDeals` decides legality.
 
 ## Count surfaces to update
 
@@ -71,6 +69,4 @@ When a preset is added, the total changes from 26 to 27 in every
 place that cites it: `README.md`, `README.en.md`, and
 `docs/PRESET_BOARDS.md` (each cites 26 at drafting time), plus
 `EXPECTED_TEMPLATE_NAMES` in the contract test. Derive the new
-number from `PRESET_TEMPLATES.length` at that moment; never copy the
-old example numbers. There is no `src/config/guideContent.ts` file —
-do not add or update a step for it.
+number from `PRESET_TEMPLATES.length` at that moment. There is no `src/config/guideContent.ts` file.

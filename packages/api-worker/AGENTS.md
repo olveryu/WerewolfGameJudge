@@ -12,7 +12,7 @@ Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine
 
 - D1 database `DB` (`werewolf-db`); Durable Object bindings `GAME_ROOM` (`GameRoom`) and `WECHAT_AUTH` (`WeChatAuthProxy`); R2 buckets `AVATARS` (`werewolf-avatars`) and `GAME_MEDIA` (`werewolf-game-media`).
 - Rate limits `ROOM_LOOKUP_LIMITER` and `ANONYMOUS_SIGNUP_LIMITER`; Analytics Engine datasets `LOAD_TIMING`, `AI_USAGE`, `REQUEST_TRAFFIC`; three workflow bindings (`fib-word-supply`, `undercover-word-supply`, `drawguess-word-supply`); cron triggers every 5 minutes, at 03:00, and at 04:00 (saga reconciliation, expiry/cleanup, editorial dispatch).
-- `compatibility_date` is `2026-10-01`. Do not confuse this file with the separate Pages config at the repo root.
+- `compatibility_date` is `2026-10-01`.
 
 ## Room authority: Durable Object and its SQLite storage
 
@@ -29,30 +29,30 @@ Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine
 
 - D1 is the relational store; Drizzle is the typed query layer over it (`createDb` returns `drizzle(d1)`, schema-free). There is no Drizzle Kit, no Drizzle config, and no generated schema directory.
 - Migrations are hand-written SQL files applied by Wrangler: 64 files, `0001_init.sql` through `0065_demo.sql`, with no `0002` file.
-- 33 tables are declared exactly once via `sqliteTable` in owner `dbSchema.ts` modules, pinned by a client contract test. Further tables exist only as raw SQL in migrations; check the migrations before claiming the full physical set.
-- Registration migrations extend every `game_type` CHECK list by rebuilding the constrained tables (table-copy pattern). A new game-owned table needs an owner `dbSchema.ts` or an explicit reason for staying raw-SQL-only.
+- 33 tables are declared exactly once via `sqliteTable` in owner `dbSchema.ts` modules, pinned by `declares every physical D1 table exactly once in its owner module` in `src/__tests__/architecture.contract.test.ts`. Further tables exist only as raw SQL in migrations; check the migrations before claiming the full physical set.
+- Registration migrations extend every `game_type` CHECK list by rebuilding the constrained tables (table-copy pattern).
 
 ## Worker game catalog and modules
 
-- `WORKER_GAME_CATALOG` is exhaustive: exactly one worker module per entry in `GAME_TYPES`, in the same order (pinned by `catalog.test.ts`). Each module binds the engine, state codec, public/internal command schemas, effect schema, migrate function, and HTTP routes.
-- HTTP routes are projected from the same catalog; duplicate paths fail fast. A game declaring a workflow must also re-export it from the entrypoint and declare the workflow binding in `wrangler.toml`.
+- `WORKER_GAME_CATALOG` is exhaustive: exactly one worker module per entry in `GAME_TYPES`, in the same order, pinned by `registers exactly one Worker module for every canonical game type` in `packages/api-worker/src/games/__tests__/catalog.test.ts`. Each module binds the engine, state codec, public/internal command schemas, effect schema, migrate function, and HTTP routes.
+- HTTP routes are projected from the same catalog, pinned by `projects game-owned HTTP routes from the same catalog` in `packages/api-worker/src/games/__tests__/catalog.test.ts`. A game declaring a workflow must also re-export it from the entrypoint and declare the workflow binding in `wrangler.toml`.
 
 ## HTTP patterns
 
-- Validate JSON bodies with `jsonBody(schema)` (`platform/http/`). It returns HTTP 400 with `{ success: false, reason: 'VALIDATION_ERROR', detail }`. Do not read and cast request JSON by hand.
+- Validate JSON bodies with `jsonBody(schema)` (`platform/http/`). It returns HTTP 400 with `{ success: false, reason: 'VALIDATION_ERROR', detail }`.
 - `callDurableObject` translates Durable Object errors into HTTP errors (503 retryable, 429 overloaded). Central error handling in the entrypoint catches HTTP errors, syntax errors, and generic errors; handlers do not need their own translation for these.
 - `requireAuth` authenticates the current principal and sets `c.var.userId` and `c.var.isAnonymous`. Zod 4 is the schema library (`z.email()` and friends); seat schemas use the established `z.coerce.number().int().min(0)` shape for werewolf seats.
 - The realtime gateway upgrades WebSocket connections to the room Durable Object stub and runs the v2 `SYNC`/`SYNC_RESULT` exchange (see the engine file for the wire protocol).
 
 ## Scripts, migrations, and gates
 
-- Verified scripts in this package: `dev`, `dev:test`, `deploy`, `db:migrate:local`, `db:migrate:remote`, `db:seed:local`, `types`, `types:check`, `typecheck`, `test`. Migrations run before deploy in CI (see `.github/workflows/ci.yml` for the verified job order). This package has no `lint`, `format`, `knip`, or `build` script; those gates apply through the root configs and root tasks. Do not invent a package-local gate command. `typecheck` runs the Wrangler types check first, then the main config, then the test config.
-- Number the next migration after the latest file; never renumber or rewrite an applied migration. A registration migration must extend every `game_type`-constrained table, including foreign-key dependents, using the table-copy pattern of the previous registration migration. Local: `db:migrate:local`. Remote: `db:migrate:remote`. Both use the `werewolf-db` database and the package's Wrangler config.
+- Verified scripts in this package: `dev`, `dev:test`, `deploy`, `db:migrate:local`, `db:migrate:remote`, `db:seed:local`, `types`, `types:check`, `typecheck`, `test`. Migrations run before deploy in CI (see `.github/workflows/ci.yml` for the verified job order). This package has no `lint`, `format`, `knip`, or `build` script; those gates apply through the root configs and root tasks. `typecheck` runs the Wrangler types check first, then the main config, then the test config.
+- A registration migration must extend every `game_type`-constrained table, including foreign-key dependents, using the table-copy pattern of the previous registration migration. Local: `db:migrate:local`. Remote: `db:migrate:remote`. Both use the `werewolf-db` database and the package's Wrangler config.
 
 ## Secrets and logging
 
-- `wrangler.toml` `[secrets] required` lists 11 names (count verified; read the list from that file at the time of use). CI additionally references 5 further names. Never write a secret value into code, docs, or this file. Any secrets inventory must be regenerated from `wrangler.toml` plus the workflow files at the time of writing; do not copy an old table.
-- `console.*` is an error in this package, with one exception: the worker logger at `platform/observability/logger.ts` is the only module allowed to call it directly. Its `error()` also reports to the error-reporting service. Use that logger; do not add a second logging path. For client logging rules, see `src/AGENTS.md`.
+- Secrets inventory: `wrangler.toml` `[secrets] required` (11 names) plus `.github/workflows/` (7 distinct `secrets.*` names, 6 beyond the wrangler list), regenerated at the time of writing.
+- `console.*` is an error in this package, with one exception: the worker logger at `platform/observability/logger.ts` is the only module allowed to call it directly, enforced by `no-console` in `eslint.config.mjs`. Its `error()` also reports to the error-reporting service. For client logging rules, see `src/AGENTS.md`.
 
 ## Tests for this package
 

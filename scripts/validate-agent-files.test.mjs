@@ -176,12 +176,117 @@ test('forbidden files inside ignored directories are not flagged', async (t) => 
   assert.deepEqual(result.failures, []);
 });
 
-test('extractPathCandidates skips hidden-directory tails (.agents/...)', async () => {
+test('extractPathCandidates checks .agents/... once and keeps the dot-skip for rooted tails', async () => {
   const { extractPathCandidates } = await import('./validate-agent-files.mjs');
-  assert.deepEqual(extractPathCandidates('See .agents/skills/example/SKILL.md for detail.'), []);
+  // A root-relative .agents/... mention yields exactly one candidate:
+  // the rooted-pattern tail (agents/...) is still skipped, so the
+  // mention is not double-counted.
+  assert.deepEqual(extractPathCandidates('See .agents/skills/example/SKILL.md for detail.'), [
+    '.agents/skills/example/SKILL.md',
+  ]);
+  // The dot-skip survives for other rooted paths: .src/... is the tail
+  // of a dotted path, not a root-relative src/... mention.
+  assert.deepEqual(extractPathCandidates('See .src/does/not/exist.ts for detail.'), []);
+  assert.deepEqual(extractPathCandidates('See foo.agents/skills/example/SKILL.md.'), []);
   assert.deepEqual(extractPathCandidates('See src/does/not/exist.ts for detail.'), [
     'src/does/not/exist.ts',
   ]);
+});
+
+test('extractPathCandidates resolves references/... against the skill root only', async () => {
+  const { extractPathCandidates } = await import('./validate-agent-files.mjs');
+  assert.deepEqual(
+    extractPathCandidates('See references/missing.md for detail.', '.agents/skills/example'),
+    ['.agents/skills/example/references/missing.md'],
+  );
+  // No skill root: a bare references/... mention is not scanned.
+  assert.deepEqual(extractPathCandidates('See references/missing.md for detail.'), []);
+  assert.deepEqual(extractPathCandidates('See references/missing.md for detail.', null), []);
+  // A references/... suffix of a longer path is not a bare mention.
+  assert.deepEqual(
+    extractPathCandidates('See foo/references/missing.md for detail.', '.agents/skills/example'),
+    [],
+  );
+  // A .agents/... mention already carries the full references/ path:
+  // it yields one candidate, not a second skill-relative one.
+  assert.deepEqual(
+    extractPathCandidates(
+      'See .agents/skills/example/references/missing.md for detail.',
+      '.agents/skills/example',
+    ),
+    ['.agents/skills/example/references/missing.md'],
+  );
+});
+
+test('dead references/... path in a skill is a warning only', async (t) => {
+  const root = await makeTree(t, {
+    ...passingFiles(),
+    '.agents/skills/example-skill/SKILL.md': skillBody(
+      'example-skill',
+      '\nSee references/does-not-exist.md and references/existing.md for detail.\n',
+    ),
+    '.agents/skills/example-skill/references/existing.md': '# Existing\n\nDetail.\n',
+  });
+  const result = validate(root);
+  assert.deepEqual(result.failures, []);
+  assert.equal(result.warnings.length, 1);
+  assert.equal(result.warnings[0].check, 'dead-reference');
+  assert.ok(
+    result.warnings[0].message.includes(
+      '.agents/skills/example-skill/references/does-not-exist.md',
+    ),
+  );
+  assert.equal(runCli(root).status, 0);
+});
+
+test('references/... in a reference file resolves against the skill root, not its own directory', async (t) => {
+  const root = await makeTree(t, {
+    ...passingFiles(),
+    '.agents/skills/example-skill/SKILL.md': skillBody('example-skill'),
+    '.agents/skills/example-skill/references/other.md':
+      '# Other\n\nSee references/missing.md and references/sibling.md.\n',
+    '.agents/skills/example-skill/references/sibling.md': '# Sibling\n\nDetail.\n',
+  });
+  const result = validate(root);
+  assert.deepEqual(result.failures, []);
+  assert.equal(result.warnings.length, 1);
+  assert.ok(
+    result.warnings[0].message.includes('.agents/skills/example-skill/references/missing.md'),
+  );
+  assert.equal(runCli(root).status, 0);
+});
+
+test('dead .agents/... path is a warning only; an existing .agents/... path is not warned', async (t) => {
+  const root = await makeTree(t, {
+    ...passingFiles(),
+    'AGENTS.md':
+      '# Root rules\n\nSee .agents/skills/example-skill/SKILL.md and .agents/skills/missing/SKILL.md.\n',
+    '.agents/skills/example-skill/SKILL.md': skillBody('example-skill'),
+  });
+  const result = validate(root);
+  assert.deepEqual(result.failures, []);
+  assert.equal(result.warnings.length, 1);
+  assert.equal(result.warnings[0].check, 'dead-reference');
+  assert.ok(result.warnings[0].message.includes('.agents/skills/missing/SKILL.md'));
+  assert.equal(runCli(root).status, 0);
+});
+
+test('dead-reference warnings and duplicate headings together never change the exit code', async (t) => {
+  const root = await makeTree(t, {
+    'AGENTS.md':
+      '# Shared heading\n\nSee src/does/not/exist.ts and .agents/skills/missing/SKILL.md.\n',
+    'packages/game-engine/AGENTS.md': '# Shared heading\n\nEngine.\n',
+    '.agents/skills/example-skill/SKILL.md': skillBody(
+      'example-skill',
+      '\nSee references/does-not-exist.md.\n',
+    ),
+  });
+  const result = validate(root);
+  assert.deepEqual(result.failures, []);
+  assert.ok(result.warnings.length >= 3);
+  assert.ok(result.warnings.every((w) => w.check === 'dead-reference'));
+  assert.equal(result.duplicateHeadings.length, 1);
+  assert.equal(runCli(root).status, 0);
 });
 
 test('dead-path mention is a warning only and does not fail validation', async (t) => {

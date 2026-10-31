@@ -15,7 +15,7 @@ Layout: a pnpm workspace with three parts — the root app, `packages/game-engin
 Games (8): werewolf, fibking, pictionary, undercover, storyrelay, drawguess, avalon, demo. Demo is the hand-built reference the generator templates mirror; it is not generator output, and it is the only game marked non-production.
 
 State versions: werewolf 16, avalon 10, fibking 8, pictionary 9, undercover 5, storyrelay 2, drawguess 2, demo 1.
-Upgrade rule: persisted states migrate in place at read through each game's `migratePersisted*State`; a newer or unsupported version throws. Any persisted-shape change must add an upgrade path covering at least the previous version. A Durable Object storage-schema mismatch discards the room instead; that is a different mechanism.
+Persisted states migrate in place at read through each game's `migratePersisted*State`; a newer or unsupported version throws. A Durable Object storage-schema mismatch discards the room instead; that is a different mechanism.
 
 The version number is authoritative in `package.json` only; `src/config/version.ts` reads it at import time, and `app.json` and `CHANGELOG.md` are generated from it by the release script.
 
@@ -30,7 +30,7 @@ The version number is authoritative in `package.json` only; `src/config/version.
 | Worker typecheck  | `pnpm --filter @game-judge/api-worker run typecheck`                     | Local, scoped where possible                                           |
 | Lint              | `pnpm exec eslint <changed files>`                                       | Local, changed files only; full run in CI                              |
 | Format check      | `pnpm exec prettier --check <changed files>`                             | Local, changed files only; full run in CI                              |
-| Unused code       | `pnpm run knip`                                                          | Local; also runs before push                                           |
+| Unused code       | `pnpm run knip`                                                          | Local                                                                  |
 | Agent files check | `pnpm run validate:agents`                                               | Local and CI                                                           |
 | Full gate         | `pnpm run quality`                                                       | Full run; CI only                                                      |
 | E2E               | `pnpm run e2e`                                                           | Full run; CI only (sharded)                                            |
@@ -38,59 +38,32 @@ The version number is authoritative in `package.json` only; `src/config/version.
 | Local dev         | `pnpm run dev`                                                           | Worker plus web                                                        |
 | Local migrations  | `pnpm --filter @game-judge/api-worker run db:migrate:local`              | Before first local run or after a new migration                        |
 | New game          | `pnpm new-game <gameId>`                                                 | Generator; see the new-game skill                                      |
-| Release           | `bash scripts/release.sh [patch\|minor\|major]`                          | Needs explicit approval; see Task tiers                                |
+| Release           | `bash scripts/release.sh [patch\|minor\|major]`                          | Release script                                                         |
 
-`pnpm run quality` runs `turbo run build typecheck lint knip format test && pnpm run validate:agents`. In CI the same work is split: one job runs Turbo build/typecheck/knip plus the agent-files check, lint/format run as a parallel job, tests run sharded, and `ci-gate` requires all of them. E2E is not part of `quality`. Locally, run the scoped form of the failing area (path-filtered tests, the changed package's typecheck) plus `tsc --noEmit` and `knip`, which also run before push; do not present a local full `quality` run as the gate.
+`pnpm run quality` runs `turbo run build typecheck lint knip format test && pnpm run validate:agents`. In CI the same work is split: one job runs Turbo build/typecheck/knip plus the agent-files check, lint/format run as a parallel job, tests run sharded, and `ci-gate` requires all of them. E2E is not part of `quality`. Locally, run the scoped form of the failing area (path-filtered tests, the changed package's typecheck) plus `tsc --noEmit` and `knip`; do not present a local full `quality` run as the gate.
 
 ## Architecture boundaries
 
-The engine is the sole authority for game logic: state transitions, rule decisions, and settlement are decided in `packages/game-engine`, applied atomically by the Durable Object, and broadcast as snapshots. The client renders authoritative snapshots and never recomputes an engine decision.
+The engine decides state transitions, rule decisions, and settlement in `packages/game-engine`; the Durable Object applies them atomically and broadcasts snapshots for the client to render.
 
-Layers: `platform/` holds shared protocol, realtime, room, and audio chassis code; `games/` holds one directory per game, and one game never imports another — cross-package game code is reached only through that game's `public` entrypoint; `product/` holds growth, rewards, and word-supply modules. The engine package has no React, Cloudflare, network, storage, or Node dependencies.
+Layers: `platform/` holds shared protocol, realtime, room, and audio chassis code; `games/` holds one directory per game; `product/` holds growth, rewards, and word-supply modules. One game never imports another, and cross-package game code is reached only through that game's `public` entrypoint, pinned by the game-module dependency boundary and public-entrypoint tests in `packages/game-engine/src/platform/__tests__/architecture.contract.test.ts`. The engine package has no React, Cloudflare, network, storage, or Node dependencies.
 
 Room link and state identity: the client link lives in `src/platform/realtime/` (`RoomLink`, pure reducer plus runtime). Commands go over HTTP `POST /room/command` and are correlated by `commandId`; state arrives over the WebSocket as snapshots. A snapshot is `RoomSnapshot { gameType, stateVersion, revision, state }`, decoded by the game's `GameStateCodec`. The wire protocol is v2: the client sends `SYNC` only; the server sends `SYNC_RESULT`, `STATE_UPDATE`, `PRESENCE`, or `INBOX_HINT`. Terminal close codes are 1002 and 4000–4003; 4004 is rate-limited and retries. Reconnection is unbounded and driven by the pure reducer.
 
-Host flow: host management exists only for the host, decided by the shell factory (`viewer.isHost`); games build it ungated. Bottom buttons declare only the audiences `participant` or `anyone` — there is no host audience, and the host's next step is the host task card, which references sheet actions by key and carries no handler. For werewolf Day/Ended, the host-only flow is last-night info, then review, then closing; the review step completes only when the host has shared the review, read from the engine's `nightReviewAllowedSeats`.
+Settlement uses one arm decision (`decideSettleCountdownArm`, `SETTLE_COUNTDOWN_MS = 5000`) with no manual finish, pinned by `settleCountdown.contract.test.ts` (`packages/game-engine/src/platform/room/settleCountdown.ts`).
 
-Sheriff secrecy is a derivation, not redaction: the shared record function returns `null` during registration, so no surface — panel, review, or host — may display the count or list; only the viewer's own registration state is exposed. The panel and the night review share that one record.
-
-The night-review verdict is settled by the engine: target and verdict are computed once, in one persisted action, and the client renders the recorded verdict only — it never recounts votes into a verdict, and an unrecorded verdict renders as pending even when the votes are unanimous.
-
-Settlement has one rule: when every required submission is in, a 5-second countdown arms (`SETTLE_COUNTDOWN_MS = 5000`) and settlement runs on expiry. There is no manual finish. A foreground client may dispatch expiry at zero, but that only accelerates the server's scheduled settlement; it is never the authority.
-
-Persistence: D1 is the relational store and Drizzle is the typed layer over it, with a schema-free driver and hand-written SQL migrations; each table is declared once in its owner `dbSchema.ts` module, and tables reached only through raw SQL have no such declaration. Room authority state lives in the Durable Object's own SQLite storage (schema version 3, no migration chain: a stored mismatch discards the room), together with command receipts and the effect outbox. R2 provides the `AVATARS` and `GAME_MEDIA` buckets; D1, Durable Object, rate-limit, workflow, cron, and analytics bindings are declared in the worker `wrangler.toml`.
+Persistence: D1 is the relational store and Drizzle is the typed layer over it, with a schema-free driver and hand-written SQL migrations; D1 tables are declared once in owner `dbSchema.ts` modules (33, pinned by `declares every physical D1 table exactly once in its owner module` in `src/__tests__/architecture.contract.test.ts`), and tables reached only through raw SQL have no such declaration. Room authority state lives in the Durable Object's own SQLite storage (schema version 3, no migration chain: a stored mismatch discards the room), together with command receipts and the effect outbox. R2 provides the `AVATARS` and `GAME_MEDIA` buckets; D1, Durable Object, rate-limit, workflow, cron, and analytics bindings are declared in the worker `wrangler.toml`.
 
 A new game is registered in the engine registry, the engine catalog, the worker catalog, the client catalog, and the test fixture catalog, with a D1 registration migration and the contract-test whitelists updated; the generator performs the mechanical edits. See the nested engine and worker files and the new-game skill for the full list.
 
-## Conventions the code cannot guess
+## Enforced conventions
 
-Confirmations: call `showAlert`/`showPrompt` from `src/utils/alert.ts` (or render `AlertModal` directly); import `Modal` only from `@/components/AppModal`, never from `react-native` — see `src/components/AlertModal.tsx` and the `no-restricted-imports` rule in `eslint.config.mjs`.
-
-Logging: use named loggers from `src/utils/logger.ts`; `console.*` is an ESLint error, with narrow exemptions only for `jest.setup.ts`, `__mocks__/**`, `e2e/helpers/diagnostics.ts`, and the worker logger — see `eslint.config.mjs`.
-
-Zod boundaries: internal data uses `z.strictObject`; permissive `z.object` is allowed only in the 8 worker files listed by the contract test, all external provider payloads — see `src/__tests__/architecture.contract.test.ts`.
-
-Type honesty: production code across all three packages allows only `as const` assertions — no plain `as`, no angle-bracket assertions; test files are excluded by the contract-test walker — see `src/__tests__/architecture.contract.test.ts` and the engine architecture contract test.
-
-Style tokens: import `colors`, `spacing`, `typography`, `borderRadius`, `shadows`, and related tokens from `@/theme`; literal style values are policed by a contract test with a ratchet allowlist that can only shrink — see `src/__tests__/noHardcodedStyleValues.contract.test.ts`.
-
-Naming: use the renamed identifiers enforced by `no-restricted-syntax` (`roomCode`, `seat`, `hostUserId`, `isPityTriggered`, `userId`); check existing names with grep before introducing a new one; commit headers are at most 100 characters with a conventional type — see `eslint.config.mjs` and `commitlint.config.js`.
-
-## Principles
-
-1. Fix the root cause, not the symptom: if removing the change leaves the trigger in place, the fix is incomplete.
-2. Check the current code and current library documentation before writing an API call, a dependency, or an architecture decision; never invent behavior.
-3. Be honest in types: every optional marker and assertion must match what the type truly allows; required fields stay required.
-4. Fail fast and visibly: validate strictly, never swallow an error silently, and give every catch a handler.
-5. Finish end to end: a new type, field, or enum needs consumers across the whole chain or it is dead code, and shared behavior lives in exactly one implementation.
-
-## Task tiers
-
-Read-only work is free: reading, searching, and running checks, tests, formatting, and typechecks on a scoped area.
-
-Scoped edits inside an approved task are free: changes within the approved files and scope, including targeted fixes and their tests; verify every touched symbol's consumers before editing, and stay inside the approved scope.
-
-Explicit approval is required, naming the action, for: merging, releasing, deploying, production migrations or production configuration, changing CI gates, force-pushing, bypassing verification, deleting data, or any work outside the approved scope. Approval to implement is not approval to merge or publish; those are separate approvals.
+- Import `Modal` only from `@/components/AppModal`, enforced by `no-restricted-imports` in `eslint.config.mjs` (the only exemption is `AppModal` itself).
+- `console.*` is a `no-console` error in `eslint.config.mjs`, exempt only in `jest.setup.ts`, `__mocks__/**`, `e2e/helpers/diagnostics.ts`, and the worker logger, with named loggers in `src/utils/logger.ts`.
+- Permissive `z.object` appears only in the 8 worker files listed by `uses permissive Zod objects only for external provider payloads` in `src/__tests__/architecture.contract.test.ts`, all external provider payloads; internal data uses `z.strictObject`.
+- Production code across all three packages allows only `as const` assertions, pinned by `Production types: no ordinary assertions` in `src/__tests__/architecture.contract.test.ts` and `game-engine production type honesty` in `packages/game-engine/src/platform/__tests__/architecture.contract.test.ts`.
+- Style values use `@/theme` tokens (`colors`, `spacing`, `typography`, `borderRadius`, `shadows`), policed by `No hardcoded style values` in `src/__tests__/noHardcodedStyleValues.contract.test.ts` (ratchet allowlist, 0/1 literals allowed).
+- Renamed identifiers (`roomCode`, `seat`, `hostUserId`, `isPityTriggered`, `userId`) are enforced by `no-restricted-syntax` in `eslint.config.mjs`, and commit headers are capped at 100 characters by `commitlint.config.js`.
 
 ## Output rule
 

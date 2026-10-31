@@ -1,6 +1,6 @@
 # Tables and columns
 
-Source: the migration files in `packages/api-worker/migrations/` (64 files, latest `0065_demo.sql`), read sequentially at drafting time. Only the tables and columns listed here may be named by this skill. If a needed table or column is not listed, verify it against the migrations first; do not guess it.
+Source: the migration files in `packages/api-worker/migrations/` (64 files, latest `0065_demo.sql`), read sequentially at drafting time. Only the tables and columns listed here may be named by this skill. If a needed table or column is not listed, verify it against the migrations first.
 
 ## users — 18 columns, verified
 
@@ -17,7 +17,7 @@ equipped_flair, equipped_name_style, last_country, last_colo,
 equipped_effect, equipped_seat_animation, token_version
 ```
 
-Rules: never use a wildcard select on this table. `password_hash` is sensitive; never select it and never include it in output. List explicitly only the columns the question needs. The `last_country` / `last_colo` columns record the most recent values seen; do not present them as a verified current location.
+Rules: never use a wildcard select on this table. `password_hash` is sensitive; never select it and never include it in output. List explicitly only the columns the question needs. The `last_country` / `last_colo` columns record the most recent values seen (`0014_add_geo_columns.sql`); do not present them as a verified current location.
 
 ## rooms — current shape, from the 0065 rebuild
 
@@ -28,7 +28,7 @@ reconcile_after, delete_requested_by, created_at, updated_at,
 games_started, last_started_at
 ```
 
-Notes: `code` is the four-digit room code. The host column is `host_user_id` (not an older `host_id` name from the initial schema). `status` is one of `creating`, `active`, `deleting`, `failed`. Filter lookups by `code` and, where the question needs it, by `game_type` and `status`; the previous version of this skill omitted those filters and they are needed for a precise lookup.
+Notes: `code` is the four-digit room code. The host column is `host_user_id` (not an older `host_id` name from the initial schema). `status` is one of `creating`, `active`, `deleting`, `failed`. Filter lookups by `code` and, where the question needs it, by `game_type` and `status`.
 
 ## room_participants — exists; query it directly
 
@@ -43,7 +43,7 @@ PRIMARY KEY (room_id, user_id)
 
 ### Deleted query (do not use)
 
-The previous version of this skill stated that room participants are not stored and offered a query inferring participants from users created within a time window around a room's creation. That statement is false, and the inference query is deleted outright. It must not be restored, quoted as an alternative, or used as a fallback. The replacement query is:
+The previous version of this skill stated that room participants are not stored and offered a query inferring participants from users created within a time window around a room's creation. Do not use that inference query. The replacement query is:
 
 ```sql
 SELECT u.id, u.display_name, u.last_country, u.last_colo, rp.joined_at
@@ -69,7 +69,7 @@ The original participants table (`0024_room_participants.sql`) was keyed by `roo
 | `password_reset_tokens` | `id`, `user_id`, `token_hash`, `expires_at`, `used`, `created_at`.                                                                                                  | `0003_password_reset.sql`      |
 | `room_game_starts`      | Rebuilt alongside `rooms` in the registration migrations; keyed by room id with a started revision and timestamp. Read the latest rebuild before selecting columns. | `0065_demo.sql` (rebuild)      |
 
-For `user_stats`, `draw_history`, and `refresh_tokens`, the previous version's guidance to select all columns is not carried: list the columns needed after reading the defining migration. Do not select token material.
+For `user_stats`, `draw_history`, and `refresh_tokens`, list the columns needed after reading the defining migration. Do not select token material.
 
 ## Room and host lookup
 
@@ -84,5 +84,5 @@ WHERE r.code = '{ROOM_CODE}'
 ## What is not documented here
 
 - Realtime room state, role assignments, and night actions: not in these tables, not documented by this skill.
-- Any claim about the room authority store's lifetime, recycling, or data loss: not stated, because no deciding code was read for it during drafting. The previous version's statements on both points are deleted outright.
+- Any claim about the room authority store's lifetime, recycling, or data loss: not stated here.
 - Tables beyond the list above: the database has more tables (word supply, rewards, feedback, inbox, and others). They are not listed because this skill's questions do not need them and their columns were not verified for this rewrite. Read the migrations before naming any of them.

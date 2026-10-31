@@ -14,7 +14,7 @@ The tag-triggered release workflow is not affected in the same way: it checks ou
 
 ## Required pre-step
 
-Run this guard before collecting changes (Step 2 of `SKILL.md`) and before invoking the script (Step 6). Do not skip it because the checkout "probably" has full history.
+Run this guard before collecting changes (Step 2 of `SKILL.md`) and before invoking the script (Step 6).
 
 ```bash
 git rev-parse --is-shallow-repository
@@ -33,7 +33,7 @@ git rev-parse --is-shallow-repository
   git describe --tags --abbrev=0 HEAD
   ```
 
-  The command must print a tag (for example `v2.7.0`). If it prints nothing, stop and report blocked: the changelog would degrade to the placeholder, and proceeding would publish a wrong changelog. Do not work around a failed lookup by hand-writing a changelog entry from memory.
+  The command must print a tag (for example `v2.7.0`). If it prints nothing, stop and report the failed lookup: the changelog would degrade to the placeholder.
 
 ## After the fetch
 
@@ -41,6 +41,5 @@ Re-run the guard verification after any fetch, rebase, or checkout that could ch
 
 ## What not to do
 
-- Do not add the guard to `scripts/release.sh` from this skill. This skill is a procedure for running the script as it exists; changing the script is a separate, explicitly approved change.
-- Do not use a partial fetch or a tag-only fetch as a substitute without verifying the same `git describe` command succeeds afterwards. The acceptance test is the command's output, not the fetch command used.
-- Do not proceed on the assumption that "no previous tag" means "first release". If the project already has releases, an empty lookup is a checkout problem, not a project fact. Verify against the remote tag list if the local lookup is empty and the checkout claims to be complete.
+- A partial fetch or a tag-only fetch is acceptable only if the same `git describe` command succeeds afterwards. The acceptance test is the command's output, not the fetch command used.
+- An empty lookup in a checkout that claims to be complete is a checkout problem, not a project fact. Verify against the remote tag list if the local lookup is empty.

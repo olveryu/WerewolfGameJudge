@@ -14,7 +14,8 @@ pnpm new-game <gameId> --preset identity|stage|demo-hybrid [--production]
 
 Defaults: display name = game id, tier `mini`, rewards 5 XP / 1 draw /
 daily target 5 (`DEFAULT_REWARDS` in `generate.mjs`). The game id must
-be a single lowercase word; class names derive from it.
+match `/^[a-z][a-z0-9]*$/` (`render.mjs`, `assertValidGameId`); class
+names derive from it.
 
 ## Shared edits: 15
 
@@ -40,17 +41,19 @@ order:
 Edits are computed in memory first and only then written; a missing
 anchor or ambiguous anchor aborts before the first write
 (`generate.mjs` orchestration header; `edits.mjs` `fail()`). A run
-refuses to overwrite any existing target, including a stale
-integration report. After writing, generated files get a formatting
-pass, an `eslint --fix` pass over created files, and a second
-formatting pass.
+refuses to overwrite any existing target (`generate.mjs`,
+`Refusing to overwrite existing file`). After writing: a prettier pass
+over created + edited files + the report, an `eslint --fix` pass over
+created files, and a second prettier pass over created files
+(`generate.mjs`, `formatGeneratedFiles` / `autofixGeneratedImports`).
 
 ## Template tree: 39 files
 
 `scripts/lib/new-game/templates/` holds 39 `.tmpl` files: 19 under
-`shared/` (always rendered) and 20 under `game/` (subject to
-capability gates). Four files are capability-gated
-(`FILE_CAPABILITY_GATES` in `generate.mjs`, line 126):
+`shared/` and 20 under `game/` (`collectTemplateFiles('shared')` /
+`collectTemplateFiles('game', capabilities)` in `generate.mjs`). Four
+files are capability-gated (`FILE_CAPABILITY_GATES` in `generate.mjs`,
+line 126):
 
 | Template file                                                | Gate                 |
 | ------------------------------------------------------------ | -------------------- |
@@ -77,9 +80,9 @@ never rendered by the generator.
 
 The shipped `demo` game was hand-built; the `demo-hybrid` pack is the
 union demo was hand-built to (`generate.mjs` header comment). Demo is
-a reference for the skeleton's shape, not generator output. Proof:
-demo contains files no template produces (`fullChain.test.ts`,
+a reference for the skeleton's shape, not generator output. Demo
+contains files no template produces (`fullChain.test.ts`,
 `roomCommands.contract.test.ts`, `effects.test.ts`,
 `demoGuidanceMatrix.test.ts`, `demoConfigScreen.contract.test.tsx`)
 and the demo-hybrid capability row mirrors demo's verified
-declaration. Do not write that the generator produced demo.
+declaration (`demo/engine.ts`, `capabilities`).

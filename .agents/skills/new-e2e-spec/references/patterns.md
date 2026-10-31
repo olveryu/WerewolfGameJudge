@@ -21,16 +21,14 @@ and closes all contexts afterwards. `configure` receives a
 the 0-based seat index equal to the page index
 (`setupNPlayerGameWithRoles`). Display labels are 1-based:
 `formatSeat(seat)` (engine, `platform/room/formatSeat.ts`) converts
-a 0-based index to the user-readable label. Never assert a 1-based
-label against a 0-based seat value, or the reverse.
+a 0-based index to the user-readable label.
 
 Drive roles in `NIGHT_STEP_ORDER` (see
 `references/night-step-order.md`). Use the night-driver helpers
 (`waitForRoleTurn`, `clickSeatAndConfirm`, `driveWolfVote`,
 `tryClickAdvanceButton`) instead of hand-rolling waits and clicks;
 `waitForNightEnd` takes the pages array. Roles act from their own
-page's role card — never read another page's role and drive from
-there.
+page's role card.
 
 ## Naming
 
@@ -64,5 +62,4 @@ in the work notes.
 - Each spec creates an independent room so parallel workers cannot
   share state (`fullyParallel: true` in the config).
 - `test.setTimeout(180_000)` is the established budget in night
-  specs (one spec uses 300,000 ms); do not set a shorter budget to
-  make a slow spec pass, and do not assert a wall-clock duration.
+  specs (some specs use 300,000 ms).

@@ -55,9 +55,8 @@ Never use dynamic diagnosis when static analysis can locate the issue.
 1. Locate the code area with code search. Trace the data flow input to transform to output, step by step. When changing a caller, trace the callee, and vice versa.
 2. Check type constraints: schema validation, boundary conditions, and indexed access on types that may be undefined.
 3. Check recent changes for the touched paths.
-4. Verify every affected symbol against all of its consumers with code search. Do not batch-infer "no impact".
-5. Start from the first-check paths in `references/first-check-map.md` for the classified branch.
-6. Pointers, one line each (detail lives in `references/session-link-audio.md`):
+4. Start from the first-check paths in `references/first-check-map.md` for the classified branch.
+5. Pointers, one line each (detail lives in `references/session-link-audio.md`):
    - State identity: see `references/session-link-audio.md` (per-game state versions and migration entry points).
    - Realtime link: see `references/session-link-audio.md` (link modules, snapshot phases, and dispatch outcomes).
    - Audio-playback lock: see `references/session-link-audio.md` (the one lock predicate and combinator).
@@ -72,37 +71,29 @@ pnpm exec playwright test e2e/specs/<spec> --reporter=list
 npx tsc --noEmit
 ```
 
-Interpret the output from the failure bundle or trace first, then from logs. Do not start by re-running the whole suite or by reading raw CI logs when a failure bundle exists. The currency of the test-runner flag spellings in the commands above was not re-verified against the installed runner version; if a command is rejected, use the runner's own help output and record the working form in the report (see `SOURCES.md`).
+Interpret the output from the failure bundle or trace first, then from logs.
 
-### Step 4 — State the root cause and the change plan, then wait
+### Step 4 — State the root cause and the change plan
 
 Before writing any fix:
 
 1. State the root cause in one sentence explaining why it is broken.
 2. List the change plan as file, specific modification, and risk (other features that may be affected).
-3. Wait for confirmation before coding, unless the request already authorised the fix and its scope. Loading this skill is not authorisation to change code.
 
 ### Step 5 — Fix the root cause
 
-- Fix why it happens, not what happens after it happens. If the change is removed, the trigger condition must be gone too.
-- Verify all consumers of each affected symbol. Trace caller and callee in both directions when parameters or schemas change.
-- Route errors through the project's error-handling entry point. Do not swallow errors, and do not invent a new error-reporting pattern in each catch block. See `references/diagnostic-logging.md` for the entry point name.
-- Do not change unrelated code. An unrelated issue found during debugging is raised separately, not mixed into the fix.
+- Route errors through `handleError` in `src/utils/errorPipeline.ts`; see `references/diagnostic-logging.md`.
 
-### Step 6 — Self-check the change
-
-Go through the project's core principles for the change: no band-aid fix, third-party API use checked against current documentation, no type bypass, no swallowed error or feedback-less failure path, and every new type or field carried through the full pipeline it belongs to. Fix any failure before proceeding.
-
-### Step 7 — Verify with scoped checks
+### Step 6 — Verify with scoped checks
 
 1. Remove all diagnostic logs. Search for the diagnostic prefix and confirm zero residuals.
-2. Run the scoped checks for the changed area: the targeted tests, the type check, and the lint/format check on the changed files. The full gate runs in continuous integration; do not present a local full-gate run as the default gate.
+2. Run the scoped checks for the changed area: the targeted tests, the type check, and the lint/format check on the changed files.
 3. Run the related end-to-end spec when the defect touches room or realtime behaviour.
 4. Confirm no regression in the affected modules.
 
-### Step 8 — Report
+### Step 7 — Report
 
-Report in Chinese: the one-sentence root cause, the files changed, the checks run with their results, and anything left unverified. If the same approach failed three times, stop and report blocked status with what was attempted and the recommended next step.
+Report in Chinese: the one-sentence root cause, the files changed, the checks run with their results, and anything left unverified.
 
 ## Acceptance commands
 
@@ -119,5 +110,4 @@ Acceptance is: diagnostic logs removed, scoped checks pass, and the report names
 1. Naming a shared session module that does not exist. The session boundary is `RoomEntryBoundary` plus `useReadyRoomSession`; there is no shared `RoomSession` module. See `references/first-check-map.md`.
 2. Naming the old realtime service paths. Realtime code lives under `src/platform/realtime/`; the old service paths are dead.
 3. Treating the audio flag as a value the UI may set. The flag is owned by audio-queue events only; the client lock is read through the one predicate.
-4. Leaving diagnostic logs in the tree after the fix.
-5. Fixing the symptom with an optional chain, a cast, an empty catch, or a timer wait instead of fixing the cause.
+4. A plain `as` cast in production code: `src/__tests__/architecture.contract.test.ts` allows only `as const` assertions (see `getOrdinaryTypeAssertions`).

@@ -7,9 +7,9 @@ Source files are under
 
 `ROLE_SPECS` in `specs.ts` is the single source. `SCHEMAS` (`schemas.ts`,
 `buildSchemas()`) and `NIGHT_STEPS` (`nightSteps.ts`, `buildNightSteps()`)
-are derived from it at module init. Never hand-edit either derived file to
-add a role or a step: add the declaration to `ROLE_SPECS` (and, for a new
-step, its id to `NIGHT_STEP_ORDER`) and let the builders derive the rest.
+are derived from it at module init. Add a role or a step by adding the
+declaration to `ROLE_SPECS` (and, for a new step, its id to
+`NIGHT_STEP_ORDER`); the builders derive the rest.
 
 ## `RoleSpec` fields
 
@@ -39,7 +39,7 @@ schema builder composes the sentences (see `schemas.ts`).
 
 ## Ability shape (common active ability)
 
-Verified against the `seer` / `mirrorSeer` entries in `specs.ts`:
+Verified against the `seer` entry in `specs.ts`:
 
 - `type: 'active'`, `timing: 'night'`, `actionKind` (for example
   `'chooseSeat'`).
@@ -50,10 +50,10 @@ Verified against the `seer` / `mirrorSeer` entries in `specs.ts`:
 - `activeOnNight1: true` when the ability runs on the first night.
 
 `TargetConstraint` has exactly three members: `NotSelf`,
-`NotWolfFaction`, `AdjacentToWolfFaction` (`schema.types.ts`). Do not
-present a shorter list as exhaustive. A constraint is declared in the
-spec; the resolver enforces it. Do not add a constraint the spec does not
-declare, and do not declare one the resolver ignores.
+`NotWolfFaction`, `AdjacentToWolfFaction` (`schema.types.ts`). A
+constraint is declared in the spec; the generic resolver validates
+the spec's constraints (`genericResolver.ts`, `validateConstraints`;
+`constraintValidator.ts`).
 
 ## What is not stated here
 

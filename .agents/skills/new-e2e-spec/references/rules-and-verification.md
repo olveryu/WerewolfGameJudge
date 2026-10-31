@@ -1,26 +1,24 @@
-# Rules and verification — process rules, stated as process rules
+# Seats and verification facts
 
-## The E2E law, and what enforces it
+## Seats and verification
 
-Three rules in this skill are process rules. Nothing in the
-workflows, config, or lint setup enforces them as code; they hold
-because reviewers and operators follow them. Do not claim otherwise.
+Seat and verification facts. The fixture gives one independent
+browser context per seat; the single-spec workflow verifies one
+spec. Nothing in the workflows, config, or lint setup enforces seat
+counts or commit contents as code.
 
-1. **Real seats, no automated players to fill seats.** Every seat is
+1. **Seats.** Every seat is
    an independent browser context via `createPlayerContexts`.
    Current split in the specs, verified at drafting time: the
    Avalon main flow uses 10 independent contexts with zero automated
-   players, FibKing uses 4 real players, Undercover uses 6 real
-   players, and werewolf night specs drive real contexts through
+   players, Undercover uses 6 real players, and werewolf night specs drive real contexts through
    the night driver. Two existing exceptions prove the split is not
    a blanket codebase fact: `drawguess.spec.ts` has a "fill bots to
    reach a full room" step, and `avalon.spec.ts` has a bot-room
-   scenario for music settings. A new spec follows the real-seat
-   rule and does not copy an exception step; if a scenario seems to
-   need one, report first.
-2. **One spec per change.** One spec file per commit and push,
-   verified one at a time. No workflow or config polices commit
-   contents.
+   scenario for music settings.
+2. **One spec per verification.** The single-spec workflow takes
+   one spec (bare filename) and verifies it one at a time. No
+   workflow or config polices commit contents.
 3. **Single-spec verification is an operator procedure**, not
    something the workflow does (see below).
 
@@ -34,8 +32,7 @@ passes its own reporter list and must re-name the bundle reporter),
 `chromium` (ignores `fibking-responsive.spec`) and `small-mobile`
 (320×640, matches `home` / `config` / `fibking-responsive` specs).
 Two web servers (API on :8787, web on :8081); base URL single
-source `E2E_BASE_URL`, default `http://localhost:8081`. Specs and
-helpers must not hardcode the default URL.
+source `E2E_BASE_URL`, default `http://localhost:8081`.
 
 ## Single-spec trigger and verification
 
@@ -66,7 +63,7 @@ the last command in the pipe, not to the run.
 
 From `e2e/helpers/README.md`, "Required Test Patterns":
 
-- `page.waitForTimeout()` only as polling cadence, at most 300 ms.
+- `page.waitForTimeout()` in new specs is polling cadence ≤300 ms only, except resilience duration-holds where the held duration is itself the test condition (see `e2e/specs/resilience-reconnect.spec.ts`).
 - Never `force: true` to bypass actionability for normal user
   interactions. The one current occurrence in specs is the
   sanctioned exception shape: `drawguess.spec.ts:79` clicks a
@@ -76,7 +73,7 @@ From `e2e/helpers/README.md`, "Required Test Patterns":
 - Do not swallow assertion or state-transition failures with
   `.catch(() => {})`. `.catch` for conditional probing,
   retry-polling, and teardown is the established helper usage.
-- No `console.log` in specs. Existing exceptions: `diagnostics.ts`
+- No `console.log` in specs (`no-console` in `eslint.config.mjs`, exempted only in `e2e/helpers/diagnostics.ts`). Existing exceptions: `diagnostics.ts`
   forwarding and `night-driver.ts`'s prefixed driver log. No
   `console.log` in a new spec or helper.
 - Do not commit `test.skip` / `describe.skip` / `test.only` or
@@ -93,5 +90,4 @@ Assert visible behaviour and relationships (present / absent,
 ordered, counted from the rendered state), never a literal random
 or time value. A failure that follows an intentional behaviour
 change is classified, not auto-repaired: update the affected spec
-to the new flow, one spec per commit, verified with a single-spec
-run — assertions are never weakened to reach green.
+to the new flow, verified with a single-spec run.
