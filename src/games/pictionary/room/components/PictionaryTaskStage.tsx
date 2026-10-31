@@ -34,6 +34,8 @@ import {
   reduceDrawingDraft,
 } from '@/features/drawing/model/drawing';
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
+import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
+import { STAGE_FRAME_MAX_WIDTH } from '@/features/room/components/StageFrame';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { getPictionaryCompletedCount } from '@/games/pictionary/model/pictionarySelectors';
 import { createPictionaryFillElement } from '@/games/pictionary/services/renderPictionaryDrawing';
@@ -58,7 +60,8 @@ import type {
 import { PictionaryDrawingCanvas } from './PictionaryDrawingCanvas';
 import { PictionaryDrawingImage } from './PictionaryDrawingImage';
 import { PictionaryStageFrame } from './PictionaryStageFrame';
-import { PictionaryTaskFrame, PictionaryTaskMedia } from './PictionaryTaskFrame';
+import { PictionaryTaskHeading } from './PictionaryTaskHeading';
+import { PictionaryTaskMedia } from './PictionaryTaskMedia';
 
 const PICTIONARY_OPENING_PROMPT_EXAMPLES = [
   '月球上的猫',
@@ -213,10 +216,17 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
   };
 
   return (
-    <PictionaryTaskFrame
-      eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
-      title={isOpeningPrompt ? '写下一个题目' : '猜猜画的是什么'}
-      remainingSeconds={remainingSeconds}
+    <RoomTaskFrame
+      header={
+        <PictionaryTaskHeading
+          eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
+          title={isOpeningPrompt ? '写下一个题目' : '猜猜画的是什么'}
+          remainingSeconds={remainingSeconds}
+        />
+      }
+      maxWidth={STAGE_FRAME_MAX_WIDTH}
+      testID={TESTIDS.pictionaryStageFrame}
+      footerStyle={styles.taskFrameFooter}
       footer={
         <View style={styles.taskFooter}>
           <View style={styles.primaryAction}>
@@ -274,7 +284,7 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
           </Text>
         </View>
       </View>
-    </PictionaryTaskFrame>
+    </RoomTaskFrame>
   );
 };
 
@@ -383,10 +393,17 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
 
   return (
     <>
-      <PictionaryTaskFrame
-        eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
-        title="把这句话画出来"
-        remainingSeconds={remainingSeconds}
+      <RoomTaskFrame
+        header={
+          <PictionaryTaskHeading
+            eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
+            title="把这句话画出来"
+            remainingSeconds={remainingSeconds}
+          />
+        }
+        maxWidth={STAGE_FRAME_MAX_WIDTH}
+        testID={TESTIDS.pictionaryStageFrame}
+        footerStyle={styles.taskFrameFooter}
         footer={
           <>
             <DrawingToolbar
@@ -451,7 +468,7 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
             onFill={fillDrawing}
           />
         </PictionaryTaskMedia>
-      </PictionaryTaskFrame>
+      </RoomTaskFrame>
       <AlertModal
         visible={showClearConfirm}
         title="清空画布？"
@@ -602,6 +619,12 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
 
 const styles = StyleSheet.create({
   taskFooter: { flexDirection: 'row', alignItems: 'center', gap: spacing.small },
+  taskFrameFooter: {
+    gap: spacing.tight,
+    paddingTop: spacing.small,
+    borderTopWidth: fixed.borderWidth,
+    borderTopColor: colors.border,
+  },
   primaryAction: { flex: 1 },
   // The drawing the player is guessing from is the primary content: it keeps
   // a floor of three touch targets while the composer below shrinks first
