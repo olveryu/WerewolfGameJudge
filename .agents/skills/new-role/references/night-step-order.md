@@ -4,7 +4,6 @@ Source: `packages/game-engine/src/games/werewolf/domain/models/roles/spec/nightS
 (`NIGHT_STEP_IDS`, exported as `NIGHT_STEP_ORDER`; re-exported by `plan.ts`).
 There is no symbol named `NIGHT_STEP_ORDER_INTERNAL` anywhere in the engine package.
 Count: 37 step ids. Order below is the file order, which is the execution order.
-Do not paste an older list: read this file at drafting time.
 
 | #   | Step id                         | Role               |
 | --- | ------------------------------- | ------------------ |
@@ -47,4 +46,4 @@ Do not paste an older list: read this file at drafting time.
 | 37  | `seedWolfInfectReveal`          | `seedWolf`         |
 
 Every step id has exactly one resolver entry in `domain/resolvers/index.ts`
-(37 ids, 37 resolver keys, verified by diff at drafting time).
+(37 ids, 37 resolver keys, verified by diff against that file).

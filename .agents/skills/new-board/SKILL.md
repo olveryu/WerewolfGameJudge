@@ -49,8 +49,7 @@ Derive the seat count with `getPlayerCount`: `roles.length` minus
 bottom cards (`treasureMaster` 3, `thief` 2). Check faction balance
 against the contract bounds (wolves 1–4; no duplicated special
 roles), bottom-card legality via `getValidBottomCardDeals`, and that
-the name carries no player-count suffix. Present the board and get
-explicit approval before editing. All 26 current presets seat 12
+the name carries no player-count suffix. All 26 current presets seat 12
 players — that is the current list's property, not a requirement;
 a different seat count is allowed by the code, but a non-12-seat
 board has no coverage-contract entry (Step 5).
@@ -76,8 +75,7 @@ Derive the new total from `PRESET_TEMPLATES.length` (26 becomes 27
 for one addition) and update every surface that cites it: `README.md`,
 `README.en.md`, `docs/PRESET_BOARDS.md` (including its board table
 row), and `EXPECTED_TEMPLATE_NAMES` in `Template.contract.test.ts`.
-Never copy a number from older text, and never add a step for the
-non-existent guide-content file.
+There is no step for the non-existent guide-content file.
 
 ### 5. Add the Night-1 integration test
 
@@ -92,10 +90,9 @@ different number, do not add it to that list; note the gap.
 ### 6. Verify
 
 Run the check script beside this skill (see Acceptance commands)
-and the acceptance commands. If the
-board introduces a role combination no existing spec covers, report
-whether an E2E spec is proposed before writing one (one spec per
-change, real multi-context seats; see the new-e2e-spec skill).
+and the acceptance commands. If the board introduces a role
+combination no existing spec covers, report whether an E2E spec is
+proposed before writing one (see the new-e2e-spec skill).
 
 ## Acceptance commands
 
@@ -112,8 +109,7 @@ checks on the changed files before pushing.
 1. Writing "12 players" as a hard rule from `roles.length` — seat
    count subtracts bottom cards; `thief`/`treasureMaster` boards
    have 14/15 `roles` entries for 12 seats.
-2. Adding a board name with a player-count suffix — the contract
-   test rejects names ending in a count.
+2. Adding a board name with a player-count suffix — `models/__tests__/Template.contract.test.ts` rejects names matching `/\d+人$/`.
 3. Importing `executeFullNight` or `GameContext` from `gameFactory`
    — they live in `stepByStepRunner` and `gameContext`.
 4. Registering a non-12-seat board in the 12-player coverage

@@ -3,9 +3,8 @@
 A new game is registered only when all 15 items hold. Items marked
 `[G]` are edited mechanically by the generator's `SHARED_EDITS`;
 `[C]` items are pinned by a contract test; `[M]` is manual or
-conditional. Every deciding file below was checked to exist at
-drafting time. There is no lockfile step for a game that adds no
-dependency: the generator performs none.
+conditional. There is no lockfile step for a game that adds no
+dependency: `SHARED_EDITS` performs none.
 
 1. `[G][C]` Game id in `GAME_TYPES`
    (`packages/game-engine/src/platform/protocol/gameTypes.ts`).
@@ -39,8 +38,10 @@ dependency: the generator performs none.
 8. `[G]` Client plugin in `CLIENT_GAME_PLUGIN_CATALOG`
    (`src/games/catalog.ts`): navigation + `createModule`.
 9. `[C]` Client entry module at the registry's `clientModulePath`
-   (`src/games/<id>/module.ts`) plus its navigation module. The client
-   catalog is the only place that may compose multiple concrete games.
+   (`src/games/<id>/module.ts`) plus its navigation module. Only
+   `src/games/catalog.ts` composes multiple concrete client games
+   (`architecture.contract.test.ts`, 'composes multiple concrete
+   client games only in the exhaustive plugin catalog').
 10. `[G]` Flat reward amounts in `GAME_COMPLETION_REWARDS`
     (`packages/game-engine/src/product/rewards/earnings.ts`), or a
     `levelRoll` settlement entry point in the registry entry instead.
@@ -65,5 +66,6 @@ dependency: the generator performs none.
 15. `[G]` Test fixture catalog entry in
     `src/test-utils/clientGameCatalog.tsx`.
 
-Never hand-edit an expectation list to "align" it. If a contract test
-fails naming the new game, the wiring is missing; fix the wiring.
+If a contract test fails naming the new game, the wiring is missing;
+fix the wiring, not the expectation list
+(`engineSkeleton.contract.test.ts`; `capabilities.contract.test.ts`).

@@ -1,15 +1,15 @@
 # Resolver map — every step id has exactly one resolver
 
 Source: `packages/game-engine/src/games/werewolf/domain/resolvers/index.ts`
-(`RESOLVERS` registry). Verified at drafting time: 37 step ids in
+(`RESOLVERS` registry). Verified: 37 step ids in
 `NIGHT_STEP_ORDER`, 37 keys in `RESOLVERS`, no id missing and no extra key.
 
 ## Generic resolvers
 
-Use `createGenericResolver('<roleId>')` for these steps. Do not write a
-standalone file for a step listed here unless the step's logic cannot be
-expressed declaratively — and if it cannot, say so in the plan before
-writing code.
+Use `createGenericResolver('<roleId>')` for these steps (23 entries in
+`RESOLVERS`). Standalone files exist where the logic is not
+expressible declaratively (`resolvers/index.ts`, 'Custom resolvers'
+section).
 
 | Step id                   | Role               |
 | ------------------------- | ------------------ |
@@ -58,5 +58,4 @@ declaratively.
 
 A new step needs a `RESOLVERS` entry in all cases. A new role whose step
 fits the generic pattern needs no new resolver file. Re-check this map
-against `resolvers/index.ts` before writing: the map is regenerated from
-that file, not from memory.
+against `resolvers/index.ts` before writing.

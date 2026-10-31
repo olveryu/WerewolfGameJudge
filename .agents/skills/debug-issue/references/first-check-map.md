@@ -17,17 +17,17 @@ Common root causes: a selector returning a new reference causing repeated render
 
 ## Branch B — Realtime / network issue
 
-| First-check path                                                                                                                | Investigation focus                                                                                                      |
-| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `src/platform/realtime/RoomLink.ts`                                                                                             | Link implementation: snapshot, dispatch, connect, close                                                                  |
-| `src/platform/realtime/linkReducer.ts`                                                                                          | Pure connection state machine and backoff; no I/O, timers, or date reads inside the reducer                              |
-| `src/platform/realtime/LinkRuntime.ts`                                                                                          | Imperative shell around the reducer; timers and effects live here                                                        |
-| `src/platform/realtime/RoomLinkFactory.ts`                                                                                      | Link factory; the single production instantiation site is the app service composition point                              |
-| `src/platform/realtime/SocketChannel.ts`                                                                                        | Socket adapter                                                                                                           |
-| `src/platform/realtime/CommandOutbox.ts`, `src/platform/realtime/outboxStorage.ts`, `src/platform/realtime/commandTransport.ts` | Durable dispatch, local persistence, and the single HTTP command send                                                    |
-| `src/platform/realtime/types.ts`                                                                                                | Link interface, snapshot phases, dispatch outcomes and options                                                           |
-| `packages/api-worker/src/app/GameRoom.ts`, `packages/api-worker/src/platform/room/`                                             | Worker entry, WebSocket handling, shared room coordination                                                               |
-| `docs/realtime-link-redesign.md`                                                                                                | Current-system design record only. Its pre-redesign status tables describe the old system; do not quote them as current. |
+| First-check path                                                                                                                | Investigation focus                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `src/platform/realtime/RoomLink.ts`                                                                                             | Link implementation: snapshot, dispatch, connect, close                                     |
+| `src/platform/realtime/linkReducer.ts`                                                                                          | Pure connection state machine and backoff; no I/O, timers, or date reads inside the reducer |
+| `src/platform/realtime/LinkRuntime.ts`                                                                                          | Imperative shell around the reducer; timers and effects live here                           |
+| `src/platform/realtime/RoomLinkFactory.ts`                                                                                      | Link factory; the single production instantiation site is the app service composition point |
+| `src/platform/realtime/SocketChannel.ts`                                                                                        | Socket adapter                                                                              |
+| `src/platform/realtime/CommandOutbox.ts`, `src/platform/realtime/outboxStorage.ts`, `src/platform/realtime/commandTransport.ts` | Durable dispatch, local persistence, and the single HTTP command send                       |
+| `src/platform/realtime/types.ts`                                                                                                | Link interface, snapshot phases, dispatch outcomes and options                              |
+| `packages/api-worker/src/app/GameRoom.ts`, `packages/api-worker/src/platform/room/`                                             | Worker entry, WebSocket handling, shared room coordination                                  |
+| `docs/realtime-link-redesign.md`                                                                                                | Current-system design record only; its pre-redesign status tables describe the old system.  |
 
 Common root causes: token refresh not happening, a cold-start race, a revision gap on reconnect.
 

@@ -6,8 +6,9 @@ Source: `scripts/generate_audio_edge_tts.py`.
 
 - Canonical voice parameters (single source for all narration):
   voice `zh-CN-YunjianNeural`, pitch `-20Hz`, rate `-20%`,
-  volume `+100%`, post-processing boost `10` dB. Never generate a batch
-  with different parameters.
+  volume `+100%`, post-processing boost `10` dB (`DEFAULT_VOICE` /
+  `DEFAULT_PITCH` / `DEFAULT_RATE` / `DEFAULT_VOLUME` /
+  `DEFAULT_BOOST_DB` in the script).
 - Narration text lives in `BEGIN_TEXT` / `END_TEXT` dictionaries in the
   same script, keyed by snake-case audio key. A new role needs entries
   for every audio key its steps use. The script supports regenerating
@@ -37,9 +38,9 @@ Source: `scripts/badge-config.mjs`.
   parameters are `EXPORT_SIZES = [128]` and `DEFAULT_OUTDIR =
 'assets/badges'`.
 - Gap found at drafting time: `cursedFox` has no `EMOJI_MAP` entry.
-  Check the map for the new role id and for every existing id you touch;
-  do not assume coverage. Badge output filenames and the generation
-  command were not verified for this draft.
+  Check the map for the new role id and for every existing id you touch.
+  Badge output filenames and the generation command were not verified
+  for this draft.
 
 ## Avatar and role art
 
@@ -52,5 +53,4 @@ Source: `scripts/badge-config.mjs`.
   `src/utils/avatarImages.ts` (and `avatarImages.web.ts`). Raw avatar
   source files live under `assets/avatars/raw/`. The art-production
   workflow (prompts, approval, processing script options) was not
-  verified for this draft: follow the scripts in `scripts/` and get
-  approval for generated art before it lands, as with any other asset.
+  verified for this draft: follow the scripts in `scripts/` at run time.

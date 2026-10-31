@@ -3,7 +3,7 @@
 Source: `packages/game-engine/src/games/werewolf/domain/models/roles/spec/specs.ts`.
 Count: 47 roles. Faction values are the `Faction` enum (`Wolf` / `God` / `Villager` / `Special`);
 team values are the `Team` enum (`Wolf` / `Good` / `Third`).
-Re-generate from the spec file before use; never copy counts from older text.
+Re-generate from the spec file before use.
 
 | Role id            | Display name | Short name | Faction  | Team  | Night steps                                                |
 | ------------------ | ------------ | ---------- | -------- | ----- | ---------------------------------------------------------- |
@@ -58,7 +58,7 @@ Re-generate from the spec file before use; never copy counts from older text.
 ## Roles with no night steps
 
 These roles declare no `nightSteps` entry (or an empty list) and therefore contribute
-no step to `NIGHT_STEPS`. Derive this list from the spec file; do not copy an older list:
+no step to `NIGHT_STEPS`. Derive this list from the spec file:
 
 - `villager` (平民)
 - `idiot` (愚者)
@@ -79,6 +79,6 @@ no step to `NIGHT_STEPS`. Derive this list from the spec file; do not copy an ol
 
 - `shortName` values are all one character, but they are not unique: `gargoyle` and
   `awakenedGargoyle` both use `石`. The contract check is non-empty only
-  (`v2Specs.contract.test.ts`). Do not state uniqueness as a rule.
+  (`v2Specs.contract.test.ts`).
 - `hiddenWolf` has faction `Wolf` and team `Good`; `thief` and `cupid` have faction
-  `Special` and team `Good`. Do not infer team from faction.
+  `Special` and team `Good`.

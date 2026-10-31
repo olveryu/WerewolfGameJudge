@@ -1,6 +1,6 @@
 ---
 name: new-e2e-spec
-description: 'Add or update a Playwright E2E spec: real multi-context seats, no automated players to fill seats, one spec per change, night-driver patterns, and single-spec verification through the actions API. Use when adding or changing an E2E spec; never as a substitute for unit or contract tests.'
+description: 'Add or update a Playwright E2E spec: multi-context seats, night-driver patterns, and single-spec verification through the actions API. Use when adding or changing an E2E spec; never as a substitute for unit or contract tests.'
 ---
 
 # New E2E spec
@@ -21,16 +21,14 @@ Do not use when:
 
 - the behaviour is already covered by a unit or contract test, or
   could be — E2E is the last resort, not the default;
-- no spec exists for the area and no approval to create one has been
-  given — updating an existing spec is the normal case; a new spec
-  needs a report and approval first (a new game's spec skeleton
-  stays a `.tmpl` until then);
+- no spec exists for the area — updating an existing spec is the
+  normal case; a new spec needs a report first (a new game's spec
+  skeleton stays a `.tmpl` until then);
 - the change is a fix to product code — fix the product, classify
   the failure, and update the spec only if the behaviour
   intentionally changed;
-- seats would be filled with automated players, or a second spec
-  would ride along in the same change — both are process rules
-  (see Step 1).
+- seats cannot be given independent browser contexts — the fixture
+  gives one context per seat (`createPlayerContexts`).
 
 ## Must-read references
 
@@ -40,8 +38,8 @@ Do not use when:
    naming, required patterns.
 3. `references/night-step-order.md` — current 37-step
    `NIGHT_STEP_ORDER`.
-4. `references/rules-and-verification.md` — the E2E law, config
-   facts, single-spec trigger, interaction rules, non-determinism.
+4. `references/rules-and-verification.md` — seats and verification
+   facts, config facts, single-spec trigger, interaction rules, non-determinism.
 
 ## Steps
 
@@ -50,10 +48,8 @@ Do not use when:
 Check whether an existing spec covers the flow; if it does, change
 that one spec and no other. If none does, report the proposal
 (flow, why lower-level tests cannot prove it, seat count, pattern)
-and wait for approval before creating a file. State the seat count
-up front: every seat is one independent browser context. Automated
-players never fill seats in a new spec, and the one-spec-per-change
-rule applies from the first commit.
+before creating a file. State the seat count up front: every seat
+is one independent browser context.
 
 ### 2. Choose the pattern and the page objects
 
@@ -76,17 +72,14 @@ value from a random or time source.
 
 ### 4. Follow the interaction rules
 
-No `force: true` for normal interactions (the disabled-state
-exception in `references/rules-and-verification.md` is the only
-allowed shape). No fixed sleeps except polling cadence of at most
-300 ms. No swallowing assertion or state-transition failures with
-`.catch`. No `console.log` in the spec; attach evidence with
-`testInfo.attach()`. No skipped or focused tests, and no temporary
-diagnostic output, in a committed spec.
+- No `force: true` for normal interactions; the only exception shape is the disabled-state press in `e2e/specs/drawguess.spec.ts:79` (see `references/rules-and-verification.md`; `.agents/skills/new-e2e-spec/scripts/check-e2e.sh` reports any other occurrence).
+- `page.waitForTimeout()` in new specs is polling cadence ≤300 ms only, except resilience duration-holds where the held duration is itself the test condition (see `e2e/specs/resilience-reconnect.spec.ts`).
+- `console.log` in a spec fails the `no-console` rule in `eslint.config.mjs` (exempted only in `e2e/helpers/diagnostics.ts`); attach evidence with `testInfo.attach()`.
+- Skipped/focused tests are forbidden on CI by `forbidOnly` in `playwright.config.ts` (CI).
 
 ### 5. Verify with a single-spec run
 
-Verify exactly the changed spec, one commit and push at a time:
+Verify exactly the changed spec:
 
 ```sh
 gh workflow run e2e-single-spec.yml --ref <branch> --field spec=<file>
@@ -103,12 +96,9 @@ the local servers are available.
 
 On a red run, investigate in order: failure bundle / PR digest,
 then trace, then CI logs only for infrastructure-shaped failures.
-Classify: real regression (stop, report, fix the product), intentional
+Classify: real regression (fix the product), intentional
 behaviour change (update the affected spec to the new flow, one spec
-per commit, single-spec verified, assertions never weakened), or
-flake (record the exact error; a passing rerun is not a diagnosis).
-Never edit a spec to match broken behaviour, and never rerun a
-failure into silence.
+per commit, single-spec verified), or flake (record the exact error).
 
 ## Acceptance commands
 
@@ -126,13 +116,8 @@ watch result.
 1. Writing `NIGHT_STEP_ORDER_INTERNAL` or pasting an old step order
    — the constant does not exist; the order lives in
    `nightStepIds.ts`.
-2. Filling seats with automated players, or copying the existing
-   bot-fill steps — new specs use real contexts only; the two
-   existing bot steps are exceptions, not patterns.
+2. Filling seats with automated players: the two existing bot steps
+   (`drawguess.spec.ts`, `avalon.spec.ts`) exist; new specs use
+   independent contexts per seat.
 3. Judging a run from `gh run watch | tail` — the exit code is the
    pipe's, not the run's; read `conclusion` from the API.
-4. Asserting fixed values from random or time sources, or asserting
-   a wall-clock duration — assert visible behaviour instead.
-5. Using `force: true`, a fixed sleep, or a swallowed `.catch` to
-   reach green — each hides the actionability or timing evidence
-   the suite exists to capture.

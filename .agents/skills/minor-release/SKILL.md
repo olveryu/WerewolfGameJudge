@@ -18,9 +18,9 @@ Use this skill when:
 
 Do not use this skill when:
 
-- The request is a patch or major release with a different bump type. The script accepts `patch`, `minor`, and `major`; this skill covers the `minor` invocation only. For another bump type, confirm the type with the user first and do not silently substitute it.
+- The request is a patch or major release with a different bump type. The script accepts `patch`, `minor`, and `major`; this skill covers the `minor` invocation only. For another bump type, pass that type to the script instead of `minor`.
 - The request is only to write announcement copy with no release. Write the copy and stop before Step 5.
-- The working tree has unrelated uncommitted work that has not been evaluated. Resolve or set it aside first; do not let the release commit sweep it up unseen.
+- The working tree has unrelated uncommitted work that has not been evaluated. Resolve or set it aside first; the script commits with `git add -A`.
 
 ## Must-read references
 
@@ -55,7 +55,7 @@ The release script has no shallow-clone handling: in a shallow checkout, the pre
 4. Filter to user-perceptible changes: keep `feat`, `fix`, `perf`, and `refactor` entries that affect UI or behaviour. Remove pure `chore`, `ci`, `docs`, `test`, and `style` entries.
 5. Show the change summary to the user and ask: any additional features to highlight, any wording or ordering to adjust, and any changes that must not appear in the announcement.
 
-### Step 3 — Write the announcement and wait for confirmation
+### Step 3 — Write the announcement
 
 1. Calculate the new version: a minor bump of the current version (for example `2.3.0` becomes `2.4.0`).
 2. Add a new entry at the top (first property position) of the `ANNOUNCEMENTS` object in `src/config/announcements.ts`:
@@ -64,15 +64,15 @@ The release script has no shallow-clone handling: in a shallow checkout, the pre
    'v{x.y.z}': {
      title: 'v{x.y.z} 更新内容',
      items: [
-       '面向用户的中文描述，每条 ≤30 字',
+       '面向用户的中文描述',
      ],
    },
    ```
 
    The shape above follows the current head entry in that file. The key format is `v{major}.{minor}.{patch}` and the title follows the same version plus the fixed suffix shown. No claim is made here that any test depends on the title format.
 
-3. Announcement item rules (skill rules, not code facts): all in Chinese, aimed at end users; each item at most 30 characters; no technical implementation detail (no refactor, architecture, or middleware wording); only changes users can perceive: new features, experience optimisations, important bug fixes; new features first, optimisations in the middle, fixes last; typically 3 to 6 items.
-4. Show the draft to the user and wait for confirmation before continuing.
+3. Announcement items describe user-visible changes only, in Chinese (see the file header comment in `src/config/announcements.ts` and the current head entry).
+4. Show the draft to the user.
 
 ### Step 4 — Commit the announcement separately
 
@@ -87,11 +87,7 @@ The announcement file is not in the release script's version-file allowlist, so 
 
 ### Step 5 — Run scoped checks
 
-Run the scoped local checks for the changed area plus the pre-push checks (`tsc` and the dead-code check). The full gate runs in continuous integration; a local full-gate run is not the default gate for this skill. The release script itself runs no quality check. If scoped checks fail:
-
-- Lint or format errors: auto-fix with the fixer on the approved files, then re-run the scoped checks.
-- Type errors: attempt a fix only within the approved scope; if a safe fix is not possible, stop and report blocked.
-- Test failures: stop and report blocked. Do not auto-modify business logic to make a test pass.
+Run the scoped local checks for the changed area plus the pre-push checks (`tsc` and the dead-code check). The release script itself runs no quality check.
 
 ### Step 6 — Run the release script and handle its prompts
 
@@ -101,7 +97,7 @@ bash scripts/release.sh minor
 
 The script bumps the version, syncs `app.json`, requires the announcement entry from Step 3, generates the changelog entry, commits, tags, and pushes. See `references/release-script.md` for each step and for what the script does not do.
 
-If the script prompts about uncommitted changes beyond the version files, it is asking about any change outside its four-file allowlist (`package.json`, `pnpm-lock.yaml`, `app.json`, `src/config/version.ts`), not only about the announcement. Read the listed changes, evaluate each one, and answer only after that evaluation. The default answer is No. Do not answer Yes reflexively.
+If the script prompts about uncommitted changes beyond the version files, it is asking about any change outside its four-file allowlist (`package.json`, `pnpm-lock.yaml`, `app.json`, `src/config/version.ts`), not only about the announcement. Read the listed changes, evaluate each one, and answer only after that evaluation. The default answer is No.
 
 If the script reports a missing announcement entry, go back to Step 3 and confirm the entry was added and committed. If the script reports a dirty working tree, evaluate the uncommitted changes, commit or set them aside as needed, and re-run from Step 1 (the guard) only if history state changed.
 
@@ -140,7 +136,5 @@ Acceptance is: the guard passed with a previous tag found, the announcement entr
 ## Pitfalls
 
 1. Running the script in a shallow clone without the guard. The changelog silently degrades to a placeholder entry.
-2. Answering Yes to the script's uncommitted-changes prompt without reading the listed changes.
-3. Hand-editing a version number into `src/config/version.ts`. That file holds no version literal; it reads `package.json`.
-4. Claiming the lockfile is updated by the script. Check `git status` after the bump and report what actually changed.
-5. Treating a local full-gate run as required before the script. The script runs no quality check; the full gate runs in continuous integration.
+2. Hand-editing a version number into `src/config/version.ts`. That file holds no version literal; it reads `package.json`.
+3. Claiming the lockfile is updated by the script. Check `git status` after the bump and report what actually changed.

@@ -7,16 +7,16 @@ live only in the files listed under Layout; do not add rules here.
 
 ## Layout
 
-| File                               | Role                                                                                                      |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `AGENTS.md` (repository root)      | Global rules: snapshot, commands, boundaries, conventions, principles, task tiers, output rule, pointers. |
-| `packages/game-engine/AGENTS.md`   | Engine package rules.                                                                                     |
-| `packages/api-worker/AGENTS.md`    | Worker package rules.                                                                                     |
-| `src/AGENTS.md`                    | Client and room-shell rules.                                                                              |
-| `e2e/AGENTS.md`                    | End-to-end test rules.                                                                                    |
-| `.agents/skills/<name>/SKILL.md`   | One workflow per skill directory.                                                                         |
-| `scripts/validate-agent-files.mjs` | The validator. Run through `pnpm run validate:agents`.                                                    |
-| This document                      | Wiring only.                                                                                              |
+| File                               | Role                                                                              |
+| ---------------------------------- | --------------------------------------------------------------------------------- |
+| `AGENTS.md` (repository root)      | Global rules: snapshot, commands, boundaries, conventions, output rule, pointers. |
+| `packages/game-engine/AGENTS.md`   | Engine package rules.                                                             |
+| `packages/api-worker/AGENTS.md`    | Worker package rules.                                                             |
+| `src/AGENTS.md`                    | Client and room-shell rules.                                                      |
+| `e2e/AGENTS.md`                    | End-to-end test rules.                                                            |
+| `.agents/skills/<name>/SKILL.md`   | One workflow per skill directory.                                                 |
+| `scripts/validate-agent-files.mjs` | The validator. Run through `pnpm run validate:agents`.                            |
+| This document                      | Wiring only.                                                                      |
 
 There are no generated copies of these files and no per-host adapters.
 Each file above is the one place its rules live. A rule that belongs in
@@ -28,26 +28,25 @@ repeating it.
 Budgets are checked, not advisory. A file over budget is split by area or
 shortened; a rule is never kept over budget by trimming its evidence.
 
-| File                    | Budget                                                                                   |
-| ----------------------- | ---------------------------------------------------------------------------------------- |
-| Root `AGENTS.md`        | At most 150 lines and 32 KiB.                                                            |
-| Each nested `AGENTS.md` | At most 100 lines.                                                                       |
-| Each `SKILL.md`         | At most 500 lines; body under 5000 tokens; description at most 1024 characters.          |
-| Skill frontmatter       | Only the allowed keys (name, description, plus the optional keys the validator permits). |
+| File                    | Budget                                                                                         |
+| ----------------------- | ---------------------------------------------------------------------------------------------- |
+| Root `AGENTS.md`        | At most 150 lines and 32 KiB.                                                                  |
+| Each nested `AGENTS.md` | At most 100 lines.                                                                             |
+| Each `SKILL.md`         | At most 500 lines; body under 5000 tokens; description at most 1024 characters.                |
+| Skill frontmatter       | Only the six allowed keys: name, description, license, compatibility, metadata, allowed-tools. |
 
-Counts are lines and bytes as reported by `wc -l -c`. A count in a rule
-or skill (roles, boards, games, steps) must cite the deciding test or
-config that owns the number, and must be regenerated from that source
-when it changes; never copy a number from an older draft.
+Counts are lines and bytes as reported by `wc -l -c`.
 
 ## How to add or change a rule
 
 1. Decide which single file owns the rule: root for global rules, the
    nested file for its area, a skill for a repeatable workflow.
 2. Edit that file only. Do not edit any other file to restate the rule.
-3. State the rule once, in short specific sentences. Point to the nested
-   file, skill, contract test, or deciding code instead of repeating
-   content that already exists elsewhere.
+3. State the rule once, in the owning file, in short specific sentences.
+   Anywhere else, use a one-line pointer naming the nested file, skill,
+   contract test, or deciding code instead of repeating the rule. If no
+   enforcing check verifies what the pointer claims, delete the pointer
+   instead of keeping unverified text.
 4. Every factual sentence must trace to deciding code (the function or
    test that enforces it), not to UI copy, memory, or an older rule file.
    If the deciding code cannot be found, the rule does not go in.
@@ -66,13 +65,17 @@ when it changes; never copy a number from an older draft.
    area files; the skill points to them.
 3. Apply the same evidence rule as for rules: paths, symbols, counts,
    and command names must exist in the repository at the time of writing.
+   The validator checks only the path forms listed under Validator
+   purpose, as warnings, and does not check symbols, counts, or
+   command names.
 4. Run `pnpm run validate:agents` and fix failures in the skill source.
 
 ## How to change the validator
 
 The validator is code, not rules. Change it only to enforce a contract
 stated in this document (frontmatter shape, file budgets, dead-reference
-warnings, or the absence of the named tool-specific files).
+warnings, the duplicate-heading report, or the absence of the named
+tool-specific files).
 When the validator gains a check, record the check here in one line so a
 human can see what is enforced without reading the script.
 
@@ -96,12 +99,23 @@ the validator.
 
 The validator proves the file set is well-formed and internally
 consistent. It checks budgets, frontmatter shape, and the absence of
-the named tool-specific files (failures), and it reports mentioned
-rooted paths that do not exist and duplicate top-level headings
-(warnings and a report only, never failures). It does not check
-symbols, section pointers, or whether a cited number matches its
-deciding test. It does not prove that a rule matches the product's intent,
-that cited code behaves as described, or
+the named tool-specific files (failures). It also scans markdown files
+for mentioned paths that do not exist, as warnings only (never
+failures): paths rooted at `src/`, `packages/`, `scripts/`, `e2e/`,
+`docs/`, or `agents/`; paths rooted at `.agents/`; and `references/...`
+paths resolved against the mentioning file's skill root (the nearest
+ancestor directory holding a `SKILL.md`, or, under `.agents/skills/`,
+the skill directory itself), checked only when such a skill root
+exists. Mentions with placeholders (`<...>`), braces (`{...}`), or
+globs (`*`) never yield a candidate, and a matched candidate
+containing a `..` segment is skipped; so are a rooted-path match
+preceded by `.` and a `.agents/` or `references/...` match that is a
+suffix of a longer path. Bare filenames, other path forms, and
+`references/...` mentions in files with no skill root are never
+checked. It reports duplicate top-level headings (a report only, never
+a failure). It does not check symbols, section pointers, or whether a
+cited number matches its deciding test. It does not prove that a rule
+matches the product's intent, that cited code behaves as described, or
 that any agent loaded the files. Those need code review, contract tests,
 and the loading check above.
 
@@ -109,7 +123,7 @@ and the loading check above.
 
 - Review this document whenever the layout changes: a new nested file,
   a moved skill directory, or a new validator check must be recorded
-  here the same day, or the next editor will work from a stale map.
+  here, or the next editor will work from a stale map.
 - The previous synchronization system and its generated copies are
   removed. Do not recreate generated copies or adapters; if a consumer
   cannot read the generic files, record that as an open item instead of
