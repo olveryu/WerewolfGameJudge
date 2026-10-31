@@ -36,11 +36,12 @@
 
 ## 3. 产品模块
 
-| 文档                                                       | 说明                                      |
-| ---------------------------------------------------------- | ----------------------------------------- |
-| [gacha-system-design.md](gacha-system-design.md)           | 扭蛋收集系统                              |
-| [gacha-operation-recovery.md](gacha-operation-recovery.md) | 抽卡 / 兑换操作的本地持久化与未知投递恢复 |
-| [growth-system-design.md](growth-system-design.md)         | XP / 等级成长系统                         |
+| 文档                                                       | 说明                                          |
+| ---------------------------------------------------------- | --------------------------------------------- |
+| [gacha-system-design.md](gacha-system-design.md)           | 扭蛋收集系统                                  |
+| [gacha-operation-recovery.md](gacha-operation-recovery.md) | 抽卡 / 兑换操作的本地持久化与未知投递恢复     |
+| [growth-system-design.md](growth-system-design.md)         | XP / 等级成长系统                             |
+| [loop-motion-design.md](loop-motion-design.md)             | 常驻装饰动画：loopMotion 合成器原语与迁移取舍 |
 
 ## 4. 部署与运维
 

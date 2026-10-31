@@ -13,7 +13,7 @@ import Animated, {
 import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { AnimatedG } from '@/components/seatFlairs/svgAnimatedPrimitives';
+import { AnimatedG } from '@/components/seatAnimations/svgAnimatedPrimitives';
 import {
   MYTHIC_COLLECTION_COLORS,
   MYTHIC_ENTRY_DURATION,

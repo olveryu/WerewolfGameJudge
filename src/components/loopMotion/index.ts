@@ -1,7 +1,7 @@
 /**
  * loopMotion — compositor-only looping motion primitives built on Reanimated CSS animations.
  *
- * Replaces the `useLoopProgress` + `useAnimatedProps` pattern (JS-thread rAF + SVG attribute
+ * Replaces the former shared-value loop + `useAnimatedProps` pattern (JS-thread rAF + SVG attribute
  * writes on web) for persistent decorations such as seat flairs. See `loopKeyframes.ts`.
  */
 export { LoopDashFlow } from './LoopDashFlow';

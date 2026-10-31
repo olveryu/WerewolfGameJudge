@@ -3,34 +3,67 @@
  *
  * Companion pet for the gachaMachine reveal animation.
  * Gacha capsule shape: top/bottom halves + eyes peeking from seam + blush + small feet, lid bobs open and shut.
+ * The lid is a static path rotated about the seam by one LoopLayer.
  */
 import { memo } from 'react';
-import Animated, { useAnimatedProps } from 'react-native-reanimated';
+import { StyleSheet } from 'react-native';
 import Svg, { Circle, Ellipse, Line, Path } from 'react-native-svg';
 
-import { type PetProps, useFloat, useLoop } from './PetProps';
-import { AnimatedG } from './svgAnimatedPrimitives';
+import { type LayerSampler, LoopLayer } from '@/components/loopMotion';
+
+import { PetFloat } from './PetFloat';
+import { PET_VIEWBOX, type PetProps, petUnitsToPx } from './PetProps';
+
+const FLOAT_MS = 2600;
+const LID_LOOP_MS = 2000;
+
+/** Lid pivot (seam centre) in viewBox units. */
+const LID_OX = 36;
+const LID_OY = 38;
+/** Lid spans x 20..52, y 18..38 about the pivot → radius ≈ 25.6; box 52 contains it at any angle. */
+const LID_BOX_UNITS = 52;
+
+// Lid bounce — oscillating rotation around seam
+const lidSampler: LayerSampler = (t, size) => {
+  const rot = Math.sin(t * Math.PI * 2) * -8;
+  return {
+    x: petUnitsToPx(LID_OX, size),
+    y: petUnitsToPx(LID_OY, size),
+    rotateDeg: rot,
+    scaleX: 1,
+    scaleY: 1,
+    opacity: 1,
+  };
+};
+
+const LID_VIEWBOX = `${LID_OX - LID_BOX_UNITS / 2} ${LID_OY - LID_BOX_UNITS / 2} ${LID_BOX_UNITS} ${LID_BOX_UNITS}`;
 
 export const CapsulePet = memo<PetProps>(({ size }) => {
-  const { floatStyle } = useFloat(2600);
-  const t = useLoop(2000);
-
-  // Lid bounce — oscillating rotation around seam
-  const lidProps = useAnimatedProps(() => {
-    'worklet';
-    const rot = Math.sin(t.value * Math.PI * 2) * -8;
-    return { rotation: rot };
-  });
-
+  const lidBox = petUnitsToPx(LID_BOX_UNITS, size);
   return (
-    <Animated.View style={[{ width: size, height: size }, floatStyle]}>
-      <Svg width={size} height={size} viewBox="0 0 72 72">
+    <PetFloat size={size} durationMs={FLOAT_MS}>
+      <Svg width={size} height={size} viewBox={`0 0 ${PET_VIEWBOX} ${PET_VIEWBOX}`}>
         {/* Bottom half */}
         <Path d="M20 38 Q20 56 36 56 Q52 56 52 38 Z" fill="#ff6b81" />
-        {/* Top half (lid) — animated bounce */}
-        <AnimatedG animatedProps={lidProps} origin="36, 38">
+      </Svg>
+      {/* Top half (lid) — animated bounce */}
+      <LoopLayer
+        sample={lidSampler}
+        size={size}
+        durationMs={LID_LOOP_MS}
+        width={lidBox}
+        height={lidBox}
+      >
+        <Svg width={lidBox} height={lidBox} viewBox={LID_VIEWBOX}>
           <Path d="M20 38 Q20 20 36 18 Q52 20 52 38 Z" fill="#ff4757" opacity={0.9} />
-        </AnimatedG>
+        </Svg>
+      </LoopLayer>
+      <Svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${PET_VIEWBOX} ${PET_VIEWBOX}`}
+        style={StyleSheet.absoluteFill}
+      >
         {/* Seam line */}
         <Line x1={20} y1={38} x2={52} y2={38} stroke="#c0392b" strokeWidth={1.5} />
         {/* Eyes peeking from seam */}
@@ -47,7 +80,7 @@ export const CapsulePet = memo<PetProps>(({ size }) => {
         <Ellipse cx={29} cy={56} rx={4} ry={2} fill="#e84a5f" />
         <Ellipse cx={43} cy={56} rx={4} ry={2} fill="#e84a5f" />
       </Svg>
-    </Animated.View>
+    </PetFloat>
   );
 });
 CapsulePet.displayName = 'CapsulePet';

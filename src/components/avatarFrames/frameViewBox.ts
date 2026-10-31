@@ -4,7 +4,7 @@
  * Every frame SVG uses `viewBox="-8 -8 116 116"`: the avatar occupies 0–100 and artwork may
  * overflow 8 units on each side. `FrameOverlay` sizes the SVG to `avatarSize * 116 / 100`.
  */
-export const FRAME_VIEWBOX_PAD = 8;
+const FRAME_VIEWBOX_PAD = 8;
 export const FRAME_VIEWBOX_SIZE = 100 + FRAME_VIEWBOX_PAD * 2;
 export const FRAME_VIEWBOX = `${-FRAME_VIEWBOX_PAD} ${-FRAME_VIEWBOX_PAD} ${FRAME_VIEWBOX_SIZE} ${FRAME_VIEWBOX_SIZE}`;
 

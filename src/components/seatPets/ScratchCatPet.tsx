@@ -3,29 +3,49 @@
  *
  * Companion pet for the scratch card flip animation.
  * Creamy yellow kitten + triangle ears + whiskers + paw scratching a gold coin, floating.
+ * The paw is a static ellipse translated vertically by a LoopLayer.
  */
 import { memo } from 'react';
-import Animated, { useAnimatedProps } from 'react-native-reanimated';
+import { StyleSheet } from 'react-native';
 import Svg, { Circle, Ellipse, Line, Path, Polygon, Text as SvgText } from 'react-native-svg';
 
-import { type PetProps, useFloat, useLoop } from './PetProps';
-import { AnimatedEllipse } from './svgAnimatedPrimitives';
+import { type LayerSampler, LoopLayer } from '@/components/loopMotion';
+
+import { PetFloat } from './PetFloat';
+import { PET_VIEWBOX, type PetProps, petUnitsToPx } from './PetProps';
+
+const FLOAT_MS = 2800;
+const LOOP_MS = 1500;
+
+/** Paw ellipse (rx 5, ry 4) → half-extent 5; box 12 contains it. */
+const PAW_BOX_UNITS = 12;
+const PAW = { cx: 22, cy: 46 } as const;
+const PAW_FILL = '#ffe4b5';
+
+const PET_VIEWBOX_ATTR = `0 0 ${PET_VIEWBOX} ${PET_VIEWBOX}`;
+
+// Paw swipe — translateY + slight rotation
+const pawSampler: LayerSampler = (t, size) => {
+  const ty = -Math.sin(t * Math.PI * 2) * 3;
+  return {
+    x: petUnitsToPx(PAW.cx, size),
+    y: petUnitsToPx(PAW.cy + ty, size),
+    rotateDeg: 0,
+    scaleX: 1,
+    scaleY: 1,
+    opacity: 1,
+  };
+};
+
+function centredViewBox(centre: { cx: number; cy: number }, boxUnits: number): string {
+  return `${centre.cx - boxUnits / 2} ${centre.cy - boxUnits / 2} ${boxUnits} ${boxUnits}`;
+}
 
 export const ScratchCatPet = memo<PetProps>(({ size }) => {
-  const { floatStyle } = useFloat(2800);
-  const t = useLoop(1500);
-
-  // Paw swipe — translateY + slight rotation
-  const pawProps = useAnimatedProps(() => {
-    'worklet';
-    const v = t.value;
-    const ty = -Math.sin(v * Math.PI * 2) * 3;
-    return { cy: 46 + ty };
-  });
-
+  const pawBox = petUnitsToPx(PAW_BOX_UNITS, size);
   return (
-    <Animated.View style={[{ width: size, height: size }, floatStyle]}>
-      <Svg width={size} height={size} viewBox="0 0 72 72">
+    <PetFloat size={size} durationMs={FLOAT_MS}>
+      <Svg width={size} height={size} viewBox={PET_VIEWBOX_ATTR}>
         {/* Body */}
         <Ellipse cx={36} cy={50} rx={14} ry={10} fill="#f5deb3" />
         {/* Head */}
@@ -49,14 +69,26 @@ export const ScratchCatPet = memo<PetProps>(({ size }) => {
         <Line x1={18} y1={36} x2={28} y2={36} stroke="#c4a882" strokeWidth={0.5} />
         <Line x1={54} y1={33} x2={44} y2={34} stroke="#c4a882" strokeWidth={0.5} />
         <Line x1={54} y1={36} x2={44} y2={36} stroke="#c4a882" strokeWidth={0.5} />
-        {/* Paw with coin */}
-        <AnimatedEllipse animatedProps={pawProps} cx={22} rx={5} ry={4} fill="#ffe4b5" />
+      </Svg>
+      {/* Paw with coin */}
+      <LoopLayer
+        sample={pawSampler}
+        size={size}
+        durationMs={LOOP_MS}
+        width={pawBox}
+        height={pawBox}
+      >
+        <Svg width={pawBox} height={pawBox} viewBox={centredViewBox(PAW, PAW_BOX_UNITS)}>
+          <Ellipse cx={PAW.cx} cy={PAW.cy} rx={5} ry={4} fill={PAW_FILL} />
+        </Svg>
+      </LoopLayer>
+      <Svg width={size} height={size} viewBox={PET_VIEWBOX_ATTR} style={StyleSheet.absoluteFill}>
         <Circle cx={18} cy={42} r={5} fill="#ffd700" stroke="#daa520" strokeWidth={1} />
         <SvgText x={18} y={44} textAnchor="middle" fontSize={6} fill="#b8860b" fontWeight="bold">
           ¥
         </SvgText>
       </Svg>
-    </Animated.View>
+    </PetFloat>
   );
 });
 ScratchCatPet.displayName = 'ScratchCatPet';
