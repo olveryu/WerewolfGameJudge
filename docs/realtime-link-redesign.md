@@ -389,7 +389,7 @@ side effect：`OPEN_SOCKET(generation) | CLOSE_SOCKET(generation, code) | SEND_S
 
 `PRESENCE` 到达即替换 `snapshot.presence`。`RoomSeatViewModel` 新增 `isOnline: boolean`（真人座位且 userId ∈ presence）；机器人座位恒 `true`。
 
-静默断网（飞行模式、进程被杀、WiFi 断开）不会产生 Close 帧，ping/pong 又由运行时 auto-response 回答、不唤醒 DO，所以服务端只能靠周期性扫描发现半开 socket。座位离线标记（头像层变暗 + 名字行离线图标）从断网到出现的上界 = 60 秒陈旧阈值 + 30 秒扫描间隔。
+静默断网（飞行模式、进程被杀、WiFi 断开）不会产生 Close 帧，ping/pong 又由运行时 auto-response 回答、不唤醒 DO，所以服务端只能靠周期性扫描发现半开 socket。座位离线标记（座位号徽标变灰 + 名字行离线图标，头像与装饰层保持全彩；本人座位徽标保持绿色）从断网到出现的上界 = 60 秒陈旧阈值 + 30 秒扫描间隔。
 
 ---
 

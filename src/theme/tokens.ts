@@ -415,9 +415,6 @@ export const fixed = {
 
   /** Generic disabled state opacity */
   disabledOpacity: 0.5,
-
-  /** Seat avatar + decorations opacity while the player's device is offline */
-  offlineOpacity: 0.4,
 } as const;
 
 // ============================================================================

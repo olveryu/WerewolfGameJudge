@@ -244,7 +244,7 @@ describe('RoomSeatBoard', () => {
     expect(second).toHaveBeenCalledTimes(1);
   });
 
-  it('derives the offline dot from link presence for human seats only', async () => {
+  it('derives the offline indicator from link presence for human seats only', async () => {
     const human = (seat: number, userId: string): RoomSeatViewModel => ({
       ...emptySeat(seat),
       player: { occupant: { kind: 'human', userId }, displayName: userId, isAnonymous: false },

@@ -30,7 +30,7 @@ import { createRoomSeatTileStyles, getGridColumns, RoomSeatTile } from './RoomSe
 
 interface RoomSeatBoardProps {
   readonly model: RoomSeatBoardModel;
-  /** Online user IDs from the room link; human seats outside it render the offline dot. */
+  /** Online user IDs from the room link; human seats outside it show the offline badge and name icon. */
   readonly presence: ReadonlySet<string>;
   readonly header: React.ReactElement | null;
   readonly footer: React.ReactElement | null;

@@ -142,7 +142,7 @@ test.describe('RoomLink resilience during the night', () => {
     }
   });
 
-  test('joiner silently offline: others see the offline dot, link recovers', async ({
+  test('joiner silently offline: others see the offline indicator, link recovers', async ({
     browser,
   }) => {
     let cast: NightCast | undefined;
