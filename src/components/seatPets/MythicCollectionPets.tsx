@@ -160,7 +160,7 @@ function CollectionPet({ size, collection }: PetProps & { collection: MythicColl
               size={size}
               durationMs={LOOP_MS}
               variantCount={WING_VARIANTS}
-              mode="crossfade"
+              mode="stacked"
               renderVariant={renderOceanWing}
             />
             <Svg
@@ -191,7 +191,7 @@ function CollectionPet({ size, collection }: PetProps & { collection: MythicColl
               size={size}
               durationMs={LOOP_MS}
               variantCount={WING_VARIANTS}
-              mode="crossfade"
+              mode="stacked"
               renderVariant={renderInkWing}
             />
             <Svg

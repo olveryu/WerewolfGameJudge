@@ -92,7 +92,7 @@ export const VortexEyePet = memo<PetProps>(({ size }) => {
         size={size}
         durationMs={WOBBLE_LOOP_MS}
         variantCount={TENTACLE_VARIANTS}
-        mode="crossfade"
+        mode="stacked"
         renderVariant={renderTentacles}
       />
       <Svg width={size} height={size} viewBox={PET_VIEWBOX_ATTR} style={StyleSheet.absoluteFill}>

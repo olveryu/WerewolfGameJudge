@@ -18,6 +18,12 @@ import { FRAME_VIEWBOX_SIZE, frameUnitsToPx } from './frameViewBox';
 /** Chord length in viewBox units; short enough that corners read as curves. */
 const SEGMENT_LENGTH = 6;
 const FRAME_SIDE = 100;
+/**
+ * Corner radii are quantised to this many viewBox units for the sampler cache: keyframes rules
+ * are never removed from the web stylesheet, so the key space must be finite. 0.5 units is
+ * well under a device pixel at every avatar size in use.
+ */
+const RX_QUANTUM = 0.5;
 
 interface PerimeterPoint {
   x: number;
@@ -101,7 +107,12 @@ const chordSamplerCache = new WeakMap<SweepSampler, Map<string, LineSampler[]>>(
  * geometry, so each distinct frame configuration gets stable sampler references (the keyframes
  * cache key).
  */
-function getChordSamplers(spec: ChordSpec): LineSampler[] {
+function getChordSamplers(rawSpec: ChordSpec): LineSampler[] {
+  const spec: ChordSpec = {
+    ...rawSpec,
+    rx: Math.round(rawSpec.rx / RX_QUANTUM) * RX_QUANTUM,
+    dashSpacing: Math.round(rawSpec.dashSpacing / RX_QUANTUM) * RX_QUANTUM,
+  };
   let byKey = chordSamplerCache.get(spec.sample);
   if (!byKey) {
     byKey = new Map();

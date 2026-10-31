@@ -13,6 +13,7 @@
  * Samplers must be module-level pure functions: `createLoopRuleCache` keys its cache on the
  * sampler reference and the pixel `size`, so every seat sharing a flair shares one rule.
  */
+import { PixelRatio } from 'react-native';
 import {
   css,
   type CSSAnimationKeyframes,
@@ -98,15 +99,31 @@ export interface LoopRule<L> {
 }
 
 /**
+ * Rounds a layout size to the device-pixel grid. Keyframes rules are never removed from the
+ * web stylesheet once inserted (Reanimated marks pre-built `CSSKeyframesRule`s non-removable),
+ * so the cache key must come from a finite set: sub-pixel size differences from flex layout or
+ * window resizing would otherwise mint a fresh rule each time while rendering identically.
+ */
+function snapToDevicePixels(size: number): number {
+  if (!(size > 0)) {
+    throw new Error(`Loop size must be positive, received ${size}`);
+  }
+  const ratio = PixelRatio.get();
+  return Math.round(size * ratio) / ratio;
+}
+
+/**
  * Memoises `derive(samples)` per `(sampler, size, durationMs)`. `derive` receives the sampled
  * geometry and returns the frames to animate plus any layout derived from them (e.g. the max
- * radius that sizes a dot's box).
+ * radius that sizes a dot's box). `size` is snapped to device pixels before sampling, so the
+ * returned layout is in snapped units as well.
  */
 export function createLoopRuleCache<G, L>(
   derive: (samples: readonly G[]) => { frames: LoopFrame[]; layout: L },
 ): (sample: LoopSampler<G>, size: number, durationMs: number) => LoopRule<L> {
   const cache = new WeakMap<LoopSampler<G>, Map<string, LoopRule<L>>>();
-  return (sample, size, durationMs) => {
+  return (sample, rawSize, durationMs) => {
+    const size = snapToDevicePixels(rawSize);
     let byKey = cache.get(sample);
     if (!byKey) {
       byKey = new Map();
@@ -120,6 +137,34 @@ export function createLoopRuleCache<G, L>(
     byKey.set(key, entry);
     return entry;
   };
+}
+
+/**
+ * Makes a per-frame angle sequence continuous for CSS interpolation.
+ *
+ * CSS interpolates `rotate(a)` → `rotate(b)` numerically, not along the shortest arc, so a
+ * sequence that wraps from 179° to −179° would spin 358° between two keyframes. Each angle is
+ * shifted by a multiple of 360° so consecutive frames differ by at most 180°. `null` marks a
+ * frame whose direction is undefined (a zero-length segment); it inherits the previous
+ * frame's angle, and leading `null`s take the first defined angle.
+ */
+export function unwrapDegrees(angles: readonly (number | null)[]): number[] {
+  const firstDefined = angles.find((a): a is number => a !== null);
+  if (firstDefined === undefined) {
+    throw new Error('unwrapDegrees requires at least one defined angle');
+  }
+  const out: number[] = [];
+  let previous = firstDefined;
+  for (const angle of angles) {
+    if (angle === null) {
+      out.push(previous);
+      continue;
+    }
+    const turns = Math.round((previous - angle) / 360);
+    previous = angle + turns * 360;
+    out.push(previous);
+  }
+  return out;
 }
 
 /**

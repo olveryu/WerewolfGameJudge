@@ -15,6 +15,7 @@ import {
   loopAnimationProps,
   type LoopFrame,
   type LoopSampler,
+  unwrapDegrees,
 } from './loopKeyframes';
 
 /** Segment geometry at loop progress `t`, in the tile's pixel space. */
@@ -50,10 +51,17 @@ const getRule = createLoopRuleCache<LineFrame, { lengthMax: number; strokeMax: n
     if (!(lengthMax > 0) || !(strokeMax > 0)) {
       throw new Error('LoopLine sampler must produce a visible segment at some point of the loop');
     }
+    // Zero-length segments have no direction; they inherit the neighbouring angle so the
+    // line does not swing while it is invisible.
+    const angles = unwrapDegrees(
+      lines.map((l, i) =>
+        lengths[i]! > 0 ? Math.atan2(l.y2 - l.y1, l.x2 - l.x1) * RAD_TO_DEG : null,
+      ),
+    );
     const frames: LoopFrame[] = lines.map((l, i) => ({
       translateX: (l.x1 + l.x2) / 2 - lengthMax / 2,
       translateY: (l.y1 + l.y2) / 2 - strokeMax / 2,
-      rotateDeg: Math.atan2(l.y2 - l.y1, l.x2 - l.x1) * RAD_TO_DEG,
+      rotateDeg: angles[i]!,
       scaleX: lengths[i]! / lengthMax,
       scaleY: l.strokeWidth / strokeMax,
       opacity: l.opacity,

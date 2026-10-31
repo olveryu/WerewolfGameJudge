@@ -4,7 +4,8 @@
  * Boundary: presentation only. A sliding dash pattern is periodic in `dashPeriod` units, so the
  * motion is rendered as `variantCount` static copies at successive offsets cross-faded by
  * `LoopMorph`, cycling `round(travel / dashPeriod)` times per loop. The rounding keeps the loop
- * seamless; it changes the travelled distance by less than one period. `renderDashes` must draw
+ * seamless; it changes the travelled distance by less than half a period, and `travel` must
+ * therefore cover at least half a period to describe any motion at all. `renderDashes` must draw
  * the stroke with `strokeDashoffset={dashOffset}` and is called once per variant.
  * `sample` (optional) is an opacity envelope; it must be a module-level pure function.
  */
@@ -51,6 +52,12 @@ export const LoopDashFlow = memo<LoopDashFlowProps>(
         `LoopDashFlow requires positive dashPeriod and travel, received ${dashPeriod} / ${travel}`,
       );
     }
+    const cyclesPerLoop = Math.round(travel / dashPeriod);
+    if (cyclesPerLoop < 1) {
+      throw new Error(
+        `LoopDashFlow travel ${travel} is under half a dash period (${dashPeriod}); the dashes would not move`,
+      );
+    }
     const renderVariant = useCallback(
       (k: number, s: number) => renderDashes(-(k / variantCount) * dashPeriod, s),
       [renderDashes, variantCount, dashPeriod],
@@ -62,8 +69,8 @@ export const LoopDashFlow = memo<LoopDashFlowProps>(
         durationMs={durationMs}
         phase={phase}
         variantCount={variantCount}
-        mode="crossfade"
-        cyclesPerLoop={Math.max(1, Math.round(travel / dashPeriod))}
+        mode="stacked"
+        cyclesPerLoop={cyclesPerLoop}
         renderVariant={renderVariant}
       />
     );

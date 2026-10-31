@@ -3,8 +3,10 @@
  *
  * Boundary: presentation only. Radius maps to `scale` of a static bordered circle. Because
  * `scale` cannot change stroke thickness independently of radius, a varying `strokeWidth` is
- * rendered as two stacked rings (thinnest / thickest) whose opacities cross-fade — the blend
- * reads as a breathing stroke while staying compositor-only. Sampled once per `(sample, size)`
+ * rendered as two stacked rings (thinnest / thickest) with complementary opacity weights
+ * `1 − w` / `w` — the blend reads as a breathing stroke while staying compositor-only. Ring
+ * strokes in this codebase are translucent, where complementary weights stay within ~α²/4 of
+ * the target; an opaque ring would dip to 75 % coverage mid-breath. Sampled once per `(sample, size)`
  * into shared keyframes rules. `sample` must be a module-level pure function — it is the cache key.
  */
 import { memo } from 'react';
@@ -73,22 +75,35 @@ function deriveLayout(rings: readonly RingFrame[]): RingLayout {
   return { rMax, strokeMin, strokeMax };
 }
 
-/** Thin ring: carries the sampled opacity as-is. */
+/** Normalised position of the sampled stroke between the thinnest and thickest ring. */
+function thickWeight(ring: RingFrame, layout: RingLayout): number {
+  const span = layout.strokeMax - layout.strokeMin;
+  return span > 0 ? (ring.strokeWidth - layout.strokeMin) / span : 0;
+}
+
+/** Thin ring: weight `1 − w`; carries the full opacity when the stroke does not vary. */
 const getThinRule = createLoopRuleCache<RingFrame, RingLayout>((rings) => {
   const layout = deriveLayout(rings);
-  return { frames: ringFrames(rings, layout.rMax, layout.strokeMin, (r) => r.opacity), layout };
+  return {
+    frames: ringFrames(
+      rings,
+      layout.rMax,
+      layout.strokeMin,
+      (r) => r.opacity * (1 - thickWeight(r, layout)),
+    ),
+    layout,
+  };
 });
 
-/** Thick ring: opacity weighted by how far the sampled stroke sits between min and max. */
+/** Thick ring: weight `w`. */
 const getThickRule = createLoopRuleCache<RingFrame, RingLayout>((rings) => {
   const layout = deriveLayout(rings);
-  const span = layout.strokeMax - layout.strokeMin;
   return {
     frames: ringFrames(
       rings,
       layout.rMax,
       layout.strokeMax,
-      (r) => r.opacity * ((r.strokeWidth - layout.strokeMin) / span),
+      (r) => r.opacity * thickWeight(r, layout),
     ),
     layout,
   };

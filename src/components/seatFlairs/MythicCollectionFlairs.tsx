@@ -184,7 +184,7 @@ function CollectionFlair({ size, collection }: FlairProps & { collection: Mythic
             size={size}
             durationMs={MYTHIC_LOOP_DURATION}
             variantCount={TIDE_VARIANTS}
-            mode="crossfade"
+            mode="stacked"
             renderVariant={renderTide}
           />
           <DashedFlow

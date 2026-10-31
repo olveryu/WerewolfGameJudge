@@ -1,4 +1,9 @@
-import { createLoopRuleCache, loopAnimationProps, type LoopFrame } from '../loopKeyframes';
+import {
+  createLoopRuleCache,
+  loopAnimationProps,
+  type LoopFrame,
+  unwrapDegrees,
+} from '../loopKeyframes';
 
 interface Dot {
   x: number;
@@ -46,14 +51,18 @@ describe('createLoopRuleCache', () => {
     const a = getRule(travelling, 80, 2000);
     expect(getRule(travelling, 80, 2000).rule).toBe(a.rule);
     expect(getRule(travelling, 81, 2000).rule).not.toBe(a.rule);
+    // Sub-device-pixel differences (jest PixelRatio = 2 → 0.5 px grid) share the rule.
+    expect(getRule(travelling, 80.1, 2000).rule).toBe(a.rule);
+    expect(getRule(travelling, 80.4, 2000).rule).not.toBe(a.rule);
     expect(getRule(travelling, 80, 2001).rule).not.toBe(a.rule);
     const other = (t: number, size: number): Dot => travelling(t, size);
     expect(getRule(other, 80, 2000).rule).not.toBe(a.rule);
   });
 
-  it('rejects non-positive durations', () => {
+  it('rejects non-positive durations and sizes', () => {
     const getRule = createLoopRuleCache(identityFrames);
     expect(() => getRule(travelling, 80, 0)).toThrow('Loop duration must be positive');
+    expect(() => getRule(travelling, 0, 2000)).toThrow('Loop size must be positive');
   });
 });
 
@@ -67,5 +76,20 @@ describe('loopAnimationProps', () => {
       animationTimingFunction: 'linear',
       animationIterationCount: 'infinite',
     });
+  });
+});
+
+describe('unwrapDegrees', () => {
+  it('keeps consecutive angles within 180° of each other across the ±180° seam', () => {
+    expect(unwrapDegrees([170, 179, -179, -170, -90])).toEqual([170, 179, 181, 190, 270]);
+    expect(unwrapDegrees([-170, -179, 179, 170])).toEqual([-170, -179, -181, -190]);
+  });
+
+  it('carries the previous angle through undefined (zero-length) frames', () => {
+    expect(unwrapDegrees([null, 90, null, null, 100])).toEqual([90, 90, 90, 90, 100]);
+  });
+
+  it('rejects a sequence with no defined angle', () => {
+    expect(() => unwrapDegrees([null, null])).toThrow('at least one defined angle');
   });
 });

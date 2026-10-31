@@ -28,20 +28,20 @@ Reanimated ≥ 4 的 **CSS Animations API**（`animationName` / `animationDurati
 
 - **Sampler**：每个装饰元素把原来的逐帧数学原样保留为纯函数 `(t, size) => geometry`，`t ∈ [0, 1)` 为循环进度。Sampler 必须是**模块级常量**——它是缓存键。
 - **采样**：按固定 1/15 s 间隔采样（`LOOP_SAMPLE_INTERVAL_MS`），`n = max(24, ceil(duration / 66.7))`，共 `n + 1` 帧，最后一帧是 `t = 1`。更密的采样对这类正弦微动没有可见收益，却会线性增加 Blink / cc 在迭代边界评估曲线的主线程时间。`100%` 关键帧用 `sample(1)` 而不是复用第 0 帧：CSS 迭代边界是瞬时重启，若回插到第 0 帧，平移波、不闭合旋转会每圈出现一次 33 ms 倒带。
-- **规则共享**：`createLoopRuleCache(derive)` 以 `(sampler, size, durationMs)` 为键缓存 `css.keyframes()` 结果。同一 flair 在 12 个座位上只产生一套规则；10 种颜色变体也共享（颜色不在 keyframes 里）。
+- **规则共享**：`createLoopRuleCache(derive)` 以 `(sampler, size, durationMs)` 为键缓存 `css.keyframes()` 结果。同一 flair 在 12 个座位上只产生一套规则；10 种颜色变体也共享（颜色不在 keyframes 里）。`size` 先吸附到设备像素网格（`snapToDevicePixels`），`PerimeterSweep` 的 `rx` 量化到 0.5 viewBox 单位——Reanimated web 对预构建的 `CSSKeyframesRule` 标 `removable: false`，规则一旦插入样式表永不删除，键空间必须有限。
 - **相位**：元素错相用负 `animationDelay = -phase × duration`，而不是把 `phase` 烘进 sampler；这样共享同一规则。若原代码把 phase 用于非时间项（如角度偏移），该项保留在 sampler 内。
 
 ## 4. 原语
 
-| 原语           | 用途                                       | 映射方式                                                                                        |
-| -------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| `LoopDot`      | 实心圆 `cx/cy/r/opacity`                   | View + `borderRadius`；`translate` 定位、`scale = r / rMax`                                     |
-| `LoopLine`     | 圆头线段 `x1/y1/x2/y2/strokeWidth/opacity` | 水平条：长度→`scaleX`，粗细→`scaleY`，角度→`rotate`                                             |
-| `LoopRing`     | 描边圆 `r/strokeWidth/opacity`             | 带 `borderWidth` 的 View；`strokeWidth` 变化用细 / 粗两层交叉淡入                               |
-| `LoopPath`     | 静态 `d`，只有 `opacity/strokeWidth` 变化  | 静态 SVG；粗细变化同上两层                                                                      |
-| `LoopLayer`    | 任意静态内容的刚体运动                     | 盒子中心 `(x, y)` + `rotate/scale/opacity`；用于旋转组、平移周期波、整组同步淡入                |
-| `LoopMorph`    | `d` 真实形变                               | K 个静态变体，三角窗交叉淡入（`crossfade`）或方波（`step`）；`cyclesPerLoop` 支持短于循环的周期 |
-| `LoopDashFlow` | `strokeDashoffset` 滑动                    | 虚线以 `dash + gap` 为周期，渲染 N 个偏移副本由 `LoopMorph` 循环 `round(travel / period)` 次    |
+| 原语           | 用途                                       | 映射方式                                                                                                                                                                                       |
+| -------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LoopDot`      | 实心圆 `cx/cy/r/opacity`                   | View + `borderRadius`；`translate` 定位、`scale = r / rMax`                                                                                                                                    |
+| `LoopLine`     | 圆头线段 `x1/y1/x2/y2/strokeWidth/opacity` | 水平条：长度→`scaleX`，粗细→`scaleY`，角度→`rotate`；角度经 `unwrapDegrees` 解缠（CSS 对 `rotate()` 做数值插值不走最短路径，±180° 跨越会转一整圈），零长度帧沿用相邻角度                       |
+| `LoopRing`     | 描边圆 `r/strokeWidth/opacity`             | 带 `borderWidth` 的 View；`strokeWidth` 变化用细 / 粗两层互补权重 `1−w` / `w`（适用于半透明描边）                                                                                              |
+| `LoopPath`     | 静态 `d`，只有 `opacity/strokeWidth` 变化  | 静态 SVG；粗细变化同上两层                                                                                                                                                                     |
+| `LoopLayer`    | 任意静态内容的刚体运动                     | 盒子中心 `(x, y)` + `rotate/scale/opacity`；用于旋转组、平移周期波、整组同步淡入                                                                                                               |
+| `LoopMorph`    | `d` 真实形变                               | K 个静态变体。`crossfade`：三角窗 partition of unity，**半透明**用；`stacked`：层叠淡入，下层恒为 1、上层淡入/淡出，覆盖率不掉，**不透明**用；`step`：方波。`cyclesPerLoop` 支持短于循环的周期 |
+| `LoopDashFlow` | `strokeDashoffset` 滑动                    | 虚线以 `dash + gap` 为周期，渲染 N 个偏移副本由 `LoopMorph` 循环 `round(travel / period)` 次                                                                                                   |
 
 帧组件辅助：[`PerimeterSweep`](../src/components/avatarFrames/PerimeterSweep.tsx) 用圆角矩形弧长解析参数化，把"沿边框跑一圈的高光"拆成若干 `LoopLine` 弦段；[`frameViewBox.ts`](../src/components/avatarFrames/frameViewBox.ts) 统一 `-8 -8 116 116` 坐标契约。[`PetFloat`](../src/components/seatPets/PetFloat.tsx) 是宠物的上下浮动包裹层。
 
@@ -49,6 +49,7 @@ Reanimated ≥ 4 的 **CSS Animations API**（`animationName` / `animationDurati
 
 - **描边粗细随 `scale` 变化**（JadeMist / ThornVine / PetalDance / SolarFlare）：用 `scale` 表达半径或生长时，描边会一起缩放。装饰级效果可接受；若不可接受改用 `LoopRing` / `LoopPath` 的两层交叉淡入。
 - **组透明度 vs 逐元素透明度**：多个元素合并进一个 `LoopLayer` 后，重叠处先合成再淡出，比逐元素淡出略淡。
+- **alpha 合成非线性**：两层各 0.5 叠加覆盖率是 0.75 而非 1。因此 `LoopMorph` 对不透明图形（宠物触手 / 翅膀、神话潮汐、虚线流动）用 `stacked`，对半透明（Aurora 0.35、DarkSmoke、SilverStream）用 `crossfade`；`LoopRing` / `LoopPath` 的细 / 粗两层用互补权重，半透明描边误差 ≲ α²/4。
 - **路径形变**只在 DarkSmoke / SilverStream / Aurora / 宠物触手等少数处使用 `LoopMorph`，变体数 6–8。
 - 原实现在循环边界的硬跳变（`speed ≠ 1` 等）在新实现里是 CSS 迭代重启，表现一致。
 
@@ -58,7 +59,8 @@ Reanimated ≥ 4 的 **CSS Animations API**（`animationName` / `animationDurati
 - Sampler 放模块级，不得在组件体内创建或用 `useMemo` 包装。
 - `renderVariant` / `renderDashes` 依赖 props（颜色）时用 `useCallback` 稳定引用。
 - 一次性特效中的无限循环必须在 effect cleanup 中 `cancelAnimation`（PR 中已为 `RoleRevealEffects` 42 处补齐）。
-- 用户开关：设置 › 显示 › 座位装饰（`SettingsService.seatDecorationsEnabled`），与系统 reduced-motion 一起通过 [`useSeatDecorationsPreference`](../src/features/product/hooks/useSeatDecorationsPreference.ts) 汇入 `RoomSeatBoard` 的 `seatDecorationsEnabled`。
+- 以上两条由 `src/__tests__/persistentDecorationsCompositorOnly.contract.test.ts` 强制：装饰目录禁止 `useAnimatedProps` / `useAnimatedStyle` / `useSharedValue` / `withRepeat` / `svgAnimatedPrimitives`；`RoleRevealEffects` 中含 `withRepeat(…, -1)` 的文件必须含 `cancelAnimation`。
+- 用户开关：设置 › 显示 › 座位装饰（`SettingsService.seatDecorationsEnabled`），与系统 reduced-motion 一起通过 [`useSeatDecorationsPreference`](../src/features/product/hooks/useSeatDecorationsPreference.ts) 汇入 `RoomSeatBoard` 的 `seatDecorationsEnabled`。`SettingsService.load()` 由 `createAppServices` 在启动时触发并在读取完成后通知监听者，冷启动直接进房也能生效。
 
 ## 7. 实测（headless Chromium，装饰 › 普通 页，312 个动画节点 ≈ 6 个满员房间）
 

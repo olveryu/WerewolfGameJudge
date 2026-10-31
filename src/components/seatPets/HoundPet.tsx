@@ -146,7 +146,7 @@ export const HoundPet = memo<PetProps>(({ size }) => {
         size={size}
         durationMs={LOOP_MS}
         variantCount={TAIL_VARIANTS}
-        mode="crossfade"
+        mode="stacked"
         cyclesPerLoop={TAIL_CYCLES_PER_LOOP}
         renderVariant={renderTail}
       />

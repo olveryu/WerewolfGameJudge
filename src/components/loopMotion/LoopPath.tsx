@@ -3,8 +3,8 @@
  *
  * Boundary: presentation only. The path geometry (`d`) is fixed; `sample` drives only
  * `opacity` and `strokeWidth`. A varying stroke width is rendered as two stacked copies
- * (thinnest / thickest) whose opacities cross-fade — compositor-only, no per-frame attribute
- * writes. The SVG canvas is `size × size`, so `d` is expressed in tile pixel space. Sampled once
+ * (thinnest / thickest) with complementary opacity weights `1 − w` / `w` — compositor-only,
+ * no per-frame attribute writes. Intended for translucent strokes (see `LoopRing`). The SVG canvas is `size × size`, so `d` is expressed in tile pixel space. Sampled once
  * per `(sample, size)` into shared keyframes rules. `sample` must be a module-level pure
  * function — it is the cache key.
  */
@@ -62,18 +62,26 @@ function deriveLayout(samples: readonly PathFrame[]): PathLayout {
   return { strokeMin, strokeMax };
 }
 
+/** Normalised position of the sampled stroke between the thinnest and thickest copy. */
+function thickWeight(sample: PathFrame, layout: PathLayout): number {
+  const span = layout.strokeMax - layout.strokeMin;
+  return span > 0 ? (sample.strokeWidth - layout.strokeMin) / span : 0;
+}
+
 const getThinRule = createLoopRuleCache<PathFrame, PathLayout>((samples) => {
   const layout = deriveLayout(samples);
-  const frames: LoopFrame[] = samples.map((s) => ({ ...IDENTITY, opacity: s.opacity }));
+  const frames: LoopFrame[] = samples.map((s) => ({
+    ...IDENTITY,
+    opacity: s.opacity * (1 - thickWeight(s, layout)),
+  }));
   return { frames, layout };
 });
 
 const getThickRule = createLoopRuleCache<PathFrame, PathLayout>((samples) => {
   const layout = deriveLayout(samples);
-  const span = layout.strokeMax - layout.strokeMin;
   const frames: LoopFrame[] = samples.map((s) => ({
     ...IDENTITY,
-    opacity: s.opacity * ((s.strokeWidth - layout.strokeMin) / span),
+    opacity: s.opacity * thickWeight(s, layout),
   }));
   return { frames, layout };
 });

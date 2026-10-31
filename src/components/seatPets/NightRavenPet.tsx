@@ -70,7 +70,7 @@ export const NightRavenPet = memo<PetProps>(({ size }) => (
       size={size}
       durationMs={LOOP_MS}
       variantCount={WING_VARIANTS}
-      mode="crossfade"
+      mode="stacked"
       renderVariant={renderWing}
     />
     <Svg width={size} height={size} viewBox={RAVEN_VIEWBOX_ATTR} style={StyleSheet.absoluteFill}>

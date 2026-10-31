@@ -11,7 +11,8 @@
  * - UI-layer settings panel rendering
  *
  * Boundary constraints:
- * - load() must be called once at app startup; subsequent reads are synchronous
+ * - load() is kicked off by the composition root (createAppServices) and notifies listeners
+ *   when storage has been read; subsequent reads are synchronous
  * - Reads may use defaults when MMKV is unavailable; writes reject without changing state
  */
 import {
@@ -222,6 +223,9 @@ export class SettingsService {
       this.#settings = { ...DEFAULT_SETTINGS };
       this.#loaded = true;
     }
+    // Subscribers that rendered before storage was read (e.g. the room grid on a cold start)
+    // must re-read the persisted values.
+    this.#notifyListeners();
   }
 
   /**

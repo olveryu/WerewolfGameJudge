@@ -20,11 +20,14 @@ interface LegendaryShimmerProps {
 
 /**
  * One full lap per loop. The arc length depends on `rx`, so each distinct corner radius gets its
- * own sampler (cached by `rx`).
+ * own sampler, cached by `rx` quantised to half a viewBox unit (same quantum PerimeterSweep uses
+ * for its own cache; keyframes rules are never removed from the web stylesheet).
  */
+const RX_QUANTUM = 0.5;
 const lapSamplers = new Map<number, SweepSampler>();
 
-function getLapSampler(rx: number): SweepSampler {
+function getLapSampler(rawRx: number): SweepSampler {
+  const rx = Math.round(rawRx / RX_QUANTUM) * RX_QUANTUM;
   const hit = lapSamplers.get(rx);
   if (hit) return hit;
   const perimeter = roundedRectPerimeter(rx);

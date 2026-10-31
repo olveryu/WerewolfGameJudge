@@ -3,9 +3,16 @@
  *
  * Boundary: presentation only. CSS animations cannot interpolate SVG path data, so the morph
  * is discretised: `renderVariant(k)` draws the shape at loop progress `k / variantCount`, and
- * each variant's opacity follows a window around its own phase. `'crossfade'` windows are
- * triangular and form a partition of unity, so the blend tracks `sample(t).opacity`;
- * `'step'` windows are box functions for shapes that should snap (lightning, sparks).
+ * each variant's opacity follows a window around its own phase. Alpha compositing is not
+ * linear, so the window shape depends on the artwork's opacity:
+ *
+ * - `'crossfade'` — triangular windows forming a partition of unity. For translucent strokes
+ *   (α ≲ 0.5) the blend tracks `sample(t).opacity` within ~α²/4. Opaque artwork would dip to
+ *   75 % coverage between poses.
+ * - `'stacked'` — in each segment the variant earlier in stacking order stays at full weight
+ *   and the later one fades (in when incoming, out when outgoing), so coverage never drops.
+ *   Correct for opaque artwork; translucent artwork would brighten where poses overlap.
+ * - `'step'` — box windows for shapes that should snap (lightning, sparks).
  * `cyclesPerLoop` repeats the variant sequence that many times per loop, for motion that is
  * periodic in a shorter interval than the loop (e.g. a dash pattern sliding along a path).
  * Everything is compositor-only; see `loopKeyframes.ts`. `sample` must be a module-level pure
@@ -29,7 +36,7 @@ export interface MorphFrame {
 
 export type MorphSampler = LoopSampler<MorphFrame>;
 
-export type MorphMode = 'crossfade' | 'step';
+export type MorphMode = 'crossfade' | 'stacked' | 'step';
 
 export interface LoopMorphProps {
   sample: MorphSampler;
@@ -58,17 +65,36 @@ function wrappedDistance(t: number, centre: number): number {
   return d - Math.round(d);
 }
 
-function windowWeight(
+/** @internal exported for tests */
+export function windowWeight(
   cyclePhase: number,
   k: number,
   variantCount: number,
   mode: MorphMode,
 ): number {
+  if (mode === 'stacked') return stackedWeight(cyclePhase, k, variantCount);
   const d = wrappedDistance(cyclePhase, k / variantCount);
   if (mode === 'step') {
     return d >= 0 && d < 1 / variantCount ? 1 : 0;
   }
   return Math.max(0, 1 - Math.abs(d) * variantCount);
+}
+
+/**
+ * Segment `[k₀/N, (k₀+1)/N)` blends variant `k₀` (outgoing) with `(k₀+1) mod N` (incoming).
+ * The lower variant in stacking order (smaller index, rendered first) holds weight 1 while the
+ * upper one fades — in when it is the incoming pose, out when it is the outgoing one (the wrap
+ * segment, where the incoming pose `0` sits below `N−1`).
+ */
+function stackedWeight(cyclePhase: number, k: number, variantCount: number): number {
+  const scaled = ((cyclePhase % 1) + 1) % 1;
+  const outgoing = Math.floor(scaled * variantCount) % variantCount;
+  const incoming = (outgoing + 1) % variantCount;
+  const progress = scaled * variantCount - Math.floor(scaled * variantCount);
+  if (k !== outgoing && k !== incoming) return 0;
+  const lower = Math.min(outgoing, incoming);
+  if (k === lower) return 1;
+  return k === incoming ? progress : 1 - progress;
 }
 
 /**

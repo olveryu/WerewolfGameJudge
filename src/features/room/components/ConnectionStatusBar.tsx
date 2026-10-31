@@ -115,11 +115,7 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
     >
       <Text style={styles.text}>{describe(status, pendingDurableCount, countdown)}</Text>
       {isAnimating && (
-        <IndeterminateProgressBar
-          accessibilityLabel={describe(status, pendingDurableCount, countdown)}
-          style={styles.progressBarTrack}
-          barStyle={styles.progressBar}
-        />
+        <IndeterminateProgressBar style={styles.progressBarTrack} barStyle={styles.progressBar} />
       )}
     </View>
   );

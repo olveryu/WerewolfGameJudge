@@ -147,6 +147,23 @@ describe('SettingsService', () => {
   });
 
   describe('seatDecorationsEnabled', () => {
+    it('notifies listeners that subscribed before storage was read', async () => {
+      jest
+        .mocked(storage.getString)
+        .mockReturnValue(JSON.stringify({ seatDecorationsEnabled: false }));
+      const fresh = new SettingsService();
+      const listener = jest.fn();
+      fresh.addListener(listener);
+      expect(fresh.isSeatDecorationsEnabled()).toBe(true);
+
+      await fresh.load();
+
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({ seatDecorationsEnabled: false }),
+      );
+      expect(fresh.isSeatDecorationsEnabled()).toBe(false);
+    });
+
     it('defaults to enabled and reads a persisted false', async () => {
       await service.load();
       expect(service.isSeatDecorationsEnabled()).toBe(true);
