@@ -5,6 +5,7 @@ Scope: `src/**` only. Engine rules live in `packages/game-engine/AGENTS.md`; wor
 ## Room shell
 
 - Host management is built only when `viewer.isHost`, bottom buttons declare only the audiences `participant` or `anyone`, and host task references are validated at assembly, all enforced by `createRoomShellModel` (`src/features/room/model/createRoomShellModel.ts`, which throws on a `participant` button for a viewer holding no seat).
+- Audio playback lock: `isAudioPlaybackLocked` + `applyAudioPlaybackLock` in `src/features/room/model/audioPlaybackLock.ts` (non-exempt actions disabled with the single lock reason, press unreachable, applied at the host-management factory exit), pinned by `src/features/room/model/__tests__/audioPlaybackLock.test.ts`, `packages/game-engine/src/platform/audio/__tests__/audioGate.contract.test.ts`, and `src/games/werewolf/room/__tests__/createWerewolfHostManagement.test.ts`.
 
 ## Sheriff secrecy and night review
 
