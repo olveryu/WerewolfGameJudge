@@ -146,6 +146,36 @@ describe('SettingsService', () => {
     });
   });
 
+  describe('seatDecorationsEnabled', () => {
+    it('defaults to enabled and reads a persisted false', async () => {
+      await service.load();
+      expect(service.isSeatDecorationsEnabled()).toBe(true);
+
+      jest
+        .mocked(storage.getString)
+        .mockReturnValue(JSON.stringify({ seatDecorationsEnabled: false }));
+      const reloaded = new SettingsService();
+      await reloaded.load();
+      expect(reloaded.isSeatDecorationsEnabled()).toBe(false);
+    });
+
+    it('persists the switch and notifies listeners', async () => {
+      const listener = jest.fn();
+      service.addListener(listener);
+
+      await service.setSeatDecorationsEnabled(false);
+
+      expect(service.isSeatDecorationsEnabled()).toBe(false);
+      expect(storage.set).toHaveBeenLastCalledWith(
+        USER_SETTINGS_KEY,
+        expect.stringContaining('"seatDecorationsEnabled":false'),
+      );
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({ seatDecorationsEnabled: false }),
+      );
+    });
+  });
+
   describe('bgmEnabled', () => {
     it('can set BGM enabled/disabled', async () => {
       await service.setBgmEnabled(false);

@@ -512,6 +512,8 @@ jest.mock('./src/contexts/ServiceContext', () => {
       setRememberedGameConfigField: jest.fn().mockResolvedValue(undefined),
       isBgmEnabled: jest.fn().mockReturnValue(true),
       toggleBgm: jest.fn().mockResolvedValue(false),
+      isSeatDecorationsEnabled: jest.fn().mockReturnValue(true),
+      setSeatDecorationsEnabled: jest.fn().mockResolvedValue(undefined),
       getBgmTrack: jest.fn().mockReturnValue('random'),
       setBgmTrack: jest.fn(),
       addListener: jest.fn().mockReturnValue(jest.fn()),

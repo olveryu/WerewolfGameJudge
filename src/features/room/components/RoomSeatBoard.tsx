@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 
 import { useAppVisibility } from '@/features/product/hooks/useAppVisibility';
+import { useSeatDecorationsPreference } from '@/features/product/hooks/useSeatDecorationsPreference';
 import { getRoomOccupantAvatarSeed } from '@/features/room/model/RoomOccupant';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
@@ -51,6 +52,7 @@ const RoomSeatBoardComponent: React.FC<RoomSeatBoardProps> = ({
   const pixelRatio = PixelRatio.get();
   const isAppVisible = useAppVisibility();
   const isFocused = useIsFocused();
+  const wantsSeatDecorations = useSeatDecorationsPreference();
   const [contentWidth, setContentWidth] = useState(0);
   const effectiveWidth = contentWidth || screenWidth - spacing.medium * 2;
   const gap = spacing.small + spacing.tight;
@@ -158,7 +160,7 @@ const RoomSeatBoardComponent: React.FC<RoomSeatBoardProps> = ({
                 isStatusEmphasized={seatModel.isStatusEmphasized}
                 playerLevel={seatModel.player?.level}
                 showLevel={seatModel.showLevel}
-                seatDecorationsEnabled={seatModel.decorationsEnabled}
+                seatDecorationsEnabled={seatModel.decorationsEnabled && wantsSeatDecorations}
                 isAppVisible={isAppVisible && isFocused}
                 styles={tileStyles}
                 onPress={onSeatPress}
@@ -187,6 +189,7 @@ const RoomSeatBoardComponent: React.FC<RoomSeatBoardProps> = ({
       presence,
       tileSize,
       tileStyles,
+      wantsSeatDecorations,
     ],
   );
 

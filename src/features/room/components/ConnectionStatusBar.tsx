@@ -11,15 +11,8 @@
 import type React from 'react';
 import { memo, useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import Animated, {
-  cancelAnimation,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
 
+import { IndeterminateProgressBar } from '@/components/IndeterminateProgressBar';
 import { getLinkCloseMessage } from '@/features/room/model/linkCloseMessages';
 import type { LinkStatus } from '@/platform/realtime/types';
 import { TESTIDS } from '@/testids';
@@ -37,8 +30,6 @@ interface ConnectionStatusBarProps {
   readonly now?: () => number;
 }
 
-const BAR_WIDTH_RATIO = 0.3;
-const ANIMATION_DURATION_MS = 1_500;
 const COUNTDOWN_TICK_MS = 250;
 
 /** Seconds until `atMs`, never below 1 so the copy never reads 「0 秒后」. */
@@ -91,33 +82,12 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
   styles,
   now = Date.now,
 }) => {
-  const [containerWidth, setContainerWidth] = useState(0);
-  const progressValue = useSharedValue(0);
   const retryAtMs = status.kind === 'waiting' ? status.nextRetryAtMs : null;
   const countdown = useCountdown(retryAtMs, now);
 
   const isLive = status.kind === 'live';
   const shouldShow = !isLive || pendingDurableCount > 0;
   const isAnimating = status.kind === 'connecting' || status.kind === 'syncing' || isLive;
-
-  useEffect(() => {
-    if (containerWidth === 0 || !shouldShow || !isAnimating) {
-      cancelAnimation(progressValue);
-      progressValue.value = 0;
-      return;
-    }
-    progressValue.value = 0;
-    progressValue.value = withRepeat(withTiming(1, { duration: ANIMATION_DURATION_MS }), -1);
-    return () => cancelAnimation(progressValue);
-  }, [progressValue, containerWidth, shouldShow, isAnimating]);
-
-  const barPixelWidth = containerWidth * BAR_WIDTH_RATIO;
-  const progressBarStyle = useAnimatedStyle(() => ({
-    width: barPixelWidth,
-    transform: [
-      { translateX: interpolate(progressValue.value, [0, 1], [-barPixelWidth, containerWidth]) },
-    ],
-  }));
 
   if (!shouldShow) return null;
 
@@ -142,13 +112,14 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
     <View
       style={styles.container}
       testID={isLive ? TESTIDS.connectionPendingContainer : TESTIDS.connectionStatusContainer}
-      onLayout={(event) => setContainerWidth(event.nativeEvent.layout.width)}
     >
       <Text style={styles.text}>{describe(status, pendingDurableCount, countdown)}</Text>
       {isAnimating && (
-        <View style={styles.progressBarTrack}>
-          <Animated.View style={[styles.progressBar, progressBarStyle]} />
-        </View>
+        <IndeterminateProgressBar
+          accessibilityLabel={describe(status, pendingDurableCount, countdown)}
+          style={styles.progressBarTrack}
+          barStyle={styles.progressBar}
+        />
       )}
     </View>
   );

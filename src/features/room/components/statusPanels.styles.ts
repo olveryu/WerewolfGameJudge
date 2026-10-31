@@ -249,7 +249,10 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         bottom: 0,
         left: 0,
         right: 0,
+        width: 'auto',
         height: componentSizes.progressBar.height,
+        borderRadius: 0,
+        backgroundColor: 'transparent',
       },
       progressBar: {
         height: componentSizes.progressBar.height,

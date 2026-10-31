@@ -58,6 +58,8 @@ interface UserSettings {
   bgmVolume: number;
   /** Foreground game audio volume 0.0–1.0 (default: 1.0) */
   gameAudioVolume: number;
+  /** Seat flairs / pets / arrivals in the room grid. Off saves battery on long sessions. */
+  seatDecorationsEnabled: boolean;
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
@@ -66,6 +68,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   bgmTrack: 'random',
   bgmVolume: BGM_VOLUME,
   gameAudioVolume: MAX_VOLUME,
+  seatDecorationsEnabled: true,
 };
 
 function clampVolume(volume: number): number {
@@ -174,6 +177,11 @@ function parsePersistedSettings(value: unknown): UserSettings {
       Reflect.get(value, 'gameAudioVolume'),
       'gameAudioVolume',
       DEFAULT_SETTINGS.gameAudioVolume,
+    ),
+    seatDecorationsEnabled: readPersistedBoolean(
+      Reflect.get(value, 'seatDecorationsEnabled'),
+      'seatDecorationsEnabled',
+      DEFAULT_SETTINGS.seatDecorationsEnabled,
     ),
   };
 }
@@ -333,6 +341,24 @@ export class SettingsService {
       ...this.#settings,
       gameAudioVolume: requireFiniteVolume(volume, 'gameAudioVolume'),
     });
+  }
+
+  // =========================================================================
+  // Display
+  // =========================================================================
+
+  /**
+   * Whether seat decorations (flairs / pets / arrival animations) render in the room grid.
+   */
+  isSeatDecorationsEnabled(): boolean {
+    return this.#settings.seatDecorationsEnabled;
+  }
+
+  /**
+   * Set seat decorations visibility and persist.
+   */
+  async setSeatDecorationsEnabled(enabled: boolean): Promise<void> {
+    await this.#save({ ...this.#settings, seatDecorationsEnabled: enabled });
   }
 
   // =========================================================================
