@@ -22,6 +22,8 @@ export const getDrawGuessRoomCommandFailureMessage =
     [DRAWGUESS_REASONS.config]: '配置无效，请检查人数设置（4 至 12 人）',
     [DRAWGUESS_REASONS.phase]: ROOM_COMMAND_FAILURE_WRONG_PHASE,
     [DRAWGUESS_REASONS.stale]: '对局已推进，请稍后重试',
+    [DRAWGUESS_REASONS.expired]: '本轮已结束，答案即将公布',
+    [DRAWGUESS_REASONS.rateLimited]: '猜得太快了，稍后再试',
     [DRAWGUESS_REASONS.notSeated]: '请先入座再操作',
     [DRAWGUESS_REASONS.notDrawer]: '只有当前画手可以操作',
     [DRAWGUESS_REASONS.notGuesser]: '画手不能提交猜词',

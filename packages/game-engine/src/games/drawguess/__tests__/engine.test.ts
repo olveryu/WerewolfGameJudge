@@ -255,10 +255,10 @@ describe('DrawGuess engine', () => {
     const session = game();
     session.startGame();
     session.chooseFirstWord(0);
-    // Guess immediately: full speed bonus = 150; drawer takes half of it.
+    // Guess immediately: full speed bonus = 200; drawer takes half of it.
     session.guess(1, '大熊猫');
-    expect(session.state.scores[1]).toBe(150);
-    expect(session.state.scores[0]).toBe(75);
+    expect(session.state.scores[1]).toBe(200);
+    expect(session.state.scores[0]).toBe(100);
     if (session.state.phase.kind !== 'drawing') throw new Error('phase');
     expect(session.state.phase.guessedSeats).toContain(1);
     // Locked guesser cannot guess again.
@@ -280,17 +280,108 @@ describe('DrawGuess engine', () => {
   });
 
   it('decays the speed bonus over the drawing duration', () => {
-    expect(computeGuesserScore(90000)).toBe(150);
-    expect(computeGuesserScore(45000)).toBe(100);
-    expect(computeGuesserScore(0)).toBe(50);
-    expect(computeGuesserScore(-100)).toBe(50);
+    expect(computeGuesserScore(90000)).toBe(200);
+    expect(computeGuesserScore(70000)).toBe(160);
+    expect(computeGuesserScore(45000)).toBe(110);
+    expect(computeGuesserScore(30000)).toBe(80);
+    expect(computeGuesserScore(0)).toBe(20);
+    expect(computeGuesserScore(-100)).toBe(20);
   });
 
   it('pays the drawer half of each guesser score', () => {
+    expect(computeDrawerScore(200)).toBe(100);
     expect(computeDrawerScore(150)).toBe(75);
     expect(computeDrawerScore(101)).toBe(51);
     expect(computeDrawerScore(50)).toBe(25);
+    expect(computeDrawerScore(20)).toBe(10);
     expect(computeDrawerScore(0)).toBe(0);
+  });
+
+  it('keeps a captured revision valid while strokes and other guesses land', () => {
+    const session = game();
+    session.startGame();
+    session.chooseFirstWord(0);
+    const captured = session.revision();
+    session.send(
+      { type: 'drawguess.stroke.add', stroke: testStroke('s1', 0), ...captured },
+      'host',
+    );
+    session.send({ type: 'drawguess.stroke.undo', ...captured }, 'host');
+    session.send(
+      { type: 'drawguess.stroke.add', stroke: testStroke('s2', 0), ...captured },
+      'host',
+    );
+    expect(session.state.phaseRevision).toBe(captured.phaseRevision);
+    session.send({ type: 'drawguess.guess.submit', text: '大熊猫', ...captured }, 'u1');
+    expect(session.state.scores[1]).toBe(200);
+    expect(session.state.phaseRevision).toBe(captured.phaseRevision);
+    session.send({ type: 'drawguess.guess.submit', text: '小狗', ...captured }, 'u2');
+    if (session.state.phase.kind !== 'drawing') throw new Error('phase');
+    expect(session.state.phase.guessLog).toHaveLength(2);
+    expect(session.state.phaseRevision).toBe(captured.phaseRevision);
+  });
+
+  it('advances phaseRevision exactly once per phase transition across a turn', () => {
+    const session = game();
+    const before = session.state.phaseRevision;
+    session.startGame();
+    expect(session.state.phaseRevision).toBe(before + 1);
+    session.chooseFirstWord(0);
+    expect(session.state.phaseRevision).toBe(before + 2);
+    const captured = session.revision();
+    session.send(
+      { type: 'drawguess.stroke.add', stroke: testStroke('s1', 0), ...captured },
+      'host',
+    );
+    session.guess(1, '大熊猫');
+    expect(session.state.phaseRevision).toBe(before + 2);
+    session.expire();
+    expect(session.state.phase.kind).toBe('roundEnd');
+    expect(session.state.phaseRevision).toBe(before + 3);
+  });
+
+  it('rejects a guess after the drawing deadline with the expired reason', () => {
+    const session = game();
+    session.startGame();
+    session.chooseFirstWord(0);
+    session.advanceTime(91_000);
+    const decision = drawGuessEngine.decide(
+      session.state,
+      { type: 'drawguess.guess.submit', text: '大熊猫', ...session.revision() },
+      {
+        actor: { kind: 'user', userId: 'u1' },
+        controlledSeat: null,
+        nowMs: session.nowMs,
+        commandId: 'x',
+        randomSeed: 'x',
+      },
+    );
+    expect(decision.kind).toBe('reject');
+    if (decision.kind !== 'reject') throw new Error('expected rejection');
+    expect(decision.reason).toBe(DRAWGUESS_REASONS.expired);
+  });
+
+  it('still rejects a guess from the previous phase as stale', () => {
+    const session = game();
+    session.startGame();
+    session.chooseFirstWord(0);
+    const captured = session.revision();
+    session.expire();
+    expect(session.state.phase.kind).toBe('roundEnd');
+    const decision = drawGuessEngine.decide(
+      session.state,
+      { type: 'drawguess.guess.submit', text: '大熊猫', ...captured },
+      {
+        actor: { kind: 'user', userId: 'u1' },
+        controlledSeat: null,
+        nowMs: session.nowMs,
+        commandId: 'x',
+        randomSeed: 'x',
+      },
+    );
+    expect(decision.kind).toBe('reject');
+    if (decision.kind !== 'reject') throw new Error('expected rejection');
+    expect(decision.reason).toBe(DRAWGUESS_REASONS.stale);
   });
 
   it('only ever shortens the deadline after a guess', () => {
@@ -336,7 +427,7 @@ describe('DrawGuess engine', () => {
     session.advanceTime(25_000);
     session.guess(2, '大熊猫');
     expect(session.state.scores[2]).toBe(computeGuesserScore(55_000));
-    expect(session.state.scores[2]).toBe(111);
+    expect(session.state.scores[2]).toBe(130);
   });
 
   it('shortens the deadline to 3s once every non-drawer seat has guessed', () => {
@@ -461,6 +552,22 @@ describe('DrawGuess engine', () => {
     expect(message?.text).toBeNull();
     const drawer = getDrawGuessViewModel(session.state, 0, session.nowMs);
     expect(drawer.messages.find((m) => m.seat === 1)?.text).toBe('大熊猫');
+  });
+
+  it('exposes the current turn scores in the view model', () => {
+    const session = game();
+    session.startGame();
+    const wordSelectView = getDrawGuessViewModel(session.state, 1, session.nowMs);
+    expect(wordSelectView.turnScores).toEqual({});
+    session.chooseFirstWord(0);
+    session.guess(1, '大熊猫');
+    const drawingView = getDrawGuessViewModel(session.state, 1, session.nowMs);
+    expect(drawingView.turnScores).toEqual({ 0: 100, 1: 200 });
+    session.expire();
+    expect(session.state.phase.kind).toBe('roundEnd');
+    const roundEndView = getDrawGuessViewModel(session.state, 1, session.nowMs);
+    expect(roundEndView.turnScores).toEqual(roundEndView.roundScores);
+    expect(roundEndView.turnScores).toEqual({ 0: 100, 1: 200 });
   });
 
   it('lets the host take over a bot seat to draw', () => {

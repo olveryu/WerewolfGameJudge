@@ -123,7 +123,7 @@ function checkDrawingDeadline(
   return rejectIfPastDeadline<DrawGuessEvent, DrawGuessEffect>(
     state.phase.deadlineAt,
     context.nowMs,
-    DRAWGUESS_REASONS.stale,
+    DRAWGUESS_REASONS.expired,
   );
 }
 

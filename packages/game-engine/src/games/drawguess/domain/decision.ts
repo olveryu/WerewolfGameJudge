@@ -15,6 +15,7 @@ export const DRAWGUESS_REASONS = {
   config: 'drawguess_config_invalid',
   phase: 'drawguess_phase_invalid',
   stale: 'drawguess_stale_round',
+  expired: 'drawguess_round_expired',
   notSeated: 'drawguess_not_seated',
   notDrawer: 'drawguess_not_drawer',
   notGuesser: 'drawguess_not_guesser',

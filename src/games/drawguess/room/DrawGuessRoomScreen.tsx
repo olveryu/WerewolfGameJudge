@@ -26,8 +26,8 @@ import {
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
-import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
-import { StageFrame } from '@/features/room/components/StageFrame';
+import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
+import { STAGE_FRAME_MAX_WIDTH, StageFrame } from '@/features/room/components/StageFrame';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
 import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
@@ -44,7 +44,8 @@ import { roomScreenLog } from '@/utils/logger';
 import { renderDrawGuessDrawing } from '../services/drawGuessMediaApi';
 import { drawGuessMediaTransport } from '../services/drawGuessMediaTransport';
 import { DrawGuessDrawingCanvas } from './components/DrawGuessDrawingCanvas';
-import { DrawGuessGuessPanel } from './components/DrawGuessGuessPanel';
+import { DrawGuessGuessComposer } from './components/DrawGuessGuessComposer';
+import { DrawGuessGuessLog } from './components/DrawGuessGuessLog';
 import { DrawGuessHintBar } from './components/DrawGuessHintBar';
 import { DrawGuessScoreboard } from './components/DrawGuessScoreboard';
 import { DrawGuessToolbar } from './components/DrawGuessToolbar';
@@ -166,6 +167,23 @@ function DrawGuessStage({ screen }: { readonly screen: DrawGuessScreenState }) {
   throw new Error('[FAIL-FAST] DrawGuess stage received the lobby phase');
 }
 
+function DrawGuessStageHeader({
+  turnLabel,
+  remainingSeconds,
+  countdownLabel,
+}: {
+  readonly turnLabel: string;
+  readonly remainingSeconds: number | null;
+  readonly countdownLabel: string;
+}) {
+  return (
+    <View style={styles.stageHeader}>
+      <Text style={styles.turnLabel}>{turnLabel}</Text>
+      <DrawGuessCountdown remainingSeconds={remainingSeconds} label={countdownLabel} />
+    </View>
+  );
+}
+
 function DrawGuessStageFrame({
   turnLabel,
   remainingSeconds,
@@ -181,10 +199,11 @@ function DrawGuessStageFrame({
     <StageFrame
       showsVerticalScrollIndicator={false}
       header={
-        <View style={styles.stageHeader}>
-          <Text style={styles.turnLabel}>{turnLabel}</Text>
-          <DrawGuessCountdown remainingSeconds={remainingSeconds} label={countdownLabel} />
-        </View>
+        <DrawGuessStageHeader
+          turnLabel={turnLabel}
+          remainingSeconds={remainingSeconds}
+          countdownLabel={countdownLabel}
+        />
       }
     >
       {children}
@@ -361,6 +380,8 @@ function DrawGuessDrawingView({
   const [color, setColor] = useState<DrawingColor>(DRAWING_PALETTE[0].value);
   const [strokeWidth, setStrokeWidth] = useState<DrawingWidth>(DRAWING_WIDTHS[1]);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  // 草稿由本视图持有：提交失败保留，只有服务端受理后才清空。
+  const [draft, setDraft] = useState('');
   const canDraw = isDrawer && remainingSeconds !== null && remainingSeconds > 0;
   const sync = useDrawGuessStrokeSync({
     session,
@@ -385,33 +406,38 @@ function DrawGuessDrawingView({
   const canGuess =
     !isDrawer && effectiveSeat !== null && remainingSeconds !== null && remainingSeconds > 0;
 
-  const submitGuess = (text: string) => {
-    void (async () => {
-      try {
-        const result = await session.dispatch(
-          {
-            type: 'drawguess.guess.submit',
-            text,
-            phaseRevision: state.phaseRevision,
-            turnIndex: state.turnIndex,
-          },
-          { controlledSeat, label: '提交猜词', durable: false },
-        );
-        if (!isSuccessfulRoomCommand(result))
-          showErrorAlert('提交猜词失败', getDrawGuessRoomCommandFailureMessage(result));
-      } catch (error: unknown) {
-        if (error instanceof ApiError && error.status === 429) {
-          showErrorAlert('猜得太快了', '猜得太快了，稍后再试');
-          return;
-        }
-        handleError(error, {
-          label: '提交猜词',
-          logger: roomScreenLog,
-          alertMessage: '提交猜词失败，请重试',
-        });
+  const submitGuess = async (text: string): Promise<boolean> => {
+    try {
+      const result = await session.dispatch(
+        {
+          type: 'drawguess.guess.submit',
+          text,
+          phaseRevision: state.phaseRevision,
+          turnIndex: state.turnIndex,
+        },
+        { controlledSeat, label: '提交猜词', durable: false },
+      );
+      if (!isSuccessfulRoomCommand(result)) {
+        showErrorAlert('提交猜词失败', getDrawGuessRoomCommandFailureMessage(result));
+        return false;
       }
-    })();
+      return true;
+    } catch (error: unknown) {
+      if (error instanceof ApiError && error.status === 429) {
+        showErrorAlert('猜得太快了', '猜得太快了，稍后再试');
+        return false;
+      }
+      handleError(error, {
+        label: '提交猜词',
+        logger: roomScreenLog,
+        alertMessage: '提交猜词失败，请重试',
+      });
+      return false;
+    }
   };
+
+  const totalScore = effectiveSeat !== null ? (viewModel.scores[effectiveSeat] ?? 0) : null;
+  const turnScore = effectiveSeat !== null ? (viewModel.turnScores[effectiveSeat] ?? 0) : null;
 
   return (
     <>
@@ -420,64 +446,77 @@ function DrawGuessDrawingView({
         viewModel={viewModel}
         remainingSeconds={remainingSeconds}
       />
-      <RoomTaskViewport>
-        <DrawGuessStageFrame
-          turnLabel={viewModel.turnLabel}
-          remainingSeconds={remainingSeconds}
-          countdownLabel="作画"
-        >
-          <DrawGuessHintBar
-            word={viewModel.word}
-            hintText={viewModel.hintText}
-            wordLength={viewModel.wordLength}
+      <RoomTaskFrame
+        header={
+          <DrawGuessStageHeader
+            turnLabel={viewModel.turnLabel}
+            remainingSeconds={remainingSeconds}
+            countdownLabel="作画"
           />
-          <View style={isWideLayout ? styles.drawingBodyWide : styles.drawingBodyNarrow}>
-            <View style={isWideLayout ? styles.canvasWide : styles.canvasNarrow}>
-              <DrawGuessDrawingCanvas
-                elements={sync.elements}
-                tool={tool}
-                color={color}
-                strokeWidth={strokeWidth}
-                isEnabled={canDraw}
-                onElementChange={sync.onElementChange}
-                onElementComplete={sync.onElementComplete}
-                onFill={(point) => sync.onFill(point, color)}
-              />
-            </View>
-            <View style={isWideLayout ? styles.sidePanelWide : styles.sidePanelNarrow}>
-              {isDrawer ? (
-                <>
-                  <DrawGuessToolbar
-                    tool={tool}
-                    color={color}
-                    strokeWidth={strokeWidth}
-                    canUndo={sync.elements.length > 0}
-                    canRedo={sync.canRedo}
-                    disabled={!canDraw}
-                    onToolChange={setTool}
-                    onColorChange={setColor}
-                    onWidthChange={setStrokeWidth}
-                    onUndo={sync.undo}
-                    onRedo={sync.redo}
-                    onClear={clearDrawing}
-                  />
-                  <Text style={styles.hint}>作画不许写字、写数字。猜词聊天流：</Text>
-                </>
-              ) : null}
-              <View style={styles.guessPanelContainer}>
-                <DrawGuessGuessPanel
-                  messages={viewModel.messages}
-                  viewerSeat={effectiveSeat}
-                  isLocked={isDrawer ? false : isLocked}
-                  canGuess={isDrawer ? false : canGuess}
-                  readOnly={isDrawer}
-                  onSubmitGuess={submitGuess}
+        }
+        maxWidth={STAGE_FRAME_MAX_WIDTH}
+        containerStyle={styles.taskFrameContainer}
+        footer={
+          isDrawer ? null : (
+            <DrawGuessGuessComposer
+              draft={draft}
+              onDraftChange={setDraft}
+              isLocked={isLocked}
+              canGuess={canGuess}
+              onSubmitGuess={submitGuess}
+            />
+          )
+        }
+      >
+        <DrawGuessHintBar
+          word={viewModel.word}
+          hintText={viewModel.hintText}
+          wordLength={viewModel.wordLength}
+        />
+        {totalScore !== null && turnScore !== null && (
+          <Text style={styles.hint}>
+            我的总分 {totalScore} · 本轮 +{turnScore}
+          </Text>
+        )}
+        <View style={isWideLayout ? styles.drawingBodyWide : styles.drawingBodyNarrow}>
+          <View style={isWideLayout ? styles.canvasWide : styles.canvasNarrow}>
+            <DrawGuessDrawingCanvas
+              elements={sync.elements}
+              tool={tool}
+              color={color}
+              strokeWidth={strokeWidth}
+              isEnabled={canDraw}
+              onElementChange={sync.onElementChange}
+              onElementComplete={sync.onElementComplete}
+              onFill={(point) => sync.onFill(point, color)}
+            />
+          </View>
+          <View style={isWideLayout ? styles.sidePanelWide : styles.sidePanelNarrow}>
+            {isDrawer ? (
+              <>
+                <DrawGuessToolbar
+                  tool={tool}
+                  color={color}
+                  strokeWidth={strokeWidth}
+                  canUndo={sync.elements.length > 0}
+                  canRedo={sync.canRedo}
+                  disabled={!canDraw}
+                  onToolChange={setTool}
+                  onColorChange={setColor}
+                  onWidthChange={setStrokeWidth}
+                  onUndo={sync.undo}
+                  onRedo={sync.redo}
+                  onClear={clearDrawing}
                 />
-              </View>
+                <Text style={styles.hint}>作画不许写字、写数字。猜词聊天流：</Text>
+              </>
+            ) : null}
+            <View style={styles.guessPanelContainer}>
+              <DrawGuessGuessLog messages={viewModel.messages} viewerSeat={effectiveSeat} />
             </View>
           </View>
-        </DrawGuessStageFrame>
-      </RoomTaskViewport>
+        </View>
+      </RoomTaskFrame>
       <AlertModal
         visible={showClearConfirm}
         title="清空画布？"
@@ -620,7 +659,9 @@ function DrawGuessRoundEndView({
     displayName: seat.displayName,
     isBot: seat.isBot,
     isDrawer: seat.isDrawer,
-    score: viewModel.roundScores?.[seat.seat] ?? 0,
+    isSelf: seat.seat === effectiveSeat,
+    roundScore: viewModel.roundScores?.[seat.seat] ?? 0,
+    totalScore: viewModel.scores[seat.seat] ?? 0,
   }));
 
   return (
@@ -672,7 +713,9 @@ function DrawGuessEndedView({
     displayName: seat.displayName,
     isBot: seat.isBot,
     isDrawer: seat.isDrawer,
-    score: viewModel.totalScores[seat.seat] ?? 0,
+    isSelf: seat.seat === screen.effectiveSeat,
+    roundScore: null,
+    totalScore: viewModel.totalScores[seat.seat] ?? 0,
   }));
   return (
     <DrawGuessStageFrame turnLabel="本局结束" remainingSeconds={null} countdownLabel="">
@@ -749,6 +792,8 @@ const styles = StyleSheet.create({
   },
   sidePanelNarrow: {
     width: '100%',
+    flex: 1,
+    minHeight: 0,
     gap: spacing.small,
   },
   sidePanelWide: {
@@ -758,8 +803,11 @@ const styles = StyleSheet.create({
   },
   guessPanelContainer: {
     width: '100%',
-    minHeight: 200,
+    minHeight: 0,
     flex: 1,
+  },
+  taskFrameContainer: {
+    paddingHorizontal: spacing.screenH,
   },
   answerBanner: {
     width: '100%',
