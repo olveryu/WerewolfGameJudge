@@ -22,6 +22,8 @@ export const TESTIDS = {
   seatOfflineIndicator: (seat: number) => `seat-offline-indicator-${seat}`,
   seatMarker: (seat: number, key: string) => `seat-marker-${seat}-${key}`,
   seatProgress: (seat: number) => `seat-progress-${seat}`,
+  seatNumberBadge: (seat: number) => `seat-number-badge-${seat}`,
+  seatNameRow: (seat: number) => `seat-name-row-${seat}`,
   mySeatBadge: 'my-seat-badge',
 
   // Home / Config / Room readiness gates (stable, non-copy based)

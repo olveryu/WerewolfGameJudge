@@ -93,15 +93,13 @@ export interface RoomSeatTileStyles extends ReturnType<typeof createRoomSeatIndi
   controlledRingFramed: ViewStyle;
   framedTile: ViewStyle;
   seatNumberBadge: ViewStyle;
+  /** Grey seat-number badge for a non-my offline seat; my-spot green wins over this. */
+  seatNumberBadgeOffline: ViewStyle;
   seatNumberText: TextStyle;
   avatarContainer: ViewStyle;
   entranceAvatarBox: ViewStyle;
-  /**
-   * Wraps avatar + frame + flair + pet. Offline dims this whole layer instead of drawing a corner
-   * dot, so the presence signal can never be covered by a decoration.
-   */
+  /** Wraps avatar + frame + flair + pet. Never dimmed: presence is shown outside this layer. */
   decoratedAvatarLayer: ViewStyle;
-  decoratedAvatarLayerOffline: ViewStyle;
   mySeatBadge: ViewStyle;
   readyBadgeContainer: ViewStyle;
   readyBadgeIcon: TextStyle;
@@ -121,7 +119,10 @@ export interface RoomSeatTileStyles extends ReturnType<typeof createRoomSeatIndi
   emptyTile: ViewStyle;
   playerName: TextStyle;
   playerNameHighlight: TextStyle;
-  playerNameOffline: TextStyle;
+  /** Centred row holding the offline icon (when present) beside the name; same height as the name. */
+  playerNameRow: ViewStyle;
+  /** Offline icon beside the name. Never shrinks, so a long name truncates at the tail instead. */
+  playerNameOfflineIcon: TextStyle;
   playerNamePlaceholder: ViewStyle;
   botRoleName: TextStyle;
 }
@@ -394,14 +395,11 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
     ? tileSize - spacing.tight
     : tileSize - spacing.tight - fixed.borderWidthThick * 2;
   const avatarRadius = hasFrame ? borderRadius.large : borderRadius.large - fixed.borderWidthThick;
-  // Offline drops the cosmetic name style too: the whole seat reads as "faded" until the device
-  // reconnects, matching the dimmed decoratedAvatarLayer above it.
-  let playerNameTextStyle: TextStyle = isPlayerAnonymous
+  // The name keeps its cosmetic style offline: presence is shown by the badge and the
+  // offline icon beside the name, never by fading the name or the decorated layer.
+  const playerNameTextStyle: TextStyle = isPlayerAnonymous
     ? styles.playerName
     : styles.playerNameHighlight;
-  if (isPlayerOffline) {
-    playerNameTextStyle = styles.playerNameOffline;
-  }
   let highlightRingStyle: ViewStyle | null = null;
   if (highlight === 'controlled') {
     highlightRingStyle = hasFrame ? styles.controlledRingFramed : styles.controlledRing;
@@ -448,13 +446,7 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
           activeOpacity={disabled || disabledReason ? 1 : fixed.activeOpacity}
         >
           {hasPlayer && (
-            <View
-              pointerEvents="none"
-              style={[
-                styles.decoratedAvatarLayer,
-                isPlayerOffline && styles.decoratedAvatarLayerOffline,
-              ]}
-            >
+            <View pointerEvents="none" style={styles.decoratedAvatarLayer}>
               {seatDecorationsEnabled && isPlayingEntrance && AnimComponent ? (
                 // Entrance animations clip their children with `overflow: hidden`. Keep only the
                 // plain avatar inside the clip; render the decorative frame as a non-clipped sibling
@@ -557,32 +549,38 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
 
       {/* Floating seat number badge - overlaps top-left corner of tile */}
       <View
-        style={[styles.seatNumberBadge, isMySpot && hasPlayer && styles.mySeatBadge]}
-        testID={isMySpot && hasPlayer ? TESTIDS.mySeatBadge : undefined}
+        style={[
+          styles.seatNumberBadge,
+          isMySpot && hasPlayer && styles.mySeatBadge,
+          isPlayerOffline && hasPlayer && !isMySpot && styles.seatNumberBadgeOffline,
+        ]}
+        testID={isMySpot && hasPlayer ? TESTIDS.mySeatBadge : TESTIDS.seatNumberBadge(seat)}
       >
         <Text style={styles.seatNumberText}>{seat + 1}</Text>
       </View>
       {hasPlayer ? (
         <>
-          <NameStyleText
-            styleId={isPlayerOffline ? undefined : playerNameStyle}
-            style={playerNameTextStyle}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
+          <View style={styles.playerNameRow} testID={TESTIDS.seatNameRow(seat)}>
             {isPlayerOffline && (
               <Ionicons
                 name={STATUS_ICONS.OFFLINE}
                 size={typography.caption}
+                style={styles.playerNameOfflineIcon}
                 testID={TESTIDS.seatOfflineIndicator(seat)}
                 accessibilityLabel="离线"
               />
             )}
-            {isPlayerOffline && ' '}
-            {isBot && <Ionicons name={UI_ICONS.BOT} size={typography.caption} />}
-            {isBot && ' '}
-            {playerDisplayName}
-          </NameStyleText>
+            <NameStyleText
+              styleId={playerNameStyle}
+              style={playerNameTextStyle}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {isBot && <Ionicons name={UI_ICONS.BOT} size={typography.caption} />}
+              {isBot && ' '}
+              {playerDisplayName}
+            </NameStyleText>
+          </View>
           {indicators !== null && (
             <RoomSeatProgress seat={seat} indicators={indicators} styles={styles} />
           )}
@@ -708,12 +706,12 @@ export function createRoomSeatTileStyles(
       alignItems: 'center',
       overflow: 'visible' as const,
     },
-    decoratedAvatarLayerOffline: {
-      opacity: fixed.offlineOpacity,
-    },
     mySeatBadge: {
       backgroundColor: colors.success,
       boxShadow: `0px 0px 6px ${withAlpha(colors.success, 0.4)}`,
+    },
+    seatNumberBadgeOffline: {
+      backgroundColor: colors.textMuted,
     },
     readyBadgeContainer: {
       position: 'absolute',
@@ -802,27 +800,27 @@ export function createRoomSeatTileStyles(
       lineHeight: typography.lineHeights.caption,
       color: colors.textSecondary,
       textAlign: 'center',
-      marginTop: spacing.tight,
-      width: tileSize - spacing.tight,
-      height: typography.subtitle,
+      flexShrink: 1,
     },
     playerNameHighlight: {
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
       color: colors.primary,
       textAlign: 'center',
+      flexShrink: 1,
+    },
+    playerNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
       marginTop: spacing.tight,
       width: tileSize - spacing.tight,
       height: typography.subtitle,
     },
-    playerNameOffline: {
-      fontSize: typography.caption,
-      lineHeight: typography.lineHeights.caption,
+    playerNameOfflineIcon: {
+      flexShrink: 0,
+      marginRight: spacing.micro,
       color: colors.textMuted,
-      textAlign: 'center',
-      marginTop: spacing.tight,
-      width: tileSize - spacing.tight,
-      height: typography.subtitle,
     },
     playerNamePlaceholder: {
       marginTop: spacing.tight,
