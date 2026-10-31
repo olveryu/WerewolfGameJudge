@@ -118,7 +118,7 @@ skeleton stays a `.tmpl` and out of CI until activated (rename it to
 `<gameId>.spec.ts` and add the filename to the e2e shard matrix in
 `.github/workflows/ci.yml`; see `references/presets-and-report.md`).
 When a spec is activated, it uses real multi-context seats and no
-automated players to fill seats (generated skeleton header).
+automated players to fill seats (`createPlayerContexts`, `e2e/fixtures/app.fixture.ts`).
 
 ### 8. Verify and open the PR
 
@@ -161,5 +161,6 @@ lint checks on the changed files as well.
    the `wrangler.toml` binding has no contract test (`report.mjs`,
    step 6), so a missing binding fails only at deploy time.
 5. Filling seats with automated players in a new spec — automated
-   players are test scaffolding only (generated skeleton header;
-   `identityViewing.ts`, `planMarkBotsViewed`).
+   players are test scaffolding only (`createPlayerContexts` in
+   `e2e/fixtures/app.fixture.ts`; `planMarkBotsViewed`, the host
+   scaffold in `packages/game-engine/src/platform/room/identityViewing.ts`).

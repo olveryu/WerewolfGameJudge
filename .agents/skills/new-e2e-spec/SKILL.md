@@ -97,8 +97,9 @@ the local servers are available.
 On a red run, investigate in order: failure bundle / PR digest,
 then trace, then CI logs only for infrastructure-shaped failures.
 Classify: real regression (fix the product), intentional
-behaviour change (update the affected spec to the new flow, one spec
-per commit, single-spec verified), or flake (record the exact error).
+behaviour change (update the affected spec to the new flow and verify
+that spec alone via the single-spec workflow), or flake (record the
+exact error).
 
 ## Acceptance commands
 
