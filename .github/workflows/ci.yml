@@ -33,7 +33,7 @@ jobs:
         run: pnpm exec turbo run build typecheck knip
 
       - name: Check agent configuration drift
-        run: pnpm run sync:agents:check
+        run: pnpm run validate:agents
 
   # Lint and format check run as their own job so they parallelize with
   # quality / test-root instead of serializing inside quality.

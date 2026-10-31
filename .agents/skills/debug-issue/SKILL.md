@@ -1,232 +1,123 @@
 ---
 name: debug-issue
-description: 'Structured debugging workflow: diagnose bugs/abnormal behavior, locate root cause, verify fix. Use when: debugging, bug, issue investigation, error, crash, not working, not rendering, timeout, disconnect.'
+description: Structured debugging workflow for this repository: classify a symptom, locate the root cause by static analysis first, use diagnostic logging only when static analysis cannot decide, fix the root cause, and verify with scoped checks. Use when investigating a bug, crash, disconnect, state mismatch, test failure, or performance problem.
 ---
 
-# Structured Debugging Skill
+# debug-issue
 
-> **输出语言：执行本 skill 过程中，所有面向用户的输出（进度报告、询问、完成通知、错误提示）一律使用中文。**
+> User-facing output during this skill (progress reports, questions, completion notices, error messages) is in Chinese.
 
-A structured flow: classify symptoms → static analysis → dynamic diagnosis → root cause fix → verification loop.
+A structured flow: classify the symptom, then static analysis first, then dynamic diagnosis only when needed, then a root-cause fix, then a verification loop.
 
-## When to Use
+## Triggers
 
-- User reports a bug, abnormal behavior, crash, or performance issue
-- E2E / unit test failure needs investigation
-- WebSocket disconnects, state desync, API errors
+Use this skill when:
 
----
+- A user reports a bug, abnormal behaviour, a crash, or a performance problem.
+- A unit test, contract test, or end-to-end spec fails and needs investigation.
+- A disconnect, state mismatch, or API error needs a root cause, not a workaround.
+
+Do not use this skill when:
+
+- The request is a new feature, a refactor, or a release. Use the skill for that work instead.
+- The answer is already known from a file that can be read directly. Read the file and answer; do not run this whole procedure.
+- The request is to change behaviour without a reported defect. That is a design change, not debugging.
+
+## Must-read references
+
+Read these before starting Step 2. They are part of this skill, not optional background.
+
+- `references/first-check-map.md` — first-check paths by symptom branch, with the dead paths removed and replaced.
+- `references/session-link-audio.md` — state identity, the realtime link, and the audio-playback lock: one pointer line each in Step 2, full detail here.
+- `references/diagnostic-logging.md` — diagnostic logging rules and cleanup.
 
 ## Procedure
 
-### Phase 1 — Symptom Classification + Information Gathering
+### Step 1 — Classify the symptom and gather facts
 
-Extract the following from the user's description:
+Extract from the report: the specific behaviour, the reproduction scenario, the platform, the exact error text, and whether related code changed recently. Classify into one branch (branches may combine):
 
-| Field          | Description                        | Example                                |
-| -------------- | ---------------------------------- | -------------------------------------- |
-| Symptom        | Specific behavior                  | Seats not rendering / 401 error        |
-| Reproduction   | Trigger scenario                   | After entering room / third click      |
-| Platform       | Web / iOS / Android / All          | Web                                    |
-| Error message  | console / Sentry / alert text      | `TypeError: Cannot read...`            |
-| Recent changes | Was related code recently modified | Refactored ConnectionManager yesterday |
+| Branch | Scenario                 | Typical symptoms                                                   |
+| ------ | ------------------------ | ------------------------------------------------------------------ |
+| A      | Client UI anomaly        | Component not rendering, state not updating, style broken, flicker |
+| B      | Realtime / network issue | Disconnect, message loss, timeout, reconnect loop                  |
+| C      | Game logic bug           | Role action result unexpected, state drift, reveal error           |
+| D      | API / worker error       | 4xx/5xx, worker exception, database query failure                  |
+| E      | End-to-end test failure  | Spec error, timeout, selector invalid                              |
+| F      | Performance issue        | Slow load, render jank, memory growth                              |
 
-Classify symptom into scenario branches (can combine):
+If the symptom does not fit any branch, say so and name the closest branch instead of forcing a fit.
 
-| Branch | Scenario                | Typical Symptoms                                                   |
-| ------ | ----------------------- | ------------------------------------------------------------------ |
-| A      | Client UI anomaly       | Component not rendering, state not updating, style broken, flicker |
-| B      | WebSocket/Network issue | Disconnect, message loss, timeout, reconnect loop                  |
-| C      | Game logic bug          | Role action result unexpected, state drift, reveal error           |
-| D      | API/Worker error        | 4xx/5xx, DO exception, D1 query failure                            |
-| E      | E2E test failure        | Playwright spec error, timeout, selector invalid                   |
-| F      | Performance issue       | Slow load, render jank, memory leak                                |
+### Step 2 — Static analysis first
 
----
+Never use dynamic diagnosis when static analysis can locate the issue.
 
-### Phase 2 — Static Analysis (Preferred)
+1. Locate the code area with code search. Trace the data flow input to transform to output, step by step. When changing a caller, trace the callee, and vice versa.
+2. Check type constraints: schema validation, boundary conditions, and indexed access on types that may be undefined.
+3. Check recent changes for the touched paths.
+4. Verify every affected symbol against all of its consumers with code search. Do not batch-infer "no impact".
+5. Start from the first-check paths in `references/first-check-map.md` for the classified branch.
+6. Pointers, one line each (detail lives in `references/session-link-audio.md`):
+   - State identity: see `references/session-link-audio.md` (per-game state versions and migration entry points).
+   - Realtime link: see `references/session-link-audio.md` (link modules, snapshot phases, and dispatch outcomes).
+   - Audio-playback lock: see `references/session-link-audio.md` (the one lock predicate and combinator).
 
-**Principle: Never use dynamic diagnosis when static analysis can locate the issue.**
+### Step 3 — Dynamic diagnosis, only when static analysis cannot decide
 
-1. **Locate code area** — `grep_search` / `semantic_search` to find relevant files
-2. **Trace data flow** — Input → Transform → Output, verify step by step
-3. **Bidirectional tracing** — When modifying caller, trace callee, and vice versa
-4. **Check type constraints** — Schema validation, boundary conditions, `noUncheckedIndexedAccess` index access
-5. **Check recent changes** — `git log --oneline -20 -- <path>`
-6. **Every affected symbol** — Use `grep_search` or `vscode_listCodeUsages` to verify all consumers
-
-#### First-check Paths by Scenario Branch
-
-**A — Client UI Anomaly:**
-
-| First-check Path                                                      | Investigation Focus                                |
-| --------------------------------------------------------------------- | -------------------------------------------------- |
-| `src/games/<game>/screens/`, `src/games/<game>/room/`, `src/screens/` | Game-owned UI, policy hooks, conditional rendering |
-| `src/features/room/session/RoomSession.ts`                            | Authoritative snapshot application                 |
-| `src/contexts/`                                                       | Context Provider mounting, value passing           |
-| `src/components/`, `src/features/room/components/`                    | Shared controls, room surfaces, props and layout   |
-
-Common root causes: Selector returning new reference causing infinite re-render, Context not mounted, conditional render missing state
-
-**B — WebSocket/Network Issue:**
-
-| First-check Path                                                                    | Investigation Focus                                  |
-| ----------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| `src/services/connection/ConnectionManager.ts`                                      | Reconnect logic, error classification, state machine |
-| `src/services/cloudflare/CFRealtimeService.ts`                                      | Subscribe/unsubscribe, message routing               |
-| `src/features/room/session/RoomSession.ts`                                          | Snapshot application and command recovery            |
-| `packages/api-worker/src/app/GameRoom.ts`, `packages/api-worker/src/platform/room/` | DO entry, WebSocket and shared room coordination     |
-
-Common root causes: Token expired without refresh, DO cold-start race condition, message sequence number gap
-
-**C — Game Logic Bug:**
-
-| First-check Path                                                            | Investigation Focus                                                             |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `packages/game-engine/src/games/<game>/`                                    | Game-owned commands and logic; Werewolf resolvers are under `domain/resolvers/` |
-| `packages/game-engine/src/games/werewolf/domain/models/roles/spec/`         | NIGHT_STEPS order, schema constraints                                           |
-| `packages/api-worker/src/app/GameRoom.ts`, `packages/api-worker/src/games/` | DO game dispatch and persistence                                                |
-| `src/features/room/session/RoomSession.ts`, `src/games/<game>/`             | Client snapshots and game-owned interpretation                                  |
-
-Common root causes: Resolver not handling skip case, NIGHT_STEPS order error, DO write race condition
-
-**D — API/Worker Error:**
-
-| First-check Path                                                                    | Investigation Focus                                                                   |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `packages/api-worker/src/features/`, `packages/api-worker/src/games/`               | Feature/game endpoints, request validation                                            |
-| `packages/api-worker/src/platform/http/`                                            | Shared HTTP handling and middleware                                                   |
-| `packages/api-worker/src/app/GameRoom.ts`, `packages/api-worker/src/platform/room/` | DO calls and room persistence                                                         |
-| `packages/api-worker/src/db/`                                                       | D1 schemas and database access; trace migration configuration from the Worker package |
-
-Common root causes: Zod schema mismatch with request body, DO id construction error, D1 migration missing column
-
-**E — E2E Test Failure:**
-
-| First-check Path              | Investigation Focus                         |
-| ----------------------------- | ------------------------------------------- |
-| `e2e/specs/<failing-spec>.ts` | Selector changes, wait logic                |
-| `e2e/helpers/night-driver.ts` | Role action helpers matching current UI     |
-| `e2e/helpers/waits.ts`        | Wait conditions sufficiency                 |
-| `e2e/helpers/diagnostics.ts`  | Whether DiagnosticData captures useful info |
-
-Common root causes: testid changed without sync, WebSocket not ready before action, insufficient timeout
-
-**F — Performance Issue:**
-
-| First-check Path                                              | Investigation Focus                                |
-| ------------------------------------------------------------- | -------------------------------------------------- |
-| `src/screens/`, `src/games/`, `src/features/room/components/` | Large lists not virtualized, unnecessary re-render |
-| `src/services/`                                               | Frequent setState, un-debounced operations         |
-| `src/features/*/controllers/`                                 | useMemo/useCallback deps too broad                 |
-| Worker network tab                                            | Request waterfall, oversized payload               |
-
-Common root causes: Selector returning new object each time, list items without memo, audio preload blocking
-
----
-
-### Phase 3 — Dynamic Diagnosis (When Static Analysis Cannot Determine Root Cause)
-
-**Only enter this phase when Phase 2 cannot locate the root cause.**
-
-#### 3a. Add `[DIAG]` Diagnostic Logs
-
-```typescript
-// Use project logger, console.* is forbidden
-import { log } from '@/utils/logger';
-const diagLog = log.extend('DIAG');
-
-// Add diagnostics at critical paths
-diagLog.info('[DIAG] snapshot applied', { phase, playerCount: state.players.length });
-```
-
-Rules:
-
-- Prefix `[DIAG]` ensures E2E diagnostics.ts will forward to Playwright output
-- Use `log.extend('DIAG')` or existing module logger
-- Record key variable values, branch taken, timing info
-- **All `[DIAG]` logs must be removed after the fix**
-
-#### 3b. Run Related Tests
+Enter this phase only when Step 2 cannot locate the root cause. Follow `references/diagnostic-logging.md` for diagnostic logs: project logger only, diagnostic prefix, removal after the fix. Then run only the related checks:
 
 ```bash
-# Unit test (specific file)
-node node_modules/.bin/jest --no-coverage --forceExit --testPathPattern="<pattern>"
-
-# E2E test (specific spec)
+pnpm exec jest --no-coverage --forceExit <path-or-pattern>
 pnpm exec playwright test e2e/specs/<spec> --reporter=list
-
-# Type check
 npx tsc --noEmit
 ```
 
-#### 3c. Interpret Diagnostic Output
+Interpret the output from the failure bundle or trace first, then from logs. Do not start by re-running the whole suite or by reading raw CI logs when a failure bundle exists. The currency of the test-runner flag spellings in the commands above was not re-verified against the installed runner version; if a command is rejected, use the runner's own help output and record the working form in the report (see `SOURCES.md`).
 
-- Playwright trace: auto-saved in `test-results/` directory
-- Sentry: production structured logs (sentryTransport configured)
-- Mobile debug panel: 500 in-memory logs, on-screen viewing
+### Step 4 — State the root cause and the change plan, then wait
 
----
+Before writing any fix:
 
-### Phase 4 — Root Cause Fix
+1. State the root cause in one sentence explaining why it is broken.
+2. List the change plan as file, specific modification, and risk (other features that may be affected).
+3. Wait for confirmation before coding, unless the request already authorised the fix and its scope. Loading this skill is not authorisation to change code.
 
-**Band-aid fixes are forbidden.** Do not use conditionals, guard clauses, or `?.` to work around symptoms of structural problems.
+### Step 5 — Fix the root cause
 
-#### Before fixing, you must:
+- Fix why it happens, not what happens after it happens. If the change is removed, the trigger condition must be gone too.
+- Verify all consumers of each affected symbol. Trace caller and callee in both directions when parameters or schemas change.
+- Route errors through the project's error-handling entry point. Do not swallow errors, and do not invent a new error-reporting pattern in each catch block. See `references/diagnostic-logging.md` for the entry point name.
+- Do not change unrelated code. An unrelated issue found during debugging is raised separately, not mixed into the fix.
 
-1. Clearly state the root cause (one sentence explaining why it's broken)
-2. List the change plan:
+### Step 6 — Self-check the change
 
+Go through the project's core principles for the change: no band-aid fix, third-party API use checked against current documentation, no type bypass, no swallowed error or feedback-less failure path, and every new type or field carried through the full pipeline it belongs to. Fix any failure before proceeding.
+
+### Step 7 — Verify with scoped checks
+
+1. Remove all diagnostic logs. Search for the diagnostic prefix and confirm zero residuals.
+2. Run the scoped checks for the changed area: the targeted tests, the type check, and the lint/format check on the changed files. The full gate runs in continuous integration; do not present a local full-gate run as the default gate.
+3. Run the related end-to-end spec when the defect touches room or realtime behaviour.
+4. Confirm no regression in the affected modules.
+
+### Step 8 — Report
+
+Report in Chinese: the one-sentence root cause, the files changed, the checks run with their results, and anything left unverified. If the same approach failed three times, stop and report blocked status with what was attempted and the recommended next step.
+
+## Acceptance commands
+
+```bash
+pnpm exec jest --no-coverage --forceExit <path-or-pattern>
+pnpm exec playwright test e2e/specs/<spec> --reporter=list
+npx tsc --noEmit
 ```
-File: <path>
-Change: <specific modification>
-Risk: <other features that may be affected>
-```
 
-3. **Wait for user confirmation before coding**
+Acceptance is: diagnostic logs removed, scoped checks pass, and the report names the root cause with its deciding code location.
 
-#### While fixing, you must:
+## Pitfalls
 
-- Verify all consumers of each affected symbol using `grep_search` / `vscode_listCodeUsages`
-- Bidirectional trace when changing params/schema (caller ↔ callee)
-- Error handling three layers: `log.error()` + `Sentry.captureException()` + `showAlert(Chinese message)`
-- Expected errors (401/403/429, user cancellation) only `log.warn()` + UI feedback, no Sentry
-
-#### Forbidden fix patterns:
-
-| Forbidden                             | Correct Approach                          |
-| ------------------------------------- | ----------------------------------------- |
-| `value?.prop` bypassing required      | Investigate why value might be undefined  |
-| `as any` to silence type errors       | Fix the type definition or caller         |
-| `try { } catch { }` swallowing errors | Classify handling: expected vs unexpected |
-| `if (!x) return` guard masking cause  | Fix why x doesn't exist                   |
-| `setTimeout` waiting on races         | Use events/state machine for proper sync  |
-
----
-
-### Phase 4.5 — Core Principles Self-Check
-
-Run through the core principles checklist 🔍 for all changes made:
-
-1. Any band-aid fixes? (Principle 1)
-2. Used third-party API — did you check docs? (Principle 2)
-3. Any `as any` / unnecessary `?.`? (Principle 3)
-4. Any error-swallowing catch / failure path without feedback? (Principle 4)
-5. Do new types/fields propagate through the full pipeline? (Principle 5)
-
-### Phase 5 — Verification Loop
-
-1. **Remove all `[DIAG]` logs** — `grep_search` for `[DIAG]` to confirm zero residuals
-2. **Run quality pipeline** — `pnpm run quality` (typecheck + knip + lint + format + test)
-3. **Related E2E spec passes** (if applicable) — `pnpm exec playwright test e2e/specs/<spec> --reporter=list`
-4. **Confirm no regression** — All tests for affected modules pass
-
----
-
-## Constraints
-
-- **Static analysis preferred.** Do not add diagnostic logs for issues locatable via grep/read.
-- **`console.*` forbidden.** Use `log.extend('DIAG')` + `[DIAG]` prefix for diagnostics.
-- **Clean up after fix.** No `[DIAG]` logs may remain.
-- **Don't change unrelated code.** Issues found during debugging that are "easy fixes" should be raised separately, not mixed into this fix.
-- **Escalation.** Same approach fails 3 times → stop immediately and report status.
+1. Naming a shared session module that does not exist. The session boundary is `RoomEntryBoundary` plus `useReadyRoomSession`; there is no shared `RoomSession` module. See `references/first-check-map.md`.
+2. Naming the old realtime service paths. Realtime code lives under `src/platform/realtime/`; the old service paths are dead.
+3. Treating the audio flag as a value the UI may set. The flag is owned by audio-queue events only; the client lock is read through the one predicate.
+4. Leaving diagnostic logs in the tree after the fix.
+5. Fixing the symptom with an optional chain, a cast, an empty catch, or a timer wait instead of fixing the cause.

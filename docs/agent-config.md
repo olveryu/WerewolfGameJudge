@@ -1,122 +1,118 @@
-# Agent 配置（单源多端）
+# Agent configuration wiring
 
-本仓库用一组规范源驱动 GitHub Copilot、Claude Code、Cursor、Gemini CLI 和 Muse。规则正文只维护一份，宿主差异由生成器 `scripts/sync-agent-config.mjs` 处理。本文是 Agent 配置的唯一说明；[agents/README.md](../agents/README.md)、[.agents/skills/README.md](../.agents/skills/README.md) 与 [.github/NOTES.md](../.github/NOTES.md) 只是指向这里的指针。
+This is a human document. It is not loaded as agent rules, and it contains
+no project rules. It explains where the agent files live, what size they
+may be, how to change them, and how to check that they load. Project rules
+live only in the files listed under Layout; do not add rules here.
 
-## 规范源与生成物
+## Layout
 
-```text
-AGENTS.md                    # 全局规则（原则、命令、架构边界、协作规则）
-agents/
-  path-rules/*.md            # 路径规则（frontmatter: name / description / applyTo）
-.agents/skills/<name>/       # 可移植 Agent Skill（SKILL.md）
-docs/prompt-templates/       # 人工复用的审计/评审提示词，不参与 sync
+| File                               | Role                                                                                                      |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `AGENTS.md` (repository root)      | Global rules: snapshot, commands, boundaries, conventions, principles, task tiers, output rule, pointers. |
+| `packages/game-engine/AGENTS.md`   | Engine package rules.                                                                                     |
+| `packages/api-worker/AGENTS.md`    | Worker package rules.                                                                                     |
+| `src/AGENTS.md`                    | Client and room-shell rules.                                                                              |
+| `e2e/AGENTS.md`                    | End-to-end test rules.                                                                                    |
+| `.agents/skills/<name>/SKILL.md`   | One workflow per skill directory.                                                                         |
+| `scripts/validate-agent-files.mjs` | The validator. Run through `pnpm run validate:agents`.                                                    |
+| This document                      | Wiring only.                                                                                              |
 
-── pnpm run sync:agents 生成，禁止手改 ──
-.github/instructions/*.instructions.md
-.cursor/rules/*.mdc
-.claude/skills/<name>/**
-CLAUDE.md
-GEMINI.md
-MUSE.md
-```
+There are no generated copies of these files and no per-host adapters.
+Each file above is the one place its rules live. A rule that belongs in
+one area goes in that area's file; the root file points to it instead of
+repeating it.
 
-## 日常命令
+## Budgets
 
-| 命令                         | 作用                                        |
-| ---------------------------- | ------------------------------------------- |
-| `pnpm run sync:agents`       | 严格校验规范源并重建全部宿主适配器          |
-| `pnpm run sync:agents:check` | 只读检查缺失、过期、多余和已废弃生成物      |
-| `pnpm run quality`           | 包含 `sync:agents:check` 的完整本地质量门禁 |
+Budgets are checked, not advisory. A file over budget is split by area or
+shortened; a rule is never kept over budget by trimming its evidence.
 
-修改规范源后先执行 `pnpm run sync:agents`，再提交规范源与生成物。`lint-staged` 只负责格式化，不会改写生成物；`quality` 与 CI 负责拒绝漂移。
+| File                    | Budget                                                                                   |
+| ----------------------- | ---------------------------------------------------------------------------------------- |
+| Root `AGENTS.md`        | At most 150 lines and 32 KiB.                                                            |
+| Each nested `AGENTS.md` | At most 100 lines.                                                                       |
+| Each `SKILL.md`         | At most 500 lines; body under 5000 tokens; description at most 1024 characters.          |
+| Skill frontmatter       | Only the allowed keys (name, description, plus the optional keys the validator permits). |
 
-## 宿主发现规则
+Counts are lines and bytes as reported by `wc -l -c`. A count in a rule
+or skill (roles, boards, games, steps) must cite the deciding test or
+config that owns the number, and must be regenerated from that source
+when it changes; never copy a number from an older draft.
 
-| 工具               | 仓库内入口                                               |
-| ------------------ | -------------------------------------------------------- |
-| **GitHub Copilot** | `AGENTS.md`、`.github/instructions/`、`.agents/skills/`  |
-| **Claude Code**    | `CLAUDE.md` 导入 `AGENTS.md`；技能位于 `.claude/skills/` |
-| **Cursor**         | `AGENTS.md`、`.cursor/rules/`、`.agents/skills/`         |
-| **Gemini CLI**     | `GEMINI.md` 导入 `AGENTS.md`；技能位于 `.agents/skills/` |
-| **Muse**           | `MUSE.md` 导入 `AGENTS.md`；技能位于 `.agents/skills/`   |
+## How to add or change a rule
 
-不生成 `.github/copilot-instructions.md`，避免与 `AGENTS.md` 重复注入。同理，不生成 `.github/skills/`、`.cursor/skills/` 或根 `skills/`；支持的宿主直接读取 `.agents/skills/`。
+1. Decide which single file owns the rule: root for global rules, the
+   nested file for its area, a skill for a repeatable workflow.
+2. Edit that file only. Do not edit any other file to restate the rule.
+3. State the rule once, in short specific sentences. Point to the nested
+   file, skill, contract test, or deciding code instead of repeating
+   content that already exists elsewhere.
+4. Every factual sentence must trace to deciding code (the function or
+   test that enforces it), not to UI copy, memory, or an older rule file.
+   If the deciding code cannot be found, the rule does not go in.
+5. Keep the file within budget. If the change breaks the budget, move
+   detail to the owning nested file or skill and leave a pointer.
+6. Run `pnpm run validate:agents`, then the scoped checks for the
+   changed area. Fix validator failures in the source file; never edit
+   validator output or work around a failure by rewording evidence away.
 
-## MCP 配置
+## How to add or change a skill
 
-本工作区的 VS Code Agent Host Copilot harness 迁移目标为 [`.mcp.json`](../.mcp.json)，使用 `mcpServers` 保存 `context7` 和 `github`。原有 [`.vscode/mcp.json`](../.vscode/mcp.json) 使用 `servers`，保留供 VS Code 原入口使用。
+1. Create or edit one directory under `.agents/skills/<name>/`, named
+   exactly as the skill's frontmatter name.
+2. Keep the skill to one workflow: purpose, entry conditions, ordered
+   steps, verification, and failure handling. Project rules stay in the
+   area files; the skill points to them.
+3. Apply the same evidence rule as for rules: paths, symbols, counts,
+   and command names must exist in the repository at the time of writing.
+4. Run `pnpm run validate:agents` and fix failures in the skill source.
 
-两份 MCP 配置均为手工维护，不由 `sync:agents` 生成，也不会自动同步。修改服务命令、参数、地址或工具范围时，应分别检查需要支持的宿主。`tools: ["*"]` 允许目标使用服务暴露的全部工具，包括 GitHub 写操作工具；不要在配置中提交令牌或其他凭据。
+## How to change the validator
 
-迁移后的 JSON 静态校验不能证明目标 harness 已加载配置。应在所选 harness 的新会话中确认服务发现、启动、工具调用及所需认证；当前会话已有的同名工具不算目标配置加载证据。删除原入口或源服务条目前，必须另行确认。
+The validator is code, not rules. Change it only to enforce a contract
+stated in this document (frontmatter shape, file budgets, dead-reference
+warnings, or the absence of the named tool-specific files).
+When the validator gains a check, record the check here in one line so a
+human can see what is enforced without reading the script.
 
-## 校验契约
+## How to verify loading
 
-生成器会在写文件前完成以下检查：
+No special command verifies loading. Use any agent session:
 
-- YAML frontmatter 必须从文件首字节开始，并通过严格解析
-- path rule 只允许 `name`、`description`、`applyTo`
-- skill 必须满足 Agent Skills 命名与必填字段约束
-- 源文件不得包含 Unicode replacement character
-- `--check` 不修改工作区，并检测缺失、过期、多余及废弃路径
+1. Start a fresh session in the repository.
+2. Ask the agent to confirm it has read the root `AGENTS.md` and to name
+   the nested file that governs the area of the first task.
+3. If it cannot confirm, stop: the files are misplaced or unread, and no
+   rule in them can be relied on until placement is fixed.
+4. When work moves to a new area, confirm the new area's nested file
+   before relying on its rules.
 
-## 新增 path rule
+A confirmation is evidence of loading only for that session. It does not
+prove any rule is correct; correctness comes from the deciding code and
+the validator.
 
-1. 新建 `agents/path-rules/my-area.md`：
+## Validator purpose
 
-```yaml
----
-name: 'My Area'
-description: 'When to apply this rule'
-applyTo: 'src/my-area/**'
----
-# My Area Standards
-...
-```
+The validator proves the file set is well-formed and internally
+consistent. It checks budgets, frontmatter shape, and the absence of
+the named tool-specific files (failures), and it reports mentioned
+rooted paths that do not exist and duplicate top-level headings
+(warnings and a report only, never failures). It does not check
+symbols, section pointers, or whether a cited number matches its
+deciding test. It does not prove that a rule matches the product's intent,
+that cited code behaves as described, or
+that any agent loaded the files. Those need code review, contract tests,
+and the loading check above.
 
-2. `pnpm run sync:agents`
+## Maintenance notes
 
-## 新增 skill
-
-1. 新建 `.agents/skills/my-skill/SKILL.md`（`name` + `description` frontmatter）
-2. `pnpm run sync:agents`
-3. `pnpm run sync:agents:check`
-
-## 维护 SOP：变更类型 → 应修改的源文件
-
-| 变更类型                        | 源文件                                                                                        | 连带同步项                                                        |
-| ------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| **全局原则 / 命令 / 架构边界**  | `AGENTS.md`                                                                                   | `CLAUDE.md`、`GEMINI.md`、`MUSE.md`（由 sync 生成）               |
-| **某路径下编码规范**            | `agents/path-rules/<area>.md`                                                                 | `.github/instructions/`、`.cursor/rules/`（由 sync 生成）         |
-| **任意 skill**                  | `.agents/skills/<name>/SKILL.md`                                                              | `.claude/skills/`（由 sync 生成）                                 |
-| **新增角色**                    | `.agents/skills/new-role/SKILL.md`                                                            | 索引表、契约测试；见 skill 内章节                                 |
-| **修改 UI 组件 / modal**        | `agents/path-rules/screens.md`                                                                | —                                                                 |
-| **新增游戏 / 共享 UI 契约变更** | `docs/room-shell-contract.md`、`docs/DESIGN.md`、`docs/multigame-platform-design.md` 第 25 节 | `docs/README.md` 索引、相关组件测试；路径规则引用契约，不复制正文 |
-| **修改 GameState**              | `agents/path-rules/services.md`、`agents/path-rules/game-engine.md`                           | —                                                                 |
-| **修改依赖 / CI**               | `AGENTS.md` + `agents/path-rules/ci-deploy.md`                                                | 对照 `package.json`、`.github/workflows/`                         |
-
-### 硬编码数字
-
-规则或文档中出现的数量（角色数、板子数等）在源文件旁注释权威来源，例如：
-
-```markdown
-<!-- 来自 specs.contract.test.ts: toHaveLength(N) -->
-```
-
-### 验证边界
-
-`sync:agents:check` 只验证源文件与生成适配器是否同步，不检查文档里的路径、组件 API 是否真实，也不能证明跨游戏视觉一致。更新 UI 接入文档时，应核对所引用组件及现有测试；新游戏必须按 `room-shell-contract.md` 的状态矩阵给出验证证据。
-
-完整验证顺序：
-
-1. `pnpm run sync:agents`
-2. `pnpm run sync:agents:check`
-3. `pnpm run quality`
-4. 相关契约测试（如 `specs.contract.test.ts`）
-
-### 不要改
-
-- `.github/instructions/*.md`、`.cursor/rules/`、`.claude/skills/`
-- 根目录 `CLAUDE.md`、`GEMINI.md`、`MUSE.md`
-
-以上全部由 `pnpm run sync:agents` 生成，手改会被 `sync:agents:check` 判定为漂移。
+- Review this document whenever the layout changes: a new nested file,
+  a moved skill directory, or a new validator check must be recorded
+  here the same day, or the next editor will work from a stale map.
+- The previous synchronization system and its generated copies are
+  removed. Do not recreate generated copies or adapters; if a consumer
+  cannot read the generic files, record that as an open item instead of
+  adding a workaround file.
+- This document replaces the previous explanation of the old system.
+  Pointers that named the old explanation must point here or be deleted.
