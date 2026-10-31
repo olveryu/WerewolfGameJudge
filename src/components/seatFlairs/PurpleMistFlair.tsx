@@ -2,108 +2,76 @@
  * PurpleMistFlair — purple mist swirl
  *
  * 7 purple mist clusters drift around the perimeter, size pulses like breathing, multi-layered gradient simulates soft focus.
- * react-native-svg + Reanimated useAnimatedProps.
+ * The three concentric discs of a cluster share one position, scale and `pulse` envelope, so each
+ * cluster is one LoopLayer whose children carry the static per-disc opacity weights.
  */
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type LayerSampler, LoopLayer } from '@/components/loopMotion';
 
 import type { FlairProps } from './FlairProps';
-import { AnimatedCircle } from './svgAnimatedPrimitives';
 
+const LOOP_MS = 6000;
 const N = 7;
+/** Layer box as a multiple of `maxRFrac * size`; the outer disc peaks at 0.92 × that radius. */
+const BOX_FACTOR = 2;
 
-interface MistSeed {
-  angle0: number;
-  dist: number;
-  phase: number;
-  driftSpeed: number;
-  maxRFrac: number;
+const MIST_SEEDS = Array.from({ length: N }, (_, i) => ({
+  angle0: (i / N) * Math.PI * 2,
+  dist: 0.35 + (i % 3) * 0.05,
+  phase: i / N,
+  driftSpeed: 0.3 + (i % 4) * 0.15,
+  maxRFrac: 0.04 + (i % 3) * 0.02,
+}));
+
+type MistSeed = (typeof MIST_SEEDS)[number];
+
+/** Phase enters the drift, wobble and pulse terms with different weights, so it stays in the sampler. */
+const MIST_SAMPLERS: readonly LayerSampler[] = MIST_SEEDS.map((seed) => (t, size) => {
+  const cx = size / 2;
+  const cy = size / 2;
+  const angle = seed.angle0 + Math.sin((t * seed.driftSpeed + seed.phase) * Math.PI * 2) * 0.6;
+  const dist = seed.dist * size + Math.sin(t * Math.PI * 2 + seed.phase * 5) * size * 0.04;
+  const x = cx + Math.cos(angle) * dist;
+  const y = cy + Math.sin(angle) * dist;
+  const pulse = 0.3 + 0.5 * Math.abs(Math.sin((t * 2 + seed.phase * 4) * Math.PI));
+  const r = seed.maxRFrac * size * (0.6 + 0.4 * pulse);
+  const scale = r / (seed.maxRFrac * size);
+  return { x, y, rotateDeg: 0, scaleX: scale, scaleY: scale, opacity: pulse };
+});
+
+/** Static cluster artwork centred on the origin at `pulse`-independent radius `maxRFrac * size`. */
+function MistArt({ seed, size }: { seed: MistSeed; size: number }) {
+  const r = seed.maxRFrac * size;
+  const box = r * BOX_FACTOR;
+  const half = box / 2;
+  return (
+    <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
+      <Circle r={r} fill="rgb(80,30,160)" opacity={0.08} />
+      <Circle r={r * 0.6} fill="rgb(100,50,180)" opacity={0.15} />
+      <Circle r={r * 0.3} fill="rgb(140,80,200)" opacity={0.25} />
+    </Svg>
+  );
 }
 
-const MistParticle = memo<{ seed: MistSeed; size: number; progress: { value: number } }>(
-  ({ seed, size, progress }) => {
-    const outerProps = useAnimatedProps(() => {
-      'worklet';
-      const cx = size / 2;
-      const cy = size / 2;
-      const t = progress.value;
-      const angle = seed.angle0 + Math.sin((t * seed.driftSpeed + seed.phase) * Math.PI * 2) * 0.6;
-      const dist = seed.dist * size + Math.sin(t * Math.PI * 2 + seed.phase * 5) * size * 0.04;
-      const x = cx + Math.cos(angle) * dist;
-      const y = cy + Math.sin(angle) * dist;
-      const pulse = 0.3 + 0.5 * Math.abs(Math.sin((t * 2 + seed.phase * 4) * Math.PI));
-      const r = seed.maxRFrac * size * (0.6 + 0.4 * pulse);
-      return { cx: x, cy: y, r, opacity: pulse * 0.08 };
-    });
-
-    const midProps = useAnimatedProps(() => {
-      'worklet';
-      const cx = size / 2;
-      const cy = size / 2;
-      const t = progress.value;
-      const angle = seed.angle0 + Math.sin((t * seed.driftSpeed + seed.phase) * Math.PI * 2) * 0.6;
-      const dist = seed.dist * size + Math.sin(t * Math.PI * 2 + seed.phase * 5) * size * 0.04;
-      const x = cx + Math.cos(angle) * dist;
-      const y = cy + Math.sin(angle) * dist;
-      const pulse = 0.3 + 0.5 * Math.abs(Math.sin((t * 2 + seed.phase * 4) * Math.PI));
-      const r = seed.maxRFrac * size * (0.6 + 0.4 * pulse);
-      return { cx: x, cy: y, r: r * 0.6, opacity: pulse * 0.15 };
-    });
-
-    const innerProps = useAnimatedProps(() => {
-      'worklet';
-      const cx = size / 2;
-      const cy = size / 2;
-      const t = progress.value;
-      const angle = seed.angle0 + Math.sin((t * seed.driftSpeed + seed.phase) * Math.PI * 2) * 0.6;
-      const dist = seed.dist * size + Math.sin(t * Math.PI * 2 + seed.phase * 5) * size * 0.04;
-      const x = cx + Math.cos(angle) * dist;
-      const y = cy + Math.sin(angle) * dist;
-      const pulse = 0.3 + 0.5 * Math.abs(Math.sin((t * 2 + seed.phase * 4) * Math.PI));
-      const r = seed.maxRFrac * size * (0.6 + 0.4 * pulse);
-      return { cx: x, cy: y, r: r * 0.3, opacity: pulse * 0.25 };
-    });
-
-    return (
-      <>
-        <AnimatedCircle animatedProps={outerProps} fill="rgb(80,30,160)" />
-        <AnimatedCircle animatedProps={midProps} fill="rgb(100,50,180)" />
-        <AnimatedCircle animatedProps={innerProps} fill="rgb(140,80,200)" />
-      </>
-    );
-  },
-);
-MistParticle.displayName = 'MistParticle';
-
-export const PurpleMistFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useLoopProgress(6000);
-
-  const seeds = useMemo(
-    () =>
-      Array.from({ length: N }, (_, i) => ({
-        angle0: (i / N) * Math.PI * 2,
-        dist: 0.35 + (i % 3) * 0.05,
-        phase: i / N,
-        driftSpeed: 0.3 + (i % 4) * 0.15,
-        maxRFrac: 0.04 + (i % 3) * 0.02,
-      })),
-    [],
-  );
-
-  return (
-    <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {seeds.map((s, i) => (
-          <MistParticle key={i} seed={s} size={size} progress={progress} />
-        ))}
-      </Svg>
-    </View>
-  );
-});
+export const PurpleMistFlair = memo<FlairProps>(({ size }) => (
+  <View style={[styles.wrapper, { width: size, height: size }]}>
+    {MIST_SEEDS.map((seed, i) => (
+      <LoopLayer
+        key={`mist-${seed.phase}`}
+        sample={MIST_SAMPLERS[i]!}
+        size={size}
+        durationMs={LOOP_MS}
+        width={seed.maxRFrac * size * BOX_FACTOR}
+        height={seed.maxRFrac * size * BOX_FACTOR}
+      >
+        <MistArt seed={seed} size={size} />
+      </LoopLayer>
+    ))}
+  </View>
+));
 PurpleMistFlair.displayName = 'PurpleMistFlair';
 
 const styles = StyleSheet.create({

@@ -1,37 +1,82 @@
 /**
  * SilverStreamFlair — Silver Stream
  *
- * 2 silver liquid streams flow downward from both top sides along the edges, AnimatedPath arcs + shimmer particles.
+ * 2 silver liquid streams flow downward from both top sides along the edges, path arcs + shimmer particles.
+ *
+ * The stream arc grows and wobbles as a path-data morph, which CSS animations cannot interpolate,
+ * so each stream is rendered as `STREAM_VARIANTS` static curves cross-faded by `LoopMorph`.
  */
-import { memo, useMemo } from 'react';
+import { Fragment, memo, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type DotSampler, LoopDot, LoopMorph, type MorphSampler } from '@/components/loopMotion';
 
 import type { FlairProps } from './FlairProps';
-import { AnimatedCircle, AnimatedPath } from './svgAnimatedPrimitives';
 
-interface StreamSeed {
-  side: 'left' | 'right';
-  phase: number;
-}
-
+const LOOP_MS = 4000;
+/** Static curves per stream; 8 across a 4 s loop keeps each cross-fade at half a second. */
+const STREAM_VARIANTS = 8;
 const GLEAM_PER_STREAM = 3;
 
-/** Extracted so useAnimatedProps is at component scope */
-const StreamGleam = memo<{
-  idx: number;
-  frac: number;
-  xEdge: number;
-  size: number;
-  seed: StreamSeed;
-  progress: { value: number };
-}>(({ idx, frac, xEdge, size, seed, progress }) => {
-  const gleamProps = useAnimatedProps(() => {
-    'worklet';
-    const t = (progress.value + seed.phase) % 1;
+type StreamSide = 'left' | 'right';
+
+const STREAM_SEEDS: readonly { side: StreamSide; phase: number }[] = [
+  { side: 'left', phase: 0 },
+  { side: 'right', phase: 0.3 },
+];
+
+const GLEAM_SEEDS = Array.from({ length: GLEAM_PER_STREAM }, (_, i) => ({
+  idx: i,
+  frac: 0.2 + (i / (GLEAM_PER_STREAM - 1)) * 0.6,
+}));
+
+function edgeX(side: StreamSide, size: number): number {
+  return side === 'left' ? size * 0.08 : size * 0.92;
+}
+
+function midX(side: StreamSide, size: number): number {
+  return side === 'left' ? size * 0.06 : size * 0.94;
+}
+
+function streamPath(side: StreamSide, t: number, size: number): string {
+  const xEdge = edgeX(side, size);
+  const xMid = midX(side, size);
+  const flowLen = t * size * 1.0;
+  const y0 = 0;
+  const y1 = Math.min(size * 0.35, flowLen);
+  const y2 = Math.min(size * 0.7, flowLen);
+  const y3 = Math.min(size, flowLen);
+  const wobble = Math.sin(t * Math.PI * 4) * size * 0.015;
+  return `M ${xEdge} ${y0} Q ${xMid + wobble} ${y1} ${xEdge - wobble} ${y2} Q ${xMid + wobble * 0.5} ${(y2 + y3) / 2} ${xEdge} ${y3}`;
+}
+
+const streamSampler: MorphSampler = (t) => {
+  const alpha = t < 0.05 ? t / 0.05 : t > 0.85 ? (1 - t) / 0.15 : 0.25;
+  return { opacity: alpha };
+};
+
+function renderStreamVariant(side: StreamSide, k: number, size: number): ReactNode {
+  return (
+    <Svg width={size} height={size}>
+      <Path
+        d={streamPath(side, k / STREAM_VARIANTS, size)}
+        stroke="rgb(200,210,220)"
+        fill="none"
+        strokeLinecap="round"
+        strokeWidth={size * 0.012}
+      />
+    </Svg>
+  );
+}
+
+const STREAM_RENDERERS: readonly ((k: number, size: number) => ReactNode)[] = STREAM_SEEDS.map(
+  (seed) => (k, size) => renderStreamVariant(seed.side, k, size),
+);
+
+function createGleamSampler(side: StreamSide, idx: number, frac: number): DotSampler {
+  return (t, size) => {
+    const xEdge = edgeX(side, size);
     const flowLen = t * size * 1.0;
     const gy = frac * flowLen;
     const visible = gy > 0 && gy < size;
@@ -41,85 +86,40 @@ const StreamGleam = memo<{
       r: size * 0.006,
       opacity: visible ? 0.5 + Math.sin(t * Math.PI * 8 + idx * 2) * 0.3 : 0,
     };
-  });
-  return <AnimatedCircle animatedProps={gleamProps} fill="rgb(240,245,255)" />;
-});
-StreamGleam.displayName = 'StreamGleam';
+  };
+}
 
-const StreamFlow = memo<{ seed: StreamSeed; size: number; progress: { value: number } }>(
-  ({ seed, size, progress }) => {
-    const isLeft = seed.side === 'left';
-    const xEdge = isLeft ? size * 0.08 : size * 0.92;
-    const xMid = isLeft ? size * 0.06 : size * 0.94;
+const GLEAM_SAMPLERS: readonly (readonly DotSampler[])[] = STREAM_SEEDS.map((seed) =>
+  GLEAM_SEEDS.map((gleam) => createGleamSampler(seed.side, gleam.idx, gleam.frac)),
+);
 
-    const pathProps = useAnimatedProps(() => {
-      'worklet';
-      const t = (progress.value + seed.phase) % 1;
-      const flowLen = t * size * 1.0;
-      const y0 = 0;
-      const y1 = Math.min(size * 0.35, flowLen);
-      const y2 = Math.min(size * 0.7, flowLen);
-      const y3 = Math.min(size, flowLen);
-      const wobble = Math.sin(t * Math.PI * 4) * size * 0.015;
-      const d = `M ${xEdge} ${y0} Q ${xMid + wobble} ${y1} ${xEdge - wobble} ${y2} Q ${xMid + wobble * 0.5} ${(y2 + y3) / 2} ${xEdge} ${y3}`;
-      const alpha = t < 0.05 ? t / 0.05 : t > 0.85 ? (1 - t) / 0.15 : 0.25;
-      return { d, opacity: alpha, strokeWidth: size * 0.012 };
-    });
-
-    const gleams = useMemo(
-      () =>
-        Array.from({ length: GLEAM_PER_STREAM }, (_, i) => ({
-          frac: 0.2 + (i / (GLEAM_PER_STREAM - 1)) * 0.6,
-        })),
-      [],
-    );
-
-    return (
-      <>
-        <AnimatedPath
-          animatedProps={pathProps}
-          stroke="rgb(200,210,220)"
-          fill="none"
-          strokeLinecap="round"
+export const SilverStreamFlair = memo<FlairProps>(({ size }) => (
+  <View style={[styles.wrapper, { width: size, height: size }]}>
+    {STREAM_SEEDS.map((seed, i) => (
+      <Fragment key={`stream-${seed.side}`}>
+        <LoopMorph
+          sample={streamSampler}
+          size={size}
+          durationMs={LOOP_MS}
+          phase={seed.phase}
+          variantCount={STREAM_VARIANTS}
+          mode="crossfade"
+          renderVariant={STREAM_RENDERERS[i]!}
         />
-        {gleams.map((g, i) => (
-          <StreamGleam
-            key={i}
-            idx={i}
-            frac={g.frac}
-            xEdge={xEdge}
+        {GLEAM_SEEDS.map((gleam, g) => (
+          <LoopDot
+            key={`gleam-${gleam.frac}`}
+            sample={GLEAM_SAMPLERS[i]![g]!}
             size={size}
-            seed={seed}
-            progress={progress}
+            durationMs={LOOP_MS}
+            phase={seed.phase}
+            color="rgb(240,245,255)"
           />
         ))}
-      </>
-    );
-  },
-);
-StreamFlow.displayName = 'StreamFlow';
-
-export const SilverStreamFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useLoopProgress(4000);
-
-  const seeds = useMemo<StreamSeed[]>(
-    () => [
-      { side: 'left', phase: 0 },
-      { side: 'right', phase: 0.3 },
-    ],
-    [],
-  );
-
-  return (
-    <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {seeds.map((s, i) => (
-          <StreamFlow key={i} seed={s} size={size} progress={progress} />
-        ))}
-      </Svg>
-    </View>
-  );
-});
+      </Fragment>
+    ))}
+  </View>
+));
 SilverStreamFlair.displayName = 'SilverStreamFlair';
 
 const styles = StyleSheet.create({

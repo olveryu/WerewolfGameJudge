@@ -2,18 +2,15 @@
  * FireRingFlair — Blazing Ring
  *
  * 8 flame particles orbit along the avatar edge with red→orange→yellow gradient and trails.
- * react-native-svg + Reanimated useAnimatedProps.
  */
-import { memo } from 'react';
+import { Fragment, memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type DotSampler, LoopDot } from '@/components/loopMotion';
 
 import type { FlairProps } from './FlairProps';
-import { AnimatedCircle } from './svgAnimatedPrimitives';
 
+const LOOP_MS = 3000;
 const N = 8;
 const TRAIL = 3;
 const COLORS = [
@@ -27,55 +24,55 @@ const COLORS = [
   [240, 140, 0],
 ] as const;
 
-interface FireTrailProps {
-  index: number;
-  trailIndex: number;
-  size: number;
-  progress: { value: number };
+/** Trail dots render back-to-front: `TRAIL … 0`, so the head is drawn last. */
+const TRAIL_INDICES = Array.from({ length: TRAIL + 1 }, (_, i) => TRAIL - i);
+
+/**
+ * Flame `index` only shifts the orbit angle by `(index / N) * 2π`, i.e. by `index / N` of the
+ * loop, so it is carried by `phase` and all flames share the same per-trail samplers.
+ */
+const FLAME_SEEDS = Array.from({ length: N }, (_, i) => ({
+  index: i,
+  phase: i / N,
+}));
+
+const TRAIL_SAMPLERS: readonly DotSampler[] = TRAIL_INDICES.map((trailIndex) => (t, size) => {
+  const cx = size / 2;
+  const cy = size / 2;
+  const orbit = size * 0.42;
+  const r = size * 0.02;
+  const baseAngle = t * Math.PI * 2;
+  const trailAngle = baseAngle - trailIndex * 0.08;
+  const x = cx + Math.cos(trailAngle) * orbit;
+  const y = cy + Math.sin(trailAngle) * orbit;
+  const alphaScale = trailIndex === 0 ? 1 : (1 - trailIndex / (TRAIL + 1)) * 0.5;
+  const rScale = trailIndex === 0 ? 1 : 1 - trailIndex * 0.2;
+  return { cx: x, cy: y, r: r * rScale, opacity: alphaScale * 0.75 };
+});
+
+function flameColor(index: number): string {
+  const [cr, cg, cb] = COLORS[index % COLORS.length]!;
+  return `rgb(${cr},${cg},${cb})`;
 }
 
-const FireTrailDot = memo<FireTrailProps>(({ index, trailIndex, size, progress }) => {
-  const [cr, cg, cb] = COLORS[index % COLORS.length]!;
-
-  const animatedProps = useAnimatedProps(() => {
-    'worklet';
-    const cx = size / 2;
-    const cy = size / 2;
-    const orbit = size * 0.42;
-    const r = size * 0.02;
-    const baseAngle = (index / N) * Math.PI * 2 + progress.value * Math.PI * 2;
-    const trailAngle = baseAngle - trailIndex * 0.08;
-    const x = cx + Math.cos(trailAngle) * orbit;
-    const y = cy + Math.sin(trailAngle) * orbit;
-    const alphaScale = trailIndex === 0 ? 1 : (1 - trailIndex / (TRAIL + 1)) * 0.5;
-    const rScale = trailIndex === 0 ? 1 : 1 - trailIndex * 0.2;
-    return { cx: x, cy: y, r: r * rScale, opacity: alphaScale * 0.75 };
-  });
-
-  return <AnimatedCircle animatedProps={animatedProps} fill={`rgb(${cr},${cg},${cb})`} />;
-});
-FireTrailDot.displayName = 'FireTrailDot';
-
-export const FireRingFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useLoopProgress(3000);
-
-  const elements: React.JSX.Element[] = [];
-  for (let i = 0; i < N; i++) {
-    for (let t = TRAIL; t >= 0; t--) {
-      elements.push(
-        <FireTrailDot key={`${i}-${t}`} index={i} trailIndex={t} size={size} progress={progress} />,
-      );
-    }
-  }
-
-  return (
-    <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {elements}
-      </Svg>
-    </View>
-  );
-});
+export const FireRingFlair = memo<FlairProps>(({ size }) => (
+  <View style={[styles.wrapper, { width: size, height: size }]}>
+    {FLAME_SEEDS.map((seed) => (
+      <Fragment key={`flame-${seed.phase}`}>
+        {TRAIL_INDICES.map((trailIndex, i) => (
+          <LoopDot
+            key={`trail-${trailIndex}`}
+            sample={TRAIL_SAMPLERS[i]!}
+            size={size}
+            durationMs={LOOP_MS}
+            phase={seed.phase}
+            color={flameColor(seed.index)}
+          />
+        ))}
+      </Fragment>
+    ))}
+  </View>
+));
 FireRingFlair.displayName = 'FireRingFlair';
 
 const styles = StyleSheet.create({

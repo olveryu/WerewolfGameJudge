@@ -3,16 +3,14 @@
  *
  * 5 lava blobs erupt from the bottom on parabolic trajectories with gravity fall and spark trails (3 trail circles).
  */
-import { memo, useMemo } from 'react';
+import { Fragment, memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type DotSampler, LoopDot } from '@/components/loopMotion';
 
 import type { FlairProps } from './FlairProps';
-import { AnimatedCircle } from './svgAnimatedPrimitives';
 
+const LOOP_MS = 3500;
 const BLOB_COUNT = 5;
 const COLORS = [
   [255, 80, 0],
@@ -22,95 +20,76 @@ const COLORS = [
   [255, 140, 40],
 ] as const;
 
-interface BlobSeed {
-  xBase: number;
-  vx: number;
-  vy: number;
-  phase: number;
-  rFrac: number;
-  ci: number;
+const BLOB_SEEDS = Array.from({ length: BLOB_COUNT }, (_, i) => ({
+  xBase: 0.3 + (i * 0.4) / (BLOB_COUNT - 1),
+  vx: (i % 2 === 0 ? 1 : -1) * (0.05 + i * 0.02),
+  vy: 0.8 + (i % 3) * 0.15,
+  phase: i / BLOB_COUNT,
+  rFrac: 0.02 + (i % 3) * 0.006,
+  ci: i % COLORS.length,
+}));
+
+type BlobSeed = (typeof BLOB_SEEDS)[number];
+
+/** Trail circles lag the blob by `lag` of the loop and shrink / dim per step (drawn back to front). */
+const TRAILS = [
+  { lag: 0.12, rScale: 0.2, opacity: 0.1 },
+  { lag: 0.08, rScale: 0.35, opacity: 0.2 },
+  { lag: 0.04, rScale: 0.6, opacity: 0.4 },
+] as const;
+
+function getPos(seed: BlobSeed, size: number, t: number): { x: number; y: number } {
+  const gravity = size * 1.2;
+  const x = seed.xBase * size + seed.vx * size * t;
+  const y = size - (seed.vy * size * t - 0.5 * gravity * t * t);
+  return { x, y };
 }
 
-const BlobParticle = memo<{ seed: BlobSeed; size: number; progress: { value: number } }>(
-  ({ seed, size, progress }) => {
-    const [cr, cg, cb] = COLORS[seed.ci]!;
-    const gravity = size * 1.2;
-
-    const getPos = (t: number) => {
-      'worklet';
-      const x = seed.xBase * size + seed.vx * size * t;
-      const y = size - (seed.vy * size * t - 0.5 * gravity * t * t);
-      return { x, y };
-    };
-
-    const mainProps = useAnimatedProps(() => {
-      'worklet';
-      const t = (progress.value + seed.phase) % 1;
-      const { x, y } = getPos(t);
-      const alpha = t < 0.1 ? t / 0.1 : t > 0.8 ? (1 - t) / 0.2 : 0.8;
-      return { cx: x, cy: y, r: seed.rFrac * size, opacity: alpha };
-    });
-
-    const trail1Props = useAnimatedProps(() => {
-      'worklet';
-      const t = (progress.value + seed.phase) % 1;
-      const { x, y } = getPos(Math.max(0, t - 0.04));
-      return { cx: x, cy: y, r: seed.rFrac * size * 0.6, opacity: 0.4 };
-    });
-
-    const trail2Props = useAnimatedProps(() => {
-      'worklet';
-      const t = (progress.value + seed.phase) % 1;
-      const { x, y } = getPos(Math.max(0, t - 0.08));
-      return { cx: x, cy: y, r: seed.rFrac * size * 0.35, opacity: 0.2 };
-    });
-
-    const trail3Props = useAnimatedProps(() => {
-      'worklet';
-      const t = (progress.value + seed.phase) % 1;
-      const { x, y } = getPos(Math.max(0, t - 0.12));
-      return { cx: x, cy: y, r: seed.rFrac * size * 0.2, opacity: 0.1 };
-    });
-
-    const color = `rgb(${cr},${cg},${cb})`;
-    return (
-      <>
-        <AnimatedCircle animatedProps={trail3Props} fill={color} />
-        <AnimatedCircle animatedProps={trail2Props} fill={color} />
-        <AnimatedCircle animatedProps={trail1Props} fill={color} />
-        <AnimatedCircle animatedProps={mainProps} fill={color} />
-      </>
-    );
-  },
-);
-BlobParticle.displayName = 'BlobParticle';
-
-export const LavaBurstFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useLoopProgress(3500);
-
-  const seeds = useMemo(
-    () =>
-      Array.from({ length: BLOB_COUNT }, (_, i) => ({
-        xBase: 0.3 + (i * 0.4) / (BLOB_COUNT - 1),
-        vx: (i % 2 === 0 ? 1 : -1) * (0.05 + i * 0.02),
-        vy: 0.8 + (i % 3) * 0.15,
-        phase: i / BLOB_COUNT,
-        rFrac: 0.02 + (i % 3) * 0.006,
-        ci: i % COLORS.length,
-      })),
-    [],
-  );
-
-  return (
-    <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {seeds.map((s, i) => (
-          <BlobParticle key={i} seed={s} size={size} progress={progress} />
-        ))}
-      </Svg>
-    </View>
-  );
+const MAIN_SAMPLERS: readonly DotSampler[] = BLOB_SEEDS.map((seed) => (t, size) => {
+  const { x, y } = getPos(seed, size, t);
+  const alpha = t < 0.1 ? t / 0.1 : t > 0.8 ? (1 - t) / 0.2 : 0.8;
+  return { cx: x, cy: y, r: seed.rFrac * size, opacity: alpha };
 });
+
+const TRAIL_SAMPLERS: readonly (readonly DotSampler[])[] = BLOB_SEEDS.map((seed) =>
+  TRAILS.map(
+    (trail): DotSampler =>
+      (t, size) => {
+        const { x, y } = getPos(seed, size, Math.max(0, t - trail.lag));
+        return { cx: x, cy: y, r: seed.rFrac * size * trail.rScale, opacity: trail.opacity };
+      },
+  ),
+);
+
+export const LavaBurstFlair = memo<FlairProps>(({ size }) => (
+  <View style={[styles.wrapper, { width: size, height: size }]}>
+    {BLOB_SEEDS.map((seed, i) => {
+      const [cr, cg, cb] = COLORS[seed.ci]!;
+      const color = `rgb(${cr},${cg},${cb})`;
+      return (
+        <Fragment key={`blob-${seed.xBase}`}>
+          {TRAIL_SAMPLERS[i]!.map((sampler, k) => (
+            <LoopDot
+              key={`trail-${TRAILS[k]!.lag}`}
+              sample={sampler}
+              size={size}
+              durationMs={LOOP_MS}
+              phase={seed.phase}
+              color={color}
+            />
+          ))}
+          <LoopDot
+            sample={MAIN_SAMPLERS[i]!}
+            size={size}
+            durationMs={LOOP_MS}
+            phase={seed.phase}
+            color={color}
+          />
+        </Fragment>
+      );
+    })}
+  </View>
+));
 LavaBurstFlair.displayName = 'LavaBurstFlair';
 
 const styles = StyleSheet.create({

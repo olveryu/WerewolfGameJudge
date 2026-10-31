@@ -47,9 +47,15 @@ function sampleCountFor(durationMs: number): number {
   return Math.ceil(durationMs / LOOP_SAMPLE_INTERVAL_MS);
 }
 
-/** Evaluates `sample` at `t = i / count` for `i ∈ [0, count)`. */
+/**
+ * Evaluates `sample` at `t = i / count` for `i ∈ [0, count]` — `count + 1` samples, the last at
+ * `t = 1`. Returning `sample(1)` (rather than re-using `sample(0)`) at `100%` matters for
+ * trajectories whose end state only *looks* like the start (a wave translated by one period, a
+ * rotation that does not close): the browser restarts an iteration instantly, so interpolating
+ * back to frame 0 would play a one-sample rewind every loop.
+ */
 function sampleLoop<G>(sample: LoopSampler<G>, size: number, count: number): G[] {
-  return Array.from({ length: count }, (_, i) => sample(i / count, size));
+  return Array.from({ length: count + 1 }, (_, i) => sample(i / count, size));
 }
 
 function toKeyframeBlock(frame: LoopFrame) {
@@ -66,18 +72,18 @@ function toKeyframeBlock(frame: LoopFrame) {
 }
 
 /**
- * Builds a shared keyframes rule from uniformly spaced frames (frame `i` is
- * `t = i / frames.length`). `100%` re-uses frame 0 so the loop closes without a seam.
+ * Builds a shared keyframes rule from uniformly spaced frames: frame `i` of `n` sits at
+ * `t = i / (n - 1)`, so the last frame is the `100%` keyframe (see `sampleLoop`).
  */
 function buildLoopRule(frames: readonly LoopFrame[]): CSSKeyframesRule {
-  if (frames.length === 0) {
-    throw new Error('buildLoopRule requires at least one frame');
+  if (frames.length < 2) {
+    throw new Error(`buildLoopRule requires at least two frames, received ${frames.length}`);
   }
+  const lastIndex = frames.length - 1;
   const keyframes: CSSAnimationKeyframes = {};
   frames.forEach((frame, i) => {
-    keyframes[`${(i / frames.length) * 100}%`] = toKeyframeBlock(frame);
+    keyframes[`${(i / lastIndex) * 100}%`] = toKeyframeBlock(frame);
   });
-  keyframes['100%'] = toKeyframeBlock(frames[0]!);
   return css.keyframes(keyframes);
 }
 

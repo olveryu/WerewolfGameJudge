@@ -3,16 +3,14 @@
  *
  * 8 bioluminescent particles slowly drift around the avatar with a breathing pulse (halo + bright core).
  */
-import { memo, useMemo } from 'react';
+import { Fragment, memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type DotSampler, LoopDot } from '@/components/loopMotion';
 
 import type { FlairProps } from './FlairProps';
-import { AnimatedCircle } from './svgAnimatedPrimitives';
 
+const LOOP_MS = 6000;
 const COUNT = 8;
 const COLORS = [
   [0, 255, 180],
@@ -25,81 +23,77 @@ const COLORS = [
   [0, 200, 200],
 ] as const;
 
-interface GlowSeed {
-  orbitR: number;
-  angleOff: number;
-  phase: number;
-  pulseSpeed: number;
-  ci: number;
+const GLOW_SEEDS = Array.from({ length: COUNT }, (_, i) => ({
+  orbitR: 0.38 + (i % 3) * 0.05,
+  angleOff: (i / COUNT) * Math.PI * 2,
+  phase: i / COUNT,
+  pulseSpeed: 2 + (i % 3),
+  ci: i % COLORS.length,
+}));
+
+type GlowSeed = (typeof GLOW_SEEDS)[number];
+
+function glowCentre(
+  t: number,
+  size: number,
+  seed: GlowSeed,
+): { x: number; y: number; pulse: number } {
+  const cx = size / 2;
+  const cy = size / 2;
+  const angle = t * Math.PI * 2 * 0.3 + seed.angleOff;
+  const pulse = 0.5 + Math.sin(t * Math.PI * 2 * seed.pulseSpeed) * 0.5;
+  return {
+    x: cx + Math.cos(angle) * seed.orbitR * size,
+    y: cy + Math.sin(angle) * seed.orbitR * size,
+    pulse,
+  };
 }
 
-const GlowParticle = memo<{ seed: GlowSeed; size: number; progress: { value: number } }>(
-  ({ seed, size, progress }) => {
-    const [cr, cg, cb] = COLORS[seed.ci]!;
-    const cx = size / 2;
-    const cy = size / 2;
-
-    const haloProps = useAnimatedProps(() => {
-      'worklet';
-      const t = (progress.value + seed.phase) % 1;
-      const angle = t * Math.PI * 2 * 0.3 + seed.angleOff;
-      const pulse = 0.5 + Math.sin(t * Math.PI * 2 * seed.pulseSpeed) * 0.5;
-      return {
-        cx: cx + Math.cos(angle) * seed.orbitR * size,
-        cy: cy + Math.sin(angle) * seed.orbitR * size,
-        r: size * 0.03 * (0.5 + pulse * 0.5),
-        opacity: pulse * 0.15,
-      };
-    });
-
-    const coreProps = useAnimatedProps(() => {
-      'worklet';
-      const t = (progress.value + seed.phase) % 1;
-      const angle = t * Math.PI * 2 * 0.3 + seed.angleOff;
-      const pulse = 0.5 + Math.sin(t * Math.PI * 2 * seed.pulseSpeed) * 0.5;
-      return {
-        cx: cx + Math.cos(angle) * seed.orbitR * size,
-        cy: cy + Math.sin(angle) * seed.orbitR * size,
-        r: size * 0.01 * (0.6 + pulse * 0.4),
-        opacity: pulse * 0.7,
-      };
-    });
-
-    return (
-      <>
-        <AnimatedCircle animatedProps={haloProps} fill={`rgb(${cr},${cg},${cb})`} />
-        <AnimatedCircle animatedProps={coreProps} fill="rgb(200,255,230)" />
-      </>
-    );
-  },
-);
-GlowParticle.displayName = 'GlowParticle';
-
-export const NightGlowFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useLoopProgress(6000);
-
-  const seeds = useMemo(
-    () =>
-      Array.from({ length: COUNT }, (_, i) => ({
-        orbitR: 0.38 + (i % 3) * 0.05,
-        angleOff: (i / COUNT) * Math.PI * 2,
-        phase: i / COUNT,
-        pulseSpeed: 2 + (i % 3),
-        ci: i % COLORS.length,
-      })),
-    [],
-  );
-
-  return (
-    <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {seeds.map((s, i) => (
-          <GlowParticle key={i} seed={s} size={size} progress={progress} />
-        ))}
-      </Svg>
-    </View>
-  );
+const HALO_SAMPLERS: readonly DotSampler[] = GLOW_SEEDS.map((seed) => (t, size) => {
+  const { x, y, pulse } = glowCentre(t, size, seed);
+  return {
+    cx: x,
+    cy: y,
+    r: size * 0.03 * (0.5 + pulse * 0.5),
+    opacity: pulse * 0.15,
+  };
 });
+
+const CORE_SAMPLERS: readonly DotSampler[] = GLOW_SEEDS.map((seed) => (t, size) => {
+  const { x, y, pulse } = glowCentre(t, size, seed);
+  return {
+    cx: x,
+    cy: y,
+    r: size * 0.01 * (0.6 + pulse * 0.4),
+    opacity: pulse * 0.7,
+  };
+});
+
+export const NightGlowFlair = memo<FlairProps>(({ size }) => (
+  <View style={[styles.wrapper, { width: size, height: size }]}>
+    {GLOW_SEEDS.map((seed, i) => {
+      const [cr, cg, cb] = COLORS[seed.ci]!;
+      return (
+        <Fragment key={`glow-${seed.angleOff}`}>
+          <LoopDot
+            sample={HALO_SAMPLERS[i]!}
+            size={size}
+            durationMs={LOOP_MS}
+            phase={seed.phase}
+            color={`rgb(${cr},${cg},${cb})`}
+          />
+          <LoopDot
+            sample={CORE_SAMPLERS[i]!}
+            size={size}
+            durationMs={LOOP_MS}
+            phase={seed.phase}
+            color="rgb(200,255,230)"
+          />
+        </Fragment>
+      );
+    })}
+  </View>
+));
 NightGlowFlair.displayName = 'NightGlowFlair';
 
 const styles = StyleSheet.create({

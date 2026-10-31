@@ -1,18 +1,19 @@
 /**
  * BlazeTrailFlair — Blaze trail
  *
- * 3 flame arcs rotate around the avatar; each arc drawn via AnimatedPath + bright head particle.
+ * 3 flame arcs rotate around the avatar; each arc is a three-layer stroke + bright head particle.
+ * Arc and head turn together as one rigid group, so each flame is a static SVG spun by one
+ * LoopLayer about the tile centre; the per-layer opacities are static.
  */
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useAnimatedProps } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
-import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
+import { type LayerSampler, LoopLayer } from '@/components/loopMotion';
 
 import type { FlairProps } from './FlairProps';
-import { AnimatedCircle, AnimatedPath } from './svgAnimatedPrimitives';
 
+const LOOP_MS = 3500;
 const ARC_COUNT = 3;
 const COLORS = [
   { outer: 'rgb(255,80,0)', mid: 'rgb(255,160,40)', core: 'rgb(255,240,180)' },
@@ -20,94 +21,90 @@ const COLORS = [
   { outer: 'rgb(255,60,10)', mid: 'rgb(255,140,30)', core: 'rgb(255,235,170)' },
 ];
 
-interface ArcSeed {
-  phase: number;
-  span: number;
+const ARC_SEEDS = Array.from({ length: ARC_COUNT }, (_, i) => ({
+  phase: i / ARC_COUNT,
+  span: 0.8 + (i % 2) * 0.3,
+}));
+
+function buildArcD(
+  cx: number,
+  cy: number,
+  radius: number,
+  startAngle: number,
+  endAngle: number,
+): string {
+  const x1 = cx + Math.cos(startAngle) * radius;
+  const y1 = cy + Math.sin(startAngle) * radius;
+  const x2 = cx + Math.cos(endAngle) * radius;
+  const y2 = cy + Math.sin(endAngle) * radius;
+  return `M ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2}`;
 }
 
-const FlameArc = memo<{ seed: ArcSeed; size: number; progress: { value: number }; ci: number }>(
-  ({ seed, size, progress, ci }) => {
-    const cx = size / 2;
-    const cy = size / 2;
-    const r = size * 0.44;
-    const { outer, mid, core } = COLORS[ci]!;
+/** `startA = t * 2π` in the original: the whole flame spins once per loop. */
+const arcSampler: LayerSampler = (t, size) => ({
+  x: size / 2,
+  y: size / 2,
+  rotateDeg: t * 360,
+  scaleX: 1,
+  scaleY: 1,
+  opacity: 1,
+});
 
-    const buildArcD = (radius: number, startAngle: number, endAngle: number) => {
-      'worklet';
-      const x1 = cx + Math.cos(startAngle) * radius;
-      const y1 = cy + Math.sin(startAngle) * radius;
-      const x2 = cx + Math.cos(endAngle) * radius;
-      const y2 = cy + Math.sin(endAngle) * radius;
-      return `M ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2}`;
-    };
-
-    const outerProps = useAnimatedProps(() => {
-      'worklet';
-      const t = (progress.value + seed.phase) % 1;
-      const startA = t * Math.PI * 2;
-      const d = buildArcD(r, startA, startA + seed.span);
-      return { d, opacity: 0.25, strokeWidth: size * 0.03 };
-    });
-
-    const midProps = useAnimatedProps(() => {
-      'worklet';
-      const t = (progress.value + seed.phase) % 1;
-      const startA = t * Math.PI * 2;
-      const d = buildArcD(r, startA + seed.span * 0.15, startA + seed.span * 0.85);
-      return { d, opacity: 0.45, strokeWidth: size * 0.015 };
-    });
-
-    const coreProps = useAnimatedProps(() => {
-      'worklet';
-      const t = (progress.value + seed.phase) % 1;
-      const startA = t * Math.PI * 2;
-      const d = buildArcD(r, startA + seed.span * 0.3, startA + seed.span * 0.7);
-      return { d, opacity: 0.65, strokeWidth: size * 0.006 };
-    });
-
-    const headProps = useAnimatedProps(() => {
-      'worklet';
-      const t = (progress.value + seed.phase) % 1;
-      const headAngle = t * Math.PI * 2 + seed.span;
-      return {
-        cx: cx + Math.cos(headAngle) * r,
-        cy: cy + Math.sin(headAngle) * r,
-        r: size * 0.012,
-        opacity: 0.7,
-      };
-    });
-
-    return (
-      <>
-        <AnimatedPath animatedProps={outerProps} stroke={outer} fill="none" strokeLinecap="round" />
-        <AnimatedPath animatedProps={midProps} stroke={mid} fill="none" strokeLinecap="round" />
-        <AnimatedPath animatedProps={coreProps} stroke={core} fill="none" strokeLinecap="round" />
-        <AnimatedCircle animatedProps={headProps} fill={core} />
-      </>
-    );
-  },
-);
-FlameArc.displayName = 'FlameArc';
-
-export const BlazeTrailFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useLoopProgress(3500);
-
-  const seeds = useMemo(
-    () =>
-      Array.from({ length: ARC_COUNT }, (_, i) => ({
-        phase: i / ARC_COUNT,
-        span: 0.8 + (i % 2) * 0.3,
-      })),
-    [],
-  );
-
+export const BlazeTrailFlair = memo<FlairProps>(({ size }) => {
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size * 0.44;
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        {seeds.map((s, i) => (
-          <FlameArc key={i} seed={s} size={size} progress={progress} ci={i} />
-        ))}
-      </Svg>
+      {ARC_SEEDS.map((seed, i) => {
+        const { outer, mid, core } = COLORS[i]!;
+        const headAngle = seed.span;
+        return (
+          <LoopLayer
+            key={`arc-${seed.phase}`}
+            sample={arcSampler}
+            size={size}
+            durationMs={LOOP_MS}
+            phase={seed.phase}
+            width={size}
+            height={size}
+          >
+            <Svg width={size} height={size}>
+              <Path
+                d={buildArcD(cx, cy, r, 0, seed.span)}
+                stroke={outer}
+                strokeWidth={size * 0.03}
+                opacity={0.25}
+                fill="none"
+                strokeLinecap="round"
+              />
+              <Path
+                d={buildArcD(cx, cy, r, seed.span * 0.15, seed.span * 0.85)}
+                stroke={mid}
+                strokeWidth={size * 0.015}
+                opacity={0.45}
+                fill="none"
+                strokeLinecap="round"
+              />
+              <Path
+                d={buildArcD(cx, cy, r, seed.span * 0.3, seed.span * 0.7)}
+                stroke={core}
+                strokeWidth={size * 0.006}
+                opacity={0.65}
+                fill="none"
+                strokeLinecap="round"
+              />
+              <Circle
+                cx={cx + Math.cos(headAngle) * r}
+                cy={cy + Math.sin(headAngle) * r}
+                r={size * 0.012}
+                fill={core}
+                opacity={0.7}
+              />
+            </Svg>
+          </LoopLayer>
+        );
+      })}
     </View>
   );
 });
