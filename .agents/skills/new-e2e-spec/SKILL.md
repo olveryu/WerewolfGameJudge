@@ -1,252 +1,138 @@
 ---
 name: new-e2e-spec
-description: 'Add a new Playwright E2E spec for a night role, flow, or feature. Use when: adding an e2e test, new playwright spec.'
+description: 'Add or update a Playwright E2E spec: real multi-context seats, no automated players to fill seats, one spec per change, night-driver patterns, and single-spec verification through the actions API. Use when adding or changing an E2E spec; never as a substitute for unit or contract tests.'
 ---
 
-# New E2E Spec Skill
+# New E2E spec
 
-> **输出语言：执行本 skill 过程中，所有面向用户的输出（进度报告、询问、完成通知、错误提示）一律使用中文。**
+E2E specs prove visible behaviour in a real browser against a local
+server. They are slow, flaky-prone, and expensive to verify — write
+one only when unit and contract tests cannot prove the behaviour.
+User-facing output is in Chinese; spec names and test titles use
+English.
 
-End-to-end addition of a Playwright E2E test, from defining the test target to local pass.
+## When to use
 
-## When to Use
+Use when an existing spec must change with a behaviour change, or
+when a new user-visible flow needs browser-level proof that no
+lower-level test can give.
 
-- User requests adding a new E2E test
-- User describes a game flow scenario that needs verification
+Do not use when:
 
-## Architecture Overview
+- the behaviour is already covered by a unit or contract test, or
+  could be — E2E is the last resort, not the default;
+- no spec exists for the area and no approval to create one has been
+  given — updating an existing spec is the normal case; a new spec
+  needs a report and approval first (a new game's spec skeleton
+  stays a `.tmpl` until then);
+- the change is a fix to product code — fix the product, classify
+  the failure, and update the spec only if the behaviour
+  intentionally changed;
+- seats would be filled with automated players, or a second spec
+  would ride along in the same change — both are process rules
+  (see Step 1).
 
-```
-e2e/
-├── fixtures/app.fixture.ts    ← test.extend + createPlayerContexts + closeAll
-├── pages/                     ← Page Objects (class-based)
-│   ├── HomePage.ts
-│   ├── RoomPage.ts
-│   ├── ConfigPage.ts
-│   ├── NightFlowPage.ts
-│   └── BoardPickerPage.ts
-├── helpers/
-│   ├── night-setup.ts         ← withSetup() harness (creates game, runs body, cleans up)
-│   ├── night-driver.ts        ← Role-aware night actions (click seat, wolf vote, reveals)
-│   ├── multi-player.ts        ← setupNPlayerGame / setupNPlayerGameWithRoles
-│   ├── waits.ts               ← ensureConnected, waitForRoomScreenReady
-│   ├── home.ts                ← ensureAnonLogin, registerAutoDismissers
-│   ├── ui.ts                  ← gotoWithRetry, clickIfVisible, screenshotOnFail
-│   └── diagnostics.ts         ← DiagnosticData logger per player
-└── specs/                     ← Test files (grouped by topic)
-```
+## Must-read references
 
-## Procedure
+1. `references/helpers-pages.md` — fixtures, helpers, pages,
+   failure evidence.
+2. `references/patterns.md` — setup patterns, seat/role numbering,
+   naming, required patterns.
+3. `references/night-step-order.md` — current 37-step
+   `NIGHT_STEP_ORDER`.
+4. `references/rules-and-verification.md` — the E2E law, config
+   facts, single-spec trigger, interaction rules, non-determinism.
 
-### Phase 1 — Define Test Target
+## Steps
 
-1. Extract the test scenario from user input.
-2. Determine the following:
+### 1. Decide: update, or report for a new spec
 
-| Field           | Description                       | Example                      |
-| --------------- | --------------------------------- | ---------------------------- |
-| Test category   | night-role / flow / feature       | night-role                   |
-| Involved roles  | Which roles participate           | seer, wolf, villager         |
-| Player count    | Minimum players to cover scenario | 3                            |
-| Expected result | What to assert                    | reveal shows "好人"          |
-| Spec filename   | Which file to add to or create    | werewolf-night-check.spec.ts |
+Check whether an existing spec covers the flow; if it does, change
+that one spec and no other. If none does, report the proposal
+(flow, why lower-level tests cannot prove it, seat count, pattern)
+and wait for approval before creating a file. State the seat count
+up front: every seat is one independent browser context. Automated
+players never fill seats in a new spec, and the one-spec-per-change
+rule applies from the first commit.
 
-3. Check existing specs for similar tests (avoid duplication).
+### 2. Choose the pattern and the page objects
 
-### Phase 2 — Choose Test Pattern
+Pick the pattern from `references/patterns.md` before writing:
+`withSetup` + night-driver for werewolf night flows,
+`setupNPlayerGameWithRoles` for role-aware multi-player setup, the
+`app` fixture for single-page flows. Use page objects for selectors
+and actions; put shared business flows in the domain helpers, not
+in the spec and not in generic primitives.
 
-**Night-role tests (most common)**: Use `withSetup` + `night-driver`.
+### 3. Write the spec
 
-```typescript
-import { expect, test } from '@playwright/test';
-import { /* helpers */ } from '../helpers/night-driver';
-import { withSetup } from '../helpers/night-setup';
+Drive the flow in `NIGHT_STEP_ORDER`, one role acting from its own
+page. Navigate with `gotoWithRetry()`, wait with
+`waitForRoomScreenReady()` and event-driven waits, mark phases with
+`test.step()`, and assert visible behaviour — what the player sees
+and can do — not internal state. Keep the spec to scenario intent
+and assertions; helpers own the mechanics. Never assert a fixed
+value from a random or time source.
 
-test('description', async ({ browser }) => {
-  await withSetup(
-    browser,
-    {
-      playerCount: N,
-      configure: async (c) => c.configureCustomTemplate({ wolves: M, gods: [...], villagers: K }),
-    },
-    async ({ pages, roleMap }) => {
-      // Drive night actions + assert results
-    },
-  );
-});
-```
+### 4. Follow the interaction rules
 
-**Non-night tests (room lifecycle, config, etc.)**: Use `app` fixture.
+No `force: true` for normal interactions (the disabled-state
+exception in `references/rules-and-verification.md` is the only
+allowed shape). No fixed sleeps except polling cadence of at most
+300 ms. No swallowing assertion or state-transition failures with
+`.catch`. No `console.log` in the spec; attach evidence with
+`testInfo.attach()`. No skipped or focused tests, and no temporary
+diagnostic output, in a committed spec.
 
-```typescript
-import { test } from '../fixtures/app.fixture';
+### 5. Verify with a single-spec run
 
-test('description', async ({ app: { page, diag } }) => {
-  // Already logged in and on home screen
-});
-```
+Verify exactly the changed spec, one commit and push at a time:
 
-### Phase 3 — Implementation
-
-#### Key Rules (see tests.instructions.md)
-
-- **Forbidden** `page.waitForTimeout(N)` (only exception: ≤300ms inside polling loops)
-- **Forbidden** `.isVisible({ timeout: N })` (Playwright ignores this param)
-- **Forbidden** `console.log` (use `test.step()` + `testInfo.attach()`)
-- Each spec creates an independent room (test isolation)
-- Timeout setting: night tests recommend `test.setTimeout(180_000)`
-- Use `ensureConnected(page)` to ensure WebSocket connection is stable
-- Use `waitForRoomScreenReady(page)` to wait for room to load
-
-#### night-driver Common Helpers
-
-| Helper                                      | Purpose                      |
-| ------------------------------------------- | ---------------------------- |
-| `findRolePageIndex(map, name)`              | Find page index by role name |
-| `findAllRolePageIndices(map, name)`         | Find all pages for a role    |
-| `waitForRoleTurn(page, keywords, allPages)` | Wait for role's action turn  |
-| `clickSeatAndConfirm(page, seat)`           | Click seat + confirm         |
-| `driveWolfVote(pages, wolfIndices, seat)`   | Wolf vote                    |
-| `waitForNightEnd(pages)`                    | Wait for dawn                |
-| `readAlertText(page)`                       | Read alert dialog text       |
-| `dismissAlert(page)`                        | Dismiss alert dialog         |
-| `viewLastNightInfo(page)`                   | View last night info         |
-| `clickBottomButton(page, text)`             | Click bottom button          |
-
-#### ⚠️ Night Step Order (NIGHT_STEPS)
-
-**Roles MUST be driven in the order defined by `NIGHT_STEP_ORDER_INTERNAL` in `packages/game-engine/src/games/werewolf/domain/models/roles/spec/plan.ts`.**
-`waitForRoleTurn` calls `tryClickAdvanceButton(includeSkip=true)` to advance OTHER pages; wrong order will cause the target role to be auto-skipped.
-
-Check order in the current `plan.ts`; derive the order from code rather than copied position numbers.
-
-For non-Werewolf games, use that game's existing page objects and phase assertions; the night driver is Werewolf-specific.
-
-#### ⚠️ actionKind Driving Patterns (Critical!)
-
-Different `actionKind` steps have different UI flows. You must drive each according to its pattern:
-
-**`chooseSeat` steps** (seer, crow, wolf, etc. choosing targets):
-
-```typescript
-// 1. waitForRoleTurn detects keywords
-const turn = await waitForRoleTurn(page, ['查验', '选择'], allPages, 120);
-// 2. clickSeatAndConfirm internally dismisses alert then clicks seat
-await clickSeatAndConfirm(page, targetSeat);
-// 3. Read result alert (if any)
-const reveal = await readAlertText(page);
-await dismissAlert(page);
+```sh
+gh workflow run e2e-single-spec.yml --ref <branch> --field spec=<file>
 ```
 
-Reference: `werewolf-night-check.spec.ts`
+Then verify through the actions API: the run's `head_branch` and
+`head_sha` match the target branch and commit, and its `conclusion`
+is the verdict. Do not judge the run from a piped watch command's
+exit code. Locally, run the single spec with the standard config
+(`pnpm exec playwright test e2e/specs/<file>`) before pushing when
+the local servers are available.
 
-**`chooseSeat` + skip (not using ability)**:
+### 6. Classify any failure before touching the spec
 
-```typescript
-const turn = await waitForRoleTurn(page, ['诅咒', '选择'], allPages, 120);
-// Must dismiss the initial prompt alert first!
-await dismissAlert(page);
-await clickBottomButton(page, '不用技能');
-// Some roles show a confirmation after skip
-await dismissAlert(page);
+On a red run, investigate in order: failure bundle / PR digest,
+then trace, then CI logs only for infrastructure-shaped failures.
+Classify: real regression (stop, report, fix the product), intentional
+behaviour change (update the affected spec to the new flow, one spec
+per commit, single-spec verified, assertions never weakened), or
+flake (record the exact error; a passing rerun is not a diagnosis).
+Never edit a spec to match broken behaviour, and never rerun a
+failure into silence.
+
+## Acceptance commands
+
+```sh
+.agents/skills/new-e2e-spec/scripts/check-e2e.sh .
+gh workflow run e2e-single-spec.yml --ref <branch> --field spec=<file>
 ```
 
-Reference: `werewolf-night-completion.spec.ts` seer/guard skip test
+Acceptance is the actions-API `conclusion` for that run on the
+correct branch and commit, not a local exit code and not a piped
+watch result.
 
-**`confirm` steps** (hiddenWolf viewing companions, avenger viewing faction, etc.):
+## Pitfalls
 
-```typescript
-const turn = await waitForRoleTurn(page, ['查看', '同伴'], allPages, 120);
-// 1. Dismiss initial prompt alert (the night model's once-per-step prompt)
-await dismissAlert(page);
-// 2. Click bottom button to trigger the actual action
-await clickBottomButton(page, '查看同伴');
-// 3. Read result alert
-const reveal = await readAlertText(page);
-await dismissAlert(page);
-```
-
-Reference: `werewolf-night-special-roles-2.spec.ts`, `werewolf-night-kill.spec.ts` (avenger)
-
-**wolf kill** (dedicated helper):
-
-```typescript
-const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], allPages, 120);
-await driveWolfVote(pages, wolfIndices, targetSeat);
-```
-
-#### ConfigPage Template Configuration
-
-```typescript
-configure: async (c) =>
-  c.configureCustomTemplate({
-    wolves: 1,
-    goodRoles: ['seer', 'witch'],
-    villagers: 2,
-    // wolfRoles: ['hiddenWolf']      // Wolf faction special roles
-    // specialRoles: ['thief']        // Third-party roles
-  });
-```
-
-### Phase 3.5 — Core Principles Self-Check
-
-Run through the core principles checklist 🔍 for all changes made:
-
-1. Any band-aid fixes? (Principle 1)
-2. Used third-party API — did you check docs? (Principle 2)
-3. Any `as any` / unnecessary `?.`? (Principle 3)
-4. Any error-swallowing catch / failure path without feedback? (Principle 4)
-5. Do new types/fields propagate through the full pipeline? (Principle 5)
-
-### Phase 4 — Verify
-
-1. Run single spec: `pnpm exec playwright test e2e/specs/<file> --reporter=list`
-2. Confirm pass, then check if test timeout needs adjusting
-3. On failure, use trace (auto-saved in `test-results/`) to diagnose
-
-## Naming Conventions
-
-- Werewolf night spec filenames: `werewolf-night-<category>.spec.ts`
-  - Categories: check / check-interactions / gun-status / kill / protect / block / completion / flow / piper / gargoyle / seed-wolf / special-roles / special-roles-2
-- Non-night specs are prefixed by domain:
-  - Werewolf non-night: `werewolf-<surface>.spec.ts` (e.g., `werewolf-seating.spec.ts`, `werewolf-config.spec.ts`, `werewolf-sheriff-election.spec.ts`)
-  - Platform shell: `app-<surface>.spec.ts` (e.g., `app-home.spec.ts`, `app-entry-flow.spec.ts`, `app-room-lifecycle.spec.ts`)
-  - Resilience: `resilience-<surface>.spec.ts` (e.g., `resilience-reconnect.spec.ts`, `resilience-db-recovery.spec.ts`)
-  - Other games keep `<game>.spec.ts` (e.g., `avalon.spec.ts`, `undercover.spec.ts`)
-- Test describe/test names use English, describing specific scenario and expected result
-
-## ⚠️ Common Pitfalls (Must Read)
-
-### 1. Step order causing roles to be auto-skipped
-
-`waitForRoleTurn` calls `tryClickAdvanceButton(includeSkip=true)` for OTHER pages, which clicks "不用技能". If you drive a later role first, earlier roles will be auto-skipped during the wait.
-
-❌ Wrong (crow acts before wolf, driving wolf first causes crow to be skipped):
-
-```typescript
-await waitForRoleTurn(wolfPage, ['袭击'], pages);
-await driveWolfVote(...);
-await waitForRoleTurn(crowPage, ['诅咒'], pages); // Never detected: already auto-skipped
-```
-
-✅ Correct:
-
-```typescript
-await waitForRoleTurn(crowPage, ['诅咒'], pages);
-await clickSeatAndConfirm(crowPage, target);
-await waitForRoleTurn(wolfPage, ['袭击'], pages);
-await driveWolfVote(...);
-```
-
-### 2. Initial alert for chooseSeat/confirm steps
-
-All `chooseSeat` and `confirm` steps show a prompt alert on entry ("知道了" button).
-
-- `clickSeatAndConfirm` handles this internally (auto dismissAlert).
-- `clickBottomButton` does **NOT** auto dismiss (only dismisses during retry).
-- Therefore you must manually `await dismissAlert(page)` before `clickBottomButton`.
-
-### 3. Seat number format
-
-- `roleMap.get(idx)!.seat` — 0-based seat index
-- Seer and similar roles' reveal dialog uses 1-indexed display (`formatSeat(seat)` = `${seat+1}号`)
+1. Writing `NIGHT_STEP_ORDER_INTERNAL` or pasting an old step order
+   — the constant does not exist; the order lives in
+   `nightStepIds.ts`.
+2. Filling seats with automated players, or copying the existing
+   bot-fill steps — new specs use real contexts only; the two
+   existing bot steps are exceptions, not patterns.
+3. Judging a run from `gh run watch | tail` — the exit code is the
+   pipe's, not the run's; read `conclusion` from the API.
+4. Asserting fixed values from random or time sources, or asserting
+   a wall-clock duration — assert visible behaviour instead.
+5. Using `force: true`, a fixed sleep, or a swallowed `.catch` to
+   reach green — each hides the actionability or timing evidence
+   the suite exists to capture.

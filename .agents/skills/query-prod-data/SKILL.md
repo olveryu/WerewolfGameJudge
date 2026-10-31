@@ -1,138 +1,95 @@
 ---
 name: query-prod-data
-description: 'Query production D1 database and Analytics Engine telemetry. Use when: looking up users, rooms, player geo, load timing, telemetry.'
+description: Query production data read-only from the relational store and the load-timing telemetry dataset, using only table and column claims verified against the migration files and the telemetry query code. Use when looking up users, rooms, room participants, or load timing. Never claims access from an unauthenticated environment.
 ---
 
-# Query Production Data Skill
+# query-prod-data
 
-> **输出语言：执行本 skill 过程中，所有面向用户的输出（进度报告、询问、完成通知、错误提示）一律使用中文。**
+> User-facing output during this skill (progress reports, questions, completion notices, error messages) is in Chinese.
 
-Query D1 database and Analytics Engine telemetry data via the wrangler CLI.
+Query production data read-only. This skill documents only what the migration files and the telemetry query code support. Anything else is marked unverified and omitted, not guessed.
 
-## Prerequisites
+## Access boundary (read first)
 
-- **Wrangler OAuth valid**. Token expires ~24h, symptom: `Failed to fetch auth token: 400 Bad Request`.
-- Fix: `cd packages/api-worker && npx wrangler login` (interactive browser auth).
-- All commands are executed in the `packages/api-worker` directory.
+Production access depends entirely on the operator's own authenticated environment. This skill must never claim that production can be reached from an unauthenticated or sandboxed environment, and must never claim that a query ran when it did not. If the operator's environment cannot authenticate, stop and report that plainly. No credential, token, or account identifier appears anywhere in this skill. Never paste a credential into a command, a file, or a report, and never read a credential file to extract a token.
 
-## Data Sources
+## Triggers
 
-### 1. D1 Database (`werewolf-db`)
+Use this skill when:
 
-Structured business data. Query via `npx wrangler d1 execute werewolf-db --remote --command "SQL"`.
+- Looking up a user, a room, a room's participants, or a user's related records in the production relational store.
+- Querying load-timing telemetry for a time range.
 
-**Table overview:**
+Do not use this skill when:
 
-| Table                   | Purpose            | Key Columns                                                                                               |
-| ----------------------- | ------------------ | --------------------------------------------------------------------------------------------------------- |
-| `users`                 | User accounts      | `id`, `email`, `display_name`, `is_anonymous`, `wechat_openid`, `last_country`, `last_colo`, `created_at` |
-| `rooms`                 | Room metadata      | `id`, `code`, `host_user_id`, `created_at`                                                                |
-| `user_stats`            | User stats/level   | FK `user_id`                                                                                              |
-| `draw_history`          | Gacha draw records | FK `user_id`                                                                                              |
-| `refresh_tokens`        | Refresh tokens     | FK `user_id`                                                                                              |
-| `login_attempts`        | Login attempts     | `email_hash`, `attempted_at` (no IP)                                                                      |
-| `password_reset_tokens` | Password reset     | `id`, `user_id`                                                                                           |
+- The request needs a write, a delete, a migration, or any change to production data. This skill is read-only. Refuse the write and say what read-only query, if any, would answer the underlying question.
+- The request needs realtime game state, role assignments, or night actions. Those live in the room authority store, not in the relational tables documented here, and this skill does not document how to query them. Say so instead of inventing a query.
+- The request needs a table, column, or telemetry field that is not listed in `references/tables-and-columns.md`. Stop and verify it against the migration files or the telemetry query code first; do not guess it.
+- The operator cannot authenticate in their own environment. Stop and report the access gap; do not work around it.
 
-**`users` full columns:**
-`id`, `email`, `password_hash`, `display_name`, `avatar_url`, `custom_avatar_url`, `avatar_frame`, `equipped_flair`, `equipped_name_style`, `equipped_effect`, `equipped_seat_animation`, `wechat_openid`, `is_anonymous`, `token_version`, `last_country`, `last_colo`, `created_at`, `updated_at`
+## Must-read references
 
-### 2. Analytics Engine (`load_timing` dataset)
+Read these before writing any query.
 
-Client-side load performance telemetry. Query via Cloudflare SQL API (requires OAuth token).
+- `references/tables-and-columns.md` — every table and column this skill may name, verified against the migration files, plus the deleted inference query and its replacement.
+- `references/telemetry.md` — the only telemetry fields this skill may name, and the only supported query shape.
 
-**Field mapping:**
+## Procedure
 
-| Field      | Meaning                                |
-| ---------- | -------------------------------------- |
-| `index1`   | Resource short filename                |
-| `blob1`    | Full URL                               |
-| `blob2`    | User Agent                             |
-| `blob3`    | Country (CF `cf.country`)              |
-| `blob4`    | CF Colo (edge node, e.g., LAX/NRT/HKG) |
-| `blob5`    | ISP/ASN organization name              |
-| `double1`  | Total resource load duration ms        |
-| `double2`  | transfer size bytes                    |
-| `double3`  | decoded body size                      |
-| `double4`  | DNS lookup ms                          |
-| `double5`  | TCP connect ms                         |
-| `double6`  | TLS handshake ms                       |
-| `double7`  | TTFB ms                                |
-| `double8`  | download time ms                       |
-| `double9`  | Page total startup time ms             |
-| `double10` | HTML document TTFB ms                  |
+### Step 1 — Confirm the question and the environment
 
-### 3. Durable Object SQLite
+State the exact question in one sentence: which user, room, or time range, and what fact is needed. Confirm the operator is working in their own authenticated environment and that the commands will run from `packages/api-worker/`. If either is unconfirmed, ask and wait. Do not proceed on an assumed environment.
 
-Real-time game state within rooms (player list, role assignments, night actions) is stored in DO memory/SQLite.
+### Step 2 — Authenticate, without a time claim
 
-- DO auto-recycles after idle, data is lost.
-- Closed rooms cannot have their participants queried.
+If an authentication failure occurs, re-authenticate following the tool's own documentation for the operator's environment. This skill makes no claim about how long any token or session lasts: no expiry period was found in a repository source, so none is stated. Do not quote an expiry number from memory, and do not name a credential file path. If re-authentication needs interactive browser steps, hand that step to the operator and wait.
 
-## Common Query Templates
+### Step 3 — Choose the source and name only verified columns
 
-### Look up room and host
+Choose exactly one source: the relational store, or the load-timing telemetry dataset. Write the query using only the tables and columns in `references/tables-and-columns.md` or the fields in `references/telemetry.md`. List columns explicitly. Never use a wildcard select on the users table: it contains a sensitive credential-hash column. Never select that column, and never include it in output.
 
-```sql
-SELECT r.*, u.display_name, u.last_country, u.last_colo
-FROM rooms r
-JOIN users u ON r.host_user_id = u.id
-WHERE r.code = '{ROOM_CODE}'
-```
+### Step 4 — Write a read-only query
 
-### Find all new users within a room's creation time window (infer participants)
+Every query must be a single read-only select. No insert, update, delete, migration, or schema statement. Use the SQLite dialect: `datetime()` for time arithmetic; interval syntax is not supported. All stored times are UTC; Beijing time is UTC plus 8 hours. State the time range and the timezone conversion in the report, not only in the query.
 
-Room participants are not stored in D1, but can be inferred via creation time window (players auto-register when scanning QR code to join):
+### Step 5 — Run the relational query
 
-```sql
-SELECT id, display_name, last_country, last_colo, created_at
-FROM users
-WHERE created_at >= datetime('{ROOM_CREATED_AT}', '-3 minutes')
-  AND created_at <= datetime('{ROOM_CREATED_AT}', '+10 minutes')
-ORDER BY created_at
-```
-
-### Query visitor country distribution for a time range
+From `packages/api-worker/`, run the query against the named production database with the remote flag:
 
 ```bash
-curl -s "https://api.cloudflare.com/client/v4/accounts/a38318fda66da2d2d931d8ab2d98e1c0/analytics_engine/sql" \
-  -H "Authorization: Bearer $(cat /Users/eyan/Library/Preferences/.wrangler/config/default.toml | grep oauth_token | head -1 | sed 's/.*= "\(.*\)"/\1/')" \
-  -d "SELECT blob3 as country, blob4 as colo, count() as cnt, avg(double1) as avg_load_ms
-      FROM load_timing
-      WHERE timestamp >= '{START_UTC}' AND timestamp <= '{END_UTC}'
-      GROUP BY blob3, blob4
-      ORDER BY cnt DESC"
+npx wrangler d1 execute werewolf-db --remote --command "<SQL>"
 ```
 
-> **Note**: The wrangler OAuth token file path is `/Users/eyan/Library/Preferences/.wrangler/config/default.toml` (macOS Preferences directory), not `~/.wrangler/`.
+Check the result shape before interpreting it: confirm the row count, confirm the key columns joined as expected, and confirm no row is being read as evidence for a different room or user. If the query returns no rows, report "no rows" plainly; do not infer a reason from the absence.
 
-### Total user count / recent registrations
+### Step 6 — Run the telemetry query, if the question is about load timing
 
-```sql
-SELECT count(*) as total FROM users
+Use only the query shape in `references/telemetry.md`, with the code-supported fields only. Use the operator's authenticated request method for the telemetry API, following the tool's own documentation. Never embed a token in the command line, never read a token out of a credential file, and never include an account identifier copied from an example. If the operator's authenticated method is unavailable, stop and report that; do not substitute an unauthenticated call.
+
+### Step 7 — Interpret without inference
+
+Report only what the rows show. In particular:
+
+- Room participants are read from the participants table directly. Never infer participants from a user-creation time window, and never present a time-window user list as a participant list.
+- A telemetry average is reported with its time range, its grouping, and its sample weighting as written in the query. Do not convert a load average into a claim about a specific user, device, or cause.
+- Do not state anything about realtime room state, its lifetime, or its recoverability. This skill documents none of it, because no deciding code was read for it during drafting.
+
+### Step 8 — Report and clean up
+
+Report in Chinese: the question, the exact query run (with any literal identifiers redacted to the minimum needed for the operator to re-run it), the row count and the findings, and the time range with its timezone. State plainly what was not checked. Remove nothing from production and leave no credential, token, or query output containing sensitive columns in any file.
+
+## Acceptance commands
+
+```bash
+npx wrangler d1 execute werewolf-db --remote --command "<read-only SQL>"
 ```
 
-```sql
-SELECT id, display_name, last_country, last_colo, created_at
-FROM users ORDER BY created_at DESC LIMIT 20
-```
+Acceptance is: the query is read-only, uses only verified tables and columns, ran in the operator's authenticated environment, and the report states the row count, the time range, and what was not checked. There is no acceptance command for telemetry beyond the operator's authenticated request using the shape in `references/telemetry.md`.
 
-### Look up a user's gacha draw history
+## Pitfalls
 
-```sql
-SELECT * FROM draw_history WHERE user_id = '{USER_ID}' ORDER BY created_at DESC LIMIT 20
-```
-
-### Look up a user's level/XP
-
-```sql
-SELECT * FROM user_stats WHERE user_id = '{USER_ID}'
-```
-
-## Important Notes
-
-1. **All times are UTC**. Beijing time = UTC + 8.
-2. **D1 uses SQLite dialect**. Use `datetime()` for time arithmetic, `INTERVAL` is not supported.
-3. **`password_hash` is a sensitive column**. Do not `SELECT *` on users, explicitly list needed columns.
-4. **Analytics Engine data retention is ~90 days**, older data cannot be queried.
-5. **DO data is ephemeral**, only active rooms can be queried, historical room participants/roles are unrecoverable.
-6. **CF Account ID**: `a38318fda66da2d2d931d8ab2d98e1c0`.
+1. Inferring room participants from a creation-time window. The participants table exists; query it directly.
+2. Using the old participants shape keyed by room code. The current shape is keyed by room id. See `references/tables-and-columns.md`.
+3. Naming telemetry fields beyond the code-supported set. The rest are unverified and omitted.
+4. Stating a token expiry period, naming a credential file, or pasting a token into a command.
+5. Claiming production access, room-state lifetime, or recoverability that this skill does not document.
