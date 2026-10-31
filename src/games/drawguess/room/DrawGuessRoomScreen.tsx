@@ -693,7 +693,7 @@ function DrawGuessRoundEndView({
           onFill={() => undefined}
         />
       )}
-      <DrawGuessScoreboard title="本轮得分" competitionRanking={false} rows={roundRows} />
+      <DrawGuessScoreboard title="本轮得分" competitionRanking rows={roundRows} />
     </DrawGuessStageFrame>
   );
 }

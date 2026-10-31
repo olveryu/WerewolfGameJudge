@@ -489,7 +489,8 @@ GET /api/games/drawguess/rooms/:roomCode/media/:entryId
 | `DrawGuessRoomScreen`    | 根据权威 phase 选择画手/猜题者/结算视图，不实现各阶段业务细节 |
 | `DrawGuessCanvas`        | 指针事件、归一化笔画、只读渲染（从接龙版复制）                |
 | `DrawGuessToolbar`       | 工具、色板、笔宽、撤销、清空                                  |
-| `DrawGuessGuessPanel`    | 猜词输入、节流、聊天流渲染、锁定态                            |
+| `DrawGuessGuessLog`      | 聊天流渲染、内部滚动                                          |
+| `DrawGuessGuessComposer` | 猜词输入、节流、锁定态、草稿受控                              |
 | `DrawGuessHintBar`       | 字数 + 拼音首字母提示展示                                     |
 | `DrawGuessScoreboard`    | 本轮得分与总分榜                                              |
 | `useDrawGuessStrokeSync` | 整笔发送、从 state 增量渲染、断线恢复                         |
