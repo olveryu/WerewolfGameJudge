@@ -16,7 +16,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { GameScreen, GameScreenFooter, gameScreenStyles } from '@/components/GameScreen';
-import { LoadingScreen } from '@/components/LoadingScreen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useServices } from '@/contexts/ServiceContext';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
@@ -83,7 +82,6 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
   const {
     isNominateMode,
     isDisabled,
-    isLoading,
     isSubmitting,
     selection,
     totalCount,
@@ -162,76 +160,70 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
           />
         </View>
 
-        {isLoading ? (
-          <LoadingScreen message="加载中" fullScreen={false} />
-        ) : (
-          <>
-            {/* Active tab content */}
-            <ScrollView
-              style={styles.scrollView}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-            >
-              {/* Card B — stepper + role sections */}
-              <View style={styles.cardB}>
-                {activeGroup!.sections.map((section, index) => {
-                  const sectionFaction = section.faction ?? activeGroup!.faction;
-                  const sectionAccentColor = getFactionAccentColor(sectionFaction);
+        {/* Active tab content */}
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Card B — stepper + role sections */}
+          <View style={styles.cardB}>
+            {activeGroup!.sections.map((section, index) => {
+              const sectionFaction = section.faction ?? activeGroup!.faction;
+              const sectionAccentColor = getFactionAccentColor(sectionFaction);
 
-                  // Bulk slot -> RoleStepper
-                  const bulkSlot = section.roles.find((s) => s.isBulk);
-                  if (bulkSlot) {
-                    const maxCount = bulkSlot.count ?? 1;
-                    const currentCount = getBulkCount(bulkSlot.roleId, maxCount);
-                    const spec = ROLE_SPECS[bulkSlot.roleId];
-                    return (
-                      <React.Fragment key={section.title}>
-                        <RoleStepper
-                          roleId={bulkSlot.roleId}
-                          label={spec.displayName}
-                          count={currentCount}
-                          maxCount={maxCount}
-                          onCountChange={handleBulkCountChange}
+              // Bulk slot -> RoleStepper
+              const bulkSlot = section.roles.find((s) => s.isBulk);
+              if (bulkSlot) {
+                const maxCount = bulkSlot.count ?? 1;
+                const currentCount = getBulkCount(bulkSlot.roleId, maxCount);
+                const spec = ROLE_SPECS[bulkSlot.roleId];
+                return (
+                  <React.Fragment key={section.title}>
+                    <RoleStepper
+                      roleId={bulkSlot.roleId}
+                      label={spec.displayName}
+                      count={currentCount}
+                      maxCount={maxCount}
+                      onCountChange={handleBulkCountChange}
+                      styles={styles}
+                      accentColor={sectionAccentColor}
+                    />
+                    {index < activeGroup!.sections.length - 1 && (
+                      <View style={styles.cardBDivider} />
+                    )}
+                  </React.Fragment>
+                );
+              }
+
+              // Skill slots -> Section + RoleChips
+              const sectionFactionColorKey = FACTION_COLOR_MAP[sectionFaction] ?? 'villager';
+              return (
+                <React.Fragment key={section.title}>
+                  {index > 0 && <View style={styles.cardBDivider} />}
+                  <Section title={section.title} styles={styles}>
+                    {section.roles
+                      .flatMap((slot) => expandSlotToChipEntries(slot, variantOverrides))
+                      .map((entry) => (
+                        <RoleChip
+                          key={entry.key}
+                          id={entry.key}
+                          label={entry.label}
+                          selected={!!selection[entry.key]}
+                          onToggle={toggleRole}
                           styles={styles}
+                          factionColor={sectionFactionColorKey}
                           accentColor={sectionAccentColor}
+                          hasVariants={entry.hasVariants}
+                          onInfoPress={handleChipInfoPress}
                         />
-                        {index < activeGroup!.sections.length - 1 && (
-                          <View style={styles.cardBDivider} />
-                        )}
-                      </React.Fragment>
-                    );
-                  }
-
-                  // Skill slots -> Section + RoleChips
-                  const sectionFactionColorKey = FACTION_COLOR_MAP[sectionFaction] ?? 'villager';
-                  return (
-                    <React.Fragment key={section.title}>
-                      {index > 0 && <View style={styles.cardBDivider} />}
-                      <Section title={section.title} styles={styles}>
-                        {section.roles
-                          .flatMap((slot) => expandSlotToChipEntries(slot, variantOverrides))
-                          .map((entry) => (
-                            <RoleChip
-                              key={entry.key}
-                              id={entry.key}
-                              label={entry.label}
-                              selected={!!selection[entry.key]}
-                              onToggle={toggleRole}
-                              styles={styles}
-                              factionColor={sectionFactionColorKey}
-                              accentColor={sectionAccentColor}
-                              hasVariants={entry.hasVariants}
-                              onInfoPress={handleChipInfoPress}
-                            />
-                          ))}
-                      </Section>
-                    </React.Fragment>
-                  );
-                })}
-              </View>
-            </ScrollView>
-          </>
-        )}
+                      ))}
+                  </Section>
+                </React.Fragment>
+              );
+            })}
+          </View>
+        </ScrollView>
       </View>
       <GameScreenFooter>
         <Text style={styles.cardBFooterHint}>已选 {totalCount} 人</Text>

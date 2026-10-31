@@ -32,6 +32,7 @@ describe('showAlert - listener mode', () => {
     showAlert('标题', '消息');
 
     expect(listener).toHaveBeenCalledWith({
+      generation: 1,
       title: '标题',
       message: '消息',
       buttons: [{ text: '确定' }],
@@ -54,6 +55,7 @@ describe('showAlert - listener mode', () => {
     showAlert('确认', '确定要删除吗？', buttons);
 
     expect(listener).toHaveBeenCalledWith({
+      generation: 1,
       title: '确认',
       message: '确定要删除吗？',
       buttons,
