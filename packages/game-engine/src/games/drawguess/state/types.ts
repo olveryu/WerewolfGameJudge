@@ -28,8 +28,8 @@ export const DRAWGUESS_ROUND_END_SECONDS = 8;
 export const DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS = 20;
 export const DRAWGUESS_WORD_CHOICE_COUNT = 3;
 
-export const DRAWGUESS_GUESS_BASE_SCORE = 50;
-export const DRAWGUESS_GUESS_SPEED_BONUS_MAX = 100;
+export const DRAWGUESS_GUESS_BASE_SCORE = 20;
+export const DRAWGUESS_GUESS_SPEED_BONUS_MAX = 180;
 /** 画手每被一人猜中，按该猜中者得分的这一比例即时加分。 */
 export const DRAWGUESS_DRAWER_SHARE = 0.5;
 /** 首个猜中后，剩余作画时间压缩到至多这么多秒。 */

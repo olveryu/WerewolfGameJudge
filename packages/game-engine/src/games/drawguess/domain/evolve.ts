@@ -1,4 +1,9 @@
-/** Applies DrawGuess domain events; reset paths clear all turn-owned state. */
+/** Applies DrawGuess domain events; reset paths clear all turn-owned state.
+ * @remarks phaseRevision advances only on phase transitions (game start,
+ * turn start, word chosen, round ended, game ended, return to lobby).
+ * Content events inside a phase (words dealt, strokes, guesses, drawing
+ * reservation/commit) do not advance it, so an in-flight guess is never
+ * invalidated by drawing activity in the same phase. */
 
 import { applyRosterChanges } from '../../../platform/room/seating';
 import type { DrawGuessState } from '../state/types';
@@ -47,7 +52,6 @@ export function evolveDrawGuessState(state: DrawGuessState, event: DrawGuessEven
       return {
         ...state,
         phase: { ...state.phase, choices: [...event.choices], deadlineAt: event.deadlineAt },
-        phaseRevision: state.phaseRevision + 1,
       };
     }
     case 'drawguess.word.chosen': {
@@ -78,7 +82,6 @@ export function evolveDrawGuessState(state: DrawGuessState, event: DrawGuessEven
       return {
         ...state,
         phase: { ...state.phase, strokes: [...state.phase.strokes, event.stroke] },
-        phaseRevision: state.phaseRevision + 1,
       };
     }
     case 'drawguess.stroke.undone': {
@@ -86,7 +89,6 @@ export function evolveDrawGuessState(state: DrawGuessState, event: DrawGuessEven
       return {
         ...state,
         phase: { ...state.phase, strokes: state.phase.strokes.slice(0, -1) },
-        phaseRevision: state.phaseRevision + 1,
       };
     }
     case 'drawguess.strokes.cleared': {
@@ -94,7 +96,6 @@ export function evolveDrawGuessState(state: DrawGuessState, event: DrawGuessEven
       return {
         ...state,
         phase: { ...state.phase, strokes: [] },
-        phaseRevision: state.phaseRevision + 1,
       };
     }
     case 'drawguess.guess.submitted': {
@@ -123,7 +124,6 @@ export function evolveDrawGuessState(state: DrawGuessState, event: DrawGuessEven
           deadlineAt: event.deadlineAt,
         },
         scores,
-        phaseRevision: state.phaseRevision + 1,
       };
     }
     case 'drawguess.round.ended': {
@@ -163,7 +163,6 @@ export function evolveDrawGuessState(state: DrawGuessState, event: DrawGuessEven
             reservedAt: event.reservedAt,
           },
         },
-        phaseRevision: state.phaseRevision + 1,
       };
     }
     case 'drawguess.drawing.committed': {
@@ -171,7 +170,6 @@ export function evolveDrawGuessState(state: DrawGuessState, event: DrawGuessEven
       return {
         ...state,
         phase: { ...state.phase, pngEntry: { ...event.pngEntry } },
-        phaseRevision: state.phaseRevision + 1,
       };
     }
     case 'drawguess.game.ended':

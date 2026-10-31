@@ -12,7 +12,10 @@ export interface DrawGuessScoreboardRow {
   readonly displayName: string;
   readonly isBot: boolean;
   readonly isDrawer: boolean;
-  readonly score: number;
+  readonly isSelf: boolean;
+  /** 本轮得分；终局榜为 null，不渲染本轮段。 */
+  readonly roundScore: number | null;
+  readonly totalScore: number;
 }
 
 interface DrawGuessScoreboardProps {
@@ -22,16 +25,16 @@ interface DrawGuessScoreboardProps {
   readonly rows: readonly DrawGuessScoreboardRow[];
 }
 
-/** 按得分降序排列；同分并列时按竞赛排名顺延。 */
+/** 按总分降序排列；同分并列时按竞赛排名顺延。 */
 function rankDrawGuessScoreboard(
   rows: readonly DrawGuessScoreboardRow[],
 ): readonly (DrawGuessScoreboardRow & { readonly rank: number })[] {
-  const sorted = [...rows].sort((a, b) => b.score - a.score);
+  const sorted = [...rows].sort((a, b) => b.totalScore - a.totalScore);
   let rank = 0;
   let previousScore: number | null = null;
   return sorted.map((row, index) => {
-    if (previousScore === null || row.score !== previousScore) rank = index + 1;
-    previousScore = row.score;
+    if (previousScore === null || row.totalScore !== previousScore) rank = index + 1;
+    previousScore = row.totalScore;
     return { ...row, rank };
   });
 }
@@ -43,7 +46,7 @@ function rankLabel(rank: number): string {
   return `第${rank}名`;
 }
 
-/** 本轮得分 / 终局总分榜。 */
+/** 总分榜：结算行显示本轮加分与总分，终局行只显示总分；自己一行高亮。 */
 export const DrawGuessScoreboard: React.FC<DrawGuessScoreboardProps> = ({
   title,
   competitionRanking,
@@ -52,7 +55,7 @@ export const DrawGuessScoreboard: React.FC<DrawGuessScoreboardProps> = ({
   const ranked = competitionRanking
     ? rankDrawGuessScoreboard(rows)
     : [...rows]
-        .sort((a, b) => b.score - a.score)
+        .sort((a, b) => b.totalScore - a.totalScore)
         .map((row, index) => ({ ...row, rank: index + 1 }));
   return (
     <View style={styles.container} accessibilityLabel={title}>
@@ -62,12 +65,16 @@ export const DrawGuessScoreboard: React.FC<DrawGuessScoreboardProps> = ({
           <Text style={styles.rank}>
             {competitionRanking ? rankLabel(row.rank) : `${row.rank}`}
           </Text>
-          <Text style={styles.name} numberOfLines={1}>
+          <Text style={[styles.name, row.isSelf && styles.selfName]} numberOfLines={1}>
             {row.displayName}
             {row.isBot ? ' · 机器人' : ''}
             {row.isDrawer ? ' · 画手' : ''}
           </Text>
-          <Text style={styles.score}>{row.score} 分</Text>
+          <Text style={styles.score}>
+            {row.roundScore === null
+              ? `${row.totalScore} 分`
+              : `+${row.roundScore} · 总分 ${row.totalScore}`}
+          </Text>
         </View>
       ))}
     </View>
@@ -104,6 +111,10 @@ const styles = StyleSheet.create({
     ...textStyles.body,
     color: colors.text,
     flex: 1,
+  },
+  selfName: {
+    ...textStyles.bodySemibold,
+    color: colors.primary,
   },
   score: {
     ...textStyles.bodySemibold,

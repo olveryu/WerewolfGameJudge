@@ -3,11 +3,13 @@
  *
  * Moved out of PictionaryTaskFrame: the heading stays pinned, the body
  * shrinks to the space left above the keyboard, and the footer stays
- * pinned at the bottom. Nothing inside this frame scrolls, so focusing
- * the input never pulls the task content down. The keyboard inset
- * itself is handled by RoomTaskViewport; this frame only owns the
- * shrink discipline. Timer and heading rendering stay with each game
- * and arrive through the header slot.
+ * pinned at the bottom. The frame itself adds no scrolling container,
+ * so focusing the input never pulls the task content down; game-owned
+ * body content may still scroll internally (for example, StoryRelay's
+ * previous-entry area). The keyboard inset itself is handled by
+ * RoomTaskViewport; this frame only owns the shrink discipline. Timer
+ * and heading rendering stay with each game and arrive through the
+ * header slot.
  */
 
 import type { ReactNode } from 'react';

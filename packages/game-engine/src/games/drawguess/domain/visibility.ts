@@ -37,6 +37,8 @@ export interface DrawGuessViewModel {
   readonly wordLength: number;
   readonly messages: readonly DrawGuessGuessMessage[];
   readonly roundScores: Readonly<Record<number, number>> | null;
+  /** 本轮内各座位已得分数（作画期取 turnScores，结算期取 roundScores）；其余阶段为空对象。 */
+  readonly turnScores: Readonly<Record<number, number>>;
   readonly totalScores: Readonly<Record<number, number>>;
   readonly turnLabel: string;
   readonly deadlineAt: number | null;
@@ -138,6 +140,12 @@ export function getDrawGuessViewModel(
     wordLength,
     messages: guessMessages(state, viewerSeat, isDrawer),
     roundScores: phase.kind === 'roundEnd' ? phase.roundScores : null,
+    turnScores:
+      phase.kind === 'drawing'
+        ? phase.turnScores
+        : phase.kind === 'roundEnd'
+          ? phase.roundScores
+          : {},
     totalScores: phase.kind === 'ended' ? phase.totalScores : state.scores,
     turnLabel,
     deadlineAt,

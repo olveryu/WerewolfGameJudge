@@ -46,8 +46,8 @@ export function isValidGuessText(text: string): boolean {
 }
 
 /**
- * 猜中者得分：50 + round(100 × 剩余毫秒 / 90000)。
- * 开局即猜中得 150 分，压哨猜中得 50 分。
+ * 猜中者得分：20 + round(180 × 剩余毫秒 / 90000)。
+ * 开局即猜中得 200 分，压哨猜中得 20 分。
  * remainingMs 来自 computeScoringRemainingMs（作画开始时刻为基准），
  * 猜中压缩 deadline 不影响后续猜中者的速度分。
  */

@@ -50,6 +50,11 @@ describe('RoomTaskFrame', () => {
   });
 
   it('omits the footer wrapper when the footer is null', () => {
+    const withFooter = render(
+      <RoomTaskFrame header={<Text>任务标题</Text>} footer={<Text>底部操作</Text>} maxWidth={430}>
+        <Text>任务内容</Text>
+      </RoomTaskFrame>,
+    );
     const view = render(
       <RoomTaskFrame header={<Text>任务标题</Text>} footer={null} maxWidth={430}>
         <Text>任务内容</Text>
@@ -57,6 +62,9 @@ describe('RoomTaskFrame', () => {
     );
     expect(view.queryByText('底部操作')).toBeNull();
     expect(view.getByText('任务内容')).toBeVisible();
+    expect(view.UNSAFE_queryAllByType(View).length).toBe(
+      withFooter.UNSAFE_queryAllByType(View).length - 1,
+    );
   });
 
   it('merges the container and footer geometry overrides after the base styles', () => {

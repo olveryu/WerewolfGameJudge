@@ -30,4 +30,17 @@ describe('getDrawGuessRoomCommandFailureMessage', () => {
       ),
     ).toBe('题目已下发');
   });
+
+  it('maps the expired-round and rate-limited reasons to distinct copy', () => {
+    expect(
+      getDrawGuessRoomCommandFailureMessage(
+        rejectedRoomCommand<DrawGuessState>('drawguess_round_expired', 'command-3'),
+      ),
+    ).toBe('本轮已结束，答案即将公布');
+    expect(
+      getDrawGuessRoomCommandFailureMessage(
+        rejectedRoomCommand<DrawGuessState>('drawguess_rate_limited', 'command-4'),
+      ),
+    ).toBe('猜得太快了，稍后再试');
+  });
 });
