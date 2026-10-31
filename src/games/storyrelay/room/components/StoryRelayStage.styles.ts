@@ -4,17 +4,21 @@ import { StyleSheet } from 'react-native';
 
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
 
+/** Width cap shared by the Story Relay task column and the task frame. */
+export const STORY_RELAY_CONTENT_MAX_WIDTH = 800;
+
 export const storyRelayStyles = StyleSheet.create({
   container: { flex: 1, minHeight: 0 },
   content: {
     width: '100%',
-    maxWidth: 800,
+    maxWidth: STORY_RELAY_CONTENT_MAX_WIDTH,
     alignSelf: 'center',
     padding: spacing.medium,
     gap: spacing.medium,
   },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.small },
-  task: { flex: 1, minHeight: 0, paddingVertical: spacing.small, gap: spacing.small },
+  /** Keeps the task frame's wider horizontal padding for the editor column. */
+  taskFrameContainer: { paddingHorizontal: spacing.medium },
   progressList: { paddingHorizontal: spacing.medium, gap: spacing.small },
   progressItem: { paddingVertical: spacing.tight, gap: spacing.tight },
   title: { ...textStyles.subtitleSemibold, color: colors.text, flexShrink: 1 },

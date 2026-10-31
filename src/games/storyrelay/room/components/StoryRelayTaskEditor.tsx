@@ -12,13 +12,16 @@ import { useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/Button';
-import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
+import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { colors, componentSizes } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 
 import type { StoryRelayFinalizationStatus } from '../hooks/useStoryRelayAutoSubmission';
-import { storyRelayStyles as styles } from './StoryRelayStage.styles';
+import {
+  STORY_RELAY_CONTENT_MAX_WIDTH,
+  storyRelayStyles as styles,
+} from './StoryRelayStage.styles';
 
 /** Remounts per task so switching authors cannot carry another manuscript into the editor. */
 export function StoryRelayTaskEditor({
@@ -72,54 +75,17 @@ export function StoryRelayTaskEditor({
   };
   const previous = task.previousEntry;
   return (
-    <RoomTaskViewport>
-      <View style={[styles.content, styles.task]} testID="storyrelay-task">
+    <RoomTaskFrame
+      maxWidth={STORY_RELAY_CONTENT_MAX_WIDTH}
+      testID="storyrelay-task"
+      containerStyle={styles.taskFrameContainer}
+      header={
         <Text style={styles.title}>
           {controlledSeat === null ? '我的稿件' : `${getBotDisplayName(controlledSeat)}的稿件`}
         </Text>
-        {previous !== null && (
-          <View style={styles.previous}>
-            <Text style={styles.muted}>上一段</Text>
-            <ScrollView style={styles.previousScroll} keyboardShouldPersistTaps="handled">
-              <Text selectable style={styles.text} testID="storyrelay-previous-entry">
-                {previous.kind === 'text' ? previous.text : '上一段留白'}
-              </Text>
-            </ScrollView>
-          </View>
-        )}
-        <TextInput
-          testID="storyrelay-editor"
-          accessibilityLabel={task.stepIndex === 0 ? '故事开头' : '故事续写'}
-          multiline
-          maxLength={STORY_RELAY_TEXT_MAX_LENGTH}
-          value={text}
-          onChangeText={onChangeText}
-          editable={canEdit}
-          placeholder={task.stepIndex === 0 ? '故事从这里开始' : '写下接下来的故事'}
-          placeholderTextColor={colors.textMuted}
-          style={styles.editor}
-        />
-        <View style={styles.row}>
-          <Text style={isValid ? styles.muted : styles.error}>
-            {text.length} / {STORY_RELAY_TEXT_MAX_LENGTH}
-          </Text>
-          <Text style={styles.muted}>
-            {task.isSubmitted
-              ? entry?.kind === 'empty'
-                ? '已交空白'
-                : '已收稿'
-              : state.phase === 'transition'
-                ? '本棒已结束'
-                : finalization === 'retrying'
-                  ? '正在自动重试'
-                  : finalization === 'failed'
-                    ? '收稿失败'
-                    : state.phase === 'settling'
-                      ? '正在自动收稿'
-                      : ''}
-          </Text>
-        </View>
-        {state.phase === 'answering' && (
+      }
+      footer={
+        state.phase === 'answering' ? (
           <Button
             disabled={isExpired || isSubmitting}
             testID="storyrelay-ready"
@@ -134,8 +100,51 @@ export function StoryRelayTaskEditor({
           >
             {isReady ? '取消准备' : '准备好了'}
           </Button>
-        )}
+        ) : null
+      }
+    >
+      {previous !== null && (
+        <View style={styles.previous}>
+          <Text style={styles.muted}>上一段</Text>
+          <ScrollView style={styles.previousScroll} keyboardShouldPersistTaps="handled">
+            <Text selectable style={styles.text} testID="storyrelay-previous-entry">
+              {previous.kind === 'text' ? previous.text : '上一段留白'}
+            </Text>
+          </ScrollView>
+        </View>
+      )}
+      <TextInput
+        testID="storyrelay-editor"
+        accessibilityLabel={task.stepIndex === 0 ? '故事开头' : '故事续写'}
+        multiline
+        maxLength={STORY_RELAY_TEXT_MAX_LENGTH}
+        value={text}
+        onChangeText={onChangeText}
+        editable={canEdit}
+        placeholder={task.stepIndex === 0 ? '故事从这里开始' : '写下接下来的故事'}
+        placeholderTextColor={colors.textMuted}
+        style={styles.editor}
+      />
+      <View style={styles.row}>
+        <Text style={isValid ? styles.muted : styles.error}>
+          {text.length} / {STORY_RELAY_TEXT_MAX_LENGTH}
+        </Text>
+        <Text style={styles.muted}>
+          {task.isSubmitted
+            ? entry?.kind === 'empty'
+              ? '已交空白'
+              : '已收稿'
+            : state.phase === 'transition'
+              ? '本棒已结束'
+              : finalization === 'retrying'
+                ? '正在自动重试'
+                : finalization === 'failed'
+                  ? '收稿失败'
+                  : state.phase === 'settling'
+                    ? '正在自动收稿'
+                    : ''}
+        </Text>
       </View>
-    </RoomTaskViewport>
+    </RoomTaskFrame>
   );
 }
