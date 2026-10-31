@@ -34,17 +34,21 @@ export interface LoopFrame {
 export type LoopSampler<G> = (t: number, size: number) => G;
 
 /**
- * Wall-clock spacing between samples. 30 samples per animated second keeps linear segments
- * invisible for the sinusoidal / circular trajectories used by seat flairs and still resolves
- * sub-second flashes inside long cycles (e.g. a 1.2 s pulse in an 8 s loop).
+ * Wall-clock spacing between samples. 15 samples per animated second keeps linear segments
+ * invisible for the sinusoidal / circular micro-motions used by seat flairs and still resolves
+ * sub-second flashes inside long cycles (a 1.2 s pulse in an 8 s loop gets 18 samples).
+ * Fewer keyframes also means less main-thread curve evaluation in Blink / cc at iteration
+ * boundaries — measured ~30 % less `AnimationHost::TickAnimations` than at 30/s.
  */
-const LOOP_SAMPLE_INTERVAL_MS = 1000 / 30;
+const LOOP_SAMPLE_INTERVAL_MS = 1000 / 15;
+/** Floor so sub-second loops (e.g. a 500 ms chain rattle) still get a smooth curve. */
+const LOOP_MIN_SAMPLES = 24;
 
 function sampleCountFor(durationMs: number): number {
   if (!(durationMs > 0)) {
     throw new Error(`Loop duration must be positive, received ${durationMs}`);
   }
-  return Math.ceil(durationMs / LOOP_SAMPLE_INTERVAL_MS);
+  return Math.max(LOOP_MIN_SAMPLES, Math.ceil(durationMs / LOOP_SAMPLE_INTERVAL_MS));
 }
 
 /**

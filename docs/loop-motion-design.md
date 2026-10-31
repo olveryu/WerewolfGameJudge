@@ -27,7 +27,7 @@ Reanimated ≥ 4 的 **CSS Animations API**（`animationName` / `animationDurati
 [`loopKeyframes.ts`](../src/components/loopMotion/loopKeyframes.ts)
 
 - **Sampler**：每个装饰元素把原来的逐帧数学原样保留为纯函数 `(t, size) => geometry`，`t ∈ [0, 1)` 为循环进度。Sampler 必须是**模块级常量**——它是缓存键。
-- **采样**：按固定 33 ms 间隔采样（`LOOP_SAMPLE_INTERVAL_MS`），`n = ceil(duration / 33)`，共 `n + 1` 帧，最后一帧是 `t = 1`。`100%` 关键帧用 `sample(1)` 而不是复用第 0 帧：CSS 迭代边界是瞬时重启，若回插到第 0 帧，平移波、不闭合旋转会每圈出现一次 33 ms 倒带。
+- **采样**：按固定 1/15 s 间隔采样（`LOOP_SAMPLE_INTERVAL_MS`），`n = max(24, ceil(duration / 66.7))`，共 `n + 1` 帧，最后一帧是 `t = 1`。更密的采样对这类正弦微动没有可见收益，却会线性增加 Blink / cc 在迭代边界评估曲线的主线程时间。`100%` 关键帧用 `sample(1)` 而不是复用第 0 帧：CSS 迭代边界是瞬时重启，若回插到第 0 帧，平移波、不闭合旋转会每圈出现一次 33 ms 倒带。
 - **规则共享**：`createLoopRuleCache(derive)` 以 `(sampler, size, durationMs)` 为键缓存 `css.keyframes()` 结果。同一 flair 在 12 个座位上只产生一套规则；10 种颜色变体也共享（颜色不在 keyframes 里）。
 - **相位**：元素错相用负 `animationDelay = -phase × duration`，而不是把 `phase` 烘进 sampler；这样共享同一规则。若原代码把 phase 用于非时间项（如角度偏移），该项保留在 sampler 内。
 
@@ -60,7 +60,20 @@ Reanimated ≥ 4 的 **CSS Animations API**（`animationName` / `animationDurati
 - 一次性特效中的无限循环必须在 effect cleanup 中 `cancelAnimation`（PR 中已为 `RoleRevealEffects` 42 处补齐）。
 - 用户开关：设置 › 显示 › 座位装饰（`SettingsService.seatDecorationsEnabled`），与系统 reduced-motion 一起通过 [`useSeatDecorationsPreference`](../src/features/product/hooks/useSeatDecorationsPreference.ts) 汇入 `RoomSeatBoard` 的 `seatDecorationsEnabled`。
 
-## 7. 验证方式
+## 7. 实测（headless Chromium，装饰 › 普通 页，312 个动画节点 ≈ 6 个满员房间）
+
+| 主线程 self time / 5 s                     | 迁移前 (`origin/main`) | 迁移后              |
+| ------------------------------------------ | ---------------------- | ------------------- |
+| JS (`FunctionCall`)                        | 1338 ms                | 11 ms               |
+| Paint + PrePaint + Layout                  | 434 ms                 | 28 ms               |
+| Raster（工作线程）                         | 2244 ms                | 0                   |
+| Blink/cc 动画 tick + 迭代边界 style recalc | 133 ms                 | ≈620 ms             |
+| **合计**                                   | **≈2450 ms（49 %）**   | **≈800 ms（16 %）** |
+| 应用层 `requestAnimationFrame` 调用 / 5 s  | 21 209                 | 0                   |
+
+剩余成本是 Blink 在每个动画迭代边界做的主线程记账（`AnimationTimeline::serviceAnimations` + `Document::recalcStyle`）以及 cc 对 keyframe 曲线的求值，与**边界次数**和 **keyframe 数**成正比、与帧率无关；一个 12 座房间的边界次数约为该页面的 1/6。复现脚本见 PR 描述。
+
+## 8. 验证方式
 
 Chrome DevTools：
 
