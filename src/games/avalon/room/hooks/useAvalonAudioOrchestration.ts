@@ -12,7 +12,7 @@ import {
   type AudioEffect,
   type AvalonPublicCommand,
   type AvalonState,
-  getAvalonNightStepDef,
+  getAvalonNightStepBeginAudioKey,
 } from '@game-judge/game-engine/games/avalon/public';
 import { useMemo } from 'react';
 
@@ -44,7 +44,9 @@ const isNarratedPhase = (state: AvalonState): boolean =>
   state.phase.kind === 'night' || state.isAudioPlaying;
 
 const resolveReplayAudioKey = (state: AvalonState): string | null =>
-  state.phase.kind === 'night' ? getAvalonNightStepDef(state.phase.step).audioKey : null;
+  state.phase.kind === 'night'
+    ? getAvalonNightStepBeginAudioKey(state.phase.step, state.roles)
+    : null;
 
 function createAvalonPlayerPort(
   audio: AvalonAudioRuntime,

@@ -12,8 +12,10 @@
 import type {
   AudioEffect,
   AvalonPublicCommand,
+  AvalonRoleId,
   AvalonState,
 } from '@game-judge/game-engine/games/avalon/public';
+import { AVALON_BOARDS } from '@game-judge/game-engine/games/avalon/public';
 import { NIGHT_END_AUDIO_KEY } from '@game-judge/game-engine/platform/audio';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { act, renderHook } from '@testing-library/react-native';
@@ -27,9 +29,14 @@ import { useAvalonAudioOrchestration } from '../useAvalonAudioOrchestration';
 
 const QUEUED_BATCH_ID = 1;
 
-function queuedState(queue: readonly AudioEffect[], phase?: AvalonState['phase']): AvalonState {
+function queuedState(
+  queue: readonly AudioEffect[],
+  phase?: AvalonState['phase'],
+  roles?: Record<number, AvalonRoleId>,
+): AvalonState {
   return buildAvalonTestState({
     ...(phase === undefined ? {} : { phase }),
+    ...(roles === undefined ? {} : { roles }),
     pendingAudioEffects: queue,
     isAudioPlaying: true,
     audioBatchId: QUEUED_BATCH_ID,
@@ -50,11 +57,12 @@ const FIRST_NIGHT_STEP: AvalonState['phase'] = {
 function createFakeLink(
   queue: readonly AudioEffect[],
   mountedMidNarration: AvalonState['phase'] | null = null,
+  roles?: Record<number, AvalonRoleId>,
 ) {
   const initialState =
     mountedMidNarration === null
       ? buildAvalonTestState({ audioBatchId: 0 })
-      : queuedState(queue, mountedMidNarration);
+      : queuedState(queue, mountedMidNarration, roles);
   let revision = 1;
   let settleAck: ((outcome: DispatchOutcome<AvalonState>) => void) | null = null;
   const link = createFakeRoomLink<AvalonState, AvalonPublicCommand>(
@@ -192,6 +200,36 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
       { type: 'avalon.audio.ack', audioBatchId: QUEUED_BATCH_ID },
       { controlledSeat: null, label: '播报确认', durable: true },
     );
+  });
+
+  it('host rejoin mid-step on an Oberon board replays the except-Oberon opening', async () => {
+    // Rejoin replay derives the opening from the dealt roles, not from
+    // the queued batch: the fixture batch deliberately carries the plain
+    // opening, so only a roles-driven replay can produce the except line.
+    const roles: Record<number, AvalonRoleId> = {};
+    AVALON_BOARDS[7].forEach((role, seat) => {
+      roles[seat] = role;
+    });
+    const queue: readonly AudioEffect[] = [{ audioKey: 'night' }, { audioKey: 'evil_reveal' }];
+    const fake = createFakeLink(queue, FIRST_NIGHT_STEP, roles);
+    const { result } = renderHook(() =>
+      useAvalonAudioOrchestration({ session: fake.link, isHost: true, audio }),
+    );
+
+    await flushPlayback();
+    expect(result.current.readWasAudioInterrupted()).toBe(true);
+    expect(audio.playEffect).not.toHaveBeenCalled();
+
+    await act(async () => {
+      const resumed = result.current.resumeAfterRejoin();
+      await flushPlayback();
+      fake.commitAck();
+      await resumed;
+    });
+    expect(audio.playEffect.mock.calls.map(([audioKey]) => audioKey)).toEqual([
+      'evil_reveal_except_oberon',
+    ]);
+    expect(fake.dispatch).toHaveBeenCalledTimes(1);
   });
 
   it('host rejoin during the dawn batch replays nothing and acks (the gate closes on the ack)', async () => {

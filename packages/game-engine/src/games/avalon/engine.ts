@@ -32,7 +32,7 @@ import {
 } from './domain/decision';
 import { evolveAvalonState } from './domain/evolve';
 import { evaluateAvalonNightCompletion, queueAudio } from './domain/nightProgression';
-import { getAvalonNightStepDef } from './domain/nightSteps';
+import { getAvalonNightStepBeginAudioKey } from './domain/nightSteps';
 import {
   buildAvalonNightInfo,
   getAvalonFailsNeeded,
@@ -181,7 +181,7 @@ function beginGame(state: AvalonState, context: CommandContext): AvalonDecision 
     { type: 'avalon.game.begun' },
     queueAudio([
       { audioKey: 'night' },
-      { audioKey: getAvalonNightStepDef(AVALON_NIGHT_STEPS[0]!).audioKey },
+      { audioKey: getAvalonNightStepBeginAudioKey(AVALON_NIGHT_STEPS[0]!, state.roles) },
     ]),
   ]);
 }
