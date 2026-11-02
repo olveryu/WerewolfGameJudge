@@ -14,8 +14,9 @@ import {
 
 export const DRAWGUESS_GAME_TYPE = 'drawguess' as const;
 /** v2 replaces realSeats plus the implicit-bot derivation inputs (the fill
- * flag lived inside the config) with the unified roster. v1 payloads
- * migrate through migratePersistedDrawGuessState. */
+ * flag lived inside the config) with the unified roster. v3 adds
+ * drawerZeroed to roundEnd phases. v1 and v2 payloads migrate through
+ * migratePersistedDrawGuessState. */
 
 export const DRAWGUESS_MIN_PLAYERS = 4;
 export const DRAWGUESS_MAX_PLAYERS = 12;
@@ -30,8 +31,12 @@ export const DRAWGUESS_WORD_CHOICE_COUNT = 3;
 
 export const DRAWGUESS_GUESS_BASE_SCORE = 20;
 export const DRAWGUESS_GUESS_SPEED_BONUS_MAX = 180;
-/** 画手每被一人猜中，按该猜中者得分的这一比例即时加分。 */
+/** 画手每被一人猜中，按该猜中者得分的这一比例即时加分（仅首个猜中者）。 */
 export const DRAWGUESS_DRAWER_SHARE = 0.5;
+/** 首个猜中之后，每多一人猜中，画手只加这么多分。 */
+export const DRAWGUESS_DRAWER_FLAT_AFTER_FIRST = 20;
+/** 画手单轮收入封顶。 */
+export const DRAWGUESS_DRAWER_ROUND_CAP = 160;
 /** 首个猜中后，剩余作画时间压缩到至多这么多秒。 */
 export const DRAWGUESS_FIRST_GUESS_REMAINING_CAP_SECONDS = 30;
 /** 除画手外全部席位猜中后，剩余作画时间压缩到至多这么多秒。 */
@@ -54,6 +59,16 @@ export const DRAWGUESS_WORD_CATEGORIES = [
   'people',
   'idioms',
   'internetMemes',
+  'instruments',
+  'occupations',
+  'space',
+  'festivals',
+  'electronics',
+  'characters',
+  'nature',
+  'landmarks',
+  'stationery',
+  'oceanLife',
 ] as const;
 export type DrawGuessWordCategory = (typeof DRAWGUESS_WORD_CATEGORIES)[number];
 
@@ -204,6 +219,8 @@ export type DrawGuessPhase =
       /** 保留用于结算展示，下一回合清空。 */
       readonly strokes: readonly DrawGuessStroke[];
       readonly roundScores: Readonly<Record<number, number>>;
+      /** 全员猜中导致画手本轮收入清零时为 true；其余结算为 false。 */
+      readonly drawerZeroed: boolean;
       readonly pngEntry: DrawGuessMedia | null;
       readonly reservation: DrawGuessDrawingReservation | null;
       readonly deadlineAt: number;

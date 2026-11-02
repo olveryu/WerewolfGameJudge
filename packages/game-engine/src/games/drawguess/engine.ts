@@ -29,7 +29,7 @@ import {
 import { evolveDrawGuessState } from './domain/evolve';
 import {
   computeDeadlineAfterGuess,
-  computeDrawerScore,
+  computeDrawerRoundGain,
   computeGuesserScore,
   computeScoringRemainingMs,
   createRevealOrder,
@@ -320,7 +320,13 @@ function submitGuess(
       correct,
       at: context.nowMs,
       guesserScore,
-      drawerScore: computeDrawerScore(guesserScore),
+      drawerScore: correct
+        ? computeDrawerRoundGain(
+            guesserScore,
+            state.phase.guessedSeats.length,
+            state.phase.turnScores[state.phase.drawerSeat] ?? 0,
+          )
+        : 0,
       deadlineAt,
     },
   ]);
