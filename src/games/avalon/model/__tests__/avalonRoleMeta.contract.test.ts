@@ -9,10 +9,15 @@
  *    字面量（出现 = 第二份文案源），且旧手写说明屏 AvalonRulesScreen
  *    不许回来。
  */
-import { AVALON_ROLES, type AvalonRoleId } from '@game-judge/game-engine/games/avalon/public';
+import {
+  AVALON_QUESTS_TO_WIN,
+  AVALON_ROLES,
+  type AvalonRoleId,
+} from '@game-judge/game-engine/games/avalon/public';
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
+import { toAvalonRoleDescriptionFields } from '../avalonRoleDescriptionFields';
 import { type AvalonRoleDescription, getAvalonRoleMeta } from '../avalonRoleMeta';
 
 const SRC_ROOT = join(__dirname, '..', '..', '..', '..');
@@ -71,6 +76,21 @@ describe('avalon role meta completeness', () => {
   it('fails fast on an unknown role id', () => {
     const unknown = 'not-a-role' as AvalonRoleId;
     expect(() => getAvalonRoleMeta(unknown)).toThrow('Unknown Avalon role ID');
+  });
+});
+
+describe('avalon role meta quest counts derive from the engine constant', () => {
+  it('rendered win-condition and trigger fields state the constant quest count', () => {
+    for (const roleId of AVALON_ROLES) {
+      const fields = toAvalonRoleDescriptionFields(getAvalonRoleMeta(roleId).description);
+      const winField = fields.find((field) => field.label === '胜利条件');
+      expect(winField).toBeDefined();
+      expect(winField?.content ?? '').toContain(`${AVALON_QUESTS_TO_WIN} 个任务`);
+    }
+    const assassinFields = toAvalonRoleDescriptionFields(getAvalonRoleMeta('assassin').description);
+    const triggerField = assassinFields.find((field) => field.label === '触发效果');
+    expect(triggerField).toBeDefined();
+    expect(triggerField?.content ?? '').toContain(`好人完成 ${AVALON_QUESTS_TO_WIN} 个任务后`);
   });
 });
 

@@ -13,12 +13,15 @@ export {
   getUndercoverRoleCounts,
   getUndercoverWinner,
   UNDERCOVER_BLANK_MIN_PLAYERS,
+  UNDERCOVER_BLANK_WIN_TOTAL_SURVIVORS,
   UNDERCOVER_DEFAULT_PLAYERS,
   UNDERCOVER_MAX_PLAYERS,
   UNDERCOVER_MIN_PLAYERS,
   UNDERCOVER_ROLE_NAMES,
+  UNDERCOVER_TIERS,
   type UndercoverRole,
   type UndercoverRoleCounts,
+  type UndercoverTier,
 } from './domain/rules';
 export { getUndercoverWordCard, type UndercoverWordCard } from './domain/visibility';
 export { type UndercoverEngine, undercoverEngine } from './engine';
