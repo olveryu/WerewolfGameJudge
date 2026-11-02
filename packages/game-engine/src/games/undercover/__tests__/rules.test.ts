@@ -1,8 +1,31 @@
 /** Undercover distribution and victory contracts, independent of transport and UI. */
 
-import { getUndercoverRoleCounts, getUndercoverWinner, type UndercoverRole } from '../domain/rules';
+import {
+  getUndercoverRoleCounts,
+  getUndercoverWinner,
+  UNDERCOVER_BLANK_WIN_TOTAL_SURVIVORS,
+  UNDERCOVER_MAX_PLAYERS,
+  UNDERCOVER_MIN_PLAYERS,
+  UNDERCOVER_TIERS,
+  type UndercoverRole,
+} from '../domain/rules';
 
 describe('Undercover rules', () => {
+  it('covers every supported player count with exactly one tier', () => {
+    expect(UNDERCOVER_TIERS.map((tier) => tier.undercover)).toEqual([1, 2, 3]);
+    let low = UNDERCOVER_MIN_PLAYERS;
+    for (const tier of UNDERCOVER_TIERS) {
+      expect(tier.maxPlayers).toBeGreaterThanOrEqual(low);
+      low = tier.maxPlayers + 1;
+    }
+    expect(UNDERCOVER_TIERS[UNDERCOVER_TIERS.length - 1]?.maxPlayers).toBe(UNDERCOVER_MAX_PLAYERS);
+  });
+
+  it('lets a blank win with exactly the survivor count the tier table leaves', () => {
+    expect(getUndercoverWinner(['civilian', 'blank'] as readonly UndercoverRole[])).toBe('blank');
+    expect(UNDERCOVER_BLANK_WIN_TOTAL_SURVIVORS).toBe(2);
+  });
+
   it.each([
     [4, 1],
     [6, 1],

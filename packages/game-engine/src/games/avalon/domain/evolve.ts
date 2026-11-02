@@ -5,6 +5,8 @@ import { markSeatViewed } from '../../../platform/room/identityViewing';
 import { applyRosterChanges } from '../../../platform/room/seating';
 import {
   AVALON_LADY_MIN_PLAYERS,
+  AVALON_LADY_ROUNDS,
+  AVALON_QUESTS_TO_WIN,
   type AvalonLastVoteResult,
   type AvalonProposalRecord,
   type AvalonQuestRecord,
@@ -42,7 +44,7 @@ function resetAvalonGame(state: AvalonState): AvalonState {
 }
 
 function isLadyRound(round: AvalonQuestRound): round is 2 | 3 | 4 {
-  return round === 2 || round === 3 || round === 4;
+  return AVALON_LADY_ROUNDS.some((ladyRound) => ladyRound === round);
 }
 
 /**
@@ -278,10 +280,10 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           failCount: event.failCount,
         }),
       };
-      if (successes >= 3) {
+      if (successes >= AVALON_QUESTS_TO_WIN) {
         return { ...settled, phase: { kind: 'assassin', accusedSeat: null } };
       }
-      if (failures >= 3) {
+      if (failures >= AVALON_QUESTS_TO_WIN) {
         return {
           ...settled,
           phase: { kind: 'ended', winner: 'evil', reason: 'threeFail', accusedSeat: null },

@@ -37,8 +37,14 @@ export type AvalonVoteMode = (typeof AVALON_VOTE_MODES)[number];
 export const AVALON_DEFAULT_VOTE_MODE: AvalonVoteMode = 'public';
 
 export const AVALON_QUEST_COUNT = 5;
+/** 好人 / 坏人各需拿下这么多个任务获胜（5 轮取多数）。 */
+export const AVALON_QUESTS_TO_WIN = 3;
 /** 7 人及以上第 4 轮任务需要 2 张失败票才算失败（官方规则）。 */
 export const AVALON_FOURTH_QUEST_DOUBLE_FAIL_MIN_PLAYERS = 7;
+/** 需要 2 张失败票才算失败的轮次：第 4 轮。 */
+export const AVALON_DOUBLE_FAIL_QUEST_ROUND = 4;
+/** 第 4 轮（7 人及以上）任务失败需要的失败票数。 */
+export const AVALON_DOUBLE_FAILS_NEEDED = 2;
 /** 湖中仙女只在 9/10 人局出现。 */
 export const AVALON_LADY_MIN_PLAYERS = 9;
 /** 湖中仙女在第 2/3/4 轮任务结算后各查验一次。 */
