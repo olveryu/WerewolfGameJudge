@@ -353,7 +353,7 @@ Codec 必须用 `z.strictObject` 精确验证：座位范围、笔画字段、�
 
 `game.abort` 必须携带当前 `gameSequence`，旧确认不能中止新一局。该命令绑定整局而非笔画版本，确认期间的正常作画、猜词或阶段推进不使其失效；房主以未接管身份发送，服务端校验权限和局中阶段。
 
-`drawguess.round.ended` 由 `drawing` 跃迁时结算清零：若 `guessedSeats.length >= numberOfPlayers - 1`（全员猜中口径，与 3 秒压缩一致），画手本轮累计（`turnScores[drawerSeat]`）清零并从 `scores` 同额扣回，`roundScores` 取清零后数值，`roundEnd` 阶段 `drawerZeroed` 为 true；否则为 false。持久化版本为 v3（v2 新增 `drawerZeroed` 字段）；v1/v2 payload 经 `migratePersistedDrawGuessState` 一步升级，旧房间不作废。
+`drawguess.round.ended` 由 `drawing` 跃迁时结算清零：若 `guessedSeats.length >= numberOfPlayers - 1`（全员猜中口径，与 3 秒压缩一致），画手本轮累计（`turnScores[drawerSeat]`）清零并从 `scores` 同额扣回，`roundScores` 取清零后数值，`roundEnd` 阶段 `drawerZeroed` 为 true；否则为 false。持久化版本为 v3（v3 新增 `drawerZeroed` 字段）；v1/v2 payload 经 `migratePersistedDrawGuessState` 一步升级，旧房间不作废。
 
 ### 7.2 Internal commands
 
@@ -586,7 +586,7 @@ UI 组件只接收已按当前用户可见性裁剪的 view model。组件不得
 
 - Worker game catalog 注册新模块。
 - D1 migration：在所有含 `game_type CHECK (...)` 的表上加 `'drawguess'`（仿 0049/0056/0059 模式）。
-- `drawguess_words` 表：`word`（2–8 简体汉字，具象名词优先，适合绘画）、`category`、`pinyin_initials`（入库时拼音库生成，如"大熊猫"→"dxm"，多音字取常用读音人工确认）；服务端开局/选词时随机取 3 个未用过的词。**不复用** `fib_words`（跨游戏 import 违反架构约束，且瞎掰王词多为抽象词，不适合绘画）。分类（`category`，`DRAWGUESS_WORD_CATEGORIES` 为唯一来源）共 20 类：动物、食物、日用品、植物、交通工具、场所、运动、人物、成语、网络梗、乐器、职业、太空天文、节日习俗、电器数码、动漫角色、自然现象、建筑地标、文具校园、海洋生物。
+- `drawguess_words` 表：`word`（2–8 简体汉字，具象名词优先，适合绘画）、`category`、`pinyin_initials`（入库时拼音库生成，如"大熊猫"→"dxm"，多音字取常用读音人工确认）；服务端开局/选词时随机取 3 个未用过的词。**不复用** `fib_words`（跨游戏 import 违反架构约束，且瞎掰王词多为抽象词，不适合绘画）。分类（`category`，`DRAWGUESS_WORD_CATEGORIES` 为唯一来源）共 20 类：动物（`animals`）、食物（`food`）、日用品（`dailyObjects`）、植物（`plants`）、交通工具（`vehicles`）、场所（`places`）、运动（`sports`）、人物（`people`）、成语（`idioms`）、网络梗（`internetMemes`）、乐器（`instruments`）、职业（`occupations`）、太空天文（`space`）、节日习俗（`festivals`）、电器数码（`electronics`）、动漫角色（`characters`）、自然现象（`nature`）、建筑地标（`landmarks`）、文具校园（`stationery`）、海洋生物（`oceanLife`）。
 
 V1 不新增 D1 对局表。游戏权威状态保存在 DO SQLite，R2 保存终稿图片。
 
