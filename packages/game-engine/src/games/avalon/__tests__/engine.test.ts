@@ -1842,7 +1842,10 @@ describe('Avalon engine', () => {
     }
     raw.send({ type: 'avalon.game.begin' });
     expect(raw.state.isAudioPlaying).toBe(true);
-    expect(raw.state.pendingAudioEffects.map((e) => e.audioKey)).toEqual(['night', 'evil_reveal']);
+    expect(raw.state.pendingAudioEffects.map((e) => e.audioKey)).toEqual([
+      'night',
+      'evil_reveal_except_oberon',
+    ]);
     // 播报未播完时确认照常记账（顺序门已删）：只记账、不推进，中间态合法。
     const morgana = raw.seatOfRole('morgana');
     raw.send({ type: 'avalon.night.confirm' }, raw.seatUser(morgana));
@@ -1853,7 +1856,10 @@ describe('Avalon engine', () => {
       expect(nightPhase.confirmedSeats).toEqual([morgana]);
     }
     expect(raw.state.isAudioPlaying).toBe(true);
-    expect(raw.state.pendingAudioEffects.map((e) => e.audioKey)).toEqual(['night', 'evil_reveal']);
+    expect(raw.state.pendingAudioEffects.map((e) => e.audioKey)).toEqual([
+      'night',
+      'evil_reveal_except_oberon',
+    ]);
     // 非房主 ack 被拒绝（确保用非 0 号座位，莫甘娜可能随机分到房主座位）。
     const nonHostSeat = morgana === 0 ? 1 : morgana;
     raw.expectReject(raw.currentAck(), 'avalon_not_host_ack_audio', raw.seatUser(nonHostSeat));
@@ -1871,10 +1877,10 @@ describe('Avalon engine', () => {
       session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
     }
     session.send({ type: 'avalon.game.begin' });
-    // 开局队列：night + evil_reveal begin。
+    // 开局队列：night + evil_reveal_except_oberon begin。
     expect(session.state.pendingAudioEffects.map((e) => e.audioKey)).toEqual([
       'night',
-      'evil_reveal',
+      'evil_reveal_except_oberon',
     ]);
     session.send(session.currentAck(), 'host');
     // 走完 evilReveal → merlinReveal：evil_reveal end + merlin_reveal begin。
@@ -1913,7 +1919,7 @@ describe('Avalon engine', () => {
     session.send({ type: 'avalon.game.begin' });
     expect(session.state.pendingAudioEffects.map((e) => e.audioKey)).toEqual([
       'night',
-      'evil_reveal',
+      'evil_reveal_except_oberon',
     ]);
     // 先确认后 ack：播报未 ack 时两名参与者先确认，只记账、不推进。
     const morgana = session.seatOfRole('morgana');
@@ -1929,7 +1935,7 @@ describe('Avalon engine', () => {
     expect(session.state.isAudioPlaying).toBe(true);
     expect(session.state.pendingAudioEffects.map((e) => e.audioKey)).toEqual([
       'night',
-      'evil_reveal',
+      'evil_reveal_except_oberon',
     ]);
     // 推进落在房主 ack 的 decision：步进、清确认集、转场批入队。
     session.send(session.currentAck(), 'host');

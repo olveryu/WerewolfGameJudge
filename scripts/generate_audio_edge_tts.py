@@ -187,7 +187,8 @@ BEGIN_TEXT_AVALON: dict[str, str] = {
     # clip ~13dB quieter than its siblings. The wording lives here now so
     # the clip is reproducible from the generator.
     "night_end": "请各位整理表情。三、二、一，天亮了，请睁眼。",
-    "evil_reveal": "除奥伯伦外，坏人请睁眼，请互相确认身份。",
+    "evil_reveal": "坏人请睁眼，请互相确认身份。",
+    "evil_reveal_except_oberon": "除奥伯伦外，坏人请睁眼，请互相确认身份。",
     "merlin_reveal": "梅林请睁眼，请确认坏人身份。",
     "percival_reveal": "派西维尔请睁眼，请记住梅林和莫甘娜。",
 }

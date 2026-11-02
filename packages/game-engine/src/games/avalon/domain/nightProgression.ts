@@ -19,7 +19,7 @@
 import { type AudioEffect, guardAudioPlayback, NIGHT_END_AUDIO_KEY } from '../../../platform/audio';
 import { AVALON_NIGHT_STEPS, type AvalonState } from '../state/types';
 import { AVALON_REASONS, type AvalonEvent } from './decision';
-import { getAvalonNightStepDef, getAvalonNightStepEndKey } from './nightSteps';
+import { getAvalonNightStepBeginAudioKey, getAvalonNightStepEndAudioKey } from './nightSteps';
 import { getAvalonNightParticipants } from './rules';
 
 /** 夜晚播报队列事件；入队纪律（空批 fail-fast＋整批拷贝＋批次 id）由 evolve 里的共享音频机器负责。 */
@@ -47,13 +47,12 @@ export function evaluateAvalonNightCompletion(state: AvalonState): readonly Aval
   if (guardAudioPlayback(state, AVALON_REASONS.audioPlaying) !== null) return [];
   const participants = getAvalonNightParticipants(state.roles, phase.step);
   if (!participants.every((seat) => phase.confirmedSeats.includes(seat))) return [];
-  const def = getAvalonNightStepDef(phase.step);
   const nextStep = AVALON_NIGHT_STEPS[AVALON_NIGHT_STEPS.indexOf(phase.step) + 1];
   if (nextStep === undefined) {
     return [
       { type: 'avalon.night.completed' },
       queueAudio([
-        { audioKey: getAvalonNightStepEndKey(def), isEndAudio: true },
+        { audioKey: getAvalonNightStepEndAudioKey(phase.step, state.roles), isEndAudio: true },
         { audioKey: NIGHT_END_AUDIO_KEY },
       ]),
     ];
@@ -61,8 +60,8 @@ export function evaluateAvalonNightCompletion(state: AvalonState): readonly Aval
   return [
     { type: 'avalon.night.stepped', step: nextStep },
     queueAudio([
-      { audioKey: getAvalonNightStepEndKey(def), isEndAudio: true },
-      { audioKey: getAvalonNightStepDef(nextStep).audioKey },
+      { audioKey: getAvalonNightStepEndAudioKey(phase.step, state.roles), isEndAudio: true },
+      { audioKey: getAvalonNightStepBeginAudioKey(nextStep, state.roles) },
     ]),
   ];
 }
