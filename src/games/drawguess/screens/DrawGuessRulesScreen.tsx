@@ -56,7 +56,7 @@ export function DrawGuessRulesScreen() {
         <RuleItem
           icon="brush-outline"
           title="画手得分看难度"
-          description={`首个猜中者得分的一半归画手，之后每多一人猜中加 ${DRAWGUESS_DRAWER_FLAT_AFTER_FIRST} 分，单轮封顶 ${DRAWGUESS_DRAWER_ROUND_CAP} 分；全员猜中则画手本轮 0 分（画得太简单）。`}
+          description={`首个猜中者得分的一半归画手，之后每多一人猜中加 ${DRAWGUESS_DRAWER_FLAT_AFTER_FIRST} 分，单轮封顶 ${DRAWGUESS_DRAWER_ROUND_CAP} 分；全员猜中则画手本轮 0 分（画得太简单）。无人猜中则画手 0 分。`}
         />
         <RuleItem
           icon="trophy-outline"
