@@ -1,3 +1,4 @@
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { expect, type Page, test } from '@playwright/test';
 
 import {
@@ -125,7 +126,7 @@ async function drivePostConfessNight(
     const checked = await clickSeatAndConfirm(pages[seerPageIndex]!, seerCheckSeat);
     expect(checked, 'Seer should confirm the check').toBe(true);
     const revealText = await readAlertText(pages[seerPageIndex]!);
-    expect(revealText).toContain(`${seerCheckSeat + 1}号`);
+    expect(revealText).toContain(formatSeat(seerCheckSeat));
     expect(revealText).toContain('好人');
     await dismissAlert(pages[seerPageIndex]!);
   });
@@ -206,7 +207,7 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
 
             const message = await driveGroupConfirmAck(pages[pageIndex]!, '表白状态', '知道了');
             if (player.seat === confessTargetSeat) {
-              expect(message).toContain(`狼女孩是：${wolfGirlSeat + 1}号`);
+              expect(message).toContain(`狼女孩是：${formatSeat(wolfGirlSeat)}`);
               disclosedSeatCount++;
             } else {
               expect(message).not.toContain('狼女孩是：');
