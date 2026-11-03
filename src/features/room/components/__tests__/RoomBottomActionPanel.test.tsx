@@ -1,6 +1,7 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
+import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
 import type { RoomBottomActionModel } from '@/features/room/model/RoomBottomActions';
 import { AUDIO_WAITING_LABEL } from '@/features/room/model/RoomBottomActions';
 import type {
@@ -227,6 +228,163 @@ describe('RoomBottomActionPanel', () => {
     const buttonLabel = matches[0];
     if (buttonLabel === undefined) throw new Error('expected the disabled button label');
     fireEvent.press(buttonLabel);
+  });
+
+  describe('audio playback lock reason', () => {
+    function audioLockedModel(): Extract<RoomBottomActionModel, { kind: 'stacked' }> {
+      return {
+        kind: 'stacked',
+        message: null,
+        progress: null,
+        layout: {
+          primary: [
+            {
+              key: 'signup',
+              label: '报名上警',
+              audience: 'participant',
+              variant: 'primary',
+              size: 'lg',
+              isEnabled: false,
+              disabledReason: AUDIO_PLAYBACK_LOCK_REASON,
+            },
+          ],
+          secondary: [],
+          ghost: [],
+        },
+      };
+    }
+
+    it('shows the waiting label once and no caption under an audio-locked button', () => {
+      const screen = renderPanel(audioLockedModel(), null, jest.fn(), true);
+      expect(screen.getByText(AUDIO_WAITING_LABEL)).toBeTruthy();
+      expect(screen.getByText('报名上警')).toBeTruthy();
+      expect(screen.queryByText(AUDIO_PLAYBACK_LOCK_REASON)).toBeNull();
+    });
+
+    it('shows the caption again once playback ends', () => {
+      const screen = renderPanel(audioLockedModel());
+      expect(screen.queryByText(AUDIO_WAITING_LABEL)).toBeNull();
+      expect(screen.getByText(AUDIO_PLAYBACK_LOCK_REASON)).toBeTruthy();
+    });
+
+    it('keeps a non-audio reason visible during playback', () => {
+      const model = audioLockedModel();
+      const screen = renderPanel(
+        {
+          ...model,
+          layout: {
+            primary: [
+              {
+                key: 'signup',
+                label: '报名上警',
+                audience: 'participant',
+                variant: 'primary',
+                size: 'lg',
+                isEnabled: false,
+                disabledReason: '等待房主开始',
+              },
+            ],
+            secondary: [],
+            ghost: [],
+          },
+        },
+        null,
+        jest.fn(),
+        true,
+      );
+      expect(screen.getByText(AUDIO_WAITING_LABEL)).toBeTruthy();
+      expect(screen.getByText('等待房主开始')).toBeTruthy();
+    });
+
+    it('hides the caption under an audio-locked dock tool', () => {
+      const screen = renderPanel(
+        {
+          kind: 'dock',
+          message: null,
+          progress: null,
+          leading: {
+            key: 'view-role',
+            label: '查看身份',
+            audience: 'participant',
+            tone: 'default',
+            testID: 'view-role-action',
+            isEnabled: false,
+            disabledReason: AUDIO_PLAYBACK_LOCK_REASON,
+          },
+          primary: null,
+          trailing: null,
+        },
+        null,
+        jest.fn(),
+        true,
+      );
+      expect(screen.getByText(AUDIO_WAITING_LABEL)).toBeTruthy();
+      expect(screen.getByText('查看身份')).toBeTruthy();
+      expect(screen.queryByText(AUDIO_PLAYBACK_LOCK_REASON)).toBeNull();
+    });
+
+    it('hides the audio reason on a blocked host task card during playback', () => {
+      const screen = renderPanel(
+        emptyStackedModel,
+        hostModelWith(
+          [
+            {
+              key: 'assign-roles',
+              label: '分配角色',
+              icon: 'play-outline',
+              variant: 'primary',
+              isEnabled: false,
+              disabledReason: AUDIO_PLAYBACK_LOCK_REASON,
+            },
+            {
+              key: 'share-room',
+              label: '分享房间',
+              icon: 'share-social-outline',
+              variant: 'secondary',
+              isEnabled: true,
+              onPress: jest.fn(),
+            },
+          ],
+          { kind: 'action', actionKey: 'assign-roles', remedyActionKey: 'share-room' },
+        ),
+        jest.fn(),
+        true,
+      );
+      expect(screen.getByText(AUDIO_WAITING_LABEL)).toBeTruthy();
+      expect(screen.getByText('分配角色')).toBeTruthy();
+      expect(screen.queryByText(AUDIO_PLAYBACK_LOCK_REASON)).toBeNull();
+    });
+
+    it('keeps a non-audio reason on a blocked host task card during playback', () => {
+      const screen = renderPanel(
+        emptyStackedModel,
+        hostModelWith(
+          [
+            {
+              key: 'assign-roles',
+              label: '分配角色',
+              icon: 'play-outline',
+              variant: 'primary',
+              isEnabled: false,
+              disabledReason: '座位尚未坐满（还差 2 人）',
+            },
+            {
+              key: 'share-room',
+              label: '分享房间',
+              icon: 'share-social-outline',
+              variant: 'secondary',
+              isEnabled: true,
+              onPress: jest.fn(),
+            },
+          ],
+          { kind: 'action', actionKey: 'assign-roles', remedyActionKey: 'share-room' },
+        ),
+        jest.fn(),
+        true,
+      );
+      expect(screen.getByText(AUDIO_WAITING_LABEL)).toBeTruthy();
+      expect(screen.getByText('座位尚未坐满（还差 2 人）')).toBeTruthy();
+    });
   });
 
   it('does not render an empty model', () => {

@@ -10,6 +10,7 @@ import { Fragment, memo, useEffect, useMemo, useRef } from 'react';
 import { Animated, Platform, Pressable, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
 import type { RoomHostTaskBody, RoomHostTaskView } from '@/features/room/model/resolveHostTaskView';
 import { resolveHostTaskView } from '@/features/room/model/resolveHostTaskView';
 import type {
@@ -32,6 +33,18 @@ import { RoomProgressIndicator } from './RoomProgressIndicator';
 import type { BottomActionPanelStyles, RoomProgressIndicatorStyles } from './styles';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+
+/**
+ * A disabled reason stays visible unless the panel is already announcing
+ * the audio playback lock above it: the lock reason must appear once.
+ */
+function shouldShowDisabledReason(
+  reason: string | null,
+  hideAudioLockReason: boolean,
+): reason is string {
+  if (reason === null || reason.length === 0) return false;
+  return !(hideAudioLockReason && reason === AUDIO_PLAYBACK_LOCK_REASON);
+}
 
 interface RoomBottomActionPanelProps {
   readonly model: RoomBottomActionModel;
@@ -138,6 +151,7 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
           model={model}
           hostManagement={hostManagement}
           onOpenHostManagement={onOpenHostManagement}
+          hideAudioLockReason={isAudioPlaying}
           styles={styles}
         />
       ) : (
@@ -145,6 +159,7 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
           model={model}
           hostManagement={hostManagement}
           onOpenHostManagement={onOpenHostManagement}
+          hideAudioLockReason={isAudioPlaying}
           styles={styles}
         />
       )}
@@ -200,8 +215,9 @@ const DockActions: React.FC<{
   readonly model: RoomBottomDockModel;
   readonly hostManagement: RoomHostManagementModel | null;
   readonly onOpenHostManagement: () => void;
+  readonly hideAudioLockReason: boolean;
   readonly styles: BottomActionPanelStyles;
-}> = ({ model, hostManagement, onOpenHostManagement, styles }) => {
+}> = ({ model, hostManagement, onOpenHostManagement, hideAudioLockReason, styles }) => {
   const hasPrimaryAction =
     model.primary !== null &&
     model.primary.variant === 'primary' &&
@@ -209,12 +225,25 @@ const DockActions: React.FC<{
   return (
     <View style={styles.compactManagementStack}>
       {model.primary !== null && (
-        <LayoutButton model={model.primary} style={styles.dockPrimary} styles={styles} />
+        <LayoutButton
+          model={model.primary}
+          style={styles.dockPrimary}
+          hideAudioLockReason={hideAudioLockReason}
+          styles={styles}
+        />
       )}
       {(model.leading !== null || model.trailing !== null) && (
         <View style={styles.dockToolRow}>
-          <DockTool model={model.leading} styles={styles} />
-          <DockTool model={model.trailing} styles={styles} />
+          <DockTool
+            model={model.leading}
+            hideAudioLockReason={hideAudioLockReason}
+            styles={styles}
+          />
+          <DockTool
+            model={model.trailing}
+            hideAudioLockReason={hideAudioLockReason}
+            styles={styles}
+          />
         </View>
       )}
       {hostManagement !== null && (
@@ -222,6 +251,7 @@ const DockActions: React.FC<{
           model={hostManagement}
           hasPrimaryAction={hasPrimaryAction}
           onOpenHostManagement={onOpenHostManagement}
+          hideAudioLockReason={hideAudioLockReason}
           styles={styles}
         />
       )}
@@ -233,8 +263,9 @@ const StackedActions: React.FC<{
   readonly model: Extract<RoomBottomActionModel, { readonly kind: 'stacked' }>;
   readonly hostManagement: RoomHostManagementModel | null;
   readonly onOpenHostManagement: () => void;
+  readonly hideAudioLockReason: boolean;
   readonly styles: BottomActionPanelStyles;
-}> = ({ model, hostManagement, onOpenHostManagement, styles }) => {
+}> = ({ model, hostManagement, onOpenHostManagement, hideAudioLockReason, styles }) => {
   const hasPrimaryAction = model.layout.primary.some(
     (button) => button.variant === 'primary' && (button.isEnabled || button.isLoading === true),
   );
@@ -243,7 +274,12 @@ const StackedActions: React.FC<{
       {model.layout.primary.length > 0 && (
         <View style={styles.buttonRow}>
           {model.layout.primary.map((button) => (
-            <LayoutButton key={button.key} model={button} styles={styles} />
+            <LayoutButton
+              key={button.key}
+              model={button}
+              hideAudioLockReason={hideAudioLockReason}
+              styles={styles}
+            />
           ))}
         </View>
       )}
@@ -255,6 +291,7 @@ const StackedActions: React.FC<{
               key={button.key}
               model={button}
               style={styles.secondaryButton}
+              hideAudioLockReason={hideAudioLockReason}
               styles={styles}
             />
           ))}
@@ -264,7 +301,12 @@ const StackedActions: React.FC<{
       {model.layout.ghost.length > 0 && (
         <View style={styles.ghostRow}>
           {model.layout.ghost.map((button) => (
-            <LayoutButton key={button.key} model={button} styles={styles} />
+            <LayoutButton
+              key={button.key}
+              model={button}
+              hideAudioLockReason={hideAudioLockReason}
+              styles={styles}
+            />
           ))}
         </View>
       )}
@@ -274,6 +316,7 @@ const StackedActions: React.FC<{
           model={hostManagement}
           hasPrimaryAction={hasPrimaryAction}
           onOpenHostManagement={onOpenHostManagement}
+          hideAudioLockReason={hideAudioLockReason}
           styles={styles}
         />
       )}
@@ -290,14 +333,20 @@ const HostManagementBlock: React.FC<{
   readonly model: RoomHostManagementModel;
   readonly hasPrimaryAction: boolean;
   readonly onOpenHostManagement: () => void;
+  readonly hideAudioLockReason: boolean;
   readonly styles: BottomActionPanelStyles;
-}> = ({ model, hasPrimaryAction, onOpenHostManagement, styles }) => {
+}> = ({ model, hasPrimaryAction, onOpenHostManagement, hideAudioLockReason, styles }) => {
   const view = resolveHostTaskView(model);
   return (
     <View style={styles.hostManagementBlock} testID={TESTIDS.roomHostTaskCard}>
       {view !== null && view.steps !== null && <TaskStepsRow steps={view.steps} styles={styles} />}
       {view !== null && (
-        <HostTaskBody body={view.body} hasPrimaryAction={hasPrimaryAction} styles={styles} />
+        <HostTaskBody
+          body={view.body}
+          hasPrimaryAction={hasPrimaryAction}
+          hideAudioLockReason={hideAudioLockReason}
+          styles={styles}
+        />
       )}
       {view !== null && view.note !== null && view.note.length > 0 && (
         <Text style={styles.hint}>{view.note}</Text>
@@ -310,8 +359,9 @@ const HostManagementBlock: React.FC<{
 const HostTaskBody: React.FC<{
   readonly body: RoomHostTaskBody;
   readonly hasPrimaryAction: boolean;
+  readonly hideAudioLockReason: boolean;
   readonly styles: BottomActionPanelStyles;
-}> = ({ body, hasPrimaryAction, styles }) => {
+}> = ({ body, hasPrimaryAction, hideAudioLockReason, styles }) => {
   switch (body.kind) {
     case 'ready':
       return (
@@ -339,7 +389,7 @@ const HostTaskBody: React.FC<{
         <View style={styles.nextStepBlocked}>
           <View style={styles.nextStepBlockedText}>
             <Text style={styles.nextStepBlockedLabel}>{body.action.label}</Text>
-            {body.reason !== null && body.reason.length > 0 && (
+            {shouldShowDisabledReason(body.reason, hideAudioLockReason) && (
               <Text style={styles.nextStepBlockedReason}>{body.reason}</Text>
             )}
           </View>
@@ -364,6 +414,7 @@ const HostTaskBody: React.FC<{
               action={action}
               testID={`${TESTIDS.roomHostTaskCard}-${action.key}`}
               style={styles.secondaryButton}
+              hideAudioLockReason={hideAudioLockReason}
               styles={styles}
             />
           ))}
@@ -379,6 +430,7 @@ const HostTaskBody: React.FC<{
             <HostTaskActionButton
               action={body.escape}
               testID={`${TESTIDS.roomHostTaskCard}-escape`}
+              hideAudioLockReason={hideAudioLockReason}
               styles={styles}
             />
           )}
@@ -395,8 +447,9 @@ const HostTaskActionButton: React.FC<{
   readonly action: RoomHostManagementAction;
   readonly testID: string;
   readonly style?: BottomActionPanelStyles['secondaryButton'];
+  readonly hideAudioLockReason: boolean;
   readonly styles: BottomActionPanelStyles;
-}> = ({ action, testID, style, styles }) => {
+}> = ({ action, testID, style, hideAudioLockReason, styles }) => {
   const iconColor = !action.isEnabled
     ? colors.textMuted
     : action.variant === 'primary' || action.variant === 'danger'
@@ -423,7 +476,7 @@ const HostTaskActionButton: React.FC<{
       <Button {...visualProps} disabled>
         {action.label}
       </Button>
-      {action.disabledReason !== null && action.disabledReason.length > 0 && (
+      {shouldShowDisabledReason(action.disabledReason, hideAudioLockReason) && (
         <DisabledReasonCaption reason={action.disabledReason} />
       )}
     </View>
@@ -469,8 +522,9 @@ const HostManagementEntry: React.FC<{
 
 const DockTool: React.FC<{
   readonly model: RoomBottomToolButton | null;
+  readonly hideAudioLockReason: boolean;
   readonly styles: BottomActionPanelStyles;
-}> = ({ model, styles }) => {
+}> = ({ model, hideAudioLockReason, styles }) => {
   if (model === null) return null;
 
   const iconColor = !model.isEnabled
@@ -504,7 +558,7 @@ const DockTool: React.FC<{
   return (
     <View style={styles.dockExpandedToolSlot}>
       {button}
-      {!model.isEnabled && model.disabledReason !== null && model.disabledReason.length > 0 && (
+      {!model.isEnabled && shouldShowDisabledReason(model.disabledReason, hideAudioLockReason) && (
         <DisabledReasonCaption reason={model.disabledReason} />
       )}
     </View>
@@ -514,8 +568,9 @@ const DockTool: React.FC<{
 const LayoutButton: React.FC<{
   readonly model: RoomBottomButton;
   readonly style?: BottomActionPanelStyles['dockPrimary'];
+  readonly hideAudioLockReason: boolean;
   readonly styles: BottomActionPanelStyles;
-}> = ({ model, style, styles }) => {
+}> = ({ model, style, hideAudioLockReason, styles }) => {
   const iconColor = !model.isEnabled
     ? colors.textMuted
     : (model.textColor ??
@@ -551,7 +606,7 @@ const LayoutButton: React.FC<{
     </Button>
   );
 
-  if (model.disabledReason === null || model.disabledReason.length === 0) return button;
+  if (!shouldShowDisabledReason(model.disabledReason, hideAudioLockReason)) return button;
   return (
     <View style={style}>
       {button}
