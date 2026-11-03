@@ -257,7 +257,7 @@
 
 ### 36. 狼女孩 (wolfGirl)
 
-> 生成管线：Muse 图片生成（2026-11-03，用户批准），风格参照图为隐狼立绘（仅风格参照），纯黑背景；抠图走 https://rmbg.fun/（见页首管线说明）。v1 由同一工具生成但未记录 prompt，已作废，不得事后重构。以下为逐字 prompt（英文原文，不得改写，否则无法复现）：
+> 生成管线：Muse 图片生成（2026-11-03，用户批准），风格参照图为隐狼立绘（仅风格参照），纯黑背景；抠图为本地 `rembg` + `u2net`（2026-11-03 用户特批本次先用：rmbg.fun 浏览器下载当时接不住；非常规管线，见页首管线说明）。实测：raw 2048×2048 RGBA，alpha bbox `(176, 55, 1984, 1873)` 四边留边，主体像素平均 alpha 243/255，红底/棋盘格目视边缘干净。v1 由同一工具生成但未记录 prompt，已作废，不得事后重构。以下为逐字 prompt（英文原文，不得改写，否则无法复现）：
 
 ```
 Painterly digital illustration, half-body portrait, square composition, centered: a young wolf girl in a dark hooded cloak with grey fur trim and wolf ears, long black hair, calm mysterious expression, holding a small glowing lantern in one hand, a large grey wolf standing behind her shoulder, plain solid black background, muted teal and purple rim light, detailed fantasy game character art in the same painterly style as the reference image, no text, no watermark.
