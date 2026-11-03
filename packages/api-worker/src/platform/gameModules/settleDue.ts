@@ -10,9 +10,12 @@
  * through the shared effect dispatch.
  *
  * The business key is the outbox dedupe identity: its segment order
- * (namespace, game sequence, phase, round, deadline) is fixed and
- * must never change — a different string is a different arming and
- * would break exactly-once settlement.
+ * (namespace, game sequence, phase, round, deadline, round id,
+ * phase revision, step index, turn index) is fixed and must never
+ * change — a different string is a different arming and would break
+ * exactly-once settlement. Absent fields contribute no segment, so
+ * extending the pin with new optional fields leaves every existing
+ * game's key byte-identical.
  *
  * Per-game residue stays in the game module: the zod effect schema
  * and the staleness predicate (`isCurrent`), whose compared fields
@@ -27,26 +30,36 @@ import type { WorkerEffectContext } from './workerModule';
 
 /**
  * The arming a settle.due payload pins, in the field shape the
- * engine's `SettleDuePin` defines: the game sequence, the deadline,
- * and the game's optional phase-identity extension fields.
+ * engine's `SettleDuePin` defines: the deadline, the optional game
+ * sequence, and the game's optional phase-identity extension fields.
+ * This shape must stay field-identical to the engine's `SettleDuePin`.
  */
 export interface SettleDuePinShape {
-  readonly gameSequence: number;
+  readonly gameSequence?: number;
   readonly deadlineAt: number;
   readonly phase?: string;
   readonly round?: number;
+  readonly roundId?: string;
+  readonly phaseRevision?: number;
+  readonly stepIndex?: number;
+  readonly turnIndex?: number;
 }
 
 /**
  * Outbox business key for one settle.due effect: the namespace, then
  * the pin segments in their fixed order (absent extension fields
- * contribute no segment).
+ * contribute no segment, so existing games' keys are unchanged).
  */
 export function settleDueBusinessKey(namespace: string, pin: SettleDuePinShape): string {
-  const segments: (string | number)[] = [pin.gameSequence];
+  const segments: (string | number)[] = [];
+  if (pin.gameSequence !== undefined) segments.push(pin.gameSequence);
   if (pin.phase !== undefined) segments.push(pin.phase);
   if (pin.round !== undefined) segments.push(pin.round);
   segments.push(pin.deadlineAt);
+  if (pin.roundId !== undefined) segments.push(pin.roundId);
+  if (pin.phaseRevision !== undefined) segments.push(pin.phaseRevision);
+  if (pin.stepIndex !== undefined) segments.push(pin.stepIndex);
+  if (pin.turnIndex !== undefined) segments.push(pin.turnIndex);
   return `${namespace}:${segments.join(':')}`;
 }
 

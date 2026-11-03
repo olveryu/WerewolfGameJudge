@@ -91,7 +91,9 @@ type PhaseDeadlineSettlePin =
   | 'none'
   | 'sequence+deadline'
   | 'sequence+phase+deadline'
-  | 'sequence+phase+round+deadline';
+  | 'sequence+phase+round+deadline'
+  | 'round+revision+deadline'
+  | 'sequence+revision+turn+deadline';
 
 type PhaseDeadlineLateSubmission = 'sharedRelayTask' | 'gameGuard' | 'noneByDesign' | 'noSurface';
 

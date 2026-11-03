@@ -3,11 +3,19 @@
  *
  * Derives remaining seconds from an authoritative absolute deadline and
  * the room's one clock (`useNowMs`). When the countdown reaches zero and
- * `shouldExpire` is true, invokes `onExpire` (single-flight: a dispatch
- * in flight is never duplicated by later ticks; a failed one is retried
- * on the next tick). Any foreground client shares the expiry duty; the
- * server's scheduled settle is the correctness path for games that arm
- * one (avalon, werewolf), so this is acceleration, never authority.
+ * `shouldExpire` is true, invokes `onExpire`. Any foreground client
+ * shares the expiry duty; the server's scheduled settle is the
+ * correctness path for games that arm one (avalon, werewolf), so this
+ * is acceleration, never authority.
+ *
+ * Dispatch discipline is keyed by `attemptKey` when the caller
+ * supplies one: a key is attempted at most once — marked before the
+ * dispatch is invoked — and never retried for that identity after
+ * any outcome (commit, rejection, or the epoch ending). A new key
+ * (a new phase identity) resets the discipline. A null key never
+ * dispatches. Callers that do not supply `attemptKey` keep the
+ * legacy behavior (a failed dispatch is retried on the next tick);
+ * that default is temporary until every caller passes a key.
  *
  * Game-specific concerns (session snapshot guards, dispatch payload) stay
  * with the caller via `shouldExpire` and `onExpire`.
@@ -37,10 +45,19 @@ export interface UseStageDeadlineParams {
   /**
    * Expiry dispatch is best-effort and revision-guarded: a rejection is
    * an expected outcome (another client may have settled first), never
-   * a user-facing error. When true, a thrown dispatch is logged and
-   * retried on the next tick instead of surfacing an alert.
+   * a user-facing error. When true, a thrown dispatch is logged instead
+   * of surfacing an alert. Whether it is retried depends on
+   * `attemptKey`: with a key, never; without one, on the next tick.
    */
   readonly silentExpire?: boolean;
+  /**
+   * Phase identity for single-shot dispatch discipline, e.g.
+   * `${roundId}:${phaseRevision}:${deadlineAt}`. When supplied, the
+   * key is attempted at most once and never retried; a null key never
+   * dispatches. When omitted, the hook keeps the legacy retry
+   * behavior so existing callers are unchanged until they pass a key.
+   */
+  readonly attemptKey?: string | null;
 }
 
 export interface StageDeadline {
@@ -62,11 +79,16 @@ export function useStageDeadline({
   label,
   refreshIntervalMs = NOW_MS_DEFAULT_INTERVAL_MS,
   silentExpire = false,
+  attemptKey,
 }: UseStageDeadlineParams): StageDeadline {
   const nowMs = useNowMs(refreshIntervalMs, deadlineAt !== null);
   const remainingSeconds = deriveRemainingSeconds(deadlineAt, nowMs);
   const inFlightRef = useRef(false);
   const isMountedRef = useRef(true);
+  // The last phase identity attempted. A single ref suffices because
+  // identities only move forward: a new key replaces the old one, and
+  // an attempted key is never attempted again.
+  const attemptedKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -75,20 +97,32 @@ export function useStageDeadline({
     };
   }, []);
 
-  // Re-evaluated on every tick (nowMs) while the deadline is reached, so a
-  // failed or rejected dispatch is retried next tick and an in-flight one
-  // is never duplicated.
+  // Re-evaluated on every tick (nowMs) while the deadline is reached.
+  // With an attemptKey, a key is attempted at most once: it is marked
+  // before the dispatch is invoked, so no outcome — commit, rejection,
+  // or the epoch ending — retries it. Without an attemptKey, a failed
+  // or rejected dispatch is retried next tick (legacy callers) and an
+  // in-flight one is never duplicated.
   useEffect(() => {
     if (remainingSeconds !== 0 || inFlightRef.current || !shouldExpire()) return;
+    if (attemptKey === null) return;
+    const singleShot = attemptKey !== undefined;
+    if (singleShot && attemptedKeyRef.current === attemptKey) return;
+    if (singleShot) attemptedKeyRef.current = attemptKey;
     inFlightRef.current = true;
     void onExpire()
       .catch((error: unknown) => {
         if (!isMountedRef.current) return;
         if (silentExpire) {
-          roomScreenLog.warn('stage expiry dispatch failed; retrying on next tick', {
-            label,
-            error: error instanceof Error ? error.message : String(error),
-          });
+          roomScreenLog.warn(
+            singleShot
+              ? 'stage expiry dispatch failed; not retrying this phase identity'
+              : 'stage expiry dispatch failed; retrying on next tick',
+            {
+              label,
+              error: error instanceof Error ? error.message : String(error),
+            },
+          );
           return;
         }
         handleError(error, { label, logger: roomScreenLog, alertMessage: `${label}失败，请重试` });
@@ -96,7 +130,7 @@ export function useStageDeadline({
       .finally(() => {
         inFlightRef.current = false;
       });
-  }, [remainingSeconds, nowMs, shouldExpire, onExpire, label, silentExpire]);
+  }, [remainingSeconds, nowMs, shouldExpire, onExpire, label, silentExpire, attemptKey]);
 
   return { remainingSeconds, nowMs };
 }
