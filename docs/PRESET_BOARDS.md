@@ -4,7 +4,7 @@
 > [`packages/game-engine/src/games/werewolf/domain/models/Template.ts`](../packages/game-engine/src/games/werewolf/domain/models/Template.ts)
 > — `PRESET_TEMPLATES`
 >
-> Currently **26** preset boards in total, all 12-player configurations (Treasure Master / Thief+Cupid / Cursed Fox+Crow include bottom/reserve cards).
+> Currently **27** preset boards in total, all 12-player configurations (Treasure Master / Thief+Cupid / Cursed Fox+Crow include bottom/reserve cards).
 
 ---
 
@@ -36,7 +36,7 @@ Includes advanced roles, requires some gameplay experience.
 | Hidden Wolf+Crow         | ×4       | wolf ×3, hiddenWolf       | seer, witch, hunter, crow            |
 | Seed Wolf+Knight         | ×4       | wolf ×3, seedWolf         | seer, witch, knight, guard           |
 
-## Special — 5 boards
+## Special — 6 boards
 
 Unique mechanic combinations offering different gameplay experiences.
 
@@ -47,6 +47,7 @@ Unique mechanic combinations offering different gameplay experiences.
 | Masquerade        | ×4       | wolf ×3, masquerade       | seer, witch, dancer, idiot                  |
 | Awakened Gargoyle | ×4       | wolf ×2, awakenedGargoyle | seer, witch, hunter, guard, graveyardKeeper |
 | All-In            | ×4       | wolf ×3, warden           | seer, witch, hunter, dreamcatcher           |
+| Wolf Girl         | ×4       | wolf ×3, wolfGirl         | seer, poisoner, hunter, guard               |
 
 ## Third Party — 7 boards
 

@@ -99,18 +99,33 @@ function asStored(state: GameState): Record<string, unknown> {
   return JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
 }
 
-describe('persisted state version gate (v16, v12–v15 migrate)', () => {
-  it('pins the current version at 16', () => {
-    expect(WEREWOLF_STATE_VERSION).toBe(16);
-    expect(buildStartedState().stateVersion).toBe(16);
+describe('persisted state version gate (v17, v12–v16 migrate)', () => {
+  it('pins the current version at 17', () => {
+    expect(WEREWOLF_STATE_VERSION).toBe(17);
+    expect(buildStartedState().stateVersion).toBe(17);
   });
 
-  it('migrates a v15 payload to v16 with the game sequence at 0', () => {
+  it('migrates a v16 payload to v17 with an empty Wolf Girl confession ack list', () => {
+    const {
+      wolfGirlConfessedSeat: _droppedSeat,
+      wolfGirlConfessionRevealAcks: _droppedAcks,
+      ...withoutWolfGirl
+    } = asStored(buildStartedState());
+    const legacy = { ...withoutWolfGirl, stateVersion: 16 };
+    const migrated = migratePersistedWerewolfState(legacy);
+    expect(migrated.stateVersion).toBe(17);
+    expect(migrated.wolfGirlConfessedSeat).toBeUndefined();
+    expect(migrated.wolfGirlConfessionRevealAcks).toEqual([]);
+    expect(parseWerewolfState(migrated)).toEqual(migrated);
+  });
+
+  it('migrates a v15 payload to v17 with the game sequence at 0', () => {
     const { gameSequence: _dropped, ...withoutSequence } = asStored(buildStartedState());
     const legacy = { ...withoutSequence, stateVersion: 15 };
     const migrated = migratePersistedWerewolfState(legacy);
-    expect(migrated.stateVersion).toBe(16);
+    expect(migrated.stateVersion).toBe(17);
     expect(migrated.gameSequence).toBe(0);
+    expect(migrated.wolfGirlConfessionRevealAcks).toEqual([]);
     expect(parseWerewolfState(migrated)).toEqual(migrated);
   });
 
@@ -119,7 +134,7 @@ describe('persisted state version gate (v16, v12–v15 migrate)', () => {
     expect(() => migratePersistedWerewolfState(withoutSequence)).toThrow('GameState.gameSequence');
   });
 
-  it('migrates a v14 payload to v16 by dropping the user-addressed actionRejected', () => {
+  it('migrates a v14 payload to v17 by dropping the user-addressed actionRejected', () => {
     const { gameSequence: _dropped, ...withoutSequence } = asStored(buildStartedState());
     const legacy = {
       ...withoutSequence,
@@ -132,7 +147,7 @@ describe('persisted state version gate (v16, v12–v15 migrate)', () => {
       },
     };
     const migrated = migratePersistedWerewolfState(legacy);
-    expect(migrated.stateVersion).toBe(16);
+    expect(migrated.stateVersion).toBe(17);
     expect(migrated.actionRejected).toBeUndefined();
     expect(migrated.gameSequence).toBe(0);
     expect(parseWerewolfState(migrated)).toEqual(migrated);
@@ -153,7 +168,7 @@ describe('persisted state version gate (v16, v12–v15 migrate)', () => {
     );
   });
 
-  it('migrates a v13 payload without audioBatchId to v16 with the batch id at 0', () => {
+  it('migrates a v13 payload without audioBatchId to v17 with the batch id at 0', () => {
     const {
       audioBatchId: _dropped,
       gameSequence: _droppedSequence,
@@ -161,12 +176,12 @@ describe('persisted state version gate (v16, v12–v15 migrate)', () => {
     } = asStored(buildStartedState());
     const legacy = { ...withoutBatchId, stateVersion: 13 };
     const migrated = migratePersistedWerewolfState(legacy);
-    expect(migrated.stateVersion).toBe(16);
+    expect(migrated.stateVersion).toBe(17);
     expect(migrated.audioBatchId).toBe(0);
     expect(parseWerewolfState(migrated)).toEqual(migrated);
   });
 
-  it('migrates a v12 payload to v16 with the settled wolf target absent and the batch id at 0', () => {
+  it('migrates a v12 payload to v17 with the settled wolf target absent and the batch id at 0', () => {
     const {
       audioBatchId: _dropped,
       gameSequence: _droppedSequence,
@@ -174,7 +189,7 @@ describe('persisted state version gate (v16, v12–v15 migrate)', () => {
     } = asStored(buildStartedState());
     const legacy = { ...withoutBatchId, stateVersion: 12 };
     const migrated = migratePersistedWerewolfState(legacy);
-    expect(migrated.stateVersion).toBe(16);
+    expect(migrated.stateVersion).toBe(17);
     expect(migrated.resolvedWolfKillTarget).toBeUndefined();
     expect(migrated.resolvedWolfKillVerdict).toBeUndefined();
     expect(migrated.audioBatchId).toBe(0);
@@ -244,7 +259,7 @@ describe('persisted state version gate (v16, v12–v15 migrate)', () => {
     expect(() => migratePersistedWerewolfState(legacy)).toThrow(
       'Unsupported werewolf state version: 11',
     );
-    expect(() => parseWerewolfState(legacy)).toThrow('GameState.stateVersion must be 16');
+    expect(() => parseWerewolfState(legacy)).toThrow('GameState.stateVersion must be 17');
   });
 
   it('rejects a v10 payload (viewed record still a per-player flag)', () => {
@@ -252,7 +267,7 @@ describe('persisted state version gate (v16, v12–v15 migrate)', () => {
     expect(() => migratePersistedWerewolfState(legacy)).toThrow(
       'Unsupported werewolf state version: 10',
     );
-    expect(() => parseWerewolfState(legacy)).toThrow('GameState.stateVersion must be 16');
+    expect(() => parseWerewolfState(legacy)).toThrow('GameState.stateVersion must be 17');
   });
 
   it('rejects a v9 payload (profiles still in the by-user map)', () => {
@@ -260,7 +275,7 @@ describe('persisted state version gate (v16, v12–v15 migrate)', () => {
     expect(() => migratePersistedWerewolfState(legacy)).toThrow(
       'Unsupported werewolf state version: 9',
     );
-    expect(() => parseWerewolfState(legacy)).toThrow('GameState.stateVersion must be 16');
+    expect(() => parseWerewolfState(legacy)).toThrow('GameState.stateVersion must be 17');
   });
 
   it('rejects a v5 payload (identity still embedded in the player record)', () => {
@@ -271,9 +286,9 @@ describe('persisted state version gate (v16, v12–v15 migrate)', () => {
   });
 
   it('rejects a payload from a newer version', () => {
-    const future = { ...asStored(buildStartedState()), stateVersion: 17 };
+    const future = { ...asStored(buildStartedState()), stateVersion: 18 };
     expect(() => migratePersistedWerewolfState(future)).toThrow(
-      'Unsupported werewolf state version: 17',
+      'Unsupported werewolf state version: 18',
     );
   });
 

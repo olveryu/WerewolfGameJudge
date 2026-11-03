@@ -207,6 +207,7 @@ export type NightReviewActionEntry =
   | { readonly kind: 'charm'; readonly actorSeat: number; readonly targetSeat: number }
   | { readonly kind: 'charmIdle'; readonly actorSeat: number }
   | { readonly kind: 'convert'; readonly actorSeat: number; readonly targetSeat: number }
+  | { readonly kind: 'wolfGirlConfess'; readonly actorSeat: number; readonly targetSeat: number }
   | {
       readonly kind: 'hypnotize';
       readonly actorSeat: number;
@@ -480,6 +481,8 @@ export function nightReviewActorRoleId(entry: NightReviewActionEntry): RoleId | 
       return 'wolfQueen';
     case 'convert':
       return 'awakenedGargoyle';
+    case 'wolfGirlConfess':
+      return 'wolfGirl';
     case 'hypnotize':
     case 'hypnotizeIdle':
       return 'piper';
@@ -1031,6 +1034,15 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
       kind: 'convert',
       actorSeat: requireSeatByRole(state.players, 'awakenedGargoyle'),
       targetSeat: nr.convertedSeat,
+    });
+  }
+
+  // 6d2. Wolf Girl confession (post-game review only; in-game secrecy is the viewModel's job)
+  if (nr.wolfGirlConfessedSeat != null) {
+    entries.push({
+      kind: 'wolfGirlConfess',
+      actorSeat: requireSeatByRole(state.players, 'wolfGirl'),
+      targetSeat: nr.wolfGirlConfessedSeat,
     });
   }
 

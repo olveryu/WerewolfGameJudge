@@ -120,6 +120,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
           { roleId: 'warden' },
           { roleId: 'eclipseWolfQueen' },
           { roleId: 'hiddenWolf' },
+          { roleId: 'wolfGirl' },
         ],
       },
     ],

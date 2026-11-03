@@ -6,12 +6,15 @@ import {
   clickBottomButton,
   clickSeatAndConfirm,
   dismissAlert,
+  driveGroupConfirmAck,
+  driveWolfDisabledEmptyVote,
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,
   isTextVisible,
   readAlertText,
   viewLastNightInfo,
+  waitForGroupConfirmStep,
   waitForNightEnd,
   waitForRoleTurn,
 } from '../helpers/night-driver';
@@ -90,15 +93,7 @@ test.describe('Werewolf Night — Special Roles: TreasureMaster', () => {
         const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]!]!, 'wolfKill', pages);
         expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
 
-        for (const wIdx of wolfIndices) {
-          await dismissAlert(pages[wIdx]!);
-          const emptyKillBtn = pages[wIdx]!.locator(
-            '[data-testid="bottom-action-panel"]',
-          ).getByRole('button', { name: '确认放弃袭击', exact: true });
-          await emptyKillBtn.waitFor({ state: 'visible', timeout: 5000 });
-          await emptyKillBtn.click();
-          await dismissAlert(pages[wIdx]!);
-        }
+        await driveWolfDisabledEmptyVote(pages, wolfIndices);
 
         // === Step 3: Poisoner & Seer (if they are players, not bottom cards) ===
         if (poisonerIdx !== -1) {
@@ -165,67 +160,6 @@ async function driveCupidChooseLovers(
   if (await okBtn.isVisible().catch(() => false)) {
     await okBtn.click();
     return true;
-  }
-  return false;
-}
-
-/**
- * Drive a single player through the cupidLoversReveal groupConfirm ack flow:
- * dismiss any existing alert → click "情侣状态" → read personal message → click "我知道了".
- *
- * Returns the personal message text shown in the alert.
- */
-async function driveCupidGroupConfirmAck(page: import('@playwright/test').Page): Promise<string> {
-  await dismissAlert(page);
-
-  // No force:true — Playwright auto-waits for inert removal after alert dismiss.
-  const panel = page.locator('[data-testid="bottom-action-panel"]');
-  const statusBtn = panel.getByText('情侣状态', { exact: true }).first();
-  await statusBtn.waitFor({ state: 'visible', timeout: 10_000 });
-  await statusBtn.click();
-
-  const alertModal = page.locator('[data-testid="alert-modal"]');
-  await alertModal.waitFor({ state: 'visible', timeout: 5000 });
-  const alertText = (await alertModal.textContent().catch(() => '')) ?? '';
-
-  const ackBtn = alertModal.getByText('我知道了', { exact: true }).first();
-  if (await ackBtn.isVisible().catch(() => false)) {
-    await ackBtn.click();
-  }
-
-  return alertText;
-}
-
-/**
- * Wait for cupidLoversReveal groupConfirm step to become active.
- * Detects by checking for "情侣状态" button visibility.
- * While waiting, advances audio gates and intermediate steps.
- */
-async function waitForCupidGroupConfirmStep(
-  pages: import('@playwright/test').Page[],
-  maxIter = 60,
-): Promise<boolean> {
-  for (let i = 0; i < maxIter; i++) {
-    for (const page of pages) {
-      const panel = page.locator('[data-testid="bottom-action-panel"]');
-      const statusBtn = panel.getByText('情侣状态', { exact: true }).first();
-      if (await statusBtn.isVisible().catch(() => false)) {
-        return true;
-      }
-    }
-    for (const page of pages) {
-      const alertModal = page.locator('[data-testid="alert-modal"]');
-      if (await alertModal.isVisible().catch(() => false)) {
-        for (const text of ['知道了', '确定']) {
-          const btn = alertModal.getByText(text, { exact: true }).first();
-          if (await btn.isVisible().catch(() => false)) {
-            await btn.click();
-            break;
-          }
-        }
-      }
-    }
-    await pages[0]!.waitForTimeout(300);
   }
   return false;
 }
@@ -313,7 +247,7 @@ test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
 
         // === Step 3: CupidLoversReveal groupConfirm — all players ack ===
         await test.step('all players ack cupidLoversReveal', async () => {
-          const groupReady = await waitForCupidGroupConfirmStep(pages, 60);
+          const groupReady = await waitForGroupConfirmStep(pages, '情侣状态', 60);
           expect(groupReady, 'CupidLoversReveal step should become active').toBe(true);
 
           const nonCupidEntries = [...roleMap.entries()].filter(([idx]) => idx !== cupidIdx);
@@ -325,7 +259,7 @@ test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
             const role = roleMap.get(i);
             if (!role) continue;
 
-            const msg = await driveCupidGroupConfirmAck(pages[i]!);
+            const msg = await driveGroupConfirmAck(pages[i]!, '情侣状态', '我知道了');
 
             if (loverSeats.includes(role.seat)) {
               expect(msg).toContain('情侣');

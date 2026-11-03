@@ -73,6 +73,9 @@ export interface CurrentNightResults {
   /** Seat converted by awakenedGargoyle */
   readonly convertedSeat?: number;
 
+  /** Seat confessed by wolfGirl (Night 1 only; role and team are never rewritten) */
+  readonly wolfGirlConfessedSeat?: number;
+
   /** Wolf-kill target that Seed Wolf chose to infect; outcome is decided at the final step. */
   readonly seedWolfInfectionTarget?: number;
 

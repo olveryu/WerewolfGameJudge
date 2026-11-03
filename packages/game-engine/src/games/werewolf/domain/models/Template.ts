@@ -623,6 +623,24 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
+    name: '狼女孩',
+    category: TemplateCategory.Special,
+    roles: [
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'wolfGirl',
+      'seer',
+      'poisoner',
+      'hunter',
+      'guard',
+    ],
+  },
+  {
     name: '影子复仇者',
     category: TemplateCategory.ThirdParty,
     roles: [

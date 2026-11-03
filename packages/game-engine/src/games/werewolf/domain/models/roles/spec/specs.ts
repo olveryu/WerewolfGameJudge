@@ -1,17 +1,17 @@
 /**
- * Role Specs Registry — declarative definitions for all 47 roles
+ * Role Specs Registry — declarative definitions for all 48 roles
  *
  * Single source of truth: role intrinsic properties + behavior (abilities / effects) + night steps + UI metadata
  * Owns role properties, behavior, night steps, and UI metadata.
  *
- * 47 roles total:
+ * 48 roles total:
  * - Villager faction: villager, mirrorSeer, drunkSeer (3)
  * - God faction: seer, witch, poisoner, hunter, guard, idiot, knight, magician, witcher, psychic,
  *   dreamcatcher, graveyardKeeper, pureWhite, dancer, silenceElder, votebanElder, crow, maskedMan,
  *   sequencePrince (19)
  * - Wolf faction: wolf, seedWolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle,
  *   awakenedGargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade, warden,
- *   eclipseWolfQueen, hiddenWolf (16)
+ *   eclipseWolfQueen, hiddenWolf, wolfGirl (17)
  * - Third-party: slacker, wildChild, piper, shadow, avenger, thief, cupid, treasureMaster, cursedFox (9)
  *
  * Pure data, JSON-serializable. No business logic, side effects, or platform dependencies.
@@ -863,7 +863,7 @@ const ROLE_SPEC_DEFINITIONS = {
   },
 
   // ===================================================================
-  // WOLF FACTION (15)
+  // WOLF FACTION (17)
   // ===================================================================
 
   wolf: {
@@ -1546,8 +1546,70 @@ const ROLE_SPEC_DEFINITIONS = {
     ],
   },
 
+  wolfGirl: {
+    id: 'wolfGirl',
+    displayName: '狼女孩',
+    shortName: '孩',
+    emoji: '👧🐺',
+    faction: Faction.Wolf,
+    team: Team.Wolf,
+    description:
+      '首夜必须表白一名非狼队玩家；表白时可见狼队友号码，不知被表白者是神是民；被表白者查验为好人；平民成为狼伴侣，不入狼队，但与狼人同一胜利条件，并知晓狼女孩号码；神牌仅知自己被表白，仍帮好人玩；自爆带走被表白者；不能表白狼队玩家；仅被自爆带走的猎人无法开枪',
+    structuredDescription: {
+      skill: '首夜必须表白一名非狼队玩家',
+      passive: '表白时可见狼队友号码，不知被表白者是神是民',
+      special:
+        '被表白者查验为好人；平民成为狼伴侣，不入狼队，但与狼人同一胜利条件，并知晓狼女孩号码；神牌仅知自己被表白，仍帮好人玩',
+      trigger: '自爆带走被表白者',
+      restriction: '不能表白狼队玩家；仅被自爆带走的猎人无法开枪',
+    },
+    tags: ['link'],
+    recognition: { canSeeWolves: true, participatesInWolfVote: true },
+    abilities: [
+      {
+        type: 'active',
+        timing: 'night',
+        actionKind: 'chooseSeat',
+        target: {
+          count: { min: 1, max: 1 },
+          constraints: [TargetConstraint.NotSelf, TargetConstraint.NotWolfFaction],
+        },
+        canSkip: false,
+        effects: [{ kind: 'writeSlot', slot: 'wolfGirlConfessedSeat' }],
+        activeOnNight1: true,
+      },
+    ],
+    nightSteps: [
+      {
+        stepId: 'wolfGirlConfess',
+        displayName: '表白',
+        audioKey: 'wolfGirl',
+        actionKind: 'chooseSeat',
+        ui: {
+          confirmTitle: '确认表白',
+          seatAction: { verb: '表白' },
+        },
+      },
+      {
+        stepId: 'wolfGirlConfessReveal',
+        displayName: '表白确认',
+        audioKey: 'wolfGirlConfessReveal',
+        audioEndKey: 'wolfGirlConfessReveal',
+        actionKind: 'groupConfirm',
+        ui: {
+          prompt: '所有玩家请睁眼，请看手机确认表白信息',
+          bottomActionText: '表白状态',
+          confessedText: '你被表白了，狼女孩是：{seat}',
+          confessedGodText: '你被表白了',
+          notConfessedText: '你未被表白',
+          confirmButtonText: '知道了',
+        },
+      },
+    ],
+  },
+
   // ===================================================================
-  // THIRD-PARTY FACTION (6)
+  // THIRD-PARTY FACTION (9)
   // ===================================================================
 
   slacker: {

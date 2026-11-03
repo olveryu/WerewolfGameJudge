@@ -36,9 +36,20 @@ export class BoardPickerPage {
    * Clicks the template card header (which navigates to Config with that preset).
    * The card title is a TouchableOpacity that expands/collapses. Since we want
    * to navigate, we need to expand first, then click "以此为基础".
+   *
+   * When `categoryLabel` is given (e.g. '特色' for Special boards), the
+   * category tab is clicked first: the picker defaults to the Classic tab,
+   * so a non-Classic card is not rendered until its tab is active. Tab
+   * text is "<label> <count>", matched exactly so a section header
+   * ("<label> · <count>") never matches.
    */
-  async selectTemplate(name: string) {
+  async selectTemplate(name: string, categoryLabel?: string) {
     const root = this.page.locator(`[data-testid="${TESTIDS.boardPickerScreenRoot}"]`);
+    if (categoryLabel !== undefined) {
+      const escapedLabel = categoryLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const tab = root.getByText(new RegExp(`^${escapedLabel} \\d+$`)).first();
+      await tab.click();
+    }
     // Click the card to expand it
     const cardTitle = root.getByText(name, { exact: true }).first();
     await cardTitle.scrollIntoViewIfNeeded();

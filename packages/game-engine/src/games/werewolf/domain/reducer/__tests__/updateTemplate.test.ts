@@ -65,6 +65,7 @@ function createStateWithPlayers(
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     ...overrides,

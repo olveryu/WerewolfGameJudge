@@ -4,10 +4,12 @@ import { expect, test } from '@playwright/test';
 import {
   clickBottomButton,
   dismissAlert,
+  driveGroupConfirmAck,
   driveWolfVote,
   findRolePageIndex,
   isTextVisible,
   viewLastNightInfo,
+  waitForGroupConfirmStep,
   waitForNightEnd,
   waitForRoleTurn,
 } from '../helpers/night-driver';
@@ -78,74 +80,6 @@ async function drivePiperHypnotize(
   return false;
 }
 
-/**
- * Drive a single player through the groupConfirm ack flow:
- * dismiss any existing alert → click "催眠状态" → read personal message alert → click "知道了".
- *
- * Returns the personal message text shown in the alert.
- */
-async function driveGroupConfirmAck(page: import('@playwright/test').Page): Promise<string> {
-  // Dismiss any existing alert (e.g. piper's "夜间行动" actionPrompt)
-  await dismissAlert(page);
-
-  // Click "催眠状态" button in bottom panel.
-  // No force:true — Playwright auto-waits for inert removal after alert dismiss.
-  const panel = page.locator('[data-testid="bottom-action-panel"]');
-  const statusBtn = panel.getByText('催眠状态', { exact: true }).first();
-  await statusBtn.waitFor({ state: 'visible', timeout: 10_000 });
-  await statusBtn.click();
-
-  // Read the personal message alert
-  const alertModal = page.locator('[data-testid="alert-modal"]');
-  await alertModal.waitFor({ state: 'visible', timeout: 5000 });
-  const alertText = (await alertModal.textContent().catch(() => '')) ?? '';
-
-  // Click "知道了" to ack
-  const ackBtn = alertModal.getByText('知道了', { exact: true }).first();
-  if (await ackBtn.isVisible().catch(() => false)) {
-    await ackBtn.click();
-  }
-
-  return alertText;
-}
-
-/**
- * Wait for piperHypnotizedReveal groupConfirm step to be active on a page.
- * Detects by checking for "催眠状态" button visibility.
- * While waiting, advances audio gates and other intermediate steps.
- */
-async function waitForGroupConfirmStep(
-  pages: import('@playwright/test').Page[],
-  maxIter = 60,
-): Promise<boolean> {
-  for (let i = 0; i < maxIter; i++) {
-    // Check if any page shows the "催眠状态" button
-    for (const page of pages) {
-      const panel = page.locator('[data-testid="bottom-action-panel"]');
-      const statusBtn = panel.getByText('催眠状态', { exact: true }).first();
-      if (await statusBtn.isVisible().catch(() => false)) {
-        return true;
-      }
-    }
-    // Advance any intermediate alerts/buttons on all pages
-    // (e.g. audio gate "知道了" / "确定" progress buttons)
-    for (const page of pages) {
-      const alertModal = page.locator('[data-testid="alert-modal"]');
-      if (await alertModal.isVisible().catch(() => false)) {
-        for (const text of ['知道了', '确定']) {
-          const btn = alertModal.getByText(text, { exact: true }).first();
-          if (await btn.isVisible().catch(() => false)) {
-            await btn.click();
-            break;
-          }
-        }
-      }
-    }
-    await pages[0]!.waitForTimeout(300);
-  }
-  return false;
-}
-
 // ============================================================================
 // Tests
 // ============================================================================
@@ -193,7 +127,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === GroupConfirm: all players ack ===
         await test.step('all players ack groupConfirm', async () => {
-          const groupReady = await waitForGroupConfirmStep(pages, 60);
+          const groupReady = await waitForGroupConfirmStep(pages, '催眠状态', 60);
           expect(groupReady, 'GroupConfirm step should become active').toBe(true);
 
           // Each player acks — check personal messages
@@ -202,7 +136,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
             const role = roleMap.get(i);
             if (!role) continue;
 
-            const msg = await driveGroupConfirmAck(page);
+            const msg = await driveGroupConfirmAck(page, '催眠状态', '知道了');
             const seat = role.seat;
 
             if (seat === wolfSeat) {
@@ -280,7 +214,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === GroupConfirm: verify messages ===
         await test.step('groupConfirm reveals correct messages', async () => {
-          const groupReady = await waitForGroupConfirmStep(pages, 60);
+          const groupReady = await waitForGroupConfirmStep(pages, '催眠状态', 60);
           expect(groupReady).toBe(true);
 
           const hypnotizedSeats = [target1Seat, target2Seat];
@@ -289,7 +223,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
             const role = roleMap.get(i);
             if (!role) continue;
 
-            const msg = await driveGroupConfirmAck(pages[i]!);
+            const msg = await driveGroupConfirmAck(pages[i]!, '催眠状态', '知道了');
 
             if (hypnotizedSeats.includes(role.seat)) {
               // Hypnotized player sees seat list
@@ -361,11 +295,11 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === GroupConfirm: even when skipped, all ack (0 hypnotized) ===
         await test.step('all players ack groupConfirm (no one hypnotized)', async () => {
-          const groupReady = await waitForGroupConfirmStep(pages, 60);
+          const groupReady = await waitForGroupConfirmStep(pages, '催眠状态', 60);
           expect(groupReady).toBe(true);
 
           for (let i = 0; i < pages.length; i++) {
-            const msg = await driveGroupConfirmAck(pages[i]!);
+            const msg = await driveGroupConfirmAck(pages[i]!, '催眠状态', '知道了');
             // Everyone should see "未被催眠" since piper skipped
             expect(msg).toContain('未被催眠');
           }

@@ -69,7 +69,8 @@ export interface WriteSlotEffect {
     | 'votebannedSeat'
     | 'cursedSeat'
     | 'poisonedSeat'
-    | 'shelteredSeat';
+    | 'shelteredSeat'
+    | 'wolfGirlConfessedSeat';
 }
 
 /**
@@ -350,6 +351,12 @@ export interface NightStepUi {
   readonly loverText?: string;
   /** Cupid lovers reveal: text shown to a non-lover */
   readonly notLoverText?: string;
+  /** Wolf Girl confession reveal: text shown to a confessed civilian (use {seat} placeholder for the Wolf Girl's seat) */
+  readonly confessedText?: string;
+  /** Wolf Girl confession reveal: text shown to a confessed god or third-party player (no seat disclosed) */
+  readonly confessedGodText?: string;
+  /** Wolf Girl confession reveal: text shown to a player who was not confessed */
+  readonly notConfessedText?: string;
 }
 
 // ---------------------------------------------------------------------------

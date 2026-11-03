@@ -217,6 +217,10 @@ export function normalizeState(raw: GameState): GameState {
     convertedSeat: raw.convertedSeat,
     conversionRevealAcks: raw.conversionRevealAcks,
 
+    // Wolf Girl (pass-through)
+    wolfGirlConfessedSeat: raw.wolfGirlConfessedSeat,
+    wolfGirlConfessionRevealAcks: raw.wolfGirlConfessionRevealAcks,
+
     // Seed Wolf (pass-through)
     seedWolfInfectionResult: raw.seedWolfInfectionResult,
     seedWolfDeferredReveal: raw.seedWolfDeferredReveal,

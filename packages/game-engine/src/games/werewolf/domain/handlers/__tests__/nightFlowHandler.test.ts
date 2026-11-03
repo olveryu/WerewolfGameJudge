@@ -92,6 +92,7 @@ function createOngoingState(overrides?: Partial<GameState>): GameState {
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
@@ -410,6 +411,7 @@ describe('nightFlowHandler', () => {
           hypnotizedSeats: [],
           piperRevealAcks: [],
           conversionRevealAcks: [],
+          wolfGirlConfessionRevealAcks: [],
           seedWolfInfectionRevealAcks: [],
           cupidLoversRevealAcks: [],
           roster: {

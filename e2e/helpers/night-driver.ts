@@ -741,6 +741,43 @@ export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): 
   }
 }
 
+/**
+ * Drive all wolves to confirm the kill-disabled empty vote.
+ *
+ * When the wolf kill is disabled (poisoner override on Night 1, or a
+ * nightmare block), the bottom panel shows "确认放弃袭击" instead of
+ * the plain "放弃袭击" button that driveWolfEmptyVote clicks, and the
+ * step prompt explains the kill is impossible. Callers must run
+ * waitForRoleTurn for 'wolfKill' first, as with the other wolf-vote
+ * drivers: this helper assumes the step is active on every page.
+ */
+export async function driveWolfDisabledEmptyVote(
+  pages: Page[],
+  wolfIndices: number[],
+): Promise<void> {
+  log(`driveWolfDisabledEmptyVote wolfIndices=[${wolfIndices}]`);
+  for (const wIdx of wolfIndices) {
+    const wPage = pages[wIdx]!;
+    await dismissAlert(wPage);
+
+    const panel = wPage.locator('[data-testid="bottom-action-panel"]');
+    const blockedBtn = panel.getByRole('button', { name: '确认放弃袭击', exact: true });
+    await blockedBtn.waitFor({ state: 'visible', timeout: CLICK_TIMEOUT_MS });
+    await blockedBtn.click({ timeout: CLICK_TIMEOUT_MS });
+    log(`driveWolfDisabledEmptyVote — P${wIdx} clicked 确认放弃袭击`);
+
+    // Dismiss the confirmation alert if one appears
+    const alertModal = wPage.locator('[data-testid="alert-modal"]');
+    const appeared = await alertModal
+      .waitFor({ state: 'visible', timeout: CONFIRM_TIMEOUT_MS })
+      .then(() => true)
+      .catch(() => false);
+    if (appeared) {
+      await dismissAlert(wPage);
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Reveal dialog
 // ---------------------------------------------------------------------------
@@ -773,6 +810,69 @@ export async function dismissAlert(page: Page): Promise<void> {
       return;
     }
   }
+}
+
+/**
+ * Wait until a groupConfirm reveal step is active, detected by its
+ * status button (e.g. '情侣状态', '表白状态') becoming visible in the
+ * bottom action panel on any page.
+ *
+ * While polling, only dismiss blocking alert modals. Never click
+ * bottom-panel action buttons: a click (e.g. '不用技能') would submit
+ * a game action on a page whose current step the waiter has not
+ * verified. This is the single implementation for groupConfirm
+ * reveal waits; the cupid, piper, and wolf-girl specs all use it.
+ */
+export async function waitForGroupConfirmStep(
+  pages: Page[],
+  statusButtonText: string,
+  maxIterations = 60,
+): Promise<boolean> {
+  for (let iteration = 0; iteration < maxIterations; iteration++) {
+    for (const page of pages) {
+      const statusButton = page
+        .locator('[data-testid="bottom-action-panel"]')
+        .getByText(statusButtonText, { exact: true })
+        .first();
+      if (await statusButton.isVisible().catch(() => false)) return true;
+    }
+    for (const page of pages) {
+      await dismissAlert(page);
+    }
+    await pages[0]!.waitForTimeout(POLL_INTERVAL_MS);
+  }
+  return false;
+}
+
+/**
+ * Drive one player through a groupConfirm reveal acknowledgement:
+ * dismiss the step prompt, open the status button, read the personal
+ * message, acknowledge it. Returns the personal message text.
+ *
+ * The ack button text is the reveal step's own confirmButtonText
+ * (e.g. '我知道了' for the cupid reveal, '知道了' for piper and
+ * wolf-girl reveals). The ack click is unconditional: a missing ack
+ * button must fail the test, not pass silently. This is the single
+ * implementation for groupConfirm reveal acks; the cupid, piper,
+ * and wolf-girl specs all use it.
+ */
+export async function driveGroupConfirmAck(
+  page: Page,
+  statusButtonText: string,
+  ackButtonText: string,
+): Promise<string> {
+  await dismissAlert(page);
+
+  const panel = page.locator('[data-testid="bottom-action-panel"]');
+  const statusButton = panel.getByText(statusButtonText, { exact: true }).first();
+  await statusButton.waitFor({ state: 'visible', timeout: 10_000 });
+  await statusButton.click();
+
+  const alertModal = page.locator('[data-testid="alert-modal"]');
+  await alertModal.waitFor({ state: 'visible', timeout: 5000 });
+  const message = (await alertModal.textContent().catch(() => '')) ?? '';
+  await alertModal.getByText(ackButtonText, { exact: true }).first().click();
+  return message;
 }
 
 // ---------------------------------------------------------------------------

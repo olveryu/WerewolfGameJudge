@@ -80,6 +80,7 @@ const HAND_DRAWN_AVATAR_IDS = [
   'witch',
   'witcher',
   'wolf',
+  'wolfGirl',
   'wolfKing',
   'wolfQueen',
   'wolfRobot',

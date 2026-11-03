@@ -588,7 +588,7 @@ jobs:
           - shard: '4'
             specs: 'werewolf-night-gun-status.spec.ts werewolf-night-check-interactions.spec.ts'
           - shard: '5'
-            specs: 'werewolf-night-check.spec.ts werewolf-night-piper.spec.ts'
+            specs: 'werewolf-night-check.spec.ts werewolf-night-piper.spec.ts werewolf-night-wolf-girl.spec.ts'
           - shard: '6'
             specs: 'resilience-reconnect.spec.ts werewolf-night-flow.spec.ts resilience-db-recovery.spec.ts'
           # avalon runs solo: a single 10-player full-game test (~7min,

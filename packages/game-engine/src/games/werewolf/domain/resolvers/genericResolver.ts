@@ -5,7 +5,7 @@
  * Replaces many pattern-identical individual resolver files.
  *
  * Supported effect kinds (expanded gradually in P2-P4):
- * - writeSlot: write to CurrentNightResults slot (guard/dreamcatcher/silenceElder/votebanElder/wolfQueen)
+ * - writeSlot: write to CurrentNightResults slot (guard/dreamcatcher/silenceElder/votebanElder/wolfQueen/wolfGirl)
  * - chooseIdol: choose idol (slacker/wildChild)
  * - check: check faction/identity (seer family/psychic/gargoyle/wolfWitch/pureWhite)
  * - charm: charm target (wolfQueen — write charmedSeat update)

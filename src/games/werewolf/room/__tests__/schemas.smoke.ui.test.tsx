@@ -48,6 +48,8 @@ const schemaToRole: Record<string, RoleId> = {
   hiddenWolfReveal: 'hiddenWolf',
   seedWolfInfect: 'seedWolf',
   seedWolfInfectReveal: 'seedWolf',
+  wolfGirlConfess: 'wolfGirl',
+  wolfGirlConfessReveal: 'wolfGirl',
 
   // third party
   slackerChooseIdol: 'slacker',

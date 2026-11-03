@@ -24,7 +24,7 @@
 | 文档                                                               | 游戏 ID      | 说明                                              |
 | ------------------------------------------------------------------ | ------------ | ------------------------------------------------- |
 | [NIGHT1_ROLE_ALIGNMENT_MATRIX.md](NIGHT1_ROLE_ALIGNMENT_MATRIX.md) | `werewolf`   | 全部角色在 Handler→Facade→UI 架构下的行为对齐矩阵 |
-| [PRESET_BOARDS.md](PRESET_BOARDS.md)                               | `werewolf`   | 全部 26 套预设板子配置一览（按分类）              |
+| [PRESET_BOARDS.md](PRESET_BOARDS.md)                               | `werewolf`   | 全部 27 套预设板子配置一览（按分类）              |
 | [offline-sop.md](offline-sop.md)                                   | `werewolf`   | 线下同桌多设备的完整操作流程（开局→夜晚→天亮）    |
 | [avalon-game-design.md](avalon-game-design.md)                     | `avalon`     | 阿瓦隆                                            |
 | [fibking-word-supply.md](fibking-word-supply.md)                   | `fibking`    | 瞎掰王发题契约与免费供题 / 审核流程               |
@@ -61,7 +61,7 @@
 
 | 文档                                                                                 | 说明                                                   |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------------ |
-| [avatar-generation-prompts.md](avatar-generation-prompts.md)                         | 狼人杀 47 角色徽章图 prompt（豆包，中文，当前使用）    |
+| [avatar-generation-prompts.md](avatar-generation-prompts.md)                         | 狼人杀 48 角色立绘 prompt（中文，当前使用）            |
 | [avatar-generation-prompts.en.md](avatar-generation-prompts.en.md)                   | 同上的英文版（Gemini / Imagen 适配）                   |
 | [avatar-generation-prompts-other-games.md](avatar-generation-prompts-other-games.md) | 阿瓦隆 / 瞎掰王 / 谁是卧底角色立绘 prompt（v3 风格锁） |
 

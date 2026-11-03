@@ -13,7 +13,7 @@ import {
   type RoleId,
   type SchemaId,
 } from '../models';
-import { BLOCKED_UI_DEFAULTS, getStepSpec, NIGHT_STEPS } from '../models/roles/spec';
+import { BLOCKED_UI_DEFAULTS, getStepSpec } from '../models/roles/spec';
 import { resolveCurrentNightStep } from '../nightStep';
 import type { GameState } from '../protocol/types';
 import type { ActionInput } from '../resolvers/types';
@@ -42,18 +42,6 @@ export function isBottomCardActorOverride(state: GameState, stepId: SchemaId): b
     if (step && step.roleId === results.thiefChosenCard) return true;
   }
   return false;
-}
-
-/**
- * Get the corresponding SchemaId for a given role.
- */
-function getSchemaIdForRole(role: RoleId): SchemaId | null {
-  for (const step of NIGHT_STEPS) {
-    if (step.roleId === role) {
-      return step.id;
-    }
-  }
-  return null;
 }
 
 /**
@@ -101,8 +89,9 @@ export function validateActionPreconditions(
   const currentStepId = current.stepId;
   const schema = current.schema;
 
-  // Gate 3b: step mismatch - submitted role must match the current step
-  const expectedSchemaId = getSchemaIdForRole(role);
+  // Gate 3b: step mismatch - submitted role must own the current step.
+  // A role may own several submittable steps, so the check is against the
+  // current step's role, not the role's first step in NIGHT_STEPS order.
   // Special case: wolfKill is a meeting step shared by multiple wolf-team roles
   // (e.g. wolf, spiritKnight, wolfQueen...). For this step we validate participation
   // via ROLE_SPECS[*].wolfMeeting.participatesInWolfVote instead of role->schema mapping.
@@ -113,7 +102,7 @@ export function validateActionPreconditions(
     isBottomCardActorOverride(state, currentStepId)
   ) {
     // Bottom card role acting on the chosen card's step — allowed
-  } else if (expectedSchemaId !== currentStepId) {
+  } else if (current.step.roleId !== role) {
     return {
       valid: false,
       result: handlerError('step_mismatch'),

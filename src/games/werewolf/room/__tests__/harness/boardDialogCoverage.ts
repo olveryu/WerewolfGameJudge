@@ -33,9 +33,9 @@ export function getAll12PBoards(): BoardConfig[] {
   }));
 
   // Fail-fast: avoid silently picking up unexpected presets.
-  if (boards.length !== 26) {
+  if (boards.length !== 27) {
     throw new Error(
-      `Expected exactly 26 presets, but got ${boards.length}. ` +
+      `Expected exactly 27 presets, but got ${boards.length}. ` +
         `Update board UI coverage mapping/tests if presets changed.`,
     );
   }
@@ -137,6 +137,10 @@ const ROLE_UI_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
 
   // HiddenWolf: confirm trigger (displays wolf teammates)
   hiddenWolf: ['confirmTrigger'],
+
+  // WolfGirl: chooseSeat confirm only (canSkip: false, forced confession;
+  // the confession step shows the wolf pack to the actor on the seat board)
+  wolfGirl: ['actionConfirm'],
 
   // SeedWolf: infection decision, optional skip, and final personal result acknowledgement
   seedWolf: ['confirmTrigger', 'skipConfirm', 'seedWolfInfectionResult'],
@@ -248,4 +252,5 @@ export const BOARD_TEST_FILE_MAP: Record<string, string> = {
   永序之轮: 'eclipseWolfQueen.12p.board.ui.test.tsx',
   隐狼乌鸦: 'hiddenWolf.12p.board.ui.test.tsx',
   种狼骑士: 'seedWolf.12p.board.ui.test.tsx',
+  狼女孩: 'wolfGirl.12p.board.ui.test.tsx',
 };

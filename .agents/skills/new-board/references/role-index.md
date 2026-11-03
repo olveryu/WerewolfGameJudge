@@ -1,7 +1,7 @@
 # Role index — regenerated from `ROLE_SPECS`
 
 Source: `packages/game-engine/src/games/werewolf/domain/models/roles/spec/specs.ts`.
-Count: 47 roles. Faction values are the `Faction` enum (`Wolf` / `God` / `Villager` / `Special`);
+Count: 48 roles. Faction values are the `Faction` enum (`Wolf` / `God` / `Villager` / `Special`);
 team values are the `Team` enum (`Wolf` / `Good` / `Third`).
 Re-generate from the spec file before use.
 
@@ -45,6 +45,7 @@ Re-generate from the spec file before use.
 | `warden`           | 典狱长       | 狱         | Wolf     | Wolf  | —                                                          |
 | `eclipseWolfQueen` | 蚀时狼妃     | 蚀         | Wolf     | Wolf  | `eclipseWolfQueenShelter`                                  |
 | `hiddenWolf`       | 隐狼         | 隐         | Wolf     | Good  | `hiddenWolfReveal`                                         |
+| `wolfGirl`         | 狼女孩       | 孩         | Wolf     | Wolf  | `wolfGirlConfess`, `wolfGirlConfessReveal`                 |
 | `slacker`          | 混血儿       | 混         | Special  | Third | `slackerChooseIdol`                                        |
 | `wildChild`        | 野孩子       | 野         | Special  | Third | `wildChildChooseIdol`                                      |
 | `piper`            | 吹笛者       | 笛         | Special  | Third | `piperHypnotize`, `piperHypnotizedReveal`                  |

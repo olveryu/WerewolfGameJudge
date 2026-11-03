@@ -33,11 +33,11 @@ declares `const TEMPLATE_NAME = '<board name>';` and passes it to
 ## Coverage contract — 12-seat boards only
 
 `night1.boards.coverage.contract.test.ts` requires a test file for
-each of 14 boards in `REQUIRED_12P_TEMPLATES`, matched by a
+each of 15 boards in `REQUIRED_12P_TEMPLATES`, matched by a
 `TEMPLATE_TO_TEST_PATTERN` regex on the `TEMPLATE_NAME` assignment,
 and requires at least one theme assertion (night results, a reveal,
 a converted seat, or an action record). At drafting time the list
-has 14 of the 26 presets. A new board that seats 12 players joins
+has 15 of the 27 presets. A new board that seats 12 players joins
 this list (add the name and its regex). A board with any other seat
 count has no coverage-contract entry; record the gap in the work notes.
 

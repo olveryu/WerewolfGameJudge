@@ -59,6 +59,7 @@ function createState(overrides: Partial<GameState> = {}): GameState {
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     ...overrides,

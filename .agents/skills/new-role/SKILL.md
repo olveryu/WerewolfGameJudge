@@ -101,6 +101,12 @@ counts): update each cited count to the new total, derived from
 `ROLE_SPECS` at that moment, and update any expected-name list that
 enumerates roles the role joins.
 
+If the role adds night steps, add one `schemaId -> roleId` entry per
+new schema in both `schemaToRole` maps (`schemas.smoke.contract.test.ts`
+and `schemas.smoke.ui.test.tsx` under
+`src/games/werewolf/room/__tests__/`); the contract test fails on any
+schemaId without a mapping.
+
 ### 7. Register audio, badge, and avatar
 
 Follow `references/audio-badge-avatar.md`: add narration text for every
@@ -123,6 +129,7 @@ declares none: derive that from the spec entry.
 ```sh
 .agents/skills/new-role/scripts/check-new-role.sh .
 pnpm --filter @game-judge/game-engine run test -- src/games/werewolf/domain/models/roles/spec/__tests__/specs.contract.test.ts src/games/werewolf/domain/models/roles/spec/__tests__/nightSteps.contract.test.ts src/games/werewolf/domain/models/roles/spec/__tests__/schemas.contract.test.ts
+pnpm --filter werewolfgamejudge run test -- src/games/werewolf/room/__tests__/schemas.smoke.contract.test.ts src/games/werewolf/room/__tests__/schemas.smoke.ui.test.tsx
 ```
 
 Full quality verification runs in CI; before pushing, also run the

@@ -148,6 +148,14 @@ export interface WerewolfRevealView {
   readonly partnerSeat: number | null;
   /** piperHypnotizedReveal only: the full hypnotized list, visible to the hypnotized only. */
   readonly subjectSeats: readonly number[] | null;
+  /** wolfGirlConfessReveal only: whether the viewer was confessed by the Wolf Girl. */
+  readonly isConfessed: boolean;
+  /**
+   * wolfGirlConfessReveal only: the Wolf Girl's seat, visible only to a confessed
+   * civilian viewer (original role `villager`). Null for every other viewer,
+   * including a confessed god or third-party player and the Wolf Girl herself.
+   */
+  readonly confessorSeat: number | null;
 }
 
 export interface WerewolfNightView {
@@ -228,10 +236,20 @@ function deriveShowWolves(args: {
   const { myRole, currentActionRole, schema, results } = args;
   if (!currentActionRole || !myRole) return false;
 
+  const effectiveRole = getBottomCardEffectiveRole(myRole, results);
+
+  // Wolf Girl confession: the actor sees the wolf pack on the seat board
+  // while choosing whom to confess to, so she can pick a non-wolf player.
+  // Display-only (via deriveWolfPackSeats); the step stays a chooseSeat
+  // step and the wolf vote still happens at wolfKill. Other viewers never
+  // see the pack on this step: the branch is keyed on the viewer's own
+  // effective role.
+  if (schema?.id === 'wolfGirlConfess' && effectiveRole === 'wolfGirl') {
+    return true;
+  }
+
   const isWolfMeeting = schema?.kind === 'wolfVote' && schema.meeting?.canSeeEachOther === true;
   if (!isWolfMeeting) return false;
-
-  const effectiveRole = getBottomCardEffectiveRole(myRole, results);
 
   // Matching-role branch: the bottom-card exclusion is not applied here.
   if (effectiveRole === currentActionRole) {
@@ -540,6 +558,8 @@ function ackSeatsForStep(state: GameState, stepId: SchemaId): readonly number[] 
       return state.cupidLoversRevealAcks;
     case 'piperHypnotizedReveal':
       return state.piperRevealAcks;
+    case 'wolfGirlConfessReveal':
+      return state.wolfGirlConfessionRevealAcks;
     default:
       throw new Error(`Unknown groupConfirm step: ${stepId}`);
   }
@@ -557,6 +577,8 @@ function buildRevealView(
   let isSubject = false;
   let partnerSeat: number | null = null;
   let subjectSeats: readonly number[] | null = null;
+  let isConfessed = false;
+  let confessorSeat: number | null = null;
 
   if (viewerSeat !== null) {
     switch (stepId) {
@@ -567,6 +589,26 @@ function buildRevealView(
       case 'awakenedGargoyleConvertReveal':
         isSubject = state.convertedSeat === viewerSeat;
         break;
+      case 'wolfGirlConfessReveal': {
+        isConfessed = state.wolfGirlConfessedSeat === viewerSeat;
+        isSubject = isConfessed;
+        if (isConfessed) {
+          // Only a confessed civilian (original role `villager`) learns the
+          // Wolf Girl's seat. A confessed god or third-party player learns
+          // only that they were confessed. The viewer's original role is
+          // read from players, never from the confession record.
+          const viewerRole = state.players[viewerSeat]?.role;
+          if (viewerRole === 'villager') {
+            for (const [seatStr, player] of Object.entries(state.players)) {
+              if (player?.role === 'wolfGirl') {
+                confessorSeat = Number.parseInt(seatStr, 10);
+                break;
+              }
+            }
+          }
+        }
+        break;
+      }
       case 'cupidLoversReveal': {
         const lovers = state.loverSeats;
         if (lovers && lovers.includes(viewerSeat)) {
@@ -592,6 +634,8 @@ function buildRevealView(
     isSubject,
     partnerSeat,
     subjectSeats,
+    isConfessed,
+    confessorSeat,
   };
 }
 
@@ -640,7 +684,14 @@ export function getWerewolfViewModel(state: GameState, viewer: WerewolfViewer): 
       isActioner,
       confirmStatus: deriveConfirmStatus(state, step, viewerSeat),
       reveals: reveal ? [reveal] : [],
-      wolfVote: deriveWolfVote(state, occupiedSeats, viewerSeat, showWolves),
+      // The wolf-vote view stays meeting-only: showWolves is also true for
+      // the Wolf Girl confession display, which must not surface a vote view.
+      wolfVote: deriveWolfVote(
+        state,
+        occupiedSeats,
+        viewerSeat,
+        showWolves && step?.schema.kind === 'wolfVote',
+      ),
       pendingReveal: derivePendingReveal(state, viewerSeat),
       rejection: deriveRejection(state, viewerSeat),
       witchContext:

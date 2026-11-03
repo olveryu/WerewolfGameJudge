@@ -21,7 +21,7 @@ A preset entry has no player-count field: the count is derived.
 
 Seat count is `getPlayerCount(roles)` = `roles.length` minus the
 bottom-card count (`getBottomCardCount`). Current state, counted at
-drafting time: 26 presets, and every one seats 12 players. The
+drafting time: 27 presets, and every one seats 12 players. The
 `roles` arrays are 12 long except two: `盗贼丘比特` has 14 entries
 (12 seats + 2 bottom cards) and `盗宝大师` has 15 (12 seats + 3).
 Filenames such as `night1.thiefCupid.14p` / `night1.treasureMaster.choose.15p`

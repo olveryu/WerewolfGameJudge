@@ -227,6 +227,14 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return { ...state, cupidLoversRevealAcks: [...acks, seat] };
     }
 
+    case 'ADD_WOLF_GIRL_CONFESSION_REVEAL_ACK': {
+      const acks = state.wolfGirlConfessionRevealAcks ?? [];
+      const seat = action.payload.seat;
+      // Idempotent: ignore duplicate ack
+      if (acks.includes(seat)) return state;
+      return { ...state, wolfGirlConfessionRevealAcks: [...acks, seat] };
+    }
+
     // ── Board Nomination ─────────────────────────────────
     case 'SET_BOARD_NOMINATION':
       return handleSetBoardNomination(state, action);

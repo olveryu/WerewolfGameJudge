@@ -60,6 +60,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: rosterOverride ?? derivedRoster,
@@ -675,6 +676,23 @@ describe('gameReducer', () => {
       expect(newState.actions).toEqual([]);
       expect(newState.lastNightDeaths).toBeUndefined();
       expect(newState.nightStep).toBeNull();
+    });
+
+    it('should clear the Wolf Girl confession record and reveal acks', () => {
+      const state = createMinimalState({
+        status: GameStatus.Ended,
+        players: {
+          0: { seat: 0, role: 'villager' },
+          1: { seat: 1, role: 'wolfGirl' },
+        },
+        wolfGirlConfessedSeat: 0,
+        wolfGirlConfessionRevealAcks: [0, 1],
+      });
+
+      const newState = gameReducer(state, { type: 'RESTART_GAME', nonce: 'test-nonce' });
+
+      expect(newState.wolfGirlConfessedSeat).toBeUndefined();
+      expect(newState.wolfGirlConfessionRevealAcks).toEqual([]);
     });
   });
 

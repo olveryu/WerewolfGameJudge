@@ -134,6 +134,7 @@ function makeGameState(
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     currentNightResults: {
@@ -969,6 +970,7 @@ describe('NightReview.helpers', () => {
         [30, makePlayer(30, 'eclipseWolfQueen')],
         [31, makePlayer(31, 'hiddenWolf')],
         [32, makePlayer(32, 'seedWolf')],
+        [33, makePlayer(33, 'wolfGirl')],
       ]);
 
       const actions = new Map<RoleId, ReturnType<typeof makeActionTarget>>([
@@ -990,6 +992,7 @@ describe('NightReview.helpers', () => {
           swappedSeats: [7, 8],
           hypnotizedSeats: [2, 10],
           convertedSeat: 11,
+          wolfGirlConfessedSeat: 2,
           shadowMimicTarget: 3,
           cursedSeat: 12,
           shelteredSeat: 13,

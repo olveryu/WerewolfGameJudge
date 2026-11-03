@@ -285,6 +285,11 @@ function parseCurrentNightResults(value: unknown, path: string): CurrentNightRes
       parseArray(seats, p, parseSeat),
     ),
     convertedSeat: parseOptional(raw.convertedSeat, `${path}.convertedSeat`, parseSeat),
+    wolfGirlConfessedSeat: parseOptional(
+      raw.wolfGirlConfessedSeat,
+      `${path}.wolfGirlConfessedSeat`,
+      parseSeat,
+    ),
     seedWolfInfectionTarget: parseOptional(
       raw.seedWolfInfectionTarget,
       `${path}.seedWolfInfectionTarget`,
@@ -1095,6 +1100,16 @@ export function parseWerewolfState(value: unknown): GameState {
       'GameState.conversionRevealAcks',
       parseSeat,
     ),
+    wolfGirlConfessedSeat: parseOptional(
+      raw.wolfGirlConfessedSeat,
+      'GameState.wolfGirlConfessedSeat',
+      parseSeat,
+    ),
+    wolfGirlConfessionRevealAcks: parseArray(
+      raw.wolfGirlConfessionRevealAcks,
+      'GameState.wolfGirlConfessionRevealAcks',
+      parseSeat,
+    ),
     seedWolfInfectionResult: parseOptional(
       raw.seedWolfInfectionResult,
       'GameState.seedWolfInfectionResult',
@@ -1137,14 +1152,15 @@ export function parseWerewolfState(value: unknown): GameState {
 
 /**
  * Entry point for persisted state.
- * v12–v15 payloads migrate to v16: v13 adds nothing the parser cannot
+ * v12–v16 payloads migrate to v17: v13 adds nothing the parser cannot
  * default (resolvedWolfKillTarget / Verdict absent = unresolved); v14
  * adds audioBatchId, which starts at 0 for a room whose queue was
  * written before batches had ids; v15 re-addresses `actionRejected` to
  * a seat, and the old user-id form is transient feedback that is simply
  * dropped; v16 adds gameSequence, which starts at 0 for a room written
- * before games were numbered. Payloads at v11 or older are still
- * rejected, not migrated.
+ * before games were numbered; v17 adds the Wolf Girl confession record,
+ * whose ack list starts empty for every older payload. Payloads at v11
+ * or older are still rejected, not migrated.
  * @throws When the stored state carries any other version, or when the
  * current-version payload is malformed.
  */
@@ -1157,14 +1173,32 @@ export function migratePersistedWerewolfState(value: unknown): GameState {
       stateVersion: WEREWOLF_STATE_VERSION,
       audioBatchId: 0,
       gameSequence: 0,
+      wolfGirlConfessionRevealAcks: [],
     });
   }
   if (raw.stateVersion === 14) {
     const { actionRejected: _dropped, ...rest } = raw;
-    return parseWerewolfState({ ...rest, stateVersion: WEREWOLF_STATE_VERSION, gameSequence: 0 });
+    return parseWerewolfState({
+      ...rest,
+      stateVersion: WEREWOLF_STATE_VERSION,
+      gameSequence: 0,
+      wolfGirlConfessionRevealAcks: [],
+    });
   }
   if (raw.stateVersion === 15) {
-    return parseWerewolfState({ ...raw, stateVersion: WEREWOLF_STATE_VERSION, gameSequence: 0 });
+    return parseWerewolfState({
+      ...raw,
+      stateVersion: WEREWOLF_STATE_VERSION,
+      gameSequence: 0,
+      wolfGirlConfessionRevealAcks: [],
+    });
+  }
+  if (raw.stateVersion === 16) {
+    return parseWerewolfState({
+      ...raw,
+      stateVersion: WEREWOLF_STATE_VERSION,
+      wolfGirlConfessionRevealAcks: [],
+    });
   }
   if (raw.stateVersion !== WEREWOLF_STATE_VERSION) {
     throw new Error(`Unsupported werewolf state version: ${String(raw.stateVersion)}`);

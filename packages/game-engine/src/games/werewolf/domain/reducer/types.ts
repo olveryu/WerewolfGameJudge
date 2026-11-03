@@ -483,6 +483,21 @@ export interface AddCupidLoversRevealAckAction {
 }
 
 // =============================================================================
+// Wolf Girl groupConfirm ACK
+// =============================================================================
+
+/**
+ * Record seat confirmed confession status (idempotent: duplicate ack ignored).
+ * Server progresses to next step after all seated players ack.
+ */
+export interface AddWolfGirlConfessionRevealAckAction {
+  type: 'ADD_WOLF_GIRL_CONFESSION_REVEAL_ACK';
+  payload: {
+    seat: number;
+  };
+}
+
+// =============================================================================
 // Board Nomination actions
 // =============================================================================
 
@@ -589,6 +604,8 @@ export type StateAction =
   | AddSeedWolfInfectionRevealAckAction
   // Cupid groupConfirm ACK
   | AddCupidLoversRevealAckAction
+  // Wolf Girl groupConfirm ACK
+  | AddWolfGirlConfessionRevealAckAction
   // Board Nomination
   | SetBoardNominationAction
   | UpvoteBoardNominationAction

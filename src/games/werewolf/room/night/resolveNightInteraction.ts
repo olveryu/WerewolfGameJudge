@@ -316,7 +316,10 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
           };
         }
         case 'wolfTeammates': {
-          const teammates = status.role === 'hiddenWolf' ? status.wolfTeammates : [];
+          if (status.role !== 'hiddenWolf') {
+            throw new Error('[FAIL-FAST] Wolf-teammates confirm step requires hiddenWolf status');
+          }
+          const teammates = status.wolfTeammates;
           return {
             kind: 'confirmStatus',
             status,
@@ -424,6 +427,18 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
                       formatSeat(reveal.partnerSeat),
                     )
                   : requireSchemaText(schema, 'notLoverText', ui?.notLoverText),
+            };
+          case 'wolfGirlConfessReveal':
+            return {
+              title: '表白信息',
+              text: reveal.isSubject
+                ? reveal.confessorSeat !== null
+                  ? requireSchemaText(schema, 'confessedText', ui?.confessedText).replace(
+                      '{seat}',
+                      formatSeat(reveal.confessorSeat),
+                    )
+                  : requireSchemaText(schema, 'confessedGodText', ui?.confessedGodText)
+                : requireSchemaText(schema, 'notConfessedText', ui?.notConfessedText),
             };
           default:
             return {

@@ -72,6 +72,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
     { schemaId: 'wildChildChooseIdol', roleId: 'wildChild' },
     { schemaId: 'awakenedGargoyleConvert', roleId: 'awakenedGargoyle' },
     { schemaId: 'crowCurse', roleId: 'crow' },
+    { schemaId: 'wolfGirlConfess', roleId: 'wolfGirl' },
   ];
 
   // Schemas without notSelf (allow self-target)
@@ -86,6 +87,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
   const schemasWithNotWolfFaction: Array<{ schemaId: SchemaId; roleId: RoleId }> = [
     { schemaId: 'wolfWitchCheck', roleId: 'wolfWitch' },
     { schemaId: 'awakenedGargoyleConvert', roleId: 'awakenedGargoyle' },
+    { schemaId: 'wolfGirlConfess', roleId: 'wolfGirl' },
   ];
 
   describe('schemas WITH notSelf constraint', () => {
@@ -283,6 +285,7 @@ describe('notSelf constraint completeness', () => {
       'awakenedGargoyleConvert',
       // notWolfFaction
       'wolfWitchCheck',
+      'wolfGirlConfess',
       // No constraint (can target self)
       'silenceElderSilence',
       'votebanElderBan',

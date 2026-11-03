@@ -1,9 +1,9 @@
 /**
  * Night-1 Boards Coverage Contract Test
  *
- * Gate test: enforces that all 14 required 12-player boards have integration test coverage.
+ * Gate test: enforces that all 15 required 12-player boards have integration test coverage.
  *
- * A. Enforce that all 14 boards have test files
+ * A. Enforce that all 15 boards have test files
  * B. Prevent "empty shell / deaths-only" tests
  */
 
@@ -31,6 +31,7 @@ const REQUIRED_12P_TEMPLATES = [
   '灯影预言家',
   '永序之轮',
   '种狼骑士',
+  '狼女孩',
 ] as const;
 
 // =============================================================================
@@ -56,6 +57,7 @@ const TEMPLATE_TO_TEST_PATTERN: Record<string, RegExp> = {
   灯影预言家: /TEMPLATE_NAME\s*=\s*['"]灯影预言家['"]/,
   永序之轮: /TEMPLATE_NAME\s*=\s*['"]永序之轮['"]/,
   种狼骑士: /TEMPLATE_NAME\s*=\s*['"]种狼骑士['"]/,
+  狼女孩: /TEMPLATE_NAME\s*=\s*['"]狼女孩['"]/,
 };
 
 // =============================================================================
@@ -126,9 +128,9 @@ function fileMentionsStepId(content: string, stepId: string): boolean {
 describe('Night-1 Boards Coverage Contract', () => {
   const testFiles = getIntegrationTestFiles();
 
-  describe('A. Enforce that all 14 boards have test files', () => {
-    it('should find at least 14 night1.*.12p.integration.test.ts files', () => {
-      expect(testFiles.length).toBeGreaterThanOrEqual(14);
+  describe('A. Enforce that all 15 boards have test files', () => {
+    it('should find at least 15 night1.*.12p.integration.test.ts files', () => {
+      expect(testFiles.length).toBeGreaterThanOrEqual(15);
     });
 
     it.each(REQUIRED_12P_TEMPLATES)(
