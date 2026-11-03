@@ -4,6 +4,8 @@ export const UNDERCOVER_MIN_PLAYERS = 4;
 export const UNDERCOVER_MAX_PLAYERS = 12;
 export const UNDERCOVER_DEFAULT_PLAYERS = 8;
 export const UNDERCOVER_BLANK_MIN_PLAYERS = 6;
+/** 白板独赢的存活总人数：白板加最后一名对手。 */
+export const UNDERCOVER_BLANK_WIN_TOTAL_SURVIVORS = 2;
 
 export type UndercoverRole = 'civilian' | 'undercover' | 'blank';
 
@@ -20,6 +22,23 @@ export interface UndercoverRoleCounts {
   readonly blank: number;
 }
 
+export interface UndercoverTier {
+  /** 该档覆盖的最多人数（含）。 */
+  readonly maxPlayers: number;
+  /** 该档的卧底数。 */
+  readonly undercover: number;
+}
+
+/**
+ * 卧底数分档表：分档规则的唯一来源。`getUndercoverRoleCounts` 查表实现，
+ * 玩法屏从同一张表渲染人数配置，阈值只活在这里。
+ */
+export const UNDERCOVER_TIERS: readonly UndercoverTier[] = [
+  { maxPlayers: 6, undercover: 1 },
+  { maxPlayers: 9, undercover: 2 },
+  { maxPlayers: UNDERCOVER_MAX_PLAYERS, undercover: 3 },
+];
+
 /** Returns the configured distribution, rejecting invalid room sizes or blank mode. */
 export function getUndercoverRoleCounts(
   numberOfPlayers: number,
@@ -33,7 +52,11 @@ export function getUndercoverRoleCounts(
   ) {
     throw new Error('Invalid Undercover player configuration');
   }
-  const undercover = numberOfPlayers <= 6 ? 1 : numberOfPlayers <= 9 ? 2 : 3;
+  const tier = UNDERCOVER_TIERS.find((candidate) => numberOfPlayers <= candidate.maxPlayers);
+  if (tier === undefined) {
+    throw new Error('Invalid Undercover player configuration');
+  }
+  const undercover = tier.undercover;
   const blank = hasBlank ? 1 : 0;
   return { civilian: numberOfPlayers - undercover - blank, undercover, blank };
 }
@@ -44,7 +67,9 @@ export function getUndercoverWinner(roles: readonly UndercoverRole[]): Undercove
   const counts = { civilian: 0, undercover: 0, blank: 0 };
   for (const role of roles) counts[role] += 1;
   if (counts.blank > 1) throw new Error('Undercover supports at most one blank');
-  if (counts.blank === 1) return roles.length === 2 ? 'blank' : null;
+  if (counts.blank === 1) {
+    return roles.length === UNDERCOVER_BLANK_WIN_TOTAL_SURVIVORS ? 'blank' : null;
+  }
   if (counts.undercover === 0) return 'civilian';
   return counts.undercover >= counts.civilian ? 'undercover' : null;
 }

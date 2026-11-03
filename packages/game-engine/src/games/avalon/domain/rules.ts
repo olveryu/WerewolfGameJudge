@@ -2,6 +2,8 @@
 
 import {
   AVALON_BOARDS,
+  AVALON_DOUBLE_FAIL_QUEST_ROUND,
+  AVALON_DOUBLE_FAILS_NEEDED,
   AVALON_FOURTH_QUEST_DOUBLE_FAIL_MIN_PLAYERS,
   AVALON_QUEST_SIZES,
   type AvalonNightInfo,
@@ -26,7 +28,10 @@ export function getAvalonFailsNeeded(
   numberOfPlayers: AvalonPlayerCount,
   round: AvalonQuestRound,
 ): number {
-  return round === 4 && numberOfPlayers >= AVALON_FOURTH_QUEST_DOUBLE_FAIL_MIN_PLAYERS ? 2 : 1;
+  return round === AVALON_DOUBLE_FAIL_QUEST_ROUND &&
+    numberOfPlayers >= AVALON_FOURTH_QUEST_DOUBLE_FAIL_MIN_PLAYERS
+    ? AVALON_DOUBLE_FAILS_NEEDED
+    : 1;
 }
 
 /**

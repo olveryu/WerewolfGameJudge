@@ -47,6 +47,7 @@ import {
   AVALON_GAME_TYPE,
   AVALON_LADY_MIN_PLAYERS,
   AVALON_NIGHT_STEPS,
+  AVALON_QUESTS_TO_WIN,
   type AvalonBallot,
   type AvalonConfig,
   type AvalonPlay,
@@ -493,7 +494,7 @@ function commitQuestSettled(
   };
   // 只有失败数到 3 才真正终局（threeFail）；成功数到 3 进刺杀阶段，
   // 结算 effect 在刺杀指认后才发。
-  const gameEnded = failures >= 3;
+  const gameEnded = failures >= AVALON_QUESTS_TO_WIN;
   return commitAvalon(
     [
       ...priorEvents,

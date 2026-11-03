@@ -128,20 +128,34 @@ export function evolveDrawGuessState(state: DrawGuessState, event: DrawGuessEven
     }
     case 'drawguess.round.ended': {
       if (state.turnIndex !== event.turnIndex) return state;
-      const roundScores = state.phase.kind === 'drawing' ? { ...state.phase.turnScores } : {};
+      const fromDrawing = state.phase.kind === 'drawing';
+      const roundScores = fromDrawing ? { ...state.phase.turnScores } : {};
+      const scores = { ...state.scores };
+      // 全员猜中 = 画得太简单：画手本轮收入清零，猜中者得分不动。
+      // 口径与“全员猜中压到 3 秒”一致（猜题者数 = 席位数 − 画手）。
+      const drawerSeat = event.drawerSeat;
+      const allGuessed =
+        fromDrawing && state.phase.guessedSeats.length >= state.config.numberOfPlayers - 1;
+      const drawerZeroed = allGuessed && (roundScores[drawerSeat] ?? 0) > 0;
+      if (drawerZeroed) {
+        scores[drawerSeat] = (scores[drawerSeat] ?? 0) - (roundScores[drawerSeat] ?? 0);
+        roundScores[drawerSeat] = 0;
+      }
       return {
         ...state,
         phase: {
           kind: 'roundEnd',
-          drawerSeat: event.drawerSeat,
+          drawerSeat,
           word: event.word,
-          strokes: state.phase.kind === 'drawing' ? [...state.phase.strokes] : [],
+          strokes: fromDrawing ? [...state.phase.strokes] : [],
           roundScores,
+          drawerZeroed,
           pngEntry: null,
           reservation: null,
           deadlineAt: event.deadlineAt,
         },
         phaseRevision: state.phaseRevision + 1,
+        scores,
       };
     }
     case 'drawguess.drawing.reserved': {

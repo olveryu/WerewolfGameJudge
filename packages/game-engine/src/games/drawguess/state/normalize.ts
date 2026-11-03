@@ -213,6 +213,7 @@ export function normalizeDrawGuessState(state: DrawGuessState): DrawGuessState {
         ),
         'round scores',
       );
+      invariant(typeof phase.drawerZeroed === 'boolean', 'drawer zeroed');
       const reservation = phase.reservation;
       invariant(
         reservation === null ||
