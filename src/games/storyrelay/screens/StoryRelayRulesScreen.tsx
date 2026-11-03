@@ -1,5 +1,11 @@
 /** Story Relay gameplay guide; no duplicated editable room configuration. */
 
+import {
+  STORY_RELAY_MAX_PLAYERS,
+  STORY_RELAY_MIN_PLAYERS,
+  STORY_RELAY_TEXT_MAX_LENGTH,
+} from '@game-judge/game-engine/games/storyrelay/public';
+
 import { GameGuide, GameGuideSection, GameNotice, RuleItem } from '@/components/GameGuide';
 
 /** Presents ordinary text relay rules and manual bot responsibilities. */
@@ -14,7 +20,7 @@ export function StoryRelayRulesScreen() {
         <RuleItem
           icon="create-outline"
           title="各写一个开头"
-          description="支持 4 至 20 人。第一棒自由开头，每段最多 512 字符。"
+          description={`支持 ${STORY_RELAY_MIN_PLAYERS} 至 ${STORY_RELAY_MAX_PLAYERS} 人。第一棒自由开头，每段最多 ${STORY_RELAY_TEXT_MAX_LENGTH} 字符。`}
         />
         <RuleItem
           icon="swap-horizontal-outline"

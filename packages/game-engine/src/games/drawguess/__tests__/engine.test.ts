@@ -11,7 +11,7 @@ import type { DrawGuessCommand, DrawGuessPublicCommand } from '../commands/types
 import { DRAWGUESS_REASONS } from '../domain/decision';
 import {
   computeDeadlineAfterGuess,
-  computeDrawerScore,
+  computeDrawerRoundGain,
   computeGuesserScore,
   isCorrectGuess,
   normalizeGuessText,
@@ -288,13 +288,18 @@ describe('DrawGuess engine', () => {
     expect(computeGuesserScore(-100)).toBe(20);
   });
 
-  it('pays the drawer half of each guesser score', () => {
-    expect(computeDrawerScore(200)).toBe(100);
-    expect(computeDrawerScore(150)).toBe(75);
-    expect(computeDrawerScore(101)).toBe(51);
-    expect(computeDrawerScore(50)).toBe(25);
-    expect(computeDrawerScore(20)).toBe(10);
-    expect(computeDrawerScore(0)).toBe(0);
+  it('pays the drawer half of the first guess, a flat gain after that, capped per round', () => {
+    expect(computeDrawerRoundGain(200, 0, 0)).toBe(100);
+    expect(computeDrawerRoundGain(150, 0, 0)).toBe(75);
+    expect(computeDrawerRoundGain(101, 0, 0)).toBe(51);
+    expect(computeDrawerRoundGain(50, 0, 0)).toBe(25);
+    expect(computeDrawerRoundGain(20, 0, 0)).toBe(10);
+    expect(computeDrawerRoundGain(0, 0, 0)).toBe(0);
+    expect(computeDrawerRoundGain(-50, 0, 0)).toBe(0);
+    expect(computeDrawerRoundGain(200, 1, 100)).toBe(20);
+    expect(computeDrawerRoundGain(200, 2, 140)).toBe(20);
+    expect(computeDrawerRoundGain(200, 3, 150)).toBe(10);
+    expect(computeDrawerRoundGain(200, 4, 160)).toBe(0);
   });
 
   it('keeps a captured revision valid while strokes and other guesses land', () => {
@@ -568,6 +573,143 @@ describe('DrawGuess engine', () => {
     const roundEndView = getDrawGuessViewModel(session.state, 1, session.nowMs);
     expect(roundEndView.turnScores).toEqual(roundEndView.roundScores);
     expect(roundEndView.turnScores).toEqual({ 0: 100, 1: 200 });
+  });
+
+  it('caps the drawer round gain at 160 when four guess instantly and one misses', () => {
+    const session = game(6);
+    for (let seat = 4; seat < 6; seat += 1) {
+      session.send(
+        { type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } },
+        session.seatUser(seat),
+      );
+    }
+    session.startGame();
+    session.chooseFirstWord(0);
+    session.guess(1, '大熊猫');
+    session.guess(2, '大熊猫');
+    session.guess(3, '大熊猫');
+    session.guess(4, '大熊猫');
+    expect(session.state.scores[0]).toBe(160);
+    expect(session.state.scores[1]).toBe(200);
+    session.expire();
+    expect(session.state.phase.kind).toBe('roundEnd');
+    if (session.state.phase.kind !== 'roundEnd') throw new Error('phase');
+    expect(session.state.phase.drawerZeroed).toBe(false);
+    expect(session.state.phase.roundScores).toEqual({
+      0: 160,
+      1: 200,
+      2: 200,
+      3: 200,
+      4: 200,
+    });
+    expect(getDrawGuessViewModel(session.state, 1, session.nowMs).drawerZeroed).toBe(false);
+  });
+
+  it('zeroes only the drawer round gain when every guesser guesses', () => {
+    const session = game(6);
+    for (let seat = 4; seat < 6; seat += 1) {
+      session.send(
+        { type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } },
+        session.seatUser(seat),
+      );
+    }
+    session.startGame();
+    session.chooseFirstWord(0);
+    expect(getDrawGuessViewModel(session.state, 1, session.nowMs).drawerZeroed).toBe(false);
+    session.guess(1, '大熊猫');
+    session.guess(2, '大熊猫');
+    session.guess(3, '大熊猫');
+    session.guess(4, '大熊猫');
+    session.guess(5, '大熊猫');
+    expect(session.state.scores[0]).toBe(160);
+    session.expire();
+    expect(session.state.phase.kind).toBe('roundEnd');
+    if (session.state.phase.kind !== 'roundEnd') throw new Error('phase');
+    expect(session.state.phase.drawerZeroed).toBe(true);
+    expect(session.state.phase.roundScores).toEqual({
+      0: 0,
+      1: 200,
+      2: 200,
+      3: 200,
+      4: 200,
+      5: 200,
+    });
+    expect(session.state.scores[0]).toBe(0);
+    expect(session.state.scores[5]).toBe(200);
+    expect(getDrawGuessViewModel(session.state, 1, session.nowMs).drawerZeroed).toBe(true);
+  });
+
+  it('pays the drawer half of a slow first guess and a flat gain after that', () => {
+    const session = game(6);
+    for (let seat = 4; seat < 6; seat += 1) {
+      session.send(
+        { type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } },
+        session.seatUser(seat),
+      );
+    }
+    session.startGame();
+    session.chooseFirstWord(0);
+    session.advanceTime(60_000);
+    session.guess(1, '大熊猫');
+    session.guess(2, '大熊猫');
+    session.guess(3, '大熊猫');
+    expect(session.state.scores[1]).toBe(80);
+    expect(session.state.scores[0]).toBe(80);
+    session.expire();
+    expect(session.state.phase.kind).toBe('roundEnd');
+    if (session.state.phase.kind !== 'roundEnd') throw new Error('phase');
+    expect(session.state.phase.drawerZeroed).toBe(false);
+    expect(session.state.phase.roundScores).toEqual({ 0: 80, 1: 80, 2: 80, 3: 80 });
+  });
+
+  it('caps the drawer gain at 160 in a full twelve-player round', () => {
+    const session = game(12);
+    for (let seat = 4; seat < 12; seat += 1) {
+      session.send(
+        { type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } },
+        session.seatUser(seat),
+      );
+    }
+    session.startGame();
+    session.chooseFirstWord(0);
+    for (let seat = 1; seat <= 10; seat += 1) {
+      session.guess(seat, '大熊猫');
+    }
+    expect(session.state.scores[0]).toBe(160);
+    session.expire();
+    expect(session.state.phase.kind).toBe('roundEnd');
+    if (session.state.phase.kind !== 'roundEnd') throw new Error('phase');
+    expect(session.state.phase.drawerZeroed).toBe(false);
+    expect(session.state.phase.roundScores[0]).toBe(160);
+  });
+
+  it('leaves the drawer at zero with drawerZeroed false when nobody guesses', () => {
+    const session = game();
+    session.startGame();
+    session.chooseFirstWord(0);
+    session.expire();
+    expect(session.state.phase.kind).toBe('roundEnd');
+    if (session.state.phase.kind !== 'roundEnd') throw new Error('phase');
+    expect(session.state.phase.drawerZeroed).toBe(false);
+    expect(session.state.phase.roundScores).toEqual({});
+    expect(session.state.scores[0] ?? 0).toBe(0);
+  });
+
+  it('does not zero the drawer when an untaken bot seat never guesses', () => {
+    const session = game(6);
+    session.send({ type: 'room.seat.fillBots' });
+    expect(isBotSeat(session.state.roster, 4)).toBe(true);
+    session.startGame();
+    session.chooseFirstWord(0);
+    session.guess(1, '大熊猫');
+    session.guess(2, '大熊猫');
+    session.guess(3, '大熊猫');
+    session.expire();
+    expect(session.state.phase.kind).toBe('roundEnd');
+    if (session.state.phase.kind !== 'roundEnd') throw new Error('phase');
+    expect(session.state.phase.drawerZeroed).toBe(false);
+    expect(session.state.phase.roundScores[0]).toBe(140);
+    expect(session.state.scores[0]).toBe(140);
   });
 
   it('lets the host take over a bot seat to draw', () => {

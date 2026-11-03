@@ -43,6 +43,7 @@ import { roomScreenLog } from '@/utils/logger';
 
 import { renderDrawGuessDrawing } from '../services/drawGuessMediaApi';
 import { drawGuessMediaTransport } from '../services/drawGuessMediaTransport';
+import { DrawGuessDrawerZeroedNote } from './components/DrawGuessDrawerZeroedNote';
 import { DrawGuessDrawingCanvas } from './components/DrawGuessDrawingCanvas';
 import { DrawGuessGuessComposer } from './components/DrawGuessGuessComposer';
 import { DrawGuessGuessLog } from './components/DrawGuessGuessLog';
@@ -693,6 +694,7 @@ function DrawGuessRoundEndView({
           onFill={() => undefined}
         />
       )}
+      <DrawGuessDrawerZeroedNote visible={viewModel.drawerZeroed} />
       <DrawGuessScoreboard title="本轮得分" competitionRanking rows={roundRows} />
     </DrawGuessStageFrame>
   );

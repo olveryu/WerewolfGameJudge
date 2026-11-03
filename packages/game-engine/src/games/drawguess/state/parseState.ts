@@ -1,4 +1,5 @@
-/** Strict DrawGuess persistence and transport codec; version one has no legacy state variants. */
+/** Strict DrawGuess persistence and transport codec; v1 and v2 payloads
+ * migrate through migratePersistedDrawGuessState. */
 
 import { materializeLegacyRoster } from '../../../platform/protocol/legacyRoster';
 import {
@@ -262,6 +263,7 @@ function phase(value: unknown, path: string): DrawGuessPhase {
           word: parseNonEmptyString(raw.word, `${path}.word`),
           strokes: parseArray(raw.strokes, `${path}.strokes`, stroke),
           roundScores: scores(raw.roundScores, `${path}.roundScores`),
+          drawerZeroed: parseBoolean(raw.drawerZeroed, `${path}.drawerZeroed`),
           pngEntry: parseNullable(raw.pngEntry, `${path}.pngEntry`, pngEntry),
           reservation: parseNullable(raw.reservation, `${path}.reservation`, reservation),
           deadlineAt: parseInteger(raw.deadlineAt, `${path}.deadlineAt`),
@@ -312,15 +314,31 @@ export function parseDrawGuessState(value: unknown): DrawGuessState {
 }
 
 /**
+ * Upgrades a stored v2 document to v3: roundEnd phases gain drawerZeroed.
+ * v2 never recorded a zeroing, so the default is false; a document that
+ * already carries the field keeps its value.
+ */
+function upgradeV2ToV3(raw: Record<string, unknown>): Record<string, unknown> {
+  const next = { ...raw, stateVersion: DRAWGUESS_STATE_VERSION };
+  const phase = parseObject(raw.phase, 'DrawGuessState.phase');
+  if (phase.kind !== 'roundEnd' || 'drawerZeroed' in phase) return next;
+  return { ...next, phase: { ...phase, drawerZeroed: false } };
+}
+
+/**
  * Upgrades stored v1 rooms: v1 stored the roster as realSeats plus an
  * excluded-seat list, with the bot-fill flag inside the config; the v2
  * roster materializes exactly the seats the old derivation called bots
- * and the config flag retires.
+ * and the config flag retires. Stored v2 rooms upgrade through
+ * upgradeV2ToV3. Anything else goes through the strict parser, which
+ * rejects unsupported versions.
  * @throws When the stored state is malformed or invalid after migration.
  */
 export function migratePersistedDrawGuessState(value: unknown): DrawGuessState {
   const path = 'DrawGuessState';
   const raw = parseObject(value, path);
+  if (raw.stateVersion === DRAWGUESS_STATE_VERSION) return parseDrawGuessState(raw);
+  if (raw.stateVersion === 2) return parseDrawGuessState(upgradeV2ToV3(raw));
   if (raw.stateVersion !== 1) return parseDrawGuessState(raw);
   const rawConfig = parseObject(raw.config, `${path}.config`);
   const fill = parseBoolean(
@@ -338,10 +356,12 @@ export function migratePersistedDrawGuessState(value: unknown): DrawGuessState {
     numberOfPlayers: config.numberOfPlayers,
   });
   const { realSeats: _legacySeats, excludedBotSeats: _legacyExcluded, ...rest } = raw;
-  return parseDrawGuessState({
-    ...rest,
-    stateVersion: DRAWGUESS_STATE_VERSION,
-    config,
-    roster: nextRoster,
-  });
+  return parseDrawGuessState(
+    upgradeV2ToV3({
+      ...rest,
+      stateVersion: 2,
+      config,
+      roster: nextRoster,
+    }),
+  );
 }

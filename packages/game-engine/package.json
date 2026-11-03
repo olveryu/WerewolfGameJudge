@@ -108,6 +108,10 @@
       "types": "./src/platform/room/getBotDisplayName.ts",
       "default": "./dist/platform/room/getBotDisplayName.js"
     },
+    "./platform/room/settleCountdown": {
+      "types": "./src/platform/room/settleCountdown.ts",
+      "default": "./dist/platform/room/settleCountdown.js"
+    },
     "./platform/identifiers": {
       "types": "./src/platform/identifiers/index.ts",
       "default": "./dist/platform/identifiers/index.js"

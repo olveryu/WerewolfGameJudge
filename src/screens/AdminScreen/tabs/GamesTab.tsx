@@ -57,6 +57,16 @@ const DRAWGUESS_CATEGORY_NAMES: Readonly<Record<string, string>> = {
   people: '人物',
   idioms: '成语',
   internetMemes: '网络梗',
+  instruments: '乐器',
+  occupations: '职业',
+  space: '太空天文',
+  festivals: '节日习俗',
+  electronics: '电器数码',
+  characters: '动漫角色',
+  nature: '自然现象',
+  landmarks: '建筑地标',
+  stationery: '文具校园',
+  oceanLife: '海洋生物',
 };
 
 const GAME_WORD_CATEGORY_NAMES: Readonly<Record<GameWordGame, Readonly<Record<string, string>>>> = {

@@ -1,8 +1,25 @@
 /** Undercover guide content; describes offline voting without owning game logic. */
+import {
+  UNDERCOVER_BLANK_MIN_PLAYERS,
+  UNDERCOVER_BLANK_WIN_TOTAL_SURVIVORS,
+  UNDERCOVER_MIN_PLAYERS,
+  UNDERCOVER_TIERS,
+} from '@game-judge/game-engine/games/undercover/public';
 import { Text } from 'react-native';
 
 import { GameGuide, GameGuideSection, GameNotice, RuleItem } from '@/components/GameGuide';
 import { gameScreenStyles } from '@/components/GameScreen';
+
+/** 人数配置段：分档表渲染，档位起止由上一档上限递推，与引擎查表同源。 */
+function formatUndercoverTiers(): string {
+  let low = UNDERCOVER_MIN_PLAYERS;
+  const parts: string[] = [];
+  for (const tier of UNDERCOVER_TIERS) {
+    parts.push(`${low} 至 ${tier.maxPlayers} 人配置 ${tier.undercover} 名卧底`);
+    low = tier.maxPlayers + 1;
+  }
+  return parts.join('，');
+}
 
 /** Presents identities, offline voting and authoritative victory conditions. */
 export function UndercoverRulesScreen() {
@@ -55,7 +72,7 @@ export function UndercoverRulesScreen() {
         <RuleItem
           icon="document-outline"
           title="白板独赢"
-          description="白板存活且场上只剩两人时，白板独赢。白板仍在且超过两人时，继续游戏。"
+          description={`白板存活且场上只剩 ${UNDERCOVER_BLANK_WIN_TOTAL_SURVIVORS} 人时，白板独赢。白板仍在且超过 ${UNDERCOVER_BLANK_WIN_TOTAL_SURVIVORS} 人时，继续游戏。`}
         />
         <RuleItem
           icon="people-outline"
@@ -70,8 +87,7 @@ export function UndercoverRulesScreen() {
       </GameGuideSection>
       <GameGuideSection title="人数配置">
         <Text style={gameScreenStyles.description}>
-          4 至 6 人配置 1 名卧底，7 至 9 人配置 2 名，10 至 12 人配置 3 名。启用白板至少需要 6
-          人，白板替换一名平民。
+          {`${formatUndercoverTiers()}。启用白板至少需要 ${UNDERCOVER_BLANK_MIN_PLAYERS} 人，白板替换一名平民。`}
         </Text>
       </GameGuideSection>
       <GameNotice text="出局后仍可查看自己的词，但不能继续参与描述和投票。" />

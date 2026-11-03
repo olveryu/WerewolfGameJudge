@@ -14,6 +14,7 @@ import {
 } from '../domain/rules';
 import {
   AVALON_LADY_MIN_PLAYERS,
+  AVALON_LADY_ROUNDS,
   AVALON_QUEST_COUNT,
   type AvalonBallot,
   type AvalonHumanSeat,
@@ -240,10 +241,10 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
   // 同一座位不重复被查验，且每条的历史链与 examinedSeats 的顺序一致
   // （examinedSeats[0] 为首任持有人，其后依次为各次被查验者）。
   invariant(
-    state.ladyHistory.length <= 3 &&
+    state.ladyHistory.length <= AVALON_LADY_ROUNDS.length &&
       state.ladyHistory.every(
         (record, index) =>
-          (record.afterRound === 2 || record.afterRound === 3 || record.afterRound === 4) &&
+          AVALON_LADY_ROUNDS.includes(record.afterRound) &&
           (index === 0 || record.afterRound > state.ladyHistory[index - 1]!.afterRound) &&
           isSeat(record.holderSeat) &&
           isSeat(record.targetSeat) &&
@@ -355,10 +356,7 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
     case 'lady': {
       const phase = state.phase;
       invariant(count >= AVALON_LADY_MIN_PLAYERS, 'lady needs 9+ players');
-      invariant(
-        phase.afterRound === 2 || phase.afterRound === 3 || phase.afterRound === 4,
-        'lady round',
-      );
+      invariant(AVALON_LADY_ROUNDS.includes(phase.afterRound), 'lady round');
       invariant(isSeat(phase.holderSeat), 'lady holder seat');
       invariant(
         phase.examinedSeats.includes(phase.holderSeat) &&

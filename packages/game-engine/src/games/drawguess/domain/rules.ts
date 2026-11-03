@@ -3,6 +3,8 @@
 import { createSeededRng, shuffleArray } from '../../../platform/random';
 import {
   DRAWGUESS_ALL_GUESSED_REMAINING_SECONDS,
+  DRAWGUESS_DRAWER_FLAT_AFTER_FIRST,
+  DRAWGUESS_DRAWER_ROUND_CAP,
   DRAWGUESS_DRAWER_SHARE,
   DRAWGUESS_DRAWING_DURATION_SECONDS,
   DRAWGUESS_FIRST_GUESS_REMAINING_CAP_SECONDS,
@@ -67,11 +69,20 @@ export function computeScoringRemainingMs(phaseStartAt: number, nowMs: number): 
 }
 
 /**
- * 画手每被一人猜中即时所得：round(该猜中者得分 × 0.5)。
- * 作画收入占整局总分比例恒为 SHARE / (1 + SHARE)，与房间人数无关。
+ * 画手因一次猜中即时所得：一人猜中已很好，多人猜中不再多给。
+ * 首个猜中者按其得分的一半；之后每多一人只加固定分；单轮收入封顶，
+ * 按本轮已累计数扣减剩余额度（已满封顶后再猜中得 0）。
  */
-export function computeDrawerScore(guesserScore: number): number {
-  return Math.round(Math.max(0, guesserScore) * DRAWGUESS_DRAWER_SHARE);
+export function computeDrawerRoundGain(
+  guesserScore: number,
+  correctCountSoFar: number,
+  drawerRoundScoreSoFar: number,
+): number {
+  const gain =
+    correctCountSoFar === 0
+      ? Math.round(Math.max(0, guesserScore) * DRAWGUESS_DRAWER_SHARE)
+      : DRAWGUESS_DRAWER_FLAT_AFTER_FIRST;
+  return Math.min(gain, Math.max(0, DRAWGUESS_DRAWER_ROUND_CAP - drawerRoundScoreSoFar));
 }
 
 /**
