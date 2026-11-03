@@ -125,6 +125,13 @@ async function drivePostConfessNight(
   seerCheckSeat: number,
 ): Promise<void> {
   await test.step('wolves meet but cannot kill (poisoner override)', async () => {
+    // waitForRoleTurn first: it advances the other pages past their
+    // pending prompts and waits out the step's audio/prompt cycle, so
+    // the 放弃袭击 button is actually rendered when driveWolfEmptyVote
+    // looks for it. Calling driveWolfEmptyVote without it stalls: its
+    // per-page settle does not advance the other pages.
+    const wolfTurn = await waitForRoleTurn(pages[wolfPageIndices[0]!]!, 'wolfKill', pages);
+    expect(wolfTurn, 'Wolf turn should become active').toBe(true);
     await driveWolfEmptyVote(pages, wolfPageIndices);
   });
 
