@@ -4,7 +4,7 @@
  * night the tap still opens the vote confirm and submits on confirm.
  */
 
-import { type RoleId,SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
+import { type RoleId, SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react-native';
 
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';

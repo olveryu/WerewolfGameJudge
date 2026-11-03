@@ -355,6 +355,38 @@ describe('RoomBottomActionPanel', () => {
       expect(screen.queryByText(AUDIO_PLAYBACK_LOCK_REASON)).toBeNull();
     });
 
+    it('hides the audio reason on a choice host task card during playback', () => {
+      const screen = renderPanel(
+        emptyStackedModel,
+        hostModelWith(
+          [
+            {
+              key: 'assign-roles',
+              label: '分配角色',
+              icon: 'play-outline',
+              variant: 'primary',
+              isEnabled: false,
+              disabledReason: AUDIO_PLAYBACK_LOCK_REASON,
+            },
+            {
+              key: 'share-room',
+              label: '分享房间',
+              icon: 'share-social-outline',
+              variant: 'secondary',
+              isEnabled: true,
+              onPress: jest.fn(),
+            },
+          ],
+          { kind: 'choice', actionKeys: ['assign-roles', 'share-room'] },
+        ),
+        jest.fn(),
+        true,
+      );
+      expect(screen.getByText(AUDIO_WAITING_LABEL)).toBeTruthy();
+      expect(screen.getByText('分配角色')).toBeTruthy();
+      expect(screen.queryByText(AUDIO_PLAYBACK_LOCK_REASON)).toBeNull();
+    });
+
     it('keeps a non-audio reason on a blocked host task card during playback', () => {
       const screen = renderPanel(
         emptyStackedModel,
