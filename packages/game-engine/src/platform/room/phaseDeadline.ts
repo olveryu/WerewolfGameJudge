@@ -120,13 +120,25 @@ export function guardPhaseExpiry<TEvent extends GameEvent, TEffect extends GameE
  * The fields a settle.due payload pins: the exact arming (game,
  * deadline) a Worker delivery must still match to settle, extended
  * per game with the phase identity fields its staleness gate
- * compares (Avalon pins phase and round as well).
+ * compares (Avalon pins phase and round as well; multi-phase relay
+ * games pin roundId, phaseRevision, stepIndex and turnIndex).
+ * Only `deadlineAt` is required: `gameSequence` is absent for
+ * games whose state carries no game sequence, and each extension
+ * field is present only for games whose staleness gate compares it.
+ * The internal settle command itself carries no pin at all — the
+ * pin lives only on the effect payload. The Worker-side mirror of
+ * this shape is `SettleDuePinShape` in the api-worker settleDue
+ * module; the two must stay field-identical.
  */
 export interface SettleDuePin {
-  readonly gameSequence: number;
+  readonly gameSequence?: number;
   readonly deadlineAt: number;
   readonly phase?: string;
   readonly round?: number;
+  readonly roundId?: string;
+  readonly phaseRevision?: number;
+  readonly stepIndex?: number;
+  readonly turnIndex?: number;
 }
 
 /**

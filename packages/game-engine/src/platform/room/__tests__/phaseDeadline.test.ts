@@ -245,6 +245,39 @@ describe('buildSettleDueEffect', () => {
       payload: { gameSequence: 2, phase: 'vote', round: 3, deadlineAt: 9000 },
     });
   });
+
+  it('carries a relay pin with no game sequence (round id is the identity)', () => {
+    expect(
+      buildSettleDueEffect('pictionary', {
+        roundId: 'pictionary-round:command-1',
+        phaseRevision: 4,
+        stepIndex: 2,
+        deadlineAt: 61000,
+      }),
+    ).toEqual({
+      type: 'pictionary.settle.due',
+      payload: {
+        roundId: 'pictionary-round:command-1',
+        phaseRevision: 4,
+        stepIndex: 2,
+        deadlineAt: 61000,
+      },
+    });
+  });
+
+  it('carries a drawguess pin (sequence, revision, turn, deadline)', () => {
+    expect(
+      buildSettleDueEffect('drawguess', {
+        gameSequence: 1,
+        phaseRevision: 5,
+        turnIndex: 0,
+        deadlineAt: 61000,
+      }),
+    ).toEqual({
+      type: 'drawguess.settle.due',
+      payload: { gameSequence: 1, phaseRevision: 5, turnIndex: 0, deadlineAt: 61000 },
+    });
+  });
 });
 
 describe('rejectIfPastDeadline', () => {

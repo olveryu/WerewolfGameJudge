@@ -1,8 +1,11 @@
 /**
- * useStageDeadline dispatch discipline (AU-25): with a past deadline,
- * an in-flight dispatch must never be duplicated by later ticks, and
- * a closed guard must suppress dispatch entirely. The guard models
- * the session snapshot conditions (pending command / moved revision)
+ * useStageDeadline dispatch discipline (AU-25/AU-26): with a past
+ * deadline, an in-flight dispatch must never be duplicated by later
+ * ticks, and a closed guard must suppress dispatch entirely. With an
+ * `attemptKey`, a phase identity is attempted at most once and never
+ * retried after any outcome; without one, callers keep the legacy
+ * retry behavior until they pass a key (P0). The guard models the
+ * session snapshot conditions (pending command / moved revision)
  * the four game callers pass in.
  */
 import { act, renderHook } from '@testing-library/react-native';
@@ -85,7 +88,140 @@ describe('useStageDeadline silentExpire (AU-26)', () => {
     jest.useRealTimers();
   });
 
-  it('logs and retries on the next tick instead of alerting', async () => {
+  it('logs once and never retries the same attempt key instead of alerting', async () => {
+    const onExpire = jest.fn(async () => {
+      throw new Error('dispatch blew up');
+    });
+    renderHook(() =>
+      useStageDeadline({
+        deadlineAt: Date.now() - 1000,
+        shouldExpire: () => true,
+        onExpire,
+        label: '推进阶段',
+        refreshIntervalMs: 250,
+        silentExpire: true,
+        attemptKey: 'round-1:1:1000',
+      }),
+    );
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(onExpire).toHaveBeenCalledTimes(1);
+    expect(handleError).not.toHaveBeenCalled();
+  });
+
+  it('does not retry a committed attempt key either', async () => {
+    const onExpire = jest.fn(async () => undefined);
+    renderHook(() =>
+      useStageDeadline({
+        deadlineAt: Date.now() - 1000,
+        shouldExpire: () => true,
+        onExpire,
+        label: '推进阶段',
+        refreshIntervalMs: 250,
+        attemptKey: 'round-1:1:1000',
+      }),
+    );
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(onExpire).toHaveBeenCalledTimes(1);
+  });
+
+  it('dispatches again when the attempt key changes', async () => {
+    const onExpire = jest.fn(async () => undefined);
+    const { rerender } = renderHook(
+      ({ attemptKey }: { attemptKey: string }) =>
+        useStageDeadline({
+          deadlineAt: Date.now() - 1000,
+          shouldExpire: () => true,
+          onExpire,
+          label: '推进阶段',
+          refreshIntervalMs: 250,
+          attemptKey,
+        }),
+      { initialProps: { attemptKey: 'round-1:1:1000' } },
+    );
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(onExpire).toHaveBeenCalledTimes(1);
+    rerender({ attemptKey: 'round-1:2:2000' });
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(onExpire).toHaveBeenCalledTimes(2);
+  });
+
+  it('never dispatches for a null attempt key', async () => {
+    const onExpire = jest.fn(async () => undefined);
+    renderHook(() =>
+      useStageDeadline({
+        deadlineAt: Date.now() - 1000,
+        shouldExpire: () => true,
+        onExpire,
+        label: '推进阶段',
+        refreshIntervalMs: 250,
+        attemptKey: null,
+      }),
+    );
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(onExpire).not.toHaveBeenCalled();
+  });
+
+  it('does not re-attempt the same key after the epoch ends and returns', async () => {
+    const onExpire = jest.fn(async () => undefined);
+    const { rerender } = renderHook(
+      ({ deadlineAt }: { deadlineAt: number | null }) =>
+        useStageDeadline({
+          deadlineAt,
+          shouldExpire: () => true,
+          onExpire,
+          label: '推进阶段',
+          refreshIntervalMs: 250,
+          attemptKey: 'round-1:1:1000',
+        }),
+      { initialProps: { deadlineAt: Date.now() - 1000 } },
+    );
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(onExpire).toHaveBeenCalledTimes(1);
+    rerender({ deadlineAt: null });
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    rerender({ deadlineAt: Date.now() - 1000 });
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(onExpire).toHaveBeenCalledTimes(1);
+  });
+
+  it('alerts once through handleError and does not retry with an attempt key', async () => {
+    const onExpire = jest.fn(async () => {
+      throw new Error('dispatch blew up');
+    });
+    renderHook(() =>
+      useStageDeadline({
+        deadlineAt: Date.now() - 1000,
+        shouldExpire: () => true,
+        onExpire,
+        label: '推进阶段',
+        refreshIntervalMs: 250,
+        attemptKey: 'round-1:1:1000',
+      }),
+    );
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(onExpire).toHaveBeenCalledTimes(1);
+    expect(handleError).toHaveBeenCalledTimes(1);
+  });
+
+  it('logs and retries on the next tick when no attemptKey is provided (legacy callers)', async () => {
     const onExpire = jest.fn(async () => {
       throw new Error('dispatch blew up');
     });
