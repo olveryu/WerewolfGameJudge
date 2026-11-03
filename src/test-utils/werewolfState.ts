@@ -25,6 +25,7 @@ export function buildWerewolfTestState(overrides: Partial<GameState> = {}): Game
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
     ...overrides,
   };
 }

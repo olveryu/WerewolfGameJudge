@@ -62,6 +62,7 @@ export const EMOJI_MAP = {
   eclipseWolfQueen: ['Waning crescent moon', 'waning_crescent_moon', false],
   hiddenWolf: ['Ninja', 'ninja', true],
   seedWolf: ['Seedling', 'seedling', false],
+  wolfGirl: ['Girl', 'girl', true],
 
   // Third-party / Special
   slacker: ['Sleeping face', 'sleeping_face', false],

@@ -215,6 +215,14 @@ export interface SchemaUi {
   /** Text shown to non-hypnotized players. */
   readonly notHypnotizedText?: string;
 
+  // === GroupConfirm UI (wolfGirlConfessReveal) ===
+  /** Text shown to a confessed civilian. Placeholder: {seat} (the Wolf Girl's seat number). */
+  readonly confessedText?: string;
+  /** Text shown to a confessed god or third-party player (no seat disclosed). */
+  readonly confessedGodText?: string;
+  /** Text shown to a player who was not confessed. */
+  readonly notConfessedText?: string;
+
   // === Wolf vote dialog templates (schema-driven) ===
   /** Wolf vote confirm dialog template. Placeholders: {wolf}, {seat}. */
   readonly voteConfirmTemplate?: string;
@@ -384,6 +392,12 @@ export interface GroupConfirmSchema extends BaseActionSchema {
     readonly loverText?: string;
     /** Text shown to non-lovers */
     readonly notLoverText?: string;
+    /** Text shown to a confessed civilian, supports {seat} placeholder (displays the Wolf Girl's seat number) */
+    readonly confessedText?: string;
+    /** Text shown to a confessed god or third-party player (no seat disclosed) */
+    readonly confessedGodText?: string;
+    /** Text shown to non-confessed players */
+    readonly notConfessedText?: string;
   };
 }
 

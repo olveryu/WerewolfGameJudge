@@ -45,6 +45,8 @@ import votebanElderBegin from '../../../../assets/audio/voteban_elder.mp3';
 import wildChildBegin from '../../../../assets/audio/wild_child.mp3';
 import witchBegin from '../../../../assets/audio/witch.mp3';
 import wolfBegin from '../../../../assets/audio/wolf.mp3';
+import wolfGirlBegin from '../../../../assets/audio/wolf_girl.mp3';
+import wolfGirlConfessRevealBegin from '../../../../assets/audio/wolf_girl_confess_reveal.mp3';
 import wolfQueenBegin from '../../../../assets/audio/wolf_queen.mp3';
 import wolfRobotBegin from '../../../../assets/audio/wolf_robot.mp3';
 import wolfWitchBegin from '../../../../assets/audio/wolf_witch.mp3';
@@ -82,6 +84,8 @@ import votebanElderEnd from '../../../../assets/audio_end/voteban_elder.mp3';
 import wildChildEnd from '../../../../assets/audio_end/wild_child.mp3';
 import witchEnd from '../../../../assets/audio_end/witch.mp3';
 import wolfEnd from '../../../../assets/audio_end/wolf.mp3';
+import wolfGirlEnd from '../../../../assets/audio_end/wolf_girl.mp3';
+import wolfGirlConfessRevealEnd from '../../../../assets/audio_end/wolf_girl_confess_reveal.mp3';
 import wolfQueenEnd from '../../../../assets/audio_end/wolf_queen.mp3';
 import wolfRobotEnd from '../../../../assets/audio_end/wolf_robot.mp3';
 import wolfWitchEnd from '../../../../assets/audio_end/wolf_witch.mp3';
@@ -317,6 +321,13 @@ const ROLE_AUDIO_ENTRIES = [
     },
   ],
   [
+    'wolfGirl',
+    {
+      begin: wolfGirlBegin,
+      end: wolfGirlEnd,
+    },
+  ],
+  [
     'poisoner',
     {
       begin: poisonerBegin,
@@ -402,6 +413,13 @@ const STEP_AUDIO = new Map<string, WerewolfRoleAudioEntry>([
     {
       begin: seedWolfInfectRevealBegin,
       end: seedWolfInfectRevealEnd,
+    },
+  ],
+  [
+    'wolfGirlConfessReveal',
+    {
+      begin: wolfGirlConfessRevealBegin,
+      end: wolfGirlConfessRevealEnd,
     },
   ],
 ]);

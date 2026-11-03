@@ -24,8 +24,8 @@ import {
 } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/types';
 
 describe('ROLE_SPECS contract', () => {
-  it('should have exactly 47 roles', () => {
-    expect(getAllRoleIds()).toHaveLength(47);
+  it('should have exactly 48 roles', () => {
+    expect(getAllRoleIds()).toHaveLength(48);
   });
 
   it('every role should have required fields', () => {
@@ -149,6 +149,7 @@ describe('ROLE_SPECS contract', () => {
       'seedWolf', // after wolfKill
       'wolfQueen', // 6
       'hiddenWolf', // confirm (after wolfQueenCharm)
+      'wolfGirl', // confess (before wolfKill), reveal last
       'witch', // 10
       'poisoner', // 11
       'wolfWitch', // 14

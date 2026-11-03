@@ -28,6 +28,7 @@ function createTreasureMasterState(overrides: Partial<GameState> = {}): GameStat
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
     bottomCards: ['wolf', 'seer', 'villager'],
     treasureMasterSeat: 0,
     cupidLoversRevealAcks: [],
@@ -82,6 +83,7 @@ function createSheriffElectionState(overrides: Partial<GameState> = {}): GameSta
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     sheriffElection: {

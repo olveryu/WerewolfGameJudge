@@ -490,6 +490,7 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    *
    * - hunter / darkWolfKing -> ShootConfirmStatus (canShoot: can only activate when killed by wolf attack or exile)
    * - avenger -> FactionConfirmStatus (faction: good/wolf/bound)
+   * - hiddenWolf -> WolfTeammatesConfirmStatus (wolfTeammates: other wolves' seats)
    *
    * Only display to that role via UI filter.
    */
@@ -605,6 +606,24 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    * Initialized as `[]`, server guarantees non-undefined.
    */
   conversionRevealAcks: readonly number[];
+
+  // --- Wolf Girl ---
+  /**
+   * Confessed seat (Night-1 only).
+   * Written by server after wolfGirlConfess resolver executes; the confessed
+   * player's role and team are never rewritten. UI in wolfGirlConfessReveal
+   * step filters by mySeat, showing the Wolf Girl's seat only to a confessed
+   * civilian and bare confession knowledge to a confessed god or third-party player.
+   */
+  wolfGirlConfessedSeat?: number;
+
+  /**
+   * List of seats that have acknowledged (ack) in wolfGirlConfessReveal step.
+   * Server progresses to next step after all alive players ack.
+   * Reset to empty on next night entry.
+   * Initialized as `[]`, server guarantees non-undefined.
+   */
+  wolfGirlConfessionRevealAcks: readonly number[];
 
   // --- Seed Wolf ---
   /** Final infection outcome, available only when entering seedWolfInfectReveal. */

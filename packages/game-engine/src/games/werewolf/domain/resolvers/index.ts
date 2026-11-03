@@ -23,6 +23,7 @@ import { treasureMasterChooseResolver } from './treasureMaster';
 import type { ResolverRegistry } from './types';
 import { witchActionResolver } from './witch';
 import { wolfKillResolver } from './wolf';
+import { wolfGirlConfessRevealResolver } from './wolfGirl';
 
 export const RESOLVERS: ResolverRegistry = {
   // --- Generic resolvers (data-driven from ROLE_SPECS_V2) ---
@@ -51,6 +52,7 @@ export const RESOLVERS: ResolverRegistry = {
   darkWolfKingConfirm: createGenericResolver('darkWolfKing'),
   avengerConfirm: createGenericResolver('avenger'),
   hiddenWolfReveal: createGenericResolver('hiddenWolf'),
+  wolfGirlConfess: createGenericResolver('wolfGirl'),
   poisonerPoison: createGenericResolver('poisoner'),
 
   // --- Custom resolvers (complex logic not expressible declaratively) ---
@@ -68,6 +70,7 @@ export const RESOLVERS: ResolverRegistry = {
   thiefChoose: thiefChooseResolver,
   cupidChooseLovers: cupidChooseLoversResolver,
   cupidLoversReveal: cupidLoversRevealResolver,
+  wolfGirlConfessReveal: wolfGirlConfessRevealResolver,
 };
 
 // Re-export types for convenience (SERVER-ONLY consumers)

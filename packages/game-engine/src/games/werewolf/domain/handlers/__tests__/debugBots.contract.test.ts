@@ -52,6 +52,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     roster: {},

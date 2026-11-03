@@ -38,6 +38,7 @@ const baseContext: HandlerContext = {
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     nightStep: { kind: 'inStep', stepId: 'seerCheck' },

@@ -89,7 +89,7 @@ Most players play in the WeChat Mini Program (search "狼人面杀电子裁判�
   <tr>
     <td align="center"><img src="assets/readme/ui-home.jpg" width="160" alt="Home"><br><sub>Home · create / join a room</sub></td>
     <td align="center"><img src="assets/readme/ui-games.jpg" width="160" alt="Game library"><br><sub>Game library · all 7 games</sub></td>
-    <td align="center"><img src="assets/readme/ui-werewolf-guide.jpg" width="160" alt="Werewolf guide"><br><sub>Werewolf guide · 47 roles / 26 boards</sub></td>
+    <td align="center"><img src="assets/readme/ui-werewolf-guide.jpg" width="160" alt="Werewolf guide"><br><sub>Werewolf guide · 48 roles / 27 boards</sub></td>
     <td align="center"><img src="assets/readme/ui-room.jpg" width="160" alt="Room lobby"><br><sub>Room lobby · take a seat</sub></td>
     <td align="center"><img src="assets/readme/ui-gacha.jpg" width="160" alt="Gacha machine"><br><sub>Gacha · draw tickets, unlock cosmetics</sub></td>
   </tr>
@@ -123,7 +123,7 @@ This app takes over the whole job: dealing identities, advancing phases, calling
 ## 🐺 Werewolf Spotlight (the flagship)
 
 - 🔊 **Fully voiced Night-1**: identity reveal, skill actions, and dawn announcements are narrated end to end, so the host plays with eyes closed too; BGM and sound effects included
-- 🎭 **47 roles · 26 preset boards**: gods, special wolves, and third-party roles in full; presets are all 12-player boards, custom boards supported — [Role Alignment Matrix](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md) · [Preset Boards](docs/PRESET_BOARDS.md)
+- 🎭 **48 roles · 27 preset boards**: gods, special wolves, and third-party roles in full; presets are all 12-player boards, custom boards supported — [Role Alignment Matrix](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md) · [Preset Boards](docs/PRESET_BOARDS.md)
 - 🤖 **AI rules assistant**: tap the AI bubble on any role card to ask about skills and strategy (Gemini 3.5 Flash Lite, proxied by the Worker)
 - ☀️ Daytime discussion, voting, and elimination stay at the table — the app handles Night-1, the part that actually needs a judge
 
@@ -206,7 +206,7 @@ Game state is stored in Cloudflare Durable Objects (edge SQLite), with room meta
 <details>
 <summary><b>Can I create custom Werewolf boards?</b></summary>
 
-Absolutely. Beyond the 26 preset templates, you can freely combine roles to create custom templates and save them for future use.
+Absolutely. Beyond the 27 preset templates, you can freely combine roles to create custom templates and save them for future use.
 
 </details>
 

@@ -138,6 +138,8 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     piperRevealAcks: [],
     convertedSeat: undefined,
     conversionRevealAcks: [],
+    wolfGirlConfessedSeat: undefined,
+    wolfGirlConfessionRevealAcks: [],
     seedWolfInfectionResult: undefined,
     seedWolfDeferredReveal: undefined,
     seedWolfInfectionRevealAcks: [],

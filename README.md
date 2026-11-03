@@ -89,7 +89,7 @@
   <tr>
     <td align="center"><img src="assets/readme/ui-home.jpg" width="160" alt="首页"><br><sub>首页 · 创建 / 进入房间</sub></td>
     <td align="center"><img src="assets/readme/ui-games.jpg" width="160" alt="游戏库"><br><sub>游戏库 · 7 款游戏</sub></td>
-    <td align="center"><img src="assets/readme/ui-werewolf-guide.jpg" width="160" alt="狼人杀图鉴"><br><sub>狼人杀图鉴 · 47 角色 / 26 板子</sub></td>
+    <td align="center"><img src="assets/readme/ui-werewolf-guide.jpg" width="160" alt="狼人杀图鉴"><br><sub>狼人杀图鉴 · 48 角色 / 27 板子</sub></td>
     <td align="center"><img src="assets/readme/ui-room.jpg" width="160" alt="房间大厅"><br><sub>房间大厅 · 入座等开局</sub></td>
     <td align="center"><img src="assets/readme/ui-gacha.jpg" width="160" alt="扭蛋机"><br><sub>扭蛋机 · 抽券解锁装扮</sub></td>
   </tr>
@@ -123,7 +123,7 @@
 ## 🐺 狼人杀专区（招牌游戏）
 
 - 🔊 **首夜全自动语音**：身份确认、技能行动、天亮公告全程播报，房主也能闭眼参与；配 BGM 与音效
-- 🎭 **47 种角色 · 26 套预设板子**：神职、特殊狼人、第三方一应俱全，预设均为 12 人局，另支持自定义板子——[角色技能对照表](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md) · [预设板子参考](docs/PRESET_BOARDS.md)
+- 🎭 **48 种角色 · 27 套预设板子**：神职、特殊狼人、第三方一应俱全，预设均为 12 人局，另支持自定义板子——[角色技能对照表](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md) · [预设板子参考](docs/PRESET_BOARDS.md)
 - 🤖 **AI 规则助手**：点角色卡上的 AI 气泡，随时问技能细节与策略（Gemini 3.5 Flash Lite，Worker 代理）
 - ☀️ 白天发言、投票、放逐由玩家同桌进行——App 只管首夜，那是狼人杀最需要法官的部分
 
@@ -207,7 +207,7 @@ pnpm -F @game-judge/api-worker db:seed:local
 <details>
 <summary><b>可以自定义狼人杀板子吗？</b></summary>
 
-可以。除了 26 套预设模板，可自由组合角色创建自定义模板并保存复用。
+可以。除了 27 套预设模板，可自由组合角色创建自定义模板并保存复用。
 
 </details>
 

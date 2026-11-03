@@ -45,6 +45,7 @@ function createGameState(
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     ...(restartNonce === undefined ? {} : { roleRevealRandomNonce: restartNonce }),

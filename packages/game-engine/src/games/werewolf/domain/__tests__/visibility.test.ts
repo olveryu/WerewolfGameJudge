@@ -55,6 +55,8 @@ interface StateSpec {
   readonly hypnotizedSeats?: readonly number[];
   readonly loverSeats?: readonly [number, number];
   readonly convertedSeat?: number;
+  readonly wolfGirlConfessedSeat?: number;
+  readonly wolfGirlConfessionRevealAcks?: readonly number[];
   readonly piperRevealAcks?: readonly number[];
   readonly cupidLoversRevealAcks?: readonly number[];
   readonly conversionRevealAcks?: readonly number[];
@@ -118,6 +120,12 @@ function createState(spec: StateSpec): GameState {
     ...(spec.confirmStatus ? { confirmStatus: spec.confirmStatus } : {}),
     ...(spec.loverSeats !== undefined ? { loverSeats: spec.loverSeats } : {}),
     ...(spec.convertedSeat !== undefined ? { convertedSeat: spec.convertedSeat } : {}),
+    ...(spec.wolfGirlConfessedSeat !== undefined
+      ? { wolfGirlConfessedSeat: spec.wolfGirlConfessedSeat }
+      : {}),
+    wolfGirlConfessionRevealAcks: spec.wolfGirlConfessionRevealAcks
+      ? [...spec.wolfGirlConfessionRevealAcks]
+      : [],
     ...(spec.seedWolfInfectionResult
       ? { seedWolfInfectionResult: spec.seedWolfInfectionResult }
       : {}),
@@ -410,6 +418,8 @@ describe('getWerewolfViewModel — groupConfirm reveals', () => {
         isSubject: true,
         partnerSeat: null,
         subjectSeats: [1, 3],
+        isConfessed: false,
+        confessorSeat: null,
       },
     ]);
     expect(getWerewolfViewModel(state, player(2)).night.reveals).toEqual([
@@ -420,6 +430,8 @@ describe('getWerewolfViewModel — groupConfirm reveals', () => {
         isSubject: false,
         partnerSeat: null,
         subjectSeats: null,
+        isConfessed: false,
+        confessorSeat: null,
       },
     ]);
     expect(getWerewolfViewModel(state, player(null)).night.reveals[0]).toMatchObject({
@@ -445,6 +457,8 @@ describe('getWerewolfViewModel — groupConfirm reveals', () => {
       isSubject: true,
       partnerSeat: 4,
       subjectSeats: null,
+      isConfessed: false,
+      confessorSeat: null,
     });
     expect(getWerewolfViewModel(state, player(4)).night.reveals[0]).toMatchObject({
       hasAcked: true,
@@ -508,6 +522,110 @@ describe('getWerewolfViewModel — groupConfirm reveals', () => {
       piperRevealAcks: [0],
     });
     expect(getWerewolfViewModel(state, player(1)).night.reveals).toEqual([]);
+  });
+
+  it('wolf girl reveal: confessed civilian learns the Wolf Girl seat; nobody else does', () => {
+    const state = createState({
+      roles: ['villager', 'guard', 'wolfGirl', 'wolf', 'seer'],
+      stepId: 'wolfGirlConfessReveal',
+      wolfGirlConfessedSeat: 0,
+      wolfGirlConfessionRevealAcks: [2],
+    });
+    // Confessed civilian: subject, sees the Wolf Girl's seat.
+    expect(getWerewolfViewModel(state, player(0)).night.reveals[0]).toEqual({
+      stepId: 'wolfGirlConfessReveal',
+      ackedSeats: [2],
+      hasAcked: false,
+      isSubject: true,
+      partnerSeat: null,
+      subjectSeats: null,
+      isConfessed: true,
+      confessorSeat: 2,
+    });
+    // Unrelated god and wolf: no confession, no seat.
+    expect(getWerewolfViewModel(state, player(1)).night.reveals[0]).toMatchObject({
+      isSubject: false,
+      isConfessed: false,
+      confessorSeat: null,
+    });
+    expect(getWerewolfViewModel(state, player(3)).night.reveals[0]).toMatchObject({
+      isSubject: false,
+      isConfessed: false,
+      confessorSeat: null,
+    });
+    // The Wolf Girl herself learns nothing about the target type.
+    expect(getWerewolfViewModel(state, player(2)).night.reveals[0]).toMatchObject({
+      isSubject: false,
+      isConfessed: false,
+      confessorSeat: null,
+    });
+    // Spectator learns nothing.
+    expect(getWerewolfViewModel(state, player(null)).night.reveals[0]).toMatchObject({
+      isSubject: false,
+      isConfessed: false,
+      confessorSeat: null,
+    });
+  });
+
+  it('wolf girl reveal: confessed god learns only that they were confessed', () => {
+    const state = createState({
+      roles: ['villager', 'guard', 'wolfGirl', 'wolf', 'seer'],
+      stepId: 'wolfGirlConfessReveal',
+      wolfGirlConfessedSeat: 1,
+      wolfGirlConfessionRevealAcks: [],
+    });
+    expect(getWerewolfViewModel(state, player(1)).night.reveals[0]).toMatchObject({
+      isSubject: true,
+      isConfessed: true,
+      confessorSeat: null,
+    });
+    expect(getWerewolfViewModel(state, player(0)).night.reveals[0]).toMatchObject({
+      isSubject: false,
+      isConfessed: false,
+      confessorSeat: null,
+    });
+  });
+});
+
+describe('getWerewolfViewModel — wolf pack display during wolfGirlConfess', () => {
+  const ROLES: readonly RoleId[] = ['villager', 'villager', 'wolfGirl', 'wolf', 'wolf', 'seer'];
+
+  it('only the Wolf Girl viewer sees the pack; no wolf-vote view surfaces', () => {
+    const state = createState({ roles: ROLES, stepId: 'wolfGirlConfess' });
+
+    const wolfGirlVm = getWerewolfViewModel(state, player(2));
+    expect(wolfGirlVm.wolfPackSeats).toEqual([2, 3, 4]);
+    expect(wolfGirlVm.seats[3]?.isWolfPackPeer).toBe(true);
+    expect(wolfGirlVm.seats[4]?.isWolfPackPeer).toBe(true);
+    expect(wolfGirlVm.seats[0]?.isWolfPackPeer).toBe(false);
+    expect(wolfGirlVm.night.wolfVote).toBeNull();
+
+    // A wolf teammate, the seer, and a civilian see no pack on this step.
+    expect(getWerewolfViewModel(state, player(3)).wolfPackSeats).toBeNull();
+    expect(getWerewolfViewModel(state, player(5)).wolfPackSeats).toBeNull();
+    expect(getWerewolfViewModel(state, player(0)).wolfPackSeats).toBeNull();
+    expect(getWerewolfViewModel(state, player(null)).wolfPackSeats).toBeNull();
+  });
+
+  it('the Wolf Girl sees no pack on other steps', () => {
+    const state = createState({ roles: ROLES, stepId: 'seerCheck' });
+    expect(getWerewolfViewModel(state, player(2)).wolfPackSeats).toBeNull();
+  });
+});
+
+describe('getWerewolfViewModel — confessed third party is treated as a god', () => {
+  it('a confessed slacker learns only that they were confessed, no Wolf Girl seat', () => {
+    const state = createState({
+      roles: ['slacker', 'wolfGirl', 'wolf', 'seer'],
+      stepId: 'wolfGirlConfessReveal',
+      wolfGirlConfessedSeat: 0,
+      wolfGirlConfessionRevealAcks: [],
+    });
+    expect(getWerewolfViewModel(state, player(0)).night.reveals[0]).toMatchObject({
+      isSubject: true,
+      isConfessed: true,
+      confessorSeat: null,
+    });
   });
 });
 

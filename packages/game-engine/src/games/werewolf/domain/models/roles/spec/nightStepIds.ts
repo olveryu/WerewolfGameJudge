@@ -22,6 +22,7 @@ const NIGHT_STEP_IDS = [
   'silenceElderSilence',
   'votebanElderBan',
   'crowCurse',
+  'wolfGirlConfess',
   'wolfKill',
   'seedWolfInfect',
   'wolfQueenCharm',
@@ -43,6 +44,7 @@ const NIGHT_STEP_IDS = [
   'piperHypnotizedReveal',
   'awakenedGargoyleConvertReveal',
   'seedWolfInfectReveal',
+  'wolfGirlConfessReveal',
 ] as const;
 
 export type NightStepId = (typeof NIGHT_STEP_IDS)[number];

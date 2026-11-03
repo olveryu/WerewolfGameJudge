@@ -45,6 +45,7 @@ const MIGRATED: ReadonlyArray<{
   { stepId: 'wolfRobotLearn', verb: '学习', target: '玩家' },
   { stepId: 'wolfWitchCheck', verb: '查验', target: '非狼人阵营玩家' },
   { stepId: 'eclipseWolfQueenShelter', verb: '放逐', target: '玩家' },
+  { stepId: 'wolfGirlConfess', verb: '表白', target: '玩家' },
 ];
 
 const CANONICAL_PROMPT = /^请选择要(.+?)的(.+?)，如不使用请点击「不用技能」$/;

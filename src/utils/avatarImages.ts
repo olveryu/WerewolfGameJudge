@@ -54,6 +54,7 @@ import wildChild from '../../assets/avatars/raw/wildChild.png';
 import witch from '../../assets/avatars/raw/witch.png';
 import witcher from '../../assets/avatars/raw/witcher.png';
 import wolf from '../../assets/avatars/raw/wolf.png';
+import wolfGirl from '../../assets/avatars/raw/wolfGirl.png';
 import wolfKing from '../../assets/avatars/raw/wolfKing.png';
 import wolfQueen from '../../assets/avatars/raw/wolfQueen.png';
 import wolfRobot from '../../assets/avatars/raw/wolfRobot.png';
@@ -106,6 +107,7 @@ import thumb_wildChild from '../../assets/badges/png/512/role_wildChild.png';
 import thumb_witch from '../../assets/badges/png/512/role_witch.png';
 import thumb_witcher from '../../assets/badges/png/512/role_witcher.png';
 import thumb_wolf from '../../assets/badges/png/512/role_wolf.png';
+import thumb_wolfGirl from '../../assets/badges/png/512/role_wolfGirl.png';
 import thumb_wolfKing from '../../assets/badges/png/512/role_wolfKing.png';
 import thumb_wolfQueen from '../../assets/badges/png/512/role_wolfQueen.png';
 import thumb_wolfRobot from '../../assets/badges/png/512/role_wolfRobot.png';
@@ -158,6 +160,7 @@ export const AVATAR_IMAGE_MAP: Record<HandDrawnAvatarId, number> = {
   witch,
   witcher,
   wolf,
+  wolfGirl,
   wolfKing,
   wolfQueen,
   wolfRobot,
@@ -213,6 +216,7 @@ export const AVATAR_THUMB_MAP: Record<HandDrawnAvatarId, number> = {
   witch: thumb_witch,
   witcher: thumb_witcher,
   wolf: thumb_wolf,
+  wolfGirl: thumb_wolfGirl,
   wolfKing: thumb_wolfKing,
   wolfQueen: thumb_wolfQueen,
   wolfRobot: thumb_wolfRobot,

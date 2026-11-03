@@ -59,13 +59,16 @@ export function handleGroupConfirmAck(seat: number, context: HandlerContext): Ha
   const isConversionReveal = stepId === 'awakenedGargoyleConvertReveal';
   const isSeedWolfInfectionReveal = stepId === 'seedWolfInfectReveal';
   const isCupidLoversReveal = stepId === 'cupidLoversReveal';
+  const isWolfGirlConfessionReveal = stepId === 'wolfGirlConfessReveal';
   const acks = isConversionReveal
     ? state.conversionRevealAcks
     : isSeedWolfInfectionReveal
       ? state.seedWolfInfectionRevealAcks
       : isCupidLoversReveal
         ? state.cupidLoversRevealAcks
-        : state.piperRevealAcks;
+        : isWolfGirlConfessionReveal
+          ? state.wolfGirlConfessionRevealAcks
+          : state.piperRevealAcks;
 
   if (acks.includes(seat)) return handlerSuccess([]);
 
@@ -75,7 +78,9 @@ export function handleGroupConfirmAck(seat: number, context: HandlerContext): Ha
       ? [{ type: 'ADD_SEED_WOLF_INFECTION_REVEAL_ACK', payload: { seat } }]
       : isCupidLoversReveal
         ? [{ type: 'ADD_CUPID_LOVERS_REVEAL_ACK', payload: { seat } }]
-        : [{ type: 'ADD_PIPER_REVEAL_ACK', payload: { seat } }];
+        : isWolfGirlConfessionReveal
+          ? [{ type: 'ADD_WOLF_GIRL_CONFESSION_REVEAL_ACK', payload: { seat } }]
+          : [{ type: 'ADD_PIPER_REVEAL_ACK', payload: { seat } }];
 
   return handlerSuccess(actions);
 }
@@ -90,7 +95,7 @@ export function handleGroupConfirmAck(seat: number, context: HandlerContext): Ha
  * §3, content layer): the acks it writes are entries of werewolf's
  * own night-step schema set — only steps whose schema kind is
  * groupConfirm carry them, and the ack list each reveal kind reads
- * (piper / conversion / seed-wolf infection / cupid lovers) is
+ * (piper / conversion / seed-wolf infection / cupid lovers / wolf girl confession) is
  * werewolf night content no other game has. Only the gates are
  * shared-shaped: bot existence from the unified roster, then
  * werewolf's own status/step gates.
@@ -119,13 +124,16 @@ export function handleMarkBotsGroupConfirmed(context: HandlerContext): HandlerRe
   const isConversionReveal = stepId === 'awakenedGargoyleConvertReveal';
   const isSeedWolfInfectionReveal = stepId === 'seedWolfInfectReveal';
   const isCupidLoversReveal = stepId === 'cupidLoversReveal';
+  const isWolfGirlConfessionReveal = stepId === 'wolfGirlConfessReveal';
   const existingAcks = isConversionReveal
     ? state.conversionRevealAcks
     : isSeedWolfInfectionReveal
       ? state.seedWolfInfectionRevealAcks
       : isCupidLoversReveal
         ? state.cupidLoversRevealAcks
-        : state.piperRevealAcks;
+        : isWolfGirlConfessionReveal
+          ? state.wolfGirlConfessionRevealAcks
+          : state.piperRevealAcks;
 
   const actions: StateAction[] = [];
   for (const seat of getBotSeats(state.roster)) {
@@ -137,6 +145,8 @@ export function handleMarkBotsGroupConfirmed(context: HandlerContext): HandlerRe
       actions.push({ type: 'ADD_SEED_WOLF_INFECTION_REVEAL_ACK', payload: { seat } });
     } else if (isCupidLoversReveal) {
       actions.push({ type: 'ADD_CUPID_LOVERS_REVEAL_ACK', payload: { seat } });
+    } else if (isWolfGirlConfessionReveal) {
+      actions.push({ type: 'ADD_WOLF_GIRL_CONFESSION_REVEAL_ACK', payload: { seat } });
     } else {
       actions.push({ type: 'ADD_PIPER_REVEAL_ACK', payload: { seat } });
     }

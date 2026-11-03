@@ -66,6 +66,10 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'convertedSeat',
   'conversionRevealAcks',
 
+  // Wolf Girl
+  'wolfGirlConfessedSeat',
+  'wolfGirlConfessionRevealAcks',
+
   // Seed Wolf
   'seedWolfInfectionResult',
   'seedWolfDeferredReveal',
@@ -171,6 +175,10 @@ describe('normalizeState contract', () => {
       // Awakened Gargoyle
       convertedSeat: 2,
       conversionRevealAcks: [0, 1],
+
+      // Wolf Girl
+      wolfGirlConfessedSeat: 2,
+      wolfGirlConfessionRevealAcks: [0, 1],
 
       // Seed Wolf
       seedWolfInfectionResult: { outcome: 'failed', targetSeat: 1 },
@@ -288,6 +296,7 @@ describe('normalizeState contract', () => {
       hypnotizedSeats: [],
       piperRevealAcks: [],
       conversionRevealAcks: [],
+      wolfGirlConfessionRevealAcks: [],
       cupidLoversRevealAcks: [],
       seedWolfInfectionRevealAcks: [],
       roster: {},

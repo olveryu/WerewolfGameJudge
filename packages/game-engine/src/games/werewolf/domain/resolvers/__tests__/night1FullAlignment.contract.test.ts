@@ -491,8 +491,8 @@ describe('canSkip behavior alignment', () => {
 // === 6. NIGHT_STEPS order stability ===
 
 describe('NIGHT_STEPS order stability', () => {
-  it('should have exactly 37 steps', () => {
-    expect(NIGHT_STEPS).toHaveLength(37);
+  it('should have exactly 39 steps', () => {
+    expect(NIGHT_STEPS).toHaveLength(39);
   });
 
   it('step order should match expected sequence', () => {
@@ -513,6 +513,7 @@ describe('NIGHT_STEPS order stability', () => {
       'silenceElderSilence',
       'votebanElderBan',
       'crowCurse',
+      'wolfGirlConfess',
       'wolfKill',
       'seedWolfInfect',
       'wolfQueenCharm',
@@ -534,6 +535,7 @@ describe('NIGHT_STEPS order stability', () => {
       'piperHypnotizedReveal',
       'awakenedGargoyleConvertReveal',
       'seedWolfInfectReveal',
+      'wolfGirlConfessReveal',
     ];
 
     const actualOrder = NIGHT_STEPS.map((s) => s.id);

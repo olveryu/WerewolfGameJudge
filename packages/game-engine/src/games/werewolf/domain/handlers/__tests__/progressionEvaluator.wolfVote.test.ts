@@ -47,6 +47,7 @@ function createWolfKillState(overrides: Partial<GameState> = {}): GameState {
     piperRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     conversionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
     currentNightResults: {},

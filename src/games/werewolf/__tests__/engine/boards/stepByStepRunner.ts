@@ -261,7 +261,8 @@ function submitActionForStep(
     stepId === 'hunterConfirm' ||
     stepId === 'darkWolfKingConfirm' ||
     stepId === 'avengerConfirm' ||
-    stepId === 'seedWolfInfect'
+    stepId === 'seedWolfInfect' ||
+    stepId === 'hiddenWolfReveal'
   ) {
     const shouldConfirm =
       value === null || typeof value !== 'object' || !('confirmed' in value) || value.confirmed;

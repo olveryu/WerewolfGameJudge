@@ -41,6 +41,7 @@ export function buildInitialGameState(
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
   };

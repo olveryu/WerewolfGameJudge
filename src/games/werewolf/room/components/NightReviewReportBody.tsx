@@ -652,6 +652,14 @@ function ActorRow({ entry }: { readonly entry: NightReviewActionEntry }) {
         </ActionRow>
       );
       break;
+    case 'wolfGirlConfess':
+      rows = (
+        <ActionRow>
+          <VerbText text="表白" />
+          <TargetMedal seat={entry.targetSeat} />
+        </ActionRow>
+      );
+      break;
     case 'hypnotize':
       rows = (
         <ActionRow>

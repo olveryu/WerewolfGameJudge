@@ -166,6 +166,12 @@ function applyResolvedNightEffect(
   const convertedSeat =
     updates && 'convertedSeat' in updates ? updates.convertedSeat : state.convertedSeat;
 
+  // Sync wolfGirlConfessedSeat from resolver updates to top-level state
+  const wolfGirlConfessedSeat =
+    updates && 'wolfGirlConfessedSeat' in updates
+      ? updates.wolfGirlConfessedSeat
+      : state.wolfGirlConfessedSeat;
+
   // Sync cupid fields from resolver updates to top-level state
   const loverSeats = updates && 'loverSeats' in updates ? updates.loverSeats : state.loverSeats;
 
@@ -176,6 +182,7 @@ function applyResolvedNightEffect(
     wolfKillOverride,
     hypnotizedSeats,
     convertedSeat,
+    wolfGirlConfessedSeat,
     loverSeats,
     seerReveal: seerReveal ?? state.seerReveal,
     mirrorSeerReveal: mirrorSeerReveal ?? state.mirrorSeerReveal,

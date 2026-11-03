@@ -54,6 +54,7 @@ function make2PlayerState(overrides: Partial<GameState> = {}): GameState {
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {
@@ -91,6 +92,7 @@ function make5PlayerState(overrides: Partial<GameState> = {}): GameState {
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {
@@ -351,6 +353,7 @@ describe('runInlineProgression', () => {
         hypnotizedSeats: [],
         piperRevealAcks: [],
         conversionRevealAcks: [],
+        wolfGirlConfessionRevealAcks: [],
         seedWolfInfectionRevealAcks: [],
         cupidLoversRevealAcks: [],
         roster: {
@@ -416,6 +419,7 @@ describe('runInlineProgression', () => {
         hypnotizedSeats: [],
         piperRevealAcks: [],
         conversionRevealAcks: [],
+        wolfGirlConfessionRevealAcks: [],
         seedWolfInfectionRevealAcks: [],
         cupidLoversRevealAcks: [],
         roster: {
@@ -483,6 +487,7 @@ describe('runInlineProgression', () => {
         hypnotizedSeats: [],
         piperRevealAcks: [],
         conversionRevealAcks: [],
+        wolfGirlConfessionRevealAcks: [],
         seedWolfInfectionRevealAcks: [],
         cupidLoversRevealAcks: [],
         roster: {

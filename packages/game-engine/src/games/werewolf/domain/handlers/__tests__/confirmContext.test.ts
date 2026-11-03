@@ -49,6 +49,7 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
@@ -831,5 +832,24 @@ describe('AU-39 golden: confirmContext edge characterizations', () => {
     });
 
     expect(maybeCreateConfirmStatusAction('hunterConfirm', state)).toBeNull();
+  });
+
+  it('隐狼确认步骤 → 狼阵营座位（除自己），狼女孩同在时也列为队友', () => {
+    const state = createOngoingState({
+      templateRoles: ['hiddenWolf', 'wolf', 'villager', 'wolfGirl', 'seer'],
+      players: {
+        0: { seat: 0, role: 'hiddenWolf' },
+        1: { seat: 1, role: 'wolf' },
+        2: { seat: 2, role: 'villager' },
+        3: { seat: 3, role: 'wolfGirl' },
+        4: { seat: 4, role: 'seer' },
+      },
+      nightStep: { kind: 'inStep', stepId: 'hiddenWolfReveal' },
+    });
+
+    expect(maybeCreateConfirmStatusAction('hiddenWolfReveal', state)).toEqual({
+      type: 'SET_CONFIRM_STATUS',
+      payload: { role: 'hiddenWolf', wolfTeammates: [1, 3] },
+    });
   });
 });
