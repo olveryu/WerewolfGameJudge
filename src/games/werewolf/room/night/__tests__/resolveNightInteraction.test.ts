@@ -189,9 +189,33 @@ describe('wolfVote', () => {
     const vm = viewAs(state, 0);
     const model = expectKind(resolve(vm), 'wolfVote');
     expect(model.emptyVoteOnly).toBe(true);
+    expect(model.seatTapMessage).toBe('今晚狼人无法袭击');
     expect(model.emptyVoteLabel).toBe('确认放弃袭击');
     expect(renderActionerMessage(model, vm)).toBe('今晚狼人无法袭击');
     expect(() => buildNightCommand(model, { kind: 'seat', seat: 4 }, SCOPE)).toThrow('[FAIL-FAST]');
+  });
+
+  it('declares the tap message only under the kill-disabled hint', () => {
+    const disabled = nightState({
+      roles: BOARD,
+      stepId: 'wolfKill',
+      overrides: {
+        currentNightResults: { wolfVotesBySeat: { '0': 5 } },
+        nightStep: { kind: 'inStep', stepId: 'wolfKill', stepDeadline: NOW + 4_200 },
+        ui: {
+          currentActorHint: {
+            kind: 'wolf_kill_disabled',
+            targetRoleIds: ['wolf'],
+            message: '今晚狼人无法袭击',
+            bottomAction: 'wolfEmptyOnly',
+          },
+        },
+      },
+    });
+    const disabledModel = expectKind(resolve(viewAs(disabled, 0)), 'wolfVote');
+    expect(disabledModel.seatTapMessage).toBe('今晚狼人无法袭击');
+    const plainModel = expectKind(resolve(viewAs(armed(), 0)), 'wolfVote');
+    expect(plainModel.seatTapMessage).toBeNull();
   });
 
   it('builds the bottom message from the plain prompt, status line and wolf warning', () => {

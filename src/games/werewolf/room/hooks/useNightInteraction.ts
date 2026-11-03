@@ -246,6 +246,10 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           return true;
         case 'wolfVote': {
           if (!model.selectable.includes(seat)) return false;
+          if (model.seatTapMessage !== null) {
+            showDismissAlert(model.prompt.title, model.seatTapMessage);
+            return true;
+          }
           const text = model.voteConfirmTemplate.replace('{seat}', formatSeat(seat));
           showConfirmAlert(
             model.confirmTitle,
