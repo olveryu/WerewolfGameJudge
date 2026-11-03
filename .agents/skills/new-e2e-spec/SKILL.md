@@ -70,6 +70,10 @@ and can do — not internal state. Keep the spec to scenario intent
 and assertions; helpers own the mechanics. Never assert a fixed
 value from a random or time source.
 
+Register a new spec in exactly one shard of the `e2e` matrix in
+`.github/workflows/ci.yml`, balanced by measured runtime;
+`ciE2eCoverage.contract.test.ts` enforces every spec exactly once.
+
 ### 4. Follow the interaction rules
 
 - No `force: true` for normal interactions; the only exception shape is the disabled-state press in `e2e/specs/drawguess.spec.ts:79` (see `references/rules-and-verification.md`; `.agents/skills/new-e2e-spec/scripts/check-e2e.sh` reports any other occurrence).
@@ -105,6 +109,7 @@ exact error).
 
 ```sh
 .agents/skills/new-e2e-spec/scripts/check-e2e.sh .
+pnpm --filter werewolfgamejudge run test -- src/__tests__/ciE2eCoverage.contract.test.ts
 gh workflow run e2e-single-spec.yml --ref <branch> --field spec=<file>
 ```
 
