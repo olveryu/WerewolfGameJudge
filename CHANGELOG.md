@@ -5,6 +5,380 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.9.0] - 2026-11-03
+
+- docs(announcements): add v2.9.0 What's New entry
+- feat(werewolf): add Wolf Girl board (Special, 12 players) (#350)
+- feat(drawguess): drawer scoring v2 - diminishing gain, all-guessed zeroing, 10 new categories (#346)
+- fix(avalon): derive evil_reveal opening from roles, Oberon boards only (#348)
+- test(e2e): seat drawguess room with real players instead of fill bots (#345)
+- docs(agent-files): fix three LOW findings from pointer QA
+- docs(agent-files): add audio-playback-lock pointer to src rules
+- docs(agent-files): apply 2026 pointer version, fix QA findings
+- docs(agent-files): rewrite generic agent instructions from zero
+- fix(werewolf): stop prop-sync effects from resetting host drafts
+- perf(flairs): move persistent seat decorations to compositor-driven CSS animations (#339)
+- fix(drawguess): use competition ranking on the round-end board
+- fix(drawguess): stable revisions, steeper speed scores, totals, keyboard frame
+- feat(room): show offline via grey seat badge and name icon, no dimming
+- refactor(room): extract shared RoomTaskFrame for keyboard task surfaces (#340)
+- docs(convergence): align rules, skills and room docs with the shipped tree
+- docs(convergence): align the design body with the shipped implementation
+- test(e2e): wait for the audio lock to lift before viewing last-night info
+- feat(room): dim offline seats instead of drawing a corner dot
+- fix(werewolf): lock flow actions and Day/Ended layout during narration audio
+- fix(drawguess): shorten the clock on guesses and pay the drawer a share
+- chore(mcp): remove unused server configurations from mcp.json
+- refactor(avalon): carry the team on preselect / propose, drop the server draft
+- fix(room): close the adversarial-review findings on the convergence PR
+- feat(room): converge the six game rooms on the shared controllers
+- feat(werewolf): rebuild the room on the shared platform layer
+- feat(room): add the shared controllers every game room converges on
+- feat(werewolf): settle armed deadlines on the server clock
+- feat(werewolf): project the night review in the engine
+- feat(werewolf): project every room rule fact in getWerewolfViewModel
+- docs: add game client convergence and review share designs
+- feat(werewolf): redesign night report as verdict ticket
+- feat: delete preview
+- refactor(room): split the session gate from the metadata resolver
+- fix(room): gate deep-link entry on login before the authenticated room lookup
+- fix(worker): make room codes non-enumerable with auth and rate limits
+- fix(audio): run the rejoin replay under the orchestrator's re-entry guard
+- feat(audio): acknowledge audio batches by id so coalesced acks cannot skip a batch
+- refactor(worker): one earlier-only entry point for every DO alarm source
+- fix(realtime): drop the socket on offline, tolerate the retry race, lazy fingerprints
+- fix(realtime): keep throttled durable commands, drop unreadable outbox documents
+- fix(realtime): classify token lookup failures before the socket upgrade
+- fix(worker): terminal close codes on DO admission, disarm alarm on room deletion
+- docs: promote realtime-link-redesign, archive RoomSession-era docs
+- fix(worker): use WebSocket.OPEN in gateway socket filter
+- test(e2e): rewrite resilience specs for RoomLink and sweep half-open sockets
+- feat(room-ui): link status bar with countdown and seat presence
+- feat(inbox): trigger-driven account inbox consumer
+- refactor(audio): make the audio ack one durable room command
+- refactor(client): replace the room session layer with RoomLink
+- test(game-engine): allow declared runtime dependencies in platform boundary
+- refactor(game-engine): parse realtime protocol v2 with zod v4
+- feat(client): add RoomLink realtime core under src/platform/realtime
+- refactor(client): replace cfFetch and appVisibility with ApiClient and PlatformEnvironment
+- refactor(api-worker): rebuild room command pipeline, realtime gateway and inbox
+- feat(game-engine): add realtime protocol v2 and shared close codes
+- chore(api-worker): bump compatibility_date to 2026-10-01
+- docs(realtime): add RoomLink v3 redesign plan
+- Merge pull request #331 from olveryu/fix/werewolf-wolf-vote-tie-single-resolution
+- fix(werewolf): settle wolf verdict in engine and render it in night review
+- fix(werewolf): respect settled wolf target in night review and chain test
+- fix(werewolf): settle tied wolf votes once and persist the target
+- Merge pull request #330 from olveryu/fix/simplify-game-abort-controls
+- refactor(room): remove manual turn endings and add drawguess abort
+- feat(mcp): add MCP configuration for VS Code Agent Host Copilot
+- fix(werewolf): surface self-destruct on the Day host task during speeches
+- Merge pull request #328 from olveryu/refactor/host-task-card
+- fix(werewolf): offer last-night info beside election advance on the Day host task
+- refactor(room): declare the host task and move host flow off the bottom panel
+- fix(ci): report only open duplicate ledgers
+- fix(ci): keep one flake ledger when duplicates exist
+- fix(audio): stop avalon bgm before dawn narration via shared audio core
+- fix(room): drop a count draft with an explicit filter
+- test(e2e): align fibking and storyrelay config specs with the shared form
+- docs: describe the schema-driven config contract as implemented
+- feat(werewolf): render house rules from WEREWOLF_RULES_SCHEMA, remember config by schema
+- feat(games): move avalon and undercover onto the schema config, drop legacy ConfigScreen
+- refactor(games): move pictionary, fibking, storyrelay and drawguess onto the schema config
+- feat(room): render game config screens from the engine schema
+- feat(api-worker): derive create and update config zod from the engine schema
+- chore(new-game): emit the config schema from the engine templates
+- feat(game-engine): declare lobby config as a schema per game
+- docs: add game config schema-driven design
+- fix(pictionary): anchor gallery scroll target to content above the entry
+- test: fix CI fallout from the Werewolf rules step
+- refactor(werewolf): reuse ScreenHeader in ConfigScreen, drop dead config UI
+- feat(werewolf): make rules a dedicated final config step
+- fix(undercover): update loading state to include inventory pending status
+- fix(avalon): separate public seat identities and team labels
+- docs: reorganize docs index, archive completed plans, unify agent config docs
+- feat(room): standardize action hierarchy across games (#322)
+- refactor: consolidate shared game infrastructure (#319)
+- feat(room): view-identity tier follows the viewing step (2026 rule) (#320)
+- Merge pull request #321 from olveryu/fix/avalon-board-info-restore
+- fix(avalon): restore collapsed board info card outside the lobby
+- feat(avalon): modal team picking with preselect-first rule (#316)
+- refactor(game-engine): share strict room profile and roster codecs (#317)
+- fix(avalon): regenerate dawn narration from the generator script (#318)
+- fix(ci): align quality checks and gate production deployments (#315)
+- feat(avalon): show lake check result in the ended review only (#314)
+- test(avalon): cover review overlay, shared review entry, and docs
+- feat(avalon): add ended review overlay and remove above-board settlement
+- Merge pull request #312 from olveryu/fix/avalon-record-shared-review
+- test(avalon): cover shared record extraction and history fixes
+- feat(avalon): extract shared record components and fix history overlay
+- Merge pull request #309 from olveryu/refactor/sheriff-panel-ui-unification
+- Merge pull request #310 from olveryu/fix/avalon-lady-history-review
+- refactor(werewolf): project the panel speaking line into the night review sheriff section
+- refactor(werewolf): delete the night review text-line module
+- refactor(werewolf): render the night report sheriff section with the panel UI
+- refactor(werewolf): carry panel phase, records and vote progress in the night report sheriff section
+- refactor(werewolf): extract sheriff-election read-only presentation into shared components
+- Merge pull request #311 from olveryu/chore/remove-canvas-share-fallback
+- test(avalon): cover 2-check chain, real in-progress migration, lobby reset
+- test(avalon): cover v7 ladyHistory and migration
+- feat(avalon): add v7 ladyHistory public record
+- refactor(werewolf): drop text lines and copy orphaned by the Canvas removal
+- test(werewolf): remove Canvas share coverage with the renderer
+- refactor(werewolf): remove the Canvas 2D night review renderer
+- refactor(werewolf): share night review from segmented capture only in mini program
+- Merge pull request #308 from olveryu/refactor/sheriff-record-extraction
+- test(werewolf): pin panel/report sheriff-record equivalence and runoff regression
+- refactor(werewolf): route the night report through the shared sheriff record
+- refactor(werewolf): route the sheriff panel through the shared record core
+- test(werewolf): cover the shared sheriff-election record core
+- feat(werewolf): extract sheriff-election public record derivation into shared core
+- Merge pull request #307 from olveryu/fix/ended-panel-spectator-danger-share
+- test(werewolf): re-pin the Ended shell characterization to the host-only flow
+- fix(werewolf): make the bottom panel flow host-only, players keep their own surface
+- fix(werewolf): unify closing danger, spectator single review button, host share gate
+- Merge pull request #306 from olveryu/fix/alert-loading-label
+- fix(alert): keep button label visible next to spinner while loading
+- Merge pull request #305 from olveryu/fix/share-progress-after-tap
+- feat(werewolf): show share progress modal until the preview takes over
+- feat(werewolf): give direct report shares a visible run lifecycle
+- Merge pull request #304 from olveryu/feat/share-capture-feedback
+- refactor(room): define the capture progress value shape once
+- Merge pull request #303 from olveryu/fix/night-report-light-palette
+- feat(werewolf): pre-capture night report on open for mini program too
+- feat(room): report band progress from segmented view capture
+- test(werewolf): rename dossier wording in night review modal tests
+- refactor(werewolf): compose report palette from renamed light colors
+- feat(theme): flip night report palette to light values
+- Merge pull request #302 from olveryu/feat/werewolf-night-report-2026
+- feat(werewolf): night report 2026 dossier presentation
+- feat(werewolf): night report text channel — actor subjects, stats, sheriff lines
+- feat(werewolf): night report fact layer — actorSeat, stats, sheriff section
+- Merge pull request #301 from olveryu/fix/werewolf-reveal-ack-reentry
+- test(werewolf): mirror pending reveal ack key in room mock factory
+- fix(werewolf): normalize absent pending reveal ack at screen state assembly
+- Merge pull request #300 from olveryu/fix/pictionary-late-reason
+- test(werewolf): pin reveal ack re-entry behavior
+- Merge pull request #299 from olveryu/docs/e3-contract-crossrefs
+- test(werewolf): pin pending reveal ack derivation
+- fix(pictionary): give late relay submissions a dedicated expired reason
+- docs(game-engine): cross-reference e-3 and e-2 deadline registries
+- Merge pull request #298 from olveryu/fix/werewolf-dispatcher-feedback
+- Merge pull request #297 from olveryu/test/cleanup-pins
+- Merge pull request #296 from olveryu/fix/delegation-seat-identity-anchor
+- test: count gold fill on host views only in sheriff winner assertion
+- wip(werewolf): checkpoint reveal ack re-entry draft
+- test: pin avalon history labels, review washes, sheriff trophy, neutral fixture
+- style(werewolf): sort imports in dispatcher gate toast test
+- fix(werewolf): converge dispatcher gate toasts on shared reason constants
+- test(werewolf): anchor auto-trigger extraction in seat identity contract
+- Merge pull request #295 from olveryu/refactor/c5-adapter-shells
+- fix(settings): parameterize duration option accessibility label form
+- Merge pull request #294 from olveryu/fix/werewolf-night-review-abstain-and-seat-identity
+- fix(werewolf): split wolf abstentions and label review seats with identities
+- test(contracts): re-point viewing welds at the shared reveal assembly
+- test(contracts): re-weld reveal consumption marker to the shared modal assembly
+- refactor(room): converge adapter fill-param shells on shared factories (c-5)
+- Merge pull request #293 from olveryu/feat/werewolf-panel-flow
+- fix(werewolf): literal isEnabled in panel flow test button factory
+- test(werewolf): re-judge layout, modal, adapter and shell tests for the panel flow
+- test(room): seed standard seat commands test through the react-query automock
+- refactor(room): converge seat command shells on the shared standard shell
+- Merge pull request #290 from olveryu/refactor/c3-navigation-config
+- feat(werewolf): flow the Day/Ended bottom panel into guided steps
+- Merge pull request #289 from olveryu/feat/generator-g1-g3-g4
+- fix(navigation): type guide factory extras with overloads
+- Merge pull request #287 from olveryu/refactor/b2-reason-catalog
+- Merge pull request #288 from olveryu/feat/night-review-v5-visual
+- fix(demo): match generated navigation formatting for regen compare
+- refactor(client): converge chassis reason copy into one shared table
+- test(room): derive controlled seat model coverage from the client catalog
+- refactor(navigation): converge client route config parsing on one shared parser
+- docs(new-game): name all three word-supply workflow registrations in the report
+- feat(new-game): register guidance matrix in the generator
+- feat(werewolf): night review v5 visual — hero, timeline, noise zone
+- Merge pull request #286 from olveryu/feat/werewolf-day-ended-review-buttons
+- feat(werewolf): add night review outcome derivation and v5 copy
+- Merge pull request #285 from olveryu/feat/werewolf-share-report-extraction
+- Merge pull request #284 from olveryu/feat/audio-lock-pr3-template
+- fix(werewolf): give the bottom night review button its own test id
+- refactor(werewolf): checkpoint of shared night review report body extraction
+- feat(werewolf): surface last night info and review for host day and ended
+- test(new-game): pin the audio segment rendering on and off
+- feat(new-game): ship the audioOrchestration capability segments
+- Merge pull request #283 from olveryu/feat/t4-pr3-demo-regen
+- Merge pull request #282 from olveryu/refactor/e4-pr3-relay-gate-tail
+- test(new-game): pin demo regeneration parity and the single template tree
+- refactor(game-engine): land pictionary drawing path on the shared relay gate and tail
+- feat(new-game): align shipped demo with the single template tree
+- test(game-engine): pin pictionary drawing commit event sequence
+- Merge pull request #281 from olveryu/feat/segmented-capture-trial
+- Merge pull request #280 from olveryu/refactor/shared-seat-dot
+- docs(components): refresh seat dot examples after the leader rename
+- test(components): pin seat dot variant matrix and sync theme mock fixed token
+- refactor(games): switch avalon, sheriff and night review to shared seat dot
+- feat(components): add shared seat dot for record surfaces
+- Merge pull request #279 from olveryu/fix/avalon-leader-renamed-picker-badge
+- fix(werewolf): mount the share card before the segmented mini-program capture
+- feat(werewolf): route mini-program night review share through segmented capture
+- Merge pull request #278 from olveryu/refactor/e1-werewolf-room-commands
+- refactor(avalon): finish leader-to-picker rename in tests, docs and comments
+- docs(werewolf): refresh progression evaluator invariant comment (E-1)
+- refactor(avalon): rename leader copy to team picker in history, rules and failure text
+- fix(avalon): show picker and member seat badges together, rename picker copy
+- feat(room): add segmented band capture for tall web views
+- refactor(avalon): delete manual vote/quest finish commands (#277)
+- test(werewolf): re-pin room command propositions at the decide level (E-1)
+- refactor(werewolf): decide room commands through the shared skeleton (E-1)
+- feat(werewolf): add SEATS_CHANGED batch action with folding reducer
+- test(platform): register werewolf divergences in room command scenarios
+- Merge pull request #276 from olveryu/feat/sheriff-election-v4-visual
+- test(e2e): migrate sheriff election assertions to dot and group structure
+- test(werewolf): migrate sheriff panel assertions to dots, groups and banner
+- feat(werewolf): redraw sheriff election record with dots, tally bars and banner
+- Merge pull request #274 from olveryu/feat/night-review-v4-visual
+- Merge pull request #271 from olveryu/feat/e3-pr2b-sheriff
+- test(e2e): wait for automatic sheriff publication in the election spec
+- feat(werewolf): arm sheriff voting rounds with the settle countdown skeleton
+- Merge pull request #275 from olveryu/fix/e3-weld-registry-align
+- fix(game-engine): retire stale avalon pending arithmetic registrations
+- Merge pull request #270 from olveryu/feat/e3-pr2-avalon
+- fix(werewolf): render villager gray on the night review surface
+- Merge pull request #269 from olveryu/feat/e3-pr1-skeleton-werewolf
+- Merge pull request #273 from olveryu/feat/avalon-history-v4-visual
+- Merge pull request #272 from olveryu/fix/sheriff-end-registration-confirm
+- fix(werewolf): type night review reveal fields without assertions
+- test(game-engine): cover parenthesized anchors in deadline arithmetic weld
+- fix(werewolf): confirm before the host ends sheriff registration
+- feat(werewolf): restructure night review into structured entries and v4 presentation
+- feat(avalon): rebuild history overlay with v4 visual structure
+- test(game-engine): add deadline arithmetic weld to settle countdown contract
+- docs(game-engine): ground the avalon arm suppression in the skeleton header
+- feat(game-engine): switch avalon vote and quest arm to settle countdown skeleton
+- feat(game-engine): extract settle countdown skeleton, switch werewolf wolf vote
+- Merge pull request #268 from olveryu/fix/audio-lock-election
+- feat(werewolf): gate sheriff election behind the audio playback lock
+- Merge pull request #264 from olveryu/fix/audio-lock-client2
+- test(e2e): wait for host audio ack before first sheriff registration assertion
+- feat(room): apply one audio playback lock across werewolf and avalon clients
+- Merge pull request #267 from olveryu/fix/werewolf-night-end-shorten
+- Merge pull request #266 from olveryu/refactor/t4-demo-capability-pack
+- fix(e2e): correct night-end clip duration in ack budget comment
+- fix(generator): move demo-hybrid skill docs into canonical .agents source
+- fix(werewolf): shorten night_end narration to the avalon dawn line
+- Merge pull request #265 from olveryu/refactor/f8-werewolf-producers
+- refactor(generator): merge template trees into one capability-rendered tree, add demo-hybrid pack
+- refactor(werewolf): build seat profiles through the canonical constructor
+- Merge pull request #262 from olveryu/fix/audio-lock-engine
+- test(e2e): wait for host audio ack before return to lobby in restart spec
+- Merge pull request #263 from olveryu/refactor/e4-pr2-projection
+- Merge pull request #257 from olveryu/refactor/werewolf-viewed-seats
+- Merge pull request #261 from olveryu/refactor/f8-parser-assembly
+- feat(game-engine): add platform audio playback gate guard
+- refactor(game-engine): assemble parsed seat profiles via the canonical constructor
+- Merge pull request #260 from olveryu/refactor/e2-stage-template
+- Merge pull request #259 from olveryu/fix/f8-profile-canonical-order
+- refactor(game-engine): build seat profiles through one canonical constructor
+- refactor(templates): route stage template expiry through the phase deadline chassis
+- refactor(pictionary): project tasks through the shared relay machine
+- test(pictionary): pin projection behavior changes before relay move
+- fix(werewolf): complete two test fixtures with roleViewedSeats (v11 shape)
+- refactor(werewolf): store viewed record as roleViewedSeats set (state v11)
+- Merge pull request #253 from olveryu/refactor/e1-pictionary
+- Merge pull request #258 from olveryu/refactor/e4-pr1
+- Merge pull request #256 from olveryu/refactor/e2-demo-guard
+- refactor(game-engine): e4 pr-1 relay evolve convergence, canonical ready order
+- test(game-engine): pin relay readySeats canonical ascending order
+- test(pictionary): add state round-trip fixed-point contract
+- refactor(pictionary): switch room commands to decideRoomCommands skeleton
+- Merge pull request #255 from olveryu/fix/worker-profile-schema-key-order
+- refactor(game-engine): demo expiry guard + settle.due helper switch
+- fix(api-worker): align profile schema key order with RosterEntry
+- Merge pull request #254 from olveryu/refactor/e2-avalon-guard
+- test(contract): register settleDue in Worker gameModules file list
+- Merge pull request #252 from olveryu/refactor/e1-fibking
+- refactor(avalon): settle expiry via shared phase-deadline guard (E-2 PR-3)
+- fix(fibking): align state key order with parser canonical shape
+- Merge pull request #251 from olveryu/refactor/e1-undercover
+- Merge pull request #250 from olveryu/refactor/e2-drawguess-guard
+- refactor(fibking): switch room commands to decideRoomCommands skeleton
+- refactor(drawguess): switch phase expiry to platform guardPhaseExpiry
+- Merge pull request #249 from olveryu/refactor/e1-drawguess-storyrelay
+- refactor(game-engine): switch undercover room commands to the shared skeleton
+- test(game-engine): pin config-derivation begin and same-config resend
+- refactor(game-engine): switch drawguess/storyrelay to roomCommands skeleton
+- Merge pull request #248 from olveryu/refactor/platform-room-commands
+- docs(avalon): point takeover comment at platform requireHost
+- refactor(game-engine): land decideRoomCommands skeleton, avalon/demo switch (E-1 PR-1)
+- Merge pull request #247 from olveryu/refactor/werewolf-state-profile-embed
+- refactor(werewolf): embed seat profile in roster occupant; hard-cut state to v10
+- Merge pull request #246 from olveryu/refactor/platform-commit-default-broadcast
+- Merge pull request #245 from olveryu/refactor/phase-deadline-skeleton
+- refactor(engine): default commit broadcast from committed events (E-6)
+- refactor(engine): generalize relay expiry guard into phase deadline chassis (E-2 PR-1)
+- Merge pull request #243 from olveryu/refactor/generator-capability-blocks
+- Merge pull request #242 from olveryu/refactor/generator-default-nonproduction
+- style(generator): prettier-format the capability block unit test
+- Merge pull request #241 from olveryu/refactor/fibking-prng-platform
+- refactor(generator): key template blocks by capability, not preset (T-4 PR-1)
+- feat(generator): default new games to non-production, add --production (G-2)
+- Merge pull request #240 from olveryu/refactor/storyrelay-lifecycle-vocab
+- refactor(fibking): use platform seeded RNG, delete private SplitMix64 (F-1)
+- refactor(storyrelay): rename lifecycle commands, add vocabulary contract
+- Merge pull request #239 from olveryu/refactor/pictionary-lifecycle-vocab
+- Merge pull request #238 from olveryu/refactor/undercover-lifecycle-vocab
+- refactor(undercover): rename lifecycle commands to unified suffixes
+- Merge pull request #237 from olveryu/refactor/fibking-lifecycle-vocab
+- refactor(pictionary): rename lifecycle commands to unified suffixes
+- refactor(fibking): rename lifecycle commands to unified suffixes
+- Merge pull request #236 from olveryu/refactor/werewolf-lifecycle-vocab
+- refactor(werewolf): lifecycle command vocabulary
+- Merge pull request #235 from olveryu/refactor/avalon-assign-vocab
+- refactor(avalon): rename game.start command to roles.assign
+- Merge pull request #234 from olveryu/refactor/demo-assign-vocab
+- Merge pull request #233 from olveryu/refactor/drawguess-begin-vocab
+- refactor(demo): rename game.start to roles.assign, sync generator templates
+- refactor(drawguess): rename round.start command to game.begin
+- Merge pull request #232 from olveryu/feat/werewolf-redeal
+- fix(e2e): ritual confirm is alertButton(1) — AlertModal sorts cancel last
+- fix(e2e): press the ritual confirm via its alert-button testID
+- fix(e2e): await the return-to-lobby ritual title by testID, not text
+- feat(werewolf): terminal double-key via engine redeal command (D-3 1b)
+- Merge pull request #231 from olveryu/refactor/host-flow-vocabulary
+- test(e2e): fibking config failure title follows B-5 label (保存设置失败)
+- fix(host-flow): drop plan-external isPrimary on terminal next-round (3 games), fix fibking/pictionary e2e leftovers, align werewolf assign reason to the avalon form
+- refactor(host-flow): chassis vocabulary convergence — assign/abort/restart builders, confirm constants, one disabled-reason source (D-3 stage 1a)
+- Merge pull request #230 from olveryu/refactor/viewing-begin-gate
+- refactor(viewing): converge client begin gates onto createViewingBeginGate
+- Merge pull request #229 from olveryu/refactor/viewing-confirm-extraction
+- refactor(viewing): extract decideConfirmViewed into platform, switch all games
+- Merge pull request #228 from olveryu/fix/undercover-host-gate-align
+- fix(undercover): align host gate with platform resolveHostActorId
+- Merge pull request #224 from olveryu/feat/e2e-night-step-sync
+- Merge pull request #227 from olveryu/refactor/werewolf-night-step-state
+- test(e2e): scope the prompt-cycle memo per night; settle before dismiss in empty vote
+- fix(werewolf): drop ordinary assertion in draft store read path
+- test(werewolf): annotate skipAction mock nightStep as shape placeholder
+- refactor(werewolf): derive client night step from nightStep
+- refactor(werewolf): drop currentStepIndex from expectedStep schema
+- refactor(werewolf): collapse night step window into nightStep discriminated union
+- Merge remote-tracking branch 'origin/main' into feat/e2e-night-step-sync
+- test(e2e): settle the 2-player wolf step before clicking (shard-6 failure)
+- Merge pull request #226 from olveryu/feat/werewolf-step-window-pr0
+- test(e2e): wait for the step prompt cycle — seat taps are NOOPs during audio
+- feat(werewolf): enforce night step-window invariants, migrate state to v8
+- test(e2e): settle the step prompt before acting on a reached step
+- ci(e2e): extract reusable e2e workflow, drop single-spec branch input
+- test(e2e): gate the 2-player wolf click on the step anchor, not prompt copy
+- test(e2e): sync night drivers on the step anchor with deadline budgets
+- Merge pull request #223 from olveryu/feat/anonymous-guest-positioning
+- Merge pull request #221 from olveryu/docs/readme-multigame
+- Merge pull request #222 from olveryu/feat/room-step-anchor
+- feat(auth): position anonymous accounts as guests, enforce the policy server-side
+- feat(room): expose the current game step as a data-step header anchor
+- docs(readme): rewrite both READMEs in 2026 structure for the 7-game platform
+- docs(changelog): fill in the v2.8.0 change list
+
 ## [2.8.0] - 2026-10-19
 
 - docs(announcements): add v2.8.0 What's New entry
