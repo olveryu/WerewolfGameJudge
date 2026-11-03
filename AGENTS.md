@@ -14,7 +14,7 @@ Layout: a pnpm workspace with three parts — the root app, `packages/game-engin
 
 Games (8): werewolf, fibking, pictionary, undercover, storyrelay, drawguess, avalon, demo. Demo is the hand-built reference the generator templates mirror; it is not generator output, and it is the only game marked non-production.
 
-State versions: werewolf 17, avalon 10, fibking 8, pictionary 9, undercover 5, storyrelay 2, drawguess 2, demo 1.
+State versions: werewolf 17, avalon 10, fibking 8, pictionary 9, undercover 5, storyrelay 2, drawguess 3, demo 1.
 Persisted states migrate in place at read through each game's `migratePersisted*State`; a newer or unsupported version throws. A Durable Object storage-schema mismatch discards the room instead; that is a different mechanism.
 
 The version number is authoritative in `package.json` only; `src/config/version.ts` reads it at import time, and `app.json` and `CHANGELOG.md` are generated from it by the release script.

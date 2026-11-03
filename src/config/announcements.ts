@@ -16,6 +16,18 @@ interface Announcement {
 
 /** Announcements keyed by version. Key format matches APP_VERSION: `v{major}.{minor}.{patch}` */
 export const ANNOUNCEMENTS: Record<string, Announcement> = {
+  'v2.9.0': {
+    title: 'v2.9.0 更新内容',
+    items: [
+      '新增狼女孩板子，12 人特色局，首夜表白与狼伴侣玩法',
+      '你画我猜计分升级，画手按猜中节奏得分、全员猜中不得分，词库新增 10 类',
+      '夜报全新改版，浅色档案式呈现，分享带进度提示',
+      '警长选举与复盘统一为面板呈现，底部流程只属房主',
+      '建房设置统一改版，规则单独成步、配置自动记住',
+      '房间连接重构，断线重连更稳',
+      '语音播报期间锁定操作，流程不再抢跑',
+    ],
+  },
   'v2.8.0': {
     title: 'v2.8.0 更新内容',
     items: [
