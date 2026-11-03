@@ -22,32 +22,49 @@ const BOARD: readonly RoleId[] = ['wolf', 'wolf', 'seer', 'witch', 'hunter', 'vi
 const NOW = 10_000;
 const HINT_MESSAGE = '今晚狼人无法袭击';
 
-function renderWolfNight(overrides?: { readonly hint?: boolean }) {
+function renderWolfNight(
+  options: {
+    readonly hint?: boolean;
+    readonly armed?: boolean;
+    readonly audioPlaying?: boolean;
+    readonly viewerSeat?: number;
+  } = {},
+) {
+  const viewerSeat = options.viewerSeat ?? 0;
   const state = nightState({
     roles: BOARD,
     stepId: 'wolfKill',
-    overrides: overrides?.hint
-      ? {
-          ui: {
-            currentActorHint: {
-              kind: 'wolf_kill_disabled',
-              targetRoleIds: ['wolf'],
-              message: HINT_MESSAGE,
-              bottomAction: 'wolfEmptyOnly',
+    overrides: {
+      ...(options.armed
+        ? {
+            currentNightResults: { wolfVotesBySeat: { '0': 5 } },
+            nightStep: { kind: 'inStep', stepId: 'wolfKill', stepDeadline: NOW + 4_200 },
+          }
+        : {}),
+      ...(options.hint
+        ? {
+            ui: {
+              currentActorHint: {
+                kind: 'wolf_kill_disabled',
+                targetRoleIds: ['wolf'],
+                message: HINT_MESSAGE,
+                bottomAction: 'wolfEmptyOnly',
+              },
             },
-          },
-        }
-      : undefined,
+          }
+        : {}),
+      ...(options.audioPlaying ? { isAudioPlaying: true } : {}),
+    },
   });
   const submit = jest.fn(async (): Promise<boolean> => true);
   const rendered = renderHook(() =>
     useNightInteraction({
       state,
-      viewModel: viewAs(state, 0),
-      userId: 'u0',
+      viewModel: viewAs(state, viewerSeat),
+      userId: `u${viewerSeat}`,
       roomId: 'room-1',
-      controlledSeat: 0,
-      effectiveSeat: 0,
+      controlledSeat: viewerSeat,
+      effectiveSeat: viewerSeat,
       isAudioResumeDue: false,
       hasPendingCommand: false,
       nowMs: NOW,
@@ -110,5 +127,29 @@ describe('useNightInteraction wolfVote seat taps', () => {
     expect(showDismissAlert).not.toHaveBeenCalled();
     expect(showConfirmAlert).not.toHaveBeenCalled();
     expect(submit).not.toHaveBeenCalled();
+  });
+});
+
+describe('useNightInteraction nightStatusLine', () => {
+  it('shows the countdown line while audio playback blocks the model', () => {
+    const { result } = renderWolfNight({ armed: true, audioPlaying: true });
+    expect(result.current.model.kind).toBe('blocked');
+    expect(result.current.actionMessage).toBeNull();
+    expect(result.current.nightStatusLine).toBe('1/2 狼人已确认（5秒后确认）');
+  });
+
+  it('hides the line when the viewer has not voted', () => {
+    const { result } = renderWolfNight({ armed: true, audioPlaying: true, viewerSeat: 1 });
+    expect(result.current.nightStatusLine).toBeNull();
+  });
+
+  it('hides the line when audio is not playing', () => {
+    const { result } = renderWolfNight({ armed: true });
+    expect(result.current.nightStatusLine).toBeNull();
+  });
+
+  it('hides the line when the countdown is not armed', () => {
+    const { result } = renderWolfNight({ audioPlaying: true });
+    expect(result.current.nightStatusLine).toBeNull();
   });
 });

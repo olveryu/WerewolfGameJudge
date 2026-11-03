@@ -14,10 +14,12 @@ import {
 import { nightState } from '../night/__tests__/nightFixtures';
 import type { NightInteractionModel } from '../night/NightInteractionModel';
 import { resolveNightInteraction } from '../night/resolveNightInteraction';
+import { buildWerewolfGuideMessage } from '../werewolfGuideMessage';
 import {
   buildNightButtons,
   createWerewolfBoardInfoSections,
   createWerewolfBottomActionLayout,
+  createWerewolfBottomActions,
   createWerewolfSeatDataSource,
   deriveWerewolfBottomProgress,
   deriveWerewolfSeatCounts,
@@ -339,5 +341,81 @@ describe('progress, board info and counts', () => {
       viewedCount: 2,
       totalSeats: 6,
     });
+  });
+});
+
+describe('createWerewolfBottomActions', () => {
+  function bottomActions(
+    state: GameState,
+    options: { isAudioPlaying: boolean; nightStatusLine: string | null },
+  ) {
+    const viewModel = getWerewolfViewModel(state, { seat: 0, isHost: false });
+    const night = resolveNightInteraction({
+      viewModel,
+      draft: { firstSwapSeat: null, multiSelectedSeats: [] },
+      swapSecondSeat: null,
+      locks: { isAudioPlaying: options.isAudioPlaying, hasPendingCommand: false },
+      nowMs: 0,
+    });
+    const layout = createWerewolfBottomActionLayout({
+      viewModel,
+      night,
+      isHost: false,
+      effectiveSeat: 0,
+      isAudioPlaying: options.isAudioPlaying,
+      isActionSubmitting: false,
+      canOpenNightReview: false,
+      onNightButton: jest.fn(),
+      onViewRole: jest.fn(),
+      onNightReview: jest.fn(),
+    });
+    return createWerewolfBottomActions({
+      state,
+      viewModel,
+      night,
+      isHost: false,
+      isAudioPlaying: options.isAudioPlaying,
+      layout,
+      actionMessage: 'action',
+      nightStatusLine: options.nightStatusLine,
+      guideMessage: buildWerewolfGuideMessage({
+        isHost: false,
+        roomStatus: viewModel.status,
+        mySeat: 0,
+        viewModel,
+      }),
+      sheriffElectionPanel: null,
+      isSheriffInspectorVisible: false,
+      openSheriffDetails: jest.fn(),
+    });
+  }
+
+  const state = () => nightState({ roles: BOARD, stepId: 'wolfKill' });
+
+  it('shows the countdown line while audio playback locks the message', () => {
+    const model = bottomActions(state(), {
+      isAudioPlaying: true,
+      nightStatusLine: '1/2 狼人已确认（5秒后确认）',
+    });
+    expect(model.kind).toBe('stacked');
+    if (model.kind !== 'stacked') throw new Error('Expected a stacked bottom model');
+    expect(model.message).toBe('1/2 狼人已确认（5秒后确认）');
+  });
+
+  it('shows nothing while audio playback locks the message without a countdown', () => {
+    const model = bottomActions(state(), { isAudioPlaying: true, nightStatusLine: null });
+    expect(model.kind).toBe('stacked');
+    if (model.kind !== 'stacked') throw new Error('Expected a stacked bottom model');
+    expect(model.message).toBeNull();
+  });
+
+  it('shows the action message once audio playback ends', () => {
+    const model = bottomActions(state(), {
+      isAudioPlaying: false,
+      nightStatusLine: '1/2 狼人已确认（5秒后确认）',
+    });
+    expect(model.kind).toBe('stacked');
+    if (model.kind !== 'stacked') throw new Error('Expected a stacked bottom model');
+    expect(model.message).toBe('action');
   });
 });

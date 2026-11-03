@@ -84,6 +84,8 @@ export type NightInteractionModel =
       readonly immuneSeats: readonly number[];
       /** The summary line: voted/total wolves, countdown or change hint. */
       readonly statusLine: string;
+      /** The settle countdown fragment (`（N秒后确认）`); null while unarmed. */
+      readonly countdownText: string | null;
     }
   /** swap: two seats; the second opens the confirm. */
   | {

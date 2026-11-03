@@ -453,6 +453,7 @@ export function useWerewolfRoomState(
     isAudioPlaying: state.isAudioPlaying,
     layout,
     actionMessage: night.actionMessage,
+    nightStatusLine: night.nightStatusLine,
     guideMessage: buildWerewolfGuideMessage({ isHost, roomStatus: status, mySeat, viewModel }),
     sheriffElectionPanel,
     isSheriffInspectorVisible,
