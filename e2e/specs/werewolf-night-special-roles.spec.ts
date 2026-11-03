@@ -317,3 +317,118 @@ test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
     );
   });
 });
+
+// ============================================================================
+// Poisoner override feedback (wolfkill-override fix)
+// ============================================================================
+
+/**
+ * Poisoner board: the wolf step is kill-disabled by the poisoner override.
+ *
+ * - Tapping a seat shows the kill-disabled hint as a dismiss alert
+ *   (no "确定袭击" confirm dialog, no vote submitted).
+ * - After every wolf confirms the empty vote, the 5-second settle
+ *   countdown stays visible in the bottom action panel.
+ * - The night then completes through the poisoner and seer steps.
+ *
+ * Uses a 6-player template with no bottom cards so every role is seated:
+ *   wolf(2) + villager(2) + seer + poisoner = 6 roles.
+ */
+
+test.describe('Werewolf Night — Special Roles: Poisoner Override Feedback', () => {
+  test('seat tap shows kill-disabled hint → empty votes show settle countdown → night completes', async ({
+    browser,
+  }) => {
+    await withSetup(
+      browser,
+      {
+        playerCount: 6,
+        configure: async (c) =>
+          c.configureCustomTemplate({
+            wolves: 2,
+            villagers: 2,
+            goodRoles: ['seer', 'poisoner'],
+            specialRoles: [],
+          }),
+      },
+      async ({ pages, roleMap }) => {
+        const wolfIndices = findAllRolePageIndices(roleMap, '狼人');
+        const seerIdx = findRolePageIndex(roleMap, '预言家');
+        const poisonerIdx = findRolePageIndex(roleMap, '毒师');
+        expect(wolfIndices.length, 'both wolves must be players').toBe(2);
+        expect(seerIdx, 'seer must be a player').not.toBe(-1);
+        expect(poisonerIdx, 'poisoner must be a player').not.toBe(-1);
+
+        const wolfSet = new Set(wolfIndices);
+        const targetSeat = [...roleMap.entries()].find(([idx]) => !wolfSet.has(idx))![1].seat;
+
+        // === Step 1: Wolf's turn — seat tap shows the hint, not a confirm ===
+        await test.step('seat tap shows the kill-disabled hint', async () => {
+          const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]!]!, 'wolfKill', pages);
+          expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
+
+          const wolfPage = pages[wolfIndices[0]!]!;
+          await dismissAlert(wolfPage);
+
+          const tile = wolfPage.locator(`[data-testid="seat-tile-pressable-${targetSeat}"]`);
+          await tile.waitFor({ state: 'visible', timeout: 5000 });
+          await tile.click();
+
+          const alertText = await readAlertText(wolfPage);
+          expect(alertText).toContain('本局有毒师在场，首夜无法袭击');
+          expect(alertText).not.toContain('确定袭击');
+          const alertModal = wolfPage.locator('[data-testid="alert-modal"]');
+          await expect(alertModal.getByText('知道了', { exact: true }).first()).toBeVisible();
+          await dismissAlert(wolfPage);
+        });
+
+        // === Step 2: All wolves confirm the empty vote → countdown visible ===
+        await test.step('settle countdown stays visible after all empty votes', async () => {
+          await driveWolfDisabledEmptyVote(pages, wolfIndices);
+
+          const panel = pages[wolfIndices[0]!]!.locator('[data-testid="bottom-action-panel"]');
+          let countdownSeen = false;
+          const deadline = Date.now() + 4_500;
+          while (Date.now() < deadline) {
+            if (
+              await panel
+                .getByText(/秒后确认/)
+                .first()
+                .isVisible()
+                .catch(() => false)
+            ) {
+              countdownSeen = true;
+              break;
+            }
+            await pages[0]!.waitForTimeout(200);
+          }
+          expect(countdownSeen, 'Settle countdown should be visible after all empty votes').toBe(
+            true,
+          );
+        });
+
+        // === Step 3: Poisoner & Seer skip their skills ===
+        if (poisonerIdx !== -1) {
+          const turn = await waitForRoleTurn(pages[poisonerIdx]!, 'poisonerPoison', pages, 60_000);
+          if (turn) {
+            await dismissAlert(pages[poisonerIdx]!);
+            await clickBottomButton(pages[poisonerIdx]!, '不用技能');
+            await dismissAlert(pages[poisonerIdx]!);
+          }
+        }
+        if (seerIdx !== -1) {
+          const turn = await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages, 60_000);
+          if (turn) {
+            await dismissAlert(pages[seerIdx]!);
+            await clickBottomButton(pages[seerIdx]!, '不用技能');
+            await dismissAlert(pages[seerIdx]!);
+          }
+        }
+
+        // === Step 4: Night should end ===
+        const ended = await waitForNightEnd(pages);
+        expect(ended, 'Night should complete with the poisoner override').toBe(true);
+      },
+    );
+  });
+});
