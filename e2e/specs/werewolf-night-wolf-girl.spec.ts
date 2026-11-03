@@ -4,6 +4,7 @@ import {
   clickBottomButton,
   clickSeatAndConfirm,
   dismissAlert,
+  driveGroupConfirmAck,
   driveWolfDisabledEmptyVote,
   findAllRolePageIndices,
   findRolePageIndex,
@@ -42,28 +43,6 @@ import { withSetup } from '../helpers/night-setup';
 // (run 41577067173: both tests killed at exactly 3.0m while still
 // mid-night, step 4/7 in the failure snapshots).
 test.setTimeout(300_000);
-
-/**
- * Drive one player through the confession-reveal acknowledgement:
- * dismiss the step prompt, open "表白状态", read the personal message,
- * acknowledge with "知道了". Returns the personal message text.
- */
-async function acknowledgeConfessionResult(page: Page): Promise<string> {
-  await dismissAlert(page);
-
-  const statusButton = page
-    .locator('[data-testid="bottom-action-panel"]')
-    .getByText('表白状态', { exact: true })
-    .first();
-  await statusButton.waitFor({ state: 'visible', timeout: 10_000 });
-  await statusButton.click();
-
-  const alertModal = page.locator('[data-testid="alert-modal"]');
-  await alertModal.waitFor({ state: 'visible', timeout: 5000 });
-  const message = (await alertModal.textContent()) ?? '';
-  await alertModal.getByText('知道了', { exact: true }).first().click();
-  return message;
-}
 
 /**
  * A wolf seat must not be confessable: tapping it during the Wolf
@@ -225,7 +204,7 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
             const player = roleMap.get(pageIndex);
             if (!player) throw new Error(`Missing captured role for page ${pageIndex}`);
 
-            const message = await acknowledgeConfessionResult(pages[pageIndex]!);
+            const message = await driveGroupConfirmAck(pages[pageIndex]!, '表白状态', '知道了');
             if (player.seat === confessTargetSeat) {
               expect(message).toContain(`狼女孩是：${wolfGirlSeat + 1}号`);
               disclosedSeatCount++;
@@ -314,7 +293,7 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
             const player = roleMap.get(pageIndex);
             if (!player) throw new Error(`Missing captured role for page ${pageIndex}`);
 
-            const message = await acknowledgeConfessionResult(pages[pageIndex]!);
+            const message = await driveGroupConfirmAck(pages[pageIndex]!, '表白状态', '知道了');
             expect(message).not.toContain('狼女孩是：');
             if (player.seat === seerSeat) {
               expect(message).toContain('你被表白了');
