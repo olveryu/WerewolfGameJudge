@@ -169,7 +169,7 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
       browser,
       {
         playerCount: 12,
-        configure: async (config) => config.selectTemplate('狼女孩'),
+        configure: async (config) => config.selectTemplate('狼女孩', '特色'),
       },
       async ({ pages, roleMap }) => {
         const wolfGirlPageIndex = findRolePageIndex(roleMap, '狼女孩');
@@ -264,7 +264,7 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
       browser,
       {
         playerCount: 12,
-        configure: async (config) => config.selectTemplate('狼女孩'),
+        configure: async (config) => config.selectTemplate('狼女孩', '特色'),
       },
       async ({ pages, roleMap }) => {
         const wolfGirlPageIndex = findRolePageIndex(roleMap, '狼女孩');

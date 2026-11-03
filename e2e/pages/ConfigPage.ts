@@ -64,14 +64,14 @@ export class ConfigPage {
    * Then we select the desired template on BoardPicker, which navigates
    * back to Config with the new preset.
    */
-  async selectTemplate(name: string) {
+  async selectTemplate(name: string, categoryLabel?: string) {
     // Step 1: Click the template pill to go back to BoardPicker
     await this.clickTemplatePill();
 
     // Step 2: BoardPicker is now visible — select the template
     const boardPicker = new BoardPickerPage(this.page);
     await boardPicker.waitForReady();
-    await boardPicker.selectTemplate(name);
+    await boardPicker.selectTemplate(name, categoryLabel);
   }
 
   /**
