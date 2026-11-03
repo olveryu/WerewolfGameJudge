@@ -4,7 +4,7 @@ import {
   clickBottomButton,
   clickSeatAndConfirm,
   dismissAlert,
-  driveWolfEmptyVote,
+  driveWolfDisabledEmptyVote,
   findAllRolePageIndices,
   findRolePageIndex,
   isTextVisible,
@@ -124,15 +124,15 @@ async function drivePostConfessNight(
   seerPageIndex: number,
   seerCheckSeat: number,
 ): Promise<void> {
-  await test.step('wolves meet but cannot kill (poisoner override)', async () => {
+  await test.step('wolves confirm they cannot kill (poisoner override)', async () => {
     // waitForRoleTurn first: it advances the other pages past their
     // pending prompts and waits out the step's audio/prompt cycle, so
-    // the 放弃袭击 button is actually rendered when driveWolfEmptyVote
-    // looks for it. Calling driveWolfEmptyVote without it stalls: its
-    // per-page settle does not advance the other pages.
+    // the confirm button is actually rendered when the driver looks
+    // for it. The override renders "确认放弃袭击", not the plain
+    // "放弃袭击" button driveWolfEmptyVote clicks.
     const wolfTurn = await waitForRoleTurn(pages[wolfPageIndices[0]!]!, 'wolfKill', pages);
     expect(wolfTurn, 'Wolf turn should become active').toBe(true);
-    await driveWolfEmptyVote(pages, wolfPageIndices);
+    await driveWolfDisabledEmptyVote(pages, wolfPageIndices);
   });
 
   await test.step('poisoner skips the poison', async () => {

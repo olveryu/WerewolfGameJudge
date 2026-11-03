@@ -741,6 +741,43 @@ export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): 
   }
 }
 
+/**
+ * Drive all wolves to confirm the kill-disabled empty vote.
+ *
+ * When the wolf kill is disabled (poisoner override on Night 1, or a
+ * nightmare block), the bottom panel shows "确认放弃袭击" instead of
+ * the plain "放弃袭击" button that driveWolfEmptyVote clicks, and the
+ * step prompt explains the kill is impossible. Callers must run
+ * waitForRoleTurn for 'wolfKill' first, as with the other wolf-vote
+ * drivers: this helper assumes the step is active on every page.
+ */
+export async function driveWolfDisabledEmptyVote(
+  pages: Page[],
+  wolfIndices: number[],
+): Promise<void> {
+  log(`driveWolfDisabledEmptyVote wolfIndices=[${wolfIndices}]`);
+  for (const wIdx of wolfIndices) {
+    const wPage = pages[wIdx]!;
+    await dismissAlert(wPage);
+
+    const panel = wPage.locator('[data-testid="bottom-action-panel"]');
+    const blockedBtn = panel.getByRole('button', { name: '确认放弃袭击', exact: true });
+    await blockedBtn.waitFor({ state: 'visible', timeout: CLICK_TIMEOUT_MS });
+    await blockedBtn.click({ timeout: CLICK_TIMEOUT_MS });
+    log(`driveWolfDisabledEmptyVote — P${wIdx} clicked 确认放弃袭击`);
+
+    // Dismiss the confirmation alert if one appears
+    const alertModal = wPage.locator('[data-testid="alert-modal"]');
+    const appeared = await alertModal
+      .waitFor({ state: 'visible', timeout: CONFIRM_TIMEOUT_MS })
+      .then(() => true)
+      .catch(() => false);
+    if (appeared) {
+      await dismissAlert(wPage);
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Reveal dialog
 // ---------------------------------------------------------------------------
