@@ -389,8 +389,10 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   });
 
   describe('wolfKillDisabled coverage', () => {
-    it('wolfKillDisabled: non-blocked wolf can still see vote dialog when nightmare blocked another wolf', async () => {
-      // Wolf at seat 4 is blocked, but wolf at seat 5 can still vote
+    it('wolfKillDisabled: non-blocked wolf sees the kill-disabled hint instead of the vote dialog when nightmare blocked another wolf', async () => {
+      // Wolf at seat 4 is blocked; the override disables the kill for the whole
+      // pack (the engine rejects every non-empty wolf vote while it is set),
+      // so the wolf at seat 5 gets the hint dialog, not the vote dialog.
       mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
@@ -413,12 +415,17 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       await waitForRoomScreen(getByTestId);
       harness.clear();
 
-      // Non-blocked wolf can still tap to vote (though vote will be invalidated by wolfKillDisabled)
+      // The tap shows the dismiss hint and submits nothing; no vote dialog.
       tapSeat(getByTestId, 1);
 
       await waitFor(() => {
-        expect(harness.hasSeen('wolfVote')).toBe(true);
+        const hint = harness.events().find((event) => event.title === BLOCKED_UI_DEFAULTS.title);
+        expect(hint).toBeDefined();
+        expect(hint?.message).toBe(BLOCKED_UI_DEFAULTS.message);
+        expect(hint?.buttons).toEqual([BLOCKED_UI_DEFAULTS.dismissButtonText]);
       });
+      expect(harness.hasSeen('wolfVote')).toBe(false);
+      expect(mockUseWerewolfRoomReturn.submitAction).not.toHaveBeenCalled();
     });
   });
 
