@@ -34,7 +34,14 @@ import { withSetup } from '../helpers/night-setup';
  * that they were confessed, everyone else learns nothing.
  */
 
-test.setTimeout(180_000);
+// Full 12-player night: setup alone (12 contexts, room creation,
+// seat assignment, role viewing) takes ~2 minutes in CI, and the
+// night itself runs seven steps with per-step audio plus a 12-page
+// reveal. The 300s budget follows werewolf-night-flow, the other
+// full-night spec; 180s is exhausted before the night can finish
+// (run 41577067173: both tests killed at exactly 3.0m while still
+// mid-night, step 4/7 in the failure snapshots).
+test.setTimeout(300_000);
 
 /**
  * Wait until the last-step confession reveal is active, detected by
