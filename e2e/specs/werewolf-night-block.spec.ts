@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import {
   clickSeatAndConfirm,
   dismissAlert,
+  driveWolfDisabledEmptyVote,
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,
@@ -237,28 +238,9 @@ test.describe('Werewolf Night — Block', () => {
         const wolfBlocked = await waitForRoleTurn(pages[allWolfIndices[0]!]!, 'wolfKill', pages);
         expect(wolfBlocked, 'Wolves should see kill-disabled prompt').toBe(true);
 
-        // When wolfKillDisabled, the button label is "确认放弃袭击".
-        // Each wolf must click it to submit empty vote.
-        for (const wIdx of allWolfIndices) {
-          const wPage = pages[wIdx]!;
-          await dismissAlert(wPage);
-
-          // Wait for the blocked button to appear in the bottom panel
-          const panel = wPage.locator('[data-testid="bottom-action-panel"]');
-          const blockedBtn = panel.getByRole('button', { name: '确认放弃袭击', exact: true });
-          await blockedBtn.waitFor({ state: 'visible', timeout: 5000 });
-          await blockedBtn.click();
-
-          // Confirm the wolf vote alert if it appears
-          const alertModal = wPage.locator('[data-testid="alert-modal"]');
-          const appeared = await alertModal
-            .waitFor({ state: 'visible', timeout: 3000 })
-            .then(() => true)
-            .catch(() => false);
-          if (appeared) {
-            await dismissAlert(wPage);
-          }
-        }
+        // Kill-disabled empty vote: the shared driver clicks
+        // "确认放弃袭击" for each wolf (see night-driver).
+        await driveWolfDisabledEmptyVote(pages, allWolfIndices);
 
         // Night should end with peaceful night
         const ended = await waitForNightEnd(pages);
