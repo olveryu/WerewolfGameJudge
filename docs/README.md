@@ -61,7 +61,7 @@
 
 | 文档                                                                                 | 说明                                                   |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------------ |
-| [avatar-generation-prompts.md](avatar-generation-prompts.md)                         | 狼人杀 47 角色徽章图 prompt（豆包，中文，当前使用）    |
+| [avatar-generation-prompts.md](avatar-generation-prompts.md)                         | 狼人杀 48 角色立绘 prompt（中文，当前使用）            |
 | [avatar-generation-prompts.en.md](avatar-generation-prompts.en.md)                   | 同上的英文版（Gemini / Imagen 适配）                   |
 | [avatar-generation-prompts-other-games.md](avatar-generation-prompts-other-games.md) | 阿瓦隆 / 瞎掰王 / 谁是卧底角色立绘 prompt（v3 风格锁） |
 

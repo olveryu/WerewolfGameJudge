@@ -1,20 +1,20 @@
-# Werewolf Full-Cast Avatar Prompts — English (Gemini-optimized)
+# Werewolf Full-Cast Avatar Prompts — English
 
-English version of the avatar prompts, tuned for Gemini image models (Imagen / "Nano Banana").
-Chinese source: [avatar-generation-prompts.md](avatar-generation-prompts.md). Background removal: https://rmbg.fun/
+English version of the avatar prompts. The translated blocks are tuned for Gemini image models (Imagen / "Nano Banana"); the Wolf Girl entry (36) is the verbatim Muse-generation prompt, not a Gemini translation.
+Chinese source: [avatar-generation-prompts.md](avatar-generation-prompts.md). Background removal for all pipelines: https://rmbg.fun/
 
 ## How to use with Gemini
 
 - Gemini image models have **no CFG Scale / sampler / step-count controls** — those Doubao settings are intentionally dropped here. Just paste the prompt.
 - Set the **aspect ratio to 1:1** in the Gemini image options.
-- Each block below is a **complete standalone prompt** (shared style + character subject + negatives folded in). Copy one block and generate.
+- Each translated block below is a **complete standalone prompt** (shared style + character subject + negatives folded in). Copy one block and generate.
 - If a checkerboard/transparent or busy background still appears, append: `isolated on pure white background, studio product shot, flat solid white backdrop, no shadows, crisp subject edges, no scene whatsoever`.
 
-## Shared style (already embedded in every block)
+## Shared style (already embedded in every translated block, except the Wolf Girl entry)
 
 > Official Werewolf (Mafia) trading-card illustration, Tim Burton-style dark whimsical fairytale aesthetic, vintage American hand-drawn illustration, loose pencil linework, watercolor wash coloring, distressed rough paper texture, fine film-grain noise, naturalistic realistic proportions, human characters keep a normal face shape with balanced features (rounded chin, no pointed chin, no elongated or distorted face), dramatic expression and body language, coarse hand-drawn hatching for shadows, dark eerie yet playful mood, high detail, rich hand-drawn texture. Isolated on a pure white background, clean flat solid white backdrop, no scene, no environment, no texture, crisp subject edges for easy cut-out. 1:1 square format, centered composition, tight half-body bust crop, single subject filling ~80% of the frame, consistent figure scale across all characters.
 
-## Universal negative prompt
+## Universal negative prompt (translated blocks)
 
 ```
 text, watermark, logo, signature, extra borders, picture frame, blur, low quality, low resolution, deformed, bad proportions, distorted features, pointed chin, long face, wedge-shaped face, extra limbs, missing fingers, extra fingers, chibi, cute moe style, anime, photorealistic photo, 3D render, smooth digital painting, cel shading, neon colors, cyberpunk, oversaturated fluorescent colors, transparent background, checkerboard background, checkerboard pattern, mosaic transparency, gradient background, paper background, scene background, environment background, textured background, busy background, black background, dark background, colored background, any visible scene, image noise specks, overly glossy render, vector art, stiff lines, overexposed, underexposed, cluttered elements
@@ -248,13 +248,13 @@ Official Werewolf trading-card illustration, dark whimsical fairytale aesthetic,
 
 ### 36. Wolf Girl (wolfGirl)
 
-> ⚠️ Not the Doubao pipeline: this avatar (v2) was produced by Muse image generation (2026-11-03, user-approved) with the Hidden Wolf portrait as a style-only reference; solid black background, unlike this doc's pure-white background lock; cutout via local rembg + u2net (not rmbg.fun). v1 was generated with the same tool but its prompt was never recorded and is superseded; do not reconstruct it afterwards. Verbatim prompt below (English original; do not rewrite into Doubao wording or it will not reproduce):
+> Generation pipeline: Muse image generation (2026-11-03, user-approved) with the Hidden Wolf portrait as a style-only reference, solid black background; background removal via https://rmbg.fun/ (see the pipeline note at the top). v1 was generated with the same tool but its prompt was never recorded and is superseded; do not reconstruct it afterwards. Verbatim prompt below (English original; do not rewrite it or it will not reproduce):
 
 ```
 Painterly digital illustration, half-body portrait, square composition, centered: a young wolf girl in a dark hooded cloak with grey fur trim and wolf ears, long black hair, calm mysterious expression, holding a small glowing lantern in one hand, a large grey wolf standing behind her shoulder, plain solid black background, muted teal and purple rim light, detailed fantasy game character art in the same painterly style as the reference image, no text, no watermark.
 ```
 
-> Landed: 1600×1600 RGB source; `assets/avatars/raw/wolfGirl.png` (2048×2048 RGBA), `assets/avatars/web/wolfGirl.webp` (512×512), `assets/avatars/raw/no-rmbg/wolfGirl.png` (uncut source); commit `162dc4ee`.
+> Landed files: `assets/avatars/raw/wolfGirl.png`, `assets/avatars/web/wolfGirl.webp`, `assets/avatars/raw/no-rmbg/wolfGirl.png` (uncut source).
 
 ---
 
@@ -334,7 +334,7 @@ Official Werewolf trading-card illustration, Tim Burton-style dark whimsical fai
 
 ---
 
-### Fallback tip (if a checkerboard / busy background still appears)
+### Fallback tip (Doubao pipeline; if a checkerboard / busy background still appears)
 
 Append this to the end of the affected character's prompt: `isolated on pure white background, studio product shot, flat solid white backdrop, no shadows, crisp subject edges, absolutely no scene or environment`. Also make sure the universal negative prompt is fully applied.
 

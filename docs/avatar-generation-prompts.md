@@ -1,15 +1,15 @@
-# 豆包专属·强锁纯白背景版 狼人杀全角色Prompt
+# 狼人杀全角色 Prompt
 
-核心修改说明：
-抠图：https://rmbg.fun/
+本文档收录全部 48 个角色的立绘 prompt，逐字记录、以实际产出为准；条目内的文字不得改写，否则无法复现已入库的图。生成分两条管线，条目按各自实际走的管线记录：
 
-1.  **正向Prompt**：将纯白背景关键词**前置拉满权重**，替换成豆包AI识别度最高的专业术语（纯白色背景、干净纯色底），双重强化约束，彻底锁定纯白底；
-2.  **负面Prompt**：新增**透明/棋盘格/场景背景反向屏蔽词**，堵死所有生成透明棋盘格、场景、纹理背景的可能，从反向彻底锁定纯白底；
-3.  100%保留原版的狼人杀官方卡牌画风、角色人设、动作道具、色调设定，只优化纯白背景的生成稳定性，不改动你要的核心风格。
+- **豆包管线**（除狼女孩外的 47 条）：豆包纯文生图，纯白背景锁。下方的基础设置、负面 prompt 与兜底技巧均为该管线专用。
+- **Muse 生成管线**（狼女孩 v2，第 36 条）：Muse 图片生成，隐狼立绘仅作风格参照，纯黑背景。
+
+抠图统一走：https://rmbg.fun/（用户指定，狼人杀存量同口径；不得用本地 rembg 库替代）。
 
 ---
 
-## 🔧 必调·豆包生成基础设置
+## 🔧 豆包管线·生成基础设置（除狼女孩条目外适用）
 
 1.  画幅比例：**严格选择1:1正方形**
 2.  生成步数：24-30步
@@ -19,9 +19,9 @@
 
 ---
 
-## 🚫 强锁纯白背景·全角色通用负面Prompt
+## 🚫 豆包管线·强锁纯白背景通用负面Prompt
 
-（34个角色通用，直接全选复制粘贴到「不希望出现」/负面词栏）
+（豆包管线条目通用，直接全选复制粘贴到「不希望出现」/负面词栏）
 
 ```
 文字、水印、logo、签名、多余边框、画框、相框、模糊、低画质、低分辨率、变形、比例失调、五官扭曲、尖下巴、长脸、锥子脸、下巴过尖、脸型拉长、多余肢体、缺手指、多手指、Q版、萌系、二次元动漫、真实照片、3D渲染、平滑数字绘画、赛璐珞上色、霓虹色、赛博朋克、高饱和荧光色、透明背景、棋盘格背景、棋盘格图案、马赛克透明底、渐变背景、纸张背景、场景背景、环境背景、纹理背景、复杂背景、黑色背景、深色背景、彩色背景、带场景的画面、画面杂色、干净光滑的画面、矢量图、线条僵硬、画面过曝、画面过暗、元素堆砌
@@ -257,13 +257,13 @@
 
 ### 36. 狼女孩 (wolfGirl)
 
-> ⚠️ 非豆包管线：本条头像（v2）由 Muse 图片生成产出（2026-11-03，用户批准），风格参照图为隐狼立绘（仅风格参照）；纯黑背景，与本文档的纯白背景锁不同；抠图走本地 rembg + u2net（非 rmbg.fun）。v1 由同一工具生成但未记录 prompt，已作废，不得事后重构。以下为逐字 prompt（英文原文，不得改写为豆包口径，否则无法复现）：
+> 生成管线：Muse 图片生成（2026-11-03，用户批准），风格参照图为隐狼立绘（仅风格参照），纯黑背景；抠图走 https://rmbg.fun/（见页首管线说明）。v1 由同一工具生成但未记录 prompt，已作废，不得事后重构。以下为逐字 prompt（英文原文，不得改写，否则无法复现）：
 
 ```
 Painterly digital illustration, half-body portrait, square composition, centered: a young wolf girl in a dark hooded cloak with grey fur trim and wolf ears, long black hair, calm mysterious expression, holding a small glowing lantern in one hand, a large grey wolf standing behind her shoulder, plain solid black background, muted teal and purple rim light, detailed fantasy game character art in the same painterly style as the reference image, no text, no watermark.
 ```
 
-> 落盘：原图 1600×1600 RGB；`assets/avatars/raw/wolfGirl.png`（2048×2048 RGBA）、`assets/avatars/web/wolfGirl.webp`（512×512）、`assets/avatars/raw/no-rmbg/wolfGirl.png`（未抠原图）；commit `162dc4ee`。
+> 落盘文件：`assets/avatars/raw/wolfGirl.png`、`assets/avatars/web/wolfGirl.webp`、`assets/avatars/raw/no-rmbg/wolfGirl.png`（未抠原图）。
 
 ---
 
@@ -343,6 +343,6 @@ Painterly digital illustration, half-body portrait, square composition, centered
 
 ---
 
-### 补充兜底技巧（如果还是出现棋盘格/杂色背景）
+### 补充兜底技巧（豆包管线；如果还是出现棋盘格/杂色背景）
 
 如果生成后仍有杂色或棋盘格，直接在对应角色的正向Prompt末尾，再加一句：**纯白色背景，干净纯白底，人物主体边缘清晰无杂色，背景为单一纯白色无任何场景残留**，同时确认负面Prompt完整粘贴，即可100%锁定纯白底。

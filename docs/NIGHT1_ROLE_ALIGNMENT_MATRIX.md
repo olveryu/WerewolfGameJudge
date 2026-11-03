@@ -53,7 +53,7 @@ This document records the complete behavioral alignment of all Night-1 roles/ste
 
 **Contract guarantees**:
 
-- Most steps have `audioKey === roleId`; exceptions: `piperHypnotizedReveal`, `awakenedGargoyleConvertReveal`, `seedWolfInfectReveal` (independent audio)
+- Most steps have `audioKey === roleId`; exceptions: `cupidLoversReveal`, `piperHypnotizedReveal`, `awakenedGargoyleConvertReveal`, `seedWolfInfectReveal`, `wolfGirlConfessReveal` (independent audio)
 - stepId is unique and order-stable (snapshot tested)
 
 ---
