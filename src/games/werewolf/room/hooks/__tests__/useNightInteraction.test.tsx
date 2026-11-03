@@ -4,7 +4,7 @@
  * night the tap still opens the vote confirm and submits on confirm.
  */
 
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { type RoleId,SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react-native';
 
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
@@ -21,6 +21,7 @@ jest.mock('sonner-native', () => ({ toast: { info: jest.fn() } }));
 const BOARD: readonly RoleId[] = ['wolf', 'wolf', 'seer', 'witch', 'hunter', 'villager'];
 const NOW = 10_000;
 const HINT_MESSAGE = '今晚狼人无法袭击';
+const EXPECTED_TAP_MESSAGE = `${SCHEMAS.wolfKill.ui!.prompt}\n\n⚠️ ${HINT_MESSAGE}`;
 
 function renderWolfNight(
   options: {
@@ -86,7 +87,7 @@ describe('useNightInteraction wolfVote seat taps', () => {
     });
     expect(tapped).toBe(true);
     expect(showDismissAlert).toHaveBeenCalledTimes(1);
-    expect(showDismissAlert).toHaveBeenCalledWith(expect.any(String), HINT_MESSAGE);
+    expect(showDismissAlert).toHaveBeenCalledWith(expect.any(String), EXPECTED_TAP_MESSAGE);
     expect(showConfirmAlert).not.toHaveBeenCalled();
     expect(submit).not.toHaveBeenCalled();
   });

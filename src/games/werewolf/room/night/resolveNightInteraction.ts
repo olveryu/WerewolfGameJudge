@@ -195,7 +195,7 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
             ? WOLF_EMPTY_VOTE_CONFIRM_LABEL
             : requireSchemaText(schema, 'emptyVoteText', schema.ui?.emptyVoteText),
         emptyVoteOnly: hint?.bottomAction === 'wolfEmptyOnly',
-        seatTapMessage: hint?.bottomAction === 'wolfEmptyOnly' ? hint.message : null,
+        seatTapMessage: hint?.bottomAction === 'wolfEmptyOnly' ? prompt.text : null,
         immuneSeats: wolfVote.immuneSeats,
         statusLine: wolfStatusLine(wolfVote, nowMs),
         countdownText: wolfCountdownFragment(wolfVote, nowMs),

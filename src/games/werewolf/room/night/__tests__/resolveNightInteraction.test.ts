@@ -191,7 +191,7 @@ describe('wolfVote', () => {
     const vm = viewAs(state, 0);
     const model = expectKind(resolve(vm), 'wolfVote');
     expect(model.emptyVoteOnly).toBe(true);
-    expect(model.seatTapMessage).toBe('今晚狼人无法袭击');
+    expect(model.seatTapMessage).toBe(`${SCHEMAS.wolfKill.ui!.prompt}\n\n⚠️ 今晚狼人无法袭击`);
     expect(model.countdownText).toBeNull();
     expect(model.emptyVoteLabel).toBe('确认放弃袭击');
     expect(renderActionerMessage(model, vm)).toBe('今晚狼人无法袭击');
@@ -216,7 +216,9 @@ describe('wolfVote', () => {
       },
     });
     const disabledModel = expectKind(resolve(viewAs(disabled, 0)), 'wolfVote');
-    expect(disabledModel.seatTapMessage).toBe('今晚狼人无法袭击');
+    expect(disabledModel.seatTapMessage).toBe(
+      `${SCHEMAS.wolfKill.ui!.prompt}\n\n⚠️ 今晚狼人无法袭击`,
+    );
     const plainModel = expectKind(resolve(viewAs(armed(), 0)), 'wolfVote');
     expect(plainModel.seatTapMessage).toBeNull();
   });
