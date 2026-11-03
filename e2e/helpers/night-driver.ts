@@ -812,6 +812,40 @@ export async function dismissAlert(page: Page): Promise<void> {
   }
 }
 
+/**
+ * Wait until a groupConfirm reveal step is active, detected by its
+ * status button (e.g. '情侣状态', '表白状态') becoming visible in the
+ * bottom action panel on any page.
+ *
+ * While polling, only dismiss blocking alert modals. Never click
+ * bottom-panel action buttons: a click (e.g. '不用技能') would submit
+ * a game action on a page whose current step the waiter has not
+ * verified. This generalizes the local waiters in
+ * werewolf-night-special-roles.spec.ts (cupid reveal) and
+ * werewolf-night-piper.spec.ts (piper reveal, same helper name);
+ * those specs keep their proven local copies.
+ */
+export async function waitForGroupConfirmStep(
+  pages: Page[],
+  statusButtonText: string,
+  maxIterations = 60,
+): Promise<boolean> {
+  for (let iteration = 0; iteration < maxIterations; iteration++) {
+    for (const page of pages) {
+      const statusButton = page
+        .locator('[data-testid="bottom-action-panel"]')
+        .getByText(statusButtonText, { exact: true })
+        .first();
+      if (await statusButton.isVisible().catch(() => false)) return true;
+    }
+    for (const page of pages) {
+      await dismissAlert(page);
+    }
+    await pages[0]!.waitForTimeout(POLL_INTERVAL_MS);
+  }
+  return false;
+}
+
 // ---------------------------------------------------------------------------
 // Bottom action panel
 // ---------------------------------------------------------------------------

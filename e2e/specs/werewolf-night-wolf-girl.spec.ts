@@ -10,8 +10,8 @@ import {
   isTextVisible,
   readAlertText,
   readRoomStep,
-  tryClickAdvanceButton,
   viewLastNightInfo,
+  waitForGroupConfirmStep,
   waitForNightEnd,
   waitForRoleTurn,
 } from '../helpers/night-driver';
@@ -42,29 +42,6 @@ import { withSetup } from '../helpers/night-setup';
 // (run 41577067173: both tests killed at exactly 3.0m while still
 // mid-night, step 4/7 in the failure snapshots).
 test.setTimeout(300_000);
-
-/**
- * Wait until the last-step confession reveal is active, detected by
- * the "表白状态" bottom-panel button on any page. Advances audio gates
- * and intermediate steps while polling.
- */
-async function waitForConfessRevealStep(pages: Page[], maxIterations = 120): Promise<boolean> {
-  for (let iteration = 0; iteration < maxIterations; iteration++) {
-    for (const page of pages) {
-      const statusButton = page
-        .locator('[data-testid="bottom-action-panel"]')
-        .getByText('表白状态', { exact: true })
-        .first();
-      if (await statusButton.isVisible().catch(() => false)) return true;
-    }
-
-    for (const page of pages) {
-      await tryClickAdvanceButton(page);
-    }
-    await pages[0]!.waitForTimeout(300);
-  }
-  return false;
-}
 
 /**
  * Drive one player through the confession-reveal acknowledgement:
@@ -240,7 +217,7 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
         );
 
         await test.step('every player acknowledges the confession reveal', async () => {
-          const revealReady = await waitForConfessRevealStep(pages);
+          const revealReady = await waitForGroupConfirmStep(pages, '表白状态', 120);
           expect(revealReady, 'Confession reveal should become active last').toBe(true);
 
           let disclosedSeatCount = 0;
@@ -330,7 +307,7 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
         );
 
         await test.step('every player acknowledges the confession reveal', async () => {
-          const revealReady = await waitForConfessRevealStep(pages);
+          const revealReady = await waitForGroupConfirmStep(pages, '表白状态', 120);
           expect(revealReady, 'Confession reveal should become active last').toBe(true);
 
           for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
