@@ -820,10 +820,8 @@ export async function dismissAlert(page: Page): Promise<void> {
  * While polling, only dismiss blocking alert modals. Never click
  * bottom-panel action buttons: a click (e.g. '不用技能') would submit
  * a game action on a page whose current step the waiter has not
- * verified. This generalizes the local waiters in
- * werewolf-night-special-roles.spec.ts (cupid reveal) and
- * werewolf-night-piper.spec.ts (piper reveal, same helper name);
- * those specs keep their proven local copies.
+ * verified. This is the single implementation for groupConfirm
+ * reveal waits; the cupid, piper, and wolf-girl specs all use it.
  */
 export async function waitForGroupConfirmStep(
   pages: Page[],
@@ -844,6 +842,37 @@ export async function waitForGroupConfirmStep(
     await pages[0]!.waitForTimeout(POLL_INTERVAL_MS);
   }
   return false;
+}
+
+/**
+ * Drive one player through a groupConfirm reveal acknowledgement:
+ * dismiss the step prompt, open the status button, read the personal
+ * message, acknowledge it. Returns the personal message text.
+ *
+ * The ack button text is the reveal step's own confirmButtonText
+ * (e.g. '我知道了' for the cupid reveal, '知道了' for piper and
+ * wolf-girl reveals). The ack click is unconditional: a missing ack
+ * button must fail the test, not pass silently. This is the single
+ * implementation for groupConfirm reveal acks; the cupid, piper,
+ * and wolf-girl specs all use it.
+ */
+export async function driveGroupConfirmAck(
+  page: Page,
+  statusButtonText: string,
+  ackButtonText: string,
+): Promise<string> {
+  await dismissAlert(page);
+
+  const panel = page.locator('[data-testid="bottom-action-panel"]');
+  const statusButton = panel.getByText(statusButtonText, { exact: true }).first();
+  await statusButton.waitFor({ state: 'visible', timeout: 10_000 });
+  await statusButton.click();
+
+  const alertModal = page.locator('[data-testid="alert-modal"]');
+  await alertModal.waitFor({ state: 'visible', timeout: 5000 });
+  const message = (await alertModal.textContent().catch(() => '')) ?? '';
+  await alertModal.getByText(ackButtonText, { exact: true }).first().click();
+  return message;
 }
 
 // ---------------------------------------------------------------------------
