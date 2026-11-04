@@ -40,11 +40,16 @@
  * Client trigger registration: the games with a public expire
  * command (avalon, drawguess, pictionary, storyrelay, werewolf)
  * submit it automatically — the shared `useStageDeadline` hook
- * fires it when the countdown reaches zero, from any foreground
- * client, behind snapshot guards (live connection, no pending
- * command, unchanged phase revision). It is never a host button.
- * For avalon and werewolf the command is only an acceleration
- * path; correctness rides on the scheduled settle.due delivery.
+ * fires it when the countdown reaches zero, behind snapshot guards
+ * (live connection, no pending command, unchanged phase revision)
+ * and each game's eligibility gate: the three relay games
+ * (drawguess, pictionary, storyrelay) admit only the host or a
+ * seated player — a spectator sends nothing, and a client
+ * currently controlling a seat is rejected — while avalon and
+ * werewolf admit any foreground client except one controlling a
+ * seat. The hook fires automatically; there is no manual button.
+ * For every game the command is only an acceleration path;
+ * correctness rides on the scheduled settle.due delivery.
  * demo has no client expire surface at all.
  *
  * Cross-reference to the E-3 registry
