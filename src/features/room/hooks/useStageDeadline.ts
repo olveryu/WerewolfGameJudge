@@ -5,8 +5,9 @@
  * the room's one clock (`useNowMs`). When the countdown reaches zero and
  * `shouldExpire` is true, invokes `onExpire`. Any foreground client
  * shares the expiry duty; the server's scheduled settle is the
- * correctness path for games that arm one (avalon, werewolf), so this
- * is acceleration, never authority.
+ * correctness path for games that arm one (werewolf, pictionary,
+ * storyrelay, drawguess, avalon, demo), so this is acceleration,
+ * never authority.
  *
  * Dispatch discipline is keyed by `attemptKey`: a key is attempted at
  * most once — marked before the dispatch is invoked — and never

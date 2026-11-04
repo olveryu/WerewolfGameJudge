@@ -462,6 +462,36 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
         !workerModule.includes(':settle:${'),
         'worker module does not hand-build the settle business key',
       );
+      // The rendered client hook carries the takeover gate and the
+      // single-shot key: the stage pack's countdown is acceleration
+      // only, never sent from a controlled seat, and keyed by the
+      // phase identity. If the cap block were silently dropped from
+      // the assembled hook, these assertions fail with it. Packs
+      // without the publicExpire segment (demo-hybrid settles
+      // system-only) render no such block; that case is covered by
+      // the demo-hybrid assertion below.
+      if (PACK_SEGMENT_SWITCHES[preset].publicExpire) {
+        const roomHook = readFixture(
+          root,
+          'src/games/demoproto/room/hooks/useDemoprotoRoomState.ts',
+        );
+        const shouldExpireStart = roomHook.indexOf('const shouldExpire =');
+        assert.ok(shouldExpireStart !== -1, 'rendered hook defines shouldExpire');
+        const shouldExpireBody = roomHook.slice(
+          shouldExpireStart,
+          roomHook.indexOf('const onExpire', shouldExpireStart),
+        );
+        assert.ok(
+          shouldExpireBody.includes('if (controlledSeat !== null) return false;'),
+          'shouldExpire refuses a controlled seat',
+        );
+        const callStart = roomHook.indexOf('useStageDeadline({', shouldExpireStart);
+        assert.ok(callStart !== -1, 'rendered hook calls useStageDeadline');
+        const callBody = roomHook.slice(callStart, roomHook.indexOf('});', callStart));
+        assert.ok(callBody.includes('attemptKey:'), 'call passes attemptKey');
+        assert.ok(callBody.includes('state.gameSequence'), 'attemptKey is keyed by gameSequence');
+        assert.ok(callBody.includes('state.phaseRevision'), 'attemptKey is keyed by phaseRevision');
+      }
     } else {
       assert.ok(!engineGameDir.includes('deadlineAt'));
     }
