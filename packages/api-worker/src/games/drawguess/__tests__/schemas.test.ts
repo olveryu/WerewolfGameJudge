@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { drawGuessPublicCommandSchema } from '../schemas';
+import { drawGuessInternalCommandSchema, drawGuessPublicCommandSchema } from '../schemas';
 
 describe('DrawGuess public command schema', () => {
   it('accepts a game-scoped abort', () => {
@@ -24,5 +24,21 @@ describe('DrawGuess public command schema', () => {
       { type: 'drawguess.round.finish' },
     ])
       expect(drawGuessPublicCommandSchema.safeParse(command).success).toBe(false);
+  });
+});
+
+describe('DrawGuess internal command schema', () => {
+  it('accepts the payload-less settleExpired command', () => {
+    const command = { type: 'drawguess.phase.settleExpired' };
+    expect(drawGuessInternalCommandSchema.parse(command)).toEqual(command);
+  });
+
+  it('rejects unknown fields on settleExpired', () => {
+    expect(
+      drawGuessInternalCommandSchema.safeParse({
+        type: 'drawguess.phase.settleExpired',
+        phaseRevision: 1,
+      }).success,
+    ).toBe(false);
   });
 });

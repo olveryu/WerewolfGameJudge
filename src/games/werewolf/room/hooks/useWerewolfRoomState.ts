@@ -288,6 +288,10 @@ export function useWerewolfRoomState(
     onExpire: expirePhase,
     label: '阶段超时结算',
     silentExpire: true,
+    attemptKey:
+      armedDeadline === null
+        ? null
+        : `${state.gameSequence}:${armedDeadline.phase}:${armedDeadline.deadlineAt}`,
   });
 
   // ── Night ──

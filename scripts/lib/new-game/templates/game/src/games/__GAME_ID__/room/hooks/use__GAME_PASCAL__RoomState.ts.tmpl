@@ -161,9 +161,11 @@ export function use__GAME_PASCAL__RoomState(
 //#end
 //#cap publicExpire
   // 阶段截止：剩余秒数与到期推进。服务端定时 settle effect 是正确性
-  // 路径；这里的前台派发只是加速，守卫保证不重复结算。
+  // 路径；这里的前台派发只是加速，守卫保证不重复结算。接管中的手机
+  // 不发加速（引擎拒接管中身份），旁观者可发单次加速。
   const deadlineAt = state.phase.kind === 'playing' ? state.phase.deadlineAt : null;
   const shouldExpire = useCallback(() => {
+    if (controlledSeat !== null) return false;
     const current = session.getSnapshot();
     return (
       current.phase === 'ready' &&
@@ -171,7 +173,7 @@ export function use__GAME_PASCAL__RoomState(
       current.pendingDurableCount === 0 &&
       current.room.state.phaseRevision === state.phaseRevision
     );
-  }, [session, state.phaseRevision]);
+  }, [controlledSeat, session, state.phaseRevision]);
   const onExpire = useCallback(
     () =>
       session.dispatch(
@@ -186,6 +188,7 @@ export function use__GAME_PASCAL__RoomState(
     onExpire,
     label: '推进舞台阶段',
     silentExpire: true,
+    attemptKey: `${state.gameSequence}:${state.phaseRevision}:${deadlineAt}`,
   });
 //#end
 //#cap !identityViewing

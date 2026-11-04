@@ -306,6 +306,31 @@ describe('DrawGuess settle arming', () => {
     expectNoSettle(stroked.effects);
   });
 
+  it('drawing reservation and commit arm nothing', () => {
+    const game = createGame();
+    game.startGame();
+    game.chooseFirstWord();
+    game.expireNow();
+    const phase = game.state.phase;
+    if (phase.kind !== 'roundEnd') throw new Error('Expected roundEnd');
+    const reserved = game.send(
+      { type: 'drawguess.drawing.reserve' },
+      game.seatUser(phase.drawerSeat),
+    );
+    expectNoSettle(reserved.effects);
+    const reservation = game.state.phase.kind === 'roundEnd' ? game.state.phase.reservation : null;
+    if (reservation === null) throw new Error('Expected a drawing reservation');
+    const committed = game.sendInternal({
+      type: 'drawguess.drawing.committed',
+      turnIndex: game.state.turnIndex,
+      submissionId: reservation.submissionId,
+      objectKey: 'drawings/turn-0.png',
+      byteLength: 1024,
+      sha256: 'deadbeef',
+    });
+    expectNoSettle(committed.effects);
+  });
+
   it('expiring the last roundEnd ends the game with no settle', () => {
     const game = createGame();
     game.startGame();

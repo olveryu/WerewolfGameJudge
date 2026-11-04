@@ -119,6 +119,10 @@ export function useDrawGuessRoomState(
       ? state.phase.deadlineAt
       : null;
   const shouldExpire = useCallback(() => {
+    // A client currently controlling a seat never accelerates: the
+    // engine rejects a controlling-seat actor, so this phone stays out.
+    // Spectators may accelerate — same as every relay game.
+    if (controlledSeat !== null) return false;
     const current = session.getSnapshot();
     return (
       current.phase === 'ready' &&
@@ -126,7 +130,7 @@ export function useDrawGuessRoomState(
       current.pendingDurableCount === 0 &&
       current.room.state.phaseRevision === state.phaseRevision
     );
-  }, [session, state.phaseRevision]);
+  }, [controlledSeat, session, state.phaseRevision]);
   const onExpire = useCallback(
     () =>
       session.dispatch(
@@ -146,6 +150,7 @@ export function useDrawGuessRoomState(
     onExpire,
     label: '推进作画阶段',
     silentExpire: true,
+    attemptKey: `${state.gameSequence}:${state.phaseRevision}:${state.turnIndex}:${deadlineAt}`,
   });
   const viewModel = getDrawGuessViewModel(state, effectiveSeat, nowMs);
   const capabilities: RoomCapabilities = {
