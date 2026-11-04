@@ -119,10 +119,12 @@ export function useDrawGuessRoomState(
       ? state.phase.deadlineAt
       : null;
   const shouldExpire = useCallback(() => {
-    // A client currently controlling a seat never accelerates: the
-    // engine rejects a controlling-seat actor, so this phone stays out.
-    // Spectators may accelerate — same as every relay game.
+    // Only the host or a seated player may accelerate (D1'). A
+    // spectator (no seat, non-host) never sends expire. A client
+    // currently controlling a seat never accelerates: the engine
+    // rejects a controlling-seat actor, so this phone stays out.
     if (controlledSeat !== null) return false;
+    if (!isHost && effectiveSeat === null) return false;
     const current = session.getSnapshot();
     return (
       current.phase === 'ready' &&
@@ -130,7 +132,7 @@ export function useDrawGuessRoomState(
       current.pendingDurableCount === 0 &&
       current.room.state.phaseRevision === state.phaseRevision
     );
-  }, [controlledSeat, session, state.phaseRevision]);
+  }, [controlledSeat, isHost, effectiveSeat, session, state.phaseRevision]);
   const onExpire = useCallback(
     () =>
       session.dispatch(

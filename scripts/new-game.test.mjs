@@ -485,6 +485,10 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
           shouldExpireBody.includes('if (controlledSeat !== null) return false;'),
           'shouldExpire refuses a controlled seat',
         );
+        assert.ok(
+          shouldExpireBody.includes('if (!isHost && effectiveSeat === null) return false;'),
+          'shouldExpire requires the host or a seat (spectator never sends)',
+        );
         const callStart = roomHook.indexOf('useStageDeadline({', shouldExpireStart);
         assert.ok(callStart !== -1, 'rendered hook calls useStageDeadline');
         const callBody = roomHook.slice(callStart, roomHook.indexOf('});', callStart));

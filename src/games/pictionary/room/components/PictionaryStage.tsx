@@ -60,12 +60,14 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
   if (state.phase === 'lobby') {
     throw new Error('[FAIL-FAST] Pictionary lobby must use the shared seat workspace');
   }
-  // Expiry is a server fact; any live client may accelerate it (the
-  // phaseRevision pin dedupes), spectators included — same as every game.
-  // A client currently controlling a seat never accelerates: the
-  // engine rejects a controlling-seat actor, so this phone stays out.
+  // Expiry is a server fact; only the host or a seated player may
+  // accelerate it (D1'). A spectator (no seat, non-host) never sends
+  // expire, and a client currently controlling a seat never
+  // accelerates: the engine rejects a controlling-seat actor, so this
+  // phone stays out.
   const shouldExpire = useCallback(() => {
     if (controlledSeat !== null) return false;
+    if (!isHost && effectiveSeat === null) return false;
     const current = session.getSnapshot();
     return (
       current.phase === 'ready' &&
@@ -73,7 +75,7 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
       current.pendingDurableCount === 0 &&
       current.room.state.phaseRevision === state.phaseRevision
     );
-  }, [controlledSeat, session, state.phaseRevision]);
+  }, [controlledSeat, isHost, effectiveSeat, session, state.phaseRevision]);
   const onExpire = useCallback(async () => {
     const result = await session.dispatch(
       { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },

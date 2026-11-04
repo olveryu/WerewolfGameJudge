@@ -107,7 +107,7 @@ Demo, Avalon, DrawGuess and Story Relay share their standard setup composition:
   Sharing roster controllers does not require replacing game-owned capability factories or click policies.
 - Stage deadlines: the server-side scheduled settle effect is the correctness path; a client's
   `phase.expire` dispatch is single-shot acceleration only (at most once per phase identity, never
-  while controlling a seat).
+  while controlling a seat, and only from the host or a seated player — a spectator never sends).
 
 The new-game room hook template emits both shared bindings. Update that template with Demo so
 new games do not regenerate copies of the execution branches or controller wiring.
