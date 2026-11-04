@@ -28,6 +28,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
+import { REASON_NOT_SEATED } from '../../../platform/protocol/reasons';
 import type {
   PictionaryCommand,
   PictionaryCommandInput,
@@ -350,29 +351,21 @@ describe('Pictionary relay-chain contract', () => {
     });
   });
 
-  it('commits phase.expire from a user who is neither host nor seated', () => {
+  it('rejects phase.expire from a user who is neither host nor seated', () => {
     const session = game();
     const deadline = session.state.deadlineAt;
     if (deadline === null) throw new Error('Missing answering deadline');
     session.setNow(deadline);
     const before = session.state;
-    // D1 (2026-11-03) removed Pictionary's host-or-seated actor gate:
-    // the expire command travels on the uncontrolled-user channel
-    // like Story Relay's, so an outside user may accelerate once the
-    // deadline has passed.
+    // D1' (2026-11-04) restored Pictionary's host-or-seated actor
+    // gate, overturning D1: a spectator sends no expire.
     const decision = session.decide(
       { type: 'pictionary.phase.expire', phaseRevision: before.phaseRevision },
       'user-99',
     );
-    expect(decision.kind).toBe('commit');
-    // decide() does not apply: send the same command to move the
-    // authoritative state forward.
-    session.send(
-      { type: 'pictionary.phase.expire', phaseRevision: before.phaseRevision },
-      'user-99',
-    );
-    expect(session.state.phase).toBe('settling');
-    expect(session.state.phaseRevision).toBe(before.phaseRevision + 1);
+    expect(decision).toEqual({ kind: 'reject', reason: REASON_NOT_SEATED });
+    expect(session.state.phaseRevision).toBe(before.phaseRevision);
+    expect(session.state.phase).toBe(before.phase);
   });
 
   it('keeps its own submission gates on the shared machine', () => {

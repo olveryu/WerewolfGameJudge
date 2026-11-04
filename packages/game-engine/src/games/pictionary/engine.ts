@@ -10,6 +10,7 @@ import {
   resolveSystemActorEffectId,
 } from '../../platform/engine';
 import { PICTIONARY_GAME_TYPE, type PictionaryGameType } from '../../platform/protocol/gameTypes';
+import { REASON_NOT_SEATED } from '../../platform/protocol/reasons';
 import { guardPhaseExpiry } from '../../platform/room/phaseDeadline';
 import { buildRelayChains, buildRelayParticipants } from '../../platform/room/relay/assignment';
 import { relayDeadline } from '../../platform/room/relay/clock';
@@ -179,15 +180,28 @@ function decideExpirePictionaryPhase(
   internal: boolean,
 ): PictionaryDecision {
   // Shared guard sequence, dual channel: the public command travels
-  // on the uncontrolled-user channel (any foreground client may
-  // accelerate; D1 removed the host-or-seated actor gate), the
-  // internal settle command on the system channel with no revision
-  // gate (staleness is the Worker's isCurrent check). The stale
-  // revision mode is unchanged: a stale public revision silently
-  // commits empty — the decide entry above exempts this command
-  // from the revision rejection every other revisioned command gets.
+  // on the uncontrolled-user channel with the host-or-seated actor
+  // gate (D1', 2026-11-04: a spectator sends no expire), the
+  // internal settle command on the system channel with no actor
+  // gate and no revision gate (staleness is the Worker's isCurrent
+  // check). The stale revision mode is unchanged: a stale public
+  // revision silently commits empty — the decide entry above
+  // exempts this command from the revision rejection every other
+  // revisioned command gets.
   return guardPhaseExpiry(context, {
     actorChannel: internal ? 'system' : 'uncontrolledUser',
+    checkActor: internal
+      ? undefined
+      : (actorUserId) => {
+          const actorSeat = findRosterSeatByUserId(
+            state.roster,
+            state.config.numberOfPlayers,
+            actorUserId,
+          );
+          return actorUserId !== state.hostUserId && actorSeat === null
+            ? reject(REASON_NOT_SEATED)
+            : null;
+        },
     revision:
       internal || phaseRevision === undefined
         ? undefined

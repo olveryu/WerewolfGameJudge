@@ -130,7 +130,7 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
   pictionary: {
     adoption: 'switched',
     variant: {
-      actorChannel: 'uncontrolledUser',
+      actorChannel: 'uncontrolledUser+actorGate',
       revisionPolicy: 'guardSingleSilent',
       settlePin: 'round+revision+deadline',
       lateSubmission: 'sharedRelayTask',
@@ -140,7 +140,7 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
   storyrelay: {
     adoption: 'switched',
     variant: {
-      actorChannel: 'uncontrolledUser',
+      actorChannel: 'uncontrolledUser+actorGate',
       revisionPolicy: 'entryReject',
       settlePin: 'round+revision+deadline',
       lateSubmission: 'sharedRelayTask',
@@ -149,7 +149,7 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
   drawguess: {
     adoption: 'switched',
     variant: {
-      actorChannel: 'uncontrolledUser',
+      actorChannel: 'uncontrolledUser+actorGate',
       revisionPolicy: 'guardDualReject',
       settlePin: 'sequence+revision+turn+deadline',
       lateSubmission: 'gameGuard',
