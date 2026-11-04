@@ -42,7 +42,7 @@ export type DrawGuessPublicCommand =
     })
   | (PhaseRevisionCommand & { readonly type: 'drawguess.phase.expire' });
 
-/** Server-originated commands: word dealing (D1) and media commit (R2). */
+/** Server-originated commands: word dealing (D1), media commit (R2), and scheduled phase settlement. */
 export type DrawGuessInternalCommand =
   | {
       readonly type: 'drawguess.words.dealt';
@@ -56,6 +56,7 @@ export type DrawGuessInternalCommand =
       readonly objectKey: string;
       readonly byteLength: number;
       readonly sha256: string;
-    };
+    }
+  | { readonly type: 'drawguess.phase.settleExpired' };
 
 export type DrawGuessCommand = DrawGuessPublicCommand | DrawGuessInternalCommand;

@@ -140,6 +140,7 @@ const internalCommandOptions = definePublicCommandOptions<DrawGuessInternalComma
     byteLength: z.int().positive(),
     sha256: z.string().min(1),
   }),
+  z.strictObject({ type: z.literal('drawguess.phase.settleExpired') }),
 ]);
 
 export const drawGuessInternalCommandSchema: z.ZodType<DrawGuessInternalCommand> =

@@ -11,7 +11,11 @@ import {
 } from '../../platform/engine';
 import { createSeededRng, randomPick } from '../../platform/random';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
-import { guardPhaseExpiry, rejectIfPastDeadline } from '../../platform/room/phaseDeadline';
+import {
+  buildSettleDueEffect,
+  guardPhaseExpiry,
+  rejectIfPastDeadline,
+} from '../../platform/room/phaseDeadline';
 import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
 import type {
   DrawGuessCommand,
@@ -128,6 +132,19 @@ function checkDrawingDeadline(
 }
 
 /** Applies dealt word choices (Worker D1 selection) to the waiting wordSelect phase. */
+function settleDueEffect(
+  state: DrawGuessState,
+  phaseRevision: number,
+  deadlineAt: number,
+): DrawGuessEffect {
+  return buildSettleDueEffect(DRAWGUESS_GAME_TYPE, {
+    gameSequence: state.gameSequence,
+    phaseRevision,
+    turnIndex: state.turnIndex,
+    deadlineAt,
+  });
+}
+
 function dealWords(
   state: DrawGuessState,
   turnIndex: number,
@@ -138,14 +155,20 @@ function dealWords(
     return reject(DRAWGUESS_REASONS.stale);
   if (state.phase.choices.length > 0) return reject(DRAWGUESS_REASONS.wordsDealt);
   if (choices.length === 0) return reject(DRAWGUESS_REASONS.emptyChoices);
-  return commitDrawGuess([
-    {
-      type: 'drawguess.words.dealt',
-      turnIndex,
-      choices: [...choices],
-      deadlineAt: context.nowMs + DRAWGUESS_WORD_SELECT_SECONDS * 1000,
-    },
-  ]);
+  const deadlineAt = context.nowMs + DRAWGUESS_WORD_SELECT_SECONDS * 1000;
+  return commitDrawGuess(
+    [
+      {
+        type: 'drawguess.words.dealt',
+        turnIndex,
+        choices: [...choices],
+        deadlineAt,
+      },
+    ],
+    // wordSelect carries a deadline; pin the arming. phaseRevision does
+    // not advance on words.dealt, so the pin carries the current one.
+    [settleDueEffect(state, state.phaseRevision, deadlineAt)],
+  );
 }
 
 function beginDrawing(
@@ -155,17 +178,24 @@ function beginDrawing(
 ): DrawGuessDecision {
   if (state.phase.kind !== 'wordSelect') return reject(DRAWGUESS_REASONS.phase);
   const phaseStartAt = context.nowMs;
-  return commitDrawGuess([
-    {
-      type: 'drawguess.word.chosen',
-      turnIndex: state.turnIndex,
-      word: choice.word,
-      pinyinInitials: choice.pinyinInitials,
-      revealOrder: [...createRevealOrder(choice.word.length, context.randomSeed)],
-      phaseStartAt,
-      deadlineAt: phaseStartAt + DRAWGUESS_DRAWING_DURATION_SECONDS * 1000,
-    },
-  ]);
+  const deadlineAt = phaseStartAt + DRAWGUESS_DRAWING_DURATION_SECONDS * 1000;
+  return commitDrawGuess(
+    [
+      {
+        type: 'drawguess.word.chosen',
+        turnIndex: state.turnIndex,
+        word: choice.word,
+        pinyinInitials: choice.pinyinInitials,
+        revealOrder: [...createRevealOrder(choice.word.length, context.randomSeed)],
+        phaseStartAt,
+        deadlineAt,
+      },
+    ],
+    // word.chosen is a phase transition (phaseRevision +1); pin the
+    // evolved identity. Both callers (manual chooseWord and the
+    // wordSelect-timeout auto-assign) arm through this one function.
+    [settleDueEffect(state, state.phaseRevision + 1, deadlineAt)],
+  );
 }
 
 /** Drawer picks one of the 3 dealt choices. */
@@ -262,15 +292,20 @@ function clearStrokes(
 
 function endRound(state: DrawGuessState, context: CommandContext): DrawGuessDecision {
   if (state.phase.kind !== 'drawing') return reject(DRAWGUESS_REASONS.phase);
-  return commitDrawGuess([
-    {
-      type: 'drawguess.round.ended',
-      turnIndex: state.turnIndex,
-      drawerSeat: state.phase.drawerSeat,
-      word: state.phase.word,
-      deadlineAt: context.nowMs + DRAWGUESS_ROUND_END_SECONDS * 1000,
-    },
-  ]);
+  const deadlineAt = context.nowMs + DRAWGUESS_ROUND_END_SECONDS * 1000;
+  return commitDrawGuess(
+    [
+      {
+        type: 'drawguess.round.ended',
+        turnIndex: state.turnIndex,
+        drawerSeat: state.phase.drawerSeat,
+        word: state.phase.word,
+        deadlineAt,
+      },
+    ],
+    // round.ended is a phase transition (phaseRevision +1); pin the evolved identity.
+    [settleDueEffect(state, state.phaseRevision + 1, deadlineAt)],
+  );
 }
 
 function submitGuess(
@@ -303,6 +338,7 @@ function submitGuess(
     ? computeGuesserScore(computeScoringRemainingMs(state.phase.phaseStartAt, context.nowMs))
     : 0;
   // 开局要求满员且座位只在大厅变动，猜题者数 = 席位数 − 画手；机器人席位由房主接管猜词，一样计入。
+  const previousDeadlineAt = state.phase.deadlineAt;
   const deadlineAt = correct
     ? computeDeadlineAfterGuess(
         state.phase.deadlineAt,
@@ -311,25 +347,35 @@ function submitGuess(
         state.config.numberOfPlayers - 1,
       )
     : state.phase.deadlineAt;
-  return commitDrawGuess([
-    {
-      type: 'drawguess.guess.submitted',
-      turnIndex,
-      seat: resolved.value,
-      text,
-      correct,
-      at: context.nowMs,
-      guesserScore,
-      drawerScore: correct
-        ? computeDrawerRoundGain(
-            guesserScore,
-            state.phase.guessedSeats.length,
-            state.phase.turnScores[state.phase.drawerSeat] ?? 0,
-          )
-        : 0,
-      deadlineAt,
-    },
-  ]);
+  return commitDrawGuess(
+    [
+      {
+        type: 'drawguess.guess.submitted',
+        turnIndex,
+        seat: resolved.value,
+        text,
+        correct,
+        at: context.nowMs,
+        guesserScore,
+        drawerScore: correct
+          ? computeDrawerRoundGain(
+              guesserScore,
+              state.phase.guessedSeats.length,
+              state.phase.turnScores[state.phase.drawerSeat] ?? 0,
+            )
+          : 0,
+        deadlineAt,
+      },
+    ],
+    // Compression re-arms: a shortened deadline gets a fresh settle
+    // effect pinned to it (the parked one no-ops on deadlineAt
+    // mismatch). No compression (wrong guess, or already at the
+    // floor) means no new effect — the old arming stays valid, and
+    // phaseRevision does not advance on a guess.
+    deadlineAt !== previousDeadlineAt
+      ? [settleDueEffect(state, state.phaseRevision, deadlineAt)]
+      : [],
+  );
 }
 
 function reserveDrawing(state: DrawGuessState, context: CommandContext): DrawGuessDecision {
@@ -393,8 +439,8 @@ function abortGame(
   return commitDrawGuess([{ type: 'drawguess.game.returnedToLobby' }]);
 }
 
-/** The deadline the expiry guard reads; phases that cannot expire carry none. */
-function expiringPhaseDeadlineAt(state: DrawGuessState): number | null {
+/** The deadline the expiry guard reads; phases that cannot expire carry none. Exported so the Worker settle handler can compare a delivery against the same fact. */
+export function expiringPhaseDeadlineAt(state: DrawGuessState): number | null {
   switch (state.phase.kind) {
     case 'wordSelect':
     case 'drawing':
@@ -441,15 +487,18 @@ function dispatchExpiredPhase(state: DrawGuessState, context: CommandContext): D
 /** Advances an expired phase; idempotent on phaseRevision. */
 function expirePhase(
   state: DrawGuessState,
-  phaseRevision: number,
-  turnIndex: number,
+  phaseRevision: number | undefined,
+  turnIndex: number | undefined,
   context: CommandContext,
+  internal: boolean,
 ): DrawGuessDecision {
   // Shared guard sequence (E-2, registered as guardDualReject in the
   // phase-deadline variants table): phase, actor, the dual revision
   // check (phaseRevision + turnIndex), then the deadline. DrawGuess
   // previously ran the revision check ahead of the actor, so a
   // command failing both now hears the actor (or phase) reason.
+  // The internal settle channel carries no revision (staleness is
+  // the Worker's isCurrent check) and resolves the system actor.
   return guardPhaseExpiry(context, {
     phaseRejection:
       state.phase.kind === 'wordSelect' ||
@@ -457,13 +506,17 @@ function expirePhase(
       state.phase.kind === 'roundEnd'
         ? null
         : reject(DRAWGUESS_REASONS.phase),
-    revision: {
-      checks: [
-        { commandRevision: phaseRevision, currentRevision: state.phaseRevision },
-        { commandRevision: turnIndex, currentRevision: state.turnIndex },
-      ],
-      onStale: () => reject(DRAWGUESS_REASONS.stale),
-    },
+    actorChannel: internal ? 'system' : 'uncontrolledUser',
+    revision:
+      internal || phaseRevision === undefined || turnIndex === undefined
+        ? undefined
+        : {
+            checks: [
+              { commandRevision: phaseRevision, currentRevision: state.phaseRevision },
+              { commandRevision: turnIndex, currentRevision: state.turnIndex },
+            ],
+            onStale: () => reject(DRAWGUESS_REASONS.stale),
+          },
     deadlineAt: expiringPhaseDeadlineAt(state),
     notExpiredReason: DRAWGUESS_REASONS.deadline,
     dispatch: () => dispatchExpiredPhase(state, context),
@@ -508,7 +561,7 @@ function decidePublicCommand(
     case 'drawguess.game.abort':
       return abortGame(state, command.gameSequence, context);
     case 'drawguess.phase.expire':
-      return expirePhase(state, command.phaseRevision, command.turnIndex, context);
+      return expirePhase(state, command.phaseRevision, command.turnIndex, context, false);
     case 'drawguess.game.returnToLobby':
       return returnToLobby(state, context);
     default:
@@ -533,6 +586,8 @@ function decideInternalCommand(
         command.byteLength,
         command.sha256,
       );
+    case 'drawguess.phase.settleExpired':
+      return expirePhase(state, undefined, undefined, context, true);
     default:
       return reject(DRAWGUESS_REASONS.phase);
   }
@@ -552,7 +607,11 @@ export function decideDrawGuessCommand(
 function isDrawGuessInternalCommand(
   command: DrawGuessCommand,
 ): command is DrawGuessInternalCommand {
-  return command.type === 'drawguess.words.dealt' || command.type === 'drawguess.drawing.committed';
+  return (
+    command.type === 'drawguess.words.dealt' ||
+    command.type === 'drawguess.drawing.committed' ||
+    command.type === 'drawguess.phase.settleExpired'
+  );
 }
 
 /** Projects domain phases into the shared room lifecycle. */

@@ -9,7 +9,12 @@ export type {
 export { DRAWGUESS_REASONS, type DrawGuessEffect } from './domain/decision';
 export { isValidGuessText } from './domain/rules';
 export { type DrawGuessViewModel, getDrawGuessViewModel } from './domain/visibility';
-export { decideDrawGuessCommand, drawGuessEngine, getDrawGuessLifecycle } from './engine';
+export {
+  decideDrawGuessCommand,
+  drawGuessEngine,
+  expiringPhaseDeadlineAt,
+  getDrawGuessLifecycle,
+} from './engine';
 export { DRAWGUESS_STATE_CODEC } from './state/codec';
 export {
   migratePersistedDrawGuessState,

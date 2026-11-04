@@ -6,6 +6,7 @@ import {
   migratePersistedDrawGuessState,
 } from '@game-judge/game-engine/games/drawguess/public';
 
+import { settleDueBusinessKey, settleDueDeliveryAt } from '../../platform/gameModules/settleDue';
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { drawGuessEffectSchema, handleDrawGuessEffect } from './effects';
 import { drawGuessMediaRoutes } from './mediaRoutes';
@@ -31,8 +32,15 @@ export const drawGuessWorkerModule = defineWorkerGameModule({
     },
   ],
   getEffectBusinessKey: (effect, context) =>
-    effect.type === 'drawguess.words.deal'
-      ? `drawguess:words-deal:${context.createdRevision}:${effect.payload.turnIndex}`
-      : `drawguess:game-completed:${context.createdRevision}:${effect.payload.roundId}`,
+    effect.type === 'drawguess.settle.due'
+      ? settleDueBusinessKey('drawguess:settle', effect.payload)
+      : effect.type === 'drawguess.words.deal'
+        ? `drawguess:words-deal:${context.createdRevision}:${effect.payload.turnIndex}`
+        : `drawguess:game-completed:${context.createdRevision}:${effect.payload.roundId}`,
+  // The settle effect is the room's wake-up for the armed phase
+  // deadline: park it in the outbox until its deadline. Every other
+  // effect keeps the existing immediate delivery.
+  getEffectDeliveryAt: (effect) =>
+    effect.type === 'drawguess.settle.due' ? settleDueDeliveryAt(effect.payload) : null,
   handleEffect: handleDrawGuessEffect,
 });
