@@ -13,7 +13,11 @@
 import { buildGameCompletionPayload, type CommandContext, reject } from '../../../platform/engine';
 import { buildSettleDueEffect } from '../../../platform/room/phaseDeadline';
 import { createRelayAssignment } from '../../../platform/room/relay/assignment';
-import { relayDeadline, type RelayExpireHooks } from '../../../platform/room/relay/clock';
+import {
+  relayDeadline,
+  type RelayExpireHooks,
+  relaySettleDueEffect,
+} from '../../../platform/room/relay/clock';
 import { controlRelayGallery } from '../../../platform/room/relay/gallery';
 import {
   decideRelayTask,
@@ -234,17 +238,9 @@ export const STORY_RELAY_EXPIRE_HOOKS: RelayExpireHooks<
     if (state.completedAt !== null) {
       const isPlaying = state.config.galleryItemDurationSeconds !== null;
       const deadlineAt = relayDeadline(nowMs, state.config.galleryItemDurationSeconds);
+      const settleEffect = relaySettleDueEffect(kit, state, state.stepIndex, deadlineAt);
       const effects: StoryRelayEffect[] = [];
-      if (deadlineAt !== null && state.roundId !== null && kit.settleDueEffect !== undefined) {
-        effects.push(
-          kit.settleDueEffect({
-            roundId: state.roundId,
-            phaseRevision: state.phaseRevision + 1,
-            stepIndex: state.stepIndex,
-            deadlineAt,
-          }),
-        );
-      }
+      if (settleEffect !== null) effects.push(settleEffect);
       return kit.commit(
         [
           kit.phaseChanged('gallery', deadlineAt, state.stepIndex, {
@@ -258,17 +254,9 @@ export const STORY_RELAY_EXPIRE_HOOKS: RelayExpireHooks<
       );
     }
     const deadlineAt = relayDeadline(nowMs, state.config.writingDurationSeconds);
+    const settleEffect = relaySettleDueEffect(kit, state, state.stepIndex + 1, deadlineAt);
     const effects: StoryRelayEffect[] = [];
-    if (deadlineAt !== null && state.roundId !== null && kit.settleDueEffect !== undefined) {
-      effects.push(
-        kit.settleDueEffect({
-          roundId: state.roundId,
-          phaseRevision: state.phaseRevision + 1,
-          stepIndex: state.stepIndex + 1,
-          deadlineAt,
-        }),
-      );
-    }
+    if (settleEffect !== null) effects.push(settleEffect);
     return kit.commit(
       [kit.phaseChanged('answering', deadlineAt, state.stepIndex + 1, null)],
       effects,
