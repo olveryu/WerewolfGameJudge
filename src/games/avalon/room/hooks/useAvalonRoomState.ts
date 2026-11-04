@@ -253,6 +253,7 @@ export function useAvalonRoomState(
     onExpire: expirePhase,
     label: '阶段超时结算',
     silentExpire: true,
+    attemptKey: `${state.phaseRevision}:${phaseDeadlineAt}`,
   });
   const capabilities: RoomCapabilities = {
     ...setupCapabilities,

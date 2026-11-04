@@ -181,12 +181,12 @@ stateDiagram-v2
 
 - 权威状态保存绝对 `deadlineAt`，不保存“剩余秒数”。
 - Worker 用服务端时间判断命令是否有效；客户端时间只用于显示。
+- 写 deadline 的 decision 同时排下服务端定时结算效果 `pictionary.settle.due`（pin 为 roundId、phaseRevision、stepIndex、deadlineAt）：Worker 到点以系统身份内部结算，这是阶段过期的正确性路径；客户端是否在线、前台是否有手机，都不影响推进。
+- 客户端 `phase.expire` 只是单次加速：每个相位身份、每台客户端最多发一次，收到任何决定后不再重发。旁观者可发加速；接管中的手机不发加速（引擎拒接管中身份）。
 - 任一在线客户端都可在 deadline 后请求推进，服务端只接受首个匹配当前 `phaseRevision` 的请求。
 - 并发的过期推进是幂等操作：第一个请求推进状态，后续请求收到最新状态，不重复生成占位项。
 - 重连恢复同一个 deadline，不重新获得完整作答时间。
-- 全员离线时不让 Durable Object 空转；首个客户端重连后立即补推进已过期阶段。
-- 补推进只结束当前过期阶段。下一阶段从实际推进时间开始，不能因离线过久一次跳完整局。
-- 现有 DO alarm 继续专用于通用 effect outbox，本游戏不抢占 alarm。
+- 定时结算效果走通用 effect outbox，由 DO alarm 到点投递。
 
 ### 5.2 不限时模式
 

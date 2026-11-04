@@ -143,6 +143,10 @@ function StoryRelayStageContent({
   isSubmitting,
 }: StoryRelayStageProps) {
   const shouldExpire = useCallback(() => {
+    // A client currently controlling a seat never accelerates: the
+    // engine rejects a controlling-seat actor, so this phone stays out.
+    // Spectators may accelerate — same as every relay game.
+    if (controlledSeat !== null) return false;
     const current = session.getSnapshot();
     return (
       current.phase === 'ready' &&
@@ -150,7 +154,7 @@ function StoryRelayStageContent({
       current.pendingDurableCount === 0 &&
       current.room.state.phaseRevision === state.phaseRevision
     );
-  }, [session, state.phaseRevision]);
+  }, [controlledSeat, session, state.phaseRevision]);
   const onExpire = useCallback(
     () =>
       session.dispatch(
@@ -165,6 +169,8 @@ function StoryRelayStageContent({
     onExpire,
     label: '推进故事阶段',
     silentExpire: true,
+    attemptKey:
+      state.roundId === null ? null : `${state.roundId}:${state.phaseRevision}:${state.deadlineAt}`,
   });
   const [inputs] = useState(() => new Map<number, string>());
   const finalizer = useStoryRelayAutoSubmission(state, userId, session, inputs);

@@ -62,7 +62,10 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
   }
   // Expiry is a server fact; any live client may accelerate it (the
   // phaseRevision pin dedupes), spectators included — same as every game.
+  // A client currently controlling a seat never accelerates: the
+  // engine rejects a controlling-seat actor, so this phone stays out.
   const shouldExpire = useCallback(() => {
+    if (controlledSeat !== null) return false;
     const current = session.getSnapshot();
     return (
       current.phase === 'ready' &&
@@ -70,7 +73,7 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
       current.pendingDurableCount === 0 &&
       current.room.state.phaseRevision === state.phaseRevision
     );
-  }, [session, state.phaseRevision]);
+  }, [controlledSeat, session, state.phaseRevision]);
   const onExpire = useCallback(async () => {
     const result = await session.dispatch(
       { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
@@ -90,6 +93,8 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
     label: '推进接龙阶段',
     refreshIntervalMs: 250,
     silentExpire: true,
+    attemptKey:
+      state.roundId === null ? null : `${state.roundId}:${state.phaseRevision}:${state.deadlineAt}`,
   });
   // pictionary 原 hook 返回 { remainingSeconds, isExpired }，此处保持调用方兼容
   const deadline = { remainingSeconds, isExpired: remainingSeconds === 0 };

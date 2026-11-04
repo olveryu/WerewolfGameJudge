@@ -207,19 +207,19 @@ stateDiagram-v2
 
 - 权威状态保存绝对 `deadlineAt`（毫秒时间戳），不保存"剩余秒数"；`drawing` 另保存 `phaseStartAt` 用于推导首字母揭示进度。
 - Worker 用服务端时间判断命令是否有效；客户端时间只用于显示。
+- 写 deadline 的 decision 同时排下服务端定时结算效果 `drawguess.settle.due`（pin 为 gameSequence、phaseRevision、turnIndex、deadlineAt）：Worker 到点以系统身份内部结算，这是阶段过期的正确性路径；客户端是否在线、前台是否有手机，都不影响推进。
+- 客户端 `phase.expire` 只是单次加速：每个相位身份、每台客户端最多发一次，收到任何决定后不再重发；双 revision 门（phaseRevision + turnIndex）与 deadline 门不变。旁观者可发加速；接管中的手机不发加速（引擎拒接管中身份）。
 - 任一在线客户端都可在 deadline 后请求推进，服务端只接受首个匹配当前 `phaseRevision` 的请求。
 - 并发的过期推进是幂等操作：第一个请求推进状态，后续请求收到最新状态，不重复计分、不重复揭示。
 - 重连恢复同一个 deadline，不重新获得完整作画时间；首字母揭示进度按 `phaseStartAt` 重新推导，不重置。
-- 全员离线时不让 Durable Object 空转；首个客户端重连后立即补推进已过期阶段。
-- 补推进只结束当前过期阶段。下一阶段从实际推进时间开始，不能因离线过久一次跳完整局。
-- 现有 DO alarm 继续专用于通用 effect outbox，本游戏不抢占 alarm。
+- 定时结算效果走通用 effect outbox，由 DO alarm 到点投递。
 
 ### 5.2 阶段推进规则
 
-- `wordSelect` 到期画手未选词：服务端从 3 个候选中随机指派一个（用命令 `randomSeed`），直接进入 `drawing`，不卡住全房。
+- `wordSelect` 到期画手未选词：自动指派是过期结算的一部分——`wordSelect` 的定时结算效果到点触发 `beginDrawing`，服务端从 3 个候选中随机指派一个（用命令 `randomSeed`），直接进入 `drawing`，不卡住全房；`drawing` 的定时结算效果在 `beginDrawing` 装弹。
 - `wordSelect` / `drawing` 轮到未被接管的机器人画手：不跳过，等待真人接管；若 deadline 到达时仍无人接管（或无有效作画），按画手超时处理，本轮直接进入 `roundEnd`、无人得分。
-- `drawing` 结束条件：`deadlineAt` 到达，不提供单轮手动结束命令。猜中会把 `deadlineAt` 压短（首猜 ≤30 秒、全员猜中 ≤3 秒，见 §3.3），结束仍统一走 `phase.expire`，没有第二条结算路径。
-- `roundEnd` 8 秒后由 `phase.expire` 自动推进到下一画手的 `wordSelect`；全部回合完成后推进到 `ended`。
+- `drawing` 结束条件：`deadlineAt` 到达，不提供单轮手动结束命令。猜中会把 `deadlineAt` 压短（首猜 ≤30 秒、全员猜中 ≤3 秒，见 §3.3），压短时重新装弹（新 `deadlineAt` 的 settle 效果），旧效果到点因 pin 不符不再结算；结束走两条通道——客户端 `phase.expire` 单次加速，或服务端定时结算内部命令。
+- `roundEnd` 8 秒到点自动推进到下一画手的 `wordSelect`（客户端单次加速或服务端定时结算）；全部回合完成后推进到 `ended`。
 - `ended` 由房主执行 `game.begin` 再来一局（重新生成队列、清零比分）或 `game.returnToLobby` 返回大厅。
 - `wordSelect`（含准备题目期间）、`drawing`、`roundEnd` 可由房主确认中止整局，直接回到 `lobby`，不进入排名页、不发完成奖励。
 
@@ -472,7 +472,7 @@ GET /api/games/drawguess/rooms/:roomCode/media/:entryId
 
 - 阶段栏右侧固定宽度 `mm:ss` 等宽数字；最后 5 秒逐秒醒目提示，不遮挡画布、不拦截输入。
 - 客户端每秒只更新显示 tick，剩余时间始终从 `deadlineAt - Date.now()` 重新推导。
-- 本地估算到 0 时立即停止新输入（画手停笔、猜题者停发），发送一次幂等 `phase.expire`；服务端判定尚未到期则按快照恢复。
+- 本地估算到 0 时立即停止新输入（画手停笔、猜题者停发），发送一次幂等 `phase.expire`；服务端判定尚未到期则按快照恢复。服务端定时结算效果到点同样推进，不依赖任何一台手机的加速。
 - 同一 `phaseRevision` 的到点请求保持 single-flight；App 回前台/收到新 snapshot 立即重算。
 - 画布手势、色板展开、键盘弹起均不得重置倒计时。
 

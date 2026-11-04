@@ -25,10 +25,9 @@
  *   assembly its reject policy derives, not a second policy.
  * - Settle pinning: games whose correctness path is a scheduled
  *   settle.due effect pin the arming in its payload (see
- *   `buildSettleDueEffect`). Pure client-acceleration games
- *   (Pictionary, Story Relay, DrawGuess) have no settle.due: with no
- *   client submitting phase.expire, the phase simply does not
- *   expire. That is registered behavior, not a gap this chassis fills.
+ *   `buildSettleDueEffect`). Avalon, Werewolf, Demo, Pictionary,
+ *   Story Relay, and DrawGuess all arm one; Fibking and Undercover
+ *   have no stage-deadline domain and arm none.
  *
  * The late-submission gate (`rejectIfPastDeadline`) is the same
  * deadline fact read from the submission side: a stage submission

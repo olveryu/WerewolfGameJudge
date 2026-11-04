@@ -1,12 +1,10 @@
 /**
  * useStageDeadline dispatch discipline (AU-25/AU-26): with a past
  * deadline, an in-flight dispatch must never be duplicated by later
- * ticks, and a closed guard must suppress dispatch entirely. With an
- * `attemptKey`, a phase identity is attempted at most once and never
- * retried after any outcome; without one, callers keep the legacy
- * retry behavior until they pass a key (P0). The guard models the
- * session snapshot conditions (pending command / moved revision)
- * the four game callers pass in.
+ * ticks, and a closed guard must suppress dispatch entirely. A phase
+ * identity (`attemptKey`) is attempted at most once and never retried
+ * after any outcome. The guard models the session snapshot conditions
+ * (pending command / moved revision) the five game callers pass in.
  */
 import { act, renderHook } from '@testing-library/react-native';
 
@@ -40,6 +38,7 @@ describe('useStageDeadline', () => {
         onExpire,
         label: '推进阶段',
         refreshIntervalMs: 250,
+        attemptKey: 'round-1:1:1000',
       }),
     );
     await act(async () => {
@@ -58,6 +57,7 @@ describe('useStageDeadline', () => {
         onExpire,
         label: '推进阶段',
         refreshIntervalMs: 250,
+        attemptKey: 'round-1:1:1000',
       }),
     );
     await act(async () => {
@@ -73,6 +73,7 @@ describe('useStageDeadline', () => {
         shouldExpire: () => true,
         onExpire: async () => undefined,
         label: '推进阶段',
+        attemptKey: null,
       }),
     );
     expect(result.current.remainingSeconds).toBeNull();
@@ -221,27 +222,6 @@ describe('useStageDeadline silentExpire (AU-26)', () => {
     expect(handleError).toHaveBeenCalledTimes(1);
   });
 
-  it('logs and retries on the next tick when no attemptKey is provided (legacy callers)', async () => {
-    const onExpire = jest.fn(async () => {
-      throw new Error('dispatch blew up');
-    });
-    renderHook(() =>
-      useStageDeadline({
-        deadlineAt: Date.now() - 1000,
-        shouldExpire: () => true,
-        onExpire,
-        label: '推进阶段',
-        refreshIntervalMs: 250,
-        silentExpire: true,
-      }),
-    );
-    await act(async () => {
-      jest.advanceTimersByTime(1000);
-    });
-    expect(onExpire.mock.calls.length).toBeGreaterThan(1);
-    expect(handleError).not.toHaveBeenCalled();
-  });
-
   it('alerts through handleError when silentExpire is not set', async () => {
     const onExpire = jest.fn(async () => {
       throw new Error('dispatch blew up');
@@ -253,11 +233,12 @@ describe('useStageDeadline silentExpire (AU-26)', () => {
         onExpire,
         label: '推进阶段',
         refreshIntervalMs: 250,
+        attemptKey: 'round-1:1:1000',
       }),
     );
-    // One attempt (the mount tick) → one alert; the next tick would retry.
+    // One attempt → one alert; the same key is never retried.
     await act(async () => {
-      jest.advanceTimersByTime(100);
+      jest.advanceTimersByTime(5000);
     });
     expect(onExpire).toHaveBeenCalledTimes(1);
     expect(handleError).toHaveBeenCalledTimes(1);
