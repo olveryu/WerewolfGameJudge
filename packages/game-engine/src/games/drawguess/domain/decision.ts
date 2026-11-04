@@ -118,7 +118,19 @@ export type DrawGuessEffect =
         readonly completedAt: number;
         readonly participantUserIds: readonly string[];
       };
-    };
+    }
+  | DrawGuessSettleDueEffect;
+
+/** Scheduled settle effect: pins the exact arming (game, phase identity, deadline) the Worker delivery must still match to settle. */
+export type DrawGuessSettleDueEffect = {
+  readonly type: 'drawguess.settle.due';
+  readonly payload: {
+    readonly gameSequence: number;
+    readonly phaseRevision: number;
+    readonly turnIndex: number;
+    readonly deadlineAt: number;
+  };
+};
 
 export type DrawGuessDecision = Decision<DrawGuessEvent, DrawGuessEffect>;
 

@@ -4,8 +4,10 @@
  * DrawGuess's registered assembly: the public expire command
  * travels on the uncontrolled-user channel, and its revision
  * policy is the dual check (phaseRevision + turnIndex) at the
- * guard, rejecting stale revisions. No settle.due: expiry is pure
- * client acceleration through the shared countdown hook.
+ * guard, rejecting stale revisions. The scheduled settle.due
+ * effect is the correctness path: its internal settleExpired
+ * command travels on the system channel with no revision gate
+ * (staleness is the Worker isCurrent check).
  * Same-named scenario files live in each switched game's
  * __tests__.
  *
@@ -139,12 +141,13 @@ function makeSession(): PhaseDeadlineSession {
       expire(current().phaseRevision, current().turnIndex, harness.userContext('host', 1, nowMs)),
     expirePublicAsSystem: (nowMs) =>
       expire(current().phaseRevision, current().turnIndex, harness.systemContext(nowMs)),
-    expireSettleAsSystem: () => {
-      throw new Error('DrawGuess has no internal settle command');
-    },
-    expireSettleAsUser: () => {
-      throw new Error('DrawGuess has no internal settle command');
-    },
+    expireSettleAsSystem: (nowMs) =>
+      harness.attempt({ type: 'drawguess.phase.settleExpired' }, harness.systemContext(nowMs)),
+    expireSettleAsUser: (nowMs) =>
+      harness.attempt(
+        { type: 'drawguess.phase.settleExpired' },
+        harness.userContext('host', null, nowMs),
+      ),
     expireWithStaleRevision: (nowMs) =>
       expire(
         current().phaseRevision + 1,
@@ -162,7 +165,7 @@ describePhaseDeadlineProtocol({
   expectations: {
     notExpiredReason: DRAWGUESS_REASONS.deadline,
     publicChannel: 'uncontrolledUser',
-    hasSettleCommand: false,
+    hasSettleCommand: true,
     stalePolicy: 'reject',
     staleReason: DRAWGUESS_REASONS.stale,
     dispatchAdvances: true,

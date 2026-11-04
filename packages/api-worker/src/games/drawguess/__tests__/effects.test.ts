@@ -89,6 +89,47 @@ describe('DrawGuess effects', () => {
     ).toBeNull();
   });
 
+  it('validates the settle effect strictly and parks it at its pinned deadline', () => {
+    const businessContext = { originCommandId: 'create', createdRevision: 10 };
+    const settle = drawGuessEffectSchema.parse({
+      type: 'drawguess.settle.due',
+      payload: { gameSequence: 1, phaseRevision: 2, turnIndex: 0, deadlineAt: 9000 },
+    });
+    expect(drawGuessWorkerModule.getEffectBusinessKey(settle, businessContext)).toBe(
+      'drawguess:settle:1:9000:2:0',
+    );
+    expect(drawGuessWorkerModule.getEffectDeliveryAt?.(settle, businessContext)).toBe(9000);
+    const deal = drawGuessEffectSchema.parse({
+      type: 'drawguess.words.deal',
+      payload: { turnIndex: 2 },
+    });
+    expect(drawGuessWorkerModule.getEffectDeliveryAt?.(deal, businessContext)).toBeNull();
+    expect(
+      drawGuessWorkerModule.getEffectDeliveryAt?.(
+        completedEffect(['drawguess-host']),
+        businessContext,
+      ),
+    ).toBeNull();
+    expect(
+      drawGuessEffectSchema.safeParse({
+        type: 'drawguess.settle.due',
+        payload: { gameSequence: 1, phaseRevision: 2, turnIndex: 0 },
+      }).success,
+    ).toBe(false);
+    expect(
+      drawGuessEffectSchema.safeParse({
+        type: 'drawguess.settle.due',
+        payload: {
+          gameSequence: 1,
+          phaseRevision: 2,
+          turnIndex: 0,
+          deadlineAt: 9000,
+          extra: 1,
+        },
+      }).success,
+    ).toBe(false);
+  });
+
   it('settles growth rewards exactly once across redeliveries', async () => {
     await env.DB.prepare(
       `INSERT INTO users (id, display_name, is_anonymous, created_at, updated_at)

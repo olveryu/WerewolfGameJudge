@@ -151,7 +151,7 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
     variant: {
       actorChannel: 'uncontrolledUser',
       revisionPolicy: 'guardDualReject',
-      settlePin: 'none',
+      settlePin: 'sequence+revision+turn+deadline',
       lateSubmission: 'gameGuard',
     },
   },
