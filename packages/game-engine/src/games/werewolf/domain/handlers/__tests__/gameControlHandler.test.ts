@@ -20,6 +20,7 @@ import type {
   StartNightIntent,
 } from '@game-judge/game-engine/games/werewolf/domain/intents/types';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
+import { WOLF_KILL_OVERRIDE_TEXTS } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/schema.types';
 import { resolveCurrentNightStep } from '@game-judge/game-engine/games/werewolf/domain/nightStep';
 import type { WerewolfHumanSeat } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import { gameReducer } from '@game-judge/game-engine/games/werewolf/domain/reducer/gameReducer';
@@ -266,7 +267,8 @@ describe('handleStartNight', () => {
     const result = handleStartNight(intent, context);
 
     const success = expectSuccess(result);
-    expect(success.actions).toHaveLength(2);
+    // START_NIGHT + SET_UI_HINT + one authoritative audio queue action.
+    expect(success.actions).toHaveLength(3);
     expect(success.actions[0]!.type).toBe('START_NIGHT');
   });
 
@@ -302,6 +304,80 @@ describe('handleStartNight', () => {
     }
   });
 
+  it('should set the wolf_kill_disabled hint when the night opens on wolfKill with a poisoner in the template', () => {
+    const poisonerState = createMinimalState({
+      status: GameStatus.Ready,
+      templateRoles: ['villager', 'villager', 'wolf', 'wolf', 'seer', 'poisoner'],
+      players: {
+        0: { seat: 0, role: 'villager' },
+        1: { seat: 1, role: 'villager' },
+        2: { seat: 2, role: 'wolf' },
+        3: { seat: 3, role: 'wolf' },
+        4: { seat: 4, role: 'seer' },
+        5: { seat: 5, role: 'poisoner' },
+      },
+    });
+    const context = createContext(poisonerState);
+    const intent: StartNightIntent = { type: 'START_NIGHT' };
+
+    const result = handleStartNight(intent, context);
+
+    const success = expectSuccess(result);
+    const startNightAction = success.actions.find((a) => a.type === 'START_NIGHT');
+    expect(startNightAction).toEqual({
+      type: 'START_NIGHT',
+      payload: { nightStep: { kind: 'inStep', stepId: 'wolfKill' } },
+    });
+    expect(success.actions).toContainEqual({
+      type: 'SET_WOLF_KILL_OVERRIDE',
+      payload: {
+        override: { source: 'poisoner', ui: WOLF_KILL_OVERRIDE_TEXTS.poisoner },
+      },
+    });
+    const hintAction = success.actions.find((a) => a.type === 'SET_UI_HINT');
+    expect(hintAction?.type).toBe('SET_UI_HINT');
+    if (hintAction?.type === 'SET_UI_HINT') {
+      expect(hintAction.payload.currentActorHint?.kind).toBe('wolf_kill_disabled');
+      expect(hintAction.payload.currentActorHint?.targetRoleIds).toContain('wolf');
+      expect(hintAction.payload.currentActorHint?.message).toBe('放弃袭击（首夜无法袭击）');
+      expect(hintAction.payload.currentActorHint?.bottomAction).toBe('wolfEmptyOnly');
+      expect(hintAction.payload.currentActorHint?.promptOverride).toEqual({
+        title: '首夜无法袭击',
+        text: '本局有毒师在场，首夜无法袭击',
+      });
+    }
+
+    // Folding the command's actions lands the hint in state: the first
+    // step's override UX (prompt override, empty-vote-only panel, tap
+    // feedback) reads it from the same projection as later steps.
+    const folded = success.actions.reduce(
+      (state, action) => gameReducer(state, action),
+      poisonerState,
+    );
+    expect(folded.wolfKillOverride).toEqual({
+      source: 'poisoner',
+      ui: WOLF_KILL_OVERRIDE_TEXTS.poisoner,
+    });
+    expect(folded.ui?.currentActorHint?.kind).toBe('wolf_kill_disabled');
+    expect(folded.ui?.currentActorHint?.bottomAction).toBe('wolfEmptyOnly');
+  });
+
+  it('should set the wolf tie hint when the night opens on wolfKill without an override', () => {
+    const context = createContext(readyState);
+    const intent: StartNightIntent = { type: 'START_NIGHT' };
+
+    const result = handleStartNight(intent, context);
+
+    const success = expectSuccess(result);
+    const hintAction = success.actions.find((a) => a.type === 'SET_UI_HINT');
+    expect(hintAction?.type).toBe('SET_UI_HINT');
+    if (hintAction?.type === 'SET_UI_HINT') {
+      expect(hintAction.payload.currentActorHint?.kind).toBe('wolf_tie_random');
+      expect(hintAction.payload.currentActorHint?.targetRoleIds).toContain('wolf');
+      expect(hintAction.payload.currentActorHint?.message).toBe('平票将随机刀人');
+    }
+  });
+
   it('should set witchContext when first step is witchAction (no wolf template)', () => {
     // No-wolf board: only witch + villagers
     const noWolfState = createMinimalState({
@@ -321,8 +397,8 @@ describe('handleStartNight', () => {
     const success = expectSuccess(result);
 
     // START_NIGHT + SET_RESOLVED_WOLF_KILL_TARGET + SET_WITCH_CONTEXT
-    // + one authoritative audio queue action.
-    expect(success.actions.length).toBe(4);
+    // + SET_UI_HINT + one authoritative audio queue action.
+    expect(success.actions.length).toBe(5);
     expect(success.actions.find((a) => a.type === 'SET_RESOLVED_WOLF_KILL_TARGET')).toEqual({
       type: 'SET_RESOLVED_WOLF_KILL_TARGET',
       payload: { target: null, verdict: { type: 'allAbstain' } },

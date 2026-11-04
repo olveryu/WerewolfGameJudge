@@ -155,6 +155,7 @@ function bottomFor(
     isAudioPlaying: false,
     layout,
     actionMessage: null,
+    nightStatusLine: null,
     guideMessage: buildWerewolfGuideMessage({
       isHost: viewer.isHost,
       roomStatus: status,

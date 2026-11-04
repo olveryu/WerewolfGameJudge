@@ -539,6 +539,8 @@ interface WerewolfBottomActionsInput {
   readonly layout: RoomBottomActionLayout;
   /** The actioner's bottom message (prompt + status lines); null for non-actioners. */
   readonly actionMessage: string | null;
+  /** The wolf settle countdown line, shown while audio playback locks the bottom message; null otherwise. */
+  readonly nightStatusLine: string | null;
   readonly guideMessage: string | null;
   readonly sheriffElectionPanel: SheriffElectionPanelModel | null;
   readonly isSheriffInspectorVisible: boolean;
@@ -571,7 +573,7 @@ export function createWerewolfBottomActions(
   return {
     kind: 'stacked',
     message: isAudioPlaybackLocked(input.isAudioPlaying)
-      ? null
+      ? input.nightStatusLine
       : isActioner
         ? input.actionMessage
         : (waiting ?? input.guideMessage),

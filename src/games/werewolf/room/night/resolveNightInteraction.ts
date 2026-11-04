@@ -75,18 +75,26 @@ function skipLabelOf(schema: ActionSchema & { readonly canSkip: boolean }): stri
     : null;
 }
 
+/** The settle countdown fragment (`（N秒后确认）`) once the viewer voted and the arm is live; null otherwise. */
+export function wolfCountdownFragment(
+  wolfVote: NonNullable<WerewolfViewModel['night']['wolfVote']>,
+  nowMs: number,
+): string | null {
+  if (wolfVote.myVote === null || wolfVote.deadlineAt === null) return null;
+  const remaining = Math.max(0, Math.ceil((wolfVote.deadlineAt - nowMs) / 1000));
+  return remaining > 0 ? `（${remaining}秒后确认）` : null;
+}
+
 /** `voted/total 狼人已确认`, then the countdown or the change hint once the viewer voted. */
-function wolfStatusLine(
+export function wolfStatusLine(
   wolfVote: NonNullable<WerewolfViewModel['night']['wolfVote']>,
   nowMs: number,
 ): string {
   const voted = wolfVote.voterSeats.filter((seat) => String(seat) in wolfVote.votes).length;
   const base = `${voted}/${wolfVote.voterSeats.length} 狼人已确认`;
+  const countdown = wolfCountdownFragment(wolfVote, nowMs);
+  if (countdown !== null) return `${base}${countdown}`;
   if (wolfVote.myVote === null) return base;
-  if (wolfVote.deadlineAt !== null) {
-    const remaining = Math.max(0, Math.ceil((wolfVote.deadlineAt - nowMs) / 1000));
-    if (remaining > 0) return `${base}（${remaining}秒后确认）`;
-  }
   return `${base}${WOLF_VOTE_CHANGE_HINT}`;
 }
 
@@ -187,8 +195,10 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
             ? WOLF_EMPTY_VOTE_CONFIRM_LABEL
             : requireSchemaText(schema, 'emptyVoteText', schema.ui?.emptyVoteText),
         emptyVoteOnly: hint?.bottomAction === 'wolfEmptyOnly',
+        seatTapMessage: hint?.bottomAction === 'wolfEmptyOnly' ? prompt.text : null,
         immuneSeats: wolfVote.immuneSeats,
         statusLine: wolfStatusLine(wolfVote, nowMs),
+        countdownText: wolfCountdownFragment(wolfVote, nowMs),
       };
     }
 
@@ -516,6 +526,9 @@ export function renderActionerMessage(
 ): string | null {
   const hint = viewModel.night.actorHint;
   if (hint?.bottomAction === 'skipOnly' || hint?.bottomAction === 'wolfEmptyOnly') {
+    if (model.kind === 'wolfVote' && model.countdownText !== null) {
+      return renderNightMessage([hint.message, model.statusLine]);
+    }
     return hint.message;
   }
   switch (model.kind) {

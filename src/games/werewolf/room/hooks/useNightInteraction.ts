@@ -21,6 +21,7 @@ import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner-native';
 
+import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
 import type { WerewolfSubmit } from '@/games/werewolf/model/WerewolfRoomSession';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
@@ -32,7 +33,12 @@ import {
   type NightConfirmation,
 } from '../night/buildNightCommand';
 import type { NightInteractionModel } from '../night/NightInteractionModel';
-import { renderActionerMessage, resolveNightInteraction } from '../night/resolveNightInteraction';
+import {
+  renderActionerMessage,
+  resolveNightInteraction,
+  wolfCountdownFragment,
+  wolfStatusLine,
+} from '../night/resolveNightInteraction';
 import type { NightButtonAction } from '../werewolfRoomAdapter';
 import { useNightDraft } from './useNightDraft';
 
@@ -55,6 +61,8 @@ export interface NightInteraction {
   readonly model: NightInteractionModel;
   /** The actioner's bottom message; null for non-actioners. */
   readonly actionMessage: string | null;
+  /** The wolf settle countdown line, visible while audio playback blocks the interaction model; null otherwise. */
+  readonly nightStatusLine: string | null;
   /** Consumes an in-game seat tap; false lets the shared handler apply. */
   readonly onSeatTap: (seat: number) => boolean;
   readonly onNightButton: (action: NightButtonAction) => void;
@@ -126,6 +134,20 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
       input.nowMs,
     ],
   );
+
+  /**
+   * The settle countdown while audio playback blocks the model: the
+   * countdown is status information, not an action affordance, so it
+   * stays visible through the lock. Gated on the armed countdown, the
+   * same conditions the wolf status line uses.
+   */
+  const nightStatusLine = useMemo(() => {
+    if (model.kind !== 'blocked' || model.reason !== AUDIO_PLAYBACK_LOCK_REASON) return null;
+    const wolfVote = viewModel.night.wolfVote;
+    if (wolfVote === null) return null;
+    if (wolfCountdownFragment(wolfVote, input.nowMs) === null) return null;
+    return wolfStatusLine(wolfVote, input.nowMs);
+  }, [input.nowMs, model, viewModel]);
 
   /**
    * Submit one confirmation. `surface: 'dialog'` is the §6.9 retry contract:
@@ -246,6 +268,10 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           return true;
         case 'wolfVote': {
           if (!model.selectable.includes(seat)) return false;
+          if (model.seatTapMessage !== null) {
+            showDismissAlert(model.prompt.title, model.seatTapMessage);
+            return true;
+          }
           const text = model.voteConfirmTemplate.replace('{seat}', formatSeat(seat));
           showConfirmAlert(
             model.confirmTitle,
@@ -432,6 +458,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
   return {
     model,
     actionMessage: renderActionerMessage(model, viewModel),
+    nightStatusLine,
     onSeatTap,
     onNightButton,
     chooseCardModal,

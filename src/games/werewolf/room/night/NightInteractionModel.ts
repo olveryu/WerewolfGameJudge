@@ -75,10 +75,17 @@ export type NightInteractionModel =
       readonly emptyVoteLabel: string;
       /** The hint restricts the wolves to an empty vote (a kill-disabled night). */
       readonly emptyVoteOnly: boolean;
+      /**
+       * When non-null, a seat tap shows this message instead of the vote
+       * confirm: the kill is disabled, so there is no vote to confirm.
+       */
+      readonly seatTapMessage: string | null;
       /** Seats whose role is immune to the wolf kill (the confirm notes it). */
       readonly immuneSeats: readonly number[];
       /** The summary line: voted/total wolves, countdown or change hint. */
       readonly statusLine: string;
+      /** The settle countdown fragment (`（N秒后确认）`); null while unarmed. */
+      readonly countdownText: string | null;
     }
   /** swap: two seats; the second opens the confirm. */
   | {

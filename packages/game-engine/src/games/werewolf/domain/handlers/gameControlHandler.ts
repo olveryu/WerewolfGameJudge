@@ -53,6 +53,7 @@ import type {
 import { maybeCreateConfirmStatusAction } from './confirmContext';
 import type { HandlerContext, HandlerExecutionContext, HandlerResult } from './types';
 import { handlerError, handlerSuccess } from './types';
+import { maybeCreateUiHintAction } from './uiHint';
 import { maybeCreateWitchContextAction } from './witchContext';
 import { maybeCreateResolvedWolfKillTargetAction } from './wolfKillResolution';
 
@@ -305,6 +306,22 @@ export function handleStartNight(
     };
     actions.push(wolfKillOverrideAction);
   }
+
+  // UI Hint: the first step enters through START_NIGHT, not
+  // ADVANCE_NIGHT, so the hint must be set here too, with the same
+  // single computation the advance path uses. Compute it against the
+  // state as it will be once the override action above lands: the
+  // override is written by this same command, so the pre-command state
+  // would clear the hint on exactly the boards that need it (a night
+  // opening on wolfKill). Unconditional, like the advance path: a
+  // clear also drops a stale hint from the previous night.
+  const hintState: GameState = state.templateRoles.includes('poisoner')
+    ? {
+        ...state,
+        wolfKillOverride: { source: 'poisoner', ui: WOLF_KILL_OVERRIDE_TEXTS.poisoner },
+      }
+    : state;
+  actions.push(maybeCreateUiHintAction(nightPlan.steps[0]!, hintState));
 
   const audioEffects: AudioEffect[] = [{ audioKey: 'night', isEndAudio: false }];
 
