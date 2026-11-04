@@ -57,14 +57,26 @@ export type StoryRelayEvent =
   | { readonly type: 'storyrelay.round.aborted'; readonly abortedAt: number }
   | { readonly type: 'storyrelay.game.returnedToLobby' };
 
-export interface StoryRelayEffect {
-  readonly type: 'storyrelay.game.completed';
+export interface StoryRelaySettleDueEffect {
+  readonly type: 'storyrelay.settle.due';
   readonly payload: {
     readonly roundId: string;
-    readonly completedAt: number;
-    readonly participantUserIds: readonly string[];
+    readonly phaseRevision: number;
+    readonly stepIndex: number;
+    readonly deadlineAt: number;
   };
 }
+
+export type StoryRelayEffect =
+  | {
+      readonly type: 'storyrelay.game.completed';
+      readonly payload: {
+        readonly roundId: string;
+        readonly completedAt: number;
+        readonly participantUserIds: readonly string[];
+      };
+    }
+  | StoryRelaySettleDueEffect;
 export type StoryRelayDecision = Decision<StoryRelayEvent, StoryRelayEffect>;
 
 /** Commits domain events and durable completion effects through the shared runtime. */

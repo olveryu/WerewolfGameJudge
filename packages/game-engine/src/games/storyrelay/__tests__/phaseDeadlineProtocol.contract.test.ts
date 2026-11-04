@@ -6,9 +6,10 @@
  * gate, and its revision policy is 'reject', assembled at the
  * decide entry — every revisioned command is rejected there
  * before dispatch, so the guard itself injects no revision gate.
- * No settle.due: expiry is pure client acceleration through the
- * shared countdown hook. Same-named scenario files live in each
- * switched game's __tests__.
+ * The scheduled `storyrelay.settle.due` effect is the correctness
+ * path: the internal settle command travels on the system channel
+ * and runs the same expiry decide as the public expire command.
+ * Same-named scenario files live in each switched game's __tests__.
  */
 
 import type { CommandContext } from '../../../platform/engine';
@@ -74,16 +75,15 @@ function makeSession(): PhaseDeadlineSession {
   const expire = (phaseRevision: number, context: CommandContext) =>
     attempt({ type: 'storyrelay.phase.expire', phaseRevision }, context);
 
+  const expireSettle = (context: CommandContext) =>
+    attempt({ type: 'storyrelay.phase.settleExpired' }, context);
+
   return {
     expireAsUser: (nowMs) => expire(state.phaseRevision, userContext('host', null, nowMs)),
     expireAsControlledUser: (nowMs) => expire(state.phaseRevision, userContext('host', 1, nowMs)),
     expirePublicAsSystem: (nowMs) => expire(state.phaseRevision, systemContext(nowMs)),
-    expireSettleAsSystem: () => {
-      throw new Error('Story Relay has no internal settle command');
-    },
-    expireSettleAsUser: () => {
-      throw new Error('Story Relay has no internal settle command');
-    },
+    expireSettleAsSystem: (nowMs) => expireSettle(systemContext(nowMs)),
+    expireSettleAsUser: (nowMs) => expireSettle(userContext('host', null, nowMs)),
     expireWithStaleRevision: (nowMs) =>
       expire(state.phaseRevision + 1, userContext('host', null, nowMs)),
     deadlineAt: () => {
@@ -100,7 +100,7 @@ describePhaseDeadlineProtocol({
   expectations: {
     notExpiredReason: STORY_RELAY_REASONS.deadline,
     publicChannel: 'uncontrolledUser',
-    hasSettleCommand: false,
+    hasSettleCommand: true,
     stalePolicy: 'reject',
     staleReason: STORY_RELAY_REASONS.task,
     dispatchAdvances: true,

@@ -82,6 +82,9 @@ describe('settleDueBusinessKey', () => {
     expect(settleDueBusinessKey('storyrelay:settle', pin)).toBe(
       settleDueBusinessKey('storyrelay:settle', { ...pin }),
     );
+    expect(settleDueBusinessKey('storyrelay:settle', pin)).toBe(
+      'storyrelay:settle:45000:storyrelay-round:command-9:1:0',
+    );
   });
 });
 

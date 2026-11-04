@@ -7,7 +7,12 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import { WORKER_GAME_CATALOG } from '../../catalog';
-import { storyRelayCreateConfigSchema, storyRelayPublicCommandSchema } from '../schemas';
+import {
+  storyRelayCreateConfigSchema,
+  storyRelayEffectSchema,
+  storyRelayInternalCommandSchema,
+  storyRelayPublicCommandSchema,
+} from '../schemas';
 
 describe('Story Relay Worker', () => {
   it('rejects the removed host finish command', () => {
@@ -54,6 +59,52 @@ describe('Story Relay Worker', () => {
     expect(storyRelayPublicCommandSchema.safeParse({ ...task, text: '\n  ' }).success).toBe(false);
     expect(
       storyRelayPublicCommandSchema.safeParse({ ...task, userId: 'impersonation' }).success,
+    ).toBe(false);
+  });
+
+  it('accepts only the internal settle command on the internal schema', () => {
+    expect(
+      storyRelayInternalCommandSchema.parse({ type: 'storyrelay.phase.settleExpired' }),
+    ).toEqual({ type: 'storyrelay.phase.settleExpired' });
+    expect(
+      storyRelayInternalCommandSchema.safeParse({
+        type: 'storyrelay.phase.expire',
+        phaseRevision: 1,
+      }).success,
+    ).toBe(false);
+    expect(
+      storyRelayInternalCommandSchema.safeParse({
+        type: 'storyrelay.phase.settleExpired',
+        phaseRevision: 1,
+      }).success,
+    ).toBe(false);
+    expect(
+      storyRelayPublicCommandSchema.safeParse({ type: 'storyrelay.phase.settleExpired' }).success,
+    ).toBe(false);
+  });
+
+  it('validates the settle effect strictly', () => {
+    const payload = {
+      roundId: 'storyrelay-round:command-1',
+      phaseRevision: 1,
+      stepIndex: 0,
+      deadlineAt: 45000,
+    };
+    expect(storyRelayEffectSchema.parse({ type: 'storyrelay.settle.due', payload })).toEqual({
+      type: 'storyrelay.settle.due',
+      payload,
+    });
+    expect(
+      storyRelayEffectSchema.safeParse({
+        type: 'storyrelay.settle.due',
+        payload: { ...payload, extra: true },
+      }).success,
+    ).toBe(false);
+    expect(
+      storyRelayEffectSchema.safeParse({
+        type: 'storyrelay.settle.due',
+        payload: { roundId: payload.roundId, phaseRevision: 1, stepIndex: 0 },
+      }).success,
     ).toBe(false);
   });
 });
