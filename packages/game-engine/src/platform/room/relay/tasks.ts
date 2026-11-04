@@ -35,7 +35,7 @@ import {
 } from '../../engine';
 import { resolveActingSeat } from '../actingSeat';
 import { rejectIfPastDeadline } from '../phaseDeadline';
-import { relayDeadline } from './clock';
+import { relayDeadline, relaySettleDueEffect } from './clock';
 import type {
   RelayActorSlice,
   RelayEventKit,
@@ -195,14 +195,10 @@ export function appendRelayEntryTail<
   const submitted =
     state.chains.filter((chain) => chain.entries.length > state.stepIndex).length + 1;
   if (submitted === kit.shape.numberOfPlayers) {
-    events.push(
-      kit.phaseChanged(
-        'transition',
-        relayDeadline(nowMs, kit.shape.transitionDurationSeconds),
-        state.stepIndex,
-        null,
-      ),
-    );
+    const transitionDeadline = relayDeadline(nowMs, kit.shape.transitionDurationSeconds);
+    events.push(kit.phaseChanged('transition', transitionDeadline, state.stepIndex, null));
+    const settleEffect = relaySettleDueEffect(kit, state, state.stepIndex, transitionDeadline);
+    if (settleEffect !== null) effects.push(settleEffect);
     if (state.stepIndex === kit.shape.numberOfPlayers - 1) {
       const completion = hooks.onRoundCompleted(kit, state, [appended], nowMs);
       events.push(...completion.events);

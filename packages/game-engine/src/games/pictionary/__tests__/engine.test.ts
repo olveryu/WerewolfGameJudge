@@ -251,11 +251,23 @@ describe('Pictionary engine', () => {
       'pictionary.task.submitted',
       'pictionary.phase.changed',
     ]);
-    expect(stepLast.effects).toEqual([]);
     const transition = stepLast.events[1];
     if (transition?.type !== 'pictionary.phase.changed') {
       throw new Error('Expected the transition event');
     }
+    // The transition writes a deadline, so it arms exactly one
+    // settle effect pinned to the evolved phase identity.
+    expect(stepLast.effects).toEqual([
+      {
+        type: 'pictionary.settle.due',
+        payload: {
+          roundId: session.state.roundId,
+          phaseRevision: session.state.phaseRevision + 1,
+          stepIndex: transition.stepIndex,
+          deadlineAt: transition.deadlineAt,
+        },
+      },
+    ]);
     expect(transition.phase).toBe('transition');
     land(stepLastCommand);
     expect(session.state.phase).toBe('transition');
@@ -274,7 +286,10 @@ describe('Pictionary engine', () => {
       'pictionary.task.submitted',
       'pictionary.phase.changed',
     ]);
-    expect(finalLast.effects.map((effect) => effect.type)).toEqual(['pictionary.game.completed']);
+    expect(finalLast.effects.map((effect) => effect.type)).toEqual([
+      'pictionary.settle.due',
+      'pictionary.game.completed',
+    ]);
   });
 
   it('keeps the completion-moment settlement population through the gallery', () => {

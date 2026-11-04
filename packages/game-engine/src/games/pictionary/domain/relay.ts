@@ -30,6 +30,8 @@ import {
   type GameCompletionPayload,
   reject,
 } from '../../../platform/engine';
+import { PICTIONARY_GAME_TYPE } from '../../../platform/protocol/gameTypes';
+import { buildSettleDueEffect } from '../../../platform/room/phaseDeadline';
 import { createRelayAssignment } from '../../../platform/room/relay/assignment';
 import {
   expireRelayPhase,
@@ -47,6 +49,7 @@ import type {
   RelayEventKit,
   RelayGalleryControl,
   RelayGalleryState,
+  RelaySettleIdentity,
   RelayTask,
   RelayTaskCommand,
 } from '../../../platform/room/relay/types';
@@ -122,6 +125,10 @@ function pictionaryPhase(
   };
 }
 
+/** Builds the scheduled settle effect for one armed stage deadline; the pin is the evolved phase identity. */
+export function pictionarySettleDueEffect(identity: RelaySettleIdentity): PictionaryEffect {
+  return buildSettleDueEffect(PICTIONARY_GAME_TYPE, identity);
+}
 /** Binds the shared machine to Pictionary's reasons, shape, events and effects. */
 function createPictionaryRelayKit(
   state: PictionaryState,
@@ -158,6 +165,7 @@ function createPictionaryRelayKit(
       throw new Error('Pictionary has no round-completed event');
     },
     completionEffect: (payload) => ({ type: 'pictionary.game.completed', payload }),
+    settleDueEffect: (identity) => pictionarySettleDueEffect(identity),
   };
 }
 
@@ -386,24 +394,46 @@ const PICTIONARY_EXPIRE_HOOKS: RelayExpireHooks<
     const nextStepIndex = state.stepIndex + 1;
     if (state.roundId === null) throw new Error('[FAIL-FAST] Transition requires a round');
     if (nextStepIndex !== getPictionaryRelayStepCount(state.config.numberOfPlayers)) {
-      return kit.commit([
-        kit.phaseChanged(
-          'answering',
-          relayDeadline(nowMs, getPictionaryAnswerDurationSeconds(state, nextStepIndex)),
-          nextStepIndex,
-          null,
-        ),
-      ]);
+      const deadlineAt = relayDeadline(
+        nowMs,
+        getPictionaryAnswerDurationSeconds(state, nextStepIndex),
+      );
+      const settleEffect =
+        kit.settleDueEffect === undefined || deadlineAt === null
+          ? null
+          : kit.settleDueEffect({
+              roundId: state.roundId,
+              phaseRevision: state.phaseRevision + 1,
+              stepIndex: nextStepIndex,
+              deadlineAt,
+            });
+      return kit.commit(
+        [kit.phaseChanged('answering', deadlineAt, nextStepIndex, null)],
+        settleEffect === null ? [] : [settleEffect],
+      );
     }
     const isPlaying = state.config.galleryItemDurationSeconds !== null;
-    return kit.commit([
-      kit.phaseChanged(
-        'gallery',
-        relayDeadline(nowMs, state.config.galleryItemDurationSeconds),
-        state.stepIndex,
-        { position: 0, revealedPosition: 0, isPlaying, remainingMs: null },
-      ),
-    ]);
+    const deadlineAt = relayDeadline(nowMs, state.config.galleryItemDurationSeconds);
+    const settleEffect =
+      kit.settleDueEffect === undefined || deadlineAt === null
+        ? null
+        : kit.settleDueEffect({
+            roundId: state.roundId,
+            phaseRevision: state.phaseRevision + 1,
+            stepIndex: state.stepIndex,
+            deadlineAt,
+          });
+    return kit.commit(
+      [
+        kit.phaseChanged('gallery', deadlineAt, state.stepIndex, {
+          position: 0,
+          revealedPosition: 0,
+          isPlaying,
+          remainingMs: null,
+        }),
+      ],
+      settleEffect === null ? [] : [settleEffect],
+    );
   },
 };
 

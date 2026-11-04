@@ -11,7 +11,7 @@
  */
 
 import { type Decision, type GameEffect, type GameEvent, reject } from '../../engine';
-import { relayDeadline } from './clock';
+import { relayDeadline, relaySettleDueEffect } from './clock';
 import type { RelayEventKit, RelayGalleryControl, RelayRoundSlice } from './types';
 
 /** Moves playback, pausing at chain boundaries while retaining already revealed entries. */
@@ -41,14 +41,12 @@ export function moveRelayGallery<TEntry, TEvent extends GameEvent, TEffect exten
     isPlaying,
     remainingMs: null,
   };
-  return kit.commit([
-    kit.phaseChanged(
-      'gallery',
-      isPlaying ? relayDeadline(nowMs, kit.shape.galleryItemDurationSeconds) : null,
-      state.stepIndex,
-      gallery,
-    ),
-  ]);
+  const deadlineAt = isPlaying ? relayDeadline(nowMs, kit.shape.galleryItemDurationSeconds) : null;
+  const settleEffect = relaySettleDueEffect(kit, state, state.stepIndex, deadlineAt);
+  return kit.commit(
+    [kit.phaseChanged('gallery', deadlineAt, state.stepIndex, gallery)],
+    settleEffect === null ? [] : [settleEffect],
+  );
 }
 
 /** Applies host playback controls after the caller has checked host and revision. */
@@ -88,11 +86,16 @@ export function controlRelayGallery<TEntry, TEvent extends GameEvent, TEffect ex
   if (state.gallery.position % kit.shape.numberOfPlayers === kit.shape.numberOfPlayers - 1)
     return moveRelayGallery(kit, state, 1, nowMs);
   const duration = state.gallery.remainingMs ?? kit.shape.galleryItemDurationSeconds * 1000;
-  return kit.commit([
-    kit.phaseChanged('gallery', nowMs + duration, state.stepIndex, {
-      ...state.gallery,
-      isPlaying: true,
-      remainingMs: null,
-    }),
-  ]);
+  const deadlineAt = nowMs + duration;
+  const settleEffect = relaySettleDueEffect(kit, state, state.stepIndex, deadlineAt);
+  return kit.commit(
+    [
+      kit.phaseChanged('gallery', deadlineAt, state.stepIndex, {
+        ...state.gallery,
+        isPlaying: true,
+        remainingMs: null,
+      }),
+    ],
+    settleEffect === null ? [] : [settleEffect],
+  );
 }

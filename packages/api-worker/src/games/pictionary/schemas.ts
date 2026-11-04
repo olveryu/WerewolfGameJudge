@@ -2,6 +2,7 @@
 
 import type {
   PictionaryConfig,
+  PictionaryEffect,
   PictionaryInternalCommand,
   PictionaryPublicCommand,
 } from '@game-judge/game-engine/games/pictionary/public';
@@ -76,15 +77,32 @@ const pictionaryMediaSchema = z.strictObject({
   sha256: z.string().min(1),
 });
 
-export const pictionaryInternalCommandSchema: z.ZodType<PictionaryInternalCommand> = z.strictObject(
-  {
-    type: z.literal('pictionary.drawing.commit'),
-    submissionId: z.string().min(1),
-    media: pictionaryMediaSchema,
-  },
-);
+export const pictionaryInternalCommandSchema: z.ZodType<PictionaryInternalCommand> =
+  z.discriminatedUnion('type', [
+    z.strictObject({
+      type: z.literal('pictionary.drawing.commit'),
+      submissionId: z.string().min(1),
+      media: pictionaryMediaSchema,
+    }),
+    z.strictObject({ type: z.literal('pictionary.phase.settleExpired') }),
+  ]);
 
-export const pictionaryEffectSchema = z.strictObject({
+const pictionaryGameCompletedEffectSchema = z.strictObject({
   type: z.literal('pictionary.game.completed'),
   payload: gameCompletionPayloadSchema,
 });
+
+const pictionarySettleDueEffectSchema = z.strictObject({
+  type: z.literal('pictionary.settle.due'),
+  payload: z.strictObject({
+    roundId: z.string().min(1),
+    phaseRevision: z.int().nonnegative(),
+    stepIndex: z.int().nonnegative(),
+    deadlineAt: z.int().nonnegative(),
+  }),
+});
+
+export const pictionaryEffectSchema: z.ZodType<PictionaryEffect> = z.union([
+  pictionaryGameCompletedEffectSchema,
+  pictionarySettleDueEffectSchema,
+]);

@@ -29,7 +29,11 @@ export function bindPictionaryCommand(
     context.controlledSeat ??
     (context.actor.kind === 'user' ? getPictionaryUserSeat(state, context.actor.userId) : null) ??
     0;
-  return input.type === 'pictionary.drawing.commit'
+  // Internal commands are already fully formed and never bind to a
+  // seat: drawing commits arrive from the media pipeline and settle
+  // commands arrive from the system channel.
+  return input.type === 'pictionary.drawing.commit' ||
+    input.type === 'pictionary.phase.settleExpired'
     ? input
     : createPictionaryCommand(state, input, seat);
 }

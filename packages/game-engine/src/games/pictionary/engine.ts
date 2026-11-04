@@ -10,7 +10,6 @@ import {
   resolveSystemActorEffectId,
 } from '../../platform/engine';
 import { PICTIONARY_GAME_TYPE, type PictionaryGameType } from '../../platform/protocol/gameTypes';
-import { REASON_NOT_SEATED } from '../../platform/protocol/reasons';
 import { guardPhaseExpiry } from '../../platform/room/phaseDeadline';
 import { buildRelayChains, buildRelayParticipants } from '../../platform/room/relay/assignment';
 import { relayDeadline } from '../../platform/room/relay/clock';
@@ -34,6 +33,7 @@ import {
   decidePictionaryTask,
   expirePictionaryPhase,
   getPictionaryAnswerDurationSeconds,
+  pictionarySettleDueEffect,
   resolvePictionaryDrawingGate,
 } from './domain/relay';
 import { decidePictionaryRoom } from './domain/seating';
@@ -55,7 +55,10 @@ import {
 } from './state/types';
 import { PICTIONARY_STATE_IDENTITY, PICTIONARY_STATE_VERSION } from './state/version';
 
-function createRound(state: PictionaryState, context: CommandContext): PictionaryEvent {
+function createRound(
+  state: PictionaryState,
+  context: CommandContext,
+): Extract<PictionaryEvent, { readonly type: 'pictionary.round.started' }> {
   const roundId = `pictionary-round:${context.commandId}`;
   const assignment = createPictionaryAssignment(state.config.numberOfPlayers, context.randomSeed);
   return {
@@ -83,7 +86,20 @@ function decideStartPictionaryRound(
     return reject(REASON_PICTIONARY_PHASE_INVALID);
   }
   if (!isPictionaryRoomFull(state)) return reject(REASON_PICTIONARY_ROOM_NOT_FULL);
-  return commitPictionary([createRound(state, context)]);
+  const roundEvent = createRound(state, context);
+  // Arm the scheduled settle for the answering deadline the round
+  // just wrote; the pin is the evolved identity (clearRelayRound
+  // advances the revision by one, step 0).
+  const settleEffect =
+    roundEvent.deadlineAt === null
+      ? null
+      : pictionarySettleDueEffect({
+          roundId: roundEvent.roundId,
+          phaseRevision: state.phaseRevision + 1,
+          stepIndex: 0,
+          deadlineAt: roundEvent.deadlineAt,
+        });
+  return commitPictionary([roundEvent], settleEffect === null ? [] : [settleEffect]);
 }
 
 function decideReservePictionaryDrawing(
@@ -158,28 +174,27 @@ function decideCommitPictionaryDrawing(
 
 function decideExpirePictionaryPhase(
   state: PictionaryState,
-  phaseRevision: number,
+  phaseRevision: number | undefined,
   context: CommandContext,
+  internal: boolean,
 ): PictionaryDecision {
-  // Shared guard sequence; Pictionary injects its host-or-seated actor
-  // gate and its stale mode (a stale revision silently commits empty —
-  // the decide entry above exempts this command from the revision
-  // rejection every other revisioned command gets).
+  // Shared guard sequence, dual channel: the public command travels
+  // on the uncontrolled-user channel (any foreground client may
+  // accelerate; D1 removed the host-or-seated actor gate), the
+  // internal settle command on the system channel with no revision
+  // gate (staleness is the Worker's isCurrent check). The stale
+  // revision mode is unchanged: a stale public revision silently
+  // commits empty — the decide entry above exempts this command
+  // from the revision rejection every other revisioned command gets.
   return guardPhaseExpiry(context, {
-    checkActor: (actorUserId) => {
-      const actorSeat = findRosterSeatByUserId(
-        state.roster,
-        state.config.numberOfPlayers,
-        actorUserId,
-      );
-      return actorUserId !== state.hostUserId && actorSeat === null
-        ? reject(REASON_NOT_SEATED)
-        : null;
-    },
-    revision: {
-      checks: [{ commandRevision: phaseRevision, currentRevision: state.phaseRevision }],
-      onStale: () => commitPictionary([]),
-    },
+    actorChannel: internal ? 'system' : 'uncontrolledUser',
+    revision:
+      internal || phaseRevision === undefined
+        ? undefined
+        : {
+            checks: [{ commandRevision: phaseRevision, currentRevision: state.phaseRevision }],
+            onStale: () => commitPictionary([]),
+          },
     deadlineAt: state.deadlineAt,
     notExpiredReason: REASON_PICTIONARY_PHASE_NOT_EXPIRED,
     dispatch: (nowMs) => expirePictionaryPhase(state, nowMs),
@@ -324,7 +339,9 @@ export function decidePictionaryCommand(
     case 'pictionary.drawing.commit':
       return decideCommitPictionaryDrawing(state, command.submissionId, command.media, context);
     case 'pictionary.phase.expire':
-      return decideExpirePictionaryPhase(state, command.phaseRevision, context);
+      return decideExpirePictionaryPhase(state, command.phaseRevision, context, false);
+    case 'pictionary.phase.settleExpired':
+      return decideExpirePictionaryPhase(state, undefined, context, true);
     case 'pictionary.gallery.pause':
       return decidePausePictionaryGallery(state, context);
     case 'pictionary.gallery.resume':

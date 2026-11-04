@@ -130,9 +130,9 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
   pictionary: {
     adoption: 'switched',
     variant: {
-      actorChannel: 'uncontrolledUser+actorGate',
+      actorChannel: 'uncontrolledUser',
       revisionPolicy: 'guardSingleSilent',
-      settlePin: 'none',
+      settlePin: 'round+revision+deadline',
       lateSubmission: 'sharedRelayTask',
     },
   },

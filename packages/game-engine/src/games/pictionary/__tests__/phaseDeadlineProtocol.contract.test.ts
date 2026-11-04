@@ -2,13 +2,14 @@
  * Phase Deadline Protocol — pictionary scenario (E-2).
  *
  * Pictionary's registered assembly: the public expire command
- * travels on the uncontrolled-user channel with its host-or-seated
- * actor gate, and a stale revision silently commits empty (which
- * is why the decide entry exempts this command from the revision
- * rejection every other revisioned command gets). No settle.due:
- * expiry is pure client acceleration through the shared countdown
- * hook. Same-named scenario files live in each switched game's
- * __tests__.
+ * travels on the uncontrolled-user channel (D1 removed the
+ * host-or-seated actor gate, so any foreground client may
+ * accelerate), a stale revision silently commits empty (which is
+ * why the decide entry exempts this command from the revision
+ * rejection every other revisioned command gets), and the
+ * scheduled settle.due effect settles through the internal
+ * settleExpired command on the system channel. Same-named
+ * scenario files live in each switched game's __tests__.
  */
 
 import type { CommandContext, Decision } from '../../../platform/engine';
@@ -84,16 +85,22 @@ function makeSession(): PhaseDeadlineSession {
   const expire = (phaseRevision: number, context: CommandContext) =>
     attempt({ type: 'pictionary.phase.expire', phaseRevision }, context);
 
+  const expireSettle = (context: CommandContext) => {
+    const decision = pictionaryEngine.decide(
+      state,
+      { type: 'pictionary.phase.settleExpired' },
+      context,
+    );
+    apply(decision);
+    return decision;
+  };
+
   return {
     expireAsUser: (nowMs) => expire(state.phaseRevision, userContext('user-1', null, nowMs)),
     expireAsControlledUser: (nowMs) => expire(state.phaseRevision, userContext('user-1', 1, nowMs)),
     expirePublicAsSystem: (nowMs) => expire(state.phaseRevision, systemContext(nowMs)),
-    expireSettleAsSystem: () => {
-      throw new Error('Pictionary has no internal settle command');
-    },
-    expireSettleAsUser: () => {
-      throw new Error('Pictionary has no internal settle command');
-    },
+    expireSettleAsSystem: (nowMs) => expireSettle(systemContext(nowMs)),
+    expireSettleAsUser: (nowMs) => expireSettle(userContext('user-1', null, nowMs)),
     expireWithStaleRevision: (nowMs) =>
       expire(state.phaseRevision + 1, userContext('user-0', null, nowMs)),
     deadlineAt: () => {
@@ -110,7 +117,7 @@ describePhaseDeadlineProtocol({
   expectations: {
     notExpiredReason: REASON_PICTIONARY_PHASE_NOT_EXPIRED,
     publicChannel: 'uncontrolledUser',
-    hasSettleCommand: false,
+    hasSettleCommand: true,
     stalePolicy: 'silent',
     staleReason: null,
     dispatchAdvances: true,

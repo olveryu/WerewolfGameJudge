@@ -112,6 +112,14 @@ export interface RelayShape {
   readonly galleryItemDurationSeconds: number | null;
 }
 
+/** The arming one settle.due effect pins: the phase identity a Worker delivery must still match. */
+export interface RelaySettleIdentity {
+  readonly roundId: string;
+  readonly phaseRevision: number;
+  readonly stepIndex: number;
+  readonly deadlineAt: number;
+}
+
 /**
  * Game-supplied assembly for the shared decisions: the game's reason
  * strings and shape, its commit, and factories that build its own
@@ -131,6 +139,14 @@ export interface RelayEventKit<TEntry, TEvent extends GameEvent, TEffect extends
   entryAppended(chainId: string, entry: TEntry): TEvent;
   roundCompleted(completedAt: number): TEvent;
   completionEffect(payload: GameCompletionPayload): TEffect;
+  /**
+   * Builds the game's settle.due effect for a deadline the machine
+   * just wrote, or undefined while the game has no scheduled settle
+   * channel yet. The machine calls it explicitly at every deadline
+   * write (never derived from the event stream); the identity is
+   * always the evolved phase identity (post-change revision).
+   */
+  readonly settleDueEffect?: (identity: RelaySettleIdentity) => TEffect;
 }
 
 /** A task command at machine level; games map their command types onto kinds. */
