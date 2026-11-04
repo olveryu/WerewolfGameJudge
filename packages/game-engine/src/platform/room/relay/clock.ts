@@ -20,6 +20,30 @@ export function relayDeadline(nowMs: number, seconds: number | null): number | n
   return seconds === null ? null : nowMs + seconds * 1000;
 }
 
+/**
+ * The settle.due effect for a deadline the machine just wrote, or
+ * null when the game has no settle channel yet, the deadline is
+ * null, or no round is running. The identity is the evolved phase
+ * identity: landing the phase change advances the revision by one,
+ * so the pin carries the post-change revision.
+ */
+export function relaySettleDueEffect<TEntry, TEvent extends GameEvent, TEffect extends GameEffect>(
+  kit: RelayEventKit<TEntry, TEvent, TEffect>,
+  state: RelayRoundSlice<TEntry>,
+  stepIndex: number,
+  deadlineAt: number | null,
+): TEffect | null {
+  if (kit.settleDueEffect === undefined || deadlineAt === null || state.roundId === null) {
+    return null;
+  }
+  return kit.settleDueEffect({
+    roundId: state.roundId,
+    phaseRevision: state.phaseRevision + 1,
+    stepIndex,
+    deadlineAt,
+  });
+}
+
 /** Game continuation for an expired transition phase: next step or gallery entry. */
 export interface RelayExpireHooks<
   TEntry,

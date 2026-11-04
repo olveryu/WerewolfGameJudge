@@ -74,6 +74,26 @@ function decidePictionaryCommand(
   return decidePictionaryInput(state, command, context);
 }
 
+/** The settle effect a decision that writes a deadline must carry, pinned to the evolved identity. */
+function settleEffectFor(
+  state: PictionaryState,
+  decision: Decision<PictionaryEvent, PictionaryEffect>,
+) {
+  if (state.roundId === null) throw new Error('Expected a round');
+  if (decision.kind !== 'commit') throw new Error(`Expected a commit, received ${decision.kind}`);
+  const phaseChanged = decision.events.find((event) => event.type === 'pictionary.phase.changed');
+  if (phaseChanged === undefined) throw new Error('Expected a phase change event');
+  return {
+    type: 'pictionary.settle.due',
+    payload: {
+      roundId: state.roundId,
+      phaseRevision: state.phaseRevision + 1,
+      stepIndex: phaseChanged.stepIndex,
+      deadlineAt: phaseChanged.deadlineAt,
+    },
+  };
+}
+
 function createFullLobby(numberOfPlayers = 4): PictionaryState {
   let state = pictionaryEngine.createInitialState(
     {
@@ -299,6 +319,7 @@ describe('Pictionary task sequence', () => {
           expect(decision.effects).toEqual(
             seat === 3
               ? [
+                  settleEffectFor(state, decision),
                   {
                     type: 'pictionary.game.completed',
                     payload: {
@@ -319,7 +340,7 @@ describe('Pictionary task sequence', () => {
           context,
         );
         if (decision.kind === 'reject') throw new Error(decision.reason);
-        expect(decision.effects).toEqual([]);
+        expect(decision.effects).toEqual([settleEffectFor(state, decision)]);
         state = applyDecision(state, decision);
       }
       expect(state.phase).toBe('gallery');
@@ -329,7 +350,7 @@ describe('Pictionary task sequence', () => {
         userContext('user-0', state.deadlineAt!),
       );
       if (decision.kind === 'reject') throw new Error(decision.reason);
-      expect(decision.effects).toEqual([]);
+      expect(decision.effects).toEqual([settleEffectFor(state, decision)]);
     },
   );
 

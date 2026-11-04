@@ -106,10 +106,12 @@ export function createPictionaryCommand(
   }
 }
 
-export type PictionaryInternalCommand = {
-  readonly type: 'pictionary.drawing.commit';
-  readonly submissionId: string;
-  readonly media: PictionaryMedia;
-};
+export type PictionaryInternalCommand =
+  | {
+      readonly type: 'pictionary.drawing.commit';
+      readonly submissionId: string;
+      readonly media: PictionaryMedia;
+    }
+  | { readonly type: 'pictionary.phase.settleExpired' };
 
 export type PictionaryCommand = PictionaryPublicCommand | PictionaryInternalCommand;

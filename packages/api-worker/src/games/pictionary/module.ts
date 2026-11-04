@@ -6,6 +6,7 @@ import {
   pictionaryEngine,
 } from '@game-judge/game-engine/games/pictionary/public';
 
+import { settleDueBusinessKey, settleDueDeliveryAt } from '../../platform/gameModules/settleDue';
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { handlePictionaryEffect } from './effects';
 import { pictionaryMediaRoutes } from './mediaRoutes';
@@ -31,5 +32,13 @@ export const pictionaryWorkerModule = defineWorkerGameModule({
       router: pictionaryMediaRoutes,
     },
   ],
+  getEffectBusinessKey: (effect) =>
+    effect.type === 'pictionary.settle.due'
+      ? settleDueBusinessKey('pictionary:settle', effect.payload)
+      : effect.payload.roundId,
+  // The settle effect is the room's wake-up for the armed stage
+  // deadline: park it in the outbox until its deadline.
+  getEffectDeliveryAt: (effect) =>
+    effect.type === 'pictionary.settle.due' ? settleDueDeliveryAt(effect.payload) : null,
   handleEffect: handlePictionaryEffect,
 });

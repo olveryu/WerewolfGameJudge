@@ -28,7 +28,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
-import { REASON_NOT_SEATED } from '../../../platform/protocol/reasons';
 import type {
   PictionaryCommand,
   PictionaryCommandInput,
@@ -351,28 +350,29 @@ describe('Pictionary relay-chain contract', () => {
     });
   });
 
-  it('rejects phase.expire from a user who is neither host nor seated', () => {
+  it('commits phase.expire from a user who is neither host nor seated', () => {
     const session = game();
     const deadline = session.state.deadlineAt;
     if (deadline === null) throw new Error('Missing answering deadline');
     session.setNow(deadline);
     const before = session.state;
-    // Pictionary's other registered difference on the shared guard:
-    // the expire actor must be the host or a seated player (Story
-    // Relay has no such gate), so an outside user cannot move the
-    // phase even once the deadline has passed.
-    expect(
-      session.decide(
-        { type: 'pictionary.phase.expire', phaseRevision: before.phaseRevision },
-        'user-99',
-      ),
-    ).toEqual({ kind: 'reject', reason: REASON_NOT_SEATED });
-    expect(session.state.phase).toBe('answering');
-    expect(session.state.phaseRevision).toBe(before.phaseRevision);
-    // Control: the deadline really is live — the host's expire at
-    // the same instant moves the phase forward.
-    session.expireCurrentPhase();
+    // D1 (2026-11-03) removed Pictionary's host-or-seated actor gate:
+    // the expire command travels on the uncontrolled-user channel
+    // like Story Relay's, so an outside user may accelerate once the
+    // deadline has passed.
+    const decision = session.decide(
+      { type: 'pictionary.phase.expire', phaseRevision: before.phaseRevision },
+      'user-99',
+    );
+    expect(decision.kind).toBe('commit');
+    // decide() does not apply: send the same command to move the
+    // authoritative state forward.
+    session.send(
+      { type: 'pictionary.phase.expire', phaseRevision: before.phaseRevision },
+      'user-99',
+    );
     expect(session.state.phase).toBe('settling');
+    expect(session.state.phaseRevision).toBe(before.phaseRevision + 1);
   });
 
   it('keeps its own submission gates on the shared machine', () => {
