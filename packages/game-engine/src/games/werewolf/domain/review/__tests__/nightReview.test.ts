@@ -290,6 +290,103 @@ describe('NightReview.helpers', () => {
       );
     });
 
+    it('carries factionCheck on faction-family check entries and passes the label through', () => {
+      const players = new Map<number, Player | null>([
+        [0, makePlayer(0, 'seer')],
+        [1, makePlayer(1, 'mirrorSeer')],
+        [2, makePlayer(2, 'drunkSeer')],
+      ]);
+      const entries = buildActionEntries(
+        makeGameState({
+          players,
+          seerReveal: { targetSeat: 3, result: '狼人' },
+          mirrorSeerReveal: { targetSeat: 3, result: '好人' },
+          drunkSeerReveal: { targetSeat: 3, result: '狼人' },
+        }),
+      );
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'check',
+          actorRoleId: 'seer',
+          targetSeat: 3,
+          result: '狼人',
+          resultFormat: 'factionCheck',
+        }),
+      );
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'check',
+          actorRoleId: 'mirrorSeer',
+          targetSeat: 3,
+          result: '好人',
+          resultFormat: 'factionCheck',
+        }),
+      );
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'check',
+          actorRoleId: 'drunkSeer',
+          targetSeat: 3,
+          result: '狼人',
+          resultFormat: 'factionCheck',
+        }),
+      );
+    });
+
+    it('carries roleName on identity-family check entries and passes the role id through', () => {
+      const players = new Map<number, Player | null>([
+        [0, makePlayer(0, 'psychic')],
+        [1, makePlayer(1, 'gargoyle')],
+        [2, makePlayer(2, 'pureWhite')],
+        [3, makePlayer(3, 'wolfWitch')],
+      ]);
+      const entries = buildActionEntries(
+        makeGameState({
+          players,
+          psychicReveal: { targetSeat: 4, result: 'villager' },
+          gargoyleReveal: { targetSeat: 4, result: 'witch' },
+          pureWhiteReveal: { targetSeat: 4, result: 'hunter' },
+          wolfWitchReveal: { targetSeat: 4, result: 'seer' },
+        }),
+      );
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'check',
+          actorRoleId: 'psychic',
+          targetSeat: 4,
+          result: 'villager',
+          resultFormat: 'roleName',
+        }),
+      );
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'check',
+          actorRoleId: 'gargoyle',
+          targetSeat: 4,
+          result: 'witch',
+          resultFormat: 'roleName',
+        }),
+      );
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'check',
+          actorRoleId: 'pureWhite',
+          targetSeat: 4,
+          result: 'hunter',
+          resultFormat: 'roleName',
+        }),
+      );
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'check',
+          actorRoleId: 'wolfWitch',
+          targetSeat: 4,
+          result: 'seer',
+          resultFormat: 'roleName',
+        }),
+      );
+    });
+
     it('shows wolf robot learn', () => {
       const players = new Map<number, Player | null>([[0, makePlayer(0, 'wolfRobot')]]);
       const entries = buildActionEntries(

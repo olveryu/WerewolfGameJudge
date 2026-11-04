@@ -26,6 +26,7 @@ import type {
   SheriffElectionState,
   SheriffSpeakingDirection,
 } from '../protocol/types';
+import type { WerewolfPendingReveal } from '../visibility';
 import {
   deriveSheriffRoundRecord,
   getSheriffCandidateRecords,
@@ -221,6 +222,8 @@ export type NightReviewActionEntry =
       readonly actorRoleId: RoleId;
       readonly targetSeat: number;
       readonly result: string;
+      /** How `result` reads — the view-model reveal vocabulary, carried so presentation never sniffs the value. */
+      readonly resultFormat: WerewolfPendingReveal['resultFormat'];
     }
   | { readonly kind: 'checkIdle'; readonly actorSeat: number; readonly actorRoleId: RoleId }
   | {
@@ -1060,21 +1063,24 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
     }
   }
 
-  // 7. Check reveals (seer family + others)
+  // 7. Check reveals (seer family + others). The resultFormat partition must
+  // match the CheckResultRevealKey / IdentityResultRevealKey families in
+  // handlers/revealPayload.ts; the vocabulary is WerewolfPendingReveal's.
   const revealFields: readonly {
     readonly key: DamageReflectionRevealKey;
     readonly roleId: RoleId;
+    readonly resultFormat: WerewolfPendingReveal['resultFormat'];
   }[] = [
-    { key: 'seerReveal', roleId: 'seer' },
-    { key: 'mirrorSeerReveal', roleId: 'mirrorSeer' },
-    { key: 'drunkSeerReveal', roleId: 'drunkSeer' },
-    { key: 'psychicReveal', roleId: 'psychic' },
-    { key: 'gargoyleReveal', roleId: 'gargoyle' },
-    { key: 'pureWhiteReveal', roleId: 'pureWhite' },
-    { key: 'wolfWitchReveal', roleId: 'wolfWitch' },
+    { key: 'seerReveal', roleId: 'seer', resultFormat: 'factionCheck' },
+    { key: 'mirrorSeerReveal', roleId: 'mirrorSeer', resultFormat: 'factionCheck' },
+    { key: 'drunkSeerReveal', roleId: 'drunkSeer', resultFormat: 'factionCheck' },
+    { key: 'psychicReveal', roleId: 'psychic', resultFormat: 'roleName' },
+    { key: 'gargoyleReveal', roleId: 'gargoyle', resultFormat: 'roleName' },
+    { key: 'pureWhiteReveal', roleId: 'pureWhite', resultFormat: 'roleName' },
+    { key: 'wolfWitchReveal', roleId: 'wolfWitch', resultFormat: 'roleName' },
   ];
 
-  for (const { key, roleId } of revealFields) {
+  for (const { key, roleId, resultFormat } of revealFields) {
     const reveal = state[key];
     if (reveal) {
       entries.push({
@@ -1083,6 +1089,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
         actorRoleId: roleId,
         targetSeat: reveal.targetSeat,
         result: reveal.result,
+        resultFormat,
       });
     } else {
       const seat = findSeatByRole(state.players, roleId);

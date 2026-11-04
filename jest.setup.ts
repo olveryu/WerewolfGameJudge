@@ -112,6 +112,9 @@ jest.mock('./src/theme', () => {
       rosterOutMedalText: '#B08A8A',
     },
     spacing: {
+      // Mirrors src/theme/tokens.ts (scale is identity at ratio 1): micro
+      // must stay, or any spacing.micro consumer reads undefined under jest.
+      micro: 2,
       tight: 4,
       small: 8,
       medium: 16,

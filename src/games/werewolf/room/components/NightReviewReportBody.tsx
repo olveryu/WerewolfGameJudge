@@ -11,9 +11,14 @@
  *
  * Number discipline: a seat number appears exactly once per mention, on
  * its SeatMedal. Text next to a medal never repeats the number; role names
- * appear as row subjects and identity statements (death stamps, roster),
- * plus payload annotations where the role itself is the information (a
- * learned identity, an immune target's role, a blocked target's role).
+ * appear as row subjects and identity statements (death stamps, roster).
+ * Key-action rows use fixed columns — subject · verb · target — with
+ * results and statuses in the right tag only; inline after a target stay
+ * only sentence complements (a chosen role, a connective, a payload note
+ * explaining why an action had no effect, such as a blocked target's
+ * role). The wolf team row is the exception to the single line: its vote
+ * groups stack voters above the arrow-plus-target line so the target
+ * still lands in the shared target column.
  *
  * Consumed by NightReviewModal (in-room) and NightReviewShareCard (share
  * image); shells own only their frame. No service imports, no business
@@ -47,7 +52,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { borderRadius, fixed, spacing, typography } from '@/theme';
 
-import { DEATH_REASON_LABELS } from '../NightReview.helpers';
+import { DEATH_REASON_LABELS, formatCheckResultLabel } from '../NightReview.helpers';
 import {
   NIGHT_REPORT_ACTIONS_TITLE,
   NIGHT_REPORT_DEATH_CAUSE_SUFFIX,
@@ -62,6 +67,8 @@ import {
   NIGHT_REPORT_ROSTER_OUT,
   NIGHT_REPORT_SHERIFF_TITLE,
   NIGHT_REPORT_STAT_LABELS,
+  NIGHT_REPORT_SUBJECT_COLUMN_WIDTH,
+  NIGHT_REPORT_VERB_COLUMN_WIDTH,
   NIGHT_REPORT_WOLF_TAG_ABSTAIN,
   NIGHT_REPORT_WOLF_TAG_KILLED,
   NIGHT_REPORT_WOLF_TAG_SURVIVED,
@@ -632,9 +639,9 @@ function ActorRow({ entry }: { readonly entry: NightReviewActionEntry }) {
         <ActionRow>
           <VerbText text="模仿" />
           <TargetMedal seat={entry.targetSeat} />
-          {entry.isBound && <ReportTag text="绑定" tone="info" />}
         </ActionRow>
       );
+      if (entry.isBound) tag = <ReportTag text="绑定" tone="info" />;
       break;
     case 'charm':
       rows = (
@@ -670,26 +677,30 @@ function ActorRow({ entry }: { readonly entry: NightReviewActionEntry }) {
         </ActionRow>
       );
       break;
-    case 'check':
+    case 'check': {
+      const resultLabel = formatCheckResultLabel(entry.result, entry.resultFormat);
       rows = (
         <ActionRow>
           <VerbText text="查验" />
           <TargetMedal seat={entry.targetSeat} />
-          <ReportTag
-            text={entry.result}
-            tone={entry.result === '狼人' ? 'bad' : entry.result === '好人' ? 'good' : 'info'}
-          />
         </ActionRow>
       );
+      tag = (
+        <ReportTag
+          text={resultLabel}
+          tone={resultLabel === '狼人' ? 'bad' : resultLabel === '好人' ? 'good' : 'info'}
+        />
+      );
       break;
+    }
     case 'learn':
       rows = (
         <ActionRow>
           <VerbText text="学习" />
           <TargetMedal seat={entry.targetSeat} />
-          <AnnotationText text={`（${getRoleDisplayName(entry.learnedRoleId)}）`} />
         </ActionRow>
       );
+      tag = <ReportTag text={getRoleDisplayName(entry.learnedRoleId)} tone="info" />;
       break;
     case 'shootStatus':
       tag = (
@@ -704,18 +715,18 @@ function ActorRow({ entry }: { readonly entry: NightReviewActionEntry }) {
         <ActionRow>
           <VerbText text="感染" />
           <TargetMedal seat={entry.targetSeat} />
-          <ReportTag text="成功" tone="good" />
         </ActionRow>
       );
+      tag = <ReportTag text="成功" tone="good" />;
       break;
     case 'infectFailed':
       rows = (
         <ActionRow>
           <VerbText text="感染" />
           <TargetMedal seat={entry.targetSeat} />
-          <ReportTag text="失败" tone="bad" />
         </ActionRow>
       );
+      tag = <ReportTag text="失败" tone="bad" />;
       break;
     default:
       throw new Error(`[FAIL-FAST] Night review actor row received unhandled kind ${entry.kind}`);
@@ -763,7 +774,6 @@ function PotionRow({
           <ActionRow key="poison">
             <VerbText text="毒杀" />
             <TargetMedal seat={entry.targetSeat} />
-            {context.deadSeats.has(entry.targetSeat) && <ReportTag text="出局" tone="bad" />}
           </ActionRow>,
         );
         break;
@@ -780,13 +790,25 @@ function PotionRow({
   if (actor === 'witch' && context.wolfTargetSaveNote !== null) {
     subs.push('狼刀目标未救');
   }
+  const poisonOut = entries.some(
+    (entry) => entry.kind === 'poison' && context.deadSeats.has(entry.targetSeat),
+  );
+  const tagCluster: ReactNode[] = [];
+  if (subs.length > 0) {
+    tagCluster.push(
+      <Text key="subs" style={styles.tagNote}>
+        {subs.join(' · ')}
+      </Text>,
+    );
+  }
+  if (poisonOut) tagCluster.push(<ReportTag key="out" text="出局" tone="bad" />);
   return (
     <GroupRow
       medal={<ActorMedal seat={first.actorSeat} roleId={actor} />}
       subject={getRoleDisplayName(actor)}
+      tag={tagCluster.length > 0 ? <View style={styles.tagCluster}>{tagCluster}</View> : undefined}
     >
       {rows}
-      {subs.length > 0 && <Text style={styles.subLine}>{subs.join(' · ')}</Text>}
     </GroupRow>
   );
 }
@@ -877,29 +899,37 @@ function WolfTeamRow({
     body = (
       <>
         {groupWolfVotes(entry.votes).map((group) => (
-          <View key={group.targetSeat} style={styles.voteRow}>
+          <View key={group.targetSeat} style={styles.voteGroup}>
             <View style={styles.voteVoters}>
               {group.voterSeats.map((seat) => (
                 <SeatMedal key={seat} seat={seat} size="small" />
               ))}
             </View>
-            <Text style={styles.voteArrow}>→</Text>
-            <SeatMedal
-              seat={group.targetSeat}
-              size="small"
-              fill={group.targetSeat === resolvedTarget ? 'hit' : undefined}
-            />
+            <View style={styles.voteTargetRow}>
+              <View style={styles.voteArrowSlot}>
+                <Text style={styles.voteArrow}>→</Text>
+              </View>
+              <SeatMedal
+                seat={group.targetSeat}
+                size="small"
+                fill={group.targetSeat === resolvedTarget ? 'hit' : undefined}
+              />
+            </View>
           </View>
         ))}
         {entry.abstainSeats.length > 0 && (
-          <View style={styles.voteRow}>
+          <View style={styles.voteGroup}>
             <View style={styles.voteVoters}>
               {entry.abstainSeats.map((seat) => (
                 <SeatMedal key={seat} seat={seat} size="small" />
               ))}
             </View>
-            <Text style={styles.voteArrow}>→</Text>
-            <Text style={styles.abstainText}>空刀</Text>
+            <View style={styles.voteTargetRow}>
+              <View style={styles.voteArrowSlot}>
+                <Text style={styles.voteArrow}>→</Text>
+              </View>
+              <Text style={styles.abstainText}>空刀</Text>
+            </View>
           </View>
         )}
       </>
@@ -962,10 +992,9 @@ function WarningRow({ entry }: { readonly entry: NightReviewActionEntry }) {
   switch (entry.kind) {
     case 'guardSaveConflict':
       return (
-        <GroupRow subject="⚠ 同守同救">
+        <GroupRow subject="⚠ 同守同救" tag={<ReportTag text="仍然死亡" tone="bad" />}>
           <ActionRow>
             <TargetMedal seat={entry.targetSeat} />
-            <AnnotationText text="仍然死亡" />
           </ActionRow>
         </GroupRow>
       );
@@ -1387,12 +1416,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.tight + spacing.micro,
     flexShrink: 0,
+    width: NIGHT_REPORT_SUBJECT_COLUMN_WIDTH,
   },
   rowSubject: {
     fontSize: typography.secondary,
     lineHeight: typography.lineHeights.secondary,
     fontWeight: typography.weights.bold,
     color: P.text,
+    flexShrink: 1,
   },
   rowWhat: {
     flex: 1,
@@ -1414,6 +1445,7 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.secondary,
     fontWeight: typography.weights.semibold,
     color: P.text,
+    width: NIGHT_REPORT_VERB_COLUMN_WIDTH,
   },
   annotation: {
     fontSize: typography.secondary,
@@ -1454,10 +1486,27 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.caption,
     fontWeight: typography.weights.bold,
   },
-  voteRow: {
+  tagCluster: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.tight,
+  },
+  tagNote: {
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    color: P.textMuted,
+  },
+  voteGroup: {
+    gap: spacing.tight,
+  },
+  voteTargetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.tight,
+  },
+  voteArrowSlot: {
+    width: NIGHT_REPORT_VERB_COLUMN_WIDTH,
+    alignItems: 'flex-end',
   },
   voteVoters: {
     flexDirection: 'row',

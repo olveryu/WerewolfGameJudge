@@ -7,7 +7,7 @@
  * from @/theme tokens directly.
  */
 
-import { colors, NIGHT_REPORT_COLORS } from '@/theme';
+import { colors, NIGHT_REPORT_COLORS, spacing, typography } from '@/theme';
 
 /** Card width as a fraction of the window width, shared by all three surfaces. */
 export const NIGHT_REVIEW_CARD_WIDTH_RATIO = 0.88;
@@ -35,8 +35,13 @@ export function formatNightReviewShareTitle(roomCode: string): string {
 // screenshot capture composites bands and a gradient would seam). A seat
 // number appears exactly once per mention: on its SeatMedal. Copy that
 // names a role as a sentence subject lives on row subjects and identity
-// statements; inline targets are medals. Actions group by the actor's
-// faction, each group carrying a faction-colored rail.
+// statements; inline targets are medals. Key-action rows use fixed
+// columns (subject · verb · target · right tag): results and statuses
+// live only in the right tag, never inline after the target — except
+// sentence complements (a chosen role, a connective, a payload note
+// explaining why an action had no effect, such as a blocked target's role).
+// Actions group by the actor's faction, each group carrying a
+// faction-colored rail.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Semantic slots of the report palette, composed from the theme hues. */
@@ -123,6 +128,18 @@ export const NIGHT_REPORT_MEDAL_SIZES = {
   small: 24,
   roster: 26,
 } as const;
+
+/**
+ * Fixed columns of a key-action row: subject column · verb column · target
+ * column · right tag. The subject column fits the medium medal, its gap,
+ * and the longest role display name (5 characters); the verb column fits
+ * the longest verb (6 characters, 使用解药救了）. Widths derive from the
+ * same tokens the text uses, so they scale with the text; the target
+ * column is the small medal diameter.
+ */
+export const NIGHT_REPORT_SUBJECT_COLUMN_WIDTH =
+  NIGHT_REPORT_MEDAL_SIZES.medium + (spacing.tight + spacing.micro) + 5 * typography.secondary;
+export const NIGHT_REPORT_VERB_COLUMN_WIDTH = 6 * typography.secondary;
 
 /** Kicker line at the top of the report. */
 export const NIGHT_REPORT_KICKER = '🌙 第一夜 · 夜报';

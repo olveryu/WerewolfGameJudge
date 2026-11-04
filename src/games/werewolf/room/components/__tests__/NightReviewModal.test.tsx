@@ -24,7 +24,11 @@ import {
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 
-import { NIGHT_REPORT_FOOTER_TEXT, NIGHT_REPORT_KICKER } from '../../nightReviewLayout';
+import {
+  NIGHT_REPORT_FOOTER_TEXT,
+  NIGHT_REPORT_KICKER,
+  NIGHT_REPORT_VERB_COLUMN_WIDTH,
+} from '../../nightReviewLayout';
 import { NightReviewModal } from '../NightReviewModal';
 
 interface JsonNode {
@@ -69,6 +73,39 @@ function enclosingBackgroundColor(node: ReactTestInstance): string | undefined {
     current = current.parent;
   }
   return undefined;
+}
+
+interface FlatWidthStyle {
+  width?: number;
+}
+
+/** StyleSheet.flatten with the width field typed. */
+function flattenWidth(style: unknown): number | undefined {
+  return StyleSheet.flatten<FlatWidthStyle>(style as StyleProp<FlatWidthStyle>)?.width;
+}
+
+interface FlatMarginStyle {
+  marginLeft?: string | number;
+}
+
+/** Whether any ancestor of the node carries the right-tag style (marginLeft auto). */
+function isInsideRightTag(node: ReactTestInstance): boolean {
+  let current: ReactTestInstance | null = node.parent;
+  while (current) {
+    const marginLeft = StyleSheet.flatten<FlatMarginStyle>(
+      current.props.style as StyleProp<FlatMarginStyle>,
+    )?.marginLeft;
+    if (marginLeft === 'auto') return true;
+    current = current.parent;
+  }
+  return false;
+}
+
+/** Nearest ancestor whose type is the host View (RNTL wraps hosts in composites). */
+function nearestViewAncestor(node: ReactTestInstance): ReactTestInstance | null {
+  let current = node.parent;
+  while (current && current.type !== 'View') current = current.parent;
+  return current;
 }
 
 function composedNightState(): GameState {
@@ -506,6 +543,104 @@ describe('NightReviewModal', () => {
     expect(indexOf('狼队')).toBeLessThan(indexOf('未守护'));
     expect(indexOf('未守护')).toBeLessThan(indexOf('未查验'));
     expect(indexOf('未查验')).toBeLessThan(indexOf('全员身份'));
+  });
+
+  it('names an identity-family check result with the Chinese role name in the right tag', () => {
+    const players = new Map<number, Player | null>([
+      [0, makeReviewPlayer(0, 'villager')],
+      [4, makeReviewPlayer(4, 'psychic')],
+      [9, makeReviewPlayer(9, 'villager')],
+    ]);
+    const view = render(
+      <NightReviewModal
+        visible
+        data={getWerewolfNightReview(
+          makeReviewState({
+            players,
+            psychicReveal: { targetSeat: 9, result: 'villager' },
+          }),
+        )}
+        onClose={jest.fn()}
+      />,
+    );
+
+    // The tag names the role in Chinese; the roster carries the other two 平民.
+    expect(view.getAllByText('平民')).toHaveLength(3);
+    expect(view.getAllByText('平民').some((node) => isInsideRightTag(node))).toBe(true);
+    expect(view.getByText('查验')).toBeTruthy();
+    expect(view.queryByText('villager')).toBeNull();
+  });
+
+  it('moves the learned role and the unused-potion notes into the right tag', () => {
+    const players = new Map<number, Player | null>([
+      [0, makeReviewPlayer(0, 'wolfRobot')],
+      [1, makeReviewPlayer(1, 'witch')],
+      [2, makeReviewPlayer(2, 'villager')],
+      [3, makeReviewPlayer(3, 'wolf')],
+    ]);
+    const view = render(
+      <NightReviewModal
+        visible
+        data={getWerewolfNightReview(
+          makeReviewState({
+            players,
+            currentNightResults: { wolfVotesBySeat: { '3': 2 }, savedSeat: 2 },
+            wolfRobotReveal: { targetSeat: 1, result: '女巫', learnedRoleId: 'witch' },
+            lastNightDeaths: [],
+            resolvedWolfKillTarget: 2,
+            resolvedWolfKillVerdict: { type: 'sharedTarget', targetSeat: 2 },
+          }),
+        )}
+        onClose={jest.fn()}
+      />,
+    );
+
+    // Learned role is a right tag (subject and roster carry the other two
+    // 女巫）, not a parenthetical after the target.
+    expect(view.getAllByText('女巫')).toHaveLength(3);
+    expect(view.getAllByText('女巫').some((node) => isInsideRightTag(node))).toBe(true);
+    expect(view.queryByText('（女巫）')).toBeNull();
+    // Unused poison is a right-tag note, not a sub-line under the row.
+    expect(isInsideRightTag(view.getByText('毒药未使用'))).toBe(true);
+  });
+
+  it('stacks wolf vote groups with the target on the verb-column line', () => {
+    const players = new Map<number, Player | null>([
+      [4, makeReviewPlayer(4, 'villager')],
+      [5, makeReviewPlayer(5, 'villager')],
+      [6, makeReviewPlayer(6, 'wolf')],
+      [7, makeReviewPlayer(7, 'wolf')],
+      [8, makeReviewPlayer(8, 'wolf')],
+    ]);
+    const view = render(
+      <NightReviewModal
+        visible
+        data={getWerewolfNightReview(
+          makeReviewState({
+            players,
+            currentNightResults: { wolfVotesBySeat: { '6': 5, '7': 5, '8': 4 } },
+            lastNightDeaths: [5],
+            deathReasons: { 5: 'wolfKill' },
+            resolvedWolfKillTarget: 5,
+            resolvedWolfKillVerdict: { type: 'splitKilled', targetSeat: 5 },
+          }),
+        )}
+        onClose={jest.fn()}
+      />,
+    );
+
+    // Every vote group: voters line above, arrow-plus-target line below,
+    // the arrow slot exactly one verb column wide.
+    const arrows = view.getAllByText('→');
+    expect(arrows.length).toBe(2);
+    for (const arrow of arrows) {
+      const slot = nearestViewAncestor(arrow);
+      expect(flattenWidth(slot?.props.style)).toBe(NIGHT_REPORT_VERB_COLUMN_WIDTH);
+      const targetRow = slot ? nearestViewAncestor(slot) : null;
+      expect(targetRow?.children.length).toBe(2);
+      const group = targetRow ? nearestViewAncestor(targetRow) : null;
+      expect(group?.children.length).toBe(2);
+    }
   });
 
   describe('sheriff card', () => {
