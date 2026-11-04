@@ -9,6 +9,7 @@ import {
   reject,
   requireHost,
 } from '../../platform/engine';
+import { REASON_NOT_SEATED } from '../../platform/protocol/reasons';
 import { createSeededRng, randomPick } from '../../platform/random';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
 import {
@@ -16,7 +17,7 @@ import {
   guardPhaseExpiry,
   rejectIfPastDeadline,
 } from '../../platform/room/phaseDeadline';
-import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
+import { findRosterSeatByUserId, getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
 import type {
   DrawGuessCommand,
   DrawGuessInternalCommand,
@@ -493,12 +494,14 @@ function expirePhase(
   internal: boolean,
 ): DrawGuessDecision {
   // Shared guard sequence (E-2, registered as guardDualReject in the
-  // phase-deadline variants table): phase, actor, the dual revision
-  // check (phaseRevision + turnIndex), then the deadline. DrawGuess
-  // previously ran the revision check ahead of the actor, so a
-  // command failing both now hears the actor (or phase) reason.
-  // The internal settle channel carries no revision (staleness is
-  // the Worker's isCurrent check) and resolves the system actor.
+  // phase-deadline variants table): phase, actor, the host-or-seated
+  // actor gate (D1', 2026-11-04: a spectator sends no expire), the
+  // dual revision check (phaseRevision + turnIndex), then the
+  // deadline. DrawGuess previously ran the revision check ahead of
+  // the actor, so a command failing both now hears the actor (or
+  // phase) reason. The internal settle channel carries no actor
+  // gate and no revision (staleness is the Worker's isCurrent
+  // check) and resolves the system actor.
   return guardPhaseExpiry(context, {
     phaseRejection:
       state.phase.kind === 'wordSelect' ||
@@ -507,6 +510,18 @@ function expirePhase(
         ? null
         : reject(DRAWGUESS_REASONS.phase),
     actorChannel: internal ? 'system' : 'uncontrolledUser',
+    checkActor: internal
+      ? undefined
+      : (actorUserId) => {
+          const actorSeat = findRosterSeatByUserId(
+            state.roster,
+            state.config.numberOfPlayers,
+            actorUserId,
+          );
+          return actorUserId !== state.hostUserId && actorSeat === null
+            ? reject(REASON_NOT_SEATED)
+            : null;
+        },
     revision:
       internal || phaseRevision === undefined || turnIndex === undefined
         ? undefined
