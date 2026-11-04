@@ -269,6 +269,21 @@ describe('Story Relay settle arming', () => {
     session.expectPinMatchesState(galleryDecision);
   });
 
+  it('re-arms the settle effect when a gallery deadline expires', () => {
+    const session = driver();
+    session.begin();
+    for (let step = 0; step < NUMBER_OF_PLAYERS; step += 1) session.playStep(step);
+    expect(session.state.phase).toBe('gallery');
+    expect(session.state.gallery).toMatchObject({ position: 0, isPlaying: true });
+    const stepIndex = session.state.stepIndex;
+    const decision = session.expire();
+    expect(session.state.phase).toBe('gallery');
+    expect(session.state.gallery).toMatchObject({ position: 1, isPlaying: true });
+    expect(session.state.stepIndex).toBe(stepIndex);
+    expect(session.state.deadlineAt).toBe(session.now + 10_000);
+    session.expectPinMatchesState(decision);
+  });
+
   it('arms gallery advance and resume, and nothing on pause or finish', () => {
     const session = driver();
     session.begin();
