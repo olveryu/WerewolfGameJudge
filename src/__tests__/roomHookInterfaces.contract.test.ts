@@ -204,7 +204,7 @@ describe('stage deadline single-shot wiring (phase-expiry P2)', () => {
     { game: 'drawguess', path: 'games/drawguess/room/hooks/useDrawGuessRoomState.ts' },
     { game: 'pictionary', path: 'games/pictionary/room/components/PictionaryStage.tsx' },
     { game: 'storyrelay', path: 'games/storyrelay/room/components/StoryRelayStage.tsx' },
-  ])('$game shouldExpire requires the host or a seat (D1: spectator never sends)', ({ path }) => {
+  ])("$game shouldExpire requires the host or a seat (D1': spectator never sends)", ({ path }) => {
     const source = readSource(path);
     const predicates = [
       ...source.matchAll(

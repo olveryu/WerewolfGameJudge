@@ -13,8 +13,11 @@
  * 4. Game-owned pure interaction policy is legal; recomputing engine rules
  *    on the client is not. No game keeps a `room/seatTap/` or
  *    `room/executors/` tree.
- * 5. Deadlines are server facts: `useStageDeadline` never takes `isHost`, and
- *    the only countdown clock is the deadline's own tick.
+ * 5. Deadlines are server facts: the server settles them and the client
+ *    only accelerates; `useStageDeadline` never takes `isHost`, and the
+ *    only countdown clock is the deadline's own tick. Under D1' the three
+ *    relay games accelerate only for the host or a seated player, while
+ *    werewolf/avalon gates read no host identity.
  */
 
 import { GAME_TYPES, type GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
@@ -71,6 +74,9 @@ const BOT_ID_SYNTHESIS = [/bot-\$\{/, /['`]\w*-bot:/, /\w+BotUserId\b/] as const
 
 const ENGINE_RULE_MODULES =
   /from '(@game-judge\/game-engine|\.\.\/)+.*\/(domain\/handlers|DeathCalculator|domain\/resolvers)/;
+
+/** Games whose expire eligibility is host-or-seated under D1' (spectators never send). */
+const RELAY_GAMES: readonly string[] = ['pictionary', 'storyrelay', 'drawguess'];
 
 describe('game client shape (§8) — module definition', () => {
   it.each(GAME_TYPES)(
@@ -160,11 +166,23 @@ describe('game client shape (§8) — client policy never recomputes engine rule
 });
 
 describe('game client shape (§8) — deadlines are server facts', () => {
-  it('no expiry gate reads isHost: the call, the shouldExpire body, or a host alias feeding it', () => {
+  // D1': the server settles the deadline (settle.due); the client only
+  // accelerates, and in the relay games only the host or a seated player
+  // may accelerate — a spectator (no seat, non-host) never sends expire,
+  // and a client controlling a seat never accelerates. Werewolf/avalon
+  // keep the no-isHost gate. The hook itself never takes isHost in any
+  // game: the clock must not live on the host's phone (convergence
+  // design §6.2, option B rejected), so acceleration is host-or-seated,
+  // never host-only.
+  it('expiry gates mirror the eligibility rule: the call never takes isHost; relay gates consult host-or-seated plus the takeover exclusion; werewolf/avalon gates read no isHost', () => {
     const offenders: string[] = [];
+    const seenRelayPredicates = new Set<string>();
     for (const file of productionFiles(join(SRC_ROOT, 'games'))) {
       const source = readFileSync(file, 'utf8');
       if (!source.includes('useStageDeadline(')) continue;
+      const game = file.match(/\/src\/games\/([^/]+)\//)?.[1];
+      const isRelay = game !== undefined && RELAY_GAMES.includes(game);
+      // The hook call itself never takes host identity, in any game.
       for (const call of source.matchAll(/useStageDeadline\(\{[\s\S]*?\}\)/g)) {
         if (/\bisHost\b/.test(call[0])) offenders.push(`${file}: call`);
       }
@@ -172,10 +190,37 @@ describe('game client shape (§8) — deadlines are server facts', () => {
       for (const body of source.matchAll(
         /const (\w*[sS]houldExpire\w*) = useCallback\(\(\) => \{([\s\S]*?)\}, \[/g,
       )) {
-        if (/\bisHost\b/.test(body[2] ?? '')) offenders.push(`${file}: ${body[1]} body`);
+        const predicate = body[2] ?? '';
+        if (isRelay) {
+          if (game !== undefined) seenRelayPredicates.add(game);
+          // Host-or-seated, never host-only: consult both host identity
+          // and a seat, plus the takeover exclusion ahead of them.
+          if (!/\bisHost\b/.test(predicate))
+            offenders.push(`${file}: ${body[1]} body misses isHost`);
+          if (!/\beffectiveSeat\b|\bviewer\.seat\b|\bmySeat\b/.test(predicate))
+            offenders.push(`${file}: ${body[1]} body misses a seat read`);
+          if (!/controlledSeat !== null/.test(predicate))
+            offenders.push(`${file}: ${body[1]} body misses the takeover exclusion`);
+        } else if (/\bisHost\b/.test(predicate)) {
+          offenders.push(`${file}: ${body[1]} body`);
+        }
       }
-      // A boolean derived from isHost that the predicate could consult (`canExpire = isHost || …`).
-      if (/const \w*[eE]xpire\w* = [^;]*\bisHost\b/.test(source)) offenders.push(`${file}: alias`);
+      // A boolean derived from isHost that the predicate could consult.
+      // Relay games may derive it only as a host-or-seated combination;
+      // every other game must not derive it at all.
+      for (const alias of source.matchAll(/const \w*[eE]xpire\w* = ([^;]*)/g)) {
+        const rhs = alias[1] ?? '';
+        if (!/\bisHost\b/.test(rhs)) continue;
+        if (!isRelay || !/\beffectiveSeat\b|\bviewer\.seat\b|\bmySeat\b/.test(rhs)) {
+          offenders.push(`${file}: alias`);
+        }
+      }
+    }
+    // A relay game that lost its predicate entirely must fail, not pass
+    // vacuously through the scan above.
+    for (const game of RELAY_GAMES) {
+      if (!seenRelayPredicates.has(game))
+        offenders.push(`${game}: no shouldExpire predicate found`);
     }
     expect(offenders).toEqual([]);
   });
