@@ -87,7 +87,9 @@ describe('Story Relay engine', () => {
             seat === 0 ? null : seat,
           );
         expect(session.state.phase).toBe('transition');
-        expect(session.effects).toHaveLength(stepIndex === numberOfPlayers - 1 ? 1 : 0);
+        expect(
+          session.effects.filter((effect) => effect.type === 'storyrelay.game.completed'),
+        ).toHaveLength(stepIndex === numberOfPlayers - 1 ? 1 : 0);
         session.expire();
       }
       expect(session.state.phase).toBe('gallery');
@@ -100,7 +102,10 @@ describe('Story Relay engine', () => {
           text: `  turn 0\nseat ${chain.originSeat}  `,
         });
       }
-      expect(session.effects[0]!.payload.participantUserIds).toEqual(['host']);
+      expect(
+        session.effects.filter((effect) => effect.type === 'storyrelay.game.completed')[0]!.payload
+          .participantUserIds,
+      ).toEqual(['host']);
       session.send({
         type: 'storyrelay.gallery.advance',
         phaseRevision: session.state.phaseRevision,
@@ -115,7 +120,9 @@ describe('Story Relay engine', () => {
         phaseRevision: session.state.phaseRevision,
       });
       expect(session.state.phase).toBe('ended');
-      expect(session.effects).toHaveLength(1);
+      expect(
+        session.effects.filter((effect) => effect.type === 'storyrelay.game.completed'),
+      ).toHaveLength(1);
       session.send({ type: 'storyrelay.game.next' });
       expect(session.state).toMatchObject({ phase: 'answering', stepIndex: 0, completedAt: null });
       expect(session.state.chains.every((chain) => chain.entries.length === 0)).toBe(true);
@@ -155,7 +162,9 @@ describe('Story Relay engine', () => {
     expect(getStoryRelayTaskForSeat(session.state, 0)!.previousEntry!.kind).toBe('empty');
     session.send({ type: 'storyrelay.game.abort', phaseRevision: session.state.phaseRevision });
     expect(session.state.phase).toBe('aborted');
-    expect(session.effects).toHaveLength(0);
+    expect(
+      session.effects.filter((effect) => effect.type === 'storyrelay.game.completed'),
+    ).toHaveLength(0);
   });
 
   it.each([null, DEFAULT_STORY_RELAY_CONFIG.writingDurationSeconds])(

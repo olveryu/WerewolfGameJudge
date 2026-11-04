@@ -5,13 +5,14 @@ import {
   STORY_RELAY_STATE_CODEC,
   storyRelayEngine,
 } from '@game-judge/game-engine/games/storyrelay/public';
-import { z } from 'zod';
 
+import { settleDueBusinessKey, settleDueDeliveryAt } from '../../platform/gameModules/settleDue';
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { handleStoryRelayEffect } from './effects';
 import {
   storyRelayCreateConfigSchema,
   storyRelayEffectSchema,
+  storyRelayInternalCommandSchema,
   storyRelayPublicCommandSchema,
 } from './schemas';
 
@@ -22,8 +23,16 @@ export const storyRelayWorkerModule = defineWorkerGameModule({
   migratePersistedState: migratePersistedStoryRelayState,
   createConfigSchema: storyRelayCreateConfigSchema,
   publicCommandSchema: storyRelayPublicCommandSchema,
-  internalCommandSchema: z.never(),
+  internalCommandSchema: storyRelayInternalCommandSchema,
   effectSchema: storyRelayEffectSchema,
   httpRoutes: [],
+  getEffectBusinessKey: (effect) =>
+    effect.type === 'storyrelay.settle.due'
+      ? settleDueBusinessKey('storyrelay:settle', effect.payload)
+      : effect.payload.roundId,
+  // The settle effect is the room's wake-up for the armed stage
+  // deadline: park it in the outbox until its deadline.
+  getEffectDeliveryAt: (effect) =>
+    effect.type === 'storyrelay.settle.due' ? settleDueDeliveryAt(effect.payload) : null,
   handleEffect: handleStoryRelayEffect,
 });

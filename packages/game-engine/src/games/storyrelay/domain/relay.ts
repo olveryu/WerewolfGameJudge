@@ -11,6 +11,7 @@
  */
 
 import { buildGameCompletionPayload, type CommandContext, reject } from '../../../platform/engine';
+import { buildSettleDueEffect } from '../../../platform/room/phaseDeadline';
 import { createRelayAssignment } from '../../../platform/room/relay/assignment';
 import { relayDeadline, type RelayExpireHooks } from '../../../platform/room/relay/clock';
 import { controlRelayGallery } from '../../../platform/room/relay/gallery';
@@ -22,10 +23,12 @@ import {
 import type {
   RelayEventKit,
   RelayGalleryControl,
+  RelaySettleIdentity,
   RelayTaskCommand,
 } from '../../../platform/room/relay/types';
 import type { StoryRelayCommand } from '../commands/types';
 import {
+  STORY_RELAY_GAME_TYPE,
   STORY_RELAY_MAX_PLAYERS,
   STORY_RELAY_MIN_PLAYERS,
   STORY_RELAY_TEXT_MAX_LENGTH,
@@ -52,6 +55,11 @@ function storyRelayPhase(
   return { type: 'storyrelay.phase.changed', phase, stepIndex, deadlineAt, gallery };
 }
 
+/** Builds the scheduled settle effect for one armed deadline, pinning the evolved phase identity. */
+function storyRelaySettleDueEffect(identity: RelaySettleIdentity): StoryRelayEffect {
+  return buildSettleDueEffect(STORY_RELAY_GAME_TYPE, identity);
+}
+
 /** Binds the shared machine to Story Relay's reasons, shape, events and effects. */
 export function createStoryRelayRelayKit(
   state: StoryRelayState,
@@ -70,6 +78,7 @@ export function createStoryRelayRelayKit(
     entryAppended: (chainId, entry) => ({ type: 'storyrelay.entries.appended', chainId, entry }),
     roundCompleted: (completedAt) => ({ type: 'storyrelay.round.completed', completedAt }),
     completionEffect: (payload) => ({ type: 'storyrelay.game.completed', payload }),
+    settleDueEffect: storyRelaySettleDueEffect,
   };
 }
 
@@ -224,22 +233,45 @@ export const STORY_RELAY_EXPIRE_HOOKS: RelayExpireHooks<
   resolveTransition: (kit, state, nowMs) => {
     if (state.completedAt !== null) {
       const isPlaying = state.config.galleryItemDurationSeconds !== null;
-      return kit.commit([
-        kit.phaseChanged(
-          'gallery',
-          relayDeadline(nowMs, state.config.galleryItemDurationSeconds),
-          state.stepIndex,
-          { position: 0, revealedPosition: 0, isPlaying, remainingMs: null },
-        ),
-      ]);
+      const deadlineAt = relayDeadline(nowMs, state.config.galleryItemDurationSeconds);
+      const effects: StoryRelayEffect[] = [];
+      if (deadlineAt !== null && state.roundId !== null && kit.settleDueEffect !== undefined) {
+        effects.push(
+          kit.settleDueEffect({
+            roundId: state.roundId,
+            phaseRevision: state.phaseRevision + 1,
+            stepIndex: state.stepIndex,
+            deadlineAt,
+          }),
+        );
+      }
+      return kit.commit(
+        [
+          kit.phaseChanged('gallery', deadlineAt, state.stepIndex, {
+            position: 0,
+            revealedPosition: 0,
+            isPlaying,
+            remainingMs: null,
+          }),
+        ],
+        effects,
+      );
     }
-    return kit.commit([
-      kit.phaseChanged(
-        'answering',
-        relayDeadline(nowMs, state.config.writingDurationSeconds),
-        state.stepIndex + 1,
-        null,
-      ),
-    ]);
+    const deadlineAt = relayDeadline(nowMs, state.config.writingDurationSeconds);
+    const effects: StoryRelayEffect[] = [];
+    if (deadlineAt !== null && state.roundId !== null && kit.settleDueEffect !== undefined) {
+      effects.push(
+        kit.settleDueEffect({
+          roundId: state.roundId,
+          phaseRevision: state.phaseRevision + 1,
+          stepIndex: state.stepIndex + 1,
+          deadlineAt,
+        }),
+      );
+    }
+    return kit.commit(
+      [kit.phaseChanged('answering', deadlineAt, state.stepIndex + 1, null)],
+      effects,
+    );
   },
 };

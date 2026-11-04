@@ -3,8 +3,10 @@
 import {
   STORY_RELAY_CONFIG_SCHEMA,
   STORY_RELAY_TEXT_MAX_LENGTH,
-  type StoryRelayCommand,
   type StoryRelayConfig,
+  type StoryRelayEffect,
+  type StoryRelayInternalCommand,
+  type StoryRelayPublicCommand,
 } from '@game-judge/game-engine/games/storyrelay/public';
 import { z } from 'zod';
 
@@ -20,7 +22,7 @@ const roundTask = { roundId: z.string().min(1), stepIndex: z.int().nonnegative()
 const task = { ...roundTask, chainId: z.string().min(1) };
 const revision = { phaseRevision: z.int().nonnegative() };
 
-const commands = definePublicCommandOptions<StoryRelayCommand>()([
+const commands = definePublicCommandOptions<StoryRelayPublicCommand>()([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({
     type: z.literal('storyrelay.config.update'),
@@ -57,11 +59,34 @@ const commands = definePublicCommandOptions<StoryRelayCommand>()([
   }),
 ]);
 
-export const storyRelayPublicCommandSchema: z.ZodType<StoryRelayCommand> = z.discriminatedUnion(
-  'type',
-  commands,
-);
-export const storyRelayEffectSchema = z.strictObject({
+export const storyRelayPublicCommandSchema: z.ZodType<StoryRelayPublicCommand> =
+  z.discriminatedUnion('type', commands);
+
+/**
+ * Worker-originated commands: dispatched only by the settle effect
+ * handler as the system actor when a scheduled deadline effect is due.
+ */
+export const storyRelayInternalCommandSchema: z.ZodType<StoryRelayInternalCommand> =
+  z.discriminatedUnion('type', [
+    z.strictObject({ type: z.literal('storyrelay.phase.settleExpired') }),
+  ]);
+
+const gameCompletedEffectSchema = z.strictObject({
   type: z.literal('storyrelay.game.completed'),
   payload: gameCompletionPayloadSchema,
 });
+
+const settleDueEffectSchema = z.strictObject({
+  type: z.literal('storyrelay.settle.due'),
+  payload: z.strictObject({
+    roundId: z.string().min(1),
+    phaseRevision: z.int().nonnegative(),
+    stepIndex: z.int().nonnegative(),
+    deadlineAt: z.int().nonnegative(),
+  }),
+});
+
+export const storyRelayEffectSchema: z.ZodType<StoryRelayEffect> = z.union([
+  gameCompletedEffectSchema,
+  settleDueEffectSchema,
+]);

@@ -24,7 +24,7 @@ type RevisionCommand = { readonly phaseRevision: number } & {
     | 'storyrelay.gallery.finish';
 };
 
-export type StoryRelayCommand =
+export type StoryRelayPublicCommand =
   | RoomSeatCommand<RoomSeatProfile>
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | { readonly type: 'storyrelay.config.update'; readonly config: StoryRelayConfig }
@@ -41,3 +41,14 @@ export type StoryRelayCommand =
   | (StoryRelayTaskIdentity & { readonly type: 'storyrelay.text.submit'; readonly text: string })
   | (StoryRelayTaskIdentity & { readonly type: 'storyrelay.task.empty.submit' })
   | RevisionCommand;
+
+/**
+ * Worker-originated settle command: the room runtime fires the armed
+ * stage deadline through a scheduled `storyrelay.settle.due` effect,
+ * and the effect handler dispatches this as the system actor. It runs
+ * the same expiry decide as the public expire command; the public
+ * expire stays as a client acceleration path only.
+ */
+export type StoryRelayInternalCommand = { readonly type: 'storyrelay.phase.settleExpired' };
+
+export type StoryRelayCommand = StoryRelayPublicCommand | StoryRelayInternalCommand;

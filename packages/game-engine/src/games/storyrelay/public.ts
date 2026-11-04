@@ -1,7 +1,12 @@
 /** Public pure Story Relay API for transport, persistence and the client game module. */
 
 export { getBotSeats, isBotOccupant, isBotSeat } from '../../platform/room/seating';
-export type { StoryRelayCommand, StoryRelayTaskIdentity } from './commands/types';
+export type {
+  StoryRelayCommand,
+  StoryRelayInternalCommand,
+  StoryRelayPublicCommand,
+  StoryRelayTaskIdentity,
+} from './commands/types';
 export { STORY_RELAY_REASONS, type StoryRelayEffect } from './domain/decision';
 export { getStoryRelayTaskForSeat } from './domain/relay';
 export { decideStoryRelayCommand, getStoryRelayLifecycle, storyRelayEngine } from './engine';
