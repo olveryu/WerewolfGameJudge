@@ -169,9 +169,10 @@ describe('stage deadline single-shot wiring (phase-expiry P2)', () => {
   // computes (attemptKey is required: no unkeyed retry path remains),
   // and every shouldExpire refuses to accelerate while the client
   // controls a seat — the engine rejects a controlling-seat actor, so
-  // a takeover phone must not even send. No seat condition besides
-  // the takeover gate appears: spectators carry no seat check and may
-  // accelerate, the same as every relay game.
+  // a takeover phone must not even send. The three relay games
+  // additionally require the host or a seat (D1'): a spectator with
+  // no seat who is not the host never sends expire. Werewolf and
+  // avalon keep their existing gates, unchanged by D1'.
   const consumers: ReadonlyArray<{ game: string; path: string }> = [
     { game: 'avalon', path: 'games/avalon/room/hooks/useAvalonRoomState.ts' },
     { game: 'drawguess', path: 'games/drawguess/room/hooks/useDrawGuessRoomState.ts' },
@@ -197,6 +198,22 @@ describe('stage deadline single-shot wiring (phase-expiry P2)', () => {
     expect(predicates.length).toBeGreaterThan(0);
     for (const predicate of predicates)
       expect(predicate[2]).toMatch(/controlledSeat (!==|===) null/);
+  });
+
+  it.each([
+    { game: 'drawguess', path: 'games/drawguess/room/hooks/useDrawGuessRoomState.ts' },
+    { game: 'pictionary', path: 'games/pictionary/room/components/PictionaryStage.tsx' },
+    { game: 'storyrelay', path: 'games/storyrelay/room/components/StoryRelayStage.tsx' },
+  ])('$game shouldExpire requires the host or a seat (D1: spectator never sends)', ({ path }) => {
+    const source = readSource(path);
+    const predicates = [
+      ...source.matchAll(
+        /const (\w*[sS]houldExpire\w*) = useCallback\(\(\) => \{([\s\S]*?)\}, \[/g,
+      ),
+    ];
+    expect(predicates.length).toBeGreaterThan(0);
+    for (const predicate of predicates)
+      expect(predicate[2]).toMatch(/!isHost && effectiveSeat === null/);
   });
 });
 
