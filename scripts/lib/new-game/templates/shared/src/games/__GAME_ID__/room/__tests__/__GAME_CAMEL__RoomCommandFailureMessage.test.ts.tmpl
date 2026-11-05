@@ -40,5 +40,13 @@ describe('get__GAME_PASCAL__RoomCommandFailureMessage', () => {
       ),
     ).toBe('当前阶段尚未结束');
   });
+
+  it('explains that only the host can retry the settle', () => {
+    expect(
+      get__GAME_PASCAL__RoomCommandFailureMessage(
+        rejectedRoomCommand<__GAME_PASCAL__State>('__GAME_ID___not_host_retry_settle', 'command-3'),
+      ),
+    ).toBe('只有房主可以重新推进');
+  });
 //#end
 });

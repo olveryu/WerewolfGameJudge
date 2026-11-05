@@ -15,7 +15,11 @@ import {
   decideMarkBotsViewed,
   haveAllViewed,
 } from '../../platform/room/identityViewing';
-import { buildSettleDueEffect, guardPhaseExpiry } from '../../platform/room/phaseDeadline';
+import {
+  buildSettleDueEffect,
+  guardPhaseExpiry,
+  type PhaseExpiryActorChannel,
+} from '../../platform/room/phaseDeadline';
 import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
 import type { DemoCommand } from './commands/types';
 import {
@@ -174,13 +178,22 @@ function markAllBotsViewed(state: DemoState, context: CommandContext): DemoDecis
  * and only once the armed deadline has been reached. This skeleton
  * has no public expire command — the scheduled effect is the only
  * channel. Settlement itself runs through the terminal seam
- * (endDemoGame).
+ * (endDemoGame). The host retry (`demo.phase.retrySettle`)
+ * runs the same guard sequence and the same dispatch, only on the
+ * uncontrolled-user channel: the decide case gates the host first,
+ * then calls this with `actorChannel: 'uncontrolledUser'`. It is not
+ * an expire send — the retry re-drives the current phase's settle,
+ * never a client-sent expiry.
  */
-function settleExpired(state: DemoState, context: CommandContext): DemoDecision {
+function settleExpired(
+  state: DemoState,
+  context: CommandContext,
+  actorChannel: PhaseExpiryActorChannel = 'system',
+): DemoDecision {
   const phase = state.phase;
   return guardPhaseExpiry(context, {
     phaseRejection: phase.kind === 'playing' ? null : reject(DEMO_REASONS.phase),
-    actorChannel: 'system',
+    actorChannel,
     deadlineAt: phase.kind === 'playing' ? phase.deadlineAt : null,
     notExpiredReason: DEMO_REASONS.deadline,
     dispatch: () => endDemoGame(state, context),
@@ -236,6 +249,19 @@ function decideCommand(
       return markAllBotsViewed(state, context);
     case 'demo.phase.settleExpired':
       return settleExpired(state, context);
+    case 'demo.phase.retrySettle': {
+      // Host self-rescue (D3 follow-up): re-drives the current phase's
+      // settle through the same guard sequence and dispatch as the
+      // scheduled delivery, on the uncontrolled-user channel. A host
+      // acting through a takeover seat is rejected by requireHost.
+      const hostRejection = requireHost<DemoEvent, DemoEffect>(
+        context,
+        state.hostUserId,
+        DEMO_REASONS.notHostRetrySettle,
+      );
+      if (hostRejection !== null) return hostRejection;
+      return settleExpired(state, context, 'uncontrolledUser');
+    }
     case 'demo.game.returnToLobby':
       return returnToLobby(state, context);
     case 'demo.gameplay.example':

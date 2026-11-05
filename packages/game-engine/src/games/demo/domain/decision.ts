@@ -21,6 +21,7 @@ export const DEMO_REASONS = {
   notHostReturnToLobby: 'demo_not_host_return_to_lobby',
   occupied: 'demo_occupied_seat_out_of_range',
   deadline: 'demo_deadline_not_reached',
+  notHostRetrySettle: 'demo_not_host_retry_settle',
   notImplemented: 'demo_not_implemented',
 } as const;
 

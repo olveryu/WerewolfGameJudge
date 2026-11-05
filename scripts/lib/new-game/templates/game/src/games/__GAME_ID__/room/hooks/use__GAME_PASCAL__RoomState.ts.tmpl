@@ -85,6 +85,8 @@ export interface __GAME_PASCAL__RoomScreenState {
 //#cap !identityViewing
   /** 当前阶段剩余秒数；无截止阶段为 null。到期由服务端定时 settle effect 结算，客户端只展示。 */
   readonly remainingSeconds: number | null;
+  /** 截止已过且 5 秒宽限已过：服务端 settle 未到，房主自救按钮出现。 */
+  readonly isOverdue: boolean;
 //#end
   readonly roomCode: string;
   readonly userId: string;
@@ -159,8 +161,9 @@ export function use__GAME_PASCAL__RoomState(
 //#cap !identityViewing
   // 阶段截止倒计时（仅展示）：服务端定时 settle effect 是唯一推进
   // 路径，到期由它结算；客户端不发任何推进命令，只显示剩余秒数。
+  // 截止已过且宽限已过时 isOverdue 为真，房主自救按钮出现。
   const deadlineAt = state.phase.kind === 'playing' ? state.phase.deadlineAt : null;
-  const { remainingSeconds } = useStageDeadline({ deadlineAt });
+  const { remainingSeconds, isOverdue } = useStageDeadline({ deadlineAt });
 //#end
 //#cap !identityViewing
   const viewModel = get__GAME_PASCAL__ViewModel(state, effectiveSeat);
@@ -256,6 +259,7 @@ export function use__GAME_PASCAL__RoomState(
     viewModel,
 //#cap !identityViewing
     remainingSeconds,
+    isOverdue,
 //#end
     roomCode: room.roomCode,
     userId: user.id,

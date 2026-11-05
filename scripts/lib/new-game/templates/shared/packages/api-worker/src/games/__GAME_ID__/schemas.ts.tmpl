@@ -34,6 +34,9 @@ const __GAME_CAMEL__PublicCommandOptions = definePublicCommandOptions<__GAME_PAS
 //#cap botTestScaffold
   z.strictObject({ type: z.literal('__GAME_ID__.bots.markAllBotsViewed') }),
 //#end
+//#cap stageDeadline
+  z.strictObject({ type: z.literal('__GAME_ID__.phase.retrySettle') }),
+//#end
   z.strictObject({ type: z.literal('__GAME_ID__.game.returnToLobby') }),
 //#cap audioOrchestration
   z.strictObject({

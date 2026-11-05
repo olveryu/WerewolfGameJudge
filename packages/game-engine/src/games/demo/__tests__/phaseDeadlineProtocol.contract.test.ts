@@ -11,6 +11,7 @@
 
 import type { CommandContext } from '../../../platform/engine';
 import { applyDecision } from '../../../platform/engine/__tests__/engineSession';
+import { REASON_CONTROLLED_SEAT_NOT_ALLOWED } from '../../../platform/protocol/reasons';
 import {
   describePhaseDeadlineProtocol,
   type PhaseDeadlineSession,
@@ -125,4 +126,59 @@ describePhaseDeadlineProtocol({
     staleReason: null,
     dispatchAdvances: true,
   },
+});
+
+describe('demo.phase.retrySettle (host self-rescue)', () => {
+  let harness: DemoHarness;
+  let armedPhase: DemoState['phase'];
+  let deadlineAt: number;
+  const retry = (userId: string, controlledSeat: number | null, nowMs: number) =>
+    harness.attempt(
+      { type: 'demo.phase.retrySettle' },
+      harness.userContext(userId, controlledSeat, nowMs),
+    );
+
+  beforeEach(() => {
+    harness = armedHarness();
+    armedPhase = harness.state().phase;
+    if (armedPhase.kind !== 'playing' || armedPhase.deadlineAt === null) {
+      throw new Error('Expected the playing stage with an armed deadline');
+    }
+    deadlineAt = armedPhase.deadlineAt;
+  });
+
+  it('rejects the host before the deadline', () => {
+    expect(retry('host', null, deadlineAt - 1)).toEqual({
+      kind: 'reject',
+      reason: DEMO_REASONS.deadline,
+    });
+    expect(harness.state().phase).toBe(armedPhase);
+  });
+
+  it('rejects a non-host after the deadline', () => {
+    expect(retry('u1', null, deadlineAt)).toEqual({
+      kind: 'reject',
+      reason: DEMO_REASONS.notHostRetrySettle,
+    });
+    expect(harness.state().phase).toBe(armedPhase);
+  });
+
+  it('rejects a host acting through a takeover seat', () => {
+    expect(retry('host', 0, deadlineAt)).toEqual({
+      kind: 'reject',
+      reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+    });
+    expect(harness.state().phase).toBe(armedPhase);
+  });
+
+  it('settles the phase for the host after the deadline', () => {
+    expect(retry('host', null, deadlineAt).kind).toBe('commit');
+    expect(harness.state().phase).not.toBe(armedPhase);
+  });
+
+  it('is a no-op once the phase has advanced', () => {
+    expect(retry('host', null, deadlineAt).kind).toBe('commit');
+    expect(harness.state().phase).not.toBe(armedPhase);
+    expect(retry('host', null, deadlineAt + 1_000).kind).toBe('reject');
+  });
 });

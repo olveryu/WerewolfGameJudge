@@ -26,6 +26,7 @@ const demoPublicCommandOptions = definePublicCommandOptions<DemoPublicCommand>()
   z.strictObject({ type: z.literal('demo.game.begin') }),
   z.strictObject({ type: z.literal('demo.role.viewed') }),
   z.strictObject({ type: z.literal('demo.bots.markAllBotsViewed') }),
+  z.strictObject({ type: z.literal('demo.phase.retrySettle') }),
   z.strictObject({ type: z.literal('demo.game.returnToLobby') }),
   z.strictObject({ type: z.literal('demo.gameplay.example') }),
 ]);

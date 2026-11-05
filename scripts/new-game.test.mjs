@@ -497,8 +497,58 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
         'settle runs through the terminal seam',
       );
       assert.ok(!engineGameDir.includes('phase.expired'), 'dead phase.expired event is gone');
+      // D3 follow-up: the host self-rescue retry rides the same settle
+      // dispatch — vocabulary entry only, no duplicated settle logic.
+      // The retry command is public in the engine and the Worker
+      // schema, gated host-first in decide; the stage pack's room
+      // hook exposes isOverdue and the stage area renders the shared
+      // rescue UI. The demo-hybrid pack renders no countdown surface
+      // at all, so it gets none of the client wiring.
+      assert.ok(
+        engineSource.includes(`'demoproto.phase.retrySettle'`),
+        'retry command in engine vocabulary',
+      );
+      assert.ok(engineSource.includes(`case 'demoproto.phase.retrySettle':`), 'retry decide case');
+      assert.ok(
+        engineSource.includes(`settleExpired(state, context, 'uncontrolledUser')`),
+        'retry re-drives the existing settle dispatch',
+      );
+      assert.ok(engineSource.includes('notHostRetrySettle'), 'retry host gate reason');
+      assert.ok(
+        readFixture(root, 'packages/api-worker/src/games/demoproto/schemas.ts').includes(
+          `'demoproto.phase.retrySettle'`,
+        ),
+        'retry in worker schema',
+      );
+      assert.ok(
+        readFixture(
+          root,
+          'src/games/demoproto/room/demoprotoRoomCommandFailureMessage.ts',
+        ).includes('notHostRetrySettle'),
+        'retry failure copy',
+      );
+      if (!capabilities.identityViewing) {
+        assert.ok(roomHook.includes('isOverdue'), 'stage hook exposes isOverdue');
+        assert.ok(
+          clientGameDir.includes('StageSettleRescue'),
+          'stage area renders the shared rescue UI',
+        );
+        assert.ok(
+          clientGameDir.includes(`'demoproto.phase.retrySettle'`),
+          'stage area submits the retry',
+        );
+      } else {
+        assert.ok(!roomHook.includes('isOverdue'), 'hybrid hook has no rescue wiring');
+        assert.ok(!clientGameDir.includes('StageSettleRescue'), 'hybrid client has no rescue UI');
+      }
     } else {
       assert.ok(!engineGameDir.includes('deadlineAt'));
+      assert.ok(!engineGameDir.includes('retrySettle'), 'no-deadline engine has no retry command');
+      assert.ok(!clientGameDir.includes('retrySettle'), 'no-deadline client has no retry wiring');
+      assert.ok(
+        !clientGameDir.includes('StageSettleRescue'),
+        'no-deadline client has no rescue UI',
+      );
     }
     if (capabilities.audioOrchestration) {
       assert.ok(engineGameDir.includes('demoproto.audio.ack'));

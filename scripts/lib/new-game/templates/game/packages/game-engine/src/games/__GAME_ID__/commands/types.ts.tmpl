@@ -11,6 +11,9 @@ export type __GAME_PASCAL__PublicCommand =
   | RoomSeatCommand<RoomSeatProfile>
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | { readonly type: '__GAME_ID__.config.update'; readonly config: __GAME_PASCAL__Config }
+//#cap stageDeadline
+  | { readonly type: '__GAME_ID__.phase.retrySettle' }
+//#end
 //#cap identityViewing
   | { readonly type: '__GAME_ID__.roles.assign' }
 //#end
