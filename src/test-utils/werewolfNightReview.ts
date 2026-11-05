@@ -29,6 +29,13 @@ export interface ReviewStateOverrides {
   readonly deathReasons?: GameState['deathReasons'];
   readonly players?: ReviewPlayers;
   readonly seerReveal?: GameState['seerReveal'];
+  readonly mirrorSeerReveal?: GameState['mirrorSeerReveal'];
+  readonly drunkSeerReveal?: GameState['drunkSeerReveal'];
+  readonly psychicReveal?: GameState['psychicReveal'];
+  readonly gargoyleReveal?: GameState['gargoyleReveal'];
+  readonly pureWhiteReveal?: GameState['pureWhiteReveal'];
+  readonly wolfWitchReveal?: GameState['wolfWitchReveal'];
+  readonly wolfRobotReveal?: GameState['wolfRobotReveal'];
   readonly bottomCards?: GameState['bottomCards'];
   readonly sheriffElection?: SheriffElectionState;
   readonly sheriffElectionResult?: SheriffElectionResult;
@@ -50,6 +57,13 @@ export function makeReviewState(overrides: ReviewStateOverrides = {}): GameState
   const optional: Partial<GameState> = {};
   if (overrides.deathReasons) optional.deathReasons = overrides.deathReasons;
   if (overrides.seerReveal) optional.seerReveal = overrides.seerReveal;
+  if (overrides.mirrorSeerReveal) optional.mirrorSeerReveal = overrides.mirrorSeerReveal;
+  if (overrides.drunkSeerReveal) optional.drunkSeerReveal = overrides.drunkSeerReveal;
+  if (overrides.psychicReveal) optional.psychicReveal = overrides.psychicReveal;
+  if (overrides.gargoyleReveal) optional.gargoyleReveal = overrides.gargoyleReveal;
+  if (overrides.pureWhiteReveal) optional.pureWhiteReveal = overrides.pureWhiteReveal;
+  if (overrides.wolfWitchReveal) optional.wolfWitchReveal = overrides.wolfWitchReveal;
+  if (overrides.wolfRobotReveal) optional.wolfRobotReveal = overrides.wolfRobotReveal;
   if (overrides.bottomCards) optional.bottomCards = overrides.bottomCards;
   if (overrides.sheriffElection) optional.sheriffElection = overrides.sheriffElection;
   if (overrides.sheriffElectionResult) {

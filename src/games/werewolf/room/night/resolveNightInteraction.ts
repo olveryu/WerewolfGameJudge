@@ -20,12 +20,7 @@ import type {
   RoleId,
   WerewolfViewModel,
 } from '@game-judge/game-engine/games/werewolf/public';
-import {
-  GameStatus,
-  getRoleDisplayName,
-  isValidRoleId,
-  Team,
-} from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus, Team } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import {
@@ -33,6 +28,7 @@ import {
   isAudioPlaybackLocked,
 } from '@/features/room/model/audioPlaybackLock';
 
+import { formatCheckResultLabel } from '../NightReview.helpers';
 import type { NightDraft, NightInteractionModel, SwapPick } from './NightInteractionModel';
 import {
   nightStepTitle,
@@ -102,13 +98,7 @@ export function wolfStatusLine(
 function renderRevealTitle(
   reveal: NonNullable<WerewolfViewModel['night']['pendingReveal']>,
 ): string {
-  const resultLabel = (() => {
-    if (reveal.resultFormat === 'factionCheck') return reveal.result;
-    if (!isValidRoleId(reveal.result)) {
-      throw new Error(`[FAIL-FAST] Reveal result ${reveal.result} is not a role id`);
-    }
-    return getRoleDisplayName(reveal.result);
-  })();
+  const resultLabel = formatCheckResultLabel(reveal.result, reveal.resultFormat);
   return `${reveal.titlePrefix}：${formatSeat(reveal.targetSeat)}是${resultLabel}`;
 }
 
