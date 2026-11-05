@@ -22,37 +22,30 @@ test.use({ actionTimeout: 15_000 });
 const MIN_EDITOR_VIEWPORT_FRACTION = 0.1;
 
 /**
- * Phase-expiry discipline (D1', 2026-11-04): the server's scheduled settle
- * is the correctness path; a client expire is single-shot acceleration
- * only, sent at most once per phase identity by an eligible sender.
+ * Phase-expiry discipline (D3, 2026-11-05): the server's scheduled settle
+ * is the only expiry path — no client sends expire, ever. The public
+ * `phase.expire` command is deleted; the countdown is display-only.
  *
  * The tests below prove that discipline from observed /room/command
  * traffic, never from UI text: every page gets a passive route handler
  * that logs expire sends and always calls route.continue(), so delivery
- * is never altered or swallowed. Only host/seated contexts are driven
+ * is never altered or swallowed. The observer still watches for the
+ * deleted command type, so any send — by any client, at any time —
+ * fails the zero assertions below. Only host/seated contexts are driven
  * here, per the 2026-11-04 ruling on E2E scope; the remaining
  * eligibility cases stay covered at hook/contract level, not in E2E.
  *
  * Story Relay identity note: the server settle pin is
- * roundId + phaseRevision + stepIndex + deadlineAt, and the client
- * attemptKey is roundId:phaseRevision:deadlineAt; the wire expire
- * command itself carries only phaseRevision, which is the per-phase
- * identity on the wire (every phaseChanged advances the revision by
- * one), so the observations below group by phaseRevision. A deadline
+ * roundId + phaseRevision + stepIndex + deadlineAt. A deadline
  * crossing here can span two identities — the writing phase and the
- * zero-second transition that follows it — and the single-shot
- * assertion allows at most one send per identity.
+ * zero-second transition that follows it — and the zero-expire
+ * assertion covers both: no send is legitimate for either identity.
  *
  * Honest boundary of this file:
  * - Zero-client settlement is NOT claimed here: E2E always has foreground
  *   clients. The offline test proves advancement without any acceleration
  *   command being sent; zero-client settlement is proven at Worker
  *   DO-test level.
- * - The offline test scopes its zero claim to sends observed up to the
- *   moment of reconnect: after reconnect the zero-second transition may
- *   legitimately be accelerated once by an eligible sender, and that
- *   send is covered by the companion single-shot test, not by the
- *   zero claim.
  */
 const EXPIRE_COMMAND_TYPE = 'storyrelay.phase.expire';
 
@@ -117,14 +110,6 @@ function isExpireCommand(body: unknown): boolean {
     'type' in command &&
     command.type === EXPIRE_COMMAND_TYPE
   );
-}
-
-/** Single-shot discipline, per phase identity: at most one send per phaseRevision. */
-function expectAtMostOneExpirePerPhaseIdentity(expires: readonly ObservedExpire[]): void {
-  const counts = new Map<number, number>();
-  for (const entry of expires)
-    counts.set(entry.phaseRevision, (counts.get(entry.phaseRevision) ?? 0) + 1);
-  for (const count of counts.values()) expect(count).toBeLessThanOrEqual(1);
 }
 
 async function createRoom(page: Page, writingDurationSeconds = 'unlimited'): Promise<RoomPage> {
@@ -364,9 +349,7 @@ test('four humans write four turns without restoring unsubmitted input and revea
   }
 });
 
-test('seated players send at most one expire per phase identity across a deadline', async ({
-  browser,
-}, testInfo) => {
+test('no client sends expire across a deadline', async ({ browser }, testInfo) => {
   const fixture = await createPlayerContexts(browser, 4);
   const hostPage = fixture.pages[0];
   const observations: ExpireObservation[] = [];
@@ -394,14 +377,14 @@ test('seated players send at most one expire per phase identity across a deadlin
       });
     });
 
-    await test.step('assert the D1′ expire discipline from the observed commands', async () => {
+    await test.step('assert no expire was sent by any client', async () => {
       const byPage = observations.map((observation) => observation.expires());
       await testInfo.attach('storyrelay-expire-observation', {
         body: JSON.stringify({ byPage }),
         contentType: 'application/json',
       });
       for (const expires of byPage) {
-        expectAtMostOneExpirePerPhaseIdentity(expires);
+        expect(expires).toHaveLength(0);
       }
     });
   } finally {
@@ -446,11 +429,9 @@ test('phase advances past the deadline with zero expire commands while every cli
       for (const context of fixture.contexts) await setOffline(context, false);
       const reconnectedMs = Date.now();
       // The writing-deadline crossing itself (answering -> settling)
-      // happened server-side while every client was offline. The zero
-      // claim is scoped to sends observed up to the moment of
-      // reconnect: after reconnect the zero-second transition may
-      // legitimately be accelerated once by an eligible sender, and
-      // that send is covered by the companion single-shot test.
+      // happened server-side while every client was offline. Under D3
+      // no expire can ever be sent, so the zero claim is NOT scoped to
+      // the reconnect moment: the full observed list must be empty.
       // Collection after reconnect is expected — clients submit their
       // (empty) inputs — and is not acceleration.
       await expect(hostPage.getByTestId('storyrelay-previous-entry')).toContainText('上一段留白', {
@@ -462,7 +443,7 @@ test('phase advances past the deadline with zero expire commands while every cli
         contentType: 'application/json',
       });
       for (const expires of byPage) {
-        expect(expires.filter((entry) => entry.atMs <= reconnectedMs)).toHaveLength(0);
+        expect(expires).toHaveLength(0);
       }
     });
   } finally {
