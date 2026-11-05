@@ -33,19 +33,15 @@ export function formatNightReviewShareTitle(roomCode: string): string {
 // The DOM body is printed on NIGHT_REPORT_PALETTE, a light palette aligned
 // with the app theme (flat colors only, no gradients — the segmented
 // screenshot capture composites bands and a gradient would seam). The
-// action area is pictorial: a day-tab strip (one static tab — the review
-// carries first-night facts only), one block card per night/day, and one
-// picture row per action ("portrait + big arrow + verb + portrait", the
-// identity written on the portrait's role tag, the seat number below the
-// portrait). There are no fixed columns and no alignment arithmetic: the
-// arrow column flexes, tags are content-sized and centered, and a
-// too-long future name overflows visibly instead of breaking the row.
-// The wolf team's votes draw as a small diagram under the attack row, and
-// the verdict sentence sits under the diagram. A seat number appears
-// exactly once per figure: below its portrait, or inside its medal in the
-// roster, the vote diagram, and the death stamps. Text never repeats a
-// number ("N号" never appears); role names appear on figure tags and
-// identity statements.
+// action area is a text timeline: one sentence per action, in night
+// order, behind a rail of dots; a verb is colored by its actor's faction,
+// a role word by that role's faction, a dead seat's number by the dead
+// player's faction (theme colors via FACTION_COLOR_MAP), and words with
+// no faction to point at stay in the body text color. There are no
+// portraits, no role tags, no columns, no alignment arithmetic, no ✗
+// discs, and no stats strip: the last line states the outcome (who died,
+// or that nobody did). A seat number appears in the sentence that names
+// it, and in its medal in the roster and the death stamps.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Semantic slots of the report palette, composed from the theme hues. */
@@ -60,8 +56,6 @@ export const NIGHT_REPORT_PALETTE = {
   danger: NIGHT_REPORT_COLORS.danger,
   /** Top accent bar. */
   accent: colors.primary,
-  /** Hairline rules of the stats ledger (dark, print-like). */
-  rule: NIGHT_REPORT_COLORS.text,
   /** Death stamp: danger outline, filled danger medal with inverse numeral. */
   stampBorder: NIGHT_REPORT_COLORS.danger,
   stampMedal: {
@@ -76,12 +70,6 @@ export const NIGHT_REPORT_PALETTE = {
     third: colors.third,
     neutral: NIGHT_REPORT_COLORS.textMuted,
   },
-  /** Wolf verdict band under the wolf team row. */
-  verdictBg: NIGHT_REPORT_COLORS.wolfMedalBg,
-  hitMedalBg: colors.primary,
-  // The hit medal is a filled primary disc: its numeral stays inverse
-  // (white) even though the report's text slots are now dark-on-light.
-  hitMedalText: colors.textInverse,
   medalNeutral: {
     bg: NIGHT_REPORT_COLORS.neutralMedalBg,
     border: NIGHT_REPORT_COLORS.neutralMedalBorder,
@@ -107,68 +95,25 @@ export const NIGHT_REPORT_PALETTE = {
     border: NIGHT_REPORT_COLORS.deadMedalBorder,
     text: NIGHT_REPORT_COLORS.dangerText,
   },
-  tagBad: {
-    bg: NIGHT_REPORT_COLORS.deadMedalBg,
-    text: NIGHT_REPORT_COLORS.dangerText,
-  },
-  tagGood: {
-    bg: NIGHT_REPORT_COLORS.goodMedalBg,
-    text: NIGHT_REPORT_COLORS.goodMedalText,
-  },
-  tagInfo: {
-    bg: NIGHT_REPORT_COLORS.godMedalBg,
-    text: NIGHT_REPORT_COLORS.violet,
-  },
-  tagMuted: {
-    bg: NIGHT_REPORT_COLORS.neutralMedalBg,
-    text: NIGHT_REPORT_COLORS.textSecondary,
-  },
 } as const;
 
-/** SeatMedal diameters by slot (death stamp / portrait / inline / roster row). */
+/** SeatMedal diameters by slot (death stamp / roster row). */
 export const NIGHT_REPORT_MEDAL_SIZES = {
   large: 44,
-  medium: 28,
-  small: 24,
   roster: 26,
 } as const;
 
 /** Kicker line at the top of the report. */
 export const NIGHT_REPORT_KICKER = '🌙 第一夜 · 夜报';
 
-/** The one day tab: the review carries first-night facts only. */
-export const NIGHT_REPORT_DAY_TAB_LABEL = '第一天';
-
-/** Centered header of the night block card. */
-export const NIGHT_REPORT_NIGHT_BLOCK_TITLE = '第 1 夜';
-
-/** Centered header of the day block card. */
-export const NIGHT_REPORT_DAY_BLOCK_TITLE = '第 1 天';
-
-/** Day block body: no day facts exist in the review projection. */
-export const NIGHT_REPORT_DAY_EMPTY_TEXT = '白天事件未包含在对局记录中';
+/** Section title above the timeline: the review carries first-night facts only. */
+export const NIGHT_REPORT_TIMELINE_TITLE = '第一夜';
 
 /** Section title above the sheriff election card. */
 export const NIGHT_REPORT_SHERIFF_TITLE = '警长竞选';
 
 /** Footer line at the bottom of the report. */
 export const NIGHT_REPORT_FOOTER_TEXT = '仅供裁判及观战者参考 · 本夜报由对局记录自动生成';
-
-/** Stats strip labels, in strip order. */
-export const NIGHT_REPORT_STAT_LABELS = {
-  wolfKill: '狼杀',
-  poison: '毒杀',
-  save: '救活',
-  check: '查验',
-} as const;
-
-/** Wolf-team verdict lines (card footer / text channel), by verdict type. */
-export const NIGHT_REPORT_WOLF_VERDICT_SHARED = '狼队共同目标';
-export const NIGHT_REPORT_WOLF_VERDICT_SPLIT_KILLED = '狼队目标不一致 — 按多数票击杀';
-export const NIGHT_REPORT_WOLF_VERDICT_TIE_PICKED = '狼队目标不一致 — 平票抽中目标';
-export const NIGHT_REPORT_WOLF_VERDICT_SPLIT_TIED = '狼队目标不一致 — 平票，未击杀';
-export const NIGHT_REPORT_WOLF_VERDICT_TIE_PENDING = '狼队目标不一致 — 平票，目标未记录';
-export const NIGHT_REPORT_WOLF_VERDICT_ALL_ABSTAIN = '狼队全员空刀';
 
 /** Roster cell status for a seat still alive. */
 export const NIGHT_REPORT_ROSTER_ALIVE = '存活';

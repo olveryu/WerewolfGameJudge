@@ -10,12 +10,7 @@ import { render } from '@testing-library/react-native';
 
 import { makeReviewPlayer, makeReviewState } from '@/test-utils/werewolfNightReview';
 
-import {
-  NIGHT_REPORT_DAY_BLOCK_TITLE,
-  NIGHT_REPORT_DAY_TAB_LABEL,
-  NIGHT_REPORT_FOOTER_TEXT,
-  NIGHT_REPORT_NIGHT_BLOCK_TITLE,
-} from '../../nightReviewLayout';
+import { NIGHT_REPORT_FOOTER_TEXT, NIGHT_REPORT_TIMELINE_TITLE } from '../../nightReviewLayout';
 import { NightReviewShareCard } from '../NightReviewShareCard';
 
 interface JsonNode {
@@ -66,11 +61,10 @@ describe('NightReviewShareCard', () => {
     );
 
     expect(view.getByText('房间 1234 战报')).toBeTruthy();
-    expect(view.getByText(NIGHT_REPORT_DAY_TAB_LABEL)).toBeTruthy();
-    expect(view.getByText(NIGHT_REPORT_NIGHT_BLOCK_TITLE)).toBeTruthy();
-    expect(view.getByText(NIGHT_REPORT_DAY_BLOCK_TITLE)).toBeTruthy();
+    expect(view.getByText(NIGHT_REPORT_TIMELINE_TITLE)).toBeTruthy();
     expect(view.getByText('全员身份')).toBeTruthy();
     expect(view.getByText(NIGHT_REPORT_FOOTER_TEXT)).toBeTruthy();
+    expect(view.queryByText('第一天')).toBeNull();
   });
 
   it('renders the same action facts as the modal presentation', () => {
@@ -78,14 +72,11 @@ describe('NightReviewShareCard', () => {
       <NightReviewShareCard data={getWerewolfNightReview(composedNightState())} roomCode="1234" />,
     );
 
-    expect(view.getByText('狼队')).toBeTruthy();
-    expect(view.getByText('狼队共同目标')).toBeTruthy();
-    expect(view.getByText('守护')).toBeTruthy();
-    expect(view.getByText('使用解药救了')).toBeTruthy();
-    expect(view.getByText('毒药')).toBeTruthy();
-    expect(view.getByText('未使用')).toBeTruthy();
-    expect(view.getByText('✗')).toBeTruthy();
-    expect(view.getByText('查验')).toBeTruthy();
+    expect(view.getByText('狼队（1号）袭击5号。')).toBeTruthy();
+    expect(view.getByText('2号守卫守护4号。')).toBeTruthy();
+    expect(view.getByText('3号女巫使用解药救起5号。毒药未使用。')).toBeTruthy();
+    expect(view.getByText('4号预言家查验1号，结果：狼人。')).toBeTruthy();
+    expect(view.getByText('5号出局。')).toBeTruthy();
     expect(view.getAllByText('狼人').length).toBeGreaterThanOrEqual(2);
     // Same conclusion header as the modal: headline + death card + byline.
     expect(view.getByText('昨夜 1 人出局')).toBeTruthy();
@@ -93,6 +84,8 @@ describe('NightReviewShareCard', () => {
     expect(view.getByText('狼队 1 票锁定')).toBeTruthy();
     expect(view.queryByText('5号 · 平民')).toBeNull();
     expect(view.queryByText('死亡')).toBeNull();
+    expect(view.queryByText('✗')).toBeNull();
+    expect(view.queryByText('→')).toBeNull();
   });
 
   it('renders the same header and idle row as the modal', () => {
@@ -114,14 +107,19 @@ describe('NightReviewShareCard', () => {
     );
 
     expect(view.getByText('昨夜平安夜')).toBeTruthy();
-    // The idle guard is a dimmed status row: figure + phrase, no tag.
+    // No verdict was recorded for the single wolf vote, so the engine
+    // reports tie pending.
+    expect(view.getByText('狼队投票不一致（1号投5号），平票，目标未记录。')).toBeTruthy();
+    // The idle guard is a plain sentence: seat and role inside it, no
+    // standalone role word outside the identity wall.
     expect(view.queryByText('未行动')).toBeNull();
-    expect(view.getAllByText('守卫').length).toBeGreaterThanOrEqual(2);
+    expect(view.getAllByText('守卫')).toHaveLength(1);
+    expect(view.getByText('2号守卫未守护。')).toBeTruthy();
     expect(view.getByText('未守护')).toBeTruthy();
     expect(view.queryByText('守卫 2号 未守护')).toBeNull();
   });
 
-  it('renders wolf abstentions as an empty-attack group, never as seat 0', () => {
+  it('renders wolf abstentions as a shared-target sentence, never as seat 0', () => {
     const players = new Map<number, Player | null>([
       [0, makeReviewPlayer(0, 'wolf')],
       [1, makeReviewPlayer(1, 'wolf')],
@@ -141,13 +139,13 @@ describe('NightReviewShareCard', () => {
       />,
     );
 
-    // Same presentation as the modal: one real target group (shared-target
-    // wording judges real targets only) plus the abstention group; the -1
-    // sentinel never surfaces as a 「0」 seat anywhere on the card.
+    // Same presentation as the modal: the shared-target sentence names
+    // the voting wolf only; the partial abstention is not named, and
+    // the -1 sentinel never surfaces as a 「0」 seat anywhere on the card.
     expect(view.getByText('昨夜平安夜')).toBeTruthy();
-    expect(view.getByText('狼队')).toBeTruthy();
-    expect(view.getByText('空刀')).toBeTruthy();
-    expect(view.getByText('狼队共同目标')).toBeTruthy();
+    expect(view.getByText('狼队（1号）袭击5号。')).toBeTruthy();
+    expect(view.getByText('本夜无人出局。')).toBeTruthy();
+    expect(view.queryByText('空刀')).toBeNull();
     const sequence = collectTextSequence(view.toJSON());
     expect(sequence).not.toContain('0');
     expect(sequence).not.toContain('0号');

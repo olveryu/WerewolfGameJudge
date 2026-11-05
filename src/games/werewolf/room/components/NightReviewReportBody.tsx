@@ -3,31 +3,24 @@
  *
  * 2026 "verdict ticket" presentation (identical on every surface): a white
  * page — conclusion header (accent bar, masthead, headline with the death
- * count as the display numeral, one stamp per death, stats ledger) → day
- * tabs (one static tab; the review carries first-night facts only) → one
- * block card per night/day → sheriff election group (when an election
- * exists) → perforation → identity roster (two columns) → footer.
+ * count as the display numeral, one stamp per death) → timeline ("第一夜":
+ * one sentence per action in night order, behind a rail of dots) → sheriff
+ * election group (when an election exists) → perforation → identity roster
+ * (two columns) → footer.
  *
- * The action area is pictorial, in night order (the engine's summary
- * order; no faction grouping): each action is one picture row, "portrait
- * + big arrow + verb + portrait", the identity written on the portrait's
- * role tag, the seat number below the portrait. What a portrait depicts
- * is exactly what its entry carries: a check that learned only a faction
- * shows a neutral numbered disc, never the target's true role art; an
- * identity check or a learn shows the result role's art. Slots holding
- * two or more portraits (multi-target groups, the vote diagram) carry no
- * tags — tags would collide. Resource owners (witch / poisoner) get one
- * card whose lines are the potions; the wolf team's votes draw as a small
- * diagram under the attack row with the verdict sentence below it; idle
- * actors and determinations render as a portrait plus a status sentence.
- *
- * Number discipline: a seat number appears exactly once per figure —
- * below its portrait, or inside its medal in the roster, the vote
- * diagram, and the death stamps. Text never repeats a number ("N号"
- * never appears). No service imports, no business logic: every fact
- * comes from the engine derivations, all shared copy/geometry from
- * nightReviewLayout, flat colors only (no gradients — the segmented
- * screenshot capture composites bands).
+ * The action area is a text timeline, in night order (the engine's summary
+ * order; no faction grouping). Each row is one sentence: the actor's seat
+ * and role in the body text color, the verb in the actor's faction color,
+ * and a result role word / dead seat number in that role's / player's
+ * faction color; words with no faction to point at (success/failure,
+ * 不能发动, 好人, 本夜无人出局, warning predicates, 未…) stay in the body
+ * text color. The night-report tone slots are gone: color comes only from
+ * the theme faction colors via FACTION_COLOR_MAP. A potion family merges
+ * into one row per owner; a family that did nothing at all dissolves into
+ * idle rows; the outcome entry (deaths / peacefulNight) is the last row.
+ * No service imports, no business logic: every fact comes from the engine
+ * derivations, all shared copy/geometry from nightReviewLayout, flat colors
+ * only (no gradients — the segmented screenshot capture composites bands).
  */
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import {
@@ -38,48 +31,33 @@ import {
 } from '@game-judge/game-engine/games/werewolf/public';
 import {
   deriveDeathNotes,
-  deriveNightReportStats,
-  deriveWolfTargetSaveNote,
   deriveWolfVerdict,
   getNightReviewOutcome,
-  type NightReportStats,
   type NightReviewActionEntry,
   nightReviewActorRoleId,
   type NightReviewDeathNote,
   type NightReviewIdentityEntry,
-  type NightReviewWolfVerdict,
   type WerewolfNightReview,
 } from '@game-judge/game-engine/games/werewolf/public';
-import type { ReactNode } from 'react';
 import { useMemo } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
+import { FACTION_COLOR_MAP } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
 import { borderRadius, colors, fixed, spacing, typography } from '@/theme';
 
 import { DEATH_REASON_LABELS, formatCheckResultLabel } from '../NightReview.helpers';
 import {
-  NIGHT_REPORT_DAY_BLOCK_TITLE,
-  NIGHT_REPORT_DAY_EMPTY_TEXT,
-  NIGHT_REPORT_DAY_TAB_LABEL,
   NIGHT_REPORT_DEATH_CAUSE_SUFFIX,
   NIGHT_REPORT_FOOTER_TEXT,
   NIGHT_REPORT_HEADLINE_PREFIX,
   NIGHT_REPORT_HEADLINE_SUFFIX,
   NIGHT_REPORT_KICKER,
   NIGHT_REPORT_MEDAL_SIZES,
-  NIGHT_REPORT_NIGHT_BLOCK_TITLE,
   NIGHT_REPORT_PALETTE,
   NIGHT_REPORT_ROSTER_ALIVE,
   NIGHT_REPORT_ROSTER_OUT,
   NIGHT_REPORT_SHERIFF_TITLE,
-  NIGHT_REPORT_STAT_LABELS,
-  NIGHT_REPORT_WOLF_VERDICT_ALL_ABSTAIN,
-  NIGHT_REPORT_WOLF_VERDICT_SHARED,
-  NIGHT_REPORT_WOLF_VERDICT_SPLIT_KILLED,
-  NIGHT_REPORT_WOLF_VERDICT_SPLIT_TIED,
-  NIGHT_REPORT_WOLF_VERDICT_TIE_PENDING,
-  NIGHT_REPORT_WOLF_VERDICT_TIE_PICKED,
+  NIGHT_REPORT_TIMELINE_TITLE,
   NIGHT_REVIEW_IDENTITIES_TITLE,
   NIGHT_REVIEW_PEACEFUL_HEADLINE,
 } from '../nightReviewLayout';
@@ -107,17 +85,7 @@ type MedalSize = keyof typeof NIGHT_REPORT_MEDAL_SIZES;
 
 const MEDAL_TEXT_SIZES: Record<MedalSize, number> = {
   large: typography.title,
-  medium: typography.secondary,
-  small: typography.caption,
   roster: typography.caption,
-};
-
-/** Filled medal variants: the wolf team's resolved target / a death stamp. */
-type MedalFill = 'hit' | 'stamp';
-
-const MEDAL_FILLS: Record<MedalFill, { readonly bg: string; readonly text: string }> = {
-  hit: { bg: P.hitMedalBg, text: P.hitMedalText },
-  stamp: P.stampMedal,
 };
 
 /** Medal tone for a role: wolf red / god violet / villager green / neutral. */
@@ -139,21 +107,17 @@ interface SeatMedalProps {
   readonly seat: number;
   readonly size: MedalSize;
   readonly tone?: MedalTone;
-  /** Filled emphasis variant. */
-  readonly fill?: MedalFill;
-  /** Dimmed (out of the game / withdrawn). */
-  readonly dimmed?: boolean;
-  /** Glyph instead of a seat number (the wolf team medal). */
-  readonly glyph?: string;
+  /** Filled stamp emphasis (a death stamp). */
+  readonly stamped?: boolean;
 }
 
 /**
- * The one carrier of a seat number in the report. Every seat mention is a
- * medal; surrounding text never repeats the number.
+ * The one carrier of a seat number in the report. Every seat mention in
+ * the header and the roster is a medal; the timeline sentences carry
+ * their numbers as text.
  */
-function SeatMedal({ seat, size, tone = 'neutral', fill, dimmed, glyph }: SeatMedalProps) {
+function SeatMedal({ seat, size, tone = 'neutral', stamped }: SeatMedalProps) {
   const slot = MEDAL_SLOTS[tone];
-  const filled = fill === undefined ? undefined : MEDAL_FILLS[fill];
   const diameter = NIGHT_REPORT_MEDAL_SIZES[size];
   return (
     <View
@@ -162,10 +126,9 @@ function SeatMedal({ seat, size, tone = 'neutral', fill, dimmed, glyph }: SeatMe
         {
           width: diameter,
           height: diameter,
-          backgroundColor: filled?.bg ?? slot.bg,
-          borderColor: filled?.bg ?? slot.border,
+          backgroundColor: stamped === true ? P.stampMedal.bg : slot.bg,
+          borderColor: stamped === true ? P.stampMedal.bg : slot.border,
         },
-        dimmed ? styles.medalDimmed : null,
       ]}
     >
       <Text
@@ -173,164 +136,48 @@ function SeatMedal({ seat, size, tone = 'neutral', fill, dimmed, glyph }: SeatMe
           styles.medalText,
           {
             fontSize: MEDAL_TEXT_SIZES[size],
-            color: filled?.text ?? slot.text,
+            color: stamped === true ? P.stampMedal.text : slot.text,
           },
         ]}
       >
-        {glyph ?? seat + 1}
+        {seat + 1}
       </Text>
     </View>
   );
 }
 
-type TagTone = 'bad' | 'good' | 'info' | 'muted';
-
-/** Tone slots for figure tags and arrow verbs, from the palette tag slots. */
-const TAG_SLOTS: Record<TagTone, { readonly bg: string; readonly text: string }> = {
-  bad: P.tagBad,
-  good: P.tagGood,
-  info: P.tagInfo,
-  muted: P.tagMuted,
-};
-
-/** Faction tone of a role's figure tag (wolf red / god violet / folk green). */
-function figureTagToneForRole(roleId: RoleId): TagTone {
-  switch (ROLE_SPECS[roleId]?.faction) {
-    case Faction.Wolf:
-      return 'bad';
-    case Faction.God:
-      return 'info';
-    case Faction.Villager:
-      return 'good';
-    default:
-      return 'muted';
-  }
-}
-
-/** The role tag pill riding above a portrait. */
-function FigureTag({ text, tone }: { readonly text: string; readonly tone: TagTone }) {
-  const slot = TAG_SLOTS[tone];
-  return (
-    <View style={[styles.figureTag, { backgroundColor: slot.bg }]}>
-      <Text style={[styles.figureTagText, { color: slot.text }]}>{text}</Text>
-    </View>
-  );
-}
-
-type PortraitFigureProps =
-  | {
-      /** Tag text above the portrait. */
-      readonly tagText: string;
-      readonly tagTone: TagTone;
-      /** Role whose avatar is drawn. */
-      readonly roleId: RoleId;
-      /** Seat number below the portrait; absent for team / role-only figures. */
-      readonly seat?: number;
-      /** Dimmed portrait (seat out of the game). */
-      readonly dimmed?: boolean;
-      /** No tag pill (multi-portrait slots: tags would collide). */
-      readonly hideTag?: boolean;
-    }
-  | {
-      readonly tagText: string;
-      readonly tagTone: TagTone;
-      readonly roleId?: undefined;
-      /** Seat number inside the neutral disc (a faction check's target). */
-      readonly seat: number;
-      readonly dimmed?: boolean;
-      /** No tag pill (multi-portrait slots: tags would collide). */
-      readonly hideTag?: boolean;
-    };
-
 /**
- * One portrait figure: tag pill above, circular portrait, seat number
- * below. The tag is absolutely positioned and centered, so it overflows
- * symmetrically instead of widening the figure; the portrait carries a
- * fixed top margin for the tag's room. A figure with no roleId draws the
- * neutral numbered disc instead of role art (a faction check's target:
- * the entry carries a faction word, not an identity).
+ * One timeline sentence segment: plain body text, or one word in a
+ * faction color. A segment carries no other styling: there are no pills,
+ * no backgrounds, no muted tones in the timeline.
  */
-function PortraitFigure({ tagText, tagTone, roleId, seat, dimmed, hideTag }: PortraitFigureProps) {
-  const tone = roleId === undefined ? 'neutral' : medalToneForRole(roleId);
-  const slot = MEDAL_SLOTS[tone];
-  return (
-    <View style={[styles.figure, hideTag === true ? styles.figureBare : null]}>
-      {hideTag !== true && <FigureTag text={tagText} tone={tagTone} />}
-      {roleId === undefined ? (
-        <SeatMedal seat={seat} size="medium" tone="neutral" dimmed={dimmed} />
-      ) : (
-        <Image
-          source={getRoleAvatar(roleId)}
-          style={[
-            styles.portrait,
-            { borderColor: slot.border },
-            dimmed ? styles.portraitDimmed : null,
-          ]}
-          resizeMode="cover"
-        />
-      )}
-      {seat !== undefined && roleId !== undefined && (
-        <Text style={styles.figureSeat}>{seat + 1}</Text>
-      )}
-    </View>
-  );
-}
-
-/** The "no object" figure: a muted disc carrying ✗ (an unused potion, no target). */
-function CrossFigure() {
-  return (
-    <View style={styles.figure}>
-      <View style={styles.crossDisc}>
-        <Text style={styles.crossGlyph}>✗</Text>
-      </View>
-    </View>
-  );
-}
-
-/** The middle of a picture row: a big arrow over the verb, both centered. */
-function ArrowColumn({ verb, tone }: { readonly verb: string; readonly tone?: TagTone }) {
-  const color = tone === undefined ? P.text : TAG_SLOTS[tone].text;
-  return (
-    <View style={styles.arrowColumn}>
-      <Text style={[styles.arrowGlyph, { color }]}>→</Text>
-      <Text style={[styles.arrowVerb, { color }]}>{verb}</Text>
-    </View>
-  );
+interface TimelineSegment {
+  readonly text: string;
+  /** Theme faction color; absent renders in the body text color. */
+  readonly color?: string;
 }
 
 /**
- * One picture row: actor figure · arrow column · target slot. The target
- * slot holds one figure or a wrapping group of figures (multi-target
- * actions render portraits + seat numbers with no tags, so tags cannot
- * collide). A note line under the row is the caller's, centered.
+ * The one faction-color rule, in the render layer: a role's faction maps
+ * through the shared FACTION_COLOR_MAP to a theme color. An unknown
+ * faction renders uncolored rather than in a wrong color.
  */
-function PictureRow({
-  actor,
-  verb,
-  verbTone,
-  children,
-}: {
-  readonly actor: ReactNode;
-  readonly verb: string;
-  readonly verbTone?: TagTone;
-  readonly children: ReactNode;
-}) {
-  return (
-    <View style={styles.pictureRow}>
-      {actor}
-      <ArrowColumn verb={verb} tone={verbTone} />
-      {children}
-    </View>
-  );
+function factionColorForRole(roleId: RoleId): string | undefined {
+  const faction = ROLE_SPECS[roleId]?.faction;
+  if (faction === undefined) return undefined;
+  const key = FACTION_COLOR_MAP[faction];
+  return key === undefined ? undefined : colors[key];
 }
 
-/** Centered muted note line under a picture row (an outcome, a payload note). */
-function RowNote({ text, tone }: { readonly text: string; readonly tone?: TagTone }) {
-  return (
-    <Text style={[styles.rowNote, tone !== undefined ? { color: TAG_SLOTS[tone].text } : null]}>
-      {text}
-    </Text>
-  );
+/**
+ * Faction color for a faction-check result word. Only '狼人' carries a
+ * faction; '好人' is Team.Good (god + villager + third) and has no single
+ * faction color, so it stays in the body text color. Any label never seen
+ * before likewise stays uncolored — a label is display text, not a
+ * verdict, so no color is invented for it.
+ */
+function factionCheckResultColor(resultLabel: string): string | undefined {
+  return resultLabel === '狼人' ? colors.wolf : undefined;
 }
 
 function SectionTitle({ text }: { readonly text: string }) {
@@ -348,7 +195,7 @@ function identityRoleText(entry: NightReviewIdentityEntry): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Conclusion header: accent bar, masthead, headline, death stamps, ledger
+// Conclusion header: accent bar, masthead, headline, death stamps
 // ─────────────────────────────────────────────────────────────────────────────
 
 function DeathStamp({
@@ -370,7 +217,7 @@ function DeathStamp({
         : `${getRoleDisplayName(note.actorRoleId)}下毒`;
   return (
     <View style={styles.stamp}>
-      <SeatMedal seat={seat} size="large" fill="stamp" />
+      <SeatMedal seat={seat} size="large" stamped />
       <View style={styles.stampBody}>
         <Text style={styles.stampRole}>{identityRoleText(identity)}</Text>
         <Text style={styles.stampCause}>
@@ -384,36 +231,6 @@ function DeathStamp({
   );
 }
 
-/**
- * Four-column stats ledger. Each cell is one Text (numeral + line break +
- * label) so a zero count never surfaces as a bare 「0」 text node.
- */
-function StatsLedger({ stats }: { readonly stats: NightReportStats }) {
-  const cells: readonly { readonly label: string; readonly count: number }[] = [
-    { label: NIGHT_REPORT_STAT_LABELS.wolfKill, count: stats.wolfKills },
-    { label: NIGHT_REPORT_STAT_LABELS.poison, count: stats.poisonKills },
-    { label: NIGHT_REPORT_STAT_LABELS.save, count: stats.saves },
-    { label: NIGHT_REPORT_STAT_LABELS.check, count: stats.checks },
-  ];
-  return (
-    <View style={styles.ledger}>
-      {cells.map((cell, index) => (
-        <View
-          key={cell.label}
-          style={[styles.ledgerCell, index > 0 ? styles.ledgerCellDivided : null]}
-        >
-          <Text style={styles.ledgerLabel}>
-            <Text style={[styles.ledgerValue, cell.count === 0 ? styles.ledgerValueZero : null]}>
-              {cell.count}
-            </Text>
-            {`\n${cell.label}`}
-          </Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
 function ReportHeader({
   data,
   shareTitle,
@@ -422,7 +239,6 @@ function ReportHeader({
   readonly shareTitle: string | undefined;
 }) {
   const outcome = getNightReviewOutcome(data);
-  const stats = deriveNightReportStats(data);
   const deathNotes = deriveDeathNotes(data);
   const identitiesBySeat = new Map(data.identities.map((entry) => [entry.seat, entry]));
   return (
@@ -464,115 +280,15 @@ function ReportHeader({
           })}
         </View>
       )}
-      <StatsLedger stats={stats} />
     </View>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Standalone did-not-act rows
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Kinds that render as a dimmed did-not-act row when they stand alone. */
-const IDLE_KINDS: ReadonlySet<NightReviewActionEntry['kind']> = new Set([
-  'nightmareIdle',
-  'shelterIdle',
-  'hiddenWolfConfirmed',
-  'guardIdle',
-  'silenceIdle',
-  'votebanIdle',
-  'curseIdle',
-  'dreamIdle',
-  'swapIdle',
-  'charmIdle',
-  'hypnotizeIdle',
-  'checkIdle',
-  'learnIdle',
-  'avengerConfirmed',
-  'infectIdle',
-]);
-
-type PotionActor = 'witch' | 'poisoner';
-
-/** The potion family an entry belongs to, if any (one card per potion owner). */
-function potionActorOf(entry: NightReviewActionEntry): PotionActor | null {
-  switch (entry.kind) {
-    case 'save':
-    case 'witchIdleAll':
-    case 'witchNoSave':
-    case 'witchNoPoison':
-      return 'witch';
-    case 'poison':
-      return entry.actorRoleId;
-    case 'poisonerNoPoison':
-      return 'poisoner';
-    default:
-      return null;
-  }
-}
-
-type ReportBlock =
-  | { readonly type: 'card'; readonly entry: NightReviewActionEntry }
-  | {
-      readonly type: 'potion';
-      readonly actor: PotionActor;
-      readonly entries: readonly NightReviewActionEntry[];
-    }
-  | { readonly type: 'idle'; readonly entry: NightReviewActionEntry };
-
-function isWolfTeamKind(kind: NightReviewActionEntry['kind']): boolean {
-  return kind === 'wolfAttack' || kind === 'wolfNoTarget' || kind === 'wolfGiveUp';
-}
-
-/**
- * Turn the entries into blocks in night order (the engine's summary
- * order). The potion family merges into a single block per owner when
- * the owner used a potion; a family that did nothing at all dissolves
- * into idle rows. No faction grouping: the order on the page is the
- * order the night happened.
- */
-function groupEntries(actions: readonly NightReviewActionEntry[]): readonly ReportBlock[] {
-  const familyEffective = new Map<PotionActor, boolean>();
-  for (const entry of actions) {
-    const actor = potionActorOf(entry);
-    if (actor === null) continue;
-    if (entry.kind === 'save' || entry.kind === 'poison') familyEffective.set(actor, true);
-    else if (!familyEffective.has(actor)) familyEffective.set(actor, false);
-  }
-
-  const blocks: ReportBlock[] = [];
-  const potionBlocks = new Map<PotionActor, NightReviewActionEntry[]>();
-  for (const entry of actions) {
-    if (entry.kind === 'deaths' || entry.kind === 'peacefulNight') continue;
-    const actor = potionActorOf(entry);
-    if (actor !== null) {
-      if (familyEffective.get(actor)) {
-        let family = potionBlocks.get(actor);
-        if (family === undefined) {
-          family = [];
-          potionBlocks.set(actor, family);
-          blocks.push({ type: 'potion', actor, entries: family });
-        }
-        family.push(entry);
-      } else {
-        blocks.push({ type: 'idle', entry });
-      }
-      continue;
-    }
-    blocks.push(IDLE_KINDS.has(entry.kind) ? { type: 'idle', entry } : { type: 'card', entry });
-  }
-
-  return blocks;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Action rows
+// Timeline sentences
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface CardContext {
-  readonly deadSeats: ReadonlySet<number>;
-  /** The wolf target the witch left unsaved (witch row annotation). */
-  readonly wolfTargetSaveNote: { readonly wolfTargetSeat: number } | null;
   readonly identitiesBySeat: ReadonlyMap<number, NightReviewIdentityEntry>;
 }
 
@@ -585,615 +301,50 @@ function identityForSeat(seat: number, context: CardContext): NightReviewIdentit
   return identity;
 }
 
-/** A seat's figure: its true role's portrait and tag, dimmed when out. */
-function SeatFigure({
-  seat,
-  context,
-  showTag,
-}: {
-  readonly seat: number;
-  readonly context: CardContext;
-  readonly showTag: boolean;
-}) {
-  const identity = identityForSeat(seat, context);
-  const dimmed = context.deadSeats.has(seat);
-  if (identity.roleId === null) {
-    return (
-      <PortraitFigure
-        tagText={identityRoleText(identity)}
-        tagTone="muted"
-        seat={seat}
-        hideTag={!showTag}
-      />
-    );
+/**
+ * The seat holding a role, resolved from the identities: the reflectDamage
+ * entry carries the checker's role but no checker seat, and roles are
+ * unique among seated players.
+ */
+function seatForRole(roleId: RoleId, context: CardContext): number {
+  for (const identity of context.identitiesBySeat.values()) {
+    if (identity.roleId === roleId) return identity.seat;
   }
-  return (
-    <PortraitFigure
-      tagText={getRoleDisplayName(identity.roleId)}
-      tagTone={figureTagToneForRole(identity.roleId)}
-      roleId={identity.roleId}
-      seat={seat}
-      dimmed={dimmed}
-      hideTag={!showTag}
-    />
-  );
+  throw new Error(`[FAIL-FAST] Night review action names role ${roleId} with no seated identity`);
 }
 
-/** An actor's figure: role tag, role portrait, seat number. */
-function ActorFigure({
-  roleId,
-  seat,
-  context,
-}: {
-  readonly roleId: RoleId;
-  readonly seat: number;
-  readonly context: CardContext;
-}) {
-  return (
-    <PortraitFigure
-      tagText={getRoleDisplayName(roleId)}
-      tagTone={figureTagToneForRole(roleId)}
-      roleId={roleId}
-      seat={seat}
-      dimmed={context.deadSeats.has(seat)}
-    />
-  );
+type ActorRef = { readonly seat: number; readonly roleId: RoleId };
+
+/** The actor of an entry that acts; a missing actor is a fact error. */
+function actorOf(entry: NightReviewActionEntry): ActorRef {
+  if (!('actorSeat' in entry)) {
+    throw new Error(`[FAIL-FAST] Night review timeline row cannot head entry kind ${entry.kind}`);
+  }
+  const roleId = nightReviewActorRoleId(entry);
+  if (roleId === null) {
+    throw new Error(`[FAIL-FAST] Night review timeline row cannot head entry kind ${entry.kind}`);
+  }
+  return { seat: entry.actorSeat, roleId };
+}
+
+/** The sentence head: "N号<角色名>", always in the body text color. */
+function whoSegment(actor: ActorRef): TimelineSegment {
+  return { text: `${actor.seat + 1}号${getRoleDisplayName(actor.roleId)}` };
 }
 
 /**
- * One directed action as a picture row: actor figure · arrow + verb ·
- * target figure(s). The switch is exhaustive over the directed kinds;
- * warning, setup, idle, and determination kinds render elsewhere. A
- * result-bearing kind (check / learn) shows the result on the target
- * figure's tag — never the target's true identity.
+ * One directed verb + its plain tail: "X号<角色><动词>Y号。" with the
+ * verb in the actor's faction color and the tail uncolored.
  */
-function DirectedActionRow({
-  entry,
-  context,
-}: {
-  readonly entry: NightReviewActionEntry;
-  readonly context: CardContext;
-}) {
-  const actorRoleId = nightReviewActorRoleId(entry);
-  if (actorRoleId === null || !('actorSeat' in entry)) {
-    throw new Error(`[FAIL-FAST] Night review actor row cannot head entry kind ${entry.kind}`);
-  }
-  const actor = <ActorFigure roleId={actorRoleId} seat={entry.actorSeat} context={context} />;
-
-  switch (entry.kind) {
-    case 'nightmareBlock': {
-      const note =
-        entry.targetRoleId !== null
-          ? `（${getRoleDisplayName(entry.targetRoleId)}，技能无效）`
-          : null;
-      return (
-        <View>
-          <PictureRow actor={actor} verb="封锁">
-            <SeatFigure seat={entry.targetSeat} context={context} showTag />
-          </PictureRow>
-          {note !== null && <RowNote text={note} />}
-        </View>
-      );
-    }
-    case 'shelter':
-      return (
-        <PictureRow actor={actor} verb="庇护">
-          <SeatFigure seat={entry.targetSeat} context={context} showTag />
-        </PictureRow>
-      );
-    case 'guard':
-      return (
-        <PictureRow actor={actor} verb="守护">
-          <SeatFigure seat={entry.targetSeat} context={context} showTag />
-        </PictureRow>
-      );
-    case 'silence':
-      return (
-        <PictureRow actor={actor} verb="禁言">
-          <SeatFigure seat={entry.targetSeat} context={context} showTag />
-        </PictureRow>
-      );
-    case 'voteban':
-      return (
-        <PictureRow actor={actor} verb="禁票">
-          <SeatFigure seat={entry.targetSeat} context={context} showTag />
-        </PictureRow>
-      );
-    case 'curse':
-      return (
-        <PictureRow actor={actor} verb="诅咒">
-          <SeatFigure seat={entry.targetSeat} context={context} showTag />
-        </PictureRow>
-      );
-    case 'dream':
-      return (
-        <PictureRow actor={actor} verb="摄梦">
-          <SeatFigure seat={entry.targetSeat} context={context} showTag />
-        </PictureRow>
-      );
-    case 'swap':
-    case 'cupidLink': {
-      const verb = entry.kind === 'swap' ? '交换' : '连线';
-      return (
-        <PictureRow actor={actor} verb={verb}>
-          <View style={styles.figureGroup}>
-            <SeatFigure seat={entry.seats[0]} context={context} showTag={false} />
-            <Text style={styles.connector}>和</Text>
-            <SeatFigure seat={entry.seats[1]} context={context} showTag={false} />
-          </View>
-        </PictureRow>
-      );
-    }
-    case 'cardChoice':
-      return (
-        <PictureRow actor={actor} verb="选择了">
-          <PortraitFigure
-            tagText={getRoleDisplayName(entry.chosenRoleId)}
-            tagTone={figureTagToneForRole(entry.chosenRoleId)}
-            roleId={entry.chosenRoleId}
-          />
-        </PictureRow>
-      );
-    case 'idolChoice':
-      return (
-        <PictureRow actor={actor} verb="选择榜样">
-          <SeatFigure seat={entry.targetSeat} context={context} showTag />
-        </PictureRow>
-      );
-    case 'mimic':
-      return (
-        <View>
-          <PictureRow actor={actor} verb="模仿">
-            <SeatFigure seat={entry.targetSeat} context={context} showTag />
-          </PictureRow>
-          {entry.isBound && <RowNote text="绑定" tone="info" />}
-        </View>
-      );
-    case 'charm':
-      return (
-        <PictureRow actor={actor} verb="魅惑">
-          <SeatFigure seat={entry.targetSeat} context={context} showTag />
-        </PictureRow>
-      );
-    case 'convert':
-      return (
-        <PictureRow actor={actor} verb="转化">
-          <SeatFigure seat={entry.targetSeat} context={context} showTag />
-        </PictureRow>
-      );
-    case 'wolfGirlConfess':
-      return (
-        <PictureRow actor={actor} verb="表白">
-          <SeatFigure seat={entry.targetSeat} context={context} showTag />
-        </PictureRow>
-      );
-    case 'hypnotize':
-      return (
-        <PictureRow actor={actor} verb="催眠">
-          <View style={styles.figureGroup}>
-            {entry.targetSeats.map((seat) => (
-              <SeatFigure key={seat} seat={seat} context={context} showTag={false} />
-            ))}
-          </View>
-        </PictureRow>
-      );
-    case 'check': {
-      if (entry.resultFormat === 'factionCheck') {
-        const resultLabel = formatCheckResultLabel(entry.result, entry.resultFormat);
-        const tone = resultLabel === '狼人' ? 'bad' : resultLabel === '好人' ? 'good' : 'info';
-        return (
-          <PictureRow actor={actor} verb="查验" verbTone={tone}>
-            <PortraitFigure
-              tagText={resultLabel}
-              tagTone={tone}
-              seat={entry.targetSeat}
-              dimmed={context.deadSeats.has(entry.targetSeat)}
-            />
-          </PictureRow>
-        );
-      }
-      const resultLabel = formatCheckResultLabel(entry.result, entry.resultFormat);
-      if (!isValidRoleId(entry.result)) {
-        throw new Error(`[FAIL-FAST] Reveal result ${entry.result} is not a role id`);
-      }
-      return (
-        <PictureRow actor={actor} verb="查验" verbTone="info">
-          <PortraitFigure
-            tagText={resultLabel}
-            tagTone="info"
-            roleId={entry.result}
-            seat={entry.targetSeat}
-            dimmed={context.deadSeats.has(entry.targetSeat)}
-          />
-        </PictureRow>
-      );
-    }
-    case 'learn':
-      return (
-        <PictureRow actor={actor} verb="学习" verbTone="info">
-          <PortraitFigure
-            tagText={getRoleDisplayName(entry.learnedRoleId)}
-            tagTone="info"
-            roleId={entry.learnedRoleId}
-            seat={entry.targetSeat}
-            dimmed={context.deadSeats.has(entry.targetSeat)}
-          />
-        </PictureRow>
-      );
-    case 'shootStatus':
-      return (
-        <DeterminationRow
-          figure={<ActorFigure roleId={actorRoleId} seat={entry.actorSeat} context={context} />}
-          sentence={entry.canShoot ? '可以发动' : '不能发动'}
-          tone={entry.canShoot ? 'good' : 'muted'}
-        />
-      );
-    case 'infectConverted':
-      return (
-        <View>
-          <PictureRow actor={actor} verb="感染" verbTone="good">
-            <SeatFigure seat={entry.targetSeat} context={context} showTag />
-          </PictureRow>
-          <RowNote text="成功" tone="good" />
-        </View>
-      );
-    case 'infectFailed':
-      return (
-        <View>
-          <PictureRow actor={actor} verb="感染" verbTone="bad">
-            <SeatFigure seat={entry.targetSeat} context={context} showTag />
-          </PictureRow>
-          <RowNote text="失败" tone="bad" />
-        </View>
-      );
-    default:
-      throw new Error(`[FAIL-FAST] Night review actor row received unhandled kind ${entry.kind}`);
-  }
+function directedSegments(actor: ActorRef, verb: string, tail: string): readonly TimelineSegment[] {
+  return [
+    whoSegment(actor),
+    { text: verb, color: factionColorForRole(actor.roleId) },
+    { text: tail },
+  ];
 }
 
-/** One potion owner's card: the owner figure on the left, one line per potion. */
-function ResourceCard({
-  actor,
-  entries,
-  context,
-}: {
-  readonly actor: PotionActor;
-  readonly entries: readonly NightReviewActionEntry[];
-  readonly context: CardContext;
-}) {
-  const first = entries[0];
-  if (first === undefined || !('actorSeat' in first)) {
-    throw new Error('[FAIL-FAST] Night review potion card has no headed entry');
-  }
-  const lines: ReactNode[] = [];
-  for (const entry of entries) {
-    switch (entry.kind) {
-      case 'save':
-        lines.push(
-          <View key="save" style={styles.resourceLine}>
-            <ArrowColumn verb="使用解药救了" tone="good" />
-            <SeatFigure seat={entry.targetSeat} context={context} showTag />
-          </View>,
-        );
-        break;
-      case 'poison':
-        lines.push(
-          <View key="poison" style={styles.resourceLine}>
-            <ArrowColumn verb="毒杀" tone="bad" />
-            <SeatFigure seat={entry.targetSeat} context={context} showTag />
-          </View>,
-        );
-        break;
-      case 'witchNoSave':
-        lines.push(
-          <View key="witchNoSave" style={styles.resourceLine}>
-            <ArrowColumn verb="解药" tone="muted" />
-            <CrossFigure />
-          </View>,
-        );
-        lines.push(<RowNote key="witchNoSave-note" text="未使用" />);
-        break;
-      case 'witchNoPoison':
-        lines.push(
-          <View key="witchNoPoison" style={styles.resourceLine}>
-            <ArrowColumn verb="毒药" tone="muted" />
-            <CrossFigure />
-          </View>,
-        );
-        lines.push(<RowNote key="witchNoPoison-note" text="未使用" />);
-        break;
-      case 'poisonerNoPoison':
-        lines.push(
-          <View key="poisonerNoPoison" style={styles.resourceLine}>
-            <ArrowColumn verb="毒药" tone="muted" />
-            <CrossFigure />
-          </View>,
-        );
-        lines.push(<RowNote key="poisonerNoPoison-note" text="未使用" />);
-        break;
-      case 'witchIdleAll':
-        // Defensive only: the builder emits witchIdleAll solely when the
-        // family used nothing, so groupEntries dissolves it into an idle
-        // row and it never reaches this card. If it ever does, both
-        // potions draw as unused rather than dropping the fact.
-        lines.push(
-          <View key="witchIdleAll-antidote" style={styles.resourceLine}>
-            <ArrowColumn verb="解药" tone="muted" />
-            <CrossFigure />
-          </View>,
-          <View key="witchIdleAll-poison" style={styles.resourceLine}>
-            <ArrowColumn verb="毒药" tone="muted" />
-            <CrossFigure />
-          </View>,
-        );
-        lines.push(<RowNote key="witchIdleAll-note" text="未使用" />);
-        break;
-      default:
-        break;
-    }
-  }
-  const notes: ReactNode[] = [];
-  if (actor === 'witch' && context.wolfTargetSaveNote !== null) {
-    notes.push(<RowNote key="save-note" text="狼刀目标未救" />);
-  }
-  const poisonOut = entries.some(
-    (entry) => entry.kind === 'poison' && context.deadSeats.has(entry.targetSeat),
-  );
-  if (poisonOut) notes.push(<RowNote key="poison-out" text="目标出局" tone="bad" />);
-  return (
-    <View>
-      <View style={styles.resourceCard}>
-        <ActorFigure roleId={actor} seat={first.actorSeat} context={context} />
-        <View style={styles.resourceLines}>{lines}</View>
-      </View>
-      {notes}
-    </View>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Wolf team row
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface WolfVoteGroup {
-  readonly targetSeat: number;
-  readonly voterSeats: readonly number[];
-}
-
-/** Aggregate votes by target: most votes first, ties by target seat ascending. */
-function groupWolfVotes(
-  votes: readonly { readonly voterSeat: number; readonly targetSeat: number }[],
-): WolfVoteGroup[] {
-  const byTarget = new Map<number, number[]>();
-  for (const vote of votes) {
-    const list = byTarget.get(vote.targetSeat);
-    if (list) list.push(vote.voterSeat);
-    else byTarget.set(vote.targetSeat, [vote.voterSeat]);
-  }
-  return Array.from(byTarget.entries())
-    .map(([targetSeat, voterSeats]) => ({ targetSeat, voterSeats }))
-    .sort((a, b) => b.voterSeats.length - a.voterSeats.length || a.targetSeat - b.targetSeat);
-}
-
-function verdictText(verdict: NightReviewWolfVerdict): string {
-  switch (verdict.type) {
-    case 'sharedTarget':
-      return NIGHT_REPORT_WOLF_VERDICT_SHARED;
-    case 'splitKilled':
-      return NIGHT_REPORT_WOLF_VERDICT_SPLIT_KILLED;
-    case 'tiePicked':
-      return NIGHT_REPORT_WOLF_VERDICT_TIE_PICKED;
-    case 'splitTied':
-      return NIGHT_REPORT_WOLF_VERDICT_SPLIT_TIED;
-    case 'tiePending':
-      return NIGHT_REPORT_WOLF_VERDICT_TIE_PENDING;
-    case 'allAbstain':
-      return NIGHT_REPORT_WOLF_VERDICT_ALL_ABSTAIN;
-  }
-}
-
-/** The wolf team's picture row, vote diagram, and verdict sentence. */
-function WolfTeamRow({
-  entry,
-  context,
-}: {
-  readonly entry: NightReviewActionEntry;
-  readonly context: CardContext;
-}) {
-  const teamFigure = <PortraitFigure tagText="狼队" tagTone="bad" roleId="wolf" />;
-  if (entry.kind === 'wolfAttack') {
-    const verdict = deriveWolfVerdict(entry);
-    const resolvedTarget =
-      verdict.type === 'sharedTarget' ||
-      verdict.type === 'splitKilled' ||
-      verdict.type === 'tiePicked'
-        ? verdict.targetSeat
-        : undefined;
-    return (
-      <View>
-        <PictureRow actor={teamFigure} verb="爪击" verbTone="bad">
-          {resolvedTarget === undefined ? (
-            <CrossFigure />
-          ) : (
-            <SeatFigure seat={resolvedTarget} context={context} showTag />
-          )}
-        </PictureRow>
-        <View style={styles.voteDiagram}>
-          {groupWolfVotes(entry.votes).map((group) => (
-            <View key={group.targetSeat} style={styles.voteGroup}>
-              <View style={styles.voteVoters}>
-                {group.voterSeats.map((seat) => (
-                  <SeatMedal key={seat} seat={seat} size="small" />
-                ))}
-              </View>
-              <Text style={styles.voteDownArrow}>↓</Text>
-              <SeatMedal
-                seat={group.targetSeat}
-                size="small"
-                fill={group.targetSeat === resolvedTarget ? 'hit' : undefined}
-              />
-            </View>
-          ))}
-          {entry.abstainSeats.length > 0 && (
-            <View style={styles.voteGroup}>
-              <View style={styles.voteVoters}>
-                {entry.abstainSeats.map((seat) => (
-                  <SeatMedal key={seat} seat={seat} size="small" />
-                ))}
-              </View>
-              <Text style={styles.voteDownArrow}>↓</Text>
-              <Text style={styles.abstainText}>空刀</Text>
-            </View>
-          )}
-        </View>
-        <Text style={styles.verdictText}>{verdictText(verdict)}</Text>
-      </View>
-    );
-  }
-  if (entry.kind === 'wolfNoTarget') {
-    return (
-      <View>
-        <PictureRow actor={teamFigure} verb="爪击" verbTone="muted">
-          <CrossFigure />
-        </PictureRow>
-        <RowNote text="未选择目标" />
-      </View>
-    );
-  }
-  if (entry.kind === 'wolfGiveUp') {
-    return (
-      <View>
-        <PictureRow actor={teamFigure} verb="爪击" verbTone="muted">
-          <CrossFigure />
-        </PictureRow>
-        <RowNote
-          text={
-            entry.reason === 'poisonerPresent'
-              ? '毒师在场'
-              : `被${getRoleDisplayName('nightmare')}封锁`
-          }
-        />
-      </View>
-    );
-  }
-  throw new Error(`[FAIL-FAST] Night review wolf row received unhandled kind ${entry.kind}`);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Setup & warning rows (the neutral group)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** The bottom-cards setup line: label plus one role figure per card. */
-function SetupRow({ entry }: { readonly entry: NightReviewActionEntry }) {
-  if (entry.kind !== 'bottomCards') {
-    throw new Error(`[FAIL-FAST] Night review setup row received unhandled kind ${entry.kind}`);
-  }
-  return (
-    <View style={styles.setupRow}>
-      <Text style={styles.setupLabel}>底牌组成</Text>
-      <View style={styles.figureGroup}>
-        {entry.roleIds.map((roleId, index) => (
-          <PortraitFigure
-            key={`${roleId}-${index}`}
-            tagText={getRoleDisplayName(roleId)}
-            tagTone={figureTagToneForRole(roleId)}
-            roleId={roleId}
-          />
-        ))}
-      </View>
-    </View>
-  );
-}
-
-/** A portrait plus a status sentence: no action, a state to report. */
-function DeterminationRow({
-  figure,
-  sentence,
-  tone,
-  dimmed,
-}: {
-  readonly figure: ReactNode;
-  readonly sentence: string;
-  readonly tone?: TagTone;
-  readonly dimmed?: boolean;
-}) {
-  return (
-    <View style={[styles.determinationRow, dimmed === true ? styles.rowDimmed : null]}>
-      {figure}
-      <Text
-        style={[
-          styles.determinationSentence,
-          tone !== undefined ? { color: TAG_SLOTS[tone].text } : null,
-        ]}
-      >
-        {sentence}
-      </Text>
-    </View>
-  );
-}
-
-/** Relation / warning notes: both parties named, no actor invented. */
-function WarningRow({
-  entry,
-  context,
-}: {
-  readonly entry: NightReviewActionEntry;
-  readonly context: CardContext;
-}) {
-  switch (entry.kind) {
-    case 'guardSaveConflict':
-      return (
-        <DeterminationRow
-          figure={<SeatFigure seat={entry.targetSeat} context={context} showTag />}
-          sentence="⚠ 同守同救，仍然死亡"
-          tone="bad"
-        />
-      );
-    case 'poisonImmune':
-      return (
-        <DeterminationRow
-          figure={
-            <PortraitFigure
-              tagText={getRoleDisplayName(entry.targetRoleId)}
-              tagTone={figureTagToneForRole(entry.targetRoleId)}
-              roleId={entry.targetRoleId}
-              seat={entry.targetSeat}
-              dimmed={context.deadSeats.has(entry.targetSeat)}
-            />
-          }
-          sentence="免疫毒药"
-          tone="info"
-        />
-      );
-    case 'reflectDamage':
-      return (
-        <View>
-          <PictureRow
-            actor={
-              <PortraitFigure
-                tagText={getRoleDisplayName(entry.checkerRoleId)}
-                tagTone={figureTagToneForRole(entry.checkerRoleId)}
-                roleId={entry.checkerRoleId}
-              />
-            }
-            verb="查验"
-            verbTone="bad"
-          >
-            <SeatFigure seat={entry.targetSeat} context={context} showTag />
-          </PictureRow>
-          <RowNote text="反伤" tone="bad" />
-        </View>
-      );
-    default:
-      throw new Error(`[FAIL-FAST] Night review warning row received unhandled kind ${entry.kind}`);
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Did-not-act rows
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Idle / confirmation phrase per idle entry kind (subject is the row medal). */
+/** Idle / confirmation phrase per idle entry kind (subject is the sentence head). */
 function idlePhrase(entry: NightReviewActionEntry): string {
   switch (entry.kind) {
     case 'nightmareIdle':
@@ -1239,47 +390,447 @@ function idlePhrase(entry: NightReviewActionEntry): string {
   }
 }
 
-/** An idle actor: portrait plus its did-not-act phrase, dimmed. No tag, no ✗. */
-function IdleRow({
-  entry,
-  context,
-}: {
-  readonly entry: NightReviewActionEntry;
-  readonly context: CardContext;
-}) {
-  const roleId = nightReviewActorRoleId(entry);
-  if (roleId === null || !('actorSeat' in entry)) {
-    throw new Error(`[FAIL-FAST] Night review idle entry ${entry.kind} has no actor`);
+/** Aggregate votes by target: most votes first, ties by target seat ascending. */
+function groupWolfVotes(
+  votes: readonly { readonly voterSeat: number; readonly targetSeat: number }[],
+): readonly { readonly targetSeat: number; readonly voterSeats: readonly number[] }[] {
+  const byTarget = new Map<number, number[]>();
+  for (const vote of votes) {
+    const list = byTarget.get(vote.targetSeat);
+    if (list) list.push(vote.voterSeat);
+    else byTarget.set(vote.targetSeat, [vote.voterSeat]);
   }
-  return (
-    <DeterminationRow
-      figure={<ActorFigure roleId={roleId} seat={entry.actorSeat} context={context} />}
-      sentence={idlePhrase(entry)}
-      dimmed
-    />
-  );
+  return Array.from(byTarget.entries())
+    .map(([targetSeat, voterSeats]) => ({ targetSeat, voterSeats }))
+    .sort((a, b) => b.voterSeats.length - a.voterSeats.length || a.targetSeat - b.targetSeat);
+}
+
+/**
+ * The wolf team's one line. The voters name themselves in the shared-target
+ * parenthetical; a split vote lists the vote pairs in target-group order
+ * (most votes first, ties by target seat ascending) and the recorded
+ * verdict phrase; a split or pending vote colors nothing, because no
+ * resolved target exists to color. The entry's votes are display only:
+ * the verdict comes from deriveWolfVerdict, never from a tally.
+ */
+function wolfSegments(
+  entry: Extract<NightReviewActionEntry, { kind: 'wolfAttack' }>,
+): readonly TimelineSegment[] {
+  const verdict = deriveWolfVerdict(entry);
+  switch (verdict.type) {
+    case 'sharedTarget': {
+      const voters = entry.votes.map((vote) => vote.voterSeat);
+      return [
+        { text: `狼队（${voters.map((seat) => seat + 1).join('、')}号）` },
+        { text: `袭击${verdict.targetSeat + 1}号`, color: colors.wolf },
+        { text: '。' },
+      ];
+    }
+    case 'splitKilled':
+    case 'tiePicked':
+    case 'splitTied':
+    case 'tiePending': {
+      const pairs = groupWolfVotes(entry.votes)
+        .flatMap((group) =>
+          group.voterSeats.map((seat) => `${seat + 1}号投${group.targetSeat + 1}号`),
+        )
+        .join('、');
+      const tail =
+        verdict.type === 'splitKilled'
+          ? `按多数票击杀${verdict.targetSeat + 1}号`
+          : verdict.type === 'tiePicked'
+            ? `平票抽中${verdict.targetSeat + 1}号`
+            : verdict.type === 'splitTied'
+              ? '平票，未击杀'
+              : '平票，目标未记录';
+      const tailColor =
+        verdict.type === 'splitKilled' || verdict.type === 'tiePicked' ? colors.wolf : undefined;
+      return [
+        { text: `狼队投票不一致（${pairs}），` },
+        { text: tail, color: tailColor },
+        { text: '。' },
+      ];
+    }
+    case 'allAbstain':
+      return [{ text: '狼队全员空刀。' }];
+  }
+}
+
+/**
+ * One potion owner's one line: the owner head once, then one clause per
+ * potion — a used potion names its target in the owner's faction color,
+ * an unused potion reads as plain words. The two "未使用" clauses carry
+ * no ✗ and no separate note line.
+ */
+function potionSegments(
+  actor: PotionActor,
+  entries: readonly NightReviewActionEntry[],
+): readonly TimelineSegment[] {
+  const first = entries[0];
+  if (first === undefined || !('actorSeat' in first)) {
+    throw new Error('[FAIL-FAST] Night review potion row has no headed entry');
+  }
+  const segments: TimelineSegment[] = [
+    { text: `${first.actorSeat + 1}号${getRoleDisplayName(actor)}` },
+  ];
+  const color = factionColorForRole(actor);
+  for (const entry of entries) {
+    switch (entry.kind) {
+      case 'save':
+        segments.push({ text: `使用解药救起${entry.targetSeat + 1}号`, color }, { text: '。' });
+        break;
+      case 'poison':
+        segments.push({ text: `毒杀${entry.targetSeat + 1}号`, color }, { text: '。' });
+        break;
+      case 'witchNoSave':
+        segments.push({ text: '解药未使用。' });
+        break;
+      case 'witchNoPoison':
+      case 'poisonerNoPoison':
+        segments.push({ text: '毒药未使用。' });
+        break;
+      case 'witchIdleAll':
+        // Defensive only: the builder emits witchIdleAll solely when the
+        // family used nothing, so groupEntries dissolves it into an idle
+        // row and it never reaches this row. If it ever does, both
+        // potions read as unused rather than dropping the fact.
+        segments.push({ text: '解药未使用。毒药未使用。' });
+        break;
+      default:
+        break;
+    }
+  }
+  return segments;
+}
+
+/**
+ * One action as one timeline sentence. The switch is exhaustive over the
+ * 51 kinds; a potion entry (save / poison) only renders inside a potion
+ * row, and anything unhandled fails fast — a new kind with no sentence
+ * cannot slip into the report.
+ *
+ * Sentence grammar (one rule, not one sentence per kind): "X号<角色名>
+ * <动词>Y号", the verb in the actor's faction color; the exceptions are
+ * the wolf line, the warnings, the setup line, and the outcome line,
+ * each composed below from the same segments.
+ */
+function timelineSegments(
+  entry: NightReviewActionEntry,
+  context: CardContext,
+): readonly TimelineSegment[] {
+  // The kind is read once so the exhaustive default below can name it:
+  // inside the default arm the entry itself narrows to never.
+  const kind = entry.kind;
+  switch (entry.kind) {
+    case 'bottomCards': {
+      const segments: TimelineSegment[] = [{ text: '底牌：' }];
+      entry.roleIds.forEach((roleId, index) => {
+        if (index > 0) segments.push({ text: '、' });
+        segments.push({ text: getRoleDisplayName(roleId), color: factionColorForRole(roleId) });
+      });
+      segments.push({ text: '。' });
+      return segments;
+    }
+    case 'cardChoice': {
+      const actor = actorOf(entry);
+      return [
+        whoSegment(actor),
+        { text: '选择了', color: factionColorForRole(actor.roleId) },
+        {
+          text: getRoleDisplayName(entry.chosenRoleId),
+          color: factionColorForRole(entry.chosenRoleId),
+        },
+        { text: '。' },
+      ];
+    }
+    case 'cupidLink': {
+      const actor = actorOf(entry);
+      return directedSegments(actor, '连线', `${entry.seats[0] + 1}号和${entry.seats[1] + 1}号。`);
+    }
+    case 'wolfAttack':
+      return wolfSegments(entry);
+    case 'wolfNoTarget':
+      return [{ text: '狼队未选择目标。' }];
+    case 'wolfGiveUp':
+      return [
+        {
+          text:
+            entry.reason === 'poisonerPresent'
+              ? '狼队放弃袭击，毒师在场。'
+              : `狼队放弃袭击，被${getRoleDisplayName('nightmare')}封锁。`,
+        },
+      ];
+    case 'nightmareBlock': {
+      const actor = actorOf(entry);
+      const segments: TimelineSegment[] = [
+        whoSegment(actor),
+        { text: '封锁', color: factionColorForRole(actor.roleId) },
+        { text: `${entry.targetSeat + 1}号` },
+      ];
+      if (entry.targetRoleId !== null) {
+        segments.push({ text: `（${getRoleDisplayName(entry.targetRoleId)}，技能无效）` });
+      }
+      segments.push({ text: '。' });
+      return segments;
+    }
+    case 'shelter':
+      return directedSegments(actorOf(entry), '庇护', `${entry.targetSeat + 1}号。`);
+    case 'guard':
+      return directedSegments(actorOf(entry), '守护', `${entry.targetSeat + 1}号。`);
+    case 'silence':
+      return directedSegments(actorOf(entry), '禁言', `${entry.targetSeat + 1}号。`);
+    case 'voteban':
+      return directedSegments(actorOf(entry), '禁票', `${entry.targetSeat + 1}号。`);
+    case 'curse':
+      return directedSegments(actorOf(entry), '诅咒', `${entry.targetSeat + 1}号。`);
+    case 'dream':
+      return directedSegments(actorOf(entry), '摄梦', `${entry.targetSeat + 1}号。`);
+    case 'swap': {
+      const actor = actorOf(entry);
+      return directedSegments(actor, '交换', `${entry.seats[0] + 1}号和${entry.seats[1] + 1}号。`);
+    }
+    case 'idolChoice':
+      return directedSegments(actorOf(entry), '选择榜样', `${entry.targetSeat + 1}号。`);
+    case 'mimic': {
+      const actor = actorOf(entry);
+      return directedSegments(
+        actor,
+        '模仿',
+        entry.isBound ? `${entry.targetSeat + 1}号（绑定）。` : `${entry.targetSeat + 1}号。`,
+      );
+    }
+    case 'charm':
+      return directedSegments(actorOf(entry), '魅惑', `${entry.targetSeat + 1}号。`);
+    case 'convert':
+      return directedSegments(actorOf(entry), '转化', `${entry.targetSeat + 1}号。`);
+    case 'wolfGirlConfess':
+      return directedSegments(actorOf(entry), '表白', `${entry.targetSeat + 1}号。`);
+    case 'hypnotize': {
+      const actor = actorOf(entry);
+      return directedSegments(
+        actor,
+        '催眠',
+        `${entry.targetSeats.map((seat) => `${seat + 1}号`).join('、')}。`,
+      );
+    }
+    case 'check': {
+      const actor = actorOf(entry);
+      const label = formatCheckResultLabel(entry.result, entry.resultFormat);
+      if (entry.resultFormat === 'factionCheck') {
+        return [
+          whoSegment(actor),
+          { text: '查验', color: factionColorForRole(actor.roleId) },
+          { text: `${entry.targetSeat + 1}号，结果：` },
+          { text: label, color: factionCheckResultColor(label) },
+          { text: '。' },
+        ];
+      }
+      if (!isValidRoleId(entry.result)) {
+        throw new Error(`[FAIL-FAST] Reveal result ${entry.result} is not a role id`);
+      }
+      return [
+        whoSegment(actor),
+        { text: '查验', color: factionColorForRole(actor.roleId) },
+        { text: `${entry.targetSeat + 1}号，结果：` },
+        { text: label, color: factionColorForRole(entry.result) },
+        { text: '。' },
+      ];
+    }
+    case 'learn': {
+      const actor = actorOf(entry);
+      return [
+        whoSegment(actor),
+        { text: '学习', color: factionColorForRole(actor.roleId) },
+        { text: `${entry.targetSeat + 1}号，学到身份：` },
+        {
+          text: getRoleDisplayName(entry.learnedRoleId),
+          color: factionColorForRole(entry.learnedRoleId),
+        },
+        { text: '。' },
+      ];
+    }
+    case 'shootStatus': {
+      const actor = actorOf(entry);
+      return [
+        whoSegment(actor),
+        entry.canShoot
+          ? { text: '可以发动', color: factionColorForRole(actor.roleId) }
+          : { text: '不能发动' },
+        { text: '。' },
+      ];
+    }
+    case 'infectConverted': {
+      const actor = actorOf(entry);
+      return directedSegments(actor, '感染', `${entry.targetSeat + 1}号，成功。`);
+    }
+    case 'infectFailed': {
+      const actor = actorOf(entry);
+      return directedSegments(actor, '感染', `${entry.targetSeat + 1}号，失败。`);
+    }
+    case 'guardSaveConflict':
+      return [{ text: `${entry.targetSeat + 1}号同守同救，仍然死亡。` }];
+    case 'poisonImmune':
+      return [
+        { text: `${entry.targetSeat + 1}号` },
+        {
+          text: getRoleDisplayName(entry.targetRoleId),
+          color: factionColorForRole(entry.targetRoleId),
+        },
+        { text: '免疫毒药。' },
+      ];
+    case 'reflectDamage': {
+      const checker: ActorRef = {
+        seat: seatForRole(entry.checkerRoleId, context),
+        roleId: entry.checkerRoleId,
+      };
+      return directedSegments(checker, '查验', `${entry.targetSeat + 1}号，反伤。`);
+    }
+    case 'peacefulNight':
+      return [{ text: '本夜无人出局。' }];
+    case 'deaths': {
+      const segments: TimelineSegment[] = [];
+      entry.deaths.forEach((death, index) => {
+        if (index > 0) {
+          segments.push({ text: index === entry.deaths.length - 1 ? '和' : '、' });
+        }
+        const identity = identityForSeat(death.seat, context);
+        segments.push({
+          text: `${death.seat + 1}号`,
+          color: identity.roleId === null ? undefined : factionColorForRole(identity.roleId),
+        });
+      });
+      segments.push({ text: '出局。' });
+      return segments;
+    }
+    case 'nightmareIdle':
+    case 'shelterIdle':
+    case 'guardIdle':
+    case 'silenceIdle':
+    case 'votebanIdle':
+    case 'curseIdle':
+    case 'dreamIdle':
+    case 'swapIdle':
+    case 'charmIdle':
+    case 'hypnotizeIdle':
+    case 'checkIdle':
+    case 'learnIdle':
+    case 'infectIdle':
+    case 'witchIdleAll':
+    case 'witchNoSave':
+    case 'witchNoPoison':
+    case 'poisonerNoPoison': {
+      const actor = actorOf(entry);
+      return [whoSegment(actor), { text: idlePhrase(entry) }, { text: '。' }];
+    }
+    case 'hiddenWolfConfirmed':
+    case 'avengerConfirmed': {
+      const actor = actorOf(entry);
+      return [
+        whoSegment(actor),
+        { text: idlePhrase(entry), color: factionColorForRole(actor.roleId) },
+        { text: '。' },
+      ];
+    }
+    case 'save':
+    case 'poison':
+      throw new Error(
+        `[FAIL-FAST] Night review potion entry ${entry.kind} must render inside a potion row`,
+      );
+    default:
+      throw new Error(`[FAIL-FAST] Night review timeline row received unhandled kind ${kind}`);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Night block
+// Timeline grouping and rows
 // ─────────────────────────────────────────────────────────────────────────────
 
-function renderBlock(block: ReportBlock, context: CardContext): ReactNode {
-  if (block.type === 'potion') {
-    return <ResourceCard actor={block.actor} entries={block.entries} context={context} />;
+/** Kinds that render as a did-not-act sentence when they stand alone. */
+const IDLE_KINDS: ReadonlySet<NightReviewActionEntry['kind']> = new Set([
+  'nightmareIdle',
+  'shelterIdle',
+  'hiddenWolfConfirmed',
+  'guardIdle',
+  'silenceIdle',
+  'votebanIdle',
+  'curseIdle',
+  'dreamIdle',
+  'swapIdle',
+  'charmIdle',
+  'hypnotizeIdle',
+  'checkIdle',
+  'learnIdle',
+  'avengerConfirmed',
+  'infectIdle',
+]);
+
+type PotionActor = 'witch' | 'poisoner';
+
+/** The potion family an entry belongs to, if any (one row per potion owner). */
+function potionActorOf(entry: NightReviewActionEntry): PotionActor | null {
+  switch (entry.kind) {
+    case 'save':
+    case 'witchIdleAll':
+    case 'witchNoSave':
+    case 'witchNoPoison':
+      return 'witch';
+    case 'poison':
+      return entry.actorRoleId;
+    case 'poisonerNoPoison':
+      return 'poisoner';
+    default:
+      return null;
   }
-  if (block.type === 'idle') return <IdleRow entry={block.entry} context={context} />;
-  const { entry } = block;
-  if (isWolfTeamKind(entry.kind)) return <WolfTeamRow entry={entry} context={context} />;
-  if (entry.kind === 'bottomCards') return <SetupRow entry={entry} />;
-  if (
-    entry.kind === 'guardSaveConflict' ||
-    entry.kind === 'poisonImmune' ||
-    entry.kind === 'reflectDamage'
-  ) {
-    return <WarningRow entry={entry} context={context} />;
+}
+
+type ReportBlock =
+  | { readonly type: 'card'; readonly entry: NightReviewActionEntry }
+  | {
+      readonly type: 'potion';
+      readonly actor: PotionActor;
+      readonly entries: readonly NightReviewActionEntry[];
+    }
+  | { readonly type: 'idle'; readonly entry: NightReviewActionEntry };
+
+/**
+ * Turn the entries into blocks in night order (the engine's summary
+ * order). The potion family merges into a single block per owner when
+ * the owner used a potion; a family that did nothing at all dissolves
+ * into idle rows. The outcome entry (deaths / peacefulNight) stays in
+ * order — the builder emits it last, so it is the last row. No faction
+ * grouping: the order on the page is the order the night happened.
+ */
+function groupEntries(actions: readonly NightReviewActionEntry[]): readonly ReportBlock[] {
+  const familyEffective = new Map<PotionActor, boolean>();
+  for (const entry of actions) {
+    const actor = potionActorOf(entry);
+    if (actor === null) continue;
+    if (entry.kind === 'save' || entry.kind === 'poison') familyEffective.set(actor, true);
+    else if (!familyEffective.has(actor)) familyEffective.set(actor, false);
   }
-  return <DirectedActionRow entry={entry} context={context} />;
+
+  const blocks: ReportBlock[] = [];
+  const potionBlocks = new Map<PotionActor, NightReviewActionEntry[]>();
+  for (const entry of actions) {
+    const actor = potionActorOf(entry);
+    if (actor !== null) {
+      if (familyEffective.get(actor)) {
+        let family = potionBlocks.get(actor);
+        if (family === undefined) {
+          family = [];
+          potionBlocks.set(actor, family);
+          blocks.push({ type: 'potion', actor, entries: family });
+        }
+        family.push(entry);
+      } else {
+        blocks.push({ type: 'idle', entry });
+      }
+      continue;
+    }
+    blocks.push(IDLE_KINDS.has(entry.kind) ? { type: 'idle', entry } : { type: 'card', entry });
+  }
+
+  return blocks;
 }
 
 function blockKey(block: ReportBlock, index: number): string {
@@ -1287,8 +838,41 @@ function blockKey(block: ReportBlock, index: number): string {
   return `${block.type}-${block.entry.kind}-${index}`;
 }
 
-/** One night's picture rows in night order, behind a centered block header. */
-function NightBlock({
+/**
+ * One timeline row: a hollow dot on the rail, then the sentence. The
+ * rail below the dot runs to the next row's dot (the last row has none);
+ * the sentence's bottom padding carries the rail across the gap between
+ * rows, so the line reads as one continuous rail.
+ */
+function TimelineRow({
+  segments,
+  isLast,
+}: {
+  readonly segments: readonly TimelineSegment[];
+  readonly isLast: boolean;
+}) {
+  return (
+    <View style={styles.timelineRow}>
+      <View style={styles.timelineRailColumn}>
+        <View style={styles.timelineDot} />
+        {isLast ? null : <View style={styles.timelineRail} />}
+      </View>
+      <Text style={[styles.timelineText, isLast ? styles.timelineTextLast : null]}>
+        {segments.map((segment, index) => (
+          <Text
+            key={index}
+            style={segment.color === undefined ? undefined : { color: segment.color }}
+          >
+            {segment.text}
+          </Text>
+        ))}
+      </Text>
+    </View>
+  );
+}
+
+/** One night's timeline sentences in night order, under the section title. */
+function TimelineBlock({
   blocks,
   context,
 }: {
@@ -1296,13 +880,17 @@ function NightBlock({
   readonly context: CardContext;
 }) {
   return (
-    <View style={styles.blockCard}>
-      <Text style={styles.blockTitle}>{NIGHT_REPORT_NIGHT_BLOCK_TITLE}</Text>
-      <View style={styles.blockDivider} />
+    <View>
       {blocks.map((block, index) => (
-        <View key={blockKey(block, index)} style={index > 0 ? styles.blockSeparator : null}>
-          {renderBlock(block, context)}
-        </View>
+        <TimelineRow
+          key={blockKey(block, index)}
+          segments={
+            block.type === 'potion'
+              ? potionSegments(block.actor, block.entries)
+              : timelineSegments(block.entry, context)
+          }
+          isLast={index === blocks.length - 1}
+        />
       ))}
     </View>
   );
@@ -1362,10 +950,6 @@ export function NightReviewReportBody({ data, shareTitle }: NightReviewReportBod
   const blocks = groupEntries(data.actions);
   const context: CardContext = useMemo(
     () => ({
-      deadSeats: new Set(
-        data.identities.filter((entry) => !entry.isAlive).map((entry) => entry.seat),
-      ),
-      wolfTargetSaveNote: deriveWolfTargetSaveNote(data),
       identitiesBySeat: new Map(data.identities.map((entry) => [entry.seat, entry])),
     }),
     [data],
@@ -1375,17 +959,8 @@ export function NightReviewReportBody({ data, shareTitle }: NightReviewReportBod
     <View style={styles.root}>
       <ReportHeader data={data} shareTitle={shareTitle} />
       <View style={styles.page}>
-        <View style={styles.dayTabStrip}>
-          <View style={styles.dayTab}>
-            <Text style={styles.dayTabText}>{NIGHT_REPORT_DAY_TAB_LABEL}</Text>
-          </View>
-        </View>
-        <NightBlock blocks={blocks} context={context} />
-        <View style={styles.blockCard}>
-          <Text style={styles.blockTitle}>{NIGHT_REPORT_DAY_BLOCK_TITLE}</Text>
-          <View style={styles.blockDivider} />
-          <Text style={styles.dayEmptyText}>{NIGHT_REPORT_DAY_EMPTY_TEXT}</Text>
-        </View>
+        <SectionTitle text={NIGHT_REPORT_TIMELINE_TITLE} />
+        <TimelineBlock blocks={blocks} context={context} />
         {data.sheriff !== undefined && (
           <>
             <SectionTitle text={NIGHT_REPORT_SHERIFF_TITLE} />
@@ -1501,38 +1076,6 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.captionSmall,
     color: P.textMuted,
   },
-  ledger: {
-    flexDirection: 'row',
-    marginHorizontal: spacing.large,
-    borderTopWidth: fixed.divider,
-    borderBottomWidth: fixed.divider,
-    borderColor: P.rule,
-  },
-  ledgerCell: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: spacing.small,
-  },
-  ledgerCellDivided: {
-    borderLeftWidth: fixed.divider,
-    borderLeftColor: P.divider,
-  },
-  ledgerLabel: {
-    textAlign: 'center',
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    fontWeight: typography.weights.bold,
-    color: P.textSecondary,
-  },
-  ledgerValue: {
-    fontSize: typography.title,
-    lineHeight: typography.lineHeights.title,
-    fontWeight: typography.weights.bold,
-    color: P.text,
-  },
-  ledgerValueZero: {
-    color: P.textFaint,
-  },
   // ── Section titles ──
   sectionTitleRow: {
     flexDirection: 'row',
@@ -1551,46 +1094,38 @@ const styles = StyleSheet.create({
     height: fixed.divider,
     backgroundColor: P.cardBorder,
   },
-  // ── Day tabs + block cards ──
-  dayTabStrip: {
+  // ── Timeline ──
+  timelineRow: {
     flexDirection: 'row',
-  },
-  dayTab: {
-    backgroundColor: P.text,
-    borderRadius: borderRadius.small,
-    paddingHorizontal: spacing.medium,
-    paddingVertical: spacing.tight,
-  },
-  dayTabText: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    fontWeight: typography.weights.bold,
-    color: colors.textInverse,
-  },
-  blockCard: {
-    borderWidth: fixed.borderWidth,
-    borderColor: P.cardBorder,
-    borderRadius: borderRadius.small,
-    padding: spacing.medium,
     gap: spacing.small,
   },
-  blockTitle: {
-    fontSize: typography.body,
-    lineHeight: typography.lineHeights.body,
-    fontWeight: typography.weights.bold,
+  timelineRailColumn: {
+    width: spacing.small + spacing.tight,
+    alignItems: 'center',
+  },
+  timelineDot: {
+    width: spacing.small + spacing.tight,
+    height: spacing.small + spacing.tight,
+    marginTop: spacing.tight,
+    borderRadius: borderRadius.full,
+    borderWidth: fixed.borderWidth,
+    borderColor: P.textMuted,
+    backgroundColor: P.background,
+  },
+  timelineRail: {
+    flex: 1,
+    width: fixed.divider,
+    backgroundColor: P.divider,
+  },
+  timelineText: {
+    flex: 1,
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
     color: P.text,
-    textAlign: 'center',
+    paddingBottom: spacing.small,
   },
-  blockDivider: {
-    height: fixed.divider,
-    backgroundColor: P.cardBorder,
-  },
-  dayEmptyText: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    color: P.textMuted,
-    textAlign: 'center',
-    paddingVertical: spacing.small,
+  timelineTextLast: {
+    paddingBottom: 0,
   },
   // ── Sheriff group (panel section keeps its rail) ──
   group: {
@@ -1610,148 +1145,6 @@ const styles = StyleSheet.create({
   sheriffInner: {
     padding: spacing.medium,
   },
-  blockSeparator: {
-    borderTopWidth: fixed.divider,
-    borderTopColor: P.divider,
-  },
-  rowDimmed: {
-    opacity: fixed.disabledOpacity,
-  },
-  // ── Portrait figures + picture rows ──
-  figure: {
-    alignItems: 'center',
-    paddingTop: spacing.medium,
-  },
-  figureBare: {
-    paddingTop: 0,
-  },
-  figureTag: {
-    position: 'absolute',
-    top: 0,
-    alignSelf: 'center',
-    borderRadius: borderRadius.small,
-    paddingHorizontal: spacing.small,
-    paddingVertical: spacing.tight,
-  },
-  figureTagText: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    fontWeight: typography.weights.bold,
-    textAlign: 'center',
-  },
-  portrait: {
-    width: NIGHT_REPORT_MEDAL_SIZES.medium,
-    height: NIGHT_REPORT_MEDAL_SIZES.medium,
-    borderRadius: borderRadius.full,
-    borderWidth: fixed.borderWidth,
-  },
-  portraitDimmed: {
-    opacity: fixed.disabledOpacity,
-  },
-  figureSeat: {
-    marginTop: spacing.micro,
-    fontSize: typography.secondary,
-    lineHeight: typography.lineHeights.secondary,
-    fontWeight: typography.weights.bold,
-    color: P.text,
-    textAlign: 'center',
-  },
-  crossDisc: {
-    width: NIGHT_REPORT_MEDAL_SIZES.medium,
-    height: NIGHT_REPORT_MEDAL_SIZES.medium,
-    borderRadius: borderRadius.full,
-    borderWidth: fixed.borderWidth,
-    borderColor: P.medalNeutral.border,
-    backgroundColor: P.medalNeutral.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  crossGlyph: {
-    fontSize: typography.secondary,
-    lineHeight: typography.lineHeights.secondary,
-    fontWeight: typography.weights.bold,
-    color: P.textMuted,
-    textAlign: 'center',
-  },
-  pictureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.small,
-  },
-  arrowColumn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.tight,
-  },
-  arrowGlyph: {
-    fontSize: typography.title,
-    lineHeight: typography.lineHeights.title,
-    fontWeight: typography.weights.bold,
-    textAlign: 'center',
-  },
-  arrowVerb: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    fontWeight: typography.weights.semibold,
-    textAlign: 'center',
-  },
-  figureGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: spacing.tight,
-  },
-  connector: {
-    fontSize: typography.secondary,
-    lineHeight: typography.lineHeights.secondary,
-    color: P.textSecondary,
-  },
-  rowNote: {
-    marginTop: spacing.tight,
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    color: P.textMuted,
-    textAlign: 'center',
-  },
-  // ── Resource cards + determination rows ──
-  resourceCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.small,
-  },
-  resourceLines: {
-    flex: 1,
-    gap: spacing.small,
-  },
-  resourceLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.small,
-  },
-  determinationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.small,
-  },
-  determinationSentence: {
-    flex: 1,
-    fontSize: typography.secondary,
-    lineHeight: typography.lineHeights.secondary,
-    color: P.textSecondary,
-  },
-  setupRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: spacing.small,
-  },
-  setupLabel: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    fontWeight: typography.weights.bold,
-    color: P.text,
-  },
   medal: {
     borderRadius: borderRadius.full,
     borderWidth: fixed.borderWidth,
@@ -1760,48 +1153,6 @@ const styles = StyleSheet.create({
   },
   medalText: {
     fontWeight: typography.weights.bold,
-    textAlign: 'center',
-  },
-  medalDimmed: {
-    opacity: fixed.disabledOpacity,
-  },
-  // ── Wolf vote diagram ──
-  voteDiagram: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: spacing.medium,
-    marginTop: spacing.small,
-  },
-  voteGroup: {
-    alignItems: 'center',
-    gap: spacing.micro,
-  },
-  voteVoters: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: spacing.tight,
-  },
-  voteDownArrow: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    color: P.textMuted,
-    textAlign: 'center',
-  },
-  abstainText: {
-    fontSize: typography.secondary,
-    lineHeight: typography.lineHeights.secondary,
-    fontWeight: typography.weights.semibold,
-    color: P.textSecondary,
-  },
-  verdictText: {
-    marginTop: spacing.tight,
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    fontWeight: typography.weights.bold,
-    color: P.medalWolf.text,
     textAlign: 'center',
   },
   // ── Perforation + roster ──
