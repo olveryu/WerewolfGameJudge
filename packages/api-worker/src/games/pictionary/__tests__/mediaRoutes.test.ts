@@ -89,6 +89,25 @@ async function dispatchCommand(
   return result.snapshot.state;
 }
 
+/**
+ * Advances the live transition through its parked settle row (alarm
+ * path): this fixture sets `transitionDurationSeconds: 0`, so the
+ * transition row is already due the moment it is parked and the room
+ * alarm drains it. If the runtime already fired the alarm between the
+ * submits and this call, the drain is a no-op and the fresh read
+ * below still returns the advanced phase — either way the phase has
+ * moved on. No state or row is rewritten here.
+ */
+async function advancePhaseViaAlarm(room: RoomIdentity): Promise<PictionaryState> {
+  const stub = env.GAME_ROOM.get(env.GAME_ROOM.idFromString(room.roomId));
+  await runInDurableObject(stub, async (instance: GameRoomRuntime) => {
+    await instance.alarm();
+  });
+  const snapshot = await stub.getSnapshot({ ...room, creationId: 'pictionary-media-bot-control' });
+  if (snapshot === null) throw new Error('Pictionary test room is missing');
+  return PICTIONARY_STATE_CODEC.parse(snapshot.state);
+}
+
 function createTestPng(): Uint8Array<ArrayBuffer> {
   const bytes = new Uint8Array(24);
   bytes.set([137, 80, 78, 71, 13, 10, 26, 10], 0);
@@ -209,15 +228,7 @@ describe('Pictionary current persisted relay state', () => {
         seat === 0 ? null : seat,
       );
     }
-    state = await dispatchCommand(
-      room,
-      host.access_token,
-      {
-        type: 'pictionary.phase.expire',
-        phaseRevision: state.phaseRevision,
-      },
-      null,
-    );
+    state = await advancePhaseViaAlarm(room);
     state = await markEverySeatReady(room, host.access_token, state);
     state = await dispatchCommand(
       room,
@@ -325,12 +336,7 @@ describe('Pictionary spectator media', () => {
               )
             : await commitSeatDrawing(room, host.access_token, seat, seat === 0 ? null : seat);
       }
-      state = await dispatchCommand(
-        room,
-        host.access_token,
-        { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
-        null,
-      );
+      state = await advancePhaseViaAlarm(room);
     }
     expect(state).toMatchObject({ phase: 'answering', stepIndex: 2 });
     const entry = state.chains
@@ -401,12 +407,7 @@ describe('Pictionary spectator media', () => {
     expect(
       state.chains.flatMap((chain) => chain.entries).filter((entry) => entry.kind === 'missed'),
     ).toHaveLength(3);
-    state = await dispatchCommand(
-      room,
-      host.access_token,
-      { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
-      null,
-    );
+    state = await advancePhaseViaAlarm(room);
     state = await markEverySeatReady(room, host.access_token, state);
     state = await commitSeatDrawing(room, host.access_token, 0, null);
     const accepted = state.chains
@@ -470,12 +471,7 @@ describe('Pictionary controlled bot media', () => {
       );
     }
     expect(state.phase).toBe('transition');
-    state = await dispatchCommand(
-      room,
-      host.access_token,
-      { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
-      null,
-    );
+    state = await advancePhaseViaAlarm(room);
     expect(state).toMatchObject({ phase: 'answering', stepIndex: 1 });
     state = await markEverySeatReady(room, host.access_token, state);
 
@@ -516,12 +512,7 @@ describe('Pictionary controlled bot media', () => {
     state = await commitSeatDrawing(room, host.access_token, 2, 2);
     state = await commitSeatDrawing(room, host.access_token, 3, 3);
     expect(state.phase).toBe('transition');
-    state = await dispatchCommand(
-      room,
-      host.access_token,
-      { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
-      null,
-    );
+    state = await advancePhaseViaAlarm(room);
     expect(state).toMatchObject({ phase: 'answering', stepIndex: 2 });
 
     const lateReplay = await putDrawing(room, host.access_token, botReservation, '1');

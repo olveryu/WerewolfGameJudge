@@ -3,8 +3,8 @@
  * Object: arming a phase deadline parks a `drawguess.settle.due` row
  * in the effect outbox with `available_at` at the deadline and the
  * room alarm set to it; when the alarm fires, the effect settles the
- * phase through the internal system command — no client needs to
- * submit phase.expire. A compressed deadline re-arms with a fresh
+ * phase through the internal system command — no client sends expiry
+ * at all. A compressed deadline re-arms with a fresh
  * row, and the parked old row no-ops when it later comes due.
  */
 
@@ -188,25 +188,6 @@ async function fireAlarm(stub: DurableObjectStub<GameRoom>): Promise<void> {
 }
 
 /** Moves the persisted phase deadline into the past, leaving parked effect rows alone. */
-async function movePhaseDeadlineToPast(
-  stub: DurableObjectStub<GameRoom>,
-  pastDeadlineAt: number,
-): Promise<void> {
-  await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-    const roomRow = state.storage.sql
-      .exec<{ game_state: string }>('SELECT game_state FROM room_state WHERE id = 1')
-      .one();
-    const gameState = JSON.parse(roomRow.game_state) as {
-      phase: { deadlineAt: number | null };
-    };
-    gameState.phase.deadlineAt = pastDeadlineAt;
-    state.storage.sql.exec(
-      'UPDATE room_state SET game_state = ? WHERE id = 1',
-      JSON.stringify(gameState),
-    );
-  });
-}
-
 /**
  * Makes one parked settle row due. When `shiftPayload` is set, the
  * deadline pinned inside the effect payload and the persisted phase
@@ -385,23 +366,22 @@ describe('DrawGuess scheduled settle (Durable Object)', () => {
     expect(remaining.map((row) => row.business_key)).not.toContain(oldRow.business_key);
   });
 
-  it('does not double-settle when a client expire wins the race', async () => {
+  it('does not double-settle when the phase advances before its parked settle row arrives', async () => {
     const stub = getStub();
     const armed = await armedWordSelectRoom(stub);
     const rows = await readSettleRows(stub);
     expect(rows).toHaveLength(1);
-    // Move only the phase deadline into the past so the client's
-    // public expire is due, and let the client settle first.
-    await movePhaseDeadlineToPast(stub, Date.now() - 1000);
-    requireCommitted(
-      await dispatch(stub, HOST, {
-        type: 'drawguess.phase.expire',
-        phaseRevision: armed.phaseRevision,
-        turnIndex: armed.turnIndex,
-      }),
-    );
+    // Advance through a game action instead of the deleted client
+    // expire: the host deals the word, moving wordSelect to drawing.
+    // The wordSelect settle row stays parked and stale.
+    await send(stub, HOST, {
+      type: 'drawguess.word.choose',
+      word: CHOICES[0].word,
+      phaseRevision: armed.phaseRevision,
+      turnIndex: armed.turnIndex,
+    });
     expect((await readState(stub)).phase.kind).toBe('drawing');
-    const revisionAfterClient = (await stub.getSnapshot(roomIdentity(stub)))?.revision;
+    const revisionAfterChoose = (await stub.getSnapshot(roomIdentity(stub)))?.revision;
 
     // The scheduled delivery now arrives for an arming that is gone:
     // it must consume the effect without settling anything again,
@@ -409,7 +389,7 @@ describe('DrawGuess scheduled settle (Durable Object)', () => {
     await makeRowDue(stub, rows[0].business_key, Date.now() - 1000, false);
     await fireAlarm(stub);
     expect((await readState(stub)).phase.kind).toBe('drawing');
-    expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(revisionAfterClient);
+    expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(revisionAfterChoose);
     const remaining = await readSettleRows(stub);
     expect(remaining).toHaveLength(1);
     expect(remaining[0]?.business_key).not.toBe(rows[0].business_key);

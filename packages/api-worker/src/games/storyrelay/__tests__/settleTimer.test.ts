@@ -268,28 +268,13 @@ async function submitAll(
   }
 }
 
-/** Moves the live phase deadline into the past so a public expire is due. */
-async function expirePhase(
+/** Settles the live phase through its parked settle row (alarm path). */
+async function settlePhase(
   stub: DurableObjectStub<GameRoom>,
   state: StoryRelayState,
 ): Promise<StoryRelayState> {
-  await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-    const roomRow = state.storage.sql
-      .exec<{ game_state: string }>('SELECT game_state FROM room_state WHERE id = 1')
-      .one();
-    const gameState = JSON.parse(roomRow.game_state) as { deadlineAt: number | null };
-    gameState.deadlineAt = Date.now() - 1000;
-    state.storage.sql.exec(
-      'UPDATE room_state SET game_state = ? WHERE id = 1',
-      JSON.stringify(gameState),
-    );
-  });
-  requireCommitted(
-    await dispatch(stub, {
-      type: 'storyrelay.phase.expire',
-      phaseRevision: state.phaseRevision,
-    }),
-  );
+  await fastForwardArmedDeadline(stub, settleKey(state), Date.now() - 1000);
+  await fireAlarm(stub);
   return readState(stub);
 }
 
@@ -346,39 +331,25 @@ describe('Story Relay scheduled settle (Durable Object)', () => {
     expect((await readSettleRow(stub, answeringKey))?.available_at).toBe(state.deadlineAt);
   });
 
-  it('does not double-settle when a client expire wins the race', async () => {
+  it('does not double-settle when the phase advances before its parked settle row arrives', async () => {
     const stub = getStub();
     const armed = await armedAnsweringRoom(stub);
     const key = settleKey(armed);
-    // Move only the phase deadline into the past so the client's public
-    // expire is due, and let the client settle first.
-    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-      const roomRow = state.storage.sql
-        .exec<{ game_state: string }>('SELECT game_state FROM room_state WHERE id = 1')
-        .one();
-      const gameState = JSON.parse(roomRow.game_state) as { deadlineAt: number | null };
-      gameState.deadlineAt = Date.now() - 1000;
-      state.storage.sql.exec(
-        'UPDATE room_state SET game_state = ? WHERE id = 1',
-        JSON.stringify(gameState),
-      );
-    });
-    requireCommitted(
-      await dispatch(stub, {
-        type: 'storyrelay.phase.expire',
-        phaseRevision: armed.phaseRevision,
-      }),
-    );
+    // Advance through game actions instead of the deleted client
+    // expire: every seat marks ready and submits, moving answering
+    // to transition. The answering settle row stays parked and stale.
+    await readyAll(stub, armed);
+    await submitAll(stub, armed, 0);
     const settled = await readState(stub);
-    expect(settled.phase).toBe('settling');
-    const revisionAfterClient = (await stub.getSnapshot(roomIdentity(stub)))?.revision;
+    expect(settled.phase).toBe('transition');
+    const revisionAfterSubmit = (await stub.getSnapshot(roomIdentity(stub)))?.revision;
 
     // The scheduled delivery now arrives for an arming that is gone:
     // it must consume the effect without settling anything again.
     await fastForwardRowOnly(stub, key);
     await fireAlarm(stub);
-    expect((await readState(stub)).phase).toBe('settling');
-    expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(revisionAfterClient);
+    expect((await readState(stub)).phase).toBe('transition');
+    expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(revisionAfterSubmit);
     expect(await readSettleRow(stub, key)).toBeNull();
   });
 
@@ -391,7 +362,7 @@ describe('Story Relay scheduled settle (Durable Object)', () => {
       await readyAll(stub, state);
       await submitAll(stub, state, step);
       state = await readState(stub);
-      state = await expirePhase(stub, state);
+      state = await settlePhase(stub, state);
     }
     expect(state.phase).toBe('gallery');
     expect(state.gallery).toMatchObject({ position: 0, isPlaying: true });

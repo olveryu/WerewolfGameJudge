@@ -305,35 +305,23 @@ describe('Avalon scheduled settle (Durable Object)', () => {
     expect(await readSettleRow(stub, 'quest')).toBeNull();
   });
 
-  it('does not double-settle when a client timeout wins the race', async () => {
+  it('does not double-settle a parked row after the game is aborted', async () => {
     const stub = getStub();
     await armedVoteRoom(stub);
-    // Move only the phase deadline into the past so the client's public
-    // timeout is due, and let the client settle first.
-    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-      const roomRow = state.storage.sql
-        .exec<{ game_state: string }>('SELECT game_state FROM room_state WHERE id = 1')
-        .one();
-      const gameState = JSON.parse(roomRow.game_state) as {
-        phase: { deadlineAt: number | null };
-      };
-      gameState.phase.deadlineAt = Date.now() - 1000;
-      state.storage.sql.exec(
-        'UPDATE room_state SET game_state = ? WHERE id = 1',
-        JSON.stringify(gameState),
-      );
-    });
-    requireCommitted(await dispatch(stub, seatUser(2), { type: 'avalon.phase.expire' }));
-    const settled = await readState(stub);
-    expect(settled.phase.kind).toBe('quest');
-    const revisionAfterClient = (await stub.getSnapshot(roomIdentity(stub)))?.revision;
+    // Aborting returns the room to the lobby and leaves the parked
+    // vote settle row behind — its arming no longer exists, so the
+    // row's later delivery must no-op instead of settling anything.
+    await ackAudio(stub);
+    await send(stub, HOST, { type: 'avalon.game.abort' });
+    const aborted = await readState(stub);
+    expect(aborted.phase.kind).toBe('lobby');
+    expect(await readSettleRow(stub, 'vote')).not.toBeNull();
+    const revisionAfterAbort = (await stub.getSnapshot(roomIdentity(stub)))?.revision;
 
-    // The scheduled delivery now arrives for an arming that is gone:
-    // it must consume the effect without settling anything again.
     await fastForwardQuestPhaseDeadlineFree(stub);
     await fireAlarm(stub);
-    expect((await readState(stub)).phase.kind).toBe('quest');
-    expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(revisionAfterClient);
+    expect((await readState(stub)).phase.kind).toBe('lobby');
+    expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(revisionAfterAbort);
     expect(await readSettleRow(stub, 'vote')).toBeNull();
   });
 });

@@ -9,6 +9,7 @@
  */
 
 import {
+  getPictionaryTaskForSeat,
   PICTIONARY_STATE_CODEC,
   type PictionaryPublicCommand,
   type PictionaryState,
@@ -132,6 +133,22 @@ async function armedAnsweringRoom(stub: DurableObjectStub<GameRoom>): Promise<Pi
     throw new Error('Expected an armed answering phase');
   }
   return state;
+}
+
+/** Marks every seat's task ready, advancing answering to settling through game actions. */
+async function readyAll(stub: DurableObjectStub<GameRoom>, state: PictionaryState): Promise<void> {
+  if (state.roundId === null) throw new Error('Expected an armed round');
+  for (let seat = 0; seat < 4; seat += 1) {
+    const task = getPictionaryTaskForSeat(state, seat);
+    if (task === null) throw new Error('Expected current drawing task');
+    await send(stub, seatUser(seat), {
+      type: 'pictionary.task.ready.set',
+      roundId: state.roundId,
+      stepIndex: state.stepIndex,
+      chainId: task.chain.id,
+      isReady: true,
+    });
+  }
 }
 
 interface SettleRow {
@@ -261,31 +278,16 @@ describe('Pictionary scheduled settle (Durable Object)', () => {
     expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(revisionAfter);
   });
 
-  it('does not double-settle when a client expire wins the race', async () => {
+  it('does not double-settle when the phase advances before its parked settle row arrives', async () => {
     const stub = getStub();
     const armed = await armedAnsweringRoom(stub);
-    // Move only the phase deadline into the past so the client's
-    // public expire is due, and let the client settle first.
-    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-      const roomRow = state.storage.sql
-        .exec<{ game_state: string }>('SELECT game_state FROM room_state WHERE id = 1')
-        .one();
-      const gameState = JSON.parse(roomRow.game_state) as { deadlineAt: number | null };
-      gameState.deadlineAt = Date.now() - 1000;
-      state.storage.sql.exec(
-        'UPDATE room_state SET game_state = ? WHERE id = 1',
-        JSON.stringify(gameState),
-      );
-    });
-    requireCommitted(
-      await dispatch(stub, seatUser(2), {
-        type: 'pictionary.phase.expire',
-        phaseRevision: armed.phaseRevision,
-      }),
-    );
+    // Advance through game actions instead of the deleted client
+    // expire: every seat marks its task ready, moving answering to
+    // settling. The answering settle row stays parked and stale.
+    await readyAll(stub, armed);
     const settled = await readState(stub);
     expect(settled.phase).toBe('settling');
-    const revisionAfterClient = (await stub.getSnapshot(roomIdentity(stub)))?.revision;
+    const revisionAfterReady = (await stub.getSnapshot(roomIdentity(stub)))?.revision;
 
     // The scheduled delivery now arrives for an arming that is
     // gone: it must consume the effect without settling anything
@@ -301,7 +303,7 @@ describe('Pictionary scheduled settle (Durable Object)', () => {
     });
     await fireAlarm(stub);
     expect((await readState(stub)).phase).toBe('settling');
-    expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(revisionAfterClient);
+    expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(revisionAfterReady);
     expect(await readSettleRow(stub)).toBeNull();
   });
 
