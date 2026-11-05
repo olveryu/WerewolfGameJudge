@@ -5,19 +5,18 @@
  * The overdue decision lives once in `useStageDeadline` (`isOverdue`:
  * deadline passed + `SETTLE_RETRY_GRACE_MS`); this component only
  * renders it. It shows nothing while the countdown is running or while
- * there is no deadline. Once overdue it shows the game's waiting
- * sentence; the host additionally gets a retry button that re-drives
+ * there is no deadline. At zero it always shows the game's waiting
+ * sentence — before the grace elapses that is all it shows (the server
+ * alarm can arrive seconds late, so zero alone is not a stuck phase);
+ * once overdue the host additionally gets a retry button that re-drives
  * the current phase's settle through the game's existing settle
- * dispatch (`<game>.phase.retrySettle`). Non-hosts see a
+ * dispatch (`<game>.phase.retrySettle`), while non-hosts see a
  * waiting-for-host hint, never the button. The retry is not an expire
  * send. A rejection surfaces through the room's existing submit
  * pipeline (the game's failure message), a transport failure through
  * its error pipeline — this component adds no feedback of its own.
  *
  * Content layer: the sentences are props — each game passes its own.
- * (The pre-grace waiting text, `remainingSeconds === 0` before the
- * grace elapses, lands in the C commit; this commit renders only the
- * overdue states.)
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -57,7 +56,17 @@ export const StageSettleRescue: React.FC<StageSettleRescueProps> = ({
   retryLabel = '重新推进',
   waitingForHostLabel = '等待房主处理',
 }) => {
-  if (remainingSeconds === null || remainingSeconds > 0 || !isOverdue) return null;
+  if (remainingSeconds === null || remainingSeconds > 0) return null;
+  if (!isOverdue) {
+    // Countdown at zero inside the grace window: the server settle may
+    // still be in flight, so show only the waiting sentence — no retry
+    // button, no host hint. The same sentence for host and non-host.
+    return (
+      <View style={styles.container} testID={TESTIDS.stageSettleRescue}>
+        <Text style={styles.waiting}>{waitingLabel}</Text>
+      </View>
+    );
+  }
   return (
     <View style={styles.container} testID={TESTIDS.stageSettleRescue}>
       <Text style={styles.waiting}>{waitingLabel}</Text>

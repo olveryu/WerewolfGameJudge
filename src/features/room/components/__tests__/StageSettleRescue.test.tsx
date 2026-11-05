@@ -1,10 +1,11 @@
 /**
- * StageSettleRescue (D3 follow-up): the one host self-rescue display
- * for an overdue stage deadline. The overdue decision lives in
+ * StageSettleRescue (D3 follow-up): the one host self-rescue / waiting
+ * display for a stage deadline at zero. The overdue decision lives in
  * `useStageDeadline`; this pins the rendering only: nothing while the
- * countdown runs or without a deadline, nothing before the grace
- * elapses, the waiting sentence plus the retry button for the host
- * once overdue, and the waiting-for-host hint (never the button) for
+ * countdown runs or without a deadline, only the waiting sentence at
+ * zero before the grace elapses (no button, no hint, host or not),
+ * the waiting sentence plus the retry button for the host once
+ * overdue, and the waiting-for-host hint (never the button) for
  * non-hosts.
  */
 import { fireEvent, render } from '@testing-library/react-native';
@@ -40,9 +41,17 @@ describe('StageSettleRescue', () => {
     expect(view.queryByTestId(TESTIDS.stageSettleRescue)).toBeNull();
   });
 
-  it('renders nothing at zero before the grace elapses', () => {
+  it('shows only the waiting sentence at zero before the grace elapses', () => {
     const { view } = renderRescue({ remainingSeconds: 0, isOverdue: false });
-    expect(view.queryByTestId(TESTIDS.stageSettleRescue)).toBeNull();
+    expect(view.getByTestId(TESTIDS.stageSettleRescue)).toHaveTextContent(/等待推进…/);
+    expect(view.queryByTestId(TESTIDS.stageSettleRescueRetryButton)).toBeNull();
+    expect(view.getByTestId(TESTIDS.stageSettleRescue)).not.toHaveTextContent(/等待房主处理/);
+  });
+
+  it('shows the same waiting sentence to non-hosts at zero before the grace elapses', () => {
+    const { view } = renderRescue({ remainingSeconds: 0, isOverdue: false, isHost: false });
+    expect(view.getByTestId(TESTIDS.stageSettleRescue)).toHaveTextContent(/等待推进…/);
+    expect(view.queryByTestId(TESTIDS.stageSettleRescueRetryButton)).toBeNull();
   });
 
   it('shows the waiting sentence and the retry button to the host once overdue', () => {
