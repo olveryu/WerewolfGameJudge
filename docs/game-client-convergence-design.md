@@ -566,7 +566,7 @@ v3 初稿默认"六家是基准、狼人杀向六家看齐"，把两处狼人杀
 - 投影字段 `viewModel.viewedSeats` 无消费者、客户端读原始 `state.roleViewedSeats`：`useRoleViewing` 与 `deriveWerewolfSeatCounts` 改读投影。
 - 防御重复：`useWerewolfHostFlow.mvpSelection` 不可达的第二道 `startingParticipants` 守卫改 throw；undercover `getUndercoverRoleCounts` 算两遍改一遍；`isChooseCardOpen` / `isNominationListOpen` 的重置 effect 改为按键派生；avalon `viewModel` 加 memo。
 - `MvpSelectionModal` 的裸字符串入 `TESTIDS.mvpSelectionModal`。
-- pictionary 到期加速原先 `isHost || effectiveSeat !== null` 门控，与其它六家（任意在线客户端可加速，pin 去重）不一致，删除；§8 契约 5 的断言从只扫调用处扩到 `shouldExpire` 函数体与 `isHost` 派生别名。（注，D1' 2026-11-04：该门已恢复，三家接龙游戏的 expire 资格为房主或已入座、旁观者不发；现行门见三家 `shouldExpire`，契约见重判后的 §8 契约 5。）
+- pictionary 到期加速原先 `isHost || effectiveSeat !== null` 门控，与其它六家（任意在线客户端可加速，pin 去重）不一致，删除；§8 契约 5 的断言从只扫调用处扩到 `shouldExpire` 函数体与 `isHost` 派生别名。（注，D1' 2026-11-04：该门已恢复，三家接龙游戏的 expire 资格为房主或已入座、旁观者不发；现行门见三家 `shouldExpire`，契约见重判后的 §8 契约 5。注，D3 2026-11-05：公开 `phase.expire` 已在五家删除，任何客户端都不发 expire，§8 契约 5 重判为“无客户端发 expire”断言；§8 第 5 条“客户端只加速”措辞随之作废，历史正文不动。）
 - `botDispatchDiscipline` 契约原先只断言 `session.dispatch(command` 字面量、对其余直发一概放行：改为精确登记 `文件 → 命令类型集合` 的允许表（阶段到期 / 自动提交 / 笔画流 / 猜词连发，以及狼人杀配置流两处房主命令），未登记的直发或登记站点的未登记命令类型即失败。
 
 **撤回的正文声明（代码为准）**

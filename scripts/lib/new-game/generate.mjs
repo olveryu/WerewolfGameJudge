@@ -100,18 +100,18 @@ export const PRESET_CAPABILITIES = {
  * while rendering, and nothing else. Unlike PRESET_CAPABILITIES they
  * are NOT game capabilities — never written into generated code,
  * never welded by the capabilities contract. They exist for skeleton
- * assembly choices no single capability key expresses: the stage
- * pack ships the dual-channel expiry assembly (a public
- * `phase.expire` command next to the internal settle channel),
- * while demo-hybrid ships the internal settle channel only, exactly
- * like the shipped demo game; and a pack with both identity viewing
- * and a stage deadline arms the deadline when play begins (after
- * the viewing checkpoint), not when identities are dealt.
+ * assembly choices no single capability key expresses: a pack with
+ * both identity viewing and a stage deadline arms the deadline when
+ * play begins (after the viewing checkpoint), not when identities are
+ * dealt. Expiry itself needs no switch: every stage-deadline pack
+ * settles system-only through the internal settle channel (D3 — the
+ * public `phase.expire` command is deleted, so there is no
+ * dual-channel assembly to select).
  */
 export const PACK_SEGMENT_SWITCHES = {
-  identity: { publicExpire: false, internalSettleOnly: false, armDeadlineAtBegin: false },
-  stage: { publicExpire: true, internalSettleOnly: false, armDeadlineAtBegin: false },
-  'demo-hybrid': { publicExpire: false, internalSettleOnly: true, armDeadlineAtBegin: true },
+  identity: { armDeadlineAtBegin: false },
+  stage: { armDeadlineAtBegin: false },
+  'demo-hybrid': { armDeadlineAtBegin: true },
 };
 
 /**
@@ -370,7 +370,6 @@ export function generateNewGame(options) {
     pascal: names.pascal,
     rewards,
     capabilities,
-    publicExpire: renderCapabilities.publicExpire,
     home,
     production,
   };

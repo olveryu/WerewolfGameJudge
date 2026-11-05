@@ -186,8 +186,8 @@ stateDiagram-v2
     WordSelect --> Drawing: word.choose
     WordSelect --> Drawing: wordSelect deadline (server auto-assign)
     Drawing --> RoundEnd: deadline
-    RoundEnd --> WordSelect: next drawer (phase.expire)
-    RoundEnd --> Ended: all turns complete (phase.expire)
+    RoundEnd --> WordSelect: next drawer (server settle)
+    RoundEnd --> Ended: all turns complete (server settle)
     Ended --> WordSelect: game.begin (next game)
     Ended --> Lobby: game.returnToLobby
     WordSelect --> Lobby: game.abort
@@ -208,9 +208,8 @@ stateDiagram-v2
 - 权威状态保存绝对 `deadlineAt`（毫秒时间戳），不保存"剩余秒数"；`drawing` 另保存 `phaseStartAt` 用于推导首字母揭示进度。
 - Worker 用服务端时间判断命令是否有效；客户端时间只用于显示。
 - 写 deadline 的 decision 同时排下服务端定时结算效果 `drawguess.settle.due`（pin 为 gameSequence、phaseRevision、turnIndex、deadlineAt）：Worker 到点以系统身份内部结算，这是阶段过期的正确性路径；客户端是否在线、前台是否有手机，都不影响推进。
-- 客户端 `phase.expire` 只是单次加速：每个相位身份、每台客户端最多发一次，收到任何决定后不再重发；双 revision 门（phaseRevision + turnIndex）与 deadline 门不变。只有房主或已入座玩家可发加速；旁观者不发加速；接管中的手机不发加速（引擎拒接管中身份）。
-- 只有房主或已入座玩家可在 deadline 后请求推进，服务端只接受首个匹配当前 `phaseRevision` 的请求。
-- 并发的过期推进是幂等操作：第一个请求推进状态，后续请求收到最新状态，不重复计分、不重复揭示。
+- 客户端不发任何推进命令：没有 `phase.expire`，到期只由服务端定时结算效果推进；任何手机都不用、也不能加速。
+- 定时结算只推进一次：到点投递的 settle 效果结算当前相位；已过期的旧装弹因 pin 不符不再结算，不重复计分、不重复揭示。
 - 重连恢复同一个 deadline，不重新获得完整作画时间；首字母揭示进度按 `phaseStartAt` 重新推导，不重置。
 - 定时结算效果走通用 effect outbox，由 DO alarm 到点投递。
 
@@ -218,8 +217,8 @@ stateDiagram-v2
 
 - `wordSelect` 到期画手未选词：自动指派是过期结算的一部分——`wordSelect` 的定时结算效果到点触发 `beginDrawing`，服务端从 3 个候选中随机指派一个（用命令 `randomSeed`），直接进入 `drawing`，不卡住全房；`drawing` 的定时结算效果在 `beginDrawing` 装弹。
 - `wordSelect` / `drawing` 轮到未被接管的机器人画手：不跳过，等待真人接管；若 deadline 到达时仍无人接管（或无有效作画），按画手超时处理，本轮直接进入 `roundEnd`、无人得分。
-- `drawing` 结束条件：`deadlineAt` 到达，不提供单轮手动结束命令。猜中会把 `deadlineAt` 压短（首猜 ≤30 秒、全员猜中 ≤3 秒，见 §3.3），压短时重新装弹（新 `deadlineAt` 的 settle 效果），旧效果到点因 pin 不符不再结算；结束走两条通道——客户端 `phase.expire` 单次加速，或服务端定时结算内部命令。
-- `roundEnd` 8 秒到点自动推进到下一画手的 `wordSelect`（客户端单次加速或服务端定时结算）；全部回合完成后推进到 `ended`。
+- `drawing` 结束条件：`deadlineAt` 到达，不提供单轮手动结束命令。猜中会把 `deadlineAt` 压短（首猜 ≤30 秒、全员猜中 ≤3 秒，见 §3.3），压短时重新装弹（新 `deadlineAt` 的 settle 效果），旧效果到点因 pin 不符不再结算；结束只走服务端定时结算内部命令。
+- `roundEnd` 8 秒到点自动推进到下一画手的 `wordSelect`（服务端定时结算）；全部回合完成后推进到 `ended`。
 - `ended` 由房主执行 `game.begin` 再来一局（重新生成队列、清零比分）或 `game.returnToLobby` 返回大厅。
 - `wordSelect`（含准备题目期间）、`drawing`、`roundEnd` 可由房主确认中止整局，直接回到 `lobby`，不进入排名页、不发完成奖励。
 
@@ -344,7 +343,6 @@ Codec 必须用 `z.strictObject` 精确验证：座位范围、笔画字段、�
 | `drawguess.guess.submit`       | 已入座的非画手、未锁定猜题者（或其接管人） | `drawing`                             | 提交猜词；客户端节流 1 次/2 秒，服务端 per-seat 速率限制（见 §13） |
 | `drawguess.drawing.reserve`    | 画手                                       | `roundEnd`                            | 获取终稿 PNG 的一次性 `submissionId`                               |
 | `drawguess.game.abort`         | 房主                                       | `wordSelect` / `drawing` / `roundEnd` | 中止整局并清除本局数据，保留座位和设置返回大厅，不发完成奖励       |
-| `drawguess.phase.expire`       | 任一已认证房间成员                         | 任意                                  | deadline 到点推进；幂等（匹配 `phaseRevision`）                    |
 | `drawguess.game.returnToLobby` | 房主                                       | `ended`                               | 返回大厅                                                           |
 
 共享入座、离座、踢人和房间操作继续使用平台命令，不复制 DrawGuess 版本。
@@ -472,8 +470,8 @@ GET /api/games/drawguess/rooms/:roomCode/media/:entryId
 
 - 阶段栏右侧固定宽度 `mm:ss` 等宽数字；最后 5 秒逐秒醒目提示，不遮挡画布、不拦截输入。
 - 客户端每秒只更新显示 tick，剩余时间始终从 `deadlineAt - Date.now()` 重新推导。
-- 本地估算到 0 时立即停止新输入（画手停笔、猜题者停发），发送一次幂等 `phase.expire`；服务端判定尚未到期则按快照恢复。服务端定时结算效果到点同样推进，不依赖任何一台手机的加速。
-- 同一 `phaseRevision` 的到点请求保持 single-flight；App 回前台/收到新 snapshot 立即重算。
+- 本地估算到 0 时立即停止新输入（画手停笔、猜题者停发），等待服务端定时结算推进；服务端判定尚未到期则按快照恢复。
+- App 回前台/收到新 snapshot 立即重算。
 - 画布手势、色板展开、键盘弹起均不得重置倒计时。
 
 ### 9.6 结算与终局
@@ -540,9 +538,9 @@ UI 组件只接收已按当前用户可见性裁剪的 view model。组件不得
 | `stroke.add` 发送失败   | 命令幂等（客户端 stroke id），重放不重复入画                                                                             | 自动退避重试；冲突以权威快照为准              |
 | `guess.submit` 响应丢失 | 相同幂等键返回既有判定结果                                                                                               | 快照确认后停止重试                            |
 | 速率限制命中            | Worker 拒绝并返回 429，不入 engine                                                                                       | "猜得太快了，稍后再试"                        |
-| 房主断线                | 游戏继续；其他客户端可触发 `phase.expire`                                                                                | 不转移权威时间，不暂停全局                    |
+| 房主断线                | 游戏继续；服务端定时结算到点推进                                                                                         | 不转移权威时间，不暂停全局                    |
 | 房主缺席终局（`ended`） | 沿用其他游戏做法：**不转移房主身份**（`hostUserId` 建房写死，平台无转移机制）；`再来一局`/`返回大厅`等房主专属操作不可用 | 提示"等待房主操作"；房间按平台过期策略回收    |
-| 全员离线                | 不推进；首个重连者补推进当前过期阶段                                                                                     | 进入最近的下一合法阶段                        |
+| 全员离线                | 服务端定时结算到点推进，不依赖任何客户端在线                                                                             | 进入最近的下一合法阶段                        |
 | 终稿 PNG 上传失败       | `roundEnd` 保持，`pngEntry` 为 null                                                                                      | 自动重试；结算页降级用 `strokes` 本地渲染展示 |
 | R2 不可用               | 不接受 `drawing.commit`，不写入悬空引用                                                                                  | 保留重试，不阻塞阶段推进                      |
 | DO 状态损坏             | Codec fail fast，禁止猜测恢复                                                                                            | 记录错误、Sentry 上报、显示房间异常           |
@@ -660,7 +658,7 @@ V1 不新增 D1 对局表。游戏权威状态保存在 DO SQLite，R2 保存终
 - `guess.submit` per-seat 速率限制：10 秒窗口第 6 次返回 429。
 - 认证用户到座位的映射；`controlledSeat` 非机器人席位拒绝（`REASON_CONTROLLED_SEAT_NOT_BOT`）。
 - R2 上传的 MIME、签名、尺寸、大小、摘要与 object key；预留前上传、跨房间上传、过期上传、重复上传均拒绝。
-- 同时收到多个 `phase.expire` 只推进一次（`phaseRevision` 幂等）。
+- 定时结算到点只推进一次（旧装弹的 settle 效果因 pin 不符不再结算）。
 - DO 重启后队列、`turnIndex`、笔画、揭示进度、比分恢复一致。
 
 ### 14.3 Client tests

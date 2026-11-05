@@ -155,9 +155,16 @@ describe('__GAME_PASCAL__ identity viewing checkpoint', () => {
 });
 
 //#end
-//#cap publicExpire
+//#cap !identityViewing
+// The system-only settlement suite, split by begin path: the template
+// language has no cap conjunction, so the no-viewing pack (stage) and
+// the begin-armed pack (demo-hybrid) each render their own copy —
+// `!identityViewing` selects exactly the stage pack, `armDeadlineAtBegin`
+// exactly demo-hybrid. The test bodies are identical apart from begin.
+// (This note lives inside the stage cap: it must not render into the
+// demo-hybrid output, which is byte-compared against the shipped demo.)
 describe('__GAME_PASCAL__ stage deadline settlement', () => {
-  it('opens the stage with an armed deadline and a settle.due effect', () => {
+  it('opens the playing stage with an armed deadline and a settle.due effect', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
     const startedAt = session.session.now();
     session.send({ type: '__GAME_ID__.game.begin' });
@@ -176,16 +183,23 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
     );
   });
 
-  it('rejects expiry before the deadline, then settles exactly once at the deadline', () => {
+  it('rejects settle before the deadline, then settles exactly once at the deadline', () => {
     const session = game({ numberOfPlayers: 4 }, 3);
     session.send({ type: '__GAME_ID__.game.begin' });
-    const early = session.decideAs({ type: '__GAME_ID__.phase.expire' }, 'u1');
+    const early = __GAME_CAMEL__Engine.decide(
+      session.state,
+      { type: '__GAME_ID__.phase.settleExpired' },
+      session.session.systemContext('settle-effect'),
+    );
     expect(early.kind).toBe('reject');
     if (early.kind === 'reject') expect(early.reason).toBe(__GAME_UPPER___REASONS.deadline);
     session.session.advance(__GAME_UPPER___STAGE_DURATION_MS);
-    session.send({ type: '__GAME_ID__.phase.expire' }, 'u1');
-    expect(session.state.phase.kind).toBe('ended');
-    expect(session.state.xpSettled).toBe(true);
+    const state = session.session.sendAs(
+      { type: '__GAME_ID__.phase.settleExpired' },
+      session.session.systemContext('settle-effect'),
+    );
+    expect(state.phase.kind).toBe('ended');
+    expect(state.xpSettled).toBe(true);
     const completions = session.effects.filter(
       (effect) => effect.type === '__GAME_ID__.game.completed',
     );
@@ -193,34 +207,18 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
     expect(completions[0]?.payload.participantUserIds).toEqual(['host', 'u1', 'u2']);
   });
 
-  it('settles through the internal system channel with the same decision', () => {
+  it('rejects the internal settle channel for a user actor', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
     session.send({ type: '__GAME_ID__.game.begin' });
     session.session.advance(__GAME_UPPER___STAGE_DURATION_MS);
-    const state = session.session.sendAs(
-      { type: '__GAME_ID__.phase.settleExpired' },
-      session.session.systemContext('settle-effect'),
-    );
-    expect(state.phase.kind).toBe('ended');
-  });
-
-  it('rejects the public expire channel for a system actor and vice versa', () => {
-    const session = game({ numberOfPlayers: 4 }, 4);
-    session.send({ type: '__GAME_ID__.game.begin' });
-    session.session.advance(__GAME_UPPER___STAGE_DURATION_MS);
-    const publicAsSystem = __GAME_CAMEL__Engine.decide(
-      session.state,
-      { type: '__GAME_ID__.phase.expire' },
-      session.session.systemContext('settle-effect'),
-    );
-    expect(publicAsSystem.kind).toBe('reject');
     const internalAsUser = session.decideAs({ type: '__GAME_ID__.phase.settleExpired' }, 'u1');
     expect(internalAsUser.kind).toBe('reject');
   });
 });
 
 //#end
-//#cap internalSettleOnly
+
+//#cap armDeadlineAtBegin
 describe('__GAME_PASCAL__ stage deadline settlement', () => {
   it('opens the playing stage with an armed deadline and a settle.due effect', () => {
     const session = game({ numberOfPlayers: 4 }, 4);

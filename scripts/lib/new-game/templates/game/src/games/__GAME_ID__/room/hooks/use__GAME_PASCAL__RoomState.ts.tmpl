@@ -16,9 +16,6 @@ import {
   type __GAME_PASCAL__State,
   type __GAME_PASCAL__ViewModel,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
-//#cap publicExpire
-import { useCallback } from 'react';
-//#end
 
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
@@ -32,7 +29,7 @@ import { type RoleViewing, useRoleViewing } from '@/features/room/controllers/us
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
-//#cap publicExpire
+//#cap !identityViewing
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 //#end
 //#cap audioOrchestration
@@ -85,8 +82,8 @@ export interface __GAME_PASCAL__RoomScreenState {
   /** 当前视角的视图模型（按有效席位裁剪）。 */
   readonly viewModel: __GAME_PASCAL__ViewModel;
 //#end
-//#cap publicExpire
-  /** 当前阶段剩余秒数；无截止阶段为 null。到期由本 hook 统一派发阶段推进。 */
+//#cap !identityViewing
+  /** 当前阶段剩余秒数；无截止阶段为 null。到期由服务端定时 settle effect 结算，客户端只展示。 */
   readonly remainingSeconds: number | null;
 //#end
   readonly roomCode: string;
@@ -159,39 +156,11 @@ export function use__GAME_PASCAL__RoomState(
   // 静默；就绪后把运行时实例传进这里，绑定即刻生效。
   use__GAME_PASCAL__AudioOrchestration({ session, isHost, audio: null });
 //#end
-//#cap publicExpire
-  // 阶段截止：剩余秒数与到期推进。服务端定时 settle effect 是正确性
-  // 路径；这里的前台派发只是加速，守卫保证不重复结算。接管中的手机
-  // 不发加速（引擎拒接管中身份）；只有房主或已入座玩家可发加速，
-  // 旁观者（无座位非房主）不发任何加速。
+//#cap !identityViewing
+  // 阶段截止倒计时（仅展示）：服务端定时 settle effect 是唯一推进
+  // 路径，到期由它结算；客户端不发任何推进命令，只显示剩余秒数。
   const deadlineAt = state.phase.kind === 'playing' ? state.phase.deadlineAt : null;
-  const shouldExpire = useCallback(() => {
-    if (controlledSeat !== null) return false;
-    if (!isHost && effectiveSeat === null) return false;
-    const current = session.getSnapshot();
-    return (
-      current.phase === 'ready' &&
-      current.status.kind === 'live' &&
-      current.pendingDurableCount === 0 &&
-      current.room.state.phaseRevision === state.phaseRevision
-    );
-  }, [controlledSeat, isHost, effectiveSeat, session, state.phaseRevision]);
-  const onExpire = useCallback(
-    () =>
-      session.dispatch(
-        { type: '__GAME_ID__.phase.expire' },
-        { controlledSeat: null, label: '推进舞台阶段', durable: true },
-      ),
-    [session],
-  );
-  const { remainingSeconds } = useStageDeadline({
-    deadlineAt,
-    shouldExpire,
-    onExpire,
-    label: '推进舞台阶段',
-    silentExpire: true,
-    attemptKey: `${state.gameSequence}:${state.phaseRevision}:${deadlineAt}`,
-  });
+  const { remainingSeconds } = useStageDeadline({ deadlineAt });
 //#end
 //#cap !identityViewing
   const viewModel = get__GAME_PASCAL__ViewModel(state, effectiveSeat);
@@ -285,7 +254,7 @@ export function use__GAME_PASCAL__RoomState(
     state,
     shellModel,
     viewModel,
-//#cap publicExpire
+//#cap !identityViewing
     remainingSeconds,
 //#end
     roomCode: room.roomCode,

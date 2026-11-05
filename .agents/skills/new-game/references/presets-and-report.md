@@ -21,14 +21,15 @@ Choose by the game's main shape, fixed at design time:
 - No secret identity; rounds advance on a stage deadline → `stage`.
 - Secret identity and viewing checkpoint, plus a deadline that is
   armed when play begins and settles only through the internal
-  settle channel (no public `phase.expire` channel) → `demo-hybrid`
-  (`PACK_SEGMENT_SWITCHES`, line 111: `armDeadlineAtBegin: true`,
-  `internalSettleOnly: true`, `publicExpire: false`).
+  settle channel → `demo-hybrid`
+  (`PACK_SEGMENT_SWITCHES`, line 111: `armDeadlineAtBegin: true`).
 
-Expiry-channel difference (`PACK_SEGMENT_SWITCHES`, line 111): `stage`
-ships the dual channel (public `phase.expire` client acceleration
-plus internal settle); `demo-hybrid` ships the internal settle
-channel only and arms the deadline when play begins. A hybrid that
+Expiry channel (`PACK_SEGMENT_SWITCHES`, line 111): every
+stage-deadline pack settles system-only through the internal settle
+channel — there is no public `phase.expire` command in any preset
+(D3). `stage` and `demo-hybrid` differ only in `armDeadlineAtBegin`:
+`demo-hybrid` arms the deadline when play begins (after the viewing
+checkpoint); `stage` does not. A hybrid that
 matches neither preset starts from the nearer preset and changes
 capability declarations one at a time with wiring (see
 `references/skeleton-and-wiring.md`).

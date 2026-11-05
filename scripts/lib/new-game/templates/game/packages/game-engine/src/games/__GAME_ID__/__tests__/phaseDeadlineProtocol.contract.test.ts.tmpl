@@ -1,18 +1,13 @@
 /**
  * Phase Deadline Protocol — __GAME_ID__ scenario (E-2).
  *
-//#cap internalSettleOnly
+//#cap stageDeadline
  * __GAME_PASCAL__'s registered assembly: system only — there is no public
  * expire command at all; the scheduled `__GAME_ID__.settle.due` effect is
  * the sole expiry channel and dispatches the internal settleExpired
  * command on the system channel. The command carries no revision;
  * correctness rides on the worker's pinned-arming staleness gate.
  * Same-named scenario files live in each switched game's __tests__.
-//#end
-//#cap publicExpire
- * Public uncontrolled-user expiry and internal system settlement share
- * the same deadline guard. Commands carry no revision; the Worker pins
- * the scheduled settlement to its original arming.
 //#end
  */
 
@@ -102,26 +97,7 @@ function makeSession(): PhaseDeadlineSession {
   const harness = armedHarness();
   const armedPhase = harness.state().phase;
   const current = () => harness.state();
-//#cap internalSettleOnly
-  const noPublicExpire = (): never => {
-    throw new Error('__GAME_PASCAL__ has no public expire command');
-  };
-//#end
-
   return {
-//#cap internalSettleOnly
-    expireAsUser: noPublicExpire,
-    expireAsControlledUser: noPublicExpire,
-    expirePublicAsSystem: noPublicExpire,
-//#end
-//#cap publicExpire
-    expireAsUser: (nowMs) =>
-      harness.attempt({ type: '__GAME_ID__.phase.expire' }, harness.userContext('host', null, nowMs)),
-    expireAsControlledUser: (nowMs) =>
-      harness.attempt({ type: '__GAME_ID__.phase.expire' }, harness.userContext('host', 0, nowMs)),
-    expirePublicAsSystem: (nowMs) =>
-      harness.attempt({ type: '__GAME_ID__.phase.expire' }, harness.systemContext(nowMs)),
-//#end
     expireSettleAsSystem: (nowMs) =>
       harness.attempt({ type: '__GAME_ID__.phase.settleExpired' }, harness.systemContext(nowMs)),
     expireSettleAsUser: (nowMs) =>
@@ -148,12 +124,6 @@ describePhaseDeadlineProtocol({
   makeSession,
   expectations: {
     notExpiredReason: __GAME_UPPER___REASONS.deadline,
-//#cap internalSettleOnly
-    publicChannel: null,
-//#end
-//#cap publicExpire
-    publicChannel: 'uncontrolledUser',
-//#end
     hasSettleCommand: true,
     stalePolicy: 'none',
     staleReason: null,
