@@ -1,16 +1,18 @@
 /**
- * NightReviewModal component tests — 2026 pictorial report presentation.
+ * NightReviewModal component tests — 2026 timeline text-list report presentation.
  *
  * Asserts the full fact set of a composed night survives the report
- * rendering: conclusion header (headline, stats ledger, death stamps with
- * derived bylines), one picture row per action in night order (wolf team
- * row with vote diagram and verdict sentence, merged potion card, dimmed
- * idle rows, determination rows), the day tab + night/day blocks, the
- * sheriff group across the election state matrix, and the identity
- * roster. Number discipline is pinned throughout: a seat number appears
- * exactly once per figure (below its portrait, or inside its medal in
- * the roster, the vote diagram, and the death stamps), so no 「N号」
- * text exists anywhere in the report.
+ * rendering: conclusion header (headline, death stamps with derived
+ * bylines), one sentence per action in night order behind a rail of dots
+ * (wolf team sentence with the vote pairs inline and the verdict phrase,
+ * one merged potion sentence per owner, idle sentences, determination
+ * sentences), the sheriff group across the election state matrix, and
+ * the identity roster. Sentences are asserted whole: a seat number
+ * never appears as a standalone token outside the roster medals and
+ * the death stamps. Colors are asserted per segment: only faction
+ * colors appear in the timeline (verb by the actor's faction, result
+ * role words and dead seat numbers by that role's / player's faction),
+ * and words with no faction to point at stay in the body text color.
  */
 import type {
   GameState,
@@ -24,7 +26,6 @@ import { getWerewolfNightReview } from '@game-judge/game-engine/games/werewolf/p
 import { render } from '@testing-library/react-native';
 import type { StyleProp } from 'react-native';
 import { StyleSheet } from 'react-native';
-import type { ReactTestInstance } from 'react-test-renderer';
 
 import {
   makeReviewPlayer,
@@ -32,20 +33,18 @@ import {
   type ReviewPlayers,
 } from '@/test-utils/werewolfNightReview';
 import { TESTIDS } from '@/testids';
-import { colors, NIGHT_REPORT_COLORS } from '@/theme';
+import { colors } from '@/theme';
 
 import {
-  NIGHT_REPORT_DAY_BLOCK_TITLE,
-  NIGHT_REPORT_DAY_EMPTY_TEXT,
-  NIGHT_REPORT_DAY_TAB_LABEL,
   NIGHT_REPORT_FOOTER_TEXT,
   NIGHT_REPORT_KICKER,
-  NIGHT_REPORT_NIGHT_BLOCK_TITLE,
+  NIGHT_REPORT_TIMELINE_TITLE,
 } from '../../nightReviewLayout';
 import { NightReviewModal } from '../NightReviewModal';
 
 interface JsonNode {
   type: unknown;
+  props?: { style?: unknown };
   children: (JsonNode | string)[] | null;
 }
 
@@ -62,11 +61,6 @@ function collectTextSequence(node: JsonNode | (JsonNode | string)[] | string | n
   return collectTextSequence(node.children);
 }
 
-/** One stats ledger cell as rendered: the count over its label in a single Text. */
-function ledgerCell(label: string, count: number): string {
-  return `${count}\n${label}`;
-}
-
 interface FlatColorStyle {
   color?: string;
   backgroundColor?: string;
@@ -77,22 +71,37 @@ function flattenStyle(style: unknown): FlatColorStyle | undefined {
   return StyleSheet.flatten<FlatColorStyle>(style as StyleProp<FlatColorStyle>);
 }
 
-/** First backgroundColor found walking up from a rendered node (RNTL nests host nodes). */
-function enclosingBackgroundColor(node: ReactTestInstance): string | undefined {
-  let current: ReactTestInstance | null = node;
-  while (current) {
-    const backgroundColor = flattenStyle(current.props.style)?.backgroundColor;
-    if (backgroundColor) return backgroundColor;
-    current = current.parent;
-  }
-  return undefined;
+interface ColoredSegment {
+  readonly text: string;
+  readonly color: string | undefined;
 }
 
-/** Nearest ancestor whose type is the host View (RNTL wraps hosts in composites). */
-function nearestViewAncestor(node: ReactTestInstance): ReactTestInstance | null {
-  let current = node.parent;
-  while (current && String(current.type) !== 'View') current = current.parent;
-  return current;
+/**
+ * Every leaf Text segment in tree order, with its own text color. A
+ * timeline sentence contributes its nested segments (verb, result word,
+ * seat number each carry their own color); a plain Text contributes
+ * itself as one segment.
+ */
+function collectColoredSegments(
+  node: JsonNode | (JsonNode | string)[] | string | null,
+): ColoredSegment[] {
+  if (node === null || typeof node === 'string') return [];
+  if (Array.isArray(node)) return node.flatMap((child) => collectColoredSegments(child));
+  if (node.type !== 'Text') return collectColoredSegments(node.children);
+  const nested = (node.children ?? []).filter(
+    (child): child is JsonNode => typeof child !== 'string' && child.type === 'Text',
+  );
+  if (nested.length === 0) {
+    return [{ text: textOf(node), color: flattenStyle(node.props?.style)?.color }];
+  }
+  return nested.flatMap((child) => collectColoredSegments(child));
+}
+
+/** Color of the segment with exactly this text; fails when it never renders. */
+function segmentColor(segments: readonly ColoredSegment[], text: string): string | undefined {
+  const found = segments.find((segment) => segment.text === text);
+  expect(found).toBeDefined();
+  return found?.color;
 }
 
 /** One identity row for a hand-built review fixture (B2: row rendering only). */
@@ -106,8 +115,9 @@ function reviewIdentity(
 
 /**
  * A hand-built review: entry construction stays pinned by the engine
- * tests, so these fixtures pin only the row rendering each §4 row
- * promises (verb, tags, notes, tag absence in multi-figure slots).
+ * tests, so these fixtures pin only the sentence each §4 row promises
+ * (verb, result word, color) and the outcome entry stays last, matching
+ * the engine's emission order.
  */
 function reviewData(
   actions: readonly NightReviewActionEntry[],
@@ -116,39 +126,12 @@ function reviewData(
   return { actions: [...actions], identities: [...identities] };
 }
 
-/** Text sequence of the night block only (between the two block titles). */
-function nightBlockSequence(sequence: string[]): string[] {
+/** Text sequence of the timeline only (between the section title and the roster title). */
+function timelineSequence(sequence: string[]): string[] {
   return sequence.slice(
-    sequence.indexOf(NIGHT_REPORT_NIGHT_BLOCK_TITLE) + 1,
-    sequence.indexOf(NIGHT_REPORT_DAY_BLOCK_TITLE),
+    sequence.indexOf(NIGHT_REPORT_TIMELINE_TITLE) + 1,
+    sequence.indexOf('全员身份'),
   );
-}
-
-/** Asserts tokens appear in order inside sequence (other tokens may sit between). */
-function expectOrdered(sequence: string[], tokens: readonly string[]): void {
-  let cursor = -1;
-  for (const token of tokens) {
-    const next = sequence.indexOf(token, cursor + 1);
-    expect(next).toBeGreaterThan(cursor);
-    cursor = next;
-  }
-}
-
-interface FlatOpacityStyle {
-  opacity?: number;
-}
-
-/** True when any ancestor view of node carries a dimmed (opacity < 1) style. */
-function hasDimmedAncestor(node: ReactTestInstance): boolean {
-  let current: ReactTestInstance | null = node;
-  while (current) {
-    const style = StyleSheet.flatten<FlatOpacityStyle>(
-      current.props.style as StyleProp<FlatOpacityStyle>,
-    );
-    if (style && typeof style.opacity === 'number' && style.opacity < 1) return true;
-    current = current.parent;
-  }
-  return false;
 }
 
 function composedNightState(): GameState {
@@ -187,18 +170,16 @@ describe('NightReviewModal', () => {
     expect(view.getByTestId(TESTIDS.nightReviewModal)).toBeTruthy();
     expect(view.getByText('本局复盘')).toBeTruthy();
     expect(view.getByText(NIGHT_REPORT_KICKER)).toBeTruthy();
-    expect(view.getByText(NIGHT_REPORT_DAY_TAB_LABEL)).toBeTruthy();
-    expect(view.getByText(NIGHT_REPORT_NIGHT_BLOCK_TITLE)).toBeTruthy();
-    expect(view.getByText(NIGHT_REPORT_DAY_BLOCK_TITLE)).toBeTruthy();
-    expect(view.getByText(NIGHT_REPORT_DAY_EMPTY_TEXT)).toBeTruthy();
+    expect(view.getByText(NIGHT_REPORT_TIMELINE_TITLE)).toBeTruthy();
     expect(view.getByText('全员身份')).toBeTruthy();
     expect(view.getByText(NIGHT_REPORT_FOOTER_TEXT)).toBeTruthy();
-    // Stats ledger tallies for the composed night.
-    const sequence = collectTextSequence(view.toJSON());
-    expect(sequence).toContain(ledgerCell('狼杀', 1));
-    expect(sequence).toContain(ledgerCell('毒杀', 0));
-    expect(sequence).toContain(ledgerCell('救活', 0));
-    expect(sequence).toContain(ledgerCell('查验', 1));
+    // The timeline form has no day tab, no day block, no stats ledger,
+    // no portraits, no ✗, no arrows.
+    expect(view.queryByText('第一天')).toBeNull();
+    expect(view.queryByText('✗')).toBeNull();
+    expect(view.queryByText('→')).toBeNull();
+    expect(view.queryByText('爪击')).toBeNull();
+    expect(view.queryByText('底牌组成')).toBeNull();
   });
 
   it('renders every action fact of the composed night', () => {
@@ -214,23 +195,29 @@ describe('NightReviewModal', () => {
     expect(view.getByText('昨夜 1 人出局')).toBeTruthy();
     expect(view.getAllByText('狼杀出局')).toHaveLength(2);
     expect(view.getByText('狼队 1 票锁定')).toBeTruthy();
-    // Wolf team picture row: team figure, attack verb, verdict sentence.
-    expect(view.getByText('狼队')).toBeTruthy();
-    expect(view.getByText('爪击')).toBeTruthy();
-    expect(view.getByText('狼队共同目标')).toBeTruthy();
-    // Guard picture row.
-    expect(view.getByText('守护')).toBeTruthy();
-    // Witch card: the save line plus the unused-poison ✗ line.
-    expect(view.getByText('使用解药救了')).toBeTruthy();
-    expect(view.getByText('毒药')).toBeTruthy();
-    expect(view.getByText('未使用')).toBeTruthy();
-    expect(view.getByText('✗')).toBeTruthy();
-    // Seer picture row with its faction result tag.
-    expect(view.getByText('查验')).toBeTruthy();
-    expect(view.getAllByText('狼人').length).toBeGreaterThanOrEqual(2);
-    // Number discipline: no 「N号」 text anywhere.
-    expect(view.queryByText('5号 · 平民')).toBeNull();
-    expect(view.queryByText('5号')).toBeNull();
+    // Timeline: one sentence per action, in night order, then the
+    // outcome sentence last.
+    expect(view.getByText('狼队（1号）袭击5号。')).toBeTruthy();
+    expect(view.getByText('2号守卫守护4号。')).toBeTruthy();
+    expect(view.getByText('3号女巫使用解药救起5号。毒药未使用。')).toBeTruthy();
+    expect(view.getByText('4号预言家查验1号，结果：狼人。')).toBeTruthy();
+    expect(view.getByText('5号出局。')).toBeTruthy();
+    // 狼人 appears twice: the check result word and the roster name.
+    expect(view.getAllByText('狼人')).toHaveLength(2);
+    // Colors: verbs by the actor's faction, the check result by the
+    // result role's faction, the dead seat by the dead player's faction.
+    const segments = collectColoredSegments(view.toJSON());
+    expect(segmentColor(segments, '袭击5号')).toBe(colors.wolf);
+    expect(segmentColor(segments, '守护')).toBe(colors.god);
+    expect(segmentColor(segments, '使用解药救起5号')).toBe(colors.god);
+    expect(segmentColor(segments, '查验')).toBe(colors.god);
+    expect(segmentColor(segments, '狼人')).toBe(colors.wolf);
+    expect(segmentColor(segments, '5号')).toBe(colors.villager);
+    // Number discipline: no ✗, no arrow anywhere. (Seat numbers live
+    // inside the timeline sentences by design, so no bare-number
+    // assertion applies to this form.)
+    expect(view.queryByText('✗')).toBeNull();
+    expect(view.queryByText('→')).toBeNull();
     expect(view.queryByText('死亡')).toBeNull();
   });
 
@@ -266,10 +253,15 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    expect(view.getByText('底牌组成')).toBeTruthy();
-    // 平民 appears on the bottom-card figure and on the identity wall.
+    expect(view.getByText('底牌：平民、预言家、守卫。')).toBeTruthy();
+    expect(view.getByText('本夜无人出局。')).toBeTruthy();
+    // 平民 appears in the bottom-cards sentence and on the identity wall.
     expect(view.getAllByText('平民')).toHaveLength(2);
     expect(view.getByText('存活')).toBeTruthy();
+    const segments = collectColoredSegments(view.toJSON());
+    expect(segmentColor(segments, '平民')).toBe(colors.villager);
+    expect(segmentColor(segments, '预言家')).toBe(colors.god);
+    expect(segmentColor(segments, '守卫')).toBe(colors.god);
   });
 
   it('renders a peaceful night and placeholder identities', () => {
@@ -286,15 +278,13 @@ describe('NightReviewModal', () => {
     );
 
     expect(view.getByText('昨夜平安夜')).toBeTruthy();
+    expect(view.getByText('本夜无人出局。')).toBeTruthy();
     expect(view.getByText('空座')).toBeTruthy();
     expect(view.getByText('未分配')).toBeTruthy();
     expect(view.queryByText('狼杀出局')).toBeNull();
-    const sequence = collectTextSequence(view.toJSON());
-    expect(sequence).toContain(ledgerCell('狼杀', 0));
-    expect(sequence).toContain(ledgerCell('查验', 0));
   });
 
-  it('aggregates wolf votes by target with one filled target medal', () => {
+  it('aggregates wolf votes by target into one team sentence', () => {
     const players = new Map<number, Player | null>([
       [0, makeReviewPlayer(0, 'wolf')],
       [1, makeReviewPlayer(1, 'wolf')],
@@ -320,14 +310,13 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    expect(view.getByText('狼队共同目标')).toBeTruthy();
-    // Seat 5 (index 4) renders three times: the attack row's target
-    // figure, the diagram's target medal, and the identity wall — and
-    // exactly one of them is the filled emphasis (the diagram medal).
-    const targetTexts = view.getAllByText('5');
-    expect(targetTexts).toHaveLength(3);
-    const filled = targetTexts.filter((node) => enclosingBackgroundColor(node) === colors.primary);
-    expect(filled).toHaveLength(1);
+    expect(view.getByText('狼队（1、2、3、4号）袭击5号。')).toBeTruthy();
+    expect(view.getByText('本夜无人出局。')).toBeTruthy();
+    expect(view.queryByText('狼队共同目标')).toBeNull();
+    expect(view.queryByText('↓')).toBeNull();
+    expect(view.queryByText('✗')).toBeNull();
+    const segments = collectColoredSegments(view.toJSON());
+    expect(segmentColor(segments, '袭击5号')).toBe(colors.wolf);
   });
 
   it('marks tied split wolf votes without a settlement as tie pending, not as no kill', () => {
@@ -350,14 +339,15 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    expect(view.getByText('狼队目标不一致 — 平票，目标未记录')).toBeTruthy();
+    // The vote pairs list in target-group order (most votes first,
+    // ties by target seat ascending); no resolved target exists, so
+    // the verdict phrase and the pairs stay uncolored. No verdict was
+    // recorded, so the engine reports tie pending.
+    expect(view.getByText('狼队投票不一致（2号投5号、1号投6号），平票，目标未记录。')).toBeTruthy();
+    expect(view.getByText('本夜无人出局。')).toBeTruthy();
     expect(view.queryByText('狼队目标不一致 — 平票，未击杀')).toBeNull();
     expect(view.queryByText('狼队共同目标')).toBeNull();
-    // No resolved target: the attack row points at ✗, and the diagram
-    // groups order by target seat ascending on equal counts.
-    expect(view.getByText('✗')).toBeTruthy();
-    const sequence = collectTextSequence(view.toJSON());
-    expect(sequence.indexOf('5')).toBeLessThan(sequence.indexOf('6'));
+    expect(view.queryByText('✗')).toBeNull();
   });
 
   it('marks a tied split wolf vote settled to a kill with the tie-picked verdict', () => {
@@ -384,15 +374,12 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    expect(view.getByText('狼队目标不一致 — 平票抽中目标')).toBeTruthy();
+    expect(view.getByText('狼队投票不一致（2号投5号、1号投6号），平票抽中6号。')).toBeTruthy();
+    expect(view.getByText('6号出局。')).toBeTruthy();
     expect(view.queryByText('狼队目标不一致 — 平票，未击杀')).toBeNull();
-    // The resolved target's number appears four times: the attack row's
-    // figure, the diagram's filled medal, the death stamp, and the
-    // identity wall — exactly one of them is the filled emphasis.
-    const targetTexts = view.getAllByText('6');
-    expect(targetTexts).toHaveLength(4);
-    const filled = targetTexts.filter((node) => enclosingBackgroundColor(node) === colors.primary);
-    expect(filled).toHaveLength(1);
+    const segments = collectColoredSegments(view.toJSON());
+    expect(segmentColor(segments, '平票抽中6号')).toBe(colors.wolf);
+    expect(segmentColor(segments, '6号')).toBe(colors.villager);
   });
 
   it('keeps the no-kill verdict only for a tied split vote settled to no kill', () => {
@@ -417,11 +404,12 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    expect(view.getByText('狼队目标不一致 — 平票，未击杀')).toBeTruthy();
-    expect(view.getByText('✗')).toBeTruthy();
+    expect(view.getByText('狼队投票不一致（2号投5号、1号投6号），平票，未击杀。')).toBeTruthy();
+    expect(view.getByText('本夜无人出局。')).toBeTruthy();
+    expect(view.queryByText('✗')).toBeNull();
   });
 
-  it('merges the witch poison and unused antidote into one card', () => {
+  it('merges the witch poison and unused antidote into one sentence', () => {
     const players = new Map<number, Player | null>([
       [0, makeReviewPlayer(0, 'wolf')],
       [1, makeReviewPlayer(1, 'villager')],
@@ -445,18 +433,22 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    expect(view.getByText('毒杀')).toBeTruthy();
-    expect(view.getByText('目标出局')).toBeTruthy();
+    expect(view.getByText('狼队（1号）袭击2号。')).toBeTruthy();
+    expect(view.getByText('3号女巫毒杀4号。解药未使用。')).toBeTruthy();
+    expect(view.getByText('4号出局。')).toBeTruthy();
     // Death card byline names the poison owner.
     expect(view.getByText('女巫下毒')).toBeTruthy();
     expect(view.getAllByText('毒杀出局')).toHaveLength(2);
-    // The unused antidote is an ✗ line with its note, and the derived
-    // "wolf target not saved" note sits under the card — no strip appears.
-    expect(view.getByText('解药')).toBeTruthy();
-    expect(view.getByText('未使用')).toBeTruthy();
-    expect(view.getByText('狼刀目标未救')).toBeTruthy();
-    expect(view.queryByText('未行动')).toBeNull();
+    // The unused antidote is plain words in the same sentence — no ✗,
+    // no separate note, no derived "wolf target not saved" note.
+    expect(view.getByText('解药未使用。')).toBeTruthy();
+    expect(view.queryByText('目标出局')).toBeNull();
+    expect(view.queryByText('狼刀目标未救')).toBeNull();
+    expect(view.queryByText('✗')).toBeNull();
     expect(view.queryByText('女巫未使用解药')).toBeNull();
+    const segments = collectColoredSegments(view.toJSON());
+    expect(segmentColor(segments, '毒杀4号')).toBe(colors.god);
+    expect(segmentColor(segments, '解药未使用。')).toBeUndefined();
   });
 
   it('renders the screenshot night: split votes, one abstention, seat identities', () => {
@@ -498,33 +490,38 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    // Conclusion header: both deaths, stats, derived bylines.
+    // Conclusion header: both deaths, derived bylines.
     expect(view.getByText('昨夜 2 人出局')).toBeTruthy();
-    const sequence = collectTextSequence(view.toJSON());
-    expect(sequence).toContain(ledgerCell('狼杀', 1));
-    expect(sequence).toContain(ledgerCell('毒杀', 1));
-    expect(sequence).toContain(ledgerCell('救活', 0));
-    expect(sequence).toContain(ledgerCell('查验', 1));
     expect(view.getByText('狼队 2 票锁定')).toBeTruthy();
     expect(view.getByText('女巫下毒')).toBeTruthy();
-    // Wolf team row: split verdict, abstention group in the diagram.
-    expect(view.getByText('狼队目标不一致 — 按多数票击杀')).toBeTruthy();
-    expect(view.queryByText('狼队共同目标')).toBeNull();
-    expect(view.getByText('空刀')).toBeTruthy();
+    // Timeline sentences in night order.
+    expect(
+      view.getByText('狼队投票不一致（7号投6号、8号投6号、9号投5号），按多数票击杀6号。'),
+    ).toBeTruthy();
+    expect(view.getByText('10号女巫毒杀12号。解药未使用。')).toBeTruthy();
+    expect(view.getByText('4号预言家查验5号，结果：好人。')).toBeTruthy();
+    expect(view.getByText('3号猎人可以发动。')).toBeTruthy();
+    expect(view.getByText('6号和12号出局。')).toBeTruthy();
+    // The partial abstention is not named anywhere on the page.
+    expect(view.queryByText('空刀')).toBeNull();
     // The -1 abstention sentinel never surfaces as a seat: no bare 「0」
     // medal and no 「0号」 text in the whole sequence.
+    const sequence = collectTextSequence(view.toJSON());
     expect(sequence).not.toContain('0');
     expect(sequence).not.toContain('0号');
-    // Witch card: poison line with the out note and the merged notes.
-    expect(view.getByText('目标出局')).toBeTruthy();
-    expect(view.getByText('未使用')).toBeTruthy();
-    expect(view.getByText('狼刀目标未救')).toBeTruthy();
-    // Seer picture row: check with the 好人 result tag.
-    expect(view.getByText('好人')).toBeTruthy();
-    // Hunter determination row: the seat lives on the figure only — no
-    // （3号） text — and the state reads 可以发动.
-    expect(view.getAllByText('猎人').length).toBeGreaterThanOrEqual(2);
-    expect(view.getByText('可以发动')).toBeTruthy();
+    // Colors: the resolved kill phrase by the wolf faction, the poison
+    // by the witch's faction, the check verb by the seer's faction, the
+    // 好人 result plain, the determination by the hunter's faction, and
+    // each dead seat by that player's faction.
+    const segments = collectColoredSegments(view.toJSON());
+    expect(segmentColor(segments, '按多数票击杀6号')).toBe(colors.wolf);
+    expect(segmentColor(segments, '毒杀12号')).toBe(colors.god);
+    expect(segmentColor(segments, '查验')).toBe(colors.god);
+    expect(segmentColor(segments, '好人')).toBeUndefined();
+    expect(segmentColor(segments, '可以发动')).toBe(colors.god);
+    expect(segmentColor(segments, '6号')).toBe(colors.villager);
+    expect(segmentColor(segments, '12号')).toBe(colors.wolf);
+    // Hunter: the seat lives inside the sentence only — no （3号） text.
     expect(view.queryByText('（3号）')).toBeNull();
     expect(view.queryByText('3号')).toBeNull();
     // Identity wall statuses.
@@ -535,7 +532,7 @@ describe('NightReviewModal', () => {
     expect(view.queryByText('未行动')).toBeNull();
   });
 
-  it('renders an all-abstain wolf night with only the abstain group', () => {
+  it('renders an all-abstain wolf night with only the abstain sentence', () => {
     const players = new Map<number, Player | null>([
       [0, makeReviewPlayer(0, 'wolf')],
       [1, makeReviewPlayer(1, 'wolf')],
@@ -556,17 +553,17 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    expect(view.getByText('狼队全员空刀')).toBeTruthy();
-    expect(view.getAllByText('空刀').length).toBeGreaterThanOrEqual(1);
+    expect(view.getByText('狼队全员空刀。')).toBeTruthy();
+    expect(view.getByText('本夜无人出局。')).toBeTruthy();
     expect(view.queryByText('狼队共同目标')).toBeNull();
     expect(view.queryByText('狼队目标不一致 — 按多数票击杀')).toBeNull();
-    expect(view.getByText('✗')).toBeTruthy();
+    expect(view.queryByText('✗')).toBeNull();
     const sequence = collectTextSequence(view.toJSON());
     expect(sequence).not.toContain('0');
     expect(sequence).not.toContain('0号');
   });
 
-  it('renders idle actors as dimmed status rows in night order', () => {
+  it('renders idle actors as plain sentences in night order', () => {
     const players = new Map<number, Player | null>([
       [0, makeReviewPlayer(0, 'wolf')],
       [1, makeReviewPlayer(1, 'guard')],
@@ -593,20 +590,27 @@ describe('NightReviewModal', () => {
       return index;
     };
     // The guard never guarded and the seer never checked: each is a
-    // status row carrying its phrase and no tag, no ✗; the order on the
-    // page is the engine's summary order (wolf, then guard, then seer),
-    // with no faction regrouping.
-    expect(view.getByText('未守护')).toBeTruthy();
-    expect(view.getByText('未查验')).toBeTruthy();
+    // sentence carrying its phrase; the order on the page is the
+    // engine's summary order (wolf, then guard, then seer), with no
+    // faction regrouping. No verdict was recorded for the single wolf
+    // vote, so the engine reports tie pending.
+    expect(view.getByText('狼队投票不一致（1号投5号），平票，目标未记录。')).toBeTruthy();
+    expect(view.getByText('2号守卫未守护。')).toBeTruthy();
+    expect(view.getByText('4号预言家未查验。')).toBeTruthy();
+    expect(view.getByText('本夜无人出局。')).toBeTruthy();
     expect(view.queryByText('未行动')).toBeNull();
-    expect(view.queryByText('守卫 2号 未守护')).toBeNull();
-    expect(indexOf('第一天')).toBeLessThan(indexOf('狼队'));
-    expect(indexOf('狼队')).toBeLessThan(indexOf('未守护'));
-    expect(indexOf('未守护')).toBeLessThan(indexOf('未查验'));
-    expect(indexOf('未查验')).toBeLessThan(indexOf('全员身份'));
+    expect(indexOf(NIGHT_REPORT_TIMELINE_TITLE)).toBeLessThan(
+      indexOf('狼队投票不一致（1号投5号），平票，目标未记录。'),
+    );
+    expect(indexOf('狼队投票不一致（1号投5号），平票，目标未记录。')).toBeLessThan(
+      indexOf('2号守卫未守护。'),
+    );
+    expect(indexOf('2号守卫未守护。')).toBeLessThan(indexOf('4号预言家未查验。'));
+    expect(indexOf('4号预言家未查验。')).toBeLessThan(indexOf('本夜无人出局。'));
+    expect(indexOf('本夜无人出局。')).toBeLessThan(indexOf('全员身份'));
   });
 
-  it('renders idle confirmations and unused potions as status rows', () => {
+  it('renders idle confirmations and unused potions as sentences', () => {
     const players = new Map<number, Player | null>([
       [0, makeReviewPlayer(0, 'hiddenWolf')],
       [1, makeReviewPlayer(1, 'avenger')],
@@ -623,21 +627,28 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    // Knowledge confirmations are positive status sentences, not
-    // absences; the witch used no antidote and the poisoner did not
-    // poison, so both dissolve into status rows. The wolf team recorded
-    // no vote, so its row points at ✗ — the only ✗ on the page.
-    expect(view.getByText('已确认狼同伴')).toBeTruthy();
-    expect(view.getByText('已确认阵营')).toBeTruthy();
-    expect(view.getByText('未使用解药')).toBeTruthy();
-    expect(view.getByText('未使用毒药')).toBeTruthy();
-    expect(view.getByText('未学习')).toBeTruthy();
-    expect(view.getByText('未选择目标')).toBeTruthy();
-    expect(view.getAllByText('✗')).toHaveLength(1);
+    // Knowledge confirmations are sentences, not absences; the witch
+    // used no antidote and the poisoner did not poison, so both read
+    // as unused-potion sentences. The wolf team recorded no vote.
+    expect(view.getByText('狼队未选择目标。')).toBeTruthy();
+    expect(view.getByText('1号隐狼已确认狼同伴。')).toBeTruthy();
+    expect(view.getByText('2号复仇者已确认阵营。')).toBeTruthy();
+    expect(view.getByText('3号女巫未使用解药。')).toBeTruthy();
+    expect(view.getByText('4号毒师未使用毒药。')).toBeTruthy();
+    expect(view.getByText('5号机械狼人未学习。')).toBeTruthy();
+    expect(view.getByText('本夜无人出局。')).toBeTruthy();
+    expect(view.queryByText('✗')).toBeNull();
     expect(view.queryByText('未行动')).toBeNull();
+    // The confirmation phrases carry the actor's faction color; the
+    // unused-potion sentences are plain.
+    const segments = collectColoredSegments(view.toJSON());
+    expect(segmentColor(segments, '已确认狼同伴')).toBe(colors.wolf);
+    expect(segmentColor(segments, '已确认阵营')).toBe(colors.third);
+    expect(segmentColor(segments, '未使用解药')).toBeUndefined();
+    expect(segmentColor(segments, '未使用毒药')).toBeUndefined();
   });
 
-  it('names an identity-family check result with the Chinese role name on the figure tag', () => {
+  it('names an identity-family check result with the Chinese role name', () => {
     const players = new Map<number, Player | null>([
       [0, makeReviewPlayer(0, 'villager')],
       [4, makeReviewPlayer(4, 'psychic')],
@@ -656,13 +667,20 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    // The figure tag names the role in Chinese; the roster carries the
-    // other two 平民. The tag sits on the check row, before the roster.
+    expect(view.getByText('5号通灵师查验10号，结果：平民。')).toBeTruthy();
+    // 平民 appears three times: the check result word and the two
+    // villager rows on the identity wall.
     expect(view.getAllByText('平民')).toHaveLength(3);
-    const sequence = collectTextSequence(view.toJSON());
-    expect(sequence.indexOf('平民')).toBeLessThan(sequence.indexOf('全员身份'));
+    // The result word is a timeline segment, before the roster title.
+    const segments = collectColoredSegments(view.toJSON());
+    const resultAt = segments.findIndex((segment) => segment.text === '平民');
+    const rosterAt = segments.findIndex((segment) => segment.text === '全员身份');
+    expect(resultAt).toBeGreaterThanOrEqual(0);
+    expect(rosterAt).toBeGreaterThan(resultAt);
     expect(view.getByText('查验')).toBeTruthy();
     expect(view.queryByText('villager')).toBeNull();
+    expect(segmentColor(segments, '查验')).toBe(colors.god);
+    expect(segmentColor(segments, '平民')).toBe(colors.villager);
   });
 
   it('shows a faction check as a faction word only, never the target identity', () => {
@@ -684,27 +702,19 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    // The seer learned only a faction: the check row reads 预言家 →
-    // 查验 → 狼人 → disc number, with no 女巫 anywhere on the row.
-    // 女巫 appears twice in total: the witch's own idle-row figure and
-    // the identity wall.
-    expect(view.getAllByText('女巫')).toHaveLength(2);
-    const sequence = collectTextSequence(view.toJSON());
-    const nightAt = sequence.indexOf('第 1 夜');
-    const actorAt = sequence.indexOf('预言家', nightAt);
-    expect(actorAt).toBeGreaterThanOrEqual(0);
-    expect(sequence.slice(actorAt, sequence.indexOf('第 1 天'))).toEqual([
-      '预言家',
-      '4',
-      '→',
-      '查验',
-      '狼人',
-      '1',
-    ]);
+    expect(view.getByText('4号预言家查验1号，结果：狼人。')).toBeTruthy();
+    expect(view.getByText('1号女巫未使用药水。')).toBeTruthy();
+    // 女巫 appears once as a standalone word — the identity wall row.
+    // The idle sentence carries it inside "1号女巫", and the check
+    // sentence never names the target's role.
+    expect(view.getAllByText('女巫')).toHaveLength(1);
     expect(view.queryByText('villager')).toBeNull();
+    const segments = collectColoredSegments(view.toJSON());
+    expect(segmentColor(segments, '查验')).toBe(colors.god);
+    expect(segmentColor(segments, '狼人')).toBe(colors.wolf);
   });
 
-  it('moves the learned role into the figure tag', () => {
+  it('moves the learned role into the sentence as a result word', () => {
     const players = new Map<number, Player | null>([
       [0, makeReviewPlayer(0, 'wolfRobot')],
       [1, makeReviewPlayer(1, 'witch')],
@@ -728,14 +738,16 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    // Learned role is the learn row's figure tag (the witch card's
-    // figure and the roster carry the other two 女巫）, not a
-    // parenthetical after the target.
-    expect(view.getAllByText('女巫')).toHaveLength(3);
+    expect(view.getByText('狼队（4号）袭击3号。')).toBeTruthy();
+    expect(view.getByText('2号女巫使用解药救起3号。毒药未使用。')).toBeTruthy();
+    expect(view.getByText('1号机械狼人学习2号，学到身份：女巫。')).toBeTruthy();
+    expect(view.getByText('本夜无人出局。')).toBeTruthy();
+    // 女巫 appears twice: the learned-role word and the identity wall.
+    expect(view.getAllByText('女巫')).toHaveLength(2);
     expect(view.queryByText('（女巫）')).toBeNull();
-    // The unused poison is an ✗ line with its note, not a sub-line.
-    expect(view.getByText('毒药')).toBeTruthy();
-    expect(view.getByText('未使用')).toBeTruthy();
+    const segments = collectColoredSegments(view.toJSON());
+    expect(segmentColor(segments, '学习')).toBe(colors.wolf);
+    expect(segmentColor(segments, '女巫')).toBe(colors.god);
   });
 
   it('renders the hunter determination in both states', () => {
@@ -756,8 +768,9 @@ describe('NightReviewModal', () => {
         onClose={jest.fn()}
       />,
     );
-    expect(canShoot.getByText('可以发动')).toBeTruthy();
-    expect(canShoot.queryByText('不能发动')).toBeNull();
+    expect(canShoot.getByText('3号猎人可以发动。')).toBeTruthy();
+    expect(canShoot.queryByText('3号猎人不能发动。')).toBeNull();
+    expect(segmentColor(collectColoredSegments(canShoot.toJSON()), '可以发动')).toBe(colors.god);
 
     const cannotShoot = render(
       <NightReviewModal
@@ -776,11 +789,12 @@ describe('NightReviewModal', () => {
         onClose={jest.fn()}
       />,
     );
-    expect(cannotShoot.getByText('不能发动')).toBeTruthy();
-    expect(cannotShoot.queryByText('可以发动')).toBeNull();
+    expect(cannotShoot.getByText('3号猎人不能发动。')).toBeTruthy();
+    expect(cannotShoot.queryByText('3号猎人可以发动。')).toBeNull();
+    expect(segmentColor(collectColoredSegments(cannotShoot.toJSON()), '不能发动')).toBeUndefined();
   });
 
-  it('draws the wolf vote diagram with one group per target', () => {
+  it('lists the wolf vote pairs in target-group order for a split kill', () => {
     const players = new Map<number, Player | null>([
       [4, makeReviewPlayer(4, 'villager')],
       [5, makeReviewPlayer(5, 'villager')],
@@ -805,34 +819,16 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    // Every vote group: voters row above, down arrow, target medal
-    // below. Two groups (two targets), each exactly three children.
-    const arrows = view.getAllByText('↓');
-    expect(arrows.length).toBe(2);
-    for (const arrow of arrows) {
-      const group = nearestViewAncestor(arrow);
-      expect(group?.children.length).toBe(3);
-    }
-    // Grouping and order in document order: the two-voter group first
-    // (most votes, target seat ascending on ties), then the one-voter
-    // group, then the verdict sentence. The attack row's target figure
-    // tag is the first 平民 after the night block header (the death
-    // stamp's 平民 comes earlier, the roster's later).
-    const sequence = collectTextSequence(view.toJSON());
-    const nightAt = sequence.indexOf('第 1 夜');
-    const targetTagAt = sequence.indexOf('平民', nightAt);
-    expect(targetTagAt).toBeGreaterThanOrEqual(0);
-    expect(sequence.slice(targetTagAt, sequence.indexOf('狼队目标不一致 — 按多数票击杀'))).toEqual([
-      '平民',
-      '6',
-      '7',
-      '8',
-      '↓',
-      '6',
-      '9',
-      '↓',
-      '5',
-    ]);
+    // The vote pairs list in target-group order: the two-voter group
+    // first (most votes, target seat ascending on ties), then the
+    // one-voter group, then the verdict phrase — no diagram, no arrow.
+    expect(
+      view.getByText('狼队投票不一致（7号投6号、8号投6号、9号投5号），按多数票击杀6号。'),
+    ).toBeTruthy();
+    expect(view.getByText('6号出局。')).toBeTruthy();
+    expect(view.queryByText('↓')).toBeNull();
+    const segments = collectColoredSegments(view.toJSON());
+    expect(segmentColor(segments, '按多数票击杀6号')).toBe(colors.wolf);
   });
 
   it('renders the warning rows: same-guard-same-save, poison immunity, reflection', () => {
@@ -868,11 +864,15 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    expect(view.getByText('⚠ 同守同救，仍然死亡')).toBeTruthy();
-    expect(view.getByText('免疫毒药')).toBeTruthy();
-    expect(view.getByText('反伤')).toBeTruthy();
+    expect(view.getByText('4号同守同救，仍然死亡。')).toBeTruthy();
+    expect(view.getByText('5号舞者免疫毒药。')).toBeTruthy();
+    expect(view.getByText('6号预言家查验7号，反伤。')).toBeTruthy();
     // 查验 appears twice: the seer check row and the reflection row.
     expect(view.getAllByText('查验')).toHaveLength(2);
+    const segments = collectColoredSegments(view.toJSON());
+    expect(segmentColor(segments, '4号同守同救，仍然死亡。')).toBeUndefined();
+    expect(segmentColor(segments, '舞者')).toBe(colors.god);
+    expect(segmentColor(segments, '7号，反伤。')).toBeUndefined();
   });
 
   it('renders both wolf give-up reasons', () => {
@@ -898,8 +898,8 @@ describe('NightReviewModal', () => {
         onClose={jest.fn()}
       />,
     );
-    expect(poisonerPresent.getByText('毒师在场')).toBeTruthy();
-    expect(poisonerPresent.getByText('✗')).toBeTruthy();
+    expect(poisonerPresent.getByText('狼队放弃袭击，毒师在场。')).toBeTruthy();
+    expect(poisonerPresent.queryByText('✗')).toBeNull();
 
     const nightmareBlocked = render(
       <NightReviewModal
@@ -913,8 +913,8 @@ describe('NightReviewModal', () => {
         onClose={jest.fn()}
       />,
     );
-    expect(nightmareBlocked.getByText('被噩梦之影封锁')).toBeTruthy();
-    expect(nightmareBlocked.getByText('✗')).toBeTruthy();
+    expect(nightmareBlocked.getByText('狼队放弃袭击，被噩梦之影封锁。')).toBeTruthy();
+    expect(nightmareBlocked.queryByText('✗')).toBeNull();
   });
 
   it('renders every idle phrase in one quiet night', () => {
@@ -947,25 +947,27 @@ describe('NightReviewModal', () => {
       />,
     );
 
-    for (const phrase of [
-      '未封锁',
-      '未庇护',
-      '未守护',
-      '未禁言',
-      '未禁票',
-      '未诅咒',
-      '未摄梦',
-      '未交换',
-      '未魅惑',
-      '未催眠',
-      '未使用感染',
-      '未使用药水',
-      '未查验',
-      '未学习',
-      '已确认狼同伴',
-      '已确认阵营',
+    for (const sentence of [
+      '狼队未选择目标。',
+      '1号噩梦之影未封锁。',
+      '2号蚀时狼妃未庇护。',
+      '3号守卫未守护。',
+      '4号禁言长老未禁言。',
+      '5号禁票长老未禁票。',
+      '6号乌鸦未诅咒。',
+      '7号摄梦人未摄梦。',
+      '8号魔术师未交换。',
+      '9号狼美人未魅惑。',
+      '10号吹笛者未催眠。',
+      '11号种狼未使用感染。',
+      '12号女巫未使用药水。',
+      '13号预言家未查验。',
+      '14号机械狼人未学习。',
+      '15号隐狼已确认狼同伴。',
+      '16号复仇者已确认阵营。',
+      '本夜无人出局。',
     ]) {
-      expect(view.getByText(phrase)).toBeTruthy();
+      expect(view.getByText(sentence)).toBeTruthy();
     }
   });
 
@@ -1092,7 +1094,6 @@ describe('NightReviewModal', () => {
           visible
           data={reviewData(
             [
-              { kind: 'peacefulNight' },
               { kind: 'shelter', actorSeat: 0, targetSeat: 9 },
               { kind: 'curse', actorSeat: 1, targetSeat: 10 },
               { kind: 'dream', actorSeat: 2, targetSeat: 11 },
@@ -1107,6 +1108,7 @@ describe('NightReviewModal', () => {
                 actorRoleId: 'slacker',
                 targetSeat: 17,
               },
+              { kind: 'peacefulNight' },
             ],
             [
               reviewIdentity(0, 'eclipseWolfQueen'),
@@ -1132,30 +1134,42 @@ describe('NightReviewModal', () => {
           onClose={jest.fn()}
         />,
       );
-      const slice = nightBlockSequence(collectTextSequence(view.toJSON()));
-      const rows: readonly (readonly string[])[] = [
-        ['蚀时狼妃', '1', '→', '庇护', '平民', '10'],
-        ['乌鸦', '2', '→', '诅咒', '守卫', '11'],
-        ['摄梦人', '3', '→', '摄梦', '女巫', '12'],
-        ['禁言长老', '4', '→', '禁言', '预言家', '13'],
-        ['禁票长老', '5', '→', '禁票', '狼人', '14'],
-        ['狼美人', '6', '→', '魅惑', '猎人', '15'],
-        ['觉醒石像鬼', '7', '→', '转化', '机械狼人', '16'],
-        ['狼女孩', '8', '→', '表白', '石像鬼', '17'],
-        ['混血儿', '9', '→', '选择榜样', '纯白之女', '18'],
-      ];
-      for (const row of rows) expectOrdered(slice, row);
+      const slice = timelineSequence(collectTextSequence(view.toJSON()));
+      expect(slice).toEqual([
+        '1号蚀时狼妃庇护10号。',
+        '2号乌鸦诅咒11号。',
+        '3号摄梦人摄梦12号。',
+        '4号禁言长老禁言13号。',
+        '5号禁票长老禁票14号。',
+        '6号狼美人魅惑15号。',
+        '7号觉醒石像鬼转化16号。',
+        '8号狼女孩表白17号。',
+        '9号混血儿选择榜样18号。',
+        '本夜无人出局。',
+      ]);
+      // Verbs by the actor's faction: wolf roles red, god roles violet,
+      // the third-party idol choice gold.
+      const segments = collectColoredSegments(view.toJSON());
+      expect(segmentColor(segments, '庇护')).toBe(colors.wolf);
+      expect(segmentColor(segments, '诅咒')).toBe(colors.god);
+      expect(segmentColor(segments, '摄梦')).toBe(colors.god);
+      expect(segmentColor(segments, '禁言')).toBe(colors.god);
+      expect(segmentColor(segments, '禁票')).toBe(colors.god);
+      expect(segmentColor(segments, '魅惑')).toBe(colors.wolf);
+      expect(segmentColor(segments, '转化')).toBe(colors.wolf);
+      expect(segmentColor(segments, '表白')).toBe(colors.wolf);
+      expect(segmentColor(segments, '选择榜样')).toBe(colors.third);
     });
 
-    it('renders swap and cupidLink targets without role tags (B2, §4.1)', () => {
+    it('renders swap and cupidLink targets without role words (B2, §4.1)', () => {
       const view = render(
         <NightReviewModal
           visible
           data={reviewData(
             [
-              { kind: 'peacefulNight' },
               { kind: 'swap', actorSeat: 0, seats: [1, 2] },
               { kind: 'cupidLink', actorSeat: 3, seats: [4, 5] },
+              { kind: 'peacefulNight' },
             ],
             [
               reviewIdentity(0, 'magician'),
@@ -1169,23 +1183,26 @@ describe('NightReviewModal', () => {
           onClose={jest.fn()}
         />,
       );
-      const slice = nightBlockSequence(collectTextSequence(view.toJSON()));
-      expectOrdered(slice, ['魔术师', '1', '→', '交换', '2', '和', '3']);
-      expectOrdered(slice, ['丘比特', '4', '→', '连线', '5', '和', '6']);
+      const slice = timelineSequence(collectTextSequence(view.toJSON()));
+      expect(slice).toEqual([
+        '1号魔术师交换2号和3号。',
+        '4号丘比特连线5号和6号。',
+        '本夜无人出局。',
+      ]);
       expect(slice).not.toContain('平民');
       expect(slice).not.toContain('守卫');
       expect(slice).not.toContain('女巫');
       expect(slice).not.toContain('预言家');
     });
 
-    it('renders hypnotize targets without role tags (B2, §4.1)', () => {
+    it('renders hypnotize targets without role words (B2, §4.1)', () => {
       const view = render(
         <NightReviewModal
           visible
           data={reviewData(
             [
-              { kind: 'peacefulNight' },
               { kind: 'hypnotize', actorSeat: 0, targetSeats: [1, 2, 3] },
+              { kind: 'peacefulNight' },
             ],
             [
               reviewIdentity(0, 'piper'),
@@ -1197,29 +1214,34 @@ describe('NightReviewModal', () => {
           onClose={jest.fn()}
         />,
       );
-      const slice = nightBlockSequence(collectTextSequence(view.toJSON()));
-      expectOrdered(slice, ['吹笛者', '1', '→', '催眠', '2', '3', '4']);
+      const slice = timelineSequence(collectTextSequence(view.toJSON()));
+      expect(slice).toEqual(['1号吹笛者催眠2号、3号、4号。', '本夜无人出局。']);
       expect(slice).not.toContain('平民');
       expect(slice).not.toContain('守卫');
       expect(slice).not.toContain('女巫');
+      const segments = collectColoredSegments(view.toJSON());
+      expect(segmentColor(segments, '催眠')).toBe(colors.third);
     });
 
-    it('renders cardChoice as a role tag with no seat number (B2, §4)', () => {
+    it('renders cardChoice as a role word with no seat number (B2, §4)', () => {
       const view = render(
         <NightReviewModal
           visible
           data={reviewData(
             [
-              { kind: 'peacefulNight' },
               { kind: 'cardChoice', actorSeat: 0, actorRoleId: 'seer', chosenRoleId: 'wolf' },
+              { kind: 'peacefulNight' },
             ],
             [reviewIdentity(0, 'seer')],
           )}
           onClose={jest.fn()}
         />,
       );
-      const slice = nightBlockSequence(collectTextSequence(view.toJSON()));
-      expect(slice).toEqual(['预言家', '1', '→', '选择了', '狼人']);
+      const slice = timelineSequence(collectTextSequence(view.toJSON()));
+      expect(slice).toEqual(['1号预言家选择了狼人。', '本夜无人出局。']);
+      const segments = collectColoredSegments(view.toJSON());
+      expect(segmentColor(segments, '选择了')).toBe(colors.god);
+      expect(segmentColor(segments, '狼人')).toBe(colors.wolf);
     });
 
     it('renders nightmareBlock and mimic notes (B2, §4)', () => {
@@ -1228,9 +1250,9 @@ describe('NightReviewModal', () => {
           visible
           data={reviewData(
             [
-              { kind: 'peacefulNight' },
               { kind: 'nightmareBlock', actorSeat: 0, targetSeat: 1, targetRoleId: 'witch' },
               { kind: 'mimic', actorSeat: 2, targetSeat: 3, isBound: true },
+              { kind: 'peacefulNight' },
             ],
             [
               reviewIdentity(0, 'nightmare'),
@@ -1242,22 +1264,27 @@ describe('NightReviewModal', () => {
           onClose={jest.fn()}
         />,
       );
-      const slice = nightBlockSequence(collectTextSequence(view.toJSON()));
-      expectOrdered(slice, ['封锁', '（女巫，技能无效）']);
-      expectOrdered(slice, ['模仿', '绑定']);
+      const slice = timelineSequence(collectTextSequence(view.toJSON()));
+      expect(slice).toEqual([
+        '1号噩梦之影封锁2号（女巫，技能无效）。',
+        '3号影子模仿4号（绑定）。',
+        '本夜无人出局。',
+      ]);
       expect(view.getByText('（女巫，技能无效）')).toBeTruthy();
-      expect(view.getByText('绑定')).toBeTruthy();
+      const segments = collectColoredSegments(view.toJSON());
+      expect(segmentColor(segments, '封锁')).toBe(colors.wolf);
+      expect(segmentColor(segments, '模仿')).toBe(colors.third);
     });
 
-    it('renders seed wolf infection success and failure notes (B2, §4)', () => {
+    it('renders seed wolf infection success and failure (B2, §4)', () => {
       const view = render(
         <NightReviewModal
           visible
           data={reviewData(
             [
-              { kind: 'peacefulNight' },
               { kind: 'infectConverted', actorSeat: 0, targetSeat: 1 },
               { kind: 'infectFailed', actorSeat: 2, targetSeat: 3 },
+              { kind: 'peacefulNight' },
             ],
             [
               reviewIdentity(0, 'seedWolf'),
@@ -1269,18 +1296,19 @@ describe('NightReviewModal', () => {
           onClose={jest.fn()}
         />,
       );
-      const slice = nightBlockSequence(collectTextSequence(view.toJSON()));
+      const slice = timelineSequence(collectTextSequence(view.toJSON()));
+      expect(slice).toEqual(['1号种狼感染2号，成功。', '3号种狼感染4号，失败。', '本夜无人出局。']);
       expect(view.getAllByText('感染')).toHaveLength(2);
-      expectOrdered(slice, ['感染', '成功', '感染', '失败']);
+      const segments = collectColoredSegments(view.toJSON());
+      expect(segmentColor(segments, '感染')).toBe(colors.wolf);
     });
 
-    it('renders a roleName check on a wolf with the info tag tone (B1 ruling B)', () => {
+    it('colors a roleName check on a wolf by the result role faction (B1 ruling B overturned)', () => {
       const view = render(
         <NightReviewModal
           visible
           data={reviewData(
             [
-              { kind: 'peacefulNight' },
               {
                 kind: 'check',
                 actorSeat: 0,
@@ -1289,65 +1317,18 @@ describe('NightReviewModal', () => {
                 result: 'wolf',
                 resultFormat: 'roleName',
               },
+              { kind: 'peacefulNight' },
             ],
             [reviewIdentity(0, 'psychic'), reviewIdentity(1, 'wolf')],
           )}
           onClose={jest.fn()}
         />,
       );
-      const slice = nightBlockSequence(collectTextSequence(view.toJSON()));
-      expectOrdered(slice, ['通灵师', '1', '→', '查验', '狼人', '2']);
-      const backgrounds = view.getAllByText('狼人').map((node) => enclosingBackgroundColor(node));
-      expect(backgrounds).toContain(NIGHT_REPORT_COLORS.godMedalBg);
-      expect(backgrounds).not.toContain(NIGHT_REPORT_COLORS.deadMedalBg);
-    });
-
-    it('dims a dead faction-check target disc, and only when dead (N5)', () => {
-      const deadView = render(
-        <NightReviewModal
-          visible
-          data={reviewData(
-            [
-              {
-                kind: 'deaths',
-                deaths: [{ seat: 0, reason: 'wolfKill' }],
-              },
-              {
-                kind: 'check',
-                actorSeat: 1,
-                actorRoleId: 'seer',
-                targetSeat: 0,
-                result: '狼人',
-                resultFormat: 'factionCheck',
-              },
-            ],
-            [reviewIdentity(0, 'wolf', false), reviewIdentity(1, 'seer')],
-          )}
-          onClose={jest.fn()}
-        />,
-      );
-      expect(deadView.getAllByText('1').some((node) => hasDimmedAncestor(node))).toBe(true);
-      const aliveView = render(
-        <NightReviewModal
-          visible
-          data={reviewData(
-            [
-              { kind: 'peacefulNight' },
-              {
-                kind: 'check',
-                actorSeat: 1,
-                actorRoleId: 'seer',
-                targetSeat: 0,
-                result: '狼人',
-                resultFormat: 'factionCheck',
-              },
-            ],
-            [reviewIdentity(0, 'wolf'), reviewIdentity(1, 'seer')],
-          )}
-          onClose={jest.fn()}
-        />,
-      );
-      expect(aliveView.getAllByText('1').some((node) => hasDimmedAncestor(node))).toBe(false);
+      const slice = timelineSequence(collectTextSequence(view.toJSON()));
+      expect(slice).toEqual(['1号通灵师查验2号，结果：狼人。', '本夜无人出局。']);
+      const segments = collectColoredSegments(view.toJSON());
+      expect(segmentColor(segments, '查验')).toBe(colors.god);
+      expect(segmentColor(segments, '狼人')).toBe(colors.wolf);
     });
   });
 });
