@@ -259,39 +259,12 @@ export function useWerewolfRoomState(
     shareRoom: share.open,
   });
 
-  // ── Deadline: the armed night step / sheriff vote; expiry is a race every client may win ──
+  // ── Deadline: the armed night step / sheriff vote. Countdown only:
+  // the server settles the deadline (werewolf.settle.due); no phone
+  // sends expiry.
   const armedDeadline = readArmedDeadline(state);
-  const expirePhase = useCallback(
-    () =>
-      session.dispatch(
-        { type: 'werewolf.phase.expire' },
-        { controlledSeat: null, label: '阶段超时结算', durable: true },
-      ),
-    [session],
-  );
-  const shouldExpirePhase = useCallback(() => {
-    if (armedDeadline === null || controlledSeat !== null) return false;
-    const current = session.getSnapshot();
-    if (current.phase !== 'ready' || current.status.kind !== 'live') return false;
-    if (current.pendingDurableCount > 0) return false;
-    const live = readArmedDeadline(current.room.state);
-    return (
-      live !== null &&
-      live.phase === armedDeadline.phase &&
-      live.deadlineAt === armedDeadline.deadlineAt &&
-      current.room.state.gameSequence === state.gameSequence
-    );
-  }, [armedDeadline, controlledSeat, session, state.gameSequence]);
   const { nowMs } = useStageDeadline({
     deadlineAt: armedDeadline?.deadlineAt ?? null,
-    shouldExpire: shouldExpirePhase,
-    onExpire: expirePhase,
-    label: '阶段超时结算',
-    silentExpire: true,
-    attemptKey:
-      armedDeadline === null
-        ? null
-        : `${state.gameSequence}:${armedDeadline.phase}:${armedDeadline.deadlineAt}`,
   });
 
   // ── Night ──

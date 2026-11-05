@@ -217,43 +217,12 @@ export function useAvalonRoomState(
   });
   // 组队选人 modal 开关：选人与确认都在 modal 里做（见 confirmTeamPick）。
   const [teamPickModal, setTeamPickModal] = useState<AvalonTeamPickKind | null>(null);
-  // 投票/任务倒计时：结算的正确性由服务端定时投递保证（引擎武装倒计时的
-  // 同时排下 avalon.settle.due，Worker 到点以系统身份内部结算）。客户端
-  // 这条 expire 派发只是加速路径：抢先提交同一个超时结算，先到者生效。
+  // 投票/任务倒计时：只做展示。结算的正确性由服务端定时投递保证（引擎武装倒计时的
+  // 同时排下 avalon.settle.due，Worker 到点以系统身份内部结算）；任何手机都不发 expire。
   const phaseDeadlineAt =
     state.phase.kind === 'vote' || state.phase.kind === 'quest' ? state.phase.deadlineAt : null;
-  // 超时结算走静默派发（对齐 drawguess 的 expire）：全场客户端会同时提交，
-  // 先到者结算、其余被引擎阶段校验拒绝——拒绝是预期结果，绝不能弹错误框。
-  const expirePhase = useCallback(async () => {
-    if (state.phase.kind === 'vote') {
-      await session.dispatch(
-        { type: 'avalon.phase.expire' },
-        { controlledSeat: null, label: '投票超时结算', durable: true },
-      );
-    } else if (state.phase.kind === 'quest') {
-      await session.dispatch(
-        { type: 'avalon.phase.expire' },
-        { controlledSeat: null, label: '任务超时结算', durable: true },
-      );
-    }
-  }, [state.phase.kind, session]);
-  const shouldExpirePhase = useCallback(() => {
-    if (phaseDeadlineAt === null || controlledSeat !== null) return false;
-    const current = session.getSnapshot();
-    return (
-      current.phase === 'ready' &&
-      current.status.kind === 'live' &&
-      current.pendingDurableCount === 0 &&
-      current.room.state.phaseRevision === state.phaseRevision
-    );
-  }, [phaseDeadlineAt, controlledSeat, session, state.phaseRevision]);
   const { remainingSeconds: phaseRemainingSeconds } = useStageDeadline({
     deadlineAt: phaseDeadlineAt,
-    shouldExpire: shouldExpirePhase,
-    onExpire: expirePhase,
-    label: '阶段超时结算',
-    silentExpire: true,
-    attemptKey: `${state.phaseRevision}:${phaseDeadlineAt}`,
   });
   const capabilities: RoomCapabilities = {
     ...setupCapabilities,
