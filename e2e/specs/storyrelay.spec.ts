@@ -8,6 +8,7 @@ import { TESTIDS } from '../../src/testids';
 import { closeAll, createColdRoomContext, createPlayerContexts } from '../fixtures/app.fixture';
 import { enterRoomCodeViaNumPad } from '../helpers/home';
 import { expectWeChatImageShare } from '../helpers/image-sharing';
+import { setOffline } from '../helpers/resilience';
 import { waitForRoomScreenReady } from '../helpers/waits';
 import { HomePage } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
@@ -20,13 +21,121 @@ test.use({ actionTimeout: 15_000 });
  *  a relative floor, so it holds at any viewport size. */
 const MIN_EDITOR_VIEWPORT_FRACTION = 0.1;
 
-async function createRoom(page: Page): Promise<RoomPage> {
+/**
+ * Phase-expiry discipline (D1', 2026-11-04): the server's scheduled settle
+ * is the correctness path; a client expire is single-shot acceleration
+ * only, sent at most once per phase identity by an eligible sender.
+ *
+ * The tests below prove that discipline from observed /room/command
+ * traffic, never from UI text: every page gets a passive route handler
+ * that logs expire sends and always calls route.continue(), so delivery
+ * is never altered or swallowed. Only host/seated contexts are driven
+ * here, per the 2026-11-04 ruling on E2E scope; the remaining
+ * eligibility cases stay covered at hook/contract level, not in E2E.
+ *
+ * Story Relay identity note: the server settle pin is
+ * roundId + phaseRevision + stepIndex + deadlineAt, and the client
+ * attemptKey is roundId:phaseRevision:deadlineAt; the wire expire
+ * command itself carries only phaseRevision, which is the per-phase
+ * identity on the wire (every phaseChanged advances the revision by
+ * one), so the observations below group by phaseRevision. A deadline
+ * crossing here can span two identities — the writing phase and the
+ * zero-second transition that follows it — and the single-shot
+ * assertion allows at most one send per identity.
+ *
+ * Honest boundary of this file:
+ * - Zero-client settlement is NOT claimed here: E2E always has foreground
+ *   clients. The offline test proves advancement without any acceleration
+ *   command being sent; zero-client settlement is proven at Worker
+ *   DO-test level.
+ * - The offline test scopes its zero claim to sends observed up to the
+ *   moment of reconnect: after reconnect the zero-second transition may
+ *   legitimately be accelerated once by an eligible sender, and that
+ *   send is covered by the companion single-shot test, not by the
+ *   zero claim.
+ */
+const EXPIRE_COMMAND_TYPE = 'storyrelay.phase.expire';
+
+interface ObservedExpire {
+  readonly phaseRevision: number;
+  readonly atMs: number;
+}
+
+interface ExpireObservation {
+  readonly expires: () => readonly ObservedExpire[];
+  readonly stop: () => Promise<void>;
+}
+
+/** The phaseRevision carried by an expire command body, or null when the body is not one. */
+function expirePhaseRevision(body: unknown): number | null {
+  if (typeof body !== 'object' || body === null || !('command' in body)) return null;
+  const command: unknown = body.command;
+  if (typeof command !== 'object' || command === null || !('type' in command)) return null;
+  if (command.type !== EXPIRE_COMMAND_TYPE) return null;
+  if (!('phaseRevision' in command)) return null;
+  const revision: unknown = command.phaseRevision;
+  return typeof revision === 'number' ? revision : null;
+}
+
+/**
+ * Log every storyrelay.phase.expire send on one page, timestamped, without
+ * touching delivery: the handler always continues the request, matching
+ * the room-narration precedent.
+ */
+async function observeExpireCommands(page: Page): Promise<ExpireObservation> {
+  const seen: ObservedExpire[] = [];
+  await page.route('**/room/command', async (route, request) => {
+    if (request.method() === 'POST') {
+      let body: unknown = null;
+      try {
+        body = request.postDataJSON();
+      } catch {
+        body = null;
+      }
+      // -1 means an expire send whose body carried no readable
+      // phaseRevision; it still counts as a send and stays visible
+      // in the attached observation log.
+      if (isExpireCommand(body)) {
+        seen.push({ phaseRevision: expirePhaseRevision(body) ?? -1, atMs: Date.now() });
+      }
+    }
+    await route.continue();
+  });
+  return {
+    expires: () => seen,
+    stop: () => page.unroute('**/room/command'),
+  };
+}
+
+/** True when a /room/command POST body carries the expire command type. */
+function isExpireCommand(body: unknown): boolean {
+  if (typeof body !== 'object' || body === null || !('command' in body)) return false;
+  const command: unknown = body.command;
+  return (
+    typeof command === 'object' &&
+    command !== null &&
+    'type' in command &&
+    command.type === EXPIRE_COMMAND_TYPE
+  );
+}
+
+/** Single-shot discipline, per phase identity: at most one send per phaseRevision. */
+function expectAtMostOneExpirePerPhaseIdentity(expires: readonly ObservedExpire[]): void {
+  const counts = new Map<number, number>();
+  for (const entry of expires)
+    counts.set(entry.phaseRevision, (counts.get(entry.phaseRevision) ?? 0) + 1);
+  for (const count of counts.values()) expect(count).toBeLessThanOrEqual(1);
+}
+
+async function createRoom(page: Page, writingDurationSeconds = 'unlimited'): Promise<RoomPage> {
   await new HomePage(page).clickCreateRoom('storyrelay');
   await expect(page.getByTestId(TESTIDS.gameConfigScreenRoot('storyrelay'))).toBeVisible();
   await page.getByRole('button', { name: '减少人数' }).click();
   await page.getByRole('button', { name: '减少人数' }).click();
   await page
-    .getByTestId(TESTIDS.gameConfigFieldOption('storyrelay', 'writingDurationSeconds', 'unlimited'))
+    .getByTestId(
+      TESTIDS.gameConfigFieldOption('storyrelay', 'writingDurationSeconds', writingDurationSeconds),
+    )
     .click();
   await page
     .getByTestId(TESTIDS.gameConfigFieldOption('storyrelay', 'transitionDurationSeconds', '0'))
@@ -251,6 +360,114 @@ test('four humans write four turns without restoring unsubmitted input and revea
       await spectator.context.close();
     }
   } finally {
+    await closeAll(fixture);
+  }
+});
+
+test('seated players send at most one expire per phase identity across a deadline', async ({
+  browser,
+}, testInfo) => {
+  const fixture = await createPlayerContexts(browser, 4);
+  const hostPage = fixture.pages[0];
+  const observations: ExpireObservation[] = [];
+  try {
+    for (const page of fixture.pages) observations.push(await observeExpireCommands(page));
+
+    await test.step('create a four-player room with a 45-second writing deadline', async () => {
+      const room = await createRoom(hostPage, '45');
+      const code = await room.getRoomCode();
+      await room.seatAt(0);
+      for (let seat = 1; seat < 4; seat += 1) await joinRoom(fixture.pages[seat]!, code, seat);
+      await room.clickHostManagementActionAndConfirm('start-game-button', '开始游戏？');
+    });
+
+    await test.step('cross the writing deadline with every client idle', async () => {
+      for (const page of fixture.pages)
+        await expect(page.getByTestId('storyrelay-editor')).toBeEditable();
+      // Nobody writes anything: the 45-second writing deadline must pass
+      // with zero input, so the crossing is decided by the deadline
+      // alone and every client observes the whole crossing. The advance
+      // is visible when the previous entry appears: with empty
+      // submissions it reads '上一段留白'.
+      await expect(hostPage.getByTestId('storyrelay-previous-entry')).toContainText('上一段留白', {
+        timeout: 120_000,
+      });
+    });
+
+    await test.step('assert the D1′ expire discipline from the observed commands', async () => {
+      const byPage = observations.map((observation) => observation.expires());
+      await testInfo.attach('storyrelay-expire-observation', {
+        body: JSON.stringify({ byPage }),
+        contentType: 'application/json',
+      });
+      for (const expires of byPage) {
+        expectAtMostOneExpirePerPhaseIdentity(expires);
+      }
+    });
+  } finally {
+    await Promise.allSettled(observations.map((observation) => observation.stop()));
+    await closeAll(fixture);
+  }
+});
+
+test('phase advances past the deadline with zero expire commands while every client is offline', async ({
+  browser,
+}, testInfo) => {
+  const fixture = await createPlayerContexts(browser, 4);
+  const hostPage = fixture.pages[0];
+  const observations: ExpireObservation[] = [];
+  try {
+    for (const page of fixture.pages) observations.push(await observeExpireCommands(page));
+
+    await test.step('create a four-player room with a 45-second writing deadline', async () => {
+      const room = await createRoom(hostPage, '45');
+      const code = await room.getRoomCode();
+      await room.seatAt(0);
+      for (let seat = 1; seat < 4; seat += 1) await joinRoom(fixture.pages[seat]!, code, seat);
+      await room.clickHostManagementActionAndConfirm('start-game-button', '开始游戏？');
+    });
+
+    await test.step('start the round, then hold every client offline across the deadline', async () => {
+      for (const page of fixture.pages)
+        await expect(page.getByTestId('storyrelay-editor')).toBeEditable();
+      // Offline, the link is not live, so no client's expiry gate can
+      // fire; the 45-second deadline still passes on the server clock.
+      // The hold is measured from the editor being editable, which
+      // trails the server's round-start decision by a second or two,
+      // so 52 seconds clears the deadline plus settle latency.
+      const startedAt = Date.now();
+      for (const context of fixture.contexts) await setOffline(context, true);
+      await expect
+        .poll(async () => Date.now() - startedAt, { timeout: 60_000, intervals: [300] })
+        .toBeGreaterThan(52_000);
+    });
+
+    await test.step('reconnect and observe the server-driven advance with no acceleration', async () => {
+      for (const context of fixture.contexts) await setOffline(context, false);
+      const reconnectedMs = Date.now();
+      // The writing-deadline crossing itself (answering -> settling)
+      // happened server-side while every client was offline. The zero
+      // claim is scoped to sends observed up to the moment of
+      // reconnect: after reconnect the zero-second transition may
+      // legitimately be accelerated once by an eligible sender, and
+      // that send is covered by the companion single-shot test.
+      // Collection after reconnect is expected — clients submit their
+      // (empty) inputs — and is not acceleration.
+      await expect(hostPage.getByTestId('storyrelay-previous-entry')).toContainText('上一段留白', {
+        timeout: 60_000,
+      });
+      const byPage = observations.map((observation) => observation.expires());
+      await testInfo.attach('storyrelay-offline-expire-observation', {
+        body: JSON.stringify({ reconnectedMs, byPage }),
+        contentType: 'application/json',
+      });
+      for (const expires of byPage) {
+        expect(expires.filter((entry) => entry.atMs <= reconnectedMs)).toHaveLength(0);
+      }
+    });
+  } finally {
+    await Promise.allSettled(fixture.contexts.map((context) => setOffline(context, false)));
+    await Promise.allSettled(observations.map((observation) => observation.stop()));
     await closeAll(fixture);
   }
 });
