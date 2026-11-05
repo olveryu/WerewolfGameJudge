@@ -98,6 +98,8 @@ export interface AvalonRoomScreenState {
   readonly roleCardAllRoles: readonly RevealRoleData[];
   /** 投票/任务阶段倒计时剩余秒数；不在限时阶段或无截止时为 null。 */
   readonly phaseRemainingSeconds: number | null;
+  /** 投票/任务结算逾期：截止已过且宽限期已过，房主可见自救重试（D3 follow-up）。 */
+  readonly isOverdue: boolean;
   readonly nightModalVisible: boolean;
   readonly setNightModalVisible: Dispatch<SetStateAction<boolean>>;
   /** 投票弹窗开关：自动弹一次由 Screen 驱动，底部按钮重开也走这里。 */
@@ -219,9 +221,10 @@ export function useAvalonRoomState(
   const [teamPickModal, setTeamPickModal] = useState<AvalonTeamPickKind | null>(null);
   // 投票/任务倒计时：只做展示。结算的正确性由服务端定时投递保证（引擎武装倒计时的
   // 同时排下 avalon.settle.due，Worker 到点以系统身份内部结算）；任何手机都不发 expire。
+  // isOverdue 是房主自救的共享判定（D3 follow-up）：截止后宽限期已过、结算仍未到达。
   const phaseDeadlineAt =
     state.phase.kind === 'vote' || state.phase.kind === 'quest' ? state.phase.deadlineAt : null;
-  const { remainingSeconds: phaseRemainingSeconds } = useStageDeadline({
+  const { remainingSeconds: phaseRemainingSeconds, isOverdue } = useStageDeadline({
     deadlineAt: phaseDeadlineAt,
   });
   const capabilities: RoomCapabilities = {
@@ -330,6 +333,7 @@ export function useAvalonRoomState(
     bgm,
     audioResume,
     phaseRemainingSeconds,
+    isOverdue,
     submit,
     teamPickModal,
     setTeamPickModal,

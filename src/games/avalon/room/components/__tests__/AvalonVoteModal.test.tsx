@@ -3,6 +3,8 @@
 import type { AvalonViewModel } from '@game-judge/game-engine/games/avalon/public';
 import { fireEvent, render } from '@testing-library/react-native';
 
+import { TESTIDS } from '@/testids';
+
 import { AvalonVoteModal } from '../AvalonVoteModal';
 
 function voteViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewModel {
@@ -57,19 +59,25 @@ function renderModal(
   overrides: Partial<AvalonViewModel> = {},
   remainingSeconds: number | null = null,
   isSubmitting = false,
+  isOverdue = false,
+  isHost = false,
 ) {
   const onVote = jest.fn();
+  const onRetry = jest.fn();
   const onClose = jest.fn();
   const utils = render(
     <AvalonVoteModal
       viewModel={voteViewModel(overrides)}
       remainingSeconds={remainingSeconds}
+      isOverdue={isOverdue}
+      isHost={isHost}
       isSubmitting={isSubmitting}
       onVote={onVote}
+      onRetry={onRetry}
       onClose={onClose}
     />,
   );
-  return { ...utils, onVote, onClose };
+  return { ...utils, onVote, onRetry, onClose };
 }
 
 describe('AvalonVoteModal', () => {
@@ -90,6 +98,18 @@ describe('AvalonVoteModal', () => {
   it('shows the reveal countdown once every ballot is in', () => {
     const { getByTestId } = renderModal({}, 4);
     expect(getByTestId('avalon-vote-countdown')).toHaveTextContent('已全部投票，4 秒后揭晓');
+  });
+
+  it('shows the settle rescue to the host once overdue', () => {
+    const { getByTestId, onRetry } = renderModal({}, 0, false, true, true);
+    fireEvent.press(getByTestId(TESTIDS.stageSettleRescueRetryButton));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the waiting hint and no retry button to non-hosts once overdue', () => {
+    const { getByTestId, queryByTestId } = renderModal({}, 0, false, true, false);
+    expect(getByTestId(TESTIDS.stageSettleRescue)).toHaveTextContent(/等待房主处理/);
+    expect(queryByTestId(TESTIDS.stageSettleRescueRetryButton)).toBeNull();
   });
 
   it('shows my current ballot and allows changing it', () => {

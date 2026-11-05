@@ -28,6 +28,7 @@ import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/Roo
 import { RoomShell } from '@/features/room/components/RoomShell';
 import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
 import { STAGE_FRAME_MAX_WIDTH, StageFrame } from '@/features/room/components/StageFrame';
+import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
 import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
@@ -168,20 +169,43 @@ function DrawGuessStage({ screen }: { readonly screen: DrawGuessScreenState }) {
   throw new Error('[FAIL-FAST] DrawGuess stage received the lobby phase');
 }
 
+/** 房主自救（D3 follow-up）：重新推进本阶段的结算；逾期判定与宽限期见共享 hook。 */
+function retryDrawGuessSettle(screen: DrawGuessScreenState) {
+  void screen.submit('重新推进', { type: 'drawguess.phase.retrySettle' });
+}
+
 function DrawGuessStageHeader({
   turnLabel,
   remainingSeconds,
   countdownLabel,
+  isOverdue,
+  isHost,
+  isRetrying,
+  onRetry,
 }: {
   readonly turnLabel: string;
   readonly remainingSeconds: number | null;
   readonly countdownLabel: string;
+  readonly isOverdue: boolean;
+  readonly isHost: boolean;
+  readonly isRetrying: boolean;
+  readonly onRetry: () => void;
 }) {
   return (
-    <View style={styles.stageHeader}>
-      <Text style={styles.turnLabel}>{turnLabel}</Text>
-      <DrawGuessCountdown remainingSeconds={remainingSeconds} label={countdownLabel} />
-    </View>
+    <>
+      <View style={styles.stageHeader}>
+        <Text style={styles.turnLabel}>{turnLabel}</Text>
+        <DrawGuessCountdown remainingSeconds={remainingSeconds} label={countdownLabel} />
+      </View>
+      <StageSettleRescue
+        remainingSeconds={remainingSeconds}
+        isOverdue={isOverdue}
+        isHost={isHost}
+        isRetrying={isRetrying}
+        onRetry={onRetry}
+        waitingLabel="等待推进…"
+      />
+    </>
   );
 }
 
@@ -189,11 +213,19 @@ function DrawGuessStageFrame({
   turnLabel,
   remainingSeconds,
   countdownLabel,
+  isOverdue,
+  isHost,
+  isRetrying,
+  onRetry,
   children,
 }: {
   readonly turnLabel: string;
   readonly remainingSeconds: number | null;
   readonly countdownLabel: string;
+  readonly isOverdue: boolean;
+  readonly isHost: boolean;
+  readonly isRetrying: boolean;
+  readonly onRetry: () => void;
   readonly children: ReactNode;
 }) {
   return (
@@ -204,6 +236,10 @@ function DrawGuessStageFrame({
           turnLabel={turnLabel}
           remainingSeconds={remainingSeconds}
           countdownLabel={countdownLabel}
+          isOverdue={isOverdue}
+          isHost={isHost}
+          isRetrying={isRetrying}
+          onRetry={onRetry}
         />
       }
     >
@@ -325,6 +361,10 @@ function DrawGuessWordSelectView({
       turnLabel={viewModel.turnLabel}
       remainingSeconds={remainingSeconds}
       countdownLabel="选词"
+      isOverdue={screen.isOverdue}
+      isHost={screen.isHost}
+      isRetrying={screen.isSubmitting}
+      onRetry={() => retryDrawGuessSettle(screen)}
     >
       {isDrawer ? (
         <View style={styles.section}>
@@ -453,6 +493,10 @@ function DrawGuessDrawingView({
             turnLabel={viewModel.turnLabel}
             remainingSeconds={remainingSeconds}
             countdownLabel="作画"
+            isOverdue={screen.isOverdue}
+            isHost={screen.isHost}
+            isRetrying={screen.isSubmitting}
+            onRetry={() => retryDrawGuessSettle(screen)}
           />
         }
         maxWidth={STAGE_FRAME_MAX_WIDTH}
@@ -670,6 +714,10 @@ function DrawGuessRoundEndView({
       turnLabel={viewModel.turnLabel}
       remainingSeconds={remainingSeconds}
       countdownLabel="结算"
+      isOverdue={screen.isOverdue}
+      isHost={screen.isHost}
+      isRetrying={screen.isSubmitting}
+      onRetry={() => retryDrawGuessSettle(screen)}
     >
       <View style={styles.answerBanner} accessibilityLabel={`本轮答案：${phase.word}`}>
         <Text style={styles.answerLabel}>本轮答案</Text>
@@ -720,7 +768,15 @@ function DrawGuessEndedView({
     totalScore: viewModel.totalScores[seat.seat] ?? 0,
   }));
   return (
-    <DrawGuessStageFrame turnLabel="本局结束" remainingSeconds={null} countdownLabel="">
+    <DrawGuessStageFrame
+      turnLabel="本局结束"
+      remainingSeconds={null}
+      countdownLabel=""
+      isOverdue={screen.isOverdue}
+      isHost={screen.isHost}
+      isRetrying={screen.isSubmitting}
+      onRetry={() => retryDrawGuessSettle(screen)}
+    >
       <DrawGuessScoreboard title="最终排名" competitionRanking rows={totalRows} />
       {!isHost && <Text style={styles.hint}>{ENDED_WAITING_MESSAGE}</Text>}
     </DrawGuessStageFrame>

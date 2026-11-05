@@ -23,6 +23,7 @@ export type DrawGuessPublicCommand =
   | { readonly type: 'drawguess.game.begin' }
   | { readonly type: 'drawguess.game.abort'; readonly gameSequence: number }
   | { readonly type: 'drawguess.game.returnToLobby' }
+  | { readonly type: 'drawguess.phase.retrySettle' }
   | { readonly type: 'drawguess.drawing.reserve' }
   | (PhaseRevisionCommand & {
       readonly type: 'drawguess.word.choose';

@@ -1,14 +1,16 @@
 /** Route authoritative Pictionary phases to task, transition, gallery, and ended surfaces. */
 
-import type {
-  PictionaryPublicCommand,
-  PictionaryState,
+import {
+  createPictionaryCommand,
+  type PictionaryPublicCommand,
+  type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 import type React from 'react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
+import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
@@ -59,10 +61,19 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
     throw new Error('[FAIL-FAST] Pictionary lobby must use the shared seat workspace');
   }
   // 倒计时只做展示：到期推进由服务端定时结算完成，任何手机都不发 expire。
-  const { remainingSeconds } = useStageDeadline({
+  // 房主自救（D3 follow-up）是唯一的例外：截止后宽限期已过、结算仍未
+  // 到达时，房主可通过共享自救组件重新推进本阶段的结算。
+  const { remainingSeconds, isOverdue } = useStageDeadline({
     deadlineAt: state.deadlineAt,
     refreshIntervalMs: 250,
   });
+  const retrySettle = useCallback(() => {
+    void submit(
+      '重新推进',
+      createPictionaryCommand(state, { type: 'pictionary.phase.retrySettle' }, null),
+      { durable: true },
+    );
+  }, [state, submit]);
   // pictionary 原 hook 返回 { remainingSeconds, isExpired }，此处保持调用方兼容
   const deadline = { remainingSeconds, isExpired: remainingSeconds === 0 };
   const [inputs] = useState(() => new Map<number, PictionaryTaskInput>());
@@ -77,6 +88,7 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
           submit={submit}
           isSubmitting={isSubmitting}
           remainingSeconds={deadline.remainingSeconds}
+          isOverdue={isOverdue}
         />
       </View>
     );
@@ -99,6 +111,14 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
         releaseBot={releaseBot}
         remainingSeconds={deadline.remainingSeconds}
         isLobby={false}
+      />
+      <StageSettleRescue
+        remainingSeconds={deadline.remainingSeconds}
+        isOverdue={isOverdue}
+        isHost={isHost}
+        isRetrying={isSubmitting}
+        onRetry={retrySettle}
+        waitingLabel="等待推进…"
       />
       <PictionaryTaskStage
         inputs={inputs}

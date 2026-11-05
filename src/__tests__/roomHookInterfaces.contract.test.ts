@@ -56,7 +56,10 @@ describe('room hook interfaces — drawguess (P-2b batch 2)', () => {
     const hook = readSource('games/drawguess/room/hooks/useDrawGuessRoomState.ts');
     expect(hook).toMatch(/getDrawGuessViewModel\(state, effectiveSeat, nowMs\)/);
     // The clock is the stage deadline's tick; no second ticker in the game.
-    expect(hook).toMatch(/const \{ remainingSeconds, nowMs \} = useStageDeadline\(\{/);
+    // Re-judged (D3 follow-up): the destructure also carries `isOverdue`,
+    // the shared overdue decision for the host self-rescue — still one
+    // hook call, still no second ticker.
+    expect(hook).toMatch(/const \{ remainingSeconds, nowMs, isOverdue \} = useStageDeadline\(\{/);
     expect(hook).not.toMatch(/useNowMs/);
     const screen = readSource('games/drawguess/room/DrawGuessRoomScreen.tsx');
     expect(screen).not.toMatch(/getDrawGuessViewModel/);
@@ -141,7 +144,11 @@ describe('stage deadline countdown is display-only (D3)', () => {
   // No client sends expiry any more: the server settles the deadline
   // (settle.due, system channel). useStageDeadline is a countdown
   // display — every consumer still renders its remaining seconds from
-  // it, and none wires an expiry predicate or dispatch.
+  // it, and none wires an expiry predicate or dispatch. The one
+  // exception is the host self-rescue retry (D3 follow-up,
+  // `<game>.phase.retrySettle`): a host-only manual re-drive of the
+  // current phase's settle, gated on the hook's `isOverdue` — it is
+  // not an expiry send, so it never matches `phase.expire` below.
   const consumers: ReadonlyArray<{ game: string; path: string }> = [
     { game: 'avalon', path: 'games/avalon/room/hooks/useAvalonRoomState.ts' },
     { game: 'drawguess', path: 'games/drawguess/room/hooks/useDrawGuessRoomState.ts' },

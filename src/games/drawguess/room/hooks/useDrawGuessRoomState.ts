@@ -44,8 +44,12 @@ export interface DrawGuessRoomScreenState {
   readonly shellModel: RoomShellModel;
   /** 当前视角的视图模型（按有效席位裁剪，随 1 秒 tick 更新提示揭示）。 */
   readonly viewModel: DrawGuessViewModel;
-  /** 当前阶段剩余秒数；无截止阶段为 null。到期由本 hook 统一派发阶段推进（原在 Screen 内）。 */
+  /** 当前阶段剩余秒数；无截止阶段为 null。到期推进由服务端定时结算完成，任何手机都不发 expire。 */
   readonly remainingSeconds: number | null;
+  /** 截止已过且宽限期已过：结算逾期，房主可见自救重试（D3 follow-up）。 */
+  readonly isOverdue: boolean;
+  /** 房间单飞提交进行中：自救按钮的加载态。 */
+  readonly isSubmitting: boolean;
   readonly roomCode: string;
   readonly userId: string;
   readonly mySeat: number | null;
@@ -111,7 +115,8 @@ export function useDrawGuessRoomState(
     shareRoom: share.open,
   });
   // 阶段截止：只做剩余秒数展示（原在 Screen 的 DrawGuessStage 内组装，P-2b 下沉）。
-  // 到期推进由服务端定时结算完成，任何手机都不发 expire。
+  // 到期推进由服务端定时结算完成，任何手机都不发 expire。isOverdue 是房主
+  // 自救的共享判定（D3 follow-up）：截止后宽限期已过、结算仍未到达。
   const deadlineAt =
     state.phase.kind === 'wordSelect' ||
     state.phase.kind === 'drawing' ||
@@ -119,7 +124,7 @@ export function useDrawGuessRoomState(
       ? state.phase.deadlineAt
       : null;
   // 拼音首字母揭示按秒推进：时钟来自截止 hook（有截止的阶段才每秒重渲染）。
-  const { remainingSeconds, nowMs } = useStageDeadline({ deadlineAt });
+  const { remainingSeconds, nowMs, isOverdue } = useStageDeadline({ deadlineAt });
   const viewModel = getDrawGuessViewModel(state, effectiveSeat, nowMs);
   const capabilities: RoomCapabilities = {
     ...setupCapabilities,
@@ -172,6 +177,8 @@ export function useDrawGuessRoomState(
     shellModel,
     viewModel,
     remainingSeconds,
+    isOverdue,
+    isSubmitting,
     roomCode: room.roomCode,
     userId: user.id,
     mySeat,

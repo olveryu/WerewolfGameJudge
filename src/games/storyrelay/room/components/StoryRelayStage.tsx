@@ -6,11 +6,12 @@ import {
   type StoryRelayCommand,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
 import { Button } from '@/components/Button';
+import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
@@ -143,9 +144,17 @@ function StoryRelayStageContent({
   isSubmitting,
 }: StoryRelayStageProps) {
   // 倒计时只做展示：到期推进由服务端定时结算完成，任何手机都不发 expire。
-  const { remainingSeconds } = useStageDeadline({
+  // 房主自救（D3 follow-up）是唯一的例外：截止后宽限期已过、结算仍未
+  // 到达时，房主可通过共享自救组件重新推进本阶段的结算。
+  const { remainingSeconds, isOverdue } = useStageDeadline({
     deadlineAt: state.deadlineAt,
   });
+  const retrySettle = useCallback(() => {
+    void submit('重新推进', {
+      type: 'storyrelay.phase.retrySettle',
+      phaseRevision: state.phaseRevision,
+    });
+  }, [state.phaseRevision, submit]);
   const [inputs] = useState(() => new Map<number, string>());
   const finalizer = useStoryRelayAutoSubmission(state, userId, session, inputs);
   const task = effectiveSeat === null ? null : getStoryRelayTaskForSeat(state, effectiveSeat);
@@ -175,6 +184,14 @@ function StoryRelayStageContent({
           )}
         </View>
       )}
+      <StageSettleRescue
+        remainingSeconds={remainingSeconds}
+        isOverdue={isOverdue}
+        isHost={isHost}
+        isRetrying={isSubmitting}
+        onRetry={retrySettle}
+        waitingLabel="等待推进…"
+      />
       {isGallery ? (
         <StoryRelayGallery
           state={state}

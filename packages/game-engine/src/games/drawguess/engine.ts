@@ -14,6 +14,7 @@ import { resolveActingSeat } from '../../platform/room/actingSeat';
 import {
   buildSettleDueEffect,
   guardPhaseExpiry,
+  type PhaseExpiryActorChannel,
   rejectIfPastDeadline,
 } from '../../platform/room/phaseDeadline';
 import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
@@ -485,12 +486,22 @@ function dispatchExpiredPhase(state: DrawGuessState, context: CommandContext): D
 }
 
 /** Advances an expired phase; idempotent on phaseRevision. */
-function expirePhase(state: DrawGuessState, context: CommandContext): DrawGuessDecision {
+function expirePhase(
+  state: DrawGuessState,
+  context: CommandContext,
+  actorChannel: PhaseExpiryActorChannel = 'system',
+): DrawGuessDecision {
   // Shared guard sequence (E-2): phase, actor, then the deadline.
   // System channel only (D3, 2026-11-05 — the public expire command
   // was deleted): no actor gate and no revision gate (staleness is
   // the Worker's isCurrent check); the guard resolves the system
   // actor.
+  // The host retry (`drawguess.phase.retrySettle`) runs the same
+  // guard sequence and the same dispatch, only on the uncontrolled-
+  // user channel: the decide case gates the host first, then calls
+  // this with `actorChannel: 'uncontrolledUser'`. It is not an expire
+  // send — the retry re-drives the current phase's settle, never a
+  // client-sent expiry.
   return guardPhaseExpiry(context, {
     phaseRejection:
       state.phase.kind === 'wordSelect' ||
@@ -498,7 +509,7 @@ function expirePhase(state: DrawGuessState, context: CommandContext): DrawGuessD
       state.phase.kind === 'roundEnd'
         ? null
         : reject(DRAWGUESS_REASONS.phase),
-    actorChannel: 'system',
+    actorChannel,
     deadlineAt: expiringPhaseDeadlineAt(state),
     notExpiredReason: DRAWGUESS_REASONS.deadline,
     dispatch: () => dispatchExpiredPhase(state, context),
@@ -544,6 +555,15 @@ function decidePublicCommand(
       return abortGame(state, command.gameSequence, context);
     case 'drawguess.game.returnToLobby':
       return returnToLobby(state, context);
+    case 'drawguess.phase.retrySettle': {
+      // Host self-rescue (D3 follow-up): re-drives the current phase's
+      // settle through the same guard sequence and dispatch as the
+      // scheduled delivery, on the uncontrolled-user channel. A host
+      // acting through a takeover seat is rejected by requireHost.
+      const hostRejection = requireHost<DrawGuessEvent, DrawGuessEffect>(context, state.hostUserId);
+      if (hostRejection !== null) return hostRejection;
+      return expirePhase(state, context, 'uncontrolledUser');
+    }
     default:
       return reject(DRAWGUESS_REASONS.phase);
   }

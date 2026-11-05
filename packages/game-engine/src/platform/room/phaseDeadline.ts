@@ -16,7 +16,13 @@
  *   settle.due effect is the sole channel (D3, 2026-11-05 — the
  *   client acceleration channel was deleted in all five games).
  *   Dual-channel and uncontrolled-user expiry are gone; do not
- *   reintroduce a client-sent expiry path.
+ *   reintroduce a client-sent expiry path. The one exception is the
+ *   host self-rescue retry (`<game>.phase.retrySettle`, D3
+ *   follow-up): it re-drives the same settle dispatch through the
+ *   same guard sequence on the uncontrolled-user channel, but only
+ *   after the decide case gates the host — it is a host command,
+ *   not a client-sent expiry, and the settle assembly above stays
+ *   system-only.
  * - Revision policy: the internal settle command carries no revision
  *   in any game — there is no revision gate on the expiry path at
  *   all. Staleness is the worker's pinned-arming gate, which

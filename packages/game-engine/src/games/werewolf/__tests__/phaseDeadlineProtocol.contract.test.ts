@@ -16,6 +16,10 @@
 import type { CommandContext } from '../../../platform/engine';
 import { applyDecision } from '../../../platform/engine/__tests__/engineSession';
 import {
+  REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+  REASON_NOT_HOST,
+} from '../../../platform/protocol/reasons';
+import {
   describePhaseDeadlineProtocol,
   type PhaseDeadlineSession,
 } from '../../../platform/room/__tests__/phaseDeadlineScenarios';
@@ -113,4 +117,82 @@ describePhaseDeadlineProtocol({
     staleReason: null,
     dispatchAdvances: true,
   },
+});
+
+/**
+ * Host self-rescue (D3 follow-up): `werewolf.phase.retrySettle`
+ * re-drives the current phase's settle through the same guard
+ * sequence and dispatch as the scheduled delivery. It is not an
+ * expire send — the host gate runs first, and the guard still
+ * rejects before the deadline, for non-hosts, and for a host acting
+ * through a takeover seat.
+ */
+describe('werewolf.phase.retrySettle (host self-rescue)', () => {
+  let state: GameState;
+  let commandNumber = 0;
+  const userContext = (
+    userId: string,
+    controlledSeat: number | null,
+    nowMs: number,
+  ): CommandContext => ({
+    actor: { kind: 'user', userId },
+    controlledSeat,
+    nowMs,
+    commandId: `command:${commandNumber++}`,
+    randomSeed: 'phase-deadline',
+  });
+  const attempt = (command: WerewolfCommand, context: CommandContext) => {
+    const decision = werewolfEngine.decide(state, command, context);
+    if (decision.kind === 'commit') {
+      state = applyDecision(werewolfEngine, state, decision, parseWerewolfState);
+    }
+    return decision;
+  };
+  const retry = (userId: string, controlledSeat: number | null, nowMs: number) =>
+    attempt({ type: 'werewolf.phase.retrySettle' }, userContext(userId, controlledSeat, nowMs));
+  const hasAdvanced = () =>
+    state.nightStep?.kind !== 'inStep' || state.nightStep.stepId !== 'wolfKill';
+
+  beforeEach(() => {
+    state = armedWolfVoteState();
+    commandNumber = 0;
+  });
+
+  it('rejects the host before the deadline', () => {
+    expect(retry('host', null, WOLF_VOTE_DEADLINE_AT - 1)).toEqual({
+      kind: 'reject',
+      reason: REASON_DEADLINE_NOT_REACHED,
+    });
+    expect(hasAdvanced()).toBe(false);
+  });
+
+  it('rejects a non-host after the deadline', () => {
+    expect(retry('user-1', null, WOLF_VOTE_DEADLINE_AT)).toEqual({
+      kind: 'reject',
+      reason: REASON_NOT_HOST,
+    });
+    expect(hasAdvanced()).toBe(false);
+  });
+
+  it('rejects a host acting through a takeover seat', () => {
+    expect(retry('host', 0, WOLF_VOTE_DEADLINE_AT)).toEqual({
+      kind: 'reject',
+      reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+    });
+    expect(hasAdvanced()).toBe(false);
+  });
+
+  it('settles the phase for the host after the deadline', () => {
+    const decision = retry('host', null, WOLF_VOTE_DEADLINE_AT);
+    expect(decision.kind).toBe('commit');
+    expect(hasAdvanced()).toBe(true);
+  });
+
+  it('is a no-op once the phase has advanced', () => {
+    expect(retry('host', null, WOLF_VOTE_DEADLINE_AT).kind).toBe('commit');
+    expect(hasAdvanced()).toBe(true);
+    const second = retry('host', null, WOLF_VOTE_DEADLINE_AT + 1_000);
+    expect(second.kind).toBe('reject');
+    expect(hasAdvanced()).toBe(true);
+  });
 });

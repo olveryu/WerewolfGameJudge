@@ -93,6 +93,7 @@ const publicCommandOptions = definePublicCommandOptions<DrawGuessPublicCommand>(
     gameSequence: z.int().nonnegative(),
   }),
   z.strictObject({ type: z.literal('drawguess.game.returnToLobby') }),
+  z.strictObject({ type: z.literal('drawguess.phase.retrySettle') }),
   z.strictObject({ type: z.literal('drawguess.drawing.reserve') }),
   z.strictObject({
     type: z.literal('drawguess.word.choose'),

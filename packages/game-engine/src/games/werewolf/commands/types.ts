@@ -74,6 +74,7 @@ type WerewolfGameCommand =
   | { readonly type: 'werewolf.sheriff.advance' }
   | { readonly type: 'werewolf.sheriff.endBySelfDestruct' }
   | { readonly type: 'werewolf.audio.ack'; readonly audioBatchId: number }
+  | { readonly type: 'werewolf.phase.retrySettle' }
   | { readonly type: 'werewolf.reveal.ack' }
   | { readonly type: 'werewolf.wolfRobot.ackHunterStatus' }
   | { readonly type: 'werewolf.groupConfirm.ack' }

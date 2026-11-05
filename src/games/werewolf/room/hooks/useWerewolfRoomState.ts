@@ -126,6 +126,10 @@ export interface WerewolfRoomScreenState {
   readonly roomCode: string;
   readonly userId: string;
   readonly isHost: boolean;
+  /** Armed night-step / sheriff-vote countdown remaining seconds; null without a deadline. */
+  readonly remainingSeconds: number | null;
+  /** The armed settle is overdue: deadline passed and the grace elapsed (D3 follow-up). */
+  readonly isOverdue: boolean;
   readonly effectiveSeat: number | null;
   readonly submit: WerewolfSubmit;
   readonly bgm: WerewolfBgmControlState;
@@ -261,9 +265,10 @@ export function useWerewolfRoomState(
 
   // ── Deadline: the armed night step / sheriff vote. Countdown only:
   // the server settles the deadline (werewolf.settle.due); no phone
-  // sends expiry.
+  // sends expiry. isOverdue is the host self-rescue's shared decision
+  // (D3 follow-up): deadline passed and the grace elapsed.
   const armedDeadline = readArmedDeadline(state);
-  const { nowMs } = useStageDeadline({
+  const { remainingSeconds, nowMs, isOverdue } = useStageDeadline({
     deadlineAt: armedDeadline?.deadlineAt ?? null,
   });
 
@@ -495,6 +500,8 @@ export function useWerewolfRoomState(
     roomCode,
     userId: user.id,
     isHost,
+    remainingSeconds,
+    isOverdue,
     effectiveSeat,
     submit,
     bgm,

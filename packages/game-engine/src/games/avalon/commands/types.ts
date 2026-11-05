@@ -24,6 +24,7 @@ export type AvalonPublicCommand =
   | { readonly type: 'avalon.team.propose'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.vote'; readonly vote: AvalonBallot }
   | { readonly type: 'avalon.quest.play'; readonly play: AvalonPlay }
+  | { readonly type: 'avalon.phase.retrySettle' }
   | { readonly type: 'avalon.lady.check'; readonly seat: number }
   | { readonly type: 'avalon.lady.acknowledge' }
   | { readonly type: 'avalon.assassin.accuse'; readonly seat: number }

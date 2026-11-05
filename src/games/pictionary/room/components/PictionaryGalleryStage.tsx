@@ -16,6 +16,7 @@ import { GalleryPagerControls } from '@/features/room/components/GalleryPagerCon
 import { GalleryPlaybackControls } from '@/features/room/components/GalleryPlaybackControls';
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import { STAGE_FRAME_MAX_WIDTH } from '@/features/room/components/StageFrame';
+import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { getPictionarySeatDisplayName } from '@/games/pictionary/model/pictionarySelectors';
 import { TESTIDS } from '@/testids';
@@ -179,6 +180,7 @@ interface PictionaryGalleryStageProps {
   readonly submit: ReadyRoomSession<PictionaryState, PictionaryPublicCommand>['submit'];
   readonly isSubmitting: boolean;
   readonly remainingSeconds: number | null;
+  readonly isOverdue: boolean;
 }
 
 export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
@@ -187,6 +189,7 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
   submit,
   isSubmitting,
   remainingSeconds,
+  isOverdue,
 }) => {
   if (state.phase !== 'gallery' || state.gallery === null) {
     throw new Error('[FAIL-FAST] Gallery stage requires active Pictionary gallery state');
@@ -200,6 +203,17 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
   // 画廊导航是房主命令：不带接管座位、durable（跨重连重放到服务端裁决）。
   const galleryCommand = (label: string, input: PictionaryCommandInput) =>
     submit(label, createPictionaryCommand(state, input, null), { durable: true });
+  // 房主自救（D3 follow-up）：画廊自动推进的结算逾期时，房主可重新推进。
+  const rescue = (
+    <StageSettleRescue
+      remainingSeconds={remainingSeconds}
+      isOverdue={isOverdue}
+      isHost={isHost}
+      isRetrying={isSubmitting}
+      onRetry={() => void galleryCommand('重新推进', { type: 'pictionary.phase.retrySettle' })}
+      waitingLabel="等待推进…"
+    />
+  );
   const isFirstEntry = gallery.chainIndex === 0 && gallery.entryIndex === 0;
   const isAlbumEnd = gallery.entryIndex === chain.entries.length - 1;
   const isFinalEntry =
@@ -213,42 +227,48 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
     ),
   );
   const controls = isHost ? (
-    <GalleryPlaybackControls
-      isPlaying={gallery.isPlaying}
-      canTogglePlay={!isAlbumEnd && state.config.galleryItemDurationSeconds !== null}
-      isFirst={isFirstEntry}
-      isSubmitting={isSubmitting}
-      advanceForm={isAlbumEnd ? 'primary' : 'icon'}
-      advanceLabel={isFinalEntry ? '结束揭晓' : isAlbumEnd ? '下一本' : '下一项'}
-      rewindLabel="上一项"
-      playLabel="播放"
-      pauseLabel="暂停"
-      finishLabel="全部揭晓"
-      onRewind={() => void galleryCommand('上一项', { type: 'pictionary.gallery.rewind' })}
-      onAdvance={() =>
-        void galleryCommand(isFinalEntry ? '结束揭晓' : isAlbumEnd ? '下一本' : '下一项', {
-          type: 'pictionary.gallery.advance',
-        })
-      }
-      onTogglePlay={() =>
-        void galleryCommand(gallery.isPlaying ? '暂停揭晓' : '继续揭晓', {
-          type: gallery.isPlaying ? 'pictionary.gallery.pause' : 'pictionary.gallery.resume',
-        })
-      }
-      onFinish={() =>
-        showConfirmAlert('全部揭晓？', '立即公开全部画册并结束同步回放。', async () => {
-          await galleryCommand('全部揭晓', { type: 'pictionary.gallery.finish' });
-        })
-      }
-      advanceTestID={TESTIDS.pictionaryGalleryAdvanceButton}
-    />
+    <>
+      <GalleryPlaybackControls
+        isPlaying={gallery.isPlaying}
+        canTogglePlay={!isAlbumEnd && state.config.galleryItemDurationSeconds !== null}
+        isFirst={isFirstEntry}
+        isSubmitting={isSubmitting}
+        advanceForm={isAlbumEnd ? 'primary' : 'icon'}
+        advanceLabel={isFinalEntry ? '结束揭晓' : isAlbumEnd ? '下一本' : '下一项'}
+        rewindLabel="上一项"
+        playLabel="播放"
+        pauseLabel="暂停"
+        finishLabel="全部揭晓"
+        onRewind={() => void galleryCommand('上一项', { type: 'pictionary.gallery.rewind' })}
+        onAdvance={() =>
+          void galleryCommand(isFinalEntry ? '结束揭晓' : isAlbumEnd ? '下一本' : '下一项', {
+            type: 'pictionary.gallery.advance',
+          })
+        }
+        onTogglePlay={() =>
+          void galleryCommand(gallery.isPlaying ? '暂停揭晓' : '继续揭晓', {
+            type: gallery.isPlaying ? 'pictionary.gallery.pause' : 'pictionary.gallery.resume',
+          })
+        }
+        onFinish={() =>
+          showConfirmAlert('全部揭晓？', '立即公开全部画册并结束同步回放。', async () => {
+            await galleryCommand('全部揭晓', { type: 'pictionary.gallery.finish' });
+          })
+        }
+        advanceTestID={TESTIDS.pictionaryGalleryAdvanceButton}
+      />
+      {rescue}
+    </>
   ) : (
-    <View style={styles.viewerNotice}>
-      <Ionicons name="people-outline" size={18} color={colors.textSecondary} />
-      <Text style={styles.viewerNoticeText}>
-        {isAlbumEnd ? '本册已揭晓，等待房主继续' : '全员正在观看同一本画册'}
-      </Text>
-    </View>
+    <>
+      <View style={styles.viewerNotice}>
+        <Ionicons name="people-outline" size={18} color={colors.textSecondary} />
+        <Text style={styles.viewerNoticeText}>
+          {isAlbumEnd ? '本册已揭晓，等待房主继续' : '全员正在观看同一本画册'}
+        </Text>
+      </View>
+      {rescue}
+    </>
   );
 
   return (

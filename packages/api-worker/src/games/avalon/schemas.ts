@@ -48,6 +48,7 @@ const avalonPublicCommandOptions = definePublicCommandOptions<AvalonPublicComman
     type: z.literal('avalon.quest.play'),
     play: z.enum(['success', 'fail']),
   }),
+  z.strictObject({ type: z.literal('avalon.phase.retrySettle') }),
   z.strictObject({ type: z.literal('avalon.lady.check'), seat: z.number().int().nonnegative() }),
   z.strictObject({ type: z.literal('avalon.lady.acknowledge') }),
   z.strictObject({

@@ -592,6 +592,7 @@ describe('Werewolf engine definition and catalog', () => {
     },
     'werewolf.audio.ack': { type: 'werewolf.audio.ack', audioBatchId: 0 },
     'werewolf.phase.settleExpired': { type: 'werewolf.phase.settleExpired' },
+    'werewolf.phase.retrySettle': { type: 'werewolf.phase.retrySettle' },
     'werewolf.reveal.ack': { type: 'werewolf.reveal.ack' },
     'werewolf.wolfRobot.ackHunterStatus': {
       type: 'werewolf.wolfRobot.ackHunterStatus',

@@ -17,7 +17,11 @@ import {
   decideMarkBotsViewed,
   haveAllViewed,
 } from '../../platform/room/identityViewing';
-import { buildSettleDueEffect, guardPhaseExpiry } from '../../platform/room/phaseDeadline';
+import {
+  buildSettleDueEffect,
+  guardPhaseExpiry,
+  type PhaseExpiryActorChannel,
+} from '../../platform/room/phaseDeadline';
 import { getHumanSeatMap, isBotSeat, isRoomFull } from '../../platform/room/seating';
 import { decideSettleCountdownArm } from '../../platform/room/settleCountdown';
 import type { AvalonCommand } from './commands/types';
@@ -435,13 +439,25 @@ function castVote(state: AvalonState, vote: AvalonBallot, context: CommandContex
  * expire command was deleted). The countdown is armed only once
  * every seat has voted / every team seat has played, so this settles
  * the final ballot or play set; dispatch is by the current phase.
+ *
+ * The host retry (`avalon.phase.retrySettle`) runs the same guard
+ * sequence and the same dispatch, only on the uncontrolled-user
+ * channel: the decide case gates the host first (with the game's own
+ * not-host reason), then calls this with
+ * `actorChannel: 'uncontrolledUser'`. It is not an expire send — the
+ * retry re-drives the current phase's settle, never a client-sent
+ * expiry.
  */
-function timeoutSettle(state: AvalonState, context: CommandContext): AvalonDecision {
+function timeoutSettle(
+  state: AvalonState,
+  context: CommandContext,
+  actorChannel: PhaseExpiryActorChannel = 'system',
+): AvalonDecision {
   const phase = state.phase;
   return guardPhaseExpiry(context, {
     phaseRejection:
       phase.kind === 'vote' || phase.kind === 'quest' ? null : reject(AVALON_REASONS.phase),
-    actorChannel: 'system',
+    actorChannel,
     deadlineAt: phase.kind === 'vote' || phase.kind === 'quest' ? phase.deadlineAt : null,
     notExpiredReason: AVALON_REASONS.deadline,
     dispatch: () => {
@@ -767,6 +783,19 @@ function decideCommand(
       return playQuest(state, command.play, context);
     case 'avalon.phase.settleExpired':
       return timeoutSettle(state, context);
+    case 'avalon.phase.retrySettle': {
+      // Host self-rescue (D3 follow-up): re-drives the current phase's
+      // settle through the same guard sequence and dispatch as the
+      // scheduled delivery, on the uncontrolled-user channel. A host
+      // acting through a takeover seat is rejected by requireHost.
+      const hostRejection = requireHost<AvalonEvent, AvalonEffect>(
+        context,
+        state.hostUserId,
+        AVALON_REASONS.notHostRetrySettle,
+      );
+      if (hostRejection !== null) return hostRejection;
+      return timeoutSettle(state, context, 'uncontrolledUser');
+    }
     case 'avalon.lady.check':
       return checkLady(state, command.seat, context);
     case 'avalon.lady.acknowledge':

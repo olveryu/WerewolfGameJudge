@@ -120,6 +120,7 @@ const publicCommandOptions = definePublicCommandOptions<WerewolfPublicCommand>()
     type: z.literal('werewolf.audio.ack'),
     audioBatchId: z.number().int().nonnegative(),
   }),
+  z.strictObject({ type: z.literal('werewolf.phase.retrySettle') }),
   z.strictObject({ type: z.literal('werewolf.reveal.ack') }),
   z.strictObject({ type: z.literal('werewolf.wolfRobot.ackHunterStatus') }),
   z.strictObject({ type: z.literal('werewolf.groupConfirm.ack') }),

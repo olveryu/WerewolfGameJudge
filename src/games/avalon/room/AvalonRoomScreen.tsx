@@ -320,6 +320,8 @@ function AvalonRoomContent(
                 <AvalonVoteModal
                   viewModel={viewModel}
                   remainingSeconds={screen.phaseRemainingSeconds}
+                  isOverdue={screen.isOverdue}
+                  isHost={screen.isHost}
                   isSubmitting={screen.isSubmitting}
                   onVote={(vote) =>
                     void screen.submit(
@@ -329,6 +331,9 @@ function AvalonRoomContent(
                         controlledSeat: screen.controlledSeat,
                       },
                     )
+                  }
+                  onRetry={() =>
+                    void screen.submit('重新推进', { type: 'avalon.phase.retrySettle' })
                   }
                   onClose={() => setVoteModalOpen(false)}
                 />
@@ -346,6 +351,8 @@ function AvalonRoomContent(
                 <AvalonQuestModal
                   viewModel={viewModel}
                   remainingSeconds={screen.phaseRemainingSeconds}
+                  isOverdue={screen.isOverdue}
+                  isHost={screen.isHost}
                   isSubmitting={screen.isSubmitting}
                   onPlay={(play) =>
                     void screen.submit(
@@ -355,6 +362,9 @@ function AvalonRoomContent(
                         controlledSeat: screen.controlledSeat,
                       },
                     )
+                  }
+                  onRetry={() =>
+                    void screen.submit('重新推进', { type: 'avalon.phase.retrySettle' })
                   }
                   onClose={() => setQuestModalOpen(false)}
                 />
