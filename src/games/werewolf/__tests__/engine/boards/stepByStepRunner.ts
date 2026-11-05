@@ -120,10 +120,9 @@ function releaseStepDeadline(ctx: GameContext): boolean {
   const deadline =
     deadlineState.nightStep?.kind === 'inStep' ? deadlineState.nightStep.stepDeadline : undefined;
   if (deadline === undefined) return false;
-  ctx.dispatchOrThrow(
-    { type: 'werewolf.phase.expire' },
+  ctx.dispatchSystemOrThrow(
+    { type: 'werewolf.phase.settleExpired' },
     `release step deadline at ${deadline}`,
-    undefined,
     { nowMs: deadline },
   );
   return true;

@@ -1,19 +1,19 @@
 /**
  * Phase Deadline Protocol — avalon scenario (E-2).
  *
- * Avalon's registered assembly: dual channel — the public expire
- * command travels on the uncontrolled-user channel (any foreground
- * client may accelerate the settlement), while the internal
- * settleExpired command, dispatched by the scheduled
- * `avalon.settle.due` effect, travels on the system channel.
- * Neither command carries a revision; correctness for the internal
- * channel rides on the worker's pinned-arming staleness gate, not
- * on a revision check. Same-named scenario files live in each
- * switched game's __tests__.
+ * Avalon's registered assembly: system only (D3, 2026-11-05 —
+ * the public expire command was deleted). There is no public expire
+ * command at all; the scheduled `avalon.settle.due` effect is the
+ * sole expiry channel and dispatches the internal settleExpired
+ * command on the system channel. Neither command carries a
+ * revision; correctness rides on the worker's pinned-arming
+ * staleness gate, not on a revision check. Same-named scenario
+ * files live in each switched game's __tests__.
  */
 
 import type { CommandContext } from '../../../platform/engine';
 import { applyDecision } from '../../../platform/engine/__tests__/engineSession';
+import { REASON_CONTROLLED_SEAT_NOT_ALLOWED } from '../../../platform/protocol/reasons';
 import {
   describePhaseDeadlineProtocol,
   type PhaseDeadlineSession,
@@ -123,12 +123,6 @@ function makeSession(): PhaseDeadlineSession {
   const current = () => harness.state();
 
   return {
-    expireAsUser: (nowMs) =>
-      harness.attempt({ type: 'avalon.phase.expire' }, harness.userContext('host', null, nowMs)),
-    expireAsControlledUser: (nowMs) =>
-      harness.attempt({ type: 'avalon.phase.expire' }, harness.userContext('host', 1, nowMs)),
-    expirePublicAsSystem: (nowMs) =>
-      harness.attempt({ type: 'avalon.phase.expire' }, harness.systemContext(nowMs)),
     expireSettleAsSystem: (nowMs) =>
       harness.attempt({ type: 'avalon.phase.settleExpired' }, harness.systemContext(nowMs)),
     expireSettleAsUser: (nowMs) =>
@@ -155,10 +149,72 @@ describePhaseDeadlineProtocol({
   makeSession,
   expectations: {
     notExpiredReason: AVALON_REASONS.deadline,
-    publicChannel: 'uncontrolledUser',
     hasSettleCommand: true,
     stalePolicy: 'none',
     staleReason: null,
     dispatchAdvances: true,
   },
+});
+
+/**
+ * Host self-rescue (D3 follow-up): `avalon.phase.retrySettle`
+ * re-drives the current phase's settle through the same guard
+ * sequence and dispatch as the scheduled delivery. It is not an
+ * expire send — the host gate runs first, and the guard still
+ * rejects before the deadline, for non-hosts, and for a host acting
+ * through a takeover seat.
+ */
+describe('avalon.phase.retrySettle (host self-rescue)', () => {
+  let harness: AvalonHarness;
+  let armedPhase: AvalonState['phase'];
+  let deadlineAt: number;
+  const retry = (userId: string, controlledSeat: number | null, nowMs: number) =>
+    harness.attempt(
+      { type: 'avalon.phase.retrySettle' },
+      harness.userContext(userId, controlledSeat, nowMs),
+    );
+
+  beforeEach(() => {
+    harness = armedHarness();
+    armedPhase = harness.state().phase;
+    if (armedPhase.kind !== 'vote' || armedPhase.deadlineAt === null) {
+      throw new Error('Expected an armed vote countdown');
+    }
+    deadlineAt = armedPhase.deadlineAt;
+  });
+
+  it('rejects the host before the deadline', () => {
+    expect(retry('host', null, deadlineAt - 1)).toEqual({
+      kind: 'reject',
+      reason: AVALON_REASONS.deadline,
+    });
+    expect(harness.state().phase).toBe(armedPhase);
+  });
+
+  it('rejects a non-host after the deadline', () => {
+    expect(retry('u1', null, deadlineAt)).toEqual({
+      kind: 'reject',
+      reason: AVALON_REASONS.notHostRetrySettle,
+    });
+    expect(harness.state().phase).toBe(armedPhase);
+  });
+
+  it('rejects a host acting through a takeover seat', () => {
+    expect(retry('host', 0, deadlineAt)).toEqual({
+      kind: 'reject',
+      reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+    });
+    expect(harness.state().phase).toBe(armedPhase);
+  });
+
+  it('settles the phase for the host after the deadline', () => {
+    expect(retry('host', null, deadlineAt).kind).toBe('commit');
+    expect(harness.state().phase).not.toBe(armedPhase);
+  });
+
+  it('is a no-op once the phase has advanced', () => {
+    expect(retry('host', null, deadlineAt).kind).toBe('commit');
+    expect(harness.state().phase).not.toBe(armedPhase);
+    expect(retry('host', null, deadlineAt + 1_000).kind).toBe('reject');
+  });
 });

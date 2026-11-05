@@ -23,34 +23,26 @@
  *   clocks); the rows here mirror that declaration.
  *
  * Werewolf (switched by the game-client convergence, see
- * `docs/game-client-convergence-design.md` §6.2) is dual channel like
- * avalon: `werewolf.phase.expire` on the uncontrolled-user channel,
- * `werewolf.phase.settleExpired` on the system channel. Its deadline
- * carriers are the night step's `stepDeadline` and a sheriff voting
- * round's `deadline`; the pin is (game sequence, phase, deadline)
- * where phase is the step id or the voting round — werewolf is
- * night-1 only, so there is no round field. Dispatch is the ordinary
- * inline progression pass, which keeps the audio-ack gate in front
- * of every night transition.
+ * `docs/game-client-convergence-design.md` §6.2) settles on the
+ * system channel only, like every other stage-deadline game (D3,
+ * 2026-11-05 — the public expire command was deleted in all five
+ * games). Its deadline carriers are the night step's `stepDeadline`
+ * and a sheriff voting round's `deadline`; the pin is (game
+ * sequence, phase, deadline) where phase is the step id or the
+ * voting round — werewolf is night-1 only, so there is no round
+ * field. Dispatch is the ordinary inline progression pass, which
+ * keeps the audio-ack gate in front of every night transition.
  *
  * The scenario-suite weld follows the capabilities contract's
  * identityViewing weld: a switched game has its protocol contract
  * file; a game without one must not be marked switched.
  *
- * Client trigger registration: the games with a public expire
- * command (avalon, drawguess, pictionary, storyrelay, werewolf)
- * submit it automatically — the shared `useStageDeadline` hook
- * fires it when the countdown reaches zero, behind snapshot guards
- * (live connection, no pending command, unchanged phase revision)
- * and each game's eligibility gate: the three relay games
- * (drawguess, pictionary, storyrelay) admit only the host or a
- * seated player — a spectator sends nothing, and a client
- * currently controlling a seat is rejected — while avalon and
- * werewolf admit any foreground client except one controlling a
- * seat. The hook fires automatically; there is no manual button.
- * For every game the command is only an acceleration path;
- * correctness rides on the scheduled settle.due delivery.
- * demo has no client expire surface at all.
+ * Client trigger registration: no game has a public expire
+ * command (D3, 2026-11-05). No client sends expiry — the shared
+ * `useStageDeadline` hook is a display-only countdown; the
+ * scheduled settle.due delivery is the only channel, and
+ * correctness rides on it. demo has no client expire surface
+ * at all, as before.
  *
  * Cross-reference to the E-3 registry
  * (`platform/room/__tests__/settleCountdown.contract.test.ts`):
@@ -79,18 +71,15 @@ const apiWorkerGamesDirectory = path.resolve(
   'games',
 );
 
-type PhaseDeadlineActorChannel =
-  | 'uncontrolledUser'
-  | 'uncontrolledUser+actorGate'
-  | 'dualChannel'
-  | 'systemOnly';
+/**
+ * The actor channel of the expiry path. Since D3 (2026-11-05) every
+ * stage-deadline game settles on the system channel only — there is
+ * no public expire command anywhere — so this dimension has a
+ * single value.
+ */
+type PhaseDeadlineActorChannel = 'systemOnly';
 
-type PhaseDeadlineRevisionPolicy =
-  | 'none'
-  | 'guardSingleSilent'
-  | 'guardSingleReject'
-  | 'entryReject'
-  | 'guardDualReject';
+type PhaseDeadlineRevisionPolicy = 'none';
 
 type PhaseDeadlineSettlePin =
   | 'none'
@@ -125,7 +114,7 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
   werewolf: {
     adoption: 'switched',
     variant: {
-      actorChannel: 'dualChannel',
+      actorChannel: 'systemOnly',
       revisionPolicy: 'none',
       settlePin: 'sequence+phase+deadline',
       lateSubmission: 'noneByDesign',
@@ -135,8 +124,8 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
   pictionary: {
     adoption: 'switched',
     variant: {
-      actorChannel: 'uncontrolledUser+actorGate',
-      revisionPolicy: 'guardSingleSilent',
+      actorChannel: 'systemOnly',
+      revisionPolicy: 'none',
       settlePin: 'round+revision+deadline',
       lateSubmission: 'sharedRelayTask',
     },
@@ -145,8 +134,8 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
   storyrelay: {
     adoption: 'switched',
     variant: {
-      actorChannel: 'uncontrolledUser+actorGate',
-      revisionPolicy: 'entryReject',
+      actorChannel: 'systemOnly',
+      revisionPolicy: 'none',
       settlePin: 'round+revision+deadline',
       lateSubmission: 'sharedRelayTask',
     },
@@ -154,8 +143,8 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
   drawguess: {
     adoption: 'switched',
     variant: {
-      actorChannel: 'uncontrolledUser+actorGate',
-      revisionPolicy: 'guardDualReject',
+      actorChannel: 'systemOnly',
+      revisionPolicy: 'none',
       settlePin: 'sequence+revision+turn+deadline',
       lateSubmission: 'gameGuard',
     },
@@ -163,7 +152,7 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
   avalon: {
     adoption: 'switched',
     variant: {
-      actorChannel: 'dualChannel',
+      actorChannel: 'systemOnly',
       revisionPolicy: 'none',
       settlePin: 'sequence+phase+round+deadline',
       lateSubmission: 'noneByDesign',

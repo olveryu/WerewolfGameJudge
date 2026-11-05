@@ -13,7 +13,10 @@
  */
 
 import { type CommandContext, commit, type Decision, reject } from '../../../platform/engine';
-import { guardPhaseExpiry } from '../../../platform/room/phaseDeadline';
+import {
+  guardPhaseExpiry,
+  type PhaseExpiryActorChannel,
+} from '../../../platform/room/phaseDeadline';
 import type { WerewolfDeadlinePhase, WerewolfEffect } from '../effects/types';
 import { runInlineProgression } from './inlineProgression';
 import { GameStatus } from './models/GameStatus';
@@ -58,21 +61,28 @@ export function readArmedDeadline(state: GameState): ArmedDeadline | null {
 }
 
 /**
- * Settles the armed deadline once it is reached, via the public expire
- * command (any foreground client may accelerate; uncontrolled-user
- * channel) or the internal settleExpired command (the scheduled
- * `werewolf.settle.due` delivery; system channel). Dispatch is the
- * ordinary inline progression pass from the current state.
+ * Settles the armed deadline once it is reached, via the internal
+ * settleExpired command only (the scheduled `werewolf.settle.due`
+ * delivery; system channel — D3, 2026-11-05, the public expire
+ * command was deleted). Dispatch is the ordinary inline progression
+ * pass from the current state.
+ *
+ * The host retry (`werewolf.phase.retrySettle`) runs the same guard
+ * sequence and the same dispatch, only on the uncontrolled-user
+ * channel: the decide case gates the host first, then calls this
+ * with `actorChannel: 'uncontrolledUser'`. It is not an expire send
+ * — the retry re-drives the current phase's settle, never a
+ * client-sent expiry.
  */
 export function decidePhaseExpiry(
   state: GameState,
   context: CommandContext,
-  internal: boolean,
+  actorChannel: PhaseExpiryActorChannel = 'system',
 ): Decision<StateAction, WerewolfEffect> {
   const armed = readArmedDeadline(state);
   return guardPhaseExpiry<StateAction, WerewolfEffect>(context, {
     phaseRejection: isExpirablePhase(state) ? null : reject(REASON_PHASE_NOT_EXPIRABLE),
-    actorChannel: internal ? 'system' : 'uncontrolledUser',
+    actorChannel,
     deadlineAt: armed === null ? null : armed.deadlineAt,
     notExpiredReason: REASON_DEADLINE_NOT_REACHED,
     dispatch: () => {

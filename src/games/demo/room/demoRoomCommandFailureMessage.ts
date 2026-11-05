@@ -27,4 +27,5 @@ export const getDemoRoomCommandFailureMessage = createRoomCommandFailureMessage<
   [DEMO_REASONS.notHostMarkBots]: '只有房主可以标记机器人已查看',
   [DEMO_REASONS.noBotSeats]: '当前没有机器人座位',
   [DEMO_REASONS.deadline]: '当前阶段尚未结束',
+  [DEMO_REASONS.notHostRetrySettle]: '只有房主可以重新推进',
 });

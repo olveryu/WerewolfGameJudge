@@ -79,14 +79,6 @@ export function evolve__GAME_PASCAL__State(
       return { ...bumped, roleViewedSeats: markSeatViewed(state.roleViewedSeats, event.seat) };
     }
 //#end
-//#cap publicExpire
-    case '__GAME_ID__.phase.expired': {
-      if (state.phase.kind !== 'playing') return state;
-      // TODO(gameplay): 骨架只有一个舞台阶段，到期结算即终局；真实阶段链
-      // 落地时改为推进到下一阶段（只有最后一个阶段的结算才发 game.ended）。
-      return { ...bumped, phase: { kind: 'ended' }, xpSettled: true };
-    }
-//#end
 //#cap audioOrchestration
     case '__GAME_ID__.audio.queued': {
       // The shared machine owns the transition (replace + gate close + next batch id);

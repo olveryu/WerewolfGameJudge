@@ -54,6 +54,7 @@ describe('Demo public command schema', () => {
       { type: 'demo.game.begin' },
       { type: 'demo.role.viewed' },
       { type: 'demo.bots.markAllBotsViewed' },
+      { type: 'demo.phase.retrySettle' },
       { type: 'demo.game.returnToLobby' },
       { type: 'demo.gameplay.example' },
     ];

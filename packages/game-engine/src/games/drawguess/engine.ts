@@ -9,15 +9,15 @@ import {
   reject,
   requireHost,
 } from '../../platform/engine';
-import { REASON_NOT_SEATED } from '../../platform/protocol/reasons';
 import { createSeededRng, randomPick } from '../../platform/random';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
 import {
   buildSettleDueEffect,
   guardPhaseExpiry,
+  type PhaseExpiryActorChannel,
   rejectIfPastDeadline,
 } from '../../platform/room/phaseDeadline';
-import { findRosterSeatByUserId, getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
+import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
 import type {
   DrawGuessCommand,
   DrawGuessInternalCommand,
@@ -488,20 +488,20 @@ function dispatchExpiredPhase(state: DrawGuessState, context: CommandContext): D
 /** Advances an expired phase; idempotent on phaseRevision. */
 function expirePhase(
   state: DrawGuessState,
-  phaseRevision: number | undefined,
-  turnIndex: number | undefined,
   context: CommandContext,
-  internal: boolean,
+  actorChannel: PhaseExpiryActorChannel = 'system',
 ): DrawGuessDecision {
-  // Shared guard sequence (E-2, registered as guardDualReject in the
-  // phase-deadline variants table): phase, actor, the host-or-seated
-  // actor gate (D1', 2026-11-04: a spectator sends no expire), the
-  // dual revision check (phaseRevision + turnIndex), then the
-  // deadline. DrawGuess previously ran the revision check ahead of
-  // the actor, so a command failing both now hears the actor (or
-  // phase) reason. The internal settle channel carries no actor
-  // gate and no revision (staleness is the Worker's isCurrent
-  // check) and resolves the system actor.
+  // Shared guard sequence (E-2): phase, actor, then the deadline.
+  // System channel only (D3, 2026-11-05 — the public expire command
+  // was deleted): no actor gate and no revision gate (staleness is
+  // the Worker's isCurrent check); the guard resolves the system
+  // actor.
+  // The host retry (`drawguess.phase.retrySettle`) runs the same
+  // guard sequence and the same dispatch, only on the uncontrolled-
+  // user channel: the decide case gates the host first, then calls
+  // this with `actorChannel: 'uncontrolledUser'`. It is not an expire
+  // send — the retry re-drives the current phase's settle, never a
+  // client-sent expiry.
   return guardPhaseExpiry(context, {
     phaseRejection:
       state.phase.kind === 'wordSelect' ||
@@ -509,29 +509,7 @@ function expirePhase(
       state.phase.kind === 'roundEnd'
         ? null
         : reject(DRAWGUESS_REASONS.phase),
-    actorChannel: internal ? 'system' : 'uncontrolledUser',
-    checkActor: internal
-      ? undefined
-      : (actorUserId) => {
-          const actorSeat = findRosterSeatByUserId(
-            state.roster,
-            state.config.numberOfPlayers,
-            actorUserId,
-          );
-          return actorUserId !== state.hostUserId && actorSeat === null
-            ? reject(REASON_NOT_SEATED)
-            : null;
-        },
-    revision:
-      internal || phaseRevision === undefined || turnIndex === undefined
-        ? undefined
-        : {
-            checks: [
-              { commandRevision: phaseRevision, currentRevision: state.phaseRevision },
-              { commandRevision: turnIndex, currentRevision: state.turnIndex },
-            ],
-            onStale: () => reject(DRAWGUESS_REASONS.stale),
-          },
+    actorChannel,
     deadlineAt: expiringPhaseDeadlineAt(state),
     notExpiredReason: DRAWGUESS_REASONS.deadline,
     dispatch: () => dispatchExpiredPhase(state, context),
@@ -575,10 +553,17 @@ function decidePublicCommand(
       return reserveDrawing(state, context);
     case 'drawguess.game.abort':
       return abortGame(state, command.gameSequence, context);
-    case 'drawguess.phase.expire':
-      return expirePhase(state, command.phaseRevision, command.turnIndex, context, false);
     case 'drawguess.game.returnToLobby':
       return returnToLobby(state, context);
+    case 'drawguess.phase.retrySettle': {
+      // Host self-rescue (D3 follow-up): re-drives the current phase's
+      // settle through the same guard sequence and dispatch as the
+      // scheduled delivery, on the uncontrolled-user channel. A host
+      // acting through a takeover seat is rejected by requireHost.
+      const hostRejection = requireHost<DrawGuessEvent, DrawGuessEffect>(context, state.hostUserId);
+      if (hostRejection !== null) return hostRejection;
+      return expirePhase(state, context, 'uncontrolledUser');
+    }
     default:
       return reject(DRAWGUESS_REASONS.phase);
   }
@@ -602,7 +587,7 @@ function decideInternalCommand(
         command.sha256,
       );
     case 'drawguess.phase.settleExpired':
-      return expirePhase(state, undefined, undefined, context, true);
+      return expirePhase(state, context);
     default:
       return reject(DRAWGUESS_REASONS.phase);
   }

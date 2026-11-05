@@ -15,8 +15,8 @@ export interface StoryRelayTaskIdentity {
 
 type RevisionCommand = { readonly phaseRevision: number } & {
   readonly type:
-    | 'storyrelay.phase.expire'
     | 'storyrelay.game.abort'
+    | 'storyrelay.phase.retrySettle'
     | 'storyrelay.gallery.pause'
     | 'storyrelay.gallery.resume'
     | 'storyrelay.gallery.advance'
@@ -45,9 +45,9 @@ export type StoryRelayPublicCommand =
 /**
  * Worker-originated settle command: the room runtime fires the armed
  * stage deadline through a scheduled `storyrelay.settle.due` effect,
- * and the effect handler dispatches this as the system actor. It runs
- * the same expiry decide as the public expire command; the public
- * expire stays as a client acceleration path only.
+ * and the effect handler dispatches this as the system actor. It is
+ * the only expiry channel: there is no public expire command (D3,
+ * 2026-11-05 — the client acceleration channel was deleted).
  */
 export type StoryRelayInternalCommand = { readonly type: 'storyrelay.phase.settleExpired' };
 

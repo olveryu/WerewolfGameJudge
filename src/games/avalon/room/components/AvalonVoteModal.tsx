@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
+import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import {
   borderRadius,
   colors,
@@ -40,14 +41,20 @@ function seatName(viewModel: AvalonViewModel, seat: number): string {
 export function AvalonVoteModal({
   viewModel,
   remainingSeconds,
+  isOverdue,
+  isHost,
   isSubmitting,
   onVote,
+  onRetry,
   onClose,
 }: {
   readonly viewModel: AvalonViewModel;
   readonly remainingSeconds: number | null;
+  readonly isOverdue: boolean;
+  readonly isHost: boolean;
   readonly isSubmitting: boolean;
   readonly onVote: (vote: AvalonBallot) => void;
+  readonly onRetry: () => void;
   readonly onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
@@ -76,6 +83,14 @@ export function AvalonVoteModal({
               已全部投票，{remainingSeconds} 秒后揭晓
             </Text>
           ) : null}
+          <StageSettleRescue
+            remainingSeconds={remainingSeconds}
+            isOverdue={isOverdue}
+            isHost={isHost}
+            isRetrying={isSubmitting}
+            onRetry={onRetry}
+            waitingLabel="等待推进…"
+          />
           {instruction.canVote ? (
             <View style={styles.cardsRow}>
               <TouchableOpacity

@@ -80,16 +80,6 @@ function createGame() {
   for (let seat = 0; seat < 4; seat += 1) {
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
   }
-  const expireNow = () => {
-    const phase = session.state.phase;
-    if (
-      (phase.kind === 'wordSelect' || phase.kind === 'drawing' || phase.kind === 'roundEnd') &&
-      phase.deadlineAt !== null
-    ) {
-      session.setNow(phase.deadlineAt);
-    }
-    return send({ type: 'drawguess.phase.expire', ...revision() });
-  };
   const settleNow = () => {
     const phase = session.state.phase;
     if (
@@ -109,7 +99,6 @@ function createGame() {
     sendInternal,
     seatUser,
     revision,
-    expireNow,
     settleNow,
     startGame() {
       const begun = send({ type: 'drawguess.game.begin' });
@@ -162,14 +151,6 @@ describe('DrawGuess settle arming', () => {
     expectSingleSettle(chosen.effects, game.state);
   });
 
-  it('wordSelect timeout auto-assign arms drawing through the public expire channel', () => {
-    const game = createGame();
-    game.startGame();
-    const expired = game.expireNow();
-    expect(game.state.phase.kind).toBe('drawing');
-    expectSingleSettle(expired.effects, game.state);
-  });
-
   it('wordSelect timeout auto-assign arms drawing through the internal settle channel', () => {
     const game = createGame();
     game.startGame();
@@ -178,28 +159,21 @@ describe('DrawGuess settle arming', () => {
     expectSingleSettle(settled.effects, game.state);
   });
 
-  it('expiring drawing arms roundEnd through both channels', () => {
-    const publicGame = createGame();
-    publicGame.startGame();
-    publicGame.chooseFirstWord();
-    const expired = publicGame.expireNow();
-    expect(publicGame.state.phase.kind).toBe('roundEnd');
-    expectSingleSettle(expired.effects, publicGame.state);
-
-    const systemGame = createGame();
-    systemGame.startGame();
-    systemGame.chooseFirstWord();
-    const settled = systemGame.settleNow();
-    expect(systemGame.state.phase.kind).toBe('roundEnd');
-    expectSingleSettle(settled.effects, systemGame.state);
-  });
-
-  it('expiring roundEnd advances to the next turn with no new settle (arming lives in dealWords)', () => {
+  it('settling drawing arms roundEnd through the internal settle channel only (D3)', () => {
     const game = createGame();
     game.startGame();
     game.chooseFirstWord();
-    game.expireNow();
-    const advanced = game.expireNow();
+    const settled = game.settleNow();
+    expect(game.state.phase.kind).toBe('roundEnd');
+    expectSingleSettle(settled.effects, game.state);
+  });
+
+  it('settling roundEnd advances to the next turn with no new settle (arming lives in dealWords)', () => {
+    const game = createGame();
+    game.startGame();
+    game.chooseFirstWord();
+    game.settleNow();
+    const advanced = game.settleNow();
     expect(game.state.phase.kind).toBe('wordSelect');
     expect(game.state.turnIndex).toBe(1);
     expectNoSettle(advanced.effects);
@@ -310,7 +284,7 @@ describe('DrawGuess settle arming', () => {
     const game = createGame();
     game.startGame();
     game.chooseFirstWord();
-    game.expireNow();
+    game.settleNow();
     const phase = game.state.phase;
     if (phase.kind !== 'roundEnd') throw new Error('Expected roundEnd');
     const reserved = game.send(
@@ -331,11 +305,11 @@ describe('DrawGuess settle arming', () => {
     expectNoSettle(committed.effects);
   });
 
-  it('expiring the last roundEnd ends the game with no settle', () => {
+  it('settling the last roundEnd ends the game with no settle', () => {
     const game = createGame();
     game.startGame();
     // 8 turns (4 seats x 2 rounds per drawer): drive every turn to
-    // roundEnd through expiry, then expire the final roundEnd.
+    // roundEnd through settling, then settle the final roundEnd.
     for (let turn = 0; turn < 8; turn += 1) {
       if (turn > 0) {
         const dealt = game.sendInternal({
@@ -345,17 +319,17 @@ describe('DrawGuess settle arming', () => {
         });
         expectSingleSettle(dealt.effects, game.state);
       }
-      game.expireNow();
+      game.settleNow();
       expect(game.state.phase.kind).toBe('drawing');
-      game.expireNow();
+      game.settleNow();
       expect(game.state.phase.kind).toBe('roundEnd');
       if (turn < 7) {
-        const advanced = game.expireNow();
+        const advanced = game.settleNow();
         expect(game.state.phase.kind).toBe('wordSelect');
         expectNoSettle(advanced.effects);
       }
     }
-    const ended = game.expireNow();
+    const ended = game.settleNow();
     expect(game.state.phase.kind).toBe('ended');
     expectNoSettle(ended.effects);
     expect(ended.effects.some((effect) => effect.type === 'drawguess.game.completed')).toBe(true);

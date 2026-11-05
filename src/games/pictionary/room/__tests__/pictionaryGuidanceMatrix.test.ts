@@ -78,7 +78,8 @@ const PHASES: readonly PictionaryPhase[] = [
 interface Session {
   readonly state: PictionaryState;
   dispatch(command: PictionaryCommandInput, userId?: string): void;
-  expire(): void;
+  /** Advances the armed phase the way the server does: system settle at the deadline. */
+  settle(): void;
 }
 
 function createSession(): Session {
@@ -105,10 +106,23 @@ function createSession(): Session {
       return state;
     },
     dispatch,
-    expire() {
+    settle() {
       if (state.deadlineAt === null) throw new Error(`phase ${state.phase} has no deadline`);
       now = state.deadlineAt;
-      dispatch({ type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision });
+      const decision = decidePictionaryCommand(
+        state,
+        { type: 'pictionary.phase.settleExpired' },
+        {
+          actor: { kind: 'system', effectId: 'effect:1' },
+          controlledSeat: null,
+          nowMs: now,
+          commandId: `command-${now}`,
+          randomSeed: 'matrix',
+        },
+      );
+      if (decision.kind !== 'commit') throw new Error(decision.reason);
+      for (const event of decision.events) state = pictionaryEngine.evolve(state, event);
+      state = pictionaryEngine.normalize(state);
     },
   };
 }
@@ -138,10 +152,10 @@ function settleStep(session: Session) {
 
 /** Crosses one relay step: expire answering, settle all tasks, expire transition. */
 function crossStep(session: Session) {
-  session.expire();
+  session.settle();
   if (session.state.phase !== 'settling') throw new Error('expected settling');
   settleStep(session);
-  session.expire();
+  session.settle();
 }
 
 function stateFor(phase: PictionaryPhase): PictionaryState {
@@ -151,11 +165,11 @@ function stateFor(phase: PictionaryPhase): PictionaryState {
     case 'answering':
       return session.state;
     case 'settling':
-      session.expire();
+      session.settle();
       if (session.state.phase !== 'settling') throw new Error('expected settling');
       return session.state;
     case 'transition':
-      session.expire();
+      session.settle();
       settleStep(session);
       return session.state;
     case 'gallery': {

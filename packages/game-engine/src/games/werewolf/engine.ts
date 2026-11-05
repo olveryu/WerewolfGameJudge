@@ -110,7 +110,7 @@ function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
     case 'werewolf.sheriff.advance':
     case 'werewolf.sheriff.endBySelfDestruct':
     case 'werewolf.audio.ack':
-    case 'werewolf.phase.expire':
+    case 'werewolf.phase.retrySettle':
     case 'werewolf.phase.settleExpired':
     case 'werewolf.groupConfirm.ackBots':
     case 'werewolf.growth.applyRosterLevels':
@@ -463,10 +463,17 @@ function decideWerewolfCommandRules(
         true,
       );
     }
-    case 'werewolf.phase.expire':
-      return decidePhaseExpiry(state, context, false);
     case 'werewolf.phase.settleExpired':
-      return decidePhaseExpiry(state, context, true);
+      return decidePhaseExpiry(state, context);
+    case 'werewolf.phase.retrySettle': {
+      // Host self-rescue (D3 follow-up): re-drives the current phase's
+      // settle through the same guard sequence and dispatch as the
+      // scheduled delivery, on the uncontrolled-user channel. A host
+      // acting through a takeover seat is rejected by resolveHostActor.
+      const actor = resolveHostActor(state, context);
+      if (actor.kind === 'rejected') return reject(actor.reason);
+      return decidePhaseExpiry(state, context, 'uncontrolledUser');
+    }
     case 'werewolf.reveal.ack': {
       const actor = resolveEffectiveSeatActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);

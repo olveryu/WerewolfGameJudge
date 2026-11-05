@@ -11,6 +11,7 @@ export type DemoPublicCommand =
   | RoomSeatCommand<RoomSeatProfile>
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | { readonly type: 'demo.config.update'; readonly config: DemoConfig }
+  | { readonly type: 'demo.phase.retrySettle' }
   | { readonly type: 'demo.roles.assign' }
   | { readonly type: 'demo.game.begin' }
   | { readonly type: 'demo.game.returnToLobby' }

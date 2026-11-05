@@ -21,6 +21,7 @@ export const getAvalonRoomCommandFailureMessage = createRoomCommandFailureMessag
     [AVALON_REASONS.notHostStart]: '只有房主可以开始游戏',
     [AVALON_REASONS.notHostBegin]: '只有房主可以开始游戏',
     [AVALON_REASONS.notHostAbort]: '只有房主可以中止本局',
+    [AVALON_REASONS.notHostRetrySettle]: '只有房主可以重新推进',
     [AVALON_REASONS.notAllViewed]: '还有玩家未查看身份',
     [AVALON_REASONS.full]: ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
     [AVALON_REASONS.notNightParticipant]: '你不在当前确认步骤内',

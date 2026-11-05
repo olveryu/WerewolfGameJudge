@@ -53,15 +53,7 @@ type __GAME_PASCAL__SettleDueEffect = Extract<
 >;
 
 //#end
-//#cap publicExpire
-/**
- * A settle command rejected on the phase or deadline guard means the
- * arming it targeted is already gone (a client expire or the host
- * settled first, or the phase moved on): the delivery is done, not
- * failed.
- */
-//#end
-//#cap internalSettleOnly
+//#cap stageDeadline
 /**
  * A settle command rejected on the phase or deadline guard means the
  * arming it targeted is already gone (the phase moved on): the

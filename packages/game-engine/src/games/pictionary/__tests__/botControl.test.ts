@@ -41,6 +41,18 @@ function userContext(
   };
 }
 
+/** D3: expiry is system-only — the scheduled settle.due delivery's actor. */
+let systemCommandNumber = 0;
+function systemContext(nowMs = 2_000): CommandContext {
+  return {
+    actor: { kind: 'system', effectId: 'settle' },
+    controlledSeat: null,
+    nowMs,
+    commandId: `system:${systemCommandNumber++}`,
+    randomSeed: 'pictionary-bot-seed',
+  };
+}
+
 function applyDecision(
   state: PictionaryState,
   decision: Decision<PictionaryEvent, PictionaryEffect>,
@@ -108,8 +120,8 @@ function advanceToDrawingCollection(state: PictionaryState): PictionaryState {
   if (nextState.deadlineAt === null) throw new Error('Pictionary transition deadline is missing');
   nextState = dispatch(
     nextState,
-    { type: 'pictionary.phase.expire', phaseRevision: nextState.phaseRevision },
-    userContext('host', null, nextState.deadlineAt),
+    { type: 'pictionary.phase.settleExpired' },
+    systemContext(nextState.deadlineAt),
   );
   nextState = markEverySeatReady(nextState);
   expect(nextState.phase).toBe('settling');
@@ -121,8 +133,8 @@ function expireCurrentPhase(state: PictionaryState): PictionaryState {
   if (state.deadlineAt === null) throw new Error('Pictionary phase deadline is missing');
   return dispatch(
     state,
-    { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
-    userContext('host', null, state.deadlineAt),
+    { type: 'pictionary.phase.settleExpired' },
+    systemContext(state.deadlineAt),
   );
 }
 

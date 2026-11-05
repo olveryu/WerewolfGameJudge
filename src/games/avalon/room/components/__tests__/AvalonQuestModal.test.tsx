@@ -3,6 +3,8 @@
 import type { AvalonViewModel } from '@game-judge/game-engine/games/avalon/public';
 import { fireEvent, render } from '@testing-library/react-native';
 
+import { TESTIDS } from '@/testids';
+
 import { AvalonQuestModal } from '../AvalonQuestModal';
 
 function questViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewModel {
@@ -57,19 +59,25 @@ function renderModal(
   overrides: Partial<AvalonViewModel> = {},
   remainingSeconds: number | null = null,
   isSubmitting = false,
+  isOverdue = false,
+  isHost = false,
 ) {
   const onPlay = jest.fn();
+  const onRetry = jest.fn();
   const onClose = jest.fn();
   const utils = render(
     <AvalonQuestModal
       viewModel={questViewModel(overrides)}
       remainingSeconds={remainingSeconds}
+      isOverdue={isOverdue}
+      isHost={isHost}
       isSubmitting={isSubmitting}
       onPlay={onPlay}
+      onRetry={onRetry}
       onClose={onClose}
     />,
   );
-  return { ...utils, onPlay, onClose };
+  return { ...utils, onPlay, onRetry, onClose };
 }
 
 describe('AvalonQuestModal', () => {
@@ -88,6 +96,18 @@ describe('AvalonQuestModal', () => {
   it('shows the reveal countdown once every play is in', () => {
     const { getByTestId } = renderModal({}, 3);
     expect(getByTestId('avalon-quest-countdown')).toHaveTextContent('已全部出牌，3 秒后揭晓');
+  });
+
+  it('shows the settle rescue to the host once overdue', () => {
+    const { getByTestId, onRetry } = renderModal({}, 0, false, true, true);
+    fireEvent.press(getByTestId(TESTIDS.stageSettleRescueRetryButton));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the waiting hint and no retry button to non-hosts once overdue', () => {
+    const { getByTestId, queryByTestId } = renderModal({}, 0, false, true, false);
+    expect(getByTestId(TESTIDS.stageSettleRescue)).toHaveTextContent(/等待房主处理/);
+    expect(queryByTestId(TESTIDS.stageSettleRescueRetryButton)).toBeNull();
   });
 
   it('shows my current play without revealing anyone else', () => {

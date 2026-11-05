@@ -462,42 +462,93 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
         !workerModule.includes(':settle:${'),
         'worker module does not hand-build the settle business key',
       );
-      // The rendered client hook carries the takeover gate and the
-      // single-shot key: the stage pack's countdown is acceleration
-      // only, never sent from a controlled seat, and keyed by the
-      // phase identity. If the cap block were silently dropped from
-      // the assembled hook, these assertions fail with it. Packs
-      // without the publicExpire segment (demo-hybrid settles
-      // system-only) render no such block; that case is covered by
-      // the demo-hybrid assertion below.
-      if (PACK_SEGMENT_SWITCHES[preset].publicExpire) {
-        const roomHook = readFixture(
+      // D3: expiry is server-only — no client sends expire. The
+      // stage pack's rendered hook is countdown-only: it calls
+      // useStageDeadline with the deadline alone and exposes
+      // remainingSeconds for display. If the countdown block were
+      // silently dropped from the assembled hook, these assertions
+      // fail with it. The demo-hybrid pack renders no countdown
+      // surface at all, exactly like the shipped demo.
+      const roomHook = readFixture(root, 'src/games/demoproto/room/hooks/useDemoprotoRoomState.ts');
+      if (!capabilities.identityViewing) {
+        assert.ok(roomHook.includes('useStageDeadline({'), 'rendered hook calls useStageDeadline');
+        assert.ok(!roomHook.includes('shouldExpire'), 'rendered hook has no expire gate');
+        assert.ok(!roomHook.includes('onExpire'), 'rendered hook has no expire dispatch');
+        assert.ok(!roomHook.includes('attemptKey'), 'rendered hook has no single-shot key');
+        assert.ok(!roomHook.includes('phase.expire'), 'rendered hook never dispatches expire');
+        assert.ok(roomHook.includes('remainingSeconds'), 'rendered hook exposes the countdown');
+      } else {
+        assert.ok(!roomHook.includes('useStageDeadline'), 'hybrid hook has no countdown');
+      }
+      // The public expire command is gone from the generated engine
+      // entirely, and so is the phase.expired event it used to emit:
+      // the internal settle runs through the terminal seam (game.ended
+      // + game.completed), exactly like the shipped demo, which has no
+      // phase.expired anywhere — the event type and its evolve case
+      // were dead code with no constructor left, so they were deleted
+      // from the templates rather than kept.
+      assert.ok(!engineSource.includes(`'demoproto.phase.expire'`), 'no public expire command');
+      assert.ok(
+        engineSource.includes(`'demoproto.phase.settleExpired'`),
+        'internal settle command dispatched',
+      );
+      assert.ok(
+        engineSource.includes('endDemoprotoGame(state, context)'),
+        'settle runs through the terminal seam',
+      );
+      assert.ok(!engineGameDir.includes('phase.expired'), 'dead phase.expired event is gone');
+      // D3 follow-up: the host self-rescue retry rides the same settle
+      // dispatch — vocabulary entry only, no duplicated settle logic.
+      // The retry command is public in the engine and the Worker
+      // schema, gated host-first in decide; the stage pack's room
+      // hook exposes isOverdue and the stage area renders the shared
+      // rescue UI. The demo-hybrid pack renders no countdown surface
+      // at all, so it gets none of the client wiring.
+      assert.ok(
+        engineSource.includes(`'demoproto.phase.retrySettle'`),
+        'retry command in engine vocabulary',
+      );
+      assert.ok(engineSource.includes(`case 'demoproto.phase.retrySettle':`), 'retry decide case');
+      assert.ok(
+        engineSource.includes(`settleExpired(state, context, 'uncontrolledUser')`),
+        'retry re-drives the existing settle dispatch',
+      );
+      assert.ok(engineSource.includes('notHostRetrySettle'), 'retry host gate reason');
+      assert.ok(
+        readFixture(root, 'packages/api-worker/src/games/demoproto/schemas.ts').includes(
+          `'demoproto.phase.retrySettle'`,
+        ),
+        'retry in worker schema',
+      );
+      assert.ok(
+        readFixture(
           root,
-          'src/games/demoproto/room/hooks/useDemoprotoRoomState.ts',
-        );
-        const shouldExpireStart = roomHook.indexOf('const shouldExpire =');
-        assert.ok(shouldExpireStart !== -1, 'rendered hook defines shouldExpire');
-        const shouldExpireBody = roomHook.slice(
-          shouldExpireStart,
-          roomHook.indexOf('const onExpire', shouldExpireStart),
+          'src/games/demoproto/room/demoprotoRoomCommandFailureMessage.ts',
+        ).includes('notHostRetrySettle'),
+        'retry failure copy',
+      );
+      if (!capabilities.identityViewing) {
+        assert.ok(roomHook.includes('isOverdue'), 'stage hook exposes isOverdue');
+        assert.ok(
+          clientGameDir.includes('StageSettleRescue'),
+          'stage area renders the shared rescue UI',
         );
         assert.ok(
-          shouldExpireBody.includes('if (controlledSeat !== null) return false;'),
-          'shouldExpire refuses a controlled seat',
+          clientGameDir.includes(`'demoproto.phase.retrySettle'`),
+          'stage area submits the retry',
         );
-        assert.ok(
-          shouldExpireBody.includes('if (!isHost && effectiveSeat === null) return false;'),
-          'shouldExpire requires the host or a seat (spectator never sends)',
-        );
-        const callStart = roomHook.indexOf('useStageDeadline({', shouldExpireStart);
-        assert.ok(callStart !== -1, 'rendered hook calls useStageDeadline');
-        const callBody = roomHook.slice(callStart, roomHook.indexOf('});', callStart));
-        assert.ok(callBody.includes('attemptKey:'), 'call passes attemptKey');
-        assert.ok(callBody.includes('state.gameSequence'), 'attemptKey is keyed by gameSequence');
-        assert.ok(callBody.includes('state.phaseRevision'), 'attemptKey is keyed by phaseRevision');
+      } else {
+        assert.ok(!roomHook.includes('isOverdue'), 'hybrid hook has no rescue wiring');
+        assert.ok(!clientGameDir.includes('StageSettleRescue'), 'hybrid client has no rescue UI');
       }
     } else {
       assert.ok(!engineGameDir.includes('deadlineAt'));
+      assert.ok(!engineGameDir.includes('retrySettle'), 'no-deadline engine has no retry command');
+      assert.ok(!clientGameDir.includes('retrySettle'), 'no-deadline client has no retry wiring');
+      assert.ok(
+        !clientGameDir.includes('StageSettleRescue'),
+        'no-deadline client has no rescue UI',
+      );
     }
     if (capabilities.audioOrchestration) {
       assert.ok(engineGameDir.includes('demoproto.audio.ack'));
@@ -519,15 +570,6 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
         !clientGameDir.includes('AudioOrchestration'),
         'audio-off client has no audio binding',
       );
-    }
-    if (preset === 'demo-hybrid') {
-      // The hybrid pack settles through the system channel only: the
-      // public expire command (and its phase.expired event) must not
-      // exist anywhere in the generated engine, and the client carries
-      // no countdown surface.
-      assert.ok(!engineSource.includes(`'demoproto.phase.expire'`), 'no public expire command');
-      assert.ok(!engineSource.includes('phase.expired'), 'no phase.expired event');
-      assert.ok(!clientGameDir.includes('useStageDeadline'), 'client has no countdown hook');
     }
   });
 }

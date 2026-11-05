@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
+import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import {
   borderRadius,
   colors,
@@ -38,14 +39,20 @@ function seatName(viewModel: AvalonViewModel, seat: number): string {
 export function AvalonQuestModal({
   viewModel,
   remainingSeconds,
+  isOverdue,
+  isHost,
   isSubmitting,
   onPlay,
+  onRetry,
   onClose,
 }: {
   readonly viewModel: AvalonViewModel;
   readonly remainingSeconds: number | null;
+  readonly isOverdue: boolean;
+  readonly isHost: boolean;
   readonly isSubmitting: boolean;
   readonly onPlay: (play: AvalonPlay) => void;
+  readonly onRetry: () => void;
   readonly onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
@@ -74,6 +81,14 @@ export function AvalonQuestModal({
               已全部出牌，{remainingSeconds} 秒后揭晓
             </Text>
           ) : null}
+          <StageSettleRescue
+            remainingSeconds={remainingSeconds}
+            isOverdue={isOverdue}
+            isHost={isHost}
+            isRetrying={isSubmitting}
+            onRetry={onRetry}
+            waitingLabel="等待推进…"
+          />
           {instruction.isTeamMember ? (
             <View style={styles.cardsRow}>
               {instruction.availableCards.includes('success') ? (

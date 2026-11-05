@@ -52,10 +52,7 @@ const publicCommandOptions = definePublicCommandOptions<PictionaryPublicCommand>
   }),
   z.strictObject({ type: z.literal('pictionary.drawing.reserve'), ...taskIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.game.abort'), ...phaseIdentityShape }),
-  z.strictObject({
-    type: z.literal('pictionary.phase.expire'),
-    phaseRevision: z.int().nonnegative(),
-  }),
+  z.strictObject({ type: z.literal('pictionary.phase.retrySettle'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.gallery.pause'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.gallery.resume'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.gallery.advance'), ...phaseIdentityShape }),

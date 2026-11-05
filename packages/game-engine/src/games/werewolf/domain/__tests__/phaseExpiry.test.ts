@@ -9,11 +9,12 @@
  * writes no deadline carries none. Pinned at all three arming sites —
  * the wolf-vote settle countdown (actionHandler), the sheriff-vote
  * settle countdown (sheriffElectionHandler) and the vacant bottom-card
- * auto-skip delay (inlineProgression) — and the expiry channels read
- * the same carriers back through `readArmedDeadline`.
+ * auto-skip delay (inlineProgression) — and the system settle
+ * channel reads the same carriers back through `readArmedDeadline`.
  */
 
 import type { CommandContext, Decision } from '../../../../platform/engine';
+import { REASON_SYSTEM_ACTOR_REQUIRED } from '../../../../platform/protocol/reasons';
 import type { WerewolfCommand } from '../../commands/types';
 import type { WerewolfEffect, WerewolfSettleDueEffect } from '../../effects/types';
 import { werewolfEngine } from '../../engine';
@@ -249,7 +250,7 @@ describe('vacant bottom-card auto-skip arming', () => {
   });
 });
 
-describe('expiry channels', () => {
+describe('system settle channel', () => {
   const armedSheriffVote = (): GameState =>
     createState({
       status: GameStatus.Day,
@@ -270,7 +271,11 @@ describe('expiry channels', () => {
   it('rejects a phase without a deadline carrier', () => {
     const seated = createState({ status: GameStatus.Seated, nightStep: null });
     expect(
-      werewolfEngine.decide(seated, { type: 'werewolf.phase.expire' }, userContext('host')),
+      werewolfEngine.decide(
+        seated,
+        { type: 'werewolf.phase.settleExpired' },
+        systemContext(NOW_MS),
+      ),
     ).toEqual({ kind: 'reject', reason: REASON_PHASE_NOT_EXPIRABLE });
     expect(readArmedDeadline(seated)).toBeNull();
   });
@@ -278,22 +283,27 @@ describe('expiry channels', () => {
   it('rejects a carrier whose deadline is not armed', () => {
     const open = createState();
     expect(
-      werewolfEngine.decide(open, { type: 'werewolf.phase.expire' }, userContext('host')),
+      werewolfEngine.decide(open, { type: 'werewolf.phase.settleExpired' }, systemContext(NOW_MS)),
     ).toEqual({ kind: 'reject', reason: REASON_DEADLINE_NOT_REACHED });
     expect(readArmedDeadline(open)).toBeNull();
   });
 
-  it('closes the armed sheriff round at its deadline on either channel', () => {
-    for (const context of [userContext('user-2', 6_000), systemContext(6_000)]) {
-      const state = armedSheriffVote();
-      const command: WerewolfCommand =
-        context.actor.kind === 'system'
-          ? { type: 'werewolf.phase.settleExpired' }
-          : { type: 'werewolf.phase.expire' };
-      const closed = evolve(state, werewolfEngine.decide(state, command, context));
-      expect(closed.sheriffElection?.phase).not.toBe('firstVote');
-      expect(readArmedDeadline(closed)).toBeNull();
-    }
+  it('closes the armed sheriff round at its deadline on the system channel only, and rejects the same command from a user', () => {
+    const state = armedSheriffVote();
+    const closed = evolve(
+      state,
+      werewolfEngine.decide(state, { type: 'werewolf.phase.settleExpired' }, systemContext(6_000)),
+    );
+    expect(closed.sheriffElection?.phase).not.toBe('firstVote');
+    expect(readArmedDeadline(closed)).toBeNull();
+
+    expect(
+      werewolfEngine.decide(
+        armedSheriffVote(),
+        { type: 'werewolf.phase.settleExpired' },
+        userContext('user-2', 6_000),
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_SYSTEM_ACTOR_REQUIRED });
   });
 
   it('holds a reached sheriff deadline behind the audio gate without rejecting', () => {

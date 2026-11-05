@@ -112,6 +112,10 @@ export const TESTIDS = {
   connectionPendingContainer: 'connection-pending-container',
   connectionRetryNowButton: 'connection-retry-now-button',
 
+  // Stage settle rescue (D3 follow-up: host self-rescue for an overdue deadline)
+  stageSettleRescue: 'stage-settle-rescue',
+  stageSettleRescueRetryButton: 'stage-settle-rescue-retry-button',
+
   // Werewolf MVP selection (host, ended)
   mvpSelectionModal: 'mvp-selection-modal',
 

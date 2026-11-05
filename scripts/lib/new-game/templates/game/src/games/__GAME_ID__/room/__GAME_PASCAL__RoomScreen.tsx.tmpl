@@ -16,14 +16,15 @@ import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardMo
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
-//#cap publicExpire
+//#cap !identityViewing
 import { StageFrame } from '@/features/room/components/StageFrame';
+import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 //#end
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 //#cap identityViewing
 import { resolveViewIdentityAction } from '@/features/room/model/RoomBottomActions';
 //#end
-//#cap publicExpire
+//#cap !identityViewing
 import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 //#end
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -195,6 +196,14 @@ function __GAME_PASCAL__StageArea({
         </View>
       }
     >
+      <StageSettleRescue
+        remainingSeconds={screen.remainingSeconds}
+        isOverdue={screen.isOverdue}
+        isHost={screen.isHost}
+        isRetrying={screen.isSubmitting}
+        onRetry={() => void screen.submit('重新推进', { type: '__GAME_ID__.phase.retrySettle' })}
+        waitingLabel="等待推进…"
+      />
       <Text style={styles.stageHint}>TODO(gameplay):玩法阶段界面随玩法状态机落地。</Text>
     </StageFrame>
   );
@@ -214,7 +223,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
 //#end
-//#cap publicExpire
+//#cap !identityViewing
   stageHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -226,7 +235,7 @@ const styles = StyleSheet.create({
     ...textStyles.subtitleSemibold,
     color: colors.text,
   },
-//#cap publicExpire
+//#cap !identityViewing
   stageCountdown: {
     ...textStyles.titleBold,
     color: colors.text,

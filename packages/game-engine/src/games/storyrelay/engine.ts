@@ -8,8 +8,7 @@ import {
   reject,
   requireHost,
 } from '../../platform/engine';
-import { REASON_NOT_SEATED } from '../../platform/protocol/reasons';
-import { guardPhaseExpiry } from '../../platform/room/phaseDeadline';
+import { guardPhaseExpiry, type PhaseExpiryActorChannel } from '../../platform/room/phaseDeadline';
 import { buildRelayChains, buildRelayParticipants } from '../../platform/room/relay/assignment';
 import { expireRelayPhase, relayDeadline } from '../../platform/room/relay/clock';
 import { isRoomFull } from '../../platform/room/seating';
@@ -32,7 +31,6 @@ import {
 import { decideStoryRelayRoom } from './domain/seating';
 import { normalizeStoryRelayState } from './state/normalize';
 import {
-  getStoryRelayUserSeat,
   isValidStoryRelayConfig,
   STORY_RELAY_GAME_TYPE,
   type StoryRelayConfig,
@@ -114,23 +112,22 @@ function startRound(state: StoryRelayState, context: CommandContext): StoryRelay
 function expirePhase(
   state: StoryRelayState,
   context: CommandContext,
-  internal: boolean,
+  actorChannel: PhaseExpiryActorChannel = 'system',
 ): StoryRelayDecision {
   // The revision gate for this command runs in decideStoryRelayCommand
   // (stale revisions reject there); the shared guard sequence covers
-  // the actor and deadline gates and the dispatch. The public
-  // command carries the host-or-seated actor gate (D1', 2026-11-04:
-  // a spectator sends no expire); the internal channel carries no
-  // actor gate and no revision gate: staleness is the Worker
+  // the actor and deadline gates and the dispatch. System channel
+  // only (D3, 2026-11-05 — the public expire command was deleted):
+  // no actor gate and no revision gate — staleness is the Worker
   // isCurrent comparison, not a command field.
+  // The host retry (`storyrelay.phase.retrySettle`) runs the same
+  // guard sequence and the same dispatch, only on the uncontrolled-
+  // user channel: decideStoryRelayCommand gates the host first, then
+  // calls this with `actorChannel: 'uncontrolledUser'`. It is not an
+  // expire send — the retry re-drives the current phase's settle,
+  // never a client-sent expiry.
   return guardPhaseExpiry(context, {
-    actorChannel: internal ? 'system' : 'uncontrolledUser',
-    checkActor: internal
-      ? undefined
-      : (actorUserId) =>
-          actorUserId !== state.hostUserId && getStoryRelayUserSeat(state, actorUserId) === null
-            ? reject(REASON_NOT_SEATED)
-            : null,
+    actorChannel,
     deadlineAt: state.deadlineAt,
     notExpiredReason: STORY_RELAY_REASONS.deadline,
     dispatch: (nowMs) =>
@@ -167,10 +164,8 @@ export function decideStoryRelayCommand(
     case 'storyrelay.text.submit':
     case 'storyrelay.task.empty.submit':
       return decideStoryRelayTask(state, command, context);
-    case 'storyrelay.phase.expire':
-      return expirePhase(state, context, false);
     case 'storyrelay.phase.settleExpired':
-      return expirePhase(state, context, true);
+      return expirePhase(state, context);
     default:
       break;
   }
@@ -182,6 +177,13 @@ export function decideStoryRelayCommand(
         state.completedAt === null
         ? commitStoryRelay([{ type: 'storyrelay.round.aborted', abortedAt: context.nowMs }])
         : reject(STORY_RELAY_REASONS.phase);
+    case 'storyrelay.phase.retrySettle':
+      // Host self-rescue (D3 follow-up): re-drives the current phase's
+      // settle through the same guard sequence and dispatch as the
+      // scheduled delivery, on the uncontrolled-user channel. The host
+      // gate already ran above; a host acting through a takeover seat
+      // is rejected by requireHost.
+      return expirePhase(state, context, 'uncontrolledUser');
     case 'storyrelay.game.returnToLobby':
       return state.phase === 'ended' || state.phase === 'aborted'
         ? commitStoryRelay([{ type: 'storyrelay.game.returnedToLobby' }])

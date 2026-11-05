@@ -1,21 +1,24 @@
 /**
  * Phase Deadline Protocol — werewolf scenario (E-2).
  *
- * Werewolf's registered assembly: dual channel — the public expire
- * command travels on the uncontrolled-user channel (any foreground
- * client may accelerate the settlement), while the internal
- * settleExpired command, dispatched by the scheduled
- * `werewolf.settle.due` effect, travels on the system channel.
- * Neither command carries a revision; correctness for the internal
- * channel rides on the worker's pinned-arming staleness gate. The
- * session below is the wolf-vote settle countdown: every wolf has
- * voted and the step deadline is armed, so expiry advances the
- * night step. Same-named scenario files live in each switched
- * game's __tests__.
+ * Werewolf's registered assembly: system only (D3, 2026-11-05 —
+ * the public expire command was deleted). There is no public expire
+ * command at all; the scheduled `werewolf.settle.due` effect is the
+ * sole expiry channel and dispatches the internal settleExpired
+ * command on the system channel. Neither command carries a
+ * revision; correctness rides on the worker's pinned-arming
+ * staleness gate. The session below is the wolf-vote settle
+ * countdown: every wolf has voted and the step deadline is armed,
+ * so expiry advances the night step. Same-named scenario files
+ * live in each switched game's __tests__.
  */
 
 import type { CommandContext } from '../../../platform/engine';
 import { applyDecision } from '../../../platform/engine/__tests__/engineSession';
+import {
+  REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+  REASON_NOT_HOST,
+} from '../../../platform/protocol/reasons';
 import {
   describePhaseDeadlineProtocol,
   type PhaseDeadlineSession,
@@ -87,11 +90,6 @@ function makeSession(): PhaseDeadlineSession {
   };
 
   return {
-    expireAsUser: (nowMs) => attempt({ type: 'werewolf.phase.expire' }, userContext(null, nowMs)),
-    expireAsControlledUser: (nowMs) =>
-      attempt({ type: 'werewolf.phase.expire' }, userContext(2, nowMs)),
-    expirePublicAsSystem: (nowMs) =>
-      attempt({ type: 'werewolf.phase.expire' }, systemContext(nowMs)),
     expireSettleAsSystem: (nowMs) =>
       attempt({ type: 'werewolf.phase.settleExpired' }, systemContext(nowMs)),
     expireSettleAsUser: (nowMs) =>
@@ -114,10 +112,87 @@ describePhaseDeadlineProtocol({
   makeSession,
   expectations: {
     notExpiredReason: REASON_DEADLINE_NOT_REACHED,
-    publicChannel: 'uncontrolledUser',
     hasSettleCommand: true,
     stalePolicy: 'none',
     staleReason: null,
     dispatchAdvances: true,
   },
+});
+
+/**
+ * Host self-rescue (D3 follow-up): `werewolf.phase.retrySettle`
+ * re-drives the current phase's settle through the same guard
+ * sequence and dispatch as the scheduled delivery. It is not an
+ * expire send — the host gate runs first, and the guard still
+ * rejects before the deadline, for non-hosts, and for a host acting
+ * through a takeover seat.
+ */
+describe('werewolf.phase.retrySettle (host self-rescue)', () => {
+  let state: GameState;
+  let commandNumber = 0;
+  const userContext = (
+    userId: string,
+    controlledSeat: number | null,
+    nowMs: number,
+  ): CommandContext => ({
+    actor: { kind: 'user', userId },
+    controlledSeat,
+    nowMs,
+    commandId: `command:${commandNumber++}`,
+    randomSeed: 'phase-deadline',
+  });
+  const attempt = (command: WerewolfCommand, context: CommandContext) => {
+    const decision = werewolfEngine.decide(state, command, context);
+    if (decision.kind === 'commit') {
+      state = applyDecision(werewolfEngine, state, decision, parseWerewolfState);
+    }
+    return decision;
+  };
+  const retry = (userId: string, controlledSeat: number | null, nowMs: number) =>
+    attempt({ type: 'werewolf.phase.retrySettle' }, userContext(userId, controlledSeat, nowMs));
+  const hasAdvanced = () =>
+    state.nightStep?.kind !== 'inStep' || state.nightStep.stepId !== 'wolfKill';
+
+  beforeEach(() => {
+    state = armedWolfVoteState();
+    commandNumber = 0;
+  });
+
+  it('rejects the host before the deadline', () => {
+    expect(retry('host', null, WOLF_VOTE_DEADLINE_AT - 1)).toEqual({
+      kind: 'reject',
+      reason: REASON_DEADLINE_NOT_REACHED,
+    });
+    expect(hasAdvanced()).toBe(false);
+  });
+
+  it('rejects a non-host after the deadline', () => {
+    expect(retry('user-1', null, WOLF_VOTE_DEADLINE_AT)).toEqual({
+      kind: 'reject',
+      reason: REASON_NOT_HOST,
+    });
+    expect(hasAdvanced()).toBe(false);
+  });
+
+  it('rejects a host acting through a takeover seat', () => {
+    expect(retry('host', 0, WOLF_VOTE_DEADLINE_AT)).toEqual({
+      kind: 'reject',
+      reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+    });
+    expect(hasAdvanced()).toBe(false);
+  });
+
+  it('settles the phase for the host after the deadline', () => {
+    const decision = retry('host', null, WOLF_VOTE_DEADLINE_AT);
+    expect(decision.kind).toBe('commit');
+    expect(hasAdvanced()).toBe(true);
+  });
+
+  it('is a no-op once the phase has advanced', () => {
+    expect(retry('host', null, WOLF_VOTE_DEADLINE_AT).kind).toBe('commit');
+    expect(hasAdvanced()).toBe(true);
+    const second = retry('host', null, WOLF_VOTE_DEADLINE_AT + 1_000);
+    expect(second.kind).toBe('reject');
+    expect(hasAdvanced()).toBe(true);
+  });
 });

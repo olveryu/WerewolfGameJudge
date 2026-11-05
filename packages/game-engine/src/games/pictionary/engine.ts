@@ -10,8 +10,7 @@ import {
   resolveSystemActorEffectId,
 } from '../../platform/engine';
 import { PICTIONARY_GAME_TYPE, type PictionaryGameType } from '../../platform/protocol/gameTypes';
-import { REASON_NOT_SEATED } from '../../platform/protocol/reasons';
-import { guardPhaseExpiry } from '../../platform/room/phaseDeadline';
+import { guardPhaseExpiry, type PhaseExpiryActorChannel } from '../../platform/room/phaseDeadline';
 import { buildRelayChains, buildRelayParticipants } from '../../platform/room/relay/assignment';
 import { relayDeadline } from '../../platform/room/relay/clock';
 import { findRosterSeatByUserId } from '../../platform/room/seating';
@@ -175,40 +174,23 @@ function decideCommitPictionaryDrawing(
 
 function decideExpirePictionaryPhase(
   state: PictionaryState,
-  phaseRevision: number | undefined,
   context: CommandContext,
-  internal: boolean,
+  actorChannel: PhaseExpiryActorChannel = 'system',
 ): PictionaryDecision {
-  // Shared guard sequence, dual channel: the public command travels
-  // on the uncontrolled-user channel with the host-or-seated actor
-  // gate (D1', 2026-11-04: a spectator sends no expire), the
-  // internal settle command on the system channel with no actor
-  // gate and no revision gate (staleness is the Worker's isCurrent
-  // check). The stale revision mode is unchanged: a stale public
-  // revision silently commits empty — the decide entry above
-  // exempts this command from the revision rejection every other
-  // revisioned command gets.
+  // Shared guard sequence, system channel only (D3, 2026-11-05 — the
+  // public expire command was deleted): the scheduled settle.due
+  // delivery dispatches this as the system actor, with no actor gate
+  // and no revision gate (staleness is the Worker's isCurrent check).
+  // The host retry (`pictionary.phase.retrySettle`) runs the same
+  // guard sequence and the same dispatch, only on the uncontrolled-
+  // user channel: the decide case gates the host first, then calls
+  // this with `actorChannel: 'uncontrolledUser'`. It is not an expire
+  // send — the retry re-drives the current phase's settle, never a
+  // client-sent expiry. (The retry is a PhaseCommand, so the decide
+  // entry's roundId/phaseRevision gate still rejects a retry bound
+  // to a phase that has already advanced.)
   return guardPhaseExpiry(context, {
-    actorChannel: internal ? 'system' : 'uncontrolledUser',
-    checkActor: internal
-      ? undefined
-      : (actorUserId) => {
-          const actorSeat = findRosterSeatByUserId(
-            state.roster,
-            state.config.numberOfPlayers,
-            actorUserId,
-          );
-          return actorUserId !== state.hostUserId && actorSeat === null
-            ? reject(REASON_NOT_SEATED)
-            : null;
-        },
-    revision:
-      internal || phaseRevision === undefined
-        ? undefined
-        : {
-            checks: [{ commandRevision: phaseRevision, currentRevision: state.phaseRevision }],
-            onStale: () => commitPictionary([]),
-          },
+    actorChannel,
     deadlineAt: state.deadlineAt,
     notExpiredReason: REASON_PICTIONARY_PHASE_NOT_EXPIRED,
     dispatch: (nowMs) => expirePictionaryPhase(state, nowMs),
@@ -298,11 +280,7 @@ export function decidePictionaryCommand(
 ): PictionaryDecision {
   if ('roundId' in command && command.roundId !== state.roundId)
     return reject(REASON_PICTIONARY_TASK_INVALID);
-  if (
-    'phaseRevision' in command &&
-    command.type !== 'pictionary.phase.expire' &&
-    command.phaseRevision !== state.phaseRevision
-  ) {
+  if ('phaseRevision' in command && command.phaseRevision !== state.phaseRevision) {
     return reject(REASON_PICTIONARY_PHASE_INVALID);
   }
   if ('chainId' in command) {
@@ -352,10 +330,20 @@ export function decidePictionaryCommand(
     }
     case 'pictionary.drawing.commit':
       return decideCommitPictionaryDrawing(state, command.submissionId, command.media, context);
-    case 'pictionary.phase.expire':
-      return decideExpirePictionaryPhase(state, command.phaseRevision, context, false);
     case 'pictionary.phase.settleExpired':
-      return decideExpirePictionaryPhase(state, undefined, context, true);
+      return decideExpirePictionaryPhase(state, context);
+    case 'pictionary.phase.retrySettle': {
+      // Host self-rescue (D3 follow-up): re-drives the current phase's
+      // settle through the same guard sequence and dispatch as the
+      // scheduled delivery, on the uncontrolled-user channel. A host
+      // acting through a takeover seat is rejected by requireHost.
+      const hostRejection = requireHost<PictionaryEvent, PictionaryEffect>(
+        context,
+        state.hostUserId,
+      );
+      if (hostRejection !== null) return hostRejection;
+      return decideExpirePictionaryPhase(state, context, 'uncontrolledUser');
+    }
     case 'pictionary.gallery.pause':
       return decidePausePictionaryGallery(state, context);
     case 'pictionary.gallery.resume':

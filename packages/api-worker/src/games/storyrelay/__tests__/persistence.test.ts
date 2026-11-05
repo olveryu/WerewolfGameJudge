@@ -8,6 +8,7 @@ import {
   STORY_RELAY_TEXT_MAX_LENGTH,
   type StoryRelayCommand,
 } from '@game-judge/game-engine/games/storyrelay/public';
+import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
 import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, expect, it } from 'vitest';
@@ -28,9 +29,9 @@ it('persists 400 maximum-length paragraphs and replays the final receipt without
   };
   await env.DB.prepare("INSERT INTO users (id) VALUES ('storyrelay-capacity-host')").run();
   await env.DB.prepare(
-    "INSERT INTO rooms (id, code, game_type, host_user_id, creation_id, config_json, status, created_at, updated_at) VALUES (?, ?, 'storyrelay', 'storyrelay-capacity-host', ?, ?, 'active', '2026-09-25', '2026-09-25')",
+    "INSERT INTO rooms (id, code, game_type, host_user_id, creation_id, config_json, status, created_at, updated_at) VALUES (?, ?, 'storyrelay', 'storyrelay-capacity-host', ?, ?, 'active', '2026-09-25T00:00:00.000Z', '2026-09-25T00:00:00.000Z')",
   )
-    .bind(identity.roomId, identity.roomCode, identity.creationId, JSON.stringify(config))
+    .bind(identity.roomId, identity.roomCode, identity.creationId, canonicalJson(config))
     .run();
   const initialized = await stub.initializeRoom({
     ...identity,
@@ -54,6 +55,21 @@ it('persists 400 maximum-length paragraphs and replays the final receipt without
     if (result.result.kind !== 'committed') throw new Error(result.result.reason);
     state = STORY_RELAY_STATE_CODEC.parse(result.result.snapshot.state);
     return { input, result };
+  };
+  /** Advances the live transition through its parked settle row (alarm path).
+   * This fixture sets `transitionDurationSeconds: 0`, so the transition
+   * row is already due the moment it is parked and the room alarm
+   * drains it. If the runtime already fired the alarm between the
+   * submits and this call, the drain is a no-op and the fresh read
+   * below still returns the advanced phase — either way the phase has
+   * moved on. No state or row is rewritten here. */
+  const advancePhaseViaAlarm = async () => {
+    await runInDurableObject(stub, async (instance: GameRoomRuntime) => {
+      await instance.alarm();
+    });
+    const snapshot = await stub.getSnapshot(identity);
+    if (snapshot === null) throw new Error('Persisted room snapshot missing');
+    state = STORY_RELAY_STATE_CODEC.parse(snapshot.state);
   };
   await send({ type: 'room.seat.fillBots' });
   await send({ type: 'storyrelay.game.begin' });
@@ -87,7 +103,7 @@ it('persists 400 maximum-length paragraphs and replays the final receipt without
         seat,
       );
     }
-    await send({ type: 'storyrelay.phase.expire', phaseRevision: state.phaseRevision });
+    await advancePhaseViaAlarm();
   }
   const completed = await send({
     type: 'storyrelay.gallery.finish',

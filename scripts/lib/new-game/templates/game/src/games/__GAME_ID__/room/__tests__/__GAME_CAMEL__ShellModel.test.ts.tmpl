@@ -225,7 +225,76 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
     expect(model.phase).toBe('viewing');
   });
 //#end
-//#cap internalSettleOnly
+//#cap !identityViewing
+// The ended-wait settle test, split by begin path like the engine
+// settle suite: the no-viewing pack (stage) begins straight from the
+// lobby, the begin-armed pack (demo-hybrid) goes through identity
+// viewing. `!identityViewing` selects exactly the stage pack,
+// `armDeadlineAtBegin` exactly demo-hybrid. (This note lives inside
+// the stage cap so it renders only there.)
+  it('shows the shared ended wait to a seated non-host player once ended', () => {
+    let state = lobbyState(true);
+    state = drive(state, { type: '__GAME_ID__.game.begin' });
+    const playing = state.phase;
+    if (playing.kind !== 'playing') throw new Error('expected playing phase');
+    if (playing.deadlineAt === null) throw new Error('expected an armed stage deadline');
+    const settleContext: CommandContext = {
+      actor: { kind: 'system', effectId: 'effect:1' },
+      controlledSeat: null,
+      nowMs: playing.deadlineAt,
+      commandId: '__GAME_ID__.phase.settleExpired',
+      randomSeed: 'seed',
+    };
+    const decision = __GAME_CAMEL__Engine.decide(
+      state,
+      { type: '__GAME_ID__.phase.settleExpired' },
+      settleContext,
+    );
+    if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+    state = decision.events.reduce(__GAME_CAMEL__Engine.evolve, state);
+    if (state.phase.kind !== 'ended') throw new Error('expected ended phase');
+    const shellInput = {
+      roomCode: '1234',
+      viewer: viewerFor('host'),
+      capabilities: capabilities(),
+      onBack: jest.fn(),
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: null,
+      onUserActionPress: jest.fn(),
+      connection: { status: { kind: 'live' }, pendingDurableCount: 0, presence: new Set<string>(), onRetryNow: jest.fn() },
+      state,
+      revision: 9,
+      controlledSeat: null,
+      seatsVisuallyDisabled: false,
+      onSeatPress: jest.fn(),
+      onBotSeatLongPress: null,
+      seatController,
+      profileSelection: null,
+      onProfileClose: jest.fn(),
+      onProfileLeaveSeat: jest.fn(),
+      share,
+      isLobby: false,
+      buildHostManagement: () => ({ task: null, sections: [] }),
+      releaseBot: jest.fn(),
+    } as const;
+    const playerModel = create__GAME_PASCAL__RoomShellModel({
+      ...shellInput,
+      viewer: viewerFor('seated', { seatedUserId: 'bot-user', seatedSeat: 2 }),
+    });
+    expect(playerModel.bottomActions).toMatchObject({
+      kind: 'stacked',
+      message: '等待房主操作（再来一局 / 返回大厅）',
+    });
+    const hostModel = create__GAME_PASCAL__RoomShellModel({
+      ...shellInput,
+      viewer: viewerFor('host'),
+    });
+    expect(hostModel.bottomActions).toMatchObject({ kind: 'stacked', message: null });
+  });
+//#end
+//#cap armDeadlineAtBegin
 
   it('shows the shared ended wait to a seated non-host player once ended', () => {
     let state = viewingState();

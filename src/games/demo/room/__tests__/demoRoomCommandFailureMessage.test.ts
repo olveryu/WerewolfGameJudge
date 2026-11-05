@@ -37,4 +37,12 @@ describe('getDemoRoomCommandFailureMessage', () => {
       ),
     ).toBe('当前阶段尚未结束');
   });
+
+  it('explains that only the host can retry the settle', () => {
+    expect(
+      getDemoRoomCommandFailureMessage(
+        rejectedRoomCommand<DemoState>('demo_not_host_retry_settle', 'command-3'),
+      ),
+    ).toBe('只有房主可以重新推进');
+  });
 });

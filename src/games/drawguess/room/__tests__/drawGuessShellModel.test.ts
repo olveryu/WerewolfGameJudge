@@ -266,12 +266,8 @@ describe('createDrawGuessRoomShellModel — roundEnd wait (PR-B G-8)', () => {
     if (drawing.kind !== 'drawing') throw new Error('expected drawing phase');
     state = dispatch(
       state,
-      {
-        type: 'drawguess.phase.expire',
-        phaseRevision: state.phaseRevision,
-        turnIndex: state.turnIndex,
-      },
-      { nowMs: drawing.deadlineAt },
+      { type: 'drawguess.phase.settleExpired' },
+      { system: true, nowMs: drawing.deadlineAt },
     );
     if (state.phase.kind !== 'roundEnd') throw new Error('expected roundEnd phase');
     const model = createDrawGuessRoomShellModel({

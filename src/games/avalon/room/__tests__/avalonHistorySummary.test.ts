@@ -36,6 +36,18 @@ function session() {
     if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
     state = decision.events.reduce(avalonEngine.evolve, state);
   };
+  const sendSystem = (command: AvalonCommand) => {
+    const context: CommandContext = {
+      actor: { kind: 'system', effectId: 'effect:1' },
+      controlledSeat: null,
+      nowMs,
+      commandId: `command:${commandNumber++}`,
+      randomSeed: `seed:${commandNumber}`,
+    };
+    const decision = avalonEngine.decide(state, command, context);
+    if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+    state = decision.events.reduce(avalonEngine.evolve, state);
+  };
   const userOf = (seat: number) => (seat === 0 ? 'host' : `u${seat}`);
   for (let seat = 0; seat < 5; seat += 1) {
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, userOf(seat));
@@ -43,14 +55,14 @@ function session() {
   const ackAudio = () => {
     if (state.isAudioPlaying) send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId });
   };
-  /** 全员投完/出完后把时钟推到 deadline 并发公开 expire——唯一关轮路径（手动结算已删）。 */
+  /** 全员投完/出完后把时钟推到 deadline，以系统身份发内部结算——唯一关轮路径（手动结算、公开 expire 均已删）。 */
   const settlePhase = () => {
     const phase = state.phase;
     if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) {
       throw new Error('expected an armed vote or quest countdown');
     }
     nowMs = phase.deadlineAt;
-    send({ type: 'avalon.phase.expire' });
+    sendSystem({ type: 'avalon.phase.settleExpired' });
   };
   return {
     get state() {

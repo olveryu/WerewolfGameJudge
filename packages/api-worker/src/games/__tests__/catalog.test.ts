@@ -79,7 +79,7 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
     type: 'werewolf.sheriff.endBySelfDestruct',
   },
   'werewolf.audio.ack': { type: 'werewolf.audio.ack', audioBatchId: 0 },
-  'werewolf.phase.expire': { type: 'werewolf.phase.expire' },
+  'werewolf.phase.retrySettle': { type: 'werewolf.phase.retrySettle' },
   'werewolf.reveal.ack': { type: 'werewolf.reveal.ack' },
   'werewolf.wolfRobot.ackHunterStatus': { type: 'werewolf.wolfRobot.ackHunterStatus' },
   'werewolf.groupConfirm.ack': { type: 'werewolf.groupConfirm.ack' },

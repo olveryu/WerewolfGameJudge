@@ -9,7 +9,8 @@
  *
  * 七家只有一种漏斗：平台 useReadyRoomSession.submit。各家房间 hook 不得
  * 再开自己的 `session.dispatch(command, …)` 漏斗；允许的直接 dispatch 只有
- * 系统性派发（阶段到期 expire、播报 ack、自动提交），它们不是命令漏斗。
+ * 系统性派发（播报 ack、自动提交），它们不是命令漏斗。阶段到期不再经
+ * 客户端派发：公开 expire 已删，到期由服务端定时结算（D3）。
  * 登记表按 GAME_TYPES 驱动：任何游戏（含未来新游戏）没有登记其房间 hook、
  * 或 hook 重新打开自有漏斗，CI 直接失败。
  */
@@ -56,31 +57,25 @@ const DISPATCH_SITES: Record<GameType, readonly string[]> = {
 /**
  * 允许绕过平台漏斗直接 `session.dispatch` 的站点，每条登记 `文件 → 命令类型集合`；
  * 出现未登记的直接派发，或登记站点派发了未登记的命令类型，CI 直接失败。
- * - 系统性派发：阶段到期（全场竞速、pin 去重）、截止驱动的自动提交（消费
- *   committed 快照）、笔画流（高频、无单飞语义）、猜词（聊天式连发，单飞
- *   会把第二条当编程错误）。
+ * - 系统性派发：截止驱动的自动提交（消费 committed 快照）、笔画流（高频、
+ *   无单飞语义）、猜词（聊天式连发，单飞会把第二条当编程错误）。
  * - 狼人杀配置流（`screens/ConfigScreen` / `GameRulesScreen`）：房间壳未挂载的
  *   独立导航流，持有自己的流程提交态；板子建议还要读 committed outcome 的
  *   `DEDUPLICATED` 原因做提示，布尔型平台 submit 不暴露该事实。房主命令，
  *   `controlledSeat` 恒 null。
  */
 const DIRECT_DISPATCH_ALLOW_LIST: Readonly<Record<string, readonly string[]>> = {
-  'games/werewolf/room/hooks/useWerewolfRoomState.ts': ['werewolf.phase.expire'],
-  'games/avalon/room/hooks/useAvalonRoomState.ts': ['avalon.phase.expire'],
-  'games/drawguess/room/hooks/useDrawGuessRoomState.ts': ['drawguess.phase.expire'],
   'games/drawguess/room/hooks/useDrawGuessStrokeSync.ts': [
     'drawguess.stroke.add',
     'drawguess.stroke.undo',
     'drawguess.stroke.clear',
   ],
   'games/drawguess/room/DrawGuessRoomScreen.tsx': ['drawguess.guess.submit'],
-  'games/pictionary/room/components/PictionaryStage.tsx': ['pictionary.phase.expire'],
   'games/pictionary/room/hooks/usePictionaryAutoSubmission.ts': [
     'pictionary.text.submit',
     'pictionary.drawing.reserve',
     'pictionary.task.empty.submit',
   ],
-  'games/storyrelay/room/components/StoryRelayStage.tsx': ['storyrelay.phase.expire'],
   'games/storyrelay/room/hooks/useStoryRelayAutoSubmission.ts': ['storyrelay.task.empty.submit'],
   'games/werewolf/screens/ConfigScreen/useConfigScreenState.ts': ['werewolf.board.nominate'],
   'games/werewolf/screens/GameRulesScreen/useGameRulesSubmission.ts': ['werewolf.config.update'],

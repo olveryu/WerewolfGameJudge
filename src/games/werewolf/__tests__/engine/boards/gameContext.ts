@@ -5,6 +5,7 @@ import type {
   NightPlan,
   RoleId,
   SchemaId,
+  WerewolfInternalCommand,
   WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
 import type { CommandExecutionContext } from '@game-judge/game-engine/platform/engine';
@@ -41,6 +42,26 @@ export interface GameContext {
     seat: number,
     command: WerewolfPublicCommand,
     context: string,
+    execution?: TestCommandExecution,
+  ) => RoomCommandResult<GameState>;
+  /**
+   * System-channel dispatch: the only expiry path. Drives the internal
+   * settle command exactly as the Worker's scheduled settle effect
+   * would (system actor, no seat). Throws unless committed.
+   */
+  readonly dispatchSystemOrThrow: (
+    command: WerewolfInternalCommand,
+    context: string,
+    execution?: TestCommandExecution,
+  ) => RoomCommandResult<GameState>;
+  /**
+   * Internal command as an ordinary user actor: always rejected with
+   * REASON_SYSTEM_ACTOR_REQUIRED. Exists only to pin that no client
+   * can invoke the system channel.
+   */
+  readonly dispatchInternalAsUser: (
+    command: WerewolfInternalCommand,
+    actor?: TestCommandActor,
     execution?: TestCommandExecution,
   ) => RoomCommandResult<GameState>;
   readonly acknowledgePendingAudioOrThrow: (context: string) => void;

@@ -10,6 +10,11 @@ describe('DrawGuess public command schema', () => {
     expect(drawGuessPublicCommandSchema.parse(command)).toEqual(command);
   });
 
+  it('accepts the phase retrySettle command', () => {
+    const command = { type: 'drawguess.phase.retrySettle' };
+    expect(drawGuessPublicCommandSchema.parse(command)).toEqual(command);
+  });
+
   it.each([undefined, null, -1, 0.5, '1'])('rejects invalid game sequence %s', (gameSequence) => {
     expect(
       drawGuessPublicCommandSchema.safeParse({ type: 'drawguess.game.abort', gameSequence })

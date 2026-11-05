@@ -11,7 +11,6 @@ import {
   getDrawGuessViewModel,
   isBotSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
-import { useCallback } from 'react';
 
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
@@ -45,8 +44,12 @@ export interface DrawGuessRoomScreenState {
   readonly shellModel: RoomShellModel;
   /** 当前视角的视图模型（按有效席位裁剪，随 1 秒 tick 更新提示揭示）。 */
   readonly viewModel: DrawGuessViewModel;
-  /** 当前阶段剩余秒数；无截止阶段为 null。到期由本 hook 统一派发阶段推进（原在 Screen 内）。 */
+  /** 当前阶段剩余秒数；无截止阶段为 null。到期推进由服务端定时结算完成，任何手机都不发 expire。 */
   readonly remainingSeconds: number | null;
+  /** 截止已过且宽限期已过：结算逾期，房主可见自救重试（D3 follow-up）。 */
+  readonly isOverdue: boolean;
+  /** 房间单飞提交进行中：自救按钮的加载态。 */
+  readonly isSubmitting: boolean;
   readonly roomCode: string;
   readonly userId: string;
   readonly mySeat: number | null;
@@ -111,49 +114,17 @@ export function useDrawGuessRoomState(
       }),
     shareRoom: share.open,
   });
-  // 阶段截止：剩余秒数与到期推进（原在 Screen 的 DrawGuessStage 内组装，P-2b 下沉）。
+  // 阶段截止：只做剩余秒数展示（原在 Screen 的 DrawGuessStage 内组装，P-2b 下沉）。
+  // 到期推进由服务端定时结算完成，任何手机都不发 expire。isOverdue 是房主
+  // 自救的共享判定（D3 follow-up）：截止后宽限期已过、结算仍未到达。
   const deadlineAt =
     state.phase.kind === 'wordSelect' ||
     state.phase.kind === 'drawing' ||
     state.phase.kind === 'roundEnd'
       ? state.phase.deadlineAt
       : null;
-  const shouldExpire = useCallback(() => {
-    // Only the host or a seated player may accelerate (D1'). A
-    // spectator (no seat, non-host) never sends expire. A client
-    // currently controlling a seat never accelerates: the engine
-    // rejects a controlling-seat actor, so this phone stays out.
-    if (controlledSeat !== null) return false;
-    if (!isHost && effectiveSeat === null) return false;
-    const current = session.getSnapshot();
-    return (
-      current.phase === 'ready' &&
-      current.status.kind === 'live' &&
-      current.pendingDurableCount === 0 &&
-      current.room.state.phaseRevision === state.phaseRevision
-    );
-  }, [controlledSeat, isHost, effectiveSeat, session, state.phaseRevision]);
-  const onExpire = useCallback(
-    () =>
-      session.dispatch(
-        {
-          type: 'drawguess.phase.expire',
-          phaseRevision: state.phaseRevision,
-          turnIndex: state.turnIndex,
-        },
-        { controlledSeat: null, label: '推进作画阶段', durable: true },
-      ),
-    [session, state.phaseRevision, state.turnIndex],
-  );
   // 拼音首字母揭示按秒推进：时钟来自截止 hook（有截止的阶段才每秒重渲染）。
-  const { remainingSeconds, nowMs } = useStageDeadline({
-    deadlineAt,
-    shouldExpire,
-    onExpire,
-    label: '推进作画阶段',
-    silentExpire: true,
-    attemptKey: `${state.gameSequence}:${state.phaseRevision}:${state.turnIndex}:${deadlineAt}`,
-  });
+  const { remainingSeconds, nowMs, isOverdue } = useStageDeadline({ deadlineAt });
   const viewModel = getDrawGuessViewModel(state, effectiveSeat, nowMs);
   const capabilities: RoomCapabilities = {
     ...setupCapabilities,
@@ -206,6 +177,8 @@ export function useDrawGuessRoomState(
     shellModel,
     viewModel,
     remainingSeconds,
+    isOverdue,
+    isSubmitting,
     roomCode: room.roomCode,
     userId: user.id,
     mySeat,

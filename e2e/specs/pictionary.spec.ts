@@ -19,14 +19,16 @@ const OPENING_PROMPTS = ['月球上的猫', '云端城堡', '跳舞的花', '海
 const GUESS_SUBMISSIONS = [[' 太阳\n还没写完 ', '小屋', '花朵', '帆船']] as const;
 
 /**
- * Phase-expiry discipline (D1', 2026-11-04): the server's scheduled settle
- * is the correctness path; a client expire is single-shot acceleration
- * only, sent at most once per phase identity by an eligible sender.
+ * Phase-expiry discipline (D3, 2026-11-05): the server's scheduled settle
+ * is the only expiry path — no client sends expire, ever. The public
+ * `phase.expire` command is deleted; the countdown is display-only.
  *
  * The tests below prove that discipline from observed /room/command
  * traffic, never from UI text: every page gets a passive route handler
  * that logs expire sends and always calls route.continue(), so delivery
- * is never altered or swallowed. Only host/seated contexts are driven
+ * is never altered or swallowed. The observer still watches for the
+ * deleted command type, so any send — by any client, at any time —
+ * fails the zero assertions below. Only host/seated contexts are driven
  * here, per the 2026-11-04 ruling on E2E scope; the remaining
  * eligibility cases stay covered at hook/contract level, not in E2E.
  *
@@ -99,14 +101,6 @@ function isExpireCommand(body: unknown): boolean {
     'type' in command &&
     command.type === EXPIRE_COMMAND_TYPE
   );
-}
-
-/** Single-shot discipline, per phase identity: at most one send per phaseRevision. */
-function expectAtMostOneExpirePerPhaseIdentity(expires: readonly ObservedExpire[]): void {
-  const counts = new Map<number, number>();
-  for (const entry of expires)
-    counts.set(entry.phaseRevision, (counts.get(entry.phaseRevision) ?? 0) + 1);
-  for (const count of counts.values()) expect(count).toBeLessThanOrEqual(1);
 }
 
 async function promptForEveryPlayer(
@@ -509,9 +503,7 @@ test.describe('Pictionary', () => {
     }
   });
 
-  test('seated players send at most one expire per phase identity across a deadline', async ({
-    browser,
-  }, testInfo) => {
+  test('no client sends expire across a deadline', async ({ browser }, testInfo) => {
     const fixture = await createPlayerContexts(browser, PLAYER_COUNT);
     const rooms = fixture.pages.map((page) => new PictionaryRoomPage(page));
     const hostPage = fixture.pages[0];
@@ -550,14 +542,14 @@ test.describe('Pictionary', () => {
         await Promise.all(rooms.map((room) => room.expectDrawingStep(2, RELAY_STEP_COUNT)));
       });
 
-      await test.step('assert the D1′ expire discipline from the observed commands', async () => {
+      await test.step('assert no expire was sent by any client', async () => {
         const byPage = observations.map((observation) => observation.expires());
         await testInfo.attach('pictionary-expire-observation', {
           body: JSON.stringify({ byPage }),
           contentType: 'application/json',
         });
         for (const expires of byPage) {
-          expectAtMostOneExpirePerPhaseIdentity(expires);
+          expect(expires).toHaveLength(0);
         }
       });
     } finally {
@@ -616,10 +608,11 @@ test.describe('Pictionary', () => {
       await test.step('reconnect and observe the server-driven advance with no acceleration', async () => {
         for (const context of fixture.contexts) await setOffline(context, false);
         // The deadline crossing itself (answering -> settling) happened
-        // server-side while every client was offline. Collection after
-        // reconnect is expected — clients submit their (empty) inputs —
-        // and is not acceleration. The cutoff below scopes the zero
-        // claim to sends observed before the advance was seen.
+        // server-side while every client was offline. Under D3 no expire
+        // can ever be sent, so the zero claim is NOT scoped to the
+        // advance: the full observed list must be empty. Collection
+        // after reconnect is expected — clients submit their (empty)
+        // inputs — and is not acceleration.
         const advanced = expect.poll(
           async () => {
             const settling = await hostPage.getByText('正在收取最终内容', { exact: true }).count();
@@ -629,14 +622,13 @@ test.describe('Pictionary', () => {
           { timeout: 30_000, intervals: [300] },
         );
         await advanced.toBe(true);
-        const cutoffMs = Date.now();
         const byPage = observations.map((observation) => observation.expires());
         await testInfo.attach('pictionary-offline-expire-observation', {
-          body: JSON.stringify({ cutoffMs, byPage }),
+          body: JSON.stringify({ byPage }),
           contentType: 'application/json',
         });
         for (const expires of byPage) {
-          expect(expires.filter((entry) => entry.atMs <= cutoffMs)).toHaveLength(0);
+          expect(expires).toHaveLength(0);
         }
       });
     } finally {

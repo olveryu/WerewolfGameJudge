@@ -11,6 +11,9 @@ export type __GAME_PASCAL__PublicCommand =
   | RoomSeatCommand<RoomSeatProfile>
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | { readonly type: '__GAME_ID__.config.update'; readonly config: __GAME_PASCAL__Config }
+//#cap stageDeadline
+  | { readonly type: '__GAME_ID__.phase.retrySettle' }
+//#end
 //#cap identityViewing
   | { readonly type: '__GAME_ID__.roles.assign' }
 //#end
@@ -24,9 +27,6 @@ export type __GAME_PASCAL__PublicCommand =
 //#end
 //#cap botTestScaffold
   | { readonly type: '__GAME_ID__.bots.markAllBotsViewed' }
-//#end
-//#cap publicExpire
-  | { readonly type: '__GAME_ID__.phase.expire' }
 //#end
 //#cap identityViewing
   // TODO(gameplay): 玩法命令（行动、投票、技能……）逐条加在这里，并在
@@ -58,16 +58,7 @@ export type __GAME_PASCAL__InternalCommand = never;
  */
 export type __GAME_PASCAL__Command = __GAME_PASCAL__PublicCommand;
 //#end
-//#cap publicExpire
-/**
- * Worker-originated settle command: the room runtime fires the armed
- * stage deadline through a scheduled `__GAME_ID__.settle.due` effect,
- * and the effect handler dispatches this as the system actor. It runs
- * the same settlement decide as the public expire command; the public
- * one stays as a client acceleration path only.
- */
-//#end
-//#cap internalSettleOnly
+//#cap stageDeadline
 /**
  * Worker-originated settle command: the room runtime fires the armed
  * stage deadline through a scheduled `__GAME_ID__.settle.due` effect,

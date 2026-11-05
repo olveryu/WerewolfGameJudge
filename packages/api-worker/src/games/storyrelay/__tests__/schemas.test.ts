@@ -83,6 +83,11 @@ describe('Story Relay Worker', () => {
     ).toBe(false);
   });
 
+  it('accepts the phase retrySettle command with its revision', () => {
+    const command = { type: 'storyrelay.phase.retrySettle', phaseRevision: 1 };
+    expect(storyRelayPublicCommandSchema.parse(command)).toEqual(command);
+  });
+
   it('validates the settle effect strictly', () => {
     const payload = {
       roundId: 'storyrelay-round:command-1',

@@ -53,10 +53,10 @@ function game(
     expire() {
       if (session.state.deadlineAt === null) throw new Error('Missing deadline');
       session.setNow(session.state.deadlineAt);
-      return send({
-        type: 'storyrelay.phase.expire',
-        phaseRevision: session.state.phaseRevision,
-      });
+      return session.sendAs(
+        { type: 'storyrelay.phase.settleExpired' },
+        session.systemContext('settle'),
+      );
     },
   };
 }
@@ -200,7 +200,7 @@ describe('Story Relay engine', () => {
     },
   );
 
-  it('enters collection when the writing deadline expires without ready players', () => {
+  it('enters collection when the system settles the writing deadline without ready players', () => {
     const session = game();
     expect(session.state.readySeats).toEqual([]);
     session.expire();

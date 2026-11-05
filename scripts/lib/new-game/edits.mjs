@@ -103,14 +103,14 @@ export function editRegistry(content, { gameId, production }) {
 }
 
 /** Register the generated deadline assembly in the exhaustive protocol contract. */
-export function editExpectedPhaseDeadlineVariants(content, { gameId, capabilities, publicExpire }) {
+export function editExpectedPhaseDeadlineVariants(content, { gameId, capabilities }) {
   const file = 'phaseDeadlineVariants.contract.test.ts';
   if (content.includes(`  ${gameId}: {`)) fail(file, `'${gameId}' is already registered.`);
   const entry = capabilities.stageDeadline
     ? `  ${gameId}: {
     adoption: 'switched',
     variant: {
-      actorChannel: '${publicExpire ? 'dualChannel' : 'systemOnly'}',
+      actorChannel: 'systemOnly',
       revisionPolicy: 'none',
       settlePin: 'sequence+deadline',
       lateSubmission: 'noSurface',

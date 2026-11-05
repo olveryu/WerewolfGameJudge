@@ -60,8 +60,8 @@ describe('__GAME_PASCAL__ public command schema', () => {
 //#cap botTestScaffold
       { type: '__GAME_ID__.bots.markAllBotsViewed' },
 //#end
-//#cap publicExpire
-      { type: '__GAME_ID__.phase.expire' },
+//#cap stageDeadline
+      { type: '__GAME_ID__.phase.retrySettle' },
 //#end
       { type: '__GAME_ID__.game.returnToLobby' },
       { type: '__GAME_ID__.gameplay.example' },

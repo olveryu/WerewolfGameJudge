@@ -25,6 +25,7 @@ import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResum
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
+import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
@@ -112,6 +113,9 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = (props) =
     shellModel,
     userId,
     isHost,
+    remainingSeconds,
+    isOverdue,
+    submit,
     bgm,
     roleCard,
     audioResume,
@@ -171,14 +175,25 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = (props) =
       profileDetailsRenderer={renderProfileDetails}
       content={{
         kind: 'seats',
-        contextHeader:
-          sheriffElectionPanel === null ? null : (
-            <SheriffElectionHud
-              model={sheriffElectionPanel}
-              styles={sheriffElectionStyles}
-              onOpenDetails={isSheriffInspectorVisible ? null : openSheriffDetails}
+        contextHeader: (
+          <>
+            {sheriffElectionPanel === null ? null : (
+              <SheriffElectionHud
+                model={sheriffElectionPanel}
+                styles={sheriffElectionStyles}
+                onOpenDetails={isSheriffInspectorVisible ? null : openSheriffDetails}
+              />
+            )}
+            <StageSettleRescue
+              remainingSeconds={remainingSeconds}
+              isOverdue={isOverdue}
+              isHost={isHost}
+              isRetrying={isHostActionSubmitting}
+              onRetry={() => void submit('重新推进', { type: 'werewolf.phase.retrySettle' })}
+              waitingLabel="等待推进…"
             />
-          ),
+          </>
+        ),
         beforeSeatBoard: (
           <RoomGameSummary
             icon="moon-outline"

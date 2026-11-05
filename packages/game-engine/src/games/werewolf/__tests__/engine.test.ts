@@ -81,14 +81,15 @@ function systemContext(): CommandContext {
   };
 }
 
-/** Ongoing wolfKill step with every wolf voted and the settle countdown armed at 6000. */
-function armedWolfVoteState(): GameState {
-  return createState({
-    status: GameStatus.Ongoing,
-    nightStep: { kind: 'inStep', stepId: 'wolfKill', stepDeadline: 6_000 },
-    currentNightResults: { wolfVotesBySeat: { '0': 1 } },
-    isAudioPlaying: false,
-  });
+/** The scheduled settle.due delivery: the system actor that settles an armed deadline. */
+function settleSystemContext(nowMs: number): CommandContext {
+  return {
+    actor: { kind: 'system', effectId: 'settle' },
+    controlledSeat: null,
+    nowMs,
+    commandId: `settle:${nowMs}`,
+    randomSeed: 'seed-1',
+  };
 }
 
 /**
@@ -590,8 +591,8 @@ describe('Werewolf engine definition and catalog', () => {
       type: 'werewolf.sheriff.endBySelfDestruct',
     },
     'werewolf.audio.ack': { type: 'werewolf.audio.ack', audioBatchId: 0 },
-    'werewolf.phase.expire': { type: 'werewolf.phase.expire' },
     'werewolf.phase.settleExpired': { type: 'werewolf.phase.settleExpired' },
+    'werewolf.phase.retrySettle': { type: 'werewolf.phase.retrySettle' },
     'werewolf.reveal.ack': { type: 'werewolf.reveal.ack' },
     'werewolf.wolfRobot.ackHunterStatus': {
       type: 'werewolf.wolfRobot.ackHunterStatus',
@@ -717,10 +718,7 @@ describe('Werewolf engine definition and catalog', () => {
       ) {
         continue;
       }
-      // The expiry guard rejects a non-expirable phase ahead of the actor gate.
-      const decisionState =
-        command.type === 'werewolf.phase.expire' ? armedWolfVoteState() : createState();
-      const decision = werewolfEngine.decide(decisionState, command, userContext('host', 2));
+      const decision = werewolfEngine.decide(createState(), command, userContext('host', 2));
 
       if (allowedTypes.has(command.type)) {
         expect(decision).not.toEqual({
@@ -1002,15 +1000,15 @@ describe('Werewolf engine definition and catalog', () => {
     expect(
       werewolfEngine.decide(
         state,
-        { type: 'werewolf.phase.expire' },
-        { ...userContext('host'), nowMs: 5999 },
+        { type: 'werewolf.phase.settleExpired' },
+        settleSystemContext(5999),
       ),
     ).toEqual({ kind: 'reject', reason: REASON_DEADLINE_NOT_REACHED });
     expect(state.sheriffElection?.phase).toBe('firstVote');
     state = evolveCommittedCommand(
       state,
-      { type: 'werewolf.phase.expire' },
-      { ...userContext('host'), nowMs: 6000 },
+      { type: 'werewolf.phase.settleExpired' },
+      settleSystemContext(6000),
     );
     expect(state.sheriffElection).toMatchObject({
       phase: 'runoffSpeech',
@@ -1062,8 +1060,8 @@ describe('Werewolf engine definition and catalog', () => {
     expect(state.sheriffElection.deadline).toBe(6000);
     const finalDecision = werewolfEngine.decide(
       state,
-      { type: 'werewolf.phase.expire' },
-      { ...userContext('host'), nowMs: 6000 },
+      { type: 'werewolf.phase.settleExpired' },
+      settleSystemContext(6000),
     );
     if (finalDecision.kind === 'reject') {
       throw new Error(`Expected election completion, received ${finalDecision.reason}`);
@@ -1129,15 +1127,15 @@ describe('Werewolf engine definition and catalog', () => {
     expect(
       werewolfEngine.decide(
         state,
-        { type: 'werewolf.phase.expire' },
-        { ...userContext('host'), nowMs: 6999 },
+        { type: 'werewolf.phase.settleExpired' },
+        settleSystemContext(6999),
       ),
     ).toEqual({ kind: 'reject', reason: REASON_DEADLINE_NOT_REACHED });
     expect(state.sheriffElection?.phase).toBe('firstVote');
     state = evolveCommittedCommand(
       state,
-      { type: 'werewolf.phase.expire' },
-      { ...userContext('host'), nowMs: 7000 },
+      { type: 'werewolf.phase.settleExpired' },
+      settleSystemContext(7000),
     );
     expect(state).toMatchObject({
       status: GameStatus.Ended,
@@ -1167,8 +1165,8 @@ describe('Werewolf engine definition and catalog', () => {
     });
     const heldState = evolveCommittedCommand(
       audible,
-      { type: 'werewolf.phase.expire' },
-      { ...userContext('host'), nowMs: 6000 },
+      { type: 'werewolf.phase.settleExpired' },
+      settleSystemContext(6000),
     );
     expect(heldState.sheriffElection?.phase).toBe('firstVote');
 
@@ -1180,8 +1178,8 @@ describe('Werewolf engine definition and catalog', () => {
     });
     const closedState = evolveCommittedCommand(
       silent,
-      { type: 'werewolf.phase.expire' },
-      { ...userContext('host'), nowMs: 6000 },
+      { type: 'werewolf.phase.settleExpired' },
+      settleSystemContext(6000),
     );
     expect(closedState).toMatchObject({
       status: GameStatus.Ended,

@@ -13,8 +13,7 @@ type PhaseRevisionCommand = { readonly phaseRevision: number; readonly turnIndex
     | 'drawguess.stroke.add'
     | 'drawguess.stroke.undo'
     | 'drawguess.stroke.clear'
-    | 'drawguess.guess.submit'
-    | 'drawguess.phase.expire';
+    | 'drawguess.guess.submit';
 };
 
 export type DrawGuessPublicCommand =
@@ -24,6 +23,7 @@ export type DrawGuessPublicCommand =
   | { readonly type: 'drawguess.game.begin' }
   | { readonly type: 'drawguess.game.abort'; readonly gameSequence: number }
   | { readonly type: 'drawguess.game.returnToLobby' }
+  | { readonly type: 'drawguess.phase.retrySettle' }
   | { readonly type: 'drawguess.drawing.reserve' }
   | (PhaseRevisionCommand & {
       readonly type: 'drawguess.word.choose';
@@ -39,8 +39,7 @@ export type DrawGuessPublicCommand =
   | (PhaseRevisionCommand & {
       readonly type: 'drawguess.guess.submit';
       readonly text: string;
-    })
-  | (PhaseRevisionCommand & { readonly type: 'drawguess.phase.expire' });
+    });
 
 /** Server-originated commands: word dealing (D1), media commit (R2), and scheduled phase settlement. */
 export type DrawGuessInternalCommand =

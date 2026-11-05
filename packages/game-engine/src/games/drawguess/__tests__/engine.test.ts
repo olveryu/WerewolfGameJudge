@@ -4,6 +4,7 @@ import { createEngineSession } from '../../../platform/engine/__tests__/engineSe
 import {
   REASON_CONTROLLED_SEAT_NOT_ALLOWED,
   REASON_NOT_HOST,
+  REASON_SYSTEM_ACTOR_REQUIRED,
   REASON_USER_ACTOR_REQUIRED,
 } from '../../../platform/protocol/reasons';
 import { isBotSeat } from '../../../platform/room/seating';
@@ -98,7 +99,7 @@ function game(numberOfPlayers = 4) {
     guess(seat: number, text: string) {
       send({ type: 'drawguess.guess.submit', text, ...this.revision() }, this.seatUser(seat));
     },
-    expire() {
+    settleExpired() {
       const phase = session.state.phase;
       if (
         (phase.kind === 'wordSelect' || phase.kind === 'drawing' || phase.kind === 'roundEnd') &&
@@ -106,7 +107,9 @@ function game(numberOfPlayers = 4) {
       ) {
         session.setNow(phase.deadlineAt);
       }
-      send({ type: 'drawguess.phase.expire', ...this.revision() });
+      // D3: the only expiry channel is the internal settleExpired
+      // command on the system channel (dispatched by settle.due).
+      sendInternal({ type: 'drawguess.phase.settleExpired' });
     },
   };
 }
@@ -197,14 +200,28 @@ describe('DrawGuess engine', () => {
     expect(decision.kind).toBe('reject');
   });
 
-  it('auto-assigns a random choice when wordSelect expires', () => {
+  it('auto-assigns a random choice when wordSelect settles via the system channel', () => {
     const session = game();
     session.startGame();
-    session.expire();
+    session.settleExpired();
     const phase = session.state.phase;
     expect(phase.kind).toBe('drawing');
     if (phase.kind !== 'drawing') throw new Error('phase');
     expect(CHOICES.map((c) => c.word)).toContain(phase.word);
+  });
+
+  it('rejects settleExpired from a user actor (D3: system-only channel)', () => {
+    const session = game();
+    session.startGame();
+    if (session.state.phase.kind !== 'wordSelect' || session.state.phase.deadlineAt === null) {
+      throw new Error('phase');
+    }
+    session.advanceTime(session.state.phase.deadlineAt - session.nowMs);
+    expect(session.decide({ type: 'drawguess.phase.settleExpired' }, 'host')).toEqual({
+      kind: 'reject',
+      reason: REASON_SYSTEM_ACTOR_REQUIRED,
+    });
+    expect(session.state.phase.kind).toBe('wordSelect');
   });
 
   it('accepts whole strokes from the drawer and rejects others', () => {
@@ -340,7 +357,7 @@ describe('DrawGuess engine', () => {
     );
     session.guess(1, '大熊猫');
     expect(session.state.phaseRevision).toBe(before + 2);
-    session.expire();
+    session.settleExpired();
     expect(session.state.phase.kind).toBe('roundEnd');
     expect(session.state.phaseRevision).toBe(before + 3);
   });
@@ -371,7 +388,7 @@ describe('DrawGuess engine', () => {
     session.startGame();
     session.chooseFirstWord(0);
     const captured = session.revision();
-    session.expire();
+    session.settleExpired();
     expect(session.state.phase.kind).toBe('roundEnd');
     const decision = drawGuessEngine.decide(
       session.state,
@@ -448,7 +465,7 @@ describe('DrawGuess engine', () => {
     expect(session.state.phase.deadlineAt).toBe(session.nowMs + 3_000);
     // Late guesser kept its full speed-based score despite the compressed clock.
     expect(session.state.scores[3]).toBe(computeGuesserScore(85_000));
-    session.expire();
+    session.settleExpired();
     expect(session.state.phase.kind).toBe('roundEnd');
   });
 
@@ -520,13 +537,13 @@ describe('DrawGuess engine', () => {
     expect(decision.kind).toBe('reject');
   });
 
-  it('expires drawing into roundEnd and advances turns until ended', () => {
+  it('settles drawing into roundEnd and advances turns until ended', () => {
     const session = game(4);
     session.startGame();
     session.chooseFirstWord(0);
-    session.expire(); // drawing deadline -> roundEnd
+    session.settleExpired(); // drawing deadline -> roundEnd
     expect(session.state.phase.kind).toBe('roundEnd');
-    session.expire(); // roundEnd deadline -> next wordSelect (turn 1)
+    session.settleExpired(); // roundEnd deadline -> next wordSelect (turn 1)
     expect(session.state.phase.kind).toBe('wordSelect');
     expect(session.state.turnIndex).toBe(1);
     if (session.state.phase.kind !== 'wordSelect') throw new Error('phase');
@@ -568,7 +585,7 @@ describe('DrawGuess engine', () => {
     session.guess(1, '大熊猫');
     const drawingView = getDrawGuessViewModel(session.state, 1, session.nowMs);
     expect(drawingView.turnScores).toEqual({ 0: 100, 1: 200 });
-    session.expire();
+    session.settleExpired();
     expect(session.state.phase.kind).toBe('roundEnd');
     const roundEndView = getDrawGuessViewModel(session.state, 1, session.nowMs);
     expect(roundEndView.turnScores).toEqual(roundEndView.roundScores);
@@ -591,7 +608,7 @@ describe('DrawGuess engine', () => {
     session.guess(4, '大熊猫');
     expect(session.state.scores[0]).toBe(160);
     expect(session.state.scores[1]).toBe(200);
-    session.expire();
+    session.settleExpired();
     expect(session.state.phase.kind).toBe('roundEnd');
     if (session.state.phase.kind !== 'roundEnd') throw new Error('phase');
     expect(session.state.phase.drawerZeroed).toBe(false);
@@ -622,7 +639,7 @@ describe('DrawGuess engine', () => {
     session.guess(4, '大熊猫');
     session.guess(5, '大熊猫');
     expect(session.state.scores[0]).toBe(160);
-    session.expire();
+    session.settleExpired();
     expect(session.state.phase.kind).toBe('roundEnd');
     if (session.state.phase.kind !== 'roundEnd') throw new Error('phase');
     expect(session.state.phase.drawerZeroed).toBe(true);
@@ -655,7 +672,7 @@ describe('DrawGuess engine', () => {
     session.guess(3, '大熊猫');
     expect(session.state.scores[1]).toBe(80);
     expect(session.state.scores[0]).toBe(80);
-    session.expire();
+    session.settleExpired();
     expect(session.state.phase.kind).toBe('roundEnd');
     if (session.state.phase.kind !== 'roundEnd') throw new Error('phase');
     expect(session.state.phase.drawerZeroed).toBe(false);
@@ -676,7 +693,7 @@ describe('DrawGuess engine', () => {
       session.guess(seat, '大熊猫');
     }
     expect(session.state.scores[0]).toBe(160);
-    session.expire();
+    session.settleExpired();
     expect(session.state.phase.kind).toBe('roundEnd');
     if (session.state.phase.kind !== 'roundEnd') throw new Error('phase');
     expect(session.state.phase.drawerZeroed).toBe(false);
@@ -687,7 +704,7 @@ describe('DrawGuess engine', () => {
     const session = game();
     session.startGame();
     session.chooseFirstWord(0);
-    session.expire();
+    session.settleExpired();
     expect(session.state.phase.kind).toBe('roundEnd');
     if (session.state.phase.kind !== 'roundEnd') throw new Error('phase');
     expect(session.state.phase.drawerZeroed).toBe(false);
@@ -704,7 +721,7 @@ describe('DrawGuess engine', () => {
     session.guess(1, '大熊猫');
     session.guess(2, '大熊猫');
     session.guess(3, '大熊猫');
-    session.expire();
+    session.settleExpired();
     expect(session.state.phase.kind).toBe('roundEnd');
     if (session.state.phase.kind !== 'roundEnd') throw new Error('phase');
     expect(session.state.phase.drawerZeroed).toBe(false);
@@ -740,7 +757,7 @@ describe('DrawGuess engine', () => {
     const session = game();
     session.startGame();
     session.chooseFirstWord(0);
-    session.expire();
+    session.settleExpired();
     expect(session.state.phase.kind).toBe('roundEnd');
     session.send({ type: 'drawguess.drawing.reserve' }, 'host');
     if (session.state.phase.kind !== 'roundEnd') throw new Error('phase');
@@ -791,7 +808,7 @@ describe('DrawGuess abort', () => {
         });
         session.guess(1, CHOICES[0]!.word);
         expect(session.state.scores[1]).toBeGreaterThan(0);
-        if (phase === 'roundEnd') session.expire();
+        if (phase === 'roundEnd') session.settleExpired();
       }
       const before = session.state;
       const effectCount = session.effects.length;
@@ -877,7 +894,7 @@ describe('DrawGuess abort', () => {
     const session = game();
     session.startGame();
     session.chooseFirstWord(0);
-    session.expire();
+    session.settleExpired();
     session.send({ type: 'drawguess.drawing.reserve' });
     const phase = session.state.phase;
     if (phase.kind !== 'roundEnd' || phase.reservation === null)
@@ -925,8 +942,8 @@ describe('DrawGuess abort', () => {
     const totalTurns = session.state.config.numberOfPlayers * session.state.config.roundsPerDrawer;
     for (let turnIndex = 0; turnIndex < totalTurns; turnIndex += 1) {
       session.chooseFirstWord(turnIndex % session.state.config.numberOfPlayers);
-      session.expire();
-      session.expire();
+      session.settleExpired();
+      session.settleExpired();
       if (session.state.phase.kind === 'wordSelect')
         session.sendInternal({
           type: 'drawguess.words.dealt',

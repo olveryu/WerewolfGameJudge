@@ -1,32 +1,20 @@
 /**
  * Phase Deadline Protocol — drawguess scenario (E-2).
  *
- * DrawGuess's registered assembly: the public expire command
- * travels on the uncontrolled-user channel with the host-or-seated
- * actor gate (D1', 2026-11-04: a spectator sends no expire), and
- * its revision policy is the dual check (phaseRevision + turnIndex)
- * at the guard, rejecting stale revisions. The scheduled settle.due
- * effect is the correctness path: its internal settleExpired
- * command travels on the system channel with no revision gate
- * (staleness is the Worker isCurrent check).
+ * DrawGuess's registered assembly: system only (D3, 2026-11-05 —
+ * the public expire command was deleted). There is no public expire
+ * command at all; the scheduled settle.due effect is the sole
+ * expiry channel and dispatches the internal settleExpired command
+ * on the system channel. The command carries no revision;
+ * correctness rides on the worker's pinned-arming staleness gate.
  * Same-named scenario files live in each switched game's
  * __tests__.
- *
- * The guard-order pins below the shared suite record the E-2
- * PR-2 alignment: DrawGuess previously ran its revision check
- * ahead of the actor resolution (and ahead of the phase
- * dispatch), so a command failing two gates heard the stale
- * reason. The shared sequence answers the phase first, then the
- * actor, then the revision; these cases pin the new answers.
  */
-
-import { describe, expect, it } from 'vitest';
 
 import type { CommandContext } from '../../../platform/engine';
 import {
   REASON_CONTROLLED_SEAT_NOT_ALLOWED,
-  REASON_NOT_SEATED,
-  REASON_USER_ACTOR_REQUIRED,
+  REASON_NOT_HOST,
 } from '../../../platform/protocol/reasons';
 import {
   describePhaseDeadlineProtocol,
@@ -96,14 +84,14 @@ function createHarness(): DrawGuessHarness {
 }
 
 /** Seats four humans, begins the game, and deals the word choices (deadline armed). */
-function armedHarness(hostSeated = true): DrawGuessHarness {
+function armedHarness(): DrawGuessHarness {
   const harness = createHarness();
   const send = (command: DrawGuessCommand, context: CommandContext) => {
     const decision = harness.attempt(command, context);
     if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
   };
   for (let seat = 0; seat < 4; seat += 1) {
-    const userId = hostSeated && seat === 0 ? 'host' : `u${seat}`;
+    const userId = seat === 0 ? 'host' : `u${seat}`;
     send(
       { type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } },
       harness.userContext(userId, null, 1000),
@@ -128,21 +116,8 @@ function armedDeadlineAt(harness: DrawGuessHarness): number {
 function makeSession(): PhaseDeadlineSession {
   const harness = armedHarness();
   const armedPhase = harness.state().phase;
-  const expire = (phaseRevision: number, turnIndex: number, context: CommandContext) =>
-    harness.attempt({ type: 'drawguess.phase.expire', phaseRevision, turnIndex }, context);
   const current = () => harness.state();
-
   return {
-    expireAsUser: (nowMs) =>
-      expire(
-        current().phaseRevision,
-        current().turnIndex,
-        harness.userContext('host', null, nowMs),
-      ),
-    expireAsControlledUser: (nowMs) =>
-      expire(current().phaseRevision, current().turnIndex, harness.userContext('host', 1, nowMs)),
-    expirePublicAsSystem: (nowMs) =>
-      expire(current().phaseRevision, current().turnIndex, harness.systemContext(nowMs)),
     expireSettleAsSystem: (nowMs) =>
       harness.attempt({ type: 'drawguess.phase.settleExpired' }, harness.systemContext(nowMs)),
     expireSettleAsUser: (nowMs) =>
@@ -150,12 +125,9 @@ function makeSession(): PhaseDeadlineSession {
         { type: 'drawguess.phase.settleExpired' },
         harness.userContext('host', null, nowMs),
       ),
-    expireWithStaleRevision: (nowMs) =>
-      expire(
-        current().phaseRevision + 1,
-        current().turnIndex,
-        harness.userContext('host', null, nowMs),
-      ),
+    expireWithStaleRevision: () => {
+      throw new Error('DrawGuess settle commands carry no revision');
+    },
     deadlineAt: () => armedDeadlineAt(harness),
     hasAdvanced: () => current().phase !== armedPhase,
   };
@@ -166,131 +138,69 @@ describePhaseDeadlineProtocol({
   makeSession,
   expectations: {
     notExpiredReason: DRAWGUESS_REASONS.deadline,
-    publicChannel: 'uncontrolledUser',
     hasSettleCommand: true,
-    stalePolicy: 'reject',
-    staleReason: DRAWGUESS_REASONS.stale,
+    stalePolicy: 'none',
+    staleReason: null,
     dispatchAdvances: true,
   },
 });
 
-describe('Phase Deadline Protocol - drawguess guard order pins', () => {
-  it('answers a controlled-seat actor ahead of a stale revision', () => {
-    const harness = armedHarness();
-    const state = harness.state();
-    const decision = harness.attempt(
-      {
-        type: 'drawguess.phase.expire',
-        phaseRevision: state.phaseRevision + 1,
-        turnIndex: state.turnIndex,
-      },
-      harness.userContext('host', 1, armedDeadlineAt(harness)),
+/**
+ * Host self-rescue (D3 follow-up): `drawguess.phase.retrySettle`
+ * re-drives the current phase's settle through the same guard
+ * sequence and dispatch as the scheduled delivery. It is not an
+ * expire send — the host gate runs first, and the guard still
+ * rejects before the deadline, for non-hosts, and for a host acting
+ * through a takeover seat.
+ */
+describe('drawguess.phase.retrySettle (host self-rescue)', () => {
+  let harness: DrawGuessHarness;
+  let armedPhase: DrawGuessState['phase'];
+  let deadlineAt: number;
+  const retry = (userId: string, controlledSeat: number | null, nowMs: number) =>
+    harness.attempt(
+      { type: 'drawguess.phase.retrySettle' },
+      harness.userContext(userId, controlledSeat, nowMs),
     );
-    expect(decision).toEqual({ kind: 'reject', reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED });
+
+  beforeEach(() => {
+    harness = armedHarness();
+    armedPhase = harness.state().phase;
+    deadlineAt = armedDeadlineAt(harness);
   });
 
-  it('answers the system actor ahead of a stale revision on the public command', () => {
-    const harness = armedHarness();
-    const state = harness.state();
-    const decision = harness.attempt(
-      {
-        type: 'drawguess.phase.expire',
-        phaseRevision: state.phaseRevision + 1,
-        turnIndex: state.turnIndex,
-      },
-      harness.systemContext(armedDeadlineAt(harness)),
-    );
-    expect(decision).toEqual({ kind: 'reject', reason: REASON_USER_ACTOR_REQUIRED });
+  it('rejects the host before the deadline', () => {
+    expect(retry('host', null, deadlineAt - 1)).toEqual({
+      kind: 'reject',
+      reason: DRAWGUESS_REASONS.deadline,
+    });
+    expect(harness.state().phase).toBe(armedPhase);
   });
 
-  it('answers the phase ahead of a stale revision outside an expirable phase', () => {
-    const harness = createHarness();
-    const state = harness.state();
-    const decision = harness.attempt(
-      {
-        type: 'drawguess.phase.expire',
-        phaseRevision: state.phaseRevision + 1,
-        turnIndex: state.turnIndex,
-      },
-      harness.userContext('host', null, 1000),
-    );
-    expect(decision).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.phase });
+  it('rejects a non-host after the deadline', () => {
+    expect(retry('u1', null, deadlineAt)).toEqual({
+      kind: 'reject',
+      reason: REASON_NOT_HOST,
+    });
+    expect(harness.state().phase).toBe(armedPhase);
   });
 
-  it('answers the phase ahead of a controlled-seat actor outside an expirable phase', () => {
-    const harness = createHarness();
-    const state = harness.state();
-    const decision = harness.attempt(
-      {
-        type: 'drawguess.phase.expire',
-        phaseRevision: state.phaseRevision,
-        turnIndex: state.turnIndex,
-      },
-      harness.userContext('host', 1, 1000),
-    );
-    expect(decision).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.phase });
+  it('rejects a host acting through a takeover seat', () => {
+    expect(retry('host', 0, deadlineAt)).toEqual({
+      kind: 'reject',
+      reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+    });
+    expect(harness.state().phase).toBe(armedPhase);
   });
 
-  it('answers a stale turn index ahead of the deadline gate', () => {
-    const harness = armedHarness();
-    const state = harness.state();
-    const decision = harness.attempt(
-      {
-        type: 'drawguess.phase.expire',
-        phaseRevision: state.phaseRevision,
-        turnIndex: state.turnIndex + 1,
-      },
-      harness.userContext('host', null, armedDeadlineAt(harness) - 1),
-    );
-    expect(decision).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.stale });
-  });
-});
-
-describe("Phase Deadline Protocol - drawguess actor gate (D1')", () => {
-  const expireAtDeadline = (harness: DrawGuessHarness, userId: string) => {
-    const state = harness.state();
-    return harness.attempt(
-      {
-        type: 'drawguess.phase.expire',
-        phaseRevision: state.phaseRevision,
-        turnIndex: state.turnIndex,
-      },
-      harness.userContext(userId, null, armedDeadlineAt(harness)),
-    );
-  };
-
-  it('rejects a spectator (neither host nor seated) at the deadline', () => {
-    const harness = armedHarness();
-    const decision = expireAtDeadline(harness, 'spectator');
-    expect(decision).toEqual({ kind: 'reject', reason: REASON_NOT_SEATED });
-    expect(harness.state().phase.kind).toBe('wordSelect');
+  it('settles the phase for the host after the deadline', () => {
+    expect(retry('host', null, deadlineAt).kind).toBe('commit');
+    expect(harness.state().phase).not.toBe(armedPhase);
   });
 
-  it('commits expiry from a seated non-host user', () => {
-    const harness = armedHarness();
-    const decision = expireAtDeadline(harness, 'u1');
-    expect(decision.kind).toBe('commit');
-    expect(harness.state().phase.kind).toBe('drawing');
-  });
-
-  it('commits expiry from the host even when the host holds no seat', () => {
-    const harness = armedHarness(false);
-    const decision = expireAtDeadline(harness, 'host');
-    expect(decision.kind).toBe('commit');
-    expect(harness.state().phase.kind).toBe('drawing');
-  });
-
-  it('answers an unseated actor ahead of a stale revision', () => {
-    const harness = armedHarness();
-    const state = harness.state();
-    const decision = harness.attempt(
-      {
-        type: 'drawguess.phase.expire',
-        phaseRevision: state.phaseRevision + 1,
-        turnIndex: state.turnIndex,
-      },
-      harness.userContext('spectator', null, armedDeadlineAt(harness)),
-    );
-    expect(decision).toEqual({ kind: 'reject', reason: REASON_NOT_SEATED });
+  it('is a no-op once the phase has advanced', () => {
+    expect(retry('host', null, deadlineAt).kind).toBe('commit');
+    expect(harness.state().phase).not.toBe(armedPhase);
+    expect(retry('host', null, deadlineAt + 1_000).kind).toBe('reject');
   });
 });

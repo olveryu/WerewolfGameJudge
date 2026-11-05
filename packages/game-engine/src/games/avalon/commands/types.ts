@@ -23,8 +23,8 @@ export type AvalonPublicCommand =
   | { readonly type: 'avalon.team.preselect'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.propose'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.vote'; readonly vote: AvalonBallot }
-  | { readonly type: 'avalon.phase.expire' }
   | { readonly type: 'avalon.quest.play'; readonly play: AvalonPlay }
+  | { readonly type: 'avalon.phase.retrySettle' }
   | { readonly type: 'avalon.lady.check'; readonly seat: number }
   | { readonly type: 'avalon.lady.acknowledge' }
   | { readonly type: 'avalon.assassin.accuse'; readonly seat: number }
@@ -33,10 +33,9 @@ export type AvalonPublicCommand =
 /**
  * Worker-originated settle command: the room runtime fires the armed
  * reveal countdown through a scheduled `avalon.settle.due` effect, and
- * the effect handler dispatches this as the system actor. It runs the
- * same settlement decide as the public expire command, dispatching on
- * the current phase; the public expire stays as a client acceleration
- * path only.
+ * the effect handler dispatches this as the system actor. It is the
+ * only expiry channel: there is no public expire command (D3,
+ * 2026-11-05 — the client acceleration channel was deleted).
  */
 export type AvalonInternalCommand = { readonly type: 'avalon.phase.settleExpired' };
 

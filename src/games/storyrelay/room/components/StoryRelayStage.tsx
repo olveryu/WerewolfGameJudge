@@ -11,6 +11,7 @@ import { FlatList, Text, View } from 'react-native';
 
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
 import { Button } from '@/components/Button';
+import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
@@ -142,38 +143,18 @@ function StoryRelayStageContent({
   submit,
   isSubmitting,
 }: StoryRelayStageProps) {
-  const shouldExpire = useCallback(() => {
-    // Only the host or a seated player may accelerate (D1'). A
-    // spectator (no seat, non-host) never sends expire. A client
-    // currently controlling a seat never accelerates: the engine
-    // rejects a controlling-seat actor, so this phone stays out.
-    if (controlledSeat !== null) return false;
-    if (!isHost && effectiveSeat === null) return false;
-    const current = session.getSnapshot();
-    return (
-      current.phase === 'ready' &&
-      current.status.kind === 'live' &&
-      current.pendingDurableCount === 0 &&
-      current.room.state.phaseRevision === state.phaseRevision
-    );
-  }, [controlledSeat, isHost, effectiveSeat, session, state.phaseRevision]);
-  const onExpire = useCallback(
-    () =>
-      session.dispatch(
-        { type: 'storyrelay.phase.expire', phaseRevision: state.phaseRevision },
-        { controlledSeat: null, label: '推进故事阶段', durable: true },
-      ),
-    [session, state.phaseRevision],
-  );
-  const { remainingSeconds } = useStageDeadline({
+  // 倒计时只做展示：到期推进由服务端定时结算完成，任何手机都不发 expire。
+  // 房主自救（D3 follow-up）是唯一的例外：截止后宽限期已过、结算仍未
+  // 到达时，房主可通过共享自救组件重新推进本阶段的结算。
+  const { remainingSeconds, isOverdue } = useStageDeadline({
     deadlineAt: state.deadlineAt,
-    shouldExpire,
-    onExpire,
-    label: '推进故事阶段',
-    silentExpire: true,
-    attemptKey:
-      state.roundId === null ? null : `${state.roundId}:${state.phaseRevision}:${state.deadlineAt}`,
   });
+  const retrySettle = useCallback(() => {
+    void submit('重新推进', {
+      type: 'storyrelay.phase.retrySettle',
+      phaseRevision: state.phaseRevision,
+    });
+  }, [state.phaseRevision, submit]);
   const [inputs] = useState(() => new Map<number, string>());
   const finalizer = useStoryRelayAutoSubmission(state, userId, session, inputs);
   const task = effectiveSeat === null ? null : getStoryRelayTaskForSeat(state, effectiveSeat);
@@ -203,6 +184,14 @@ function StoryRelayStageContent({
           )}
         </View>
       )}
+      <StageSettleRescue
+        remainingSeconds={remainingSeconds}
+        isOverdue={isOverdue}
+        isHost={isHost}
+        isRetrying={isSubmitting}
+        onRetry={retrySettle}
+        waitingLabel="等待推进…"
+      />
       {isGallery ? (
         <StoryRelayGallery
           state={state}
