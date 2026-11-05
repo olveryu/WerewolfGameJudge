@@ -4,6 +4,7 @@
  * bots (takeover hint live) and a started night (view-role action live).
  */
 import {
+  type AvalonCommand,
   avalonEngine,
   type AvalonPublicCommand,
   type AvalonState,
@@ -46,6 +47,18 @@ function session(humanCount: number) {
     if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
     state = decision.events.reduce(avalonEngine.evolve, state);
   };
+  const sendSystem = (command: AvalonCommand) => {
+    const context: CommandContext = {
+      actor: { kind: 'system', effectId: 'effect:1' },
+      controlledSeat: null,
+      nowMs,
+      commandId: `command:${commandNumber++}`,
+      randomSeed: `seed:${commandNumber}`,
+    };
+    const decision = avalonEngine.decide(state, command, context);
+    if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+    state = decision.events.reduce(avalonEngine.evolve, state);
+  };
   for (let seat = 0; seat < humanCount; seat += 1) {
     send(
       { type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } },
@@ -53,12 +66,12 @@ function session(humanCount: number) {
     );
   }
   if (humanCount < 5) send({ type: 'room.seat.fillBots' });
-  /** 全员投完/出完后把时钟推到 deadline 并发公开 expire——唯一关轮路径（手动结算已删）。 */
+  /** 全员投完/出完后把时钟推到 deadline，以系统身份发内部结算——唯一关轮路径（手动结算、公开 expire 均已删）。 */
   const settle = () => {
     const phase = state.phase;
     if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) return;
     nowMs = phase.deadlineAt;
-    send({ type: 'avalon.phase.expire' });
+    sendSystem({ type: 'avalon.phase.settleExpired' });
   };
   return {
     get state() {
@@ -449,6 +462,18 @@ function ninePlayerDaytimeSession(): RunningSession {
     if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
     state = decision.events.reduce(avalonEngine.evolve, state);
   };
+  const sendSystem = (command: AvalonCommand) => {
+    const context: CommandContext = {
+      actor: { kind: 'system', effectId: 'effect:1' },
+      controlledSeat: null,
+      nowMs,
+      commandId: `command:${commandNumber++}`,
+      randomSeed: `seed:${commandNumber}`,
+    };
+    const decision = avalonEngine.decide(state, command, context);
+    if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+    state = decision.events.reduce(avalonEngine.evolve, state);
+  };
   for (let seat = 0; seat < 9; seat += 1) {
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
   }
@@ -468,11 +493,12 @@ function ninePlayerDaytimeSession(): RunningSession {
       send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId }, 'host');
   }
   if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+  /** 全员投完/出完后把时钟推到 deadline，以系统身份发内部结算——唯一关轮路径（手动结算、公开 expire 均已删）。 */
   const settle = () => {
     const phase = state.phase;
     if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) return;
     nowMs = phase.deadlineAt;
-    send({ type: 'avalon.phase.expire' });
+    sendSystem({ type: 'avalon.phase.settleExpired' });
   };
   return {
     get state() {

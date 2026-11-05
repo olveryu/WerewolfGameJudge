@@ -4,6 +4,7 @@
  * action driven by the host through controlled seats, as in play).
  */
 import {
+  type AvalonCommand,
   avalonEngine,
   type AvalonPublicCommand,
   type AvalonState,
@@ -89,15 +90,31 @@ function session() {
       ),
     );
   };
+  const sendSystem = (command: AvalonCommand) => {
+    const context: CommandContext = {
+      actor: { kind: 'system', effectId: 'effect:1' },
+      controlledSeat: null,
+      nowMs,
+      commandId: `command:${commandNumber++}`,
+      randomSeed: `seed:${commandNumber}`,
+    };
+    const decision = avalonEngine.decide(state, command, context);
+    if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+    state = parseAvalonState(
+      JSON.parse(
+        JSON.stringify(avalonEngine.normalize(decision.events.reduce(avalonEngine.evolve, state))),
+      ),
+    );
+  };
   /** Acts for a seat the way the client does: plainly for the host seat, via takeover for bots. */
   const sendAsSeat = (command: AvalonPublicCommand, seat: number) =>
     send(command, seat === 0 ? null : seat);
-  /** 全员投完/出完后把时钟推到 deadline 并发公开 expire——唯一关轮路径（手动结算已删）。 */
+  /** 全员投完/出完后把时钟推到 deadline，以系统身份发内部结算——唯一关轮路径（手动结算、公开 expire 均已删）。 */
   const settle = () => {
     const phase = state.phase;
     if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) return;
     nowMs = phase.deadlineAt;
-    send({ type: 'avalon.phase.expire' });
+    sendSystem({ type: 'avalon.phase.settleExpired' });
   };
   const ackAudio = () => {
     if (state.isAudioPlaying) send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId });

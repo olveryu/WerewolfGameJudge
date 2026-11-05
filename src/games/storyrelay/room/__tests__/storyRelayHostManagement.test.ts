@@ -78,6 +78,24 @@ function session() {
       ),
     );
   };
+  const sendSystem = (command: StoryRelayCommand) => {
+    const context: CommandContext = {
+      actor: { kind: 'system', effectId: 'effect:1' },
+      controlledSeat: null,
+      nowMs,
+      commandId: `command:${commandNumber++}`,
+      randomSeed: 'round',
+    };
+    const decision = storyRelayEngine.decide(state, command, context);
+    if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+    state = parseStoryRelayState(
+      JSON.parse(
+        JSON.stringify(
+          storyRelayEngine.normalize(decision.events.reduce(storyRelayEngine.evolve, state)),
+        ),
+      ),
+    );
+  };
   return {
     get state() {
       return state;
@@ -120,15 +138,15 @@ function session() {
         );
       }
     },
-    expire() {
+    settle() {
       if (state.deadlineAt === null) throw new Error('Missing deadline');
       nowMs = state.deadlineAt;
-      send({ type: 'storyrelay.phase.expire', phaseRevision: state.phaseRevision });
+      sendSystem({ type: 'storyrelay.phase.settleExpired' });
     },
     playToGallery() {
       for (let step = 0; step < 4; step += 1) {
         this.finishStep();
-        this.expire();
+        this.settle();
       }
     },
   };

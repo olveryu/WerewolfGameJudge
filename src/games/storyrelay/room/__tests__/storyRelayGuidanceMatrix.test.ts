@@ -42,7 +42,8 @@ type CommandContext = Parameters<typeof storyRelayEngine.decide>[2];
 interface Session {
   readonly state: StoryRelayState;
   send(command: StoryRelayCommand, userId?: string, controlledSeat?: number | null): void;
-  expire(): void;
+  /** Advances the armed phase the way the server does: system settle at the deadline. */
+  settle(): void;
 }
 
 function createSession(): Session {
@@ -68,15 +69,27 @@ function createSession(): Session {
     if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
     state = decision.events.reduce(storyRelayEngine.evolve, state);
   };
+  const sendSystem = (command: StoryRelayCommand) => {
+    const context: CommandContext = {
+      actor: { kind: 'system', effectId: 'effect:1' },
+      controlledSeat: null,
+      nowMs: now,
+      commandId: `command:${commandNumber++}`,
+      randomSeed: `seed:${commandNumber}`,
+    };
+    const decision = storyRelayEngine.decide(state, command, context);
+    if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+    state = decision.events.reduce(storyRelayEngine.evolve, state);
+  };
   return {
     get state() {
       return state;
     },
     send,
-    expire() {
+    settle() {
       if (state.deadlineAt === null) throw new Error(`phase ${state.phase} has no deadline`);
       now = state.deadlineAt;
-      send({ type: 'storyrelay.phase.expire', phaseRevision: state.phaseRevision });
+      sendSystem({ type: 'storyrelay.phase.settleExpired' });
     },
   };
 }
@@ -134,7 +147,7 @@ function finishWriting(session: Session) {
 function crossStep(session: Session) {
   finishWriting(session);
   settleStep(session);
-  session.expire();
+  session.settle();
 }
 
 function stateFor(phase: Phase): StoryRelayState {

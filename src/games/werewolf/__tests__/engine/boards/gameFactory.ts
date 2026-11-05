@@ -10,7 +10,9 @@ import {
   PRESET_TEMPLATES,
   type RoleId,
   type SchemaId,
+  type WerewolfCommand,
   werewolfEngine,
+  type WerewolfInternalCommand,
   type WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
 import type { CommandContext } from '@game-judge/game-engine/platform/engine';
@@ -156,26 +158,31 @@ export function createGame(
   const getNightPlan = () =>
     buildNightPlan(internal.state.templateRoles, internal.state.seerLabelMap);
 
-  const dispatch = (
-    command: WerewolfPublicCommand,
-    actor: TestCommandActor = { userId: HOST_USER_ID, controlledSeat: null },
+  const nextExecution = (
     execution: TestCommandExecution = {},
-  ): RoomCommandResult<GameState> => {
+  ): { commandId: string; nowMs: number; randomSeed: string } => {
     internal.commandSequence += 1;
-    const commandId = `board-command-${internal.commandSequence}`;
     const nowMs = execution.nowMs ?? internal.nowMs + 1;
     internal.nowMs = nowMs;
-    const context: CommandContext = {
+    return {
+      commandId: `board-command-${internal.commandSequence}`,
       nowMs,
-      commandId,
       randomSeed:
         execution.randomSeed ?? `${internal.randomSeed}:command:${internal.commandSequence}`,
-      actor: { kind: 'user', userId: actor.userId },
-      controlledSeat: actor.controlledSeat,
     };
+  };
+
+  const runCommand = (
+    command: WerewolfCommand,
+    context: CommandContext,
+  ): RoomCommandResult<GameState> => {
     const decision = werewolfEngine.decide(internal.state, command, context);
     if (decision.kind === 'reject') {
-      return createRoomCommandResult({ kind: 'rejected', commandId, reason: decision.reason });
+      return createRoomCommandResult({
+        kind: 'rejected',
+        commandId: context.commandId,
+        reason: decision.reason,
+      });
     }
 
     for (const event of decision.events) {
@@ -185,10 +192,57 @@ export function createGame(
     if (decision.events.length > 0) internal.revision += 1;
     return createRoomCommandResult({
       kind: 'committed',
-      commandId,
+      commandId: context.commandId,
       state: internal.state,
       revision: internal.revision,
       outcome: decision.outcome,
+    });
+  };
+
+  const dispatch = (
+    command: WerewolfPublicCommand,
+    actor: TestCommandActor = { userId: HOST_USER_ID, controlledSeat: null },
+    execution: TestCommandExecution = {},
+  ): RoomCommandResult<GameState> => {
+    const exec = nextExecution(execution);
+    return runCommand(command, {
+      nowMs: exec.nowMs,
+      commandId: exec.commandId,
+      randomSeed: exec.randomSeed,
+      actor: { kind: 'user', userId: actor.userId },
+      controlledSeat: actor.controlledSeat,
+    });
+  };
+
+  const dispatchSystemOrThrow = (
+    command: WerewolfInternalCommand,
+    context: string,
+    execution: TestCommandExecution = {},
+  ): RoomCommandResult<GameState> => {
+    const exec = nextExecution(execution);
+    const result = runCommand(command, {
+      nowMs: exec.nowMs,
+      commandId: exec.commandId,
+      randomSeed: exec.randomSeed,
+      actor: { kind: 'system', effectId: 'effect:1' },
+      controlledSeat: null,
+    });
+    assertCommitted(result, context);
+    return result;
+  };
+
+  const dispatchInternalAsUser = (
+    command: WerewolfInternalCommand,
+    actor: TestCommandActor = { userId: HOST_USER_ID, controlledSeat: null },
+    execution: TestCommandExecution = {},
+  ): RoomCommandResult<GameState> => {
+    const exec = nextExecution(execution);
+    return runCommand(command, {
+      nowMs: exec.nowMs,
+      commandId: exec.commandId,
+      randomSeed: exec.randomSeed,
+      actor: { kind: 'user', userId: actor.userId },
+      controlledSeat: actor.controlledSeat,
     });
   };
 
@@ -265,6 +319,8 @@ export function createGame(
     dispatchAsSeat,
     dispatchOrThrow,
     dispatchAsSeatOrThrow,
+    dispatchSystemOrThrow,
+    dispatchInternalAsUser,
     acknowledgePendingAudioOrThrow,
     assertStep,
     findSeatByRole,

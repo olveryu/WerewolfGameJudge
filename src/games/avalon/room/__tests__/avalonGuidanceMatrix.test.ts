@@ -6,6 +6,7 @@
  */
 import {
   AVALON_PHASES,
+  type AvalonCommand,
   avalonEngine,
   type AvalonPublicCommand,
   type AvalonState,
@@ -34,7 +35,7 @@ interface Session {
   readonly state: AvalonState;
   send(command: AvalonPublicCommand, userId?: string): void;
   trySend(command: AvalonPublicCommand, userId?: string): boolean;
-  /** 全员投完/出完后把时钟推到 deadline 并发公开 expire——唯一关轮路径（手动结算已删）。 */
+  /** 全员投完/出完后把时钟推到 deadline，以系统身份发内部结算——唯一关轮路径（手动结算、公开 expire 均已删）。 */
   settle(): void;
 }
 
@@ -48,6 +49,19 @@ function session(playerCount: 5 | 9): Session {
   const apply = (command: AvalonPublicCommand, userId: string): boolean => {
     const context: CommandContext = {
       actor: { kind: 'user', userId },
+      controlledSeat: null,
+      nowMs,
+      commandId: `command:${commandNumber++}`,
+      randomSeed: `seed:${commandNumber}`,
+    };
+    const decision = avalonEngine.decide(state, command, context);
+    if (decision.kind === 'reject') return false;
+    state = decision.events.reduce(avalonEngine.evolve, state);
+    return true;
+  };
+  const applySystem = (command: AvalonCommand): boolean => {
+    const context: CommandContext = {
+      actor: { kind: 'system', effectId: 'effect:1' },
       controlledSeat: null,
       nowMs,
       commandId: `command:${commandNumber++}`,
@@ -81,8 +95,8 @@ function session(playerCount: 5 | 9): Session {
         throw new Error('expected an armed vote or quest countdown');
       }
       nowMs = phase.deadlineAt;
-      if (!apply({ type: 'avalon.phase.expire' }, 'host')) {
-        throw new Error('rejected: avalon.phase.expire');
+      if (!applySystem({ type: 'avalon.phase.settleExpired' })) {
+        throw new Error('rejected: avalon.phase.settleExpired');
       }
     },
   };

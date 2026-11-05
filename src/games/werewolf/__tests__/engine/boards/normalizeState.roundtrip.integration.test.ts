@@ -128,7 +128,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     if (wolfVoteDeadline === undefined) {
       throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
     }
-    ctx.dispatchOrThrow({ type: 'werewolf.phase.expire' }, 'past wolfKill deadline', undefined, {
+    ctx.dispatchSystemOrThrow({ type: 'werewolf.phase.settleExpired' }, 'past wolfKill deadline', {
       nowMs: wolfVoteDeadline,
     });
     ctx.acknowledgePendingAudioOrThrow('complete wolfKill to witchAction audio');

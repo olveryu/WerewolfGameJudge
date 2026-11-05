@@ -51,7 +51,8 @@ interface Session {
   readonly state: DrawGuessState;
   send(command: DrawGuessCommand, userId?: string): void;
   sendSystem(command: DrawGuessCommand): void;
-  expire(): void;
+  /** Advances the armed phase the way the server does: system settle at the deadline. */
+  settle(): void;
 }
 
 function createSession(): Session {
@@ -74,21 +75,21 @@ function createSession(): Session {
       commandId: `command:${commandNumber++}`,
       randomSeed: `seed:${commandNumber}`,
     });
+  const sendSystem = (command: DrawGuessCommand) =>
+    apply(command, {
+      actor: { kind: 'system', effectId: 'effect:1' },
+      controlledSeat: null,
+      nowMs: now,
+      commandId: `command:${commandNumber++}`,
+      randomSeed: `seed:${commandNumber}`,
+    });
   return {
     get state() {
       return state;
     },
     send,
-    sendSystem(command) {
-      apply(command, {
-        actor: { kind: 'system', effectId: 'effect:1' },
-        controlledSeat: null,
-        nowMs: now,
-        commandId: `command:${commandNumber++}`,
-        randomSeed: `seed:${commandNumber}`,
-      });
-    },
-    expire() {
+    sendSystem,
+    settle() {
       const phase = state.phase;
       if (
         (phase.kind === 'wordSelect' || phase.kind === 'drawing' || phase.kind === 'roundEnd') &&
@@ -96,11 +97,7 @@ function createSession(): Session {
       ) {
         now = phase.deadlineAt;
       }
-      send({
-        type: 'drawguess.phase.expire',
-        phaseRevision: state.phaseRevision,
-        turnIndex: state.turnIndex,
-      });
+      sendSystem({ type: 'drawguess.phase.settleExpired' });
     },
   };
 }
@@ -157,7 +154,7 @@ function stateFor(phase: DrawGuessPhase['kind']): DrawGuessState {
         },
         seatUser(current.drawerSeat),
       );
-      session.expire();
+      session.settle();
       if (session.state.phase.kind !== 'roundEnd') throw new Error('expected roundEnd');
       return session.state;
     }
@@ -172,7 +169,7 @@ function stateFor(phase: DrawGuessPhase['kind']): DrawGuessState {
             choices: CHOICES,
           });
         }
-        session.expire();
+        session.settle();
       }
       if (session.state.phase.kind !== 'ended') throw new Error('expected ended');
       return session.state;

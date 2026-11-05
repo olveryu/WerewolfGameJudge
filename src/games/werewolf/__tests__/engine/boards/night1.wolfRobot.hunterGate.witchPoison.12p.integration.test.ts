@@ -26,10 +26,8 @@
  * Architecture: intents -> handlers -> resolver -> GameState
  */
 
-import {
-  REASON_DEADLINE_NOT_REACHED,
-  type RoleId,
-} from '@game-judge/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { REASON_SYSTEM_ACTOR_REQUIRED } from '@game-judge/game-engine/platform/protocol/reasons';
 
 import type { GameContext } from './gameContext';
 import { cleanupGame, createGame } from './gameFactory';
@@ -120,11 +118,17 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       // Assertion 4: current step is still wolfRobotLearn (blocked by gate)
       expect(stateAfterLearn.nightStep).toEqual({ kind: 'inStep', stepId: 'wolfRobotLearn' });
 
-      // Step 3: a client expiry cannot bypass the gate — no deadline is armed on this step
-      const blockedExpireResult = ctx.dispatch({ type: 'werewolf.phase.expire' });
-      expect(blockedExpireResult).toMatchObject({
+      // Step 3: no client expiry exists any more — the only expiry
+      // surface is the system settle command, and a user actor invoking
+      // it is rejected before any gate is reached, so the hunter gate
+      // cannot be bypassed by an expiry attempt. No deadline is armed
+      // on this step.
+      const blockedSettleResult = ctx.dispatchInternalAsUser({
+        type: 'werewolf.phase.settleExpired',
+      });
+      expect(blockedSettleResult).toMatchObject({
         kind: 'rejected',
-        reason: REASON_DEADLINE_NOT_REACHED,
+        reason: REASON_SYSTEM_ACTOR_REQUIRED,
       });
       expect(ctx.getGameState().nightStep).toEqual({ kind: 'inStep', stepId: 'wolfRobotLearn' });
 

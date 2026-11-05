@@ -137,42 +137,11 @@ describe('room hook interfaces — undercover (P-2b batch 5)', () => {
   });
 });
 
-describe('stage deadline snapshot guard (AU-25/AU-47)', () => {
-  // Every useStageDeadline consumer must gate expiry on the session
-  // snapshot: phase ready, connection live, no command in flight, and
-  // the snapshot revision still matching the rendered state. Without
-  // the guard, a fast display tick re-dispatches expire until the next
-  // snapshot lands (the Pictionary 250ms amplification).
-  const consumers: ReadonlyArray<{ game: string; path: string }> = [
-    { game: 'avalon', path: 'games/avalon/room/hooks/useAvalonRoomState.ts' },
-    { game: 'drawguess', path: 'games/drawguess/room/hooks/useDrawGuessRoomState.ts' },
-    { game: 'pictionary', path: 'games/pictionary/room/components/PictionaryStage.tsx' },
-    { game: 'storyrelay', path: 'games/storyrelay/room/components/StoryRelayStage.tsx' },
-  ];
-
-  it.each(consumers)('$game expires through useStageDeadline', ({ path }) => {
-    expect(readSource(path)).toMatch(/useStageDeadline\(\{/);
-  });
-
-  it.each(consumers)('$game shouldExpire carries the four snapshot conditions', ({ path }) => {
-    const source = readSource(path);
-    expect(source).toMatch(/getSnapshot\(\)/);
-    expect(source).toMatch(/phase === 'ready'/);
-    expect(source).toMatch(/status\.kind === 'live'/);
-    expect(source).toMatch(/pendingDurableCount === 0/);
-    expect(source).toMatch(/room\.state\.phaseRevision === state\.phaseRevision/);
-  });
-});
-
-describe('stage deadline single-shot wiring (phase-expiry P2)', () => {
-  // Every useStageDeadline consumer passes the phase identity it
-  // computes (attemptKey is required: no unkeyed retry path remains),
-  // and every shouldExpire refuses to accelerate while the client
-  // controls a seat — the engine rejects a controlling-seat actor, so
-  // a takeover phone must not even send. The three relay games
-  // additionally require the host or a seat (D1'): a spectator with
-  // no seat who is not the host never sends expire. Werewolf and
-  // avalon keep their existing gates, unchanged by D1'.
+describe('stage deadline countdown is display-only (D3)', () => {
+  // No client sends expiry any more: the server settles the deadline
+  // (settle.due, system channel). useStageDeadline is a countdown
+  // display — every consumer still renders its remaining seconds from
+  // it, and none wires an expiry predicate or dispatch.
   const consumers: ReadonlyArray<{ game: string; path: string }> = [
     { game: 'avalon', path: 'games/avalon/room/hooks/useAvalonRoomState.ts' },
     { game: 'drawguess', path: 'games/drawguess/room/hooks/useDrawGuessRoomState.ts' },
@@ -181,39 +150,14 @@ describe('stage deadline single-shot wiring (phase-expiry P2)', () => {
     { game: 'werewolf', path: 'games/werewolf/room/hooks/useWerewolfRoomState.ts' },
   ];
 
-  it.each(consumers)('$game passes attemptKey to useStageDeadline', ({ path }) => {
-    const source = readSource(path);
-    const calls = [...source.matchAll(/useStageDeadline\(\{[\s\S]*?\}\)/g)];
-    expect(calls.length).toBeGreaterThan(0);
-    for (const call of calls) expect(call[0]).toMatch(/attemptKey\s*:/);
+  it.each(consumers)('$game renders its countdown through useStageDeadline', ({ path }) => {
+    expect(readSource(path)).toMatch(/useStageDeadline\(\{/);
   });
 
-  it.each(consumers)('$game shouldExpire refuses a controlling seat', ({ path }) => {
+  it.each(consumers)('$game wires no expiry predicate or dispatch on the countdown', ({ path }) => {
     const source = readSource(path);
-    const predicates = [
-      ...source.matchAll(
-        /const (\w*[sS]houldExpire\w*) = useCallback\(\(\) => \{([\s\S]*?)\}, \[/g,
-      ),
-    ];
-    expect(predicates.length).toBeGreaterThan(0);
-    for (const predicate of predicates)
-      expect(predicate[2]).toMatch(/controlledSeat (!==|===) null/);
-  });
-
-  it.each([
-    { game: 'drawguess', path: 'games/drawguess/room/hooks/useDrawGuessRoomState.ts' },
-    { game: 'pictionary', path: 'games/pictionary/room/components/PictionaryStage.tsx' },
-    { game: 'storyrelay', path: 'games/storyrelay/room/components/StoryRelayStage.tsx' },
-  ])("$game shouldExpire requires the host or a seat (D1': spectator never sends)", ({ path }) => {
-    const source = readSource(path);
-    const predicates = [
-      ...source.matchAll(
-        /const (\w*[sS]houldExpire\w*) = useCallback\(\(\) => \{([\s\S]*?)\}, \[/g,
-      ),
-    ];
-    expect(predicates.length).toBeGreaterThan(0);
-    for (const predicate of predicates)
-      expect(predicate[2]).toMatch(/!isHost && effectiveSeat === null/);
+    expect(source).not.toMatch(/shouldExpire/);
+    expect(source).not.toMatch(/phase\.expire/);
   });
 });
 

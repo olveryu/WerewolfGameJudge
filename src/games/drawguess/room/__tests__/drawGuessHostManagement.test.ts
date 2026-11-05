@@ -51,7 +51,7 @@ function session() {
     if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
     state = decision.events.reduce(drawGuessEngine.evolve, state);
   };
-  const expire = () => {
+  const settle = () => {
     const phase = state.phase;
     if (
       (phase.kind === 'wordSelect' || phase.kind === 'drawing' || phase.kind === 'roundEnd') &&
@@ -59,18 +59,14 @@ function session() {
     ) {
       nowMs = phase.deadlineAt;
     }
-    send({
-      type: 'drawguess.phase.expire',
-      phaseRevision: state.phaseRevision,
-      turnIndex: state.turnIndex,
-    });
+    send({ type: 'drawguess.phase.settleExpired' }, 'host', true);
   };
   return {
     get state() {
       return state;
     },
     send,
-    expire,
+    settle,
     seatHost() {
       send({ type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } });
     },
@@ -81,7 +77,7 @@ function session() {
     },
     playToEnd() {
       for (let step = 0; step < 60 && state.phase.kind !== 'ended'; step += 1) {
-        expire();
+        settle();
         if (state.phase.kind === 'wordSelect') {
           send(
             { type: 'drawguess.words.dealt', turnIndex: state.turnIndex, choices: CHOICES },
@@ -180,8 +176,8 @@ describe('createDrawGuessHostManagement', () => {
       const game = session();
       game.seatHost();
       game.fillAndStart();
-      if (phase !== 'wordSelect') game.expire();
-      if (phase === 'roundEnd') game.expire();
+      if (phase !== 'wordSelect') game.settle();
+      if (phase === 'roundEnd') game.settle();
       expect(game.state.phase.kind).toBe(phase);
       const model = build(game.state, false);
       expect(model.task).toBeNull();
