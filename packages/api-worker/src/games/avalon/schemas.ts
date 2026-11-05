@@ -44,7 +44,6 @@ const avalonPublicCommandOptions = definePublicCommandOptions<AvalonPublicComman
     type: z.literal('avalon.team.vote'),
     vote: z.enum(['approve', 'reject']),
   }),
-  z.strictObject({ type: z.literal('avalon.phase.expire') }),
   z.strictObject({
     type: z.literal('avalon.quest.play'),
     play: z.enum(['success', 'fail']),

@@ -113,7 +113,6 @@ const publicCommandOptions = definePublicCommandOptions<DrawGuessPublicCommand>(
     ...phaseIdentityShape,
     text: z.string().refine(isValidGuessText),
   }),
-  z.strictObject({ type: z.literal('drawguess.phase.expire'), ...phaseIdentityShape }),
 ]);
 
 export const drawGuessPublicCommandSchema: z.ZodType<DrawGuessPublicCommand> = z.discriminatedUnion(
