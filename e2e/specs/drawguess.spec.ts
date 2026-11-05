@@ -14,30 +14,28 @@ test.setTimeout(180_000);
 test.use({ actionTimeout: 15_000 });
 
 /**
- * Phase-expiry discipline (D1', 2026-11-04): the server's scheduled settle
- * is the correctness path; a client expire is single-shot acceleration
- * only, sent at most once per phase identity by an eligible sender.
+ * Phase-expiry discipline (D3, 2026-11-05): the server's scheduled settle
+ * is the only expiry path — no client sends expire, ever. The public
+ * `phase.expire` command is deleted; the countdown is display-only.
  *
  * The tests below prove that discipline from observed /room/command
  * traffic, never from UI text: every page gets a passive route handler
  * that logs expire sends and always calls route.continue(), so delivery
- * is never altered or swallowed. Only host/seated contexts are driven
+ * is never altered or swallowed. The observer still watches for the
+ * deleted command type, so any send — by any client, at any time —
+ * fails the zero assertions below. Only host/seated contexts are driven
  * here, per the 2026-11-04 ruling on E2E scope; the remaining
  * eligibility cases stay covered at hook/contract level, not in E2E.
  *
  * DrawGuess identity note: the server settle pin is
- * gameSequence + phaseRevision + turnIndex + deadlineAt, and the client
- * attemptKey is gameSequence:phaseRevision:turnIndex:deadlineAt; the
- * wire expire command itself carries phaseRevision and turnIndex, which
- * together are the per-phase identity on the wire (phaseRevision
- * advances only on phase transitions), so the observations below group
- * by phaseRevision:turnIndex. Both tests cross only the 15-second
- * wordSelect deadline (drawing is 90 seconds, roundEnd 8 seconds);
- * the wordSelect-timeout auto-assign shares beginDrawing with manual
- * word choice, so the advance is visible as the drawing canvas.
- * Guess compression is deliberately out of scope here: no guess is
- * submitted during the wordSelect crossing, so no submitGuess re-arm
- * (which fires only when the deadlineAt changes) can occur.
+ * gameSequence + phaseRevision + turnIndex + deadlineAt. Both tests
+ * cross only the 15-second wordSelect deadline (drawing is 90 seconds,
+ * roundEnd 8 seconds); the wordSelect-timeout auto-assign shares
+ * beginDrawing with manual word choice, so the advance is visible as
+ * the drawing canvas. Guess compression is deliberately out of scope
+ * here: no guess is submitted during the wordSelect crossing, so no
+ * submitGuess re-arm (which fires only when the deadlineAt changes)
+ * can occur.
  *
  * Honest boundary of this file:
  * - Zero-client settlement is NOT claimed here: E2E always has foreground
@@ -114,16 +112,6 @@ function isExpireCommand(body: unknown): boolean {
     'type' in command &&
     command.type === EXPIRE_COMMAND_TYPE
   );
-}
-
-/** Single-shot discipline, per phase identity: at most one send per phaseRevision:turnIndex. */
-function expectAtMostOneExpirePerPhaseIdentity(expires: readonly ObservedExpire[]): void {
-  const counts = new Map<string, number>();
-  for (const entry of expires) {
-    const key = `${entry.phaseRevision}:${entry.turnIndex}`;
-    counts.set(key, (counts.get(key) ?? 0) + 1);
-  }
-  for (const count of counts.values()) expect(count).toBeLessThanOrEqual(1);
 }
 
 async function createDrawGuessRoom(page: Page): Promise<RoomPage> {
@@ -277,9 +265,7 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
   }
 });
 
-test('seated players send at most one expire per phase identity across a deadline', async ({
-  browser,
-}, testInfo) => {
+test('no client sends expire across a deadline', async ({ browser }, testInfo) => {
   const fixture = await createPlayerContexts(browser, 4);
   const hostPage = fixture.pages[0];
   const observations: ExpireObservation[] = [];
@@ -309,14 +295,14 @@ test('seated players send at most one expire per phase identity across a deadlin
       });
     });
 
-    await test.step('assert the D1′ expire discipline from the observed commands', async () => {
+    await test.step('assert no expire was sent by any client', async () => {
       const byPage = observations.map((observation) => observation.expires());
       await testInfo.attach('drawguess-expire-observation', {
         body: JSON.stringify({ byPage }),
         contentType: 'application/json',
       });
       for (const expires of byPage) {
-        expectAtMostOneExpirePerPhaseIdentity(expires);
+        expect(expires).toHaveLength(0);
       }
     });
   } finally {
@@ -362,23 +348,21 @@ test('phase advances past the deadline with zero expire commands while every cli
       for (const context of fixture.contexts) await setOffline(context, false);
       // The wordSelect-deadline crossing itself (wordSelect -> drawing
       // via the timeout auto-assign) happened server-side while every
-      // client was offline. The drawing phase that follows carries a
-      // 90-second deadline, so no new expire can fire before the
-      // advance below is seen; the cutoff scopes the zero claim to
-      // sends observed before the advance was seen.
+      // client was offline. Under D3 no expire can ever be sent, so
+      // the zero claim is NOT scoped to the advance: the full observed
+      // list must be empty.
       const advanced = expect.poll(
         async () => (await hostPage.getByTestId('drawguess-drawing-canvas').count()) > 0,
         { timeout: 60_000, intervals: [300] },
       );
       await advanced.toBe(true);
-      const cutoffMs = Date.now();
       const byPage = observations.map((observation) => observation.expires());
       await testInfo.attach('drawguess-offline-expire-observation', {
-        body: JSON.stringify({ cutoffMs, byPage }),
+        body: JSON.stringify({ byPage }),
         contentType: 'application/json',
       });
       for (const expires of byPage) {
-        expect(expires.filter((entry) => entry.atMs <= cutoffMs)).toHaveLength(0);
+        expect(expires).toHaveLength(0);
       }
     });
   } finally {
