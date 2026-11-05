@@ -10,7 +10,12 @@ import { render } from '@testing-library/react-native';
 
 import { makeReviewPlayer, makeReviewState } from '@/test-utils/werewolfNightReview';
 
-import { NIGHT_REPORT_FOOTER_TEXT } from '../../nightReviewLayout';
+import {
+  NIGHT_REPORT_DAY_BLOCK_TITLE,
+  NIGHT_REPORT_DAY_TAB_LABEL,
+  NIGHT_REPORT_FOOTER_TEXT,
+  NIGHT_REPORT_NIGHT_BLOCK_TITLE,
+} from '../../nightReviewLayout';
 import { NightReviewShareCard } from '../NightReviewShareCard';
 
 interface JsonNode {
@@ -61,7 +66,9 @@ describe('NightReviewShareCard', () => {
     );
 
     expect(view.getByText('房间 1234 战报')).toBeTruthy();
-    expect(view.getByText('关键行动')).toBeTruthy();
+    expect(view.getByText(NIGHT_REPORT_DAY_TAB_LABEL)).toBeTruthy();
+    expect(view.getByText(NIGHT_REPORT_NIGHT_BLOCK_TITLE)).toBeTruthy();
+    expect(view.getByText(NIGHT_REPORT_DAY_BLOCK_TITLE)).toBeTruthy();
     expect(view.getByText('全员身份')).toBeTruthy();
     expect(view.getByText(NIGHT_REPORT_FOOTER_TEXT)).toBeTruthy();
   });
@@ -75,7 +82,9 @@ describe('NightReviewShareCard', () => {
     expect(view.getByText('狼队共同目标')).toBeTruthy();
     expect(view.getByText('守护')).toBeTruthy();
     expect(view.getByText('使用解药救了')).toBeTruthy();
-    expect(view.getByText('毒药未使用')).toBeTruthy();
+    expect(view.getByText('毒药')).toBeTruthy();
+    expect(view.getByText('未使用')).toBeTruthy();
+    expect(view.getByText('✗')).toBeTruthy();
     expect(view.getByText('查验')).toBeTruthy();
     expect(view.getAllByText('狼人').length).toBeGreaterThanOrEqual(2);
     // Same conclusion header as the modal: headline + death card + byline.
@@ -105,9 +114,8 @@ describe('NightReviewShareCard', () => {
     );
 
     expect(view.getByText('昨夜平安夜')).toBeTruthy();
-    // The idle guard is a dimmed row in its group: subject + tag + phrase,
-    // seat on the medal only.
-    expect(view.getByText('未行动')).toBeTruthy();
+    // The idle guard is a dimmed status row: figure + phrase, no tag.
+    expect(view.queryByText('未行动')).toBeNull();
     expect(view.getAllByText('守卫').length).toBeGreaterThanOrEqual(2);
     expect(view.getByText('未守护')).toBeTruthy();
     expect(view.queryByText('守卫 2号 未守护')).toBeNull();

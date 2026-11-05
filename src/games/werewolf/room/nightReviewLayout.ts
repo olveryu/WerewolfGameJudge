@@ -7,7 +7,7 @@
  * from @/theme tokens directly.
  */
 
-import { colors, NIGHT_REPORT_COLORS, spacing, typography } from '@/theme';
+import { colors, NIGHT_REPORT_COLORS } from '@/theme';
 
 /** Card width as a fraction of the window width, shared by all three surfaces. */
 export const NIGHT_REVIEW_CARD_WIDTH_RATIO = 0.88;
@@ -32,16 +32,20 @@ export function formatNightReviewShareTitle(roomCode: string): string {
 //
 // The DOM body is printed on NIGHT_REPORT_PALETTE, a light palette aligned
 // with the app theme (flat colors only, no gradients — the segmented
-// screenshot capture composites bands and a gradient would seam). A seat
-// number appears exactly once per mention: on its SeatMedal. Copy that
-// names a role as a sentence subject lives on row subjects and identity
-// statements; inline targets are medals. Key-action rows use fixed
-// columns (subject · verb · target · right tag): results and statuses
-// live only in the right tag, never inline after the target — except
-// sentence complements (a chosen role, a connective, a payload note
-// explaining why an action had no effect, such as a blocked target's role).
-// Actions group by the actor's faction, each group carrying a
-// faction-colored rail.
+// screenshot capture composites bands and a gradient would seam). The
+// action area is pictorial: a day-tab strip (one static tab — the review
+// carries first-night facts only), one block card per night/day, and one
+// picture row per action ("portrait + big arrow + verb + portrait", the
+// identity written on the portrait's role tag, the seat number below the
+// portrait). There are no fixed columns and no alignment arithmetic: the
+// arrow column flexes, tags are content-sized and centered, and a
+// too-long future name overflows visibly instead of breaking the row.
+// The wolf team's votes draw as a small diagram under the attack row, and
+// the verdict sentence sits under the diagram. A seat number appears
+// exactly once per figure: below its portrait, or inside its medal in the
+// roster, the vote diagram, and the death stamps. Text never repeats a
+// number ("N号" never appears); role names appear on figure tags and
+// identity statements.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Semantic slots of the report palette, composed from the theme hues. */
@@ -121,7 +125,7 @@ export const NIGHT_REPORT_PALETTE = {
   },
 } as const;
 
-/** SeatMedal diameters by slot (death stamp / group row / inline / roster row). */
+/** SeatMedal diameters by slot (death stamp / portrait / inline / roster row). */
 export const NIGHT_REPORT_MEDAL_SIZES = {
   large: 44,
   medium: 28,
@@ -129,26 +133,20 @@ export const NIGHT_REPORT_MEDAL_SIZES = {
   roster: 26,
 } as const;
 
-/**
- * Fixed columns of a key-action row: subject column · verb column · target
- * column · right tag. The subject column fits the medium medal, its gap,
- * and the longest role display name (5 characters); the verb column fits
- * the longest verb (6 characters, 使用解药救了）. Widths derive from the
- * same tokens the text uses, so they scale with the text; the target
- * column is the small medal diameter.
- */
-export const NIGHT_REPORT_SUBJECT_COLUMN_WIDTH =
-  NIGHT_REPORT_MEDAL_SIZES.medium + (spacing.tight + spacing.micro) + 5 * typography.secondary;
-export const NIGHT_REPORT_VERB_COLUMN_WIDTH = 6 * typography.secondary;
-
 /** Kicker line at the top of the report. */
 export const NIGHT_REPORT_KICKER = '🌙 第一夜 · 夜报';
 
-/** Section title above the key action cards. */
-export const NIGHT_REPORT_ACTIONS_TITLE = '关键行动';
+/** The one day tab: the review carries first-night facts only. */
+export const NIGHT_REPORT_DAY_TAB_LABEL = '第一天';
 
-/** Row tag on an actor who did not use their ability tonight. */
-export const NIGHT_REPORT_IDLE_TAG = '未行动';
+/** Centered header of the night block card. */
+export const NIGHT_REPORT_NIGHT_BLOCK_TITLE = '第 1 夜';
+
+/** Centered header of the day block card. */
+export const NIGHT_REPORT_DAY_BLOCK_TITLE = '第 1 天';
+
+/** Day block body: no day facts exist in the review projection. */
+export const NIGHT_REPORT_DAY_EMPTY_TEXT = '白天事件未包含在对局记录中';
 
 /** Section title above the sheriff election card. */
 export const NIGHT_REPORT_SHERIFF_TITLE = '警长竞选';
@@ -171,13 +169,6 @@ export const NIGHT_REPORT_WOLF_VERDICT_TIE_PICKED = '狼队目标不一致 — �
 export const NIGHT_REPORT_WOLF_VERDICT_SPLIT_TIED = '狼队目标不一致 — 平票，未击杀';
 export const NIGHT_REPORT_WOLF_VERDICT_TIE_PENDING = '狼队目标不一致 — 平票，目标未记录';
 export const NIGHT_REPORT_WOLF_VERDICT_ALL_ABSTAIN = '狼队全员空刀';
-
-/** Wolf-team card header tags, by outcome. */
-export const NIGHT_REPORT_WOLF_TAG_KILLED = '击杀成立';
-export const NIGHT_REPORT_WOLF_TAG_SURVIVED = '目标存活';
-export const NIGHT_REPORT_WOLF_TAG_TIED = '平票未击杀';
-export const NIGHT_REPORT_WOLF_TAG_TIE_PENDING = '平票未记录';
-export const NIGHT_REPORT_WOLF_TAG_ABSTAIN = '空刀';
 
 /** Roster cell status for a seat still alive. */
 export const NIGHT_REPORT_ROSTER_ALIVE = '存活';

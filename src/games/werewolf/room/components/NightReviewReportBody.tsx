@@ -2,34 +2,38 @@
  * NightReviewReportBody - The one presentation body for the night review report.
  *
  * 2026 "verdict ticket" presentation (identical on every surface): a white
- * page in five sections — conclusion header (accent bar, masthead,
- * headline with the death count as the display numeral, one stamp per
- * death, stats ledger) → key actions grouped by the actor's faction (one
- * row per actor, idle actors as dimmed rows in their group; the wolf team
- * shares one row plus a verdict band) → sheriff election group (when an
- * election exists) → perforation → identity roster (two columns) → footer.
+ * page — conclusion header (accent bar, masthead, headline with the death
+ * count as the display numeral, one stamp per death, stats ledger) → day
+ * tabs (one static tab; the review carries first-night facts only) → one
+ * block card per night/day → sheriff election group (when an election
+ * exists) → perforation → identity roster (two columns) → footer.
  *
- * Number discipline: a seat number appears exactly once per mention, on
- * its SeatMedal. Text next to a medal never repeats the number; role names
- * appear as row subjects and identity statements (death stamps, roster).
- * Key-action rows use fixed columns — subject · verb · target — with
- * results and statuses in the right tag only; inline after a target stay
- * only sentence complements (a chosen role, a connective, a payload note
- * explaining why an action had no effect, such as a blocked target's
- * role). The wolf team row is the exception to the single line: its vote
- * groups stack voters above the arrow-plus-target line so the target
- * still lands in the shared target column.
+ * The action area is pictorial, in night order (the engine's summary
+ * order; no faction grouping): each action is one picture row, "portrait
+ * + big arrow + verb + portrait", the identity written on the portrait's
+ * role tag, the seat number below the portrait. What a portrait depicts
+ * is exactly what its entry carries: a check that learned only a faction
+ * shows a neutral numbered disc, never the target's true role art; an
+ * identity check or a learn shows the result role's art. Slots holding
+ * two or more portraits (multi-target groups, the vote diagram) carry no
+ * tags — tags would collide. Resource owners (witch / poisoner) get one
+ * card whose lines are the potions; the wolf team's votes draw as a small
+ * diagram under the attack row with the verdict sentence below it; idle
+ * actors and determinations render as a portrait plus a status sentence.
  *
- * Consumed by NightReviewModal (in-room) and NightReviewShareCard (share
- * image); shells own only their frame. No service imports, no business
- * logic: every fact comes from NightReview.helpers derivations, all shared
- * copy/geometry from nightReviewLayout, flat colors only (no gradients —
- * the segmented screenshot capture composites bands).
+ * Number discipline: a seat number appears exactly once per figure —
+ * below its portrait, or inside its medal in the roster, the vote
+ * diagram, and the death stamps. Text never repeats a number ("N号"
+ * never appears). No service imports, no business logic: every fact
+ * comes from the engine derivations, all shared copy/geometry from
+ * nightReviewLayout, flat colors only (no gradients — the segmented
+ * screenshot capture composites bands).
  */
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import {
   Faction,
   getRoleDisplayName,
+  isValidRoleId,
   ROLE_SPECS,
 } from '@game-judge/game-engine/games/werewolf/public';
 import {
@@ -48,32 +52,28 @@ import {
 } from '@game-judge/game-engine/games/werewolf/public';
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
-import { borderRadius, fixed, spacing, typography } from '@/theme';
+import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
+import { borderRadius, colors, fixed, spacing, typography } from '@/theme';
 
 import { DEATH_REASON_LABELS, formatCheckResultLabel } from '../NightReview.helpers';
 import {
-  NIGHT_REPORT_ACTIONS_TITLE,
+  NIGHT_REPORT_DAY_BLOCK_TITLE,
+  NIGHT_REPORT_DAY_EMPTY_TEXT,
+  NIGHT_REPORT_DAY_TAB_LABEL,
   NIGHT_REPORT_DEATH_CAUSE_SUFFIX,
   NIGHT_REPORT_FOOTER_TEXT,
   NIGHT_REPORT_HEADLINE_PREFIX,
   NIGHT_REPORT_HEADLINE_SUFFIX,
-  NIGHT_REPORT_IDLE_TAG,
   NIGHT_REPORT_KICKER,
   NIGHT_REPORT_MEDAL_SIZES,
+  NIGHT_REPORT_NIGHT_BLOCK_TITLE,
   NIGHT_REPORT_PALETTE,
   NIGHT_REPORT_ROSTER_ALIVE,
   NIGHT_REPORT_ROSTER_OUT,
   NIGHT_REPORT_SHERIFF_TITLE,
   NIGHT_REPORT_STAT_LABELS,
-  NIGHT_REPORT_SUBJECT_COLUMN_WIDTH,
-  NIGHT_REPORT_VERB_COLUMN_WIDTH,
-  NIGHT_REPORT_WOLF_TAG_ABSTAIN,
-  NIGHT_REPORT_WOLF_TAG_KILLED,
-  NIGHT_REPORT_WOLF_TAG_SURVIVED,
-  NIGHT_REPORT_WOLF_TAG_TIE_PENDING,
-  NIGHT_REPORT_WOLF_TAG_TIED,
   NIGHT_REPORT_WOLF_VERDICT_ALL_ABSTAIN,
   NIGHT_REPORT_WOLF_VERDICT_SHARED,
   NIGHT_REPORT_WOLF_VERDICT_SPLIT_KILLED,
@@ -185,19 +185,151 @@ function SeatMedal({ seat, size, tone = 'neutral', fill, dimmed, glyph }: SeatMe
 
 type TagTone = 'bad' | 'good' | 'info' | 'muted';
 
-function ReportTag({ text, tone }: { readonly text: string; readonly tone: TagTone }) {
-  const slot =
-    tone === 'bad'
-      ? P.tagBad
-      : tone === 'good'
-        ? P.tagGood
-        : tone === 'info'
-          ? P.tagInfo
-          : P.tagMuted;
+/** Tone slots for figure tags and arrow verbs, from the palette tag slots. */
+const TAG_SLOTS: Record<TagTone, { readonly bg: string; readonly text: string }> = {
+  bad: P.tagBad,
+  good: P.tagGood,
+  info: P.tagInfo,
+  muted: P.tagMuted,
+};
+
+/** Faction tone of a role's figure tag (wolf red / god violet / folk green). */
+function figureTagToneForRole(roleId: RoleId): TagTone {
+  switch (ROLE_SPECS[roleId]?.faction) {
+    case Faction.Wolf:
+      return 'bad';
+    case Faction.God:
+      return 'info';
+    case Faction.Villager:
+      return 'good';
+    default:
+      return 'muted';
+  }
+}
+
+/** The role tag pill riding above a portrait. */
+function FigureTag({ text, tone }: { readonly text: string; readonly tone: TagTone }) {
+  const slot = TAG_SLOTS[tone];
   return (
-    <View style={[styles.tag, { backgroundColor: slot.bg }]}>
-      <Text style={[styles.tagText, { color: slot.text }]}>{text}</Text>
+    <View style={[styles.figureTag, { backgroundColor: slot.bg }]}>
+      <Text style={[styles.figureTagText, { color: slot.text }]}>{text}</Text>
     </View>
+  );
+}
+
+type PortraitFigureProps =
+  | {
+      /** Tag text above the portrait. */
+      readonly tagText: string;
+      readonly tagTone: TagTone;
+      /** Role whose avatar is drawn. */
+      readonly roleId: RoleId;
+      /** Seat number below the portrait; absent for team / role-only figures. */
+      readonly seat?: number;
+      /** Dimmed portrait (seat out of the game). */
+      readonly dimmed?: boolean;
+      /** No tag pill (multi-portrait slots: tags would collide). */
+      readonly hideTag?: boolean;
+    }
+  | {
+      readonly tagText: string;
+      readonly tagTone: TagTone;
+      readonly roleId?: undefined;
+      /** Seat number inside the neutral disc (a faction check's target). */
+      readonly seat: number;
+      readonly dimmed?: boolean;
+      /** No tag pill (multi-portrait slots: tags would collide). */
+      readonly hideTag?: boolean;
+    };
+
+/**
+ * One portrait figure: tag pill above, circular portrait, seat number
+ * below. The tag is absolutely positioned and centered, so it overflows
+ * symmetrically instead of widening the figure; the portrait carries a
+ * fixed top margin for the tag's room. A figure with no roleId draws the
+ * neutral numbered disc instead of role art (a faction check's target:
+ * the entry carries a faction word, not an identity).
+ */
+function PortraitFigure({ tagText, tagTone, roleId, seat, dimmed, hideTag }: PortraitFigureProps) {
+  const tone = roleId === undefined ? 'neutral' : medalToneForRole(roleId);
+  const slot = MEDAL_SLOTS[tone];
+  return (
+    <View style={[styles.figure, hideTag === true ? styles.figureBare : null]}>
+      {hideTag !== true && <FigureTag text={tagText} tone={tagTone} />}
+      {roleId === undefined ? (
+        <SeatMedal seat={seat} size="medium" tone="neutral" />
+      ) : (
+        <Image
+          source={getRoleAvatar(roleId)}
+          style={[
+            styles.portrait,
+            { borderColor: slot.border },
+            dimmed ? styles.portraitDimmed : null,
+          ]}
+          resizeMode="cover"
+        />
+      )}
+      {seat !== undefined && roleId !== undefined && (
+        <Text style={styles.figureSeat}>{seat + 1}</Text>
+      )}
+    </View>
+  );
+}
+
+/** The "no object" figure: a muted disc carrying ✗ (an unused potion, no target). */
+function CrossFigure() {
+  return (
+    <View style={styles.figure}>
+      <View style={styles.crossDisc}>
+        <Text style={styles.crossGlyph}>✗</Text>
+      </View>
+    </View>
+  );
+}
+
+/** The middle of a picture row: a big arrow over the verb, both centered. */
+function ArrowColumn({ verb, tone }: { readonly verb: string; readonly tone?: TagTone }) {
+  const color = tone === undefined ? P.text : TAG_SLOTS[tone].text;
+  return (
+    <View style={styles.arrowColumn}>
+      <Text style={[styles.arrowGlyph, { color }]}>→</Text>
+      <Text style={[styles.arrowVerb, { color }]}>{verb}</Text>
+    </View>
+  );
+}
+
+/**
+ * One picture row: actor figure · arrow column · target slot. The target
+ * slot holds one figure or a wrapping group of figures (multi-target
+ * actions render portraits + seat numbers with no tags, so tags cannot
+ * collide). A note line under the row is the caller's, centered.
+ */
+function PictureRow({
+  actor,
+  verb,
+  verbTone,
+  children,
+}: {
+  readonly actor: ReactNode;
+  readonly verb: string;
+  readonly verbTone?: TagTone;
+  readonly children: ReactNode;
+}) {
+  return (
+    <View style={styles.pictureRow}>
+      {actor}
+      <ArrowColumn verb={verb} tone={verbTone} />
+      {children}
+    </View>
+  );
+}
+
+/** Centered muted note line under a picture row (an outcome, a payload note). */
+function RowNote({ text, tone }: { readonly text: string; readonly tone?: TagTone }) {
+  return (
+    <Text style={[styles.rowNote, tone !== undefined ? { color: TAG_SLOTS[tone].text } : null]}>
+      {text}
+    </Text>
   );
 }
 
@@ -213,30 +345,6 @@ function SectionTitle({ text }: { readonly text: string }) {
 /** Role display text for an identity entry (empty seat / unassigned fallbacks). */
 function identityRoleText(entry: NightReviewIdentityEntry): string {
   return entry.isEmptySeat ? '空座' : entry.roleId ? getRoleDisplayName(entry.roleId) : '未分配';
-}
-
-interface GroupRowProps {
-  /** Subject medal (actor seat); absent for setup / warning subjects. */
-  readonly medal?: ReactNode;
-  readonly subject: string;
-  readonly tag?: ReactNode;
-  /** Dimmed row (actor did not act). */
-  readonly dimmed?: boolean;
-  readonly children?: ReactNode;
-}
-
-/** One row of a faction group: subject column · action column · right tag. */
-function GroupRow({ medal, subject, tag, dimmed, children }: GroupRowProps) {
-  return (
-    <View style={[styles.row, dimmed ? styles.rowDimmed : null]}>
-      <View style={styles.rowWho}>
-        {medal}
-        <Text style={styles.rowSubject}>{subject}</Text>
-      </View>
-      {children !== undefined && <View style={styles.rowWhat}>{children}</View>}
-      {tag !== undefined && <View style={styles.rowTag}>{tag}</View>}
-    </View>
-  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -412,49 +520,18 @@ type ReportBlock =
     }
   | { readonly type: 'idle'; readonly entry: NightReviewActionEntry };
 
-type ReportGroupKey = keyof typeof P.rail;
-
-/** Group order on the page: the kill first, then gods, villagers, third, notes. */
-const GROUP_ORDER: readonly ReportGroupKey[] = ['wolf', 'god', 'villager', 'third', 'neutral'];
-
-interface ReportGroup {
-  readonly key: ReportGroupKey;
-  readonly blocks: readonly ReportBlock[];
-}
-
-function groupKeyForRole(roleId: RoleId | null): ReportGroupKey {
-  if (roleId === null) return 'neutral';
-  switch (ROLE_SPECS[roleId]?.faction) {
-    case Faction.Wolf:
-      return 'wolf';
-    case Faction.God:
-      return 'god';
-    case Faction.Villager:
-      return 'villager';
-    case Faction.Special:
-      return 'third';
-    default:
-      return 'neutral';
-  }
-}
-
 function isWolfTeamKind(kind: NightReviewActionEntry['kind']): boolean {
   return kind === 'wolfAttack' || kind === 'wolfNoTarget' || kind === 'wolfGiveUp';
 }
 
-function blockGroupKey(block: ReportBlock): ReportGroupKey {
-  if (block.type === 'potion') return groupKeyForRole(block.actor);
-  if (isWolfTeamKind(block.entry.kind)) return 'wolf';
-  return groupKeyForRole(nightReviewActorRoleId(block.entry));
-}
-
 /**
- * Turn the entries into faction groups of blocks, keeping each group's
- * blocks in night order. The potion family merges into a single block per
- * owner when the owner used a potion; a family that did nothing at all
- * dissolves into idle rows.
+ * Turn the entries into blocks in night order (the engine's summary
+ * order). The potion family merges into a single block per owner when
+ * the owner used a potion; a family that did nothing at all dissolves
+ * into idle rows. No faction grouping: the order on the page is the
+ * order the night happened.
  */
-function groupEntries(actions: readonly NightReviewActionEntry[]): readonly ReportGroup[] {
+function groupEntries(actions: readonly NightReviewActionEntry[]): readonly ReportBlock[] {
   const familyEffective = new Map<PotionActor, boolean>();
   for (const entry of actions) {
     const actor = potionActorOf(entry);
@@ -485,17 +562,7 @@ function groupEntries(actions: readonly NightReviewActionEntry[]): readonly Repo
     blocks.push(IDLE_KINDS.has(entry.kind) ? { type: 'idle', entry } : { type: 'card', entry });
   }
 
-  const byKey = new Map<ReportGroupKey, ReportBlock[]>();
-  for (const block of blocks) {
-    const key = blockGroupKey(block);
-    const list = byKey.get(key);
-    if (list) list.push(block);
-    else byKey.set(key, [block]);
-  }
-  return GROUP_ORDER.flatMap((key) => {
-    const list = byKey.get(key);
-    return list === undefined ? [] : [{ key, blocks: list }];
-  });
+  return blocks;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -506,245 +573,282 @@ interface CardContext {
   readonly deadSeats: ReadonlySet<number>;
   /** The wolf target the witch left unsaved (witch row annotation). */
   readonly wolfTargetSaveNote: { readonly wolfTargetSeat: number } | null;
+  readonly identitiesBySeat: ReadonlyMap<number, NightReviewIdentityEntry>;
 }
 
-function ActionRow({ children }: { readonly children: ReactNode }) {
-  return <View style={styles.actionRow}>{children}</View>;
+/** Identity entry for a seat named by an action; a missing entry is a fact error. */
+function identityForSeat(seat: number, context: CardContext): NightReviewIdentityEntry {
+  const identity = context.identitiesBySeat.get(seat);
+  if (identity === undefined) {
+    throw new Error(`[FAIL-FAST] Night review action names seat ${seat} with no identity entry`);
+  }
+  return identity;
 }
 
-function VerbText({ text }: { readonly text: string }) {
-  return <Text style={styles.verb}>{text}</Text>;
+/** A seat's figure: its true role's portrait and tag, dimmed when out. */
+function SeatFigure({
+  seat,
+  context,
+  showTag,
+}: {
+  readonly seat: number;
+  readonly context: CardContext;
+  readonly showTag: boolean;
+}) {
+  const identity = identityForSeat(seat, context);
+  const dimmed = context.deadSeats.has(seat);
+  if (identity.roleId === null) {
+    return (
+      <PortraitFigure
+        tagText={identityRoleText(identity)}
+        tagTone="muted"
+        seat={seat}
+        hideTag={!showTag}
+      />
+    );
+  }
+  return (
+    <PortraitFigure
+      tagText={getRoleDisplayName(identity.roleId)}
+      tagTone={figureTagToneForRole(identity.roleId)}
+      roleId={identity.roleId}
+      seat={seat}
+      dimmed={dimmed}
+      hideTag={!showTag}
+    />
+  );
 }
 
-function AnnotationText({ text }: { readonly text: string }) {
-  return <Text style={styles.annotation}>{text}</Text>;
+/** An actor's figure: role tag, role portrait, seat number. */
+function ActorFigure({
+  roleId,
+  seat,
+  context,
+}: {
+  readonly roleId: RoleId;
+  readonly seat: number;
+  readonly context: CardContext;
+}) {
+  return (
+    <PortraitFigure
+      tagText={getRoleDisplayName(roleId)}
+      tagTone={figureTagToneForRole(roleId)}
+      roleId={roleId}
+      seat={seat}
+      dimmed={context.deadSeats.has(seat)}
+    />
+  );
 }
 
-function TargetMedal({ seat }: { readonly seat: number }) {
-  return <SeatMedal seat={seat} size="small" />;
-}
-
-function ActorMedal({ seat, roleId }: { readonly seat: number; readonly roleId: RoleId }) {
-  return <SeatMedal seat={seat} size="medium" tone={medalToneForRole(roleId)} />;
-}
-
-/** One actor's row: subject (medal + role) plus its action content. */
-function ActorRow({ entry }: { readonly entry: NightReviewActionEntry }) {
+/**
+ * One directed action as a picture row: actor figure · arrow + verb ·
+ * target figure(s). The switch is exhaustive over the directed kinds;
+ * warning, setup, idle, and determination kinds render elsewhere. A
+ * result-bearing kind (check / learn) shows the result on the target
+ * figure's tag — never the target's true identity.
+ */
+function DirectedActionRow({
+  entry,
+  context,
+}: {
+  readonly entry: NightReviewActionEntry;
+  readonly context: CardContext;
+}) {
   const actorRoleId = nightReviewActorRoleId(entry);
   if (actorRoleId === null || !('actorSeat' in entry)) {
     throw new Error(`[FAIL-FAST] Night review actor row cannot head entry kind ${entry.kind}`);
   }
-  const actorSeat = entry.actorSeat;
+  const actor = <ActorFigure roleId={actorRoleId} seat={entry.actorSeat} context={context} />;
 
-  let tag: ReactNode;
-  let rows: ReactNode;
   switch (entry.kind) {
-    case 'nightmareBlock':
-      rows = (
-        <ActionRow>
-          <VerbText text="封锁" />
-          <TargetMedal seat={entry.targetSeat} />
-          {entry.targetRoleId !== null && (
-            <AnnotationText text={`（${getRoleDisplayName(entry.targetRoleId)}，技能无效）`} />
-          )}
-        </ActionRow>
+    case 'nightmareBlock': {
+      const note =
+        entry.targetRoleId !== null
+          ? `（${getRoleDisplayName(entry.targetRoleId)}，技能无效）`
+          : null;
+      return (
+        <View>
+          <PictureRow actor={actor} verb="封锁">
+            <SeatFigure seat={entry.targetSeat} context={context} showTag />
+          </PictureRow>
+          {note !== null && <RowNote text={note} />}
+        </View>
       );
-      break;
+    }
     case 'shelter':
-      rows = (
-        <ActionRow>
-          <VerbText text="庇护" />
-          <TargetMedal seat={entry.targetSeat} />
-        </ActionRow>
+      return (
+        <PictureRow actor={actor} verb="庇护">
+          <SeatFigure seat={entry.targetSeat} context={context} showTag />
+        </PictureRow>
       );
-      break;
     case 'guard':
-      rows = (
-        <ActionRow>
-          <VerbText text="守护" />
-          <TargetMedal seat={entry.targetSeat} />
-        </ActionRow>
+      return (
+        <PictureRow actor={actor} verb="守护">
+          <SeatFigure seat={entry.targetSeat} context={context} showTag />
+        </PictureRow>
       );
-      break;
     case 'silence':
-      rows = (
-        <ActionRow>
-          <VerbText text="禁言" />
-          <TargetMedal seat={entry.targetSeat} />
-        </ActionRow>
+      return (
+        <PictureRow actor={actor} verb="禁言">
+          <SeatFigure seat={entry.targetSeat} context={context} showTag />
+        </PictureRow>
       );
-      break;
     case 'voteban':
-      rows = (
-        <ActionRow>
-          <VerbText text="禁票" />
-          <TargetMedal seat={entry.targetSeat} />
-        </ActionRow>
+      return (
+        <PictureRow actor={actor} verb="禁票">
+          <SeatFigure seat={entry.targetSeat} context={context} showTag />
+        </PictureRow>
       );
-      break;
     case 'curse':
-      rows = (
-        <ActionRow>
-          <VerbText text="诅咒" />
-          <TargetMedal seat={entry.targetSeat} />
-        </ActionRow>
+      return (
+        <PictureRow actor={actor} verb="诅咒">
+          <SeatFigure seat={entry.targetSeat} context={context} showTag />
+        </PictureRow>
       );
-      break;
     case 'dream':
-      rows = (
-        <ActionRow>
-          <VerbText text="摄梦" />
-          <TargetMedal seat={entry.targetSeat} />
-        </ActionRow>
+      return (
+        <PictureRow actor={actor} verb="摄梦">
+          <SeatFigure seat={entry.targetSeat} context={context} showTag />
+        </PictureRow>
       );
-      break;
     case 'swap':
-      rows = (
-        <ActionRow>
-          <VerbText text="交换" />
-          <TargetMedal seat={entry.seats[0]} />
-          <AnnotationText text="和" />
-          <TargetMedal seat={entry.seats[1]} />
-        </ActionRow>
+    case 'cupidLink': {
+      const verb = entry.kind === 'swap' ? '交换' : '连线';
+      return (
+        <PictureRow actor={actor} verb={verb}>
+          <View style={styles.figureGroup}>
+            <SeatFigure seat={entry.seats[0]} context={context} showTag={false} />
+            <Text style={styles.connector}>和</Text>
+            <SeatFigure seat={entry.seats[1]} context={context} showTag={false} />
+          </View>
+        </PictureRow>
       );
-      break;
-    case 'cupidLink':
-      rows = (
-        <ActionRow>
-          <VerbText text="连线" />
-          <TargetMedal seat={entry.seats[0]} />
-          <AnnotationText text="和" />
-          <TargetMedal seat={entry.seats[1]} />
-        </ActionRow>
-      );
-      break;
+    }
     case 'cardChoice':
-      rows = (
-        <ActionRow>
-          <VerbText text="选择了" />
-          <Text style={styles.chosenRole}>{getRoleDisplayName(entry.chosenRoleId)}</Text>
-        </ActionRow>
+      return (
+        <PictureRow actor={actor} verb="选择了">
+          <PortraitFigure
+            tagText={getRoleDisplayName(entry.chosenRoleId)}
+            tagTone={figureTagToneForRole(entry.chosenRoleId)}
+            roleId={entry.chosenRoleId}
+          />
+        </PictureRow>
       );
-      break;
     case 'idolChoice':
-      rows = (
-        <ActionRow>
-          <VerbText text="选择榜样" />
-          <TargetMedal seat={entry.targetSeat} />
-        </ActionRow>
+      return (
+        <PictureRow actor={actor} verb="选择榜样">
+          <SeatFigure seat={entry.targetSeat} context={context} showTag />
+        </PictureRow>
       );
-      break;
     case 'mimic':
-      rows = (
-        <ActionRow>
-          <VerbText text="模仿" />
-          <TargetMedal seat={entry.targetSeat} />
-        </ActionRow>
+      return (
+        <View>
+          <PictureRow actor={actor} verb="模仿">
+            <SeatFigure seat={entry.targetSeat} context={context} showTag />
+          </PictureRow>
+          {entry.isBound && <RowNote text="绑定" tone="info" />}
+        </View>
       );
-      if (entry.isBound) tag = <ReportTag text="绑定" tone="info" />;
-      break;
     case 'charm':
-      rows = (
-        <ActionRow>
-          <VerbText text="魅惑" />
-          <TargetMedal seat={entry.targetSeat} />
-        </ActionRow>
+      return (
+        <PictureRow actor={actor} verb="魅惑">
+          <SeatFigure seat={entry.targetSeat} context={context} showTag />
+        </PictureRow>
       );
-      break;
     case 'convert':
-      rows = (
-        <ActionRow>
-          <VerbText text="转化" />
-          <TargetMedal seat={entry.targetSeat} />
-        </ActionRow>
+      return (
+        <PictureRow actor={actor} verb="转化">
+          <SeatFigure seat={entry.targetSeat} context={context} showTag />
+        </PictureRow>
       );
-      break;
     case 'wolfGirlConfess':
-      rows = (
-        <ActionRow>
-          <VerbText text="表白" />
-          <TargetMedal seat={entry.targetSeat} />
-        </ActionRow>
+      return (
+        <PictureRow actor={actor} verb="表白">
+          <SeatFigure seat={entry.targetSeat} context={context} showTag />
+        </PictureRow>
       );
-      break;
     case 'hypnotize':
-      rows = (
-        <ActionRow>
-          <VerbText text="催眠" />
-          {entry.targetSeats.map((seat) => (
-            <TargetMedal key={seat} seat={seat} />
-          ))}
-        </ActionRow>
+      return (
+        <PictureRow actor={actor} verb="催眠">
+          <View style={styles.figureGroup}>
+            {entry.targetSeats.map((seat) => (
+              <SeatFigure key={seat} seat={seat} context={context} showTag={false} />
+            ))}
+          </View>
+        </PictureRow>
       );
-      break;
     case 'check': {
+      if (entry.resultFormat === 'factionCheck') {
+        const resultLabel = formatCheckResultLabel(entry.result, entry.resultFormat);
+        const tone = resultLabel === '狼人' ? 'bad' : resultLabel === '好人' ? 'good' : 'info';
+        return (
+          <PictureRow actor={actor} verb="查验" verbTone={tone}>
+            <PortraitFigure tagText={resultLabel} tagTone={tone} seat={entry.targetSeat} />
+          </PictureRow>
+        );
+      }
       const resultLabel = formatCheckResultLabel(entry.result, entry.resultFormat);
-      rows = (
-        <ActionRow>
-          <VerbText text="查验" />
-          <TargetMedal seat={entry.targetSeat} />
-        </ActionRow>
+      if (!isValidRoleId(entry.result)) {
+        throw new Error(`[FAIL-FAST] Reveal result ${entry.result} is not a role id`);
+      }
+      return (
+        <PictureRow actor={actor} verb="查验" verbTone="info">
+          <PortraitFigure
+            tagText={resultLabel}
+            tagTone="info"
+            roleId={entry.result}
+            seat={entry.targetSeat}
+            dimmed={context.deadSeats.has(entry.targetSeat)}
+          />
+        </PictureRow>
       );
-      tag = (
-        <ReportTag
-          text={resultLabel}
-          tone={resultLabel === '狼人' ? 'bad' : resultLabel === '好人' ? 'good' : 'info'}
-        />
-      );
-      break;
     }
     case 'learn':
-      rows = (
-        <ActionRow>
-          <VerbText text="学习" />
-          <TargetMedal seat={entry.targetSeat} />
-        </ActionRow>
+      return (
+        <PictureRow actor={actor} verb="学习" verbTone="info">
+          <PortraitFigure
+            tagText={getRoleDisplayName(entry.learnedRoleId)}
+            tagTone="info"
+            roleId={entry.learnedRoleId}
+            seat={entry.targetSeat}
+            dimmed={context.deadSeats.has(entry.targetSeat)}
+          />
+        </PictureRow>
       );
-      tag = <ReportTag text={getRoleDisplayName(entry.learnedRoleId)} tone="info" />;
-      break;
     case 'shootStatus':
-      tag = (
-        <ReportTag
-          text={entry.canShoot ? '可发动技能' : '不能发动技能'}
+      return (
+        <DeterminationRow
+          figure={<ActorFigure roleId={actorRoleId} seat={entry.actorSeat} context={context} />}
+          sentence={entry.canShoot ? '可以发动' : '不能发动'}
           tone={entry.canShoot ? 'good' : 'muted'}
         />
       );
-      break;
     case 'infectConverted':
-      rows = (
-        <ActionRow>
-          <VerbText text="感染" />
-          <TargetMedal seat={entry.targetSeat} />
-        </ActionRow>
+      return (
+        <View>
+          <PictureRow actor={actor} verb="感染" verbTone="good">
+            <SeatFigure seat={entry.targetSeat} context={context} showTag />
+          </PictureRow>
+          <RowNote text="成功" tone="good" />
+        </View>
       );
-      tag = <ReportTag text="成功" tone="good" />;
-      break;
     case 'infectFailed':
-      rows = (
-        <ActionRow>
-          <VerbText text="感染" />
-          <TargetMedal seat={entry.targetSeat} />
-        </ActionRow>
+      return (
+        <View>
+          <PictureRow actor={actor} verb="感染" verbTone="bad">
+            <SeatFigure seat={entry.targetSeat} context={context} showTag />
+          </PictureRow>
+          <RowNote text="失败" tone="bad" />
+        </View>
       );
-      tag = <ReportTag text="失败" tone="bad" />;
-      break;
     default:
       throw new Error(`[FAIL-FAST] Night review actor row received unhandled kind ${entry.kind}`);
   }
-
-  return (
-    <GroupRow
-      medal={<ActorMedal seat={actorSeat} roleId={actorRoleId} />}
-      subject={getRoleDisplayName(actorRoleId)}
-      tag={tag}
-    >
-      {rows}
-    </GroupRow>
-  );
 }
 
 /** The witch / poisoner row: one row per potion owner, idle facts as a sub-line. */
-function PotionRow({
+/** One potion owner's card: the owner figure on the left, one line per potion. */
+function ResourceCard({
   actor,
   entries,
   context,
@@ -755,61 +859,91 @@ function PotionRow({
 }) {
   const first = entries[0];
   if (first === undefined || !('actorSeat' in first)) {
-    throw new Error('[FAIL-FAST] Night review potion row has no headed entry');
+    throw new Error('[FAIL-FAST] Night review potion card has no headed entry');
   }
-  const subs: string[] = [];
-  const rows: ReactNode[] = [];
+  const lines: ReactNode[] = [];
   for (const entry of entries) {
     switch (entry.kind) {
       case 'save':
-        rows.push(
-          <ActionRow key="save">
-            <VerbText text="使用解药救了" />
-            <TargetMedal seat={entry.targetSeat} />
-          </ActionRow>,
+        lines.push(
+          <View key="save" style={styles.resourceLine}>
+            <ArrowColumn verb="使用解药救了" tone="good" />
+            <SeatFigure seat={entry.targetSeat} context={context} showTag />
+          </View>,
         );
         break;
       case 'poison':
-        rows.push(
-          <ActionRow key="poison">
-            <VerbText text="毒杀" />
-            <TargetMedal seat={entry.targetSeat} />
-          </ActionRow>,
+        lines.push(
+          <View key="poison" style={styles.resourceLine}>
+            <ArrowColumn verb="毒杀" tone="bad" />
+            <SeatFigure seat={entry.targetSeat} context={context} showTag />
+          </View>,
         );
         break;
       case 'witchNoSave':
-        subs.push('解药未使用');
+        lines.push(
+          <View key="witchNoSave" style={styles.resourceLine}>
+            <ArrowColumn verb="解药" tone="muted" />
+            <CrossFigure />
+          </View>,
+        );
+        lines.push(<RowNote key="witchNoSave-note" text="未使用" />);
         break;
       case 'witchNoPoison':
-        subs.push('毒药未使用');
+        lines.push(
+          <View key="witchNoPoison" style={styles.resourceLine}>
+            <ArrowColumn verb="毒药" tone="muted" />
+            <CrossFigure />
+          </View>,
+        );
+        lines.push(<RowNote key="witchNoPoison-note" text="未使用" />);
+        break;
+      case 'poisonerNoPoison':
+        lines.push(
+          <View key="poisonerNoPoison" style={styles.resourceLine}>
+            <ArrowColumn verb="毒药" tone="muted" />
+            <CrossFigure />
+          </View>,
+        );
+        lines.push(<RowNote key="poisonerNoPoison-note" text="未使用" />);
+        break;
+      case 'witchIdleAll':
+        // Defensive only: the builder emits witchIdleAll solely when the
+        // family used nothing, so groupEntries dissolves it into an idle
+        // row and it never reaches this card. If it ever does, both
+        // potions draw as unused rather than dropping the fact.
+        lines.push(
+          <View key="witchIdleAll-antidote" style={styles.resourceLine}>
+            <ArrowColumn verb="解药" tone="muted" />
+            <CrossFigure />
+          </View>,
+          <View key="witchIdleAll-poison" style={styles.resourceLine}>
+            <ArrowColumn verb="毒药" tone="muted" />
+            <CrossFigure />
+          </View>,
+        );
+        lines.push(<RowNote key="witchIdleAll-note" text="未使用" />);
         break;
       default:
         break;
     }
   }
+  const notes: ReactNode[] = [];
   if (actor === 'witch' && context.wolfTargetSaveNote !== null) {
-    subs.push('狼刀目标未救');
+    notes.push(<RowNote key="save-note" text="狼刀目标未救" />);
   }
   const poisonOut = entries.some(
     (entry) => entry.kind === 'poison' && context.deadSeats.has(entry.targetSeat),
   );
-  const tagCluster: ReactNode[] = [];
-  if (subs.length > 0) {
-    tagCluster.push(
-      <Text key="subs" style={styles.tagNote}>
-        {subs.join(' · ')}
-      </Text>,
-    );
-  }
-  if (poisonOut) tagCluster.push(<ReportTag key="out" text="出局" tone="bad" />);
+  if (poisonOut) notes.push(<RowNote key="poison-out" text="目标出局" tone="bad" />);
   return (
-    <GroupRow
-      medal={<ActorMedal seat={first.actorSeat} roleId={actor} />}
-      subject={getRoleDisplayName(actor)}
-      tag={tagCluster.length > 0 ? <View style={styles.tagCluster}>{tagCluster}</View> : undefined}
-    >
-      {rows}
-    </GroupRow>
+    <View>
+      <View style={styles.resourceCard}>
+        <ActorFigure roleId={actor} seat={first.actorSeat} context={context} />
+        <View style={styles.resourceLines}>{lines}</View>
+      </View>
+      {notes}
+    </View>
   );
 }
 
@@ -854,7 +988,7 @@ function verdictText(verdict: NightReviewWolfVerdict): string {
   }
 }
 
-/** The wolf team row plus, for a recorded attack, the verdict band under it. */
+/** The wolf team's picture row, vote diagram, and verdict sentence. */
 function WolfTeamRow({
   entry,
   context,
@@ -862,161 +996,189 @@ function WolfTeamRow({
   readonly entry: NightReviewActionEntry;
   readonly context: CardContext;
 }) {
-  let tag: ReactNode;
-  let body: ReactNode;
-  let verdictLine: string | null = null;
+  const teamFigure = <PortraitFigure tagText="狼队" tagTone="bad" roleId="wolf" />;
   if (entry.kind === 'wolfAttack') {
     const verdict = deriveWolfVerdict(entry);
-    verdictLine = verdictText(verdict);
     const resolvedTarget =
       verdict.type === 'sharedTarget' ||
       verdict.type === 'splitKilled' ||
       verdict.type === 'tiePicked'
         ? verdict.targetSeat
         : undefined;
-    tag = (
-      <ReportTag
-        text={
-          verdict.type === 'splitTied'
-            ? NIGHT_REPORT_WOLF_TAG_TIED
-            : verdict.type === 'tiePending'
-              ? NIGHT_REPORT_WOLF_TAG_TIE_PENDING
-              : verdict.type === 'allAbstain'
-                ? NIGHT_REPORT_WOLF_TAG_ABSTAIN
-                : resolvedTarget !== undefined && context.deadSeats.has(resolvedTarget)
-                  ? NIGHT_REPORT_WOLF_TAG_KILLED
-                  : NIGHT_REPORT_WOLF_TAG_SURVIVED
-        }
-        tone={
-          verdict.type === 'sharedTarget' ||
-          verdict.type === 'splitKilled' ||
-          verdict.type === 'tiePicked'
-            ? 'bad'
-            : 'muted'
-        }
-      />
-    );
-    body = (
-      <>
-        {groupWolfVotes(entry.votes).map((group) => (
-          <View key={group.targetSeat} style={styles.voteGroup}>
-            <View style={styles.voteVoters}>
-              {group.voterSeats.map((seat) => (
-                <SeatMedal key={seat} seat={seat} size="small" />
-              ))}
-            </View>
-            <View style={styles.voteTargetRow}>
-              <View style={styles.voteArrowSlot}>
-                <Text style={styles.voteArrow}>→</Text>
+    return (
+      <View>
+        <PictureRow actor={teamFigure} verb="爪击" verbTone="bad">
+          {resolvedTarget === undefined ? (
+            <CrossFigure />
+          ) : (
+            <SeatFigure seat={resolvedTarget} context={context} showTag />
+          )}
+        </PictureRow>
+        <View style={styles.voteDiagram}>
+          {groupWolfVotes(entry.votes).map((group) => (
+            <View key={group.targetSeat} style={styles.voteGroup}>
+              <View style={styles.voteVoters}>
+                {group.voterSeats.map((seat) => (
+                  <SeatMedal key={seat} seat={seat} size="small" />
+                ))}
               </View>
+              <Text style={styles.voteDownArrow}>↓</Text>
               <SeatMedal
                 seat={group.targetSeat}
                 size="small"
                 fill={group.targetSeat === resolvedTarget ? 'hit' : undefined}
               />
             </View>
-          </View>
-        ))}
-        {entry.abstainSeats.length > 0 && (
-          <View style={styles.voteGroup}>
-            <View style={styles.voteVoters}>
-              {entry.abstainSeats.map((seat) => (
-                <SeatMedal key={seat} seat={seat} size="small" />
-              ))}
-            </View>
-            <View style={styles.voteTargetRow}>
-              <View style={styles.voteArrowSlot}>
-                <Text style={styles.voteArrow}>→</Text>
+          ))}
+          {entry.abstainSeats.length > 0 && (
+            <View style={styles.voteGroup}>
+              <View style={styles.voteVoters}>
+                {entry.abstainSeats.map((seat) => (
+                  <SeatMedal key={seat} seat={seat} size="small" />
+                ))}
               </View>
+              <Text style={styles.voteDownArrow}>↓</Text>
               <Text style={styles.abstainText}>空刀</Text>
             </View>
-          </View>
-        )}
-      </>
-    );
-  } else if (entry.kind === 'wolfNoTarget') {
-    tag = <ReportTag text={NIGHT_REPORT_WOLF_TAG_ABSTAIN} tone="muted" />;
-    body = <Text style={styles.subLine}>未选择目标</Text>;
-  } else if (entry.kind === 'wolfGiveUp') {
-    tag = <ReportTag text="放弃袭击" tone="muted" />;
-    body = (
-      <Text style={styles.subLine}>
-        {entry.reason === 'poisonerPresent'
-          ? '毒师在场'
-          : `被${getRoleDisplayName('nightmare')}封锁`}
-      </Text>
-    );
-  } else {
-    throw new Error(`[FAIL-FAST] Night review wolf row received unhandled kind ${entry.kind}`);
-  }
-  return (
-    <>
-      <GroupRow
-        medal={<SeatMedal seat={0} size="medium" tone="wolf" glyph="狼" />}
-        subject="狼队"
-        tag={tag}
-      >
-        {body}
-      </GroupRow>
-      {verdictLine !== null && (
-        <View style={styles.verdictBand}>
-          <Text style={styles.verdictText}>{verdictLine}</Text>
+          )}
         </View>
-      )}
-    </>
-  );
+        <Text style={styles.verdictText}>{verdictText(verdict)}</Text>
+      </View>
+    );
+  }
+  if (entry.kind === 'wolfNoTarget') {
+    return (
+      <View>
+        <PictureRow actor={teamFigure} verb="爪击" verbTone="muted">
+          <CrossFigure />
+        </PictureRow>
+        <RowNote text="未选择目标" />
+      </View>
+    );
+  }
+  if (entry.kind === 'wolfGiveUp') {
+    return (
+      <View>
+        <PictureRow actor={teamFigure} verb="爪击" verbTone="muted">
+          <CrossFigure />
+        </PictureRow>
+        <RowNote
+          text={
+            entry.reason === 'poisonerPresent'
+              ? '毒师在场'
+              : `被${getRoleDisplayName('nightmare')}封锁`
+          }
+        />
+      </View>
+    );
+  }
+  throw new Error(`[FAIL-FAST] Night review wolf row received unhandled kind ${entry.kind}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Setup & warning rows (the neutral group)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** The bottom-cards setup line: label plus one role figure per card. */
 function SetupRow({ entry }: { readonly entry: NightReviewActionEntry }) {
   if (entry.kind !== 'bottomCards') {
     throw new Error(`[FAIL-FAST] Night review setup row received unhandled kind ${entry.kind}`);
   }
   return (
-    <GroupRow subject="底牌组成">
-      <ActionRow>
+    <View style={styles.setupRow}>
+      <Text style={styles.setupLabel}>底牌组成</Text>
+      <View style={styles.figureGroup}>
         {entry.roleIds.map((roleId, index) => (
-          <Text key={`${roleId}-${index}`} style={styles.chosenRole}>
-            {getRoleDisplayName(roleId)}
-          </Text>
+          <PortraitFigure
+            key={`${roleId}-${index}`}
+            tagText={getRoleDisplayName(roleId)}
+            tagTone={figureTagToneForRole(roleId)}
+            roleId={roleId}
+          />
         ))}
-      </ActionRow>
-    </GroupRow>
+      </View>
+    </View>
   );
 }
 
-function WarningRow({ entry }: { readonly entry: NightReviewActionEntry }) {
+/** A portrait plus a status sentence: no action, a state to report. */
+function DeterminationRow({
+  figure,
+  sentence,
+  tone,
+  dimmed,
+}: {
+  readonly figure: ReactNode;
+  readonly sentence: string;
+  readonly tone?: TagTone;
+  readonly dimmed?: boolean;
+}) {
+  return (
+    <View style={[styles.determinationRow, dimmed === true ? styles.rowDimmed : null]}>
+      {figure}
+      <Text
+        style={[
+          styles.determinationSentence,
+          tone !== undefined ? { color: TAG_SLOTS[tone].text } : null,
+        ]}
+      >
+        {sentence}
+      </Text>
+    </View>
+  );
+}
+
+/** Relation / warning notes: both parties named, no actor invented. */
+function WarningRow({
+  entry,
+  context,
+}: {
+  readonly entry: NightReviewActionEntry;
+  readonly context: CardContext;
+}) {
   switch (entry.kind) {
     case 'guardSaveConflict':
       return (
-        <GroupRow subject="⚠ 同守同救" tag={<ReportTag text="仍然死亡" tone="bad" />}>
-          <ActionRow>
-            <TargetMedal seat={entry.targetSeat} />
-          </ActionRow>
-        </GroupRow>
+        <DeterminationRow
+          figure={<SeatFigure seat={entry.targetSeat} context={context} showTag />}
+          sentence="⚠ 同守同救，仍然死亡"
+          tone="bad"
+        />
       );
     case 'poisonImmune':
       return (
-        <GroupRow
-          medal={<ActorMedal seat={entry.targetSeat} roleId={entry.targetRoleId} />}
-          subject={getRoleDisplayName(entry.targetRoleId)}
-          tag={<ReportTag text="免疫毒药" tone="info" />}
+        <DeterminationRow
+          figure={
+            <PortraitFigure
+              tagText={getRoleDisplayName(entry.targetRoleId)}
+              tagTone={figureTagToneForRole(entry.targetRoleId)}
+              roleId={entry.targetRoleId}
+              seat={entry.targetSeat}
+              dimmed={context.deadSeats.has(entry.targetSeat)}
+            />
+          }
+          sentence="免疫毒药"
+          tone="info"
         />
       );
     case 'reflectDamage':
       return (
-        <GroupRow
-          subject={`${getRoleDisplayName(entry.checkerRoleId)}查验`}
-          tag={<ReportTag text="反伤" tone="bad" />}
-        >
-          <ActionRow>
-            <TargetMedal seat={entry.targetSeat} />
-            <AnnotationText text={`（${getRoleDisplayName(entry.targetRoleId)}）`} />
-          </ActionRow>
-        </GroupRow>
+        <View>
+          <PictureRow
+            actor={
+              <PortraitFigure
+                tagText={getRoleDisplayName(entry.checkerRoleId)}
+                tagTone={figureTagToneForRole(entry.checkerRoleId)}
+                roleId={entry.checkerRoleId}
+              />
+            }
+            verb="查验"
+            verbTone="bad"
+          >
+            <SeatFigure seat={entry.targetSeat} context={context} showTag />
+          </PictureRow>
+          <RowNote text="反伤" tone="bad" />
+        </View>
       );
     default:
       throw new Error(`[FAIL-FAST] Night review warning row received unhandled kind ${entry.kind}`);
@@ -1073,32 +1235,36 @@ function idlePhrase(entry: NightReviewActionEntry): string {
   }
 }
 
-function IdleRow({ entry }: { readonly entry: NightReviewActionEntry }) {
+/** An idle actor: portrait plus its did-not-act phrase, dimmed. No tag, no ✗. */
+function IdleRow({
+  entry,
+  context,
+}: {
+  readonly entry: NightReviewActionEntry;
+  readonly context: CardContext;
+}) {
   const roleId = nightReviewActorRoleId(entry);
   if (roleId === null || !('actorSeat' in entry)) {
     throw new Error(`[FAIL-FAST] Night review idle entry ${entry.kind} has no actor`);
   }
   return (
-    <GroupRow
-      medal={<ActorMedal seat={entry.actorSeat} roleId={roleId} />}
-      subject={getRoleDisplayName(roleId)}
-      tag={<ReportTag text={NIGHT_REPORT_IDLE_TAG} tone="muted" />}
+    <DeterminationRow
+      figure={<ActorFigure roleId={roleId} seat={entry.actorSeat} context={context} />}
+      sentence={idlePhrase(entry)}
       dimmed
-    >
-      <Text style={styles.subLine}>{idlePhrase(entry)}</Text>
-    </GroupRow>
+    />
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Faction group
+// Night block
 // ─────────────────────────────────────────────────────────────────────────────
 
 function renderBlock(block: ReportBlock, context: CardContext): ReactNode {
   if (block.type === 'potion') {
-    return <PotionRow actor={block.actor} entries={block.entries} context={context} />;
+    return <ResourceCard actor={block.actor} entries={block.entries} context={context} />;
   }
-  if (block.type === 'idle') return <IdleRow entry={block.entry} />;
+  if (block.type === 'idle') return <IdleRow entry={block.entry} context={context} />;
   const { entry } = block;
   if (isWolfTeamKind(entry.kind)) return <WolfTeamRow entry={entry} context={context} />;
   if (entry.kind === 'bottomCards') return <SetupRow entry={entry} />;
@@ -1107,9 +1273,9 @@ function renderBlock(block: ReportBlock, context: CardContext): ReactNode {
     entry.kind === 'poisonImmune' ||
     entry.kind === 'reflectDamage'
   ) {
-    return <WarningRow entry={entry} />;
+    return <WarningRow entry={entry} context={context} />;
   }
-  return <ActorRow entry={entry} />;
+  return <DirectedActionRow entry={entry} context={context} />;
 }
 
 function blockKey(block: ReportBlock, index: number): string {
@@ -1117,24 +1283,23 @@ function blockKey(block: ReportBlock, index: number): string {
   return `${block.type}-${block.entry.kind}-${index}`;
 }
 
-/** One faction's rows behind a colored rail; a hairline separates blocks. */
-function ActionGroup({
-  group,
+/** One night's picture rows in night order, behind a centered block header. */
+function NightBlock({
+  blocks,
   context,
 }: {
-  readonly group: ReportGroup;
+  readonly blocks: readonly ReportBlock[];
   readonly context: CardContext;
 }) {
   return (
-    <View style={styles.group}>
-      <View style={[styles.groupRail, { backgroundColor: P.rail[group.key] }]} />
-      <View style={styles.groupInner}>
-        {group.blocks.map((block, index) => (
-          <View key={blockKey(block, index)} style={index > 0 ? styles.blockSeparator : null}>
-            {renderBlock(block, context)}
-          </View>
-        ))}
-      </View>
+    <View style={styles.blockCard}>
+      <Text style={styles.blockTitle}>{NIGHT_REPORT_NIGHT_BLOCK_TITLE}</Text>
+      <View style={styles.blockDivider} />
+      {blocks.map((block, index) => (
+        <View key={blockKey(block, index)} style={index > 0 ? styles.blockSeparator : null}>
+          {renderBlock(block, context)}
+        </View>
+      ))}
     </View>
   );
 }
@@ -1190,13 +1355,14 @@ interface NightReviewReportBodyProps {
 }
 
 export function NightReviewReportBody({ data, shareTitle }: NightReviewReportBodyProps) {
-  const groups = groupEntries(data.actions);
+  const blocks = groupEntries(data.actions);
   const context: CardContext = useMemo(
     () => ({
       deadSeats: new Set(
         data.identities.filter((entry) => !entry.isAlive).map((entry) => entry.seat),
       ),
       wolfTargetSaveNote: deriveWolfTargetSaveNote(data),
+      identitiesBySeat: new Map(data.identities.map((entry) => [entry.seat, entry])),
     }),
     [data],
   );
@@ -1205,11 +1371,16 @@ export function NightReviewReportBody({ data, shareTitle }: NightReviewReportBod
     <View style={styles.root}>
       <ReportHeader data={data} shareTitle={shareTitle} />
       <View style={styles.page}>
-        <SectionTitle text={NIGHT_REPORT_ACTIONS_TITLE} />
-        <View style={styles.groupList}>
-          {groups.map((group) => (
-            <ActionGroup key={group.key} group={group} context={context} />
-          ))}
+        <View style={styles.dayTabStrip}>
+          <View style={styles.dayTab}>
+            <Text style={styles.dayTabText}>{NIGHT_REPORT_DAY_TAB_LABEL}</Text>
+          </View>
+        </View>
+        <NightBlock blocks={blocks} context={context} />
+        <View style={styles.blockCard}>
+          <Text style={styles.blockTitle}>{NIGHT_REPORT_DAY_BLOCK_TITLE}</Text>
+          <View style={styles.blockDivider} />
+          <Text style={styles.dayEmptyText}>{NIGHT_REPORT_DAY_EMPTY_TEXT}</Text>
         </View>
         {data.sheriff !== undefined && (
           <>
@@ -1376,10 +1547,48 @@ const styles = StyleSheet.create({
     height: fixed.divider,
     backgroundColor: P.cardBorder,
   },
-  // ── Faction groups ──
-  groupList: {
+  // ── Day tabs + block cards ──
+  dayTabStrip: {
+    flexDirection: 'row',
+  },
+  dayTab: {
+    backgroundColor: P.text,
+    borderRadius: borderRadius.small,
+    paddingHorizontal: spacing.medium,
+    paddingVertical: spacing.tight,
+  },
+  dayTabText: {
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    fontWeight: typography.weights.bold,
+    color: colors.textInverse,
+  },
+  blockCard: {
+    borderWidth: fixed.borderWidth,
+    borderColor: P.cardBorder,
+    borderRadius: borderRadius.small,
+    padding: spacing.medium,
     gap: spacing.small,
   },
+  blockTitle: {
+    fontSize: typography.body,
+    lineHeight: typography.lineHeights.body,
+    fontWeight: typography.weights.bold,
+    color: P.text,
+    textAlign: 'center',
+  },
+  blockDivider: {
+    height: fixed.divider,
+    backgroundColor: P.cardBorder,
+  },
+  dayEmptyText: {
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    color: P.textMuted,
+    textAlign: 'center',
+    paddingVertical: spacing.small,
+  },
+  // ── Sheriff group (panel section keeps its rail) ──
   group: {
     flexDirection: 'row',
     borderWidth: fixed.borderWidth,
@@ -1401,67 +1610,143 @@ const styles = StyleSheet.create({
     borderTopWidth: fixed.divider,
     borderTopColor: P.divider,
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.small,
-    paddingHorizontal: spacing.small + spacing.tight,
-    paddingVertical: spacing.small + spacing.micro,
-  },
   rowDimmed: {
     opacity: fixed.disabledOpacity,
   },
-  rowWho: {
-    flexDirection: 'row',
+  // ── Portrait figures + picture rows ──
+  figure: {
     alignItems: 'center',
-    gap: spacing.tight + spacing.micro,
-    flexShrink: 0,
-    width: NIGHT_REPORT_SUBJECT_COLUMN_WIDTH,
+    paddingTop: spacing.medium,
   },
-  rowSubject: {
+  figureBare: {
+    paddingTop: 0,
+  },
+  figureTag: {
+    position: 'absolute',
+    top: 0,
+    alignSelf: 'center',
+    borderRadius: borderRadius.small,
+    paddingHorizontal: spacing.small,
+    paddingVertical: spacing.tight,
+  },
+  figureTagText: {
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    fontWeight: typography.weights.bold,
+    textAlign: 'center',
+  },
+  portrait: {
+    width: NIGHT_REPORT_MEDAL_SIZES.medium,
+    height: NIGHT_REPORT_MEDAL_SIZES.medium,
+    borderRadius: borderRadius.full,
+    borderWidth: fixed.borderWidth,
+  },
+  portraitDimmed: {
+    opacity: fixed.disabledOpacity,
+  },
+  figureSeat: {
+    marginTop: spacing.micro,
     fontSize: typography.secondary,
     lineHeight: typography.lineHeights.secondary,
     fontWeight: typography.weights.bold,
     color: P.text,
-    flexShrink: 1,
+    textAlign: 'center',
   },
-  rowWhat: {
+  crossDisc: {
+    width: NIGHT_REPORT_MEDAL_SIZES.medium,
+    height: NIGHT_REPORT_MEDAL_SIZES.medium,
+    borderRadius: borderRadius.full,
+    borderWidth: fixed.borderWidth,
+    borderColor: P.medalNeutral.border,
+    backgroundColor: P.medalNeutral.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  crossGlyph: {
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
+    fontWeight: typography.weights.bold,
+    color: P.textMuted,
+    textAlign: 'center',
+  },
+  pictureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.small,
+  },
+  arrowColumn: {
     flex: 1,
-    minWidth: 0,
-    gap: spacing.tight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.tight,
   },
-  rowTag: {
-    marginLeft: 'auto',
-    flexShrink: 0,
+  arrowGlyph: {
+    fontSize: typography.title,
+    lineHeight: typography.lineHeights.title,
+    fontWeight: typography.weights.bold,
+    textAlign: 'center',
   },
-  actionRow: {
+  arrowVerb: {
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    fontWeight: typography.weights.semibold,
+    textAlign: 'center',
+  },
+  figureGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: spacing.tight,
   },
-  verb: {
-    fontSize: typography.secondary,
-    lineHeight: typography.lineHeights.secondary,
-    fontWeight: typography.weights.semibold,
-    color: P.text,
-    width: NIGHT_REPORT_VERB_COLUMN_WIDTH,
-  },
-  annotation: {
+  connector: {
     fontSize: typography.secondary,
     lineHeight: typography.lineHeights.secondary,
     color: P.textSecondary,
   },
-  chosenRole: {
-    fontSize: typography.secondary,
-    lineHeight: typography.lineHeights.secondary,
-    fontWeight: typography.weights.bold,
-    color: P.text,
-  },
-  subLine: {
+  rowNote: {
+    marginTop: spacing.tight,
     fontSize: typography.caption,
     lineHeight: typography.lineHeights.caption,
+    color: P.textMuted,
+    textAlign: 'center',
+  },
+  // ── Resource cards + determination rows ──
+  resourceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.small,
+  },
+  resourceLines: {
+    flex: 1,
+    gap: spacing.small,
+  },
+  resourceLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.small,
+  },
+  determinationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.small,
+  },
+  determinationSentence: {
+    flex: 1,
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
     color: P.textSecondary,
+  },
+  setupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.small,
+  },
+  setupLabel: {
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    fontWeight: typography.weights.bold,
+    color: P.text,
   },
   medal: {
     borderRadius: borderRadius.full,
@@ -1476,47 +1761,30 @@ const styles = StyleSheet.create({
   medalDimmed: {
     opacity: fixed.disabledOpacity,
   },
-  tag: {
-    borderRadius: borderRadius.small,
-    paddingHorizontal: spacing.small,
-    paddingVertical: spacing.tight,
-  },
-  tagText: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    fontWeight: typography.weights.bold,
-  },
-  tagCluster: {
+  // ── Wolf vote diagram ──
+  voteDiagram: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.tight,
-  },
-  tagNote: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    color: P.textMuted,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.medium,
+    marginTop: spacing.small,
   },
   voteGroup: {
-    gap: spacing.tight,
-  },
-  voteTargetRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.tight,
-  },
-  voteArrowSlot: {
-    width: NIGHT_REPORT_VERB_COLUMN_WIDTH,
-    alignItems: 'flex-end',
+    gap: spacing.micro,
   },
   voteVoters: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: spacing.tight,
   },
-  voteArrow: {
+  voteDownArrow: {
     fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
     color: P.textMuted,
+    textAlign: 'center',
   },
   abstainText: {
     fontSize: typography.secondary,
@@ -1524,16 +1792,13 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold,
     color: P.textSecondary,
   },
-  verdictBand: {
-    backgroundColor: P.verdictBg,
-    paddingHorizontal: spacing.small + spacing.tight,
-    paddingVertical: spacing.small,
-  },
   verdictText: {
+    marginTop: spacing.tight,
     fontSize: typography.caption,
     lineHeight: typography.lineHeights.caption,
     fontWeight: typography.weights.bold,
     color: P.medalWolf.text,
+    textAlign: 'center',
   },
   // ── Perforation + roster ──
   perforation: {
