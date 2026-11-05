@@ -65,6 +65,7 @@ describe('Avalon public command schema', () => {
       },
       { type: 'avalon.roles.assign' },
       { type: 'avalon.game.abort' },
+      { type: 'avalon.phase.retrySettle' },
       { type: 'avalon.bots.markAllBotsGroupConfirmed' },
       { type: 'avalon.game.returnToLobby' },
       { type: 'avalon.night.confirm' },
