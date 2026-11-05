@@ -1,12 +1,13 @@
 /** Full-browser Pictionary relay from room creation through synchronized results. */
 
 import { getPictionaryRelayStepCount } from '@game-judge/game-engine/games/pictionary/public';
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 import { FETCH_RETRY_COUNT } from '../../src/config/api';
 import { TESTIDS } from '../../src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { expectWeChatImageShare } from '../helpers/image-sharing';
+import { setOffline } from '../helpers/resilience';
 import { HomePage } from '../pages/HomePage';
 import { PictionaryConfigPage } from '../pages/PictionaryConfigPage';
 import { PictionaryRoomPage } from '../pages/PictionaryRoomPage';
@@ -16,6 +17,97 @@ const RELAY_STEP_COUNT = getPictionaryRelayStepCount(PLAYER_COUNT);
 const TOTAL_GALLERY_ENTRIES = PLAYER_COUNT * RELAY_STEP_COUNT;
 const OPENING_PROMPTS = ['月球上的猫', '云端城堡', '跳舞的花', '海上火车'] as const;
 const GUESS_SUBMISSIONS = [[' 太阳\n还没写完 ', '小屋', '花朵', '帆船']] as const;
+
+/**
+ * Phase-expiry discipline (D1', 2026-11-04): the server's scheduled settle
+ * is the correctness path; a client expire is single-shot acceleration
+ * only, sent at most once per phase identity by an eligible sender.
+ *
+ * The tests below prove that discipline from observed /room/command
+ * traffic, never from UI text: every page gets a passive route handler
+ * that logs expire sends and always calls route.continue(), so delivery
+ * is never altered or swallowed. Only host/seated contexts are driven
+ * here, per the 2026-11-04 ruling on E2E scope; the remaining
+ * eligibility cases stay covered at hook/contract level, not in E2E.
+ *
+ * Honest boundary of this file:
+ * - Zero-client settlement is NOT claimed here: E2E always has foreground
+ *   clients. The offline test proves advancement without any acceleration
+ *   command being sent; zero-client settlement is proven at Worker
+ *   DO-test level.
+ */
+const EXPIRE_COMMAND_TYPE = 'pictionary.phase.expire';
+
+interface ObservedExpire {
+  readonly phaseRevision: number;
+  readonly atMs: number;
+}
+
+interface ExpireObservation {
+  readonly expires: () => readonly ObservedExpire[];
+  readonly stop: () => Promise<void>;
+}
+
+/** The phaseRevision carried by an expire command body, or null when the body is not one. */
+function expirePhaseRevision(body: unknown): number | null {
+  if (typeof body !== 'object' || body === null || !('command' in body)) return null;
+  const command: unknown = body.command;
+  if (typeof command !== 'object' || command === null || !('type' in command)) return null;
+  if (command.type !== EXPIRE_COMMAND_TYPE) return null;
+  if (!('phaseRevision' in command)) return null;
+  const revision: unknown = command.phaseRevision;
+  return typeof revision === 'number' ? revision : null;
+}
+
+/**
+ * Log every pictionary.phase.expire send on one page, timestamped, without
+ * touching delivery: the handler always continues the request, matching
+ * the room-narration precedent.
+ */
+async function observeExpireCommands(page: Page): Promise<ExpireObservation> {
+  const seen: ObservedExpire[] = [];
+  await page.route('**/room/command', async (route, request) => {
+    if (request.method() === 'POST') {
+      let body: unknown = null;
+      try {
+        body = request.postDataJSON();
+      } catch {
+        body = null;
+      }
+      // -1 means an expire send whose body carried no readable
+      // phaseRevision; it still counts as a send and stays visible
+      // in the attached observation log.
+      if (isExpireCommand(body)) {
+        seen.push({ phaseRevision: expirePhaseRevision(body) ?? -1, atMs: Date.now() });
+      }
+    }
+    await route.continue();
+  });
+  return {
+    expires: () => seen,
+    stop: () => page.unroute('**/room/command'),
+  };
+}
+
+/** True when a /room/command POST body carries the expire command type. */
+function isExpireCommand(body: unknown): boolean {
+  if (typeof body !== 'object' || body === null || !('command' in body)) return false;
+  const command: unknown = body.command;
+  return (
+    typeof command === 'object' &&
+    command !== null &&
+    'type' in command &&
+    command.type === EXPIRE_COMMAND_TYPE
+  );
+}
+
+/** Single-shot discipline, per phase identity: at most one send per phaseRevision. */
+function expectAtMostOneExpirePerPhaseIdentity(expires: readonly ObservedExpire[]): void {
+  const counts = new Map<number, number>();
+  for (const entry of expires)
+    counts.set(entry.phaseRevision, (counts.get(entry.phaseRevision) ?? 0) + 1);
+  for (const count of counts.values()) expect(count).toBeLessThanOrEqual(1);
+}
 
 async function promptForEveryPlayer(
   rooms: readonly PictionaryRoomPage[],
@@ -413,6 +505,143 @@ test.describe('Pictionary', () => {
       expect(albums.some((text) => text.includes('保留的原始题目'))).toBe(true);
       expect(albums.filter((text) => text.includes('这一棒交了空白'))).toHaveLength(3);
     } finally {
+      await closeAll(fixture);
+    }
+  });
+
+  test('seated players send at most one expire per phase identity across a deadline', async ({
+    browser,
+  }, testInfo) => {
+    const fixture = await createPlayerContexts(browser, PLAYER_COUNT);
+    const rooms = fixture.pages.map((page) => new PictionaryRoomPage(page));
+    const hostPage = fixture.pages[0];
+    const hostRoom = rooms[0]!;
+    const observations: ExpireObservation[] = [];
+    try {
+      for (const page of fixture.pages) observations.push(await observeExpireCommands(page));
+
+      await test.step('create a four-player room with a 15-second text deadline', async () => {
+        await new HomePage(hostPage).clickCreateRoom('pictionary');
+        const config = new PictionaryConfigPage(hostPage);
+        await config.waitForCreateMode();
+        await config.configureFourPlayerManualGame();
+        const guess15 = hostPage.getByTestId(
+          TESTIDS.gameConfigFieldOption('pictionary', 'guessDurationSeconds', '15'),
+        );
+        await guess15.click();
+        await expect(guess15).toHaveAttribute('aria-checked', 'true');
+        await config.createRoom();
+        await hostRoom.waitForReady('host');
+
+        const roomCode = await hostRoom.getRoomCode();
+        await hostRoom.seatAt(0);
+        for (let playerIndex = 1; playerIndex < PLAYER_COUNT; playerIndex += 1) {
+          await rooms[playerIndex]!.joinViaCode(roomCode);
+          await rooms[playerIndex]!.seatAt(playerIndex);
+        }
+      });
+
+      await test.step('cross the prompt deadline with every client idle', async () => {
+        await hostRoom.startRound();
+        await Promise.all(rooms.map((room) => room.expectPromptStep(1, RELAY_STEP_COUNT)));
+        // Nobody submits anything: the 15-second text deadline must pass
+        // with zero input, so the crossing is decided by the deadline
+        // alone and every client observes the whole crossing.
+        await Promise.all(rooms.map((room) => room.expectDrawingStep(2, RELAY_STEP_COUNT)));
+      });
+
+      await test.step('assert the D1′ expire discipline from the observed commands', async () => {
+        const byPage = observations.map((observation) => observation.expires());
+        await testInfo.attach('pictionary-expire-observation', {
+          body: JSON.stringify({ byPage }),
+          contentType: 'application/json',
+        });
+        for (const expires of byPage) {
+          expectAtMostOneExpirePerPhaseIdentity(expires);
+        }
+      });
+    } finally {
+      await Promise.allSettled(observations.map((observation) => observation.stop()));
+      await closeAll(fixture);
+    }
+  });
+
+  test('phase advances past the deadline with zero expire commands while every client is offline', async ({
+    browser,
+  }, testInfo) => {
+    const fixture = await createPlayerContexts(browser, PLAYER_COUNT);
+    const rooms = fixture.pages.map((page) => new PictionaryRoomPage(page));
+    const hostPage = fixture.pages[0];
+    const hostRoom = rooms[0]!;
+    const observations: ExpireObservation[] = [];
+    try {
+      for (const page of fixture.pages) observations.push(await observeExpireCommands(page));
+
+      await test.step('create a four-player room with a 15-second text deadline', async () => {
+        await new HomePage(hostPage).clickCreateRoom('pictionary');
+        const config = new PictionaryConfigPage(hostPage);
+        await config.waitForCreateMode();
+        await config.configureFourPlayerManualGame();
+        const guess15 = hostPage.getByTestId(
+          TESTIDS.gameConfigFieldOption('pictionary', 'guessDurationSeconds', '15'),
+        );
+        await guess15.click();
+        await expect(guess15).toHaveAttribute('aria-checked', 'true');
+        await config.createRoom();
+        await hostRoom.waitForReady('host');
+
+        const roomCode = await hostRoom.getRoomCode();
+        await hostRoom.seatAt(0);
+        for (let playerIndex = 1; playerIndex < PLAYER_COUNT; playerIndex += 1) {
+          await rooms[playerIndex]!.joinViaCode(roomCode);
+          await rooms[playerIndex]!.seatAt(playerIndex);
+        }
+      });
+
+      await test.step('start the round, then hold every client offline across the deadline', async () => {
+        await hostRoom.startRound();
+        await Promise.all(rooms.map((room) => room.expectPromptStep(1, RELAY_STEP_COUNT)));
+        // Offline, the link is not live, so no client's expiry gate can
+        // fire; the 15-second deadline still passes on the server clock.
+        // The hold is measured from the prompt step being visible, which
+        // trails the server's round-start decision by a second or two,
+        // so 22 seconds clears the deadline plus settle latency.
+        const startedAt = Date.now();
+        for (const context of fixture.contexts) await setOffline(context, true);
+        await expect
+          .poll(async () => Date.now() - startedAt, { timeout: 30_000, intervals: [300] })
+          .toBeGreaterThan(22_000);
+      });
+
+      await test.step('reconnect and observe the server-driven advance with no acceleration', async () => {
+        for (const context of fixture.contexts) await setOffline(context, false);
+        // The deadline crossing itself (answering -> settling) happened
+        // server-side while every client was offline. Collection after
+        // reconnect is expected — clients submit their (empty) inputs —
+        // and is not acceleration. The cutoff below scopes the zero
+        // claim to sends observed before the advance was seen.
+        const advanced = expect.poll(
+          async () => {
+            const settling = await hostPage.getByText('正在收取最终内容', { exact: true }).count();
+            const drawing = await hostPage.getByTestId(TESTIDS.pictionaryDrawingCanvas).count();
+            return settling > 0 || drawing > 0;
+          },
+          { timeout: 30_000, intervals: [300] },
+        );
+        await advanced.toBe(true);
+        const cutoffMs = Date.now();
+        const byPage = observations.map((observation) => observation.expires());
+        await testInfo.attach('pictionary-offline-expire-observation', {
+          body: JSON.stringify({ cutoffMs, byPage }),
+          contentType: 'application/json',
+        });
+        for (const expires of byPage) {
+          expect(expires.filter((entry) => entry.atMs <= cutoffMs)).toHaveLength(0);
+        }
+      });
+    } finally {
+      await Promise.allSettled(fixture.contexts.map((context) => setOffline(context, false)));
+      await Promise.allSettled(observations.map((observation) => observation.stop()));
       await closeAll(fixture);
     }
   });
