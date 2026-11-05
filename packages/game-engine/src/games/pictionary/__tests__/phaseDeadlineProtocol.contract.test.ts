@@ -80,10 +80,6 @@ function makeSession(hostUserId = 'user-0'): PhaseDeadlineSession {
   send({ type: 'pictionary.game.begin' }, hostUserId);
   const armedPhase = state.phase;
 
-  const noPublicExpire = (): never => {
-    throw new Error('Pictionary has no public expire command');
-  };
-
   const expireSettle = (context: CommandContext) => {
     const decision = pictionaryEngine.decide(
       state,
@@ -95,9 +91,6 @@ function makeSession(hostUserId = 'user-0'): PhaseDeadlineSession {
   };
 
   return {
-    expireAsUser: noPublicExpire,
-    expireAsControlledUser: noPublicExpire,
-    expirePublicAsSystem: noPublicExpire,
     expireSettleAsSystem: (nowMs) => expireSettle(systemContext(nowMs)),
     expireSettleAsUser: (nowMs) => expireSettle(userContext('user-1', null, nowMs)),
     expireWithStaleRevision: () => {
@@ -116,7 +109,6 @@ describePhaseDeadlineProtocol({
   makeSession,
   expectations: {
     notExpiredReason: REASON_PICTIONARY_PHASE_NOT_EXPIRED,
-    publicChannel: null,
     hasSettleCommand: true,
     stalePolicy: 'none',
     staleReason: null,

@@ -79,17 +79,10 @@ function makeSession(): PhaseDeadlineSession {
   send({ type: 'storyrelay.game.begin' });
   const armedPhase = state.phase;
 
-  const noPublicExpire = (): never => {
-    throw new Error('Story Relay has no public expire command');
-  };
-
   const expireSettle = (context: CommandContext) =>
     attempt({ type: 'storyrelay.phase.settleExpired' }, context);
 
   return {
-    expireAsUser: noPublicExpire,
-    expireAsControlledUser: noPublicExpire,
-    expirePublicAsSystem: noPublicExpire,
     expireSettleAsSystem: (nowMs) => expireSettle(systemContext(nowMs)),
     expireSettleAsUser: (nowMs) => expireSettle(userContext(hostUserId, null, nowMs)),
     expireWithStaleRevision: () => {
@@ -108,7 +101,6 @@ describePhaseDeadlineProtocol({
   makeSession,
   expectations: {
     notExpiredReason: STORY_RELAY_REASONS.deadline,
-    publicChannel: null,
     hasSettleCommand: true,
     stalePolicy: 'none',
     staleReason: null,

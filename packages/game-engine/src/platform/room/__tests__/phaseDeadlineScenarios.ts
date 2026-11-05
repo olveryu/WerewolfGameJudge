@@ -12,36 +12,27 @@
  * each game's own suites.
  *
  * The driver's session starts in an armed phase (a deadline is
- * set). Expiry is attempted through the game's own commands,
- * exactly as its clients and the Worker submit them.
+ * set). Expiry is attempted only through the internal settle command,
+ * exactly as the Worker submits it — there is no public expire
+ * command any more (D3).
  */
 
 import { describe, expect, it } from 'vitest';
 
 import type { Decision, GameEffect, GameEvent } from '../../engine';
-import {
-  REASON_CONTROLLED_SEAT_NOT_ALLOWED,
-  REASON_SYSTEM_ACTOR_REQUIRED,
-  REASON_USER_ACTOR_REQUIRED,
-} from '../../protocol/reasons';
+import { REASON_SYSTEM_ACTOR_REQUIRED } from '../../protocol/reasons';
 
 /** What the suite expects each registered gate to answer with. */
 export interface PhaseDeadlineExpectations {
   /** This game's reason for a missing or unreached deadline. */
   readonly notExpiredReason: string;
-  /**
-   * The public expire command's actor channel: 'uncontrolledUser',
-   * or null when the game has no public expire command at all (its
-   * scheduled settle effect is the only channel).
-   */
-  readonly publicChannel: 'uncontrolledUser' | null;
   /** Whether the game also carries an internal settle command. */
   readonly hasSettleCommand: boolean;
   /**
-   * The registered stale-revision policy for the expire command:
-   * 'silent' commits empty, 'reject' rejects (at the guard or at
-   * the game's decide entry — the observable outcome is the same
-   * rejection), 'none' means the expire command carries no revision.
+   * The registered stale-revision policy for the internal settle
+   * command: 'silent' commits empty, 'reject' rejects (at the guard or
+   * at the game's decide entry — the observable outcome is the same
+   * rejection), 'none' means the settle command carries no revision.
    */
   readonly stalePolicy: 'silent' | 'reject' | 'none';
   /** Rejection reason when stalePolicy is 'reject'. */
@@ -52,12 +43,6 @@ export interface PhaseDeadlineExpectations {
 
 /** One armed-phase session, driven through the game's own commands. */
 export interface PhaseDeadlineSession {
-  /** Public expire command as an ordinary uncontrolled user. */
-  expireAsUser(nowMs: number): Decision<GameEvent, GameEffect>;
-  /** Public expire command as a user controlling a (bot) seat. */
-  expireAsControlledUser(nowMs: number): Decision<GameEvent, GameEffect>;
-  /** Public expire command as the system actor. */
-  expirePublicAsSystem(nowMs: number): Decision<GameEvent, GameEffect>;
   /** Internal settle command as the system actor. */
   expireSettleAsSystem(nowMs: number): Decision<GameEvent, GameEffect>;
   /** Internal settle command as a user actor. */
@@ -84,11 +69,9 @@ export interface PhaseDeadlineSuite {
 
 export function describePhaseDeadlineProtocol(suite: PhaseDeadlineSuite): void {
   const { expectations } = suite;
-  /** Expiry through the game's primary surface with a valid actor. */
+  /** Expiry through the game's only surface, the internal settle command. */
   const expirePrimary = (session: PhaseDeadlineSession, nowMs: number) =>
-    expectations.publicChannel === 'uncontrolledUser'
-      ? session.expireAsUser(nowMs)
-      : session.expireSettleAsSystem(nowMs);
+    session.expireSettleAsSystem(nowMs);
 
   describe(`Phase Deadline Protocol - shared scenarios (${suite.game})`, () => {
     it('rejects expiry before the deadline with the registered reason', () => {
@@ -104,25 +87,6 @@ export function describePhaseDeadlineProtocol(suite: PhaseDeadlineSuite): void {
       expect(decision.kind).toBe('commit');
       expect(session.hasAdvanced()).toBe(expectations.dispatchAdvances);
     });
-
-    if (expectations.publicChannel === 'uncontrolledUser') {
-      it('rejects a controlled-seat actor ahead of the deadline gate', () => {
-        const session = suite.makeSession();
-        const decision = session.expireAsControlledUser(session.deadlineAt() - 1);
-        expect(decision).toEqual({
-          kind: 'reject',
-          reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED,
-        });
-        expect(session.hasAdvanced()).toBe(false);
-      });
-
-      it('rejects the system actor on the public expire command', () => {
-        const session = suite.makeSession();
-        const decision = session.expirePublicAsSystem(session.deadlineAt());
-        expect(decision).toEqual({ kind: 'reject', reason: REASON_USER_ACTOR_REQUIRED });
-        expect(session.hasAdvanced()).toBe(false);
-      });
-    }
 
     if (expectations.hasSettleCommand) {
       it('rejects a user actor on the internal settle command', () => {

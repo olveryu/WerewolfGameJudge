@@ -121,14 +121,7 @@ function makeSession(): PhaseDeadlineSession {
   const armedPhase = harness.state().phase;
   const current = () => harness.state();
 
-  const noPublicExpire = (): never => {
-    throw new Error('Avalon has no public expire command');
-  };
-
   return {
-    expireAsUser: noPublicExpire,
-    expireAsControlledUser: noPublicExpire,
-    expirePublicAsSystem: noPublicExpire,
     expireSettleAsSystem: (nowMs) =>
       harness.attempt({ type: 'avalon.phase.settleExpired' }, harness.systemContext(nowMs)),
     expireSettleAsUser: (nowMs) =>
@@ -155,7 +148,6 @@ describePhaseDeadlineProtocol({
   makeSession,
   expectations: {
     notExpiredReason: AVALON_REASONS.deadline,
-    publicChannel: null,
     hasSettleCommand: true,
     stalePolicy: 'none',
     staleReason: null,

@@ -85,14 +85,7 @@ function makeSession(): PhaseDeadlineSession {
     return decision;
   };
 
-  const noPublicExpire = (): never => {
-    throw new Error('Werewolf has no public expire command');
-  };
-
   return {
-    expireAsUser: noPublicExpire,
-    expireAsControlledUser: noPublicExpire,
-    expirePublicAsSystem: noPublicExpire,
     expireSettleAsSystem: (nowMs) =>
       attempt({ type: 'werewolf.phase.settleExpired' }, systemContext(nowMs)),
     expireSettleAsUser: (nowMs) =>
@@ -115,7 +108,6 @@ describePhaseDeadlineProtocol({
   makeSession,
   expectations: {
     notExpiredReason: REASON_DEADLINE_NOT_REACHED,
-    publicChannel: null,
     hasSettleCommand: true,
     stalePolicy: 'none',
     staleReason: null,
