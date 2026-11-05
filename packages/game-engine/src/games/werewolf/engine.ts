@@ -110,7 +110,6 @@ function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
     case 'werewolf.sheriff.advance':
     case 'werewolf.sheriff.endBySelfDestruct':
     case 'werewolf.audio.ack':
-    case 'werewolf.phase.expire':
     case 'werewolf.phase.settleExpired':
     case 'werewolf.groupConfirm.ackBots':
     case 'werewolf.growth.applyRosterLevels':
@@ -463,10 +462,8 @@ function decideWerewolfCommandRules(
         true,
       );
     }
-    case 'werewolf.phase.expire':
-      return decidePhaseExpiry(state, context, false);
     case 'werewolf.phase.settleExpired':
-      return decidePhaseExpiry(state, context, true);
+      return decidePhaseExpiry(state, context);
     case 'werewolf.reveal.ack': {
       const actor = resolveEffectiveSeatActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);

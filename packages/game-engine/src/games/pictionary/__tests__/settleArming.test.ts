@@ -182,10 +182,10 @@ describe('Pictionary settle arming invariant', () => {
       if (deadline === null) throw new Error('Expected an armed deadline');
       session.setNow(deadline);
       return effectsOf(session, () => {
-        send({
-          type: 'pictionary.phase.expire',
-          phaseRevision: session.state.phaseRevision,
-        });
+        session.sendAs(
+          { type: 'pictionary.phase.settleExpired' } satisfies PictionaryCommand,
+          session.systemContext('settle'),
+        );
       });
     };
 
@@ -313,10 +313,10 @@ describe('Pictionary settle arming invariant', () => {
       const deadline = session.state.deadlineAt;
       if (deadline === null) throw new Error('Expected an armed deadline');
       session.setNow(deadline);
-      send({
-        type: 'pictionary.phase.expire',
-        phaseRevision: session.state.phaseRevision,
-      });
+      session.sendAs(
+        { type: 'pictionary.phase.settleExpired' } satisfies PictionaryCommand,
+        session.systemContext('settle'),
+      );
     };
 
     for (let stepIndex = 0; stepIndex < NUMBER_OF_PLAYERS; stepIndex += 1) {

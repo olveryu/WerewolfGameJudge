@@ -58,21 +58,20 @@ export function readArmedDeadline(state: GameState): ArmedDeadline | null {
 }
 
 /**
- * Settles the armed deadline once it is reached, via the public expire
- * command (any foreground client may accelerate; uncontrolled-user
- * channel) or the internal settleExpired command (the scheduled
- * `werewolf.settle.due` delivery; system channel). Dispatch is the
- * ordinary inline progression pass from the current state.
+ * Settles the armed deadline once it is reached, via the internal
+ * settleExpired command only (the scheduled `werewolf.settle.due`
+ * delivery; system channel — D3, 2026-11-05, the public expire
+ * command was deleted). Dispatch is the ordinary inline progression
+ * pass from the current state.
  */
 export function decidePhaseExpiry(
   state: GameState,
   context: CommandContext,
-  internal: boolean,
 ): Decision<StateAction, WerewolfEffect> {
   const armed = readArmedDeadline(state);
   return guardPhaseExpiry<StateAction, WerewolfEffect>(context, {
     phaseRejection: isExpirablePhase(state) ? null : reject(REASON_PHASE_NOT_EXPIRABLE),
-    actorChannel: internal ? 'system' : 'uncontrolledUser',
+    actorChannel: 'system',
     deadlineAt: armed === null ? null : armed.deadlineAt,
     notExpiredReason: REASON_DEADLINE_NOT_REACHED,
     dispatch: () => {

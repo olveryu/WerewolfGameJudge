@@ -42,6 +42,18 @@ function userContext(userId: string, nowMs = 2_000): CommandContext {
   };
 }
 
+/** D3: expiry is system-only — the scheduled settle.due delivery's actor. */
+let systemCommandNumber = 0;
+function systemContext(nowMs = 2_000): CommandContext {
+  return {
+    actor: { kind: 'system', effectId: 'settle' },
+    controlledSeat: null,
+    nowMs,
+    commandId: `system:${systemCommandNumber++}`,
+    randomSeed: 'pictionary-sequence-seed',
+  };
+}
+
 function applyDecision(
   state: PictionaryState,
   decision: Decision<PictionaryEvent, PictionaryEffect>,
@@ -119,8 +131,8 @@ function expireCurrentPhase(state: PictionaryState): PictionaryState {
   }
   return dispatch(
     state,
-    { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
-    userContext('user-0', state.deadlineAt),
+    { type: 'pictionary.phase.settleExpired' },
+    systemContext(state.deadlineAt),
   );
 }
 
@@ -333,11 +345,10 @@ describe('Pictionary task sequence', () => {
           );
           state = applyDecision(state, decision);
         }
-        const context = userContext('user-0', state.deadlineAt!);
         const decision = decidePictionaryCommand(
           state,
-          { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
-          context,
+          { type: 'pictionary.phase.settleExpired' },
+          systemContext(state.deadlineAt!),
         );
         if (decision.kind === 'reject') throw new Error(decision.reason);
         expect(decision.effects).toEqual([settleEffectFor(state, decision)]);
@@ -346,8 +357,8 @@ describe('Pictionary task sequence', () => {
       expect(state.phase).toBe('gallery');
       const decision = decidePictionaryCommand(
         state,
-        { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
-        userContext('user-0', state.deadlineAt!),
+        { type: 'pictionary.phase.settleExpired' },
+        systemContext(state.deadlineAt!),
       );
       if (decision.kind === 'reject') throw new Error(decision.reason);
       expect(decision.effects).toEqual([settleEffectFor(state, decision)]);
@@ -381,8 +392,8 @@ describe('Pictionary task sequence', () => {
       expect(
         decidePictionaryCommand(
           state,
-          { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
-          userContext('user-1', 9_000_000),
+          { type: 'pictionary.phase.settleExpired' },
+          systemContext(9_000_000),
         ).kind,
       ).toBe('reject');
       expect(

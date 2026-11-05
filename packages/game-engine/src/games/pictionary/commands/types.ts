@@ -26,7 +26,6 @@ export type PictionaryCommandInput =
   | { readonly type: 'pictionary.text.submit'; readonly text: string }
   | { readonly type: 'pictionary.drawing.reserve' }
   | { readonly type: 'pictionary.game.abort' }
-  | { readonly type: 'pictionary.phase.expire'; readonly phaseRevision: number }
   | { readonly type: 'pictionary.gallery.pause' }
   | { readonly type: 'pictionary.gallery.resume' }
   | { readonly type: 'pictionary.gallery.advance' }

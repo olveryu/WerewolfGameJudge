@@ -52,11 +52,18 @@ function game(numberOfPlayers = 4) {
     }
   };
   const phaseNow = (): PictionaryState['phase'] => session.state.phase;
+  // D3: the public expire command is deleted; the phase is settled
+  // by the internal command on the system channel, as the scheduled
+  // settle.due effect dispatches it.
   const expireCurrentPhase = () => {
     const state = session.state;
     if (state.deadlineAt === null) throw new Error(`Expected ${state.phase} to have a deadline`);
     session.setNow(state.deadlineAt);
-    return send({ type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision });
+    const context = session.systemContext('settle');
+    return session.sendAs(
+      bind(session.state, { type: 'pictionary.phase.settleExpired' }, context),
+      context,
+    );
   };
   /** Authors real content for every seat, so all seats earn the completion roster. */
   const completeCurrentStep = () => {

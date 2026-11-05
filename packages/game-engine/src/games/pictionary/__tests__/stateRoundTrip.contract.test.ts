@@ -120,9 +120,9 @@ class StoredRoom {
     };
   }
 
-  system(nowMs: number): CommandContext {
+  system(nowMs: number, effectId = 'drawing-upload'): CommandContext {
     return {
-      actor: { kind: 'system', effectId: 'drawing-upload' },
+      actor: { kind: 'system', effectId },
       controlledSeat: null,
       nowMs,
       commandId: this.#commandId(),
@@ -154,14 +154,18 @@ class StoredRoom {
     return null;
   }
 
-  /** Expires the current phase at its own deadline, as the worker's timer does. */
+  /**
+   * Settles the current phase at its own deadline, as the scheduled
+   * settle.due delivery does (D3: the internal command rides the
+   * system channel; the public expire command is deleted).
+   */
   expire(nowMs: number): void {
-    const { deadlineAt, phaseRevision } = this.peek();
+    const { deadlineAt } = this.peek();
     if (deadlineAt === null) throw new Error('Expected a phase deadline to expire at');
     expect(
       this.dispatch(
-        { type: 'pictionary.phase.expire', phaseRevision },
-        this.user(HOST, Math.max(nowMs, deadlineAt)),
+        { type: 'pictionary.phase.settleExpired' },
+        this.system(Math.max(nowMs, deadlineAt), 'settle'),
       ),
     ).toBeNull();
   }

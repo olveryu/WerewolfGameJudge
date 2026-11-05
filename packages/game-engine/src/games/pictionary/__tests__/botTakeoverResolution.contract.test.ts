@@ -47,6 +47,18 @@ function user(userId: string, controlledSeat: number | null = null, nowMs = 2_00
   };
 }
 
+/** D3: expiry is system-only — the scheduled settle.due delivery's actor. */
+let systemCommandNumber = 0;
+function system(nowMs = 2_000): CommandContext {
+  return {
+    actor: { kind: 'system', effectId: 'settle' },
+    controlledSeat: null,
+    nowMs,
+    commandId: `system:${systemCommandNumber++}`,
+    randomSeed: 'pictionary-takeover-seed',
+  };
+}
+
 /** The context a seat's own commands arrive with: humans act as themselves, bots via the host. */
 function seatContext(state: PictionaryState, seat: number): CommandContext {
   if (!isBotSeat(state.roster, seat)) {
@@ -115,11 +127,7 @@ function drawingCollectionState(): PictionaryState {
     );
   }
   if (state.deadlineAt === null) throw new Error('Pictionary transition deadline is missing');
-  state = dispatch(
-    state,
-    { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
-    user('host', null, state.deadlineAt),
-  );
+  state = dispatch(state, { type: 'pictionary.phase.settleExpired' }, system(state.deadlineAt));
   state = markEverySeatReady(state);
   if (state.phase !== 'settling' || getPictionaryExpectedKind(state.stepIndex) !== 'drawing') {
     throw new Error('Expected the drawing collection settling phase');

@@ -12,11 +12,13 @@
  * Pictionary's settlement caliber is pinned here too: the round
  * settles when the final step's last entry lands, from the frozen
  * participant list — the caliber Story Relay runs (unified by the
- * 2026-10-18 ruling); entering the gallery settles nothing. Its
- * remaining registered difference, a stale-revision phase.expire
- * silently committing empty instead of rejecting, is pinned here
- * as well — the proposition is that an expired command never
- * changes state.
+ * 2026-10-18 ruling); entering the gallery settles nothing. The
+ * expiry channel is pinned here too (D3, 2026-11-05 — the public
+ * expire command was deleted): the internal settle command only
+ * accepts the system actor, so any user actor is rejected, and a
+ * settle delivery that arrives after the phase already advanced
+ * rejects as not expired — the proposition is that an expired
+ * command never changes state.
  *
  * The task projection's move onto the shared machine (E-4 PR-2) is
  * pinned here too: outside the task phases there is no task, so a
@@ -28,7 +30,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
-import { REASON_NOT_SEATED } from '../../../platform/protocol/reasons';
+import { REASON_SYSTEM_ACTOR_REQUIRED } from '../../../platform/protocol/reasons';
 import type {
   PictionaryCommand,
   PictionaryCommandInput,
@@ -38,6 +40,7 @@ import {
   REASON_PICTIONARY_GALLERY_MANUAL,
   REASON_PICTIONARY_PHASE_EXPIRED,
   REASON_PICTIONARY_PHASE_INVALID,
+  REASON_PICTIONARY_PHASE_NOT_EXPIRED,
   REASON_PICTIONARY_TASK_ALREADY_SUBMITTED,
   REASON_PICTIONARY_TASK_INVALID,
 } from '../domain/reasons';
@@ -85,11 +88,17 @@ function game(galleryItemDurationSeconds: 10 | null = 10) {
   }
   send({ type: 'pictionary.game.begin' });
 
+  // D3: the public expire command is deleted; the phase is settled
+  // by the internal command on the system channel, as the scheduled
+  // settle.due effect dispatches it.
   function expireCurrentPhase() {
     const state = session.state;
     if (state.deadlineAt === null) throw new Error(`Expected ${state.phase} to have a deadline`);
     session.setNow(state.deadlineAt);
-    return send({ type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision });
+    return session.sendAs(
+      { type: 'pictionary.phase.settleExpired' } satisfies PictionaryCommand,
+      session.systemContext('settle'),
+    );
   }
 
   /** Authors real content for one seat at the current settling step. */
@@ -318,24 +327,27 @@ describe('Pictionary relay-chain contract', () => {
     expect(session.state.phase).toBe('lobby');
   });
 
-  it('never lets a stale-revision command change state', () => {
+  it('rejects stale-revision commands and late settle deliveries', () => {
     const session = game();
     const staleRevision = session.state.phaseRevision;
     session.expireCurrentPhase();
+    expect(session.state.phase).toBe('settling');
+    const beforeSettle = session.state;
+    // D3: the internal settle command carries no revision, so there
+    // is no stale-revision expire anymore. What is still true is
+    // that a settle delivery arriving after the phase already
+    // advanced changes nothing: the settling phase carries no
+    // deadline, so the guard rejects it as not expired.
+    expect(
+      session.session.decideAs(
+        { type: 'pictionary.phase.settleExpired' } satisfies PictionaryCommand,
+        session.session.systemContext('settle'),
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_PICTIONARY_PHASE_NOT_EXPIRED });
+    expect(session.state.phaseRevision).toBe(beforeSettle.phaseRevision);
+    expect(session.state.phase).toBe('settling');
     for (let seat = 0; seat < NUMBER_OF_PLAYERS; seat += 1)
       session.send({ type: 'pictionary.text.submit', text: `seat-${seat}` }, `user-${seat}`);
-    expect(session.state.phase).toBe('transition');
-    const before = session.state;
-    // Pictionary's registered difference: a stale expire silently
-    // commits empty (its client timer polls on the empty commit).
-    const decision = session.decide({
-      type: 'pictionary.phase.expire',
-      phaseRevision: staleRevision,
-    });
-    expect(decision.kind).toBe('commit');
-    if (decision.kind === 'commit') expect(decision.events).toHaveLength(0);
-    session.send({ type: 'pictionary.phase.expire', phaseRevision: staleRevision });
-    expect(session.state.phaseRevision).toBe(before.phaseRevision);
     expect(session.state.phase).toBe('transition');
     // A stale phase command (gallery controls carry the revision)
     // rejects instead, through the engine's entry gate.
@@ -351,19 +363,23 @@ describe('Pictionary relay-chain contract', () => {
     });
   });
 
-  it('rejects phase.expire from a user who is neither host nor seated', () => {
+  it('rejects settleExpired from any user actor — the channel is system-only', () => {
     const session = game();
     const deadline = session.state.deadlineAt;
     if (deadline === null) throw new Error('Missing answering deadline');
     session.setNow(deadline);
     const before = session.state;
-    // D1' (2026-11-04) restored Pictionary's host-or-seated actor
-    // gate, overturning D1: a spectator sends no expire.
-    const decision = session.decide(
-      { type: 'pictionary.phase.expire', phaseRevision: before.phaseRevision },
-      'user-99',
-    );
-    expect(decision).toEqual({ kind: 'reject', reason: REASON_NOT_SEATED });
+    // D3 (2026-11-05): the public expire channel is deleted and
+    // the D1' host-or-seated gate died with it. The internal settle
+    // command only accepts the system actor, so every user — the
+    // host, a seated player, and a spectator alike — is rejected
+    // the same way, and the phase never moves.
+    for (const userId of ['user-99', 'user-0', 'user-1']) {
+      expect(session.decide({ type: 'pictionary.phase.settleExpired' }, userId)).toEqual({
+        kind: 'reject',
+        reason: REASON_SYSTEM_ACTOR_REQUIRED,
+      });
+    }
     expect(session.state.phaseRevision).toBe(before.phaseRevision);
     expect(session.state.phase).toBe(before.phase);
   });
@@ -372,8 +388,8 @@ describe('Pictionary relay-chain contract', () => {
     const session = game();
     // Late readiness: the answering deadline has passed, so the
     // shared machine's deadline gate rejects with the dedicated
-    // expired reason (not the not-expired reason the host's early
-    // finish/expire path uses).
+    // expired reason (not the not-expired reason a premature
+    // settle delivery gets).
     const answeringDeadline = session.state.deadlineAt;
     if (answeringDeadline === null) throw new Error('Missing answering deadline');
     session.setNow(answeringDeadline);

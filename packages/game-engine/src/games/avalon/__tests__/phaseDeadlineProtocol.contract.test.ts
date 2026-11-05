@@ -1,15 +1,14 @@
 /**
  * Phase Deadline Protocol — avalon scenario (E-2).
  *
- * Avalon's registered assembly: dual channel — the public expire
- * command travels on the uncontrolled-user channel (any foreground
- * client may accelerate the settlement), while the internal
- * settleExpired command, dispatched by the scheduled
- * `avalon.settle.due` effect, travels on the system channel.
- * Neither command carries a revision; correctness for the internal
- * channel rides on the worker's pinned-arming staleness gate, not
- * on a revision check. Same-named scenario files live in each
- * switched game's __tests__.
+ * Avalon's registered assembly: system only (D3, 2026-11-05 —
+ * the public expire command was deleted). There is no public expire
+ * command at all; the scheduled `avalon.settle.due` effect is the
+ * sole expiry channel and dispatches the internal settleExpired
+ * command on the system channel. Neither command carries a
+ * revision; correctness rides on the worker's pinned-arming
+ * staleness gate, not on a revision check. Same-named scenario
+ * files live in each switched game's __tests__.
  */
 
 import type { CommandContext } from '../../../platform/engine';
@@ -122,13 +121,14 @@ function makeSession(): PhaseDeadlineSession {
   const armedPhase = harness.state().phase;
   const current = () => harness.state();
 
+  const noPublicExpire = (): never => {
+    throw new Error('Avalon has no public expire command');
+  };
+
   return {
-    expireAsUser: (nowMs) =>
-      harness.attempt({ type: 'avalon.phase.expire' }, harness.userContext('host', null, nowMs)),
-    expireAsControlledUser: (nowMs) =>
-      harness.attempt({ type: 'avalon.phase.expire' }, harness.userContext('host', 1, nowMs)),
-    expirePublicAsSystem: (nowMs) =>
-      harness.attempt({ type: 'avalon.phase.expire' }, harness.systemContext(nowMs)),
+    expireAsUser: noPublicExpire,
+    expireAsControlledUser: noPublicExpire,
+    expirePublicAsSystem: noPublicExpire,
     expireSettleAsSystem: (nowMs) =>
       harness.attempt({ type: 'avalon.phase.settleExpired' }, harness.systemContext(nowMs)),
     expireSettleAsUser: (nowMs) =>
@@ -155,7 +155,7 @@ describePhaseDeadlineProtocol({
   makeSession,
   expectations: {
     notExpiredReason: AVALON_REASONS.deadline,
-    publicChannel: 'uncontrolledUser',
+    publicChannel: null,
     hasSettleCommand: true,
     stalePolicy: 'none',
     staleReason: null,

@@ -1,22 +1,16 @@
 /**
  * Phase Deadline Protocol — story relay scenario (E-2).
  *
- * Story Relay's registered assembly: the public expire command
- * travels on the uncontrolled-user channel with the host-or-seated
- * actor gate (D1', 2026-11-04: a spectator sends no expire), and
- * its revision policy is 'reject', assembled at the decide entry —
- * every revisioned command is rejected there before dispatch, so
- * the guard itself injects no revision gate. The scheduled
- * `storyrelay.settle.due` effect is the correctness path: the
- * internal settle command travels on the system channel and runs
- * the same expiry decide as the public expire command.
+ * Story Relay's registered assembly: system only (D3, 2026-11-05 —
+ * the public expire command was deleted). There is no public expire
+ * command at all; the scheduled `storyrelay.settle.due` effect is
+ * the sole expiry channel and dispatches the internal settleExpired
+ * command on the system channel. The command carries no revision;
+ * correctness rides on the worker's pinned-arming staleness gate.
  * Same-named scenario files live in each switched game's __tests__.
  */
 
-import { describe, expect, it } from 'vitest';
-
 import type { CommandContext } from '../../../platform/engine';
-import { REASON_NOT_SEATED } from '../../../platform/protocol/reasons';
 import {
   describePhaseDeadlineProtocol,
   type PhaseDeadlineSession,
@@ -27,21 +21,8 @@ import { storyRelayEngine } from '../engine';
 import { parseStoryRelayState } from '../state/parseState';
 import { DEFAULT_STORY_RELAY_CONFIG, type StoryRelayState } from '../state/types';
 
-/** The shared session plus the actor-gate drivers (D1'). */
-interface StoryRelayGateSession extends PhaseDeadlineSession {
-  /** Public expire command as an unseated, non-host user. */
-  expireAsSpectator(nowMs: number): StoryRelayDecision;
-  /** Public expire command as a seated, non-host user. */
-  expireAsSeatedNonHost(nowMs: number): StoryRelayDecision;
-  /** Public expire command as the room's host. */
-  expireAsHost(nowMs: number): StoryRelayDecision;
-}
-
-function makeSession(
-  options: { hostUserId?: string; hostSeated?: boolean } = {},
-): StoryRelayGateSession {
-  const hostUserId = options.hostUserId ?? 'host';
-  const hostSeated = options.hostSeated ?? true;
+function makeSession(): PhaseDeadlineSession {
+  const hostUserId = 'host';
   let state: StoryRelayState = storyRelayEngine.createInitialState(
     { ...DEFAULT_STORY_RELAY_CONFIG, numberOfPlayers: 4, transitionDurationSeconds: 0 },
     { roomCode: '1234', hostUserId, nowMs: 1000, commandId: 'create' },
@@ -92,32 +73,28 @@ function makeSession(
     if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
   };
 
-  takeSeat(0, hostSeated ? hostUserId : 'player-0', hostSeated ? 'Host' : 'Player 1');
+  takeSeat(0, hostUserId, 'Host');
   takeSeat(1, 'player-1', 'Player 2');
   send({ type: 'room.seat.fillBots' });
   send({ type: 'storyrelay.game.begin' });
   const armedPhase = state.phase;
 
-  const expire = (phaseRevision: number, context: CommandContext) =>
-    attempt({ type: 'storyrelay.phase.expire', phaseRevision }, context);
+  const noPublicExpire = (): never => {
+    throw new Error('Story Relay has no public expire command');
+  };
 
   const expireSettle = (context: CommandContext) =>
     attempt({ type: 'storyrelay.phase.settleExpired' }, context);
 
   return {
-    expireAsUser: (nowMs) => expire(state.phaseRevision, userContext(hostUserId, null, nowMs)),
-    expireAsControlledUser: (nowMs) =>
-      expire(state.phaseRevision, userContext(hostUserId, 1, nowMs)),
-    expirePublicAsSystem: (nowMs) => expire(state.phaseRevision, systemContext(nowMs)),
+    expireAsUser: noPublicExpire,
+    expireAsControlledUser: noPublicExpire,
+    expirePublicAsSystem: noPublicExpire,
     expireSettleAsSystem: (nowMs) => expireSettle(systemContext(nowMs)),
     expireSettleAsUser: (nowMs) => expireSettle(userContext(hostUserId, null, nowMs)),
-    expireAsSpectator: (nowMs) =>
-      expire(state.phaseRevision, userContext('spectator', null, nowMs)),
-    expireAsSeatedNonHost: (nowMs) =>
-      expire(state.phaseRevision, userContext('player-1', null, nowMs)),
-    expireAsHost: (nowMs) => expire(state.phaseRevision, userContext(hostUserId, null, nowMs)),
-    expireWithStaleRevision: (nowMs) =>
-      expire(state.phaseRevision + 1, userContext('host', null, nowMs)),
+    expireWithStaleRevision: () => {
+      throw new Error('Story Relay settle commands carry no revision');
+    },
     deadlineAt: () => {
       if (state.deadlineAt === null) throw new Error('Expected an armed deadline');
       return state.deadlineAt;
@@ -131,36 +108,10 @@ describePhaseDeadlineProtocol({
   makeSession,
   expectations: {
     notExpiredReason: STORY_RELAY_REASONS.deadline,
-    publicChannel: 'uncontrolledUser',
+    publicChannel: null,
     hasSettleCommand: true,
-    stalePolicy: 'reject',
-    staleReason: STORY_RELAY_REASONS.task,
+    stalePolicy: 'none',
+    staleReason: null,
     dispatchAdvances: true,
   },
-});
-
-describe("Phase Deadline Protocol - storyrelay actor gate (D1')", () => {
-  // The decide entry's revision gate runs before the shared guard,
-  // so these cases carry the current revision: a stale revision
-  // from any actor hears the entry rejection first.
-  it('rejects a spectator (neither host nor seated) at the deadline', () => {
-    const session = makeSession();
-    const decision = session.expireAsSpectator(session.deadlineAt());
-    expect(decision).toEqual({ kind: 'reject', reason: REASON_NOT_SEATED });
-    expect(session.hasAdvanced()).toBe(false);
-  });
-
-  it('commits expiry from a seated non-host user', () => {
-    const session = makeSession();
-    const decision = session.expireAsSeatedNonHost(session.deadlineAt());
-    expect(decision.kind).toBe('commit');
-    expect(session.hasAdvanced()).toBe(true);
-  });
-
-  it('commits expiry from the host even when the host holds no seat', () => {
-    const session = makeSession({ hostUserId: 'outsider', hostSeated: false });
-    const decision = session.expireAsHost(session.deadlineAt());
-    expect(decision.kind).toBe('commit');
-    expect(session.hasAdvanced()).toBe(true);
-  });
 });

@@ -1,17 +1,16 @@
 /**
  * Phase Deadline Protocol — werewolf scenario (E-2).
  *
- * Werewolf's registered assembly: dual channel — the public expire
- * command travels on the uncontrolled-user channel (any foreground
- * client may accelerate the settlement), while the internal
- * settleExpired command, dispatched by the scheduled
- * `werewolf.settle.due` effect, travels on the system channel.
- * Neither command carries a revision; correctness for the internal
- * channel rides on the worker's pinned-arming staleness gate. The
- * session below is the wolf-vote settle countdown: every wolf has
- * voted and the step deadline is armed, so expiry advances the
- * night step. Same-named scenario files live in each switched
- * game's __tests__.
+ * Werewolf's registered assembly: system only (D3, 2026-11-05 —
+ * the public expire command was deleted). There is no public expire
+ * command at all; the scheduled `werewolf.settle.due` effect is the
+ * sole expiry channel and dispatches the internal settleExpired
+ * command on the system channel. Neither command carries a
+ * revision; correctness rides on the worker's pinned-arming
+ * staleness gate. The session below is the wolf-vote settle
+ * countdown: every wolf has voted and the step deadline is armed,
+ * so expiry advances the night step. Same-named scenario files
+ * live in each switched game's __tests__.
  */
 
 import type { CommandContext } from '../../../platform/engine';
@@ -86,12 +85,14 @@ function makeSession(): PhaseDeadlineSession {
     return decision;
   };
 
+  const noPublicExpire = (): never => {
+    throw new Error('Werewolf has no public expire command');
+  };
+
   return {
-    expireAsUser: (nowMs) => attempt({ type: 'werewolf.phase.expire' }, userContext(null, nowMs)),
-    expireAsControlledUser: (nowMs) =>
-      attempt({ type: 'werewolf.phase.expire' }, userContext(2, nowMs)),
-    expirePublicAsSystem: (nowMs) =>
-      attempt({ type: 'werewolf.phase.expire' }, systemContext(nowMs)),
+    expireAsUser: noPublicExpire,
+    expireAsControlledUser: noPublicExpire,
+    expirePublicAsSystem: noPublicExpire,
     expireSettleAsSystem: (nowMs) =>
       attempt({ type: 'werewolf.phase.settleExpired' }, systemContext(nowMs)),
     expireSettleAsUser: (nowMs) =>
@@ -114,7 +115,7 @@ describePhaseDeadlineProtocol({
   makeSession,
   expectations: {
     notExpiredReason: REASON_DEADLINE_NOT_REACHED,
-    publicChannel: 'uncontrolledUser',
+    publicChannel: null,
     hasSettleCommand: true,
     stalePolicy: 'none',
     staleReason: null,

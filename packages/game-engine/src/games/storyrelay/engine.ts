@@ -8,7 +8,6 @@ import {
   reject,
   requireHost,
 } from '../../platform/engine';
-import { REASON_NOT_SEATED } from '../../platform/protocol/reasons';
 import { guardPhaseExpiry } from '../../platform/room/phaseDeadline';
 import { buildRelayChains, buildRelayParticipants } from '../../platform/room/relay/assignment';
 import { expireRelayPhase, relayDeadline } from '../../platform/room/relay/clock';
@@ -32,7 +31,6 @@ import {
 import { decideStoryRelayRoom } from './domain/seating';
 import { normalizeStoryRelayState } from './state/normalize';
 import {
-  getStoryRelayUserSeat,
   isValidStoryRelayConfig,
   STORY_RELAY_GAME_TYPE,
   type StoryRelayConfig,
@@ -111,26 +109,15 @@ function startRound(state: StoryRelayState, context: CommandContext): StoryRelay
   );
 }
 
-function expirePhase(
-  state: StoryRelayState,
-  context: CommandContext,
-  internal: boolean,
-): StoryRelayDecision {
+function expirePhase(state: StoryRelayState, context: CommandContext): StoryRelayDecision {
   // The revision gate for this command runs in decideStoryRelayCommand
   // (stale revisions reject there); the shared guard sequence covers
-  // the actor and deadline gates and the dispatch. The public
-  // command carries the host-or-seated actor gate (D1', 2026-11-04:
-  // a spectator sends no expire); the internal channel carries no
-  // actor gate and no revision gate: staleness is the Worker
+  // the actor and deadline gates and the dispatch. System channel
+  // only (D3, 2026-11-05 — the public expire command was deleted):
+  // no actor gate and no revision gate — staleness is the Worker
   // isCurrent comparison, not a command field.
   return guardPhaseExpiry(context, {
-    actorChannel: internal ? 'system' : 'uncontrolledUser',
-    checkActor: internal
-      ? undefined
-      : (actorUserId) =>
-          actorUserId !== state.hostUserId && getStoryRelayUserSeat(state, actorUserId) === null
-            ? reject(REASON_NOT_SEATED)
-            : null,
+    actorChannel: 'system',
     deadlineAt: state.deadlineAt,
     notExpiredReason: STORY_RELAY_REASONS.deadline,
     dispatch: (nowMs) =>
@@ -167,10 +154,8 @@ export function decideStoryRelayCommand(
     case 'storyrelay.text.submit':
     case 'storyrelay.task.empty.submit':
       return decideStoryRelayTask(state, command, context);
-    case 'storyrelay.phase.expire':
-      return expirePhase(state, context, false);
     case 'storyrelay.phase.settleExpired':
-      return expirePhase(state, context, true);
+      return expirePhase(state, context);
     default:
       break;
   }

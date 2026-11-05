@@ -1,21 +1,16 @@
 /**
  * Phase Deadline Protocol — pictionary scenario (E-2).
  *
- * Pictionary's registered assembly: the public expire command
- * travels on the uncontrolled-user channel with the host-or-seated
- * actor gate (D1', 2026-11-04: a spectator sends no expire), a
- * stale revision silently commits empty (which is why the decide
- * entry exempts this command from the revision rejection every
- * other revisioned command gets), and the scheduled settle.due
- * effect settles through the internal settleExpired command on
- * the system channel. Same-named scenario files live in each
- * switched game's __tests__.
+ * Pictionary's registered assembly: system only (D3, 2026-11-05 —
+ * the public expire command was deleted). There is no public expire
+ * command at all; the scheduled settle.due effect is the sole
+ * expiry channel and dispatches the internal settleExpired command
+ * on the system channel. The command carries no revision;
+ * correctness rides on the worker's pinned-arming staleness gate.
+ * Same-named scenario files live in each switched game's __tests__.
  */
 
-import { describe, expect, it } from 'vitest';
-
 import type { CommandContext, Decision } from '../../../platform/engine';
-import { REASON_NOT_SEATED } from '../../../platform/protocol/reasons';
 import {
   describePhaseDeadlineProtocol,
   type PhaseDeadlineSession,
@@ -28,15 +23,7 @@ import { parsePictionaryState } from '../state/parseState';
 import { DEFAULT_PICTIONARY_CONFIG, type PictionaryState } from '../state/types';
 import { bindPictionaryCommand, type PictionaryInput } from './commandBinding';
 
-/** The shared session plus the actor-gate drivers (D1'). */
-interface PictionaryGateSession extends PhaseDeadlineSession {
-  /** Public expire command as an unseated, non-host user. */
-  expireAsSpectator(nowMs: number): Decision<PictionaryEvent, PictionaryEffect>;
-  /** Public expire command as the room's host. */
-  expireAsHost(nowMs: number): Decision<PictionaryEvent, PictionaryEffect>;
-}
-
-function makeSession(hostUserId = 'user-0'): PictionaryGateSession {
+function makeSession(hostUserId = 'user-0'): PhaseDeadlineSession {
   let state: PictionaryState = pictionaryEngine.createInitialState(
     { ...DEFAULT_PICTIONARY_CONFIG, numberOfPlayers: 4, drawingDurationSeconds: 90 },
     { roomCode: '2468', hostUserId, nowMs: 1000, commandId: 'create' },
@@ -93,8 +80,9 @@ function makeSession(hostUserId = 'user-0'): PictionaryGateSession {
   send({ type: 'pictionary.game.begin' }, hostUserId);
   const armedPhase = state.phase;
 
-  const expire = (phaseRevision: number, context: CommandContext) =>
-    attempt({ type: 'pictionary.phase.expire', phaseRevision }, context);
+  const noPublicExpire = (): never => {
+    throw new Error('Pictionary has no public expire command');
+  };
 
   const expireSettle = (context: CommandContext) => {
     const decision = pictionaryEngine.decide(
@@ -107,15 +95,14 @@ function makeSession(hostUserId = 'user-0'): PictionaryGateSession {
   };
 
   return {
-    expireAsUser: (nowMs) => expire(state.phaseRevision, userContext('user-1', null, nowMs)),
-    expireAsControlledUser: (nowMs) => expire(state.phaseRevision, userContext('user-1', 1, nowMs)),
-    expirePublicAsSystem: (nowMs) => expire(state.phaseRevision, systemContext(nowMs)),
+    expireAsUser: noPublicExpire,
+    expireAsControlledUser: noPublicExpire,
+    expirePublicAsSystem: noPublicExpire,
     expireSettleAsSystem: (nowMs) => expireSettle(systemContext(nowMs)),
     expireSettleAsUser: (nowMs) => expireSettle(userContext('user-1', null, nowMs)),
-    expireAsSpectator: (nowMs) => expire(state.phaseRevision, userContext('user-99', null, nowMs)),
-    expireAsHost: (nowMs) => expire(state.phaseRevision, userContext(hostUserId, null, nowMs)),
-    expireWithStaleRevision: (nowMs) =>
-      expire(state.phaseRevision + 1, userContext('user-0', null, nowMs)),
+    expireWithStaleRevision: () => {
+      throw new Error('Pictionary settle commands carry no revision');
+    },
     deadlineAt: () => {
       if (state.deadlineAt === null) throw new Error('Expected an armed deadline');
       return state.deadlineAt;
@@ -129,33 +116,10 @@ describePhaseDeadlineProtocol({
   makeSession,
   expectations: {
     notExpiredReason: REASON_PICTIONARY_PHASE_NOT_EXPIRED,
-    publicChannel: 'uncontrolledUser',
+    publicChannel: null,
     hasSettleCommand: true,
-    stalePolicy: 'silent',
+    stalePolicy: 'none',
     staleReason: null,
     dispatchAdvances: true,
   },
-});
-
-describe("Phase Deadline Protocol - pictionary actor gate (D1')", () => {
-  it('rejects a spectator (neither host nor seated) at the deadline', () => {
-    const session = makeSession();
-    const decision = session.expireAsSpectator(session.deadlineAt());
-    expect(decision).toEqual({ kind: 'reject', reason: REASON_NOT_SEATED });
-    expect(session.hasAdvanced()).toBe(false);
-  });
-
-  it('commits expiry from a seated non-host user', () => {
-    const session = makeSession();
-    const decision = session.expireAsUser(session.deadlineAt());
-    expect(decision.kind).toBe('commit');
-    expect(session.hasAdvanced()).toBe(true);
-  });
-
-  it('commits expiry from the host even when the host holds no seat', () => {
-    const session = makeSession('user-9');
-    const decision = session.expireAsHost(session.deadlineAt());
-    expect(decision.kind).toBe('commit');
-    expect(session.hasAdvanced()).toBe(true);
-  });
 });

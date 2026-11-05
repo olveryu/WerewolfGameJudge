@@ -60,10 +60,10 @@ function game(galleryItemDurationSeconds: 10 | null = 10) {
     expire() {
       if (session.state.deadlineAt === null) throw new Error('Missing deadline');
       session.setNow(session.state.deadlineAt);
-      return send({
-        type: 'storyrelay.phase.expire',
-        phaseRevision: session.state.phaseRevision,
-      });
+      return session.sendAs(
+        { type: 'storyrelay.phase.settleExpired' },
+        session.systemContext('settle'),
+      );
     },
     submit(seat: number, text: string) {
       return send(
@@ -173,7 +173,7 @@ describe('Story Relay relay-chain contract', () => {
     );
   });
 
-  it('advances phaseRevision only on phase-bearing events and rejects stale revisions', () => {
+  it('advances phaseRevision only on phase-bearing events and rejects stale revisions on revisioned commands', () => {
     const session = game();
     const revision = () => session.state.phaseRevision;
     const afterStart = revision();
@@ -189,8 +189,11 @@ describe('Story Relay relay-chain contract', () => {
     for (let seat = 1; seat < NUMBER_OF_PLAYERS; seat += 1) session.submit(seat, `seat-${seat}`);
     expect(revision()).toBe(afterStart + 2);
     const before = session.state;
+    // The settle command carries no revision (D3), so the stale-revision
+    // pin lives on a real revisioned command: abort with the pre-round
+    // revision rejects at the decide entry, before any host/phase gate.
     session.expectReject(
-      { type: 'storyrelay.phase.expire', phaseRevision: afterStart },
+      { type: 'storyrelay.game.abort', phaseRevision: afterStart },
       'storyrelay_task_changed',
     );
     expect(session.state).toBe(before);

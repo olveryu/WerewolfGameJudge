@@ -152,15 +152,12 @@ function driver(options: DriverOptions = {}) {
       }
       return last!;
     },
-    expire() {
-      if (state.deadlineAt === null) throw new Error('Missing deadline');
-      nowMs = state.deadlineAt;
-      return send({ type: 'storyrelay.phase.expire', phaseRevision: state.phaseRevision });
-    },
     expireSettle() {
       if (state.deadlineAt === null) throw new Error('Missing deadline');
       nowMs = state.deadlineAt;
-      return decide({ type: 'storyrelay.phase.settleExpired' }, systemContext());
+      const decision = decide({ type: 'storyrelay.phase.settleExpired' }, systemContext());
+      if (decision.kind !== 'commit') throw new Error(`rejected: ${decision.reason}`);
+      return decision;
     },
     gallery(command: 'pause' | 'resume' | 'advance' | 'rewind' | 'finish') {
       return send({
@@ -171,7 +168,7 @@ function driver(options: DriverOptions = {}) {
     playStep(step: number) {
       this.readyAll();
       this.submitAll(step);
-      return this.expire();
+      return this.expireSettle();
     },
   };
 }
@@ -211,22 +208,22 @@ describe('Story Relay settle arming', () => {
     session.expectPinMatchesState(decision);
   });
 
-  it('arms the next answering step when a transition expires', () => {
+  it('arms the next answering step when the system settles a transition deadline', () => {
     const session = driver();
     session.begin();
     session.readyAll();
     session.submitAll(0);
-    const decision = session.expire();
+    const decision = session.expireSettle();
     expect(session.state.phase).toBe('answering');
     expect(session.state.stepIndex).toBe(1);
     expect(session.state.deadlineAt).toBe(4000 + 90_000);
     session.expectPinMatchesState(decision);
   });
 
-  it('arms nothing when an answering phase expires into settling', () => {
+  it('arms nothing when the system settles an answering phase into settling', () => {
     const session = driver();
     session.begin();
-    const decision = session.expire();
+    const decision = session.expireSettle();
     expect(session.state.phase).toBe('settling');
     expect(session.state.deadlineAt).toBeNull();
     expect(session.settleOf(decision)).toHaveLength(0);
@@ -255,28 +252,28 @@ describe('Story Relay settle arming', () => {
     expect(second.state.phase).toBe('answering');
   });
 
-  it('arms the gallery deadline when a completed round expires into the gallery', () => {
+  it('arms the gallery deadline when the system settles a completed round into the gallery', () => {
     const session = driver();
     session.begin();
     for (let step = 0; step < NUMBER_OF_PLAYERS - 1; step += 1) session.playStep(step);
     session.readyAll();
     session.submitAll(NUMBER_OF_PLAYERS - 1);
     expect(session.state.phase).toBe('transition');
-    const galleryDecision = session.expire();
+    const galleryDecision = session.expireSettle();
     expect(session.state.phase).toBe('gallery');
     expect(session.state.gallery).toMatchObject({ position: 0, isPlaying: true });
     expect(session.state.deadlineAt).toBe(session.now + 10_000);
     session.expectPinMatchesState(galleryDecision);
   });
 
-  it('re-arms the settle effect when a gallery deadline expires', () => {
+  it('re-arms the settle effect when the system settles a gallery deadline', () => {
     const session = driver();
     session.begin();
     for (let step = 0; step < NUMBER_OF_PLAYERS; step += 1) session.playStep(step);
     expect(session.state.phase).toBe('gallery');
     expect(session.state.gallery).toMatchObject({ position: 0, isPlaying: true });
     const stepIndex = session.state.stepIndex;
-    const decision = session.expire();
+    const decision = session.expireSettle();
     expect(session.state.phase).toBe('gallery');
     expect(session.state.gallery).toMatchObject({ position: 1, isPlaying: true });
     expect(session.state.stepIndex).toBe(stepIndex);
@@ -320,7 +317,7 @@ describe('Story Relay settle arming', () => {
     for (let step = 0; step < NUMBER_OF_PLAYERS - 1; step += 1) session.playStep(step);
     session.readyAll();
     session.submitAll(NUMBER_OF_PLAYERS - 1);
-    const decision = session.expire();
+    const decision = session.expireSettle();
     expect(session.state.phase).toBe('gallery');
     expect(session.state.deadlineAt).toBeNull();
     expect(session.settleOf(decision)).toHaveLength(0);

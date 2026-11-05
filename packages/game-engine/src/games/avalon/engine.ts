@@ -430,25 +430,18 @@ function castVote(state: AvalonState, vote: AvalonBallot, context: CommandContex
 
 /**
  * Settles the current phase when the reveal countdown expires, via the
- * public expire command (client acceleration) or the internal
- * settleExpired command (the scheduled `avalon.settle.due` effect,
- * which is the correctness path). Both channels run the shared expiry
- * guard: the public command travels on the uncontrolled-user channel
- * (any foreground client may accelerate the settlement), the internal
- * command on the system channel. The countdown is armed only once
+ * internal settleExpired command only (the scheduled `avalon.settle.due`
+ * effect, which is the correctness path — D3, 2026-11-05, the public
+ * expire command was deleted). The countdown is armed only once
  * every seat has voted / every team seat has played, so this settles
  * the final ballot or play set; dispatch is by the current phase.
  */
-function timeoutSettle(
-  state: AvalonState,
-  context: CommandContext,
-  internal: boolean,
-): AvalonDecision {
+function timeoutSettle(state: AvalonState, context: CommandContext): AvalonDecision {
   const phase = state.phase;
   return guardPhaseExpiry(context, {
     phaseRejection:
       phase.kind === 'vote' || phase.kind === 'quest' ? null : reject(AVALON_REASONS.phase),
-    actorChannel: internal ? 'system' : 'uncontrolledUser',
+    actorChannel: 'system',
     deadlineAt: phase.kind === 'vote' || phase.kind === 'quest' ? phase.deadlineAt : null,
     notExpiredReason: AVALON_REASONS.deadline,
     dispatch: () => {
@@ -772,10 +765,8 @@ function decideCommand(
       return castVote(state, command.vote, context);
     case 'avalon.quest.play':
       return playQuest(state, command.play, context);
-    case 'avalon.phase.expire':
-      return timeoutSettle(state, context, false);
     case 'avalon.phase.settleExpired':
-      return timeoutSettle(state, context, true);
+      return timeoutSettle(state, context);
     case 'avalon.lady.check':
       return checkLady(state, command.seat, context);
     case 'avalon.lady.acknowledge':

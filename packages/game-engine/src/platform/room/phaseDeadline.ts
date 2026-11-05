@@ -11,18 +11,19 @@
  * injected; the per-game assembly is registered in
  * `platform/__tests__/phaseDeadlineVariants.contract.test.ts`:
  *
- * - Actor channel: most games resolve an uncontrolled user.
- *   Dual-channel games (public user command, internal system settle
- *   command) call the guard once per channel from their decide
- *   switch; system-only games have no public expire command at all —
- *   the scheduled effect is their only channel.
- * - Revision policy: a stale revision rejects, or silently commits
- *   empty (Pictionary, injected via `revision.onStale`), decided per
- *   game. The checks are an array because a phase identity can be a
- *   pair (DrawGuess: phaseRevision + turnIndex). A game whose decide
- *   entry already rejects every stale revisioned command (Story
- *   Relay) injects no revision gate here — the entry gate is the
- *   assembly its reject policy derives, not a second policy.
+ * - Actor channel: every stage-deadline game settles on the system
+ *   channel only. There is no public expire command: the scheduled
+ *   settle.due effect is the sole channel (D3, 2026-11-05 — the
+ *   client acceleration channel was deleted in all five games).
+ *   Dual-channel and uncontrolled-user expiry are gone; do not
+ *   reintroduce a client-sent expiry path.
+ * - Revision policy: the internal settle command carries no revision
+ *   in any game — there is no revision gate on the expiry path at
+ *   all. Staleness is the worker's pinned-arming gate, which
+ *   compares the settle.due effect payload field by field. (A game
+ *   whose decide entry already rejects stale revisions on its other
+ *   revisioned commands, e.g. Story Relay, keeps that entry gate for
+ *   those commands; it has nothing to do with expiry.)
  * - Settle pinning: games whose correctness path is a scheduled
  *   settle.due effect pin the arming in its payload (see
  *   `buildSettleDueEffect`). Avalon, Werewolf, Demo, Pictionary,

@@ -36,7 +36,7 @@ function asMigrated(state: AvalonState): AvalonState {
   return { ...state, audioBatchId: 0 };
 }
 
-/** Fires the armed countdown through the public expire command at its deadline. */
+/** Fires the armed countdown through the internal system settle command at its deadline. */
 function dispatchSettle(state: AvalonState): AvalonState {
   const phase = state.phase;
   if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) {
@@ -44,10 +44,16 @@ function dispatchSettle(state: AvalonState): AvalonState {
   }
   const decision = avalonEngine.decide(
     state,
-    { type: 'avalon.phase.expire' },
-    { ...context('host', 'avalon.phase.expire'), nowMs: phase.deadlineAt },
+    { type: 'avalon.phase.settleExpired' },
+    {
+      actor: { kind: 'system', effectId: 'settle' },
+      controlledSeat: null,
+      nowMs: phase.deadlineAt,
+      commandId: 'avalon.phase.settleExpired',
+      randomSeed: 'roles',
+    },
   );
-  if (decision.kind === 'reject') throw new Error(`Rejected expire: ${decision.reason}`);
+  if (decision.kind === 'reject') throw new Error(`Rejected settleExpired: ${decision.reason}`);
   return avalonEngine.normalize(decision.events.reduce(avalonEngine.evolve, state));
 }
 
