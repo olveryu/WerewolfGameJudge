@@ -257,7 +257,7 @@ function PortraitFigure({ tagText, tagTone, roleId, seat, dimmed, hideTag }: Por
     <View style={[styles.figure, hideTag === true ? styles.figureBare : null]}>
       {hideTag !== true && <FigureTag text={tagText} tone={tagTone} />}
       {roleId === undefined ? (
-        <SeatMedal seat={seat} size="medium" tone="neutral" />
+        <SeatMedal seat={seat} size="medium" tone="neutral" dimmed={dimmed} />
       ) : (
         <Image
           source={getRoleAvatar(roleId)}
@@ -470,7 +470,7 @@ function ReportHeader({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Action grouping: faction groups of rows
+// Standalone did-not-act rows
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Kinds that render as a dimmed did-not-act row when they stand alone. */
@@ -783,7 +783,12 @@ function DirectedActionRow({
         const tone = resultLabel === '狼人' ? 'bad' : resultLabel === '好人' ? 'good' : 'info';
         return (
           <PictureRow actor={actor} verb="查验" verbTone={tone}>
-            <PortraitFigure tagText={resultLabel} tagTone={tone} seat={entry.targetSeat} />
+            <PortraitFigure
+              tagText={resultLabel}
+              tagTone={tone}
+              seat={entry.targetSeat}
+              dimmed={context.deadSeats.has(entry.targetSeat)}
+            />
           </PictureRow>
         );
       }
@@ -846,7 +851,6 @@ function DirectedActionRow({
   }
 }
 
-/** The witch / poisoner row: one row per potion owner, idle facts as a sub-line. */
 /** One potion owner's card: the owner figure on the left, one line per potion. */
 function ResourceCard({
   actor,

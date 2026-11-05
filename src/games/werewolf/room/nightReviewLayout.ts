@@ -68,7 +68,7 @@ export const NIGHT_REPORT_PALETTE = {
     bg: NIGHT_REPORT_COLORS.danger,
     text: colors.textInverse,
   },
-  /** Faction rail on the left edge of each action group. */
+  /** Rail on the left edge of the sheriff group (the only remaining grouped section). */
   rail: {
     wolf: NIGHT_REPORT_COLORS.wolfMedalText,
     god: NIGHT_REPORT_COLORS.violet,

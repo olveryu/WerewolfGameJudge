@@ -12,7 +12,14 @@
  * the roster, the vote diagram, and the death stamps), so no 「N号」
  * text exists anywhere in the report.
  */
-import type { GameState, Player, RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type {
+  GameState,
+  NightReviewActionEntry,
+  NightReviewIdentityEntry,
+  Player,
+  RoleId,
+  WerewolfNightReview,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { getWerewolfNightReview } from '@game-judge/game-engine/games/werewolf/public';
 import { render } from '@testing-library/react-native';
 import type { StyleProp } from 'react-native';
@@ -25,7 +32,7 @@ import {
   type ReviewPlayers,
 } from '@/test-utils/werewolfNightReview';
 import { TESTIDS } from '@/testids';
-import { colors } from '@/theme';
+import { colors, NIGHT_REPORT_COLORS } from '@/theme';
 
 import {
   NIGHT_REPORT_DAY_BLOCK_TITLE,
@@ -86,6 +93,62 @@ function nearestViewAncestor(node: ReactTestInstance): ReactTestInstance | null 
   let current = node.parent;
   while (current && String(current.type) !== 'View') current = current.parent;
   return current;
+}
+
+/** One identity row for a hand-built review fixture (B2: row rendering only). */
+function reviewIdentity(
+  seat: number,
+  roleId: RoleId | null,
+  isAlive = true,
+): NightReviewIdentityEntry {
+  return { seat, roleId, isEmptySeat: false, isAlive };
+}
+
+/**
+ * A hand-built review: entry construction stays pinned by the engine
+ * tests, so these fixtures pin only the row rendering each §4 row
+ * promises (verb, tags, notes, tag absence in multi-figure slots).
+ */
+function reviewData(
+  actions: readonly NightReviewActionEntry[],
+  identities: readonly NightReviewIdentityEntry[],
+): WerewolfNightReview {
+  return { actions: [...actions], identities: [...identities] };
+}
+
+/** Text sequence of the night block only (between the two block titles). */
+function nightBlockSequence(sequence: string[]): string[] {
+  return sequence.slice(
+    sequence.indexOf(NIGHT_REPORT_NIGHT_BLOCK_TITLE) + 1,
+    sequence.indexOf(NIGHT_REPORT_DAY_BLOCK_TITLE),
+  );
+}
+
+/** Asserts tokens appear in order inside sequence (other tokens may sit between). */
+function expectOrdered(sequence: string[], tokens: readonly string[]): void {
+  let cursor = -1;
+  for (const token of tokens) {
+    const next = sequence.indexOf(token, cursor + 1);
+    expect(next).toBeGreaterThan(cursor);
+    cursor = next;
+  }
+}
+
+interface FlatOpacityStyle {
+  opacity?: number;
+}
+
+/** True when any ancestor view of node carries a dimmed (opacity < 1) style. */
+function hasDimmedAncestor(node: ReactTestInstance): boolean {
+  let current: ReactTestInstance | null = node;
+  while (current) {
+    const style = StyleSheet.flatten<FlatOpacityStyle>(
+      current.props.style as StyleProp<FlatOpacityStyle>,
+    );
+    if (style && typeof style.opacity === 'number' && style.opacity < 1) return true;
+    current = current.parent;
+  }
+  return false;
 }
 
 function composedNightState(): GameState {
@@ -1021,6 +1084,270 @@ describe('NightReviewModal', () => {
       expect(view.queryByText('1 票')).toBeNull();
       expect(view.queryByText('弃票')).toBeNull();
       expect(view.queryByText('首轮投票结果')).toBeNull();
+    });
+
+    it('renders every T1 single-target row in §4 (B2 coverage)', () => {
+      const view = render(
+        <NightReviewModal
+          visible
+          data={reviewData(
+            [
+              { kind: 'peacefulNight' },
+              { kind: 'shelter', actorSeat: 0, targetSeat: 9 },
+              { kind: 'curse', actorSeat: 1, targetSeat: 10 },
+              { kind: 'dream', actorSeat: 2, targetSeat: 11 },
+              { kind: 'silence', actorSeat: 3, targetSeat: 12 },
+              { kind: 'voteban', actorSeat: 4, targetSeat: 13 },
+              { kind: 'charm', actorSeat: 5, targetSeat: 14 },
+              { kind: 'convert', actorSeat: 6, targetSeat: 15 },
+              { kind: 'wolfGirlConfess', actorSeat: 7, targetSeat: 16 },
+              {
+                kind: 'idolChoice',
+                actorSeat: 8,
+                actorRoleId: 'slacker',
+                targetSeat: 17,
+              },
+            ],
+            [
+              reviewIdentity(0, 'eclipseWolfQueen'),
+              reviewIdentity(1, 'crow'),
+              reviewIdentity(2, 'dreamcatcher'),
+              reviewIdentity(3, 'silenceElder'),
+              reviewIdentity(4, 'votebanElder'),
+              reviewIdentity(5, 'wolfQueen'),
+              reviewIdentity(6, 'awakenedGargoyle'),
+              reviewIdentity(7, 'wolfGirl'),
+              reviewIdentity(8, 'slacker'),
+              reviewIdentity(9, 'villager'),
+              reviewIdentity(10, 'guard'),
+              reviewIdentity(11, 'witch'),
+              reviewIdentity(12, 'seer'),
+              reviewIdentity(13, 'wolf'),
+              reviewIdentity(14, 'hunter'),
+              reviewIdentity(15, 'wolfRobot'),
+              reviewIdentity(16, 'gargoyle'),
+              reviewIdentity(17, 'pureWhite'),
+            ],
+          )}
+          onClose={jest.fn()}
+        />,
+      );
+      const slice = nightBlockSequence(collectTextSequence(view.toJSON()));
+      const rows: readonly (readonly string[])[] = [
+        ['蚀时狼妃', '1', '→', '庇护', '平民', '10'],
+        ['乌鸦', '2', '→', '诅咒', '守卫', '11'],
+        ['摄梦人', '3', '→', '摄梦', '女巫', '12'],
+        ['禁言长老', '4', '→', '禁言', '预言家', '13'],
+        ['禁票长老', '5', '→', '禁票', '狼人', '14'],
+        ['狼美人', '6', '→', '魅惑', '猎人', '15'],
+        ['觉醒石像鬼', '7', '→', '转化', '机械狼人', '16'],
+        ['狼女孩', '8', '→', '表白', '石像鬼', '17'],
+        ['混血儿', '9', '→', '选择榜样', '纯白之女', '18'],
+      ];
+      for (const row of rows) expectOrdered(slice, row);
+    });
+
+    it('renders swap and cupidLink targets without role tags (B2, §4.1)', () => {
+      const view = render(
+        <NightReviewModal
+          visible
+          data={reviewData(
+            [
+              { kind: 'peacefulNight' },
+              { kind: 'swap', actorSeat: 0, seats: [1, 2] },
+              { kind: 'cupidLink', actorSeat: 3, seats: [4, 5] },
+            ],
+            [
+              reviewIdentity(0, 'magician'),
+              reviewIdentity(1, 'villager'),
+              reviewIdentity(2, 'guard'),
+              reviewIdentity(3, 'cupid'),
+              reviewIdentity(4, 'witch'),
+              reviewIdentity(5, 'seer'),
+            ],
+          )}
+          onClose={jest.fn()}
+        />,
+      );
+      const slice = nightBlockSequence(collectTextSequence(view.toJSON()));
+      expectOrdered(slice, ['魔术师', '1', '→', '交换', '2', '和', '3']);
+      expectOrdered(slice, ['丘比特', '4', '→', '连线', '5', '和', '6']);
+      expect(slice).not.toContain('平民');
+      expect(slice).not.toContain('守卫');
+      expect(slice).not.toContain('女巫');
+      expect(slice).not.toContain('预言家');
+    });
+
+    it('renders hypnotize targets without role tags (B2, §4.1)', () => {
+      const view = render(
+        <NightReviewModal
+          visible
+          data={reviewData(
+            [
+              { kind: 'peacefulNight' },
+              { kind: 'hypnotize', actorSeat: 0, targetSeats: [1, 2, 3] },
+            ],
+            [
+              reviewIdentity(0, 'piper'),
+              reviewIdentity(1, 'villager'),
+              reviewIdentity(2, 'guard'),
+              reviewIdentity(3, 'witch'),
+            ],
+          )}
+          onClose={jest.fn()}
+        />,
+      );
+      const slice = nightBlockSequence(collectTextSequence(view.toJSON()));
+      expectOrdered(slice, ['吹笛者', '1', '→', '催眠', '2', '3', '4']);
+      expect(slice).not.toContain('平民');
+      expect(slice).not.toContain('守卫');
+      expect(slice).not.toContain('女巫');
+    });
+
+    it('renders cardChoice as a role tag with no seat number (B2, §4)', () => {
+      const view = render(
+        <NightReviewModal
+          visible
+          data={reviewData(
+            [
+              { kind: 'peacefulNight' },
+              { kind: 'cardChoice', actorSeat: 0, actorRoleId: 'seer', chosenRoleId: 'wolf' },
+            ],
+            [reviewIdentity(0, 'seer')],
+          )}
+          onClose={jest.fn()}
+        />,
+      );
+      const slice = nightBlockSequence(collectTextSequence(view.toJSON()));
+      expect(slice).toEqual(['预言家', '1', '→', '选择了', '狼人']);
+    });
+
+    it('renders nightmareBlock and mimic notes (B2, §4)', () => {
+      const view = render(
+        <NightReviewModal
+          visible
+          data={reviewData(
+            [
+              { kind: 'peacefulNight' },
+              { kind: 'nightmareBlock', actorSeat: 0, targetSeat: 1, targetRoleId: 'witch' },
+              { kind: 'mimic', actorSeat: 2, targetSeat: 3, isBound: true },
+            ],
+            [
+              reviewIdentity(0, 'nightmare'),
+              reviewIdentity(1, 'witch'),
+              reviewIdentity(2, 'shadow'),
+              reviewIdentity(3, 'guard'),
+            ],
+          )}
+          onClose={jest.fn()}
+        />,
+      );
+      const slice = nightBlockSequence(collectTextSequence(view.toJSON()));
+      expectOrdered(slice, ['封锁', '（女巫，技能无效）']);
+      expectOrdered(slice, ['模仿', '绑定']);
+      expect(view.getByText('（女巫，技能无效）')).toBeTruthy();
+      expect(view.getByText('绑定')).toBeTruthy();
+    });
+
+    it('renders seed wolf infection success and failure notes (B2, §4)', () => {
+      const view = render(
+        <NightReviewModal
+          visible
+          data={reviewData(
+            [
+              { kind: 'peacefulNight' },
+              { kind: 'infectConverted', actorSeat: 0, targetSeat: 1 },
+              { kind: 'infectFailed', actorSeat: 2, targetSeat: 3 },
+            ],
+            [
+              reviewIdentity(0, 'seedWolf'),
+              reviewIdentity(1, 'villager'),
+              reviewIdentity(2, 'seedWolf'),
+              reviewIdentity(3, 'guard'),
+            ],
+          )}
+          onClose={jest.fn()}
+        />,
+      );
+      const slice = nightBlockSequence(collectTextSequence(view.toJSON()));
+      expect(view.getAllByText('感染')).toHaveLength(2);
+      expectOrdered(slice, ['感染', '成功', '感染', '失败']);
+    });
+
+    it('renders a roleName check on a wolf with the info tag tone (B1 ruling B)', () => {
+      const view = render(
+        <NightReviewModal
+          visible
+          data={reviewData(
+            [
+              { kind: 'peacefulNight' },
+              {
+                kind: 'check',
+                actorSeat: 0,
+                actorRoleId: 'psychic',
+                targetSeat: 1,
+                result: 'wolf',
+                resultFormat: 'roleName',
+              },
+            ],
+            [reviewIdentity(0, 'psychic'), reviewIdentity(1, 'wolf')],
+          )}
+          onClose={jest.fn()}
+        />,
+      );
+      const slice = nightBlockSequence(collectTextSequence(view.toJSON()));
+      expectOrdered(slice, ['通灵师', '1', '→', '查验', '狼人', '2']);
+      const backgrounds = view.getAllByText('狼人').map((node) => enclosingBackgroundColor(node));
+      expect(backgrounds).toContain(NIGHT_REPORT_COLORS.godMedalBg);
+      expect(backgrounds).not.toContain(NIGHT_REPORT_COLORS.deadMedalBg);
+    });
+
+    it('dims a dead faction-check target disc, and only when dead (N5)', () => {
+      const deadView = render(
+        <NightReviewModal
+          visible
+          data={reviewData(
+            [
+              {
+                kind: 'deaths',
+                deaths: [{ seat: 0, reason: 'wolfKill' }],
+              },
+              {
+                kind: 'check',
+                actorSeat: 1,
+                actorRoleId: 'seer',
+                targetSeat: 0,
+                result: '狼人',
+                resultFormat: 'factionCheck',
+              },
+            ],
+            [reviewIdentity(0, 'wolf', false), reviewIdentity(1, 'seer')],
+          )}
+          onClose={jest.fn()}
+        />,
+      );
+      expect(deadView.getAllByText('1').some((node) => hasDimmedAncestor(node))).toBe(true);
+      const aliveView = render(
+        <NightReviewModal
+          visible
+          data={reviewData(
+            [
+              { kind: 'peacefulNight' },
+              {
+                kind: 'check',
+                actorSeat: 1,
+                actorRoleId: 'seer',
+                targetSeat: 0,
+                result: '狼人',
+                resultFormat: 'factionCheck',
+              },
+            ],
+            [reviewIdentity(0, 'wolf'), reviewIdentity(1, 'seer')],
+          )}
+          onClose={jest.fn()}
+        />,
+      );
+      expect(aliveView.getAllByText('1').some((node) => hasDimmedAncestor(node))).toBe(false);
     });
   });
 });
