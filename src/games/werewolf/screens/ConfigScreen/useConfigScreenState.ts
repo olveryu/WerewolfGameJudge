@@ -33,7 +33,7 @@ import {
 import type { SettingsService } from '@/features/settings/services/SettingsService';
 import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
-import type { ColorTone } from '@/theme';
+import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { translateReasonCode } from '@/utils/errorUtils';
@@ -416,18 +416,18 @@ export function useConfigScreenState({
     });
   }, []);
 
-  const getFactionAccentTone = useCallback((faction: Faction): ColorTone => {
+  const getFactionAccentColor = useCallback((faction: Faction): string => {
     switch (faction) {
       case Faction.Wolf:
-        return 'wolf';
+        return colors.wolf;
       case Faction.God:
-        return 'god';
+        return colors.god;
       case Faction.Villager:
-        return 'villager';
+        return colors.villager;
       case Faction.Special:
-        return 'third';
+        return colors.third;
       default:
-        return 'primary';
+        return colors.primary;
     }
   }, []);
 
@@ -450,14 +450,17 @@ export function useConfigScreenState({
 
   const tabItems: FactionTabItem[] = useMemo(
     () =>
-      FACTION_GROUPS.map((group) => ({
-        key: group.faction,
-        title: group.title,
-        count: getFactionSelectedCount(group),
-        accentTone: getFactionAccentTone(group.faction),
-      })),
+      FACTION_GROUPS.map((group) => {
+        const accentColor = getFactionAccentColor(group.faction);
+        return {
+          key: group.faction,
+          title: group.title,
+          count: getFactionSelectedCount(group),
+          accentColor,
+        };
+      }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- FACTION_GROUPS is module-level constant
-    [selection, getFactionAccentTone, getFactionSelectedCount],
+    [selection, getFactionAccentColor, getFactionSelectedCount],
   );
 
   const activeGroup = useMemo(
@@ -509,6 +512,6 @@ export function useConfigScreenState({
     // Bulk stepper
     getBulkCount,
     handleBulkCountChange,
-    getFactionAccentTone,
+    getFactionAccentColor,
   };
 }

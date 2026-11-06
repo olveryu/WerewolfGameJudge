@@ -253,8 +253,8 @@ export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles 
       pointerEvents: 'none',
     },
     filterBadgeText: {
-      fontSize: typography.caption,
-      lineHeight: typography.lineHeights.caption,
+      fontSize: typography.captionSmall,
+      lineHeight: typography.lineHeights.captionSmall,
       fontWeight: typography.weights.bold,
       color: colors.textInverse,
     },

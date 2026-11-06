@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.medium,
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.tight,
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.text,
   },
   customSep: {

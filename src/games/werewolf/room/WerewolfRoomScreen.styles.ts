@@ -42,7 +42,7 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       color: colors.textSecondary,
     },
     errorMessageText: {
-      color: colors.errorText,
+      color: colors.error,
       textAlign: 'center',
       paddingHorizontal: spacing.large,
     },

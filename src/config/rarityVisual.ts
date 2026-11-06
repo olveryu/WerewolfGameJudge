@@ -9,10 +9,8 @@ import type { ViewStyle } from 'react-native';
 import { withAlpha } from '@/theme';
 
 interface RarityVisual {
-  /** Fill color: dots, borders, tints, glows */
+  /** Theme color */
   color: string;
-  /** Text color on surface, background and the rarity's own tints up to 20% (WCAG AA) */
-  text: string;
   /** Skia particle glow */
   glow: string;
   /** Display label */
@@ -24,21 +22,19 @@ interface RarityVisual {
 /** Rarity display order from highest to lowest */
 export const RARITY_ORDER: Rarity[] = ['mythic', 'legendary', 'epic', 'rare', 'common'];
 
-const mkVisual = (color: string, text: string, glow: string, label: string): RarityVisual => ({
+const mkVisual = (color: string, glow: string, label: string): RarityVisual => ({
   color,
-  text,
   glow,
   label,
   chipShadow: `0px 2px 8px ${withAlpha(color, 0.35)}`,
 });
 
-// Text colors keep each rarity's OKLCH hue, darkened to 4.5:1 on its 20% tint over background.
 export const RARITY_VISUAL: Record<Rarity, RarityVisual> = {
-  mythic: mkVisual('#C73D5C', '#AA1E45', 'rgba(199,61,92,0.5)', '神话'),
-  common: mkVisual('#9E9E9E', '#5C5C5C', 'rgba(158,158,158,0.3)', '普通'),
-  rare: mkVisual('#4A90D9', '#0E5CA1', 'rgba(74,144,217,0.4)', '稀有'),
-  epic: mkVisual('#9B59B6', '#803F9A', 'rgba(155,89,182,0.5)', '史诗'),
-  legendary: mkVisual('#F5A623', '#7F5203', 'rgba(245,166,35,0.5)', '传说'),
+  mythic: mkVisual('#C73D5C', 'rgba(199,61,92,0.5)', '神话'),
+  common: mkVisual('#9E9E9E', 'rgba(158,158,158,0.3)', '普通'),
+  rare: mkVisual('#4A90D9', 'rgba(74,144,217,0.4)', '稀有'),
+  epic: mkVisual('#9B59B6', 'rgba(155,89,182,0.5)', '史诗'),
+  legendary: mkVisual('#F5A623', 'rgba(245,166,35,0.5)', '传说'),
 };
 
 // ─── Collection grid cell rarity styling ────────────────────────────────

@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   errorText: {
-    color: colors.errorText,
+    color: colors.error,
     fontSize: typography.caption,
   },
   submitBtn: {

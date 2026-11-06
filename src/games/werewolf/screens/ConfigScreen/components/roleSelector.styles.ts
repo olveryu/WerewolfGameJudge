@@ -128,7 +128,7 @@ export const createRoleSelectorStyles = (colors: ThemeColors) => ({
     ...textStyles.subtitleSemibold,
   } satisfies TextStyle,
   stepperBtnTextDisabled: {
-    color: colors.textDisabled,
+    color: colors.textMuted,
   } satisfies TextStyle,
   stepperCount: {
     fontSize: typography.body,

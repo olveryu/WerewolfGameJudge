@@ -169,16 +169,16 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
       color: colors.text,
     },
     roleBadgeTextWolf: {
-      color: colors.wolfText,
+      color: colors.wolf,
     },
     roleBadgeTextGod: {
-      color: colors.godText,
+      color: colors.god,
     },
     roleBadgeTextVillager: {
-      color: colors.villagerText,
+      color: colors.villager,
     },
     roleBadgeTextThird: {
-      color: colors.thirdText,
+      color: colors.third,
     },
     handTag: {
       marginLeft: 'auto',
@@ -251,16 +251,16 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
       color: colors.textMuted,
     },
     popoverTagTextWolf: {
-      color: colors.wolfText,
+      color: colors.wolf,
     },
     popoverTagTextGod: {
-      color: colors.godText,
+      color: colors.god,
     },
     popoverTagTextVillager: {
-      color: colors.villagerText,
+      color: colors.villager,
     },
     popoverTagTextThird: {
-      color: colors.thirdText,
+      color: colors.third,
     },
     popoverTagTextSelected: {
       color: colors.text,
@@ -276,7 +276,7 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
     },
     popoverClearText: {
       fontSize: typography.body,
-      color: colors.errorText,
+      color: colors.error,
     },
     noteInput: {
       flex: 1,

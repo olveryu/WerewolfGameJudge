@@ -89,7 +89,7 @@ const badgeStyles = StyleSheet.create({
     borderColor: colors.surface,
   },
   text: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     fontWeight: typography.weights.bold,
     color: colors.textInverse,
   },

@@ -52,6 +52,7 @@ export const NIGHT_REPORT_PALETTE = {
   text: NIGHT_REPORT_COLORS.text,
   textSecondary: NIGHT_REPORT_COLORS.textSecondary,
   textMuted: NIGHT_REPORT_COLORS.textMuted,
+  textFaint: NIGHT_REPORT_COLORS.textFaint,
   danger: NIGHT_REPORT_COLORS.danger,
   /** Top accent bar. */
   accent: colors.primary,

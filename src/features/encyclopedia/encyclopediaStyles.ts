@@ -138,7 +138,7 @@ export function createEncyclopediaStyles(colors: ThemeColors) {
       fontSize: typography.secondary,
       lineHeight: typography.lineHeights.secondary,
       fontWeight: typography.weights.medium,
-      color: colors.errorText,
+      color: colors.error,
     },
     // Section List
     listStyle: {

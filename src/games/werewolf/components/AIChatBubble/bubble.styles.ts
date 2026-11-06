@@ -33,7 +33,7 @@ export function createBubbleStyles(colors: ThemeColors, bubbleHeight: number, bu
       ...shadows.md,
     },
     bubbleLabel: {
-      fontSize: typography.caption,
+      fontSize: typography.captionSmall,
       fontWeight: typography.weights.semibold,
       color: colors.textMuted,
       textAlign: 'center',

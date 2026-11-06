@@ -80,6 +80,7 @@ import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatT
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import { TESTIDS } from '@/testids';
+import { colors } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { getAvalonRoleDisplayName } from '../model/avalonRoleDisplay';
@@ -310,12 +311,12 @@ export function createAvalonBoardInfoSections(
     {
       title: '坏人',
       items: toItems(board.filter((roleId) => getAvalonRoleMeta(roleId).isEvil)),
-      tone: 'wolf',
+      color: colors.wolf,
     },
     {
       title: '好人',
       items: toItems(board.filter((roleId) => !getAvalonRoleMeta(roleId).isEvil)),
-      tone: 'god',
+      color: colors.god,
     },
   ];
 }

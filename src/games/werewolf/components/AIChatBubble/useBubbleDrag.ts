@@ -11,7 +11,6 @@ import { Animated, type GestureResponderEvent, Platform, useWindowDimensions } f
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
-import { useRoomBottomPanelHeight } from '@/features/room/hooks/roomBottomPanelHeight';
 import {
   readAIChatBubblePosition,
   writeAIChatBubblePosition,
@@ -26,7 +25,6 @@ import {
 } from './AIChatBubble.styles';
 
 const DRAG_THRESHOLD = 10;
-const BUBBLE_MIN_Y = BUBBLE_MARGIN + 50;
 
 interface UseBubbleDragReturn {
   position: { x: number; y: number };
@@ -57,18 +55,9 @@ export function useBubbleDrag(onOpen: () => void, userId: string): UseBubbleDrag
   }
   // Height shrank (keyboard opened) -> keep the old stableHeight
   const stableHeight = stableHeightRef.current;
-  // The bubble stays above the focused room's bottom action panel so it never covers its controls.
-  const bottomPanelHeight = useRoomBottomPanelHeight() ?? 0;
-  const maxY = stableHeight - bottomPanelHeight - BUBBLE_HEIGHT - BUBBLE_MARGIN;
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const [preferredPosition, setPosition] = useState(() =>
-    getDefaultPosition(screenWidth, stableHeight),
-  );
-  const position = {
-    x: preferredPosition.x,
-    y: Math.max(BUBBLE_MIN_Y, Math.min(maxY, preferredPosition.y)),
-  };
+  const [position, setPosition] = useState(() => getDefaultPosition(screenWidth, stableHeight));
   const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
   const isDraggingRef = useRef(false);
   const justHandledTouchRef = useRef(false);
@@ -87,7 +76,7 @@ export function useBubbleDrag(onOpen: () => void, userId: string): UseBubbleDrag
         Math.min(screenWidth - BUBBLE_WIDTH - BUBBLE_HORIZONTAL_MARGIN, saved.x),
       );
       const clampedY = Math.max(
-        BUBBLE_MIN_Y,
+        BUBBLE_MARGIN + 50,
         Math.min(stableHeight - BUBBLE_HEIGHT - BUBBLE_MARGIN, saved.y),
       );
       setPosition({ x: clampedX, y: clampedY });
@@ -141,12 +130,15 @@ export function useBubbleDrag(onOpen: () => void, userId: string): UseBubbleDrag
             dragStartRef.current.posX + dx,
           ),
         );
-        const newY = Math.max(BUBBLE_MIN_Y, Math.min(maxY, dragStartRef.current.posY + dy));
+        const newY = Math.max(
+          BUBBLE_MARGIN + 50,
+          Math.min(stableHeight - BUBBLE_HEIGHT - BUBBLE_MARGIN, dragStartRef.current.posY + dy),
+        );
 
         setPosition({ x: newX, y: newY });
       }
     },
-    [screenWidth, maxY],
+    [screenWidth, stableHeight],
   );
 
   const handleTouchEnd = useCallback(() => {

@@ -298,7 +298,6 @@ const PREVIEW_SIZE = 56;
         {RARITY_FILTERS.map((rf) => {
           const isActive = activeRarity === rf.key;
           const chipColor = rf.key === 'all' ? colors.primary : RARITY_VISUAL[rf.key].color;
-          const chipTextColor = rf.key === 'all' ? colors.primary : RARITY_VISUAL[rf.key].text;
           return (
             <Pressable
               key={rf.key}
@@ -316,7 +315,7 @@ const PREVIEW_SIZE = 56;
               <Text
                 style={[
                   styles.rarityChipText,
-                  isActive && { color: chipTextColor, fontWeight: typography.weights.semibold },
+                  isActive && { color: chipColor, fontWeight: typography.weights.semibold },
                 ]}
               >
                 {rf.label}
@@ -376,7 +375,7 @@ const styles = StyleSheet.create({
   shardCount: {
     fontSize: typography.caption,
     fontWeight: typography.weights.semibold,
-    color: colors.warningText,
+    color: colors.warning,
     fontVariant: ['tabular-nums'],
   },
 
@@ -429,7 +428,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
   },
   rarityChipText: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.textMuted,
   },
 
@@ -469,7 +468,7 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   cellName: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     fontWeight: typography.weights.semibold,
     color: colors.text,
     textAlign: 'center',
@@ -482,8 +481,8 @@ const styles = StyleSheet.create({
     gap: spacing.micro,
   },
   ownedText: {
-    fontSize: typography.caption,
-    color: colors.successText,
+    fontSize: typography.captionSmall,
+    color: colors.success,
   },
 
   // ── Exchange button ──
@@ -497,17 +496,17 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   exchangeButtonText: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     fontWeight: typography.weights.bold,
-    color: colors.warningText,
+    color: colors.warning,
   },
   exchangeButtonTextDisabled: {
-    color: colors.textDisabled,
+    color: colors.textMuted,
   },
 
   // ── Deficit ──
   deficitText: {
-    fontSize: typography.caption,
-    color: colors.errorText,
+    fontSize: typography.captionSmall,
+    color: colors.error,
   },
 });

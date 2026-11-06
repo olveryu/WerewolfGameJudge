@@ -234,6 +234,8 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.large,
     padding: spacing.medium,
     marginBottom: spacing.tight,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
     ...shadows.sm,
   },
   cardHeader: {
@@ -247,13 +249,13 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   levelBadge: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primaryLight,
     paddingHorizontal: spacing.tight,
     paddingVertical: spacing.micro,
     borderRadius: borderRadius.small,
   },
   levelBadgeText: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     fontWeight: typography.weights.semibold,
     color: colors.textInverse,
   },

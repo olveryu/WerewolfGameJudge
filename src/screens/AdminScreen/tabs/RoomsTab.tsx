@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold,
     color: colors.text,
   },
-  playerDetail: { fontSize: typography.caption, color: colors.textSecondary, marginTop: 1 },
-  playerMeta: { fontSize: typography.caption, color: colors.textMuted, marginTop: 1 },
+  playerDetail: { fontSize: typography.captionSmall, color: colors.textSecondary, marginTop: 1 },
+  playerMeta: { fontSize: typography.captionSmall, color: colors.textMuted, marginTop: 1 },
   empty: { textAlign: 'center', color: colors.textMuted, marginTop: spacing.xlarge },
 });

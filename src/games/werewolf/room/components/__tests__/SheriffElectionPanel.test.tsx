@@ -185,6 +185,7 @@ describe('SheriffElectionPanel', () => {
 
     const withdrawnDot = screen.getByTestId(TESTIDS.sheriffRegisteredSeatDot(2));
     expect(withdrawnDot.props.accessibilityLabel).toBe('3号，已退水');
+    expect(JSON.stringify(withdrawnDot.props.style)).toContain('opacity');
     expect(JSON.stringify(within(withdrawnDot).getByText('3').props.style)).toContain(
       'line-through',
     );
@@ -319,12 +320,12 @@ describe('SheriffElectionPanel', () => {
     const firstRoundWinner = within(
       screen.getByTestId(TESTIDS.sheriffTallyGroup('first', 0)),
     ).getByText('1号');
-    expect(JSON.stringify(firstRoundWinner.props.style)).not.toContain(colors.warningText);
+    expect(JSON.stringify(firstRoundWinner.props.style)).not.toContain(colors.warning);
 
     const runoffWinner = within(
       screen.getByTestId(TESTIDS.sheriffTallyGroup('runoff', 0)),
     ).getByText('1号');
-    expect(JSON.stringify(runoffWinner.props.style)).toContain(colors.warningText);
+    expect(JSON.stringify(runoffWinner.props.style)).toContain(colors.warning);
     expect(
       within(screen.getByTestId(TESTIDS.sheriffTallyGroup('runoff', 0))).getByText('2 票'),
     ).toBeTruthy();

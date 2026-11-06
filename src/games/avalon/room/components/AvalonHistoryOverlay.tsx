@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
   },
   summaryFail: {
-    color: colors.errorText,
+    color: colors.error,
     fontWeight: typography.weights.bold,
   },
   configLine: {

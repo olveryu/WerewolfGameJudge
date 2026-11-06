@@ -296,13 +296,13 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   questCardFailCount: {
-    color: colors.errorText,
+    color: colors.error,
   },
   questCardEmptyCount: {
     color: colors.textMuted,
   },
   questCardLabel: {
-    ...textStyles.caption,
+    ...textStyles.captionSmall,
     color: colors.textSecondary,
     textAlign: 'center',
   },

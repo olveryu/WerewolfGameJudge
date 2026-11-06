@@ -14,7 +14,7 @@ import type { EncyclopediaRoleEntry } from '@/features/encyclopedia/encyclopedia
 import { buildRolePlayGuidePrompt } from '@/games/werewolf/components/AIChatBubble/rolePlayGuide';
 import { requestAIChatMessage } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
-import { borderRadius, spacing, toneColors, typography, withAlpha } from '@/theme';
+import { borderRadius, colors, spacing, typography, withAlpha } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 /** AI 攻略 pill（AI 未就绪或角色非法时不渲染）。 */
@@ -45,15 +45,15 @@ export function WerewolfRoleDetailExtra({
 
   if (roleId === null || !isAIChatReady()) return null;
 
-  const factionTone = toneColors[entry.factionTone];
+  const factionColor = colors[entry.factionColorKey];
   return (
     <Pressable
-      style={[styles.aiPill, { backgroundColor: withAlpha(factionTone.fill, 0.15) }]}
+      style={[styles.aiPill, { backgroundColor: withAlpha(factionColor, 0.15) }]}
       onPress={handleAskAI}
       accessibilityLabel="AI 攻略"
     >
-      <Ionicons name={UI_ICONS.AI_ASSISTANT} size={typography.caption} color={factionTone.text} />
-      <Text style={[styles.aiPillText, { color: factionTone.text }]}>AI 攻略</Text>
+      <Ionicons name={UI_ICONS.AI_ASSISTANT} size={typography.caption} color={factionColor} />
+      <Text style={[styles.aiPillText, { color: factionColor }]}>AI 攻略</Text>
     </Pressable>
   );
 }

@@ -27,12 +27,10 @@ import type { RootStackParamList } from '@/navigation/types';
 import {
   borderRadius,
   colors,
-  type ColorTone,
   componentSizes,
   createSharedStyles,
   spacing,
   textStyles,
-  toneColors,
   typography,
   withAlpha,
 } from '@/theme';
@@ -53,12 +51,12 @@ function getRoleAt(index: number): RoleId {
   return roleId;
 }
 
-function getFactionPresentation(roleId: RoleId): { tone: ColorTone; label: string } {
+function getFactionPresentation(roleId: RoleId) {
   const role = getRoleSpec(roleId);
-  if (isWolfRole(roleId)) return { tone: 'wolf', label: '狼人' };
-  if (role.faction === Faction.God) return { tone: 'god', label: '神职' };
-  if (role.faction === Faction.Special) return { tone: 'third', label: '第三方' };
-  return { tone: 'villager', label: '村民' };
+  if (isWolfRole(roleId)) return { color: colors.wolf, label: '狼人' };
+  if (role.faction === Faction.God) return { color: colors.god, label: '神职' };
+  if (role.faction === Faction.Special) return { color: colors.third, label: '第三方' };
+  return { color: colors.villager, label: '村民' };
 }
 
 export const WerewolfHomeSpotlight = memo(() => {
@@ -143,15 +141,8 @@ export const WerewolfHomeSpotlight = memo(() => {
           <View style={styles.frontInfo}>
             <View style={styles.nameRow}>
               <Text style={styles.name}>{role.displayName}</Text>
-              <View
-                style={[
-                  styles.badge,
-                  { backgroundColor: withAlpha(toneColors[faction.tone].fill, 0.15) },
-                ]}
-              >
-                <Text style={[styles.badgeText, { color: toneColors[faction.tone].text }]}>
-                  {faction.label}
-                </Text>
+              <View style={[styles.badge, { backgroundColor: withAlpha(faction.color, 0.15) }]}>
+                <Text style={[styles.badgeText, { color: faction.color }]}>{faction.label}</Text>
               </View>
             </View>
             <Text style={styles.description} numberOfLines={2}>
@@ -189,6 +180,8 @@ const styles = StyleSheet.create({
   },
   card: {
     ...shared.cardBase,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.god,
   },
   cardAbsolute: {
     position: 'absolute',
@@ -238,8 +231,8 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.small,
   },
   badgeText: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
+    fontSize: typography.captionSmall,
+    lineHeight: typography.lineHeights.captionSmall,
     fontWeight: typography.weights.medium,
   },
   description: {

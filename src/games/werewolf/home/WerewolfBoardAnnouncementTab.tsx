@@ -11,24 +11,15 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { GameAnnouncementTabContentProps } from '@/features/home/model/GameHomeContribution';
-import {
-  borderRadius,
-  colors,
-  type ColorTone,
-  componentSizes,
-  spacing,
-  toneColors,
-  typography,
-  withAlpha,
-} from '@/theme';
+import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 
 import { getWerewolfBoardsByVersion, WEREWOLF_BOARD_VERSIONS_DESC } from './boardAnnouncements';
 
-const CATEGORY_TONE: Readonly<Record<TemplateCategory, ColorTone>> = {
-  [TemplateCategory.Classic]: 'god',
-  [TemplateCategory.Advanced]: 'primary',
-  [TemplateCategory.Special]: 'warning',
-  [TemplateCategory.ThirdParty]: 'third',
+const CATEGORY_COLOR: Readonly<Record<TemplateCategory, string>> = {
+  [TemplateCategory.Classic]: colors.god,
+  [TemplateCategory.Advanced]: colors.primary,
+  [TemplateCategory.Special]: colors.warning,
+  [TemplateCategory.ThirdParty]: colors.third,
 };
 
 const COLLAPSE_THRESHOLD = 6;
@@ -83,7 +74,7 @@ export const WerewolfBoardAnnouncementTab: React.FC<GameAnnouncementTabContentPr
               ) : (
                 <View style={styles.boardChips}>
                   {boards.map((board) => {
-                    const categoryColor = toneColors[CATEGORY_TONE[board.category]].text;
+                    const categoryColor = CATEGORY_COLOR[board.category];
                     return (
                       <View key={board.name} style={styles.boardChipRow}>
                         <View style={styles.boardChip}>
@@ -159,15 +150,15 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   newBadge: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primaryLight,
     borderRadius: borderRadius.small,
     paddingHorizontal: spacing.tight,
     paddingVertical: spacing.micro,
   },
   newBadgeText: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     fontWeight: typography.weights.semibold,
-    color: colors.textInverse,
+    color: colors.primaryDark,
   },
   boardChips: {
     flexDirection: 'row',
@@ -193,7 +184,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
   },
   categoryLabel: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     fontWeight: typography.weights.medium,
   },
   expandButton: {

@@ -52,6 +52,6 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: typography.caption,
     lineHeight: typography.lineHeights.caption,
-    color: colors.errorText,
+    color: colors.error,
   },
 });

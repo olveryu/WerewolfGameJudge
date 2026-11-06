@@ -33,6 +33,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.small,
     fontSize: typography.caption,
     lineHeight: typography.lineHeights.caption,
-    color: colors.errorText,
+    color: colors.error,
   },
 });

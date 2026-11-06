@@ -3,7 +3,7 @@ import { render } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
 import { SeatDot } from '@/components/SeatDot';
-import { colors, componentSizes, typography, withAlpha } from '@/theme';
+import { colors, componentSizes, fixed, typography, withAlpha } from '@/theme';
 
 describe('SeatDot', () => {
   it('renders the 1-based seat number with the plain base look by default', () => {
@@ -26,7 +26,7 @@ describe('SeatDot', () => {
     });
   });
 
-  it('shrinks to the badge size and keeps caption text when size is sm', () => {
+  it('shrinks to the badge size with captionSmall text when size is sm', () => {
     const screen = render(<SeatDot seat={0} size="sm" testID="dot" />);
 
     expect(StyleSheet.flatten(screen.getByTestId('dot').props.style)).toMatchObject({
@@ -34,7 +34,7 @@ describe('SeatDot', () => {
       height: componentSizes.badge.md,
     });
     expect(StyleSheet.flatten(screen.getByText('1').props.style)).toMatchObject({
-      fontSize: typography.caption,
+      fontSize: typography.captionSmall,
       fontWeight: typography.weights.bold,
     });
   });
@@ -80,14 +80,16 @@ describe('SeatDot', () => {
     expect(screen.UNSAFE_queryByType(Ionicons)).toBeNull();
   });
 
-  it('mutes and strikes the number through when withdrawn', () => {
+  it('dims and strikes the number through when withdrawn', () => {
     const screen = render(<SeatDot seat={2} withdrawn stateLabel="已退水" testID="dot" />);
 
     const dot = screen.getByTestId('dot');
     expect(dot.props.accessibilityLabel).toBe('3号，已退水');
 
+    expect(StyleSheet.flatten(dot.props.style)).toMatchObject({
+      opacity: fixed.disabledOpacity,
+    });
     expect(StyleSheet.flatten(screen.getByText('3').props.style)).toMatchObject({
-      color: colors.textSecondary,
       textDecorationLine: 'line-through',
     });
   });

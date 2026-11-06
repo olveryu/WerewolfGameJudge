@@ -43,7 +43,7 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { FACTION_COLOR_MAP } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
-import { borderRadius, colors, fixed, spacing, toneColors, typography } from '@/theme';
+import { borderRadius, colors, fixed, spacing, typography } from '@/theme';
 
 import { DEATH_REASON_LABELS, formatCheckResultLabel } from '../NightReview.helpers';
 import {
@@ -159,14 +159,14 @@ interface TimelineSegment {
 
 /**
  * The one faction-color rule, in the render layer: a role's faction maps
- * through the shared FACTION_COLOR_MAP to a theme tone's text color. An
- * unknown faction renders uncolored rather than in a wrong color.
+ * through the shared FACTION_COLOR_MAP to a theme color. An unknown
+ * faction renders uncolored rather than in a wrong color.
  */
 function factionColorForRole(roleId: RoleId): string | undefined {
   const faction = ROLE_SPECS[roleId]?.faction;
   if (faction === undefined) return undefined;
-  const tone = FACTION_COLOR_MAP[faction];
-  return tone === undefined ? undefined : toneColors[tone].text;
+  const key = FACTION_COLOR_MAP[faction];
+  return key === undefined ? undefined : colors[key];
 }
 
 /**
@@ -177,7 +177,7 @@ function factionColorForRole(roleId: RoleId): string | undefined {
  * verdict, so no color is invented for it.
  */
 function factionCheckResultColor(resultLabel: string): string | undefined {
-  return resultLabel === '狼人' ? colors.wolfText : undefined;
+  return resultLabel === '狼人' ? colors.wolf : undefined;
 }
 
 function SectionTitle({ text }: { readonly text: string }) {
@@ -422,7 +422,7 @@ function wolfSegments(
       const voters = entry.votes.map((vote) => vote.voterSeat);
       return [
         { text: `狼队（${voters.map((seat) => seat + 1).join('、')}号）` },
-        { text: `袭击${verdict.targetSeat + 1}号`, color: colors.wolfText },
+        { text: `袭击${verdict.targetSeat + 1}号`, color: colors.wolf },
         { text: '。' },
       ];
     }
@@ -444,9 +444,7 @@ function wolfSegments(
               ? '平票，未击杀'
               : '平票，目标未记录';
       const tailColor =
-        verdict.type === 'splitKilled' || verdict.type === 'tiePicked'
-          ? colors.wolfText
-          : undefined;
+        verdict.type === 'splitKilled' || verdict.type === 'tiePicked' ? colors.wolf : undefined;
       return [
         { text: `狼队投票不一致（${pairs}），` },
         { text: tail, color: tailColor },
@@ -1074,8 +1072,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.micro,
   },
   stampByline: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
+    fontSize: typography.captionSmall,
+    lineHeight: typography.lineHeights.captionSmall,
     color: P.textMuted,
   },
   // ── Section titles ──
@@ -1191,8 +1189,8 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   rosterStatus: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
+    fontSize: typography.captionSmall,
+    lineHeight: typography.lineHeights.captionSmall,
     fontWeight: typography.weights.semibold,
     color: P.textMuted,
   },
@@ -1201,9 +1199,9 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
   },
   footer: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    color: P.textMuted,
+    fontSize: typography.captionSmall,
+    lineHeight: typography.lineHeights.captionSmall,
+    color: P.textFaint,
     textAlign: 'center',
   },
 });

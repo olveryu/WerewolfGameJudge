@@ -11,9 +11,9 @@ import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
-import { colors, spacing, toneColors } from '@/theme';
+import { colors, spacing } from '@/theme';
 
-import { RoleCardContent } from './RoleCardContent';
+import { getRevealFactionColor, RoleCardContent } from './RoleCardContent';
 
 interface RoleCardSimpleProps {
   readonly visible: boolean;
@@ -51,7 +51,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
 
   if (!visible || role === null) return null;
 
-  const factionColor = toneColors[role.alignment].fill;
+  const factionColor = getRevealFactionColor(role.alignment, colors);
 
   return (
     <Modal visible={true} transparent animationType="fade" onRequestClose={onClose}>

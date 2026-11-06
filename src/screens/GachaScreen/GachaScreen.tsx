@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     maxWidth: 120,
   },
   pityLabel: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.textMuted,
   },
 
@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
   shardCount: {
     fontSize: typography.secondary,
     fontWeight: typography.weights.bold,
-    color: colors.warningText,
+    color: colors.warning,
     fontVariant: ['tabular-nums'],
   },
   shardLabel: {
@@ -606,7 +606,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   metaHint: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.textMuted,
     textAlign: 'center',
   },
@@ -617,7 +617,7 @@ const styles = StyleSheet.create({
     gap: spacing.small,
   },
   rateLink: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.primary,
     textDecorationLine: 'underline',
   },

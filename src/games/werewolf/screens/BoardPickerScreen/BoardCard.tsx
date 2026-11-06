@@ -14,16 +14,7 @@ import {
   FACTION_COLOR_MAP,
   getKeyRoles,
 } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
-import {
-  colors,
-  componentSizes,
-  fixed,
-  layout,
-  spacing,
-  toneColors,
-  typography,
-  withAlpha,
-} from '@/theme';
+import { colors, componentSizes, fixed, layout, spacing, typography, withAlpha } from '@/theme';
 
 import { type BoardPickerStyles } from './BoardPickerScreen.styles';
 
@@ -114,14 +105,14 @@ export const BoardCard = React.memo<BoardCardProps>(
             <View
               style={[styles.factionStatBadge, { backgroundColor: withAlpha(colors.wolf, 0.12) }]}
             >
-              <Text style={[styles.factionStatText, { color: colors.wolfText }]}>
+              <Text style={[styles.factionStatText, { color: colors.wolf }]}>
                 狼{stats.wolfCount}
               </Text>
             </View>
             <View
               style={[styles.factionStatBadge, { backgroundColor: withAlpha(colors.god, 0.12) }]}
             >
-              <Text style={[styles.factionStatText, { color: colors.godText }]}>
+              <Text style={[styles.factionStatText, { color: colors.god }]}>
                 神{stats.godCount}
               </Text>
             </View>
@@ -131,7 +122,7 @@ export const BoardCard = React.memo<BoardCardProps>(
                 { backgroundColor: withAlpha(colors.villager, 0.12) },
               ]}
             >
-              <Text style={[styles.factionStatText, { color: colors.villagerText }]}>
+              <Text style={[styles.factionStatText, { color: colors.villager }]}>
                 民{stats.villagerCount}
               </Text>
             </View>
@@ -142,7 +133,7 @@ export const BoardCard = React.memo<BoardCardProps>(
                   { backgroundColor: withAlpha(colors.third, 0.12) },
                 ]}
               >
-                <Text style={[styles.factionStatText, { color: colors.thirdText }]}>
+                <Text style={[styles.factionStatText, { color: colors.third }]}>
                   特{stats.thirdCount}
                 </Text>
               </View>
@@ -153,19 +144,20 @@ export const BoardCard = React.memo<BoardCardProps>(
           {!isExpanded && keyRoles.length > 0 && (
             <View style={styles.keyRoleRow}>
               {keyRoles.map((item) => {
-                const chipTone = toneColors[FACTION_COLOR_MAP[item.faction] ?? 'villager'];
+                const colorKey = FACTION_COLOR_MAP[item.faction] ?? 'villager';
+                const chipColor = colors[colorKey];
                 return (
                   <View
                     key={item.roleId}
                     style={[
                       styles.keyRoleChip,
                       {
-                        borderColor: withAlpha(chipTone.fill, 0.3),
-                        backgroundColor: withAlpha(chipTone.fill, 0.06),
+                        borderColor: withAlpha(chipColor, 0.3),
+                        backgroundColor: withAlpha(chipColor, 0.06),
                       },
                     ]}
                   >
-                    <Text style={[styles.keyRoleChipText, { color: chipTone.text }]}>
+                    <Text style={[styles.keyRoleChipText, { color: chipColor }]}>
                       {item.displayName}
                     </Text>
                   </View>

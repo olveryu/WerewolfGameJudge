@@ -181,7 +181,12 @@ export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
               key={entry.identity.roomId}
               onPress={() => handleJoin(entry.identity.roomCode)}
               disabled={!isOnline}
-              style={[styles.card, isChecking && styles.cardChecking]}
+              style={[
+                styles.card,
+                isOnline && styles.cardOnline,
+                isError && styles.cardError,
+                isChecking && styles.cardChecking,
+              ]}
               testID={TESTIDS.recentRoomJoin(entry.identity.roomCode)}
               haptic
             >
@@ -294,6 +299,14 @@ const styles = StyleSheet.create({
     gap: spacing.small,
     ...shadows.sm,
   },
+  cardOnline: {
+    borderLeftWidth: 3,
+    borderLeftColor: colors.success,
+  },
+  cardError: {
+    borderLeftWidth: 3,
+    borderLeftColor: colors.warning,
+  },
   cardChecking: {
     backgroundColor: withAlpha(colors.surface, 0.6),
   },
@@ -326,17 +339,17 @@ const styles = StyleSheet.create({
     letterSpacing: typography.letterSpacing.wide,
   },
   roomCodeDisabled: {
-    color: colors.textDisabled,
+    color: colors.textMuted,
   },
   statusLabel: {
     ...textStyles.caption,
     color: colors.textMuted,
   },
   statusLabelOnline: {
-    color: colors.successText,
+    color: colors.success,
   },
   statusLabelError: {
-    color: colors.warningText,
+    color: colors.warning,
   },
   // ── Card right (time + chevron) ────────────────────────────
   cardRight: {

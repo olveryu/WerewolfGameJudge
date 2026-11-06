@@ -18,10 +18,10 @@ import { colors, componentSizes, fixed } from '@/theme';
 import { type BoardInfoCardStyles } from './boardInfo.styles';
 
 /**
- * 板子信息分组：标题 + 角色项 + 色调。
+ * 板子信息分组：标题 + 角色项 + 颜色。
  * 各游戏传入自己的分组，共享组件只负责渲染。
- * 狼人杀：[{ title: '狼人', items, tone: 'wolf' }, ...]
- * 阿瓦隆：[{ title: '坏人', items, tone: 'wolf' }, ...]
+ * 狼人杀：[{ title: '狼人', items, color: colors.wolf }, ...]
+ * 阿瓦隆：[{ title: '坏人', items, color: colors.wolf }, ...]
  */
 interface BoardInfoCardProps {
   /** Total number of players */
@@ -65,7 +65,7 @@ function SectionChipRow({
           <FactionChip
             key={item.roleId}
             label={item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
-            tone={section.tone}
+            color={section.color}
             size="md"
             onPress={() => onRolePress(item.roleId)}
           />

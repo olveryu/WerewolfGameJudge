@@ -90,6 +90,7 @@ export interface HomeScreenStyles {
   emailDomainText: TextStyle;
   buttonCaption: TextStyle;
   buttonCaptionInverse: TextStyle;
+  buttonCaptionInverseMuted: TextStyle;
   // Avatar preview card (LoginOptions)
   avatarStripContainer: ViewStyle;
   avatarStripRow: ViewStyle;
@@ -101,6 +102,8 @@ export interface HomeScreenStyles {
   avatarStripLink: TextStyle;
   // Gacha entry card
   gachaCard: ViewStyle;
+  gachaCardAccentGold: ViewStyle;
+  gachaCardAccentBlue: ViewStyle;
   gachaCardEmoji: TextStyle;
   gachaCardText: ViewStyle;
   gachaCardTitle: TextStyle;
@@ -299,6 +302,14 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       marginBottom: spacing.small,
       gap: spacing.small,
     },
+    gachaCardAccentGold: {
+      borderLeftWidth: 3,
+      borderLeftColor: colors.warning,
+    },
+    gachaCardAccentBlue: {
+      borderLeftWidth: 3,
+      borderLeftColor: colors.info,
+    },
     gachaCardEmoji: {
       fontSize: 28,
     },
@@ -473,7 +484,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     authErrorTitle: {
       fontSize: typography.body,
       fontWeight: typography.weights.semibold,
-      color: colors.errorText,
+      color: colors.error,
     },
     authErrorSubtitle: {
       fontSize: typography.caption,
