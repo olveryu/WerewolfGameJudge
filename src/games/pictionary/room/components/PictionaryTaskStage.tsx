@@ -228,64 +228,62 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
       testID={TESTIDS.pictionaryStageFrame}
       footerStyle={styles.taskFrameFooter}
       footer={
-        <>
-          <View style={styles.composer}>
-            <TextInput
-              value={text}
-              onChangeText={updateText}
-              editable={!isReady && !isSubmitting && !isExpired}
-              maxLength={PICTIONARY_TEXT_MAX_LENGTH}
-              multiline
-              placeholder={isOpeningPrompt ? `例如：${openingPromptExample}` : '写下你的猜测'}
-              placeholderTextColor={colors.textMuted}
-              style={styles.textInput}
-              accessibilityLabel={isOpeningPrompt ? '接龙题目' : '看图猜词答案'}
-              testID={TESTIDS.pictionaryTextInput}
-            />
-            <View style={styles.composerMeta}>
-              <Text
-                style={[
-                  styles.validationText,
-                  validationMessage !== null && text.length > 0 && styles.invalidText,
-                ]}
-              >
-                {text.length > 0 && validationMessage !== null
-                  ? validationMessage
-                  : isReady
-                    ? '已就绪'
-                    : ''}
-              </Text>
-              <Text
-                style={[
-                  styles.countText,
-                  graphemeCount > PICTIONARY_TEXT_MAX_LENGTH && styles.invalidText,
-                ]}
-              >
-                {graphemeCount}/{PICTIONARY_TEXT_MAX_LENGTH}
-              </Text>
-            </View>
+        <View style={styles.taskFooter}>
+          <View style={styles.primaryAction}>
+            <Button
+              variant={isReady ? 'secondary' : 'primary'}
+              onPress={() => void toggleReady()}
+              disabled={(!isReady && validationMessage !== null) || isExpired}
+              loading={isSubmitting}
+              size="md"
+              accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
+              testID={TESTIDS.pictionaryTextSubmitButton}
+            >
+              {isReady ? '继续编辑' : '完成编辑'}
+            </Button>
           </View>
-          <View style={styles.taskFooter}>
-            <View style={styles.primaryAction}>
-              <Button
-                variant={isReady ? 'secondary' : 'primary'}
-                onPress={() => void toggleReady()}
-                disabled={(!isReady && validationMessage !== null) || isExpired}
-                loading={isSubmitting}
-                size="md"
-                accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
-                testID={TESTIDS.pictionaryTextSubmitButton}
-              >
-                {isReady ? '继续编辑' : '完成编辑'}
-              </Button>
-            </View>
-          </View>
-        </>
+        </View>
       }
     >
       {!isOpeningPrompt && (
         <PreviousDrawing state={state} task={task} controlledSeat={controlledSeat} />
       )}
+      <View style={[styles.composer, isOpeningPrompt && styles.openingComposer]}>
+        <TextInput
+          value={text}
+          onChangeText={updateText}
+          editable={!isReady && !isSubmitting && !isExpired}
+          maxLength={PICTIONARY_TEXT_MAX_LENGTH}
+          multiline
+          placeholder={isOpeningPrompt ? `例如：${openingPromptExample}` : '写下你的猜测'}
+          placeholderTextColor={colors.textMuted}
+          style={styles.textInput}
+          accessibilityLabel={isOpeningPrompt ? '接龙题目' : '看图猜词答案'}
+          testID={TESTIDS.pictionaryTextInput}
+        />
+        <View style={styles.composerMeta}>
+          <Text
+            style={[
+              styles.validationText,
+              validationMessage !== null && text.length > 0 && styles.invalidText,
+            ]}
+          >
+            {text.length > 0 && validationMessage !== null
+              ? validationMessage
+              : isReady
+                ? '已就绪'
+                : ''}
+          </Text>
+          <Text
+            style={[
+              styles.countText,
+              graphemeCount > PICTIONARY_TEXT_MAX_LENGTH && styles.invalidText,
+            ]}
+          >
+            {graphemeCount}/{PICTIONARY_TEXT_MAX_LENGTH}
+          </Text>
+        </View>
+      </View>
     </RoomTaskFrame>
   );
 };
@@ -691,6 +689,7 @@ const styles = StyleSheet.create({
   promptCopy: { flex: 1, minWidth: 0 },
   promptScroll: { maxHeight: fixed.minTouchTarget },
   promptText: { ...textStyles.bodyMedium, color: colors.text },
+  openingComposer: { marginTop: spacing.medium },
   toolbar: {
     flexDirection: 'row',
     gap: spacing.tight,

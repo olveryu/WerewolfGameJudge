@@ -9,7 +9,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Animated, GestureResponderEvent } from 'react-native';
 
-import { useKeyboardHeight } from '@/features/room/components/useKeyboardHeight';
 import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import { setAIChatBridgeListener } from '@/games/werewolf/services/aiChatBridge';
 import type { AIChatStorageOwner } from '@/games/werewolf/services/aiChatLocalStore';
@@ -20,6 +19,7 @@ import type { RoomIdentity } from '@/platform/realtime/types';
 import { generateQuickQuestions } from './quickQuestions';
 import { useBubbleDrag } from './useBubbleDrag';
 import { useChatMessages, type UseChatMessagesReturn } from './useChatMessages';
+import { useKeyboardHeight } from './useKeyboardHeight';
 
 // ══════════════════════════════════════════════════════════
 // Public interface
