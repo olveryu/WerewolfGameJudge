@@ -2,8 +2,8 @@
  * useKeyboardHeight - cross-platform keyboard height listener
  *
  * Web: derives from the single shared visualViewport snapshot
- * (`useVisualViewport`); the formula measures the visual viewport
- * shrink only — the pan offset is not part of keyboard height.
+ * (`useVisualViewport`); the formula is unchanged from what the AI chat
+ * bubble shipped with.
  * iOS: keyboardWillShow / keyboardWillHide
  * Android: keyboardDidShow / keyboardDidHide
  *
