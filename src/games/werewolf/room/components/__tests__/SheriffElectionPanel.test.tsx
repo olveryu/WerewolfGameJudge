@@ -185,7 +185,6 @@ describe('SheriffElectionPanel', () => {
 
     const withdrawnDot = screen.getByTestId(TESTIDS.sheriffRegisteredSeatDot(2));
     expect(withdrawnDot.props.accessibilityLabel).toBe('3号，已退水');
-    expect(JSON.stringify(withdrawnDot.props.style)).toContain('opacity');
     expect(JSON.stringify(within(withdrawnDot).getByText('3').props.style)).toContain(
       'line-through',
     );

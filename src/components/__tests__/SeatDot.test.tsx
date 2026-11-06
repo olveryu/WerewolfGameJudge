@@ -3,7 +3,7 @@ import { render } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
 import { SeatDot } from '@/components/SeatDot';
-import { colors, componentSizes, fixed, typography, withAlpha } from '@/theme';
+import { colors, componentSizes, typography, withAlpha } from '@/theme';
 
 describe('SeatDot', () => {
   it('renders the 1-based seat number with the plain base look by default', () => {
@@ -80,16 +80,14 @@ describe('SeatDot', () => {
     expect(screen.UNSAFE_queryByType(Ionicons)).toBeNull();
   });
 
-  it('dims and strikes the number through when withdrawn', () => {
+  it('mutes and strikes the number through when withdrawn', () => {
     const screen = render(<SeatDot seat={2} withdrawn stateLabel="已退水" testID="dot" />);
 
     const dot = screen.getByTestId('dot');
     expect(dot.props.accessibilityLabel).toBe('3号，已退水');
 
-    expect(StyleSheet.flatten(dot.props.style)).toMatchObject({
-      opacity: fixed.disabledOpacity,
-    });
     expect(StyleSheet.flatten(screen.getByText('3').props.style)).toMatchObject({
+      color: colors.textSecondary,
       textDecorationLine: 'line-through',
     });
   });

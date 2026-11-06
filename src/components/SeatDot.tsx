@@ -8,8 +8,9 @@
  * enlarged variants: `leader` (avatar.sm, primary ring + tint fill, flag
  * marker at the top-right corner) and `filled` (avatar.sm, primary fill,
  * inverse text). When `emphasis` is not `none`, the variant fixes the size
- * at avatar.sm and `size` is ignored. `withdrawn` dims the whole dot and
- * strikes the number through. The accessibility label is `N号`, extended with
+ * at avatar.sm and `size` is ignored. `withdrawn` mutes the number to textSecondary and strikes
+ * it through; the number stays at 4.5:1 because it is a record, not a disabled control. The
+ * accessibility label is `N号`, extended with
  * `，<stateLabel>` when the caller passes a state word — the word itself is
  * each surface's own vocabulary (组队者 / 已退水） and stays with the caller.
  * Pure presentation component; does not import service, contains no business
@@ -40,7 +41,7 @@ interface SeatDotProps {
   readonly size?: SeatDotSize;
   /** Enlarged variants; a non-none emphasis fixes the size at avatar.sm. */
   readonly emphasis?: SeatDotEmphasis;
-  /** Dims the dot and strikes the number through (withdrawn candidate). */
+  /** Mutes the number and strikes it through (withdrawn candidate). */
   readonly withdrawn?: boolean;
   /** Caller-owned state word appended to the accessibility label. */
   readonly stateLabel?: string;
@@ -57,7 +58,6 @@ export const SeatDot = memo<SeatDotProps>(
           isSmall ? styles.dotSmall : null,
           emphasis === 'leader' ? styles.dotLeader : null,
           emphasis === 'filled' ? styles.dotFilled : null,
-          withdrawn ? styles.dotWithdrawn : null,
         ]}
         testID={testID}
         accessibilityLabel={stateLabel ? `${seat + 1}号，${stateLabel}` : `${seat + 1}号`}
@@ -113,9 +113,6 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.primary,
   },
-  dotWithdrawn: {
-    opacity: fixed.disabledOpacity,
-  },
   text: {
     ...textStyles.caption,
     fontWeight: typography.weights.bold,
@@ -131,6 +128,7 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
   },
   textWithdrawn: {
+    color: colors.textSecondary,
     textDecorationLine: 'line-through',
   },
   leaderMarker: {
