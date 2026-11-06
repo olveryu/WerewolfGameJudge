@@ -119,7 +119,7 @@ function ResultCell({
         animStyle,
       ]}
     >
-      {item.isPityTriggered && <Text style={[styles.pityTag, { color: visual.color }]}>保底</Text>}
+      {item.isPityTriggered && <Text style={[styles.pityTag, { color: visual.text }]}>保底</Text>}
       <View style={styles.cellPreview}>
         <RewardPreview
           rewardType={item.rewardType}
@@ -130,7 +130,7 @@ function ResultCell({
       <Text style={styles.cellName} numberOfLines={1}>
         {displayName}
       </Text>
-      <Text style={[styles.cellRarity, { color: visual.color }]}>{visual.label}</Text>
+      <Text style={[styles.cellRarity, { color: visual.text }]}>{visual.label}</Text>
       {item.isDuplicate ? (
         <Text style={styles.cellShard}>◆ +{item.shardsAwarded}</Text>
       ) : (
@@ -196,14 +196,14 @@ export function TenResultOverlay({ results, drawType, onClose, onGoEquip }: TenR
                 <View key={group.rarity}>
                   <View style={styles.groupHeader}>
                     <View style={[styles.groupDot, { backgroundColor: visual.color }]} />
-                    <Text style={[styles.groupLabel, { color: visual.color }]}>{visual.label}</Text>
+                    <Text style={[styles.groupLabel, { color: visual.text }]}>{visual.label}</Text>
                     <View
                       style={[
                         styles.groupCountBadge,
                         { backgroundColor: withAlpha(visual.color, 0.15) },
                       ]}
                     >
-                      <Text style={[styles.groupCountText, { color: visual.color }]}>
+                      <Text style={[styles.groupCountText, { color: visual.text }]}>
                         ×{group.items.length}
                       </Text>
                     </View>
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
   },
   groupCountText: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     fontWeight: typography.weights.semibold,
   },
   cell: {
@@ -325,27 +325,27 @@ const styles = StyleSheet.create({
     marginBottom: spacing.micro,
   },
   cellName: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     fontWeight: typography.weights.semibold,
     color: colors.text,
     textAlign: 'center',
   },
   cellRarity: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     opacity: 0.7,
   },
   cellNew: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     fontWeight: typography.weights.bold,
-    color: colors.success,
+    color: colors.successText,
   },
   cellShard: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     fontWeight: typography.weights.bold,
-    color: colors.warning,
+    color: colors.warningText,
   },
   pityTag: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     fontWeight: typography.weights.semibold,
   },
   bottomActions: {
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   shardSummaryText: {
     fontSize: typography.caption,
     fontWeight: typography.weights.semibold,
-    color: colors.warning,
+    color: colors.warningText,
     textAlign: 'center',
   },
   equipButton: {

@@ -198,7 +198,7 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   'src/components/GeneratedAvatar.tsx': 23,
 
   // DebugPanel: dark terminal theme (intentionally separate from app theme — dev-only debug console)
-  'src/components/DebugPanel.tsx': 28,
+  'src/components/DebugPanel.tsx': 27,
 
   // palette.ts: base color definitions for factory-generated name styles
   'src/components/nameStyles/common/palette.ts': 10,
@@ -216,7 +216,7 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   'src/screens/GachaScreen/components/TenResultOverlay.tsx': 1,
 
   // DrawButton: gradient color stops (domain-specific decorative)
-  'src/screens/GachaScreen/components/DrawButton.tsx': 3,
+  'src/screens/GachaScreen/components/DrawButton.tsx': 2,
 
   // PityProgressBar: golden pity colors, progress track borderRadius: 4
   'src/screens/GachaScreen/components/PityProgressBar.tsx': 3,

@@ -20,13 +20,12 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { borderRadius, colors, spacing, typography, withAlpha } from '@/theme';
+import { borderRadius, colors, PRIMARY_GRADIENT, spacing, typography, withAlpha } from '@/theme';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 
 const GOLDEN_BORDER = '#FFD700';
 
-const NORMAL_GRADIENT: [string, string, string] = ['#5B52ED', '#4F46E5', '#3730A3'];
 const GOLDEN_GRADIENT: [string, string, string] = ['#D4A517', '#DAA520', '#B8860B'];
 
 // ─── Props ──────────────────────────────────────────────────────────────
@@ -83,7 +82,7 @@ export function DrawButton({
     pressScale.value = withSpring(1, { damping: 15, stiffness: 300 });
   };
 
-  const gradientColors = golden ? GOLDEN_GRADIENT : NORMAL_GRADIENT;
+  const gradientColors = golden ? GOLDEN_GRADIENT : PRIMARY_GRADIENT;
 
   return (
     <Animated.View style={[styles.wrapper, disabled && styles.wrapperDisabled, pressStyle]}>
@@ -114,13 +113,19 @@ export function DrawButton({
             <Ionicons
               name={golden ? 'star' : 'sparkles'}
               size={14}
-              color={withAlpha(colors.surface, disabled ? 0.4 : 0.9)}
+              color={withAlpha(golden ? colors.text : colors.surface, disabled ? 0.4 : 0.9)}
             />
-            <Text style={[styles.label, disabled && styles.labelDisabled]}>{label}</Text>
+            <Text
+              style={[styles.label, golden && styles.textOnGold, disabled && styles.labelDisabled]}
+            >
+              {label}
+            </Text>
           </View>
           {disabled && <Text style={styles.subLabel}>券不足</Text>}
           {!disabled && multiPullCount != null && multiPullCount < 10 && (
-            <Text style={styles.subLabelPartial}>仅剩 {multiPullCount} 抽</Text>
+            <Text style={[styles.subLabelPartial, golden && styles.textOnGold]}>
+              仅剩 {multiPullCount} 抽
+            </Text>
           )}
         </LinearGradient>
       </Pressable>
@@ -180,17 +185,21 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
     color: colors.textInverse,
   },
+  // White text measures 2.2–3.3:1 on the gold stops; dark text clears 5:1 on every stop.
+  textOnGold: {
+    color: colors.text,
+  },
   labelDisabled: {
     color: withAlpha(colors.textInverse, 0.5),
   },
   subLabel: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     color: withAlpha(colors.textInverse, 0.5),
     marginTop: spacing.micro,
   },
   subLabelPartial: {
-    fontSize: typography.captionSmall,
-    color: withAlpha(colors.textInverse, 0.7),
+    fontSize: typography.caption,
+    color: colors.textInverse,
     marginTop: spacing.micro,
   },
 });

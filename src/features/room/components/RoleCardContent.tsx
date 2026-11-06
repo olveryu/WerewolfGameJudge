@@ -27,10 +27,19 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { borderRadius, colors, fixed, spacing, type ThemeColors, typography } from '@/theme';
+import {
+  borderRadius,
+  colors,
+  fixed,
+  spacing,
+  type ThemeColors,
+  toneColors,
+  typography,
+} from '@/theme';
 
-import type { RevealAlignment, RevealRoleData } from '../model/RevealRoleData';
+import type { RevealRoleData } from '../model/RevealRoleData';
 import { CrackBackground } from './RoleRevealEffects/common/CrackBackground';
+import { createAlignmentThemes } from './RoleRevealEffects/themes';
 import { StructuredDescriptionView } from './StructuredDescriptionView';
 
 /** White text color for badges/overlays on colored backgrounds */
@@ -47,23 +56,10 @@ const WOLF_SHAKE_DELAY = 350;
 const WOLF_SHAKE_DURATION = 500;
 
 /**
- * 阵营色（从 theme tokens）。
- * 对应原版 getFactionColor：wolf→红，god→蓝，third→特殊色，villager→绿。
+ * 揭示模式深色渐变上的文字色：取各阵营动效主题的辉光色（浅色）。
+ * 阵营填充色在其自身的深色渐变上只有 2.2–3.2:1，辉光色为 4.6:1 以上。
  */
-export function getRevealFactionColor(alignment: RevealAlignment, theme: ThemeColors): string {
-  switch (alignment) {
-    case 'wolf':
-      return theme.wolf;
-    case 'god':
-      return theme.god;
-    case 'third':
-      return theme.third;
-    case 'villager':
-      return theme.villager;
-    case 'neutral':
-      return theme.textSecondary;
-  }
-}
+const REVEAL_THEMES = createAlignmentThemes(colors);
 
 interface RoleCardContentProps {
   /** 游戏无关的角色数据（调用方已处理 displayAs/seerLabel） */
@@ -127,7 +123,11 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
 }) => {
   const styles = useMemo(() => createStyles(colors, width, height), [width, height]);
 
-  const factionColor = getRevealFactionColor(role.alignment, colors);
+  const factionColor = toneColors[role.alignment].fill;
+  const nameColor =
+    revealMode && revealGradient != null
+      ? REVEAL_THEMES[role.alignment].glowColor
+      : toneColors[role.alignment].text;
   const factionName = role.factionName ?? '';
   const isWolf = role.alignment === 'wolf';
   // 英文副标题：展示用身份转大写（如 "SEER"）。用 displayId 而非
@@ -342,18 +342,18 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
       {revealMode ? (
         <Animated.Text
           testID={nameTestID}
-          style={[styles.roleName, styles.roleNameReveal, { color: factionColor }, nameAnimStyle]}
+          style={[styles.roleName, styles.roleNameReveal, { color: nameColor }, nameAnimStyle]}
         >
           {role.name}
         </Animated.Text>
       ) : (
-        <Text testID={nameTestID} style={[styles.roleName, { color: factionColor }]}>
+        <Text testID={nameTestID} style={[styles.roleName, { color: nameColor }]}>
           {role.name}
         </Text>
       )}
 
       {revealMode ? (
-        <Animated.Text style={[styles.roleSub, { color: factionColor }, descAnimStyle]}>
+        <Animated.Text style={[styles.roleSub, { color: nameColor }, descAnimStyle]}>
           {roleSub}
         </Animated.Text>
       ) : (

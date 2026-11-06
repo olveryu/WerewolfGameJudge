@@ -628,17 +628,16 @@ export function createRoomSeatTileStyles(
   colors: ThemeColors,
   tileSize: number,
 ): RoomSeatTileStyles {
-  // Unified highlight ring: solid colored border + glow. Independent of avatar opacity, so it stays
-  // visible on opaque custom avatars and never covers the avatar face.
+  // Unified highlight ring: a solid outline in the highlight color. Independent of avatar opacity, so
+  // it stays visible on opaque custom avatars and never covers the avatar face.
   const ring = (color: string): ViewStyle => ({
     borderColor: color,
     borderWidth: fixed.borderWidthHighlight,
-    boxShadow: `0px 0px 8px ${withAlpha(color, 0.4)}`,
     elevation: 6,
   });
-  // Framed variant: glow only, so the ring does not clash with the decorative frame border.
+  // Framed variant: the same outline drawn outside the tile, so it does not clash with the frame.
   const ringFramed = (color: string): ViewStyle => ({
-    boxShadow: `0px 0px 10px ${withAlpha(color, 0.5)}`,
+    boxShadow: `0px 0px 0px ${fixed.borderWidthHighlight}px ${color}`,
     elevation: 6,
   });
   return StyleSheet.create({
@@ -708,7 +707,6 @@ export function createRoomSeatTileStyles(
     },
     mySeatBadge: {
       backgroundColor: colors.success,
-      boxShadow: `0px 0px 6px ${withAlpha(colors.success, 0.4)}`,
     },
     seatNumberBadgeOffline: {
       backgroundColor: colors.textMuted,
@@ -720,7 +718,7 @@ export function createRoomSeatTileStyles(
       zIndex: 10,
     },
     readyBadgeIcon: {
-      color: colors.success,
+      color: colors.successText,
     },
     petWrapper: {
       position: 'absolute',
@@ -781,9 +779,9 @@ export function createRoomSeatTileStyles(
       zIndex: 10,
     },
     levelBadgeText: {
-      fontSize: typography.captionSmall,
+      fontSize: typography.caption,
       fontWeight: typography.weights.bold,
-      color: colors.textMuted,
+      color: colors.textSecondary,
     },
     emptyIndicator: {
       fontSize: typography.subtitle,
@@ -827,8 +825,8 @@ export function createRoomSeatTileStyles(
       height: typography.subtitle,
     },
     botRoleName: {
-      fontSize: typography.captionSmall,
-      lineHeight: typography.lineHeights.captionSmall,
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
       color: colors.textMuted,
       textAlign: 'center',
       width: tileSize - spacing.tight,

@@ -187,8 +187,8 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: typography.body, fontWeight: typography.weights.semibold, color: colors.text },
   text: { fontSize: typography.caption, color: colors.text },
-  meta: { fontSize: typography.captionSmall, color: colors.textSecondary },
-  error: { fontSize: typography.caption, color: colors.error },
+  meta: { fontSize: typography.caption, color: colors.textSecondary },
+  error: { fontSize: typography.caption, color: colors.errorText },
   input: {
     minHeight: componentSizes.button.md,
     backgroundColor: colors.background,

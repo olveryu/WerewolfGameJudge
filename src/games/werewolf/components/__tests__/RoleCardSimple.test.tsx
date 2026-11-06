@@ -21,6 +21,12 @@ jest.mock('@/theme', () => ({
     god: '#6366F1',
     third: '#F59E0B',
   },
+  toneColors: {
+    wolf: { fill: '#EF4444', text: '#B91C1C' },
+    villager: { fill: '#22C55E', text: '#15803D' },
+    god: { fill: '#6366F1', text: '#4338CA' },
+    third: { fill: '#F59E0B', text: '#B45309' },
+  },
   withAlpha: (hex: string, opacity: number) => {
     const alpha = Math.round(opacity * 255)
       .toString(16)
@@ -60,7 +66,6 @@ jest.mock('@/theme', () => ({
     },
     lineHeights: {
       caption: 16,
-      captionSmall: 14,
       secondary: 20,
       body: 22,
       subtitle: 24,

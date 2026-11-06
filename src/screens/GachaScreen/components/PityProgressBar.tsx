@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   text: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     color: colors.textMuted,
     minWidth: 30,
     textAlign: 'right',

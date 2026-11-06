@@ -439,7 +439,10 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
           <Canvas style={{ width: canvasW, height: canvasH }}>
             <Picture picture={scenePicture} />
           </Canvas>
-          <Text style={labelStyle}>{drawType === 'golden' ? '★ GOLDEN GACHA ★' : '✦ GACHA ✦'}</Text>
+          {/* The machine's emblem is part of the artwork, not content. */}
+          <Text style={labelStyle} aria-hidden>
+            {drawType === 'golden' ? '★ GOLDEN GACHA ★' : '✦ GACHA ✦'}
+          </Text>
         </Animated.View>
       </View>
     );

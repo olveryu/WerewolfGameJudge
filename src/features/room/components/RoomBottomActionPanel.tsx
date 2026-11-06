@@ -122,7 +122,6 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
             totalSteps={model.progress.total}
             currentLabel={model.progress.label}
             styles={progressStyles}
-            isCompact={isCompact}
           />
         </View>
       )}
@@ -451,7 +450,7 @@ const HostTaskActionButton: React.FC<{
   readonly styles: BottomActionPanelStyles;
 }> = ({ action, testID, style, hideAudioLockReason, styles }) => {
   const iconColor = !action.isEnabled
-    ? colors.textMuted
+    ? colors.textDisabled
     : action.variant === 'primary' || action.variant === 'danger'
       ? colors.textInverse
       : colors.textSecondary;
@@ -528,9 +527,9 @@ const DockTool: React.FC<{
   if (model === null) return null;
 
   const iconColor = !model.isEnabled
-    ? colors.textMuted
+    ? colors.textDisabled
     : model.tone === 'danger'
-      ? colors.error
+      ? colors.errorText
       : colors.textSecondary;
   const buttonProps = {
     variant: 'secondary' as const,

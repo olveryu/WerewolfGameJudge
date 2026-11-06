@@ -26,7 +26,7 @@ describe('SeatDot', () => {
     });
   });
 
-  it('shrinks to the badge size with captionSmall text when size is sm', () => {
+  it('shrinks to the badge size and keeps caption text when size is sm', () => {
     const screen = render(<SeatDot seat={0} size="sm" testID="dot" />);
 
     expect(StyleSheet.flatten(screen.getByTestId('dot').props.style)).toMatchObject({
@@ -34,7 +34,7 @@ describe('SeatDot', () => {
       height: componentSizes.badge.md,
     });
     expect(StyleSheet.flatten(screen.getByText('1').props.style)).toMatchObject({
-      fontSize: typography.captionSmall,
+      fontSize: typography.caption,
       fontWeight: typography.weights.bold,
     });
   });

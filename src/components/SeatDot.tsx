@@ -4,7 +4,7 @@
  *
  * `seat` is 0-based; the dot renders `seat + 1`. Base look: avatar.xs circle
  * on colors.background with a border and bold caption text. `size="sm"`
- * shrinks to badge.md with captionSmall text. `emphasis` covers the two
+ * shrinks to badge.md, keeping the caption text. `emphasis` covers the two
  * enlarged variants: `leader` (avatar.sm, primary ring + tint fill, flag
  * marker at the top-right corner) and `filled` (avatar.sm, primary fill,
  * inverse text). When `emphasis` is not `none`, the variant fixes the size
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   textSmall: {
-    ...textStyles.captionSmall,
+    ...textStyles.caption,
   },
   textLeader: {
     color: colors.primary,

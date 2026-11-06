@@ -566,7 +566,7 @@ export const SettingsScreen: React.FC = () => {
             <Button
               variant="ghost"
               buttonColor={colors.background}
-              textColor={colors.error}
+              textColor={colors.errorText}
               onPress={() => {
                 void handleSignOut();
               }}

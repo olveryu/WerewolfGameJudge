@@ -31,7 +31,6 @@ jest.mock('@/theme', () => ({
     large: 24,
   },
   typography: {
-    captionSmall: 10,
     caption: 12,
     secondary: 14,
     body: 16,

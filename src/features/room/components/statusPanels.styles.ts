@@ -202,11 +202,6 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         alignItems: 'center',
         gap: spacing.small,
         paddingHorizontal: spacing.small,
-        paddingVertical: spacing.small,
-        borderRadius: borderRadius.small,
-        borderWidth: fixed.borderWidth,
-        borderColor: colors.border,
-        backgroundColor: colors.background,
       },
       nextStepBlockedText: {
         flex: 1,
@@ -241,7 +236,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       text: {
         fontSize: typography.secondary,
         lineHeight: typography.lineHeights.secondary,
-        color: colors.error,
+        color: colors.errorText,
         fontWeight: typography.weights.medium,
       },
       progressBarTrack: {
@@ -265,12 +260,13 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         paddingHorizontal: spacing.small,
         paddingVertical: spacing.tight,
         borderRadius: borderRadius.small,
-        backgroundColor: withAlpha(colors.error, 0.2),
+        // A second error tint over the tinted bar drops errorText below 4.5:1.
+        backgroundColor: colors.surface,
       },
       reconnectText: {
         fontSize: typography.secondary,
         lineHeight: typography.lineHeights.secondary,
-        color: colors.error,
+        color: colors.errorText,
         fontWeight: typography.weights.semibold,
       },
     }),
@@ -310,16 +306,10 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       },
     }),
 
+    // A section of the bottom action panel, not a card: the panel is the only surface.
     progressIndicator: StyleSheet.create<RoomProgressIndicatorStyles>({
       container: {
-        paddingHorizontal: spacing.medium,
-        paddingVertical: spacing.small,
-        backgroundColor: colors.surface,
-        borderRadius: borderRadius.large,
-        ...shadows.sm,
-      },
-      compactContainer: {
-        paddingVertical: spacing.tight,
+        paddingHorizontal: spacing.small,
       },
       headerRow: {
         flexDirection: 'row',

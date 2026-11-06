@@ -1,8 +1,8 @@
 /**
- * FactionChip - Faction-colored rounded chip displaying a role name.
+ * FactionChip - Tone-colored rounded chip displaying a role name.
  *
  * Two sizes: `sm` (caption font, for TemplatePicker), `md` (secondary font, for RoomScreen).
- * Rounded rectangle + surfaceHover background + faction-color border/text.
+ * Rounded rectangle on surface: the tone's fill draws the border, its text color the label.
  * Renders TouchableOpacity when `onPress` is provided, otherwise renders plain View.
  * Pure presentation component; does not import service, contains no business logic.
  */
@@ -10,15 +10,23 @@ import { memo, useMemo } from 'react';
 import type { TextStyle, ViewStyle } from 'react-native';
 import { Text, TouchableOpacity, View } from 'react-native';
 
-import { borderRadius, colors, fixed, spacing, typography } from '@/theme';
+import {
+  borderRadius,
+  colors,
+  type ColorTone,
+  fixed,
+  spacing,
+  toneColors,
+  typography,
+} from '@/theme';
 
 type ChipSize = 'sm' | 'md';
 
 interface FactionChipProps {
   /** Display text (role name, optionally with ×count) */
   label: string;
-  /** Faction color token value (e.g. colors.wolf) */
-  color: string;
+  /** Faction tone (e.g. 'wolf') */
+  tone: ColorTone;
   /** sm = caption font (TemplatePicker), md = secondary font (RoomScreen). Default: sm */
   size?: ChipSize;
   /** When provided, chip becomes touchable */
@@ -53,17 +61,20 @@ const SIZE_TEXT: Record<ChipSize, TextStyle> = {
   },
 };
 
-export const FactionChip = memo<FactionChipProps>(({ label, color, size = 'sm', onPress }) => {
+export const FactionChip = memo<FactionChipProps>(({ label, tone, size = 'sm', onPress }) => {
   const chipStyle = useMemo<ViewStyle[]>(
     () => [
       BASE_CHIP,
       SIZE_CHIP[size],
-      { borderColor: color, backgroundColor: colors.surfaceHover },
+      { borderColor: toneColors[tone].fill, backgroundColor: colors.surface },
     ],
-    [color, size],
+    [tone, size],
   );
 
-  const textStyle = useMemo<TextStyle[]>(() => [SIZE_TEXT[size], { color }], [color, size]);
+  const textStyle = useMemo<TextStyle[]>(
+    () => [SIZE_TEXT[size], { color: toneColors[tone].text }],
+    [tone, size],
+  );
 
   const content = <Text style={textStyle}>{label}</Text>;
 

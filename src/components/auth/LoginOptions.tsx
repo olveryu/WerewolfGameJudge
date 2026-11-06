@@ -92,7 +92,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
           <Text style={styles.buttonCaptionInverse}>
             {isUpgrade ? '保留游戏数据，解锁完整功能' : '选头像起昵称，解锁绚丽头像框'}
           </Text>
-          <Text style={styles.buttonCaptionInverseMuted}>
+          <Text style={styles.buttonCaptionInverse}>
             <Ionicons name="sparkles-outline" size={typography.caption} /> 免验证，输入即注册
           </Text>
         </TouchableOpacity>

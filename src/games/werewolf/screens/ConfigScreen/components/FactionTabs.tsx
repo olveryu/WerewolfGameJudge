@@ -9,7 +9,7 @@ import { memo, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
-import { fixed, withAlpha } from '@/theme';
+import { type ColorTone, fixed, toneColors, withAlpha } from '@/theme';
 
 import { type ConfigScreenStyles } from './styles';
 
@@ -17,7 +17,7 @@ export interface FactionTabItem {
   key: Faction;
   title: string;
   count: number;
-  accentColor: string;
+  accentTone: ColorTone;
 }
 
 interface FactionTabsProps {
@@ -65,18 +65,24 @@ const FactionTab = memo<FactionTabProps>(({ tab, isActive, onPress, styles }) =>
       testID={TESTIDS.configFactionTab(tab.key)}
       style={[
         styles.tab,
-        isActive && { backgroundColor: withAlpha(tab.accentColor, 0.145) },
+        isActive && { backgroundColor: withAlpha(toneColors[tab.accentTone].fill, 0.145) },
         isActive && styles.tabActive,
       ]}
       onPress={handlePress}
       activeOpacity={fixed.activeOpacity}
     >
       <Text
-        style={[styles.tabLabel, { color: tab.accentColor }, isActive && styles.tabLabelActive]}
+        style={[
+          styles.tabLabel,
+          { color: toneColors[tab.accentTone].text },
+          isActive && styles.tabLabelActive,
+        ]}
       >
         {tab.title} · {tab.count}
       </Text>
-      {isActive && <View style={[styles.tabIndicator, { backgroundColor: tab.accentColor }]} />}
+      {isActive && (
+        <View style={[styles.tabIndicator, { backgroundColor: toneColors[tab.accentTone].fill }]} />
+      )}
     </TouchableOpacity>
   );
 });

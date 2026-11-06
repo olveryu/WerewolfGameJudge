@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cellName: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     lineHeight: typography.lineHeights.caption,
     color: colors.text,
     marginTop: spacing.tight,

@@ -26,7 +26,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
 import { SeatDot } from '@/components/SeatDot';
-import { borderRadius, colors, spacing, textStyles, typography } from '@/theme';
+import { borderRadius, colors, spacing, textStyles, toneColors, typography } from '@/theme';
 
 import {
   getAvalonFactionDisplayName,
@@ -157,7 +157,9 @@ export function AvalonReviewOverlay({
                 ? null
                 : boardSections.map((section) => (
                     <View key={section.title} style={styles.roleGroup}>
-                      <Text style={[styles.roleGroupTitle, { color: section.color }]}>
+                      <Text
+                        style={[styles.roleGroupTitle, { color: toneColors[section.tone].text }]}
+                      >
                         {section.title}
                       </Text>
                       <View style={styles.roleItems}>
@@ -262,7 +264,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
   },
   summaryFail: {
-    color: colors.error,
+    color: colors.errorText,
     fontWeight: typography.weights.bold,
   },
   scroll: {

@@ -46,7 +46,16 @@ import {
 } from '@/features/room/model/RoomOccupant';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { type RootStackParamList } from '@/navigation/types';
-import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
+import {
+  borderRadius,
+  colors,
+  type ColorTone,
+  componentSizes,
+  spacing,
+  toneColors,
+  typography,
+  withAlpha,
+} from '@/theme';
 import { getBuiltinAvatarId, isBuiltinAvatarUrl } from '@/utils/avatar';
 
 interface PlayerProfileCardProps {
@@ -58,14 +67,13 @@ interface PlayerProfileCardProps {
 const AVATAR_SIZE = componentSizes.avatar.xl; // 80pt
 const CARD_MAX_WIDTH = 300;
 
-/** Theme color for each level title */
-function getTitleColor(level: number): string {
-  if (level >= 41) return colors.warning;
-  if (level >= 31) return colors.god; // Elder — purple
-  if (level >= 21) return colors.info; // Veteran — blue
-  if (level >= 11) return colors.success; // Regular — green
-  if (level >= 6) return colors.textSecondary; // Beginner
-  return colors.textMuted; // Newbie
+/** Theme tone for each level title */
+function getTitleTone(level: number): ColorTone {
+  if (level >= 41) return 'warning';
+  if (level >= 31) return 'god'; // Elder — purple
+  if (level >= 21) return 'info'; // Veteran — blue
+  if (level >= 11) return 'success'; // Regular — green
+  return 'neutral'; // Beginner / Newbie
 }
 
 // ---------------------------------------------------------------------------
@@ -207,7 +215,7 @@ const EquipmentSlot: React.FC<{
       {visual && (
         <View style={styles.equipSlotRarityRow}>
           <View style={[styles.equipSlotDot, { backgroundColor: visual.color }]} />
-          <Text style={[styles.equipSlotRarityText, { color: visual.color }]}>{visual.label}</Text>
+          <Text style={[styles.equipSlotRarityText, { color: visual.text }]}>{visual.label}</Text>
         </View>
       )}
     </View>
@@ -349,8 +357,8 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
     [profile],
   );
 
-  const titleColor = useMemo(
-    () => (profile ? getTitleColor(profile.level) : colors.textMuted),
+  const titleTone = useMemo(
+    () => toneColors[profile ? getTitleTone(profile.level) : 'neutral'],
     [profile],
   );
 
@@ -418,7 +426,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
             {/* ── Card header band ── */}
             <View style={styles.headerBand}>
               <View
-                style={[styles.headerAccent, { backgroundColor: withAlpha(titleColor, 0.15) }]}
+                style={[styles.headerAccent, { backgroundColor: withAlpha(titleTone.fill, 0.15) }]}
               />
             </View>
 
@@ -438,7 +446,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
                   </View>
                 )}
                 {/* Level badge */}
-                <View style={[styles.levelBadge, { backgroundColor: titleColor }]}>
+                <View style={[styles.levelBadge, { backgroundColor: titleTone.fill }]}>
                   <Text style={styles.levelBadgeText}>Lv.{profile.level}</Text>
                 </View>
               </View>
@@ -458,8 +466,8 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
                 {profile.displayName || `${target.seat + 1}号座位`}
               </Text>
             )}
-            <View style={[styles.titleChip, { borderColor: withAlpha(titleColor, 0.3) }]}>
-              <Text style={[styles.titleText, { color: titleColor }]}>
+            <View style={[styles.titleChip, { borderColor: withAlpha(titleTone.fill, 0.3) }]}>
+              <Text style={[styles.titleText, { color: titleTone.text }]}>
                 {profile.title ?? getLevelTitle(profile.level)}
               </Text>
             </View>
@@ -610,7 +618,7 @@ const styles = StyleSheet.create({
     borderColor: colors.surface,
   },
   levelBadgeText: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     fontWeight: typography.weights.bold,
     color: colors.textInverse,
   },
@@ -715,7 +723,7 @@ const styles = StyleSheet.create({
   kickButtonText: {
     fontSize: typography.secondary,
     fontWeight: typography.weights.medium,
-    color: colors.error,
+    color: colors.errorText,
   },
 
   // Leave seat (self-profile)
@@ -733,7 +741,7 @@ const styles = StyleSheet.create({
   leaveSeatButtonText: {
     fontSize: typography.secondary,
     fontWeight: typography.weights.medium,
-    color: colors.warning,
+    color: colors.warningText,
   },
 
   // Equipment showcase
@@ -754,7 +762,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.borderLight,
   },
   equipDividerLabel: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     color: colors.textMuted,
     letterSpacing: typography.letterSpacing.wide,
   },
@@ -786,18 +794,18 @@ const styles = StyleSheet.create({
     borderRadius: SLOT_PREVIEW_SIZE / 2,
   },
   equipSlotName: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     fontWeight: typography.weights.medium,
     color: colors.text,
     maxWidth: '100%',
     textAlign: 'center',
   },
   equipSlotEmptyName: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     color: colors.textMuted,
   },
   equipSlotType: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     color: colors.textMuted,
     letterSpacing: typography.letterSpacing.wide,
   },
@@ -812,7 +820,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
   },
   equipSlotRarityText: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     fontWeight: typography.weights.semibold,
   },
   equipSlotIcon: {

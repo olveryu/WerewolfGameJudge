@@ -3,10 +3,15 @@
  *
  * Semantic colors based on the "月白" color scheme.
  * Pure constants, no React or service.
+ *
+ * Values meet WCAG 2.2 AA (4.5:1 text): each hue keeps its OKLCH hue and chroma and is
+ * darkened only as far as its role needs. Fill tokens carry white text; `*Text` tokens are
+ * the text color of a hue on surface, background, surfaceHover and the hue's own tints up
+ * to 20%. Pinned by src/theme/__tests__/colorContrast.contract.test.ts.
  */
 
 export interface ThemeColors {
-  // Primary
+  // Primary (fill and text)
   primary: string;
   primaryLight: string;
   primaryDark: string;
@@ -20,24 +25,39 @@ export interface ThemeColors {
   // Text
   text: string;
   textSecondary: string;
+  /** Tertiary text on surface/background only; never on surfaceHover or tints. */
   textMuted: string;
+  /** Inactive controls only (WCAG 1.4.3 exempts them from contrast). */
+  textDisabled: string;
   textInverse: string;
 
   // Borders
   border: string;
   borderLight: string;
 
-  // Status
+  // Status fills (backgrounds, borders, icons)
   success: string;
   warning: string;
   error: string;
+  /** Fill and text. */
   info: string;
 
-  // Game specific (4-faction: wolf / god / villager / third)
+  // Status text
+  successText: string;
+  warningText: string;
+  errorText: string;
+
+  // Game specific (4-faction: wolf / god / villager / third) fills
   wolf: string;
   villager: string;
   god: string;
   third: string;
+
+  // Faction text
+  wolfText: string;
+  villagerText: string;
+  godText: string;
+  thirdText: string;
 
   // Overlay
   overlay: string;
@@ -60,14 +80,13 @@ export const NIGHT_REPORT_COLORS = {
   divider: '#ECECF2',
   text: '#17171F',
   textSecondary: '#55566B',
-  textMuted: '#8A8A99',
-  textFaint: '#A5A5B5',
+  textMuted: '#6C6C7A',
   danger: '#D92D20',
-  dangerText: '#D92D20',
+  dangerText: '#D3261A',
   deadMedalBg: '#FDECEA',
   deadMedalBorder: '#EFA9A3',
   wolfMedalBg: '#FDECEF',
-  wolfMedalText: '#D92D5D',
+  wolfMedalText: '#D12357',
   wolfMedalBorder: '#F3C2CF',
   godMedalBg: '#ECEAFE',
   godMedalText: '#4F46E5',
@@ -97,7 +116,7 @@ export const PICTIONARY_DRAWING_PALETTE = [
 
 /** 月白 — restrained, translucent, elegant indigo with gaming atmosphere */
 export const colors: ThemeColors = {
-  primary: '#4F46E5',
+  primary: '#4A3FDE',
   primaryLight: '#818CF8',
   primaryDark: '#3730A3',
 
@@ -108,24 +127,64 @@ export const colors: ThemeColors = {
 
   text: '#1A1A2E',
   textSecondary: '#5C5C70',
-  textMuted: '#8E8EA0',
+  textMuted: '#6D6D7E',
+  textDisabled: '#8E8EA0',
   textInverse: '#FFFFFF',
 
   border: '#D1D1D6',
   borderLight: '#E5E5EA',
 
-  success: '#1A9A4A',
-  warning: '#B87D08',
+  success: '#00893D',
+  warning: '#A06C03',
   error: '#D13438',
-  info: '#2563EB',
+  info: '#104DD4',
+
+  successText: '#04692E',
+  warningText: '#7D5301',
+  errorText: '#B0001C',
 
   wolf: '#C82828',
-  villager: '#1A9A4A',
-  god: '#7B3FBF',
-  third: '#B87D08',
+  villager: '#00893D',
+  god: '#763ABA',
+  third: '#A06C03',
+
+  wolfText: '#B00112',
+  villagerText: '#04692E',
+  godText: '#763ABA',
+  thirdText: '#7D5301',
 
   overlay: 'rgba(26, 26, 46, 0.6)',
   overlayLight: 'rgba(26, 26, 46, 0.25)',
 
   transparent: 'transparent',
 };
+
+/** A hue that colors words and the chips, tints, bars and borders around them. */
+export type ColorTone =
+  | 'primary'
+  | 'info'
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'wolf'
+  | 'villager'
+  | 'god'
+  | 'third'
+  | 'neutral';
+
+/** Per tone: `fill` for tints up to 20%, bars, borders and solid backgrounds; `text` for words. */
+export const toneColors: Readonly<Record<ColorTone, Readonly<{ fill: string; text: string }>>> = {
+  primary: { fill: colors.primary, text: colors.primary },
+  info: { fill: colors.info, text: colors.info },
+  success: { fill: colors.success, text: colors.successText },
+  warning: { fill: colors.warning, text: colors.warningText },
+  error: { fill: colors.error, text: colors.errorText },
+  wolf: { fill: colors.wolf, text: colors.wolfText },
+  villager: { fill: colors.villager, text: colors.villagerText },
+  god: { fill: colors.god, text: colors.godText },
+  third: { fill: colors.third, text: colors.thirdText },
+  neutral: { fill: colors.textMuted, text: colors.textSecondary },
+};
+
+/** The brand gradient behind white text; every stop holds textInverse at 4.5:1. */
+export const PRIMARY_GRADIENT = [colors.primary, colors.primaryDark] as const;

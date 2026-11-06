@@ -8,7 +8,7 @@ import { memo } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 
 import { TESTIDS } from '@/testids';
-import { fixed } from '@/theme';
+import { fixed, toneColors } from '@/theme';
 
 import { type ConfigScreenStyles } from './styles';
 
@@ -23,8 +23,6 @@ interface RoleChipProps {
   styles: ConfigScreenStyles;
   /** Faction color key for the selected state. Falls back to primary if omitted. */
   factionColor?: FactionColorKey;
-  /** Accent color for selected text. Falls back to text color if omitted. */
-  accentColor?: string;
   /** Whether this chip has variant alternatives (dual-color border hint). */
   hasVariants?: boolean;
   /** Long-press handler for showing role info card (all chips). */
@@ -40,17 +38,7 @@ const FACTION_STYLE_MAP: Record<FactionColorKey, keyof ConfigScreenStyles> = {
 
 /** Role chip component. */
 export const RoleChip = memo<RoleChipProps>(
-  ({
-    id,
-    label,
-    selected,
-    onToggle,
-    styles,
-    factionColor,
-    accentColor,
-    hasVariants,
-    onInfoPress,
-  }) => {
+  ({ id, label, selected, onToggle, styles, factionColor, hasVariants, onInfoPress }) => {
     const selectedStyle = factionColor
       ? styles[FACTION_STYLE_MAP[factionColor]]
       : styles.chipSelected;
@@ -71,7 +59,7 @@ export const RoleChip = memo<RoleChipProps>(
           style={[
             styles.chipText,
             selected && styles.chipTextSelected,
-            selected && accentColor ? { color: accentColor } : undefined,
+            selected && factionColor ? { color: toneColors[factionColor].text } : undefined,
           ]}
         >
           {label}

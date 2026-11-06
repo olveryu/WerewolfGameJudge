@@ -19,7 +19,7 @@ import {
   getDistinctiveRoles,
   groupTemplatesByCategory,
 } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
-import { colors } from '@/theme';
+import type { ColorTone } from '@/theme';
 
 type NavigationProp = NativeStackNavigationProp<WerewolfConfigStackParamList, 'BoardPicker'>;
 type BoardPickerRouteProp = RouteProp<WerewolfConfigStackParamList, 'BoardPicker'>;
@@ -48,7 +48,7 @@ export function useBoardPickerScreenState({ onExitFlow }: UseBoardPickerScreenSt
   // ── Role filter chip data (stable, grouped by faction) ──
   const distinctiveRoles = useMemo(() => getDistinctiveRoles(PRESET_TEMPLATES), []);
   const filterGroups = useMemo(() => {
-    const groups: { label: string; color: string; items: typeof distinctiveRoles }[] = [];
+    const groups: { label: string; tone: ColorTone; items: typeof distinctiveRoles }[] = [];
     const factions: { key: Faction; label: string; colorKey: FactionColorKey }[] = [
       { key: Faction.Wolf, label: '狼人', colorKey: 'wolf' },
       { key: Faction.God, label: '神职', colorKey: 'god' },
@@ -60,7 +60,7 @@ export function useBoardPickerScreenState({ onExitFlow }: UseBoardPickerScreenSt
       if (items.length > 0) {
         groups.push({
           label: f.label,
-          color: colors[f.colorKey],
+          tone: f.colorKey,
           items,
         });
       }

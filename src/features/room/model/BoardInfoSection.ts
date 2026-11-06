@@ -5,6 +5,8 @@
  * （原 SeatGameRoom 契约接口从未被任何游戏实现，已于 2026-10-09 删除。）
  */
 
+import type { ColorTone } from '@/theme';
+
 /** 通用角色展示项（从 werewolf 抽取）。 */
 export interface RoleDisplayItem {
   readonly roleId: string;
@@ -16,5 +18,5 @@ export interface RoleDisplayItem {
 export interface BoardInfoSection {
   readonly title: string;
   readonly items: readonly RoleDisplayItem[];
-  readonly color: string;
+  readonly tone: ColorTone;
 }

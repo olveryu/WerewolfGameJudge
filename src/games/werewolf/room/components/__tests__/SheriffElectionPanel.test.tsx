@@ -320,12 +320,12 @@ describe('SheriffElectionPanel', () => {
     const firstRoundWinner = within(
       screen.getByTestId(TESTIDS.sheriffTallyGroup('first', 0)),
     ).getByText('1号');
-    expect(JSON.stringify(firstRoundWinner.props.style)).not.toContain(colors.warning);
+    expect(JSON.stringify(firstRoundWinner.props.style)).not.toContain(colors.warningText);
 
     const runoffWinner = within(
       screen.getByTestId(TESTIDS.sheriffTallyGroup('runoff', 0)),
     ).getByText('1号');
-    expect(JSON.stringify(runoffWinner.props.style)).toContain(colors.warning);
+    expect(JSON.stringify(runoffWinner.props.style)).toContain(colors.warningText);
     expect(
       within(screen.getByTestId(TESTIDS.sheriffTallyGroup('runoff', 0))).getByText('2 票'),
     ).toBeTruthy();

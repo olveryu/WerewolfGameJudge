@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.medium,
   },
   errorText: {
-    color: colors.error,
+    color: colors.errorText,
     fontSize: typography.secondary,
     lineHeight: typography.lineHeights.secondary,
     marginTop: -spacing.small,

@@ -178,7 +178,7 @@ function getStyles(colors: ThemeColors): TrackRowStyles {
       borderRadius: borderRadius.small,
     },
     moodText: {
-      ...textStyles.captionSmall,
+      ...textStyles.caption,
       fontWeight: typography.weights.medium,
     },
   });

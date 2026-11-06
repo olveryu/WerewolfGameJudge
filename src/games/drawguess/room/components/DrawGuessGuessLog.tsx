@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   },
   otherCorrectText: {
     ...textStyles.secondarySemibold,
-    color: colors.success,
+    color: colors.successText,
   },
   ownCorrectRow: {
     backgroundColor: colors.surface,

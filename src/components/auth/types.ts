@@ -39,7 +39,6 @@ export interface AuthStyles {
   buttonDisabled: ViewStyle;
   buttonCaption: TextStyle;
   buttonCaptionInverse: TextStyle;
-  buttonCaptionInverseMuted: TextStyle;
   // Avatar preview card (LoginOptions)
   avatarStripContainer: ViewStyle;
   avatarStripRow: ViewStyle;

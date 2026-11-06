@@ -161,11 +161,7 @@
         font-size: 40px;
         font-weight: 900;
         letter-spacing: 10px;
-        background: linear-gradient(180deg, #fff 0%, #c8d0e0 40%, #a0b0d0 60%, #e8e8f0 100%);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        -webkit-text-stroke: 0.5px rgba(255, 255, 255, 0.3);
+        color: #eef1f8;
         filter: drop-shadow(0 0 20px rgba(140, 160, 255, 0.5))
           drop-shadow(0 4px 12px rgba(0, 0, 0, 0.8));
       }
@@ -296,7 +292,7 @@
         top: 16px;
         right: 24px;
         font-size: 48px;
-        animation: bounce-arrow 1.5s ease-in-out infinite;
+        animation: nudge-arrow 1.5s ease-in-out infinite;
       }
 
       #wechat-guide .guide-icon {
@@ -324,13 +320,19 @@
         line-height: 2;
       }
 
-      @keyframes bounce-arrow {
+      @keyframes nudge-arrow {
         0%,
         100% {
           transform: translateY(0);
         }
         50% {
           transform: translateY(-10px);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #wechat-guide .guide-arrow {
+          animation: none;
         }
       }
 
@@ -365,7 +367,7 @@
 
     <!-- 启动画面 -->
     <div id="splash-screen">
-      <img id="splash-bg" src="" alt="" />
+      <img id="splash-bg" src="/assets/pwa/web/splash-wolf-blue.webp" alt="" />
       <div id="splash-title">
         <div class="main-title">狼 人 杀</div>
         <div class="divider"></div>
@@ -379,12 +381,6 @@
         <button id="splash-refresh">刷新页面</button>
       </div>
     </div>
-    <script>
-      (function () {
-        var bg = document.getElementById('splash-bg');
-        if (bg) bg.src = '/assets/pwa/web/splash-wolf-blue.webp';
-      })();
-    </script>
 
     <div id="root"></div>
 
