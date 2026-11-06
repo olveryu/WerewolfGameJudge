@@ -460,18 +460,18 @@
       }
 
       // 动态视口高度（修复移动浏览器 100vh 不准，Safari/Chrome 地址栏收缩）
-      // 优先 visualViewport.height — 在 iOS PWA standalone / WeChat web-view 中
-      // 包含 safe area，比 window.innerHeight 更准确。
+      // 只跟 layout viewport（window.innerHeight），不跟键盘：键盘出现时
+      // visualViewport 会缩小，但根高度不动，键盘空间改由 React 树里的
+      // 共享键盘 inset（useVisualViewport，单一 visualViewport 订阅）刨出，
+      // 避免 --vh 与 inset 同时吃同一键盘高度。--vh 只是旧内核兜底——
+      // 现代浏览器上面声明的 100dvh 会胜出；iOS 安全区仍由 SafeAreaView 处理。
       (function () {
         function setVH() {
-          var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+          var h = window.innerHeight;
           document.documentElement.style.setProperty('--vh', h * 0.01 + 'px');
         }
         window.addEventListener('resize', setVH);
         window.addEventListener('orientationchange', setVH);
-        if (window.visualViewport) {
-          window.visualViewport.addEventListener('resize', setVH);
-        }
         setVH();
       })();
 

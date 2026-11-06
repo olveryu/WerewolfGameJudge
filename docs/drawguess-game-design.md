@@ -484,7 +484,7 @@ GET /api/games/drawguess/rooms/:roomCode/media/:entryId
 
 - 游戏工作区最大宽度 430px 水平居中（与接龙版一致）；画布在可用宽高内取等比 4:3，不裁切、不拉伸。
 - 手机竖屏单列：题目条/提示条 → 总分行 → 画布 → 聊天流/工具栏 → 钉底的猜词输入行，无需整页滚动即可作画或猜词。
-- 聊天流区域占剩余高度、内部滚动；键盘弹起时使用共享任务框（`RoomTaskFrame` + `RoomTaskViewport`）避让：聊天流先收缩、画布不被顶出、输入行始终可见。
+- 聊天流区域占剩余高度、内部滚动；键盘弹起时使用共享任务框（`RoomTaskFrame` + `RoomTaskViewport`）避让：聊天流先收缩、画布不被顶出、输入行始终可见。键盘 inset 由共享 `useVisualViewport` 单一订阅 `visualViewport` 提供，任务框与 AI 气泡共读同一快照；`web/index.html` 的 `--vh` 只跟 layout viewport，不再跟键盘。
 - 320px 宽度下工具栏图标保持单行且至少 44px 点击区域。
 
 ### 9.8 无障碍、动效与防误触
