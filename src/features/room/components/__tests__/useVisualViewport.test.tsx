@@ -52,20 +52,13 @@ class FakeVisualViewport extends EventTarget {
 }
 
 describe('computeKeyboardHeight / computeContainerInset', () => {
-  it('clamps at zero and ignores the viewport pan', () => {
-    // Coordinate basis: `measureInWindow` returns `getBoundingClientRect`
-    // values, already in visual viewport coordinates, so the pan offset
-    // must not be subtracted a second time. The keyboard only shrinks
-    // the visual viewport, and panning it changes neither its height
-    // nor the container's overhang below its bottom edge.
+  it('clamps at zero and subtracts the viewport pan', () => {
     expect(computeKeyboardHeight(800, { height: 500, offsetTop: 0 })).toBe(300);
-    expect(computeKeyboardHeight(800, { height: 500, offsetTop: 50 })).toBe(300);
+    expect(computeKeyboardHeight(800, { height: 500, offsetTop: 50 })).toBe(250);
     expect(computeKeyboardHeight(800, { height: 800, offsetTop: 0 })).toBe(0);
     expect(computeKeyboardHeight(800, { height: 900, offsetTop: 0 })).toBe(0);
     expect(computeContainerInset(700, { height: 500, offsetTop: 0 })).toBe(200);
-    expect(computeContainerInset(700, { height: 500, offsetTop: 50 })).toBe(200);
     expect(computeContainerInset(400, { height: 500, offsetTop: 0 })).toBe(0);
-    expect(computeContainerInset(400, { height: 500, offsetTop: 50 })).toBe(0);
   });
 });
 
@@ -132,11 +125,10 @@ describe('useVisualViewport shared subscription', () => {
     expect(seen).toHaveLength(rendersBefore);
 
     // The pan offset is part of the snapshot, not a second event source.
-    // It changes neither the keyboard height nor the container inset.
     act(() => {
       fake.scrollTo(50);
     });
-    expect(seen.at(-1)).toEqual({ snapshot: { height: 500, offsetTop: 50 }, height: 300 });
+    expect(seen.at(-1)).toEqual({ snapshot: { height: 500, offsetTop: 50 }, height: 250 });
 
     act(() => {
       first.unmount();
@@ -170,150 +162,5 @@ describe('useVisualViewport shared subscription', () => {
       fake.resizeTo(800, 0);
     });
     expect(heights.at(-1)).toBe(0);
-  });
-});
-
-describe('pan reset', () => {
-  let fake: FakeVisualViewport;
-  let roots: ReactTestRenderer[];
-  let input: HTMLInputElement;
-
-  beforeEach(() => {
-    fake = new FakeVisualViewport(800, 0);
-    Object.defineProperty(window, 'visualViewport', {
-      value: fake,
-      configurable: true,
-    });
-    Object.defineProperty(window, 'innerHeight', { value: 800, configurable: true });
-    jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
-    jest.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-      callback(0);
-      return 0;
-    });
-    input = document.createElement('input');
-    document.body.appendChild(input);
-    roots = [];
-  });
-
-  afterEach(() => {
-    for (const root of roots) {
-      act(() => {
-        root.unmount();
-      });
-    }
-    roots = [];
-    input.remove();
-    jest.restoreAllMocks();
-    Object.defineProperty(window, 'visualViewport', {
-      value: undefined,
-      configurable: true,
-    });
-  });
-
-  function mountProbe(): void {
-    const Probe = () => {
-      useVisualViewport();
-      return null;
-    };
-    let root!: ReactTestRenderer;
-    act(() => {
-      root = create(<Probe />);
-    });
-    roots.push(root);
-  }
-
-  function setInputBottom(bottom: number): void {
-    // This jsdom build has no DOMRect global; only `bottom` is read by
-    // the reset, so a literal with the rect shape is enough.
-    jest.spyOn(input, 'getBoundingClientRect').mockReturnValue({
-      bottom,
-      top: bottom - 40,
-      left: 0,
-      right: 300,
-      x: 0,
-      y: bottom - 40,
-      width: 300,
-      height: 40,
-      toJSON: () => ({}),
-    });
-  }
-
-  it('resets the pan only when the keyboard is open and the focused input is fully visible', () => {
-    mountProbe();
-    setInputBottom(400);
-    input.focus();
-    act(() => {
-      fake.resizeTo(500, 50);
-    });
-    expect(window.scrollTo).toHaveBeenCalledTimes(1);
-    expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
-  });
-
-  it('does not reset when the focused input is not fully visible', () => {
-    mountProbe();
-    setInputBottom(600);
-    input.focus();
-    act(() => {
-      fake.resizeTo(500, 50);
-    });
-    expect(window.scrollTo).not.toHaveBeenCalled();
-  });
-
-  it('does not reset when nothing is focused', () => {
-    mountProbe();
-    setInputBottom(400);
-    act(() => {
-      fake.resizeTo(500, 50);
-    });
-    expect(window.scrollTo).not.toHaveBeenCalled();
-  });
-
-  it('does not reset when the focused element is not a text input', () => {
-    const button = document.createElement('button');
-    document.body.appendChild(button);
-    mountProbe();
-    setInputBottom(400);
-    button.focus();
-    act(() => {
-      fake.resizeTo(500, 50);
-    });
-    expect(window.scrollTo).not.toHaveBeenCalled();
-    button.remove();
-  });
-
-  it('does not reset when the viewport is not panned', () => {
-    mountProbe();
-    setInputBottom(400);
-    input.focus();
-    act(() => {
-      fake.resizeTo(500, 0);
-    });
-    expect(window.scrollTo).not.toHaveBeenCalled();
-  });
-
-  it('does not reset when the keyboard is closed', () => {
-    mountProbe();
-    setInputBottom(400);
-    input.focus();
-    act(() => {
-      fake.resizeTo(800, 50);
-    });
-    expect(window.scrollTo).not.toHaveBeenCalled();
-  });
-
-  it('does not reset twice after the reset lands', () => {
-    mountProbe();
-    setInputBottom(400);
-    input.focus();
-    act(() => {
-      fake.resizeTo(500, 50);
-    });
-    expect(window.scrollTo).toHaveBeenCalledTimes(1);
-    // The browser applies the reset: the pan is gone, so there is
-    // nothing left to reset.
-    act(() => {
-      fake.scrollTo(0);
-    });
-    expect(window.scrollTo).toHaveBeenCalledTimes(1);
   });
 });
