@@ -471,9 +471,9 @@ GET /api/games/pictionary/rooms/:roomCode/media/:entryId
 
 ### 9.7 响应式布局
 
-Pictionary 的作答、等待和结果工作区最大宽度固定为 430px 并水平居中。作答使用共享 `RoomTaskFrame`（标题计时由 `PictionaryTaskHeading` 提供），固定页头与底部操作区，中间内容占剩余高度；文字任务的输入框与字数行也在底部操作区内（footer），body 只留上一棒画作，开局题目的 body 为空、输入行仍钉底；等待仍使用 `PictionaryStageFrame`，画廊使用独立虚拟列表。`PictionaryTaskMedia` 根据剩余宽高计算 4:3 尺寸，不把完整画布和按钮堆进无限高度滚动区。
+Pictionary 的作答、等待和结果工作区最大宽度固定为 430px 并水平居中。作答使用共享 `RoomTaskFrame`（标题计时由 `PictionaryTaskHeading` 提供），固定页头与底部操作区，中间内容占剩余高度；等待仍使用 `PictionaryStageFrame`，画廊使用独立虚拟列表。`PictionaryTaskMedia` 根据剩余宽高计算 4:3 尺寸，不把完整画布和按钮堆进无限高度滚动区。
 
-手机竖屏按单列排列，作答无需整页滚动即可看到媒体、输入和完成按钮。长题目只在题目区域滚动，色板在选择面板内换行展示。原生端使用 `KeyboardAvoidingView`；Web 由共享 `useVisualViewport` 单一订阅 `visualViewport`，键盘遮挡量从实测容器边界计算。文字任务不自动抢焦点弹键盘。
+手机竖屏按单列排列，作答无需整页滚动即可看到媒体、输入和完成按钮。长题目只在题目区域滚动，色板在选择面板内换行展示。原生端使用 `KeyboardAvoidingView`；Web 监听 `visualViewport` 并从实测容器边界计算键盘遮挡量。文字任务不自动抢焦点弹键盘。
 
 ```text
 ┌──────────────────────────────┐
