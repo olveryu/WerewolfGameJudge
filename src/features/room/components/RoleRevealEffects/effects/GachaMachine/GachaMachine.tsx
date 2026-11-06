@@ -531,7 +531,9 @@ export const GachaMachine: React.FC<RevealEffectProps> = ({
             <View style={styles.coinSlotInner} />
             {/* Animated coin insert */}
             <Animated.View style={[styles.coin, coinStyle]}>
-              <Text style={styles.coinSymbol}>¥</Text>
+              <Text style={styles.coinSymbol} aria-hidden>
+                ¥
+              </Text>
             </Animated.View>
           </View>
           <View style={styles.label}>
@@ -580,11 +582,15 @@ export const GachaMachine: React.FC<RevealEffectProps> = ({
             <View style={styles.capsuleTop}>
               <View style={styles.capsuleTopShine} />
               {/* Star pattern on capsule */}
-              <Text style={styles.capsuleStarPattern}>★</Text>
+              <Text style={styles.capsuleStarPattern} aria-hidden>
+                ★
+              </Text>
             </View>
             <View style={styles.capsuleBottom}>
               {/* Star pattern on bottom half */}
-              <Text style={styles.capsuleStarPatternBottom}>✦</Text>
+              <Text style={styles.capsuleStarPatternBottom} aria-hidden>
+                ✦
+              </Text>
             </View>
             <View style={styles.capsuleRing} />
             {/* Crack lines — appear before opening */}

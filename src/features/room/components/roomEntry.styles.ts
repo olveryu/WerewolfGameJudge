@@ -14,7 +14,7 @@ export const roomEntryStyles = StyleSheet.create({
   },
   errorText: {
     ...textStyles.body,
-    color: colors.error,
+    color: colors.errorText,
     textAlign: 'center',
     marginBottom: spacing.large,
   },

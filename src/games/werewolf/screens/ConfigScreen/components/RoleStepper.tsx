@@ -8,7 +8,7 @@ import { memo, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
-import { fixed, withAlpha } from '@/theme';
+import { type ColorTone, fixed, toneColors, withAlpha } from '@/theme';
 
 import { type ConfigScreenStyles } from './styles';
 
@@ -19,11 +19,12 @@ interface RoleStepperProps {
   maxCount: number;
   onCountChange: (roleId: string, newCount: number) => void;
   styles: ConfigScreenStyles;
-  accentColor: string;
+  accentTone: ColorTone;
 }
 
 export const RoleStepper = memo<RoleStepperProps>(
-  ({ roleId, label, count, maxCount, onCountChange, styles, accentColor }) => {
+  ({ roleId, label, count, maxCount, onCountChange, styles, accentTone }) => {
+    const accent = toneColors[accentTone];
     const handleDecrement = useCallback(() => {
       if (count > 0) onCountChange(roleId, count - 1);
     }, [roleId, count, onCountChange]);
@@ -36,7 +37,7 @@ export const RoleStepper = memo<RoleStepperProps>(
       <View style={styles.stepperRow}>
         <Text style={styles.stepperLabel}>{label}</Text>
         <View
-          style={[styles.stepperPill, count > 0 && { borderColor: withAlpha(accentColor, 0.251) }]}
+          style={[styles.stepperPill, count > 0 && { borderColor: withAlpha(accent.fill, 0.251) }]}
         >
           <View style={styles.stepperControls}>
             <TouchableOpacity
@@ -49,7 +50,7 @@ export const RoleStepper = memo<RoleStepperProps>(
               <Text
                 style={[
                   styles.stepperBtnText,
-                  { color: accentColor },
+                  { color: accent.text },
                   count <= 0 && styles.stepperBtnTextDisabled,
                 ]}
               >
@@ -58,7 +59,7 @@ export const RoleStepper = memo<RoleStepperProps>(
             </TouchableOpacity>
             <Text
               testID={TESTIDS.configStepperCount(roleId)}
-              style={[styles.stepperCount, { color: count > 0 ? accentColor : undefined }]}
+              style={[styles.stepperCount, { color: count > 0 ? accent.text : undefined }]}
             >
               {count}
             </Text>
@@ -72,7 +73,7 @@ export const RoleStepper = memo<RoleStepperProps>(
               <Text
                 style={[
                   styles.stepperBtnText,
-                  { color: accentColor },
+                  { color: accent.text },
                   count >= maxCount && styles.stepperBtnTextDisabled,
                 ]}
               >

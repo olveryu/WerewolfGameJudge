@@ -94,7 +94,7 @@ function createStyles(colors: ThemeColors, screenHeight: number) {
       fontWeight: typography.weights.semibold,
     },
     cardNameDisabled: {
-      color: colors.textMuted,
+      color: colors.textDisabled,
     },
     cardHint: {
       ...textStyles.caption,

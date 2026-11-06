@@ -70,7 +70,6 @@ export interface SettingsScreenStyles {
   buttonDisabled: ViewStyle;
   buttonCaption: TextStyle;
   buttonCaptionInverse: TextStyle;
-  buttonCaptionInverseMuted: TextStyle;
   // Avatar preview card (LoginOptions)
   avatarStripContainer: ViewStyle;
   avatarStripRow: ViewStyle;
@@ -183,7 +182,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     statusText: {
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
-      color: colors.success,
+      color: colors.successText,
     },
     logoutBtn: {
       marginTop: spacing.medium,
@@ -435,7 +434,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       backgroundColor: colors.error,
     },
     dresserEntryBadgeText: {
-      fontSize: typography.captionSmall,
+      fontSize: typography.caption,
       fontWeight: typography.weights.bold,
       color: colors.textInverse,
     },

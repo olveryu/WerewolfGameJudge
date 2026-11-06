@@ -14,10 +14,9 @@ import { useCallback, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { UI_ICONS } from '@/config/iconTokens';
-import { getRevealFactionColor } from '@/features/room/components/RoleCardContent';
 import { RoleCardSimple as SharedRoleCardSimple } from '@/features/room/components/RoleCardSimple';
 import { TESTIDS } from '@/testids';
-import { borderRadius, colors, fixed, spacing, typography, withAlpha } from '@/theme';
+import { borderRadius, colors, fixed, spacing, toneColors, typography, withAlpha } from '@/theme';
 
 import { toRevealRoleData } from './WerewolfRoleCardAdapter';
 
@@ -76,8 +75,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
 
   // AI pill 和变体 bar 的颜色：与卡片显示身份一致（displayAs 后），避免泄漏真实身份。
   // 如 mirrorSeer 显示为预言家，相关 UI 均为神职蓝。
-  const displayFactionColor =
-    revealData != null ? getRevealFactionColor(revealData.alignment, colors) : colors.villager;
+  const displayTone = toneColors[revealData?.alignment ?? 'villager'];
 
   const handleAskAI = useCallback(() => {
     if (displayRoleId == null || onAskAI == null) return;
@@ -94,16 +92,16 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
         {/* AI pill — overlaid on card, below faction badge */}
         {showAIButton && (
           <Pressable
-            style={[styles.aiPill, { backgroundColor: withAlpha(displayFactionColor, 0.15) }]}
+            style={[styles.aiPill, { backgroundColor: withAlpha(displayTone.fill, 0.15) }]}
             onPress={handleAskAI}
             accessibilityLabel="AI 攻略"
           >
             <Ionicons
               name={UI_ICONS.AI_ASSISTANT}
               size={typography.caption}
-              color={displayFactionColor}
+              color={displayTone.text}
             />
-            <Text style={[styles.aiPillText, { color: displayFactionColor }]}>AI 攻略</Text>
+            <Text style={[styles.aiPillText, { color: displayTone.text }]}>AI 攻略</Text>
           </Pressable>
         )}
 
@@ -119,7 +117,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
                   testID={TESTIDS.configVariantOption(id)}
                   style={[
                     styles.variantPill,
-                    isActive && [styles.variantPillActive, { borderColor: displayFactionColor }],
+                    isActive && [styles.variantPillActive, { borderColor: displayTone.fill }],
                   ]}
                   activeOpacity={fixed.activeOpacity}
                   onPress={() => onVariantSelect(id)}
@@ -127,7 +125,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
                   <Text
                     style={[
                       styles.variantPillText,
-                      isActive && [styles.variantPillTextActive, { color: displayFactionColor }],
+                      isActive && [styles.variantPillTextActive, { color: displayTone.text }],
                     ]}
                   >
                     {spec.displayName}
@@ -145,7 +143,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
     variantIds,
     activeVariant,
     onVariantSelect,
-    displayFactionColor,
+    displayTone,
     handleAskAI,
   ]);
 

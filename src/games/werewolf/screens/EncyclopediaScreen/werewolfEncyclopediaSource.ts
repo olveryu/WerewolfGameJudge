@@ -20,9 +20,9 @@ import type {
 import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
 import { getRoleBadge } from '@/games/werewolf/assets/roleBadges';
 import { toWerewolfDescriptionFields } from '@/games/werewolf/components/WerewolfRoleCardAdapter';
-import type { ThemeColors } from '@/theme';
+import type { ColorTone } from '@/theme';
 
-import { ALL_TAGS, FACTION_SECTIONS, TAG_COLOR_KEY, TAG_LABELS } from './constants';
+import { ALL_TAGS, FACTION_SECTIONS, TAG_LABELS, TAG_TONE } from './constants';
 
 const FACTION_GROUP_KEY: Record<Faction, string> = {
   [Faction.God]: 'god',
@@ -31,7 +31,7 @@ const FACTION_GROUP_KEY: Record<Faction, string> = {
   [Faction.Special]: 'third',
 };
 
-function getFactionColorKey(roleId: RoleId): keyof ThemeColors {
+function getFactionTone(roleId: RoleId): ColorTone {
   if (isWolfRole(roleId)) return 'wolf';
   const spec = ROLE_SPECS[roleId];
   if (spec.faction === Faction.God) return 'god';
@@ -51,7 +51,7 @@ function buildTagCatalog(): readonly EncyclopediaRoleTag[] {
   return ALL_TAGS.map((tag) => ({
     key: tag,
     label: TAG_LABELS[tag],
-    colorKey: TAG_COLOR_KEY[tag],
+    tone: TAG_TONE[tag],
   }));
 }
 
@@ -65,14 +65,14 @@ export const WEREWOLF_ENCYCLOPEDIA_SOURCE: EncyclopediaRoleSource = {
       subtitle: spec.englishName,
       factionKey: FACTION_GROUP_KEY[spec.faction],
       factionLabel: getFactionLabel(roleId),
-      factionColorKey: getFactionColorKey(roleId),
+      factionTone: getFactionTone(roleId),
       description: spec.description,
       searchText: `${spec.displayName}${spec.shortName}${spec.description}`,
       structuredFields: toWerewolfDescriptionFields(roleId),
       tags: spec.tags?.map((tag) => ({
         key: tag,
         label: TAG_LABELS[tag],
-        colorKey: TAG_COLOR_KEY[tag],
+        tone: TAG_TONE[tag],
       })),
       listImage: getRoleBadge(roleId),
       detailImage: getRoleAvatar(roleId),
@@ -81,7 +81,7 @@ export const WEREWOLF_ENCYCLOPEDIA_SOURCE: EncyclopediaRoleSource = {
   factionGroups: FACTION_SECTIONS.map((config) => ({
     key: FACTION_GROUP_KEY[config.faction],
     label: config.label,
-    colorKey: config.colorKey,
+    tone: config.tone,
   })),
   tagCatalog: buildTagCatalog(),
 };

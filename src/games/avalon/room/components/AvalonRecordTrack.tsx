@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   trackLabel: {
-    ...textStyles.captionSmall,
+    ...textStyles.caption,
     color: colors.textMuted,
     textAlign: 'center',
   },

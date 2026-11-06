@@ -15,7 +15,7 @@ export type EncyclopediaFactionFilterKey = string;
 /** 角色分组（SectionList 数据源）：双列配对。 */
 export interface EncyclopediaRoleSection {
   readonly title: string;
-  readonly colorKey: EncyclopediaRoleEntry['factionColorKey'];
+  readonly tone: EncyclopediaRoleEntry['factionTone'];
   readonly data: [EncyclopediaRoleEntry, EncyclopediaRoleEntry | null][];
 }
 
@@ -65,7 +65,7 @@ function buildSections(
       ? [
           {
             title: `${group.label} · ${filtered.length}`,
-            colorKey: group.colorKey,
+            tone: group.tone,
             data: toPairs(filtered),
           },
         ]
@@ -77,7 +77,7 @@ function buildSections(
       const roles = filtered.filter((entry) => entry.factionKey === group.key);
       return {
         title: `${group.label} · ${roles.length}`,
-        colorKey: group.colorKey,
+        tone: group.tone,
         data: toPairs(roles),
       };
     })

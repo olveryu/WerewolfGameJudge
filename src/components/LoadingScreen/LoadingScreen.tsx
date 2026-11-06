@@ -94,7 +94,7 @@ export function LoadingScreen({
 
       {error ? (
         <View style={styles.errorContainer}>
-          <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+          <Text style={[styles.errorText, { color: colors.errorText }]}>{error}</Text>
           <View style={styles.errorActions}>
             {onRetry && (
               <Pressable
@@ -147,7 +147,7 @@ function StepRow({ step, isActive }: { readonly step: BootStep; readonly isActiv
       style={styles.stepRow}
     >
       <Text
-        style={[styles.stepIndicator, { color: step.done ? colors.success : colors.textMuted }]}
+        style={[styles.stepIndicator, { color: step.done ? colors.successText : colors.textMuted }]}
       >
         {step.done ? '✓' : '○'}
       </Text>

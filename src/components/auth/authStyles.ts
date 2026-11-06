@@ -111,7 +111,7 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
     },
     // Error
     errorText: {
-      color: colors.error,
+      color: colors.errorText,
       fontSize: typography.secondary,
       lineHeight: typography.lineHeights.secondary,
       textAlign: 'center',
@@ -180,14 +180,6 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
       textAlign: 'center',
       marginTop: spacing.tight,
       opacity: 0.8,
-    },
-    buttonCaptionInverseMuted: {
-      fontSize: typography.caption,
-      lineHeight: typography.lineHeights.caption,
-      color: colors.textInverse,
-      textAlign: 'center',
-      marginTop: spacing.tight,
-      opacity: 0.55,
     },
     // Avatar preview card (LoginOptions)
     avatarStripContainer: {

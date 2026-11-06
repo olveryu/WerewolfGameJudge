@@ -7,6 +7,9 @@ import type {
 /** Why the game picker page was opened: create a room, or browse guides. */
 export type GamePickerPurpose = 'create' | 'guide';
 
+/** Email auth form mode; the only AuthEmail param carried by the URL. */
+export type AuthEmailMode = 'signIn' | 'signUp';
+
 export type RootStackParamList = {
   Home: undefined;
   Admin: undefined;
@@ -34,7 +37,7 @@ export type RootStackParamList = {
       }
     | undefined;
   AuthEmail: {
-    mode: 'signIn' | 'signUp';
+    mode: AuthEmailMode;
     /** Override EmailForm title (e.g. '绑定邮箱') */
     formTitle?: string;
     /** Show sign-in ↔ sign-up toggle link (default: true) */

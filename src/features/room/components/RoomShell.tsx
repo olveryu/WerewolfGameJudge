@@ -1,12 +1,14 @@
 /** Shared visual frame for every game room. Game adapters provide models and explicit slots. */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useIsFocused } from '@react-navigation/native';
 import type React from 'react';
-import { Children, useCallback, useMemo, useState } from 'react';
-import { Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { Children, useCallback, useEffect, useMemo, useState } from 'react';
+import { type LayoutChangeEvent, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
+import { publishRoomBottomPanelHeight } from '@/features/room/hooks/roomBottomPanelHeight';
 import {
   resolveRoomHeaderLayout,
   usesRoomSideInspector,
@@ -97,6 +99,16 @@ export const RoomShell: React.FC<RoomShellProps> = ({
     setIsHostManagementOpen(true);
   }, [model.hostManagement]);
   const closeHostManagement = useCallback(() => setIsHostManagementOpen(false), []);
+  const isFocused = useIsFocused();
+  const [bottomPanelHeight, setBottomPanelHeight] = useState(0);
+  const handleBottomPanelLayout = useCallback((event: LayoutChangeEvent) => {
+    setBottomPanelHeight(event.nativeEvent.layout.height);
+  }, []);
+  useEffect(() => {
+    if (!isFocused) return;
+    publishRoomBottomPanelHeight(bottomPanelHeight);
+    return () => publishRoomBottomPanelHeight(null);
+  }, [isFocused, bottomPanelHeight]);
   const activeSideInspector =
     isHostManagementOpen && model.hostManagement !== null ? (
       <RoomHostManagementPanel
@@ -251,16 +263,18 @@ export const RoomShell: React.FC<RoomShellProps> = ({
         </View>
       )}
 
-      <RoomBottomActionPanel
-        model={model.bottomActions}
-        isAudioPlaying={model.isAudioPlaying}
-        hostManagement={model.hostManagement}
-        onOpenHostManagement={openHostManagement}
-        styles={componentStyles.bottomActionPanel}
-        progressStyles={componentStyles.progressIndicator}
-        bottomInset={insets.bottom}
-        isCompactHeight={viewportHeight <= ROOM_SHORT_VIEWPORT_HEIGHT}
-      />
+      <View onLayout={handleBottomPanelLayout}>
+        <RoomBottomActionPanel
+          model={model.bottomActions}
+          isAudioPlaying={model.isAudioPlaying}
+          hostManagement={model.hostManagement}
+          onOpenHostManagement={openHostManagement}
+          styles={componentStyles.bottomActionPanel}
+          progressStyles={componentStyles.progressIndicator}
+          bottomInset={insets.bottom}
+          isCompactHeight={viewportHeight <= ROOM_SHORT_VIEWPORT_HEIGHT}
+        />
+      </View>
 
       {model.hostManagement !== null && (
         <RoomHostManagementPanel

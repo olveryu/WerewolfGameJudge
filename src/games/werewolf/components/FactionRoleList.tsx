@@ -15,7 +15,26 @@ import {
   computeFactionStats,
   groupRolesByFaction,
 } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
-import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
+import {
+  borderRadius,
+  colors,
+  type ColorTone,
+  componentSizes,
+  spacing,
+  toneColors,
+  typography,
+  withAlpha,
+} from '@/theme';
+
+function FactionStatBadge({ tone, label }: { tone: ColorTone; label: string }) {
+  return (
+    <View
+      style={[styles.factionStatBadge, { backgroundColor: withAlpha(toneColors[tone].fill, 0.12) }]}
+    >
+      <Text style={[styles.factionStatText, { color: toneColors[tone].text }]}>{label}</Text>
+    </View>
+  );
+}
 
 interface FactionRoleListProps {
   roles: readonly RoleId[];
@@ -44,31 +63,11 @@ export const FactionRoleList = memo<FactionRoleListProps>(function FactionRoleLi
       {/* Faction stat badges */}
       {showStats && (
         <View style={styles.factionStatRow}>
-          <View
-            style={[styles.factionStatBadge, { backgroundColor: withAlpha(colors.wolf, 0.12) }]}
-          >
-            <Text style={[styles.factionStatText, { color: colors.wolf }]}>
-              狼{stats.wolfCount}
-            </Text>
-          </View>
-          <View style={[styles.factionStatBadge, { backgroundColor: withAlpha(colors.god, 0.12) }]}>
-            <Text style={[styles.factionStatText, { color: colors.god }]}>神{stats.godCount}</Text>
-          </View>
-          <View
-            style={[styles.factionStatBadge, { backgroundColor: withAlpha(colors.villager, 0.12) }]}
-          >
-            <Text style={[styles.factionStatText, { color: colors.villager }]}>
-              民{stats.villagerCount}
-            </Text>
-          </View>
+          <FactionStatBadge tone="wolf" label={`狼${stats.wolfCount}`} />
+          <FactionStatBadge tone="god" label={`神${stats.godCount}`} />
+          <FactionStatBadge tone="villager" label={`民${stats.villagerCount}`} />
           {stats.thirdCount > 0 && (
-            <View
-              style={[styles.factionStatBadge, { backgroundColor: withAlpha(colors.third, 0.12) }]}
-            >
-              <Text style={[styles.factionStatText, { color: colors.third }]}>
-                特{stats.thirdCount}
-              </Text>
-            </View>
+            <FactionStatBadge tone="third" label={`特${stats.thirdCount}`} />
           )}
         </View>
       )}
@@ -83,7 +82,7 @@ export const FactionRoleList = memo<FactionRoleListProps>(function FactionRoleLi
                 <FactionChip
                   key={item.roleId}
                   label={item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
-                  color={colors.wolf}
+                  tone="wolf"
                   size="sm"
                   onPress={onRolePress ? () => onRolePress(item.roleId) : undefined}
                 />
@@ -99,7 +98,7 @@ export const FactionRoleList = memo<FactionRoleListProps>(function FactionRoleLi
                 <FactionChip
                   key={item.roleId}
                   label={item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
-                  color={colors.god}
+                  tone="god"
                   size="sm"
                   onPress={onRolePress ? () => onRolePress(item.roleId) : undefined}
                 />
@@ -115,7 +114,7 @@ export const FactionRoleList = memo<FactionRoleListProps>(function FactionRoleLi
                 <FactionChip
                   key={item.roleId}
                   label={item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
-                  color={colors.villager}
+                  tone="villager"
                   size="sm"
                   onPress={onRolePress ? () => onRolePress(item.roleId) : undefined}
                 />
@@ -131,7 +130,7 @@ export const FactionRoleList = memo<FactionRoleListProps>(function FactionRoleLi
                 <FactionChip
                   key={item.roleId}
                   label={item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
-                  color={colors.third}
+                  tone="third"
                   size="sm"
                   onPress={onRolePress ? () => onRolePress(item.roleId) : undefined}
                 />

@@ -108,5 +108,5 @@ const styles = StyleSheet.create({
   timer: roomSurfaceStyles.timer,
   urgentTimer: { backgroundColor: withAlpha(colors.error, 0.15) },
   timerText: roomSurfaceStyles.timerText,
-  urgentTimerText: { color: colors.error },
+  urgentTimerText: { color: colors.errorText },
 });

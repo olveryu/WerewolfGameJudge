@@ -102,7 +102,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   button: {
-    backgroundColor: '#4A90D9',
+    // White label 5.05:1 on this fill; fill 3.38:1 against the container (WCAG 1.4.3 / 1.4.11).
+    backgroundColor: '#2F6FC0',
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 8,

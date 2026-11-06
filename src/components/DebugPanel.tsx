@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     backgroundColor: dk.chipBg,
   },
   filterChipText: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     fontWeight: typography.weights.semibold,
     color: dk.textSecondary,
   },
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.small,
     backgroundColor: dk.inputBg,
     paddingHorizontal: spacing.small,
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     color: dk.textPrimary,
   },
   logList: {
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     gap: spacing.tight,
   },
   timestamp: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     color: dk.textDim,
     fontWeight: typography.weights.medium,
   },
@@ -337,12 +337,12 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   badgeText: {
-    fontSize: 9,
+    fontSize: typography.caption,
     fontWeight: typography.weights.bold,
   },
   logMessage: {
     flex: 1,
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
   },
   footer: {
     paddingVertical: spacing.tight,
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     borderTopColor: dk.border,
   },
   footerText: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     color: dk.textMuted,
     textAlign: 'right',
   },

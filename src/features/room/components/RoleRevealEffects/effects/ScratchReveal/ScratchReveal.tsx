@@ -656,7 +656,7 @@ export const ScratchReveal: React.FC<RevealEffectProps> = ({
 
       {/* Serial number */}
       <View style={styles.serialContainer}>
-        <Text style={[styles.serialText, { color: colors.textSecondary }]}>NO. {serialNumber}</Text>
+        <Text style={[styles.serialText, { color: colors.textMuted }]}>NO. {serialNumber}</Text>
       </View>
 
       {/* Rules text */}
@@ -836,10 +836,9 @@ const styles = StyleSheet.create({
     pointerEvents: 'none',
   },
   serialText: {
-    fontSize: 10,
+    fontSize: typography.caption,
     fontWeight: '500',
     letterSpacing: 2,
-    opacity: 0.5,
     fontFamily: 'monospace',
   },
   rulesContainer: {
@@ -849,7 +848,6 @@ const styles = StyleSheet.create({
     pointerEvents: 'none',
   },
   rulesText: {
-    fontSize: 10,
-    opacity: 0.4,
+    fontSize: typography.caption,
   },
 });

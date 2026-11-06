@@ -27,6 +27,7 @@ const mockColors = {
   text: '#000',
   textSecondary: '#666',
   textMuted: '#999',
+  textDisabled: '#bbb',
   textInverse: '#fff',
   // Borders
   border: '#e0e0e0',
@@ -36,11 +37,20 @@ const mockColors = {
   warning: '#ff9800',
   error: '#f44336',
   info: '#2196f3',
+  // Status text
+  successText: '#2e7d32',
+  warningText: '#e65100',
+  errorText: '#c62828',
   // Game specific
   wolf: '#d32f2f',
   villager: '#4caf50',
   god: '#9c27b0',
   third: '#f59e0b',
+  // Faction text
+  wolfText: '#b71c1c',
+  villagerText: '#2e7d32',
+  godText: '#7b1fa2',
+  thirdText: '#b45309',
   // Overlay
   overlay: 'rgba(0,0,0,0.5)',
   overlayLight: 'rgba(0,0,0,0.3)',

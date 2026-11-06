@@ -15,6 +15,7 @@ import {
   componentSizes,
   shadows,
   spacing,
+  toneColors,
   typography,
   withAlpha,
 } from '@/theme';
@@ -59,13 +60,13 @@ export const EncyclopediaRoleListItem = React.memo<EncyclopediaRoleListItemProps
         {tags.length > 0 && (
           <View style={styles.tagRow}>
             {tags.map((tag) => {
-              const tagColor = colors[tag.colorKey];
+              const tagTone = toneColors[tag.tone];
               return (
                 <View
                   key={tag.key}
-                  style={[styles.tagChip, { backgroundColor: withAlpha(tagColor, 0.12) }]}
+                  style={[styles.tagChip, { backgroundColor: withAlpha(tagTone.fill, 0.12) }]}
                 >
-                  <Text style={[styles.tagChipText, { color: tagColor }]}>{tag.label}</Text>
+                  <Text style={[styles.tagChipText, { color: tagTone.text }]}>{tag.label}</Text>
                 </View>
               );
             })}
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
   },
   tagChipText: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     fontWeight: typography.weights.medium,
   },
 });

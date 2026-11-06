@@ -136,8 +136,7 @@ export const spacing = {
 
 /**
  * Semantic font sizes
- * - captionSmall: extra-small auxiliary
- * - caption: auxiliary/description text
+ * - caption: auxiliary/description text (smallest size; no functional text below it)
  * - secondary: secondary info
  * - body: body text
  * - subtitle: subtitle
@@ -147,8 +146,6 @@ export const spacing = {
  * - display: display title
  */
 export const typography = {
-  /** 10px - extra-small auxiliary */
-  captionSmall: scale(primitiveFontSize[10]),
   /** 12px - auxiliary/caption */
   caption: scale(primitiveFontSize[12]),
   /** 14px - secondary info */
@@ -176,7 +173,6 @@ export const typography = {
 
   /** Line height (1:1 mapping with font size semantic layer) */
   lineHeights: {
-    captionSmall: scale(14),
     caption: scale(16),
     secondary: scale(20),
     body: scale(24),
@@ -328,10 +324,6 @@ export const textStyles = {
   caption: {
     fontSize: typography.caption,
     lineHeight: typography.lineHeights.caption,
-  },
-  captionSmall: {
-    fontSize: typography.captionSmall,
-    lineHeight: typography.lineHeights.captionSmall,
   },
   secondary: {
     fontSize: typography.secondary,

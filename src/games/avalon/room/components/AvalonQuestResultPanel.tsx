@@ -85,10 +85,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   bannerSuccess: {
-    color: colors.success,
+    color: colors.successText,
   },
   bannerFail: {
-    color: colors.error,
+    color: colors.errorText,
   },
   summary: {
     ...textStyles.body,

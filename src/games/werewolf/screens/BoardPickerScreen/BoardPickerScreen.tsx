@@ -36,7 +36,7 @@ import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import { type TemplateSectionData } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
 import { useBoardRolePreview } from '@/games/werewolf/screens/useBoardRolePreview';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes, spacing, withAlpha } from '@/theme';
+import { colors, componentSizes, spacing, toneColors, withAlpha } from '@/theme';
 
 import { BoardCard, estimateMaxChips } from './BoardCard';
 import { createBoardPickerStyles } from './BoardPickerScreen.styles';
@@ -260,7 +260,9 @@ interface BoardPickerScreenProps {
                       style={styles.filterSectionHeader}
                       onPress={() => handleToggleFactionSection(group.label)}
                     >
-                      <Text style={[styles.filterSectionLabel, { color: group.color }]}>
+                      <Text
+                        style={[styles.filterSectionLabel, { color: toneColors[group.tone].text }]}
+                      >
                         {group.label}
                       </Text>
                       <Text style={styles.filterSectionCount}>
@@ -284,8 +286,8 @@ interface BoardPickerScreenProps {
                               style={[
                                 styles.filterItem,
                                 isActive && {
-                                  borderColor: group.color,
-                                  backgroundColor: withAlpha(group.color, 0.12),
+                                  borderColor: toneColors[group.tone].fill,
+                                  backgroundColor: withAlpha(toneColors[group.tone].fill, 0.12),
                                 },
                               ]}
                               onPress={() => handleToggleRole(item.roleId)}
@@ -294,7 +296,7 @@ interface BoardPickerScreenProps {
                                 style={[
                                   styles.filterItemText,
                                   isActive && {
-                                    color: group.color,
+                                    color: toneColors[group.tone].text,
                                     fontWeight: styles.filterItemTextActive.fontWeight,
                                   },
                                 ]}

@@ -119,10 +119,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   bannerApproved: {
-    color: colors.success,
+    color: colors.successText,
   },
   bannerRejected: {
-    color: colors.error,
+    color: colors.errorText,
   },
   list: {
     minHeight: 0,

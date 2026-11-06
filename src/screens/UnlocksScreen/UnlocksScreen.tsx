@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
   },
   summarySubtitle: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     lineHeight: typography.lineHeights.caption,
     color: colors.textMuted,
   },

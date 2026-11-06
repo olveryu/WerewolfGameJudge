@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   },
   fullHint: {
     ...textStyles.secondary,
-    color: colors.warning,
+    color: colors.warningText,
     textAlign: 'center',
   },
   footer: {

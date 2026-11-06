@@ -102,6 +102,6 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
   },
   badgeTextUrgent: {
-    color: colors.error,
+    color: colors.errorText,
   },
 });

@@ -33,7 +33,7 @@ import { getRecentRooms, type RecentRoomIdentity } from '@/features/room/service
 import { useClientGameHome } from '@/games/ClientGameCatalogContext';
 import { type RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes, layout } from '@/theme';
+import { colors, componentSizes, layout, PRIMARY_GRADIENT } from '@/theme';
 import { homeLog } from '@/utils/logger';
 import { isMiniProgram, wxReLaunch } from '@/utils/miniProgram';
 
@@ -398,7 +398,7 @@ export const HomeScreen: React.FC = () => {
               haptic
             >
               <LinearGradient
-                colors={[colors.primaryLight, colors.primary]}
+                colors={PRIMARY_GRADIENT}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.heroCardGradient}
@@ -488,11 +488,7 @@ export const HomeScreen: React.FC = () => {
           </View>
           <View style={styles.taskColumn}>
             {/* ── Gacha Entry ─────────────────────────── */}
-            <PressableScale
-              onPress={handleNavigateGacha}
-              style={[styles.gachaCard, styles.gachaCardAccentGold]}
-              haptic
-            >
+            <PressableScale onPress={handleNavigateGacha} style={styles.gachaCard} haptic>
               <Text style={styles.gachaCardEmoji}>🎰</Text>
               <View style={styles.gachaCardText}>
                 <Text style={styles.gachaCardTitle}>扭蛋抽奖</Text>
@@ -508,11 +504,7 @@ export const HomeScreen: React.FC = () => {
 
             {/* ── Announcement & Feedback Card ────────────────────────── */}
             {ANNOUNCEMENT_VERSIONS.length > 0 && (
-              <PressableScale
-                onPress={handleOpenAnnouncement}
-                style={[styles.gachaCard, styles.gachaCardAccentBlue]}
-                haptic
-              >
+              <PressableScale onPress={handleOpenAnnouncement} style={styles.gachaCard} haptic>
                 <Ionicons
                   name="megaphone-outline"
                   size={componentSizes.icon.md}

@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
   },
   validationText: { ...textStyles.caption, flex: 1, color: colors.textMuted },
   countText: { ...textStyles.caption, color: colors.textMuted },
-  invalidText: { color: colors.error },
+  invalidText: { color: colors.errorText },
   promptStrip: {
     flexDirection: 'row',
     alignItems: 'center',

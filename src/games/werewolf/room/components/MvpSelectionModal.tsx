@@ -154,7 +154,7 @@ export function createMvpSelectionStyles() {
       paddingVertical: spacing.medium,
     },
     rewardValue: {
-      color: colors.warning,
+      color: colors.warningText,
       fontSize: typography.hero,
       fontWeight: typography.weights.bold,
       fontVariant: ['tabular-nums'],

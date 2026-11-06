@@ -15,7 +15,15 @@ import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { CAMP_VISUAL } from '@/games/werewolf/config/campVisual';
-import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
+import {
+  borderRadius,
+  colors,
+  componentSizes,
+  spacing,
+  toneColors,
+  typography,
+  withAlpha,
+} from '@/theme';
 
 interface CampDistributionBarProps {
   campStats: WerewolfCampStats;
@@ -48,7 +56,10 @@ const CampDistributionBarComponent: React.FC<CampDistributionBarProps> = ({
               </Text>
               <View style={styles.track}>
                 <View
-                  style={[styles.fill, { width: `${percent}%`, backgroundColor: visual.color }]}
+                  style={[
+                    styles.fill,
+                    { width: `${percent}%`, backgroundColor: toneColors[visual.tone].fill },
+                  ]}
                 />
               </View>
               <Text style={styles.percent}>{percent}%</Text>

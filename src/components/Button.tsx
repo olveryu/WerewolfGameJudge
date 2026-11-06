@@ -20,7 +20,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { colors } from '@/theme';
+import { colors, PRIMARY_GRADIENT } from '@/theme';
 import { borderRadius, componentSizes, fixed, spacing, textStyles } from '@/theme/tokens';
 
 import { PressableScale } from './PressableScale';
@@ -215,7 +215,7 @@ const ButtonComponent: React.FC<ButtonProps> = (props) => {
     }
 
     if (isUnavailable) {
-      txtColor = colors.textMuted;
+      txtColor = colors.textDisabled;
       if (variant === 'primary' || variant === 'danger') {
         base.backgroundColor = colors.surfaceHover;
       } else {
@@ -289,7 +289,7 @@ const ButtonComponent: React.FC<ButtonProps> = (props) => {
     >
       {useGradient && (
         <LinearGradient
-          colors={[colors.primaryLight, colors.primary]}
+          colors={PRIMARY_GRADIENT}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}

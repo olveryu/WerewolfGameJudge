@@ -243,7 +243,7 @@ export function SingleResultReveal({
 
           {/* Pity tag */}
           {item.isPityTriggered && (
-            <Text style={[styles.pityTag, { color: visual.color }]}>保底</Text>
+            <Text style={[styles.pityTag, { color: visual.text }]}>保底</Text>
           )}
 
           {/* Preview */}
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
   },
   pityTag: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     fontWeight: typography.weights.semibold,
   },
   previewWrap: {
@@ -341,9 +341,9 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   newTag: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     fontWeight: typography.weights.bold,
-    color: colors.success,
+    color: colors.successText,
   },
   duplicateRow: {
     flexDirection: 'row',
@@ -351,14 +351,14 @@ const styles = StyleSheet.create({
     gap: spacing.small,
   },
   duplicateTag: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     fontWeight: typography.weights.semibold,
     color: colors.textMuted,
   },
   shardAward: {
     fontSize: typography.caption,
     fontWeight: typography.weights.bold,
-    color: colors.warning,
+    color: colors.warningText,
   },
   equipButton: {
     width: '100%',

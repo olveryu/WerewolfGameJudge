@@ -73,7 +73,7 @@ export const EffectHeroPreview: React.FC<EffectHeroPreviewProps> = ({
           <Text style={styles.effectHeroPetHint}>🐾 装备后座位出现{petConfig.name}</Text>
         )}
         {heroEffectRarity && (
-          <Text style={[styles.effectHeroRarity, { color: RARITY_VISUAL[heroEffectRarity].color }]}>
+          <Text style={[styles.effectHeroRarity, { color: RARITY_VISUAL[heroEffectRarity].text }]}>
             {'★'.repeat(
               heroEffectRarity === 'mythic'
                 ? 5

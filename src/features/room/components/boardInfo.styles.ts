@@ -99,8 +99,8 @@ export function createBoardInfoStyles(colors: ThemeColors): BoardInfoCardStyles 
       gap: spacing.tight,
     },
     boardInfoHint: {
-      fontSize: typography.captionSmall,
-      lineHeight: typography.lineHeights.captionSmall,
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
       color: colors.textMuted,
       flex: 1,
     },
