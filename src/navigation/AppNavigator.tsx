@@ -13,6 +13,7 @@ import {
   getStateFromPath as defaultGetStateFromPath,
   type LinkingOptions,
   NavigationContainer,
+  type PathConfigMap,
 } from '@react-navigation/native';
 import {
   createNativeStackNavigator,
@@ -48,7 +49,7 @@ import { log } from '@/utils/logger';
 
 import { GameConfigHostRoute, GameGuideHostRoute, GameNotepadHostRoute } from './GameHostRoutes';
 import { navigationRef } from './navigationRef';
-import { type RootStackParamList } from './types';
+import { type AuthEmailMode, type RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -67,8 +68,23 @@ const navLog = log.extend('AppNavigator');
  * Programmatic entry intent is stripped from the URL.
  */
 
-/** Params that are programmatic-only and should never appear in the URL. */
-const TRANSIENT_PARAMS = ['entryReason'];
+/** Params that are programmatic-only or personal data and should never appear in the URL. */
+const TRANSIENT_PARAMS = [
+  'entryReason',
+  'email',
+  'formTitle',
+  'showToggleMode',
+  'signOutFirst',
+  'showSuccessOnLogin',
+  'hideDisplayName',
+  'navigateSettingsOnSignUp',
+  'openedFromAuthLogin',
+];
+
+function parseAuthEmailMode(value: string): AuthEmailMode {
+  if (value === 'signIn' || value === 'signUp') return value;
+  throw new Error(`[FAIL-FAST] Unknown auth email mode: ${value}`);
+}
 
 const RoomResolverRoute: React.FC<NativeStackScreenProps<RootStackParamList, 'Room'>> = (props) => {
   const catalog = useClientGameCatalog();
@@ -104,52 +120,88 @@ function getParentRoomCode(routeName: string, params: unknown): string | null {
   return getOptionalRoomCode(params);
 }
 
+/**
+ * The URL-addressable screens. A screen absent here (AuthResetPassword needs the email typed on
+ * the previous screen; GamePicker, ShardExchange and Admin are entered from their host) owns no URL.
+ */
+const LINKING_SCREENS = {
+  Home: '',
+  GameConfig: {
+    path: 'game/:gameType/config/:mode/:roomCode?',
+    parse: {
+      gameType: parseGameType,
+      roomCode: parseRoomCode,
+    },
+  },
+  GameGuide: {
+    path: 'game/:gameType/guide/:roomCode?',
+    parse: {
+      gameType: parseGameType,
+      roomCode: parseRoomCode,
+    },
+  },
+  GameNotepad: {
+    path: 'game/:gameType/notepad/:roomCode',
+    parse: {
+      gameType: parseGameType,
+      roomCode: parseRoomCode,
+    },
+  },
+  Room: {
+    path: 'room/:roomCode',
+    parse: {
+      roomCode: parseRoomCode,
+    },
+    stringify: {
+      roomCode: (roomCode: string) => roomCode,
+    },
+  },
+  Settings: 'settings/:roomCode?',
+  MusicSettings: 'settings/music/:roomCode?',
+  Appearance: 'appearance',
+  Unlocks: 'unlocks/:userId?',
+  Gacha: 'gacha',
+  AuthLogin: 'auth/login',
+  AuthEmail: {
+    path: 'auth/email/:mode',
+    parse: {
+      mode: parseAuthEmailMode,
+    },
+  },
+  AuthForgotPassword: 'auth/forgot-password',
+} satisfies PathConfigMap<RootStackParamList>;
+
+const URL_ADDRESSABLE_SCREENS: ReadonlySet<string> = new Set(Object.keys(LINKING_SCREENS));
+
+type LinkingState = Parameters<typeof defaultGetPathFromState>[0];
+
+const ROOT_STATE: LinkingState = { routes: [{ name: 'Home' }] };
+
+/**
+ * The state the URL describes: the root stack up to its last URL-addressable route, without nested
+ * navigator state. Nested flow screens and screens without a path keep their host route's URL, so
+ * reopening any URL rebuilds a screen that needs nothing beyond the URL. A state that names no
+ * URL-addressable route describes the app root: React Navigation builds such single-route states
+ * for the header back link of a screen pushed over a path-less one (GameConfig over GamePicker).
+ */
+function toAddressableState(state: LinkingState): LinkingState {
+  const focusedIndex = state.index ?? 0;
+  const hostIndex = state.routes
+    .slice(0, focusedIndex + 1)
+    .findLastIndex((route) => URL_ADDRESSABLE_SCREENS.has(route.name));
+  if (hostIndex === -1) return ROOT_STATE;
+  return {
+    ...state,
+    index: hostIndex,
+    routes: state.routes.slice(0, hostIndex + 1).map((route) => ({ ...route, state: undefined })),
+  };
+}
+
 /** @internal Exported for contract testing only. */
 export const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [SITE_URL, 'https://werewolfjudge.eu.org', 'https://werewolfgamejudge.pages.dev'],
   config: {
-    screens: {
-      Home: '',
-      GameConfig: {
-        path: 'game/:gameType/config/:mode/:roomCode?',
-        parse: {
-          gameType: parseGameType,
-          roomCode: parseRoomCode,
-        },
-      },
-      GameGuide: {
-        path: 'game/:gameType/guide/:roomCode?',
-        parse: {
-          gameType: parseGameType,
-          roomCode: parseRoomCode,
-        },
-      },
-      GameNotepad: {
-        path: 'game/:gameType/notepad/:roomCode',
-        parse: {
-          gameType: parseGameType,
-          roomCode: parseRoomCode,
-        },
-      },
-      Room: {
-        path: 'room/:roomCode',
-        parse: {
-          roomCode: parseRoomCode,
-        },
-        stringify: {
-          roomCode: (roomCode: string) => roomCode,
-        },
-      },
-      Settings: 'settings/:roomCode?',
-      MusicSettings: 'settings/music/:roomCode?',
-      Appearance: 'appearance',
-      Unlocks: 'unlocks/:userId?',
-      Gacha: 'gacha',
-      AuthLogin: 'auth/login',
-      AuthEmail: 'auth/email',
-      AuthForgotPassword: 'auth/forgot-password',
-      AuthResetPassword: 'auth/reset-password',
-    },
+    screens: LINKING_SCREENS,
   },
   // Rebuild navigation stack when deep-linking into screens that expect a parent.
   // e.g. a game notepad URL becomes [Home, Room({roomCode}), GameNotepad({roomCode})].
@@ -197,9 +249,10 @@ export const linking: LinkingOptions<RootStackParamList> = {
 
     return state;
   },
-  // Strip programmatic-only params from the browser URL.
+  // Strip programmatic-only params from the browser URL; see toAddressableState for which route
+  // the URL names.
   getPathFromState(state, options) {
-    const path = defaultGetPathFromState(state, options);
+    const path = defaultGetPathFromState(toAddressableState(state), options);
     try {
       const url = new URL(path, 'http://placeholder');
       for (const key of TRANSIENT_PARAMS) {
