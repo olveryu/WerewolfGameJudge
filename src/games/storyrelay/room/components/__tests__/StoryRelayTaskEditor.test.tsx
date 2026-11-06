@@ -16,6 +16,10 @@ import { fireEvent, render } from '@testing-library/react-native';
 
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
+import {
+  assertNoScrollingAncestor,
+  assertSharesPinnedFooter,
+} from '@/test-utils/noScrollingAncestor';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 
 import { StoryRelayStage } from '../StoryRelayStage';
@@ -145,5 +149,11 @@ describe('StoryRelayStage bot drafts', () => {
     view.rerender(stageElement());
     takeOverSeatViaSheet(0);
     expect(view.getByTestId('storyrelay-editor').props.value).toBe('机器人0的独立稿件');
+
+    // Keyboard contract: the editor and its ready action share the pinned
+    // task-frame footer, and no scrolling container sits above the input.
+    const editor = view.getByTestId('storyrelay-editor');
+    assertNoScrollingAncestor(editor);
+    assertSharesPinnedFooter(editor, view.getByTestId('storyrelay-ready'));
   });
 });

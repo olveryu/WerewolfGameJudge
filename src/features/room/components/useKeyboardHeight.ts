@@ -1,7 +1,9 @@
 /**
  * useKeyboardHeight - cross-platform keyboard height listener
  *
- * Web: visualViewport resize/scroll
+ * Web: derives from the single shared visualViewport snapshot
+ * (`useVisualViewport`); the formula is unchanged from what the AI chat
+ * bubble shipped with.
  * iOS: keyboardWillShow / keyboardWillHide
  * Android: keyboardDidShow / keyboardDidHide
  *
@@ -11,35 +13,25 @@
 import { useEffect, useState } from 'react';
 import { Keyboard, Platform } from 'react-native';
 
+import { computeKeyboardHeight, useVisualViewport } from './useVisualViewport';
+
 /**
  * Returns the current keyboard height (px); 0 when not displayed.
  */
 export function useKeyboardHeight(): number {
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-  // ── Web: visualViewport ──────────────────────────────
-  useEffect(() => {
-    if (Platform.OS !== 'web' || globalThis.window === undefined) return;
-
-    const viewport = globalThis.window.visualViewport;
-    if (!viewport) return;
-
-    const initialHeight = globalThis.window.innerHeight;
-
-    const handleChange = () => {
-      const kbHeight = initialHeight - viewport.height - viewport.offsetTop;
-      setKeyboardHeight(Math.max(0, kbHeight));
-    };
-
-    viewport.addEventListener('resize', handleChange);
-    viewport.addEventListener('scroll', handleChange);
-    return () => {
-      viewport.removeEventListener('resize', handleChange);
-      viewport.removeEventListener('scroll', handleChange);
-    };
-  }, []);
+  const viewport = useVisualViewport();
+  // Layout viewport height captured before the keyboard opens; the web
+  // keyboard height is the gap between it and the visual viewport.
+  const [baselineHeight] = useState(() =>
+    Platform.OS === 'web' && typeof window !== 'undefined' ? window.innerHeight : 0,
+  );
+  const webHeight =
+    Platform.OS === 'web' && viewport !== null
+      ? computeKeyboardHeight(baselineHeight, viewport)
+      : 0;
 
   // ── Native: Keyboard events ──────────────────────────
+  const [nativeHeight, setNativeHeight] = useState(0);
   useEffect(() => {
     if (Platform.OS === 'web') return;
 
@@ -47,10 +39,10 @@ export function useKeyboardHeight(): number {
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     const showSub = Keyboard.addListener(showEvent, (e) => {
-      setKeyboardHeight(e.endCoordinates.height);
+      setNativeHeight(e.endCoordinates.height);
     });
     const hideSub = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
+      setNativeHeight(0);
     });
 
     return () => {
@@ -59,5 +51,5 @@ export function useKeyboardHeight(): number {
     };
   }, []);
 
-  return keyboardHeight;
+  return Platform.OS === 'web' ? webHeight : nativeHeight;
 }

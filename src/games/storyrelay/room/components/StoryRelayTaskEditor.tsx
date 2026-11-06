@@ -85,22 +85,56 @@ export function StoryRelayTaskEditor({
         </Text>
       }
       footer={
-        state.phase === 'answering' ? (
-          <Button
-            disabled={isExpired || isSubmitting}
-            testID="storyrelay-ready"
-            onPress={ready}
-            icon={
-              <Ionicons
-                name={isReady ? 'arrow-undo-outline' : 'checkmark-outline'}
-                size={componentSizes.icon.sm}
-                color={colors.text}
-              />
-            }
-          >
-            {isReady ? '取消准备' : '准备好了'}
-          </Button>
-        ) : null
+        <>
+          <TextInput
+            testID="storyrelay-editor"
+            accessibilityLabel={task.stepIndex === 0 ? '故事开头' : '故事续写'}
+            multiline
+            maxLength={STORY_RELAY_TEXT_MAX_LENGTH}
+            value={text}
+            onChangeText={onChangeText}
+            editable={canEdit}
+            placeholder={task.stepIndex === 0 ? '故事从这里开始' : '写下接下来的故事'}
+            placeholderTextColor={colors.textMuted}
+            style={styles.editor}
+          />
+          <View style={styles.row}>
+            <Text style={isValid ? styles.muted : styles.error}>
+              {text.length} / {STORY_RELAY_TEXT_MAX_LENGTH}
+            </Text>
+            <Text style={styles.muted}>
+              {task.isSubmitted
+                ? entry?.kind === 'empty'
+                  ? '已交空白'
+                  : '已收稿'
+                : state.phase === 'transition'
+                  ? '本棒已结束'
+                  : finalization === 'retrying'
+                    ? '正在自动重试'
+                    : finalization === 'failed'
+                      ? '收稿失败'
+                      : state.phase === 'settling'
+                        ? '正在自动收稿'
+                        : ''}
+            </Text>
+          </View>
+          {state.phase === 'answering' ? (
+            <Button
+              disabled={isExpired || isSubmitting}
+              testID="storyrelay-ready"
+              onPress={ready}
+              icon={
+                <Ionicons
+                  name={isReady ? 'arrow-undo-outline' : 'checkmark-outline'}
+                  size={componentSizes.icon.sm}
+                  color={colors.text}
+                />
+              }
+            >
+              {isReady ? '取消准备' : '准备好了'}
+            </Button>
+          ) : null}
+        </>
       }
     >
       {previous !== null && (
@@ -113,38 +147,6 @@ export function StoryRelayTaskEditor({
           </ScrollView>
         </View>
       )}
-      <TextInput
-        testID="storyrelay-editor"
-        accessibilityLabel={task.stepIndex === 0 ? '故事开头' : '故事续写'}
-        multiline
-        maxLength={STORY_RELAY_TEXT_MAX_LENGTH}
-        value={text}
-        onChangeText={onChangeText}
-        editable={canEdit}
-        placeholder={task.stepIndex === 0 ? '故事从这里开始' : '写下接下来的故事'}
-        placeholderTextColor={colors.textMuted}
-        style={styles.editor}
-      />
-      <View style={styles.row}>
-        <Text style={isValid ? styles.muted : styles.error}>
-          {text.length} / {STORY_RELAY_TEXT_MAX_LENGTH}
-        </Text>
-        <Text style={styles.muted}>
-          {task.isSubmitted
-            ? entry?.kind === 'empty'
-              ? '已交空白'
-              : '已收稿'
-            : state.phase === 'transition'
-              ? '本棒已结束'
-              : finalization === 'retrying'
-                ? '正在自动重试'
-                : finalization === 'failed'
-                  ? '收稿失败'
-                  : state.phase === 'settling'
-                    ? '正在自动收稿'
-                    : ''}
-        </Text>
-      </View>
     </RoomTaskFrame>
   );
 }

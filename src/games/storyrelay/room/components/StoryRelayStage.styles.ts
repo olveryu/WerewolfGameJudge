@@ -34,7 +34,6 @@ export const storyRelayStyles = StyleSheet.create({
   error: { ...textStyles.secondary, color: colors.error },
   previous: {
     flex: 1,
-    maxHeight: '28%',
     minHeight: 0,
     borderLeftWidth: fixed.borderWidthThick,
     borderLeftColor: colors.primary,
@@ -43,8 +42,10 @@ export const storyRelayStyles = StyleSheet.create({
   },
   previousScroll: { flex: 1, minHeight: 0 },
   editor: {
-    flex: 1,
-    minHeight: 0,
+    // Pinned in the task-frame footer, so it cannot take a flex share of
+    // the body anymore: a fixed band that scrolls internally past it.
+    minHeight: fixed.minTouchTarget * 3,
+    maxHeight: fixed.minTouchTarget * 6,
     ...textStyles.body,
     color: colors.text,
     backgroundColor: colors.surface,
