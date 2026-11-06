@@ -58,7 +58,7 @@ describe('Button interaction contract', () => {
     );
 
     expect(getByTestId('action')).toHaveStyle({ backgroundColor: colors.surfaceHover });
-    expect(getByText('操作')).toHaveStyle({ color: colors.textDisabled });
+    expect(getByText('操作')).toHaveStyle({ color: colors.textMuted });
     expect(queryByType(LinearGradient)).toBeNull();
   });
 

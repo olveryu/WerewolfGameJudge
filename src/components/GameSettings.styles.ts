@@ -45,7 +45,7 @@ export const gameSettingsStyles = StyleSheet.create({
     borderRadius: borderRadius.small,
   },
   hint: { ...textStyles.caption, color: colors.textSecondary },
-  issue: { ...textStyles.caption, color: colors.errorText },
+  issue: { ...textStyles.caption, color: colors.error },
   summary: {
     ...textStyles.caption,
     color: colors.textMuted,

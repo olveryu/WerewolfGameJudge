@@ -207,12 +207,12 @@ describe('NightReviewModal', () => {
     // Colors: verbs by the actor's faction, the check result by the
     // result role's faction, the dead seat by the dead player's faction.
     const segments = collectColoredSegments(view.toJSON());
-    expect(segmentColor(segments, '袭击5号')).toBe(colors.wolfText);
-    expect(segmentColor(segments, '守护')).toBe(colors.godText);
-    expect(segmentColor(segments, '使用解药救起5号')).toBe(colors.godText);
-    expect(segmentColor(segments, '查验')).toBe(colors.godText);
-    expect(segmentColor(segments, '狼人')).toBe(colors.wolfText);
-    expect(segmentColor(segments, '5号')).toBe(colors.villagerText);
+    expect(segmentColor(segments, '袭击5号')).toBe(colors.wolf);
+    expect(segmentColor(segments, '守护')).toBe(colors.god);
+    expect(segmentColor(segments, '使用解药救起5号')).toBe(colors.god);
+    expect(segmentColor(segments, '查验')).toBe(colors.god);
+    expect(segmentColor(segments, '狼人')).toBe(colors.wolf);
+    expect(segmentColor(segments, '5号')).toBe(colors.villager);
     // Number discipline: no ✗, no arrow anywhere. (Seat numbers live
     // inside the timeline sentences by design, so no bare-number
     // assertion applies to this form.)
@@ -259,9 +259,9 @@ describe('NightReviewModal', () => {
     expect(view.getAllByText('平民')).toHaveLength(2);
     expect(view.getByText('存活')).toBeTruthy();
     const segments = collectColoredSegments(view.toJSON());
-    expect(segmentColor(segments, '平民')).toBe(colors.villagerText);
-    expect(segmentColor(segments, '预言家')).toBe(colors.godText);
-    expect(segmentColor(segments, '守卫')).toBe(colors.godText);
+    expect(segmentColor(segments, '平民')).toBe(colors.villager);
+    expect(segmentColor(segments, '预言家')).toBe(colors.god);
+    expect(segmentColor(segments, '守卫')).toBe(colors.god);
   });
 
   it('renders a peaceful night and placeholder identities', () => {
@@ -316,7 +316,7 @@ describe('NightReviewModal', () => {
     expect(view.queryByText('↓')).toBeNull();
     expect(view.queryByText('✗')).toBeNull();
     const segments = collectColoredSegments(view.toJSON());
-    expect(segmentColor(segments, '袭击5号')).toBe(colors.wolfText);
+    expect(segmentColor(segments, '袭击5号')).toBe(colors.wolf);
   });
 
   it('marks tied split wolf votes without a settlement as tie pending, not as no kill', () => {
@@ -378,8 +378,8 @@ describe('NightReviewModal', () => {
     expect(view.getByText('6号出局。')).toBeTruthy();
     expect(view.queryByText('狼队目标不一致 — 平票，未击杀')).toBeNull();
     const segments = collectColoredSegments(view.toJSON());
-    expect(segmentColor(segments, '平票抽中6号')).toBe(colors.wolfText);
-    expect(segmentColor(segments, '6号')).toBe(colors.villagerText);
+    expect(segmentColor(segments, '平票抽中6号')).toBe(colors.wolf);
+    expect(segmentColor(segments, '6号')).toBe(colors.villager);
   });
 
   it('keeps the no-kill verdict only for a tied split vote settled to no kill', () => {
@@ -447,7 +447,7 @@ describe('NightReviewModal', () => {
     expect(view.queryByText('✗')).toBeNull();
     expect(view.queryByText('女巫未使用解药')).toBeNull();
     const segments = collectColoredSegments(view.toJSON());
-    expect(segmentColor(segments, '毒杀4号')).toBe(colors.godText);
+    expect(segmentColor(segments, '毒杀4号')).toBe(colors.god);
     expect(segmentColor(segments, '解药未使用。')).toBeUndefined();
   });
 
@@ -514,13 +514,13 @@ describe('NightReviewModal', () => {
     // 好人 result plain, the determination by the hunter's faction, and
     // each dead seat by that player's faction.
     const segments = collectColoredSegments(view.toJSON());
-    expect(segmentColor(segments, '按多数票击杀6号')).toBe(colors.wolfText);
-    expect(segmentColor(segments, '毒杀12号')).toBe(colors.godText);
-    expect(segmentColor(segments, '查验')).toBe(colors.godText);
+    expect(segmentColor(segments, '按多数票击杀6号')).toBe(colors.wolf);
+    expect(segmentColor(segments, '毒杀12号')).toBe(colors.god);
+    expect(segmentColor(segments, '查验')).toBe(colors.god);
     expect(segmentColor(segments, '好人')).toBeUndefined();
-    expect(segmentColor(segments, '可以发动')).toBe(colors.godText);
-    expect(segmentColor(segments, '6号')).toBe(colors.villagerText);
-    expect(segmentColor(segments, '12号')).toBe(colors.wolfText);
+    expect(segmentColor(segments, '可以发动')).toBe(colors.god);
+    expect(segmentColor(segments, '6号')).toBe(colors.villager);
+    expect(segmentColor(segments, '12号')).toBe(colors.wolf);
     // Hunter: the seat lives inside the sentence only — no （3号） text.
     expect(view.queryByText('（3号）')).toBeNull();
     expect(view.queryByText('3号')).toBeNull();
@@ -642,8 +642,8 @@ describe('NightReviewModal', () => {
     // The confirmation phrases carry the actor's faction color; the
     // unused-potion sentences are plain.
     const segments = collectColoredSegments(view.toJSON());
-    expect(segmentColor(segments, '已确认狼同伴')).toBe(colors.wolfText);
-    expect(segmentColor(segments, '已确认阵营')).toBe(colors.thirdText);
+    expect(segmentColor(segments, '已确认狼同伴')).toBe(colors.wolf);
+    expect(segmentColor(segments, '已确认阵营')).toBe(colors.third);
     expect(segmentColor(segments, '未使用解药')).toBeUndefined();
     expect(segmentColor(segments, '未使用毒药')).toBeUndefined();
   });
@@ -679,8 +679,8 @@ describe('NightReviewModal', () => {
     expect(rosterAt).toBeGreaterThan(resultAt);
     expect(view.getByText('查验')).toBeTruthy();
     expect(view.queryByText('villager')).toBeNull();
-    expect(segmentColor(segments, '查验')).toBe(colors.godText);
-    expect(segmentColor(segments, '平民')).toBe(colors.villagerText);
+    expect(segmentColor(segments, '查验')).toBe(colors.god);
+    expect(segmentColor(segments, '平民')).toBe(colors.villager);
   });
 
   it('shows a faction check as a faction word only, never the target identity', () => {
@@ -710,8 +710,8 @@ describe('NightReviewModal', () => {
     expect(view.getAllByText('女巫')).toHaveLength(1);
     expect(view.queryByText('villager')).toBeNull();
     const segments = collectColoredSegments(view.toJSON());
-    expect(segmentColor(segments, '查验')).toBe(colors.godText);
-    expect(segmentColor(segments, '狼人')).toBe(colors.wolfText);
+    expect(segmentColor(segments, '查验')).toBe(colors.god);
+    expect(segmentColor(segments, '狼人')).toBe(colors.wolf);
   });
 
   it('moves the learned role into the sentence as a result word', () => {
@@ -746,8 +746,8 @@ describe('NightReviewModal', () => {
     expect(view.getAllByText('女巫')).toHaveLength(2);
     expect(view.queryByText('（女巫）')).toBeNull();
     const segments = collectColoredSegments(view.toJSON());
-    expect(segmentColor(segments, '学习')).toBe(colors.wolfText);
-    expect(segmentColor(segments, '女巫')).toBe(colors.godText);
+    expect(segmentColor(segments, '学习')).toBe(colors.wolf);
+    expect(segmentColor(segments, '女巫')).toBe(colors.god);
   });
 
   it('renders the hunter determination in both states', () => {
@@ -770,9 +770,7 @@ describe('NightReviewModal', () => {
     );
     expect(canShoot.getByText('3号猎人可以发动。')).toBeTruthy();
     expect(canShoot.queryByText('3号猎人不能发动。')).toBeNull();
-    expect(segmentColor(collectColoredSegments(canShoot.toJSON()), '可以发动')).toBe(
-      colors.godText,
-    );
+    expect(segmentColor(collectColoredSegments(canShoot.toJSON()), '可以发动')).toBe(colors.god);
 
     const cannotShoot = render(
       <NightReviewModal
@@ -830,7 +828,7 @@ describe('NightReviewModal', () => {
     expect(view.getByText('6号出局。')).toBeTruthy();
     expect(view.queryByText('↓')).toBeNull();
     const segments = collectColoredSegments(view.toJSON());
-    expect(segmentColor(segments, '按多数票击杀6号')).toBe(colors.wolfText);
+    expect(segmentColor(segments, '按多数票击杀6号')).toBe(colors.wolf);
   });
 
   it('renders the warning rows: same-guard-same-save, poison immunity, reflection', () => {
@@ -873,7 +871,7 @@ describe('NightReviewModal', () => {
     expect(view.getAllByText('查验')).toHaveLength(2);
     const segments = collectColoredSegments(view.toJSON());
     expect(segmentColor(segments, '4号同守同救，仍然死亡。')).toBeUndefined();
-    expect(segmentColor(segments, '舞者')).toBe(colors.godText);
+    expect(segmentColor(segments, '舞者')).toBe(colors.god);
     expect(segmentColor(segments, '7号，反伤。')).toBeUndefined();
   });
 
@@ -1152,15 +1150,15 @@ describe('NightReviewModal', () => {
       // Verbs by the actor's faction: wolf roles red, god roles violet,
       // the third-party idol choice gold.
       const segments = collectColoredSegments(view.toJSON());
-      expect(segmentColor(segments, '庇护')).toBe(colors.wolfText);
-      expect(segmentColor(segments, '诅咒')).toBe(colors.godText);
-      expect(segmentColor(segments, '摄梦')).toBe(colors.godText);
-      expect(segmentColor(segments, '禁言')).toBe(colors.godText);
-      expect(segmentColor(segments, '禁票')).toBe(colors.godText);
-      expect(segmentColor(segments, '魅惑')).toBe(colors.wolfText);
-      expect(segmentColor(segments, '转化')).toBe(colors.wolfText);
-      expect(segmentColor(segments, '表白')).toBe(colors.wolfText);
-      expect(segmentColor(segments, '选择榜样')).toBe(colors.thirdText);
+      expect(segmentColor(segments, '庇护')).toBe(colors.wolf);
+      expect(segmentColor(segments, '诅咒')).toBe(colors.god);
+      expect(segmentColor(segments, '摄梦')).toBe(colors.god);
+      expect(segmentColor(segments, '禁言')).toBe(colors.god);
+      expect(segmentColor(segments, '禁票')).toBe(colors.god);
+      expect(segmentColor(segments, '魅惑')).toBe(colors.wolf);
+      expect(segmentColor(segments, '转化')).toBe(colors.wolf);
+      expect(segmentColor(segments, '表白')).toBe(colors.wolf);
+      expect(segmentColor(segments, '选择榜样')).toBe(colors.third);
     });
 
     it('renders swap and cupidLink targets without role words (B2, §4.1)', () => {
@@ -1222,7 +1220,7 @@ describe('NightReviewModal', () => {
       expect(slice).not.toContain('守卫');
       expect(slice).not.toContain('女巫');
       const segments = collectColoredSegments(view.toJSON());
-      expect(segmentColor(segments, '催眠')).toBe(colors.thirdText);
+      expect(segmentColor(segments, '催眠')).toBe(colors.third);
     });
 
     it('renders cardChoice as a role word with no seat number (B2, §4)', () => {
@@ -1242,8 +1240,8 @@ describe('NightReviewModal', () => {
       const slice = timelineSequence(collectTextSequence(view.toJSON()));
       expect(slice).toEqual(['1号预言家选择了狼人。', '本夜无人出局。']);
       const segments = collectColoredSegments(view.toJSON());
-      expect(segmentColor(segments, '选择了')).toBe(colors.godText);
-      expect(segmentColor(segments, '狼人')).toBe(colors.wolfText);
+      expect(segmentColor(segments, '选择了')).toBe(colors.god);
+      expect(segmentColor(segments, '狼人')).toBe(colors.wolf);
     });
 
     it('renders nightmareBlock and mimic notes (B2, §4)', () => {
@@ -1274,8 +1272,8 @@ describe('NightReviewModal', () => {
       ]);
       expect(view.getByText('（女巫，技能无效）')).toBeTruthy();
       const segments = collectColoredSegments(view.toJSON());
-      expect(segmentColor(segments, '封锁')).toBe(colors.wolfText);
-      expect(segmentColor(segments, '模仿')).toBe(colors.thirdText);
+      expect(segmentColor(segments, '封锁')).toBe(colors.wolf);
+      expect(segmentColor(segments, '模仿')).toBe(colors.third);
     });
 
     it('renders seed wolf infection success and failure (B2, §4)', () => {
@@ -1302,7 +1300,7 @@ describe('NightReviewModal', () => {
       expect(slice).toEqual(['1号种狼感染2号，成功。', '3号种狼感染4号，失败。', '本夜无人出局。']);
       expect(view.getAllByText('感染')).toHaveLength(2);
       const segments = collectColoredSegments(view.toJSON());
-      expect(segmentColor(segments, '感染')).toBe(colors.wolfText);
+      expect(segmentColor(segments, '感染')).toBe(colors.wolf);
     });
 
     it('colors a roleName check on a wolf by the result role faction (B1 ruling B overturned)', () => {
@@ -1329,8 +1327,8 @@ describe('NightReviewModal', () => {
       const slice = timelineSequence(collectTextSequence(view.toJSON()));
       expect(slice).toEqual(['1号通灵师查验2号，结果：狼人。', '本夜无人出局。']);
       const segments = collectColoredSegments(view.toJSON());
-      expect(segmentColor(segments, '查验')).toBe(colors.godText);
-      expect(segmentColor(segments, '狼人')).toBe(colors.wolfText);
+      expect(segmentColor(segments, '查验')).toBe(colors.god);
+      expect(segmentColor(segments, '狼人')).toBe(colors.wolf);
     });
   });
 });

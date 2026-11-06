@@ -57,7 +57,7 @@ export const RateDisclosureModal = React.memo<Props>(({ visible, onClose }) => {
           <View style={styles.labelCell} />
           {COLUMNS.map((r) => (
             <View key={r} style={styles.headerCell}>
-              <Text style={[styles.headerText, { color: RARITY_VISUAL[r].text }]}>
+              <Text style={[styles.headerText, { color: RARITY_VISUAL[r].color }]}>
                 {RARITY_VISUAL[r].label}
               </Text>
             </View>
@@ -102,7 +102,7 @@ export const RateDisclosureModal = React.memo<Props>(({ visible, onClose }) => {
           <View style={styles.labelCell} />
           {COLUMNS.map((r) => (
             <View key={r} style={styles.headerCell}>
-              <Text style={[styles.headerText, { color: RARITY_VISUAL[r].text }]}>
+              <Text style={[styles.headerText, { color: RARITY_VISUAL[r].color }]}>
                 {RARITY_VISUAL[r].label}
               </Text>
             </View>
@@ -244,7 +244,7 @@ function createStyles() {
       justifyContent: 'center',
     },
     headerText: {
-      fontSize: typography.caption,
+      fontSize: typography.captionSmall,
       fontWeight: typography.weights.semibold,
     },
     labelText: {
@@ -253,7 +253,7 @@ function createStyles() {
       color: colors.text,
     },
     labelSub: {
-      fontSize: typography.caption,
+      fontSize: typography.captionSmall,
       color: colors.textMuted,
       marginTop: spacing.micro,
     },
@@ -273,9 +273,9 @@ function createStyles() {
       gap: 6,
     },
     ruleText: {
-      fontSize: typography.caption,
+      fontSize: typography.captionSmall,
       color: colors.textMuted,
-      lineHeight: typography.caption * 1.5,
+      lineHeight: typography.captionSmall * 1.5,
       flex: 1,
     },
 

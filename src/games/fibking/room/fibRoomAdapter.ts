@@ -68,6 +68,7 @@ import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSourc
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { TESTIDS } from '@/testids';
+import { colors } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 export const FIB_DISPLAY_NAME = '瞎掰王';
@@ -573,17 +574,17 @@ export function createFibBoardInfoSections(playerCount: number): readonly BoardI
     {
       title: getFibRoleName('guesser'),
       items: [{ roleId: 'guesser', displayName: getFibRoleName('guesser'), count: 1 }],
-      tone: 'god',
+      color: colors.god,
     },
     {
       title: getFibRoleName('honest'),
       items: [{ roleId: 'honest', displayName: getFibRoleName('honest'), count: 1 }],
-      tone: 'villager',
+      color: colors.villager,
     },
     {
       title: getFibRoleName('fibber'),
       items: [{ roleId: 'fibber', displayName: getFibRoleName('fibber'), count: playerCount - 2 }],
-      tone: 'wolf',
+      color: colors.wolf,
     },
   ];
 }

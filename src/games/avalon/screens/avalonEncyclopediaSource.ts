@@ -23,7 +23,7 @@ export const AVALON_ENCYCLOPEDIA_SOURCE: EncyclopediaRoleSource = {
       displayName: meta.displayName,
       factionKey: meta.isEvil ? 'evil' : 'good',
       factionLabel: meta.factionName,
-      factionTone: meta.isEvil ? ('wolf' as const) : ('god' as const),
+      factionColorKey: meta.isEvil ? ('wolf' as const) : ('god' as const),
       searchText: [
         meta.displayName,
         meta.factionName,
@@ -35,7 +35,7 @@ export const AVALON_ENCYCLOPEDIA_SOURCE: EncyclopediaRoleSource = {
     };
   }),
   factionGroups: [
-    { key: 'good', label: '好人', tone: 'god' },
-    { key: 'evil', label: '坏人', tone: 'wolf' },
+    { key: 'good', label: '好人', colorKey: 'god' },
+    { key: 'evil', label: '坏人', colorKey: 'wolf' },
   ],
 };

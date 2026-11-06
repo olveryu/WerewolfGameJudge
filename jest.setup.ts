@@ -59,50 +59,26 @@ const mockColors = {
   text: '#1A1A1A',
   textSecondary: '#666666',
   textMuted: '#8E8EA0',
-  textDisabled: '#A0A0B0',
   textInverse: '#FFFFFF',
   primary: '#4A90D9',
   primaryLight: '#7AB3E8',
-  primaryDark: '#2F6FC0',
   secondary: '#6C757D',
   error: '#DC3545',
   warning: '#FFC107',
   success: '#28A745',
   info: '#2563EB',
-  successText: '#1E7E34',
-  warningText: '#8A6D00',
-  errorText: '#B02A37',
   border: '#E0E0E0',
   divider: '#EEEEEE',
   wolf: '#DC2626',
   god: '#7C3AED',
   villager: '#16A34A',
   third: '#CA8A04',
-  wolfText: '#B91C1C',
-  godText: '#6D28D9',
-  villagerText: '#15803D',
-  thirdText: '#A16207',
-};
-
-const mockToneColors = {
-  primary: { fill: mockColors.primary, text: mockColors.primary },
-  info: { fill: mockColors.info, text: mockColors.info },
-  success: { fill: mockColors.success, text: mockColors.successText },
-  warning: { fill: mockColors.warning, text: mockColors.warningText },
-  error: { fill: mockColors.error, text: mockColors.errorText },
-  wolf: { fill: mockColors.wolf, text: mockColors.wolfText },
-  villager: { fill: mockColors.villager, text: mockColors.villagerText },
-  god: { fill: mockColors.god, text: mockColors.godText },
-  third: { fill: mockColors.third, text: mockColors.thirdText },
-  neutral: { fill: mockColors.textMuted, text: mockColors.textSecondary },
 };
 
 // Mock theme index - must define all exports inline to avoid circular reference
 jest.mock('./src/theme', () => {
   return {
     colors: mockColors,
-    toneColors: mockToneColors,
-    PRIMARY_GRADIENT: [mockColors.primary, mockColors.primaryDark],
     NIGHT_REPORT_COLORS: {
       background: '#FFFFFF',
       card: '#FFFFFF',
@@ -111,6 +87,7 @@ jest.mock('./src/theme', () => {
       text: '#17171F',
       textSecondary: '#55566B',
       textMuted: '#8A8A99',
+      textFaint: '#A5A5B5',
       danger: '#D92D20',
       dangerText: '#D92D20',
       deadMedalBg: '#FDECEA',
@@ -147,6 +124,7 @@ jest.mock('./src/theme', () => {
       screenH: 20,
     },
     typography: {
+      captionSmall: 10,
       caption: 12,
       secondary: 14,
       body: 16,
@@ -162,6 +140,7 @@ jest.mock('./src/theme', () => {
         bold: '700',
       },
       lineHeights: {
+        captionSmall: 14,
         caption: 16,
         secondary: 20,
         body: 24,
@@ -240,6 +219,7 @@ jest.mock('./src/theme', () => {
     },
     textStyles: {
       caption: { fontSize: 12, lineHeight: 16 },
+      captionSmall: { fontSize: 10, lineHeight: 14 },
       secondary: { fontSize: 14, lineHeight: 20 },
       secondarySemibold: { fontSize: 14, lineHeight: 20, fontWeight: '600' },
       body: { fontSize: 16, lineHeight: 24 },

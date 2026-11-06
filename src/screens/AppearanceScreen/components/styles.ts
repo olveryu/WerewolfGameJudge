@@ -364,7 +364,7 @@ export const createAppearanceScreenStyles = (colors: ThemeColors): AppearanceScr
     },
     effectHeroPetHint: {
       ...textStyles.caption,
-      color: colors.warningText,
+      color: colors.warning,
       marginTop: spacing.micro,
     },
     effectHeroRarity: {

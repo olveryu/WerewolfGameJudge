@@ -148,7 +148,7 @@ function IconAction({
       <Ionicons
         name={icon}
         size={componentSizes.icon.md}
-        color={disabled ? colors.textDisabled : colors.text}
+        color={disabled ? colors.textMuted : colors.text}
       />
       <Text style={[styles.toolLabel, disabled && styles.dimmedText]}>{label}</Text>
     </Pressable>

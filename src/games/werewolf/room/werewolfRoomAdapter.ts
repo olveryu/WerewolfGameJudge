@@ -62,6 +62,7 @@ import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { resolveRoomViewerAudience } from '@/features/room/model/RoomViewer';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { TESTIDS } from '@/testids';
+import { colors } from '@/theme';
 
 import {
   createWerewolfHostManagement,
@@ -639,9 +640,9 @@ export function createWerewolfBoardInfoSections(
 ): readonly BoardInfoSection[] {
   const items = groupRoleItems(roles);
   return [
-    { title: '狼人', items: items.wolf, tone: 'wolf' },
-    { title: '神职', items: items.god, tone: 'god' },
-    { title: '特殊', items: items.special, tone: 'third' },
+    { title: '狼人', items: items.wolf, color: colors.wolf },
+    { title: '神职', items: items.god, color: colors.god },
+    { title: '特殊', items: items.special, color: colors.third },
     {
       title: '村民',
       items:
@@ -651,7 +652,7 @@ export function createWerewolfBoardInfoSections(
               ...items.villager,
             ]
           : items.villager,
-      tone: 'villager',
+      color: colors.villager,
     },
   ];
 }

@@ -28,10 +28,11 @@
   - Subtitle: 18px
   - Body: 16px
   - Secondary: 14px
-  - Caption: 12px (smallest size; functional text never goes below 11px)
+  - Caption: 12px
+  - CaptionSmall: 10px
 - **Line Heights (corresponding to each font size):**
   - Display: 50px, Hero: 42px, Heading: 34px, Title: 28px
-  - Subtitle: 26px, Body: 24px, Secondary: 20px, Caption: 16px
+  - Subtitle: 26px, Body: 24px, Secondary: 20px, Caption: 16px, CaptionSmall: 14px
 - **Weights:** normal(400), medium(500), semibold(600), bold(700)
 - **Letter Spacing:** hero(-1), tight(-0.5), normal(0), wide(0.5)
 - **Text Style Presets:** `textStyles.body`, `textStyles.titleBold` etc., pre-composed fontSize + lineHeight + fontWeight (no color), eliminating pairing errors
@@ -54,10 +55,8 @@ exports; the table below is retained only as design history and must not seed a 
 | `blood`    | Blood Moon | Dark  | `#DC3B3B` | `#110B0B`  | `#1C1212` | `#F5EAEA` |
 | `forest`   | Forest     | Dark  | `#3DD68C` | `#0A1210`  | `#101D18` | `#E8F5EE` |
 
-- **Active semantic colors:** `primary`, `primaryLight`, `primaryDark`, `background`, `surface`, `surfaceHover`, `card`, `text`, `textSecondary`, `textMuted`, `textDisabled`, `textInverse`, `border`, `borderLight`, `success`, `warning`, `error`, `info`
+- **Active semantic colors:** `primary`, `primaryLight`, `primaryDark`, `background`, `surface`, `surfaceHover`, `card`, `text`, `textSecondary`, `textMuted`, `textInverse`, `border`, `borderLight`, `success`, `warning`, `error`, `info`
 - **Game-specific 4 faction colors:** `wolf`(red), `villager`(green), `god`(purple), `third`(yellow)
-- **Fill vs text:** status and faction colors are fills (backgrounds, borders, dots, icons). Text in those hues uses `successText`, `warningText`, `errorText`, `wolfText`, `villagerText`, `godText`, `thirdText`, or `toneColors[tone].text` for a `ColorTone`; each meets WCAG 2.2 AA on surfaces and on its own tint up to 20%. `textMuted` is for opaque surfaces; `textDisabled` is only for inactive controls. Pairs are pinned by `src/theme/__tests__/colorContrast.contract.test.ts`.
-- **Gradients behind text:** text must clear 4.5:1 on every gradient stop. White text sits on `PRIMARY_GRADIENT` (`primary` → `primaryDark`), whose stops the same contract pins; `primaryLight` is a decorative fill (bars, art) and never backs text.
 - **Overlay:** `overlay`(dark, modal backdrop), `overlayLight`(light, subtle overlay)
 - **Active color set:** `colors`; do not assume a selectable `light` theme registry exists
 

@@ -25,7 +25,7 @@ import { useAutoClaimDailyReward } from '@/features/gacha/queries/useGachaQuery'
 import { ClientGameCatalogProvider, useClientGameCatalog } from '@/games/ClientGameCatalogContext';
 import { getClientGameModules } from '@/games/model/ClientGameCatalog';
 import { AppNavigator } from '@/navigation';
-import { colors, layout } from '@/theme';
+import { colors } from '@/theme';
 import { type AlertConfig, setAlertListener } from '@/utils/alert';
 import { signalAppReady } from '@/utils/appReady';
 import { log } from '@/utils/logger';
@@ -213,18 +213,6 @@ setTimeout(reportLoadTiming, 0);
 
 const appLog = log.extend('App');
 
-/**
- * Rich colors tint each toast and color its icon by variant; the text keeps the theme text
- * colors, because sonner's rich foregrounds fall below 4.5:1 on their own tints. sonner-native
- * spans the window width; on wide screens toasts stop at the content width, so they no longer
- * cover the controls at both ends of the room header.
- */
-const TOAST_OPTIONS = {
-  titleStyle: { color: colors.text },
-  descriptionStyle: { color: colors.textSecondary },
-  toastContainerStyle: { maxWidth: layout.maxWidth },
-};
-
 /** Remove the HTML splash overlay on web (defined in web/index.html). */
 function dismissWebSplash() {
   if (Platform.OS !== 'web') return;
@@ -366,7 +354,7 @@ function AppContent() {
         const AppOverlay = gameModule.appOverlay;
         return AppOverlay === null ? null : <AppOverlay key={gameModule.gameType} />;
       })}
-      <Toaster theme="light" richColors position="top-center" toastOptions={TOAST_OPTIONS} />
+      <Toaster theme="light" richColors position="top-center" />
     </>
   );
 }

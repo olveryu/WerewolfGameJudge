@@ -360,7 +360,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
             style={[
               styles.statusChipText,
               {
-                color: selectedFeedback.status === 'resolved' ? colors.successText : colors.primary,
+                color: selectedFeedback.status === 'resolved' ? colors.success : colors.primary,
               },
             ]}
           >
@@ -663,7 +663,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   charCount: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.textMuted,
     textAlign: 'right',
     marginTop: spacing.tight,
@@ -716,7 +716,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.micro,
   },
   unreadBadgeText: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.textInverse,
     fontWeight: typography.weights.semibold,
   },
@@ -727,21 +727,21 @@ const styles = StyleSheet.create({
     marginTop: spacing.tight,
   },
   historyItemTime: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.textMuted,
   },
   historyItemStatus: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     fontWeight: typography.weights.medium,
   },
   statusReplied: {
-    color: colors.successText,
+    color: colors.success,
   },
   statusPending: {
     color: colors.textMuted,
   },
   statusResolved: {
-    color: colors.successText,
+    color: colors.success,
   },
   historyItemPreview: {
     fontSize: typography.caption,
@@ -809,7 +809,7 @@ const styles = StyleSheet.create({
     backgroundColor: withAlpha(colors.success, 0.1),
   },
   statusChipText: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     fontWeight: typography.weights.medium,
   },
   // ── Resolve prompt (inline in chat) ──
@@ -838,7 +838,7 @@ const styles = StyleSheet.create({
   },
   resolvePromptButtonText: {
     fontSize: typography.caption,
-    color: colors.successText,
+    color: colors.success,
     fontWeight: typography.weights.medium,
   },
   // ── Chat bubbles ──
@@ -861,7 +861,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.micro,
   },
   bubbleAdminLabelText: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.primary,
     fontWeight: typography.weights.medium,
   },
@@ -890,12 +890,12 @@ const styles = StyleSheet.create({
     lineHeight: typography.body * 1.5,
   },
   bubbleTime: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.textMuted,
     marginTop: spacing.micro,
   },
   bubbleTimeRight: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.textMuted,
     marginTop: spacing.micro,
     alignSelf: 'flex-end',

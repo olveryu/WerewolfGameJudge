@@ -23,7 +23,6 @@ import {
   spacing,
   textStyles,
   type ThemeColors,
-  toneColors,
   typography,
   withAlpha,
 } from '@/theme';
@@ -55,8 +54,7 @@ export const EncyclopediaRoleDetailSheet: React.FC<EncyclopediaRoleDetailSheetPr
 
   if (!entry) return null;
 
-  const factionTone = toneColors[entry.factionTone];
-  const factionColor = factionTone.fill;
+  const factionColor = colors[entry.factionColorKey];
   const tags = entry.tags ?? [];
 
   return (
@@ -89,7 +87,7 @@ export const EncyclopediaRoleDetailSheet: React.FC<EncyclopediaRoleDetailSheetPr
                     { backgroundColor: withAlpha(factionColor, 0.15) },
                   ]}
                 >
-                  <Text style={[styles.heroFactionText, { color: factionTone.text }]}>
+                  <Text style={[styles.heroFactionText, { color: factionColor }]}>
                     {entry.factionLabel}
                   </Text>
                 </View>
@@ -102,18 +100,13 @@ export const EncyclopediaRoleDetailSheet: React.FC<EncyclopediaRoleDetailSheetPr
             {tags.length > 0 && (
               <View style={styles.tagsSection}>
                 {tags.map((tag) => {
-                  const tagTone = toneColors[tag.tone];
+                  const tagColor = colors[tag.colorKey];
                   return (
                     <View
                       key={tag.key}
-                      style={[
-                        styles.detailTagChip,
-                        { backgroundColor: withAlpha(tagTone.fill, 0.12) },
-                      ]}
+                      style={[styles.detailTagChip, { backgroundColor: withAlpha(tagColor, 0.12) }]}
                     >
-                      <Text style={[styles.detailTagText, { color: tagTone.text }]}>
-                        {tag.label}
-                      </Text>
+                      <Text style={[styles.detailTagText, { color: tagColor }]}>{tag.label}</Text>
                     </View>
                   );
                 })}
@@ -201,7 +194,7 @@ function createStyles(colors: ThemeColors, bottomInset: number) {
       marginTop: spacing.tight,
     },
     heroFactionText: {
-      fontSize: typography.caption,
+      fontSize: typography.captionSmall,
       fontWeight: typography.weights.semibold,
     },
     // Tags

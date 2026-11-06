@@ -71,6 +71,7 @@ describe('spacing', () => {
 describe('typography', () => {
   it('font sizes are strictly ascending', () => {
     const ordered = [
+      typography.captionSmall,
       typography.caption,
       typography.secondary,
       typography.body,
@@ -87,6 +88,7 @@ describe('typography', () => {
 
   it('every font size has a matching lineHeight', () => {
     const sizeKeys = [
+      'captionSmall',
       'caption',
       'secondary',
       'body',

@@ -8,20 +8,20 @@
 import type { ImageSourcePropType } from 'react-native';
 
 import type { DescriptionField } from '@/features/room/model/RevealRoleData';
-import type { ColorTone } from '@/theme';
+import type { ThemeColors } from '@/theme';
 
 /** 能力标签描述（绑定层把游戏自有 tag 体系翻译成这一份形状）。 */
 export interface EncyclopediaRoleTag {
   readonly key: string;
   readonly label: string;
-  readonly tone: ColorTone;
+  readonly colorKey: keyof ThemeColors;
 }
 
 /** 阵营分组：决定「全部」视图的分组顺序、分组头与阵营筛选 tab。 */
 export interface EncyclopediaFactionGroup {
   readonly key: string;
   readonly label: string;
-  readonly tone: ColorTone;
+  readonly colorKey: keyof ThemeColors;
 }
 
 /** 单个角色的图鉴条目（全部展示数据由绑定层预先备好，机器不回查数据源）。 */
@@ -34,8 +34,8 @@ export interface EncyclopediaRoleEntry {
   readonly factionKey: string;
   /** 详情 hero 的阵营 chip 文案。 */
   readonly factionLabel: string;
-  /** 阵营语义色调。 */
-  readonly factionTone: ColorTone;
+  /** 阵营语义色（theme token 键名）。 */
+  readonly factionColorKey: keyof ThemeColors;
   /** 一句话介绍：结构化字段为空时的详情兜底文案。 */
   readonly description?: string;
   /** 搜索 haystack（绑定层拼好：名字/别名/介绍全文）。 */

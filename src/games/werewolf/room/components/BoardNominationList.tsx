@@ -171,7 +171,7 @@ function NominationCard({
               size={componentSizes.icon.sm}
               color={colors.error}
             />
-            <Text style={[styles.actionBtnText, { color: colors.errorText }]}>撤回</Text>
+            <Text style={[styles.actionBtnText, { color: colors.error }]}>撤回</Text>
           </TouchableOpacity>
         )}
 

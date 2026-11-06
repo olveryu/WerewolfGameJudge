@@ -7,7 +7,7 @@
 import type { RoleAbilityTag } from '@game-judge/game-engine/games/werewolf/public';
 import { Faction } from '@game-judge/game-engine/games/werewolf/public';
 
-import type { ColorTone } from '@/theme';
+import type { ThemeColors } from '@/theme';
 
 /** Ability tag Chinese labels (used for encyclopedia filtering and card display) */
 export const TAG_LABELS: Record<RoleAbilityTag, string> = {
@@ -24,8 +24,8 @@ export const TAG_LABELS: Record<RoleAbilityTag, string> = {
   none: '无能力',
 };
 
-/** Ability tag semantic tones */
-export const TAG_TONE: Record<RoleAbilityTag, ColorTone> = {
+/** Ability tag semantic colors (references ThemeColors keys) */
+export const TAG_COLOR_KEY: Record<RoleAbilityTag, keyof ThemeColors> = {
   check: 'info',
   protect: 'success',
   kill: 'error',
@@ -33,10 +33,10 @@ export const TAG_TONE: Record<RoleAbilityTag, ColorTone> = {
   link: 'warning',
   immune: 'villager',
   transform: 'third',
-  survive: 'primary',
-  follow: 'neutral',
+  survive: 'primaryLight',
+  follow: 'textSecondary',
   confirm: 'info',
-  none: 'neutral',
+  none: 'textMuted',
 };
 
 /** Ordered list of all ability tags */
@@ -57,13 +57,13 @@ export const ALL_TAGS: readonly RoleAbilityTag[] = [
 interface FactionConfig {
   faction: Faction;
   label: string;
-  tone: 'god' | 'wolf' | 'villager' | 'third';
+  colorKey: 'god' | 'wolf' | 'villager' | 'third';
 }
 
 /** SectionList faction group order */
 export const FACTION_SECTIONS: readonly FactionConfig[] = [
-  { faction: Faction.God, label: '神职', tone: 'god' },
-  { faction: Faction.Wolf, label: '狼人', tone: 'wolf' },
-  { faction: Faction.Villager, label: '村民', tone: 'villager' },
-  { faction: Faction.Special, label: '第三方', tone: 'third' },
+  { faction: Faction.God, label: '神职', colorKey: 'god' },
+  { faction: Faction.Wolf, label: '狼人', colorKey: 'wolf' },
+  { faction: Faction.Villager, label: '村民', colorKey: 'villager' },
+  { faction: Faction.Special, label: '第三方', colorKey: 'third' },
 ] as const;

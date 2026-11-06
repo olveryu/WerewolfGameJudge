@@ -31,7 +31,7 @@ export const storyRelayStyles = StyleSheet.create({
     paddingHorizontal: spacing.medium,
     paddingTop: spacing.small,
   },
-  error: { ...textStyles.secondary, color: colors.errorText },
+  error: { ...textStyles.secondary, color: colors.error },
   previous: {
     flex: 1,
     minHeight: 0,

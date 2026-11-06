@@ -409,7 +409,7 @@ export function createSheriffElectionPanelStyles(colors: ThemeColors): SheriffEl
       flexShrink: 0,
     },
     tallyNameWinner: {
-      color: colors.warningText,
+      color: colors.warning,
     },
     tallyBarTrack: {
       flex: 1,

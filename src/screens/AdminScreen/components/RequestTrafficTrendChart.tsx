@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.tight,
   },
   timeLabel: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.textMuted,
   },
 });

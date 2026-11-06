@@ -21,8 +21,8 @@ import type { DescriptionField } from '../model/RevealRoleData';
 
 // ─── Constants ───────────────────────────────────────────────
 
-/** Icon size for field labels (matches the caption label text) */
-const FIELD_ICON_SIZE = typography.caption;
+/** Icon size for field labels (matches captionSmall) */
+const FIELD_ICON_SIZE = 10;
 
 /** Left accent bar width (fixed, not scaled — too thin to benefit from scaling) */
 const ACCENT_BAR_WIDTH = 2;
@@ -80,9 +80,9 @@ function getFieldAccentColor(
 function getFieldLabelColor(tone: DescriptionField['tone'], colors: ThemeColors): string {
   switch (tone) {
     case 'warning':
-      return colors.warningText;
+      return colors.warning;
     case 'success':
-      return colors.successText;
+      return colors.success;
     default:
       return colors.textSecondary;
   }
@@ -282,8 +282,8 @@ function createStyles(colors: ThemeColors, accentColor: string) {
       marginBottom: spacing.micro,
     },
     sectionLabel: {
-      fontSize: typography.caption,
-      lineHeight: typography.caption * 1.4,
+      fontSize: typography.captionSmall,
+      lineHeight: typography.captionSmall * 1.4,
       fontWeight: typography.weights.semibold,
       color: colors.textSecondary,
       marginLeft: spacing.micro,

@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xlarge,
   },
   errorText: {
-    color: colors.errorText,
+    color: colors.error,
     fontSize: typography.caption,
   },
   emptyText: {

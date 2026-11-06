@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     gap: spacing.tight,
   },
   barLabel: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.textSecondary,
     fontWeight: typography.weights.medium,
     flexShrink: 0,
@@ -106,20 +106,20 @@ const styles = StyleSheet.create({
   },
   barFill: {
     height: '100%',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primaryLight,
     borderRadius: borderRadius.small,
     justifyContent: 'center',
     paddingHorizontal: spacing.tight,
   },
   barValueInline: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.textInverse,
     fontWeight: typography.weights.semibold,
     textAlign: 'right',
   },
   barValueExternal: {
     width: 50,
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.textMuted,
     textAlign: 'right',
   },

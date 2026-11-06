@@ -105,6 +105,6 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     lineHeight: typography.caption * 1.4,
     fontWeight: typography.weights.semibold,
-    color: colors.errorText,
+    color: colors.error,
   },
 });

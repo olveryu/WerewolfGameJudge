@@ -60,6 +60,7 @@ import type {
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import { colors } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
@@ -164,19 +165,19 @@ export function createUndercoverBoardInfoSections(
     {
       title: '卧底',
       items: [{ roleId: 'undercover', displayName: '卧底', count: roleCounts.undercover }],
-      tone: 'wolf',
+      color: colors.wolf,
     },
     {
       title: '平民',
       items: [{ roleId: 'civilian', displayName: '平民', count: roleCounts.civilian }],
-      tone: 'villager',
+      color: colors.villager,
     },
   ];
   if (input.hasBlank) {
     sections.push({
       title: '白板',
       items: [{ roleId: 'blank', displayName: '白板', count: roleCounts.blank }],
-      tone: 'neutral',
+      color: colors.textMuted,
     });
   }
   return sections;

@@ -1,15 +1,15 @@
 /**
  * TicketTabBar — Two-panel ticket type switcher
  *
- * Each tab shows icon + name + count. The sliding indicator and the label weight mark the active
- * tab; the other tab stays fully legible because it is still a control (WCAG SC 1.4.3).
+ * Each tab shows icon + name + count; inactive tab is dimmed but the number is always visible.
+ * Animated sliding indicator follows the active tab.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
-import { borderRadius, colors, spacing, toneColors, typography, withAlpha } from '@/theme';
+import { borderRadius, colors, spacing, typography, withAlpha } from '@/theme';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 
@@ -64,7 +64,7 @@ export function TicketTabBar({
 
       {/* Normal tab */}
       <Pressable
-        style={styles.tab}
+        style={[styles.tab, !isNormal && styles.tabInactive]}
         onPress={() => onSwitch('normal')}
         accessibilityRole="tab"
         accessibilityState={{ selected: isNormal }}
@@ -74,12 +74,14 @@ export function TicketTabBar({
           <Ionicons name="ticket-outline" size={12} color={NORMAL_TINT} />
         </View>
         <Text style={[styles.label, !isNormal && styles.labelInactive]}>普通</Text>
-        <Text style={[styles.count, styles.countNormal]}>{normalCount}</Text>
+        <Text style={[styles.count, styles.countNormal, !isNormal && styles.countInactive]}>
+          {normalCount}
+        </Text>
       </Pressable>
 
       {/* Golden tab */}
       <Pressable
-        style={styles.tab}
+        style={[styles.tab, isNormal && styles.tabInactive]}
         onPress={() => onSwitch('golden')}
         accessibilityRole="tab"
         accessibilityState={{ selected: !isNormal }}
@@ -89,7 +91,9 @@ export function TicketTabBar({
           <Ionicons name="star" size={12} color={GOLDEN_ICON} />
         </View>
         <Text style={[styles.label, isNormal && styles.labelInactive]}>黄金</Text>
-        <Text style={[styles.count, styles.countGolden]}>{goldenCount}</Text>
+        <Text style={[styles.count, styles.countGolden, isNormal && styles.countInactive]}>
+          {goldenCount}
+        </Text>
       </Pressable>
     </View>
   );
@@ -141,6 +145,9 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.medium - 2,
     zIndex: 1,
   },
+  tabInactive: {
+    opacity: 0.45,
+  },
   iconWrapNormal: {
     width: 22,
     height: 22,
@@ -163,8 +170,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   labelInactive: {
-    fontWeight: typography.weights.medium,
-    color: colors.textSecondary,
+    color: colors.textMuted,
   },
   count: {
     fontSize: typography.body - 1,
@@ -172,11 +178,13 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     minWidth: 20,
   },
-  // The tint constants are fills; counts take the matching tone's text color.
   countNormal: {
-    color: toneColors.primary.text,
+    color: NORMAL_TINT,
   },
   countGolden: {
-    color: toneColors.warning.text,
+    color: GOLDEN_TINT,
+  },
+  countInactive: {
+    opacity: 0.7,
   },
 });

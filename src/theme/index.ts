@@ -23,12 +23,9 @@
 // Colors
 export {
   colors,
-  type ColorTone,
   NIGHT_REPORT_COLORS,
   PICTIONARY_CANVAS_BACKGROUND,
-  PRIMARY_GRADIENT,
   type ThemeColors,
-  toneColors,
 } from './colors';
 
 // Tokens (importable directly)

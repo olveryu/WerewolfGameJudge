@@ -70,6 +70,7 @@ export interface HeaderActionsStyles {
 
 export interface RoomProgressIndicatorStyles {
   container: ViewStyle;
+  compactContainer: ViewStyle;
   headerRow: ViewStyle;
   stepText: TextStyle;
   labelText: TextStyle;

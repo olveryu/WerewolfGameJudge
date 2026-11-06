@@ -14,7 +14,7 @@ import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
 import { FormTextField } from '@/components/FormTextField';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes, spacing, toneColors, withAlpha } from '@/theme';
+import { colors, componentSizes, spacing, withAlpha } from '@/theme';
 
 import { EncyclopediaRoleDetailSheet } from './EncyclopediaRoleDetailSheet';
 import { EncyclopediaRoleListItem } from './EncyclopediaRoleListItem';
@@ -72,13 +72,13 @@ export const EncyclopediaRolesContent: React.FC<EncyclopediaRolesContentProps> =
       <View style={styles.gridRow}>
         <EncyclopediaRoleListItem
           entry={item[0]}
-          factionColor={toneColors[item[0].factionTone].fill}
+          factionColor={colors[item[0].factionColorKey]}
           onPress={handleRolePress}
         />
         {item[1] ? (
           <EncyclopediaRoleListItem
             entry={item[1]}
-            factionColor={toneColors[item[1].factionTone].fill}
+            factionColor={colors[item[1].factionColorKey]}
             onPress={handleRolePress}
           />
         ) : (
@@ -98,7 +98,7 @@ export const EncyclopediaRolesContent: React.FC<EncyclopediaRolesContentProps> =
         EncyclopediaRoleSection
       >;
     }) => {
-      const factionColor = toneColors[section.tone].fill;
+      const factionColor = colors[section.colorKey];
       return (
         <View style={[styles.sectionHeader, { backgroundColor: withAlpha(factionColor, 0.06) }]}>
           <View style={[styles.sectionAccent, { backgroundColor: factionColor }]} />

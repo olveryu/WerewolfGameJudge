@@ -104,7 +104,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
     handleTabPress,
     getBulkCount,
     handleBulkCountChange,
-    getFactionAccentTone,
+    getFactionAccentColor,
   } = state;
 
   return (
@@ -170,7 +170,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
           <View style={styles.cardB}>
             {activeGroup!.sections.map((section, index) => {
               const sectionFaction = section.faction ?? activeGroup!.faction;
-              const sectionAccentTone = getFactionAccentTone(sectionFaction);
+              const sectionAccentColor = getFactionAccentColor(sectionFaction);
 
               // Bulk slot -> RoleStepper
               const bulkSlot = section.roles.find((s) => s.isBulk);
@@ -187,7 +187,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
                       maxCount={maxCount}
                       onCountChange={handleBulkCountChange}
                       styles={styles}
-                      accentTone={sectionAccentTone}
+                      accentColor={sectionAccentColor}
                     />
                     {index < activeGroup!.sections.length - 1 && (
                       <View style={styles.cardBDivider} />
@@ -213,6 +213,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
                           onToggle={toggleRole}
                           styles={styles}
                           factionColor={sectionFactionColorKey}
+                          accentColor={sectionAccentColor}
                           hasVariants={entry.hasVariants}
                           onInfoPress={handleChipInfoPress}
                         />

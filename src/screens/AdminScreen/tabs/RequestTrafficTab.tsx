@@ -411,10 +411,10 @@ const styles = StyleSheet.create({
   statusValue: {
     fontSize: typography.secondary,
     fontWeight: typography.weights.semibold,
-    color: colors.successText,
+    color: colors.success,
   },
   statusValueWarning: {
-    color: colors.warningText,
+    color: colors.warning,
   },
   statusValueInfo: {
     flexShrink: 1,
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
     gap: spacing.small,
   },
   routeMethod: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     fontWeight: typography.weights.bold,
     color: colors.info,
   },
@@ -452,14 +452,14 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   routeDetail: {
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.textMuted,
     marginTop: spacing.micro,
   },
   routeStatuses: {
     width: '100%',
     marginTop: spacing.tight,
-    fontSize: typography.caption,
+    fontSize: typography.captionSmall,
     color: colors.textSecondary,
   },
   emptyRoutes: {
