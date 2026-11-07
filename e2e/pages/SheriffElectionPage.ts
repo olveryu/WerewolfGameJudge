@@ -231,6 +231,27 @@ export class SheriffElectionPage {
     });
   }
 
+  /** Assert the HUD names a seat that has not voted yet (0-based seat). */
+  async expectPendingSeatVisible(seat: number): Promise<void> {
+    await expect(this.page.getByTestId(TESTIDS.sheriffHudPendingSeats)).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(
+      this.page.getByTestId(`${TESTIDS.sheriffHudPendingSeats}-seat-${seat}`),
+    ).toBeVisible({ timeout: 15_000 });
+  }
+
+  async expectPendingSeatsHidden(): Promise<void> {
+    await expect(this.page.getByTestId(TESTIDS.sheriffHudPendingSeats)).not.toBeVisible();
+  }
+
+  /** Assert the HUD counts down the armed settle countdown; seconds tick, so match the range. */
+  async expectSettleCountdown(countText: RegExp): Promise<void> {
+    await expect(
+      this.page.getByTestId(TESTIDS.sheriffElectionHud).getByText(countText),
+    ).toBeVisible({ timeout: 10_000 });
+  }
+
   async expectCanVote(canVote: boolean): Promise<void> {
     const abstainButton = this.page.getByTestId(TESTIDS.sheriffAbstainButton);
     if (canVote) {

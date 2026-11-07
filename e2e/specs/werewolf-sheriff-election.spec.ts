@@ -93,12 +93,17 @@ test('first-day sheriff election resolves a tie with public authoritative histor
 
     await fourthElection.voteFor(1);
     await hostElection.expectVoteProgress('1/2 已提交');
+    // HUD 第二行只剩 5 号没投（0-based 座位 4）。
+    await hostElection.expectPendingSeatVisible(4);
     await fourthElection.voteFor(0);
     await hostElection.expectVoteProgress('1/2 已提交');
     await hostElection.expectOpenBallotsHidden();
 
     await fifthElection.voteFor(1);
     await hostElection.expectVoteProgress('2/2 已提交');
+    await hostElection.expectPendingSeatsHidden();
+    // HUD 倒计时：全员投完武装 5 秒，秒数递减，匹配范围不断言固定值。
+    await hostElection.expectSettleCountdown(/2\/2 人已投票，[1-5]秒后自动公布结果/);
     await hostElection.expectOpenBallotsHidden();
 
     // No manual publication exists any more: the last ballot arms
@@ -132,6 +137,8 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await fourthElection.voteFor(0);
     await fifthElection.voteFor(0);
     await hostElection.expectVoteProgress('3/3 已提交');
+    await hostElection.expectPendingSeatsHidden();
+    await hostElection.expectSettleCountdown(/3\/3 人已投票，[1-5]秒后自动公布结果/);
 
     // Same automatic publication as the first round: wait for the
     // armed countdown to expire instead of clicking a close button.

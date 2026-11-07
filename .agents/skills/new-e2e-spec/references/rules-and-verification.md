@@ -66,7 +66,7 @@ From `e2e/helpers/README.md`, "Required Test Patterns":
 - `page.waitForTimeout()` in new specs is polling cadence ≤300 ms only, except resilience duration-holds where the held duration is itself the test condition (see `e2e/specs/resilience-reconnect.spec.ts`).
 - Never `force: true` to bypass actionability for normal user
   interactions. The one current occurrence in specs is the
-  sanctioned exception shape: `drawguess.spec.ts:79` clicks a
+  sanctioned exception shape: `drawguess.spec.ts:181` clicks a
   _disabled_ button with `force: true` to prove the press fires
   nothing — a plain click would wait forever for enablement. That
   disabled-state exception path is the only allowed shape.

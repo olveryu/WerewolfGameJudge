@@ -27,8 +27,8 @@ for p in (root / "e2e/specs").glob("*.spec.ts"):
     for i, line in enumerate(p.read_text().splitlines(), 1):
         if "force: true" in line:
             forced.append(f"{p.name}:{i}")
-print(f"force:true in specs: {forced} (expected only drawguess.spec.ts:79)")
-if forced != ["drawguess.spec.ts:79"]:
+print(f"force:true in specs: {forced} (expected only drawguess.spec.ts:181)")
+if forced != ["drawguess.spec.ts:181"]:
     print("NOTE: force:true occurrences changed; re-check the sanctioned-exception wording")
 hits = [str(p) for p in (root / "e2e").rglob("*.ts") if "NIGHT_STEP_ORDER_INTERNAL" in p.read_text()]
 print(f"NIGHT_STEP_ORDER_INTERNAL in e2e/: {hits} (expected [])")

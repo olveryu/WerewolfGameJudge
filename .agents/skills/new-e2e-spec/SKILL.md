@@ -76,7 +76,7 @@ Register a new spec in exactly one shard of the `e2e` matrix in
 
 ### 4. Follow the interaction rules
 
-- No `force: true` for normal interactions; the only exception shape is the disabled-state press in `e2e/specs/drawguess.spec.ts:79` (see `references/rules-and-verification.md`; `.agents/skills/new-e2e-spec/scripts/check-e2e.sh` reports any other occurrence).
+- No `force: true` for normal interactions; the only exception shape is the disabled-state press in `e2e/specs/drawguess.spec.ts:181` (see `references/rules-and-verification.md`; `.agents/skills/new-e2e-spec/scripts/check-e2e.sh` reports any other occurrence).
 - `page.waitForTimeout()` in new specs is polling cadence ≤300 ms only, except resilience duration-holds where the held duration is itself the test condition (see `e2e/specs/resilience-reconnect.spec.ts`).
 - `console.log` in a spec fails the `no-console` rule in `eslint.config.mjs` (exempted only in `e2e/helpers/diagnostics.ts`); attach evidence with `testInfo.attach()`.
 - Skipped/focused tests are forbidden on CI by `forbidOnly` in `playwright.config.ts` (CI).
