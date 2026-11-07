@@ -11,6 +11,7 @@ Scope: `src/**` only. Engine rules live in `packages/game-engine/AGENTS.md`; wor
 ## Sheriff secrecy and night review
 
 - Sheriff candidate records return `null` during `registration` (`getSheriffCandidateRecords`, `packages/game-engine/src/games/werewolf/domain/review/sheriffElectionRecord.ts`), the single derivation shared by the panel and the night review.
+- Sheriff presentation decisions (which rows exist, in which order, who is marked winner) live in exactly one place, `src/games/werewolf/room/day/sheriffElectionPresentation.ts`; the panel (`SheriffElectionReadOnly`) and the night review (`toWerewolfReviewDocument`) both derive from it and hold no second copy, pinned by `src/games/werewolf/room/__tests__/sheriffPresentationEquivalence.test.ts` (FromView rows equal FromSection rows, plus input-divergence cases).
 - The wolf-kill target and verdict are computed once, in one persisted action (`packages/game-engine/src/games/werewolf/domain/handlers/wolfKillResolution.ts`), and the client renders the recorded verdict only.
 
 ## Settle countdown

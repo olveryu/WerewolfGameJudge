@@ -13,6 +13,10 @@ import type React from 'react';
 import { memo, useCallback } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
+import {
+  createSheriffElectionPresentationFromView,
+  type SheriffElectionPresentationRow,
+} from '@/games/werewolf/room/day/sheriffElectionPresentation';
 import type { SheriffBallotSelectionViewModel } from '@/games/werewolf/room/day/sheriffElectionViewModel';
 import type {
   SheriffElectionPanelModel,
@@ -24,7 +28,6 @@ import { componentSizes } from '@/theme/tokens';
 
 import type { SheriffElectionPanelStyles } from './sheriffElectionPanel.styles';
 import {
-  getSheriffCompletedRoundWinnerSeat,
   SheriffElectionCompletedRound,
   SheriffElectionPhaseHeader,
   SheriffElectionRecords,
@@ -106,40 +109,52 @@ function getMyBallotText(selection: SheriffBallotSelectionViewModel | null): str
 const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ model, styles }) => {
   const { view, pendingAction } = model;
   const myBallotText = getMyBallotText(view.myBallot);
-  const { candidateRecords } = view;
-  const decidingRoundKey = view.completedRounds[view.completedRounds.length - 1]?.key;
+  // The panel renders the projection, not the view model fields directly:
+  // every presentation decision (rows, order, winner) is made once in
+  // the projection. Ballot interaction and host advance below are
+  // unchanged and still read the view model.
+  const presentation = createSheriffElectionPresentationFromView(view);
+  const phaseRow = presentation.rows.find((row) => row.kind === 'phase');
+  if (phaseRow === undefined) {
+    throw new Error('[FAIL-FAST] Sheriff election presentation has no phase row');
+  }
+  const resultRow = presentation.rows.find((row) => row.kind === 'result');
+  const registrationRow = presentation.rows.find((row) => row.kind === 'registration');
+  const candidatesRow = presentation.rows.find((row) => row.kind === 'candidates') ?? null;
+  const speakingRow = presentation.rows.find((row) => row.kind === 'speaking') ?? null;
+  const voteProgressRow = presentation.rows.find((row) => row.kind === 'voteProgress');
+  if (view.voteProgress !== null && voteProgressRow === undefined) {
+    throw new Error('[FAIL-FAST] Sheriff election presentation has no vote-progress row');
+  }
+  const roundRows = presentation.rows.filter(
+    (row): row is Extract<SheriffElectionPresentationRow, { readonly kind: 'round' }> =>
+      row.kind === 'round',
+  );
 
   return (
     <View style={styles.container} testID={TESTIDS.sheriffElectionPanel}>
       <SheriffElectionPhaseHeader
-        phaseTitle={view.phaseTitle}
-        phaseDescription={view.phaseDescription}
+        phaseTitle={phaseRow.title}
+        phaseDescription={phaseRow.description}
         styles={styles}
       />
 
-      {view.finalResult !== null && (
-        <SheriffElectionResultBanner
-          result={view.finalResult}
-          completedRounds={view.completedRounds}
-          styles={styles}
-        />
-      )}
+      {resultRow !== undefined && <SheriffElectionResultBanner row={resultRow} styles={styles} />}
 
-      {candidateRecords !== null && (
+      {registrationRow !== undefined && (
         <SheriffElectionRecords
-          candidateRecords={candidateRecords}
-          phase={view.phase}
-          speakingInstruction={view.speakingInstruction}
+          registrationRow={registrationRow}
+          candidatesRow={candidatesRow}
+          speakingRow={speakingRow}
           styles={styles}
         />
       )}
 
-      {view.voteProgress !== null && (
+      {view.voteProgress !== null && voteProgressRow !== undefined && (
         <View style={styles.candidateSection}>
           <SheriffElectionVoteProgressRow
             title={view.canVote ? '选择候选人' : '投票进度'}
-            submittedCount={view.voteProgress.submittedCount}
-            eligibleCount={view.voteProgress.eligibleCount}
+            row={voteProgressRow}
             styles={styles}
           />
           {view.canVote && (
@@ -175,18 +190,9 @@ const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ mo
         </View>
       )}
 
-      {view.completedRounds.length > 0 && <View style={styles.divider} />}
-      {view.completedRounds.map((round) => (
-        <SheriffElectionCompletedRound
-          key={round.key}
-          round={round}
-          winnerSeat={getSheriffCompletedRoundWinnerSeat({
-            result: view.finalResult,
-            roundKey: round.key,
-            decidingRoundKey,
-          })}
-          styles={styles}
-        />
+      {roundRows.length > 0 && <View style={styles.divider} />}
+      {roundRows.map((row) => (
+        <SheriffElectionCompletedRound key={row.key} row={row} styles={styles} />
       ))}
     </View>
   );

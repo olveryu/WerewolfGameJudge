@@ -384,7 +384,7 @@ readonly guessedSeats: readonly number[];
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | `NightReviewModal`、`NightReviewShareCard`、`NightReviewReportBody`、`SheriffElectionReportSection`、`nightReviewLayout.ts`、`shareNightReview.ts`、`useNightReviewShare.ts`、`ShareProgressModal`、`useShareImageAction.ts` 及对应测试 | `NightReview.helpers.ts`（事实提取与其测试）、`ShareReviewModal`（服务端授权 UI）、`useRoomModals` 的授权状态 | `src/games/werewolf/review/toWerewolfReviewDocument.ts`、`werewolfReview.ts` 与测试 |
 
-`nightReviewLayout.ts` 的文案常量迁入 `toWerewolfReviewDocument.ts`；配色迁入 `reportTheme.ts`；警长竞选的文案函数收敛到 `sheriffElectionViewModel`（面板与复盘共用）。
+`nightReviewLayout.ts` 的文案常量迁入 `toWerewolfReviewDocument.ts`；配色迁入 `reportTheme.ts`；警长竞选的文案函数收敛到 `sheriffElectionViewModel`（面板与复盘共用），呈现判定收敛到 `sheriffElectionPresentation`（面板与复盘双双派生，见 §10）。
 
 ### 8.3 其他游戏（替换 / 新增）
 
@@ -430,7 +430,7 @@ readonly guessedSeats: readonly number[];
 ### 9.2 游戏级（纯数据断言，无 RN 渲染）
 
 - `toXReviewDocument(state)` 断言块序列与关键事实：胜方、身份、词语、排名、出局顺序、续页。
-- 狼人杀：原 `NightReviewShareCard.test.tsx` 的事实用例（狼队共同目标、空刀不出现 0 号、未行动淡化行、身份墙恰一人出局）已迁为 `toWerewolfReviewDocument.test.ts` 的数据断言；警长竞选的面板 / 复盘等价性只比数据。
+- 狼人杀：原 `NightReviewShareCard.test.tsx` 的事实用例（狼队共同目标、空刀不出现 0 号、未行动淡化行、身份墙恰一人出局）已迁为 `toWerewolfReviewDocument.test.ts` 的数据断言；警长竞选的面板 / 复盘等价性比呈现行（`sheriffPresentationEquivalence.test.ts`：同一选举数据，面板与复盘从 `sheriffElectionPresentation` 派生出完全相同的行，变异用例证明一座/一轮的漂移即失败）。
 
 ### 9.3 渲染器（一次性）
 
@@ -454,21 +454,21 @@ readonly guessedSeats: readonly number[];
 
 ## 10. 决策记录与开放问题
 
-| 决策                              | 结论                                                                                                                                |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 增量迁移还是完全重建              | 完全重建（用户决定 2026-10-29）。增量方案要求每个游戏写 `Body` 组件并靠测试对齐两容器；声明式文档让一致性由构造保证，新游戏只填数据 |
-| 组件式正文还是声明式文档          | 声明式。代价是块词汇封闭、需要先扩词汇再表达新内容；收益是单一渲染器、纯数据测试、可序列化缓存键                                    |
-| 块词汇是否允许逃生口              | 不允许。`custom` 块会在一年内让每个游戏重新长出自己的 JSX                                                                           |
-| 色调用游戏词还是语义词            | 语义词（`good / evil / special / out / highlight`）。`wolf / god` 是狼人杀词汇，不能进平台                                          |
-| 是否做只读战报链接 / 存档         | 否。需要时另起设计。声明式文档是可序列化的，届时服务端存档可直接存文档 JSON                                                         |
-| 分页由谁决定                      | 游戏按语义声明单元（一篇画册 / 一篇故事 / 一轮），平台 `paginateReviewUnit` 按估高把超长单元切成编号续页；运行期仍校验单页上限      |
-| 狼人杀逐座位授权是否上提          | 否。映射为 `notPermitted`；其他游戏终局身份全公开                                                                                   |
-| `shareImagesBase64` 返回值        | `ShareImageOutcome`（`handedOff / downloaded / previewed / cancelled`）；失败抛错                                                   |
-| 标题、分享标题、通用页脚归谁      | 平台（`reviewCopy.ts`）。八个游戏写的值完全相同，类型里就不该有这两个字段（§11）                                                    |
-| 狼人杀版式                        | 保留 #364 文字时间线，扩平台词汇承载（用户决定 2026-11）；不退回分组卡片                                                            |
-| 狼人杀入口                        | 入口 → 防剧透确认 → 复盘对话框，分享在对话框底部；引导流程先授权后看复盘，收尾仍有授权与复盘（用户决定 2026-11）                    |
-| 警长竞选段                        | 改为通用 `timeline`，删除 `SheriffElectionReportSection`；面板与复盘的等价性只比数据（用户决定 2026-11）                            |
-| 文档构建放 game-engine 还是客户端 | 客户端 `src/games/<game>/review/`。构建器是纯函数但依赖客户端的中文展示名（如 `avalonRoleDisplay`）；无服务端消费者时不进引擎       |
+| 决策                              | 结论                                                                                                                                                                                                                                                               |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 增量迁移还是完全重建              | 完全重建（用户决定 2026-10-29）。增量方案要求每个游戏写 `Body` 组件并靠测试对齐两容器；声明式文档让一致性由构造保证，新游戏只填数据                                                                                                                                |
+| 组件式正文还是声明式文档          | 声明式。代价是块词汇封闭、需要先扩词汇再表达新内容；收益是单一渲染器、纯数据测试、可序列化缓存键                                                                                                                                                                   |
+| 块词汇是否允许逃生口              | 不允许。`custom` 块会在一年内让每个游戏重新长出自己的 JSX                                                                                                                                                                                                          |
+| 色调用游戏词还是语义词            | 语义词（`good / evil / special / out / highlight`）。`wolf / god` 是狼人杀词汇，不能进平台                                                                                                                                                                         |
+| 是否做只读战报链接 / 存档         | 否。需要时另起设计。声明式文档是可序列化的，届时服务端存档可直接存文档 JSON                                                                                                                                                                                        |
+| 分页由谁决定                      | 游戏按语义声明单元（一篇画册 / 一篇故事 / 一轮），平台 `paginateReviewUnit` 按估高把超长单元切成编号续页；运行期仍校验单页上限                                                                                                                                     |
+| 狼人杀逐座位授权是否上提          | 否。映射为 `notPermitted`；其他游戏终局身份全公开                                                                                                                                                                                                                  |
+| `shareImagesBase64` 返回值        | `ShareImageOutcome`（`handedOff / downloaded / previewed / cancelled`）；失败抛错                                                                                                                                                                                  |
+| 标题、分享标题、通用页脚归谁      | 平台（`reviewCopy.ts`）。八个游戏写的值完全相同，类型里就不该有这两个字段（§11）                                                                                                                                                                                   |
+| 狼人杀版式                        | 保留 #364 文字时间线，扩平台词汇承载（用户决定 2026-11）；不退回分组卡片                                                                                                                                                                                           |
+| 狼人杀入口                        | 入口 → 防剧透确认 → 复盘对话框，分享在对话框底部；引导流程先授权后看复盘，收尾仍有授权与复盘（用户决定 2026-11）                                                                                                                                                   |
+| 警长竞选段                        | 改为通用 `timeline`，删除 `SheriffElectionReportSection`；呈现判定只在 `sheriffElectionPresentation` 一处，面板（`SheriffElectionReadOnly`）与复盘（`toWerewolfReviewDocument` 的机械翻译）都从它派生，等价性由呈现等价 contract 钉死（“只比数据”已作废，见 §9.2） |
+| 文档构建放 game-engine 还是客户端 | 客户端 `src/games/<game>/review/`。构建器是纯函数但依赖客户端的中文展示名（如 `avalonRoleDisplay`）；无服务端消费者时不进引擎                                                                                                                                      |
 
 已决问题（2026-10-29，用户拍板）：
 
@@ -489,7 +489,7 @@ readonly guessedSeats: readonly number[];
 1. **可用性**：`notPermitted.message` 改名 `reason`；`available` 增加 `sharing`（能读不一定能分享：狼人杀旁观者）与 `confirmation`（狼人杀打开前防剧透）。
 2. **文档字段**：删除 `title`、`shareTitle`——八个游戏写的值完全相同（「本局复盘」「房间 X 战报」），由平台 `reviewCopy.ts` 拥有；`footer` 保留（狼人杀有自己的声明），通用页脚为平台常量 `REVIEW_GENERATED_FOOTER`。页 `label` 与多页互为充要，由 `assertReviewDocument` 校验。
 3. **词汇扩展**：`hero.headline` 为 runs（`figure` 大号数字）；`stamps` 带 `tone / title / caption / note`；新增 `divider`；`roster` 加 `columns`、`name: null`（只按身份识别的座位）、`isOut`，`roleTone` 改为 `seatTone`；`timeline` 步骤标题可空；`scoreboard` 的名次与分数文案由游戏给出（经典画猜 `rankDrawGuessScores`）；`paragraph` 加 `caption`（标签印在正文上方，接龙的「第 k 棒 · 作者」不再拆成 `section`）；`image.load` 返回 `loaded | unavailable`，reject 才是可重试失败。
-4. **狼人杀**：保留 #364 文字时间线，无统计条；警长竞选改为通用 `timeline`；主持管理/收尾的入口直开对话框，分享在对话框底部；引导流程改为昨夜信息 → 授权 → 收尾（授权步只认 `nightReviewAllowedSeats` 非空，看复盘不再是流程一步）；收尾任务 `[授权玩家查看, 本局复盘, 再来一局, 返回大厅]`。
+4. **狼人杀**：保留 #364 文字时间线，无统计条；警长竞选改为通用 `timeline`，呈现判定只在 `sheriffElectionPresentation` 一处（面板与复盘双双派生，复用来源、不复用皮肤）；主持管理/收尾的入口直开对话框，分享在对话框底部；引导流程改为昨夜信息 → 授权 → 收尾（授权步只认 `nightReviewAllowedSeats` 非空，看复盘不再是流程一步）；收尾任务 `[授权玩家查看, 本局复盘, 再来一局, 返回大厅]`。
 5. **导出**：结果类型命名为 `ShareImageOutcome`，失败抛错而非 `'failed'`；对话框打开即后台预截图（iOS Safari Web Share 的瞬时激活要求）；导出页宽 = 对话框页宽；进度弹窗只用于无对话框的运行，避免叠两层弹窗。
 6. **文件名与分享标题统一**：狼人杀原 `room-${roomCode}-review.png` /「狼人杀房间 X 战报」→ `werewolf-${roomCode}-${n}.png` /「房间 X 战报」；接龙原按座位命名 → 按页序 `-p<n>`。
 7. **分页**：新增平台 `paginateReviewFlow`。接龙 20 人 × 512 字的故事或画册会超出 8192 像素单页上限与 iOS 画布面积，游戏声明「必须同页」的组，平台估高续页。
