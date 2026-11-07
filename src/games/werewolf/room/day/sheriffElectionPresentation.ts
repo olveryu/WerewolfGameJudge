@@ -50,6 +50,16 @@ export interface SheriffElectionPresentationRoundInput {
  */
 export interface SheriffElectionPresentationInput {
   readonly phase: SheriffElectionState['phase'];
+  /**
+   * The phase description, supplied by the caller — never derived here.
+   * The panel passes its view model's description, which is the host
+   * variant (`报名截止后，请在「主持管理」中结束报名。`) for the host
+   * during registration; the review passes the generic description,
+   * because the archive is read-only and host instructions do not
+   * belong in it. This is the one registered intentional difference
+   * between the two surfaces (plan D12).
+   */
+  readonly phaseDescription: string;
   /** Null while registration identities are not yet public. */
   readonly records: SheriffCandidateRecords | null;
   /** The already-formatted speaking-order sentence, or null. */
@@ -132,11 +142,10 @@ function areSameSeats(first: readonly number[], second: readonly number[]): bool
 export function createSheriffElectionPresentation(
   input: SheriffElectionPresentationInput,
 ): SheriffElectionPresentation {
-  const phaseContent = SHERIFF_ELECTION_PHASE_CONTENT[input.phase];
   const phaseRow: SheriffElectionPresentationRow = {
     kind: 'phase',
-    title: phaseContent.title,
-    description: phaseContent.description,
+    title: SHERIFF_ELECTION_PHASE_CONTENT[input.phase].title,
+    description: input.phaseDescription,
   };
 
   // Registration secrecy: a registration phase, or null records, exposes
@@ -242,6 +251,7 @@ export function createSheriffElectionPresentationFromView(
   view: Pick<
     SheriffElectionViewModel,
     | 'phase'
+    | 'phaseDescription'
     | 'candidateRecords'
     | 'speakingInstruction'
     | 'voteProgress'
@@ -251,6 +261,7 @@ export function createSheriffElectionPresentationFromView(
 ): SheriffElectionPresentation {
   return createSheriffElectionPresentation({
     phase: view.phase,
+    phaseDescription: view.phaseDescription,
     records: view.candidateRecords,
     speakingText: view.speakingInstruction,
     voteProgress: view.voteProgress,
@@ -270,6 +281,7 @@ export function createSheriffElectionPresentationFromSection(
     case 'registration':
       return createSheriffElectionPresentation({
         phase: 'registration',
+        phaseDescription: SHERIFF_ELECTION_PHASE_CONTENT.registration.description,
         records: null,
         speakingText: null,
         voteProgress: null,
@@ -279,6 +291,7 @@ export function createSheriffElectionPresentationFromSection(
     case 'inProgress':
       return createSheriffElectionPresentation({
         phase: section.phase,
+        phaseDescription: SHERIFF_ELECTION_PHASE_CONTENT[section.phase].description,
         records: {
           registeredSeats: section.registeredSeats,
           withdrawnSeats: section.withdrawnSeats,
@@ -297,6 +310,7 @@ export function createSheriffElectionPresentationFromSection(
     case 'completed':
       return createSheriffElectionPresentation({
         phase: 'completed',
+        phaseDescription: SHERIFF_ELECTION_PHASE_CONTENT.completed.description,
         records: {
           registeredSeats: section.registeredSeats,
           withdrawnSeats: section.withdrawnSeats,

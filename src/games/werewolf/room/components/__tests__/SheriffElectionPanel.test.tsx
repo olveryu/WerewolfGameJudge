@@ -109,6 +109,26 @@ describe('SheriffElectionPanel', () => {
     expect(model.vote).toHaveBeenNthCalledWith(2, null);
   });
 
+  it('shows the host registration instruction to the host (D12)', () => {
+    // The projection carries the caller's phase description: the view
+    // model gives the host its instruction during registration, while
+    // the review always gets the generic line. The panel must render
+    // the host variant, not the generic description.
+    const model = createModel({
+      phase: 'registration',
+      phaseTitle: '报名上警',
+      phaseDescription: '报名截止后，请在「主持管理」中结束报名。',
+      canAdvance: true,
+      advanceLabel: '结束报名',
+    });
+    const screen = render(<SheriffElectionPanel model={model} styles={styles} />);
+
+    expect(screen.getByText('报名截止后，请在「主持管理」中结束报名。')).toBeTruthy();
+    expect(
+      screen.queryByText('想竞选警长的玩家可在手机上报名，系统随后将随机确定发言顺序。'),
+    ).toBeNull();
+  });
+
   it('keeps command actions out of the details surface', () => {
     const model = createModel({
       canRegister: true,

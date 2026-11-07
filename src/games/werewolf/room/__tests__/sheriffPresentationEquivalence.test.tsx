@@ -6,9 +6,16 @@
  * If a later change re-introduces a second decision (a panel-only winner
  * rule, a review-only candidate label, a progress line assembled in two
  * places), the FromView/FromSection row comparison below fails in CI
- * before it can merge. The mutation cases at the end prove the contract
- * is sensitive: moving the winner by one seat or one round makes the
- * two sides disagree.
+ * before it can merge. The input-divergence cases at the end prove only
+ * that the rows follow their input: a different election produces
+ * different rows. They do NOT prove a broken projection would be
+ * caught — a bug in the shared projection makes both sides wrong in
+ * exactly the same way, so the row comparison still passes. That class
+ * of bug is caught by absolute assertions instead: the projection unit
+ * test pins the winner to the deciding round only, and the rendered
+ * test below pins the trophy / [当选] tag to the deciding round only
+ * (verified by a QA mutation experiment that broke the projection's
+ * winner rule and saw exactly those two suites go red).
  */
 
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
@@ -253,7 +260,7 @@ describe('sheriff presentation equivalence', () => {
     expect(resultStep?.tone).toBe('highlight');
   });
 
-  it('mutation: moving the winner by one seat breaks the equivalence', () => {
+  it('input divergence: moving the winner by one seat changes the rows', () => {
     const state = makeLocalState(
       {
         phase: 'completed',
@@ -291,7 +298,7 @@ describe('sheriff presentation equivalence', () => {
     expect(mutatedRound.candidates.map((candidate) => candidate.isWinner)).toEqual([false, true]);
   });
 
-  it('mutation: swapping the round order moves the winner marker with it', () => {
+  it('input divergence: swapping the round order moves the winner marker with it', () => {
     const state = makeLocalState(
       {
         phase: 'completed',

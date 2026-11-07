@@ -105,6 +105,7 @@ describe('createSheriffElectionPresentation', () => {
   it('registration: only the phase row, no seats, no counts', () => {
     const { rows } = createSheriffElectionPresentation({
       phase: 'registration',
+      phaseDescription: '想竞选警长的玩家可在手机上报名，系统随后将随机确定发言顺序。',
       records: null,
       speakingText: null,
       voteProgress: null,
@@ -123,6 +124,7 @@ describe('createSheriffElectionPresentation', () => {
   it('registration secrecy: rounds or a result with no records fail fast', () => {
     const input: SheriffElectionPresentationInput = {
       phase: 'registration',
+      phaseDescription: '想竞选警长的玩家可在手机上报名，系统随后将随机确定发言顺序。',
       records: null,
       speakingText: null,
       voteProgress: null,
@@ -137,6 +139,7 @@ describe('createSheriffElectionPresentation', () => {
   it('completed election: phase, result, registration, then rounds; winner only in the deciding round', () => {
     const { rows } = createSheriffElectionPresentation({
       phase: 'completed',
+      phaseDescription: '报名、退水与每轮投票结果均已公开并保留',
       records: { registeredSeats: [2, 5], withdrawnSeats: [], activeCandidateSeats: [2, 5] },
       speakingText: null,
       voteProgress: null,
@@ -183,6 +186,7 @@ describe('createSheriffElectionPresentation', () => {
     };
     const { rows } = createSheriffElectionPresentation({
       phase: 'completed',
+      phaseDescription: '报名、退水与每轮投票结果均已公开并保留',
       records: { registeredSeats: [2, 5], withdrawnSeats: [], activeCandidateSeats: [2, 5] },
       speakingText: null,
       voteProgress: null,
@@ -206,6 +210,7 @@ describe('createSheriffElectionPresentation', () => {
     for (const { reason, text } of reasons) {
       const { rows } = createSheriffElectionPresentation({
         phase: 'completed',
+        phaseDescription: '报名、退水与每轮投票结果均已公开并保留',
         records: { registeredSeats: [2, 5], withdrawnSeats: [], activeCandidateSeats: [2, 5] },
         speakingText: null,
         voteProgress: null,
@@ -225,6 +230,7 @@ describe('createSheriffElectionPresentation', () => {
   it('runoff speech: withdrawn seats stay in registration, never in the runoff candidates', () => {
     const { rows } = createSheriffElectionPresentation({
       phase: 'runoffSpeech',
+      phaseDescription: '平票候选人依次发言，发言期间可退水',
       records: {
         registeredSeats: [2, 5, 9],
         withdrawnSeats: [9],
@@ -257,6 +263,7 @@ describe('createSheriffElectionPresentation', () => {
   it('candidates row: only when the standing candidates differ from the registration', () => {
     const base: SheriffElectionPresentationInput = {
       phase: 'candidateSpeech',
+      phaseDescription: '候选人依次发言，发言期间可退水',
       records: { registeredSeats: [2, 5], withdrawnSeats: [], activeCandidateSeats: [2, 5] },
       speakingText: null,
       voteProgress: null,
@@ -278,6 +285,7 @@ describe('createSheriffElectionPresentation', () => {
   it('open vote: progress counts only, never ballot targets', () => {
     const { rows } = createSheriffElectionPresentation({
       phase: 'firstVote',
+      phaseDescription: '未上警玩家投票，提交前后均可改票或弃票',
       records: { registeredSeats: [2, 5], withdrawnSeats: [], activeCandidateSeats: [2, 5] },
       speakingText: null,
       voteProgress: { submittedCount: 5, eligibleCount: 7 },
@@ -295,6 +303,7 @@ describe('createSheriffElectionPresentation', () => {
   it('empty round: no votes and no abstentions is empty', () => {
     const { rows } = createSheriffElectionPresentation({
       phase: 'completed',
+      phaseDescription: '报名、退水与每轮投票结果均已公开并保留',
       records: { registeredSeats: [2], withdrawnSeats: [], activeCandidateSeats: [2] },
       speakingText: null,
       voteProgress: null,
@@ -356,6 +365,33 @@ describe('presentation adapters', () => {
     expect(createSheriffElectionPresentationFromView(view).rows).toEqual(
       createSheriffElectionPresentationFromSection(section).rows,
     );
+  });
+
+  it('registration, host: the panel keeps the host instruction, the review keeps the generic line', () => {
+    const state = makeLocalState({
+      phase: 'registration',
+      registeredSeats: [1, 2],
+      withdrawnSeats: [],
+      completedRounds: [],
+    });
+    const hostView = createSheriffElectionViewModel({
+      gameState: state,
+      effectiveSeat: 0,
+      isHost: true,
+    });
+    if (hostView === null) throw new Error('expected a view model');
+    const section = deriveSheriffSection(state);
+    if (section === undefined) throw new Error('expected a section');
+    const hostRows = createSheriffElectionPresentationFromView(hostView).rows;
+    const reviewRows = createSheriffElectionPresentationFromSection(section).rows;
+    // D12, registered intentional difference: the host instruction
+    // belongs to the panel only; the archive never carries it.
+    expect(rowOf(hostRows, 'phase').description).toBe('报名截止后，请在「主持管理」中结束报名。');
+    expect(rowOf(reviewRows, 'phase').description).toBe(
+      '想竞选警长的玩家可在手机上报名，系统随后将随机确定发言顺序。',
+    );
+    expect(rowKinds(hostRows)).toEqual(['phase']);
+    expect(rowKinds(reviewRows)).toEqual(['phase']);
   });
 
   it('registration: view and section produce only the phase row', () => {
