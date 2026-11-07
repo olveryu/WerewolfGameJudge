@@ -11,9 +11,7 @@ import {
 
 const INFO_CONFIRMED: PanelFlowProgress = {
   lastNightInfoConfirmed: true,
-  nightReviewOpened: false,
 };
-const REVIEW_OPENED: PanelFlowProgress = { lastNightInfoConfirmed: true, nightReviewOpened: true };
 
 const flow = (roomStatus: GameStatus, progress: PanelFlowProgress, reviewShared = false) => ({
   roomStatus,
@@ -30,13 +28,12 @@ describe('resolvePanelFlowCurrentStep', () => {
 
   it('Day pauses once the info is confirmed (the election task takes over)', () => {
     expect(resolvePanelFlowCurrentStep(flow(GameStatus.Day, INFO_CONFIRMED))).toBeNull();
-    expect(resolvePanelFlowCurrentStep(flow(GameStatus.Day, REVIEW_OPENED))).toBeNull();
   });
 
   it('Day progress carries into Ended: a confirmed info step is never re-asked', () => {
     // Same progress record, status flips Day → Ended mid-game
     // (e.g. a wolf self-detonates during the day).
-    expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, INFO_CONFIRMED))).toBe('nightReview');
+    expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, INFO_CONFIRMED))).toBe('grantReview');
   });
 
   it('does not apply outside Day/Ended', () => {
@@ -49,21 +46,21 @@ describe('resolvePanelFlowCurrentStep', () => {
   });
 
   describe('share gate (engine-driven: reviewShared = a seat was shared the review)', () => {
-    it('stays on the review step until the host has both opened and shared', () => {
+    it('stays on the grant step until the host has shared with at least one seat', () => {
       expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, INFO_CONFIRMED))).toBe(
-        'nightReview',
+        'grantReview',
       );
-      // Opened alone does not complete the step.
-      expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, REVIEW_OPENED))).toBe(
-        'nightReview',
-      );
-      // Shared alone does not complete it either: the step is the
-      // review itself, so it still has to be opened.
       expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, INFO_CONFIRMED, true))).toBe(
-        'nightReview',
-      );
-      expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, REVIEW_OPENED, true))).toBe(
         'closing',
+      );
+    });
+
+    it('returns to the grant step when the grant is revoked', () => {
+      expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, INFO_CONFIRMED, true))).toBe(
+        'closing',
+      );
+      expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, INFO_CONFIRMED, false))).toBe(
+        'grantReview',
       );
     });
   });
@@ -72,26 +69,26 @@ describe('resolvePanelFlowCurrentStep', () => {
 describe('buildPanelFlowSteps', () => {
   it('labels the three steps in order', () => {
     const steps = buildPanelFlowSteps(flow(GameStatus.Ended, EMPTY_PANEL_FLOW_PROGRESS));
-    expect(steps?.map((step) => step.label)).toEqual(['昨夜信息', '本局复盘', '收尾']);
+    expect(steps?.map((step) => step.label)).toEqual(['昨夜信息', '授权', '收尾']);
   });
 
-  it('marks states and references the info/review sheet actions; closing has no action', () => {
+  it('marks states and references the info/grant sheet actions; closing has no action', () => {
     const steps = buildPanelFlowSteps(flow(GameStatus.Ended, INFO_CONFIRMED));
     expect(steps?.map((step) => step.state)).toEqual(['complete', 'current', 'upcoming']);
     expect(steps?.map((step) => step.actionKey)).toEqual([
       PANEL_FLOW_ACTION_KEYS.lastNightInfo,
-      PANEL_FLOW_ACTION_KEYS.nightReview,
+      PANEL_FLOW_ACTION_KEYS.grantReview,
       undefined,
     ]);
   });
 
-  it('the closing step becomes current once the review was opened and shared', () => {
-    const steps = buildPanelFlowSteps(flow(GameStatus.Ended, REVIEW_OPENED, true));
+  it('the closing step becomes current once the review was shared', () => {
+    const steps = buildPanelFlowSteps(flow(GameStatus.Ended, INFO_CONFIRMED, true));
     expect(steps?.map((step) => step.state)).toEqual(['complete', 'complete', 'current']);
   });
 
-  it('an opened-but-unshared review is still the current step, not complete', () => {
-    const steps = buildPanelFlowSteps(flow(GameStatus.Ended, REVIEW_OPENED));
+  it('an unshared grant is still the current step, not complete', () => {
+    const steps = buildPanelFlowSteps(flow(GameStatus.Ended, INFO_CONFIRMED));
     expect(steps?.map((step) => step.state)).toEqual(['complete', 'current', 'upcoming']);
   });
 

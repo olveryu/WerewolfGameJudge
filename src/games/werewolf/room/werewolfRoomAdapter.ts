@@ -500,8 +500,8 @@ export function createWerewolfBottomActionLayout(
     case GameStatus.Ended: {
       // The night-end announcement window: narration is still playing
       // after the status has moved on. Every audience collapses,
-      // spectators included — opening the review starts capture and
-      // writes flow progress, so it is not read-only.
+      // spectators included — opening the review starts capture, so it
+      // is not read-only.
       if (isAudioPlaybackLocked(input.isAudioPlaying)) return EMPTY_LAYOUT;
       const { review } = input;
       if (review === null) {
