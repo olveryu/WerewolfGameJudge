@@ -23,7 +23,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
 import { initializeRoomStorage } from '../../commands/storageSchema';
-import { PRESENCE_SWEEP_INTERVAL_MS } from '../../realtime/RoomGateway';
+import { STALE_SOCKET_SWEEP_INTERVAL_MS } from '../../realtime/RoomGateway';
 import { enqueueUserEvent } from '../../userInbox/inbox';
 import type { GameRoomRuntime as GameRoom } from '../GameRoomRuntime';
 import type { DispatchRoomResult, InitializeRoomResult } from '../types';
@@ -661,7 +661,7 @@ describe('GameRoom command receipts', () => {
 
   function acceptTestSocket(state: DurableObjectState, userId: string, connectedAtMs = Date.now()) {
     const sockets = new WebSocketPair();
-    // Mirrors RoomGateway.accept(): tag plus attachment, without the presence broadcast.
+    // Mirrors RoomGateway.accept(): tag plus attachment.
     state.acceptWebSocket(sockets[1], [`user:${userId}`]);
     sockets[1].serializeAttachment({ userId, connectedAtMs });
     const messages: unknown[] = [];
@@ -760,7 +760,7 @@ describe('GameRoom command receipts', () => {
     });
   });
 
-  it('publishes PRESENCE on admission, arms the sweep alarm and answers SYNC', async () => {
+  it('arms the sweep alarm on admission and answers SYNC without any presence frame', async () => {
     const stub = getStub();
     await initialize(stub);
     await enqueueUserEvent(env.DB, {
@@ -784,8 +784,8 @@ describe('GameRoom command receipts', () => {
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
       const alarmAt = await state.storage.getAlarm();
       if (alarmAt === null) throw new Error('Expected the sweep alarm to be armed on accept');
-      expect(alarmAt).toBeGreaterThanOrEqual(acceptedAt + PRESENCE_SWEEP_INTERVAL_MS);
-      expect(alarmAt).toBeLessThanOrEqual(Date.now() + PRESENCE_SWEEP_INTERVAL_MS);
+      expect(alarmAt).toBeGreaterThanOrEqual(acceptedAt + STALE_SOCKET_SWEEP_INTERVAL_MS);
+      expect(alarmAt).toBeLessThanOrEqual(Date.now() + STALE_SOCKET_SWEEP_INTERVAL_MS);
     });
     const frames: unknown[] = [];
     const received = (count: number) =>
@@ -803,10 +803,9 @@ describe('GameRoom command receipts', () => {
     socket.accept();
 
     socket.send(JSON.stringify(createSyncFrame('account-independent-sync', null)));
-    await received(2);
+    await received(1);
     const parsed = frames.map((frame) => parseServerFrame(frame, WEREWOLF_STATE_CODEC));
-    expect(parsed[0]).toEqual({ type: 'PRESENCE', onlineUserIds: ['host-1'] });
-    expect(parsed[1]).toMatchObject({
+    expect(parsed[0]).toMatchObject({
       type: 'SYNC_RESULT',
       requestId: 'account-independent-sync',
       outcome: 'snapshot',
@@ -877,7 +876,7 @@ describe('GameRoom command receipts', () => {
     });
   });
 
-  it('sweep closes a socket with no keepalive for 60s and publishes the shrunken presence', async () => {
+  it('sweep closes a socket with no keepalive for 60s and sends nothing to the survivors', async () => {
     const stub = getStub();
     await initialize(stub);
 
@@ -889,16 +888,16 @@ describe('GameRoom command receipts', () => {
       await settle();
 
       await expect(stale.closed).resolves.toEqual({ code: 1001, reason: 'keepalive_timeout' });
-      expect(host.messages).toEqual([{ type: 'PRESENCE', onlineUserIds: ['host-1'] }]);
+      expect(host.messages).toEqual([]);
       // The surviving socket keeps the sweep armed.
       const alarmAt = await state.storage.getAlarm();
       if (alarmAt === null) throw new Error('Expected the sweep alarm to stay armed');
-      expect(alarmAt).toBeLessThanOrEqual(Date.now() + PRESENCE_SWEEP_INTERVAL_MS);
+      expect(alarmAt).toBeLessThanOrEqual(Date.now() + STALE_SOCKET_SWEEP_INTERVAL_MS);
 
-      // Unchanged set: the next sweep stays silent.
+      // The next sweep still sends nothing.
       await instance.alarm();
       await settle();
-      expect(host.messages).toHaveLength(1);
+      expect(host.messages).toHaveLength(0);
       host.client.close();
     });
   });

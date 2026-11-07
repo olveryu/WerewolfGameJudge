@@ -3,7 +3,7 @@
  *
  * Client → server frames: `SYNC` only. The keepalive is the literal text `ping`, answered at the
  * edge by the Durable Object auto-response and never parsed here.
- * Server → client frames: `SYNC_RESULT`, `STATE_UPDATE`, `PRESENCE`, `INBOX_HINT`.
+ * Server → client frames: `SYNC_RESULT`, `STATE_UPDATE`, `INBOX_HINT`.
  *
  * Every parser is fail-fast: unknown fields, wrong types and unsupported discriminators throw
  * {@link RealtimeProtocolError}. Callers that read frames off a socket treat any throw as a
@@ -29,7 +29,6 @@ export class RealtimeProtocolError extends Error {
 
 const requestIdSchema = z.string().min(1);
 const revisionSchema = z.number().int().positive();
-const userIdSchema = z.string().min(1);
 const commandTypeSchema = z.string().min(1).nullable();
 const syncResultHeaderSchema = z.strictObject({ requestId: requestIdSchema });
 
@@ -49,16 +48,8 @@ export type ClientFrame = z.infer<typeof clientFrameSchema>;
 
 // ─── Server → Client ────────────────────────────────────────────────────────
 
-const presenceFrameSchema = z.strictObject({
-  type: z.literal('PRESENCE'),
-  onlineUserIds: z
-    .array(userIdSchema)
-    .refine((ids) => new Set(ids).size === ids.length, 'user IDs must be distinct'),
-});
-
 const inboxHintFrameSchema = z.strictObject({ type: z.literal('INBOX_HINT') });
 
-export type PresenceFrame = z.infer<typeof presenceFrameSchema>;
 export type InboxHintFrame = z.infer<typeof inboxHintFrameSchema>;
 
 export type SyncResultFrame<TState extends BaseGameState<string>> =
@@ -84,7 +75,6 @@ export interface StateUpdateFrame<TState extends BaseGameState<string>> {
 export type ServerFrame<TState extends BaseGameState<string>> =
   | SyncResultFrame<TState>
   | StateUpdateFrame<TState>
-  | PresenceFrame
   | InboxHintFrame;
 
 /**
@@ -114,12 +104,7 @@ function createServerFrameSchema<TState extends BaseGameState<string>>(
     snapshot,
     commandType: commandTypeSchema,
   });
-  return z.discriminatedUnion('type', [
-    syncResult,
-    stateUpdate,
-    presenceFrameSchema,
-    inboxHintFrameSchema,
-  ]);
+  return z.discriminatedUnion('type', [syncResult, stateUpdate, inboxHintFrameSchema]);
 }
 
 // ─── Constructors ───────────────────────────────────────────────────────────
@@ -161,13 +146,6 @@ export function createStateUpdateFrame<TState extends BaseGameState<string>>(
   assertSnapshotIdentity(snapshot);
   build('StateUpdateFrame', z.strictObject({ commandType: commandTypeSchema }), { commandType });
   return { type: 'STATE_UPDATE', snapshot, commandType };
-}
-
-export function createPresenceFrame(onlineUserIds: Iterable<string>): PresenceFrame {
-  return build('PresenceFrame', presenceFrameSchema, {
-    type: 'PRESENCE',
-    onlineUserIds: [...new Set(onlineUserIds)].sort(),
-  });
 }
 
 export const INBOX_HINT_FRAME: InboxHintFrame = Object.freeze({ type: 'INBOX_HINT' });

@@ -10,8 +10,6 @@
  */
 import type { BrowserContext, Page } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
-
 /** wrangler dev --local, see playwright.config.ts webServer[API]. */
 const LOCAL_CF_API_URL = 'http://127.0.0.1:8787';
 
@@ -55,9 +53,4 @@ export async function dropRoomSockets(
   const closed = body.closed;
   if (typeof closed !== 'number') throw new Error('dropRoomSockets: closed must be a number');
   return closed;
-}
-
-/** The seat-level offline indicator (name-row icon) other players see for `seat`. */
-export function seatOfflineIndicator(page: Page, seat: number) {
-  return page.getByTestId(TESTIDS.seatOfflineIndicator(seat));
 }

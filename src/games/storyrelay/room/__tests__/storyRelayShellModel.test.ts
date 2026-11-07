@@ -113,7 +113,6 @@ function shellFor(
     connection: {
       status: { kind: 'live' },
       pendingDurableCount: 0,
-      presence: new Set<string>(),
       onRetryNow: jest.fn(),
     },
     state,
@@ -153,7 +152,6 @@ describe('createStoryRelayRoomShellModel', () => {
       connection: {
         status: { kind: 'live' },
         pendingDurableCount: 0,
-        presence: new Set<string>(),
         onRetryNow: jest.fn(),
       },
       state,
@@ -205,7 +203,6 @@ describe('createStoryRelayRoomShellModel', () => {
       connection: {
         status: { kind: 'live' },
         pendingDurableCount: 0,
-        presence: new Set<string>(),
         onRetryNow: jest.fn(),
       },
       state: { ...state, phase: 'ended' },
@@ -242,7 +239,6 @@ describe('createStoryRelayRoomShellModel', () => {
       connection: {
         status: { kind: 'live' },
         pendingDurableCount: 0,
-        presence: new Set<string>(),
         onRetryNow: jest.fn(),
       },
       state,

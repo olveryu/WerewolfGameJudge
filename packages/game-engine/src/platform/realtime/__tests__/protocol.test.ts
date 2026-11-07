@@ -7,7 +7,6 @@ import {
 import { createRoomSnapshot } from '../../protocol/roomSnapshot';
 import { readTerminalCloseReason, REALTIME_CLOSE_CODE } from '../closeCodes';
 import {
-  createPresenceFrame,
   createStateUpdateFrame,
   createSyncCurrentFrame,
   createSyncFrame,
@@ -104,13 +103,6 @@ describe('realtime protocol v2 — server frames', () => {
     );
   });
 
-  it('round-trips PRESENCE with deduplicated, sorted user IDs', () => {
-    const frame = createPresenceFrame(['u2', 'u1', 'u2']);
-
-    expect(frame.onlineUserIds).toEqual(['u1', 'u2']);
-    expect(parseServerFrame(roundTrip(frame), WEREWOLF_STATE_CODEC)).toEqual(frame);
-  });
-
   it('round-trips INBOX_HINT', () => {
     expect(parseServerFrame(roundTrip(INBOX_HINT_FRAME), WEREWOLF_STATE_CODEC)).toEqual(
       INBOX_HINT_FRAME,
@@ -157,18 +149,10 @@ describe('realtime protocol v2 — server frames', () => {
       },
       'Unrecognized key: "lastCommandType"',
     ],
-    [
-      { type: 'PRESENCE', onlineUserIds: ['a', 'a'] },
-      'user IDs must be distinct\n  → at onlineUserIds',
-    ],
-    [
-      { type: 'PRESENCE', onlineUserIds: ['a', ''] },
-      'Too small: expected string to have >=1 characters\n  → at onlineUserIds[1]',
-    ],
     [{ type: 'INBOX_HINT', eventId: 'x' }, 'Unrecognized key: "eventId"'],
     [
       { type: 'STATE_SYNC_RESPONSE', requestId: 'r' },
-      "Invalid discriminator value. Expected 'SYNC_RESULT' | 'STATE_UPDATE' | 'PRESENCE' | 'INBOX_HINT'\n  → at type",
+      "Invalid discriminator value. Expected 'SYNC_RESULT' | 'STATE_UPDATE' | 'INBOX_HINT'\n  → at type",
     ],
     [[], 'Invalid input: expected object, received array'],
   ])('rejects malformed server frame %j', (frame, message) => {

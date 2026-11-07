@@ -216,7 +216,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     return { success: true };
   }
 
-  // ─── Alarm: presence sweep + outbox drain ─────────────────────────────────
+  // ─── Alarm: stale-socket sweep + outbox drain ─────────────────────────────────
 
   async alarm(): Promise<void> {
     if (this.#isStorageDeleted) return;
@@ -300,11 +300,6 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       return;
     }
     this.#gateway.handleMessage(socket, message);
-  }
-
-  async webSocketClose(): Promise<void> {
-    if (this.#isStorageDeleted) return;
-    this.#gateway.handleClose(Date.now());
   }
 
   async webSocketError(socket: WebSocket, error: unknown): Promise<void> {

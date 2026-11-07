@@ -110,7 +110,6 @@ describe('createDrawGuessRoomShellModel', () => {
       connection: {
         status: { kind: 'live' },
         pendingDurableCount: 0,
-        presence: new Set<string>(),
         onRetryNow: jest.fn(),
       },
       state,
@@ -161,7 +160,6 @@ describe('createDrawGuessRoomShellModel', () => {
       connection: {
         status: { kind: 'live' },
         pendingDurableCount: 0,
-        presence: new Set<string>(),
         onRetryNow: jest.fn(),
       },
       state: { ...state, phase: { kind: 'ended', totalScores: {} } },
@@ -217,7 +215,6 @@ describe('createDrawGuessRoomShellModel', () => {
       connection: {
         status: { kind: 'live' },
         pendingDurableCount: 0,
-        presence: new Set<string>(),
         onRetryNow: jest.fn(),
       },
       state,
@@ -311,7 +308,6 @@ describe('createDrawGuessRoomShellModel — roundEnd wait (PR-B G-8)', () => {
       connection: {
         status: { kind: 'live' },
         pendingDurableCount: 0,
-        presence: new Set<string>(),
         onRetryNow: jest.fn(),
       },
       state,
@@ -351,7 +347,6 @@ describe('createDrawGuessRoomShellModel — ended review entry', () => {
       connection: {
         status: { kind: 'live' },
         pendingDurableCount: 0,
-        presence: new Set<string>(),
         onRetryNow: jest.fn(),
       },
       state: ended,

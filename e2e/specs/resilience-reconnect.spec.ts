@@ -10,12 +10,7 @@ import {
   waitForNightEnd,
   waitForRoleTurn,
 } from '../helpers/night-driver';
-import {
-  dropRoomSockets,
-  seatOfflineIndicator,
-  setOffline,
-  setPageHidden,
-} from '../helpers/resilience';
+import { dropRoomSockets, setOffline, setPageHidden } from '../helpers/resilience';
 import { linkStatusBanner, waitForLinkLive } from '../helpers/waits';
 
 /**
@@ -29,7 +24,8 @@ import { linkStatusBanner, waitForLinkLive } from '../helpers/waits';
  *
  * Faults: 5s offline (joiner / host), 30s offline, 5× online/offline flapping,
  * 30s in the background then foreground, and the server dropping every socket
- * (deploy simulation). Presence is asserted through the other players' seat dots.
+ * (deploy simulation). No player sees another player's online state anymore;
+ * only each player's own link banner shows.
  */
 
 test.describe.configure({ mode: 'serial' });
@@ -142,7 +138,7 @@ test.describe('RoomLink resilience during the night', () => {
     }
   });
 
-  test('joiner silently offline: others see the offline indicator, link recovers', async ({
+  test('joiner silently offline: own banner shows, link recovers, night completes', async ({
     browser,
   }) => {
     let cast: NightCast | undefined;
@@ -150,19 +146,15 @@ test.describe('RoomLink resilience during the night', () => {
       cast = await castNight(browser);
       const page = cast.pages[cast.joinerIdx]!;
       const context = cast.contexts[cast.joinerIdx]!;
-      const joinerSeat = cast.setup.roleMap.get(cast.joinerIdx)!.seat;
-      const observer = cast.pages[0]!;
 
-      await test.step('offline until the server marks the seat offline', async () => {
+      await test.step('offline 5s: own link banner shows', async () => {
         await setOffline(context, true);
         await expect(linkStatusBanner(page)).toBeVisible({ timeout: 40_000 });
-        // Server side: 60s stale threshold + 30s sweep cadence before PRESENCE drops the user.
-        await expect(seatOfflineIndicator(observer, joinerSeat)).toBeVisible({ timeout: 100_000 });
+        await page.waitForTimeout(5_000);
       });
-      await test.step('back online → live and present', async () => {
+      await test.step('back online → live', async () => {
         await setOffline(context, false);
         await waitForLinkLive(page, 45_000);
-        await expect(seatOfflineIndicator(observer, joinerSeat)).toBeHidden({ timeout: 15_000 });
       });
       await finishNight(cast);
     } finally {

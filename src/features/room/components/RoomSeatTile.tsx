@@ -93,12 +93,10 @@ export interface RoomSeatTileStyles extends ReturnType<typeof createRoomSeatIndi
   controlledRingFramed: ViewStyle;
   framedTile: ViewStyle;
   seatNumberBadge: ViewStyle;
-  /** Grey seat-number badge for a non-my offline seat; my-spot green wins over this. */
-  seatNumberBadgeOffline: ViewStyle;
   seatNumberText: TextStyle;
   avatarContainer: ViewStyle;
   entranceAvatarBox: ViewStyle;
-  /** Wraps avatar + frame + flair + pet. Never dimmed: presence is shown outside this layer. */
+  /** Wraps avatar + frame + flair + pet. */
   decoratedAvatarLayer: ViewStyle;
   mySeatBadge: ViewStyle;
   readyBadgeContainer: ViewStyle;
@@ -119,10 +117,8 @@ export interface RoomSeatTileStyles extends ReturnType<typeof createRoomSeatIndi
   emptyTile: ViewStyle;
   playerName: TextStyle;
   playerNameHighlight: TextStyle;
-  /** Centred row holding the offline icon (when present) beside the name; same height as the name. */
+  /** Centred row holding the name; same height as the name. */
   playerNameRow: ViewStyle;
-  /** Offline icon beside the name. Never shrinks, so a long name truncates at the tail instead. */
-  playerNameOfflineIcon: TextStyle;
   playerNamePlaceholder: ViewStyle;
   botRoleName: TextStyle;
 }
@@ -138,8 +134,6 @@ export interface RoomSeatTileProps {
   isBot: boolean;
   // Player info (null if empty seat)
   playerAvatarSeed: string | null;
-  /** Human seat whose user has no open room socket (per PRESENCE); bots and empty seats are false. */
-  isPlayerOffline: boolean;
   playerAvatarUrl?: string;
   playerAvatarFrame?: string;
   /** Seat flair ID (decoration animation around the tile). */
@@ -186,7 +180,6 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
   highlight,
   isBot,
   playerAvatarSeed,
-  isPlayerOffline,
   playerAvatarUrl,
   playerAvatarFrame,
   playerSeatFlair,
@@ -395,8 +388,6 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
     ? tileSize - spacing.tight
     : tileSize - spacing.tight - fixed.borderWidthThick * 2;
   const avatarRadius = hasFrame ? borderRadius.large : borderRadius.large - fixed.borderWidthThick;
-  // The name keeps its cosmetic style offline: presence is shown by the badge and the
-  // offline icon beside the name, never by fading the name or the decorated layer.
   const playerNameTextStyle: TextStyle = isPlayerAnonymous
     ? styles.playerName
     : styles.playerNameHighlight;
@@ -549,11 +540,7 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
 
       {/* Floating seat number badge - overlaps top-left corner of tile */}
       <View
-        style={[
-          styles.seatNumberBadge,
-          isMySpot && hasPlayer && styles.mySeatBadge,
-          isPlayerOffline && hasPlayer && !isMySpot && styles.seatNumberBadgeOffline,
-        ]}
+        style={[styles.seatNumberBadge, isMySpot && hasPlayer && styles.mySeatBadge]}
         testID={isMySpot && hasPlayer ? TESTIDS.mySeatBadge : TESTIDS.seatNumberBadge(seat)}
       >
         <Text style={styles.seatNumberText}>{seat + 1}</Text>
@@ -561,15 +548,6 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
       {hasPlayer ? (
         <>
           <View style={styles.playerNameRow} testID={TESTIDS.seatNameRow(seat)}>
-            {isPlayerOffline && (
-              <Ionicons
-                name={STATUS_ICONS.OFFLINE}
-                size={typography.caption}
-                style={styles.playerNameOfflineIcon}
-                testID={TESTIDS.seatOfflineIndicator(seat)}
-                accessibilityLabel="离线"
-              />
-            )}
             <NameStyleText
               styleId={playerNameStyle}
               style={playerNameTextStyle}
@@ -710,9 +688,6 @@ export function createRoomSeatTileStyles(
       backgroundColor: colors.success,
       boxShadow: `0px 0px 6px ${withAlpha(colors.success, 0.4)}`,
     },
-    seatNumberBadgeOffline: {
-      backgroundColor: colors.textMuted,
-    },
     readyBadgeContainer: {
       position: 'absolute',
       bottom: -spacing.tight,
@@ -816,11 +791,6 @@ export function createRoomSeatTileStyles(
       marginTop: spacing.tight,
       width: tileSize - spacing.tight,
       height: typography.subtitle,
-    },
-    playerNameOfflineIcon: {
-      flexShrink: 0,
-      marginRight: spacing.micro,
-      color: colors.textMuted,
     },
     playerNamePlaceholder: {
       marginTop: spacing.tight,

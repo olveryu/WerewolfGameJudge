@@ -22,7 +22,7 @@ Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine
 
 ## Effect outbox, recovery, and read-time migration
 
-- Effects are inserted in the same transaction as the committed command. The single Durable Object alarm drains due effects and sweeps presence. Dedupe is on `(scope, game_type, effect_type, business_key)`. Retry policy: at most 7 attempts, 2-second base doubling to a 5-minute cap, 2-minute delivery watchdog. Failed effects can be replayed through the admin recovery surface (`features/admin/effectRecovery.ts`).
+- Effects are inserted in the same transaction as the committed command. The single Durable Object alarm drains due effects and sweeps stale sockets. Dedupe is on `(scope, game_type, effect_type, business_key)`. Retry policy: at most 7 attempts, 2-second base doubling to a 5-minute cap, 2-minute delivery watchdog. Failed effects can be replayed through the admin recovery surface (`features/admin/effectRecovery.ts`).
 - `RoomStateStore.read()` compares the stored `state_version` with the module's current version. Equal: parse directly. Older with a migrate function: migrate in place, rewriting the state row and every command-receipt row in one transaction. Newer, or no migrate function: throw `Unsupported <game> state version`. The per-version upgrade functions live in the engine (see the engine file's version table); the worker owns only the read-time wiring.
 
 ## D1 and Drizzle

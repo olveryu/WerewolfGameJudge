@@ -59,8 +59,6 @@ interface LinkSnapshotBase {
   readonly lastCommand: { readonly revision: number; readonly type: string } | null;
   /** Durable commands persisted locally whose server decision has not arrived. */
   readonly pendingDurableCount: number;
-  /** User IDs with an open socket in this room; empty until the first PRESENCE frame. */
-  readonly presence: ReadonlySet<string>;
 }
 
 export type LinkSnapshot<TState extends BaseGameState<string>> =

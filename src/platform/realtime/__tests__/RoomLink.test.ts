@@ -419,14 +419,12 @@ describe('RoomLink commands', () => {
   });
 });
 
-describe('RoomLink presence and inbox wakes', () => {
-  it('publishes PRESENCE as a set and wakes the inbox on live and on INBOX_HINT', async () => {
+describe('RoomLink inbox wakes', () => {
+  it('wakes the inbox on live and on INBOX_HINT', async () => {
     const harness = createLinkHarness();
     await harness.goLive();
     expect(harness.inboxWakes).toEqual(['live']);
     const socket = harness.sockets.latest();
-    socket.serverSend({ type: 'PRESENCE', onlineUserIds: ['host-user', 'guest'] });
-    expect([...harness.link.getSnapshot().presence]).toEqual(['host-user', 'guest']);
     socket.serverSend({ type: 'INBOX_HINT' });
     expect(harness.inboxWakes).toEqual(['live', 'hint']);
   });

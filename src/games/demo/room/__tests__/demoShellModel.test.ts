@@ -137,7 +137,6 @@ describe('createDemoRoomShellModel', () => {
       connection: {
         status: { kind: 'live' },
         pendingDurableCount: 0,
-        presence: new Set<string>(),
         onRetryNow: jest.fn(),
       },
       state,
@@ -184,7 +183,6 @@ describe('createDemoRoomShellModel', () => {
       connection: {
         status: { kind: 'live' },
         pendingDurableCount: 0,
-        presence: new Set<string>(),
         onRetryNow: jest.fn(),
       },
       state: viewingState(),
@@ -238,7 +236,6 @@ describe('createDemoRoomShellModel', () => {
       connection: {
         status: { kind: 'live' },
         pendingDurableCount: 0,
-        presence: new Set<string>(),
         onRetryNow: jest.fn(),
       },
       state,

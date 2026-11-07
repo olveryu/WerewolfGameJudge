@@ -149,7 +149,6 @@ function renderRoomState(state: AvalonState) {
       connection: {
         status: { kind: 'live' },
         pendingDurableCount: 0,
-        presence: new Set<string>(),
         onRetryNow: jest.fn(),
       },
     },

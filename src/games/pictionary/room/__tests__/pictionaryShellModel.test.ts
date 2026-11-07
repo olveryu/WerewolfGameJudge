@@ -91,7 +91,6 @@ function shellFor(
     connection: {
       status: { kind: 'live' },
       pendingDurableCount: 0,
-      presence: new Set<string>(),
       onRetryNow: jest.fn(),
     },
     state,
@@ -143,7 +142,6 @@ describe('createPictionaryRoomShellModel', () => {
     const connection = {
       status: { kind: 'live' as const },
       pendingDurableCount: 0,
-      presence: new Set<string>(),
       onRetryNow: jest.fn(),
     };
     const onBack = jest.fn();

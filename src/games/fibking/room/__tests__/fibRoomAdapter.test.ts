@@ -837,7 +837,6 @@ describe('createFibRoomShellModel', () => {
     const connection = {
       status: { kind: 'live' as const },
       pendingDurableCount: 0,
-      presence: new Set<string>(),
       onRetryNow: jest.fn(),
     };
     const onBack = jest.fn();
@@ -899,7 +898,6 @@ describe('createFibRoomShellModel', () => {
       connection: {
         status: { kind: 'live' as const },
         pendingDurableCount: 0,
-        presence: new Set<string>(),
         onRetryNow: jest.fn(),
       },
       state,
