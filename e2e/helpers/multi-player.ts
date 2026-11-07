@@ -270,7 +270,7 @@ export async function setupNPlayerGame(
     return { fixture, roomCode, hostPage, joinerPages };
   }
 
-  // Step 4: Presence stabilization
+  // Step 4: Seat readiness
   await waitForSeatsReady(hostPage, joinerPages, roomCode);
 
   // Step 5: Prepare roles
@@ -346,7 +346,7 @@ export async function setupNPlayerGameWithRoles(
     await room.seatAt(seat);
   }
 
-  // Step 4: Presence stabilization
+  // Step 4: Seat readiness
   await waitForSeatsReady(hostPage, joinerPages, roomCode);
 
   // Step 5: Prepare roles
