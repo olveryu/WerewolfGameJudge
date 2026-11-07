@@ -6,7 +6,7 @@ import { expect, it } from 'vitest';
 import { EffectOutbox, OUTBOX_MAX_ATTEMPTS } from '../EffectOutbox';
 import { initializeRoomStorage } from '../storageSchema';
 
-it('a delivery watchdog never pushes an earlier alarm (presence sweep) later', async () => {
+it('a delivery watchdog never pushes an earlier alarm (stale-socket sweep) later', async () => {
   const stub = env.GAME_ROOM.get(env.GAME_ROOM.newUniqueId());
   await runInDurableObject(stub, async (_instance, state) => {
     await initializeRoomStorage(state.storage, Date.now());

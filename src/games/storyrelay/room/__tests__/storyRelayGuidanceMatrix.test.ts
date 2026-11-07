@@ -242,7 +242,6 @@ function bottomMessage(state: StoryRelayState, audience: RoomViewerAudience): st
     connection: {
       status: { kind: 'live' },
       pendingDurableCount: 0,
-      presence: new Set<string>(),
       onRetryNow: jest.fn(),
     },
     state,

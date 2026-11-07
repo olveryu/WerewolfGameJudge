@@ -226,7 +226,6 @@ function bottomMessage(state: DrawGuessState, audience: RoomViewerAudience): str
     connection: {
       status: { kind: 'live' },
       pendingDurableCount: 0,
-      presence: new Set<string>(),
       onRetryNow: jest.fn(),
     },
     state,

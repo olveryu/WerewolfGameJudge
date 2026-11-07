@@ -75,7 +75,6 @@ export interface RoomLinkOptions<TState extends BaseGameState<string>> {
   readonly onInboxWake: (reason: InboxWakeReason) => void;
 }
 
-const EMPTY_PRESENCE: ReadonlySet<string> = Object.freeze(new Set<string>());
 const IDLE_STATUS: LinkStatus = Object.freeze({ kind: 'idle' as const });
 
 /**
@@ -101,7 +100,6 @@ interface LinkFields<TState extends BaseGameState<string>> {
   readonly room: RoomSnapshot<TState> | null;
   readonly lastCommand: { readonly revision: number; readonly type: string } | null;
   readonly pendingDurableCount: number;
-  readonly presence: ReadonlySet<string>;
 }
 
 function idleFields<TState extends BaseGameState<string>>(epoch: number): LinkFields<TState> {
@@ -112,7 +110,6 @@ function idleFields<TState extends BaseGameState<string>>(epoch: number): LinkFi
     room: null,
     lastCommand: null,
     pendingDurableCount: 0,
-    presence: EMPTY_PRESENCE,
   };
 }
 
@@ -340,9 +337,6 @@ export class RoomLinkImpl<
         return;
       case 'STATE_UPDATE':
         this.#applySnapshot(active, frame.snapshot, frame.commandType);
-        return;
-      case 'PRESENCE':
-        this.#update({ presence: Object.freeze(new Set(frame.onlineUserIds)) });
         return;
       case 'INBOX_HINT':
         this.#options.onInboxWake('hint');

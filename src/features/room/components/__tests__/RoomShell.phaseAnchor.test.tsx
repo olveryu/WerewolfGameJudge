@@ -56,7 +56,6 @@ function buildModel(phase: string, step: string | null = null): RoomShellModel {
     connection: {
       status: { kind: 'live' },
       pendingDurableCount: 0,
-      presence: new Set<string>(),
       onRetryNow: jest.fn(),
     },
     seats: {

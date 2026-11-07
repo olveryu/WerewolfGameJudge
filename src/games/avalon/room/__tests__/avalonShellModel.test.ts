@@ -138,7 +138,6 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
     connection: {
       status: { kind: 'live' },
       pendingDurableCount: 0,
-      presence: new Set<string>(),
       onRetryNow: jest.fn(),
     },
     state,

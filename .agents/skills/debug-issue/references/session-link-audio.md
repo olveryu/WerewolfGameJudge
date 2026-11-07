@@ -36,7 +36,7 @@ The link implementation lives in `src/platform/realtime/`, not under `src/featur
 - `CommandOutbox.ts` and `outboxStorage.ts` — delivery and replay policy, including durable commands that persist locally and replay until the server decides.
 - `SocketChannel.ts` — the socket adapter.
 
-The wire protocol is version 2, defined in `packages/game-engine/src/platform/realtime/protocol.ts`. Client-to-server frames carry only a sync request with a known revision; server-to-client frames carry sync results, state updates, presence, and inbox hints. Snapshot payloads decode through the game's state codec. Close codes are defined in `packages/game-engine/src/platform/realtime/closeCodes.ts`; only terminal codes stop reconnection.
+The wire protocol is version 2, defined in `packages/game-engine/src/platform/realtime/protocol.ts`. Client-to-server frames carry only a sync request with a known revision; server-to-client frames carry sync results, state updates, and inbox hints. Snapshot payloads decode through the game's state codec. Close codes are defined in `packages/game-engine/src/platform/realtime/closeCodes.ts`; only terminal codes stop reconnection.
 
 Entry into a room goes through `src/features/room/components/RoomEntryBoundary.tsx`, which requires an authenticated user, runs `src/features/room/controllers/useRoomEntryController.ts`, and renders children only when the controller is ready. Game room code starts from `src/features/room/controllers/useReadyRoomSession.ts`, which fails fast on a non-ready snapshot and exposes the authoritative state, the revision, the last command, the link session, and single-flight submit.
 

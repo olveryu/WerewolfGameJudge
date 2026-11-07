@@ -88,7 +88,7 @@ flowchart LR
   OB --> API
   INBOX --> API -->|GET/POST /api/user/events| IB
   CP -->|committed| GW
-  GW -->|STATE_UPDATE · SYNC_RESULT · PRESENCE · INBOX_HINT| SC
+  GW -->|STATE_UPDATE · SYNC_RESULT · INBOX_HINT| SC
   GW -->|INBOX_HINT| INBOX
 ```
 
@@ -100,7 +100,7 @@ packages/game-engine/src/platform/realtime/
   closeCodes.ts          共享关闭码枚举 + isTerminalCloseCode()
 
 packages/api-worker/src/platform/realtime/
-  RoomGateway.ts         DO 内组合对象：准入、attachment、SYNC、广播、在线表、INBOX_HINT
+  RoomGateway.ts         DO 内组合对象：准入、attachment、SYNC、广播、INBOX_HINT
   gatewayRoute.ts        /ws：鉴权 + 房间目录解析 + 升级；失败 = 升级后 4xxx 关闭
 packages/api-worker/src/platform/commands/
   CommandPipeline.ts     receipt 查重 → 决策 → 事务持久化 → 返回 CommandDecision + 提交事件
@@ -150,7 +150,6 @@ type ServerFrame<TState> =
   | { type: 'SYNC_RESULT'; requestId: string; outcome: 'current'; revision: number }
   | { type: 'SYNC_RESULT'; requestId: string; outcome: 'snapshot'; snapshot: RoomSnapshot<TState> }
   | { type: 'STATE_UPDATE'; snapshot: RoomSnapshot<TState>; commandType: string | null }
-  | { type: 'PRESENCE'; onlineUserIds: readonly string[] }
   | { type: 'INBOX_HINT' };
 ```
 
@@ -232,7 +231,6 @@ interface LinkSnapshot<TState> {
   readonly room: RoomSnapshot<TState> | null;
   readonly lastCommand: { readonly revision: number; readonly type: string } | null;
   readonly pendingDurableCount: number;
-  readonly presence: ReadonlySet<string>; // 未收到 PRESENCE 前为空集合
 }
 
 type DispatchOutcome<TState> =
@@ -326,7 +324,7 @@ POST /api/user/events/ack             { eventIds: string[] } → { acknowledged:
 
 事件：`CONNECT, SOCKET_OPEN, SOCKET_CLOSED(code, reason), SYNC_RESULT, STATE_UPDATE, SYNC_DEADLINE, PONG_DEADLINE, PING_DUE, ENV(snapshot), TIMER, RETRY_NOW, CLOSE`。
 
-side effect：`OPEN_SOCKET(generation) | CLOSE_SOCKET(generation, code) | SEND_SYNC(requestId, knownRevision) | SEND_PING | ARM_TIMER(kind, atMs) | DISARM_TIMER(kind) | EMIT_SNAPSHOT | EMIT_PRESENCE | EMIT_INBOX_HINT`。
+side effect：`OPEN_SOCKET(generation) | CLOSE_SOCKET(generation, code) | SEND_SYNC(requestId, knownRevision) | SEND_PING | ARM_TIMER(kind, atMs) | DISARM_TIMER(kind) | EMIT_SNAPSHOT | EMIT_INBOX_HINT`。
 
 | 当前                                  | 事件                                       | 下一状态                                         | 效果                                               |
 | ------------------------------------- | ------------------------------------------ | ------------------------------------------------ | -------------------------------------------------- |
@@ -385,11 +383,15 @@ side effect：`OPEN_SOCKET(generation) | CLOSE_SOCKET(generation, code) | SEND_S
 - **音频 ACK 是一条 `durable: true` 的普通命令**，没有任何独立重试逻辑；重连后若快照里仍有 `pendingAudioEffects`，房主点“继续游戏”后游戏层把重放闭包交给 `RoomAudioOrchestrator.resumeInterrupted(replay, audioBatchId)`：重放、ACK、链式续播全部在核心的同一个重入守卫里，`wasAudioInterrupted` 也在守卫内清除，所以重放期间同一 epoch 的快照重发不会触发同一批的第二次播放。receipt 保证同 ID 幂等。
 - **ACK 指名批次**：共享音频切片（`platform/audio`）持有单调 `audioBatchId`，每次入队 +1；`<game>.audio.ack` 携带 `audioBatchId`。引擎：等于当前批次 → 清队开闸；小于 → 幂等空转（重放 / 被合并的旧 ACK）；大于 → 拒绝 `unknown_audio_batch`。没有这个字段，意图键会把“第二批的 ACK”合并进还在飞的第一批 ACK，第二批永远不被确认。狼人杀 v14 / 阿瓦隆 v9 迁移：旧快照 `audioBatchId = 0`。
 
-### 4.7 在线状态
+### 4.7 在线状态（已删除，2026-11-07）
 
-`PRESENCE` 到达即替换 `snapshot.presence`。`RoomSeatViewModel` 新增 `isOnline: boolean`（真人座位且 userId ∈ presence）；机器人座位恒 `true`。
+在线/离线状态已全部删除：服务端不再广播 `PRESENCE`，协议里无此帧，座位盘不显示任何离线标记
+（座位号徽标、名字旁图标均已删）。玩家只能看到自己的连接状态（`ConnectionStatusBar`）。
 
-静默断网（飞行模式、进程被杀、WiFi 断开）不会产生 Close 帧，ping/pong 又由运行时 auto-response 回答、不唤醒 DO，所以服务端只能靠周期性扫描发现半开 socket。座位离线标记（座位号徽标变灰 + 名字行离线图标，头像与装饰层保持全彩；本人座位徽标保持绿色）从断网到出现的上界 = 60 秒陈旧阈值 + 30 秒扫描间隔。
+静默断网（飞行模式、进程被杀、WiFi 断开）不会产生 Close 帧，ping/pong 又由运行时 auto-response
+回答、不唤醒 DO，所以服务端仍靠周期性扫描发现半开 socket：对
+`getWebSocketAutoResponseTimestamp(ws)` 距今 > 60 秒且 `connectedAtMs` 距今 > 60 秒的 socket 调用
+`close(1001)`。扫描只关连接、不广播、不影响任何 UI。
 
 ---
 
@@ -416,7 +418,7 @@ side effect：`OPEN_SOCKET(generation) | CLOSE_SOCKET(generation, code) | SEND_S
 - `ctx.acceptWebSocket(ws, [\`user:${userId}\`])`+`ws.serializeAttachment({ userId, connectedAtMs })`（≤ 16 KB）。
 - `webSocketMessage`：只接受文本帧；解析失败 → `close(1002)`；`SYNC`：`knownRevision === room.revision` → `current`，否则 `snapshot`；房间无快照 → `close(4003)` + Sentry。
 - 广播：`CommandPipeline` 返回 `{ decision, broadcast }`，`RoomGateway.broadcastState()` 是 DO 内唯一的广播入口；`GameRoom` 不再在三处手工调用。
-- 在线表：accept / close 时，按 tag 去重 userId，广播 `PRESENCE`；计算时对 `getWebSocketAutoResponseTimestamp(ws)` 距今 > 60 秒且 `connectedAtMs` 距今 > 60 秒的 socket 调用 `close(1001)`。有 OPEN socket 期间每 30 秒由 DO alarm 执行一次 `sweep()`：在线集合与上次广播相同则静默，否则广播；无 OPEN socket 时不续约。DO 的单一 alarm 由 `GameRoomRuntime.#scheduleAlarm()` 取 outbox 下一到期时间与下一次扫描时间的最小值。服务端发起的 `close()` 在对端应答前仍会出现在 `getWebSockets()` 中，所有遍历只看 `readyState === OPEN` 的 socket。
+- 半开清理：对 `getWebSocketAutoResponseTimestamp(ws)` 距今 > 60 秒且 `connectedAtMs` 距今 > 60 秒的 socket 调用 `close(1001)`。有 OPEN socket 期间每 30 秒由 DO alarm 执行一次 `sweep()`（只关半开连接，不广播）；无 OPEN socket 时不续约。DO 的单一 alarm 由 `GameRoomRuntime.#scheduleAlarm()` 取 outbox 下一到期时间与下一次扫描时间的最小值。服务端发起的 `close()` 在对端应答前仍会出现在 `getWebSockets()` 中，所有遍历只看 `readyState === OPEN` 的 socket。
 - `INBOX_HINT`：`publishUserEvent` 写入 D1 成功后，对 `getWebSockets(\`user:${userId}\`)` 发送一帧。无 socket 时静默（客户端其他触发时机覆盖）。
 - 流量记录：所有出入帧经 `recordRealtimeTraffic`。
 
@@ -484,16 +486,16 @@ type CommandDispatch =
 
 ## 8. 测试矩阵
 
-| 层              | 覆盖                                                                                  |
-| --------------- | ------------------------------------------------------------------------------------- |
-| reducer         | 每个 (状态, 事件) 组合的输出；退避区间；`MIN_UPTIME` 归零规则；前台双路径；终态码集合 |
-| SocketChannel   | 代次失效；单 socket revision 单调；非文本帧 / 非法 JSON / 多余字段 → 1002             |
-| CommandOutbox   | 同意图合并；durable 持久化与删除；换代重放一次；epoch 变更 → cancelled                |
-| RoomLink        | 身份校验；revision 收敛三分支；`connect` 只在终态 reject；`retryNow` 非 waiting 抛错  |
-| ApiClient       | 401 一次 refresh；`idempotent:false` 不重试；contract 错误不是业务错误                |
-| Worker Gateway  | 升级后 4xxx；SYNC current / snapshot；PRESENCE 去重与半开清理；INBOX_HINT 定向        |
-| Worker Pipeline | receipt 重放 / 冲突；三类调用点广播由返回值驱动；事务回滚                             |
-| E2E             | §7 第 10 步                                                                           |
+| 层              | 覆盖                                                                                              |
+| --------------- | ------------------------------------------------------------------------------------------------- |
+| reducer         | 每个 (状态, 事件) 组合的输出；退避区间；`MIN_UPTIME` 归零规则；前台双路径；终态码集合             |
+| SocketChannel   | 代次失效；单 socket revision 单调；非文本帧 / 非法 JSON / 多余字段 → 1002                         |
+| CommandOutbox   | 同意图合并；durable 持久化与删除；换代重放一次；epoch 变更 → cancelled                            |
+| RoomLink        | 身份校验；revision 收敛三分支；`connect` 只在终态 reject；`retryNow` 非 waiting 抛错              |
+| ApiClient       | 401 一次 refresh；`idempotent:false` 不重试；contract 错误不是业务错误                            |
+| Worker Gateway  | 升级后 4xxx；SYNC current / snapshot；半开清理（30 秒扫轮关 60 秒无心跳 socket）；INBOX_HINT 定向 |
+| Worker Pipeline | receipt 重放 / 冲突；三类调用点广播由返回值驱动；事务回滚                                         |
+| E2E             | §7 第 10 步                                                                                       |
 
 ---
 
@@ -508,5 +510,5 @@ type CommandDispatch =
 | 进房超时                             | 取消 15 秒硬失败；`connect()` 只在终态 reject                                 |
 | WS 鉴权                              | query string（Cloudflare Agents 文档做法）+ 升级后 4002                       |
 | compat date                          | 2026-10-01                                                                    |
-| 在线状态 PRESENCE                    | 做，含座位在线点                                                              |
+| 在线状态 PRESENCE                    | 已删除（2026-11-07）：不广播、不渲染，只留服务端半开清理                      |
 | 账号收件箱                           | 批量 + 触发式，删除轮询                                                       |

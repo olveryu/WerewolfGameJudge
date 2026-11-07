@@ -58,38 +58,38 @@ export interface GameSetupWithRolesResult extends GameSetupResult {
 }
 
 // ---------------------------------------------------------------------------
-// Presence stabilization
+// Seat readiness
 // ---------------------------------------------------------------------------
 
-/** Max poll attempts before hard-failing. Total timeout ≈ PRESENCE_MAX_ATTEMPTS × PRESENCE_INTERVAL_MS. */
-const PRESENCE_MAX_ATTEMPTS = 80;
-/** Poll cadence for presence stability checks (≤300ms per test instructions). */
-const PRESENCE_INTERVAL_MS = 300;
+/** Max poll attempts before hard-failing. Total timeout ≈ SEATS_MAX_ATTEMPTS × SEATS_INTERVAL_MS. */
+const SEATS_MAX_ATTEMPTS = 80;
+/** Poll cadence for seat-readiness checks (≤300ms per test instructions). */
+const SEATS_INTERVAL_MS = 300;
 /** At this attempt, reload the host page to force a fresh socket state sync (escalation). */
-const PRESENCE_ESCALATION_ATTEMPT = 25;
+const SEATS_ESCALATION_ATTEMPT = 25;
 
 /**
- * Hard gate: Wait for all joiner presence to be reflected on the host page.
+ * Hard gate: Wait for all joiners to be seated on the host page.
  *
  * Polls for the Host-management preview that appears when all seats are filled.
  * Uses "retry with escalation": at the halfway point, reloads the host page to
  * force a new room lifecycle and correlated WebSocket state sync, compensating
  * for missed realtime delivery in CI environments.
  *
- * Throws with diagnostic info if presence does not stabilize within the timeout.
+ * Throws with diagnostic info if the seats are not ready within the timeout.
  *
  * @param hostPage - The host's Playwright page
  * @param joinerPages - All joiner pages (used for keep-alive pings)
  * @param roomCode - Room code for diagnostic messages
  */
-async function waitForPresenceStable(
+async function waitForSeatsReady(
   hostPage: Page,
   joinerPages: Page[],
   roomCode: string,
 ): Promise<void> {
-  for (let attempt = 1; attempt <= PRESENCE_MAX_ATTEMPTS; attempt++) {
+  for (let attempt = 1; attempt <= SEATS_MAX_ATTEMPTS; attempt++) {
     // Escalation: reload host page at halfway point to force DB fetch
-    if (attempt === PRESENCE_ESCALATION_ATTEMPT) {
+    if (attempt === SEATS_ESCALATION_ATTEMPT) {
       await hostPage.reload();
       await waitForRoomScreenReady(hostPage, { role: 'host' });
     }
@@ -98,9 +98,9 @@ async function waitForPresenceStable(
     for (const joinerPage of joinerPages) {
       await joinerPage.locator('body').count();
     }
-    await hostPage.waitForTimeout(PRESENCE_INTERVAL_MS);
+    await hostPage.waitForTimeout(SEATS_INTERVAL_MS);
 
-    // Ensure all pages are still connected before checking presence
+    // Ensure all pages are still connected before checking seats
     await ensureConnected([hostPage, ...joinerPages]);
 
     const isReadyToPrepare = await hostPage
@@ -126,11 +126,11 @@ async function waitForPresenceStable(
     .catch(() => -1);
 
   throw new Error(
-    `waitForPresenceStable FAILED after ${PRESENCE_MAX_ATTEMPTS} attempts (room=${roomCode}). ` +
+    `waitForSeatsReady FAILED after ${SEATS_MAX_ATTEMPTS} attempts (room=${roomCode}). ` +
       `Expected ${joinerPages.length + 1} players seated. ` +
       `Visible seat tiles: ${seatCount}. ` +
       `Visible UI texts: [${visibleTexts.join(', ')}]. ` +
-      `Host management never showed "分配角色" — presence not stable.`,
+      `Host management never showed "分配角色" — seats not ready.`,
   );
 }
 
@@ -270,8 +270,8 @@ export async function setupNPlayerGame(
     return { fixture, roomCode, hostPage, joinerPages };
   }
 
-  // Step 4: Presence stabilization
-  await waitForPresenceStable(hostPage, joinerPages, roomCode);
+  // Step 4: Seat readiness
+  await waitForSeatsReady(hostPage, joinerPages, roomCode);
 
   // Step 5: Prepare roles
   await hostRoom.prepareRoles();
@@ -346,8 +346,8 @@ export async function setupNPlayerGameWithRoles(
     await room.seatAt(seat);
   }
 
-  // Step 4: Presence stabilization
-  await waitForPresenceStable(hostPage, joinerPages, roomCode);
+  // Step 4: Seat readiness
+  await waitForSeatsReady(hostPage, joinerPages, roomCode);
 
   // Step 5: Prepare roles
   await hostRoom.prepareRoles();

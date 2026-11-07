@@ -221,7 +221,6 @@ export function createAdminRequestTrafficSummary(
         realtime.downlinkBytes += row.transferredBytes;
         break;
       case 'SYNC_RESULT':
-      case 'PRESENCE':
       case 'INBOX_HINT':
         realtime.downlinkDeliveries += row.deliveryCount;
         realtime.downlinkBytes += row.transferredBytes;

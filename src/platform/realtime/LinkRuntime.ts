@@ -114,7 +114,6 @@ export class LinkRuntime<TState extends BaseGameState<string>> {
         this.#options.owner.onFrame(frame);
         this.#dispatch({ type: 'STATE_UPDATE', generation });
         return;
-      case 'PRESENCE':
       case 'INBOX_HINT':
         this.#options.owner.onFrame(frame);
         return;

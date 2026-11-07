@@ -31,8 +31,6 @@ import { createRoomSeatTileStyles, getGridColumns, RoomSeatTile } from './RoomSe
 
 interface RoomSeatBoardProps {
   readonly model: RoomSeatBoardModel;
-  /** Online user IDs from the room link; human seats outside it show the offline badge and name icon. */
-  readonly presence: ReadonlySet<string>;
   readonly header: React.ReactElement | null;
   readonly footer: React.ReactElement | null;
   readonly contentContainerStyle: StyleProp<ViewStyle>;
@@ -42,7 +40,6 @@ const ROWS_PER_PAGE = 12;
 
 const RoomSeatBoardComponent: React.FC<RoomSeatBoardProps> = ({
   model,
-  presence,
   header,
   footer,
   contentContainerStyle,
@@ -141,10 +138,6 @@ const RoomSeatBoardComponent: React.FC<RoomSeatBoardProps> = ({
                     ? null
                     : getRoomOccupantAvatarSeed(seatModel.player.occupant)
                 }
-                isPlayerOffline={
-                  seatModel.player?.occupant.kind === 'human' &&
-                  !presence.has(seatModel.player.occupant.userId)
-                }
                 playerAvatarUrl={seatModel.player?.avatarUrl}
                 playerAvatarFrame={seatModel.player?.avatarFrame}
                 playerSeatFlair={seatModel.player?.seatFlair}
@@ -186,7 +179,6 @@ const RoomSeatBoardComponent: React.FC<RoomSeatBoardProps> = ({
       model.visuallyDisabled,
       onBotSeatLongPress,
       onSeatPress,
-      presence,
       tileSize,
       tileStyles,
       wantsSeatDecorations,
@@ -256,10 +248,9 @@ const RoomSeatBoardComponent: React.FC<RoomSeatBoardProps> = ({
     [columns, firstSeat],
   );
 
-  // Presence is a new Set per PRESENCE frame; its identity keys row re-render.
   const extraData = useMemo(
-    () => ({ revision: model.source.revision, page: currentPage, presence }),
-    [model.source.revision, currentPage, presence],
+    () => ({ revision: model.source.revision, page: currentPage }),
+    [model.source.revision, currentPage],
   );
 
   return (

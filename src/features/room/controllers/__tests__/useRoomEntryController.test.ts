@@ -65,7 +65,6 @@ function closedSnapshot(identity: RoomIdentity<'werewolf'>): LinkSnapshot<TestSt
     status: { kind: 'closed', reason: 'roomDeleted' },
     lastCommand: null,
     pendingDurableCount: 0,
-    presence: new Set(),
     phase: 'closed',
     identity,
     room: null,

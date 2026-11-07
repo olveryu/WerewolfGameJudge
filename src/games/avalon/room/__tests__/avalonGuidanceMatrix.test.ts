@@ -217,7 +217,6 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
     connection: {
       status: { kind: 'live' },
       pendingDurableCount: 0,
-      presence: new Set<string>(),
       onRetryNow: jest.fn(),
     },
     state,

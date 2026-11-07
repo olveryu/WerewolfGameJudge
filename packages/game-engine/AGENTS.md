@@ -52,7 +52,7 @@ Scope: `packages/game-engine/**` only. Client rules live in `src/AGENTS.md`; wor
 - The command receipt is `RoomCommandResult` (`committed` with snapshot and `CommittedCommandOutcome`, or `rejected` with a reason), created and parsed only through the shared helpers in `platform/protocol/commandResult.ts`.
 - Snapshots use `RoomSnapshot` with a `GameStateCodec`: exact keys, matching game type and state version, then the game's parser.
 - Shared seat commands and reason codes live in `platform/protocol/` (`commands.ts`, `reasons.ts`), pinned by `commandVocabulary.contract.test.ts` and `reasonCodes.contract.test.ts`.
-- The realtime wire protocol is v2: client sends `SYNC` only; server sends `SYNC_RESULT`, `STATE_UPDATE`, `PRESENCE`, `INBOX_HINT`. Parsers are fail-fast strict schemas; violations are protocol errors. Close codes are defined in `platform/realtime/closeCodes.ts`.
+- The realtime wire protocol is v2: client sends `SYNC` only; server sends `SYNC_RESULT`, `STATE_UPDATE`, `INBOX_HINT` (online/offline presence was removed 2026-11-07; no `PRESENCE` frame exists). Parsers are fail-fast strict schemas; violations are protocol errors. Close codes are defined in `platform/realtime/closeCodes.ts`.
 
 ## Models: one source, derived registries
 

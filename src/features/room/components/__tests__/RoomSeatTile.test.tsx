@@ -1,7 +1,7 @@
 import { fireEvent, render } from '@testing-library/react-native';
 
 import { TESTIDS } from '@/testids';
-import { colors, fixed } from '@/theme';
+import { colors } from '@/theme';
 
 import { createRoomSeatTileStyles, RoomSeatTile, type RoomSeatTileProps } from '../RoomSeatTile';
 
@@ -16,7 +16,6 @@ function createProps(overrides: Partial<RoomSeatTileProps> = {}): RoomSeatTilePr
     highlight: 'none',
     isBot: false,
     playerAvatarSeed: 'user-1',
-    isPlayerOffline: false,
     playerDisplayName: '玩家一',
     isPlayerAnonymous: true,
     secondaryLabel: null,
@@ -149,71 +148,21 @@ describe('RoomSeatTile', () => {
     expect(screen.getByTestId('seat-tile-pressable-0')).toHaveStyle(styles.dangerRing);
   });
 
-  it('marks a human seat whose user has no open room socket as offline', () => {
-    const offline = render(<RoomSeatTile {...createProps({ isPlayerOffline: true })} />);
-    expect(offline.getByTestId(TESTIDS.seatOfflineIndicator(0))).toBeTruthy();
-    expect(offline.getByText(/玩家一/)).toHaveStyle(styles.playerName);
-
-    const online = render(<RoomSeatTile {...createProps({ isPlayerOffline: false })} />);
-    expect(online.queryByTestId(TESTIDS.seatOfflineIndicator(0))).toBeNull();
-    expect(online.getByText('玩家一')).toHaveStyle(styles.playerName);
-
-    const empty = render(
-      <RoomSeatTile {...createProps({ playerAvatarSeed: null, isPlayerOffline: true })} />,
-    );
-    expect(empty.queryByTestId(TESTIDS.seatOfflineIndicator(0))).toBeNull();
-  });
-
-  it('shows offline without dimming the decorated layer or dropping the name style', () => {
-    const offline = render(<RoomSeatTile {...createProps({ isPlayerOffline: true })} />);
-    expect(offline.getByTestId(TESTIDS.seatOfflineIndicator(0))).toBeTruthy();
-    expect(offline.getByText(/玩家一/)).toHaveStyle(styles.playerName);
-    expect(styles).not.toHaveProperty('decoratedAvatarLayerOffline');
-    expect(styles.decoratedAvatarLayer).not.toHaveProperty('opacity');
-    expect(fixed).not.toHaveProperty('offlineOpacity');
-  });
-
-  it('greys the seat-number badge for a non-my offline seat', () => {
-    const offline = render(<RoomSeatTile {...createProps({ isPlayerOffline: true })} />);
-    expect(offline.getByTestId(TESTIDS.seatNumberBadge(0))).toHaveStyle(
-      styles.seatNumberBadgeOffline,
-    );
-
-    const online = render(<RoomSeatTile {...createProps({ isPlayerOffline: false })} />);
-    expect(online.getByTestId(TESTIDS.seatNumberBadge(0))).toHaveStyle(styles.seatNumberBadge);
-    expect(online.getByTestId(TESTIDS.seatNumberBadge(0))).not.toHaveStyle(
-      styles.seatNumberBadgeOffline,
-    );
-  });
-
-  it('keeps my seat badge green when my own seat is offline', () => {
-    const screen = render(
-      <RoomSeatTile {...createProps({ isPlayerOffline: true, isMySpot: true })} />,
-    );
-    expect(screen.getByTestId(TESTIDS.mySeatBadge)).toHaveStyle(styles.mySeatBadge);
-    expect(screen.getByTestId(TESTIDS.mySeatBadge)).not.toHaveStyle(styles.seatNumberBadgeOffline);
-    expect(screen.getByTestId(TESTIDS.seatOfflineIndicator(0))).toBeTruthy();
-  });
-
-  it('keeps the offline icon visible when a long name ellipsizes', () => {
+  it('keeps a long name ellipsized to one line', () => {
     const screen = render(
       <RoomSeatTile
         {...createProps({
-          isPlayerOffline: true,
           isPlayerAnonymous: false,
           playerDisplayName: '玩家一二三四五六七八九十',
         })}
       />,
     );
-    const icon = screen.getByTestId(TESTIDS.seatOfflineIndicator(0));
     const name = screen.getByText(/玩家一/);
     expect(name).toHaveProp('numberOfLines', 1);
     expect(name).toHaveProp('ellipsizeMode', 'tail');
     expect(name).toHaveStyle(styles.playerNameHighlight);
-    expect(name).not.toContainElement(icon);
     const row = screen.getByTestId(TESTIDS.seatNameRow(0));
     expect(row).toHaveStyle(styles.playerNameRow);
-    expect(row).toContainElement(icon);
     expect(row).toContainElement(name);
   });
 });

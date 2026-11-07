@@ -20,7 +20,6 @@ interface SnapshotOverrides {
   readonly status?: LinkStatus;
   readonly epoch?: number;
   readonly pendingDurableCount?: number;
-  readonly presence?: ReadonlySet<string>;
   readonly lastCommand?: { readonly revision: number; readonly type: string } | null;
 }
 
@@ -30,7 +29,6 @@ function base(overrides: SnapshotOverrides) {
     status: overrides.status ?? LIVE_STATUS,
     lastCommand: overrides.lastCommand ?? null,
     pendingDurableCount: overrides.pendingDurableCount ?? 0,
-    presence: overrides.presence ?? new Set<string>(),
   };
 }
 
