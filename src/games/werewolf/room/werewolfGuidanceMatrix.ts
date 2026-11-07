@@ -5,7 +5,7 @@
  * 的三路合成（行动句 / 夜晚等待句 / guide 句）。格子语义为阶段入口态。
  * Day 的引导面是底部专属警长 dock（非 message），故声明为豁免并在
  * 测试里额外钉住 dock 形态；Ended 的底部由「下一步」流程步骤条承载
- * （昨夜信息 → 本局复盘 → 收尾），guide 句退役、同为豁免。
+ * （昨夜信息 → 授权 → 收尾），guide 句退役、同为豁免。
  */
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
@@ -47,8 +47,8 @@ export const WEREWOLF_GUIDANCE_MATRIX: RoomGuidanceMatrix<GameStatus> = {
     spectator: guidanceExempt('警长竞选由底部专属 dock 承载（竞选主按钮与详情入口）'),
   },
   [GameStatus.Ended]: {
-    host: guidanceExempt('Ended 由底部「下一步」流程步骤条承载（昨夜信息 → 本局复盘 → 收尾）'),
-    seated: guidanceExempt('Ended 由底部「下一步」流程步骤条承载（昨夜信息 → 本局复盘 → 收尾）'),
-    spectator: guidanceExempt('Ended 由底部「下一步」流程步骤条承载（昨夜信息 → 本局复盘 → 收尾）'),
+    host: guidanceExempt('Ended 由底部「下一步」流程步骤条承载（昨夜信息 → 授权 → 收尾）'),
+    seated: guidanceExempt('Ended 由底部「下一步」流程步骤条承载（昨夜信息 → 授权 → 收尾）'),
+    spectator: guidanceExempt('Ended 由底部「下一步」流程步骤条承载（昨夜信息 → 授权 → 收尾）'),
   },
 };

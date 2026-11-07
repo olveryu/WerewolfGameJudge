@@ -210,7 +210,7 @@ function bottomFor(
     isHostActionSubmitting: false,
     bottomActions,
     sheriffElectionPanel,
-    panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
+    panelFlow: { lastNightInfoConfirmed: false },
     onHostControl: jest.fn(),
     onMusicSettings: jest.fn(),
     onMarkAllBotsViewed: jest.fn(),

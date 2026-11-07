@@ -3,11 +3,14 @@
  *
  * The host's dawn work is a guided sequence, not a button shelf: 昨夜信息
  * (last night's result — the step completes only when the host confirms
- * it in the dialog, mirroring the in-person announcement) → 本局复盘
- * (game review, complete once opened AND shared with at least one seat —
- * the engine's nightReviewAllowedSeats is non-empty) → 收尾 (closing).
- * Progress is pure client-local state (see panelFlowProgressStore); it
- * never enters room state.
+ * it in the dialog, mirroring the in-person announcement) → 授权
+ * (grant seats access to the review — the step completes only when the
+ * engine's nightReviewAllowedSeats is non-empty, i.e. the host has
+ * actually shared it with at least one seat) → 收尾 (closing).
+ * Reading the review is not a step of this flow: the host reads it from
+ * the sheet or from the closing task, after granting. Progress is pure
+ * client-local state (see panelFlowProgressStore); it never enters room
+ * state.
  *
  * The flow is rendered on the host task card (room-shell-contract "Host
  * Task"): steps come from here, the current step's sheet action is the
@@ -19,41 +22,36 @@
  */
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
-import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
 import type { RoomHostTaskStep } from '@/features/room/model/RoomHostManagement';
-import { REVIEW_TITLE } from '@/features/room/review/reviewCopy';
 
-export type PanelFlowStepId = 'lastNightInfo' | 'nightReview' | 'closing';
+export type PanelFlowStepId = 'lastNightInfo' | 'grantReview' | 'closing';
 
 export interface PanelFlowProgress {
   readonly lastNightInfoConfirmed: boolean;
-  readonly nightReviewOpened: boolean;
 }
 
 export const EMPTY_PANEL_FLOW_PROGRESS: PanelFlowProgress = {
   lastNightInfoConfirmed: false,
-  nightReviewOpened: false,
 };
 
-/** Reminder shown to the host while the review step is current. */
+/** Reminder shown to the host while the grant step is current. */
 export const PANEL_FLOW_SHARE_HINT = '记得把复盘分享给第一天出局的玩家';
 
 /** Sheet keys the flow steps reference (createWerewolfHostManagement). */
 export const PANEL_FLOW_ACTION_KEYS = {
   lastNightInfo: 'last-night-info',
-  nightReview: HOST_ACTION_KEYS.review,
   grantReview: 'grant-review',
 } as const;
 
 const PANEL_FLOW_STEP_LABELS: Readonly<Record<PanelFlowStepId, string>> = {
   lastNightInfo: '昨夜信息',
-  nightReview: REVIEW_TITLE,
+  grantReview: '授权',
   closing: '收尾',
 };
 
 const PANEL_FLOW_STEP_ORDER: readonly PanelFlowStepId[] = [
   'lastNightInfo',
-  'nightReview',
+  'grantReview',
   'closing',
 ];
 
@@ -66,7 +64,7 @@ export interface PanelFlowInput {
 
 function isStepComplete(step: PanelFlowStepId, input: PanelFlowInput): boolean {
   if (step === 'lastNightInfo') return input.progress.lastNightInfoConfirmed;
-  if (step === 'nightReview') return input.progress.nightReviewOpened && input.reviewShared;
+  if (step === 'grantReview') return input.reviewShared;
   return false;
 }
 
@@ -81,7 +79,7 @@ export function resolvePanelFlowCurrentStep(input: PanelFlowInput): PanelFlowSte
   }
   if (input.roomStatus === GameStatus.Ended) {
     if (!input.progress.lastNightInfoConfirmed) return 'lastNightInfo';
-    if (!isStepComplete('nightReview', input)) return 'nightReview';
+    if (!isStepComplete('grantReview', input)) return 'grantReview';
     return 'closing';
   }
   return null;
@@ -89,7 +87,7 @@ export function resolvePanelFlowCurrentStep(input: PanelFlowInput): PanelFlowSte
 
 /**
  * Task-card steps for the flow, or null when it does not apply. Completed
- * and current info/review steps reference their sheet action so the card
+ * and current info/grant steps reference their sheet action so the card
  * can revisit them; the closing step is the choice itself.
  */
 export function buildPanelFlowSteps(input: PanelFlowInput): readonly RoomHostTaskStep[] | null {
@@ -104,8 +102,8 @@ export function buildPanelFlowSteps(input: PanelFlowInput): readonly RoomHostTas
     const actionKey =
       step === 'lastNightInfo'
         ? PANEL_FLOW_ACTION_KEYS.lastNightInfo
-        : step === 'nightReview'
-          ? PANEL_FLOW_ACTION_KEYS.nightReview
+        : step === 'grantReview'
+          ? PANEL_FLOW_ACTION_KEYS.grantReview
           : undefined;
     return actionKey === undefined
       ? { key: step, label: PANEL_FLOW_STEP_LABELS[step], state }

@@ -195,7 +195,7 @@ export type ReviewInline =
 
 - `useRoomReview({ contribution, state, viewer, roomId, roomCode, onOpened })` 返回 `{ entry, open(pageKey | null), shareAll(), overlay }`；`resolve` 的文档先经 `assertReviewDocument`。
 - `entry`：`notEnded` → `null`；`notPermitted` → `{ isEnabled: false, disabledReason }`；`available` → `{ isEnabled: true, onPress }`，有 `confirmation` 时先确认再打开。
-- 游戏只通过 `buildReviewBottomButton(entry, variant)`（底部按钮，audience `anyone`）与 `buildReviewHostAction(entry)`（主持台动作，key `review`）摆放入口；终局任务用 `hostReviewClosingTask()`：`choice: [本局复盘, 再来一局, 返回大厅]`。狼人杀终局任务为 `[本局复盘, 授权玩家查看]`。
+- 游戏只通过 `buildReviewBottomButton(entry, variant)`（底部按钮，audience `anyone`）与 `buildReviewHostAction(entry)`（主持台动作，key `review`）摆放入口；终局任务用 `hostReviewClosingTask()`：`choice: [本局复盘, 再来一局, 返回大厅]`。狼人杀引导流程是昨夜信息 → 授权 → 收尾，收尾任务为 `choice: [授权玩家查看, 本局复盘, 再来一局, 返回大厅]`。
 - `overlay` 放入 `gameOverlays`；`open(pageKey)` 让画廊「分享本篇」直接打开复盘并定位到该页；换局（`roundKey` 变化）时对话框自动关闭。
 
 ## 5. 各游戏复盘内容
@@ -207,7 +207,7 @@ export type ReviewInline =
 
 - **事实来源**：引擎投影 `getWerewolfNightReview(state)`（#362 / #364 后的夜报数据，含警长竞选记录）→ `toWerewolfReviewDocument({ review, roomCode, gameSequence })`。
 - **可用条件**：`GameStatus.Day | Ended`。房主与旁观者可读；入座玩家须在 `nightReviewAllowedSeats` 内，否则 `notPermitted`「房主尚未向你开放复盘」。只有房主与已授权座位可分享；旁观者可读不可分享（「仅房主和已获授权的玩家可以分享战报」）。所有读者打开前确认「查看本局复盘？」，Day 时提示可能影响警长竞选。
-- **入口**：入口 → 防剧透确认 → 复盘对话框，底部即「保存／分享图片」。原先打开前的操作菜单已删除；「授权玩家查看」是独立的主持动作（`grant-review`）。
+- **入口**：入口 → 防剧透确认 → 复盘对话框，底部即「保存／分享图片」。原先打开前的操作菜单已删除；「授权玩家查看」是主持动作（`grant-review`），引导流程的第二步就是它，看复盘在授权之后，收尾时仍可看。
 - **kicker**：`🌙 第一夜 · 夜报`；**footer**：`仅供裁判及观战者参考 · 本夜报由对局记录自动生成`；**文件名**：`werewolf-${roomCode}-${gameSequence + 1}.png`。
 - **1 页**（保留 #364 的文字时间线版式）：
   1. `hero`：`昨夜平安夜` / `昨夜 <N> 人出局`（`figure`）；`stamps` = 出局座位 + 死因；`byline` = 狼队裁决。
@@ -466,7 +466,7 @@ readonly guessedSeats: readonly number[];
 | `shareImagesBase64` 返回值        | `ShareImageOutcome`（`handedOff / downloaded / previewed / cancelled`）；失败抛错                                                   |
 | 标题、分享标题、通用页脚归谁      | 平台（`reviewCopy.ts`）。八个游戏写的值完全相同，类型里就不该有这两个字段（§11）                                                    |
 | 狼人杀版式                        | 保留 #364 文字时间线，扩平台词汇承载（用户决定 2026-11）；不退回分组卡片                                                            |
-| 狼人杀入口                        | 入口 → 防剧透确认 → 复盘对话框，分享在对话框底部；「授权玩家查看」为独立主持动作（用户决定 2026-11）                                |
+| 狼人杀入口                        | 入口 → 防剧透确认 → 复盘对话框，分享在对话框底部；引导流程先授权后看复盘，收尾仍有授权与复盘（用户决定 2026-11）                    |
 | 警长竞选段                        | 改为通用 `timeline`，删除 `SheriffElectionReportSection`；面板与复盘的等价性只比数据（用户决定 2026-11）                            |
 | 文档构建放 game-engine 还是客户端 | 客户端 `src/games/<game>/review/`。构建器是纯函数但依赖客户端的中文展示名（如 `avalonRoleDisplay`）；无服务端消费者时不进引擎       |
 
@@ -489,7 +489,7 @@ readonly guessedSeats: readonly number[];
 1. **可用性**：`notPermitted.message` 改名 `reason`；`available` 增加 `sharing`（能读不一定能分享：狼人杀旁观者）与 `confirmation`（狼人杀打开前防剧透）。
 2. **文档字段**：删除 `title`、`shareTitle`——八个游戏写的值完全相同（「本局复盘」「房间 X 战报」），由平台 `reviewCopy.ts` 拥有；`footer` 保留（狼人杀有自己的声明），通用页脚为平台常量 `REVIEW_GENERATED_FOOTER`。页 `label` 与多页互为充要，由 `assertReviewDocument` 校验。
 3. **词汇扩展**：`hero.headline` 为 runs（`figure` 大号数字）；`stamps` 带 `tone / title / caption / note`；新增 `divider`；`roster` 加 `columns`、`name: null`（只按身份识别的座位）、`isOut`，`roleTone` 改为 `seatTone`；`timeline` 步骤标题可空；`scoreboard` 的名次与分数文案由游戏给出（经典画猜 `rankDrawGuessScores`）；`paragraph` 加 `caption`（标签印在正文上方，接龙的「第 k 棒 · 作者」不再拆成 `section`）；`image.load` 返回 `loaded | unavailable`，reject 才是可重试失败。
-4. **狼人杀**：保留 #364 文字时间线，无统计条；警长竞选改为通用 `timeline`；入口直开对话框，分享在对话框底部；授权是独立主持动作；终局任务 `[本局复盘, 授权玩家查看]`。
+4. **狼人杀**：保留 #364 文字时间线，无统计条；警长竞选改为通用 `timeline`；主持管理/收尾的入口直开对话框，分享在对话框底部；引导流程改为昨夜信息 → 授权 → 收尾（授权步只认 `nightReviewAllowedSeats` 非空，看复盘不再是流程一步）；收尾任务 `[授权玩家查看, 本局复盘, 再来一局, 返回大厅]`。
 5. **导出**：结果类型命名为 `ShareImageOutcome`，失败抛错而非 `'failed'`；对话框打开即后台预截图（iOS Safari Web Share 的瞬时激活要求）；导出页宽 = 对话框页宽；进度弹窗只用于无对话框的运行，避免叠两层弹窗。
 6. **文件名与分享标题统一**：狼人杀原 `room-${roomCode}-review.png` /「狼人杀房间 X 战报」→ `werewolf-${roomCode}-${n}.png` /「房间 X 战报」；接龙原按座位命名 → 按页序 `-p<n>`。
 7. **分页**：新增平台 `paginateReviewFlow`。接龙 20 人 × 512 字的故事或画册会超出 8192 像素单页上限与 iOS 画布面积，游戏声明「必须同页」的组，平台估高续页。

@@ -152,11 +152,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function parsePanelFlowProgress(value: unknown): PanelFlowProgress {
   if (!isRecord(value)) throw new Error('Panel flow progress must be an object');
-  const { lastNightInfoConfirmed, nightReviewOpened } = value;
-  if (typeof lastNightInfoConfirmed !== 'boolean' || typeof nightReviewOpened !== 'boolean') {
+  const { lastNightInfoConfirmed } = value;
+  if (typeof lastNightInfoConfirmed !== 'boolean') {
     throw new Error('Panel flow progress flags must be booleans');
   }
-  return { lastNightInfoConfirmed, nightReviewOpened };
+  // A stored draft from before the grant-first resequencing may still
+  // carry `nightReviewOpened`; it is ignored, not rejected, so a
+  // confirmed last-night info survives the upgrade.
+  return { lastNightInfoConfirmed };
 }
 
 function buildLastNightInfo(state: GameState): string {
@@ -336,7 +339,7 @@ export function useWerewolfRoomState(
     viewer,
     roomId: room.roomId,
     roomCode,
-    onOpened: () => panelFlow.updateDraft((current) => ({ ...current, nightReviewOpened: true })),
+    onOpened: null,
   });
   const modals = useRoomModals({
     gameSequence: state.gameSequence,

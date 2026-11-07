@@ -284,8 +284,8 @@ the inventory; the card is the only always-visible host surface:
 
 ```
 ┌ 主持 ────────────────────────────────┐
-│ ✓昨夜信息 → ●本局复盘 → 收尾          │  steps (only when present)
-│ 本局复盘                      [打开 →]│  action / choice / message
+│ ✓昨夜信息 → ●授权 → 收尾          │  steps (only when present)
+│ 授权玩家查看                  [打开 →]│  action / choice / message
 │ 记得把复盘分享给第一天出局的玩家        │  note
 │ 全部操作                           ›  │  sheet entry (no pending badge; the card is the signal)
 └──────────────────────────────────────┘
@@ -305,7 +305,7 @@ Test anchors are stable: the task's action button carries `roomNextStepButton`, 
 | Host-owned local mode (Undercover pick) | `message: 点座位盘选择出局玩家`, `actionKey: cancel-selection`                                                                                                                                                                              |
 | Werewolf Day, info unconfirmed          | `choice` of every move that applies now, with steps: `sheriff-advance` while the election offers one, `sheriff-self-destruct` during speeches, and `last-night-info`; during votes `action: last-night-info` with the vote progress as note |
 | Werewolf Day, info confirmed            | The election's own moves (`sheriff-advance` / `sheriff-self-destruct` as `choice` or `action`, a vote-waiting message during votes); `null` once completed                                                                                  |
-| Werewolf Ended                          | `last-night-info` → `choice: [review, grant-review]` (note = share reminder; completes once read and granted to a seat) → `choice: [next-round, return-lobby]`; steps shown throughout                                                      |
+| Werewolf Ended                          | `last-night-info` → `action: grant-review` (note = share reminder; completes once granted to a seat) → `choice: [grant-review, review, next-round, return-lobby]`; steps shown throughout                                                   |
 | Ended (other games)                     | `choice: [review, next-round, return-lobby]` (`hostReviewClosingTask`); an aborted round that keeps a review: `choice: [review, return-lobby]`                                                                                              |
 | Pictionary / Story Relay, cannot abort  | `null`; the sheet stays present with abort disabled and its reason (the host panel is never hidden mid-game)                                                                                                                                |
 

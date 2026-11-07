@@ -2,7 +2,7 @@
  * Werewolf phase guide message: the non-host phase hints whose single
  * home is the bottom action message. Host ACTION guidance lives on
  * the host console, not here, and Ended has no guide line at all: its
- * bottom is the panel flow's step bar （昨夜信息 → 本局复盘 → 收尾）.
+ * bottom is the panel flow's step bar （昨夜信息 → 授权 → 收尾）.
  * Pure over the projected view model so the guidance matrix test can
  * hold every (status × viewer) cell true without rendering the room hook.
  */

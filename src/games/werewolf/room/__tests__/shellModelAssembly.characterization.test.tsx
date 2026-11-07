@@ -181,7 +181,7 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
       actionKey: 'last-night-info',
       steps: [
         { key: 'lastNightInfo', state: 'current' },
-        { key: 'nightReview', state: 'upcoming' },
+        { key: 'grantReview', state: 'upcoming' },
         { key: 'closing', state: 'upcoming' },
       ],
     });

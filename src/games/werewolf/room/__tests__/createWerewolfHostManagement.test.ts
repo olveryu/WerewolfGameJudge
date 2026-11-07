@@ -17,7 +17,7 @@ const deniedRoomCapabilities = {
 function createInput(overrides: Record<string, unknown> = {}) {
   return {
     roomStatus: GameStatus.Unseated,
-    panelFlow: { lastNightInfoConfirmed: false, nightReviewOpened: false },
+    panelFlow: { lastNightInfoConfirmed: false },
     isReviewShared: false,
     isPlagueMode: false,
     seatedCount: 0,
@@ -189,7 +189,7 @@ describe('createWerewolfHostManagement', () => {
       actionKeys: ['sheriff-advance', 'last-night-info'],
       steps: [
         { key: 'lastNightInfo', state: 'current' },
-        { key: 'nightReview', state: 'upcoming' },
+        { key: 'grantReview', state: 'upcoming' },
         { key: 'closing', state: 'upcoming' },
       ],
     });
@@ -205,7 +205,7 @@ describe('createWerewolfHostManagement', () => {
     const model = createWerewolfHostManagement(
       createInput({
         roomStatus: GameStatus.Day,
-        panelFlow: { lastNightInfoConfirmed: true, nightReviewOpened: false },
+        panelFlow: { lastNightInfoConfirmed: true },
         sheriffElection: createSheriffElection(),
         capabilities: deniedRoomCapabilities,
       }),
@@ -241,7 +241,7 @@ describe('createWerewolfHostManagement', () => {
     const confirmed = createWerewolfHostManagement(
       createInput({
         roomStatus: GameStatus.Day,
-        panelFlow: { lastNightInfoConfirmed: true, nightReviewOpened: false },
+        panelFlow: { lastNightInfoConfirmed: true },
         sheriffElection,
         capabilities: deniedRoomCapabilities,
       }),
@@ -269,7 +269,7 @@ describe('createWerewolfHostManagement', () => {
       actionKey: 'last-night-info',
       steps: [
         { key: 'lastNightInfo', state: 'current', actionKey: 'last-night-info' },
-        { key: 'nightReview', state: 'upcoming', actionKey: 'review' },
+        { key: 'grantReview', state: 'upcoming', actionKey: 'grant-review' },
         { key: 'closing', state: 'upcoming' },
       ],
     });
@@ -325,7 +325,7 @@ describe('createWerewolfHostManagement', () => {
       const confirmed = createWerewolfHostManagement(
         createInput({
           roomStatus: GameStatus.Day,
-          panelFlow: { lastNightInfoConfirmed: true, nightReviewOpened: false },
+          panelFlow: { lastNightInfoConfirmed: true },
           sheriffElection,
           capabilities: deniedRoomCapabilities,
         }),
@@ -558,22 +558,42 @@ describe('createWerewolfHostManagement', () => {
     expect(onGrantReviewAccess).toHaveBeenCalledTimes(1);
   });
 
-  it('makes reading and granting the review equal moves of the Ended review step', () => {
+  it('makes granting the review the single move of the Ended grant step', () => {
     const model = createWerewolfHostManagement(
       createInput({
         roomStatus: GameStatus.Ended,
-        panelFlow: { lastNightInfoConfirmed: true, nightReviewOpened: false },
+        panelFlow: { lastNightInfoConfirmed: true },
+        capabilities: deniedRoomCapabilities,
+      }),
+    );
+    expect(model.task).toMatchObject({
+      kind: 'action',
+      actionKey: 'grant-review',
+      note: '记得把复盘分享给第一天出局的玩家',
+      steps: [
+        { key: 'lastNightInfo', state: 'complete' },
+        { key: 'grantReview', state: 'current' },
+        { key: 'closing', state: 'upcoming' },
+      ],
+    });
+  });
+
+  it('keeps both review tools beside the exits once the grant step is done', () => {
+    const model = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Ended,
+        panelFlow: { lastNightInfoConfirmed: true },
+        isReviewShared: true,
         capabilities: deniedRoomCapabilities,
       }),
     );
     expect(model.task).toMatchObject({
       kind: 'choice',
-      actionKeys: ['review', 'grant-review'],
-      note: '记得把复盘分享给第一天出局的玩家',
+      actionKeys: ['grant-review', 'review', 'next-round', 'return-lobby'],
       steps: [
         { key: 'lastNightInfo', state: 'complete' },
-        { key: 'nightReview', state: 'current' },
-        { key: 'closing', state: 'upcoming' },
+        { key: 'grantReview', state: 'complete' },
+        { key: 'closing', state: 'current' },
       ],
     });
   });

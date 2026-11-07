@@ -20,7 +20,6 @@ import {
   createViewingBeginGate,
   HOST_ACTION_KEYS,
   hostActionTask,
-  hostClosingTask,
   hostMessageTask,
   hostStartTask,
   type RoomHostActionDescriptor,
@@ -308,18 +307,29 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
       switch (resolvePanelFlowCurrentStep(flow)) {
         case 'lastNightInfo':
           return hostActionTask(PANEL_FLOW_ACTION_KEYS.lastNightInfo, { steps });
-        case 'nightReview':
-          // Reading the review and granting it to seats are equal moves;
-          // the step completes once both happened.
-          return {
-            kind: 'choice',
-            actionKeys: [PANEL_FLOW_ACTION_KEYS.nightReview, PANEL_FLOW_ACTION_KEYS.grantReview],
+        case 'grantReview':
+          return hostActionTask(PANEL_FLOW_ACTION_KEYS.grantReview, {
             steps,
             note: PANEL_FLOW_SHARE_HINT,
-          };
+          });
         case 'closing':
         case null:
-          return hostClosingTask({ steps });
+          // Closing keeps both review tools beside the exits: the host
+          // may still grant seats or read the review before the next
+          // round starts (the review is gone once it does). Four keys
+          // is werewolf-only — grant-review exists in no other game —
+          // so this choice stays local instead of growing the shared
+          // closing builders.
+          return {
+            kind: 'choice',
+            actionKeys: [
+              PANEL_FLOW_ACTION_KEYS.grantReview,
+              HOST_ACTION_KEYS.review,
+              HOST_ACTION_KEYS.nextRound,
+              HOST_ACTION_KEYS.returnLobby,
+            ],
+            steps,
+          };
       }
     }
   }
