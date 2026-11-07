@@ -137,7 +137,7 @@ test.describe('FibKing', () => {
       await editConfig.save();
       await hostRoom.waitForReady('host');
 
-      // Presence gate: all 4 real players seated, no bots involved.
+      // Seat-readiness gate: all 4 real players seated, no bots involved.
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
         '分配角色',
         { timeout: 15_000 },
