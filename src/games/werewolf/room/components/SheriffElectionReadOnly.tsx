@@ -2,28 +2,23 @@
  * Read-only sheriff-election presentation, shared by the election panel and
  * the night report.
  *
- * These pieces render the public election record and never derive it, never
- * report user intent, and never read a ballot: the tally and the candidate
- * records arrive from sheriffElectionRecord through the caller's view
- * model or report section. Everything interactive (ballot choices, the
- * effective player's own ballot, host advance) stays in
- * SheriffElectionPanel and never enters this file, so the report can render
- * the panel's UI without inheriting the panel's controls.
+ * These pieces render projection rows and nothing else: every presentation
+ * decision (which rows exist, in which order, who is the winner) is made
+ * once in `sheriffElectionPresentation`, and this file only turns a row
+ * into its panel vocabulary (trophy, tally bar, SeatDot). It never derives
+ * a record, never branches on a phase or a result, and never reads a
+ * ballot. Everything interactive (ballot choices, the effective player's
+ * own ballot, host advance) stays in SheriffElectionPanel and never enters
+ * this file, so the report can render the panel's UI without inheriting
+ * the panel's controls.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { SheriffElectionResult } from '@game-judge/game-engine/games/werewolf/public';
-import type { SheriffElectionState } from '@game-judge/game-engine/games/werewolf/public';
-import type { SheriffCandidateRecords } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { Text, View } from 'react-native';
 
 import { SeatDot } from '@/components/SeatDot';
-import {
-  formatSheriffElectedLine,
-  getNoSheriffText,
-  type SheriffElectionRoundViewModel,
-} from '@/games/werewolf/room/day/sheriffElectionViewModel';
+import type { SheriffElectionPresentationRow } from '@/games/werewolf/room/day/sheriffElectionPresentation';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
@@ -62,30 +57,30 @@ export function SheriffElectionPhaseHeader({
   );
 }
 
+type SheriffResultRow = Extract<SheriffElectionPresentationRow, { readonly kind: 'result' }>;
+type SheriffRegistrationRow = Extract<
+  SheriffElectionPresentationRow,
+  { readonly kind: 'registration' }
+>;
+type SheriffCandidatesRow = Extract<
+  SheriffElectionPresentationRow,
+  { readonly kind: 'candidates' }
+>;
+type SheriffSpeakingRow = Extract<SheriffElectionPresentationRow, { readonly kind: 'speaking' }>;
+type SheriffVoteProgressRow = Extract<
+  SheriffElectionPresentationRow,
+  { readonly kind: 'voteProgress' }
+>;
+type SheriffRoundRow = Extract<SheriffElectionPresentationRow, { readonly kind: 'round' }>;
+
 interface SheriffElectionResultBannerProps {
-  readonly result: SheriffElectionResult;
-  readonly completedRounds: readonly { readonly key: SheriffElectionRoundViewModel['key'] }[];
+  readonly row: SheriffResultRow;
   readonly styles: SheriffElectionPanelStyles;
 }
 
 /** Outcome banner: gold medal block for an elected sheriff, neutral otherwise. */
-export function SheriffElectionResultBanner({
-  result,
-  completedRounds,
-  styles,
-}: SheriffElectionResultBannerProps) {
-  const isElected = result.kind === 'elected';
-  let title: string;
-  let subtitle: string | null = null;
-  if (result.kind === 'elected') {
-    title = `${formatSeat(result.sheriffSeat)} · 当选警长`;
-    subtitle = formatSheriffElectedLine(
-      result.sheriffSeat,
-      completedRounds[completedRounds.length - 1]?.key,
-    );
-  } else {
-    title = getNoSheriffText(result);
-  }
+export function SheriffElectionResultBanner({ row, styles }: SheriffElectionResultBannerProps) {
+  const isElected = row.resultKind === 'elected';
 
   return (
     <View
@@ -100,82 +95,68 @@ export function SheriffElectionResultBanner({
         />
       </View>
       <View style={styles.resultTextGroup}>
-        <Text style={styles.resultTitle}>{title}</Text>
-        {subtitle !== null && <Text style={styles.resultSubtitle}>{subtitle}</Text>}
+        <Text style={styles.resultTitle}>{row.bannerTitle}</Text>
+        {row.bannerSubtitle !== null && (
+          <Text style={styles.resultSubtitle}>{row.bannerSubtitle}</Text>
+        )}
       </View>
     </View>
   );
 }
 
-function areSameSeats(first: readonly number[], second: readonly number[]): boolean {
-  return first.length === second.length && first.every((seat, index) => seat === second[index]);
-}
-
 interface SheriffElectionRecordsProps {
-  readonly candidateRecords: SheriffCandidateRecords;
-  readonly phase: SheriffElectionState['phase'];
-  readonly speakingInstruction: string | null;
+  readonly registrationRow: SheriffRegistrationRow;
+  readonly candidatesRow: SheriffCandidatesRow | null;
+  readonly speakingRow: SheriffSpeakingRow | null;
   readonly styles: SheriffElectionPanelStyles;
 }
 
 /**
  * Candidate records: the registration row (withdrawn seats marked and
- * noted), the still-standing candidate row (only when it differs from the
- * registration), and the speaking order when one is in effect. The
+ * noted), the still-standing candidate row (only when the projection
+ * emits one), and the speaking order when the projection emits one. The
  * registration row always shows every registered seat; the candidate row
- * never re-derives a set — it renders the record's active seats.
+ * renders the projection's active seats.
  */
 export function SheriffElectionRecords({
-  candidateRecords,
-  phase,
-  speakingInstruction,
+  registrationRow,
+  candidatesRow,
+  speakingRow,
   styles,
 }: SheriffElectionRecordsProps) {
-  const shouldShowActiveCandidates = !areSameSeats(
-    candidateRecords.registeredSeats,
-    candidateRecords.activeCandidateSeats,
-  );
-  const activeCandidateLabel =
-    phase === 'runoffSpeech' || phase === 'runoffVote' ? '平票候选' : '候选';
-
   return (
     <View style={styles.records}>
       <View style={styles.recordRow}>
         <Text style={styles.recordLabel}>上警</Text>
         <View style={styles.recordValueColumn}>
           <View style={styles.seatDotRow} testID={TESTIDS.sheriffRegisteredSeats}>
-            {candidateRecords.registeredSeats.length === 0 ? (
+            {registrationRow.seats.length === 0 ? (
               <Text style={styles.recordEmpty}>无</Text>
             ) : (
-              candidateRecords.registeredSeats.map((seat) => {
-                const isWithdrawn = candidateRecords.withdrawnSeats.includes(seat);
-                return (
-                  <SeatDot
-                    key={seat}
-                    seat={seat}
-                    withdrawn={isWithdrawn}
-                    stateLabel={isWithdrawn ? '已退水' : undefined}
-                    testID={TESTIDS.sheriffRegisteredSeatDot(seat)}
-                  />
-                );
-              })
+              registrationRow.seats.map(({ seat, isWithdrawn }) => (
+                <SeatDot
+                  key={seat}
+                  seat={seat}
+                  withdrawn={isWithdrawn}
+                  stateLabel={isWithdrawn ? '已退水' : undefined}
+                  testID={TESTIDS.sheriffRegisteredSeatDot(seat)}
+                />
+              ))
             )}
           </View>
-          {candidateRecords.withdrawnSeats.length > 0 && (
+          {registrationRow.withdrawnNote !== null && (
             <Text style={styles.withdrawnNote} testID={TESTIDS.sheriffWithdrawnSeats}>
-              {candidateRecords.withdrawnSeats
-                .map((seat) => `${formatSeat(seat)}已退水`)
-                .join('、')}
+              {registrationRow.withdrawnNote}
             </Text>
           )}
         </View>
       </View>
-      {shouldShowActiveCandidates && (
+      {candidatesRow !== null && (
         <View style={styles.recordRow}>
-          <Text style={styles.recordLabel}>{activeCandidateLabel}</Text>
+          <Text style={styles.recordLabel}>{candidatesRow.label}</Text>
           <View style={styles.recordValueColumn}>
             <View style={styles.seatDotRow} testID={TESTIDS.sheriffActiveCandidateSeats}>
-              {candidateRecords.activeCandidateSeats.map((seat) => (
+              {candidatesRow.seats.map((seat) => (
                 <SeatDot
                   key={seat}
                   seat={seat}
@@ -186,11 +167,11 @@ export function SheriffElectionRecords({
           </View>
         </View>
       )}
-      {speakingInstruction !== null && (
+      {speakingRow !== null && (
         <View style={styles.recordRow}>
           <Text style={styles.recordLabel}>发言顺序</Text>
           <Text style={styles.recordValue} testID={TESTIDS.sheriffSpeakingInstruction}>
-            {speakingInstruction}
+            {speakingRow.text}
           </Text>
         </View>
       )}
@@ -200,8 +181,7 @@ export function SheriffElectionRecords({
 
 interface SheriffElectionVoteProgressRowProps {
   readonly title: string;
-  readonly submittedCount: number;
-  readonly eligibleCount: number;
+  readonly row: SheriffVoteProgressRow;
   readonly styles: SheriffElectionPanelStyles;
 }
 
@@ -209,61 +189,52 @@ interface SheriffElectionVoteProgressRowProps {
  * Vote submission progress as read-only text: how many eligible voters
  * have submitted, never who voted for whom. The panel passes its own
  * section title （选择候选人 while the viewer can still vote）; read-only
- * surfaces pass 投票进度.
+ * surfaces pass 投票进度. The progress line itself comes from the
+ * projection, so both surfaces print the same text.
  */
 export function SheriffElectionVoteProgressRow({
   title,
-  submittedCount,
-  eligibleCount,
+  row,
   styles,
 }: SheriffElectionVoteProgressRowProps) {
   return (
     <View style={styles.voteStatusRow}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <Text style={styles.voteProgress} testID={TESTIDS.sheriffVoteProgress}>
-        {submittedCount}/{eligibleCount} 已提交
+        {row.text}
       </Text>
     </View>
   );
 }
 
 interface SheriffElectionCompletedRoundProps {
-  readonly round: SheriffElectionRoundViewModel;
-  readonly winnerSeat: number | null;
+  readonly row: SheriffRoundRow;
   readonly styles: SheriffElectionPanelStyles;
 }
 
 /**
  * One closed round as a tally card: a bar per candidate with that candidate's
  * voters grouped underneath, and abstentions demoted to one grey line.
- * The tally comes from the shared record (sheriffElectionRecord) via the
- * caller — this component renders it and never re-derives it.
+ * The winner flag arrives on the row from the projection; this component
+ * only paints it.
  */
-export function SheriffElectionCompletedRound({
-  round,
-  winnerSeat,
-  styles,
-}: SheriffElectionCompletedRoundProps) {
-  const totalVotes = round.perCandidate.reduce((sum, candidate) => sum + candidate.votes, 0);
-  // A closed round fails fast on any missing ballot in the core, so zero
-  // ballots cast means zero eligible voters — the same empty case the old
-  // eligible-voter check rendered.
-  const hasNoVoters = totalVotes + round.abstainingSeats.length === 0;
+export function SheriffElectionCompletedRound({ row, styles }: SheriffElectionCompletedRoundProps) {
+  const totalVotes = row.candidates.reduce((sum, candidate) => sum + candidate.votes, 0);
 
   return (
-    <View style={styles.roundSection} testID={TESTIDS.sheriffCompletedRound(round.key)}>
-      <Text style={styles.roundTitle}>{round.title}</Text>
+    <View style={styles.roundSection} testID={TESTIDS.sheriffCompletedRound(row.key)}>
+      <Text style={styles.roundTitle}>{row.title}</Text>
       <View style={styles.tallyCard}>
-        {round.perCandidate.map((candidate, index) => {
+        {row.candidates.map((candidate, index) => {
           const seat = candidate.seat;
           const voteCount = candidate.votes;
-          const isWinner = winnerSeat === seat;
+          const isWinner = candidate.isWinner;
           const voters = candidate.voterSeats;
           return (
             <View
               key={seat}
               style={[styles.tallyGroup, index > 0 && styles.tallyGroupBorder]}
-              testID={TESTIDS.sheriffTallyGroup(round.key, seat)}
+              testID={TESTIDS.sheriffTallyGroup(row.key, seat)}
             >
               <View style={styles.tallyRow}>
                 <Text style={[styles.tallyName, isWinner && styles.tallyNameWinner]}>
@@ -292,7 +263,7 @@ export function SheriffElectionCompletedRound({
                     <View
                       key={voterSeat}
                       style={styles.voterChip}
-                      testID={TESTIDS.sheriffBallotChip(round.key, voterSeat)}
+                      testID={TESTIDS.sheriffBallotChip(row.key, voterSeat)}
                     >
                       <SeatDot seat={voterSeat} size="sm" />
                     </View>
@@ -302,13 +273,13 @@ export function SheriffElectionCompletedRound({
             </View>
           );
         })}
-        {round.abstainingSeats.length > 0 && (
-          <View style={styles.abstainRow} testID={TESTIDS.sheriffAbstainRow(round.key)}>
+        {row.abstainingSeats.length > 0 && (
+          <View style={styles.abstainRow} testID={TESTIDS.sheriffAbstainRow(row.key)}>
             <Text style={styles.abstainLabel}>弃票</Text>
-            {round.abstainingSeats.map((voterSeat) => (
+            {row.abstainingSeats.map((voterSeat) => (
               <View
                 key={voterSeat}
-                testID={TESTIDS.sheriffAbstainChip(round.key, voterSeat)}
+                testID={TESTIDS.sheriffAbstainChip(row.key, voterSeat)}
                 accessibilityLabel={`${voterSeat + 1}号弃票`}
               >
                 <SeatDot seat={voterSeat} size="sm" />
@@ -316,27 +287,8 @@ export function SheriffElectionCompletedRound({
             ))}
           </View>
         )}
-        {hasNoVoters && <Text style={styles.emptyBallots}>无投票人</Text>}
+        {row.isEmpty && <Text style={styles.emptyBallots}>无投票人</Text>}
       </View>
     </View>
   );
-}
-
-interface SheriffCompletedRoundWinnerSeatInput {
-  readonly result: SheriffElectionResult | null;
-  readonly roundKey: SheriffElectionRoundViewModel['key'];
-  readonly decidingRoundKey: SheriffElectionRoundViewModel['key'] | undefined;
-}
-
-/**
- * The winner highlight for one closed round: only the deciding round of an
- * elected result highlights its sheriff. Every other round renders with no
- * winner, in both the panel and the report.
- */
-export function getSheriffCompletedRoundWinnerSeat({
-  result,
-  roundKey,
-  decidingRoundKey,
-}: SheriffCompletedRoundWinnerSeatInput): number | null {
-  return result?.kind === 'elected' && roundKey === decidingRoundKey ? result.sheriffSeat : null;
 }

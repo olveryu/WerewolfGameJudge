@@ -204,6 +204,15 @@ describe('SheriffElectionPanel', () => {
         canVote: true,
         canAdvance: true,
         advanceLabel: '公布首轮结果',
+        // An open vote always has public candidate records (the view
+        // model only reports null records during registration); the panel
+        // now renders the projection, which fails fast on the inconsistent
+        // combination of an open vote with no records.
+        candidateRecords: {
+          registeredSeats: [0],
+          withdrawnSeats: [],
+          activeCandidateSeats: [0],
+        },
         voteProgress: { submittedCount: 0, eligibleCount: 1 },
         myBallot: { kind: 'notSubmitted' },
         candidateOptions: [{ seat: 0, isSelected: false }],

@@ -64,12 +64,40 @@ function rowKinds(rows: readonly SheriffElectionPresentationRow[]): string[] {
   return rows.map((row) => row.kind);
 }
 
-function rowOf<T extends SheriffElectionPresentationRow['kind']>(
+function rowOf(
   rows: readonly SheriffElectionPresentationRow[],
-  kind: T,
-): Extract<SheriffElectionPresentationRow, { readonly kind: T }> {
+  kind: 'phase',
+): Extract<SheriffElectionPresentationRow, { readonly kind: 'phase' }>;
+function rowOf(
+  rows: readonly SheriffElectionPresentationRow[],
+  kind: 'result',
+): Extract<SheriffElectionPresentationRow, { readonly kind: 'result' }>;
+function rowOf(
+  rows: readonly SheriffElectionPresentationRow[],
+  kind: 'registration',
+): Extract<SheriffElectionPresentationRow, { readonly kind: 'registration' }>;
+function rowOf(
+  rows: readonly SheriffElectionPresentationRow[],
+  kind: 'candidates',
+): Extract<SheriffElectionPresentationRow, { readonly kind: 'candidates' }>;
+function rowOf(
+  rows: readonly SheriffElectionPresentationRow[],
+  kind: 'speaking',
+): Extract<SheriffElectionPresentationRow, { readonly kind: 'speaking' }>;
+function rowOf(
+  rows: readonly SheriffElectionPresentationRow[],
+  kind: 'voteProgress',
+): Extract<SheriffElectionPresentationRow, { readonly kind: 'voteProgress' }>;
+function rowOf(
+  rows: readonly SheriffElectionPresentationRow[],
+  kind: 'round',
+): Extract<SheriffElectionPresentationRow, { readonly kind: 'round' }>;
+function rowOf(
+  rows: readonly SheriffElectionPresentationRow[],
+  kind: SheriffElectionPresentationRow['kind'],
+): SheriffElectionPresentationRow {
   const row = rows.find((candidate) => candidate.kind === kind);
-  if (row === undefined || row.kind !== kind) throw new Error(`expected a ${kind} row`);
+  if (row === undefined) throw new Error(`expected a ${kind} row`);
   return row;
 }
 
@@ -272,7 +300,7 @@ describe('createSheriffElectionPresentation', () => {
       voteProgress: null,
       rounds: [
         {
-          round: 'first',
+          key: 'first',
           perCandidate: [{ seat: 2, votes: 0, voterSeats: [] }],
           abstainingSeats: [],
         },
