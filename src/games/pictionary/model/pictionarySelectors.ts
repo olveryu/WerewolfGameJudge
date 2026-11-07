@@ -1,4 +1,4 @@
-/** Client-only projections over authoritative Pictionary room state. */
+/** Client-only projections over authoritative Pictionary room state, and the copy they print. */
 
 import {
   isBotOccupant,
@@ -6,6 +6,9 @@ import {
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
+
+/** A missed relay leg, as the gallery and the review print it. */
+export const PICTIONARY_MISSED_ENTRY_TEXT = '这一棒交了空白';
 
 export function getPictionaryCompletedCount(state: PictionaryState): number {
   if (state.stepIndex < 0) return 0;

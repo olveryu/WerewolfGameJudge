@@ -10,7 +10,7 @@ import {
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useCallback, useMemo } from 'react';
+import { type ReactNode, useCallback, useMemo } from 'react';
 
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
@@ -29,6 +29,8 @@ import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
+import type { RoomReviewContribution } from '@/features/room/review/types';
+import { type RoomReviewController, useRoomReview } from '@/features/room/review/useRoomReview';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -48,6 +50,7 @@ interface UsePictionaryRoomScreenStateParams {
   readonly navigation: NativeStackNavigationProp<RootStackParamList, 'Room'>;
   readonly entryController: RoomEntryController;
   readonly session: PictionaryRoomSession;
+  readonly review: RoomReviewContribution<PictionaryState>;
 }
 
 /**
@@ -70,6 +73,10 @@ export interface PictionaryRoomScreenState {
   /** 平台单飞漏斗：阶段组件的玩家 / 房主命令都经此发出。 */
   readonly submit: ReadyRoomSession<PictionaryState, PictionaryPublicCommand>['submit'];
   readonly isSubmitting: boolean;
+  /** 本局复盘的对话框 / 导出舞台，挂在房间的 gameOverlays。 */
+  readonly reviewOverlay: ReactNode;
+  /** 在某一册所在页打开本局复盘（画廊「分享本篇画册」）。 */
+  readonly openReview: RoomReviewController['open'];
 }
 
 export function usePictionaryRoomState({
@@ -78,6 +85,7 @@ export function usePictionaryRoomState({
   navigation,
   entryController,
   session,
+  review: reviewContribution,
 }: UsePictionaryRoomScreenStateParams): PictionaryRoomScreenState {
   const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
     session,
@@ -132,6 +140,14 @@ export function usePictionaryRoomState({
     ...setupCapabilities,
     canTakeOverBots: bots.capability,
   };
+  const review = useRoomReview({
+    contribution: reviewContribution,
+    state,
+    viewer,
+    roomId: room.roomId,
+    roomCode: room.roomCode,
+    onOpened: null,
+  });
 
   // 房主流程命令：不带接管座位（房主门只认未接管身份）。
   const startRound = () => void submit('开始游戏', { type: 'pictionary.game.begin' });
@@ -190,11 +206,13 @@ export function usePictionaryRoomState({
       onLeaveSeat: profile.leaveSelf,
     }),
     share,
+    review: review.entry,
     buildHostManagement: () =>
       createPictionaryHostManagement({
         state,
         isCommandSubmitting: isSubmitting,
         capabilities,
+        review: review.entry,
         startRound,
         nextRound,
         returnToLobby,
@@ -225,5 +243,7 @@ export function usePictionaryRoomState({
     session,
     submit,
     isSubmitting,
+    reviewOverlay: review.overlay,
+    openReview: review.open,
   };
 }

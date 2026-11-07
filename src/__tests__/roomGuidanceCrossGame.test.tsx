@@ -207,12 +207,14 @@ function demoShell(state: DemoState): RoomShellModel {
   return createDemoRoomShellModel({
     ...shellInput(),
     state,
+    review: null,
     buildHostManagement: () =>
       createDemoHostManagement({
         state,
         capabilities: capabilities(),
         isSubmitting: false,
         submit,
+        review: null,
       }),
   });
 }
@@ -247,12 +249,14 @@ function drawGuessShell(state: DrawGuessState): RoomShellModel {
   return createDrawGuessRoomShellModel({
     ...shellInput(),
     state,
+    review: null,
     buildHostManagement: () =>
       createDrawGuessHostManagement({
         state,
         capabilities: capabilities(),
         isSubmitting: false,
         submit,
+        review: null,
       }),
   });
 }
@@ -293,12 +297,14 @@ function storyRelayShell(state: StoryRelayState): RoomShellModel {
   return createStoryRelayRoomShellModel({
     ...shellInput(),
     state,
+    review: null,
     buildHostManagement: () =>
       createStoryRelayHostManagement({
         state,
         capabilities: capabilities(),
         isSubmitting: false,
         submit,
+        review: null,
       }),
   });
 }

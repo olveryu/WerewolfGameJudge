@@ -7,6 +7,12 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
 
+import {
+  DRAWGUESS_BOT_TAG,
+  formatDrawGuessScore,
+  rankDrawGuessScores,
+} from '../../model/drawGuessResults';
+
 export interface DrawGuessScoreboardRow {
   readonly seat: number;
   readonly displayName: string;
@@ -25,20 +31,6 @@ interface DrawGuessScoreboardProps {
   readonly rows: readonly DrawGuessScoreboardRow[];
 }
 
-/** 按总分降序排列；同分并列时按竞赛排名顺延。 */
-function rankDrawGuessScoreboard(
-  rows: readonly DrawGuessScoreboardRow[],
-): readonly (DrawGuessScoreboardRow & { readonly rank: number })[] {
-  const sorted = [...rows].sort((a, b) => b.totalScore - a.totalScore);
-  let rank = 0;
-  let previousScore: number | null = null;
-  return sorted.map((row, index) => {
-    if (previousScore === null || row.totalScore !== previousScore) rank = index + 1;
-    previousScore = row.totalScore;
-    return { ...row, rank };
-  });
-}
-
 function rankLabel(rank: number): string {
   if (rank === 1) return '🥇';
   if (rank === 2) return '🥈';
@@ -53,7 +45,7 @@ export const DrawGuessScoreboard: React.FC<DrawGuessScoreboardProps> = ({
   rows,
 }) => {
   const ranked = competitionRanking
-    ? rankDrawGuessScoreboard(rows)
+    ? rankDrawGuessScores(rows)
     : [...rows]
         .sort((a, b) => b.totalScore - a.totalScore)
         .map((row, index) => ({ ...row, rank: index + 1 }));
@@ -67,12 +59,12 @@ export const DrawGuessScoreboard: React.FC<DrawGuessScoreboardProps> = ({
           </Text>
           <Text style={[styles.name, row.isSelf && styles.selfName]} numberOfLines={1}>
             {row.displayName}
-            {row.isBot ? ' · 机器人' : ''}
+            {row.isBot ? ` · ${DRAWGUESS_BOT_TAG}` : ''}
             {row.isDrawer ? ' · 画手' : ''}
           </Text>
           <Text style={styles.score}>
             {row.roundScore === null
-              ? `${row.totalScore} 分`
+              ? formatDrawGuessScore(row.totalScore)
               : `+${row.roundScore} · 总分 ${row.totalScore}`}
           </Text>
         </View>

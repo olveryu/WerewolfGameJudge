@@ -47,7 +47,7 @@ import {
 //#cap identityViewing
   hostActionTask,
 //#end
-  hostClosingTask,
+  hostReviewClosingTask,
 //#cap identityViewing
 //#end
   hostStartTask,
@@ -74,6 +74,11 @@ import type {
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import {
+  buildReviewBottomButton,
+  buildReviewHostAction,
+  type RoomReviewEntry,
+} from '@/features/room/review/roomReviewActions';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
@@ -129,6 +134,8 @@ export interface __GAME_PASCAL__RoomShellModelInput extends Omit<
   readonly onProfileLeaveSeat: () => void;
   readonly isLobby: boolean;
   readonly releaseBot: () => void;
+  /** 本局复盘入口（平台 useRoomReview）；没有可复盘的对局时为 null。 */
+  readonly review: RoomReviewEntry | null;
 }
 
 export interface __GAME_PASCAL__HostManagementInput {
@@ -139,6 +146,8 @@ export interface __GAME_PASCAL__HostManagementInput {
   >;
   readonly isSubmitting: boolean;
   readonly submit: (label: string, command: __GAME_PASCAL__Command) => Promise<boolean>;
+  /** 本局复盘入口；终局时必有。 */
+  readonly review: RoomReviewEntry | null;
 }
 
 /** Assembles the __GAME_PASCAL__ host panel for the current phase. Host gating belongs to the shell factory. */
@@ -280,13 +289,16 @@ export function create__GAME_PASCAL__HostManagement(
 //#end
 //#cap identityViewing
   if (state.phase.kind === 'ended') {
+    if (input.review === null) throw new Error('[FAIL-FAST] __GAME_PASCAL__ ended without a review entry');
+    // 本局复盘与再来一局 / 返回大厅并列：下一局开始后本局复盘随之消失。
     return {
-      task: hostClosingTask(),
+      task: hostReviewClosingTask(),
       sections: [
         {
           key: 'current-flow',
           title: '当前流程',
           actions: [
+            buildReviewHostAction(input.review),
             buildNextRoundAction({
               onPress: () =>
                 showConfirmAlert(
@@ -311,13 +323,16 @@ export function create__GAME_PASCAL__HostManagement(
 //#end
 //#cap !identityViewing
   if (state.phase.kind === 'ended') {
+    if (input.review === null) throw new Error('[FAIL-FAST] __GAME_PASCAL__ ended without a review entry');
+    // 本局复盘与再来一局 / 返回大厅并列：下一局开始后本局复盘随之消失。
     return {
-      task: hostClosingTask(),
+      task: hostReviewClosingTask(),
       sections: [
         {
           key: 'current-flow',
           title: '当前流程',
           actions: [
+            buildReviewHostAction(input.review),
             buildNextRoundAction({
               onPress: () =>
                 showConfirmAlert(HOST_FLOW_CONFIRM.nextRoundTitle, '将重新分配并清零比分，开始新的一局。', async () => {
@@ -380,7 +395,12 @@ export function create__GAME_PASCAL__RoomShellModel(
           ? buildEndedWaitingMessage({ isEnded: true, viewer: input.viewer })
           : buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      // 本局复盘对每位观看者（含观战）开放：有复盘即在次级档。
+      layout: {
+        primary: [],
+        secondary: input.review === null ? [] : [buildReviewBottomButton(input.review, 'secondary')],
+        ghost: [],
+      },
     },
     controlledSeat: createControlledSeatModel({
       controlledSeat: input.controlledSeat,

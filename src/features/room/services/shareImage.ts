@@ -1,13 +1,14 @@
 /**
- * Share base64 PNGs through native or browser platform APIs.
+ * Hand captured PNGs to the platform.
  *
- * Result semantics: `'shared'` once the platform share surface was
- * presented (the Web Share sheet completed, the WeChat preview opened,
- * the native sheet returned, or a download was triggered where no sheet
- * exists); `'cancelled'` only when the platform reports the user
- * dismissed the sheet — the Web Share `AbortError`. `expo-sharing`'s
- * `shareAsync` resolves void on dismissal and completion alike, so a
- * native share is never reported cancelled. Any other failure throws.
+ * The outcome says honestly what happened: `'handedOff'` — the system
+ * share sheet took the images (Web Share completed, or the native sheet
+ * returned: `expo-sharing` resolves alike on dismissal and completion, so
+ * a native share is never reported cancelled); `'downloaded'` — no share
+ * sheet could take them and the browser saved them instead; `'previewed'`
+ * — the WeChat mini program opened its image preview after the upload;
+ * `'cancelled'` — the reader dismissed the Web Share sheet (`AbortError`).
+ * Any other failure throws.
  */
 
 import { File as ExpoFile, Paths } from 'expo-file-system';
@@ -19,29 +20,29 @@ import { isMiniProgram, wxPreviewImage } from '@/utils/miniProgram';
 
 import { uploadShareImage } from './uploadShareImage';
 
-function base64ToFile(base64: string, filename: string): globalThis.File {
-  const byteChars = atob(base64);
-  const byteArray = new Uint8Array(byteChars.length);
-  for (let index = 0; index < byteChars.length; index += 1) {
-    byteArray[index] = byteChars.charCodeAt(index);
-  }
-  return new globalThis.File([byteArray], filename, { type: 'image/png' });
+export type ShareImageOutcome = 'handedOff' | 'downloaded' | 'previewed' | 'cancelled';
+
+export interface ShareImage {
+  readonly base64: string;
+  readonly filename: string;
 }
 
-function downloadImage(base64: string, filename: string): void {
+function base64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
+  const byteChars = globalThis.atob(base64);
+  const bytes = new Uint8Array(byteChars.length);
+  for (let index = 0; index < byteChars.length; index += 1) {
+    bytes[index] = byteChars.charCodeAt(index);
+  }
+  return bytes;
+}
+
+function downloadImage(image: ShareImage): void {
   const link = document.createElement('a');
-  link.href = `data:image/png;base64,${base64}`;
-  link.download = filename;
+  link.href = `data:image/png;base64,${image.base64}`;
+  link.download = image.filename;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-}
-
-export type ShareImageResult = 'shared' | 'cancelled';
-
-export interface ShareImageSource {
-  readonly getBase64: () => Promise<string>;
-  readonly filename: string;
 }
 
 /** The one cancellation judgement for platform share sheets: the Web Share `AbortError`. */
@@ -49,79 +50,80 @@ export function isShareCancelled(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError';
 }
 
-export async function shareImageBase64(
-  getBase64: () => Promise<string>,
-  filename: string,
-  title: string,
-): Promise<ShareImageResult> {
-  return shareImagesBase64([{ getBase64, filename }], title);
+function assertShareImages(images: readonly ShareImage[]): void {
+  if (images.length === 0) throw new Error('[FAIL-FAST] No images to share');
+  for (const image of images) {
+    if (image.base64.length === 0) {
+      throw new Error(`[FAIL-FAST] Captured share image ${image.filename} is empty`);
+    }
+  }
 }
 
-/** Shares ordered PNGs together in WeChat or a supported browser file-share sheet. */
-export async function shareImagesBase64(
-  images: readonly ShareImageSource[],
-  title: string,
-): Promise<ShareImageResult> {
-  if (images.length === 0) throw new Error('No images to share');
-  const captured: { base64Data: string; filename: string }[] = [];
-  for (const image of images) {
-    const base64Data = await image.getBase64();
-    if (base64Data.length === 0) throw new Error('Captured share image is empty');
-    captured.push({ base64Data, filename: image.filename });
-  }
+/** Mini program: uploads the PNGs in order and returns their temporary public URLs. */
+export async function uploadShareImages(images: readonly ShareImage[]): Promise<string[]> {
+  assertShareImages(images);
+  const urls: string[] = [];
+  for (const image of images) urls.push(await uploadShareImage(image.base64));
+  return urls;
+}
 
+/** Mini program: opens the uploaded images as one WeChat preview album, first image current. */
+export async function previewUploadedImages(urls: readonly string[]): Promise<'previewed'> {
+  const [first] = urls;
+  if (first === undefined) throw new Error('[FAIL-FAST] No uploaded images to preview');
+  await wxPreviewImage(first, urls);
+  return 'previewed';
+}
+
+/** Shares ordered PNGs together: WeChat preview, the browser file-share sheet, or the native sheet. */
+export async function shareImagesBase64(
+  images: readonly ShareImage[],
+  title: string,
+): Promise<ShareImageOutcome> {
+  assertShareImages(images);
   if (Platform.OS === 'web') {
-    if (isMiniProgram()) {
-      const urls: string[] = [];
-      for (const image of captured) urls.push(await uploadShareImage(image.base64Data));
-      await wxPreviewImage(urls[0]!, urls);
-      return 'shared';
-    }
-    return shareImagesWeb(captured, title);
+    if (isMiniProgram()) return previewUploadedImages(await uploadShareImages(images));
+    return shareImagesWeb(images, title);
   }
-  for (const image of captured) await shareImageNative(image.base64Data, image.filename, title);
-  return 'shared';
+  for (const image of images) await shareImageNative(image, title);
+  return 'handedOff';
 }
 
 async function shareImagesWeb(
-  images: readonly { readonly base64Data: string; readonly filename: string }[],
+  images: readonly ShareImage[],
   title: string,
-): Promise<ShareImageResult> {
-  const download = (): ShareImageResult => {
-    for (const image of images) downloadImage(image.base64Data, image.filename);
-    return 'shared';
+): Promise<ShareImageOutcome> {
+  const download = (): ShareImageOutcome => {
+    for (const image of images) downloadImage(image);
+    return 'downloaded';
   };
-  if (typeof navigator !== 'undefined' && navigator.share) {
-    const files = images.map((image) => base64ToFile(image.base64Data, image.filename));
-    if (navigator.canShare && !navigator.canShare({ files })) return download();
-    try {
-      await navigator.share({ title, files });
-      return 'shared';
-    } catch (error) {
-      if (isShareCancelled(error)) return 'cancelled';
-      // No user gesture / unsupported payload: fall back to a download.
-      if (error instanceof DOMException && error.name === 'NotAllowedError') return download();
-      if (error instanceof TypeError) return download();
-      throw error;
+  if (typeof navigator === 'undefined' || !navigator.share) return download();
+  const files = images.map(
+    (image) =>
+      new globalThis.File([base64ToBytes(image.base64)], image.filename, { type: 'image/png' }),
+  );
+  if (navigator.canShare && !navigator.canShare({ files })) return download();
+  try {
+    await navigator.share({ title, files });
+    return 'handedOff';
+  } catch (error) {
+    if (isShareCancelled(error)) return 'cancelled';
+    // No user activation left, or a payload the sheet refuses: save instead.
+    if (
+      (error instanceof DOMException && error.name === 'NotAllowedError') ||
+      error instanceof TypeError
+    ) {
+      shareLog.warn('Web Share refused the images; downloading instead', error);
+      return download();
     }
+    throw error;
   }
-
-  return download();
 }
 
-async function shareImageNative(
-  base64Data: string,
-  filename: string,
-  title: string,
-): Promise<void> {
-  const tempFile = new ExpoFile(Paths.cache, filename);
+async function shareImageNative(image: ShareImage, title: string): Promise<void> {
+  const tempFile = new ExpoFile(Paths.cache, image.filename);
   try {
-    const byteChars = globalThis.atob(base64Data);
-    const byteArray = new Uint8Array(byteChars.length);
-    for (let index = 0; index < byteChars.length; index += 1) {
-      byteArray[index] = byteChars.charCodeAt(index);
-    }
-    tempFile.write(byteArray);
+    tempFile.write(base64ToBytes(image.base64));
     await shareAsync(tempFile.uri, { mimeType: 'image/png', dialogTitle: title });
   } finally {
     try {

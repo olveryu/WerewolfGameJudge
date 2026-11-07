@@ -17,9 +17,9 @@ daily target 5 (`DEFAULT_REWARDS` in `generate.mjs`). The game id must
 match `/^[a-z][a-z0-9]*$/` (`render.mjs`, `assertValidGameId`); class
 names derive from it.
 
-## Shared edits: 15
+## Shared edits: 16
 
-`SHARED_EDITS` in `generate.mjs` (line 137) has 15 entries, in this
+`SHARED_EDITS` in `generate.mjs` (line 138) has 16 entries, in this
 order:
 
 1. `packages/game-engine/src/platform/protocol/gameTypes.ts`
@@ -37,6 +37,7 @@ order:
 13. `src/test-utils/clientGameCatalog.tsx`
 14. `src/__tests__/botDispatchDiscipline.contract.test.ts`
 15. `src/__tests__/roomGuidanceMatrix.contract.test.ts`
+16. `src/__tests__/roomReview.contract.test.ts`
 
 Edits are computed in memory first and only then written; a missing
 anchor or ambiguous anchor aborts before the first write
@@ -47,13 +48,13 @@ over created + edited files + the report, an `eslint --fix` pass over
 created files, and a second prettier pass over created files
 (`generate.mjs`, `formatGeneratedFiles` / `autofixGeneratedImports`).
 
-## Template tree: 39 files
+## Template tree: 43 files
 
-`scripts/lib/new-game/templates/` holds 39 `.tmpl` files: 19 under
-`shared/` and 20 under `game/` (`collectTemplateFiles('shared')` /
+`scripts/lib/new-game/templates/` holds 43 `.tmpl` files: 19 under
+`shared/` and 24 under `game/` (`collectTemplateFiles('shared')` /
 `collectTemplateFiles('game', capabilities)` in `generate.mjs`). Four
 files are capability-gated (`FILE_CAPABILITY_GATES` in `generate.mjs`,
-line 126):
+line 127):
 
 | Template file                                                | Gate                 |
 | ------------------------------------------------------------ | -------------------- |
@@ -69,9 +70,9 @@ is an extra file in all cases, not counted here):
 
 | Preset        | Excluded templates                                       | Files (templates + migration) |
 | ------------- | -------------------------------------------------------- | ----------------------------- |
-| `identity`    | phase-deadline test, audio hook (2)                      | 37 + 1 = **38**               |
-| `stage`       | identity-viewing test, role-card adapter, audio hook (3) | 36 + 1 = **37**               |
-| `demo-hybrid` | audio hook (1)                                           | 38 + 1 = **39**               |
+| `identity`    | phase-deadline test, audio hook (2)                      | 41 + 1 = **42**               |
+| `stage`       | identity-viewing test, role-card adapter, audio hook (3) | 40 + 1 = **41**               |
+| `demo-hybrid` | audio hook (1)                                           | 42 + 1 = **43**               |
 
 All three presets keep `audioOrchestration` off, so the audio hook is
 never rendered by the generator.

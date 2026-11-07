@@ -27,6 +27,7 @@ import { createFakeRoomLink, readyLinkSnapshot } from '@/test-utils/linkSnapshot
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 
 import type { AvalonRoomSession } from '../../model/AvalonRoomSession';
+import { avalonReview } from '../../review/avalonReview';
 import { AvalonRoomScreen } from '../AvalonRoomScreen';
 
 let mockAuthUserId = 'host';
@@ -211,6 +212,7 @@ function screenElement(session: AvalonRoomSession) {
     entryReason: null,
     navigation: { navigate: jest.fn() },
     session,
+    review: avalonReview,
     audio: {
       preload: jest.fn(async () => undefined),
       playEffect: jest.fn(async () => undefined),

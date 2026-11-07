@@ -53,10 +53,10 @@ function endedState(overrides: Partial<GameState> = {}): GameState {
 function renderFlow(state: GameState) {
   const submit = jest.fn<ReturnType<WerewolfSubmit>, Parameters<WerewolfSubmit>>(async () => true);
   const audio = createAudio();
-  const shareNightReviewReport = jest.fn(async () => undefined);
+  const shareReview = jest.fn(async () => undefined);
   const view = renderHook(
     (props: { state: GameState }) =>
-      useWerewolfHostFlow({ state: props.state, submit, audio, shareNightReviewReport }),
+      useWerewolfHostFlow({ state: props.state, submit, audio, shareReview }),
     { initialProps: { state } },
   );
   return { ...view, submit, audio };

@@ -8,13 +8,19 @@ import type {
 import { useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { GalleryPagerControls } from '@/features/room/components/GalleryPagerControls';
 import { GalleryPlaybackControls } from '@/features/room/components/GalleryPlaybackControls';
-import { colors } from '@/theme';
+import { colors, componentSizes } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
-import { getStoryRelayVisibleStories } from '../storyRelayPresentation';
-import { StoryRelayImageShare } from './StoryRelayImageShare';
+import { storyRelayStoryPageKey } from '../../review/toStoryRelayReviewDocument';
+import {
+  getStoryRelayAuthorName,
+  getStoryRelayVisibleStories,
+  STORY_RELAY_BLANK_ENTRY_TEXT,
+  STORY_RELAY_EMPTY_STORY_TEXT,
+} from '../storyRelayPresentation';
 import { storyRelayStyles as styles } from './StoryRelayStage.styles';
 
 /** Keeps local rereading separate from the server's shared playback position. */
@@ -23,11 +29,14 @@ export function StoryRelayGallery({
   isHost,
   submit,
   isSubmitting,
+  openReview,
 }: {
   readonly state: StoryRelayState;
   readonly isHost: boolean;
   readonly submit: (label: string, command: StoryRelayCommand) => Promise<boolean>;
   readonly isSubmitting: boolean;
+  /** Opens the shared review at one story's page. */
+  readonly openReview: (pageKey: string) => void;
 }) {
   const [selectedStory, setSelectedStory] = useState(0);
   const isPlayback = state.phase === 'gallery';
@@ -68,31 +77,25 @@ export function StoryRelayGallery({
         data={chain.entries}
         keyExtractor={(entry) => entry.id}
         contentContainerStyle={styles.content}
-        ListEmptyComponent={<Text style={styles.muted}>这篇故事尚未收录稿件</Text>}
-        renderItem={({ item, index }) => {
-          const author = state.participants.find(
-            (participant) => participant.seat === item.authorSeat,
-          );
-          if (author === undefined) throw new Error('Story author missing');
-          return (
-            <View
-              style={[
-                styles.entry,
-                isPlayback &&
-                  state.gallery !== null &&
-                  state.gallery.position % state.config.numberOfPlayers === index &&
-                  styles.selected,
-              ]}
-            >
-              <Text style={styles.muted}>
-                第 {index + 1} 棒 · {author.displayName}
-              </Text>
-              <Text selectable style={styles.text} testID={`storyrelay-entry-${index}`}>
-                {item.kind === 'text' ? item.text : '（空白）'}
-              </Text>
-            </View>
-          );
-        }}
+        ListEmptyComponent={<Text style={styles.muted}>{STORY_RELAY_EMPTY_STORY_TEXT}</Text>}
+        renderItem={({ item, index }) => (
+          <View
+            style={[
+              styles.entry,
+              isPlayback &&
+                state.gallery !== null &&
+                state.gallery.position % state.config.numberOfPlayers === index &&
+                styles.selected,
+            ]}
+          >
+            <Text style={styles.muted}>
+              第 {index + 1} 棒 · {getStoryRelayAuthorName(state, item.authorSeat)}
+            </Text>
+            <Text selectable style={styles.text} testID={`storyrelay-entry-${index}`}>
+              {item.kind === 'text' ? item.text : STORY_RELAY_BLANK_ENTRY_TEXT}
+            </Text>
+          </View>
+        )}
       />
       {isHost && isPlayback && state.gallery !== null && (
         <GalleryPlaybackControls
@@ -131,7 +134,17 @@ export function StoryRelayGallery({
       )}
       {!isPlayback && (
         <View style={[styles.controls, styles.row]}>
-          <StoryRelayImageShare state={state} chainIndex={chainIndex} />
+          <Button
+            variant="secondary"
+            style={styles.shareButton}
+            accessibilityLabel="分享本篇故事"
+            onPress={() => openReview(storyRelayStoryPageKey(chain))}
+            icon={
+              <Ionicons name="image-outline" size={componentSizes.icon.sm} color={colors.text} />
+            }
+          >
+            分享本篇故事
+          </Button>
         </View>
       )}
     </View>

@@ -19,6 +19,7 @@ import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
@@ -54,14 +55,24 @@ function capabilities(
 const submit = jest.fn(async () => true);
 const releaseBot = jest.fn();
 
-function build(state: AvalonState, isSetup: boolean, isSubmitting = false) {
+/** The review entry the room hook hands over: present once the game ended, null before. */
+function reviewEntryFor(state: AvalonState): RoomReviewEntry | null {
+  return state.phase.kind === 'ended' ? { isEnabled: true, onPress: jest.fn() } : null;
+}
+
+function build(
+  state: AvalonState,
+  isSetup: boolean,
+  isSubmitting = false,
+  review: RoomReviewEntry | null = reviewEntryFor(state),
+) {
   return createAvalonHostManagement({
     state,
     capabilities: capabilities(isSetup),
     isSubmitting,
     controlledSeat: null,
     releaseBot,
-    onReviewPress: jest.fn(),
+    review,
     onMusicSettings: jest.fn(),
     submit,
   });
@@ -434,39 +445,45 @@ describe('createAvalonHostManagement', () => {
     expect(game.state.phase.kind).toBe('ended');
     const model = build(game.state, false);
     const actions = model?.sections[0]?.actions ?? [];
-    expect(actions.map((action) => action.key)).toEqual([
-      'avalonReview',
-      'next-round',
-      'return-lobby',
-    ]);
+    expect(actions.map((action) => action.key)).toEqual(['review', 'next-round', 'return-lobby']);
     expect(actions.map((action) => action.testID)).toEqual([
-      'avalon-review-open',
+      'room-review-host-action',
       'next-round-button',
       'return-lobby-button',
     ]);
+    // The closing task offers the review as an equal option beside the terminal pair.
+    const task = hostTaskBody(model);
+    if (task?.kind !== 'choice') throw new Error('expected a choice task body');
+    expect(task.actions.map((action) => action.key)).toEqual([
+      'review',
+      'next-round',
+      'return-lobby',
+    ]);
   });
 
-  it('routes the host review action through the shared review handler', () => {
+  it('routes the host review action through the shared review entry', () => {
     const game = session();
     game.seatHost();
     game.fill();
     game.startToNominate();
     game.playToEnded();
     expect(game.state.phase.kind).toBe('ended');
-    const onReviewPress = jest.fn();
-    const model = createAvalonHostManagement({
-      state: game.state,
-      capabilities: capabilities(false),
-      isSubmitting: false,
-      controlledSeat: null,
-      releaseBot,
-      onReviewPress,
-      onMusicSettings: jest.fn(),
-      submit,
-    });
-    const review = model?.sections[0]?.actions.find((action) => action.key === 'avalonReview');
+    const openReview = jest.fn();
+    const model = build(game.state, false, false, { isEnabled: true, onPress: openReview });
+    const review = model?.sections[0]?.actions.find((action) => action.key === 'review');
     expect(review).toMatchObject({ label: '本局复盘', variant: 'secondary', isEnabled: true });
     if (review && review.isEnabled) review.onPress();
-    expect(onReviewPress).toHaveBeenCalledTimes(1);
+    expect(openReview).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails fast when the ended panel has no review entry', () => {
+    const game = session();
+    game.seatHost();
+    game.fill();
+    game.startToNominate();
+    game.playToEnded();
+    expect(() => build(game.state, false, false, null)).toThrow(
+      '[FAIL-FAST] Avalon ended host has no review entry',
+    );
   });
 });

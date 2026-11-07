@@ -11,6 +11,7 @@ import {
   getDrawGuessViewModel,
   isBotSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
+import type { ReactNode } from 'react';
 
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
@@ -26,6 +27,8 @@ import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
+import type { RoomReviewContribution } from '@/features/room/review/types';
+import { useRoomReview } from '@/features/room/review/useRoomReview';
 import { type DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
 
 import {
@@ -62,12 +65,15 @@ export interface DrawGuessRoomScreenState {
   readonly submit: ReadyRoomSession<DrawGuessState, DrawGuessCommand>['submit'];
   readonly session: DrawGuessRoomSession;
   readonly openRules: () => void;
+  /** 本局复盘的对话框、导出舞台与分享进度，挂在房间的 gameOverlays。 */
+  readonly reviewOverlay: ReactNode;
 }
 
 /** 把当前就绪 session 绑定到房间壳控制器与命令上。 */
 export function useDrawGuessRoomState(
   props: GameRoomScreenProps<'drawguess'> & {
     readonly session: DrawGuessRoomSession;
+    readonly review: RoomReviewContribution<DrawGuessState>;
     readonly entryController: RoomEntryController;
   },
 ): DrawGuessRoomScreenState {
@@ -80,6 +86,14 @@ export function useDrawGuessRoomState(
   const mySeat = getDrawGuessUserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
   const isLobby = state.phase.kind === 'lobby';
+  const review = useRoomReview({
+    contribution: props.review,
+    state,
+    viewer,
+    roomId: room.roomId,
+    roomCode: room.roomCode,
+    onOpened: null,
+  });
   // 机器人接管：房主随时可接管；失去房主身份或座位不再是机器人时由共享守卫释放。
   const bots = useBotTakeover({
     viewer,
@@ -144,6 +158,7 @@ export function useDrawGuessRoomState(
       capabilities,
       isSubmitting,
       submit,
+      review: review.entry,
     });
 
   const shellModel: RoomShellModel = createDrawGuessRoomShellModel({
@@ -171,6 +186,7 @@ export function useDrawGuessRoomState(
     isLobby,
     buildHostManagement,
     releaseBot: bots.release,
+    review: review.entry,
   });
   return {
     state,
@@ -191,5 +207,6 @@ export function useDrawGuessRoomState(
     session,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: 'drawguess', roomCode: room.roomCode }),
+    reviewOverlay: review.overlay,
   };
 }

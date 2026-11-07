@@ -13,6 +13,7 @@ import {
 import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
 import { viewerFor } from '@/test-utils/roomViewer';
 
+import { undercoverReview } from '../../review/undercoverReview';
 import type { UndercoverRoundControls } from '../hooks/useUndercoverRoundControls';
 import { createUndercoverBottomActions } from '../undercoverActionModels';
 import { UNDERCOVER_GUIDANCE_MATRIX } from '../undercoverGuidanceMatrix';
@@ -200,7 +201,12 @@ function controlsFor(state: UndercoverState, viewerSeat: number | null): Underco
 
 function bottomMessage(state: UndercoverState, audience: RoomViewerAudience): string | null {
   const viewer = viewerFor(audience, { seatedSeat: 2 });
-  return createUndercoverBottomActions(controlsFor(state, viewer.seat), state, viewer).message;
+  const review =
+    undercoverReview.resolve({ state, viewer, roomCode: '1234' }).kind === 'available'
+      ? { isEnabled: true as const, onPress: jest.fn() }
+      : null;
+  return createUndercoverBottomActions(controlsFor(state, viewer.seat), state, viewer, review)
+    .message;
 }
 
 describe('UNDERCOVER_GUIDANCE_MATRIX', () => {

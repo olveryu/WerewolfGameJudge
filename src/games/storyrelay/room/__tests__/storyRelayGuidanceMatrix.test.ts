@@ -21,8 +21,10 @@ import {
   createRoomSetupCapabilities,
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
+import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { viewerFor } from '@/test-utils/roomViewer';
 
+import { storyRelayReview } from '../../review/storyRelayReview';
 import { STORY_RELAY_GUIDANCE_MATRIX } from '../storyRelayGuidanceMatrix';
 import { createStoryRelayRoomShellModel } from '../storyRelayRoomAdapter';
 
@@ -222,6 +224,11 @@ const seatController: RoomSeatController = {
 
 function bottomMessage(state: StoryRelayState, audience: RoomViewerAudience): string | null {
   const viewer = viewerFor(audience);
+  // The entry the room hook hands the adapter: present once the review exists.
+  const review: RoomReviewEntry | null =
+    storyRelayReview.resolve({ state, viewer, roomCode: '1234' }).kind === 'notEnded'
+      ? null
+      : { isEnabled: true, onPress: jest.fn() };
   const model = createStoryRelayRoomShellModel({
     roomCode: '1234',
     viewer,
@@ -258,6 +265,7 @@ function bottomMessage(state: StoryRelayState, audience: RoomViewerAudience): st
       shareImage: jest.fn(async () => undefined),
     },
     isLobby: state.phase === 'lobby',
+    review,
     buildHostManagement: () => ({ task: null, sections: [] }),
     releaseBot: jest.fn(),
   });

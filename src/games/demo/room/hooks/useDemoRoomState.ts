@@ -11,6 +11,7 @@ import {
   getDemoViewModel,
   isBotSeat,
 } from '@game-judge/game-engine/games/demo/public';
+import type { ReactNode } from 'react';
 
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
@@ -27,6 +28,8 @@ import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
+import type { RoomReviewContribution } from '@/features/room/review/types';
+import { useRoomReview } from '@/features/room/review/useRoomReview';
 import { toRevealRoleData } from '@/games/demo/components/DemoRoleCardAdapter';
 import type { DemoRoomSession } from '@/games/demo/model/DemoRoomSession';
 
@@ -57,6 +60,8 @@ export interface DemoRoomScreenState {
   readonly isSubmitting: boolean;
   readonly session: DemoRoomSession;
   readonly openRules: () => void;
+  /** 本局复盘弹窗、导出舞台与分享进度（平台 useRoomReview），放进房间 gameOverlays。 */
+  readonly reviewOverlay: ReactNode;
   /** 身份卡：先落查看记录、确认后再弹卡（平台 useRoleViewing）。 */
   readonly roleViewing: RoleViewing;
   readonly roleCardAllRoles: readonly RevealRoleData[];
@@ -66,6 +71,7 @@ export interface DemoRoomScreenState {
 export function useDemoRoomState(
   props: GameRoomScreenProps<'demo'> & {
     readonly session: DemoRoomSession;
+    readonly review: RoomReviewContribution<DemoState>;
     readonly entryController: RoomEntryController;
   },
 ): DemoRoomScreenState {
@@ -123,6 +129,15 @@ export function useDemoRoomState(
     viewedSeatCount: state.roleViewedSeats.length,
     submitViewed: () => submit('查看身份', { type: 'demo.role.viewed' }, { controlledSeat }),
   });
+  // 本局复盘：入口、弹窗与图片分享归平台，复盘文档由模块声明的 review 给出。
+  const review = useRoomReview({
+    contribution: props.review,
+    state,
+    viewer,
+    roomId: room.roomId,
+    roomCode: room.roomCode,
+    onOpened: null,
+  });
   const capabilities: RoomCapabilities = {
     ...setupCapabilities,
     canTakeOverBots: bots.capability,
@@ -141,6 +156,7 @@ export function useDemoRoomState(
       capabilities,
       isSubmitting,
       submit,
+      review: review.entry,
     });
 
   const shellModel: RoomShellModel = createDemoRoomShellModel({
@@ -168,6 +184,7 @@ export function useDemoRoomState(
     isLobby,
     buildHostManagement,
     releaseBot: bots.release,
+    review: review.entry,
   });
   const viewModel = isLobby ? null : getDemoViewModel(state, effectiveSeat);
   return {
@@ -185,6 +202,7 @@ export function useDemoRoomState(
     session,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: 'demo', roomCode: room.roomCode }),
+    reviewOverlay: review.overlay,
     roleViewing,
     roleCardAllRoles: Object.values(state.identities).map(toRevealRoleData),
   };

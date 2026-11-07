@@ -12,19 +12,23 @@ import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, type ListRenderItemInfo, StyleSheet, Text, View } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { GalleryPagerControls } from '@/features/room/components/GalleryPagerControls';
 import { GalleryPlaybackControls } from '@/features/room/components/GalleryPlaybackControls';
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import { STAGE_FRAME_MAX_WIDTH } from '@/features/room/components/StageFrame';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
-import { getPictionarySeatDisplayName } from '@/games/pictionary/model/pictionarySelectors';
+import {
+  getPictionarySeatDisplayName,
+  PICTIONARY_MISSED_ENTRY_TEXT,
+} from '@/games/pictionary/model/pictionarySelectors';
+import { pictionaryAlbumPageKey } from '@/games/pictionary/review/toPictionaryReviewDocument';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { getLatestEntryOffset } from '../galleryAlbumLayout';
-import { PictionaryAlbumExport } from './PictionaryAlbumExport';
 import { PictionaryDrawingImage } from './PictionaryDrawingImage';
 import { PictionaryStageHeading } from './PictionaryStageFrame';
 
@@ -63,7 +67,7 @@ const GalleryEntryView: React.FC<GalleryEntryViewProps> = ({ state, entry, entry
     ) : (
       <View style={styles.missedReveal}>
         <Ionicons name="close-circle-outline" size={36} color={colors.textMuted} />
-        <Text style={styles.missedTitle}>这一棒交了空白</Text>
+        <Text style={styles.missedTitle}>{PICTIONARY_MISSED_ENTRY_TEXT}</Text>
         <Text style={styles.missedDescription}>
           原本需要{entry.expectedKind === 'drawing' ? '画一幅画' : '写下猜测'}
         </Text>
@@ -288,9 +292,14 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
 
 interface PictionaryEndedStageProps {
   readonly state: PictionaryState;
+  /** Opens the shared review at one album's page. */
+  readonly openReview: (pageKey: string) => void;
 }
 
-export const PictionaryEndedStage: React.FC<PictionaryEndedStageProps> = ({ state }) => {
+export const PictionaryEndedStage: React.FC<PictionaryEndedStageProps> = ({
+  state,
+  openReview,
+}) => {
   if (state.phase !== 'ended' && state.phase !== 'aborted') {
     throw new Error('[FAIL-FAST] Ended stage requires completed Pictionary state');
   }
@@ -299,7 +308,13 @@ export const PictionaryEndedStage: React.FC<PictionaryEndedStageProps> = ({ stat
   if (chain === undefined) throw new Error('[FAIL-FAST] Completed Pictionary album is missing');
   const controls = (
     <View style={styles.endedControls}>
-      <PictionaryAlbumExport key={chain.id} state={state} chain={chain} />
+      <Button
+        variant="secondary"
+        onPress={() => openReview(pictionaryAlbumPageKey(chain))}
+        icon={<Ionicons name="share-outline" size={20} color={colors.text} />}
+      >
+        分享本篇画册
+      </Button>
       <GalleryPagerControls
         current={localChainIndex}
         total={state.chains.length}

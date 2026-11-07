@@ -961,6 +961,177 @@ describe('DrawGuess abort', () => {
   });
 });
 
+describe('DrawGuess turn history', () => {
+  type Session = ReturnType<typeof game>;
+
+  /** Reserves and files the drawer's final PNG in the current roundEnd; returns its entry id. */
+  function fileDrawing(session: Session, drawerUserId: string): string {
+    session.send({ type: 'drawguess.drawing.reserve' }, drawerUserId);
+    const phase = session.state.phase;
+    if (phase.kind !== 'roundEnd' || phase.reservation === null) throw new Error('phase');
+    session.sendInternal({
+      type: 'drawguess.drawing.committed',
+      turnIndex: session.state.turnIndex,
+      submissionId: phase.reservation.submissionId,
+      objectKey: `drawguess/history/turn-${session.state.turnIndex}.png`,
+      byteLength: 2048,
+      sha256: `sha-turn-${session.state.turnIndex}`,
+    });
+    return phase.reservation.entryId;
+  }
+
+  function chooseWord(session: Session, word: string): void {
+    const phase = session.state.phase;
+    if (phase.kind !== 'wordSelect') throw new Error('phase');
+    session.send(
+      { type: 'drawguess.word.choose', word, ...session.revision() },
+      session.seatUser(phase.drawerSeat),
+    );
+  }
+
+  /** Settles roundEnd into the next turn and deals its choices, or ends the game. */
+  function closeRoundEnd(session: Session): void {
+    session.settleExpired();
+    if (session.state.phase.kind === 'wordSelect') {
+      session.sendInternal({
+        type: 'drawguess.words.dealt',
+        turnIndex: session.state.turnIndex,
+        choices: CHOICES,
+      });
+    }
+  }
+
+  /** Plays every remaining turn without guesses; the final drawer files a drawing. */
+  function playToEnd(session: Session): void {
+    const lastTurn = session.state.drawerQueue.length * session.state.config.roundsPerDrawer - 1;
+    for (let turn = session.state.turnIndex; turn <= lastTurn; turn += 1) {
+      chooseWord(session, CHOICES[turn % CHOICES.length]!.word);
+      session.settleExpired();
+      const phase = session.state.phase;
+      if (phase.kind !== 'roundEnd') throw new Error('phase');
+      if (turn === lastTurn) fileDrawing(session, session.seatUser(phase.drawerSeat));
+      closeRoundEnd(session);
+    }
+  }
+
+  it('freezes each closed turn with its drawer, word, guess order, scores and drawing', () => {
+    const session = game();
+    session.startGame();
+    session.chooseFirstWord(0);
+    session.guess(2, '大熊猫');
+    session.advanceTime(10_000);
+    session.guess(1, '大熊猫');
+    session.guess(3, '风筝');
+    session.settleExpired();
+    const entryId = fileDrawing(session, 'host');
+    if (session.state.phase.kind !== 'roundEnd') throw new Error('phase');
+    expect(session.state.phase.guessedSeats).toEqual([2, 1]);
+    expect(session.state.turnHistory).toEqual([]);
+
+    closeRoundEnd(session);
+    chooseWord(session, '火锅');
+    session.settleExpired();
+    closeRoundEnd(session);
+
+    expect(session.state.turnIndex).toBe(2);
+    expect(session.state.turnHistory).toHaveLength(2);
+    expect(session.state.turnHistory).toEqual([
+      {
+        turnIndex: 0,
+        drawerSeat: 0,
+        word: '大熊猫',
+        guessedSeats: [2, 1],
+        roundScores: { 0: 120, 1: 180, 2: 200 },
+        drawerZeroed: false,
+        entryId,
+        pngEntry: {
+          objectKey: 'drawguess/history/turn-0.png',
+          contentType: 'image/png',
+          width: 1024,
+          height: 768,
+          byteLength: 2048,
+          sha256: 'sha-turn-0',
+        },
+      },
+      {
+        turnIndex: 1,
+        drawerSeat: 1,
+        word: '火锅',
+        guessedSeats: [],
+        roundScores: {},
+        drawerZeroed: false,
+        entryId: null,
+        pngEntry: null,
+      },
+    ]);
+  });
+
+  it('keeps the running turn out of the history every viewer sees', () => {
+    const session = game();
+    session.startGame();
+    session.chooseFirstWord(0);
+    session.settleExpired();
+    closeRoundEnd(session);
+    chooseWord(session, '风筝');
+    expect(session.state.phase.kind).toBe('drawing');
+    const history = session.state.turnHistory;
+    expect(history.map((turn) => turn.word)).toEqual(['大熊猫']);
+    for (const viewerSeat of [1, 2, null]) {
+      expect(getDrawGuessViewModel(session.state, viewerSeat, session.nowMs).turnHistory).toEqual(
+        history,
+      );
+    }
+  });
+
+  it('records the final turn when the game ends', () => {
+    const session = game();
+    session.startGame();
+    playToEnd(session);
+    expect(session.state.phase.kind).toBe('ended');
+    const history = session.state.turnHistory;
+    expect(history.map((turn) => turn.turnIndex)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    expect(history.map((turn) => turn.drawerSeat)).toEqual([0, 1, 2, 3, 0, 1, 2, 3]);
+    expect(history.filter((turn) => turn.entryId !== null)).toHaveLength(1);
+    const lastTurn = history[7];
+    expect(lastTurn?.turnIndex).toBe(7);
+    expect(lastTurn?.drawerSeat).toBe(3);
+    expect(lastTurn?.entryId).toMatch(/^drawguess-entry:/);
+    expect(lastTurn?.pngEntry?.objectKey).toBe('drawguess/history/turn-7.png');
+    for (const viewerSeat of [0, 3, null]) {
+      expect(getDrawGuessViewModel(session.state, viewerSeat, session.nowMs).turnHistory).toEqual(
+        history,
+      );
+    }
+  });
+
+  it('clears the history when the host aborts the game', () => {
+    const session = game();
+    session.startGame();
+    session.chooseFirstWord(0);
+    session.settleExpired();
+    closeRoundEnd(session);
+    expect(session.state.turnHistory).toHaveLength(1);
+    session.send({ type: 'drawguess.game.abort', gameSequence: session.state.gameSequence });
+    expect(session.state.phase).toEqual({ kind: 'lobby' });
+    expect(session.state.turnHistory).toEqual([]);
+  });
+
+  it('clears the history on rematch and on return to lobby', () => {
+    const session = game();
+    session.startGame();
+    playToEnd(session);
+    expect(session.state.turnHistory).toHaveLength(8);
+    session.startGame();
+    expect(session.state.phase.kind).toBe('wordSelect');
+    expect(session.state.turnHistory).toEqual([]);
+    playToEnd(session);
+    expect(session.state.turnHistory).toHaveLength(8);
+    session.send({ type: 'drawguess.game.returnToLobby' });
+    expect(session.state.phase).toEqual({ kind: 'lobby' });
+    expect(session.state.turnHistory).toEqual([]);
+  });
+});
+
 describe('DrawGuess guess normalization', () => {
   it('strips whitespace and CJK punctuation', () => {
     expect(normalizeGuessText('大 熊猫')).toBe('大熊猫');

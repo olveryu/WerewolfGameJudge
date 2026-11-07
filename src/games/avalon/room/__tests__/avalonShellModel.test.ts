@@ -166,7 +166,7 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
     onLadyAcknowledgePress: jest.fn(),
     onLadyResultPress: jest.fn(),
     onEarlyStrikePress: jest.fn(),
-    onReviewPress: jest.fn(),
+    review: null,
     strikePickMode: false,
     onCancelEarlyStrikePress: jest.fn(),
     buildHostManagement: () => null,
@@ -917,8 +917,9 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
       running.settle();
     }
     if (running.state.phase.kind !== 'ended') throw new Error('expected ended phase');
-    expect(shellFor(running, 2).message).toBe('等待房主操作（再来一局 / 返回大厅）');
-    expect(shellFor(running, 0).message).toBeNull();
+    const review = { isEnabled: true, onPress: jest.fn() } as const;
+    expect(shellFor(running, 2, { review }).message).toBe('等待房主操作（再来一局 / 返回大厅）');
+    expect(shellFor(running, 0, { review }).message).toBeNull();
   });
 
   it('ended: every viewer gets the same review button in secondary', () => {
@@ -951,18 +952,22 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
       running.settle();
     }
     if (running.state.phase.kind !== 'ended') throw new Error('expected ended phase');
-    const onReviewPress = jest.fn();
+    const openReview = jest.fn();
     for (const seat of [0, 2]) {
-      const bottom = shellFor(running, seat, { onReviewPress });
-      const review = findTierAction(bottom, 'secondary', 'avalonReview');
+      const bottom = shellFor(running, seat, {
+        review: { isEnabled: true, onPress: openReview },
+      });
+      const review = findTierAction(bottom, 'secondary', 'review');
       expect(review).toMatchObject({
         label: '本局复盘',
+        audience: 'anyone',
         variant: 'secondary',
         isEnabled: true,
-        testID: 'avalon-review-open',
+        testID: 'room-review-open',
       });
       if (review && review.isEnabled) review.onPress();
     }
-    expect(onReviewPress).toHaveBeenCalledTimes(2);
+    expect(openReview).toHaveBeenCalledTimes(2);
+    expect(() => shellFor(running, 2)).toThrow('[FAIL-FAST] Avalon ended has no review entry');
   });
 });

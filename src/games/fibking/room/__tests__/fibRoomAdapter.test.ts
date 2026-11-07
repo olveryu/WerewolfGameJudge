@@ -4,7 +4,10 @@ import {
   type FibState,
 } from '@game-judge/game-engine/games/fibking/public';
 
+import { hostReviewClosingTask } from '@/features/room/model/hostManagementActions';
 import { createBotTakeoverCapability } from '@/features/room/model/RoomCapabilities';
+import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
+import { fibReview } from '@/games/fibking/review/fibReview';
 import {
   createFibBoardInfoSections,
   createFibBottomActions,
@@ -17,6 +20,16 @@ import {
 } from '@/games/fibking/room/fibRoomAdapter';
 import { hostTaskBody } from '@/test-utils/hostTask';
 import { TESTIDS } from '@/testids';
+
+/** The entry the room derives for this state from the real review contribution. */
+function reviewEntryFor(state: FibState): RoomReviewEntry | null {
+  const availability = fibReview.resolve({
+    state,
+    viewer: { userId: 'host', isHost: true, seat: 0 },
+    roomCode: '4321',
+  });
+  return availability.kind === 'available' ? { isEnabled: true, onPress: jest.fn() } : null;
+}
 
 const callbacks = {
   requestTakeSeat: jest.fn(),
@@ -111,6 +124,7 @@ describe('FibKing room adapter', () => {
         redrawRound: jest.fn(),
         abandonGame: jest.fn(),
         endGame: jest.fn(),
+        review: reviewEntryFor(state),
       });
     const flowActions = (state: FibState) =>
       build(state)?.sections.find((section) => section.key === 'current-flow')?.actions ?? [];
@@ -152,6 +166,7 @@ describe('FibKing room adapter', () => {
         redrawRound: jest.fn(),
         abandonGame: jest.fn(),
         endGame: jest.fn(),
+        review: reviewEntryFor(state),
       });
 
     // Full lobby: the start action is lock-disabled with no reason and
@@ -362,22 +377,47 @@ describe('FibKing room adapter', () => {
     });
   });
 
-  it('keeps the personal result action after the answer is revealed', () => {
-    const ongoing = createOngoing();
-    const ended = { ...ongoing, phase: 'ended' as const };
-    const actions = createFibBottomActions({
-      state: ended,
-      isHost: true,
-      viewerSeat: null,
-      openIdentity: jest.fn(),
-      isSubmitting: false,
-    });
-
-    expect(actions.layout.primary).toEqual([]);
-    expect(actions.layout.secondary).toMatchObject([
-      { label: '查看结果', testID: TESTIDS.fibViewResultButton, isEnabled: true },
-    ]);
-    expect(actions.layout.ghost).toEqual([]);
+  it('keeps the public result beside the review for every reader once the answer is out', () => {
+    const ended = { ...createOngoing(), phase: 'ended' as const };
+    const review = reviewEntryFor(ended);
+    for (const viewer of [
+      { isHost: true, viewerSeat: 0 },
+      { isHost: false, viewerSeat: 1 },
+      { isHost: false, viewerSeat: null },
+    ]) {
+      const actions = createFibBottomActions({
+        state: ended,
+        ...viewer,
+        openIdentity: jest.fn(),
+        isSubmitting: false,
+        review,
+      });
+      expect(actions.layout).toMatchObject({
+        primary: [],
+        secondary: [
+          { label: '查看结果', testID: TESTIDS.fibViewResultButton, isEnabled: true },
+          {
+            key: 'review',
+            label: '本局复盘',
+            audience: 'anyone',
+            variant: 'secondary',
+            testID: TESTIDS.roomReviewOpenButton,
+            isEnabled: true,
+          },
+        ],
+        ghost: [],
+      });
+    }
+    expect(() =>
+      createFibBottomActions({
+        state: ended,
+        isHost: false,
+        viewerSeat: 1,
+        openIdentity: jest.fn(),
+        isSubmitting: false,
+        review: null,
+      }),
+    ).toThrow('[FAIL-FAST] FibKing ended round has no review entry');
   });
 
   it('derives discoverable Host management tasks from Fib phases', () => {
@@ -394,6 +434,7 @@ describe('FibKing room adapter', () => {
       ...callbacks,
     });
     const lobbyManagement = createFibHostManagement({
+      review: null,
       state: lobby,
       isCommandSubmitting: false,
       capabilities: lobbyCapabilities,
@@ -433,6 +474,7 @@ describe('FibKing room adapter', () => {
       ...callbacks,
     });
     const ongoingManagement = createFibHostManagement({
+      review: null,
       state: ongoing,
       isCommandSubmitting: false,
       capabilities: ongoingCapabilities,
@@ -483,6 +525,7 @@ describe('FibKing room adapter', () => {
       ...callbacks,
     });
     const endedManagement = createFibHostManagement({
+      review: reviewEntryFor(ended),
       state: ended,
       isCommandSubmitting: false,
       capabilities: endedCapabilities,
@@ -498,6 +541,13 @@ describe('FibKing room adapter', () => {
       endGame,
     });
     expect(endedManagement?.sections.map((section) => section.title)).toEqual(['当前流程']);
+    // 本局复盘 stands as an equal closing option beside 再来一局 / 返回大厅.
+    expect(endedManagement.sections[0]?.actions.map((action) => action.key)).toEqual([
+      'review',
+      'next-round',
+      'return-lobby',
+    ]);
+    expect(endedManagement.task).toEqual(hostReviewClosingTask());
     const endAction = endedManagement?.sections[0]?.actions.find(
       (action) => action.key === 'return-lobby',
     );
@@ -513,6 +563,7 @@ describe('FibKing room adapter', () => {
       viewerSeat: 0,
       isSubmitting: false,
       openIdentity,
+      review: null,
     };
 
     const lobby = createFibBottomActions({ state: createLobby(), ...common });
@@ -556,6 +607,7 @@ describe('FibKing room adapter', () => {
       viewerSeat: null,
       openIdentity: jest.fn(),
       isSubmitting: false,
+      review: null,
     };
 
     const capabilities = createFibRoomCapabilities({
@@ -578,6 +630,7 @@ describe('FibKing room adapter', () => {
       revealRound: jest.fn(),
       redrawRound: jest.fn(),
       abandonGame: jest.fn(),
+      review: null,
     });
     expect(hostManagement?.sections[0]?.actions).toMatchObject([
       { label: '重新准备', isEnabled: true },
@@ -607,6 +660,7 @@ describe('FibKing room adapter', () => {
       viewerSeat: null,
       openIdentity,
       isSubmitting: false,
+      review: null,
     });
     expect(lobby.layout).toEqual({ primary: [], secondary: [], ghost: [] });
     expect(lobby.message).toBeNull();
@@ -617,6 +671,7 @@ describe('FibKing room adapter', () => {
       viewerSeat: 0,
       openIdentity,
       isSubmitting: false,
+      review: null,
     });
     expect(ongoingPlayer.layout.primary).toEqual([]);
     expect(ongoingPlayer.layout.secondary).toMatchObject([
@@ -635,6 +690,7 @@ describe('FibKing room adapter', () => {
       viewerSeat: null,
       openIdentity,
       isSubmitting: false,
+      review: null,
     });
     expect(ongoingSpectator.layout.secondary).toMatchObject([
       {
@@ -651,7 +707,7 @@ describe('FibKing room adapter', () => {
 describe('createFibHostManagement task body', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  const build = (state: FibState) =>
+  const build = (state: FibState, review = reviewEntryFor(state)) =>
     createFibHostManagement({
       state,
       isCommandSubmitting: false,
@@ -666,6 +722,7 @@ describe('createFibHostManagement task body', () => {
       redrawRound: jest.fn(),
       abandonGame: jest.fn(),
       endGame: jest.fn(),
+      review,
     });
 
   it('blocks the round start in a non-full lobby and offers room sharing as the remedy', () => {
@@ -719,6 +776,22 @@ describe('createFibHostManagement task body', () => {
       kind: 'ready',
       action: { key: 'reveal-round', label: '公布答案' },
     });
+  });
+
+  it('closes an ended round on the review beside the next round and the return to the lobby', () => {
+    const body = hostTaskBody(build({ ...createOngoing(), phase: 'ended' }));
+    if (body?.kind !== 'choice') throw new Error('expected a choice task body');
+    expect(body.actions.map((action) => action.label)).toEqual([
+      '本局复盘',
+      '再来一局',
+      '返回大厅',
+    ]);
+  });
+
+  it('fails fast when an ended round reaches the host panel without its review', () => {
+    expect(() => build({ ...createOngoing(), phase: 'ended' }, null)).toThrow(
+      '[FAIL-FAST] FibKing ended host has no review entry',
+    );
   });
 });
 

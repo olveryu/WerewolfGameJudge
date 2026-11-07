@@ -5,13 +5,14 @@ import {
   type FibPreparationFailureCode,
   type FibPreparationStage,
   type FibRoundView,
+  type FibState,
   getFibOccupiedSeatCount,
   getFibRoundView,
   getFibUserSeat,
   isBotSeat,
 } from '@game-judge/game-engine/games/fibking/public';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useCallback, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useMemo, useState } from 'react';
 
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
@@ -31,6 +32,8 @@ import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
+import type { RoomReviewContribution } from '@/features/room/review/types';
+import { useRoomReview } from '@/features/room/review/useRoomReview';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -54,6 +57,7 @@ interface UseFibRoomScreenStateParams {
   readonly navigation: NativeStackNavigationProp<RootStackParamList, 'Room'>;
   readonly entryController: RoomEntryController;
   readonly session: FibRoomSession;
+  readonly review: RoomReviewContribution<FibState>;
 }
 
 export interface FibRoomScreenState {
@@ -78,6 +82,8 @@ export interface FibRoomScreenState {
   readonly isHost: boolean;
   /** 当前用户装备的揭示动画（已解析）；null 表示未装备、直接显示静态卡。 */
   readonly equippedRevealEffect: RevealEffectType | null;
+  /** The shared review's dialog, export stage and share progress, for the game overlays. */
+  readonly reviewOverlay: ReactNode;
 }
 
 export function useFibRoomState({
@@ -86,6 +92,7 @@ export function useFibRoomState({
   navigation,
   entryController,
   session,
+  review: reviewContribution,
 }: UseFibRoomScreenStateParams): FibRoomScreenState {
   const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
     session,
@@ -256,6 +263,16 @@ export function useFibRoomState({
     onPick: guessSeat,
   });
 
+  // ── 本局复盘 ──
+  const review = useRoomReview({
+    contribution: reviewContribution,
+    state,
+    viewer,
+    roomId: room.roomId,
+    roomCode: room.roomCode,
+    onOpened: null,
+  });
+
   // ── 座位 / 壳 ──
   const capabilities = createFibRoomCapabilities({
     ...actions,
@@ -301,6 +318,7 @@ export function useFibRoomState({
     redrawRound,
     abandonGame,
     endGame,
+    review: review.entry,
   });
   const shellModel: RoomShellModel = createFibRoomShellModel({
     roomCode: room.roomCode,
@@ -332,6 +350,7 @@ export function useFibRoomState({
       viewerSeat: effectiveSeat,
       isSubmitting,
       openIdentity,
+      review: review.entry,
     }),
     buildHostManagement: () => hostManagement,
     controlledSeat: createControlledSeatModel({
@@ -361,5 +380,6 @@ export function useFibRoomState({
       state.phase === 'preparationFailed' ? state.preparationFailure.failureCode : null,
     isHost,
     equippedRevealEffect: resolveEquippedRevealEffect(user.equippedEffect, room.roomCode, user.id),
+    reviewOverlay: review.overlay,
   };
 }

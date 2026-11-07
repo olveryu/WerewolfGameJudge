@@ -2,7 +2,7 @@
  * createPictionaryHostManagement task body: the console model is
  * derived from the same lobby start action the panel renders — blocked
  * with the seat reason and a share remedy until the room is full, ready
- * after.
+ * after — and a finished round closes on the shared review.
  */
 import {
   createPictionaryCommand,
@@ -22,7 +22,9 @@ import {
   createViewProfilesCapability,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
+import { playPictionaryTestRound } from '@/test-utils/pictionaryState';
 
 import { createPictionaryHostManagement } from '../pictionaryRoomAdapter';
 
@@ -84,13 +86,14 @@ function createSession() {
   };
 }
 
-function build(state: PictionaryState) {
+function build(state: PictionaryState, review: RoomReviewEntry | null = null) {
   const shareRoom = jest.fn();
   const capabilities = testCapabilities({ state, isHost: true, mySeat: 0, shareRoom });
   const model = createPictionaryHostManagement({
     state,
     capabilities,
     isCommandSubmitting: false,
+    review,
     startRound: jest.fn(),
     nextRound: jest.fn(),
     returnToLobby: jest.fn(),
@@ -132,5 +135,46 @@ describe('createPictionaryHostManagement task body', () => {
     const step = hostTaskBody(model);
     expect(step).toMatchObject({ action: { key: 'start-game', label: '开始游戏' } });
     if (step?.kind !== 'ready') throw new Error('expected a ready task body');
+  });
+
+  it('closes an ended round on the review beside 再来一局 / 返回大厅', () => {
+    const openReview = jest.fn();
+    const { model } = build(playPictionaryTestRound(), { isEnabled: true, onPress: openReview });
+    expect(model.sections.map((section) => section.key)).toEqual(['current-flow']);
+    expect(model.sections[0]!.actions.map((action) => action.key)).toEqual([
+      'review',
+      'next-round',
+      'return-lobby',
+    ]);
+    const step = hostTaskBody(model);
+    if (step?.kind !== 'choice') throw new Error('expected a choice task body');
+    expect(step.actions.map((action) => action.label)).toEqual([
+      '本局复盘',
+      '再来一局',
+      '返回大厅',
+    ]);
+    const [review] = step.actions;
+    if (review?.isEnabled !== true) throw new Error('expected an enabled review action');
+    expect(review.testID).toBe('room-review-host-action');
+    review.onPress();
+    expect(openReview).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers an aborted round its review beside 返回大厅, with no next round', () => {
+    const { model } = build(playPictionaryTestRound({ abortAtStep: 1 }), {
+      isEnabled: true,
+      onPress: jest.fn(),
+    });
+    expect(model.task).toEqual({ kind: 'choice', actionKeys: ['review', 'return-lobby'] });
+    expect(model.sections[0]!.actions.map((action) => action.key)).toEqual([
+      'review',
+      'return-lobby',
+    ]);
+  });
+
+  it('fails fast when a finished round reaches the host panel without its review entry', () => {
+    expect(() => build(playPictionaryTestRound())).toThrow(
+      '[FAIL-FAST] Pictionary ended host has no review entry',
+    );
   });
 });

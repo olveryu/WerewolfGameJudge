@@ -1,6 +1,7 @@
 /**
  * createStoryRelayHostManagement characterization (AU-31): phase × host
- * snapshots from real engine states.
+ * snapshots from real engine states; a finished round closes on the
+ * shared review.
  */
 import {
   DEFAULT_STORY_RELAY_CONFIG,
@@ -15,6 +16,7 @@ import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
 
 import { createStoryRelayHostManagement } from '../storyRelayRoomAdapter';
@@ -44,12 +46,13 @@ function capabilities(
 
 const submit = jest.fn(async () => true);
 
-function build(state: StoryRelayState, isSetup: boolean) {
+function build(state: StoryRelayState, isSetup: boolean, review: RoomReviewEntry | null = null) {
   return createStoryRelayHostManagement({
     state,
     capabilities: capabilities(isSetup),
     isSubmitting: false,
     submit,
+    review,
   });
 }
 
@@ -211,14 +214,18 @@ describe('createStoryRelayHostManagement', () => {
     expect(model?.sections.map((section) => section.key)).toEqual(['danger']);
   });
 
-  it('pins the aborted terminal: return-lobby only, no next-round', () => {
+  it('pins the aborted terminal: the review beside return-lobby, no next-round', () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
     game.send({ type: 'storyrelay.game.abort', phaseRevision: game.state.phaseRevision });
     expect(game.state.phase).toBe('aborted');
-    const model = build(game.state, false);
-    expect(model?.sections[0]?.actions.map((action) => action.key)).toEqual(['return-lobby']);
+    const model = build(game.state, false, { isEnabled: true, onPress: jest.fn() });
+    expect(model?.sections[0]?.actions.map((action) => action.key)).toEqual([
+      'review',
+      'return-lobby',
+    ]);
+    expect(model.task).toEqual({ kind: 'choice', actionKeys: ['review', 'return-lobby'] });
   });
 
   it('keeps the host panel in the gallery phase with abort disabled and its reason', () => {
@@ -241,12 +248,35 @@ describe('createStoryRelayHostManagement', () => {
     game.playToGallery();
     game.send({ type: 'storyrelay.gallery.finish', phaseRevision: game.state.phaseRevision });
     expect(game.state.phase).toBe('ended');
-    const model = build(game.state, false);
+    const openReview = jest.fn();
+    const model = build(game.state, false, { isEnabled: true, onPress: openReview });
     const actions = model?.sections[0]?.actions ?? [];
-    expect(actions.map((action) => action.key)).toEqual(['next-round', 'return-lobby']);
+    expect(actions.map((action) => action.key)).toEqual(['review', 'next-round', 'return-lobby']);
     expect(actions.map((action) => action.testID)).toEqual([
+      'room-review-host-action',
       'next-round-button',
       'return-lobby-button',
     ]);
+    const step = hostTaskBody(model);
+    if (step?.kind !== 'choice') throw new Error('expected a choice task body');
+    expect(step.actions.map((action) => action.label)).toEqual([
+      '本局复盘',
+      '再来一局',
+      '返回大厅',
+    ]);
+    const [review] = step.actions;
+    if (review?.isEnabled !== true) throw new Error('expected an enabled review action');
+    review.onPress();
+    expect(openReview).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails fast when a finished round reaches the host panel without its review entry', () => {
+    const game = session();
+    game.seatHost();
+    game.fillAndStart();
+    game.send({ type: 'storyrelay.game.abort', phaseRevision: game.state.phaseRevision });
+    expect(() => build(game.state, false)).toThrow(
+      '[FAIL-FAST] Story Relay aborted host has no review entry',
+    );
   });
 });

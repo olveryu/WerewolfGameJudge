@@ -13,6 +13,7 @@ import {
   fibGameNavigation,
   parseFibConfigRouteParams,
 } from '@/games/fibking/navigation/fibGameNavigation';
+import { fibReview } from '@/games/fibking/review/fibReview';
 import { getFibRoomCommandFailureMessage } from '@/games/fibking/room/fibRoomCommandFailureMessage';
 import { FibRoomScreen } from '@/games/fibking/room/FibRoomScreen';
 import { FibRulesScreen } from '@/games/fibking/screens/RulesScreen/FibRulesScreen';
@@ -39,6 +40,7 @@ export const createFibUiModule = defineClientGameModule<'fibking', FibState, Fib
       creationLabel: '创建瞎掰王房间',
     }),
   GuideScreen: FibRulesScreen,
+  review: fibReview,
   isUserSeated: (state, userId) => getFibUserSeat(state, userId) !== null,
   canSwitchAccount: (state) => state.phase === 'lobby',
 });

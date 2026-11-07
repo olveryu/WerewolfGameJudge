@@ -13,6 +13,8 @@ import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import { HOST_FLOW_CONFIRM } from '@/features/room/model/hostManagementActions';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
+import { UNDERCOVER_ABORT_NOTICE } from '../undercoverCopy';
+
 function requestUndercoverRestart(
   state: UndercoverState,
   submit: (label: string, command: UndercoverPublicCommand) => Promise<boolean>,
@@ -165,14 +167,10 @@ export function useUndercoverRoundControls({
   };
   const abort = () => {
     if (roundId === undefined) throw new Error('Abort requires an active Undercover round');
-    showConfirmAlert(
-      HOST_FLOW_CONFIRM.abortTitle,
-      '本局不计胜负，不公开未揭晓身份和词语。',
-      async () => {
-        closeCard();
-        await submit('中止本局', { type: 'undercover.game.abort', roundId });
-      },
-    );
+    showConfirmAlert(HOST_FLOW_CONFIRM.abortTitle, UNDERCOVER_ABORT_NOTICE, async () => {
+      closeCard();
+      await submit('中止本局', { type: 'undercover.game.abort', roundId });
+    });
   };
   const confirmCard = () => {
     if (state.phase !== 'viewing' || card === null)

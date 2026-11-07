@@ -1,7 +1,9 @@
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { expect, test } from '@playwright/test';
 
+import { TESTIDS } from '../../src/testids';
 import { closeAll } from '../fixtures/app.fixture';
+import { downloadReviewImage, REVIEW_CAPTURE_TIMEOUT_MS } from '../helpers/image-sharing';
 import {
   type GameSetupWithRolesResult,
   setupNPlayerGame,
@@ -27,7 +29,8 @@ import { RoomPage } from '../pages/RoomPage';
  *
  * Minimal-player night flows and settlement display verification:
  * - 2-player and 6-player smoke flows run to completion
- * - Verification: 2p death message shows the correct seat;
+ * - Verification: 2p death message shows the correct seat, and the host
+ *   exports the night review （本局复盘） as an image;
  *   6p seer reveal shows the checked wolf
  *
  * Formerly night-2p.spec.ts, night-6p.spec.ts and night-verify.spec.ts.
@@ -126,6 +129,28 @@ test.describe('Werewolf Night — Flow Verification', () => {
         .then((buf) =>
           testInfo.attach('2p-death-result.png', { body: buf, contentType: 'image/png' }),
         );
+
+      await test.step('host opens the night review and exports the report image', async () => {
+        // The night report is the room's review （本局复盘）: the host opens it from host
+        // management, passes the spoiler confirmation, and shares it from the dialog itself.
+        await dismissAlert(hostPage);
+        await new RoomPage(hostPage).clickHostManagementAction(TESTIDS.roomReviewHostAction);
+        const confirmation = hostPage.getByTestId(TESTIDS.alertModal);
+        await expect(confirmation.getByText('查看本局复盘？', { exact: true })).toBeVisible();
+        await confirmation.getByText('确定查看', { exact: true }).click();
+        const review = hostPage.getByTestId(TESTIDS.roomReviewDialog);
+        await expect(review.getByText('🌙 第一夜 · 夜报', { exact: true })).toBeVisible();
+        await expect(review).toContainText('人出局');
+        await expect(review.getByText('全员身份', { exact: true })).toBeVisible();
+        const shareButton = review.getByTestId(TESTIDS.roomReviewShareButton);
+        // The control reads its share label once the background capture is ready.
+        await expect(shareButton).toContainText('保存／分享图片', {
+          timeout: REVIEW_CAPTURE_TIMEOUT_MS,
+        });
+        await downloadReviewImage(shareButton, `werewolf-${roomCode}-1.png`);
+        await hostPage.getByRole('button', { name: '关闭详情', exact: true }).click();
+        await expect(review).toHaveCount(0);
+      });
     } finally {
       if (setup) await closeAll(setup.fixture);
     }

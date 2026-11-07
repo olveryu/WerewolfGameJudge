@@ -8,7 +8,6 @@ export const undercoverStyles = StyleSheet.create({
   title: roomSurfaceStyles.title,
   text: roomSurfaceStyles.body,
   muted: roomSurfaceStyles.status,
-  section: roomSurfaceStyles.section,
   revealOverlay: {
     flex: 1,
     justifyContent: 'flex-end',

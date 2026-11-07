@@ -595,3 +595,14 @@ v3 初稿默认"六家是基准、狼人杀向六家看齐"，把两处狼人杀
 | §6.8         | "`+1` 消失是因为按确认后状态定义"                                                                                    | `remainingCards` 按确认前 `viewedSeatCount` 计算                                                                                                       |
 | §7           | pictionary / fibking 都改 `useRoomSetupController`                                                                   | 只有 pictionary；fibking 保留 roster 控制器                                                                                                            |
 | §11 D9 / D12 | `gameEnded` 参与者 human/bot 联合；音频 hook 按 epoch 重建                                                           | 参与者只含真人；不按 epoch 重建                                                                                                                        |
+
+### 后续：复盘子系统由跨游戏复盘取代（2026-11）
+
+本文 §6 / §7 中"保留到 review-share 设计落地"的复盘与分享件已按
+[跨游戏本局复盘与图片分享设计](game-review-share-design.md) 实施并删除：`NightReviewModal`、
+`NightReviewShareCard`、`NightReviewReportBody`、`SheriffElectionReportSection`、`ShareProgressModal`、
+`nightReviewLayout.ts`、`shareNightReview.ts`、`useNightReviewShare.ts`，以及共享的
+`useShareImageAction`（其两个调用方 `PictionaryAlbumExport` / `useStoryRelayImageShare` 一并删除）。
+狼人杀复盘改为 `src/games/werewolf/review/toWerewolfReviewDocument.ts` 产出声明式文档，由
+`src/features/room/review/` 的统一渲染器与导出链路呈现；`useRoomModals` 只保留授权选座与昨夜信息。
+上文涉及这些文件的表格与清单是当时的记录，以本节为准。

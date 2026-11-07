@@ -1,6 +1,8 @@
 /**
  * createStoryRelayRoomShellModel characterization (AU-01): the assembled
- * model is pinned field by field from a real engine lobby state.
+ * model is pinned field by field from a real engine lobby state, and a
+ * finished round's bottom panel carries the shared review for every
+ * viewer.
  */
 import {
   DEFAULT_STORY_RELAY_CONFIG,
@@ -15,6 +17,11 @@ import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import type { RoomViewer } from '@/features/room/model/RoomViewer';
+import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
+import { viewerFor } from '@/test-utils/roomViewer';
+import { playStoryRelayTestRound } from '@/test-utils/storyrelayState';
 
 import { createStoryRelayRoomShellModel } from '../storyRelayRoomAdapter';
 
@@ -85,6 +92,48 @@ const share = {
   shareImage: jest.fn(async () => undefined),
 };
 
+const ENABLED_REVIEW: RoomReviewEntry = { isEnabled: true, onPress: () => {} };
+
+/** The shell one viewer sees of a played round, with the review entry the room hook passes. */
+function shellFor(
+  state: StoryRelayState,
+  viewer: RoomViewer,
+  review: RoomReviewEntry | null,
+): RoomShellModel {
+  return createStoryRelayRoomShellModel({
+    roomCode: state.roomCode,
+    viewer,
+    capabilities: capabilities(),
+    onBack: jest.fn(),
+    onTitlePress: jest.fn(),
+    onTitleLongPress: jest.fn(),
+    user: { id: viewer.userId, avatarUrl: null },
+    gachaStatus: null,
+    onUserActionPress: jest.fn(),
+    connection: {
+      status: { kind: 'live' },
+      pendingDurableCount: 0,
+      presence: new Set<string>(),
+      onRetryNow: jest.fn(),
+    },
+    state,
+    revision: 1,
+    controlledSeat: null,
+    seatsVisuallyDisabled: false,
+    onSeatPress: jest.fn(),
+    onBotSeatLongPress: null,
+    seatController,
+    profileSelection: null,
+    onProfileClose: jest.fn(),
+    onProfileLeaveSeat: jest.fn(),
+    share,
+    isLobby: false,
+    review,
+    buildHostManagement: () => null,
+    releaseBot: jest.fn(),
+  });
+}
+
 describe('createStoryRelayRoomShellModel', () => {
   it('assembles the lobby shell from the hook projections', () => {
     const state = lobbyState(true);
@@ -119,6 +168,7 @@ describe('createStoryRelayRoomShellModel', () => {
       onProfileLeaveSeat: jest.fn(),
       share,
       isLobby: true,
+      review: null,
       buildHostManagement: () => hostManagement,
       releaseBot: jest.fn(),
     });
@@ -170,6 +220,7 @@ describe('createStoryRelayRoomShellModel', () => {
       onProfileLeaveSeat: jest.fn(),
       share,
       isLobby: false,
+      review: ENABLED_REVIEW,
       buildHostManagement: () => hostManagement,
       releaseBot: jest.fn(),
     });
@@ -206,6 +257,7 @@ describe('createStoryRelayRoomShellModel', () => {
       onProfileLeaveSeat: jest.fn(),
       share,
       isLobby: true,
+      review: null,
       buildHostManagement: () => null,
       releaseBot: jest.fn(),
     });
@@ -216,5 +268,38 @@ describe('createStoryRelayRoomShellModel', () => {
       layout: { primary: [], secondary: [], ghost: [] },
     });
     expect(model.controlledSeat).toBeNull();
+  });
+
+  it.each([
+    ['ended', playStoryRelayTestRound()],
+    ['aborted', playStoryRelayTestRound({ abortAtStep: 2 })],
+  ])('offers every viewer of an %s round the review as a secondary button', (_phase, state) => {
+    for (const audience of ['host', 'seated', 'spectator'] as const) {
+      const model = shellFor(state, viewerFor(audience, { hostUserId: 'host-1' }), ENABLED_REVIEW);
+      expect(model.bottomActions).toMatchObject({
+        kind: 'stacked',
+        message: null,
+        layout: {
+          primary: [],
+          secondary: [
+            {
+              key: 'review',
+              label: '本局复盘',
+              audience: 'anyone',
+              variant: 'secondary',
+              testID: 'room-review-open',
+              isEnabled: true,
+            },
+          ],
+          ghost: [],
+        },
+      });
+    }
+  });
+
+  it('fails fast when a finished round reaches the bottom panel without its review entry', () => {
+    expect(() =>
+      shellFor(playStoryRelayTestRound(), viewerFor('spectator', { hostUserId: 'host-1' }), null),
+    ).toThrow('[FAIL-FAST] Story Relay ended has no review entry');
   });
 });

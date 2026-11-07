@@ -327,6 +327,7 @@ export const HOST_ACTION_KEYS = {
   clearSeats: 'clear-seats',
   configureGame: 'configure-game',
   shareRoom: 'share-room',
+  review: 'review',
 } as const;
 
 /**
@@ -382,6 +383,20 @@ export function hostClosingTask(extras: HostTaskExtras = {}): RoomHostTask {
   return {
     kind: 'choice',
     actionKeys: [HOST_ACTION_KEYS.nextRound, HOST_ACTION_KEYS.returnLobby],
+    ...extras,
+  };
+}
+
+/**
+ * The closing task of a game whose review is part of closing: 本局复盘
+ * stands as an equal option beside 再来一局 / 返回大厅 — the review is
+ * gone once the next round starts. A game with its own review step
+ * (Werewolf's panel flow) closes with `hostClosingTask` instead.
+ */
+export function hostReviewClosingTask(extras: HostTaskExtras = {}): RoomHostTask {
+  return {
+    kind: 'choice',
+    actionKeys: [HOST_ACTION_KEYS.review, HOST_ACTION_KEYS.nextRound, HOST_ACTION_KEYS.returnLobby],
     ...extras,
   };
 }

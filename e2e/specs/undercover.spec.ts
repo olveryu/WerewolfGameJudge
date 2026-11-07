@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
+import { downloadReviewImage, REVIEW_CAPTURE_TIMEOUT_MS } from '../helpers/image-sharing';
 import { HomePage } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
 
@@ -190,13 +191,27 @@ for (const viewport of [
           await hostPage.getByText('隐藏词卡', { exact: true }).click();
         }
       }
-      await expect(hostPage.getByText('白板获胜', { exact: true })).toBeVisible();
+      // The conclusion lives in the shared review （本局复盘）: a seated player
+      // opens it from the bottom panel and exports the one-page report image.
+      const reviewPage = joinerPages[0]!;
+      await reviewPage.getByTestId(TESTIDS.roomReviewOpenButton).click();
+      const reviewDialog = reviewPage.getByTestId(TESTIDS.roomReviewDialog);
+      await expect(reviewDialog.getByText('白板获胜', { exact: true })).toBeVisible();
       await expect(hostPage.getByTestId('undercover-view-word')).toHaveCount(0);
+      const shareButton = reviewDialog.getByTestId(TESTIDS.roomReviewShareButton);
+      // The control reads its share label once the background capture is ready.
+      await expect(shareButton).toContainText('保存／分享图片', {
+        timeout: REVIEW_CAPTURE_TIMEOUT_MS,
+      });
+      await downloadReviewImage(shareButton, `undercover-${roomCode}.png`);
+      await reviewPage.getByRole('button', { name: '关闭详情', exact: true }).click();
+      await expect(reviewDialog).toHaveCount(0);
       // Open the host panel once and reuse it: on narrow viewports the panel is a
       // modal sheet that covers the management entry button, so opening it again
       // while it is already open leaves Playwright retrying the entry click
       // until the test timeout.
       const endedManagement = await hostRoom.openHostManagement();
+      await expect(endedManagement.getByTestId(TESTIDS.roomReviewHostAction)).toBeVisible();
       await expect(endedManagement.getByTestId(TESTIDS.nextRoundButton)).toBeVisible();
       await hostPage.screenshot({
         path: testInfo.outputPath(`undercover-ended-${viewport.width}.png`),
@@ -207,7 +222,8 @@ for (const viewport of [
       await endedManagement.getByTestId(TESTIDS.nextRoundButton).click();
       await hostRoom.confirmHostActionDialog('再来一局');
       await expect(hostPage.getByText(/位玩家已查看词卡，等待剩余玩家/)).toBeVisible();
-      await expect(hostPage.getByTestId('undercover-results')).toHaveCount(0);
+      // The review belongs to the concluded round: it is gone once the next one deals.
+      await expect(reviewPage.getByTestId(TESTIDS.roomReviewOpenButton)).toHaveCount(0);
       await expect(hostPage.getByText('已出局 · 平民', { exact: true })).toHaveCount(0);
       // NB: do NOT open the host management panel here. On narrow viewports it
       // is a modal bottom sheet that covers the host's own view-word button,
@@ -245,6 +261,12 @@ for (const viewport of [
         joinerPages[0]!.getByText('本局已中止，等待房主处理', { exact: true }),
       ).toBeVisible();
       await expect(hostPage.getByText('本局已中止', { exact: true })).toBeVisible();
+      // An abort after the deal still leaves a review of what play made public.
+      await reviewPage.getByTestId(TESTIDS.roomReviewOpenButton).click();
+      await expect(reviewDialog.getByText('本局已中止', { exact: true })).toBeVisible();
+      await expect(reviewDialog.getByText('未完成', { exact: true })).toBeVisible();
+      await reviewPage.getByRole('button', { name: '关闭详情', exact: true }).click();
+      await expect(reviewDialog).toHaveCount(0);
       await hostRoom.openHostManagement();
       await hostPage.getByTestId(TESTIDS.returnLobbyButton).click();
       await hostRoom.confirmHostActionDialog('返回大厅');

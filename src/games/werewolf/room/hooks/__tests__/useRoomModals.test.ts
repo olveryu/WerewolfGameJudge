@@ -1,10 +1,11 @@
 /**
- * Tests the night-review report preparation behavior owned by useRoomModals.
+ * useRoomModals: the review-access grant picker and the last-night-info
+ * confirmation chain. The review itself (confirmation, dialog, image
+ * share) is the shared useRoomReview and is tested with the platform.
  */
 
-import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook } from '@testing-library/react-native';
 
-import type { ReportCaptureProgress } from '@/games/werewolf/room/hooks/useNightReviewShare';
 import { useRoomModals } from '@/games/werewolf/room/hooks/useRoomModals';
 import { showAlert } from '@/utils/alert';
 
@@ -16,22 +17,14 @@ jest.mock('@/utils/alert', () => ({
 const mockShowAlert = jest.mocked(showAlert);
 
 function createDeps(
-  beginReportCapture: () => Promise<string | null>,
   overrides: Partial<Parameters<typeof useRoomModals>[0]> = {},
 ): Parameters<typeof useRoomModals>[0] {
   return {
-    reportScopeKey: 'report-1',
-    isHost: true,
-    canShareReport: true,
+    gameSequence: 0,
     getLastNightInfo: () => '',
     getCurseInfo: () => null,
-    shareNightReview: async () => {
-      throw new Error('Unexpected night-review authorization call');
-    },
-    beginReportCapture,
-    reportCaptureProgress: null,
-    shareNightReviewReport: async () => {
-      throw new Error('Unexpected night-review report share call');
+    grantReviewAccess: async () => {
+      throw new Error('Unexpected review grant');
     },
     isGameEnded: false,
     onLastNightInfoConfirmed: () => undefined,
@@ -39,111 +32,72 @@ function createDeps(
   };
 }
 
-function getShareButton(callIndex: number) {
-  return mockShowAlert.mock.calls[callIndex]?.[2]?.find(({ text }) => text === '分享战报');
-}
+describe('useRoomModals review-access grant picker', () => {
+  it('opens and closes the picker', () => {
+    const { result } = renderHook(() => useRoomModals(createDeps()));
+    expect(result.current.isGrantVisible).toBe(false);
 
-describe('useRoomModals night-review report preparation', () => {
-  it('does not update a replaced report or an unmounted dialog after capture completes', async () => {
-    let complete!: (value: string | null) => void;
-    const capture = new Promise<string | null>((resolve) => {
-      complete = resolve;
-    });
-    const deps = createDeps(() => capture);
-    const { result, rerender, unmount } = renderHook(
-      ({ reportScopeKey }: { reportScopeKey: string }) =>
-        useRoomModals({ ...deps, reportScopeKey }),
-      { initialProps: { reportScopeKey: 'report-1' } },
-    );
-    act(() => result.current.openNightReview());
-    rerender({ reportScopeKey: 'report-2' });
-    unmount();
-    await act(async () => {
-      complete('old-image');
-      await capture;
-    });
-    expect(mockShowAlert).toHaveBeenCalledTimes(1);
-  });
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockShowAlert.mockReturnValue(true);
+    act(() => result.current.openGrant());
+    expect(result.current.isGrantVisible).toBe(true);
+
+    act(() => result.current.closeGrant());
+    expect(result.current.isGrantVisible).toBe(false);
   });
 
-  it('starts pre-capture on open for every platform and enables sharing when it completes', async () => {
-    const beginReportCapture = jest.fn<Promise<string | null>, []>().mockResolvedValue('image');
-    const { result } = renderHook(() => useRoomModals(createDeps(beginReportCapture)));
+  it('closes the picker once the grant is committed, and keeps it open when it is not', async () => {
+    const grantReviewAccess = jest
+      .fn<Promise<boolean>, [readonly number[]]>()
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    const { result } = renderHook(() => useRoomModals(createDeps({ grantReviewAccess })));
+    act(() => result.current.openGrant());
 
-    act(() => result.current.openNightReview());
+    await act(() => result.current.grantSeatsAccess([2]));
+    expect(grantReviewAccess).toHaveBeenLastCalledWith([2]);
+    expect(result.current.isGrantVisible).toBe(true);
 
-    expect(beginReportCapture).toHaveBeenCalledTimes(1);
-    expect(mockShowAlert).toHaveBeenCalledTimes(1);
-    expect(getShareButton(0)).toMatchObject({ loading: true });
-
-    await waitFor(() => expect(mockShowAlert).toHaveBeenCalledTimes(2));
-    expect(getShareButton(1)).toMatchObject({ loading: false });
+    await act(() => result.current.grantSeatsAccess([2, 4]));
+    expect(result.current.isGrantVisible).toBe(false);
   });
 
-  it('keeps report sharing loading while capture is pending', () => {
-    const beginReportCapture = jest.fn(() => new Promise<string | null>(() => undefined));
-    const { result } = renderHook(() => useRoomModals(createDeps(beginReportCapture)));
-
-    act(() => result.current.openNightReview());
-
-    expect(beginReportCapture).toHaveBeenCalledTimes(1);
-    expect(mockShowAlert).toHaveBeenCalledTimes(1);
-    expect(getShareButton(0)).toMatchObject({ loading: true });
-  });
-
-  it('enables sharing after capture reports a failure', async () => {
-    const beginReportCapture = jest.fn<Promise<string | null>, []>().mockResolvedValue(null);
-    const { result } = renderHook(() => useRoomModals(createDeps(beginReportCapture)));
-
-    act(() => result.current.openNightReview());
-
-    await waitFor(() => expect(mockShowAlert).toHaveBeenCalledTimes(2));
-    expect(getShareButton(0)).toMatchObject({ loading: true });
-    expect(getShareButton(1)).toMatchObject({ loading: false });
-  });
-
-  it('shows live band progress on the share button while the detail alert is open', () => {
-    const beginReportCapture = jest.fn(() => new Promise<string | null>(() => undefined));
-    const deps = createDeps(beginReportCapture);
+  it('belongs to the game it opened in: a new game hides it', () => {
     const { result, rerender } = renderHook(
-      ({ progress }: { progress: ReportCaptureProgress | null }) =>
-        useRoomModals({ ...deps, reportCaptureProgress: progress }),
-      { initialProps: { progress: null as ReportCaptureProgress | null } },
+      (props: { readonly gameSequence: number }) => useRoomModals(createDeps(props)),
+      { initialProps: { gameSequence: 3 } },
     );
+    act(() => result.current.openGrant());
+    expect(result.current.isGrantVisible).toBe(true);
 
-    act(() => result.current.openNightReview());
-    expect(mockShowAlert).toHaveBeenCalledTimes(1);
-
-    rerender({ progress: { done: 1, total: 3 } });
-
-    expect(mockShowAlert).toHaveBeenCalledTimes(2);
-    const progressButton = mockShowAlert.mock.calls[1]?.[2]?.find(({ text }) =>
-      text.startsWith('生成中'),
-    );
-    expect(progressButton).toMatchObject({ text: '生成中 1/3 段', loading: true });
+    rerender({ gameSequence: 4 });
+    expect(result.current.isGrantVisible).toBe(false);
   });
 
-  it('does not re-show the detail alert for progress once it was dismissed', () => {
-    const beginReportCapture = jest.fn(() => new Promise<string | null>(() => undefined));
-    const deps = createDeps(beginReportCapture);
-    const { result, rerender } = renderHook(
-      ({ progress }: { progress: ReportCaptureProgress | null }) =>
-        useRoomModals({ ...deps, reportCaptureProgress: progress }),
-      { initialProps: { progress: null as ReportCaptureProgress | null } },
+  it('does not close a picker reopened in a newer game when an older grant commits', async () => {
+    let commit: (value: boolean) => void = () => undefined;
+    const grantReviewAccess = jest.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          commit = resolve;
+        }),
     );
-
-    act(() => result.current.openNightReview());
-    const cancelButton = mockShowAlert.mock.calls[0]?.[2]?.find(({ text }) => text === '取消');
+    const { result, rerender } = renderHook(
+      (props: { readonly gameSequence: number }) =>
+        useRoomModals(createDeps({ ...props, grantReviewAccess })),
+      { initialProps: { gameSequence: 1 } },
+    );
+    act(() => result.current.openGrant());
+    let pending: Promise<void> = Promise.resolve();
     act(() => {
-      void cancelButton?.onPress?.();
+      pending = result.current.grantSeatsAccess([0]);
     });
 
-    rerender({ progress: { done: 2, total: 3 } });
-
-    expect(mockShowAlert).toHaveBeenCalledTimes(1);
+    rerender({ gameSequence: 2 });
+    act(() => result.current.openGrant());
+    await act(async () => {
+      commit(true);
+      await pending;
+    });
+    expect(result.current.isGrantVisible).toBe(true);
   });
 });
 
@@ -164,7 +118,7 @@ describe('useRoomModals last-night info confirmation', () => {
 
   it('warns about the sheriff election mid-game and completes the flow step on confirm', () => {
     const onLastNightInfoConfirmed = jest.fn();
-    const deps = createDeps(async () => null, {
+    const deps = createDeps({
       getLastNightInfo: () => '昨夜平安夜',
       onLastNightInfoConfirmed,
     });
@@ -185,8 +139,22 @@ describe('useRoomModals last-night info confirmation', () => {
     expect(mockShowAlert).toHaveBeenCalledWith('昨夜信息', '昨夜平安夜', expect.anything());
   });
 
+  it('offers the crow curse from the info dialog when a crow is on the board', () => {
+    const deps = createDeps({
+      getLastNightInfo: () => '昨夜平安夜',
+      getCurseInfo: () => '3号被诅咒（放逐+1票）',
+    });
+    const { result } = renderHook(() => useRoomModals(deps));
+
+    act(() => result.current.showLastNightInfo());
+    pressLastNightInfoConfirm();
+
+    const infoCall = mockShowAlert.mock.calls.find((call) => call[0] === '昨夜信息');
+    expect(infoCall?.[2]?.map(({ text }) => text)).toEqual(['查看诅咒', '知道了']);
+  });
+
   it('drops the election warning once the game has ended', () => {
-    const deps = createDeps(async () => null, { isGameEnded: true });
+    const deps = createDeps({ isGameEnded: true });
     const { result } = renderHook(() => useRoomModals(deps));
 
     act(() => result.current.showLastNightInfo());

@@ -3,6 +3,7 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
+import type { AvalonState } from '@game-judge/game-engine/games/avalon/public';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/components/Button';
@@ -15,6 +16,7 @@ import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
+import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer';
 import type { AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 import { TESTIDS } from '@/testids';
@@ -22,6 +24,7 @@ import { colors } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
 
 import { toRevealRoleData } from '../components/AvalonRoleCardAdapter';
+import { formatAvalonVoteMode } from './avalonRecordCopy';
 import { createAvalonHistorySummary } from './avalonRoomAdapter';
 import { AvalonBoardInfoCard } from './components/AvalonBoardInfoCard';
 import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
@@ -32,7 +35,6 @@ import { AvalonLadyResultModal } from './components/AvalonLadyResultModal';
 import { AvalonNightConfirmModal } from './components/AvalonNightConfirmModal';
 import { AvalonQuestModal } from './components/AvalonQuestModal';
 import { AvalonQuestResultPanel } from './components/AvalonQuestResultPanel';
-import { AvalonReviewOverlay } from './components/AvalonReviewOverlay';
 import { AvalonStrikeConfirmModal } from './components/AvalonStrikeConfirmModal';
 import { AvalonTeamPickModal } from './components/AvalonTeamPickModal';
 import { AvalonVoteModal } from './components/AvalonVoteModal';
@@ -47,6 +49,7 @@ import {
 
 type AvalonRoomScreenProps = GameRoomScreenProps<'avalon'> & {
   readonly session: AvalonRoomSession;
+  readonly review: RoomReviewContribution<AvalonState>;
   readonly audio: AvalonAudioRuntime;
 };
 
@@ -66,11 +69,7 @@ export function AvalonRoomScreen(props: AvalonRoomScreenProps) {
 function AvalonRoomContent(
   props: AvalonRoomScreenProps & { readonly entryController: RoomEntryController },
 ) {
-  // 复盘浮层开关住在 Screen：hook 的底部与主持管理入口共用这一个处理器。
-  const [reviewVisible, setReviewVisible] = useState(false);
-  const screen = useAvalonRoomState(props, {
-    onReviewPress: () => setReviewVisible(true),
-  });
+  const screen = useAvalonRoomState(props);
   const config = screen.state.config;
   const isLobby = screen.state.phase.kind === 'lobby';
   const viewModel = screen.viewModel;
@@ -228,7 +227,7 @@ function AvalonRoomContent(
                   <RoomGameSummary
                     icon="shield-outline"
                     title={`阿瓦隆 · ${config.numberOfPlayers}人局`}
-                    subtitle={`投票${config.voteMode === 'public' ? '公投' : '暗投'} · 否决上限 ${config.vetoLimit}`}
+                    subtitle={`投票${formatAvalonVoteMode(config.voteMode)} · 否决上限 ${config.vetoLimit}`}
                     headerRight={
                       <RoomGuideButton onPress={screen.openRules} label="查看阿瓦隆玩法" />
                     }
@@ -291,11 +290,6 @@ function AvalonRoomContent(
                 visible={historyVisible}
                 viewModel={viewModel}
                 onClose={() => setHistoryVisible(false)}
-              />
-              <AvalonReviewOverlay
-                visible={reviewVisible}
-                viewModel={viewModel}
-                onClose={() => setReviewVisible(false)}
               />
               {showVoteResult && voteResult !== null ? (
                 <AvalonVoteResultPanel
@@ -422,6 +416,7 @@ function AvalonRoomContent(
               ) : null}
             </>
           )}
+          {screen.reviewOverlay}
           <RoomAudioResumeDialog
             visible={screen.audioResume.isDue}
             onContinue={screen.audioResume.continueGame}

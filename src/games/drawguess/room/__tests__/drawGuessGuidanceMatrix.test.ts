@@ -251,6 +251,8 @@ function bottomMessage(state: DrawGuessState, audience: RoomViewerAudience): str
     isLobby: state.phase.kind === 'lobby',
     buildHostManagement: () => null,
     releaseBot: jest.fn(),
+    // The review exists exactly once the game has ended.
+    review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: jest.fn() } : null,
   });
   return model.bottomActions.message;
 }

@@ -7,7 +7,9 @@
  * config/guide navigation screens to the session, and fill the shared
  * defaults (empty account stats section, no product UI, no app overlay).
  * A game declares only its own data — codec, home, navigation, screens,
- * predicates — plus, for games with a room audio runtime, an `audio` block
+ * predicates, its review （本局复盘） contribution, which the bound room
+ * screen receives so the room renders exactly the declared review —
+ * plus, for games with a room audio runtime, an `audio` block
  * whose room screen also receives the audio instance, and optional
  * `extras` for the contributions most games leave at their defaults
  * (product UI, account stats section, app overlay, notepad screen); the
@@ -45,6 +47,7 @@ import {
 } from '@/features/room/config/createGameConfigScreen';
 import { createLinkRoomAccountCapability } from '@/features/room/link/LinkRoomAccountCapability';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { ClientGameModule } from '@/games/model/ClientGameCatalog';
 import type { ClientGameModuleDependencies } from '@/games/model/ClientGamePlugin';
 import type { RoomLink } from '@/platform/realtime/types';
@@ -83,6 +86,8 @@ interface ClientGameModuleDefinitionBase<
   >;
   /** The guide route; receives the session for games whose guide reads the room (werewolf). */
   readonly GuideScreen: SessionScreen<TState, TCommand>;
+  /** The game's review: every game has one, and the room screen renders exactly this one. */
+  readonly review: RoomReviewContribution<TState>;
   readonly isUserSeated: (state: TState, userId: string) => boolean;
   readonly canSwitchAccount: (state: TState) => boolean;
 }
@@ -134,6 +139,7 @@ export type ClientGameModuleDefinition<
         readonly RoomScreen: React.ComponentType<
           GameRoomScreenProps<TGameType> & {
             readonly session: RoomLink<TState, TCommand>;
+            readonly review: RoomReviewContribution<TState>;
           }
         >;
         readonly audio?: undefined;
@@ -142,6 +148,7 @@ export type ClientGameModuleDefinition<
         readonly RoomScreen: React.ComponentType<
           GameRoomScreenProps<TGameType> & {
             readonly session: RoomLink<TState, TCommand>;
+            readonly review: RoomReviewContribution<TState>;
             readonly audio: TAudio;
           }
         >;
@@ -220,11 +227,12 @@ function buildClientGameModule<
       appOverlay: AppOverlay === undefined ? null : BoundAppOverlay,
     };
 
+    const { review } = definition;
     if (definition.audio !== undefined) {
       const audio = definition.audio.create(audioService);
       const AudioRoomScreen = definition.RoomScreen;
       function BoundRoomScreen(props: GameRoomScreenProps<TGameType>) {
-        return createElement(AudioRoomScreen, { ...props, session, audio });
+        return createElement(AudioRoomScreen, { ...props, session, review, audio });
       }
       return {
         ...shared,
@@ -235,7 +243,7 @@ function buildClientGameModule<
 
     const SessionRoomScreen = definition.RoomScreen;
     function BoundRoomScreen(props: GameRoomScreenProps<TGameType>) {
-      return createElement(SessionRoomScreen, { ...props, session });
+      return createElement(SessionRoomScreen, { ...props, session, review });
     }
     return {
       ...shared,

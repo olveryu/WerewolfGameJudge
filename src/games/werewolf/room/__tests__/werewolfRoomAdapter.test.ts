@@ -11,6 +11,8 @@ import {
   SCHEMAS,
 } from '@game-judge/game-engine/games/werewolf/public';
 
+import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
+
 import { nightState } from '../night/__tests__/nightFixtures';
 import type { NightInteractionModel } from '../night/NightInteractionModel';
 import { resolveNightInteraction } from '../night/resolveNightInteraction';
@@ -25,6 +27,8 @@ import {
   deriveWerewolfSeatCounts,
   selectedNightSeats,
 } from '../werewolfRoomAdapter';
+
+const ENABLED_REVIEW: RoomReviewEntry = { isEnabled: true, onPress: () => {} };
 
 const BOARD: readonly RoleId[] = ['wolf', 'wolf', 'seer', 'witch', 'hunter', 'villager'];
 const IDLE: NightInteractionModel = { kind: 'idle' };
@@ -45,7 +49,7 @@ function layoutFor(
   state: GameState,
   seat: number | null,
   isHost: boolean,
-  options: { isAudioPlaying?: boolean; canOpenNightReview?: boolean } = {},
+  options: { isAudioPlaying?: boolean; review?: RoomReviewEntry | null } = {},
 ) {
   const { viewModel, night } = nightModel(state, seat, isHost);
   return createWerewolfBottomActionLayout({
@@ -55,10 +59,9 @@ function layoutFor(
     effectiveSeat: seat,
     isAudioPlaying: options.isAudioPlaying ?? false,
     isActionSubmitting: false,
-    canOpenNightReview: options.canOpenNightReview ?? isHost,
+    review: options.review === undefined ? ENABLED_REVIEW : options.review,
     onNightButton: jest.fn(),
     onViewRole: jest.fn(),
-    onNightReview: jest.fn(),
   });
 }
 
@@ -257,9 +260,11 @@ describe('createWerewolfBottomActionLayout', () => {
     for (const status of [GameStatus.Day, GameStatus.Ended]) {
       const state: GameState = { ...night, status, nightStep: null };
       for (const [seat, isHost] of viewers) {
-        expect(
-          layoutFor(state, seat, isHost, { isAudioPlaying: true, canOpenNightReview: true }),
-        ).toEqual({ primary: [], secondary: [], ghost: [] });
+        expect(layoutFor(state, seat, isHost, { isAudioPlaying: true })).toEqual({
+          primary: [],
+          secondary: [],
+          ghost: [],
+        });
       }
     }
   });
@@ -267,26 +272,35 @@ describe('createWerewolfBottomActionLayout', () => {
   it('shows the Day and Ended buttons again once the announcement ends', () => {
     const day: GameState = { ...night, status: GameStatus.Day, nightStep: null };
     expect(layoutFor(day, 0, true).secondary.map((button) => button.key)).toEqual(['viewRole']);
-    expect(layoutFor(day, null, false).primary.map((button) => button.key)).toEqual([
-      'nightReview',
-    ]);
+    expect(layoutFor(day, null, false).primary.map((button) => button.key)).toEqual(['review']);
     const ended: GameState = { ...night, status: GameStatus.Ended, nightStep: null };
-    expect(
-      layoutFor(ended, 1, false, { canOpenNightReview: true }).ghost.map((button) => button.key),
-    ).toEqual(['nightReview']);
+    expect(layoutFor(ended, 1, false).ghost.map((button) => button.key)).toEqual(['review']);
   });
 
-  it('gives spectators the review as primary and shared seats a ghost tool; the host uses the panel', () => {
+  it('gives spectators the review as primary and seats a ghost tool; the host uses the panel', () => {
     const ended: GameState = { ...night, status: GameStatus.Ended, nightStep: null };
-    expect(layoutFor(ended, null, false).primary.map((button) => button.key)).toEqual([
-      'nightReview',
+    expect(layoutFor(ended, null, false).primary).toMatchObject([
+      { key: 'review', audience: 'anyone', variant: 'primary', isEnabled: true },
     ]);
     const host = layoutFor(ended, 0, true);
     expect(host.secondary.map((button) => button.key)).toEqual(['viewRole']);
     expect(host.ghost).toEqual([]);
-    const shared = layoutFor(ended, 1, false, { canOpenNightReview: true });
-    expect(shared.ghost.map((button) => button.key)).toEqual(['nightReview']);
-    expect(layoutFor(ended, 1, false, { canOpenNightReview: false }).ghost).toEqual([]);
+    expect(layoutFor(ended, 1, false).ghost).toMatchObject([
+      { key: 'review', variant: 'ghost', isEnabled: true },
+    ]);
+    // A seat the host has not granted sees the entry with the reason, not nothing.
+    expect(
+      layoutFor(ended, 1, false, {
+        review: { isEnabled: false, disabledReason: '房主尚未向你开放复盘' },
+      }).ghost,
+    ).toMatchObject([{ key: 'review', isEnabled: false, disabledReason: '房主尚未向你开放复盘' }]);
+  });
+
+  it('fails fast when Day or Ended has no review entry', () => {
+    const ended: GameState = { ...night, status: GameStatus.Ended, nightStep: null };
+    expect(() => layoutFor(ended, 1, false, { review: null })).toThrow(
+      '[FAIL-FAST] Werewolf Ended has no review entry',
+    );
   });
 });
 
@@ -364,10 +378,9 @@ describe('createWerewolfBottomActions', () => {
       effectiveSeat: 0,
       isAudioPlaying: options.isAudioPlaying,
       isActionSubmitting: false,
-      canOpenNightReview: false,
+      review: null,
       onNightButton: jest.fn(),
       onViewRole: jest.fn(),
-      onNightReview: jest.fn(),
     });
     return createWerewolfBottomActions({
       state,

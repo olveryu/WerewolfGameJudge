@@ -1,8 +1,8 @@
 /**
- * 阿瓦隆记录共享件：已结算提案块。
+ * 阿瓦隆对局记录共享件：已结算提案块。
  *
- * 从 AvalonHistoryOverlay 整段搬出，记录浮层与本局复盘共用同一份实现，
- * 不许另写第二份提案渲染。暗投时 ballots 为 null：被采用卡直接给静态
+ * 不许另写第二份提案渲染；票数文案走记录口径（avalonRecordCopy），与
+ * 本局复盘文档同源。暗投时 ballots 为 null：被采用卡直接给静态
  * 说明；被否决行不渲染“展开逐人票”切换（展开也只能看到同一句说明，
  * 切换本身就是误导），直接给静态说明。
  */
@@ -27,6 +27,8 @@ import {
   typography,
   withAlpha,
 } from '@/theme';
+
+import { formatAvalonVoteTally } from '../avalonRecordCopy';
 
 function ballotLabel(ballot: AvalonBallot): string {
   return ballot === 'approve' ? '赞成' : '反对';
@@ -210,10 +212,7 @@ export function AvalonRecordProposal({
                   />
                 ))}
               </View>
-              <Text style={styles.voteSummary}>
-                赞成 {proposal.approveCount} · 反对 {proposal.rejectCount}
-                {proposal.abstainCount > 0 ? ` · 弃权 ${proposal.abstainCount}` : ''}
-              </Text>
+              <Text style={styles.voteSummary}>{formatAvalonVoteTally(proposal)}</Text>
             </View>
           </View>
           <View style={styles.rejectedBadge}>
@@ -259,10 +258,7 @@ export function AvalonRecordProposal({
                 />
               ))}
             </View>
-            <Text style={styles.voteSummary}>
-              赞成 {proposal.approveCount} · 反对 {proposal.rejectCount}
-              {proposal.abstainCount > 0 ? ` · 弃权 ${proposal.abstainCount}` : ''}
-            </Text>
+            <Text style={styles.voteSummary}>{formatAvalonVoteTally(proposal)}</Text>
           </View>
         </View>
         <View style={styles.rejectedBadge}>

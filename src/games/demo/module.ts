@@ -14,6 +14,7 @@ import { defineClientGameModule } from '@/games/model/defineClientGameModule';
 
 import { demoHomeContribution } from './home';
 import { demoGameNavigation, parseDemoConfigRouteParams } from './navigation/demoGameNavigation';
+import { demoReview } from './review/demoReview';
 import { getDemoRoomCommandFailureMessage } from './room/demoRoomCommandFailureMessage';
 import { DemoRoomScreen } from './room/DemoRoomScreen';
 import { DemoRulesScreen } from './screens/DemoRulesScreen';
@@ -36,6 +37,7 @@ export const createDemoUiModule = defineClientGameModule<'demo', DemoState, Demo
       creationLabel: '创建Demo房间',
     }),
   GuideScreen: DemoRulesScreen,
+  review: demoReview,
   isUserSeated: (state, userId) => getDemoUserSeat(state, userId) !== null,
   canSwitchAccount: (state) => state.phase.kind === 'lobby',
 });

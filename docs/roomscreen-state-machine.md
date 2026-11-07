@@ -143,20 +143,20 @@ once per `rejectionId`; transport failures toast and keep the dialog open for re
 
 ## Overlay / Modal Trigger Conditions
 
-| Component               | Trigger Condition                                                                                                   | Visible To                |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| `RoomAuthGate`          | No session when entering room via deep link (rendered by `RoomResolverScreen` before the authenticated room lookup) | Unauthenticated users     |
-| `RoomAudioResumeDialog` | Host rejoin mid-narration (`useRoomAudioResume.isDue`; shared with avalon)                                          | Host                      |
-| `RoomSeatConfirmModal`  | Tap seat (Unseated/Seated phase)                                                                                    | Tapper                    |
-| `WerewolfRoleCardModal` | Tap "View Role" → `useRoleViewing` (server confirms `role.viewed`, then the card opens)                             | Players with seat         |
-| `NightReviewModal`      | Tap "Night Review" (Ended phase)                                                                                    | Host + authorized players |
-| `ShareReviewModal`      | Host picks 授权玩家查看 in the 本局复盘 action sheet (`useRoomModals`)                                              | Host                      |
-| `QRCodeModal`           | Tap "Share Room"                                                                                                    | All users                 |
-| `ChooseBottomCardModal` | `NightInteractionModel.kind === 'chooseCard'` and the actioner taps the bottom button                               | Actioner                  |
-| `MvpSelectionModal`     | Host taps `select-mvp` (Ended, no MVP yet)                                                                          | Host                      |
-| `BoardNominationModal`  | Tap 我来建议 / 修改建议 in the board info card (setup phases only; closes on leaving setup)                         | All users                 |
-| `ShareProgressModal`    | A night-review share capture is running                                                                             | Sharer                    |
-| `SheriffElectionSheet`  | Day details requested below 1100 px                                                                                 | All users                 |
+| Component                 | Trigger Condition                                                                                                   | Visible To                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `RoomAuthGate`            | No session when entering room via deep link (rendered by `RoomResolverScreen` before the authenticated room lookup) | Unauthenticated users                                  |
+| `RoomAudioResumeDialog`   | Host rejoin mid-narration (`useRoomAudioResume.isDue`; shared with avalon)                                          | Host                                                   |
+| `RoomSeatConfirmModal`    | Tap seat (Unseated/Seated phase)                                                                                    | Tapper                                                 |
+| `WerewolfRoleCardModal`   | Tap "View Role" → `useRoleViewing` (server confirms `role.viewed`, then the card opens)                             | Players with seat                                      |
+| `RoomReviewDialog`        | 本局复盘 entry (Day/Ended) → 查看本局复盘？ confirm → shared review dialog with the 保存／分享图片 footer           | Host, granted seats, spectators (spectators read only) |
+| `ShareReviewModal`        | Host taps 授权玩家查看 (`grant-review`) on the task card or in host management (`useRoomModals`)                    | Host                                                   |
+| `QRCodeModal`             | Tap "Share Room"                                                                                                    | All users                                              |
+| `ChooseBottomCardModal`   | `NightInteractionModel.kind === 'chooseCard'` and the actioner taps the bottom button                               | Actioner                                               |
+| `MvpSelectionModal`       | Host taps `select-mvp` (Ended, no MVP yet)                                                                          | Host                                                   |
+| `BoardNominationModal`    | Tap 我来建议 / 修改建议 in the board info card (setup phases only; closes on leaving setup)                         | All users                                              |
+| `RoomReviewProgressModal` | The Ended flow's 分享战报 exports the review without the dialog                                                     | Host                                                   |
+| `SheriffElectionSheet`    | Day details requested below 1100 px                                                                                 | All users                                              |
 
 ## SeatTile Visual States
 

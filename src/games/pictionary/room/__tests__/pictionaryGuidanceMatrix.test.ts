@@ -27,8 +27,10 @@ import {
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
+import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { viewerFor } from '@/test-utils/roomViewer';
 
+import { pictionaryReview } from '../../review/pictionaryReview';
 import { PICTIONARY_GUIDANCE_MATRIX } from '../pictionaryGuidanceMatrix';
 import {
   createPictionaryRoomShellModel,
@@ -206,6 +208,11 @@ function bottomMessage(state: PictionaryState, audience: RoomViewerAudience): st
     mySeat: viewer.seat,
     shareRoom: jest.fn(),
   });
+  // The entry the room hook hands the adapter: present once the review exists.
+  const review: RoomReviewEntry | null =
+    pictionaryReview.resolve({ state, viewer, roomCode: '2468' }).kind === 'notEnded'
+      ? null
+      : { isEnabled: true, onPress: jest.fn() };
   const model = createPictionaryRoomShellModel({
     roomCode: '2468',
     viewer,
@@ -243,6 +250,7 @@ function bottomMessage(state: PictionaryState, audience: RoomViewerAudience): st
       copyLink: jest.fn(async () => undefined),
       shareImage: jest.fn(async () => undefined),
     },
+    review,
     buildHostManagement: () => null,
     controlledSeat: null,
   });

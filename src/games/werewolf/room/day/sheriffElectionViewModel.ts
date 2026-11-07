@@ -189,6 +189,35 @@ export function getSheriffElectionRoundTitle(round: SheriffRoundRecord['round'])
   return round === 'first' ? '首轮投票结果' : '平票投票结果';
 }
 
+/** The no-sheriff outcome line, shared by the panel's result banner and the night report. */
+export function getNoSheriffText(
+  result: Extract<SheriffElectionResult, { readonly kind: 'noSheriff' }>,
+): string {
+  switch (result.reason) {
+    case 'noCandidates':
+      return '无人参选，本局没有警长';
+    case 'noVotes':
+      return '无人得票，本局没有警长';
+    case 'runoffTie':
+      return '平票未决，本局没有警长';
+    case 'selfDestruct':
+      return '因狼人自爆，警长竞选已结束且没有警长';
+  }
+}
+
+/**
+ * How an elected sheriff won, shared by the panel's result banner and the
+ * night report: the deciding round (the last closed one) names the vote.
+ */
+export function formatSheriffElectedLine(
+  sheriffSeat: number,
+  decidingRound: SheriffRoundRecord['round'] | undefined,
+): string {
+  return decidingRound === undefined
+    ? `警徽在 ${formatSeat(sheriffSeat)}`
+    : `${decidingRound === 'first' ? '首轮' : '平票'}投票当选 · 警徽在 ${formatSeat(sheriffSeat)}`;
+}
+
 /**
  * One closed round for the panel: the shared record's tally plus the
  * panel's title. Occupied-seat assertions stay in this shell — the core

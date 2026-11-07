@@ -29,12 +29,12 @@ import {
   buildStartGameAction,
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
-  hostActionTask,
-  hostClosingTask,
+  hostReviewClosingTask,
   hostStartTask,
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
 import type { NightStepProgress } from '@/features/room/model/nightProgress';
+import type { RoomBottomButton } from '@/features/room/model/RoomBottomActions';
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
 import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
@@ -45,6 +45,11 @@ import type {
 } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import {
+  buildReviewBottomButton,
+  buildReviewHostAction,
+  type RoomReviewEntry,
+} from '@/features/room/review/roomReviewActions';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 /** Returns a public occupant identity for shared profile controls. */
@@ -114,6 +119,18 @@ function deriveStoryRelayBottomProgress(state: StoryRelayState): NightStepProgre
   };
 }
 
+/** The review entry of a finished round, open to every viewer; nothing before the round ends. */
+function createStoryRelayReviewButtons(
+  state: StoryRelayState,
+  review: RoomReviewEntry | null,
+): readonly RoomBottomButton[] {
+  if (state.phase !== 'ended' && state.phase !== 'aborted') return [];
+  if (review === null) {
+    throw new Error(`[FAIL-FAST] Story Relay ${state.phase} has no review entry`);
+  }
+  return [buildReviewBottomButton(review, 'secondary')];
+}
+
 export interface StoryRelayRoomShellModelInput extends Omit<
   RoomShellModelInput,
   | 'phase'
@@ -134,6 +151,8 @@ export interface StoryRelayRoomShellModelInput extends Omit<
   readonly onProfileLeaveSeat: () => void;
   readonly isLobby: boolean;
   readonly releaseBot: () => void;
+  /** The shared review entry; present once the round ended or was aborted. */
+  readonly review: RoomReviewEntry | null;
 }
 
 export interface StoryRelayHostManagementInput {
@@ -144,6 +163,8 @@ export interface StoryRelayHostManagementInput {
   >;
   readonly isSubmitting: boolean;
   readonly submit: (label: string, command: StoryRelayCommand) => Promise<boolean>;
+  /** The shared review entry; present once the round ended or was aborted. */
+  readonly review: RoomReviewEntry | null;
 }
 
 /** Assembles the Story Relay host panel for the current phase. Host gating belongs to the shell factory. */
@@ -190,14 +211,21 @@ export function createStoryRelayHostManagement(
   }
   const isTerminal = state.phase === 'ended' || state.phase === 'aborted';
   if (isTerminal) {
+    if (input.review === null) {
+      throw new Error(`[FAIL-FAST] Story Relay ${state.phase} host has no review entry`);
+    }
     return {
+      // An aborted round keeps its passages: the review stands beside 返回大厅, with no next round.
       task:
-        state.phase === 'ended' ? hostClosingTask() : hostActionTask(HOST_ACTION_KEYS.returnLobby),
+        state.phase === 'ended'
+          ? hostReviewClosingTask()
+          : { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, HOST_ACTION_KEYS.returnLobby] },
       sections: [
         {
           key: 'current-flow',
           title: '当前流程',
           actions: [
+            buildReviewHostAction(input.review),
             ...(state.phase === 'ended'
               ? [
                   buildNextRoundAction({
@@ -287,7 +315,11 @@ export function createStoryRelayRoomShellModel(
       kind: 'stacked',
       message: buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
       progress: deriveStoryRelayBottomProgress(state),
-      layout: { primary: [], secondary: [], ghost: [] },
+      layout: {
+        primary: [],
+        secondary: createStoryRelayReviewButtons(state, input.review),
+        ghost: [],
+      },
     },
     controlledSeat: createControlledSeatModel({
       controlledSeat: input.controlledSeat,

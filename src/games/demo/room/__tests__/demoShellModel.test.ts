@@ -8,6 +8,7 @@ import {
   type DemoCommand,
   demoEngine,
   type DemoState,
+  endDemoGame,
 } from '@game-judge/game-engine/games/demo/public';
 
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
@@ -16,8 +17,10 @@ import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
 import { viewerFor } from '@/test-utils/roomViewer';
+import { TESTIDS } from '@/testids';
 
 import { createDemoHostManagement, createDemoRoomShellModel } from '../demoRoomAdapter';
 
@@ -51,6 +54,27 @@ function viewingState(): DemoState {
   state = drive(state, { type: 'demo.roles.assign' });
   return state;
 }
+
+/** A finished game: begun from a full room, then ended through the engine's terminal seam. */
+function endedState(): DemoState {
+  let state = viewingState();
+  state = drive(state, { type: 'demo.role.viewed' });
+  state = drive(state, { type: 'demo.bots.markAllBotsViewed' });
+  state = drive(state, { type: 'demo.game.begin' });
+  const endContext: CommandContext = {
+    actor: { kind: 'user', userId: 'host' },
+    controlledSeat: null,
+    nowMs: 1000,
+    commandId: 'end-game',
+    randomSeed: 'seed',
+  };
+  const decision = endDemoGame(state, endContext);
+  if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+  return decision.events.reduce(demoEngine.evolve, state);
+}
+
+const openReview = jest.fn();
+const reviewEntry: RoomReviewEntry = { isEnabled: true, onPress: openReview };
 
 function capabilities(): RoomCapabilities {
   return {
@@ -130,6 +154,7 @@ describe('createDemoRoomShellModel', () => {
       isLobby: true,
       buildHostManagement: () => hostManagement,
       releaseBot: jest.fn(),
+      review: null,
     };
     const model = createDemoRoomShellModel(input);
     expect(model.roomCode).toBe('1234');
@@ -176,11 +201,12 @@ describe('createDemoRoomShellModel', () => {
       isLobby: false,
       buildHostManagement: () => ({ task: null, sections: [] }),
       releaseBot: jest.fn(),
+      review: null,
     });
     expect(model.phase).toBe('viewing');
   });
 
-  it('shows the shared ended wait to a seated non-host player once ended', () => {
+  it('shows the shared ended wait to a seated player and the review to every viewer once ended', () => {
     let state = viewingState();
     state = drive(state, { type: 'demo.role.viewed' });
     state = drive(state, { type: 'demo.bots.markAllBotsViewed' });
@@ -229,7 +255,17 @@ describe('createDemoRoomShellModel', () => {
       isLobby: false,
       buildHostManagement: () => ({ task: null, sections: [] }),
       releaseBot: jest.fn(),
+      review: reviewEntry,
     } as const;
+    const reviewButton = {
+      key: 'review',
+      label: '本局复盘',
+      audience: 'anyone',
+      variant: 'secondary',
+      testID: TESTIDS.roomReviewOpenButton,
+      isEnabled: true,
+      onPress: openReview,
+    };
     const playerModel = createDemoRoomShellModel({
       ...shellInput,
       viewer: viewerFor('seated', { seatedUserId: 'bot-user', seatedSeat: 2 }),
@@ -237,12 +273,26 @@ describe('createDemoRoomShellModel', () => {
     expect(playerModel.bottomActions).toMatchObject({
       kind: 'stacked',
       message: '等待房主操作（再来一局 / 返回大厅）',
+      layout: { primary: [], secondary: [reviewButton], ghost: [] },
     });
     const hostModel = createDemoRoomShellModel({
       ...shellInput,
       viewer: viewerFor('host'),
     });
-    expect(hostModel.bottomActions).toMatchObject({ kind: 'stacked', message: null });
+    expect(hostModel.bottomActions).toMatchObject({
+      kind: 'stacked',
+      message: null,
+      layout: { primary: [], secondary: [reviewButton], ghost: [] },
+    });
+    const spectatorModel = createDemoRoomShellModel({
+      ...shellInput,
+      viewer: viewerFor('spectator'),
+    });
+    expect(spectatorModel.bottomActions).toMatchObject({
+      kind: 'stacked',
+      message: null,
+      layout: { primary: [], secondary: [reviewButton], ghost: [] },
+    });
   });
 });
 
@@ -254,6 +304,7 @@ describe('createDemoHostManagement', () => {
       capabilities: capabilities(),
       isSubmitting: false,
       submit: jest.fn(async () => true),
+      review: null,
     });
     expect(model.sections.map((section) => section.key)).toEqual(['game', 'bot-viewing', 'room']);
     const begin = model.sections[0]?.actions[0];
@@ -272,9 +323,44 @@ describe('createDemoHostManagement', () => {
       capabilities: capabilities(),
       isSubmitting: false,
       submit: jest.fn(async () => true),
+      review: null,
     });
     expect(model.sections.map((section) => section.key)).toEqual(['game', 'room']);
     expect(model.sections[0]?.actions[0]).toMatchObject({ isEnabled: true });
+  });
+
+  it('closes an ended game with the review beside next round and return to lobby', () => {
+    const model = createDemoHostManagement({
+      state: endedState(),
+      capabilities: capabilities(),
+      isSubmitting: false,
+      submit: jest.fn(async () => true),
+      review: reviewEntry,
+    });
+    expect(model.sections.map((section) => section.key)).toEqual(['current-flow']);
+    expect(model.sections[0]?.actions[0]).toMatchObject({
+      key: 'review',
+      label: '本局复盘',
+      testID: TESTIDS.roomReviewHostAction,
+      isEnabled: true,
+      onPress: openReview,
+    });
+    expect(hostTaskBody(model)).toMatchObject({
+      kind: 'choice',
+      actions: [{ key: 'review' }, { key: 'next-round' }, { key: 'return-lobby' }],
+    });
+  });
+
+  it('fails fast when an ended game has no review entry', () => {
+    expect(() =>
+      createDemoHostManagement({
+        state: endedState(),
+        capabilities: capabilities(),
+        isSubmitting: false,
+        submit: jest.fn(async () => true),
+        review: null,
+      }),
+    ).toThrow('[FAIL-FAST]');
   });
 
   describe('task body', () => {
@@ -284,6 +370,7 @@ describe('createDemoHostManagement', () => {
         capabilities: capabilities(),
         isSubmitting: false,
         submit: jest.fn(async () => true),
+        review: null,
       });
 
     it('blocks identity assignment in a non-full lobby and offers room sharing', () => {

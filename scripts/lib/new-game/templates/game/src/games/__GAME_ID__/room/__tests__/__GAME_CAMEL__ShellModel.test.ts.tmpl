@@ -13,6 +13,7 @@ import {
   type __GAME_PASCAL__Command,
   __GAME_CAMEL__Engine,
   type __GAME_PASCAL__State,
+  end__GAME_PASCAL__Game,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
 //#cap audioOrchestration
 import { render } from '@testing-library/react-native';
@@ -30,11 +31,10 @@ import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
-
-//#cap identityViewing
+import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
-//#end
 import { viewerFor } from '@/test-utils/roomViewer';
+import { TESTIDS } from '@/testids';
 
 import {
   create__GAME_PASCAL__HostManagement,
@@ -73,6 +73,32 @@ function viewingState(): __GAME_PASCAL__State {
   return state;
 }
 //#end
+
+/** A finished game: begun from a full room, then ended through the engine's terminal seam. */
+function endedState(): __GAME_PASCAL__State {
+//#cap identityViewing
+  let state = viewingState();
+  state = drive(state, { type: '__GAME_ID__.role.viewed' });
+  state = drive(state, { type: '__GAME_ID__.bots.markAllBotsViewed' });
+//#end
+//#cap !identityViewing
+  let state = lobbyState(true);
+//#end
+  state = drive(state, { type: '__GAME_ID__.game.begin' });
+  const endContext: CommandContext = {
+    actor: { kind: 'user', userId: 'host' },
+    controlledSeat: null,
+    nowMs: 1000,
+    commandId: 'end-game',
+    randomSeed: 'seed',
+  };
+  const decision = end__GAME_PASCAL__Game(state, endContext);
+  if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+  return decision.events.reduce(__GAME_CAMEL__Engine.evolve, state);
+}
+
+const openReview = jest.fn();
+const reviewEntry: RoomReviewEntry = { isEnabled: true, onPress: openReview };
 
 function capabilities(): RoomCapabilities {
   return {
@@ -147,6 +173,7 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
       isLobby: true,
       buildHostManagement: () => hostManagement,
       releaseBot: jest.fn(),
+      review: null,
     };
     const model = create__GAME_PASCAL__RoomShellModel(input);
     expect(model.roomCode).toBe('1234');
@@ -221,6 +248,7 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
       isLobby: false,
       buildHostManagement: () => ({ task: null, sections: [] }),
       releaseBot: jest.fn(),
+      review: null,
     });
     expect(model.phase).toBe('viewing');
   });
@@ -232,7 +260,7 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
 // viewing. `!identityViewing` selects exactly the stage pack,
 // `armDeadlineAtBegin` exactly demo-hybrid. (This note lives inside
 // the stage cap so it renders only there.)
-  it('shows the shared ended wait to a seated non-host player once ended', () => {
+  it('shows the shared ended wait to a seated player and the review to every viewer once ended', () => {
     let state = lobbyState(true);
     state = drive(state, { type: '__GAME_ID__.game.begin' });
     const playing = state.phase;
@@ -278,7 +306,17 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
       isLobby: false,
       buildHostManagement: () => ({ task: null, sections: [] }),
       releaseBot: jest.fn(),
+      review: reviewEntry,
     } as const;
+    const reviewButton = {
+      key: 'review',
+      label: '本局复盘',
+      audience: 'anyone',
+      variant: 'secondary',
+      testID: TESTIDS.roomReviewOpenButton,
+      isEnabled: true,
+      onPress: openReview,
+    };
     const playerModel = create__GAME_PASCAL__RoomShellModel({
       ...shellInput,
       viewer: viewerFor('seated', { seatedUserId: 'bot-user', seatedSeat: 2 }),
@@ -286,17 +324,31 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
     expect(playerModel.bottomActions).toMatchObject({
       kind: 'stacked',
       message: '等待房主操作（再来一局 / 返回大厅）',
+      layout: { primary: [], secondary: [reviewButton], ghost: [] },
     });
     const hostModel = create__GAME_PASCAL__RoomShellModel({
       ...shellInput,
       viewer: viewerFor('host'),
     });
-    expect(hostModel.bottomActions).toMatchObject({ kind: 'stacked', message: null });
+    expect(hostModel.bottomActions).toMatchObject({
+      kind: 'stacked',
+      message: null,
+      layout: { primary: [], secondary: [reviewButton], ghost: [] },
+    });
+    const spectatorModel = create__GAME_PASCAL__RoomShellModel({
+      ...shellInput,
+      viewer: viewerFor('spectator'),
+    });
+    expect(spectatorModel.bottomActions).toMatchObject({
+      kind: 'stacked',
+      message: null,
+      layout: { primary: [], secondary: [reviewButton], ghost: [] },
+    });
   });
 //#end
 //#cap armDeadlineAtBegin
 
-  it('shows the shared ended wait to a seated non-host player once ended', () => {
+  it('shows the shared ended wait to a seated player and the review to every viewer once ended', () => {
     let state = viewingState();
     state = drive(state, { type: '__GAME_ID__.role.viewed' });
     state = drive(state, { type: '__GAME_ID__.bots.markAllBotsViewed' });
@@ -344,7 +396,17 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
       isLobby: false,
       buildHostManagement: () => ({ task: null, sections: [] }),
       releaseBot: jest.fn(),
+      review: reviewEntry,
     } as const;
+    const reviewButton = {
+      key: 'review',
+      label: '本局复盘',
+      audience: 'anyone',
+      variant: 'secondary',
+      testID: TESTIDS.roomReviewOpenButton,
+      isEnabled: true,
+      onPress: openReview,
+    };
     const playerModel = create__GAME_PASCAL__RoomShellModel({
       ...shellInput,
       viewer: viewerFor('seated', { seatedUserId: 'bot-user', seatedSeat: 2 }),
@@ -352,12 +414,26 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
     expect(playerModel.bottomActions).toMatchObject({
       kind: 'stacked',
       message: '等待房主操作（再来一局 / 返回大厅）',
+      layout: { primary: [], secondary: [reviewButton], ghost: [] },
     });
     const hostModel = create__GAME_PASCAL__RoomShellModel({
       ...shellInput,
       viewer: viewerFor('host'),
     });
-    expect(hostModel.bottomActions).toMatchObject({ kind: 'stacked', message: null });
+    expect(hostModel.bottomActions).toMatchObject({
+      kind: 'stacked',
+      message: null,
+      layout: { primary: [], secondary: [reviewButton], ghost: [] },
+    });
+    const spectatorModel = create__GAME_PASCAL__RoomShellModel({
+      ...shellInput,
+      viewer: viewerFor('spectator'),
+    });
+    expect(spectatorModel.bottomActions).toMatchObject({
+      kind: 'stacked',
+      message: null,
+      layout: { primary: [], secondary: [reviewButton], ghost: [] },
+    });
   });
 //#end
 //#cap !identityViewing
@@ -390,6 +466,7 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
       isLobby: false,
       buildHostManagement: () => null,
       releaseBot: jest.fn(),
+      review: null,
     });
     expect(model.bottomActions).toEqual({
       kind: 'stacked',
@@ -410,6 +487,7 @@ describe('create__GAME_PASCAL__HostManagement', () => {
       capabilities: capabilities(),
       isSubmitting: false,
       submit: jest.fn(async () => true),
+      review: null,
     });
     expect(model.sections.map((section) => section.key)).toEqual(['game', 'bot-viewing', 'room']);
     const begin = model.sections[0]?.actions[0];
@@ -428,6 +506,7 @@ describe('create__GAME_PASCAL__HostManagement', () => {
       capabilities: capabilities(),
       isSubmitting: false,
       submit: jest.fn(async () => true),
+      review: null,
     });
     expect(model.sections.map((section) => section.key)).toEqual(['game', 'room']);
     expect(model.sections[0]?.actions[0]).toMatchObject({ isEnabled: true });
@@ -442,10 +521,45 @@ describe('create__GAME_PASCAL__HostManagement', () => {
       capabilities: capabilities(),
       isSubmitting: false,
       submit: jest.fn(async () => true),
+      review: null,
     });
     expect(model.sections.map((section) => section.key)).toEqual(['room']);
   });
 //#end
+
+  it('closes an ended game with the review beside next round and return to lobby', () => {
+    const model = create__GAME_PASCAL__HostManagement({
+      state: endedState(),
+      capabilities: capabilities(),
+      isSubmitting: false,
+      submit: jest.fn(async () => true),
+      review: reviewEntry,
+    });
+    expect(model.sections.map((section) => section.key)).toEqual(['current-flow']);
+    expect(model.sections[0]?.actions[0]).toMatchObject({
+      key: 'review',
+      label: '本局复盘',
+      testID: TESTIDS.roomReviewHostAction,
+      isEnabled: true,
+      onPress: openReview,
+    });
+    expect(hostTaskBody(model)).toMatchObject({
+      kind: 'choice',
+      actions: [{ key: 'review' }, { key: 'next-round' }, { key: 'return-lobby' }],
+    });
+  });
+
+  it('fails fast when an ended game has no review entry', () => {
+    expect(() =>
+      create__GAME_PASCAL__HostManagement({
+        state: endedState(),
+        capabilities: capabilities(),
+        isSubmitting: false,
+        submit: jest.fn(async () => true),
+        review: null,
+      }),
+    ).toThrow('[FAIL-FAST]');
+  });
 //#cap identityViewing
 
   describe('task body', () => {
@@ -455,6 +569,7 @@ describe('create__GAME_PASCAL__HostManagement', () => {
         capabilities: capabilities(),
         isSubmitting: false,
         submit: jest.fn(async () => true),
+        review: null,
       });
 
     it('blocks identity assignment in a non-full lobby and offers room sharing', () => {

@@ -1,5 +1,5 @@
-/** Strict DrawGuess persistence and transport codec; v1 and v2 payloads
- * migrate through migratePersistedDrawGuessState. */
+/** Strict DrawGuess persistence and transport codec; v1, v2 and v3
+ * payloads migrate through migratePersistedDrawGuessState. */
 
 import { materializeLegacyRoster } from '../../../platform/protocol/legacyRoster';
 import {
@@ -33,6 +33,7 @@ import {
   type DrawGuessPhase,
   type DrawGuessState,
   type DrawGuessStroke,
+  type DrawGuessTurnRecord,
   type DrawGuessWordChoice,
 } from './types';
 import { DRAWGUESS_STATE_VERSION } from './version';
@@ -262,6 +263,7 @@ function phase(value: unknown, path: string): DrawGuessPhase {
           drawerSeat: parseSeat(raw.drawerSeat, `${path}.drawerSeat`),
           word: parseNonEmptyString(raw.word, `${path}.word`),
           strokes: parseArray(raw.strokes, `${path}.strokes`, stroke),
+          guessedSeats: parseArray(raw.guessedSeats, `${path}.guessedSeats`, parseSeat),
           roundScores: scores(raw.roundScores, `${path}.roundScores`),
           drawerZeroed: parseBoolean(raw.drawerZeroed, `${path}.drawerZeroed`),
           pngEntry: parseNullable(raw.pngEntry, `${path}.pngEntry`, pngEntry),
@@ -280,6 +282,24 @@ function phase(value: unknown, path: string): DrawGuessPhase {
         path,
       );
   }
+}
+
+function turnRecord(value: unknown, path: string): DrawGuessTurnRecord {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      turnIndex: parseInteger(raw.turnIndex, `${path}.turnIndex`),
+      drawerSeat: parseSeat(raw.drawerSeat, `${path}.drawerSeat`),
+      word: parseNonEmptyString(raw.word, `${path}.word`),
+      guessedSeats: parseArray(raw.guessedSeats, `${path}.guessedSeats`, parseSeat),
+      roundScores: scores(raw.roundScores, `${path}.roundScores`),
+      drawerZeroed: parseBoolean(raw.drawerZeroed, `${path}.drawerZeroed`),
+      entryId: parseNullable(raw.entryId, `${path}.entryId`, parseNonEmptyString),
+      pngEntry: parseNullable(raw.pngEntry, `${path}.pngEntry`, pngEntry),
+    },
+    path,
+  );
 }
 
 /** Restores the complete authoritative state and rejects unknown or malformed fields.
@@ -307,6 +327,7 @@ export function parseDrawGuessState(value: unknown): DrawGuessState {
         scores: scores(raw.scores, `${path}.scores`),
         usedWords: parseArray(raw.usedWords, `${path}.usedWords`, parseString),
         gameSequence: parseInteger(raw.gameSequence, `${path}.gameSequence`),
+        turnHistory: parseArray(raw.turnHistory, `${path}.turnHistory`, turnRecord),
       },
       path,
     ),
@@ -319,26 +340,49 @@ export function parseDrawGuessState(value: unknown): DrawGuessState {
  * already carries the field keeps its value.
  */
 function upgradeV2ToV3(raw: Record<string, unknown>): Record<string, unknown> {
-  const next = { ...raw, stateVersion: DRAWGUESS_STATE_VERSION };
+  const next = { ...raw, stateVersion: 3 };
   const phase = parseObject(raw.phase, 'DrawGuessState.phase');
   if (phase.kind !== 'roundEnd' || 'drawerZeroed' in phase) return next;
   return { ...next, phase: { ...phase, drawerZeroed: false } };
 }
 
 /**
+ * Upgrades a stored v3 document to v4: the state gains an empty
+ * turnHistory (v3 kept no finished turns), and a roundEnd phase gains
+ * guessedSeats. v3 dropped the guess order at round end, so it is
+ * rebuilt from roundScores: every non-drawer seat holding a round score
+ * guessed, and a guesser score only decays with time, so a higher score
+ * guessed earlier; equal scores fall back to seat order.
+ */
+function upgradeV3ToV4(raw: Record<string, unknown>): Record<string, unknown> {
+  const path = 'DrawGuessState.phase';
+  const next = { ...raw, stateVersion: DRAWGUESS_STATE_VERSION, turnHistory: [] };
+  const phase = parseObject(raw.phase, path);
+  if (phase.kind !== 'roundEnd') return next;
+  const drawerSeat = parseSeat(phase.drawerSeat, `${path}.drawerSeat`);
+  const guessedSeats = Object.entries(scores(phase.roundScores, `${path}.roundScores`))
+    .map(([seat, score]) => ({ seat: Number(seat), score }))
+    .filter((entry) => entry.seat !== drawerSeat)
+    .sort((left, right) => right.score - left.score || left.seat - right.seat)
+    .map((entry) => entry.seat);
+  return { ...next, phase: { ...phase, guessedSeats } };
+}
+
+/**
  * Upgrades stored v1 rooms: v1 stored the roster as realSeats plus an
  * excluded-seat list, with the bot-fill flag inside the config; the v2
  * roster materializes exactly the seats the old derivation called bots
- * and the config flag retires. Stored v2 rooms upgrade through
- * upgradeV2ToV3. Anything else goes through the strict parser, which
- * rejects unsupported versions.
+ * and the config flag retires. Stored v2 and v3 rooms continue through
+ * upgradeV2ToV3 and upgradeV3ToV4. Anything else goes through the
+ * strict parser, which rejects unsupported versions.
  * @throws When the stored state is malformed or invalid after migration.
  */
 export function migratePersistedDrawGuessState(value: unknown): DrawGuessState {
   const path = 'DrawGuessState';
   const raw = parseObject(value, path);
   if (raw.stateVersion === DRAWGUESS_STATE_VERSION) return parseDrawGuessState(raw);
-  if (raw.stateVersion === 2) return parseDrawGuessState(upgradeV2ToV3(raw));
+  if (raw.stateVersion === 3) return parseDrawGuessState(upgradeV3ToV4(raw));
+  if (raw.stateVersion === 2) return parseDrawGuessState(upgradeV3ToV4(upgradeV2ToV3(raw)));
   if (raw.stateVersion !== 1) return parseDrawGuessState(raw);
   const rawConfig = parseObject(raw.config, `${path}.config`);
   const fill = parseBoolean(
@@ -357,11 +401,13 @@ export function migratePersistedDrawGuessState(value: unknown): DrawGuessState {
   });
   const { realSeats: _legacySeats, excludedBotSeats: _legacyExcluded, ...rest } = raw;
   return parseDrawGuessState(
-    upgradeV2ToV3({
-      ...rest,
-      stateVersion: 2,
-      config,
-      roster: nextRoster,
-    }),
+    upgradeV3ToV4(
+      upgradeV2ToV3({
+        ...rest,
+        stateVersion: 2,
+        config,
+        roster: nextRoster,
+      }),
+    ),
   );
 }

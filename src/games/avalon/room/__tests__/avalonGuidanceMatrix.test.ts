@@ -253,7 +253,8 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
     onLadyAcknowledgePress: jest.fn(),
     onLadyResultPress: jest.fn(),
     onEarlyStrikePress: jest.fn(),
-    onReviewPress: jest.fn(),
+    // The room hook hands over a review entry once the game ended, none before.
+    review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: jest.fn() } : null,
     strikePickMode: false,
     onCancelEarlyStrikePress: jest.fn(),
     buildHostManagement: () => null,

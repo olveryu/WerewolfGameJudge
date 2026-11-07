@@ -15,6 +15,7 @@ import type {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
+import type { ReviewTestRounds } from './reviewTestRounds';
 import { buildWerewolfTestState } from './werewolfState';
 
 export type ReviewPlayers = Map<number, Player | null>;
@@ -87,3 +88,35 @@ export function makeReviewState(overrides: ReviewStateOverrides = {}): GameState
     ...optional,
   });
 }
+
+/** Five seats: 1号 wolf, 2号 guard, 3号 witch, 4号 seer, 5号 villager. */
+export function makeFiveSeatReviewPlayers(): ReviewPlayers {
+  return new Map<number, Player | null>([
+    [0, makeReviewPlayer(0, 'wolf')],
+    [1, makeReviewPlayer(1, 'guard')],
+    [2, makeReviewPlayer(2, 'witch')],
+    [3, makeReviewPlayer(3, 'seer')],
+    [4, makeReviewPlayer(4, 'villager')],
+  ]);
+}
+
+/** The five seats after a settled first night the wolves closed on 5号; at Day unless overridden. */
+export function makeSettledNightState(overrides: Partial<GameState> = {}): GameState {
+  return {
+    ...makeReviewState({
+      players: makeFiveSeatReviewPlayers(),
+      currentNightResults: { wolfVotesBySeat: { '0': 4 } },
+      lastNightDeaths: [4],
+      deathReasons: { 4: 'wolfKill' },
+      resolvedWolfKillTarget: 4,
+      resolvedWolfKillVerdict: { type: 'sharedTarget', targetSeat: 4 },
+    }),
+    ...overrides,
+  };
+}
+
+export const WEREWOLF_REVIEW_ROUNDS: ReviewTestRounds<GameState> = {
+  lobby: () => buildWerewolfTestState(),
+  ended: () => makeSettledNightState({ status: GameStatus.Ended }),
+  nextRound: (ended) => ({ ...ended, gameSequence: ended.gameSequence + 1 }),
+};

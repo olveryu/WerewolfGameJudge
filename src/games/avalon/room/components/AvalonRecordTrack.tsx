@@ -1,7 +1,6 @@
 /**
- * 阿瓦隆记录共享件：五任务轨道。
+ * 阿瓦隆对局记录共享件：五任务轨道。
  *
- * 从 AvalonHistoryOverlay 整段搬出，记录浮层与本局复盘共用同一份实现。
  * 轨道状态由本件统一推导，不许调用方各写一份：
  * - 已结算轮：成功 / 失败；否决终局轮按失败；
  * - 终局时仍在记录里的未结算轮：未完成（被打断），不是进行中；
@@ -27,6 +26,7 @@ import {
   withAlpha,
 } from '@/theme';
 
+import { AVALON_INTERRUPTED_LABEL, AVALON_QUEST_RESULT_LABELS } from '../avalonRecordCopy';
 import { formatAvalonQuestLabel } from '../policy/avalonInteractionPolicy';
 
 const QUEST_TRACK_ROUNDS = [1, 2, 3, 4, 5] as const;
@@ -36,13 +36,12 @@ type QuestTrackState = 'success' | 'fail' | 'current' | 'interrupted' | 'upcomin
 function trackStateLabel(state: QuestTrackState, ended: boolean): string {
   switch (state) {
     case 'success':
-      return '成功';
     case 'fail':
-      return '失败';
+      return AVALON_QUEST_RESULT_LABELS[state];
     case 'current':
       return '进行中';
     case 'interrupted':
-      return '未完成';
+      return AVALON_INTERRUPTED_LABEL;
     case 'upcoming':
       return ended ? '未开始（提前结束）' : '未开始';
   }
@@ -54,16 +53,14 @@ export function AvalonRecordTrack({
   currentRound,
   activeRound,
   ended,
-  testIDPrefix,
 }: {
   readonly rounds: readonly AvalonRoundRecordView[];
   readonly questResults: AvalonViewModel['questResults'];
   readonly currentRound: number | undefined;
   readonly activeRound: number | undefined;
   readonly ended: boolean;
-  readonly testIDPrefix?: string;
 }) {
-  const prefix = testIDPrefix ?? 'avalon-history-track';
+  const prefix = 'avalon-history-track';
   const recordByRound = new Map(rounds.map((record) => [record.round, record]));
   return (
     <View style={styles.track} testID={prefix}>

@@ -15,6 +15,7 @@ import {
   parseStoryRelayConfigRouteParams,
   storyRelayGameNavigation,
 } from './navigation/storyRelayGameNavigation';
+import { storyRelayReview } from './review/storyRelayReview';
 import { getStoryRelayRoomCommandFailureMessage } from './room/storyRelayRoomCommandFailureMessage';
 import { StoryRelayRoomScreen } from './room/StoryRelayRoomScreen';
 import { StoryRelayRulesScreen } from './screens/StoryRelayRulesScreen';
@@ -40,6 +41,7 @@ export const createStoryRelayUiModule = defineClientGameModule<
       summary: (config) => `${config.numberOfPlayers} 个故事 · 每人 ${config.numberOfPlayers} 棒`,
     }),
   GuideScreen: StoryRelayRulesScreen,
+  review: storyRelayReview,
   isUserSeated: (state, userId) => getStoryRelayUserSeat(state, userId) !== null,
   canSwitchAccount: (state) => state.phase === 'lobby',
 });

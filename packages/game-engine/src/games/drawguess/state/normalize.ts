@@ -13,13 +13,20 @@ import {
   DRAWGUESS_ROUNDS_PER_DRAWER,
   DRAWGUESS_WORD_CHOICE_COUNT,
   type DrawGuessHumanSeat,
+  type DrawGuessMedia,
+  type DrawGuessPhase,
   type DrawGuessState,
   type DrawGuessStroke,
+  type DrawGuessTurnRecord,
   isValidDrawGuessConfig,
 } from './types';
 import { DRAWGUESS_STATE_IDENTITY } from './version';
 
 const invariant: StateInvariant = createStateInvariant('DrawGuess');
+
+type SeatCheck = (seat: number) => boolean;
+type DrawingPhase = Extract<DrawGuessPhase, { readonly kind: 'drawing' }>;
+type RoundEndPhase = Extract<DrawGuessPhase, { readonly kind: 'roundEnd' }>;
 
 function isValidStroke(stroke: DrawGuessStroke, seatCount: number): boolean {
   if (
@@ -55,6 +62,171 @@ function isValidStroke(stroke: DrawGuessStroke, seatCount: number): boolean {
         )
       );
   }
+}
+
+function isValidPngEntry(entry: DrawGuessMedia): boolean {
+  return (
+    entry.contentType === 'image/png' &&
+    entry.width === 1024 &&
+    entry.height === 768 &&
+    entry.byteLength > 0
+  );
+}
+
+function areValidRoundScores(
+  roundScores: Readonly<Record<number, number>>,
+  isSeat: SeatCheck,
+): boolean {
+  return Object.entries(roundScores).every(
+    ([seat, score]) => isSeat(Number(seat)) && Number.isSafeInteger(score),
+  );
+}
+
+/** Guessers are exactly the non-drawer seats holding a round score, each listed once. */
+function isValidGuessedSeats(
+  guessedSeats: readonly number[],
+  drawerSeat: number,
+  roundScores: Readonly<Record<number, number>>,
+): boolean {
+  const scoredGuessers = Object.keys(roundScores)
+    .map(Number)
+    .filter((seat) => seat !== drawerSeat);
+  return (
+    new Set(guessedSeats).size === guessedSeats.length &&
+    guessedSeats.length === scoredGuessers.length &&
+    scoredGuessers.every((seat) => guessedSeats.includes(seat))
+  );
+}
+
+function isValidTurnRecord(
+  record: DrawGuessTurnRecord,
+  drawerQueue: readonly number[],
+  isSeat: SeatCheck,
+): boolean {
+  return (
+    record.drawerSeat === drawerQueue[record.turnIndex % drawerQueue.length] &&
+    record.word.length >= 1 &&
+    areValidRoundScores(record.roundScores, isSeat) &&
+    isValidGuessedSeats(record.guessedSeats, record.drawerSeat, record.roundScores) &&
+    typeof record.drawerZeroed === 'boolean' &&
+    (record.entryId === null
+      ? record.pngEntry === null
+      : record.entryId.length > 0 && record.pngEntry !== null && isValidPngEntry(record.pngEntry))
+  );
+}
+
+/**
+ * Finished turns are contiguous and end at the last closed turn: the
+ * previous turn while one is running, the final turn once ended; the
+ * lobby holds none. A room migrated from v3 mid-game starts its history
+ * at the migration turn, so the first record may come after turn 0.
+ */
+function isValidTurnHistory(state: DrawGuessState, isSeat: SeatCheck): boolean {
+  const history = state.turnHistory;
+  if (state.phase.kind === 'lobby') return history.length === 0;
+  const lastTurn = state.phase.kind === 'ended' ? state.turnIndex : state.turnIndex - 1;
+  const firstTurn = lastTurn - history.length + 1;
+  const entryIds = history.flatMap((record) => (record.entryId === null ? [] : [record.entryId]));
+  return (
+    firstTurn >= 0 &&
+    history.every(
+      (record, index) =>
+        record.turnIndex === firstTurn + index &&
+        isValidTurnRecord(record, state.drawerQueue, isSeat),
+    ) &&
+    new Set(entryIds).size === entryIds.length
+  );
+}
+
+function areValidStrokes(strokes: readonly DrawGuessStroke[], seatCount: number): boolean {
+  return (
+    strokes.length <= DRAWGUESS_MAX_STROKES_PER_TURN &&
+    strokes.every((stroke) => isValidStroke(stroke, seatCount)) &&
+    new Set(strokes.map((stroke) => stroke.id)).size === strokes.length
+  );
+}
+
+function assertDrawingPhase(state: DrawGuessState, phase: DrawingPhase, isSeat: SeatCheck): void {
+  const totalTurns = state.drawerQueue.length * DRAWGUESS_ROUNDS_PER_DRAWER;
+  invariant(state.drawerQueue.length > 0, 'drawing queue');
+  invariant(state.turnIndex < totalTurns, 'drawing turn bound');
+  invariant(isSeat(phase.drawerSeat), 'drawing drawer');
+  invariant(
+    phase.drawerSeat === state.drawerQueue[state.turnIndex % state.drawerQueue.length],
+    'drawing drawer matches queue',
+  );
+  invariant(phase.word.length >= 1 && phase.word.length <= 8, 'drawing word');
+  invariant(phase.pinyinInitials.split(' ').length === phase.word.length, 'pinyin initials length');
+  invariant(
+    phase.revealOrder.length === phase.word.length &&
+      new Set(phase.revealOrder).size === phase.word.length &&
+      phase.revealOrder.every(
+        (index) => Number.isSafeInteger(index) && index >= 0 && index < phase.word.length,
+      ),
+    'reveal order',
+  );
+  invariant(areValidStrokes(phase.strokes, state.config.numberOfPlayers), 'drawing strokes');
+  invariant(
+    Object.keys(phase.turnScores).every(
+      (seat) => isSeat(Number(seat)) && Number.isSafeInteger(phase.turnScores[Number(seat)]),
+    ),
+    'turn scores',
+  );
+  invariant(
+    phase.guessedSeats.every(isSeat) &&
+      !phase.guessedSeats.includes(phase.drawerSeat) &&
+      new Set(phase.guessedSeats).size === phase.guessedSeats.length,
+    'guessed seats',
+  );
+  invariant(
+    phase.guessLog.every(
+      (entry) =>
+        isSeat(entry.seat) &&
+        entry.seat !== phase.drawerSeat &&
+        typeof entry.text === 'string' &&
+        entry.text.length <= DRAWGUESS_GUESS_TEXT_MAX_LENGTH &&
+        Number.isSafeInteger(entry.at) &&
+        entry.at >= 0,
+    ),
+    'guess log',
+  );
+  invariant(Number.isSafeInteger(phase.phaseStartAt) && phase.phaseStartAt >= 0, 'phase start');
+  invariant(
+    Number.isSafeInteger(phase.deadlineAt) && phase.deadlineAt > phase.phaseStartAt,
+    'drawing deadline',
+  );
+}
+
+function assertRoundEndPhase(state: DrawGuessState, phase: RoundEndPhase, isSeat: SeatCheck): void {
+  const totalTurns = state.drawerQueue.length * DRAWGUESS_ROUNDS_PER_DRAWER;
+  invariant(state.drawerQueue.length > 0, 'roundEnd queue');
+  invariant(state.turnIndex < totalTurns, 'roundEnd turn bound');
+  invariant(isSeat(phase.drawerSeat), 'roundEnd drawer');
+  invariant(phase.word.length >= 1, 'roundEnd word');
+  invariant(areValidStrokes(phase.strokes, state.config.numberOfPlayers), 'roundEnd strokes');
+  invariant(areValidRoundScores(phase.roundScores, isSeat), 'round scores');
+  invariant(
+    isValidGuessedSeats(phase.guessedSeats, phase.drawerSeat, phase.roundScores),
+    'roundEnd guessed seats',
+  );
+  invariant(typeof phase.drawerZeroed === 'boolean', 'drawer zeroed');
+  const reservation = phase.reservation;
+  invariant(
+    reservation === null ||
+      (typeof reservation.submissionId === 'string' &&
+        reservation.submissionId.length > 0 &&
+        typeof reservation.entryId === 'string' &&
+        reservation.entryId.length > 0 &&
+        reservation.authorSeat === phase.drawerSeat &&
+        reservation.turnIndex === state.turnIndex),
+    'reservation',
+  );
+  // A drawing is filed only against its reservation, whose entryId is the media-route handle.
+  invariant(
+    phase.pngEntry === null || (reservation !== null && isValidPngEntry(phase.pngEntry)),
+    'png entry',
+  );
+  invariant(Number.isSafeInteger(phase.deadlineAt) && phase.deadlineAt >= 0, 'roundEnd deadline');
 }
 
 /** Validates authoritative state without repairing or dropping submitted content. */
@@ -106,12 +278,9 @@ export function normalizeDrawGuessState(state: DrawGuessState): DrawGuessState {
       new Set(state.usedWords).size === state.usedWords.length,
     'used words',
   );
+  invariant(isValidTurnHistory(state, isSeat), 'turn history');
 
   const totalTurns = state.drawerQueue.length * DRAWGUESS_ROUNDS_PER_DRAWER;
-  const validateStrokes = (strokes: readonly DrawGuessStroke[]) =>
-    strokes.length <= DRAWGUESS_MAX_STROKES_PER_TURN &&
-    strokes.every((stroke) => isValidStroke(stroke, count)) &&
-    new Set(strokes.map((stroke) => stroke.id)).size === strokes.length;
 
   switch (state.phase.kind) {
     case 'lobby':
@@ -146,100 +315,12 @@ export function normalizeDrawGuessState(state: DrawGuessState): DrawGuessState {
       );
       return state;
     }
-    case 'drawing': {
-      const phase = state.phase;
-      invariant(state.drawerQueue.length > 0, 'drawing queue');
-      invariant(state.turnIndex < totalTurns, 'drawing turn bound');
-      invariant(isSeat(phase.drawerSeat), 'drawing drawer');
-      invariant(
-        phase.drawerSeat === state.drawerQueue[state.turnIndex % state.drawerQueue.length],
-        'drawing drawer matches queue',
-      );
-      invariant(phase.word.length >= 1 && phase.word.length <= 8, 'drawing word');
-      invariant(
-        phase.pinyinInitials.split(' ').length === phase.word.length,
-        'pinyin initials length',
-      );
-      invariant(
-        phase.revealOrder.length === phase.word.length &&
-          new Set(phase.revealOrder).size === phase.word.length &&
-          phase.revealOrder.every(
-            (index) => Number.isSafeInteger(index) && index >= 0 && index < phase.word.length,
-          ),
-        'reveal order',
-      );
-      invariant(validateStrokes(phase.strokes), 'drawing strokes');
-      invariant(
-        Object.keys(phase.turnScores).every(
-          (seat) => isSeat(Number(seat)) && Number.isSafeInteger(phase.turnScores[Number(seat)]),
-        ),
-        'turn scores',
-      );
-      invariant(
-        phase.guessedSeats.every(isSeat) &&
-          !phase.guessedSeats.includes(phase.drawerSeat) &&
-          new Set(phase.guessedSeats).size === phase.guessedSeats.length,
-        'guessed seats',
-      );
-      invariant(
-        phase.guessLog.every(
-          (entry) =>
-            isSeat(entry.seat) &&
-            entry.seat !== phase.drawerSeat &&
-            typeof entry.text === 'string' &&
-            entry.text.length <= DRAWGUESS_GUESS_TEXT_MAX_LENGTH &&
-            Number.isSafeInteger(entry.at) &&
-            entry.at >= 0,
-        ),
-        'guess log',
-      );
-      invariant(Number.isSafeInteger(phase.phaseStartAt) && phase.phaseStartAt >= 0, 'phase start');
-      invariant(
-        Number.isSafeInteger(phase.deadlineAt) && phase.deadlineAt > phase.phaseStartAt,
-        'drawing deadline',
-      );
+    case 'drawing':
+      assertDrawingPhase(state, state.phase, isSeat);
       return state;
-    }
-    case 'roundEnd': {
-      const phase = state.phase;
-      invariant(state.drawerQueue.length > 0, 'roundEnd queue');
-      invariant(state.turnIndex < totalTurns, 'roundEnd turn bound');
-      invariant(isSeat(phase.drawerSeat), 'roundEnd drawer');
-      invariant(phase.word.length >= 1, 'roundEnd word');
-      invariant(validateStrokes(phase.strokes), 'roundEnd strokes');
-      invariant(
-        Object.keys(phase.roundScores).every(
-          (seat) => isSeat(Number(seat)) && Number.isSafeInteger(phase.roundScores[Number(seat)]),
-        ),
-        'round scores',
-      );
-      invariant(typeof phase.drawerZeroed === 'boolean', 'drawer zeroed');
-      const reservation = phase.reservation;
-      invariant(
-        reservation === null ||
-          (typeof reservation.submissionId === 'string' &&
-            reservation.submissionId.length > 0 &&
-            typeof reservation.entryId === 'string' &&
-            reservation.entryId.length > 0 &&
-            reservation.authorSeat === phase.drawerSeat &&
-            reservation.turnIndex === state.turnIndex),
-        'reservation',
-      );
-      const pngEntry = phase.pngEntry;
-      invariant(
-        pngEntry === null ||
-          (pngEntry.contentType === 'image/png' &&
-            pngEntry.width === 1024 &&
-            pngEntry.height === 768 &&
-            pngEntry.byteLength > 0),
-        'png entry',
-      );
-      invariant(
-        Number.isSafeInteger(phase.deadlineAt) && phase.deadlineAt >= 0,
-        'roundEnd deadline',
-      );
+    case 'roundEnd':
+      assertRoundEndPhase(state, state.phase, isSeat);
       return state;
-    }
     case 'ended':
       invariant(
         Object.keys(state.phase.totalScores).every((seat) => isSeat(Number(seat))),

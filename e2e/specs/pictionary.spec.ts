@@ -6,7 +6,7 @@ import { expect, type Page, test } from '@playwright/test';
 import { FETCH_RETRY_COUNT } from '../../src/config/api';
 import { TESTIDS } from '../../src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
-import { expectWeChatImageShare } from '../helpers/image-sharing';
+import { downloadReviewImage, expectWeChatImageShare, readPngSize } from '../helpers/image-sharing';
 import { setOffline } from '../helpers/resilience';
 import { HomePage } from '../pages/HomePage';
 import { PictionaryConfigPage } from '../pages/PictionaryConfigPage';
@@ -411,37 +411,51 @@ test.describe('Pictionary', () => {
         await Promise.all(rooms.map((room) => room.expectEnded()));
         expect(collectedGuesses.some((text) => text.includes(GUESS_SUBMISSIONS[0][0]))).toBe(true);
       });
-      await test.step('export complete albums with rendered drawings on desktop and mobile', async () => {
-        for (const page of fixture.pages.slice(0, 2)) {
-          await page.getByRole('button', { name: /分享本篇画册/ }).click();
-          const exportButton = page.getByRole('button', { name: /保存／分享长图/ });
-          await expect(exportButton).toBeEnabled();
-          const album = page.getByTestId('pictionary-export-album');
-          await expect(album).toContainText('第 4 棒');
-          await expect(album.locator('img')).toHaveCount(2);
-          const downloadPromise = page.waitForEvent('download');
-          await exportButton.click();
-          const download = await downloadPromise;
-          expect(download.suggestedFilename()).toMatch(/\.png$/);
-          const stream = await download.createReadStream();
-          if (stream === null) throw new Error('Album download stream is missing');
-          const chunks: Buffer[] = [];
-          for await (const chunk of stream) {
-            const bytes: unknown = chunk;
-            if (!(bytes instanceof Uint8Array))
-              throw new Error('Album download chunk is not binary');
-            chunks.push(Buffer.from(bytes));
+      await test.step('export albums with rendered drawings on desktop and mobile', async () => {
+        const roomCode = await hostRoom.getRoomCode();
+        for (const [albumIndex, page] of fixture.pages.slice(0, 2).entries()) {
+          // Each player browses to an album; its 「分享本篇画册」 opens the shared review at that album's page.
+          for (let skipped = 0; skipped < albumIndex; skipped += 1) {
+            await page.getByRole('button', { name: '下一本', exact: true }).click();
           }
-          const png = Buffer.concat(chunks);
-          expect(png.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
-          expect(png.readUInt32BE(20)).toBeGreaterThan(png.readUInt32BE(16));
-          expect(png.length).toBeGreaterThan(10_000);
-          await test.info().attach('pictionary-export', { body: png, contentType: 'image/png' });
+          await expect(
+            page
+              .getByTestId(TESTIDS.pictionaryStageFrame)
+              .getByText(`第 ${albumIndex + 1} / ${PLAYER_COUNT} 本画册`, { exact: true }),
+          ).toBeVisible();
+          await page.getByRole('button', { name: /分享本篇画册/ }).click();
+          const review = page.getByTestId(TESTIDS.roomReviewDialog);
+          await expect(review).toContainText(`第 ${albumIndex + 1} 篇 · `);
+          await expect(review).toContainText('第 4 棒');
+          const drawings = review.locator('img');
+          await expect(drawings).toHaveCount(2);
+          await expect
+            .poll(() =>
+              drawings.evaluateAll((images) =>
+                images.every(
+                  (image) =>
+                    image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0,
+                ),
+              ),
+            )
+            .toBe(true);
+          // 「仅分享本页」 appears once the background capture of the pages is ready.
+          const png = await downloadReviewImage(
+            page.getByRole('button', { name: '仅分享本页', exact: true }),
+            `pictionary-${roomCode}-1-p${albumIndex + 1}.png`,
+          );
+          const { width, height } = readPngSize(png);
+          expect(height).toBeGreaterThan(width);
           await page.getByRole('button', { name: '关闭详情', exact: true }).click();
         }
       });
-      await test.step('upload the album PNG for WeChat despite an unrelated pending image', async () => {
-        await expectWeChatImageShare(hostPage, /分享本篇画册/, /保存／分享长图/, 1);
+      await test.step('upload every album PNG for WeChat despite an unrelated pending image', async () => {
+        await expectWeChatImageShare(
+          hostPage,
+          /分享本篇画册/,
+          new RegExp(`保存／分享全部 ${PLAYER_COUNT} 页`),
+          PLAYER_COUNT,
+        );
       });
     } finally {
       await closeAll(fixture);
@@ -490,6 +504,13 @@ test.describe('Pictionary', () => {
       }
       await expect(hostPage.getByRole('button', { name: /草稿|跳过/ })).toHaveCount(0);
       await expect(hostPage.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toHaveCount(0);
+      // The aborted round keeps what was handed in: its review opens for every player, marked unfinished.
+      await guestPage.getByTestId(TESTIDS.roomReviewOpenButton).click();
+      const review = guestPage.getByTestId(TESTIDS.roomReviewDialog);
+      await expect(review.getByText('🖼️ 第 1 轮 · 画册', { exact: true })).toBeVisible();
+      await expect(review.getByText('未完成', { exact: true })).toBeVisible();
+      await guestPage.getByRole('button', { name: '关闭详情', exact: true }).click();
+      await expect(review).toHaveCount(0);
       const albums: string[] = [];
       for (let index = 0; index < PLAYER_COUNT; index += 1) {
         albums.push(await hostRoom.readLatestGalleryEntryText());

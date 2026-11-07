@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 import { wxPreviewImage } from '@/utils/miniProgram';
 
-import { shareImageBase64, shareImagesBase64 } from '../shareImage';
+import { previewUploadedImages, shareImagesBase64, uploadShareImages } from '../shareImage';
 import { uploadShareImage } from '../uploadShareImage';
 
 jest.mock('@/utils/miniProgram', () => ({ isMiniProgram: () => true, wxPreviewImage: jest.fn() }));
@@ -15,22 +15,24 @@ beforeEach(() => {
   Object.defineProperty(Platform, 'OS', { configurable: true, value: 'web' });
 });
 
-it('opens the uploaded PNG in WeChat instead of browser download or text sharing', async () => {
+it('opens the uploaded PNG in WeChat and reports previewed', async () => {
   jest.mocked(uploadShareImage).mockResolvedValue('https://test.local/share/story.png');
-  await shareImageBase64(() => Promise.resolve('png-base64'), 'story.png', '文字接龙');
+  await expect(
+    shareImagesBase64([{ base64: 'png-base64', filename: 'story.png' }], '文字接龙'),
+  ).resolves.toBe('previewed');
   expect(uploadShareImage).toHaveBeenCalledWith('png-base64');
   expect(wxPreviewImage).toHaveBeenCalledWith('https://test.local/share/story.png', [
     'https://test.local/share/story.png',
   ]);
 });
 
-it('previews all story images in order in one WeChat album', async () => {
+it('previews all images in order in one WeChat album', async () => {
   const urls = ['https://test.local/share/first.png', 'https://test.local/share/second.png'];
   jest.mocked(uploadShareImage).mockResolvedValueOnce(urls[0]!).mockResolvedValueOnce(urls[1]!);
   await shareImagesBase64(
     [
-      { getBase64: () => Promise.resolve('first-png'), filename: 'first.png' },
-      { getBase64: () => Promise.resolve('second-png'), filename: 'second.png' },
+      { base64: 'first-png', filename: 'first.png' },
+      { base64: 'second-png', filename: 'second.png' },
     ],
     '文字接龙',
   );
@@ -40,18 +42,31 @@ it('previews all story images in order in one WeChat album', async () => {
   expect(wxPreviewImage).toHaveBeenCalledWith(urls[0], urls);
 });
 
+it('splits upload from preview so a caller can stop between them', async () => {
+  jest.mocked(uploadShareImage).mockResolvedValue('https://test.local/share/a.png');
+  const uploaded = await uploadShareImages([{ base64: 'a', filename: 'a.png' }]);
+  expect(uploaded).toEqual(['https://test.local/share/a.png']);
+  expect(wxPreviewImage).not.toHaveBeenCalled();
+  await expect(previewUploadedImages(uploaded)).resolves.toBe('previewed');
+  expect(wxPreviewImage).toHaveBeenCalledWith(uploaded[0], uploaded);
+});
+
 it('propagates upload failures without opening a broken preview', async () => {
   const failure = new Error('upload failed');
   jest.mocked(uploadShareImage).mockRejectedValue(failure);
   await expect(
-    shareImageBase64(() => Promise.resolve('png'), 'story.png', '文字接龙'),
+    shareImagesBase64([{ base64: 'png', filename: 'story.png' }], '文字接龙'),
   ).rejects.toBe(failure);
   expect(wxPreviewImage).not.toHaveBeenCalled();
 });
 
 it('rejects an empty capture before uploading', async () => {
   await expect(
-    shareImageBase64(() => Promise.resolve(''), 'story.png', '文字接龙'),
-  ).rejects.toThrow('Captured share image is empty');
+    shareImagesBase64([{ base64: '', filename: 'story.png' }], '文字接龙'),
+  ).rejects.toThrow('Captured share image story.png is empty');
   expect(uploadShareImage).not.toHaveBeenCalled();
+});
+
+it('rejects an empty image list', async () => {
+  await expect(shareImagesBase64([], '文字接龙')).rejects.toThrow('No images to share');
 });

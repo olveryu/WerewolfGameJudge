@@ -27,6 +27,7 @@ import {
   editGameTypes,
   editGuidanceMatrixRegistry,
   editRegistry,
+  editReviewContractRegistry,
   editTestClientCatalog,
   editWorkerCatalog,
 } from './edits.mjs';
@@ -194,6 +195,10 @@ const SHARED_EDITS = [
   {
     file: 'src/__tests__/roomGuidanceMatrix.contract.test.ts',
     apply: (content, ctx) => editGuidanceMatrixRegistry(content, ctx),
+  },
+  {
+    file: 'src/__tests__/roomReview.contract.test.ts',
+    apply: (content, ctx) => editReviewContractRegistry(content, ctx),
   },
 ];
 

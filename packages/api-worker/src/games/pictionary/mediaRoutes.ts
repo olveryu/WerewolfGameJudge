@@ -2,8 +2,9 @@
  * Authenticated Pictionary drawing upload and retrieval routes.
  *
  * @throws 400 for malformed PNG data, 401 for missing authentication, 403 for
- * disallowed media access, 404 for missing rooms/media, 409 for stale reservations, and
- * 413 for oversized uploads.
+ * disallowed media access, 404 for missing rooms/media, 409 for stale reservations, 410 for
+ * a filed drawing whose stored object expired with the bucket lifecycle, and 413 for
+ * oversized uploads.
  */
 
 import {
@@ -173,6 +174,7 @@ pictionaryMediaRoutes.get('/:roomCode/media/:entryId', requireAuth, async (c) =>
     return failMediaRequest(403, 'PICTIONARY_MEDIA_FORBIDDEN');
   }
   const object = await c.env.GAME_MEDIA.get(entry.media.objectKey);
-  if (object === null) return failMediaRequest(500, 'PICTIONARY_MEDIA_MISSING');
+  // A filed drawing whose object storage lifecycle expired is gone, not a server fault.
+  if (object === null) return failMediaRequest(410, 'PICTIONARY_MEDIA_EXPIRED');
   return buildDrawingGetResponse(object, c.req.header('if-none-match'));
 });

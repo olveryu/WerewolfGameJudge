@@ -220,8 +220,18 @@ test.describe('FibKing', () => {
       const result = await hostRoom.viewResult();
       expectWordDetails(result, true);
       await hostRoom.closeIdentity();
+      // A seated player reviews the ended round （本局复盘）: the word as the
+      // headline, with 大聪明 having found 老实人.
+      const reviewPage = joinerPages[0]!;
+      await reviewPage.getByTestId(TESTIDS.roomReviewOpenButton).click();
+      const reviewDialog = reviewPage.getByTestId(TESTIDS.roomReviewDialog);
+      await expect(reviewDialog.getByText(result.word, { exact: true })).toBeVisible();
+      await expect(reviewDialog.getByText('大聪明选中了老实人', { exact: true })).toBeVisible();
+      await reviewPage.getByRole('button', { name: '关闭详情', exact: true }).click();
+      await expect(reviewDialog).toHaveCount(0);
 
       await hostRoom.startNextRound();
+      await expect(reviewPage.getByTestId(TESTIDS.roomReviewOpenButton)).toHaveCount(0);
       for (const room of realRooms) {
         await room.viewIdentity();
         await room.confirmIdentityView();

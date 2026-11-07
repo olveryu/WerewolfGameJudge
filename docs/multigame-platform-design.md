@@ -359,13 +359,13 @@ src/
 │       │   ├── useRoomSeatController.ts
 │       │   ├── useRoomProfileController.ts
 │       │   ├── useRoomShareController.ts
-│       │   ├── useShareImageAction.ts
 │       │   └── createRoomSeatPressHandler.ts
 │       ├── model/
 │       │   ├── RoomUiAdapter.ts
 │       │   ├── RoomCapabilities.ts
 │       │   ├── RoomSeatDataSource.ts
 │       │   └── RoomShellModel.ts
+│       ├── review/                      # 本局复盘：文档契约、渲染器、导出链路、useRoomReview
 │       ├── services/
 │       ├── link/
 │       │   ├── roomCommandResult.ts
@@ -1264,7 +1264,8 @@ Capabilities 同时控制可见性和执行入口。一个 capability 如果计�
 - `useRoleViewing`：查看身份协议（先 `role.viewed`、确认后弹卡、按 `identityKey` 关卡）。
 - `useRoomAudioResume`：房主重连后的播报续播门。
 - `useRoomSetupController` / `useRoomRosterController` + `createRoomSeatPressHandler`：入座/换座/离座、资料卡、座位点按。
-- `useRoomShareController` / `useShareImageAction`：QR、copy、native share、share image。
+- `useRoomShareController`：QR、copy、native share；图片分享走 `services/shareImage.ts`（`ShareImageOutcome`）。
+- `useRoomReview`（`review/`）：本局复盘入口、确认、弹窗、后台预截图与图片导出，全游戏同一实现。
 
 `src/games/__tests__/gameClientShape.contract.test.ts` 按 `GAME_TYPES` 穷举看守上述接法。
 
@@ -1278,7 +1279,7 @@ Capabilities 同时控制可见性和执行入口。一个 capability 如果计�
 - `afterSeatBoard`：本游戏公开结果。
 - `identityModal`：本游戏身份内容。
 - `extraHeaderActions`：确实没有共享语义的操作。
-- `gameOverlays`：choose-card、night-review、nomination 等不属于 shared modal 的游戏弹窗。
+- `gameOverlays`：choose-card、nomination 等不属于 shared modal 的游戏弹窗，以及 `useRoomReview().overlay`（复盘弹窗 / 导出舞台 / 分享进度）。
 
 Slot 不能重新渲染 header、seat board、bottom panel 或 shared modal。
 
@@ -1677,7 +1678,7 @@ games/<game>/
 3. 为 state、command、event、normalize、lifecycle 添加 engine test。
 4. 实现一个 Worker module，包含 create/command schema 和 effect。
 5. 加入穷尽式 Worker catalog。
-6. 实现一个 client game module、Home contribution、room adapter 和玩法 screen；lobby config 通过引擎 `<GAME>_CONFIG_SCHEMA` + `defineClientGameModule({ config: (define) => define({...}) })` 声明，不写 config 页面（狼人杀的角色选择 flow 是唯一例外）。
+6. 实现一个 client game module、Home contribution、room adapter 和玩法 screen；lobby config 通过引擎 `<GAME>_CONFIG_SCHEMA` + `defineClientGameModule({ config: (define) => define({...}) })` 声明，不写 config 页面（狼人杀的角色选择 flow 是唯一例外）。本局复盘必填：`review/to<Game>ReviewDocument.ts`（`state → RoomReviewDocument` 纯函数）+ `review/<game>Review.ts`（`RoomReviewContribution`），经 `defineClientGameModule({ review })` 声明、房间屏 `useRoomReview` 接入；不写复盘 JSX、不自建导出或分享链路（[跨游戏本局复盘与图片分享设计](game-review-share-design.md)）。
 7. 加入穷尽式 client catalog。
 8. 添加 create、join、deep link、room shell 和主玩法测试。
 9. 按 [跨游戏 UI 契约](room-shell-contract.md) 列出 config、guide、房间各阶段及关联弹窗的组件归属和状态矩阵；以狼人杀为视觉基准。

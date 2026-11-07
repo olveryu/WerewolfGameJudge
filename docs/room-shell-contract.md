@@ -305,14 +305,33 @@ Test anchors are stable: the task's action button carries `roomNextStepButton`, 
 | Host-owned local mode (Undercover pick) | `message: 点座位盘选择出局玩家`, `actionKey: cancel-selection`                                                                                                                                                                              |
 | Werewolf Day, info unconfirmed          | `choice` of every move that applies now, with steps: `sheriff-advance` while the election offers one, `sheriff-self-destruct` during speeches, and `last-night-info`; during votes `action: last-night-info` with the vote progress as note |
 | Werewolf Day, info confirmed            | The election's own moves (`sheriff-advance` / `sheriff-self-destruct` as `choice` or `action`, a vote-waiting message during votes); `null` once completed                                                                                  |
-| Werewolf Ended                          | `last-night-info` → `night-review` (note = share reminder, completes once shared) → `choice: [next-round, return-lobby]`; steps shown throughout                                                                                            |
-| Ended (other games)                     | `choice: [next-round, return-lobby]`                                                                                                                                                                                                        |
+| Werewolf Ended                          | `last-night-info` → `choice: [review, grant-review]` (note = share reminder; completes once read and granted to a seat) → `choice: [next-round, return-lobby]`; steps shown throughout                                                      |
+| Ended (other games)                     | `choice: [review, next-round, return-lobby]` (`hostReviewClosingTask`); an aborted round that keeps a review: `choice: [review, return-lobby]`                                                                                              |
 | Pictionary / Story Relay, cannot abort  | `null`; the sheet stays present with abort disabled and its reason (the host panel is never hidden mid-game)                                                                                                                                |
 
 The bottom panel carries **no** host flow: no step bar, no hint, no host buttons. Werewolf's
 bottom host rules keep only the participant actions (view identity); the review stays a bottom
-`anyone` tool for shared seats and spectators, and reaches the host through the task card and
-sheet. The sheriff dock therefore has no trailing review tool for the host.
+`anyone` tool for seats and spectators — a seat the host has not granted sees it disabled with
+the reason — and reaches the host through the task card and sheet. The sheriff dock therefore
+has no trailing review tool for the host.
+
+#### Review （本局复盘）
+
+Every game has one review, declared as `review` in its client module
+(`RoomReviewContribution<TState>`, `src/features/room/review/types.ts`) and rendered only by the
+platform: the game turns state into a declarative `RoomReviewDocument` (closed block
+vocabulary; the game writes every fact, the platform owns the review title, share title and
+generated-by footer in `reviewCopy.ts`); `useRoomReview` resolves it for the viewer and
+returns the entry, `open`, `shareAll` and the overlay (dialog, hidden export stage, share
+progress). Surfaces render the entry only through `buildReviewBottomButton` (audience `anyone`)
+and `buildReviewHostAction` (sheet key `review`); a game never writes review JSX, a share
+pipeline, or its own export dialog. Availability is the game's: `notEnded` renders no entry,
+`notPermitted` renders it disabled with the reason, `available` carries the document, whether
+the viewer may export it, and an optional confirmation before opening. The dialog prints the
+page edge to edge with a share footer (`保存／分享图片`; multi-page documents add a pager,
+`保存／分享全部 N 页` and `仅分享本页`) and captures pages in the background while open, so a
+tap reaches the system share sheet at once. Pinned by `src/__tests__/roomReview.contract.test.ts`
+(every game, every document) and the platform tests under `src/features/room/review/__tests__/`.
 
 `RoomShell` owns the shared header, connection/status ribbon, seat control banner, bottom actions, profile, invitation, and host-management surfaces. Game screens provide models and content, not another copy of those surfaces.
 
@@ -347,6 +366,7 @@ inapplicable surface explicitly with its reason rather than silently omitting it
 | Active phases    | Each materially different phase; personal vs host actions; private vs public information                       |
 | Overlays         | Open/close/cancel/confirm, dismissal while submitting, scrollable long content, fixed actions                  |
 | Recovery/results | Loading, empty, failure/retry, connection recovery and final results where supported                           |
+| Review           | Document per reviewable phase (ended / aborted); entry per audience; paging; export, drawing failure and retry |
 | Layout           | Representative narrow mobile and desktop; keyboard, long text, text scaling, no overlap or horizontal overflow |
 
 Verification has distinct layers:

@@ -33,7 +33,7 @@ export const DRAWGUESS_GUIDANCE_MATRIX: RoomGuidanceMatrix<DrawGuessPhase['kind'
     spectator: GUIDANCE_MESSAGE,
   },
   ended: {
-    host: guidanceExempt('房主由房主面板承载再来一局 / 返回大厅'),
+    host: guidanceExempt('房主由房主面板承载本局复盘 / 再来一局 / 返回大厅'),
     seated: guidanceExempt('终局等待句在终局工作区视图（全平台终局等待句的基准出处）'),
     spectator: guidanceExempt('终局视图全观看者可见'),
   },

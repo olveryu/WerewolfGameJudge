@@ -5,6 +5,12 @@ import {
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
 
+/** A blank hand-off, as the gallery and the review print it. */
+export const STORY_RELAY_BLANK_ENTRY_TEXT = '（空白）';
+
+/** A story nobody handed anything into yet (a round aborted before its first hand-in). */
+export const STORY_RELAY_EMPTY_STORY_TEXT = '这篇故事尚未收录稿件';
+
 /** Reveals only the monotonic server-authorized prefix, or the complete terminal fragments. */
 export function getStoryRelayVisibleStories(state: StoryRelayState): readonly StoryRelayChain[] {
   if (state.phase === 'ended' || state.phase === 'aborted') return state.chains;
@@ -18,29 +24,11 @@ export function getStoryRelayVisibleStories(state: StoryRelayState): readonly St
   }));
 }
 
-/** Formats an already-authorized story projection for its printable image. */
-export function formatStoryRelayStory(
-  state: StoryRelayState,
-  chain: StoryRelayChain,
-  chainIndex: number,
-): string {
-  if (state.startedAt === null) throw new Error('Story Relay start time missing');
-  const title = `故事 ${chainIndex + 1}${state.phase === 'aborted' ? '（未完成，房主中止）' : ''}`;
-  return [
-    title,
-    `开局时间：${new Date(state.startedAt).toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    })}`,
-    ...chain.entries.map((entry, stepIndex) => {
-      const participant = state.participants.find((author) => author.seat === entry.authorSeat);
-      if (participant === undefined) throw new Error('Story Relay author snapshot missing');
-      const text = entry.kind === 'text' ? entry.text : '（空白）';
-      return `${stepIndex + 1}. ${participant.displayName}\n${text}`;
-    }),
-  ].join('\n\n');
+/** The author name the round's participant snapshot recorded for a seat. */
+export function getStoryRelayAuthorName(state: StoryRelayState, seat: number): string {
+  const participant = state.participants.find((author) => author.seat === seat);
+  if (participant === undefined) {
+    throw new Error(`[FAIL-FAST] Story Relay author snapshot missing for seat ${seat}`);
+  }
+  return participant.displayName;
 }

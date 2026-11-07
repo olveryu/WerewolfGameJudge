@@ -17,6 +17,7 @@ import {
   drawGuessGameNavigation,
   parseDrawGuessConfigRouteParams,
 } from './navigation/drawGuessGameNavigation';
+import { drawGuessReview } from './review/drawGuessReview';
 import { getDrawGuessRoomCommandFailureMessage } from './room/drawGuessRoomCommandFailureMessage';
 import { DrawGuessRoomScreen } from './room/DrawGuessRoomScreen';
 import { DrawGuessConfigEstimate } from './screens/DrawGuessConfigEstimate';
@@ -43,6 +44,7 @@ export const createDrawGuessUiModule = defineClientGameModule<
       Extra: DrawGuessConfigEstimate,
     }),
   GuideScreen: DrawGuessRulesScreen,
+  review: drawGuessReview,
   isUserSeated: (state, userId) => getDrawGuessUserSeat(state, userId) !== null,
   canSwitchAccount: (state) => state.phase.kind === 'lobby',
 });

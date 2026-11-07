@@ -433,6 +433,28 @@ describe('Pictionary spectator media', () => {
     expect(new Uint8Array(await image.arrayBuffer())).toEqual(createTestPng());
   });
 
+  it('answers 410 for a filed drawing whose stored object has expired', async () => {
+    const { host, room, state, mediaUrl } = await setupRoomToAnswering();
+    const aborted = await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'pictionary.game.abort' },
+      null,
+    );
+    expect(aborted.phase).toBe('aborted');
+    const entry = state.chains
+      .flatMap((chain) => chain.entries)
+      .find((candidate) => candidate.kind === 'drawing');
+    if (entry === undefined) throw new Error('Round is missing its test drawing');
+    await env.GAME_MEDIA.delete(entry.media.objectKey);
+
+    const expired = await SELF.fetch(mediaUrl, {
+      headers: { Authorization: `Bearer ${host.access_token}` },
+    });
+    expect(expired.status).toBe(410);
+    expect(await expired.json()).toEqual({ success: false, reason: 'PICTIONARY_MEDIA_EXPIRED' });
+  });
+
   it('rejects unseated viewer media reads before gallery', async () => {
     // Minimal wiring test: verifies the HTTP route calls canReadDrawing and
     // returns 403. Authorization branches are covered by canReadDrawing.test.ts.

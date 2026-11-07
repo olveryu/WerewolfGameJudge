@@ -56,12 +56,17 @@ dependency: `SHARED_EDITS` performs none.
     `capabilities`, `public.ts` as the only cross-package entrypoint,
     `state/{version,parseState,normalize,codec}.ts` with a
     `migratePersisted*State` wired into the worker module, worker
-    schemas/effects, and the client room screen + room state modules.
+    schemas/effects, the client room screen + room state modules, and
+    the review contribution declared as the client module's required
+    `review` (`src/games/<id>/review/`).
     Cross-package imports of a game must use
     `@game-judge/game-engine/games/<id>/public` only.
 14. `[C]` Per-game capability/contract surface: engine skeleton,
     capabilities declaration, phase-deadline variants, bot-dispatch
-    discipline, room-guidance matrix registration (see
+    discipline, room-guidance matrix registration, review contract
+    registration (the game's `<GAME>_REVIEW_ROUNDS` from
+    `src/test-utils/<id>State.ts` in
+    `src/__tests__/roomReview.contract.test.ts`; see
     `references/skeleton-and-wiring.md`).
 15. `[G]` Test fixture catalog entry in
     `src/test-utils/clientGameCatalog.tsx`.

@@ -1,0 +1,118 @@
+/**
+ * __GAME_DISPLAY_NAME__本局复盘：文档由真实引擎流打到终局接缝后断言块序列与关键事实；
+ * 贡献按阶段 × 观看者断言可用性、分享与确认。
+ */
+import { __GAME_UPPER___PHASES } from '@game-judge/game-engine/games/__GAME_ID__/public';
+
+import type { ReviewRosterRow } from '@/features/room/review/types';
+import {
+  build__GAME_PASCAL__TestLobby,
+//#cap identityViewing
+  drive__GAME_PASCAL__TestCommand,
+//#end
+  end__GAME_PASCAL__TestGame,
+  start__GAME_PASCAL__TestGame,
+} from '@/test-utils/__GAME_ID__State';
+import { viewerFor } from '@/test-utils/roomViewer';
+
+import { __GAME_CAMEL__Review } from '../__GAME_CAMEL__Review';
+import { to__GAME_PASCAL__ReviewDocument } from '../to__GAME_PASCAL__ReviewDocument';
+
+const VIEWERS = ['host', 'seated', 'spectator'] as const;
+
+function participant(seat: number, name: string): ReviewRosterRow {
+  return {
+    seat,
+    seatTone: 'neutral',
+    name,
+    role: '参与者',
+    status: '完成',
+    statusTone: 'muted',
+    isOut: false,
+  };
+}
+
+describe('to__GAME_PASCAL__ReviewDocument', () => {
+  it('reviews the ended game on one page: the ended hero, then every participant', () => {
+    expect(to__GAME_PASCAL__ReviewDocument({ state: end__GAME_PASCAL__TestGame(start__GAME_PASCAL__TestGame(build__GAME_PASCAL__TestLobby())), roomCode: '1234' })).toEqual({
+      roundKey: 'game-1',
+      kicker: '🎮 第 1 局 · 终局',
+      fileStem: '__GAME_ID__-1234-1',
+      footer: '本局复盘由对局记录自动生成',
+      isAborted: false,
+      pages: [
+        {
+          key: 'result',
+          label: null,
+          blocks: [
+            {
+              kind: 'hero',
+              headline: [{ kind: 'text', text: '本局结束' }],
+              tone: 'neutral',
+              stamps: [],
+              byline: null,
+            },
+            { kind: 'section', title: '参与者' },
+            {
+              kind: 'roster',
+              columns: 1,
+              rows: [
+                participant(0, '房主'),
+                participant(1, '小明'),
+                participant(2, '机器人3号'),
+                participant(3, '机器人4号'),
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('keys every game by its own sequence', () => {
+    const secondGame = end__GAME_PASCAL__TestGame(start__GAME_PASCAL__TestGame(end__GAME_PASCAL__TestGame(start__GAME_PASCAL__TestGame(build__GAME_PASCAL__TestLobby()))));
+    expect(to__GAME_PASCAL__ReviewDocument({ state: secondGame, roomCode: '1234' })).toMatchObject({
+      roundKey: 'game-2',
+      kicker: '🎮 第 2 局 · 终局',
+      fileStem: '__GAME_ID__-1234-2',
+    });
+  });
+
+  it('fails fast for a game that has not ended', () => {
+    expect(() => to__GAME_PASCAL__ReviewDocument({ state: start__GAME_PASCAL__TestGame(build__GAME_PASCAL__TestLobby()), roomCode: '1234' })).toThrow(
+      '[FAIL-FAST]',
+    );
+  });
+});
+
+describe('__GAME_CAMEL__Review', () => {
+  it('has nothing to review in any phase before the end', () => {
+    const lobby = build__GAME_PASCAL__TestLobby();
+//#cap identityViewing
+    const beforeEnd = [lobby, drive__GAME_PASCAL__TestCommand(lobby, { type: '__GAME_ID__.roles.assign' }), start__GAME_PASCAL__TestGame(lobby)];
+//#end
+//#cap !identityViewing
+    const beforeEnd = [lobby, start__GAME_PASCAL__TestGame(lobby)];
+//#end
+    expect(beforeEnd.map((state) => state.phase.kind)).toEqual(
+      __GAME_UPPER___PHASES.filter((phase) => phase !== 'ended'),
+    );
+    for (const state of beforeEnd) {
+      for (const audience of VIEWERS) {
+        expect(
+          __GAME_CAMEL__Review.resolve({ state, viewer: viewerFor(audience), roomCode: '1234' }),
+        ).toEqual({ kind: 'notEnded' });
+      }
+    }
+  });
+
+  it.each(VIEWERS)('opens the ended review to the %s, shareable and unconfirmed', (audience) => {
+    const state = end__GAME_PASCAL__TestGame(start__GAME_PASCAL__TestGame(build__GAME_PASCAL__TestLobby()));
+    expect(__GAME_CAMEL__Review.resolve({ state, viewer: viewerFor(audience), roomCode: '1234' })).toEqual({
+      kind: 'available',
+      document: to__GAME_PASCAL__ReviewDocument({ state, roomCode: '1234' }),
+      sharing: { isAllowed: true },
+      confirmation: null,
+    });
+  });
+});

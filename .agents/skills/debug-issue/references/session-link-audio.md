@@ -16,7 +16,7 @@ Current versions at drafting time (verify again before citing a number in a repo
 | pictionary | 9               |
 | undercover | 5               |
 | storyrelay | 2               |
-| drawguess  | 2               |
+| drawguess  | 4               |
 | demo       | 1               |
 
 The upgrade range each `migratePersisted*State` accepts is defined per game in its `state/parseState.ts`; read the migration function for the game in question. Older versions outside the accepted range are rejected by the strict parser. Werewolf migrates versions 12–15 to 16 and rejects 11 or older (`migratePersistedWerewolfState` in `state/parseState.ts`).

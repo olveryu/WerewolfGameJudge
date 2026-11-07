@@ -1,9 +1,10 @@
 /**
  * @jest-environment jsdom
  *
- * shareImagesBase64 result semantics on the web: a completed Web Share
- * is 'shared', a dismissed sheet (AbortError) is 'cancelled', a
- * download fallback is 'shared', and other failures throw.
+ * shareImagesBase64 outcomes on the web: a completed Web Share is
+ * 'handedOff', a dismissed sheet (AbortError) is 'cancelled', a refused or
+ * missing sheet falls back to a download reported as 'downloaded', and any
+ * other failure throws.
  */
 import { Platform } from 'react-native';
 
@@ -12,12 +13,12 @@ import { isShareCancelled, shareImagesBase64 } from '../shareImage';
 jest.mock('@/utils/miniProgram', () => ({ isMiniProgram: () => false, wxPreviewImage: jest.fn() }));
 jest.mock('../uploadShareImage', () => ({ uploadShareImage: jest.fn() }));
 
-const images = [{ filename: 'a.png', getBase64: async () => btoa('png') }];
+const images = [{ filename: 'a.png', base64: btoa('png') }];
 
-function installNavigatorShare(share: jest.Mock | undefined) {
+function installNavigatorShare(share: jest.Mock | undefined, canShare = true) {
   Object.defineProperty(globalThis, 'navigator', {
     configurable: true,
-    value: share === undefined ? {} : { share, canShare: () => true },
+    value: share === undefined ? {} : { share, canShare: () => canShare },
   });
 }
 
@@ -27,9 +28,9 @@ beforeEach(() => {
 });
 
 describe('shareImagesBase64 on the web', () => {
-  it('reports shared when the Web Share sheet completes', async () => {
+  it('reports handedOff when the Web Share sheet completes', async () => {
     installNavigatorShare(jest.fn(async () => undefined));
-    await expect(shareImagesBase64(images, '标题')).resolves.toBe('shared');
+    await expect(shareImagesBase64(images, '标题')).resolves.toBe('handedOff');
   });
 
   it('reports cancelled only for the Web Share AbortError', async () => {
@@ -40,13 +41,28 @@ describe('shareImagesBase64 on the web', () => {
     expect(isShareCancelled(new Error('user cancelled'))).toBe(false);
   });
 
-  it('falls back to a download and reports shared without a user gesture', async () => {
+  it('downloads and reports downloaded when the sheet refuses without a user gesture', async () => {
     installNavigatorShare(
       jest.fn(async () => Promise.reject(new DOMException('gesture', 'NotAllowedError'))),
     );
     const click = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-    await expect(shareImagesBase64(images, '标题')).resolves.toBe('shared');
+    await expect(shareImagesBase64(images, '标题')).resolves.toBe('downloaded');
     expect(click).toHaveBeenCalledTimes(1);
+    click.mockRestore();
+  });
+
+  it('downloads when the browser cannot share files', async () => {
+    installNavigatorShare(jest.fn(), false);
+    const click = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    await expect(shareImagesBase64(images, '标题')).resolves.toBe('downloaded');
+    expect(click).toHaveBeenCalledTimes(1);
+    click.mockRestore();
+  });
+
+  it('downloads when the browser has no Web Share', async () => {
+    installNavigatorShare(undefined);
+    const click = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    await expect(shareImagesBase64(images, '标题')).resolves.toBe('downloaded');
     click.mockRestore();
   });
 

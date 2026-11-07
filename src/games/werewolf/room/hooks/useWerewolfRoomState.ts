@@ -12,12 +12,10 @@ import {
   type GameState,
   GameStatus,
   getPlayerCount,
-  getWerewolfNightReview,
   getWerewolfUserSeat,
   getWerewolfViewModel,
   readArmedDeadline,
   type RoleId,
-  type WerewolfNightReview,
   type WerewolfViewModel,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
@@ -28,7 +26,7 @@ import {
   type ResolvedRoleRevealAnimation,
 } from '@game-judge/game-engine/product/rewards';
 import { useIsFocused } from '@react-navigation/native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
@@ -54,6 +52,8 @@ import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
+import type { RoomReviewContribution } from '@/features/room/review/types';
+import { useRoomReview } from '@/features/room/review/useRoomReview';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import type {
   WerewolfRoomSession,
@@ -73,7 +73,6 @@ import {
 } from '../werewolfRoomAdapter';
 import { getWerewolfRoomCommandFailureMessage } from '../werewolfRoomCommandFailureMessage';
 import { type NightInteraction, useNightInteraction } from './useNightInteraction';
-import { useNightReviewShare } from './useNightReviewShare';
 import { useRoomModals } from './useRoomModals';
 import { useWerewolfAudioOrchestration } from './useWerewolfAudioOrchestration';
 import { useWerewolfBgmControl, type WerewolfBgmControlState } from './useWerewolfBgmControl';
@@ -98,18 +97,13 @@ export interface WerewolfRoleCard {
   readonly resolvedAnimation: ResolvedRoleRevealAnimation;
 }
 
-export interface WerewolfNightReviewPresentation {
-  readonly data: WerewolfNightReview | null;
-  readonly isVisible: boolean;
-  readonly close: () => void;
-  readonly shareCardRef: ReturnType<typeof useNightReviewShare>['nightReviewShareCardRef'];
-  readonly isCapturingShareCard: boolean;
-  readonly shareRun: ReturnType<typeof useNightReviewShare>['shareRun'];
-  readonly cancelShare: () => void;
-  readonly isShareSeatsVisible: boolean;
-  readonly shareSeats: readonly { readonly seat: number; readonly displayName: string }[];
-  readonly closeShareSeats: () => void;
-  readonly shareToSeats: (allowedSeats: readonly number[]) => Promise<void>;
+/** The shared review's overlay plus the host's seat-grant picker. */
+export interface WerewolfReviewAccess {
+  readonly overlay: ReactNode;
+  readonly isGrantVisible: boolean;
+  readonly grantSeats: readonly { readonly seat: number; readonly displayName: string }[];
+  readonly closeGrant: () => void;
+  readonly grantSeatsAccess: (allowedSeats: readonly number[]) => Promise<void>;
 }
 
 export interface WerewolfBoardNominations {
@@ -144,7 +138,7 @@ export interface WerewolfRoomScreenState {
   readonly mvpSelection: MvpSelection | null;
   readonly closeMvpSelection: () => void;
   readonly isHostActionSubmitting: boolean;
-  readonly nightReview: WerewolfNightReviewPresentation;
+  readonly reviewAccess: WerewolfReviewAccess;
   readonly boardNominations: WerewolfBoardNominations;
 }
 
@@ -189,6 +183,7 @@ function buildCurseInfo(state: GameState): string | null {
 export function useWerewolfRoomState(
   props: GameRoomScreenProps<'werewolf'> & {
     readonly session: WerewolfRoomSession;
+    readonly review: RoomReviewContribution<GameState>;
     readonly entryController: RoomEntryController;
     readonly audio: WerewolfAudioRuntime;
   },
@@ -325,22 +320,8 @@ export function useWerewolfRoomState(
     }
   }, [isSheriffInspectorVisible, sheriffElectionPanel]);
 
-  // ── Night review: data, share capture, entry alerts ──
-  const nightReviewData = useMemo(
-    () =>
-      status === GameStatus.Day || status === GameStatus.Ended
-        ? getWerewolfNightReview(state)
-        : null,
-    [state, status],
-  );
+  // ── Review: the shared 本局复盘, plus the host's seat grants ──
   const roleRevealRandomNonce = state.roleRevealRandomNonce ?? null;
-  const reviewShare = useNightReviewShare(
-    room.roomId,
-    roomCode,
-    user.id,
-    nightReviewData,
-    roleRevealRandomNonce,
-  );
   const panelFlow = useScopedDraft<PanelFlowProgress>({
     namespace: PANEL_FLOW_NAMESPACE,
     userId: user.id,
@@ -349,34 +330,31 @@ export function useWerewolfRoomState(
     initial: EMPTY_PANEL_FLOW_PROGRESS,
     parse: parsePanelFlowProgress,
   });
+  const review = useRoomReview({
+    contribution: props.review,
+    state,
+    viewer,
+    roomId: room.roomId,
+    roomCode,
+    onOpened: () => panelFlow.updateDraft((current) => ({ ...current, nightReviewOpened: true })),
+  });
   const modals = useRoomModals({
-    reportScopeKey: reviewShare.reportScopeKey,
-    isHost,
-    canShareReport:
-      isHost ||
-      (effectiveSeat !== null && (state.nightReviewAllowedSeats ?? []).includes(effectiveSeat)),
+    gameSequence: state.gameSequence,
     getLastNightInfo: () => buildLastNightInfo(state),
     getCurseInfo: () => buildCurseInfo(state),
-    shareNightReview: (allowedSeats) =>
+    grantReviewAccess: (allowedSeats) =>
       submit('授权查看复盘', { type: 'werewolf.review.share', allowedSeats }),
-    beginReportCapture: reviewShare.beginReportCapture,
-    reportCaptureProgress: reviewShare.reportCaptureProgress,
-    shareNightReviewReport: reviewShare.shareNightReviewReportDirectly,
     isGameEnded: status === GameStatus.Ended,
     onLastNightInfoConfirmed: () =>
       panelFlow.updateDraft((current) => ({ ...current, lastNightInfoConfirmed: true })),
   });
-  const openNightReview = useCallback(() => {
-    panelFlow.updateDraft((current) => ({ ...current, nightReviewOpened: true }));
-    modals.openNightReview();
-  }, [modals, panelFlow]);
 
   // ── Host flow ──
   const hostFlow = useWerewolfHostFlow({
     state,
     submit,
     audio,
-    shareNightReviewReport: reviewShare.shareNightReviewReportDirectly,
+    shareReview: review.shareAll,
   });
 
   // ── Board nominations (lobby) ──
@@ -420,12 +398,9 @@ export function useWerewolfRoomState(
     effectiveSeat,
     isAudioPlaying: state.isAudioPlaying,
     isActionSubmitting,
-    canOpenNightReview:
-      isHost ||
-      (effectiveSeat !== null && (state.nightReviewAllowedSeats ?? []).includes(effectiveSeat)),
+    review: review.entry,
     onNightButton: night.onNightButton,
     onViewRole: roleViewing.open,
-    onNightReview: openNightReview,
   });
   const bottomActions = createWerewolfBottomActions({
     state,
@@ -488,7 +463,8 @@ export function useWerewolfRoomState(
     },
     onMarkAllBotsViewed: hostFlow.markAllBotsViewed,
     onMarkAllBotsGroupConfirmed: hostFlow.markAllBotsGroupConfirmed,
-    onNightReview: openNightReview,
+    review: review.entry,
+    onGrantReviewAccess: modals.openGrant,
     onLastNightInfo: modals.showLastNightInfo,
     onSelectMvp: hostFlow.openMvpSelection,
   });
@@ -516,16 +492,10 @@ export function useWerewolfRoomState(
     mvpSelection: hostFlow.mvpSelection,
     closeMvpSelection: hostFlow.closeMvpSelection,
     isHostActionSubmitting: isActionSubmitting,
-    nightReview: {
-      data: nightReviewData,
-      isVisible: modals.nightReviewVisible,
-      close: modals.closeNightReview,
-      shareCardRef: reviewShare.nightReviewShareCardRef,
-      isCapturingShareCard: reviewShare.isCapturingShareCard,
-      shareRun: reviewShare.shareRun,
-      cancelShare: reviewShare.cancelReportShare,
-      isShareSeatsVisible: modals.shareReviewVisible,
-      shareSeats: viewModel.seats
+    reviewAccess: {
+      overlay: review.overlay,
+      isGrantVisible: modals.isGrantVisible,
+      grantSeats: viewModel.seats
         .filter((seat) => seat.seat !== effectiveSeat)
         .map((seat) => {
           const occupant = state.roster[seat.seat];
@@ -538,8 +508,8 @@ export function useWerewolfRoomState(
               : occupant.profile.displayName,
           };
         }),
-      closeShareSeats: modals.closeShareReview,
-      shareToSeats: modals.handleShareNightReview,
+      closeGrant: modals.closeGrant,
+      grantSeatsAccess: modals.grantSeatsAccess,
     },
     boardNominations,
   };

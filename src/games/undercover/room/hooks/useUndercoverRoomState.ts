@@ -7,7 +7,7 @@ import {
   type UndercoverRoleCounts,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
-import { useMemo } from 'react';
+import { type ReactNode, useMemo } from 'react';
 
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
@@ -23,6 +23,8 @@ import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
+import type { RoomReviewContribution } from '@/features/room/review/types';
+import { useRoomReview } from '@/features/room/review/useRoomReview';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
 import {
@@ -39,6 +41,7 @@ import {
 
 interface UndercoverRoomScreenStateInput extends GameRoomScreenProps<'undercover'> {
   readonly session: UndercoverRoomSession;
+  readonly review: RoomReviewContribution<UndercoverState>;
   readonly entryController: RoomEntryController;
 }
 
@@ -57,6 +60,8 @@ export interface UndercoverRoomScreenState {
   /** 身份构成计数（引擎口径：卧底人数随总人数变化），供 BoardInfo 展示。 */
   readonly roleCounts: UndercoverRoleCounts;
   readonly openRules: () => void;
+  /** The shared review's dialog, export stage and share progress, for the game overlays. */
+  readonly reviewOverlay: ReactNode;
 }
 
 export function useUndercoverRoomState({
@@ -64,6 +69,7 @@ export function useUndercoverRoomState({
   entryReason,
   navigation,
   session,
+  review: reviewContribution,
   entryController,
 }: UndercoverRoomScreenStateInput): UndercoverRoomScreenState {
   const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
@@ -113,6 +119,14 @@ export function useUndercoverRoomState({
     controlledSeat: bots.controlledSeat,
     submit,
     isSubmitting,
+  });
+  const review = useRoomReview({
+    contribution: reviewContribution,
+    state,
+    viewer,
+    roomId: room.roomId,
+    roomCode: room.roomCode,
+    onOpened: null,
   });
   // 对局中（非选人）点座位只开资料卡；空位与禁用座位按共享规则提示。
   const onSeatPress = createRoomSeatPressHandler({
@@ -176,6 +190,7 @@ export function useUndercoverRoomState({
     }),
     share,
     controls,
+    review: review.entry,
     release: bots.release,
   });
   return {
@@ -188,5 +203,6 @@ export function useUndercoverRoomState({
     roleCounts,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: 'undercover', roomCode: room.roomCode }),
+    reviewOverlay: review.overlay,
   };
 }
