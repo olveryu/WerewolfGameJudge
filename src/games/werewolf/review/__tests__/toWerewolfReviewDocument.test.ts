@@ -1124,6 +1124,53 @@ describe('toWerewolfReviewDocument', () => {
       expect(printedWith(nightmareBlocked, '✗')).toEqual([]);
     });
 
+    it('renders an abstaining wolf night under a poisoner override as one give-up sentence', () => {
+      // Room 8257, first night: poisoner present, both wolves recorded
+      // empty votes (-1) and the settled verdict is null (override).
+      // The wolf team's only line is the give-up sentence; the
+      // abstentions must not render as an inconsistent vote / tie.
+      const players = new Map<number, Player | null>([
+        [0, makeReviewPlayer(0, 'guard')],
+        [1, makeReviewPlayer(1, 'wolf')],
+        [2, makeReviewPlayer(2, 'wolf')],
+        [3, makeReviewPlayer(3, 'villager')],
+        [4, makeReviewPlayer(4, 'villager')],
+        [5, makeReviewPlayer(5, 'wolfGirl')],
+        [6, makeReviewPlayer(6, 'poisoner')],
+        [7, makeReviewPlayer(7, 'villager')],
+        [8, makeReviewPlayer(8, 'hunter')],
+        [9, makeReviewPlayer(9, 'villager')],
+        [10, makeReviewPlayer(10, 'villager')],
+        [11, makeReviewPlayer(11, 'seer')],
+      ]);
+      const document = documentOf(
+        makeReviewState({
+          players,
+          currentNightResults: {
+            wolfVotesBySeat: { '1': -1, '2': -1 },
+            wolfKillOverride: {
+              source: 'poisoner',
+              ui: {
+                promptTitle: 't',
+                promptMessage: 'm',
+                emptyVoteText: 'e',
+                rejectMessage: 'r',
+              },
+            },
+          },
+          resolvedWolfKillTarget: null,
+          resolvedWolfKillVerdict: null,
+        }),
+      );
+
+      const sentences = nightSentences(document);
+      expect(sentences.filter((sentence) => sentence.startsWith('狼队'))).toEqual([
+        '狼队放弃袭击，毒师在场。',
+      ]);
+      expect(sentences.filter((sentence) => sentence.includes('投票不一致'))).toEqual([]);
+      expect(sentences).toContain('本夜无人出局。');
+    });
+
     it('renders every idle phrase in one quiet night', () => {
       const roles: RoleId[] = [
         'nightmare',

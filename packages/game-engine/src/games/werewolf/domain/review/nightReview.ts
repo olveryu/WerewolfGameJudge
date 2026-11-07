@@ -516,12 +516,16 @@ export function nightReviewActorRoleId(entry: NightReviewActionEntry): RoleId | 
  * another target, and an unrecorded verdict is tiePending even when
  * the votes are unanimous — the report never invents a verdict from
  * a tally. A null verdict (wolf-kill override, which has no vote
- * verdict) also maps to tiePending here: in production an override
- * night carries no votes, so no wolfAttack card is built and the
- * wolfGiveUp card is the only wolf card; null only reaches this
- * mapping in a synthetic state, where "no vote verdict recorded" is
- * the safe rendering — never splitTied, which is reserved for a
- * cupid unanimity settlement.
+ * verdict) also maps to tiePending here, but only as a fallback for
+ * a synthetic or legacy entry: buildActionEntries never builds a
+ * wolfAttack entry under an override — the wolfGiveUp entry is the
+ * wolf team's only line there — so null never reaches this mapping
+ * from production data. Override nights do carry votes: abstentions
+ * (-1) stay legal under an override and both override sources are
+ * set before the wolf step, so a production override night records
+ * all-abstain votes. "No vote verdict recorded" is the safe
+ * rendering for such an entry — never splitTied, which is reserved
+ * for a cupid unanimity settlement.
  */
 export function deriveWolfVerdict(
   entry: Extract<NightReviewActionEntry, { kind: 'wolfAttack' }>,
@@ -779,32 +783,40 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   // votes only ever carry real target seats. -1 is the only legal negative:
   // any other negative target is a corrupt record and fails fast here rather
   // than rendering as a seat downstream.
-  if (nr.wolfVotesBySeat && Object.keys(nr.wolfVotesBySeat).length > 0) {
-    const votes: NightReviewWolfVote[] = [];
-    const abstainSeats: number[] = [];
-    for (const [voter, target] of Object.entries(nr.wolfVotesBySeat)) {
-      const voterSeat = Number(voter);
-      if (target === -1) {
-        abstainSeats.push(voterSeat);
-      } else if (target >= 0) {
-        votes.push({ voterSeat, targetSeat: target });
-      } else {
-        throw new Error(
-          `[FAIL-FAST] Invalid wolf vote target ${target} from seat ${voterSeat} in night review`,
-        );
+  //
+  // A wolf-kill override disables the kill before the wolf step runs
+  // (poisoner at START_NIGHT, nightmare block before wolfKill), so the
+  // only votes it can carry are abstentions and there is no vote verdict
+  // to report: no wolfAttack entry is built and the wolfGiveUp entry
+  // below is the wolf team's only line. Building one here would render
+  // the abstentions as a tie with an empty vote pair.
+  if (!nr.wolfKillOverride) {
+    if (nr.wolfVotesBySeat && Object.keys(nr.wolfVotesBySeat).length > 0) {
+      const votes: NightReviewWolfVote[] = [];
+      const abstainSeats: number[] = [];
+      for (const [voter, target] of Object.entries(nr.wolfVotesBySeat)) {
+        const voterSeat = Number(voter);
+        if (target === -1) {
+          abstainSeats.push(voterSeat);
+        } else if (target >= 0) {
+          votes.push({ voterSeat, targetSeat: target });
+        } else {
+          throw new Error(
+            `[FAIL-FAST] Invalid wolf vote target ${target} from seat ${voterSeat} in night review`,
+          );
+        }
       }
+      entries.push({
+        kind: 'wolfAttack',
+        votes,
+        abstainSeats,
+        verdict: state.resolvedWolfKillVerdict,
+      });
+    } else if (
+      Object.values(state.players).some((p) => p?.role && ROLE_SPECS[p.role]?.team === Team.Wolf)
+    ) {
+      entries.push({ kind: 'wolfNoTarget' });
     }
-    entries.push({
-      kind: 'wolfAttack',
-      votes,
-      abstainSeats,
-      verdict: state.resolvedWolfKillVerdict,
-    });
-  } else if (
-    !nr.wolfKillOverride &&
-    Object.values(state.players).some((p) => p?.role && ROLE_SPECS[p.role]?.team === Team.Wolf)
-  ) {
-    entries.push({ kind: 'wolfNoTarget' });
   }
 
   if (nr.wolfKillOverride) {

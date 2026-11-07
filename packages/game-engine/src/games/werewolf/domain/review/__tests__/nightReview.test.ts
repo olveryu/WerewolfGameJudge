@@ -776,6 +776,127 @@ describe('NightReview.helpers', () => {
       expect(kinds).toContain('wolfGiveUp');
     });
 
+    it('does not build a wolfAttack entry when the wolves abstained under a poisoner override', () => {
+      // Room 8257: poisoner present, first night, both wolves recorded
+      // empty votes (-1) and the settled verdict is null (override).
+      // The abstentions must not render as an inconsistent vote / tie.
+      const players = new Map<number, Player | null>([
+        [0, makePlayer(0, 'wolf')],
+        [1, makePlayer(1, 'wolf')],
+        [2, makePlayer(2, 'villager')],
+      ]);
+      const entries = buildActionEntries(
+        makeGameState({
+          players,
+          currentNightResults: {
+            wolfVotesBySeat: { '0': -1, '1': -1 },
+            wolfKillOverride: {
+              source: 'poisoner',
+              ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
+            },
+          },
+          resolvedWolfKillTarget: null,
+          resolvedWolfKillVerdict: null,
+        }),
+      );
+      const kinds = entries.map((entry) => entry.kind);
+      expect(kinds).not.toContain('wolfAttack');
+      expect(kinds).not.toContain('wolfNoTarget');
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'wolfGiveUp', reason: 'poisonerPresent' }),
+      );
+      expect(
+        kinds.filter(
+          (kind) => kind === 'wolfAttack' || kind === 'wolfNoTarget' || kind === 'wolfGiveUp',
+        ),
+      ).toHaveLength(1);
+    });
+
+    it('does not build a wolfAttack entry when the wolves abstained under a nightmare override', () => {
+      const players = new Map<number, Player | null>([
+        [0, makePlayer(0, 'wolf')],
+        [1, makePlayer(1, 'wolf')],
+        [2, makePlayer(2, 'villager')],
+      ]);
+      const entries = buildActionEntries(
+        makeGameState({
+          players,
+          currentNightResults: {
+            wolfVotesBySeat: { '0': -1, '1': -1 },
+            wolfKillOverride: {
+              source: 'nightmare',
+              ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
+            },
+          },
+          resolvedWolfKillTarget: null,
+          resolvedWolfKillVerdict: null,
+        }),
+      );
+      const kinds = entries.map((entry) => entry.kind);
+      expect(kinds).not.toContain('wolfAttack');
+      expect(kinds).not.toContain('wolfNoTarget');
+      expect(entries).toContainEqual(
+        expect.objectContaining({ kind: 'wolfGiveUp', reason: 'nightmareBlock' }),
+      );
+      expect(
+        kinds.filter(
+          (kind) => kind === 'wolfAttack' || kind === 'wolfNoTarget' || kind === 'wolfGiveUp',
+        ),
+      ).toHaveLength(1);
+    });
+
+    it('does not build a wolfAttack entry from recorded votes under an override', () => {
+      // Synthetic: a real vote recorded under an override cannot occur
+      // in production (the resolver rejects non-empty votes), but the
+      // builder's override decision must not depend on the vote shape.
+      const players = new Map<number, Player | null>([
+        [0, makePlayer(0, 'wolf')],
+        [1, makePlayer(1, 'villager')],
+      ]);
+      const entries = buildActionEntries(
+        makeGameState({
+          players,
+          currentNightResults: {
+            wolfVotesBySeat: { '0': 1 },
+            wolfKillOverride: {
+              source: 'nightmare',
+              ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
+            },
+          },
+          resolvedWolfKillTarget: null,
+          resolvedWolfKillVerdict: null,
+        }),
+      );
+      const kinds = entries.map((entry) => entry.kind);
+      expect(kinds).not.toContain('wolfAttack');
+      expect(kinds).toContain('wolfGiveUp');
+    });
+
+    it('still builds a wolfAttack entry for all-abstain votes without an override', () => {
+      const players = new Map<number, Player | null>([
+        [0, makePlayer(0, 'wolf')],
+        [1, makePlayer(1, 'wolf')],
+        [2, makePlayer(2, 'villager')],
+      ]);
+      const entries = buildActionEntries(
+        makeGameState({
+          players,
+          currentNightResults: { wolfVotesBySeat: { '0': -1, '1': -1 } },
+          resolvedWolfKillTarget: null,
+          resolvedWolfKillVerdict: { type: 'allAbstain' },
+        }),
+      );
+      expect(entries).toContainEqual(
+        expect.objectContaining({
+          kind: 'wolfAttack',
+          votes: [],
+          abstainSeats: [0, 1],
+          verdict: { type: 'allAbstain' },
+        }),
+      );
+      expect(entries.map((entry) => entry.kind)).not.toContain('wolfGiveUp');
+    });
+
     it('does not show wolf empty kill when no wolves in game', () => {
       const players = new Map<number, Player | null>([
         [0, makePlayer(0, 'villager')],
