@@ -18,7 +18,6 @@ import type {
   GameState,
   NightReviewActionEntry,
   NightReviewIdentityEntry,
-  NightReviewSheriffRound,
   NightReviewSheriffSection,
   RoleId,
   WerewolfNightReview,
@@ -44,13 +43,7 @@ import type {
   ReviewTone,
   RoomReviewDocument,
 } from '@/features/room/review/types';
-import {
-  formatSheriffElectedLine,
-  formatSpeakingOrder,
-  getNoSheriffText,
-  getSheriffElectionRoundTitle,
-  SHERIFF_ELECTION_PHASE_CONTENT,
-} from '@/games/werewolf/room/day/sheriffElectionViewModel';
+import { createSheriffElectionPresentationFromSection } from '@/games/werewolf/room/day/sheriffElectionPresentation';
 import {
   DEATH_REASON_LABELS,
   formatCheckResultLabel,
@@ -67,7 +60,6 @@ const ROSTER_OUT = '已出局';
 const DEATH_CAUSE_SUFFIX = '出局';
 
 type TextInline = Extract<ReviewInline, { readonly kind: 'text' }>;
-type SheriffPhase = keyof typeof SHERIFF_ELECTION_PHASE_CONTENT;
 
 function plain(text: string): TextInline {
   return { kind: 'text', text, tone: 'neutral' };
@@ -596,141 +588,88 @@ function nightSentences(
 // Sheriff election record
 // ─────────────────────────────────────────────────────────────────────────────
 
-function phaseStep(phase: SheriffPhase): ReviewTimelineStep {
-  const content = SHERIFF_ELECTION_PHASE_CONTENT[phase];
-  return { title: content.title, tone: 'neutral', lines: [[plain(content.description)]] };
-}
-
-function registrationStep(
-  registeredSeats: readonly number[],
-  withdrawnSeats: readonly number[],
-): ReviewTimelineStep {
-  const lines: (readonly ReviewInline[])[] = [
-    registeredSeats.length === 0
-      ? [plain('无')]
-      : registeredSeats.map((seat) =>
-          seatInline(seat, withdrawnSeats.includes(seat) ? 'muted' : 'neutral'),
-        ),
-  ];
-  if (withdrawnSeats.length > 0) {
-    lines.push([plain(withdrawnSeats.map((seat) => `${formatSeat(seat)}已退水`).join('、'))]);
-  }
-  return { title: '上警', tone: 'neutral', lines };
-}
-
-/** The still-standing candidates, only when they differ from the registration. */
-function candidateSteps(
-  phase: SheriffPhase,
-  registeredSeats: readonly number[],
-  candidateSeats: readonly number[],
-): readonly ReviewTimelineStep[] {
-  const isRegistration =
-    registeredSeats.length === candidateSeats.length &&
-    registeredSeats.every((seat, index) => seat === candidateSeats[index]);
-  if (isRegistration) return [];
-  return [
-    {
-      title: phase === 'runoffSpeech' || phase === 'runoffVote' ? '平票候选' : '候选',
-      tone: 'neutral',
-      lines: [candidateSeats.map((seat) => seatInline(seat, 'neutral'))],
-    },
-  ];
-}
-
-/** One closed round: each candidate with its votes and voters, abstentions demoted to one line. */
-function roundStep(round: NightReviewSheriffRound, winnerSeat: number | null): ReviewTimelineStep {
-  const castBallots = round.perCandidate.reduce((sum, candidate) => sum + candidate.votes, 0);
-  const lines: (readonly ReviewInline[])[] = round.perCandidate.map((candidate) => {
-    const isWinner = candidate.seat === winnerSeat;
-    return [
-      seatInline(candidate.seat, isWinner ? 'highlight' : 'neutral'),
-      plain(`${candidate.votes} 票${candidate.voterSeats.length > 0 ? '：' : ''}`),
-      ...candidate.voterSeats.map((seat) => seatInline(seat, 'neutral')),
-      ...(isWinner ? [tagInline('当选', 'highlight')] : []),
-    ];
-  });
-  if (round.abstainingSeats.length > 0) {
-    lines.push([
-      plain('弃票：'),
-      ...round.abstainingSeats.map((seat) => seatInline(seat, 'muted')),
-    ]);
-  }
-  if (castBallots + round.abstainingSeats.length === 0) lines.push([plain('无投票人')]);
-  return { title: getSheriffElectionRoundTitle(round.round), tone: 'neutral', lines };
-}
-
-function inProgressSteps(
-  section: Extract<NightReviewSheriffSection, { readonly kind: 'inProgress' }>,
-): readonly ReviewTimelineStep[] {
-  const steps: ReviewTimelineStep[] = [
-    phaseStep(section.phase),
-    registrationStep(section.registeredSeats, section.withdrawnSeats),
-    ...candidateSteps(section.phase, section.registeredSeats, section.candidateSeats),
-  ];
-  if (section.speakingOrder !== null) {
-    steps.push({
-      title: '发言顺序',
-      tone: 'neutral',
-      lines: [[plain(formatSpeakingOrder(section.speakingOrder))]],
-    });
-  }
-  if (section.voteProgress !== null) {
-    const { submittedCount, eligibleCount } = section.voteProgress;
-    steps.push({
-      title: '投票进度',
-      tone: 'neutral',
-      lines: [[plain(`${submittedCount}/${eligibleCount} 已提交`)]],
-    });
-  }
-  return [...steps, ...section.closedRounds.map((round) => roundStep(round, null))];
-}
-
-function completedSteps(
-  section: Extract<NightReviewSheriffSection, { readonly kind: 'completed' }>,
-): readonly ReviewTimelineStep[] {
-  const { result, rounds } = section;
-  const decidingRound = rounds[rounds.length - 1];
-  const resultStep: ReviewTimelineStep =
-    result.kind === 'elected'
-      ? {
-          title: '当选警长',
-          tone: 'highlight',
-          lines: [
-            [
-              seatInline(result.sheriffSeat, 'highlight'),
-              plain(formatSheriffElectedLine(result.sheriffSeat, decidingRound?.round)),
-            ],
-          ],
-        }
-      : { title: '没有警长', tone: 'muted', lines: [[plain(getNoSheriffText(result))]] };
-  return [
-    phaseStep('completed'),
-    resultStep,
-    registrationStep(section.registeredSeats, section.withdrawnSeats),
-    ...candidateSteps('completed', section.registeredSeats, section.activeCandidateSeats),
-    ...rounds.map((round) =>
-      roundStep(
-        round,
-        result.kind === 'elected' && round === decidingRound ? result.sheriffSeat : null,
-      ),
-    ),
-  ];
-}
-
 /**
  * The public election record as timeline steps. Registration is
  * status-only (no seats, no counts, for anyone); an open vote shows
  * submission counts only, never a ballot.
+ *
+ * This is a mechanical translator over the presentation projection: it
+ * branches only on the projection row kind and its semantic flags, never
+ * on an election phase, result, or seat set. Which rows exist, in which
+ * order, and who is marked winner is decided once in the projection;
+ * this function only turns a row into the timeline's vocabulary (seat
+ * medals, the [当选] tag, tones).
  */
 function sheriffSteps(section: NightReviewSheriffSection): readonly ReviewTimelineStep[] {
-  switch (section.kind) {
-    case 'registration':
-      return [phaseStep('registration')];
-    case 'inProgress':
-      return inProgressSteps(section);
-    case 'completed':
-      return completedSteps(section);
-  }
+  return createSheriffElectionPresentationFromSection(section).rows.flatMap(
+    (row): readonly ReviewTimelineStep[] => {
+      switch (row.kind) {
+        case 'phase':
+          return [{ title: row.title, tone: 'neutral', lines: [[plain(row.description)]] }];
+        case 'result': {
+          if (row.resultKind === 'elected') {
+            if (row.sheriffSeat === null || row.bannerSubtitle === null) {
+              throw new Error(
+                '[FAIL-FAST] Sheriff election presentation has an elected result without a sheriff or an elected line',
+              );
+            }
+            return [
+              {
+                title: row.timelineTitle,
+                tone: 'highlight',
+                lines: [[seatInline(row.sheriffSeat, 'highlight'), plain(row.bannerSubtitle)]],
+              },
+            ];
+          }
+          if (row.noSheriffText === null) {
+            throw new Error(
+              '[FAIL-FAST] Sheriff election presentation has a no-sheriff result without a reason',
+            );
+          }
+          return [{ title: row.timelineTitle, tone: 'muted', lines: [[plain(row.noSheriffText)]] }];
+        }
+        case 'registration': {
+          const lines: (readonly ReviewInline[])[] = [
+            row.seats.length === 0
+              ? [plain('无')]
+              : row.seats.map(({ seat, isWithdrawn }) =>
+                  seatInline(seat, isWithdrawn ? 'muted' : 'neutral'),
+                ),
+          ];
+          if (row.withdrawnNote !== null) lines.push([plain(row.withdrawnNote)]);
+          return [{ title: '上警', tone: 'neutral', lines }];
+        }
+        case 'candidates':
+          return [
+            {
+              title: row.label,
+              tone: 'neutral',
+              lines: [row.seats.map((seat) => seatInline(seat, 'neutral'))],
+            },
+          ];
+        case 'speaking':
+          return [{ title: '发言顺序', tone: 'neutral', lines: [[plain(row.text)]] }];
+        case 'voteProgress':
+          return [{ title: '投票进度', tone: 'neutral', lines: [[plain(row.text)]] }];
+        case 'round': {
+          const lines: (readonly ReviewInline[])[] = row.candidates.map((candidate) => [
+            seatInline(candidate.seat, candidate.isWinner ? 'highlight' : 'neutral'),
+            plain(`${candidate.votes} 票${candidate.voterSeats.length > 0 ? '：' : ''}`),
+            ...candidate.voterSeats.map((seat) => seatInline(seat, 'neutral')),
+            ...(candidate.isWinner ? [tagInline('当选', 'highlight')] : []),
+          ]);
+          if (row.abstainingSeats.length > 0) {
+            lines.push([
+              plain('弃票：'),
+              ...row.abstainingSeats.map((seat) => seatInline(seat, 'muted')),
+            ]);
+          }
+          if (row.isEmpty) lines.push([plain('无投票人')]);
+          return [{ title: row.title, tone: 'neutral', lines }];
+        }
+      }
+    },
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
