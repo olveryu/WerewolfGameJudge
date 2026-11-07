@@ -2103,7 +2103,7 @@ describe('NightReview.helpers', () => {
         withdrawnSeats: [],
         closedRounds: [],
         activeRound: { round: 'first', candidateSeats: [2, 5] },
-        voteProgress: { submittedCount: 2, eligibleCount: 7 },
+        voteProgress: { submittedCount: 2, eligibleCount: 7, pendingSeats: [2, 3, 4, 5, 6] },
         speakingOrder: null,
       });
       expect(JSON.stringify(section)).not.toContain('ballot');
@@ -2160,7 +2160,7 @@ describe('NightReview.helpers', () => {
         withdrawnSeats: [],
         closedRounds: [FIRST_ROUND_DERIVED],
         activeRound: { round: 'runoff', candidateSeats: [2, 5] },
-        voteProgress: { submittedCount: 1, eligibleCount: 7 },
+        voteProgress: { submittedCount: 1, eligibleCount: 7, pendingSeats: [1, 2, 3, 4, 5, 6] },
         speakingOrder: null,
       });
     });

@@ -16,6 +16,7 @@ import type {
 import type {
   SheriffCandidateRecords,
   SheriffRoundRecord,
+  SheriffVoteProgress,
 } from '@game-judge/game-engine/games/werewolf/public';
 import {
   deriveSheriffRoundRecord,
@@ -55,10 +56,7 @@ export interface SheriffElectionViewModel {
   /** Null while registration identities are not yet public. */
   readonly candidateRecords: SheriffCandidateRecords | null;
   readonly speakingInstruction: string | null;
-  readonly voteProgress: {
-    readonly submittedCount: number;
-    readonly eligibleCount: number;
-  } | null;
+  readonly voteProgress: SheriffVoteProgress | null;
   /** Null means the effective player is not eligible to vote in this phase. */
   readonly myBallot: SheriffBallotSelectionViewModel | null;
   readonly candidateOptions: readonly SheriffCandidateOptionViewModel[];

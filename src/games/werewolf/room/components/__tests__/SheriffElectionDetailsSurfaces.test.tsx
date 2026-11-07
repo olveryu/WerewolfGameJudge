@@ -32,6 +32,7 @@ const model: SheriffElectionPanelModel = {
     canAdvance: false,
     advanceLabel: null,
   },
+  remainingSeconds: null,
   pendingAction: null,
   register: jest.fn(async () => undefined),
   cancelRegistration: jest.fn(async () => undefined),

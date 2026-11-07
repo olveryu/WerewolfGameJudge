@@ -18,6 +18,7 @@ import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { Text, View } from 'react-native';
 
 import { SeatDot } from '@/components/SeatDot';
+import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import type { SheriffElectionPresentationRow } from '@/games/werewolf/room/day/sheriffElectionPresentation';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
@@ -187,10 +188,10 @@ interface SheriffElectionVoteProgressRowProps {
 
 /**
  * Vote submission progress as read-only text: how many eligible voters
- * have submitted, never who voted for whom. The panel passes its own
- * section title （选择候选人 while the viewer can still vote）; read-only
- * surfaces pass 投票进度. The progress line itself comes from the
- * projection, so both surfaces print the same text.
+ * have submitted and which seats have not, never who voted for whom. The
+ * panel passes its own section title （选择候选人 while the viewer can
+ * still vote）; read-only surfaces pass 投票进度. The progress line
+ * itself comes from the projection, so both surfaces print the same text.
  */
 export function SheriffElectionVoteProgressRow({
   title,
@@ -198,12 +199,23 @@ export function SheriffElectionVoteProgressRow({
   styles,
 }: SheriffElectionVoteProgressRowProps) {
   return (
-    <View style={styles.voteStatusRow}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <Text style={styles.voteProgress} testID={TESTIDS.sheriffVoteProgress}>
-        {row.text}
-      </Text>
-    </View>
+    <>
+      <View style={styles.voteStatusRow}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text style={styles.voteProgress} testID={TESTIDS.sheriffVoteProgress}>
+          {row.text}
+        </Text>
+      </View>
+      {row.pendingSeats.length > 0 && (
+        <View style={styles.voteProgressPending}>
+          <PendingSeatsRow
+            label="未投票"
+            seats={row.pendingSeats}
+            testID={TESTIDS.sheriffVoteProgressPendingSeats}
+          />
+        </View>
+      )}
+    </>
   );
 }
 

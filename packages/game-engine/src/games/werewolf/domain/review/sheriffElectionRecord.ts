@@ -15,6 +15,7 @@
  * the records are null and the report shows a status only.
  */
 
+import { getPendingSeats } from '../../../../platform/room/pendingSeats';
 import type { SheriffElectionRoundResult, SheriffElectionState } from '../protocol/types';
 
 /**
@@ -115,20 +116,27 @@ function getActiveCandidateSeats(election: SheriffElectionState): readonly numbe
   }
 }
 
+/** Submission progress for an open voting round: how many eligible voters have submitted and which seats have not. */
+export interface SheriffVoteProgress {
+  readonly submittedCount: number;
+  readonly eligibleCount: number;
+  /** Eligible seats that have not submitted yet — submission status only, never ballot targets. */
+  readonly pendingSeats: readonly number[];
+}
+
 /**
  * Submission progress for an open voting round: how many eligible voters
- * have submitted, never who voted for whom. This is the sanctioned public
- * slice of an open round — the election panel publishes exactly these
- * counts live — so the night report may carry them too. Null outside a
- * voting phase.
+ * have submitted, and which seats have not — never who voted for whom.
+ * This is the sanctioned public slice of an open round — the election
+ * panel publishes exactly these counts and pending seats live — so the
+ * night report may carry them too. Null outside a voting phase.
  */
-export function getSheriffVoteProgress(
-  election: SheriffElectionState,
-): { readonly submittedCount: number; readonly eligibleCount: number } | null {
+export function getSheriffVoteProgress(election: SheriffElectionState): SheriffVoteProgress | null {
   if (election.phase !== 'firstVote' && election.phase !== 'runoffVote') return null;
   return {
     submittedCount: Object.keys(election.ballots).length,
     eligibleCount: election.eligibleVoterSeats.length,
+    pendingSeats: getPendingSeats(election.eligibleVoterSeats, election.ballots),
   };
 }
 

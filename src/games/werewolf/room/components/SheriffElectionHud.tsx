@@ -7,6 +7,7 @@ import type React from 'react';
 import { memo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import { getSheriffVoteButtonLabel } from '@/games/werewolf/room/day/sheriffElectionDockModel';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
@@ -34,6 +35,12 @@ export function getHudSummary(model: SheriffElectionPanelModel): string {
     if (submittedCount >= eligibleCount) {
       // The round closes itself: the settle countdown armed by the
       // last ballot publishes the result on expiry — no Host action.
+      // remainingSeconds is null only in the snapshot race between the
+      // last ballot and the armed deadline; fall back to the static
+      // sentence instead of printing a made-up number.
+      if (model.remainingSeconds !== null) {
+        return `${progress}，${model.remainingSeconds}秒后自动公布结果`;
+      }
       return `${progress}，即将自动公布结果`;
     }
     const ballot = view.myBallot;
@@ -54,6 +61,7 @@ const SheriffElectionHudComponent: React.FC<SheriffElectionHudProps> = ({
   styles,
   onOpenDetails,
 }) => {
+  const { view } = model;
   const content = (
     <>
       <View style={styles.hudTopRow}>
@@ -80,6 +88,15 @@ const SheriffElectionHudComponent: React.FC<SheriffElectionHudProps> = ({
           </View>
         )}
       </View>
+      {view.voteProgress !== null && view.voteProgress.pendingSeats.length > 0 && (
+        <View style={styles.hudPendingRow}>
+          <PendingSeatsRow
+            label="未投票"
+            seats={view.voteProgress.pendingSeats}
+            testID={TESTIDS.sheriffHudPendingSeats}
+          />
+        </View>
+      )}
     </>
   );
 

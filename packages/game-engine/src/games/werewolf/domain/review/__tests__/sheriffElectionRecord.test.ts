@@ -4,8 +4,14 @@
  * report. A tally or candidate set computed anywhere else is a drift bug.
  */
 
+import { describe, expect, it } from 'vitest';
+
 import type { SheriffElectionRoundResult, SheriffElectionState } from '../../protocol/types';
-import { deriveSheriffRoundRecord, getSheriffCandidateRecords } from '../sheriffElectionRecord';
+import {
+  deriveSheriffRoundRecord,
+  getSheriffCandidateRecords,
+  getSheriffVoteProgress,
+} from '../sheriffElectionRecord';
 
 const FIRST_ROUND: SheriffElectionRoundResult = {
   round: 'first',
@@ -26,6 +32,39 @@ function electionWith(
     ...overrides,
   } as SheriffElectionState;
 }
+
+describe('getSheriffVoteProgress', () => {
+  it('counts submissions and lists the seats that have not submitted', () => {
+    expect(
+      getSheriffVoteProgress(
+        electionWith({
+          phase: 'firstVote',
+          candidateSeats: [2, 5],
+          eligibleVoterSeats: [0, 1, 2, 3, 4, 5, 6],
+          ballots: { 0: 2, 1: 5 },
+        }),
+      ),
+    ).toEqual({ submittedCount: 2, eligibleCount: 7, pendingSeats: [2, 3, 4, 5, 6] });
+  });
+
+  it('counts an abstention as submitted and leaves no pending seat when all have voted', () => {
+    expect(
+      getSheriffVoteProgress(
+        electionWith({
+          phase: 'runoffVote',
+          candidateSeats: [2, 5],
+          eligibleVoterSeats: [0, 1, 2],
+          ballots: { 0: 2, 1: null, 2: 5 },
+        }),
+      ),
+    ).toEqual({ submittedCount: 3, eligibleCount: 3, pendingSeats: [] });
+  });
+
+  it('returns null outside a voting phase', () => {
+    expect(getSheriffVoteProgress(electionWith({ phase: 'registration' }))).toBeNull();
+    expect(getSheriffVoteProgress(electionWith({ phase: 'completed' }))).toBeNull();
+  });
+});
 
 describe('deriveSheriffRoundRecord', () => {
   it('counts votes and voter seats from the ballots alone', () => {

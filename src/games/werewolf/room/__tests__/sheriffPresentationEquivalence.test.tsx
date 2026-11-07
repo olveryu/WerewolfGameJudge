@@ -205,6 +205,7 @@ describe('sheriff presentation equivalence', () => {
     if (view === null) throw new Error('expected a view model');
     const model: SheriffElectionPanelModel = {
       view,
+      remainingSeconds: null,
       pendingAction: null,
       register: jest.fn(async () => undefined),
       cancelRegistration: jest.fn(async () => undefined),

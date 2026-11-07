@@ -25,6 +25,7 @@ import type {
   SheriffElectionResult,
   SheriffElectionState,
   SheriffRoundRecord,
+  SheriffVoteProgress,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
@@ -64,11 +65,8 @@ export interface SheriffElectionPresentationInput {
   readonly records: SheriffCandidateRecords | null;
   /** The already-formatted speaking-order sentence, or null. */
   readonly speakingText: string | null;
-  /** Submission counts for an open voting round, or null. */
-  readonly voteProgress: {
-    readonly submittedCount: number;
-    readonly eligibleCount: number;
-  } | null;
+  /** Submission counts and pending seats for an open voting round, or null. */
+  readonly voteProgress: SheriffVoteProgress | null;
   readonly rounds: readonly SheriffElectionPresentationRoundInput[];
   /** Null while the election is not completed. */
   readonly result: SheriffElectionResult | null;
@@ -108,6 +106,8 @@ export type SheriffElectionPresentationRow =
       readonly kind: 'voteProgress';
       readonly submittedCount: number;
       readonly eligibleCount: number;
+      /** Eligible seats that have not submitted yet — submission status only, never ballot targets. */
+      readonly pendingSeats: readonly number[];
       /** The one formatted progress line: 'x/y 已提交'. */
       readonly text: string;
     }
@@ -217,6 +217,7 @@ export function createSheriffElectionPresentation(
       kind: 'voteProgress',
       submittedCount: input.voteProgress.submittedCount,
       eligibleCount: input.voteProgress.eligibleCount,
+      pendingSeats: input.voteProgress.pendingSeats,
       text: `${input.voteProgress.submittedCount}/${input.voteProgress.eligibleCount} 已提交`,
     });
   }

@@ -93,6 +93,7 @@ const ELECTION_VIEW: SheriffElectionViewModel = {
 function createElection(): SheriffElectionPanelModel {
   return {
     view: ELECTION_VIEW,
+    remainingSeconds: null,
     pendingAction: null,
     register: jest.fn(async () => undefined),
     cancelRegistration: jest.fn(async () => undefined),

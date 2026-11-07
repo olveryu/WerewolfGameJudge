@@ -1307,7 +1307,7 @@ describe('toWerewolfReviewDocument', () => {
       ]);
     });
 
-    it('renders an in-progress vote with progress counts only — ballot targets never surface', () => {
+    it('renders an in-progress vote with progress counts and pending seats — ballot targets never surface', () => {
       const document = documentOf(
         makeReviewState({
           players: sevenVillagers(),
@@ -1325,10 +1325,14 @@ describe('toWerewolfReviewDocument', () => {
       const steps = sheriffSteps(document);
 
       // The phase step, the public registration and the progress step.
-      // Only the submission count surfaces (2 of 7); ballot targets never
-      // appear as tally lines, voter medals, or per-candidate counts.
+      // Only the submission count and the pending seats surface (2 of 7,
+      // seats 3–7 still to vote); ballot targets never appear as tally
+      // lines, voter medals, or per-candidate counts.
       expect(steps.map((step) => step.title)).toEqual(['首轮投票', '上警', '投票进度']);
-      expect(stepNamed(steps, '投票进度').lines.map(lineTokens)).toEqual([['2/7 已提交']]);
+      expect(stepNamed(steps, '投票进度').lines.map(lineTokens)).toEqual([
+        ['2/7 已提交'],
+        ['未投票：3号 4号 5号 6号 7号'],
+      ]);
       expect(stepNamed(steps, '上警').lines.map(lineTokens)).toEqual([['3', '6']]);
       const inlines = steps.flatMap((step) => step.lines.flat());
       expect(inlines.flatMap((inline) => (inline.kind === 'seat' ? [inline.seat] : []))).toEqual([

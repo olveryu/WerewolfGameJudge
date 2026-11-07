@@ -32,6 +32,7 @@ import {
   getSheriffCandidateRecords,
   getSheriffVoteProgress,
   type SheriffRoundRecord,
+  type SheriffVoteProgress,
 } from './sheriffElectionRecord';
 
 type DamageReflectionRevealKey =
@@ -320,13 +321,11 @@ export type NightReviewSheriffSection =
         readonly direction: SheriffSpeakingDirection;
       } | null;
       /**
-       * Submission counts for an open voting round (the panel's public
-       * slice: counts only, never ballot targets). Null outside voting.
+       * Submission counts and pending seats for an open voting round (the
+       * panel's public slice: counts and pending seats only, never ballot
+       * targets). Null outside voting.
        */
-      readonly voteProgress: {
-        readonly submittedCount: number;
-        readonly eligibleCount: number;
-      } | null;
+      readonly voteProgress: SheriffVoteProgress | null;
     }
   | {
       readonly kind: 'completed';
