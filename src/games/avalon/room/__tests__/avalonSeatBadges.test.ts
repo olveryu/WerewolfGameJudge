@@ -1,7 +1,8 @@
 /**
- * createAvalonSeatDataSource badges: the quest phase marks team seats that
- * have already played with 已出牌 (existence only, never the card content),
- * without per-seat vote progress. States come from the real engine.
+ * createAvalonSeatDataSource badges: the quest phase no longer marks played
+ * seats — the seat board keeps only 队员, and who has not played lives in
+ * the history-summary bar, the bottom message and the quest modal. States
+ * come from the real engine.
  */
 import {
   type AvalonCommand,
@@ -98,8 +99,8 @@ function questPhaseSession() {
   };
 }
 
-describe('createAvalonSeatDataSource — quest played badge', () => {
-  it('marks a team seat as 已出牌 after it plays, and only that seat', () => {
+describe('createAvalonSeatDataSource — quest played badge removed', () => {
+  it('keeps only 队员 on the seat board after a team seat plays, with no 已出牌 mark', () => {
     const session = questPhaseSession();
     const leader = session.leader;
     // 出牌前：组队者本人在队伍里，组队者与队员两个事实同显。
@@ -139,7 +140,7 @@ describe('createAvalonSeatDataSource — quest played badge', () => {
           tone: 'warning',
         },
       ],
-      progressLabel: '已出牌',
+      progressLabel: null,
     });
     const other = (leader + 1) % 5;
     expect(source.getSeat(other).indicators).toEqual({

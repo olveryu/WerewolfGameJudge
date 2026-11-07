@@ -19,6 +19,7 @@ import {
   isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
 
+import { formatPendingSeats } from '@/features/room/components/PendingSeatsRow';
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
@@ -203,10 +204,9 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
     resolveShowReadyBadge: (seat) =>
       state.phase.kind === 'viewing' && state.roleViewedSeats.includes(seat),
     resolveIndicators: (seat) => {
-      const hasPlayed = state.phase.kind === 'quest' && state.phase.plays[seat] !== undefined;
       const nightConfirmed =
         nightPhase !== null && viewerIsStepParticipant && nightPhase.confirmedSeats.includes(seat);
-      const progressLabel = hasPlayed ? '已出牌' : nightConfirmed ? '已确认' : null;
+      const progressLabel = nightConfirmed ? '已确认' : null;
       return avalonSeatIndicators(state, seat, progressLabel);
     },
   });
@@ -569,15 +569,17 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           onPress: input.onOpenVotePress,
           testID: 'avalon-vote-open',
         });
-        // 已投计数与引擎视图层 AvalonCurrentProposalView 同一派生
-        // （只数已投人数、永不归名，与暗投口径一致）。
-        message =
-          phase.deadlineAt !== null && input.settleCountdownSeconds !== null
-            ? `已全部投票，${input.settleCountdownSeconds} 秒后揭晓`
-            : instruction.myBallot !== null
-              ? `你已投：${instruction.myBallot === 'approve' ? '赞成' : '反对'}（揭晓前可改票）· 已投 ${Object.keys(phase.ballots).length}/${getAvalonOccupiedSeatCount(state)}`
-              : null;
-      } else {
+      }
+      // 未投票名单全房公开：计数 + 未投票行，人人可见（不再只给已投票者看个人票）。
+      // 已投计数与引擎视图层 AvalonCurrentProposalView 同一派生（只数已投人数、永不归名，
+      // 与暗投口径一致）；个人票仍只在弹窗里看。
+      message =
+        phase.deadlineAt !== null && input.settleCountdownSeconds !== null
+          ? `已全部投票，${input.settleCountdownSeconds} 秒后揭晓`
+          : vm.pendingVoteSeats !== null && vm.pendingVoteSeats.length > 0
+            ? `已投 ${Object.keys(phase.ballots).length}/${getAvalonOccupiedSeatCount(state)} · ${formatPendingSeats('未投票', vm.pendingVoteSeats)}`
+            : null;
+      if (message === null && !instruction.canVote) {
         message = input.canTakeOverBots ? '长按机器人座位接管后投票。' : '你不在座位上，无法投票。';
       }
       break;
@@ -595,13 +597,15 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           onPress: input.onOpenQuestPress,
           testID: 'avalon-quest-open',
         });
-        message =
-          phase.deadlineAt !== null && input.settleCountdownSeconds !== null
-            ? `已全部出牌，${input.settleCountdownSeconds} 秒后揭晓`
-            : instruction.myPlay !== null
-              ? '你已出牌，等待揭晓'
-              : null;
-      } else {
+      }
+      // 未出牌名单全房公开：计数 + 未出牌行，人人可见；个人牌仍只在弹窗里看。
+      message =
+        phase.deadlineAt !== null && input.settleCountdownSeconds !== null
+          ? `已全部出牌，${input.settleCountdownSeconds} 秒后揭晓`
+          : vm.pendingPlaySeats !== null && vm.pendingPlaySeats.length > 0
+            ? `已出牌 ${Object.keys(phase.plays).length}/${phase.teamSeats.length} · ${formatPendingSeats('未出牌', vm.pendingPlaySeats)}`
+            : null;
+      if (message === null && !instruction.isTeamMember) {
         message = '等待队员出牌…';
       }
       break;

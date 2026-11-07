@@ -37,6 +37,8 @@ function historyViewModel(roundHistory: readonly AvalonRoundRecordView[]): Avalo
     proposedSeats: null,
     teamSeats: null,
     myBallot: null,
+    pendingVoteSeats: null,
+    pendingPlaySeats: null,
     ballots: null,
     voteCounts: null,
     myPlay: null,
@@ -98,6 +100,7 @@ const openRound: AvalonRoundRecordView = {
     teamSeats: [2, 3],
     castCount: 2,
     totalCount: 5,
+    pendingSeats: [0, 1, 4],
     myBallot: 'approve',
   },
 };
@@ -137,7 +140,7 @@ describe('AvalonHistoryOverlay', () => {
   it('renders the settled quest banner, adopted card, and collapsed rejected proposal', () => {
     const { getByLabelText, getByTestId, getByText, queryByText } = renderOverlay([settledRound]);
     expect(getByText('任务一 · 成功')).toBeTruthy();
-    expect(getByText('任务出牌结果（出牌人不公开）')).toBeTruthy();
+    expect(getByText('任务出牌结果（出了什么牌不公开）')).toBeTruthy();
     expect(getByText('成功牌')).toBeTruthy();
     expect(getByText('×2')).toBeTruthy();
     expect(getByText('失败牌')).toBeTruthy();
@@ -246,6 +249,7 @@ describe('AvalonHistoryOverlay', () => {
     const { getByText, queryByTestId, queryByText } = renderOverlay([openRound]);
     expect(getByText('任务二 · 组队投票中')).toBeTruthy();
     expect(getByText('第1次提案 · 进行中（已投 2/5）')).toBeTruthy();
+    expect(getByText('未投票：1号 2号 5号')).toBeTruthy();
     expect(getByText('你投了：赞成')).toBeTruthy();
     expect(queryByTestId('avalon-history-current-proposal-2-team')).toBeNull();
     expect(queryByText(/第1次提案 · 组队者/)).toBeNull();
@@ -258,12 +262,13 @@ describe('AvalonHistoryOverlay', () => {
       proposals: [settledRound.proposals[1]!],
       quest: null,
       vetoEnded: false,
-      questProgress: { playedCount: 1, teamSize: 2 },
+      questProgress: { playedCount: 1, teamSize: 2, pendingSeats: [1] },
       currentProposal: null,
     };
     const { getAllByTestId, getByText } = renderOverlay([questRound]);
     expect(getByText('任务一 · 任务执行中')).toBeTruthy();
     expect(getByText('已出牌 1/2')).toBeTruthy();
+    expect(getByText('未出牌：2号')).toBeTruthy();
     expect(getAllByTestId('avalon-history-proposal-1-1-team')).toHaveLength(1);
     const team = within(getAllByTestId('avalon-history-proposal-1-1-team')[0]!);
     expect(team.getByTestId('avalon-history-proposal-1-1-team-seat-2')).toBeTruthy();

@@ -75,6 +75,16 @@ function AvalonRoomContent(
   const viewModel = screen.viewModel;
   const [historyVisible, setHistoryVisible] = useState(false);
   const historySummary = isLobby ? null : createAvalonHistorySummary(screen.state);
+  // 顶部主面第二行：投票/任务进行中显示未提交名单（与警长 HUD 同位置）。
+  const historyPendingSeats =
+    viewModel === null
+      ? null
+      : viewModel.phase === 'vote'
+        ? viewModel.pendingVoteSeats
+        : viewModel.phase === 'quest'
+          ? viewModel.pendingPlaySeats
+          : null;
+  const historyPendingLabel = viewModel?.phase === 'quest' ? '未出牌' : '未投票';
   // 刺杀二次确认住在 overlays 层：阶段切换不能把它吞掉。
   // 选人模式（strikePickMode）住在 hook：底部动作区的「刺杀」入口与此处共用。
   const { strikeConfirm, setStrikeConfirm, ladyCheckTarget, setLadyCheckTarget } =
@@ -248,6 +258,8 @@ function AvalonRoomContent(
                 historySummary === null ? null : (
                   <AvalonHistorySummary
                     summary={historySummary}
+                    pendingSeats={historyPendingSeats}
+                    pendingLabel={historyPendingLabel}
                     onOpenHistory={() => setHistoryVisible(true)}
                   />
                 ),

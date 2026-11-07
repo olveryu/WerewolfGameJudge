@@ -32,6 +32,8 @@ function questViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMod
     proposedSeats: null,
     teamSeats: [0, 1],
     myBallot: null,
+    pendingVoteSeats: null,
+    pendingPlaySeats: null,
     ballots: null,
     voteCounts: null,
     myPlay: null,
@@ -113,6 +115,25 @@ describe('AvalonQuestModal', () => {
   it('shows my current play without revealing anyone else', () => {
     const { getByText } = renderModal({ myPlay: 'success' });
     expect(getByText(/已出牌（成功）/)).toBeTruthy();
+  });
+
+  it('says the played card stays secret, not the player', () => {
+    const { getByText, queryByText } = renderModal({ myPlay: 'success' });
+    expect(getByText(/出了什么牌不公开/)).toBeTruthy();
+    expect(queryByText(/出牌人不公开/)).toBeNull();
+    const { getByText: getByTextBefore } = renderModal();
+    expect(getByTextBefore(/出了什么牌不公开/)).toBeTruthy();
+  });
+
+  it('shows the pending seats while the quest is open', () => {
+    const { getByTestId, queryByTestId } = renderModal({ pendingPlaySeats: [1] });
+    expect(getByTestId('avalon-quest-pending-seats-seat-1')).toBeTruthy();
+    expect(queryByTestId('avalon-quest-pending-seats-seat-0')).toBeNull();
+  });
+
+  it('hides the pending row once every play is in', () => {
+    const { queryByTestId } = renderModal({ pendingPlaySeats: [] }, 3);
+    expect(queryByTestId('avalon-quest-pending-seats')).toBeNull();
   });
 
   it('disables the cards while a submission is in flight', () => {

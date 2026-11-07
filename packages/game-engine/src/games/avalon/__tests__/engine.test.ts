@@ -596,6 +596,40 @@ describe('Avalon engine', () => {
     }
   });
 
+  it('exposes pending voters and pending players as seat lists, never ballot or play content', () => {
+    const session = game({ numberOfPlayers: 5 });
+    session.startGame();
+    session.passNight();
+    session.proposeTeam([0, 1]);
+    session.send({ type: 'avalon.team.vote', vote: 'approve' }, 'host');
+    // One ballot in: the view model and the record name the four seats
+    // still to vote, and the record keeps the count in step.
+    let view = getAvalonViewModel(session.state, null);
+    expect(view.pendingVoteSeats).toEqual([1, 2, 3, 4]);
+    expect(view.pendingPlaySeats).toBeNull();
+    const openRound = view.roundHistory.find((round) => round.round === 1);
+    expect(openRound?.currentProposal).toMatchObject({
+      castCount: 1,
+      totalCount: 5,
+      pendingSeats: [1, 2, 3, 4],
+    });
+    session.voteAll('approve');
+    session.settleVote();
+    expect(session.state.phase.kind).toBe('quest');
+    // One play in: only the other team seat is still pending, in both
+    // the view model and the record's quest progress.
+    session.send({ type: 'avalon.quest.play', play: 'success' }, 'host');
+    view = getAvalonViewModel(session.state, null);
+    expect(view.pendingVoteSeats).toBeNull();
+    expect(view.pendingPlaySeats).toEqual([1]);
+    const questRound = view.roundHistory.find((round) => round.round === 1);
+    expect(questRound?.questProgress).toEqual({
+      playedCount: 1,
+      teamSize: 2,
+      pendingSeats: [1],
+    });
+  });
+
   it('rejects ties, rotates the leader and bumps the streak', () => {
     const session = game({ numberOfPlayers: 6 });
     session.startGame();
@@ -1577,12 +1611,14 @@ describe('Avalon engine', () => {
     session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(1));
     session.send({ type: 'avalon.team.vote', vote: 'reject' }, session.seatUser(2));
     const voterView = getAvalonViewModel(session.state, 1);
-    // Exact shape: no per-seat ballot map leaks for the unsettled proposal.
+    // Exact shape: no per-seat ballot map leaks for the unsettled proposal —
+    // only the count, the pending seats, and the viewer's own ballot.
     expect(voterView.roundHistory[0]?.currentProposal).toEqual({
       leaderSeat: leader,
       teamSeats: [leader, (leader + 1) % 6],
       castCount: 2,
       totalCount: 6,
+      pendingSeats: [0, 3, 4, 5],
       myBallot: 'approve',
     });
     expect(voterView.roundHistory[0]?.proposals).toEqual([]);
@@ -1602,7 +1638,11 @@ describe('Avalon engine', () => {
     session.playAll({ [team[0]!]: 'success' });
     const view = getAvalonViewModel(session.state, team[1]!);
     expect(view.roundHistory[0]?.quest).toBeNull();
-    expect(view.roundHistory[0]?.questProgress).toEqual({ playedCount: 1, teamSize: 2 });
+    expect(view.roundHistory[0]?.questProgress).toEqual({
+      playedCount: 1,
+      teamSize: 2,
+      pendingSeats: [team[1]],
+    });
     expect(view.roundHistory[0]?.proposals[0]?.approved).toBe(true);
   });
 

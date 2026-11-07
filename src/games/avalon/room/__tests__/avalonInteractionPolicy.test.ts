@@ -39,6 +39,8 @@ function baseViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMode
     proposedSeats: null,
     teamSeats: null,
     myBallot: null,
+    pendingVoteSeats: null,
+    pendingPlaySeats: null,
     ballots: null,
     voteCounts: null,
     myPlay: null,

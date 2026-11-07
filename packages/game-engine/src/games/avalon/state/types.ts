@@ -471,6 +471,15 @@ export function getAvalonOccupiedSeatCount(state: AvalonState): number {
   return countOccupiedSeats(state.roster);
 }
 
+/** Occupied seats (real humans plus bots), ascending. */
+export function getAvalonOccupiedSeats(state: AvalonState): readonly number[] {
+  const seats: number[] = [];
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+    if (isAvalonOccupiedSeat(state, seat)) seats.push(seat);
+  }
+  return seats;
+}
+
 /** Seat is playable: occupied by a real human or a bot. */
 export function isAvalonOccupiedSeat(state: AvalonState, seat: number): boolean {
   return state.roster[seat] != null;
