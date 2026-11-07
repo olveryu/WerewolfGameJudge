@@ -17,6 +17,7 @@ export function RoomDialog({
   subtitle,
   titleTestID,
   testID,
+  isContentFlush,
   onClose,
   children,
   footer,
@@ -25,6 +26,8 @@ export function RoomDialog({
   readonly subtitle?: string;
   readonly titleTestID?: string;
   readonly testID?: string;
+  /** Children print edge to edge (a full-bleed page) instead of inside the padded content column. */
+  readonly isContentFlush?: boolean;
   readonly onClose: () => void;
   readonly children: ReactNode;
   readonly footer: ReactNode;
@@ -51,7 +54,7 @@ export function RoomDialog({
       </View>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={isContentFlush === true ? null : styles.content}
         keyboardShouldPersistTaps="handled"
       >
         {children}

@@ -35,7 +35,7 @@ import {
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
   hostActionTask,
-  hostClosingTask,
+  hostReviewClosingTask,
   hostStartTask,
   projectViewingProgress,
   seatShortageReason,
@@ -54,6 +54,11 @@ import type {
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import {
+  buildReviewBottomButton,
+  buildReviewHostAction,
+  type RoomReviewEntry,
+} from '@/features/room/review/roomReviewActions';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
@@ -106,6 +111,8 @@ export interface DemoRoomShellModelInput extends Omit<
   readonly onProfileLeaveSeat: () => void;
   readonly isLobby: boolean;
   readonly releaseBot: () => void;
+  /** 本局复盘入口（平台 useRoomReview）；没有可复盘的对局时为 null。 */
+  readonly review: RoomReviewEntry | null;
 }
 
 export interface DemoHostManagementInput {
@@ -116,6 +123,8 @@ export interface DemoHostManagementInput {
   >;
   readonly isSubmitting: boolean;
   readonly submit: (label: string, command: DemoCommand) => Promise<boolean>;
+  /** 本局复盘入口；终局时必有。 */
+  readonly review: RoomReviewEntry | null;
 }
 
 /** Assembles the Demo host panel for the current phase. Host gating belongs to the shell factory. */
@@ -219,13 +228,16 @@ export function createDemoHostManagement(input: DemoHostManagementInput): RoomHo
     return { task, sections };
   }
   if (state.phase.kind === 'ended') {
+    if (input.review === null) throw new Error('[FAIL-FAST] Demo ended without a review entry');
+    // 本局复盘与再来一局 / 返回大厅并列：下一局开始后本局复盘随之消失。
     return {
-      task: hostClosingTask(),
+      task: hostReviewClosingTask(),
       sections: [
         {
           key: 'current-flow',
           title: '当前流程',
           actions: [
+            buildReviewHostAction(input.review),
             buildNextRoundAction({
               onPress: () =>
                 showConfirmAlert(
@@ -288,7 +300,13 @@ export function createDemoRoomShellModel(input: DemoRoomShellModelInput): RoomSh
           ? buildEndedWaitingMessage({ isEnded: true, viewer: input.viewer })
           : buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      // 本局复盘对每位观看者（含观战）开放：有复盘即在次级档。
+      layout: {
+        primary: [],
+        secondary:
+          input.review === null ? [] : [buildReviewBottomButton(input.review, 'secondary')],
+        ghost: [],
+      },
     },
     controlledSeat: createControlledSeatModel({
       controlledSeat: input.controlledSeat,

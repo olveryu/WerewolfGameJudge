@@ -41,7 +41,8 @@ function createInput(overrides: Record<string, unknown> = {}) {
     onMusicSettings: jest.fn(),
     onMarkAllBotsViewed: jest.fn(),
     onMarkAllBotsGroupConfirmed: jest.fn(),
-    onNightReview: jest.fn(),
+    review: { isEnabled: true as const, onPress: jest.fn() },
+    onGrantReviewAccess: jest.fn(),
     onLastNightInfo: jest.fn(),
     ...overrides,
   };
@@ -176,7 +177,13 @@ describe('createWerewolfHostManagement', () => {
       }),
     );
 
-    expect(actionLabels(model)).toEqual(['结束报名', '本局复盘', '昨夜信息', '中止本局']);
+    expect(actionLabels(model)).toEqual([
+      '结束报名',
+      '本局复盘',
+      '授权玩家查看',
+      '昨夜信息',
+      '中止本局',
+    ]);
     expect(model.task).toMatchObject({
       kind: 'choice',
       actionKeys: ['sheriff-advance', 'last-night-info'],
@@ -262,7 +269,7 @@ describe('createWerewolfHostManagement', () => {
       actionKey: 'last-night-info',
       steps: [
         { key: 'lastNightInfo', state: 'current', actionKey: 'last-night-info' },
-        { key: 'nightReview', state: 'upcoming', actionKey: 'night-review' },
+        { key: 'nightReview', state: 'upcoming', actionKey: 'review' },
         { key: 'closing', state: 'upcoming' },
       ],
     });
@@ -427,19 +434,21 @@ describe('createWerewolfHostManagement', () => {
   it.each([GameStatus.Day, GameStatus.Ended])(
     'locks the review tools during audio playback in %s, on the task card and in the sheet',
     (roomStatus) => {
-      const onNightReview = jest.fn();
+      const openReview = jest.fn();
+      const onGrantReviewAccess = jest.fn();
       const onLastNightInfo = jest.fn();
       const model = createWerewolfHostManagement(
         createInput({
           roomStatus,
           isAudioPlaying: true,
           capabilities: deniedRoomCapabilities,
-          onNightReview,
+          review: { isEnabled: true, onPress: openReview },
+          onGrantReviewAccess,
           onLastNightInfo,
         }),
       );
       const actions = model.sections.flatMap((section) => section.actions);
-      for (const key of ['night-review', 'last-night-info']) {
+      for (const key of ['review', 'grant-review', 'last-night-info']) {
         const action = actions.find((entry) => entry.key === key);
         expect(action).toMatchObject({
           isEnabled: false,
@@ -458,7 +467,8 @@ describe('createWerewolfHostManagement', () => {
       for (const step of view.steps ?? []) {
         expect(step.onPress).toBeUndefined();
       }
-      expect(onNightReview).not.toHaveBeenCalled();
+      expect(openReview).not.toHaveBeenCalled();
+      expect(onGrantReviewAccess).not.toHaveBeenCalled();
       expect(onLastNightInfo).not.toHaveBeenCalled();
     },
   );
@@ -512,12 +522,14 @@ describe('createWerewolfHostManagement', () => {
   });
 
   it('presents the terminal double-key in the ended state and includes result tools', () => {
-    const onNightReview = jest.fn();
+    const openReview = jest.fn();
+    const onGrantReviewAccess = jest.fn();
     const model = createWerewolfHostManagement(
       createInput({
         roomStatus: GameStatus.Ended,
         capabilities: deniedRoomCapabilities,
-        onNightReview,
+        review: { isEnabled: true, onPress: openReview },
+        onGrantReviewAccess,
       }),
     );
 
@@ -531,15 +543,51 @@ describe('createWerewolfHostManagement', () => {
       '再来一局',
       '返回大厅',
       '本局复盘',
+      '授权玩家查看',
       '昨夜信息',
       '音乐设置',
     ]);
-    const reviewAction = model?.sections
-      .flatMap((section) => section.actions)
-      .find((action) => action.key === 'night-review');
+    const actions = model.sections.flatMap((section) => section.actions);
+    const reviewAction = actions.find((action) => action.key === 'review');
     if (reviewAction?.isEnabled !== true) throw new Error('Expected enabled post-game review');
     reviewAction.onPress();
-    expect(onNightReview).toHaveBeenCalledTimes(1);
+    expect(openReview).toHaveBeenCalledTimes(1);
+    const grantAction = actions.find((action) => action.key === 'grant-review');
+    if (grantAction?.isEnabled !== true) throw new Error('Expected enabled review grant');
+    grantAction.onPress();
+    expect(onGrantReviewAccess).toHaveBeenCalledTimes(1);
+  });
+
+  it('makes reading and granting the review equal moves of the Ended review step', () => {
+    const model = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Ended,
+        panelFlow: { lastNightInfoConfirmed: true, nightReviewOpened: false },
+        capabilities: deniedRoomCapabilities,
+      }),
+    );
+    expect(model.task).toMatchObject({
+      kind: 'choice',
+      actionKeys: ['review', 'grant-review'],
+      note: '记得把复盘分享给第一天出局的玩家',
+      steps: [
+        { key: 'lastNightInfo', state: 'complete' },
+        { key: 'nightReview', state: 'current' },
+        { key: 'closing', state: 'upcoming' },
+      ],
+    });
+  });
+
+  it('fails fast when a Day or Ended host has no review entry', () => {
+    expect(() =>
+      createWerewolfHostManagement(
+        createInput({
+          roomStatus: GameStatus.Ended,
+          review: null,
+          capabilities: deniedRoomCapabilities,
+        }),
+      ),
+    ).toThrow('[FAIL-FAST] Werewolf Ended host has no review entry');
   });
 
   describe('console primary', () => {

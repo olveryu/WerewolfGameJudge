@@ -419,3 +419,38 @@ export function editGuidanceMatrixRegistry(content, { gameId, camel }) {
     (_match, head, tail) => `${head}\n  ${gameId}: ${constant},${tail}`,
   );
 }
+
+/**
+ * Register the game's review rounds in the exhaustive review contract:
+ * the contribution import joins the @/games import group and the rounds
+ * import the @/test-utils group, each in specifier order, and the row is
+ * appended to the REVIEW_CONTRACT literal. Both names derive exactly like
+ * the template tokens — `${camel}Review` from
+ * review/__GAME_CAMEL__Review, the rounds constant (gameId uppercased,
+ * like __GAME_UPPER__) from test-utils/__GAME_ID__State — so the
+ * registered names always match the files generated alongside.
+ */
+export function editReviewContractRegistry(content, { gameId, camel }) {
+  const file = 'src/__tests__/roomReview.contract.test.ts';
+  const contribution = `${camel}Review`;
+  const rounds = `${gameId.toUpperCase()}_REVIEW_ROUNDS`;
+  if (content.includes(rounds)) fail(file, `'${gameId}' is already registered.`);
+  const withContribution = insertImportsSorted(
+    file,
+    content,
+    [`import { ${contribution} } from '@/games/${gameId}/review/${contribution}';`],
+    /^@\/games\//,
+  );
+  const withRounds = insertImportsSorted(
+    file,
+    withContribution,
+    [`import { ${rounds} } from '@/test-utils/${gameId}State';`],
+    /^@\/test-utils\//,
+  );
+  return replaceOnce(
+    file,
+    withRounds,
+    /(const REVIEW_CONTRACT: Record<GameType, ReviewContractCase> = \{[\s\S]*?)(\n\};)/,
+    (_match, head, tail) => `${head}\n  ${gameId}: reviewCase(${contribution}, ${rounds}),${tail}`,
+  );
+}

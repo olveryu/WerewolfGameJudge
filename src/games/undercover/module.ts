@@ -17,6 +17,7 @@ import {
   parseUndercoverConfigRouteParams,
   undercoverGameNavigation,
 } from './navigation/undercoverGameNavigation';
+import { undercoverReview } from './review/undercoverReview';
 import { getUndercoverRoomCommandFailureMessage } from './room/undercoverRoomCommandFailureMessage';
 import { UndercoverRoomScreen } from './room/UndercoverRoomScreen';
 import {
@@ -63,6 +64,7 @@ export const createUndercoverUiModule = defineClientGameModule<
       useSubmitGate: useUndercoverConfigSubmitGate,
     }),
   GuideScreen: UndercoverRulesScreen,
+  review: undercoverReview,
   isUserSeated: (state, userId) => getUndercoverUserSeat(state, userId) !== null,
   canSwitchAccount: (state) => state.phase === 'lobby',
 });

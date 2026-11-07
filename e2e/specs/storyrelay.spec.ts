@@ -1,13 +1,11 @@
 /** Browser acceptance for plain-text Story Relay, using only production room and writing controls. */
 
-import { readFile } from 'node:fs/promises';
-
-import { type Download, expect, type Page, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
 import { closeAll, createColdRoomContext, createPlayerContexts } from '../fixtures/app.fixture';
 import { enterRoomCodeViaNumPad } from '../helpers/home';
-import { expectWeChatImageShare } from '../helpers/image-sharing';
+import { downloadReviewImage, expectWeChatImageShare, readPngSize } from '../helpers/image-sharing';
 import { setOffline } from '../helpers/resilience';
 import { waitForRoomScreenReady } from '../helpers/waits';
 import { HomePage } from '../pages/HomePage';
@@ -173,57 +171,54 @@ async function expectFixedTask(page: Page): Promise<void> {
     .toBeLessThanOrEqual(1);
 }
 
-async function expectStoryImageExport(page: Page) {
+/**
+ * Opens one story's page of the shared review from the gallery's 「分享本篇故事」 and exports
+ * only that page: one PNG named after the story's page, its passages reaching the bottom.
+ */
+async function expectStoryImageExport(page: Page, roomCode: string, storyIndex: number) {
+  for (let skipped = 0; skipped < storyIndex; skipped += 1) {
+    await page.getByRole('button', { name: '下一篇故事', exact: true }).click();
+  }
+  await expect(
+    page.getByTestId('storyrelay-gallery').getByText(`${storyIndex + 1} / 4`, { exact: true }),
+  ).toBeVisible();
   await page.getByRole('button', { name: '分享本篇故事', exact: true }).click();
-  const images = page.locator('[data-testid^="storyrelay-export-"]');
-  await expect(images).toHaveCount(1);
-  for (const image of await images.all()) {
-    await expect(image).toContainText('第4棒的故事');
-    await expect(image).toContainText('4.');
-  }
-  const downloads: Download[] = [];
-  const collect = (download: Download) => downloads.push(download);
-  page.on('download', collect);
-  try {
-    await page.getByRole('button', { name: '保存／分享图片', exact: true }).click();
-    await expect.poll(() => downloads.length).toBe(1);
-    for (const [index, download] of downloads.entries()) {
-      expect(download.suggestedFilename()).toMatch(/^storyrelay-.*\.png$/);
-      const filename = test.info().outputPath(`story-${index}.png`);
-      await download.saveAs(filename);
-      const png = await readFile(filename);
-      expect(png.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
-      expect(png.readUInt32BE(20)).toBeGreaterThan(png.readUInt32BE(16));
-      expect(png.length).toBeGreaterThan(10_000);
-      const hasTextAtBottom = await page.evaluate(
-        async (dataUrl) => {
-          const image = new Image();
-          image.src = dataUrl;
-          await image.decode();
-          const canvas = document.createElement('canvas');
-          canvas.width = image.width;
-          canvas.height = image.height;
-          const context = canvas.getContext('2d');
-          if (context === null) throw new Error('Image pixel check unavailable');
-          context.drawImage(image, 0, 0);
-          const pixels = context.getImageData(
-            0,
-            Math.floor(image.height * 0.75),
-            image.width,
-            Math.floor(image.height * 0.25),
-          ).data;
-          const background = pixels.slice(0, 3);
-          return pixels.some(
-            (value, offset) => offset % 4 < 3 && Math.abs(value - background[offset % 4]!) > 50,
-          );
-        },
-        `data:image/png;base64,${png.toString('base64')}`,
+  const review = page.getByTestId(TESTIDS.roomReviewDialog);
+  await expect(review).toContainText(`第 ${storyIndex + 1} 篇故事`);
+  await expect(review).toContainText('第 4 棒 · ');
+  await expect(review).toContainText('第4棒的故事');
+  // 「仅分享本页」 appears once the background capture of the pages is ready.
+  const png = await downloadReviewImage(
+    page.getByRole('button', { name: '仅分享本页', exact: true }),
+    `storyrelay-${roomCode}-1-p${storyIndex + 1}.png`,
+  );
+  const { width, height } = readPngSize(png);
+  expect(height).toBeGreaterThan(width);
+  const hasTextAtBottom = await page.evaluate(
+    async (dataUrl) => {
+      const image = new Image();
+      image.src = dataUrl;
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const context = canvas.getContext('2d');
+      if (context === null) throw new Error('Image pixel check unavailable');
+      context.drawImage(image, 0, 0);
+      const pixels = context.getImageData(
+        0,
+        Math.floor(image.height * 0.75),
+        image.width,
+        Math.floor(image.height * 0.25),
+      ).data;
+      const background = pixels.slice(0, 3);
+      return pixels.some(
+        (value, offset) => offset % 4 < 3 && Math.abs(value - background[offset % 4]!) > 50,
       );
-      expect(hasTextAtBottom).toBe(true);
-    }
-  } finally {
-    page.off('download', collect);
-  }
+    },
+    `data:image/png;base64,${png.toString('base64')}`,
+  );
+  expect(hasTextAtBottom).toBe(true);
   await page.getByRole('button', { name: '关闭详情', exact: true }).click();
 }
 
@@ -332,10 +327,10 @@ test('four humans write four turns without restoring unsubmitted input and revea
       await expect(
         hostPage.getByTestId('storyrelay-gallery').getByRole('button', { name: /复制/ }),
       ).toHaveCount(0);
-      await expectStoryImageExport(hostPage);
-      await expectStoryImageExport(fixture.pages[1]!);
-      await test.step('upload story PNG for WeChat despite an unrelated pending image', async () => {
-        await expectWeChatImageShare(hostPage, '分享本篇故事', '保存／分享图片', 1);
+      await expectStoryImageExport(hostPage, code, 0);
+      await expectStoryImageExport(fixture.pages[1]!, code, 1);
+      await test.step('upload every story PNG for WeChat despite an unrelated pending image', async () => {
+        await expectWeChatImageShare(hostPage, '分享本篇故事', /保存／分享全部 4 页/, 4);
       });
       await (await room.openHostManagement()).getByTestId('next-round-button').click();
       await confirm(hostPage);

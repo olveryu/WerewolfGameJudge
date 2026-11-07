@@ -11,12 +11,14 @@ import {
   AUDIO_PLAYBACK_LOCK_REASON,
   isAudioPlaybackLocked,
 } from '@/features/room/model/audioPlaybackLock';
+import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
 import type {
   RoomBottomActionLayout,
   RoomBottomButton,
   RoomBottomDockModel,
   RoomBottomToolButton,
 } from '@/features/room/model/RoomBottomActions';
+import { REVIEW_TITLE } from '@/features/room/review/reviewCopy';
 import { TESTIDS } from '@/testids';
 
 import type { SheriffElectionPanelModel, SheriffElectionPendingAction } from './useSheriffElection';
@@ -185,7 +187,11 @@ export function createSheriffElectionDockModel(
   // the dock's tool slot); the trailing tool is the non-host entry.
   const trailing = input.isHost
     ? null
-    : createRoomTool(findRoomTool(input.roomTools, 'nightReview'), '本局复盘', 'default');
+    : createRoomTool(
+        findRoomTool(input.roomTools, HOST_ACTION_KEYS.review),
+        REVIEW_TITLE,
+        'default',
+      );
 
   const personalAction = getPersonalAction(input);
   const message =

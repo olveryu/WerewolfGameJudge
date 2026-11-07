@@ -1,0 +1,82 @@
+/**
+ * __GAME_DISPLAY_NAME__ rounds played through the real engine for client tests: a full
+ * four-seat lobby, a game started into its playing phase, and a game
+ * ended through the engine's terminal seam.
+ */
+
+import {
+  DEFAULT___GAME_UPPER___CONFIG,
+  type __GAME_PASCAL__Command,
+  __GAME_CAMEL__Engine,
+  type __GAME_PASCAL__State,
+  end__GAME_PASCAL__Game,
+} from '@game-judge/game-engine/games/__GAME_ID__/public';
+
+import type { ReviewTestRounds } from './reviewTestRounds';
+
+type CommandContext = Parameters<typeof __GAME_CAMEL__Engine.decide>[2];
+
+function context(userId: string, commandId: string): CommandContext {
+  return {
+    actor: { kind: 'user', userId },
+    controlledSeat: null,
+    nowMs: 1000,
+    commandId,
+    randomSeed: 'seed',
+  };
+}
+
+/** Applies one command as `userId` (the host by default); a rejected command fails the test. */
+export function drive__GAME_PASCAL__TestCommand(
+  state: __GAME_PASCAL__State,
+  command: __GAME_PASCAL__Command,
+  userId = 'host',
+): __GAME_PASCAL__State {
+  const decision = __GAME_CAMEL__Engine.decide(state, command, context(userId, command.type));
+  if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+  return decision.events.reduce(__GAME_CAMEL__Engine.evolve, state);
+}
+
+/** A full four-seat lobby: the host, one more player (`u1`) and two bots. */
+export function build__GAME_PASCAL__TestLobby(): __GAME_PASCAL__State {
+  let state = __GAME_CAMEL__Engine.createInitialState(
+    { ...DEFAULT___GAME_UPPER___CONFIG, numberOfPlayers: 4 },
+    { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
+  );
+  state = drive__GAME_PASCAL__TestCommand(state, {
+    type: 'room.seat.take',
+    seat: 0,
+    profile: { displayName: '房主' },
+  });
+  state = drive__GAME_PASCAL__TestCommand(
+    state,
+    { type: 'room.seat.take', seat: 1, profile: { displayName: '小明' } },
+    'u1',
+  );
+  return drive__GAME_PASCAL__TestCommand(state, { type: 'room.seat.fillBots' });
+}
+
+/** Starts a game from a full lobby or a finished game and plays it into its playing phase. */
+export function start__GAME_PASCAL__TestGame(from: __GAME_PASCAL__State): __GAME_PASCAL__State {
+  let state = from;
+//#cap identityViewing
+  state = drive__GAME_PASCAL__TestCommand(state, { type: '__GAME_ID__.roles.assign' });
+  state = drive__GAME_PASCAL__TestCommand(state, { type: '__GAME_ID__.role.viewed' });
+  state = drive__GAME_PASCAL__TestCommand(state, { type: '__GAME_ID__.role.viewed' }, 'u1');
+  state = drive__GAME_PASCAL__TestCommand(state, { type: '__GAME_ID__.bots.markAllBotsViewed' });
+//#end
+  return drive__GAME_PASCAL__TestCommand(state, { type: '__GAME_ID__.game.begin' });
+}
+
+/** Ends a playing game through the engine's terminal seam. */
+export function end__GAME_PASCAL__TestGame(playing: __GAME_PASCAL__State): __GAME_PASCAL__State {
+  const decision = end__GAME_PASCAL__Game(playing, context('host', 'end'));
+  if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+  return decision.events.reduce(__GAME_CAMEL__Engine.evolve, playing);
+}
+
+export const __GAME_UPPER___REVIEW_ROUNDS: ReviewTestRounds<__GAME_PASCAL__State> = {
+  lobby: build__GAME_PASCAL__TestLobby,
+  ended: () => end__GAME_PASCAL__TestGame(start__GAME_PASCAL__TestGame(build__GAME_PASCAL__TestLobby())),
+  nextRound: (ended) => ({ ...ended, gameSequence: ended.gameSequence + 1 }),
+};

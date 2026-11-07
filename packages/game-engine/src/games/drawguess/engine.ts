@@ -74,6 +74,7 @@ function createInitialState(config: DrawGuessConfig, context: CreateGameContext)
     scores: {},
     usedWords: [],
     gameSequence: 0,
+    turnHistory: [],
   });
 }
 

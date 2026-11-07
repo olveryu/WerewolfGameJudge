@@ -1,6 +1,6 @@
 ---
 name: new-game
-description: 'Add a new party minigame end to end: run the new-game generator, dispose of all 8 integration-report steps, fill gameplay, wire capabilities and word supply, then verify. Use when adding a game; never for a new role, board, or change to an existing game.'
+description: 'Add a new party minigame end to end: run the new-game generator, dispose of all 9 integration-report steps, fill gameplay, wire capabilities and word supply, then verify. Use when adding a game; never for a new role, board, or change to an existing game.'
 ---
 
 # New game
@@ -29,10 +29,10 @@ Do not use when:
 
 ## Must-read references
 
-1. `references/generator.md` — 15 shared edits, 39 templates,
+1. `references/generator.md` — 16 shared edits, 43 templates,
    per-preset counts, demo provenance.
 2. `references/registration-checklist.md` — the 15 registration items.
-3. `references/presets-and-report.md` — preset choice and the 8
+3. `references/presets-and-report.md` — preset choice and the 9
    report steps.
 4. `references/skeleton-and-wiring.md` — skeleton modules,
    capabilities, identity viewing, word supply, confirmations.
@@ -77,7 +77,7 @@ pnpm new-game <gameId> --preset identity|stage|demo-hybrid --name <中文名> --
 ```
 
 See `references/generator.md` for the remaining options. One run
-writes the skeleton, edits the 15 shared files, derives the
+writes the skeleton, edits the 16 shared files, derives the
 registration migration from the latest registration migration
 (64 migration files exist; the latest registration migration is
 `0065_demo.sql`, via `findLatestRegistrationMigration` in
@@ -86,23 +86,25 @@ report. If the run aborts, read its output first: edits are computed
 in memory and written only after validation (`generate.mjs`
 orchestration header), so a failed run leaves no half-registered game.
 
-### 5. Dispose of all 8 report steps
+### 5. Dispose of all 9 report steps
 
-Work through the report's 8 steps in order
+Work through the report's 9 steps in order
 (`references/presets-and-report.md`; `report.mjs`,
 `buildIntegrationReport`): finalise the design, fill every
-`TODO(gameplay)`, confirm reward numbers, review the migration by
-hand, keep the E2E skeleton inactive unless Step 7 applies, register
-word supply in all three places if needed, re-run the gates, and
-perform the go-live step. Keep the report file until every step is
-disposed of.
+`TODO(gameplay)`, fill the review document, confirm reward numbers,
+review the migration by hand, keep the E2E skeleton inactive unless
+Step 7 applies, register word supply in all three places if needed,
+re-run the gates, and perform the go-live step. Keep the report file
+until every step is disposed of.
 
 ### 6. Fill gameplay into the skeleton
 
 Fill the 11 skeleton modules
 (`references/skeleton-and-wiring.md`): state machine and commands in
 the engine, privacy projection per viewer, worker schemas and
-effects, client screens and room state modules. Reuse the shared room
+effects, client screens and room state modules. Fill the review
+document with the round's facts in the closed block vocabulary (see
+`references/skeleton-and-wiring.md`, Review). Reuse the shared room
 shell, host-management builders, config form, and shared components
 first.
 
@@ -148,7 +150,7 @@ lint checks on the changed files as well.
 ## Pitfalls
 
 1. Copying the old counts (13 shared edits; 40/40 files) — the
-   verified counts are 15 edits and 38/37/39 files by preset
+   verified counts are 16 edits and 42/41/43 files by preset
    (`check-new-game.sh`; `generate.mjs`, `SHARED_EDITS`).
 2. Calling the hand-built `demo` game generator output — it is a
    reference the `demo-hybrid` pack mirrors, not a generated game
@@ -159,7 +161,7 @@ lint checks on the changed files as well.
    the wiring, not the expectation list).
 4. Registering word supply in only one or two of the three places —
    the `wrangler.toml` binding has no contract test (`report.mjs`,
-   step 6), so a missing binding fails only at deploy time.
+   step 7), so a missing binding fails only at deploy time.
 5. Filling seats with automated players in a new spec — automated
    players are test scaffolding only (`createPlayerContexts` in
    `e2e/fixtures/app.fixture.ts`; `planMarkBotsViewed`, the host

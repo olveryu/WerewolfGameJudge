@@ -1,7 +1,8 @@
 /**
  * WerewolfRoomScreen — RoomEntryBoundary → useWerewolfRoomState → RoomShell
- * plus the Werewolf overlays (identity card, night review, share, sheriff
- * details, MVP, bottom card, board nominations, strategy).
+ * plus the Werewolf overlays (identity card, the shared review, review
+ * access grants, sheriff details, MVP, bottom card, board nominations,
+ * strategy).
  *
  * The screen owns only screen-local toggles (skill preview, strategy
  * sheet, nomination list); every room fact comes from the state hook.
@@ -10,13 +11,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   findClosestPresetName,
+  type GameState,
   GameStatus,
   isValidRoleId,
   type RoleId,
 } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { createBoardInfoStyles } from '@/features/room/components/boardInfo.styles';
@@ -29,6 +31,7 @@ import { StageSettleRescue } from '@/features/room/components/StageSettleRescue'
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
+import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import { BOARD_STRATEGY, BoardStrategyModal } from '@/games/werewolf/components/BoardStrategy';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
@@ -39,14 +42,10 @@ import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, fixed } from '@/theme';
-import { isMiniProgram } from '@/utils/miniProgram';
 
 import { BoardNominationModal } from './components/BoardNominationList';
 import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
 import { createMvpSelectionStyles, MvpSelectionModal } from './components/MvpSelectionModal';
-import { NightReviewModal } from './components/NightReviewModal';
-import { NightReviewShareCard } from './components/NightReviewShareCard';
-import { ShareProgressModal } from './components/ShareProgressModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
 import {
   SheriffElectionInspector,
@@ -57,13 +56,13 @@ import { createSheriffElectionPanelStyles } from './components/sheriffElectionPa
 import { WerewolfRoleCardModal } from './components/WerewolfRoleCardModal';
 import { useWerewolfRoomState } from './hooks/useWerewolfRoomState';
 import { createWerewolfBoardInfoSections, isWerewolfSetup } from './werewolfRoomAdapter';
-import { createRoomScreenStyles } from './WerewolfRoomScreen.styles';
 
 const BOARD_STRATEGY_KEYS = new Set(Object.keys(BOARD_STRATEGY));
 const STRATEGY_MATCH_THRESHOLD = 0.1;
 
 interface WerewolfRoomScreenProps extends GameRoomScreenProps<'werewolf'> {
   readonly session: WerewolfRoomSession;
+  readonly review: RoomReviewContribution<GameState>;
   readonly audio: WerewolfAudioRuntime;
 }
 
@@ -72,6 +71,7 @@ export const WerewolfRoomScreen: React.FC<WerewolfRoomScreenProps> = ({
   entryReason,
   navigation,
   session,
+  review,
   audio,
 }) => {
   const handleExit = useCallback(() => exitRoomFlow(navigation), [navigation]);
@@ -85,6 +85,7 @@ export const WerewolfRoomScreen: React.FC<WerewolfRoomScreenProps> = ({
           navigation={navigation}
           entryController={entryController}
           session={session}
+          review={review}
           audio={audio}
         />
       )}
@@ -99,7 +100,6 @@ interface WerewolfRoomContentProps extends WerewolfRoomScreenProps {
 export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = (props) => {
   const { room, navigation } = props;
   const roomCode = room.roomCode;
-  const styles = useMemo(() => createRoomScreenStyles(colors), []);
   const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
   const sheriffElectionStyles = useMemo(() => createSheriffElectionPanelStyles(colors), []);
   const mvpSelectionStyles = useMemo(() => createMvpSelectionStyles(), []);
@@ -128,7 +128,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = (props) =
     mvpSelection,
     closeMvpSelection,
     isHostActionSubmitting,
-    nightReview,
+    reviewAccess,
     boardNominations,
   } = useWerewolfRoomState(props);
   const status = state.status;
@@ -337,34 +337,14 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = (props) =
             }
           />
 
-          {nightReview.isVisible && nightReview.data !== null && (
-            <NightReviewModal
-              visible={nightReview.isVisible}
-              data={nightReview.data}
-              onClose={nightReview.close}
-            />
-          )}
+          {reviewAccess.overlay}
 
-          {nightReview.isCapturingShareCard && nightReview.data !== null && (
-            <View style={styles.hiddenShareCardContainer}>
-              <NightReviewShareCard
-                ref={nightReview.shareCardRef}
-                data={nightReview.data}
-                roomCode={roomCode}
-              />
-            </View>
-          )}
-
-          {nightReview.shareRun !== null && isMiniProgram() && (
-            <ShareProgressModal run={nightReview.shareRun} onCancel={nightReview.cancelShare} />
-          )}
-
-          {nightReview.isShareSeatsVisible && (
+          {reviewAccess.isGrantVisible && (
             <ShareReviewModal
-              seats={nightReview.shareSeats}
+              seats={reviewAccess.grantSeats}
               currentAllowedSeats={state.nightReviewAllowedSeats ?? []}
-              onConfirm={nightReview.shareToSeats}
-              onClose={nightReview.closeShareSeats}
+              onConfirm={reviewAccess.grantSeatsAccess}
+              onClose={reviewAccess.closeGrant}
             />
           )}
 

@@ -7,6 +7,7 @@ import {
   type StoryRelayCommand,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
+import type { ReactNode } from 'react';
 
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
@@ -21,6 +22,8 @@ import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
+import type { RoomReviewContribution } from '@/features/room/review/types';
+import { type RoomReviewController, useRoomReview } from '@/features/room/review/useRoomReview';
 import { type StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 
 import {
@@ -48,12 +51,17 @@ export interface StoryRelayRoomScreenState {
   readonly submit: ReadyRoomSession<StoryRelayState, StoryRelayCommand>['submit'];
   readonly isSubmitting: boolean;
   readonly openRules: () => void;
+  /** 本局复盘的对话框 / 导出舞台，挂在房间的 gameOverlays。 */
+  readonly reviewOverlay: ReactNode;
+  /** 在某一篇故事所在页打开本局复盘（回看「分享本篇故事」）。 */
+  readonly openReview: RoomReviewController['open'];
 }
 
 /** Binds the current ready session to the room-shell controllers and commands. */
 export function useStoryRelayRoomState(
   props: GameRoomScreenProps<'storyrelay'> & {
     readonly session: StoryRelayRoomSession;
+    readonly review: RoomReviewContribution<StoryRelayState>;
     readonly entryController: RoomEntryController;
   },
 ): StoryRelayRoomScreenState {
@@ -104,6 +112,14 @@ export function useStoryRelayRoomState(
     ...setupCapabilities,
     canTakeOverBots: bots.capability,
   };
+  const review = useRoomReview({
+    contribution: props.review,
+    state,
+    viewer,
+    roomId: room.roomId,
+    roomCode: room.roomCode,
+    onOpened: null,
+  });
   const onSeatPress = createRoomSeatPressHandler({
     isSetup: isLobby,
     state,
@@ -118,6 +134,7 @@ export function useStoryRelayRoomState(
       capabilities,
       isSubmitting,
       submit,
+      review: review.entry,
     });
 
   const shellModel: RoomShellModel = createStoryRelayRoomShellModel({
@@ -143,6 +160,7 @@ export function useStoryRelayRoomState(
     onProfileLeaveSeat: profile.leaveSelf,
     share,
     isLobby,
+    review: review.entry,
     buildHostManagement,
     releaseBot: bots.release,
   });
@@ -159,5 +177,7 @@ export function useStoryRelayRoomState(
     isSubmitting,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: 'storyrelay', roomCode: room.roomCode }),
+    reviewOverlay: review.overlay,
+    openReview: review.open,
   };
 }

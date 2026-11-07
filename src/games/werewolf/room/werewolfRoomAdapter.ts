@@ -61,7 +61,10 @@ import type {
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { resolveRoomViewerAudience } from '@/features/room/model/RoomViewer';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
-import { TESTIDS } from '@/testids';
+import {
+  buildReviewBottomButton,
+  type RoomReviewEntry,
+} from '@/features/room/review/roomReviewActions';
 import { colors } from '@/theme';
 
 import {
@@ -424,10 +427,10 @@ interface WerewolfBottomLayoutInput {
   readonly effectiveSeat: number | null;
   readonly isAudioPlaying: boolean;
   readonly isActionSubmitting: boolean;
-  readonly canOpenNightReview: boolean;
+  /** The shared review entry for this viewer; null before the night review exists. */
+  readonly review: RoomReviewEntry | null;
   readonly onNightButton: (action: NightButtonAction) => void;
   readonly onViewRole: () => void;
-  readonly onNightReview: () => void;
 }
 
 function nightButton(spec: NightButtonSpec, input: WerewolfBottomLayoutInput): RoomBottomButton {
@@ -455,29 +458,14 @@ function viewRoleButton(
   );
 }
 
-function nightReviewButton(
-  input: WerewolfBottomLayoutInput,
-  variant: 'primary' | 'ghost',
-): RoomBottomButton {
-  return {
-    key: 'nightReview',
-    label: '本局复盘',
-    audience: 'anyone',
-    icon: 'document-text-outline',
-    variant,
-    size: 'md',
-    testID: TESTIDS.nightReviewBottomButton,
-    isEnabled: true,
-    onPress: input.onNightReview,
-  };
-}
-
 const EMPTY_LAYOUT: RoomBottomActionLayout = { primary: [], secondary: [], ghost: [] };
 
 /**
  * The bottom button layout per status and audience: identity viewing from
  * the deal on, the night step's own buttons for the actioner, the review
- * entry for allowed seats and spectators from the day on; nothing while
+ * entry for every non-host from the day on (spectators read it, a seat
+ * reads it once the host granted it — otherwise it shows why not); the
+ * host reaches the review through host management. Nothing while
  * narration plays.
  */
 export function createWerewolfBottomActionLayout(
@@ -515,16 +503,17 @@ export function createWerewolfBottomActionLayout(
       // spectators included — opening the review starts capture and
       // writes flow progress, so it is not read-only.
       if (isAudioPlaybackLocked(input.isAudioPlaying)) return EMPTY_LAYOUT;
+      const { review } = input;
+      if (review === null) {
+        throw new Error(`[FAIL-FAST] Werewolf ${viewModel.status} has no review entry`);
+      }
       if (audience === 'spectator') {
-        return { primary: [nightReviewButton(input, 'primary')], secondary: [], ghost: [] };
+        return { primary: [buildReviewBottomButton(review, 'primary')], secondary: [], ghost: [] };
       }
       return {
         primary: [],
         secondary: viewRole('secondary'),
-        ghost:
-          audience === 'seated' && input.canOpenNightReview
-            ? [nightReviewButton(input, 'ghost')]
-            : [],
+        ghost: audience === 'seated' ? [buildReviewBottomButton(review, 'ghost')] : [],
       };
     }
   }
@@ -695,7 +684,8 @@ export interface WerewolfRoomShellModelInput extends Pick<
   readonly onMusicSettings: () => void;
   readonly onMarkAllBotsViewed: () => void;
   readonly onMarkAllBotsGroupConfirmed: () => void;
-  readonly onNightReview: () => void;
+  readonly review: RoomReviewEntry | null;
+  readonly onGrantReviewAccess: () => void;
   readonly onLastNightInfo: () => void;
   readonly onSelectMvp: () => void;
 }
@@ -749,7 +739,8 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
       onMusicSettings: input.onMusicSettings,
       onMarkAllBotsViewed: input.onMarkAllBotsViewed,
       onMarkAllBotsGroupConfirmed: input.onMarkAllBotsGroupConfirmed,
-      onNightReview: input.onNightReview,
+      review: input.review,
+      onGrantReviewAccess: input.onGrantReviewAccess,
       onLastNightInfo: input.onLastNightInfo,
     });
 

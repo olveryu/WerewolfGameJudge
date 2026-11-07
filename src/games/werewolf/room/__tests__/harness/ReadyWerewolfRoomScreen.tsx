@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import { werewolfReview } from '@/games/werewolf/review/werewolfReview';
 import { WerewolfRoomContent } from '@/games/werewolf/room/WerewolfRoomScreen';
 
 import { getActiveRoomMock } from './activeRoomMock';
@@ -37,6 +38,7 @@ export const WerewolfRoomScreen: React.FC<GameRoomScreenProps<'werewolf'>> = (pr
       {...props}
       entryController={entryController}
       session={mock.session}
+      review={werewolfReview}
       audio={mock.audio}
     />
   );

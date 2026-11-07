@@ -19,25 +19,16 @@ import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { Text, View } from 'react-native';
 
 import { SeatDot } from '@/components/SeatDot';
-import type { SheriffElectionRoundViewModel } from '@/games/werewolf/room/day/sheriffElectionViewModel';
+import {
+  formatSheriffElectedLine,
+  getNoSheriffText,
+  type SheriffElectionRoundViewModel,
+} from '@/games/werewolf/room/day/sheriffElectionViewModel';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
 
 import type { SheriffElectionPanelStyles } from './sheriffElectionPanel.styles';
-
-function getNoSheriffText(result: Extract<SheriffElectionResult, { kind: 'noSheriff' }>): string {
-  switch (result.reason) {
-    case 'noCandidates':
-      return '无人参选，本局没有警长';
-    case 'noVotes':
-      return '无人得票，本局没有警长';
-    case 'runoffTie':
-      return '平票未决，本局没有警长';
-    case 'selfDestruct':
-      return '因狼人自爆，警长竞选已结束且没有警长';
-  }
-}
 
 interface SheriffElectionPhaseHeaderProps {
   readonly phaseTitle: string;
@@ -88,11 +79,10 @@ export function SheriffElectionResultBanner({
   let subtitle: string | null = null;
   if (result.kind === 'elected') {
     title = `${formatSeat(result.sheriffSeat)} · 当选警长`;
-    const decidingRound = completedRounds[completedRounds.length - 1];
-    subtitle =
-      decidingRound === undefined
-        ? `警徽在 ${formatSeat(result.sheriffSeat)}`
-        : `${decidingRound.key === 'first' ? '首轮' : '平票'}投票当选 · 警徽在 ${formatSeat(result.sheriffSeat)}`;
+    subtitle = formatSheriffElectedLine(
+      result.sheriffSeat,
+      completedRounds[completedRounds.length - 1]?.key,
+    );
   } else {
     title = getNoSheriffText(result);
   }

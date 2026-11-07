@@ -48,13 +48,14 @@ export interface ThemeColors {
 }
 
 /**
- * Night report (2026) palette — the light surface the werewolf night
- * review is printed on, aligned with the app's white theme. Raw hues live
- * here in the theme layer (same precedent as PICTIONARY_DRAWING_PALETTE);
- * the report's layout spec (nightReviewLayout) composes them into
- * semantic slots.
+ * Game review report palette — the light surface every game's 本局复盘 is
+ * printed on, aligned with the app's white theme. Raw hues live here in
+ * the theme layer (same precedent as PICTIONARY_DRAWING_PALETTE); the
+ * review report theme (`src/features/room/review/reportTheme.ts`) maps
+ * the semantic review tones onto them. Flat colors only: the segmented
+ * mini-program capture stitches bands and a gradient would seam.
  */
-export const NIGHT_REPORT_COLORS = {
+export const REPORT_COLORS = {
   background: '#FFFFFF',
   cardBorder: '#E4E4EC',
   divider: '#ECECF2',
@@ -63,19 +64,20 @@ export const NIGHT_REPORT_COLORS = {
   textMuted: '#8A8A99',
   textFaint: '#A5A5B5',
   danger: '#D92D20',
-  dangerText: '#D92D20',
-  deadMedalBg: '#FDECEA',
-  deadMedalBorder: '#EFA9A3',
-  wolfMedalBg: '#FDECEF',
-  wolfMedalText: '#D92D5D',
-  wolfMedalBorder: '#F3C2CF',
-  godMedalBg: '#ECEAFE',
-  godMedalText: '#4F46E5',
-  godMedalBorder: '#C9BFF5',
-  violet: '#4F46E5',
+  outMedalBg: '#FDECEA',
+  outMedalBorder: '#EFA9A3',
+  evilMedalBg: '#FDECEF',
+  evilMedalText: '#D92D5D',
+  evilMedalBorder: '#F3C2CF',
+  specialMedalBg: '#ECEAFE',
+  specialMedalText: '#4F46E5',
+  specialMedalBorder: '#C9BFF5',
   goodMedalBg: '#E6F4EA',
   goodMedalText: '#067647',
   goodMedalBorder: '#A9D9BC',
+  highlightMedalBg: '#FDF3E1',
+  highlightMedalText: '#8A5A00',
+  highlightMedalBorder: '#EFCF95',
   neutralMedalBg: '#F0F0F5',
   neutralMedalBorder: '#DCDCE6',
 } as const;

@@ -122,7 +122,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
     });
   });
 
-  it('shows the shared night-review action to an authorized player during voting', async () => {
+  it('shows the shared review action to an authorized player during voting', async () => {
     mockUseWerewolfRoomReturn = createDayRoomMock(
       {
         phase: 'firstVote',
@@ -140,7 +140,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
     await waitForRoomScreen(screen.getByTestId);
 
     expect(screen.getByTestId(TESTIDS.sheriffOpenVoteButton)).toBeTruthy();
-    expect(screen.getByTestId(TESTIDS.nightReviewBottomButton)).toBeTruthy();
+    expect(screen.getByTestId(TESTIDS.roomReviewOpenButton)).toBeTruthy();
   });
 
   it('restores Ended controls while retaining the completed election Inspector', async () => {
@@ -171,7 +171,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
     expect(screen.getByTestId(TESTIDS.sheriffElectionInspector)).toBeTruthy();
     fireEvent.press(screen.getByTestId(TESTIDS.roomHostManagementButton));
     expect(screen.getByTestId(TESTIDS.roomHostManagementPanel)).toBeTruthy();
-    expect(screen.getByTestId(TESTIDS.nightReviewButton)).toBeTruthy();
+    expect(screen.getByTestId(TESTIDS.roomReviewHostAction)).toBeTruthy();
     expect(screen.getByTestId(TESTIDS.lastNightInfoButton)).toBeTruthy();
     expect(screen.queryByTestId(TESTIDS.sheriffAdvanceButton)).toBeNull();
   });

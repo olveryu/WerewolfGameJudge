@@ -3,14 +3,16 @@
  *
  * PUT /:roomCode/submissions/:submissionId — 画手在 roundEnd 上传终稿 PNG，
  *   校验通过后写入 R2，再经内部命令 drawguess.drawing.committed 入册。
- * GET /:roomCode/media/:entryId — 读取本轮已提交的终稿 PNG（仅 roundEnd）。
+ * GET /:roomCode/media/:entryId — roundEnd 读取本轮已提交的终稿 PNG；
+ *   ended 读取本局 turnHistory 内任一已提交终稿（本局复盘）。
  *
  * @throws 400 PNG 数据非法，401 未登录，403 无权访问，404 房间/媒体不存在，
- *   409 预留过期或内容冲突，413 超过大小上限。
+ *   409 预留过期或内容冲突，410 已入册画作的 R2 对象已过生命周期，413 超过大小上限。
  */
 
 import {
   DRAWGUESS_STATE_CODEC,
+  type DrawGuessMedia,
   type DrawGuessState,
   getDrawGuessUserSeat,
   isBotSeat,
@@ -68,6 +70,23 @@ function buildObjectKey(
 ): string {
   if (state.phase.kind !== 'roundEnd') return failMediaRequest(409, '当前不是结算阶段');
   return `drawguess/${room.creationId}/${state.phaseRevision}/turn-${state.turnIndex}/${submissionId}.png`;
+}
+
+/**
+ * The filed drawing an entry id may read: in roundEnd only the current
+ * turn's, once ended any turn of the finished game's history; no other
+ * phase serves a drawing.
+ */
+function findReadableDrawing(state: DrawGuessState, entryId: string): DrawGuessMedia | null {
+  const phase = state.phase;
+  if (phase.kind === 'roundEnd') {
+    return phase.pngEntry !== null && phase.reservation?.entryId === entryId
+      ? phase.pngEntry
+      : null;
+  }
+  if (phase.kind !== 'ended') return null;
+  const turn = state.turnHistory.find((record) => record.entryId === entryId);
+  return turn === undefined ? null : turn.pngEntry;
 }
 
 export const drawGuessMediaRoutes = new Hono<AppEnv>();
@@ -135,14 +154,10 @@ drawGuessMediaRoutes.get('/:roomCode/media/:entryId', requireAuth, async (c) => 
   const controlledSeat = mediaRoomAccess.parseControlledSeat(c.req.query('controlledSeat'));
   const seat = mediaRoomAccess.resolveSeat(roomContext.state, c.var.userId, controlledSeat);
   if (seat === null) return failMediaRequest(403, '请先入座');
-  if (roomContext.state.phase.kind !== 'roundEnd') return failMediaRequest(404, '画作不存在');
-  const entryId = c.req.param('entryId');
-  const reservation = roomContext.state.phase.reservation;
-  const pngEntry = roomContext.state.phase.pngEntry;
-  if (pngEntry === null || reservation === null || reservation.entryId !== entryId) {
-    return failMediaRequest(404, '画作不存在');
-  }
+  const pngEntry = findReadableDrawing(roomContext.state, c.req.param('entryId'));
+  if (pngEntry === null) return failMediaRequest(404, '画作不存在');
   const object = await c.env.GAME_MEDIA.get(pngEntry.objectKey);
-  if (object === null) return failMediaRequest(500, '画作数据缺失');
+  // 已入册的终稿过了 R2 生命周期：如实答复永久缺失，而非服务端错误。
+  if (object === null) return failMediaRequest(410, '画作已过期');
   return buildDrawingGetResponse(object, c.req.header('if-none-match'));
 });

@@ -210,16 +210,18 @@ export const TESTIDS = {
   // NumPad
   numpadKey: (key: string) => `numpad-${key}`,
 
-  // NightReviewModal
-  nightReviewButton: 'night-review-button',
-  nightReviewBottomButton: 'night-review-bottom-button',
-  nightReviewModal: 'night-review-modal',
-  nightReviewShareButton: 'night-review-share-button',
+  // Room review （本局复盘）
+  roomReviewOpenButton: 'room-review-open',
+  roomReviewHostAction: 'room-review-host-action',
+  roomReviewDialog: 'room-review-dialog',
+  roomReviewShareButton: 'room-review-share',
+  roomReviewSharePageButton: 'room-review-share-page',
+  roomReviewProgress: 'room-review-progress',
+  roomReviewStagePage: (pageKey: string) => `room-review-stage-page-${pageKey}`,
 
-  // ShareReviewModal
+  // ShareReviewModal (werewolf: grant seats access to the review)
   shareReviewButton: 'share-review-button',
   shareReviewModal: 'share-review-modal',
-  shareProgressModal: 'share-progress-modal',
 
   // QRCodeModal
   qrCodeModal: 'qr-code-modal',

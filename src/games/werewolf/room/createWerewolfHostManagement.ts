@@ -35,6 +35,10 @@ import type {
   RoomHostTask,
 } from '@/features/room/model/RoomHostManagement';
 import {
+  buildReviewHostAction,
+  type RoomReviewEntry,
+} from '@/features/room/review/roomReviewActions';
+import {
   buildPanelFlowSteps,
   PANEL_FLOW_ACTION_KEYS,
   PANEL_FLOW_SHARE_HINT,
@@ -78,7 +82,10 @@ interface WerewolfHostManagementInput {
   readonly onMusicSettings: () => void;
   readonly onMarkAllBotsViewed: () => void;
   readonly onMarkAllBotsGroupConfirmed: () => void;
-  readonly onNightReview: () => void;
+  /** The shared review entry; present from Day on. */
+  readonly review: RoomReviewEntry | null;
+  /** Opens the seat picker that grants seats access to the review. */
+  readonly onGrantReviewAccess: () => void;
   readonly onLastNightInfo: () => void;
 }
 
@@ -302,10 +309,14 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
         case 'lastNightInfo':
           return hostActionTask(PANEL_FLOW_ACTION_KEYS.lastNightInfo, { steps });
         case 'nightReview':
-          return hostActionTask(PANEL_FLOW_ACTION_KEYS.nightReview, {
+          // Reading the review and granting it to seats are equal moves;
+          // the step completes once both happened.
+          return {
+            kind: 'choice',
+            actionKeys: [PANEL_FLOW_ACTION_KEYS.nightReview, PANEL_FLOW_ACTION_KEYS.grantReview],
             steps,
             note: PANEL_FLOW_SHARE_HINT,
-          });
+          };
         case 'closing':
         case null:
           return hostClosingTask({ steps });
@@ -388,16 +399,20 @@ function createToolActions(input: WerewolfHostManagementInput): RoomHostManageme
 
 function createPostGameActions(input: WerewolfHostManagementInput): RoomHostManagementAction[] {
   if (input.roomStatus !== GameStatus.Day && input.roomStatus !== GameStatus.Ended) return [];
+  if (input.review === null) {
+    throw new Error(`[FAIL-FAST] Werewolf ${input.roomStatus} host has no review entry`);
+  }
   return [
+    buildReviewHostAction(input.review),
     buildEnabledHostAction(
       {
-        key: PANEL_FLOW_ACTION_KEYS.nightReview,
-        label: '本局复盘',
-        icon: 'document-text-outline',
+        key: PANEL_FLOW_ACTION_KEYS.grantReview,
+        label: '授权玩家查看',
+        icon: 'people-outline',
         variant: 'secondary',
-        testID: TESTIDS.nightReviewButton,
+        testID: TESTIDS.shareReviewButton,
       },
-      input.onNightReview,
+      input.onGrantReviewAccess,
     ),
     buildEnabledHostAction(
       {

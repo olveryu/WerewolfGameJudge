@@ -119,6 +119,11 @@ function bottomFor(
     nowMs: 0,
   });
   const sheriffElectionPanel = status === GameStatus.Day ? createElection() : null;
+  // The review exists from Day on; guidance does not depend on its content.
+  const review =
+    status === GameStatus.Day || status === GameStatus.Ended
+      ? { isEnabled: true as const, onPress: jest.fn() }
+      : null;
   const capabilities = createWerewolfRoomCapabilities({
     status,
     isHost: viewer.isHost,
@@ -142,10 +147,9 @@ function bottomFor(
     effectiveSeat: viewer.seat,
     isAudioPlaying: false,
     isActionSubmitting: false,
-    canOpenNightReview: viewer.isHost,
+    review,
     onNightButton: jest.fn(),
     onViewRole: jest.fn(),
-    onNightReview: jest.fn(),
   });
   const bottomActions = createWerewolfBottomActions({
     state,
@@ -211,7 +215,8 @@ function bottomFor(
     onMusicSettings: jest.fn(),
     onMarkAllBotsViewed: jest.fn(),
     onMarkAllBotsGroupConfirmed: jest.fn(),
-    onNightReview: jest.fn(),
+    review,
+    onGrantReviewAccess: jest.fn(),
     onLastNightInfo: jest.fn(),
     onSelectMvp: jest.fn(),
   });

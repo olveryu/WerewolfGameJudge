@@ -9,7 +9,6 @@
  */
 
 import {
-  AVALON_QUEST_SIZES,
   type AvalonViewModel,
   isAvalonPlayerCount,
 } from '@game-judge/game-engine/games/avalon/public';
@@ -21,6 +20,7 @@ import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
 import { borderRadius, colors, fixed, shadows, spacing, textStyles, typography } from '@/theme';
 
+import { formatAvalonQuestSizes, formatAvalonVoteMode } from '../avalonRecordCopy';
 import { formatAvalonQuestLabel } from '../policy/avalonInteractionPolicy';
 import { AvalonRecordRound } from './AvalonRecordRound';
 import { AvalonRecordTrack } from './AvalonRecordTrack';
@@ -54,7 +54,7 @@ export function AvalonHistoryOverlay({
   const successCount = viewModel.questResults.filter((result) => result === 'success').length;
   const failCount = viewModel.questResults.filter((result) => result === 'fail').length;
   const questSizes = isAvalonPlayerCount(viewModel.playerCount)
-    ? AVALON_QUEST_SIZES[viewModel.playerCount].join(' / ')
+    ? formatAvalonQuestSizes(viewModel.playerCount)
     : null;
   // 湖仙进行中只属于最后已结算轮的下一节：lady 阶段发生在该轮结算后。
   const latestSettledRound = [...rounds].filter((record) => record.quest !== null).at(-1)?.round;
@@ -73,7 +73,7 @@ export function AvalonHistoryOverlay({
             </Text>
           </View>
           <Text style={styles.configLine}>
-            投票{viewModel.voteMode === 'public' ? '公投' : '暗投'} · 否决上限 {viewModel.vetoLimit}
+            投票{formatAvalonVoteMode(viewModel.voteMode)} · 否决上限 {viewModel.vetoLimit}
             {questSizes !== null ? ` · 任务人数 ${questSizes}` : ''}
           </Text>
           <AvalonRecordTrack

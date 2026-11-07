@@ -60,7 +60,7 @@ draft.
 ## Word supply: three registrations, no fewer
 
 When `wordLibrary` is turned on, a word-supply workflow must be
-registered in all three places (report step 6; the three existing
+registered in all three places (report step 7; the three existing
 workflows — fibking, undercover, drawguess — are the examples):
 
 1. Registry entry `workerWorkflows` in
@@ -72,7 +72,7 @@ The first is pinned by the wordLibrary weld in
 `capabilities.contract.test.ts`; the second by the workflow
 re-export check in `architecture.contract.test.ts`; the third has no
 contract test and fails silently at deploy time if missed
-(`report.mjs`, step 6). The workflow body is hand-written at
+(`report.mjs`, step 7). The workflow body is hand-written at
 `packages/api-worker/src/games/<game>/wordSupplyWorkflow.ts`. The
 in-game preparation protocol
 (`packages/game-engine/src/platform/room/preparation.ts`) and the
@@ -87,6 +87,42 @@ The shared relay machine lives in
 pictionary and storyrelay. The `stage` preset does not pre-wire it.
 A chain-style game wires it through a `domain/relay.ts` binding
 module (pictionary, storyrelay).
+
+## Review (本局复盘)
+
+Every game declares its review once: `review` is a required field of
+`defineClientGameModule` (`src/games/model/defineClientGameModule.ts`),
+and the bound room screen receives exactly that contribution. The
+generator ships it wired in every preset (report step 3; demo is the
+reference):
+
+- `src/games/<game>/review/to<Game>ReviewDocument.ts` — the pure
+  `state → RoomReviewDocument` builder; the skeleton page is the
+  ended hero plus the participant roster, built from the spectator
+  view model, and a game that has not ended is a construction error.
+- `src/games/<game>/review/<game>Review.ts` — the contribution:
+  `notEnded` before the end, then `available` to every viewer,
+  shareable, with no confirmation.
+- `review/__tests__/<game>Review.test.ts` — data assertions on the
+  document and availability per phase and viewer, from a game played
+  to the engine's terminal seam by the round builders in
+  `src/test-utils/<game>State.ts`.
+- `src/test-utils/<game>State.ts` also declares `<GAME>_REVIEW_ROUNDS`
+  (lobby, ended, next round), which the generator registers in the
+  cross-game contract `src/__tests__/roomReview.contract.test.ts`.
+- Room wiring: the room state hook calls `useRoomReview` and hands
+  the overlay to the screen's `gameOverlays`; the adapter adds
+  `buildReviewBottomButton(entry, 'secondary')` for every viewer
+  while a review exists, `buildReviewHostAction(entry)` to the ended
+  host section, and `hostReviewClosingTask()` as the ended task.
+
+The block vocabulary is closed (`src/features/room/review/types.ts`;
+the renderer, export and share flow live in
+`src/features/room/review/`). The platform owns the dialog title, the
+share title and the generated-by footer (`reviewCopy.ts`); a game
+declares only its kicker, file stem, footer choice and pages. A game maps its facts onto blocks and
+semantic tones; content the vocabulary cannot express is a platform
+vocabulary extension first, never game-side review JSX.
 
 ## Confirmations
 

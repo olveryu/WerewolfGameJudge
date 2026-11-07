@@ -18,7 +18,7 @@ import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 import { TESTIDS } from '@/testids';
 
 import { getRoleAvatar } from '../../assets/roleAvatars';
-import { getFibRoleName } from '../fibRoomAdapter';
+import { FIB_DEFINITION_LABELS, getFibRoleName } from '../fibRoomAdapter';
 import { formatFibWordPinyin } from '../formatFibWordPinyin';
 
 /** 按身份种类的说明（与轮次无关）：身份卡与 BoardInfo 角色预览共用同一文案。 */
@@ -114,14 +114,14 @@ export function toFibRevealRoleData(view: FibRoundView): RevealRoleData {
   }
   if (view.definition !== null) {
     fields.push({
-      label: '核心释义',
+      label: FIB_DEFINITION_LABELS.coreMeaning,
       content: view.definition.coreMeaning,
       icon: 'bulb-outline',
       testID: TESTIDS.fibIdentityDefinition,
       contentTestID: TESTIDS.fibIdentityCoreMeaning,
     });
     fields.push({
-      label: '使用提示',
+      label: FIB_DEFINITION_LABELS.usageNote,
       content: view.definition.usageNote,
       icon: 'help-circle-outline',
       contentTestID: TESTIDS.fibIdentityUsageNote,

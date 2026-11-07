@@ -1,254 +1,76 @@
 /**
- * useRoomModals — the night-review entry alerts and the last-night-info
- * dialog of the Werewolf room.
+ * useRoomModals — the Werewolf room's own dialogs around the shared review.
  *
- * Owns: the "本局复盘" action sheet (host / shared seat / plain confirm),
- * the share-review seat picker visibility, the review modal visibility,
- * and the last-night-info confirm → info → curse chain. Identity viewing
- * is the shared `useRoleViewing`; skill preview is screen-local state.
+ * Owns: the seat picker through which the host grants seats access to the
+ * review （授权玩家查看）, and the last-night-info confirm → info → curse
+ * chain. The review itself — its confirmation, dialog and image share — is
+ * the shared `useRoomReview`; identity viewing is the shared
+ * `useRoleViewing`; skill preview is screen-local state.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 
-import { DISMISS_BUTTON, dismissAlert, getAlertGeneration, showAlert } from '@/utils/alert';
+import { DISMISS_BUTTON, showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 
-import type { ReportCaptureProgress } from './useNightReviewShare';
-
-/** useRoomModals deps */
 interface UseRoomModalsDeps {
-  reportScopeKey: string;
-  /** Whether current user is Host (determines "本局复盘" modal options) */
-  isHost: boolean;
-  /** Whether current user can share the night-report screenshot (Host or a player shared by Host) */
-  canShareReport: boolean;
+  /** The game the dialogs belong to; a new game closes the grant picker. */
+  readonly gameSequence: number;
   /** Get last-night info text */
-  getLastNightInfo: () => string; /** Get crow curse info; null if no crow */
-  getCurseInfo: () => string | null;
-  /** Share night details to specified seats; resolves true when committed. */
-  shareNightReview: (allowedSeats: readonly number[]) => Promise<boolean>;
-  /** Begin background capture of report; returns base64 (success) or null (failure) */
-  beginReportCapture: () => Promise<string | null>;
-  /** Band progress of the in-flight report capture; null while no capture runs */
-  reportCaptureProgress: ReportCaptureProgress | null;
-  /** Directly share the report (system share/copy). Return value is optional and unused by caller. */
-  shareNightReviewReport: () => Promise<unknown>;
+  readonly getLastNightInfo: () => string;
+  /** Get crow curse info; null if no crow */
+  readonly getCurseInfo: () => string | null;
+  /** Grants the seats access to the review; resolves true when committed. */
+  readonly grantReviewAccess: (allowedSeats: readonly number[]) => Promise<boolean>;
   /**
    * Whether the game has ended. Confirmation copy only warns about the
    * sheriff election while an election can still be affected; at Ended
    * that warning is meaningless and drops out.
    */
-  isGameEnded: boolean;
+  readonly isGameEnded: boolean;
   /**
    * Fired when the viewer confirms viewing the last-night info in its
    * dialog — the panel flow's first step completes on this confirm,
    * not on merely opening the dialog.
    */
-  onLastNightInfoConfirmed: () => void;
+  readonly onLastNightInfoConfirmed: () => void;
 }
 
-/** useRoomModals return value */
 interface RoomModalsState {
-  // ── Night review modal ──
-  nightReviewVisible: boolean;
-  openNightReview: () => void;
-  closeNightReview: () => void;
-
-  // ── Share review modal ──
-  shareReviewVisible: boolean;
-  closeShareReview: () => void;
-  handleShareNightReview: (allowedSeats: readonly number[]) => Promise<void>;
-
-  // ── Last night info ──
-  showLastNightInfo: () => void;
+  readonly isGrantVisible: boolean;
+  readonly openGrant: () => void;
+  readonly closeGrant: () => void;
+  readonly grantSeatsAccess: (allowedSeats: readonly number[]) => Promise<void>;
+  readonly showLastNightInfo: () => void;
 }
 
 export function useRoomModals({
-  reportScopeKey,
-  isHost,
-  canShareReport,
+  gameSequence,
   getLastNightInfo,
   getCurseInfo,
-  shareNightReview,
-  beginReportCapture,
-  reportCaptureProgress,
-  shareNightReviewReport,
+  grantReviewAccess,
   isGameEnded,
   onLastNightInfoConfirmed,
 }: UseRoomModalsDeps): RoomModalsState {
-  // ── Share review modal (declared before night review because openNightReview references setShareReviewVisible) ──
-  const [shareReviewVisible, setShareReviewVisible] = useState(false);
+  // The picker belongs to the game it opened in; the sequence only grows,
+  // so a new game hides it without a reset.
+  const [grantGameSequence, setGrantGameSequence] = useState<number | null>(null);
+  const isGrantVisible = grantGameSequence === gameSequence;
 
-  // ── Night review modal ──
-  const [nightReviewVisible, setNightReviewVisible] = useState(false);
+  const openGrant = useCallback(() => setGrantGameSequence(gameSequence), [gameSequence]);
+  const closeGrant = useCallback(() => setGrantGameSequence(null), []);
 
-  /** Tracks whether the "本局复盘" alert is still open (prevents re-showing after dismiss). */
-  const detailAlertOpenRef = useRef(false);
-  const detailAlertRequestRef = useRef(0);
-  const detailAlertGenerationRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    detailAlertOpenRef.current = false;
-    detailAlertRequestRef.current += 1;
-    setNightReviewVisible(false);
-    setShareReviewVisible(false);
-    return () => {
-      detailAlertOpenRef.current = false;
-      detailAlertRequestRef.current += 1;
-      if (detailAlertGenerationRef.current !== null) {
-        dismissAlert(detailAlertGenerationRef.current);
-        detailAlertGenerationRef.current = null;
-      }
-    };
-  }, [reportScopeKey]);
-
-  const confirmOpenNightReview = useCallback(() => {
-    const requestId = detailAlertRequestRef.current;
-    const isShown = showConfirmAlert(
-      '查看本局复盘？',
-      isGameEnded
-        ? '本局复盘包含全员身份和行动记录，请确认是否继续。'
-        : '本局复盘包含全员身份和行动记录，查看后可能影响警长竞选，请确认是否继续。',
-      () => {
-        if (detailAlertRequestRef.current === requestId) setNightReviewVisible(true);
-      },
-      { confirmText: '确定查看' },
-    );
-    detailAlertGenerationRef.current = isShown ? getAlertGeneration() : null;
-  }, [isGameEnded]);
-
-  /**
-   * Show the "本局复盘" alert with optional loading state on "分享战报" button.
-   * Can be called twice: first with `reportLoading: true`, then with `false`
-   * once capture completes — `showAlert` seamlessly updates the existing modal.
-   * While the capture reports band progress, the button label carries the
-   * live "生成中 done/total 段" count instead of the plain share label.
-   */
-  const showDetailAlert = useCallback(
-    (reportLoading: boolean, captureProgress: ReportCaptureProgress | null = null) => {
-      const requestId = detailAlertRequestRef.current;
-      const dismiss = () => {
-        if (detailAlertRequestRef.current !== requestId) return false;
-        detailAlertOpenRef.current = false;
-        detailAlertGenerationRef.current = null;
-        return true;
-      };
-      const shareButtonText =
-        reportLoading && captureProgress !== null
-          ? `生成中 ${captureProgress.done}/${captureProgress.total} 段`
-          : '分享战报';
-
-      let isShown = false;
-      if (isHost) {
-        isShown = showAlert('本局复盘', '选择操作', [
-          {
-            text: '自己查看',
-            onPress: () => {
-              if (dismiss()) confirmOpenNightReview();
-            },
-          },
-          {
-            text: '授权玩家查看',
-            onPress: () => {
-              if (dismiss()) setShareReviewVisible(true);
-            },
-          },
-          {
-            text: shareButtonText,
-            loading: reportLoading,
-            onPress: () => {
-              if (dismiss()) void shareNightReviewReport();
-            },
-          },
-          {
-            text: '取消',
-            style: 'cancel',
-            onPress: () => {
-              dismiss();
-            },
-          },
-        ]);
-      } else if (canShareReport) {
-        isShown = showAlert('本局复盘', '选择操作', [
-          {
-            text: '查看',
-            onPress: () => {
-              if (dismiss()) confirmOpenNightReview();
-            },
-          },
-          {
-            text: shareButtonText,
-            loading: reportLoading,
-            onPress: () => {
-              if (dismiss()) void shareNightReviewReport();
-            },
-          },
-          {
-            text: '取消',
-            style: 'cancel',
-            onPress: () => {
-              dismiss();
-            },
-          },
-        ]);
-      }
-      detailAlertGenerationRef.current = isShown ? getAlertGeneration() : null;
-    },
-    [confirmOpenNightReview, isHost, canShareReport, shareNightReviewReport],
-  );
-
-  // While the detail alert is open, each band-progress report re-renders the
-  // share button label with the live count. Completion is not handled here:
-  // openNightReview's capture promise re-shows the alert with loading off.
-  useEffect(() => {
-    if (reportCaptureProgress === null) return;
-    if (!detailAlertOpenRef.current) return;
-    showDetailAlert(true, reportCaptureProgress);
-  }, [reportCaptureProgress, showDetailAlert]);
-
-  const openNightReview = useCallback(() => {
-    if (!isHost && !canShareReport) {
-      // Non-host without share permission: confirm before viewing (anti-cheat reminder)
-      confirmOpenNightReview();
-      return;
-    }
-
-    detailAlertOpenRef.current = true;
-    const requestId = ++detailAlertRequestRef.current;
-
-    // Start capture in background on every platform (the mini program now
-    // pre-captures into the same cache); update alert to enable "分享战报"
-    // on completion
-    void beginReportCapture().then(() => {
-      if (
-        detailAlertOpenRef.current &&
-        detailAlertRequestRef.current === requestId &&
-        detailAlertGenerationRef.current === getAlertGeneration()
-      ) {
-        showDetailAlert(false);
-      }
-    });
-
-    // Show alert immediately with loading "分享战报"
-    showDetailAlert(true);
-  }, [confirmOpenNightReview, isHost, canShareReport, beginReportCapture, showDetailAlert]);
-
-  const closeNightReview = useCallback(() => setNightReviewVisible(false), []);
-
-  const closeShareReview = useCallback(() => setShareReviewVisible(false), []);
-
-  const handleShareNightReview = useCallback(
+  const grantSeatsAccess = useCallback(
     async (allowedSeats: readonly number[]) => {
-      const requestId = detailAlertRequestRef.current;
-      const ok = await shareNightReview(allowedSeats);
-      if (detailAlertRequestRef.current === requestId && ok) {
-        setShareReviewVisible(false);
+      const requestedFor = gameSequence;
+      const isCommitted = await grantReviewAccess(allowedSeats);
+      if (isCommitted) {
+        setGrantGameSequence((current) => (current === requestedFor ? null : current));
       }
     },
-    [shareNightReview],
+    [gameSequence, grantReviewAccess],
   );
 
-  // ── Last night info ──
   const showLastNightInfo = useCallback(() => {
     showConfirmAlert(
       '提示',
@@ -278,13 +100,5 @@ export function useRoomModals({
     );
   }, [getLastNightInfo, getCurseInfo, isGameEnded, onLastNightInfoConfirmed]);
 
-  return {
-    nightReviewVisible,
-    openNightReview,
-    closeNightReview,
-    shareReviewVisible,
-    closeShareReview,
-    handleShareNightReview,
-    showLastNightInfo,
-  };
+  return { isGrantVisible, openGrant, closeGrant, grantSeatsAccess, showLastNightInfo };
 }

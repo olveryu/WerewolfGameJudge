@@ -18,6 +18,7 @@ import {
   avalonGameNavigation,
   parseAvalonConfigRouteParams,
 } from './navigation/avalonGameNavigation';
+import { avalonReview } from './review/avalonReview';
 import { getAvalonRoomCommandFailureMessage } from './room/avalonRoomCommandFailureMessage';
 import { AvalonRoomScreen } from './room/AvalonRoomScreen';
 import { AvalonBoardPreview } from './screens/AvalonBoardPreview';
@@ -45,6 +46,7 @@ export const createAvalonUiModule = defineClientGameModule<
       Extra: AvalonBoardPreview,
     }),
   GuideScreen: AvalonGuideScreen,
+  review: avalonReview,
   isUserSeated: (state, userId) => getAvalonUserSeat(state, userId) !== null,
   canSwitchAccount: (state) => state.phase.kind === 'lobby',
   audio: {

@@ -1,6 +1,6 @@
 /** FibKing room rendered entirely through the shared RoomEntryBoundary and RoomShell. */
 
-import type { FibRole } from '@game-judge/game-engine/games/fibking/public';
+import type { FibRole, FibState } from '@game-judge/game-engine/games/fibking/public';
 import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -13,6 +13,7 @@ import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
+import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
@@ -25,6 +26,7 @@ import { useFibRoomState } from './hooks/useFibRoomState';
 
 interface FibRoomScreenProps extends GameRoomScreenProps<'fibking'> {
   readonly session: FibRoomSession;
+  readonly review: RoomReviewContribution<FibState>;
 }
 
 export const FibRoomScreen: React.FC<FibRoomScreenProps> = ({
@@ -32,6 +34,7 @@ export const FibRoomScreen: React.FC<FibRoomScreenProps> = ({
   entryReason,
   navigation,
   session,
+  review,
 }) => {
   const handleExit = useCallback(() => exitRoomFlow(navigation), [navigation]);
   return (
@@ -42,6 +45,7 @@ export const FibRoomScreen: React.FC<FibRoomScreenProps> = ({
           entryReason={entryReason}
           navigation={navigation}
           session={session}
+          review={review}
           entryController={entryController}
         />
       )}
@@ -58,6 +62,7 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
   entryReason,
   navigation,
   session,
+  review,
   entryController,
 }) => {
   const screen = useFibRoomState({
@@ -65,6 +70,7 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
     entryReason,
     navigation,
     session,
+    review,
     entryController,
   });
   const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
@@ -137,6 +143,7 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
               confirmText="知道了"
             />
           ) : null}
+          {screen.reviewOverlay}
         </>
       }
     />

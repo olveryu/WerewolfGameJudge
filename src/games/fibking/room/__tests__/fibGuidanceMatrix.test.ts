@@ -111,6 +111,7 @@ function bottomMessage(state: FibState, viewer: Viewer): string | null {
     viewerSeat: viewer === 'host' ? 0 : viewer === 'seated' ? 1 : null,
     openIdentity: jest.fn(),
     isSubmitting: false,
+    review: state.phase === 'ended' ? { isEnabled: true, onPress: jest.fn() } : null,
   }).message;
 }
 

@@ -16,6 +16,7 @@ import {
   type __GAME_PASCAL__State,
   type __GAME_PASCAL__ViewModel,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
+import type { ReactNode } from 'react';
 
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
@@ -42,6 +43,8 @@ import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
+import type { RoomReviewContribution } from '@/features/room/review/types';
+import { useRoomReview } from '@/features/room/review/useRoomReview';
 //#cap identityViewing
 import { toRevealRoleData } from '@/games/__GAME_ID__/components/__GAME_PASCAL__RoleCardAdapter';
 //#end
@@ -99,6 +102,8 @@ export interface __GAME_PASCAL__RoomScreenState {
   readonly isSubmitting: boolean;
   readonly session: __GAME_PASCAL__RoomSession;
   readonly openRules: () => void;
+  /** 本局复盘弹窗、导出舞台与分享进度（平台 useRoomReview），放进房间 gameOverlays。 */
+  readonly reviewOverlay: ReactNode;
 //#cap identityViewing
   /** 身份卡：先落查看记录、确认后再弹卡（平台 useRoleViewing）。 */
   readonly roleViewing: RoleViewing;
@@ -110,6 +115,7 @@ export interface __GAME_PASCAL__RoomScreenState {
 export function use__GAME_PASCAL__RoomState(
   props: GameRoomScreenProps<'__GAME_ID__'> & {
     readonly session: __GAME_PASCAL__RoomSession;
+    readonly review: RoomReviewContribution<__GAME_PASCAL__State>;
     readonly entryController: RoomEntryController;
   },
 ): __GAME_PASCAL__RoomScreenState {
@@ -182,6 +188,15 @@ export function use__GAME_PASCAL__RoomState(
       submit('查看身份', { type: '__GAME_ID__.role.viewed' }, { controlledSeat }),
   });
 //#end
+  // 本局复盘：入口、弹窗与图片分享归平台，复盘文档由模块声明的 review 给出。
+  const review = useRoomReview({
+    contribution: props.review,
+    state,
+    viewer,
+    roomId: room.roomId,
+    roomCode: room.roomCode,
+    onOpened: null,
+  });
   const capabilities: RoomCapabilities = {
     ...setupCapabilities,
     canTakeOverBots: bots.capability,
@@ -207,6 +222,7 @@ export function use__GAME_PASCAL__RoomState(
         capabilities,
         isSubmitting,
         submit,
+        review: review.entry,
       }),
       {
         isAudioPlaying: state.isAudioPlaying,
@@ -221,6 +237,7 @@ export function use__GAME_PASCAL__RoomState(
       capabilities,
       isSubmitting,
       submit,
+      review: review.entry,
     });
 //#end
 
@@ -249,6 +266,7 @@ export function use__GAME_PASCAL__RoomState(
     isLobby,
     buildHostManagement,
     releaseBot: bots.release,
+    review: review.entry,
   });
 //#cap identityViewing
   const viewModel = isLobby ? null : get__GAME_PASCAL__ViewModel(state, effectiveSeat);
@@ -272,6 +290,7 @@ export function use__GAME_PASCAL__RoomState(
     session,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: '__GAME_ID__', roomCode: room.roomCode }),
+    reviewOverlay: review.overlay,
 //#cap identityViewing
     roleViewing,
     roleCardAllRoles: Object.values(state.identities).map(toRevealRoleData),

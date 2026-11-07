@@ -15,7 +15,8 @@ import {
 export const DRAWGUESS_GAME_TYPE = 'drawguess' as const;
 /** v2 replaces realSeats plus the implicit-bot derivation inputs (the fill
  * flag lived inside the config) with the unified roster. v3 adds
- * drawerZeroed to roundEnd phases. v1 and v2 payloads migrate through
+ * drawerZeroed to roundEnd phases. v4 adds turnHistory and roundEnd
+ * guessedSeats. v1, v2 and v3 payloads migrate through
  * migratePersistedDrawGuessState. */
 
 export const DRAWGUESS_MIN_PLAYERS = 4;
@@ -166,6 +167,7 @@ export interface DrawGuessGuessLogEntry {
   readonly at: number;
 }
 
+/** 已入册终稿 PNG 的 R2 元数据（不含图片字节）。 */
 export interface DrawGuessMedia {
   readonly objectKey: string;
   readonly contentType: 'image/png';
@@ -218,6 +220,8 @@ export type DrawGuessPhase =
       readonly word: string;
       /** 保留用于结算展示，下一回合清空。 */
       readonly strokes: readonly DrawGuessStroke[];
+      /** 猜中座位按猜中先后（结算时取自 drawing.guessedSeats）；未猜中者不在列。 */
+      readonly guessedSeats: readonly number[];
       readonly roundScores: Readonly<Record<number, number>>;
       /** 全员猜中导致画手本轮收入清零时为 true；其余结算为 false。 */
       readonly drawerZeroed: boolean;
@@ -229,6 +233,26 @@ export type DrawGuessPhase =
       readonly kind: 'ended';
       readonly totalScores: Readonly<Record<number, number>>;
     };
+
+/**
+ * 一个已结束回合的记录：roundEnd 关闭（下一回合开始或终局）时冻结。
+ * 题目、猜中顺序、得分与终稿在该回合 roundEnd 已对全员公开。
+ */
+export interface DrawGuessTurnRecord {
+  readonly turnIndex: number;
+  readonly drawerSeat: number;
+  readonly word: string;
+  /** 猜中座位按猜中先后；未猜中者不在列。 */
+  readonly guessedSeats: readonly number[];
+  /** seat -> 本轮得分（猜中者与画手；画手被清零时为 0）。 */
+  readonly roundScores: Readonly<Record<number, number>>;
+  /** 全员猜中导致画手本轮收入清零时为 true。 */
+  readonly drawerZeroed: boolean;
+  /** roundEnd 内已入册终稿的媒体路由 id（取自上传预留）；画手未上传为 null。 */
+  readonly entryId: string | null;
+  /** 已入册终稿的 R2 元数据；与 entryId 同为 null 或同时存在。 */
+  readonly pngEntry: DrawGuessMedia | null;
+}
 
 export interface DrawGuessState extends BaseGameState<typeof DRAWGUESS_GAME_TYPE> {
   readonly phase: DrawGuessPhase;
@@ -245,6 +269,8 @@ export interface DrawGuessState extends BaseGameState<typeof DRAWGUESS_GAME_TYPE
   readonly usedWords: readonly string[];
   /** 已完成的对局序号（从 0 开始）；每次开局递增，用于结算幂等。 */
   readonly gameSequence: number;
+  /** 本局已结束回合，按 turnIndex 升序连续；开局、中止与返回大厅时清空。 */
+  readonly turnHistory: readonly DrawGuessTurnRecord[];
 }
 
 /** Checks supported lobby settings without replacing invalid values. */

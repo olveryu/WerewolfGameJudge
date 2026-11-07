@@ -1,6 +1,8 @@
 /**
  * createPictionaryRoomShellModel characterization (AU-01): the assembled
- * model is pinned field by field from a real engine lobby state.
+ * model is pinned field by field from a real engine lobby state, and a
+ * finished round's bottom panel carries the shared review for every
+ * viewer.
  */
 import {
   DEFAULT_PICTIONARY_CONFIG,
@@ -16,6 +18,11 @@ import {
   createViewProfilesCapability,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import type { RoomViewer } from '@/features/room/model/RoomViewer';
+import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
+import { playPictionaryTestRound } from '@/test-utils/pictionaryState';
+import { viewerFor } from '@/test-utils/roomViewer';
 
 import {
   createPictionaryRoomShellModel,
@@ -57,6 +64,62 @@ function lobbyState(): PictionaryState {
     { ...DEFAULT_PICTIONARY_CONFIG, numberOfPlayers: 4 },
     { roomCode: '2468', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
   );
+}
+
+const ENABLED_REVIEW: RoomReviewEntry = { isEnabled: true, onPress: () => {} };
+
+/** The shell one viewer sees of a played round, with the review entry the room hook passes. */
+function shellFor(
+  state: PictionaryState,
+  viewer: RoomViewer,
+  review: RoomReviewEntry | null,
+): RoomShellModel {
+  return createPictionaryRoomShellModel({
+    roomCode: state.roomCode,
+    capabilities: testCapabilities({
+      state,
+      isHost: viewer.isHost,
+      mySeat: viewer.seat,
+      shareRoom: jest.fn(),
+    }),
+    onBack: jest.fn(),
+    onTitlePress: jest.fn(),
+    onTitleLongPress: jest.fn(),
+    user: { id: viewer.userId, avatarUrl: null },
+    gachaStatus: null,
+    onUserActionPress: jest.fn(),
+    connection: {
+      status: { kind: 'live' },
+      pendingDurableCount: 0,
+      presence: new Set<string>(),
+      onRetryNow: jest.fn(),
+    },
+    state,
+    viewer,
+    seatSource: createPictionarySeatDataSource({
+      state,
+      revision: 1,
+      myUserId: viewer.userId,
+      controlledSeat: null,
+    }),
+    seatsVisuallyDisabled: false,
+    onSeatPress: jest.fn(),
+    onBotSeatLongPress: null,
+    seatConfirmation: null,
+    profile: null,
+    share: {
+      isVisible: false,
+      roomCode: state.roomCode,
+      roomUrl: `https://example.test/${state.roomCode}`,
+      open: jest.fn(),
+      close: jest.fn(),
+      copyLink: jest.fn(async () => undefined),
+      shareImage: jest.fn(async () => undefined),
+    },
+    review,
+    buildHostManagement: () => null,
+    controlledSeat: null,
+  });
 }
 
 describe('createPictionaryRoomShellModel', () => {
@@ -110,6 +173,7 @@ describe('createPictionaryRoomShellModel', () => {
       seatConfirmation: null,
       profile: null,
       share,
+      review: null,
       buildHostManagement: () => null,
       controlledSeat: null,
     });
@@ -170,9 +234,43 @@ describe('createPictionaryRoomShellModel', () => {
       seatConfirmation: null,
       profile: null,
       share,
+      review: ENABLED_REVIEW,
       buildHostManagement: () => null,
       controlledSeat: null,
     });
     expect(endedModel.phase).toBe('ended');
+  });
+
+  it.each([
+    ['ended', playPictionaryTestRound()],
+    ['aborted', playPictionaryTestRound({ abortAtStep: 2 })],
+  ])('offers every viewer of an %s round the review as a secondary button', (_phase, state) => {
+    for (const audience of ['host', 'seated', 'spectator'] as const) {
+      const model = shellFor(state, viewerFor(audience, { hostUserId: 'host-1' }), ENABLED_REVIEW);
+      expect(model.bottomActions).toMatchObject({
+        kind: 'stacked',
+        message: null,
+        layout: {
+          primary: [],
+          secondary: [
+            {
+              key: 'review',
+              label: '本局复盘',
+              audience: 'anyone',
+              variant: 'secondary',
+              testID: 'room-review-open',
+              isEnabled: true,
+            },
+          ],
+          ghost: [],
+        },
+      });
+    }
+  });
+
+  it('fails fast when a finished round reaches the bottom panel without its review entry', () => {
+    expect(() =>
+      shellFor(playPictionaryTestRound(), viewerFor('seated', { hostUserId: 'host-1' }), null),
+    ).toThrow('[FAIL-FAST] Pictionary ended has no review entry');
   });
 });

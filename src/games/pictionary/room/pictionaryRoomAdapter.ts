@@ -25,13 +25,15 @@ import {
   buildStartGameAction,
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
-  hostActionTask,
-  hostClosingTask,
+  hostReviewClosingTask,
   hostStartTask,
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
 import type { NightStepProgress } from '@/features/room/model/nightProgress';
-import type { RoomBottomStackModel } from '@/features/room/model/RoomBottomActions';
+import type {
+  RoomBottomButton,
+  RoomBottomStackModel,
+} from '@/features/room/model/RoomBottomActions';
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
 import {
   type RoomCapabilities,
@@ -49,6 +51,11 @@ import type {
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
+import {
+  buildReviewBottomButton,
+  buildReviewHostAction,
+  type RoomReviewEntry,
+} from '@/features/room/review/roomReviewActions';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 export const PICTIONARY_DISPLAY_NAME = '你画我猜接龙';
@@ -132,16 +139,29 @@ export function derivePictionaryBottomProgress(state: PictionaryState): NightSte
   }
 }
 
+/** The review entry of a finished round, open to every viewer; nothing before the round ends. */
+function createPictionaryReviewButtons(
+  state: PictionaryState,
+  review: RoomReviewEntry | null,
+): readonly RoomBottomButton[] {
+  if (state.phase !== 'ended' && state.phase !== 'aborted') return [];
+  if (review === null) {
+    throw new Error(`[FAIL-FAST] Pictionary ${state.phase} has no review entry`);
+  }
+  return [buildReviewBottomButton(review, 'secondary')];
+}
+
 function createPictionaryBottomActions(
   state: PictionaryState,
   viewer: RoomViewer,
+  review: RoomReviewEntry | null,
 ): RoomBottomStackModel {
   const message = buildLobbyHostStartMessage({ isLobby: state.phase === 'lobby', viewer });
   return {
     kind: 'stacked',
     message,
     progress: derivePictionaryBottomProgress(state),
-    layout: { primary: [], secondary: [], ghost: [] },
+    layout: { primary: [], secondary: createPictionaryReviewButtons(state, review), ghost: [] },
   };
 }
 
@@ -152,6 +172,8 @@ interface PictionaryHostManagementInput {
     RoomCapabilities,
     'canConfigureGame' | 'canClearSeats' | 'canFillBots' | 'canShareRoom'
   >;
+  /** The shared review entry; present once the round ended or was aborted. */
+  readonly review: RoomReviewEntry | null;
   readonly startRound: () => void;
   readonly nextRound: () => void;
   readonly returnToLobby: () => void;
@@ -163,7 +185,10 @@ export function createPictionaryHostManagement(
   input: PictionaryHostManagementInput,
 ): RoomHostManagementModel {
   if (input.state.phase === 'ended' || input.state.phase === 'aborted') {
-    const actions: RoomHostManagementAction[] = [];
+    if (input.review === null) {
+      throw new Error(`[FAIL-FAST] Pictionary ${input.state.phase} host has no review entry`);
+    }
+    const actions: RoomHostManagementAction[] = [buildReviewHostAction(input.review)];
     if (input.state.phase === 'ended')
       actions.push(
         buildNextRoundAction({
@@ -190,10 +215,11 @@ export function createPictionaryHostManagement(
       }),
     );
     return {
+      // An aborted round keeps its albums: the review stands beside 返回大厅, with no next round.
       task:
         input.state.phase === 'ended'
-          ? hostClosingTask()
-          : hostActionTask(HOST_ACTION_KEYS.returnLobby),
+          ? hostReviewClosingTask()
+          : { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, HOST_ACTION_KEYS.returnLobby] },
       sections: [{ key: 'current-flow', title: '当前流程', actions }],
     };
   }
@@ -272,17 +298,20 @@ export interface PictionaryRoomShellModelInput extends Omit<
   'phase' | 'step' | 'isAudioPlaying' | 'bottomActions'
 > {
   readonly state: PictionaryState;
+  /** The shared review entry; present once the round ended or was aborted. */
+  readonly review: RoomReviewEntry | null;
 }
 
 /** Assembles the Pictionary RoomShellModel from the hook's projections. */
 export function createPictionaryRoomShellModel(
   input: PictionaryRoomShellModelInput,
 ): RoomShellModel {
+  const { state, review, ...shell } = input;
   return createRoomShellModel({
-    ...input,
+    ...shell,
     isAudioPlaying: false,
-    phase: input.state.phase,
+    phase: state.phase,
     step: null,
-    bottomActions: createPictionaryBottomActions(input.state, input.viewer),
+    bottomActions: createPictionaryBottomActions(state, input.viewer, review),
   });
 }

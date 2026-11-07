@@ -43,8 +43,8 @@ export const UNDERCOVER_GUIDANCE_MATRIX: RoomGuidanceMatrix<UndercoverState['pha
     spectator: GUIDANCE_MESSAGE,
   },
   ended: {
-    host: guidanceExempt('房主由房主面板承载再来一局 / 返回大厅'),
-    seated: guidanceExempt('胜负与身份揭晓归结算区，房主后续动作归房主面板'),
-    spectator: guidanceExempt('结算区全观看者可见'),
+    host: guidanceExempt('房主由房主面板承载本局复盘 / 再来一局 / 返回大厅'),
+    seated: guidanceExempt('胜负与身份揭晓归本局复盘，房主后续动作归房主面板'),
+    spectator: guidanceExempt('本局复盘全观看者可见'),
   },
 };

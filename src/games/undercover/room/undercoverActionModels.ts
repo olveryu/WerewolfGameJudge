@@ -15,8 +15,13 @@ import {
   resolveViewIdentityAction,
 } from '@/features/room/model/RoomBottomActions';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
+import {
+  buildReviewBottomButton,
+  type RoomReviewEntry,
+} from '@/features/room/review/roomReviewActions';
 
 import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
+import { UNDERCOVER_ABORTED_TEXT } from './undercoverCopy';
 
 type Controls = UndercoverRoundControls;
 
@@ -63,17 +68,22 @@ function resolveUndercoverBottomMessage(
       // 选人窗口不是引擎状态，阶段句即如实表达。
       return `本轮从 ${state.round.speakingStartSeat + 1} 号起按座位顺序发言`;
     case 'aborted':
-      return viewer.isHost ? '本局已中止' : '本局已中止，等待房主处理';
+      return viewer.isHost ? UNDERCOVER_ABORTED_TEXT : `${UNDERCOVER_ABORTED_TEXT}，等待房主处理`;
     case 'viewing':
     case 'ended':
       return null;
   }
 }
 
+/**
+ * The bottom layout: the word card for participants, and the review
+ * （本局复盘） for every reader of a concluded round.
+ */
 export function createUndercoverBottomActions(
   controls: Controls,
   state: UndercoverState,
   viewer: RoomViewer,
+  review: RoomReviewEntry | null,
 ): RoomBottomActionModel {
   const primary: RoomBottomButton[] = [];
   const secondary: RoomBottomButton[] = [];
@@ -99,6 +109,10 @@ export function createUndercoverBottomActions(
         isSubmitting: controls.isSubmitting,
       }),
     );
+  if (state.phase === 'ended' && review === null) {
+    throw new Error('[FAIL-FAST] Undercover ended round has no review entry');
+  }
+  if (review !== null) secondary.push(buildReviewBottomButton(review, 'secondary'));
   return {
     kind: 'stacked',
     message: resolveUndercoverBottomMessage(controls, state, viewer, cardLabel),

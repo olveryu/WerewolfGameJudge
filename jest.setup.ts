@@ -79,38 +79,10 @@ const mockColors = {
 jest.mock('./src/theme', () => {
   return {
     colors: mockColors,
-    NIGHT_REPORT_COLORS: {
-      background: '#FFFFFF',
-      card: '#FFFFFF',
-      cardBorder: '#E4E4EC',
-      divider: '#ECECF2',
-      text: '#17171F',
-      textSecondary: '#55566B',
-      textMuted: '#8A8A99',
-      textFaint: '#A5A5B5',
-      danger: '#D92D20',
-      dangerText: '#D92D20',
-      deadMedalBg: '#FDECEA',
-      deadMedalBorder: '#EFA9A3',
-      wolfMedalBg: '#FDECEF',
-      wolfMedalText: '#D92D5D',
-      wolfMedalBorder: '#F3C2CF',
-      godMedalBg: '#ECEAFE',
-      godMedalText: '#4F46E5',
-      godMedalBorder: '#C9BFF5',
-      violet: '#4F46E5',
-      goodMedalBg: '#E6F4EA',
-      goodMedalText: '#067647',
-      goodMedalBorder: '#A9D9BC',
-      neutralMedalBg: '#F0F0F5',
-      neutralMedalBorder: '#DCDCE6',
-      idleBg: '#FAFAFC',
-      idleText: '#8A8A99',
-      idleStrong: '#55566B',
-      rosterOutMedalBg: '#F7F0F0',
-      rosterOutMedalBorder: '#E3D3D3',
-      rosterOutMedalText: '#B08A8A',
-    },
+    // The report palette is a leaf module with no imports: the real values,
+    // so the mock cannot drift from the review renderer's slots.
+    REPORT_COLORS:
+      jest.requireActual<typeof import('./src/theme/colors')>('./src/theme/colors').REPORT_COLORS,
     spacing: {
       // Mirrors src/theme/tokens.ts (scale is identity at ratio 1): micro
       // must stay, or any spacing.micro consumer reads undefined under jest.

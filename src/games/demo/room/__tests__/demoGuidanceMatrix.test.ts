@@ -180,6 +180,7 @@ function bottomMessage(state: DemoState, audience: RoomViewerAudience): string |
     isLobby: state.phase.kind === 'lobby',
     buildHostManagement: () => ({ task: null, sections: [] }),
     releaseBot: jest.fn(),
+    review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: jest.fn() } : null,
   });
   return model.bottomActions.message;
 }

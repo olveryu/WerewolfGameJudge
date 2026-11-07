@@ -113,6 +113,7 @@ describe('StoryRelayStage bot drafts', () => {
             .then((outcome) => outcome.kind === 'committed')
         }
         isSubmitting={false}
+        openReview={jest.fn()}
       />
     );
     const view = render(stageElement());

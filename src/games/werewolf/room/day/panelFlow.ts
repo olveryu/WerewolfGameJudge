@@ -19,7 +19,9 @@
  */
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
+import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
 import type { RoomHostTaskStep } from '@/features/room/model/RoomHostManagement';
+import { REVIEW_TITLE } from '@/features/room/review/reviewCopy';
 
 export type PanelFlowStepId = 'lastNightInfo' | 'nightReview' | 'closing';
 
@@ -39,12 +41,13 @@ export const PANEL_FLOW_SHARE_HINT = '记得把复盘分享给第一天出局的
 /** Sheet keys the flow steps reference (createWerewolfHostManagement). */
 export const PANEL_FLOW_ACTION_KEYS = {
   lastNightInfo: 'last-night-info',
-  nightReview: 'night-review',
+  nightReview: HOST_ACTION_KEYS.review,
+  grantReview: 'grant-review',
 } as const;
 
 const PANEL_FLOW_STEP_LABELS: Readonly<Record<PanelFlowStepId, string>> = {
   lastNightInfo: '昨夜信息',
-  nightReview: '本局复盘',
+  nightReview: REVIEW_TITLE,
   closing: '收尾',
 };
 

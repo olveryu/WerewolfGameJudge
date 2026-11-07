@@ -15,6 +15,7 @@ import {
 import { useIsFocused } from '@react-navigation/native';
 import {
   type Dispatch,
+  type ReactNode,
   type SetStateAction,
   useCallback,
   useEffect,
@@ -46,6 +47,8 @@ import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
+import type { RoomReviewContribution } from '@/features/room/review/types';
+import { useRoomReview } from '@/features/room/review/useRoomReview';
 import { type AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 
 import type { AvalonAudioRuntime } from '../../audio/AvalonAudioPlayer';
@@ -118,18 +121,18 @@ export interface AvalonRoomScreenState {
   readonly setLadyResultReopenHandler: (handler: (() => void) | null) => void;
   /** 对局中的座位盘点选（刺杀 / 湖仙）与其待确认目标。 */
   readonly seatPicking: AvalonSeatPicking;
+  /** 本局复盘的对话框、导出舞台与分享进度（平台 useRoomReview），Screen 放进 gameOverlays。 */
+  readonly reviewOverlay: ReactNode;
 }
 
 /** 把当前就绪 session 绑定到房间壳控制器与命令上。 */
 export function useAvalonRoomState(
   props: GameRoomScreenProps<'avalon'> & {
     readonly session: AvalonRoomSession;
+    /** 模块声明的复盘贡献：房间只渲染这一份复盘。 */
+    readonly review: RoomReviewContribution<AvalonState>;
     readonly entryController: RoomEntryController;
     readonly audio: AvalonAudioRuntime;
-  },
-  callbacks: {
-    /** 本局复盘入口：Screen 持有复盘浮层开关，底部与主持管理共用它。 */
-    readonly onReviewPress: () => void;
   },
 ): AvalonRoomScreenState {
   const { session, room, navigation, entryController, audio } = props;
@@ -153,6 +156,15 @@ export function useAvalonRoomState(
   });
   const mySeat = getAvalonUserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
+  // 本局复盘：终局后人人可看可分享；底部按钮与主持管理共用同一入口。
+  const review = useRoomReview({
+    contribution: props.review,
+    state,
+    viewer,
+    roomId: room.roomId,
+    roomCode: room.roomCode,
+    onOpened: null,
+  });
   const isLobby = state.phase.kind === 'lobby';
   const [rolePreviewId, setRolePreviewId] = useState<AvalonRoleId | null>(null);
   // 晚上确认：两步流程（底部按钮 → 弹窗），对齐狼人杀丘比特。
@@ -253,7 +265,7 @@ export function useAvalonRoomState(
       isSubmitting,
       controlledSeat,
       releaseBot: bots.release,
-      onReviewPress: callbacks.onReviewPress,
+      review: review.entry,
       onMusicSettings: () => {
         bgm.stopBgm();
         navigation.navigate('MusicSettings', { roomCode: room.roomCode });
@@ -313,7 +325,7 @@ export function useAvalonRoomState(
     onLadyAcknowledgePress: () => setLadyAckOpen(true),
     onLadyResultPress: () => ladyResultReopenRef.current?.(),
     onEarlyStrikePress: () => setStrikePickMode(true),
-    onReviewPress: callbacks.onReviewPress,
+    review: review.entry,
     strikePickMode,
     onCancelEarlyStrikePress: () => setStrikePickMode(false),
     buildHostManagement,
@@ -361,5 +373,6 @@ export function useAvalonRoomState(
     setStrikePickMode,
     setLadyResultReopenHandler,
     seatPicking,
+    reviewOverlay: review.overlay,
   };
 }

@@ -2,6 +2,7 @@
  * Demo房间：大厅走共享座位表；发牌后是身份查看与对局工作区。
  */
 
+import type { DemoState } from '@game-judge/game-engine/games/demo/public';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -13,6 +14,7 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import { resolveViewIdentityAction } from '@/features/room/model/RoomBottomActions';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
+import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { DemoRoomSession } from '@/games/demo/model/DemoRoomSession';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
 
@@ -21,6 +23,8 @@ import { type DemoRoomScreenState, useDemoRoomState } from './hooks/useDemoRoomS
 
 type DemoRoomScreenProps = GameRoomScreenProps<'demo'> & {
   readonly session: DemoRoomSession;
+  /** 模块声明的本局复盘（defineClientGameModule 的 review）；房间只渲染这一份。 */
+  readonly review: RoomReviewContribution<DemoState>;
 };
 
 /** 使用平台入场生命周期处理直链、加入与重连。 */
@@ -69,16 +73,19 @@ function DemoRoomContent(
       leadingExtraActions={null}
       trailingExtraActions={null}
       gameOverlays={
-        <RevealRoleCardModal
-          visible={screen.roleViewing.isOpen}
-          roleKey={screen.viewModel?.myIdentity ?? null}
-          toRoleData={toRevealRoleData}
-          effectType={null}
-          shouldPlay={screen.roleViewing.shouldPlayAnimation}
-          allRoles={screen.roleCardAllRoles}
-          remainingCards={screen.roleViewing.remainingCards}
-          onClose={screen.roleViewing.close}
-        />
+        <>
+          <RevealRoleCardModal
+            visible={screen.roleViewing.isOpen}
+            roleKey={screen.viewModel?.myIdentity ?? null}
+            toRoleData={toRevealRoleData}
+            effectType={null}
+            shouldPlay={screen.roleViewing.shouldPlayAnimation}
+            allRoles={screen.roleCardAllRoles}
+            remainingCards={screen.roleViewing.remainingCards}
+            onClose={screen.roleViewing.close}
+          />
+          {screen.reviewOverlay}
+        </>
       }
     />
   );

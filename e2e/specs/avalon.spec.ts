@@ -985,30 +985,36 @@ test.describe('Avalon full game', () => {
 
       await test.step('终局：坏人获胜、全员身份公开、对局记录收束', async () => {
         // 终局结算只在本局复盘里：座位表上方不再有常驻结算区，复盘由
-        // 底部「本局复盘」按钮打开（玩家与观看者同款入口）。
+        // 底部「本局复盘」按钮打开平台统一的复盘对话框（玩家与观看者同款入口）。
         await expect(hostPage.getByTestId('avalon-ended')).toHaveCount(0);
         for (const page of [hostPage, pages[assassinSeat]!]) {
-          await page.getByTestId('avalon-review-open').click();
-          const review = page.getByTestId('avalon-review-conclusion');
+          await page.getByTestId(TESTIDS.roomReviewOpenButton).click();
+          const review = page.getByTestId(TESTIDS.roomReviewDialog);
           await expect(review).toBeVisible({ timeout: 20_000 });
           await expect(review.getByText('坏人获胜', { exact: true })).toBeVisible();
-          await expect(review.getByText(/刺客指认出了梅林/)).toBeVisible();
           await expect(review.getByText(/刺客 \d+ 号指认 \d+ 号（梅林）→ 命中/)).toBeVisible();
-          await page.getByTestId('avalon-review-close').click();
+          await page.getByRole('button', { name: '关闭详情', exact: true }).click();
+          await expect(review).toBeHidden();
         }
-        await hostPage.getByTestId('avalon-review-open').click();
+        await hostPage.getByTestId(TESTIDS.roomReviewOpenButton).click();
+        const hostReview = hostPage.getByTestId(TESTIDS.roomReviewDialog);
+        await expect(hostReview).toBeVisible({ timeout: 20_000 });
+        // 全员身份：身份墙是复盘里第一处座位徽章，徽章所在行写出该座角色与阵营。
         for (let seat = 0; seat < PLAYER_COUNT; seat += 1) {
-          const row = hostPage.getByTestId(`avalon-review-identity-${seat}`);
+          const row = hostReview
+            .getByLabel(`${seat + 1}号`, { exact: true })
+            .first()
+            .locator('..');
           await expect(row).toContainText(roles[seat]!);
           await expect(row).toContainText(EVIL_ROLES.has(roles[seat]!) ? '坏人' : '好人');
         }
         // 复盘湖仙节必带查验结果（湖仙一查中坏人）；对局记录则不带结果。
-        const reviewLake = hostPage.getByTestId('avalon-review-lake');
-        await expect(reviewLake).toContainText(
+        await expect(hostReview).toContainText(
           `${lady1.holderSeat + 1} 号查验了 ${lady1.targetSeat + 1} 号（坏人）`,
         );
-        await expect(reviewLake).not.toContainText('查验结果只给当时持有人看');
-        await hostPage.getByTestId('avalon-review-close').click();
+        await expect(hostReview).not.toContainText('查验结果只给当时持有人看');
+        await hostPage.getByRole('button', { name: '关闭详情', exact: true }).click();
+        await expect(hostReview).toBeHidden();
         await expect(hostPage.getByTestId('avalon-history-summary')).toContainText(
           '本局结束 · 坏人获胜',
         );

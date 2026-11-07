@@ -1,8 +1,50 @@
-/** Exercises real capture/upload in the mini-program branch; only the native preview bridge is simulated. */
+/**
+ * Review image sharing in a real browser: the desktop download fallback,
+ * and real capture/upload in the mini-program branch, where only the
+ * native preview bridge is simulated.
+ */
 
-import { expect, type Page, type Route, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+
+import { expect, type Locator, type Page, type Route, test } from '@playwright/test';
 
 import { waitForRoomScreenReady } from './waits';
+
+const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+
+/** How long a review may take to pre-capture its pages before its share controls appear. */
+export const REVIEW_CAPTURE_TIMEOUT_MS = 30_000;
+
+/** A PNG's pixel size, read from its IHDR chunk. */
+export function readPngSize(png: Buffer): { readonly width: number; readonly height: number } {
+  return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
+}
+
+/**
+ * Presses a review share control once the review's pages are captured and
+ * returns the one image the browser saved: desktop Chromium has no Web
+ * Share for files, so the export falls back to a download named after the
+ * review document. The image is a real PNG of a captured page and is
+ * attached to the test.
+ */
+export async function downloadReviewImage(
+  shareControl: Locator,
+  filename: string,
+): Promise<Buffer> {
+  // Pages pre-capture in the background; the control enables once they are ready.
+  await expect(shareControl).toBeEnabled({ timeout: REVIEW_CAPTURE_TIMEOUT_MS });
+  const downloadPromise = shareControl.page().waitForEvent('download');
+  await shareControl.click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe(filename);
+  const path = test.info().outputPath(filename);
+  await download.saveAs(path);
+  const png = await readFile(path);
+  expect(png.subarray(0, 8)).toEqual(PNG_SIGNATURE);
+  expect(png.length).toBeGreaterThan(10_000);
+  await test.info().attach(filename, { body: png, contentType: 'image/png' });
+  return png;
+}
 
 declare global {
   interface Window {
@@ -63,7 +105,7 @@ export async function expectWeChatImageShare(
     await requested;
     await page.getByRole('button', { name: openButtonName, exact: true }).click();
     const shareButton = page.getByRole('button', { name: shareButtonName, exact: true });
-    await expect(shareButton).toBeEnabled();
+    await expect(shareButton).toBeEnabled({ timeout: REVIEW_CAPTURE_TIMEOUT_MS });
     await shareButton.click();
     await expect.poll(() => previews.length, { timeout: 20_000 }).toBe(1);
     await expect(shareButton).toBeEnabled();
@@ -76,8 +118,9 @@ export async function expectWeChatImageShare(
       expect(response.ok()).toBe(true);
       expect(response.headers()['content-type']).toBe('image/png');
       const png = await response.body();
-      expect(png.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
-      expect(png.readUInt32BE(20)).toBeGreaterThan(png.readUInt32BE(16));
+      expect(png.subarray(0, 8)).toEqual(PNG_SIGNATURE);
+      const { width, height } = readPngSize(png);
+      expect(height).toBeGreaterThan(width);
       expect(png.length).toBeGreaterThan(10_000);
       await test.info().attach(`wechat-share-${index}`, { body: png, contentType: 'image/png' });
     }

@@ -3,6 +3,7 @@
 import {
   type FibRole,
   type FibState,
+  type FibWordDefinition,
   getFibOccupiedSeatCount,
   getFibRole,
   getFibViewingParticipants,
@@ -33,8 +34,8 @@ import {
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
   hostActionTask,
-  hostClosingTask,
   hostMessageTask,
+  hostReviewClosingTask,
   hostStartTask,
   projectViewingProgress,
   seatShortageReason,
@@ -67,6 +68,11 @@ import type {
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import {
+  buildReviewBottomButton,
+  buildReviewHostAction,
+  type RoomReviewEntry,
+} from '@/features/room/review/roomReviewActions';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -77,6 +83,12 @@ const FIB_ROLE_NAMES: Readonly<Record<FibRole, string>> = {
   guesser: '大聪明',
   honest: '老实人',
   fibber: '瞎掰王',
+};
+
+/** The word definition's field labels: the identity card and the review. */
+export const FIB_DEFINITION_LABELS: Readonly<Record<keyof FibWordDefinition, string>> = {
+  coreMeaning: '核心释义',
+  usageNote: '使用提示',
 };
 
 interface FibCapabilitiesInput {
@@ -195,6 +207,8 @@ interface FibHostManagementInput {
   readonly redrawRound: () => void;
   readonly abandonGame: () => void;
   readonly endGame: () => void;
+  /** The review （本局复盘） entry; null until the round ended. */
+  readonly review: RoomReviewEntry | null;
 }
 
 function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostManagementAction[] {
@@ -332,7 +346,11 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
         ),
       ];
     case 'ended':
+      if (input.review === null) {
+        throw new Error('[FAIL-FAST] FibKing ended host has no review entry');
+      }
       return [
+        buildReviewHostAction(input.review),
         buildNextRoundAction({
           onPress: () =>
             showConfirmAlert(
@@ -415,7 +433,7 @@ function createFibHostTask(input: FibHostManagementInput): RoomHostTask | null {
         ? hostMessageTask('点座位盘选择大聪明猜中的玩家', { actionKey: 'guess-seat' })
         : hostActionTask('reveal-round');
     case 'ended':
-      return hostClosingTask();
+      return hostReviewClosingTask();
   }
 }
 
@@ -490,8 +508,15 @@ interface FibBottomActionsInput {
   readonly viewerSeat: number | null;
   readonly isSubmitting: boolean;
   readonly openIdentity: () => void;
+  /** The review （本局复盘） entry; null until the round ended. */
+  readonly review: RoomReviewEntry | null;
 }
 
+/**
+ * The bottom layout: the identity / word view during play, then the
+ * public result and the review （本局复盘） for every reader of an ended
+ * round.
+ */
 export function createFibBottomActions(input: FibBottomActionsInput): RoomBottomStackModel {
   const primary: RoomBottomButton[] = [];
   const secondary: RoomBottomButton[] = [];
@@ -526,6 +551,9 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
       break;
     }
     case 'ended':
+      if (input.review === null) {
+        throw new Error('[FAIL-FAST] FibKing ended round has no review entry');
+      }
       secondary.push(
         enabledButton(
           'view-result',
@@ -535,6 +563,7 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
           TESTIDS.fibViewResultButton,
           input.openIdentity,
         ),
+        buildReviewBottomButton(input.review, 'secondary'),
       );
       break;
   }

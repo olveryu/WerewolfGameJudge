@@ -28,7 +28,7 @@ export const DEMO_GUIDANCE_MATRIX: RoomGuidanceMatrix<DemoPhaseKind> = {
     spectator: guidanceExempt('玩法阶段界面在 stage 区（模板占位面）'),
   },
   ended: {
-    host: guidanceExempt('房主由房主面板承载再来一局 / 返回大厅'),
+    host: guidanceExempt('房主由房主面板承载本局复盘 / 再来一局 / 返回大厅'),
     seated: GUIDANCE_MESSAGE,
     spectator: guidanceExempt('终局由 stage 区呈现本局已结束'),
   },

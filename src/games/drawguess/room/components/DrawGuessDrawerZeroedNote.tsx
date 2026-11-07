@@ -6,7 +6,13 @@ import { StyleSheet, Text } from 'react-native';
 
 import { colors, textStyles } from '@/theme';
 
-export const DRAWGUESS_DRAWER_ZEROED_NOTE = '全员猜中：画得太简单了，画手本轮 0 分';
+import {
+  DRAWGUESS_DRAWER_ZEROED_DETAIL,
+  DRAWGUESS_DRAWER_ZEROED_TITLE,
+} from '../../model/drawGuessResults';
+
+/** 结算榜上方的清零说明整句。 */
+export const DRAWGUESS_DRAWER_ZEROED_NOTE = `${DRAWGUESS_DRAWER_ZEROED_TITLE}：${DRAWGUESS_DRAWER_ZEROED_DETAIL}`;
 
 export function DrawGuessDrawerZeroedNote({ visible }: { readonly visible: boolean }) {
   if (!visible) return null;

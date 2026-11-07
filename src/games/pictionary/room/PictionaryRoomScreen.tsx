@@ -1,5 +1,6 @@
 /** Pictionary room hosted by the shared entry boundary and room shell. */
 
+import type { PictionaryState } from '@game-judge/game-engine/games/pictionary/public';
 import type React from 'react';
 import { useCallback } from 'react';
 
@@ -9,6 +10,7 @@ import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
+import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 
 import { PictionaryRoomSummary } from './components/PictionaryRoomSummary';
@@ -17,6 +19,7 @@ import { usePictionaryRoomState } from './hooks/usePictionaryRoomState';
 
 interface PictionaryRoomScreenProps extends GameRoomScreenProps<'pictionary'> {
   readonly session: PictionaryRoomSession;
+  readonly review: RoomReviewContribution<PictionaryState>;
 }
 
 export const PictionaryRoomScreen: React.FC<PictionaryRoomScreenProps> = (props) => {
@@ -73,13 +76,14 @@ const PictionaryRoomContent: React.FC<PictionaryRoomContentProps> = ({
                   session={screen.session}
                   submit={screen.submit}
                   isSubmitting={screen.isSubmitting}
+                  openReview={screen.openReview}
                 />
               ),
             }
       }
       leadingExtraActions={null}
       trailingExtraActions={null}
-      gameOverlays={null}
+      gameOverlays={screen.reviewOverlay}
     />
   );
 };

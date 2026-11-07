@@ -3,7 +3,7 @@
 import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import { buildSeatIdentityView, getSeatDisplayName } from '../../../platform/room/seatIdentity';
 import { isBotOccupant, isBotSeat } from '../../../platform/room/seating';
-import type { DrawGuessPhaseKind, DrawGuessState } from '../state/types';
+import type { DrawGuessPhaseKind, DrawGuessState, DrawGuessTurnRecord } from '../state/types';
 import { buildHintText, computeRevealedCount } from './rules';
 
 export interface DrawGuessSeatView {
@@ -45,6 +45,8 @@ export interface DrawGuessViewModel {
   readonly turnLabel: string;
   readonly deadlineAt: number | null;
   readonly scores: Readonly<Record<number, number>>;
+  /** 本局已结束回合：内容在各自 roundEnd 已对全员公开，对所有观看者原样投影。 */
+  readonly turnHistory: readonly DrawGuessTurnRecord[];
 }
 
 function buildSeatViews(state: DrawGuessState, drawerSeat: number | null): DrawGuessSeatView[] {
@@ -153,5 +155,6 @@ export function getDrawGuessViewModel(
     turnLabel,
     deadlineAt,
     scores: state.scores,
+    turnHistory: state.turnHistory,
   };
 }

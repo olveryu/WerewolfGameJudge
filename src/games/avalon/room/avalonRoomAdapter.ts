@@ -50,7 +50,7 @@ import {
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
   hostActionTask,
-  hostClosingTask,
+  hostReviewClosingTask,
   hostStartTask,
   projectViewingProgress,
   seatShortageReason,
@@ -79,6 +79,11 @@ import type {
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
+import {
+  buildReviewBottomButton,
+  buildReviewHostAction,
+  type RoomReviewEntry,
+} from '@/features/room/review/roomReviewActions';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -348,8 +353,8 @@ export interface AvalonBottomActionsInput {
   readonly onLadyAcknowledgePress: () => void;
   readonly onLadyResultPress: () => void;
   readonly onEarlyStrikePress: () => void;
-  /** 本局复盘入口：终局时底部按钮与主持管理按钮共用的唯一处理器。 */
-  readonly onReviewPress: () => void;
+  /** 本局复盘入口（平台 useRoomReview）：终局时存在，底部按钮与主持管理共用；终局前为 null。 */
+  readonly review: RoomReviewEntry | null;
   /** 提前刺杀选人模式（本地 UI 状态）：开启时底部区独占为座位盘点选提示 + 取消入口。 */
   readonly strikePickMode: boolean;
   readonly onCancelEarlyStrikePress: () => void;
@@ -648,21 +653,15 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
             : '坏人正在商量刺杀目标…';
       break;
     }
-    case 'ended':
+    case 'ended': {
       // 终局结算只在本局复盘里；底部区只留复盘入口（玩家与观看者同款，
       // 非 host 专属），再来一局 / 返回大厅仍是房主专属（主持管理里）。
-      secondary.push({
-        key: 'avalonReview',
-        label: '本局复盘',
-        audience: 'anyone',
-        variant: 'secondary',
-        size: 'md',
-        isEnabled: true,
-        onPress: input.onReviewPress,
-        testID: 'avalon-review-open',
-      });
+      const { review } = input;
+      if (review === null) throw new Error('[FAIL-FAST] Avalon ended has no review entry');
+      secondary.push(buildReviewBottomButton(review, 'secondary'));
       message = buildEndedWaitingMessage({ isEnded: true, viewer: input.viewer });
       break;
+    }
     default:
       break;
   }
@@ -700,7 +699,7 @@ export interface AvalonRoomShellModelInput extends Omit<
   readonly onLadyAcknowledgePress: () => void;
   readonly onLadyResultPress: () => void;
   readonly onEarlyStrikePress: () => void;
-  readonly onReviewPress: () => void;
+  readonly review: RoomReviewEntry | null;
   readonly strikePickMode: boolean;
   readonly onCancelEarlyStrikePress: () => void;
   readonly releaseBot: () => void;
@@ -715,8 +714,8 @@ export interface AvalonHostManagementInput {
   readonly isSubmitting: boolean;
   readonly controlledSeat: number | null;
   readonly releaseBot: () => void;
-  /** 本局复盘入口：与底部按钮共用的唯一处理器。 */
-  readonly onReviewPress: () => void;
+  /** 本局复盘入口（平台 useRoomReview）：与底部按钮同一入口；终局前为 null。 */
+  readonly review: RoomReviewEntry | null;
   readonly onMusicSettings: () => void;
   readonly submit: (label: string, command: AvalonPublicCommand) => Promise<boolean>;
 }
@@ -802,16 +801,10 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostManage
 }
 
 function createAvalonEndedActions(input: AvalonHostManagementInput): RoomHostManagementAction[] {
+  const { review } = input;
+  if (review === null) throw new Error('[FAIL-FAST] Avalon ended host has no review entry');
   return [
-    {
-      key: 'avalonReview',
-      label: '本局复盘',
-      icon: 'document-text-outline',
-      variant: 'secondary',
-      testID: 'avalon-review-open',
-      isEnabled: true,
-      onPress: input.onReviewPress,
-    },
+    buildReviewHostAction(review),
     buildNextRoundAction({
       onPress: () =>
         showConfirmAlert(
@@ -944,7 +937,7 @@ export function createAvalonHostManagement(
   }
   if (state.phase.kind === 'ended') {
     return applyLock({
-      task: hostClosingTask(),
+      task: hostReviewClosingTask(),
       sections: [
         {
           key: 'current-flow',
@@ -1003,7 +996,7 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       onLadyAcknowledgePress: input.onLadyAcknowledgePress,
       onLadyResultPress: input.onLadyResultPress,
       onEarlyStrikePress: input.onEarlyStrikePress,
-      onReviewPress: input.onReviewPress,
+      review: input.review,
       strikePickMode: input.strikePickMode,
       onCancelEarlyStrikePress: input.onCancelEarlyStrikePress,
     }),

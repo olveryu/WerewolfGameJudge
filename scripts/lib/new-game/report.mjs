@@ -40,7 +40,7 @@ export function buildIntegrationReport({
 | --- | --- |
 | 游戏 ID | \`${gameId}\` |
 | 原型预设 | ${PRESET_LABELS[preset]} |
-| 生产态 | ${production ? '是（--production）' : '否（默认非生产，上线动作见第 8 步）'} |
+| 生产态 | ${production ? '是（--production）' : '否（默认非生产，上线动作见第 9 步）'} |
 | 展示名 / 副标题 | ${home.displayName} / ${home.subtitle} |
 | 首页图标 / 档位 | ${home.iconName} / ${home.tier} |
 | 完成奖励（flat） | xpEarned ${rewards.xpEarned} · normalDrawsEarned ${rewards.normalDrawsEarned} · dailyCompletionTarget ${rewards.dailyCompletionTarget} |
@@ -76,15 +76,26 @@ ${edited}
    \`packages/api-worker/src/games/${gameId}\`、\`src/games/${gameId}\`），逐个填掉：
    身份/回合的玩法状态机在 \`domain/decision.ts\` 与 \`engine.ts\` 的 TODO 接缝处接入，
    视图投影在 \`domain/visibility.ts\` 补齐隐私裁剪。
-3. **奖励数值确认**：参数表里的三数是占位值（见上表），按新游戏的档位修改
+3. **本局复盘填空**：复盘已全链接通——模块 \`review\`、终局底部「本局复盘」按钮
+   （所有观看者）、房主面板复盘动作与终局任务（本局复盘 / 再来一局 / 返回大厅），
+   弹窗与图片分享归平台。骨架文档只有 hero「本局结束」+ 参与者名单：按设计文档把
+   本局事实（胜负、身份、得分、过程）填进
+   \`src/games/${gameId}/review/to${names.pascal}ReviewDocument.ts\`，可用条件与分享权限在
+   \`src/games/${gameId}/review/${names.camel}Review.ts\` 定，并同步改两者的测试
+   \`review/__tests__/${names.camel}Review.test.ts\`。块词汇是封闭集合
+   （\`src/features/room/review/types.ts\`）：表达不了的内容先扩平台词汇，不许游戏自写复盘 JSX。
+   生成器已把真实引擎打出的大厅 / 终局 / 下一局（\`src/test-utils/${gameId}State.ts\` 的
+   \`${names.upper}_REVIEW_ROUNDS\`）登记进 \`src/__tests__/roomReview.contract.test.ts\`：
+   终局玩法或局号来源改了，同步改这组局面。
+4. **奖励数值确认**：参数表里的三数是占位值（见上表），按新游戏的档位修改
    \`product/rewards/earnings.ts\`；\`games/registry.ts\` 直接引用同一份常量。
-4. **审 migration**：\`packages/api-worker/migrations/${migrationName}\` 是从上一份注册
+5. **审 migration**：\`packages/api-worker/migrations/${migrationName}\` 是从上一份注册
    migration 机械派生的骨架——应用前人工核对重建表集合与现行 schema 一致；
    游戏自有表按文件末尾的 TODO 补进同一份 migration。
-5. **e2e 启用需用户批准**：\`e2e/specs/${gameId}.spec.ts.tmpl\` 是多真人多 context 的
+6. **e2e 启用需用户批准**：\`e2e/specs/${gameId}.spec.ts.tmpl\` 是多真人多 context 的
    spec 骨架，默认不进 CI。启用时改名为 \`${gameId}.spec.ts\` 并把文件名加进
    \`.github/workflows/ci.yml\` 的 e2e 分片矩阵（ciE2eCoverage contract 会验全量一致）。
-6. **词库（如需要）**：把引擎 \`wordLibrary\` 开关打开时，供词 workflow 要在
+7. **词库（如需要）**：把引擎 \`wordLibrary\` 开关打开时，供词 workflow 要在
    三处登记，缺一处都不完整（骨架不带 workflow 本体，类本体按 new-game skill
    Phase 3d 手写在 \`packages/api-worker/src/games/${gameId}/wordSupplyWorkflow.ts\`）：
    ① 注册表 \`packages/game-engine/src/games/registry.ts\` 本条目的
@@ -97,17 +108,17 @@ ${edited}
    （\`name = "${gameId}-word-supply"\`、\`binding = "${gameId.toUpperCase()}_WORD_SUPPLY"\`、\`class_name = "${names.pascal}WordSupplyWorkflow"\`）
    ——这一处没有任何 contract 焊接，漏了不会红灯、但部署后 workflow 不存在，
    只能靠本步核对。三处齐后，再按 skill Phase 3d 建词表与灌种子词，不许空表上线。
-7. **门禁复跑**：\`pnpm exec tsc --noEmit\`、引擎与 worker 的 vitest、根 jest、
+8. **门禁复跑**：\`pnpm exec tsc --noEmit\`、引擎与 worker 的 vitest、根 jest、
    \`pnpm run knip\`、改动文件 prettier/eslint，全部绿了再开 PR。${
      production
        ? `
-8. **上线（同步绊线名单）**：本次以 \`--production\` 生成，注册表已是
+9. **上线（同步绊线名单）**：本次以 \`--production\` 生成，注册表已是
    \`isProduction: true\`，上线前只剩一步：把 \`'${gameId}'\` 按它在 \`GAME_TYPES\`
    中的顺序位置，加进 \`src/games/__tests__/homeProductionFilter.contract.test.ts\`
    的 \`PRODUCTION_GAME_TYPES\` 名单——这份硬编码名单是刻意保留的绊线，
    生产集合变更永远是显式动作。名单同步、contract 转绿即上线完成。`
        : `
-8. **上线（翻生产）**：本次生成默认非生产（注册表 \`isProduction: false\`）——
+9. **上线（翻生产）**：本次生成默认非生产（注册表 \`isProduction: false\`）——
    游戏已全注册、凭房间码可进，但首页/建房/guide/spotlight/公告等玩家面不可见。
    玩法完成、门禁全绿后，在同一个 PR 里做两处显式动作才算上线：
    ① \`packages/game-engine/src/games/registry.ts\` 本游戏条目改 \`isProduction: true\`；

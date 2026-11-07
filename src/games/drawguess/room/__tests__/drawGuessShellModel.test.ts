@@ -1,6 +1,7 @@
 /**
  * createDrawGuessRoomShellModel characterization (AU-01): the assembled
- * model is pinned field by field from a real engine lobby state.
+ * model is pinned field by field from a real engine lobby state; the
+ * ended panel offers the shared review to every viewer.
  */
 import {
   DEFAULT_DRAWGUESS_CONFIG,
@@ -15,6 +16,10 @@ import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import type { RoomViewer } from '@/features/room/model/RoomViewer';
+import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
+import { playDrawGuessTestGame } from '@/test-utils/drawguessState';
+import { viewerFor } from '@/test-utils/roomViewer';
 
 import { createDrawGuessRoomShellModel } from '../drawGuessRoomAdapter';
 
@@ -91,6 +96,7 @@ describe('createDrawGuessRoomShellModel', () => {
     const caps = capabilities();
     const hostManagement = { task: null, sections: [] };
     const onSeatPress = jest.fn();
+    const openReview = jest.fn();
     const model = createDrawGuessRoomShellModel({
       roomCode: '1234',
       viewer: { userId: 'host', isHost: true, seat: 0 },
@@ -121,6 +127,7 @@ describe('createDrawGuessRoomShellModel', () => {
       isLobby: true,
       buildHostManagement: () => hostManagement,
       releaseBot: jest.fn(),
+      review: null,
     });
     expect(model.roomCode).toBe('1234');
     expect(model.capabilities).toBe(caps);
@@ -171,8 +178,28 @@ describe('createDrawGuessRoomShellModel', () => {
       isLobby: false,
       buildHostManagement: () => hostManagement,
       releaseBot: jest.fn(),
+      review: { isEnabled: true, onPress: openReview },
     });
     expect(endedModel.phase).toBe('ended');
+    const endedBottom = endedModel.bottomActions;
+    if (endedBottom.kind !== 'stacked') throw new Error('expected the stacked bottom panel');
+    expect(endedBottom.message).toBeNull();
+    expect(endedBottom.layout.primary).toEqual([]);
+    expect(endedBottom.layout.ghost).toEqual([]);
+    expect(endedBottom.layout.secondary).toHaveLength(1);
+    const [reviewButton] = endedBottom.layout.secondary;
+    expect(reviewButton).toMatchObject({
+      key: 'review',
+      label: '本局复盘',
+      audience: 'anyone',
+      variant: 'secondary',
+      testID: 'room-review-open',
+      isEnabled: true,
+    });
+    if (reviewButton === undefined || !reviewButton.isEnabled) {
+      throw new Error('expected an enabled review button');
+    }
+    expect(reviewButton.onPress).toBe(openReview);
   });
 
   it('shows 等待房主开始游戏 to a seated non-host and no hint without bots', () => {
@@ -207,6 +234,7 @@ describe('createDrawGuessRoomShellModel', () => {
       isLobby: true,
       buildHostManagement: () => null,
       releaseBot: jest.fn(),
+      review: null,
     });
     expect(model.bottomActions).toEqual({
       kind: 'stacked',
@@ -300,7 +328,62 @@ describe('createDrawGuessRoomShellModel — roundEnd wait (PR-B G-8)', () => {
       isLobby: false,
       buildHostManagement: () => ({ task: null, sections: [] }),
       releaseBot: jest.fn(),
+      review: null,
     });
     expect(model.bottomActions).toMatchObject({ kind: 'stacked', message: '等待本轮结算' });
+  });
+});
+
+describe('createDrawGuessRoomShellModel — ended review entry', () => {
+  const ended = playDrawGuessTestGame([]);
+
+  function endedShell(viewer: RoomViewer, review: RoomReviewEntry | null) {
+    return createDrawGuessRoomShellModel({
+      roomCode: ended.roomCode,
+      viewer,
+      capabilities: capabilities(),
+      onBack: jest.fn(),
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: viewer.userId, avatarUrl: null },
+      gachaStatus: null,
+      onUserActionPress: jest.fn(),
+      connection: {
+        status: { kind: 'live' },
+        pendingDurableCount: 0,
+        presence: new Set<string>(),
+        onRetryNow: jest.fn(),
+      },
+      state: ended,
+      revision: 40,
+      controlledSeat: null,
+      seatsVisuallyDisabled: false,
+      onSeatPress: jest.fn(),
+      onBotSeatLongPress: null,
+      seatController,
+      profileSelection: null,
+      onProfileClose: jest.fn(),
+      onProfileLeaveSeat: jest.fn(),
+      share,
+      isLobby: false,
+      buildHostManagement: () => null,
+      releaseBot: jest.fn(),
+      review,
+    });
+  }
+
+  it('offers the review to a spectator as well', () => {
+    const model = endedShell(viewerFor('spectator'), { isEnabled: true, onPress: jest.fn() });
+    expect(model.bottomActions).toMatchObject({
+      kind: 'stacked',
+      message: null,
+      layout: { primary: [], secondary: [{ key: 'review', audience: 'anyone' }], ghost: [] },
+    });
+  });
+
+  it('fails fast when an ended room has no review entry', () => {
+    expect(() => endedShell(viewerFor('seated'), null)).toThrow(
+      '[FAIL-FAST] DrawGuess ended without a review entry',
+    );
   });
 });

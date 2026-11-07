@@ -18,6 +18,7 @@ import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/ro
 import { act, renderHook } from '@testing-library/react-native';
 
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
+import { avalonReview } from '@/games/avalon/review/avalonReview';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -140,7 +141,8 @@ function renderRoomState(state: AvalonState) {
   const fake = createFakeSession(state);
   const props = {
     session: fake.session,
-    room: { roomCode: '1234' },
+    review: avalonReview,
+    room: { roomCode: '1234', roomId: 'room-1234' },
     navigation: { navigate: jest.fn() },
     entryController: {
       requestExit: jest.fn(),
@@ -158,7 +160,7 @@ function renderRoomState(state: AvalonState) {
       stopBgm: jest.fn(),
     },
   } as unknown as Parameters<typeof useAvalonRoomState>[0];
-  const rendered = renderHook(() => useAvalonRoomState(props, { onReviewPress: jest.fn() }));
+  const rendered = renderHook(() => useAvalonRoomState(props));
   return { ...rendered, dispatch: fake.dispatch };
 }
 

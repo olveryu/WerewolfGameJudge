@@ -16,7 +16,7 @@ const PRIVATE_MEDIA_CACHE_CONTROL = 'private, max-age=3600';
 
 /** 以 HTTPException 抛出媒体路由错误（两家 mediaRoutes 原各有一份逐字相同的本地 fail）。 */
 export function failMediaRequest(
-  status: 400 | 403 | 404 | 409 | 413 | 415 | 500,
+  status: 400 | 403 | 404 | 409 | 410 | 413 | 415 | 500,
   reason: string,
 ): never {
   throw new HTTPException(status, { message: reason });

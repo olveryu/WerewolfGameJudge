@@ -1,5 +1,6 @@
 import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
 import type { RoomBottomActionLayout } from '@/features/room/model/RoomBottomActions';
+import { buildReviewBottomButton } from '@/features/room/review/roomReviewActions';
 import { createSheriffElectionDockModel } from '@/games/werewolf/room/day/sheriffElectionDockModel';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/day/sheriffElectionViewModel';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
@@ -261,18 +262,7 @@ describe('createSheriffElectionDockModel', () => {
       }),
       roomTools: {
         ...ROOM_TOOLS,
-        secondary: [
-          {
-            key: 'nightReview',
-            label: '本局复盘',
-            audience: 'anyone',
-            variant: 'secondary',
-            size: 'md',
-            testID: TESTIDS.nightReviewBottomButton,
-            isEnabled: true,
-            onPress: openNightReview,
-          },
-        ],
+        ghost: [buildReviewBottomButton({ isEnabled: true, onPress: openNightReview }, 'ghost')],
       },
       isHost: false,
       isInspectorVisible: false,
@@ -281,16 +271,52 @@ describe('createSheriffElectionDockModel', () => {
     });
 
     expect(dock.trailing).toMatchObject({
-      key: 'nightReview',
+      key: 'review',
       label: '本局复盘',
       tone: 'default',
       isEnabled: true,
+      testID: TESTIDS.roomReviewOpenButton,
     });
     if (dock.trailing === null || !dock.trailing.isEnabled) {
-      throw new Error('Expected executable night-review action');
+      throw new Error('Expected executable review action');
     }
     dock.trailing.onPress();
     expect(openNightReview).toHaveBeenCalledTimes(1);
+  });
+
+  it('carries the disabled review of an ungranted seat, with its reason, into the trailing tool', () => {
+    const dock = createSheriffElectionDockModel({
+      election: createElection({
+        phase: 'firstVote',
+        canVote: true,
+        myBallot: { kind: 'notSubmitted' },
+        voteProgress: { submittedCount: 0, eligibleCount: 2 },
+      }),
+      roomTools: {
+        ...ROOM_TOOLS,
+        ghost: [
+          buildReviewBottomButton(
+            { isEnabled: false, disabledReason: '房主尚未向你开放复盘' },
+            'ghost',
+          ),
+        ],
+      },
+      isHost: false,
+      isInspectorVisible: false,
+      isAudioPlaying: false,
+      openDetails: jest.fn(),
+    });
+
+    expect(dock.trailing).toEqual({
+      key: 'review',
+      label: '本局复盘',
+      audience: 'anyone',
+      tone: 'default',
+      icon: 'document-text-outline',
+      testID: TESTIDS.roomReviewOpenButton,
+      isEnabled: false,
+      disabledReason: '房主尚未向你开放复盘',
+    });
   });
 
   it('leaves the trailing review tool to non-hosts: the host reaches the review from host management', () => {
@@ -303,18 +329,7 @@ describe('createSheriffElectionDockModel', () => {
       }),
       roomTools: {
         ...ROOM_TOOLS,
-        secondary: [
-          {
-            key: 'nightReview',
-            label: '本局复盘',
-            audience: 'anyone',
-            variant: 'secondary',
-            size: 'md',
-            testID: TESTIDS.nightReviewBottomButton,
-            isEnabled: true,
-            onPress: jest.fn(),
-          },
-        ],
+        ghost: [buildReviewBottomButton({ isEnabled: true, onPress: jest.fn() }, 'ghost')],
       },
       isHost: true,
       isInspectorVisible: false,

@@ -203,15 +203,24 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
     expect(model.bottomActions.kind).toBe('stacked');
     if (model.bottomActions.kind === 'stacked') {
       // The flow is the host's alone: a player gets no host management
-      // and no host buttons at Ended — only their own secondary tool,
-      // and no guide line (the night step is cleared when the night ends).
+      // and no host buttons at Ended — only their own secondary tool and
+      // the review entry, which an ungranted seat sees disabled with the
+      // reason; no guide line (the night step is cleared when the night ends).
       expect(model.hostManagement).toBeNull();
       expect(model.bottomActions.message).toBeNull();
       expect(model.bottomActions.layout.primary).toEqual([]);
       expect(model.bottomActions.layout.secondary.map((a) => [a.key, a.label, a.variant])).toEqual([
         ['viewRole', '查看身份', 'secondary'],
       ]);
-      expect(model.bottomActions.layout.ghost.map((a) => [a.key, a.label, a.variant])).toEqual([]);
+      expect(model.bottomActions.layout.ghost).toMatchObject([
+        {
+          key: 'review',
+          label: '本局复盘',
+          variant: 'ghost',
+          isEnabled: false,
+          disabledReason: '房主尚未向你开放复盘',
+        },
+      ]);
     }
   });
 
@@ -255,7 +264,13 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
         testID: 'sheriff-register-button',
         isEnabled: true,
       });
-      expect(model.bottomActions.trailing).toBeNull();
+      // No seat is granted yet: the review tool is visible but disabled, with the reason.
+      expect(model.bottomActions.trailing).toMatchObject({
+        key: 'review',
+        label: '本局复盘',
+        isEnabled: false,
+        disabledReason: '房主尚未向你开放复盘',
+      });
     }
   });
 

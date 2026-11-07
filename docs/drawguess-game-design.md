@@ -285,9 +285,11 @@ type DrawGuessPhase =
       readonly drawerSeat: number;
       readonly word: string;
       readonly strokes: readonly DrawGuessStroke[]; // 保留用于展示，下一回合清空
+      readonly guessedSeats: readonly number[]; // 猜中先后（结算时取自 drawing）；未猜中者不在列
       readonly roundScores: Readonly<Record<number, number>>; // seat -> 本轮得分
       readonly drawerZeroed: boolean; // 全员猜中致画手本轮清零时为 true
       readonly pngEntry: DrawGuessMedia | null; // 终稿 PNG，commit 后填充
+      readonly reservation: DrawGuessDrawingReservation | null; // 终稿上传预留（含 entryId）
       readonly deadlineAt: number;
     }
   | {
@@ -304,6 +306,18 @@ interface DrawGuessMedia {
   readonly sha256: string;
 }
 
+// 已结束回合：roundEnd 关闭（下一回合开始或终局）时冻结
+interface DrawGuessTurnRecord {
+  readonly turnIndex: number;
+  readonly drawerSeat: number;
+  readonly word: string;
+  readonly guessedSeats: readonly number[]; // 猜中先后；未猜中者不在列
+  readonly roundScores: Readonly<Record<number, number>>; // seat -> 本轮得分
+  readonly drawerZeroed: boolean;
+  readonly entryId: string | null; // 终稿媒体路由 id（取自上传预留）；未上传为 null
+  readonly pngEntry: DrawGuessMedia | null; // 与 entryId 同为 null 或同时存在
+}
+
 interface DrawGuessState {
   readonly stateVersion: number;
   readonly roomCode: string;
@@ -317,6 +331,7 @@ interface DrawGuessState {
   readonly turnIndex: number; // 当前第几回合（从 0 开始）
   readonly scores: Readonly<Record<number, number>>; // seat -> 总分
   readonly usedWords: readonly string[]; // 本局已用题目，避免重复
+  readonly turnHistory: readonly DrawGuessTurnRecord[]; // 本局已结束回合，开局/中止/回大厅清空
 }
 ```
 
@@ -325,6 +340,8 @@ interface DrawGuessState {
 - PNG、二进制画作字节（只保存 R2 object key 与元数据）。
 - 本地撤销栈、未发送的笔画、未提交的猜词输入。
 - 可推导的第二份"已猜中集合"（`guessedSeats` 即权威）。
+
+`turnHistory`（v4）是本局复盘的数据源：`drawguess.turn.started` 关闭上一轮 `roundEnd`、`drawguess.game.ended` 关闭最后一轮时，把该 `roundEnd` 冻结为一条记录追加进去；`drawguess.game.started`（开局、再来一局）与 `drawguess.game.returnedToLobby`（中止整局、返回大厅）清空。不变量：记录按 `turnIndex` 升序连续，进行中阶段末条为上一回合、`ended` 末条为最后一回合，`lobby` 为空；画手与 `drawerQueue` 一致；`guessedSeats` 恰为 `roundScores` 中除画手外的座位；`entryId` 与 `pngEntry` 同为 null 或同时存在，非空 `entryId` 不重复。记录不含笔画，只保留终稿 R2 元数据，控制状态体积。v3 房间迁移时 `turnHistory` 置空（迁移前已结束的回合不补录），进行中的 `roundEnd` 按 `roundScores` 重建 `guessedSeats`（得分高者在前，同分按座位号）。
 
 Codec 必须用 `z.strictObject` 精确验证：座位范围、笔画字段、阶段不变量（`drawing` 的 `word` 非空、`pinyinInitials.length === word.length`、`guessedSeats` 不含画手、`turnIndex` 上界）；损坏状态直接失败，不猜测修复。
 
@@ -351,7 +368,7 @@ Codec 必须用 `z.strictObject` 精确验证：座位范围、笔画字段、�
 
 `game.abort` 必须携带当前 `gameSequence`，旧确认不能中止新一局。该命令绑定整局而非笔画版本，确认期间的正常作画、猜词或阶段推进不使其失效；房主以未接管身份发送，服务端校验权限和局中阶段。
 
-`drawguess.round.ended` 由 `drawing` 跃迁时结算清零：若 `guessedSeats.length >= numberOfPlayers - 1`（全员猜中口径，与 3 秒压缩一致），画手本轮累计（`turnScores[drawerSeat]`）清零并从 `scores` 同额扣回，`roundScores` 取清零后数值，`roundEnd` 阶段 `drawerZeroed` 为 true；否则为 false。持久化版本为 v3（v3 新增 `drawerZeroed` 字段）；v1/v2 payload 经 `migratePersistedDrawGuessState` 一步升级，旧房间不作废。
+`drawguess.round.ended` 由 `drawing` 跃迁时结算清零：若 `guessedSeats.length >= numberOfPlayers - 1`（全员猜中口径，与 3 秒压缩一致），画手本轮累计（`turnScores[drawerSeat]`）清零并从 `scores` 同额扣回，`roundScores` 取清零后数值，`roundEnd` 阶段 `drawerZeroed` 为 true；否则为 false。持久化版本为 v4（v3 新增 `drawerZeroed` 字段；v4 新增 `turnHistory` 与 `roundEnd.guessedSeats`，见 §6）；v1/v2/v3 payload 经 `migratePersistedDrawGuessState` 一步升级，旧房间不作废。
 
 ### 7.2 Internal commands
 
@@ -375,6 +392,7 @@ Codec 必须用 `z.strictObject` 精确验证：座位范围、笔画字段、�
 - `drawing.word` / `drawing.pinyinInitials`：只对画手可见；猜题者 view model 只给 `{ wordLength, hintText }`，其中 `hintText` 是服务端按当前揭示进度算好的展示串（如"d \_ m"）。
 - `guessLog`：`correct=true` 的条目，`text` 在猜题者 view model 中被替换为隐藏标记，客户端渲染为"xxx 猜中了"；画手 view model 可见完整文本（D8=A，画手看聊天流）。
 - `roundEnd`：`word` 对全员可见（公布答案）；`strokes` 对全员可见。
+- `turnHistory`：对所有观看者原样投影（view model 同名字段）。只含已关闭回合，题目、猜中先后、得分与终稿在该回合 `roundEnd` 已公开；进行中回合的题目不在其中。
 - 房主只是 UI 和权限标记。所有命令仍在同一个 Worker/DO 权威路径完成 read-compute-write-broadcast。
 
 ## 8. 媒体存储与 API
@@ -385,7 +403,7 @@ Codec 必须用 `z.strictObject` 精确验证：座位范围、笔画字段、�
 - 对 `drawguess/` 前缀配置 48 小时生命周期（与 `pictionary/` 一致）。
 - object key 由服务端生成：`drawguess/{creationId}/{phaseRevision}/turn-{turnIndex}/{submissionId}.png`，包含 `creationId`、单调递增的 `phaseRevision` 和 `submissionId`，不只使用可复用的房间号。用 `phaseRevision` 而不用 `roundId` 是因为 engine state 里没有 `roundId` 字段；`phaseRevision` 保证"再来一局"后 turnIndex 复用不产生 key 碰撞。
 - R2 对象不可变；重试使用同一 `submissionId` 和摘要，内容冲突直接拒绝。
-- DO 状态只保存已接受对象的 key 和元数据（`roundEnd.pngEntry`）。
+- DO 状态只保存已接受对象的 key 和元数据（`roundEnd.pngEntry`）；回合关闭后随 `turnHistory` 记录保留到本局结束（再来一局、中止或返回大厅时清空）。
 - `drawing` 阶段的实时笔画**不走 R2**，只进 DO 状态（本游戏经评审的设计例外，见 §1）。
 
 ### 8.2 上传接口
@@ -415,9 +433,11 @@ GET /api/games/drawguess/rooms/:roomCode/media/:entryId
 
 - 验证登录态与房间成员身份。
 - 让 DO 根据 `entryId` 找到权威 object key，不接受路径形式的 key。
-- 只允许在 `roundEnd` / `ended` 阶段读取本局已提交的终稿 PNG。
+- `roundEnd`：只读本轮已入册终稿（`entryId` 为本轮上传预留的 `entryId`，且 `pngEntry` 已入册）。
+- `ended`：读本局 `turnHistory` 内任一已入册终稿（本局复盘逐轮画作），object key 取该记录的 `pngEntry`。
+- 其他阶段（含后续回合进行中读取已关闭回合）、`entryId` 不在可读范围内：404「画作不存在」；未入座且非房主接管机器人席位：403「请先入座」。
 - 返回 `ETag`、明确的私有缓存策略和 `X-Content-Type-Options: nosniff`。
-- R2 对象缺失时返回明确错误，不用空白图片掩盖数据损坏；客户端降级为用 state 中的 `strokes` 本地渲染。
+- 已入册终稿的 R2 对象缺失（过了 `drawguess/` 前缀 48 小时生命周期）返回 410「画作已过期」：如实的永久缺失，不是服务端错误，也不用空白图片掩盖；结算视图降级为用 state 中的 `strokes` 本地渲染，本局复盘的图片块显示「画作已过期」。
 
 ### 8.4 保留与隐私
 
@@ -478,6 +498,7 @@ GET /api/games/drawguess/rooms/:roomCode/media/:entryId
 
 - `roundEnd`：展示本轮画作（优先 R2 PNG，缺失则用 `strokes` 本地渲染）、公布答案、本轮得分（按总分降序、竞赛排名，每行显示本轮加分与总分，自己一行高亮），全员猜中致画手 0 分时在榜单上方显示提示“全员猜中：画得太简单了，画手本轮 0 分”，8 秒后自动进入下一回合。
 - `ended`：总分排行榜（按 `scores` 降序，含头像与名次），房主可见"再来一局"与"返回大厅"。
+- 本局复盘（`ended` 起可用，走共享复盘平台，见 [game-review-share-design.md](game-review-share-design.md) §5.5）：底部「本局复盘」对所有观看者（含观战者）开放，房主终局任务为「本局复盘 / 再来一局 / 返回大厅」三选一；任何人可读可分享，无确认。文档为 1 + T 页（T = `turnHistory.length`）：第 1 页「最终排名」——`第一名 …`（并列者全列）、名次 ≤ 3 的座位印章（`第 k 名`）、计分板（与舞台内榜单同一竞赛排名函数，机器人标「机器人」）；之后每个已结束回合一页「第 k 轮 · 画手 画「题目」」——终稿图片（未上传为「未提交画作」）、事实（题目 / 画手 / 猜中人数，全员猜中时附清零说明）、猜中顺序（座位 + `+分数 分`）。图片按 `entryId` 经 `drawGuessMediaTransport.readDrawingDataUri` 读取：410 →「画作已过期」、403 →「入座的玩家才能查看画作」，二者不阻塞导出；其余失败可点击重试。`turnHistory` 为空（v3 迁移来的房间）时只有排名一页。
 - 结算页不直接展示房主流程按钮以外的游戏外操作；"再来一局"重新走 `game.begin` 完整初始化。
 
 ### 9.7 响应式布局
@@ -600,6 +621,7 @@ V1 不新增 D1 对局表。游戏权威状态保存在 DO SQLite，R2 保存终
 - 笔画数据模型复用 `src/features/drawing/model/drawing.ts`，不在游戏目录复制。
 - `services/drawGuessMediaApi.ts`：提供游戏画作规格，通过 `src/features/drawing/services/createDrawingRenderer.ts` 复用路径构造、标准像素填充与 PNG 导出；接龙版使用同一渲染器。新增绘图游戏也应绑定自身规格，不复制算法。
 - `services/drawGuessMediaTransport.ts`：终稿 PNG 上传/读取。实时笔画同步与接龙版任务提交仍由各游戏负责，不属于共享渲染器。
+- `review/`：`toDrawGuessReviewDocument.ts`（终局状态 → 复盘文档的纯函数）与 `drawGuessReview.ts`（复盘贡献与画作读取的状态码映射）；`model/drawGuessResults.ts` 是舞台内计分板与复盘共用的竞赛排名、得分文案、机器人标注与清零说明。
 
 接入 `GameRoom.ts`、`HomeScreen.tsx`、`AppNavigator.tsx`、`RoomShell.tsx`、Worker `actionPipeline.ts` 时不得增加 `if (gameType === 'drawguess')`。缺少的共享能力必须先证明对多个游戏通用，再进入平台层。
 
@@ -651,6 +673,7 @@ V1 不新增 D1 对局表。游戏权威状态保存在 DO SQLite，R2 保存终
 - `stroke.undo` 弹出最后一笔；`stroke.clear` 清空；非画手笔画命令被拒绝。
 - Normalize 对损坏笔画、阶段、队列、比分 fail fast。
 - 生命周期映射与再来一局清理（`usedWords`、`scores` 重置）。
+- `turnHistory`：完整两轮后两条记录（画手、题目、猜中先后、本轮得分、终稿）；终局追加最后一轮；中止、再来一局、返回大厅清空；对所有观看者原样投影；严格解析拒绝 v3，v1/v2/v3 迁移到 v4。
 
 ### 14.2 Worker/DO tests
 
@@ -659,6 +682,7 @@ V1 不新增 D1 对局表。游戏权威状态保存在 DO SQLite，R2 保存终
 - 认证用户到座位的映射；`controlledSeat` 非机器人席位拒绝（`REASON_CONTROLLED_SEAT_NOT_BOT`）。
 - R2 上传的 MIME、签名、尺寸、大小、摘要与 object key；预留前上传、跨房间上传、过期上传、重复上传均拒绝。
 - 定时结算到点只推进一次（旧装弹的 settle 效果因 pin 不符不再结算）。
+- 终稿读取：`roundEnd` 读本轮；`ended` 读本局 `turnHistory` 任一已入册终稿；不在列 `entryId` 与进行中读取已关闭回合返回 404；非成员 403；已入册但 R2 对象已过期返回 410。
 - DO 重启后队列、`turnIndex`、笔画、揭示进度、比分恢复一致。
 
 ### 14.3 Client tests
@@ -670,6 +694,7 @@ V1 不新增 D1 对局表。游戏权威状态保存在 DO SQLite，R2 保存终
 - 撤销/清空走命令；本地乐观更新与权威快照冲突回滚。
 - 断线重连后只读画布从 `strokes` 完整恢复。
 - 中文错误反馈（速率限制、笔画上限、权限拒绝）。
+- 本局复盘：由真实引擎对局生成的终局状态断言文档（排名页、逐轮页、并列名次、空历史单页、fail-fast），图片读取 410 / 403 → `unavailable`，其余失败可重试；终局底部与房主面板的复盘入口。
 
 ### 14.4 E2E
 

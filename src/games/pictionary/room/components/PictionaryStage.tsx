@@ -35,6 +35,8 @@ interface PictionaryStageProps {
   readonly session: PictionaryRoomSession;
   readonly submit: ReadyRoomSession<PictionaryState, PictionaryPublicCommand>['submit'];
   readonly isSubmitting: boolean;
+  /** Opens the shared review at one album's page. */
+  readonly openReview: (pageKey: string) => void;
 }
 
 export const PictionaryStage: React.FC<PictionaryStageProps> = (props) => (
@@ -56,6 +58,7 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
   session,
   submit,
   isSubmitting,
+  openReview,
 }) => {
   if (state.phase === 'lobby') {
     throw new Error('[FAIL-FAST] Pictionary lobby must use the shared seat workspace');
@@ -96,7 +99,7 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
   if (state.phase === 'ended' || state.phase === 'aborted') {
     return (
       <View style={styles.container}>
-        <PictionaryEndedStage state={state} />
+        <PictionaryEndedStage state={state} openReview={openReview} />
       </View>
     );
   }

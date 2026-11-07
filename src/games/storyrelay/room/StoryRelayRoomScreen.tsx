@@ -1,11 +1,14 @@
 /** Hosts Story Relay inside the shared room entry, connection, seat and profile shell. */
 
+import type { StoryRelayState } from '@game-judge/game-engine/games/storyrelay/public';
+
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
+import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 
 import { StoryRelayStage } from './components/StoryRelayStage';
@@ -13,6 +16,7 @@ import { useStoryRelayRoomState } from './hooks/useStoryRelayRoomState';
 
 type StoryRelayRoomScreenProps = GameRoomScreenProps<'storyrelay'> & {
   readonly session: StoryRelayRoomSession;
+  readonly review: RoomReviewContribution<StoryRelayState>;
 };
 
 /** Uses the platform entry lifecycle for direct links, joins and reconnects. */
@@ -69,13 +73,14 @@ function StoryRelayRoomContent(
                   session={props.session}
                   submit={screen.submit}
                   isSubmitting={screen.isSubmitting}
+                  openReview={screen.openReview}
                 />
               ),
             }
       }
       leadingExtraActions={null}
       trailingExtraActions={null}
-      gameOverlays={null}
+      gameOverlays={screen.reviewOverlay}
     />
   );
 }

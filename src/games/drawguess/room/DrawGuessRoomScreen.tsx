@@ -8,6 +8,7 @@ import {
   DRAWGUESS_ROUNDS_PER_DRAWER,
   DRAWGUESS_WORD_SELECT_SECONDS,
   type DrawGuessPhase,
+  type DrawGuessState,
   type DrawGuessViewModel,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
@@ -35,6 +36,7 @@ import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 import { ENDED_WAITING_MESSAGE } from '@/features/room/model/RoomBottomActions';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
+import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
 import { ApiError } from '@/platform/http/ApiError';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
@@ -70,6 +72,7 @@ type DrawGuessRoundEndPhase = Extract<DrawGuessPhase, { readonly kind: 'roundEnd
 
 type DrawGuessRoomScreenProps = GameRoomScreenProps<'drawguess'> & {
   readonly session: DrawGuessRoomSession;
+  readonly review: RoomReviewContribution<DrawGuessState>;
 };
 
 /** 使用平台入场生命周期处理直链、加入与重连。 */
@@ -124,7 +127,7 @@ function DrawGuessRoomContent(
       }
       leadingExtraActions={null}
       trailingExtraActions={null}
-      gameOverlays={null}
+      gameOverlays={screen.reviewOverlay}
     />
   );
 }

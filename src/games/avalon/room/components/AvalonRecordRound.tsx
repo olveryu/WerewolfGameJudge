@@ -1,10 +1,10 @@
 /**
- * 阿瓦隆记录共享件：一轮记录（结论横幅 + 提案时间线 + 湖仙节）。
+ * 阿瓦隆对局记录共享件：一轮记录（结论横幅 + 提案时间线 + 湖仙节）。
  *
- * 从 AvalonHistoryOverlay 整段搬出，记录浮层与本局复盘共用同一份实现。
  * 横幅状态由本件统一推导：已结算轮给成功 / 失败；否决终局轮给组队失败；
  * 终局时仍在记录里的未结算轮给“未完成（提前刺杀打断）”，不许再写成
- * “组队投票中”——6532 的任务三就是被这句误导成“进行中”。
+ * “组队投票中”——6532 的任务三就是被这句误导成“进行中”。终局文案走
+ * 记录口径（avalonRecordCopy），与本局复盘文档同源。
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -27,6 +27,14 @@ import {
   withAlpha,
 } from '@/theme';
 
+import {
+  AVALON_INTERRUPTED_LABEL,
+  AVALON_INTERRUPTED_NOTE,
+  AVALON_QUEST_CARD_LABELS,
+  AVALON_QUEST_RESULT_LABELS,
+  AVALON_VETO_ENDED_LABEL,
+  formatAvalonVetoEndedNote,
+} from '../avalonRecordCopy';
 import { formatAvalonQuestLabel } from '../policy/avalonInteractionPolicy';
 import { AvalonRecordLakeSection } from './AvalonRecordLakeSection';
 import { AvalonRecordProposal } from './AvalonRecordProposal';
@@ -92,21 +100,21 @@ function AvalonQuestBanner({
   if (record.quest !== null) {
     const isSuccess = record.quest.result === 'success';
     icon = isSuccess ? 'checkmark' : 'close';
-    title = `${questLabel} · ${isSuccess ? '成功' : '失败'}`;
+    title = `${questLabel} · ${AVALON_QUEST_RESULT_LABELS[record.quest.result]}`;
     subtitle = '任务出牌结果（出牌人不公开）';
     toneStyle = isSuccess ? styles.bannerSuccess : styles.bannerFail;
     medalStyle = isSuccess ? styles.bannerSuccessMedal : styles.bannerFailMedal;
   } else if (record.vetoEnded) {
     icon = 'close';
-    title = '组队失败';
-    subtitle = `${record.proposals.length} 次否决达上限，本轮无任务`;
+    title = AVALON_VETO_ENDED_LABEL;
+    subtitle = formatAvalonVetoEndedNote(record.proposals.length);
     toneStyle = styles.bannerFail;
     medalStyle = styles.bannerFailMedal;
   } else if (ended) {
     // 否决终局轮已在上一分支处理；走到这里的终局未结算轮只能是被刺杀打断。
     icon = 'close';
-    title = `${questLabel} · 未完成`;
-    subtitle = '提前刺杀打断，无结算结果';
+    title = `${questLabel} · ${AVALON_INTERRUPTED_LABEL}`;
+    subtitle = AVALON_INTERRUPTED_NOTE;
     toneStyle = styles.bannerActive;
     medalStyle = styles.bannerActiveMedal;
   } else if (record.questProgress !== null) {
@@ -132,8 +140,16 @@ function AvalonQuestBanner({
       </View>
       {record.quest !== null ? (
         <View style={styles.questCards}>
-          <QuestCard label="成功牌" count={record.quest.successCount} kind="success" />
-          <QuestCard label="失败牌" count={record.quest.failCount} kind="fail" />
+          <QuestCard
+            label={AVALON_QUEST_CARD_LABELS.success}
+            count={record.quest.successCount}
+            kind="success"
+          />
+          <QuestCard
+            label={AVALON_QUEST_CARD_LABELS.fail}
+            count={record.quest.failCount}
+            kind="fail"
+          />
         </View>
       ) : null}
     </View>
@@ -146,18 +162,13 @@ export function AvalonRecordRound({
   completedLadyCheck,
   inProgressLadyHolderSeat,
   ended,
-  testIDPrefix,
-  lakeCheckedFaction,
 }: {
   readonly record: AvalonRoundRecordView;
   readonly completedLadyCheck: AvalonLadyCheckRecordView | null;
   readonly inProgressLadyHolderSeat: number | null;
   readonly ended: boolean;
-  readonly testIDPrefix?: string;
-  /** 透传给湖仙节：对局记录不传（undefined），本局复盘必传（见湖仙节注释）。 */
-  readonly lakeCheckedFaction?: 'good' | 'evil' | null;
 }) {
-  const prefix = testIDPrefix ?? 'avalon-history';
+  const prefix = 'avalon-history';
   const currentProposal = record.currentProposal;
   return (
     <View style={styles.round} testID={`${prefix}-round-${record.round}`}>
@@ -205,7 +216,6 @@ export function AvalonRecordRound({
         completed={completedLadyCheck}
         inProgressHolderSeat={inProgressLadyHolderSeat}
         ended={ended}
-        checkedFaction={lakeCheckedFaction}
         testIDPrefix={`${prefix}-round-lake-${record.round}`}
       />
     </View>

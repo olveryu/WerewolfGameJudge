@@ -7,6 +7,7 @@
 //#end
  */
 
+import type { __GAME_PASCAL__State } from '@game-judge/game-engine/games/__GAME_ID__/public';
 import { StyleSheet, Text, View } from 'react-native';
 
 //#cap identityViewing
@@ -29,6 +30,7 @@ import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 //#end
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
+import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { __GAME_PASCAL__RoomSession } from '@/games/__GAME_ID__/model/__GAME_PASCAL__RoomSession';
 //#cap identityViewing
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
@@ -47,6 +49,8 @@ import {
 
 type __GAME_PASCAL__RoomScreenProps = GameRoomScreenProps<'__GAME_ID__'> & {
   readonly session: __GAME_PASCAL__RoomSession;
+  /** 模块声明的本局复盘（defineClientGameModule 的 review）；房间只渲染这一份。 */
+  readonly review: RoomReviewContribution<__GAME_PASCAL__State>;
 };
 
 /** 使用平台入场生命周期处理直链、加入与重连。 */
@@ -100,20 +104,23 @@ function __GAME_PASCAL__RoomContent(
       trailingExtraActions={null}
 //#cap identityViewing
       gameOverlays={
-        <RevealRoleCardModal
-          visible={screen.roleViewing.isOpen}
-          roleKey={screen.viewModel?.myIdentity ?? null}
-          toRoleData={toRevealRoleData}
-          effectType={null}
-          shouldPlay={screen.roleViewing.shouldPlayAnimation}
-          allRoles={screen.roleCardAllRoles}
-          remainingCards={screen.roleViewing.remainingCards}
-          onClose={screen.roleViewing.close}
-        />
+        <>
+          <RevealRoleCardModal
+            visible={screen.roleViewing.isOpen}
+            roleKey={screen.viewModel?.myIdentity ?? null}
+            toRoleData={toRevealRoleData}
+            effectType={null}
+            shouldPlay={screen.roleViewing.shouldPlayAnimation}
+            allRoles={screen.roleCardAllRoles}
+            remainingCards={screen.roleViewing.remainingCards}
+            onClose={screen.roleViewing.close}
+          />
+          {screen.reviewOverlay}
+        </>
       }
 //#end
 //#cap !identityViewing
-      gameOverlays={null}
+      gameOverlays={screen.reviewOverlay}
 //#end
     />
   );

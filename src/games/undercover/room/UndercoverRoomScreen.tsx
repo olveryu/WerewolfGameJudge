@@ -2,11 +2,10 @@
 import {
   getUndercoverOccupiedSeatCount,
   UNDERCOVER_CATEGORY_NAMES,
-  UNDERCOVER_ROLE_NAMES,
   type UndercoverRole,
+  type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
 import { useCallback, useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
 
 import { createBoardInfoStyles } from '@/features/room/components/boardInfo.styles';
 import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
@@ -16,13 +15,12 @@ import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/Roo
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { deriveRemainingRevealCards } from '@/features/room/model/RevealRoleData';
-import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
+import type { RoomReviewContribution } from '@/features/room/review/types';
 import { colors } from '@/theme';
 
 import type { UndercoverRoomSession } from '../model/UndercoverRoomSession';
-import { undercoverStyles as styles } from '../undercover.styles';
 import { UndercoverRevealModal } from './components/UndercoverRevealModal';
 import {
   isUndercoverRole,
@@ -30,10 +28,12 @@ import {
 } from './components/UndercoverRoleCardAdapter';
 import { UndercoverWordModal } from './components/UndercoverWordModal';
 import { useUndercoverRoomState } from './hooks/useUndercoverRoomState';
+import { formatUndercoverBlankMode } from './undercoverCopy';
 import { createUndercoverBoardInfoSections } from './undercoverRoomAdapter';
 
 interface UndercoverRoomScreenProps extends GameRoomScreenProps<'undercover'> {
   readonly session: UndercoverRoomSession;
+  readonly review: RoomReviewContribution<UndercoverState>;
 }
 
 export function UndercoverRoomScreen(props: UndercoverRoomScreenProps) {
@@ -57,6 +57,7 @@ function UndercoverRoomContent(
     revealPool,
     roleCounts,
     openRules,
+    reviewOverlay,
   } = useUndercoverRoomState(props);
   const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
   // BoardInfo 角色预览（纯展示状态）：只显示种类说明，不走身份查看协议。
@@ -76,22 +77,10 @@ function UndercoverRoomContent(
             <RoomGameSummary
               icon="search-outline"
               title={`谁是卧底 · ${state.config.numberOfPlayers}人局`}
-              subtitle={`${state.config.hasBlank ? '有白板' : '无白板'} · ${UNDERCOVER_CATEGORY_NAMES[state.config.category]}`}
+              subtitle={`${formatUndercoverBlankMode(state.config.hasBlank)} · ${UNDERCOVER_CATEGORY_NAMES[state.config.category]}`}
               testID="undercover-room"
               headerRight={<RoomGuideButton onPress={openRules} label="查看谁是卧底玩法说明" />}
             />
-            {state.phase === 'ended' && (
-              <View style={styles.section} testID="undercover-results">
-                {/* 胜负文字归结算面（原状态条的「X获胜」照搬至此）。 */}
-                <Text style={styles.text}>{UNDERCOVER_ROLE_NAMES[state.winner]}获胜</Text>
-                <Text style={styles.text}>平民词：{state.round.civilianWord}</Text>
-                <Text style={styles.text}>卧底词：{state.round.undercoverWord}</Text>
-                <Text style={styles.muted}>
-                  出局顺序：
-                  {state.round.revelations.map((entry) => formatRoomSeat(entry.seat)).join(' → ')}
-                </Text>
-              </View>
-            )}
             <BoardInfoCard
               playerCount={state.config.numberOfPlayers}
               sections={createUndercoverBoardInfoSections({
@@ -144,6 +133,7 @@ function UndercoverRoomContent(
               confirmText="知道了"
             />
           ) : null}
+          {reviewOverlay}
         </>
       }
     />

@@ -36,8 +36,8 @@ import {
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
   hostActionTask,
-  hostClosingTask,
   hostMessageTask,
+  hostReviewClosingTask,
   hostStartTask,
   projectViewingProgress,
   seatShortageReason,
@@ -60,6 +60,10 @@ import type {
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import {
+  buildReviewHostAction,
+  type RoomReviewEntry,
+} from '@/features/room/review/roomReviewActions';
 import { colors } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
@@ -199,6 +203,8 @@ export interface UndercoverRoomShellModelInput extends Omit<
   readonly selectedSeat: number | null;
   readonly isSelecting: boolean;
   readonly controls: UndercoverRoundControls;
+  /** The review （本局复盘） entry for this viewer; null while no concluded round exists. */
+  readonly review: RoomReviewEntry | null;
   readonly release: () => void;
 }
 
@@ -206,6 +212,46 @@ export interface UndercoverHostManagementInput {
   readonly state: UndercoverState;
   readonly capabilities: RoomCapabilities;
   readonly controls: UndercoverRoundControls;
+  /** The review （本局复盘） entry; null while no concluded round exists. */
+  readonly review: RoomReviewEntry | null;
+}
+
+/**
+ * A concluded round's closing moves: 本局复盘 beside 再来一局 / 返回大厅.
+ * An ended round always has its review; an aborted one once its cards were
+ * dealt — an abort during preparation closes on 返回大厅 alone.
+ */
+function createClosingHostFlow(
+  input: UndercoverHostManagementInput,
+  returnLobbyAction: RoomHostManagementAction,
+): { readonly actions: readonly RoomHostManagementAction[]; readonly task: RoomHostTask } {
+  const { state, controls, review } = input;
+  const nextRoundAction = buildNextRoundAction({
+    onPress: () =>
+      showConfirmAlert(
+        HOST_FLOW_CONFIRM.nextRoundTitle,
+        '重新分配词语与身份，开始新的一局。',
+        controls.restart,
+      ),
+    isEnabled: !controls.isSubmitting,
+    isLoading: controls.isSubmitting,
+  });
+  if (review === null) {
+    if (state.phase === 'ended') {
+      throw new Error('[FAIL-FAST] Undercover ended host has no review entry');
+    }
+    return {
+      actions: [nextRoundAction, returnLobbyAction],
+      task: hostActionTask(HOST_ACTION_KEYS.returnLobby),
+    };
+  }
+  return {
+    actions: [buildReviewHostAction(review), nextRoundAction, returnLobbyAction],
+    task:
+      state.phase === 'ended'
+        ? hostReviewClosingTask()
+        : { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, HOST_ACTION_KEYS.returnLobby] },
+  };
 }
 
 /** Assembles the Undercover host panel from room facts and round controls. Host gating belongs to the shell factory. */
@@ -394,23 +440,12 @@ export function createUndercoverHostManagement(
       actions.push(abortAction());
       break;
     case 'ended':
-    case 'aborted':
-      actions.push(
-        buildNextRoundAction({
-          onPress: () =>
-            showConfirmAlert(
-              HOST_FLOW_CONFIRM.nextRoundTitle,
-              '重新分配词语与身份，开始新的一局。',
-              controls.restart,
-            ),
-          isEnabled: !controls.isSubmitting,
-          isLoading: controls.isSubmitting,
-        }),
-      );
-      actions.push(returnLobbyAction());
-      task =
-        state.phase === 'ended' ? hostClosingTask() : hostActionTask(HOST_ACTION_KEYS.returnLobby);
+    case 'aborted': {
+      const closing = createClosingHostFlow(input, returnLobbyAction());
+      actions.push(...closing.actions);
+      task = closing.task;
       break;
+    }
   }
   const sections: RoomHostManagementSection[] = [{ key: 'game', title: '游戏', actions }];
   if (roomActions.length > 0)
@@ -437,12 +472,13 @@ export function createUndercoverRoomShellModel(
     seatSource,
     phase: state.phase,
     step: null,
-    bottomActions: createUndercoverBottomActions(input.controls, state, input.viewer),
+    bottomActions: createUndercoverBottomActions(input.controls, state, input.viewer, input.review),
     buildHostManagement: () =>
       createUndercoverHostManagement({
         state,
         capabilities: input.capabilities,
         controls: input.controls,
+        review: input.review,
       }),
     controlledSeat: createControlledSeatModel({
       controlledSeat: input.controlledSeat,

@@ -128,6 +128,8 @@ interface StoryRelayStageProps {
   /** The room's single-flight submit; seat actions pass `{ controlledSeat }`. */
   readonly submit: ReadyRoomSession<StoryRelayState, StoryRelayCommand>['submit'];
   readonly isSubmitting: boolean;
+  /** Opens the shared review at one story's page. */
+  readonly openReview: (pageKey: string) => void;
 }
 
 function StoryRelayStageContent({
@@ -142,6 +144,7 @@ function StoryRelayStageContent({
   session,
   submit,
   isSubmitting,
+  openReview,
 }: StoryRelayStageProps) {
   // 倒计时只做展示：到期推进由服务端定时结算完成，任何手机都不发 expire。
   // 房主自救（D3 follow-up）是唯一的例外：截止后宽限期已过、结算仍未
@@ -198,6 +201,7 @@ function StoryRelayStageContent({
           isHost={isHost}
           submit={submit}
           isSubmitting={isSubmitting}
+          openReview={openReview}
         />
       ) : (
         <>

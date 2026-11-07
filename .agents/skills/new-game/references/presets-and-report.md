@@ -34,10 +34,10 @@ matches neither preset starts from the nearer preset and changes
 capability declarations one at a time with wiring (see
 `references/skeleton-and-wiring.md`).
 
-## Integration report: 8 steps
+## Integration report: 9 steps
 
 The generator writes `new-game-<gameId>-report.md` at the repo root
-(`report.mjs`, `buildIntegrationReport`). It always has 8 numbered
+(`report.mjs`, `buildIntegrationReport`). It always has 9 numbered
 manual steps. Do not delete the report until every step is disposed
 of; record the disposition in the PR description.
 
@@ -51,25 +51,36 @@ of; record the disposition in the PR description.
    `domain/decision.ts` / `engine.ts`, privacy projection in
    `domain/visibility.ts`. Unfilled example commands reject as not
    implemented (`engine.test.ts.tmpl`; `commands/types.ts.tmpl`).
-3. Confirm reward numbers: the three flat amounts are placeholders;
+3. Fill the review: the review (本局复盘) is wired end to end — module
+   `review`, the ended bottom entry for every viewer, the host sheet
+   action and the ended choice task (review / next round / return to
+   lobby); the dialog and image sharing are the platform's. The
+   skeleton document holds only the ended hero and the participant
+   roster: put the round's facts (outcome, identities, scores,
+   course) into `src/games/<gameId>/review/to<Game>ReviewDocument.ts`,
+   set availability and sharing in `review/<gameId>Review.ts`, and
+   update `review/__tests__/<gameId>Review.test.ts` with them. The
+   block vocabulary is closed (`src/features/room/review/types.ts`):
+   extend the platform vocabulary first; a game writes no review JSX.
+4. Confirm reward numbers: the three flat amounts are placeholders;
    change them in `product/rewards/earnings.ts` (the registry entry
    references the same constants).
-4. Review the migration: the generated file is mechanically derived
+5. Review the migration: the generated file is mechanically derived
    from the latest registration migration. Verify the rebuild set
    against the current schema by hand; add game-owned tables to the
    same file at its TODO.
-5. E2E activation: the spec skeleton is
+6. E2E activation: the spec skeleton is
    `e2e/specs/<gameId>.spec.ts.tmpl` and is not in CI by default.
    Activating it means renaming it to `<gameId>.spec.ts` and adding
    the filename to the e2e shard matrix in `.github/workflows/ci.yml`;
    until then, it stays a `.tmpl`.
-6. Word supply, if needed: three registrations (see
+7. Word supply, if needed: three registrations (see
    `references/skeleton-and-wiring.md`). The skeleton carries no
    workflow body.
-7. Re-run the gates: `tsc --noEmit`, engine and worker vitest, root
+8. Re-run the gates: `tsc --noEmit`, engine and worker vitest, root
    jest, `pnpm run knip`, and prettier/eslint on the changed files —
    all green before opening a PR.
-8. Go live: if generated with `--production`, add the id to
+9. Go live: if generated with `--production`, add the id to
    `PRODUCTION_GAME_TYPES` in
    `src/games/__tests__/homeProductionFilter.contract.test.ts` in
    `GAME_TYPES` order. Otherwise, in the same PR, flip

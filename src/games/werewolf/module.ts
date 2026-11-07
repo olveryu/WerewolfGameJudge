@@ -20,6 +20,8 @@ import { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
 import { EncyclopediaScreen } from '@/games/werewolf/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { NotepadScreen } from '@/games/werewolf/screens/NotepadScreen/NotepadScreen';
 
+import { werewolfReview } from './review/werewolfReview';
+
 export const createWerewolfUiModule = defineClientGameModule<
   'werewolf',
   GameState,
@@ -35,6 +37,7 @@ export const createWerewolfUiModule = defineClientGameModule<
   // not the schema-driven config screen.
   config: () => createWerewolfConfigFlowScreen(),
   GuideScreen: EncyclopediaScreen,
+  review: werewolfReview,
   isUserSeated: (state, userId) => getWerewolfUserSeat(state, userId) !== null,
   canSwitchAccount: (state) =>
     state.status === GameStatus.Unseated || state.status === GameStatus.Seated,

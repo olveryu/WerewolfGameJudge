@@ -1,7 +1,8 @@
 /**
  * createDrawGuessHostManagement characterization (AU-31): phase × host
  * snapshots from real engine states, including the always-present
- * in-game panel added by ruling 8.
+ * in-game panel added by ruling 8 and the ended panel that closes on
+ * 本局复盘 / 再来一局 / 返回大厅.
  */
 import {
   DEFAULT_DRAWGUESS_CONFIG,
@@ -15,6 +16,7 @@ import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
@@ -113,12 +115,18 @@ function capabilities(
 
 const submit = jest.fn(async () => true);
 
-function build(state: DrawGuessState, isSetup: boolean, isSubmitting = false) {
+function build(
+  state: DrawGuessState,
+  isSetup: boolean,
+  isSubmitting = false,
+  review: RoomReviewEntry | null = null,
+) {
   return createDrawGuessHostManagement({
     state,
     capabilities: capabilities(isSetup),
     isSubmitting,
     submit,
+    review,
   });
 }
 
@@ -218,18 +226,40 @@ describe('createDrawGuessHostManagement', () => {
     expect(action).not.toHaveProperty('onPress');
   });
 
-  it('pins the terminal panel on the shared next-round / return-lobby builders', () => {
+  it('pins the terminal panel on the shared review / next-round / return-lobby builders', () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
     game.playToEnd();
     expect(game.state.phase.kind).toBe('ended');
-    const model = build(game.state, false);
+    const openReview = jest.fn();
+    const model = build(game.state, false, false, { isEnabled: true, onPress: openReview });
+    expect(model.task).toEqual({
+      kind: 'choice',
+      actionKeys: ['review', 'next-round', 'return-lobby'],
+    });
     const actions = model?.sections[0]?.actions ?? [];
-    expect(actions.map((action) => action.key)).toEqual(['next-round', 'return-lobby']);
+    expect(actions.map((action) => action.key)).toEqual(['review', 'next-round', 'return-lobby']);
     expect(actions.map((action) => action.testID)).toEqual([
+      'room-review-host-action',
       'next-round-button',
       'return-lobby-button',
     ]);
+    const [review] = actions;
+    expect(review).toMatchObject({ label: '本局复盘', isEnabled: true });
+    if (review === undefined || !review.isEnabled) throw new Error('expected an enabled review');
+    review.onPress();
+    expect(openReview).toHaveBeenCalledTimes(1);
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('fails fast when the ended panel has no review entry', () => {
+    const game = session();
+    game.seatHost();
+    game.fillAndStart();
+    game.playToEnd();
+    expect(() => build(game.state, false)).toThrow(
+      '[FAIL-FAST] DrawGuess ended without a review entry',
+    );
   });
 });

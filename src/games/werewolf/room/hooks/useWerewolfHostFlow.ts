@@ -55,8 +55,8 @@ interface UseWerewolfHostFlowInput {
   readonly state: GameState;
   readonly submit: WerewolfSubmit;
   readonly audio: WerewolfAudioRuntime;
-  /** Shares the night report image; the Ended flows offer it before leaving. */
-  readonly shareNightReviewReport: () => Promise<unknown>;
+  /** Exports the shared review image; the Ended flows offer it before leaving. */
+  readonly shareReview: () => Promise<void>;
 }
 
 const ASSIGN_CONFIRM_TEXT = '所有座位已满，将洗牌并分配角色';
@@ -66,7 +66,7 @@ const ABORT_CONFIRM_TEXT = '本局不计胜负，保留座位和板子，清除�
 const ENDED_FLOW_TEXT = '本局复盘将无法查看，是否先分享战报？';
 
 export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHostFlow {
-  const { state, submit, audio, shareNightReviewReport } = input;
+  const { state, submit, audio, shareReview } = input;
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [isMvpOpen, setIsMvpOpen] = useState(false);
 
@@ -101,7 +101,7 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
         ENDED_FLOW_TEXT,
         [
           CANCEL_BUTTON,
-          { text: '分享战报', onPress: () => void shareNightReviewReport() },
+          { text: '分享战报', onPress: () => void shareReview() },
           {
             text: isRedeal ? '再来一局' : '返回大厅',
             onPress: () =>
@@ -112,7 +112,7 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
         ],
       );
     },
-    [resetAudioThenSubmit, shareNightReviewReport],
+    [resetAudioThenSubmit, shareReview],
   );
 
   const onHostControl = useCallback(

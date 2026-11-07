@@ -2,7 +2,7 @@
  * Generator tests: run the real generator against a fixture repository
  * assembled from the real shared files it edits, for all three presets.
  * Real-tree copies validate formatting, lint, client/engine/Worker types,
- * generated engine behavior and registration contracts. Demo regeneration
+ * generated engine and client tests and registration contracts. Demo regeneration
  * must also match the shipped reference game. Run with
  * `node --test scripts/new-game.test.mjs` (also wrapped by
  * src/__tests__/newGameGenerator.contract.test.ts in the jest suite).
@@ -49,6 +49,7 @@ const SHARED_FILES = [
   'src/test-utils/clientGameCatalog.tsx',
   'src/__tests__/botDispatchDiscipline.contract.test.ts',
   'src/__tests__/roomGuidanceMatrix.contract.test.ts',
+  'src/__tests__/roomReview.contract.test.ts',
 ];
 
 function makeFixtureRepo() {
@@ -163,8 +164,12 @@ function expectedCreatedFiles(gameId, preset) {
     `${client}/room/hooks/use${pascal}RoomState.ts`,
     `${client}/room/__tests__/${gameId}ShellModel.test.ts`,
     `${client}/room/__tests__/${gameId}RoomCommandFailureMessage.test.ts`,
+    `${client}/review/to${pascal}ReviewDocument.ts`,
+    `${client}/review/${gameId}Review.ts`,
+    `${client}/review/__tests__/${gameId}Review.test.ts`,
     `${client}/__tests__/build${pascal}TestState.ts`,
     `${client}/__tests__/build${pascal}TestState.test.ts`,
+    `src/test-utils/${gameId}State.ts`,
     `docs/${gameId}-game-design.md`,
     `e2e/specs/${gameId}.spec.ts.tmpl`,
   ];
@@ -354,14 +359,39 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
       ),
     );
     assert.ok(guidanceRegistry.includes('  demoproto: DEMOPROTO_GUIDANCE_MATRIX,'));
+    const reviewRegistry = readFixture(root, 'src/__tests__/roomReview.contract.test.ts');
+    assert.ok(
+      reviewRegistry.includes(
+        `import { demoprotoReview } from '@/games/demoproto/review/demoprotoReview';`,
+      ),
+    );
+    assert.ok(
+      reviewRegistry.includes(
+        `import { DEMOPROTO_REVIEW_ROUNDS } from '@/test-utils/demoprotoState';`,
+      ),
+    );
+    assert.ok(
+      reviewRegistry.includes('  demoproto: reviewCase(demoprotoReview, DEMOPROTO_REVIEW_ROUNDS),'),
+    );
 
     // Integration report: parameters, migration and the manual steps
     // that must not be automated away (migration review, e2e approval).
     const report = readFixture(root, summary.reportPath);
     assert.ok(report.includes('还差的人工步骤'));
+    assert.deepEqual(
+      [...report.matchAll(/^(\d+)\. \*\*/gm)].map((match) => Number(match[1])),
+      [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      'the report numbers its nine manual steps in order',
+    );
     assert.ok(report.includes(summary.migrationName));
     assert.ok(report.includes('审 migration'));
     assert.ok(report.includes('e2e 启用需用户批准'));
+    // The review step names the skeleton document and contribution a
+    // game fills, and the closed block vocabulary it fills them with.
+    assert.ok(report.includes('本局复盘填空'));
+    assert.ok(report.includes('src/games/demoproto/review/toDemoprotoReviewDocument.ts'));
+    assert.ok(report.includes('src/games/demoproto/review/demoprotoReview.ts'));
+    assert.ok(report.includes('src/features/room/review/types.ts'));
     // The word-library step names all three workflow registration
     // sites: the registry entry, the worker entrypoint export and
     // the wrangler binding (the last one has no contract weld).
@@ -403,6 +433,26 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
     if (capabilities.botTestScaffold) {
       assert.ok(engineGameDir.includes('demoproto.bots.markAllBotsViewed'));
     }
+    // Every pack ships the review end to end: the module declares the
+    // contribution, the room state resolves it through the platform
+    // hook, the screen mounts its overlay, and the adapter places the
+    // shared entry on the bottom tier and the host sheet, closing the
+    // ended task with the review beside next round / return to lobby.
+    const clientModule = readFixture(root, 'src/games/demoproto/module.ts');
+    assert.ok(clientModule.includes('review: demoprotoReview,'), 'module declares the review');
+    const reviewHook = readFixture(root, 'src/games/demoproto/room/hooks/useDemoprotoRoomState.ts');
+    assert.ok(reviewHook.includes('useRoomReview({'), 'room state resolves the review');
+    assert.ok(
+      readFixture(root, 'src/games/demoproto/room/DemoprotoRoomScreen.tsx').includes(
+        'screen.reviewOverlay',
+      ),
+      'room screen mounts the review overlay',
+    );
+    const adapterSource = readFixture(root, 'src/games/demoproto/room/demoprotoRoomAdapter.ts');
+    assert.ok(adapterSource.includes(`buildReviewBottomButton(input.review, 'secondary')`));
+    assert.ok(adapterSource.includes('buildReviewHostAction(input.review)'));
+    assert.ok(adapterSource.includes('hostReviewClosingTask()'));
+    assert.ok(!adapterSource.includes('hostClosingTask('), 'ended task offers the review');
     if (capabilities.identityViewing) {
       // The generated room screen consumes the shared RevealRoleCardModal
       // assembly (whose only render path goes through RevealAnimationGate).
@@ -745,7 +795,7 @@ test('production: true registers the new game as production and reports the list
   assert.ok(report.includes('homeProductionFilter'), 'list-only step names the tripwire list');
 });
 
-test('generated output passes format, lint, typecheck and engine tests with tooling present', (t) => {
+test('generated output passes format, lint, typecheck, engine and client tests with tooling present', (t) => {
   // The fixture-repo cases above structurally cannot catch shaping
   // defects: without node_modules both shaping passes skip silently.
   // This case generates in a copy of the real tree (dependencies
@@ -803,6 +853,21 @@ test('generated output passes format, lint, typecheck and engine tests with tool
           encoding: 'utf8',
         });
       }
+      // The generated client tests (shell model, review, test-state
+      // factory) render a different begin path per pack, so each pack
+      // proves its own rendering by running them, and its rounds through
+      // the cross-game review contract the generator registered them in.
+      execFileSync(
+        process.execPath,
+        [
+          require.resolve('jest/bin/jest'),
+          '--runInBand',
+          '--no-coverage',
+          'src/games/aaprobe',
+          'src/__tests__/roomReview.contract.test.ts',
+        ],
+        { cwd: root, stdio: 'pipe', encoding: 'utf8' },
+      );
       const vitestPackageJson = createRequire(
         path.join(root, 'packages/game-engine/package.json'),
       ).resolve('vitest/package.json');
@@ -870,6 +935,7 @@ function stripShippedDemo(root) {
     'docs/demo-game-design.md',
     'e2e/specs/demo.spec.ts.tmpl',
     'packages/api-worker/migrations/0065_demo.sql',
+    'src/test-utils/demoState.ts',
   ]) {
     fs.rmSync(path.join(root, file), { force: true });
   }
@@ -971,6 +1037,21 @@ function stripShippedDemo(root) {
     root,
     'src/__tests__/roomGuidanceMatrix.contract.test.ts',
     '  demo: DEMO_GUIDANCE_MATRIX,\n',
+  );
+  removeExactText(
+    root,
+    'src/__tests__/roomReview.contract.test.ts',
+    "import { demoReview } from '@/games/demo/review/demoReview';\n",
+  );
+  removeExactText(
+    root,
+    'src/__tests__/roomReview.contract.test.ts',
+    "import { DEMO_REVIEW_ROUNDS } from '@/test-utils/demoState';\n",
+  );
+  removeExactText(
+    root,
+    'src/__tests__/roomReview.contract.test.ts',
+    '  demo: reviewCase(demoReview, DEMO_REVIEW_ROUNDS),\n',
   );
 }
 

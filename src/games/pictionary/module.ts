@@ -18,6 +18,8 @@ import { getPictionaryRoomCommandFailureMessage } from '@/games/pictionary/room/
 import { PictionaryRoomScreen } from '@/games/pictionary/room/PictionaryRoomScreen';
 import { PictionaryRulesScreen } from '@/games/pictionary/screens/RulesScreen/PictionaryRulesScreen';
 
+import { pictionaryReview } from './review/pictionaryReview';
+
 export const createPictionaryUiModule = defineClientGameModule<
   'pictionary',
   PictionaryState,
@@ -38,6 +40,7 @@ export const createPictionaryUiModule = defineClientGameModule<
       creationLabel: '创建你画我猜接龙房间',
     }),
   GuideScreen: PictionaryRulesScreen,
+  review: pictionaryReview,
   isUserSeated: (state, userId) => getPictionaryUserSeat(state, userId) !== null,
   canSwitchAccount: (state) => state.phase === 'lobby',
 });

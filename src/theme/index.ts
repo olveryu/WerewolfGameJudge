@@ -21,12 +21,7 @@
  */
 
 // Colors
-export {
-  colors,
-  NIGHT_REPORT_COLORS,
-  PICTIONARY_CANVAS_BACKGROUND,
-  type ThemeColors,
-} from './colors';
+export { colors, PICTIONARY_CANVAS_BACKGROUND, REPORT_COLORS, type ThemeColors } from './colors';
 
 // Tokens (importable directly)
 export {

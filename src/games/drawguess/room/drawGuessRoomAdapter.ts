@@ -30,17 +30,25 @@ import {
   buildStartGameAction,
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
-  hostClosingTask,
+  hostReviewClosingTask,
   hostStartTask,
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
-import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
+import {
+  buildLobbyHostStartMessage,
+  type RoomBottomActionLayout,
+} from '@/features/room/model/RoomBottomActions';
 import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import {
+  buildReviewBottomButton,
+  buildReviewHostAction,
+  type RoomReviewEntry,
+} from '@/features/room/review/roomReviewActions';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
@@ -105,6 +113,8 @@ export interface DrawGuessRoomShellModelInput extends Omit<
   readonly onProfileLeaveSeat: () => void;
   readonly isLobby: boolean;
   readonly releaseBot: () => void;
+  /** The shared review entry for this viewer; present exactly once the game has ended. */
+  readonly review: RoomReviewEntry | null;
 }
 
 export interface DrawGuessHostManagementInput {
@@ -115,6 +125,14 @@ export interface DrawGuessHostManagementInput {
   >;
   readonly isSubmitting: boolean;
   readonly submit: (label: string, command: DrawGuessCommand) => Promise<boolean>;
+  /** The shared review entry; present exactly once the game has ended. */
+  readonly review: RoomReviewEntry | null;
+}
+
+/** The review entry of an ended game; its absence there is a wiring error. */
+function requireEndedReview(review: RoomReviewEntry | null): RoomReviewEntry {
+  if (review === null) throw new Error('[FAIL-FAST] DrawGuess ended without a review entry');
+  return review;
 }
 
 /** Assembles the DrawGuess host panel for the current phase. Host gating belongs to the shell factory. */
@@ -161,12 +179,13 @@ export function createDrawGuessHostManagement(
   }
   if (state.phase.kind === 'ended') {
     return {
-      task: hostClosingTask(),
+      task: hostReviewClosingTask(),
       sections: [
         {
           key: 'current-flow',
           title: '当前流程',
           actions: [
+            buildReviewHostAction(requireEndedReview(input.review)),
             buildNextRoundAction({
               onPress: () =>
                 showConfirmAlert(
@@ -221,6 +240,20 @@ export function createDrawGuessHostManagement(
   };
 }
 
+/** Ended: every viewer, spectators included, opens the review from the bottom panel. */
+function createDrawGuessBottomLayout(
+  state: DrawGuessState,
+  review: RoomReviewEntry | null,
+): RoomBottomActionLayout {
+  return state.phase.kind === 'ended'
+    ? {
+        primary: [],
+        secondary: [buildReviewBottomButton(requireEndedReview(review), 'secondary')],
+        ghost: [],
+      }
+    : { primary: [], secondary: [], ghost: [] };
+}
+
 /** Assembles the DrawGuess RoomShellModel from the hook's projections. */
 export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInput): RoomShellModel {
   const { state } = input;
@@ -252,7 +285,7 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
           ? '等待本轮结算'
           : buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      layout: createDrawGuessBottomLayout(state, input.review),
     },
     controlledSeat: createControlledSeatModel({
       controlledSeat: input.controlledSeat,
