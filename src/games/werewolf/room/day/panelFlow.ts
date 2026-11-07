@@ -9,8 +9,8 @@
  * actually shared it with at least one seat) → 收尾 (closing).
  * Reading the review is not a step of this flow: the host reads it from
  * the sheet or from the closing task, after granting. Progress is pure
- * client-local state (see panelFlowProgressStore); it never enters room
- * state.
+ * client-local state (a `useScopedDraft` draft in `useWerewolfRoomState`);
+ * it never enters room state.
  *
  * The flow is rendered on the host task card (room-shell-contract "Host
  * Task"): steps come from here, the current step's sheet action is the

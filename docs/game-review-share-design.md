@@ -22,7 +22,7 @@
 ### 1.2 已经共享、本设计直接复用的部分
 
 - 房间壳：`RoomShell` 承载 header / 座位盘 / 底部操作栏 / 主持管理 / 邀请弹窗。
-- 动作归属：`RoomBottomActions`（`audience: 'participant' | 'anyone'`）与 `RoomHostManagement`（sections + task，按 key 引用）；`createRoomShellModel` 装配期校验。狼人杀的 `night-review` 任务已走这条路径。
+- 动作归属：`RoomBottomActions`（`audience: 'participant' | 'anyone'`）与 `RoomHostManagement`（sections + task，按 key 引用）；`createRoomShellModel` 装配期校验。狼人杀的 `review` 任务已走这条路径。
 - 截图：`captureViewPngBase64`（Web html2canvas / native `captureRef`）与 `captureViewSegmentedPngBase64`（Web 1024px 分带拼接）。
 - 分发：`shareImage.ts` 的 `shareImagesBase64` 覆盖三端——小程序 `uploadShareImage`（`POST /share/image`，R2 一天过期）+ `wxPreviewImage`；浏览器 `navigator.share({ files })` 回落下载；native `expo-sharing`。
 

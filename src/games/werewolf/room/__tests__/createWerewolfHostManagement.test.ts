@@ -596,6 +596,44 @@ describe('createWerewolfHostManagement', () => {
         { key: 'closing', state: 'current' },
       ],
     });
+    // The task only references sheet actions: a misspelled key must fail
+    // here, not at render time when the card resolves the view.
+    const view = resolveHostTaskView(model);
+    if (view?.body.kind !== 'choice') throw new Error('Expected a choice closing task');
+    expect(view.body.actions.map((action) => action.key)).toEqual([
+      'grant-review',
+      'review',
+      'next-round',
+      'return-lobby',
+    ]);
+    for (const action of view.body.actions) {
+      expect(action.isEnabled).toBe(true);
+      expect(action).toHaveProperty('onPress');
+    }
+  });
+
+  it('locks all four closing moves during audio playback', () => {
+    const model = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Ended,
+        panelFlow: { lastNightInfoConfirmed: true },
+        isReviewShared: true,
+        isAudioPlaying: true,
+        capabilities: deniedRoomCapabilities,
+      }),
+    );
+    const view = resolveHostTaskView(model);
+    if (view?.body.kind !== 'choice') throw new Error('Expected a choice closing task');
+    for (const action of view.body.actions) {
+      expect(action).toMatchObject({
+        isEnabled: false,
+        disabledReason: '语音播报中，请稍候',
+      });
+      expect(action).not.toHaveProperty('onPress');
+    }
+    for (const step of view.steps ?? []) {
+      expect(step.onPress).toBeUndefined();
+    }
   });
 
   it('fails fast when a Day or Ended host has no review entry', () => {

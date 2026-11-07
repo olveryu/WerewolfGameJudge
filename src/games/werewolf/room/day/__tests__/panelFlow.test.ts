@@ -55,9 +55,12 @@ describe('resolvePanelFlowCurrentStep', () => {
       );
     });
 
-    it('a grant made during Day already completes the step at Ended', () => {
+    it('returns to the grant step when the grant is revoked', () => {
       expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, INFO_CONFIRMED, true))).toBe(
         'closing',
+      );
+      expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, INFO_CONFIRMED, false))).toBe(
+        'grantReview',
       );
     });
   });
