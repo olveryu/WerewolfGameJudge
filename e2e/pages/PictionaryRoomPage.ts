@@ -457,8 +457,27 @@ export class PictionaryRoomPage extends RoomPage {
     });
     process.stdout.write(`[DEBUG fitsViewport kind=${kind}] ${JSON.stringify(probe)}\n`);
     await expect(button).toBeInViewport({ ratio: 1 });
-    if (kind !== 'drawing')
+    if (kind !== 'drawing') {
+      // TEMP DEBUG: re-measure right before the input assertion, because the
+      // probe above and the assertion disagree -- the layout shifts between
+      // the two, and this captures the layout the assertion actually sees.
+      const probe2 = await this.page.evaluate(() => {
+        const el = document.querySelector('[data-testid="pictionary-text-input"]');
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        const btn = document.querySelector('[data-testid="pictionary-text-submit-button"]');
+        const br = btn ? btn.getBoundingClientRect() : null;
+        return {
+          innerH: window.innerHeight,
+          input: { y: Math.round(r.y), h: Math.round(r.height) },
+          button: br ? { y: Math.round(br.y), h: Math.round(br.height) } : null,
+        };
+      });
+      process.stdout.write(
+        `[DEBUG fitsViewport input-assert kind=${kind}] ${JSON.stringify(probe2)}\n`,
+      );
       await expect(this.page.getByTestId(TESTIDS.pictionaryTextInput)).toBeInViewport({ ratio: 1 });
+    }
     if (kind !== 'prompt') {
       await expect(media).toBeInViewport({ ratio: 1 });
       const bounds = await media.boundingBox();
