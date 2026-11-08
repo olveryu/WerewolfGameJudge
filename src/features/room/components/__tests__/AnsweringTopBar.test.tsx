@@ -14,12 +14,12 @@ import { AnsweringTopBar } from '../AnsweringTopBar';
 
 // Room 5208 snapshot: 6 seats, JY and 文森特 submitted, 82 of 90 seconds left.
 const seats: AnsweringTopBarSeat[] = [
-  { displayName: 'JY', initial: 'JY', color: '#7C6FF0', submitted: true },
-  { displayName: '文森特', initial: '文', color: '#F59E0B', submitted: true },
-  { displayName: '匿名玩家', initial: '匿', color: '#94A3B8', submitted: false },
-  { displayName: '不是倒钩狼', initial: '不', color: '#0EA5A4', submitted: false },
-  { displayName: '王小躁', initial: '王', color: '#EC4899', submitted: false },
-  { displayName: '严振宇', initial: '严', color: '#6366F1', submitted: false },
+  { seat: 0, displayName: 'JY', initial: 'JY', color: '#7C6FF0', submitted: true },
+  { seat: 1, displayName: '文森特', initial: '文', color: '#F59E0B', submitted: true },
+  { seat: 2, displayName: '匿名玩家', initial: '匿', color: '#94A3B8', submitted: false },
+  { seat: 3, displayName: '不是倒钩狼', initial: '不', color: '#0EA5A4', submitted: false },
+  { seat: 4, displayName: '王小躁', initial: '王', color: '#EC4899', submitted: false },
+  { seat: 5, displayName: '严振宇', initial: '严', color: '#6366F1', submitted: false },
 ];
 
 const bar = (
@@ -39,9 +39,9 @@ const expectArcStroke = (view: ReturnType<typeof render>, color: string) => {
   expect(stroke.payload).toBe(processColor(color));
 };
 
-const dotBackground = (view: ReturnType<typeof render>, index: number) => {
+const dotBackground = (view: ReturnType<typeof render>, seat: number) => {
   const style = StyleSheet.flatten(
-    view.getByTestId(`answering-top-bar-dot-${index}`).props.style as ViewStyle,
+    view.getByTestId(`answering-top-bar-dot-${seat}`).props.style as ViewStyle,
   );
   return style.backgroundColor;
 };
@@ -91,6 +91,7 @@ describe('AnsweringTopBar', () => {
 
   it('shows 8 avatars plus a +N circle when there are more than 8 seats', () => {
     const many: AnsweringTopBarSeat[] = Array.from({ length: 10 }, (_, index) => ({
+      seat: index,
       displayName: `p${index}`,
       initial: `${index}`,
       color: '#7C6FF0',
@@ -109,5 +110,23 @@ describe('AnsweringTopBar', () => {
     const view = render(bar(45, 90, []));
     expect(view.getByText('0人作答中')).toBeTruthy();
     expect(view.getByText(/0已提交/)).toBeTruthy();
+  });
+
+  it('renders two unnamed players without a duplicate-key warning', () => {
+    const consoleError = jest.spyOn(console, 'error');
+    consoleError.mockClear();
+    const unnamed: AnsweringTopBarSeat[] = [
+      { seat: 0, displayName: '匿名玩家', initial: '匿', color: '#7C6FF0', submitted: true },
+      { seat: 1, displayName: '匿名玩家', initial: '匿', color: '#F59E0B', submitted: false },
+    ];
+    const view = render(bar(45, 90, unnamed));
+    expect(view.getByTestId('answering-top-bar-avatar-0')).toBeTruthy();
+    expect(view.getByTestId('answering-top-bar-avatar-1')).toBeTruthy();
+    expect(dotBackground(view, 0)).toBe('#22C55E');
+    expect(dotBackground(view, 1)).toBe('#6366F1');
+    const duplicateKeyWarnings = consoleError.mock.calls.filter(
+      ([message]) => typeof message === 'string' && message.includes('same key'),
+    );
+    expect(duplicateKeyWarnings).toHaveLength(0);
   });
 });

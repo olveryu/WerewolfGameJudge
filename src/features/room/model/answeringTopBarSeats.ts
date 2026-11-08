@@ -23,6 +23,8 @@ export const ANSWERING_TOP_BAR_SEAT_COLORS = [
 export const ANSWERING_TOP_BAR_OVERFLOW_COLOR = ANSWERING_TOP_BAR_SEAT_COLORS[2];
 
 export interface AnsweringTopBarSeat {
+  /** Zero-based seat number; the React key — display names are not unique. */
+  readonly seat: number;
   readonly displayName: string;
   /** Avatar initial: first two letters for ASCII names, first character otherwise. */
   readonly initial: string;
@@ -50,6 +52,7 @@ export function getAnsweringTopBarSeats(source: RoomSeatDataSource): AnsweringTo
       ANSWERING_TOP_BAR_SEAT_COLORS[seat % ANSWERING_TOP_BAR_SEAT_COLORS.length] ??
       ANSWERING_TOP_BAR_SEAT_COLORS[0];
     seats.push({
+      seat,
       displayName: player.displayName,
       initial: seatInitial(player.displayName),
       color,

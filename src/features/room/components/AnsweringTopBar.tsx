@@ -113,10 +113,10 @@ export const AnsweringTopBar: React.FC<AnsweringTopBarProps> = ({
         </View>
       </View>
       <View style={styles.avatarStack}>
-        {visibleSeats.map((seat, index) => (
+        {visibleSeats.map((seat) => (
           <View
-            key={seat.displayName}
-            testID={`answering-top-bar-avatar-${index}`}
+            key={seat.seat}
+            testID={`answering-top-bar-avatar-${seat.seat}`}
             style={[styles.avatar, { backgroundColor: seat.color }]}
             accessibilityLabel={`${seat.displayName}：${seat.submitted ? '已提交' : '作答中'}`}
           >
@@ -125,7 +125,7 @@ export const AnsweringTopBar: React.FC<AnsweringTopBarProps> = ({
             )}
             <Text style={styles.avatarInitial}>{seat.initial}</Text>
             <View
-              testID={`answering-top-bar-dot-${index}`}
+              testID={`answering-top-bar-dot-${seat.seat}`}
               style={[
                 styles.statusDot,
                 { backgroundColor: seat.submitted ? READY_GREEN : RING_ARC_COLOR },

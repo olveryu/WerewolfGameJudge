@@ -51,6 +51,7 @@ describe('getAnsweringTopBarSeats', () => {
       ]),
     );
     expect(seats.map((seat) => seat.displayName)).toEqual(['JY', '文森特']);
+    expect(seats.map((seat) => seat.seat)).toEqual([0, 2]);
   });
 
   it('marks a seat submitted only when its badge tone is success', () => {
