@@ -155,7 +155,6 @@ const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ mo
           <SheriffElectionVoteProgressRow
             title={view.canVote ? '选择候选人' : '投票进度'}
             row={voteProgressRow}
-            remainingSeconds={model.remainingSeconds}
             styles={styles}
           />
           {view.canVote && (

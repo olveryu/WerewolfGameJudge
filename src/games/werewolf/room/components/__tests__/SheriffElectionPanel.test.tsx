@@ -119,7 +119,7 @@ describe('SheriffElectionPanel', () => {
     expect(model.vote).toHaveBeenNthCalledWith(2, null);
   });
 
-  it('shows the settle countdown in the vote-progress area once every vote is in', () => {
+  it('never shows the settle countdown in the vote-progress area, even once every vote is in', () => {
     const model = createModel(
       {
         phase: 'firstVote',
@@ -139,38 +139,14 @@ describe('SheriffElectionPanel', () => {
     );
     const screen = render(<SheriffElectionPanel model={model} styles={styles} />);
 
-    expect(screen.getByTestId(TESTIDS.sheriffVoteProgress)).toHaveTextContent(
-      '2/2 已提交，5秒后自动公布结果',
-    );
+    // The countdown lives only in the HUD: the panel keeps the plain
+    // progress text even while the model carries live seconds.
+    expect(screen.getByTestId(TESTIDS.sheriffVoteProgress)).toHaveTextContent(/^2\/2 已提交$/);
+    expect(screen.queryByText(/秒后自动公布结果|即将自动公布结果/)).toBeNull();
     expect(screen.queryByTestId(TESTIDS.sheriffVoteProgressPendingSeats)).toBeNull();
   });
 
-  it('falls back to the static sentence in the panel when the deadline has not armed yet', () => {
-    const model = createModel(
-      {
-        phase: 'firstVote',
-        phaseTitle: '首轮投票',
-        candidateRecords: {
-          registeredSeats: [0, 1],
-          withdrawnSeats: [],
-          activeCandidateSeats: [0, 1],
-        },
-        voteProgress: { submittedCount: 2, eligibleCount: 2, pendingSeats: [] },
-        myBallot: { kind: 'candidate', seat: 1 },
-        canVote: false,
-        candidateOptions: [],
-      },
-      null,
-      null,
-    );
-    const screen = render(<SheriffElectionPanel model={model} styles={styles} />);
-
-    expect(screen.getByTestId(TESTIDS.sheriffVoteProgress)).toHaveTextContent(
-      '2/2 已提交，即将自动公布结果',
-    );
-  });
-
-  it('falls back to the static sentence in the panel once the deadline is reached', () => {
+  it('keeps the plain progress text in the panel once the deadline is reached', () => {
     const model = createModel(
       {
         phase: 'firstVote',
@@ -190,34 +166,8 @@ describe('SheriffElectionPanel', () => {
     );
     const screen = render(<SheriffElectionPanel model={model} styles={styles} />);
 
-    expect(screen.getByTestId(TESTIDS.sheriffVoteProgress)).toHaveTextContent(
-      '2/2 已提交，即将自动公布结果',
-    );
-    expect(screen.queryByText(/0秒后自动公布结果/)).toBeNull();
-  });
-
-  it('shows no seconds in the panel while voting is incomplete', () => {
-    const model = createModel(
-      {
-        phase: 'firstVote',
-        phaseTitle: '首轮投票',
-        candidateRecords: {
-          registeredSeats: [0, 1],
-          withdrawnSeats: [],
-          activeCandidateSeats: [0, 1],
-        },
-        voteProgress: { submittedCount: 1, eligibleCount: 2, pendingSeats: [1] },
-        myBallot: { kind: 'candidate', seat: 1 },
-        canVote: true,
-        candidateOptions: [{ seat: 0, isSelected: false }],
-      },
-      null,
-      5,
-    );
-    const screen = render(<SheriffElectionPanel model={model} styles={styles} />);
-
-    expect(screen.getByTestId(TESTIDS.sheriffVoteProgress)).toHaveTextContent(/^1\/2 已提交$/);
-    expect(screen.queryByText(/秒后自动公布结果/)).toBeNull();
+    expect(screen.getByTestId(TESTIDS.sheriffVoteProgress)).toHaveTextContent(/^2\/2 已提交$/);
+    expect(screen.queryByText(/秒后自动公布结果|即将自动公布结果/)).toBeNull();
   });
 
   it('shows the host registration instruction to the host (D12)', () => {
