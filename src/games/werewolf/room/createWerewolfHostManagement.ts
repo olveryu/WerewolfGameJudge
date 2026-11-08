@@ -248,8 +248,8 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
       // wolf may self-destruct at any moment — the host must end the
       // election on the spot. Every move that applies right now is one
       // equal choice on the card; during a vote only the info remains,
-      // with the vote progress as the note. Once the info is confirmed
-      // the election's own moves stand alone.
+      // with no vote note attached — the count lives only in the HUD.
+      // Once the info is confirmed the election's own moves stand alone.
       const flow = {
         roomStatus: input.roomStatus,
         progress: input.panelFlow,
@@ -257,15 +257,10 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
       };
       const infoPending = resolvePanelFlowCurrentStep(flow) === 'lastNightInfo';
       const election = input.sheriffElection;
-      const isVoting =
-        election !== null &&
-        (election.view.phase === 'firstVote' || election.view.phase === 'runoffVote');
-      const voteNote =
-        election === null || !isVoting
-          ? undefined
-          : election.view.voteProgress === null
-            ? '等待投票完成'
-            : `等待投票完成 · ${election.view.voteProgress.submittedCount}/${election.view.voteProgress.eligibleCount} 已提交`;
+      // No vote note here on purpose: the vote count lives only in the
+      // HUD (2026-11-08 user decision), and the dock already says
+      // 「等待投票完成」 in the middle of the room. A second copy under
+      // the host action would show the host the same number twice.
       const electionMoves: string[] = [];
       if (
         election !== null &&
@@ -292,10 +287,9 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
       if (onlyMove !== undefined) {
         return hostActionTask(onlyMove, {
           ...(infoPending ? { steps } : {}),
-          ...(voteNote === undefined ? {} : { note: voteNote }),
         });
       }
-      return voteNote === undefined ? null : hostMessageTask(voteNote);
+      return null;
     }
     case GameStatus.Ended: {
       const flow = {
