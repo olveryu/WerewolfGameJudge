@@ -639,19 +639,19 @@ Pictionary 的作答、等待和结果工作区最大宽度固定为 430px 并�
 
 建议组件按职责拆分，避免房间 orchestrator 同时管理画布、上传和结果播放器：
 
-| 组件/模块                     | 职责                                                     |
-| ----------------------------- | -------------------------------------------------------- |
-| `PictionaryStage`             | 根据权威 phase 选择页面，不实现各阶段业务细节            |
-| `PictionaryStageHeader`       | 阶段标题、棒数和 deadline 投影                           |
-| `PictionaryDeadlineBar`       | 纯显示倒计时、警示和暂停状态                             |
-| `PictionaryTaskContext`       | 显示上一条文字、画作或空缺占位                           |
-| `PictionaryTextComposer`      | grapheme 输入、校验提示和文字提交                        |
-| `PictionaryDrawingCanvas`     | 指针事件、归一化笔画、渲染和导出                         |
-| `PictionaryDrawingToolbar`    | 工具、色板、笔宽、撤销、重做和清空                       |
-| `PictionaryTransitionView`    | 每棒等待和下一任务类型                                   |
-| `PictionaryAlbumStage`        | 当前画册的虚拟列表、自动滚动和固定控制栏                 |
-| `usePictionaryStageDeadline`  | deadline tick、前后台恢复和 single-flight 到点请求       |
-| `usePictionaryAutoSubmission` | 收稿期自动提交本人及所有机器人当前输入，无内容自动交空白 |
+| 组件/模块                     | 职责                                                           |
+| ----------------------------- | -------------------------------------------------------------- |
+| `PictionaryStage`             | 根据权威 phase 选择页面，不实现各阶段业务细节                  |
+| `PictionaryStageHeader`       | 阶段标题、棒数和 deadline 投影                                 |
+| `PictionaryDeadlineBar`       | 纯显示倒计时、警示和暂停状态                                   |
+| `PictionaryTaskContext`       | 显示上一条文字、画作或空缺占位                                 |
+| `PictionaryTextComposer`      | grapheme 输入、校验提示和文字提交                              |
+| `PictionaryDrawingCanvas`     | 指针事件、归一化笔画、渲染和导出                               |
+| `PictionaryDrawingToolbar`    | 工具、色板、笔宽、撤销、重做和清空                             |
+| `PictionaryTransitionView`    | 每棒等待和下一任务类型                                         |
+| `GalleryAlbumStage`           | 共享画册壳：虚拟列表、自动滚动和固定控制栏，与故事接龙同一实现 |
+| `usePictionaryStageDeadline`  | deadline tick、前后台恢复和 single-flight 到点请求             |
+| `usePictionaryAutoSubmission` | 收稿期自动提交本人及所有机器人当前输入，无内容自动交空白       |
 
 UI 组件只接收已经按当前用户可见性裁剪的 view model。组件不得直接遍历完整接龙状态寻找自己的任务，也不得自行判断服务端权限。
 

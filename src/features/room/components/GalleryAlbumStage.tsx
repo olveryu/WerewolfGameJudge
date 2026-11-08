@@ -5,6 +5,8 @@
  *
  * - `follow: 'top'` keeps the newest entry visible by measuring entry
  *   heights and scrolling to the latest entry offset (Pictionary album).
+ *   A footer spacer leaves room below the latest entry so it can sit at
+ *   the viewport top.
  * - `follow: 'bottom'` is chat-style tail follow: the list scrolls to the
  *   end as new segments arrive, stops when the player scrolls up, and
  *   resumes once they are back at the bottom (Story Relay).
@@ -58,12 +60,17 @@ export function GalleryAlbumStage<TEntry extends { readonly id: string }>({
   listEmptyComponent,
 }: GalleryAlbumStageProps<TEntry>) {
   const scrollRef = useRef<FlatList<TEntry> | null>(null);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState<number | null>(null);
   const [entryHeights, setEntryHeights] = useState<Record<string, number>>({});
-  const [headerHeight, setHeaderHeight] = useState<number>(0);
-  const [footerHeight, setFooterHeight] = useState<number>(0);
   const followBottomRef = useRef(true);
 
   const entryIds = entries.map((entry) => entry.id);
+  const latestEntryId = entries.at(-1)?.id;
+  const latestEntryHeight = latestEntryId === undefined ? undefined : entryHeights[latestEntryId];
+  // Leaves room below the latest entry so it can sit at the viewport top.
+  const footerHeight =
+    follow === 'top' ? Math.max(0, viewportHeight - (latestEntryHeight ?? 0)) : 0;
   const latestEntryOffset = getLatestEntryOffset({
     entryIds,
     entryHeights,
@@ -72,9 +79,12 @@ export function GalleryAlbumStage<TEntry extends { readonly id: string }>({
     paddingTop: ALBUM_PADDING,
   });
 
+  // The target depends only on content above the latest entry, so banner-driven
+  // viewport changes cannot move it. footerHeight stays a dependency because the
+  // browser clamps scrollTop while the viewport grows before the footer catches
+  // up; re-issuing the same offset after the footer commit restores alignment.
   useEffect(() => {
-    if (follow !== 'top') return;
-    if (latestEntryOffset === null) return;
+    if (follow !== 'top' || latestEntryOffset === null) return;
     scrollRef.current?.scrollToOffset({ offset: latestEntryOffset, animated: true });
   }, [follow, footerHeight, latestEntryOffset]);
 
@@ -119,6 +129,7 @@ export function GalleryAlbumStage<TEntry extends { readonly id: string }>({
         renderItem={renderItem}
         keyExtractor={(entry) => entry.id}
         initialNumToRender={entries.length}
+        onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
         ListEmptyComponent={listEmptyComponent ?? null}
         ListHeaderComponent={
           <View onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}>
@@ -127,7 +138,7 @@ export function GalleryAlbumStage<TEntry extends { readonly id: string }>({
         }
         ListFooterComponent={
           follow === 'top' ? (
-            <View onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)} />
+            <View testID="gallery-album-footer" style={{ height: footerHeight }} />
           ) : null
         }
         contentContainerStyle={styles.albumContent}
