@@ -177,7 +177,6 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
   submit,
   isSubmitting,
   controlledSeat,
-  remainingSeconds,
   isExpired,
 }) => {
   const [text, setText] = useState(() => {
@@ -221,7 +220,6 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
         <PictionaryTaskHeading
           eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
           title={isOpeningPrompt ? '写下一个题目' : '猜猜画的是什么'}
-          remainingSeconds={remainingSeconds}
         />
       }
       maxWidth={STAGE_FRAME_MAX_WIDTH}
@@ -296,7 +294,6 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   submit,
   isSubmitting,
   controlledSeat,
-  remainingSeconds,
   isExpired,
 }) => {
   const [draft, setDraft] = useState(() => {
@@ -398,7 +395,6 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
           <PictionaryTaskHeading
             eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
             title="把这句话画出来"
-            remainingSeconds={remainingSeconds}
           />
         }
         maxWidth={STAGE_FRAME_MAX_WIDTH}

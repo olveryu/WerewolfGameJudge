@@ -23,6 +23,7 @@ export {
   REASON_PICTIONARY_UPLOAD_EXPIRED,
   REASON_PICTIONARY_UPLOAD_INVALID,
 } from './domain/reasons';
+export { getPictionaryAnswerDurationSeconds } from './domain/relay';
 export { getPictionaryTaskForSeat } from './domain/visibility';
 export type { PictionaryEffect } from './effects/types';
 export {
