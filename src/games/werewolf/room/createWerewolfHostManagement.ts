@@ -257,15 +257,10 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
       };
       const infoPending = resolvePanelFlowCurrentStep(flow) === 'lastNightInfo';
       const election = input.sheriffElection;
-      const isVoting =
-        election !== null &&
-        (election.view.phase === 'firstVote' || election.view.phase === 'runoffVote');
-      const voteNote =
-        election === null || !isVoting
-          ? undefined
-          : election.view.voteProgress === null
-            ? '等待投票完成'
-            : `等待投票完成 · ${election.view.voteProgress.submittedCount}/${election.view.voteProgress.eligibleCount} 已提交`;
+      // No vote note here on purpose: the vote count lives only in the
+      // HUD (2026-11-08 user decision), and the dock already says
+      // 「等待投票完成」 in the middle of the room. A second copy under
+      // the host action would show the host the same number twice.
       const electionMoves: string[] = [];
       if (
         election !== null &&
@@ -292,10 +287,9 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
       if (onlyMove !== undefined) {
         return hostActionTask(onlyMove, {
           ...(infoPending ? { steps } : {}),
-          ...(voteNote === undefined ? {} : { note: voteNote }),
         });
       }
-      return voteNote === undefined ? null : hostMessageTask(voteNote);
+      return null;
     }
     case GameStatus.Ended: {
       const flow = {

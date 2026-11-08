@@ -299,7 +299,7 @@ describe('createWerewolfHostManagement', () => {
   });
 
   it.each(['firstVote', 'runoffVote'] as const)(
-    'presents the waiting-progress form instead of an advance during %s',
+    'keeps the vote count out of the host task during %s',
     (phase) => {
       const sheriffElection = createSheriffElection({
         phase,
@@ -317,12 +317,13 @@ describe('createWerewolfHostManagement', () => {
       const actions = model.sections.flatMap((section) => section.actions);
       expect(actions.map((action) => action.label)).not.toContain('推进竞选');
       expect(actions.find((action) => action.key === 'sheriff-advance')).toBeUndefined();
-      // Voting has no host advance: the info stays the task, the vote progress is the note.
+      // Voting has no host advance: the info stays the task, and the vote
+      // count stays out of it — it lives only in the HUD.
       expect(model.task).toMatchObject({
         kind: 'action',
         actionKey: 'last-night-info',
-        note: '等待投票完成 · 1/3 已提交',
       });
+      expect(model.task).not.toHaveProperty('note');
       const confirmed = createWerewolfHostManagement(
         createInput({
           roomStatus: GameStatus.Day,
@@ -331,11 +332,9 @@ describe('createWerewolfHostManagement', () => {
           capabilities: deniedRoomCapabilities,
         }),
       );
-      expect(hostTaskBody(confirmed)).toEqual({
-        kind: 'message',
-        text: '等待投票完成 · 1/3 已提交',
-        escape: null,
-      });
+      // With no moves left there is no host task at all during voting:
+      // the dock still says 「等待投票完成」 and the HUD shows the count.
+      expect(hostTaskBody(confirmed)).toBeNull();
     },
   );
 
