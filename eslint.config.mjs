@@ -361,4 +361,26 @@ export default tseslint.config(
       'no-console': 'off',
     },
   },
+
+  // =========================================================================
+  // Web client (packages/web) — React DOM, no React Native
+  // =========================================================================
+  {
+    files: ['packages/web/**/*.{ts,tsx}'],
+    rules: {
+      'react-native/no-raw-text': 'off',
+      'react-native/split-platform-components': 'off',
+      'react-native/no-single-element-style-arrays': 'off',
+      'react-native/no-inline-styles': 'off',
+      'no-restricted-imports': 'off',
+      // Untrusted strings render only through React's default escaping (docs/web-client-rewrite.md §5.11).
+      'react/no-danger': 'error',
+      // The web client keeps the React Compiler rules on; the RN-era exemptions above do not apply.
+      'react-hooks/static-components': 'error',
+      'react-hooks/set-state-in-effect': 'error',
+      'react-hooks/preserve-manual-memoization': 'error',
+      'react-hooks/refs': 'error',
+      'react-hooks/immutability': 'error',
+    },
+  },
 );

@@ -95,6 +95,11 @@ jobs:
       - name: Test root (shard ${{ matrix.shard }}/2)
         run: pnpm --filter werewolfgamejudge run test --shard=${{ matrix.shard }}/2 --json --outputFile=${{ github.workspace }}/test-results-root-${{ matrix.shard }}.json
 
+      # The web client suite is small; it runs once, on the first shard.
+      - name: Test web
+        if: matrix.shard == 1
+        run: pnpm --filter @game-judge/web run test --reporter=default --reporter=json --outputFile=${{ github.workspace }}/test-results-web.json
+
       - name: Upload unit test results (shard ${{ matrix.shard }}/2)
         if: always()
         uses: actions/upload-artifact@v7
@@ -103,6 +108,7 @@ jobs:
           path: |
             test-results-root-${{ matrix.shard }}.json
             test-results-engine-${{ matrix.shard }}.json
+            test-results-web.json
           if-no-files-found: ignore
 
   # api-worker tests are slow (Miniflare + D1). Shard across 3 runners.

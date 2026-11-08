@@ -239,6 +239,7 @@ const UNIT_SOURCE_BY_PREFIX = [
   ['test-results-root-', 'root jest'],
   ['test-results-engine-', 'game-engine vitest'],
   ['test-results-api-', 'api-worker vitest'],
+  ['test-results-web', 'web vitest'],
 ];
 
 /** Read a directory of downloaded unit-result artifacts into entries. */

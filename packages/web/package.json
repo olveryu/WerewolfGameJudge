@@ -1,0 +1,33 @@
+{
+  "name": "@game-judge/web",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@sentry/react": "^11.11.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-router": "^8.5.1"
+  },
+  "devDependencies": {
+    "@rolldown/plugin-babel": "^0.3.0",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^25.0.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.2.1",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "jsdom": "^31.0.0",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.6",
+    "vitest": "~4.1.10"
+  }
+}
