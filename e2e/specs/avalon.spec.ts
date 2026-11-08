@@ -561,17 +561,8 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
     for (let seat = 0; seat < pages.length; seat += 1) {
       await castVote(pages[seat]!, script.ballots.get(seat)!);
       if (seat === 0) {
-        // 未投票名单全房公开：底部消息报已投计数 + 未投票座位，不再只给
-        // 已投票者看个人票；同一名单也出现在投票弹窗与顶部摘要条第二行。
-        const pending = Array.from(
-          { length: PLAYER_COUNT - 1 },
-          (_, index) => `${index + 2}号`,
-        ).join(' ');
-        await expect(
-          pages[0]!.getByText(`已投 1/${PLAYER_COUNT} · 未投票：${pending}`, {
-            exact: true,
-          }),
-        ).toBeVisible({ timeout: 10_000 });
+        // 未投票名单全房公开：同一名单出现在投票弹窗与顶部摘要条第二行；
+        // 底部消息行已删（计数、名单与倒计时都在摘要条），不再断言它。
         await expect(pages[0]!.getByTestId('avalon-vote-pending-seats')).toBeVisible({
           timeout: 10_000,
         });
@@ -580,6 +571,11 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
         });
       }
     }
+    // 全员投完武装 5 秒结算倒计时：摘要条第一行追加共享后缀
+    // （与警长 HUD 同一份实现），秒数不定、只断言后缀文案。
+    await expect(pages[0]!.getByTestId('avalon-history-summary')).toContainText('秒后揭晓', {
+      timeout: 10_000,
+    });
   });
 
   // Pick a page without a quest modal on top for the strict vote assertions:

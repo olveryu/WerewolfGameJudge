@@ -19,7 +19,10 @@ import {
   isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
 
-import { formatPendingSeats } from '@/features/room/components/PendingSeatsRow';
+import {
+  getSettleCountdownSuffix,
+  type SettleCountdownWording,
+} from '@/features/room/components/settleCountdownSuffix';
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
@@ -242,11 +245,25 @@ function avalonLatestQuestConclusion(state: AvalonState): string | null {
 }
 
 /**
+ * 阿瓦隆倒计时文案（共享后缀的本家声音）：投票/出牌全员提交后，
+ * 摘要条第一行追加 `，N秒后揭晓`；0 秒或未武装时后缀为空，摘要条
+ * 只剩原来那行，等待推进由 StageSettleRescue 承担。
+ */
+const AVALON_COUNTDOWN_WORDING: SettleCountdownWording = {
+  tickingVerb: '揭晓',
+  settledSuffix: '',
+};
+
+/**
  * 对局摘要条文案（座位表上方常驻，入口按狼人杀口径）：最新结算结论
  * 优先，其次当前轮次状态句；大厅不出现（返回 null）。只读公开信息
- * （落盘记录与阶段），不含未结算票面与任何身份。
+ * （落盘记录与阶段），不含未结算票面与任何身份。投票/出牌结算倒计时
+ * 武装时，第一行追加共享倒计时后缀（与警长 HUD 同一份实现）。
  */
-export function createAvalonHistorySummary(state: AvalonState): string | null {
+export function createAvalonHistorySummary(
+  state: AvalonState,
+  settleCountdownSeconds: number | null,
+): string | null {
   const phase = state.phase;
   switch (phase.kind) {
     case 'lobby':
@@ -271,10 +288,11 @@ export function createAvalonHistorySummary(state: AvalonState): string | null {
       const questLabel = formatAvalonQuestLabel(round);
       const record = state.roundHistory.find((candidate) => candidate.round === round);
       // 本轮已有提案结算（否决后回到组队、或通过后任务进行中）：
-      // 最新结算就是这次投票结论。
+      // 最新结算就是这次投票结论。任务进行中时这行仍是投票结论，
+      // 结算倒计时武装后追加共享后缀（与警长 HUD 同一份实现）。
       if (state.lastVoteResult !== null && record !== undefined && record.proposals.length > 0) {
         const vote = state.lastVoteResult;
-        return `${questLabel} · ${vote.approved ? '队伍通过' : '提案被否决'}（赞成 ${vote.approveCount} · 反对 ${vote.rejectCount}）`;
+        return `${questLabel} · ${vote.approved ? '队伍通过' : '提案被否决'}（赞成 ${vote.approveCount} · 反对 ${vote.rejectCount}）${getSettleCountdownSuffix(settleCountdownSeconds, AVALON_COUNTDOWN_WORDING)}`;
       }
       // 本轮尚无提案结算时，最新结算是上一轮的任务结论。
       if (record === undefined) {
@@ -287,9 +305,9 @@ export function createAvalonHistorySummary(state: AvalonState): string | null {
       }
       if (phase.kind === 'vote') {
         const attempt = (record?.proposals.length ?? 0) + 1;
-        return `${questLabel} · 第${attempt}次提案投票中`;
+        return `${questLabel} · 第${attempt}次提案投票中${getSettleCountdownSuffix(settleCountdownSeconds, AVALON_COUNTDOWN_WORDING)}`;
       }
-      return `${questLabel} · 任务执行中`;
+      return `${questLabel} · 任务执行中${getSettleCountdownSuffix(settleCountdownSeconds, AVALON_COUNTDOWN_WORDING)}`;
     }
   }
 }
@@ -342,8 +360,6 @@ export interface AvalonBottomActionsInput {
   readonly isSubmitting: boolean;
   /** 机器人接管能力（房主）：决定「长按接管后投票」类引导文案。 */
   readonly canTakeOverBots: boolean;
-  /** 投票/出牌结算倒计时剩余秒数（screen 的 tick 派生）；未武装为 null。 */
-  readonly settleCountdownSeconds: number | null;
   readonly onViewRolePress: () => void;
   readonly onNightInfoPress: () => void;
   readonly onOpenVotePress: () => void;
@@ -570,20 +586,9 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           testID: 'avalon-vote-open',
         });
       }
-      // 未投票名单全房公开：计数 + 未投票行，人人可见（不再只给已投票者看个人票）。
-      // 已投计数与引擎视图层 AvalonCurrentProposalView 同一派生（只数已投人数、永不归名，
-      // 与暗投口径一致）；个人票仍只在弹窗里看。
-      message =
-        phase.deadlineAt !== null &&
-        input.settleCountdownSeconds !== null &&
-        input.settleCountdownSeconds > 0
-          ? `已全部投票，${input.settleCountdownSeconds} 秒后揭晓`
-          : vm.pendingVoteSeats !== null && vm.pendingVoteSeats.length > 0
-            ? `已投 ${Object.keys(phase.ballots).length}/${getAvalonOccupiedSeatCount(state)} · ${formatPendingSeats('未投票', vm.pendingVoteSeats)}`
-            : null;
-      if (message === null && !instruction.canVote) {
-        message = input.canTakeOverBots ? '长按机器人座位接管后投票。' : '你不在座位上，无法投票。';
-      }
+      // 投票/出牌阶段底部不留消息行：计数、未提交名单与倒计时都在
+      // 座位表上方摘要条（与警长 HUD 同位置），去投票走主按钮。
+      // message 保持 null，底部只剩按钮，不渲染消息行。
       break;
     }
     case 'quest': {
@@ -600,18 +605,9 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           testID: 'avalon-quest-open',
         });
       }
-      // 未出牌名单全房公开：计数 + 未出牌行，人人可见；个人牌仍只在弹窗里看。
-      message =
-        phase.deadlineAt !== null &&
-        input.settleCountdownSeconds !== null &&
-        input.settleCountdownSeconds > 0
-          ? `已全部出牌，${input.settleCountdownSeconds} 秒后揭晓`
-          : vm.pendingPlaySeats !== null && vm.pendingPlaySeats.length > 0
-            ? `已出牌 ${Object.keys(phase.plays).length}/${phase.teamSeats.length} · ${formatPendingSeats('未出牌', vm.pendingPlaySeats)}`
-            : null;
-      if (message === null && !instruction.isTeamMember) {
-        message = '等待队员出牌…';
-      }
+      // 出牌阶段底部不留消息行：计数、未出牌名单与倒计时都在
+      // 座位表上方摘要条（与警长 HUD 同位置），去出牌走主按钮。
+      // message 保持 null，底部只剩按钮，不渲染消息行。
       break;
     }
     case 'lady': {
@@ -699,7 +695,6 @@ export interface AvalonRoomShellModelInput extends Omit<
   readonly onViewRolePress: () => void;
   readonly onNightInfoPress: () => void;
   readonly isSubmitting: boolean;
-  readonly settleCountdownSeconds: number | null;
   readonly onOpenVotePress: () => void;
   readonly onOpenQuestPress: () => void;
   readonly onPreselectTeamPress: () => void;
@@ -994,7 +989,6 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       effectiveSeat: input.effectiveSeat,
       isSubmitting: input.isSubmitting,
       canTakeOverBots: input.capabilities.canTakeOverBots.isAllowed,
-      settleCountdownSeconds: input.settleCountdownSeconds,
       onViewRolePress: input.onViewRolePress,
       onNightInfoPress: input.onNightInfoPress,
       onOpenVotePress: input.onOpenVotePress,

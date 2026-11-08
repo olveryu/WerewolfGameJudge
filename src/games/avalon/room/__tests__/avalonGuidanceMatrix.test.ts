@@ -244,7 +244,6 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
     onViewRolePress: jest.fn(),
     onNightInfoPress: jest.fn(),
     isSubmitting: false,
-    settleCountdownSeconds: null,
     onOpenVotePress: jest.fn(),
     onOpenQuestPress: jest.fn(),
     onPreselectTeamPress: jest.fn(),
@@ -344,7 +343,7 @@ describe('AVALON_GUIDANCE_MATRIX', () => {
     expectCell('nominate', s.state);
   });
 
-  it('vote: everyone sees the public cast count and pending seats', () => {
+  it('vote: the bottom message stays empty for everyone; count and pending seats live on the summary bar', () => {
     const s = session(5);
     beginNight(s);
     completeNight(s);
@@ -356,12 +355,12 @@ describe('AVALON_GUIDANCE_MATRIX', () => {
     }
     proposeTeam(s, team);
     expectCell('vote', s.state);
-    // Post-ballot the seated cell keeps the public sentence with the new count.
+    // Post-ballot the seated cell keeps an empty bottom message.
     s.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(2));
-    expect(bottomMessage(s.state, 'seated')).toContain('已投 1/5');
+    expect(bottomMessage(s.state, 'seated')).toBeNull();
   });
 
-  it('quest: everyone sees the public played count and pending seats', () => {
+  it('quest: the bottom message stays empty for everyone; played count and pending seats live on the summary bar', () => {
     const s = session(5);
     beginNight(s);
     completeNight(s);
@@ -369,8 +368,8 @@ describe('AVALON_GUIDANCE_MATRIX', () => {
     proposeTeam(s, [0, 2]);
     approveTeam(s);
     expectCell('quest', s.state);
-    // A non-member seated viewer sees the same public sentence.
-    expect(bottomMessage(s.state, 'seated', 3)).toContain('已出牌 0/2');
+    // A non-member seated viewer sees the same empty bottom message.
+    expect(bottomMessage(s.state, 'seated', 3)).toBeNull();
   });
 
   it('lady: holder, target and bystanders all read the public progress', () => {

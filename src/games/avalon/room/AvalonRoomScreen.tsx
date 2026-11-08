@@ -74,7 +74,9 @@ function AvalonRoomContent(
   const isLobby = screen.state.phase.kind === 'lobby';
   const viewModel = screen.viewModel;
   const [historyVisible, setHistoryVisible] = useState(false);
-  const historySummary = isLobby ? null : createAvalonHistorySummary(screen.state);
+  const historySummary = isLobby
+    ? null
+    : createAvalonHistorySummary(screen.state, screen.phaseRemainingSeconds);
   // 顶部主面第二行：投票/任务进行中显示未提交名单（与警长 HUD 同位置）。
   const historyPendingSeats =
     viewModel === null

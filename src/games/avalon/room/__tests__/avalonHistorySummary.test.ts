@@ -109,39 +109,48 @@ function session() {
   };
 }
 
+/** Reads the phase through a call so TS narrowing never goes stale across sends. */
+function currentPhase(room: { readonly state: AvalonState }): AvalonState['phase'] {
+  return room.state.phase;
+}
+
 describe('createAvalonHistorySummary', () => {
   it('is hidden in the lobby and narrates viewing and night', () => {
     const room = session();
-    expect(createAvalonHistorySummary(room.state)).toBeNull();
+    expect(createAvalonHistorySummary(room.state, null)).toBeNull();
     room.send({ type: 'avalon.roles.assign' });
-    expect(createAvalonHistorySummary(room.state)).toBe('身份查看阶段');
+    expect(createAvalonHistorySummary(room.state, null)).toBe('身份查看阶段');
     for (let seat = 0; seat < 5; seat += 1) {
       room.send({ type: 'avalon.role.viewed' }, room.userOf(seat));
     }
     room.send({ type: 'avalon.game.begin' });
-    expect(createAvalonHistorySummary(room.state)).toBe('第一晚');
+    expect(createAvalonHistorySummary(room.state, null)).toBe('第一晚');
   });
 
   it('narrates the current proposal while nominating and voting', () => {
     const room = session();
     room.toNominate();
-    expect(createAvalonHistorySummary(room.state)).toBe('任务一 · 第1次提案 · 组队者组队中');
+    expect(createAvalonHistorySummary(room.state, null)).toBe('任务一 · 第1次提案 · 组队者组队中');
     if (room.state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
     const leader = room.state.leaderSeat;
     const team = [leader, (leader + 1) % 5];
     room.send({ type: 'avalon.team.preselect', seats: team }, room.userOf(leader));
     room.send({ type: 'avalon.team.propose', seats: team }, room.userOf(leader));
-    expect(createAvalonHistorySummary(room.state)).toBe('任务一 · 第1次提案投票中');
+    expect(createAvalonHistorySummary(room.state, null)).toBe('任务一 · 第1次提案投票中');
   });
 
   it('shows the vote conclusion after a rejection and after an approval', () => {
     const room = session();
     room.toNominate();
     room.settleVote('reject');
-    expect(createAvalonHistorySummary(room.state)).toBe('任务一 · 提案被否决（赞成 0 · 反对 5）');
+    expect(createAvalonHistorySummary(room.state, null)).toBe(
+      '任务一 · 提案被否决（赞成 0 · 反对 5）',
+    );
     room.settleVote('approve');
     expect(room.state.phase.kind).toBe('quest');
-    expect(createAvalonHistorySummary(room.state)).toBe('任务一 · 队伍通过（赞成 5 · 反对 0）');
+    expect(createAvalonHistorySummary(room.state, null)).toBe(
+      '任务一 · 队伍通过（赞成 5 · 反对 0）',
+    );
   });
 
   it('shows the quest conclusion once the quest settles', () => {
@@ -158,7 +167,7 @@ describe('createAvalonHistorySummary', () => {
       record.quest.result === 'success'
         ? `任务一 · 成功（成功牌 ${record.quest.successCount}）`
         : `任务一 · 失败（失败牌 ${record.quest.failCount}）`;
-    expect(createAvalonHistorySummary(room.state)).toBe(expected);
+    expect(createAvalonHistorySummary(room.state, null)).toBe(expected);
   });
 
   it('shows the end conclusion after the veto limit ends the game', () => {
@@ -166,6 +175,53 @@ describe('createAvalonHistorySummary', () => {
     room.toNominate();
     for (let attempt = 0; attempt < 5; attempt += 1) room.settleVote('reject');
     expect(room.state.phase.kind).toBe('ended');
-    expect(createAvalonHistorySummary(room.state)).toBe('本局结束 · 坏人获胜');
+    expect(createAvalonHistorySummary(room.state, null)).toBe('本局结束 · 坏人获胜');
+  });
+
+  it('appends the shared settle countdown to the vote line while armed', () => {
+    const room = session();
+    room.toNominate();
+    if (room.state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+    const leader = room.state.leaderSeat;
+    const team = [leader, (leader + 1) % 5];
+    room.send({ type: 'avalon.team.preselect', seats: team }, room.userOf(leader));
+    room.send({ type: 'avalon.team.propose', seats: team }, room.userOf(leader));
+    expect(createAvalonHistorySummary(room.state, null)).toBe('任务一 · 第1次提案投票中');
+    for (let seat = 0; seat < 5; seat += 1) {
+      room.send({ type: 'avalon.team.vote', vote: 'approve' }, room.userOf(seat));
+    }
+    const votePhase = currentPhase(room);
+    if (votePhase.kind !== 'vote' || votePhase.deadlineAt === null) {
+      throw new Error('expected the armed vote phase');
+    }
+    expect(createAvalonHistorySummary(room.state, 4)).toBe('任务一 · 第1次提案投票中，4秒后揭晓');
+    expect(createAvalonHistorySummary(room.state, 1)).toBe('任务一 · 第1次提案投票中，1秒后揭晓');
+    expect(createAvalonHistorySummary(room.state, 0)).toBe('任务一 · 第1次提案投票中');
+    expect(createAvalonHistorySummary(room.state, null)).toBe('任务一 · 第1次提案投票中');
+  });
+
+  it('appends the shared settle countdown to the quest line while armed', () => {
+    const room = session();
+    room.toNominate();
+    const team = room.settleVote('approve');
+    if (room.state.phase.kind !== 'quest') throw new Error('expected quest phase');
+    // 任务进行中第一行仍是投票结论（与既有行为一致），倒计时追加在后面。
+    expect(createAvalonHistorySummary(room.state, null)).toBe(
+      '任务一 · 队伍通过（赞成 5 · 反对 0）',
+    );
+    for (const seat of team) {
+      room.send({ type: 'avalon.quest.play', play: 'success' }, room.userOf(seat));
+    }
+    const questPhase = currentPhase(room);
+    if (questPhase.kind !== 'quest' || questPhase.deadlineAt === null) {
+      throw new Error('expected the armed quest phase');
+    }
+    expect(createAvalonHistorySummary(room.state, 3)).toBe(
+      '任务一 · 队伍通过（赞成 5 · 反对 0），3秒后揭晓',
+    );
+    expect(createAvalonHistorySummary(room.state, 0)).toBe('任务一 · 队伍通过（赞成 5 · 反对 0）');
+    expect(createAvalonHistorySummary(room.state, null)).toBe(
+      '任务一 · 队伍通过（赞成 5 · 反对 0）',
+    );
   });
 });

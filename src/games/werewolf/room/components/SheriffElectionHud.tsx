@@ -8,8 +8,9 @@ import { memo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
+import { getSettleCountdownSuffix } from '@/features/room/components/settleCountdownSuffix';
 import { getSheriffVoteButtonLabel } from '@/games/werewolf/room/day/sheriffElectionDockModel';
-import { getSettleCountdownSuffix } from '@/games/werewolf/room/day/sheriffElectionPresentation';
+import { SHERIFF_ELECTION_COUNTDOWN_WORDING } from '@/games/werewolf/room/day/sheriffElectionPresentation';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes } from '@/theme';
@@ -36,11 +37,12 @@ export function getHudSummary(model: SheriffElectionPanelModel): string {
     if (submittedCount >= eligibleCount) {
       // The round closes itself: the settle countdown armed by the
       // last ballot publishes the result on expiry — no Host action.
-      // The countdown lives only here in the HUD (getSettleCountdownSuffix):
-      // seconds while they remain, the static sentence once the deadline
-      // is reached (0) or has not arrived in the snapshot yet (null) —
+      // The countdown lives only here in the HUD (the shared
+      // getSettleCountdownSuffix, with the sheriff wording): seconds
+      // while they remain, the static sentence once the deadline is
+      // reached (0) or has not arrived in the snapshot yet (null) —
       // never a literal 0. The details panel never prints seconds.
-      return `${progress}${getSettleCountdownSuffix(model.remainingSeconds)}`;
+      return `${progress}${getSettleCountdownSuffix(model.remainingSeconds, SHERIFF_ELECTION_COUNTDOWN_WORDING)}`;
     }
     const ballot = view.myBallot;
     if (view.canVote && (ballot === null || ballot.kind === 'notSubmitted')) {

@@ -315,7 +315,6 @@ export function useAvalonRoomState(
     onViewRolePress: roleViewing.open,
     onNightInfoPress: () => setNightModalVisible(true),
     isSubmitting,
-    settleCountdownSeconds: phaseRemainingSeconds,
     onOpenVotePress: () => setVoteModalOpen(true),
     onOpenQuestPress: () => setQuestModalOpen(true),
     // 两段式组队入口：底部按钮只打开选人 modal，选人与确认都在

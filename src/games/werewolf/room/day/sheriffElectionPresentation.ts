@@ -29,6 +29,7 @@ import type {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
+import type { SettleCountdownWording } from '@/features/room/components/settleCountdownSuffix';
 import {
   formatSheriffElectedLine,
   formatSpeakingOrder,
@@ -140,20 +141,16 @@ function areSameSeats(first: readonly number[], second: readonly number[]): bool
 }
 
 /**
- * Live-clock suffix for a completed vote's progress line, used by the
- * HUD — the one place the settle countdown is shown. While seconds
- * remain it is `，N秒后自动公布结果`; once the deadline is reached (0)
- * or the armed deadline has not arrived in the snapshot yet (null) it
- * falls back to `，即将自动公布结果` — never a literal 0. Callers
- * append it only once every eligible voter has submitted; while the
- * vote is still open there is no suffix at all.
+ * Sheriff countdown wording for the shared settle-countdown suffix
+ * (`getSettleCountdownSuffix`): the suffix implementation lives in the
+ * shared room layer and is the only one; this module keeps only the
+ * game's own voice. The HUD appends it to the completed vote's progress
+ * line — the one place the settle countdown is shown for sheriff.
  */
-export function getSettleCountdownSuffix(remainingSeconds: number | null): string {
-  if (remainingSeconds !== null && remainingSeconds > 0) {
-    return `，${remainingSeconds}秒后自动公布结果`;
-  }
-  return '，即将自动公布结果';
-}
+export const SHERIFF_ELECTION_COUNTDOWN_WORDING: SettleCountdownWording = {
+  tickingVerb: '自动公布结果',
+  settledSuffix: '，即将自动公布结果',
+};
 
 export function createSheriffElectionPresentation(
   input: SheriffElectionPresentationInput,

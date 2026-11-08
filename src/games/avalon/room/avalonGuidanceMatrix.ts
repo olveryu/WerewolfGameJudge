@@ -33,14 +33,14 @@ export const AVALON_GUIDANCE_MATRIX: RoomGuidanceMatrix<AvalonPhaseKind> = {
     spectator: GUIDANCE_MESSAGE,
   },
   vote: {
-    host: GUIDANCE_MESSAGE,
-    seated: GUIDANCE_MESSAGE,
-    spectator: GUIDANCE_MESSAGE,
+    host: guidanceExempt('投票进度、未投票名单与倒计时都在座位表上方摘要条；去投票走主按钮'),
+    seated: guidanceExempt('投票进度、未投票名单与倒计时都在座位表上方摘要条；去投票走主按钮'),
+    spectator: guidanceExempt('投票进度、未投票名单与倒计时都在座位表上方摘要条'),
   },
   quest: {
-    host: GUIDANCE_MESSAGE,
-    seated: GUIDANCE_MESSAGE,
-    spectator: GUIDANCE_MESSAGE,
+    host: guidanceExempt('出牌进度、未出牌名单与倒计时都在座位表上方摘要条；去出牌走主按钮'),
+    seated: guidanceExempt('出牌进度、未出牌名单与倒计时都在座位表上方摘要条；去出牌走主按钮'),
+    spectator: guidanceExempt('出牌进度、未出牌名单与倒计时都在座位表上方摘要条'),
   },
   lady: {
     host: GUIDANCE_MESSAGE,
