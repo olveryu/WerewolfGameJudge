@@ -1,0 +1,108 @@
+/*
+ * Design tokens — the single source of styling values for the web client
+ * (docs/web-client-rewrite.md §5.11). Ported from the React Native client's
+ * src/theme/tokens.ts and colors.ts ("月白" scheme). Components use these custom
+ * properties only; literal colours and sizes in component CSS are not allowed.
+ */
+:root {
+  /* Colours */
+  --color-primary: #4f46e5;
+  --color-primary-light: #818cf8;
+  --color-primary-dark: #3730a3;
+  --color-background: #f2f2f7;
+  --color-surface: #ffffff;
+  --color-surface-hover: #e5e5ea;
+  --color-card: #ffffff;
+  --color-text: #1a1a2e;
+  --color-text-secondary: #5c5c70;
+  --color-text-muted: #8e8ea0;
+  --color-text-inverse: #ffffff;
+  --color-border: #d1d1d6;
+  --color-border-light: #e5e5ea;
+  --color-success: #1a9a4a;
+  --color-warning: #b87d08;
+  --color-error: #d13438;
+  --color-info: #2563eb;
+  --color-wolf: #c82828;
+  --color-villager: #1a9a4a;
+  --color-god: #7b3fbf;
+  --color-third: #b87d08;
+  --color-overlay: rgb(26 26 46 / 60%);
+  --color-overlay-light: rgb(26 26 46 / 25%);
+
+  /* Spacing */
+  --space-micro: 2px;
+  --space-tight: 4px;
+  --space-small: 8px;
+  --space-medium: 16px;
+  --space-large: 24px;
+  --space-xlarge: 32px;
+  --space-xxlarge: 48px;
+  --space-screen-h: 20px;
+
+  /* Typography: size / line height pairs */
+  --font-caption-small: 10px;
+  --line-caption-small: 14px;
+  --font-caption: 12px;
+  --line-caption: 16px;
+  --font-secondary: 14px;
+  --line-secondary: 20px;
+  --font-body: 16px;
+  --line-body: 24px;
+  --font-subtitle: 18px;
+  --line-subtitle: 26px;
+  --font-title: 20px;
+  --line-title: 28px;
+  --font-heading: 24px;
+  --line-heading: 34px;
+  --font-hero: 32px;
+  --line-hero: 42px;
+  --font-display: 40px;
+  --line-display: 50px;
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --letter-tight: -0.5px;
+  --letter-wide: 0.5px;
+  --letter-hero: -1px;
+
+  /* Radii */
+  --radius-small: 10px;
+  --radius-medium: 14px;
+  --radius-large: 20px;
+  --radius-xlarge: 28px;
+  --radius-full: 9999px;
+
+  /* Component sizes */
+  --size-button-sm: 32px;
+  --size-button-md: 44px;
+  --size-button-lg: 56px;
+  --size-avatar-xs: 24px;
+  --size-avatar-sm: 32px;
+  --size-avatar-md: 40px;
+  --size-avatar-lg: 56px;
+  --size-avatar-xl: 80px;
+  --size-icon-xs: 12px;
+  --size-icon-sm: 16px;
+  --size-icon-md: 20px;
+  --size-icon-lg: 24px;
+  --size-icon-xl: 32px;
+  --size-header: 56px;
+  --size-modal-min-width: 280px;
+  --size-min-touch-target: 44px;
+  --size-max-content-width: 600px;
+
+  /* Borders and states */
+  --border-width: 1px;
+  --border-width-thick: 2px;
+  --opacity-pressed: 0.7;
+  --opacity-disabled: 0.5;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 6%);
+  --shadow-md: 0 2px 8px rgb(0 0 0 / 8%);
+  --shadow-lg: 0 4px 16px rgb(0 0 0 / 10%);
+  --shadow-upward: 0 -1px 8px rgb(0 0 0 / 6%);
+  --shadow-lg-upward: 0 -2px 12px rgb(0 0 0 / 8%);
+}

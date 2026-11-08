@@ -12,11 +12,14 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@ark-ui/react": "^5.40.0",
     "@sentry/react": "^11.11.0",
+    "@tanstack/react-query": "^5.107.1",
     "pixi.js": "^8.22.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-router": "^8.5.1",
+    "sonner": "^2.0.8",
     "zod": "^4.4.3"
   },
   "devDependencies": {

@@ -1,5 +1,6 @@
 import { type RouteObject } from 'react-router';
 
+import { AppRoot } from '@/app/AppRoot';
 import { RouteErrorPage } from '@/app/RouteErrorPage';
 
 /**
@@ -9,6 +10,7 @@ import { RouteErrorPage } from '@/app/RouteErrorPage';
 export const routes: RouteObject[] = [
   {
     path: '/',
+    element: <AppRoot />,
     errorElement: <RouteErrorPage />,
     children: [
       {

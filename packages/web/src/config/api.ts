@@ -3,9 +3,6 @@
  * build time, defaulting to production.
  */
 
-/** Frontend site URL (custom domain), used for share links. */
-export const SITE_URL: string = import.meta.env.VITE_SITE_URL ?? 'https://werewolfgamer.com';
-
 /** Cloudflare Workers API base URL. */
 export const API_BASE_URL: string =
   import.meta.env.VITE_CF_API_URL ?? 'https://api.werewolfjudge.eu.org';

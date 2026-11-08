@@ -5,7 +5,7 @@
  * development and warn+ in production; production also forwards info+ to Sentry Structured
  * Logs with the module name and any plain-object details as attributes.
  *
- * Usage: `realtimeLog.warn('socket closed', { code })`.
+ * Usage: `apiLog.warn('request failed', { status })`.
  */
 import { logger as sentryLogger } from '@sentry/react';
 
@@ -60,7 +60,8 @@ function write(module: string, level: LogLevel, message: string, details: unknow
   }
 }
 
-function createLogger(module: string): Logger {
+/** Creates a logger whose lines are prefixed with `[module]`. */
+export function createLogger(module: string): Logger {
   return {
     debug: (message, ...details) => write(module, 'debug', message, details),
     info: (message, ...details) => write(module, 'info', message, details),
@@ -69,7 +70,7 @@ function createLogger(module: string): Logger {
   };
 }
 
-/** Realtime / WebSocket layer. */
-export const realtimeLog = createLogger('Realtime');
 /** HTTP API client. */
 export const apiLog = createLogger('Api');
+/** Auth flow. */
+export const authLog = createLogger('Auth');

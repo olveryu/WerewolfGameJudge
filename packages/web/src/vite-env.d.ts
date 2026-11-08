@@ -5,8 +5,6 @@ interface ImportMetaEnv {
   readonly VITE_SENTRY_DSN?: string;
   /** Deploy environment name reported to Sentry (Cloudflare Pages branch). */
   readonly VITE_DEPLOY_ENV?: string;
-  /** Frontend site URL; defaults to production. */
-  readonly VITE_SITE_URL?: string;
   /** API Worker base URL; defaults to production. */
   readonly VITE_CF_API_URL?: string;
   /** API request timeout in ms; defaults to 12000. */
