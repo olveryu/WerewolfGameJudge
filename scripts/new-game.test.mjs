@@ -916,14 +916,25 @@ function removeEntryBlock(root, file, startLine, endLine) {
   fs.writeFileSync(target, lines.join('\n'));
 }
 
+/** The shipped demo registration migration; the fixture world is frozen at its number. */
+const DEMO_REGISTRATION_MIGRATION = '0065_demo.sql';
+
 /**
  * Strip the shipped demo out of a real-repo copy so the generator
  * accepts the id again: its product files, its registration migration
- * and every shared-file registration entry. Migrations are history
- * and stay; only demo's own registration migration goes, so the
- * regenerated one lands on the same number and must reproduce it.
+ * and every shared-file registration entry. The fixture must also
+ * lose every migration newer than demo's own registration: the
+ * generator numbers the next migration max+1 and derives it from the
+ * latest registration migration, so the regenerated demo migration
+ * lands on demo's number and reproduces the shipped file only in the
+ * repo world as it was when demo was generated.
  */
 function stripShippedDemo(root) {
+  const migrationsDir = path.join(root, 'packages/api-worker/migrations');
+  if (!fs.existsSync(path.join(migrationsDir, DEMO_REGISTRATION_MIGRATION))) {
+    throw new Error(`strip demo migration missing: ${DEMO_REGISTRATION_MIGRATION}`);
+  }
+  const demoNumber = Number.parseInt(DEMO_REGISTRATION_MIGRATION.slice(0, 4), 10);
   for (const dir of [
     'packages/game-engine/src/games/demo',
     'packages/api-worker/src/games/demo',
@@ -934,10 +945,23 @@ function stripShippedDemo(root) {
   for (const file of [
     'docs/demo-game-design.md',
     'e2e/specs/demo.spec.ts.tmpl',
-    'packages/api-worker/migrations/0065_demo.sql',
+    `packages/api-worker/migrations/${DEMO_REGISTRATION_MIGRATION}`,
     'src/test-utils/demoState.ts',
   ]) {
     fs.rmSync(path.join(root, file), { force: true });
+  }
+  // Migrations newer than demo's own registration postdate the world
+  // the shipped demo was generated in. Leaving any of them in would
+  // renumber the regenerated demo migration (0067 once 0066 exists)
+  // and, once a newer registration migration lands, change its
+  // derivation source too — either breaks the byte-exact comparison
+  // against the shipped file. Strip them so the fixture is the repo
+  // as it was when demo was generated.
+  for (const name of fs.readdirSync(migrationsDir)) {
+    const match = /^(\d{4})_[a-z0-9_]+\.sql$/.exec(name);
+    if (match !== null && Number.parseInt(match[1], 10) > demoNumber) {
+      fs.rmSync(path.join(migrationsDir, name), { force: true });
+    }
   }
   removeExactText(root, 'packages/game-engine/src/platform/protocol/gameTypes.ts', "  'demo',\n");
   removeEntryBlock(root, 'packages/game-engine/src/games/registry.ts', '  demo: {', '  },');
