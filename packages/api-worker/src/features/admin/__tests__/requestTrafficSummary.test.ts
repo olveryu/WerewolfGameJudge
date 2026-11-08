@@ -79,6 +79,18 @@ describe('request traffic summary', () => {
           transferredBytes: 600,
         },
         {
+          messageType: 'COMMAND',
+          messageCount: 5,
+          deliveryCount: 5,
+          transferredBytes: 500,
+        },
+        {
+          messageType: 'COMMAND_RESULT',
+          messageCount: 4,
+          deliveryCount: 4,
+          transferredBytes: 400,
+        },
+        {
           messageType: 'STATE_UPDATE',
           messageCount: 3,
           deliveryCount: 12,
@@ -114,11 +126,12 @@ describe('request traffic summary', () => {
       },
       realtime: {
         stateSyncRequests: 6,
+        commandRequests: 5,
         stateUpdateBroadcasts: 3,
         stateUpdateDeliveries: 12,
         stateUpdateBytes: 2400,
-        downlinkDeliveries: 14,
-        downlinkBytes: 3000,
+        downlinkDeliveries: 18,
+        downlinkBytes: 3400,
         invalidClientMessages: 1,
       },
     });

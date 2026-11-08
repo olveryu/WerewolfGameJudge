@@ -35,6 +35,7 @@ const EMPTY_TRAFFIC: AdminRequestTraffic = {
   },
   realtime: {
     stateSyncRequests: 0,
+    commandRequests: 0,
     stateUpdateBroadcasts: 0,
     stateUpdateDeliveries: 0,
     stateUpdateBytes: 0,
@@ -70,6 +71,7 @@ const TRAFFIC_WITH_ROUTE: AdminRequestTraffic = {
   },
   realtime: {
     ...EMPTY_TRAFFIC.realtime,
+    commandRequests: 5,
     stateUpdateBroadcasts: 3,
     stateUpdateDeliveries: 12,
     stateUpdateBytes: 2400,
@@ -178,6 +180,8 @@ describe('RequestTrafficTab', () => {
       }),
     ).toBeDefined();
     expect(screen.getByText('0 / 0（无成功连接，无法计算）')).toBeDefined();
+    expect(screen.getByText('房间命令 / 成功连接')).toBeDefined();
+    expect(screen.getByText('5 / 0（无成功连接，无法计算）')).toBeDefined();
     expect(screen.getByText('状态广播')).toBeDefined();
     expect(screen.getByText('状态推送帧')).toBeDefined();
     expect(screen.getByText('2.3 KB')).toBeDefined();

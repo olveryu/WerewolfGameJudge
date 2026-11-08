@@ -93,6 +93,18 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     });
     this.#gateway = new RoomGateway(ctx, env, {
       readSnapshot: () => (this.#isStorageDeleted ? null : this.#roomState.readSnapshot()),
+      readRoomIdentity: () => {
+        if (this.#isStorageDeleted) return null;
+        const room = this.#roomState.read();
+        return room === null
+          ? null
+          : {
+              roomCode: room.roomCode,
+              roomId: ctx.id.toString(),
+              creationId: room.creationId,
+            };
+      },
+      dispatchCommand: (request) => this.#runPipeline(request),
     });
     void ctx.blockConcurrencyWhile(async () => {
       const initialization = await initializeRoomStorage(ctx.storage, Date.now());
@@ -299,7 +311,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       socket.close(REALTIME_CLOSE_CODE.ROOM_DELETED, 'room_deleted');
       return;
     }
-    this.#gateway.handleMessage(socket, message);
+    await this.#gateway.handleMessage(socket, message);
   }
 
   async webSocketError(socket: WebSocket, error: unknown): Promise<void> {

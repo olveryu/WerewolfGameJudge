@@ -111,6 +111,18 @@ function TrafficStatus({ data }: { data: AdminRequestTraffic }) {
           )}
         </span>
       </div>
+      <div className="admin-status-row">
+        <span className="admin-status-icon" data-tone="info" aria-hidden>
+          <IconPaperPlaneOutline />
+        </span>
+        <span className="admin-status-label">房间命令 / 成功连接</span>
+        <span className="admin-status-value" data-tone="info">
+          {formatStateSyncRatio(
+            data.realtime.commandRequests,
+            data.http.successfulWebSocketConnections,
+          )}
+        </span>
+      </div>
     </section>
   );
 }

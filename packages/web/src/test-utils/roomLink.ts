@@ -182,6 +182,7 @@ export function createLinkHarness(options?: {
       const socket = sockets.latest();
       socket.serverOpen();
       const sync = parseClientFrame(JSON.parse(socket.sent[0] ?? '{}'));
+      if (sync.type !== 'SYNC') throw new Error('Expected the first sent frame to be SYNC');
       socket.serverSend({
         type: 'SYNC_RESULT',
         requestId: sync.requestId,
