@@ -36,10 +36,10 @@ export function getHudSummary(model: SheriffElectionPanelModel): string {
     if (submittedCount >= eligibleCount) {
       // The round closes itself: the settle countdown armed by the
       // last ballot publishes the result on expiry — no Host action.
-      // The suffix shares one implementation with the details panel
-      // (getSettleCountdownSuffix): seconds while they remain, the
-      // static sentence once the deadline is reached (0) or has not
-      // arrived in the snapshot yet (null) — never a literal 0.
+      // The countdown lives only here in the HUD (getSettleCountdownSuffix):
+      // seconds while they remain, the static sentence once the deadline
+      // is reached (0) or has not arrived in the snapshot yet (null) —
+      // never a literal 0. The details panel never prints seconds.
       return `${progress}${getSettleCountdownSuffix(model.remainingSeconds)}`;
     }
     const ballot = view.myBallot;
