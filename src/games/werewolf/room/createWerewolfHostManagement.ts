@@ -248,8 +248,8 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
       // wolf may self-destruct at any moment — the host must end the
       // election on the spot. Every move that applies right now is one
       // equal choice on the card; during a vote only the info remains,
-      // with the vote progress as the note. Once the info is confirmed
-      // the election's own moves stand alone.
+      // with no vote note attached — the count lives only in the HUD.
+      // Once the info is confirmed the election's own moves stand alone.
       const flow = {
         roomStatus: input.roomStatus,
         progress: input.panelFlow,
