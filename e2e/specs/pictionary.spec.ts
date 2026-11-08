@@ -262,8 +262,8 @@ test.describe('Pictionary', () => {
           await offlinePage.getByTestId(TESTIDS.pictionaryTextInput).fill(guesses[3]);
           await offlinePage.context().setOffline(true);
           const finalCountdown = hostPage.getByLabel('剩余 5 秒', { exact: true });
-          await expect(finalCountdown).toHaveText('5', { timeout: 50_000 });
-          await expect(hostPage.getByLabel('剩余 4 秒', { exact: true })).toHaveText('4');
+          await expect(finalCountdown).toHaveText('5秒', { timeout: 50_000 });
+          await expect(hostPage.getByLabel('剩余 4 秒', { exact: true })).toHaveText('4秒');
           await expect(
             hostPage
               .getByTestId(TESTIDS.pictionaryStageFrame)

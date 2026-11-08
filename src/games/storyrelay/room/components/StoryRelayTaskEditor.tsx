@@ -115,13 +115,25 @@ export function StoryRelayTaskEditor({
       )}
       <TextInput
         testID="storyrelay-editor"
-        accessibilityLabel={task.stepIndex === 0 ? '故事开头' : '故事续写'}
+        accessibilityLabel={
+          task.stepIndex === 0
+            ? '故事开头'
+            : task.stepIndex === state.config.numberOfPlayers - 1
+              ? '故事结局'
+              : '故事续写'
+        }
         multiline
         maxLength={STORY_RELAY_TEXT_MAX_LENGTH}
         value={text}
         onChangeText={onChangeText}
         editable={canEdit}
-        placeholder={task.stepIndex === 0 ? '故事从这里开始' : '写下接下来的故事'}
+        placeholder={
+          task.stepIndex === 0
+            ? '故事从这里开始'
+            : task.stepIndex === state.config.numberOfPlayers - 1
+              ? '写下故事的结局'
+              : '写下接下来的故事'
+        }
         placeholderTextColor={colors.textMuted}
         style={styles.editor}
       />

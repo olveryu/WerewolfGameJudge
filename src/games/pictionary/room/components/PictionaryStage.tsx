@@ -2,6 +2,7 @@
 
 import {
   createPictionaryCommand,
+  getPictionaryAnswerDurationSeconds,
   type PictionaryPublicCommand,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
@@ -10,9 +11,11 @@ import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
+import { AnsweringTopBar } from '@/features/room/components/AnsweringTopBar';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
+import { getAnsweringTopBarSeats } from '@/features/room/model/answeringTopBarSeats';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 
@@ -106,6 +109,11 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
 
   return (
     <View style={styles.container}>
+      <AnsweringTopBar
+        remainingSeconds={deadline.remainingSeconds}
+        totalSeconds={getPictionaryAnswerDurationSeconds(state, state.stepIndex)}
+        seats={getAnsweringTopBarSeats(seatModel.source)}
+      />
       <PictionaryTakeover
         seatModel={seatModel}
         isHost={isHost}

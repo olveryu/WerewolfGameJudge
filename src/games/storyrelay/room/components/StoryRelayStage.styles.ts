@@ -19,8 +19,6 @@ export const storyRelayStyles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.small },
   /** Keeps the task frame's wider horizontal padding for the editor column. */
   taskFrameContainer: { paddingHorizontal: spacing.medium },
-  progressList: { paddingHorizontal: spacing.medium, gap: spacing.small },
-  progressItem: { paddingVertical: spacing.tight, gap: spacing.tight },
   title: { ...textStyles.subtitleSemibold, color: colors.text, flexShrink: 1 },
   text: { ...textStyles.body, color: colors.text },
   muted: { ...textStyles.secondary, color: colors.textSecondary },
@@ -61,7 +59,6 @@ export const storyRelayStyles = StyleSheet.create({
     gap: spacing.small,
   },
   shareButton: { flex: 1 },
-  list: { padding: spacing.medium, gap: spacing.small },
   entry: {
     borderBottomWidth: fixed.borderWidth,
     borderBottomColor: colors.borderLight,

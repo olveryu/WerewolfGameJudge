@@ -21,7 +21,7 @@ import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { viewerFor } from '@/test-utils/roomViewer';
-import { playStoryRelayTestRound } from '@/test-utils/storyrelayState';
+import { buildStoryRelayTestState, playStoryRelayTestRound } from '@/test-utils/storyrelayState';
 
 import { createStoryRelayRoomShellModel } from '../storyRelayRoomAdapter';
 
@@ -291,6 +291,19 @@ describe('createStoryRelayRoomShellModel', () => {
         },
       });
     }
+  });
+
+  it.each([
+    [0, '写下故事开头'],
+    [2, '续写故事'],
+    [5, '写下故事结局'],
+  ])('labels the answering bottom progress for step %s as %s', (stepIndex, label) => {
+    const state = buildStoryRelayTestState({ phase: 'answering', stepIndex });
+    const model = shellFor(state, viewerFor('host', { hostUserId: 'host-1' }), null);
+    expect(model.bottomActions).toMatchObject({
+      kind: 'stacked',
+      progress: { current: stepIndex + 1, total: 6, label },
+    });
   });
 
   it('fails fast when a finished round reaches the bottom panel without its review entry', () => {

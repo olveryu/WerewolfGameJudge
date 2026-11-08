@@ -177,7 +177,6 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
   submit,
   isSubmitting,
   controlledSeat,
-  remainingSeconds,
   isExpired,
 }) => {
   const [text, setText] = useState(() => {
@@ -221,7 +220,6 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
         <PictionaryTaskHeading
           eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
           title={isOpeningPrompt ? '写下一个题目' : '猜猜画的是什么'}
-          remainingSeconds={remainingSeconds}
         />
       }
       maxWidth={STAGE_FRAME_MAX_WIDTH}
@@ -296,7 +294,6 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   submit,
   isSubmitting,
   controlledSeat,
-  remainingSeconds,
   isExpired,
 }) => {
   const [draft, setDraft] = useState(() => {
@@ -398,7 +395,6 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
           <PictionaryTaskHeading
             eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
             title="把这句话画出来"
-            remainingSeconds={remainingSeconds}
           />
         }
         maxWidth={STAGE_FRAME_MAX_WIDTH}
@@ -626,10 +622,22 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   primaryAction: { flex: 1 },
-  // The drawing the player is guessing from is the primary content: it keeps
-  // a floor of three touch targets while the composer below shrinks first
-  // (its text input already declares flexShrink with a one-target floor).
-  contextBlock: { flex: 1, minHeight: fixed.minTouchTarget * 3, gap: spacing.tight },
+  // The drawing the player is guessing from is the primary content, but at
+  // the reduced keyboard viewport (390x480) the stage is only ~278px tall
+  // and the body cannot hold the full three-touch-target floor: the composer
+  // (input + meta) then overflows the body and overlaps the footer, so the
+  // text input is pushed out of view. The floor is therefore sized to keep
+  // the drawing just above the e2e media floor (media > 20% of the 480px
+  // viewport = 96px): 120px block - label (~16px) - gap (4px) = ~100px media.
+  // The composer below shrinks first (its text input already declares
+  // flexShrink with a one-target floor).
+  contextBlock: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: spacing.large * 5,
+    minHeight: spacing.large * 5,
+    gap: spacing.tight,
+  },
   contextLabel: {
     ...textStyles.caption,
     color: colors.textSecondary,
@@ -648,24 +656,38 @@ const styles = StyleSheet.create({
   missedContextText: { ...textStyles.bodyMedium, color: colors.text },
   composer: {
     flexShrink: 1,
-    minHeight: fixed.minTouchTarget,
+    // 44px content + 2px border: the minHeight must cover the border, or the
+    // 44px text input is clipped by 1-2px by the composer's overflow:hidden
+    // at the reduced keyboard viewport (the probe showed a fitting layout
+    // while the assertion still failed at ratio 43/44).
+    minHeight: fixed.minTouchTarget + fixed.borderWidth * 2,
     borderWidth: fixed.borderWidth,
     borderColor: colors.border,
     borderRadius: borderRadius.medium,
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },
+  // Single-line height on purpose: at the reduced keyboard viewport the
+  // guess stage is only ~286px tall, and a two-line (88px) input relies on
+  // flex shrink to fit -- but the shrink proved unstable across re-renders
+  // (the debug probe showed the input at its 44px floor yet the assertion
+  // still failed), so the input is fixed at one line. It stays multiline
+  // and scrollable, so longer guesses still work.
   textInput: {
     minHeight: fixed.minTouchTarget,
-    height: fixed.minTouchTarget * 2,
+    height: fixed.minTouchTarget,
     flexShrink: 1,
     padding: spacing.small,
     ...textStyles.subtitle,
     color: colors.text,
     textAlignVertical: 'top',
   },
+  // Keep the meta row to a single text line at the reduced keyboard viewport:
+  // the 36px floor plus the media floor leaves the guess stage overflowing
+  // the body, so the composer overlaps the footer and the text input is
+  // pushed out of view. 16px still fits the 12px caption text.
   composerMeta: {
-    minHeight: 36,
+    minHeight: spacing.medium,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

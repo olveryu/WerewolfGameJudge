@@ -471,7 +471,7 @@ GET /api/games/pictionary/rooms/:roomCode/media/:entryId
 
 ### 9.7 响应式布局
 
-Pictionary 的作答、等待和结果工作区最大宽度固定为 430px 并水平居中。作答使用共享 `RoomTaskFrame`（标题计时由 `PictionaryTaskHeading` 提供），固定页头与底部操作区，中间内容占剩余高度；等待仍使用 `PictionaryStageFrame`，画廊使用独立虚拟列表。`PictionaryTaskMedia` 根据剩余宽高计算 4:3 尺寸，不把完整画布和按钮堆进无限高度滚动区。
+Pictionary 的作答、等待和结果工作区最大宽度固定为 430px 并水平居中。作答使用共享 `RoomTaskFrame`（倒计时与作答状态由共享 `AnsweringTopBar` 提供，标题只剩眉题与标题），固定页头与底部操作区，中间内容占剩余高度；等待仍使用 `PictionaryStageFrame`，画廊使用共享 `GalleryAlbumStage`（与故事接龙同一壳）。`PictionaryTaskMedia` 根据剩余宽高计算 4:3 尺寸，不把完整画布和按钮堆进无限高度滚动区。
 
 手机竖屏按单列排列，作答无需整页滚动即可看到媒体、输入和完成按钮。长题目只在题目区域滚动，色板在选择面板内换行展示。原生端使用 `KeyboardAvoidingView`；Web 监听 `visualViewport` 并从实测容器边界计算键盘遮挡量。文字任务不自动抢焦点弹键盘。
 
@@ -503,13 +503,13 @@ Pictionary 的作答、等待和结果工作区最大宽度固定为 430px 并�
 
 ### 9.8 倒计时组件与行为
 
-`usePictionaryStageDeadline` 从权威 deadline 推导剩余秒数。作答页由共享 `RoomTaskFrame` 展示（标题计时由 `PictionaryTaskHeading` 提供），等待与画廊由 `PictionaryStageHeading` 展示；显示组件不拥有推进逻辑。
+`usePictionaryStageDeadline` 从权威 deadline 推导剩余秒数。作答页由共享 `RoomTaskFrame` 展示（倒计时与作答状态由共享 `AnsweringTopBar` 提供，与故事接龙同一顶栏），等待与画廊由共享 `GalleryAlbumHeading` 展示；显示组件不拥有推进逻辑。
 
 #### 视觉结构
 
 - 阶段栏右侧显示固定宽度的 `mm:ss` 数字，使用等宽数字特性，避免每秒横向跳动。
-- 作答最后五秒在固定计时位置逐秒显示醒目的 5、4、3、2、1，不遮挡画稿、不拦截输入、不影响手势。
-- “不限时”显示文本“∞ 不限时”，不渲染伪造的进度百分比。
+- 作答倒计时在顶栏圆环内逐秒显示剩余秒数，不遮挡画稿、不拦截输入、不影响手势。
+- “不限时”在顶栏圆环内显示文本“不限时”，不渲染伪造的进度百分比。
 - 画册末尾显示“下一本”或“结束揭晓”；非房主显示“本册已揭晓，等待房主继续”。
 - 倒计时区域宽高固定，`9:59`、`00:09`、“正在同步”之间切换不得推动相邻标题。
 
@@ -517,10 +517,9 @@ Pictionary 的作答、等待和结果工作区最大宽度固定为 430px 并�
 
 | 状态                 | 视觉与文字                       | 输入行为                                       |
 | -------------------- | -------------------------------- | ---------------------------------------------- |
-| 剩余大于 10 秒       | 主题主色，正常数字               | 正常作答                                       |
-| 剩余 10 至 4 秒      | warning 色，并显示“即将结束”     | 正常作答，不弹窗打断                           |
-| 剩余 3 至 1 秒       | error 色，数字轻微强调           | 正常作答；reduced motion 下不缩放、不闪烁      |
-| 本地估算到 0         | `00:00` 和“正在同步”             | 立即停止新输入，等待服务端定时结算推进         |
+| 剩余大于 10 秒       | 顶栏圆环靛蓝，正常数字           | 正常作答                                       |
+| 剩余 10 至 1 秒      | 顶栏圆环变红                     | 正常作答，不弹窗打断                           |
+| 本地估算到 0         | 圆环内显示“0秒”，弧为空          | 立即停止新输入，等待服务端定时结算推进         |
 | 服务端判定尚未到期   | 按最新权威状态重新计算           | 恢复输入，不累计重复请求                       |
 | 服务端进入统一收稿   | 保持只读，发送页面当前输入       | 临时失败自动重试，联网后续交，当前页面输入不变 |
 | 网络断开             | 保留 deadline 推算并显示连接状态 | 可继续本地绘画；提交不可用，时间不会暂停       |
@@ -536,7 +535,7 @@ Pictionary 的作答、等待和结果工作区最大宽度固定为 430px 并�
 - 若设备时钟偏快导致提前请求，服务端明确拒绝，客户端按当前 snapshot 恢复显示；不得把提前拒绝显示成系统错误。
 - 同一 `phaseRevision` 的到点请求在客户端保持 single-flight；服务端继续承担最终幂等。
 - 倒计时不会因 React 重渲染、旋转屏幕、打开色板或切换画笔而重置。
-- 作答倒计时仅最后五秒启用紧急读屏播报；画廊三秒播放计时不套用作答紧迫提示。
+- 作答倒计时在剩余 10 秒及以下时顶栏圆环变红；画廊三秒播放计时不套用作答紧迫提示。
 
 ### 9.9 绘画工具规格
 
@@ -639,19 +638,19 @@ Pictionary 的作答、等待和结果工作区最大宽度固定为 430px 并�
 
 建议组件按职责拆分，避免房间 orchestrator 同时管理画布、上传和结果播放器：
 
-| 组件/模块                     | 职责                                                     |
-| ----------------------------- | -------------------------------------------------------- |
-| `PictionaryStage`             | 根据权威 phase 选择页面，不实现各阶段业务细节            |
-| `PictionaryStageHeader`       | 阶段标题、棒数和 deadline 投影                           |
-| `PictionaryDeadlineBar`       | 纯显示倒计时、警示和暂停状态                             |
-| `PictionaryTaskContext`       | 显示上一条文字、画作或空缺占位                           |
-| `PictionaryTextComposer`      | grapheme 输入、校验提示和文字提交                        |
-| `PictionaryDrawingCanvas`     | 指针事件、归一化笔画、渲染和导出                         |
-| `PictionaryDrawingToolbar`    | 工具、色板、笔宽、撤销、重做和清空                       |
-| `PictionaryTransitionView`    | 每棒等待和下一任务类型                                   |
-| `PictionaryAlbumStage`        | 当前画册的虚拟列表、自动滚动和固定控制栏                 |
-| `usePictionaryStageDeadline`  | deadline tick、前后台恢复和 single-flight 到点请求       |
-| `usePictionaryAutoSubmission` | 收稿期自动提交本人及所有机器人当前输入，无内容自动交空白 |
+| 组件/模块                     | 职责                                                           |
+| ----------------------------- | -------------------------------------------------------------- |
+| `PictionaryStage`             | 根据权威 phase 选择页面，不实现各阶段业务细节                  |
+| `PictionaryStageHeader`       | 阶段标题、棒数和 deadline 投影                                 |
+| `PictionaryDeadlineBar`       | 纯显示倒计时、警示和暂停状态                                   |
+| `PictionaryTaskContext`       | 显示上一条文字、画作或空缺占位                                 |
+| `PictionaryTextComposer`      | grapheme 输入、校验提示和文字提交                              |
+| `PictionaryDrawingCanvas`     | 指针事件、归一化笔画、渲染和导出                               |
+| `PictionaryDrawingToolbar`    | 工具、色板、笔宽、撤销、重做和清空                             |
+| `PictionaryTransitionView`    | 每棒等待和下一任务类型                                         |
+| `GalleryAlbumStage`           | 共享画册壳：虚拟列表、自动滚动和固定控制栏，与故事接龙同一实现 |
+| `usePictionaryStageDeadline`  | deadline tick、前后台恢复和 single-flight 到点请求             |
+| `usePictionaryAutoSubmission` | 收稿期自动提交本人及所有机器人当前输入，无内容自动交空白       |
 
 UI 组件只接收已经按当前用户可见性裁剪的 view model。组件不得直接遍历完整接龙状态寻找自己的任务，也不得自行判断服务端权限。
 

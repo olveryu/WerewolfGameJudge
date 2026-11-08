@@ -314,9 +314,9 @@ test('four humans write four turns without restoring unsubmitted input and revea
         fixture.pages[1]!.getByText('由房主控制播放进度。', { exact: true }),
       ).toBeVisible();
       await expect(spectator.page.getByText('由房主控制播放进度。', { exact: true })).toBeVisible();
-      await hostPage.getByRole('button', { name: '下一段', exact: true }).click();
+      await hostPage.getByRole('button', { name: '下一项', exact: true }).click();
       await expect(spectator.page.getByTestId('storyrelay-entry-1')).toBeVisible();
-      await hostPage.getByRole('button', { name: '上一段', exact: true }).click();
+      await hostPage.getByRole('button', { name: '上一项', exact: true }).click();
       await expect(hostPage.getByTestId('storyrelay-entry-1')).toBeVisible();
       await hostPage.getByRole('button', { name: '全部揭晓', exact: true }).click();
       await confirm(hostPage);

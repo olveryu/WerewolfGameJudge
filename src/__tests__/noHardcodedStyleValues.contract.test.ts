@@ -197,6 +197,14 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   // GeneratedAvatar: procedural avatar color palettes (domain-specific rendering)
   'src/components/GeneratedAvatar.tsx': 23,
 
+  // AnsweringTopBar: v3 ring colours (track, arc, submitted green) — the shared
+  // answering bar's own design, not a theme semantic colour
+  'src/features/room/components/AnsweringTopBar.tsx': 3,
+
+  // answeringTopBarSeats: v3 seat avatar palette, cycled by seat order
+  // (domain-specific rendering, same precedent as GeneratedAvatar)
+  'src/features/room/model/answeringTopBarSeats.ts': 6,
+
   // DebugPanel: dark terminal theme (intentionally separate from app theme — dev-only debug console)
   'src/components/DebugPanel.tsx': 28,
 

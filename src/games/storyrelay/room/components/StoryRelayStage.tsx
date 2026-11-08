@@ -7,13 +7,15 @@ import {
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
 import { Button } from '@/components/Button';
+import { AnsweringTopBar } from '@/features/room/components/AnsweringTopBar';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
+import { getAnsweringTopBarSeats } from '@/features/room/model/answeringTopBarSeats';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 import { colors, componentSizes } from '@/theme';
@@ -22,35 +24,6 @@ import { useStoryRelayAutoSubmission } from '../hooks/useStoryRelayAutoSubmissio
 import { StoryRelayGallery } from './StoryRelayGallery';
 import { storyRelayStyles as styles } from './StoryRelayStage.styles';
 import { StoryRelayTaskEditor } from './StoryRelayTaskEditor';
-
-/** Shows public progress without revealing story assignments. */
-function StoryRelayProgress({
-  state,
-  seatModel,
-}: {
-  readonly state: StoryRelayState;
-  readonly seatModel: RoomSeatBoardModel;
-}) {
-  return (
-    <View>
-      <FlatList
-        horizontal
-        data={state.participants}
-        keyExtractor={(participant) => String(participant.seat)}
-        contentContainerStyle={styles.progressList}
-        renderItem={({ item }) => {
-          const seat = seatModel.source.getSeat(item.seat);
-          return (
-            <View style={styles.progressItem}>
-              <Text style={styles.muted}>{item.displayName}</Text>
-              <Text style={styles.muted}>{seat.statusBadge?.label ?? '已收稿'}</Text>
-            </View>
-          );
-        }}
-      />
-    </View>
-  );
-}
 
 /** StoryRelay 接管：转接共用 BotTakeover 组件。 */
 function StoryRelayTakeover({
@@ -165,26 +138,17 @@ function StoryRelayStageContent({
     state.phase === 'gallery' || state.phase === 'ended' || state.phase === 'aborted';
   return (
     <View style={styles.container} testID="storyrelay-stage">
-      {(remainingSeconds !== null || finalizer.status === 'failed') && (
+      {finalizer.status === 'failed' && (
         <View style={[styles.controls, styles.row]}>
-          {remainingSeconds !== null && (
-            <Text style={styles.muted}>剩余 {remainingSeconds} 秒</Text>
-          )}
-          {finalizer.status === 'failed' && (
-            <Button
-              variant="secondary"
-              onPress={finalizer.retry}
-              icon={
-                <Ionicons
-                  name="refresh-outline"
-                  size={componentSizes.icon.sm}
-                  color={colors.text}
-                />
-              }
-            >
-              重试收稿
-            </Button>
-          )}
+          <Button
+            variant="secondary"
+            onPress={finalizer.retry}
+            icon={
+              <Ionicons name="refresh-outline" size={componentSizes.icon.sm} color={colors.text} />
+            }
+          >
+            重试收稿
+          </Button>
         </View>
       )}
       <StageSettleRescue
@@ -202,10 +166,17 @@ function StoryRelayStageContent({
           submit={submit}
           isSubmitting={isSubmitting}
           openReview={openReview}
+          remainingSeconds={remainingSeconds}
+          isOverdue={isOverdue}
+          onRetrySettle={retrySettle}
         />
       ) : (
         <>
-          <StoryRelayProgress state={state} seatModel={seatModel} />
+          <AnsweringTopBar
+            remainingSeconds={remainingSeconds}
+            totalSeconds={state.config.writingDurationSeconds}
+            seats={getAnsweringTopBarSeats(seatModel.source)}
+          />
           <StoryRelayTakeover
             seatModel={seatModel}
             isHost={isHost}

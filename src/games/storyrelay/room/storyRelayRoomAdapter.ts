@@ -115,7 +115,9 @@ function deriveStoryRelayBottomProgress(state: StoryRelayState): NightStepProgre
         ? '稿件已收齐'
         : state.stepIndex === 0
           ? '写下故事开头'
-          : '续写故事',
+          : state.stepIndex === state.config.numberOfPlayers - 1
+            ? '写下故事结局'
+            : '续写故事',
   };
 }
 

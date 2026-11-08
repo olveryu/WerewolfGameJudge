@@ -17,7 +17,7 @@ export const STORY_RELAY_MAX_PLAYERS = 20;
 export const STORY_RELAY_TEXT_MAX_LENGTH = 512;
 export const STORY_RELAY_WRITING_DURATIONS = [45, 60, 90, 120, 180, null] as const;
 export const STORY_RELAY_TRANSITION_DURATIONS = [0, 3, 5, 10] as const;
-export const STORY_RELAY_GALLERY_DURATIONS = [10, 15, 20, 30, null] as const;
+export const STORY_RELAY_GALLERY_DURATIONS = [5, 10, 15, 20, 30, null] as const;
 export const STORY_RELAY_PHASES = [
   'lobby',
   'answering',
@@ -39,7 +39,7 @@ export const DEFAULT_STORY_RELAY_CONFIG: StoryRelayConfig = {
   numberOfPlayers: 6,
   writingDurationSeconds: 90,
   transitionDurationSeconds: 3,
-  galleryItemDurationSeconds: null,
+  galleryItemDurationSeconds: 5,
 };
 
 export const STORY_RELAY_CONFIG_SCHEMA: GameConfigSchema<StoryRelayConfig> = {
