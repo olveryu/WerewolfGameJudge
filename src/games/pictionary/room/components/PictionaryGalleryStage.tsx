@@ -4,179 +4,27 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   createPictionaryCommand,
   type PictionaryCommandInput,
-  type PictionaryEntry,
   type PictionaryPublicCommand,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 import type React from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, type ListRenderItemInfo, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { GalleryAlbumHeading } from '@/features/room/components/GalleryAlbumHeading';
+import { GalleryAlbumStage } from '@/features/room/components/GalleryAlbumStage';
 import { GalleryPagerControls } from '@/features/room/components/GalleryPagerControls';
 import { GalleryPlaybackControls } from '@/features/room/components/GalleryPlaybackControls';
-import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
-import { STAGE_FRAME_MAX_WIDTH } from '@/features/room/components/StageFrame';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
-import {
-  getPictionarySeatDisplayName,
-  PICTIONARY_MISSED_ENTRY_TEXT,
-} from '@/games/pictionary/model/pictionarySelectors';
+import { getPictionarySeatDisplayName } from '@/games/pictionary/model/pictionarySelectors';
 import { pictionaryAlbumPageKey } from '@/games/pictionary/review/toPictionaryReviewDocument';
 import { TESTIDS } from '@/testids';
-import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
+import { colors, fixed, spacing, textStyles } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
-import { getLatestEntryOffset } from '../galleryAlbumLayout';
-import { PictionaryDrawingImage } from './PictionaryDrawingImage';
-import { PictionaryStageHeading } from './PictionaryStageFrame';
-
-/** Album content container spacing; the scroll target math in galleryAlbumLayout mirrors it. */
-const ALBUM_GAP = spacing.large;
-const ALBUM_PADDING = spacing.medium;
-
-interface GalleryEntryViewProps {
-  readonly state: PictionaryState;
-  readonly entry: PictionaryEntry;
-  readonly entryIndex: number;
-}
-
-const GalleryEntryView: React.FC<GalleryEntryViewProps> = ({ state, entry, entryIndex }) => (
-  <View style={styles.revealSection} testID={TESTIDS.pictionaryGalleryEntry}>
-    <View style={styles.revealMeta}>
-      <Text style={styles.entryKind}>
-        {entry.kind === 'drawing' ? '画作' : entry.kind === 'text' ? '文字' : '未完成'}
-      </Text>
-      <Text style={styles.entryPosition}>
-        第 {entryIndex + 1} / {state.stepIndex + 1} 棒
-      </Text>
-    </View>
-    {entry.kind === 'drawing' ? (
-      <PictionaryDrawingImage
-        roomCode={state.roomCode}
-        entryId={entry.id}
-        accessibilityLabel={`${getPictionarySeatDisplayName(state, entry.authorSeat)} 的画作`}
-        controlledSeat={null}
-      />
-    ) : entry.kind === 'text' ? (
-      <View style={styles.textReveal}>
-        <Ionicons name="chatbox-ellipses-outline" size={30} color={colors.primary} />
-        <Text style={styles.revealText}>{entry.text}</Text>
-      </View>
-    ) : (
-      <View style={styles.missedReveal}>
-        <Ionicons name="close-circle-outline" size={36} color={colors.textMuted} />
-        <Text style={styles.missedTitle}>{PICTIONARY_MISSED_ENTRY_TEXT}</Text>
-        <Text style={styles.missedDescription}>
-          原本需要{entry.expectedKind === 'drawing' ? '画一幅画' : '写下猜测'}
-        </Text>
-      </View>
-    )}
-    <View style={styles.authorRow}>
-      <Ionicons
-        name={entry.kind === 'drawing' ? 'brush-outline' : 'person-outline'}
-        size={17}
-        color={colors.textSecondary}
-      />
-      <Text style={styles.authorText}>{getPictionarySeatDisplayName(state, entry.authorSeat)}</Text>
-    </View>
-  </View>
-);
-
-interface PictionaryAlbumStageProps {
-  readonly state: PictionaryState;
-  readonly entries: readonly PictionaryEntry[];
-  readonly eyebrow: string;
-  readonly title: string;
-  readonly description: string;
-  readonly remainingSeconds: number | null;
-  readonly shouldFollowLatestEntry: boolean;
-  readonly controls: React.ReactNode;
-}
-
-const PictionaryAlbumStage: React.FC<PictionaryAlbumStageProps> = ({
-  state,
-  entries,
-  eyebrow,
-  title,
-  description,
-  remainingSeconds,
-  shouldFollowLatestEntry,
-  controls,
-}) => {
-  const listRef = useRef<FlatList<PictionaryEntry>>(null);
-  const [viewportHeight, setViewportHeight] = useState(0);
-  const [headerHeight, setHeaderHeight] = useState<number | null>(null);
-  const [entryHeights, setEntryHeights] = useState<Readonly<Record<string, number>>>({});
-  const latestEntryId = entries.at(-1)?.id;
-  const latestEntryHeight = latestEntryId === undefined ? undefined : entryHeights[latestEntryId];
-  // Leaves room below the latest entry so it can sit at the viewport top.
-  const footerHeight = shouldFollowLatestEntry
-    ? Math.max(0, viewportHeight - (latestEntryHeight ?? 0))
-    : 0;
-  const latestEntryOffset = getLatestEntryOffset({
-    entryIds: entries.map((entry) => entry.id),
-    entryHeights,
-    headerHeight,
-    gap: ALBUM_GAP,
-    paddingTop: ALBUM_PADDING,
-  });
-  const renderEntry = useCallback(
-    ({ item, index }: ListRenderItemInfo<PictionaryEntry>) => (
-      <View
-        onLayout={({ nativeEvent }) => {
-          const height = nativeEvent.layout.height;
-          setEntryHeights((current) =>
-            current[item.id] === height ? current : { ...current, [item.id]: height },
-          );
-        }}
-      >
-        <GalleryEntryView state={state} entry={item} entryIndex={index} />
-      </View>
-    ),
-    [state],
-  );
-  const getEntryKey = useCallback((entry: PictionaryEntry) => entry.id, []);
-
-  // The target depends only on content above the latest entry, so banner-driven
-  // viewport changes cannot move it. footerHeight stays a dependency because the
-  // browser clamps scrollTop while the viewport grows before the footer catches
-  // up; re-issuing the same offset after the footer commit restores alignment.
-  useEffect(() => {
-    if (!shouldFollowLatestEntry || latestEntryOffset === null) return;
-    listRef.current?.scrollToOffset({ offset: latestEntryOffset, animated: true });
-  }, [footerHeight, latestEntryOffset, shouldFollowLatestEntry]);
-
-  return (
-    <View style={styles.albumStage} testID={TESTIDS.pictionaryStageFrame}>
-      <FlatList
-        ref={listRef}
-        testID={TESTIDS.pictionaryGalleryAlbum}
-        data={entries}
-        renderItem={renderEntry}
-        keyExtractor={getEntryKey}
-        initialNumToRender={state.stepIndex + 1}
-        onLayout={({ nativeEvent }) => setViewportHeight(nativeEvent.layout.height)}
-        contentContainerStyle={styles.albumContent}
-        ListFooterComponent={
-          shouldFollowLatestEntry ? <View style={{ height: footerHeight }} /> : null
-        }
-        ListHeaderComponent={
-          <View onLayout={({ nativeEvent }) => setHeaderHeight(nativeEvent.layout.height)}>
-            <PictionaryStageHeading
-              eyebrow={eyebrow}
-              title={title}
-              description={description}
-              remainingSeconds={remainingSeconds}
-            />
-          </View>
-        }
-      />
-      <View style={styles.controlsDock}>{controls}</View>
-    </View>
-  );
-};
+import { PictionaryGalleryEntryView } from './PictionaryGalleryEntryView';
 
 interface PictionaryGalleryStageProps {
   readonly state: PictionaryState;
@@ -276,16 +124,24 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
   );
 
   return (
-    <PictionaryAlbumStage
+    <GalleryAlbumStage
       key={chain.id}
-      state={state}
       entries={visibleEntries}
-      eyebrow={`第 ${gallery.chainIndex + 1} / ${state.config.numberOfPlayers} 本画册`}
-      title={`${getPictionarySeatDisplayName(state, chain.originSeat)} 的接龙`}
-      description={isHost ? '你的播放操作会同步给房间内所有玩家。' : '由房主控制播放进度。'}
-      remainingSeconds={remainingSeconds}
-      shouldFollowLatestEntry
+      renderEntry={(entry, index) => (
+        <PictionaryGalleryEntryView state={state} entry={entry} entryIndex={index} />
+      )}
+      heading={
+        <GalleryAlbumHeading
+          eyebrow={`第 ${gallery.chainIndex + 1} / ${state.config.numberOfPlayers} 本画册`}
+          title={`${getPictionarySeatDisplayName(state, chain.originSeat)} 的接龙`}
+          description={isHost ? '你的播放操作会同步给房间内所有玩家。' : '由房主控制播放进度。'}
+          remainingSeconds={remainingSeconds}
+        />
+      }
+      follow="top"
       controls={controls}
+      testID={TESTIDS.pictionaryStageFrame}
+      listTestID={TESTIDS.pictionaryGalleryAlbum}
     />
   );
 };
@@ -327,84 +183,33 @@ export const PictionaryEndedStage: React.FC<PictionaryEndedStageProps> = ({
   );
 
   return (
-    <PictionaryAlbumStage
+    <GalleryAlbumStage
       key={chain.id}
-      state={state}
       entries={chain.entries}
-      eyebrow={`第 ${localChainIndex + 1} / ${state.chains.length} 本画册`}
-      title={`${getPictionarySeatDisplayName(state, chain.originSeat)} 的接龙`}
-      description={
-        state.phase === 'aborted'
-          ? `第 ${state.roundNumber} 轮未完成，房主已中止。`
-          : `第 ${state.roundNumber} 轮完成，现在可以按自己的节奏回看。`
+      renderEntry={(entry, index) => (
+        <PictionaryGalleryEntryView state={state} entry={entry} entryIndex={index} />
+      )}
+      heading={
+        <GalleryAlbumHeading
+          eyebrow={`第 ${localChainIndex + 1} / ${state.chains.length} 本画册`}
+          title={`${getPictionarySeatDisplayName(state, chain.originSeat)} 的接龙`}
+          description={
+            state.phase === 'aborted'
+              ? `第 ${state.roundNumber} 轮未完成，房主已中止。`
+              : `第 ${state.roundNumber} 轮完成，现在可以按自己的节奏回看。`
+          }
+          remainingSeconds={null}
+        />
       }
-      remainingSeconds={null}
-      shouldFollowLatestEntry={false}
+      follow="none"
       controls={controls}
+      testID={TESTIDS.pictionaryStageFrame}
+      listTestID={TESTIDS.pictionaryGalleryAlbum}
     />
   );
 };
 
 const styles = StyleSheet.create({
-  albumStage: {
-    width: '100%',
-    maxWidth: STAGE_FRAME_MAX_WIDTH,
-    minHeight: 0,
-    flex: 1,
-    alignSelf: 'center',
-  },
-  albumContent: {
-    flexGrow: 1,
-    gap: ALBUM_GAP,
-    padding: ALBUM_PADDING,
-  },
-  controlsDock: {
-    paddingHorizontal: spacing.medium,
-    paddingVertical: spacing.small,
-    borderTopWidth: fixed.borderWidth,
-    borderTopColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  revealSection: {
-    gap: spacing.small,
-    paddingTop: spacing.medium,
-    borderTopWidth: fixed.borderWidth,
-    borderTopColor: colors.borderLight,
-  },
-  revealMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.small,
-  },
-  entryKind: { ...textStyles.bodySemibold, flex: 1, color: colors.primary },
-  entryPosition: { ...textStyles.caption, color: colors.textSecondary },
-  textReveal: {
-    minHeight: 260,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.medium,
-    padding: spacing.large,
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
-    borderRadius: borderRadius.medium,
-    backgroundColor: colors.surface,
-  },
-  revealText: { ...textStyles.titleBold, color: colors.text, textAlign: 'center' },
-  missedReveal: {
-    minHeight: 260,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.small,
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
-    borderRadius: borderRadius.medium,
-    backgroundColor: colors.surface,
-  },
-  missedTitle: roomSurfaceStyles.title,
-  missedDescription: { ...textStyles.secondary, color: colors.textSecondary },
-  authorRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.tight },
-  authorText: { ...textStyles.secondary, color: colors.textSecondary, flex: 1, minWidth: 0 },
   viewerNotice: {
     minHeight: fixed.minTouchTarget,
     flexDirection: 'row',

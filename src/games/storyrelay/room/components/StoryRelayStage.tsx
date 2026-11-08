@@ -202,6 +202,9 @@ function StoryRelayStageContent({
           submit={submit}
           isSubmitting={isSubmitting}
           openReview={openReview}
+          remainingSeconds={remainingSeconds}
+          isOverdue={isOverdue}
+          onRetrySettle={retrySettle}
         />
       ) : (
         <>

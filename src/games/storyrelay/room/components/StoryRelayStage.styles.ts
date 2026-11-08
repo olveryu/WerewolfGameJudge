@@ -61,7 +61,6 @@ export const storyRelayStyles = StyleSheet.create({
     gap: spacing.small,
   },
   shareButton: { flex: 1 },
-  list: { padding: spacing.medium, gap: spacing.small },
   entry: {
     borderBottomWidth: fixed.borderWidth,
     borderBottomColor: colors.borderLight,
