@@ -19,7 +19,7 @@ import type { ApiClient } from '@/platform/http/ApiClient';
 import { ApiError } from '@/platform/http/ApiError';
 
 import { CommandOutbox } from './CommandOutbox';
-import { createCommandTransport } from './commandTransport';
+import { type CommandTransport, createWebSocketCommandTransport } from './commandTransport';
 import type { LinkContext } from './linkReducer';
 import { LinkRuntime } from './LinkRuntime';
 import type { OutboxStorage } from './outboxStorage';
@@ -134,6 +134,7 @@ interface ActiveEpoch<TState extends BaseGameState<string>> {
   readonly epoch: number;
   readonly runtime: LinkRuntime<TState>;
   readonly outbox: CommandOutbox<TState>;
+  readonly transport: CommandTransport<TState>;
   readonly channel: SocketChannel<TState>;
   readonly releaseLease: () => void;
   /** Canonical JSON of the applied room snapshot, computed only when an equal revision arrives. */
@@ -273,10 +274,14 @@ export class RoomLinkImpl<
         onProtocolError: options.onProtocolError,
       },
     });
+    const transport = createWebSocketCommandTransport(channel, {
+      setTimeout: options.setTimeout,
+      clearTimeout: options.clearTimeout,
+    });
     const outbox = new CommandOutbox<TState>({
       identity,
       epoch,
-      transport: createCommandTransport(options.api, options.codec),
+      transport,
       storage: options.outboxStorage,
       newCommandId: options.newCommandId,
       now: options.now,
@@ -296,6 +301,7 @@ export class RoomLinkImpl<
       channel,
       runtime,
       outbox,
+      transport,
       releaseLease,
       appliedFingerprint: null,
       connectWaiters: [],
@@ -305,7 +311,10 @@ export class RoomLinkImpl<
   #handleStatus(active: ActiveEpoch<TState>, status: LinkStatus, context: LinkContext): void {
     if (this.#active !== active) return;
     this.#update({ status });
-    active.outbox.setLiveGeneration(status.kind === 'live' ? context.socketGeneration : null);
+    const generation = status.kind === 'live' ? context.socketGeneration : null;
+    // The transport first: the outbox's replay (below) sends through it immediately.
+    active.transport.setLiveGeneration(generation);
+    active.outbox.setLiveGeneration(generation);
     if (status.kind === 'live') {
       if (this.#fields.room === null) {
         throw new Error('[FAIL-FAST] Link became live without a room snapshot');
@@ -338,6 +347,9 @@ export class RoomLinkImpl<
       case 'STATE_UPDATE':
         this.#applySnapshot(active, frame.snapshot, frame.commandType);
         return;
+      case 'COMMAND_RESULT':
+        active.transport.deliver(frame);
+        return;
       case 'INBOX_HINT':
         this.#options.onInboxWake('hint');
         return;
@@ -366,7 +378,7 @@ export class RoomLinkImpl<
     if (current.room !== null) {
       if (snapshot.revision < current.room.revision) return;
       if (snapshot.revision === current.room.revision) {
-        // Own commands arrive twice at one revision (HTTP result + broadcast); compare bytes then.
+        // Own commands arrive twice at one revision (COMMAND_RESULT + broadcast); compare bytes then.
         active.appliedFingerprint ??= canonicalJson(current.room);
         if (canonicalJson(snapshot) !== active.appliedFingerprint) {
           active.runtime.failProtocol(

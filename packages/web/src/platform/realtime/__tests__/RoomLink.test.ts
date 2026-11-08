@@ -1,9 +1,10 @@
+import { RoomCommandProtocolError } from '@game-judge/game-engine/platform/protocol/commandResult';
 import { REALTIME_CLOSE_CODE } from '@game-judge/game-engine/platform/realtime/closeCodes';
 import { z } from 'zod';
 
-import { ApiError } from '@/platform/http/ApiError';
 import type { OutboxStorage } from '@/platform/realtime/outboxStorage';
-import { createUnsignedAccessToken, jsonResponse, requestJson } from '@/test-utils/httpClient';
+import type { FakeWebSocket } from '@/test-utils/fakeWebSocket';
+import { createUnsignedAccessToken, jsonResponse } from '@/test-utils/httpClient';
 import {
   closeAllLinks,
   createLinkHarness,
@@ -22,13 +23,33 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function committed(commandId: string, revision: number) {
-  return jsonResponse(200, {
+function committedResult(commandId: string, revision: number) {
+  return {
     kind: 'committed',
     commandId,
     snapshot: snapshotAt(revision),
     outcome: { kind: 'success' },
+  } as const;
+}
+
+/** The latest COMMAND frame the harness socket sent, validated like the old HTTP body. */
+function commandFrameSent(socket: FakeWebSocket): { commandId: string; command: unknown } {
+  const frames = socket.sent.map((text) => JSON.parse(text) as Record<string, unknown>);
+  const frame = frames.filter((candidate) => candidate.type === 'COMMAND').at(-1);
+  if (frame === undefined) throw new Error('No COMMAND frame was sent');
+  return commandBodySchema.parse(frame);
+}
+
+/** Answer the sent COMMAND with a decided committed result at `revision`. */
+function answerCommitted(socket: FakeWebSocket, revision: number): string {
+  const frame = commandFrameSent(socket);
+  socket.serverSend({
+    type: 'COMMAND_RESULT',
+    commandId: frame.commandId,
+    outcome: 'decided',
+    result: committedResult(frame.commandId, revision),
   });
+  return frame.commandId;
 }
 
 describe('RoomLink connect and sync', () => {
@@ -183,7 +204,6 @@ describe('RoomLink reconnection', () => {
   it('close() releases the lease, aborts in-flight commands and lets another connect start', async () => {
     const harness = createLinkHarness();
     await harness.goLive();
-    harness.network.respond(() => new Promise<Response>(() => undefined));
     const pending = harness.link.dispatch(
       { type: 'test.increment', amount: 1 },
       { controlledSeat: null, label: '测试', durable: false },
@@ -231,17 +251,16 @@ describe('RoomLink commands', () => {
   it('a committed command converges its snapshot before the caller sees the outcome', async () => {
     const harness = createLinkHarness();
     await harness.goLive(1);
-    harness.network.respond((request) => {
-      const body = commandBodySchema.parse(requestJson(request));
-      expect(body.command).toEqual({ type: 'test.increment', amount: 2 });
-      return committed(body.commandId, 2);
-    });
-
-    const outcome = await harness.link.dispatch(
+    const socket = harness.sockets.latest();
+    const outcomePromise = harness.link.dispatch(
       { type: 'test.increment', amount: 2 },
       { controlledSeat: null, label: '测试', durable: false },
     );
+    await flush();
+    expect(commandFrameSent(socket).command).toEqual({ type: 'test.increment', amount: 2 });
+    answerCommitted(socket, 2);
 
+    const outcome = await outcomePromise;
     expect(outcome.kind).toBe('committed');
     expect(harness.link.getSnapshot().room?.revision).toBe(2);
   });
@@ -249,23 +268,24 @@ describe('RoomLink commands', () => {
   it('shares one command ID between concurrent dispatches of the same intent', async () => {
     const harness = createLinkHarness();
     await harness.goLive();
-    harness.network.respond((request) => {
-      const body = commandBodySchema.parse(requestJson(request));
-      return committed(body.commandId, 2);
-    });
+    const socket = harness.sockets.latest();
+    const aPromise = harness.link.dispatch(
+      { type: 'test.increment', amount: 1 },
+      { controlledSeat: null, label: 'a', durable: false },
+    );
+    const bPromise = harness.link.dispatch(
+      { type: 'test.increment', amount: 1 },
+      { controlledSeat: null, label: 'b', durable: false },
+    );
+    await flush();
+    const commandFrames = socket.sent
+      .map((text) => JSON.parse(text) as { type?: string })
+      .filter((frame) => frame.type === 'COMMAND');
+    expect(commandFrames).toHaveLength(1);
+    answerCommitted(socket, 2);
 
-    const [a, b] = await Promise.all([
-      harness.link.dispatch(
-        { type: 'test.increment', amount: 1 },
-        { controlledSeat: null, label: 'a', durable: false },
-      ),
-      harness.link.dispatch(
-        { type: 'test.increment', amount: 1 },
-        { controlledSeat: null, label: 'b', durable: false },
-      ),
-    ]);
+    const [a, b] = await Promise.all([aPromise, bPromise]);
     expect(a.commandId).toBe(b.commandId);
-    expect(harness.network.requests).toHaveLength(1);
   });
 
   it('a durable command survives an undelivered attempt, is replayed on the next live socket and then settled', async () => {
@@ -273,27 +293,24 @@ describe('RoomLink commands', () => {
     try {
       const harness = createLinkHarness();
       await harness.goLive();
-      harness.network.respond(() => new TypeError('Failed to fetch'));
+      const firstSocket = harness.sockets.latest();
       const decision = harness.link.dispatch(
         { type: 'test.increment', amount: 5 },
         { controlledSeat: null, label: '持久', durable: true },
       );
       await flush();
+      expect(commandFrameSent(firstSocket).commandId).toBe('cmd-1');
       expect(harness.link.getSnapshot().pendingDurableCount).toBe(1);
       expect(harness.outboxStorage.load('room-id-1234', 'host-user')).toHaveLength(1);
 
-      // Drop and reconnect: the new live generation triggers an immediate replay.
-      harness.sockets.latest().serverClose(1006);
+      // Drop the socket before the server answers: the in-flight send settles undelivered.
+      firstSocket.serverClose(1006);
+      await flush();
       await vi.advanceTimersByTimeAsync(600);
       await flush();
       const socket = harness.sockets.latest();
       socket.serverOpen();
       const sync = JSON.parse(socket.sent[0]!) as { requestId: string };
-      harness.network.respond((request) => {
-        const body = commandBodySchema.parse(requestJson(request));
-        expect(body.commandId).toBe('cmd-1');
-        return committed(body.commandId, 2);
-      });
       socket.serverSend({
         type: 'SYNC_RESULT',
         requestId: sync.requestId,
@@ -302,47 +319,63 @@ describe('RoomLink commands', () => {
       });
       await flush();
 
+      // The replay sends the same commandId on the new socket.
+      expect(commandFrameSent(socket).commandId).toBe('cmd-1');
+      answerCommitted(socket, 2);
       await expect(decision).resolves.toMatchObject({ kind: 'committed', commandId: 'cmd-1' });
       expect(harness.link.getSnapshot().pendingDurableCount).toBe(0);
       expect(harness.outboxStorage.load('room-id-1234', 'host-user')).toHaveLength(0);
-      expect(harness.network.requests).toHaveLength(2);
+      const commandFrames = [firstSocket, socket].flatMap((candidate) =>
+        candidate.sent
+          .map((text) => JSON.parse(text) as { type?: string })
+          .filter((frame) => frame.type === 'COMMAND'),
+      );
+      expect(commandFrames).toHaveLength(2);
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it('a 429 keeps a durable command for replay while a 4xx decision error drops it', async () => {
+  it('a throttled result keeps a durable command for replay while a protocol error drops it', async () => {
     vi.useFakeTimers();
     try {
       const harness = createLinkHarness();
       await harness.goLive();
+      const socket = harness.sockets.latest();
 
-      harness.network.respond(() => jsonResponse(429, { reason: 'RATE_LIMITED' }));
       const throttled = harness.link.dispatch(
         { type: 'test.increment', amount: 1 },
         { controlledSeat: null, label: '限流', durable: true },
       );
+      await flush();
+      const throttledId = commandFrameSent(socket).commandId;
+      socket.serverSend({ type: 'COMMAND_RESULT', commandId: throttledId, outcome: 'throttled' });
       await vi.advanceTimersByTimeAsync(0);
       expect(harness.outboxStorage.load('room-id-1234', 'host-user')).toHaveLength(1);
       expect(harness.link.getSnapshot().pendingDurableCount).toBe(1);
       // First rung of the replay ladder: the same commandId goes out again.
-      harness.network.respond((request) => {
-        const body = commandBodySchema.parse(requestJson(request));
-        expect(body.commandId).toBe('cmd-1');
-        return committed(body.commandId, 2);
-      });
       await vi.advanceTimersByTimeAsync(1_000);
+      await flush();
+      expect(commandFrameSent(socket).commandId).toBe('cmd-1');
+      answerCommitted(socket, 2);
       await expect(throttled).resolves.toMatchObject({ kind: 'committed', commandId: 'cmd-1' });
       expect(harness.outboxStorage.load('room-id-1234', 'host-user')).toHaveLength(0);
 
-      harness.network.respond(() => jsonResponse(403, { reason: 'forbidden' }));
       const forbidden = harness.link.dispatch(
         { type: 'test.increment', amount: 2 },
         { controlledSeat: null, label: '拒绝', durable: true },
       );
       const settled = forbidden.catch((error: unknown) => error);
+      await flush();
+      const forbiddenId = commandFrameSent(socket).commandId;
+      socket.serverSend({
+        type: 'COMMAND_RESULT',
+        commandId: forbiddenId,
+        outcome: 'decided',
+        result: committedResult('cmd-other', 2),
+      });
       await vi.advanceTimersByTimeAsync(0);
-      await expect(settled).resolves.toBeInstanceOf(ApiError);
+      await expect(settled).resolves.toBeInstanceOf(RoomCommandProtocolError);
       expect(harness.outboxStorage.load('room-id-1234', 'host-user')).toHaveLength(0);
       expect(harness.link.getSnapshot().pendingDurableCount).toBe(0);
     } finally {
@@ -353,7 +386,6 @@ describe('RoomLink commands', () => {
   it('restores persisted durable commands into a new link and replays them once live', async () => {
     const first = createLinkHarness();
     await first.goLive();
-    first.network.respond(() => new TypeError('Failed to fetch'));
     void first.link.dispatch(
       { type: 'test.increment', amount: 9 },
       { controlledSeat: null, label: '持久', durable: true },
@@ -362,60 +394,174 @@ describe('RoomLink commands', () => {
     first.link.close();
 
     const second = createLinkHarness({ outboxStorage: first.outboxStorage });
-    second.network.respond((request) => {
-      const body = commandBodySchema.parse(requestJson(request));
-      expect(body.command).toEqual({ type: 'test.increment', amount: 9 });
-      return committed(body.commandId, 2);
-    });
     await second.goLive();
+    await flush();
+    const socket = second.sockets.latest();
+    expect(commandFrameSent(socket).command).toEqual({ type: 'test.increment', amount: 9 });
+    answerCommitted(socket, 2);
     await settle();
-    expect(second.network.requests).toHaveLength(1);
     expect(second.link.getSnapshot().pendingDurableCount).toBe(0);
   });
 
-  it('a 404 no_state is unavailable, a 429 is undelivered, any other 4xx throws to the caller', async () => {
+  it('an unavailable result is unavailable, a throttled result is undelivered, a mismatched result throws to the caller', async () => {
     const harness = createLinkHarness();
     await harness.goLive();
-    harness.network.respond(() => jsonResponse(404, { success: false, reason: 'no_state' }));
-    await expect(
-      harness.link.dispatch(
-        { type: 'test.increment', amount: 1 },
-        { controlledSeat: null, label: 'x', durable: false },
-      ),
-    ).resolves.toMatchObject({ kind: 'unavailable' });
+    const socket = harness.sockets.latest();
 
-    harness.network.respond(() => jsonResponse(429, { success: false, reason: 'RATE_LIMITED' }));
-    await expect(
-      harness.link.dispatch(
-        { type: 'test.increment', amount: 2 },
-        { controlledSeat: null, label: 'x', durable: false },
-      ),
-    ).resolves.toEqual({ kind: 'undelivered', commandId: 'cmd-2', cause: 'throttled' });
+    const unavailable = harness.link.dispatch(
+      { type: 'test.increment', amount: 1 },
+      { controlledSeat: null, label: 'x', durable: false },
+    );
+    await flush();
+    socket.serverSend({
+      type: 'COMMAND_RESULT',
+      commandId: commandFrameSent(socket).commandId,
+      outcome: 'unavailable',
+    });
+    await expect(unavailable).resolves.toMatchObject({ kind: 'unavailable' });
 
-    harness.network.respond(() => jsonResponse(403, { success: false, reason: 'forbidden' }));
-    await expect(
-      harness.link.dispatch(
-        { type: 'test.increment', amount: 3 },
-        { controlledSeat: null, label: 'x', durable: false },
-      ),
-    ).rejects.toBeInstanceOf(ApiError);
+    const throttled = harness.link.dispatch(
+      { type: 'test.increment', amount: 2 },
+      { controlledSeat: null, label: 'x', durable: false },
+    );
+    await flush();
+    socket.serverSend({
+      type: 'COMMAND_RESULT',
+      commandId: commandFrameSent(socket).commandId,
+      outcome: 'throttled',
+    });
+    await expect(throttled).resolves.toEqual({
+      kind: 'undelivered',
+      commandId: 'cmd-2',
+      cause: 'throttled',
+    });
+
+    const mismatched = harness.link.dispatch(
+      { type: 'test.increment', amount: 3 },
+      { controlledSeat: null, label: 'x', durable: false },
+    );
+    await flush();
+    socket.serverSend({
+      type: 'COMMAND_RESULT',
+      commandId: commandFrameSent(socket).commandId,
+      outcome: 'decided',
+      result: committedResult('cmd-other', 2),
+    });
+    await expect(mismatched).rejects.toBeInstanceOf(RoomCommandProtocolError);
   });
 
   it('a late response for a previous epoch is reported as cancelled and never applied', async () => {
     const harness = createLinkHarness();
     await harness.goLive(1);
-    let release: ((response: Response) => void) | null = null;
-    harness.network.respond(() => new Promise<Response>((resolve) => (release = resolve)));
     const pending = harness.link.dispatch(
       { type: 'test.increment', amount: 1 },
       { controlledSeat: null, label: 'x', durable: false },
     );
     await flush();
     harness.link.close();
-    release!(committed('cmd-1', 9));
     await expect(pending).resolves.toMatchObject({ kind: 'cancelled' });
     await harness.goLive(1);
     expect(harness.link.getSnapshot().room?.revision).toBe(1);
+    // The late result arrives on the new epoch's socket: unknown command, ignored.
+    harness.sockets.latest().serverSend({
+      type: 'COMMAND_RESULT',
+      commandId: 'cmd-1',
+      outcome: 'decided',
+      result: committedResult('cmd-1', 9),
+    });
+    await flush();
+    expect(harness.link.getSnapshot().room?.revision).toBe(1);
+    expect(harness.protocolErrors).toHaveLength(0);
+  });
+
+  it('a non-durable command while the link is not live fails fast as undelivered', async () => {
+    const harness = createLinkHarness();
+    const connected = harness.link.connect(IDENTITY, new AbortController().signal);
+    await flush();
+    const outcome = await harness.link.dispatch(
+      { type: 'test.increment', amount: 1 },
+      { controlledSeat: null, label: 'x', durable: false },
+    );
+    expect(outcome).toEqual({ kind: 'undelivered', commandId: 'cmd-1', cause: 'network' });
+    expect(harness.sockets.latest().sent).toHaveLength(0);
+    harness.link.close();
+    await expect(connected).rejects.toBeInstanceOf(Error);
+  });
+
+  it('a command in flight when the socket drops settles as undelivered', async () => {
+    vi.useFakeTimers();
+    try {
+      const harness = createLinkHarness();
+      await harness.goLive();
+      const socket = harness.sockets.latest();
+      const pending = harness.link.dispatch(
+        { type: 'test.increment', amount: 1 },
+        { controlledSeat: null, label: 'x', durable: false },
+      );
+      await flush();
+      expect(commandFrameSent(socket).commandId).toBe('cmd-1');
+      socket.serverClose(1006);
+      await expect(pending).resolves.toEqual({
+        kind: 'undelivered',
+        commandId: 'cmd-1',
+        cause: 'network',
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a command with no answer times out after 12 seconds', async () => {
+    vi.useFakeTimers();
+    try {
+      const harness = createLinkHarness();
+      await harness.goLive();
+      const pending = harness.link.dispatch(
+        { type: 'test.increment', amount: 1 },
+        { controlledSeat: null, label: 'x', durable: false },
+      );
+      await flush();
+      await vi.advanceTimersByTimeAsync(12_000);
+      await expect(pending).resolves.toEqual({
+        kind: 'undelivered',
+        commandId: 'cmd-1',
+        cause: 'timeout',
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a late COMMAND_RESULT for a timed-out command is ignored', async () => {
+    vi.useFakeTimers();
+    try {
+      const harness = createLinkHarness();
+      await harness.goLive();
+      const socket = harness.sockets.latest();
+      const pending = harness.link.dispatch(
+        { type: 'test.increment', amount: 1 },
+        { controlledSeat: null, label: 'x', durable: false },
+      );
+      await flush();
+      await vi.advanceTimersByTimeAsync(12_000);
+      await expect(pending).resolves.toEqual({
+        kind: 'undelivered',
+        commandId: 'cmd-1',
+        cause: 'timeout',
+      });
+      socket.serverSend({
+        type: 'COMMAND_RESULT',
+        commandId: 'cmd-1',
+        outcome: 'decided',
+        result: committedResult('cmd-1', 9),
+      });
+      await flush();
+      expect(harness.link.getSnapshot().status).toEqual({ kind: 'live' });
+      expect(harness.link.getSnapshot().room?.revision).toBe(1);
+      expect(harness.protocolErrors).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
