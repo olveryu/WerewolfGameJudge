@@ -622,20 +622,20 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   primaryAction: { flex: 1 },
-  // The drawing the player is guessing from is the primary content: it keeps
-  // a floor of three touch targets while the composer below shrinks first
-  // (its text input already declares flexShrink with a one-target floor).
-  // flexBasis matches the floor on purpose: with `flex: 1` the basis is 0,
-  // so the flex deficit ignores the floor and the composer never shrinks —
-  // the clamped contextBlock then overflows the body by the shortfall
-  // (the shared top bar leaves the guess stage ~4px short at the reduced
-  // keyboard viewport) and pushes the text input out of view. Basing the
-  // block on its floor makes the deficit real, so the composer yields first.
+  // The drawing the player is guessing from is the primary content, but at
+  // the reduced keyboard viewport (390x480) the stage is only ~278px tall
+  // and the body cannot hold the full three-touch-target floor: the composer
+  // (input + meta) then overflows the body and overlaps the footer, so the
+  // text input is pushed out of view. The floor is therefore sized to keep
+  // the drawing just above the e2e media floor (media > 20% of the 480px
+  // viewport = 96px): 120px block - label (~16px) - gap (4px) = ~100px media.
+  // The composer below shrinks first (its text input already declares
+  // flexShrink with a one-target floor).
   contextBlock: {
     flexGrow: 1,
     flexShrink: 1,
-    flexBasis: fixed.minTouchTarget * 3,
-    minHeight: fixed.minTouchTarget * 3,
+    flexBasis: spacing.large * 5,
+    minHeight: spacing.large * 5,
     gap: spacing.tight,
   },
   contextLabel: {
@@ -672,8 +672,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlignVertical: 'top',
   },
+  // Keep the meta row to a single text line at the reduced keyboard viewport:
+  // the 36px floor plus the media floor leaves the guess stage overflowing
+  // the body, so the composer overlaps the footer and the text input is
+  // pushed out of view. 16px still fits the 12px caption text.
   composerMeta: {
-    minHeight: 36,
+    minHeight: spacing.medium,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

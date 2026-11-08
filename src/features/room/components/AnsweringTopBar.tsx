@@ -156,7 +156,10 @@ export const AnsweringTopBar: React.FC<AnsweringTopBarProps> = ({
 const styles = StyleSheet.create({
   bar: {
     backgroundColor: colors.surface,
-    marginTop: spacing.medium,
+    // 8px, not 16px: at the reduced keyboard viewport (390x480) the Pictionary
+    // guess stage is only ~278px tall, and the extra 8px above the bar is the
+    // difference between the composer fitting and overlapping the footer.
+    marginTop: spacing.small,
     marginHorizontal: spacing.medium,
     borderRadius: borderRadius.full,
     paddingVertical: spacing.small,
