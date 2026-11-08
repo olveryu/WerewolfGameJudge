@@ -431,53 +431,9 @@ export class PictionaryRoomPage extends RoomPage {
         ? TESTIDS.pictionaryDrawingSubmitButton
         : TESTIDS.pictionaryTextSubmitButton,
     );
-    // TEMP DEBUG: measure the real layout before asserting.
-    const probe = await this.page.evaluate(() => {
-      const pick = (testId: string) => {
-        const el = document.querySelector(`[data-testid="${testId}"]`);
-        if (!el) return null;
-        const r = el.getBoundingClientRect();
-        return {
-          x: Math.round(r.x),
-          y: Math.round(r.y),
-          w: Math.round(r.width),
-          h: Math.round(r.height),
-        };
-      };
-      return {
-        inner: { w: window.innerWidth, h: window.innerHeight },
-        scroll: { x: window.scrollX, y: window.scrollY },
-        docScroll: document.documentElement.scrollHeight,
-        input: pick('pictionary-text-input'),
-        button: pick('pictionary-text-submit-button'),
-        media: pick('pictionary-drawing-image-button'),
-        topBar: pick('answering-top-bar'),
-        stage: pick('pictionary-stage-frame'),
-      };
-    });
-    process.stdout.write(`[DEBUG fitsViewport kind=${kind}] ${JSON.stringify(probe)}\n`);
     await expect(button).toBeInViewport({ ratio: 1 });
-    if (kind !== 'drawing') {
-      // TEMP DEBUG: re-measure right before the input assertion, because the
-      // probe above and the assertion disagree -- the layout shifts between
-      // the two, and this captures the layout the assertion actually sees.
-      const probe2 = await this.page.evaluate(() => {
-        const el = document.querySelector('[data-testid="pictionary-text-input"]');
-        if (!el) return null;
-        const r = el.getBoundingClientRect();
-        const btn = document.querySelector('[data-testid="pictionary-text-submit-button"]');
-        const br = btn ? btn.getBoundingClientRect() : null;
-        return {
-          innerH: window.innerHeight,
-          input: { y: Math.round(r.y), h: Math.round(r.height) },
-          button: br ? { y: Math.round(br.y), h: Math.round(br.height) } : null,
-        };
-      });
-      process.stdout.write(
-        `[DEBUG fitsViewport input-assert kind=${kind}] ${JSON.stringify(probe2)}\n`,
-      );
+    if (kind !== 'drawing')
       await expect(this.page.getByTestId(TESTIDS.pictionaryTextInput)).toBeInViewport({ ratio: 1 });
-    }
     if (kind !== 'prompt') {
       await expect(media).toBeInViewport({ ratio: 1 });
       const bounds = await media.boundingBox();
