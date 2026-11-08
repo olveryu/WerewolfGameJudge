@@ -162,7 +162,15 @@ export function observeCommandFrames(page: Page): CommandFrameObservation {
       });
     },
     waitForResult(commandId: string, timeoutMs = 30_000): Promise<ObservedCommandResult> {
-      // Future frames only, like waitForResponse.
+      // A result for this commandId is unambiguous (commandIds are unique
+      // per dispatch), so return one already recorded before waiting for a
+      // future frame: the server can answer while the caller is still
+      // finishing the action that sent the command (e.g. waiting for a
+      // confirm dialog to close), and a future-only wait would miss it.
+      // waitForCommand stays future-only: a type repeats across actions,
+      // so an old frame must not satisfy it.
+      const recorded = received.find((frame) => frame.commandId === commandId);
+      if (recorded !== undefined) return Promise.resolve(recorded);
       return new Promise<ObservedCommandResult>((resolve, reject) => {
         const timer = setTimeout(
           () => reject(new Error(`No COMMAND_RESULT for ${commandId} within ${timeoutMs}ms`)),
