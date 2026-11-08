@@ -5,6 +5,7 @@ import { expect, type Page, test } from '@playwright/test';
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createColdRoomContext, createPlayerContexts } from '../fixtures/app.fixture';
 import { confirmAlert } from '../helpers/alerts';
+import { observeCommandFrames } from '../helpers/command-frames';
 import {
   closeReviewDialog,
   downloadReviewImage,
@@ -30,11 +31,10 @@ const MIN_EDITOR_VIEWPORT_FRACTION = 0.1;
  * is the only expiry path — no client sends expire, ever. The public
  * `phase.expire` command is deleted; the countdown is display-only.
  *
- * The tests below prove that discipline from observed /room/command
- * traffic, never from UI text: every page gets a passive route handler
- * that logs expire sends and always calls route.continue(), so delivery
- * is never altered or swallowed. The observer still watches for the
- * deleted command type, so any send — by any client, at any time —
+ * The tests below prove that discipline from observed COMMAND frames,
+ * never from UI text: every page gets a passive frame observer that logs
+ * expire sends without touching delivery. The observer still watches for
+ * the deleted command type, so any send — by any client, at any time —
  * fails the zero assertions below. Only host/seated contexts are driven
  * here, per the 2026-11-04 ruling on E2E scope; the remaining
  * eligibility cases stay covered at hook/contract level, not in E2E.
@@ -76,31 +76,21 @@ function expirePhaseRevision(body: unknown): number | null {
 
 /**
  * Log every storyrelay.phase.expire send on one page, timestamped, without
- * touching delivery: the handler always continues the request, matching
- * the room-narration precedent.
+ * touching delivery: the shared frame observer only records.
  */
 async function observeExpireCommands(page: Page): Promise<ExpireObservation> {
-  const seen: ObservedExpire[] = [];
-  await page.route('**/room/command', async (route, request) => {
-    if (request.method() === 'POST') {
-      let body: unknown = null;
-      try {
-        body = request.postDataJSON();
-      } catch {
-        body = null;
-      }
-      // -1 means an expire send whose body carried no readable
-      // phaseRevision; it still counts as a send and stays visible
-      // in the attached observation log.
-      if (isExpireCommand(body)) {
-        seen.push({ phaseRevision: expirePhaseRevision(body) ?? -1, atMs: Date.now() });
-      }
-    }
-    await route.continue();
-  });
+  const observation = observeCommandFrames(page);
   return {
-    expires: () => seen,
-    stop: () => page.unroute('**/room/command'),
+    expires: () =>
+      observation.commands().flatMap((frame) => {
+        const body = { command: frame.command };
+        // -1 means an expire send whose command carried no readable
+        // phaseRevision; it still counts as a send and stays visible
+        // in the attached observation log.
+        if (!isExpireCommand(body)) return [];
+        return [{ phaseRevision: expirePhaseRevision(body) ?? -1, atMs: frame.atMs }];
+      }),
+    stop: () => observation.stop(),
   };
 }
 

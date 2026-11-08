@@ -580,7 +580,7 @@ jobs:
           - shard: '5'
             specs: 'werewolf-night-check.spec.ts werewolf-night-piper.spec.ts werewolf-night-wolf-girl.spec.ts'
           - shard: '6'
-            specs: 'resilience-reconnect.spec.ts werewolf-night-flow.spec.ts resilience-db-recovery.spec.ts'
+            specs: 'resilience-reconnect.spec.ts werewolf-night-flow.spec.ts resilience-db-recovery.spec.ts realtime-command-transport.spec.ts'
           # avalon runs solo: a single 10-player full-game test (~7min,
           # 20min spec timeout) that cannot be split across shards.
           - shard: '7'

@@ -5,6 +5,7 @@ import { expect, type Page, test } from '@playwright/test';
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { pressAlertButton } from '../helpers/alerts';
+import { observeCommandFrames } from '../helpers/command-frames';
 import { setOffline } from '../helpers/resilience';
 import { waitForRoomScreenReady } from '../helpers/waits';
 import { HomePage } from '../pages/HomePage';
@@ -18,11 +19,10 @@ test.use({ actionTimeout: 15_000 });
  * is the only expiry path — no client sends expire, ever. The public
  * `phase.expire` command is deleted; the countdown is display-only.
  *
- * The tests below prove that discipline from observed /room/command
- * traffic, never from UI text: every page gets a passive route handler
- * that logs expire sends and always calls route.continue(), so delivery
- * is never altered or swallowed. The observer still watches for the
- * deleted command type, so any send — by any client, at any time —
+ * The tests below prove that discipline from observed COMMAND frames,
+ * never from UI text: every page gets a passive frame observer that logs
+ * expire sends without touching delivery. The observer still watches for
+ * the deleted command type, so any send — by any client, at any time —
  * fails the zero assertions below. Only host/seated contexts are driven
  * here, per the 2026-11-04 ruling on E2E scope; the remaining
  * eligibility cases stay covered at hook/contract level, not in E2E.
@@ -71,34 +71,25 @@ function expireIdentity(body: unknown): { phaseRevision: number; turnIndex: numb
 
 /**
  * Log every drawguess.phase.expire send on one page, timestamped, without
- * touching delivery: the handler always continues the request, matching
- * the room-narration precedent.
+ * touching delivery: the shared frame observer only records.
  */
 async function observeExpireCommands(page: Page): Promise<ExpireObservation> {
-  const seen: ObservedExpire[] = [];
-  await page.route('**/room/command', async (route, request) => {
-    if (request.method() === 'POST') {
-      let body: unknown = null;
-      try {
-        body = request.postDataJSON();
-      } catch {
-        body = null;
-      }
-      // A send whose body carries no readable identity still counts
-      // as a send (phaseRevision/turnIndex -1) and stays visible in
-      // the attached observation log.
-      const identity = expireIdentity(body);
-      if (identity !== null) {
-        seen.push({ ...identity, atMs: Date.now() });
-      } else if (isExpireCommand(body)) {
-        seen.push({ phaseRevision: -1, turnIndex: -1, atMs: Date.now() });
-      }
-    }
-    await route.continue();
-  });
+  const observation = observeCommandFrames(page);
   return {
-    expires: () => seen,
-    stop: () => page.unroute('**/room/command'),
+    expires: () =>
+      observation.commands().flatMap((frame) => {
+        const body = { command: frame.command };
+        const identity = expireIdentity(body);
+        if (identity !== null) return [{ ...identity, atMs: frame.atMs }];
+        // A send whose command carries no readable identity still counts
+        // as a send (phaseRevision/turnIndex -1) and stays visible in
+        // the attached observation log.
+        if (isExpireCommand(body)) {
+          return [{ phaseRevision: -1, turnIndex: -1, atMs: frame.atMs }];
+        }
+        return [];
+      }),
+    stop: () => observation.stop(),
   };
 }
 

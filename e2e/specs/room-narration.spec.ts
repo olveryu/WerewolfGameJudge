@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { AUDIO_WAITING_LABEL } from '../../packages/web/src/features/room/model/RoomBottomActions';
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
+import { gateCommandFrames } from '../helpers/command-frames';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { HomePage } from '../pages/HomePage';
@@ -20,7 +21,12 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
     const playerPages = fixture.pages.slice(0, playerCount);
     const spectatorPage = fixture.pages[playerCount]!;
     const hostRoom = new RoomPage(hostPage);
-    const audioAckGate = Promise.withResolvers<void>();
+    // Hold the host's audio-ack COMMAND frame at the socket so the
+    // announcement state stays visible while the viewports are checked.
+    // The gate must be installed before the host enters the room: the
+    // socket is created on room entry, and later routes miss it.
+    const ackGate = await gateCommandFrames(hostPage);
+    const heldAckPromise = ackGate.waitForHeld(`${gameId}.audio.ack`);
 
     try {
       await test.step('建房、入座并查看身份', async () => {
@@ -50,24 +56,6 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
         for (const page of playerPages) {
           await new RoomPage(page).viewRole();
         }
-      });
-
-      await hostPage.route('**/room/command', async (route, request) => {
-        if (request.method() === 'POST') {
-          const body: unknown = request.postDataJSON();
-          if (
-            typeof body === 'object' &&
-            body !== null &&
-            'command' in body &&
-            typeof body.command === 'object' &&
-            body.command !== null &&
-            'type' in body.command &&
-            body.command.type === `${gameId}.audio.ack`
-          ) {
-            await audioAckGate.promise;
-          }
-        }
-        await route.continue();
       });
 
       await hostRoom.startGame();
@@ -120,7 +108,8 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
       }
 
       await test.step('真实播报 ack 后各视角移除状态', async () => {
-        audioAckGate.resolve();
+        const heldAck = await heldAckPromise;
+        heldAck.release();
         for (const page of [hostPage, playerPages[1]!, spectatorPage]) {
           await expect(page.getByTestId(TESTIDS.audioWaitingMessage)).toHaveCount(0, {
             timeout: 45_000,
@@ -128,8 +117,7 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
         }
       });
     } finally {
-      audioAckGate.resolve();
-      await hostPage.unrouteAll({ behavior: 'wait' });
+      await ackGate.stop();
       await closeAll(fixture);
     }
   });

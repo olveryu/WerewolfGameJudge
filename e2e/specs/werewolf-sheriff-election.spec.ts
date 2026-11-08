@@ -43,7 +43,7 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     // below would time out. Wait for the host's audio ack (the
     // server-side gate lifting) before asserting, like a host who
     // waits out the announcement.
-    await waitForHostAudioAck(setup.hostPage);
+    await waitForHostAudioAck(setup.hostCommands);
     await hostElection.expectHostRegistrationActions('register');
     const desktopViewport = setup.hostPage.viewportSize();
     if (desktopViewport === null) throw new Error('Sheriff E2E requires a viewport');

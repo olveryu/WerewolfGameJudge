@@ -3,6 +3,7 @@ import { expect, type Page, test } from '@playwright/test';
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { confirmAlert, pressAlertButton } from '../helpers/alerts';
+import { gateCommandFrames, type HeldCommand } from '../helpers/command-frames';
 import {
   closeReviewDialog,
   downloadReviewImage,
@@ -36,6 +37,12 @@ for (const viewport of [
     const hostRoom = new RoomPage(hostPage);
     const joinerRooms = joinerPages.map((page) => new RoomPage(page));
     const allPages = [hostPage, ...joinerPages];
+    // Hold the first reveal COMMAND frame at the socket so the test can
+    // assert the buttons stay disabled while it is in flight. The gate
+    // must be installed before the host enters the room: the socket is
+    // created on room entry, and later routes miss it.
+    const revealGate = await gateCommandFrames(hostPage);
+    let heldRevealPromise: Promise<HeldCommand> | null = null;
     try {
       await new HomePage(hostPage).clickCreateRoom('undercover');
       // 分类来自线上词库 inventory：e2e 词库只有部分分类，schema 全集里的其余分类不可选。
@@ -212,17 +219,16 @@ for (const viewport of [
             path: testInfo.outputPath(`undercover-confirm-${viewport.width}.png`),
             animations: 'disabled',
           });
-          await hostPage.route(
-            '**/room/command',
-            async (route) => {
-              await expect(hostPage.getByTestId(TESTIDS.undercoverReveal)).toBeDisabled();
-              await expect(hostPage.getByTestId(TESTIDS.undercoverRevealCancel)).toBeDisabled();
-              await route.continue();
-            },
-            { times: 1 },
-          );
+          heldRevealPromise = revealGate.waitForHeld('undercover.round.reveal');
         }
         await hostPage.getByTestId(TESTIDS.undercoverReveal).click();
+        if (heldRevealPromise !== null) {
+          const heldReveal = await heldRevealPromise;
+          heldRevealPromise = null;
+          await expect(hostPage.getByTestId(TESTIDS.undercoverReveal)).toBeDisabled();
+          await expect(hostPage.getByTestId(TESTIDS.undercoverRevealCancel)).toBeDisabled();
+          heldReveal.release();
+        }
         await expect(modal).toHaveCount(0);
         // Revealed civilians read 「已出局 · 平民」; civilians still in play carry no label.
         for (const [index, civilian] of civilians.entries()) {
@@ -328,6 +334,7 @@ for (const viewport of [
         '分配角色',
       );
     } finally {
+      await revealGate.stop();
       await closeAll(fixture);
     }
   });
