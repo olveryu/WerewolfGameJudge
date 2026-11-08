@@ -656,7 +656,11 @@ const styles = StyleSheet.create({
   missedContextText: { ...textStyles.bodyMedium, color: colors.text },
   composer: {
     flexShrink: 1,
-    minHeight: fixed.minTouchTarget,
+    // 44px content + 2px border: the minHeight must cover the border, or the
+    // 44px text input is clipped by 1-2px by the composer's overflow:hidden
+    // at the reduced keyboard viewport (the probe showed a fitting layout
+    // while the assertion still failed at ratio 43/44).
+    minHeight: fixed.minTouchTarget + fixed.borderWidth * 2,
     borderWidth: fixed.borderWidth,
     borderColor: colors.border,
     borderRadius: borderRadius.medium,

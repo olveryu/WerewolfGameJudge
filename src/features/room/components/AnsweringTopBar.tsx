@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     marginTop: 0,
     marginHorizontal: spacing.medium,
     borderRadius: borderRadius.full,
-    paddingVertical: spacing.tight,
+    paddingVertical: spacing.micro,
     paddingHorizontal: spacing.small,
     flexDirection: 'row',
     alignItems: 'center',
