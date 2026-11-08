@@ -1,9 +1,9 @@
 /**
- * Realtime wire protocol v2 shared by the Worker room gateway and room clients.
+ * Realtime wire protocol v3 shared by the Worker room gateway and room clients.
  *
- * Client → server frames: `SYNC` only. The keepalive is the literal text `ping`, answered at the
+ * Client → server frames: `SYNC`, `COMMAND`. The keepalive is the literal text `ping`, answered at the
  * edge by the Durable Object auto-response and never parsed here.
- * Server → client frames: `SYNC_RESULT`, `STATE_UPDATE`, `INBOX_HINT`.
+ * Server → client frames: `SYNC_RESULT`, `STATE_UPDATE`, `COMMAND_RESULT`, `INBOX_HINT`.
  *
  * Every parser is fail-fast: unknown fields, wrong types and unsupported discriminators throw
  * {@link RealtimeProtocolError}. Callers that read frames off a socket treat any throw as a
@@ -12,6 +12,8 @@
 
 import { z } from 'zod';
 
+import { parseRoomCommandResult, type RoomCommandResult } from '../protocol/commandResult';
+import { ROOM_CODE_PATTERN } from '../protocol/roomCode';
 import {
   type BaseGameState,
   type GameStateCodec,
@@ -28,9 +30,12 @@ export class RealtimeProtocolError extends Error {
 }
 
 const requestIdSchema = z.string().min(1);
+const commandIdSchema = z.string().min(1).max(200);
+const roomCodeSchema = z.string().regex(ROOM_CODE_PATTERN);
 const revisionSchema = z.number().int().positive();
 const commandTypeSchema = z.string().min(1).nullable();
 const syncResultHeaderSchema = z.strictObject({ requestId: requestIdSchema });
+const commandResultHeaderSchema = z.strictObject({ commandId: commandIdSchema });
 
 // ─── Client → Server ────────────────────────────────────────────────────────────────────────────
 
@@ -41,9 +46,19 @@ const syncFrameSchema = z.strictObject({
   knownRevision: revisionSchema.nullable(),
 });
 
-const clientFrameSchema = z.discriminatedUnion('type', [syncFrameSchema]);
+const commandFrameSchema = z.strictObject({
+  type: z.literal('COMMAND'),
+  commandId: commandIdSchema,
+  roomCode: roomCodeSchema,
+  /** The game command object; its shape is validated by the game's command schema server-side. */
+  command: z.unknown(),
+  controlledSeat: z.number().int().nullable(),
+});
+
+const clientFrameSchema = z.discriminatedUnion('type', [syncFrameSchema, commandFrameSchema]);
 
 export type SyncFrame = z.infer<typeof syncFrameSchema>;
+export type CommandFrame = z.infer<typeof commandFrameSchema>;
 export type ClientFrame = z.infer<typeof clientFrameSchema>;
 
 // ─── Server → Client ────────────────────────────────────────────────────────
@@ -72,9 +87,20 @@ export interface StateUpdateFrame<TState extends BaseGameState<string>> {
   readonly commandType: string | null;
 }
 
+export type CommandResultFrame<TState extends BaseGameState<string>> =
+  | {
+      readonly type: 'COMMAND_RESULT';
+      readonly commandId: string;
+      readonly outcome: 'decided';
+      readonly result: RoomCommandResult<TState>;
+    }
+  | { readonly type: 'COMMAND_RESULT'; readonly commandId: string; readonly outcome: 'unavailable' }
+  | { readonly type: 'COMMAND_RESULT'; readonly commandId: string; readonly outcome: 'throttled' };
+
 export type ServerFrame<TState extends BaseGameState<string>> =
   | SyncResultFrame<TState>
   | StateUpdateFrame<TState>
+  | CommandResultFrame<TState>
   | InboxHintFrame;
 
 /**
@@ -104,7 +130,30 @@ function createServerFrameSchema<TState extends BaseGameState<string>>(
     snapshot,
     commandType: commandTypeSchema,
   });
-  return z.discriminatedUnion('type', [syncResult, stateUpdate, inboxHintFrameSchema]);
+  const commandResult = z.discriminatedUnion('outcome', [
+    z.strictObject({
+      type: z.literal('COMMAND_RESULT'),
+      commandId: commandIdSchema,
+      outcome: z.literal('decided'),
+      result: z.unknown().transform((value) => parseRoomCommandResult(value, codec)),
+    }),
+    z.strictObject({
+      type: z.literal('COMMAND_RESULT'),
+      commandId: commandIdSchema,
+      outcome: z.literal('unavailable'),
+    }),
+    z.strictObject({
+      type: z.literal('COMMAND_RESULT'),
+      commandId: commandIdSchema,
+      outcome: z.literal('throttled'),
+    }),
+  ]);
+  return z.discriminatedUnion('type', [
+    syncResult,
+    stateUpdate,
+    commandResult,
+    inboxHintFrameSchema,
+  ]);
 }
 
 // ─── Constructors ───────────────────────────────────────────────────────────
@@ -117,6 +166,43 @@ function build<T>(label: string, schema: z.ZodType<T>, value: unknown): T {
 
 export function createSyncFrame(requestId: string, knownRevision: number | null): SyncFrame {
   return build('SyncFrame', syncFrameSchema, { type: 'SYNC', requestId, knownRevision });
+}
+
+export function createCommandFrame(
+  commandId: string,
+  roomCode: string,
+  command: unknown,
+  controlledSeat: number | null,
+): CommandFrame {
+  return build('CommandFrame', commandFrameSchema, {
+    type: 'COMMAND',
+    commandId,
+    roomCode,
+    command,
+    controlledSeat,
+  });
+}
+
+export function createCommandDecidedFrame<TState extends BaseGameState<string>>(
+  commandId: string,
+  result: RoomCommandResult<TState>,
+): CommandResultFrame<TState> {
+  build('CommandResultFrame', commandResultHeaderSchema, { commandId });
+  return { type: 'COMMAND_RESULT', commandId, outcome: 'decided', result };
+}
+
+export function createCommandUnavailableFrame<TState extends BaseGameState<string>>(
+  commandId: string,
+): CommandResultFrame<TState> {
+  build('CommandResultFrame', commandResultHeaderSchema, { commandId });
+  return { type: 'COMMAND_RESULT', commandId, outcome: 'unavailable' };
+}
+
+export function createCommandThrottledFrame<TState extends BaseGameState<string>>(
+  commandId: string,
+): CommandResultFrame<TState> {
+  build('CommandResultFrame', commandResultHeaderSchema, { commandId });
+  return { type: 'COMMAND_RESULT', commandId, outcome: 'throttled' };
 }
 
 export function createSyncCurrentFrame<TState extends BaseGameState<string>>(
