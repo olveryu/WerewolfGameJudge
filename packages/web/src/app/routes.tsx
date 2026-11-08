@@ -18,6 +18,13 @@ export const routes: RouteObject[] = [
           return { Component: HomePage };
         },
       },
+      {
+        path: '__bench/scene',
+        lazy: async () => {
+          const { SceneBenchPage } = await import('@/routes/bench/SceneBenchPage');
+          return { Component: SceneBenchPage };
+        },
+      },
     ],
   },
 ];

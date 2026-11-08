@@ -22,6 +22,18 @@ const BUDGETS = [
     maxGzipBytes: 280 * KIB,
   },
   {
+    // PixiJS loads its browser extensions and the selected renderer as dynamic chunks; the stage
+    // always requests WebGL, so that renderer counts and the WebGPU / Canvas ones do not.
+    name: 'scene layer (PixiJS stage + WebGL renderer)',
+    entries: [
+      'src/scene/stage.ts',
+      '../../node_modules/pixi.js/lib/environment-browser/browserAll.mjs',
+      '../../node_modules/pixi.js/lib/rendering/renderers/gl/WebGLRenderer.mjs',
+    ],
+    beyondStartup: true,
+    maxGzipBytes: 180 * KIB,
+  },
+  {
     name: 'Sentry Session Replay (lazy)',
     entries: ['src/sentryReplay.ts'],
     beyondStartup: true,
