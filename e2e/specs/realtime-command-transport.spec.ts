@@ -30,7 +30,7 @@ import {
   waitForRoleTurn,
 } from '../helpers/night-driver';
 import { dropRoomSockets, setOffline } from '../helpers/resilience';
-import { waitForLinkLive, waitForRoomScreenReady } from '../helpers/waits';
+import { waitForLinkLive, waitForLinkOffline, waitForRoomScreenReady } from '../helpers/waits';
 import { HomePage } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
 
@@ -176,6 +176,10 @@ test('non-durable vote in an offline window fails fast, then succeeds on retry',
       await guardProtectsVillager(cast);
       expect(await waitForRoleTurn(wolfPage, 'wolfKill', pages, 180_000)).toBe(true);
       await setOffline(cast.contexts[wolfIdx]!, true);
+      // The socket close is async: wait until the client itself sees the
+      // link as down, so the vote below fails fast instead of going
+      // in-flight on a dying socket and waiting out the 12s timeout.
+      await waitForLinkOffline(wolfPage);
     });
 
     await test.step('vote fails fast with a prompt and sends no frame', async () => {
