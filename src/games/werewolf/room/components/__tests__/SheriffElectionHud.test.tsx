@@ -76,6 +76,16 @@ describe('getHudSummary', () => {
     expect(getHudSummary(model)).toBe('4/4 人已投票，即将自动公布结果');
   });
 
+  it('falls back to the static sentence once the deadline is reached', () => {
+    const model = createModel(
+      {
+        voteProgress: { submittedCount: 4, eligibleCount: 4, pendingSeats: [] },
+      },
+      0,
+    );
+    expect(getHudSummary(model)).toBe('4/4 人已投票，即将自动公布结果');
+  });
+
   it('tells a player who has not voted where to vote', () => {
     const model = createModel({
       voteProgress: { submittedCount: 2, eligibleCount: 4, pendingSeats: [1, 3] },

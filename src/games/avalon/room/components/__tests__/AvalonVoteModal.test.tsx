@@ -102,6 +102,11 @@ describe('AvalonVoteModal', () => {
     expect(getByTestId('avalon-vote-countdown')).toHaveTextContent('已全部投票，4 秒后揭晓');
   });
 
+  it('hides the reveal countdown once the deadline is reached', () => {
+    const { queryByTestId } = renderModal({ pendingVoteSeats: [] }, 0);
+    expect(queryByTestId('avalon-vote-countdown')).toBeNull();
+  });
+
   it('shows the pending seats while voting is incomplete', () => {
     const { getByTestId, queryByTestId } = renderModal({ pendingVoteSeats: [1, 3] });
     const pendingRow = getByTestId('avalon-vote-pending-seats');

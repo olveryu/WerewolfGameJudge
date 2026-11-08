@@ -19,7 +19,10 @@ import { Text, View } from 'react-native';
 
 import { SeatDot } from '@/components/SeatDot';
 import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
-import type { SheriffElectionPresentationRow } from '@/games/werewolf/room/day/sheriffElectionPresentation';
+import {
+  getSettleCountdownSuffix,
+  type SheriffElectionPresentationRow,
+} from '@/games/werewolf/room/day/sheriffElectionPresentation';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
@@ -183,6 +186,8 @@ export function SheriffElectionRecords({
 interface SheriffElectionVoteProgressRowProps {
   readonly title: string;
   readonly row: SheriffVoteProgressRow;
+  /** Live seconds of the armed settle countdown, or null when unarmed. */
+  readonly remainingSeconds: number | null;
   readonly styles: SheriffElectionPanelStyles;
 }
 
@@ -191,19 +196,28 @@ interface SheriffElectionVoteProgressRowProps {
  * have submitted and which seats have not, never who voted for whom. The
  * panel passes its own section title （选择候选人 while the viewer can
  * still vote）; read-only surfaces pass 投票进度. The progress line
- * itself comes from the projection, so both surfaces print the same text.
+ * itself comes from the projection, so both surfaces print the same text;
+ * the countdown suffix is live-appended here (never in the projection,
+ * so the night review keeps the plain `x/y 已提交`): once every voter
+ * has submitted it reads `，N秒后自动公布结果` while seconds remain and
+ * `，即将自动公布结果` at 0 or before the deadline arrives — never a
+ * literal 0. While the vote is still open there is no suffix.
  */
 export function SheriffElectionVoteProgressRow({
   title,
   row,
+  remainingSeconds,
   styles,
 }: SheriffElectionVoteProgressRowProps) {
+  const countdownSuffix =
+    row.submittedCount >= row.eligibleCount ? getSettleCountdownSuffix(remainingSeconds) : '';
   return (
     <>
       <View style={styles.voteStatusRow}>
         <Text style={styles.sectionTitle}>{title}</Text>
         <Text style={styles.voteProgress} testID={TESTIDS.sheriffVoteProgress}>
           {row.text}
+          {countdownSuffix}
         </Text>
       </View>
       {row.pendingSeats.length > 0 && (

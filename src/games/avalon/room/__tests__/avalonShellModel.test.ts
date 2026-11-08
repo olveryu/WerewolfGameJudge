@@ -721,6 +721,8 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     }
     const armed = shellFor(running, voter, { settleCountdownSeconds: 4 });
     expect(armed.message).toBe('已全部投票，4 秒后揭晓');
+    // At 0 the countdown line is gone (the rescue takes over); the voter sees no message.
+    expect(shellFor(running, voter, { settleCountdownSeconds: 0 }).message).toBeNull();
   });
 
   it('quest: only team members get the play button, and no card content ever leaks', () => {
@@ -757,6 +759,14 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     });
     expect(played.message).toBe(`已出牌 1/2 · 未出牌：${leader + 1}号`);
     expect(played.message).not.toContain('失败');
+    running.send({ type: 'avalon.quest.play', play: 'success' }, seatUser(leader));
+    if (running.state.phase.kind !== 'quest' || running.state.phase.deadlineAt === null) {
+      throw new Error('expected the armed quest phase');
+    }
+    const armed = shellFor(running, evil, { settleCountdownSeconds: 3 });
+    expect(armed.message).toBe('已全部出牌，3 秒后揭晓');
+    // At 0 the countdown line is gone (the rescue takes over).
+    expect(shellFor(running, evil, { settleCountdownSeconds: 0 }).message).toBeNull();
   });
 
   it('lady: holder guidance, target acknowledge button, and a holder-only result reopen', () => {

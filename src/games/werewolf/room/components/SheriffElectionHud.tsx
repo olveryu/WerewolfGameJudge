@@ -9,6 +9,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import { getSheriffVoteButtonLabel } from '@/games/werewolf/room/day/sheriffElectionDockModel';
+import { getSettleCountdownSuffix } from '@/games/werewolf/room/day/sheriffElectionPresentation';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes } from '@/theme';
@@ -35,13 +36,11 @@ export function getHudSummary(model: SheriffElectionPanelModel): string {
     if (submittedCount >= eligibleCount) {
       // The round closes itself: the settle countdown armed by the
       // last ballot publishes the result on expiry — no Host action.
-      // remainingSeconds is null only in the snapshot race between the
-      // last ballot and the armed deadline; fall back to the static
-      // sentence instead of printing a made-up number.
-      if (model.remainingSeconds !== null) {
-        return `${progress}，${model.remainingSeconds}秒后自动公布结果`;
-      }
-      return `${progress}，即将自动公布结果`;
+      // The suffix shares one implementation with the details panel
+      // (getSettleCountdownSuffix): seconds while they remain, the
+      // static sentence once the deadline is reached (0) or has not
+      // arrived in the snapshot yet (null) — never a literal 0.
+      return `${progress}${getSettleCountdownSuffix(model.remainingSeconds)}`;
     }
     const ballot = view.myBallot;
     if (view.canVote && (ballot === null || ballot.kind === 'notSubmitted')) {

@@ -574,7 +574,9 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
       // 已投计数与引擎视图层 AvalonCurrentProposalView 同一派生（只数已投人数、永不归名，
       // 与暗投口径一致）；个人票仍只在弹窗里看。
       message =
-        phase.deadlineAt !== null && input.settleCountdownSeconds !== null
+        phase.deadlineAt !== null &&
+        input.settleCountdownSeconds !== null &&
+        input.settleCountdownSeconds > 0
           ? `已全部投票，${input.settleCountdownSeconds} 秒后揭晓`
           : vm.pendingVoteSeats !== null && vm.pendingVoteSeats.length > 0
             ? `已投 ${Object.keys(phase.ballots).length}/${getAvalonOccupiedSeatCount(state)} · ${formatPendingSeats('未投票', vm.pendingVoteSeats)}`
@@ -600,7 +602,9 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
       }
       // 未出牌名单全房公开：计数 + 未出牌行，人人可见；个人牌仍只在弹窗里看。
       message =
-        phase.deadlineAt !== null && input.settleCountdownSeconds !== null
+        phase.deadlineAt !== null &&
+        input.settleCountdownSeconds !== null &&
+        input.settleCountdownSeconds > 0
           ? `已全部出牌，${input.settleCountdownSeconds} 秒后揭晓`
           : vm.pendingPlaySeats !== null && vm.pendingPlaySeats.length > 0
             ? `已出牌 ${Object.keys(phase.plays).length}/${phase.teamSeats.length} · ${formatPendingSeats('未出牌', vm.pendingPlaySeats)}`

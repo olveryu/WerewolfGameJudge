@@ -79,7 +79,7 @@ export function AvalonVoteModal({
               </Text>
             ))}
           </View>
-          {remainingSeconds !== null ? (
+          {remainingSeconds !== null && remainingSeconds > 0 ? (
             <Text style={styles.countdown} testID="avalon-vote-countdown">
               已全部投票，{remainingSeconds} 秒后揭晓
             </Text>

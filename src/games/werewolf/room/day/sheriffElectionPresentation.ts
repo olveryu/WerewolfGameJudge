@@ -139,6 +139,24 @@ function areSameSeats(first: readonly number[], second: readonly number[]): bool
   return first.length === second.length && first.every((seat, index) => seat === second[index]);
 }
 
+/**
+ * Live-clock suffix for a completed vote's progress line, shared by the
+ * HUD and the details panel so both print the same countdown. While
+ * seconds remain it is `，N秒后自动公布结果`; once the deadline is
+ * reached (0) or the armed deadline has not arrived in the snapshot yet
+ * (null) it falls back to `，即将自动公布结果` — never a literal 0.
+ * Callers append it only once every eligible voter has submitted; while
+ * the vote is still open there is no suffix at all. This is not part of
+ * the projection rows: the night review renders `row.text` only and
+ * must never print a ticking number.
+ */
+export function getSettleCountdownSuffix(remainingSeconds: number | null): string {
+  if (remainingSeconds !== null && remainingSeconds > 0) {
+    return `，${remainingSeconds}秒后自动公布结果`;
+  }
+  return '，即将自动公布结果';
+}
+
 export function createSheriffElectionPresentation(
   input: SheriffElectionPresentationInput,
 ): SheriffElectionPresentation {

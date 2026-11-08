@@ -100,6 +100,11 @@ describe('AvalonQuestModal', () => {
     expect(getByTestId('avalon-quest-countdown')).toHaveTextContent('已全部出牌，3 秒后揭晓');
   });
 
+  it('hides the reveal countdown once the deadline is reached', () => {
+    const { queryByTestId } = renderModal({ pendingPlaySeats: [] }, 0);
+    expect(queryByTestId('avalon-quest-countdown')).toBeNull();
+  });
+
   it('shows the settle rescue to the host once overdue', () => {
     const { getByTestId, onRetry } = renderModal({}, 0, false, true, true);
     fireEvent.press(getByTestId(TESTIDS.stageSettleRescueRetryButton));

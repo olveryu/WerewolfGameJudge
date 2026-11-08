@@ -77,7 +77,7 @@ export function AvalonQuestModal({
               </Text>
             ))}
           </View>
-          {remainingSeconds !== null ? (
+          {remainingSeconds !== null && remainingSeconds > 0 ? (
             <Text style={styles.countdown} testID="avalon-quest-countdown">
               已全部出牌，{remainingSeconds} 秒后揭晓
             </Text>
