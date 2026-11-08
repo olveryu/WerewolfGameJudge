@@ -7,6 +7,7 @@
 
 import {
   DEFAULT_STORY_RELAY_CONFIG,
+  getStoryRelayTaskForSeat,
   type StoryRelayCommand,
   storyRelayEngine,
   type StoryRelayState,
@@ -19,6 +20,7 @@ import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-util
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 
 import { StoryRelayStage } from '../StoryRelayStage';
+import { StoryRelayTaskEditor } from '../StoryRelayTaskEditor';
 
 /** Unseated host + 4 bot seats, round started, answering phase, no deadline. */
 function botRoundState(): StoryRelayState {
@@ -146,5 +148,96 @@ describe('StoryRelayStage bot drafts', () => {
     view.rerender(stageElement());
     takeOverSeatViaSheet(0);
     expect(view.getByTestId('storyrelay-editor').props.value).toBe('机器人0的独立稿件');
+  });
+});
+
+/** Plays a 4-seat human round through the real engine to the answering phase of `targetStep`. */
+function answeringStateAtStep(targetStep: number): StoryRelayState {
+  let commandNumber = 0;
+  let nowMs = 1000;
+  let state = storyRelayEngine.createInitialState(
+    { ...DEFAULT_STORY_RELAY_CONFIG, numberOfPlayers: 4 },
+    { roomCode: '1234', hostUserId: 'host', nowMs, commandId: 'create' },
+  );
+  const execution = () => ({
+    nowMs,
+    commandId: `command:${commandNumber++}`,
+    randomSeed: 'round',
+  });
+  const apply = (
+    command: StoryRelayCommand,
+    context: Parameters<typeof storyRelayEngine.decide>[2],
+  ) => {
+    const decision = storyRelayEngine.decide(state, command, context);
+    if (decision.kind === 'reject') throw new Error(decision.reason);
+    state = decision.events.reduce(storyRelayEngine.evolve, state);
+  };
+  const asSeat = (command: StoryRelayCommand, seat: number) =>
+    apply(command, {
+      actor: { kind: 'user', userId: seat === 0 ? 'host' : `u${seat}` },
+      controlledSeat: null,
+      ...execution(),
+    });
+  const taskOf = (seat: number) => {
+    const task = getStoryRelayTaskForSeat(state, seat);
+    if (task === null) throw new Error(`seat ${seat} has no task`);
+    return { roundId: task.roundId, stepIndex: task.stepIndex, chainId: task.chainId };
+  };
+  const settle = () => {
+    if (state.deadlineAt === null) throw new Error(`no deadline in ${state.phase}`);
+    nowMs = state.deadlineAt;
+    apply(
+      { type: 'storyrelay.phase.settleExpired' },
+      { actor: { kind: 'system', effectId: 'effect:test' }, controlledSeat: null, ...execution() },
+    );
+  };
+  for (let seat = 0; seat < 4; seat += 1) {
+    asSeat({ type: 'room.seat.take', seat, profile: { displayName: `玩家${seat}` } }, seat);
+  }
+  asSeat({ type: 'storyrelay.game.begin' }, 0);
+  for (let stepIndex = 0; stepIndex < targetStep; stepIndex += 1) {
+    for (let seat = 0; seat < 4; seat += 1) {
+      asSeat({ type: 'storyrelay.task.ready.set', ...taskOf(seat), isReady: true }, seat);
+    }
+    for (let seat = 0; seat < 4; seat += 1) {
+      asSeat(
+        { type: 'storyrelay.text.submit', ...taskOf(seat), text: `第${stepIndex + 1}棒` },
+        seat,
+      );
+    }
+    settle();
+  }
+  if (state.phase !== 'answering' || state.stepIndex !== targetStep) {
+    throw new Error(
+      `expected answering step ${targetStep}, got ${state.phase} step ${state.stepIndex}`,
+    );
+  }
+  return state;
+}
+
+describe('StoryRelayTaskEditor final step', () => {
+  it.each([
+    [0, '故事从这里开始', '故事开头'],
+    [2, '写下接下来的故事', '故事续写'],
+    [3, '写下故事的结局', '故事结局'],
+  ])('shows the %s placeholder and label at step %s', (stepIndex, placeholder, label) => {
+    const state = answeringStateAtStep(stepIndex);
+    const task = getStoryRelayTaskForSeat(state, 0);
+    if (task === null) throw new Error('seat 0 has no task');
+    const view = render(
+      <StoryRelayTaskEditor
+        state={state}
+        task={task}
+        inputs={new Map()}
+        controlledSeat={null}
+        submit={jest.fn(async () => true)}
+        isSubmitting={false}
+        finalization="idle"
+        isExpired={false}
+      />,
+    );
+    const editor = view.getByTestId('storyrelay-editor');
+    expect(editor.props.placeholder).toBe(placeholder);
+    expect(editor.props.accessibilityLabel).toBe(label);
   });
 });
