@@ -29,6 +29,8 @@ export default defineConfig({
     // load_timing user-agent distribution measured in P0.
     target: ['es2020', 'chrome87', 'edge88', 'firefox78', 'safari14'],
     sourcemap: 'hidden',
+    // scripts/check-bundle-size.mjs reads the manifest to compute each route's load closure.
+    manifest: true,
   },
   test: {
     environment: 'jsdom',

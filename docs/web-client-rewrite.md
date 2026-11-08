@@ -67,7 +67,7 @@
 | 首页入口（到首页可交互） | ≤ 280 KB                     | Sentry（10.53.1 实测）错误 + 追踪 46 KB；React 19.3 + react-dom + React Router 8 约 100 KB（同一示例应用实测，含 React Compiler 运行时）；TanStack Query core 10 KB；引擎 `games/catalog` 全量导出 70 KB（上限，含 Zod）；其余应用代码 ≤ 54 KB |
 | 房间壳 + 单个游戏        | ≤ 200 KB                     | 引擎 `games/werewolf/public` 全量 54 KB；其他游戏 7–16 KB                                                                                                                                                                                      |
 | 场景层（PixiJS）         | ≤ 180 KB，进入房间流程时预取 | PixiJS 8.22 探针（Application、Sprite、Graphics、ParticleContainer、Assets）全部分块共 178 KB，其中包含 WebGL 和 WebGPU 两套渲染器，运行时只加载其中一套                                                                                       |
-| Session Replay           | 约 40 KB，懒加载             | 加上 Replay 后 Sentry 共 86 KB，减去启动时的 46 KB                                                                                                                                                                                             |
+| Session Replay           | ≤ 52 KB，懒加载              | `@sentry/react` 11.11.0 实测独立分块 51 KB                                                                                                                                                                                                     |
 | WASM、Web 字体           | 0                            | 去掉 CanvasKit；图标在构建期内联为 SVG                                                                                                                                                                                                         |
 
 进入狼人杀房间（含场景层，不含懒加载的 Replay）合计 ≤ 660 KB gzip；现状是首屏前 5.33 MB（2.08 + 3.25）。P0 第一次完整构建后按实测收紧。
