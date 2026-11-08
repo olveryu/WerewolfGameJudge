@@ -26,7 +26,6 @@ import {
   clickSeatAndConfirm,
   driveWolfVote,
   findRolePageIndex,
-  waitForHostAudioAck,
   waitForNightEnd,
   waitForRoleTurn,
 } from '../helpers/night-driver';
@@ -135,28 +134,29 @@ test('durable audio ack sent during an offline window replays once', async ({ br
       expect(await waitForNightEnd(pages)).toBe(true);
     });
 
-    await test.step('host goes offline while the batch plays', async () => {
+    await test.step('offline window, then the replayed ack commits exactly once', async () => {
       // The ack is dispatched when the batch ends (~7.6s). While the
       // socket is dead the attempt fails fast with no frame on the wire;
-      // the durable outbox replays after reconnect with the same
-      // commandId, so exactly one ack frame and one decision appear.
+      // the durable outbox replays it the moment the link goes live
+      // again (#replayDue replays intents untried on the new socket),
+      // so the replay frame goes out synchronously during reconnect —
+      // the wait must be armed BEFORE going offline, or it misses it.
+      const acksBefore = countCommands(hostCommands, AUDIO_ACK_TYPE);
+      const replayedAck = hostCommands.waitForCommand(AUDIO_ACK_TYPE);
       await setOffline(cast.contexts[0]!, true);
       await pages[0]!.waitForTimeout(10_000);
       await setOffline(cast.contexts[0]!, false);
       await waitForLinkLive(pages[0]!);
-    });
-
-    await test.step('the replayed ack commits exactly once', async () => {
-      await waitForHostAudioAck(hostCommands, 60_000);
-      const acks = hostCommands
-        .commands()
-        .filter((frame) => commandTypeOf(frame.command) === AUDIO_ACK_TYPE);
-      expect(acks).toHaveLength(1);
-      const results = hostCommands
-        .results()
-        .filter((frame) => frame.commandId === acks[0]!.commandId);
+      const frame = await replayedAck;
+      const result = await hostCommands.waitForResult(frame.commandId, 30_000);
+      expect(result.outcome).toBe('decided');
+      // Exactly one more ack frame than before the offline window (the
+      // replayed night-end ack); the night sends one ack per audio batch
+      // and only the night-end batch was outstanding, so the absolute
+      // count is not 1.
+      expect(countCommands(hostCommands, AUDIO_ACK_TYPE)).toBe(acksBefore + 1);
+      const results = hostCommands.results().filter((entry) => entry.commandId === frame.commandId);
       expect(results).toHaveLength(1);
-      expect(results[0]!.outcome).toBe('decided');
     });
   } finally {
     await closeAll(cast.setup.fixture);

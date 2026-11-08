@@ -240,10 +240,19 @@ export async function gateCommandFrames(page: Page): Promise<CommandFrameGate> {
       }
       const waiter = waiters.splice(waiterIndex, 1)[0]!;
       clearTimeout(waiter.timer);
+      // release() is idempotent and removes the frame from `held`: a
+      // frame released by the test must not be sent again by stop().
+      let released = false;
       const heldCommand: HeldCommand = {
         commandId: frame.commandId,
         command: frame.command,
-        release: () => ws.send(message),
+        release: () => {
+          if (released) return;
+          released = true;
+          const index = held.indexOf(heldCommand);
+          if (index !== -1) held.splice(index, 1);
+          ws.send(message);
+        },
       };
       held.push(heldCommand);
       waiter.resolve(heldCommand);
