@@ -383,4 +383,11 @@ export default tseslint.config(
       'react-hooks/immutability': 'error',
     },
   },
+  // The web client's logger is the only place allowed to write to the console.
+  {
+    files: ['packages/web/src/utils/logger.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
 );
