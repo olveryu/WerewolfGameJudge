@@ -625,7 +625,19 @@ const styles = StyleSheet.create({
   // The drawing the player is guessing from is the primary content: it keeps
   // a floor of three touch targets while the composer below shrinks first
   // (its text input already declares flexShrink with a one-target floor).
-  contextBlock: { flex: 1, minHeight: fixed.minTouchTarget * 3, gap: spacing.tight },
+  // flexBasis matches the floor on purpose: with `flex: 1` the basis is 0,
+  // so the flex deficit ignores the floor and the composer never shrinks —
+  // the clamped contextBlock then overflows the body by the shortfall
+  // (the shared top bar leaves the guess stage ~4px short at the reduced
+  // keyboard viewport) and pushes the text input out of view. Basing the
+  // block on its floor makes the deficit real, so the composer yields first.
+  contextBlock: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: fixed.minTouchTarget * 3,
+    minHeight: fixed.minTouchTarget * 3,
+    gap: spacing.tight,
+  },
   contextLabel: {
     ...textStyles.caption,
     color: colors.textSecondary,
