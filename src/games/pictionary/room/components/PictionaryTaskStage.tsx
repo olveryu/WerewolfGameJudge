@@ -663,9 +663,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },
+  // Single-line height on purpose: at the reduced keyboard viewport the
+  // guess stage is only ~286px tall, and a two-line (88px) input relies on
+  // flex shrink to fit -- but the shrink proved unstable across re-renders
+  // (the debug probe showed the input at its 44px floor yet the assertion
+  // still failed), so the input is fixed at one line. It stays multiline
+  // and scrollable, so longer guesses still work.
   textInput: {
     minHeight: fixed.minTouchTarget,
-    height: fixed.minTouchTarget * 2,
+    height: fixed.minTouchTarget,
     flexShrink: 1,
     padding: spacing.small,
     ...textStyles.subtitle,

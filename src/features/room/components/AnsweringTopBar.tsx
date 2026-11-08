@@ -156,13 +156,14 @@ export const AnsweringTopBar: React.FC<AnsweringTopBarProps> = ({
 const styles = StyleSheet.create({
   bar: {
     backgroundColor: colors.surface,
-    // 8px, not 16px: at the reduced keyboard viewport (390x480) the Pictionary
-    // guess stage is only ~278px tall, and the extra 8px above the bar is the
-    // difference between the composer fitting and overlapping the footer.
-    marginTop: spacing.small,
+    // No top margin and tight vertical padding: at the reduced keyboard
+    // viewport (390x480) the Pictionary guess stage is only ~286px tall,
+    // and every pixel above the bar is a pixel the composer cannot use.
+    // Both games share this bar, so they stay identical.
+    marginTop: 0,
     marginHorizontal: spacing.medium,
     borderRadius: borderRadius.full,
-    paddingVertical: spacing.small,
+    paddingVertical: spacing.tight,
     paddingHorizontal: spacing.small,
     flexDirection: 'row',
     alignItems: 'center',
