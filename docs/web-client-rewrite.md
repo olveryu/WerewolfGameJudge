@@ -243,7 +243,7 @@ flowchart TB
 - 不可信字符串只经 React 默认转义输出，禁止 `dangerouslySetInnerHTML`（§5.4）。`_headers` 增加 CSP，`script-src` 只放行自站、CDN 和 `res.wx.qq.com`；Vite 构建出的 `index.html` 只有外链脚本（示例应用实测），不需要内联脚本哈希。
 - 鉴权令牌的存取语义照搬 `src/platform/auth`。
 - 交互元素用原生 `<button>`、`<input>`、`<label>`；对话框、抽屉等组件的焦点陷阱和键盘交互由 Ark UI 负责；toast 和状态条使用 `aria-live`；颜色只用 token 以保证对比度；遵循 `prefers-reduced-motion`；画布设 `aria-hidden`。
-- token 来自 `src/theme/tokens.ts` 和 `colors.ts`，构建期生成 CSS 自定义属性，现有"禁止硬编码样式值"的契约改为检查 CSS 和 TSX。
+- token 以 CSS 自定义属性为唯一来源（`packages/web/src/theme/tokens.css`，从 `src/theme/tokens.ts` 和 `colors.ts` 移植），组件 CSS 只引用变量；现有"禁止硬编码样式值"的契约改为检查 CSS 和 TSX。
 
 ## 6. 视觉资产与特效
 
@@ -396,3 +396,12 @@ v3（2026-11-08）：按你的确认改为方案 B。
 - 路由用 React Router 数据模式：实测框架模式配国内 CDN 的绝对 `base` 会构建失败，数据模式可以。
 - 首页预算按实测构成从 200 KB 改为 280 KB（React + react-dom + React Router 约 100 KB）。
 - 发现现在查询失败会重试两层（`ApiClient` 和 Query），新客户端只保留一层。
+
+实施中的调整（2026-11-08，P0–P1 起步）：
+
+- React 暂留 19.2.3：仓库用 hoisted 安装，根目录的 RN 客户端锁定 19.2.3，`packages/web` 用 19.3 会被嵌套出第二份 React（测试实测报 hooks 错误）。P1 删除 RN 客户端时一起升到 19.3。
+- `@sentry/react` 11 已移除 `sendDefaultPii`、`enableLogs`（改为 `dataCollection`，日志默认开启）；路由追踪用 `@sentry/react/react-router` 的 `reactRouterBrowserTracingIntegration` 和 `wrapCreateBrowserRouter`。
+- Replay 独立分块实测 51 KB，预算改为 52 KB（§4.1）。
+- token 改为以 CSS 自定义属性为唯一来源（§5.11），不做构建期生成。
+- 场景层 spike 用层级方案 B（画布盖在 DOM 头像上）；`onPageStateChange` 未在现客户端使用过，先沿用现有的 `visibilitychange` / `pageshow` / `focus`，真机验证后再决定是否接入。
+- 整个工作区随 `packages/web` 解析到 Vite 8；引擎和 Worker 的测试（含 `@cloudflare/vitest-pool-workers`）在 Vite 8 下全部通过。
