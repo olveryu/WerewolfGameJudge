@@ -34,6 +34,7 @@ import {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
+import { formatPendingSeats } from '@/features/room/components/PendingSeatsRow';
 import type {
   ReviewBlock,
   ReviewInline,
@@ -649,8 +650,13 @@ function sheriffSteps(section: NightReviewSheriffSection): readonly ReviewTimeli
           ];
         case 'speaking':
           return [{ title: '发言顺序', tone: 'neutral', lines: [[plain(row.text)]] }];
-        case 'voteProgress':
-          return [{ title: '投票进度', tone: 'neutral', lines: [[plain(row.text)]] }];
+        case 'voteProgress': {
+          const lines: (readonly ReviewInline[])[] = [[plain(row.text)]];
+          if (row.pendingSeats.length > 0) {
+            lines.push([plain(formatPendingSeats('未投票', row.pendingSeats))]);
+          }
+          return [{ title: '投票进度', tone: 'neutral', lines }];
+        }
         case 'round': {
           const lines: (readonly ReviewInline[])[] = row.candidates.map((candidate) => [
             seatInline(candidate.seat, candidate.isWinner ? 'highlight' : 'neutral'),

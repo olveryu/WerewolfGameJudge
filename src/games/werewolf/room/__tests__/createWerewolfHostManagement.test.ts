@@ -78,6 +78,7 @@ function createSheriffElection(
       canVote: false,
       ...viewOverrides,
     },
+    remainingSeconds: null,
     pendingAction: null,
     register: jest.fn().mockResolvedValue(undefined),
     cancelRegistration: jest.fn().mockResolvedValue(undefined),
@@ -304,7 +305,7 @@ describe('createWerewolfHostManagement', () => {
         phase,
         canAdvance: false,
         advanceLabel: null,
-        voteProgress: { submittedCount: 1, eligibleCount: 3 },
+        voteProgress: { submittedCount: 1, eligibleCount: 3, pendingSeats: [1, 2] },
       });
       const model = createWerewolfHostManagement(
         createInput({

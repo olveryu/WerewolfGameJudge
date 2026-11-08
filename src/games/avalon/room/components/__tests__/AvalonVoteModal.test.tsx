@@ -32,6 +32,8 @@ function voteViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMode
     proposedSeats: [0, 1],
     teamSeats: null,
     myBallot: null,
+    pendingVoteSeats: null,
+    pendingPlaySeats: null,
     ballots: null,
     voteCounts: null,
     myPlay: null,
@@ -98,6 +100,25 @@ describe('AvalonVoteModal', () => {
   it('shows the reveal countdown once every ballot is in', () => {
     const { getByTestId } = renderModal({}, 4);
     expect(getByTestId('avalon-vote-countdown')).toHaveTextContent('已全部投票，4 秒后揭晓');
+  });
+
+  it('hides the reveal countdown once the deadline is reached', () => {
+    const { queryByTestId } = renderModal({ pendingVoteSeats: [] }, 0);
+    expect(queryByTestId('avalon-vote-countdown')).toBeNull();
+  });
+
+  it('shows the pending seats while voting is incomplete', () => {
+    const { getByTestId, queryByTestId } = renderModal({ pendingVoteSeats: [1, 3] });
+    const pendingRow = getByTestId('avalon-vote-pending-seats');
+    expect(pendingRow).toBeTruthy();
+    expect(getByTestId('avalon-vote-pending-seats-seat-1')).toBeTruthy();
+    expect(getByTestId('avalon-vote-pending-seats-seat-3')).toBeTruthy();
+    expect(queryByTestId('avalon-vote-pending-seats-seat-0')).toBeNull();
+  });
+
+  it('hides the pending row once every ballot is in', () => {
+    const { queryByTestId } = renderModal({ pendingVoteSeats: [] }, 4);
+    expect(queryByTestId('avalon-vote-pending-seats')).toBeNull();
   });
 
   it('shows the settle rescue to the host once overdue', () => {

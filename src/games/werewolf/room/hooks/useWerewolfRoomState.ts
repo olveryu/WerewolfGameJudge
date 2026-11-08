@@ -309,6 +309,7 @@ export function useWerewolfRoomState(
     gameState: state,
     effectiveSeat,
     isHost,
+    remainingSeconds,
     submit: (label, command) => submit(label, command, { controlledSeat }),
   });
   const { width: viewportWidth } = useWindowDimensions();

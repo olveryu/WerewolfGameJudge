@@ -31,6 +31,7 @@ function createElection(
 ): SheriffElectionPanelModel {
   return {
     view: { ...BASE_VIEW, ...view },
+    remainingSeconds: null,
     pendingAction: null,
     register: jest.fn(async () => undefined),
     cancelRegistration: jest.fn(async () => undefined),
@@ -232,7 +233,7 @@ describe('createSheriffElectionDockModel', () => {
       phase: 'firstVote',
       canVote: true,
       myBallot: { kind: 'notSubmitted' },
-      voteProgress: { submittedCount: 0, eligibleCount: 2 },
+      voteProgress: { submittedCount: 0, eligibleCount: 2, pendingSeats: [0, 1] },
     });
     const dock = createSheriffElectionDockModel({
       election,
@@ -258,7 +259,7 @@ describe('createSheriffElectionDockModel', () => {
         phase: 'firstVote',
         canVote: true,
         myBallot: { kind: 'notSubmitted' },
-        voteProgress: { submittedCount: 0, eligibleCount: 2 },
+        voteProgress: { submittedCount: 0, eligibleCount: 2, pendingSeats: [0, 1] },
       }),
       roomTools: {
         ...ROOM_TOOLS,
@@ -290,7 +291,7 @@ describe('createSheriffElectionDockModel', () => {
         phase: 'firstVote',
         canVote: true,
         myBallot: { kind: 'notSubmitted' },
-        voteProgress: { submittedCount: 0, eligibleCount: 2 },
+        voteProgress: { submittedCount: 0, eligibleCount: 2, pendingSeats: [0, 1] },
       }),
       roomTools: {
         ...ROOM_TOOLS,
@@ -325,7 +326,7 @@ describe('createSheriffElectionDockModel', () => {
         phase: 'firstVote',
         canVote: true,
         myBallot: { kind: 'notSubmitted' },
-        voteProgress: { submittedCount: 0, eligibleCount: 2 },
+        voteProgress: { submittedCount: 0, eligibleCount: 2, pendingSeats: [0, 1] },
       }),
       roomTools: {
         ...ROOM_TOOLS,
@@ -346,7 +347,7 @@ describe('createSheriffElectionDockModel', () => {
       phase: 'firstVote',
       canVote: true,
       myBallot: { kind: 'notSubmitted' },
-      voteProgress: { submittedCount: 0, eligibleCount: 2 },
+      voteProgress: { submittedCount: 0, eligibleCount: 2, pendingSeats: [0, 1] },
     });
     const dock = createSheriffElectionDockModel({
       election,
@@ -422,7 +423,7 @@ describe('createSheriffElectionDockModel', () => {
         phase: 'firstVote',
         canVote: true,
         myBallot: { kind: 'notSubmitted' },
-        voteProgress: { submittedCount: 0, eligibleCount: 2 },
+        voteProgress: { submittedCount: 0, eligibleCount: 2, pendingSeats: [0, 1] },
       }),
       roomTools: ROOM_TOOLS,
       isHost: false,

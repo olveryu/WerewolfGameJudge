@@ -2,6 +2,7 @@
 
 import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import { listUnviewedSeats } from '../../../platform/room/identityViewing';
+import { getPendingSeats } from '../../../platform/room/pendingSeats';
 import { buildSeatIdentityView } from '../../../platform/room/seatIdentity';
 import {
   type AvalonBallot,
@@ -16,6 +17,7 @@ import {
   type AvalonState,
   type AvalonVoteMode,
   getAvalonOccupiedSeatCount,
+  getAvalonOccupiedSeats,
   getAvalonViewingParticipants,
   isAvalonEvilRole,
   isAvalonOccupiedSeat,
@@ -56,12 +58,14 @@ export interface AvalonProposalRecordView {
   readonly approved: boolean;
 }
 
-/** 正在投票的提案（未结算）：只给进度与本人的一票，任何人的票都不外泄。 */
+/** 正在投票的提案（未结算）：只给进度、未投票座位与本人的一票；任何人的票都不外泄。 */
 export interface AvalonCurrentProposalView {
   readonly leaderSeat: number;
   readonly teamSeats: readonly number[];
   readonly castCount: number;
   readonly totalCount: number;
+  /** 未投票的座位（提交状态公开，票面永不外泄）。 */
+  readonly pendingSeats: readonly number[];
   readonly myBallot: AvalonBallot | null;
 }
 
@@ -73,10 +77,12 @@ export interface AvalonRoundRecordView {
   readonly quest: AvalonQuestRecord | null;
   /** 本轮因连续否决达上限终局（仅终局轮为 true）。 */
   readonly vetoEnded: boolean;
-  /** 任务进行中进度（已出牌数 / 队伍人数）；非本轮任务阶段为 null。 */
+  /** 任务进行中进度（已出牌数 / 队伍人数 / 未出牌座位）；非本轮任务阶段为 null。 */
   readonly questProgress: {
     readonly playedCount: number;
     readonly teamSize: number;
+    /** 未出牌的队员座位（提交状态公开，牌面永不外泄）。 */
+    readonly pendingSeats: readonly number[];
   } | null;
   /** 正在投票的提案；非本轮投票阶段为 null。 */
   readonly currentProposal: AvalonCurrentProposalView | null;
@@ -140,6 +146,10 @@ export interface AvalonViewModel {
   readonly proposedSeats: readonly number[] | null;
   readonly teamSeats: readonly number[] | null;
   readonly myBallot: AvalonBallot | null;
+  /** 未投票的座位（投票阶段）；其余阶段为 null。 */
+  readonly pendingVoteSeats: readonly number[] | null;
+  /** 未出牌的队员座位（任务阶段）；其余阶段为 null。 */
+  readonly pendingPlaySeats: readonly number[] | null;
   /** 公投模式亮票后全员可见；暗投模式为 null（D7）。 */
   readonly ballots: Readonly<Record<number, AvalonBallot>> | null;
   readonly voteCounts: {
@@ -189,7 +199,8 @@ function buildSeatViews(state: AvalonState): AvalonSeatView[] {
 /**
  * 对局记录投影：已落盘轮次 + 已开始的当前轮（组队 / 投票 / 任务 / 湖仙
  * 阶段）。已结算提案结算即全公开（暗投仍只给数量，D7）；进行中的提案
- * 只露进度与查看者本人的一票；任务结论只带票数，永不带出牌人。
+ * 只露进度、未投票座位与查看者本人的一票；任务进行中只露已出牌数与
+ * 未出牌座位；任务结论只带票数，永不带出牌人。
  */
 function roundRecordViews(
   state: AvalonState,
@@ -209,6 +220,7 @@ function roundRecordViews(
           round: phase.round,
           playedCount: Object.keys(phase.plays).length,
           teamSize: phase.teamSeats.length,
+          pendingSeats: getPendingSeats(phase.teamSeats, phase.plays),
         }
       : null;
   const currentProposal: (AvalonCurrentProposalView & { readonly round: AvalonQuestRound }) | null =
@@ -219,6 +231,7 @@ function roundRecordViews(
           teamSeats: phase.proposedSeats,
           castCount: Object.keys(phase.ballots).length,
           totalCount: getAvalonOccupiedSeatCount(state),
+          pendingSeats: getPendingSeats(getAvalonOccupiedSeats(state), phase.ballots),
           myBallot: viewerSeat === null ? null : (phase.ballots[viewerSeat] ?? null),
         }
       : null;
@@ -247,7 +260,11 @@ function roundRecordViews(
         vetoEnded: vetoRound === round,
         questProgress:
           questProgress !== null && questProgress.round === round
-            ? { playedCount: questProgress.playedCount, teamSize: questProgress.teamSize }
+            ? {
+                playedCount: questProgress.playedCount,
+                teamSize: questProgress.teamSize,
+                pendingSeats: questProgress.pendingSeats,
+              }
             : null,
         currentProposal:
           currentProposal !== null && currentProposal.round === round
@@ -256,6 +273,7 @@ function roundRecordViews(
                 teamSeats: currentProposal.teamSeats,
                 castCount: currentProposal.castCount,
                 totalCount: currentProposal.totalCount,
+                pendingSeats: currentProposal.pendingSeats,
                 myBallot: currentProposal.myBallot,
               }
             : null,
@@ -298,6 +316,8 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
   let proposedSeats: readonly number[] | null = null;
   let teamSeats: readonly number[] | null = null;
   let myBallot: AvalonBallot | null = null;
+  let pendingVoteSeats: readonly number[] | null = null;
+  let pendingPlaySeats: readonly number[] | null = null;
   let ballots: Readonly<Record<number, AvalonBallot>> | null = null;
   let voteCounts: AvalonViewModel['voteCounts'] = null;
   let myPlay: AvalonPlay | null = null;
@@ -326,9 +346,11 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
   } else if (phase.kind === 'vote') {
     proposedSeats = phase.proposedSeats;
     myBallot = viewerSeat === null ? null : (phase.ballots[viewerSeat] ?? null);
+    pendingVoteSeats = getPendingSeats(getAvalonOccupiedSeats(state), phase.ballots);
   } else if (phase.kind === 'quest') {
     teamSeats = phase.teamSeats;
     myPlay = viewerSeat === null ? null : (phase.plays[viewerSeat] ?? null);
+    pendingPlaySeats = getPendingSeats(phase.teamSeats, phase.plays);
     // 亮票：公投模式全员可见个人投票，暗投模式只公布数量（D7）。
     if (state.config.voteMode === 'public') {
       ballots = phase.ballots;
@@ -391,6 +413,8 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
     proposedSeats,
     teamSeats,
     myBallot,
+    pendingVoteSeats,
+    pendingPlaySeats,
     ballots,
     voteCounts,
     myPlay,

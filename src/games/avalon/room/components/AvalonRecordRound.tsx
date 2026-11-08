@@ -16,6 +16,7 @@ import type {
 import type { ComponentProps } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { formatPendingSeats } from '@/features/room/components/PendingSeatsRow';
 import {
   borderRadius,
   colors,
@@ -101,7 +102,7 @@ function AvalonQuestBanner({
     const isSuccess = record.quest.result === 'success';
     icon = isSuccess ? 'checkmark' : 'close';
     title = `${questLabel} · ${AVALON_QUEST_RESULT_LABELS[record.quest.result]}`;
-    subtitle = '任务出牌结果（出牌人不公开）';
+    subtitle = '任务出牌结果（出了什么牌不公开）';
     toneStyle = isSuccess ? styles.bannerSuccess : styles.bannerFail;
     medalStyle = isSuccess ? styles.bannerSuccessMedal : styles.bannerFailMedal;
   } else if (record.vetoEnded) {
@@ -137,6 +138,11 @@ function AvalonQuestBanner({
       <View style={styles.bannerCopy}>
         <Text style={styles.bannerTitle}>{title}</Text>
         <Text style={styles.bannerSubtitle}>{subtitle}</Text>
+        {record.questProgress !== null && record.questProgress.pendingSeats.length > 0 ? (
+          <Text style={styles.bannerSubtitle}>
+            {formatPendingSeats('未出牌', record.questProgress.pendingSeats)}
+          </Text>
+        ) : null}
       </View>
       {record.quest !== null ? (
         <View style={styles.questCards}>
@@ -202,6 +208,11 @@ export function AvalonRecordRound({
                 {currentProposal.totalCount}）
               </Text>
             </View>
+            {currentProposal.pendingSeats.length > 0 ? (
+              <Text style={styles.currentProposalBallot}>
+                {formatPendingSeats('未投票', currentProposal.pendingSeats)}
+              </Text>
+            ) : null}
             {currentProposal.myBallot !== null ? (
               <Text style={styles.currentProposalBallot}>
                 你投了：{ballotLabel(currentProposal.myBallot)}

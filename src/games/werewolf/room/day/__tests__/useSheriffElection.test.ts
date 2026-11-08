@@ -66,7 +66,13 @@ function submitMock(impl: () => Promise<boolean> = () => Promise.resolve(true)):
 
 function renderElection(gameState: GameState, submit: SubmitMock = submitMock()) {
   const hook = renderHook(() =>
-    useSheriffElection({ gameState, effectiveSeat: 0, isHost: true, submit }),
+    useSheriffElection({
+      gameState,
+      effectiveSeat: 0,
+      isHost: true,
+      remainingSeconds: null,
+      submit,
+    }),
   );
   return { ...hook, submit };
 }

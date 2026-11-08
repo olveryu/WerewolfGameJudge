@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
+import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import {
   borderRadius,
@@ -78,10 +79,17 @@ export function AvalonVoteModal({
               </Text>
             ))}
           </View>
-          {remainingSeconds !== null ? (
+          {remainingSeconds !== null && remainingSeconds > 0 ? (
             <Text style={styles.countdown} testID="avalon-vote-countdown">
               已全部投票，{remainingSeconds} 秒后揭晓
             </Text>
+          ) : null}
+          {viewModel.pendingVoteSeats !== null && viewModel.pendingVoteSeats.length > 0 ? (
+            <PendingSeatsRow
+              label="未投票"
+              seats={viewModel.pendingVoteSeats}
+              testID="avalon-vote-pending-seats"
+            />
           ) : null}
           <StageSettleRescue
             remainingSeconds={remainingSeconds}

@@ -561,15 +561,23 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
     for (let seat = 0; seat < pages.length; seat += 1) {
       await castVote(pages[seat]!, script.ballots.get(seat)!);
       if (seat === 0) {
-        // PR-B (Avalon count ruling): the first voter's bottom panel
-        // reports their own ballot plus the cast count — counts only,
-        // never who else voted how.
-        const label = script.ballots.get(0) === 'approve' ? '赞成' : '反对';
+        // 未投票名单全房公开：底部消息报已投计数 + 未投票座位，不再只给
+        // 已投票者看个人票；同一名单也出现在投票弹窗与顶部摘要条第二行。
+        const pending = Array.from(
+          { length: PLAYER_COUNT - 1 },
+          (_, index) => `${index + 2}号`,
+        ).join(' ');
         await expect(
-          pages[0]!.getByText(`你已投：${label}（揭晓前可改票）· 已投 1/${PLAYER_COUNT}`, {
+          pages[0]!.getByText(`已投 1/${PLAYER_COUNT} · 未投票：${pending}`, {
             exact: true,
           }),
         ).toBeVisible({ timeout: 10_000 });
+        await expect(pages[0]!.getByTestId('avalon-vote-pending-seats')).toBeVisible({
+          timeout: 10_000,
+        });
+        await expect(pages[0]!.getByTestId('avalon-history-summary-pending-seats')).toBeVisible({
+          timeout: 10_000,
+        });
       }
     }
   });

@@ -33,13 +33,13 @@ export const AVALON_GUIDANCE_MATRIX: RoomGuidanceMatrix<AvalonPhaseKind> = {
     spectator: GUIDANCE_MESSAGE,
   },
   vote: {
-    host: guidanceExempt('入口由「去投票」主按钮承载；投后底部出已投计数句'),
-    seated: guidanceExempt('入口由「去投票」主按钮承载；投后底部出已投计数句'),
+    host: GUIDANCE_MESSAGE,
+    seated: GUIDANCE_MESSAGE,
     spectator: GUIDANCE_MESSAGE,
   },
   quest: {
-    host: guidanceExempt('队员入口由「去出牌」主按钮承载；非队员（含房主）有「等待队员出牌…」句'),
-    seated: guidanceExempt('队员入口由「去出牌」主按钮承载；非队员有「等待队员出牌…」句'),
+    host: GUIDANCE_MESSAGE,
+    seated: GUIDANCE_MESSAGE,
     spectator: GUIDANCE_MESSAGE,
   },
   lady: {

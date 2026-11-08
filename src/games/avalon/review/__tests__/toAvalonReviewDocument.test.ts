@@ -112,6 +112,8 @@ function endedViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMod
     proposedSeats: null,
     teamSeats: null,
     myBallot: null,
+    pendingVoteSeats: null,
+    pendingPlaySeats: null,
     ballots: null,
     voteCounts: null,
     myPlay: null,

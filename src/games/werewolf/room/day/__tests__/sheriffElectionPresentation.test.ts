@@ -288,7 +288,7 @@ describe('createSheriffElectionPresentation', () => {
       phaseDescription: '未上警玩家投票，提交前后均可改票或弃票',
       records: { registeredSeats: [2, 5], withdrawnSeats: [], activeCandidateSeats: [2, 5] },
       speakingText: null,
-      voteProgress: { submittedCount: 5, eligibleCount: 7 },
+      voteProgress: { submittedCount: 5, eligibleCount: 7, pendingSeats: [1, 3] },
       rounds: [],
       result: null,
     });
@@ -296,6 +296,7 @@ describe('createSheriffElectionPresentation', () => {
       kind: 'voteProgress',
       submittedCount: 5,
       eligibleCount: 7,
+      pendingSeats: [1, 3],
       text: '5/7 已提交',
     });
   });

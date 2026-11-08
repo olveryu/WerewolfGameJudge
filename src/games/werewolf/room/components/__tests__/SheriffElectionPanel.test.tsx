@@ -36,9 +36,11 @@ const BASE_VIEW: SheriffElectionViewModel = {
 function createModel(
   viewOverrides: Partial<SheriffElectionViewModel> = {},
   pendingAction: SheriffElectionPendingAction | null = null,
+  remainingSeconds: number | null = null,
 ): SheriffElectionPanelModel {
   return {
     view: { ...BASE_VIEW, ...viewOverrides },
+    remainingSeconds,
     pendingAction,
     register: jest.fn(async () => undefined),
     cancelRegistration: jest.fn(async () => undefined),
@@ -82,7 +84,7 @@ describe('SheriffElectionPanel', () => {
         withdrawnSeats: [],
         activeCandidateSeats: [0, 1],
       },
-      voteProgress: { submittedCount: 1, eligibleCount: 2 },
+      voteProgress: { submittedCount: 1, eligibleCount: 2, pendingSeats: [1] },
       myBallot: { kind: 'candidate', seat: 1 },
       canVote: true,
       candidateOptions: [
@@ -93,6 +95,14 @@ describe('SheriffElectionPanel', () => {
     const screen = render(<SheriffElectionPanel model={model} styles={styles} />);
 
     expect(screen.getByTestId(TESTIDS.sheriffVoteProgress)).toHaveTextContent('1/2 已提交');
+    const pendingRow = screen.getByTestId(TESTIDS.sheriffVoteProgressPendingSeats);
+    expect(pendingRow).toBeTruthy();
+    expect(
+      within(pendingRow).getByTestId('sheriff-vote-progress-pending-seats-seat-1'),
+    ).toBeTruthy();
+    expect(
+      within(pendingRow).queryByTestId('sheriff-vote-progress-pending-seats-seat-0'),
+    ).toBeNull();
     expect(screen.getByText('已投给 2号，可重新选择')).toBeTruthy();
     expect(screen.getByTestId(TESTIDS.sheriffCandidateButton(1)).props.accessibilityState).toEqual({
       disabled: false,
@@ -107,6 +117,57 @@ describe('SheriffElectionPanel', () => {
 
     expect(model.vote).toHaveBeenNthCalledWith(1, 1);
     expect(model.vote).toHaveBeenNthCalledWith(2, null);
+  });
+
+  it('never shows the settle countdown in the vote-progress area, even once every vote is in', () => {
+    const model = createModel(
+      {
+        phase: 'firstVote',
+        phaseTitle: '首轮投票',
+        candidateRecords: {
+          registeredSeats: [0, 1],
+          withdrawnSeats: [],
+          activeCandidateSeats: [0, 1],
+        },
+        voteProgress: { submittedCount: 2, eligibleCount: 2, pendingSeats: [] },
+        myBallot: { kind: 'candidate', seat: 1 },
+        canVote: false,
+        candidateOptions: [],
+      },
+      null,
+      5,
+    );
+    const screen = render(<SheriffElectionPanel model={model} styles={styles} />);
+
+    // The countdown lives only in the HUD: the panel keeps the plain
+    // progress text even while the model carries live seconds.
+    expect(screen.getByTestId(TESTIDS.sheriffVoteProgress)).toHaveTextContent(/^2\/2 已提交$/);
+    expect(screen.queryByText(/秒后自动公布结果|即将自动公布结果/)).toBeNull();
+    expect(screen.queryByTestId(TESTIDS.sheriffVoteProgressPendingSeats)).toBeNull();
+  });
+
+  it('keeps the plain progress text in the panel once the deadline is reached', () => {
+    const model = createModel(
+      {
+        phase: 'firstVote',
+        phaseTitle: '首轮投票',
+        candidateRecords: {
+          registeredSeats: [0, 1],
+          withdrawnSeats: [],
+          activeCandidateSeats: [0, 1],
+        },
+        voteProgress: { submittedCount: 2, eligibleCount: 2, pendingSeats: [] },
+        myBallot: { kind: 'candidate', seat: 1 },
+        canVote: false,
+        candidateOptions: [],
+      },
+      null,
+      0,
+    );
+    const screen = render(<SheriffElectionPanel model={model} styles={styles} />);
+
+    expect(screen.getByTestId(TESTIDS.sheriffVoteProgress)).toHaveTextContent(/^2\/2 已提交$/);
+    expect(screen.queryByText(/秒后自动公布结果|即将自动公布结果/)).toBeNull();
   });
 
   it('shows the host registration instruction to the host (D12)', () => {
@@ -233,7 +294,7 @@ describe('SheriffElectionPanel', () => {
           withdrawnSeats: [],
           activeCandidateSeats: [0],
         },
-        voteProgress: { submittedCount: 0, eligibleCount: 1 },
+        voteProgress: { submittedCount: 0, eligibleCount: 1, pendingSeats: [0] },
         myBallot: { kind: 'notSubmitted' },
         candidateOptions: [{ seat: 0, isSelected: false }],
       },

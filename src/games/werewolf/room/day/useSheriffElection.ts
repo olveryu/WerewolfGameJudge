@@ -28,6 +28,8 @@ export type SheriffElectionPendingAction =
 
 export interface SheriffElectionPanelModel {
   readonly view: SheriffElectionViewModel;
+  /** Remaining seconds of the armed settle countdown, or null when unarmed. */
+  readonly remainingSeconds: number | null;
   readonly pendingAction: SheriffElectionPendingAction | null;
   readonly register: () => Promise<void>;
   readonly cancelRegistration: () => Promise<void>;
@@ -43,6 +45,8 @@ interface UseSheriffElectionInput {
   readonly gameState: GameState;
   readonly effectiveSeat: number | null;
   readonly isHost: boolean;
+  /** Remaining seconds from the room's stage deadline, or null when unarmed. */
+  readonly remainingSeconds: number | null;
   /**
    * The room's single-flight submit, bound to the effective seat by the
    * caller; failures are presented by the submission itself.
@@ -53,7 +57,7 @@ interface UseSheriffElectionInput {
 export function useSheriffElection(
   input: UseSheriffElectionInput,
 ): SheriffElectionPanelModel | null {
-  const { effectiveSeat, gameState, isHost, submit } = input;
+  const { effectiveSeat, gameState, isHost, remainingSeconds, submit } = input;
   const [pendingAction, setPendingAction] = useState<SheriffElectionPendingAction | null>(null);
   const view = useMemo(
     () =>
@@ -142,6 +146,7 @@ export function useSheriffElection(
         ? null
         : {
             view,
+            remainingSeconds,
             pendingAction,
             register,
             cancelRegistration,
@@ -156,6 +161,7 @@ export function useSheriffElection(
       cancelRegistration,
       pendingAction,
       register,
+      remainingSeconds,
       requestAdvance,
       requestEndBySelfDestruct,
       view,

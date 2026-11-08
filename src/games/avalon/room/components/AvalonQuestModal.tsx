@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
+import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import {
   borderRadius,
@@ -76,10 +77,17 @@ export function AvalonQuestModal({
               </Text>
             ))}
           </View>
-          {remainingSeconds !== null ? (
+          {remainingSeconds !== null && remainingSeconds > 0 ? (
             <Text style={styles.countdown} testID="avalon-quest-countdown">
               已全部出牌，{remainingSeconds} 秒后揭晓
             </Text>
+          ) : null}
+          {viewModel.pendingPlaySeats !== null && viewModel.pendingPlaySeats.length > 0 ? (
+            <PendingSeatsRow
+              label="未出牌"
+              seats={viewModel.pendingPlaySeats}
+              testID="avalon-quest-pending-seats"
+            />
           ) : null}
           <StageSettleRescue
             remainingSeconds={remainingSeconds}
@@ -147,10 +155,10 @@ export function AvalonQuestModal({
           ) : null}
           {instruction.isTeamMember && instruction.myPlay !== null ? (
             <Text style={styles.hint}>
-              已出牌（{PLAY_COPY[instruction.myPlay]}），揭晓前可改牌；出牌人不公开。
+              已出牌（{PLAY_COPY[instruction.myPlay]}），揭晓前可改牌；出了什么牌不公开。
             </Text>
           ) : instruction.isTeamMember ? (
-            <Text style={styles.hint}>秘密出牌：点选一张卡，出牌人不公开。</Text>
+            <Text style={styles.hint}>秘密出牌：点选一张卡，出了什么牌不公开。</Text>
           ) : (
             <Text style={styles.hint}>等待队员出牌…</Text>
           )}

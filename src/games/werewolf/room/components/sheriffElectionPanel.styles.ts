@@ -25,6 +25,7 @@ export interface SheriffElectionPanelStyles {
   hudPhaseBadgeText: TextStyle;
   hudSummaryRow: ViewStyle;
   hudSummary: TextStyle;
+  hudPendingRow: ViewStyle;
   hudDetails: ViewStyle;
   hudDetailsText: TextStyle;
   sheetOverlay: ViewStyle;
@@ -61,6 +62,7 @@ export interface SheriffElectionPanelStyles {
   divider: ViewStyle;
   voteStatusRow: ViewStyle;
   voteProgress: TextStyle;
+  voteProgressPending: ViewStyle;
   ballotStatus: TextStyle;
   candidateSection: ViewStyle;
   sectionTitle: TextStyle;
@@ -146,6 +148,9 @@ export function createSheriffElectionPanelStyles(colors: ThemeColors): SheriffEl
       ...textStyles.caption,
       color: colors.textSecondary,
       flex: 1,
+    },
+    hudPendingRow: {
+      marginTop: spacing.tight,
     },
     hudDetails: {
       flexDirection: 'row',
@@ -316,6 +321,9 @@ export function createSheriffElectionPanelStyles(colors: ThemeColors): SheriffEl
     voteProgress: {
       ...textStyles.caption,
       color: colors.primary,
+    },
+    voteProgressPending: {
+      marginTop: spacing.tight,
     },
     ballotStatus: {
       ...textStyles.caption,

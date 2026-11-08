@@ -149,6 +149,7 @@ export {
   getSheriffVoteProgress,
   type SheriffCandidateRecords,
   type SheriffRoundRecord,
+  type SheriffVoteProgress,
 } from './domain/review/sheriffElectionRecord';
 export {
   getWerewolfViewModel,

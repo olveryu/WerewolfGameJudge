@@ -25,6 +25,7 @@ import type {
   SheriffElectionResult,
   SheriffElectionState,
   SheriffRoundRecord,
+  SheriffVoteProgress,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
@@ -64,11 +65,8 @@ export interface SheriffElectionPresentationInput {
   readonly records: SheriffCandidateRecords | null;
   /** The already-formatted speaking-order sentence, or null. */
   readonly speakingText: string | null;
-  /** Submission counts for an open voting round, or null. */
-  readonly voteProgress: {
-    readonly submittedCount: number;
-    readonly eligibleCount: number;
-  } | null;
+  /** Submission counts and pending seats for an open voting round, or null. */
+  readonly voteProgress: SheriffVoteProgress | null;
   readonly rounds: readonly SheriffElectionPresentationRoundInput[];
   /** Null while the election is not completed. */
   readonly result: SheriffElectionResult | null;
@@ -108,6 +106,8 @@ export type SheriffElectionPresentationRow =
       readonly kind: 'voteProgress';
       readonly submittedCount: number;
       readonly eligibleCount: number;
+      /** Eligible seats that have not submitted yet — submission status only, never ballot targets. */
+      readonly pendingSeats: readonly number[];
       /** The one formatted progress line: 'x/y 已提交'. */
       readonly text: string;
     }
@@ -137,6 +137,22 @@ export interface SheriffElectionPresentation {
  */
 function areSameSeats(first: readonly number[], second: readonly number[]): boolean {
   return first.length === second.length && first.every((seat, index) => seat === second[index]);
+}
+
+/**
+ * Live-clock suffix for a completed vote's progress line, used by the
+ * HUD — the one place the settle countdown is shown. While seconds
+ * remain it is `，N秒后自动公布结果`; once the deadline is reached (0)
+ * or the armed deadline has not arrived in the snapshot yet (null) it
+ * falls back to `，即将自动公布结果` — never a literal 0. Callers
+ * append it only once every eligible voter has submitted; while the
+ * vote is still open there is no suffix at all.
+ */
+export function getSettleCountdownSuffix(remainingSeconds: number | null): string {
+  if (remainingSeconds !== null && remainingSeconds > 0) {
+    return `，${remainingSeconds}秒后自动公布结果`;
+  }
+  return '，即将自动公布结果';
 }
 
 export function createSheriffElectionPresentation(
@@ -217,6 +233,7 @@ export function createSheriffElectionPresentation(
       kind: 'voteProgress',
       submittedCount: input.voteProgress.submittedCount,
       eligibleCount: input.voteProgress.eligibleCount,
+      pendingSeats: input.voteProgress.pendingSeats,
       text: `${input.voteProgress.submittedCount}/${input.voteProgress.eligibleCount} 已提交`,
     });
   }
