@@ -220,7 +220,7 @@ describe('StoryRelayTaskEditor final step', () => {
     [0, '故事从这里开始', '故事开头'],
     [2, '写下接下来的故事', '故事续写'],
     [3, '写下故事的结局', '故事结局'],
-  ])('shows the %s placeholder and label at step %s', (stepIndex, placeholder, label) => {
+  ])('at step %s shows placeholder %s and label %s', (stepIndex, placeholder, label) => {
     const state = answeringStateAtStep(stepIndex);
     const task = getStoryRelayTaskForSeat(state, 0);
     if (task === null) throw new Error('seat 0 has no task');
