@@ -26,20 +26,6 @@ export async function waitForLinkLive(page: Page, timeoutMs = RECONNECT_TIMEOUT_
 }
 
 /**
- * Wait until the not-live banner appears; fails when the link stays live.
- * Needed after forcing a disconnect (e.g. setOffline) before acting on the
- * offline state: the socket close is async, and an action dispatched while
- * the client still believes the link is live goes in-flight instead of
- * failing fast.
- */
-export async function waitForLinkOffline(
-  page: Page,
-  timeoutMs = RECONNECT_TIMEOUT_MS,
-): Promise<void> {
-  await expect(linkStatusBanner(page)).toBeVisible({ timeout: timeoutMs });
-}
-
-/**
  * Ensure all pages are connected. If any page shows the not-live banner, wait
  * for its link to recover before returning.
  *
