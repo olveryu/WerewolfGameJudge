@@ -43,7 +43,7 @@ const HOST_FLOW_FILES = [
   'packages/web/src/games/pictionary/room/hooks/usePictionaryRoomState.ts',
   'packages/web/src/games/storyrelay/room/storyRelayRoomAdapter.ts',
   'packages/web/src/games/drawguess/room/drawGuessRoomAdapter.ts',
-  'scripts/lib/new-game/templates/game/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
+  'scripts/lib/new-game/templates/game/packages/web/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
 ] as const;
 
 /** Forked flow vocabulary that must never reappear in the files above. */
@@ -99,7 +99,7 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
       'packages/web/src/games/demo/room/demoRoomAdapter.ts',
       'packages/web/src/games/fibking/room/fibRoomAdapter.ts',
       'packages/web/src/games/undercover/room/undercoverRoomAdapter.ts',
-      'scripts/lib/new-game/templates/game/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
+      'scripts/lib/new-game/templates/game/packages/web/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
     ].filter(inScope)) {
       expect({ file, present: readSource(file).includes('buildAssignRolesAction({') }).toEqual({
         file,
@@ -117,7 +117,7 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
       'packages/web/src/games/pictionary/room/pictionaryRoomAdapter.ts',
       'packages/web/src/games/storyrelay/room/storyRelayRoomAdapter.ts',
       'packages/web/src/games/drawguess/room/drawGuessRoomAdapter.ts',
-      'scripts/lib/new-game/templates/game/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
+      'scripts/lib/new-game/templates/game/packages/web/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
     ].filter(inScope)) {
       const source = readSource(file);
       expect({

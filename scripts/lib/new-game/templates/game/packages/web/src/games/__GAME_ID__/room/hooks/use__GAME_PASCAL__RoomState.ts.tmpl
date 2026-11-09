@@ -17,7 +17,13 @@ import {
   type __GAME_PASCAL__ViewModel,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
 import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router';
 
+import {
+  gameConfigEditPath,
+  gameGuidePath,
+  settingsPath,
+} from '@/features/navigation/model/gamePaths';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import {
@@ -119,7 +125,8 @@ export function use__GAME_PASCAL__RoomState(
     readonly entryController: RoomEntryController;
   },
 ): __GAME_PASCAL__RoomScreenState {
-  const { session, room, navigation, entryController } = props;
+  const { session, room, entryController } = props;
+  const navigate = useNavigate();
   const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
     session,
     get__GAME_PASCAL__RoomCommandFailureMessage,
@@ -150,12 +157,7 @@ export function use__GAME_PASCAL__RoomState(
     supportsBots: true,
     hasOccupiedSeats: get__GAME_PASCAL__OccupiedSeatCount(state) > 0,
     isRoomFull: get__GAME_PASCAL__OccupiedSeatCount(state) === state.config.numberOfPlayers,
-    configureGame: () =>
-      navigation.navigate('GameConfig', {
-        gameType: '__GAME_ID__',
-        mode: 'edit',
-        roomCode: room.roomCode,
-      }),
+    configureGame: () => void navigate(gameConfigEditPath('__GAME_ID__', room.roomCode)),
     shareRoom: share.open,
   });
 //#cap audioOrchestration
@@ -250,7 +252,7 @@ export function use__GAME_PASCAL__RoomState(
     onTitleLongPress: titleActions.handleTitleLongPress,
     user,
     gachaStatus,
-    onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
+    onUserActionPress: () => void navigate(settingsPath(room.roomCode)),
     connection: entryController.connection,
     state,
     revision,
@@ -288,8 +290,7 @@ export function use__GAME_PASCAL__RoomState(
     submit,
     isSubmitting,
     session,
-    openRules: () =>
-      navigation.navigate('GameGuide', { gameType: '__GAME_ID__', roomCode: room.roomCode }),
+    openRules: () => void navigate(gameGuidePath('__GAME_ID__', room.roomCode)),
     reviewOverlay: review.overlay,
 //#cap identityViewing
     roleViewing,

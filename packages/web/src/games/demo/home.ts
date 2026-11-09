@@ -1,4 +1,4 @@
-/** Demo contribution to the Home surface; the reference game, not shown in production. */
+/** Demo contribution to the Home surface. */
 import type { GameHomeContribution } from '@/games/model/GameHome';
 import { colors } from '@/theme/colors';
 import { lighten } from '@/theme/colorUtils';

@@ -2,7 +2,7 @@
  * __GAME_DISPLAY_NAME__播报 — 共享房间音频运行核（RoomAudioOrchestrator）的 React 薄绑定。
  *
  * 生命周期（队列识别、顺序播放、durable ack、ack 后 recheck 链式续播）已搬入共享核心
- * （src/features/room/audio/RoomAudioOrchestrator），全平台只此一份。本 hook 只做适配：
+ * （packages/web/src/features/room/audio/RoomAudioOrchestrator），全平台只此一份。本 hook 只做适配：
  * - queue source：直接读 link 权威快照的 state.pendingAudioEffects。必须读快照而非 React
  *   prop：ack 提交后 link 先应用新快照再返回结果，核心的 ack 后 recheck 只有读快照才能同步
  *   看到已清的队列。link 非 ready 或播放器未就绪时快照为 null（核心静默）。

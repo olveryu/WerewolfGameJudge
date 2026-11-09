@@ -1,11 +1,11 @@
 /**
  * Generator tests: run the real generator against a fixture repository
  * assembled from the real shared files it edits, for all three presets.
- * Real-tree copies validate formatting, lint, client/engine/Worker types,
- * generated engine and client tests and registration contracts. Demo regeneration
+ * Real-tree copies validate formatting, lint, web/engine/Worker types,
+ * generated engine and web client tests and registration contracts. Demo regeneration
  * must also match the shipped reference game. Run with
  * `node --test scripts/new-game.test.mjs` (also wrapped by
- * src/__tests__/newGameGenerator.contract.test.ts in the jest suite).
+ * contracts/newGameGenerator.contract.test.ts in the root vitest suite).
  */
 
 import assert from 'node:assert/strict';
@@ -45,11 +45,11 @@ const SHARED_FILES = [
   'packages/game-engine/src/platform/engine/__tests__/contracts.test.ts',
   'packages/game-engine/src/games/catalog.ts',
   'packages/api-worker/src/games/catalog.ts',
-  'src/games/catalog.ts',
-  'src/test-utils/clientGameCatalog.tsx',
-  'src/__tests__/botDispatchDiscipline.contract.test.ts',
-  'src/__tests__/roomGuidanceMatrix.contract.test.ts',
-  'src/__tests__/roomReview.contract.test.ts',
+  'packages/web/src/games/catalog.ts',
+  'packages/web/src/games/clientModules.tsx',
+  'packages/web/src/__tests__/botDispatchDiscipline.contract.test.ts',
+  'packages/web/src/__tests__/roomGuidanceMatrix.contract.test.ts',
+  'packages/web/src/__tests__/roomReview.contract.test.ts',
 ];
 
 function makeFixtureRepo() {
@@ -75,7 +75,7 @@ function makeFixtureRepo() {
  * trees (dependencies, media assets) symlinked back in instead of
  * copied. Generation inside the copy sees the real prettier/eslint
  * environment without ever mutating the shared tree, so this is safe
- * to run under the parallel jest suite.
+ * to run in parallel with other suites.
  */
 function makeRealRepoCopy() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'new-game-real-repo-'));
@@ -95,11 +95,23 @@ function makeRealRepoCopy() {
     'node_modules',
     'packages/game-engine/node_modules',
     'packages/api-worker/node_modules',
+    'packages/web/node_modules',
   ]) {
     const real = path.join(REPO_ROOT, linked);
     if (fs.existsSync(real)) fs.symlinkSync(real, path.join(root, linked), 'dir');
   }
   return root;
+}
+
+/** The vitest CLI a workspace package of `root` resolves. */
+function resolveVitestBin(root, packageDir) {
+  const vitestPackageJson = createRequire(path.join(root, packageDir, 'package.json')).resolve(
+    'vitest/package.json',
+  );
+  return path.resolve(
+    path.dirname(vitestPackageJson),
+    JSON.parse(fs.readFileSync(vitestPackageJson, 'utf8')).bin.vitest,
+  );
 }
 
 /**
@@ -131,7 +143,7 @@ function expectedCreatedFiles(gameId, preset) {
   const pascal = gameId.charAt(0).toUpperCase() + gameId.slice(1);
   const engine = `packages/game-engine/src/games/${gameId}`;
   const worker = `packages/api-worker/src/games/${gameId}`;
-  const client = `src/games/${gameId}`;
+  const client = `packages/web/src/games/${gameId}`;
   const files = [
     `${engine}/state/version.ts`,
     `${engine}/state/codec.ts`,
@@ -153,23 +165,22 @@ function expectedCreatedFiles(gameId, preset) {
     `${worker}/module.ts`,
     `${worker}/__tests__/schemas.test.ts`,
     `${client}/module.ts`,
-    `${client}/home/index.ts`,
+    `${client}/home.ts`,
     `${client}/navigation/${gameId}GameNavigation.ts`,
     `${client}/model/${pascal}RoomSession.ts`,
     `${client}/screens/${pascal}RulesScreen.tsx`,
     `${client}/room/${pascal}RoomScreen.tsx`,
+    `${client}/room/${pascal}RoomScreen.css`,
     `${client}/room/${gameId}RoomAdapter.ts`,
     `${client}/room/${gameId}GuidanceMatrix.ts`,
     `${client}/room/${gameId}RoomCommandFailureMessage.ts`,
     `${client}/room/hooks/use${pascal}RoomState.ts`,
-    `${client}/room/__tests__/${gameId}ShellModel.test.ts`,
+    `${client}/room/__tests__/${gameId}GuidanceMatrix.test.ts`,
     `${client}/room/__tests__/${gameId}RoomCommandFailureMessage.test.ts`,
     `${client}/review/to${pascal}ReviewDocument.ts`,
     `${client}/review/${gameId}Review.ts`,
     `${client}/review/__tests__/${gameId}Review.test.ts`,
-    `${client}/__tests__/build${pascal}TestState.ts`,
-    `${client}/__tests__/build${pascal}TestState.test.ts`,
-    `src/test-utils/${gameId}State.ts`,
+    `packages/web/src/test-utils/${gameId}State.ts`,
     `docs/${gameId}-game-design.md`,
     `e2e/specs/${gameId}.spec.ts.tmpl`,
   ];
@@ -331,35 +342,38 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
     assert.ok(
       workerCatalog.includes('demoproto: registerWorkerGameModule(demoprotoWorkerModule),'),
     );
-    const clientCatalog = readFixture(root, 'src/games/catalog.ts');
-    assert.ok(clientCatalog.includes('demoproto: {'));
-    assert.ok(clientCatalog.includes('createDemoprotoUiModule'));
+    const clientCatalog = readFixture(root, 'packages/web/src/games/catalog.ts');
+    assert.ok(clientCatalog.includes(`import { demoprotoHome } from '@/games/demoproto/home';`));
+    assert.ok(clientCatalog.includes('  demoproto: { home: demoprotoHome },'));
+    const clientModules = readFixture(root, 'packages/web/src/games/clientModules.tsx');
     assert.ok(
-      clientCatalog.includes(
-        `import { demoprotoGameNavigation } from '@/games/demoproto/navigation/demoprotoGameNavigation';`,
+      clientModules.includes(
+        "demoproto: async () => (await import('@/games/demoproto/module')).createDemoprotoClientModule,",
       ),
     );
-    assert.ok(
-      clientCatalog.includes(
-        'registerClientGameModule(CLIENT_GAME_PLUGIN_CATALOG.demoproto.createModule(dependencies))',
-      ),
+    assert.ok(clientModules.includes('    demoproto: { loading: null },'));
+    const dispatch = readFixture(
+      root,
+      'packages/web/src/__tests__/botDispatchDiscipline.contract.test.ts',
     );
-    assert.ok(
-      readFixture(root, 'src/test-utils/clientGameCatalog.tsx').includes("gameType: 'demoproto'"),
-    );
-    const dispatch = readFixture(root, 'src/__tests__/botDispatchDiscipline.contract.test.ts');
     assert.ok(dispatch.includes('demoproto: ['));
     assert.ok(
       dispatch.includes(`demoproto: ['games/demoproto/room/hooks/useDemoprotoRoomState.ts'],`),
     );
-    const guidanceRegistry = readFixture(root, 'src/__tests__/roomGuidanceMatrix.contract.test.ts');
+    const guidanceRegistry = readFixture(
+      root,
+      'packages/web/src/__tests__/roomGuidanceMatrix.contract.test.ts',
+    );
     assert.ok(
       guidanceRegistry.includes(
         `import { DEMOPROTO_GUIDANCE_MATRIX } from '@/games/demoproto/room/demoprotoGuidanceMatrix';`,
       ),
     );
     assert.ok(guidanceRegistry.includes('  demoproto: DEMOPROTO_GUIDANCE_MATRIX,'));
-    const reviewRegistry = readFixture(root, 'src/__tests__/roomReview.contract.test.ts');
+    const reviewRegistry = readFixture(
+      root,
+      'packages/web/src/__tests__/roomReview.contract.test.ts',
+    );
     assert.ok(
       reviewRegistry.includes(
         `import { demoprotoReview } from '@/games/demoproto/review/demoprotoReview';`,
@@ -389,9 +403,11 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
     // The review step names the skeleton document and contribution a
     // game fills, and the closed block vocabulary it fills them with.
     assert.ok(report.includes('本局复盘填空'));
-    assert.ok(report.includes('src/games/demoproto/review/toDemoprotoReviewDocument.ts'));
-    assert.ok(report.includes('src/games/demoproto/review/demoprotoReview.ts'));
-    assert.ok(report.includes('src/features/room/review/types.ts'));
+    assert.ok(
+      report.includes('packages/web/src/games/demoproto/review/toDemoprotoReviewDocument.ts'),
+    );
+    assert.ok(report.includes('packages/web/src/games/demoproto/review/demoprotoReview.ts'));
+    assert.ok(report.includes('packages/web/src/features/room/review/types.ts'));
     // The word-library step names all three workflow registration
     // sites: the registry entry, the worker entrypoint export and
     // the wrangler binding (the last one has no contract weld).
@@ -427,7 +443,7 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
       .map((file) => readFixture(root, file))
       .join('\n');
     const clientGameDir = summary.createdFiles
-      .filter((file) => file.startsWith('src/games/demoproto/'))
+      .filter((file) => file.startsWith('packages/web/src/games/demoproto/'))
       .map((file) => readFixture(root, file))
       .join('\n');
     if (capabilities.botTestScaffold) {
@@ -438,27 +454,31 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
     // hook, the screen mounts its overlay, and the adapter places the
     // shared entry on the bottom tier and the host sheet, closing the
     // ended task with the review beside next round / return to lobby.
-    const clientModule = readFixture(root, 'src/games/demoproto/module.ts');
+    const clientModule = readFixture(root, 'packages/web/src/games/demoproto/module.ts');
     assert.ok(clientModule.includes('review: demoprotoReview,'), 'module declares the review');
-    const reviewHook = readFixture(root, 'src/games/demoproto/room/hooks/useDemoprotoRoomState.ts');
+    const reviewHook = readFixture(
+      root,
+      'packages/web/src/games/demoproto/room/hooks/useDemoprotoRoomState.ts',
+    );
     assert.ok(reviewHook.includes('useRoomReview({'), 'room state resolves the review');
     assert.ok(
-      readFixture(root, 'src/games/demoproto/room/DemoprotoRoomScreen.tsx').includes(
+      readFixture(root, 'packages/web/src/games/demoproto/room/DemoprotoRoomScreen.tsx').includes(
         'screen.reviewOverlay',
       ),
       'room screen mounts the review overlay',
     );
-    const adapterSource = readFixture(root, 'src/games/demoproto/room/demoprotoRoomAdapter.ts');
+    const adapterSource = readFixture(
+      root,
+      'packages/web/src/games/demoproto/room/demoprotoRoomAdapter.ts',
+    );
     assert.ok(adapterSource.includes(`buildReviewBottomButton(input.review, 'secondary')`));
     assert.ok(adapterSource.includes('buildReviewHostAction(input.review)'));
     assert.ok(adapterSource.includes('hostReviewClosingTask()'));
     assert.ok(!adapterSource.includes('hostClosingTask('), 'ended task offers the review');
     if (capabilities.identityViewing) {
-      // The generated room screen consumes the shared RevealRoleCardModal
-      // assembly (whose only render path goes through RevealAnimationGate).
+      // The generated room screen consumes the shared RevealRoleCardModal.
       assert.ok(clientGameDir.includes('RevealRoleCardModal'));
     } else {
-      assert.ok(!clientGameDir.includes('RevealAnimationGate'));
       assert.ok(!clientGameDir.includes('RevealRoleCardModal'));
     }
     if (capabilities.stageDeadline) {
@@ -519,7 +539,10 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
       // silently dropped from the assembled hook, these assertions
       // fail with it. The demo-hybrid pack renders no countdown
       // surface at all, exactly like the shipped demo.
-      const roomHook = readFixture(root, 'src/games/demoproto/room/hooks/useDemoprotoRoomState.ts');
+      const roomHook = readFixture(
+        root,
+        'packages/web/src/games/demoproto/room/hooks/useDemoprotoRoomState.ts',
+      );
       if (!capabilities.identityViewing) {
         assert.ok(roomHook.includes('useStageDeadline({'), 'rendered hook calls useStageDeadline');
         assert.ok(!roomHook.includes('shouldExpire'), 'rendered hook has no expire gate');
@@ -573,7 +596,7 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
       assert.ok(
         readFixture(
           root,
-          'src/games/demoproto/room/demoprotoRoomCommandFailureMessage.ts',
+          'packages/web/src/games/demoproto/room/demoprotoRoomCommandFailureMessage.ts',
         ).includes('notHostRetrySettle'),
         'retry failure copy',
       );
@@ -637,6 +660,7 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
     __GAME_DISPLAY_NAME__: '演示原型',
     __GAME_SUBTITLE__: '生成器自证用临时游戏',
     __GAME_ICON_NAME__: 'game-controller-outline',
+    __GAME_ICON_COMPONENT__: 'IconGameControllerOutline',
     __GAME_TIER__: 'mini',
     __GAME_PRESET__: 'identity',
   };
@@ -675,7 +699,7 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
     return rendered;
   };
 
-  const hookFile = 'src/games/demoproto/room/hooks/useDemoprotoAudioOrchestration.ts';
+  const hookFile = 'packages/web/src/games/demoproto/room/hooks/useDemoprotoAudioOrchestration.ts';
   const on = renderTree({ ...baseRecord, audioOrchestration: true });
   const off = renderTree({ ...baseRecord, audioOrchestration: false });
 
@@ -738,7 +762,9 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
     'audio-off engine declares the capability false',
   );
   assert.ok(
-    off.get('src/games/demoproto/room/demoprotoRoomAdapter.ts').includes('isAudioPlaying: false'),
+    off
+      .get('packages/web/src/games/demoproto/room/demoprotoRoomAdapter.ts')
+      .includes('isAudioPlaying: false'),
     'audio-off shell explicitly declares no narration',
   );
 
@@ -751,21 +777,25 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
       fs.writeFileSync(destination, content);
     }
     const require = createRequire(path.join(root, 'package.json'));
-    execFileSync(process.execPath, [require.resolve('typescript/bin/tsc'), '--noEmit'], {
-      cwd: root,
-      stdio: 'pipe',
-      encoding: 'utf8',
-    });
+    for (const project of [
+      'packages/web/tsconfig.json',
+      'packages/game-engine/tsconfig.test.json',
+    ]) {
+      execFileSync(
+        process.execPath,
+        [require.resolve('typescript/bin/tsc'), '--noEmit', '--project', project],
+        { cwd: root, stdio: 'pipe', encoding: 'utf8' },
+      );
+    }
     execFileSync(
       process.execPath,
-      [
-        require.resolve('jest/bin/jest'),
-        '--runInBand',
-        '--no-coverage',
-        '--runTestsByPath',
-        'src/games/demoproto/room/__tests__/demoprotoShellModel.test.ts',
-      ],
-      { cwd: root, stdio: 'pipe', encoding: 'utf8' },
+      [resolveVitestBin(root, 'packages/web'), 'run', 'src/games/demoproto'],
+      { cwd: path.join(root, 'packages/web'), stdio: 'pipe', encoding: 'utf8' },
+    );
+    execFileSync(
+      process.execPath,
+      [resolveVitestBin(root, 'packages/game-engine'), 'run', 'src/games/demoproto'],
+      { cwd: path.join(root, 'packages/game-engine'), stdio: 'pipe', encoding: 'utf8' },
     );
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
@@ -823,7 +853,7 @@ test('generated output passes format, lint, typecheck, engine and client tests w
       // extensions, templates excluded (their rendered outputs are the
       // other entries in the list).
       const formatTargets = summary.createdFiles.filter(
-        (file) => /\.(?:ts|tsx|js|mjs|json|md)$/.test(file) && !file.endsWith('.tmpl'),
+        (file) => /\.(?:ts|tsx|js|mjs|json|md|css)$/.test(file) && !file.endsWith('.tmpl'),
       );
       execFileSync(process.execPath, [prettierBin, '--check', ...formatTargets], {
         cwd: root,
@@ -846,39 +876,30 @@ test('generated output passes format, lint, typecheck, engine and client tests w
         },
       });
       const typescriptBin = require.resolve('typescript/bin/tsc');
-      for (const project of ['tsconfig.json', 'packages/api-worker/tsconfig.json']) {
+      for (const project of [
+        'packages/web/tsconfig.json',
+        'packages/game-engine/tsconfig.test.json',
+        'packages/api-worker/tsconfig.json',
+      ]) {
         execFileSync(process.execPath, [typescriptBin, '--noEmit', '--project', project], {
           cwd: root,
           stdio: 'pipe',
           encoding: 'utf8',
         });
       }
-      // The generated client tests (shell model, review, test-state
-      // factory) render a different begin path per pack, so each pack
-      // proves its own rendering by running them, and its rounds through
-      // the cross-game review contract the generator registered them in.
+      // The generated web tests (guidance matrix, review, failure copy)
+      // render a different begin path per pack, so each pack proves its
+      // own rendering by running them, and its registrations through the
+      // web contracts the generator edited.
       execFileSync(
         process.execPath,
-        [
-          require.resolve('jest/bin/jest'),
-          '--runInBand',
-          '--no-coverage',
-          'src/games/aaprobe',
-          'src/__tests__/roomReview.contract.test.ts',
-        ],
-        { cwd: root, stdio: 'pipe', encoding: 'utf8' },
-      );
-      const vitestPackageJson = createRequire(
-        path.join(root, 'packages/game-engine/package.json'),
-      ).resolve('vitest/package.json');
-      const vitestBin = path.resolve(
-        path.dirname(vitestPackageJson),
-        JSON.parse(fs.readFileSync(vitestPackageJson, 'utf8')).bin.vitest,
+        [resolveVitestBin(root, 'packages/web'), 'run', 'src/games/aaprobe', 'src/__tests__'],
+        { cwd: path.join(root, 'packages/web'), stdio: 'pipe', encoding: 'utf8' },
       );
       execFileSync(
         process.execPath,
         [
-          vitestBin,
+          resolveVitestBin(root, 'packages/game-engine'),
           'run',
           'src/games/aaprobe',
           'src/platform/__tests__/phaseDeadlineVariants.contract.test.ts',
@@ -938,7 +959,7 @@ function stripShippedDemo(root) {
   for (const dir of [
     'packages/game-engine/src/games/demo',
     'packages/api-worker/src/games/demo',
-    'src/games/demo',
+    'packages/web/src/games/demo',
   ]) {
     fs.rmSync(path.join(root, dir), { recursive: true, force: true });
   }
@@ -946,7 +967,7 @@ function stripShippedDemo(root) {
     'docs/demo-game-design.md',
     'e2e/specs/demo.spec.ts.tmpl',
     `packages/api-worker/migrations/${DEMO_REGISTRATION_MIGRATION}`,
-    'src/test-utils/demoState.ts',
+    'packages/web/src/test-utils/demoState.ts',
   ]) {
     fs.rmSync(path.join(root, file), { force: true });
   }
@@ -1032,49 +1053,48 @@ function stripShippedDemo(root) {
   );
   removeExactText(
     root,
-    'src/games/catalog.ts',
-    "import { createDemoUiModule } from '@/games/demo/module';\n",
+    'packages/web/src/games/catalog.ts',
+    "import { demoHome } from '@/games/demo/home';\n",
+  );
+  removeExactText(root, 'packages/web/src/games/catalog.ts', '  demo: { home: demoHome },\n');
+  removeExactText(
+    root,
+    'packages/web/src/games/clientModules.tsx',
+    "  demo: async () => (await import('@/games/demo/module')).createDemoClientModule,\n",
   );
   removeExactText(
     root,
-    'src/games/catalog.ts',
-    "import { demoGameNavigation } from '@/games/demo/navigation/demoGameNavigation';\n",
+    'packages/web/src/games/clientModules.tsx',
+    '    demo: { loading: null },\n',
   );
-  removeEntryBlock(root, 'src/games/catalog.ts', '  demo: {', '  },');
   removeExactText(
     root,
-    'src/games/catalog.ts',
-    '    demo: registerClientGameModule(CLIENT_GAME_PLUGIN_CATALOG.demo.createModule(dependencies)),\n',
-  );
-  removeEntryBlock(root, 'src/test-utils/clientGameCatalog.tsx', '    demo: {', '    },');
-  removeExactText(
-    root,
-    'src/__tests__/botDispatchDiscipline.contract.test.ts',
+    'packages/web/src/__tests__/botDispatchDiscipline.contract.test.ts',
     "  demo: ['games/demo/room/hooks/useDemoRoomState.ts'],\n",
   );
   removeExactText(
     root,
-    'src/__tests__/roomGuidanceMatrix.contract.test.ts',
+    'packages/web/src/__tests__/roomGuidanceMatrix.contract.test.ts',
     "import { DEMO_GUIDANCE_MATRIX } from '@/games/demo/room/demoGuidanceMatrix';\n",
   );
   removeExactText(
     root,
-    'src/__tests__/roomGuidanceMatrix.contract.test.ts',
+    'packages/web/src/__tests__/roomGuidanceMatrix.contract.test.ts',
     '  demo: DEMO_GUIDANCE_MATRIX,\n',
   );
   removeExactText(
     root,
-    'src/__tests__/roomReview.contract.test.ts',
+    'packages/web/src/__tests__/roomReview.contract.test.ts',
     "import { demoReview } from '@/games/demo/review/demoReview';\n",
   );
   removeExactText(
     root,
-    'src/__tests__/roomReview.contract.test.ts',
+    'packages/web/src/__tests__/roomReview.contract.test.ts',
     "import { DEMO_REVIEW_ROUNDS } from '@/test-utils/demoState';\n",
   );
   removeExactText(
     root,
-    'src/__tests__/roomReview.contract.test.ts',
+    'packages/web/src/__tests__/roomReview.contract.test.ts',
     '  demo: reviewCase(demoReview, DEMO_REVIEW_ROUNDS),\n',
   );
 }
@@ -1133,7 +1153,7 @@ const DEMO_COMPARE_EXCEPTIONS = [
     ].join('\n'),
   },
   {
-    file: 'src/games/demo/room/demoGuidanceMatrix.ts',
+    file: 'packages/web/src/games/demo/room/demoGuidanceMatrix.ts',
     body: [
       '/**',
       ' * Demo（生成器样例游戏）（阶段 × 观看者）底部提示矩阵声明：逐格事实以',
@@ -1145,14 +1165,14 @@ const DEMO_COMPARE_EXCEPTIONS = [
       '/**',
       ' * Demo（阶段 × 观看者）底部提示矩阵声明：本表是新游戏的起点声明——',
       ' * 每格要么承诺该阶段入口态底部有一句提示，要么登记豁免理由（指出由哪个',
-      ' * 表面承载引导）。生成器已把本表登记进 src/__tests__/roomGuidanceMatrix.contract.test.ts',
-      ' * 的注册表；生成后必须写一个矩阵测试，用真实引擎流驱动本游戏的',
-      ' * shell model 逐格对账（参考 demo 的 demoGuidanceMatrix.test.ts）。',
+      ' * 表面承载引导）。生成器已把本表登记进 packages/web/src/__tests__/roomGuidanceMatrix.contract.test.ts',
+      ' * 的注册表，并生成 demoGuidanceMatrix.test.ts 用真实引擎流驱动本游戏的',
+      ' * shell model 逐格对账；玩法阶段落地时两者同步改。',
       ' */',
     ].join('\n'),
   },
   {
-    file: 'src/games/demo/room/demoGuidanceMatrix.ts',
+    file: 'packages/web/src/games/demo/room/demoGuidanceMatrix.ts',
     body: '玩法阶段界面在 stage 区（模板占位面）',
     generated: '玩法阶段界面在 stage 区',
     occurrences: 3,
@@ -1174,8 +1194,6 @@ const DEMO_BODY_ONLY_FILES = [
   'packages/api-worker/src/games/demo/__tests__/effects.test.ts',
   'packages/game-engine/src/games/demo/__tests__/fullChain.test.ts',
   'packages/game-engine/src/games/demo/__tests__/roomCommands.contract.test.ts',
-  'src/games/demo/room/__tests__/demoGuidanceMatrix.test.ts',
-  'src/games/demo/screens/__tests__/demoConfigScreen.contract.test.tsx',
 ];
 
 function applyDemoCompareExceptions(file, bodyText, consumed) {
@@ -1237,7 +1255,7 @@ test('regenerating demo with the demo-hybrid pack reproduces the shipped demo', 
     for (const dir of [
       'packages/game-engine/src/games/demo',
       'packages/api-worker/src/games/demo',
-      'src/games/demo',
+      'packages/web/src/games/demo',
     ]) {
       collectBodyOnly(path.join(REPO_ROOT, dir), dir);
     }
@@ -1274,8 +1292,8 @@ test('rejects invalid game ids and presets before writing anything', () => {
     () => generateNewGame({ rootDir: root, gameId: 'demo', preset: 'weird' }),
     /Invalid preset/,
   );
-  assert.ok(!fs.existsSync(path.join(root, 'src/games/demo')));
-  assert.ok(!fs.existsSync(path.join(root, 'src/games/Demo')));
+  assert.ok(!fs.existsSync(path.join(root, 'packages/web/src/games/demo')));
+  assert.ok(!fs.existsSync(path.join(root, 'packages/web/src/games/Demo')));
 });
 
 test('orders contracts.test.ts imports by module specifier, not binding name', () => {
@@ -1322,5 +1340,15 @@ test('rejects display strings that would break out of generated literals', () =>
       }),
     /Invalid --name/,
   );
-  assert.ok(!fs.existsSync(path.join(root, 'src/games/demoproto')));
+  assert.throws(
+    () =>
+      generateNewGame({
+        rootDir: root,
+        gameId: 'demoproto',
+        preset: 'identity',
+        iconName: 'GameController',
+      }),
+    /Invalid --icon/,
+  );
+  assert.ok(!fs.existsSync(path.join(root, 'packages/web/src/games/demoproto')));
 });

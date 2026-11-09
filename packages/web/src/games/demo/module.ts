@@ -1,4 +1,4 @@
-/** Demo client module: the reference game, on the shared room infrastructure. */
+/** Demo client module, on the shared room infrastructure. */
 import {
   DEMO_CONFIG_SCHEMA,
   DEMO_STATE_CODEC,

@@ -34,7 +34,7 @@
   三层 catalog、migration 骨架）见仓库根目录的接入报告；玩法只许填
   `TODO(gameplay)` 标记处。
 - 本局复盘：入口（终局底部按钮、房主面板与终局任务）、弹窗与图片分享归平台
-  （`src/features/room/review/`）；游戏只在 `src/games/demo/review/` 声明复盘
+  （`packages/web/src/features/room/review/`）；游戏只在 `packages/web/src/games/demo/review/` 声明复盘
   文档，用封闭的块词汇表达，不写复盘 JSX。骨架复盘是一页 hero「本局结束」+
   参与者名单；终局事实（胜负、身份、得分、过程）按第 1 节定稿后填入。
 

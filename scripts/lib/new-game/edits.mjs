@@ -302,33 +302,46 @@ export function editWorkerCatalog(content, { gameId, camel }) {
   );
 }
 
-/** Register the client plugin in the client catalog (plugin entry + catalog factory entry). */
-export function editClientCatalog(content, { gameId, camel, pascal }) {
-  const file = 'src/games/catalog.ts';
-  if (content.includes(`'@/games/${gameId}/module'`))
+/** Register the game's Home contribution in the exhaustive web client catalog. */
+export function editClientCatalog(content, { gameId, camel }) {
+  const file = 'packages/web/src/games/catalog.ts';
+  if (content.includes(`'@/games/${gameId}/home'`))
     fail(file, `'${gameId}' is already in the client catalog.`);
-  const withImports = insertImportsSorted(
+  const withImport = insertImportsSorted(
     file,
     content,
-    [
-      `import { create${pascal}UiModule } from '@/games/${gameId}/module';`,
-      `import { ${camel}GameNavigation } from '@/games/${gameId}/navigation/${camel}GameNavigation';`,
-    ],
+    [`import { ${camel}Home } from '@/games/${gameId}/home';`],
     /^@\/games\//,
-  );
-  const withPlugin = replaceOnce(
-    file,
-    withImports,
-    /(\} satisfies ClientGamePluginCatalogShape;)/,
-    (match) =>
-      `  ${gameId}: {\n    gameType: '${gameId}',\n    navigation: ${camel}GameNavigation,\n    createModule: create${pascal}UiModule,\n  },\n${match}`,
   );
   return replaceOnce(
     file,
-    withPlugin,
-    /(    \w+: registerClientGameModule\(CLIENT_GAME_PLUGIN_CATALOG\.\w+\.createModule\(dependencies\)\),\n)(?![\s\S]*registerClientGameModule\(CLIENT_GAME_PLUGIN_CATALOG)/,
-    (match) =>
-      `${match}    ${gameId}: registerClientGameModule(CLIENT_GAME_PLUGIN_CATALOG.${gameId}.createModule(dependencies)),\n`,
+    withImport,
+    /(const CLIENT_GAMES: \{ readonly \[TGameType in GameType\]: ClientGameModule \} = \{[\s\S]*?)(\n\};)/,
+    (_match, head, tail) => `${head}\n  ${gameId}: { home: ${camel}Home },${tail}`,
+  );
+}
+
+/**
+ * Register the lazily loaded client module in both exhaustive literals of
+ * the web module loader: the loader map (which also marks the game ported
+ * for the per-game web contracts) and the per-page module slots.
+ */
+export function editClientModuleLoaders(content, { gameId, pascal }) {
+  const file = 'packages/web/src/games/clientModules.tsx';
+  if (content.includes(`import('@/games/${gameId}/module')`))
+    fail(file, `'${gameId}' already has a client module loader.`);
+  const withLoader = replaceOnce(
+    file,
+    content,
+    /(const CLIENT_GAME_LOADERS: ClientGameLoaders = \{[\s\S]*?)(\n\};)/,
+    (_match, head, tail) =>
+      `${head}\n  ${gameId}: async () => (await import('@/games/${gameId}/module')).create${pascal}ClientModule,${tail}`,
+  );
+  return replaceOnce(
+    file,
+    withLoader,
+    /(const modules: \{ readonly \[TGameType in GameType\]: ModuleSlot<TGameType> \} = \{[\s\S]*?)(\n  \};)/,
+    (_match, head, tail) => `${head}\n    ${gameId}: { loading: null },${tail}`,
   );
 }
 
@@ -356,101 +369,60 @@ export function editDispatchDiscipline(content, { gameId, pascal }) {
   );
 }
 
-/** Append the test-fixture entry for the new game to the test client catalog. */
-export function editTestClientCatalog(content, { gameId, camel, home }) {
-  const file = 'src/test-utils/clientGameCatalog.tsx';
-  if (content.includes(`gameType: '${gameId}'`))
-    fail(file, `'${gameId}' already has a test catalog entry.`);
-  const entry = [
-    `    ${gameId}: {`,
-    `      gameType: '${gameId}',`,
-    `      home: {`,
-    `        mode: {`,
-    `          displayName: '${home.displayName}',`,
-    `          subtitle: '${home.subtitle}',`,
-    `          iconName: '${home.iconName}',`,
-    `          tier: '${home.tier}',`,
-    `          gradient: [lighten(colors.primary, 0.45), colors.primary],`,
-    `        },`,
-    `        spotlight: null,`,
-    `        announcementTabs: [],`,
-    `      },`,
-    `      navigation: bindGameNavigation(CLIENT_GAME_PLUGIN_CATALOG.${gameId}.navigation, {`,
-    `        config: EmptyScreen,`,
-    `        guide: EmptyScreen,`,
-    `      }),`,
-    `      roomScreen: EmptyRoomScreen,`,
-    `      roomAccount: createIdleRoomAccount('${gameId}'),`,
-    `      productUi: {`,
-    `        getAvatarDisplayName: () => null,`,
-    `        getRevealEffectPresentation: () => null,`,
-    `      },`,
-    `      audioPreview: null,`,
-    `      accountStatsSection: EmptyAccountStatsSection,`,
-    `      appOverlay: null,`,
-    `    },`,
-    '',
-  ].join('\n');
-  return replaceOnce(file, content, /(\n  \};\n\}\s*)$/, (match) => `\n${entry}  };\n}\n`);
-}
-
 /**
- * Register the game's guidance matrix in the exhaustive registry
- * contract: the import joins the @/games import group in specifier
- * order and the row is appended to the GUIDANCE_MATRICES literal.
+ * Register the game's guidance matrix in the registry contract, which
+ * covers exactly the ported games (the loader edit ports this one): the
+ * import joins the @/ alias import group in specifier order and the row is
+ * appended to the GUIDANCE_MATRICES literal.
  * The constant name derives exactly like the template's
  * __GAME_UPPER__ token (gameId uppercased), so the registered name
  * always matches the export of the matrix file generated alongside.
  */
 export function editGuidanceMatrixRegistry(content, { gameId, camel }) {
-  const file = 'src/__tests__/roomGuidanceMatrix.contract.test.ts';
+  const file = 'packages/web/src/__tests__/roomGuidanceMatrix.contract.test.ts';
   const constant = `${gameId.toUpperCase()}_GUIDANCE_MATRIX`;
   if (content.includes(constant)) fail(file, `'${gameId}' is already registered.`);
   const withImport = insertImportsSorted(
     file,
     content,
     [`import { ${constant} } from '@/games/${gameId}/room/${camel}GuidanceMatrix';`],
-    /^@\/games\//,
+    /^@\//,
   );
   return replaceOnce(
     file,
     withImport,
-    /(const GUIDANCE_MATRICES: Record<GameType, RoomGuidanceMatrix<string>> = \{[\s\S]*?)(\n\};)/,
+    /(const GUIDANCE_MATRICES: Partial<Record<GameType, RoomGuidanceMatrix<string>>> = \{[\s\S]*?)(\n\};)/,
     (_match, head, tail) => `${head}\n  ${gameId}: ${constant},${tail}`,
   );
 }
 
 /**
- * Register the game's review rounds in the exhaustive review contract:
- * the contribution import joins the @/games import group and the rounds
- * import the @/test-utils group, each in specifier order, and the row is
- * appended to the REVIEW_CONTRACT literal. Both names derive exactly like
- * the template tokens — `${camel}Review` from
+ * Register the game's review rounds in the review contract, which covers
+ * every ported web game: both imports join the @/ alias import group in
+ * specifier order, and the row is appended to the REVIEW_CONTRACT literal. Both
+ * names derive exactly like the template tokens — `${camel}Review` from
  * review/__GAME_CAMEL__Review, the rounds constant (gameId uppercased,
  * like __GAME_UPPER__) from test-utils/__GAME_ID__State — so the
  * registered names always match the files generated alongside.
  */
 export function editReviewContractRegistry(content, { gameId, camel }) {
-  const file = 'src/__tests__/roomReview.contract.test.ts';
+  const file = 'packages/web/src/__tests__/roomReview.contract.test.ts';
   const contribution = `${camel}Review`;
   const rounds = `${gameId.toUpperCase()}_REVIEW_ROUNDS`;
   if (content.includes(rounds)) fail(file, `'${gameId}' is already registered.`);
-  const withContribution = insertImportsSorted(
+  const withImports = insertImportsSorted(
     file,
     content,
-    [`import { ${contribution} } from '@/games/${gameId}/review/${contribution}';`],
-    /^@\/games\//,
-  );
-  const withRounds = insertImportsSorted(
-    file,
-    withContribution,
-    [`import { ${rounds} } from '@/test-utils/${gameId}State';`],
-    /^@\/test-utils\//,
+    [
+      `import { ${contribution} } from '@/games/${gameId}/review/${contribution}';`,
+      `import { ${rounds} } from '@/test-utils/${gameId}State';`,
+    ],
+    /^@\//,
   );
   return replaceOnce(
     file,
-    withRounds,
-    /(const REVIEW_CONTRACT: Record<GameType, ReviewContractCase> = \{[\s\S]*?)(\n\};)/,
+    withImports,
+    /(const REVIEW_CONTRACT = \{[\s\S]*?)(\n\} as const satisfies Partial<Record<GameType, ReviewContractCase>>;)/,
     (_match, head, tail) => `${head}\n  ${gameId}: reviewCase(${contribution}, ${rounds}),${tail}`,
   );
 }

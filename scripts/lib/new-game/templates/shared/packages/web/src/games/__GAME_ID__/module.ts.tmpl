@@ -1,7 +1,4 @@
-/**
- * 注册完整的__GAME_DISPLAY_NAME__客户端：使用共享房间基础设施。
- */
-
+/** __GAME_DISPLAY_NAME__ client module, on the shared room infrastructure. */
 import {
   get__GAME_PASCAL__UserSeat,
   __GAME_UPPER___CONFIG_SCHEMA,
@@ -12,7 +9,6 @@ import {
 
 import { defineClientGameModule } from '@/games/model/defineClientGameModule';
 
-import { __GAME_CAMEL__HomeContribution } from './home';
 import {
   __GAME_CAMEL__GameNavigation,
   parse__GAME_PASCAL__ConfigRouteParams,
@@ -22,16 +18,14 @@ import { __GAME_PASCAL__RoomScreen } from './room/__GAME_PASCAL__RoomScreen';
 import { get__GAME_PASCAL__RoomCommandFailureMessage } from './room/__GAME_CAMEL__RoomCommandFailureMessage';
 import { __GAME_PASCAL__RulesScreen } from './screens/__GAME_PASCAL__RulesScreen';
 
-// TODO(gameplay): 玩法配置项（时长、模式等）按设计文档加进引擎 __GAME_UPPER___CONFIG_SCHEMA。
-
-export const create__GAME_PASCAL__UiModule = defineClientGameModule<
+export const create__GAME_PASCAL__ClientModule = defineClientGameModule<
   '__GAME_ID__',
   __GAME_PASCAL__State,
   __GAME_PASCAL__Command
 >({
   gameType: '__GAME_ID__',
+  displayName: '__GAME_DISPLAY_NAME__',
   stateCodec: __GAME_UPPER___STATE_CODEC,
-  home: __GAME_CAMEL__HomeContribution,
   navigation: __GAME_CAMEL__GameNavigation,
   RoomScreen: __GAME_PASCAL__RoomScreen,
   config: (define) =>
