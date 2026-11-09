@@ -59,6 +59,13 @@ export const routes: RouteObject[] = [
         },
       },
       {
+        path: 'settings/music/:roomCode?',
+        lazy: async () => {
+          const { MusicSettingsPage } = await import('@/routes/settings/MusicSettingsPage');
+          return { Component: MusicSettingsPage };
+        },
+      },
+      {
         path: 'settings/:roomCode?',
         lazy: async () => {
           const { SettingsPage } = await import('@/routes/settings/SettingsPage');

@@ -314,6 +314,18 @@ export function buildRoomConfigAction(input: ActionInput): RoomHostManagementAct
   );
 }
 
+/** "音乐设置" — tools-section entry to the music settings page; each game decides when it is offered. */
+export function buildMusicSettingsAction(input: ActionInput): RoomHostManagementAction {
+  return buildAction(
+    'music-settings',
+    '音乐设置',
+    'musical-notes-outline',
+    'secondary',
+    TESTIDS.roomMusicSettingsButton,
+    input,
+  );
+}
+
 /** Canonical sheet keys referenced by host tasks across games. */
 export const HOST_ACTION_KEYS = {
   startGame: 'start-game',

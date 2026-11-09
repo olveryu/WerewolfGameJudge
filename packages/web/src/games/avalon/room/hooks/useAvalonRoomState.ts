@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router';
 import {
   gameConfigEditPath,
   gameGuidePath,
+  musicSettingsPath,
   settingsPath,
 } from '@/features/navigation/model/gamePaths';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
@@ -267,6 +268,10 @@ export function useAvalonRoomState(
       controlledSeat,
       releaseBot: bots.release,
       review: review.entry,
+      onMusicSettings: () => {
+        bgm.stopBgm();
+        void navigate(musicSettingsPath(room.roomCode));
+      },
       submit,
     });
 

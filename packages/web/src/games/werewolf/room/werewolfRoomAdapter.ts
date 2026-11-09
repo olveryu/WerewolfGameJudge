@@ -679,6 +679,7 @@ interface WerewolfRoomShellModelInput extends Pick<
   readonly onHostControl: (action: WerewolfHostControlAction) => void;
   readonly onMarkAllBotsViewed: () => void;
   readonly onMarkAllBotsGroupConfirmed: () => void;
+  readonly onMusicSettings: () => void;
   readonly review: RoomReviewEntry | null;
   readonly onGrantReviewAccess: () => void;
   readonly onLastNightInfo: () => void;
@@ -732,6 +733,7 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
       onHostControl: input.onHostControl,
       onMarkAllBotsViewed: input.onMarkAllBotsViewed,
       onMarkAllBotsGroupConfirmed: input.onMarkAllBotsGroupConfirmed,
+      onMusicSettings: input.onMusicSettings,
       review: input.review,
       onGrantReviewAccess: input.onGrantReviewAccess,
       onLastNightInfo: input.onLastNightInfo,

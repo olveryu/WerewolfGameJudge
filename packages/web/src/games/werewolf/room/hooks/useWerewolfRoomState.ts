@@ -28,7 +28,11 @@ import {
 import { type ReactNode, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { gameConfigEditPath, settingsPath } from '@/features/navigation/model/gamePaths';
+import {
+  gameConfigEditPath,
+  musicSettingsPath,
+  settingsPath,
+} from '@/features/navigation/model/gamePaths';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import { useLastActionToast } from '@/features/room/controllers/useLastActionToast';
@@ -458,6 +462,10 @@ export function useWerewolfRoomState(
     onHostControl: hostFlow.onHostControl,
     onMarkAllBotsViewed: hostFlow.markAllBotsViewed,
     onMarkAllBotsGroupConfirmed: hostFlow.markAllBotsGroupConfirmed,
+    onMusicSettings: () => {
+      bgm.stopBgm();
+      void navigate(musicSettingsPath(roomCode));
+    },
     review: review.entry,
     onGrantReviewAccess: modals.openGrant,
     onLastNightInfo: modals.showLastNightInfo,

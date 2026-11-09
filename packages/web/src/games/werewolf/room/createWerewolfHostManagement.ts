@@ -11,6 +11,7 @@ import {
   buildEnabledHostAction,
   buildFillBotsAction,
   buildMarkBotsViewedAction,
+  buildMusicSettingsAction,
   buildNextRoundAction,
   buildPendingAwareHostAction,
   buildReturnLobbyAction,
@@ -79,6 +80,7 @@ interface WerewolfHostManagementInput {
   readonly onHostControl: (action: WerewolfHostControlAction) => void;
   readonly onMarkAllBotsViewed: () => void;
   readonly onMarkAllBotsGroupConfirmed: () => void;
+  readonly onMusicSettings: () => void;
   /** The shared review entry; present from Day on. */
   readonly review: RoomReviewEntry | null;
   /** Opens the seat picker that grants seats access to the review. */
@@ -359,6 +361,15 @@ function createRoomManagementActions(
 
 function createToolActions(input: WerewolfHostManagementInput): RoomHostManagementAction[] {
   const actions: RoomHostManagementAction[] = [];
+  // Hidden while a host command is in flight (e.g. 开始游戏) and while the night or day runs.
+  const canOpenMusicSettings =
+    !input.isHostActionSubmitting &&
+    !input.isAudioPlaying &&
+    input.roomStatus !== GameStatus.Ongoing &&
+    input.roomStatus !== GameStatus.Day;
+  if (canOpenMusicSettings) {
+    actions.push(buildMusicSettingsAction({ onPress: input.onMusicSettings }));
+  }
   if (input.canMarkAllBotsViewed) {
     actions.push(buildMarkBotsViewedAction({ onPress: input.onMarkAllBotsViewed }));
   }

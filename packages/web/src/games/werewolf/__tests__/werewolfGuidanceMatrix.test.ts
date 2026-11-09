@@ -212,6 +212,7 @@ function bottomFor(
     onHostControl: vi.fn(),
     onMarkAllBotsViewed: vi.fn(),
     onMarkAllBotsGroupConfirmed: vi.fn(),
+    onMusicSettings: vi.fn(),
     review,
     onGrantReviewAccess: vi.fn(),
     onLastNightInfo: vi.fn(),

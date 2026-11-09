@@ -73,6 +73,7 @@ function build(
     controlledSeat: null,
     releaseBot,
     review,
+    onMusicSettings: vi.fn(),
     submit,
   });
 }
@@ -286,13 +287,17 @@ describe('createAvalonHostManagement', () => {
       disabledReason: '1/6 位玩家已查看身份，等待剩余玩家',
     });
     const section = model?.sections.find((entry) => entry.key === 'tools');
-    expect(section?.actions.map((action) => action.key)).toEqual(['mark-bots-viewed']);
-    expect(section?.actions[0]).toMatchObject({ label: '标记机器人已查看', variant: 'secondary' });
+    expect(section?.actions.map((action) => action.key)).toEqual([
+      'music-settings',
+      'mark-bots-viewed',
+    ]);
+    expect(section?.actions[1]).toMatchObject({ label: '标记机器人已查看', variant: 'secondary' });
 
     game.send({ type: 'avalon.bots.markAllBotsViewed' });
     const after = build(game.state, false);
-    // The music-settings tool is not on the web client, so the tools section empties out.
-    expect(after?.sections.map((entry) => entry.key)).toEqual(['game', 'danger']);
+    expect(
+      after?.sections.find((entry) => entry.key === 'tools')?.actions.map((action) => action.key),
+    ).toEqual(['music-settings']);
     expect(after?.sections[0]?.actions[0]).toMatchObject({ key: 'start-game', isEnabled: true });
   });
 

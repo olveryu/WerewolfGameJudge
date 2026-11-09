@@ -40,6 +40,7 @@ import {
   buildClearSeatsAction,
   buildFillBotsAction,
   buildMarkBotsViewedAction,
+  buildMusicSettingsAction,
   buildNextRoundAction,
   buildPendingAwareHostAction,
   buildReturnLobbyAction,
@@ -721,6 +722,7 @@ export interface AvalonHostManagementInput {
   readonly releaseBot: () => void;
   /** 本局复盘入口（平台 useRoomReview）：与底部按钮同一入口；终局前为 null。 */
   readonly review: RoomReviewEntry | null;
+  readonly onMusicSettings: () => void;
   readonly submit: (label: string, command: AvalonPublicCommand) => Promise<boolean>;
 }
 
@@ -731,7 +733,14 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostManage
   const { state } = input;
   const sections: RoomHostManagementSection[] = [];
   const actions: RoomHostManagementAction[] = [];
-  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended') return sections;
+  if (
+    state.phase.kind === 'lobby' ||
+    state.phase.kind === 'viewing' ||
+    state.phase.kind === 'ended'
+  )
+    actions.push(buildMusicSettingsAction({ onPress: input.onMusicSettings }));
+  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
+    return [{ key: 'tools', title: '辅助工具', actions }];
   if (
     getAvalonViewingParticipants(state).some(
       (participant) => participant.isBot && !state.roleViewedSeats.includes(participant.seat),

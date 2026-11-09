@@ -21,7 +21,8 @@ type BgmTrackId =
   | 'bathroomDance'
   | 'callMeJoker';
 
-interface BgmTrackEntry {
+/** One selectable background-music track. */
+export interface BgmTrackEntry {
   readonly id: BgmTrackId;
   readonly label: string;
   readonly subtitle: string;

@@ -39,6 +39,7 @@ function createInput(overrides: Record<string, unknown> = {}) {
     onHostControl: vi.fn(),
     onMarkAllBotsViewed: vi.fn(),
     onMarkAllBotsGroupConfirmed: vi.fn(),
+    onMusicSettings: vi.fn(),
     review: { isEnabled: true as const, onPress: vi.fn() },
     onGrantReviewAccess: vi.fn(),
     onLastNightInfo: vi.fn(),
@@ -157,6 +158,7 @@ describe('createWerewolfHostManagement', () => {
       '填充机器人',
       '清空座位',
       '分享房间',
+      '音乐设置',
     ]);
     const assignRoles = model?.sections[0]?.actions[0];
     if (assignRoles?.isEnabled !== true) throw new Error('Expected enabled role assignment');
@@ -528,8 +530,11 @@ describe('createWerewolfHostManagement', () => {
       }),
     );
 
-    // The music-settings tool (the only Ended 辅助工具 entry) is not on the web client yet.
-    expect(model?.sections.map((section) => section.title)).toEqual(['当前流程', '赛后管理']);
+    expect(model?.sections.map((section) => section.title)).toEqual([
+      '当前流程',
+      '赛后管理',
+      '辅助工具',
+    ]);
     expect(actionLabels(model)).toEqual([
       '评选 MVP',
       '再来一局',
@@ -537,6 +542,7 @@ describe('createWerewolfHostManagement', () => {
       '本局复盘',
       '授权玩家查看',
       '昨夜信息',
+      '音乐设置',
     ]);
     const actions = model.sections.flatMap((section) => section.actions);
     const reviewAction = actions.find((action) => action.key === 'review');

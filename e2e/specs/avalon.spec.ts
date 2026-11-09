@@ -48,7 +48,7 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
     throw new Error('expected two audio probes');
 
   try {
-    await test.step('Create a bot room and fill the seats', async () => {
+    await test.step('Create a bot room and open existing music settings', async () => {
       await hostPage.setViewportSize(VIEWPORT);
       await new HomePage(hostPage).clickCreateRoom('avalon');
       await hostPage.getByTestId(TESTIDS.gameConfigSubmit('avalon')).click();
@@ -56,6 +56,10 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
       await new RoomPage(spectatorPage).joinViaCode(await hostRoom.getRoomCode());
       await expect(spectatorPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveCount(0);
       await expect(spectatorPage.getByTestId(TESTIDS.roomHostManagementButton)).toHaveCount(0);
+      await hostRoom.clickHostManagementAction(TESTIDS.roomMusicSettingsButton);
+      await expect(hostPage.getByText('背景音乐', { exact: true })).toBeVisible();
+      await hostPage.getByText('The Godfather Waltz', { exact: true }).click();
+      await hostPage.getByTestId('music-settings-back').click();
       await hostRoom.clickHostManagementAction(TESTIDS.roomFillBotsButton);
       await hostPage.getByText('确定', { exact: true }).click();
     });

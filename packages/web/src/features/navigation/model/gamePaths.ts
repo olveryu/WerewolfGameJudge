@@ -21,3 +21,8 @@ export function gameNotepadPath(gameType: GameType, roomCode: string): string {
 export function settingsPath(roomCode: string | null): string {
   return roomCode === null ? '/settings' : `/settings/${roomCode}`;
 }
+
+/** Music settings opened from a room keep the room code so back returns to the room. */
+export function musicSettingsPath(roomCode: string): string {
+  return `/settings/music/${roomCode}`;
+}
