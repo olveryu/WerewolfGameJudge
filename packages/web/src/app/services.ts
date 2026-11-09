@@ -10,7 +10,7 @@ import { CFAvatarUploadService } from '@/services/cloudflare/CFAvatarUploadServi
 import { CFRoomDirectoryService } from '@/services/cloudflare/CFRoomDirectoryService';
 
 /** Builds the services provided through `ServiceProvider`. */
-export function createAppServices(): ServiceContextValue {
+function createAppServices(): ServiceContextValue {
   const roomDirectory = new CFRoomDirectoryService();
   const inboxWakes = createInboxWakeSignal();
   // The realtime stack loads with the first room, outside the home start-up budget.
@@ -36,4 +36,15 @@ export function createAppServices(): ServiceContextValue {
     avatarUploadService: new CFAvatarUploadService(),
     inboxWakes,
   };
+}
+
+let appServices: ServiceContextValue | null = null;
+
+/**
+ * The page's services, created on first call. Construction starts the session restore, so it
+ * must not run in a render-time initializer that StrictMode invokes twice.
+ */
+export function getAppServices(): ServiceContextValue {
+  appServices ??= createAppServices();
+  return appServices;
 }

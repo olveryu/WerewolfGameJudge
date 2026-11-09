@@ -25,6 +25,8 @@ body,
   height: 100%;
   height: 100dvh;
   margin: 0;
+  /* Contain in-app z-indexes so body-level portals (dialogs, toasts) always stack above. */
+  isolation: isolate;
 }
 
 body {

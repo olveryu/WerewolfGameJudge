@@ -1,18 +1,16 @@
 /**
  * Canonical room URL (`/room/:roomCode`): session first, then room metadata, then the room's game
- * client. `/room/get` is authenticated (room codes must not be enumerable), so without a user the
- * page asks for a login; the metadata lookup is keyed by the user and never outlives a session.
+ * client. `/room/get` is authenticated (room codes must not be enumerable), so the page sits behind
+ * `RequireUser`; the metadata lookup is keyed by the user and never outlives a session.
  */
 import { isRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 import { useQuery } from '@tanstack/react-query';
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams, useRouteError } from 'react-router';
 
-import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
-import { useAuthContext } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
-import { requestLogin } from '@/features/auth/loginRequests';
+import { RequireUser } from '@/features/auth/RequireUser';
 import { type RoomRecord, UnsupportedRoomGameTypeError } from '@/features/room/model/RoomDirectory';
 import type { RoomEntryReason } from '@/features/room/model/RoomUiModule';
 import {
@@ -22,7 +20,6 @@ import {
 import { UnportedGameClientError, useClientGameModule } from '@/games/clientModules';
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
-import { isMiniProgram, wxReLaunch } from '@/utils/miniProgram';
 
 const resolverLog = log.extend('RoomResolver');
 
@@ -35,38 +32,18 @@ function isRoomLocationState(value: unknown): value is RoomLocationState {
   );
 }
 
-/** Opens the login dialog for a direct room link; cancelling leaves for Home. */
-function RoomLoginGate() {
-  const navigate = useNavigate();
-  useEffect(() => {
-    void requestLogin({ title: '登录', subtitle: '选择登录方式以加入房间' }).then((outcome) => {
-      if (outcome === 'cancelled') exitRoomFlow(navigate);
-    });
-  }, [navigate]);
-  return <LoadingScreen message="请先登录" />;
-}
-
-/** Inside the mini program a missing session means the WeChat login failed: re-enter it. */
-function MiniProgramAuthFailure() {
-  const navigate = useNavigate();
-  return (
-    <main className="loading-screen">
-      <p className="loading-screen-error">微信登录失败</p>
-      <p className="loading-screen-message">请重新进入小程序以获取新的登录凭证</p>
-      <div className="loading-screen-actions">
-        <Button onClick={wxReLaunch}>重新进入</Button>
-        <Button variant="ghost" onClick={() => exitRoomFlow(navigate)}>
-          返回首页
-        </Button>
-      </div>
-    </main>
-  );
-}
-
 function GameRoom({ room }: { readonly room: RoomRecord }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const module = useClientGameModule(room.gameType);
-  const entryReason: RoomEntryReason = isRoomLocationState(location.state) ? 'created' : null;
+  const [entryReason] = useState<RoomEntryReason>(() =>
+    isRoomLocationState(location.state) ? 'created' : null,
+  );
+  const hasCreationState = isRoomLocationState(location.state);
+  useEffect(() => {
+    // History state survives a reload: consume it so only this entry counts as the creation.
+    if (hasCreationState) void navigate(location.pathname, { replace: true, state: null });
+  }, [hasCreationState, location.pathname, navigate]);
   const RoomScreen = module.roomScreen;
   return <RoomScreen room={room} entryReason={entryReason} />;
 }
@@ -108,13 +85,14 @@ function RoomMetadataResolver({ roomCode, userId }: { roomCode: string; userId: 
 export function RoomPage() {
   const navigate = useNavigate();
   const { roomCode } = useParams();
-  const { user, loading: isAuthLoading } = useAuthContext();
   if (roomCode === undefined || !isRoomCode(roomCode)) {
     return <LoadingScreen error="房间号格式错误" onBack={() => exitRoomFlow(navigate)} />;
   }
-  if (isAuthLoading) return <LoadingScreen message="正在查找房间" />;
-  if (user === null) return isMiniProgram() ? <MiniProgramAuthFailure /> : <RoomLoginGate />;
-  return <RoomMetadataResolver key={user.id} roomCode={roomCode} userId={user.id} />;
+  return (
+    <RequireUser loadingMessage="正在查找房间" loginSubtitle="选择登录方式以加入房间">
+      {(user) => <RoomMetadataResolver key={user.id} roomCode={roomCode} userId={user.id} />}
+    </RequireUser>
+  );
 }
 
 /** Route error element: an unported game client or a failed game chunk load lands here. */

@@ -8,6 +8,7 @@ import { Suspense } from 'react';
 import { useParams } from 'react-router';
 
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { RequireUser } from '@/features/auth/RequireUser';
 import type { GameNavigationRouteKind } from '@/features/navigation/model/GameNavigationContribution';
 import { useClientGameModule } from '@/games/clientModules';
 
@@ -22,11 +23,16 @@ function GameRouteScreen({ routeKind }: { readonly routeKind: GameNavigationRout
   return <capability.Screen />;
 }
 
+/** Config pages create or edit a room as the signed-in user. */
 export function GameConfigRoutePage() {
   return (
-    <Suspense fallback={<LoadingScreen />}>
-      <GameRouteScreen routeKind="config" />
-    </Suspense>
+    <RequireUser loginSubtitle="选择登录方式以创建房间">
+      {() => (
+        <Suspense fallback={<LoadingScreen />}>
+          <GameRouteScreen routeKind="config" />
+        </Suspense>
+      )}
+    </RequireUser>
   );
 }
 

@@ -2,6 +2,7 @@ import { type RouteObject } from 'react-router';
 
 import { AppRoot } from '@/app/AppRoot';
 import { RouteErrorPage } from '@/app/RouteErrorPage';
+import { LoadingScreen } from '@/components/LoadingScreen';
 
 /**
  * Route table. Each page is a `lazy` route so it ships as its own chunk
@@ -11,6 +12,8 @@ export const routes: RouteObject[] = [
   {
     path: '/',
     element: <AppRoot />,
+    // Rendered until the first match's lazy route module has loaded.
+    HydrateFallback: LoadingScreen,
     errorElement: <RouteErrorPage />,
     children: [
       {

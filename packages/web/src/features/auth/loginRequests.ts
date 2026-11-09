@@ -22,9 +22,13 @@ export interface LoginRequest {
 
 export type LoginOutcome = 'signedIn' | 'signedUp' | 'cancelled';
 
-interface PendingLogin {
+export interface PendingLogin {
   readonly request: LoginRequest;
-  readonly resolve: (outcome: LoginOutcome) => void;
+  /**
+   * Ends this request with `outcome` and closes its dialog. A request ends once: after it was
+   * superseded or withdrawn, a late settle (an in-flight sign-in finishing) changes nothing.
+   */
+  readonly settle: (outcome: LoginOutcome) => void;
 }
 
 let pending: PendingLogin | null = null;
@@ -44,16 +48,22 @@ export const loginRequestStore = {
   getSnapshot: (): PendingLogin | null => pending,
 };
 
-/** Opens the login dialog; a request already open is cancelled first. */
-export function requestLogin(request: LoginRequest): Promise<LoginOutcome> {
-  pending?.resolve('cancelled');
-  return new Promise((resolve) => publish({ request, resolve }));
-}
-
-/** Closes the dialog with `outcome`. */
-export function settleLogin(outcome: LoginOutcome): void {
-  if (pending === null) throw new Error('No login request is open');
-  const { resolve } = pending;
-  publish(null);
-  resolve(outcome);
+/**
+ * Opens the login dialog; a request already open is cancelled first. Aborting `signal` withdraws
+ * this request: its dialog closes and it resolves `cancelled`.
+ */
+export function requestLogin(request: LoginRequest, signal?: AbortSignal): Promise<LoginOutcome> {
+  pending?.settle('cancelled');
+  return new Promise((resolve) => {
+    const entry: PendingLogin = {
+      request,
+      settle: (outcome) => {
+        if (pending !== entry) return;
+        publish(null);
+        resolve(outcome);
+      },
+    };
+    signal?.addEventListener('abort', () => entry.settle('cancelled'), { once: true });
+    publish(entry);
+  });
 }

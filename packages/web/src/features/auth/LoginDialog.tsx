@@ -16,7 +16,11 @@ import {
   useSignUpWithEmail,
 } from '@/features/auth/authMutations';
 import { GUEST_GROWTH_NOTICE } from '@/features/auth/guestPolicy';
-import { type LoginRequest, loginRequestStore, settleLogin } from '@/features/auth/loginRequests';
+import {
+  type LoginOutcome,
+  type LoginRequest,
+  loginRequestStore,
+} from '@/features/auth/loginRequests';
 import { clearRecentRooms } from '@/features/room/services/recentRooms';
 import { TESTIDS } from '@/testids';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -68,23 +72,33 @@ export function LoginDialog() {
   return (
     <CenterDialog
       open={pending !== null}
-      onClose={() => settleLogin('cancelled')}
+      onClose={() => pending?.settle('cancelled')}
       title={pending?.request.title ?? ''}
       subtitle={pending?.request.subtitle}
     >
-      {pending && <LoginFlow key={pending.request.title} request={pending.request} />}
+      {pending && (
+        <LoginFlow key={pending.request.title} request={pending.request} settle={pending.settle} />
+      )}
     </CenterDialog>
   );
 }
 
-function LoginFlow({ request }: { request: LoginRequest }) {
+type SettleLogin = (outcome: LoginOutcome) => void;
+
+function LoginFlow({ request, settle }: { request: LoginRequest; settle: SettleLogin }) {
   const [step, setStep] = useState<Step>(() => initialStep(request));
   switch (step.kind) {
     case 'options':
-      return <LoginOptions onStep={setStep} />;
+      return <LoginOptions onStep={setStep} settle={settle} />;
     case 'email':
       return (
-        <EmailForm key={String(step.isSignUp)} request={request} step={step} onStep={setStep} />
+        <EmailForm
+          key={String(step.isSignUp)}
+          request={request}
+          step={step}
+          onStep={setStep}
+          settle={settle}
+        />
       );
     case 'forgot':
       return <ForgotPasswordForm initialEmail={step.email} onStep={setStep} />;
@@ -93,7 +107,7 @@ function LoginFlow({ request }: { request: LoginRequest }) {
   }
 }
 
-function LoginOptions({ onStep }: { onStep: (step: Step) => void }) {
+function LoginOptions({ onStep, settle }: { onStep: (step: Step) => void; settle: SettleLogin }) {
   const { user, loading } = useAuthContext();
   const signInAnonymously = useSignInAnonymously();
   const isGuest = user?.isAnonymous === true;
@@ -102,7 +116,7 @@ function LoginOptions({ onStep }: { onStep: (step: Step) => void }) {
     try {
       await signInAnonymously.mutateAsync();
       toast.success('登录成功');
-      settleLogin('signedIn');
+      settle('signedIn');
     } catch (error: unknown) {
       const message = getUserFacingMessage(error);
       authLog.warn('Anonymous login failed', { message });
@@ -181,7 +195,7 @@ function LoginOptions({ onStep }: { onStep: (step: Step) => void }) {
         </button>
       )}
 
-      <Button variant="secondary" onClick={() => settleLogin('cancelled')}>
+      <Button variant="secondary" onClick={() => settle('cancelled')}>
         取消
       </Button>
     </div>
@@ -229,10 +243,12 @@ function EmailForm({
   request,
   step,
   onStep,
+  settle,
 }: {
   request: LoginRequest;
   step: Extract<Step, { kind: 'email' }>;
   onStep: (step: Step) => void;
+  settle: SettleLogin;
 }) {
   const { user, error: authError } = useAuthContext();
   const signIn = useSignInWithEmail();
@@ -267,11 +283,11 @@ function EmailForm({
         const wasGuest = user?.isAnonymous === true;
         await signUp.mutateAsync({ email, password, displayName: displayName || undefined });
         toast.success(wasGuest ? '绑定成功' : '注册成功');
-        settleLogin('signedUp');
+        settle('signedUp');
       } else {
         await signIn.mutateAsync({ email, password });
         if (request.showSuccessOnLogin) toast.success('登录成功');
-        settleLogin('signedIn');
+        settle('signedIn');
       }
     } catch (error: unknown) {
       const message = getUserFacingMessage(error);
@@ -339,7 +355,7 @@ function EmailForm({
         onClick={() =>
           (request.startWith ?? 'options') === 'options'
             ? onStep({ kind: 'options' })
-            : settleLogin('cancelled')
+            : settle('cancelled')
         }
       >
         返回
