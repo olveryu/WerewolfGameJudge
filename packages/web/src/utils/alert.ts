@@ -31,6 +31,8 @@ export interface AlertConfig {
 
 let current: AlertConfig | null = null;
 let generation = 0;
+/** While blocked (the "继续游戏" overlay), new alerts are dropped and the visible one closes. */
+let blocked = false;
 const listeners = new Set<() => void>();
 
 function publish(next: AlertConfig | null): void {
@@ -47,6 +49,12 @@ export const alertStore = {
   getSnapshot: (): AlertConfig | null => current,
 };
 
+/** Blocks or unblocks alerts; blocking also closes the visible alert. */
+export function setAlertBlocked(isBlocked: boolean): void {
+  blocked = isBlocked;
+  if (isBlocked) publish(null);
+}
+
 /** Closes the alert with `expectedGeneration` unless a newer alert has replaced it. */
 export function dismissAlert(expectedGeneration: number): void {
   if (expectedGeneration !== generation) return;
@@ -54,8 +62,9 @@ export function dismissAlert(expectedGeneration: number): void {
   publish(null);
 }
 
-/** Shows an alert; defaults to a single "确定" button. */
+/** Shows an alert; defaults to a single "确定" button. Dropped while alerts are blocked. */
 export function showAlert(title: string, message?: string, buttons?: AlertButton[]): void {
+  if (blocked) return;
   generation += 1;
   publish({ generation, title, message, buttons: buttons ?? [{ text: '确定' }] });
 }
@@ -66,6 +75,7 @@ export function showPrompt(
   options: { placeholder?: string; defaultValue?: string; onConfirm: (value: string) => void },
 ): void {
   const { placeholder, defaultValue = '', onConfirm } = options;
+  if (blocked) return;
   generation += 1;
   publish({
     generation,

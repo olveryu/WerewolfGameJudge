@@ -37,13 +37,47 @@ export const colors = {
   overlayLight: 'rgba(26, 26, 46, 0.25)',
 } as const;
 
-function toCustomPropertyName(token: string): string {
-  return `--color-${token.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
+function toCustomPropertyName(prefix: string, token: string): string {
+  return `--${prefix}-${token.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
 }
 
-/** Publishes the palette as `--color-*` custom properties on the document root. */
+/**
+ * The review report's own flat palette (white "verdict ticket"): flat colors only, because the
+ * mini-program capture stitches bands and a gradient would seam.
+ */
+const reportColors = {
+  background: '#FFFFFF',
+  cardBorder: '#E4E4EC',
+  divider: '#ECECF2',
+  text: '#17171F',
+  textSecondary: '#55566B',
+  textMuted: '#8A8A99',
+  textFaint: '#A5A5B5',
+  danger: '#D92D20',
+  outMedalBg: '#FDECEA',
+  outMedalBorder: '#EFA9A3',
+  evilMedalBg: '#FDECEF',
+  evilMedalText: '#D92D5D',
+  evilMedalBorder: '#F3C2CF',
+  specialMedalBg: '#ECEAFE',
+  specialMedalText: '#4F46E5',
+  specialMedalBorder: '#C9BFF5',
+  goodMedalBg: '#E6F4EA',
+  goodMedalText: '#067647',
+  goodMedalBorder: '#A9D9BC',
+  highlightMedalBg: '#FDF3E1',
+  highlightMedalText: '#8A5A00',
+  highlightMedalBorder: '#EFCF95',
+  neutralMedalBg: '#F0F0F5',
+  neutralMedalBorder: '#DCDCE6',
+} as const;
+
+/** Publishes the palettes as `--color-*` and `--report-*` custom properties on the document root. */
 export function applyColorTokens(root: HTMLElement): void {
   for (const [token, value] of Object.entries(colors)) {
-    root.style.setProperty(toCustomPropertyName(token), value);
+    root.style.setProperty(toCustomPropertyName('color', token), value);
+  }
+  for (const [token, value] of Object.entries(reportColors)) {
+    root.style.setProperty(toCustomPropertyName('report', token), value);
   }
 }

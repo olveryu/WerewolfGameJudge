@@ -12,6 +12,12 @@ declare global {
       miniProgram?: {
         reLaunch(options: { url: string }): void;
       };
+      previewImage?: (options: {
+        current: string;
+        urls: string[];
+        success?: () => void;
+        fail?: (error: { errMsg: string }) => void;
+      }) => void;
     };
   }
 }
@@ -64,4 +70,21 @@ export function readClaimNonce(): string | null {
 /** Clears the claim nonce after a successful claim. */
 export function clearClaimNonce(): void {
   localStorage.removeItem(WX_CLAIM_NONCE_KEY);
+}
+
+/** Opens WeChat's image preview (long-press to save or forward) for public image URLs. */
+export function wxPreviewImage(url: string, urls: readonly string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const previewImage = window.wx?.previewImage;
+    if (!previewImage) {
+      reject(new Error('wx.previewImage is unavailable: the WeChat JSSDK is not loaded'));
+      return;
+    }
+    previewImage({
+      current: url,
+      urls: [...urls],
+      success: () => resolve(),
+      fail: (error) => reject(new Error(error.errMsg)),
+    });
+  });
 }

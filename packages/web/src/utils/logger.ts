@@ -28,6 +28,8 @@ export interface Logger {
   info(message: string, ...details: unknown[]): void;
   warn(message: string, ...details: unknown[]): void;
   error(message: string, ...details: unknown[]): void;
+  /** A logger for `module`, independent of this one's module name. */
+  extend(module: string): Logger;
 }
 
 function isAttributes(value: unknown): value is Record<string, unknown> {
@@ -67,8 +69,12 @@ export function createLogger(module: string): Logger {
     info: (message, ...details) => write(module, 'info', message, details),
     warn: (message, ...details) => write(module, 'warn', message, details),
     error: (message, ...details) => write(module, 'error', message, details),
+    extend: createLogger,
   };
 }
+
+/** Root logger; modules derive their own with `log.extend('Module')`. */
+export const log = createLogger('App');
 
 /** HTTP API client. */
 export const apiLog = createLogger('Api');
@@ -76,3 +82,17 @@ export const apiLog = createLogger('Api');
 export const authLog = createLogger('Auth');
 /** Home page. */
 export const homeLog = createLogger('Home');
+/** Room screen. */
+export const roomScreenLog = createLogger('RoomScreen');
+/** Shared room session and command lifecycle. */
+export const roomSessionLog = createLogger('RoomSession');
+
+export const realtimeLog = createLogger('Realtime');
+/** Room configuration. */
+export const configLog = createLogger('Config');
+/** Stats / personal data. */
+export const statsLog = createLogger('Stats');
+/** Gacha system. */
+export const gachaLog = createLogger('Gacha');
+
+export const shareLog = createLogger('Share');

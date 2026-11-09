@@ -5,8 +5,9 @@
 import type React from 'react';
 import { createContext, use } from 'react';
 
-import type { RoomDirectory } from '@/features/room/model/RoomDirectory';
+import type { RoomCreator, RoomDirectory } from '@/features/room/model/RoomDirectory';
 import type { InboxWakeSignal } from '@/platform/inbox/inboxWake';
+import type { RoomLinkFactory } from '@/platform/realtime/RoomLinkFactory';
 import type { IAuthService } from '@/services/types/IAuthService';
 import type { IAvatarUploadService } from '@/services/types/IAvatarUploadService';
 
@@ -14,6 +15,9 @@ import type { IAvatarUploadService } from '@/services/types/IAvatarUploadService
 export interface ServiceContextValue {
   authService: IAuthService;
   roomDirectory: RoomDirectory;
+  roomCreator: RoomCreator;
+  /** One shared lease and outbox for every game's room link. */
+  roomLinks: RoomLinkFactory;
   avatarUploadService: IAvatarUploadService;
   /** Room links emit on `live` and INBOX_HINT; the account inbox consumer drains on it. */
   inboxWakes: InboxWakeSignal;

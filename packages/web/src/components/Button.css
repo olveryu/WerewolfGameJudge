@@ -12,6 +12,43 @@
   transition: transform 100ms ease-out;
 }
 
+.button[data-size='sm'] {
+  min-height: var(--size-button-sm);
+  padding: 0 var(--space-small);
+  font-size: var(--font-secondary);
+}
+
+.button[data-size='lg'] {
+  min-height: var(--size-button-lg);
+  padding: 0 var(--space-large);
+  font-size: var(--font-subtitle);
+}
+
+.icon-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-min-touch-target);
+  height: var(--size-min-touch-target);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--size-icon-md);
+  cursor: pointer;
+}
+
+.icon-button:active:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.icon-button:disabled {
+  cursor: default;
+  opacity: var(--opacity-disabled);
+}
+
 .button:active:not(:disabled) {
   transform: scale(0.97);
   opacity: var(--opacity-pressed);

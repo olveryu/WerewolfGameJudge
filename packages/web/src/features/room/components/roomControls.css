@@ -1,0 +1,22 @@
+.gallery-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-medium);
+}
+
+.gallery-pager-position {
+  min-width: calc(var(--size-min-touch-target) + var(--space-xlarge));
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  font-weight: var(--weight-semibold);
+  text-align: center;
+}
+
+.disabled-reason-caption {
+  margin: var(--space-tight) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
