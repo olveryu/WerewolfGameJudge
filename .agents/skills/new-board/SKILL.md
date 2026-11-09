@@ -1,6 +1,6 @@
 ---
 name: new-board
-description: 'Add a preset board to PRESET_TEMPLATES: verify every role id in ROLE_SPECS, add the entry with its category and role list, update the cited preset count, add a Night-1 integration test, and register 12-seat boards in the coverage contract. Use when adding a preset board; never for a new role or game.'
+description: 'Add a preset board to PRESET_TEMPLATES: verify every role id in ROLE_SPECS, add the entry with its category and role list, update the cited preset count, then verify with the engine template and night-plan contracts and record the missing Night-1 board test as a gap. Use when adding a preset board; never for a new role or game.'
 ---
 
 # New board
@@ -21,8 +21,8 @@ Do not use when:
 - only a custom (non-preset) template is needed for one room — that
   is a room configuration, not a preset;
 - the change is a new game — use the new-game skill;
-- anyone proposes updating a guide-content count file — the file
-  `src/config/guideContent.ts` does not exist; there is no such step.
+- anyone proposes updating a guide-content count file — no such file
+  exists in the repository; there is no such step.
 
 ## Must-read references
 
@@ -30,8 +30,8 @@ Do not use when:
    from `ROLE_SPECS`, with faction and night steps per role.
 2. `references/preset-rules.md` — schema, categories, seat-count
    rule, bottom cards, contract checks, count surfaces.
-3. `references/board-test.md` — harness imports, file naming, and
-   the 12-seat coverage contract.
+3. `references/board-test.md` — which board tests exist now and the
+   missing Night-1 harness.
 
 ## Steps
 
@@ -51,8 +51,7 @@ against the contract bounds (wolves 1–4; no duplicated special
 roles), bottom-card legality via `getValidBottomCardDeals`, and that
 the name carries no player-count suffix. All 26 current presets seat 12
 players — that is the current list's property, not a requirement;
-a different seat count is allowed by the code, but a non-12-seat
-board has no coverage-contract entry (Step 5).
+a different seat count is allowed by the code.
 
 ### 3. Add the `PRESET_TEMPLATES` entry
 
@@ -77,28 +76,32 @@ for one addition) and update every surface that cites it: `README.md`,
 row), and `EXPECTED_TEMPLATE_NAMES` in `Template.contract.test.ts`.
 There is no step for the non-existent guide-content file.
 
-### 5. Add the Night-1 integration test
+### 5. Record the Night-1 test gap
 
-Create the test under `src/games/werewolf/__tests__/engine/boards/`
-using the imports and naming in `references/board-test.md`, with a
-fixed seat assignment and at least one topic-specific assertion. If
-the board seats 12 players, also add its name to
-`REQUIRED_12P_TEMPLATES` and its regex to
-`TEMPLATE_TO_TEST_PATTERN` in the coverage contract. If it seats a
-different number, do not add it to that list; note the gap.
+The Night-1 board integration harness and its 12-seat coverage
+contract were removed with the React Native client and not ported
+(`references/board-test.md`). Record in the PR description that the
+new board has no Night-1 integration test, and name the role
+combination it introduces. The werewolf web client, its board UI,
+and the werewolf E2E specs land in P3 of
+`docs/web-client-rewrite.md` §8.2.
 
 ### 6. Verify
 
-Run the check script beside this skill (see Acceptance commands)
-and the acceptance commands. If the board introduces a role
+Run the acceptance commands. If the board introduces a role
 combination no existing spec covers, report whether an E2E spec is
 proposed before writing one (see the new-e2e-spec skill).
 
 ## Acceptance commands
 
 ```sh
-.agents/skills/new-board/scripts/check-new-board.sh .
-pnpm exec jest --no-coverage --forceExit Template.contract night1.boards.coverage.contract nightPlanSchemas.contract
+pnpm --filter @game-judge/game-engine exec vitest run Template.contract nightPlanSchemas.contract
+```
+
+Then run the read-only count check beside this skill:
+
+```sh
+sh .agents/skills/new-board/scripts/check-new-board.sh .
 ```
 
 Full quality verification runs in CI; also run format and lint
@@ -110,11 +113,10 @@ checks on the changed files before pushing.
    count subtracts bottom cards; `thief`/`treasureMaster` boards
    have 14/15 `roles` entries for 12 seats.
 2. Adding a board name with a player-count suffix — `models/__tests__/Template.contract.test.ts` rejects names matching `/\d+人$/`.
-3. Importing `executeFullNight` or `GameContext` from `gameFactory`
-   — they live in `stepByStepRunner` and `gameContext`.
-4. Registering a non-12-seat board in the 12-player coverage
-   contract — the list is 12-seat only; the gap is recorded, not
-   papered over.
+3. Recreating the old Night-1 harness or coverage contract under a
+   new path without an approved plan — record the gap instead.
+4. Claiming the board is covered end to end — only the engine
+   template and night-plan contracts run for it now.
 5. Updating a non-existent guide-content file, or copying the old
    "27 → 28" count example — derive the count from the template
    list at the time of the change.

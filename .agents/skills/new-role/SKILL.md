@@ -1,6 +1,6 @@
 ---
 name: new-role
-description: 'Add a werewolf role end to end: declare it once in ROLE_SPECS, place its night step in NIGHT_STEP_ORDER, wire its resolver, confirm pipeline, config entry, audio, badge, and avatar, then verify with the spec contract tests. Use when adding a new role id to the werewolf game.'
+description: 'Add a werewolf role end to end: declare it once in ROLE_SPECS, place its night step in NIGHT_STEP_ORDER, wire its resolver and confirm pipeline, add narration, badge, and avatar assets, then verify with the spec contract tests. Client config wiring returns with the P3 werewolf web port. Use when adding a new role id to the werewolf game.'
 ---
 
 # New role
@@ -86,33 +86,31 @@ beside this skill fails on a step id with no resolver entry
 Only the five roles in `references/confirm-pipeline.md` are confirm
 roles. If the new role is one of them in behaviour, read
 `confirmContext.ts` before writing anything: the confirm mapping is
-derived from the specs (`deriveConfirmStepRoleMap`), a confirm-kind
-step for any other role throws at module init, and the client reads
-schema text through the night-interaction resolver.
+derived from the specs (`deriveConfirmStepRoleMap`), and a confirm-kind
+step for any other role throws at module init. The client confirm
+display returns with the P3 werewolf web port.
 
-### 6. Register the role in config and count surfaces
+### 6. Update count surfaces; client registration waits for the port
 
-Add a slot for the role in `FACTION_GROUPS`
-(`src/games/werewolf/screens/ConfigScreen/configData.ts`), following
-the existing `RoleSlot` shape (`roleId`, optional `count`, `isBulk`,
-`variants`). Then search the repo for the new role count and for every
-place that cites the role total (for example the readme role/board
-counts): update each cited count to the new total, derived from
-`ROLE_SPECS` at that moment, and update any expected-name list that
-enumerates roles the role joins.
+Search the repo for the role count and for every place that cites the
+role total (for example the readme role/board counts): update each
+cited count to the new total, derived from `ROLE_SPECS` at that
+moment, and update any expected-name list that enumerates roles the
+role joins.
 
-If the role adds night steps, add one `schemaId -> roleId` entry per
-new schema in both `schemaToRole` maps (`schemas.smoke.contract.test.ts`
-and `schemas.smoke.ui.test.tsx` under
-`src/games/werewolf/room/__tests__/`); the contract test fails on any
-schemaId without a mapping.
+The werewolf web client (config-screen role slots, night UI, and the
+client schema smoke tests) lands in P3 of `docs/web-client-rewrite.md`
+§8.2; `packages/web/src/games/werewolf/` holds only `home.ts` until
+then, so there is no client registration step. Once the port lands,
+register the role in the ported config screen and its schema mapping
+there, and record any gap in the PR description.
 
 ### 7. Register audio, badge, and avatar
 
 Follow `references/audio-badge-avatar.md`: add narration text for every
-audio key the steps use, using the canonical voice parameters; make
-every `audioKey` resolve in the audio registry; add an `EMOJI_MAP`
-entry; add the avatar id and rarity if the role gets hand-drawn art.
+audio key the steps use, using the canonical voice parameters, and
+generate its clips; add an `EMOJI_MAP` entry; add the avatar id and
+rarity if the role gets hand-drawn art, plus its web portrait.
 Art and narration are assets; generation commands and output
 filenames are not stated here — read the scripts at run time (see
 `references/audio-badge-avatar.md`).
@@ -128,8 +126,8 @@ declares none: derive that from the spec entry.
 
 ```sh
 .agents/skills/new-role/scripts/check-new-role.sh .
-pnpm --filter @game-judge/game-engine run test -- src/games/werewolf/domain/models/roles/spec/__tests__/specs.contract.test.ts src/games/werewolf/domain/models/roles/spec/__tests__/nightSteps.contract.test.ts src/games/werewolf/domain/models/roles/spec/__tests__/schemas.contract.test.ts
-pnpm --filter werewolfgamejudge run test -- src/games/werewolf/room/__tests__/schemas.smoke.contract.test.ts src/games/werewolf/room/__tests__/schemas.smoke.ui.test.tsx
+pnpm --filter @game-judge/game-engine exec vitest run games/werewolf/domain/models/roles/spec/__tests__/
+pnpm --filter @game-judge/game-engine run build
 ```
 
 Full quality verification runs in CI; before pushing, also run the
@@ -148,8 +146,9 @@ targeted typecheck and format checks for the changed files.
    check existing values before choosing one.
 4. Copying an old "roles without night actions" list — derive it from
    `nightSteps` in the spec file; the old list omits roles.
-5. Leaving an `audioKey` unregistered — resolution throws at runtime
-   with no fallback (`audioRegistry.ts`,
-   `resolveWerewolfBeginningAudio` / `resolveWerewolfEndingAudio`
-   throw `MissingWerewolfAudioError`), so an untested step fails in a
-   real game.
+5. Leaving an `audioKey` without narration clips — the engine contract
+   only checks that every step carries a key
+   (`nightPlanSchemas.contract.test.ts`, 'should produce valid
+   audioKeys'); no client code resolves keys to clips until
+   the werewolf web client lands (P3), so a missing clip surfaces
+   only in a real game.

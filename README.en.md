@@ -146,11 +146,11 @@ This app takes over the whole job: dealing identities, advancing phases, calling
        HTTP submit · WebSocket receive · Host plays audio
 ```
 
-Three layers: the **platform layer** shares rooms, seats, connections, reconnection, and the broadcast pipeline; the **game layer** gives each game its own state machine and rules (`packages/game-engine/src/games/<game>/` and `src/games/<game>/`); the **catalog layer** composes all games through exactly one exhaustive catalog per runtime (engine, Worker, client), so a missing registration fails at compile time or in contract tests.
+Three layers: the **platform layer** shares rooms, seats, connections, reconnection, and the broadcast pipeline; the **game layer** gives each game its own state machine and rules (`packages/game-engine/src/games/<game>/` and `packages/web/src/games/<game>/`); the **catalog layer** composes all games through exactly one exhaustive catalog per runtime (engine, Worker, client), so a missing registration fails at compile time or in contract tests.
 
 Core constraints: the server is the single authority for game logic and clients make no logic decisions; all clients are equal and the host is only a UI/audio role; `GameState` is the single source of truth, read-computed-written-broadcast by the server.
 
-Tech stack: React Native 0.85 · Expo SDK 56 · TypeScript 6 · Cloudflare Workers / D1 / R2 / Durable Objects · Jest · Playwright · Sentry
+Tech stack: React 19 · Vite 8 · TypeScript 6 · Cloudflare Workers / D1 / R2 / Durable Objects · Vitest · Playwright · Sentry
 
 ---
 
@@ -158,7 +158,7 @@ Tech stack: React Native 0.85 · Expo SDK 56 · TypeScript 6 · Cloudflare Worke
 
 ```bash
 pnpm install          # Install dependencies
-pnpm run dev          # Worker + Expo Web concurrently (localhost:8787 + :8081)
+pnpm run dev          # Worker + Vite concurrently (localhost:8787 + Vite dev server)
 pnpm run quality      # Full gate: types, build, Knip, lint, format, tests
 pnpm run e2e          # Playwright E2E
 
@@ -175,7 +175,7 @@ Contributors and AI coding agents: read [AGENTS.md](AGENTS.md) first (build, tes
 
 - [Multi-game Platform Design](docs/multigame-platform-design.md) · [Room Shell Contract](docs/room-shell-contract.md)
 - Game designs: [Avalon](docs/avalon-game-design.md) · [FibKing Word Supply](docs/fibking-word-supply.md) · [Undercover](docs/undercover-game-design.md) · [Pictionary Relay](docs/pictionary-game-design.md) · [Draw & Guess](docs/drawguess-game-design.md) · [Story Relay](docs/story-relay-game-design.md)
-- [Deployment Guide](docs/DEPLOYMENT.md) · [Design System](docs/DESIGN.md) · [Network Resilience](docs/network-resilience-design.md)
+- [Deployment Guide](docs/DEPLOYMENT.md) · [Design System](docs/DESIGN.md) · [Network Resilience](docs/realtime-link-redesign.md)
 - [Gacha System](docs/gacha-system-design.md) · [Growth System](docs/growth-system-design.md) · [Offline Game Guide](docs/offline-sop.md)
 
 ---

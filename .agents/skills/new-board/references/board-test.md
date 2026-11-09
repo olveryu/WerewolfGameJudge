@@ -1,47 +1,20 @@
-# Board integration test and coverage contract
+# Board tests and contracts
 
-## Harness
+## Night-1 integration tests: not in the repository now
 
-Tests live in `src/games/werewolf/__tests__/engine/boards/`. The
-correct imports, verified against the guard test:
+The Night-1 board integration harness (`gameFactory`, `gameContext`,
+`stepByStepRunner`), its per-board tests, and the 12-seat coverage
+contract `night1.boards.coverage.contract.test.ts` lived in the
+removed React Native client's test tree (last present in commit
+`ccedf18b5`) and were not ported. No test now drives a preset
+through a full first night, and the coverage contract's
+`REQUIRED_12P_TEMPLATES` list no longer exists. Record the missing
+Night-1 test for a new board as a gap in the PR description; do not
+recreate the old harness under a new path without a plan the user has
+approved. To see what the old tests asserted, read them in that
+commit (`git show ccedf18b5:<path>`).
 
-```ts
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-
-import type { GameContext } from './gameContext';
-import { cleanupGame, createGame } from './gameFactory';
-import { executeFullNight } from './stepByStepRunner';
-```
-
-`createGame` takes a preset name (or a role list) plus an optional
-seat-to-role assignment map; `executeFullNight` drives the whole
-first night. `GameContext` is imported as a type from
-`./gameContext` — not from `gameFactory`. A test must assert at
-least one topic-specific outcome (a reveal, a night result, or an
-action record), not deaths alone; `night1.boards.coverage.contract.test.ts`
-requires one of its assertion patterns.
-
-Name a new test file
-`night1.<topic>.<role-feature>.<N>p.integration.test.ts`, where `<N>`
-is the `roles` entry count including bottom cards, following the
-existing files (`night1.guard.blocks_wolfkill.12p.integration.test.ts`,
-`night1.thiefCupid.14p.integration.test.ts`,
-`night1.treasureMaster.choose.15p.integration.test.ts`). The file
-declares `const TEMPLATE_NAME = '<board name>';` and passes it to
-`createGame`.
-
-## Coverage contract — 12-seat boards only
-
-`night1.boards.coverage.contract.test.ts` requires a test file for
-each of 15 boards in `REQUIRED_12P_TEMPLATES`, matched by a
-`TEMPLATE_TO_TEST_PATTERN` regex on the `TEMPLATE_NAME` assignment,
-and requires at least one theme assertion (night results, a reveal,
-a converted seat, or an action record). At drafting time the list
-has 15 of the 27 presets. A new board that seats 12 players joins
-this list (add the name and its regex). A board with any other seat
-count has no coverage-contract entry; record the gap in the work notes.
-
-## Other contract tests
+## Contract tests that exist
 
 - `Template.contract.test.ts` — preset self-consistency and the
   expected-name list (see `references/preset-rules.md`).
@@ -49,9 +22,13 @@ count has no coverage-contract entry; record the gap in the work notes.
   `PRESET_TEMPLATES` produces a valid step sequence with valid step
   counts and audio keys.
 
+Both live in the engine under
+`packages/game-engine/src/games/werewolf/domain/models/`.
+
 ## E2E
 
 A board change does not automatically need a new E2E spec. If one is
-proposed, see the new-e2e-spec skill. The board picker page object
-exposes `selectTemplate(name)` / `selectDefaultTemplate()`; there is
-no `selectPreset` method.
+proposed, see the new-e2e-spec skill; werewolf specs join the CI
+matrix only after the P3 werewolf web port. The board picker page
+object exposes `selectTemplate(name)` / `selectDefaultTemplate()`;
+there is no `selectPreset` method.

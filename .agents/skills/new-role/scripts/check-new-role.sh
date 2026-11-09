@@ -3,7 +3,7 @@
 #   sh .agents/skills/new-role/scripts/check-new-role.sh [repo-root]
 # Exits non-zero only on structural breaks. Coverage gaps are warnings.
 set -eu
-ROOT="${1:-$(cd "$(dirname "$0")/../../.." && pwd)}"
+ROOT="${1:-$(cd "$(dirname "$0")/../../../.." && pwd)}"
 python3 - "$ROOT" <<'PY'
 import re, sys, pathlib
 root = pathlib.Path(sys.argv[1])

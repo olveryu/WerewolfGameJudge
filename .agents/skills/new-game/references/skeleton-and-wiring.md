@@ -20,7 +20,7 @@ modules.
 Layers: engine (`packages/game-engine/src/games/<game>/`) owns pure
 logic and is the sole authority; the worker module owns routes,
 `z.strictObject` schemas, and workflows, and writes no gameplay
-logic; the client (`src/games/<game>/`) renders and reports intent
+logic; the client (`packages/web/src/games/<game>/`) renders and reports intent
 only. The state shape carries a version (`state/version.ts` template);
 a shape change writes a `migratePersisted*State` (defined in
 `state/parseState.ts`, exported via `public.ts`) and registers it in
@@ -53,7 +53,7 @@ templates). Automated players are test scaffolding
 Roster and takeover use the platform structures:
 `packages/game-engine/src/platform/room/seating/` (roster decisions
 and selectors) and the shared `useBotTakeover` assembly in
-`src/features/room/controllers/`. Read the platform files before
+`packages/web/src/features/room/controllers/`. Read the platform files before
 implementing; details beyond these names were not verified for this
 draft.
 
@@ -91,34 +91,34 @@ module (pictionary, storyrelay).
 ## Review (本局复盘)
 
 Every game declares its review once: `review` is a required field of
-`defineClientGameModule` (`src/games/model/defineClientGameModule.ts`),
+`defineClientGameModule` (`packages/web/src/games/model/defineClientGameModule.ts`),
 and the bound room screen receives exactly that contribution. The
 generator ships it wired in every preset (report step 3; demo is the
 reference):
 
-- `src/games/<game>/review/to<Game>ReviewDocument.ts` — the pure
+- `packages/web/src/games/<game>/review/to<Game>ReviewDocument.ts` — the pure
   `state → RoomReviewDocument` builder; the skeleton page is the
   ended hero plus the participant roster, built from the spectator
   view model, and a game that has not ended is a construction error.
-- `src/games/<game>/review/<game>Review.ts` — the contribution:
+- `packages/web/src/games/<game>/review/<game>Review.ts` — the contribution:
   `notEnded` before the end, then `available` to every viewer,
   shareable, with no confirmation.
 - `review/__tests__/<game>Review.test.ts` — data assertions on the
   document and availability per phase and viewer, from a game played
   to the engine's terminal seam by the round builders in
-  `src/test-utils/<game>State.ts`.
-- `src/test-utils/<game>State.ts` also declares `<GAME>_REVIEW_ROUNDS`
+  `packages/web/src/test-utils/<game>State.ts`.
+- `packages/web/src/test-utils/<game>State.ts` also declares `<GAME>_REVIEW_ROUNDS`
   (lobby, ended, next round), which the generator registers in the
-  cross-game contract `src/__tests__/roomReview.contract.test.ts`.
+  cross-game contract `packages/web/src/__tests__/roomReview.contract.test.ts`.
 - Room wiring: the room state hook calls `useRoomReview` and hands
   the overlay to the screen's `gameOverlays`; the adapter adds
   `buildReviewBottomButton(entry, 'secondary')` for every viewer
   while a review exists, `buildReviewHostAction(entry)` to the ended
   host section, and `hostReviewClosingTask()` as the ended task.
 
-The block vocabulary is closed (`src/features/room/review/types.ts`;
+The block vocabulary is closed (`packages/web/src/features/room/review/types.ts`;
 the renderer, export and share flow live in
-`src/features/room/review/`). The platform owns the dialog title, the
+`packages/web/src/features/room/review/`). The platform owns the dialog title, the
 share title and the generated-by footer (`reviewCopy.ts`); a game
 declares only its kicker, file stem, footer choice and pages. A game maps its facts onto blocks and
 semantic tones; content the vocabulary cannot express is a platform
@@ -126,8 +126,8 @@ vocabulary extension first, never game-side review JSX.
 
 ## Confirmations
 
-Confirmations use `showAlert` / `showPrompt` from `src/utils/alert.ts`
-or render `AlertModal` (`src/components/AlertModal.tsx`) directly.
-`Alert.alert` appears only in the fallback branch inside `alert.ts`
-itself. Import `Modal` only from `@/components/AppModal`
-(`no-restricted-imports`, `eslint.config.mjs`).
+Confirmations use `showAlert` / `showPrompt` from
+`packages/web/src/utils/alert.ts`, a queue rendered by the single
+`AlertHost` dialog (`packages/web/src/components/AlertHost.tsx`)
+mounted in `packages/web/src/app/AppRoot.tsx`. Toasts use the sonner
+`Toaster` mounted there.

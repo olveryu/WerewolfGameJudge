@@ -57,29 +57,21 @@ The release script has no shallow-clone handling: in a shallow checkout, the pre
 
 ### Step 3 — Write the announcement
 
+Known gap: the release script requires the announcement entry in the file named by its `ANNOUNCEMENTS` variable (`scripts/release.sh`), which points into `packages/web/src/config/`. That file is not ported to the web client yet (`docs/web-client-rewrite.md` §8.2, P4), so the script stops at its announcement check until the port lands. That check runs after `pnpm version`, so a stopped run leaves the bumped `package.json` behind. Report this gap and stop before Step 6; do not create the file outside the port and do not edit the script to skip the check.
+
+Once the file exists:
+
 1. Calculate the new version: a minor bump of the current version (for example `2.3.0` becomes `2.4.0`).
-2. Add a new entry at the top (first property position) of the `ANNOUNCEMENTS` object in `src/config/announcements.ts`:
-
-   ```typescript
-   'v{x.y.z}': {
-     title: 'v{x.y.z} 更新内容',
-     items: [
-       '面向用户的中文描述',
-     ],
-   },
-   ```
-
-   The shape above follows the current head entry in that file. The key format is `v{major}.{minor}.{patch}` and the title follows the same version plus the fixed suffix shown. No claim is made here that any test depends on the title format.
-
-3. Announcement items describe user-visible changes only, in Chinese (see the file header comment in `src/config/announcements.ts` and the current head entry).
+2. Add a new entry keyed `'v{x.y.z}'` at the top of that file's announcement map, following its current head entry. The script checks only that the key exists.
+3. Announcement items describe user-visible changes only, in Chinese.
 4. Show the draft to the user.
 
 ### Step 4 — Commit the announcement separately
 
-If `src/config/announcements.ts` has uncommitted changes, commit them separately first:
+If the announcement file has uncommitted changes, commit them separately first:
 
 ```bash
-git add src/config/announcements.ts
+git add <announcement-file>
 git commit -m "docs(announcements): add v{x.y.z} What's New entry"
 ```
 
@@ -87,7 +79,7 @@ The announcement file is not in the release script's version-file allowlist, so 
 
 ### Step 5 — Run scoped checks
 
-Run the scoped local checks for the changed area plus the pre-push checks (`tsc` and the dead-code check). The release script itself runs no quality check.
+Run the scoped local checks for the changed area plus the pre-push checks (`npx tsc --noEmit` and `npx knip`, `.husky/pre-push`). The release script itself runs no quality check.
 
 ### Step 6 — Run the release script and handle its prompts
 
@@ -95,9 +87,9 @@ Run the scoped local checks for the changed area plus the pre-push checks (`tsc`
 bash scripts/release.sh minor
 ```
 
-The script bumps the version, syncs `app.json`, requires the announcement entry from Step 3, generates the changelog entry, commits, tags, and pushes. See `references/release-script.md` for each step and for what the script does not do.
+The script bumps the version, requires the announcement entry from Step 3, generates the changelog entry, commits, tags, and pushes. See `references/release-script.md` for each step and for what the script does not do.
 
-If the script prompts about uncommitted changes beyond the version files, it is asking about any change outside its four-file allowlist (`package.json`, `pnpm-lock.yaml`, `app.json`, `src/config/version.ts`), not only about the announcement. Read the listed changes, evaluate each one, and answer only after that evaluation. The default answer is No.
+If the script prompts about uncommitted changes beyond the version files, it is asking about any change outside its two-file allowlist (`package.json`, `pnpm-lock.yaml`), not only about the announcement. Read the listed changes, evaluate each one, and answer only after that evaluation. The default answer is No.
 
 If the script reports a missing announcement entry, go back to Step 3 and confirm the entry was added and committed. If the script reports a dirty working tree, evaluate the uncommitted changes, commit or set them aside as needed, and re-run from Step 1 (the guard) only if history state changed.
 
@@ -136,5 +128,5 @@ Acceptance is: the guard passed with a previous tag found, the announcement entr
 ## Pitfalls
 
 1. Running the script in a shallow clone without the guard. The changelog silently degrades to a placeholder entry.
-2. Hand-editing a version number into `src/config/version.ts`. That file holds no version literal; it reads `package.json`.
+2. Hand-editing a version number into `packages/web/src/config/version.ts`. That file holds no version literal; it imports the root `package.json`.
 3. Claiming the lockfile is updated by the script. Check `git status` after the bump and report what actually changed.

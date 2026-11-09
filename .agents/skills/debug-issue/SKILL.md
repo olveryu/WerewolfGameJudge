@@ -63,12 +63,12 @@ Never use dynamic diagnosis when static analysis can locate the issue.
 
 ### Step 3 — Dynamic diagnosis, only when static analysis cannot decide
 
-Enter this phase only when Step 2 cannot locate the root cause. Follow `references/diagnostic-logging.md` for diagnostic logs: project logger only, diagnostic prefix, removal after the fix. Then run only the related checks:
+Enter this phase only when Step 2 cannot locate the root cause. Follow `references/diagnostic-logging.md` for diagnostic logs: project logger only, diagnostic prefix, removal after the fix. Then run only the related checks (`<package>` is `werewolfgamejudge` for root contracts, or `@game-judge/web`, `@game-judge/game-engine`, `@game-judge/api-worker`; the engine has no `typecheck` script, its `build` type-checks it):
 
 ```bash
-pnpm exec jest --no-coverage --forceExit <path-or-pattern>
+pnpm --filter <package> exec vitest run <path-or-pattern>
 pnpm exec playwright test e2e/specs/<spec> --reporter=list
-npx tsc --noEmit
+pnpm --filter <package> run typecheck
 ```
 
 Interpret the output from the failure bundle or trace first, then from logs.
@@ -82,7 +82,7 @@ Before writing any fix:
 
 ### Step 5 — Fix the root cause
 
-- Route errors through `handleError` in `src/utils/errorPipeline.ts`; see `references/diagnostic-logging.md`.
+- Route client errors through `handleError` in `packages/web/src/utils/errorPipeline.ts`; see `references/diagnostic-logging.md`.
 
 ### Step 6 — Verify with scoped checks
 
@@ -98,9 +98,9 @@ Report in Chinese: the one-sentence root cause, the files changed, the checks ru
 ## Acceptance commands
 
 ```bash
-pnpm exec jest --no-coverage --forceExit <path-or-pattern>
+pnpm --filter <package> exec vitest run <path-or-pattern>
 pnpm exec playwright test e2e/specs/<spec> --reporter=list
-npx tsc --noEmit
+pnpm --filter <package> run typecheck
 ```
 
 Acceptance is: diagnostic logs removed, scoped checks pass, and the report names the root cause with its deciding code location.
@@ -108,6 +108,7 @@ Acceptance is: diagnostic logs removed, scoped checks pass, and the report names
 ## Pitfalls
 
 1. Naming a shared session module that does not exist. The session boundary is `RoomEntryBoundary` plus `useReadyRoomSession`; there is no shared `RoomSession` module. See `references/first-check-map.md`.
-2. Naming the old realtime service paths. Realtime code lives under `src/platform/realtime/`; the old service paths are dead.
+2. Naming the old realtime service paths or the removed root `src/` client. Realtime code lives under `packages/web/src/platform/realtime/`.
 3. Treating the audio flag as a value the UI may set. The flag is owned by audio-queue events only; the client lock is read through the one predicate.
-4. A plain `as` cast in production code: `src/__tests__/architecture.contract.test.ts` allows only `as const` assertions (see `getOrdinaryTypeAssertions`).
+4. A plain `as` cast in production code: `contracts/architecture.contract.test.ts` allows only `as const` assertions (see `getOrdinaryTypeAssertions`).
+5. Debugging the room UI of an unported game. Only games with a loader in `CLIENT_GAME_LOADERS` (`packages/web/src/games/clientModules.tsx`) have a web client; the rest throw `UnportedGameClientError` by design until their port (`docs/web-client-rewrite.md` §8.2).
