@@ -195,11 +195,10 @@ pnpm run release -- major   # major
 
 1. Refuses unsupported bump types and asks before including unrelated changes.
 2. Bumps `package.json` and `pnpm-lock.yaml`.
-3. Synchronizes `app.json`.
-4. Requires a matching entry in `src/config/announcements.ts`.
-5. Updates `CHANGELOG.md` from commits since the previous tag.
-6. Creates commit `release: v<version>` and tag `v<version>`.
-7. Pushes the commit and tags, which triggers CI and the GitHub Release workflow.
+3. Requires a matching entry in `packages/web/src/config/announcements.ts`.
+4. Updates `CHANGELOG.md` from commits since the previous tag.
+5. Creates commit `release: v<version>` and tag `v<version>`.
+6. Pushes the commit and tags, which triggers CI and the GitHub Release workflow.
 
 Do not bypass Git hooks with `--no-verify`.
 

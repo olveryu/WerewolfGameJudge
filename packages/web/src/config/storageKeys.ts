@@ -12,3 +12,6 @@ export const ADMIN_PASSWORD_KEY = 'admin_password';
 
 /** Unacknowledged room creation intents used for exact retry after restart. */
 export const ROOM_CREATION_INTENTS_KEY = '@room_creation_intents';
+
+/** App version whose release announcement the user last dismissed. */
+export const LAST_SEEN_ANNOUNCEMENT_VERSION_KEY = '@last_seen_announcement_version';

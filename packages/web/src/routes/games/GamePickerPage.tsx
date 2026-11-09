@@ -2,7 +2,7 @@ import './GamePickerPage.css';
 
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
-import { gameConfigCreatePath } from '@/features/navigation/model/gamePaths';
+import { gameConfigCreatePath, gameGuidePath } from '@/features/navigation/model/gamePaths';
 import { type ClientGameModeOption, GAME_MODE_OPTIONS } from '@/games/catalog';
 import { TESTIDS } from '@/testids';
 import IconClose from '~icons/ion/close';
@@ -10,8 +10,15 @@ import IconClose from '~icons/ion/close';
 const MAIN_OPTIONS = GAME_MODE_OPTIONS.filter((option) => option.tier === 'main');
 const MINI_OPTIONS = GAME_MODE_OPTIONS.filter((option) => option.tier === 'mini');
 
-function readPurpose(value: string | null): 'create' {
-  if (value === 'create') return value;
+type PickerPurpose = 'create' | 'guide';
+
+const PURPOSE_COPY: Record<PickerPurpose, { title: string; subtitle: string }> = {
+  create: { title: '创建游戏', subtitle: '选择本局要创建的游戏' },
+  guide: { title: '选择游戏图鉴', subtitle: '选择要查看的游戏' },
+};
+
+function readPurpose(value: string | null): PickerPurpose {
+  if (value === 'create' || value === 'guide') return value;
   throw new Error(`Unsupported game picker purpose "${String(value)}"`);
 }
 
@@ -84,18 +91,23 @@ function MiniGameTile({
 export function GamePickerPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  readPurpose(searchParams.get('purpose'));
+  const purpose = readPurpose(searchParams.get('purpose'));
+  const copy = PURPOSE_COPY[purpose];
 
   const select = (option: ClientGameModeOption) => {
-    void navigate(gameConfigCreatePath(option.gameType));
+    void navigate(
+      purpose === 'create'
+        ? gameConfigCreatePath(option.gameType)
+        : gameGuidePath(option.gameType, null),
+    );
   };
 
   return (
     <main className="picker" data-testid={TESTIDS.gameModePickerModal}>
       <header className="picker-header">
         <div>
-          <h1 className="picker-title">创建游戏</h1>
-          <p className="picker-subtitle">选择本局要创建的游戏</p>
+          <h1 className="picker-title">{copy.title}</h1>
+          <p className="picker-subtitle">{copy.subtitle}</p>
         </div>
         <Link to="/" className="picker-close" aria-label="关闭">
           <IconClose aria-hidden />

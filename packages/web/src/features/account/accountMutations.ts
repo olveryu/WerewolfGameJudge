@@ -1,4 +1,4 @@
-/** Account mutations: profile edits and password change. */
+/** Account mutations: profile edits, avatar upload and password change. */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useServices } from '@/contexts/ServiceContext';
@@ -28,6 +28,22 @@ export function useChangePassword() {
   return useMutation({
     mutationFn: ({ oldPassword, newPassword }: { oldPassword: string; newPassword: string }) =>
       authService.changePassword(oldPassword, newPassword),
+  });
+}
+
+/** Uploads a picked image as the custom avatar and resolves its public URL. */
+export function useUploadAvatar() {
+  const { avatarUploadService } = useServices();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const fileUri = URL.createObjectURL(file);
+      try {
+        return await avatarUploadService.uploadAvatar(fileUri);
+      } finally {
+        URL.revokeObjectURL(fileUri);
+      }
+    },
+    retry: 1,
   });
 }
 

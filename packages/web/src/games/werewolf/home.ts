@@ -16,4 +16,12 @@ export const werewolfHome = {
   // The spotlight pulls in role specs and portraits: its own chunk, loaded after Home renders.
   loadSpotlight: async () =>
     (await import('./components/WerewolfHomeSpotlight')).WerewolfHomeSpotlight,
+  announcementTabs: [
+    {
+      id: 'boards',
+      label: '板子',
+      loadContent: async () =>
+        (await import('./components/WerewolfBoardAnnouncementTab')).WerewolfBoardAnnouncementTab,
+    },
+  ],
 } satisfies GameHomeContribution;

@@ -1,0 +1,48 @@
+.install-menu-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-tight);
+  min-height: var(--size-min-touch-target);
+  padding: 0 var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  cursor: pointer;
+}
+
+.install-menu-item:active {
+  opacity: var(--opacity-pressed);
+}
+
+.install-guide-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-medium);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+}
+
+.install-guide-step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-small);
+}
+
+.install-guide-number {
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.install-guide-share {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  color: var(--color-primary);
+  vertical-align: middle;
+}

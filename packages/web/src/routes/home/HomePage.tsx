@@ -1,25 +1,48 @@
 import './HomePage.css';
 
-import { Suspense, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 
 import { Avatar } from '@/components/avatar/Avatar';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext, type User } from '@/contexts/AuthContext';
 import { requestLogin } from '@/features/auth/loginRequests';
+import {
+  hasSeenAnnouncement,
+  markAnnouncementSeen,
+} from '@/features/home/services/announcementReceiptStore';
+import { gameGuidePath } from '@/features/navigation/model/gamePaths';
 import { getRecentRooms } from '@/features/room/services/recentRooms';
-import { GAME_HOME_SPOTLIGHTS, GAME_MODE_OPTIONS } from '@/games/catalog';
+import { GAME_ANNOUNCEMENT_TABS, GAME_HOME_SPOTLIGHTS, GAME_MODE_OPTIONS } from '@/games/catalog';
 import { TESTIDS } from '@/testids';
+import { handleError } from '@/utils/errorPipeline';
 import { homeLog } from '@/utils/logger';
 import { isMiniProgram, wxReLaunch } from '@/utils/miniProgram';
+import IconBookOutline from '~icons/ion/book-outline';
 import IconChevronForward from '~icons/ion/chevron-forward';
 import IconCloudOfflineOutline from '~icons/ion/cloud-offline-outline';
 import IconLogInOutline from '~icons/ion/log-in-outline';
+import IconMegaphoneOutline from '~icons/ion/megaphone-outline';
 import IconPersonCircleOutline from '~icons/ion/person-circle-outline';
 import IconTimeOutline from '~icons/ion/time-outline';
 
+import { AnnouncementCardText } from './AnnouncementCardText';
 import { JoinRoomDialog } from './JoinRoomDialog';
 import { RecentRoomsDialog } from './RecentRoomsDialog';
+
+const AnnouncementCardStatus = lazy(async () => ({
+  default: (await import('./AnnouncementCardStatus')).AnnouncementCardStatus,
+}));
+const AnnouncementModal = lazy(async () => ({
+  default: (await import('./AnnouncementModal')).AnnouncementModal,
+}));
+const TicketBadge = lazy(async () => ({
+  default: (await import('./TicketBadge')).TicketBadge,
+}));
+// The install prompt is captured at boot, so the footer entry can load after Home is interactive.
+const InstallMenuItem = lazy(async () => ({
+  default: (await import('./InstallMenuItem')).InstallMenuItem,
+}));
 
 /** Max icon chips on the create-room card; past this the tail folds into a +N chip. */
 const HERO_ICON_LIMIT = 8;
@@ -38,13 +61,53 @@ function displayNameOf(user: User): string {
   return '用户';
 }
 
-/** Home: create or join a room, recent rooms, gacha entry, game spotlights and account. */
+/**
+ * Home: create or join a room, recent rooms, game guide, gacha entry, game spotlights,
+ * announcements and feedback, PWA install, and account.
+ */
 export function HomePage() {
   const navigate = useNavigate();
   const { user, loading: authLoading, error: authError } = useAuthContext();
   const [dialog, setDialog] = useState<'join' | 'recent' | null>(null);
+  const [announcementOpen, setAnnouncementOpen] = useState(false);
+  // The lazy modal mounts on first open and stays mounted so its exit motion can finish.
+  const [announcementMounted, setAnnouncementMounted] = useState(false);
   const adminTaps = useRef({ count: 0, lastTapMs: 0 });
   const recentRooms = user === null ? [] : getRecentRooms(user.id);
+
+  const openAnnouncement = () => {
+    setAnnouncementMounted(true);
+    setAnnouncementOpen(true);
+  };
+
+  const closeAnnouncement = () => {
+    setAnnouncementOpen(false);
+    markAnnouncementSeen(APP_VERSION);
+  };
+
+  // Auto-shows this version's announcement once auth settles; the content loads on demand so
+  // the changelog stays out of the Home chunk.
+  useEffect(() => {
+    if (authLoading || hasSeenAnnouncement(APP_VERSION)) return;
+    let cancelled = false;
+    import('@/config/announcements').then(
+      (announcements) => {
+        if (cancelled) return;
+        if (announcements.ANNOUNCEMENTS[APP_VERSION]) {
+          setAnnouncementMounted(true);
+          setAnnouncementOpen(true);
+        } else {
+          markAnnouncementSeen(APP_VERSION);
+        }
+      },
+      (error: unknown) => {
+        handleError(error, { label: '加载公告', logger: homeLog });
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading]);
 
   /** Runs `action` once signed in; a fresh email sign-up goes to settings to pick a profile. */
   const requireAuth = async (action: () => void) => {
@@ -74,6 +137,15 @@ export function HomePage() {
     }
   };
 
+  const openGuide = () => {
+    const [soleOption] = GAME_MODE_OPTIONS;
+    if (GAME_MODE_OPTIONS.length === 1 && soleOption) {
+      void navigate(gameGuidePath(soleOption.gameType, null));
+      return;
+    }
+    void navigate('/games?purpose=guide');
+  };
+
   const retryAuth = () => {
     if (isMiniProgram()) wxReLaunch();
     else window.location.reload();
@@ -87,18 +159,34 @@ export function HomePage() {
             狼人面杀电子裁判助手
           </button>
         </h1>
-        <Link
-          to="/settings"
-          className="home-account"
-          aria-label="设置"
-          data-testid={TESTIDS.homeSettingsButton}
-        >
-          {user ? (
-            <Avatar userId={user.id} avatarUrl={user.avatarUrl} size={36} />
-          ) : (
-            <IconPersonCircleOutline className="home-account-placeholder" aria-hidden />
-          )}
-        </Link>
+        <div className="home-top-actions">
+          <button
+            type="button"
+            className="home-guide"
+            aria-label="游戏图鉴"
+            data-testid={TESTIDS.homeGuideButton}
+            onClick={openGuide}
+          >
+            <IconBookOutline aria-hidden />
+          </button>
+          <Link
+            to="/settings"
+            className="home-account"
+            aria-label="设置"
+            data-testid={TESTIDS.homeSettingsButton}
+          >
+            {user ? (
+              <Avatar userId={user.id} avatarUrl={user.avatarUrl} size={36} />
+            ) : (
+              <IconPersonCircleOutline className="home-account-placeholder" aria-hidden />
+            )}
+            {user && (
+              <Suspense fallback={null}>
+                <TicketBadge />
+              </Suspense>
+            )}
+          </Link>
+        </div>
       </header>
 
       {user && (
@@ -197,10 +285,38 @@ export function HomePage() {
               <spotlight.Spotlight />
             </Suspense>
           ))}
+
+          <button
+            type="button"
+            className="home-card"
+            data-accent="primary"
+            onClick={openAnnouncement}
+          >
+            <IconMegaphoneOutline className="home-card-icon" aria-hidden />
+            <Suspense fallback={<AnnouncementCardText />}>
+              <AnnouncementCardStatus />
+            </Suspense>
+            <IconChevronForward aria-hidden />
+          </button>
         </section>
       </div>
 
-      <footer className="home-footer">{`${APP_VERSION} · 作者：严振宇`}</footer>
+      <footer className="home-footer">
+        <span>{`${APP_VERSION} · 作者：严振宇`}</span>
+        <Suspense fallback={null}>
+          <InstallMenuItem />
+        </Suspense>
+      </footer>
+
+      {announcementMounted && (
+        <Suspense fallback={null}>
+          <AnnouncementModal
+            open={announcementOpen}
+            gameTabs={GAME_ANNOUNCEMENT_TABS}
+            onClose={closeAnnouncement}
+          />
+        </Suspense>
+      )}
 
       <JoinRoomDialog open={dialog === 'join'} onClose={() => setDialog(null)} onJoin={joinRoom} />
       {user && (

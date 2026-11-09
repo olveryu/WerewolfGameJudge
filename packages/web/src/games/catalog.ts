@@ -22,6 +22,13 @@ interface ClientGameModule {
   readonly home: GameHomeContribution;
   /** Narrated games offer a music-settings preview, loaded only by that page. */
   readonly loadAudioPreview?: () => Promise<GameAudioPreviewFactory>;
+  /** Game-owned statistics on the account settings page, loaded only by that page. */
+  readonly loadAccountStats?: () => Promise<ComponentType<GameAccountStatsProps>>;
+}
+
+/** Props of a game-owned account statistics section. */
+interface GameAccountStatsProps {
+  readonly userId: string;
 }
 
 const CLIENT_GAMES: { readonly [TGameType in GameType]: ClientGameModule } = {
@@ -29,6 +36,9 @@ const CLIENT_GAMES: { readonly [TGameType in GameType]: ClientGameModule } = {
     home: werewolfHome,
     loadAudioPreview: async () =>
       (await import('@/games/werewolf/audio/audioPreview')).createWerewolfAudioPreview,
+    loadAccountStats: async () =>
+      (await import('@/games/werewolf/components/WerewolfAccountStatsSection'))
+        .WerewolfAccountStatsSection,
   },
   fibking: { home: fibHome },
   pictionary: { home: pictionaryHome },
@@ -68,6 +78,43 @@ export const GAME_HOME_SPOTLIGHTS: readonly ClientGameHomeSpotlight[] = GAME_TYP
     return [{ gameType, Spotlight: lazy(async () => ({ default: await loadSpotlight() })) }];
   },
 );
+
+export interface ClientGameAnnouncementTab {
+  /** `${gameType}:${tabId}`, unique across the catalog. */
+  readonly key: string;
+  readonly label: string;
+  readonly Content: LazyExoticComponent<ComponentType>;
+}
+
+/** Game-owned announcement modal tabs of production games, in catalog order. */
+export const GAME_ANNOUNCEMENT_TABS: readonly ClientGameAnnouncementTab[] = GAME_TYPES.flatMap(
+  (gameType) => {
+    if (!GAME_REGISTRY[gameType].isProduction) return [];
+    const tabs = CLIENT_GAMES[gameType].home.announcementTabs ?? [];
+    const tabIds = new Set(tabs.map((tab) => tab.id));
+    if (tabIds.size !== tabs.length) {
+      throw new Error(`[FAIL-FAST] Duplicate announcement tab id in ${gameType}`);
+    }
+    return tabs.map((tab) => ({
+      key: `${gameType}:${tab.id}`,
+      label: tab.label,
+      Content: lazy(async () => ({ default: await tab.loadContent() })),
+    }));
+  },
+);
+
+export interface ClientGameAccountStatsSection {
+  readonly gameType: GameType;
+  readonly Section: LazyExoticComponent<ComponentType<GameAccountStatsProps>>;
+}
+
+/** Game-owned account statistics sections, in catalog order. */
+export const GAME_ACCOUNT_STATS_SECTIONS: readonly ClientGameAccountStatsSection[] =
+  GAME_TYPES.flatMap((gameType) => {
+    const { loadAccountStats } = CLIENT_GAMES[gameType];
+    if (loadAccountStats === undefined) return [];
+    return [{ gameType, Section: lazy(async () => ({ default: await loadAccountStats() })) }];
+  });
 
 export interface ClientGameAudioPreview extends GameAudioPreview {
   readonly gameType: GameType;

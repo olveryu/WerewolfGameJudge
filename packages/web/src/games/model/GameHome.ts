@@ -20,8 +20,18 @@ export interface GameModePresentation {
   readonly artUrl?: string;
 }
 
+export interface GameAnnouncementTabContribution {
+  /** Stable within one game module. */
+  readonly id: string;
+  readonly label: string;
+  /** Loads the tab body; it ships in its own chunk, fetched when the announcement modal opens. */
+  readonly loadContent: () => Promise<ComponentType>;
+}
+
 export interface GameHomeContribution {
   readonly mode: GameModePresentation;
   /** Loads the game's Home spotlight card; it ships in its own chunk, outside the Home budget. */
   readonly loadSpotlight?: () => Promise<ComponentType>;
+  /** Game-owned tabs of the Home announcement modal, after the shared changelog tab. */
+  readonly announcementTabs?: readonly GameAnnouncementTabContribution[];
 }

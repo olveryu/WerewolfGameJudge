@@ -11,6 +11,7 @@ import { RouterProvider } from 'react-router/dom';
 
 import { router } from '@/app/router';
 import { reportLoadTiming } from '@/boot/loadTiming';
+import { capturePwaInstallPrompt } from '@/boot/pwaInstallPrompt';
 import { resolveRuntimeEnvironment } from '@/boot/runtimeEnvironment';
 import { installStaleTabReload, removeLegacyServiceWorkers } from '@/boot/tabLifecycle';
 import { WechatBrowserGuide } from '@/boot/WechatBrowserGuide';
@@ -23,6 +24,7 @@ if (!rootElement) {
 
 applyColorTokens(document.documentElement);
 installStaleTabReload();
+capturePwaInstallPrompt();
 void removeLegacyServiceWorkers();
 
 const root = createRoot(rootElement, {

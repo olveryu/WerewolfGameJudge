@@ -57,9 +57,7 @@ The release script has no shallow-clone handling: in a shallow checkout, the pre
 
 ### Step 3 — Write the announcement
 
-Known gap: the release script requires the announcement entry in the file named by its `ANNOUNCEMENTS` variable (`scripts/release.sh`), which points into `packages/web/src/config/`. That file is not ported to the web client yet (`docs/web-client-rewrite.md` §8.2, P4), so the script stops at its announcement check until the port lands. That check runs after `pnpm version`, so a stopped run leaves the bumped `package.json` behind. Report this gap and stop before Step 6; do not create the file outside the port and do not edit the script to skip the check.
-
-Once the file exists:
+The release script requires the announcement entry in the file named by its `ANNOUNCEMENTS` variable (`scripts/release.sh`): `packages/web/src/config/announcements.ts`. That check runs after `pnpm version`, so a stopped run leaves the bumped `package.json` behind.
 
 1. Calculate the new version: a minor bump of the current version (for example `2.3.0` becomes `2.4.0`).
 2. Add a new entry keyed `'v{x.y.z}'` at the top of that file's announcement map, following its current head entry. The script checks only that the key exists.

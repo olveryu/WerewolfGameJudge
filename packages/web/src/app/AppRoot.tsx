@@ -1,6 +1,6 @@
 import { Portal } from '@ark-ui/react/portal';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { useCallback, useLayoutEffect, useSyncExternalStore } from 'react';
+import { lazy, Suspense, useCallback, useLayoutEffect, useSyncExternalStore } from 'react';
 import { Outlet, useMatches } from 'react-router';
 import { Toaster } from 'sonner';
 
@@ -12,6 +12,11 @@ import { ServiceProvider, useServices } from '@/contexts/ServiceContext';
 import { LoginDialogSlot } from '@/features/auth/LoginDialogSlot';
 import { WechatLoginEntry } from '@/features/auth/WechatLoginEntry';
 import { ClientGameModulesProvider, ClientGameOverlays } from '@/games/clientModules';
+
+// The inbox consumer's Zod schemas stay out of the start-up chunk.
+const AccountInboxHost = lazy(async () => ({
+  default: (await import('@/features/account/AccountInboxHost')).AccountInboxHost,
+}));
 
 /**
  * Root route element: app-wide providers around the active page, the loaded games' overlays, plus
@@ -25,6 +30,9 @@ export function AppRoot() {
         <AuthProvider>
           <ClientGameModulesProvider>
             <RoomLinkScope />
+            <Suspense fallback={null}>
+              <AccountInboxHost />
+            </Suspense>
             <AppContent />
             <ClientGameOverlays />
           </ClientGameModulesProvider>

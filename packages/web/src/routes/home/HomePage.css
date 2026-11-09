@@ -27,7 +27,28 @@
   font-weight: inherit;
 }
 
+.home-top-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-tight);
+}
+
+.home-guide {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-min-touch-target);
+  min-height: var(--size-min-touch-target);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: var(--size-icon-md);
+  cursor: pointer;
+}
+
 .home-account {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -41,6 +62,22 @@
   width: var(--size-icon-xl);
   height: var(--size-icon-xl);
   color: var(--color-text-secondary);
+}
+
+.home-ticket-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: var(--size-badge-md);
+  height: var(--size-badge-md);
+  padding: 0 var(--space-micro);
+  border-radius: var(--radius-full);
+  background: var(--color-error);
+  color: var(--color-text-inverse);
+  font-size: var(--font-caption-small);
+  line-height: var(--size-badge-md);
+  font-weight: var(--weight-bold);
+  text-align: center;
 }
 
 .home-auth-error {
@@ -211,6 +248,32 @@
   transition: transform 100ms ease-out;
 }
 
+button.home-card {
+  width: 100%;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-card[data-accent='primary'] {
+  border-left-color: var(--color-primary);
+}
+
+.home-card-icon {
+  color: var(--color-primary);
+  font-size: var(--size-icon-md);
+}
+
+.home-feedback-dot {
+  width: var(--size-badge-dot);
+  height: var(--size-badge-dot);
+  border-radius: var(--radius-full);
+  background: var(--color-error);
+}
+
 .home-card-emoji {
   font-size: var(--font-heading);
 }
@@ -233,6 +296,10 @@
 }
 
 .home-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-small);
   margin-top: var(--space-xlarge);
   color: var(--color-text-muted);
   font-size: var(--font-caption);

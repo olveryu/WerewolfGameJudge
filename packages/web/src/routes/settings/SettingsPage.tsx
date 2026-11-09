@@ -1,28 +1,36 @@
 import './SettingsPage.css';
 
 import {
+  type ChangeEvent,
   type FormEvent,
+  lazy,
+  Suspense,
   useEffect,
   useEffectEvent,
   useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { toast } from 'sonner';
 
 import { Avatar } from '@/components/avatar/Avatar';
+import { HAND_DRAWN_PORTRAITS } from '@/components/avatar/avatarSources';
 import { Button } from '@/components/Button';
 import { NameStyleText } from '@/components/nameStyles/NameStyleText';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { Spinner } from '@/components/Spinner';
 import { Switch } from '@/components/Switch';
+import { DEVELOPER_WECHAT_ID } from '@/config/announcements';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext, type User } from '@/contexts/AuthContext';
 import {
   refreshSavedProfile,
   useChangePassword,
   useUpdateProfile,
+  useUploadAvatar,
 } from '@/features/account/accountMutations';
+import { useUserStatsQuery } from '@/features/account/queries/useUserStatsQuery';
 import { useSignOut } from '@/features/auth/authMutations';
 import { LoginOptions } from '@/features/auth/LoginDialog';
 import { requestLogin } from '@/features/auth/loginRequests';
@@ -35,6 +43,7 @@ import { roomPath } from '@/features/room/navigation/roomFlowNavigation';
 import { clearRecentRooms } from '@/features/room/services/recentRooms';
 import { displaySettings } from '@/features/settings/displaySettings';
 import { isExpectedStorageError } from '@/features/settings/services/userSettingsStorage';
+import { GAME_ACCOUNT_STATS_SECTIONS } from '@/games/catalog';
 import { useActiveRoomAccount } from '@/games/clientModules';
 import type { SceneFrameRate } from '@/scene/stage';
 import { TESTIDS } from '@/testids';
@@ -44,18 +53,59 @@ import { handleError } from '@/utils/errorPipeline';
 import { getUserFacingMessage, isExpectedError, translateReasonCode } from '@/utils/errorUtils';
 import { createLogger } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
+import IconCameraOutline from '~icons/ion/camera-outline';
 import IconChevronForward from '~icons/ion/chevron-forward';
 import IconCopyOutline from '~icons/ion/copy-outline';
-import IconGiftOutline from '~icons/ion/gift-outline';
 import IconInformationCircleOutline from '~icons/ion/information-circle-outline';
+import IconLockClosed from '~icons/ion/lock-closed';
 import IconPencil from '~icons/ion/pencil';
 import IconPersonOutline from '~icons/ion/person-outline';
 import IconSparklesOutline from '~icons/ion/sparkles-outline';
 
+// Growth details pull in the engine growth and reward catalogs; keep them out of the page chunk.
+const GrowthSection = lazy(async () => ({
+  default: (await import('./GrowthSection')).GrowthSection,
+}));
+
 const settingsLog = createLogger('Settings');
-const DEVELOPER_WECHAT_ID = 'olveryu';
 const MIN_PASSWORD_LENGTH = 6;
 const FRAME_RATE_OPTIONS: readonly SceneFrameRate[] = [60, 30];
+/** Matches `--size-avatar-xl`, the old client's settings avatar size. */
+const AVATAR_SIZE = 80;
+const AVATAR_ACCEPT = 'image/jpeg,image/png,image/webp';
+
+/** Number of portraits shown in the anonymous-user preview strip. */
+const PREVIEW_STRIP_COUNT = 4;
+/** Evenly spaced portraits for the anonymous-user preview strip. */
+const PREVIEW_STRIP_PORTRAITS = (() => {
+  const step = Math.floor(HAND_DRAWN_PORTRAITS.length / PREVIEW_STRIP_COUNT);
+  return Array.from({ length: PREVIEW_STRIP_COUNT }, (_, index) => {
+    const portrait = HAND_DRAWN_PORTRAITS[index * step];
+    if (portrait === undefined) {
+      throw new Error(`[FAIL-FAST] Missing hand-drawn portrait at index ${index * step}`);
+    }
+    return portrait;
+  });
+})();
+
+/** Anonymous-user teaser: what binding an email unlocks. */
+function AvatarTeaser() {
+  return (
+    <div className="settings-teaser">
+      <div className="settings-teaser-strip">
+        {PREVIEW_STRIP_PORTRAITS.map((portrait) => (
+          <img key={portrait} className="settings-teaser-item" src={portrait} alt="" />
+        ))}
+        <span className="settings-teaser-lock">
+          <IconLockClosed aria-hidden />
+        </span>
+      </div>
+      <p className="settings-teaser-text">
+        {`绑定邮箱，解锁 ${HAND_DRAWN_PORTRAITS.length} 款暗黑头像、自定义昵称和头像框`}
+      </p>
+    </div>
+  );
+}
 
 function ChangePasswordForm({ onDone }: { onDone: () => void }) {
   const changePassword = useChangePassword();
@@ -123,6 +173,9 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
 function AccountSection({ user }: { user: User }) {
   const { refreshUser } = useAuthContext();
   const updateProfile = useUpdateProfile();
+  const uploadAvatar = useUploadAvatar();
+  const { data: growthStats } = useUserStatsQuery();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const signOut = useSignOut();
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const inMiniProgram = isMiniProgram();
@@ -131,7 +184,10 @@ function AccountSection({ user }: { user: User }) {
   const { canSwitchAccount } = activeRoom;
 
   /** Pushes a saved profile change into the active room; false when the room rejected it. */
-  const syncActiveRoomProfile = async (patch: RoomProfilePatch): Promise<boolean> => {
+  const syncActiveRoomProfile = async (
+    patch: RoomProfilePatch,
+    failureMessage = '资料已保存，房间内同步失败',
+  ): Promise<boolean> => {
     if (activeRoom.phase === 'idle' || !activeRoom.canSyncProfile) return true;
     try {
       const result = await activeRoom.updateProfile(patch);
@@ -142,7 +198,7 @@ function AccountSection({ user }: { user: User }) {
     } catch (error: unknown) {
       settingsLog.warn('Profile sync to active room failed', error);
     }
-    toast.warning('资料已保存，房间内同步失败');
+    toast.warning(failureMessage);
     return false;
   };
 
@@ -184,6 +240,27 @@ function AccountSection({ user }: { user: User }) {
         })();
       },
     });
+  };
+
+  const pickAvatar = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    // Reset so picking the same file again still fires `change`.
+    input.value = '';
+    if (file === undefined) return;
+    try {
+      const url = await uploadAvatar.mutateAsync(file);
+      const refreshed = await refreshSavedProfile(refreshUser);
+      const roomSynced = await syncActiveRoomProfile(
+        { avatarUrl: url },
+        '头像已保存，房间内同步失败',
+      );
+      if (!refreshed) toast.warning('头像已保存，资料刷新失败');
+      else if (roomSynced) toast.success('头像已更新');
+    } catch (error: unknown) {
+      settingsLog.error('Avatar upload failed', error);
+      showErrorAlert('上传失败', getUserFacingMessage(error));
+    }
   };
 
   const bindEmail = (formTitle: string, hideDisplayName = false) => {
@@ -249,21 +326,56 @@ function AccountSection({ user }: { user: User }) {
   return (
     <>
       <div className="settings-profile">
-        <Link to="/appearance" className="settings-avatar" aria-label="更换头像与装扮">
-          <Avatar userId={user.id} avatarUrl={user.avatarUrl} size={72} />
-        </Link>
+        {user.isAnonymous ? (
+          <span className="settings-avatar">
+            <Avatar userId={user.id} avatarUrl={user.avatarUrl} size={AVATAR_SIZE} />
+          </span>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="settings-avatar settings-avatar-button"
+              aria-label="上传头像"
+              aria-busy={uploadAvatar.isPending}
+              disabled={uploadAvatar.isPending}
+              onClick={() => avatarInputRef.current?.click()}
+            >
+              {uploadAvatar.isPending ? (
+                <span className="settings-avatar-uploading">
+                  <Spinner label="头像上传中" />
+                </span>
+              ) : (
+                <Avatar userId={user.id} avatarUrl={user.avatarUrl} size={AVATAR_SIZE} />
+              )}
+              <span className="settings-avatar-badge">
+                <IconCameraOutline aria-hidden />
+              </span>
+            </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept={AVATAR_ACCEPT}
+              hidden
+              data-testid="settings-avatar-input"
+              onChange={(event) => void pickAvatar(event)}
+            />
+          </>
+        )}
         <div className="settings-profile-text">
           {user.isAnonymous ? (
             <span className="settings-name">匿名用户</span>
           ) : (
-            <button type="button" className="settings-name" onClick={editName}>
-              {user.displayName === null ? (
-                '设置昵称'
-              ) : (
-                <NameStyleText styleId={user.nameStyle}>{user.displayName}</NameStyleText>
-              )}
-              <IconPencil aria-hidden />
-            </button>
+            <span className="settings-name-row">
+              <button type="button" className="settings-name" onClick={editName}>
+                {user.displayName === null ? (
+                  '设置昵称'
+                ) : (
+                  <NameStyleText styleId={user.nameStyle}>{user.displayName}</NameStyleText>
+                )}
+                <IconPencil aria-hidden />
+              </button>
+              {growthStats && <span className="settings-level">{`Lv.${growthStats.level}`}</span>}
+            </span>
           )}
           <span className="settings-status">
             <span className="settings-status-dot" />
@@ -273,20 +385,15 @@ function AccountSection({ user }: { user: User }) {
         </div>
       </div>
 
-      {!user.isAnonymous && (
-        <>
-          <Link to="/appearance" className="settings-entry">
-            <span>更换头像与装扮</span>
-            <IconChevronForward aria-hidden />
-          </Link>
-          <Link to="/gacha" className="settings-entry">
-            <span className="settings-entry-label">
-              <IconGiftOutline aria-hidden />
-              扭蛋抽奖
-            </span>
-            <IconChevronForward aria-hidden />
-          </Link>
-        </>
+      {user.isAnonymous && <AvatarTeaser />}
+
+      {growthStats && (
+        <Suspense fallback={<Spinner label="加载成长数据" />}>
+          <GrowthSection stats={growthStats} />
+          {GAME_ACCOUNT_STATS_SECTIONS.map((statsSection) => (
+            <statsSection.Section key={statsSection.gameType} userId={user.id} />
+          ))}
+        </Suspense>
       )}
 
       {canSwitchAccount && !user.email && inMiniProgram && !user.isAnonymous && (
@@ -433,8 +540,9 @@ function AboutSection() {
 }
 
 /**
- * Settings: account, display preferences (decorations, frame rate) and about. Opened from a room
- * (`/settings/:roomCode`), it returns to that room and applies account changes to the room.
+ * Settings: account (profile, avatar upload, growth and per-game stats), display preferences
+ * (decorations, frame rate) and about. Opened from a room (`/settings/:roomCode`), it returns to
+ * that room and applies account changes to the room.
  */
 export function SettingsPage() {
   const { user, loading } = useAuthContext();

@@ -39,8 +39,106 @@
 }
 
 .settings-avatar {
+  position: relative;
   display: inline-flex;
+  flex-shrink: 0;
   border-radius: var(--radius-medium);
+}
+
+.settings-avatar-button {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.settings-avatar-button:disabled {
+  cursor: progress;
+}
+
+.settings-avatar-uploading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-avatar-xl);
+  height: var(--size-avatar-xl);
+}
+
+.settings-avatar-badge {
+  position: absolute;
+  right: calc(-1 * var(--space-small));
+  bottom: calc(-1 * var(--space-tight));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--size-icon-sm);
+}
+
+.settings-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-small);
+}
+
+.settings-level {
+  padding: var(--space-micro) var(--space-small);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-a10);
+  color: var(--color-primary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+}
+
+.settings-teaser {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-small);
+  padding: var(--space-medium);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-large);
+}
+
+.settings-teaser-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+}
+
+.settings-teaser-item,
+.settings-teaser-lock {
+  width: var(--size-avatar-sm);
+  height: var(--size-avatar-sm);
+  border-radius: var(--radius-small);
+}
+
+.settings-teaser-item {
+  object-fit: cover;
+}
+
+.settings-teaser-lock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-width) dashed var(--color-border-light);
+  color: var(--color-text-secondary);
+  font-size: var(--size-icon-sm);
+}
+
+.settings-teaser-text {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  text-align: center;
 }
 
 .settings-profile-text {
@@ -109,12 +207,6 @@
 
 .settings-entry > svg {
   color: var(--color-text-muted);
-}
-
-.settings-entry-label {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-tight);
 }
 
 .settings-entry-text {
