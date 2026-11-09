@@ -17,9 +17,9 @@ import {
   createSyncFrame,
   parseServerFrame,
 } from '@game-judge/game-engine/platform/realtime/protocol';
-import { runInDurableObject, SELF } from 'cloudflare:test';
+import { runDurableObjectAlarm, runInDurableObject, SELF } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
 import { initializeRoomStorage } from '../../commands/storageSchema';
@@ -239,16 +239,21 @@ describe('GameRoom initialization', () => {
     expect((await request('invalid')).status).toBe(403);
     const token = 'test-admin-token-do-not-use-in-production';
     expect((await request(token)).status).toBe(202);
-    await runInDurableObject(stub, async (instance: GameRoom, state) => {
-      await instance.alarm();
-      const replay = await instance.readEffectReplay(command);
-      expect(replay).toMatchObject({
-        id: command.id,
-        effect_id: effectId,
-        reason: command.reason,
-        requested_by: 'admin-token',
-        status: 'succeeded',
+    // The replay wakes the room now: run that alarm unless workerd already started it, then wait
+    // for delivery. A second manual alarm() would find the effect claimed and return early.
+    await runDurableObjectAlarm(stub);
+    await vi.waitFor(async () => {
+      await runInDurableObject(stub, async (instance: GameRoom) => {
+        expect(await instance.readEffectReplay(command)).toMatchObject({
+          id: command.id,
+          effect_id: effectId,
+          reason: command.reason,
+          requested_by: 'admin-token',
+          status: 'succeeded',
+        });
       });
+    });
+    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
       expect(state.storage.sql.exec('SELECT COUNT(*) AS count FROM effect_outbox').one()).toEqual({
         count: 0,
       });
