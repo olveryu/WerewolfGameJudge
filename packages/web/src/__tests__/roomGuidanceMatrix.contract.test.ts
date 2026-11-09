@@ -12,6 +12,7 @@ import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTyp
 
 import type { RoomGuidanceMatrix } from '@/features/room/model/RoomGuidanceMatrix';
 import { DEMO_GUIDANCE_MATRIX } from '@/games/demo/room/demoGuidanceMatrix';
+import { DRAWGUESS_GUIDANCE_MATRIX } from '@/games/drawguess/room/drawGuessGuidanceMatrix';
 import { FIBKING_GUIDANCE_MATRIX } from '@/games/fibking/room/fibGuidanceMatrix';
 import { PICTIONARY_GUIDANCE_MATRIX } from '@/games/pictionary/room/pictionaryGuidanceMatrix';
 import { STORY_RELAY_GUIDANCE_MATRIX } from '@/games/storyrelay/room/storyRelayGuidanceMatrix';
@@ -25,6 +26,7 @@ const GUIDANCE_MATRICES: Partial<Record<GameType, RoomGuidanceMatrix<string>>> =
   fibking: FIBKING_GUIDANCE_MATRIX,
   storyrelay: STORY_RELAY_GUIDANCE_MATRIX,
   pictionary: PICTIONARY_GUIDANCE_MATRIX,
+  drawguess: DRAWGUESS_GUIDANCE_MATRIX,
   demo: DEMO_GUIDANCE_MATRIX,
 };
 

@@ -14,6 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { DemoState } from '@game-judge/game-engine/games/demo/public';
+import type { DrawGuessState } from '@game-judge/game-engine/games/drawguess/public';
 import type { FibState } from '@game-judge/game-engine/games/fibking/public';
 import type { PictionaryState } from '@game-judge/game-engine/games/pictionary/public';
 import type { StoryRelayState } from '@game-judge/game-engine/games/storyrelay/public';
@@ -38,6 +39,7 @@ import {
 } from '@game-judge/game-engine/platform/protocol/reasons';
 
 import { getDemoRoomCommandFailureMessage } from '@/games/demo/room/demoRoomCommandFailureMessage';
+import { getDrawGuessRoomCommandFailureMessage } from '@/games/drawguess/room/drawGuessRoomCommandFailureMessage';
 import { getFibRoomCommandFailureMessage } from '@/games/fibking/room/fibRoomCommandFailureMessage';
 import { getPictionaryRoomCommandFailureMessage } from '@/games/pictionary/room/pictionaryRoomCommandFailureMessage';
 import { getStoryRelayRoomCommandFailureMessage } from '@/games/storyrelay/room/storyRelayRoomCommandFailureMessage';
@@ -128,6 +130,13 @@ const PRESENTERS: ReadonlyArray<{ game: string; present: (reason: string) => str
         rejectedRoomCommand<PictionaryState>(reason, 'chassis-pin'),
       ),
   },
+  {
+    game: 'drawguess',
+    present: (reason) =>
+      getDrawGuessRoomCommandFailureMessage(
+        rejectedRoomCommand<DrawGuessState>(reason, 'chassis-pin'),
+      ),
+  },
 ];
 
 /** Game presenter sources scanned for chassis entries. */
@@ -137,6 +146,7 @@ const PRESENTER_SOURCES = [
   'packages/web/src/games/fibking/room/fibRoomCommandFailureMessage.ts',
   'packages/web/src/games/storyrelay/room/storyRelayRoomCommandFailureMessage.ts',
   'packages/web/src/games/pictionary/room/pictionaryRoomCommandFailureMessage.ts',
+  'packages/web/src/games/drawguess/room/drawGuessRoomCommandFailureMessage.ts',
 ];
 
 describe('room command failure chassis copy (B-2)', () => {

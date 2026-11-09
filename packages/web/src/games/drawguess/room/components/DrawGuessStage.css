@@ -1,0 +1,395 @@
+/* DrawGuess stage: fills the room workspace; the takeover button floats over it. */
+.drawguess-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Scrolling stages (word select, round end, ended): one centered column. */
+.drawguess-stage-scroll {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.drawguess-stage-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-medium);
+  align-self: center;
+  width: 100%;
+  max-width: 430px;
+  box-sizing: border-box;
+  padding: var(--space-medium) var(--space-screen-h);
+}
+
+.drawguess-stage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-small);
+}
+
+.drawguess-turn-label,
+.drawguess-section-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-subtitle);
+}
+
+.drawguess-countdown {
+  min-width: 76px;
+  box-sizing: border-box;
+  padding: var(--space-tight) var(--space-small);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-title);
+  font-weight: var(--weight-bold);
+  line-height: var(--line-title);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.drawguess-countdown[data-urgent] {
+  color: var(--color-primary);
+}
+
+.drawguess-countdown-placeholder {
+  min-width: 76px;
+}
+
+.drawguess-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  width: 100%;
+}
+
+.drawguess-hint,
+.drawguess-meta {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.drawguess-panel {
+  box-sizing: border-box;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+/* ── Hint bar ── */
+.drawguess-hint-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-small);
+  padding: var(--space-small) var(--space-medium);
+}
+
+.drawguess-hint-word,
+.drawguess-hint-text {
+  color: var(--color-text);
+  font-size: var(--font-title);
+  font-weight: var(--weight-bold);
+  line-height: var(--line-title);
+  letter-spacing: var(--letter-wide);
+}
+
+.drawguess-hint-word {
+  color: var(--color-primary);
+}
+
+/* ── Drawing task ── */
+.drawguess-task-frame .room-task-frame-footer {
+  padding-top: var(--space-small);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.drawguess-drawing-body {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--space-small);
+  min-height: 0;
+}
+
+/* Fits the canonical 4:3 canvas into the remaining body height without cropping. */
+.drawguess-canvas-media {
+  display: flex;
+  flex: 3 1 0;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  overflow: hidden;
+  container-type: size;
+}
+
+.drawguess-canvas-fit {
+  width: min(100cqw, calc(100cqh * 4 / 3));
+}
+
+.drawguess-side-panel {
+  display: flex;
+  flex: 2 1 0;
+  flex-direction: column;
+  gap: var(--space-small);
+  min-height: 0;
+}
+
+@media (min-width: 768px) {
+  .drawguess-drawing-body {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .drawguess-canvas-media {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .drawguess-side-panel {
+    flex: 0 0 320px;
+  }
+}
+
+/* ── Guess log ── */
+.drawguess-message-list {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--space-tight);
+  min-height: 80px;
+  margin: 0;
+  padding: var(--space-small);
+  overflow-y: auto;
+  list-style: none;
+}
+
+.drawguess-message {
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  overflow-wrap: anywhere;
+}
+
+.drawguess-message[data-kind='own-correct'],
+.drawguess-message[data-kind='other-correct'] {
+  color: var(--color-success);
+  font-weight: var(--weight-semibold);
+}
+
+.drawguess-message-name {
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+/* ── Guess composer ── */
+.drawguess-composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+}
+
+.drawguess-composer-row {
+  display: flex;
+  gap: var(--space-small);
+  align-items: center;
+}
+
+.drawguess-composer-row[data-shaking] {
+  animation: drawguess-shake 0.32s ease-in-out;
+}
+
+@keyframes drawguess-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-6px);
+  }
+
+  50% {
+    transform: translateX(6px);
+  }
+
+  75% {
+    transform: translateX(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawguess-composer-row[data-shaking] {
+    animation: none;
+  }
+}
+
+.drawguess-composer-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--size-min-touch-target);
+  box-sizing: border-box;
+  padding: 0 var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+}
+
+.drawguess-composer-input:disabled {
+  opacity: var(--opacity-disabled);
+}
+
+.drawguess-composer-send {
+  flex: 0 0 auto;
+  min-width: var(--size-button-lg);
+  min-height: var(--size-min-touch-target);
+  padding: 0 var(--space-medium);
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-body);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-body);
+  cursor: pointer;
+}
+
+.drawguess-composer-send:active {
+  opacity: var(--opacity-pressed);
+}
+
+.drawguess-composer-send:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+.drawguess-too-fast {
+  margin: 0;
+  color: var(--color-warning);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.drawguess-locked-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--size-min-touch-target);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-success);
+  font-size: var(--font-body);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-body);
+}
+
+/* ── Round end ── */
+.drawguess-answer-banner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+  align-items: center;
+  padding: var(--space-small);
+  border: var(--border-width) solid var(--color-primary);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.drawguess-answer-label {
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.drawguess-answer-word {
+  color: var(--color-primary);
+  font-size: var(--font-heading);
+  font-weight: var(--weight-bold);
+  line-height: var(--line-heading);
+}
+
+.drawguess-artwork {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  box-sizing: border-box;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  object-fit: contain;
+}
+
+/* ── Scoreboard ── */
+.drawguess-scoreboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  padding: var(--space-medium);
+}
+
+.drawguess-scoreboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.drawguess-scoreboard-row {
+  display: flex;
+  gap: var(--space-small);
+  align-items: center;
+  min-height: var(--size-min-touch-target);
+}
+
+.drawguess-scoreboard-rank {
+  flex: 0 0 auto;
+  min-width: var(--size-icon-lg);
+  color: var(--color-text-secondary);
+  font-size: var(--font-body);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-body);
+  font-variant-numeric: tabular-nums;
+}
+
+.drawguess-scoreboard-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawguess-scoreboard-name[data-self] {
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.drawguess-scoreboard-score {
+  flex: 0 0 auto;
+  color: var(--color-text);
+  font-size: var(--font-body);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-body);
+  font-variant-numeric: tabular-nums;
+}

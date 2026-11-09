@@ -30,7 +30,7 @@ const CLIENT_GAME_LOADERS: ClientGameLoaders = {
   fibking: async () => (await import('@/games/fibking/module')).createFibClientModule,
   pictionary: async () => (await import('@/games/pictionary/module')).createPictionaryClientModule,
   undercover: async () => (await import('@/games/undercover/module')).createUndercoverClientModule,
-  drawguess: null,
+  drawguess: async () => (await import('@/games/drawguess/module')).createDrawGuessClientModule,
   storyrelay: async () => (await import('@/games/storyrelay/module')).createStoryRelayClientModule,
   avalon: null,
   demo: async () => (await import('@/games/demo/module')).createDemoClientModule,

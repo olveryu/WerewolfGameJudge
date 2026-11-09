@@ -75,7 +75,10 @@ const DIRECT_DISPATCH_ALLOW_LIST: Readonly<Record<string, readonly string[]>> = 
     'drawguess.stroke.undo',
     'drawguess.stroke.clear',
   ],
-  'games/drawguess/room/DrawGuessRoomScreen.tsx': ['drawguess.guess.submit'],
+  'games/drawguess/room/DrawGuessRoomScreen.tsx': [
+    'drawguess.guess.submit',
+    'drawguess.drawing.reserve',
+  ],
   'games/pictionary/room/hooks/usePictionaryAutoSubmission.ts': [
     'pictionary.text.submit',
     'pictionary.drawing.reserve',

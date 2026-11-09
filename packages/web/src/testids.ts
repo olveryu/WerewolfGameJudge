@@ -197,6 +197,11 @@ export const TESTIDS = {
   pictionaryGalleryEntry: 'pictionary-gallery-entry',
   pictionaryGalleryAdvanceButton: 'pictionary-gallery-advance-button',
 
+  // DrawGuess
+  drawGuessDrawingCanvas: 'drawguess-drawing-canvas',
+  drawGuessDrawerZeroedNote: 'drawguess-drawer-zeroed-note',
+  drawGuessWordChoice: (index: number) => `drawguess-word-choice-${index}`,
+
   // AlertModal
   alertModalOverlay: 'alert-modal-overlay',
   alertModal: 'alert-modal',

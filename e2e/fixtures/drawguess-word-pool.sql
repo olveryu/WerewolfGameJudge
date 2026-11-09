@@ -20,4 +20,5 @@ INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, st
   ('e2e-dg-16', '变色龙', 'b s l', '动物', 'hard', 'active', '2026-10-04T00:00:00.000Z', NULL),
   ('e2e-dg-17', '埃菲尔铁塔', 'a f e t t', '建筑', 'hard', 'active', '2026-10-04T00:00:00.000Z', NULL),
   ('e2e-dg-18', '潜水艇', 'q s t', '交通', 'hard', 'active', '2026-10-04T00:00:00.000Z', NULL),
-  ('e2e-dg-19', '显微镜', 'x w j', '工具', 'hard', 'active', '2026-10-04T00:00:00.000Z', NULL);
+  ('e2e-dg-19', '显微镜', 'x w j', '工具', 'hard', 'active', '2026-10-04T00:00:00.000Z', NULL)
+ON CONFLICT DO NOTHING;

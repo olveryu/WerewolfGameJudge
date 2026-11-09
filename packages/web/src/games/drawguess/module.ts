@@ -1,0 +1,47 @@
+/** DrawGuess client registration over shared session, navigation, and room infrastructure. */
+
+import {
+  DRAWGUESS_CONFIG_SCHEMA,
+  DRAWGUESS_STATE_CODEC,
+  type DrawGuessPublicCommand,
+  type DrawGuessState,
+  getDrawGuessUserSeat,
+} from '@game-judge/game-engine/games/drawguess/public';
+
+import { defineClientGameModule } from '@/games/model/defineClientGameModule';
+
+import {
+  drawGuessGameNavigation,
+  parseDrawGuessConfigRouteParams,
+} from './navigation/drawGuessGameNavigation';
+import { drawGuessReview } from './review/drawGuessReview';
+import { getDrawGuessRoomCommandFailureMessage } from './room/drawGuessRoomCommandFailureMessage';
+import { DrawGuessRoomScreen } from './room/DrawGuessRoomScreen';
+import { DrawGuessConfigEstimate } from './screens/DrawGuessConfigEstimate';
+import { DrawGuessRulesScreen } from './screens/DrawGuessRulesScreen';
+
+export const createDrawGuessClientModule = defineClientGameModule<
+  'drawguess',
+  DrawGuessState,
+  DrawGuessPublicCommand
+>({
+  gameType: 'drawguess',
+  displayName: '你画我猜',
+  stateCodec: DRAWGUESS_STATE_CODEC,
+  navigation: drawGuessGameNavigation,
+  RoomScreen: DrawGuessRoomScreen,
+  config: (define) =>
+    define({
+      schema: DRAWGUESS_CONFIG_SCHEMA,
+      parseRouteParams: parseDrawGuessConfigRouteParams,
+      readConfig: (state) => (state.phase.kind === 'lobby' ? state.config : null),
+      buildUpdateCommand: (config) => ({ type: 'drawguess.config.update', config }),
+      getFailureMessage: getDrawGuessRoomCommandFailureMessage,
+      creationLabel: '创建你画我猜房间',
+      Extra: DrawGuessConfigEstimate,
+    }),
+  GuideScreen: DrawGuessRulesScreen,
+  review: drawGuessReview,
+  isUserSeated: (state, userId) => getDrawGuessUserSeat(state, userId) !== null,
+  canSwitchAccount: (state) => state.phase.kind === 'lobby',
+});
