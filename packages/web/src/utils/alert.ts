@@ -59,3 +59,21 @@ export function showAlert(title: string, message?: string, buttons?: AlertButton
   generation += 1;
   publish({ generation, title, message, buttons: buttons ?? [{ text: '确定' }] });
 }
+
+/** Shows a prompt with a text input; `onConfirm` receives the trimmed value. */
+export function showPrompt(
+  title: string,
+  options: { placeholder?: string; defaultValue?: string; onConfirm: (value: string) => void },
+): void {
+  const { placeholder, defaultValue = '', onConfirm } = options;
+  generation += 1;
+  publish({
+    generation,
+    title,
+    buttons: [
+      { text: '取消', style: 'cancel' },
+      { text: '确定', onPress: (inputValue) => onConfirm(inputValue ?? defaultValue) },
+    ],
+    input: { placeholder, defaultValue },
+  });
+}

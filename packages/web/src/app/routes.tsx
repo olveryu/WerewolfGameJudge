@@ -28,6 +28,13 @@ export const routes: RouteObject[] = [
         },
       },
       {
+        path: 'settings',
+        lazy: async () => {
+          const { SettingsPage } = await import('@/routes/settings/SettingsPage');
+          return { Component: SettingsPage };
+        },
+      },
+      {
         path: '__bench/scene',
         lazy: async () => {
           const { SceneBenchPage } = await import('@/routes/bench/SceneBenchPage');
