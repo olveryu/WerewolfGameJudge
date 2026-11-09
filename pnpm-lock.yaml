@@ -154,6 +154,9 @@ importers:
       '@zumer/snapdom':
         specifier: 3.7.2
         version: 3.7.2
+      pinyin-pro:
+        specifier: ^3.28.2
+        version: 3.28.2
       pixi.js:
         specifier: ^8.22.0
         version: 8.22.0

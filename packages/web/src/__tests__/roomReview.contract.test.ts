@@ -30,9 +30,11 @@ import type {
   RoomReviewDocument,
 } from '@/features/room/review/types';
 import { demoReview } from '@/games/demo/review/demoReview';
+import { fibReview } from '@/games/fibking/review/fibReview';
 import { undercoverReview } from '@/games/undercover/review/undercoverReview';
 import { werewolfReview } from '@/games/werewolf/review/werewolfReview';
 import { DEMO_REVIEW_ROUNDS } from '@/test-utils/demoState';
+import { FIBKING_REVIEW_ROUNDS } from '@/test-utils/fibkingState';
 import type { ReviewTestRounds } from '@/test-utils/reviewTestRounds';
 import { viewerFor } from '@/test-utils/roomViewer';
 import { UNDERCOVER_REVIEW_ROUNDS } from '@/test-utils/undercoverState';
@@ -74,6 +76,7 @@ function reviewCase<TState>(
 const REVIEW_CONTRACT = {
   werewolf: reviewCase(werewolfReview, WEREWOLF_REVIEW_ROUNDS),
   undercover: reviewCase(undercoverReview, UNDERCOVER_REVIEW_ROUNDS),
+  fibking: reviewCase(fibReview, FIBKING_REVIEW_ROUNDS),
   demo: reviewCase(demoReview, DEMO_REVIEW_ROUNDS),
 } as const satisfies Partial<Record<GameType, ReviewContractCase>>;
 

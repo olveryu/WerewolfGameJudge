@@ -14,6 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { DemoState } from '@game-judge/game-engine/games/demo/public';
+import type { FibState } from '@game-judge/game-engine/games/fibking/public';
 import type { UndercoverState } from '@game-judge/game-engine/games/undercover/public';
 import {
   REASON_COMMAND_ID_CONFLICT,
@@ -35,6 +36,7 @@ import {
 } from '@game-judge/game-engine/platform/protocol/reasons';
 
 import { getDemoRoomCommandFailureMessage } from '@/games/demo/room/demoRoomCommandFailureMessage';
+import { getFibRoomCommandFailureMessage } from '@/games/fibking/room/fibRoomCommandFailureMessage';
 import { getUndercoverRoomCommandFailureMessage } from '@/games/undercover/room/undercoverRoomCommandFailureMessage';
 import { rejectedRoomCommand } from '@/test-utils/roomCommand';
 import { translateReasonCode } from '@/utils/errorUtils';
@@ -103,12 +105,18 @@ const PRESENTERS: ReadonlyArray<{ game: string; present: (reason: string) => str
         rejectedRoomCommand<UndercoverState>(reason, 'chassis-pin'),
       ),
   },
+  {
+    game: 'fibking',
+    present: (reason) =>
+      getFibRoomCommandFailureMessage(rejectedRoomCommand<FibState>(reason, 'chassis-pin')),
+  },
 ];
 
 /** Game presenter sources scanned for chassis entries. */
 const PRESENTER_SOURCES = [
   'packages/web/src/games/demo/room/demoRoomCommandFailureMessage.ts',
   'packages/web/src/games/undercover/room/undercoverRoomCommandFailureMessage.ts',
+  'packages/web/src/games/fibking/room/fibRoomCommandFailureMessage.ts',
 ];
 
 describe('room command failure chassis copy (B-2)', () => {

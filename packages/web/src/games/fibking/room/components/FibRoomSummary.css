@@ -1,0 +1,20 @@
+.fib-preparation-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-tight);
+  margin: var(--space-small) 0 0;
+  color: var(--color-primary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+}
+
+.fib-preparation-status-failed {
+  color: var(--color-error);
+}
+
+.fib-preparation-status-icon {
+  flex-shrink: 0;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
