@@ -7,7 +7,7 @@ Scope: `packages/web/**` only. Engine rules live in `packages/game-engine/AGENTS
 - React DOM plus plain CSS, built by Vite, routed by React Router (data mode), with TanStack Query, Ark UI, sonner, Zod, and a PixiJS scene layer; versions in `package.json`. It runs in browsers and inside the WeChat mini-program web-view (`packages/web/src/utils/miniProgram.ts`).
 - `@/` resolves to `packages/web/src/` (`vite.config.ts` alias, `tsconfig.json` paths). `tsconfig.json` sets `strict` and `noUncheckedIndexedAccess`.
 - Scripts: `dev`, `build` (`vite build`, then the per-route gzip budgets in `packages/web/scripts/check-bundle-size.mjs`), `preview`, `bench:scene`, `typecheck`, `test` (Vitest, jsdom, `src/**/*.test.{ts,tsx}`, setup `packages/web/src/test/setup.ts`).
-- The client is mid-rewrite (`docs/web-client-rewrite.md` §8.2). A game is ported when `CLIENT_GAME_LOADERS` in `packages/web/src/games/clientModules.tsx` has a loader for it (only `demo` now); a game without one throws `UnportedGameClientError` and its routes report it as unsupported. Werewolf lands in P3, its slice filling in ahead of its module (audio, config flow, guide); the other games land in P4 and their slices hold only `home.ts` until then.
+- The client is mid-rewrite (`docs/web-client-rewrite.md` §8.2). A game is ported when `CLIENT_GAME_LOADERS` in `packages/web/src/games/clientModules.tsx` has a loader for it (`demo` and `werewolf` now); a game without one throws `UnportedGameClientError` and its routes report it as unsupported. Werewolf is ported in P3 (module registered; the remaining P3 steps fill in its slice); the other games land in P4 and their slices hold only `home.ts` until then.
 - `packages/web/src/platform/` has five subdirectories: `auth/`, `env/`, `http/`, `inbox/`, `realtime/`.
 
 ## Room shell
@@ -18,6 +18,7 @@ Scope: `packages/web/**` only. Engine rules live in `packages/game-engine/AGENTS
 - Room code starts from `useReadyRoomSession` (`packages/web/src/features/room/controllers/useReadyRoomSession.ts`: authenticated user, ready snapshot, single-flight `submit`); a room screen mounts only behind `RoomEntryBoundary`. There is no shared `RoomSession` module.
 - Room links live for the room flow: `RoomLinkScope` in `packages/web/src/app/AppRoot.tsx` releases every link outside the current `roomCode` route param and user, so the room page and its subpages share one link.
 - In-game seat taps go through `createRoomSeatPressHandler`, which calls the shared `resolveRoomInGameSeatTap`, pinned by `Room seat taps` in `contracts/architecture.contract.test.ts`.
+- Werewolf board UI tests mount the production room screen through the harness in `packages/web/src/games/werewolf/room/__tests__/harness/` (alerts recorded from the alert store by `recordAlerts`); `packages/web/src/games/werewolf/room/__tests__/contracts/boardUICoverage.contract.test.ts` requires one board UI test per preset (`BOARD_TEST_FILE_MAP`). Adding a preset follows the new-board skill.
 
 ## Layer boundaries
 
