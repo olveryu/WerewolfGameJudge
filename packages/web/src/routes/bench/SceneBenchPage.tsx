@@ -1,9 +1,11 @@
 import './SceneBenchPage.css';
 
 import { FRAME_IDS, type FrameId } from '@game-judge/game-engine/product/rewards';
-import { type RefObject, Suspense, use, useRef } from 'react';
+import { lazy, type RefObject, Suspense, use, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 
+import type { RoomSeatViewModel } from '@/features/room/model/RoomSeatDataSource';
+import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import type { DecorationSpec } from '@/scene/decoration';
 import { FLAIR_SPECS } from '@/scene/flairs/registry';
 import { loadFrameSpec } from '@/scene/frames/registry';
@@ -14,6 +16,14 @@ import { usePrefersReducedMotion } from '@/scene/usePrefersReducedMotion';
 
 const SEAT_COUNT = 12;
 const DEFAULT_FLAIRS = 'fireRing,goldenShine,snowfall';
+const NOTHING_SUSPENDED: ReadonlySet<DecorationSpec> = new Set();
+
+// Lazy, so the bench route does not share the room's chunks with the scene layer.
+const RoomSeatBoard = lazy(() =>
+  import('@/features/room/components/RoomSeatBoard').then((module) => ({
+    default: module.RoomSeatBoard,
+  })),
+);
 
 function flairSpec(id: string): DecorationSpec {
   const spec = [...FLAIR_SPECS.values()].find((candidate) => candidate.id === id);
@@ -93,7 +103,14 @@ function BenchSeatDecoration({
   if (!decorations) {
     throw new Error(`Bench seat ${seat} has no decorations`);
   }
-  return <SeatDecoration decorations={decorations} tileRef={tileRef} hostRef={hostRef} />;
+  return (
+    <SeatDecoration
+      decorations={decorations}
+      suspended={NOTHING_SUSPENDED}
+      tileRef={tileRef}
+      hostRef={hostRef}
+    />
+  );
 }
 
 function BenchSeat({ seat, seatDecorations, hostRef, animate }: BenchSeatProps) {
@@ -119,12 +136,59 @@ function BenchSeat({ seat, seatDecorations, hostRef, animate }: BenchSeatProps) 
 }
 
 /**
+ * One real room seat (`?board`) wearing the cosmetics named by `frame`, `flair`, `pet` (a reveal
+ * effect id) and `entrance`, for side-by-side checks against the previous client's seat tile.
+ */
+function BenchSeatBoard({ searchParams }: { searchParams: URLSearchParams }) {
+  const seat: RoomSeatViewModel = {
+    seat: 0,
+    player: {
+      occupant: { kind: 'human', userId: 'baseline-seat' },
+      displayName: '月下狼人',
+      avatarFrame: searchParams.get('frame') ?? undefined,
+      seatFlair: searchParams.get('flair') ?? undefined,
+      seatPetId: searchParams.get('pet') ?? undefined,
+      seatAnimation: searchParams.get('entrance') ?? undefined,
+      isAnonymous: false,
+    },
+    isSelf: false,
+    highlight: 'none',
+    secondaryLabel: null,
+    showReadyBadge: false,
+    statusBadge: null,
+    indicators: null,
+    isStatusEmphasized: false,
+    showLevel: false,
+    decorationsEnabled: true,
+  };
+  const model: RoomSeatBoardModel = {
+    source: { count: 1, revision: 1, getSeat: () => seat },
+    visuallyDisabled: false,
+    onSeatPress: () => {},
+    onBotSeatLongPress: null,
+  };
+  return (
+    <main className="bench-page">
+      <Suspense fallback={null}>
+        <RoomSeatBoard model={model} header={null} footer={null} />
+      </Suspense>
+    </main>
+  );
+}
+
+/**
  * Scene-layer benchmark: a 12-seat board with DOM seats and PixiJS decorations, used by
  * `scripts/scene-bench.mjs` and for side-by-side checks on devices. `?fps=30` caps the stage;
- * `?frames=id1,id2` and `?flairs=id3,id4` pick the decorations.
+ * `?frames=id1,id2` and `?flairs=id3,id4` pick the decorations; `?board` shows one real room
+ * seat instead (see `BenchSeatBoard`).
  */
 export function SceneBenchPage() {
   const [searchParams] = useSearchParams();
+  if (searchParams.has('board')) return <BenchSeatBoard searchParams={searchParams} />;
+  return <SceneBenchBoard searchParams={searchParams} />;
+}
+
+function SceneBenchBoard({ searchParams }: { searchParams: URLSearchParams }) {
   const frameRate = parseFrameRate(searchParams.get('fps'));
   const seatDecorations = seatDecorationsFor(
     searchParams.get('flairs'),

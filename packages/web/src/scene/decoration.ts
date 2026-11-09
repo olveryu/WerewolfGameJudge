@@ -241,11 +241,18 @@ export type DecorationNode =
  * - `tile` (default): from the tile's padding edge, spanning the tile's outer size (flairs).
  * - `avatarFrame`: the avatar frame box. A framed seat's avatar fills the tile's border box, and
  *   frame artwork overflows it by `AVATAR_FRAME_OVERFLOW` of its side on every edge.
+ * - `pet`: the seat companion's box at the tile's top-right corner, sized from the grid cell
+ *   (`PET_CELL_FRACTION`) and pushed out of the padding box by `PET_CELL_OFFSET` of the cell.
  */
-export type DecorationAnchor = 'tile' | 'avatarFrame';
+export type DecorationAnchor = 'tile' | 'avatarFrame' | 'pet';
 
 /** Frame overflow per edge as a fraction of the avatar side (viewBox `-8 -8 116 116`). */
 export const AVATAR_FRAME_OVERFLOW = 0.08;
+
+/** Pet side as a fraction of the grid cell (the previous tile's `tileSize`), rounded to px. */
+export const PET_CELL_FRACTION = 0.32;
+/** Pet overhang past the padding box's top and right edges, as a fraction of the cell. */
+export const PET_CELL_OFFSET = 0.1;
 
 /** A seat decoration: an id for diagnostics plus its nodes, drawn back to front. */
 export interface DecorationSpec {

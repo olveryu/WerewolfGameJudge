@@ -11,6 +11,7 @@ export const MYTHIC_COLORS = {
 } as const;
 
 export const MYTHIC_LOOP_DURATION = 7000;
+export const MYTHIC_ENTRY_DURATION = 2800;
 
 /** Collection-owned artwork tokens, shared by cosmetic renderers only. */
 export const MYTHIC_COLLECTION_COLORS = {

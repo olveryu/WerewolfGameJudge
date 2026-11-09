@@ -128,7 +128,7 @@
 
 .seat-tile-button[data-framed='true'] .seat-avatar {
   position: absolute;
-  inset: calc(-1 * var(--border-width-thick));
+  inset: 0;
   width: auto;
   height: auto;
   padding: 0;
@@ -164,7 +164,44 @@
   line-height: var(--line-subtitle);
 }
 
+/* The tile's border box; its padding keeps the avatar inside the border. */
+.seat-avatar-stage {
+  position: absolute;
+  inset: calc(-1 * var(--border-width-thick));
+  display: flex;
+  padding: var(--border-width-thick);
+  pointer-events: none;
+}
+
+/* Ghost copies of the avatar, stacked on its box behind it. */
+.seat-avatar-ghosts {
+  position: absolute;
+  inset: 0;
+}
+
+.seat-avatar-ghosts > .seat-avatar {
+  position: absolute;
+  inset: var(--border-width-thick);
+  width: auto;
+  height: auto;
+}
+
+/*
+ * A seat with an entrance animation: the stage clips the moving avatar (and its ghost copies) to
+ * the border box, the avatar waits hidden for the entrance's first frame, and the entrance
+ * replaces the default join animation, as in the previous client.
+ */
+.seat-avatar-stage[data-entrance='true'] {
+  overflow: hidden;
+}
+
+.seat-avatar-stage[data-entrance='true'] .seat-avatar {
+  opacity: 0;
+  animation: none;
+}
+
 .seat-avatar {
+  position: relative;
   display: flex;
   width: 100%;
   height: 100%;

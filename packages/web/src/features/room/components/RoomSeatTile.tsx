@@ -1,9 +1,10 @@
 /**
  * RoomSeatTile — one game-neutral seat: avatar, highlight ring, badges, name and indicators.
  * Reports presses through callbacks; no service calls or game rules. Looping seat decorations
- * (avatar frames and flairs; later pets) are drawn by the scene layer over the tile, not in the
- * DOM. A framed seat drops its border and background, and its avatar fills the border box under
- * the frame, as in the previous client.
+ * (avatar frames, flairs, pets) and the seat's entrance animation are drawn by the scene layer
+ * over the tile, not in the DOM; an entrance moves the DOM avatar inside its stage, which then
+ * clips it to the tile's border box. A framed seat drops its border and background, and its
+ * avatar fills the border box under the frame, as in the previous client.
  */
 import { lazy, memo, type RefObject, Suspense, useRef } from 'react';
 
@@ -100,6 +101,9 @@ function RoomSeatTileComponent({
   const longPress = useLongPress(isBot && onLongPress !== null ? () => onLongPress(seat) : null);
   const isMySeat = model.isSelf && player !== null;
   const tileRef = useRef<HTMLButtonElement>(null);
+  const avatarRef = useRef<HTMLSpanElement>(null);
+  const ghostHostRef = useRef<HTMLSpanElement>(null);
+  const hasEntrance = residents !== null && residents.entranceId !== null;
 
   return (
     <div className="seat-tile" data-testid={TESTIDS.seatTile(seat)}>
@@ -133,12 +137,15 @@ function RoomSeatTileComponent({
             +
           </span>
         ) : (
-          <span className="seat-avatar" aria-hidden>
-            <Avatar
-              userId={getRoomOccupantAvatarSeed(player.occupant)}
-              avatarUrl={player.avatarUrl ?? null}
-              size="fill"
-            />
+          <span className="seat-avatar-stage" data-entrance={hasEntrance} aria-hidden>
+            {hasEntrance && <span ref={ghostHostRef} className="seat-avatar-ghosts" />}
+            <span ref={avatarRef} className="seat-avatar">
+              <Avatar
+                userId={getRoomOccupantAvatarSeed(player.occupant)}
+                avatarUrl={player.avatarUrl ?? null}
+                size="fill"
+              />
+            </span>
           </span>
         )}
         {model.isStatusEmphasized && player !== null && (
@@ -195,7 +202,13 @@ function RoomSeatTileComponent({
       )}
       {residents !== null && (
         <Suspense fallback={null}>
-          <RoomSeatResidents residents={residents} tileRef={tileRef} hostRef={sceneHostRef} />
+          <RoomSeatResidents
+            residents={residents}
+            tileRef={tileRef}
+            hostRef={sceneHostRef}
+            avatarRef={avatarRef}
+            ghostHostRef={ghostHostRef}
+          />
         </Suspense>
       )}
     </div>

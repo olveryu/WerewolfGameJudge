@@ -14,7 +14,16 @@
  *   destroyed with their last user, so leaving the room frees them. A decoration stays hidden
  *   until all of its textures are ready; a failed rasterisation goes to the mount's `onError`.
  */
-import { Application, Container, Graphics, GraphicsContext, Sprite, Texture } from 'pixi.js';
+import {
+  Application,
+  Color,
+  Container,
+  Graphics,
+  GraphicsContext,
+  ImageSource,
+  Sprite,
+  Texture,
+} from 'pixi.js';
 
 import type {
   DashFlowNode,
@@ -35,6 +44,7 @@ import type {
   SvgArt,
   SvgNode,
 } from '@/scene/decoration';
+import type { EntranceSpec } from '@/scene/entrance';
 import {
   assertMorphShape,
   clampOpacity,
@@ -52,6 +62,12 @@ import {
   thickWeight,
   windowWeight,
 } from '@/scene/loopGeometry';
+import {
+  type EntranceCallbacks,
+  type EntranceHandle,
+  type EntranceHost,
+  MountedEntrance,
+} from '@/scene/stageEntrance';
 import { rasterizeSvg } from '@/scene/svgTexture';
 
 /** Frame caps offered by the settings page (decision D3). */
@@ -67,8 +83,14 @@ export interface SeatRect {
 /** Handle for one mounted decoration. */
 export interface DecorationHandle {
   setRect(rect: SeatRect): void;
+  /** Hides the decoration; it restarts from its first frame when shown again (a remount). */
+  setSuspended(suspended: boolean): void;
   destroy(): void;
 }
+
+/** Entrances draw under every resident decoration, as the old tile drew frames over them. */
+const ENTRANCE_Z_INDEX = 0;
+const RESIDENT_Z_INDEX = 1;
 
 /** Radius of the shared white dot texture; dots are tinted and scaled from it. */
 const DOT_TEXTURE_RADIUS = 32;
@@ -204,12 +226,16 @@ function colorKey(color: SceneColor): string {
 
 class DotSceneNode implements SceneNode {
   readonly view: Sprite;
+  /** A tint drops the colour's own alpha (`rgba(…)`), so it multiplies the opacity instead. */
+  private readonly colorAlpha: number;
 
   constructor(
     private readonly node: DotNode,
     texture: Texture,
   ) {
-    this.view = new Sprite({ texture, anchor: 0.5, tint: node.color });
+    const color = new Color(node.color);
+    this.colorAlpha = color.alpha;
+    this.view = new Sprite({ texture, anchor: 0.5, tint: color.toNumber() });
   }
 
   update(timeMs: number, size: number): void {
@@ -217,7 +243,7 @@ class DotSceneNode implements SceneNode {
     const frame = node.sample(loopProgress(timeMs, node.durationMs, node.phase ?? 0), size);
     view.position.set(frame.cx, frame.cy);
     view.scale.set(frame.r / DOT_TEXTURE_RADIUS);
-    view.alpha = clampOpacity(frame.opacity);
+    view.alpha = clampOpacity(frame.opacity) * this.colorAlpha;
   }
 
   ready(): boolean {
@@ -646,10 +672,11 @@ class GroupSceneNode extends ContainerSceneNode {
 }
 
 class MountedDecoration implements DecorationHandle {
-  readonly container = new Container();
+  readonly container = new Container({ zIndex: RESIDENT_Z_INDEX });
   private size = 0;
   /** Ticker time of the first frame; loops start there, as CSS animations started on mount. */
   private startMs: number | null = null;
+  private suspended = false;
 
   constructor(
     private readonly stage: SceneStage,
@@ -658,6 +685,13 @@ class MountedDecoration implements DecorationHandle {
   ) {
     for (const node of nodes) this.container.addChild(node.view);
     // Hidden until sampled: a resize renders the stage outside the ticker.
+    this.container.visible = false;
+  }
+
+  setSuspended(suspended: boolean): void {
+    if (suspended === this.suspended) return;
+    this.suspended = suspended;
+    this.startMs = null;
     this.container.visible = false;
   }
 
@@ -672,7 +706,7 @@ class MountedDecoration implements DecorationHandle {
   }
 
   update(timeMs: number): void {
-    if (this.size === 0) return;
+    if (this.size === 0 || this.suspended) return;
     this.startMs ??= timeMs;
     const elapsedMs = timeMs - this.startMs;
     for (const node of this.nodes) node.update(elapsedMs, this.size);
@@ -686,8 +720,40 @@ class MountedDecoration implements DecorationHandle {
   }
 }
 
-class SceneStage {
+/**
+ * Loads a same-origin image as a white mask texture (its alpha kept, colour dropped), so a tint
+ * paints it flat, as CSS `mask-image` over a background colour does.
+ */
+async function loadMaskTexture(url: string): Promise<Texture> {
+  const image = new Image();
+  image.src = url;
+  await image.decode();
+  const canvas = document.createElement('canvas');
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  const context = canvas.getContext('2d');
+  if (!context) {
+    throw new Error('Canvas 2D is unavailable for mask textures');
+  }
+  context.drawImage(image, 0, 0);
+  context.globalCompositeOperation = 'source-in';
+  context.fillStyle = '#fff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  return new Texture({
+    source: new ImageSource({
+      resource: canvas,
+      alphaMode: 'premultiply-alpha-on-upload',
+      // Mipmapped: the mark is drawn far below its source size.
+      autoGenerateMipmaps: true,
+    }),
+  });
+}
+
+class SceneStage implements EntranceHost {
   private readonly decorations = new Set<MountedDecoration>();
+  private readonly entrances = new Set<MountedEntrance>();
+  private readonly animatingEntrances = new Set<MountedEntrance>();
+  private readonly maskTextures = new Map<string, Promise<Texture>>();
   private readonly contexts = new ContextCache();
   private readonly textures = new TextureCache();
   private host: HTMLElement | null = null;
@@ -697,11 +763,17 @@ class SceneStage {
     private readonly application: Application,
     private readonly dotTexture: Texture,
   ) {
+    application.stage.sortableChildren = true;
     application.ticker.add(() => {
       const timeMs = application.ticker.lastTime;
+      for (const entrance of this.animatingEntrances) entrance.update(timeMs);
       for (const decoration of this.decorations) decoration.update(timeMs);
     });
     document.addEventListener('visibilitychange', () => this.syncTicker());
+  }
+
+  get resolution(): number {
+    return this.application.renderer.resolution;
   }
 
   /** Places the canvas over `host` and sizes it to the host. One host at a time. */
@@ -752,14 +824,50 @@ class SceneStage {
     return decoration;
   }
 
-  unmount(decoration: MountedDecoration): void {
+  unmount(decoration: MountedDecoration | MountedEntrance): void {
     this.application.stage.removeChild(decoration.container);
-    this.decorations.delete(decoration);
+    if (decoration instanceof MountedEntrance) {
+      this.entrances.delete(decoration);
+      this.animatingEntrances.delete(decoration);
+    } else {
+      this.decorations.delete(decoration);
+    }
     this.syncTicker();
   }
 
+  /**
+   * Mounts a seat entrance, idle until `play()`. `callbacks.onError` receives failures found
+   * after mounting; the caller surfaces them.
+   */
+  mountEntrance(spec: EntranceSpec, callbacks: EntranceCallbacks): EntranceHandle {
+    const entrance = new MountedEntrance(spec, callbacks, this);
+    entrance.container.zIndex = ENTRANCE_Z_INDEX;
+    this.application.stage.addChild(entrance.container);
+    this.entrances.add(entrance);
+    return entrance;
+  }
+
+  setAnimating(entrance: MountedEntrance, animating: boolean): void {
+    if (!this.entrances.has(entrance)) {
+      throw new Error('Scene entrance is not mounted on this stage');
+    }
+    if (animating) this.animatingEntrances.add(entrance);
+    else this.animatingEntrances.delete(entrance);
+    this.syncTicker();
+  }
+
+  loadMaskTexture(url: string): Promise<Texture> {
+    let texture = this.maskTextures.get(url);
+    if (!texture) {
+      texture = loadMaskTexture(url);
+      this.maskTextures.set(url, texture);
+    }
+    return texture;
+  }
+
   private syncTicker(): void {
-    const shouldRun = this.host !== null && this.decorations.size > 0 && !document.hidden;
+    const hasWork = this.decorations.size > 0 || this.animatingEntrances.size > 0;
+    const shouldRun = this.host !== null && hasWork && !document.hidden;
     const ticker = this.application.ticker;
     if (shouldRun && !ticker.started) ticker.start();
     if (!shouldRun && ticker.started) ticker.stop();

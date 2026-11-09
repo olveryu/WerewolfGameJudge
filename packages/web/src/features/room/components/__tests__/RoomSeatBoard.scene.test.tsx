@@ -85,6 +85,22 @@ describe('RoomSeatBoard scene layer', () => {
     );
   });
 
+  it('mounts the scene for a pet or an entrance and stages only entrance avatars', async () => {
+    renderBoard([
+      seat(0, { seatPetId: 'tarot' }),
+      seat(1, { seatAnimation: 'fadeRedEnter' }),
+      seat(2, { seatPetId: 'random', seatAnimation: 'unknownEnter' }),
+    ]);
+    expect(await screen.findByTestId('scene-canvas')).toBeInTheDocument();
+    expect(screen.getAllByTestId('seat-residents')).toHaveLength(2);
+    const stages = document.querySelectorAll('.seat-avatar-stage');
+    expect([...stages].map((stage) => stage.getAttribute('data-entrance'))).toEqual([
+      'false',
+      'true',
+      'false',
+    ]);
+  });
+
   it('shows no resident decorations when the game or the user turns them off', () => {
     const { unmount } = renderBoard([seat(0, { seatFlair: 'fireRing' }, false)]);
     expect(screen.queryByTestId('scene-canvas')).toBeNull();

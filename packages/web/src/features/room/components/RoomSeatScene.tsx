@@ -1,34 +1,56 @@
 /**
  * Scene layer of the room seat board, loaded lazily (with PixiJS and the flair specs) only while
- * at least one seat shows a resident decoration. Avatar frames load as their own chunks.
+ * at least one seat shows a resident decoration or an entrance. Avatar frames, pets and
+ * entrances load as their own chunks.
  */
-import { type RefObject, use } from 'react';
+import { type RefObject, use, useState } from 'react';
 
 import type { DecorationSpec } from '@/scene/decoration';
+import type { EntranceSpec } from '@/scene/entrance';
+import { loadEntranceSpec } from '@/scene/entrances/registry';
 import { FLAIR_SPECS } from '@/scene/flairs/registry';
 import { loadFrameSpec } from '@/scene/frames/registry';
+import { loadPetSpec } from '@/scene/pets/registry';
 import type { ResidentDecorations } from '@/scene/residentDecorations';
 import { SceneCanvas } from '@/scene/SceneCanvas';
 import { SeatDecoration } from '@/scene/SeatDecoration';
+import { SeatEntrance } from '@/scene/SeatEntrance';
 import type { SceneFrameRate } from '@/scene/stage';
 
-const specsByResidents = new WeakMap<ResidentDecorations, Promise<readonly DecorationSpec[]>>();
+interface ResidentSpecs {
+  readonly entrance: EntranceSpec | null;
+  /** Back to front: frame, flair, pet (the previous seat tile's order). */
+  readonly decorations: readonly DecorationSpec[];
+  /** Flair and pet, which the previous tile hid while its entrance played. */
+  readonly hiddenDuringEntrance: ReadonlySet<DecorationSpec>;
+}
 
-/**
- * Specs back to front (frame under flair, as in the previous seat tile); one promise per
- * residents object, so the seat's effect stays mounted.
- */
-function residentSpecs(residents: ResidentDecorations): Promise<readonly DecorationSpec[]> {
+const NOTHING_HIDDEN: ReadonlySet<DecorationSpec> = new Set();
+
+const specsByResidents = new WeakMap<ResidentDecorations, Promise<ResidentSpecs>>();
+
+function loadOptional<Id, Spec>(id: Id | null, load: (id: Id) => Promise<Spec>) {
+  return id === null ? Promise.resolve(null) : load(id);
+}
+
+/** One promise per residents object, so the seat's effects stay mounted. */
+function residentSpecs(residents: ResidentDecorations): Promise<ResidentSpecs> {
   let specs = specsByResidents.get(residents);
   if (!specs) {
-    const { frameId, flairId } = residents;
+    const { frameId, flairId, petId, entranceId } = residents;
     const flair = flairId === null ? null : FLAIR_SPECS.get(flairId);
     if (flair === undefined) {
       throw new Error(`Missing seat flair spec for "${flairId}"`);
     }
-    specs = (frameId === null ? Promise.resolve(null) : loadFrameSpec(frameId)).then((frame) =>
-      [frame, flair].filter((spec) => spec !== null),
-    );
+    specs = Promise.all([
+      loadOptional(frameId, loadFrameSpec),
+      loadOptional(petId, loadPetSpec),
+      loadOptional(entranceId, loadEntranceSpec),
+    ]).then(([frame, pet, entrance]) => ({
+      entrance,
+      decorations: [frame, flair, pet].filter((spec) => spec !== null),
+      hiddenDuringEntrance: new Set([flair, pet].filter((spec) => spec !== null)),
+    }));
     specsByResidents.set(residents, specs);
   }
   return specs;
@@ -45,21 +67,46 @@ export function RoomSeatSceneCanvas({
   return <SceneCanvas hostRef={hostRef} frameRate={frameRate} />;
 }
 
-/** One seat's resident decorations, aligned with its tile. */
+/**
+ * One seat's entrance and resident decorations, aligned with its tile. The entrance plays when
+ * the seat mounts and replays after each pause; flair and pet hide while it plays.
+ */
 export function RoomSeatResidents({
   residents,
   tileRef,
   hostRef,
+  avatarRef,
+  ghostHostRef,
 }: {
   readonly residents: ResidentDecorations;
   readonly tileRef: RefObject<HTMLElement | null>;
   readonly hostRef: RefObject<HTMLElement | null>;
+  readonly avatarRef: RefObject<HTMLElement | null>;
+  readonly ghostHostRef: RefObject<HTMLElement | null>;
 }) {
+  const specs = use(residentSpecs(residents));
+  const [isEntranceActive, setEntranceActive] = useState(true);
+  const suspended =
+    specs.entrance !== null && isEntranceActive ? specs.hiddenDuringEntrance : NOTHING_HIDDEN;
   return (
-    <SeatDecoration
-      decorations={use(residentSpecs(residents))}
-      tileRef={tileRef}
-      hostRef={hostRef}
-    />
+    <>
+      {specs.entrance !== null && (
+        <SeatEntrance
+          key={specs.entrance.id}
+          spec={specs.entrance}
+          tileRef={tileRef}
+          hostRef={hostRef}
+          avatarRef={avatarRef}
+          ghostHostRef={ghostHostRef}
+          onActiveChange={setEntranceActive}
+        />
+      )}
+      <SeatDecoration
+        decorations={specs.decorations}
+        suspended={suspended}
+        tileRef={tileRef}
+        hostRef={hostRef}
+      />
+    </>
   );
 }
