@@ -1,11 +1,12 @@
 /**
  * RoomSeatTile — one game-neutral seat: avatar, highlight ring, badges, name and indicators.
- * Reports presses through callbacks; no service calls or game rules. Seat decorations
- * (frames, flairs, pets, entrance effects) are drawn by the scene layer, not here.
+ * Reports presses through callbacks; no service calls or game rules. Looping seat decorations
+ * (flairs; later frames and pets) are drawn by the scene layer over the tile, not in the DOM.
  */
-import { memo } from 'react';
+import { lazy, memo, type RefObject, Suspense, useRef } from 'react';
 
 import { Avatar } from '@/components/avatar/Avatar';
+import { NameStyleText } from '@/components/nameStyles/NameStyleText';
 import { useLongPress } from '@/features/room/hooks/useLongPress';
 import { getRoomOccupantAvatarSeed } from '@/features/room/model/RoomOccupant';
 import {
@@ -13,9 +14,14 @@ import {
   type RoomSeatIndicators,
   type RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
+import type { ResidentDecorations } from '@/scene/residentDecorations';
 import { TESTIDS } from '@/testids';
 import IconChatbubbleEllipsesOutline from '~icons/ion/chatbubble-ellipses-outline';
 import IconCheckmarkCircle from '~icons/ion/checkmark-circle';
+
+const RoomSeatResidents = lazy(() =>
+  import('./RoomSeatScene').then((module) => ({ default: module.RoomSeatResidents })),
+);
 
 function describeSeat(model: RoomSeatViewModel): string {
   const { seat, player, indicators } = model;
@@ -73,6 +79,10 @@ interface RoomSeatTileProps {
   readonly onPress: (seat: number, disabledReason?: string) => void;
   /** Long press on a bot seat (host takeover); null when not offered. */
   readonly onLongPress: ((seat: number) => void) | null;
+  /** Resident decorations drawn on the board's scene layer; null when the seat shows none. */
+  readonly residents: ResidentDecorations | null;
+  /** The board's scene host; set whenever `residents` is. */
+  readonly sceneHostRef: RefObject<HTMLElement | null>;
 }
 
 function RoomSeatTileComponent({
@@ -80,15 +90,19 @@ function RoomSeatTileComponent({
   isBoardDisabled,
   onPress,
   onLongPress,
+  residents,
+  sceneHostRef,
 }: RoomSeatTileProps) {
   const { seat, player, indicators, statusBadge } = model;
   const isBot = player?.occupant.kind === 'bot';
   const longPress = useLongPress(isBot && onLongPress !== null ? () => onLongPress(seat) : null);
   const isMySeat = model.isSelf && player !== null;
+  const tileRef = useRef<HTMLButtonElement>(null);
 
   return (
     <div className="seat-tile" data-testid={TESTIDS.seatTile(seat)}>
       <button
+        ref={tileRef}
         type="button"
         className="seat-tile-button"
         data-testid={TESTIDS.seatTilePressable(seat)}
@@ -166,13 +180,20 @@ function RoomSeatTileComponent({
             data-testid={TESTIDS.seatNameRow(seat)}
           >
             {isBot && <IconChatbubbleEllipsesOutline className="seat-bot-icon" aria-hidden />}
-            <span className="seat-name">{player.displayName}</span>
+            <NameStyleText styleId={player.nameStyle} className="seat-name">
+              {player.displayName}
+            </NameStyleText>
           </div>
           {indicators !== null && <SeatProgress seat={seat} indicators={indicators} />}
           {model.secondaryLabel !== null && (
             <div className="seat-secondary-label">{model.secondaryLabel}</div>
           )}
         </>
+      )}
+      {residents !== null && (
+        <Suspense fallback={null}>
+          <RoomSeatResidents residents={residents} tileRef={tileRef} hostRef={sceneHostRef} />
+        </Suspense>
       )}
     </div>
   );

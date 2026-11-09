@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 
 import { Avatar } from '@/components/avatar/Avatar';
 import { Button } from '@/components/Button';
+import { NameStyleText } from '@/components/nameStyles/NameStyleText';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Switch } from '@/components/Switch';
 import { APP_VERSION } from '@/config/version';
@@ -256,7 +257,11 @@ function AccountSection({ user }: { user: User }) {
             <span className="settings-name">匿名用户</span>
           ) : (
             <button type="button" className="settings-name" onClick={editName}>
-              {user.displayName ?? '设置昵称'}
+              {user.displayName === null ? (
+                '设置昵称'
+              ) : (
+                <NameStyleText styleId={user.nameStyle}>{user.displayName}</NameStyleText>
+              )}
               <IconPencil aria-hidden />
             </button>
           )}

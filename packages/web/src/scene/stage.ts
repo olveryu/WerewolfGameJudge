@@ -7,18 +7,46 @@
  * - The ticker runs only while decorations are mounted, a host is attached and the page is
  *   visible; otherwise no frames are produced. Its frame cap is the user's 60 / 30 setting.
  * - Decorations are sampled every frame from their pure samplers; React never re-renders for
- *   motion.
+ *   motion. Display objects and geometry are built when a decoration mounts or its tile size
+ *   changes; the per-frame path only writes transforms and alphas. Geometry is shared through
+ *   a ref-counted cache, so seats showing the same decoration at the same size share it.
  */
 import { Application, Container, Graphics, GraphicsContext, Sprite, type Texture } from 'pixi.js';
 
-import {
-  type DecorationNode,
-  type DecorationSpec,
-  type DotNode,
-  type LayerArt,
-  type LayerNode,
-  loopProgress,
+import type {
+  DashFlowNode,
+  DecorationNode,
+  DecorationSpec,
+  DotNode,
+  GroupNode,
+  LayerNode,
+  LineNode,
+  MorphArt,
+  MorphMode,
+  MorphNode,
+  MorphSampler,
+  PathNode,
+  RingNode,
+  SceneColor,
+  StaticNode,
 } from '@/scene/decoration';
+import {
+  assertMorphShape,
+  clampOpacity,
+  dashFlowCycles,
+  dashFlowOffset,
+  deriveLineLayout,
+  derivePathLayout,
+  deriveRingLayout,
+  hasVaryingStroke,
+  type LinePlacement,
+  loopProgress,
+  placeLine,
+  sampleLoop,
+  snapBorderWidth,
+  thickWeight,
+  windowWeight,
+} from '@/scene/loopGeometry';
 
 /** Frame caps offered by the settings page (decision D3). */
 export type SceneFrameRate = 60 | 30;
@@ -40,21 +68,468 @@ export interface DecorationHandle {
 const DOT_TEXTURE_RADIUS = 32;
 const MAX_RESOLUTION = 2;
 const DEG_TO_RAD = Math.PI / 180;
+const DEFAULT_DASH_VARIANTS = 12;
 
-interface AnimatedNode {
-  readonly displayObject: Sprite | Graphics;
+const opaqueSampler: MorphSampler = () => ({ opacity: 1 });
+
+/** Ref-counted geometry keyed by its drawing source (art function or sampler) and a variant key. */
+class ContextCache {
+  private readonly entries = new WeakMap<
+    object,
+    Map<string, { context: GraphicsContext; refs: number }>
+  >();
+
+  acquire(owner: object, key: string, draw: (context: GraphicsContext) => void): GraphicsContext {
+    let byKey = this.entries.get(owner);
+    if (!byKey) {
+      byKey = new Map();
+      this.entries.set(owner, byKey);
+    }
+    let entry = byKey.get(key);
+    if (!entry) {
+      const context = new GraphicsContext();
+      draw(context);
+      entry = { context, refs: 0 };
+      byKey.set(key, entry);
+    }
+    entry.refs += 1;
+    return entry.context;
+  }
+
+  release(owner: object, key: string): void {
+    const byKey = this.entries.get(owner);
+    const entry = byKey?.get(key);
+    if (!byKey || !entry) {
+      throw new Error(`Releasing scene geometry that was never acquired: ${key}`);
+    }
+    entry.refs -= 1;
+    if (entry.refs === 0) {
+      byKey.delete(key);
+      entry.context.destroy();
+    }
+  }
+}
+
+/** Geometry a node holds for its current tile size; released before it rebuilds or dies. */
+class Leases {
+  private readonly held: { owner: object; key: string }[] = [];
+
+  constructor(private readonly cache: ContextCache) {}
+
+  acquire(owner: object, key: string, draw: (context: GraphicsContext) => void): GraphicsContext {
+    this.held.push({ owner, key });
+    return this.cache.acquire(owner, key, draw);
+  }
+
+  releaseAll(): void {
+    for (const { owner, key } of this.held) this.cache.release(owner, key);
+    this.held.length = 0;
+  }
+}
+
+interface SceneNode {
+  readonly view: Container;
   update(timeMs: number, size: number): void;
+  /** Releases cached geometry; display objects are destroyed with their decoration. */
+  release(): void;
+}
+
+function colorKey(color: SceneColor): string {
+  return typeof color === 'number' ? color.toString(16) : color;
+}
+
+class DotSceneNode implements SceneNode {
+  readonly view: Sprite;
+
+  constructor(
+    private readonly node: DotNode,
+    texture: Texture,
+  ) {
+    this.view = new Sprite({ texture, anchor: 0.5, tint: node.color });
+  }
+
+  update(timeMs: number, size: number): void {
+    const { node, view } = this;
+    const frame = node.sample(loopProgress(timeMs, node.durationMs, node.phase ?? 0), size);
+    view.position.set(frame.cx, frame.cy);
+    view.scale.set(frame.r / DOT_TEXTURE_RADIUS);
+    view.alpha = clampOpacity(frame.opacity);
+  }
+
+  release(): void {}
+}
+
+/** Base for nodes whose geometry depends on the tile size. */
+abstract class SizedSceneNode implements SceneNode {
+  abstract readonly view: Container;
+  private builtSize = 0;
+
+  constructor(protected readonly leases: Leases) {}
+
+  update(timeMs: number, size: number): void {
+    if (size !== this.builtSize) {
+      this.leases.releaseAll();
+      this.build(size);
+      this.builtSize = size;
+    }
+    this.animate(timeMs, size);
+  }
+
+  release(): void {
+    this.leases.releaseAll();
+  }
+
+  protected abstract build(size: number): void;
+  protected abstract animate(timeMs: number, size: number): void;
+}
+
+class LineSceneNode extends SizedSceneNode {
+  readonly view = new Graphics();
+  private layout = { lengthMax: 1, strokeMax: 1, initialAngle: 0 };
+  private readonly placement: LinePlacement = { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 };
+
+  constructor(
+    private readonly node: LineNode,
+    leases: Leases,
+  ) {
+    super(leases);
+  }
+
+  protected build(size: number): void {
+    const { node } = this;
+    const layout = deriveLineLayout(sampleLoop(node.sample, size, node.durationMs));
+    this.layout = layout;
+    this.placement.rotation = layout.initialAngle;
+    const { lengthMax, strokeMax } = layout;
+    this.view.context = this.leases.acquire(
+      node.sample,
+      `${size}|${colorKey(node.color)}`,
+      (context) => {
+        context
+          .roundRect(-lengthMax / 2, -strokeMax / 2, lengthMax, strokeMax, strokeMax / 2)
+          .fill(node.color);
+      },
+    );
+  }
+
+  protected animate(timeMs: number, size: number): void {
+    const { node, view, placement } = this;
+    const frame = node.sample(loopProgress(timeMs, node.durationMs, node.phase ?? 0), size);
+    placeLine(frame, this.layout, placement);
+    view.position.set(placement.x, placement.y);
+    view.rotation = placement.rotation;
+    view.scale.set(placement.scaleX, placement.scaleY);
+    view.alpha = clampOpacity(frame.opacity);
+  }
+}
+
+/** Thinnest and (when the stroke varies) thickest copies with complementary weights. */
+class StrokePair {
+  readonly thin = new Graphics();
+  readonly thick = new Graphics();
+  strokeMin = 0;
+  strokeMax = 0;
+  varying = false;
+
+  setLayout(strokeMin: number, strokeMax: number): void {
+    this.strokeMin = strokeMin;
+    this.strokeMax = strokeMax;
+    this.varying = hasVaryingStroke({ strokeMin, strokeMax });
+    this.thick.visible = this.varying;
+  }
+
+  /** Width the thin copy is drawn at: the minimum when the stroke varies, else the constant. */
+  get thinWidth(): number {
+    return this.varying ? this.strokeMin : this.strokeMax;
+  }
+
+  setOpacity(opacity: number, strokeWidth: number): void {
+    const weight = thickWeight(strokeWidth, this);
+    this.thin.alpha = clampOpacity(opacity * (1 - weight));
+    this.thick.alpha = clampOpacity(opacity * weight);
+  }
+}
+
+class RingSceneNode extends SizedSceneNode {
+  readonly view = new Container();
+  private readonly strokes = new StrokePair();
+  private rMax = 1;
+
+  constructor(
+    private readonly node: RingNode,
+    leases: Leases,
+    private readonly resolution: number,
+  ) {
+    super(leases);
+    this.view.addChild(this.strokes.thin, this.strokes.thick);
+  }
+
+  protected build(size: number): void {
+    const { node, strokes, resolution } = this;
+    const layout = deriveRingLayout(sampleLoop(node.sample, size, node.durationMs));
+    this.rMax = layout.rMax;
+    strokes.setLayout(layout.strokeMin, layout.strokeMax);
+    const draw = (width: number) => (context: GraphicsContext) => {
+      context
+        .circle(0, 0, layout.rMax)
+        .stroke({ color: node.color, width: snapBorderWidth(width, resolution) });
+    };
+    const keyBase = `${size}|${colorKey(node.color)}`;
+    strokes.thin.context = this.leases.acquire(
+      node.sample,
+      `${keyBase}|${strokes.thinWidth}`,
+      draw(strokes.thinWidth),
+    );
+    if (strokes.varying) {
+      strokes.thick.context = this.leases.acquire(
+        node.sample,
+        `${keyBase}|${layout.strokeMax}`,
+        draw(layout.strokeMax),
+      );
+    }
+  }
+
+  protected animate(timeMs: number, size: number): void {
+    const { node, view } = this;
+    const frame = node.sample(loopProgress(timeMs, node.durationMs, node.phase ?? 0), size);
+    view.position.set(frame.cx, frame.cy);
+    view.scale.set(frame.r / this.rMax);
+    this.strokes.setOpacity(frame.opacity, frame.strokeWidth);
+  }
+}
+
+class PathSceneNode extends SizedSceneNode {
+  readonly view = new Container();
+  private readonly strokes = new StrokePair();
+
+  constructor(
+    private readonly node: PathNode,
+    leases: Leases,
+  ) {
+    super(leases);
+    this.view.addChild(this.strokes.thin, this.strokes.thick);
+  }
+
+  protected build(size: number): void {
+    const { node, strokes } = this;
+    const layout = derivePathLayout(sampleLoop(node.sample, size, node.durationMs));
+    strokes.setLayout(layout.strokeMin, layout.strokeMax);
+    const thinWidth = strokes.thinWidth;
+    strokes.thin.context = this.leases.acquire(node.art, `${size}|${thinWidth}`, (context) =>
+      node.art(context, thinWidth, size),
+    );
+    if (strokes.varying) {
+      strokes.thick.context = this.leases.acquire(
+        node.art,
+        `${size}|${layout.strokeMax}`,
+        (context) => node.art(context, layout.strokeMax, size),
+      );
+    }
+  }
+
+  protected animate(timeMs: number, size: number): void {
+    const { node } = this;
+    const frame = node.sample(loopProgress(timeMs, node.durationMs, node.phase ?? 0), size);
+    this.strokes.setOpacity(frame.opacity, frame.strokeWidth);
+  }
+}
+
+interface MorphShape {
+  sample: MorphSampler;
+  durationMs: number;
+  phase: number;
+  variantCount: number;
+  mode: MorphMode;
+  cyclesPerLoop: number;
+  art: MorphArt;
+}
+
+/** Morph and dash flow: static variants whose opacities follow windows around their phase. */
+class MorphSceneNode extends SizedSceneNode {
+  readonly view = new Container();
+  private readonly variants: Graphics[];
+
+  constructor(
+    private readonly shape: MorphShape,
+    leases: Leases,
+  ) {
+    super(leases);
+    assertMorphShape(shape.variantCount, shape.cyclesPerLoop);
+    this.variants = Array.from({ length: shape.variantCount }, () => new Graphics());
+    this.view.addChild(...this.variants);
+  }
+
+  protected build(size: number): void {
+    const { art } = this.shape;
+    this.variants.forEach((variant, k) => {
+      variant.context = this.leases.acquire(art, `${size}|${k}`, (context) =>
+        art(context, k, size),
+      );
+    });
+  }
+
+  protected animate(timeMs: number, size: number): void {
+    const { sample, durationMs, phase, variantCount, mode, cyclesPerLoop } = this.shape;
+    const t = loopProgress(timeMs, durationMs, phase);
+    const base = sample(t, size).opacity;
+    const cyclePhase = (t * cyclesPerLoop) % 1;
+    for (let k = 0; k < variantCount; k += 1) {
+      this.variants[k]!.alpha = clampOpacity(
+        base * windowWeight(cyclePhase, k, variantCount, mode),
+      );
+    }
+  }
+}
+
+function morphShape(node: MorphNode): MorphShape {
+  return {
+    sample: node.sample,
+    durationMs: node.durationMs,
+    phase: node.phase ?? 0,
+    variantCount: node.variantCount,
+    mode: node.mode,
+    cyclesPerLoop: node.cyclesPerLoop ?? 1,
+    art: node.art,
+  };
+}
+
+/** Dash-flow variant art per node, so the geometry cache keys on a stable function. */
+const dashArts = new WeakMap<DashFlowNode, MorphArt>();
+
+function dashFlowShape(node: DashFlowNode): MorphShape {
+  const variantCount = node.variantCount ?? DEFAULT_DASH_VARIANTS;
+  let art = dashArts.get(node);
+  if (!art) {
+    art = (context, k, size) =>
+      node.art(context, dashFlowOffset(k, variantCount, node.dashPeriod), size);
+    dashArts.set(node, art);
+  }
+  return {
+    sample: node.sample ?? opaqueSampler,
+    durationMs: node.durationMs,
+    phase: node.phase ?? 0,
+    variantCount,
+    mode: 'stacked',
+    cyclesPerLoop: dashFlowCycles(node.dashPeriod, node.travel),
+    art,
+  };
+}
+
+class StaticSceneNode extends SizedSceneNode {
+  readonly view = new Graphics();
+
+  constructor(
+    private readonly node: StaticNode,
+    leases: Leases,
+  ) {
+    super(leases);
+  }
+
+  protected build(size: number): void {
+    const { art } = this.node;
+    this.view.context = this.leases.acquire(art, `${size}`, (context) => art(context, size));
+  }
+
+  protected animate(): void {}
+}
+
+/** Shared by layers and groups: optional art plus nested nodes under one container. */
+abstract class ContainerSceneNode extends SizedSceneNode {
+  readonly view = new Container();
+  private readonly artView: Graphics | null;
+
+  constructor(
+    private readonly art: ((context: GraphicsContext, size: number) => void) | undefined,
+    private readonly children: readonly SceneNode[],
+    leases: Leases,
+  ) {
+    super(leases);
+    this.artView = art ? new Graphics() : null;
+    if (this.artView) this.view.addChild(this.artView);
+    for (const child of children) this.view.addChild(child.view);
+  }
+
+  protected build(size: number): void {
+    const { art, artView } = this;
+    if (art && artView) {
+      artView.context = this.leases.acquire(art, `${size}`, (context) => art(context, size));
+    }
+  }
+
+  protected animate(timeMs: number, size: number): void {
+    for (const child of this.children) child.update(timeMs, size);
+  }
+
+  override release(): void {
+    super.release();
+    for (const child of this.children) child.release();
+  }
+}
+
+class LayerSceneNode extends ContainerSceneNode {
+  constructor(
+    private readonly node: LayerNode,
+    children: readonly SceneNode[],
+    leases: Leases,
+  ) {
+    super(node.art, children, leases);
+  }
+
+  protected override build(size: number): void {
+    super.build(size);
+    const box = this.node.box?.(size);
+    this.view.pivot.set(box ? box.width / 2 : 0, box ? box.height / 2 : 0);
+  }
+
+  protected override animate(timeMs: number, size: number): void {
+    const { node, view } = this;
+    const frame = node.sample(loopProgress(timeMs, node.durationMs, node.phase ?? 0), size);
+    view.position.set(frame.x, frame.y);
+    view.rotation = frame.rotateDeg * DEG_TO_RAD;
+    view.scale.set(frame.scaleX, frame.scaleY);
+    view.alpha = clampOpacity(frame.opacity);
+    super.animate(timeMs, size);
+  }
+}
+
+class GroupSceneNode extends ContainerSceneNode {
+  private readonly mask: Graphics | null;
+
+  constructor(
+    private readonly node: GroupNode,
+    children: readonly SceneNode[],
+    leases: Leases,
+  ) {
+    super(undefined, children, leases);
+    this.mask = node.clip ? new Graphics() : null;
+    if (this.mask) {
+      this.view.addChild(this.mask);
+      this.view.mask = this.mask;
+    }
+  }
+
+  protected override build(size: number): void {
+    const place = this.node.place(size);
+    this.view.pivot.set(place.width / 2, place.height / 2);
+    this.view.position.set(place.left + place.width / 2, place.top + place.height / 2);
+    this.view.scale.set(place.scaleX, place.scaleY);
+    this.mask?.clear().rect(0, 0, place.width, place.height).fill(0xffffff);
+  }
 }
 
 class MountedDecoration implements DecorationHandle {
   readonly container = new Container();
   private size = 0;
+  /** Ticker time of the first frame; loops start there, as CSS animations started on mount. */
+  private startMs: number | null = null;
 
   constructor(
     private readonly stage: SceneStage,
-    private readonly nodes: readonly AnimatedNode[],
+    private readonly nodes: readonly SceneNode[],
   ) {
-    for (const node of nodes) this.container.addChild(node.displayObject);
+    for (const node of nodes) this.container.addChild(node.view);
+    // Hidden until sampled: a resize renders the stage outside the ticker.
+    this.container.visible = false;
   }
 
   setRect(rect: SeatRect): void {
@@ -64,18 +539,22 @@ class MountedDecoration implements DecorationHandle {
 
   update(timeMs: number): void {
     if (this.size === 0) return;
-    for (const node of this.nodes) node.update(timeMs, this.size);
+    this.startMs ??= timeMs;
+    const elapsedMs = timeMs - this.startMs;
+    for (const node of this.nodes) node.update(elapsedMs, this.size);
+    this.container.visible = true;
   }
 
   destroy(): void {
     this.stage.unmount(this);
+    for (const node of this.nodes) node.release();
     this.container.destroy({ children: true });
   }
 }
 
 class SceneStage {
   private readonly decorations = new Set<MountedDecoration>();
-  private readonly artContexts = new WeakMap<LayerArt, Map<number, GraphicsContext>>();
+  private readonly contexts = new ContextCache();
   private host: HTMLElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
 
@@ -142,56 +621,36 @@ class SceneStage {
     if (!shouldRun && ticker.started) ticker.stop();
   }
 
-  private createNode(node: DecorationNode): AnimatedNode {
-    return node.kind === 'dot' ? this.createDot(node) : this.createLayer(node);
-  }
-
-  private createDot(node: DotNode): AnimatedNode {
-    const sprite = new Sprite({ texture: this.dotTexture, anchor: 0.5, tint: node.color });
-    return {
-      displayObject: sprite,
-      update: (timeMs, size) => {
-        const frame = node.sample(loopProgress(timeMs, node.durationMs, node.phase), size);
-        sprite.position.set(frame.cx, frame.cy);
-        sprite.scale.set(frame.r / DOT_TEXTURE_RADIUS);
-        sprite.alpha = frame.opacity;
-      },
-    };
-  }
-
-  private createLayer(node: LayerNode): AnimatedNode {
-    const graphics = new Graphics();
-    let artSize = 0;
-    return {
-      displayObject: graphics,
-      update: (timeMs, size) => {
-        if (size !== artSize) {
-          graphics.context = this.artContext(node.art, size);
-          artSize = size;
-        }
-        const frame = node.sample(loopProgress(timeMs, node.durationMs, node.phase), size);
-        graphics.position.set(frame.x, frame.y);
-        graphics.rotation = frame.rotateDeg * DEG_TO_RAD;
-        graphics.scale.set(frame.scaleX, frame.scaleY);
-        graphics.alpha = frame.opacity;
-      },
-    };
-  }
-
-  /** Geometry is shared by every seat that shows the same art at the same tile size. */
-  private artContext(art: LayerArt, size: number): GraphicsContext {
-    let bySize = this.artContexts.get(art);
-    if (!bySize) {
-      bySize = new Map();
-      this.artContexts.set(art, bySize);
+  private createNode(node: DecorationNode): SceneNode {
+    const leases = new Leases(this.contexts);
+    switch (node.kind) {
+      case 'dot':
+        return new DotSceneNode(node, this.dotTexture);
+      case 'line':
+        return new LineSceneNode(node, leases);
+      case 'ring':
+        return new RingSceneNode(node, leases, this.application.renderer.resolution);
+      case 'path':
+        return new PathSceneNode(node, leases);
+      case 'morph':
+        return new MorphSceneNode(morphShape(node), leases);
+      case 'dashFlow':
+        return new MorphSceneNode(dashFlowShape(node), leases);
+      case 'static':
+        return new StaticSceneNode(node, leases);
+      case 'layer':
+        return new LayerSceneNode(
+          node,
+          (node.children ?? []).map((child) => this.createNode(child)),
+          leases,
+        );
+      case 'group':
+        return new GroupSceneNode(
+          node,
+          node.children.map((child) => this.createNode(child)),
+          leases,
+        );
     }
-    let context = bySize.get(size);
-    if (!context) {
-      context = new GraphicsContext();
-      art(context, size);
-      bySize.set(size, context);
-    }
-    return context;
   }
 }
 
@@ -219,7 +678,11 @@ export async function createSceneStage(): Promise<SceneStage> {
   canvas.classList.add('scene-canvas');
 
   const dot = new Graphics().circle(0, 0, DOT_TEXTURE_RADIUS).fill(0xffffff);
-  const dotTexture = application.renderer.generateTexture(dot);
+  // Mipmapped: most dots are drawn at a few pixels, far below the texture size.
+  const dotTexture = application.renderer.generateTexture({
+    target: dot,
+    textureSourceOptions: { autoGenerateMipmaps: true },
+  });
   dot.destroy();
 
   return new SceneStage(application, dotTexture);

@@ -1,8 +1,19 @@
 .seat-grid {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(var(--seat-columns), minmax(0, 1fr));
   gap: calc(var(--space-small) + var(--space-tight));
   padding-top: var(--space-tight);
+}
+
+/*
+ * Scene layer over the avatars (docs/web-client-rewrite.md §5.3, scheme B). It reaches into the
+ * scroll padding so decorations that overflow edge tiles are not clipped.
+ */
+.seat-scene-host {
+  position: absolute;
+  inset: calc(-1 * var(--space-medium));
+  pointer-events: none;
 }
 
 .seat-pagination {
@@ -145,6 +156,7 @@
   right: calc(var(--space-tight) + var(--space-micro));
   bottom: calc(var(--space-tight) + var(--space-micro));
   left: calc(var(--space-tight) + var(--space-micro));
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -172,6 +184,7 @@
   position: absolute;
   bottom: calc(var(--space-tight) + var(--space-micro));
   left: calc(var(--space-tight) + var(--space-micro));
+  z-index: 1;
   padding: var(--space-micro) calc(var(--space-tight) + var(--space-micro));
   border-radius: var(--radius-small);
   color: var(--color-text-inverse);

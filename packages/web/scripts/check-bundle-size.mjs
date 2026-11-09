@@ -23,10 +23,12 @@ const BUDGETS = [
   },
   {
     // PixiJS loads its browser extensions and the selected renderer as dynamic chunks; the stage
-    // always requests WebGL, so that renderer counts and the WebGPU / Canvas ones do not.
-    name: 'scene layer (PixiJS stage + WebGL renderer)',
+    // always requests WebGL, so that renderer counts and the WebGPU / Canvas ones do not. The
+    // room seat board's scene chunk (decoration specs) loads with it.
+    name: 'scene layer (PixiJS stage + WebGL renderer + seat decorations)',
     entries: [
       'src/scene/stage.ts',
+      'src/features/room/components/RoomSeatScene.tsx',
       '../../node_modules/pixi.js/lib/environment-browser/browserAll.mjs',
       '../../node_modules/pixi.js/lib/rendering/renderers/gl/WebGLRenderer.mjs',
     ],
@@ -40,6 +42,22 @@ const BUDGETS = [
     maxGzipBytes: 52 * KIB,
   },
 ];
+
+/**
+ * The manifest key of a budget entry. A module that Rolldown hoisted into a shared chunk is no
+ * longer keyed by its path; that chunk carries the module's file name as its `name`.
+ */
+function resolveManifestKey(entry) {
+  if (manifest[entry]) return entry;
+  const moduleName = path.basename(entry).replace(/\.[^.]+$/, '');
+  const keys = Object.keys(manifest).filter(
+    (key) => key.startsWith('_') && manifest[key].name === moduleName,
+  );
+  if (keys.length !== 1) {
+    throw new Error(`Bundle budget names "${entry}", which is not in the Vite manifest`);
+  }
+  return keys[0];
+}
 
 /** Collects the emitted files a manifest entry loads synchronously: its chunk, static imports and CSS. */
 function collectLoadClosure(entryKey, files = new Set(), visited = new Set()) {
@@ -64,7 +82,7 @@ const failures = [];
 
 for (const budget of BUDGETS) {
   const files = new Set();
-  for (const entry of budget.entries) collectLoadClosure(entry, files);
+  for (const entry of budget.entries) collectLoadClosure(resolveManifestKey(entry), files);
   const counted = [...files].filter((file) => !(budget.beyondStartup && startupFiles.has(file)));
   const totalBytes = counted.reduce((sum, file) => sum + gzipSize(file), 0);
   const line = `${budget.name}: ${(totalBytes / KIB).toFixed(1)} KiB / ${budget.maxGzipBytes / KIB} KiB gzip`;

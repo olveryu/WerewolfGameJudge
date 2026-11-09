@@ -15,6 +15,7 @@ import type { ReactNode } from 'react';
 import { Avatar } from '@/components/avatar/Avatar';
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
+import { NameStyleText } from '@/components/nameStyles/NameStyleText';
 import { Spinner } from '@/components/Spinner';
 import { useUserProfileQuery } from '@/features/account/queries/useUserProfileQuery';
 import {
@@ -111,7 +112,11 @@ export function PlayerProfileCard({
             Lv.{profile.level}
           </span>
         </div>
-        <p className="profile-name">{profile.displayName || seatName}</p>
+        <p className="profile-name">
+          <NameStyleText styleId={profile.nameStyle}>
+            {profile.displayName || seatName}
+          </NameStyleText>
+        </p>
         <span className="profile-title" data-tier={tier}>
           {profile.title ?? getLevelTitle(profile.level)}
         </span>

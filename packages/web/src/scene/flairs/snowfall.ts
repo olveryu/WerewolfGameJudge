@@ -3,7 +3,7 @@
  * (three crossing arms and a centre dot) moved by a layer sampler. Ported from the RN client's
  * `SnowfallFlair`.
  */
-import type { DecorationSpec, LayerArt, LayerNode, LayerSampler } from '@/scene/decoration';
+import type { DecorationSpec, LayerNode, LayerSampler, StaticArt } from '@/scene/decoration';
 
 const LOOP_MS = 6000;
 const FLAKE_COUNT = 10;
@@ -41,7 +41,7 @@ function flakeSampler(seed: FlakeSeed): LayerSampler {
   };
 }
 
-function flakeArt(seed: FlakeSeed): LayerArt {
+function flakeArt(seed: FlakeSeed): StaticArt {
   return (context, size) => {
     const radius = seed.radiusFraction * size;
     for (const angle of ARM_ANGLES) {

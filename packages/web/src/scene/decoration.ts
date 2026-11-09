@@ -1,15 +1,19 @@
 /**
  * Decoration model for the scene layer (docs/web-client-rewrite.md §5.3, §6).
  *
- * A decoration is a list of looping nodes. Each node's motion comes from a pure sampler
- * `(t, size) => geometry`, the same contract as the React Native client's loopMotion samplers,
- * so samplers port verbatim. The stage evaluates samplers every frame; nothing here touches
- * PixiJS display objects.
+ * A decoration is a tree of looping nodes, one kind per primitive of the React Native client's
+ * loopMotion (`LoopDot`, `LoopLine`, `LoopRing`, `LoopPath`, `LoopLayer`, `LoopMorph`,
+ * `LoopDashFlow`) plus static art and static groups. Motion comes from pure samplers
+ * `(t, size) => geometry` with the same contract as loopMotion, so samplers port verbatim. The
+ * stage evaluates samplers every frame; nothing here touches PixiJS display objects.
  */
 import type { GraphicsContext } from 'pixi.js';
 
 /** Pure loop sampler: progress `t ∈ [0, 1)` and tile pixel `size` → geometry. */
 export type LoopSampler<G> = (t: number, size: number) => G;
+
+/** A colour PixiJS parses: `0xRRGGBB`, `#rrggbb` or a CSS `rgb()` / `rgba()` string. */
+export type SceneColor = number | string;
 
 /** Filled circle at loop progress `t`, in the tile's pixel space. */
 export interface DotFrame {
@@ -19,7 +23,32 @@ export interface DotFrame {
   opacity: number;
 }
 
-/** Placement of a static art layer at loop progress `t`; `(x, y)` is the art's centre. */
+/** Round-capped segment at loop progress `t`, in the tile's pixel space. */
+export interface LineFrame {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  strokeWidth: number;
+  opacity: number;
+}
+
+/** Stroked circle at loop progress `t`, in the tile's pixel space. */
+export interface RingFrame {
+  cx: number;
+  cy: number;
+  r: number;
+  strokeWidth: number;
+  opacity: number;
+}
+
+/** Stroke state of a fixed path at loop progress `t`. */
+export interface PathFrame {
+  strokeWidth: number;
+  opacity: number;
+}
+
+/** Placement of a layer at loop progress `t`; `(x, y)` is the layer's centre. */
 export interface LayerFrame {
   x: number;
   y: number;
@@ -29,46 +58,158 @@ export interface LayerFrame {
   opacity: number;
 }
 
-export type DotSampler = LoopSampler<DotFrame>;
-export type LayerSampler = LoopSampler<LayerFrame>;
+/** Base opacity of a morph at loop progress `t`; variant windows multiply into it. */
+export interface MorphFrame {
+  opacity: number;
+}
 
-/** Draws static art centred on the origin for a tile of `size` pixels. */
-export type LayerArt = (context: GraphicsContext, size: number) => void;
+export type DotSampler = LoopSampler<DotFrame>;
+export type LineSampler = LoopSampler<LineFrame>;
+export type RingSampler = LoopSampler<RingFrame>;
+export type PathSampler = LoopSampler<PathFrame>;
+export type LayerSampler = LoopSampler<LayerFrame>;
+export type MorphSampler = LoopSampler<MorphFrame>;
+
+/**
+ * Draws static art for a tile of `size` pixels. Art functions are module-level (or built once
+ * per spec): the stage caches the drawn geometry per `(art, size)`.
+ */
+export type StaticArt = (context: GraphicsContext, size: number) => void;
+/** Draws a path whose stroke width the stage chooses (the thinnest or thickest sampled). */
+export type PathArt = (context: GraphicsContext, strokeWidth: number, size: number) => void;
+/** Draws morph variant `k` (the shape at cycle phase `k / variantCount`). */
+export type MorphArt = (context: GraphicsContext, k: number, size: number) => void;
+/** Draws the dashed stroke(s) with the dash pattern shifted by `dashOffset` (SVG semantics). */
+export type DashArt = (context: GraphicsContext, dashOffset: number, size: number) => void;
+
+/** Edge lengths of a layer's box, in px. */
+export interface BoxSize {
+  width: number;
+  height: number;
+}
 
 interface LoopTiming {
   /** Loop length in ms. */
   durationMs: number;
-  /** Cycle offset in `[0, 1)`. */
-  phase: number;
+  /** Cycle offset in `[0, 1)`; defaults to 0. */
+  phase?: number;
 }
 
 export interface DotNode extends LoopTiming {
   kind: 'dot';
   sample: DotSampler;
-  /** Fill colour as `0xRRGGBB`. */
-  color: number;
+  color: SceneColor;
 }
 
+export interface LineNode extends LoopTiming {
+  kind: 'line';
+  sample: LineSampler;
+  color: SceneColor;
+}
+
+/**
+ * A ring is a stroked circle of the largest sampled radius scaled to the sampled radius (the
+ * stroke scales with it, as in loopMotion). A varying stroke width is drawn as the thinnest and
+ * thickest ring with complementary opacity weights.
+ */
+export interface RingNode extends LoopTiming {
+  kind: 'ring';
+  sample: RingSampler;
+  color: SceneColor;
+}
+
+/** A fixed path; the sampler drives only its opacity and stroke width (see `RingNode`). */
+export interface PathNode extends LoopTiming {
+  kind: 'path';
+  sample: PathSampler;
+  art: PathArt;
+}
+
+/**
+ * Content moved by a sampler. Without `box` the content is drawn centred on the layer origin;
+ * with `box` it is drawn in box coordinates (origin at the box's top-left) and the box centre
+ * sits at the sampled `(x, y)`, like loopMotion's `LoopLayer` `width × height` box.
+ */
 export interface LayerNode extends LoopTiming {
   kind: 'layer';
   sample: LayerSampler;
-  /** Module-level function; the stage caches the drawn geometry per `(art, size)`. */
-  art: LayerArt;
+  box?: (size: number) => BoxSize;
+  art?: StaticArt;
+  /** Nested nodes drawn above `art`, in the layer's content coordinates. */
+  children?: readonly DecorationNode[];
 }
 
-export type DecorationNode = DotNode | LayerNode;
+export type MorphMode = 'crossfade' | 'stacked' | 'step';
+
+/**
+ * A shape whose geometry changes over the loop, drawn as `variantCount` static variants whose
+ * opacities follow windows around their own phase (see `windowWeight`).
+ */
+export interface MorphNode extends LoopTiming {
+  kind: 'morph';
+  sample: MorphSampler;
+  variantCount: number;
+  mode: MorphMode;
+  /** Integer number of variant cycles per loop; defaults to 1. */
+  cyclesPerLoop?: number;
+  art: MorphArt;
+}
+
+/**
+ * A dashed stroke whose dashes slide along their path: `variantCount` copies at successive dash
+ * offsets blended as a stacked morph, cycling `round(travel / dashPeriod)` times per loop.
+ */
+export interface DashFlowNode extends LoopTiming {
+  kind: 'dashFlow';
+  /** `dash + gap` of the dash pattern, in the art's units. */
+  dashPeriod: number;
+  /** Distance the dashes travel per loop, in the art's units. */
+  travel: number;
+  /** Copies per period; defaults to 12. */
+  variantCount?: number;
+  /** Opacity envelope; defaults to fully opaque. */
+  sample?: MorphSampler;
+  art: DashArt;
+}
+
+/** Static art in the parent's coordinates. */
+export interface StaticNode {
+  kind: 'static';
+  art: StaticArt;
+}
+
+/**
+ * Static transform around nested nodes, like a transformed RN `View` box: the box sits at
+ * `(left, top)` in the parent's coordinates and is scaled about its centre. `clip` hides content
+ * outside the box (`overflow: hidden`).
+ */
+export interface GroupNode {
+  kind: 'group';
+  place: (size: number) => {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    scaleX: number;
+    scaleY: number;
+  };
+  clip?: boolean;
+  children: readonly DecorationNode[];
+}
+
+export type DecorationNode =
+  | DotNode
+  | LineNode
+  | RingNode
+  | PathNode
+  | LayerNode
+  | MorphNode
+  | DashFlowNode
+  | StaticNode
+  | GroupNode;
 
 /** A seat decoration: an id for diagnostics plus its nodes, drawn back to front. */
 export interface DecorationSpec {
   id: string;
   nodes: readonly DecorationNode[];
-}
-
-/**
- * Loop progress for a node at `timeMs`: the RN client shifted elements into the cycle with a
- * negative `animation-delay` of `phase × duration`, which this reproduces.
- */
-export function loopProgress(timeMs: number, durationMs: number, phase: number): number {
-  const progress = timeMs / durationMs + phase;
-  return progress - Math.floor(progress);
 }

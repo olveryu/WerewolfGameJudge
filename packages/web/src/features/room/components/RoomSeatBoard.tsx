@@ -1,16 +1,31 @@
 /** Paged seat board used by every game room; a page holds 12 rows. */
 import './RoomSeatBoard.css';
 
-import { memo, type ReactNode, useState } from 'react';
+import {
+  lazy,
+  memo,
+  type ReactNode,
+  Suspense,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 
 import { IconButton } from '@/components/IconButton';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
+import { displaySettings } from '@/features/settings/displaySettings';
+import { resolveResidentDecorations } from '@/scene/residentDecorations';
+import { usePrefersReducedMotion } from '@/scene/usePrefersReducedMotion';
 import { TESTIDS } from '@/testids';
 import IconChevronBack from '~icons/ion/chevron-back';
 import IconChevronForward from '~icons/ion/chevron-forward';
 
 import { RoomSeatTile } from './RoomSeatTile';
+
+const RoomSeatSceneCanvas = lazy(() =>
+  import('./RoomSeatScene').then((module) => ({ default: module.RoomSeatSceneCanvas })),
+);
 
 const ROWS_PER_PAGE = 12;
 
@@ -92,6 +107,22 @@ function RoomSeatBoardComponent({
   const page = Math.min(requestedPage, pageCount);
   const firstSeat = (page - 1) * seatsPerPage;
   const visibleSeatCount = Math.min(seatsPerPage, model.source.count - firstSeat);
+  const display = useSyncExternalStore(displaySettings.subscribe, displaySettings.getSnapshot);
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const sceneHostRef = useRef<HTMLDivElement>(null);
+
+  // Resident decorations only while the user wants them, motion is allowed and the game allows
+  // them for the seat; the scene layer loads only when some visible seat has one.
+  const showsResidents = display.seatDecorationsEnabled && !prefersReducedMotion;
+  const seats = Array.from({ length: visibleSeatCount }, (_, offset) => {
+    const seatModel = model.source.getSeat(firstSeat + offset);
+    const residents =
+      showsResidents && seatModel.decorationsEnabled && seatModel.player !== null
+        ? resolveResidentDecorations(seatModel.player)
+        : null;
+    return { seatModel, residents };
+  });
+  const isSceneActive = seats.some(({ residents }) => residents !== null);
 
   const goToPage = (nextPage: number) => {
     if (!Number.isSafeInteger(nextPage) || nextPage < 1 || nextPage > pageCount) {
@@ -111,18 +142,24 @@ function RoomSeatBoardComponent({
         style={{ '--seat-columns': columns }}
         data-disabled={model.visuallyDisabled}
       >
-        {Array.from({ length: visibleSeatCount }, (_, offset) => {
-          const seatModel = model.source.getSeat(firstSeat + offset);
-          return (
-            <RoomSeatTile
-              key={seatModel.seat}
-              model={seatModel}
-              isBoardDisabled={model.visuallyDisabled}
-              onPress={model.onSeatPress}
-              onLongPress={model.onBotSeatLongPress}
-            />
-          );
-        })}
+        {seats.map(({ seatModel, residents }) => (
+          <RoomSeatTile
+            key={seatModel.seat}
+            model={seatModel}
+            isBoardDisabled={model.visuallyDisabled}
+            onPress={model.onSeatPress}
+            onLongPress={model.onBotSeatLongPress}
+            residents={residents}
+            sceneHostRef={sceneHostRef}
+          />
+        ))}
+        {isSceneActive && (
+          <div ref={sceneHostRef} className="seat-scene-host" aria-hidden>
+            <Suspense fallback={null}>
+              <RoomSeatSceneCanvas hostRef={sceneHostRef} frameRate={display.sceneFrameRate} />
+            </Suspense>
+          </div>
+        )}
       </div>
       {footer}
     </>
