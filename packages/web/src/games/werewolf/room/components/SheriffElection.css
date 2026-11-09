@@ -1,0 +1,448 @@
+/* Sheriff-election HUD, panel and its sheet / inspector containers. */
+
+.sheriff-hud {
+  display: block;
+  width: 100%;
+  min-height: var(--size-button-lg);
+  padding: var(--space-small) var(--space-medium);
+  border: var(--border-width) solid var(--color-primary-a25);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  color: inherit;
+  text-align: left;
+}
+
+button.sheriff-hud {
+  cursor: pointer;
+}
+
+button.sheriff-hud:active {
+  background: var(--color-surface-hover);
+}
+
+.sheriff-hud-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-small);
+}
+
+.sheriff-title-group {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-small);
+  min-width: 0;
+  color: var(--color-primary);
+}
+
+.sheriff-hud-title {
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+.sheriff-phase-badge {
+  flex-shrink: 1;
+  padding: var(--space-micro) var(--space-small);
+  border-radius: var(--radius-small);
+  background: var(--color-primary-a12);
+  color: var(--color-primary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+}
+
+.sheriff-hud-summary-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  margin-top: var(--space-tight);
+}
+
+.sheriff-hud-summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sheriff-hud-details {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-micro);
+  color: var(--color-primary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+}
+
+.sheriff-hud-pending {
+  margin-top: var(--space-tight);
+}
+
+.sheriff-sheet-close {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 var(--space-medium);
+}
+
+.sheriff-sheet-scroll {
+  flex-shrink: 1;
+  min-height: 0;
+  padding-bottom: var(--space-xlarge);
+  overflow-y: auto;
+}
+
+.sheriff-inspector {
+  display: flex;
+  flex-direction: column;
+  width: calc(var(--size-modal-min-width) + var(--space-xxlarge));
+  min-height: 0;
+  padding-bottom: var(--space-xlarge);
+  overflow-y: auto;
+  border-left: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.sheriff-panel {
+  padding: var(--space-large);
+  background: var(--color-surface);
+}
+
+.sheriff-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-small);
+}
+
+.sheriff-panel-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  line-height: var(--line-subtitle);
+  font-weight: var(--weight-semibold);
+}
+
+.sheriff-description {
+  margin: var(--space-small) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.sheriff-records {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  margin-top: var(--space-medium);
+}
+
+.sheriff-record-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-small);
+}
+
+.sheriff-record-label {
+  flex-shrink: 0;
+  width: var(--size-avatar-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+.sheriff-record-value {
+  flex: 1;
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.sheriff-record-column {
+  flex: 1;
+}
+
+.sheriff-record-empty {
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.sheriff-seat-dots {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-tight);
+}
+
+.sheriff-withdrawn-note {
+  margin: var(--space-tight) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.sheriff-result {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  margin-top: var(--space-medium);
+  padding: var(--space-medium);
+  border-radius: var(--radius-medium);
+  background: var(--color-warning-a12);
+}
+
+.sheriff-result[data-elected='false'] {
+  background: var(--color-background);
+}
+
+.sheriff-result-medal {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-avatar-md);
+  height: var(--size-avatar-md);
+  border-radius: var(--radius-medium);
+  background: var(--color-warning);
+  color: var(--color-text-inverse);
+  font-size: var(--size-icon-lg);
+}
+
+.sheriff-result[data-elected='false'] .sheriff-result-medal {
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+}
+
+.sheriff-result-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-micro);
+}
+
+.sheriff-result-title {
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  font-weight: var(--weight-semibold);
+}
+
+.sheriff-result-subtitle {
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.sheriff-divider {
+  height: var(--border-width);
+  margin: var(--space-medium) 0;
+  border: none;
+  background: var(--color-border);
+}
+
+.sheriff-vote-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-small);
+}
+
+.sheriff-section-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+.sheriff-vote-progress {
+  color: var(--color-primary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.sheriff-vote-pending {
+  margin-top: var(--space-tight);
+}
+
+.sheriff-candidates {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  margin-top: var(--space-medium);
+}
+
+.sheriff-candidate-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-small);
+}
+
+.sheriff-ballot-choice {
+  position: relative;
+  display: flex;
+  flex: 1 0 22%;
+  align-items: center;
+  justify-content: center;
+  max-width: var(--size-avatar-xl);
+  min-height: var(--size-button-md);
+  padding: 0 var(--space-small);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-background);
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.sheriff-ballot-choice[aria-checked='true'] {
+  border: calc(var(--border-width) * 3) solid var(--color-primary);
+  background: var(--color-primary-a12);
+  color: var(--color-primary);
+}
+
+.sheriff-ballot-choice:active:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.sheriff-ballot-choice:disabled:not([aria-busy='true']) {
+  opacity: var(--opacity-disabled);
+}
+
+.sheriff-ballot-indicator {
+  position: absolute;
+  top: var(--space-tight);
+  right: var(--space-tight);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  color: var(--color-primary);
+}
+
+.sheriff-ballot-status {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.sheriff-round {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  margin-bottom: var(--space-medium);
+}
+
+.sheriff-tally-card {
+  padding: var(--space-tight) var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-medium);
+}
+
+.sheriff-tally-group {
+  padding: var(--space-small) 0;
+}
+
+.sheriff-tally-group + .sheriff-tally-group {
+  border-top: var(--border-width) solid var(--color-border-light);
+}
+
+.sheriff-tally-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+}
+
+.sheriff-tally-name {
+  flex-shrink: 0;
+  width: var(--size-avatar-md);
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+.sheriff-tally-group[data-winner='true'] .sheriff-tally-name {
+  color: var(--color-warning);
+}
+
+.sheriff-tally-trophy {
+  flex-shrink: 0;
+  width: var(--size-icon-xs);
+  height: var(--size-icon-xs);
+  color: var(--color-warning);
+}
+
+.sheriff-tally-track {
+  display: flex;
+  flex: 1;
+  height: var(--size-badge-dot);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-background);
+}
+
+.sheriff-tally-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+}
+
+.sheriff-tally-group[data-winner='true'] .sheriff-tally-fill {
+  background: var(--color-warning);
+}
+
+.sheriff-tally-count {
+  flex-shrink: 0;
+  width: var(--size-avatar-md);
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-semibold);
+  text-align: right;
+}
+
+.sheriff-voter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-tight);
+  margin: var(--space-tight) 0 0 calc(var(--size-avatar-md) + var(--space-small));
+}
+
+.sheriff-voter-chip {
+  display: flex;
+  align-items: center;
+  padding: var(--space-micro);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+}
+
+.sheriff-abstain-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-tight);
+  margin-top: var(--space-small);
+}
+
+.sheriff-abstain-label,
+.sheriff-empty-ballots {
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}

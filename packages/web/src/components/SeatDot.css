@@ -1,0 +1,28 @@
+.seat-dot {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-avatar-xs);
+  height: var(--size-avatar-xs);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-background);
+  color: var(--color-text);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.seat-dot[data-size='sm'] {
+  width: var(--size-badge-md);
+  height: var(--size-badge-md);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+}
+
+.seat-dot[data-withdrawn='true'] {
+  opacity: var(--opacity-disabled);
+  text-decoration: line-through;
+}

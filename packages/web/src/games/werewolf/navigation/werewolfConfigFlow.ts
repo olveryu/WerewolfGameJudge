@@ -23,6 +23,11 @@ export const parseWerewolfConfigRouteParams: (params: unknown) => WerewolfConfig
     extraRoomCodeModes: ['nominate'],
   });
 
+/** The board-suggestion flow of a room: board picker → roles, submitting a nomination. */
+export function werewolfNominatePath(roomCode: string): string {
+  return `/game/werewolf/config/nominate/${roomCode}`;
+}
+
 export function getWerewolfConfigFlowStart(params: unknown): WerewolfConfigFlowStart {
   const routeParams = parseWerewolfConfigRouteParams(params);
   switch (routeParams.mode) {

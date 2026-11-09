@@ -91,6 +91,19 @@ export function buildEndedWaitingMessage(input: {
 }
 
 /**
+ * The waiting sentence for a stepped phase (a night sequence), built
+ * from the very progress object that feeds the bottom progress row so
+ * the sentence and the row can never disagree about the current step:
+ * a non-actor is told whose action the room is waiting for.
+ */
+export function buildStepActorWaitingMessage(progress: NightStepProgress | null): string | null {
+  return progress === null || progress.label === '' ? null : `正在等待 ${progress.label} 行动`;
+}
+
+/** Canonical label of the view-identity action where the game's own word for it is 身份. */
+export const VIEW_IDENTITY_LABEL = '查看身份';
+
+/**
  * The view-identity action definition: the one player command whose
  * execution (role card modal + viewed submission) already runs through
  * the shared viewing flow. What remained per game was the definition —
@@ -112,6 +125,43 @@ export function resolveViewIdentityAction(input: {
   readonly onPress: () => void;
 }): RoomViewIdentityAction | null {
   return input.isVisible ? { label: input.label, onPress: input.onPress } : null;
+}
+
+/**
+ * Renders a resolved view-identity action as a bottom button. The tier
+ * follows the 2026 rule, decided by the caller from whether the current
+ * step is the viewing step: the viewing step renders primary, every
+ * other phase renders secondary. Ghost is never a view-identity tier:
+ * viewing your own secret is always a real button (filled or outlined),
+ * never a borderless text action. Size is fixed md across games; the
+ * key, the tier, the audience and the testID remain the surface's own
+ * anchors. A hidden action is expressed by resolving to null, never by
+ * a disabled view button. The only disabled state is the room's
+ * single-flight command lock: the first view submits `role.viewed`
+ * through the same funnel as every other command (useRoleViewing), so
+ * while any command is in flight the entry is disabled.
+ */
+export function buildViewIdentityButton(
+  action: RoomViewIdentityAction,
+  surface: {
+    readonly key: string;
+    readonly variant: 'primary' | 'secondary';
+    readonly audience: RoomBottomButtonAudience;
+    readonly testID?: string;
+    readonly isSubmitting: boolean;
+  },
+): RoomBottomButton {
+  const base = {
+    key: surface.key,
+    label: action.label,
+    audience: surface.audience,
+    icon: 'eye-outline',
+    variant: surface.variant,
+    size: 'md',
+    ...(surface.testID !== undefined ? { testID: surface.testID } : {}),
+  } as const;
+  if (surface.isSubmitting) return { ...base, isEnabled: false, disabledReason: null };
+  return { ...base, isEnabled: true, onPress: action.onPress };
 }
 
 /**

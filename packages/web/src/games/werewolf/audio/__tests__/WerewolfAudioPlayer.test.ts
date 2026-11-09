@@ -11,7 +11,10 @@ function createPlayback(): Mocked<WerewolfAudioPlaybackPort> {
     playClip: vi.fn(async (_clip: AudioClip) => undefined),
     preloadClips: vi.fn((_clips: readonly AudioClip[]) => undefined),
     stop: vi.fn(),
+    startBgm: vi.fn(),
     stopBgm: vi.fn(),
+    setBgmVolume: vi.fn(),
+    setGameAudioVolume: vi.fn(),
     clearPreloaded: vi.fn(),
   };
 }
@@ -47,7 +50,10 @@ describe('WerewolfAudioPlayer', () => {
 
     audio.preloadRoles(['wolf', 'villager']);
     audio.stopNarration();
+    audio.startBgm(['a.m4a']);
     audio.stopBgm();
+    audio.setBgmVolume(0.3);
+    audio.setGameAudioVolume(0.8);
     audio.clearPreloaded();
 
     expect(playback.preloadClips).toHaveBeenCalledWith(
@@ -57,7 +63,10 @@ describe('WerewolfAudioPlayer', () => {
       ]),
     );
     expect(playback.stop).toHaveBeenCalledTimes(1);
+    expect(playback.startBgm).toHaveBeenCalledWith(['a.m4a']);
     expect(playback.stopBgm).toHaveBeenCalledTimes(1);
+    expect(playback.setBgmVolume).toHaveBeenCalledWith(0.3);
+    expect(playback.setGameAudioVolume).toHaveBeenCalledWith(0.8);
     expect(playback.clearPreloaded).toHaveBeenCalledTimes(1);
   });
 });

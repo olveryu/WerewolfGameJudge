@@ -26,7 +26,7 @@ type ClientGameLoaders = {
 };
 
 const CLIENT_GAME_LOADERS: ClientGameLoaders = {
-  werewolf: null,
+  werewolf: async () => (await import('@/games/werewolf/module')).createWerewolfClientModule,
   fibking: null,
   pictionary: null,
   undercover: null,

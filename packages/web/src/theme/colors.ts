@@ -83,6 +83,7 @@ const ALPHA_VARIANTS: readonly (readonly [keyof typeof colors, number])[] = [
   ['primary', 3],
   ['primary', 8],
   ['primary', 10],
+  ['primary', 12],
   ['primary', 15],
   ['primary', 25],
   ['primary', 40],

@@ -30,9 +30,11 @@ import type {
   RoomReviewDocument,
 } from '@/features/room/review/types';
 import { demoReview } from '@/games/demo/review/demoReview';
+import { werewolfReview } from '@/games/werewolf/review/werewolfReview';
 import { DEMO_REVIEW_ROUNDS } from '@/test-utils/demoState';
 import type { ReviewTestRounds } from '@/test-utils/reviewTestRounds';
 import { viewerFor } from '@/test-utils/roomViewer';
+import { WEREWOLF_REVIEW_ROUNDS } from '@/test-utils/werewolfNightReview';
 
 const ROOM_CODE = '1234';
 const HOST = viewerFor('host');
@@ -68,6 +70,7 @@ function reviewCase<TState>(
 }
 
 const REVIEW_CONTRACT = {
+  werewolf: reviewCase(werewolfReview, WEREWOLF_REVIEW_ROUNDS),
   demo: reviewCase(demoReview, DEMO_REVIEW_ROUNDS),
 } as const satisfies Partial<Record<GameType, ReviewContractCase>>;
 

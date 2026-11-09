@@ -1,0 +1,18 @@
+.werewolf-nomination-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-micro);
+  padding: var(--space-micro) var(--space-small);
+  border: none;
+  border-radius: var(--radius-small);
+  background: var(--color-primary-a10);
+  color: var(--color-primary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.werewolf-bgm-toggle[data-playing='true'] {
+  color: var(--color-primary);
+}

@@ -10,7 +10,8 @@
  * hands the replay to the game's `resume` (the core's
  * `resumeInterrupted`), fire-and-forget: the dialog never waits on
  * playback. The mark is a core-side flag, not React state, so it is
- * re-read on every authoritative revision.
+ * re-read on every authoritative revision. Leaving the room page while
+ * the gate is due releases the alert block.
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -21,8 +22,6 @@ export interface RoomAudioResumeOptions {
   readonly isHost: boolean;
   /** The game is in a phase with host narration (e.g. the night). */
   readonly isNarratedPhase: boolean;
-  /** Hidden (blurred) screens show no dialog and run no side effects. */
-  readonly isFocused: boolean;
   /** Authoritative revision; the interruption mark is re-read when it changes. */
   readonly revision: number;
   /** The audio core's interruption mark, read fresh. */
@@ -46,7 +45,6 @@ export interface RoomAudioResume {
 export function useRoomAudioResume({
   isHost,
   isNarratedPhase,
-  isFocused,
   revision,
   readWasAudioInterrupted,
   resume,
@@ -55,14 +53,19 @@ export function useRoomAudioResume({
   const [isDue, setIsDue] = useState(false);
 
   useEffect(() => {
-    if (!isFocused || !isHost || !isNarratedPhase) return;
+    if (!isHost || !isNarratedPhase) return;
     if (!readWasAudioInterrupted()) return;
     setAlertBlocked(true);
     // The mark lives in the audio core with no subscription; reading it after each revision
     // commits is the synchronization this effect exists for.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsDue(true);
-  }, [isFocused, isHost, isNarratedPhase, readWasAudioInterrupted, revision]);
+  }, [isHost, isNarratedPhase, readWasAudioInterrupted, revision]);
+
+  useEffect(() => {
+    if (!isDue) return;
+    return () => setAlertBlocked(false);
+  }, [isDue]);
 
   const continueGame = useCallback(() => {
     setAlertBlocked(false);
@@ -71,5 +74,5 @@ export function useRoomAudioResume({
     void resume();
   }, [onResumed, resume]);
 
-  return { isDue: isFocused && isDue, continueGame };
+  return { isDue, continueGame };
 }

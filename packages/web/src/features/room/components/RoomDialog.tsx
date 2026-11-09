@@ -42,6 +42,10 @@ export function RoomDialog({
       onOpenChange={(details) => {
         if (!details.open) onClose();
       }}
+      // Room dialogs open from a confirmation alert's action (the review's spoiler gate), so the
+      // layer stack records them as nested in that alert and would dismiss them when it closes.
+      // Mounted means open: only the dialog's own close paths may close it.
+      onRequestDismiss={(event) => event.preventDefault()}
     >
       <Portal>
         <Dialog.Backdrop className="center-dialog-backdrop" />

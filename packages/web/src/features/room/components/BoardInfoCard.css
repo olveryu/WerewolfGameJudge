@@ -1,0 +1,101 @@
+.board-info-card {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--space-medium);
+  padding: var(--space-medium);
+  border: var(--border-width) solid var(--color-border-light);
+  border-top: var(--border-width-thick) solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.board-info-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+}
+
+.board-info-toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-small);
+  min-height: var(--size-min-touch-target);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.board-info-title {
+  flex: 1;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  line-height: var(--line-subtitle);
+  font-weight: var(--weight-semibold);
+}
+
+.board-info-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-micro);
+  padding: var(--space-micro) var(--space-small);
+  border: none;
+  border-radius: var(--radius-small);
+  background: var(--color-primary-a10);
+  color: var(--color-primary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.board-info-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+  margin-top: var(--space-small);
+}
+
+.board-info-category {
+  display: flex;
+  align-items: flex-start;
+}
+
+.board-info-category-label {
+  flex-shrink: 0;
+  width: calc(var(--space-xxlarge) * 2 + var(--space-tight));
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+.board-info-chips {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: var(--space-tight);
+}
+
+.board-info-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-small);
+  margin-top: var(--space-small);
+}
+
+.board-info-hint {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

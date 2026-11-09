@@ -62,6 +62,9 @@
   --size-icon-md: 20px;
   --size-icon-lg: 24px;
   --size-icon-xl: 32px;
+  --size-badge-dot: 8px;
+  --size-badge-sm: 16px;
+  --size-badge-md: 20px;
   --size-header: 56px;
   --size-modal-min-width: 280px;
   --size-min-touch-target: 44px;

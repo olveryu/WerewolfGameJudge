@@ -14,3 +14,20 @@ export interface NightStepProgress {
   /** Display label of the current step. */
   readonly label: string;
 }
+
+/**
+ * Resolves the progress for `currentStepId` within `steps`, or null
+ * when the step has no progress representation (unknown step or no
+ * label), letting callers fall back to a plain message ribbon.
+ */
+export function resolveStepProgress<TStep extends string>(
+  steps: readonly TStep[],
+  currentStepId: TStep,
+  labels: Readonly<Partial<Record<TStep, string>>>,
+): NightStepProgress | null {
+  const index = steps.indexOf(currentStepId);
+  if (index < 0) return null;
+  const label = labels[currentStepId];
+  if (label === undefined) return null;
+  return { current: index + 1, total: steps.length, label };
+}

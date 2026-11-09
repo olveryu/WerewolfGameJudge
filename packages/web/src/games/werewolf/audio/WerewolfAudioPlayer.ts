@@ -19,7 +19,11 @@ export interface WerewolfAudioRuntime {
   readonly playNightEnd: () => Promise<void>;
   readonly preloadRoles: (roles: readonly RoleId[]) => void;
   readonly stopNarration: () => void;
+  /** Starts background music: one URL loops, several shuffle; no-op while playing. */
+  readonly startBgm: (urls: readonly string[]) => void;
   readonly stopBgm: () => void;
+  readonly setBgmVolume: (volume: number) => void;
+  readonly setGameAudioVolume: (volume: number) => void;
   readonly clearPreloaded: () => void;
 }
 
@@ -27,7 +31,10 @@ export interface WerewolfAudioPlaybackPort {
   playClip(clip: AudioClip): Promise<void>;
   preloadClips(clips: readonly AudioClip[]): void;
   stop(): void;
+  startBgm(urls: readonly string[]): void;
   stopBgm(): void;
+  setBgmVolume(volume: number): void;
+  setGameAudioVolume(volume: number): void;
   clearPreloaded(): void;
 }
 
@@ -54,7 +61,14 @@ export class WerewolfAudioPlayer implements WerewolfAudioRuntime {
 
   readonly stopNarration = (): void => this.#audioService.stop();
 
+  readonly startBgm = (urls: readonly string[]): void => this.#audioService.startBgm(urls);
+
   readonly stopBgm = (): void => this.#audioService.stopBgm();
+
+  readonly setBgmVolume = (volume: number): void => this.#audioService.setBgmVolume(volume);
+
+  readonly setGameAudioVolume = (volume: number): void =>
+    this.#audioService.setGameAudioVolume(volume);
 
   readonly clearPreloaded = (): void => this.#audioService.clearPreloaded();
 }

@@ -12,9 +12,11 @@ import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTyp
 
 import type { RoomGuidanceMatrix } from '@/features/room/model/RoomGuidanceMatrix';
 import { DEMO_GUIDANCE_MATRIX } from '@/games/demo/room/demoGuidanceMatrix';
+import { WEREWOLF_GUIDANCE_MATRIX } from '@/games/werewolf/room/werewolfGuidanceMatrix';
 import { PORTED_GAME_TYPES } from '@/test-utils/portedGames';
 
 const GUIDANCE_MATRICES: Partial<Record<GameType, RoomGuidanceMatrix<string>>> = {
+  werewolf: WEREWOLF_GUIDANCE_MATRIX,
   demo: DEMO_GUIDANCE_MATRIX,
 };
 

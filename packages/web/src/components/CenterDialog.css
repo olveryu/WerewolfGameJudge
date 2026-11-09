@@ -69,6 +69,10 @@
   flex: 1;
 }
 
+.center-dialog-actions[data-stacked='true'] {
+  flex-direction: column;
+}
+
 @keyframes center-dialog-fade {
   from {
     opacity: 0;

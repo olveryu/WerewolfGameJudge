@@ -1,5 +1,5 @@
 /**
- * useRoomAudioResume: the resume gate is due for a focused host in a
+ * useRoomAudioResume: the resume gate is due for the host in a
  * narrated phase while the core marks an interruption; continuing
  * unblocks alerts, hides the gate, restarts BGM and replays.
  */
@@ -14,7 +14,6 @@ vi.mock('@/utils/alert', () => ({ setAlertBlocked: vi.fn() }));
 interface Props {
   isHost: boolean;
   isNarratedPhase: boolean;
-  isFocused: boolean;
   revision: number;
   interrupted: boolean;
 }
@@ -32,7 +31,6 @@ function renderResume(initial: Props) {
       return useRoomAudioResume({
         isHost: props.isHost,
         isNarratedPhase: props.isNarratedPhase,
-        isFocused: props.isFocused,
         revision: props.revision,
         readWasAudioInterrupted: () => core.interrupted,
         resume,
@@ -47,7 +45,6 @@ function renderResume(initial: Props) {
 const due: Props = {
   isHost: true,
   isNarratedPhase: true,
-  isFocused: true,
   revision: 1,
   interrupted: true,
 };
@@ -55,7 +52,7 @@ const due: Props = {
 beforeEach(() => vi.clearAllMocks());
 
 describe('useRoomAudioResume', () => {
-  it('becomes due for the focused host mid-narration and blocks lower alerts', () => {
+  it('becomes due for the host mid-narration and blocks lower alerts', () => {
     const { result } = renderResume(due);
     expect(result.current.isDue).toBe(true);
     expect(setAlertBlocked).toHaveBeenCalledWith(true);
@@ -88,9 +85,9 @@ describe('useRoomAudioResume', () => {
     expect(resume).toHaveBeenCalledTimes(1);
   });
 
-  it('hides the gate while the screen is unfocused', () => {
-    const { result, rerender } = renderResume(due);
-    rerender({ ...due, isFocused: false });
-    expect(result.current.isDue).toBe(false);
+  it('releases the alert block when the room unmounts while the gate is due', () => {
+    const { unmount } = renderResume(due);
+    unmount();
+    expect(setAlertBlocked).toHaveBeenLastCalledWith(false);
   });
 });

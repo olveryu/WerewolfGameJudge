@@ -105,9 +105,8 @@ async function waitForSeatsReady(
 
     const isReadyToPrepare = await hostPage
       .getByTestId(TESTIDS.roomNextStepButton)
-      .getAttribute('aria-label')
-      .then((label) => label === '分配角色')
-      .catch(() => false);
+      .and(hostPage.getByRole('button', { name: '分配角色', exact: true }))
+      .isVisible();
     if (isReadyToPrepare) return;
   }
 

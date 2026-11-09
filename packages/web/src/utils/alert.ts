@@ -14,6 +14,11 @@ export interface AlertButton {
   disabled?: boolean;
 }
 
+/** 「知道了」: acknowledges an informational alert. */
+export const DISMISS_BUTTON: AlertButton = { text: '知道了', style: 'default' };
+/** 「取消」: closes the alert without acting. */
+export const CANCEL_BUTTON: AlertButton = { text: '取消', style: 'cancel' };
+
 /** Optional text input inside an alert. */
 export interface AlertInputConfig {
   placeholder?: string;
