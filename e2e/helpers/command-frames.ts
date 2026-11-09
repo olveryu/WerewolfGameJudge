@@ -233,17 +233,21 @@ export async function gateCommandFrames(page: Page): Promise<CommandFrameGate> {
   const waiters: HeldWaiter[] = [];
 
   await page.routeWebSocket('**/ws*', (ws: WebSocketRoute) => {
-    ws.connectToServer();
+    // server.send() forwards to the server; ws.send() sends back to the
+    // page. Forwarding must go through the server-side route, or every
+    // client frame is echoed back to the page (and the server never sees
+    // SYNC or any command).
+    const server = ws.connectToServer();
     ws.onMessage((message: string | Buffer) => {
       const frame = commandOf(message);
       if (frame === null) {
-        ws.send(message);
+        server.send(message);
         return;
       }
       const type = commandTypeOf(frame.command);
       const waiterIndex = type === null ? -1 : waiters.findIndex((w) => w.commandType === type);
       if (waiterIndex === -1) {
-        ws.send(message);
+        server.send(message);
         return;
       }
       const waiter = waiters.splice(waiterIndex, 1)[0]!;
@@ -259,7 +263,7 @@ export async function gateCommandFrames(page: Page): Promise<CommandFrameGate> {
           released = true;
           const index = held.indexOf(heldCommand);
           if (index !== -1) held.splice(index, 1);
-          ws.send(message);
+          server.send(message);
         },
       };
       held.push(heldCommand);
