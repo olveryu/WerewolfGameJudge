@@ -1,6 +1,6 @@
 /** Shared runtime decoders for infrastructure-level HTTP response shapes. */
 
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
 const successResponseSchema = z.strictObject({ success: z.literal(true) });
 const urlResponseSchema = z.strictObject({ url: z.url() });

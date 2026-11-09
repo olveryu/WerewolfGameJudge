@@ -1,24 +1,24 @@
 /** Exact runtime decoders for Cloudflare authentication endpoint responses. */
 
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
 import { tokenPairSchema } from '@/platform/auth/tokenPair';
 import type { GetCurrentUserResponse } from '@/services/types/IAuthService';
 
 const userMetadataSchema = z.strictObject({
-  display_name: z.string().nullable(),
-  avatar_url: z.string().nullable(),
-  custom_avatar_url: z.string().nullable(),
-  avatar_frame: z.string().nullable(),
-  seat_flair: z.string().nullable(),
-  name_style: z.string().nullable(),
-  equipped_effect: z.string().nullable(),
-  seat_animation: z.string().nullable(),
+  display_name: z.nullable(z.string()),
+  avatar_url: z.nullable(z.string()),
+  custom_avatar_url: z.nullable(z.string()),
+  avatar_frame: z.nullable(z.string()),
+  seat_flair: z.nullable(z.string()),
+  name_style: z.nullable(z.string()),
+  equipped_effect: z.nullable(z.string()),
+  seat_animation: z.nullable(z.string()),
 });
 
 const authUserSchema = z.strictObject({
-  id: z.string().min(1),
-  email: z.email().nullable(),
+  id: z.string().check(z.minLength(1)),
+  email: z.nullable(z.email()),
   is_anonymous: z.boolean(),
   has_wechat: z.boolean(),
   user_metadata: userMetadataSchema,

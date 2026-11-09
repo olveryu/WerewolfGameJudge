@@ -1,12 +1,12 @@
 /** Strict local decoder for access-token claims issued by the Worker. */
 
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
 const accessTokenClaimsSchema = z.strictObject({
-  sub: z.string().min(1),
-  ver: z.number().int().nonnegative(),
-  iat: z.number().int().nonnegative(),
-  exp: z.number().int().positive(),
+  sub: z.string().check(z.minLength(1)),
+  ver: z.int().check(z.nonnegative()),
+  iat: z.int().check(z.nonnegative()),
+  exp: z.int().check(z.positive()),
 });
 
 export interface AccessTokenClaims {

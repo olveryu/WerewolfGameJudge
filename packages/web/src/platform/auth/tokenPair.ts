@@ -1,10 +1,10 @@
 /** Exact decoder for the Worker's rotated token pair. */
 
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
 export const tokenPairSchema = {
-  access_token: z.string().min(1),
-  refresh_token: z.string().min(1),
+  access_token: z.string().check(z.minLength(1)),
+  refresh_token: z.string().check(z.minLength(1)),
 };
 
 const tokenPairResponseSchema = z.strictObject(tokenPairSchema);
