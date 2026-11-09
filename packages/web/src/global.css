@@ -6,6 +6,19 @@
   box-sizing: border-box;
 }
 
+/* App-like touch behaviour: no long-press callout or text selection outside form fields. */
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 html,
 body,
 #root {
@@ -52,6 +65,31 @@ button {
 
 .alert-message {
   white-space: pre-line;
+}
+
+.boot-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-medium);
+  height: 100%;
+  color: var(--color-text-secondary);
+}
+
+/* Escape hatch when loading stalls: shown after 8 s without any script. */
+.boot-refresh {
+  color: var(--color-primary);
+  opacity: 0;
+  pointer-events: none;
+  animation: boot-refresh-reveal 0s linear 8s forwards;
+}
+
+@keyframes boot-refresh-reveal {
+  to {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 .visually-hidden {

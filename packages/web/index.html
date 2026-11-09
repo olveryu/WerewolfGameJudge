@@ -3,12 +3,28 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#FFFFFF" />
     <meta name="description" content="本地/离线狼人杀游戏辅助工具，支持多人联机" />
     <meta name="format-detection" content="telephone=no" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="狼人面杀电子裁判助手" />
+    <meta property="og:description" content="在线狼人杀裁判助手，输入房间号即可加入游戏" />
+    <meta property="og:image" content="https://werewolfgamer.com/assets/pwa/icon-512.png" />
+    <meta property="og:url" content="https://werewolfgamer.com" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:site_name" content="狼人面杀电子裁判助手" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/pwa/icon-192.png" />
+    <link rel="apple-touch-icon" href="/assets/pwa/apple-touch-icon.png" />
     <title>狼人面杀电子裁判助手</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Replaced by the first React render; the refresh link appears by CSS if loading stalls. -->
+      <div class="boot-placeholder">
+        <span>加载中…</span>
+        <a class="boot-refresh" href="">刷新页面</a>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
