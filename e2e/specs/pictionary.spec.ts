@@ -3,7 +3,7 @@
 import { getPictionaryRelayStepCount } from '@game-judge/game-engine/games/pictionary/public';
 import { expect, type Page, test } from '@playwright/test';
 
-import { FETCH_RETRY_COUNT } from '../../packages/web/src/config/api';
+import { FETCH_RETRY_COUNT } from '../../packages/web/src/config/networkRetry';
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { downloadReviewImage, expectWeChatImageShare, readPngSize } from '../helpers/image-sharing';
@@ -483,7 +483,7 @@ test.describe('Pictionary', () => {
       await guestRoom.seatAt(1);
       const panel = await hostRoom.openHostManagement();
       await panel.getByRole('button', { name: '填充机器人', exact: true }).click();
-      await hostPage.getByRole('dialog').getByText('确定', { exact: true }).click();
+      await hostPage.getByRole('alertdialog').getByText('确定', { exact: true }).click();
       await hostRoom.startRound();
       await hostPage.getByTestId(TESTIDS.pictionaryTextInput).fill('保留的原始题目');
       await expect(hostPage.getByText('把这句话画出来', { exact: true })).toBeVisible({
@@ -497,7 +497,7 @@ test.describe('Pictionary', () => {
       await (await hostRoom.openHostManagement())
         .getByRole('button', { name: '中止本局', exact: true })
         .click();
-      await hostPage.getByRole('dialog').getByText('确定', { exact: true }).click();
+      await hostPage.getByRole('alertdialog').getByText('确定', { exact: true }).click();
       for (const page of fixture.pages) {
         await expect(page.getByText('第 1 轮未完成，房主已中止。', { exact: true })).toBeVisible();
         await expect(page.getByRole('button', { name: '再来一局', exact: true })).toHaveCount(0);

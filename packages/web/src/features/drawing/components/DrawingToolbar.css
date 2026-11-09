@@ -1,0 +1,283 @@
+.drawing-toolbar {
+  display: flex;
+  gap: var(--space-tight);
+  border-top: var(--border-width) solid var(--color-border-light);
+  border-bottom: var(--border-width) solid var(--color-border-light);
+}
+
+.drawing-toolbar-button {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-tight);
+  min-width: var(--size-min-touch-target);
+  height: calc(var(--size-min-touch-target) + var(--space-medium));
+  padding: 0 var(--space-tight);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-small);
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.drawing-toolbar-button[data-selected='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-a15);
+  color: var(--color-primary);
+}
+
+.drawing-toolbar-button:active:not(:disabled) {
+  opacity: var(--opacity-pressed);
+}
+
+.drawing-toolbar-button:disabled {
+  cursor: default;
+  opacity: var(--opacity-disabled);
+}
+
+.drawing-toolbar-icon {
+  font-size: var(--size-icon-sm);
+}
+
+.drawing-toolbar-caption {
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.drawing-toolbar-color-dot {
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+.drawing-toolbar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--color-overlay);
+}
+
+.drawing-toolbar-positioner {
+  position: fixed;
+  inset: 0;
+}
+
+.drawing-toolbar-panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+}
+
+.drawing-toolbar-panel-title {
+  flex: 1;
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  line-height: var(--line-subtitle);
+  font-weight: var(--weight-semibold);
+}
+
+.drawing-toolbar-panel-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-min-touch-target);
+  min-height: var(--size-min-touch-target);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--size-icon-md);
+  cursor: pointer;
+}
+
+/* Tool and width panels: bottom sheet on phones, centred card on wide screens. */
+.drawing-toolbar-sheet-positioner {
+  display: flex;
+  align-items: flex-end;
+}
+
+.drawing-toolbar-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  width: 100%;
+  max-height: 70%;
+  overflow-y: auto;
+  padding: var(--space-medium);
+  border-radius: var(--radius-large) var(--radius-large) 0 0;
+  background: var(--color-background);
+}
+
+@media (min-width: 768px) {
+  .drawing-toolbar-sheet-positioner {
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-large);
+  }
+
+  .drawing-toolbar-sheet {
+    max-width: var(--size-max-content-width);
+    border-radius: var(--radius-large);
+  }
+}
+
+.drawing-toolbar-option-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-small);
+}
+
+.drawing-toolbar-option-grid > .drawing-toolbar-button {
+  flex: 0 0 var(--size-min-touch-target);
+}
+
+.drawing-width-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-min-touch-target);
+  height: var(--size-min-touch-target);
+  padding: 0;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.drawing-width-option[aria-pressed='true'] {
+  border-color: var(--color-primary);
+}
+
+.drawing-width-dot {
+  border-radius: var(--radius-full);
+}
+
+/* Colour panel: docked sheet below 600px, otherwise a popover above the colour button. */
+.drawing-color-panel {
+  --drawing-color-popover-width: 320px;
+
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  overflow-y: auto;
+  padding: var(--space-medium);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.drawing-color-panel[data-placement='popover'] {
+  width: var(--drawing-color-popover-width);
+}
+
+.drawing-color-panel[data-placement='sheet'] {
+  right: 0;
+  bottom: 0;
+  left: 0;
+  max-height: calc(100dvh - env(safe-area-inset-top) - var(--space-medium));
+  padding-bottom: max(env(safe-area-inset-bottom), var(--space-medium));
+  border-radius: var(--radius-large) var(--radius-large) 0 0;
+}
+
+.drawing-color-current {
+  width: var(--space-large);
+  height: var(--space-large);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+.drawing-color-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+}
+
+.drawing-color-section-title {
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+.drawing-swatch-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-small);
+}
+
+.drawing-swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-xlarge);
+  height: var(--space-xlarge);
+  padding: 0;
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-full);
+  color: var(--color-text);
+  font-size: var(--size-icon-sm);
+  cursor: pointer;
+}
+
+.drawing-swatch[data-dark='true'] {
+  color: var(--color-text-inverse);
+}
+
+.drawing-swatch-custom {
+  border: none;
+  background: conic-gradient(
+    var(--color-error),
+    var(--color-warning),
+    var(--color-success),
+    var(--color-info),
+    var(--color-primary),
+    var(--color-error)
+  );
+  color: var(--color-text-inverse);
+}
+
+.drawing-color-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+}
+
+.drawing-color-picker-area {
+  position: relative;
+  height: calc(var(--space-xlarge) * 4.5);
+  overflow: hidden;
+  border-radius: var(--radius-small);
+}
+
+.drawing-color-picker-area-background {
+  height: 100%;
+}
+
+.drawing-color-picker-hue {
+  position: relative;
+  height: var(--size-min-touch-target);
+}
+
+.drawing-color-picker-hue-track {
+  height: 100%;
+  border-radius: var(--radius-small);
+}
+
+.drawing-color-picker-thumb {
+  width: var(--space-large);
+  height: var(--space-large);
+  border: var(--border-width-thick) solid var(--color-surface);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+}
+
+.drawing-color-picker-preview {
+  height: var(--space-large);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-small);
+}

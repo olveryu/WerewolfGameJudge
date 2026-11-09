@@ -19,6 +19,11 @@
   overflow-y: auto;
 }
 
+/* An empty flex item would shrink to 0 in the overflowing column and void the top-follow room. */
+.gallery-album-spacer {
+  flex-shrink: 0;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .gallery-album-list {
     scroll-behavior: smooth;

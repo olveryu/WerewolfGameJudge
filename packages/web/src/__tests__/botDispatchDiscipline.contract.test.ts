@@ -47,7 +47,8 @@ const DISPATCH_SITES: Record<GameType, readonly string[]> = {
   fibking: ['games/fibking/room/hooks/useFibRoomState.ts'],
   pictionary: [
     'games/pictionary/room/hooks/usePictionaryRoomState.ts',
-    'games/pictionary/room/components/PictionaryTaskStage.tsx',
+    'games/pictionary/room/components/PictionaryStage.tsx',
+    'games/pictionary/room/components/PictionaryTaskLayout.tsx',
     'games/pictionary/room/components/PictionaryGalleryStage.tsx',
   ],
   storyrelay: [

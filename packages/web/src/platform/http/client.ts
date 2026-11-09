@@ -1,5 +1,6 @@
 /** Composition root for the application's single `ApiClient` and its token store. */
-import { API_BASE_URL, API_TIMEOUT_MS, FETCH_RETRY_BASE_MS, FETCH_RETRY_COUNT } from '@/config/api';
+import { API_BASE_URL, API_TIMEOUT_MS } from '@/config/api';
+import { FETCH_RETRY_BASE_MS, FETCH_RETRY_COUNT } from '@/config/networkRetry';
 import { AuthTokenStore } from '@/platform/auth/AuthTokenStore';
 import { storage } from '@/services/infra/localStorage';
 import { apiLog } from '@/utils/logger';
