@@ -88,6 +88,8 @@ export const roomScreenLog = createLogger('RoomScreen');
 export const roomSessionLog = createLogger('RoomSession');
 
 export const realtimeLog = createLogger('Realtime');
+/** Audio playback. */
+export const audioLog = createLogger('Audio');
 /** Room configuration. */
 export const configLog = createLogger('Config');
 /** Stats / personal data. */

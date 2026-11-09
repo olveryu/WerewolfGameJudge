@@ -5,6 +5,7 @@ import type { GameNavigationContribution } from '@/features/navigation/model/Gam
 import type { RoomAccountCapability } from '@/features/room/model/RoomAccountCapability';
 import type { RegisteredRoomUiModule } from '@/features/room/model/RoomUiModule';
 import type { RoomLinkFactory } from '@/platform/realtime/RoomLinkFactory';
+import type { AudioService } from '@/services/infra/AudioService';
 
 export interface ClientGameModule<
   TGameType extends GameType = GameType,
@@ -15,6 +16,7 @@ export interface ClientGameModule<
 
 export interface ClientGameModuleDependencies {
   readonly roomLinks: RoomLinkFactory;
+  readonly audioService: AudioService;
 }
 
 /** A game's lazily loaded client entry: one module factory per game chunk. */

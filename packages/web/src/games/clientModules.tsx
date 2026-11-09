@@ -113,9 +113,12 @@ const ClientGameModulesContext = createContext<ClientGameModules | null>(null);
 
 /** Creates the page's client game modules from the app services. */
 export function ClientGameModulesProvider({ children }: { readonly children: ReactNode }) {
-  const { loadRoomLinks } = useServices();
+  const { loadRoomLinks, loadAudioService } = useServices();
   const [modules] = useState(() =>
-    createClientGameModules(async () => ({ roomLinks: await loadRoomLinks() })),
+    createClientGameModules(async () => {
+      const [roomLinks, audioService] = await Promise.all([loadRoomLinks(), loadAudioService()]);
+      return { roomLinks, audioService };
+    }),
   );
   return <ClientGameModulesContext value={modules}>{children}</ClientGameModulesContext>;
 }

@@ -8,6 +8,7 @@ import { createContext, use } from 'react';
 import type { RoomCreator, RoomDirectory } from '@/features/room/model/RoomDirectory';
 import type { InboxWakeSignal } from '@/platform/inbox/inboxWake';
 import type { RoomFlowScope, RoomLinkFactory } from '@/platform/realtime/RoomLinkFactory';
+import type { AudioService } from '@/services/infra/AudioService';
 import type { IAuthService } from '@/services/types/IAuthService';
 import type { IAvatarUploadService } from '@/services/types/IAvatarUploadService';
 
@@ -20,6 +21,8 @@ export interface ServiceContextValue {
   loadRoomLinks: () => Promise<RoomLinkFactory>;
   /** Closes room links outside the current route's room and user (`RoomLinkFactory.releaseOutside`). */
   releaseRoomLinksOutside: (scope: RoomFlowScope) => void;
+  /** The page's one narration player, created on first use. */
+  loadAudioService: () => Promise<AudioService>;
   avatarUploadService: IAvatarUploadService;
   /** Room links emit on `live` and INBOX_HINT; the account inbox consumer drains on it. */
   inboxWakes: InboxWakeSignal;

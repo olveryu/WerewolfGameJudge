@@ -30,8 +30,18 @@ import type {
   ClientGameModuleDependencies,
 } from '@/games/model/ClientGameModule';
 import type { RoomLink } from '@/platform/realtime/types';
+import type { AudioService } from '@/services/infra/AudioService';
 
-export interface ClientGameModuleDefinition<
+type BoundRoomScreenProps<
+  TGameType extends GameType,
+  TState extends BaseGameState<TGameType>,
+  TCommand extends object,
+> = GameRoomScreenProps<TGameType> & {
+  readonly session: RoomLink<TState, TCommand>;
+  readonly review: RoomReviewContribution<TState>;
+};
+
+interface ClientGameModuleDefinitionBase<
   TGameType extends GameType,
   TState extends BaseGameState<TGameType>,
   TCommand extends object,
@@ -47,12 +57,6 @@ export interface ClientGameModuleDefinition<
     SupportedGameNavigationRoute,
     GameNavigationRouteDefinition
   >;
-  readonly RoomScreen: ComponentType<
-    GameRoomScreenProps<TGameType> & {
-      readonly session: RoomLink<TState, TCommand>;
-      readonly review: RoomReviewContribution<TState>;
-    }
-  >;
   /** Lobby configuration: the game declares its schema-driven page through the definer. */
   readonly config: (
     define: GameConfigDefiner<TGameType, TState, TCommand>,
@@ -65,15 +69,39 @@ export interface ClientGameModuleDefinition<
   readonly canSwitchAccount: (state: TState) => boolean;
 }
 
+/**
+ * A game with narration declares `audio`: its player is created once per module from the page's
+ * audio service, and its room screen also receives that player.
+ */
+export type ClientGameModuleDefinition<
+  TGameType extends GameType,
+  TState extends BaseGameState<TGameType>,
+  TCommand extends object,
+  TAudio = undefined,
+> = ClientGameModuleDefinitionBase<TGameType, TState, TCommand> &
+  (
+    | {
+        readonly RoomScreen: ComponentType<BoundRoomScreenProps<TGameType, TState, TCommand>>;
+        readonly audio?: undefined;
+      }
+    | {
+        readonly RoomScreen: ComponentType<
+          BoundRoomScreenProps<TGameType, TState, TCommand> & { readonly audio: TAudio }
+        >;
+        readonly audio: { readonly create: (audioService: AudioService) => TAudio };
+      }
+  );
+
 /** Assembles one session-based client game module from its game-owned parts. */
 export function defineClientGameModule<
   const TGameType extends GameType,
   TState extends BaseGameState<TGameType>,
   TCommand extends object,
+  TAudio = undefined,
 >(
-  definition: ClientGameModuleDefinition<TGameType, TState, TCommand>,
+  definition: ClientGameModuleDefinition<TGameType, TState, TCommand, TAudio>,
 ): (dependencies: ClientGameModuleDependencies) => ClientGameModule<TGameType> {
-  return ({ roomLinks }) => {
+  return ({ roomLinks, audioService }) => {
     // The command-erased session dispatches any command object: the room-account capability's
     // commands are a subset of every game's public command union by engine construction.
     const session = roomLinks.create<TState, object>(definition.stateCodec);
@@ -93,12 +121,22 @@ export function defineClientGameModule<
     function BoundGuideScreen() {
       return createElement(GuideScreen, { session });
     }
-    const { RoomScreen, review } = definition;
-    function BoundRoomScreen(props: GameRoomScreenProps<TGameType>) {
-      return createElement(RoomScreen, { ...props, session, review });
+    const { review } = definition;
+    let roomScreen: ComponentType<GameRoomScreenProps<TGameType>>;
+    if (definition.audio === undefined) {
+      const { RoomScreen } = definition;
+      roomScreen = function BoundRoomScreen(props: GameRoomScreenProps<TGameType>) {
+        return createElement(RoomScreen, { ...props, session, review });
+      };
+    } else {
+      const { RoomScreen } = definition;
+      const audio = definition.audio.create(audioService);
+      roomScreen = function BoundRoomScreen(props: GameRoomScreenProps<TGameType>) {
+        return createElement(RoomScreen, { ...props, session, review, audio });
+      };
     }
     return {
-      ...registerRoomUiModule({ gameType: definition.gameType, roomScreen: BoundRoomScreen }),
+      ...registerRoomUiModule({ gameType: definition.gameType, roomScreen }),
       navigation: bindGameNavigation(definition.navigation, {
         config: BoundConfigScreen,
         guide: BoundGuideScreen,
