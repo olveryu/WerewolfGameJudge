@@ -1,0 +1,129 @@
+/* Floating take-over button: translucent while idle, red and pulsing when a bot must act. */
+.bot-takeover-fab {
+  position: absolute;
+  right: var(--space-medium);
+  bottom: var(--space-medium);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-min-touch-target);
+  height: var(--size-min-touch-target);
+  padding: 0;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text);
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.bot-takeover-fab svg {
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+}
+
+.bot-takeover-fab[data-urgent] {
+  border-color: var(--color-error);
+  background: var(--color-error);
+  color: var(--color-text-inverse);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bot-takeover-fab[data-urgent] {
+    animation: bot-takeover-pulse 600ms ease-in-out infinite alternate;
+  }
+}
+
+@keyframes bot-takeover-pulse {
+  to {
+    transform: scale(1.1);
+  }
+}
+
+.bot-takeover-fab-badge {
+  position: absolute;
+  top: calc(-1 * var(--space-tight));
+  right: calc(-1 * var(--space-tight));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-badge-sm);
+  height: var(--size-badge-sm);
+  box-sizing: border-box;
+  padding: 0 var(--space-micro);
+  border-radius: var(--radius-full);
+  background: var(--color-text-secondary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.bot-takeover-fab[data-urgent] .bot-takeover-fab-badge {
+  background: var(--color-text-inverse);
+  color: var(--color-error);
+}
+
+.bot-takeover-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  padding: var(--space-medium);
+}
+
+.bot-takeover-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bot-takeover-sheet-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-subtitle);
+}
+
+.bot-takeover-sheet-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bot-takeover-sheet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-small);
+  padding: var(--space-small) 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.bot-takeover-sheet-row-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-micro);
+  min-width: 0;
+}
+
+.bot-takeover-sheet-row-title,
+.bot-takeover-sheet-row-subtitle {
+  margin: 0;
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.bot-takeover-sheet-row-title {
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+
+.bot-takeover-sheet-row-subtitle {
+  color: var(--color-text-secondary);
+}

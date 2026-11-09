@@ -1,0 +1,147 @@
+/* Story Relay stage: fills the room workspace; the takeover button floats over it. */
+.storyrelay-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.storyrelay-retry-row,
+.storyrelay-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-small);
+}
+
+.storyrelay-retry-row {
+  padding: var(--space-small);
+  border-top: var(--border-width) solid var(--color-border-light);
+}
+
+.storyrelay-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-medium);
+  align-self: center;
+  width: 100%;
+  max-width: 800px;
+  box-sizing: border-box;
+  padding: var(--space-medium);
+}
+
+/* Keeps the task frame's wider horizontal padding for the editor column. */
+.storyrelay-task-frame {
+  padding-right: var(--space-medium);
+  padding-left: var(--space-medium);
+}
+
+.storyrelay-title {
+  flex-shrink: 1;
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-subtitle);
+}
+
+.storyrelay-text {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.storyrelay-muted,
+.storyrelay-error,
+.storyrelay-settling-reminder,
+.storyrelay-viewer-notice {
+  margin: 0;
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.storyrelay-muted,
+.storyrelay-settling-reminder,
+.storyrelay-viewer-notice {
+  color: var(--color-text-secondary);
+}
+
+.storyrelay-error {
+  color: var(--color-error);
+}
+
+.storyrelay-settling-reminder {
+  padding: var(--space-small) var(--space-medium) 0;
+  text-align: center;
+}
+
+.storyrelay-previous {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  max-height: 28%;
+  min-height: 0;
+  padding: var(--space-small) 0 var(--space-small) var(--space-medium);
+  border-left: var(--border-width-thick) solid var(--color-primary);
+}
+
+.storyrelay-previous-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.storyrelay-editor {
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  resize: none;
+}
+
+.storyrelay-editor::placeholder {
+  color: var(--color-text-muted);
+}
+
+.storyrelay-ended-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+}
+
+.storyrelay-entry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  padding: var(--space-medium) 0;
+  border-bottom: var(--border-width) solid var(--color-border-light);
+}
+
+.storyrelay-entry[data-selected] {
+  background: var(--color-surface-hover);
+}
+
+.storyrelay-viewer-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-small);
+  min-height: var(--size-min-touch-target);
+}
+
+.storyrelay-viewer-notice svg {
+  flex-shrink: 0;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}

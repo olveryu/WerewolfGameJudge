@@ -31,7 +31,7 @@ const CLIENT_GAME_LOADERS: ClientGameLoaders = {
   pictionary: null,
   undercover: async () => (await import('@/games/undercover/module')).createUndercoverClientModule,
   drawguess: null,
-  storyrelay: null,
+  storyrelay: async () => (await import('@/games/storyrelay/module')).createStoryRelayClientModule,
   avalon: null,
   demo: async () => (await import('@/games/demo/module')).createDemoClientModule,
 };

@@ -13,6 +13,7 @@ import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTyp
 import type { RoomGuidanceMatrix } from '@/features/room/model/RoomGuidanceMatrix';
 import { DEMO_GUIDANCE_MATRIX } from '@/games/demo/room/demoGuidanceMatrix';
 import { FIBKING_GUIDANCE_MATRIX } from '@/games/fibking/room/fibGuidanceMatrix';
+import { STORY_RELAY_GUIDANCE_MATRIX } from '@/games/storyrelay/room/storyRelayGuidanceMatrix';
 import { UNDERCOVER_GUIDANCE_MATRIX } from '@/games/undercover/room/undercoverGuidanceMatrix';
 import { WEREWOLF_GUIDANCE_MATRIX } from '@/games/werewolf/room/werewolfGuidanceMatrix';
 import { PORTED_GAME_TYPES } from '@/test-utils/portedGames';
@@ -21,6 +22,7 @@ const GUIDANCE_MATRICES: Partial<Record<GameType, RoomGuidanceMatrix<string>>> =
   werewolf: WEREWOLF_GUIDANCE_MATRIX,
   undercover: UNDERCOVER_GUIDANCE_MATRIX,
   fibking: FIBKING_GUIDANCE_MATRIX,
+  storyrelay: STORY_RELAY_GUIDANCE_MATRIX,
   demo: DEMO_GUIDANCE_MATRIX,
 };
 

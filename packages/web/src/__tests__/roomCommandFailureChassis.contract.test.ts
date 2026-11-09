@@ -15,6 +15,7 @@ import { join } from 'node:path';
 
 import type { DemoState } from '@game-judge/game-engine/games/demo/public';
 import type { FibState } from '@game-judge/game-engine/games/fibking/public';
+import type { StoryRelayState } from '@game-judge/game-engine/games/storyrelay/public';
 import type { UndercoverState } from '@game-judge/game-engine/games/undercover/public';
 import {
   REASON_COMMAND_ID_CONFLICT,
@@ -37,6 +38,7 @@ import {
 
 import { getDemoRoomCommandFailureMessage } from '@/games/demo/room/demoRoomCommandFailureMessage';
 import { getFibRoomCommandFailureMessage } from '@/games/fibking/room/fibRoomCommandFailureMessage';
+import { getStoryRelayRoomCommandFailureMessage } from '@/games/storyrelay/room/storyRelayRoomCommandFailureMessage';
 import { getUndercoverRoomCommandFailureMessage } from '@/games/undercover/room/undercoverRoomCommandFailureMessage';
 import { rejectedRoomCommand } from '@/test-utils/roomCommand';
 import { translateReasonCode } from '@/utils/errorUtils';
@@ -110,6 +112,13 @@ const PRESENTERS: ReadonlyArray<{ game: string; present: (reason: string) => str
     present: (reason) =>
       getFibRoomCommandFailureMessage(rejectedRoomCommand<FibState>(reason, 'chassis-pin')),
   },
+  {
+    game: 'storyrelay',
+    present: (reason) =>
+      getStoryRelayRoomCommandFailureMessage(
+        rejectedRoomCommand<StoryRelayState>(reason, 'chassis-pin'),
+      ),
+  },
 ];
 
 /** Game presenter sources scanned for chassis entries. */
@@ -117,6 +126,7 @@ const PRESENTER_SOURCES = [
   'packages/web/src/games/demo/room/demoRoomCommandFailureMessage.ts',
   'packages/web/src/games/undercover/room/undercoverRoomCommandFailureMessage.ts',
   'packages/web/src/games/fibking/room/fibRoomCommandFailureMessage.ts',
+  'packages/web/src/games/storyrelay/room/storyRelayRoomCommandFailureMessage.ts',
 ];
 
 describe('room command failure chassis copy (B-2)', () => {

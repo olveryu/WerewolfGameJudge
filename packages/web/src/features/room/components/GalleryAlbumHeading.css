@@ -1,0 +1,60 @@
+.gallery-album-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-medium);
+}
+
+.gallery-album-heading-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.gallery-album-heading-eyebrow {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.gallery-album-heading-title {
+  margin: var(--space-tight) 0 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-subtitle);
+}
+
+.gallery-album-heading-description {
+  margin: var(--space-tight) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.gallery-album-heading-timer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-tight);
+  min-width: calc(2 * var(--size-min-touch-target));
+  height: var(--size-min-touch-target);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-secondary);
+}
+
+.gallery-album-heading-timer svg {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+.gallery-album-heading-timer[data-urgent] {
+  background: var(--color-error-a15);
+  color: var(--color-error);
+}

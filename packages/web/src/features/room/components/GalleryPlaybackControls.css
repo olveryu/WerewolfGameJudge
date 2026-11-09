@@ -1,0 +1,11 @@
+.gallery-playback-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-small);
+}
+
+.gallery-playback-toggle-icon {
+  color: var(--color-primary);
+}

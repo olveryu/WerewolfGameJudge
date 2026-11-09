@@ -1,0 +1,128 @@
+/*
+ * No top margin and tight vertical padding: at the reduced keyboard viewport (390x480) the
+ * writing stage is short, and every pixel above the bar is a pixel the editor cannot use.
+ */
+.answering-top-bar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-small);
+  margin: 0 var(--space-medium);
+  padding: var(--space-micro) var(--space-small);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.answering-top-bar-ring {
+  position: relative;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+}
+
+.answering-top-bar-ring svg {
+  display: block;
+}
+
+.answering-top-bar-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.answering-top-bar-ring-number {
+  color: var(--color-text);
+  font-size: var(--font-body);
+  font-weight: var(--weight-bold);
+  line-height: var(--line-body);
+}
+
+.answering-top-bar-ring-unit {
+  color: var(--color-text-muted);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+}
+
+.answering-top-bar-ring-unlimited {
+  color: var(--color-text);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+}
+
+.answering-top-bar-avatars {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-micro);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.answering-top-bar-avatar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-avatar-xs);
+  height: var(--size-avatar-xs);
+  box-sizing: border-box;
+  border: var(--border-width-thick) solid var(--color-surface);
+  border-radius: var(--radius-full);
+}
+
+.answering-top-bar-avatar-initial {
+  color: var(--color-text-inverse);
+  font-size: var(--font-caption-small);
+  font-weight: var(--weight-bold);
+  line-height: var(--line-caption-small);
+}
+
+/* Green ring painted outside the white border; absolute so it never shifts layout. */
+.answering-top-bar-ready-ring {
+  position: absolute;
+  inset: calc(-1 * var(--border-width-thick));
+  border: var(--border-width-thick) solid;
+  border-radius: var(--radius-full);
+}
+
+.answering-top-bar-dot {
+  position: absolute;
+  right: calc(-1 * (var(--border-width-thick) + var(--border-width)));
+  bottom: calc(-1 * (var(--border-width-thick) + var(--border-width)));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 11px;
+  height: 11px;
+  box-sizing: border-box;
+  border: var(--border-width-thick) solid var(--color-surface);
+  border-radius: var(--radius-full);
+  color: var(--color-text-inverse);
+}
+
+.answering-top-bar-dot svg {
+  width: var(--size-badge-dot);
+  height: var(--size-badge-dot);
+  flex-shrink: 0;
+}
+
+.answering-top-bar-status {
+  flex-shrink: 0;
+  margin: 0;
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.answering-top-bar-status-answering {
+  color: var(--color-text);
+  font-weight: var(--weight-bold);
+}
+
+.answering-top-bar-status-submitted {
+  color: var(--color-text-muted);
+  font-weight: var(--weight-medium);
+}
