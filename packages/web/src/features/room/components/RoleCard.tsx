@@ -19,7 +19,8 @@ function splitBullets(text: string): readonly string[] {
   return text.split('；').filter((part) => part.length > 0);
 }
 
-function DescriptionFields({ fields }: { readonly fields: readonly DescriptionField[] }) {
+/** Structured description fields; the accent follows the surrounding `--faction-color`. */
+export function DescriptionFields({ fields }: { readonly fields: readonly DescriptionField[] }) {
   return (
     <div className="role-card-fields">
       {fields.map((field) => {

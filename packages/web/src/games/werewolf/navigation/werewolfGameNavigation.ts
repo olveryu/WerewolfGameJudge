@@ -38,7 +38,7 @@ function parseGuideRoleId(value: unknown): RoleId | undefined {
   return value;
 }
 
-const parseWerewolfGuideRouteParams: (params: unknown) => WerewolfGuideRouteParams =
+export const parseWerewolfGuideRouteParams: (params: unknown) => WerewolfGuideRouteParams =
   createStandardGuideRouteParser({
     gameType: 'werewolf',
     displayName: 'Werewolf',

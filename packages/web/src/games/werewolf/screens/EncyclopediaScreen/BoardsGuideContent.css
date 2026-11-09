@@ -1,0 +1,29 @@
+.boards-guide-active-filter {
+  display: flex;
+  flex-shrink: 0;
+  margin-bottom: var(--space-small);
+  padding: 0 var(--space-screen-h);
+}
+
+.boards-guide-active-filter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-tight);
+  padding: var(--space-micro) var(--space-small);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-a10);
+  color: var(--color-primary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-medium);
+}
+
+.boards-guide-active-filter-clear {
+  display: inline-flex;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: var(--size-icon-sm);
+  cursor: pointer;
+}

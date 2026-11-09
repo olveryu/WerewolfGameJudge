@@ -98,6 +98,9 @@ const ALPHA_VARIANTS: readonly (readonly [keyof typeof colors, number])[] = [
   ['info', 8],
   ['background', 85],
   ['textMuted', 30],
+  ...(
+    ['info', 'success', 'error', 'warning', 'primaryLight', 'textSecondary', 'textMuted'] as const
+  ).map((token) => [token, 12] as const),
   ...(['wolf', 'god', 'villager', 'third'] as const).flatMap((faction) =>
     [6, 12, 15, 25, 30].map((percent) => [faction, percent] as const),
   ),

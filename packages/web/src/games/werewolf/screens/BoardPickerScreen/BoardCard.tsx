@@ -1,4 +1,7 @@
 /** BoardCard — single board card (expand/collapse + faction stats + key role chips). */
+import '@/games/werewolf/components/faction.css';
+import './BoardCard.css';
+
 import {
   getPlayerCount,
   type PresetTemplate,
@@ -30,7 +33,8 @@ interface BoardCardProps {
   readonly template: PresetTemplate;
   readonly isExpanded: boolean;
   readonly onToggleExpand: (name: string) => void;
-  readonly onSelect: (name: string) => void;
+  /** Omitted in the guide, which only browses boards: no select button. */
+  readonly onSelect?: (name: string) => void;
   readonly onRolePress: (roleId: RoleId) => void;
   readonly onStrategyPress: (name: string) => void;
   readonly maxChips: number;
@@ -92,23 +96,30 @@ export function BoardCard({
           <hr className="board-card-divider" />
           <FactionRoleList roles={template.roles} showStats={false} onRolePress={onRolePress} />
           <p className="board-card-hint">
-            <IconInformationCircleOutline aria-hidden /> 点击角色名查看能力说明 · 选板后仍可增减角色
+            <IconInformationCircleOutline aria-hidden /> 点击角色名查看能力说明
+            {onSelect === undefined ? '' : ' · 选板后仍可增减角色'}
           </p>
-          <div className="board-card-actions">
+          <div className="board-card-actions" data-centered={onSelect === undefined}>
             {hasStrategy && (
-              <Button variant="secondary" size="sm" onClick={() => onStrategyPress(template.name)}>
+              <Button
+                variant={onSelect === undefined ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => onStrategyPress(template.name)}
+              >
                 <IconBookOutline aria-hidden />
                 查看攻略
               </Button>
             )}
-            <Button
-              variant="primary"
-              size="sm"
-              className="board-card-select"
-              onClick={() => onSelect(template.name)}
-            >
-              以此为基础
-            </Button>
+            {onSelect !== undefined && (
+              <Button
+                variant="primary"
+                size="sm"
+                className="board-card-select"
+                onClick={() => onSelect(template.name)}
+              >
+                以此为基础
+              </Button>
+            )}
           </div>
         </div>
       )}

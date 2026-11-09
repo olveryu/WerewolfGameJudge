@@ -55,7 +55,7 @@ interface ToRevealRoleDataOptions {
  * 把狼人杀结构化介绍转成共享 DescriptionField[]（卡链与图鉴共用一份字段表）。
  * 6 字段完整保留（含胜利条件），带中文标签、图标、语义色调。
  */
-function toWerewolfDescriptionFields(roleId: RoleId): readonly DescriptionField[] {
+export function toWerewolfDescriptionFields(roleId: RoleId): readonly DescriptionField[] {
   const desc = getRoleStructuredDescription(roleId);
   const fields: DescriptionField[] = [];
   if (desc?.skill)
