@@ -10,6 +10,7 @@ import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 
 import { Button } from '@/components/Button';
+import { TESTIDS } from '@/testids';
 
 export const ROOM_AUDIO_RESUME_TITLE = '游戏已恢复';
 export const ROOM_AUDIO_RESUME_MESSAGE = '点击下方按钮继续游戏并恢复音频';
@@ -35,14 +36,24 @@ export function RoomAudioResumeDialog({
     >
       <Portal>
         <Dialog.Backdrop className="center-dialog-backdrop" />
-        <Dialog.Positioner className="center-dialog-positioner">
-          <Dialog.Content className="center-dialog">
-            <Dialog.Title className="center-dialog-title">{ROOM_AUDIO_RESUME_TITLE}</Dialog.Title>
-            <Dialog.Description className="center-dialog-subtitle">
+        <Dialog.Positioner
+          className="center-dialog-positioner"
+          data-testid={TESTIDS.alertModalOverlay}
+        >
+          <Dialog.Content className="center-dialog" data-testid={TESTIDS.alertModal}>
+            <Dialog.Title className="center-dialog-title" data-testid={TESTIDS.alertTitle}>
+              {ROOM_AUDIO_RESUME_TITLE}
+            </Dialog.Title>
+            <Dialog.Description
+              className="center-dialog-subtitle"
+              data-testid={TESTIDS.alertMessage}
+            >
               {ROOM_AUDIO_RESUME_MESSAGE}
             </Dialog.Description>
             <div className="center-dialog-actions">
-              <Button onClick={onContinue}>{ROOM_AUDIO_RESUME_BUTTON}</Button>
+              <Button onClick={onContinue} data-testid={TESTIDS.alertButton(0)}>
+                {ROOM_AUDIO_RESUME_BUTTON}
+              </Button>
             </div>
           </Dialog.Content>
         </Dialog.Positioner>
