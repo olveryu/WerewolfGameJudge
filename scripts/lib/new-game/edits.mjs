@@ -86,7 +86,7 @@ export function editRegistry(content, { gameId, production }) {
     `  ${gameId}: {`,
     `    gameType: '${gameId}',`,
     `    enginePublicExport: './games/${gameId}/public',`,
-    `    clientModulePath: 'src/games/${gameId}/module.ts',`,
+    `    clientModulePath: 'packages/web/src/games/${gameId}/module.ts',`,
     `    isProduction: ${production},`,
     `    rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.${gameId} },`,
     `    workerWorkflows: [],`,

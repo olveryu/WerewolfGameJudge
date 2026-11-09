@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 
 /** Max time to wait for the link to return to live after a disconnect. */
 const RECONNECT_TIMEOUT_MS = 30_000;

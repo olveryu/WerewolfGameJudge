@@ -47,7 +47,7 @@ export interface GameRegistration<TGameType extends GameType = GameType> {
   /** Package subpath of the game's public engine entrypoint. */
   readonly enginePublicExport: `./games/${TGameType}/public`;
   /** Client module composing the game's plugin (repo-relative source path). */
-  readonly clientModulePath: `src/games/${TGameType}/module.ts`;
+  readonly clientModulePath: `packages/web/src/games/${TGameType}/module.ts`;
   /**
    * Whether the game is in production （是否投产）. Production registrations
    * may appear on player-facing surfaces (lobby, room creation); a game that
@@ -65,7 +65,7 @@ export const GAME_REGISTRY = {
   werewolf: {
     gameType: 'werewolf',
     enginePublicExport: './games/werewolf/public',
-    clientModulePath: 'src/games/werewolf/module.ts',
+    clientModulePath: 'packages/web/src/games/werewolf/module.ts',
     isProduction: true,
     rewards: {
       policy: 'levelRoll',
@@ -78,7 +78,7 @@ export const GAME_REGISTRY = {
   fibking: {
     gameType: 'fibking',
     enginePublicExport: './games/fibking/public',
-    clientModulePath: 'src/games/fibking/module.ts',
+    clientModulePath: 'packages/web/src/games/fibking/module.ts',
     isProduction: true,
     rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.fibking },
     workerWorkflows: [
@@ -89,7 +89,7 @@ export const GAME_REGISTRY = {
   pictionary: {
     gameType: 'pictionary',
     enginePublicExport: './games/pictionary/public',
-    clientModulePath: 'src/games/pictionary/module.ts',
+    clientModulePath: 'packages/web/src/games/pictionary/module.ts',
     isProduction: true,
     rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.pictionary },
     workerWorkflows: [],
@@ -98,7 +98,7 @@ export const GAME_REGISTRY = {
   undercover: {
     gameType: 'undercover',
     enginePublicExport: './games/undercover/public',
-    clientModulePath: 'src/games/undercover/module.ts',
+    clientModulePath: 'packages/web/src/games/undercover/module.ts',
     isProduction: true,
     rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.undercover },
     workerWorkflows: [
@@ -112,7 +112,7 @@ export const GAME_REGISTRY = {
   storyrelay: {
     gameType: 'storyrelay',
     enginePublicExport: './games/storyrelay/public',
-    clientModulePath: 'src/games/storyrelay/module.ts',
+    clientModulePath: 'packages/web/src/games/storyrelay/module.ts',
     isProduction: true,
     rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.storyrelay },
     workerWorkflows: [],
@@ -121,7 +121,7 @@ export const GAME_REGISTRY = {
   drawguess: {
     gameType: 'drawguess',
     enginePublicExport: './games/drawguess/public',
-    clientModulePath: 'src/games/drawguess/module.ts',
+    clientModulePath: 'packages/web/src/games/drawguess/module.ts',
     isProduction: true,
     rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.drawguess },
     workerWorkflows: [
@@ -135,7 +135,7 @@ export const GAME_REGISTRY = {
   avalon: {
     gameType: 'avalon',
     enginePublicExport: './games/avalon/public',
-    clientModulePath: 'src/games/avalon/module.ts',
+    clientModulePath: 'packages/web/src/games/avalon/module.ts',
     isProduction: true,
     rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.avalon },
     workerWorkflows: [],
@@ -144,7 +144,7 @@ export const GAME_REGISTRY = {
   demo: {
     gameType: 'demo',
     enginePublicExport: './games/demo/public',
-    clientModulePath: 'src/games/demo/module.ts',
+    clientModulePath: 'packages/web/src/games/demo/module.ts',
     // Reference game for template regression (plan §7.1 / D8): fully
     // registered through the real path, never shipped to players — the
     // client lobby/create surfaces filter on this flag.

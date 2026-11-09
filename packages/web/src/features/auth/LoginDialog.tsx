@@ -89,7 +89,13 @@ function LoginFlow({ request, settle }: { request: LoginRequest; settle: SettleL
   const [step, setStep] = useState<Step>(() => initialStep(request));
   switch (step.kind) {
     case 'options':
-      return <LoginOptions onStep={setStep} settle={settle} />;
+      return (
+        <LoginOptions
+          onEmail={(isSignUp) => setStep({ kind: 'email', isSignUp, email: '' })}
+          onSignedIn={() => settle('signedIn')}
+          onCancel={() => settle('cancelled')}
+        />
+      );
     case 'email':
       return (
         <EmailForm
@@ -107,7 +113,17 @@ function LoginFlow({ request, settle }: { request: LoginRequest; settle: SettleL
   }
 }
 
-function LoginOptions({ onStep, settle }: { onStep: (step: Step) => void; settle: SettleLogin }) {
+interface LoginOptionsProps {
+  /** Opens the email form: sign-up when true, sign-in otherwise. */
+  readonly onEmail: (isSignUp: boolean) => void;
+  /** The dialog settles its request; the inline Settings list re-renders from the session. */
+  readonly onSignedIn?: () => void;
+  /** Renders a cancel button when set (the dialog); the inline Settings list has none. */
+  readonly onCancel?: () => void;
+}
+
+/** Login method list: email sign-up / sign-in, and anonymous login outside the mini-program. */
+export function LoginOptions({ onEmail, onSignedIn, onCancel }: LoginOptionsProps) {
   const { user, loading } = useAuthContext();
   const signInAnonymously = useSignInAnonymously();
   const isGuest = user?.isAnonymous === true;
@@ -116,7 +132,7 @@ function LoginOptions({ onStep, settle }: { onStep: (step: Step) => void; settle
     try {
       await signInAnonymously.mutateAsync();
       toast.success('登录成功');
-      settle('signedIn');
+      onSignedIn?.();
     } catch (error: unknown) {
       const message = getUserFacingMessage(error);
       authLog.warn('Anonymous login failed', { message });
@@ -147,7 +163,7 @@ function LoginOptions({ onStep, settle }: { onStep: (step: Step) => void; settle
       <button
         type="button"
         className="login-method login-method-primary"
-        onClick={() => onStep({ kind: 'email', isSignUp: true, email: '' })}
+        onClick={() => onEmail(true)}
       >
         <span className="login-method-title">
           <IconMailOutline aria-hidden />
@@ -161,11 +177,7 @@ function LoginOptions({ onStep, settle }: { onStep: (step: Step) => void; settle
         </span>
       </button>
 
-      <button
-        type="button"
-        className="login-method"
-        onClick={() => onStep({ kind: 'email', isSignUp: false, email: '' })}
-      >
+      <button type="button" className="login-method" onClick={() => onEmail(false)}>
         <span className="login-method-title">
           <IconMailOutline aria-hidden />
           邮箱登录
@@ -195,9 +207,11 @@ function LoginOptions({ onStep, settle }: { onStep: (step: Step) => void; settle
         </button>
       )}
 
-      <Button variant="secondary" onClick={() => settle('cancelled')}>
-        取消
-      </Button>
+      {onCancel && (
+        <Button variant="secondary" onClick={onCancel}>
+          取消
+        </Button>
+      )}
     </div>
   );
 }

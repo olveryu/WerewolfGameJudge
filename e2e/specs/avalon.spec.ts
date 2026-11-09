@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { HomePage } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';

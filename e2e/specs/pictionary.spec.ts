@@ -3,8 +3,8 @@
 import { getPictionaryRelayStepCount } from '@game-judge/game-engine/games/pictionary/public';
 import { expect, type Page, test } from '@playwright/test';
 
-import { FETCH_RETRY_COUNT } from '../../src/config/api';
-import { TESTIDS } from '../../src/testids';
+import { FETCH_RETRY_COUNT } from '../../packages/web/src/config/api';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { downloadReviewImage, expectWeChatImageShare, readPngSize } from '../helpers/image-sharing';
 import { setOffline } from '../helpers/resilience';

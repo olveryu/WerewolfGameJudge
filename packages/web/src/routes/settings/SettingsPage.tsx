@@ -23,6 +23,7 @@ import {
   useUpdateProfile,
 } from '@/features/account/accountMutations';
 import { useSignOut } from '@/features/auth/authMutations';
+import { LoginOptions } from '@/features/auth/LoginDialog';
 import { requestLogin } from '@/features/auth/loginRequests';
 import {
   getRoomCommandFailureReason,
@@ -32,7 +33,7 @@ import type { RoomProfilePatch } from '@/features/room/model/RoomAccountCapabili
 import { roomPath } from '@/features/room/navigation/roomFlowNavigation';
 import { clearRecentRooms } from '@/features/room/services/recentRooms';
 import { displaySettings } from '@/features/settings/displaySettings';
-import { isExpectedStorageError } from '@/features/settings/userSettingsStorage';
+import { isExpectedStorageError } from '@/features/settings/services/userSettingsStorage';
 import { useActiveRoomAccount } from '@/games/clientModules';
 import type { SceneFrameRate } from '@/scene/stage';
 import { TESTIDS } from '@/testids';
@@ -445,7 +446,14 @@ export function SettingsPage() {
             <AccountSection user={user} />
           ) : (
             !loading && (
-              <Button onClick={() => void requestLogin({ title: '登录' })}>登录 / 注册</Button>
+              <LoginOptions
+                onEmail={(isSignUp) =>
+                  void requestLogin({
+                    title: isSignUp ? '邮箱注册' : '邮箱登录',
+                    startWith: isSignUp ? 'emailSignUp' : 'emailSignIn',
+                  })
+                }
+              />
             )
           )}
         </section>

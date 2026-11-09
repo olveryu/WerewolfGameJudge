@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 
 /**
  * RulesPage Page Object — final Werewolf config step.

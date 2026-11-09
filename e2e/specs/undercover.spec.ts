@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { downloadReviewImage, REVIEW_CAPTURE_TIMEOUT_MS } from '../helpers/image-sharing';
 import { HomePage } from '../pages/HomePage';

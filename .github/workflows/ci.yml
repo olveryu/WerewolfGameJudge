@@ -57,13 +57,11 @@ jobs:
       - name: Format check
         run: pnpm run format
 
-  # Root jest + game-engine vitest, sharded across 2 runners (mirrors the
-  # test-api-worker sharding below). This was the last step of quality and
-  # its long pole (~4min of quality's ~8min); as its own job it runs in
-  # parallel with quality and lint.
+  # Root contracts + game-engine and web Vitest suites, sharded across 2
+  # runners (mirrors the test-api-worker sharding below). As its own job it
+  # runs in parallel with quality and lint.
   # Shard flags go directly after `run test` with NO `--` separator: pnpm
-  # forwards a literal `--` to the script, which makes jest treat --shard
-  # as a path pattern (0 matches) and vitest ignore the flag entirely.
+  # forwards a literal `--` to the script, which makes vitest ignore the flag.
   test-root:
     runs-on: ubuntu-latest
     strategy:
@@ -85,20 +83,18 @@ jobs:
       - name: Build game-engine
         run: pnpm --filter @game-judge/game-engine run build
 
-      # JSON results ride along on both runners (vitest and jest emit the
-      # same JSON shape) so the failure-digest job can fold unit failures
-      # into the digest and the flake ledger. Paths are absolute because
-      # pnpm --filter runs each suite inside its package directory.
+      # JSON results ride along on both runners so the failure-digest job can
+      # fold unit failures into the digest and the flake ledger. Paths are
+      # absolute because pnpm --filter runs each suite inside its package
+      # directory.
       - name: Test game-engine (shard ${{ matrix.shard }}/2)
         run: pnpm --filter @game-judge/game-engine run test --shard=${{ matrix.shard }}/2 --reporter=default --reporter=json --outputFile=${{ github.workspace }}/test-results-engine-${{ matrix.shard }}.json
 
-      - name: Test root (shard ${{ matrix.shard }}/2)
-        run: pnpm --filter werewolfgamejudge run test --shard=${{ matrix.shard }}/2 --json --outputFile=${{ github.workspace }}/test-results-root-${{ matrix.shard }}.json
+      - name: Test root contracts (shard ${{ matrix.shard }}/2)
+        run: pnpm --filter werewolfgamejudge run test --shard=${{ matrix.shard }}/2 --reporter=default --reporter=json --outputFile=${{ github.workspace }}/test-results-root-${{ matrix.shard }}.json
 
-      # The web client suite is small; it runs once, on the first shard.
-      - name: Test web
-        if: matrix.shard == 1
-        run: pnpm --filter @game-judge/web run test --reporter=default --reporter=json --outputFile=${{ github.workspace }}/test-results-web.json
+      - name: Test web (shard ${{ matrix.shard }}/2)
+        run: pnpm --filter @game-judge/web run test --shard=${{ matrix.shard }}/2 --reporter=default --reporter=json --outputFile=${{ github.workspace }}/test-results-web-${{ matrix.shard }}.json
 
       - name: Upload unit test results (shard ${{ matrix.shard }}/2)
         if: always()
@@ -108,7 +104,7 @@ jobs:
           path: |
             test-results-root-${{ matrix.shard }}.json
             test-results-engine-${{ matrix.shard }}.json
-            test-results-web.json
+            test-results-web-${{ matrix.shard }}.json
           if-no-files-found: ignore
 
   # api-worker tests are slow (Miniflare + D1). Shard across 3 runners.
@@ -210,7 +206,7 @@ jobs:
         run: bash scripts/build.sh
         env:
           CF_PAGES_BRANCH: main
-          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
       # Rewrite asset URLs BEFORE npm publish so CDN-hosted JS files
@@ -537,7 +533,7 @@ jobs:
           rm -f /tmp/miniapp-key.pem
 
   # Build the web bundle ONCE and share via artifact, instead of each e2e
-  # shard running `expo export` independently (5x waste).
+  # shard building it independently.
   build-web:
     runs-on: ubuntu-latest
     # Building needs types and lint to hold — unit test results are not a
@@ -560,17 +556,17 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Export web build
+      - name: Build web
         run: |
-          EXPO_PUBLIC_CF_API_URL=http://127.0.0.1:8787 \
-          EXPO_PUBLIC_SENTRY_DSN='' \
-          npx expo export --platform web
+          VITE_CF_API_URL=http://127.0.0.1:8787 \
+          VITE_SENTRY_DSN='' \
+          pnpm --filter @game-judge/web run build
 
       - name: Upload web dist
         uses: actions/upload-artifact@v7
         with:
           name: web-dist
-          path: dist/
+          path: packages/web/dist/
           retention-days: 1
 
   # The job body lives in e2e-run.yml (reusable workflow) — the same single
@@ -592,27 +588,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # ── Balanced by measured runtime (target ~10min wall each) ──
+          # Branch CI runs only the specs migrated to the web client
+          # (docs/web-client-rewrite.md §8.2). The list only grows; it covers
+          # every spec before merge, when the runtime-balanced shards return.
           - shard: '1'
-            specs: 'werewolf-night-block.spec.ts werewolf-night-seed-wolf.spec.ts werewolf-night-special-roles.spec.ts'
-          - shard: '2'
-            specs: 'werewolf-night-protect.spec.ts werewolf-night-gargoyle.spec.ts'
-          - shard: '3'
-            specs: 'werewolf-night-kill.spec.ts werewolf-night-special-roles-2.spec.ts'
-          - shard: '4'
-            specs: 'werewolf-night-gun-status.spec.ts werewolf-night-check-interactions.spec.ts'
-          - shard: '5'
-            specs: 'werewolf-night-check.spec.ts werewolf-night-piper.spec.ts werewolf-night-wolf-girl.spec.ts'
-          - shard: '6'
-            specs: 'resilience-reconnect.spec.ts werewolf-night-flow.spec.ts resilience-db-recovery.spec.ts'
-          # avalon runs solo: a single 10-player full-game test (~7min,
-          # 20min spec timeout) that cannot be split across shards.
-          - shard: '7'
-            specs: 'avalon.spec.ts'
-          - shard: '8'
-            specs: 'werewolf-night-completion.spec.ts pictionary.spec.ts resilience-restart.spec.ts resilience-offline-canary.spec.ts'
-          - shard: '9'
-            specs: 'undercover.spec.ts werewolf-seating.spec.ts fibking.spec.ts fibking-responsive.spec.ts storyrelay.spec.ts drawguess.spec.ts app-entry-flow.spec.ts app-home.spec.ts werewolf-config.spec.ts werewolf-sheriff-election.spec.ts app-room-lifecycle.spec.ts room-narration.spec.ts resilience-rejoin.spec.ts'
+            specs: 'app-home.spec.ts'
     uses: ./.github/workflows/e2e-run.yml
     with:
       specs: ${{ matrix.specs }}

@@ -1,7 +1,7 @@
 import { FIB_MAX_PLAYERS, FIB_MIN_PLAYERS } from '@game-judge/game-engine/games/fibking/public';
 import { expect, type Page } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 
 const PLAYER_COUNT = TESTIDS.gameConfigField('fibking', 'numberOfPlayers');
 const SUBMIT = TESTIDS.gameConfigSubmit('fibking');

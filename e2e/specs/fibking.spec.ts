@@ -6,7 +6,7 @@ import {
 } from '@game-judge/game-engine/games/fibking/public';
 import { expect, test } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import {
   closeAll,
   type ColdRoomFixture,

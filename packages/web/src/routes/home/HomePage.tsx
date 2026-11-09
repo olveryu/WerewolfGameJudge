@@ -15,6 +15,7 @@ import { isMiniProgram, wxReLaunch } from '@/utils/miniProgram';
 import IconChevronForward from '~icons/ion/chevron-forward';
 import IconCloudOfflineOutline from '~icons/ion/cloud-offline-outline';
 import IconLogInOutline from '~icons/ion/log-in-outline';
+import IconPersonCircleOutline from '~icons/ion/person-circle-outline';
 import IconTimeOutline from '~icons/ion/time-outline';
 
 import { JoinRoomDialog } from './JoinRoomDialog';
@@ -95,7 +96,7 @@ export function HomePage() {
           {user ? (
             <Avatar userId={user.id} avatarUrl={user.avatarUrl} size={36} />
           ) : (
-            <span className="home-account-placeholder">登录</span>
+            <IconPersonCircleOutline className="home-account-placeholder" aria-hidden />
           )}
         </Link>
       </header>

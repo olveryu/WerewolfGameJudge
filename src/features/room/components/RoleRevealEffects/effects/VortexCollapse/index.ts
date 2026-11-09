@@ -1,1 +1,0 @@
-export { VortexCollapse } from './VortexCollapse';

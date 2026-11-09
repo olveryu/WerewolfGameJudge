@@ -4,8 +4,8 @@ import './RoomSeatBoard.css';
 import { memo, type ReactNode, useState } from 'react';
 
 import { IconButton } from '@/components/IconButton';
+import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
-import { useViewportWidth } from '@/hooks/useViewportWidth';
 import { TESTIDS } from '@/testids';
 import IconChevronBack from '~icons/ion/chevron-back';
 import IconChevronForward from '~icons/ion/chevron-forward';

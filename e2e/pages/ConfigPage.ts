@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { BoardPickerPage } from './BoardPickerPage';
 import { RulesPage } from './RulesPage';
 

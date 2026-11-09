@@ -6,7 +6,7 @@ import { Portal } from '@ark-ui/react/portal';
 import type { ReactNode } from 'react';
 
 import { IconButton } from '@/components/IconButton';
-import { useViewportWidth } from '@/hooks/useViewportWidth';
+import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import IconClose from '~icons/ion/close';
 
 import { resolveRoomDialogWidth } from './roomDialogSize';

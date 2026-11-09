@@ -1,6 +1,6 @@
 import { type Page, type TestInfo } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { isNightEnded } from '../helpers/night-driver';
 
 /**

@@ -1,7 +1,7 @@
 import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 import { expect, type Locator, type Page, type TestInfo } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { enterRoomCodeViaNumPad, extractRoomCode } from '../helpers/home';
 import { waitForRoomScreenReady } from '../helpers/waits';
 

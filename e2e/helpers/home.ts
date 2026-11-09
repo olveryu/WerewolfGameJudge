@@ -1,7 +1,7 @@
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { expect, type Page } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { clickIfVisible, screenshotOnFail } from './ui';
 
 /**

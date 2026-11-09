@@ -2,7 +2,7 @@
 
 import { expect, type Page, test } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createColdRoomContext, createPlayerContexts } from '../fixtures/app.fixture';
 import { enterRoomCodeViaNumPad } from '../helpers/home';
 import { downloadReviewImage, expectWeChatImageShare, readPngSize } from '../helpers/image-sharing';

@@ -6,13 +6,13 @@
 import { memo } from 'react';
 
 import { Avatar } from '@/components/avatar/Avatar';
+import { useLongPress } from '@/features/room/hooks/useLongPress';
 import { getRoomOccupantAvatarSeed } from '@/features/room/model/RoomOccupant';
 import {
   formatRoomSeat,
   type RoomSeatIndicators,
   type RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
-import { useLongPress } from '@/hooks/useLongPress';
 import { TESTIDS } from '@/testids';
 import IconChatbubbleEllipsesOutline from '~icons/ion/chatbubble-ellipses-outline';
 import IconCheckmarkCircle from '~icons/ion/checkmark-circle';

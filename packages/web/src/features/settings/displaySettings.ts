@@ -4,7 +4,7 @@
  */
 import type { SceneFrameRate } from '@/scene/stage';
 
-import { readUserSettings, writeUserSettings } from './userSettingsStorage';
+import { readUserSettings, writeUserSettings } from './services/userSettingsStorage';
 
 export interface DisplaySettings {
   /** Seat flairs, pets and arrival animations in the room grid; off saves battery. */

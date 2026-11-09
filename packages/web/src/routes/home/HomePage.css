@@ -38,7 +38,9 @@
 }
 
 .home-account-placeholder {
-  font-weight: var(--weight-semibold);
+  width: var(--size-icon-xl);
+  height: var(--size-icon-xl);
+  color: var(--color-text-secondary);
 }
 
 .home-auth-error {

@@ -23,6 +23,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { resolveRoomDialogWidth } from '@/features/room/components/roomDialogSize';
+import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import {
   captureElementPngBase64,
   captureElementSegmentedPngBase64,
@@ -36,7 +37,6 @@ import {
   shareImagesBase64,
   uploadShareImages,
 } from '@/features/room/services/shareImage';
-import { useViewportWidth } from '@/hooks/useViewportWidth';
 import { handleError } from '@/utils/errorPipeline';
 import { isAbortError } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';

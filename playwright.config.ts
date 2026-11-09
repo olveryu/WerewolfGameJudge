@@ -7,12 +7,12 @@ import { defineConfig, devices } from '@playwright/test';
  * - webServer (via env inheritance)
  * - test runtime (ui.ts reads process.env.E2E_BASE_URL)
  *
- * Default: http://localhost:8081 (Expo Metro web default)
+ * Default: http://localhost:8081
  * Override: E2E_BASE_URL=https://... npx playwright test
  */
-const E2E_BASE_URL = (process.env.E2E_BASE_URL as string | undefined) ?? 'http://localhost:8081';
+const E2E_BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:8081';
 const LOCAL_CF_API_URL = 'http://127.0.0.1:8787';
-const WEB_PORT = (process.env.WEB_PORT as string | undefined) || '8081';
+const WEB_PORT = process.env.WEB_PORT || '8081';
 
 // Export to process.env so ui.ts and webServer can access it
 (process.env as Record<string, string | undefined>).E2E_BASE_URL = E2E_BASE_URL;
@@ -24,9 +24,9 @@ const WEB_PORT = (process.env.WEB_PORT as string | undefined) || '8081';
  *   Two webServers launched in parallel (Playwright native):
  *   1. API — wrangler dev --local on :8787 (with D1 migration + .dev.vars setup)
  *   2. Web — production build served statically on :8081
- *      CI: workflow pre-builds `dist/` via `expo export`, webServer only runs
- *      `serve dist/` (deterministic, no compilation flakiness)
- *      Local: reuses existing dev server (reuseExistingServer)
+ *      CI: workflow pre-builds `packages/web/dist/`, webServer only runs
+ *      `serve` on it (deterministic, no compilation flakiness)
+ *      Local: the Vite dev server, or an existing one (reuseExistingServer)
  *
  *   Playwright waits for BOTH servers to be ready before running tests.
  *
@@ -102,22 +102,21 @@ export default defineConfig({
     },
     {
       name: 'Web',
-      // CI: `dist/` is pre-built by the workflow's "Export web build" step, so the
-      // webServer only starts `serve` (near-instant readiness). Previously the slow
-      // `expo export` ran inside this webServer and shared its readiness timeout,
-      // causing "Timed out waiting 180000ms from config.webServer" flakes (#79/#80).
+      // CI: `packages/web/dist/` is pre-built by the workflow's "Build web" step, so
+      // the webServer only starts `serve` (near-instant readiness); a build inside
+      // the webServer would share its readiness timeout (#79/#80).
       command: process.env.CI
-        ? `npx serve dist -l ${WEB_PORT} -s`
-        : `npx expo start --web --port ${WEB_PORT}`,
+        ? `npx serve packages/web/dist -l ${WEB_PORT} -s`
+        : `pnpm --filter @game-judge/web run dev --port ${WEB_PORT} --strictPort`,
       url: E2E_BASE_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 60 * 1000, // static serve starts in seconds
       stdout: 'pipe',
       stderr: 'pipe',
       env: {
-        EXPO_PUBLIC_CF_API_URL: LOCAL_CF_API_URL,
+        VITE_CF_API_URL: LOCAL_CF_API_URL,
         // Disable Sentry in E2E builds — test errors must not pollute production
-        EXPO_PUBLIC_SENTRY_DSN: '',
+        VITE_SENTRY_DSN: '',
       },
     },
   ],

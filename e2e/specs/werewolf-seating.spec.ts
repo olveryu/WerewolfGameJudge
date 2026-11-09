@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { enterRoomCodeViaNumPad, startRoomCreation } from '../helpers/home';
 import { getVisibleText } from '../helpers/ui';

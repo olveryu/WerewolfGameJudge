@@ -6,7 +6,7 @@ import {
   test as base,
 } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { type DiagnosticData, setupDiagnostics } from '../helpers/diagnostics';
 import { ensureAnonLogin, registerAutoDismissers, waitForAppReady } from '../helpers/home';
 import { gotoWithRetry } from '../helpers/ui';

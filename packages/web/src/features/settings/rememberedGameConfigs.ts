@@ -10,7 +10,7 @@ import {
 } from '@game-judge/game-engine/platform/config/configSchema';
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
-import { isPlainRecord, readUserSettings, writeUserSettings } from './userSettingsStorage';
+import { isPlainRecord, readUserSettings, writeUserSettings } from './services/userSettingsStorage';
 
 const FIELD = 'rememberedGameConfigs';
 

@@ -24,7 +24,7 @@ import {
   getRememberedGameConfig,
   setRememberedGameConfigField,
 } from '@/features/settings/rememberedGameConfigs';
-import { isExpectedStorageError } from '@/features/settings/userSettingsStorage';
+import { isExpectedStorageError } from '@/features/settings/services/userSettingsStorage';
 import type { RoomLink } from '@/platform/realtime/types';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';

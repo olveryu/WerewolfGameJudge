@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-import { AUDIO_WAITING_LABEL } from '../../src/features/room/model/RoomBottomActions';
-import { TESTIDS } from '../../src/testids';
+import { AUDIO_WAITING_LABEL } from '../../packages/web/src/features/room/model/RoomBottomActions';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';

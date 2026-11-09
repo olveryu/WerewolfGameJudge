@@ -63,12 +63,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Export web build
+      - name: Build web
         if: ${{ inputs.build-web }}
         run: |
-          EXPO_PUBLIC_CF_API_URL=http://127.0.0.1:8787 \
-          EXPO_PUBLIC_SENTRY_DSN='' \
-          npx expo export --platform web
+          VITE_CF_API_URL=http://127.0.0.1:8787 \
+          VITE_SENTRY_DSN='' \
+          pnpm --filter @game-judge/web run build
 
       # Download the pre-built web bundle from the caller's build-web job.
       - name: Download web dist
@@ -76,7 +76,7 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           name: web-dist
-          path: dist/
+          path: packages/web/dist/
 
       - name: Get Playwright version
         id: pw-version

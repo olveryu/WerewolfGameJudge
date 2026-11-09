@@ -18,7 +18,7 @@
  * to $GITHUB_STEP_SUMMARY when that variable is set. Either way, a green
  * result never CREATES a PR comment — it only updates an existing one.
  *
- * Unit-test results (--test-results <dir> with jest/vitest JSON files named
+ * Unit-test results (--test-results <dir> with vitest JSON files named
  * test-results-{root,engine,api}-<shard>.json) join the same digest: their
  * failures are listed in their own section. Jest and vitest both emit the
  * same JSON shape (testResults -> assertionResults), so one parser covers
@@ -195,7 +195,7 @@ function relativizeTestPath(name) {
 }
 
 /**
- * Parse one jest/vitest JSON results file into unit-failure entries:
+ * Parse one vitest JSON results file into unit-failure entries:
  * [{ source, specFile, fullTitle, errorMessage }]. Both runners emit the
  * same shape (testResults -> assertionResults). A suite that failed to run
  * (status failed, no failed assertion) yields one entry of its own. Unit
@@ -236,7 +236,7 @@ export function parseUnitResults(text, source) {
 }
 
 const UNIT_SOURCE_BY_PREFIX = [
-  ['test-results-root-', 'root jest'],
+  ['test-results-root-', 'root vitest'],
   ['test-results-engine-', 'game-engine vitest'],
   ['test-results-api-', 'api-worker vitest'],
   ['test-results-web', 'web vitest'],

@@ -5,10 +5,10 @@ import { type ReactElement, type ReactNode, useState } from 'react';
 
 import { Avatar } from '@/components/avatar/Avatar';
 import { IconButton } from '@/components/IconButton';
+import { useLongPress } from '@/features/room/hooks/useLongPress';
+import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomHeaderUserAction, RoomShellModel } from '@/features/room/model/RoomShellModel';
-import { useLongPress } from '@/hooks/useLongPress';
-import { useViewportWidth } from '@/hooks/useViewportWidth';
 import { TESTIDS } from '@/testids';
 import IconChevronBack from '~icons/ion/chevron-back';
 import IconPersonCircleOutline from '~icons/ion/person-circle-outline';

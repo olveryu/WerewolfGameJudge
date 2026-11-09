@@ -1,7 +1,6 @@
 import js from '@eslint/js';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
-import reactNative from 'eslint-plugin-react-native';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import testingLibrary from 'eslint-plugin-testing-library';
 import globals from 'globals';
@@ -20,10 +19,8 @@ export default tseslint.config(
       'build/',
       'playwright-report/',
       'test-results/',
-      '.expo/',
       '**/*.config.js',
       '**/*.config.mjs',
-      'web/',
       'miniapp/',
       'scripts/',
       'functions/',
@@ -49,7 +46,6 @@ export default tseslint.config(
   {
     files: ['**/*.{ts,tsx}'],
     plugins: {
-      'react-native': reactNative,
       'simple-import-sort': simpleImportSort,
     },
     languageOptions: {
@@ -104,39 +100,11 @@ export default tseslint.config(
       // React
       'react/prop-types': 'off',
 
-      // React Hooks — compiler rules incompatible with Reanimated SharedValues & latest-ref pattern
-      'react-hooks/static-components': 'off',
-      'react-hooks/set-state-in-effect': 'off',
-      'react-hooks/preserve-manual-memoization': 'off',
-      'react-hooks/refs': 'off',
-      'react-hooks/immutability': 'off',
+      // React Compiler rules (eslint-plugin-react-hooks flat recommended) stay on: the web client
+      // compiles every component, so a violation is a miscompile risk, not a style nit.
 
-      // React Native — enable useful rules, disable noisy ones
-      'react-native/no-raw-text': ['error', { skip: ['Button', 'NameStyleText', 'SvgText'] }],
-      'react-native/split-platform-components': 'error',
-      'react-native/no-single-element-style-arrays': 'warn',
-      'react-native/no-inline-styles': 'error',
-      'react-native/sort-styles': 'off',
-      'react-native/no-unused-styles': 'off',
-      'react-native/no-color-literals': 'off',
-
-      // Console — use project logger (src/utils/logger.ts) instead
+      // Console — use the package logger (packages/web/src/utils/logger.ts) instead
       'no-console': 'error',
-
-      // Forbid raw <Modal> from 'react-native' — use AppModal for inert/a11y stack tracking
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [
-            {
-              name: 'react-native',
-              importNames: ['Modal'],
-              message:
-                "Use { Modal } from '@/components/AppModal' instead — required for inert background blocking and modal stack tracking.",
-            },
-          ],
-        },
-      ],
 
       // Deprecated identifiers — prevent regression after bulk renames
       'no-restricted-syntax': [
@@ -185,16 +153,6 @@ export default tseslint.config(
   },
 
   // =========================================================================
-  // AppModal — only file allowed to import raw Modal from 'react-native'
-  // =========================================================================
-  {
-    files: ['src/components/AppModal/**'],
-    rules: {
-      'no-restricted-imports': 'off',
-    },
-  },
-
-  // =========================================================================
   // Test file overrides
   // =========================================================================
   {
@@ -205,7 +163,7 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
-      // jest.fn() results trigger false positives for unbound-method
+      // vi.fn() results trigger false positives for unbound-method
       '@typescript-eslint/unbound-method': 'off',
 
       // testing-library best practices
@@ -214,35 +172,6 @@ export default tseslint.config(
       'testing-library/no-debugging-utils': 'warn',
       'testing-library/no-unnecessary-act': 'warn',
       'testing-library/prefer-screen-queries': 'off',
-    },
-  },
-
-  // =========================================================================
-  // jest.setup.ts — needs console.* for React warning filters
-  // =========================================================================
-  {
-    files: ['jest.setup.ts'],
-    rules: {
-      '@typescript-eslint/no-require-imports': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      'no-console': 'off',
-    },
-  },
-
-  // =========================================================================
-  // Metro require() — assets must use require() for bundler
-  // =========================================================================
-  {
-    files: [
-      'src/services/infra/audio/audioRegistry.ts',
-      'src/utils/avatar.ts',
-      'src/utils/avatarImages.ts',
-      'src/utils/avatarImages.web.ts',
-      'src/utils/roleBadges.ts',
-      'src/utils/roleBadges.web.ts',
-    ],
-    rules: {
-      '@typescript-eslint/no-require-imports': 'off',
     },
   },
 
@@ -267,61 +196,11 @@ export default tseslint.config(
   },
 
   // =========================================================================
-  // Mocks — allow require() and console
-  // =========================================================================
-  {
-    files: ['__mocks__/**'],
-    languageOptions: {
-      sourceType: 'commonjs',
-    },
-    rules: {
-      '@typescript-eslint/no-require-imports': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
-      'no-console': 'off',
-    },
-  },
-
-  // =========================================================================
   // JS files — disable type-checked rules (no tsconfig coverage)
   // =========================================================================
   {
     files: ['**/*.{js,mjs,mts,cjs}'],
     ...tseslint.configs.disableTypeChecked,
-  },
-
-  // =========================================================================
-  // Style quality — warn on hardcoded color literals in screens & components
-  // The contract test (noHardcodedStyleValues.contract.test.ts) is the hard CI
-  // gate; this ESLint rule gives immediate editor feedback for color literals.
-  // =========================================================================
-  {
-    files: ['src/screens/**/*.{ts,tsx}', 'src/components/**/*.{ts,tsx}'],
-    ignores: [
-      'src/components/RoleRevealEffects/**',
-      'src/components/AIChatBubble/**',
-      'src/components/seatFlairs/**',
-      'src/components/ErrorBoundary.tsx',
-    ],
-    rules: {
-      'react-native/no-color-literals': 'warn',
-    },
-  },
-
-  // =========================================================================
-  // Animation components — Animated.Value mutations are expected in RN
-  // react-hooks/immutability: `.value = x` on shared values / Animated.Value
-  // react-hooks/refs: `useRef(new Animated.Value()).current` is standard RN pattern
-  // =========================================================================
-  {
-    files: [
-      'src/components/RoleRevealEffects/**/*.tsx',
-      'src/components/AIChatBubble/**/*.tsx',
-      'src/components/AIChatBubble/**/*.ts',
-    ],
-    rules: {
-      'react-hooks/immutability': 'off',
-      'react-hooks/refs': 'off',
-    },
   },
 
   // =========================================================================
@@ -332,12 +211,8 @@ export default tseslint.config(
     rules: {
       // Workers must use structured logger — only lib/logger.ts may call console directly
       'no-console': 'error',
-      // Disable React / React Native rules — no UI framework in Workers
+      // Disable React rules — no UI framework in Workers
       'react/no-unknown-property': 'off',
-      'react-native/no-raw-text': 'off',
-      'react-native/split-platform-components': 'off',
-      'react-native/no-single-element-style-arrays': 'off',
-      'react-native/no-inline-styles': 'off',
       '@typescript-eslint/naming-convention': 'off',
     },
   },
@@ -363,24 +238,13 @@ export default tseslint.config(
   },
 
   // =========================================================================
-  // Web client (packages/web) — React DOM, no React Native
+  // Web client (packages/web) — React DOM
   // =========================================================================
   {
     files: ['packages/web/**/*.{ts,tsx}'],
     rules: {
-      'react-native/no-raw-text': 'off',
-      'react-native/split-platform-components': 'off',
-      'react-native/no-single-element-style-arrays': 'off',
-      'react-native/no-inline-styles': 'off',
-      'no-restricted-imports': 'off',
       // Untrusted strings render only through React's default escaping (docs/web-client-rewrite.md §5.11).
       'react/no-danger': 'error',
-      // The web client keeps the React Compiler rules on; the RN-era exemptions above do not apply.
-      'react-hooks/static-components': 'error',
-      'react-hooks/set-state-in-effect': 'error',
-      'react-hooks/preserve-manual-memoization': 'error',
-      'react-hooks/refs': 'error',
-      'react-hooks/immutability': 'error',
     },
   },
   // The web client's logger is the only place allowed to write to the console.

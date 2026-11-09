@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { RoomPage } from './RoomPage';
 
 /** Page Object for the server-authoritative sheriff-election panel. */
