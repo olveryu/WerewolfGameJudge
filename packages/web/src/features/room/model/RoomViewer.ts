@@ -23,20 +23,6 @@ export interface RoomViewer {
 }
 
 /**
- * The audience projection: host wins over seat (a seated host is a
- * host); an unseated non-host is a spectator. Callers pass the seat
- * the contract is about — the own seat for identity contracts, the
- * effective (own or controlled) seat for action contracts.
- */
-export function resolveRoomViewerAudience(input: {
-  readonly isHost: boolean;
-  readonly seat: number | null;
-}): RoomViewerAudience {
-  if (input.isHost) return 'host';
-  return input.seat === null ? 'spectator' : 'seated';
-}
-
-/**
  * The seat the viewer currently acts as: a bot seat under takeover, or
  * the viewer's own seat. Participant-only actions key off this seat.
  */

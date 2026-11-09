@@ -1,0 +1,78 @@
+.room-share-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-small);
+  padding: var(--space-large) var(--space-medium);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+}
+
+.room-share-qr {
+  position: relative;
+  padding: var(--space-small);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.room-share-qr-frame {
+  display: block;
+  width: 160px;
+  height: 160px;
+}
+
+.room-share-qr-pattern {
+  fill: var(--color-primary);
+}
+
+.room-share-qr-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-tight);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+}
+
+.room-share-qr-logo img {
+  display: block;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-small);
+}
+
+.room-share-code {
+  margin: var(--space-small) 0 0;
+  color: var(--color-text);
+  font-size: var(--font-title);
+  line-height: var(--line-title);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--letter-wide);
+}
+
+.room-share-hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.room-share-guide-icon {
+  color: var(--color-primary);
+  font-size: calc(var(--size-icon-xl) * 2);
+}
+
+.room-share-guide {
+  margin: 0;
+  padding-left: var(--space-large);
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+}
+
+.room-share-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+}

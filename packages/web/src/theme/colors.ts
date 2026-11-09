@@ -1,3 +1,5 @@
+import { withAlpha } from './colorUtils';
+
 /**
  * App colour palette ("月白" scheme), ported from the RN client's `src/theme/colors.ts`.
  *
@@ -72,10 +74,39 @@ const reportColors = {
   neutralMedalBorder: '#DCDCE6',
 } as const;
 
+/**
+ * Translucent variants published as `--color-<token>-a<percent>` (e.g. `--color-primary-a25`).
+ * CSS cannot derive them: `color-mix()` with variables needs Safari 16.2 and Chrome 111, above
+ * the build target.
+ */
+const ALPHA_VARIANTS: readonly (readonly [keyof typeof colors, number])[] = [
+  ['primary', 3],
+  ['primary', 8],
+  ['primary', 15],
+  ['primary', 25],
+  ['primary', 40],
+  ['primaryDark', 40],
+  ['error', 13],
+  ['error', 20],
+  ['error', 40],
+  ['error', 50],
+  ['warning', 13],
+  ['warning', 40],
+  ['success', 40],
+  ['info', 8],
+  ['background', 85],
+];
+
 /** Publishes the palettes as `--color-*` and `--report-*` custom properties on the document root. */
 export function applyColorTokens(root: HTMLElement): void {
   for (const [token, value] of Object.entries(colors)) {
     root.style.setProperty(toCustomPropertyName('color', token), value);
+  }
+  for (const [token, percent] of ALPHA_VARIANTS) {
+    root.style.setProperty(
+      `${toCustomPropertyName('color', token)}-a${percent}`,
+      withAlpha(colors[token], percent / 100),
+    );
   }
   for (const [token, value] of Object.entries(reportColors)) {
     root.style.setProperty(toCustomPropertyName('report', token), value);

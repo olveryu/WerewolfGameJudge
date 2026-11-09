@@ -12,8 +12,6 @@ import {
   endDemoGame,
 } from '@game-judge/game-engine/games/demo/public';
 
-import type { ReviewTestRounds } from './reviewTestRounds';
-
 type CommandContext = Parameters<typeof demoEngine.decide>[2];
 
 function context(userId: string, commandId: string): CommandContext {
@@ -72,9 +70,3 @@ export function endDemoTestGame(playing: DemoState): DemoState {
   if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
   return decision.events.reduce(demoEngine.evolve, playing);
 }
-
-export const DEMO_REVIEW_ROUNDS: ReviewTestRounds<DemoState> = {
-  lobby: buildDemoTestLobby,
-  ended: () => endDemoTestGame(startDemoTestGame(buildDemoTestLobby())),
-  nextRound: (ended) => ({ ...ended, gameSequence: ended.gameSequence + 1 }),
-};

@@ -32,3 +32,9 @@ export function lighten(hex: string, amount: number): string {
   const [r, g, b] = parseHex(hex);
   return toHex(r + (255 - r) * amount, g + (255 - g) * amount, b + (255 - b) * amount);
 }
+
+/** The color at `alpha` opacity (0–1) as `rgb(r g b / a%)`. */
+export function withAlpha(hex: string, alpha: number): string {
+  const [r, g, b] = parseHex(hex);
+  return `rgb(${r} ${g} ${b} / ${Math.round(alpha * 100)}%)`;
+}

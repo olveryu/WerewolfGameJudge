@@ -1,0 +1,26 @@
+.game-config-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.game-config-body {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-small) var(--space-screen-h) var(--space-large);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.game-config-footer {
+  flex-shrink: 0;
+  padding: var(--space-medium) var(--space-screen-h)
+    max(var(--space-medium), env(safe-area-inset-bottom));
+  border-top: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.game-config-submit {
+  width: 100%;
+}

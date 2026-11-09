@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Avatar } from '@/components/avatar/Avatar';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { Switch } from '@/components/Switch';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext, type User } from '@/contexts/AuthContext';
 import {
@@ -17,7 +18,8 @@ import {
 import { useSignOut } from '@/features/auth/authMutations';
 import { requestLogin } from '@/features/auth/loginRequests';
 import { clearRecentRooms } from '@/features/room/services/recentRooms';
-import { displaySettings, isExpectedStorageError } from '@/features/settings/displaySettings';
+import { displaySettings } from '@/features/settings/displaySettings';
+import { isExpectedStorageError } from '@/features/settings/userSettingsStorage';
 import type { SceneFrameRate } from '@/scene/stage';
 import { TESTIDS } from '@/testids';
 import { showPrompt } from '@/utils/alert';
@@ -294,10 +296,7 @@ function DisplaySection() {
           <span>座位装饰</span>
           <span className="settings-row-hint">房间内的座位光效、宠物与入座动画；关闭可省电</span>
         </span>
-        <input
-          type="checkbox"
-          role="switch"
-          className="switch"
+        <Switch
           checked={settings.seatDecorationsEnabled}
           data-testid={TESTIDS.settingsSeatDecorationsSwitch}
           onChange={(event) =>

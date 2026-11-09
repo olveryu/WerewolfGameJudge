@@ -10,6 +10,7 @@ import { AuthProvider, useAuthContext } from '@/contexts/AuthContext';
 import { ServiceProvider } from '@/contexts/ServiceContext';
 import { LoginDialogSlot } from '@/features/auth/LoginDialogSlot';
 import { WechatLoginEntry } from '@/features/auth/WechatLoginEntry';
+import { ClientGameModulesProvider } from '@/games/clientModules';
 
 /**
  * Root route element: app-wide providers around the active page, plus the global alert dialog
@@ -21,7 +22,9 @@ export function AppRoot() {
     <QueryClientProvider client={queryClient}>
       <ServiceProvider services={services}>
         <AuthProvider>
-          <AppContent />
+          <ClientGameModulesProvider>
+            <AppContent />
+          </ClientGameModulesProvider>
           <AlertHost />
           <LoginDialogSlot />
           <Toaster position="top-center" />

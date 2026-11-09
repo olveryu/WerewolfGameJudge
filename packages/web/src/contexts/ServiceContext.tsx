@@ -16,8 +16,8 @@ export interface ServiceContextValue {
   authService: IAuthService;
   roomDirectory: RoomDirectory;
   roomCreator: RoomCreator;
-  /** One shared lease and outbox for every game's room link. */
-  roomLinks: RoomLinkFactory;
+  /** One shared lease and outbox for every game's room link, created on first use. */
+  loadRoomLinks: () => Promise<RoomLinkFactory>;
   avatarUploadService: IAvatarUploadService;
   /** Room links emit on `live` and INBOX_HINT; the account inbox consumer drains on it. */
   inboxWakes: InboxWakeSignal;

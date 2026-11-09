@@ -165,7 +165,7 @@ function selectPalette<T>(seed: string, palettes: readonly T[]): T {
 
 interface RingAvatarProps {
   seed: string;
-  size: number;
+  size: number | string;
 }
 
 const RingAvatar = ({ seed, size }: RingAvatarProps) => {
@@ -196,7 +196,7 @@ const RingAvatar = ({ seed, size }: RingAvatarProps) => {
 
 interface BeamAvatarProps {
   seed: string;
-  size: number;
+  size: number | string;
 }
 
 const BeamAvatar = ({ seed, size }: BeamAvatarProps) => {
@@ -281,7 +281,7 @@ function getGeneratedVariant(id: string): 'ring' | 'beam' {
 
 interface GeneratedAvatarProps {
   seed: string;
-  size: number;
+  size: number | string;
 }
 
 /**

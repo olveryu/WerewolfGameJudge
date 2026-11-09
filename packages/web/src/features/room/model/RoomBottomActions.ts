@@ -79,7 +79,7 @@ export function buildLobbyHostStartMessage(input: {
  * DrawGuess's ended view sentence, kept as the single source so every
  * game's ended phase waits on the host in the same words.
  */
-export const ENDED_WAITING_MESSAGE = '等待房主操作（再来一局 / 返回大厅）';
+const ENDED_WAITING_MESSAGE = '等待房主操作（再来一局 / 返回大厅）';
 
 export function buildEndedWaitingMessage(input: {
   readonly isEnded: boolean;
@@ -89,32 +89,6 @@ export function buildEndedWaitingMessage(input: {
     ? ENDED_WAITING_MESSAGE
     : null;
 }
-
-/**
- * The waiting sentence for a stepped phase (a night sequence), built
- * from the very progress object that feeds the bottom progress row so
- * the sentence and the row can never disagree about the current step:
- * a non-actor is told whose action the room is waiting for.
- */
-export function buildStepActorWaitingMessage(progress: NightStepProgress | null): string | null {
-  return progress === null || progress.label === '' ? null : `正在等待 ${progress.label} 行动`;
-}
-
-/**
- * The player sentence for a failed word preparation: the game's own
- * failure reason (its content — word games report distinct reasons)
- * plus the shared wait object, the host who must handle it. Each game
- * fills in its reason and the host action its flow offers.
- */
-export function buildPreparationFailureMessage(input: {
-  readonly reason: string;
-  readonly hostAction: string;
-}): string {
-  return `${input.reason}，等待房主${input.hostAction}`;
-}
-
-/** Canonical label of the view-identity action where the game's own word for it is 身份. */
-export const VIEW_IDENTITY_LABEL = '查看身份';
 
 /**
  * The view-identity action definition: the one player command whose
@@ -138,46 +112,6 @@ export function resolveViewIdentityAction(input: {
   readonly onPress: () => void;
 }): RoomViewIdentityAction | null {
   return input.isVisible ? { label: input.label, onPress: input.onPress } : null;
-}
-
-/**
- * Renders a resolved view-identity action as a bottom button. The tier
- * follows the 2026 rule, decided by the caller from whether the current
- * step is the viewing step: the viewing step renders primary, every
- * other phase renders secondary. Ghost is never a view-identity tier:
- * viewing your own secret is always a real button (filled or outlined),
- * never a borderless text action. Size is fixed md across games; the
- * key, the tier, the audience and the testID remain the surface's own
- * anchors (a spectator-readable variant such as FibKing's 查看题目
- * declares `anyone`; viewing one's own secret declares `participant`).
- * A hidden action is expressed by resolving to null, never by a disabled
- * view button. The only disabled state is the room's single-flight
- * command lock: the first view submits `role.viewed` through the same
- * funnel as every other command (useRoleViewing), so while any command is
- * in flight the entry is disabled — the lock treats a second concurrent
- * submit as a programming error.
- */
-export function buildViewIdentityButton(
-  action: RoomViewIdentityAction,
-  surface: {
-    readonly key: string;
-    readonly variant: 'primary' | 'secondary';
-    readonly audience: RoomBottomButtonAudience;
-    readonly testID?: string;
-    readonly isSubmitting: boolean;
-  },
-): RoomBottomButton {
-  const base = {
-    key: surface.key,
-    label: action.label,
-    audience: surface.audience,
-    icon: 'eye-outline',
-    variant: surface.variant,
-    size: 'md',
-    ...(surface.testID !== undefined ? { testID: surface.testID } : {}),
-  } as const;
-  if (surface.isSubmitting) return { ...base, isEnabled: false, disabledReason: null };
-  return { ...base, isEnabled: true, onPress: action.onPress };
 }
 
 /**

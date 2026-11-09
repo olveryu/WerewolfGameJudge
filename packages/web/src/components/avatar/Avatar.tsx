@@ -10,36 +10,46 @@ interface AvatarProps {
   userId: string;
   /** Uploaded URL or `builtin://<id>`; null shows the fallback. */
   avatarUrl: string | null;
-  size: number;
+  /** Pixel size, or `fill` to fill the parent box (which sets the size). */
+  size: number | 'fill';
 }
 
 /** A user's avatar: uploaded image, builtin portrait, generated SVG or tinted wolf paw. */
 export function Avatar({ userId, avatarUrl, size }: AvatarProps) {
   const source = resolveAvatarSource(userId, avatarUrl);
-  const style: CSSProperties = { width: size, height: size, borderRadius: size / 4 };
+  const isFill = size === 'fill';
+  const style: CSSProperties = isFill ? {} : { width: size, height: size, borderRadius: size / 4 };
+  const svgSize = isFill ? '100%' : size;
 
   if (source.kind === 'image') {
     return (
       <img
         className="avatar"
+        data-fill={isFill}
         style={style}
         src={source.url}
         alt="头像"
-        width={size}
-        height={size}
+        width={isFill ? undefined : size}
+        height={isFill ? undefined : size}
         decoding="async"
       />
     );
   }
   if (source.kind === 'generated') {
     return (
-      <span className="avatar" style={style} role="img" aria-label="头像">
-        <GeneratedAvatar seed={source.seed} size={size} />
+      <span className="avatar" data-fill={isFill} style={style} role="img" aria-label="头像">
+        <GeneratedAvatar seed={source.seed} size={svgSize} />
       </span>
     );
   }
   return (
-    <span className="avatar avatar-fallback" style={style} role="img" aria-label="头像">
+    <span
+      className="avatar avatar-fallback"
+      data-fill={isFill}
+      style={style}
+      role="img"
+      aria-label="头像"
+    >
       <span
         className="avatar-fallback-mark"
         style={{

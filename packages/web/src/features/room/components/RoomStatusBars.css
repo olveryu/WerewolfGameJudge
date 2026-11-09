@@ -1,0 +1,107 @@
+.connection-bar {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-small);
+  margin: var(--space-small) var(--space-medium) 0;
+  padding: var(--space-tight) var(--space-medium);
+  overflow: hidden;
+  border-radius: var(--radius-large);
+  background: var(--color-error-a13);
+  box-shadow: var(--shadow-sm);
+}
+
+.connection-bar-text {
+  color: var(--color-error);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-medium);
+}
+
+.connection-bar-retry {
+  padding: var(--space-tight) var(--space-small);
+  border: none;
+  border-radius: var(--radius-small);
+  background: var(--color-error-a20);
+  color: var(--color-error);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.connection-bar-track {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: var(--space-micro);
+  overflow: hidden;
+}
+
+.connection-bar-indeterminate {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  border-radius: var(--radius-full);
+  background: var(--color-error-a50);
+  animation: connection-bar-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes connection-bar-slide {
+  from {
+    left: -40%;
+  }
+
+  to {
+    left: 100%;
+  }
+}
+
+.controlled-seat-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  margin: var(--space-small) var(--space-medium);
+  padding: var(--space-small) var(--space-medium);
+  border: var(--border-width) solid var(--color-warning);
+  border-radius: var(--radius-large);
+  background: var(--color-warning-a13);
+  box-shadow: var(--shadow-sm);
+}
+
+.controlled-seat-banner-text {
+  flex: 1;
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+.controlled-seat-banner-release {
+  padding: var(--space-tight) var(--space-small);
+  border: none;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.seat-confirm-message {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .connection-bar-indeterminate {
+    left: 30%;
+    animation: none;
+  }
+}

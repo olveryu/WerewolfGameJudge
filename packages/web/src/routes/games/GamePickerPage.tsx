@@ -2,6 +2,7 @@ import './GamePickerPage.css';
 
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
+import { gameConfigCreatePath } from '@/features/navigation/model/gamePaths';
 import { type ClientGameModeOption, GAME_MODE_OPTIONS } from '@/games/catalog';
 import { TESTIDS } from '@/testids';
 import IconClose from '~icons/ion/close';
@@ -86,7 +87,7 @@ export function GamePickerPage() {
   readPurpose(searchParams.get('purpose'));
 
   const select = (option: ClientGameModeOption) => {
-    void navigate(`/game/${option.gameType}/config/create`);
+    void navigate(gameConfigCreatePath(option.gameType));
   };
 
   return (

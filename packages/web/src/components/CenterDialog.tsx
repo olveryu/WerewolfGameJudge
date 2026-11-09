@@ -11,6 +11,7 @@ interface CenterDialogProps {
   title: string;
   subtitle?: string;
   testId?: string;
+  titleTestId?: string;
   children: ReactNode;
 }
 
@@ -21,6 +22,7 @@ export function CenterDialog({
   title,
   subtitle,
   testId,
+  titleTestId,
   children,
 }: CenterDialogProps) {
   return (
@@ -36,7 +38,9 @@ export function CenterDialog({
         <Dialog.Backdrop className="center-dialog-backdrop" />
         <Dialog.Positioner className="center-dialog-positioner">
           <Dialog.Content className="center-dialog" data-testid={testId}>
-            <Dialog.Title className="center-dialog-title">{title}</Dialog.Title>
+            <Dialog.Title className="center-dialog-title" data-testid={titleTestId}>
+              {title}
+            </Dialog.Title>
             {subtitle && (
               <Dialog.Description className="center-dialog-subtitle">{subtitle}</Dialog.Description>
             )}

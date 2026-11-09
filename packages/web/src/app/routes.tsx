@@ -28,7 +28,28 @@ export const routes: RouteObject[] = [
         },
       },
       {
-        path: 'settings',
+        path: 'room/:roomCode',
+        lazy: async () => {
+          const { RoomPage, RoomPageError } = await import('@/routes/room/RoomPage');
+          return { Component: RoomPage, ErrorBoundary: RoomPageError };
+        },
+      },
+      {
+        path: 'game/:gameType/config/:mode/:roomCode?',
+        lazy: async () => {
+          const { GameConfigRoutePage } = await import('@/routes/game/GameRoutePage');
+          return { Component: GameConfigRoutePage };
+        },
+      },
+      {
+        path: 'game/:gameType/guide/:roomCode?',
+        lazy: async () => {
+          const { GameGuideRoutePage } = await import('@/routes/game/GameRoutePage');
+          return { Component: GameGuideRoutePage };
+        },
+      },
+      {
+        path: 'settings/:roomCode?',
         lazy: async () => {
           const { SettingsPage } = await import('@/routes/settings/SettingsPage');
           return { Component: SettingsPage };

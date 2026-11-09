@@ -1,0 +1,108 @@
+.game-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  padding: var(--space-medium) 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.game-settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-small);
+  padding: var(--space-small) 0;
+}
+
+.game-settings-label {
+  flex-shrink: 1;
+  padding: 0;
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  font-weight: var(--weight-semibold);
+}
+
+.game-settings-stepper {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding: var(--space-micro);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-background);
+}
+
+.game-settings-count {
+  width: var(--size-button-lg);
+  height: var(--size-button-md);
+  padding: 0 var(--space-tight);
+  border: none;
+  border-radius: var(--radius-small);
+  background: var(--color-primary-a8);
+  color: var(--color-primary);
+  font-size: var(--font-body);
+  font-weight: var(--weight-semibold);
+  text-align: center;
+}
+
+.game-settings-hint,
+.game-settings-issue,
+.game-settings-summary {
+  margin: 0;
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.game-settings-hint {
+  color: var(--color-text-secondary);
+}
+
+.game-settings-issue {
+  color: var(--color-error);
+}
+
+.game-settings-summary {
+  margin-bottom: var(--space-small);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.game-settings-choice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  padding: var(--space-medium) 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.game-settings-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-small);
+}
+
+.game-settings-option {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-button-md);
+  padding: var(--space-small) var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  cursor: pointer;
+}
+
+.game-settings-option[aria-checked='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-a15);
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.game-settings-option:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary-light);
+}

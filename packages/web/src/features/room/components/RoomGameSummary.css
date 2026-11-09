@@ -1,0 +1,78 @@
+.room-game-summary {
+  margin-bottom: var(--space-medium);
+  padding-bottom: var(--space-small);
+  border-bottom: var(--border-width) solid var(--color-border-light);
+}
+
+.room-game-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-small);
+  padding: var(--space-medium) 0;
+}
+
+.room-game-summary-identity {
+  display: flex;
+  flex: 1 1 60%;
+  align-items: center;
+  gap: var(--space-small);
+  min-width: 0;
+}
+
+.room-game-summary-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-avatar-md);
+  height: var(--size-avatar-md);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-a8);
+  color: var(--color-primary);
+  font-size: var(--size-icon-md);
+}
+
+.room-game-summary-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.room-game-summary-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  font-weight: var(--weight-bold);
+}
+
+.room-game-summary-subtitle {
+  margin: var(--space-micro) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.room-guide-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-small);
+  min-height: var(--size-button-lg);
+  margin-left: auto;
+  padding: var(--space-small);
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.room-guide-button-icon {
+  color: var(--color-primary);
+}
+
+.room-guide-button-chevron {
+  color: var(--color-text-muted);
+}

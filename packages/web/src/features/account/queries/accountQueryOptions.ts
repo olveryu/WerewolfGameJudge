@@ -8,13 +8,9 @@
 
 import { queryOptions } from '@tanstack/react-query';
 
-import {
-  fetchUserProfile,
-  fetchUserStats,
-  fetchUserUnlocks,
-} from '@/features/account/services/accountApi';
+import { fetchUserProfile, fetchUserStats } from '@/features/account/services/accountApi';
 
-export const accountQueryKeys = {
+const accountQueryKeys = {
   stats: (userId: string | null) => ['userStats', userId] as const,
   profiles: ['userProfile'] as const,
   profile: (userId: string) => ['userProfile', userId] as const,
@@ -34,10 +30,4 @@ export const userProfileOptions = (userId: string) =>
     queryKey: accountQueryKeys.profile(userId),
     queryFn: () => fetchUserProfile(userId),
     staleTime: 0,
-  });
-
-export const userUnlocksOptions = (userId: string) =>
-  queryOptions({
-    queryKey: accountQueryKeys.unlocks(userId),
-    queryFn: () => fetchUserUnlocks(userId).then((r) => r.unlockedItems),
   });

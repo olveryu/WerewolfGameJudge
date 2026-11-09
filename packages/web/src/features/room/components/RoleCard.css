@@ -1,0 +1,168 @@
+[data-alignment='wolf'] {
+  --faction-color: var(--color-wolf);
+}
+
+[data-alignment='god'] {
+  --faction-color: var(--color-god);
+}
+
+[data-alignment='villager'] {
+  --faction-color: var(--color-villager);
+}
+
+[data-alignment='third'] {
+  --faction-color: var(--color-third);
+}
+
+[data-alignment='neutral'] {
+  --faction-color: var(--color-text-secondary);
+}
+
+.role-card-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-medium);
+  width: min(82vw, 360px);
+}
+
+.role-card-dialog[data-state='open'] {
+  animation: center-dialog-pop 150ms ease-out;
+}
+
+.role-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-small);
+  height: calc(min(82vw, 360px) * 1.5);
+  padding: var(--space-large) var(--space-medium) var(--space-medium);
+  overflow: hidden;
+  border: var(--border-width-thick) solid var(--faction-color);
+  border-radius: var(--radius-xlarge);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.role-card-faction {
+  position: absolute;
+  top: var(--space-small);
+  right: var(--space-small);
+  padding: var(--space-micro) var(--space-small);
+  border-radius: var(--radius-full);
+  background: var(--faction-color);
+  color: var(--color-text-inverse);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-bold);
+}
+
+.role-card-portrait {
+  flex-shrink: 0;
+  width: 38%;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+
+.role-card-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-large);
+  background: var(--faction-color);
+  color: var(--color-text-inverse);
+  font-size: var(--font-hero);
+  font-weight: var(--weight-bold);
+}
+
+.role-card-name {
+  margin: 0;
+  color: var(--faction-color);
+  font-size: var(--font-heading);
+  line-height: var(--line-heading);
+  font-weight: var(--weight-bold);
+}
+
+.role-card-divider {
+  width: 60%;
+  margin: 0;
+  border: none;
+  border-top: var(--border-width) solid var(--color-border-light);
+}
+
+.role-card-description {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.role-card-description-title {
+  margin: 0 0 var(--space-tight);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+  text-align: center;
+}
+
+.role-card-description-text {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  text-align: center;
+}
+
+.role-card-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+}
+
+.role-card-field {
+  --field-accent: var(--faction-color);
+  --field-label: var(--color-text-secondary);
+
+  padding-left: var(--space-small);
+  border-left: var(--space-micro) solid var(--field-accent);
+}
+
+.role-card-field[data-tone='warning'] {
+  --field-accent: var(--color-warning);
+  --field-label: var(--color-warning);
+}
+
+.role-card-field[data-tone='success'] {
+  --field-accent: var(--color-success);
+  --field-label: var(--color-success);
+}
+
+.role-card-field-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-tight);
+  margin: 0 0 var(--space-micro);
+  color: var(--field-label);
+  font-size: var(--font-caption-small);
+  font-weight: var(--weight-semibold);
+}
+
+.role-card-field-text,
+.role-card-field-bullets {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.role-card-field-bullets {
+  padding-left: var(--space-medium);
+}
+
+.role-card-confirm {
+  width: 100%;
+}
+
+.button.role-card-confirm[data-alignment] {
+  background: var(--faction-color);
+}
