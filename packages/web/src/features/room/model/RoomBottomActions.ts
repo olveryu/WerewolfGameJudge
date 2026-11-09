@@ -100,6 +100,19 @@ export function buildStepActorWaitingMessage(progress: NightStepProgress | null)
   return progress === null || progress.label === '' ? null : `正在等待 ${progress.label} 行动`;
 }
 
+/**
+ * The player sentence for a failed word preparation: the game's own
+ * failure reason (its content — word games report distinct reasons)
+ * plus the shared wait object, the host who must handle it. Each game
+ * fills in its reason and the host action its flow offers.
+ */
+export function buildPreparationFailureMessage(input: {
+  readonly reason: string;
+  readonly hostAction: string;
+}): string {
+  return `${input.reason}，等待房主${input.hostAction}`;
+}
+
 /** Canonical label of the view-identity action where the game's own word for it is 身份. */
 export const VIEW_IDENTITY_LABEL = '查看身份';
 

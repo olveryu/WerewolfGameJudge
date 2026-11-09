@@ -29,7 +29,7 @@ const CLIENT_GAME_LOADERS: ClientGameLoaders = {
   werewolf: async () => (await import('@/games/werewolf/module')).createWerewolfClientModule,
   fibking: null,
   pictionary: null,
-  undercover: null,
+  undercover: async () => (await import('@/games/undercover/module')).createUndercoverClientModule,
   drawguess: null,
   storyrelay: null,
   avalon: null,

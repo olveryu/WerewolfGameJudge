@@ -13,6 +13,8 @@ export const ROOM_COMMAND_FAILURE_SEATS_NOT_FULL = '请先坐满所有座位。'
 export const ROOM_COMMAND_FAILURE_WRONG_PHASE = '当前阶段不能执行此操作';
 export const ROOM_COMMAND_FAILURE_OCCUPIED_OUT_OF_RANGE =
   '目标人数之外的座位仍有玩家入座，请先让这些玩家离座';
+export const ROOM_COMMAND_FAILURE_OCCUPIED_OUT_OF_RANGE_WITH_MOVE =
+  '目标人数之外的座位仍有玩家入座，请先让这些玩家离座或换到空位';
 
 export type RoomCommandFailureMessageMap = Readonly<Record<string, string>>;
 

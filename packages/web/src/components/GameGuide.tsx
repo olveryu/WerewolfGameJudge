@@ -53,7 +53,7 @@ export function GameGuideSection({
 }) {
   return (
     <section className="game-guide-section">
-      <h3 className="game-guide-section-title">{title}</h3>
+      <h2 className="game-guide-section-title">{title}</h2>
       {children}
     </section>
   );

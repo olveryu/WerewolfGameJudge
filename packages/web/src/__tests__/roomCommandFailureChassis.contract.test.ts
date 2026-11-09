@@ -14,6 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { DemoState } from '@game-judge/game-engine/games/demo/public';
+import type { UndercoverState } from '@game-judge/game-engine/games/undercover/public';
 import {
   REASON_COMMAND_ID_CONFLICT,
   REASON_CONTROLLED_SEAT_NOT_ALLOWED,
@@ -34,6 +35,7 @@ import {
 } from '@game-judge/game-engine/platform/protocol/reasons';
 
 import { getDemoRoomCommandFailureMessage } from '@/games/demo/room/demoRoomCommandFailureMessage';
+import { getUndercoverRoomCommandFailureMessage } from '@/games/undercover/room/undercoverRoomCommandFailureMessage';
 import { rejectedRoomCommand } from '@/test-utils/roomCommand';
 import { translateReasonCode } from '@/utils/errorUtils';
 import { ROOM_CHASSIS_REASON_MESSAGES } from '@/utils/roomChassisReasonMessages';
@@ -94,10 +96,20 @@ const PRESENTERS: ReadonlyArray<{ game: string; present: (reason: string) => str
     present: (reason) =>
       getDemoRoomCommandFailureMessage(rejectedRoomCommand<DemoState>(reason, 'chassis-pin')),
   },
+  {
+    game: 'undercover',
+    present: (reason) =>
+      getUndercoverRoomCommandFailureMessage(
+        rejectedRoomCommand<UndercoverState>(reason, 'chassis-pin'),
+      ),
+  },
 ];
 
 /** Game presenter sources scanned for chassis entries. */
-const PRESENTER_SOURCES = ['packages/web/src/games/demo/room/demoRoomCommandFailureMessage.ts'];
+const PRESENTER_SOURCES = [
+  'packages/web/src/games/demo/room/demoRoomCommandFailureMessage.ts',
+  'packages/web/src/games/undercover/room/undercoverRoomCommandFailureMessage.ts',
+];
 
 describe('room command failure chassis copy (B-2)', () => {
   it('the chassis table keys are exactly the covered platform codes', () => {
