@@ -12,6 +12,7 @@ import IconBookOutline from '~icons/ion/book-outline';
 import IconBulbOutline from '~icons/ion/bulb-outline';
 import IconChevronDown from '~icons/ion/chevron-down';
 import IconChevronUp from '~icons/ion/chevron-up';
+import IconDocumentTextOutline from '~icons/ion/document-text-outline';
 
 export function BoardInfoCard({
   playerCount,
@@ -19,6 +20,7 @@ export function BoardInfoCard({
   collapsed,
   onRolePress,
   onStrategyPress,
+  onNotepadPress,
   footer,
 }: {
   readonly playerCount: number;
@@ -28,6 +30,7 @@ export function BoardInfoCard({
   /** Every role row opens a preview: a role the player cannot inspect is a bug. */
   readonly onRolePress: (roleId: string) => void;
   readonly onStrategyPress: (() => void) | null;
+  readonly onNotepadPress: (() => void) | null;
   /** Game-specific actions under the roles (e.g. werewolf board nominations). */
   readonly footer: ReactNode;
 }) {
@@ -50,6 +53,12 @@ export function BoardInfoCard({
           <button type="button" className="board-info-pill" onClick={onStrategyPress}>
             <IconBookOutline aria-hidden />
             攻略
+          </button>
+        )}
+        {onNotepadPress !== null && (
+          <button type="button" className="board-info-pill" onClick={onNotepadPress}>
+            <IconDocumentTextOutline aria-hidden />
+            笔记
           </button>
         )}
       </div>

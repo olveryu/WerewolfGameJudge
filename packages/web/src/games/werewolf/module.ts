@@ -1,4 +1,4 @@
-/** Werewolf client module: session, narration audio, config flow, guide, room and review. */
+/** Werewolf client module: session, narration, config flow, guide, notepad, room and review. */
 
 import {
   type GameState,
@@ -16,6 +16,7 @@ import { werewolfGameNavigation } from './navigation/werewolfGameNavigation';
 import { werewolfReview } from './review/werewolfReview';
 import { WerewolfRoomScreen } from './room/WerewolfRoomScreen';
 import { EncyclopediaScreen } from './screens/EncyclopediaScreen/EncyclopediaScreen';
+import { NotepadScreen } from './screens/NotepadScreen/NotepadScreen';
 
 export const createWerewolfClientModule = defineClientGameModule<
   'werewolf',
@@ -31,6 +32,7 @@ export const createWerewolfClientModule = defineClientGameModule<
   // Werewolf's board picker → role config → rules is its own flow, not the schema-driven form.
   config: () => WerewolfConfigFlowScreen,
   GuideScreen: EncyclopediaScreen,
+  NotepadScreen,
   review: werewolfReview,
   isUserSeated: (state, userId) => getWerewolfUserSeat(state, userId) !== null,
   canSwitchAccount: (state) =>

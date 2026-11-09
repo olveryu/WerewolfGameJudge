@@ -1,11 +1,21 @@
 /** Werewolf root-navigation definition and strict route parsers. */
 
 import { isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 
 import { defineGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
+import {
+  assertExactRouteParamKeys,
+  parseRouteParams,
+} from '@/features/navigation/model/routeParams';
 import { createStandardGuideRouteParser } from '@/features/navigation/model/standardRouteParsers';
 
-import type { WerewolfGuideRouteParams, WerewolfGuideTab } from './types';
+import type {
+  WerewolfGuideRouteParams,
+  WerewolfGuideTab,
+  WerewolfNotepadRouteParams,
+} from './types';
 import { parseWerewolfConfigRouteParams } from './werewolfConfigFlow';
 
 function parseGuideTab(value: unknown): WerewolfGuideTab | undefined {
@@ -41,6 +51,16 @@ export const parseWerewolfGuideRouteParams: (params: unknown) => WerewolfGuideRo
     },
   });
 
+export function parseWerewolfNotepadRouteParams(params: unknown): WerewolfNotepadRouteParams {
+  const routeParams = parseRouteParams(params, 'Werewolf notepad');
+  const gameType = parseGameType(routeParams.gameType);
+  if (gameType !== 'werewolf') {
+    throw new Error(`[FAIL-FAST] Werewolf notepad received game type ${gameType}`);
+  }
+  assertExactRouteParamKeys(routeParams, ['gameType', 'roomCode'], 'Werewolf notepad');
+  return { gameType, roomCode: parseRoomCode(routeParams.roomCode) };
+}
+
 export const werewolfGameNavigation = defineGameNavigation({
   gameType: 'werewolf',
   config: {
@@ -51,5 +71,8 @@ export const werewolfGameNavigation = defineGameNavigation({
     kind: 'screen',
     parseParams: parseWerewolfGuideRouteParams,
   },
-  notepad: { kind: 'unsupported' },
+  notepad: {
+    kind: 'screen',
+    parseParams: parseWerewolfNotepadRouteParams,
+  },
 });

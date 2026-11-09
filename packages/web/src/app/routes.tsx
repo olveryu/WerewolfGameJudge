@@ -52,6 +52,13 @@ export const routes: RouteObject[] = [
         },
       },
       {
+        path: 'game/:gameType/notepad/:roomCode',
+        lazy: async () => {
+          const { GameNotepadRoutePage } = await import('@/routes/game/GameRoutePage');
+          return { Component: GameNotepadRoutePage };
+        },
+      },
+      {
         path: 'settings/:roomCode?',
         lazy: async () => {
           const { SettingsPage } = await import('@/routes/settings/SettingsPage');

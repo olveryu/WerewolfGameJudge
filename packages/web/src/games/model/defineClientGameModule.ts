@@ -1,8 +1,8 @@
 /**
  * Shared assembly for session-based client game modules. A game declares its data — codec,
  * navigation definition, screens, predicates and its review — and this factory creates the room
- * session, binds the room-account capability, and binds the config and guide pages and the room
- * screen to that one session.
+ * session, binds the room-account capability, and binds the config, guide and notepad pages and the
+ * room screen to that one session.
  */
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type {
@@ -50,7 +50,7 @@ interface ClientGameModuleDefinitionBase<
   /** Name in page titles (「${displayName}设置」). */
   readonly displayName: string;
   readonly stateCodec: GameStateCodec<TState>;
-  /** Config and guide are pages; this game has no notepad page. */
+  /** Config and guide are pages; the notepad is a page exactly when `NotepadScreen` binds one. */
   readonly navigation: GameNavigationDefinition<
     TGameType,
     SupportedGameNavigationRoute,
@@ -67,6 +67,8 @@ interface ClientGameModuleDefinitionBase<
   ) => GameConfigScreen<TState, TCommand>;
   /** The guide page; receives the session for games whose guide reads the room. */
   readonly GuideScreen: ComponentType<{ readonly session: RoomLink<TState, TCommand> }>;
+  /** The notepad page; `bindGameNavigation` fails fast unless the navigation declares it. */
+  readonly NotepadScreen?: ComponentType<{ readonly session: RoomLink<TState, TCommand> }>;
   /** The game's review: the room renders exactly this one. */
   readonly review: RoomReviewContribution<TState>;
   readonly isUserSeated: (state: TState, userId: string) => boolean;
@@ -125,6 +127,13 @@ export function defineClientGameModule<
     function BoundGuideScreen() {
       return createElement(GuideScreen, { session });
     }
+    const { NotepadScreen } = definition;
+    function BoundNotepadScreen() {
+      if (NotepadScreen === undefined) {
+        throw new Error(`[FAIL-FAST] ${definition.gameType} notepad screen is not bound`);
+      }
+      return createElement(NotepadScreen, { session });
+    }
     const { review } = definition;
     let roomScreen: ComponentType<GameRoomScreenProps<TGameType>>;
     if (definition.audio === undefined) {
@@ -144,6 +153,7 @@ export function defineClientGameModule<
       navigation: bindGameNavigation(definition.navigation, {
         config: BoundConfigScreen,
         guide: BoundGuideScreen,
+        ...(NotepadScreen === undefined ? {} : { notepad: BoundNotepadScreen }),
       }),
       roomAccount,
     };

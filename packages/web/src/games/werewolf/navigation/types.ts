@@ -22,6 +22,11 @@ export interface WerewolfGuideRouteParams {
   readonly initialTab?: WerewolfGuideTab;
 }
 
+export interface WerewolfNotepadRouteParams {
+  readonly gameType: 'werewolf';
+  readonly roomCode: string;
+}
+
 /** The config flow's steps; the current one is the `step` search param of the config page. */
 export type WerewolfConfigStep = 'BoardPicker' | 'Config' | 'Rules';
 

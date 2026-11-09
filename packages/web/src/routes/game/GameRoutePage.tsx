@@ -1,5 +1,6 @@
 /**
- * Game-owned pages (`/game/:gameType/config/:mode/:roomCode?`, `/game/:gameType/guide/:roomCode?`):
+ * Game-owned pages (`/game/:gameType/config/:mode/:roomCode?`, `/game/:gameType/guide/:roomCode?`,
+ * `/game/:gameType/notepad/:roomCode`):
  * resolves the game's client module and renders the page its navigation binds for the route
  * kind, after the game validated the route params.
  */
@@ -40,6 +41,14 @@ export function GameGuideRoutePage() {
   return (
     <Suspense fallback={<LoadingScreen />}>
       <GameRouteScreen routeKind="guide" />
+    </Suspense>
+  );
+}
+
+export function GameNotepadRoutePage() {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <GameRouteScreen routeKind="notepad" />
     </Suspense>
   );
 }

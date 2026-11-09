@@ -13,6 +13,10 @@ export function gameGuidePath(gameType: GameType, roomCode: string | null): stri
   return roomCode === null ? `/game/${gameType}/guide` : `/game/${gameType}/guide/${roomCode}`;
 }
 
+export function gameNotepadPath(gameType: GameType, roomCode: string): string {
+  return `/game/${gameType}/notepad/${roomCode}`;
+}
+
 /** Settings opened from a room keep the room code so the page applies room-aware rules. */
 export function settingsPath(roomCode: string | null): string {
   return roomCode === null ? '/settings' : `/settings/${roomCode}`;

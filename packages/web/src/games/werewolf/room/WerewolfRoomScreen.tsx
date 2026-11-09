@@ -19,7 +19,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { IconButton } from '@/components/IconButton';
-import { gameGuidePath } from '@/features/navigation/model/gamePaths';
+import { gameGuidePath, gameNotepadPath } from '@/features/navigation/model/gamePaths';
 import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
 import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
@@ -185,6 +185,7 @@ function WerewolfRoomContent(
                   ? null
                   : () => setStrategyBoardName(matchedStrategyName)
               }
+              onNotepadPress={() => void navigate(gameNotepadPath('werewolf', roomCode))}
               footer={
                 isSetup && (
                   <>
