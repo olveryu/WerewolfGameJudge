@@ -42,6 +42,23 @@ export interface RoomLinkFactory {
   create<TState extends BaseGameState<string>, TCommand extends object>(
     codec: GameStateCodec<TState>,
   ): RoomLink<TState, TCommand>;
+  /**
+   * Closes every link bound to another room or user than `scope`. A room's link outlives its room
+   * page while the user is on that room's subpages (settings, config, guide), whose routes carry
+   * the same room code; it is released once the route leaves the room or the user changes.
+   */
+  releaseOutside(scope: RoomFlowScope): void;
+}
+
+/** The room the current route belongs to and the signed-in user; null when there is none. */
+export interface RoomFlowScope {
+  readonly roomCode: string | null;
+  readonly userId: string | null;
+}
+
+interface ReleasableLink {
+  readonly isOutside: (scope: RoomFlowScope) => boolean;
+  readonly close: () => void;
 }
 
 export interface RoomLinkFactoryOptions {
@@ -56,9 +73,10 @@ export function createRoomLinkFactory(options: RoomLinkFactoryOptions): RoomLink
     Sentry.captureException(error);
   });
   const socketBaseUrl = API_BASE_URL.replace(/^http/, 'ws');
+  const links: ReleasableLink[] = [];
   return {
-    create: (codec) =>
-      new RoomLinkImpl({
+    create: (codec) => {
+      const link = new RoomLinkImpl({
         codec,
         api: apiClient,
         lease,
@@ -76,6 +94,22 @@ export function createRoomLinkFactory(options: RoomLinkFactoryOptions): RoomLink
           Sentry.captureException(error);
         },
         onInboxWake: options.onInboxWake,
-      }),
+      });
+      links.push({
+        isOutside: ({ roomCode, userId }) => {
+          const { identity } = link.getSnapshot();
+          return (
+            identity !== null && (identity.room.roomCode !== roomCode || identity.userId !== userId)
+          );
+        },
+        close: () => link.close(),
+      });
+      return link;
+    },
+    releaseOutside: (scope) => {
+      for (const link of links) {
+        if (link.isOutside(scope)) link.close();
+      }
+    },
   };
 }

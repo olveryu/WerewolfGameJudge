@@ -108,7 +108,7 @@ beforeEach(() => {
 });
 
 describe('useRoomEntryController', () => {
-  it('connects one exact identity, ignores equivalent room objects, and closes on unmount', async () => {
+  it('connects one exact identity, ignores equivalent room objects, and keeps a live link on unmount', async () => {
     const room = createRoom();
     const { link, connect, close } = createLink();
     const { result, rerender, unmount } = renderHook(
@@ -137,7 +137,14 @@ describe('useRoomEntryController', () => {
     expect(close).not.toHaveBeenCalled();
 
     unmount();
-    expect(close).toHaveBeenCalledTimes(1);
+    // The room's subpages reuse the live link; RoomLinkScope releases it when the route leaves.
+    expect(close).not.toHaveBeenCalled();
+
+    const remounted = renderHook(() =>
+      useRoomEntryController({ room, link, authUserId: 'host-user', onExit: vi.fn() }),
+    );
+    expect(remounted.result.current.isReady).toBe(true);
+    expect(connect).toHaveBeenCalledTimes(1);
   });
 
   it('shows the close message and retries only after an explicit retry from a closed link', async () => {

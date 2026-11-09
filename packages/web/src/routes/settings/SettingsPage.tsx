@@ -1,7 +1,14 @@
 import './SettingsPage.css';
 
-import { type FormEvent, useState, useSyncExternalStore } from 'react';
-import { Link } from 'react-router';
+import {
+  type FormEvent,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import { Link, useParams } from 'react-router';
 import { toast } from 'sonner';
 
 import { Avatar } from '@/components/avatar/Avatar';
@@ -17,15 +24,22 @@ import {
 } from '@/features/account/accountMutations';
 import { useSignOut } from '@/features/auth/authMutations';
 import { requestLogin } from '@/features/auth/loginRequests';
+import {
+  getRoomCommandFailureReason,
+  isSuccessfulRoomCommand,
+} from '@/features/room/link/roomCommandResult';
+import type { RoomProfilePatch } from '@/features/room/model/RoomAccountCapability';
+import { roomPath } from '@/features/room/navigation/roomFlowNavigation';
 import { clearRecentRooms } from '@/features/room/services/recentRooms';
 import { displaySettings } from '@/features/settings/displaySettings';
 import { isExpectedStorageError } from '@/features/settings/userSettingsStorage';
+import { useActiveRoomAccount } from '@/games/clientModules';
 import type { SceneFrameRate } from '@/scene/stage';
 import { TESTIDS } from '@/testids';
 import { showPrompt } from '@/utils/alert';
 import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
-import { getUserFacingMessage } from '@/utils/errorUtils';
+import { getUserFacingMessage, isExpectedError, translateReasonCode } from '@/utils/errorUtils';
 import { createLogger } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
 import IconChevronForward from '~icons/ion/chevron-forward';
@@ -110,6 +124,39 @@ function AccountSection({ user }: { user: User }) {
   const signOut = useSignOut();
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const inMiniProgram = isMiniProgram();
+  const activeRoom = useActiveRoomAccount();
+  const isInRoom = activeRoom.phase !== 'idle';
+  const { canSwitchAccount } = activeRoom;
+
+  /** Pushes a saved profile change into the active room; false when the room rejected it. */
+  const syncActiveRoomProfile = async (patch: RoomProfilePatch): Promise<boolean> => {
+    if (activeRoom.phase === 'idle' || !activeRoom.canSyncProfile) return true;
+    try {
+      const result = await activeRoom.updateProfile(patch);
+      if (isSuccessfulRoomCommand(result)) return true;
+      settingsLog.warn('Profile sync to active room rejected', {
+        reason: getRoomCommandFailureReason(result),
+      });
+    } catch (error: unknown) {
+      settingsLog.warn('Profile sync to active room failed', error);
+    }
+    toast.warning('资料已保存，房间内同步失败');
+    return false;
+  };
+
+  // Binding an email upgrades the guest in place; the room still shows the guest profile.
+  const wasAnonymous = useRef(user.isAnonymous);
+  const syncUpgradedProfile = useEffectEvent(() => {
+    settingsLog.info('Anonymous→email upgrade detected, syncing profile to the room');
+    void syncActiveRoomProfile({
+      displayName: user.displayName ?? undefined,
+      avatarUrl: user.avatarUrl ?? undefined,
+    });
+  });
+  useEffect(() => {
+    if (wasAnonymous.current && !user.isAnonymous) syncUpgradedProfile();
+    wasAnonymous.current = user.isAnonymous;
+  }, [user.isAnonymous]);
 
   const editName = () => {
     showPrompt('修改昵称', {
@@ -125,8 +172,9 @@ function AccountSection({ user }: { user: User }) {
           try {
             await updateProfile.mutateAsync({ displayName });
             const refreshed = await refreshSavedProfile(refreshUser);
-            if (refreshed) toast.success('昵称已更新');
-            else toast.warning('昵称已保存，资料刷新失败');
+            const roomSynced = await syncActiveRoomProfile({ displayName });
+            if (!refreshed) toast.warning('昵称已保存，资料刷新失败');
+            else if (roomSynced) toast.success('昵称已更新');
           } catch (error: unknown) {
             settingsLog.error('Update name failed', error);
             showErrorAlert('更新失败', getUserFacingMessage(error));
@@ -147,18 +195,42 @@ function AccountSection({ user }: { user: User }) {
     });
   };
 
+  /** Switching while seated leaves the seat first, so the room never keeps the old account seated. */
   const switchAccount = () => {
-    const open = () =>
-      void requestLogin({
-        title: '切换账号',
-        startWith: 'emailSignIn',
-        signOutFirst: true,
-        showSuccessOnLogin: true,
-      });
+    const open = async () => {
+      try {
+        if (activeRoom.phase !== 'idle' && activeRoom.isSeated) {
+          const result = await activeRoom.leaveSeat();
+          if (!isSuccessfulRoomCommand(result)) {
+            showErrorAlert('离座失败', translateReasonCode(getRoomCommandFailureReason(result)));
+            return;
+          }
+        }
+        await requestLogin({
+          title: '切换账号',
+          startWith: 'emailSignIn',
+          signOutFirst: true,
+          showSuccessOnLogin: true,
+        });
+      } catch (error: unknown) {
+        handleError(error, {
+          label: '切换账号',
+          logger: settingsLog,
+          feedback: false,
+          isExpected: isExpectedError,
+        });
+        showErrorAlert('切换失败', getUserFacingMessage(error));
+      }
+    };
     if (user.isAnonymous) {
-      showDestructiveAlert('切换账号', '匿名数据将无法恢复，确定切换账号？', '切换', open);
+      showDestructiveAlert(
+        '切换账号',
+        '匿名数据将无法恢复，确定切换账号？',
+        '切换',
+        () => void open(),
+      );
     } else {
-      open();
+      void open();
     }
   };
 
@@ -211,7 +283,7 @@ function AccountSection({ user }: { user: User }) {
         </>
       )}
 
-      {!user.email && inMiniProgram && !user.isAnonymous && (
+      {canSwitchAccount && !user.email && inMiniProgram && !user.isAnonymous && (
         <>
           <button
             type="button"
@@ -237,7 +309,7 @@ function AccountSection({ user }: { user: User }) {
       )}
 
       <div className="settings-actions">
-        {!user.email && !inMiniProgram && (
+        {canSwitchAccount && !user.email && !inMiniProgram && (
           <Button variant="secondary" onClick={() => bindEmail('绑定邮箱')}>
             绑定邮箱
           </Button>
@@ -250,12 +322,12 @@ function AccountSection({ user }: { user: User }) {
               修改密码
             </Button>
           ))}
-        {!isChangingPassword && !inMiniProgram && (
+        {canSwitchAccount && !isChangingPassword && !inMiniProgram && (
           <Button variant="secondary" onClick={switchAccount}>
             切换账号
           </Button>
         )}
-        {!isChangingPassword && !inMiniProgram && (
+        {!isInRoom && !isChangingPassword && !inMiniProgram && (
           <Button
             variant="secondary"
             className="settings-logout"
@@ -354,12 +426,16 @@ function AboutSection() {
   );
 }
 
-/** Settings: account, display preferences (decorations, frame rate) and about. */
+/**
+ * Settings: account, display preferences (decorations, frame rate) and about. Opened from a room
+ * (`/settings/:roomCode`), it returns to that room and applies account changes to the room.
+ */
 export function SettingsPage() {
   const { user, loading } = useAuthContext();
+  const { roomCode } = useParams();
   return (
     <div className="settings-page">
-      <ScreenHeader title="设置" />
+      <ScreenHeader title="设置" parentPath={roomCode === undefined ? '/' : roomPath(roomCode)} />
       <main className="settings-content">
         <section className="settings-card">
           <h2 className="settings-card-title">

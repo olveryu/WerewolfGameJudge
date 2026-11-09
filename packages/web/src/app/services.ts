@@ -15,11 +15,16 @@ function createAppServices(): ServiceContextValue {
   const inboxWakes = createInboxWakeSignal();
   // The realtime stack loads with the first room, outside the home start-up budget.
   let roomLinks: Promise<RoomLinkFactory> | null = null;
+  let loadedRoomLinks: RoomLinkFactory | null = null;
   const loadRoomLinks = (): Promise<RoomLinkFactory> => {
     if (roomLinks !== null) return roomLinks;
     const loading = import('@/platform/realtime/RoomLinkFactory').then(
-      ({ createRoomLinkFactory }) =>
-        createRoomLinkFactory({ onInboxWake: (reason) => inboxWakes.emit(reason) }),
+      ({ createRoomLinkFactory }) => {
+        loadedRoomLinks = createRoomLinkFactory({
+          onInboxWake: (reason) => inboxWakes.emit(reason),
+        });
+        return loadedRoomLinks;
+      },
     );
     roomLinks = loading;
     // A failed chunk load may succeed on retry; only a created factory stays cached.
@@ -33,6 +38,8 @@ function createAppServices(): ServiceContextValue {
     roomDirectory,
     roomCreator: new RoomCreationService(roomDirectory, new RoomCreationIntentStore()),
     loadRoomLinks,
+    // Before the factory loads no link exists, so there is nothing to release.
+    releaseRoomLinksOutside: (scope) => loadedRoomLinks?.releaseOutside(scope),
     avatarUploadService: new CFAvatarUploadService(),
     inboxWakes,
   };

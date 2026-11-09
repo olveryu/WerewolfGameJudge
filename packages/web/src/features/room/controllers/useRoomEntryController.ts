@@ -129,13 +129,9 @@ export function useRoomEntryController<
       });
     });
 
-    return () => {
-      controller.abort();
-      const current = link.getSnapshot();
-      if (current.identity !== null && matchesIdentity(current.identity, stableRoom, authUserId)) {
-        link.close();
-      }
-    };
+    // Aborting closes a link still entering; a live link stays open for the room's subpages and
+    // is released by the app's RoomLinkScope once the route leaves the room or the user changes.
+    return () => controller.abort();
   }, [authUserId, retryGeneration, link, stableRoom]);
 
   useEffect(() => {

@@ -4,9 +4,17 @@
  * docs/web-client-rewrite.md §8.2) has no loader; its routes report it as unsupported.
  */
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
-import { createContext, type ReactNode, use, useState } from 'react';
+import { createContext, type ReactNode, use, useState, useSyncExternalStore } from 'react';
 
 import { useServices } from '@/contexts/ServiceContext';
+import type {
+  ActiveRoomAccountSnapshot,
+  RoomAccountCapability,
+} from '@/features/room/model/RoomAccountCapability';
+import {
+  type ActiveRoomAccountSource,
+  createActiveRoomAccountSource,
+} from '@/games/activeRoomAccount';
 import type {
   ClientGameModule,
   ClientGameModuleDependencies,
@@ -45,11 +53,15 @@ interface ClientGameModules {
   readonly load: <TGameType extends GameType>(
     gameType: TGameType,
   ) => Promise<ClientGameModule<TGameType>>;
+  /** The one active room account across the loaded modules. */
+  readonly activeRoomAccount: ActiveRoomAccountSource;
 }
 
 function createClientGameModules(
   loadDependencies: () => Promise<ClientGameModuleDependencies>,
 ): ClientGameModules {
+  const loadedAccounts: RoomAccountCapability[] = [];
+  const accountLoadListeners = new Set<() => void>();
   const modules: { readonly [TGameType in GameType]: ModuleSlot<TGameType> } = {
     werewolf: { loading: null },
     fibking: { loading: null },
@@ -71,6 +83,8 @@ function createClientGameModules(
     if (module.gameType !== gameType) {
       throw new Error(`[FAIL-FAST] Client module for ${gameType} registered ${module.gameType}`);
     }
+    loadedAccounts.push(module.roomAccount);
+    for (const listener of accountLoadListeners) listener();
     return module;
   };
   return {
@@ -85,6 +99,13 @@ function createClientGameModules(
       });
       return loading;
     },
+    activeRoomAccount: createActiveRoomAccountSource({
+      current: () => loadedAccounts,
+      subscribe: (listener) => {
+        accountLoadListeners.add(listener);
+        return () => accountLoadListeners.delete(listener);
+      },
+    }),
   };
 }
 
@@ -103,7 +124,17 @@ export function ClientGameModulesProvider({ children }: { readonly children: Rea
 export function useClientGameModule<TGameType extends GameType>(
   gameType: TGameType,
 ): ClientGameModule<TGameType> {
+  return use(useClientGameModules().load(gameType));
+}
+
+function useClientGameModules(): ClientGameModules {
   const modules = use(ClientGameModulesContext);
   if (modules === null) throw new Error('[FAIL-FAST] Missing ClientGameModulesProvider');
-  return use(modules.load(gameType));
+  return modules;
+}
+
+/** The active room's account operations, or the idle snapshot outside a room. */
+export function useActiveRoomAccount(): ActiveRoomAccountSnapshot {
+  const { activeRoomAccount } = useClientGameModules();
+  return useSyncExternalStore(activeRoomAccount.subscribe, activeRoomAccount.getSnapshot);
 }

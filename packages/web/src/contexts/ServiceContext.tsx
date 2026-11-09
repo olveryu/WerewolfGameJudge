@@ -7,7 +7,7 @@ import { createContext, use } from 'react';
 
 import type { RoomCreator, RoomDirectory } from '@/features/room/model/RoomDirectory';
 import type { InboxWakeSignal } from '@/platform/inbox/inboxWake';
-import type { RoomLinkFactory } from '@/platform/realtime/RoomLinkFactory';
+import type { RoomFlowScope, RoomLinkFactory } from '@/platform/realtime/RoomLinkFactory';
 import type { IAuthService } from '@/services/types/IAuthService';
 import type { IAvatarUploadService } from '@/services/types/IAvatarUploadService';
 
@@ -18,6 +18,8 @@ export interface ServiceContextValue {
   roomCreator: RoomCreator;
   /** One shared lease and outbox for every game's room link, created on first use. */
   loadRoomLinks: () => Promise<RoomLinkFactory>;
+  /** Closes room links outside the current route's room and user (`RoomLinkFactory.releaseOutside`). */
+  releaseRoomLinksOutside: (scope: RoomFlowScope) => void;
   avatarUploadService: IAvatarUploadService;
   /** Room links emit on `live` and INBOX_HINT; the account inbox consumer drains on it. */
   inboxWakes: InboxWakeSignal;
