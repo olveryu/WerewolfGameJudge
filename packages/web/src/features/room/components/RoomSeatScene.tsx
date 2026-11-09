@@ -110,3 +110,11 @@ export function RoomSeatResidents({
     </>
   );
 }
+
+/**
+ * Loads the role reveal's stage chunk. Every reveal loader goes through this module because the
+ * import site has to live in the seat-scene chunk: a PixiJS consumer imported from anywhere else
+ * makes Rolldown fold the WebGL and WebGPU renderers into the stage's static closure, pushing the
+ * scene budget over its limit.
+ */
+export const loadRevealEffectStage = () => import('./RoleRevealEffects/RevealEffectStage');

@@ -1181,6 +1181,22 @@ describe('Client ownership: Home and root navigation stay game-neutral', () => {
   });
 });
 
+describe('Client ownership: generic audio stays game-neutral', () => {
+  it('keeps Werewolf narration out of the platform AudioService', () => {
+    const filePath = path.join(servicesDir, 'infra', 'AudioService.ts');
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const gameEngineViolations = getModuleSpecifiers(filePath, content).filter(
+      (specifier) =>
+        specifier === GAME_ENGINE_PACKAGE ||
+        (specifier.startsWith(`${GAME_ENGINE_PACKAGE}/`) &&
+          !isSharedGameEngineSpecifier(specifier)),
+    );
+
+    expect(content).not.toMatch(/\bRoleId\b|playRole|playNight|preloadForRoles|AUDIO_REGISTRY/);
+    expect(gameEngineViolations).toEqual([]);
+  });
+});
+
 describe('Client ownership: RoomLink has one implementation', () => {
   it('defines exactly one RoomLink implementation in production client code', () => {
     const implementations = srcFiles.filter((filePath) =>

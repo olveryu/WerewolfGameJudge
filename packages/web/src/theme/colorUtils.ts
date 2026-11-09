@@ -33,6 +33,12 @@ export function lighten(hex: string, amount: number): string {
   return toHex(r + (255 - r) * amount, g + (255 - g) * amount, b + (255 - b) * amount);
 }
 
+/** Mix color toward black by the given amount (0–1) */
+export function darken(hex: string, amount: number): string {
+  const [r, g, b] = parseHex(hex);
+  return toHex(r * (1 - amount), g * (1 - amount), b * (1 - amount));
+}
+
 /** The color at `alpha` opacity (0–1) as `rgb(r g b / a%)`. */
 export function withAlpha(hex: string, alpha: number): string {
   const [r, g, b] = parseHex(hex);

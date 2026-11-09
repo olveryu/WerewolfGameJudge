@@ -268,6 +268,10 @@ function WerewolfRoomContent(
             <WerewolfRoleCardModal
               isLoading={roleCard.viewing.isPending}
               roleId={roleCard.roleId}
+              resolvedAnimation={roleCard.resolvedAnimation}
+              shouldPlayAnimation={roleCard.viewing.shouldPlayAnimation}
+              allRoleIds={state.templateRoles}
+              remainingCards={roleCard.viewing.remainingCards}
               onClose={roleCard.viewing.close}
               seerLabelMap={state.seerLabelMap}
             />

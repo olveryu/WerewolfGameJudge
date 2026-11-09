@@ -1,10 +1,5 @@
 /**
  * RoleRevealEffects/types - 动画系统共享类型（游戏无关）。
- *
- * 从狼人杀 types.ts 移植：
- * - 删除 `RoleData`（统一用 `RevealRoleData`）
- * - `RoleAlignment` 保留（与 `RevealAlignment` 同值）
- * - `AlignmentTheme` + `createAlignmentThemes` 已通用，直接保留
  */
 import type { RoleRevealEffectId } from '@game-judge/game-engine/product/rewards';
 
@@ -16,32 +11,31 @@ import type { RevealRoleData } from '../../model/RevealRoleData';
  */
 export type RevealEffectType = RoleRevealEffectId;
 
-/**
- * 所有揭示特效组件的通用 props
- */
+/** Props every reveal effect component receives from the animator. */
 export interface RevealEffectProps {
   /** 要揭示的角色（游戏无关，调用方通过 adapter 构造） */
   readonly role: RevealRoleData;
-  /** 揭示动画完成时的回调 */
+  /** 揭示动画完成时的回调，只触发一次 */
   readonly onComplete: () => void;
-  /** 是否尊重系统"减少动态效果"偏好 */
-  readonly reducedMotion?: boolean;
-  /** 是否启用触觉反馈（仅移动端） */
-  readonly enableHaptics?: boolean;
+  /** 减少动态效果：仍等待交互，随后静态展示卡面 */
+  readonly reducedMotion: boolean;
   /** 测试 ID 前缀 */
-  readonly testIDPrefix?: string;
+  readonly testIDPrefix: string;
+  /** 轮盘类特效旋转经过的角色；调用方未提供时只有被揭示的角色 */
+  readonly allRoles: readonly RevealRoleData[];
+  /** cardPick 特效：剩余未查看卡牌数 */
+  readonly remainingCards?: number;
 }
 
-/**
- * RoleRevealAnimator 的 props
- */
-export interface RoleRevealAnimatorProps extends RevealEffectProps {
+/** RoleRevealAnimator 的 props */
+export interface RoleRevealAnimatorProps {
   /** 特效类型 */
   readonly effectType: RevealEffectType;
-  /** 是否可见 */
-  readonly visible: boolean;
-  /** 轮盘类特效：所有角色列表 */
+  readonly role: RevealRoleData;
+  readonly onComplete: () => void;
+  /** 覆盖系统"减少动态效果"偏好 */
+  readonly reducedMotion?: boolean;
+  readonly testIDPrefix?: string;
   readonly allRoles?: readonly RevealRoleData[];
-  /** cardPick 特效：剩余未查看卡牌数 */
   readonly remainingCards?: number;
 }

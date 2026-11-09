@@ -7,6 +7,6 @@ let stagePromise: Promise<SceneStage> | null = null;
  * chunk on first call; a rejection (no WebGL) reaches the nearest error boundary.
  */
 export function sceneStagePromise(): Promise<SceneStage> {
-  stagePromise ??= import('@/scene/stage').then(({ createSceneStage }) => createSceneStage());
+  stagePromise ??= import('@/scene/stage').then(({ sharedSceneStage }) => sharedSceneStage());
   return stagePromise;
 }

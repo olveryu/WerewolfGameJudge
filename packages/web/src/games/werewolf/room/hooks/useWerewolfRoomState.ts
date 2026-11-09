@@ -21,6 +21,10 @@ import {
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import { isBotOccupant, isBotSeat } from '@game-judge/game-engine/platform/room/seating/roster';
+import {
+  parseResolvedRoleRevealAnimation,
+  type ResolvedRoleRevealAnimation,
+} from '@game-judge/game-engine/product/rewards';
 import { type ReactNode, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -93,6 +97,8 @@ interface WerewolfRoleCard {
   readonly viewing: RoleViewing;
   /** The effective seat's role; null before the deal or for spectators. */
   readonly roleId: RoleId | null;
+  /** The viewer's seated reveal effect ('random' already resolved at seat time). */
+  readonly resolvedAnimation: ResolvedRoleRevealAnimation;
 }
 
 /** The shared review's overlay plus the host's seat-grant picker. */
@@ -291,6 +297,15 @@ export function useWerewolfRoomState(
     viewedSeatCount: viewModel.viewedSeats.length,
     submitViewed: () => submit('查看身份', { type: 'werewolf.role.viewed' }, { controlledSeat }),
   });
+  const ownOccupant = mySeat === null ? null : state.roster[mySeat];
+  // A bot card opened through takeover never animates (no equipped effect).
+  const resolvedAnimation: ResolvedRoleRevealAnimation =
+    controlledSeat !== null ||
+    ownOccupant == null ||
+    isBotOccupant(ownOccupant) ||
+    ownOccupant.profile.revealEffect === undefined
+      ? 'none'
+      : parseResolvedRoleRevealAnimation(ownOccupant.profile.revealEffect);
 
   // ── Day: sheriff election ──
   const sheriffElectionPanel = useSheriffElection({
@@ -460,7 +475,7 @@ export function useWerewolfRoomState(
     isOverdue,
     submit,
     bgm,
-    roleCard: { viewing: roleViewing, roleId: myRole },
+    roleCard: { viewing: roleViewing, roleId: myRole, resolvedAnimation },
     audioResume,
     night,
     sheriffElectionPanel,

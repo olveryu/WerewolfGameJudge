@@ -1,9 +1,21 @@
 import './SceneBenchPage.css';
 
-import { FRAME_IDS, type FrameId } from '@game-judge/game-engine/product/rewards';
+import {
+  FRAME_IDS,
+  type FrameId,
+  ROLE_REVEAL_EFFECT_IDS,
+  type RoleRevealEffectId,
+} from '@game-judge/game-engine/product/rewards';
 import { lazy, type RefObject, Suspense, use, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 
+import {
+  REVEAL_ROOT_STYLE,
+  REVEAL_TITLE_ROW_STYLE,
+  REVEAL_TITLE_STYLE,
+  revealTitle,
+} from '@/features/room/components/RoleRevealEffects/common/shell';
+import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomSeatViewModel } from '@/features/room/model/RoomSeatDataSource';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import type { DecorationSpec } from '@/scene/decoration';
@@ -24,6 +36,58 @@ const RoomSeatBoard = lazy(() =>
     default: module.RoomSeatBoard,
   })),
 );
+
+// The room's RoleRevealAnimator is room-only (see there), so the bench draws its shell itself.
+const RevealEffectStage = lazy(() =>
+  import('@/features/room/components/RoomSeatScene').then((module) =>
+    module.loadRevealEffectStage(),
+  ),
+);
+
+/** The roles the previous client's reveal-effect preview played, so frames compare 1:1. */
+const BENCH_REVEAL_ROLE: RevealRoleData = { id: 'villager', name: '村民', alignment: 'villager' };
+const BENCH_REVEAL_ROLES: readonly RevealRoleData[] = [
+  BENCH_REVEAL_ROLE,
+  { id: 'wolf', name: '狼人', alignment: 'wolf' },
+  { id: 'seer', name: '预言家', alignment: 'god' },
+  { id: 'witch', name: '女巫', alignment: 'god' },
+  { id: 'hunter', name: '猎人', alignment: 'god' },
+  { id: 'guard', name: '守卫', alignment: 'god' },
+];
+const REVEAL_EFFECT_ID_SET: ReadonlySet<string> = new Set(ROLE_REVEAL_EFFECT_IDS);
+
+function isRevealEffectId(id: string): id is RoleRevealEffectId {
+  return REVEAL_EFFECT_ID_SET.has(id);
+}
+
+/** `?reveal=<id>` plays one role reveal effect full screen, without interaction. */
+function BenchReveal({ effectId }: { effectId: string }) {
+  const reducedMotion = usePrefersReducedMotion();
+  if (!isRevealEffectId(effectId)) {
+    throw new Error(`Unknown reveal effect "${effectId}"`);
+  }
+  return (
+    <div data-testid="role-reveal-modal" style={REVEAL_ROOT_STYLE}>
+      <div style={REVEAL_TITLE_ROW_STYLE}>
+        <h2 style={REVEAL_TITLE_STYLE}>{revealTitle(effectId)}</h2>
+      </div>
+      <Suspense fallback={null}>
+        <RevealEffectStage
+          effectType={effectId}
+          effectProps={{
+            role: BENCH_REVEAL_ROLE,
+            allRoles: BENCH_REVEAL_ROLES,
+            reducedMotion,
+            testIDPrefix: 'role-reveal',
+            onComplete: () => {
+              document.body.dataset.revealComplete = 'true';
+            },
+          }}
+        />
+      </Suspense>
+    </div>
+  );
+}
 
 function flairSpec(id: string): DecorationSpec {
   const spec = [...FLAIR_SPECS.values()].find((candidate) => candidate.id === id);
@@ -180,10 +244,12 @@ function BenchSeatBoard({ searchParams }: { searchParams: URLSearchParams }) {
  * Scene-layer benchmark: a 12-seat board with DOM seats and PixiJS decorations, used by
  * `scripts/scene-bench.mjs` and for side-by-side checks on devices. `?fps=30` caps the stage;
  * `?frames=id1,id2` and `?flairs=id3,id4` pick the decorations; `?board` shows one real room
- * seat instead (see `BenchSeatBoard`).
+ * seat instead (see `BenchSeatBoard`); `?reveal=<id>` plays one reveal effect (see `BenchReveal`).
  */
 export function SceneBenchPage() {
   const [searchParams] = useSearchParams();
+  const revealEffectId = searchParams.get('reveal');
+  if (revealEffectId !== null) return <BenchReveal effectId={revealEffectId} />;
   if (searchParams.has('board')) return <BenchSeatBoard searchParams={searchParams} />;
   return <SceneBenchBoard searchParams={searchParams} />;
 }

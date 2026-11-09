@@ -25,6 +25,20 @@ function back(s = 1.70158): EasingFunction {
   return (t) => t * t * ((s + 1) * t - s);
 }
 
+/** Reanimated `Easing.sin`. */
+function sin(t: number): number {
+  return 1 - Math.cos((t * Math.PI) / 2);
+}
+
+/** Reanimated `Easing.bounce`: a ball dropped onto the end value. */
+function bounce(t: number): number {
+  const strength = 7.5625;
+  if (t < 1 / 2.75) return strength * t * t;
+  if (t < 2 / 2.75) return strength * (t - 1.5 / 2.75) ** 2 + 0.75;
+  if (t < 2.5 / 2.75) return strength * (t - 2.25 / 2.75) ** 2 + 0.9375;
+  return strength * (t - 2.625 / 2.75) ** 2 + 0.984375;
+}
+
 function easeIn(easing: EasingFunction): EasingFunction {
   return easing;
 }
@@ -75,12 +89,15 @@ function cubicBezier(x1: number, y1: number, x2: number, y2: number): EasingFunc
   return (t) => (t <= 0 ? 0 : t >= 1 ? 1 : curveY(solveU(t)));
 }
 
-/** Reanimated's `Easing` functions used by the seat animations. */
+/** Reanimated's `Easing` functions used by the seat and reveal animations. */
 export const Easing = {
   linear,
   quad,
   cubic,
+  sin,
   back,
+  bounce,
+  bezier: cubicBezier,
   in: easeIn,
   out: easeOut,
   inOut: easeInOut,
@@ -316,6 +333,39 @@ export function withSequence(...animations: readonly Animation[]): Animation {
         start = animation.toValue;
       }
       return start;
+    },
+  };
+}
+
+/**
+ * `withRepeat(animation, count, reverse)`; a negative count repeats forever. Without `reverse`
+ * every iteration restarts from the start value; with it every other iteration runs the same
+ * motion back to the start value, as Reanimated swaps the start and target.
+ */
+export function withRepeat(animation: Animation, count = -1, reverse = false): Animation {
+  const legValue = (from: number, leg: number, elapsedMs: number): number => {
+    const value = animation.valueAt(from, elapsedMs);
+    if (!reverse || leg % 2 === 0) return value;
+    const to = animation.toValue;
+    if (to === from) return from;
+    return to + (from - to) * ((value - from) / (to - from));
+  };
+  const endsAtStart = reverse && count >= 0 && count % 2 === 0;
+  const finalValue = (from: number) => (endsAtStart ? from : animation.toValue);
+  return {
+    get toValue(): number {
+      if (endsAtStart) {
+        throw new Error('A reversed even repeat ends on its start value, which is not fixed');
+      }
+      return animation.toValue;
+    },
+    durationFrom: (from) => (count < 0 ? Infinity : count * animation.durationFrom(from)),
+    valueAt: (from, elapsedMs) => {
+      const legMs = animation.durationFrom(from);
+      if (legMs <= 0) return finalValue(from);
+      const leg = Math.floor(elapsedMs / legMs);
+      if (count >= 0 && leg >= count) return finalValue(from);
+      return legValue(from, leg, elapsedMs - leg * legMs);
     },
   };
 }

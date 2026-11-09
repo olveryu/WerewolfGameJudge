@@ -4,8 +4,9 @@
  *
  * - One WebGL context for the whole app, created on first use. WebGL is required: when it is
  *   unavailable `init` rejects and the caller surfaces the failure; there is no degraded mode.
- * - The ticker runs only while decorations are mounted, a host is attached and the page is
- *   visible; otherwise no frames are produced. Its frame cap is the user's 60 / 30 setting.
+ * - The ticker runs only while decorations are mounted on an attached host, or an overlay (the
+ *   role reveal) borrows the canvas, and the page is visible; otherwise no frames are produced.
+ *   Its frame cap is the user's 60 / 30 setting.
  * - Decorations are sampled every frame from their pure samplers; React never re-renders for
  *   motion. Display objects and geometry are built when a decoration mounts or its tile size
  *   changes; the per-frame path only writes transforms and alphas. Geometry is shared through
@@ -749,6 +750,13 @@ async function loadMaskTexture(url: string): Promise<Texture> {
   });
 }
 
+/** A full-screen overlay borrowing the canvas (the role reveal). */
+interface StageOverlay {
+  readonly host: HTMLElement;
+  readonly root: Container;
+  readonly frame: (timeMs: number) => void;
+}
+
 class SceneStage implements EntranceHost {
   private readonly decorations = new Set<MountedDecoration>();
   private readonly entrances = new Set<MountedEntrance>();
@@ -756,18 +764,22 @@ class SceneStage implements EntranceHost {
   private readonly maskTextures = new Map<string, Promise<Texture>>();
   private readonly contexts = new ContextCache();
   private readonly textures = new TextureCache();
+  /** Seat decorations and entrances, in the seat board's coordinates. */
+  private readonly seatLayer = new Container({ sortableChildren: true });
   private host: HTMLElement | null = null;
+  private overlay: StageOverlay | null = null;
   private resizeObserver: ResizeObserver | null = null;
 
   constructor(
     private readonly application: Application,
     private readonly dotTexture: Texture,
   ) {
-    application.stage.sortableChildren = true;
+    application.stage.addChild(this.seatLayer);
     application.ticker.add(() => {
       const timeMs = application.ticker.lastTime;
       for (const entrance of this.animatingEntrances) entrance.update(timeMs);
       for (const decoration of this.decorations) decoration.update(timeMs);
+      this.overlay?.frame(timeMs);
     });
     document.addEventListener('visibilitychange', () => this.syncTicker());
   }
@@ -782,21 +794,60 @@ class SceneStage implements EntranceHost {
       throw new Error('Scene stage is already attached to another host');
     }
     this.host = host;
-    host.append(this.application.canvas);
-    this.application.resizeTo = host;
-    this.resizeObserver = new ResizeObserver(() => this.application.resize());
-    this.resizeObserver.observe(host);
-    this.syncTicker();
+    this.placeCanvas();
   }
 
   detach(host: HTMLElement): void {
     if (this.host !== host) {
       throw new Error('Scene stage is not attached to this host');
     }
+    this.host = null;
+    this.placeCanvas();
+  }
+
+  /** A root container for `mountOverlay`, built here so overlay chunks import no PixiJS values. */
+  createOverlayRoot(): Container {
+    return new Container({ sortableChildren: true });
+  }
+
+  /**
+   * Lends the canvas to a full-screen overlay above the dialog backdrop: moves it into `host`,
+   * hides the seat layer and calls `frame` with the ticker time every frame until the returned
+   * release runs, which hands the canvas back to the seat board. One overlay at a time.
+   */
+  mountOverlay(host: HTMLElement, root: Container, frame: (timeMs: number) => void): () => void {
+    if (this.overlay) {
+      throw new Error('Scene stage already shows an overlay');
+    }
+    const overlay: StageOverlay = { host, root, frame };
+    this.overlay = overlay;
+    this.seatLayer.visible = false;
+    this.application.stage.addChild(root);
+    this.placeCanvas();
+    return () => {
+      if (this.overlay !== overlay) {
+        throw new Error('Scene stage overlay was already released');
+      }
+      this.overlay = null;
+      this.application.stage.removeChild(root);
+      this.seatLayer.visible = true;
+      this.placeCanvas();
+    };
+  }
+
+  /** Puts the canvas in the overlay host, else the seat board host, sized to it. */
+  private placeCanvas(): void {
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
-    this.application.canvas.remove();
-    this.host = null;
+    const target = this.overlay?.host ?? this.host;
+    if (target) {
+      target.append(this.application.canvas);
+      this.application.resizeTo = target;
+      this.resizeObserver = new ResizeObserver(() => this.application.resize());
+      this.resizeObserver.observe(target);
+    } else {
+      this.application.canvas.remove();
+    }
     this.syncTicker();
   }
 
@@ -818,14 +869,14 @@ class SceneStage implements EntranceHost {
         onError,
       });
     const decoration = new MountedDecoration(this, spec.nodes.map(createNode), resolution);
-    this.application.stage.addChild(decoration.container);
+    this.seatLayer.addChild(decoration.container);
     this.decorations.add(decoration);
     this.syncTicker();
     return decoration;
   }
 
   unmount(decoration: MountedDecoration | MountedEntrance): void {
-    this.application.stage.removeChild(decoration.container);
+    this.seatLayer.removeChild(decoration.container);
     if (decoration instanceof MountedEntrance) {
       this.entrances.delete(decoration);
       this.animatingEntrances.delete(decoration);
@@ -842,7 +893,7 @@ class SceneStage implements EntranceHost {
   mountEntrance(spec: EntranceSpec, callbacks: EntranceCallbacks): EntranceHandle {
     const entrance = new MountedEntrance(spec, callbacks, this);
     entrance.container.zIndex = ENTRANCE_Z_INDEX;
-    this.application.stage.addChild(entrance.container);
+    this.seatLayer.addChild(entrance.container);
     this.entrances.add(entrance);
     return entrance;
   }
@@ -866,8 +917,9 @@ class SceneStage implements EntranceHost {
   }
 
   private syncTicker(): void {
-    const hasWork = this.decorations.size > 0 || this.animatingEntrances.size > 0;
-    const shouldRun = this.host !== null && hasWork && !document.hidden;
+    const hasSeatWork =
+      this.host !== null && (this.decorations.size > 0 || this.animatingEntrances.size > 0);
+    const shouldRun = (hasSeatWork || this.overlay !== null) && !document.hidden;
     const ticker = this.application.ticker;
     if (shouldRun && !ticker.started) ticker.start();
     if (!shouldRun && ticker.started) ticker.stop();
@@ -904,8 +956,21 @@ class SceneStage implements EntranceHost {
 
 export type { SceneStage };
 
+let sharedStage: Promise<SceneStage> | null = null;
+
 /**
- * Creates the stage. Call through `sceneStagePromise()`, which keeps it app-wide.
+ * The app-wide stage, created on first call. Scene components reach it through
+ * `sceneStagePromise()`; overlay chunks that import this module statically call it directly.
+ *
+ * @returns the same promise on every call; rejects when WebGL is unavailable
+ */
+export function sharedSceneStage(): Promise<SceneStage> {
+  sharedStage ??= createSceneStage();
+  return sharedStage;
+}
+
+/**
+ * Creates a stage. Call through `sharedSceneStage()`, which keeps it app-wide.
  *
  * @returns the stage; rejects when WebGL is unavailable
  */
