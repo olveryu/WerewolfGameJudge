@@ -6,7 +6,8 @@ import { useLocation, useNavigate } from 'react-router';
 import IconChevronBack from '~icons/ion/chevron-back';
 
 interface ScreenHeaderProps {
-  title: string;
+  /** Heading content: usually text; a page may put its own controls in the heading. */
+  title: ReactNode;
   /** Where Back goes when the page was opened directly and has no history entry to return to. */
   parentPath?: string;
   backTestId?: string;

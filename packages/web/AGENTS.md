@@ -7,7 +7,7 @@ Scope: `packages/web/**` only. Engine rules live in `packages/game-engine/AGENTS
 - React DOM plus plain CSS, built by Vite, routed by React Router (data mode), with TanStack Query, Ark UI, sonner, Zod, and a PixiJS scene layer; versions in `package.json`. It runs in browsers and inside the WeChat mini-program web-view (`packages/web/src/utils/miniProgram.ts`).
 - `@/` resolves to `packages/web/src/` (`vite.config.ts` alias, `tsconfig.json` paths). `tsconfig.json` sets `strict` and `noUncheckedIndexedAccess`.
 - Scripts: `dev`, `build` (`vite build`, then the per-route gzip budgets in `packages/web/scripts/check-bundle-size.mjs`), `preview`, `bench:scene`, `typecheck`, `test` (Vitest, jsdom, `src/**/*.test.{ts,tsx}`, setup `packages/web/src/test/setup.ts`).
-- The client is mid-rewrite (`docs/web-client-rewrite.md` §8.2). A game is ported when `CLIENT_GAME_LOADERS` in `packages/web/src/games/clientModules.tsx` has a loader for it (only `demo` now); a game without one throws `UnportedGameClientError` and its routes report it as unsupported. Werewolf lands in P3, the other games in P4; their slices hold only `home.ts` until then.
+- The client is mid-rewrite (`docs/web-client-rewrite.md` §8.2). A game is ported when `CLIENT_GAME_LOADERS` in `packages/web/src/games/clientModules.tsx` has a loader for it (only `demo` now); a game without one throws `UnportedGameClientError` and its routes report it as unsupported. Werewolf lands in P3, its slice filling in ahead of its module (audio, config flow); the other games land in P4 and their slices hold only `home.ts` until then.
 - `packages/web/src/platform/` has five subdirectories: `auth/`, `env/`, `http/`, `inbox/`, `realtime/`.
 
 ## Room shell

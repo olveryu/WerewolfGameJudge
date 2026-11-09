@@ -168,9 +168,10 @@ describe('bot dispatch discipline — direct dispatches are the registered syste
       const types = directDispatchCommandTypes(readFileSync(file, 'utf8'));
       if (types.length > 0) actual[file.slice(SRC_ROOT.length + 1)] = [...new Set(types)].sort();
     }
+    // A game's screens land before its module registers, so pin every allow-listed file present.
     const expected = Object.fromEntries(
       Object.entries(DIRECT_DISPATCH_ALLOW_LIST)
-        .filter(([file]) => isPortedGamePath(file))
+        .filter(([file]) => isPortedGamePath(file) || existsSync(join(SRC_ROOT, file)))
         .map(([file, types]) => [file, [...types].sort()]),
     );
     expect(actual).toEqual(expected);

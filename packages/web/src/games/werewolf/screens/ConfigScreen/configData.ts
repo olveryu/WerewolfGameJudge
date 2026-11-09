@@ -1,0 +1,191 @@
+/**
+ * ConfigScreen data-driven role layout
+ *
+ * Single source of truth for the ConfigScreen role selection UI.
+ * Labels are derived from ROLE_SPECS.displayName at render time.
+ *
+ * Design:
+ * - FactionGroup → Section[] → RoleSlot[]
+ * - RoleSlot with `count` > 1 generates multiple selection keys (e.g. wolf, wolf1, wolf2...)
+ * - RoleSlot with `count` = 1 (default) generates a single key matching the roleId
+ */
+import {
+  Faction,
+  getRoleDisplayName,
+  type RoleId,
+} from '@game-judge/game-engine/games/werewolf/public';
+
+interface RoleSlot {
+  /** The base roleId (matches ROLE_SPECS key) */
+  readonly roleId: RoleId;
+  /**
+   * How many selectable copies of this role.
+   * Generates keys: roleId, roleId1, roleId2, ... roleId(count-1)
+   * @default 1
+   */
+  readonly count?: number;
+  /**
+   * If true, this slot uses a stepper ([-][+]) instead of individual chips.
+   * Typically used for generic roles like Wolf/Villager.
+   * @default false
+   */
+  readonly isBulk?: boolean;
+  /**
+   * Alternative variant role IDs that can replace this slot.
+   * When present, the chip shows a variant indicator and supports long-press to switch.
+   * The variants list does NOT include the base roleId — it lists only alternatives.
+   */
+  readonly variants?: readonly RoleId[];
+}
+
+interface RoleSection {
+  readonly title: string;
+  /** Override faction color for this section (defaults to parent group's faction) */
+  readonly faction?: Faction;
+  readonly roles: readonly RoleSlot[];
+}
+
+export interface FactionGroup {
+  readonly title: string;
+  readonly faction: Faction;
+  readonly sections: readonly RoleSection[];
+}
+
+/** Faction group config (for UI display). */
+export const FACTION_GROUPS: readonly FactionGroup[] = [
+  {
+    title: '好人阵营',
+    faction: Faction.Villager, // covers both Villager & God faction visually
+    sections: [
+      {
+        title: getRoleDisplayName('villager'),
+        roles: [{ roleId: 'villager', count: 10, isBulk: true }],
+      },
+      {
+        title: '神职',
+        faction: Faction.God,
+        roles: [
+          { roleId: 'seer' },
+          { roleId: 'witch', variants: ['poisoner'] },
+          { roleId: 'hunter' },
+          { roleId: 'guard' },
+          { roleId: 'idiot' },
+          { roleId: 'graveyardKeeper' },
+          { roleId: 'knight' },
+          { roleId: 'dreamcatcher' },
+          { roleId: 'magician' },
+          { roleId: 'witcher' },
+          { roleId: 'psychic' },
+          { roleId: 'pureWhite' },
+          { roleId: 'dancer' },
+          { roleId: 'crow' },
+          { roleId: 'maskedMan' },
+          { roleId: 'sequencePrince' },
+          { roleId: 'silenceElder', variants: ['votebanElder'] },
+        ],
+      },
+      {
+        title: '特殊平民',
+        roles: [{ roleId: 'mirrorSeer', variants: ['drunkSeer'] }],
+      },
+    ],
+  },
+  {
+    title: '狼人阵营',
+    faction: Faction.Wolf,
+    sections: [
+      {
+        title: '普通狼人',
+        roles: [{ roleId: 'wolf', count: 10, isBulk: true }],
+      },
+      {
+        title: '技能狼',
+        roles: [
+          { roleId: 'seedWolf' },
+          { roleId: 'wolfQueen' },
+          { roleId: 'wolfKing' },
+          { roleId: 'darkWolfKing' },
+          { roleId: 'gargoyle', variants: ['awakenedGargoyle'] },
+          { roleId: 'nightmare' },
+          { roleId: 'bloodMoon' },
+          { roleId: 'wolfRobot' },
+          { roleId: 'spiritKnight' },
+          { roleId: 'wolfWitch' },
+          { roleId: 'masquerade' },
+          { roleId: 'warden' },
+          { roleId: 'eclipseWolfQueen' },
+          { roleId: 'hiddenWolf' },
+          { roleId: 'wolfGirl' },
+        ],
+      },
+    ],
+  },
+  {
+    title: '第三方阵营',
+    faction: Faction.Special,
+    sections: [
+      {
+        title: '第三方',
+        roles: [
+          { roleId: 'slacker', variants: ['wildChild'] },
+          { roleId: 'piper' },
+          { roleId: 'shadow' },
+          { roleId: 'avenger' },
+          { roleId: 'thief', variants: ['treasureMaster'] },
+          { roleId: 'cupid' },
+          { roleId: 'cursedFox' },
+        ],
+      },
+    ],
+  },
+];
+
+/** Selection key of the `index`-th copy of a slot: roleId, roleId1, roleId2, ... */
+export function slotSelectionKey(roleId: RoleId, index: number): string {
+  return index === 0 ? roleId : `${roleId}${index}`;
+}
+
+/** Generate all selection keys from FACTION_GROUPS. */
+function getAllSelectionKeys(): string[] {
+  const keys: string[] = [];
+  for (const group of FACTION_GROUPS) {
+    for (const section of group.sections) {
+      for (const slot of section.roles) {
+        const count = slot.count ?? 1;
+        for (let i = 0; i < count; i++) {
+          keys.push(slotSelectionKey(slot.roleId, i));
+        }
+      }
+    }
+  }
+  return keys;
+}
+
+/**
+ * Build the initial selection map with specified defaults.
+ * All keys are false by default unless listed in `defaultOn`.
+ */
+export function buildInitialSelection(
+  defaultOn: readonly string[] = [
+    'wolf',
+    'wolf1',
+    'wolf2',
+    'wolf3',
+    'villager',
+    'villager1',
+    'villager2',
+    'villager3',
+    'seer',
+    'witch',
+    'hunter',
+    'idiot',
+  ],
+): Record<string, boolean> {
+  const keys = getAllSelectionKeys();
+  const selection: Record<string, boolean> = {};
+  const onSet = new Set(defaultOn);
+  for (const key of keys) {
+    selection[key] = onSet.has(key);
+  }
+  return selection;
+}

@@ -57,7 +57,11 @@ interface ClientGameModuleDefinitionBase<
     SupportedGameNavigationRoute,
     GameNavigationRouteDefinition
   >;
-  /** Lobby configuration: the game declares its schema-driven page through the definer. */
+  /**
+   * Lobby configuration page, bound to the room session. Schema-driven games build it through
+   * the definer; a game with its own flow (werewolf: board picker → roles → rules) ignores the
+   * definer and returns its own page.
+   */
   readonly config: (
     define: GameConfigDefiner<TGameType, TState, TCommand>,
   ) => GameConfigScreen<TState, TCommand>;

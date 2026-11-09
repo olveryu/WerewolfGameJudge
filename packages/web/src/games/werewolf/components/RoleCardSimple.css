@@ -1,0 +1,24 @@
+.role-variant-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-small);
+}
+
+.role-variant-pill {
+  padding: var(--space-small) var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.role-variant-pill[aria-pressed='true'] {
+  border: var(--border-width-thick) solid var(--faction-color);
+  color: var(--faction-color);
+  font-weight: var(--weight-semibold);
+}

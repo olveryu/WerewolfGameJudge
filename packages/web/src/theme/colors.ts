@@ -82,6 +82,7 @@ const reportColors = {
 const ALPHA_VARIANTS: readonly (readonly [keyof typeof colors, number])[] = [
   ['primary', 3],
   ['primary', 8],
+  ['primary', 10],
   ['primary', 15],
   ['primary', 25],
   ['primary', 40],
@@ -91,10 +92,15 @@ const ALPHA_VARIANTS: readonly (readonly [keyof typeof colors, number])[] = [
   ['error', 40],
   ['error', 50],
   ['warning', 13],
+  ['warning', 30],
   ['warning', 40],
   ['success', 40],
   ['info', 8],
   ['background', 85],
+  ['textMuted', 30],
+  ...(['wolf', 'god', 'villager', 'third'] as const).flatMap((faction) =>
+    [6, 12, 15, 25, 30].map((percent) => [faction, percent] as const),
+  ),
 ];
 
 /** Publishes the palettes as `--color-*` and `--report-*` custom properties on the document root. */

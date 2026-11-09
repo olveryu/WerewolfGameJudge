@@ -1,0 +1,28 @@
+.faction-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-micro) var(--space-small);
+  border: var(--border-width) solid var(--chip-color);
+  border-radius: var(--radius-small);
+  background: var(--color-surface-hover);
+  color: var(--chip-color);
+}
+
+.faction-chip[data-size='sm'] {
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-medium);
+}
+
+.faction-chip[data-size='md'] {
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+button.faction-chip {
+  cursor: pointer;
+}
+
+button.faction-chip:active {
+  opacity: var(--opacity-pressed);
+}

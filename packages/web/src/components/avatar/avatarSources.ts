@@ -2,7 +2,10 @@
  * Avatar sources: builtin hand-drawn portraits, generated avatars and the tinted wolf-paw
  * fallback. Ported from the RN client's `utils/avatar.ts` and `utils/defaultAvatarIcons.ts`.
  */
-import { HAND_DRAWN_AVATAR_IDS } from '@game-judge/game-engine/product/rewards';
+import {
+  HAND_DRAWN_AVATAR_IDS,
+  type HandDrawnAvatarId,
+} from '@game-judge/game-engine/product/rewards';
 
 import wolfPawUrl from '../../../../../assets/avatars/seat/wolf-paw.png';
 import { isGeneratedAvatar } from './GeneratedAvatar';
@@ -24,12 +27,16 @@ const PORTRAIT_URLS: ReadonlyMap<string, string> = (() => {
   return byName;
 })();
 
-/** Hand-drawn portrait URLs in catalog order. */
-export const HAND_DRAWN_PORTRAITS: readonly string[] = HAND_DRAWN_AVATAR_IDS.map((id) => {
+/** The hand-drawn portrait URL of one catalog avatar id. */
+export function getHandDrawnPortraitUrl(id: HandDrawnAvatarId): string {
   const url = PORTRAIT_URLS.get(id);
   if (url === undefined) throw new Error(`Missing portrait for ${id}`);
   return url;
-});
+}
+
+/** Hand-drawn portrait URLs in catalog order. */
+export const HAND_DRAWN_PORTRAITS: readonly string[] =
+  HAND_DRAWN_AVATAR_IDS.map(getHandDrawnPortraitUrl);
 
 const BUILTIN_AVATAR_PREFIX = 'builtin://';
 

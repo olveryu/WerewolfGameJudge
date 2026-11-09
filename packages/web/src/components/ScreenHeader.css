@@ -3,7 +3,9 @@
   top: 0;
   z-index: 1;
   display: grid;
-  grid-template-columns: var(--size-min-touch-target) 1fr var(--size-min-touch-target);
+  grid-template-columns:
+    minmax(var(--size-min-touch-target), 1fr) auto
+    minmax(var(--size-min-touch-target), 1fr);
   align-items: center;
   min-height: var(--size-header);
   padding: env(safe-area-inset-top) var(--space-small) 0;
