@@ -74,3 +74,5 @@ export function createLogger(module: string): Logger {
 export const apiLog = createLogger('Api');
 /** Auth flow. */
 export const authLog = createLogger('Auth');
+/** Home page. */
+export const homeLog = createLogger('Home');

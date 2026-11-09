@@ -2,6 +2,7 @@ import path from 'node:path';
 
 import babel from '@rolldown/plugin-babel';
 import react, { reactCompilerPreset } from '@vitejs/plugin-react';
+import Icons from 'unplugin-icons/vite';
 import { defineConfig } from 'vitest/config';
 
 const sourceDirectory = path.resolve(import.meta.dirname, 'src');
@@ -15,7 +16,12 @@ const assetBase = process.env.WEB_ASSET_BASE ?? '/';
 
 export default defineConfig({
   base: assetBase,
-  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
+  plugins: [
+    react(),
+    babel({ presets: [reactCompilerPreset()] }),
+    // Ionicons from @iconify-json/ion, inlined as SVG components; only imported icons ship (D2).
+    Icons({ compiler: 'jsx', jsx: 'react' }),
+  ],
   resolve: {
     alias: [
       { find: /^@\//, replacement: `${sourceDirectory}/` },

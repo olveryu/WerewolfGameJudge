@@ -1,0 +1,43 @@
+/**
+ * Exhaustive client game catalog: the only place that imports concrete games. Each entry grows as
+ * the game's web screens land (home now; room, config and guide in later phases).
+ */
+import { GAME_REGISTRY } from '@game-judge/game-engine/games/registry';
+import { GAME_TYPES, type GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+
+import { avalonHome } from '@/games/avalon/home';
+import { demoHome } from '@/games/demo/home';
+import { drawGuessHome } from '@/games/drawguess/home';
+import { fibHome } from '@/games/fibking/home';
+import type { GameHomeContribution, GameModePresentation } from '@/games/model/GameHome';
+import { pictionaryHome } from '@/games/pictionary/home';
+import { storyRelayHome } from '@/games/storyrelay/home';
+import { undercoverHome } from '@/games/undercover/home';
+import { werewolfHome } from '@/games/werewolf/home';
+
+interface ClientGameModule {
+  readonly home: GameHomeContribution;
+}
+
+const CLIENT_GAMES: { readonly [TGameType in GameType]: ClientGameModule } = {
+  werewolf: { home: werewolfHome },
+  fibking: { home: fibHome },
+  pictionary: { home: pictionaryHome },
+  undercover: { home: undercoverHome },
+  drawguess: { home: drawGuessHome },
+  storyrelay: { home: storyRelayHome },
+  avalon: { home: avalonHome },
+  demo: { home: demoHome },
+};
+
+export interface ClientGameModeOption extends GameModePresentation {
+  readonly gameType: GameType;
+}
+
+/**
+ * Mode options for the Home picker, in catalog order. Games the registry marks non-production
+ * stay joinable by code but are not offered on Home.
+ */
+export const GAME_MODE_OPTIONS: readonly ClientGameModeOption[] = GAME_TYPES.filter(
+  (gameType) => GAME_REGISTRY[gameType].isProduction,
+).map((gameType) => ({ gameType, ...CLIENT_GAMES[gameType].home.mode }));

@@ -1,0 +1,32 @@
+.numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 72px);
+  justify-content: center;
+  gap: var(--space-small);
+}
+
+.numpad-key {
+  height: var(--size-button-lg);
+  border: none;
+  border-radius: var(--radius-medium);
+  background: var(--color-background);
+  color: var(--color-text);
+  font-size: var(--font-title);
+  line-height: var(--line-title);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.numpad-key[data-special='true'] {
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+  font-size: var(--font-body);
+}
+
+.numpad-key:active:not(:disabled) {
+  opacity: var(--opacity-pressed);
+}
+
+.numpad-key:disabled {
+  opacity: var(--opacity-disabled);
+}

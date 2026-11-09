@@ -38,7 +38,9 @@
       "ignoreDependencies": ["cloudflare"]
     },
     "packages/web": {
-      "project": ["src/**/*.{ts,tsx}!"]
+      "project": ["src/**/*.{ts,tsx}!"],
+      "ignoreUnresolved": ["^~icons/"],
+      "ignoreDependencies": ["@iconify-json/ion", "@svgr/plugin-jsx"]
     }
   }
 }

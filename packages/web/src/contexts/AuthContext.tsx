@@ -5,9 +5,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type React from 'react';
 import { createContext, use, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
-import { useNavigate } from 'react-router';
 
 import { useServices } from '@/contexts/ServiceContext';
+import { requestLogin } from '@/features/auth/loginRequests';
 import { authQueryKeys, currentUserOptions } from '@/features/auth/queries/authQueryOptions';
 import type { AuthUser } from '@/services/types/IAuthService';
 import { handleError } from '@/utils/errorPipeline';
@@ -83,7 +83,6 @@ const toUser = (authUser: AuthUser | null): User | null => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { authService } = useServices();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const [isInitializing, setIsInitializing] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
   const subscribe = useCallback(
@@ -168,13 +167,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Session fully expired (both tokens dead) — clear user so UI transitions to login
   useEffect(() => {
     return authService.onAuthExpired(() => {
-      // Outside the mini-program, open the login page so the user can re-authenticate; inside
+      // Outside the mini-program, open the login dialog so the user can re-authenticate; inside
       // it, the app shell renders the WeChat login entry from needsWechatLogin.
       if (!isMiniProgram()) {
-        void navigate(`/auth/login?title=${encodeURIComponent('会话已过期，请重新登录')}`);
+        void requestLogin({ title: '会话已过期，请重新登录' });
       }
     });
-  }, [authService, navigate]);
+  }, [authService]);
 
   const value: AuthContextValue = {
     user,

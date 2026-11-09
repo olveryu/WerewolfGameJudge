@@ -1,35 +1,9 @@
 /*
- * Design tokens — the single source of styling values for the web client
- * (docs/web-client-rewrite.md §5.11). Ported from the React Native client's
- * src/theme/tokens.ts and colors.ts ("月白" scheme). Components use these custom
- * properties only; literal colours and sizes in component CSS are not allowed.
+ * Design tokens for sizes, type, radii and shadows (docs/web-client-rewrite.md §5.11), ported
+ * from the RN client's src/theme/tokens.ts. Colours (`--color-*`) come from theme/colors.ts via
+ * applyColorTokens. Component CSS uses these custom properties, not literal values.
  */
 :root {
-  /* Colours */
-  --color-primary: #4f46e5;
-  --color-primary-light: #818cf8;
-  --color-primary-dark: #3730a3;
-  --color-background: #f2f2f7;
-  --color-surface: #ffffff;
-  --color-surface-hover: #e5e5ea;
-  --color-card: #ffffff;
-  --color-text: #1a1a2e;
-  --color-text-secondary: #5c5c70;
-  --color-text-muted: #8e8ea0;
-  --color-text-inverse: #ffffff;
-  --color-border: #d1d1d6;
-  --color-border-light: #e5e5ea;
-  --color-success: #1a9a4a;
-  --color-warning: #b87d08;
-  --color-error: #d13438;
-  --color-info: #2563eb;
-  --color-wolf: #c82828;
-  --color-villager: #1a9a4a;
-  --color-god: #7b3fbf;
-  --color-third: #b87d08;
-  --color-overlay: rgb(26 26 46 / 60%);
-  --color-overlay-light: rgb(26 26 46 / 25%);
-
   /* Spacing */
   --space-micro: 2px;
   --space-tight: 4px;

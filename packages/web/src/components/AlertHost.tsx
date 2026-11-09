@@ -1,15 +1,18 @@
-import './AlertHost.css';
+import './CenterDialog.css';
 
 import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import { useState, useSyncExternalStore } from 'react';
 
+import { Button } from '@/components/Button';
 import { type AlertButton, type AlertConfig, alertStore, dismissAlert } from '@/utils/alert';
 
+const BUTTON_VARIANT = { default: 'primary', cancel: 'secondary', destructive: 'danger' } as const;
+
 /**
- * The app's single alert dialog, driven by `showAlert` / `showPrompt`. Ark UI provides the
- * alert-dialog semantics, focus trap and presence; a button closes the alert after its
- * `onPress` settles unless a newer alert replaced it meanwhile.
+ * The app's single alert dialog, driven by `showAlert`. Ark UI provides the alert-dialog
+ * semantics, focus trap and presence; a button closes the alert after its `onPress` settles
+ * unless a newer alert replaced it meanwhile.
  */
 export function AlertHost() {
   const alert = useSyncExternalStore(alertStore.subscribe, alertStore.getSnapshot);
@@ -23,8 +26,8 @@ export function AlertHost() {
       unmountOnExit
     >
       <Portal>
-        <Dialog.Backdrop className="alert-backdrop" />
-        <Dialog.Positioner className="alert-positioner">
+        <Dialog.Backdrop className="center-dialog-backdrop" />
+        <Dialog.Positioner className="center-dialog-positioner">
           {alert && <AlertContent key={alert.generation} alert={alert} />}
         </Dialog.Positioner>
       </Portal>
@@ -47,32 +50,32 @@ function AlertContent({ alert }: { alert: AlertConfig }) {
   };
 
   return (
-    <Dialog.Content className="alert-content">
-      <Dialog.Title className="alert-title">{alert.title}</Dialog.Title>
+    <Dialog.Content className="center-dialog">
+      <Dialog.Title className="center-dialog-title">{alert.title}</Dialog.Title>
       {alert.message && (
-        <Dialog.Description className="alert-message">{alert.message}</Dialog.Description>
+        <Dialog.Description className="center-dialog-subtitle alert-message">
+          {alert.message}
+        </Dialog.Description>
       )}
       {alert.input && (
         <input
-          className="alert-input"
+          className="text-input"
           value={inputValue}
           placeholder={alert.input.placeholder}
           onChange={(event) => setInputValue(event.target.value)}
         />
       )}
-      <div className="alert-actions">
+      <div className="center-dialog-actions">
         {alert.buttons.map((button, index) => (
-          <button
+          <Button
             key={button.text}
-            type="button"
-            className="alert-button"
-            data-style={button.style ?? 'default'}
-            disabled={button.disabled === true || pendingIndex !== null}
-            aria-busy={button.loading === true || pendingIndex === index}
+            variant={BUTTON_VARIANT[button.style ?? 'default']}
+            disabled={button.disabled === true || (pendingIndex !== null && pendingIndex !== index)}
+            loading={button.loading === true || pendingIndex === index}
             onClick={() => void press(button, index)}
           >
             {button.text}
-          </button>
+          </Button>
         ))}
       </div>
     </Dialog.Content>

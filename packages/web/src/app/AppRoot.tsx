@@ -8,6 +8,7 @@ import { createAppServices } from '@/app/services';
 import { AlertHost } from '@/components/AlertHost';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ServiceProvider } from '@/contexts/ServiceContext';
+import { LoginDialogSlot } from '@/features/auth/LoginDialogSlot';
 
 /**
  * Root route element: app-wide providers around the active page, plus the global alert dialog
@@ -21,6 +22,7 @@ export function AppRoot() {
         <AuthProvider>
           <Outlet />
           <AlertHost />
+          <LoginDialogSlot />
           <Toaster position="top-center" />
         </AuthProvider>
       </ServiceProvider>

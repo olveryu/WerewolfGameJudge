@@ -12,7 +12,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["vite/client", "vitest/globals", "node"],
+    "types": ["vite/client", "vitest/globals", "node", "unplugin-icons/types/react"],
     "paths": {
       "@/*": ["./src/*"],
       "@game-judge/game-engine/*": ["../game-engine/src/*"]

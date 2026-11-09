@@ -9,11 +9,14 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router/dom';
 
 import { router } from '@/app/router';
+import { applyColorTokens } from '@/theme/colors';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error('index.html is missing the #root element');
 }
+
+applyColorTokens(document.documentElement);
 
 createRoot(rootElement, {
   onUncaughtError: reactErrorHandler(),

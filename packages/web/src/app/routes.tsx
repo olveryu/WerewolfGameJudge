@@ -21,6 +21,13 @@ export const routes: RouteObject[] = [
         },
       },
       {
+        path: 'games',
+        lazy: async () => {
+          const { GamePickerPage } = await import('@/routes/games/GamePickerPage');
+          return { Component: GamePickerPage };
+        },
+      },
+      {
         path: '__bench/scene',
         lazy: async () => {
           const { SceneBenchPage } = await import('@/routes/bench/SceneBenchPage');
