@@ -1,0 +1,98 @@
+.avalon-stage-team {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+}
+
+.avalon-stage-team-title {
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.avalon-stage-team-member {
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+}
+
+.avalon-stage-countdown {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  font-weight: var(--weight-bold);
+  text-align: center;
+}
+
+.avalon-stage-hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  text-align: center;
+}
+
+.avalon-choice-row {
+  display: flex;
+  gap: var(--space-small);
+}
+
+.avalon-choice-card {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-small);
+  min-height: calc(var(--size-button-lg) * 3);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--font-title);
+  line-height: var(--line-title);
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+}
+
+.avalon-choice-card:active {
+  opacity: var(--opacity-pressed);
+}
+
+.avalon-choice-card:disabled {
+  cursor: default;
+}
+
+.avalon-choice-card[data-tone='light'] {
+  border-color: var(--color-border);
+  background: var(--color-card);
+  color: var(--color-text);
+}
+
+.avalon-choice-card[data-tone='dark'] {
+  background: var(--color-text);
+  color: var(--color-text-inverse);
+}
+
+.avalon-choice-card[data-tone='gold'] {
+  background: var(--color-warning);
+  color: var(--color-text-inverse);
+}
+
+.avalon-choice-card[aria-pressed='true'] {
+  border-width: var(--border-width-thick);
+  border-color: var(--color-primary-light);
+}
+
+.avalon-choice-card[data-tone='light'][aria-pressed='true'] {
+  border-color: var(--color-primary);
+}
+
+.avalon-choice-icon {
+  width: var(--size-icon-xl);
+  height: var(--size-icon-xl);
+}
+
+.avalon-choice-card[data-tone='light'] .avalon-choice-icon {
+  color: var(--color-success);
+}

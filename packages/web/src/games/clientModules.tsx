@@ -32,7 +32,7 @@ const CLIENT_GAME_LOADERS: ClientGameLoaders = {
   undercover: async () => (await import('@/games/undercover/module')).createUndercoverClientModule,
   drawguess: async () => (await import('@/games/drawguess/module')).createDrawGuessClientModule,
   storyrelay: async () => (await import('@/games/storyrelay/module')).createStoryRelayClientModule,
-  avalon: null,
+  avalon: async () => (await import('@/games/avalon/module')).createAvalonClientModule,
   demo: async () => (await import('@/games/demo/module')).createDemoClientModule,
 };
 

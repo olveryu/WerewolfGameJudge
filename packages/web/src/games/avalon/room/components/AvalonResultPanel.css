@@ -1,0 +1,48 @@
+.avalon-result-banner {
+  margin: 0;
+  font-size: var(--font-title);
+  line-height: var(--line-title);
+  font-weight: var(--weight-bold);
+  text-align: center;
+}
+
+.avalon-result-banner[data-outcome='positive'] {
+  color: var(--color-success);
+}
+
+.avalon-result-banner[data-outcome='negative'] {
+  color: var(--color-error);
+}
+
+.avalon-result-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.avalon-result-row {
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.avalon-result-summary {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  text-align: center;
+}
+
+.avalon-result-counts {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  text-align: center;
+}

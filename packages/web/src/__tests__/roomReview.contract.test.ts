@@ -29,6 +29,7 @@ import type {
   RoomReviewContribution,
   RoomReviewDocument,
 } from '@/features/room/review/types';
+import { avalonReview } from '@/games/avalon/review/avalonReview';
 import { demoReview } from '@/games/demo/review/demoReview';
 import { drawGuessReview } from '@/games/drawguess/review/drawGuessReview';
 import { fibReview } from '@/games/fibking/review/fibReview';
@@ -36,6 +37,7 @@ import { pictionaryReview } from '@/games/pictionary/review/pictionaryReview';
 import { storyRelayReview } from '@/games/storyrelay/review/storyRelayReview';
 import { undercoverReview } from '@/games/undercover/review/undercoverReview';
 import { werewolfReview } from '@/games/werewolf/review/werewolfReview';
+import { AVALON_REVIEW_ROUNDS } from '@/test-utils/avalonState';
 import { DEMO_REVIEW_ROUNDS } from '@/test-utils/demoState';
 import { DRAWGUESS_REVIEW_ROUNDS } from '@/test-utils/drawguessState';
 import { FIBKING_REVIEW_ROUNDS } from '@/test-utils/fibkingState';
@@ -86,6 +88,7 @@ const REVIEW_CONTRACT = {
   storyrelay: reviewCase(storyRelayReview, STORYRELAY_REVIEW_ROUNDS),
   pictionary: reviewCase(pictionaryReview, PICTIONARY_REVIEW_ROUNDS),
   drawguess: reviewCase(drawGuessReview, DRAWGUESS_REVIEW_ROUNDS),
+  avalon: reviewCase(avalonReview, AVALON_REVIEW_ROUNDS),
   demo: reviewCase(demoReview, DEMO_REVIEW_ROUNDS),
 } as const satisfies Partial<Record<GameType, ReviewContractCase>>;
 

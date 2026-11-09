@@ -81,14 +81,17 @@ const reportColors = {
  */
 const ALPHA_VARIANTS: readonly (readonly [keyof typeof colors, number])[] = [
   ['primary', 3],
+  ['primary', 6],
   ['primary', 8],
   ['primary', 10],
   ['primary', 12],
   ['primary', 15],
   ['primary', 25],
   ['primary', 40],
+  ['primary', 55],
   ['primaryDark', 40],
   ['primaryDark', 50],
+  ['error', 10],
   ['error', 13],
   ['error', 15],
   ['error', 20],
@@ -101,6 +104,7 @@ const ALPHA_VARIANTS: readonly (readonly [keyof typeof colors, number])[] = [
   ['success', 40],
   ['info', 8],
   ['background', 85],
+  ['text', 3],
   ['textMuted', 30],
   ...(
     ['info', 'success', 'error', 'warning', 'primaryLight', 'textSecondary', 'textMuted'] as const

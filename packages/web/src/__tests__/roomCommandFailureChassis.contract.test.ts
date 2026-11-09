@@ -13,6 +13,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import type { AvalonState } from '@game-judge/game-engine/games/avalon/public';
 import type { DemoState } from '@game-judge/game-engine/games/demo/public';
 import type { DrawGuessState } from '@game-judge/game-engine/games/drawguess/public';
 import type { FibState } from '@game-judge/game-engine/games/fibking/public';
@@ -38,6 +39,7 @@ import {
   REASON_USER_ACTOR_REQUIRED,
 } from '@game-judge/game-engine/platform/protocol/reasons';
 
+import { getAvalonRoomCommandFailureMessage } from '@/games/avalon/room/avalonRoomCommandFailureMessage';
 import { getDemoRoomCommandFailureMessage } from '@/games/demo/room/demoRoomCommandFailureMessage';
 import { getDrawGuessRoomCommandFailureMessage } from '@/games/drawguess/room/drawGuessRoomCommandFailureMessage';
 import { getFibRoomCommandFailureMessage } from '@/games/fibking/room/fibRoomCommandFailureMessage';
@@ -137,6 +139,11 @@ const PRESENTERS: ReadonlyArray<{ game: string; present: (reason: string) => str
         rejectedRoomCommand<DrawGuessState>(reason, 'chassis-pin'),
       ),
   },
+  {
+    game: 'avalon',
+    present: (reason) =>
+      getAvalonRoomCommandFailureMessage(rejectedRoomCommand<AvalonState>(reason, 'chassis-pin')),
+  },
 ];
 
 /** Game presenter sources scanned for chassis entries. */
@@ -147,6 +154,7 @@ const PRESENTER_SOURCES = [
   'packages/web/src/games/storyrelay/room/storyRelayRoomCommandFailureMessage.ts',
   'packages/web/src/games/pictionary/room/pictionaryRoomCommandFailureMessage.ts',
   'packages/web/src/games/drawguess/room/drawGuessRoomCommandFailureMessage.ts',
+  'packages/web/src/games/avalon/room/avalonRoomCommandFailureMessage.ts',
 ];
 
 describe('room command failure chassis copy (B-2)', () => {

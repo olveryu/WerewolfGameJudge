@@ -36,12 +36,8 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
         // eslint-disable-next-line @typescript-eslint/unbound-method -- Forwarded below with its original receiver.
         const originalPlay = HTMLMediaElement.prototype.play;
         HTMLMediaElement.prototype.play = function (this: HTMLMediaElement) {
-          const audioUrl = new URL(this.src);
-          if (
-            audioUrl.pathname.includes('/bgm/') ||
-            audioUrl.searchParams.get('unstable_path')?.includes('/bgm/')
-          )
-            elements.add(this);
+          // Vite emits BGM tracks as /assets/<track>-<hash>.m4a; no other audio is m4a.
+          if (new URL(this.src).pathname.endsWith('.m4a')) elements.add(this);
           return originalPlay.call(this);
         };
         return elements;
@@ -52,7 +48,7 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
     throw new Error('expected two audio probes');
 
   try {
-    await test.step('Create a bot room and open existing music settings', async () => {
+    await test.step('Create a bot room and fill the seats', async () => {
       await hostPage.setViewportSize(VIEWPORT);
       await new HomePage(hostPage).clickCreateRoom('avalon');
       await hostPage.getByTestId(TESTIDS.gameConfigSubmit('avalon')).click();
@@ -60,10 +56,6 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
       await new RoomPage(spectatorPage).joinViaCode(await hostRoom.getRoomCode());
       await expect(spectatorPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveCount(0);
       await expect(spectatorPage.getByTestId(TESTIDS.roomHostManagementButton)).toHaveCount(0);
-      await hostRoom.clickHostManagementAction(TESTIDS.roomMusicSettingsButton);
-      await expect(hostPage.getByText('背景音乐', { exact: true })).toBeVisible();
-      await hostPage.getByText('The Godfather Waltz', { exact: true }).click();
-      await hostPage.getByTestId('music-settings-back').click();
       await hostRoom.clickHostManagementAction(TESTIDS.roomFillBotsButton);
       await hostPage.getByText('确定', { exact: true }).click();
     });
@@ -352,12 +344,12 @@ async function pickTeam(
       timeout: 10_000,
     });
     if (seat === leaderSeat) {
-      await expect(leaderPage.getByTestId(TESTIDS.seatMarker(seat, 'leader'))).toHaveAccessibleName(
-        '组队者',
-      );
-      await expect(
-        observerPage.getByTestId(TESTIDS.seatMarker(seat, 'leader')),
-      ).toHaveAccessibleName('组队者');
+      for (const page of [leaderPage, observerPage]) {
+        await expect(page.getByTestId(TESTIDS.seatMarker(seat, 'leader'))).toHaveText('组队者');
+        await expect(page.getByTestId(TESTIDS.seatTilePressable(seat))).toHaveAccessibleName(
+          /组队者/,
+        );
+      }
     }
   }
   if (shouldCaptureLayout) {

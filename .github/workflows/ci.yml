@@ -591,7 +591,7 @@ jobs:
           # Branch CI runs only the specs migrated to the web client
           # (docs/web-client-rewrite.md §8.2). The list only grows; it covers
           # every spec before merge. Shards follow main's measured-runtime
-          # layout (target ~10min wall each) minus the specs not yet migrated.
+          # layout (target ~10min wall each); every spec is now migrated.
           - shard: '1'
             specs: 'werewolf-night-block.spec.ts werewolf-night-seed-wolf.spec.ts werewolf-night-special-roles.spec.ts'
           - shard: '2'
@@ -604,10 +604,12 @@ jobs:
             specs: 'werewolf-night-check.spec.ts werewolf-night-piper.spec.ts werewolf-night-wolf-girl.spec.ts'
           - shard: '6'
             specs: 'resilience-reconnect.spec.ts werewolf-night-flow.spec.ts resilience-db-recovery.spec.ts'
+          - shard: '7'
+            specs: 'avalon.spec.ts'
           - shard: '8'
             specs: 'werewolf-night-completion.spec.ts pictionary.spec.ts resilience-restart.spec.ts resilience-offline-canary.spec.ts'
           - shard: '9'
-            specs: 'undercover.spec.ts werewolf-seating.spec.ts fibking.spec.ts fibking-responsive.spec.ts storyrelay.spec.ts drawguess.spec.ts app-entry-flow.spec.ts app-home.spec.ts werewolf-sheriff-election.spec.ts app-room-lifecycle.spec.ts resilience-rejoin.spec.ts'
+            specs: 'undercover.spec.ts werewolf-seating.spec.ts fibking.spec.ts fibking-responsive.spec.ts storyrelay.spec.ts drawguess.spec.ts app-entry-flow.spec.ts app-home.spec.ts werewolf-config.spec.ts werewolf-sheriff-election.spec.ts app-room-lifecycle.spec.ts room-narration.spec.ts resilience-rejoin.spec.ts'
     uses: ./.github/workflows/e2e-run.yml
     with:
       specs: ${{ matrix.specs }}
