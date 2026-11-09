@@ -10,6 +10,24 @@
   color: var(--color-text);
 }
 
+.notepad-ai-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  align-self: center;
+  gap: var(--space-micro);
+  padding: var(--space-micro) var(--space-small);
+  border: var(--border-width) solid var(--color-primary);
+  border-radius: var(--radius-medium);
+  background: var(--color-primary-a8);
+  color: var(--color-primary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
 .notepad-public {
   flex-shrink: 0;
   padding: var(--space-small) var(--space-medium) var(--space-tight);

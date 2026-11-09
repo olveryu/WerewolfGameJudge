@@ -1,5 +1,6 @@
 /** Game-neutral client module contract consumed by the room, config and guide routes. */
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import type { ComponentType } from 'react';
 
 import type { GameNavigationContribution } from '@/features/navigation/model/GameNavigationContribution';
 import type { RoomAccountCapability } from '@/features/room/model/RoomAccountCapability';
@@ -12,6 +13,8 @@ export interface ClientGameModule<
 > extends RegisteredRoomUiModule<TGameType> {
   readonly navigation: GameNavigationContribution<TGameType>;
   readonly roomAccount: RoomAccountCapability<TGameType>;
+  /** App-wide overlay bound to the module session, mounted by the app root once loaded. */
+  readonly appOverlay: ComponentType | null;
 }
 
 export interface ClientGameModuleDependencies {

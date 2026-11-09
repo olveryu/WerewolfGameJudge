@@ -1,6 +1,6 @@
 import './HomePage.css';
 
-import { useRef, useState } from 'react';
+import { Suspense, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 
 import { Avatar } from '@/components/avatar/Avatar';
@@ -8,7 +8,7 @@ import { APP_VERSION } from '@/config/version';
 import { useAuthContext, type User } from '@/contexts/AuthContext';
 import { requestLogin } from '@/features/auth/loginRequests';
 import { getRecentRooms } from '@/features/room/services/recentRooms';
-import { GAME_MODE_OPTIONS } from '@/games/catalog';
+import { GAME_HOME_SPOTLIGHTS, GAME_MODE_OPTIONS } from '@/games/catalog';
 import { TESTIDS } from '@/testids';
 import { homeLog } from '@/utils/logger';
 import { isMiniProgram, wxReLaunch } from '@/utils/miniProgram';
@@ -38,7 +38,7 @@ function displayNameOf(user: User): string {
   return '用户';
 }
 
-/** Home: create or join a room, recent rooms, gacha entry and account. */
+/** Home: create or join a room, recent rooms, gacha entry, game spotlights and account. */
 export function HomePage() {
   const navigate = useNavigate();
   const { user, loading: authLoading, error: authError } = useAuthContext();
@@ -191,6 +191,12 @@ export function HomePage() {
             </span>
             <IconChevronForward aria-hidden />
           </Link>
+
+          {GAME_HOME_SPOTLIGHTS.map((spotlight) => (
+            <Suspense key={spotlight.gameType} fallback={null}>
+              <spotlight.Spotlight />
+            </Suspense>
+          ))}
         </section>
       </div>
 

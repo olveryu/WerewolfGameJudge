@@ -13,4 +13,7 @@ export const werewolfHome = {
     gradient: [colors.primaryLight, colors.primary],
     artUrl: werewolfArt,
   },
+  // The spotlight pulls in role specs and portraits: its own chunk, loaded after Home renders.
+  loadSpotlight: async () =>
+    (await import('./components/WerewolfHomeSpotlight')).WerewolfHomeSpotlight,
 } satisfies GameHomeContribution;

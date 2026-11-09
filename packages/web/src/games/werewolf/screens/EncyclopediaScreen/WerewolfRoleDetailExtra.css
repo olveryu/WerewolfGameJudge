@@ -1,0 +1,18 @@
+/* Top right of the detail hero, in the entry's palette (set by the sheet's data-color-key). */
+.encyclopedia-ai-pill {
+  position: absolute;
+  top: var(--space-small);
+  right: var(--space-small);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-tight);
+  padding: var(--space-tight) var(--space-small);
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--key-a15);
+  color: var(--key-color);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}

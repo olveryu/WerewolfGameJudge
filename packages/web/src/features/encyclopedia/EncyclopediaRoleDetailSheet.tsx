@@ -1,8 +1,11 @@
 /**
  * Encyclopedia role detail bottom sheet: hero (detail image, name, subtitle, faction chip),
- * ability tag chips and the structured description shared with the role card.
+ * ability tag chips and the structured description shared with the role card. A game-owned hero
+ * action (the werewolf AI 攻略 pill) comes in through `headerExtra`.
  */
 import './Encyclopedia.css';
+
+import type { ReactNode } from 'react';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
@@ -10,13 +13,21 @@ import { DescriptionFields } from '@/features/room/components/RoleCard';
 
 import type { EncyclopediaRoleEntry } from './encyclopediaSource';
 
+/** Renders a game-owned action in the detail hero. */
+export type EncyclopediaRoleDetailExtra = (
+  entry: EncyclopediaRoleEntry,
+  onClose: () => void,
+) => ReactNode;
+
 /** Mounted means open. */
 export function EncyclopediaRoleDetailSheet({
   entry,
   onClose,
+  headerExtra,
 }: {
   readonly entry: EncyclopediaRoleEntry;
   readonly onClose: () => void;
+  readonly headerExtra?: EncyclopediaRoleDetailExtra;
 }) {
   const tags = entry.tags ?? [];
   return (
@@ -33,6 +44,7 @@ export function EncyclopediaRoleDetailSheet({
             )}
             <span className="encyclopedia-detail-faction">{entry.factionLabel}</span>
           </div>
+          {headerExtra?.(entry, onClose)}
         </div>
 
         {tags.length > 0 && (

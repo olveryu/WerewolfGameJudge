@@ -11,11 +11,11 @@ import { AuthProvider, useAuthContext } from '@/contexts/AuthContext';
 import { ServiceProvider, useServices } from '@/contexts/ServiceContext';
 import { LoginDialogSlot } from '@/features/auth/LoginDialogSlot';
 import { WechatLoginEntry } from '@/features/auth/WechatLoginEntry';
-import { ClientGameModulesProvider } from '@/games/clientModules';
+import { ClientGameModulesProvider, ClientGameOverlays } from '@/games/clientModules';
 
 /**
- * Root route element: app-wide providers around the active page, plus the global alert dialog
- * and toast region. Services are created once per page load.
+ * Root route element: app-wide providers around the active page, the loaded games' overlays, plus
+ * the global alert dialog and toast region. Services are created once per page load.
  */
 export function AppRoot() {
   const services = getAppServices();
@@ -26,6 +26,7 @@ export function AppRoot() {
           <ClientGameModulesProvider>
             <RoomLinkScope />
             <AppContent />
+            <ClientGameOverlays />
           </ClientGameModulesProvider>
           <AlertHost />
           <LoginDialogSlot />

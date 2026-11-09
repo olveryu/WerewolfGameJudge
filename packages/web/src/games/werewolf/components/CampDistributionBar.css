@@ -1,0 +1,79 @@
+.camp-distribution {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+}
+
+.camp-distribution-row {
+  display: flex;
+  align-items: center;
+}
+
+.camp-distribution-label {
+  flex-shrink: 0;
+  width: 64px;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  white-space: nowrap;
+}
+
+.camp-distribution[data-compact='true'] .camp-distribution-label {
+  width: 56px;
+}
+
+.camp-distribution-track {
+  flex: 1;
+  height: 6px;
+  margin: 0 var(--space-small);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-text-muted-a12);
+}
+
+.camp-distribution-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--faction-color);
+}
+
+.camp-distribution-percent {
+  flex-shrink: 0;
+  width: 36px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+  text-align: right;
+}
+
+.camp-distribution-empty,
+.camp-distribution-hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.camp-distribution-hint {
+  margin-top: var(--space-tight);
+}
+
+/* Profile card details: game count above the bars, or the load failure. */
+.camp-distribution-count {
+  margin: 0 0 var(--space-small);
+  color: var(--color-text-muted);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  text-align: right;
+}
+
+.camp-distribution-error {
+  margin: 0;
+  padding: var(--space-small) 0;
+  color: var(--color-error);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}

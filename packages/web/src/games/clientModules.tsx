@@ -55,13 +55,16 @@ interface ClientGameModules {
   ) => Promise<ClientGameModule<TGameType>>;
   /** The one active room account across the loaded modules. */
   readonly activeRoomAccount: ActiveRoomAccountSource;
+  /** The modules loaded so far, in load order; a new array after each load. */
+  readonly loaded: () => readonly ClientGameModule[];
+  readonly subscribeLoaded: (listener: () => void) => () => void;
 }
 
 function createClientGameModules(
   loadDependencies: () => Promise<ClientGameModuleDependencies>,
 ): ClientGameModules {
-  const loadedAccounts: RoomAccountCapability[] = [];
-  const accountLoadListeners = new Set<() => void>();
+  let loadedModules: readonly ClientGameModule[] = [];
+  const loadListeners = new Set<() => void>();
   const modules: { readonly [TGameType in GameType]: ModuleSlot<TGameType> } = {
     werewolf: { loading: null },
     fibking: { loading: null },
@@ -83,9 +86,15 @@ function createClientGameModules(
     if (module.gameType !== gameType) {
       throw new Error(`[FAIL-FAST] Client module for ${gameType} registered ${module.gameType}`);
     }
-    loadedAccounts.push(module.roomAccount);
-    for (const listener of accountLoadListeners) listener();
+    loadedModules = [...loadedModules, module];
+    for (const listener of loadListeners) listener();
     return module;
+  };
+  const subscribeLoaded = (listener: () => void) => {
+    loadListeners.add(listener);
+    return () => {
+      loadListeners.delete(listener);
+    };
   };
   return {
     load: <TGameType extends GameType>(gameType: TGameType) => {
@@ -100,12 +109,12 @@ function createClientGameModules(
       return loading;
     },
     activeRoomAccount: createActiveRoomAccountSource({
-      current: () => loadedAccounts,
-      subscribe: (listener) => {
-        accountLoadListeners.add(listener);
-        return () => accountLoadListeners.delete(listener);
-      },
+      current: (): readonly RoomAccountCapability[] =>
+        loadedModules.map((module) => module.roomAccount),
+      subscribe: subscribeLoaded,
     }),
+    loaded: () => loadedModules,
+    subscribeLoaded,
   };
 }
 
@@ -140,4 +149,17 @@ function useClientGameModules(): ClientGameModules {
 export function useActiveRoomAccount(): ActiveRoomAccountSnapshot {
   const { activeRoomAccount } = useClientGameModules();
   return useSyncExternalStore(activeRoomAccount.subscribe, activeRoomAccount.getSnapshot);
+}
+
+/**
+ * The app overlays of the modules loaded so far. A game's overlay ships in its own chunk and
+ * mounts once a page has loaded that game; it decides from its session when to show anything.
+ */
+export function ClientGameOverlays() {
+  const { loaded, subscribeLoaded } = useClientGameModules();
+  const modules = useSyncExternalStore(subscribeLoaded, loaded);
+  return modules.map((module) => {
+    const Overlay = module.appOverlay;
+    return Overlay === null ? null : <Overlay key={module.gameType} />;
+  });
 }

@@ -22,4 +22,6 @@ export interface GameModePresentation {
 
 export interface GameHomeContribution {
   readonly mode: GameModePresentation;
+  /** Loads the game's Home spotlight card; it ships in its own chunk, outside the Home budget. */
+  readonly loadSpotlight?: () => Promise<ComponentType>;
 }

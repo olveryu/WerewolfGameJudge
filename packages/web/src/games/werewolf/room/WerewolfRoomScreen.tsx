@@ -34,6 +34,7 @@ import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioP
 import { BOARD_STRATEGY } from '@/games/werewolf/components/BoardStrategy/boardStrategyData';
 import { BoardStrategyModal } from '@/games/werewolf/components/BoardStrategy/BoardStrategyModal';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
+import { WerewolfProfileDetails } from '@/games/werewolf/components/WerewolfProfileDetails';
 import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import { werewolfNominatePath } from '@/games/werewolf/navigation/werewolfConfigFlow';
 import { TESTIDS } from '@/testids';
@@ -58,6 +59,10 @@ import { createWerewolfBoardInfoSections, isWerewolfSetup } from './werewolfRoom
 
 const BOARD_STRATEGY_KEYS = new Set(Object.keys(BOARD_STRATEGY));
 const STRATEGY_MATCH_THRESHOLD = 0.1;
+
+const renderProfileDetails = (statsUserId: string) => (
+  <WerewolfProfileDetails userId={statsUserId} />
+);
 
 type WerewolfRoomScreenProps = GameRoomScreenProps<'werewolf'> & {
   readonly session: WerewolfRoomSession;
@@ -236,6 +241,7 @@ function WerewolfRoomContent(
         )
       }
       trailingExtraActions={null}
+      profileDetailsRenderer={renderProfileDetails}
       gameOverlays={
         <>
           {mvpSelection !== null && (

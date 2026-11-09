@@ -1,8 +1,8 @@
 /**
  * Shared assembly for session-based client game modules. A game declares its data — codec,
  * navigation definition, screens, predicates and its review — and this factory creates the room
- * session, binds the room-account capability, and binds the config, guide and notepad pages and the
- * room screen to that one session.
+ * session, binds the room-account capability, and binds the config, guide and notepad pages, the
+ * app overlay and the room screen to that one session.
  */
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type {
@@ -69,6 +69,8 @@ interface ClientGameModuleDefinitionBase<
   readonly GuideScreen: ComponentType<{ readonly session: RoomLink<TState, TCommand> }>;
   /** The notepad page; `bindGameNavigation` fails fast unless the navigation declares it. */
   readonly NotepadScreen?: ComponentType<{ readonly session: RoomLink<TState, TCommand> }>;
+  /** App-wide overlay over every page (werewolf: the AI chat bubble), bound to the session. */
+  readonly AppOverlay?: ComponentType<{ readonly session: RoomLink<TState, TCommand> }>;
   /** The game's review: the room renders exactly this one. */
   readonly review: RoomReviewContribution<TState>;
   readonly isUserSeated: (state: TState, userId: string) => boolean;
@@ -134,6 +136,13 @@ export function defineClientGameModule<
       }
       return createElement(NotepadScreen, { session });
     }
+    const { AppOverlay } = definition;
+    const appOverlay =
+      AppOverlay === undefined
+        ? null
+        : function BoundAppOverlay() {
+            return createElement(AppOverlay, { session });
+          };
     const { review } = definition;
     let roomScreen: ComponentType<GameRoomScreenProps<TGameType>>;
     if (definition.audio === undefined) {
@@ -156,6 +165,7 @@ export function defineClientGameModule<
         ...(NotepadScreen === undefined ? {} : { notepad: BoundNotepadScreen }),
       }),
       roomAccount,
+      appOverlay,
     };
   };
 }

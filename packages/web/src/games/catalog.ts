@@ -4,6 +4,7 @@
  */
 import { GAME_REGISTRY } from '@game-judge/game-engine/games/registry';
 import { GAME_TYPES, type GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { type ComponentType, lazy, type LazyExoticComponent } from 'react';
 
 import { avalonHome } from '@/games/avalon/home';
 import { demoHome } from '@/games/demo/home';
@@ -41,3 +42,17 @@ export interface ClientGameModeOption extends GameModePresentation {
 export const GAME_MODE_OPTIONS: readonly ClientGameModeOption[] = GAME_TYPES.filter(
   (gameType) => GAME_REGISTRY[gameType].isProduction,
 ).map((gameType) => ({ gameType, ...CLIENT_GAMES[gameType].home.mode }));
+
+export interface ClientGameHomeSpotlight {
+  readonly gameType: GameType;
+  readonly Spotlight: LazyExoticComponent<ComponentType>;
+}
+
+/** Game-owned Home spotlight cards, each loaded lazily after Home renders. */
+export const GAME_HOME_SPOTLIGHTS: readonly ClientGameHomeSpotlight[] = GAME_TYPES.flatMap(
+  (gameType) => {
+    const { loadSpotlight } = CLIENT_GAMES[gameType].home;
+    if (!GAME_REGISTRY[gameType].isProduction || loadSpotlight === undefined) return [];
+    return [{ gameType, Spotlight: lazy(async () => ({ default: await loadSpotlight() })) }];
+  },
+);

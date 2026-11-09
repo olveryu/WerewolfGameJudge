@@ -1,4 +1,4 @@
-/** Werewolf client module: session, narration, config flow, guide, notepad, room and review. */
+/** Werewolf client module: session, narration, config flow, guide, notepad, room, review, AI chat. */
 
 import {
   type GameState,
@@ -11,6 +11,7 @@ import {
 import { defineClientGameModule } from '@/games/model/defineClientGameModule';
 
 import { WerewolfAudioPlayer } from './audio/WerewolfAudioPlayer';
+import { WerewolfAppOverlay } from './components/WerewolfAppOverlay';
 import { WerewolfConfigFlowScreen } from './navigation/WerewolfConfigFlowScreen';
 import { werewolfGameNavigation } from './navigation/werewolfGameNavigation';
 import { werewolfReview } from './review/werewolfReview';
@@ -33,6 +34,7 @@ export const createWerewolfClientModule = defineClientGameModule<
   config: () => WerewolfConfigFlowScreen,
   GuideScreen: EncyclopediaScreen,
   NotepadScreen,
+  AppOverlay: WerewolfAppOverlay,
   review: werewolfReview,
   isUserSeated: (state, userId) => getWerewolfUserSeat(state, userId) !== null,
   canSwitchAccount: (state) =>

@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 
 import { IconButton } from '@/components/IconButton';
+import type { EncyclopediaRoleDetailExtra } from '@/features/encyclopedia/EncyclopediaRoleDetailSheet';
 import { EncyclopediaRolesContent } from '@/features/encyclopedia/EncyclopediaRolesContent';
 import { EncyclopediaRolesHeaderActions } from '@/features/encyclopedia/EncyclopediaRolesHeaderActions';
 import {
@@ -30,6 +31,11 @@ import IconSearch from '~icons/ion/search';
 import { BoardsGuideContent } from './BoardsGuideContent';
 import { WEREWOLF_ENCYCLOPEDIA_SOURCE } from './werewolfEncyclopediaSource';
 import { WerewolfGameplayContent } from './WerewolfGameplayContent';
+import { WerewolfRoleDetailExtra } from './WerewolfRoleDetailExtra';
+
+const renderRoleDetailExtra: EncyclopediaRoleDetailExtra = (entry, onClose) => (
+  <WerewolfRoleDetailExtra entry={entry} onClose={onClose} />
+);
 
 const GUIDE_SEGMENTS: readonly EncyclopediaSegment[] = [
   { key: 'gameplay', label: '玩法' },
@@ -97,7 +103,13 @@ export function EncyclopediaScreen({ session }: { readonly session: WerewolfRoom
 
   const renderSegment = (segmentKey: string) => {
     if (segmentKey === 'roles') {
-      return <EncyclopediaRolesContent source={WEREWOLF_ENCYCLOPEDIA_SOURCE} state={rolesState} />;
+      return (
+        <EncyclopediaRolesContent
+          source={WEREWOLF_ENCYCLOPEDIA_SOURCE}
+          state={rolesState}
+          roleDetailHeaderExtra={renderRoleDetailExtra}
+        />
+      );
     }
     if (segmentKey === 'boards') {
       return (

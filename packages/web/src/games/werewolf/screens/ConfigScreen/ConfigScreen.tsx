@@ -20,6 +20,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import type { WerewolfConfigParams, WerewolfRulesParams } from '@/games/werewolf/navigation/types';
+import { askAIAboutRole, useAIChatAvailable } from '@/games/werewolf/services/aiChatBridge';
 import { TESTIDS } from '@/testids';
 import IconChevronDown from '~icons/ion/chevron-down';
 import IconTrashOutline from '~icons/ion/trash-outline';
@@ -63,6 +64,7 @@ export function ConfigScreen({
 }: ConfigScreenProps) {
   const state = useConfigScreenState({ params, session, onPickBoard, onContinue, onReturnToRoom });
   const { activeGroup } = state;
+  const isAIChatAvailable = useAIChatAvailable();
 
   return (
     <div className="game-config-page" data-testid={TESTIDS.configScreenRoot}>
@@ -164,6 +166,11 @@ export function ConfigScreen({
         variantIds={state.roleInfoVariantIds}
         activeVariant={state.roleInfoActiveVariant}
         onVariantSelect={state.handleRoleInfoVariantSelect}
+        onAskAI={
+          isAIChatAvailable
+            ? (roleId) => askAIAboutRole(roleId, state.handleCloseRoleInfo)
+            : undefined
+        }
       />
     </div>
   );

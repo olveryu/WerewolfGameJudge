@@ -389,6 +389,7 @@
 }
 
 .encyclopedia-detail-hero {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-medium);

@@ -11,7 +11,10 @@ import { TESTIDS } from '@/testids';
 import IconCheckmark from '~icons/ion/checkmark';
 import IconSearch from '~icons/ion/search';
 
-import { EncyclopediaRoleDetailSheet } from './EncyclopediaRoleDetailSheet';
+import {
+  type EncyclopediaRoleDetailExtra,
+  EncyclopediaRoleDetailSheet,
+} from './EncyclopediaRoleDetailSheet';
 import { EncyclopediaRoleListItem } from './EncyclopediaRoleListItem';
 import type { EncyclopediaRoleSource } from './encyclopediaSource';
 import type { EncyclopediaRolesState } from './useEncyclopediaRolesState';
@@ -27,9 +30,12 @@ function findSelectedEntry(source: EncyclopediaRoleSource, roleId: string | null
 export function EncyclopediaRolesContent({
   source,
   state,
+  roleDetailHeaderExtra,
 }: {
   readonly source: EncyclopediaRoleSource;
   readonly state: EncyclopediaRolesState;
+  /** Game-owned action in the role detail hero. */
+  readonly roleDetailHeaderExtra?: EncyclopediaRoleDetailExtra;
 }) {
   const tagCatalog = source.tagCatalog;
   const selectedEntry = findSelectedEntry(source, state.selectedRoleId);
@@ -136,7 +142,11 @@ export function EncyclopediaRolesContent({
       )}
 
       {selectedEntry !== null && (
-        <EncyclopediaRoleDetailSheet entry={selectedEntry} onClose={state.handleCloseDetail} />
+        <EncyclopediaRoleDetailSheet
+          entry={selectedEntry}
+          onClose={state.handleCloseDetail}
+          headerExtra={roleDetailHeaderExtra}
+        />
       )}
     </div>
   );
