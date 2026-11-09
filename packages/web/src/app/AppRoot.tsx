@@ -6,9 +6,10 @@ import { Toaster } from 'sonner';
 import { queryClient } from '@/app/queryClient';
 import { createAppServices } from '@/app/services';
 import { AlertHost } from '@/components/AlertHost';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { AuthProvider, useAuthContext } from '@/contexts/AuthContext';
 import { ServiceProvider } from '@/contexts/ServiceContext';
 import { LoginDialogSlot } from '@/features/auth/LoginDialogSlot';
+import { WechatLoginEntry } from '@/features/auth/WechatLoginEntry';
 
 /**
  * Root route element: app-wide providers around the active page, plus the global alert dialog
@@ -20,7 +21,7 @@ export function AppRoot() {
     <QueryClientProvider client={queryClient}>
       <ServiceProvider services={services}>
         <AuthProvider>
-          <Outlet />
+          <AppContent />
           <AlertHost />
           <LoginDialogSlot />
           <Toaster position="top-center" />
@@ -28,4 +29,10 @@ export function AppRoot() {
       </ServiceProvider>
     </QueryClientProvider>
   );
+}
+
+/** Inside the mini-program, an unclaimed WeChat login replaces the app with its entry page. */
+function AppContent() {
+  const { needsWechatLogin } = useAuthContext();
+  return needsWechatLogin ? <WechatLoginEntry /> : <Outlet />;
 }
