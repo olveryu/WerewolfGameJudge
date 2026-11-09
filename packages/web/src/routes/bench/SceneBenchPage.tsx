@@ -1,39 +1,71 @@
 import './SceneBenchPage.css';
 
-import { type RefObject, Suspense, useRef } from 'react';
+import { FRAME_IDS, type FrameId } from '@game-judge/game-engine/product/rewards';
+import { type RefObject, Suspense, use, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 
 import type { DecorationSpec } from '@/scene/decoration';
 import { FLAIR_SPECS } from '@/scene/flairs/registry';
+import { loadFrameSpec } from '@/scene/frames/registry';
 import { SceneCanvas } from '@/scene/SceneCanvas';
 import { SeatDecoration } from '@/scene/SeatDecoration';
 import type { SceneFrameRate } from '@/scene/stage';
 import { usePrefersReducedMotion } from '@/scene/usePrefersReducedMotion';
 
 const SEAT_COUNT = 12;
-const DEFAULT_FLAIRS = ['fireRing', 'goldenShine', 'snowfall'] as const;
+const DEFAULT_FLAIRS = 'fireRing,goldenShine,snowfall';
 
-/** `?flairs=a,b,c` picks the flairs; seats cycle through them (seat 1 the first, …). */
-function parseFlairs(value: string | null): readonly (readonly DecorationSpec[])[] {
-  const ids = value === null ? DEFAULT_FLAIRS : value.split(',');
-  const specs = ids.map((id) => {
-    const spec = [...FLAIR_SPECS.values()].find((candidate) => candidate.id === id);
-    if (!spec) {
-      throw new Error(`Unknown flair "${id}"`);
-    }
-    return [spec];
-  });
-  return Array.from({ length: SEAT_COUNT }, (_, seat) => specs[seat % specs.length]!);
+function flairSpec(id: string): DecorationSpec {
+  const spec = [...FLAIR_SPECS.values()].find((candidate) => candidate.id === id);
+  if (!spec) {
+    throw new Error(`Unknown flair "${id}"`);
+  }
+  return spec;
 }
 
-/** Parsed once per query value, so the seats' decoration effects stay mounted across renders. */
-const seatDecorationsByQuery = new Map<string | null, readonly (readonly DecorationSpec[])[]>();
+const FRAME_ID_SET: ReadonlySet<string> = new Set(FRAME_IDS);
 
-function seatDecorationsFor(value: string | null): readonly (readonly DecorationSpec[])[] {
-  let seats = seatDecorationsByQuery.get(value);
+function isFrameId(id: string): id is FrameId {
+  return FRAME_ID_SET.has(id);
+}
+
+function frameSpec(id: string): Promise<DecorationSpec> {
+  if (!isFrameId(id)) {
+    throw new Error(`Unknown frame "${id}"`);
+  }
+  return loadFrameSpec(id);
+}
+
+/**
+ * `?frames=a,b` and `?flairs=c,d` pick the decorations; seats cycle through each list (seat 1
+ * the first, …), frame under flair. Without either, seats show the default flairs.
+ */
+async function parseSeatDecorations(
+  flairs: string | null,
+  frames: string | null,
+): Promise<readonly (readonly DecorationSpec[])[]> {
+  const flairIds = flairs ?? (frames === null ? DEFAULT_FLAIRS : null);
+  const flairSpecs = flairIds === null ? [] : flairIds.split(',').map(flairSpec);
+  const frameSpecs = frames === null ? [] : await Promise.all(frames.split(',').map(frameSpec));
+  return Array.from({ length: SEAT_COUNT }, (_, seat) =>
+    [frameSpecs[seat % frameSpecs.length], flairSpecs[seat % flairSpecs.length]].filter(
+      (spec) => spec !== undefined,
+    ),
+  );
+}
+
+/** Parsed once per query, so the seats' decoration effects stay mounted across renders. */
+const seatDecorationsByQuery = new Map<string, Promise<readonly (readonly DecorationSpec[])[]>>();
+
+function seatDecorationsFor(
+  flairs: string | null,
+  frames: string | null,
+): Promise<readonly (readonly DecorationSpec[])[]> {
+  const key = `${flairs}|${frames}`;
+  let seats = seatDecorationsByQuery.get(key);
   if (!seats) {
-    seats = parseFlairs(value);
-    seatDecorationsByQuery.set(value, seats);
+    seats = parseSeatDecorations(flairs, frames);
+    seatDecorationsByQuery.set(key, seats);
   }
   return seats;
 }
@@ -46,12 +78,25 @@ function parseFrameRate(value: string | null): SceneFrameRate {
 
 interface BenchSeatProps {
   seat: number;
-  decorations: readonly DecorationSpec[];
+  seatDecorations: Promise<readonly (readonly DecorationSpec[])[]>;
   hostRef: RefObject<HTMLDivElement | null>;
   animate: boolean;
 }
 
-function BenchSeat({ seat, decorations, hostRef, animate }: BenchSeatProps) {
+function BenchSeatDecoration({
+  seat,
+  seatDecorations,
+  tileRef,
+  hostRef,
+}: Omit<BenchSeatProps, 'animate'> & { tileRef: RefObject<HTMLDivElement | null> }) {
+  const decorations = use(seatDecorations)[seat - 1];
+  if (!decorations) {
+    throw new Error(`Bench seat ${seat} has no decorations`);
+  }
+  return <SeatDecoration decorations={decorations} tileRef={tileRef} hostRef={hostRef} />;
+}
+
+function BenchSeat({ seat, seatDecorations, hostRef, animate }: BenchSeatProps) {
   const tileRef = useRef<HTMLDivElement>(null);
   return (
     <li className="bench-seat">
@@ -61,7 +106,12 @@ function BenchSeat({ seat, decorations, hostRef, animate }: BenchSeatProps) {
       <span className="bench-name">{`玩家 ${seat}`}</span>
       {animate && (
         <Suspense fallback={null}>
-          <SeatDecoration decorations={decorations} tileRef={tileRef} hostRef={hostRef} />
+          <BenchSeatDecoration
+            seat={seat}
+            seatDecorations={seatDecorations}
+            tileRef={tileRef}
+            hostRef={hostRef}
+          />
         </Suspense>
       )}
     </li>
@@ -71,12 +121,15 @@ function BenchSeat({ seat, decorations, hostRef, animate }: BenchSeatProps) {
 /**
  * Scene-layer benchmark: a 12-seat board with DOM seats and PixiJS decorations, used by
  * `scripts/scene-bench.mjs` and for side-by-side checks on devices. `?fps=30` caps the stage;
- * `?flairs=id1,id2` picks the flairs.
+ * `?frames=id1,id2` and `?flairs=id3,id4` pick the decorations.
  */
 export function SceneBenchPage() {
   const [searchParams] = useSearchParams();
   const frameRate = parseFrameRate(searchParams.get('fps'));
-  const seatDecorations = seatDecorationsFor(searchParams.get('flairs'));
+  const seatDecorations = seatDecorationsFor(
+    searchParams.get('flairs'),
+    searchParams.get('frames'),
+  );
   const prefersReducedMotion = usePrefersReducedMotion();
   const hostRef = useRef<HTMLDivElement>(null);
 
@@ -85,11 +138,11 @@ export function SceneBenchPage() {
       <h1>场景层基准</h1>
       <div ref={hostRef} className="bench-board">
         <ol className="bench-grid">
-          {seatDecorations.map((decorations, index) => (
+          {Array.from({ length: SEAT_COUNT }, (_, index) => (
             <BenchSeat
               key={index + 1}
               seat={index + 1}
-              decorations={decorations}
+              seatDecorations={seatDecorations}
               hostRef={hostRef}
               animate={!prefersReducedMotion}
             />

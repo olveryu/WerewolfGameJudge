@@ -9,10 +9,11 @@ import { RoomSeatBoard } from '@/features/room/components/RoomSeatBoard';
 import type { RoomSeatPlayer, RoomSeatViewModel } from '@/features/room/model/RoomSeatDataSource';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import { displaySettings } from '@/features/settings/displaySettings';
+import { TESTIDS } from '@/testids';
 
 vi.mock('@/features/room/components/RoomSeatScene', () => ({
   RoomSeatSceneCanvas: () => <div data-testid="scene-canvas" />,
-  RoomSeatResidents: ({ residents }: { residents: { flairId: string } }) => (
+  RoomSeatResidents: ({ residents }: { residents: { flairId: string | null } }) => (
     <div data-testid="seat-residents">{residents.flairId}</div>
   ),
 }));
@@ -71,6 +72,17 @@ describe('RoomSeatBoard scene layer', () => {
     expect(screen.getAllByTestId('seat-residents').map((node) => node.textContent)).toEqual([
       'fireRing',
     ]);
+  });
+
+  it('marks only seats whose avatar frame the scene draws as framed', async () => {
+    renderBoard([seat(0, { avatarFrame: 'ironForge' }), seat(1, { seatFlair: 'fireRing' })]);
+    expect(await screen.findByTestId('scene-canvas')).toBeInTheDocument();
+    expect(screen.getAllByTestId('seat-residents')).toHaveLength(2);
+    expect(screen.getByTestId(TESTIDS.seatTilePressable(0))).toHaveAttribute('data-framed', 'true');
+    expect(screen.getByTestId(TESTIDS.seatTilePressable(1))).toHaveAttribute(
+      'data-framed',
+      'false',
+    );
   });
 
   it('shows no resident decorations when the game or the user turns them off', () => {

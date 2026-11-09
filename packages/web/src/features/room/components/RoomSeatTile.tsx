@@ -1,7 +1,9 @@
 /**
  * RoomSeatTile — one game-neutral seat: avatar, highlight ring, badges, name and indicators.
  * Reports presses through callbacks; no service calls or game rules. Looping seat decorations
- * (flairs; later frames and pets) are drawn by the scene layer over the tile, not in the DOM.
+ * (avatar frames and flairs; later pets) are drawn by the scene layer over the tile, not in the
+ * DOM. A framed seat drops its border and background, and its avatar fills the border box under
+ * the frame, as in the previous client.
  */
 import { lazy, memo, type RefObject, Suspense, useRef } from 'react';
 
@@ -107,6 +109,7 @@ function RoomSeatTileComponent({
         className="seat-tile-button"
         data-testid={TESTIDS.seatTilePressable(seat)}
         data-empty={player === null}
+        data-framed={residents !== null && residents.frameId !== null}
         data-highlight={model.highlight}
         data-inert={isBoardDisabled || model.disabledReason !== undefined}
         aria-label={describeSeat(model)}

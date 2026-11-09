@@ -3,9 +3,10 @@
  *
  * A decoration is a tree of looping nodes, one kind per primitive of the React Native client's
  * loopMotion (`LoopDot`, `LoopLine`, `LoopRing`, `LoopPath`, `LoopLayer`, `LoopMorph`,
- * `LoopDashFlow`) plus static art and static groups. Motion comes from pure samplers
- * `(t, size) => geometry` with the same contract as loopMotion, so samplers port verbatim. The
- * stage evaluates samplers every frame; nothing here touches PixiJS display objects.
+ * `LoopDashFlow`) plus static art (PixiJS geometry or rasterised SVG) and static groups. Motion
+ * comes from pure samplers `(t, size) => geometry` with the same contract as loopMotion, so
+ * samplers port verbatim. The stage evaluates samplers every frame; nothing here touches PixiJS
+ * display objects.
  */
 import type { GraphicsContext } from 'pixi.js';
 
@@ -178,6 +179,32 @@ export interface StaticNode {
   art: StaticArt;
 }
 
+/** SVG artwork drawn over a `width × height` px box at `(0, 0)` in the parent's coordinates. */
+export interface SvgArtwork {
+  width: number;
+  height: number;
+  /** `[minX, minY, width, height]` of the user space mapped onto the box. */
+  viewBox: readonly [number, number, number, number];
+  /** Markup inside the root `<svg>` element. */
+  body: string;
+}
+
+/**
+ * Builds the artwork for a tile of `size` pixels. Module-level (or built once per spec): the
+ * stage caches its texture per `(art, size, resolution)`.
+ */
+export type SvgArt = (size: number) => SvgArtwork;
+
+/**
+ * Static SVG artwork that the browser rasterises into a texture at the stage's device-pixel size,
+ * so gradients, group opacity and dashes keep full SVG fidelity. The decoration stays hidden
+ * until every texture is ready; a rasterisation failure is reported, never skipped.
+ */
+export interface SvgNode {
+  kind: 'svg';
+  art: SvgArt;
+}
+
 /**
  * Static transform around nested nodes, like a transformed RN `View` box: the box sits at
  * `(left, top)` in the parent's coordinates and is scaled about its centre. `clip` hides content
@@ -206,10 +233,23 @@ export type DecorationNode =
   | MorphNode
   | DashFlowNode
   | StaticNode
+  | SvgNode
   | GroupNode;
+
+/**
+ * Where a decoration's square sits on its seat tile:
+ * - `tile` (default): from the tile's padding edge, spanning the tile's outer size (flairs).
+ * - `avatarFrame`: the avatar frame box. A framed seat's avatar fills the tile's border box, and
+ *   frame artwork overflows it by `AVATAR_FRAME_OVERFLOW` of its side on every edge.
+ */
+export type DecorationAnchor = 'tile' | 'avatarFrame';
+
+/** Frame overflow per edge as a fraction of the avatar side (viewBox `-8 -8 116 116`). */
+export const AVATAR_FRAME_OVERFLOW = 0.08;
 
 /** A seat decoration: an id for diagnostics plus its nodes, drawn back to front. */
 export interface DecorationSpec {
   id: string;
+  anchor?: DecorationAnchor;
   nodes: readonly DecorationNode[];
 }

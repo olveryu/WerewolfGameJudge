@@ -116,6 +116,48 @@
   box-shadow: 0 0 8px var(--seat-ring-glow);
 }
 
+/*
+ * Framed seat: the scene layer draws the frame over the avatar, which fills the border box. The
+ * highlight ring becomes a glow only, so it does not clash with the frame.
+ */
+.seat-tile-button[data-framed='true'] {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.seat-tile-button[data-framed='true'] .seat-avatar {
+  position: absolute;
+  inset: calc(-1 * var(--border-width-thick));
+  width: auto;
+  height: auto;
+  padding: 0;
+}
+
+.seat-tile-button[data-framed='true'] .avatar {
+  border-radius: var(--radius-large);
+  background: transparent;
+}
+
+.seat-tile-button[data-framed='true'][data-highlight='danger'] {
+  --seat-ring-glow: var(--color-error-a50);
+}
+
+.seat-tile-button[data-framed='true'][data-highlight='selected'] {
+  --seat-ring-glow: var(--color-primary-dark-a50);
+}
+
+.seat-tile-button[data-framed='true'][data-highlight='controlled'] {
+  --seat-ring-glow: var(--color-warning-a50);
+}
+
+.seat-tile-button[data-framed='true'][data-highlight='danger'],
+.seat-tile-button[data-framed='true'][data-highlight='selected'],
+.seat-tile-button[data-framed='true'][data-highlight='controlled'] {
+  border-color: transparent;
+  box-shadow: 0 0 10px var(--seat-ring-glow);
+}
+
 .seat-empty-mark {
   color: var(--color-primary-a40);
   font-size: var(--font-subtitle);
@@ -135,6 +177,7 @@
 .seat-status-emphasis {
   position: absolute;
   inset: calc(-1 * var(--space-tight));
+  z-index: 1;
   border: var(--border-width) solid var(--color-info);
   border-radius: var(--radius-large);
   pointer-events: none;

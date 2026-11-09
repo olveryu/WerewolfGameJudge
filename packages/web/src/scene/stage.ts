@@ -10,8 +10,11 @@
  *   motion. Display objects and geometry are built when a decoration mounts or its tile size
  *   changes; the per-frame path only writes transforms and alphas. Geometry is shared through
  *   a ref-counted cache, so seats showing the same decoration at the same size share it.
+ * - SVG artwork is rasterised into textures (see `svgTexture.ts`), shared the same way and
+ *   destroyed with their last user, so leaving the room frees them. A decoration stays hidden
+ *   until all of its textures are ready; a failed rasterisation goes to the mount's `onError`.
  */
-import { Application, Container, Graphics, GraphicsContext, Sprite, type Texture } from 'pixi.js';
+import { Application, Container, Graphics, GraphicsContext, Sprite, Texture } from 'pixi.js';
 
 import type {
   DashFlowNode,
@@ -29,6 +32,8 @@ import type {
   RingNode,
   SceneColor,
   StaticNode,
+  SvgArt,
+  SvgNode,
 } from '@/scene/decoration';
 import {
   assertMorphShape,
@@ -47,6 +52,7 @@ import {
   thickWeight,
   windowWeight,
 } from '@/scene/loopGeometry';
+import { rasterizeSvg } from '@/scene/svgTexture';
 
 /** Frame caps offered by the settings page (decision D3). */
 export type SceneFrameRate = 60 | 30;
@@ -127,9 +133,67 @@ class Leases {
   }
 }
 
+/** Ref-counted SVG textures keyed by their art and `size|resolution`. */
+interface TextureEntry {
+  readonly key: string;
+  readonly texture: Promise<Texture>;
+  /** Set once rasterised. */
+  loaded: Texture | null;
+  refs: number;
+}
+
+class TextureCache {
+  private readonly entries = new WeakMap<SvgArt, Map<string, TextureEntry>>();
+
+  acquire(art: SvgArt, size: number, resolution: number): TextureEntry {
+    let byKey = this.entries.get(art);
+    if (!byKey) {
+      byKey = new Map();
+      this.entries.set(art, byKey);
+    }
+    const key = `${size}|${resolution}`;
+    let entry = byKey.get(key);
+    if (!entry) {
+      const created: TextureEntry = {
+        key,
+        texture: rasterizeSvg(art(size), resolution).then((texture) => {
+          created.loaded = texture;
+          // Released while rasterising: nobody will show it.
+          if (created.refs === 0) texture.destroy(true);
+          return texture;
+        }),
+        loaded: null,
+        refs: 0,
+      };
+      entry = created;
+      byKey.set(key, entry);
+    }
+    entry.refs += 1;
+    return entry;
+  }
+
+  release(art: SvgArt, entry: TextureEntry): void {
+    entry.refs -= 1;
+    if (entry.refs > 0) return;
+    this.entries.get(art)?.delete(entry.key);
+    entry.loaded?.destroy(true);
+  }
+}
+
+/** Shared services a scene node is built with. */
+interface NodeContext {
+  readonly leases: Leases;
+  readonly textures: TextureCache;
+  readonly resolution: number;
+  /** Reports a failure the node cannot recover from (e.g. artwork that does not rasterise). */
+  readonly onError: (error: Error) => void;
+}
+
 interface SceneNode {
   readonly view: Container;
   update(timeMs: number, size: number): void;
+  /** Whether everything the node draws is loaded; the decoration shows only when all are. */
+  ready(): boolean;
   /** Releases cached geometry; display objects are destroyed with their decoration. */
   release(): void;
 }
@@ -156,6 +220,10 @@ class DotSceneNode implements SceneNode {
     view.alpha = clampOpacity(frame.opacity);
   }
 
+  ready(): boolean {
+    return true;
+  }
+
   release(): void {}
 }
 
@@ -173,6 +241,10 @@ abstract class SizedSceneNode implements SceneNode {
       this.builtSize = size;
     }
     this.animate(timeMs, size);
+  }
+
+  ready(): boolean {
+    return true;
   }
 
   release(): void {
@@ -433,6 +505,58 @@ class StaticSceneNode extends SizedSceneNode {
   protected animate(): void {}
 }
 
+class SvgSceneNode extends SizedSceneNode {
+  readonly view = new Sprite();
+  private entry: TextureEntry | null = null;
+
+  constructor(
+    private readonly node: SvgNode,
+    private readonly context: NodeContext,
+    private readonly decorationId: string,
+  ) {
+    super(context.leases);
+  }
+
+  protected build(size: number): void {
+    this.releaseTexture();
+    const { textures, resolution, onError } = this.context;
+    const entry = textures.acquire(this.node.art, size, resolution);
+    this.entry = entry;
+    this.view.texture = entry.loaded ?? Texture.EMPTY;
+    if (entry.loaded) return;
+    entry.texture.then(
+      (texture) => {
+        if (this.entry === entry) this.view.texture = texture;
+      },
+      (error: unknown) => {
+        onError(
+          new Error(`Scene artwork of "${this.decorationId}" failed to rasterise`, {
+            cause: error,
+          }),
+        );
+      },
+    );
+  }
+
+  protected animate(): void {}
+
+  override ready(): boolean {
+    return this.entry?.loaded != null;
+  }
+
+  override release(): void {
+    super.release();
+    this.releaseTexture();
+  }
+
+  private releaseTexture(): void {
+    if (!this.entry) return;
+    this.view.texture = Texture.EMPTY;
+    this.context.textures.release(this.node.art, this.entry);
+    this.entry = null;
+  }
+}
+
 /** Shared by layers and groups: optional art plus nested nodes under one container. */
 abstract class ContainerSceneNode extends SizedSceneNode {
   readonly view = new Container();
@@ -458,6 +582,10 @@ abstract class ContainerSceneNode extends SizedSceneNode {
 
   protected animate(timeMs: number, size: number): void {
     for (const child of this.children) child.update(timeMs, size);
+  }
+
+  override ready(): boolean {
+    return this.children.every((child) => child.ready());
   }
 
   override release(): void {
@@ -526,6 +654,7 @@ class MountedDecoration implements DecorationHandle {
   constructor(
     private readonly stage: SceneStage,
     private readonly nodes: readonly SceneNode[],
+    private readonly resolution: number,
   ) {
     for (const node of nodes) this.container.addChild(node.view);
     // Hidden until sampled: a resize renders the stage outside the ticker.
@@ -533,7 +662,12 @@ class MountedDecoration implements DecorationHandle {
   }
 
   setRect(rect: SeatRect): void {
-    this.container.position.set(rect.x, rect.y);
+    // On the device-pixel grid, so rasterised artwork maps texel to pixel.
+    const { resolution } = this;
+    this.container.position.set(
+      Math.round(rect.x * resolution) / resolution,
+      Math.round(rect.y * resolution) / resolution,
+    );
     this.size = rect.size;
   }
 
@@ -542,7 +676,7 @@ class MountedDecoration implements DecorationHandle {
     this.startMs ??= timeMs;
     const elapsedMs = timeMs - this.startMs;
     for (const node of this.nodes) node.update(elapsedMs, this.size);
-    this.container.visible = true;
+    this.container.visible = this.nodes.every((node) => node.ready());
   }
 
   destroy(): void {
@@ -555,6 +689,7 @@ class MountedDecoration implements DecorationHandle {
 class SceneStage {
   private readonly decorations = new Set<MountedDecoration>();
   private readonly contexts = new ContextCache();
+  private readonly textures = new TextureCache();
   private host: HTMLElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
 
@@ -597,11 +732,20 @@ class SceneStage {
     this.application.ticker.maxFPS = frameRate;
   }
 
-  mount(spec: DecorationSpec): DecorationHandle {
-    const decoration = new MountedDecoration(
-      this,
-      spec.nodes.map((node) => this.createNode(node)),
-    );
+  /**
+   * Mounts `spec`. `onError` receives failures found after mounting (artwork that does not
+   * rasterise); the caller surfaces them instead of showing a partial decoration.
+   */
+  mount(spec: DecorationSpec, onError: (error: Error) => void): DecorationHandle {
+    const resolution = this.application.renderer.resolution;
+    const createNode = (node: DecorationNode): SceneNode =>
+      this.createNode(node, spec.id, {
+        leases: new Leases(this.contexts),
+        textures: this.textures,
+        resolution,
+        onError,
+      });
+    const decoration = new MountedDecoration(this, spec.nodes.map(createNode), resolution);
     this.application.stage.addChild(decoration.container);
     this.decorations.add(decoration);
     this.syncTicker();
@@ -621,15 +765,17 @@ class SceneStage {
     if (!shouldRun && ticker.started) ticker.stop();
   }
 
-  private createNode(node: DecorationNode): SceneNode {
-    const leases = new Leases(this.contexts);
+  private createNode(node: DecorationNode, decorationId: string, context: NodeContext): SceneNode {
+    const { leases } = context;
+    const createChild = (child: DecorationNode) =>
+      this.createNode(child, decorationId, { ...context, leases: new Leases(this.contexts) });
     switch (node.kind) {
       case 'dot':
         return new DotSceneNode(node, this.dotTexture);
       case 'line':
         return new LineSceneNode(node, leases);
       case 'ring':
-        return new RingSceneNode(node, leases, this.application.renderer.resolution);
+        return new RingSceneNode(node, leases, context.resolution);
       case 'path':
         return new PathSceneNode(node, leases);
       case 'morph':
@@ -638,18 +784,12 @@ class SceneStage {
         return new MorphSceneNode(dashFlowShape(node), leases);
       case 'static':
         return new StaticSceneNode(node, leases);
+      case 'svg':
+        return new SvgSceneNode(node, context, decorationId);
       case 'layer':
-        return new LayerSceneNode(
-          node,
-          (node.children ?? []).map((child) => this.createNode(child)),
-          leases,
-        );
+        return new LayerSceneNode(node, (node.children ?? []).map(createChild), leases);
       case 'group':
-        return new GroupSceneNode(
-          node,
-          node.children.map((child) => this.createNode(child)),
-          leases,
-        );
+        return new GroupSceneNode(node, node.children.map(createChild), leases);
     }
   }
 }

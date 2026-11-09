@@ -1,6 +1,10 @@
-import { type RefObject, use, useEffect } from 'react';
+import { type RefObject, use, useEffect, useState } from 'react';
 
-import type { DecorationSpec } from '@/scene/decoration';
+import {
+  AVATAR_FRAME_OVERFLOW,
+  type DecorationAnchor,
+  type DecorationSpec,
+} from '@/scene/decoration';
 import { sceneStagePromise } from '@/scene/sceneStagePromise';
 import type { SeatRect } from '@/scene/stage';
 
@@ -45,12 +49,29 @@ function measureTile(tile: HTMLElement, host: HTMLElement): SeatRect {
 }
 
 /**
+ * A decoration's square for its anchor, from the tile rect `measureTile` returns. The avatar frame
+ * box is the tile's border box (outside the border) grown by the frame overflow.
+ */
+function anchorRect(anchor: DecorationAnchor, tileRect: SeatRect, tile: HTMLElement): SeatRect {
+  if (anchor === 'tile') return tileRect;
+  const overflow = tileRect.size * AVATAR_FRAME_OVERFLOW;
+  return {
+    x: tileRect.x - tile.clientLeft - overflow,
+    y: tileRect.y - tile.clientTop - overflow,
+    size: tileRect.size + overflow * 2,
+  };
+}
+
+/**
  * Mounts a seat's looping decorations on the scene stage and keeps them aligned with the seat
- * tile. Suspends until PixiJS has loaded. Callers skip it when reduced motion is requested or
- * seat decorations are switched off.
+ * tile. Suspends until PixiJS has loaded; throws (to the nearest error boundary) when artwork
+ * fails to load. Callers skip it when reduced motion is requested or seat decorations are
+ * switched off.
  */
 export function SeatDecoration({ decorations, tileRef, hostRef }: SeatDecorationProps) {
   const stage = use(sceneStagePromise());
+  const [failure, setFailure] = useState<Error | null>(null);
+  if (failure) throw failure;
 
   useEffect(() => {
     const tile = tileRef.current;
@@ -58,10 +79,13 @@ export function SeatDecoration({ decorations, tileRef, hostRef }: SeatDecoration
     if (!tile || !host) {
       throw new Error('SeatDecoration tile or host is not mounted');
     }
-    const handles = decorations.map((decoration) => stage.mount(decoration));
+    const mounted = decorations.map((decoration) => ({
+      anchor: decoration.anchor ?? 'tile',
+      handle: stage.mount(decoration, setFailure),
+    }));
     const align = () => {
       const rect = measureTile(tile, host);
-      for (const handle of handles) handle.setRect(rect);
+      for (const { anchor, handle } of mounted) handle.setRect(anchorRect(anchor, rect, tile));
     };
     const observer = new ResizeObserver(align);
     observer.observe(tile);
@@ -69,7 +93,7 @@ export function SeatDecoration({ decorations, tileRef, hostRef }: SeatDecoration
     align();
     return () => {
       observer.disconnect();
-      for (const handle of handles) handle.destroy();
+      for (const { handle } of mounted) handle.destroy();
     };
   }, [stage, decorations, tileRef, hostRef]);
 
