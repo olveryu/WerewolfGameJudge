@@ -6,6 +6,7 @@
     "moduleResolution": "bundler",
     "target": "ESNext",
     "esModuleInterop": true,
+    "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true,
     "types": ["node"],

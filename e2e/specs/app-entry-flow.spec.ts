@@ -6,9 +6,9 @@ import {
   ensureAnonLogin,
   enterRoomCodeViaNumPad,
   openJoinRoomDialog,
-  registerAutoDismissers,
   startRoomCreation,
   submitJoinRoom,
+  suppressVersionAnnouncement,
   waitForAppReady,
 } from '../helpers/home';
 import { gotoWithRetry } from '../helpers/ui';
@@ -38,7 +38,7 @@ test.describe('App — Entry Flow: First-time open (no session)', () => {
   test('shows login button, no user name', async ({ browser }) => {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
-    await registerAutoDismissers(page);
+    await suppressVersionAnnouncement(page);
 
     try {
       await gotoWithRetry(page, '/');
@@ -61,7 +61,7 @@ test.describe('App — Entry Flow: First-time open (no session)', () => {
   test('can complete anonymous login', async ({ browser }) => {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
-    await registerAutoDismissers(page);
+    await suppressVersionAnnouncement(page);
 
     try {
       await gotoWithRetry(page, '/');
@@ -87,7 +87,7 @@ test.describe('App — Entry Flow: Return with existing session', () => {
   test('reload preserves session, home ready without re-login', async ({ browser }) => {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
-    await registerAutoDismissers(page);
+    await suppressVersionAnnouncement(page);
 
     try {
       // First visit: login
@@ -194,7 +194,7 @@ test.describe('App — Entry Flow: Direct room URL', () => {
     // Step 2: New context with session - login first, then go to direct URL
     const directCtx = await browser.newContext();
     const directPage = await directCtx.newPage();
-    await registerAutoDismissers(directPage);
+    await suppressVersionAnnouncement(directPage);
     fixture.contexts.push(directCtx);
     fixture.pages.push(directPage);
 
@@ -234,7 +234,7 @@ test.describe('App — Entry Flow: Direct room URL', () => {
     // Step 2: Fresh context with NO session - direct URL to room
     const freshCtx = await browser.newContext();
     const freshPage = await freshCtx.newPage();
-    await registerAutoDismissers(freshPage);
+    await suppressVersionAnnouncement(freshPage);
     fixture.contexts.push(freshCtx);
     fixture.pages.push(freshPage);
 

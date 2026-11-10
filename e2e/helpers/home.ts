@@ -1,6 +1,9 @@
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { expect, type Page } from '@playwright/test';
 
+import { LAST_SEEN_ANNOUNCEMENT_VERSION_KEY } from '../../packages/web/src/config/storageKeys';
+import { APP_VERSION } from '../../packages/web/src/config/version';
+import { prefixedStorageKey } from '../../packages/web/src/services/infra/localStorage';
 import { TESTIDS } from '../../packages/web/src/testids';
 
 /**
@@ -12,19 +15,20 @@ import { TESTIDS } from '../../packages/web/src/testids';
  */
 
 /**
- * Register an auto-dismiss handler for the version announcement, which opens on its own
- * once auth settles. The handler fires before every actionability check, and its trigger
- * is the close button itself, so it disappears after the click.
- *
- * The announcement can open in the same moment as another dialog (the login dialog after
- * 进入房间), which then stacks on top and intercepts pointer events. The click is therefore
- * dispatched to the close trigger directly instead of going through the pointer.
+ * Record this version's announcement as already seen before every page load, so Home never
+ * opens it on its own. Opened after auth settles, it would otherwise race the login dialog
+ * that 进入房间 opens and take its focus, which dismisses that dialog.
  */
-export async function registerAutoDismissers(page: Page): Promise<void> {
-  const closeAnnouncement = page.getByTestId(TESTIDS.homeAnnouncementCloseButton);
-  await page.addLocatorHandler(closeAnnouncement, async () => {
-    await closeAnnouncement.dispatchEvent('click');
-  });
+export async function suppressVersionAnnouncement(page: Page): Promise<void> {
+  await page.addInitScript(
+    ({ storageKey, version }) => {
+      window.localStorage.setItem(storageKey, version);
+    },
+    {
+      storageKey: prefixedStorageKey(LAST_SEEN_ANNOUNCEMENT_VERSION_KEY),
+      version: APP_VERSION,
+    },
+  );
 }
 
 /** Wait for Home to render with its auth state settled (the entry buttons enable then). */
