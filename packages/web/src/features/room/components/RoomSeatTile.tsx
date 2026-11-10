@@ -196,7 +196,9 @@ function RoomSeatTileComponent({
           </div>
           {indicators !== null && <SeatProgress seat={seat} indicators={indicators} />}
           {model.secondaryLabel !== null && (
-            <div className="seat-secondary-label">{model.secondaryLabel}</div>
+            <div className="seat-secondary-label" data-testid={TESTIDS.seatSecondaryLabel(seat)}>
+              {model.secondaryLabel}
+            </div>
           )}
         </>
       )}

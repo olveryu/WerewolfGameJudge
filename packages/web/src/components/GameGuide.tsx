@@ -10,6 +10,7 @@ import { useParams } from 'react-router';
 
 import { IonIcon, type IoniconName } from '@/components/icons/IonIcon';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { TESTIDS } from '@/testids';
 import IconInformationCircleOutline from '~icons/ion/information-circle-outline';
 
 /** A readable guide page: kicker, heading, intro, then the game's sections. */
@@ -32,6 +33,7 @@ export function GameGuide({
       <ScreenHeader
         title={title}
         parentPath={roomCode === undefined ? '/' : `/room/${parseRoomCode(roomCode)}`}
+        backTestId={TESTIDS.gameGuideBackButton}
       />
       <main className="game-guide">
         <p className="game-guide-kicker">游戏目标</p>

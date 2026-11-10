@@ -23,6 +23,7 @@ export const TESTIDS = {
   seatProgress: (seat: number) => `seat-progress-${seat}`,
   seatNumberBadge: (seat: number) => `seat-number-badge-${seat}`,
   seatNameRow: (seat: number) => `seat-name-row-${seat}`,
+  seatSecondaryLabel: (seat: number) => `seat-secondary-label-${seat}`,
   mySeatBadge: 'my-seat-badge',
 
   // Home / Config / Room readiness gates (stable, non-copy based)
@@ -90,6 +91,10 @@ export const TESTIDS = {
   gameConfigReset: (gameType: string) => `${gameType}-config-reset`,
   gameConfigSubmit: (gameType: string) => `${gameType}-config-submit`,
   fibRulesScreenRoot: 'fib-rules-screen-root',
+  // Shared game guide (GameGuide) and the room's guide entry
+  gameGuideScreenRoot: (gameType: string) => `${gameType}-guide-screen-root`,
+  gameGuideBackButton: 'game-guide-back-button',
+  roomGuideButton: (gameType: string) => `${gameType}-room-guide-button`,
 
   roomScreenRoot: 'room-screen-root',
   roomBackButton: 'room-back-button',
@@ -104,6 +109,7 @@ export const TESTIDS = {
   roomUserSettingsButton: 'room-user-settings-button',
   roomHostManagementButton: 'room-host-management-button',
   roomHostTaskCard: 'room-host-task-card',
+  roomHostTaskEscapeButton: 'room-host-task-card-escape',
   roomHostManagementPanel: 'room-host-management-panel',
   roomHostManagementCloseButton: 'room-host-management-close-button',
   roomViewIdentityButton: 'room-view-identity-button',
@@ -304,6 +310,20 @@ export const TESTIDS = {
 
   // StoryRelay
   storyRelayGalleryShareButton: 'storyrelay-gallery-share-button',
+
+  // Undercover
+  undercoverWordModal: 'undercover-word-modal',
+  undercoverWord: 'undercover-word',
+  undercoverConfirm: 'undercover-confirm',
+  undercoverSelectPlayer: 'undercover-select-player',
+  undercoverCancelSelection: 'undercover-cancel-selection',
+  undercoverRetry: 'undercover-retry',
+  undercoverAllowRepeated: 'undercover-allow-repeated',
+  undercoverRevealModal: 'undercover-reveal-modal',
+  undercoverRevealSeat: 'undercover-reveal-seat',
+  undercoverRevealPlayer: 'undercover-reveal-player',
+  undercoverRevealCancel: 'undercover-reveal-cancel',
+  undercoverReveal: 'undercover-reveal',
 
   // DrawGuess
   drawGuessDrawingCanvas: 'drawguess-drawing-canvas',

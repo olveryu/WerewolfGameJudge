@@ -18,6 +18,7 @@ import { deriveRemainingRevealCards } from '@/features/room/model/RevealRoleData
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
+import { TESTIDS } from '@/testids';
 
 import type { UndercoverRoomSession } from '../model/UndercoverRoomSession';
 import { UndercoverRevealModal } from './components/UndercoverRevealModal';
@@ -82,7 +83,13 @@ function UndercoverRoomContent(
               title={`谁是卧底 · ${state.config.numberOfPlayers}人局`}
               subtitle={`${formatUndercoverBlankMode(state.config.hasBlank)} · ${UNDERCOVER_CATEGORY_NAMES[state.config.category]}`}
               testId="undercover-room"
-              headerRight={<RoomGuideButton onPress={openRules} label="查看谁是卧底玩法说明" />}
+              headerRight={
+                <RoomGuideButton
+                  onPress={openRules}
+                  label="查看谁是卧底玩法说明"
+                  testId={TESTIDS.roomGuideButton('undercover')}
+                />
+              }
             />
             <BoardInfoCard
               playerCount={state.config.numberOfPlayers}

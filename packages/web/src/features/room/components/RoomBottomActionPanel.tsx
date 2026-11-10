@@ -259,7 +259,7 @@ function HostTaskBody({
           {body.escape !== null && (
             <HostTaskActionButton
               action={body.escape}
-              testId={`${TESTIDS.roomHostTaskCard}-escape`}
+              testId={TESTIDS.roomHostTaskEscapeButton}
               hideAudioLockReason={hideAudioLockReason}
             />
           )}

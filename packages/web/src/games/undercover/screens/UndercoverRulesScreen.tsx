@@ -7,6 +7,7 @@ import {
 } from '@game-judge/game-engine/games/undercover/public';
 
 import { GameGuide, GameGuideSection, GameNotice, RuleItem } from '@/components/GameGuide';
+import { TESTIDS } from '@/testids';
 
 /** 人数配置段：分档表渲染，档位起止由上一档上限递推，与引擎查表同源。 */
 function formatUndercoverTiers(): string {
@@ -26,6 +27,7 @@ export function UndercoverRulesScreen() {
       title="谁是卧底玩法"
       heading="描述词语，找出不同的人"
       intro="平民和卧底拿到相关但不同的词，通过描述寻找线索，再在线下投票选出出局玩家。"
+      testId={TESTIDS.gameGuideScreenRoot('undercover')}
     >
       <GameGuideSection title="三个身份">
         <RuleItem

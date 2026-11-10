@@ -64,6 +64,7 @@ import {
   buildReviewHostAction,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
+import { TESTIDS } from '@/testids';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
@@ -380,7 +381,7 @@ export function createUndercoverHostManagement(
             label: '重新准备',
             icon: 'refresh-outline',
             variant: 'primary',
-            testID: 'undercover-retry',
+            testID: TESTIDS.undercoverRetry,
           },
           controls.isSubmitting,
           controls.retry,
@@ -395,7 +396,7 @@ export function createUndercoverHostManagement(
               label: '本次允许重复词对',
               icon: 'repeat-outline',
               variant: 'secondary',
-              testID: 'undercover-allow-repeated',
+              testID: TESTIDS.undercoverAllowRepeated,
             },
             controls.isSubmitting,
             controls.allowRepeated,
@@ -414,7 +415,7 @@ export function createUndercoverHostManagement(
               label: '取消选择',
               icon: 'close-circle-outline',
               variant: 'secondary',
-              testID: 'undercover-cancel-selection',
+              testID: TESTIDS.undercoverCancelSelection,
             },
             controls.cancelSelection,
           ),
@@ -428,7 +429,7 @@ export function createUndercoverHostManagement(
               label: '选择出局玩家',
               icon: 'person-remove-outline',
               variant: 'primary',
-              testID: 'undercover-select-player',
+              testID: TESTIDS.undercoverSelectPlayer,
             },
             controls.isSubmitting,
             controls.beginSelection,

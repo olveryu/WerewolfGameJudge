@@ -21,6 +21,7 @@ import { RevealAnimationGate } from '@/features/room/components/RoleRevealEffect
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
 import type { DescriptionField, RevealRoleData } from '@/features/room/model/RevealRoleData';
 import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
+import { TESTIDS } from '@/testids';
 
 interface UndercoverWordModalProps {
   readonly card: UndercoverWordCard;
@@ -80,8 +81,8 @@ export function UndercoverWordModal({
         role={role}
         onClose={onClose}
         confirmText="隐藏词卡"
-        testId="undercover-word-modal"
-        nameTestId="undercover-word"
+        testId={TESTIDS.undercoverWordModal}
+        nameTestId={TESTIDS.undercoverWord}
         descriptionTitle="身份"
         footer={
           shouldConfirm && (
@@ -91,7 +92,7 @@ export function UndercoverWordModal({
               size="lg"
               onClick={onConfirm}
               loading={isSubmitting}
-              data-testid="undercover-confirm"
+              data-testid={TESTIDS.undercoverConfirm}
             >
               我已记住
             </Button>

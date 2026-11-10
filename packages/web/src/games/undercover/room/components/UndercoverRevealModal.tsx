@@ -9,6 +9,7 @@ import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import { getRoomOccupantAvatarSeed } from '@/features/room/model/RoomOccupant';
 import type { RoomSeatPlayer } from '@/features/room/model/RoomSeatDataSource';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
+import { TESTIDS } from '@/testids';
 import IconPersonRemoveOutline from '~icons/ion/person-remove-outline';
 
 const AVATAR_SIZE = 56;
@@ -40,8 +41,10 @@ export function UndercoverRevealModal({
           size={AVATAR_SIZE}
         />
         <div className="undercover-reveal-name">
-          <p className="undercover-reveal-seat">{seat + 1} 号</p>
-          <p className="undercover-reveal-player" data-testid="undercover-reveal-player">
+          <p className="undercover-reveal-seat" data-testid={TESTIDS.undercoverRevealSeat}>
+            {seat + 1} 号
+          </p>
+          <p className="undercover-reveal-player" data-testid={TESTIDS.undercoverRevealPlayer}>
             {player.displayName}
           </p>
         </div>
@@ -59,7 +62,7 @@ export function UndercoverRevealModal({
         size="lg"
         onClick={onClose}
         disabled={isSubmitting}
-        data-testid="undercover-reveal-cancel"
+        data-testid={TESTIDS.undercoverRevealCancel}
       >
         取消
       </Button>
@@ -69,7 +72,7 @@ export function UndercoverRevealModal({
         size="lg"
         onClick={onConfirm}
         loading={isSubmitting}
-        data-testid="undercover-reveal"
+        data-testid={TESTIDS.undercoverReveal}
       >
         <IconPersonRemoveOutline aria-hidden />
         确认出局
@@ -80,7 +83,7 @@ export function UndercoverRevealModal({
     return (
       <RoomDialog
         title={REVEAL_TITLE}
-        testId="undercover-reveal-modal"
+        testId={TESTIDS.undercoverRevealModal}
         onClose={onClose}
         footer={actions}
       >
@@ -89,7 +92,7 @@ export function UndercoverRevealModal({
     );
   }
   return (
-    <BottomSheet title="确认玩家出局" testId="undercover-reveal-modal" onClose={onClose}>
+    <BottomSheet title="确认玩家出局" testId={TESTIDS.undercoverRevealModal} onClose={onClose}>
       <h2 className="undercover-reveal-sheet-title">{REVEAL_TITLE}</h2>
       <div className="undercover-reveal-sheet-body">{details}</div>
       <div className="undercover-reveal-sheet-footer">{actions}</div>
