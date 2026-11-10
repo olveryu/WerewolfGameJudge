@@ -173,6 +173,13 @@ export const TESTIDS = {
   roomProgressIndicator: 'room-progress-indicator',
   controlledSeatBanner: 'controlled-seat-banner',
   controlledSeatReleaseButton: 'controlled-seat-release-button',
+  // Stage content (docs/room-stage-layout-design.md)
+  roomStageHud: 'room-stage-hud',
+  roomStageTimer: 'room-stage-timer',
+  roomStageRosterChip: 'room-stage-roster-chip',
+  roomStageRosterSheet: 'room-stage-roster-sheet',
+  roomStageRosterRow: (seat: number) => `room-stage-roster-row-${seat}`,
+  roomStageTakeOverButton: (seat: number) => `room-stage-take-over-${seat}`,
   fibIdentityModal: 'fib-identity-modal',
   fibIdentityRole: 'fib-identity-role',
   fibIdentityWord: 'fib-identity-word',

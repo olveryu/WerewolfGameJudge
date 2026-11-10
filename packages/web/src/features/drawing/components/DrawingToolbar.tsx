@@ -1,8 +1,9 @@
 /**
  * Shared drawing toolbar for Pictionary and draw-and-guess, so the two games cannot drift.
  *
- * Compact row: tool / colour / width / undo / redo (optional). Each opens a panel; the colour
- * panel holds the preset swatches, recently used colours and an HSV picker (Ark UI).
+ * Compact icon-only row: tool / colour / width / undo / redo (optional); every button keeps its
+ * accessible name. Each opens a panel; the colour panel holds the preset swatches, recently used
+ * colours and an HSV picker (Ark UI).
  */
 
 import './DrawingToolbar.css';
@@ -99,7 +100,8 @@ function ToolButton({
   onClick,
 }: {
   readonly label: string;
-  readonly caption: string;
+  /** Visible text under the icon in the panels; null in the icon-only toolbar row. */
+  readonly caption: string | null;
   readonly icon: ToolbarIcon;
   readonly isSelected?: boolean;
   readonly disabled: boolean;
@@ -118,7 +120,7 @@ function ToolButton({
       onClick={onClick}
     >
       <ToolIcon aria-hidden className="drawing-toolbar-icon" />
-      <span className="drawing-toolbar-caption">{caption}</span>
+      {caption !== null && <span className="drawing-toolbar-caption">{caption}</span>}
     </button>
   );
 }
@@ -244,7 +246,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
     <div className="drawing-toolbar">
       <ToolButton
         label={`选择工具，当前${selectedTool.label}`}
-        caption={selectedTool.label}
+        caption={null}
         icon={selectedTool.icon}
         disabled={disabled}
         onClick={() => setActivePanel('tool')}
@@ -258,18 +260,17 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
         onClick={openColorPanel}
       >
         <span className="drawing-toolbar-color-dot" style={{ backgroundColor: props.color }} />
-        <span className="drawing-toolbar-caption">颜色</span>
       </button>
       <ToolButton
         label={`选择粗细，当前 ${props.strokeWidth} 像素`}
-        caption="粗细"
+        caption={null}
         icon={IconEllipse}
         disabled={disabled}
         onClick={() => setActivePanel('width')}
       />
       <ToolButton
         label="撤销"
-        caption="撤销"
+        caption={null}
         icon={IconArrowUndoOutline}
         disabled={disabled || !props.canUndo}
         onClick={props.onUndo}
@@ -277,7 +278,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
       {props.onRedo !== undefined && (
         <ToolButton
           label="重做"
-          caption="重做"
+          caption={null}
           icon={IconArrowRedoOutline}
           disabled={disabled || !props.canRedo}
           onClick={props.onRedo}

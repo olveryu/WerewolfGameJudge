@@ -132,3 +132,35 @@
   min-height: 0;
   overflow-y: auto;
 }
+
+/* Stage content: header host entry, information bar, then the game element filling the rest. */
+.room-header-host-button {
+  flex-shrink: 0;
+  min-height: var(--size-button-sm);
+  padding: 0 var(--space-small);
+  border: var(--border-width) solid var(--color-primary);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-a8);
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.room-stage-column {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.room-stage-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}

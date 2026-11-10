@@ -14,6 +14,7 @@ import type { RoomHostTaskBody, RoomHostTaskView } from '@/features/room/model/r
 import { resolveHostTaskView } from '@/features/room/model/resolveHostTaskView';
 import {
   AUDIO_WAITING_LABEL,
+  isRoomBottomActionModelEmpty,
   type RoomBottomActionModel,
   type RoomBottomButton,
   type RoomBottomDockModel,
@@ -364,16 +365,9 @@ function RoomBottomActionPanelComponent({
   readonly hostManagement: RoomHostManagementModel | null;
   readonly onOpenHostManagement: () => void;
 }) {
-  const hasButtons =
-    hostManagement !== null ||
-    (model.kind === 'dock'
-      ? model.primary !== null || model.leading !== null || model.trailing !== null
-      : model.layout.primary.length > 0 ||
-        model.layout.secondary.length > 0 ||
-        model.layout.ghost.length > 0);
-  const message = model.message;
-  const hasMessage = message !== null && message.length > 0;
-  if (!isAudioPlaying && !hasButtons && !hasMessage && model.progress === null) return null;
+  if (!isAudioPlaying && hostManagement === null && isRoomBottomActionModelEmpty(model)) {
+    return null;
+  }
 
   const hasPrimaryAction =
     model.kind === 'dock'
@@ -388,15 +382,15 @@ function RoomBottomActionPanelComponent({
     >
       {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
       {isAudioPlaying && <p className="bottom-action-message">{AUDIO_WAITING_LABEL}</p>}
-      {hasMessage && (
+      {model.message !== null && model.message.length > 0 && (
         <p
-          key={message}
+          key={model.message}
           className="bottom-action-message"
           data-animate="true"
           aria-live="polite"
           data-testid={TESTIDS.actionMessage}
         >
-          {message}
+          {model.message}
         </p>
       )}
       <div className="bottom-action-stack">

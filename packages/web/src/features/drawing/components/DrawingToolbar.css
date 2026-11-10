@@ -1,8 +1,6 @@
 .drawing-toolbar {
   display: flex;
   gap: var(--space-tight);
-  border-top: var(--border-width) solid var(--color-border-light);
-  border-bottom: var(--border-width) solid var(--color-border-light);
 }
 
 .drawing-toolbar-button {
@@ -13,13 +11,18 @@
   justify-content: center;
   gap: var(--space-tight);
   min-width: var(--size-min-touch-target);
-  height: calc(var(--size-min-touch-target) + var(--space-medium));
+  height: var(--size-min-touch-target);
   padding: 0 var(--space-tight);
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-small);
   background: var(--color-background);
   color: var(--color-text-secondary);
   cursor: pointer;
+}
+
+/* Panel options carry a caption under the icon and need the taller cell. */
+.drawing-toolbar-option-grid > .drawing-toolbar-button {
+  height: calc(var(--size-min-touch-target) + var(--space-medium));
 }
 
 .drawing-toolbar-button[data-selected='true'] {
@@ -38,6 +41,10 @@
 }
 
 .drawing-toolbar-icon {
+  font-size: var(--size-icon-md);
+}
+
+.drawing-toolbar-option-grid .drawing-toolbar-icon {
   font-size: var(--size-icon-sm);
 }
 

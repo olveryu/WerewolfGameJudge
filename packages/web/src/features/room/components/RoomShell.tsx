@@ -7,8 +7,10 @@ import { Avatar } from '@/components/avatar/Avatar';
 import { IconButton } from '@/components/IconButton';
 import { useLongPress } from '@/features/room/hooks/useLongPress';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
+import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomHeaderUserAction, RoomShellModel } from '@/features/room/model/RoomShellModel';
+import { assertRoomStageShellModel, type RoomStageHudModel } from '@/features/room/model/RoomStage';
 import { TESTIDS } from '@/testids';
 import IconChevronBack from '~icons/ion/chevron-back';
 import IconPersonCircleOutline from '~icons/ion/person-circle-outline';
@@ -19,6 +21,7 @@ import { RoomBottomActionPanel } from './RoomBottomActionPanel';
 import { RoomHostManagementPanel } from './RoomHostManagementPanel';
 import { RoomSeatBoard } from './RoomSeatBoard';
 import { RoomShareDialog } from './RoomShareDialog';
+import { RoomStageHud } from './RoomStageHud';
 import { ConnectionStatusBar, ControlledSeatBanner, RoomSeatConfirmModal } from './RoomStatusBars';
 
 const TITLE_LONG_PRESS_MS = 1000;
@@ -32,7 +35,12 @@ type RoomShellContent =
       readonly afterSeatBoard: ReactElement | null;
       readonly sideInspector: ReactElement | null;
     }
-  | { readonly kind: 'workspace'; readonly element: ReactElement };
+  | { readonly kind: 'workspace'; readonly element: ReactElement }
+  /**
+   * An in-play stage (docs/room-stage-layout-design.md): the information bar over the game's
+   * element, host management in the header, and no bottom panel.
+   */
+  | { readonly kind: 'stage'; readonly hud: RoomStageHudModel; readonly element: ReactElement };
 
 /** The signed-in user's avatar (or a person glyph) with the gacha ticket badge; opens settings. */
 function RoomUserButton({ action }: { readonly action: RoomHeaderUserAction }) {
@@ -118,6 +126,8 @@ export function RoomShell({
   const isWideLayout = usesRoomSideInspector(useViewportWidth());
   const [isHostManagementOpen, setIsHostManagementOpen] = useState(false);
   const hostManagement = model.hostManagement;
+  const isStage = content.kind === 'stage';
+  if (isStage) assertRoomStageShellModel(model);
   const openHostManagement = () => {
     if (hostManagement === null) throw new Error('Cannot open unavailable Host management');
     setIsHostManagementOpen(true);
@@ -155,6 +165,17 @@ export function RoomShell({
         <RoomTitle model={model} />
         <div className="room-header-side" data-side="trailing">
           {trailingExtraActions}
+          {isStage && hostManagement !== null && (
+            <button
+              type="button"
+              className="room-header-host-button"
+              aria-haspopup="dialog"
+              onClick={openHostManagement}
+              data-testid={TESTIDS.roomHostManagementButton}
+            >
+              {HOST_MANAGEMENT_LABEL}
+            </button>
+          )}
           {model.header.userAction !== null && <RoomUserButton action={model.header.userAction} />}
         </div>
       </header>
@@ -164,7 +185,10 @@ export function RoomShell({
         pendingDurableCount={model.connection.pendingDurableCount}
         onRetryNow={model.connection.onRetryNow}
       />
-      {model.controlledSeat !== null && <ControlledSeatBanner model={model.controlledSeat} />}
+      {/* Stage content reports the takeover as a chip in its information bar instead. */}
+      {model.controlledSeat !== null && !isStage && (
+        <ControlledSeatBanner model={model.controlledSeat} />
+      )}
       <div className="room-content">
         {content.kind === 'seats' ? (
           <div className="room-board-column">
@@ -179,17 +203,29 @@ export function RoomShell({
               />
             </div>
           </div>
+        ) : content.kind === 'stage' ? (
+          <div className="room-stage-column">
+            <RoomStageHud
+              hud={content.hud}
+              seats={model.seats.source}
+              canTakeOverBots={model.capabilities.canTakeOverBots}
+              controlledSeat={model.controlledSeat}
+            />
+            <div className="room-stage-body">{content.element}</div>
+          </div>
         ) : (
           <div className="room-workspace">{content.element}</div>
         )}
         {isWideLayout && sideInspector}
       </div>
-      <RoomBottomActionPanel
-        model={model.bottomActions}
-        isAudioPlaying={model.isAudioPlaying}
-        hostManagement={hostManagement}
-        onOpenHostManagement={openHostManagement}
-      />
+      {!isStage && (
+        <RoomBottomActionPanel
+          model={model.bottomActions}
+          isAudioPlaying={model.isAudioPlaying}
+          hostManagement={hostManagement}
+          onOpenHostManagement={openHostManagement}
+        />
+      )}
       {isHostManagementShown && !isWideLayout && (
         <RoomHostManagementPanel
           model={hostManagement}

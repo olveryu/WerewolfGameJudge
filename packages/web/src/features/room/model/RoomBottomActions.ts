@@ -213,3 +213,24 @@ export interface RoomBottomDockModel {
 }
 
 export type RoomBottomActionModel = RoomBottomStackModel | RoomBottomDockModel;
+
+/** Every button the model renders: the dock's three slots or the stack's three tiers. */
+export function listRoomBottomButtons(
+  model: RoomBottomActionModel,
+): readonly (RoomBottomButton | RoomBottomToolButton)[] {
+  if (model.kind === 'dock') {
+    return [model.leading, model.primary, model.trailing].filter(
+      (button): button is NonNullable<typeof button> => button !== null,
+    );
+  }
+  return [...model.layout.primary, ...model.layout.secondary, ...model.layout.ghost];
+}
+
+/** True when the model carries no message, no progress and no button. */
+export function isRoomBottomActionModelEmpty(model: RoomBottomActionModel): boolean {
+  return (
+    (model.message === null || model.message.length === 0) &&
+    model.progress === null &&
+    listRoomBottomButtons(model).length === 0
+  );
+}

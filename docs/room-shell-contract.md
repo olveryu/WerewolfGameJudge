@@ -177,7 +177,8 @@ changes. Return to lobby, game end, loss of host ownership and leaving the room 
 
 - All games use the shared bottom panel for status, current actions and persistent tools,
   with a separated host-management block. Hosting is an additional capability, not a
-  replacement for the user's player or spectator actions.
+  replacement for the user's player or spectator actions. `stage` content is the one
+  exception: its status lives in the information bar and its actions in the game's dock.
 - Waiting and narration are status messages, never inert primary buttons. A dock may have
   no primary action. Real unavailable commands retain their disabled state and reason.
 - Emphasis follows intent, not array order: confirmation is primary; cancellation, optional
@@ -279,9 +280,9 @@ Rules:
 - `resolveHostTaskView` validates at assembly and throws on: an `actionKey` missing from the
   sections, a `choice` with fewer than two keys, more than one `current` step.
 
-**Host task card** — inside the bottom panel, below the viewer's own actions, in every layout.
-The sheet (narrow) / side inspector (wide) opens on demand from the card's entry row and holds
-the inventory; the card is the only always-visible host surface:
+**Host task card** — inside the bottom panel, below the viewer's own actions, in every layout
+except `stage` content (below). The sheet (narrow) / side inspector (wide) opens on demand from
+the card's entry row and holds the inventory; the card is the only always-visible host surface:
 
 ```
 ┌ 主持 ────────────────────────────────┐
@@ -342,12 +343,19 @@ tap reaches the system share sheet at once. Pinned by `src/__tests__/roomReview.
 
 - `seats`: `contextHeader`, `beforeSeatBoard`, `afterSeatBoard`, and `sideInspector` form the shared seat-board view. Optional visual content is explicitly `null`.
 - `workspace`: `element` supplies one game-owned workspace. Seat-board slots are not accepted and are not silently ignored.
+- `stage`: an in-play stage ([room-stage-layout-design.md](room-stage-layout-design.md)). `hud` (`RoomStageHudModel`) declares the information bar — game chips, the roster chip, the countdown — and `element` fills the remaining height, usually a `RoomTaskFrame` whose footer is the game's own dock.
 
-Werewolf, FibKing and Undercover use `seats`. Pictionary and Story Relay use `seats` in their lobbies and `workspace` in active phases. Header actions, host-management panels and game overlays remain independent of this choice. Both content variants render the wide-screen host inspector; narrow screens use the existing sheet.
+Stage content changes three shell surfaces and nothing else:
+
+- **Host entry in the header.** The host opens host management from a header button (`roomHostManagementButton`); there is no bottom panel and therefore no host task card. A stage shell model must have `hostManagement.task === null`, an empty `bottomActions` (no message, progress or button) and no narration; `assertRoomStageShellModel` throws otherwise.
+- **Takeover in the information bar.** An active bot takeover renders as the bar's 「代 N 号 · 退出」 chip (`controlledSeatBanner` / `controlledSeatReleaseButton`) instead of the banner. Taking a bot over starts from the roster sheet: bot rows that are not done carry 「接管」 while `canTakeOverBots` is allowed and no seat is controlled.
+- **Roster from the seat source.** `groupRoomStageRoster` groups occupied seats from `RoomSeatDataSource`: the declared acting seat, success-toned status badges as done, everything else pending. Games compute the chip summary from the same grouping and never pass a second seat list.
+
+Werewolf, FibKing and Undercover use `seats`. Pictionary, Story Relay and DrawGuess use `seats` in their lobbies, `stage` in active phases (DrawGuess word select, drawing and round end; Pictionary and Story Relay answering, transition and settling), and `workspace` for gallery and ended screens. Header actions, host-management panels and game overlays remain independent of this choice. Every content variant renders the wide-screen host inspector; narrow screens use the existing sheet.
 
 This contract changes no game rules, session lifetime, viewport breakpoints, seat layout, or overlay behavior. It removes the implicit `gameWorkspace === null` mode switch and the redundant lobby props previously passed during Pictionary gameplay.
 
-`type-tests/roomShellContent.tsx` checks both valid variants and rejects mixed or incomplete content. Browser room tests cover the rendered game flows.
+The union type rejects mixed or incomplete content at compile time; `src/features/room/components/__tests__/RoomShell.stage.test.tsx` pins the stage variant's header entry, missing bottom panel, takeover chip and fail-fast guard. Browser room tests cover the rendered game flows.
 
 Game-owned workspaces are not exempt from the visual contract: toolbars, status, timers,
 selection, waiting, retry and results use the shared hierarchy and theme. Preserve domain

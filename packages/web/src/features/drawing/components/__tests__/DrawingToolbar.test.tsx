@@ -31,6 +31,22 @@ function renderToolbar(overrides: Partial<DrawingToolbarProps> = {}) {
 }
 
 describe('DrawingToolbar', () => {
+  it('renders the row icon-only while every button keeps its accessible name', () => {
+    renderToolbar({ onRedo: vi.fn(), canRedo: true });
+    for (const name of [
+      '选择工具，当前画笔',
+      '选择颜色，当前黑色',
+      '选择粗细，当前 6 像素',
+      '撤销',
+      '重做',
+    ]) {
+      expect(screen.getByRole('button', { name })).toBeInTheDocument();
+    }
+    for (const caption of ['画笔', '颜色', '粗细', '撤销', '重做']) {
+      expect(screen.queryByText(caption)).not.toBeInTheDocument();
+    }
+  });
+
   it('chooses a tool from the tool panel and closes it', async () => {
     const user = userEvent.setup();
     const { props } = renderToolbar();

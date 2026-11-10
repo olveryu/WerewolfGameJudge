@@ -1,0 +1,270 @@
+/* Stage information bar: one wrapping row of chips over a thin countdown bar. */
+.room-stage-hud {
+  flex-shrink: 0;
+  padding: var(--space-small) var(--space-small) var(--space-tight);
+}
+
+.room-stage-hud-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-tight);
+}
+
+.room-stage-hud-spacer {
+  flex: 1;
+}
+
+.room-stage-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-tight);
+  min-height: var(--size-button-sm);
+  box-sizing: border-box;
+  padding: 0 var(--space-small);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.room-stage-chip[data-tone='accent'] {
+  border-color: transparent;
+  background: var(--color-primary-a12);
+  color: var(--color-primary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  letter-spacing: var(--letter-wide);
+}
+
+.room-stage-chip-detail {
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-medium);
+  letter-spacing: normal;
+}
+
+.room-stage-timer {
+  font-variant-numeric: tabular-nums;
+}
+
+.room-stage-timer[data-urgent] {
+  border-color: var(--color-error-a40);
+  color: var(--color-error);
+}
+
+.room-stage-roster-chip {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.room-stage-roster-chip svg {
+  color: var(--color-text-secondary);
+}
+
+.room-stage-roster-chip[data-urgent] {
+  border-color: var(--color-error);
+  background: var(--color-error-a12);
+}
+
+.room-stage-roster-alert {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-badge-sm);
+  height: var(--size-badge-sm);
+  border-radius: var(--radius-full);
+  background: var(--color-error);
+  color: var(--color-text-inverse);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+  font-weight: var(--weight-bold);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .room-stage-roster-chip[data-urgent] .room-stage-roster-alert {
+    animation: room-stage-alert-pulse 600ms ease-in-out infinite alternate;
+  }
+}
+
+@keyframes room-stage-alert-pulse {
+  to {
+    transform: scale(1.15);
+  }
+}
+
+.room-stage-controlled {
+  border-color: var(--color-warning-a50);
+  background: var(--color-warning-a13);
+}
+
+.room-stage-controlled-release {
+  min-height: var(--size-button-sm);
+  padding: 0 0 0 var(--space-tight);
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+}
+
+.room-stage-timer-bar {
+  overflow: hidden;
+  height: var(--border-width-thick);
+  margin: var(--space-tight) var(--space-micro) 0;
+  border-radius: var(--radius-full);
+  background: var(--color-border-light);
+}
+
+.room-stage-timer-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--color-primary);
+  transition: width 250ms linear;
+}
+
+.room-stage-timer-bar-fill[data-urgent] {
+  background: var(--color-error);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .room-stage-timer-bar-fill {
+    transition: none;
+  }
+}
+
+/* Roster sheet */
+.room-stage-roster-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-small) var(--space-medium) var(--space-small) var(--space-large);
+}
+
+.room-stage-roster-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  line-height: var(--line-subtitle);
+  font-weight: var(--weight-semibold);
+}
+
+.room-stage-roster-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-medium);
+  padding: 0 var(--space-medium) max(var(--space-xlarge), env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.room-stage-roster-group-title {
+  margin: 0 0 var(--space-small);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+}
+
+.room-stage-roster-list {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-medium);
+  background: var(--color-background);
+  list-style: none;
+}
+
+.room-stage-roster-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  min-height: calc(var(--size-min-touch-target) + var(--space-small));
+  padding: 0 var(--space-small);
+}
+
+.room-stage-roster-row + .room-stage-roster-row {
+  border-top: var(--border-width) solid var(--color-border-light);
+}
+
+.room-stage-roster-seat {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-button-sm);
+  height: var(--size-button-sm);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-a12);
+  color: var(--color-primary);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-bold);
+}
+
+.room-stage-roster-who {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-tight);
+  min-width: 0;
+}
+
+.room-stage-roster-name {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-stage-roster-tag {
+  flex-shrink: 0;
+  padding: 0 var(--space-tight);
+  border-radius: var(--radius-small);
+  background: var(--color-text-muted-a12);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+  font-weight: var(--weight-semibold);
+}
+
+.room-stage-roster-tag[data-kind='self'] {
+  background: var(--color-primary-a12);
+  color: var(--color-primary);
+}
+
+.room-stage-roster-tag[data-kind='controlled'] {
+  background: var(--color-warning-a13);
+  color: var(--color-warning);
+}
+
+.room-stage-roster-status {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+}
+
+.room-stage-roster-status[data-tone='success'] {
+  color: var(--color-success);
+}
+
+.room-stage-roster-status[data-tone='warning'] {
+  color: var(--color-warning);
+}
+
+.room-stage-roster-status[data-tone='primary'],
+.room-stage-roster-status[data-tone='info'] {
+  color: var(--color-primary);
+}
+
+.room-stage-roster-status[data-tone='danger'] {
+  color: var(--color-error);
+}

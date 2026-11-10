@@ -10,7 +10,7 @@
 
 import { buildRoomHeaderModel, type BuildRoomHeaderModelInput } from './buildRoomHeaderModel';
 import { resolveHostTaskView, type RoomHostTaskBody } from './resolveHostTaskView';
-import type { RoomBottomActionModel, RoomBottomButtonAudience } from './RoomBottomActions';
+import { listRoomBottomButtons, type RoomBottomActionModel } from './RoomBottomActions';
 import type { RoomHostManagementModel } from './RoomHostManagement';
 import type { RoomSeatDataSource } from './RoomSeatDataSource';
 import type { RoomSeatBoardModel, RoomShellModel } from './RoomShellModel';
@@ -37,20 +37,6 @@ export interface RoomShellModelWithHeaderInput extends Omit<
   readonly header: RoomShellModel['header'];
 }
 
-interface AudienceTagged {
-  readonly key: string;
-  readonly audience: RoomBottomButtonAudience;
-}
-
-function collectBottomButtons(model: RoomBottomActionModel): readonly AudienceTagged[] {
-  if (model.kind === 'dock') {
-    return [model.leading, model.primary, model.trailing].filter(
-      (button): button is NonNullable<typeof button> => button !== null,
-    );
-  }
-  return [...model.layout.primary, ...model.layout.secondary, ...model.layout.ghost];
-}
-
 /**
  * Every bottom button must be addressed to this viewer: `participant`
  * buttons need an effective seat. A button that fails is a game adapter
@@ -63,7 +49,7 @@ function assertBottomActionAudiences(
   bottomActions: RoomBottomActionModel,
 ): void {
   const effectiveSeat = resolveEffectiveSeat(viewer, controlledSeat);
-  for (const button of collectBottomButtons(bottomActions)) {
+  for (const button of listRoomBottomButtons(bottomActions)) {
     if (button.audience === 'participant' && effectiveSeat === null) {
       throw new Error(
         `Bottom action "${button.key}" is a participant action but the viewer holds no seat`,
@@ -93,7 +79,7 @@ function assertBottomActionsOutsideHostTask(
   bottomActions: RoomBottomActionModel,
 ): void {
   const taskActionKeys = new Set(hostTaskActionKeys(taskBody));
-  for (const button of collectBottomButtons(bottomActions)) {
+  for (const button of listRoomBottomButtons(bottomActions)) {
     if (taskActionKeys.has(button.key)) {
       throw new Error(`Bottom action "${button.key}" duplicates the host task card`);
     }
