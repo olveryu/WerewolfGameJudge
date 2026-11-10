@@ -1,8 +1,8 @@
 // Evaluation order matters: the boot mark comes first, then Sentry, which must initialise before
 // any other application module (https://docs.sentry.io/platforms/javascript/guides/react/).
+// global.css loads from index.html so the boot splash is styled before any script runs.
 import './boot/markBootStart';
 import './instrument';
-import './global.css';
 
 import { reactErrorHandler } from '@sentry/react';
 import { StrictMode } from 'react';
@@ -10,6 +10,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router/dom';
 
 import { router } from '@/app/router';
+import { dismissBootSplash } from '@/boot/dismissBootSplash';
 import { reportLoadTiming } from '@/boot/loadTiming';
 import { capturePwaInstallPrompt } from '@/boot/pwaInstallPrompt';
 import { resolveRuntimeEnvironment } from '@/boot/runtimeEnvironment';
@@ -26,6 +27,19 @@ applyColorTokens(document.documentElement);
 installStaleTabReload();
 capturePwaInstallPrompt();
 void removeLegacyServiceWorkers();
+
+/** The router renders its first route once the matched lazy route modules have loaded. */
+function dismissBootSplashOnceRouted(): void {
+  if (router.state.initialized) {
+    requestAnimationFrame(dismissBootSplash);
+    return;
+  }
+  const unsubscribe = router.subscribe((state) => {
+    if (!state.initialized) return;
+    unsubscribe();
+    requestAnimationFrame(dismissBootSplash);
+  });
+}
 
 const root = createRoot(rootElement, {
   onUncaughtError: reactErrorHandler(),
@@ -44,5 +58,10 @@ void resolveRuntimeEnvironment().then((environment) => {
     </StrictMode>,
   );
   performance.mark('app:registered');
+  if (environment === 'wechatBrowser') {
+    requestAnimationFrame(dismissBootSplash);
+  } else {
+    dismissBootSplashOnceRouted();
+  }
   window.setTimeout(reportLoadTiming, 0);
 });

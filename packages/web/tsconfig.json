@@ -18,5 +18,5 @@
       "@game-judge/game-engine/*": ["../game-engine/src/*"]
     }
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "build-plugins", "vite.config.ts"]
 }

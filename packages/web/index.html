@@ -17,12 +17,37 @@
     <link rel="apple-touch-icon" href="/pwa/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <title>狼人面杀电子裁判助手</title>
+    <link rel="stylesheet" href="/src/global.css" />
   </head>
   <body>
-    <div id="root">
-      <!-- Replaced by the first React render; the refresh link appears by CSS if loading stalls. -->
-      <div class="boot-placeholder">
-        <span>加载中…</span>
+    <div id="root"></div>
+    <!-- Driven by src/boot/bootSplash.ts; removed once the app shows its first screen. -->
+    <div id="boot-splash" class="night-art boot-splash">
+      <img
+        class="night-art-image"
+        src="../../assets/pwa/web/splash-wolf-blue.webp"
+        alt=""
+        fetchpriority="high"
+      />
+      <span class="night-art-shade"></span>
+      <div class="night-art-title">
+        <h1>狼 人 杀</h1>
+        <span class="night-art-divider"></span>
+        <span class="night-art-subtitle">电 子 裁 判</span>
+      </div>
+      <div class="night-art-bottom">
+        <div
+          id="boot-progress"
+          class="boot-progress"
+          role="progressbar"
+          aria-label="加载进度"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
+          <span id="boot-progress-bar" class="boot-progress-bar"></span>
+        </div>
+        <p id="boot-status" class="boot-status" aria-live="polite">加载中…</p>
+        <p id="boot-hint" class="boot-hint" role="alert" hidden></p>
         <a class="boot-refresh" href="">刷新页面</a>
       </div>
     </div>

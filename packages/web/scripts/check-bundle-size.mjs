@@ -10,7 +10,7 @@ const manifest = JSON.parse(readFileSync(path.join(distDirectory, '.vite/manifes
 
 const KIB = 1024;
 const STARTUP_ENTRY = 'index.html';
-const HOME_ENTRIES = [STARTUP_ENTRY, 'src/routes/home/HomePage.tsx'];
+const HOME_ENTRIES = [STARTUP_ENTRY, 'src/boot/bootSplash.ts', 'src/routes/home/HomePage.tsx'];
 // Start-up code decodes with `zod/mini`; classic `zod` costs ~20 KiB gzip on the home budget.
 const CLASSIC_ZOD_SOURCE = /\/node_modules\/zod\/v4\/classic\//;
 

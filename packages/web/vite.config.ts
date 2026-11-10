@@ -5,6 +5,8 @@ import react, { reactCompilerPreset } from '@vitejs/plugin-react';
 import Icons from 'unplugin-icons/vite';
 import { defineConfig } from 'vitest/config';
 
+import { bootSplash } from './build-plugins/bootSplash';
+
 const sourceDirectory = path.resolve(import.meta.dirname, 'src');
 const engineSourceDirectory = path.resolve(import.meta.dirname, '../game-engine/src');
 
@@ -21,6 +23,7 @@ export default defineConfig({
     babel({ presets: [reactCompilerPreset()] }),
     // Ionicons from @iconify-json/ion, inlined as SVG components; only imported icons ship (D2).
     Icons({ compiler: 'jsx', jsx: 'react' }),
+    bootSplash(),
   ],
   resolve: {
     alias: [

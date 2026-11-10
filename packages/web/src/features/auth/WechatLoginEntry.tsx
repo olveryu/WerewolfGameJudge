@@ -11,15 +11,15 @@ import splashArt from '../../../../../assets/pwa/web/splash-wolf-blue.webp';
  */
 export function WechatLoginEntry() {
   return (
-    <main className="wechat-entry">
-      <img className="wechat-entry-art" src={splashArt} alt="" />
-      <span className="wechat-entry-shade" />
-      <div className="wechat-entry-title">
+    <main className="night-art">
+      <img className="night-art-image" src={splashArt} alt="" />
+      <span className="night-art-shade" />
+      <div className="night-art-title">
         <h1>狼 人 杀</h1>
-        <span className="wechat-entry-divider" />
-        <span className="wechat-entry-subtitle">电 子 裁 判</span>
+        <span className="night-art-divider" />
+        <span className="night-art-subtitle">电 子 裁 判</span>
       </div>
-      <div className="wechat-entry-bottom">
+      <div className="night-art-bottom">
         <Button onClick={() => wxReLaunchWithNonce(getOrCreateClaimNonce())}>进入游戏</Button>
         <p className="wechat-entry-hint">首次使用需要初始化，请稍等</p>
       </div>

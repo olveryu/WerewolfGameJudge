@@ -26,14 +26,16 @@ const PX_TOKEN_PROPERTY =
   /^\s*(?:font-size|line-height|border-radius|padding(?:-[a-z]+)*|margin(?:-[a-z]+)*|gap|row-gap|column-gap)\s*:[^;]*?\b(?:[2-9]|[1-9]\d+)px/gm;
 
 /**
- * Known exceptions: the WeChat login entry and the game picker paint over full-bleed artwork with
- * fixed scrims; the scene bench is a developer page outside the product.
+ * Known exceptions: the night art (boot splash and WeChat login entry) and the game picker paint
+ * over full-bleed artwork with fixed scrims, before or apart from the app palette; the scene bench
+ * is a developer page outside the product.
  */
 const KNOWN_VIOLATIONS: Readonly<Record<string, number>> = {
-  'features/auth/WechatLoginEntry.css': 7,
+  'boot/bootSplash.css': 3,
   'routes/bench/SceneBenchPage.css': 7,
   'routes/games/GamePickerPage.css': 4,
   'routes/home/HomePage.css': 1,
+  'theme/nightArt.css': 7,
 };
 
 function cssFiles(dir: string): string[] {

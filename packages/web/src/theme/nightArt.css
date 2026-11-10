@@ -1,0 +1,74 @@
+/*
+ * Night splash art shared by the boot splash (index.html) and the WeChat login entry: a fixed
+ * dark surface with light text, independent of the app palette, which only exists once
+ * applyColorTokens has run.
+ */
+.night-art {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #0a0a12;
+  color: #ffffff;
+}
+
+.night-art-image,
+.night-art-shade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.night-art-image {
+  object-fit: cover;
+}
+
+.night-art-shade {
+  top: auto;
+  height: 45%;
+  background: linear-gradient(to bottom, transparent, rgb(8 8 16 / 85%) 70%, rgb(8 8 16 / 95%));
+}
+
+.night-art-title {
+  position: absolute;
+  top: 52%;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateY(-50%);
+}
+
+.night-art-title h1 {
+  margin: 0;
+  font-size: var(--font-display);
+  font-weight: 900;
+  letter-spacing: 10px;
+  text-shadow: 0 4px 12px rgb(0 0 0 / 80%);
+}
+
+.night-art-divider {
+  width: 120px;
+  height: 1px;
+  margin: 10px 0;
+  background: rgb(255 255 255 / 30%);
+}
+
+.night-art-subtitle {
+  font-size: var(--font-secondary);
+  letter-spacing: 6px;
+  opacity: 0.6;
+}
+
+.night-art-bottom {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-medium);
+  padding: 0 var(--space-xlarge) calc(env(safe-area-inset-bottom) + var(--space-xxlarge));
+}
