@@ -3,9 +3,11 @@
 ## Where it lives
 
 - Engine: `packages/game-engine/src/games/werewolf/domain/handlers/confirmContext.ts`
-- Client display: `src/games/werewolf/room/night/resolveNightInteraction.ts`
-  (reads schema text through `requireSchemaText` for `confirmTitle` /
-  `confirmText` and related fields).
+- Client display: part of the werewolf web client, which lands in P3
+  (`docs/web-client-rewrite.md` §8.2). In the removed client (last
+  present in commit `ccedf18b5`) the night-interaction resolver read
+  schema text through `requireSchemaText` for `confirmTitle` /
+  `confirmText` and related fields.
 - Schema UI type: `ConfirmStatusUi` in
   `.../roles/spec/schema.types.ts` (discriminant `kind`, with shoot /
   faction / wolf-teammates / infection variants).
@@ -25,9 +27,7 @@ confirm role`).
 
 ## Not verified for this draft
 
-The internal computation of `computeConfirmStatus`, the per-variant
-reference behaviour, and any client-side confirm display beyond the
-`requireSchemaText` reads above were not verified line-by-line. Read
-`confirmContext.ts` and `resolveNightInteraction.ts` before touching
-confirm behaviour, and do not paste a pipeline description from older
-text.
+The internal computation of `computeConfirmStatus` and the
+per-variant reference behaviour were not verified line-by-line. Read
+`confirmContext.ts` before touching confirm behaviour, and do not
+paste a pipeline description from older text.

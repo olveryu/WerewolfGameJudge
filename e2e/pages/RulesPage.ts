@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 
 /**
  * RulesPage Page Object — final Werewolf config step.
@@ -12,7 +12,7 @@ export class RulesPage {
   constructor(private readonly page: Page) {}
 
   private get root() {
-    return this.page.locator(`[data-testid="${TESTIDS.gameRulesScreenRoot}"]`);
+    return this.page.getByTestId(TESTIDS.gameRulesScreenRoot);
   }
 
   private get submitButton() {
@@ -24,22 +24,15 @@ export class RulesPage {
     await expect(this.root).toBeVisible({ timeout: 10000 });
   }
 
-  /** Set a boolean house rule by its switch label (e.g. '首日警长竞选'). */
-  async setRule(label: string, isEnabled: boolean): Promise<void> {
-    const ruleSwitch = this.root.getByRole('switch', { name: label, exact: true });
-    await expect(ruleSwitch).toBeVisible();
-    if ((await ruleSwitch.isChecked()) !== isEnabled) {
-      await ruleSwitch.click();
-    }
-    if (isEnabled) {
-      await expect(ruleSwitch).toBeChecked();
-    } else {
-      await expect(ruleSwitch).not.toBeChecked();
-    }
+  /** Set a boolean house rule by its schema key, asserting the switch's label. */
+  async setRule(rule: string, label: string, isEnabled: boolean): Promise<void> {
+    const ruleSwitch = this.page.getByTestId(TESTIDS.gameRuleSwitch(rule));
+    await expect(ruleSwitch).toHaveAccessibleName(label);
+    await ruleSwitch.setChecked(isEnabled);
   }
 
   async setSheriffElectionEnabled(isEnabled: boolean): Promise<void> {
-    await this.setRule('首日警长竞选', isEnabled);
+    await this.setRule('isSheriffElectionEnabled', '首日警长竞选', isEnabled);
   }
 
   /** Submit in create mode. */

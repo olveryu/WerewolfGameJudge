@@ -1,0 +1,84 @@
+/** Werewolf narration semantics layered over the platform audio primitives. */
+
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+
+import type { AudioClip } from '@/features/product/model/AudioClip';
+
+import {
+  getWerewolfNightAudio,
+  getWerewolfNightEndAudio,
+  getWerewolfPreloadAudio,
+  resolveWerewolfBeginningAudio,
+  resolveWerewolfEndingAudio,
+} from './audioRegistry';
+
+export interface WerewolfAudioRuntime {
+  readonly playBeginning: (audioKey: string) => Promise<void>;
+  readonly playEnding: (audioKey: string) => Promise<void>;
+  readonly playNight: () => Promise<void>;
+  readonly playNightEnd: () => Promise<void>;
+  readonly preloadRoles: (roles: readonly RoleId[]) => void;
+  readonly stopNarration: () => void;
+  /** Starts background music: one URL loops, several shuffle; no-op while playing. */
+  readonly startBgm: (urls: readonly string[]) => void;
+  readonly stopBgm: () => void;
+  /** Actual BGM playback state, for `useSyncExternalStore`. */
+  readonly isBgmPlaying: () => boolean;
+  readonly subscribeBgm: (listener: () => void) => () => void;
+  readonly setBgmVolume: (volume: number) => void;
+  readonly setGameAudioVolume: (volume: number) => void;
+  readonly clearPreloaded: () => void;
+}
+
+export interface WerewolfAudioPlaybackPort {
+  playClip(clip: AudioClip): Promise<void>;
+  preloadClips(clips: readonly AudioClip[]): void;
+  stop(): void;
+  startBgm(urls: readonly string[]): void;
+  stopBgm(): void;
+  isBgmPlaying(): boolean;
+  subscribeBgm(listener: () => void): () => void;
+  setBgmVolume(volume: number): void;
+  setGameAudioVolume(volume: number): void;
+  clearPreloaded(): void;
+}
+
+export class WerewolfAudioPlayer implements WerewolfAudioRuntime {
+  readonly #audioService: WerewolfAudioPlaybackPort;
+
+  constructor(audioService: WerewolfAudioPlaybackPort) {
+    this.#audioService = audioService;
+  }
+
+  readonly playBeginning = (audioKey: string): Promise<void> =>
+    this.#audioService.playClip(resolveWerewolfBeginningAudio(audioKey));
+
+  readonly playEnding = (audioKey: string): Promise<void> =>
+    this.#audioService.playClip(resolveWerewolfEndingAudio(audioKey));
+
+  readonly playNight = (): Promise<void> => this.#audioService.playClip(getWerewolfNightAudio());
+
+  readonly playNightEnd = (): Promise<void> =>
+    this.#audioService.playClip(getWerewolfNightEndAudio());
+
+  readonly preloadRoles = (roles: readonly RoleId[]): void =>
+    this.#audioService.preloadClips(getWerewolfPreloadAudio(roles));
+
+  readonly stopNarration = (): void => this.#audioService.stop();
+
+  readonly startBgm = (urls: readonly string[]): void => this.#audioService.startBgm(urls);
+
+  readonly stopBgm = (): void => this.#audioService.stopBgm();
+
+  readonly isBgmPlaying = (): boolean => this.#audioService.isBgmPlaying();
+
+  readonly subscribeBgm = (listener: () => void): (() => void) =>
+    this.#audioService.subscribeBgm(listener);
+
+  readonly setBgmVolume = (volume: number): void => this.#audioService.setBgmVolume(volume);
+
+  readonly setGameAudioVolume = (volume: number): void =>
+    this.#audioService.setGameAudioVolume(volume);
+
+  readonly clearPreloaded = (): void => this.#audioService.clearPreloaded();
+}

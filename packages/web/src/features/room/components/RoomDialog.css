@@ -1,0 +1,76 @@
+.room-dialog-positioner {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.room-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  overflow: hidden;
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.room-dialog[data-state='open'] {
+  animation: center-dialog-pop 150ms ease-out;
+}
+
+.room-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-medium);
+  padding: var(--space-medium) var(--space-large);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.room-dialog-heading {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-micro);
+  min-width: 0;
+}
+
+.room-dialog-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  line-height: var(--line-subtitle);
+  font-weight: var(--weight-semibold);
+}
+
+.room-dialog-subtitle {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.room-dialog-body {
+  flex-shrink: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.room-dialog-body[data-flush='false'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-medium);
+  padding: var(--space-large);
+}
+
+.room-dialog-footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  padding: var(--space-large);
+  padding-bottom: max(var(--space-large), env(safe-area-inset-bottom));
+  border-top: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+}

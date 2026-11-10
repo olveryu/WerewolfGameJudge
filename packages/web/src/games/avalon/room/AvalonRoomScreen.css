@@ -1,0 +1,3 @@
+.avalon-bgm-toggle[data-playing='true'] {
+  color: var(--color-primary);
+}

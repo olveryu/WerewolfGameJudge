@@ -21,12 +21,12 @@ import { werewolfWorkerModule } from './werewolf/module';
 
 export const WORKER_GAME_CATALOG = defineWorkerGameCatalog(GAME_ENGINE_CATALOG, {
   werewolf: registerWorkerGameModule(werewolfWorkerModule),
+  avalon: registerWorkerGameModule(avalonWorkerModule),
+  drawguess: registerWorkerGameModule(drawGuessWorkerModule),
   fibking: registerWorkerGameModule(fibWorkerModule),
   pictionary: registerWorkerGameModule(pictionaryWorkerModule),
   undercover: registerWorkerGameModule(undercoverWorkerModule),
   storyrelay: registerWorkerGameModule(storyRelayWorkerModule),
-  drawguess: registerWorkerGameModule(drawGuessWorkerModule),
-  avalon: registerWorkerGameModule(avalonWorkerModule),
   demo: registerWorkerGameModule(demoWorkerModule),
 });
 

@@ -10,7 +10,7 @@ Current versions at drafting time (verify again before citing a number in a repo
 
 | Game       | Current version |
 | ---------- | --------------- |
-| werewolf   | 16              |
+| werewolf   | 17              |
 | avalon     | 10              |
 | fibking    | 8               |
 | pictionary | 9               |
@@ -19,13 +19,13 @@ Current versions at drafting time (verify again before citing a number in a repo
 | drawguess  | 4               |
 | demo       | 1               |
 
-The upgrade range each `migratePersisted*State` accepts is defined per game in its `state/parseState.ts`; read the migration function for the game in question. Older versions outside the accepted range are rejected by the strict parser. Werewolf migrates versions 12–15 to 16 and rejects 11 or older (`migratePersistedWerewolfState` in `state/parseState.ts`).
+The upgrade range each `migratePersisted*State` accepts is defined per game in its `state/parseState.ts`; read the migration function for the game in question. Older versions outside the accepted range are rejected by the strict parser. Werewolf migrates versions 12–16 to 17 and rejects 11 or older (`migratePersistedWerewolfState` in `state/parseState.ts`).
 
 Deciding files: `packages/game-engine/src/games/<game>/state/version.ts`, `packages/game-engine/src/games/<game>/state/parseState.ts`, `packages/game-engine/src/platform/protocol/roomSnapshot.ts`, `packages/api-worker/src/platform/commands/RoomStateStore.ts`.
 
 ## Realtime link (RoomLink)
 
-The link implementation lives in `src/platform/realtime/`, not under `src/features/room/`. Its parts:
+The link implementation lives in `packages/web/src/platform/realtime/`, not under `packages/web/src/features/room/`. Its parts:
 
 - `RoomLink.ts` — the link implementation class and the room lease.
 - `linkReducer.ts` — the pure connection state machine (six statuses: idle, connecting, syncing, live, waiting, closed), full-jitter exponential backoff capped at 10,000 ms, unbounded reconnection, terminal close codes only stop it.
@@ -38,16 +38,14 @@ The link implementation lives in `src/platform/realtime/`, not under `src/featur
 
 The wire protocol is version 2, defined in `packages/game-engine/src/platform/realtime/protocol.ts`. Client-to-server frames carry only a sync request with a known revision; server-to-client frames carry sync results, state updates, and inbox hints. Snapshot payloads decode through the game's state codec. Close codes are defined in `packages/game-engine/src/platform/realtime/closeCodes.ts`; only terminal codes stop reconnection.
 
-Entry into a room goes through `src/features/room/components/RoomEntryBoundary.tsx`, which requires an authenticated user, runs `src/features/room/controllers/useRoomEntryController.ts`, and renders children only when the controller is ready. Game room code starts from `src/features/room/controllers/useReadyRoomSession.ts`, which fails fast on a non-ready snapshot and exposes the authoritative state, the revision, the last command, the link session, and single-flight submit.
+Entry into a room goes through `packages/web/src/features/room/components/RoomEntryBoundary.tsx`, which requires an authenticated user, runs `packages/web/src/features/room/controllers/useRoomEntryController.ts`, and renders children only when the controller is ready. Game room code starts from `packages/web/src/features/room/controllers/useReadyRoomSession.ts`, which fails fast on a non-ready snapshot and exposes the authoritative state, the revision, the last command, the link session, and single-flight submit. `RoomLinkScope` in `packages/web/src/app/AppRoot.tsx` keeps a room's link alive across the room page and its subpages and releases it when the route leaves the room or the user changes.
 
 ## Audio-playback lock
 
-One predicate decides the lock: `isAudioPlaybackLocked(isAudioPlaying)` in `src/features/room/model/audioPlaybackLock.ts` returns its input. One combinator applies it to an assembled host-management model: `applyAudioPlaybackLock` flips every enabled non-exempt action to disabled with the single lock reason and drops its press handler, so the press is unreachable, not only greyed; already-disabled actions keep their own reason; exempt actions pass through; when audio is idle the model returns unchanged.
+One predicate decides the lock: `isAudioPlaybackLocked(isAudioPlaying)` in `packages/web/src/features/room/model/audioPlaybackLock.ts` returns its input. One combinator applies it to an assembled host-management model: `applyAudioPlaybackLock` flips every enabled non-exempt action to disabled with the single lock reason and drops its press handler, so the press is unreachable, not only greyed; already-disabled actions keep their own reason; exempt actions pass through; when audio is idle the model returns unchanged. The test an action must pass to be exempt is the read-only predicate stated in that file: it sends no server command, writes no flow progress, and starts no capture or share.
 
-The two games that wire the lock — werewolf and avalon — each declare an empty exemption set, applied at the host-management factory exit. Werewolf declares an empty exemption set in `src/games/werewolf/room/createWerewolfHostManagement.ts`: no host-management action is exempt. The test an action must pass to be exempt is the read-only predicate stated in `src/features/room/model/audioPlaybackLock.ts`: it sends no server command, writes no flow progress, and starts no capture or share.
+No ported game wires the lock yet: `demo` has no narration, and the generator emits the wiring only for a pack with `audioOrchestration` on (the `//#cap audioOrchestration` segments of the room-state hook template under `scripts/lib/new-game/templates/game/packages/web/src/games/`). The audio core a game binds to is `packages/web/src/features/room/audio/RoomAudioOrchestrator.ts`. Werewolf (P3) and Avalon (P4) wire the lock when their web clients land; in the removed client (last present in commit `ccedf18b5`) both applied it at the host-management factory exit with an empty exemption set, and Avalon kept its night confirm-information button enabled during audio as an Avalon-only deviation — do not generalise that into an exemption mechanism.
 
-The werewolf bottom layout collapses to empty while audio plays. The night interaction policy checks the audio lock (`src/games/werewolf/room/night/resolveNightInteraction.ts`). The engine backstop rejects commands while narration plays (`packages/game-engine/src/games/werewolf/domain/handlers/actionGuards.ts`). The audio flag itself is owned by audio-queue events only. The queue events are the `SET_PENDING_AUDIO_EFFECTS` / `CLEAR_PENDING_AUDIO_EFFECTS` actions in the werewolf reducer, fed by the engine audio queue.
+The engine backstop rejects commands while narration plays (`packages/game-engine/src/games/werewolf/domain/handlers/actionGuards.ts`). The audio flag itself is owned by audio-queue events only. The queue events are the `SET_PENDING_AUDIO_EFFECTS` / `CLEAR_PENDING_AUDIO_EFFECTS` actions in the werewolf reducer (`packages/game-engine/src/games/werewolf/domain/reducer/gameReducer.ts`), fed by the engine audio queue.
 
-Avalon has one deliberate, game-specific deviation: its night confirm-information button stays enabled during audio. Name it as Avalon-specific. Do not generalise it into an exemption mechanism.
-
-Deciding files: `src/features/room/model/audioPlaybackLock.ts`, `src/games/werewolf/room/createWerewolfHostManagement.ts`, `src/games/werewolf/room/werewolfRoomAdapter.ts`, `src/games/werewolf/room/night/resolveNightInteraction.ts`, `src/features/room/audio/useRoomAudioOrchestration.ts`, `packages/game-engine/src/games/werewolf/domain/handlers/actionGuards.ts`, `src/games/avalon/room/avalonRoomAdapter.ts`.
+Deciding files: `packages/web/src/features/room/model/audioPlaybackLock.ts`, `packages/web/src/features/room/audio/RoomAudioOrchestrator.ts`, `packages/game-engine/src/games/werewolf/domain/handlers/actionGuards.ts`, `packages/game-engine/src/platform/audio/__tests__/audioGate.contract.test.ts`.

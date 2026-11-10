@@ -1,44 +1,46 @@
 # First-check map
 
-First-check paths by symptom branch. Every path below was verified to exist at drafting time. Paths that appeared in the previous version of this skill but do not exist are listed at the end as removed, with their replacements, so a reader can see why they are gone.
+First-check paths by symptom branch. Every path below was verified to exist at drafting time. The client is `packages/web/src/`; the React Native client in the repository-root `src/` was removed (last present in commit `ccedf18b5`). Only games with a loader in `CLIENT_GAME_LOADERS` (`packages/web/src/games/clientModules.tsx`) have web room UI; the others report unsupported by design until their port (`docs/web-client-rewrite.md` §8.2). Names that appeared in earlier versions of this skill but do not exist are listed at the end, with their replacements.
 
 ## Branch A — Client UI anomaly
 
-| First-check path                                                      | Investigation focus                                                                     |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `src/games/<game>/screens/`, `src/games/<game>/room/`, `src/screens/` | Game-owned UI, policy hooks, conditional rendering                                      |
-| `src/features/room/components/RoomEntryBoundary.tsx`                  | Resolved-room session boundary; children render only when the entry controller is ready |
-| `src/features/room/controllers/useReadyRoomSession.ts`                | Authenticated, ready session: authoritative state and revision, single-flight submit    |
-| `src/features/room/controllers/useRoomEntryController.ts`             | Entry controller behind the boundary                                                    |
-| `src/contexts/`                                                       | Context provider mounting and value passing (`AuthContext.tsx`, `ServiceContext.tsx`)   |
-| `src/components/`, `src/features/room/components/`                    | Shared controls, room surfaces, props and layout                                        |
+| First-check path                                                             | Investigation focus                                                                     |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `packages/web/src/games/<game>/room/`, `packages/web/src/routes/`            | Game-owned room UI, policy hooks, route pages, conditional rendering                    |
+| `packages/web/src/features/room/components/RoomEntryBoundary.tsx`            | Resolved-room session boundary; children render only when the entry controller is ready |
+| `packages/web/src/features/room/controllers/useReadyRoomSession.ts`          | Authenticated, ready session: authoritative state and revision, single-flight submit    |
+| `packages/web/src/features/room/controllers/useRoomEntryController.ts`       | Entry controller behind the boundary                                                    |
+| `packages/web/src/contexts/`                                                 | Context provider mounting and value passing (`AuthContext.tsx`, `ServiceContext.tsx`)   |
+| `packages/web/src/components/`, `packages/web/src/features/room/components/` | Shared controls, room surfaces, props, layout, and CSS                                  |
+| `packages/web/src/app/AppRoot.tsx`, `packages/web/src/app/routes.tsx`        | Provider order, route tree, `RoomLinkScope`                                             |
 
 Common root causes: a selector returning a new reference causing repeated rendering, a context not mounted, a conditional render missing a state.
 
 ## Branch B — Realtime / network issue
 
-| First-check path                                                                                                                | Investigation focus                                                                         |
-| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `src/platform/realtime/RoomLink.ts`                                                                                             | Link implementation: snapshot, dispatch, connect, close                                     |
-| `src/platform/realtime/linkReducer.ts`                                                                                          | Pure connection state machine and backoff; no I/O, timers, or date reads inside the reducer |
-| `src/platform/realtime/LinkRuntime.ts`                                                                                          | Imperative shell around the reducer; timers and effects live here                           |
-| `src/platform/realtime/RoomLinkFactory.ts`                                                                                      | Link factory; the single production instantiation site is the app service composition point |
-| `src/platform/realtime/SocketChannel.ts`                                                                                        | Socket adapter                                                                              |
-| `src/platform/realtime/CommandOutbox.ts`, `src/platform/realtime/outboxStorage.ts`, `src/platform/realtime/commandTransport.ts` | Durable dispatch, local persistence, and the single HTTP command send                       |
-| `src/platform/realtime/types.ts`                                                                                                | Link interface, snapshot phases, dispatch outcomes and options                              |
-| `packages/api-worker/src/app/GameRoom.ts`, `packages/api-worker/src/platform/room/`                                             | Worker entry, WebSocket handling, shared room coordination                                  |
-| `docs/realtime-link-redesign.md`                                                                                                | Current-system design record only; its pre-redesign status tables describe the old system.  |
+| First-check path                                                                                                                                                       | Investigation focus                                                                         |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `packages/web/src/platform/realtime/RoomLink.ts`                                                                                                                       | Link implementation: snapshot, dispatch, connect, close                                     |
+| `packages/web/src/platform/realtime/linkReducer.ts`                                                                                                                    | Pure connection state machine and backoff; no I/O, timers, or date reads inside the reducer |
+| `packages/web/src/platform/realtime/LinkRuntime.ts`                                                                                                                    | Imperative shell around the reducer; timers and effects live here                           |
+| `packages/web/src/platform/realtime/RoomLinkFactory.ts`                                                                                                                | Link factory; the single production instantiation site                                      |
+| `packages/web/src/platform/realtime/SocketChannel.ts`                                                                                                                  | Socket adapter                                                                              |
+| `packages/web/src/platform/realtime/CommandOutbox.ts`, `packages/web/src/platform/realtime/outboxStorage.ts`, `packages/web/src/platform/realtime/commandTransport.ts` | Durable dispatch, local persistence, and the single HTTP command send                       |
+| `packages/web/src/platform/realtime/types.ts`                                                                                                                          | Link interface, snapshot phases, dispatch outcomes and options                              |
+| `packages/web/src/app/AppRoot.tsx` (`RoomLinkScope`)                                                                                                                   | Room links released when the route leaves the room or the user changes                      |
+| `packages/api-worker/src/app/GameRoom.ts`, `packages/api-worker/src/platform/room/`                                                                                    | Worker entry, WebSocket handling, shared room coordination                                  |
+| `docs/realtime-link-redesign.md`                                                                                                                                       | Current-system design record only; its pre-redesign status tables describe the old system.  |
 
 Common root causes: token refresh not happening, a cold-start race, a revision gap on reconnect.
 
 ## Branch C — Game logic bug
 
-| First-check path                                                            | Investigation focus                                                             |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `packages/game-engine/src/games/<game>/`                                    | Game-owned commands and logic; werewolf resolvers are under `domain/resolvers/` |
-| `packages/game-engine/src/games/werewolf/domain/models/roles/spec/`         | Step order and schema constraints                                               |
-| `packages/api-worker/src/app/GameRoom.ts`, `packages/api-worker/src/games/` | Worker game dispatch and persistence                                            |
-| `src/features/room/controllers/useReadyRoomSession.ts`, `src/games/<game>/` | Client snapshots and game-owned interpretation                                  |
+| First-check path                                                                                      | Investigation focus                                                             |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `packages/game-engine/src/games/<game>/`                                                              | Game-owned commands and logic; werewolf resolvers are under `domain/resolvers/` |
+| `packages/game-engine/src/games/werewolf/domain/models/roles/spec/`                                   | Step order and schema constraints                                               |
+| `packages/api-worker/src/app/GameRoom.ts`, `packages/api-worker/src/games/`                           | Worker game dispatch and persistence                                            |
+| `packages/web/src/features/room/controllers/useReadyRoomSession.ts`, `packages/web/src/games/<game>/` | Client snapshots and game-owned interpretation                                  |
 
 Common root causes: a resolver not handling a skip case, a step-order error, a write race in the worker.
 
@@ -67,20 +69,21 @@ Common root causes: a test identifier changed without a matching update, the soc
 
 ## Branch F — Performance issue
 
-| First-check path                                              | Investigation focus                                   |
-| ------------------------------------------------------------- | ----------------------------------------------------- |
-| `src/screens/`, `src/games/`, `src/features/room/components/` | Large lists not virtualised, unnecessary re-rendering |
-| `src/services/`                                               | Frequent state updates, un-debounced operations       |
-| `src/features/*/controllers/`                                 | Memo and callback dependency breadth                  |
-| Worker network inspection                                     | Request waterfall, oversized payloads                 |
+| First-check path                                                                                    | Investigation focus                                       |
+| --------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `packages/web/src/routes/`, `packages/web/src/games/`, `packages/web/src/features/room/components/` | Unnecessary re-rendering, oversized lists                 |
+| `packages/web/src/scene/`                                                                           | PixiJS scene layer frame time                             |
+| `packages/web/src/services/`                                                                        | Frequent state updates, un-debounced operations           |
+| `packages/web/scripts/check-bundle-size.mjs`                                                        | Per-route gzip budgets enforced by the web `build` script |
+| Worker network inspection                                                                           | Request waterfall, oversized payloads                     |
 
-Common root causes: a selector returning a new object each time, list items without memoisation, audio preload blocking rendering.
+Common root causes: a selector returning a new object each time, a large route chunk, audio preload blocking rendering.
 
-## Removed paths (do not use)
+## Removed names (do not use)
 
-| Removed path                                               | Why                                                                                                                                                                 | Replacement                                                                                                                                                             |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/features/room/session/RoomSession.ts`                 | The directory does not exist; there is no shared `RoomSession` module. Per-game session models exist under `src/games/<game>/model/` as type aliases over the link. | `src/features/room/components/RoomEntryBoundary.tsx`, `src/features/room/controllers/useReadyRoomSession.ts`, `src/features/room/controllers/useRoomEntryController.ts` |
-| `src/services/connection/ConnectionManager.ts`             | The directory does not exist.                                                                                                                                       | `src/platform/realtime/` (see Branch B)                                                                                                                                 |
-| `src/services/cloudflare/CFRealtimeService.ts`             | The file does not exist. The cloudflare service directory holds the auth, avatar-upload, and room-directory adapters.                                               | `src/platform/realtime/` (see Branch B)                                                                                                                                 |
-| `src/games/werewolf/components/RoleRevealEffects/types.ts` | The file does not exist at that game-owned path.                                                                                                                    | `src/features/room/components/RoleRevealEffects/` (`types.ts` and `themes.ts` live there)                                                                               |
+| Removed name                              | Why                                                                                                                                 | Replacement                                                                                                                                                                                                    |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The repository-root `src/` client         | The React Native client was removed; the only client is the web package.                                                            | `packages/web/src/`                                                                                                                                                                                            |
+| A shared `RoomSession` module             | There is no shared session module.                                                                                                  | `packages/web/src/features/room/components/RoomEntryBoundary.tsx`, `packages/web/src/features/room/controllers/useReadyRoomSession.ts`, `packages/web/src/features/room/controllers/useRoomEntryController.ts` |
+| `ConnectionManager`, `CFRealtimeService`  | Old realtime services; neither exists. The cloudflare service directory holds the auth, avatar-upload, and room-directory adapters. | `packages/web/src/platform/realtime/` (see Branch B)                                                                                                                                                           |
+| A game-owned `RoleRevealEffects/types.ts` | Reveal-effect types are shared room code.                                                                                           | `packages/web/src/features/room/components/RoleRevealEffects/types.ts`                                                                                                                                         |

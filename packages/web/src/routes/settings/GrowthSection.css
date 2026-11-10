@@ -1,0 +1,87 @@
+.growth-xp {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  padding: var(--space-tight) 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.growth-xp-value {
+  min-width: var(--space-xxlarge);
+  text-align: right;
+}
+
+.growth-progress {
+  flex: 1;
+  height: var(--space-small);
+  overflow: hidden;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-a8);
+  appearance: none;
+}
+
+.growth-progress::-webkit-progress-bar {
+  background: var(--color-primary-a8);
+}
+
+.growth-progress::-webkit-progress-value {
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+}
+
+.growth-progress::-moz-progress-bar {
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+}
+
+.growth-progress-mini {
+  width: 100%;
+  height: var(--space-tight);
+  background: var(--color-primary-a10);
+}
+
+.growth-progress-mini::-webkit-progress-bar {
+  background: var(--color-primary-a10);
+}
+
+/* Vendor pseudo-elements stay in separate rules: an unknown one invalidates the whole list. */
+.growth-progress-mini::-webkit-progress-value {
+  background: var(--color-primary);
+}
+
+.growth-progress-mini::-moz-progress-bar {
+  background: var(--color-primary);
+}
+
+.growth-unlocks {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  min-height: var(--size-min-touch-target);
+  padding: var(--space-small) 0;
+  border-top: var(--border-width) solid var(--color-border-light);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.growth-unlocks-chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: var(--size-icon-md);
+}
+
+.growth-unlocks-icon {
+  flex-shrink: 0;
+  color: var(--color-primary);
+  font-size: var(--size-icon-md);
+}
+
+.growth-unlocks-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-tight);
+}

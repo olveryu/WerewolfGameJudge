@@ -6,13 +6,14 @@ import {
 } from '@game-judge/game-engine/games/fibking/public';
 import { expect, test } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import {
   closeAll,
   type ColdRoomFixture,
   createColdRoomContext,
   createPlayerContexts,
 } from '../fixtures/app.fixture';
+import { closeReviewDialog } from '../helpers/image-sharing';
 import { FibConfigPage } from '../pages/FibConfigPage';
 import { type FibIdentity, FibRoomPage, type FibWordDetails } from '../pages/FibRoomPage';
 import { HomePage } from '../pages/HomePage';
@@ -66,7 +67,7 @@ test.describe('FibKing', () => {
       await room.waitForReady('host');
       await room.expectNoWerewolfOverlay();
       await room.expectPlayerCountHeading(20);
-      expect(await room.getSeatCount()).toBe(20);
+      await room.expectSeatCount(20);
     } finally {
       await closeAll(fixture);
     }
@@ -145,13 +146,7 @@ test.describe('FibKing', () => {
 
       // Kicking one seated player must not remove the others.
       await hostRoom.kickPlayer(2);
-      expect((await hostRoom.collectSeatState(3)).isEmpty, 'Kicked seat should be empty').toBe(
-        true,
-      );
-      expect(
-        (await hostRoom.collectSeatState(4)).isEmpty,
-        'Kicking one seat must not remove other players',
-      ).toBe(false);
+      await hostRoom.expectSeatOccupied(3);
       await firstBatchRooms[1]!.expectNotSeated();
       await firstBatchRooms[1]!.seatAt(2);
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
@@ -186,7 +181,7 @@ test.describe('FibKing', () => {
 
       await hostRoom.abandonGame();
       for (let seat = 0; seat < 4; seat += 1) {
-        expect((await hostRoom.collectSeatState(seat + 1)).isEmpty).toBe(false);
+        await hostRoom.expectSeatOccupied(seat);
       }
       await hostRoom.expectLobbySeatOperations();
 
@@ -225,9 +220,9 @@ test.describe('FibKing', () => {
       const reviewPage = joinerPages[0]!;
       await reviewPage.getByTestId(TESTIDS.roomReviewOpenButton).click();
       const reviewDialog = reviewPage.getByTestId(TESTIDS.roomReviewDialog);
-      await expect(reviewDialog.getByText(result.word, { exact: true })).toBeVisible();
-      await expect(reviewDialog.getByText('大聪明选中了老实人', { exact: true })).toBeVisible();
-      await reviewPage.getByRole('button', { name: '关闭详情', exact: true }).click();
+      await expect(reviewDialog).toContainText(result.word);
+      await expect(reviewDialog).toContainText('大聪明选中了老实人');
+      await closeReviewDialog(reviewPage);
       await expect(reviewDialog).toHaveCount(0);
 
       await hostRoom.startNextRound();
@@ -238,14 +233,14 @@ test.describe('FibKing', () => {
       }
       await hostRoom.beginGame();
       for (let seat = 0; seat < 4; seat += 1) {
-        expect((await hostRoom.collectSeatState(seat + 1)).isEmpty).toBe(false);
+        await hostRoom.expectSeatOccupied(seat);
       }
       await hostRoom.expectOngoing();
 
       await hostRoom.revealRound();
       await hostRoom.endGame();
       for (let seat = 0; seat < 4; seat += 1) {
-        expect((await hostRoom.collectSeatState(seat + 1)).isEmpty).toBe(false);
+        await hostRoom.expectSeatOccupied(seat);
       }
       await hostRoom.expectLobbySeatOperations();
     } finally {

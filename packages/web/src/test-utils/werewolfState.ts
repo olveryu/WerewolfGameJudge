@@ -1,0 +1,31 @@
+/** Canonical minimal Werewolf state for client tests. */
+
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus, WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
+
+export function buildWerewolfTestState(overrides: Partial<GameState> = {}): GameState {
+  return {
+    ...WEREWOLF_STATE_IDENTITY,
+    roomCode: '1234',
+    hostUserId: 'host',
+    status: GameStatus.Unseated,
+    templateRoles: [],
+    players: {},
+    roleViewedSeats: [],
+    roster: {},
+    nightStep: null,
+    isAudioPlaying: false,
+    audioBatchId: 0,
+    gameSequence: 0,
+    pendingAudioEffects: [],
+    actions: [],
+    pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
+    wolfGirlConfessionRevealAcks: [],
+    ...overrides,
+  };
+}

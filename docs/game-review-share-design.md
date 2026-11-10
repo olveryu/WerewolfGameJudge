@@ -1,6 +1,6 @@
 # 跨游戏本局复盘与图片分享设计
 
-> 状态：已实施（v3，2026-11-06）。方向：**完全重建**，现有各游戏的复盘/导出组件已删除。§1 记录实施前现状供追溯；§3–§9 已按实施结果更新，类型以 [`src/features/room/review/types.ts`](../src/features/room/review/types.ts) 为准；决策见 §10，与设计稿 v2（2026-10-29）的差异及理由见 §11。
+> 状态：已实施（v3，2026-11-06）。方向：**完全重建**，现有各游戏的复盘/导出组件已删除。§1 记录实施前现状供追溯；§3–§9 已按实施结果更新，类型以 [`packages/web/src/features/room/review/types.ts`](../packages/web/src/features/room/review/types.ts) 为准；决策见 §10，与设计稿 v2（2026-10-29）的差异及理由见 §11。
 > 范围决定：只做「统一复盘 + 图片分享」，不做独立只读战报链接与长期存档（§2.2、§10）。
 > 关联：[room-shell-contract.md](room-shell-contract.md) §Host Task / §Action Ownership、[multigame-platform-design.md](multigame-platform-design.md) §20.3 / §25、[DESIGN.md](DESIGN.md)。
 
@@ -57,7 +57,7 @@
 
 - 不做独立只读战报链接、不做战报持久化。`/share/image` 仍是一天过期的临时预览图。
 - 不改游戏规则、阶段机、服务端权限模型。狼人杀逐座位授权保持原样。
-- 不替换 html2canvas / view-shot / expo-sharing。
+- 不替换截图与分发底层（实施时为 html2canvas / view-shot / expo-sharing；网页客户端重写后截图换成 SnapDOM，原生端已删除，见 §6）。
 - 服务端改动仅限经典画猜 `turnHistory`（§5.5、§8.5）；其余游戏终局状态已足够。
 
 ## 3. 设计原则
@@ -172,7 +172,7 @@ export type ReviewInline =
 | 页宽     | 导出页宽 = 对话框页宽 `resolveRoomDialogWidth(windowWidth)`（窗宽 94%，上限 440），所见即所得                                                                                          |
 | 并发     | 每个作用域同时只有一个截图任务；后来者加入，任务结束后补截仍缺的页                                                                                                                     |
 | 就绪闸门 | 导出舞台挂载请求的页面：全部量到高度、全部图片就绪（或 `unavailable`）后再等两帧才截图；任一图片失败 → 拒绝本次请求，等读者在复盘里重试                                                |
-| 截图选择 | 小程序：每页 `captureViewSegmentedPngBase64` 分带；其余：每页 `captureViewPngBase64` 整图。这是唯一的平台分支                                                                          |
+| 截图选择 | 小程序：每页 `captureElementSegmentedPngBase64` 分带；其余：每页 `captureElementPngBase64` 整图。这是唯一的平台分支                                                                    |
 | 单页上限 | 高度 > `REVIEW_PAGE_MAX_HEIGHT` → fail fast；长内容由游戏经 `paginateReviewUnit` 预先拆页                                                                                              |
 | 预截图   | 对话框打开且允许分享时后台预截全部页（不提示）：iOS Safari 的 Web Share 需要点按的瞬时激活，点按时图片必须已在手里                                                                     |
 | 运行阶段 | `null \| preparing \| capturing(done, total) \| uploading`；`total` = 各页带数之和；只有小程序有 `uploading`。对话框里显示在分享区，无对话框的运行（主持台直接分享）显示进度弹窗       |
@@ -188,7 +188,7 @@ export type ReviewInline =
 | 组件                      | 职责                                                                                                                                                                                                                                                                      |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `RoomReviewDialog`        | `RoomDialog`（`isContentFlush`，页面贴边）+ 标题 `REVIEW_TITLE` + 多页时副标题页签与「上一页 / 下一页」+ `ReviewDocumentView(mode='screen')` + 底部分享区：单页「保存／分享图片」；多页「保存／分享全部 N 页」+「仅分享本页」；不可分享时显示原因；截图中显示进度、可取消 |
-| `RoomReviewExportStage`   | 截图期间在屏外挂载请求的页面（`mode='export'`），每页一个 `collapsable={false}` 容器与 ref；量高、等图、两帧后一次交回句柄                                                                                                                                                |
+| `RoomReviewExportStage`   | 截图期间在屏外挂载请求的页面（`mode='export'`），每页一个带 ref 的容器；量高、等图、两帧后一次交回句柄                                                                                                                                                                    |
 | `RoomReviewProgressModal` | 无对话框的运行用：「正在准备 / 正在生成 n/N / 正在上传」+ 取消                                                                                                                                                                                                            |
 
 入口沿用现有动作框架，`RoomShellModel` 不加字段：
@@ -344,14 +344,13 @@ readonly guessedSeats: readonly number[];
 
 ## 6. 平台矩阵
 
-| 平台                | 截图             | 分发                                                 | 可能结果                                 |
-| ------------------- | ---------------- | ---------------------------------------------------- | ---------------------------------------- |
-| 浏览器（HTTPS）     | html2canvas 整图 | `navigator.share({ files })`；不支持/被拒 → 逐页下载 | `handedOff` / `downloaded` / `cancelled` |
-| 浏览器（HTTP）      | 同上             | Web Share 不可用 → 逐页下载                          | `downloaded`                             |
-| 微信小程序 web-view | html2canvas 分带 | 上传 `/share/image` → `wx.previewImage` 多图         | `previewed`；失败抛错                    |
-| iOS / Android       | `captureRef`     | `expo-sharing` 逐页                                  | `handedOff`                              |
+| 平台                | 截图         | 分发                                                 | 可能结果                                 |
+| ------------------- | ------------ | ---------------------------------------------------- | ---------------------------------------- |
+| 浏览器（HTTPS）     | SnapDOM 整图 | `navigator.share({ files })`；不支持/被拒 → 逐页下载 | `handedOff` / `downloaded` / `cancelled` |
+| 浏览器（HTTP）      | 同上         | Web Share 不可用 → 逐页下载                          | `downloaded`                             |
+| 微信小程序 web-view | SnapDOM 分带 | 上传 `/share/image` → `wx.previewImage` 多图         | `previewed`；失败抛错                    |
 
-反馈：`handedOff` 不提示；`downloaded` toast「图片已保存」；`previewed` 不提示；`cancelled` 不提示；失败见 §7。原生分享面板不回报取消，因此原生端只有 `handedOff`。
+反馈：`handedOff` 不提示；`downloaded` toast「图片已保存」；`previewed` 不提示；`cancelled` 不提示；失败见 §7。
 
 ## 7. 失败处理
 
@@ -427,7 +426,7 @@ readonly guessedSeats: readonly number[];
 - 源码规则：复盘组件与导出控制器只在 `src/features/room/review/` 内使用；游戏不直接用截图与分享服务；入口只经两个构建函数（不手写 `review` key、不直接用 `TESTIDS.roomReview*`）。
 - 单页高度：jsdom 没有布局，改由 `paginateReviewFlow` 的估高测试（最长接龙每页都在预算内）与运行期上限 fail fast 共同保证。
 
-### 9.2 游戏级（纯数据断言，无 RN 渲染）
+### 9.2 游戏级（纯数据断言，不渲染组件）
 
 - `toXReviewDocument(state)` 断言块序列与关键事实：胜方、身份、词语、排名、出局顺序、续页。
 - 狼人杀：原 `NightReviewShareCard.test.tsx` 的事实用例（狼队共同目标、空刀不出现 0 号、未行动淡化行、身份墙恰一人出局）已迁为 `toWerewolfReviewDocument.test.ts` 的数据断言；警长竞选的面板 / 复盘等价性比呈现行（`sheriffPresentationEquivalence.test.ts`：同一选举数据，面板与复盘从 `sheriffElectionPresentation` 派生出完全相同的行，变异用例证明一座/一轮的漂移即失败）。

@@ -2,7 +2,7 @@
 
 ## Presets
 
-`PRESET_CAPABILITIES` in `scripts/lib/new-game/generate.mjs` (line 59).
+`PRESET_CAPABILITIES` in `scripts/lib/new-game/generate.mjs` (line 60).
 Only the four rows below differ between presets; the other six are the
 same in all three (`botsAndTakeover` on, `hostConfig` on,
 `nightPhase` / `audioOrchestration` / `wordLibrary` / `gallery` off).
@@ -22,9 +22,9 @@ Choose by the game's main shape, fixed at design time:
 - Secret identity and viewing checkpoint, plus a deadline that is
   armed when play begins and settles only through the internal
   settle channel → `demo-hybrid`
-  (`PACK_SEGMENT_SWITCHES`, line 111: `armDeadlineAtBegin: true`).
+  (`PACK_SEGMENT_SWITCHES`, line 112: `armDeadlineAtBegin: true`).
 
-Expiry channel (`PACK_SEGMENT_SWITCHES`, line 111): every
+Expiry channel (`PACK_SEGMENT_SWITCHES`, line 112): every
 stage-deadline pack settles system-only through the internal settle
 channel — there is no public `phase.expire` command in any preset
 (D3). `stage` and `demo-hybrid` differ only in `armDeadlineAtBegin`:
@@ -57,10 +57,10 @@ of; record the disposition in the PR description.
    lobby); the dialog and image sharing are the platform's. The
    skeleton document holds only the ended hero and the participant
    roster: put the round's facts (outcome, identities, scores,
-   course) into `src/games/<gameId>/review/to<Game>ReviewDocument.ts`,
+   course) into `packages/web/src/games/<gameId>/review/to<Game>ReviewDocument.ts`,
    set availability and sharing in `review/<gameId>Review.ts`, and
    update `review/__tests__/<gameId>Review.test.ts` with them. The
-   block vocabulary is closed (`src/features/room/review/types.ts`):
+   block vocabulary is closed (`packages/web/src/features/room/review/types.ts`):
    extend the platform vocabulary first; a game writes no review JSX.
 4. Confirm reward numbers: the three flat amounts are placeholders;
    change them in `product/rewards/earnings.ts` (the registry entry
@@ -77,12 +77,12 @@ of; record the disposition in the PR description.
 7. Word supply, if needed: three registrations (see
    `references/skeleton-and-wiring.md`). The skeleton carries no
    workflow body.
-8. Re-run the gates: `tsc --noEmit`, engine and worker vitest, root
-   jest, `pnpm run knip`, and prettier/eslint on the changed files —
-   all green before opening a PR.
+8. Re-run the gates: root `tsc --noEmit`, the `packages/web`
+   `tsc --noEmit`, engine / worker / web vitest, `pnpm run knip`, and
+   prettier/eslint on the changed files — all green before opening a PR.
 9. Go live: if generated with `--production`, add the id to
    `PRODUCTION_GAME_TYPES` in
-   `src/games/__tests__/homeProductionFilter.contract.test.ts` in
+   `packages/web/src/games/__tests__/homeProductionFilter.contract.test.ts` in
    `GAME_TYPES` order. Otherwise, in the same PR, flip
    `isProduction` to `true` in the registry entry AND add the id to
    that list. Changing only one is caught by the contract test

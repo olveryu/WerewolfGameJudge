@@ -23,8 +23,8 @@ if [[ "$BUMP_TYPE" != "patch" && "$BUMP_TYPE" != "minor" && "$BUMP_TYPE" != "maj
 fi
 
 # 先检查是否有未提交的非版本文件改动（在 bump 之前，避免取消时版本号已变）
-OTHER_CHANGES=$(git diff --name-only HEAD | grep -v -E '^(package\.json|pnpm-lock\.yaml|app\.json|src/config/version\.ts)$' | head -5)
-STAGED_OTHER=$(git diff --cached --name-only | grep -v -E '^(package\.json|pnpm-lock\.yaml|app\.json|src/config/version\.ts)$' | head -5)
+OTHER_CHANGES=$(git diff --name-only HEAD | grep -v -E '^(package\.json|pnpm-lock\.yaml)$' | head -5)
+STAGED_OTHER=$(git diff --cached --name-only | grep -v -E '^(package\.json|pnpm-lock\.yaml)$' | head -5)
 ALL_OTHER="${OTHER_CHANGES}${STAGED_OTHER}"
 if [ -n "$ALL_OTHER" ]; then
   echo ""
@@ -44,19 +44,13 @@ pnpm version "$BUMP_TYPE" --no-git-tag-version
 
 VERSION=$(node -p "require('./package.json').version")
 
-# 同步版本号到 app.json
-node -e "
-const fs = require('fs');
-const appJson = require('./app.json');
-appJson.expo.version = '$VERSION';
-fs.writeFileSync('./app.json', JSON.stringify(appJson, null, 2) + '\n');
-"
 echo "✅ Version: v$VERSION"
 
 # ── 检查 announcements 是否有当前版本条目 ──
-if ! grep -q "'v$VERSION'" src/config/announcements.ts; then
+ANNOUNCEMENTS=packages/web/src/config/announcements.ts
+if ! grep -q "'v$VERSION'" "$ANNOUNCEMENTS"; then
   echo ""
-  echo "⚠️  src/config/announcements.ts 缺少 v$VERSION 条目"
+  echo "⚠️  $ANNOUNCEMENTS 缺少 v$VERSION 条目"
   echo "   请先添加 What's New 内容，再重新运行 release。"
   echo ""
   exit 1

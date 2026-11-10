@@ -1,11 +1,44 @@
 import js from '@eslint/js';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
-import reactNative from 'eslint-plugin-react-native';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import testingLibrary from 'eslint-plugin-testing-library';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
+
+/** Deprecated identifiers — prevent regression after bulk renames. */
+const RENAMED_IDENTIFIER_SELECTORS = [
+  { selector: "Identifier[name='roomNumber']", message: "Renamed → 'roomCode'" },
+  { selector: "Identifier[name='seatNumber']", message: "Renamed → 'seat'" },
+  { selector: "Identifier[name='hostId']", message: "Renamed → 'hostUserId'" },
+  { selector: "Identifier[name='pityTriggered']", message: "Renamed → 'isPityTriggered'" },
+  {
+    selector: "Identifier[name='uid']",
+    message: "Renamed → 'userId' (or 'id' for User entity)",
+  },
+];
+
+const TEST_ID_ONLY_MESSAGE =
+  'E2E locates elements only through getByTestId(TESTIDS.x); assert visible copy on the located element.';
+
+/** E2E locators: test ids from the TESTIDS registry only. */
+const E2E_LOCATOR_SELECTORS = [
+  {
+    selector:
+      'CallExpression[callee.property.name=/^getBy(Text|Role|Label|Placeholder|AltText|Title)$/]',
+    message: TEST_ID_ONLY_MESSAGE,
+  },
+  { selector: "CallExpression[callee.property.name='locator']", message: TEST_ID_ONLY_MESSAGE },
+  {
+    selector: "CallExpression[callee.property.name='getByTestId'][arguments.0.type='Literal']",
+    message: TEST_ID_ONLY_MESSAGE,
+  },
+  {
+    selector:
+      "CallExpression[callee.property.name='getByTestId'][arguments.0.type='TemplateLiteral'][arguments.0.expressions.length=0]",
+    message: TEST_ID_ONLY_MESSAGE,
+  },
+];
 
 export default tseslint.config(
   // =========================================================================
@@ -20,10 +53,8 @@ export default tseslint.config(
       'build/',
       'playwright-report/',
       'test-results/',
-      '.expo/',
       '**/*.config.js',
       '**/*.config.mjs',
-      'web/',
       'miniapp/',
       'scripts/',
       'functions/',
@@ -49,7 +80,6 @@ export default tseslint.config(
   {
     files: ['**/*.{ts,tsx}'],
     plugins: {
-      'react-native': reactNative,
       'simple-import-sort': simpleImportSort,
     },
     languageOptions: {
@@ -104,52 +134,14 @@ export default tseslint.config(
       // React
       'react/prop-types': 'off',
 
-      // React Hooks — compiler rules incompatible with Reanimated SharedValues & latest-ref pattern
-      'react-hooks/static-components': 'off',
-      'react-hooks/set-state-in-effect': 'off',
-      'react-hooks/preserve-manual-memoization': 'off',
-      'react-hooks/refs': 'off',
-      'react-hooks/immutability': 'off',
+      // React Compiler rules (eslint-plugin-react-hooks flat recommended) stay on: the web client
+      // compiles every component, so a violation is a miscompile risk, not a style nit.
 
-      // React Native — enable useful rules, disable noisy ones
-      'react-native/no-raw-text': ['error', { skip: ['Button', 'NameStyleText', 'SvgText'] }],
-      'react-native/split-platform-components': 'error',
-      'react-native/no-single-element-style-arrays': 'warn',
-      'react-native/no-inline-styles': 'error',
-      'react-native/sort-styles': 'off',
-      'react-native/no-unused-styles': 'off',
-      'react-native/no-color-literals': 'off',
-
-      // Console — use project logger (src/utils/logger.ts) instead
+      // Console — use the package logger (packages/web/src/utils/logger.ts) instead
       'no-console': 'error',
 
-      // Forbid raw <Modal> from 'react-native' — use AppModal for inert/a11y stack tracking
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [
-            {
-              name: 'react-native',
-              importNames: ['Modal'],
-              message:
-                "Use { Modal } from '@/components/AppModal' instead — required for inert background blocking and modal stack tracking.",
-            },
-          ],
-        },
-      ],
-
       // Deprecated identifiers — prevent regression after bulk renames
-      'no-restricted-syntax': [
-        'error',
-        { selector: "Identifier[name='roomNumber']", message: "Renamed → 'roomCode'" },
-        { selector: "Identifier[name='seatNumber']", message: "Renamed → 'seat'" },
-        { selector: "Identifier[name='hostId']", message: "Renamed → 'hostUserId'" },
-        { selector: "Identifier[name='pityTriggered']", message: "Renamed → 'isPityTriggered'" },
-        {
-          selector: "Identifier[name='uid']",
-          message: "Renamed → 'userId' (or 'id' for User entity)",
-        },
-      ],
+      'no-restricted-syntax': ['error', ...RENAMED_IDENTIFIER_SELECTORS],
 
       // Import sorting
       'simple-import-sort/imports': 'warn',
@@ -185,16 +177,6 @@ export default tseslint.config(
   },
 
   // =========================================================================
-  // AppModal — only file allowed to import raw Modal from 'react-native'
-  // =========================================================================
-  {
-    files: ['src/components/AppModal/**'],
-    rules: {
-      'no-restricted-imports': 'off',
-    },
-  },
-
-  // =========================================================================
   // Test file overrides
   // =========================================================================
   {
@@ -205,7 +187,7 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
-      // jest.fn() results trigger false positives for unbound-method
+      // vi.fn() results trigger false positives for unbound-method
       '@typescript-eslint/unbound-method': 'off',
 
       // testing-library best practices
@@ -218,41 +200,13 @@ export default tseslint.config(
   },
 
   // =========================================================================
-  // jest.setup.ts — needs console.* for React warning filters
-  // =========================================================================
-  {
-    files: ['jest.setup.ts'],
-    rules: {
-      '@typescript-eslint/no-require-imports': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      'no-console': 'off',
-    },
-  },
-
-  // =========================================================================
-  // Metro require() — assets must use require() for bundler
-  // =========================================================================
-  {
-    files: [
-      'src/services/infra/audio/audioRegistry.ts',
-      'src/utils/avatar.ts',
-      'src/utils/avatarImages.ts',
-      'src/utils/avatarImages.web.ts',
-      'src/utils/roleBadges.ts',
-      'src/utils/roleBadges.web.ts',
-    ],
-    rules: {
-      '@typescript-eslint/no-require-imports': 'off',
-    },
-  },
-
-  // =========================================================================
   // E2E (Playwright) — not React components, disable hooks rules
   // =========================================================================
   {
     files: ['e2e/**/*.ts'],
     rules: {
       'react-hooks/rules-of-hooks': 'off',
+      'no-restricted-syntax': ['error', ...RENAMED_IDENTIFIER_SELECTORS, ...E2E_LOCATOR_SELECTORS],
     },
   },
 
@@ -267,61 +221,11 @@ export default tseslint.config(
   },
 
   // =========================================================================
-  // Mocks — allow require() and console
-  // =========================================================================
-  {
-    files: ['__mocks__/**'],
-    languageOptions: {
-      sourceType: 'commonjs',
-    },
-    rules: {
-      '@typescript-eslint/no-require-imports': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
-      'no-console': 'off',
-    },
-  },
-
-  // =========================================================================
   // JS files — disable type-checked rules (no tsconfig coverage)
   // =========================================================================
   {
     files: ['**/*.{js,mjs,mts,cjs}'],
     ...tseslint.configs.disableTypeChecked,
-  },
-
-  // =========================================================================
-  // Style quality — warn on hardcoded color literals in screens & components
-  // The contract test (noHardcodedStyleValues.contract.test.ts) is the hard CI
-  // gate; this ESLint rule gives immediate editor feedback for color literals.
-  // =========================================================================
-  {
-    files: ['src/screens/**/*.{ts,tsx}', 'src/components/**/*.{ts,tsx}'],
-    ignores: [
-      'src/components/RoleRevealEffects/**',
-      'src/components/AIChatBubble/**',
-      'src/components/seatFlairs/**',
-      'src/components/ErrorBoundary.tsx',
-    ],
-    rules: {
-      'react-native/no-color-literals': 'warn',
-    },
-  },
-
-  // =========================================================================
-  // Animation components — Animated.Value mutations are expected in RN
-  // react-hooks/immutability: `.value = x` on shared values / Animated.Value
-  // react-hooks/refs: `useRef(new Animated.Value()).current` is standard RN pattern
-  // =========================================================================
-  {
-    files: [
-      'src/components/RoleRevealEffects/**/*.tsx',
-      'src/components/AIChatBubble/**/*.tsx',
-      'src/components/AIChatBubble/**/*.ts',
-    ],
-    rules: {
-      'react-hooks/immutability': 'off',
-      'react-hooks/refs': 'off',
-    },
   },
 
   // =========================================================================
@@ -332,12 +236,8 @@ export default tseslint.config(
     rules: {
       // Workers must use structured logger — only lib/logger.ts may call console directly
       'no-console': 'error',
-      // Disable React / React Native rules — no UI framework in Workers
+      // Disable React rules — no UI framework in Workers
       'react/no-unknown-property': 'off',
-      'react-native/no-raw-text': 'off',
-      'react-native/split-platform-components': 'off',
-      'react-native/no-single-element-style-arrays': 'off',
-      'react-native/no-inline-styles': 'off',
       '@typescript-eslint/naming-convention': 'off',
     },
   },
@@ -357,6 +257,24 @@ export default tseslint.config(
   // Allow console.* only in the Worker logger abstraction
   {
     files: ['packages/api-worker/src/platform/observability/logger.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+
+  // =========================================================================
+  // Web client (packages/web) — React DOM
+  // =========================================================================
+  {
+    files: ['packages/web/**/*.{ts,tsx}'],
+    rules: {
+      // Untrusted strings render only through React's default escaping (docs/web-client-rewrite.md §5.11).
+      'react/no-danger': 'error',
+    },
+  },
+  // The web client's logger is the only place allowed to write to the console.
+  {
+    files: ['packages/web/src/utils/logger.ts'],
     rules: {
       'no-console': 'off',
     },

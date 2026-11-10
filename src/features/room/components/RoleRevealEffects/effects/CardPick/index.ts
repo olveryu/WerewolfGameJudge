@@ -1,1 +1,0 @@
-export { CardPick } from './CardPick';

@@ -1,0 +1,15 @@
+/** __GAME_DISPLAY_NAME__ contribution to the Home surface. */
+import type { GameHomeContribution } from '@/games/model/GameHome';
+import { colors } from '@/theme/colors';
+import { lighten } from '@/theme/colorUtils';
+import __GAME_ICON_COMPONENT__ from '~icons/ion/__GAME_ICON_NAME__';
+
+export const __GAME_CAMEL__Home = {
+  mode: {
+    displayName: '__GAME_DISPLAY_NAME__',
+    subtitle: '__GAME_SUBTITLE__',
+    Icon: __GAME_ICON_COMPONENT__,
+    tier: '__GAME_TIER__',
+    gradient: [lighten(colors.primary, 0.45), colors.primary],
+  },
+} satisfies GameHomeContribution;

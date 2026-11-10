@@ -1,11 +1,14 @@
 import { expect, test } from '@playwright/test';
 
+import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts, type MultiPlayerFixture } from '../fixtures/app.fixture';
 import {
   ensureAnonLogin,
   enterRoomCodeViaNumPad,
-  registerAutoDismissers,
+  openJoinRoomDialog,
   startRoomCreation,
+  submitJoinRoom,
+  suppressVersionAnnouncement,
   waitForAppReady,
 } from '../helpers/home';
 import { gotoWithRetry } from '../helpers/ui';
@@ -35,21 +38,21 @@ test.describe('App — Entry Flow: First-time open (no session)', () => {
   test('shows login button, no user name', async ({ browser }) => {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
-    await registerAutoDismissers(page);
+    await suppressVersionAnnouncement(page);
 
     try {
       await gotoWithRetry(page, '/');
       await waitForAppReady(page);
 
       // Should NOT see user name (not logged in)
-      const userName = page.locator('[data-testid="home-user-name"]');
+      const userName = page.getByTestId(TESTIDS.homeUserName);
       await expect(userName).not.toBeVisible({ timeout: 2_000 });
 
       // Action buttons should still be visible (home screen ready)
-      await expect(page.locator('[data-testid="home-enter-room-button"]')).toBeVisible({
+      await expect(page.getByTestId(TESTIDS.homeEnterRoomButton)).toBeVisible({
         timeout: 5_000,
       });
-      await expect(page.locator('[data-testid="home-create-room-button"]')).toBeVisible();
+      await expect(page.getByTestId(TESTIDS.homeCreateRoomButton)).toBeVisible();
     } finally {
       await ctx.close();
     }
@@ -58,7 +61,7 @@ test.describe('App — Entry Flow: First-time open (no session)', () => {
   test('can complete anonymous login', async ({ browser }) => {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
-    await registerAutoDismissers(page);
+    await suppressVersionAnnouncement(page);
 
     try {
       await gotoWithRetry(page, '/');
@@ -68,7 +71,7 @@ test.describe('App — Entry Flow: First-time open (no session)', () => {
       await ensureAnonLogin(page);
 
       // After login, user name should be visible
-      const userName = page.locator('[data-testid="home-user-name"]');
+      const userName = page.getByTestId(TESTIDS.homeUserName);
       await expect(userName).toBeVisible({ timeout: 15_000 });
     } finally {
       await ctx.close();
@@ -84,7 +87,7 @@ test.describe('App — Entry Flow: Return with existing session', () => {
   test('reload preserves session, home ready without re-login', async ({ browser }) => {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
-    await registerAutoDismissers(page);
+    await suppressVersionAnnouncement(page);
 
     try {
       // First visit: login
@@ -92,7 +95,7 @@ test.describe('App — Entry Flow: Return with existing session', () => {
       await waitForAppReady(page);
       await ensureAnonLogin(page);
 
-      const userName = page.locator('[data-testid="home-user-name"]');
+      const userName = page.getByTestId(TESTIDS.homeUserName);
       await expect(userName).toBeVisible({ timeout: 15_000 });
 
       // Reload page (simulates closing and reopening the browser tab)
@@ -103,10 +106,10 @@ test.describe('App — Entry Flow: Return with existing session', () => {
       await expect(userName).toBeVisible({ timeout: 15_000 });
 
       // Home screen action buttons should be ready
-      await expect(page.locator('[data-testid="home-enter-room-button"]')).toBeVisible({
+      await expect(page.getByTestId(TESTIDS.homeEnterRoomButton)).toBeVisible({
         timeout: 5_000,
       });
-      await expect(page.locator('[data-testid="home-create-room-button"]')).toBeVisible();
+      await expect(page.getByTestId(TESTIDS.homeCreateRoomButton)).toBeVisible();
     } finally {
       await ctx.close();
     }
@@ -144,20 +147,18 @@ test.describe('App — Entry Flow: Enter room via join flow', () => {
     roomCode = await hostRoom.getRoomCode();
 
     // Step 2: Joiner enters room via join flow
-    await joinerPage.locator('[data-testid="home-enter-room-button"]').click();
-    await expect(joinerPage.getByText('加入房间')).toBeVisible({ timeout: 5_000 });
-
+    await openJoinRoomDialog(joinerPage);
     await enterRoomCodeViaNumPad(joinerPage, roomCode);
-    await joinerPage.getByText('加入', { exact: true }).click();
+    await submitJoinRoom(joinerPage);
 
     // Step 3: Verify joiner is on room screen
     await waitForRoomScreenReady(joinerPage, { role: 'joiner' });
-    await expect(joinerPage.locator('[data-testid="room-screen-root"]')).toBeVisible({
+    await expect(joinerPage.getByTestId(TESTIDS.roomScreenRoot)).toBeVisible({
       timeout: 5_000,
     });
 
     // Room header should contain the room number
-    const header = joinerPage.locator('[data-testid="room-header"]');
+    const header = joinerPage.getByTestId(TESTIDS.roomHeader);
     await expect(header).toContainText(roomCode);
   });
 });
@@ -193,7 +194,7 @@ test.describe('App — Entry Flow: Direct room URL', () => {
     // Step 2: New context with session - login first, then go to direct URL
     const directCtx = await browser.newContext();
     const directPage = await directCtx.newPage();
-    await registerAutoDismissers(directPage);
+    await suppressVersionAnnouncement(directPage);
     fixture.contexts.push(directCtx);
     fixture.pages.push(directPage);
 
@@ -206,10 +207,10 @@ test.describe('App — Entry Flow: Direct room URL', () => {
     await waitForRoomScreenReady(directPage, { role: 'joiner' });
 
     // Verify room screen is visible with correct room number
-    await expect(directPage.locator('[data-testid="room-screen-root"]')).toBeVisible({
+    await expect(directPage.getByTestId(TESTIDS.roomScreenRoot)).toBeVisible({
       timeout: 5_000,
     });
-    const header = directPage.locator('[data-testid="room-header"]');
+    const header = directPage.getByTestId(TESTIDS.roomHeader);
     await expect(header).toContainText(roomCode);
   });
 
@@ -233,37 +234,28 @@ test.describe('App — Entry Flow: Direct room URL', () => {
     // Step 2: Fresh context with NO session - direct URL to room
     const freshCtx = await browser.newContext();
     const freshPage = await freshCtx.newPage();
-    await registerAutoDismissers(freshPage);
+    await suppressVersionAnnouncement(freshPage);
     fixture.contexts.push(freshCtx);
     fixture.pages.push(freshPage);
 
     await gotoWithRetry(freshPage, `/room/${roomCode}`);
 
-    // Step 3: AuthGateOverlay should appear ("登录")
-    await expect(freshPage.getByText('登录', { exact: true })).toBeVisible({ timeout: 15_000 });
-    await expect(freshPage.getByText('选择登录方式以加入房间')).toBeVisible({ timeout: 5_000 });
+    // Step 3: the room's login gate appears
+    const loginDialog = freshPage.getByTestId(TESTIDS.loginDialog);
+    await expect(loginDialog).toHaveAccessibleName('登录', { timeout: 15_000 });
+    await expect(loginDialog).toHaveAccessibleDescription('选择登录方式以加入房间');
 
     // Step 4: Click anonymous login
-    const anonBtn = freshPage.locator('[data-testid="home-anon-login-button"]');
-    // AuthGateOverlay reuses LoginOptions which uses homeAnonLoginButton testID
-    // If testID not present, fallback to text match
-    const hasTestId = await anonBtn
-      .waitFor({ state: 'visible', timeout: 3_000 })
-      .then(() => true)
-      .catch(() => false);
-
-    if (hasTestId) {
-      await anonBtn.click();
-    } else {
-      await freshPage.getByText('匿名登录').click();
-    }
+    const anonBtn = freshPage.getByTestId(TESTIDS.homeAnonLoginButton);
+    await expect(anonBtn).toContainText('匿名登录');
+    await anonBtn.click();
 
     // Step 5: After login, room screen should load
     await waitForRoomScreenReady(freshPage, { role: 'joiner' });
-    await expect(freshPage.locator('[data-testid="room-screen-root"]')).toBeVisible({
+    await expect(freshPage.getByTestId(TESTIDS.roomScreenRoot)).toBeVisible({
       timeout: 10_000,
     });
-    const header = freshPage.locator('[data-testid="room-header"]');
+    const header = freshPage.getByTestId(TESTIDS.roomHeader);
     await expect(header).toContainText(roomCode);
   });
 });

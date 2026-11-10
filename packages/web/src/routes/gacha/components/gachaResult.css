@@ -1,0 +1,31 @@
+/* Shared by the single and multi-draw result dialogs. */
+.gacha-result-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--color-overlay);
+}
+
+.gacha-result-positioner {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-large);
+}
+
+.gacha-shard-award {
+  color: var(--color-warning);
+  font-weight: var(--weight-bold);
+}
+
+.gacha-new-tag {
+  color: var(--color-success);
+  font-weight: var(--weight-bold);
+}
+
+.gacha-equip-button.button {
+  width: 100%;
+  margin-top: var(--space-medium);
+  border-radius: var(--radius-full);
+}

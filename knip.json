@@ -4,24 +4,9 @@
   "exclude": ["types"],
   "workspaces": {
     ".": {
-      "entry": [
-        "App.tsx!",
-        "scripts/*.{ts,mjs,sh}",
-        "functions/**/*.ts!",
-        "e2e/**/*.ts",
-        "type-tests/**/*.{ts,tsx}!"
-      ],
-      "project": ["src/**/*.{ts,tsx}!", "e2e/**/*.ts", "__mocks__/**/*.{ts,tsx}"],
-      "ignoreDependencies": [
-        "canvaskit-wasm",
-        "expo-modules-core",
-        "expo-updates",
-        "expo-system-ui",
-        "jest-environment-jsdom",
-        "babel-plugin-transform-define",
-        "babel-plugin-react-compiler",
-        "serve"
-      ]
+      "entry": ["scripts/*.{ts,mjs,sh}", "functions/**/*.ts!", "e2e/**/*.ts"],
+      "project": ["contracts/**/*.ts", "e2e/**/*.ts"],
+      "ignoreDependencies": ["serve"]
     },
     "packages/game-engine": {
       "entry": ["type-tests/**/*.ts!"],
@@ -36,6 +21,11 @@
       ],
       "project": ["src/**/*.ts!", "type-tests/**/*.ts!"],
       "ignoreDependencies": ["cloudflare"]
+    },
+    "packages/web": {
+      "project": ["src/**/*.{ts,tsx}!"],
+      "ignoreUnresolved": ["^~icons/"],
+      "ignoreDependencies": ["@iconify-json/ion", "@svgr/plugin-jsx"]
     }
   }
 }

@@ -2,6 +2,7 @@
 playwright-report/
 test-results/
 coverage/
+.scene-baselines/
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
@@ -12,11 +13,8 @@ node_modules/
 .venv/
 **/.venv/
 
-# Expo
-.expo/
+# Build output
 dist/
-web-build/
-expo-env.d.ts
 
 # Native
 .kotlin/
@@ -26,9 +24,6 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
-
-# Metro
-.metro-health-check*
 
 # debug
 npm-debug.*
@@ -40,7 +35,6 @@ yarn-error.*
 *.pem
 
 # local env files (override)
-# .env is committed — contains public EXPO_PUBLIC_* defaults (not secrets)
 .env*.local
 .env.local.backup
 

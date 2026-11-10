@@ -12,12 +12,12 @@ import { werewolfEngine } from './werewolf/engine';
 
 export const GAME_ENGINE_CATALOG = defineGameEngineCatalog({
   werewolf: werewolfEngine,
+  avalon: avalonEngine,
+  drawguess: drawGuessEngine,
   fibking: fibEngine,
   pictionary: pictionaryEngine,
   undercover: undercoverEngine,
   storyrelay: storyRelayEngine,
-  drawguess: drawGuessEngine,
-  avalon: avalonEngine,
   demo: demoEngine,
 });
 

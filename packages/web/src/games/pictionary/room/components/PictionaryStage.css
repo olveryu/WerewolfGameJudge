@@ -1,0 +1,401 @@
+/* Fills the room workspace (a block scroller, not a flex parent) so the task media can fit. */
+.pictionary-stage {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.pictionary-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-micro);
+  justify-content: center;
+  min-height: var(--size-min-touch-target);
+}
+
+.pictionary-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  font-weight: var(--weight-bold);
+  line-height: var(--line-subtitle);
+}
+
+.pictionary-description {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.pictionary-task-frame .room-task-frame-footer {
+  padding-top: var(--space-small);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+/* Fits a canonical 4:3 child into the remaining body height without cropping. */
+.pictionary-task-media {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  overflow: hidden;
+  container-type: size;
+}
+
+.pictionary-task-media-fit {
+  width: min(100cqw, calc(100cqh * 4 / 3));
+}
+
+/*
+ * The drawing being guessed is the primary content, but at the reduced keyboard viewport
+ * (390x480) the body is only ~280px tall: the 120px floor keeps the drawing readable while the
+ * answer row below stays visible.
+ */
+.pictionary-context-block {
+  display: flex;
+  flex: 1 1 120px;
+  flex-direction: column;
+  min-height: 120px;
+}
+
+.pictionary-missed-context {
+  display: flex;
+  gap: var(--space-small);
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  border: var(--border-width) solid var(--color-warning);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+}
+
+.pictionary-missed-context svg {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  color: var(--color-warning);
+}
+
+/* One-line answer form pinned in the task footer; the 16px input keeps iOS from zooming. */
+.pictionary-answer-row {
+  display: flex;
+  gap: var(--space-small);
+  align-items: center;
+  margin: 0;
+}
+
+.pictionary-answer-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--size-min-touch-target);
+  box-sizing: border-box;
+  padding: 0 var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+}
+
+.pictionary-answer-input:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary);
+  outline-offset: calc(-1 * var(--border-width-thick));
+}
+
+.pictionary-answer-input:read-only {
+  color: var(--color-text-secondary);
+}
+
+.pictionary-answer-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.pictionary-answer-row > .button {
+  flex: 0 0 auto;
+}
+
+/* The text to draw: one compact card so the canvas keeps the remaining height. */
+.pictionary-prompt-card {
+  flex-shrink: 0;
+  margin: 0;
+  padding: var(--space-small) var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.pictionary-prompt-card strong {
+  display: block;
+  max-height: calc(2 * var(--line-subtitle));
+  overflow-y: auto;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-subtitle);
+  overflow-wrap: anywhere;
+}
+
+.pictionary-waiting-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-medium);
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.pictionary-waiting-count {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  font-weight: var(--weight-bold);
+  line-height: var(--line-subtitle);
+}
+
+.pictionary-waiting-hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  text-align: center;
+}
+
+.pictionary-progress-track {
+  display: flex;
+  width: 100%;
+  max-width: 420px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-border-light);
+}
+
+.pictionary-progress-done {
+  background: var(--color-success);
+}
+
+/* Drawing image frame (task context and gallery entries). */
+.pictionary-drawing-image {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.pictionary-drawing-image-button {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.pictionary-drawing-image-button:active {
+  opacity: var(--opacity-pressed);
+}
+
+.pictionary-drawing-image-button:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary);
+  outline-offset: calc(-1 * var(--border-width-thick));
+}
+
+.pictionary-drawing-image-button img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.pictionary-drawing-expand {
+  position: absolute;
+  right: var(--space-small);
+  bottom: var(--space-small);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-min-touch-target);
+  height: var(--size-min-touch-target);
+  border-radius: var(--radius-full);
+  background: var(--color-overlay);
+  color: var(--color-text-inverse);
+  pointer-events: none;
+}
+
+.pictionary-drawing-status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  box-sizing: border-box;
+  padding: var(--space-medium);
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.pictionary-drawing-status p {
+  margin: 0;
+}
+
+.pictionary-drawing-status > svg {
+  width: 32px;
+  height: 32px;
+  color: var(--color-text-muted);
+}
+
+.pictionary-fullscreen-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--color-text);
+}
+
+.pictionary-fullscreen-positioner {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+}
+
+.pictionary-fullscreen {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: max(var(--space-medium), env(safe-area-inset-top)) var(--space-medium)
+    max(var(--space-medium), env(safe-area-inset-bottom));
+  outline: none;
+}
+
+.pictionary-fullscreen img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.pictionary-fullscreen .pictionary-fullscreen-close {
+  position: absolute;
+  top: max(var(--space-medium), env(safe-area-inset-top));
+  right: var(--space-medium);
+  background: var(--color-overlay);
+  color: var(--color-text-inverse);
+}
+
+/* Gallery entries. */
+.pictionary-gallery-entry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  padding-top: var(--space-medium);
+  border-top: var(--border-width) solid var(--color-border-light);
+}
+
+.pictionary-gallery-entry-meta,
+.pictionary-gallery-entry-author {
+  display: flex;
+  gap: var(--space-tight);
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.pictionary-gallery-entry-author {
+  justify-content: flex-start;
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-secondary);
+}
+
+.pictionary-gallery-entry-kind {
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.pictionary-gallery-text-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  box-sizing: border-box;
+  padding: var(--space-large);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  line-height: var(--line-subtitle);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.pictionary-gallery-text-card p {
+  margin: 0;
+}
+
+.pictionary-gallery-text-card > svg {
+  width: 28px;
+  height: 28px;
+  color: var(--color-primary);
+}
+
+.pictionary-gallery-text-card[data-missed] {
+  border-color: var(--color-warning);
+  color: var(--color-text-secondary);
+}
+
+.pictionary-gallery-text-card[data-missed] > svg {
+  color: var(--color-warning);
+}
+
+.pictionary-gallery-text-card .pictionary-gallery-missed-hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.pictionary-gallery-viewer-notice {
+  display: flex;
+  gap: var(--space-small);
+  align-items: center;
+  justify-content: center;
+  min-height: var(--size-min-touch-target);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.pictionary-ended-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+}

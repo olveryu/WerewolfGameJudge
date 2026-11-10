@@ -49,9 +49,11 @@ gh workflow run e2e-single-spec.yml --ref <branch> --field spec=<file>
 The job calls the single reusable implementation
 (`e2e-run.yml`, `shard: single`, `build-web: true`), which validates
 the spec file exists under `e2e/specs/` (bare filename, no `/`)
-before installing anything. CI shards in `ci.yml` (9 shards) call
-the same workflow with space-separated spec lists and
-`build-web: false`.
+before installing anything. The `e2e` matrix in `ci.yml` calls the
+same workflow with space-separated spec lists and `build-web: false`
+(it serves the `packages/web/dist` artifact from the `build-web`
+job); on this branch it lists only the specs migrated to the web
+client, one shard.
 
 Verify the run as operator procedure: read the run's `head_branch`
 and `head_sha` and its `conclusion` through the actions API, and

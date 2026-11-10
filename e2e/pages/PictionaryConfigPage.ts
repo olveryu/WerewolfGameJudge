@@ -2,7 +2,7 @@
 
 import { expect, type Page } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 
 type PictionaryDurationField =
   | 'drawingDurationSeconds'
@@ -24,7 +24,7 @@ export class PictionaryConfigPage {
   /** Wait until the create form has loaded with its authoritative defaults. */
   async waitForCreateMode(): Promise<void> {
     await expect(this.page.getByTestId(TESTIDS.configScreenRoot)).toBeVisible({ timeout: 10_000 });
-    await expect(this.page.getByText('你画我猜接龙设置', { exact: true })).toBeVisible();
+    await expect(this.page.getByTestId(TESTIDS.screenHeaderTitle)).toHaveText('你画我猜接龙设置');
     await expect(this.page.getByTestId(PLAYER_COUNT)).toHaveValue('6');
     await expect(this.page.getByTestId(durationOption('guessDurationSeconds', 45))).toHaveAttribute(
       'aria-checked',
@@ -38,7 +38,10 @@ export class PictionaryConfigPage {
 
   /** Configure manual drawing while retaining default text and gallery deadlines. */
   async configureFourPlayerManualGame(): Promise<void> {
-    const decrementButton = this.page.getByRole('button', { name: '减少人数' });
+    const decrementButton = this.page.getByTestId(
+      TESTIDS.gameConfigFieldDecrement('pictionary', 'numberOfPlayers'),
+    );
+    await expect(decrementButton).toHaveAccessibleName('减少人数');
     await decrementButton.click();
     await decrementButton.click();
     await expect(this.page.getByTestId(PLAYER_COUNT)).toHaveValue('4');

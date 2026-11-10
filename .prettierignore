@@ -1,8 +1,4 @@
 node_modules
-.expo
-.expo-shared
-android
-ios
 dist
 build
 coverage
@@ -13,5 +9,4 @@ packages/api-worker/worker-configuration.d.ts
 functions/types.d.ts
 .venv
 tsconfig.json
-expo-env.d.ts
 *.log

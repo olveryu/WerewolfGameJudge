@@ -1,10 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
-import { enterRoomCodeViaNumPad, startRoomCreation } from '../helpers/home';
-import { getVisibleText } from '../helpers/ui';
-import { waitForRoomScreenReady } from '../helpers/waits';
+import { startRoomCreation } from '../helpers/home';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { RoomPage } from '../pages/RoomPage';
@@ -22,63 +20,6 @@ import { RoomPage } from '../pages/RoomPage';
  */
 
 test.describe.configure({ mode: 'serial' });
-
-// ---------------------------------------------------------------------------
-// Stabilization helpers (ported from seating.basic.spec.ts)
-// ---------------------------------------------------------------------------
-
-async function settleAfterRoomReady(page: import('@playwright/test').Page) {
-  // Wait for room screen to be fully rendered
-  await page
-    .locator('[data-testid="room-screen-root"]')
-    .waitFor({ state: 'visible', timeout: 3000 });
-}
-
-/**
- * Wait until host sees a seat become occupied (non-empty).
- * Uses Playwright's `expect.poll()` for built-in retry, timeout, and error reporting.
- */
-async function pollSeatOccupied(
-  room: RoomPage,
-  displayNumber: number,
-  maxPollMs = 10000,
-): Promise<Awaited<ReturnType<RoomPage['collectSeatState']>>> {
-  let state = await room.collectSeatState(displayNumber);
-  await expect
-    .poll(
-      () =>
-        room
-          .collectSeatState(displayNumber)
-          .then((s) => (state = s) && !s.isEmpty && s.hasPlayerName),
-      {
-        timeout: maxPollMs,
-        intervals: [250],
-        message: `Seat ${displayNumber} did not become occupied within ${maxPollMs}ms`,
-      },
-    )
-    .toBeTruthy();
-  return state;
-}
-
-/**
- * Wait until host sees a seat become empty.
- * Uses Playwright's `expect.poll()` for built-in retry, timeout, and error reporting.
- */
-async function pollSeatEmpty(
-  room: RoomPage,
-  displayNumber: number,
-  maxPollMs = 10000,
-): Promise<Awaited<ReturnType<RoomPage['collectSeatState']>>> {
-  let state = await room.collectSeatState(displayNumber);
-  await expect
-    .poll(() => room.collectSeatState(displayNumber).then((s) => (state = s) && s.isEmpty), {
-      timeout: maxPollMs,
-      intervals: [250],
-      message: `Seat ${displayNumber} did not become empty within ${maxPollMs}ms`,
-    })
-    .toBeTruthy();
-  return state;
-}
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -101,21 +42,17 @@ test.describe('Werewolf — Seating', () => {
 
       const room = new RoomPage(page);
       await room.waitForReady('host');
-      await settleAfterRoomReady(page);
 
       // Host manually takes seat 0 (display 1)
       await room.seatAt(0);
 
-      const seat1 = await room.collectSeatState(1);
-      expect(seat1.hasPlayerName, 'Seat 1 should be occupied').toBe(true);
+      await room.expectSeatOccupied(0);
 
       // "我" badge should be visible
       await room.expectMyBadgeVisible();
 
       await room.standUp(0);
-      expect((await room.collectSeatState(1)).isEmpty, 'Direct leave should empty the seat').toBe(
-        true,
-      );
+      await room.expectSeatEmpty(0);
       await room.seatAt(0);
 
       await room.screenshot(testInfo, 'single-player-seated.png');
@@ -145,31 +82,25 @@ test.describe('Werewolf — Seating', () => {
       const roomCode = await roomA.getRoomCode();
 
       // Joiner joins
-      await getVisibleText(pageB, '进入房间').first().click();
-      await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
-      await enterRoomCodeViaNumPad(pageB, roomCode);
-      await pageB.getByText('加入', { exact: true }).click();
-      await waitForRoomScreenReady(pageB, { role: 'joiner' });
-
       const roomB = new RoomPage(pageB);
+      await roomB.joinViaCode(roomCode);
 
       // Joiner taps host's occupied seat (index 0) - shows player profile card
       await roomB.getSeatTile(0).click();
-      await expect(pageB.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
+      await expect(pageB.getByTestId(TESTIDS.playerProfileCard)).toBeVisible({ timeout: 5000 });
       // No seat dialog should appear (profile card, not "入座")
-      await expect(pageB.getByTestId('seat-confirm-modal')).not.toBeVisible({ timeout: 1000 });
+      await expect(pageB.getByTestId(TESTIDS.seatConfirmModal)).not.toBeVisible({ timeout: 1000 });
 
       // Dismiss profile card by clicking the overlay backdrop (outside the card)
       await pageB.mouse.click(5, 5);
-      await expect(pageB.getByTestId('player-profile-card')).not.toBeVisible({ timeout: 3000 });
+      await expect(pageB.getByTestId(TESTIDS.playerProfileCard)).not.toBeVisible({ timeout: 3000 });
 
       // Joiner takes seat 2 instead
       await roomB.seatAt(1);
       await expect(pageB.getByTestId(TESTIDS.mySeatBadge)).toBeVisible({ timeout: 3000 });
 
       // Host should see seat 2 occupied
-      const hostSeat2 = await pollSeatOccupied(roomA, 2);
-      expect(hostSeat2.hasPlayerName, 'Host sees seat 2 occupied').toBe(true);
+      await roomA.expectSeatOccupied(1);
 
       await roomA.screenshot(testInfo, 'two-player-conflict.png');
     } finally {
@@ -195,33 +126,18 @@ test.describe('Werewolf — Seating', () => {
       const roomA = new RoomPage(pageA);
       await roomA.waitForReady('host');
       await roomA.seatAt(0);
-      await settleAfterRoomReady(pageA);
       const roomCode = await roomA.getRoomCode();
 
       // Joiner joins and takes seat 2
-      await getVisibleText(pageB, '进入房间').first().click();
-      await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
-      await enterRoomCodeViaNumPad(pageB, roomCode);
-      await pageB.getByText('加入', { exact: true }).click();
-      await waitForRoomScreenReady(pageB, { role: 'joiner' });
-      await settleAfterRoomReady(pageB);
-
       const roomB = new RoomPage(pageB);
+      await roomB.joinViaCode(roomCode);
       await roomB.seatAt(1);
 
       // Host sees seat 2 occupied
-      await pollSeatOccupied(roomA, 2);
+      await roomA.expectSeatOccupied(1);
 
-      // Host taps joiner's seat -> profile card opens
-      await roomA.getSeatTile(1).click();
-      await expect(pageA.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
-
-      // Click "移出座位" button inside the profile card -> directly kicks (no confirm dialog)
-      await pageA.getByText('移出座位', { exact: true }).click();
-
-      // Host sees seat 2 become empty
-      const hostSeat2After = await pollSeatEmpty(roomA, 2);
-      expect(hostSeat2After.isEmpty, 'Kicked seat should be empty').toBe(true);
+      // Host kicks from the profile card; the seat empties without a confirm dialog
+      await roomA.kickPlayer(1);
 
       // Joiner sees their seat badge disappear (kicked)
       await expect(pageB.getByTestId(TESTIDS.mySeatBadge)).not.toBeVisible({
@@ -252,30 +168,21 @@ test.describe('Werewolf — Seating', () => {
       const roomA = new RoomPage(pageA);
       await roomA.waitForReady('host');
       await roomA.seatAt(0);
-      await settleAfterRoomReady(pageA);
       const roomCode = await roomA.getRoomCode();
 
       // Host sees seat 2 empty before joiner
-      const hostSeat2Before = await roomA.collectSeatState(2);
-      expect(hostSeat2Before.isEmpty, 'Seat 2 should start empty').toBe(true);
+      await roomA.expectSeatEmpty(1);
 
       // Joiner joins
-      await getVisibleText(pageB, '进入房间').first().click();
-      await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
-      await enterRoomCodeViaNumPad(pageB, roomCode);
-      await pageB.getByText('加入', { exact: true }).click();
-      await waitForRoomScreenReady(pageB, { role: 'joiner' });
-      await settleAfterRoomReady(pageB);
+      const roomB = new RoomPage(pageB);
+      await roomB.joinViaCode(roomCode);
 
       // Joiner takes seat 2
-      const roomB = new RoomPage(pageB);
       await roomB.seatAt(1);
-      const joinerSeat2 = await pollSeatOccupied(roomB, 2);
-      expect(joinerSeat2.hasPlayerName, 'Joiner should be seated at seat 2').toBe(true);
+      await roomB.expectSeatOccupied(1);
 
-      // Host polls for seat 2 update
-      const hostSeat2After = await pollSeatOccupied(roomA, 2);
-      expect(hostSeat2After.hasPlayerName, 'Host should see joiner at seat 2').toBe(true);
+      // Host receives the seat 2 update
+      await roomA.expectSeatOccupied(1);
 
       await roomA.screenshot(testInfo, 'host-sees-joiner.png');
     } finally {
@@ -301,39 +208,23 @@ test.describe('Werewolf — Seating', () => {
       const roomA = new RoomPage(pageA);
       await roomA.waitForReady('host');
       await roomA.seatAt(0);
-      await settleAfterRoomReady(pageA);
       const roomCode = await roomA.getRoomCode();
 
       // Joiner joins and takes seat 2
-      await getVisibleText(pageB, '进入房间').first().click();
-      await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
-      await enterRoomCodeViaNumPad(pageB, roomCode);
-      await pageB.getByText('加入', { exact: true }).click();
-      await waitForRoomScreenReady(pageB, { role: 'joiner' });
-      await settleAfterRoomReady(pageB);
-
       const roomB = new RoomPage(pageB);
+      await roomB.joinViaCode(roomCode);
       await roomB.seatAt(1);
 
-      const joinerSeat2 = await pollSeatOccupied(roomB, 2);
-      expect(joinerSeat2.hasPlayerName, 'Joiner seated at seat 2').toBe(true);
+      await roomB.expectSeatOccupied(1);
 
       // Switch to seat 5
       await roomB.moveToSeat(4);
 
-      // Poll for seat switch to propagate (broadcast round-trip)
-      const joinerSeat5 = await pollSeatOccupied(roomB, 5);
-      const joinerSeat2After = await pollSeatEmpty(roomB, 2);
-
-      expect(joinerSeat5.hasPlayerName, 'Joiner now at seat 5').toBe(true);
-      expect(joinerSeat2After.isEmpty, 'Old seat 2 should be empty').toBe(true);
-
-      // Host should see the switch
-      const hostSeat5 = await pollSeatOccupied(roomA, 5);
-      const hostSeat2 = await roomA.collectSeatState(2);
-
-      expect(hostSeat5.hasPlayerName, 'Host sees seat 5 occupied').toBe(true);
-      expect(hostSeat2.isEmpty, 'Host sees old seat 2 empty').toBe(true);
+      // The switch propagates: seat 5 taken, old seat 2 cleared, on both clients
+      await roomB.expectSeatOccupied(4);
+      await roomB.expectSeatEmpty(1);
+      await roomA.expectSeatOccupied(4);
+      await roomA.expectSeatEmpty(1);
 
       await roomA.screenshot(testInfo, 'seat-switch.png');
     } finally {
@@ -359,34 +250,20 @@ test.describe('Werewolf — Seating', () => {
       const roomA = new RoomPage(pageA);
       await roomA.waitForReady('host');
       await roomA.seatAt(0);
-      await settleAfterRoomReady(pageA);
       const roomCode = await roomA.getRoomCode();
 
       // Joiner joins and takes seat 2
-      await getVisibleText(pageB, '进入房间').first().click();
-      await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
-      await enterRoomCodeViaNumPad(pageB, roomCode);
-      await pageB.getByText('加入', { exact: true }).click();
-      await waitForRoomScreenReady(pageB, { role: 'joiner' });
-      await settleAfterRoomReady(pageB);
-
       const roomB = new RoomPage(pageB);
+      await roomB.joinViaCode(roomCode);
       await roomB.seatAt(1);
 
       // Wait for host to see seat 2 occupied
-      const hostSeat2Before = await pollSeatOccupied(roomA, 2);
-      expect(hostSeat2Before.hasPlayerName, 'Host sees seat 2 occupied').toBe(true);
+      await roomA.expectSeatOccupied(1);
 
-      // Joiner stands up
+      // Joiner stands up; both clients see seat 2 empty
       await roomB.standUp(1);
-
-      // Joiner sees seat empty
-      const joinerSeat2After = await roomB.collectSeatState(2);
-      expect(joinerSeat2After.isEmpty, 'Joiner sees seat 2 empty after stand up').toBe(true);
-
-      // Host polls for empty
-      const hostSeat2After = await pollSeatEmpty(roomA, 2);
-      expect(hostSeat2After.isEmpty, 'Host sees seat 2 empty after joiner stands up').toBe(true);
+      await roomB.expectSeatEmpty(1);
+      await roomA.expectSeatEmpty(1);
 
       await roomA.screenshot(testInfo, 'stand-up.png');
     } finally {

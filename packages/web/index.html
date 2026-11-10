@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#FFFFFF" />
+    <meta name="description" content="本地/离线狼人杀游戏辅助工具，支持多人联机" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="狼人面杀电子裁判助手" />
+    <meta property="og:description" content="在线狼人杀裁判助手，输入房间号即可加入游戏" />
+    <meta property="og:image" content="https://werewolfgamer.com/pwa/icon-512.png" />
+    <meta property="og:url" content="https://werewolfgamer.com" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:site_name" content="狼人面杀电子裁判助手" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa/icon-192.png" />
+    <link rel="apple-touch-icon" href="/pwa/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>狼人面杀电子裁判助手</title>
+    <link rel="stylesheet" href="/src/global.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- Driven by src/boot/bootSplash.ts; removed once the app shows its first screen. -->
+    <div id="boot-splash" class="night-art boot-splash">
+      <img
+        class="night-art-image"
+        src="../../assets/pwa/web/splash-wolf-blue.webp"
+        alt=""
+        fetchpriority="high"
+      />
+      <span class="night-art-shade"></span>
+      <div class="night-art-title">
+        <h1>狼 人 杀</h1>
+        <span class="night-art-divider"></span>
+        <span class="night-art-subtitle">电 子 裁 判</span>
+      </div>
+      <div class="night-art-bottom">
+        <div
+          id="boot-progress"
+          class="boot-progress"
+          role="progressbar"
+          aria-label="加载进度"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
+          <span id="boot-progress-bar" class="boot-progress-bar"></span>
+        </div>
+        <p id="boot-status" class="boot-status" aria-live="polite">加载中…</p>
+        <p id="boot-hint" class="boot-hint" role="alert" hidden></p>
+        <a class="boot-refresh" href="">刷新页面</a>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

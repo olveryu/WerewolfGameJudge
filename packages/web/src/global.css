@@ -1,0 +1,107 @@
+@import './theme/tokens.css';
+@import './theme/nightArt.css';
+@import './boot/bootSplash.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* App-like touch behaviour: no long-press callout or text selection outside form fields. */
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  /* Contain in-app z-indexes so body-level portals (dialogs, toasts) always stack above. */
+  isolation: isolate;
+}
+
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    'PingFang SC',
+    'Microsoft YaHei',
+    sans-serif;
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  color: var(--color-text);
+  background: var(--color-background);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.text-input {
+  width: 100%;
+  min-height: var(--size-button-md);
+  padding: 0 var(--space-small);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.text-input:focus {
+  outline: var(--border-width-thick) solid var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+.alert-message {
+  white-space: pre-line;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.spinner {
+  display: inline-block;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  border: var(--border-width-thick) solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: spinner-turn 800ms linear infinite;
+}
+
+@keyframes spinner-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

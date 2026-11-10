@@ -112,8 +112,8 @@ export function createRevealOrder(wordLength: number, randomSeed: string): reado
 }
 
 /**
- * 已揭示首字母数量：min(floor(已进行毫秒 / 20000), 字数)。
- * 首字母可全部揭示（仍需结合画作推理，不直接泄露答案）。
+ * 已揭示首字母数量：min(floor(已进行毫秒 / 20000), 字数 - 1)。
+ * 至少留一个首字母不揭示，提示不会完整给出答案的拼音。
  */
 export function computeRevealedCount(
   phaseStartAt: number,
@@ -124,7 +124,7 @@ export function computeRevealedCount(
   if (nowMs < phaseStartAt) return 0;
   return Math.min(
     Math.floor((nowMs - phaseStartAt) / (hintRevealIntervalSeconds * 1000)),
-    wordLength,
+    wordLength - 1,
   );
 }
 

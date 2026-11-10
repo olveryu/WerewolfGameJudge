@@ -32,7 +32,7 @@ export interface DrawGuessViewModel {
   readonly word: string | null;
   /** 仅画手在 wordSelect 可见的候选词；其他人为空数组。 */
   readonly choices: readonly string[];
-  /** 猜题者看到的提示串，如 "3个字 · d _ m"；画手为 null。 */
+  /** 猜题者看到的拼音首字母提示，如 "d _ m"（字数另见 wordLength）；画手为 null。 */
   readonly hintText: string | null;
   readonly wordLength: number;
   readonly messages: readonly DrawGuessGuessMessage[];
@@ -42,7 +42,6 @@ export interface DrawGuessViewModel {
   /** 本轮内各座位已得分数（作画期取 turnScores，结算期取 roundScores）；其余阶段为空对象。 */
   readonly turnScores: Readonly<Record<number, number>>;
   readonly totalScores: Readonly<Record<number, number>>;
-  readonly turnLabel: string;
   readonly deadlineAt: number | null;
   readonly scores: Readonly<Record<number, number>>;
   /** 本局已结束回合：内容在各自 roundEnd 已对全员公开，对所有观看者原样投影。 */
@@ -119,8 +118,7 @@ export function getDrawGuessViewModel(
         state.config.hintRevealIntervalSeconds,
         phase.word.length,
       );
-      const initials = buildHintText(phase.pinyinInitials, phase.revealOrder, revealedCount);
-      hintText = `${phase.word.length}个字 · ${initials}`;
+      hintText = buildHintText(phase.pinyinInitials, phase.revealOrder, revealedCount);
     }
   } else if (phase.kind === 'roundEnd') {
     deadlineAt = phase.deadlineAt;
@@ -129,10 +127,6 @@ export function getDrawGuessViewModel(
   } else if (phase.kind === 'ended') {
     wordLength = 0;
   }
-
-  const totalTurns = state.drawerQueue.length * state.config.roundsPerDrawer;
-  const turnLabel =
-    phase.kind === 'lobby' ? '等待开始' : `第 ${state.turnIndex + 1} / ${totalTurns} 轮`;
 
   return {
     phase: phase.kind,
@@ -152,7 +146,6 @@ export function getDrawGuessViewModel(
           ? phase.roundScores
           : {},
     totalScores: phase.kind === 'ended' ? phase.totalScores : state.scores,
-    turnLabel,
     deadlineAt,
     scores: state.scores,
     turnHistory: state.turnHistory,

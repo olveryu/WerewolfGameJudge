@@ -1,0 +1,48 @@
+.wechat-guide {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-large);
+  background: var(--color-text);
+  color: var(--color-text-inverse);
+  text-align: center;
+}
+
+.wechat-guide-arrow {
+  position: absolute;
+  top: var(--space-medium);
+  right: var(--space-large);
+  font-size: var(--font-display);
+  animation: wechat-guide-bounce 1.5s ease-in-out infinite;
+}
+
+.wechat-guide-icon {
+  margin-bottom: var(--space-large);
+  font-size: var(--font-display);
+}
+
+.wechat-guide-title {
+  margin: 0 0 var(--space-small);
+  font-size: var(--font-title);
+}
+
+.wechat-guide-desc {
+  max-width: var(--size-modal-min-width);
+  margin: 0;
+  opacity: 0.7;
+}
+
+.wechat-guide-steps {
+  margin-top: var(--space-large);
+  text-align: left;
+  line-height: 2;
+}
+
+@keyframes wechat-guide-bounce {
+  50% {
+    transform: translateY(-10px);
+  }
+}

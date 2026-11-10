@@ -1,16 +1,17 @@
+import { TemplateCategory } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { expect, type Page, test } from '@playwright/test';
 
+import { TESTIDS } from '../../packages/web/src/testids';
+import { readAlertText } from '../helpers/alerts';
 import {
-  clickBottomButton,
+  clickNightButton,
   clickSeatAndConfirm,
   dismissAlert,
   driveGroupConfirmAck,
   driveWolfDisabledEmptyVote,
   findAllRolePageIndices,
   findRolePageIndex,
-  isTextVisible,
-  readAlertText,
   readRoomStep,
   viewLastNightInfo,
   waitForGroupConfirmStep,
@@ -49,20 +50,18 @@ test.setTimeout(300_000);
  * A wolf seat must not be confessable: tapping it during the Wolf
  * Girl's confess step opens no "确认表白" dialog and does not move
  * the night step. The tap may surface a disabled-reason notice or
- * nothing at all; either way the step must stay put.
+ * nothing at all; either way the step must stay put. The open step
+ * prompt is dismissed first so the tap reaches the seat.
  */
 async function expectWolfSeatNotConfessable(page: Page, seat: number): Promise<void> {
   const stepBefore = await readRoomStep(page);
-  const tile = page.locator(`[data-testid="seat-tile-pressable-${seat}"]`);
-  await tile.waitFor({ state: 'visible', timeout: 10_000 });
-  await tile.click({ timeout: 10_000 }).catch(() => false);
+  await dismissAlert(page);
+  await page.getByTestId(TESTIDS.seatTilePressable(seat)).click({ timeout: 10_000 });
   await page.waitForTimeout(300);
 
-  const modalText = await page
-    .locator('[data-testid="alert-modal"]')
-    .textContent()
-    .catch(() => null);
-  expect(modalText ?? '', 'No confess confirm dialog for a wolf seat').not.toContain('确认表白');
+  const alertTitle = page.getByTestId(TESTIDS.alertTitle);
+  const alertTitleText = (await alertTitle.count()) > 0 ? await alertTitle.textContent() : '';
+  expect(alertTitleText, 'No confess confirm dialog for a wolf seat').not.toContain('确认表白');
   expect(await readRoomStep(page), 'Night step must not move after tapping a wolf seat').toBe(
     stepBefore,
   );
@@ -103,8 +102,7 @@ async function drivePostConfessNight(
     const poisonerTurn = await waitForRoleTurn(pages[poisonerPageIndex]!, 'poisonerPoison', pages);
     expect(poisonerTurn, 'Poisoner turn should become active').toBe(true);
     await dismissAlert(pages[poisonerPageIndex]!);
-    const skipped = await clickBottomButton(pages[poisonerPageIndex]!, '不用技能');
-    expect(skipped, 'Poisoner should be able to skip').toBe(true);
+    await clickNightButton(pages[poisonerPageIndex]!, 'skip', '不用技能');
     await dismissAlert(pages[poisonerPageIndex]!);
   });
 
@@ -112,8 +110,7 @@ async function drivePostConfessNight(
     const hunterTurn = await waitForRoleTurn(pages[hunterPageIndex]!, 'hunterConfirm', pages);
     expect(hunterTurn, 'Hunter turn should become active').toBe(true);
     await dismissAlert(pages[hunterPageIndex]!);
-    const opened = await clickBottomButton(pages[hunterPageIndex]!, '发动状态');
-    expect(opened, 'Hunter status button should be available').toBe(true);
+    await clickNightButton(pages[hunterPageIndex]!, 'confirm', '发动状态');
     const alertText = await readAlertText(pages[hunterPageIndex]!);
     expect(alertText).toContain('猎人');
     expect(alertText).toMatch(/可以发动技能|不能发动技能/);
@@ -140,7 +137,7 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
       browser,
       {
         playerCount: 12,
-        configure: async (config) => config.selectTemplate('狼女孩', '特色'),
+        configure: async (config) => config.selectTemplate('狼女孩', TemplateCategory.Special),
       },
       async ({ pages, roleMap }) => {
         const wolfGirlPageIndex = findRolePageIndex(roleMap, '狼女孩');
@@ -178,8 +175,10 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
           );
           expect(confessTurn, 'Wolf Girl confess turn should become active').toBe(true);
 
-          const showsConfessVerb = await isTextVisible(pages[wolfGirlPageIndex]!, '表白');
-          expect(showsConfessVerb, 'Confess step should show the 表白 verb').toBe(true);
+          await expect(
+            pages[wolfGirlPageIndex]!.getByTestId(TESTIDS.alertMessage),
+            'Confess step prompt should show the 表白 verb',
+          ).toContainText('请选择要表白的玩家');
 
           await expectWolfSeatNotConfessable(pages[wolfGirlPageIndex]!, wolfSeats[0]!);
 
@@ -235,7 +234,7 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
       browser,
       {
         playerCount: 12,
-        configure: async (config) => config.selectTemplate('狼女孩', '特色'),
+        configure: async (config) => config.selectTemplate('狼女孩', TemplateCategory.Special),
       },
       async ({ pages, roleMap }) => {
         const wolfGirlPageIndex = findRolePageIndex(roleMap, '狼女孩');

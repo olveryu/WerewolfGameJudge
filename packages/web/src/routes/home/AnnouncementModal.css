@@ -1,0 +1,109 @@
+.announcement-modal {
+  gap: var(--space-small);
+}
+
+.announcement-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+}
+
+.announcement-header-icon {
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  color: var(--color-primary);
+}
+
+.announcement-title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--font-title);
+  line-height: var(--line-title);
+  font-weight: var(--weight-semibold);
+}
+
+.announcement-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-min-touch-target);
+  min-height: var(--size-min-touch-target);
+  border: 0;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.announcement-close svg {
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+}
+
+.announcement-tabs {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.announcement-tab {
+  display: inline-flex;
+  flex: 1 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-micro);
+  padding: var(--space-small);
+  border: 0;
+  border-bottom: var(--border-width-thick) solid transparent;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.announcement-tab[data-selected] {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.announcement-tab-dot {
+  width: var(--size-badge-dot);
+  height: var(--size-badge-dot);
+  border-radius: var(--radius-full);
+  background: var(--color-error);
+}
+
+.announcement-scroll {
+  max-height: 45dvh;
+  overflow-y: auto;
+  padding-top: var(--space-small);
+}
+
+.announcement-section + .announcement-section {
+  margin-top: var(--space-medium);
+  padding-top: var(--space-medium);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.announcement-section-title {
+  margin: 0 0 var(--space-tight);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  font-weight: var(--weight-semibold);
+}
+
+.announcement-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+  margin: 0;
+  padding-left: var(--space-large);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+}
+
+.announcement-items li::marker {
+  color: var(--color-primary);
+}

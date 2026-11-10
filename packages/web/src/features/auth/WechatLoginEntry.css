@@ -1,0 +1,5 @@
+.wechat-entry-hint {
+  margin: 0;
+  font-size: var(--font-caption);
+  opacity: 0.5;
+}

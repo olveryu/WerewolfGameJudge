@@ -1,0 +1,56 @@
+.host-management-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-small) var(--space-medium) var(--space-small) var(--space-large);
+}
+
+.host-management-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  line-height: var(--line-subtitle);
+  font-weight: var(--weight-semibold);
+}
+
+.host-management-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-large);
+  padding: 0 var(--space-large) max(var(--space-xlarge), env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.host-management-section-title {
+  margin: 0 0 var(--space-small);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+}
+
+.host-management-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+}
+
+.host-management-action {
+  display: flex;
+  flex-direction: column;
+}
+
+.host-management-action > .button {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.host-management-inspector {
+  display: flex;
+  flex-direction: column;
+  width: calc(var(--size-modal-min-width) + var(--space-xxlarge));
+  min-height: 0;
+  border-left: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+}

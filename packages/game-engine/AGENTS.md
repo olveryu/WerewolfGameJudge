@@ -1,6 +1,6 @@
 # Game engine package
 
-Scope: `packages/game-engine/**` only. Client rules live in `src/AGENTS.md`; worker rules in `packages/api-worker/AGENTS.md`; shared workflow, commands, and gates in the root file.
+Scope: `packages/game-engine/**` only. Client rules live in `packages/web/AGENTS.md`; worker rules in `packages/api-worker/AGENTS.md`; shared workflow, commands, and gates in the root file.
 
 ## Identity and boundaries
 
@@ -63,7 +63,7 @@ Scope: `packages/game-engine/**` only. Client rules live in `src/AGENTS.md`; wor
 
 - Randomness uses Web Crypto: `crypto.getRandomValues` through `platform/random/random.ts` (`secureRng` and friends).
 - No `console.*` in this package (`no-console` error in the root `eslint.config.mjs`) and no logger dependency; pure APIs return typed outcomes or throw contract errors.
-- No ordinary type assertions in production code: only `as const` is allowed, pinned by `game-engine production type honesty` in `packages/game-engine/src/platform/__tests__/architecture.contract.test.ts` and `Production types: no ordinary assertions` in `src/__tests__/architecture.contract.test.ts`. Use type guards, `satisfies`, or generic inference instead.
+- No ordinary type assertions in production code: only `as const` is allowed, pinned by `game-engine production type honesty` in `packages/game-engine/src/platform/__tests__/architecture.contract.test.ts` and `Production types: no ordinary assertions` in `contracts/architecture.contract.test.ts`. Use type guards, `satisfies`, or generic inference instead.
 
 ## Tests for this package
 

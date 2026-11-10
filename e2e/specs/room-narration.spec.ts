@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-import { AUDIO_WAITING_LABEL } from '../../src/features/room/model/RoomBottomActions';
-import { TESTIDS } from '../../src/testids';
+import { AUDIO_WAITING_LABEL } from '../../packages/web/src/features/room/model/RoomBottomActions';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
@@ -48,11 +48,7 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
         await new RoomPage(spectatorPage).joinViaCode(roomCode);
         await hostRoom.prepareRoles();
         for (const page of playerPages) {
-          await page.getByRole('button', { name: '查看身份', exact: true }).click();
-          const modal = page.getByTestId('role-card-modal');
-          await expect(modal).toBeVisible();
-          await modal.getByText('知道了', { exact: true }).click();
-          await expect(modal).toBeHidden();
+          await new RoomPage(page).viewRole();
         }
       });
 
@@ -83,13 +79,17 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
         ];
         for (const { page, name, viewport } of viewers) {
           await page.setViewportSize(viewport);
-          const narration = page.getByText(AUDIO_WAITING_LABEL, { exact: true });
-          await expect(narration).toHaveCount(1);
+          const narration = page.getByTestId(TESTIDS.audioWaitingMessage);
+          await expect(narration).toHaveText(AUDIO_WAITING_LABEL);
           await expect(narration).toBeInViewport({ ratio: 1 });
-          await expect(page.getByRole('button', { name: AUDIO_WAITING_LABEL })).toHaveCount(0);
-          await expect(
-            page.getByTestId(TESTIDS.bottomActionPanel).getByText(/第\d+步 \/ 共\d+步/),
-          ).toBeVisible();
+          const roomText = await page.getByTestId(TESTIDS.roomScreenRoot).textContent();
+          expect(
+            roomText?.split(AUDIO_WAITING_LABEL).length,
+            'The narration label renders exactly once in the room',
+          ).toBe(2);
+          await expect(page.getByTestId(TESTIDS.roomProgressIndicator)).toContainText(
+            /第\d+步 \/ 共\d+步/,
+          );
           await testInfo.attach(`${gameId}-${name}`, {
             body: await page.screenshot(),
             contentType: 'image/png',
@@ -100,25 +100,29 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
       if (gameId === 'avalon') {
         await test.step('播报期间仍能确认夜晚信息', async () => {
           const counts = await Promise.all(
-            playerPages.map((page) => page.getByTestId('avalon-night-info').count()),
+            playerPages.map((page) => page.getByTestId(TESTIDS.avalonNightInfo).count()),
           );
           const participantIndex = counts.findIndex((count) => count === 1);
           expect(participantIndex).toBeGreaterThanOrEqual(0);
           const page = playerPages[participantIndex]!;
-          await expect(page.getByText(AUDIO_WAITING_LABEL, { exact: true })).toBeVisible();
-          await page.getByTestId('avalon-night-info').click();
+          await expect(page.getByTestId(TESTIDS.audioWaitingMessage)).toHaveText(
+            AUDIO_WAITING_LABEL,
+          );
+          await page.getByTestId(TESTIDS.avalonNightInfo).click();
           await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('坏人互认');
           await page.getByTestId(TESTIDS.alertButton(0)).click();
           await expect(page.getByTestId(TESTIDS.alertModal)).toBeHidden();
-          await expect(page.getByText('等待本步玩家确认', { exact: true })).toBeVisible();
-          await expect(page.getByText(AUDIO_WAITING_LABEL, { exact: true })).toBeVisible();
+          await expect(page.getByTestId(TESTIDS.actionMessage)).toHaveText('等待本步玩家确认');
+          await expect(page.getByTestId(TESTIDS.audioWaitingMessage)).toHaveText(
+            AUDIO_WAITING_LABEL,
+          );
         });
       }
 
       await test.step('真实播报 ack 后各视角移除状态', async () => {
         audioAckGate.resolve();
         for (const page of [hostPage, playerPages[1]!, spectatorPage]) {
-          await expect(page.getByText(AUDIO_WAITING_LABEL, { exact: true })).toHaveCount(0, {
+          await expect(page.getByTestId(TESTIDS.audioWaitingMessage)).toHaveCount(0, {
             timeout: 45_000,
           });
         }

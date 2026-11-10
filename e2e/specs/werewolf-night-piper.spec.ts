@@ -1,13 +1,14 @@
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { expect, test } from '@playwright/test';
 
+import { TESTIDS } from '../../packages/web/src/testids';
 import {
-  clickBottomButton,
+  clickNightButton,
   dismissAlert,
   driveGroupConfirmAck,
+  driveMultiSelect,
   driveWolfVote,
   findRolePageIndex,
-  isTextVisible,
   viewLastNightInfo,
   waitForGroupConfirmStep,
   waitForNightEnd,
@@ -29,56 +30,6 @@ import { withSetup } from '../helpers/night-setup';
  */
 
 test.setTimeout(180_000);
-
-// ============================================================================
-// Helpers local to this file
-// ============================================================================
-
-/**
- * Drive piper's multiChooseSeat hypnotize action.
- *
- * Unlike single chooseSeat (click seat → alert confirm), multiChooseSeat
- * toggles seat selection on click (no alert), then the player clicks the
- * bottom-panel "确认催眠（N人）" button to confirm.
- */
-async function drivePiperHypnotize(
-  page: import('@playwright/test').Page,
-  targetSeats: number[],
-): Promise<boolean> {
-  // Dismiss any existing alert (e.g. "夜间行动" action prompt)
-  await dismissAlert(page);
-
-  // Click each target seat to toggle selection
-  for (const seat of targetSeats) {
-    const tile = page.locator(`[data-testid="seat-tile-pressable-${seat}"]`);
-    await tile.waitFor({ state: 'visible', timeout: 5000 });
-    await tile.click();
-    // Brief wait for selection state to update
-    await page.waitForTimeout(200);
-  }
-
-  // Click the confirm button: "确认催眠（N人）"
-  const confirmLabel = `确认催眠（${targetSeats.length}人）`;
-  const panel = page.locator('[data-testid="bottom-action-panel"]');
-  const confirmBtn = panel.getByText(confirmLabel, { exact: true }).first();
-  await confirmBtn.waitFor({ state: 'visible', timeout: 5000 });
-  await confirmBtn.click();
-
-  // Wait for confirm alert ("催眠选中的玩家？")
-  const alertModal = page.locator('[data-testid="alert-modal"]');
-  const appeared = await alertModal
-    .waitFor({ state: 'visible', timeout: 3000 })
-    .then(() => true)
-    .catch(() => false);
-  if (!appeared) return false;
-
-  const okBtn = alertModal.getByText('确定', { exact: true }).first();
-  if (await okBtn.isVisible().catch(() => false)) {
-    await okBtn.click();
-    return true;
-  }
-  return false;
-}
 
 // ============================================================================
 // Tests
@@ -121,8 +72,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
         await test.step('piper hypnotizes wolf', async () => {
           const piperTurn = await waitForRoleTurn(pages[piperIdx]!, 'piperHypnotize', pages);
           expect(piperTurn, 'Piper turn should be detected').toBe(true);
-          const hypnotized = await drivePiperHypnotize(pages[piperIdx]!, [wolfSeat]);
-          expect(hypnotized, 'Piper should have confirmed hypnotize').toBe(true);
+          await driveMultiSelect(pages[piperIdx]!, [wolfSeat], '确认催眠（1人）');
         });
 
         // === GroupConfirm: all players ack ===
@@ -154,9 +104,8 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
           const ended = await waitForNightEnd(pages);
           expect(ended, 'Night should have ended').toBe(true);
 
-          await viewLastNightInfo(pages[0]!);
-          const hasDeath = await isTextVisible(pages[0]!, '死亡');
-          expect(hasDeath, 'Villager should have died').toBe(true);
+          const nightInfo = await viewLastNightInfo(pages[0]!);
+          expect(nightInfo, 'Villager should have died').toContain('昨夜死亡');
         });
       },
     );
@@ -205,11 +154,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
         await test.step('piper hypnotizes 2 targets', async () => {
           const piperTurn = await waitForRoleTurn(pages[piperIdx]!, 'piperHypnotize', pages);
           expect(piperTurn).toBe(true);
-          const hypnotized = await drivePiperHypnotize(pages[piperIdx]!, [
-            target1Seat,
-            target2Seat,
-          ]);
-          expect(hypnotized, 'Piper should have confirmed hypnotize 2 targets').toBe(true);
+          await driveMultiSelect(pages[piperIdx]!, [target1Seat, target2Seat], '确认催眠（2人）');
         });
 
         // === GroupConfirm: verify messages ===
@@ -284,12 +229,12 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
           // Dismiss action prompt alert first
           await dismissAlert(pages[piperIdx]!);
           // Click "不用技能" skip button
-          const skipped = await clickBottomButton(pages[piperIdx]!, '不用技能');
-          expect(skipped, 'Should find 不用技能 button').toBe(true);
+          await clickNightButton(pages[piperIdx]!, 'skip', '不用技能');
 
           // Confirm skip alert ("确认跳过" dialog with "确定" button)
-          const alertModal = pages[piperIdx]!.locator('[data-testid="alert-modal"]');
-          await alertModal.waitFor({ state: 'visible', timeout: 5000 });
+          await expect(pages[piperIdx]!.getByTestId(TESTIDS.alertModal)).toBeVisible({
+            timeout: 5000,
+          });
           await dismissAlert(pages[piperIdx]!);
         });
 
@@ -310,9 +255,8 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
           const ended = await waitForNightEnd(pages);
           expect(ended).toBe(true);
 
-          await viewLastNightInfo(pages[0]!);
-          const hasDeath = await isTextVisible(pages[0]!, '死亡');
-          expect(hasDeath, 'Villager should have died').toBe(true);
+          const nightInfo = await viewLastNightInfo(pages[0]!);
+          expect(nightInfo, 'Villager should have died').toContain('昨夜死亡');
         });
       },
     );

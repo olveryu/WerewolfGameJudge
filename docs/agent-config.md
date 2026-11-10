@@ -12,7 +12,7 @@ live only in the files listed under Layout; do not add rules here.
 | `AGENTS.md` (repository root)      | Global rules: snapshot, commands, boundaries, conventions, output rule, pointers. |
 | `packages/game-engine/AGENTS.md`   | Engine package rules.                                                             |
 | `packages/api-worker/AGENTS.md`    | Worker package rules.                                                             |
-| `src/AGENTS.md`                    | Client and room-shell rules.                                                      |
+| `packages/web/AGENTS.md`           | Web client and room-shell rules.                                                  |
 | `e2e/AGENTS.md`                    | End-to-end test rules.                                                            |
 | `.agents/skills/<name>/SKILL.md`   | One workflow per skill directory.                                                 |
 | `scripts/validate-agent-files.mjs` | The validator. Run through `pnpm run validate:agents`.                            |

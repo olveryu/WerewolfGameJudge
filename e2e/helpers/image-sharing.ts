@@ -8,6 +8,7 @@ import { readFile } from 'node:fs/promises';
 
 import { expect, type Locator, type Page, type Route, test } from '@playwright/test';
 
+import { TESTIDS } from '../../packages/web/src/testids';
 import { waitForRoomScreenReady } from './waits';
 
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -18,6 +19,13 @@ export const REVIEW_CAPTURE_TIMEOUT_MS = 30_000;
 /** A PNG's pixel size, read from its IHDR chunk. */
 export function readPngSize(png: Buffer): { readonly width: number; readonly height: number } {
   return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
+}
+
+/** Close the open review dialog through its 「关闭详情」 header button. */
+export async function closeReviewDialog(page: Page): Promise<void> {
+  const closeButton = page.getByTestId(TESTIDS.roomDialogCloseButton);
+  await expect(closeButton).toHaveAccessibleName('关闭详情');
+  await closeButton.click();
 }
 
 /**
@@ -55,8 +63,7 @@ declare global {
 /** Checks that unrelated pending images cannot block PNG upload and WeChat preview completion. */
 export async function expectWeChatImageShare(
   page: Page,
-  openButtonName: string | RegExp,
-  shareButtonName: string | RegExp,
+  openButton: { readonly testId: string; readonly label: string },
   count: number,
 ): Promise<void> {
   const previews: { current: string | undefined; urls: string[] }[] = [];
@@ -103,9 +110,14 @@ export async function expectWeChatImageShare(
       document.body.appendChild(image);
     }, pendingImageUrl);
     await requested;
-    await page.getByRole('button', { name: openButtonName, exact: true }).click();
-    const shareButton = page.getByRole('button', { name: shareButtonName, exact: true });
+    const open = page.getByTestId(openButton.testId);
+    await expect(open).toHaveText(openButton.label);
+    await open.click();
+    const shareButton = page.getByTestId(TESTIDS.roomReviewShareButton);
     await expect(shareButton).toBeEnabled({ timeout: REVIEW_CAPTURE_TIMEOUT_MS });
+    await expect(shareButton).toHaveText(
+      count === 1 ? '保存／分享图片' : `保存／分享全部 ${count} 页`,
+    );
     await shareButton.click();
     await expect.poll(() => previews.length, { timeout: 20_000 }).toBe(1);
     await expect(shareButton).toBeEnabled();
@@ -124,7 +136,7 @@ export async function expectWeChatImageShare(
       expect(png.length).toBeGreaterThan(10_000);
       await test.info().attach(`wechat-share-${index}`, { body: png, contentType: 'image/png' });
     }
-    await page.getByRole('button', { name: '关闭详情', exact: true }).click();
+    await closeReviewDialog(page);
   } finally {
     page.off('download', recordDownload);
     await page.evaluate(() => document.getElementById('unrelated-share-image')?.remove());

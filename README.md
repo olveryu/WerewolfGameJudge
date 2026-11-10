@@ -146,11 +146,11 @@
            HTTP 提交 · WebSocket 接收 · Host 播音频
 ```
 
-三层结构：**平台层**共用房间、座位、连接、重连与广播管线；**游戏层**每个游戏有独立状态机与规则（`packages/game-engine/src/games/<game>/` 与 `src/games/<game>/`）；**目录层**在引擎、Worker、客户端各只有一个穷尽式 catalog，漏注册会在编译期或契约测试中失败。
+三层结构：**平台层**共用房间、座位、连接、重连与广播管线；**游戏层**每个游戏有独立状态机与规则（`packages/game-engine/src/games/<game>/` 与 `packages/web/src/games/<game>/`）；**目录层**在引擎、Worker、客户端各只有一个穷尽式 catalog，漏注册会在编译期或契约测试中失败。
 
 核心约束：服务端是唯一游戏逻辑权威，客户端不做逻辑决策；所有客户端平等，Host 只是 UI 与音频角色；`GameState` 是单一真相源，服务端读-算-写-广播。
 
-技术栈：React Native 0.85 · Expo SDK 56 · TypeScript 6 · Cloudflare Workers / D1 / R2 / Durable Objects · Jest · Playwright · Sentry
+技术栈：React 19 · Vite 8 · TypeScript 6 · Cloudflare Workers / D1 / R2 / Durable Objects · Vitest · Playwright · Sentry
 
 ---
 
@@ -158,7 +158,7 @@
 
 ```bash
 pnpm install          # 安装依赖
-pnpm run dev          # Worker + Expo Web 同时启动 (localhost:8787 + :8081)
+pnpm run dev          # Worker + Vite 同时启动 (localhost:8787 + Vite dev server)
 pnpm run quality      # 完整质量门禁（类型、构建、Knip、lint、格式、测试）
 pnpm run e2e          # Playwright E2E
 

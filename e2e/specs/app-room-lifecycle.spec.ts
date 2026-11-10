@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
 
+import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
-import { enterRoomCodeViaNumPad } from '../helpers/home';
+import { confirmAlert } from '../helpers/alerts';
+import { enterRoomCodeViaNumPad, submitJoinRoom } from '../helpers/home';
 import { setupNPlayerGame } from '../helpers/multi-player';
 import { HomePage } from '../pages/HomePage';
 
@@ -26,14 +28,13 @@ test.describe('App — Room Lifecycle', () => {
     try {
       const home = new HomePage(page);
       await home.clickJoinRoom();
-      await expect(page.getByText('加入房间')).toBeVisible({ timeout: 5000 });
 
       // 0000 is outside the canonical public-room namespace and must fail before lookup.
       await enterRoomCodeViaNumPad(page, '0000');
-      await page.getByText('加入', { exact: true }).click();
+      await submitJoinRoom(page);
 
-      await expect(page.getByText('请输入4位数字房间号')).toBeVisible();
-      await expect(page.getByText('加入房间')).toBeVisible();
+      await expect(page.getByTestId(TESTIDS.joinRoomError)).toHaveText('请输入4位数字房间号');
+      await expect(page.getByTestId(TESTIDS.joinRoomDialog)).toHaveAccessibleName('加入房间');
       await expect(page).toHaveURL(/^(?!.*\/room\/)/);
     } finally {
       await closeAll(fixture);
@@ -51,11 +52,9 @@ test.describe('App — Room Lifecycle', () => {
 
     try {
       // Click the back button on room header
-      await hostPage.locator('[data-testid="room-back-button"]').click();
+      await hostPage.getByTestId(TESTIDS.roomBackButton).click();
 
-      // Confirm leave dialog: "离开房间？" → "确定"
-      await expect(hostPage.getByText('离开房间？')).toBeVisible({ timeout: 5000 });
-      await hostPage.getByText('确定', { exact: true }).click();
+      await confirmAlert(hostPage, '离开房间？', 5000);
 
       // Verify redirected to home via URL (web-first assertion auto-retries)
       await expect(hostPage).toHaveURL(/^(?!.*\/room\/)/, { timeout: 15_000 });
@@ -76,11 +75,9 @@ test.describe('App — Room Lifecycle', () => {
 
     try {
       // Click back button
-      await joinerPage.locator('[data-testid="room-back-button"]').click();
+      await joinerPage.getByTestId(TESTIDS.roomBackButton).click();
 
-      // Confirm leave
-      await expect(joinerPage.getByText('离开房间？')).toBeVisible({ timeout: 5000 });
-      await joinerPage.getByText('确定', { exact: true }).click();
+      await confirmAlert(joinerPage, '离开房间？', 5000);
 
       // Verify redirected to home via URL (web-first assertion auto-retries)
       await expect(joinerPage).toHaveURL(/^(?!.*\/room\/)/, { timeout: 15_000 });
@@ -121,8 +118,8 @@ test.describe('App — Room Lifecycle', () => {
       // Try to continue — board validation rejects before the Rules step
       await config.pressNext();
 
-      // Expect validation error: "请至少选择一个角色"
-      await expect(page.getByText('请至少选择一个角色')).toBeVisible({ timeout: 5000 });
+      await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('配置有误', { timeout: 5000 });
+      await expect(page.getByTestId(TESTIDS.alertMessage)).toHaveText('请至少选择一个角色');
     } finally {
       await closeAll(fixture);
     }

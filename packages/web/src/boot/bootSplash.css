@@ -1,0 +1,59 @@
+/* Boot splash: static markup in index.html, driven by boot/bootSplash.ts, faded out by dismissBootSplash. */
+.boot-splash {
+  transition: opacity 300ms ease-out;
+}
+
+.boot-splash-leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.boot-progress {
+  width: 60%;
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: rgb(255 255 255 / 20%);
+}
+
+.boot-progress-bar {
+  display: block;
+  height: 100%;
+  background: #ffffff;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 200ms ease-out;
+}
+
+.boot-status {
+  margin: 0;
+  font-size: var(--font-caption);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.boot-hint {
+  margin: 0;
+  font-size: var(--font-caption);
+  text-align: center;
+}
+
+/* Escape hatch when loading stalls: shown after 8 s even without any script, or at once on a hint.
+   `visibility` keeps it out of the tab order and accessibility tree until then. */
+.boot-refresh {
+  color: #ffffff;
+  font-size: var(--font-secondary);
+  visibility: hidden;
+  animation: boot-refresh-reveal 0s linear 8s forwards;
+}
+
+.boot-splash[data-stalled] .boot-refresh {
+  animation: none;
+  visibility: visible;
+}
+
+@keyframes boot-refresh-reveal {
+  to {
+    visibility: visible;
+  }
+}

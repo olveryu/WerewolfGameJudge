@@ -1,0 +1,45 @@
+/**
+ * WitchMarkFrame — witch mark
+ *
+ * Dark-orange occult frame, pentagram marks at the four corners, etched scratch patterns extending out, arcane flame dots.
+ */
+import { staticFrame } from './frameArt';
+
+/** 巫痕 */
+export const witchMarkFrame = staticFrame('witchMark', ({ rx }) => {
+  const mainG = 'wmM';
+  return `
+    <defs>
+      <linearGradient id="${mainG}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#E67E22" stop-opacity="0.9"/>
+        <stop offset="0.5" stop-color="#AF601A" stop-opacity="1"/>
+        <stop offset="1" stop-color="#E67E22" stop-opacity="0.9"/>
+      </linearGradient>
+    </defs>
+    <rect x="0" y="0" width="100" height="100" rx="${rx}" fill="none" stroke="url(#${mainG})" stroke-width="4.5"/>
+    <rect x="5" y="5" width="90" height="90" rx="${Math.max(rx - 4, 0)}" fill="none" stroke="#F0B27A" stroke-width="0.6" opacity="0.4"/>
+    <path d="M0,-6 L1.5,-1.5 L6,0 L1.5,1.5 L0,6 L-1.5,1.5 L-6,0 L-1.5,-1.5 Z" fill="#AF601A" stroke="#E67E22" stroke-width="0.6" opacity="0.8"/>
+    <path d="M-3,-3 L3,3 M3,-3 L-3,3" stroke="#F0B27A" stroke-width="0.4" opacity="0.6"/>
+    <path d="M100,-6 L101.5,-1.5 L106,0 L101.5,1.5 L100,6 L98.5,1.5 L94,0 L98.5,-1.5 Z" fill="#AF601A" stroke="#E67E22" stroke-width="0.6" opacity="0.8"/>
+    <path d="M97,-3 L103,3 M103,-3 L97,3" stroke="#F0B27A" stroke-width="0.4" opacity="0.6"/>
+    <path d="M0,94 L1.5,98.5 L6,100 L1.5,101.5 L0,106 L-1.5,101.5 L-6,100 L-1.5,98.5 Z" fill="#AF601A" stroke="#E67E22" stroke-width="0.6" opacity="0.8"/>
+    <path d="M-3,97 L3,103 M3,97 L-3,103" stroke="#F0B27A" stroke-width="0.4" opacity="0.6"/>
+    <path d="M100,94 L101.5,98.5 L106,100 L101.5,101.5 L100,106 L98.5,101.5 L94,100 L98.5,98.5 Z" fill="#AF601A" stroke="#E67E22" stroke-width="0.6" opacity="0.8"/>
+    <path d="M20,-1 L18,-5 L22,-3" fill="none" stroke="#AF601A" stroke-width="1" opacity="0.6" stroke-linecap="round"/>
+    <path d="M40,-1 L38,-4 L42,-2" fill="none" stroke="#AF601A" stroke-width="1" opacity="0.55" stroke-linecap="round"/>
+    <path d="M60,-1 L58,-5 L62,-3" fill="none" stroke="#AF601A" stroke-width="1" opacity="0.6" stroke-linecap="round"/>
+    <path d="M80,-1 L78,-4 L82,-2" fill="none" stroke="#AF601A" stroke-width="1" opacity="0.55" stroke-linecap="round"/>
+    <path d="M25,101 L23,105 L27,103" fill="none" stroke="#AF601A" stroke-width="1" opacity="0.6" stroke-linecap="round"/>
+    <path d="M50,101 L48,104 L52,102" fill="none" stroke="#AF601A" stroke-width="1" opacity="0.55" stroke-linecap="round"/>
+    <path d="M75,101 L73,105 L77,103" fill="none" stroke="#AF601A" stroke-width="1" opacity="0.6" stroke-linecap="round"/>
+    <path d="M-1,25 L-4,23 L-2,27" fill="none" stroke="#AF601A" stroke-width="1" opacity="0.5" stroke-linecap="round"/>
+    <path d="M-1,60 L-5,58 L-3,62" fill="none" stroke="#AF601A" stroke-width="1" opacity="0.5" stroke-linecap="round"/>
+    <path d="M101,40 L104,38 L102,42" fill="none" stroke="#AF601A" stroke-width="1" opacity="0.5" stroke-linecap="round"/>
+    <path d="M101,75 L105,73 L103,77" fill="none" stroke="#AF601A" stroke-width="1" opacity="0.5" stroke-linecap="round"/>
+    <circle cx="50" cy="-3" r="1.8" fill="#E67E22" opacity="0.7"/>
+    <circle cx="50" cy="-3.5" r="0.7" fill="#F9E79F" opacity="0.8"/>
+    <circle cx="50" cy="103" r="1.8" fill="#E67E22" opacity="0.7"/>
+    <circle cx="-3" cy="50" r="1.5" fill="#E67E22" opacity="0.6"/>
+    <circle cx="103" cy="50" r="1.5" fill="#E67E22" opacity="0.6"/>
+  `;
+});

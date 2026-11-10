@@ -5,7 +5,6 @@ import {
   clickSeatAndConfirm,
   driveWolfVote,
   findRolePageIndex,
-  isTextVisible,
   viewLastNightInfo,
   waitForNightEnd,
   waitForRoleTurn,
@@ -84,10 +83,8 @@ async function finishNight(cast: NightCast): Promise<void> {
   });
   await test.step('night ends with a result', async () => {
     expect(await waitForNightEnd(pages, 180_000)).toBe(true);
-    await viewLastNightInfo(pages[0]!);
-    const peaceful = await isTextVisible(pages[0]!, '平安夜');
-    const death = await isTextVisible(pages[0]!, '死亡');
-    expect(peaceful || death).toBe(true);
+    const nightInfo = await viewLastNightInfo(pages[0]!);
+    expect(nightInfo).toMatch(/^昨夜(平安夜|死亡)/);
   });
 }
 

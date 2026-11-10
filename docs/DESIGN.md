@@ -4,7 +4,7 @@
 
 - **What this is:** Multigame face-to-face judge app; Werewolf is the primary UI reference, alongside FibKing, Pictionary and Undercover
 - **Who it's for:** Face-to-face tabletop players (Host + remote players)
-- **Platform:** iOS / Android / Web (React Native + Expo)
+- **Platform:** Web (React DOM + CSS, PixiJS scene layer), in browsers and the WeChat mini-program web-view
 - **Theme count:** One active Moonlight color set. Historical multi-theme proposals are not implemented theme choices.
 
 ## Aesthetic Direction
@@ -41,7 +41,7 @@
 
 - **Historical theme proposals (not current color values or an implemented theme registry):**
 
-The active palette is exported as `colors` from `src/theme/colors.ts`. Use those semantic
+The active palette is exported as `colors` from `packages/web/src/theme/colors.ts`. Use those semantic
 exports; the table below is retained only as design history and must not seed a new game's palette.
 
 | Key        | Name       | Type  | Primary   | Background | Surface   | Text      |
@@ -109,17 +109,17 @@ Uses RN 0.76+ `boxShadow` property, cross-platform iOS/Android/Web.
 ## Fixed Values
 
 - Border width: 1px (normal), 2px (thick), 3px (highlight)
-- Active opacity: 0.7 (TouchableOpacity press state)
+- Active opacity: 0.7 (press state)
 - Disabled opacity: 0.5
 
 ## Motion
 
-- **Approach:** Minimal functional — only transitions that aid comprehension. Role reveal animation is the exception (Reanimated).
-- **Press feedback:** `activeOpacity: 0.7` (base), some components use Reanimated `scale(0.97)` + spring
+- **Approach:** Minimal functional — only transitions that aid comprehension. Role reveal animation is the exception (CSS and the PixiJS scene layer).
+- **Press feedback:** opacity 0.7 (base), some components use CSS `scale(0.97)`
 
 ## Source of Truth
 
-- **Token definitions:** `src/theme/tokens.ts` — spacing, typography, borderRadius, shadows, componentSizes, layout, textStyles, fixed
-- **Theme colors:** `src/theme/colors.ts`, exported through `src/theme/index.ts`; inspect the active implementation rather than assuming a theme-context hook exists
+- **Token definitions:** `packages/web/src/theme/tokens.css` — CSS custom properties for sizes, type, radii and shadows
+- **Theme colors:** `packages/web/src/theme/colors.ts`, published as `--color-*` custom properties; inspect the active implementation rather than assuming a theme-context hook exists
 - **Usage rules:** Use exported colors and semantic size tokens; do not copy this document's numeric values into game components
 - **Contract maintenance:** Changes to shared controls or room surfaces update [room-shell-contract.md](room-shell-contract.md), their focused tests and applicable agent source rules together. Generated adapters are rebuilt with `pnpm run sync:agents`.

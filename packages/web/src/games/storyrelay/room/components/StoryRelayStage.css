@@ -1,0 +1,189 @@
+/* Story Relay stage: fills the room workspace or stage area. */
+.storyrelay-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.storyrelay-retry-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-small);
+  padding: var(--space-small);
+  border-top: var(--border-width) solid var(--color-border-light);
+}
+
+.storyrelay-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-medium);
+  align-self: center;
+  width: 100%;
+  max-width: 800px;
+  box-sizing: border-box;
+  padding: var(--space-medium);
+}
+
+/* Keeps the task frame's wider horizontal padding for the editor column. */
+.storyrelay-task-frame {
+  padding-right: var(--space-medium);
+  padding-left: var(--space-medium);
+}
+
+.storyrelay-text {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.storyrelay-muted,
+.storyrelay-status,
+.storyrelay-settling-reminder,
+.storyrelay-viewer-notice {
+  margin: 0;
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.storyrelay-muted,
+.storyrelay-status,
+.storyrelay-settling-reminder,
+.storyrelay-viewer-notice {
+  color: var(--color-text-secondary);
+}
+
+.storyrelay-status,
+.storyrelay-settling-reminder {
+  text-align: center;
+}
+
+.storyrelay-settling-reminder {
+  padding: var(--space-small) var(--space-medium) 0;
+}
+
+/* Open by default up to 45% of the task body, scrolling past it; collapsed to its summary. */
+.storyrelay-previous {
+  flex: 0 1 auto;
+  max-height: 45%;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-small) var(--space-medium);
+  border-left: var(--border-width-thick) solid var(--color-primary);
+  border-radius: 0 var(--radius-small) var(--radius-small) 0;
+  background: var(--color-surface);
+}
+
+.storyrelay-previous-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-tight);
+  min-height: var(--size-min-touch-target);
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  list-style: none;
+  cursor: pointer;
+}
+
+.storyrelay-previous-summary::-webkit-details-marker {
+  display: none;
+}
+
+.storyrelay-previous-toggle {
+  color: var(--color-primary);
+}
+
+/* The last two lines of the passage: the column overflows at its top and is clipped there. */
+.storyrelay-previous-tail {
+  display: flex;
+  flex-basis: 100%;
+  flex-direction: column;
+  justify-content: flex-end;
+  max-height: calc(var(--line-body) * 2);
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The editor fills the rest of the task body; the count sits in its bottom-right corner. */
+.storyrelay-editor-field {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.storyrelay-editor {
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: var(--space-medium) var(--space-medium) calc(var(--space-medium) + var(--line-secondary));
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  resize: none;
+}
+
+.storyrelay-editor::placeholder {
+  color: var(--color-text-muted);
+}
+
+.storyrelay-editor-count {
+  position: absolute;
+  right: var(--space-small);
+  bottom: var(--space-small);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  pointer-events: none;
+}
+
+.storyrelay-editor-count[data-invalid] {
+  color: var(--color-error);
+}
+
+.storyrelay-ended-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+}
+
+.storyrelay-entry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  padding: var(--space-medium) 0;
+  border-bottom: var(--border-width) solid var(--color-border-light);
+}
+
+.storyrelay-entry[data-selected] {
+  background: var(--color-surface-hover);
+}
+
+.storyrelay-viewer-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-small);
+  min-height: var(--size-min-touch-target);
+}
+
+.storyrelay-viewer-notice svg {
+  flex-shrink: 0;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}

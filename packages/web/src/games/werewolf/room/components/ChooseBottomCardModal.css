@@ -1,0 +1,58 @@
+.choose-card-dialog {
+  max-width: calc(var(--size-max-content-width) * 2 / 3);
+}
+
+.choose-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  max-height: 45vh;
+  overflow-y: auto;
+}
+
+.choose-card-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  padding: var(--space-medium);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-medium);
+  background: var(--color-card);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.choose-card-option:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+
+.choose-card-badge {
+  flex-shrink: 0;
+  width: var(--size-avatar-md);
+  height: var(--size-avatar-md);
+}
+
+.choose-card-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-micro);
+}
+
+.choose-card-name {
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  font-weight: var(--weight-semibold);
+}
+
+.choose-card-option:disabled .choose-card-name {
+  color: var(--color-text-muted);
+}
+
+.choose-card-hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}

@@ -1,18 +1,19 @@
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { expect, test } from '@playwright/test';
 
+import { TESTIDS } from '../../packages/web/src/testids';
+import { readAlertText } from '../helpers/alerts';
 import {
   chooseFirstEnabledBottomCard,
-  clickBottomButton,
+  clickNightButton,
   clickSeatAndConfirm,
   dismissAlert,
   driveGroupConfirmAck,
+  driveMultiSelect,
   driveWolfDisabledEmptyVote,
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,
-  isTextVisible,
-  readAlertText,
   viewLastNightInfo,
   waitForGroupConfirmStep,
   waitForNightEnd,
@@ -80,11 +81,7 @@ test.describe('Werewolf Night — Special Roles: TreasureMaster', () => {
         await dismissAlert(pages[tmIdx]!);
 
         // Click "选择底牌" button in bottom action panel
-        const chooseBtn = pages[tmIdx]!.locator('[data-testid="bottom-action-panel"]')
-          .getByText('选择底牌', { exact: true })
-          .first();
-        await chooseBtn.waitFor({ state: 'visible', timeout: 5000 });
-        await chooseBtn.click();
+        await clickNightButton(pages[tmIdx]!, 'chooseCard', '选择底牌');
 
         await chooseFirstEnabledBottomCard(pages[tmIdx]!);
 
@@ -100,7 +97,7 @@ test.describe('Werewolf Night — Special Roles: TreasureMaster', () => {
           const turn = await waitForRoleTurn(pages[poisonerIdx]!, 'poisonerPoison', pages, 60_000);
           if (turn) {
             await dismissAlert(pages[poisonerIdx]!);
-            await clickBottomButton(pages[poisonerIdx]!, '不用技能');
+            await clickNightButton(pages[poisonerIdx]!, 'skip', '不用技能');
             await dismissAlert(pages[poisonerIdx]!);
           }
         }
@@ -108,7 +105,7 @@ test.describe('Werewolf Night — Special Roles: TreasureMaster', () => {
           const turn = await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages, 60_000);
           if (turn) {
             await dismissAlert(pages[seerIdx]!);
-            await clickBottomButton(pages[seerIdx]!, '不用技能');
+            await clickNightButton(pages[seerIdx]!, 'skip', '不用技能');
             await dismissAlert(pages[seerIdx]!);
           }
         }
@@ -120,49 +117,6 @@ test.describe('Werewolf Night — Special Roles: TreasureMaster', () => {
     );
   });
 });
-
-// ============================================================================
-// Helpers local to this file
-// ============================================================================
-
-/**
- * Drive cupid's multiChooseSeat lover-linking action.
- *
- * Toggle seat selection on each target, then click the
- * "确认连接（2人）" confirm button in the bottom action panel.
- */
-async function driveCupidChooseLovers(
-  page: import('@playwright/test').Page,
-  targetSeats: [number, number],
-): Promise<boolean> {
-  await dismissAlert(page);
-
-  for (const seat of targetSeats) {
-    const tile = page.locator(`[data-testid="seat-tile-pressable-${seat}"]`);
-    await tile.waitFor({ state: 'visible', timeout: 5000 });
-    await tile.click();
-    await page.waitForTimeout(200);
-  }
-
-  const panel = page.locator('[data-testid="bottom-action-panel"]');
-  const confirmBtn = panel.getByText('确认连接（2人）', { exact: true }).first();
-  await confirmBtn.waitFor({ state: 'visible', timeout: 5000 });
-  await confirmBtn.click();
-
-  const alertModal = page.locator('[data-testid="alert-modal"]');
-  const appeared = await alertModal
-    .waitFor({ state: 'visible', timeout: 3000 })
-    .then(() => true)
-    .catch(() => false);
-  if (!appeared) return false;
-
-  const okBtn = alertModal.getByText('确定', { exact: true }).first();
-  if (await okBtn.isVisible().catch(() => false)) {
-    await okBtn.click();
-    return true;
-  }
-  return false;
-}
 
 /**
  * Night Roles E2E — Thief & Cupid coverage.
@@ -221,11 +175,7 @@ test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
           await dismissAlert(pages[thiefIdx]!);
 
           // Click "选择底牌" in bottom action panel
-          const chooseBtn = pages[thiefIdx]!.locator('[data-testid="bottom-action-panel"]')
-            .getByText('选择底牌', { exact: true })
-            .first();
-          await chooseBtn.waitFor({ state: 'visible', timeout: 5000 });
-          await chooseBtn.click();
+          await clickNightButton(pages[thiefIdx]!, 'chooseCard', '选择底牌');
 
           const selectedCard = await chooseFirstEnabledBottomCard(pages[thiefIdx]!);
           thiefPickedWolf = selectedCard === '狼人';
@@ -241,8 +191,7 @@ test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
           const lover1Seat = nonCupidEntries[0]![1].seat;
           const lover2Seat = nonCupidEntries[1]![1].seat;
 
-          const linked = await driveCupidChooseLovers(pages[cupidIdx]!, [lover1Seat, lover2Seat]);
-          expect(linked, 'Cupid should have confirmed lover linking').toBe(true);
+          await driveMultiSelect(pages[cupidIdx]!, [lover1Seat, lover2Seat], '确认连接（2人）');
         });
 
         // === Step 3: CupidLoversReveal groupConfirm — all players ack ===
@@ -309,9 +258,8 @@ test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
           const ended = await waitForNightEnd(pages);
           expect(ended, 'Night should complete').toBe(true);
 
-          await viewLastNightInfo(pages[0]!);
-          const hasDeath = await isTextVisible(pages[0]!, '死亡');
-          expect(hasDeath, 'Someone should have died').toBe(true);
+          const nightInfo = await viewLastNightInfo(pages[0]!);
+          expect(nightInfo, 'Someone should have died').toContain('昨夜死亡');
         });
       },
     );
@@ -370,15 +318,13 @@ test.describe('Werewolf Night — Special Roles: Poisoner Override Feedback', ()
           const wolfPage = pages[wolfIndices[0]!]!;
           await dismissAlert(wolfPage);
 
-          const tile = wolfPage.locator(`[data-testid="seat-tile-pressable-${targetSeat}"]`);
-          await tile.waitFor({ state: 'visible', timeout: 5000 });
-          await tile.click();
+          await wolfPage.getByTestId(TESTIDS.seatTilePressable(targetSeat)).click();
 
           const alertText = await readAlertText(wolfPage);
           expect(alertText).toContain('本局有毒师在场，首夜无法袭击');
           expect(alertText).not.toContain('确定袭击');
-          const alertModal = wolfPage.locator('[data-testid="alert-modal"]');
-          await expect(alertModal.getByText('知道了', { exact: true }).first()).toBeVisible();
+          await expect(wolfPage.getByTestId(TESTIDS.alertButton(0))).toHaveText('知道了');
+          await expect(wolfPage.getByTestId(TESTIDS.alertButton(1))).toHaveCount(0);
           await dismissAlert(wolfPage);
         });
 
@@ -386,25 +332,10 @@ test.describe('Werewolf Night — Special Roles: Poisoner Override Feedback', ()
         await test.step('settle countdown stays visible after all empty votes', async () => {
           await driveWolfDisabledEmptyVote(pages, wolfIndices);
 
-          const panel = pages[wolfIndices[0]!]!.locator('[data-testid="bottom-action-panel"]');
-          let countdownSeen = false;
-          const deadline = Date.now() + 4_500;
-          while (Date.now() < deadline) {
-            if (
-              await panel
-                .getByText(/秒后确认/)
-                .first()
-                .isVisible()
-                .catch(() => false)
-            ) {
-              countdownSeen = true;
-              break;
-            }
-            await pages[0]!.waitForTimeout(200);
-          }
-          expect(countdownSeen, 'Settle countdown should be visible after all empty votes').toBe(
-            true,
-          );
+          await expect(
+            pages[wolfIndices[0]!]!.getByTestId(TESTIDS.actionMessage),
+            'Settle countdown should be visible after all empty votes',
+          ).toContainText('秒后确认', { timeout: 4_500 });
         });
 
         // === Step 3: Poisoner & Seer skip their skills ===
@@ -412,7 +343,7 @@ test.describe('Werewolf Night — Special Roles: Poisoner Override Feedback', ()
           const turn = await waitForRoleTurn(pages[poisonerIdx]!, 'poisonerPoison', pages, 60_000);
           if (turn) {
             await dismissAlert(pages[poisonerIdx]!);
-            await clickBottomButton(pages[poisonerIdx]!, '不用技能');
+            await clickNightButton(pages[poisonerIdx]!, 'skip', '不用技能');
             await dismissAlert(pages[poisonerIdx]!);
           }
         }
@@ -420,7 +351,7 @@ test.describe('Werewolf Night — Special Roles: Poisoner Override Feedback', ()
           const turn = await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages, 60_000);
           if (turn) {
             await dismissAlert(pages[seerIdx]!);
-            await clickBottomButton(pages[seerIdx]!, '不用技能');
+            await clickNightButton(pages[seerIdx]!, 'skip', '不用技能');
             await dismissAlert(pages[seerIdx]!);
           }
         }

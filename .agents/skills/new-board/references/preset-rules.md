@@ -24,10 +24,7 @@ bottom-card count (`getBottomCardCount`). Current state, counted at
 drafting time: 27 presets, and every one seats 12 players. The
 `roles` arrays are 12 long except two: `盗贼丘比特` has 14 entries
 (12 seats + 2 bottom cards) and `盗宝大师` has 15 (12 seats + 3).
-Filenames such as `night1.thiefCupid.14p` / `night1.treasureMaster.choose.15p`
-count `roles` entries including bottom cards, not seats; the
-`night1.shadow.avenger.11p` filename is misnamed — the file contains
-12 roles. Nothing in `Template.ts` or `validateTemplateRoles`
+Nothing in `Template.ts` or `validateTemplateRoles`
 requires 12 seats (`MINIMUM_PLAYERS = 1`); the uniform 12 is a
 property of the current list, not a rule. State the seat count from
 `getPlayerCount`, never from `roles.length` alone.
@@ -69,4 +66,4 @@ When a preset is added, the total changes from 26 to 27 in every
 place that cites it: `README.md`, `README.en.md`, and
 `docs/PRESET_BOARDS.md` (each cites 26 at drafting time), plus
 `EXPECTED_TEMPLATE_NAMES` in the contract test. Derive the new
-number from `PRESET_TEMPLATES.length` at that moment. There is no `src/config/guideContent.ts` file.
+number from `PRESET_TEMPLATES.length` at that moment. There is no guide-content count file to update.

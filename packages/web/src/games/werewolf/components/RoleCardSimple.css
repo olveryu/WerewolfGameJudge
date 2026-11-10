@@ -1,0 +1,43 @@
+/* Overlaid on the card, below its faction badge. */
+.role-ai-pill {
+  position: absolute;
+  top: var(--space-xlarge);
+  right: var(--space-small);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-tight);
+  padding: var(--space-tight) var(--space-small);
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--faction-a15);
+  color: var(--faction-color);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.role-variant-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-small);
+}
+
+.role-variant-pill {
+  padding: var(--space-small) var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.role-variant-pill[aria-pressed='true'] {
+  border: var(--border-width-thick) solid var(--faction-color);
+  color: var(--faction-color);
+  font-weight: var(--weight-semibold);
+}

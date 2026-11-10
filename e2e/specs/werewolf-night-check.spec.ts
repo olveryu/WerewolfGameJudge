@@ -1,14 +1,13 @@
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { expect, test } from '@playwright/test';
 
+import { readAlertText } from '../helpers/alerts';
 import {
   clickSeatAndConfirm,
   dismissAlert,
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,
-  isTextVisible,
-  readAlertText,
   viewLastNightInfo,
   waitForNightEnd,
   waitForRoleTurn,
@@ -405,13 +404,13 @@ test.describe('Werewolf Night — Check / Reveal', () => {
         expect(ended).toBe(true);
 
         // Verify cursedFox is in death list
-        await viewLastNightInfo(pages[0]!);
-        const nightInfo = await readAlertText(pages[0]!);
+        const nightInfo = await viewLastNightInfo(pages[0]!);
         expect(nightInfo).toContain(formatSeat(cursedFoxSeat));
 
         // Should not be peaceful night (villager wolf-killed + cursedFox check-killed)
-        const peaceful = await isTextVisible(pages[0]!, '平安夜');
-        expect(peaceful, 'Should not be 平安夜 with cursedFox check death').toBe(false);
+        expect(nightInfo, 'Should not be 平安夜 with cursedFox check death').not.toContain(
+          '平安夜',
+        );
       },
     );
   });

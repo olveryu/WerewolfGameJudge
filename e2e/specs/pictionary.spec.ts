@@ -3,10 +3,15 @@
 import { getPictionaryRelayStepCount } from '@game-judge/game-engine/games/pictionary/public';
 import { expect, type Page, test } from '@playwright/test';
 
-import { FETCH_RETRY_COUNT } from '../../src/config/api';
-import { TESTIDS } from '../../src/testids';
+import { FETCH_RETRY_COUNT } from '../../packages/web/src/config/networkRetry';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
-import { downloadReviewImage, expectWeChatImageShare, readPngSize } from '../helpers/image-sharing';
+import {
+  closeReviewDialog,
+  downloadReviewImage,
+  expectWeChatImageShare,
+  readPngSize,
+} from '../helpers/image-sharing';
 import { setOffline } from '../helpers/resilience';
 import { HomePage } from '../pages/HomePage';
 import { PictionaryConfigPage } from '../pages/PictionaryConfigPage';
@@ -16,7 +21,7 @@ const PLAYER_COUNT = 4;
 const RELAY_STEP_COUNT = getPictionaryRelayStepCount(PLAYER_COUNT);
 const TOTAL_GALLERY_ENTRIES = PLAYER_COUNT * RELAY_STEP_COUNT;
 const OPENING_PROMPTS = ['月球上的猫', '云端城堡', '跳舞的花', '海上火车'] as const;
-const GUESS_SUBMISSIONS = [[' 太阳\n还没写完 ', '小屋', '花朵', '帆船']] as const;
+const GUESS_SUBMISSIONS = [[' 太阳 还没写完 ', '小屋', '花朵', '帆船']] as const;
 
 /**
  * Phase-expiry discipline (D3, 2026-11-05): the server's scheduled settle
@@ -157,10 +162,14 @@ test.describe('Pictionary', () => {
         await config.createRoom();
         await hostRoom.waitForReady('host');
 
-        await hostPage.getByRole('button', { name: '查看你画我猜接龙玩法说明' }).click();
-        await expect(hostPage.getByRole('heading', { name: '接龙流程', level: 2 })).toBeVisible();
+        await hostPage.getByTestId(TESTIDS.roomGuideButton('pictionary')).click();
+        const guide = hostPage.getByTestId(TESTIDS.gameGuideScreenRoot('pictionary'));
+        await expect(guide.getByTestId(TESTIDS.gameGuideHeading)).toHaveText(
+          '画得像不像不重要，传得离谱才有趣',
+        );
+        await expect(guide).toContainText('接龙流程');
         await hostPage.screenshot({ path: test.info().outputPath('pictionary-guide.png') });
-        await hostPage.getByRole('button', { name: '返回', exact: true }).click();
+        await hostPage.getByTestId(TESTIDS.gameGuideBackButton).click();
         await hostRoom.waitForReady('host');
 
         const roomCode = await hostRoom.getRoomCode();
@@ -174,13 +183,9 @@ test.describe('Pictionary', () => {
 
       await test.step('start with a private prompt from every player', async () => {
         await hostRoom.startRound();
-        await expect(hostPage.getByRole('button', { name: '结束本棒', exact: true })).toHaveCount(
-          0,
-        );
+        await expect(hostPage.getByTestId(TESTIDS.roomScreenRoot)).not.toContainText('结束本棒');
         await Promise.all(rooms.map((room) => room.expectPromptStep(1, RELAY_STEP_COUNT)));
-        await expect(
-          hostPage.getByRole('button', { name: '查看你画我猜接龙玩法说明' }),
-        ).toHaveCount(0);
+        await expect(hostPage.getByTestId(TESTIDS.roomGuideButton('pictionary'))).toHaveCount(0);
         await hostRoom.expectPhoneSizedStage();
         await Promise.all(rooms.map((room) => room.expectTaskFitsViewport('prompt')));
         await hostRoom.reviseReadyPrompt('月球上的狗', OPENING_PROMPTS[0]);
@@ -200,20 +205,18 @@ test.describe('Pictionary', () => {
             body: await fixture.pages[playerIndex]!.screenshot(),
             contentType: 'image/png',
           });
-          await fixture.pages[playerIndex]!.getByRole('button', { name: /^选择颜色，/ }).click();
+          const playerPage = fixture.pages[playerIndex]!;
+          await playerPage.getByTestId(TESTIDS.drawingToolbarColorButton).click();
           await test.info().attach(`pictionary-presets-${viewport}`, {
-            body: await fixture.pages[playerIndex]!.screenshot(),
+            body: await playerPage.screenshot(),
             contentType: 'image/png',
           });
-          await fixture.pages[playerIndex]!.getByTestId('drawing-toolbar-custom-color').click();
+          await playerPage.getByTestId(TESTIDS.drawingToolbarCustomColorButton).click();
           await test.info().attach(`pictionary-colors-${viewport}`, {
-            body: await fixture.pages[playerIndex]!.screenshot(),
+            body: await playerPage.screenshot(),
             contentType: 'image/png',
           });
-          await fixture.pages[playerIndex]!.getByRole('button', {
-            name: '关闭选择面板',
-            exact: true,
-          }).click();
+          await playerPage.getByTestId(TESTIDS.drawingToolbarPanelCloseButton).click();
         }
         let hasAbortedUpload = false;
         let hasLostResponse = false;
@@ -261,17 +264,16 @@ test.describe('Pictionary', () => {
           const offlinePage = fixture.pages[3]!;
           await offlinePage.getByTestId(TESTIDS.pictionaryTextInput).fill(guesses[3]);
           await offlinePage.context().setOffline(true);
-          const finalCountdown = hostPage.getByLabel('剩余 5 秒', { exact: true });
-          await expect(finalCountdown).toHaveText('5秒', { timeout: 50_000 });
-          await expect(hostPage.getByLabel('剩余 4 秒', { exact: true })).toHaveText('4秒');
-          await expect(
-            hostPage
-              .getByTestId(TESTIDS.pictionaryStageFrame)
-              .getByText('正在收取最终内容', { exact: true }),
-          ).toBeVisible({ timeout: 60_000 });
-          await expect(
-            hostPage.getByText('你的内容已处理，正在等待其他玩家。', { exact: true }),
-          ).toBeVisible();
+          const countdown = hostPage.getByTestId(TESTIDS.roomStageTimer);
+          await expect(countdown).toHaveText('0:05', { timeout: 50_000 });
+          await expect(countdown).toHaveText('0:04');
+          await expect(hostPage.getByTestId(TESTIDS.pictionaryTaskTitle)).toHaveText(
+            '正在收取最终内容',
+            { timeout: 60_000 },
+          );
+          await expect(hostPage.getByTestId(TESTIDS.pictionaryTaskDescription)).toHaveText(
+            '你的内容已处理，正在等待其他玩家。',
+          );
           await expect(hostPage.getByTestId(TESTIDS.pictionaryGalleryAlbum)).toHaveCount(0);
           await offlinePage.context().setOffline(false);
           await Promise.all(
@@ -298,15 +300,14 @@ test.describe('Pictionary', () => {
             failedUploads += 1;
             await route.abort('failed');
           });
-          await expect(
-            unfinishedPage.getByText('发送暂未成功，正在自动重试。', { exact: true }),
-          ).toBeVisible({ timeout: 120_000 });
+          await expect(unfinishedPage.getByTestId(TESTIDS.pictionaryTaskDescription)).toHaveText(
+            '发送暂未成功，正在自动重试。',
+            { timeout: 120_000 },
+          );
           expect(failedUploads).toBeGreaterThanOrEqual(FETCH_RETRY_COUNT + 1);
-          await expect(
-            hostPage
-              .getByTestId(TESTIDS.pictionaryStageFrame)
-              .getByText('正在收取最终内容', { exact: true }),
-          ).toBeVisible();
+          await expect(hostPage.getByTestId(TESTIDS.pictionaryTaskTitle)).toHaveText(
+            '正在收取最终内容',
+          );
           await expect(hostPage.getByTestId(TESTIDS.pictionaryGalleryAlbum)).toHaveCount(0);
           await unfinishedPage.mouse.up();
           await unfinishedPage.unroute('**/submissions/**');
@@ -318,6 +319,7 @@ test.describe('Pictionary', () => {
       await test.step('keep every player on the authoritative gallery cursor', async () => {
         await expectGalleryPositionForEveryPlayer(rooms, 1, 1);
         const collectedGuesses: string[] = [];
+        const playbackToggle = hostPage.getByTestId(TESTIDS.galleryTogglePlayButton);
 
         for (
           let globalEntryIndex = 1;
@@ -331,9 +333,8 @@ test.describe('Pictionary', () => {
             await expect(hostPage.getByTestId(TESTIDS.pictionaryGalleryEntry)).toHaveCount(entry, {
               timeout: 10_000,
             });
-            await hostPage
-              .getByRole('button', { name: '暂停', exact: true })
-              .click({ timeout: 5_000 });
+            await expect(playbackToggle).toHaveText('暂停', { timeout: 5_000 });
+            await playbackToggle.click();
           }
           await expectGalleryPositionForEveryPlayer(rooms, chain, entry);
           if (entry === RELAY_STEP_COUNT) {
@@ -341,8 +342,8 @@ test.describe('Pictionary', () => {
               hostPage.getByTestId(TESTIDS.pictionaryGalleryAdvanceButton),
             ).toHaveAccessibleName(chain === PLAYER_COUNT ? '结束揭晓' : '下一本');
             await expect(
-              fixture.pages[1]!.getByText('本册已揭晓，等待房主继续', { exact: true }),
-            ).toBeVisible();
+              fixture.pages[1]!.getByTestId(TESTIDS.pictionaryGalleryViewerNotice),
+            ).toHaveText('本册已揭晓，等待房主继续');
             if (chain === 1) {
               const started = Date.now();
               await expect
@@ -361,7 +362,7 @@ test.describe('Pictionary', () => {
             const image = hostPage
               .getByTestId(TESTIDS.pictionaryGalleryEntry)
               .last()
-              .locator('img');
+              .getByTestId(TESTIDS.pictionaryDrawingImage);
             await expect(image).toBeVisible();
             await expect
               .poll(() =>
@@ -389,7 +390,9 @@ test.describe('Pictionary', () => {
             }
           }
           if (globalEntryIndex === 2) {
-            await hostPage.getByRole('button', { name: '上一项', exact: true }).click();
+            const rewindButton = hostPage.getByTestId(TESTIDS.galleryRewindButton);
+            await expect(rewindButton).toHaveAccessibleName('上一项');
+            await rewindButton.click();
             await expectGalleryPositionForEveryPlayer(rooms, 1, 3);
             await hostRoom.advanceGallery();
             await expectGalleryPositionForEveryPlayer(rooms, 1, 3);
@@ -403,8 +406,10 @@ test.describe('Pictionary', () => {
               return new Set(entryTexts).size;
             })
             .toBe(1);
-          if (entry < RELAY_STEP_COUNT)
-            await hostPage.getByRole('button', { name: '播放', exact: true }).click();
+          if (entry < RELAY_STEP_COUNT) {
+            await expect(playbackToggle).toHaveText('播放');
+            await playbackToggle.click();
+          }
         }
 
         await hostRoom.advanceGallery();
@@ -415,19 +420,22 @@ test.describe('Pictionary', () => {
         const roomCode = await hostRoom.getRoomCode();
         for (const [albumIndex, page] of fixture.pages.slice(0, 2).entries()) {
           // Each player browses to an album; its 「分享本篇画册」 opens the shared review at that album's page.
+          const nextAlbumButton = page.getByTestId(
+            TESTIDS.galleryPagerNextButton(TESTIDS.pictionaryStageFrame),
+          );
           for (let skipped = 0; skipped < albumIndex; skipped += 1) {
-            await page.getByRole('button', { name: '下一本', exact: true }).click();
+            await nextAlbumButton.click();
           }
-          await expect(
-            page
-              .getByTestId(TESTIDS.pictionaryStageFrame)
-              .getByText(`第 ${albumIndex + 1} / ${PLAYER_COUNT} 本画册`, { exact: true }),
-          ).toBeVisible();
-          await page.getByRole('button', { name: /分享本篇画册/ }).click();
+          await expect(page.getByTestId(TESTIDS.galleryAlbumEyebrow)).toHaveText(
+            `第 ${albumIndex + 1} / ${PLAYER_COUNT} 本画册`,
+          );
+          const shareButton = page.getByTestId(TESTIDS.pictionaryGalleryShareButton);
+          await expect(shareButton).toHaveText('分享本篇画册');
+          await shareButton.click();
           const review = page.getByTestId(TESTIDS.roomReviewDialog);
           await expect(review).toContainText(`第 ${albumIndex + 1} 篇 · `);
           await expect(review).toContainText('第 4 棒');
-          const drawings = review.locator('img');
+          const drawings = review.getByTestId(TESTIDS.roomReviewImage);
           await expect(drawings).toHaveCount(2);
           await expect
             .poll(() =>
@@ -441,19 +449,18 @@ test.describe('Pictionary', () => {
             .toBe(true);
           // 「仅分享本页」 appears once the background capture of the pages is ready.
           const png = await downloadReviewImage(
-            page.getByRole('button', { name: '仅分享本页', exact: true }),
+            page.getByTestId(TESTIDS.roomReviewSharePageButton),
             `pictionary-${roomCode}-1-p${albumIndex + 1}.png`,
           );
           const { width, height } = readPngSize(png);
           expect(height).toBeGreaterThan(width);
-          await page.getByRole('button', { name: '关闭详情', exact: true }).click();
+          await closeReviewDialog(page);
         }
       });
       await test.step('upload every album PNG for WeChat despite an unrelated pending image', async () => {
         await expectWeChatImageShare(
           hostPage,
-          /分享本篇画册/,
-          new RegExp(`保存／分享全部 ${PLAYER_COUNT} 页`),
+          { testId: TESTIDS.pictionaryGalleryShareButton, label: '分享本篇画册' },
           PLAYER_COUNT,
         );
       });
@@ -481,41 +488,46 @@ test.describe('Pictionary', () => {
       await hostRoom.seatAt(0);
       await guestRoom.joinViaCode(await hostRoom.getRoomCode());
       await guestRoom.seatAt(1);
-      const panel = await hostRoom.openHostManagement();
-      await panel.getByRole('button', { name: '填充机器人', exact: true }).click();
-      await hostPage.getByRole('dialog').getByText('确定', { exact: true }).click();
+      await hostRoom.clickHostManagementActionAndConfirm(
+        TESTIDS.roomFillBotsButton,
+        '填充机器人？',
+      );
       await hostRoom.startRound();
       await hostPage.getByTestId(TESTIDS.pictionaryTextInput).fill('保留的原始题目');
-      await expect(hostPage.getByText('把这句话画出来', { exact: true })).toBeVisible({
-        timeout: 60_000,
-      });
+      // Step 2 never hands a seat its own chain, and every other prompt was empty.
+      await expect(hostPage.getByTestId(TESTIDS.pictionaryDrawingPrompt)).toContainText(
+        '上一棒未完成',
+        { timeout: 60_000 },
+      );
       await Promise.all([
         hostRoom.expectDrawingStep(2, RELAY_STEP_COUNT),
         guestRoom.expectDrawingStep(2, RELAY_STEP_COUNT),
       ]);
       await hostRoom.drawStroke(1);
-      await (await hostRoom.openHostManagement())
-        .getByRole('button', { name: '中止本局', exact: true })
-        .click();
-      await hostPage.getByRole('dialog').getByText('确定', { exact: true }).click();
+      await hostRoom.clickHostManagementActionAndConfirm(TESTIDS.abortGameButton, '中止本局？');
       for (const page of fixture.pages) {
-        await expect(page.getByText('第 1 轮未完成，房主已中止。', { exact: true })).toBeVisible();
-        await expect(page.getByRole('button', { name: '再来一局', exact: true })).toHaveCount(0);
+        await expect(page.getByTestId(TESTIDS.galleryAlbumDescription)).toHaveText(
+          '第 1 轮未完成，房主已中止。',
+        );
+        await expect(page.getByTestId(TESTIDS.nextRoundButton)).toHaveCount(0);
+        await expect(page.getByTestId(`${TESTIDS.roomHostTaskCard}-next-round`)).toHaveCount(0);
       }
-      await expect(hostPage.getByRole('button', { name: /草稿|跳过/ })).toHaveCount(0);
+      await expect(hostPage.getByTestId(TESTIDS.roomScreenRoot)).not.toContainText(/草稿|跳过/);
       await expect(hostPage.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toHaveCount(0);
       // The aborted round keeps what was handed in: its review opens for every player, marked unfinished.
       await guestPage.getByTestId(TESTIDS.roomReviewOpenButton).click();
       const review = guestPage.getByTestId(TESTIDS.roomReviewDialog);
-      await expect(review.getByText('🖼️ 第 1 轮 · 画册', { exact: true })).toBeVisible();
-      await expect(review.getByText('未完成', { exact: true })).toBeVisible();
-      await guestPage.getByRole('button', { name: '关闭详情', exact: true }).click();
+      await expect(review).toContainText('🖼️ 第 1 轮 · 画册');
+      await expect(review).toContainText('未完成');
+      await closeReviewDialog(guestPage);
       await expect(review).toHaveCount(0);
       const albums: string[] = [];
+      const nextAlbumButton = hostPage.getByTestId(
+        TESTIDS.galleryPagerNextButton(TESTIDS.pictionaryStageFrame),
+      );
       for (let index = 0; index < PLAYER_COUNT; index += 1) {
         albums.push(await hostRoom.readLatestGalleryEntryText());
-        if (index < PLAYER_COUNT - 1)
-          await hostPage.getByRole('button', { name: '下一本', exact: true }).click();
+        if (index < PLAYER_COUNT - 1) await nextAlbumButton.click();
       }
       expect(albums.some((text) => text.includes('保留的原始题目'))).toBe(true);
       expect(albums.filter((text) => text.includes('这一棒交了空白'))).toHaveLength(3);
@@ -636,9 +648,12 @@ test.describe('Pictionary', () => {
         // inputs — and is not acceleration.
         const advanced = expect.poll(
           async () => {
-            const settling = await hostPage.getByText('正在收取最终内容', { exact: true }).count();
+            const settlingTitles = await hostPage
+              .getByTestId(TESTIDS.pictionaryTaskTitle)
+              .allTextContents();
+            const settling = settlingTitles.includes('正在收取最终内容');
             const drawing = await hostPage.getByTestId(TESTIDS.pictionaryDrawingCanvas).count();
-            return settling > 0 || drawing > 0;
+            return settling || drawing > 0;
           },
           { timeout: 30_000, intervals: [300] },
         );

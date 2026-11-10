@@ -1,0 +1,37 @@
+/* Phone-width column (430px, the product's phone-sized stage) centred in the room workspace. */
+.gallery-album-stage {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-self: center;
+  width: 100%;
+  max-width: 430px;
+  min-height: 0;
+}
+
+.gallery-album-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-large);
+  min-height: 0;
+  padding: var(--space-medium);
+  overflow-y: auto;
+}
+
+/* An empty flex item would shrink to 0 in the overflowing column and void the top-follow room. */
+.gallery-album-spacer {
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .gallery-album-list {
+    scroll-behavior: smooth;
+  }
+}
+
+.gallery-album-controls {
+  padding: var(--space-small) var(--space-medium);
+  border-top: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+}

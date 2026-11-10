@@ -1,8 +1,9 @@
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { expect, test } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll } from '../fixtures/app.fixture';
+import { pressAlertButton, readAlertText } from '../helpers/alerts';
 import { downloadReviewImage, REVIEW_CAPTURE_TIMEOUT_MS } from '../helpers/image-sharing';
 import {
   type GameSetupWithRolesResult,
@@ -15,7 +16,6 @@ import {
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,
-  readAlertText,
   viewLastNightInfo,
   waitForNightEnd,
   waitForRoleTurn,
@@ -89,9 +89,10 @@ test.describe('Werewolf Night — Flow Verification', () => {
       // PR-B G-4: while the wolf acts, the non-actioner's bottom
       // panel names the step it is waiting on (same derived progress
       // as the progress line, so the two can never disagree).
-      await expect(
-        pages[villagerIdx]!.getByText('正在等待 狼人 行动', { exact: true }),
-      ).toBeVisible({ timeout: 10_000 });
+      await expect(pages[villagerIdx]!.getByTestId(TESTIDS.actionMessage)).toHaveText(
+        '正在等待 狼人 行动',
+        { timeout: 10_000 },
+      );
 
       // Wolf clicks the villager's seat
       const confirmed = await clickSeatAndConfirm(wolfPage, villagerSeat);
@@ -105,8 +106,7 @@ test.describe('Werewolf Night — Flow Verification', () => {
       const expectedSeatDisplay = formatSeat(villagerSeat);
 
       // View last night info
-      await viewLastNightInfo(hostPage);
-      const infoText = await readAlertText(hostPage);
+      const infoText = await viewLastNightInfo(hostPage);
       const deathVisible = infoText.includes(expectedSeatDisplay);
 
       // Attach diagnostic info
@@ -135,20 +135,24 @@ test.describe('Werewolf Night — Flow Verification', () => {
         // management, passes the spoiler confirmation, and shares it from the dialog itself.
         await dismissAlert(hostPage);
         await new RoomPage(hostPage).clickHostManagementAction(TESTIDS.roomReviewHostAction);
-        const confirmation = hostPage.getByTestId(TESTIDS.alertModal);
-        await expect(confirmation.getByText('查看本局复盘？', { exact: true })).toBeVisible();
-        await confirmation.getByText('确定查看', { exact: true }).click();
+        await pressAlertButton(hostPage, {
+          title: '查看本局复盘？',
+          buttonIndex: 1,
+          buttonLabel: '确定查看',
+        });
         const review = hostPage.getByTestId(TESTIDS.roomReviewDialog);
-        await expect(review.getByText('🌙 第一夜 · 夜报', { exact: true })).toBeVisible();
+        await expect(review).toContainText('🌙 第一夜 · 夜报');
         await expect(review).toContainText('人出局');
-        await expect(review.getByText('全员身份', { exact: true })).toBeVisible();
+        await expect(review).toContainText('全员身份');
         const shareButton = review.getByTestId(TESTIDS.roomReviewShareButton);
         // The control reads its share label once the background capture is ready.
         await expect(shareButton).toContainText('保存／分享图片', {
           timeout: REVIEW_CAPTURE_TIMEOUT_MS,
         });
         await downloadReviewImage(shareButton, `werewolf-${roomCode}-1.png`);
-        await hostPage.getByRole('button', { name: '关闭详情', exact: true }).click();
+        const closeButton = hostPage.getByTestId(TESTIDS.roomDialogCloseButton);
+        await expect(closeButton).toHaveAccessibleName('关闭详情');
+        await closeButton.click();
         await expect(review).toHaveCount(0);
       });
     } finally {
@@ -183,9 +187,9 @@ test.describe('Werewolf Night — Flow Verification', () => {
 
       // --- Phase 1: Drive wolf vote ---
       const firstWolfPage = pages[wolfIndices[0]!]!;
-      await firstWolfPage
-        .locator('[data-testid="action-message"]')
-        .waitFor({ state: 'visible', timeout: 30_000 });
+      await expect(firstWolfPage.getByTestId(TESTIDS.actionMessage)).toBeVisible({
+        timeout: 30_000,
+      });
 
       // Pick a non-wolf target for the kill
       const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName !== '狼人');
@@ -260,20 +264,12 @@ test.describe('Werewolf Night — Flow 2-Player', () => {
 
     try {
       const nightResult = await runNightFlowLoop(fixture.pages, testInfo, {
-        maxIterations: 80,
         screenshotInterval: 10,
       });
 
       // Verify night ended
       const room = new RoomPage(hostPage);
-      const hasLastNightBtn = await room.isLastNightInfoVisible();
-
-      const nightEnded =
-        hasLastNightBtn ||
-        nightResult.resultText.includes('平安夜') ||
-        nightResult.resultText.includes('死亡');
-
-      expect(nightEnded, 'Night should complete').toBe(true);
+      expect(['Day', 'Ended'], 'Night should complete').toContain(nightResult.phase);
 
       await room.screenshot(testInfo, 'night-2p-ended.png');
 
@@ -281,8 +277,8 @@ test.describe('Werewolf Night — Flow 2-Player', () => {
       await testInfo.attach('night-2p.txt', {
         body: [
           `Room: ${roomCode}`,
-          `Result: ${nightResult.resultText}`,
-          `Turns: ${nightResult.turnLog.join(' → ')}`,
+          `Phase: ${nightResult.phase}`,
+          `Steps: ${nightResult.stepLog.join(' → ')}`,
         ].join('\n'),
         contentType: 'text/plain',
       });
@@ -309,19 +305,11 @@ test.describe('Werewolf Night — Flow 6-Player', () => {
 
     try {
       const nightResult = await runNightFlowLoop(fixture.pages, testInfo, {
-        maxIterations: 200,
         screenshotInterval: 20,
       });
 
       const room = new RoomPage(hostPage);
-      const hasLastNightBtn = await room.isLastNightInfoVisible();
-
-      const nightEnded =
-        hasLastNightBtn ||
-        nightResult.resultText.includes('平安夜') ||
-        nightResult.resultText.includes('死亡');
-
-      expect(nightEnded, '6-player night should complete').toBe(true);
+      expect(['Day', 'Ended'], '6-player night should complete').toContain(nightResult.phase);
 
       await room.screenshot(testInfo, 'night-6p-ended.png');
 
@@ -329,8 +317,8 @@ test.describe('Werewolf Night — Flow 6-Player', () => {
         body: [
           `Room: ${roomCode}`,
           `Template: 2狼 + 预言家 + 女巫 + 猎人 + 1村民`,
-          `Result: ${nightResult.resultText}`,
-          `Turns: ${nightResult.turnLog.join(' → ')}`,
+          `Phase: ${nightResult.phase}`,
+          `Steps: ${nightResult.stepLog.join(' → ')}`,
         ].join('\n'),
         contentType: 'text/plain',
       });

@@ -45,15 +45,16 @@ Forks and self-hosted deployments must replace the official account IDs, databas
 
 ### Client Build Environment
 
-The committed `.env` contains public Expo build defaults. Any `EXPO_PUBLIC_*` value is embedded in the client bundle and must never contain a secret. Use gitignored `.env.local` for local overrides; Expo gives `.env.local` precedence over `.env`.
+The web client is built by Vite from `packages/web`; any `VITE_*` value is embedded in the client bundle and must never contain a secret. Use a gitignored `.env.local` in the web package for local overrides.
 
 The frontend CI build provides these values directly:
 
-| Variable                 | Purpose                                                               |
-| ------------------------ | --------------------------------------------------------------------- |
-| `CF_PAGES_BRANCH`        | Selects `EXPO_PUBLIC_DEPLOY_ENV`; `main` maps to `production`         |
-| `EXPO_PUBLIC_SENTRY_DSN` | Public client DSN embedded in the web bundle                          |
-| `SENTRY_AUTH_TOKEN`      | Build-only source-map upload credential; never embedded in the bundle |
+| Variable            | Purpose                                                               |
+| ------------------- | --------------------------------------------------------------------- |
+| `CF_PAGES_BRANCH`   | Selects `VITE_DEPLOY_ENV`; `main` maps to `production`                |
+| `WEB_ASSET_BASE`    | Versioned npmmirror CDN address used as the Vite `base`               |
+| `VITE_SENTRY_DSN`   | Public client DSN embedded in the web bundle                          |
+| `SENTRY_AUTH_TOKEN` | Build-only source-map upload credential; never embedded in the bundle |
 
 ### Worker Runtime Secrets
 
@@ -135,9 +136,9 @@ Migrations run before Worker deployment. A migration failure stops the job and l
 
 `deploy-frontend` waits for both `ci-gate` and `deploy-api-worker`, then:
 
-1. Runs `scripts/build.sh` to build `game-engine`, export Expo Web, add PWA files, fix font and bundle paths, inject the custom HTML shell, and upload Sentry source maps.
-2. Rewrites HTML and JavaScript asset references to a versioned npmmirror URL.
-3. Packages assets and compressed CanvasKit WASM as `werewolf-judge-cdn@0.0.0-g<sha8>`.
+1. Resolves the versioned npmmirror files address of `werewolf-judge-cdn@0.0.0-g<sha8>`.
+2. Runs `scripts/build.sh` with that address as `WEB_ASSET_BASE`: it builds `game-engine`, builds `packages/web` with Vite (per-route gzip budgets included), copies the result to `dist/`, and uploads Sentry source maps. Hashed assets reference the CDN; `index.html`, `manifest.json` and PWA icons stay on Pages.
+3. Packages `dist/assets` as `werewolf-judge-cdn@0.0.0-g<sha8>`.
 4. Publishes that package to npm with OIDC trusted publishing.
 5. Waits for npm registry visibility.
 6. Triggers npmmirror synchronization and polls both npmmirror registry metadata and the CDN `index.js` artifact for up to 15 minutes.
@@ -168,15 +169,14 @@ https://cdn.npmmirror.com/packages/werewolf-judge-cdn/0.0.0-g<sha8>/files/
 
 Each deployment therefore references an immutable package version. The pipeline does not perform a blanket Cloudflare cache purge and does not require a long-lived npm token.
 
-`web/_headers` controls files served by Cloudflare Pages:
+`packages/web/public/_headers` controls files served by Cloudflare Pages:
 
-| Path                                                      | Cache-Control                         | Reason                                                 |
-| --------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------ |
-| `/assets/fonts/*`                                         | `public, max-age=31536000, immutable` | Content-hashed fonts                                   |
-| `/assets/audio/*`, `/assets/audio_end/*`, `/assets/pwa/*` | `public, max-age=31536000, immutable` | Versioned static assets                                |
-| `/assets/js/*`                                            | `no-cache`                            | Safe fallback when a bundle is served from Pages       |
-| `/`, `/index.html`                                        | `no-cache`                            | HTML must revalidate before selecting an asset package |
-| `/HVChYlYloJ.txt`                                         | `no-cache, no-store, must-revalidate` | WeChat domain verification                             |
+| Path                                 | Cache-Control                         | Reason                                                         |
+| ------------------------------------ | ------------------------------------- | -------------------------------------------------------------- |
+| `/assets/*`                          | `public, max-age=31536000, immutable` | Vite output, content-hashed (preview builds serve it on Pages) |
+| `/`, `/index.html`, `/manifest.json` | `no-cache`                            | HTML must revalidate before selecting an asset package         |
+| `/HVChYlYloJ.txt`                    | `no-cache, no-store, must-revalidate` | WeChat domain verification                                     |
+| Everything else (including `/pwa/*`) | Pages default (revalidates)           | Fixed filenames that can change in place                       |
 
 The same file sets `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy` response headers.
 
@@ -195,11 +195,10 @@ pnpm run release -- major   # major
 
 1. Refuses unsupported bump types and asks before including unrelated changes.
 2. Bumps `package.json` and `pnpm-lock.yaml`.
-3. Synchronizes `app.json`.
-4. Requires a matching entry in `src/config/announcements.ts`.
-5. Updates `CHANGELOG.md` from commits since the previous tag.
-6. Creates commit `release: v<version>` and tag `v<version>`.
-7. Pushes the commit and tags, which triggers CI and the GitHub Release workflow.
+3. Requires a matching entry in `packages/web/src/config/announcements.ts`.
+4. Updates `CHANGELOG.md` from commits since the previous tag.
+5. Creates commit `release: v<version>` and tag `v<version>`.
+6. Pushes the commit and tags, which triggers CI and the GitHub Release workflow.
 
 Do not bypass Git hooks with `--no-verify`.
 
@@ -207,7 +206,7 @@ Do not bypass Git hooks with `--no-verify`.
 
 ```bash
 pnpm install
-pnpm run dev       # Worker on :8787 and Expo Web on :8081
+pnpm run dev       # Worker on :8787 and the Vite dev server
 pnpm run quality   # Complete non-E2E quality gate
 pnpm run e2e       # Playwright starts isolated local API and web servers
 ```
@@ -262,7 +261,7 @@ The workflow retriggers synchronization and polls for up to 15 minutes. If eithe
 
 ### Frontend loads a white screen
 
-Inspect `index.html` to identify its `0.0.0-g<sha8>` asset version, then verify that version's JavaScript and CanvasKit artifacts on npmmirror. Also confirm HTML responses use `no-cache`. A blanket Cloudflare cache purge is not part of this architecture.
+Inspect `index.html` to identify its `0.0.0-g<sha8>` asset version, then verify that version's JavaScript artifacts on npmmirror. Also confirm HTML responses use `no-cache`. A blanket Cloudflare cache purge is not part of this architecture.
 
 ### API deployment fails after a migration
 

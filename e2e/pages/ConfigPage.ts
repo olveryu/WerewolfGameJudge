@@ -1,6 +1,7 @@
+import type { TemplateCategory } from '@game-judge/game-engine/games/werewolf/public';
 import { expect, type Page } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { BoardPickerPage } from './BoardPickerPage';
 import { RulesPage } from './RulesPage';
 
@@ -40,7 +41,7 @@ export class ConfigPage {
   }
 
   private get backButton() {
-    return this.page.locator('[data-testid="config-back-button"]').last();
+    return this.page.getByTestId(TESTIDS.configBackButton);
   }
 
   // ---------------------------------------------------------------------------
@@ -64,14 +65,14 @@ export class ConfigPage {
    * Then we select the desired template on BoardPicker, which navigates
    * back to Config with the new preset.
    */
-  async selectTemplate(name: string, categoryLabel?: string) {
+  async selectTemplate(name: string, category?: TemplateCategory) {
     // Step 1: Click the template pill to go back to BoardPicker
     await this.clickTemplatePill();
 
     // Step 2: BoardPicker is now visible — select the template
     const boardPicker = new BoardPickerPage(this.page);
     await boardPicker.waitForReady();
-    await boardPicker.selectTemplate(name, categoryLabel);
+    await boardPicker.selectTemplate(name, category);
   }
 
   /**
@@ -79,15 +80,12 @@ export class ConfigPage {
    * In create mode this navigates to BoardPicker.
    */
   async clickTemplatePill() {
-    const pill = this.page.locator(`[data-testid="${TESTIDS.configTemplatePill}"]`);
-    await pill.click();
+    await this.page.getByTestId(TESTIDS.configTemplatePill).click();
   }
 
   /** Expect template pill to be visible (config screen identity check). */
   async expectTemplateVisible() {
-    // The template pill shows the short label (e.g. "预女猎白"), not the full name
-    const root = this.page.locator(`[data-testid="${TESTIDS.configScreenRoot}"]`);
-    await expect(root.getByText('预女猎白')).toBeVisible();
+    await expect(this.page.getByTestId(TESTIDS.configTemplatePill)).toHaveText('预女猎白');
   }
 
   // ---------------------------------------------------------------------------
@@ -99,11 +97,9 @@ export class ConfigPage {
    * @param faction - Tab key: 'Villager' (good faction), 'Wolf' (wolf faction), 'Special' (third-party faction)
    */
   async switchToFactionTab(faction: 'Villager' | 'Wolf' | 'Special') {
-    const tab = this.page.locator(`[data-testid="config-faction-tab-${faction}"]`);
-    await tab.waitFor({ state: 'visible', timeout: 3000 });
+    const tab = this.page.getByTestId(TESTIDS.configFactionTab(faction));
     await tab.click();
-    // Wait for tab content to render (tab panel should update)
-    await expect(tab).toBeVisible({ timeout: 2000 });
+    await expect(tab).toHaveAttribute('aria-selected', 'true');
   }
 
   // ---------------------------------------------------------------------------
@@ -112,9 +108,7 @@ export class ConfigPage {
 
   /** Toggle a role chip by its roleId (data-testid="config-role-chip-{roleId}"). */
   async toggleRole(roleId: string) {
-    const chip = this.page.locator(`[data-testid="config-role-chip-${roleId}"]`).first();
-    await chip.waitFor({ state: 'attached', timeout: 2000 });
-    await chip.click();
+    await this.page.getByTestId(TESTIDS.configRoleChip(roleId)).click();
   }
 
   /**
@@ -124,30 +118,21 @@ export class ConfigPage {
    * then clicks the variant pill and closes the card.
    */
   async selectVariant(baseRoleId: string, variantRoleId: string) {
-    const chip = this.page.locator(`[data-testid="config-role-chip-${baseRoleId}"]`).first();
-    await chip.waitFor({ state: 'attached', timeout: 2000 });
     // Long-press to open role info card
-    await chip.click({ delay: 600 });
-    // Click the variant pill
-    const option = this.page.locator(`[data-testid="config-variant-option-${variantRoleId}"]`);
-    await option.waitFor({ state: 'visible', timeout: 3000 });
+    await this.page.getByTestId(TESTIDS.configRoleChip(baseRoleId)).click({ delay: 600 });
+    const option = this.page.getByTestId(TESTIDS.configVariantOption(variantRoleId));
     await option.click();
-    // Close the role info card via "知道了" button.
-    // Why NOT Escape? RN Web Modal onRequestClose doesn't reliably fire
-    // in Playwright/Chromium (same issue documented in RoomPage.setAnimationNone).
-    const confirmBtn = this.page.getByText('知道了', { exact: true });
-    await confirmBtn.waitFor({ state: 'visible', timeout: 3000 });
-    await confirmBtn.click();
+    await expect(option).toHaveAttribute('aria-pressed', 'true');
+    const confirmButton = this.page.getByTestId(TESTIDS.roleCardConfirmButton);
+    await expect(confirmButton).toHaveText('知道了');
+    await confirmButton.click();
+    await expect(this.page.getByTestId(TESTIDS.roleCardModal)).toBeHidden();
   }
 
-  /** Deselect multiple role chips. Silently skips missing chips. */
+  /** Deselect multiple role chips. */
   async deselectRoles(roleIds: string[]) {
     for (const roleId of roleIds) {
-      try {
-        await this.toggleRole(roleId);
-      } catch {
-        // chip not found, skip
-      }
+      await this.toggleRole(roleId);
     }
   }
 
@@ -161,9 +146,8 @@ export class ConfigPage {
    * @param clicks - Number of times to click the decrease button
    */
   async decreaseStepper(roleId: string, clicks: number) {
-    const btn = this.page.locator(`[data-testid="config-stepper-dec-${roleId}"]`);
-    const countLoc = this.page.locator(`[data-testid="config-stepper-count-${roleId}"]`);
-    await btn.waitFor({ state: 'visible', timeout: 3000 });
+    const btn = this.page.getByTestId(TESTIDS.configStepperDec(roleId));
+    const countLoc = this.page.getByTestId(TESTIDS.configStepperCount(roleId));
     for (let i = 0; i < clicks; i++) {
       const before = await countLoc.textContent();
       await btn.click();
@@ -178,9 +162,8 @@ export class ConfigPage {
    * @param clicks - Number of times to click the increase button
    */
   async increaseStepper(roleId: string, clicks: number) {
-    const btn = this.page.locator(`[data-testid="config-stepper-inc-${roleId}"]`);
-    const countLoc = this.page.locator(`[data-testid="config-stepper-count-${roleId}"]`);
-    await btn.waitFor({ state: 'visible', timeout: 3000 });
+    const btn = this.page.getByTestId(TESTIDS.configStepperInc(roleId));
+    const countLoc = this.page.getByTestId(TESTIDS.configStepperCount(roleId));
     for (let i = 0; i < clicks; i++) {
       const before = await countLoc.textContent();
       await btn.click();

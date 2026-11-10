@@ -56,7 +56,10 @@ import {
 } from './playerHelpers';
 import type { ConfirmStatus, GameState } from './protocol/types';
 import { type BottomCardChoice, evaluateBottomCardChoice } from './resolvers/bottomCardChoice';
-import { CONSTRAINT_REJECT_NOT_SELF } from './resolvers/constraintValidator';
+import {
+  CONSTRAINT_REJECT_NOT_SELF,
+  CONSTRAINT_REJECT_NOT_WOLF_FACTION,
+} from './resolvers/constraintValidator';
 import type { CurrentNightResults } from './resolvers/types';
 
 // =============================================================================
@@ -329,6 +332,7 @@ function buildSeatViews(args: {
 
     const identity = buildSeatIdentityView(state.roster, seat, getBotDisplayName);
     const isOwnSeat = seat === viewer.seat;
+    const isWolfPackPeer = wolfPackSeats !== null && wolfPackSeats.includes(seat);
     return {
       seat,
       // Fallback matches the client seat board (`|| '玩家'`): an empty-string
@@ -336,14 +340,26 @@ function buildSeatViews(args: {
       displayName: identity.displayName || '玩家',
       isBot: identity.isBot,
       visibleRole: isOwnSeat || (viewer.isHost && identity.isBot) ? (player.role ?? null) : null,
-      isWolfPackPeer: wolfPackSeats !== null && wolfPackSeats.includes(seat),
+      isWolfPackPeer,
       hasViewedRole: state.roleViewedSeats.includes(seat),
-      disabledReason:
-        isOwnSeat && constraints.includes(TargetConstraint.NotSelf)
-          ? CONSTRAINT_REJECT_NOT_SELF
-          : null,
+      disabledReason: seatDisabledReason(constraints, isOwnSeat, isWolfPackPeer),
     };
   });
+}
+
+/** Only constraints the viewer can already judge are projected; the server validates the rest. */
+function seatDisabledReason(
+  constraints: readonly TargetConstraint[],
+  isOwnSeat: boolean,
+  isWolfPackPeer: boolean,
+): string | null {
+  if (isOwnSeat && constraints.includes(TargetConstraint.NotSelf)) {
+    return CONSTRAINT_REJECT_NOT_SELF;
+  }
+  if (isWolfPackPeer && constraints.includes(TargetConstraint.NotWolfFaction)) {
+    return CONSTRAINT_REJECT_NOT_WOLF_FACTION;
+  }
+  return null;
 }
 
 // =============================================================================

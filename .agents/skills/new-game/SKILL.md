@@ -29,7 +29,7 @@ Do not use when:
 
 ## Must-read references
 
-1. `references/generator.md` — 16 shared edits, 43 templates,
+1. `references/generator.md` — 16 shared edits, 42 templates,
    per-preset counts, demo provenance.
 2. `references/registration-checklist.md` — the 15 registration items.
 3. `references/presets-and-report.md` — preset choice and the 9
@@ -77,9 +77,13 @@ pnpm new-game <gameId> --preset identity|stage|demo-hybrid --name <中文名> --
 ```
 
 See `references/generator.md` for the remaining options. One run
-writes the skeleton, edits the 16 shared files, derives the
+writes the engine, worker, and web client skeleton (the client under
+`packages/web/src/games/<gameId>/`, mirroring the web Demo, and
+registered in `packages/web/src/games/catalog.ts` and the lazy loaders
+of `packages/web/src/games/clientModules.tsx`, so the new game counts
+as ported), edits the 16 shared files, derives the
 registration migration from the latest registration migration
-(64 migration files exist; the latest registration migration is
+(65 migration files exist; the latest registration migration is
 `0065_demo.sql`, via `findLatestRegistrationMigration` in
 `scripts/lib/new-game/migration.mjs`), and writes the integration
 report. If the run aborts, read its output first: edits are computed
@@ -137,21 +141,27 @@ the main-branch CI result before closing the work.
 ```sh
 .agents/skills/new-game/scripts/check-new-game.sh .
 pnpm exec tsc --noEmit
+pnpm --filter @game-judge/web run typecheck
 pnpm --filter @game-judge/game-engine run test
 pnpm --filter @game-judge/api-worker run test
-pnpm exec jest --no-coverage --forceExit
+pnpm --filter @game-judge/web run test
+pnpm run test
 pnpm run knip
 ```
 
 Full quality verification runs in CI (`.github/workflows/ci.yml`);
 the commands above are the local scoped checks. Run formatting and
-lint checks on the changed files as well.
+lint checks on the changed files as well. `check-new-game.sh` still
+expects 43 templates while the generator ships 42
+(`references/generator.md`), so its template line fails until the
+script is re-derived from the generator.
 
 ## Pitfalls
 
-1. Copying the old counts (13 shared edits; 40/40 files) — the
-   verified counts are 16 edits and 42/41/43 files by preset
-   (`check-new-game.sh`; `generate.mjs`, `SHARED_EDITS`).
+1. Copying the old counts (13 shared edits; 40/40 files; 43
+   templates) — the verified counts are 16 edits, 42 templates, and
+   41/40/42 files by preset `identity`/`stage`/`demo-hybrid`
+   (`generate.mjs`, `SHARED_EDITS` and `FILE_CAPABILITY_GATES`).
 2. Calling the hand-built `demo` game generator output — it is a
    reference the `demo-hybrid` pack mirrors, not a generated game
    (`generate.mjs` header comment; demo files no template produces).

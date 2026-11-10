@@ -1,16 +1,15 @@
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { expect, test } from '@playwright/test';
 
+import { readAlertText } from '../helpers/alerts';
 import {
-  clickBottomButton,
+  clickNightButton,
   clickSeatAndConfirm,
   dismissAlert,
   driveWolfEmptyVote,
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,
-  isTextVisible,
-  readAlertText,
   viewLastNightInfo,
   waitForNightEnd,
   waitForRoleTurn,
@@ -86,11 +85,8 @@ test.describe('Werewolf Night — Kill', () => {
         const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
 
-        // Verify deaths: should see "玩家死亡" (not peaceful night)
-        await viewLastNightInfo(pages[0]!);
-        const hasDeath = await isTextVisible(pages[0]!, '死亡');
-        const peaceful = await isTextVisible(pages[0]!, '平安夜');
-        expect(hasDeath || !peaceful, 'Should have deaths, not 平安夜').toBe(true);
+        const nightInfo = await viewLastNightInfo(pages[0]!);
+        expect(nightInfo, 'Should have deaths, not 平安夜').toContain('昨夜死亡');
       },
     );
   });
@@ -122,9 +118,8 @@ test.describe('Werewolf Night — Kill', () => {
         const ended = await waitForNightEnd(pages, 90_000);
         expect(ended).toBe(true);
 
-        await viewLastNightInfo(pages[0]!);
-        const peaceful = await isTextVisible(pages[0]!, '平安夜');
-        expect(peaceful, 'Should be 平安夜 (empty wolf kill)').toBe(true);
+        const nightInfo = await viewLastNightInfo(pages[0]!);
+        expect(nightInfo, 'Should be 平安夜 (empty wolf kill)').toContain('昨夜平安夜');
       },
     );
   });
@@ -227,7 +222,7 @@ test.describe('Werewolf Night — Kill', () => {
         // Dismiss the initial action prompt ("复仇者行动") before clicking bottom button
         await dismissAlert(pages[avengerIdx]!);
 
-        await clickBottomButton(pages[avengerIdx]!, '查看阵营');
+        await clickNightButton(pages[avengerIdx]!, 'confirm', '查看阵营');
 
         // Read the faction status dialog, then dismiss
         const factionText = await readAlertText(pages[avengerIdx]!);
@@ -244,8 +239,7 @@ test.describe('Werewolf Night — Kill', () => {
         expect(ended, 'Night should end after bonded link setup').toBe(true);
 
         // Verify deaths: shadow (wolf killed) + avenger (bonded link) = 2 deaths
-        await viewLastNightInfo(pages[0]!);
-        const alertText = await readAlertText(pages[0]!);
+        const alertText = await viewLastNightInfo(pages[0]!);
 
         // Both shadow and avenger seats should appear in the death list
         const shadowSeatDisplay = formatSeat(shadowSeat);
@@ -256,10 +250,7 @@ test.describe('Werewolf Night — Kill', () => {
         expect(alertText, `Should contain avenger seat ${avengerSeatDisplay}`).toContain(
           avengerSeatDisplay,
         );
-
-        // Should not be peaceful night
-        const peaceful = await isTextVisible(pages[0]!, '平安夜');
-        expect(peaceful, 'Should not be 平安夜 with bonded deaths').toBe(false);
+        expect(alertText, 'Should not be 平安夜 with bonded deaths').not.toContain('平安夜');
       },
     );
   });
@@ -297,9 +288,10 @@ test.describe('Werewolf Night — Kill', () => {
         expect(ended).toBe(true);
 
         // Verify: peaceful night (cursedFox immune, no other kills)
-        await viewLastNightInfo(pages[0]!);
-        const peaceful = await isTextVisible(pages[0]!, '平安夜');
-        expect(peaceful, 'Should be 平安夜 — wolf kill silently fails on cursedFox').toBe(true);
+        const nightInfo = await viewLastNightInfo(pages[0]!);
+        expect(nightInfo, 'Should be 平安夜 — wolf kill silently fails on cursedFox').toContain(
+          '昨夜平安夜',
+        );
       },
     );
   });

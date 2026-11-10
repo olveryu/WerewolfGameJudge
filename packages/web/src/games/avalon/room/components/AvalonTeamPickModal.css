@@ -1,0 +1,107 @@
+.avalon-team-pick {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  min-height: 0;
+  padding: var(--space-small) var(--space-large);
+  padding-bottom: max(var(--space-medium), env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+
+.avalon-team-pick-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.avalon-team-pick-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-title);
+  line-height: var(--line-title);
+  font-weight: var(--weight-bold);
+}
+
+.avalon-team-pick-count,
+.avalon-team-pick-hint,
+.avalon-team-pick-tag {
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.avalon-team-pick-hint {
+  margin: 0;
+}
+
+.avalon-team-pick-tag[data-preselected] {
+  color: var(--color-primary);
+}
+
+.avalon-team-pick-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.avalon-team-pick-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  width: 100%;
+  padding: var(--space-small) 0;
+  border: none;
+  border-bottom: var(--border-width) solid var(--color-border);
+  background: none;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.avalon-team-pick-row:active {
+  opacity: var(--opacity-pressed);
+}
+
+.avalon-team-pick-row:disabled {
+  cursor: default;
+}
+
+.avalon-team-pick-checkbox {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  border: var(--border-width-thick) solid var(--color-border);
+  border-radius: var(--radius-full);
+  color: var(--color-text-inverse);
+}
+
+.avalon-team-pick-row[aria-checked='true'] .avalon-team-pick-checkbox {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.avalon-team-pick-label {
+  flex: 1;
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+}
+
+.avalon-team-pick-full {
+  margin: 0;
+  color: var(--color-warning);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  text-align: center;
+}
+
+.avalon-team-pick-footer {
+  display: flex;
+  gap: var(--space-small);
+  margin-top: var(--space-small);
+}
+
+.avalon-team-pick-footer > * {
+  flex: 1;
+}

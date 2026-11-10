@@ -4,7 +4,7 @@
 # Re-derive the expected numbers from the generator code if they change;
 # never edit this script to match stale documentation.
 set -eu
-ROOT="${1:-$(cd "$(dirname "$0")/../../.." && pwd)}"
+ROOT="${1:-$(cd "$(dirname "$0")/../../../.." && pwd)}"
 python3 - "$ROOT" <<'PY'
 import re, sys, pathlib
 root = pathlib.Path(sys.argv[1])
@@ -16,9 +16,9 @@ report = (root / "scripts/lib/new-game/report.mjs").read_text()
 steps = sorted({int(m) for m in re.findall(r"^(\d+)\.\s+\*\*", report, re.M)})
 migrations = list((root / "packages/api-worker/migrations").glob("*.sql"))
 print(f"SHARED_EDITS entries: {edits} (expected 16)")
-print(f"template files: {len(templates)} (expected 43)")
+print(f"template files: {len(templates)} (expected 42)")
 print(f"report steps: {steps} (expected 1..9)")
 print(f"migration files: {len(migrations)}")
-fail = edits != 16 or len(templates) != 43 or steps != list(range(1, 10))
+fail = edits != 16 or len(templates) != 42 or steps != list(range(1, 10))
 sys.exit(1 if fail else 0)
 PY

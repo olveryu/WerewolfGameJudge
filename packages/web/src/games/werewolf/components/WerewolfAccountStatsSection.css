@@ -1,0 +1,24 @@
+.werewolf-account-stats {
+  margin-bottom: var(--space-medium);
+}
+
+.werewolf-account-stats-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-small);
+}
+
+.werewolf-account-stats-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-caption);
+}
+
+.werewolf-account-stats-count {
+  color: var(--color-text-muted);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}

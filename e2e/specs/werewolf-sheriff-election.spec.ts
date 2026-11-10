@@ -30,10 +30,9 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     const hostRoom = new RoomPage(setup.hostPage);
 
     const nightResult = await runNightFlowLoop(pages, testInfo, {
-      maxIterations: 100,
       screenshotInterval: 15,
     });
-    expect(nightResult.resultText).toBe('警长竞选已开始');
+    expect(nightResult.phase).toBe('Day');
     await Promise.all(elections.map((election) => election.waitForPhase('报名上警')));
 
     await hostElection.expectWideInspector();

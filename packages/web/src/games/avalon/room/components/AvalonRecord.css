@@ -1,0 +1,612 @@
+/* Avalon match-record parts: quest track, round banner, proposals, lady section. */
+
+/* Quest track */
+.avalon-track {
+  display: flex;
+  align-items: flex-start;
+  padding: 0 var(--space-tight);
+}
+
+.avalon-track-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-tight);
+  width: var(--size-avatar-md);
+}
+
+.avalon-track-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-avatar-sm);
+  height: var(--size-avatar-sm);
+  border: var(--border-width-thick) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-secondary);
+}
+
+.avalon-track-dot[data-state='success'],
+.avalon-track-dot[data-state='fail'] {
+  color: var(--color-text-inverse);
+  font-size: var(--size-icon-sm);
+}
+
+.avalon-track-dot[data-state='success'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.avalon-track-dot[data-state='fail'] {
+  border-color: var(--color-error);
+  background: var(--color-error);
+}
+
+.avalon-track-dot[data-state='current'] {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.avalon-track-dot[data-state='interrupted'] {
+  border-style: dashed;
+  border-color: var(--color-text-secondary);
+}
+
+.avalon-track-label {
+  color: var(--color-text-muted);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+  text-align: center;
+}
+
+.avalon-track-label[data-active='true'] {
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+
+.avalon-track-label[data-state='current'] {
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.avalon-track-link {
+  flex: 1;
+  height: var(--border-width-thick);
+  margin-top: var(--space-medium);
+  border-radius: var(--radius-full);
+  background: var(--color-border-light);
+}
+
+.avalon-track-link[data-done='true'] {
+  background: var(--color-primary-a55);
+}
+
+/* Round */
+.avalon-round,
+.avalon-round-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+}
+
+.avalon-round-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  padding: var(--space-small);
+  border-radius: var(--radius-medium);
+  background: var(--color-primary-a8);
+}
+
+.avalon-round-banner[data-tone='success'] {
+  background: var(--color-primary-a12);
+}
+
+.avalon-round-banner[data-tone='fail'] {
+  background: var(--color-error-a10);
+}
+
+.avalon-round-banner-medal {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-button-md);
+  height: var(--size-button-md);
+  border-radius: var(--radius-medium);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--size-icon-md);
+}
+
+.avalon-round-banner-medal[data-tone='fail'] {
+  background: var(--color-error);
+}
+
+.avalon-round-banner-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-micro);
+  min-width: 0;
+}
+
+.avalon-round-banner-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-body);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-body);
+}
+
+.avalon-round-banner-subtitle {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.avalon-quest-cards {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-tight);
+}
+
+.avalon-quest-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-button-md);
+  min-height: var(--size-button-md);
+  padding: var(--space-tight);
+  border: var(--border-width) solid var(--color-primary);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+}
+
+.avalon-quest-card[data-kind='fail'] {
+  border-color: var(--color-error);
+}
+
+.avalon-quest-card[data-empty='true'] {
+  border-color: var(--color-border);
+  opacity: var(--opacity-disabled);
+}
+
+.avalon-quest-card-count {
+  color: var(--color-primary);
+  font-size: var(--font-body);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-secondary);
+}
+
+.avalon-quest-card[data-kind='fail'] .avalon-quest-card-count {
+  color: var(--color-error);
+}
+
+.avalon-quest-card[data-empty='true'] .avalon-quest-card-count {
+  color: var(--color-text-muted);
+}
+
+.avalon-quest-card-label {
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+  text-align: center;
+}
+
+.avalon-round-section-title {
+  margin: var(--space-tight) 0 0;
+  padding: 0 var(--space-tight);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-caption);
+  letter-spacing: var(--letter-wide);
+}
+
+.avalon-current-proposal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+  padding: var(--space-small);
+  border: var(--border-width) solid var(--color-primary-a40);
+  border-radius: var(--radius-medium);
+  background: var(--color-primary-a6);
+}
+
+.avalon-current-proposal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.avalon-current-proposal-icon {
+  flex-shrink: 0;
+  color: var(--color-primary);
+  font-size: var(--size-icon-sm);
+}
+
+.avalon-current-proposal-line {
+  margin: 0;
+  padding-left: calc(var(--size-icon-sm) + var(--space-small));
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+/* Proposals */
+.avalon-adopted-proposal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  padding: var(--space-small);
+  border: var(--border-width-thick) solid var(--color-primary);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.avalon-proposer-row,
+.avalon-team-row {
+  display: flex;
+  align-items: center;
+}
+
+.avalon-proposer-row {
+  gap: var(--space-small);
+}
+
+.avalon-team-row {
+  gap: var(--space-tight);
+}
+
+.avalon-proposer-text {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.avalon-proposer-text strong {
+  font-weight: var(--weight-bold);
+}
+
+.avalon-proposer-meta {
+  color: var(--color-text-secondary);
+}
+
+.avalon-adopted-badge {
+  flex-shrink: 0;
+  padding: var(--space-tight) var(--space-small);
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-bold);
+  line-height: var(--line-caption);
+}
+
+.avalon-team-label {
+  width: var(--size-avatar-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.avalon-vote-bar {
+  display: flex;
+  height: var(--space-small);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-error-a12);
+}
+
+.avalon-vote-bar-segment {
+  flex-basis: 0;
+}
+
+.avalon-vote-bar-segment[data-kind='approve'] {
+  background: var(--color-primary);
+}
+
+.avalon-vote-bar-segment[data-kind='reject'] {
+  background: var(--color-error);
+}
+
+.avalon-vote-bar-segment[data-kind='abstain'] {
+  background: var(--color-border);
+}
+
+.avalon-vote-counts {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-small);
+}
+
+.avalon-vote-count,
+.avalon-secret-note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.avalon-vote-count strong {
+  color: var(--color-text);
+  font-weight: var(--weight-bold);
+}
+
+.avalon-ballot-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-tight);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.avalon-ballot-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-tight);
+  padding: var(--space-micro) var(--space-small) var(--space-micro) var(--space-micro);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-size: var(--size-icon-xs);
+}
+
+.avalon-ballot-chip[data-ballot='reject'] {
+  color: var(--color-error);
+}
+
+.avalon-rejected-proposal {
+  border: var(--border-width) dashed var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-text-a3);
+}
+
+.avalon-rejected-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  width: 100%;
+  padding: var(--space-small);
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+
+button.avalon-rejected-header {
+  cursor: pointer;
+}
+
+.avalon-rejected-summary {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-tight);
+  min-width: 0;
+}
+
+.avalon-rejected-title {
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.avalon-rejected-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-small);
+}
+
+.avalon-mini-team {
+  display: flex;
+  align-items: center;
+  gap: var(--space-micro);
+}
+
+.avalon-rejected-badge {
+  flex-shrink: 0;
+  padding: var(--space-micro) var(--space-small);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-caption);
+}
+
+.avalon-rejected-chevron {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--size-icon-sm);
+}
+
+.avalon-rejected-details {
+  padding: 0 var(--space-small) var(--space-small);
+}
+
+/* Lady of the Lake */
+.avalon-lake {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+  padding: var(--space-small);
+  border-radius: var(--radius-medium);
+  background: var(--color-primary-a6);
+}
+
+.avalon-lake-title {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-caption);
+}
+
+.avalon-lake-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-tight);
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.avalon-lake-note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+/* History summary strip */
+.avalon-history-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+  width: 100%;
+  padding: var(--space-small) var(--space-medium);
+  border: none;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.avalon-history-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-small);
+}
+
+.avalon-history-summary-text {
+  overflow: hidden;
+  flex-shrink: 1;
+  min-width: 0;
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.avalon-history-summary-entry {
+  flex-shrink: 0;
+  color: var(--color-primary);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-secondary);
+}
+
+/* History sheet */
+.avalon-history-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-small);
+}
+
+.avalon-history-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-subtitle);
+}
+
+.avalon-history-score,
+.avalon-history-config {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.avalon-history-score-success {
+  color: var(--color-primary);
+  font-weight: var(--weight-bold);
+}
+
+.avalon-history-score-fail {
+  color: var(--color-error);
+  font-weight: var(--weight-bold);
+}
+
+.avalon-history-tabs {
+  display: flex;
+  gap: var(--space-tight);
+  padding: var(--space-tight);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-hover);
+}
+
+.avalon-history-tab {
+  flex: 1;
+  padding: var(--space-tight) var(--space-small);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  cursor: pointer;
+}
+
+.avalon-history-tab[aria-selected='true'] {
+  border-color: var(--color-border-light);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+
+.avalon-history-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  min-height: 0;
+  padding: var(--space-small) var(--space-medium);
+  padding-bottom: max(var(--space-medium), env(safe-area-inset-bottom));
+}
+
+.avalon-history-scroll {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-small);
+  min-height: 0;
+  padding-bottom: var(--space-small);
+  overflow-y: auto;
+}
+
+.avalon-history-empty {
+  margin: 0;
+  padding: var(--space-small);
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}

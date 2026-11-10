@@ -1,10 +1,17 @@
-import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 import { expect, type Locator, type Page, type TestInfo } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
-import { enterRoomCodeViaNumPad, extractRoomCode } from '../helpers/home';
+import { TESTIDS } from '../../packages/web/src/testids';
+import { confirmAlert, pressAlertButton } from '../helpers/alerts';
+import {
+  enterRoomCodeViaNumPad,
+  extractRoomCode,
+  openJoinRoomDialog,
+  submitJoinRoom,
+} from '../helpers/home';
 import { waitForRoomScreenReady } from '../helpers/waits';
 
+/** How long a seat change takes to reach every client. */
+const SEAT_BROADCAST_TIMEOUT_MS = 10_000;
 /**
  * RoomPage Page Object
  *
@@ -22,7 +29,7 @@ export class RoomPage {
 
   /** Precise locator for a seat tile by 0-based seat number. */
   getSeatTile(seat: number) {
-    return this.page.locator(`[data-testid="seat-tile-pressable-${seat}"]`);
+    return this.page.getByTestId(TESTIDS.seatTilePressable(seat));
   }
 
   // ---------------------------------------------------------------------------
@@ -43,17 +50,16 @@ export class RoomPage {
 
   /** Join a room from the home screen by entering the room code on the numpad. */
   async joinViaCode(roomCode: string): Promise<void> {
-    await this.page.getByTestId(TESTIDS.homeEnterRoomButton).click();
-    await expect(this.page.getByText('加入房间', { exact: true })).toBeVisible();
+    await openJoinRoomDialog(this.page);
     await enterRoomCodeViaNumPad(this.page, roomCode);
-    await this.page.getByText('加入', { exact: true }).click();
+    await submitJoinRoom(this.page);
     await waitForRoomScreenReady(this.page, { role: 'joiner' });
   }
 
-  /** Count visible seat tiles (excludes pressable overlay). */
-  async getSeatCount(): Promise<number> {
-    const tiles = this.page.locator('[data-testid^="seat-tile-pressable-"]');
-    return tiles.count();
+  /** Assert the seat grid renders exactly `count` seats (seat numbers are contiguous from 0). */
+  async expectSeatCount(count: number): Promise<void> {
+    await expect(this.getSeatTile(count - 1)).toBeVisible();
+    await expect(this.getSeatTile(count)).toHaveCount(0);
   }
 
   // ---------------------------------------------------------------------------
@@ -63,10 +69,10 @@ export class RoomPage {
   /** Click a seat and confirm the "入座" dialog. Waits for green seat badge to confirm seat taken. */
   async seatAt(seat: number) {
     await this.getSeatTile(seat).click();
-    await expect(this.page.getByTestId('seat-confirm-title')).toHaveText('入座', {
+    await expect(this.page.getByTestId(TESTIDS.seatConfirmTitle)).toHaveText('入座', {
       timeout: 5000,
     });
-    await this.page.getByTestId('seat-confirm-ok').click();
+    await this.page.getByTestId(TESTIDS.seatConfirmOk).click();
     // Wait for seat broadcast to arrive — green seat badge confirms the seat is taken
     await expect(this.page.getByTestId(TESTIDS.mySeatBadge)).toBeVisible({
       timeout: 10_000,
@@ -76,10 +82,10 @@ export class RoomPage {
   /** Move from the current seat and confirm the explicit "换座" intent. */
   async moveToSeat(seat: number) {
     await this.getSeatTile(seat).click();
-    await expect(this.page.getByTestId('seat-confirm-title')).toHaveText('换座', {
+    await expect(this.page.getByTestId(TESTIDS.seatConfirmTitle)).toHaveText('换座', {
       timeout: 5000,
     });
-    await this.page.getByTestId('seat-confirm-ok').click();
+    await this.page.getByTestId(TESTIDS.seatConfirmOk).click();
     await expect(this.page.getByTestId(TESTIDS.mySeatBadge)).toBeVisible({
       timeout: 10_000,
     });
@@ -88,8 +94,10 @@ export class RoomPage {
   /** Click own seat and leave directly from the profile. */
   async standUp(seat: number) {
     await this.getSeatTile(seat).click();
-    await expect(this.page.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
-    await this.page.getByText('离座', { exact: true }).click();
+    await expect(this.page.getByTestId(TESTIDS.playerProfileCard)).toBeVisible({ timeout: 5000 });
+    const leaveSeat = this.page.getByTestId(TESTIDS.playerProfileLeaveSeatButton);
+    await expect(leaveSeat).toHaveText('离座');
+    await leaveSeat.click();
     await expect(this.page.getByTestId(TESTIDS.seatConfirmModal)).not.toBeVisible();
     await expect(this.page.getByTestId(TESTIDS.mySeatBadge)).not.toBeVisible({
       timeout: 10_000,
@@ -102,20 +110,13 @@ export class RoomPage {
    */
   async kickPlayer(seat: number) {
     await this.getSeatTile(seat).click();
-    // Profile card should appear
-    await expect(this.page.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
-    // Click "移出座位" button inside the profile card — directly executes kick
-    await this.page.getByText('移出座位', { exact: true }).click();
+    await expect(this.page.getByTestId(TESTIDS.playerProfileCard)).toBeVisible({ timeout: 5000 });
+    // "移出座位" inside the profile card kicks directly
+    const kick = this.page.getByTestId(TESTIDS.playerProfileKickButton);
+    await expect(kick).toHaveText('移出座位');
+    await kick.click();
     await expect(this.page.getByTestId(TESTIDS.seatConfirmModal)).not.toBeVisible();
-    // Wait for kicked seat to show as empty via broadcast
-    const tile = this.getSeatTile(seat);
-    await expect
-      .poll(() => tile.textContent().then((t) => t?.includes('+') ?? false), {
-        timeout: 10_000,
-        intervals: [250],
-        message: `Seat ${seat} did not become empty after kick within 10s`,
-      })
-      .toBeTruthy();
+    await this.expectSeatEmpty(seat);
   }
 
   /** Check if green seat badge (my seat) is visible anywhere. */
@@ -129,17 +130,18 @@ export class RoomPage {
     });
   }
 
-  /**
-   * Collect seat UI state for a given display number (1-based).
-   */
-  async collectSeatState(displayNumber: number) {
-    const tile = this.getSeatTile(displayNumber - 1);
-    const fullText = await tile.textContent().catch(() => null);
-    return {
-      seatContent: fullText?.trim() ?? null,
-      hasPlayerName: fullText !== null && !fullText.includes('+'),
-      isEmpty: fullText?.includes('+') ?? true,
-    };
+  /** Assert the 0-based seat holds a player, waiting for the broadcast to arrive. */
+  async expectSeatOccupied(seat: number): Promise<void> {
+    await expect(this.getSeatTile(seat)).toHaveAttribute('data-empty', 'false', {
+      timeout: SEAT_BROADCAST_TIMEOUT_MS,
+    });
+  }
+
+  /** Assert the 0-based seat is empty, waiting for the broadcast to arrive. */
+  async expectSeatEmpty(seat: number): Promise<void> {
+    await expect(this.getSeatTile(seat)).toHaveAttribute('data-empty', 'true', {
+      timeout: SEAT_BROADCAST_TIMEOUT_MS,
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -158,7 +160,9 @@ export class RoomPage {
 
   /** Close the shared Host-management surface. */
   async closeHostManagement(): Promise<void> {
-    await this.page.getByRole('button', { name: '关闭主持管理' }).click();
+    const close = this.page.getByTestId(TESTIDS.roomHostManagementCloseButton);
+    await expect(close).toHaveAccessibleName('关闭主持管理');
+    await close.click();
     await expect(this.page.getByTestId(TESTIDS.roomHostManagementPanel)).not.toBeVisible();
   }
 
@@ -173,12 +177,7 @@ export class RoomPage {
 
   /** Confirm the dialog a Host action opens: wait for its title, then press 确定. */
   async confirmHostActionDialog(dialogTitle: string): Promise<void> {
-    // Scoped to the alert box: the host task card may show the same label as a button.
-    const dialog = this.page.getByTestId(TESTIDS.alertModal);
-    await expect(dialog.getByText(dialogTitle, { exact: true })).toBeVisible({
-      timeout: 3000,
-    });
-    await dialog.getByText('确定', { exact: true }).click();
+    await confirmAlert(this.page, dialogTitle);
   }
 
   /** Run a Host action that asks for confirmation, and confirm its dialog. */
@@ -226,75 +225,47 @@ export class RoomPage {
   /** Click "分配角色" and confirm the dialog. Wait for role assignment to propagate. */
   async prepareRoles() {
     await this.clickHostManagementActionAndConfirm(TESTIDS.assignRolesButton, '分配角色？');
-    // Wait for role assignment broadcast to arrive ("查看身份" becomes enabled)
-    // instead of fixed timeout — server-authoritative mode has variable latency.
-    await expect(this.page.getByRole('button', { name: '查看身份' })).toBeEnabled({
-      timeout: 15_000,
-    });
+    // The view-identity button renders once the assignment broadcast arrives.
+    await expect(this.viewIdentityButton()).toBeEnabled({ timeout: 15_000 });
   }
 
-  /**
-   * Click "查看身份" → capture role displayName from RoleCardSimple → click "知道了".
-   *
-   * Retries until the role card appears (the "等待房主分配角色…" alert is
-   * dismissed between attempts). Returns the Chinese displayName
-   * (e.g. "狼人", "预言家").
-   */
+  /** The bottom view-identity button, shared by every game. */
+  viewIdentityButton(): Locator {
+    return this.page.getByTestId(TESTIDS.roomViewIdentityButton);
+  }
+
+  /** Open the own role card through 查看身份 and return the dialog. */
+  async openRoleCard(): Promise<Locator> {
+    const viewButton = this.viewIdentityButton();
+    await expect(viewButton).toHaveText('查看身份', { timeout: 15_000 });
+    await viewButton.click();
+    const modal = this.page.getByTestId(TESTIDS.roleCardModal);
+    // The first view may play the viewer's reveal effect before the card shows.
+    await expect(modal).toBeVisible({ timeout: 15_000 });
+    return modal;
+  }
+
+  /** Close the open role card through its 知道了 button. */
+  async closeRoleCard(): Promise<void> {
+    const confirm = this.page.getByTestId(TESTIDS.roleCardConfirmButton);
+    await expect(confirm).toHaveText('知道了');
+    // The card may overflow a short viewport; a DOM click skips the viewport check.
+    await confirm.evaluate((element: HTMLElement) => element.click());
+    await expect(this.page.getByTestId(TESTIDS.roleCardModal)).toBeHidden();
+  }
+
+  /** View the own role card and close it. */
+  async viewRole(): Promise<void> {
+    await this.openRoleCard();
+    await this.closeRoleCard();
+  }
+
+  /** View the own role card, returning the role's display name (e.g. "狼人", "预言家"). */
   async viewRoleAndCapture(): Promise<string> {
-    const KNOWN_ROLES = Object.values(ROLE_SPECS).map((s) => s.displayName);
-
-    const viewBtn = this.page.getByRole('button', { name: '查看身份' });
-    await expect(viewBtn).toBeVisible({ timeout: 15_000 });
-
-    for (let attempt = 1; attempt <= 50; attempt++) {
-      await viewBtn.click();
-
-      const okBtn = this.page.getByText('知道了', { exact: true });
-      const waitAlert = this.page.getByText('等待房主分配角色…');
-
-      const appeared = await Promise.race([
-        okBtn.waitFor({ state: 'visible', timeout: 2000 }).then(() => 'roleCard' as const),
-        waitAlert.waitFor({ state: 'visible', timeout: 2000 }).then(() => 'waitAlert' as const),
-      ]).catch(() => 'neither' as const);
-
-      if (appeared === 'roleCard') {
-        // Capture role name before dismissing — check longest names first
-        // to avoid "狼人" matching before "狼美人" (sorted by length desc)
-        //
-        // IMPORTANT: Scope search to the modal card container, NOT the entire page.
-        // The RoomScreen's BoardInfoCard shows role composition text (e.g. "守卫")
-        // behind the modal overlay, which would cause false matches if we
-        // searched the full page.
-        const sorted = [...KNOWN_ROLES].sort((a, b) => b.length - a.length);
-        const modalCard = this.page.locator('[data-testid="role-card-modal"]');
-        let capturedRole = 'unknown';
-        for (const name of sorted) {
-          const visible = await modalCard
-            .getByText(name, { exact: true })
-            .first()
-            .isVisible()
-            .catch(() => false);
-          if (visible) {
-            capturedRole = name;
-            break;
-          }
-        }
-        // evaluate click bypasses all Playwright viewport/actionability checks
-        // — role card modal may overflow the viewport on smaller screens
-        await okBtn.evaluate((el) => (el as HTMLElement).click());
-        return capturedRole;
-      }
-
-      if (appeared === 'waitAlert') {
-        await this.page.getByText('确定', { exact: true }).click();
-        // Wait for alert to disappear before retrying
-        await waitAlert.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
-        continue;
-      }
-      // Poll cadence for retry loop
-      await this.page.waitForTimeout(300);
-    }
-    throw new Error('viewRoleAndCapture: "知道了" never appeared after retries.');
+    const modal = await this.openRoleCard();
+    const displayName = await modal.getByTestId(TESTIDS.roleCardName).innerText();
+    await this.closeRoleCard();
+    return displayName;
   }
 
   /** Click "开始游戏" and confirm dialog. */
@@ -307,17 +278,12 @@ export class RoomPage {
   /** Click "返回大厅" (terminal return-to-lobby) and pass the share-report ritual. */
   async returnToLobby() {
     await this.clickHostManagementAction(TESTIDS.returnLobbyButton);
-    // The ritual title and its confirm button both read 返回大厅, so the
-    // title is awaited by testID and the confirm is pressed by its
-    // alert-button testID (avalon.spec.ts precedents), never by text.
-    await expect(this.page.getByTestId(TESTIDS.alertTitle)).toHaveText('返回大厅', {
-      timeout: 3000,
+    // Three buttons render as [分享战报, 返回大厅, 取消].
+    await pressAlertButton(this.page, {
+      title: '返回大厅',
+      buttonIndex: 1,
+      buttonLabel: '返回大厅',
     });
-    // AlertModal's sortButtons moves cancel to the end in the 3-button
-    // column layout, so the rendered order is [分享战报, 返回大厅, 取消].
-    const confirmButton = this.page.getByTestId(TESTIDS.alertButton(1));
-    await expect(confirmButton).toHaveText('返回大厅');
-    await confirmButton.click();
     // Wait for restart broadcast — the console primary returns when the room is ready again.
     await expect(this.page.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
       '分配角色',

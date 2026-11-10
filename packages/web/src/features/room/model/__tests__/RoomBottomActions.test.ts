@@ -1,0 +1,156 @@
+import { viewerFor } from '@/test-utils/roomViewer';
+import { TESTIDS } from '@/testids';
+
+import {
+  buildEndedWaitingMessage,
+  buildLobbyHostStartMessage,
+  buildStepActorWaitingMessage,
+  buildViewIdentityButton,
+  resolveViewIdentityAction,
+  VIEW_IDENTITY_LABEL,
+} from '../RoomBottomActions';
+
+describe('buildLobbyHostStartMessage', () => {
+  it('shows the hint to a seated non-host player in the lobby', () => {
+    expect(
+      buildLobbyHostStartMessage({ isLobby: true, viewer: viewerFor('seated', { seatedSeat: 2 }) }),
+    ).toBe('等待房主开始游戏');
+  });
+
+  it('hides the hint from the host', () => {
+    expect(buildLobbyHostStartMessage({ isLobby: true, viewer: viewerFor('host') })).toBeNull();
+  });
+
+  it('hides the hint from a lobby spectator without a seat', () => {
+    expect(
+      buildLobbyHostStartMessage({ isLobby: true, viewer: viewerFor('spectator') }),
+    ).toBeNull();
+  });
+
+  it('hides the hint once the game has left the lobby', () => {
+    expect(
+      buildLobbyHostStartMessage({
+        isLobby: false,
+        viewer: viewerFor('seated', { seatedSeat: 2 }),
+      }),
+    ).toBeNull();
+  });
+});
+
+describe('buildEndedWaitingMessage', () => {
+  it('shows the hint to a seated non-host player once the game has ended', () => {
+    expect(
+      buildEndedWaitingMessage({ isEnded: true, viewer: viewerFor('seated', { seatedSeat: 3 }) }),
+    ).toBe('等待房主操作（再来一局 / 返回大厅）');
+  });
+
+  it('hides the hint from the host, who holds the rematch actions', () => {
+    expect(buildEndedWaitingMessage({ isEnded: true, viewer: viewerFor('host') })).toBeNull();
+  });
+
+  it('hides the hint from a spectator without a seat', () => {
+    expect(buildEndedWaitingMessage({ isEnded: true, viewer: viewerFor('spectator') })).toBeNull();
+  });
+
+  it('hides the hint before the game has ended', () => {
+    expect(
+      buildEndedWaitingMessage({ isEnded: false, viewer: viewerFor('seated', { seatedSeat: 3 }) }),
+    ).toBeNull();
+  });
+});
+
+describe('buildStepActorWaitingMessage', () => {
+  it('names the current step actor from the progress label', () => {
+    expect(buildStepActorWaitingMessage({ current: 2, total: 5, label: '预言家' })).toBe(
+      '正在等待 预言家 行动',
+    );
+  });
+
+  it('is null when the phase has no step progress', () => {
+    expect(buildStepActorWaitingMessage(null)).toBeNull();
+  });
+
+  it('is null when the step has no actor label', () => {
+    expect(buildStepActorWaitingMessage({ current: 1, total: 3, label: '' })).toBeNull();
+  });
+});
+
+describe('resolveViewIdentityAction / buildViewIdentityButton', () => {
+  it('exposes the canonical identity label', () => {
+    expect(VIEW_IDENTITY_LABEL).toBe('查看身份');
+  });
+
+  it('resolves to null when the audience predicate hides the action', () => {
+    expect(
+      resolveViewIdentityAction({ isVisible: false, label: '查看身份', onPress: () => {} }),
+    ).toBeNull();
+  });
+
+  it('carries the game label and handler through unchanged', () => {
+    const onPress = () => {};
+    expect(resolveViewIdentityAction({ isVisible: true, label: '查看我的词', onPress })).toEqual({
+      label: '查看我的词',
+      onPress,
+    });
+  });
+
+  it('renders an always-enabled button in the caller-chosen tier with the surface anchors', () => {
+    const onPress = () => {};
+    const action = resolveViewIdentityAction({ isVisible: true, label: '查看身份', onPress });
+    if (action === null) throw new Error('expected a resolved action');
+    expect(
+      buildViewIdentityButton(action, {
+        key: 'viewRole',
+        variant: 'primary',
+        audience: 'participant',
+        testID: TESTIDS.roomViewIdentityButton,
+        isSubmitting: false,
+      }),
+    ).toEqual({
+      key: 'viewRole',
+      label: '查看身份',
+      audience: 'participant',
+      icon: 'eye-outline',
+      variant: 'primary',
+      size: 'md',
+      testID: TESTIDS.roomViewIdentityButton,
+      isEnabled: true,
+      onPress,
+    });
+  });
+
+  it('omits the testID key entirely when the surface has none', () => {
+    const action = resolveViewIdentityAction({
+      isVisible: true,
+      label: '查看题目',
+      onPress: () => {},
+    });
+    if (action === null) throw new Error('expected a resolved action');
+    const button = buildViewIdentityButton(action, {
+      key: 'view-identity',
+      variant: 'secondary',
+      audience: 'anyone',
+      isSubmitting: false,
+    });
+    expect('testID' in button).toBe(false);
+    expect(button.variant).toBe('secondary');
+    expect(button.audience).toBe('anyone');
+  });
+
+  it('is disabled while a room command is in flight (the first view submits through the same lock)', () => {
+    const action = resolveViewIdentityAction({
+      isVisible: true,
+      label: '查看身份',
+      onPress: () => {},
+    });
+    if (action === null) throw new Error('expected a resolved action');
+    const button = buildViewIdentityButton(action, {
+      key: 'view-identity',
+      variant: 'primary',
+      audience: 'participant',
+      isSubmitting: true,
+    });
+    expect(button.isEnabled).toBe(false);
+    expect('onPress' in button).toBe(false);
+  });
+});

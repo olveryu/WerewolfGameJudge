@@ -1,0 +1,119 @@
+/**
+ * Contract test: the room guidance surfaces stay merged (PR-A of the room
+ * guidance redesign).
+ *
+ * The top status ribbon, the next-step strip model and the disabled-press
+ * popup channel were removed as mechanisms: host guidance is one declared
+ * task (room-shell-contract "Host Task") rendered on the host task card
+ * and referencing the sheet's actions by key; a disabled action's reason
+ * renders as a caption where the action sits. The flat info bottom model
+ * was likewise removed: the stacked three-tier layout (plus the sheriff
+ * dock) is the only bottom-actions model, and it carries no host flow.
+ * These identifiers must not reappear in room production code or in the
+ * new-game generator templates that distribute the same parts.
+ */
+
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+
+// The generator templates are a distribution surface for the same
+// standard parts: a removed mechanism must not survive there either,
+// or every newly generated game re-imports it.
+const SCAN_ROOTS = [
+  join(import.meta.dirname, '../features/room'),
+  join(import.meta.dirname, '../games'),
+  join(import.meta.dirname, '../../../../scripts/lib/new-game/templates'),
+];
+
+const FORBIDDEN_PATTERNS: readonly { readonly pattern: RegExp; readonly label: string }[] = [
+  { pattern: /StatusRibbon/, label: 'status ribbon (component, model or factory)' },
+  { pattern: /buildRoomNextStep/, label: 'buildRoomNextStep derivation' },
+  { pattern: /RoomNextStep/, label: 'RoomNextStep model types' },
+  { pattern: /messageRibbon|progressRibbon/, label: 'ribbon model factories' },
+  { pattern: /buildLobbyWaitingText/, label: 'lobby waiting ribbon text' },
+  { pattern: /HostGuideBanner/, label: 'host guide banner' },
+  { pattern: /onDisabledPress/, label: 'disabled-press popup channel' },
+  { pattern: /长按座位可接管机器人/, label: 'takeover hint copy' },
+  { pattern: /RoomBottomInfoModel/, label: 'flat info bottom model (stacked/dock only)' },
+  {
+    pattern: /resolveHostConsolePrimary|RoomHostConsolePrimary/,
+    label: 'console primary derivation (host task replaces it)',
+  },
+  { pattern: /isPrimary\b/, label: 'isPrimary action flag (the task declares the current action)' },
+  {
+    pattern: /consoleBlockedReason/,
+    label: 'console-only blocked reason (the sheet action carries the one reason)',
+  },
+  {
+    pattern: /hasPendingAction\b/,
+    label: 'pending-action badge flag (the task card is the signal)',
+  },
+  { pattern: /RoomPanelStep\b/, label: 'bottom-panel step bar (host flow steps live on the task)' },
+];
+
+function getAllTsFiles(dir: string): string[] {
+  const files: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    const fullPath = join(dir, entry);
+    if (statSync(fullPath).isDirectory()) {
+      files.push(...getAllTsFiles(fullPath));
+    } else if (
+      entry.endsWith('.ts') ||
+      entry.endsWith('.tsx') ||
+      entry.endsWith('.ts.tmpl') ||
+      entry.endsWith('.tsx.tmpl')
+    ) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
+function isProductionFile(file: string): boolean {
+  return !file.includes('__tests__') && !file.endsWith('.test.ts') && !file.endsWith('.test.tsx');
+}
+
+describe('room guidance surfaces contract', () => {
+  it('no removed guidance mechanism identifier survives in room production code or templates', () => {
+    const violations: string[] = [];
+    for (const root of SCAN_ROOTS) {
+      for (const file of getAllTsFiles(root)) {
+        if (!isProductionFile(file)) continue;
+        const source = readFileSync(file, 'utf-8');
+        for (const { pattern, label } of FORBIDDEN_PATTERNS) {
+          if (pattern.test(source)) {
+            violations.push(`${file.replace(join(import.meta.dirname, '../..'), '.')}: ${label}`);
+          }
+        }
+      }
+    }
+    expect(violations).toEqual([]);
+  });
+
+  it('the host management model declares the task and carries no preview, status or next-step fields', () => {
+    const model = readFileSync(
+      join(import.meta.dirname, '../features/room/model/RoomHostManagement.ts'),
+      'utf-8',
+    );
+    expect(model).not.toMatch(/readonly preview:/);
+    expect(model).not.toMatch(/readonly status:/);
+    expect(model).not.toMatch(/readonly nextStep:/);
+    expect(model).toMatch(/readonly task: RoomHostTask \| null;/);
+    // The task references sheet actions by key; it never carries a handler.
+    const taskType = model.slice(
+      model.indexOf('export type RoomHostTask'),
+      model.indexOf('export interface RoomHostManagementModel'),
+    );
+    expect(taskType).toMatch(/actionKey: string/);
+    expect(taskType).not.toMatch(/onPress/);
+  });
+
+  it('the shell model carries no status ribbon slot', () => {
+    const shellModel = readFileSync(
+      join(import.meta.dirname, '../features/room/model/RoomShellModel.ts'),
+      'utf-8',
+    );
+    expect(shellModel).not.toMatch(/statusRibbon/);
+    expect(shellModel).toMatch(/readonly bottomActions: RoomBottomActionModel;/);
+  });
+});

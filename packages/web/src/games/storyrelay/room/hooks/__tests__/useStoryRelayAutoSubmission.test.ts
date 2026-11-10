@@ -1,0 +1,272 @@
+/** Public-engine collection tests cover automatic submissions from current-page inputs. */
+
+import {
+  DEFAULT_STORY_RELAY_CONFIG,
+  getStoryRelayTaskForSeat,
+  type StoryRelayCommand,
+  storyRelayEngine,
+  type StoryRelayState,
+} from '@game-judge/game-engine/games/storyrelay/public';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+import { act, renderHook } from '@testing-library/react';
+
+import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
+import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
+import type { ReadyLinkSnapshot } from '@/platform/realtime/types';
+import { readyLinkSnapshot } from '@/test-utils/linkSnapshot';
+
+import { useStoryRelayAutoSubmission } from '../useStoryRelayAutoSubmission';
+
+vi.mock('@/utils/errorPipeline', () => ({ handleError: vi.fn() }));
+
+function createCollection() {
+  let sequence = 0;
+  let state = storyRelayEngine.createInitialState(
+    { ...DEFAULT_STORY_RELAY_CONFIG, numberOfPlayers: 4 },
+    { roomCode: '2468', hostUserId: 'host', commandId: 'create', nowMs: 1000 },
+  );
+  const execute = (command: StoryRelayCommand, controlledSeat: number | null = null) => {
+    const decision = storyRelayEngine.decide(state, command, {
+      actor: { kind: 'user', userId: 'host' },
+      controlledSeat,
+      nowMs: 1000,
+      commandId: `command-${sequence++}`,
+      randomSeed: 'round',
+    });
+    if (decision.kind !== 'commit') throw new Error(decision.reason);
+    state = storyRelayEngine.normalize(decision.events.reduce(storyRelayEngine.evolve, state));
+  };
+  execute({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
+  execute({ type: 'room.seat.fillBots' });
+  execute({ type: 'storyrelay.game.begin' });
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+    const task = getStoryRelayTaskForSeat(state, seat);
+    if (task === null) throw new Error('Missing task');
+    execute(
+      {
+        type: 'storyrelay.task.ready.set',
+        roundId: task.roundId,
+        stepIndex: task.stepIndex,
+        chainId: task.chainId,
+        isReady: true,
+      },
+      seat === 0 ? null : seat,
+    );
+  }
+  let snapshot: ReadyLinkSnapshot<StoryRelayState> = readyLinkSnapshot(
+    {
+      userId: 'host',
+      room: {
+        roomId: 'room-id',
+        roomCode: '2468',
+        gameType: 'storyrelay',
+        hostUserId: 'host',
+        createdAt: new Date(),
+      },
+    },
+    createRoomSnapshot(state, sequence),
+  );
+  const listeners = new Set<() => void>();
+  const publish = () => {
+    snapshot = { ...snapshot, room: createRoomSnapshot(state, sequence) };
+    for (const listener of listeners) listener();
+  };
+  const acknowledge = (command: StoryRelayCommand, controlledSeat: number | null) => {
+    execute(command, controlledSeat);
+    publish();
+    return {
+      kind: 'committed' as const,
+      commandId: `command-${sequence}`,
+      snapshot: snapshot.room,
+      outcome: { kind: 'success' as const },
+    };
+  };
+  const dispatch = vi.fn<StoryRelayRoomSession['dispatch']>(async (command, options) =>
+    acknowledge(command, options.controlledSeat),
+  );
+  const session = {
+    getSnapshot: () => snapshot,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    dispatch,
+  } as unknown as StoryRelayRoomSession;
+  const inputs = new Map<number, string>();
+  return {
+    session,
+    dispatch,
+    acknowledge,
+    inputs,
+    publish,
+    execute,
+    pending(count: number) {
+      snapshot = { ...snapshot, pendingDurableCount: count };
+      publish();
+    },
+    mount() {
+      return renderHook(() => {
+        const current = useRoomLinkSnapshot(session);
+        if (current.phase !== 'ready') throw new Error('Not ready');
+        return useStoryRelayAutoSubmission(current.room.state, 'host', session, inputs);
+      });
+    },
+  };
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+it('automatically submits all owned inputs with original whitespace', async () => {
+  const fixture = createCollection();
+  for (let seat = 0; seat < 4; seat += 1) fixture.inputs.set(seat, ` 原稿 ${seat}\n`);
+  fixture.mount();
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(fixture.dispatch).toHaveBeenCalledTimes(4);
+  expect(fixture.session.getSnapshot()).toMatchObject({
+    room: { state: { phase: 'transition' } },
+  });
+  expect(
+    fixture.dispatch.mock.calls.map(([command]) => ('text' in command ? command.text : null)),
+  ).toEqual([0, 1, 2, 3].map((seat) => ` 原稿 ${seat}\n`));
+});
+
+it('automatically submits blank for every owned seat without current-page input', async () => {
+  const fixture = createCollection();
+  fixture.mount();
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(fixture.dispatch).toHaveBeenCalledTimes(4);
+  expect(
+    fixture.dispatch.mock.calls.every(
+      ([command]) => command.type === 'storyrelay.task.empty.submit',
+    ),
+  ).toBe(true);
+});
+
+it('waits for the durable command to settle without creating a second delivery', async () => {
+  const fixture = createCollection();
+  fixture.inputs.set(0, '待确认原文');
+  let settle: ((outcome: Awaited<ReturnType<typeof fixture.acknowledge>>) => void) | null = null;
+  fixture.dispatch.mockImplementationOnce(() => {
+    fixture.pending(1);
+    return new Promise((resolve) => {
+      settle = resolve;
+    });
+  });
+  fixture.mount();
+  await act(async () => {
+    await Promise.resolve();
+    fixture.publish();
+  });
+  // The durable dispatch is still undecided: no second delivery of the same task.
+  expect(fixture.dispatch).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    const outcome = fixture.acknowledge(fixture.dispatch.mock.calls[0]![0], null);
+    fixture.pending(0);
+    settle!(outcome);
+  });
+  expect(fixture.dispatch).toHaveBeenCalledTimes(4);
+});
+
+it('does not truncate invalid input or block valid inputs from other bots', async () => {
+  const fixture = createCollection();
+  fixture.inputs.set(0, '字'.repeat(513));
+  for (let seat = 1; seat < 4; seat += 1) fixture.inputs.set(seat, `稿件${seat}`);
+  const { result } = fixture.mount();
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(result.current.status).toBe('failed');
+  expect(fixture.dispatch).toHaveBeenCalledTimes(3);
+});
+
+it('routes each bot draft through its own controlledSeat', async () => {
+  const fixture = createCollection();
+  for (let seat = 0; seat < 4; seat += 1) fixture.inputs.set(seat, `稿件${seat}`);
+  fixture.mount();
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(fixture.dispatch).toHaveBeenCalledTimes(4);
+  // The host's own seat submits uncontrolled; every bot seat goes through takeover.
+  expect(fixture.dispatch.mock.calls.map(([, options]) => options.controlledSeat)).toEqual([
+    null,
+    1,
+    2,
+    3,
+  ]);
+});
+
+it('lets a non-host player submit only their own seat, never bot seats', async () => {
+  let sequence = 0;
+  let state = storyRelayEngine.createInitialState(
+    { ...DEFAULT_STORY_RELAY_CONFIG, numberOfPlayers: 4 },
+    { roomCode: '2468', hostUserId: 'host', commandId: 'create', nowMs: 1000 },
+  );
+  const execute = (
+    command: StoryRelayCommand,
+    actorUserId: string,
+    controlledSeat: number | null = null,
+  ) => {
+    const decision = storyRelayEngine.decide(state, command, {
+      actor: { kind: 'user', userId: actorUserId },
+      controlledSeat,
+      nowMs: 1000,
+      commandId: `command-${sequence++}`,
+      randomSeed: 'round',
+    });
+    if (decision.kind !== 'commit') throw new Error(decision.reason);
+    state = storyRelayEngine.normalize(decision.events.reduce(storyRelayEngine.evolve, state));
+  };
+  execute({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Player' } }, 'player');
+  execute({ type: 'room.seat.fillBots' }, 'host');
+  execute({ type: 'storyrelay.game.begin' }, 'host');
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+    const task = getStoryRelayTaskForSeat(state, seat);
+    if (task === null) throw new Error('Missing task');
+    execute(
+      {
+        type: 'storyrelay.task.ready.set',
+        roundId: task.roundId,
+        stepIndex: task.stepIndex,
+        chainId: task.chainId,
+        isReady: true,
+      },
+      seat === 0 ? 'player' : 'host',
+      seat === 0 ? null : seat,
+    );
+  }
+
+  const dispatch = vi.fn<StoryRelayRoomSession['dispatch']>(async () => ({
+    kind: 'committed',
+    commandId: `command-${sequence}`,
+    snapshot: createRoomSnapshot(state, sequence),
+    outcome: { kind: 'success' },
+  }));
+  const inputs = new Map<number, string>([[0, '我的稿件']]);
+  const session = {
+    getSnapshot: () => ({
+      phase: 'ready' as const,
+      status: { kind: 'live' as const },
+      pendingDurableCount: 0,
+      room: { state },
+    }),
+    subscribe: () => () => {},
+    dispatch,
+  } as unknown as StoryRelayRoomSession;
+  renderHook(() => useStoryRelayAutoSubmission(state, 'player', session, inputs));
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(dispatch).toHaveBeenCalledTimes(1);
+  expect(dispatch.mock.calls[0]![0]).toMatchObject({
+    type: 'storyrelay.text.submit',
+    text: '我的稿件',
+  });
+  expect(dispatch.mock.calls[0]![1]).toMatchObject({ controlledSeat: null });
+});

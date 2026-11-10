@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   editClientCatalog,
+  editClientModuleLoaders,
   editCompletionRewards,
   editDispatchDiscipline,
   editEngineCatalog,
@@ -28,7 +29,6 @@ import {
   editGuidanceMatrixRegistry,
   editRegistry,
   editReviewContractRegistry,
-  editTestClientCatalog,
   editWorkerCatalog,
 } from './edits.mjs';
 import {
@@ -122,15 +122,18 @@ export const PACK_SEGMENT_SWITCHES = {
  * products (identity card adapter and the viewing-protocol
  * contract); the last is the audio chain's client binding hook —
  * the engine/client wiring inside shared files rides `//#cap`
- * segments, but the binding itself is a file only audio games have.
+ * segments, but the binding itself is a file only audio games have
+ * (it binds the web RoomAudioOrchestrator core to the room link).
  */
 export const FILE_CAPABILITY_GATES = {
   'packages/game-engine/src/games/__GAME_ID__/__tests__/phaseDeadlineProtocol.contract.test.ts':
     'stageDeadline',
   'packages/game-engine/src/games/__GAME_ID__/__tests__/identityViewingProtocol.contract.test.ts':
     'identityViewing',
-  'src/games/__GAME_ID__/components/__GAME_PASCAL__RoleCardAdapter.ts': 'identityViewing',
-  'src/games/__GAME_ID__/room/hooks/use__GAME_PASCAL__AudioOrchestration.ts': 'audioOrchestration',
+  'packages/web/src/games/__GAME_ID__/components/__GAME_PASCAL__RoleCardAdapter.ts':
+    'identityViewing',
+  'packages/web/src/games/__GAME_ID__/room/hooks/use__GAME_PASCAL__AudioOrchestration.ts':
+    'audioOrchestration',
 };
 
 export const DEFAULT_REWARDS = { xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 };
@@ -181,28 +184,28 @@ const SHARED_EDITS = [
     apply: (content, ctx) => editWorkerCatalog(content, ctx),
   },
   {
-    file: 'src/games/catalog.ts',
+    file: 'packages/web/src/games/catalog.ts',
     apply: (content, ctx) => editClientCatalog(content, ctx),
   },
   {
-    file: 'src/test-utils/clientGameCatalog.tsx',
-    apply: (content, ctx) => editTestClientCatalog(content, ctx),
+    file: 'packages/web/src/games/clientModules.tsx',
+    apply: (content, ctx) => editClientModuleLoaders(content, ctx),
   },
   {
-    file: 'src/__tests__/botDispatchDiscipline.contract.test.ts',
+    file: 'packages/web/src/__tests__/botDispatchDiscipline.contract.test.ts',
     apply: (content, ctx) => editDispatchDiscipline(content, ctx),
   },
   {
-    file: 'src/__tests__/roomGuidanceMatrix.contract.test.ts',
+    file: 'packages/web/src/__tests__/roomGuidanceMatrix.contract.test.ts',
     apply: (content, ctx) => editGuidanceMatrixRegistry(content, ctx),
   },
   {
-    file: 'src/__tests__/roomReview.contract.test.ts',
+    file: 'packages/web/src/__tests__/roomReview.contract.test.ts',
     apply: (content, ctx) => editReviewContractRegistry(content, ctx),
   },
 ];
 
-const FORMATTABLE_FILE = /\.(?:ts|tsx|js|mjs|json|md)$/;
+const FORMATTABLE_FILE = /\.(?:ts|tsx|js|mjs|json|md|css)$/;
 
 /**
  * Format everything the generator wrote with the repository's own
@@ -333,6 +336,25 @@ function assertSafeDisplayValue(label, value) {
   }
 }
 
+const ICON_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/**
+ * The Home card imports its Ionicon as `~icons/ion/<name>`; the binding
+ * is `Icon` plus the PascalCase name. Whether the icon exists is checked
+ * by the typecheck: the lobby summary types its icon as `IoniconName`.
+ */
+function iconComponentName(iconName) {
+  if (typeof iconName !== 'string' || !ICON_NAME_PATTERN.test(iconName)) {
+    throw new Error(
+      `Invalid --icon "${String(iconName)}": expected a kebab-case Ionicons name (e.g. "game-controller-outline").`,
+    );
+  }
+  return `Icon${iconName
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('')}`;
+}
+
 export function generateNewGame(options) {
   const {
     rootDir,
@@ -355,7 +377,7 @@ export function generateNewGame(options) {
   }
   assertSafeDisplayValue('--name', displayName);
   assertSafeDisplayValue('--subtitle', subtitle);
-  assertSafeDisplayValue('--icon', iconName);
+  const iconComponent = iconComponentName(iconName);
   const names = deriveGameNames(gameId);
   const capabilities = PRESET_CAPABILITIES[preset];
   // Rendering sees the capability row plus the pack's segment
@@ -366,6 +388,7 @@ export function generateNewGame(options) {
     __GAME_DISPLAY_NAME__: displayName,
     __GAME_SUBTITLE__: subtitle,
     __GAME_ICON_NAME__: iconName,
+    __GAME_ICON_COMPONENT__: iconComponent,
     __GAME_TIER__: tier,
     __GAME_PRESET__: preset,
   };

@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["vite/client", "vitest/globals", "node", "unplugin-icons/types/react"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@game-judge/game-engine/*": ["../game-engine/src/*"]
+    }
+  },
+  "include": ["src", "build-plugins", "vite.config.ts"]
+}

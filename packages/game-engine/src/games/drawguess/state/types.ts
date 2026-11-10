@@ -20,7 +20,7 @@ export const DRAWGUESS_GAME_TYPE = 'drawguess' as const;
  * migratePersistedDrawGuessState. */
 
 export const DRAWGUESS_MIN_PLAYERS = 4;
-export const DRAWGUESS_MAX_PLAYERS = 12;
+export const DRAWGUESS_MAX_PLAYERS = 15;
 const DRAWGUESS_DEFAULT_PLAYERS = 6;
 
 export const DRAWGUESS_DRAWING_DURATION_SECONDS = 90;

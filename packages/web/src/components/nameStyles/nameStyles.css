@@ -1,0 +1,138 @@
+/*
+ * Name styles (components/nameStyles/nameStyleConfigs.ts). Colours come from the config as
+ * inline values or the --name-style-filter-N variables the keyframes read.
+ */
+
+.name-style[data-gradient='true'] {
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.name-style[data-animated='true'] {
+  animation-name: var(--name-style-animation-name);
+  animation-duration: var(--name-style-animation-duration);
+  animation-timing-function: var(--name-style-animation-timing);
+  animation-iteration-count: infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .name-style[data-animated='true'] {
+    animation: none;
+  }
+}
+
+/* Legendary: one slow gradient sweep. */
+@keyframes nameStyleShift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes goldenScriptWeave {
+  0% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes goldenScriptCharge {
+  0%,
+  100% {
+    filter: var(--name-style-filter-0);
+  }
+
+  46% {
+    filter: var(--name-style-filter-1);
+  }
+}
+
+@keyframes pearlOathRefraction {
+  0%,
+  100% {
+    background-position: 0% 0%;
+    background-size: 180% 280%;
+  }
+
+  50% {
+    background-position: 100% 100%;
+    background-size: 260% 180%;
+  }
+}
+
+@keyframes pearlOathCaustic {
+  0%,
+  100% {
+    filter: var(--name-style-filter-0);
+  }
+
+  50% {
+    filter: var(--name-style-filter-1);
+  }
+}
+
+@keyframes vermilionNameBrush {
+  0%,
+  12% {
+    background-position: 100% 50%;
+  }
+
+  48%,
+  80% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes vermilionNameSeal {
+  0%,
+  44%,
+  100% {
+    filter: var(--name-style-filter-0);
+  }
+
+  52%,
+  72% {
+    filter: var(--name-style-filter-1);
+  }
+}
+
+@keyframes sovereignNameSweep {
+  0%,
+  100% {
+    background-position: 100% 50%;
+  }
+
+  50% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes sovereignNameGlow {
+  0%,
+  50%,
+  100% {
+    filter: var(--name-style-filter-0);
+  }
+
+  20%,
+  70% {
+    filter: var(--name-style-filter-1);
+  }
+
+  32%,
+  82% {
+    filter: var(--name-style-filter-2);
+  }
+}

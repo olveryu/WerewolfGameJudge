@@ -2,7 +2,7 @@
 # Read-only E2E inventory checks. Run from the repo root:
 #   sh .agents/skills/new-e2e-spec/scripts/check-e2e.sh [repo-root]
 set -eu
-ROOT="${1:-$(cd "$(dirname "$0")/../../.." && pwd)}"
+ROOT="${1:-$(cd "$(dirname "$0")/../../../.." && pwd)}"
 python3 - "$ROOT" <<'PY'
 import re, sys, pathlib
 root = pathlib.Path(sys.argv[1])

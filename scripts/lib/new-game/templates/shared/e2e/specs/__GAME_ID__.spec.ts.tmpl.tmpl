@@ -9,6 +9,9 @@
  *    真人模拟凑人数，一个 bot 都不许用（fillBots / takeOverBot
  *    只给人工测试凑人数）；一次只改一个 spec、一个 commit + push，
  *    用 e2e-single-spec workflow 逐个验证。
+ * 4. 元素一律用 `getByTestId(TESTIDS.x)` 定位；可见文案只在已定位的元素上断言
+ *    （toHaveText / toContainText / toHaveAccessibleName），缺 test id 先在
+ *    `packages/web/src/testids.ts` 注册并接到组件上。
  *
  * TODO(gameplay):用例清单随玩法定稿补齐（建房 → 入座坐满 → 开局 →
  * 核心流程 → 终局 → 返回大厅），helper 优先复用 e2e/helpers 既有件。

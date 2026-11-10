@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 
 /** Max time to wait for the link to return to live after a disconnect. */
 const RECONNECT_TIMEOUT_MS = 30_000;
@@ -47,66 +47,39 @@ export async function ensureConnected(pages: Page[]): Promise<void> {
 interface WaitForRoomScreenReadyOptions {
   /** Role of the page: 'host' or 'joiner'. Host skips live check. */
   role?: 'host' | 'joiner';
-  /** Max retries for room header + retry button flow */
-  maxRetries?: number;
   /** Timeout for joiner to reach live state (ms) */
   liveTimeoutMs?: number;
-}
-
-async function waitForRoomHeaderOrRetry(page: Page, maxRetries: number): Promise<void> {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      await expect(page.locator(`[data-testid="${TESTIDS.roomHeader}"]`)).toBeVisible({
-        timeout: 10000,
-      });
-      return;
-    } catch {
-      const retryBtn = page.getByText('重试');
-      if (
-        await retryBtn
-          .waitFor({ state: 'visible', timeout: 1000 })
-          .then(() => true)
-          .catch(() => false)
-      ) {
-        await retryBtn.click();
-        continue;
-      }
-      if (attempt === maxRetries - 1) {
-        throw new Error(
-          `[waitForRoomScreenReady] Room screen not ready after ${maxRetries} attempts`,
-        );
-      }
-    }
-  }
 }
 
 /**
  * Wait for RoomScreen to be ready.
  *
- * For host: Just waits for room header "房间 XXXX" to be visible.
- * For joiner: Also waits for the disconnected banner to disappear
+ * For host: waits for the room header, then closes the share dialog that opens
+ *           on its own right after the host creates the room.
+ * For joiner: also waits for the disconnected banner to disappear
  *             (i.e. connection is live and banner is not rendered).
  *
  * @param page - Playwright page
- * @param opts - Options for role, retries, and timeouts
+ * @param opts - Options for role and timeouts
  */
 export async function waitForRoomScreenReady(
   page: Page,
   opts: WaitForRoomScreenReadyOptions = {},
 ): Promise<void> {
-  const { role = 'host', maxRetries = 3, liveTimeoutMs = 30000 } = opts;
+  const { role = 'host', liveTimeoutMs = 30000 } = opts;
 
-  await waitForRoomHeaderOrRetry(page, maxRetries);
+  await expect(page.getByTestId(TESTIDS.roomHeader)).toBeVisible({ timeout: 30_000 });
 
-  // Host: dismiss auto-shown QR invite modal (if visible)
   if (role === 'host') {
-    const qrModal = page.locator(`[data-testid="${TESTIDS.qrCodeModal}"]`);
+    const qrModal = page.getByTestId(TESTIDS.qrCodeModal);
     const visible = await qrModal
       .waitFor({ state: 'visible', timeout: 2000 })
       .then(() => true)
       .catch(() => false);
     if (visible) {
-      await qrModal.getByText('关闭', { exact: true }).click();
+      const close = qrModal.getByTestId(TESTIDS.qrCodeCloseButton);
+      await expect(close).toHaveText('关闭');
+      await close.click();
       await expect(qrModal).toBeHidden();
     }
     return;

@@ -1,0 +1,39 @@
+.bench-page {
+  padding: 16px;
+}
+
+.bench-board {
+  position: relative;
+}
+
+.bench-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bench-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.bench-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #2a2a3a;
+  color: #fff;
+  font-size: 20px;
+}
+
+.bench-name {
+  font-size: 12px;
+}

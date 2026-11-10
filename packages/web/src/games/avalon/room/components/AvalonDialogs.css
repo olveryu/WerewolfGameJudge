@@ -1,0 +1,21 @@
+.avalon-dialog-body {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  text-align: center;
+}
+
+.avalon-dialog-hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  text-align: center;
+}
+
+.avalon-dialog-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+}

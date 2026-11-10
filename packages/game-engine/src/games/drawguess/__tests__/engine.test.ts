@@ -14,6 +14,7 @@ import {
   computeDeadlineAfterGuess,
   computeDrawerRoundGain,
   computeGuesserScore,
+  computeRevealedCount,
   isCorrectGuess,
   normalizeGuessText,
 } from '../domain/rules';
@@ -115,7 +116,13 @@ function game(numberOfPlayers = 4) {
 }
 
 describe('DrawGuess engine', () => {
-  it('rejects configs outside 4–12 players', () => {
+  it('accepts 4–15 players and rejects configs outside that range', () => {
+    expect(
+      drawGuessEngine.createInitialState(
+        { ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers: 15 },
+        { roomCode: '1', hostUserId: 'host', nowMs: 1, commandId: 'c' },
+      ).config.numberOfPlayers,
+    ).toBe(15);
     expect(() =>
       drawGuessEngine.createInitialState(
         { ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers: 3 },
@@ -124,7 +131,7 @@ describe('DrawGuess engine', () => {
     ).toThrow();
     expect(() =>
       drawGuessEngine.createInitialState(
-        { ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers: 13 },
+        { ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers: 16 },
         { roomCode: '1', hostUserId: 'host', nowMs: 1, commandId: 'c' },
       ),
     ).toThrow();
@@ -557,10 +564,32 @@ describe('DrawGuess engine', () => {
     const guesserView = getDrawGuessViewModel(session.state, 1, session.nowMs);
     expect(guesserView.word).toBeNull();
     expect(guesserView.choices).toEqual([]);
-    expect(guesserView.hintText).toContain('3个字');
+    expect(guesserView.hintText).toBe('_ _ _');
+    expect(guesserView.wordLength).toBe(3);
     const drawerView = getDrawGuessViewModel(session.state, 0, session.nowMs);
     expect(drawerView.word).toBe('大熊猫');
     expect(drawerView.hintText).toBeNull();
+  });
+
+  it('reveals one pinyin initial per interval and always keeps one hidden', () => {
+    const session = game();
+    session.startGame();
+    session.chooseFirstWord(0);
+    if (session.state.phase.kind !== 'drawing') throw new Error('phase');
+    const { phaseStartAt } = session.state.phase;
+    const intervalMs = session.state.config.hintRevealIntervalSeconds * 1000;
+    const hiddenInitialsAt = (nowMs: number) =>
+      (getDrawGuessViewModel(session.state, 1, nowMs).hintText ?? '')
+        .split(' ')
+        .filter((part) => part === '_').length;
+    expect(hiddenInitialsAt(phaseStartAt)).toBe(3);
+    expect(hiddenInitialsAt(phaseStartAt + intervalMs)).toBe(2);
+    expect(hiddenInitialsAt(phaseStartAt + 2 * intervalMs)).toBe(1);
+    expect(hiddenInitialsAt(phaseStartAt + 10 * intervalMs)).toBe(1);
+  });
+
+  it('never reveals the initial of a one-character word', () => {
+    expect(computeRevealedCount(0, 600_000, 20, 1)).toBe(0);
   });
 
   it('hides correct guess text from other guessers', () => {

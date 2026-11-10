@@ -19,7 +19,7 @@ names derive from it.
 
 ## Shared edits: 16
 
-`SHARED_EDITS` in `generate.mjs` (line 138) has 16 entries, in this
+`SHARED_EDITS` in `generate.mjs` (line 141) has 16 entries, in this
 order:
 
 1. `packages/game-engine/src/platform/protocol/gameTypes.ts`
@@ -33,11 +33,14 @@ order:
 9. `packages/game-engine/src/platform/engine/__tests__/contracts.test.ts`
 10. `packages/game-engine/src/games/catalog.ts`
 11. `packages/api-worker/src/games/catalog.ts`
-12. `src/games/catalog.ts`
-13. `src/test-utils/clientGameCatalog.tsx`
-14. `src/__tests__/botDispatchDiscipline.contract.test.ts`
-15. `src/__tests__/roomGuidanceMatrix.contract.test.ts`
-16. `src/__tests__/roomReview.contract.test.ts`
+12. `packages/web/src/games/catalog.ts` (`CLIENT_GAMES`: the game's
+    Home entry from `@/games/<id>/home`)
+13. `packages/web/src/games/clientModules.tsx` (a lazy
+    `CLIENT_GAME_LOADERS` entry, which also marks the game ported for
+    the per-game web contracts, plus its module slot)
+14. `packages/web/src/__tests__/botDispatchDiscipline.contract.test.ts`
+15. `packages/web/src/__tests__/roomGuidanceMatrix.contract.test.ts`
+16. `packages/web/src/__tests__/roomReview.contract.test.ts`
 
 Edits are computed in memory first and only then written; a missing
 anchor or ambiguous anchor aborts before the first write
@@ -48,20 +51,26 @@ over created + edited files + the report, an `eslint --fix` pass over
 created files, and a second prettier pass over created files
 (`generate.mjs`, `formatGeneratedFiles` / `autofixGeneratedImports`).
 
-## Template tree: 43 files
+## Template tree: 42 files
 
-`scripts/lib/new-game/templates/` holds 43 `.tmpl` files: 19 under
-`shared/` and 24 under `game/` (`collectTemplateFiles('shared')` /
-`collectTemplateFiles('game', capabilities)` in `generate.mjs`). Four
-files are capability-gated (`FILE_CAPABILITY_GATES` in `generate.mjs`,
-line 127):
+`scripts/lib/new-game/templates/` holds 42 `.tmpl` files: 17 under
+`shared/` and 25 under `game/` (`collectTemplateFiles('shared')` /
+`collectTemplateFiles('game', capabilities)` in `generate.mjs`). The
+client templates (7 shared, 12 game) render under
+`packages/web/src/games/<game>/` (home, module, session model,
+navigation, rules screen, room screen and CSS, room adapter, guidance
+matrix, room-state hook, command-failure message, review) plus the
+review-round fixture `packages/web/src/test-utils/<game>State.ts`,
+mirroring the hand-built web Demo in `packages/web/src/games/demo/`.
+Four files are capability-gated (`FILE_CAPABILITY_GATES` in
+`generate.mjs`, line 128):
 
-| Template file                                                | Gate                 |
-| ------------------------------------------------------------ | -------------------- |
-| `.../__tests__/phaseDeadlineProtocol.contract.test.ts`       | `stageDeadline`      |
-| `.../__tests__/identityViewingProtocol.contract.test.ts`     | `identityViewing`    |
-| `src/games/<game>/components/<Game>RoleCardAdapter.ts`       | `identityViewing`    |
-| `src/games/<game>/room/hooks/use<Game>AudioOrchestration.ts` | `audioOrchestration` |
+| Template file                                                             | Gate                 |
+| ------------------------------------------------------------------------- | -------------------- |
+| `.../__tests__/phaseDeadlineProtocol.contract.test.ts`                    | `stageDeadline`      |
+| `.../__tests__/identityViewingProtocol.contract.test.ts`                  | `identityViewing`    |
+| `packages/web/src/games/<game>/components/<Game>RoleCardAdapter.ts`       | `identityViewing`    |
+| `packages/web/src/games/<game>/room/hooks/use<Game>AudioOrchestration.ts` | `audioOrchestration` |
 
 ## Per-preset output counts
 
@@ -70,9 +79,9 @@ is an extra file in all cases, not counted here):
 
 | Preset        | Excluded templates                                       | Files (templates + migration) |
 | ------------- | -------------------------------------------------------- | ----------------------------- |
-| `identity`    | phase-deadline test, audio hook (2)                      | 41 + 1 = **42**               |
-| `stage`       | identity-viewing test, role-card adapter, audio hook (3) | 40 + 1 = **41**               |
-| `demo-hybrid` | audio hook (1)                                           | 42 + 1 = **43**               |
+| `identity`    | phase-deadline test, audio hook (2)                      | 40 + 1 = **41**               |
+| `stage`       | identity-viewing test, role-card adapter, audio hook (3) | 39 + 1 = **40**               |
+| `demo-hybrid` | audio hook (1)                                           | 41 + 1 = **42**               |
 
 All three presets keep `audioOrchestration` off, so the audio hook is
 never rendered by the generator.
@@ -83,7 +92,6 @@ The shipped `demo` game was hand-built; the `demo-hybrid` pack is the
 union demo was hand-built to (`generate.mjs` header comment). Demo is
 a reference for the skeleton's shape, not generator output. Demo
 contains files no template produces (`fullChain.test.ts`,
-`roomCommands.contract.test.ts`, `effects.test.ts`,
-`demoGuidanceMatrix.test.ts`, `demoConfigScreen.contract.test.tsx`)
-and the demo-hybrid capability row mirrors demo's verified
-declaration (`demo/engine.ts`, `capabilities`).
+`roomCommands.contract.test.ts`, `effects.test.ts`) and the
+demo-hybrid capability row mirrors demo's verified declaration
+(`demo/engine.ts`, `capabilities`).

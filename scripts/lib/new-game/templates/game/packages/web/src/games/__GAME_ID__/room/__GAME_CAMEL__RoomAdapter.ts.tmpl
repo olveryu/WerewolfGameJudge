@@ -1,0 +1,418 @@
+/**
+//#cap identityViewing
+ * 把__GAME_DISPLAY_NAME__权威状态投影到共享座位表与房间外壳，不暴露他人身份。
+//#end
+//#cap !identityViewing
+ * 把__GAME_DISPLAY_NAME__权威状态投影到共享座位表与房间外壳。
+//#end
+ */
+
+import {
+  get__GAME_PASCAL__OccupiedSeatCount,
+//#cap identityViewing
+  get__GAME_PASCAL__ViewingParticipants,
+//#end
+  type __GAME_PASCAL__Command,
+  type __GAME_PASCAL__State,
+} from '@game-judge/game-engine/games/__GAME_ID__/public';
+
+import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
+import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+import { createRoomShellModel, type RoomShellModelInput } from '@/features/room/model/createRoomShellModel';
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
+import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
+import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
+import {
+//#cap identityViewing
+  allViewedConfirmBody,
+  buildAssignRolesAction,
+//#end
+  buildClearSeatsAction,
+  buildFillBotsAction,
+//#cap identityViewing
+  buildMarkBotsViewedAction,
+//#end
+  buildNextRoundAction,
+  buildReturnLobbyAction,
+  buildRoomConfigAction,
+  buildShareRoomAction,
+  buildStartGameAction,
+//#cap identityViewing
+  createViewingBeginGate,
+//#end
+  HOST_ACTION_KEYS,
+  HOST_FLOW_CONFIRM,
+//#cap identityViewing
+  hostActionTask,
+//#end
+  hostReviewClosingTask,
+//#cap identityViewing
+//#end
+  hostStartTask,
+//#cap identityViewing
+  projectViewingProgress,
+//#end
+  seatShortageReason,
+//#cap identityViewing
+  viewedProgressReason,
+//#end
+} from '@/features/room/model/hostManagementActions';
+import {
+  buildEndedWaitingMessage,
+  buildLobbyHostStartMessage,
+} from '@/features/room/model/RoomBottomActions';
+import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
+import type {
+  RoomHostManagementAction,
+  RoomHostManagementModel,
+//#cap identityViewing
+  RoomHostManagementSection,
+//#end
+} from '@/features/room/model/RoomHostManagement';
+import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
+import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
+import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import {
+  buildReviewHostAction,
+  buildViewerReviewBottomButtons,
+  type RoomReviewEntry,
+} from '@/features/room/review/roomReviewActions';
+import { showConfirmAlert } from '@/utils/alertPresets';
+
+/** 为共享资料卡控件返回公开的席位身份。 */
+const get__GAME_PASCAL__ProfileTarget = (
+  state: __GAME_PASCAL__State,
+  seat: number,
+): RoomProfileTarget | null => getRoomProfileTarget(state.roster, seat);
+
+export interface __GAME_PASCAL__SeatSourceInput {
+  readonly state: __GAME_PASCAL__State;
+  readonly revision: number;
+  readonly userId: string;
+  readonly controlledSeat: number | null;
+}
+
+/** Project __GAME_PASCAL__ seating into the shared room seat-tap contract. */
+export const get__GAME_PASCAL__SeatTapIntent = createRoomSeatTapIntentResolver(get__GAME_PASCAL__ProfileTarget);
+
+function create__GAME_PASCAL__SeatDataSource(
+  input: __GAME_PASCAL__SeatSourceInput,
+): RoomSeatDataSource {
+  const { state, revision, userId, controlledSeat } = input;
+  return createRoomSeatDataSource({
+    seatCount: state.config.numberOfPlayers,
+    revision,
+    roster: state.roster,
+    viewerUserId: userId,
+    controlledSeat,
+    isLobby: state.phase.kind === 'lobby',
+    gameName: '__GAME_PASCAL__',
+//#cap identityViewing
+    // 已查看勾只属于查看阶段（展示契约）：开始即消失。
+    resolveShowReadyBadge: (seat) =>
+      state.phase.kind === 'viewing' && state.roleViewedSeats.includes(seat),
+//#end
+//#cap !identityViewing
+    // TODO(gameplay): 逐座阶段徽标（当前行动者、已提交等）走 resolveStatusBadge /
+    // resolveSecondaryLabel 注入，只许走 statusBadge / secondaryLabel 出口，
+    // 不许在座位表下方加阶段层。
+//#end
+  });
+}
+
+export interface __GAME_PASCAL__RoomShellModelInput extends Omit<
+  RoomShellModelInput, 'phase' | 'step' | 'isAudioPlaying' | 'seatSource' | 'seatConfirmation' | 'profile' | 'bottomActions' | 'controlledSeat'
+> {
+  readonly state: __GAME_PASCAL__State;
+  readonly revision: number;
+  readonly controlledSeat: number | null;
+  readonly seatController: RoomSeatController;
+  readonly profileSelection: RoomProfileSelection | null;
+  readonly onProfileClose: () => void;
+  readonly onProfileLeaveSeat: () => void;
+  readonly isLobby: boolean;
+  readonly releaseBot: () => void;
+  /** 本局复盘入口（平台 useRoomReview）；没有可复盘的对局时为 null。 */
+  readonly review: RoomReviewEntry | null;
+}
+
+export interface __GAME_PASCAL__HostManagementInput {
+  readonly state: __GAME_PASCAL__State;
+  readonly capabilities: Pick<
+    RoomCapabilities,
+    'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'
+  >;
+  readonly isSubmitting: boolean;
+  readonly submit: (label: string, command: __GAME_PASCAL__Command) => Promise<boolean>;
+  /** 本局复盘入口；终局时必有。 */
+  readonly review: RoomReviewEntry | null;
+}
+
+/** Assembles the __GAME_PASCAL__ host panel for the current phase. Host gating belongs to the shell factory. */
+export function create__GAME_PASCAL__HostManagement(
+  input: __GAME_PASCAL__HostManagementInput,
+): RoomHostManagementModel {
+  const { state, capabilities } = input;
+  const roomActions: RoomHostManagementAction[] = [];
+  if (capabilities.canConfigureGame.isAllowed)
+    roomActions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
+  if (capabilities.canFillBots.isAllowed)
+    roomActions.push(buildFillBotsAction({ onPress: capabilities.canFillBots.execute }));
+  if (capabilities.canClearSeats.isAllowed)
+    roomActions.push(buildClearSeatsAction({ onPress: capabilities.canClearSeats.execute }));
+//#cap !identityViewing
+  const occupiedSeatCount = get__GAME_PASCAL__OccupiedSeatCount(state);
+//#end
+//#cap identityViewing
+  if (state.phase.kind === 'lobby') {
+    const occupiedSeatCount = get__GAME_PASCAL__OccupiedSeatCount(state);
+    const canStart = occupiedSeatCount === state.config.numberOfPlayers;
+    const startDisabledReason = canStart
+      ? null
+      : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
+    const submitAssign = () =>
+      void input.submit('分配角色', { type: '__GAME_ID__.roles.assign' });
+    const assignAction = buildAssignRolesAction({
+      onPress: () =>
+        showConfirmAlert(
+          HOST_FLOW_CONFIRM.assignTitle,
+          '所有座位已满，将为每位玩家分配身份',
+          submitAssign,
+        ),
+      isEnabled: !input.isSubmitting && canStart,
+      disabledReason: startDisabledReason,
+      isLoading: input.isSubmitting,
+    });
+    // 分享房间常驻大厅房间区（禁用时带原因），是座位不满时任务卡的补救。
+    return {
+      task: hostStartTask(HOST_ACTION_KEYS.assignRoles),
+      sections: [
+        {
+          key: 'game',
+          title: '游戏',
+          actions: [assignAction],
+        },
+        {
+          key: 'room',
+          title: '房间管理',
+          actions: [...roomActions, buildShareRoomAction(capabilities.canShareRoom)],
+        },
+      ],
+    };
+  }
+//#end
+//#cap !identityViewing
+  if (state.phase.kind === 'lobby') {
+    const canStart = occupiedSeatCount === state.config.numberOfPlayers;
+    const startDisabledReason = canStart
+      ? null
+      : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
+    const submitStart = () => void input.submit('开始游戏', { type: '__GAME_ID__.game.begin' });
+    const startAction = buildStartGameAction({
+      onPress: () => showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将开始本局对局', submitStart),
+      isEnabled: !input.isSubmitting && canStart,
+      disabledReason: startDisabledReason,
+      isLoading: input.isSubmitting,
+    });
+    // 分享房间常驻大厅房间区（禁用时带原因），是座位不满时任务卡的补救。
+    return {
+      task: hostStartTask(HOST_ACTION_KEYS.startGame),
+      sections: [
+        {
+          key: 'game',
+          title: '游戏',
+          actions: [startAction],
+        },
+        {
+          key: 'room',
+          title: '房间管理',
+          actions: [...roomActions, buildShareRoomAction(capabilities.canShareRoom)],
+        },
+      ],
+    };
+  }
+//#end
+//#cap identityViewing
+  if (state.phase.kind === 'viewing') {
+    // 三段式中段：身份已发、对局未开始。全员查看齐后房主点「开始游戏」
+    // 才进入对局（引擎 begin 门同口径，这里先给禁用态与原因）。
+    const participants = get__GAME_PASCAL__ViewingParticipants(state);
+    const progress = projectViewingProgress(participants, state.roleViewedSeats);
+    const beginGate = createViewingBeginGate({
+      ...progress,
+      submitting: input.isSubmitting,
+      notViewedCopy: viewedProgressReason(progress.viewedCount, progress.totalSeats, '身份'),
+    });
+    const submitBegin = () => void input.submit('开始游戏', { type: '__GAME_ID__.game.begin' });
+    const beginAction = buildStartGameAction({
+      onPress: () =>
+        showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, allViewedConfirmBody('身份', '将开始对局'), submitBegin),
+      isEnabled: beginGate.isEnabled,
+      disabledReason: beginGate.disabledReason,
+      isLoading: input.isSubmitting,
+    });
+    const sections: RoomHostManagementSection[] = [
+      {
+        key: 'game',
+        title: '游戏',
+        actions: [beginAction],
+      },
+    ];
+    const hasUnviewedBot = participants.some(
+      (participant) => participant.isBot && !state.roleViewedSeats.includes(participant.seat),
+    );
+    if (hasUnviewedBot)
+      sections.push({
+        key: 'bot-viewing',
+        title: '身份查看',
+        actions: [
+          buildMarkBotsViewedAction({
+            onPress: () =>
+              void input.submit('标记机器人已查看', {
+                type: '__GAME_ID__.bots.markAllBotsViewed',
+              }),
+            isEnabled: !input.isSubmitting,
+            isLoading: input.isSubmitting,
+          }),
+        ],
+      });
+    sections.push({ key: 'room', title: '房间管理', actions: roomActions });
+    // 任务始终是开始游戏：看齐前它被查看进度阻塞，机器人脚手架是补救。
+    const task = hostActionTask(
+      HOST_ACTION_KEYS.startGame,
+      hasUnviewedBot ? { remedyActionKey: HOST_ACTION_KEYS.markBotsViewed } : {},
+    );
+    return { task, sections };
+  }
+//#end
+//#cap identityViewing
+  if (state.phase.kind === 'ended') {
+    if (input.review === null) throw new Error('[FAIL-FAST] __GAME_PASCAL__ ended without a review entry');
+    // 本局复盘与再来一局 / 返回大厅并列：下一局开始后本局复盘随之消失。
+    return {
+      task: hostReviewClosingTask(),
+      sections: [
+        {
+          key: 'current-flow',
+          title: '当前流程',
+          actions: [
+            buildReviewHostAction(input.review),
+            buildNextRoundAction({
+              onPress: () =>
+                showConfirmAlert(
+                  HOST_FLOW_CONFIRM.nextRoundTitle,
+                  '重新分配身份，开始新的一局。',
+                  async () => {
+                    await input.submit('再来一局', { type: '__GAME_ID__.roles.assign' });
+                  },
+                ),
+            }),
+            buildReturnLobbyAction({
+              onPress: () =>
+                showConfirmAlert(HOST_FLOW_CONFIRM.returnLobbyTitle, HOST_FLOW_CONFIRM.returnLobbyBody, async () => {
+                  await input.submit('返回大厅', { type: '__GAME_ID__.game.returnToLobby' });
+                }),
+            }),
+          ],
+        },
+      ],
+    };
+  }
+//#end
+//#cap !identityViewing
+  if (state.phase.kind === 'ended') {
+    if (input.review === null) throw new Error('[FAIL-FAST] __GAME_PASCAL__ ended without a review entry');
+    // 本局复盘与再来一局 / 返回大厅并列：下一局开始后本局复盘随之消失。
+    return {
+      task: hostReviewClosingTask(),
+      sections: [
+        {
+          key: 'current-flow',
+          title: '当前流程',
+          actions: [
+            buildReviewHostAction(input.review),
+            buildNextRoundAction({
+              onPress: () =>
+                showConfirmAlert(HOST_FLOW_CONFIRM.nextRoundTitle, '将重新分配并清零比分，开始新的一局。', async () => {
+                  await input.submit('再来一局', { type: '__GAME_ID__.game.begin' });
+                }),
+            }),
+            buildReturnLobbyAction({
+              onPress: () =>
+                showConfirmAlert(HOST_FLOW_CONFIRM.returnLobbyTitle, HOST_FLOW_CONFIRM.returnLobbyBody, async () => {
+                  await input.submit('返回大厅', { type: '__GAME_ID__.game.returnToLobby' });
+                }),
+            }),
+          ],
+        },
+      ],
+    };
+  }
+//#end
+  // 局中房主面板常驻：房间管理区始终在；此刻没有待操作。
+  return {
+    task: null,
+    sections: [{ key: 'room', title: '房间管理', actions: roomActions }],
+  };
+}
+
+/** Assembles the __GAME_PASCAL__ RoomShellModel from the hook's projections. */
+export function create__GAME_PASCAL__RoomShellModel(
+  input: __GAME_PASCAL__RoomShellModelInput,
+): RoomShellModel {
+  const { state } = input;
+  const seatSource = create__GAME_PASCAL__SeatDataSource({
+    state,
+    revision: input.revision,
+    userId: input.viewer.userId,
+    controlledSeat: input.controlledSeat,
+  });
+  return createRoomShellModel({
+    ...input,
+//#cap audioOrchestration
+    isAudioPlaying: state.isAudioPlaying,
+//#end
+//#cap !audioOrchestration
+    isAudioPlaying: false,
+//#end
+    seatSource,
+    phase: state.phase.kind,
+    step: null,
+    seatConfirmation: createRoomSeatConfirmationModel(input.seatController),
+    profile: createRoomProfileCardModel({
+      selection: input.profileSelection,
+      capabilities: input.capabilities,
+      onClose: input.onProfileClose,
+      onLeaveSeat: input.onProfileLeaveSeat,
+    }),
+    bottomActions: {
+      kind: 'stacked',
+      // 底部按钮必须声明 audience（participant / host / anyone），壳工厂按 viewer 校验。
+      message:
+        state.phase.kind === 'ended'
+          ? buildEndedWaitingMessage({ isEnded: true, viewer: input.viewer })
+          : buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
+      progress: null,
+      // 本局复盘对玩家与观战开放（次级档）；房主从任务卡进入。
+      layout: {
+        primary: [],
+        secondary:
+          input.review === null
+            ? []
+            : buildViewerReviewBottomButtons(input.review, 'secondary', input.viewer),
+        ghost: [],
+      },
+    },
+    controlledSeat: createControlledSeatModel({
+      controlledSeat: input.controlledSeat,
+      controlledBotName:
+        input.controlledSeat !== null
+          ? (seatSource.getSeat(input.controlledSeat).player?.displayName ?? null)
+          : null,
+      release: input.releaseBot,
+      gameName: '__GAME_PASCAL__',
+    }),
+  });
+}

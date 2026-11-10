@@ -1,0 +1,38 @@
+.room-task-viewport,
+.room-task-viewport-inner {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.room-task-viewport-inner {
+  box-sizing: border-box;
+}
+
+.room-task-frame {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-small);
+  align-self: center;
+  width: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: var(--space-small);
+}
+
+.room-task-frame-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-small);
+  min-height: 0;
+}
+
+.room-task-frame-footer {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: var(--space-tight);
+}

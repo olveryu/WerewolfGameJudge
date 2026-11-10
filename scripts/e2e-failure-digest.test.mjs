@@ -244,20 +244,20 @@ const JEST_JSON = JSON.stringify({
 });
 
 test('parseUnitResults: failed assertions + failed suites, paths relativized', () => {
-  const entries = parseUnitResults(JEST_JSON, 'root jest');
+  const entries = parseUnitResults(JEST_JSON, 'root vitest');
   assert.equal(entries.length, 2);
   assert.equal(entries[0].specFile, 'src/__tests__/alpha.test.ts');
   assert.equal(entries[0].fullTitle, 'alpha does the thing');
   assert.equal(entries[0].errorMessage, 'Error: expected 1 to be 2');
-  assert.equal(entries[0].source, 'root jest');
+  assert.equal(entries[0].source, 'root vitest');
   assert.equal(entries[1].fullTitle, '(suite failed to run)');
   assert.equal(entries[1].errorMessage, 'Test suite failed to run');
-  assert.deepEqual(parseUnitResults('not json', 'root jest'), []);
-  assert.deepEqual(parseUnitResults('{}', 'root jest'), []);
+  assert.deepEqual(parseUnitResults('not json', 'root vitest'), []);
+  assert.deepEqual(parseUnitResults('{}', 'root vitest'), []);
 });
 
 test('renderDigest: unit failures get their own section under the unit caliber', () => {
-  const unitFailures = parseUnitResults(JEST_JSON, 'root jest');
+  const unitFailures = parseUnitResults(JEST_JSON, 'root vitest');
   const body = renderDigest({
     entries: [],
     e2eResult: 'success',
@@ -266,7 +266,7 @@ test('renderDigest: unit failures get their own section under the unit caliber',
   });
   assert.ok(body.includes('🧪 2 条单测失败'));
   assert.ok(body.includes('### 🧪 单测失败（2 条）'));
-  assert.ok(body.includes('`src/__tests__/alpha.test.ts` — alpha does the thing（root jest）'));
+  assert.ok(body.includes('`src/__tests__/alpha.test.ts` — alpha does the thing（root vitest）'));
   assert.equal(shouldPostNewComment({ entries: [], e2eResult: 'success', unitFailures }), true);
   // The e2e-only rendering is untouched when there are no unit failures.
   const e2eOnly = renderDigest({
@@ -302,7 +302,7 @@ function applyLedger(existingBody, additions, overrides = {}) {
 test('updateLedger: creates the ledger from the first additions', () => {
   const additions = [
     ...e2eLedgerAdditions([flakyEntry()]),
-    ...unitLedgerAdditions(parseUnitResults(JEST_JSON, 'root jest')),
+    ...unitLedgerAdditions(parseUnitResults(JEST_JSON, 'root vitest')),
   ];
   const result = applyLedger(undefined, additions);
   assert.ok(result);
@@ -313,7 +313,7 @@ test('updateLedger: creates the ledger from the first additions', () => {
   assert.ok(state.every((row) => row.count === 1 && row.firstSeen === '2026-10-19'));
   // Calibers stay separate rows: e2e flaky vs unit failure.
   assert.ok(state.some((row) => row.source === 'e2e' && row.kind === 'flaky'));
-  assert.ok(state.some((row) => row.source === 'root jest' && row.kind === 'failure'));
+  assert.ok(state.some((row) => row.source === 'root vitest' && row.kind === 'failure'));
   assert.ok(result.body.includes('## 活跃条目'));
 });
 

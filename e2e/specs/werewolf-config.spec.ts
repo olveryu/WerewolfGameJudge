@@ -1,4 +1,4 @@
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { expect, test } from '../fixtures/app.fixture';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
@@ -28,7 +28,9 @@ test.describe('Werewolf — Config Screen', () => {
     await app.page.screenshot({ path: test.info().outputPath('werewolf-config.png') });
 
     const rules = await config.clickNext();
-    await expect(app.page.getByRole('switch', { name: '首日警长竞选', exact: true })).toBeChecked();
+    const sheriffSwitch = app.page.getByTestId(TESTIDS.gameRuleSwitch('isSheriffElectionEnabled'));
+    await expect(sheriffSwitch).toHaveAccessibleName('首日警长竞选');
+    await expect(sheriffSwitch).toBeChecked();
     await rules.setSheriffElectionEnabled(false);
     await expect(app.page.getByTestId(TESTIDS.gameRulesSubmitButton)).toBeInViewport();
     await app.page.screenshot({ path: test.info().outputPath('werewolf-rules.png') });
@@ -46,8 +48,9 @@ test.describe('Werewolf — Config Screen', () => {
     await config.waitForReady();
 
     // Verify the selected template is shown
-    const configRoot = app.page.locator(`[data-testid="config-screen-root"]`);
-    await expect(configRoot.getByText('狼美守卫')).toBeVisible({ timeout: 5000 });
+    await expect(app.page.getByTestId(TESTIDS.configTemplatePill)).toHaveText('狼美守卫', {
+      timeout: 5000,
+    });
 
     await config.clickBack();
   });
@@ -68,8 +71,9 @@ test.describe('Werewolf — Config Screen', () => {
 
     // Should be back on config screen with new template
     await config.waitForReady();
-    const configRoot2 = app.page.locator(`[data-testid="config-screen-root"]`);
-    await expect(configRoot2.getByText('狼美守卫')).toBeVisible({ timeout: 5000 });
+    await expect(app.page.getByTestId(TESTIDS.configTemplatePill)).toHaveText('狼美守卫', {
+      timeout: 5000,
+    });
 
     await config.clickBack();
   });
@@ -88,17 +92,21 @@ for (const game of [
     app: { page },
   }, testInfo) => {
     await new HomePage(page).clickCreateRoom(game.gameType);
-    await expect(page.getByText(game.title, { exact: true })).toBeVisible();
+    await expect(page.getByTestId(TESTIDS.screenHeaderTitle)).toHaveText(game.title);
     await expect(page.getByTestId(game.submit)).toBeInViewport();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`${game.gameType}-config.png`) });
     if (game.gameType === 'pictionary') {
-      await page.getByText('结果播放', { exact: true }).scrollIntoViewIfNeeded();
+      const unlimitedGallery = page.getByTestId(
+        TESTIDS.gameConfigFieldOption('pictionary', 'galleryItemDurationSeconds', 'unlimited'),
+      );
+      await unlimitedGallery.scrollIntoViewIfNeeded();
       await expect(page.getByTestId(game.submit)).toBeInViewport();
-      await page.getByRole('radio', { name: '不限时', exact: true }).last().click();
-      await expect(page.getByRole('radio', { name: '不限时', exact: true }).last()).toBeChecked();
+      await expect(unlimitedGallery).toHaveText('不限时');
+      await unlimitedGallery.click();
+      await expect(unlimitedGallery).toBeChecked();
     }
   });
 }

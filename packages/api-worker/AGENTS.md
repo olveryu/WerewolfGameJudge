@@ -1,6 +1,6 @@
 # API worker package
 
-Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine/AGENTS.md`; client rules in `src/AGENTS.md`; shared workflow, commands, and gates in the root file.
+Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine/AGENTS.md`; client rules in `packages/web/AGENTS.md`; shared workflow, commands, and gates in the root file.
 
 ## Identity and entrypoint
 
@@ -28,8 +28,8 @@ Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine
 ## D1 and Drizzle
 
 - D1 is the relational store; Drizzle is the typed query layer over it (`createDb` returns `drizzle(d1)`, schema-free). There is no Drizzle Kit, no Drizzle config, and no generated schema directory.
-- Migrations are hand-written SQL files applied by Wrangler: 64 files, `0001_init.sql` through `0065_demo.sql`, with no `0002` file.
-- 33 tables are declared exactly once via `sqliteTable` in owner `dbSchema.ts` modules, pinned by `declares every physical D1 table exactly once in its owner module` in `src/__tests__/architecture.contract.test.ts`. Further tables exist only as raw SQL in migrations; check the migrations before claiming the full physical set.
+- Migrations are hand-written SQL files applied by Wrangler: 65 files, `0001_init.sql` through `0066_d1_cleanup_indexes.sql`, with no `0002` file.
+- 33 tables are declared exactly once via `sqliteTable` in owner `dbSchema.ts` modules, pinned by `declares every physical D1 table exactly once in its owner module` in `contracts/architecture.contract.test.ts`. Further tables exist only as raw SQL in migrations; check the migrations before claiming the full physical set.
 - Registration migrations extend every `game_type` CHECK list by rebuilding the constrained tables (table-copy pattern).
 
 ## Worker game catalog and modules
@@ -52,9 +52,9 @@ Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine
 ## Secrets and logging
 
 - Secrets inventory: `wrangler.toml` `[secrets] required` (11 names) plus `.github/workflows/` (7 distinct `secrets.*` names, 6 beyond the wrangler list), regenerated at the time of writing.
-- `console.*` is an error in this package, with one exception: the worker logger at `platform/observability/logger.ts` is the only module allowed to call it directly, enforced by `no-console` in `eslint.config.mjs`. Its `error()` also reports to the error-reporting service. For client logging rules, see `src/AGENTS.md`.
+- `console.*` is an error in this package, with one exception: the worker logger at `platform/observability/logger.ts` is the only module allowed to call it directly, enforced by `no-console` in `eslint.config.mjs`. Its `error()` also reports to the error-reporting service. For client logging rules, see `packages/web/AGENTS.md`.
 
 ## Tests for this package
 
 - Runner: Vitest under the Workers pool. The config loads D1 migrations via `readD1Migrations` and applies them in `test/applyMigrations.ts`; it includes `src/**/__tests__/**/*.test.ts`.
-- The catalog test pins one module per game type and the HTTP-route projection. The worker entrypoint's workflow re-exports are pinned by a client contract test against the registry's declared workflows.
+- The catalog test pins one module per game type and the HTTP-route projection. The worker entrypoint's workflow re-exports are pinned by the root contract `contracts/architecture.contract.test.ts` against the registry's declared workflows.

@@ -1,12 +1,14 @@
 import type { Page } from '@playwright/test';
 import { expect, test, type TestInfo } from '@playwright/test';
 
+import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll } from '../fixtures/app.fixture';
-import { ensureAnonLogin, enterRoomCodeViaNumPad } from '../helpers/home';
+import { pressAlertButton } from '../helpers/alerts';
+import { ensureAnonLogin } from '../helpers/home';
 import { setupNPlayerGame } from '../helpers/multi-player';
 import { gotoWithRetry } from '../helpers/ui';
 import { waitForRoomScreenReady } from '../helpers/waits';
-import { runNightFlowLoop } from '../pages/NightFlowPage';
+import { runNightFlowFor, runNightFlowLoop } from '../pages/NightFlowPage';
 import { RoomPage } from '../pages/RoomPage';
 
 /**
@@ -28,6 +30,9 @@ import { RoomPage } from '../pages/RoomPage';
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(180_000);
 
+/** Night-drive window before the rejoin; a 2-player night outlasts it. */
+const PARTIAL_NIGHT_MS = 10_000;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -37,37 +42,29 @@ test.setTimeout(180_000);
  * Returns true if the overlay was visible and dismissed.
  */
 async function dismissContinueOverlayIfVisible(page: Page): Promise<boolean> {
-  const continueBtn = page.locator('[data-testid="alert-button-0"]');
-  const isVisible = await continueBtn
+  const isVisible = await page
+    .getByTestId(TESTIDS.alertButton(0))
     .waitFor({ state: 'visible', timeout: 5_000 })
-    .then(() => true)
-    .catch(() => false);
-
-  if (isVisible) {
-    await continueBtn.click();
-    return true;
-  }
-  return false;
+    .then(
+      () => true,
+      () => false,
+    );
+  if (!isVisible) return false;
+  await pressAlertButton(page, { title: '游戏已恢复', buttonIndex: 0, buttonLabel: '继续游戏' });
+  return true;
 }
 
 /**
- * Run a few iterations of the night flow loop — enough to advance past the initial
- * audio-gate phase and submit at least one wolf vote, but stop early (don't finish).
- * This ensures the game has meaningful state cached before we simulate rejoin.
- *
- * We use a small maxIterations and catch the "did not complete" error,
- * since we EXPECT the night to NOT finish in this mini-run.
+ * Drive the night for a short window — enough to advance past the initial
+ * audio gate and act on the first step, but not to finish — so the game has
+ * meaningful state before the rejoin.
  */
 async function advanceNightPartially(pages: Page[], testInfo: TestInfo): Promise<void> {
-  try {
-    await runNightFlowLoop(pages, testInfo, {
-      maxIterations: 25,
-      screenshotInterval: 25,
-    });
-    // If night completes in 25 iterations, that's fine too (very fast 2p game)
-  } catch {
-    // Expected — night didn't complete in 25 iterations, which is fine
-  }
+  const result = await runNightFlowFor(pages, testInfo, {
+    timeoutMs: PARTIAL_NIGHT_MS,
+    screenshotInterval: 25,
+  });
+  expect(result, 'The night must still be running before the rejoin').toBeNull();
 }
 
 // ---------------------------------------------------------------------------
@@ -99,12 +96,12 @@ test.describe('Resilience — Rejoin during ongoing game', () => {
       await ensureAnonLogin(hostPage);
 
       // Step 4: Click "最近房间" to open recent rooms modal, then click the room
-      const returnBtn = hostPage.locator('[data-testid="home-return-last-game-button"]');
-      await expect(returnBtn).toBeVisible({ timeout: 5_000 });
+      const returnBtn = hostPage.getByTestId(TESTIDS.homeReturnLastGameButton);
+      await expect(returnBtn).toContainText('最近房间', { timeout: 5_000 });
       await returnBtn.click();
 
       // Wait for recent rooms modal and click the room's join button
-      const joinBtn = hostPage.locator(`[data-testid="recent-room-join-${roomCode}"]`);
+      const joinBtn = hostPage.getByTestId(TESTIDS.recentRoomJoin(roomCode));
       await expect(joinBtn).toBeVisible({ timeout: 10_000 });
       await joinBtn.click();
       await waitForRoomScreenReady(hostPage, { role: 'host' });
@@ -120,19 +117,14 @@ test.describe('Resilience — Rejoin during ongoing game', () => {
 
       // Step 6: Continue night flow to completion
       const nightResult = await runNightFlowLoop(fixture.pages, testInfo, {
-        maxIterations: 80,
         screenshotInterval: 10,
       });
 
       // Step 7: Verify night ended
       const room = new RoomPage(hostPage);
-      const hasLastNightBtn = await room.isLastNightInfoVisible();
-      const nightEnded =
-        hasLastNightBtn ||
-        nightResult.resultText.includes('平安夜') ||
-        nightResult.resultText.includes('死亡');
-
-      expect(nightEnded, 'Night should complete after host rejoin').toBe(true);
+      expect(['Day', 'Ended'], 'Night should complete after host rejoin').toContain(
+        nightResult.phase,
+      );
 
       await room.screenshot(testInfo, 'host-rejoin-03-night-ended.png');
 
@@ -140,8 +132,8 @@ test.describe('Resilience — Rejoin during ongoing game', () => {
         body: [
           `Room: ${roomCode}`,
           `ContinueGameOverlay shown: ${hadOverlay}`,
-          `Result: ${nightResult.resultText}`,
-          `Turns: ${nightResult.turnLog.join(' → ')}`,
+          `Phase: ${nightResult.phase}`,
+          `Steps: ${nightResult.stepLog.join(' → ')}`,
         ].join('\n'),
         contentType: 'text/plain',
       });
@@ -176,13 +168,7 @@ test.describe('Resilience — Rejoin during ongoing game', () => {
       await ensureAnonLogin(joinerPage);
 
       // Step 4: Re-enter room via room code
-      const enterRoomBtn = joinerPage.locator('[data-testid="home-enter-room-button"]');
-      await expect(enterRoomBtn).toBeVisible({ timeout: 5_000 });
-      await enterRoomBtn.click();
-      await expect(joinerPage.getByText('加入房间')).toBeVisible({ timeout: 5_000 });
-      await enterRoomCodeViaNumPad(joinerPage, roomCode);
-      await joinerPage.getByText('加入', { exact: true }).click();
-      await waitForRoomScreenReady(joinerPage, { role: 'joiner' });
+      await new RoomPage(joinerPage).joinViaCode(roomCode);
 
       await joinerPage.screenshot().then((s) =>
         testInfo.attach('player-rejoin-02-back-in-room.png', {
@@ -192,32 +178,27 @@ test.describe('Resilience — Rejoin during ongoing game', () => {
       );
 
       // Step 5: Verify player is back on room screen
-      const roomScreenRoot = joinerPage.locator('[data-testid="room-screen-root"]');
+      const roomScreenRoot = joinerPage.getByTestId(TESTIDS.roomScreenRoot);
       await expect(roomScreenRoot).toBeVisible({ timeout: 5_000 });
 
       // Step 6: Continue night flow to completion
       const nightResult = await runNightFlowLoop(fixture.pages, testInfo, {
-        maxIterations: 80,
         screenshotInterval: 10,
       });
 
       // Step 7: Verify night ended
       const room = new RoomPage(hostPage);
-      const hasLastNightBtn = await room.isLastNightInfoVisible();
-      const nightEnded =
-        hasLastNightBtn ||
-        nightResult.resultText.includes('平安夜') ||
-        nightResult.resultText.includes('死亡');
-
-      expect(nightEnded, 'Night should complete after player rejoin').toBe(true);
+      expect(['Day', 'Ended'], 'Night should complete after player rejoin').toContain(
+        nightResult.phase,
+      );
 
       await room.screenshot(testInfo, 'player-rejoin-03-night-ended.png');
 
       await testInfo.attach('player-rejoin.txt', {
         body: [
           `Room: ${roomCode}`,
-          `Result: ${nightResult.resultText}`,
-          `Turns: ${nightResult.turnLog.join(' → ')}`,
+          `Phase: ${nightResult.phase}`,
+          `Steps: ${nightResult.stepLog.join(' → ')}`,
         ].join('\n'),
         contentType: 'text/plain',
       });

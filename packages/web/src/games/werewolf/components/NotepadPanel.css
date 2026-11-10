@@ -1,0 +1,170 @@
+.notepad-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.notepad-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+  margin: 0;
+  padding: var(--space-tight);
+  list-style: none;
+}
+
+.notepad-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-tight);
+  padding: var(--space-tight);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.notepad-card[data-faction] {
+  background: var(--faction-a12);
+}
+
+.notepad-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-tight);
+}
+
+.notepad-seat-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-micro);
+  min-height: var(--size-button-sm);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.notepad-seat-number {
+  min-width: var(--size-icon-lg);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-bold);
+  text-align: center;
+}
+
+.notepad-role-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-badge-md);
+  padding: 1px var(--space-micro);
+  border-radius: var(--radius-small);
+  background: var(--faction-a15);
+  color: var(--faction-color);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+}
+
+.notepad-role-badge[data-empty='true'] {
+  border: var(--border-width) dashed var(--color-text-secondary);
+  background: var(--color-primary-a8);
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-normal);
+}
+
+.notepad-hand-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-button-sm);
+  padding: var(--space-tight) var(--space-small);
+  border: none;
+  border-radius: var(--radius-small);
+  background: var(--color-background);
+  color: var(--color-text-muted);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+button.notepad-hand-tag {
+  cursor: pointer;
+}
+
+.notepad-hand-tag[data-active='true'] {
+  background: var(--color-primary-a15);
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+
+/* Auto-growing note: a hidden copy of the text sizes the shared grid cell. */
+.notepad-note {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.notepad-note::after {
+  content: attr(data-value) ' ';
+  visibility: hidden;
+  white-space: pre-wrap;
+}
+
+.notepad-note > textarea,
+.notepad-note::after {
+  grid-area: 1 / 1 / 2 / 2;
+  margin: 0;
+  padding: 0 var(--space-small);
+  border: none;
+  border-radius: var(--radius-small);
+  font: inherit;
+  /* 16px keeps iOS Safari from zooming into the field. */
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  overflow-wrap: anywhere;
+}
+
+.notepad-note > textarea {
+  overflow: hidden;
+  resize: none;
+  background: var(--color-background-a85);
+  color: var(--color-text);
+}
+
+.notepad-note > textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.notepad-role-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-small);
+}
+
+.notepad-role-option {
+  min-width: var(--size-button-md);
+  min-height: var(--size-button-md);
+  padding: 0 var(--space-small);
+  border: none;
+  border-radius: var(--radius-medium);
+  background: var(--color-background);
+  color: var(--faction-color);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  cursor: pointer;
+}
+
+.notepad-role-option[aria-pressed='true'] {
+  background: var(--faction-a15);
+  color: var(--color-text);
+  font-weight: var(--weight-bold);
+}
+
+.icon-button.notepad-role-clear {
+  border-radius: var(--radius-medium);
+  background: var(--color-background);
+  color: var(--color-error);
+  font-size: var(--font-body);
+}

@@ -1,7 +1,10 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
+import { anySeatTestId } from '../helpers/ui';
 import { RoomPage } from './RoomPage';
+
+const REGISTERED_SEAT_DOT = anySeatTestId(TESTIDS.sheriffRegisteredSeatDot);
 
 /** Page Object for the server-authoritative sheriff-election panel. */
 export class SheriffElectionPage {
@@ -155,7 +158,7 @@ export class SheriffElectionPage {
   async expectRegisteredOrder(displaySeats: readonly number[]): Promise<void> {
     const dots = this.page
       .getByTestId(TESTIDS.sheriffRegisteredSeats)
-      .getByTestId(/^sheriff-registered-seat-\d+$/);
+      .getByTestId(REGISTERED_SEAT_DOT);
     await expect(dots).toHaveCount(displaySeats.length, { timeout: 15_000 });
 
     const dotIds = await dots.evaluateAll((elements) =>
@@ -165,7 +168,11 @@ export class SheriffElectionPage {
       if (dotId === null) {
         throw new Error('Sheriff registered-seat dot has no test id');
       }
-      return Number(dotId.replace('sheriff-registered-seat-', '')) + 1;
+      const seat = REGISTERED_SEAT_DOT.exec(dotId)?.[1];
+      if (seat === undefined) {
+        throw new Error(`Unexpected sheriff registered-seat test id: ${dotId}`);
+      }
+      return Number(seat) + 1;
     });
     expect(actualOrder).toEqual(displaySeats);
   }
@@ -247,9 +254,9 @@ export class SheriffElectionPage {
 
   /** Assert the HUD counts down the armed settle countdown; seconds tick, so match the range. */
   async expectSettleCountdown(countText: RegExp): Promise<void> {
-    await expect(
-      this.page.getByTestId(TESTIDS.sheriffElectionHud).getByText(countText),
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(this.page.getByTestId(TESTIDS.sheriffElectionHud)).toContainText(countText, {
+      timeout: 10_000,
+    });
   }
 
   async expectCanVote(canVote: boolean): Promise<void> {

@@ -6,7 +6,8 @@ Scope: `e2e/**` plus the workflows that run it. Unit and contract tests live und
 
 - Specs live in `e2e/specs/`; fixtures in `e2e/fixtures/`; helpers in `e2e/helpers/`; reporters in `e2e/reporters/`. The guide is `e2e/helpers/README.md`; read it before writing a spec.
 - Config (`playwright.config.ts`): `testDir` is `./e2e/specs`, `fullyParallel: true`, test timeout 60 seconds, `forbidOnly` on CI, 2 retries on CI only, 2 workers on CI. Trace is `retain-on-failure`; screenshots are `only-on-failure`.
-- Projects: desktop Chromium, plus a 320×640 small-mobile Chromium project for home, config, and responsive specs. Two servers start before tests: the local API on port 8787 and the web client on port 8081. The config is the single source of the default browser URL (`http://localhost:8081`, via `E2E_BASE_URL`).
+- Projects: desktop Chromium, plus a 320×640 small-mobile Chromium project for home, config, and responsive specs. Two servers start before tests: the local API on port 8787 and the web client on port 8081 (CI serves the prebuilt `packages/web/dist`; locally the Vite dev server). The config is the single source of the default browser URL (`http://localhost:8081`, via `E2E_BASE_URL`).
+- Selectors come from `TESTIDS` in `packages/web/src/testids.ts`, the registry the web client renders. Elements are located only through `getByTestId(TESTIDS.x)`; visible copy is asserted on the located element (`toHaveText`, `toContainText`, `toHaveAccessibleName`), and an absence check is `not.toContainText` on a test-id root. The `e2e/**` block of `no-restricted-syntax` in `eslint.config.mjs` rejects `getByText`, `getByRole`, `getByLabel`, `getByPlaceholder`, `getByAltText`, `getByTitle`, `locator()`, and literal (string or regex) `getByTestId`; an any-seat match comes from `anySeatTestId` in `e2e/helpers/ui.ts`, built from a `TESTIDS` seat builder.
 
 ## Seats
 
@@ -16,7 +17,7 @@ Scope: `e2e/**` plus the workflows that run it. Unit and contract tests live und
 
 - The reusable run workflow (`e2e-run.yml`) validates that the named spec exists under `e2e/specs/` (bare filename only, no path) before installing, so a typo fails fast instead of reporting no tests found.
 - Verify the run through the actions API: check `head_branch` and `head_sha` against the target branch and commit, and read the run's `conclusion` field. Never infer success from the exit status of a piped watch command; that status belongs to the last stage of the pipeline, not to the run.
-- In the full suite, nine shards run through the same reusable workflow, gated on the quality, lint, and web-build jobs. Unit and worker test results deliberately do not gate the E2E job.
+- The `e2e` job runs through the same reusable workflow, gated on the quality, lint, and web-build jobs; unit and worker test results deliberately do not gate it. Its matrix lists every spec exactly once, pinned by `runs every E2E spec exactly once` in `contracts/ciE2eCoverage.contract.test.ts`; a new spec must join a shard.
 
 ## Interaction rules
 

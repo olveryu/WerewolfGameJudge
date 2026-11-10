@@ -1,25 +1,21 @@
 {
-  "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowJs": false,
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "types": ["jest", "node"],
+    "noEmit": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "types": ["node", "vitest/globals"],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@game-judge/game-engine/*": [
-        "./packages/game-engine/src/*"
-      ]
+      "@game-judge/game-engine/*": ["./packages/game-engine/src/*"]
     }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx"
-  ],
-  "exclude": [
-    "functions",
-    "packages/api-worker",
-    "e2e"
-  ]
+  "include": ["contracts", "vitest.config.ts", "playwright.config.ts"]
 }

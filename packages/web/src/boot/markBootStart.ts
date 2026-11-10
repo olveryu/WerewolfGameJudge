@@ -1,0 +1,1 @@
+performance.mark('boot:start');

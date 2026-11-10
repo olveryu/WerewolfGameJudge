@@ -1,6 +1,6 @@
 # Release script, annotated
 
-Source: `scripts/release.sh` (108 lines), read in full at drafting time. This reference restates the script step by step. Where the script is silent, this reference says so instead of filling the gap.
+Source: `scripts/release.sh` (102 lines), read in full at drafting time. This reference restates the script step by step. Where the script is silent, this reference says so instead of filling the gap.
 
 ## Invocation and bump types
 
@@ -14,13 +14,11 @@ The first argument must be exactly `patch`, `minor`, or `major`. Anything else e
 
 ## Step 1 — Dirty-tree guard
 
-Before the bump, the script lists uncommitted and staged changes, excluding exactly four files:
+Before the bump, the script lists uncommitted and staged changes, excluding exactly two files:
 
 ```
 package.json
 pnpm-lock.yaml
-app.json
-src/config/version.ts
 ```
 
 If any other change exists, it prints up to five of them and prompts:
@@ -42,24 +40,23 @@ VERSION=$(node -p "require('./package.json').version")
 
 ### Version sources
 
-| Source                      | Role                                                                                                                                                                | Verified                                                                                                          |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `package.json` (`version`)  | Authoritative source. The only version number the bump writes directly.                                                                                             | `scripts/release.sh`, `node -p` read                                                                              |
-| `app.json` (`expo.version`) | Synced copy. The script rewrites it with a small inline program after the bump.                                                                                     | `scripts/release.sh` sync block; `app.json` carries `"version": "2.8.0"` matching `package.json` at drafting time |
-| `src/config/version.ts`     | Derived copy, not a version source. It imports `package.json` and exports `APP_VERSION` as `` `v${packageJson.version}` ``. It contains no version literal to edit. | `src/config/version.ts` read in full                                                                              |
-| `pnpm-lock.yaml`            | Named in the dirty-tree guard allowlist. No explicit lockfile step exists in the script.                                                                            | `scripts/release.sh` guard lines; lockfile update behaviour unverified                                            |
+| Source                               | Role                                                                                                                                                             | Verified                                                               |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `package.json` (`version`)           | Authoritative source. The only version number the bump writes directly.                                                                                          | `scripts/release.sh`, `node -p` read                                   |
+| `packages/web/src/config/version.ts` | Derived copy, not a version source. It imports the root `package.json` and exports `APP_VERSION` as `` `v${version}` ``. It contains no version literal to edit. | `packages/web/src/config/version.ts` read in full                      |
+| `pnpm-lock.yaml`                     | Named in the dirty-tree guard allowlist. No explicit lockfile step exists in the script.                                                                         | `scripts/release.sh` guard lines; lockfile update behaviour unverified |
 
-Do not hand-edit a version number into `src/config/version.ts`: it reads `package.json` and holds no version literal.
+Do not hand-edit a version number into `packages/web/src/config/version.ts`: it imports `package.json` and holds no version literal.
 
 ## Step 3 — Announcement requirement
 
-The script exits if `src/config/announcements.ts` has no entry keyed `'v$VERSION'`:
+The script exits if the file named by its `ANNOUNCEMENTS` variable has no entry keyed `'v$VERSION'`:
 
 ```bash
-grep -q "'v$VERSION'" src/config/announcements.ts
+grep -q "'v$VERSION'" "$ANNOUNCEMENTS"
 ```
 
-The entry must already exist before the script runs. The script does not create it, and it does not check the entry's contents beyond the key. The announcement entry format is described in Step 3 of `SKILL.md`.
+`ANNOUNCEMENTS` points into `packages/web/src/config/`, and that file is not ported yet (P4 of `docs/web-client-rewrite.md` §8.2), so the check fails and the script exits until the port lands. The check runs after the bump in Step 2, so an exit here leaves the bumped `package.json` in the working tree. The entry must already exist before the script runs. The script does not create it, and it does not check the entry's contents beyond the key. The announcement steps are in Step 3 of `SKILL.md`.
 
 ## Step 4 — Changelog generation
 
@@ -95,4 +92,4 @@ Notes:
 - It does not run any quality, type, lint, format, or test check.
 - It does not verify the announcement entry's contents.
 - It does not handle shallow clones, missing tags beyond the placeholder fallback, or push retries.
-- It does not touch any file outside the bump, the `app.json` sync, the changelog insertion, and the commit/tag/push steps above.
+- It does not touch any file outside the bump, the changelog insertion, and the commit/tag/push steps above.

@@ -35,13 +35,19 @@ dependency: `SHARED_EDITS` performs none.
    `packages/api-worker/src/index.ts` AND declare the `[[workflows]]`
    binding in `packages/api-worker/wrangler.toml`. The re-export is
    contract-pinned; no contract test for the binding was located.
-8. `[G]` Client plugin in `CLIENT_GAME_PLUGIN_CATALOG`
-   (`src/games/catalog.ts`): navigation + `createModule`.
+8. `[G]` Home entry in `CLIENT_GAMES`
+   (`packages/web/src/games/catalog.ts`): `{ home: <game>Home }` from
+   the game's `home.ts`.
 9. `[C]` Client entry module at the registry's `clientModulePath`
-   (`src/games/<id>/module.ts`) plus its navigation module. Only
-   `src/games/catalog.ts` composes multiple concrete client games
-   (`architecture.contract.test.ts`, 'composes multiple concrete
-   client games only in the exhaustive plugin catalog').
+   (`packages/web/src/games/<id>/module.ts`, built with
+   `defineClientGameModule`) plus its navigation module. The module
+   exists exactly when the game is ported ('points every ported game
+   at its existing, lazily loaded client entry module' in
+   `contracts/architecture.contract.test.ts`). Only
+   `packages/web/src/games/catalog.ts` and
+   `packages/web/src/games/clientModules.tsx` compose multiple concrete
+   client games (same test, 'composes multiple concrete client games
+   only in the two exhaustive catalogs').
 10. `[G]` Flat reward amounts in `GAME_COMPLETION_REWARDS`
     (`packages/game-engine/src/product/rewards/earnings.ts`), or a
     `levelRoll` settlement entry point in the registry entry instead.
@@ -58,18 +64,21 @@ dependency: `SHARED_EDITS` performs none.
     `migratePersisted*State` wired into the worker module, worker
     schemas/effects, the client room screen + room state modules, and
     the review contribution declared as the client module's required
-    `review` (`src/games/<id>/review/`).
+    `review` (`packages/web/src/games/<id>/review/`).
     Cross-package imports of a game must use
     `@game-judge/game-engine/games/<id>/public` only.
 14. `[C]` Per-game capability/contract surface: engine skeleton,
     capabilities declaration, phase-deadline variants, bot-dispatch
     discipline, room-guidance matrix registration, review contract
     registration (the game's `<GAME>_REVIEW_ROUNDS` from
-    `src/test-utils/<id>State.ts` in
-    `src/__tests__/roomReview.contract.test.ts`; see
+    `packages/web/src/test-utils/<id>State.ts` in
+    `packages/web/src/__tests__/roomReview.contract.test.ts`; see
     `references/skeleton-and-wiring.md`).
-15. `[G]` Test fixture catalog entry in
-    `src/test-utils/clientGameCatalog.tsx`.
+15. `[G]` Lazy client loader in `CLIENT_GAME_LOADERS` plus its module
+    slot (`packages/web/src/games/clientModules.tsx`). The loader map
+    is what marks a game ported for the per-game web contracts
+    (`PORTED_GAME_TYPES` in `contracts/architecture.contract.test.ts`
+    and `packages/web/src/test-utils/portedGames.ts`).
 
 If a contract test fails naming the new game, the wiring is missing;
 fix the wiring, not the expectation list

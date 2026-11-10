@@ -2,9 +2,9 @@
 
 import { expect, type Page, test } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
-import { enterRoomCodeViaNumPad } from '../helpers/home';
+import { pressAlertButton } from '../helpers/alerts';
 import { setOffline } from '../helpers/resilience';
 import { waitForRoomScreenReady } from '../helpers/waits';
 import { HomePage } from '../pages/HomePage';
@@ -118,8 +118,12 @@ async function createDrawGuessRoom(page: Page): Promise<RoomPage> {
   await new HomePage(page).clickCreateRoom('drawguess');
   await expect(page.getByTestId(TESTIDS.gameConfigScreenRoot('drawguess'))).toBeVisible();
   // Default 6 players; shrink to 4 for a compact room.
-  await page.getByRole('button', { name: '减少人数' }).click();
-  await page.getByRole('button', { name: '减少人数' }).click();
+  const decrementPlayers = page.getByTestId(
+    TESTIDS.gameConfigFieldDecrement('drawguess', 'numberOfPlayers'),
+  );
+  await expect(decrementPlayers).toHaveAccessibleName('减少人数');
+  await decrementPlayers.click();
+  await decrementPlayers.click();
   await expect(page.getByTestId(TESTIDS.gameConfigScreenRoot('drawguess'))).toContainText(
     '共 8 轮',
   );
@@ -130,11 +134,14 @@ async function createDrawGuessRoom(page: Page): Promise<RoomPage> {
 }
 
 async function joinRoom(page: Page, roomCode: string, seat: number): Promise<void> {
-  await page.getByTestId(TESTIDS.homeEnterRoomButton).click();
-  await enterRoomCodeViaNumPad(page, roomCode);
-  await page.getByText('加入', { exact: true }).click();
-  await waitForRoomScreenReady(page, { role: 'joiner' });
-  await new RoomPage(page).seatAt(seat);
+  const room = new RoomPage(page);
+  await room.joinViaCode(roomCode);
+  await room.seatAt(seat);
+}
+
+/** The lobby shows the room's game summary title, e.g. 「你画我猜 · 4人局」. */
+async function expectLobbySummary(page: Page): Promise<void> {
+  await expect(page.getByTestId(TESTIDS.roomGameSummaryTitle)).toHaveText('你画我猜 · 4人局');
 }
 
 test('create, guess, cancel or confirm host abort, and restart without losing seats', async ({
@@ -152,9 +159,14 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
     const room = await createDrawGuessRoom(hostPage);
 
     await test.step('guide opens from the room', async () => {
-      await hostPage.getByRole('button', { name: '查看你画我猜玩法' }).click();
-      await expect(hostPage.getByRole('heading', { name: '一人作画，其余人猜' })).toBeVisible();
-      await hostPage.getByRole('button', { name: '返回', exact: true }).click();
+      const guideButton = hostPage.getByTestId(TESTIDS.roomGuideButton('drawguess'));
+      await expect(guideButton).toHaveAccessibleName('查看你画我猜玩法');
+      await guideButton.click();
+      await expect(hostPage.getByTestId(TESTIDS.gameGuideScreenRoot('drawguess'))).toBeVisible();
+      await expect(hostPage.getByTestId(TESTIDS.gameGuideHeading)).toHaveText('一人作画，其余人猜');
+      const backButton = hostPage.getByTestId(TESTIDS.gameGuideBackButton);
+      await expect(backButton).toHaveAccessibleName('返回');
+      await backButton.click();
       await room.waitForReady();
     });
 
@@ -165,23 +177,22 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
     await test.step('start is gated until the room is full', async () => {
       // The gate reason renders once, on the console primary in the bottom
       // bar — asserted before the management panel opens.
-      const gateReason = hostPage
-        .getByTestId(TESTIDS.bottomActionPanel)
-        .getByText('座位尚未坐满（还差 2 人）', { exact: true });
+      const gateReason = hostPage.getByTestId(TESTIDS.roomNextStepBlockedReason);
       await expect(gateReason).toHaveCount(1);
+      await expect(gateReason).toHaveText('座位尚未坐满（还差 2 人）');
       await expect(gateReason).toBeVisible();
       const panel = await room.openHostManagement();
       // The panel row for the primary action carries no caption: its reason
       // stays on the console only, so it appears zero times in the panel.
-      await expect(panel.getByText('座位尚未坐满（还差 2 人）', { exact: true })).toHaveCount(0);
-      const startButton = panel.getByTestId('start-game-button');
+      await expect(panel).not.toContainText('座位尚未坐满');
+      const startButton = panel.getByTestId(TESTIDS.startGameButton);
       await expect(startButton).toBeDisabled();
       // Force the press attempt: a plain click() waits forever for the
       // button to become enabled, which is exactly what must not happen.
       await startButton.click({ force: true });
       // Pressing the disabled action fires nothing: no popup, still gated.
-      await expect(hostPage.getByText('暂时不能开始', { exact: true })).toHaveCount(0);
-      await expect(panel.getByTestId('start-game-button')).toBeDisabled();
+      await expect(hostPage.getByTestId(TESTIDS.alertModal)).toHaveCount(0);
+      await expect(panel.getByTestId(TESTIDS.startGameButton)).toBeDisabled();
       await room.closeHostManagement();
     });
 
@@ -195,70 +206,84 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
     });
 
     await test.step('start the game and reach wordSelect', async () => {
-      await room.clickHostManagementActionAndConfirm('start-game-button', '开始游戏？');
+      await room.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
       // Host (seat 0) is the first drawer.
-      await expect(hostPage.getByText('请选择本轮题目')).toBeVisible();
+      const wordSelectTitle = hostPage.getByTestId(TESTIDS.drawGuessWordSelectTitle);
+      await expect(wordSelectTitle).toContainText('请选择本轮题目');
       // E2E seeds 20 drawguess words, so 3 choices should arrive (not "preparing").
       // Words are dealt randomly; don't assert a specific word.
-      await expect(hostPage.getByText('请选择本轮题目（3 选 1）')).toBeVisible({
+      await expect(wordSelectTitle).toHaveText('请选择本轮题目（3 选 1）', {
         timeout: 30000,
       });
-      await expect(joinerPage.getByText(/正在选词…/)).toBeVisible();
+      await expect(joinerPage.getByTestId(TESTIDS.drawGuessWordSelectTitle)).toHaveText(
+        /正在选词…$/,
+      );
     });
 
     await test.step('drawer selects a word and drawing begins', async () => {
-      const word = await hostPage.getByTestId('drawguess-word-choice-0').innerText();
+      const wordChoice = hostPage.getByTestId(TESTIDS.drawGuessWordChoice(0));
+      const word = await wordChoice.innerText();
       // Click the first word choice button (words are dealt randomly).
-      // Use testID for reliable targeting (getByRole was flaky with RNW Pressable).
-      await hostPage.getByTestId('drawguess-word-choice-0').click();
-      // After word selection, drawer should see the drawing canvas.
-      // (Exact drawing-phase assertions depend on the phase transition;
-      // at minimum the word choices should disappear.)
-      await expect(hostPage.getByText('请选择本轮题目')).not.toBeVisible({ timeout: 15000 });
-      await expect(hostPage.getByTestId('drawguess-drawing-canvas')).toBeVisible();
+      await wordChoice.click();
+      // After word selection, the word choices disappear and the drawer
+      // sees the drawing canvas.
+      await expect(hostPage.getByTestId(TESTIDS.drawGuessWordSelectTitle)).toHaveCount(0, {
+        timeout: 15000,
+      });
+      await expect(hostPage.getByTestId(TESTIDS.drawGuessDrawingCanvas)).toBeVisible();
       for (const page of fixture.pages)
-        await expect(page.getByRole('button', { name: '放弃本轮', exact: true })).toHaveCount(0);
+        await expect(page.getByTestId(TESTIDS.roomScreenRoot)).not.toContainText('放弃本轮');
       await expect(joinerPage.getByTestId(TESTIDS.roomHostManagementButton)).toHaveCount(0);
-      await joinerPage.getByLabel('猜词输入框', { exact: true }).fill(word);
-      await joinerPage.getByRole('button', { name: '发送猜词', exact: true }).click();
-      await expect(joinerPage.getByLabel('已猜中，等待本轮结束', { exact: true })).toBeVisible();
+      const guessInput = joinerPage.getByTestId(TESTIDS.drawGuessGuessInput);
+      await expect(guessInput).toHaveAccessibleName('猜词输入框');
+      await guessInput.fill(word);
+      const sendGuess = joinerPage.getByTestId(TESTIDS.drawGuessGuessSendButton);
+      await expect(sendGuess).toHaveAccessibleName('发送猜词');
+      await sendGuess.click();
+      await expect(joinerPage.getByTestId(TESTIDS.drawGuessGuessLockedBar)).toHaveText(
+        '已猜中，等待本轮结束',
+      );
     });
 
     await test.step('cancel keeps the current game and confirmation returns everyone to the lobby', async () => {
       await room.clickHostManagementAction(TESTIDS.abortGameButton);
-      const dialog = hostPage.getByTestId(TESTIDS.alertModal);
-      await expect(dialog.getByText('中止本局？', { exact: true })).toBeVisible();
-      await expect(dialog).toContainText('本局不发完成奖励');
-      await dialog.getByText('取消', { exact: true }).click();
-      await expect(hostPage.getByTestId('drawguess-drawing-canvas')).toBeVisible();
-      await expect(joinerPage.getByLabel('已猜中，等待本轮结束', { exact: true })).toBeVisible();
+      await expect(hostPage.getByTestId(TESTIDS.alertModal)).toContainText('本局不发完成奖励');
+      await pressAlertButton(hostPage, {
+        title: '中止本局？',
+        buttonIndex: 0,
+        buttonLabel: '取消',
+      });
+      await expect(hostPage.getByTestId(TESTIDS.drawGuessDrawingCanvas)).toBeVisible();
+      await expect(joinerPage.getByTestId(TESTIDS.drawGuessGuessLockedBar)).toHaveText(
+        '已猜中，等待本轮结束',
+      );
 
       await room.clickHostManagementActionAndConfirm(TESTIDS.abortGameButton, '中止本局？');
       for (const page of fixture.pages) {
-        await expect(page.getByText('你画我猜 · 4人局', { exact: true })).toBeVisible();
-        await expect(page.getByTestId('drawguess-drawing-canvas')).toHaveCount(0);
-        await expect(page.getByLabel('猜词消息', { exact: true })).toHaveCount(0);
+        await expectLobbySummary(page);
+        await expect(page.getByTestId(TESTIDS.drawGuessDrawingCanvas)).toHaveCount(0);
+        await expect(page.getByTestId(TESTIDS.drawGuessGuessLog)).toHaveCount(0);
         await expect(page.getByTestId(TESTIDS.mySeatBadge)).toBeVisible();
       }
       expect(await room.getRoomCode()).toBe(code);
-      expect(await room.getSeatCount()).toBe(4);
+      await room.expectSeatCount(4);
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
         '开始游戏',
       );
       await joinerPage.reload();
       await waitForRoomScreenReady(joinerPage, { role: 'joiner' });
-      await expect(joinerPage.getByText('你画我猜 · 4人局', { exact: true })).toBeVisible();
+      await expectLobbySummary(joinerPage);
       await expect(joinerPage.getByTestId(TESTIDS.mySeatBadge)).toBeVisible();
     });
 
     await test.step('the preserved room starts again and can also abort during word selection', async () => {
       await room.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
-      await expect(hostPage.getByText('请选择本轮题目（3 选 1）')).toBeVisible({
-        timeout: 30_000,
-      });
+      await expect(hostPage.getByTestId(TESTIDS.drawGuessWordSelectTitle)).toHaveText(
+        '请选择本轮题目（3 选 1）',
+        { timeout: 30_000 },
+      );
       await room.clickHostManagementActionAndConfirm(TESTIDS.abortGameButton, '中止本局？');
-      for (const page of fixture.pages)
-        await expect(page.getByText('你画我猜 · 4人局', { exact: true })).toBeVisible();
+      for (const page of fixture.pages) await expectLobbySummary(page);
     });
   } finally {
     await closeAll(fixture);
@@ -277,11 +302,12 @@ test('no client sends expire across a deadline', async ({ browser }, testInfo) =
       const code = await room.getRoomCode();
       await room.seatAt(0);
       for (let seat = 1; seat < 4; seat += 1) await joinRoom(fixture.pages[seat]!, code, seat);
-      await room.clickHostManagementActionAndConfirm('start-game-button', '开始游戏？');
+      await room.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
       // Host (seat 0) is the first drawer.
-      await expect(hostPage.getByText('请选择本轮题目（3 选 1）')).toBeVisible({
-        timeout: 30_000,
-      });
+      await expect(hostPage.getByTestId(TESTIDS.drawGuessWordSelectTitle)).toHaveText(
+        '请选择本轮题目（3 选 1）',
+        { timeout: 30_000 },
+      );
     });
 
     await test.step('cross the wordSelect deadline with no word chosen', async () => {
@@ -290,7 +316,7 @@ test('no client sends expire across a deadline', async ({ browser }, testInfo) =
       // deadline alone and every client observes the whole crossing.
       // The timeout auto-assign shares beginDrawing with manual word
       // choice, so the advance is visible as the drawing canvas.
-      await expect(hostPage.getByTestId('drawguess-drawing-canvas')).toBeVisible({
+      await expect(hostPage.getByTestId(TESTIDS.drawGuessDrawingCanvas)).toBeVisible({
         timeout: 60_000,
       });
     });
@@ -325,10 +351,11 @@ test('phase advances past the deadline with zero expire commands while every cli
       const code = await room.getRoomCode();
       await room.seatAt(0);
       for (let seat = 1; seat < 4; seat += 1) await joinRoom(fixture.pages[seat]!, code, seat);
-      await room.clickHostManagementActionAndConfirm('start-game-button', '开始游戏？');
-      await expect(hostPage.getByText('请选择本轮题目（3 选 1）')).toBeVisible({
-        timeout: 30_000,
-      });
+      await room.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
+      await expect(hostPage.getByTestId(TESTIDS.drawGuessWordSelectTitle)).toHaveText(
+        '请选择本轮题目（3 选 1）',
+        { timeout: 30_000 },
+      );
     });
 
     await test.step('start the round, then hold every client offline across the deadline', async () => {
@@ -352,7 +379,7 @@ test('phase advances past the deadline with zero expire commands while every cli
       // the zero claim is NOT scoped to the advance: the full observed
       // list must be empty.
       const advanced = expect.poll(
-        async () => (await hostPage.getByTestId('drawguess-drawing-canvas').count()) > 0,
+        async () => (await hostPage.getByTestId(TESTIDS.drawGuessDrawingCanvas).count()) > 0,
         { timeout: 60_000, intervals: [300] },
       );
       await advanced.toBe(true);

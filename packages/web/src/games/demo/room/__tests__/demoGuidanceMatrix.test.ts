@@ -1,0 +1,215 @@
+/**
+ * Demo guidance matrix: every (phase × viewer) cell declared in
+ * demoGuidanceMatrix.ts is held true against createDemoRoomShellModel,
+ * with states produced by the real engine (the playing phase settles
+ * through its deadline system command, as in the engine full-chain
+ * test).
+ */
+import {
+  DEFAULT_DEMO_CONFIG,
+  DEMO_PHASES,
+  DEMO_STAGE_DURATION_MS,
+  type DemoCommand,
+  demoEngine,
+  type DemoPhaseKind,
+  type DemoState,
+} from '@game-judge/game-engine/games/demo/public';
+
+import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import {
+  createBotTakeoverCapability,
+  createRoomSetupCapabilities,
+} from '@/features/room/model/RoomCapabilities';
+import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
+import { viewerFor } from '@/test-utils/roomViewer';
+
+import { DEMO_GUIDANCE_MATRIX } from '../demoGuidanceMatrix';
+import { createDemoRoomShellModel } from '../demoRoomAdapter';
+
+type CommandContext = Parameters<typeof demoEngine.decide>[2];
+
+function drive(
+  state: DemoState,
+  command: DemoCommand,
+  options: { userId?: string; nowMs?: number; system?: boolean } = {},
+): DemoState {
+  const context: CommandContext =
+    options.system === true
+      ? {
+          actor: { kind: 'system', effectId: 'settle-effect' },
+          controlledSeat: null,
+          nowMs: options.nowMs ?? 1000,
+          commandId: command.type,
+          randomSeed: 'seed',
+        }
+      : {
+          actor: { kind: 'user', userId: options.userId ?? 'host' },
+          controlledSeat: null,
+          nowMs: options.nowMs ?? 1000,
+          commandId: command.type,
+          randomSeed: 'seed',
+        };
+  const decision = demoEngine.decide(state, command, context);
+  if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+  return decision.events.reduce(demoEngine.evolve, state);
+}
+
+function lobbyState(): DemoState {
+  let state = demoEngine.createInitialState(
+    { ...DEFAULT_DEMO_CONFIG, numberOfPlayers: 4 },
+    { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
+  );
+  state = drive(state, { type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } });
+  state = drive(
+    state,
+    { type: 'room.seat.take', seat: 1, profile: { displayName: 'P1' } },
+    {
+      userId: 'u1',
+    },
+  );
+  state = drive(state, { type: 'room.seat.fillBots' });
+  return state;
+}
+
+function viewingState(): DemoState {
+  const state = drive(lobbyState(), { type: 'demo.roles.assign' });
+  if (state.phase.kind !== 'viewing') throw new Error('expected viewing');
+  return state;
+}
+
+function playingState(): DemoState {
+  let state = viewingState();
+  state = drive(state, { type: 'demo.role.viewed' });
+  state = drive(state, { type: 'demo.role.viewed' }, { userId: 'u1' });
+  state = drive(state, { type: 'demo.bots.markAllBotsViewed' });
+  state = drive(state, { type: 'demo.game.begin' });
+  if (state.phase.kind !== 'playing') throw new Error('expected playing');
+  return state;
+}
+
+function stateFor(phase: DemoPhaseKind): DemoState {
+  switch (phase) {
+    case 'lobby':
+      return lobbyState();
+    case 'viewing':
+      return viewingState();
+    case 'playing':
+      return playingState();
+    case 'ended': {
+      const state = drive(
+        playingState(),
+        { type: 'demo.phase.settleExpired' },
+        { system: true, nowMs: 1000 + DEMO_STAGE_DURATION_MS },
+      );
+      if (state.phase.kind !== 'ended') throw new Error('expected ended');
+      return state;
+    }
+  }
+}
+
+function capabilities(): RoomCapabilities {
+  return {
+    ...createRoomSetupCapabilities({
+      isSetup: true,
+      isHost: true,
+      mySeat: 0,
+      supportsBots: true,
+      hasOccupiedSeats: true,
+      isRoomFull: true,
+      requestTakeSeat: vi.fn(),
+      requestMoveSeat: vi.fn(),
+      leaveSeat: vi.fn(),
+      kickSeat: vi.fn(),
+      clearSeats: vi.fn(),
+      fillBots: vi.fn(),
+      configureGame: vi.fn(),
+      shareRoom: vi.fn(),
+    }),
+    canViewProfiles: { isAllowed: true, execute: vi.fn() },
+    canTakeOverBots: createBotTakeoverCapability(true, vi.fn()),
+  };
+}
+
+const seatController: RoomSeatController = {
+  pendingAction: null,
+  isSubmitting: false,
+  requestTakeSeat: vi.fn(),
+  requestMoveSeat: vi.fn(),
+  confirm: vi.fn(async () => undefined),
+  cancel: vi.fn(),
+};
+
+function bottomMessage(state: DemoState, audience: RoomViewerAudience): string | null {
+  const viewer = viewerFor(audience);
+  const model = createDemoRoomShellModel({
+    roomCode: '1234',
+    viewer,
+    capabilities: capabilities(),
+    onBack: vi.fn(),
+    onTitlePress: vi.fn(),
+    onTitleLongPress: vi.fn(),
+    user: { id: viewer.userId, avatarUrl: null },
+    gachaStatus: null,
+    onUserActionPress: vi.fn(),
+    connection: {
+      status: { kind: 'live' },
+      pendingDurableCount: 0,
+      onRetryNow: vi.fn(),
+    },
+    state,
+    revision: 5,
+    controlledSeat: null,
+    seatsVisuallyDisabled: false,
+    onSeatPress: vi.fn(),
+    onBotSeatLongPress: null,
+    seatController,
+    profileSelection: null,
+    onProfileClose: vi.fn(),
+    onProfileLeaveSeat: vi.fn(),
+    share: {
+      isVisible: false,
+      roomCode: '1234',
+      roomUrl: 'https://example.test/1234',
+      open: vi.fn(),
+      close: vi.fn(),
+      copyLink: vi.fn(async () => undefined),
+      shareImage: vi.fn(async () => undefined),
+    },
+    isLobby: state.phase.kind === 'lobby',
+    buildHostManagement: () => ({ task: null, sections: [] }),
+    releaseBot: vi.fn(),
+    review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,
+  });
+  return model.bottomActions.message;
+}
+
+describe('DEMO_GUIDANCE_MATRIX', () => {
+  it('covers exactly the engine phase list, each exempt cell with a reason', () => {
+    expect(Object.keys(DEMO_GUIDANCE_MATRIX).sort()).toEqual([...DEMO_PHASES].sort());
+    for (const row of Object.values(DEMO_GUIDANCE_MATRIX)) {
+      for (const cell of Object.values(row)) {
+        if (cell.kind === 'exempt') expect(cell.reason.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it.each(DEMO_PHASES)('holds every viewer cell in phase %s', (phase) => {
+    const state = stateFor(phase);
+    for (const viewer of ['host', 'seated', 'spectator'] as const) {
+      const cell = DEMO_GUIDANCE_MATRIX[phase][viewer];
+      const message = bottomMessage(state, viewer);
+      if (cell.kind === 'message') {
+        if (typeof message !== 'string' || message === '') {
+          throw new Error(
+            `${phase} x ${viewer}: declared a message cell, got ${JSON.stringify(message)}`,
+          );
+        }
+      } else if (message !== null) {
+        throw new Error(
+          `${phase} x ${viewer}: declared exempt (${cell.reason}), got ${JSON.stringify(message)}`,
+        );
+      }
+    }
+  });
+});

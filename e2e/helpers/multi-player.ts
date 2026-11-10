@@ -1,14 +1,13 @@
 import type { Browser } from '@playwright/test';
 import { expect, type Page } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { createPlayerContexts, type MultiPlayerFixture } from '../fixtures/app.fixture';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { RoomPage } from '../pages/RoomPage';
-import { enterRoomCodeViaNumPad, extractRoomCode, startRoomCreation } from './home';
-import { getVisibleText } from './ui';
-import { ensureConnected, waitForRoomScreenReady } from './waits';
+import { extractRoomCode, startRoomCreation } from './home';
+import { waitForRoomScreenReady } from './waits';
 
 /**
  * Multi-player orchestration helpers.
@@ -61,137 +60,67 @@ export interface GameSetupWithRolesResult extends GameSetupResult {
 // Seat readiness
 // ---------------------------------------------------------------------------
 
-/** Max poll attempts before hard-failing. Total timeout ≈ SEATS_MAX_ATTEMPTS × SEATS_INTERVAL_MS. */
-const SEATS_MAX_ATTEMPTS = 80;
-/** Poll cadence for seat-readiness checks (≤300ms per test instructions). */
-const SEATS_INTERVAL_MS = 300;
-/** At this attempt, reload the host page to force a fresh socket state sync (escalation). */
-const SEATS_ESCALATION_ATTEMPT = 25;
+/** Time for every joiner's seat to reach the host. */
+const SEATS_READY_TIMEOUT_MS = 24_000;
 
 /**
- * Hard gate: Wait for all joiners to be seated on the host page.
- *
- * Polls for the Host-management preview that appears when all seats are filled.
- * Uses "retry with escalation": at the halfway point, reloads the host page to
- * force a new room lifecycle and correlated WebSocket state sync, compensating
- * for missed realtime delivery in CI environments.
- *
- * Throws with diagnostic info if the seats are not ready within the timeout.
- *
- * @param hostPage - The host's Playwright page
- * @param joinerPages - All joiner pages (used for keep-alive pings)
- * @param roomCode - Room code for diagnostic messages
+ * Hard gate: wait until the host's next-step button offers 分配角色, which it
+ * does once every seat is taken.
  */
-async function waitForSeatsReady(
-  hostPage: Page,
-  joinerPages: Page[],
-  roomCode: string,
-): Promise<void> {
-  for (let attempt = 1; attempt <= SEATS_MAX_ATTEMPTS; attempt++) {
-    // Escalation: reload host page at halfway point to force DB fetch
-    if (attempt === SEATS_ESCALATION_ATTEMPT) {
-      await hostPage.reload();
-      await waitForRoomScreenReady(hostPage, { role: 'host' });
-    }
-
-    // Poll cadence: ping joiner pages to keep connections alive
-    for (const joinerPage of joinerPages) {
-      await joinerPage.locator('body').count();
-    }
-    await hostPage.waitForTimeout(SEATS_INTERVAL_MS);
-
-    // Ensure all pages are still connected before checking seats
-    await ensureConnected([hostPage, ...joinerPages]);
-
-    const isReadyToPrepare = await hostPage
-      .getByTestId(TESTIDS.roomNextStepButton)
-      .getAttribute('aria-label')
-      .then((label) => label === '分配角色')
-      .catch(() => false);
-    if (isReadyToPrepare) return;
-  }
-
-  // Hard fail: collect diagnostics for debugging
-  const visibleTexts: string[] = [];
-  for (const text of ['分配角色', '等待玩家', '开始游戏']) {
-    const visible = await hostPage
-      .getByText(text)
-      .isVisible()
-      .catch(() => false);
-    if (visible) visibleTexts.push(text);
-  }
-  const seatCount = await hostPage
-    .locator('[data-testid^="seat-tile-pressable-"]')
-    .count()
-    .catch(() => -1);
-
-  throw new Error(
-    `waitForSeatsReady FAILED after ${SEATS_MAX_ATTEMPTS} attempts (room=${roomCode}). ` +
-      `Expected ${joinerPages.length + 1} players seated. ` +
-      `Visible seat tiles: ${seatCount}. ` +
-      `Visible UI texts: [${visibleTexts.join(', ')}]. ` +
-      `Host management never showed "分配角色" — seats not ready.`,
-  );
+async function waitForSeatsReady(hostPage: Page): Promise<void> {
+  await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName('分配角色', {
+    timeout: SEATS_READY_TIMEOUT_MS,
+  });
 }
 
 // ---------------------------------------------------------------------------
-// View roles for all players
+// Room creation and seating
 // ---------------------------------------------------------------------------
 
-async function viewRolesForAll(pages: Page[]): Promise<void> {
-  for (const page of pages) {
-    await viewRoleWithRetry(page);
-  }
-  // No fixed timeout needed here — startGame() uses auto-retrying assertion
-  // to wait for "开始游戏" button which appears after all VIEWED_ROLE broadcasts.
-}
-
 /**
- * Click "查看身份" with retry: handles the race condition where the
- * `assigned` status broadcast hasn't arrived on a joiner page yet.
- *
- * If clicking triggers the "等待房主" alert (disabled button), dismiss it
- * and retry after a brief wait for the next broadcast to arrive.
+ * Create N logged-in contexts, have the host create a werewolf room from the
+ * default template (optionally reconfigured), and seat every player in page order.
  */
-export async function viewRoleWithRetry(page: Page, maxRetries = 50): Promise<void> {
-  const viewBtn = page.getByRole('button', { name: '查看身份' });
-  await expect(viewBtn).toBeVisible({ timeout: 15_000 });
+async function createRoomAndSeatAll(
+  browser: Browser,
+  opts: {
+    readonly playerCount: number;
+    readonly configureTemplate: ((config: ConfigPage) => Promise<void>) | undefined;
+    readonly isSheriffElectionDisabled: boolean;
+  },
+): Promise<GameSetupResult & { hostRoom: RoomPage }> {
+  const fixture = await createPlayerContexts(browser, opts.playerCount);
+  const [hostPage, ...joinerPages] = fixture.pages;
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    await viewBtn.click();
+  await startRoomCreation(hostPage, 'werewolf');
+  const boardPicker = new BoardPickerPage(hostPage);
+  await boardPicker.waitForReady();
+  await boardPicker.selectDefaultTemplate();
+  const config = new ConfigPage(hostPage);
+  await config.waitForReady();
+  if (opts.configureTemplate) {
+    await opts.configureTemplate(config);
+  }
+  const rules = await config.clickNext();
+  if (opts.isSheriffElectionDisabled) {
+    await rules.setSheriffElectionEnabled(false);
+  }
+  await rules.clickCreate();
+  await waitForRoomScreenReady(hostPage, { role: 'host' });
 
-    // Race: either "知道了" (role card modal) or "等待房主" (disabled alert)
-    const okBtn = page.getByText('知道了', { exact: true });
-    const waitAlert = page.getByText('等待房主分配角色…');
+  const roomCode = await extractRoomCode(hostPage);
 
-    const appeared = await Promise.race([
-      okBtn.waitFor({ state: 'visible', timeout: 2000 }).then(() => 'roleCard' as const),
-      waitAlert.waitFor({ state: 'visible', timeout: 2000 }).then(() => 'waitAlert' as const),
-    ]).catch(() => 'neither' as const);
+  // Host manually takes seat 0 (no longer auto-seated on room creation)
+  const hostRoom = new RoomPage(hostPage);
+  await hostRoom.seatAt(0);
 
-    if (appeared === 'roleCard') {
-      // Use evaluate to bypass viewport overflow issues (role card modal
-      // may extend beyond 720px viewport in small-player-count games)
-      await okBtn.evaluate((el) => (el as HTMLElement).click());
-      return;
-    }
-
-    if (appeared === 'waitAlert') {
-      // Dismiss the "等待房主" alert and retry after broadcast arrives
-      await page.getByText('确定', { exact: true }).click();
-      // Wait for alert to disappear before retrying
-      await waitAlert.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
-      continue;
-    }
-
-    // Neither appeared — poll cadence for retry loop
-    await page.waitForTimeout(300);
+  for (const [index, joinerPage] of joinerPages.entries()) {
+    const room = new RoomPage(joinerPage);
+    await room.joinViaCode(roomCode);
+    await room.seatAt(index + 1);
   }
 
-  throw new Error(
-    `viewRoleWithRetry: "知道了" never appeared after ${maxRetries} attempts. ` +
-      'The assigned status broadcast may not have arrived.',
-  );
+  return { fixture, roomCode, hostPage, joinerPages, hostRoom };
 }
 
 // ---------------------------------------------------------------------------
@@ -220,69 +149,20 @@ export async function setupNPlayerGame(
     isSheriffElectionEnabled = false,
   } = opts;
 
-  // Step 1: Create all player contexts
-  const fixture = await createPlayerContexts(browser, playerCount);
-  const [hostPage, ...joinerPages] = fixture.pages;
+  const { hostRoom, ...setup } = await createRoomAndSeatAll(browser, {
+    playerCount,
+    configureTemplate,
+    isSheriffElectionDisabled: startGame && !isSheriffElectionEnabled,
+  });
+  if (!startGame) return setup;
 
-  // Step 2: Host creates room
-  await startRoomCreation(hostPage, 'werewolf');
-  const boardPicker = new BoardPickerPage(hostPage);
-  await boardPicker.waitForReady();
-  await boardPicker.selectDefaultTemplate();
-  const config = new ConfigPage(hostPage);
-  await config.waitForReady();
-
-  if (configureTemplate) {
-    await configureTemplate(config);
-  }
-  const rules = await config.clickNext();
-  if (startGame && !isSheriffElectionEnabled) {
-    await rules.setSheriffElectionEnabled(false);
-  }
-
-  await rules.clickCreate();
-  await waitForRoomScreenReady(hostPage, { role: 'host' });
-
-  const roomCode = await extractRoomCode(hostPage);
-
-  // Host manually takes seat 0 (no longer auto-seated on room creation)
-  const hostRoom = new RoomPage(hostPage);
-  await hostRoom.seatAt(0);
-
-  // Step 3: Joiners join and take seats
-  for (let i = 0; i < joinerPages.length; i++) {
-    const joinerPage = joinerPages[i]!;
-    const seat = i + 1; // Seats 2, 3, 4, ...
-
-    await getVisibleText(joinerPage, '进入房间').first().click();
-    await expect(joinerPage.getByText('加入房间')).toBeVisible({ timeout: 5000 });
-
-    await enterRoomCodeViaNumPad(joinerPage, roomCode);
-    await joinerPage.getByText('加入', { exact: true }).click();
-    await waitForRoomScreenReady(joinerPage, { role: 'joiner' });
-
-    // Take seat (seatAt waits for green seat badge via auto-retrying assertion)
-    const room = new RoomPage(joinerPage);
-    await room.seatAt(seat);
-  }
-
-  if (!startGame) {
-    return { fixture, roomCode, hostPage, joinerPages };
-  }
-
-  // Step 4: Seat readiness
-  await waitForSeatsReady(hostPage, joinerPages, roomCode);
-
-  // Step 5: Prepare roles
+  await waitForSeatsReady(setup.hostPage);
   await hostRoom.prepareRoles();
-
-  // Step 6: All view roles
-  await viewRolesForAll(fixture.pages);
-
-  // Step 7: Start game
+  for (const page of setup.fixture.pages) {
+    await new RoomPage(page).viewRole();
+  }
   await hostRoom.startGame();
-
-  return { fixture, roomCode, hostPage, joinerPages };
+  return setup;
 }
 
 // ---------------------------------------------------------------------------
@@ -301,67 +181,21 @@ export async function setupNPlayerGameWithRoles(
 ): Promise<GameSetupWithRolesResult> {
   const { playerCount = 2, configureTemplate, isSheriffElectionEnabled = false } = opts;
 
-  // Step 1: Create all player contexts
-  const fixture = await createPlayerContexts(browser, playerCount);
-  const [hostPage, ...joinerPages] = fixture.pages;
+  const { hostRoom, ...setup } = await createRoomAndSeatAll(browser, {
+    playerCount,
+    configureTemplate,
+    isSheriffElectionDisabled: !isSheriffElectionEnabled,
+  });
 
-  // Step 2: Host creates room
-  await startRoomCreation(hostPage, 'werewolf');
-  const boardPicker2 = new BoardPickerPage(hostPage);
-  await boardPicker2.waitForReady();
-  await boardPicker2.selectDefaultTemplate();
-  const config = new ConfigPage(hostPage);
-  await config.waitForReady();
-
-  if (configureTemplate) {
-    await configureTemplate(config);
-  }
-  const rules = await config.clickNext();
-  if (!isSheriffElectionEnabled) {
-    await rules.setSheriffElectionEnabled(false);
-  }
-
-  await rules.clickCreate();
-  await waitForRoomScreenReady(hostPage, { role: 'host' });
-
-  const roomCode = await extractRoomCode(hostPage);
-
-  // Host manually takes seat 0
-  const hostRoom = new RoomPage(hostPage);
-  await hostRoom.seatAt(0);
-
-  // Step 3: Joiners join and take seats
-  for (let i = 0; i < joinerPages.length; i++) {
-    const joinerPage = joinerPages[i]!;
-    const seat = i + 1;
-
-    await getVisibleText(joinerPage, '进入房间').first().click();
-    await expect(joinerPage.getByText('加入房间')).toBeVisible({ timeout: 5000 });
-
-    await enterRoomCodeViaNumPad(joinerPage, roomCode);
-    await joinerPage.getByText('加入', { exact: true }).click();
-    await waitForRoomScreenReady(joinerPage, { role: 'joiner' });
-
-    const room = new RoomPage(joinerPage);
-    await room.seatAt(seat);
-  }
-
-  // Step 4: Seat readiness
-  await waitForSeatsReady(hostPage, joinerPages, roomCode);
-
-  // Step 5: Prepare roles
+  await waitForSeatsReady(setup.hostPage);
   await hostRoom.prepareRoles();
 
-  // Step 6: All view roles — capture each player's role
   const roleMap = new Map<number, CapturedRole>();
-  for (let i = 0; i < fixture.pages.length; i++) {
-    const room = new RoomPage(fixture.pages[i]!);
-    const displayName = await room.viewRoleAndCapture();
-    roleMap.set(i, { displayName, seat: i });
+  for (const [index, page] of setup.fixture.pages.entries()) {
+    const displayName = await new RoomPage(page).viewRoleAndCapture();
+    roleMap.set(index, { displayName, seat: index });
   }
 
-  // Step 7: Start game
   await hostRoom.startGame();
-
-  return { fixture, roomCode, hostPage, joinerPages, roleMap };
+  return { ...setup, roleMap };
 }

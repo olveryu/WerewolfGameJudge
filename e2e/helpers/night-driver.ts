@@ -1,7 +1,8 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
-import { TESTIDS } from '../../src/testids';
+import { TESTIDS } from '../../packages/web/src/testids';
 import { RoomPage } from '../pages/RoomPage';
+import { alertPrimaryButton, pressAlertButton, readAlertText } from './alerts';
 import type { CapturedRole } from './multi-player';
 import { ensureConnected } from './waits';
 
@@ -89,7 +90,7 @@ export function findAllRolePageIndices(
  */
 export async function readRoomPhase(page: Page): Promise<string | null> {
   return page
-    .locator(`[data-testid="${TESTIDS.roomHeader}"]`)
+    .getByTestId(TESTIDS.roomHeader)
     .getAttribute('data-phase', { timeout: 200 })
     .catch(() => null);
 }
@@ -102,7 +103,7 @@ export async function readRoomPhase(page: Page): Promise<string | null> {
  */
 export async function readRoomStep(page: Page): Promise<string | null> {
   return page
-    .locator(`[data-testid="${TESTIDS.roomHeader}"]`)
+    .getByTestId(TESTIDS.roomHeader)
     .getAttribute('data-step', { timeout: 200 })
     .catch(() => null);
 }
@@ -148,13 +149,25 @@ export async function isNightEnded(page: Page): Promise<boolean> {
   return phase !== null && NIGHT_END_PHASES.has(phase);
 }
 
-/** Check if a specific Chinese text is visible on the page. */
-export async function isTextVisible(page: Page, text: string, exact = false): Promise<boolean> {
-  return page
-    .getByText(text, { exact })
-    .first()
-    .isVisible()
-    .catch(() => false);
+/**
+ * A werewolf night step button, by its button spec key (see buildNightButtons):
+ * skip, wolfEmpty, wolfCancel, save, confirm, groupConfirmAck, viewHunterStatus,
+ * multiConfirm, chooseCard.
+ */
+export function nightButton(page: Page, key: string): Locator {
+  return page.getByTestId(TESTIDS.werewolfNightButton(key));
+}
+
+/** The open alert dialog. */
+function alertModal(page: Page): Locator {
+  return page.getByTestId(TESTIDS.alertModal);
+}
+
+/** Wait for a two-button confirm alert and press its 确定 button. */
+async function pressConfirm(page: Page): Promise<void> {
+  const confirm = page.getByTestId(TESTIDS.alertButton(1));
+  await expect(confirm).toHaveText('确定', { timeout: CONFIRM_TIMEOUT_MS });
+  await confirm.click({ timeout: CLICK_TIMEOUT_MS });
 }
 
 // ---------------------------------------------------------------------------
@@ -179,15 +192,15 @@ export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<
   await dismissAlert(page);
 
   const stepBefore = await readRoomStep(page);
-  const tile = page.locator(`[data-testid="seat-tile-pressable-${seatIdx}"]`);
+  const tile = page.getByTestId(TESTIDS.seatTilePressable(seatIdx));
   await tile.waitFor({ state: 'visible', timeout: CLICK_TIMEOUT_MS });
 
-  const alertModal = page.locator('[data-testid="alert-modal"]');
+  const confirmButton = page.getByTestId(TESTIDS.alertButton(1));
   let appeared = false;
   for (let attempt = 0; attempt < 2 && !appeared; attempt++) {
     if (!(await clickCapped(tile, `seat tile ${seatIdx}`))) return false;
     log(`clickSeatAndConfirm seat=${seatIdx} — tile clicked (attempt ${attempt + 1})`);
-    appeared = await alertModal
+    appeared = await confirmButton
       .waitFor({ state: 'visible', timeout: CONFIRM_TIMEOUT_MS })
       .then(() => true)
       .catch(() => false);
@@ -204,32 +217,45 @@ export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<
   }
   if (!appeared) return false;
 
-  const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
-  if (await confirmBtn.isVisible().catch(() => false)) {
-    if (!(await clickCapped(confirmBtn, 'seat confirm'))) return false;
-    log(`clickSeatAndConfirm seat=${seatIdx} — confirmed`);
-    // Wait for the confirm dialog content to be replaced by React.
-    // Confirm dialogs have a "取消" button; subsequent alerts (reveal/info) don't.
-    // Once "取消" disappears, the old dialog content has been processed.
-    await alertModal
-      .getByText('取消', { exact: true })
-      .first()
-      .waitFor({ state: 'hidden', timeout: CLICK_TIMEOUT_MS });
-    return true;
+  await expect(confirmButton).toHaveText('确定');
+  if (!(await clickCapped(confirmButton, 'seat confirm'))) return false;
+  log(`clickSeatAndConfirm seat=${seatIdx} — confirmed`);
+  // Confirm dialogs have two buttons; the reveal or info alerts that may follow
+  // have one. Once the second button is gone, the confirm dialog is processed.
+  await confirmButton.waitFor({ state: 'hidden', timeout: CLICK_TIMEOUT_MS });
+  return true;
+}
+
+/**
+ * Drive a multi-seat selection step: toggle each target seat (a toggle opens no
+ * dialog; the confirm button's count follows each one), then press the
+ * multiConfirm button labelled `confirmLabel` (e.g. '确认催眠（2人）') and
+ * confirm its alert.
+ */
+export async function driveMultiSelect(
+  page: Page,
+  targetSeats: readonly number[],
+  confirmLabel: string,
+): Promise<void> {
+  await dismissAlert(page);
+  const confirmButton = nightButton(page, 'multiConfirm');
+  for (const [selectedCount, seat] of targetSeats.entries()) {
+    await page.getByTestId(TESTIDS.seatTilePressable(seat)).click({ timeout: CLICK_TIMEOUT_MS });
+    await expect(confirmButton).toContainText(`（${selectedCount + 1}人）`);
   }
-  log(`clickSeatAndConfirm seat=${seatIdx} — confirm btn not visible`);
-  return false;
+  await expect(confirmButton).toHaveText(confirmLabel);
+  await confirmButton.click({ timeout: CLICK_TIMEOUT_MS });
+  await pressConfirm(page);
 }
 
 /** Select and confirm the first enabled card inside the bottom-card modal. */
 export async function chooseFirstEnabledBottomCard(page: Page): Promise<string> {
-  const modal = page.locator(`[data-testid="${TESTIDS.chooseBottomCardModal}"]`);
+  const modal = page.getByTestId(TESTIDS.chooseBottomCardModal);
   await modal.waitFor({ state: 'visible', timeout: 5000 });
 
-  const options = modal.locator('[data-testid^="choose-bottom-card-option-"]');
-  const optionCount = await options.count();
-  for (let cardIndex = 0; cardIndex < optionCount; cardIndex++) {
-    const option = options.nth(cardIndex);
+  for (let cardIndex = 0; ; cardIndex++) {
+    const option = modal.getByTestId(TESTIDS.chooseBottomCardOption(cardIndex));
+    if ((await option.count()) === 0) break;
     if (!(await option.isEnabled())) continue;
 
     const selectedText = await option.textContent();
@@ -238,10 +264,7 @@ export async function chooseFirstEnabledBottomCard(page: Page): Promise<string> 
     }
     const selectedName = selectedText.trim();
     await option.click({ timeout: CLICK_TIMEOUT_MS });
-
-    const alertModal = page.locator('[data-testid="alert-modal"]');
-    await alertModal.waitFor({ state: 'visible', timeout: CONFIRM_TIMEOUT_MS });
-    await alertModal.getByText('确定', { exact: true }).click({ timeout: CLICK_TIMEOUT_MS });
+    await pressConfirm(page);
     return selectedName;
   }
 
@@ -252,70 +275,54 @@ export async function chooseFirstEnabledBottomCard(page: Page): Promise<string> 
 // Advance buttons
 // ---------------------------------------------------------------------------
 
-/** Advance button labels used to skip / acknowledge steps.
- * Order matters: "确定" must come before "不用技能" because confirm dialogs
- * contain "不用技能" as body text — getByText would match the body instead
- * of the actual button.
+/**
+ * Night buttons a sweep may press to move a step along: open a status
+ * dialog, view the hunter status, or skip the step.
  */
-const ADVANCE_BUTTONS = [
-  '知道了',
-  '确定',
-  '不用技能',
-  '发动状态',
-  '查看技能状态',
-  '确认跳过', // nightmare-blocked roles
-];
+const ADVANCE_BUTTON_KEYS = ['confirm', 'viewHunterStatus', 'skip'] as const;
 
 /**
- * Safe advance buttons — excludes "不用技能" to avoid accidentally
- * skipping a role's action step while waiting for its turn.
- */
-const SAFE_ADVANCE_BUTTONS = ADVANCE_BUTTONS.filter((b) => b !== '不用技能');
-
-/**
- * Try to click any advance button on a page.
- * Checks alert modal first, then bottom action panel.
+ * Try to advance one page by one click: the open alert's primary button
+ * first, then the first visible advance night button.
  * Returns true if a button was clicked.
- *
- * @param includeSkip If false, excludes "不用技能" to prevent
- *   prematurely skipping a role step. Defaults to true.
  */
-export async function tryClickAdvanceButton(
-  page: Page,
-  includeSkip = true,
-  label?: string,
-): Promise<boolean> {
+export async function tryClickAdvanceButton(page: Page, label?: string): Promise<boolean> {
   const tag = label ?? '';
-  const buttons = includeSkip ? ADVANCE_BUTTONS : SAFE_ADVANCE_BUTTONS;
-  // Check alert modal first
-  const alertModal = page.locator('[data-testid="alert-modal"]');
-  if (await alertModal.isVisible().catch(() => false)) {
-    for (const text of buttons) {
-      const btn = alertModal.getByText(text, { exact: true }).first();
-      if (await btn.isVisible().catch(() => false)) {
-        if (await clickCapped(btn, `advance alert "${text}"`)) {
-          log(`tryClickAdvanceButton${tag} — alert "${text}" clicked`);
-          return true;
-        }
-        return false;
-      }
+  if (
+    await alertModal(page)
+      .isVisible()
+      .catch(() => false)
+  ) {
+    const primary = await alertPrimaryButton(page);
+    if (await clickCapped(primary, 'advance alert')) {
+      log(`tryClickAdvanceButton${tag} — alert primary clicked`);
+      return true;
     }
+    return false;
   }
 
-  // Check bottom action panel
-  const panel = page.locator('[data-testid="bottom-action-panel"]');
-  for (const text of buttons) {
-    const btn = panel.getByRole('button', { name: text, exact: true });
-    if (await btn.isVisible().catch(() => false)) {
-      if (await clickCapped(btn, `advance panel "${text}"`)) {
-        log(`tryClickAdvanceButton${tag} — panel "${text}" clicked`);
-        return true;
-      }
-      return false;
+  for (const key of ADVANCE_BUTTON_KEYS) {
+    const button = nightButton(page, key);
+    if (await button.isVisible().catch(() => false)) {
+      return tryClickNightButton(page, key, tag);
     }
   }
 
   return false;
+}
+
+/**
+ * Press a visible night button, capped. The step prompt opens when the
+ * step audio ends — the same moment the buttons appear — so it can cover
+ * a button between the visibility check and the click. A blocked click
+ * returns false; the caller's next sweep dismisses the prompt and retries.
+ */
+export async function tryClickNightButton(page: Page, key: string, label = ''): Promise<boolean> {
+  const button = nightButton(page, key);
+  if (!(await button.isVisible().catch(() => false))) return false;
+  if (!(await clickCapped(button, `night button ${key}`))) return false;
+  log(`tryClickNightButton${label} — night button ${key} clicked`);
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -344,7 +351,7 @@ async function pollUntil(
     await ensureConnected(pages);
     for (const page of pages) {
       const pIdx = pages.indexOf(page);
-      await tryClickAdvanceButton(page, true, ` poll-P${pIdx}`);
+      await tryClickAdvanceButton(page, ` poll-P${pIdx}`);
     }
     // Poll cadence for retry loop
     await pages[0]!.waitForTimeout(POLL_INTERVAL_MS);
@@ -421,11 +428,11 @@ export async function waitForPromptCycle(
   if (promptCycleSeen.get(page) === key) return true;
 
   const cap = Math.min(deadlineMs, Date.now() + PROMPT_CYCLE_CAP_MS);
-  const alertModal = page.locator('[data-testid="alert-modal"]');
+  const modal = alertModal(page);
   const sample = async (): Promise<string | null> => {
-    const visible = await alertModal.isVisible().catch(() => false);
+    const visible = await modal.isVisible().catch(() => false);
     if (!visible) return null;
-    return (await alertModal.textContent({ timeout: 200 }).catch(() => '')) ?? '';
+    return (await modal.textContent({ timeout: 200 }).catch(() => '')) ?? '';
   };
   const initial = await sample();
   for (;;) {
@@ -586,7 +593,7 @@ export async function waitForRoleTurn(
     for (const p of allPages) {
       if (p === rolePage) continue;
       const pIdx = allPages.indexOf(p);
-      await tryClickAdvanceButton(p, /* includeSkip */ true, ` P${pIdx}`);
+      await tryClickAdvanceButton(p, ` P${pIdx}`);
     }
     // Poll cadence for retry loop
     await allPages[0]!.waitForTimeout(POLL_INTERVAL_MS);
@@ -624,49 +631,32 @@ export async function waitForNightEnd(
 }
 
 /**
- * After night ends, click "昨夜信息" to reveal the night result text.
- * The flow: click "昨夜信息" → confirmation dialog ("请在警长竞选结束后再查看，请勿作弊")
- * → click "确定查看" → info alert.
- * Call this before asserting on '平安夜' or '玩家死亡'.
+ * After night ends, open 昨夜信息 through host management, confirm the
+ * 提示 dialog with 确定查看, assert the 昨夜信息 title, and return the
+ * night-result message. The alert stays open.
  *
  * The action is disabled while the night-end narration plays (audio
  * playback lock), so wait for the lock to lift before clicking: the
  * button itself is the gate, which holds whether the audio ack
  * already landed or is still in flight.
  */
-export async function viewLastNightInfo(hostPage: Page): Promise<void> {
-  const alertModal = hostPage.locator('[data-testid="alert-modal"]');
-  const room = new RoomPage(hostPage);
-
+export async function viewLastNightInfo(hostPage: Page): Promise<string> {
   await dismissAlert(hostPage);
-  const panel = await room.openHostManagement();
-  await expect(panel.getByTestId(TESTIDS.lastNightInfoButton)).toBeEnabled({
-    timeout: AUDIO_ACK_WAIT_MS,
+  const panel = await new RoomPage(hostPage).openHostManagement();
+  const action = panel.getByTestId(TESTIDS.lastNightInfoButton);
+  await expect(action).toBeEnabled({ timeout: AUDIO_ACK_WAIT_MS });
+  await action.click();
+  await expect(panel).not.toBeVisible();
+  await pressAlertButton(hostPage, {
+    title: '提示',
+    buttonIndex: 1,
+    buttonLabel: '确定查看',
+    timeout: CONFIRM_TIMEOUT_MS,
   });
-  await room.closeHostManagement();
-
-  // Dismiss any stale alert, then click "昨夜信息"
-  for (let i = 0; i < 3; i++) {
-    await dismissAlert(hostPage);
-    if (await room.tryClickHostManagementAction(TESTIDS.lastNightInfoButton)) {
-      // Wait for confirmation dialog ("请在警长竞选结束后再查看，请勿作弊")
-      await alertModal.waitFor({ state: 'visible', timeout: CONFIRM_TIMEOUT_MS });
-      // Click "确定查看" to proceed to the info alert
-      const confirmBtn = alertModal.getByText('确定查看', { exact: true }).first();
-      if (await confirmBtn.isVisible().catch(() => false)) {
-        await confirmBtn.click({ timeout: CLICK_TIMEOUT_MS });
-        // Poll for actual night-result content instead of visibility toggle
-        // (avoids TOCTOU race where the confirmation dialog hasn't closed yet)
-        const RESULT_KEYWORDS = ['平安夜', '玩家死亡', '死亡', '号玩家'];
-        for (let j = 0; j < 20; j++) {
-          const text = (await alertModal.textContent().catch(() => '')) ?? '';
-          if (RESULT_KEYWORDS.some((kw) => text.includes(kw))) return;
-          await hostPage.waitForTimeout(200);
-        }
-      }
-      return;
-    }
-  }
+  await expect(hostPage.getByTestId(TESTIDS.alertTitle)).toHaveText('昨夜信息');
+  const message = hostPage.getByTestId(TESTIDS.alertMessage);
+  await expect(message).toBeVisible();
+  return message.innerText();
 }
 
 // ---------------------------------------------------------------------------
@@ -718,26 +708,9 @@ export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): 
     // transition the settle observes, stalling it to the cap.
     await dismissAlert(wPage);
 
-    // Click skip attack button
-    const panel = wPage.locator('[data-testid="bottom-action-panel"]');
-    const emptyBtn = panel.getByText('放弃袭击', { exact: true }).first();
-    await emptyBtn.waitFor({ state: 'visible', timeout: CLICK_TIMEOUT_MS });
-    await emptyBtn.click({ timeout: CLICK_TIMEOUT_MS });
-    log(`driveWolfEmptyVote — P${wIdx} clicked 放弃袭击`);
-
-    // Confirm the wolf vote alert
-    const alertModal = wPage.locator('[data-testid="alert-modal"]');
-    const appeared = await alertModal
-      .waitFor({ state: 'visible', timeout: CONFIRM_TIMEOUT_MS })
-      .then(() => true)
-      .catch(() => false);
-    if (appeared) {
-      const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
-      if (await confirmBtn.isVisible().catch(() => false)) {
-        await confirmBtn.click({ timeout: CLICK_TIMEOUT_MS });
-        log(`driveWolfEmptyVote — P${wIdx} confirmed`);
-      }
-    }
+    await clickNightButton(wPage, 'wolfEmpty', '放弃袭击');
+    await pressConfirm(wPage);
+    log(`driveWolfEmptyVote — P${wIdx} confirmed 放弃袭击`);
   }
 }
 
@@ -758,23 +731,9 @@ export async function driveWolfDisabledEmptyVote(
   log(`driveWolfDisabledEmptyVote wolfIndices=[${wolfIndices}]`);
   for (const wIdx of wolfIndices) {
     const wPage = pages[wIdx]!;
-    await dismissAlert(wPage);
-
-    const panel = wPage.locator('[data-testid="bottom-action-panel"]');
-    const blockedBtn = panel.getByRole('button', { name: '确认放弃袭击', exact: true });
-    await blockedBtn.waitFor({ state: 'visible', timeout: CLICK_TIMEOUT_MS });
-    await blockedBtn.click({ timeout: CLICK_TIMEOUT_MS });
-    log(`driveWolfDisabledEmptyVote — P${wIdx} clicked 确认放弃袭击`);
-
-    // Dismiss the confirmation alert if one appears
-    const alertModal = wPage.locator('[data-testid="alert-modal"]');
-    const appeared = await alertModal
-      .waitFor({ state: 'visible', timeout: CONFIRM_TIMEOUT_MS })
-      .then(() => true)
-      .catch(() => false);
-    if (appeared) {
-      await dismissAlert(wPage);
-    }
+    await clickNightButton(wPage, 'wolfEmpty', '确认放弃袭击');
+    await pressConfirm(wPage);
+    log(`driveWolfDisabledEmptyVote — P${wIdx} confirmed 确认放弃袭击`);
   }
 }
 
@@ -783,39 +742,29 @@ export async function driveWolfDisabledEmptyVote(
 // ---------------------------------------------------------------------------
 
 /**
- * Read the alert modal text content (used for reveal dialogs).
- * Returns the full text of the currently visible alert.
- */
-export async function readAlertText(page: Page): Promise<string> {
-  const alertModal = page.locator('[data-testid="alert-modal"]');
-  await alertModal.waitFor({ state: 'visible', timeout: 10_000 });
-  return (await alertModal.textContent().catch(() => '')) ?? '';
-}
-
-/**
- * Dismiss the current alert modal by clicking '知道了' or '确定'.
+ * Dismiss the open alert, if any, by pressing its primary button.
  *
  * Does NOT wait for the modal to close — callers rely on Playwright's
  * built-in actionability checks (inert attribute) for subsequent interactions
  * with elements inside #root.
  */
 export async function dismissAlert(page: Page): Promise<void> {
-  const alertModal = page.locator('[data-testid="alert-modal"]');
-  for (const text of ['知道了', '确定']) {
-    const btn = alertModal.getByText(text, { exact: true }).first();
-    if (await btn.isVisible().catch(() => false)) {
-      if (await clickCapped(btn, `dismiss "${text}"`)) {
-        log(`dismissAlert — clicked "${text}"`);
-      }
-      return;
-    }
+  if (
+    !(await alertModal(page)
+      .isVisible()
+      .catch(() => false))
+  )
+    return;
+  const primary = await alertPrimaryButton(page);
+  if (await clickCapped(primary, 'dismiss alert')) {
+    log('dismissAlert — primary clicked');
   }
 }
 
 /**
  * Wait until a groupConfirm reveal step is active, detected by its
- * status button (e.g. '情侣状态', '表白状态') becoming visible in the
- * bottom action panel on any page.
+ * status button becoming visible on any page; the button's label must
+ * be `statusButtonText` (e.g. '情侣状态', '表白状态').
  *
  * While polling, only dismiss blocking alert modals. Never click
  * bottom-panel action buttons: a click (e.g. '不用技能') would submit
@@ -830,11 +779,11 @@ export async function waitForGroupConfirmStep(
 ): Promise<boolean> {
   for (let iteration = 0; iteration < maxIterations; iteration++) {
     for (const page of pages) {
-      const statusButton = page
-        .locator('[data-testid="bottom-action-panel"]')
-        .getByText(statusButtonText, { exact: true })
-        .first();
-      if (await statusButton.isVisible().catch(() => false)) return true;
+      const statusButton = nightButton(page, 'groupConfirmAck');
+      if (await statusButton.isVisible().catch(() => false)) {
+        await expect(statusButton).toHaveText(statusButtonText);
+        return true;
+      }
     }
     for (const page of pages) {
       await dismissAlert(page);
@@ -861,17 +810,11 @@ export async function driveGroupConfirmAck(
   statusButtonText: string,
   ackButtonText: string,
 ): Promise<string> {
-  await dismissAlert(page);
-
-  const panel = page.locator('[data-testid="bottom-action-panel"]');
-  const statusButton = panel.getByText(statusButtonText, { exact: true }).first();
-  await statusButton.waitFor({ state: 'visible', timeout: 10_000 });
-  await statusButton.click();
-
-  const alertModal = page.locator('[data-testid="alert-modal"]');
-  await alertModal.waitFor({ state: 'visible', timeout: 5000 });
-  const message = (await alertModal.textContent().catch(() => '')) ?? '';
-  await alertModal.getByText(ackButtonText, { exact: true }).first().click();
+  await clickNightButton(page, 'groupConfirmAck', statusButtonText);
+  const message = await readAlertText(page, 5000);
+  const ackButton = page.getByTestId(TESTIDS.alertButton(0));
+  await expect(ackButton).toHaveText(ackButtonText);
+  await ackButton.click();
   return message;
 }
 
@@ -880,26 +823,16 @@ export async function driveGroupConfirmAck(
 // ---------------------------------------------------------------------------
 
 /**
- * Click a specific button in the bottom action panel.
- * Retries up to 3 times, dismissing any stale alert that may obscure the panel.
- * Returns true if the button was found and clicked.
+ * Dismiss the step prompt, then press a night button after asserting its
+ * label. The step prompt opens once the step audio ends, so callers that
+ * waited for the role turn always find it open.
  */
-export async function clickBottomButton(
-  page: Page,
-  label: string,
-  maxRetries = 3,
-): Promise<boolean> {
-  const panel = page.locator('[data-testid="bottom-action-panel"]');
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    // Dismiss any stale alert that may cover the bottom panel
-    if (attempt > 0) await dismissAlert(page);
-    const btn = panel.getByText(label, { exact: true }).first();
-    if (await btn.isVisible().catch(() => false)) {
-      if (await clickCapped(btn, `bottom button "${label}"`)) return true;
-    }
-    await page.waitForTimeout(POLL_INTERVAL_MS);
-  }
-  return false;
+export async function clickNightButton(page: Page, key: string, label: string): Promise<void> {
+  await dismissAlert(page);
+  const button = nightButton(page, key);
+  await expect(button).toHaveText(label, { timeout: 10_000 });
+  await button.click({ timeout: CLICK_TIMEOUT_MS });
+  log(`clickNightButton — ${key} "${label}" clicked`);
 }
 
 // ---------------------------------------------------------------------------
@@ -921,7 +854,7 @@ export async function driveMagicianSwap(
   // Click first seat → triggers "已选择第一位玩家" info alert.
   // Draft (toggle) selection: a failed click is reported, never
   // blindly retried — re-clicking a seat would toggle the draft.
-  const tile1 = page.locator(`[data-testid="seat-tile-pressable-${seat1}"]`);
+  const tile1 = page.getByTestId(TESTIDS.seatTilePressable(seat1));
   await tile1.waitFor({ state: 'visible', timeout: CLICK_TIMEOUT_MS });
   if (!(await clickCapped(tile1, `magician seat ${seat1}`))) return false;
 
@@ -929,21 +862,17 @@ export async function driveMagicianSwap(
   await dismissAlert(page);
 
   // Click second seat → triggers "确认交换" confirm dialog
-  const tile2 = page.locator(`[data-testid="seat-tile-pressable-${seat2}"]`);
+  const tile2 = page.getByTestId(TESTIDS.seatTilePressable(seat2));
   await tile2.waitFor({ state: 'visible', timeout: CLICK_TIMEOUT_MS });
   if (!(await clickCapped(tile2, `magician seat ${seat2}`))) return false;
 
-  // Confirm swap alert ("交换这两名玩家？")
-  const alertModal = page.locator('[data-testid="alert-modal"]');
-  const appeared = await alertModal
+  // Confirm the swap alert
+  const confirmButton = page.getByTestId(TESTIDS.alertButton(1));
+  const appeared = await confirmButton
     .waitFor({ state: 'visible', timeout: CONFIRM_TIMEOUT_MS })
     .then(() => true)
     .catch(() => false);
   if (!appeared) return false;
-
-  const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
-  if (await confirmBtn.isVisible().catch(() => false)) {
-    return clickCapped(confirmBtn, 'magician swap confirm');
-  }
-  return false;
+  await expect(confirmButton).toHaveText('确定');
+  return clickCapped(confirmButton, 'magician swap confirm');
 }

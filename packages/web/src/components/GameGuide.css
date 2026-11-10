@@ -1,0 +1,111 @@
+.game-guide-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.game-guide {
+  max-width: var(--size-max-content-width);
+  margin: 0 auto;
+  padding: var(--space-medium) var(--space-screen-h)
+    max(var(--space-xlarge), env(safe-area-inset-bottom));
+}
+
+.game-guide-kicker {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-bold);
+}
+
+.game-guide-heading {
+  margin: var(--space-small) 0 0;
+  color: var(--color-text);
+  font-size: var(--font-title);
+  line-height: var(--line-title);
+  font-weight: var(--weight-bold);
+}
+
+.game-guide-intro {
+  margin: var(--space-small) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-body);
+  line-height: 1.65;
+}
+
+.game-guide-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  margin-top: var(--space-large);
+  padding-top: var(--space-medium);
+  border-top: var(--border-width) solid var(--color-border-light);
+}
+
+.game-guide-section-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  line-height: var(--line-subtitle);
+  font-weight: var(--weight-semibold);
+}
+
+.game-guide-rule {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-medium);
+  padding: var(--space-medium) 0;
+  border-bottom: var(--border-width) solid var(--color-border-light);
+}
+
+.game-guide-rule-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-avatar-md);
+  height: var(--size-avatar-md);
+  border-radius: var(--radius-small);
+  background: var(--color-primary-a8);
+  color: var(--color-primary);
+  font-size: var(--size-icon-sm);
+}
+
+.game-guide-rule-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.game-guide-rule-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: 1.45;
+  font-weight: var(--weight-semibold);
+}
+
+.game-guide-rule-description {
+  margin: var(--space-tight) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: 1.6;
+}
+
+.game-guide-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-small);
+  margin: var(--space-xlarge) 0 0;
+  padding: var(--space-medium);
+  border-radius: var(--radius-small);
+  background: var(--color-info-a8);
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  line-height: 1.6;
+}
+
+.game-guide-notice-icon {
+  flex-shrink: 0;
+  margin-top: var(--space-micro);
+  color: var(--color-info);
+}

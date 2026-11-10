@@ -9,6 +9,7 @@
 | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [multigame-platform-design.md](multigame-platform-design.md)           | 多游戏平台三层架构（Platform / Game module / Catalog）、不变量与第 25 节新游戏接入清单                                                                                                                                                                                 |
 | [room-shell-contract.md](room-shell-contract.md)                       | config / guide / room 共享组件归属契约与完整状态验收矩阵                                                                                                                                                                                                               |
+| [room-stage-layout-design.md](room-stage-layout-design.md)             | 你画我猜 / 你画我猜接龙 / 故事接龙进行中舞台布局：标题栏主持管理、信息条、名单抽屉接管、画布占满剩余高度                                                                                                                                                               |
 | [game-config-schema-design.md](game-config-schema-design.md)           | 游戏配置 Schema 驱动：引擎单源描述符 → worker zod → 客户端 GameConfigForm（已实施）                                                                                                                                                                                    |
 | [game-review-share-design.md](game-review-share-design.md)             | 跨游戏本局复盘与图片分享：声明式复盘文档 + 单一渲染器 + 统一导出链路（设计稿 v2，完全重建）                                                                                                                                                                            |
 | [game-client-convergence-design.md](game-client-convergence-design.md) | 七游戏客户端同构与狼人杀重建：共享控制器（`useReadyRoomSession` / `useBotTakeover` / `useRoleViewing` / `useStageDeadline` / `useRoomAudioOrchestration`）、狼人杀 `NightInteractionModel` 重建、阶段到期服务端结算、复盘事实入引擎（已实施，PR #333；§12 为修订记录） |
@@ -16,6 +17,7 @@
 | [roomscreen-state-machine.md](roomscreen-state-machine.md)             | 狼人杀 RoomScreen UI 状态机（GameStatus → 按钮 / Schema Kind → 交互模式）                                                                                                                                                                                              |
 | [realtime-link-redesign.md](realtime-link-redesign.md)                 | 实时链路（RoomLink v3）：协议 v2、关闭码、客户端链路状态机、Worker 网关与命令管线、在线表                                                                                                                                                                              |
 | [outbox-recovery.md](outbox-recovery.md)                               | DO transactional outbox 的终态投递与管理端结算重放                                                                                                                                                                                                                     |
+| [web-client-rewrite.md](web-client-rewrite.md)                         | Web-only 客户端重写：去掉 React Native / Expo，React + 网页元素和 CSS 做界面、PixiJS 做场景层，单分支迁移与切换（设计稿 v3，P0–P5 已实施）                                                                                                                             |
 | [auth-session-design.md](auth-session-design.md)                       | 身份会话、`AuthSession` 缓存与用户资料的状态归属                                                                                                                                                                                                                       |
 | [DESIGN.md](DESIGN.md)                                                 | 视觉基准与主题 token（以狼人杀为主）                                                                                                                                                                                                                                   |
 
@@ -36,12 +38,11 @@
 
 ## 3. 产品模块
 
-| 文档                                                       | 说明                                          |
-| ---------------------------------------------------------- | --------------------------------------------- |
-| [gacha-system-design.md](gacha-system-design.md)           | 扭蛋收集系统                                  |
-| [gacha-operation-recovery.md](gacha-operation-recovery.md) | 抽卡 / 兑换操作的本地持久化与未知投递恢复     |
-| [growth-system-design.md](growth-system-design.md)         | XP / 等级成长系统                             |
-| [loop-motion-design.md](loop-motion-design.md)             | 常驻装饰动画：loopMotion 合成器原语与迁移取舍 |
+| 文档                                                       | 说明                                      |
+| ---------------------------------------------------------- | ----------------------------------------- |
+| [gacha-system-design.md](gacha-system-design.md)           | 扭蛋收集系统                              |
+| [gacha-operation-recovery.md](gacha-operation-recovery.md) | 抽卡 / 兑换操作的本地持久化与未知投递恢复 |
+| [growth-system-design.md](growth-system-design.md)         | XP / 等级成长系统                         |
 
 ## 4. 部署与运维
 
@@ -94,3 +95,4 @@
 | [apple-design-uplift.md](archive/apple-design-uplift.md)                       | Apple 风格 UI 提升方案                                    |
 | [bottom-panel-redesign.md](archive/bottom-panel-redesign.md)                   | BottomActionPanel 三层声明式布局重构                      |
 | [avatar-prompts.md](archive/avatar-prompts.md)                                 | Leonardo.AI 头像 prompt（已被豆包版本取代）               |
+| [loop-motion-design.md](archive/loop-motion-design.md)                         | React Native 客户端的常驻装饰动画（loopMotion）设计       |
