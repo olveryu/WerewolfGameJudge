@@ -106,6 +106,13 @@ export const routes: RouteObject[] = [
         },
       },
       {
+        path: 'admin',
+        lazy: async () => {
+          const { AdminPage } = await import('@/routes/admin/AdminPage');
+          return { Component: AdminPage };
+        },
+      },
+      {
         path: '__bench/scene',
         lazy: async () => {
           const { SceneBenchPage } = await import('@/routes/bench/SceneBenchPage');

@@ -26,3 +26,8 @@ export function replaceWithCreatedRoom(navigate: NavigateFunction, roomCode: str
 export function returnToActiveRoom(navigate: NavigateFunction, roomCode: string): void {
   void navigate(roomPath(roomCode), { replace: true });
 }
+
+/** Opens a room from the admin room list; Back returns to the admin page. */
+export function enterRoomFromAdmin(navigate: NavigateFunction, roomCode: string): void {
+  void navigate(roomPath(roomCode));
+}

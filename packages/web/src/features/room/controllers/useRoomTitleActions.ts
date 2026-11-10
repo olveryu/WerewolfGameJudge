@@ -3,7 +3,7 @@
 import { useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router';
 
-import { verifyAdminPassword } from '@/features/admin/services/adminApi';
+import { verifyAdminPassword } from '@/features/admin/services/adminAuth';
 import {
   clearAdminCredential,
   readAdminCredential,
