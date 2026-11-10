@@ -23,10 +23,10 @@ function estimateTotalMinutes(numberOfPlayers: number): number {
   );
 }
 
-/** Config-screen footer block: total rounds and the estimated game length. */
+/** Config-screen extra block: total rounds and the estimated game length. */
 export function DrawGuessConfigEstimate({ config }: { readonly config: DrawGuessConfig }) {
   return (
-    <div className="game-settings-section">
+    <>
       <p className="game-settings-hint">
         每人画 {DRAWGUESS_ROUNDS_PER_DRAWER} 轮 · 共{' '}
         {config.numberOfPlayers * DRAWGUESS_ROUNDS_PER_DRAWER} 轮
@@ -37,6 +37,6 @@ export function DrawGuessConfigEstimate({ config }: { readonly config: DrawGuess
         秒 + 作画 {DRAWGUESS_DRAWING_DURATION_SECONDS} 秒 + 结算 {DRAWGUESS_ROUND_END_SECONDS}{' '}
         秒）。提前选词会缩短选词等待；作画按倒计时结束。
       </p>
-    </div>
+    </>
   );
 }
