@@ -4,8 +4,13 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createColdRoomContext, createPlayerContexts } from '../fixtures/app.fixture';
-import { enterRoomCodeViaNumPad } from '../helpers/home';
-import { downloadReviewImage, expectWeChatImageShare, readPngSize } from '../helpers/image-sharing';
+import { confirmAlert } from '../helpers/alerts';
+import {
+  downloadReviewImage,
+  expectWeChatImageShare,
+  readPngSize,
+  REVIEW_CAPTURE_TIMEOUT_MS,
+} from '../helpers/image-sharing';
 import { setOffline } from '../helpers/resilience';
 import { waitForRoomScreenReady } from '../helpers/waits';
 import { HomePage } from '../pages/HomePage';
@@ -113,8 +118,12 @@ function isExpireCommand(body: unknown): boolean {
 async function createRoom(page: Page, writingDurationSeconds = 'unlimited'): Promise<RoomPage> {
   await new HomePage(page).clickCreateRoom('storyrelay');
   await expect(page.getByTestId(TESTIDS.gameConfigScreenRoot('storyrelay'))).toBeVisible();
-  await page.getByRole('button', { name: '减少人数' }).click();
-  await page.getByRole('button', { name: '减少人数' }).click();
+  const decrementPlayers = page.getByTestId(
+    TESTIDS.gameConfigFieldDecrement('storyrelay', 'numberOfPlayers'),
+  );
+  await expect(decrementPlayers).toHaveAccessibleName('减少人数');
+  await decrementPlayers.click();
+  await decrementPlayers.click();
   await page
     .getByTestId(
       TESTIDS.gameConfigFieldOption('storyrelay', 'writingDurationSeconds', writingDurationSeconds),
@@ -130,38 +139,32 @@ async function createRoom(page: Page, writingDurationSeconds = 'unlimited'): Pro
 }
 
 async function joinRoom(page: Page, roomCode: string, seat: number): Promise<void> {
-  await page.getByTestId(TESTIDS.homeEnterRoomButton).click();
-  await enterRoomCodeViaNumPad(page, roomCode);
-  await page.getByText('加入', { exact: true }).click();
-  await waitForRoomScreenReady(page, { role: 'joiner' });
-  await new RoomPage(page).seatAt(seat);
-}
-
-async function confirm(page: Page): Promise<void> {
-  await page.getByText('确定', { exact: true }).click();
+  const room = new RoomPage(page);
+  await room.joinViaCode(roomCode);
+  await room.seatAt(seat);
 }
 
 async function expectFixedTask(page: Page): Promise<void> {
-  await expect(page.getByTestId('storyrelay-editor')).toBeInViewport({ ratio: 1 });
-  await expect(page.getByTestId('storyrelay-ready')).toBeInViewport({ ratio: 1 });
+  await expect(page.getByTestId(TESTIDS.storyRelayEditor)).toBeInViewport({ ratio: 1 });
+  await expect(page.getByTestId(TESTIDS.storyRelayReady)).toBeInViewport({ ratio: 1 });
   await expect
     .poll(() =>
       page
-        .getByTestId('storyrelay-task')
+        .getByTestId(TESTIDS.storyRelayTask)
         .evaluate((element) => element.scrollHeight - element.clientHeight),
     )
     .toBeLessThanOrEqual(1);
   await expect
     .poll(() =>
       page
-        .getByTestId('storyrelay-editor')
+        .getByTestId(TESTIDS.storyRelayEditor)
         .evaluate((element) => element.clientHeight / window.innerHeight),
     )
     .toBeGreaterThan(MIN_EDITOR_VIEWPORT_FRACTION);
   await expect
     .poll(() =>
       page
-        .getByTestId('storyrelay-ready')
+        .getByTestId(TESTIDS.storyRelayReady)
         .evaluate(
           (element) =>
             element.getBoundingClientRect().bottom -
@@ -176,20 +179,26 @@ async function expectFixedTask(page: Page): Promise<void> {
  * only that page: one PNG named after the story's page, its passages reaching the bottom.
  */
 async function expectStoryImageExport(page: Page, roomCode: string, storyIndex: number) {
+  const nextStory = page.getByTestId(TESTIDS.galleryPagerNextButton(TESTIDS.storyRelayGallery));
   for (let skipped = 0; skipped < storyIndex; skipped += 1) {
-    await page.getByRole('button', { name: '下一篇故事', exact: true }).click();
+    await expect(nextStory).toHaveAccessibleName('下一篇故事');
+    await nextStory.click();
   }
   await expect(
-    page.getByTestId('storyrelay-gallery').getByText(`${storyIndex + 1} / 4`, { exact: true }),
-  ).toBeVisible();
-  await page.getByRole('button', { name: '分享本篇故事', exact: true }).click();
+    page.getByTestId(TESTIDS.galleryPagerPosition(TESTIDS.storyRelayGallery)),
+  ).toHaveText(`${storyIndex + 1} / 4`);
+  const shareStory = page.getByTestId(TESTIDS.storyRelayGalleryShareButton);
+  await expect(shareStory).toHaveText('分享本篇故事');
+  await shareStory.click();
   const review = page.getByTestId(TESTIDS.roomReviewDialog);
   await expect(review).toContainText(`第 ${storyIndex + 1} 篇故事`);
   await expect(review).toContainText('第 4 棒 · ');
   await expect(review).toContainText('第4棒的故事');
   // 「仅分享本页」 appears once the background capture of the pages is ready.
+  const sharePage = page.getByTestId(TESTIDS.roomReviewSharePageButton);
+  await expect(sharePage).toHaveText('仅分享本页', { timeout: REVIEW_CAPTURE_TIMEOUT_MS });
   const png = await downloadReviewImage(
-    page.getByRole('button', { name: '仅分享本页', exact: true }),
+    sharePage,
     `storyrelay-${roomCode}-1-p${storyIndex + 1}.png`,
   );
   const { width, height } = readPngSize(png);
@@ -219,7 +228,9 @@ async function expectStoryImageExport(page: Page, roomCode: string, storyIndex: 
     `data:image/png;base64,${png.toString('base64')}`,
   );
   expect(hasTextAtBottom).toBe(true);
-  await page.getByRole('button', { name: '关闭详情', exact: true }).click();
+  const closeReview = page.getByTestId(TESTIDS.roomDialogCloseButton);
+  await expect(closeReview).toHaveAccessibleName('关闭详情');
+  await closeReview.click();
 }
 
 test('four humans write four turns without restoring unsubmitted input and reveal synchronized stories', async ({
@@ -236,30 +247,30 @@ test('four humans write four turns without restoring unsubmitted input and revea
     try {
       await fixture.pages[1]!.setViewportSize({ width: 390, height: 844 });
       await fixture.pages[2]!.setViewportSize({ width: 320, height: 640 });
-      await room.clickHostManagementActionAndConfirm('start-game-button', '开始游戏？');
+      await room.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
       for (let stepIndex = 0; stepIndex < 4; stepIndex += 1) {
         await test.step(`write and collect turn ${stepIndex + 1}`, async () => {
           for (const page of fixture.pages) {
-            await expect(page.getByTestId('storyrelay-editor')).toBeEditable();
-            await expect(page.getByTestId('storyrelay-editor')).toHaveValue('');
+            await expect(page.getByTestId(TESTIDS.storyRelayEditor)).toBeEditable();
+            await expect(page.getByTestId(TESTIDS.storyRelayEditor)).toHaveValue('');
             if (stepIndex === 0)
-              await expect(page.getByTestId('storyrelay-previous-entry')).toHaveCount(0);
+              await expect(page.getByTestId(TESTIDS.storyRelayPreviousEntry)).toHaveCount(0);
             else
-              await expect(page.getByTestId('storyrelay-previous-entry')).toContainText(
+              await expect(page.getByTestId(TESTIDS.storyRelayPreviousEntry)).toContainText(
                 `第${stepIndex}棒的故事`,
               );
           }
-          await expect(spectator.page.getByTestId('storyrelay-editor')).toHaveCount(0);
-          await expect(spectator.page.getByTestId('storyrelay-previous-entry')).toHaveCount(0);
+          await expect(spectator.page.getByTestId(TESTIDS.storyRelayEditor)).toHaveCount(0);
+          await expect(spectator.page.getByTestId(TESTIDS.storyRelayPreviousEntry)).toHaveCount(0);
           for (const [seat, page] of fixture.pages.entries())
             await page
-              .getByTestId('storyrelay-editor')
+              .getByTestId(TESTIDS.storyRelayEditor)
               .fill(` 第${stepIndex + 1}棒的故事，作者${seat}\n原始换行 ${'长正文'.repeat(100)}`);
           await Promise.all(fixture.pages.map(expectFixedTask));
           if (stepIndex === 0) {
-            await hostPage.getByTestId('storyrelay-ready').click();
-            await expect(hostPage.getByTestId('storyrelay-editor')).not.toBeEditable();
-            await hostPage.getByTestId('storyrelay-ready').click();
+            await hostPage.getByTestId(TESTIDS.storyRelayReady).click();
+            await expect(hostPage.getByTestId(TESTIDS.storyRelayEditor)).not.toBeEditable();
+            await hostPage.getByTestId(TESTIDS.storyRelayReady).click();
             for (const [index, viewport] of ['desktop', 'mobile', 'small'].entries())
               await test.info().attach(`storyrelay-writing-${viewport}`, {
                 body: await fixture.pages[index]!.screenshot(),
@@ -268,7 +279,7 @@ test('four humans write four turns without restoring unsubmitted input and revea
           }
           if (stepIndex === 1) {
             const mobilePage = fixture.pages[1]!;
-            await mobilePage.getByTestId('storyrelay-editor').focus();
+            await mobilePage.getByTestId(TESTIDS.storyRelayEditor).focus();
             await mobilePage.evaluate(() => {
               const viewport = window.visualViewport;
               if (viewport === null) throw new Error('Visual viewport missing');
@@ -287,46 +298,59 @@ test('four humans write four turns without restoring unsubmitted input and revea
             });
             await fixture.pages[1]!.reload();
             await waitForRoomScreenReady(fixture.pages[1]!, { role: 'joiner' });
-            await expect(fixture.pages[1]!.getByTestId('storyrelay-editor')).toHaveValue('');
-            await fixture.pages[1]!.getByTestId('storyrelay-editor').fill(
+            await expect(fixture.pages[1]!.getByTestId(TESTIDS.storyRelayEditor)).toHaveValue('');
+            await fixture.pages[1]!.getByTestId(TESTIDS.storyRelayEditor).fill(
               ` 第2棒的故事，作者1\n原始换行 `,
             );
           }
           await Promise.all(
-            fixture.pages.map((page) => page.getByTestId('storyrelay-ready').click()),
+            fixture.pages.map((page) => page.getByTestId(TESTIDS.storyRelayReady).click()),
           );
           if (stepIndex < 3)
-            await expect(hostPage.getByTestId('storyrelay-previous-entry')).toContainText(
+            await expect(hostPage.getByTestId(TESTIDS.storyRelayPreviousEntry)).toContainText(
               `第${stepIndex + 1}棒的故事`,
               { timeout: 20_000 },
             );
         });
       }
       for (const page of [...fixture.pages, spectator.page]) {
-        await expect(page.getByTestId('storyrelay-gallery')).toBeVisible({ timeout: 20_000 });
-        await expect(page.getByTestId('storyrelay-entry-0')).toBeVisible();
-        await expect(page.getByTestId('storyrelay-entry-1')).toHaveCount(0);
+        await expect(page.getByTestId(TESTIDS.storyRelayGallery)).toBeVisible({ timeout: 20_000 });
+        await expect(page.getByTestId(TESTIDS.storyRelayEntry(0))).toBeVisible();
+        await expect(page.getByTestId(TESTIDS.storyRelayEntry(1))).toHaveCount(0);
       }
       // PR-B G-2: while the host drives playback, everyone else is
       // told so in place of the host-only controls (same form as
       // Pictionary's spectator notice).
-      await expect(
-        fixture.pages[1]!.getByText('由房主控制播放进度。', { exact: true }),
-      ).toBeVisible();
-      await expect(spectator.page.getByText('由房主控制播放进度。', { exact: true })).toBeVisible();
-      await hostPage.getByRole('button', { name: '下一项', exact: true }).click();
-      await expect(spectator.page.getByTestId('storyrelay-entry-1')).toBeVisible();
-      await hostPage.getByRole('button', { name: '上一项', exact: true }).click();
-      await expect(hostPage.getByTestId('storyrelay-entry-1')).toBeVisible();
-      await hostPage.getByRole('button', { name: '全部揭晓', exact: true }).click();
-      await confirm(hostPage);
-      await expect(
-        spectator.page.getByRole('button', { name: '分享本篇故事', exact: true }),
-      ).toBeVisible();
-      await expect(hostPage.getByTestId('storyrelay-entry-3')).toBeVisible();
-      await expect(
-        hostPage.getByTestId('storyrelay-gallery').getByRole('button', { name: /复制/ }),
-      ).toHaveCount(0);
+      for (const viewerPage of [fixture.pages[1]!, spectator.page]) {
+        await expect(viewerPage.getByTestId(TESTIDS.galleryAlbumDescription)).toHaveText(
+          '由房主控制播放进度。',
+        );
+      }
+      const advance = hostPage.getByTestId(TESTIDS.galleryAdvanceButton);
+      await expect(advance).toHaveAccessibleName('下一项');
+      await advance.click();
+      await expect(spectator.page.getByTestId(TESTIDS.storyRelayEntry(1))).toBeVisible();
+      const rewind = hostPage.getByTestId(TESTIDS.galleryRewindButton);
+      await expect(rewind).toHaveAccessibleName('上一项');
+      await rewind.click();
+      await expect(hostPage.getByTestId(TESTIDS.storyRelayEntry(1))).toBeVisible();
+      const finish = hostPage.getByTestId(TESTIDS.galleryFinishButton);
+      await expect(finish).toHaveText('全部揭晓');
+      await finish.click();
+      await confirmAlert(hostPage, '全部揭晓');
+      await expect(spectator.page.getByTestId(TESTIDS.storyRelayGalleryShareButton)).toHaveText(
+        '分享本篇故事',
+      );
+      await expect(hostPage.getByTestId(TESTIDS.storyRelayEntry(3))).toBeVisible();
+      // The ended gallery offers sharing only: no button is named for copying.
+      const galleryButtonNames = await hostPage
+        .getByTestId(TESTIDS.storyRelayGallery)
+        .evaluate((gallery) =>
+          [...gallery.querySelectorAll('button')].map(
+            (button) => button.getAttribute('aria-label') ?? button.textContent ?? '',
+          ),
+        );
+      expect(galleryButtonNames.filter((name) => name.includes('复制'))).toEqual([]);
       await expectStoryImageExport(hostPage, code, 0);
       await expectStoryImageExport(fixture.pages[1]!, code, 1);
       await test.step('upload every story PNG for WeChat despite an unrelated pending image', async () => {
@@ -336,10 +360,9 @@ test('four humans write four turns without restoring unsubmitted input and revea
           4,
         );
       });
-      await (await room.openHostManagement()).getByTestId('next-round-button').click();
-      await confirm(hostPage);
-      await expect(hostPage.getByTestId('storyrelay-editor')).toHaveValue('');
-      await expect(hostPage.getByTestId('storyrelay-previous-entry')).toHaveCount(0);
+      await room.clickHostManagementActionAndConfirm(TESTIDS.nextRoundButton, '再来一局');
+      await expect(hostPage.getByTestId(TESTIDS.storyRelayEditor)).toHaveValue('');
+      await expect(hostPage.getByTestId(TESTIDS.storyRelayPreviousEntry)).toHaveCount(0);
     } finally {
       await spectator.context.close();
     }
@@ -360,20 +383,23 @@ test('no client sends expire across a deadline', async ({ browser }, testInfo) =
       const code = await room.getRoomCode();
       await room.seatAt(0);
       for (let seat = 1; seat < 4; seat += 1) await joinRoom(fixture.pages[seat]!, code, seat);
-      await room.clickHostManagementActionAndConfirm('start-game-button', '开始游戏？');
+      await room.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
     });
 
     await test.step('cross the writing deadline with every client idle', async () => {
       for (const page of fixture.pages)
-        await expect(page.getByTestId('storyrelay-editor')).toBeEditable();
+        await expect(page.getByTestId(TESTIDS.storyRelayEditor)).toBeEditable();
       // Nobody writes anything: the 45-second writing deadline must pass
       // with zero input, so the crossing is decided by the deadline
       // alone and every client observes the whole crossing. The advance
       // is visible when the previous entry appears: with empty
       // submissions it reads '上一段留白'.
-      await expect(hostPage.getByTestId('storyrelay-previous-entry')).toContainText('上一段留白', {
-        timeout: 120_000,
-      });
+      await expect(hostPage.getByTestId(TESTIDS.storyRelayPreviousEntry)).toContainText(
+        '上一段留白',
+        {
+          timeout: 120_000,
+        },
+      );
     });
 
     await test.step('assert no expire was sent by any client', async () => {
@@ -406,12 +432,12 @@ test('phase advances past the deadline with zero expire commands while every cli
       const code = await room.getRoomCode();
       await room.seatAt(0);
       for (let seat = 1; seat < 4; seat += 1) await joinRoom(fixture.pages[seat]!, code, seat);
-      await room.clickHostManagementActionAndConfirm('start-game-button', '开始游戏？');
+      await room.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
     });
 
     await test.step('start the round, then hold every client offline across the deadline', async () => {
       for (const page of fixture.pages)
-        await expect(page.getByTestId('storyrelay-editor')).toBeEditable();
+        await expect(page.getByTestId(TESTIDS.storyRelayEditor)).toBeEditable();
       // Offline, the link is not live, so no client's expiry gate can
       // fire; the 45-second deadline still passes on the server clock.
       // The hold is measured from the editor being editable, which
@@ -433,9 +459,12 @@ test('phase advances past the deadline with zero expire commands while every cli
       // the reconnect moment: the full observed list must be empty.
       // Collection after reconnect is expected — clients submit their
       // (empty) inputs — and is not acceleration.
-      await expect(hostPage.getByTestId('storyrelay-previous-entry')).toContainText('上一段留白', {
-        timeout: 60_000,
-      });
+      await expect(hostPage.getByTestId(TESTIDS.storyRelayPreviousEntry)).toContainText(
+        '上一段留白',
+        {
+          timeout: 60_000,
+        },
+      );
       const byPage = observations.map((observation) => observation.expires());
       await testInfo.attach('storyrelay-offline-expire-observation', {
         body: JSON.stringify({ reconnectedMs, byPage }),
