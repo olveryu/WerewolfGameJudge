@@ -8,6 +8,7 @@
 import './GalleryAlbumHeading.css';
 
 import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
+import { TESTIDS } from '@/testids';
 import IconSyncOutline from '~icons/ion/sync-outline';
 import IconTimeOutline from '~icons/ion/time-outline';
 
@@ -32,9 +33,18 @@ export function GalleryAlbumHeading({
   return (
     <div className="gallery-album-heading">
       <div className="gallery-album-heading-copy">
-        <p className="gallery-album-heading-eyebrow">{eyebrow}</p>
-        <h2 className="gallery-album-heading-title">{title}</h2>
-        <p className="gallery-album-heading-description">{description}</p>
+        <p className="gallery-album-heading-eyebrow" data-testid={TESTIDS.galleryAlbumEyebrow}>
+          {eyebrow}
+        </p>
+        <h2 className="gallery-album-heading-title" data-testid={TESTIDS.galleryAlbumTitle}>
+          {title}
+        </h2>
+        <p
+          className="gallery-album-heading-description"
+          data-testid={TESTIDS.galleryAlbumDescription}
+        >
+          {description}
+        </p>
       </div>
       <div
         className="gallery-album-heading-timer"

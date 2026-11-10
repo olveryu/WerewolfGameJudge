@@ -171,6 +171,7 @@ export function PictionaryEndedStage({
         nextLabel="下一本"
         onPrev={() => setChainIndex(Math.max(0, chainIndex - 1))}
         onNext={() => setChainIndex(Math.min(state.chains.length - 1, chainIndex + 1))}
+        testIdScope={TESTIDS.pictionaryStageFrame}
       />
     </div>
   );

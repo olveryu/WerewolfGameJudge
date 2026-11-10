@@ -135,6 +135,7 @@ export function RoomReviewDialog({
               nextLabel="下一页"
               onPrev={() => onPageChange(pageIndex - 1)}
               onNext={() => onPageChange(pageIndex + 1)}
+              testIdScope={TESTIDS.roomReviewDialog}
             />
           )}
           <ShareControls controls={shareControls} pageCount={pageCount} />

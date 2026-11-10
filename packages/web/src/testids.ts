@@ -309,7 +309,27 @@ export const TESTIDS = {
   pictionaryGalleryShareButton: 'pictionary-gallery-share-button',
 
   // StoryRelay
+  storyRelayStage: 'storyrelay-stage',
+  storyRelayTask: 'storyrelay-task',
+  storyRelayEditor: 'storyrelay-editor',
+  storyRelayReady: 'storyrelay-ready',
+  storyRelayPreviousEntry: 'storyrelay-previous-entry',
+  storyRelayGallery: 'storyrelay-gallery',
+  storyRelayGalleryList: 'storyrelay-gallery-list',
+  storyRelayEntry: (index: number) => `storyrelay-entry-${index}`,
   storyRelayGalleryShareButton: 'storyrelay-gallery-share-button',
+
+  // Gallery (shared heading, playback and pager controls)
+  galleryAlbumEyebrow: 'gallery-album-eyebrow',
+  galleryAlbumTitle: 'gallery-album-title',
+  galleryAlbumDescription: 'gallery-album-description',
+  galleryRewindButton: 'gallery-rewind-button',
+  galleryAdvanceButton: 'gallery-advance-button',
+  galleryTogglePlayButton: 'gallery-toggle-play-button',
+  galleryFinishButton: 'gallery-finish-button',
+  galleryPagerPrevButton: (scope: string) => `${scope}-pager-prev`,
+  galleryPagerNextButton: (scope: string) => `${scope}-pager-next`,
+  galleryPagerPosition: (scope: string) => `${scope}-pager-position`,
 
   // Undercover
   undercoverWordModal: 'undercover-word-modal',

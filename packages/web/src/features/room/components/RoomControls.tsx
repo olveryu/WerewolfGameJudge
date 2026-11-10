@@ -1,6 +1,7 @@
 import './roomControls.css';
 
 import { IconButton } from '@/components/IconButton';
+import { TESTIDS } from '@/testids';
 import IconChevronBack from '~icons/ion/chevron-back';
 import IconChevronForward from '~icons/ion/chevron-forward';
 
@@ -15,6 +16,7 @@ export function GalleryPagerControls({
   nextLabel,
   onPrev,
   onNext,
+  testIdScope,
 }: {
   /** Current page, zero-based. */
   readonly current: number;
@@ -23,6 +25,8 @@ export function GalleryPagerControls({
   readonly nextLabel: string;
   readonly onPrev: () => void;
   readonly onNext: () => void;
+  /** Prefix of the pager test ids, unique per surface (a dialog pager can sit over a stage pager). */
+  readonly testIdScope: string;
 }) {
   return (
     <div className="gallery-pager">
@@ -31,8 +35,12 @@ export function GalleryPagerControls({
         icon={<IconChevronBack aria-hidden />}
         disabled={current <= 0}
         onClick={onPrev}
+        data-testid={TESTIDS.galleryPagerPrevButton(testIdScope)}
       />
-      <span className="gallery-pager-position">
+      <span
+        className="gallery-pager-position"
+        data-testid={TESTIDS.galleryPagerPosition(testIdScope)}
+      >
         {current + 1} / {total}
       </span>
       <IconButton
@@ -40,6 +48,7 @@ export function GalleryPagerControls({
         icon={<IconChevronForward aria-hidden />}
         disabled={current >= total - 1}
         onClick={onNext}
+        data-testid={TESTIDS.galleryPagerNextButton(testIdScope)}
       />
     </div>
   );

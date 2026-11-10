@@ -102,6 +102,7 @@ export function StoryRelayGallery({
           nextLabel="下一篇故事"
           onPrev={() => setSelectedStory(selectedStory - 1)}
           onNext={() => setSelectedStory(selectedStory + 1)}
+          testIdScope={TESTIDS.storyRelayGallery}
         />
       </div>
     );
@@ -158,7 +159,7 @@ export function StoryRelayGallery({
           <p className="storyrelay-muted">
             第 {index + 1} 棒 · {getStoryRelayAuthorName(state, item.authorSeat)}
           </p>
-          <p className="storyrelay-text" data-testid={`storyrelay-entry-${index}`}>
+          <p className="storyrelay-text" data-testid={TESTIDS.storyRelayEntry(index)}>
             {item.kind === 'text' ? item.text : STORY_RELAY_BLANK_ENTRY_TEXT}
           </p>
         </article>
@@ -173,8 +174,8 @@ export function StoryRelayGallery({
       }
       follow={playback === null ? 'none' : 'bottom'}
       controls={controls}
-      testId="storyrelay-gallery"
-      listTestId="storyrelay-gallery-list"
+      testId={TESTIDS.storyRelayGallery}
+      listTestId={TESTIDS.storyRelayGalleryList}
       emptyContent={<p className="storyrelay-muted">{STORY_RELAY_EMPTY_STORY_TEXT}</p>}
     />
   );

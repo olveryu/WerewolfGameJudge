@@ -13,6 +13,7 @@ import { Button } from '@/components/Button';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
+import { TESTIDS } from '@/testids';
 import IconRefreshOutline from '~icons/ion/refresh-outline';
 
 import { useStoryRelayAutoSubmission } from '../hooks/useStoryRelayAutoSubmission';
@@ -75,7 +76,7 @@ function StoryRelayStageContent({
   const isGallery =
     state.phase === 'gallery' || state.phase === 'ended' || state.phase === 'aborted';
   return (
-    <div className="storyrelay-stage" data-testid="storyrelay-stage">
+    <div className="storyrelay-stage" data-testid={TESTIDS.storyRelayStage}>
       {finalizer.status === 'failed' && (
         <div className="storyrelay-retry-row">
           <Button variant="secondary" onClick={finalizer.retry}>

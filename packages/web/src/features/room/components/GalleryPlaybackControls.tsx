@@ -11,6 +11,7 @@ import './GalleryPlaybackControls.css';
 
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
+import { TESTIDS } from '@/testids';
 import IconChevronBack from '~icons/ion/chevron-back';
 import IconChevronForward from '~icons/ion/chevron-forward';
 import IconPause from '~icons/ion/pause';
@@ -42,7 +43,7 @@ interface GalleryPlaybackControlsProps {
   readonly onTogglePlay: () => void;
   /** 「全部揭晓」：确认弹窗与命令提交由游戏侧在回调内处理。 */
   readonly onFinish: () => void;
-  /** advance 按钮的 data-testid（可选，供 e2e 定位）。 */
+  /** advance 按钮的 data-testid（缺省为通用的 galleryAdvanceButton）。 */
   readonly advanceTestId?: string;
 }
 
@@ -62,7 +63,7 @@ export function GalleryPlaybackControls({
   onAdvance,
   onTogglePlay,
   onFinish,
-  advanceTestId,
+  advanceTestId = TESTIDS.galleryAdvanceButton,
 }: GalleryPlaybackControlsProps) {
   return (
     <div className="gallery-playback-controls">
@@ -71,6 +72,7 @@ export function GalleryPlaybackControls({
         icon={<IconChevronBack aria-hidden />}
         disabled={isFirst || isSubmitting}
         onClick={onRewind}
+        data-testid={TESTIDS.galleryRewindButton}
       />
       {advanceForm === 'primary' ? (
         <Button
@@ -92,7 +94,13 @@ export function GalleryPlaybackControls({
         />
       )}
       {canTogglePlay && (
-        <Button variant="secondary" size="md" disabled={isSubmitting} onClick={onTogglePlay}>
+        <Button
+          variant="secondary"
+          size="md"
+          disabled={isSubmitting}
+          onClick={onTogglePlay}
+          data-testid={TESTIDS.galleryTogglePlayButton}
+        >
           {isPlaying ? (
             <IconPause aria-hidden className="gallery-playback-toggle-icon" />
           ) : (
@@ -101,7 +109,13 @@ export function GalleryPlaybackControls({
           {isPlaying ? pauseLabel : playLabel}
         </Button>
       )}
-      <Button variant="secondary" size="md" disabled={isSubmitting} onClick={onFinish}>
+      <Button
+        variant="secondary"
+        size="md"
+        disabled={isSubmitting}
+        onClick={onFinish}
+        data-testid={TESTIDS.galleryFinishButton}
+      >
         {finishLabel}
       </Button>
     </div>

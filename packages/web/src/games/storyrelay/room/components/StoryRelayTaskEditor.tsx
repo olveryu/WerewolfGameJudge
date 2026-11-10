@@ -11,6 +11,7 @@ import { useId, useState } from 'react';
 import { Button } from '@/components/Button';
 import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
+import { TESTIDS } from '@/testids';
 import { showErrorAlert } from '@/utils/alertPresets';
 import IconArrowUndoOutline from '~icons/ion/arrow-undo-outline';
 import IconCheckmarkOutline from '~icons/ion/checkmark-outline';
@@ -64,7 +65,7 @@ function PreviousPassage({ text }: { readonly text: string }) {
           </span>
         )}
       </summary>
-      <p className="storyrelay-text" data-testid="storyrelay-previous-entry">
+      <p className="storyrelay-text" data-testid={TESTIDS.storyRelayPreviousEntry}>
         {text}
       </p>
     </details>
@@ -128,7 +129,7 @@ export function StoryRelayTaskEditor({
   return (
     <RoomTaskFrame
       maxWidth={STORY_RELAY_CONTENT_MAX_WIDTH}
-      testId="storyrelay-task"
+      testId={TESTIDS.storyRelayTask}
       className="storyrelay-task-frame"
       header={null}
       footer={
@@ -137,7 +138,7 @@ export function StoryRelayTaskEditor({
           {state.phase === 'answering' && (
             <Button
               disabled={isExpired || isSubmitting}
-              data-testid="storyrelay-ready"
+              data-testid={TESTIDS.storyRelayReady}
               onClick={toggleReady}
             >
               {isReady ? (
@@ -157,7 +158,7 @@ export function StoryRelayTaskEditor({
       <div className="storyrelay-editor-field">
         <textarea
           className="storyrelay-editor"
-          data-testid="storyrelay-editor"
+          data-testid={TESTIDS.storyRelayEditor}
           aria-label={editorCopy.label}
           aria-describedby={countId}
           maxLength={STORY_RELAY_TEXT_MAX_LENGTH}
