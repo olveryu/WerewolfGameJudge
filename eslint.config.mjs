@@ -6,6 +6,40 @@ import testingLibrary from 'eslint-plugin-testing-library';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+/** Deprecated identifiers — prevent regression after bulk renames. */
+const RENAMED_IDENTIFIER_SELECTORS = [
+  { selector: "Identifier[name='roomNumber']", message: "Renamed → 'roomCode'" },
+  { selector: "Identifier[name='seatNumber']", message: "Renamed → 'seat'" },
+  { selector: "Identifier[name='hostId']", message: "Renamed → 'hostUserId'" },
+  { selector: "Identifier[name='pityTriggered']", message: "Renamed → 'isPityTriggered'" },
+  {
+    selector: "Identifier[name='uid']",
+    message: "Renamed → 'userId' (or 'id' for User entity)",
+  },
+];
+
+const TEST_ID_ONLY_MESSAGE =
+  'E2E locates elements only through getByTestId(TESTIDS.x); assert visible copy on the located element.';
+
+/** E2E locators: test ids from the TESTIDS registry only. */
+const E2E_LOCATOR_SELECTORS = [
+  {
+    selector:
+      'CallExpression[callee.property.name=/^getBy(Text|Role|Label|Placeholder|AltText|Title)$/]',
+    message: TEST_ID_ONLY_MESSAGE,
+  },
+  { selector: "CallExpression[callee.property.name='locator']", message: TEST_ID_ONLY_MESSAGE },
+  {
+    selector: "CallExpression[callee.property.name='getByTestId'][arguments.0.type='Literal']",
+    message: TEST_ID_ONLY_MESSAGE,
+  },
+  {
+    selector:
+      "CallExpression[callee.property.name='getByTestId'][arguments.0.type='TemplateLiteral'][arguments.0.expressions.length=0]",
+    message: TEST_ID_ONLY_MESSAGE,
+  },
+];
+
 export default tseslint.config(
   // =========================================================================
   // Global ignores (replaces ignorePatterns)
@@ -107,17 +141,7 @@ export default tseslint.config(
       'no-console': 'error',
 
       // Deprecated identifiers — prevent regression after bulk renames
-      'no-restricted-syntax': [
-        'error',
-        { selector: "Identifier[name='roomNumber']", message: "Renamed → 'roomCode'" },
-        { selector: "Identifier[name='seatNumber']", message: "Renamed → 'seat'" },
-        { selector: "Identifier[name='hostId']", message: "Renamed → 'hostUserId'" },
-        { selector: "Identifier[name='pityTriggered']", message: "Renamed → 'isPityTriggered'" },
-        {
-          selector: "Identifier[name='uid']",
-          message: "Renamed → 'userId' (or 'id' for User entity)",
-        },
-      ],
+      'no-restricted-syntax': ['error', ...RENAMED_IDENTIFIER_SELECTORS],
 
       // Import sorting
       'simple-import-sort/imports': 'warn',
@@ -182,6 +206,7 @@ export default tseslint.config(
     files: ['e2e/**/*.ts'],
     rules: {
       'react-hooks/rules-of-hooks': 'off',
+      'no-restricted-syntax': ['error', ...RENAMED_IDENTIFIER_SELECTORS, ...E2E_LOCATOR_SELECTORS],
     },
   },
 

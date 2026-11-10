@@ -137,7 +137,7 @@ Work in this order — do not start by rerunning or by reading raw CI logs:
 
 Use `testInfo.attach()` when a scenario needs extra state in the HTML report.
 
-There is deliberately **no auto-healing** here: failures in this repo overwhelmingly follow intentional behavior changes or expose real bugs, and the suite locates elements semantically (roles / labels / test ids), so selector drift is rare. A red test is evidence to classify — product change to follow, product bug, or flake (below) — never something to auto-repair or re-run into silence.
+There is deliberately **no auto-healing** here: failures in this repo overwhelmingly follow intentional behavior changes or expose real bugs, and the suite locates elements by test id only (`getByTestId(TESTIDS.x)`, with copy asserted on the located element), so selector drift is rare. A red test is evidence to classify — product change to follow, product bug, or flake (below) — never something to auto-repair or re-run into silence.
 
 #### The failure bundle
 

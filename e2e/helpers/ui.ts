@@ -200,6 +200,27 @@ async function attemptNavigation(
 }
 
 // =============================================================================
+// Test-id Patterns
+// =============================================================================
+
+const SEAT_SENTINEL = 987_654_321;
+
+/**
+ * A pattern matching the test id `testIdForSeat` builds for any seat, derived from that
+ * registry builder so no test id is spelled out in a spec. Group 1 captures the seat.
+ *
+ * @throws {Error} When the builder does not embed the seat exactly once.
+ */
+export function anySeatTestId(testIdForSeat: (seat: number) => string): RegExp {
+  const parts = testIdForSeat(SEAT_SENTINEL).split(String(SEAT_SENTINEL));
+  if (parts.length !== 2) {
+    throw new Error('A seat test-id builder must embed the seat exactly once');
+  }
+  const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${escape(parts[0]!)}(\\d+)${escape(parts[1]!)}$`);
+}
+
+// =============================================================================
 // Evidence Helpers
 // =============================================================================
 

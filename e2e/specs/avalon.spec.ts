@@ -2,8 +2,12 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
+import { anySeatTestId } from '../helpers/ui';
 import { HomePage } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
+
+const ANY_SEAT_TILE = anySeatTestId(TESTIDS.seatTile);
+const ANY_LADY_MARKER = anySeatTestId((seat) => TESTIDS.seatMarker(seat, 'lady'));
 
 /**
  * Avalon 首个 e2e spec：10 人真人局一局全覆盖（用户 2026-10-15 定版脚本）。
@@ -69,7 +73,7 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
     let panel = await hostRoom.openHostManagement();
     await expect(panel.getByTestId(TESTIDS.assignRolesButton)).toBeEnabled();
     await hostRoom.closeHostManagement();
-    const tiles = hostPage.getByTestId(/^seat-tile-\d+$/);
+    const tiles = hostPage.getByTestId(ANY_SEAT_TILE);
     const seatsBefore = await tiles.allTextContents();
     await hostRoom.clickHostManagementActionAndConfirm(TESTIDS.assignRolesButton, '分配角色？');
     panel = await hostRoom.openHostManagement();
@@ -342,7 +346,7 @@ async function pickTeam(
   }
   if (shouldCaptureLayout) {
     const leaderMarker = leaderPage.getByTestId(TESTIDS.seatMarker(leaderSeat, 'leader'));
-    const ladyMarker = leaderPage.getByTestId(/^seat-marker-\d+-lady$/);
+    const ladyMarker = leaderPage.getByTestId(ANY_LADY_MARKER);
     for (const viewport of [VIEWPORT, { width: 320, height: 640 }]) {
       await leaderPage.setViewportSize(viewport);
       await expect(leaderMarker).toHaveText('组队者');
@@ -532,8 +536,8 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
     // 湖仙徽标与组队者徽标同口径：只在白天五阶段显示，查看阶段不出现；
     // 进入提名、组队者出现时，湖仙徽标一起出现。
     await expect(pages[0]!.getByTestId(TESTIDS.seatMarker(seat, 'leader'))).toHaveText('组队者');
-    await expect(pages[0]!.getByTestId(/^seat-marker-\d+-lady$/)).toHaveCount(1);
-    await expect(pages[PLAYER_COUNT - 1]!.getByTestId(/^seat-marker-\d+-lady$/)).toHaveCount(1);
+    await expect(pages[0]!.getByTestId(ANY_LADY_MARKER)).toHaveCount(1);
+    await expect(pages[PLAYER_COUNT - 1]!.getByTestId(ANY_LADY_MARKER)).toHaveCount(1);
     await pickTeam(pages, seat, team, script.round === 1 && !script.voteResult.approved);
     return seat;
   });
@@ -749,8 +753,8 @@ test.describe('Avalon full game', () => {
         );
         const captured: RoleName[] = [];
         // 湖仙徽标只在白天五阶段显示（与组队者徽标同口径），查看阶段不出现。
-        await expect(hostPage.getByTestId(/^seat-marker-\d+-lady$/)).toHaveCount(0);
-        await expect(pages[PLAYER_COUNT - 1]!.getByTestId(/^seat-marker-\d+-lady$/)).toHaveCount(0);
+        await expect(hostPage.getByTestId(ANY_LADY_MARKER)).toHaveCount(0);
+        await expect(pages[PLAYER_COUNT - 1]!.getByTestId(ANY_LADY_MARKER)).toHaveCount(0);
         for (const room of rooms) captured.push(await viewAndCaptureRole(room));
         await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
           '开始游戏',
