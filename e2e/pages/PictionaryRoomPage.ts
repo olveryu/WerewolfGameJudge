@@ -38,11 +38,10 @@ export class PictionaryRoomPage extends RoomPage {
 
   /** Wait until the stage information bar shows this relay step, then return the task frame. */
   private async waitForRelayStep(step: number, totalSteps: number) {
-    await expect(
-      this.page
-        .getByTestId(TESTIDS.roomStageHud)
-        .getByText(`第 ${step}/${totalSteps} 棒`, { exact: true }),
-    ).toBeVisible({ timeout: 30_000 });
+    await expect(this.page.getByTestId(TESTIDS.roomStageChip('step'))).toHaveText(
+      `第 ${step}/${totalSteps} 棒`,
+      { timeout: 30_000 },
+    );
     return this.page.getByTestId(TESTIDS.pictionaryStageFrame);
   }
 
@@ -80,10 +79,10 @@ export class PictionaryRoomPage extends RoomPage {
     await expect(input).not.toBeEditable();
   }
 
-  /** Assert a drawing task with its inherited text context and complete tool set. */
+  /** Assert a drawing task with its inherited context card and complete tool set. */
   async expectDrawingStep(step: number, totalSteps: number): Promise<void> {
     const stage = await this.waitForRelayStep(step, totalSteps);
-    await expect(stage.getByText('把这句话画出来', { exact: true })).toBeVisible();
+    await expect(stage.getByTestId(TESTIDS.pictionaryDrawingPrompt)).toBeVisible();
     await expect(stage.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toBeVisible();
     const canvasBounds = await stage.getByTestId(TESTIDS.pictionaryDrawingCanvas).boundingBox();
     if (canvasBounds === null) throw new Error('Pictionary canvas has no browser layout box');

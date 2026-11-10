@@ -148,7 +148,7 @@ export function PictionaryDrawingTask({
         </>
       }
     >
-      <p className="pictionary-prompt-card">
+      <p className="pictionary-prompt-card" data-testid={TESTIDS.pictionaryDrawingPrompt}>
         <span>{previousEntry.kind === 'text' ? '把这句话画出来' : '上一棒未完成'}</span>
         <strong>{previousEntry.kind === 'text' ? previousEntry.text : '请自由发挥'}</strong>
       </p>

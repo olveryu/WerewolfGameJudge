@@ -176,6 +176,7 @@ export const TESTIDS = {
   // Stage content (docs/room-stage-layout-design.md)
   roomStageHud: 'room-stage-hud',
   roomStageTimer: 'room-stage-timer',
+  roomStageChip: (key: string) => `room-stage-chip-${key}`,
   roomStageRosterChip: 'room-stage-roster-chip',
   roomStageRosterSheet: 'room-stage-roster-sheet',
   roomStageRosterRow: (seat: number) => `room-stage-roster-row-${seat}`,
@@ -200,6 +201,7 @@ export const TESTIDS = {
   // Pictionary
   pictionaryStageFrame: 'pictionary-stage-frame',
   pictionaryDrawingCanvas: 'pictionary-drawing-canvas',
+  pictionaryDrawingPrompt: 'pictionary-drawing-prompt',
   pictionaryDrawingSubmitButton: 'pictionary-drawing-submit-button',
   pictionaryTextInput: 'pictionary-text-input',
   pictionaryTextSubmitButton: 'pictionary-text-submit-button',

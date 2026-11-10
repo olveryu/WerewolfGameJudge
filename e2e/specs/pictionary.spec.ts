@@ -16,7 +16,7 @@ const PLAYER_COUNT = 4;
 const RELAY_STEP_COUNT = getPictionaryRelayStepCount(PLAYER_COUNT);
 const TOTAL_GALLERY_ENTRIES = PLAYER_COUNT * RELAY_STEP_COUNT;
 const OPENING_PROMPTS = ['月球上的猫', '云端城堡', '跳舞的花', '海上火车'] as const;
-const GUESS_SUBMISSIONS = [[' 太阳\n还没写完 ', '小屋', '花朵', '帆船']] as const;
+const GUESS_SUBMISSIONS = [[' 太阳 还没写完 ', '小屋', '花朵', '帆船']] as const;
 
 /**
  * Phase-expiry discipline (D3, 2026-11-05): the server's scheduled settle
@@ -261,9 +261,9 @@ test.describe('Pictionary', () => {
           const offlinePage = fixture.pages[3]!;
           await offlinePage.getByTestId(TESTIDS.pictionaryTextInput).fill(guesses[3]);
           await offlinePage.context().setOffline(true);
-          const finalCountdown = hostPage.getByLabel('剩余 5 秒', { exact: true });
-          await expect(finalCountdown).toHaveText('5秒', { timeout: 50_000 });
-          await expect(hostPage.getByLabel('剩余 4 秒', { exact: true })).toHaveText('4秒');
+          const countdown = hostPage.getByTestId(TESTIDS.roomStageTimer);
+          await expect(countdown).toHaveText('0:05', { timeout: 50_000 });
+          await expect(countdown).toHaveText('0:04');
           await expect(
             hostPage
               .getByTestId(TESTIDS.pictionaryStageFrame)
@@ -486,9 +486,11 @@ test.describe('Pictionary', () => {
       await hostPage.getByRole('alertdialog').getByText('确定', { exact: true }).click();
       await hostRoom.startRound();
       await hostPage.getByTestId(TESTIDS.pictionaryTextInput).fill('保留的原始题目');
-      await expect(hostPage.getByText('把这句话画出来', { exact: true })).toBeVisible({
-        timeout: 60_000,
-      });
+      // Step 2 never hands a seat its own chain, and every other prompt was empty.
+      await expect(hostPage.getByTestId(TESTIDS.pictionaryDrawingPrompt)).toContainText(
+        '上一棒未完成',
+        { timeout: 60_000 },
+      );
       await Promise.all([
         hostRoom.expectDrawingStep(2, RELAY_STEP_COUNT),
         guestRoom.expectDrawingStep(2, RELAY_STEP_COUNT),

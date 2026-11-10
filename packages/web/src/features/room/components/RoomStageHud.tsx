@@ -32,7 +32,11 @@ import IconGameControllerOutline from '~icons/ion/game-controller-outline';
 
 function StageChip({ chip }: { readonly chip: RoomStageChip }) {
   return (
-    <span className="room-stage-chip" data-tone={chip.tone}>
+    <span
+      className="room-stage-chip"
+      data-tone={chip.tone}
+      data-testid={TESTIDS.roomStageChip(chip.key)}
+    >
       {chip.label}
       {chip.detail !== null && <small className="room-stage-chip-detail">{chip.detail}</small>}
     </span>
