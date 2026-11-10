@@ -622,8 +622,8 @@ export async function waitForNightEnd(
 
 /**
  * After night ends, open 昨夜信息 through host management, confirm the
- * 提示 dialog with 确定查看, and return the night-result alert's text
- * (title and message). The alert stays open.
+ * 提示 dialog with 确定查看, assert the 昨夜信息 title, and return the
+ * night-result message. The alert stays open.
  *
  * The action is disabled while the night-end narration plays (audio
  * playback lock), so wait for the lock to lift before clicking: the
@@ -644,7 +644,9 @@ export async function viewLastNightInfo(hostPage: Page): Promise<string> {
     timeout: CONFIRM_TIMEOUT_MS,
   });
   await expect(hostPage.getByTestId(TESTIDS.alertTitle)).toHaveText('昨夜信息');
-  return readAlertText(hostPage);
+  const message = hostPage.getByTestId(TESTIDS.alertMessage);
+  await expect(message).toBeVisible();
+  return message.innerText();
 }
 
 // ---------------------------------------------------------------------------

@@ -50,10 +50,12 @@ test.setTimeout(300_000);
  * A wolf seat must not be confessable: tapping it during the Wolf
  * Girl's confess step opens no "确认表白" dialog and does not move
  * the night step. The tap may surface a disabled-reason notice or
- * nothing at all; either way the step must stay put.
+ * nothing at all; either way the step must stay put. The open step
+ * prompt is dismissed first so the tap reaches the seat.
  */
 async function expectWolfSeatNotConfessable(page: Page, seat: number): Promise<void> {
   const stepBefore = await readRoomStep(page);
+  await dismissAlert(page);
   await page.getByTestId(TESTIDS.seatTilePressable(seat)).click({ timeout: 10_000 });
   await page.waitForTimeout(300);
 
@@ -174,9 +176,9 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
           expect(confessTurn, 'Wolf Girl confess turn should become active').toBe(true);
 
           await expect(
-            pages[wolfGirlPageIndex]!.getByTestId(TESTIDS.roomProgressIndicator),
-            'Confess step should show the 表白 step label',
-          ).toContainText('表白');
+            pages[wolfGirlPageIndex]!.getByTestId(TESTIDS.alertMessage),
+            'Confess step prompt should show the 表白 verb',
+          ).toContainText('请选择要表白的玩家');
 
           await expectWolfSeatNotConfessable(pages[wolfGirlPageIndex]!, wolfSeats[0]!);
 
