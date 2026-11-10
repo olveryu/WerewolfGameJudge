@@ -323,7 +323,7 @@ export function editClientCatalog(content, { gameId, camel }) {
 
 /**
  * Register the lazily loaded client module in both exhaustive literals of
- * the web module loader: the loader map and the per-page module slots.
+ * the web module loader: the loader map and the per-page cached module loads.
  */
 export function editClientModuleLoaders(content, { gameId, pascal }) {
   const file = 'packages/web/src/games/clientModules.tsx';
@@ -339,8 +339,9 @@ export function editClientModuleLoaders(content, { gameId, pascal }) {
   return replaceOnce(
     file,
     withLoader,
-    /(const modules: \{ readonly \[TGameType in GameType\]: ModuleSlot<TGameType> \} = \{[\s\S]*?)(\n  \};)/,
-    (_match, head, tail) => `${head}\n    ${gameId}: { loading: null },${tail}`,
+    /(const moduleLoads: ClientGameModuleLoads = \{[\s\S]*?)(\n  \};)/,
+    (_match, head, tail) =>
+      `${head}\n    ${gameId}: cacheLoad(() => loadModule('${gameId}')),${tail}`,
   );
 }
 

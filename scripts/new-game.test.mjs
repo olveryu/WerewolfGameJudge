@@ -351,7 +351,7 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
         "demoproto: async () => (await import('@/games/demoproto/module')).createDemoprotoClientModule,",
       ),
     );
-    assert.ok(clientModules.includes('    demoproto: { loading: null },'));
+    assert.ok(clientModules.includes("    demoproto: cacheLoad(() => loadModule('demoproto')),"));
     const dispatch = readFixture(
       root,
       'packages/web/src/__tests__/botDispatchDiscipline.contract.test.ts',
@@ -1065,7 +1065,7 @@ function stripShippedDemo(root) {
   removeExactText(
     root,
     'packages/web/src/games/clientModules.tsx',
-    '    demo: { loading: null },\n',
+    "    demo: cacheLoad(() => loadModule('demo')),\n",
   );
   removeExactText(
     root,
