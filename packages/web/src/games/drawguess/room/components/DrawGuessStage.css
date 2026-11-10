@@ -123,29 +123,32 @@
   flex-direction: column;
   gap: var(--space-small);
   min-height: 0;
+  container-type: size;
 }
 
-/* Fits the canonical 4:3 canvas into the remaining body height without cropping. */
+/* Narrow: the canvas asks for the full width at 4:3 and yields only what the side
+   panel's content minimum (toolbar, guess log floor) needs. */
 .drawguess-canvas-media {
   display: flex;
-  flex: 3 1 0;
+  flex: 0 1 auto;
   align-items: center;
   justify-content: center;
+  height: calc(100cqw * 3 / 4);
   min-height: 120px;
   overflow: hidden;
   container-type: size;
 }
 
+/* Fits the canonical 4:3 canvas into the media box without cropping. */
 .drawguess-canvas-fit {
   width: min(100cqw, calc(100cqh * 4 / 3));
 }
 
 .drawguess-side-panel {
   display: flex;
-  flex: 2 1 0;
+  flex: 1 1 0;
   flex-direction: column;
   gap: var(--space-small);
-  min-height: 0;
 }
 
 @media (min-width: 768px) {
@@ -156,11 +159,13 @@
 
   .drawguess-canvas-media {
     flex: 1 1 0;
+    height: auto;
     min-width: 0;
   }
 
   .drawguess-side-panel {
     flex: 0 0 320px;
+    min-height: 0;
   }
 }
 
