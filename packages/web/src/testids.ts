@@ -49,6 +49,7 @@ export const TESTIDS = {
   screenHeaderTitle: 'screen-header-title',
 
   // SettingsScreen - Display section
+  settingsBackButton: 'settings-back-button',
   settingsSeatDecorationsSwitch: 'settings-seat-decorations-switch',
 
   // Appearance / Unlocks
@@ -94,6 +95,7 @@ export const TESTIDS = {
   // Shared game guide (GameGuide) and the room's guide entry
   gameGuideScreenRoot: (gameType: string) => `${gameType}-guide-screen-root`,
   gameGuideHeading: 'game-guide-heading',
+  gameGuideSectionTitle: 'game-guide-section-title',
   gameGuideBackButton: 'game-guide-back-button',
   roomGuideButton: (gameType: string) => `${gameType}-room-guide-button`,
   roomGameSummaryTitle: 'room-game-summary-title',

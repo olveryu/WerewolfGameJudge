@@ -57,7 +57,9 @@ export function GameGuideSection({
 }) {
   return (
     <section className="game-guide-section">
-      <h2 className="game-guide-section-title">{title}</h2>
+      <h2 className="game-guide-section-title" data-testid={TESTIDS.gameGuideSectionTitle}>
+        {title}
+      </h2>
       {children}
     </section>
   );

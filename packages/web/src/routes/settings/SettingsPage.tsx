@@ -536,7 +536,11 @@ export function SettingsPage() {
   const appearancePath = useAppearancePath();
   return (
     <div className="settings-page">
-      <ScreenHeader title="设置" parentPath={roomCode === undefined ? '/' : roomPath(roomCode)} />
+      <ScreenHeader
+        title="设置"
+        parentPath={roomCode === undefined ? '/' : roomPath(roomCode)}
+        backTestId={TESTIDS.settingsBackButton}
+      />
       <main className="settings-content">
         <section className="settings-card">
           <h2 className="settings-card-title">
