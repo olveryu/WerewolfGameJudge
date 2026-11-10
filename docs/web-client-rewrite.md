@@ -79,7 +79,7 @@
 - 场景层帧时间：p95 不超过所选帧率的一帧（默认 60 fps，即 16.7 ms；帧率见 D3）。
 - 房间空闲主线程占用：不超过 P0 实测的现状基线的 1/3。
 - 页面不可见或装饰关闭时，场景层不出帧。
-- 纹理按场景加载、离开即卸载；图集尺寸和驻留上限在 P0 的 iOS 真机实测后写入本节。
+- 纹理随最后一个使用者销毁，离开房间即释放（§5.3）；驻留上限在 P0 的 iOS 真机实测后写入本节。
 
 ### 4.3 启动时间
 
@@ -123,8 +123,8 @@ flowchart TB
 - WebGL 是硬性前提：初始化失败直接进入错误页并上报 Sentry，不降级成"没有特效"继续运行。素材加载失败同样直接抛错，不留下缺一块装饰的半成品画面。
 - 用 `autoStart: false`，由场景调度器驱动：有动画才渲染，静止时不出帧；`ticker.maxFPS` 取用户设置（D3：60 或 30，默认 60）；`document.hidden` 或 `onPageStateChange` 报告不活跃时停帧。
 - 渲染分辨率取 `min(devicePixelRatio, 2)`，开启 `autoDensity`。
-- 素材打成图集。粒子用 `ParticleContainer`，只把位置和旋转声明为 dynamic，其他属性静态上传。
-- 离开页面时先销毁显示对象，再 `Assets.unload` 释放显存。WebGL 上下文丢失后，渲染器会在 `webglcontextrestored` 时自行恢复（v8.22 文档）；切后台和锁屏后的表现在 P0 真机上验证。
+- 不打图集：装饰的矢量几何按「绘制源 + 尺寸」共享 `GraphicsContext`；静态 SVG 按 `(art, 尺寸, 分辨率)` 光栅化成纹理共享；粒子是共用一张白色圆点纹理、靠 tint 和缩放区分的普通 `Sprite`（`scene/stage.ts`）。同尺寸同装饰的座位共用同一份几何和纹理。
+- 几何和纹理都引用计数，最后一个使用者卸载时销毁（纹理 `destroy(true)` 同时释放显存），所以离开房间就释放；不经 `Assets` 加载，也就不需要 `Assets.unload`。WebGL 上下文丢失后，渲染器会在 `webglcontextrestored` 时自行恢复（v8.22 文档）；切后台和锁屏后的表现在 P0 真机上验证。
 - 和 DOM 对齐：座位的语义（`data-testid`、无障碍名称、文本、点击）留在 DOM；场景层用 `ResizeObserver` 读取座位矩形来摆放精灵；画布设 `pointer-events: none` 和 `aria-hidden="true"`。
 - 层级方案在 P0 spike 中二选一：
   - A：头像也画进场景层，层级完全可控，但图片要带 CORS 头才能作为 WebGL 纹理（R2 头像和 CDN 资源都要确认；分享截图也有同样的要求，见 §5.8）。
@@ -248,16 +248,16 @@ flowchart TB
 
 ## 6. 视觉资产与特效
 
-| 类别                         | 现规模                     | 现实现                     | 新实现                                 |
-| ---------------------------- | -------------------------- | -------------------------- | -------------------------------------- |
-| 头像框 `avatarFrames`        | 71 个组件，1.04 万行       | SVG + loopMotion keyframes | 静态层烘焙进图集，sampler 驱动动态部分 |
-| 座位光效 `seatFlairs`        | 78 个组件，7,540 行        | 同上                       | 同上，粒子用 `ParticleContainer`       |
-| 入座动画 `seatAnimations`    | 38 个组件，5,022 行        | Reanimated + SVG           | PixiJS 时间线                          |
-| 宠物 `seatPets`              | 15 个组件，1,934 行        | SVG + loopMotion           | 图集 + sampler                         |
-| 名字样式 `nameStyles`        | 1 个数据驱动组件，1,285 行 | RN 文本样式                | 留在 DOM，用 CSS 实现                  |
-| 翻牌特效 `RoleRevealEffects` | 14 种 + 阵营通用特效       | 主要是 Skia                | PixiJS + DOM，同一时钟（§5.3）         |
-| 扭蛋机 `CapsuleMachine`      | 1                          | Skia                       | PixiJS                                 |
-| 画板 `DrawingCanvas`         | 1                          | Skia                       | Canvas 2D（`toBlob` 导出 PNG）         |
+| 类别                         | 现规模                     | 现实现                     | 新实现                                                                      |
+| ---------------------------- | -------------------------- | -------------------------- | --------------------------------------------------------------------------- |
+| 头像框 `avatarFrames`        | 71 个组件，1.04 万行       | SVG + loopMotion keyframes | 静态层是共享矢量几何或按尺寸光栅化的 SVG 纹理，sampler 驱动动态部分（§5.3） |
+| 座位光效 `seatFlairs`        | 78 个组件，7,540 行        | 同上                       | 同上，粒子是共用圆点纹理的 `Sprite`                                         |
+| 入座动画 `seatAnimations`    | 38 个组件，5,022 行        | Reanimated + SVG           | PixiJS 时间线                                                               |
+| 宠物 `seatPets`              | 15 个组件，1,934 行        | SVG + loopMotion           | 光栅化纹理 + sampler                                                        |
+| 名字样式 `nameStyles`        | 1 个数据驱动组件，1,285 行 | RN 文本样式                | 留在 DOM，用 CSS 实现                                                       |
+| 翻牌特效 `RoleRevealEffects` | 14 种 + 阵营通用特效       | 主要是 Skia                | PixiJS + DOM，同一时钟（§5.3）                                              |
+| 扭蛋机 `CapsuleMachine`      | 1                          | Skia                       | PixiJS                                                                      |
+| 画板 `DrawingCanvas`         | 1                          | Skia                       | Canvas 2D（`toBlob` 导出 PNG）                                              |
 
 管线：
 
