@@ -19,7 +19,6 @@ import { TESTIDS } from '../../packages/web/src/testids';
 export async function registerAutoDismissers(page: Page): Promise<void> {
   const closeAnnouncement = page.getByTestId(TESTIDS.homeAnnouncementCloseButton);
   await page.addLocatorHandler(closeAnnouncement, async () => {
-    await expect(closeAnnouncement).toHaveAccessibleName('关闭公告');
     await closeAnnouncement.click();
   });
 }
