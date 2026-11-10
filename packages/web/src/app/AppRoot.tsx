@@ -7,6 +7,7 @@ import { Toaster } from 'sonner';
 import { queryClient } from '@/app/queryClient';
 import { getAppServices } from '@/app/services';
 import { AlertHostSlot } from '@/components/AlertHostSlot';
+import { DebugPanelSlot } from '@/components/DebugPanelSlot';
 import { AuthProvider, useAuthContext } from '@/contexts/AuthContext';
 import { ServiceProvider, useServices } from '@/contexts/ServiceContext';
 import { LoginDialogSlot } from '@/features/auth/LoginDialogSlot';
@@ -24,7 +25,7 @@ const DailyRewardHost = lazy(async () => ({
 
 /**
  * Root route element: app-wide providers around the active page, the loaded games' overlays, plus
- * the global alert dialog and toast region. Services are created once per page load.
+ * the global alert dialog, debug console and toast region. Services are created once per page load.
  */
 export function AppRoot() {
   const services = getAppServices();
@@ -43,6 +44,7 @@ export function AppRoot() {
           </ClientGameModulesProvider>
           <AlertHostSlot />
           <LoginDialogSlot />
+          <DebugPanelSlot />
           {/* Body-level like the dialogs, so its own z-index puts toasts above an open dialog. */}
           <Portal>
             <Toaster position="top-center" />
