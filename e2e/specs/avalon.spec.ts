@@ -995,10 +995,16 @@ test.describe('Avalon full game', () => {
 
       await test.step('终局：坏人获胜、全员身份公开、对局记录收束', async () => {
         // 终局结算只在本局复盘里：座位表上方不再有常驻结算区，复盘由
-        // 底部「本局复盘」按钮打开平台统一的复盘对话框（玩家与观看者同款入口）。
+        // 平台统一的复盘对话框呈现；非房主玩家点底部「本局复盘」按钮，
+        // 房主走主持管理里的复盘入口。
         await expect(hostPage.getByTestId('avalon-ended')).toHaveCount(0);
         for (const page of [hostPage, pages[assassinSeat]!]) {
-          await page.getByTestId(TESTIDS.roomReviewOpenButton).click();
+          if (page === hostPage) {
+            // 房主的复盘入口在主持管理里，不在底部按钮上。
+            await rooms[0]!.clickHostManagementAction(TESTIDS.roomReviewHostAction);
+          } else {
+            await page.getByTestId(TESTIDS.roomReviewOpenButton).click();
+          }
           const review = page.getByTestId(TESTIDS.roomReviewDialog);
           await expect(review).toBeVisible({ timeout: 20_000 });
           await expect(review.getByText('坏人获胜', { exact: true })).toBeVisible();
@@ -1006,7 +1012,8 @@ test.describe('Avalon full game', () => {
           await page.getByRole('button', { name: '关闭详情', exact: true }).click();
           await expect(review).toBeHidden();
         }
-        await hostPage.getByTestId(TESTIDS.roomReviewOpenButton).click();
+        // 房主再次打开复盘，同样走主持管理。
+        await rooms[0]!.clickHostManagementAction(TESTIDS.roomReviewHostAction);
         const hostReview = hostPage.getByTestId(TESTIDS.roomReviewDialog);
         await expect(hostReview).toBeVisible({ timeout: 20_000 });
         // 全员身份：身份墙是复盘里第一处座位徽章，徽章所在行写出该座角色与阵营。
