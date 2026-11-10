@@ -8,17 +8,9 @@ import {
   createClientProductUi,
 } from '@/features/product/model/ClientProductUi';
 import { loadGameProductUiContributions } from '@/games/productUiCatalog';
-
-let clientProductUi: Promise<ClientProductUi> | null = null;
+import { cacheLoad } from '@/utils/cacheLoad';
 
 /** The shared product UI; a failed load is not cached, so a remount retries. */
-export function loadClientProductUi(): Promise<ClientProductUi> {
-  if (clientProductUi === null) {
-    const loading = loadGameProductUiContributions().then(createClientProductUi);
-    loading.catch(() => {
-      if (clientProductUi === loading) clientProductUi = null;
-    });
-    clientProductUi = loading;
-  }
-  return clientProductUi;
-}
+export const loadClientProductUi: () => Promise<ClientProductUi> = cacheLoad(async () =>
+  createClientProductUi(await loadGameProductUiContributions()),
+);

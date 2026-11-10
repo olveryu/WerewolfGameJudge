@@ -19,6 +19,7 @@ import type {
   ClientGameModuleDependencies,
   ClientGameModuleFactory,
 } from '@/games/model/ClientGameModule';
+import { cacheLoad } from '@/utils/cacheLoad';
 
 type ClientGameLoaders = {
   readonly [TGameType in GameType]: () => Promise<ClientGameModuleFactory<TGameType>>;
@@ -35,9 +36,9 @@ const CLIENT_GAME_LOADERS: ClientGameLoaders = {
   demo: async () => (await import('@/games/demo/module')).createDemoClientModule,
 };
 
-interface ModuleSlot<TGameType extends GameType> {
-  loading: Promise<ClientGameModule<TGameType>> | null;
-}
+type ClientGameModuleLoads = {
+  readonly [TGameType in GameType]: () => Promise<ClientGameModule<TGameType>>;
+};
 
 interface ClientGameModules {
   /** The module for `gameType`; the same promise on every call. */
@@ -56,16 +57,6 @@ function createClientGameModules(
 ): ClientGameModules {
   let loadedModules: readonly ClientGameModule[] = [];
   const loadListeners = new Set<() => void>();
-  const modules: { readonly [TGameType in GameType]: ModuleSlot<TGameType> } = {
-    werewolf: { loading: null },
-    fibking: { loading: null },
-    pictionary: { loading: null },
-    undercover: { loading: null },
-    drawguess: { loading: null },
-    storyrelay: { loading: null },
-    avalon: { loading: null },
-    demo: { loading: null },
-  };
   const loadModule = async <TGameType extends GameType>(
     gameType: TGameType,
   ): Promise<ClientGameModule<TGameType>> => {
@@ -79,6 +70,17 @@ function createClientGameModules(
     for (const listener of loadListeners) listener();
     return module;
   };
+  // A failed chunk load may succeed on retry; only a loaded module stays cached.
+  const moduleLoads: ClientGameModuleLoads = {
+    werewolf: cacheLoad(() => loadModule('werewolf')),
+    fibking: cacheLoad(() => loadModule('fibking')),
+    pictionary: cacheLoad(() => loadModule('pictionary')),
+    undercover: cacheLoad(() => loadModule('undercover')),
+    drawguess: cacheLoad(() => loadModule('drawguess')),
+    storyrelay: cacheLoad(() => loadModule('storyrelay')),
+    avalon: cacheLoad(() => loadModule('avalon')),
+    demo: cacheLoad(() => loadModule('demo')),
+  };
   const subscribeLoaded = (listener: () => void) => {
     loadListeners.add(listener);
     return () => {
@@ -87,15 +89,8 @@ function createClientGameModules(
   };
   return {
     load: <TGameType extends GameType>(gameType: TGameType) => {
-      const slot: ModuleSlot<TGameType> = modules[gameType];
-      if (slot.loading !== null) return slot.loading;
-      const loading = loadModule(gameType);
-      slot.loading = loading;
-      // A failed chunk load may succeed on retry; only a loaded module stays cached.
-      loading.catch(() => {
-        slot.loading = null;
-      });
-      return loading;
+      const loadGame: () => Promise<ClientGameModule<TGameType>> = moduleLoads[gameType];
+      return loadGame();
     },
     activeRoomAccount: createActiveRoomAccountSource({
       current: (): readonly RoomAccountCapability[] =>

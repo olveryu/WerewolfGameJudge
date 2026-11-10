@@ -8,20 +8,7 @@ import type { RoomLinkFactory } from '@/platform/realtime/RoomLinkFactory';
 import { CFAuthService } from '@/services/cloudflare/CFAuthService';
 import { CFAvatarUploadService } from '@/services/cloudflare/CFAvatarUploadService';
 import { CFRoomDirectoryService } from '@/services/cloudflare/CFRoomDirectoryService';
-
-/** Caches one lazy load; a failed chunk load may succeed on retry, so only a created value stays cached. */
-function cacheLoad<T>(load: () => Promise<T>): () => Promise<T> {
-  let loading: Promise<T> | null = null;
-  return () => {
-    if (loading !== null) return loading;
-    const attempt = load();
-    loading = attempt;
-    attempt.catch(() => {
-      loading = null;
-    });
-    return attempt;
-  };
-}
+import { cacheLoad } from '@/utils/cacheLoad';
 
 /** Builds the services provided through `ServiceProvider`. */
 function createAppServices(): ServiceContextValue {
