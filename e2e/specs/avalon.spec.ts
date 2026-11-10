@@ -537,6 +537,11 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
   const leaderSeat = await test.step(`任务${script.round}：定位组队者并组队`, async () => {
     const seat = await findSeatByProbe(pages, LEADER_PICK_PATTERN, '组队者组队提示');
     team = script.teamFor(seat);
+    // 湖仙徽标与组队者徽标同口径：只在白天五阶段显示，查看阶段不出现；
+    // 进入提名、组队者出现时，湖仙徽标一起出现。
+    await expect(pages[0]!.getByTestId(TESTIDS.seatMarker(seat, 'leader'))).toHaveText('组队者');
+    await expect(pages[0]!.getByTestId(/^seat-marker-\d+-lady$/)).toHaveCount(1);
+    await expect(pages[PLAYER_COUNT - 1]!.getByTestId(/^seat-marker-\d+-lady$/)).toHaveCount(1);
     await pickTeam(pages, seat, team, script.round === 1 && !script.voteResult.approved);
     return seat;
   });
