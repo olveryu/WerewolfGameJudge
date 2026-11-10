@@ -8,8 +8,9 @@ import { createRef, Suspense } from 'react';
 
 import { RoomSeatResidents } from '@/features/room/components/RoomSeatScene';
 import type { DecorationSpec } from '@/scene/decoration';
-import { ENTRANCE_REPLAY_DELAY_MS, type EntranceSpec } from '@/scene/entrance';
+import { ENTRANCE_REPLAY_DELAY_MS } from '@/scene/entrance';
 import type { ResidentDecorations } from '@/scene/residentDecorations';
+import type { SceneStage } from '@/scene/stage';
 import type { EntranceCallbacks } from '@/scene/stageEntrance';
 
 interface FakeHandle {
@@ -23,8 +24,8 @@ const stage = vi.hoisted(() => ({
 }));
 
 vi.mock('@/scene/sceneStagePromise', () => {
-  const fakeStage = {
-    mount: (spec: DecorationSpec) => {
+  const fakeStage: Pick<SceneStage, 'mount' | 'mountEntrance'> = {
+    mount: (spec) => {
       const handle: FakeHandle = { spec, suspended: false };
       stage.decorations.push(handle);
       return {
@@ -36,7 +37,7 @@ vi.mock('@/scene/sceneStagePromise', () => {
         destroy: () => {},
       };
     },
-    mountEntrance: (_spec: EntranceSpec, callbacks: EntranceCallbacks) => {
+    mountEntrance: (_spec, _host, callbacks) => {
       const entrance = { callbacks, plays: 0 };
       stage.entrance = entrance;
       return {
