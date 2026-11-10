@@ -611,6 +611,18 @@ describe('getWerewolfViewModel — wolf pack display during wolfGirlConfess', ()
     const state = createState({ roles: ROLES, stepId: 'seerCheck' });
     expect(getWerewolfViewModel(state, player(2)).wolfPackSeats).toBeNull();
   });
+
+  it('the Wolf Girl cannot pick herself or a visible wolf to confess', () => {
+    const state = createState({ roles: ROLES, stepId: 'wolfGirlConfess' });
+    expect(getWerewolfViewModel(state, player(2)).seats.map((s) => s.disabledReason)).toEqual([
+      null,
+      null,
+      '不能选择自己',
+      '不能选择狼人阵营的玩家',
+      '不能选择狼人阵营的玩家',
+      null,
+    ]);
+  });
 });
 
 describe('getWerewolfViewModel — confessed third party is treated as a god', () => {

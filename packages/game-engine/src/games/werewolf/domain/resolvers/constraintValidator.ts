@@ -31,6 +31,9 @@ interface ConstraintValidationContext {
 /** Rejection reason for a NotSelf violation; the projection renders the same text on the viewer's own seat. */
 export const CONSTRAINT_REJECT_NOT_SELF = '不能选择自己' as const;
 
+/** Rejection reason for a NotWolfFaction violation; the projection renders it on visible wolf seats. */
+export const CONSTRAINT_REJECT_NOT_WOLF_FACTION = '不能选择狼人阵营的玩家' as const;
+
 type ConstraintValidationResult =
   | { readonly valid: true; readonly rejectReason?: never }
   | { readonly valid: false; readonly rejectReason: string };
@@ -66,7 +69,7 @@ export function validateConstraints(
           target === context.seedWolfInfectedSeat ||
           (targetRoleId && ROLE_SPECS[targetRoleId]?.team === Team.Wolf)
         ) {
-          return { valid: false, rejectReason: '不能选择狼人阵营的玩家' };
+          return { valid: false, rejectReason: CONSTRAINT_REJECT_NOT_WOLF_FACTION };
         }
         break;
       }
