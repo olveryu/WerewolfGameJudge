@@ -304,15 +304,25 @@ export async function tryClickAdvanceButton(page: Page, label?: string): Promise
   for (const key of ADVANCE_BUTTON_KEYS) {
     const button = nightButton(page, key);
     if (await button.isVisible().catch(() => false)) {
-      if (await clickCapped(button, `advance night button ${key}`)) {
-        log(`tryClickAdvanceButton${tag} — night button ${key} clicked`);
-        return true;
-      }
-      return false;
+      return tryClickNightButton(page, key, tag);
     }
   }
 
   return false;
+}
+
+/**
+ * Press a visible night button, capped. The step prompt opens when the
+ * step audio ends — the same moment the buttons appear — so it can cover
+ * a button between the visibility check and the click. A blocked click
+ * returns false; the caller's next sweep dismisses the prompt and retries.
+ */
+export async function tryClickNightButton(page: Page, key: string, label = ''): Promise<boolean> {
+  const button = nightButton(page, key);
+  if (!(await button.isVisible().catch(() => false))) return false;
+  if (!(await clickCapped(button, `night button ${key}`))) return false;
+  log(`tryClickNightButton${label} — night button ${key} clicked`);
+  return true;
 }
 
 // ---------------------------------------------------------------------------

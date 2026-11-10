@@ -3,10 +3,10 @@ import { type Page, type TestInfo } from '@playwright/test';
 import { TESTIDS } from '../../packages/web/src/testids';
 import {
   isNightEnded,
-  nightButton,
   readRoomPhase,
   readRoomStep,
   tryClickAdvanceButton,
+  tryClickNightButton,
 } from '../helpers/night-driver';
 
 /**
@@ -41,9 +41,7 @@ const NO_PROGRESS_LIMIT_MS = 45_000;
 async function advancePage(page: Page, pageIndex: number, state: NightFlowState): Promise<boolean> {
   if (await tryClickAdvanceButton(page, ` runner-P${pageIndex}`)) return true;
   if (state.wolfVotedPages.has(pageIndex)) return false;
-  const emptyVote = nightButton(page, 'wolfEmpty');
-  if (!(await emptyVote.isVisible().catch(() => false))) return false;
-  await emptyVote.click();
+  if (!(await tryClickNightButton(page, 'wolfEmpty', ` runner-P${pageIndex}`))) return false;
   state.wolfVotedPages.add(pageIndex);
   return true;
 }
