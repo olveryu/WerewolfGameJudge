@@ -323,8 +323,7 @@ export function editClientCatalog(content, { gameId, camel }) {
 
 /**
  * Register the lazily loaded client module in both exhaustive literals of
- * the web module loader: the loader map (which also marks the game ported
- * for the per-game web contracts) and the per-page module slots.
+ * the web module loader: the loader map and the per-page module slots.
  */
 export function editClientModuleLoaders(content, { gameId, pascal }) {
   const file = 'packages/web/src/games/clientModules.tsx';
@@ -371,8 +370,7 @@ export function editDispatchDiscipline(content, { gameId, pascal }) {
 
 /**
  * Register the game's guidance matrix in the registry contract, which
- * covers exactly the ported games (the loader edit ports this one): the
- * import joins the @/ alias import group in specifier order and the row is
+ * covers every game: the import joins the @/ alias import group in specifier order and the row is
  * appended to the GUIDANCE_MATRICES literal.
  * The constant name derives exactly like the template's
  * __GAME_UPPER__ token (gameId uppercased), so the registered name
@@ -391,14 +389,14 @@ export function editGuidanceMatrixRegistry(content, { gameId, camel }) {
   return replaceOnce(
     file,
     withImport,
-    /(const GUIDANCE_MATRICES: Partial<Record<GameType, RoomGuidanceMatrix<string>>> = \{[\s\S]*?)(\n\};)/,
+    /(const GUIDANCE_MATRICES: Record<GameType, RoomGuidanceMatrix<string>> = \{[\s\S]*?)(\n\};)/,
     (_match, head, tail) => `${head}\n  ${gameId}: ${constant},${tail}`,
   );
 }
 
 /**
  * Register the game's review rounds in the review contract, which covers
- * every ported web game: both imports join the @/ alias import group in
+ * every game: both imports join the @/ alias import group in
  * specifier order, and the row is appended to the REVIEW_CONTRACT literal. Both
  * names derive exactly like the template tokens — `${camel}Review` from
  * review/__GAME_CAMEL__Review, the rounds constant (gameId uppercased,
@@ -422,7 +420,7 @@ export function editReviewContractRegistry(content, { gameId, camel }) {
   return replaceOnce(
     file,
     withImports,
-    /(const REVIEW_CONTRACT = \{[\s\S]*?)(\n\} as const satisfies Partial<Record<GameType, ReviewContractCase>>;)/,
+    /(const REVIEW_CONTRACT = \{[\s\S]*?)(\n\} as const satisfies Record<GameType, ReviewContractCase>;)/,
     (_match, head, tail) => `${head}\n  ${gameId}: reviewCase(${contribution}, ${rounds}),${tail}`,
   );
 }

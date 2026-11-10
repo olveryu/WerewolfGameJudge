@@ -20,6 +20,7 @@ import type { FibState } from '@game-judge/game-engine/games/fibking/public';
 import type { PictionaryState } from '@game-judge/game-engine/games/pictionary/public';
 import type { StoryRelayState } from '@game-judge/game-engine/games/storyrelay/public';
 import type { UndercoverState } from '@game-judge/game-engine/games/undercover/public';
+import type { GameState as WerewolfState } from '@game-judge/game-engine/games/werewolf/public';
 import {
   REASON_COMMAND_ID_CONFLICT,
   REASON_CONTROLLED_SEAT_NOT_ALLOWED,
@@ -46,6 +47,7 @@ import { getFibRoomCommandFailureMessage } from '@/games/fibking/room/fibRoomCom
 import { getPictionaryRoomCommandFailureMessage } from '@/games/pictionary/room/pictionaryRoomCommandFailureMessage';
 import { getStoryRelayRoomCommandFailureMessage } from '@/games/storyrelay/room/storyRelayRoomCommandFailureMessage';
 import { getUndercoverRoomCommandFailureMessage } from '@/games/undercover/room/undercoverRoomCommandFailureMessage';
+import { getWerewolfRoomCommandFailureMessage } from '@/games/werewolf/room/werewolfRoomCommandFailureMessage';
 import { rejectedRoomCommand } from '@/test-utils/roomCommand';
 import { translateReasonCode } from '@/utils/errorUtils';
 import { ROOM_CHASSIS_REASON_MESSAGES } from '@/utils/roomChassisReasonMessages';
@@ -99,7 +101,7 @@ const COVERED_PLATFORM_REASONS = [
   REASON_ROOM_EFFECTS_PENDING,
 ] as const;
 
-/** Presenters of the ported web games (docs/web-client-rewrite.md §8.2); each port adds its own. */
+/** Game presenters pinned to the chassis table. */
 const PRESENTERS: ReadonlyArray<{ game: string; present: (reason: string) => string }> = [
   {
     game: 'demo',
@@ -144,9 +146,16 @@ const PRESENTERS: ReadonlyArray<{ game: string; present: (reason: string) => str
     present: (reason) =>
       getAvalonRoomCommandFailureMessage(rejectedRoomCommand<AvalonState>(reason, 'chassis-pin')),
   },
+  {
+    game: 'werewolf',
+    present: (reason) =>
+      getWerewolfRoomCommandFailureMessage(
+        rejectedRoomCommand<WerewolfState>(reason, 'chassis-pin'),
+      ),
+  },
 ];
 
-/** Game presenter sources scanned for chassis entries. */
+/** Game presenter sources (plus the generator template) scanned for chassis entries. */
 const PRESENTER_SOURCES = [
   'packages/web/src/games/demo/room/demoRoomCommandFailureMessage.ts',
   'packages/web/src/games/undercover/room/undercoverRoomCommandFailureMessage.ts',
@@ -155,6 +164,8 @@ const PRESENTER_SOURCES = [
   'packages/web/src/games/pictionary/room/pictionaryRoomCommandFailureMessage.ts',
   'packages/web/src/games/drawguess/room/drawGuessRoomCommandFailureMessage.ts',
   'packages/web/src/games/avalon/room/avalonRoomCommandFailureMessage.ts',
+  'packages/web/src/games/werewolf/room/werewolfRoomCommandFailureMessage.ts',
+  'scripts/lib/new-game/templates/shared/packages/web/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomCommandFailureMessage.ts.tmpl',
 ];
 
 describe('room command failure chassis copy (B-2)', () => {

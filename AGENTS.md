@@ -6,7 +6,7 @@ Global rules for this repository. Area rules live in the nested files listed at 
 
 A multi-game judge app for in-person play: a React web client that runs in browsers and inside the WeChat mini-program web-view, backed by a Cloudflare Worker with Durable Objects, D1, and R2. It includes collection and progression product modules.
 
-The client is mid-rewrite per `docs/web-client-rewrite.md` (phases in §8.2); which games have a web client is decided by `CLIENT_GAME_LOADERS` in `packages/web/src/games/clientModules.tsx`.
+The client was rewritten per `docs/web-client-rewrite.md`; every game has a lazy web module in `CLIENT_GAME_LOADERS` (`packages/web/src/games/clientModules.tsx`).
 
 Versions: React `^19.3.1`, Vite `^8.3.6`, React Router `^8.5.1` (web package); TypeScript `~6.0.3` (root and web package); Vitest `~4.1.10` and Zod `^4.4.3` (root and every package); ESLint `^9.39.4`, Turbo `^2.11.7` (root); Node `>=22.13.0` (`.nvmrc` pins `22.22.1`), pnpm `10.32.1`.
 
@@ -38,14 +38,14 @@ The version number is authoritative in the root `package.json` only; `packages/w
 | Unused code       | `pnpm run knip`                                                          | Local                                                                  |
 | Agent files check | `pnpm run validate:agents`                                               | Local and CI                                                           |
 | Full gate         | `pnpm run quality`                                                       | Full run; CI only                                                      |
-| E2E               | `pnpm run e2e`                                                           | Full run; CI only (migrated specs on this branch)                      |
+| E2E               | `pnpm run e2e`                                                           | Full run; CI only                                                      |
 | Single E2E spec   | `gh workflow run e2e-single-spec.yml --ref <branch> --field spec=<file>` | One spec at a time; verify the run with `gh api` (see `e2e/AGENTS.md`) |
 | Local dev         | `pnpm run dev`                                                           | Worker plus Vite, with `VITE_CF_API_URL=http://localhost:8787`         |
 | Local migrations  | `pnpm --filter @game-judge/api-worker run db:migrate:local`              | Before first local run or after a new migration                        |
 | New game          | `pnpm new-game <gameId>`                                                 | Generator; see the new-game skill                                      |
 | Release           | `bash scripts/release.sh [patch\|minor\|major]`                          | Release script                                                         |
 
-`pnpm run quality` runs `turbo run build typecheck lint knip format test && pnpm run validate:agents`. In CI the same work is split: one job runs Turbo build/typecheck/knip plus the agent-files check, lint/format run as a parallel job, root-contract, engine, web, and worker tests run sharded, and `ci-gate` requires all of them plus E2E. E2E is not part of `quality`; it serves the `packages/web/dist` build from the `build-web` job, and branch CI runs only the specs already migrated to the web client (the `e2e` matrix in `.github/workflows/ci.yml`, pinned by `runs each migrated E2E spec exactly once` in `contracts/ciE2eCoverage.contract.test.ts`). Locally, run the scoped form of the failing area (path-filtered tests, the changed package's typecheck) plus `tsc --noEmit` and `knip`; do not present a local full `quality` run as the gate.
+`pnpm run quality` runs `turbo run build typecheck lint knip format test && pnpm run validate:agents`. In CI the same work is split: one job runs Turbo build/typecheck/knip plus the agent-files check, lint/format run as a parallel job, root-contract, engine, web, and worker tests run sharded, and `ci-gate` requires all of them plus E2E. E2E is not part of `quality`; it serves the `packages/web/dist` build from the `build-web` job, and the `e2e` matrix in `.github/workflows/ci.yml` runs every spec exactly once, pinned by `runs every E2E spec exactly once` in `contracts/ciE2eCoverage.contract.test.ts`. Locally, run the scoped form of the failing area (path-filtered tests, the changed package's typecheck) plus `tsc --noEmit` and `knip`; do not present a local full `quality` run as the gate.
 
 ## Architecture boundaries
 

@@ -17,7 +17,7 @@ import {
   exitRoomFlow,
   type RoomLocationState,
 } from '@/features/room/navigation/roomFlowNavigation';
-import { UnportedGameClientError, useClientGameModule } from '@/games/clientModules';
+import { useClientGameModule } from '@/games/clientModules';
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
 
@@ -95,19 +95,12 @@ export function RoomPage() {
   );
 }
 
-/** Route error element: an unported game client or a failed game chunk load lands here. */
+/** Route error element: a failed game chunk load lands here. */
 export function RoomPageError() {
   const error = useRouteError();
   const navigate = useNavigate();
-  const isUnported = error instanceof UnportedGameClientError;
   useEffect(() => {
-    if (!isUnported)
-      handleError(error, { label: '进入房间', logger: resolverLog, feedback: false });
-  }, [error, isUnported]);
-  return (
-    <LoadingScreen
-      error={isUnported ? '暂不支持该游戏类型' : '房间加载失败，请重试'}
-      onBack={() => exitRoomFlow(navigate)}
-    />
-  );
+    handleError(error, { label: '进入房间', logger: resolverLog, feedback: false });
+  }, [error]);
+  return <LoadingScreen error="房间加载失败，请重试" onBack={() => exitRoomFlow(navigate)} />;
 }

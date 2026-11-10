@@ -17,7 +17,8 @@ import { log } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
 import IconPaperPlaneOutline from '~icons/ion/paper-plane-outline';
 
-const APP_LOGO_URL = `${import.meta.env.BASE_URL}assets/pwa/icon-192.png`;
+// Public files stay same-origin (vite.config.ts renderBuiltUrl), so the capture canvas is untainted.
+const APP_LOGO_URL = '/assets/pwa/icon-192.png';
 
 function ShareCard({ model }: { readonly model: RoomShareModel }) {
   const cardRef = useRef<HTMLDivElement>(null);

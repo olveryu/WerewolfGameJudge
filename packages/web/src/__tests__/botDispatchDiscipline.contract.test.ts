@@ -12,16 +12,13 @@
  * 系统性派发（播报 ack、自动提交），它们不是命令漏斗。阶段到期不再经
  * 客户端派发：公开 expire 已删，到期由服务端定时结算（D3）。
  * 登记表按 GAME_TYPES 驱动：任何游戏（含未来新游戏）没有登记其房间 hook、
- * 或 hook 重新打开自有漏斗，CI 直接失败。网页客户端逐个移植游戏
- * （docs/web-client-rewrite.md §8.2），只检查已移植游戏的登记项。
+ * 或 hook 重新打开自有漏斗，CI 直接失败。
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { GAME_TYPES, type GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
-
-import { isPortedGamePath, PORTED_GAME_TYPES } from '@/test-utils/portedGames';
 
 const SRC_ROOT = join(import.meta.dirname, '..');
 
@@ -147,7 +144,7 @@ describe('bot dispatch discipline — every command goes through the platform su
     expect(shared).toMatch(/session\.dispatch\(command, \{ controlledSeat, label, durable \}\)/);
   });
 
-  for (const gameType of PORTED_GAME_TYPES) {
+  for (const gameType of GAME_TYPES) {
     for (const file of DISPATCH_SITES[gameType]) {
       it(`${gameType}: ${file} dispatches only through useReadyRoomSession.submit`, () => {
         expectSharedReadySessionSubmit(readSource(file));
@@ -172,30 +169,24 @@ describe('bot dispatch discipline — direct dispatches are the registered syste
       const types = directDispatchCommandTypes(readFileSync(file, 'utf8'));
       if (types.length > 0) actual[file.slice(SRC_ROOT.length + 1)] = [...new Set(types)].sort();
     }
-    // A game's screens land before its module registers, so pin every allow-listed file present.
     const expected = Object.fromEntries(
-      Object.entries(DIRECT_DISPATCH_ALLOW_LIST)
-        .filter(([file]) => isPortedGamePath(file) || existsSync(join(SRC_ROOT, file)))
-        .map(([file, types]) => [file, [...types].sort()]),
+      Object.entries(DIRECT_DISPATCH_ALLOW_LIST).map(([file, types]) => [file, [...types].sort()]),
     );
     expect(actual).toEqual(expected);
   });
 });
 
-describe.runIf(PORTED_GAME_TYPES.includes('drawguess'))(
-  'bot dispatch discipline — drawguess seat actions pass the seat explicitly',
-  () => {
-    const screen = () => readSource('games/drawguess/room/DrawGuessRoomScreen.tsx');
+describe('bot dispatch discipline — drawguess seat actions pass the seat explicitly', () => {
+  const screen = () => readSource('games/drawguess/room/DrawGuessRoomScreen.tsx');
 
-    it('word choosing (a drawer seat action) passes controlledSeat explicitly', () => {
-      expect(screen()).toMatch(
-        /submit\(\s*'选择题目',\s*\{[^}]*\},\s*\{\s*controlledSeat\s*\},?\s*\)/,
-      );
-    });
+  it('word choosing (a drawer seat action) passes controlledSeat explicitly', () => {
+    expect(screen()).toMatch(
+      /submit\(\s*'选择题目',\s*\{[^}]*\},\s*\{\s*controlledSeat\s*\},?\s*\)/,
+    );
+  });
 
-    it('the drawing workspace exposes neither give-up nor host abort commands', () => {
-      expect(screen()).not.toContain('drawguess.round.finish');
-      expect(screen()).not.toContain('drawguess.game.abort');
-    });
-  },
-);
+  it('the drawing workspace exposes neither give-up nor host abort commands', () => {
+    expect(screen()).not.toContain('drawguess.round.finish');
+    expect(screen()).not.toContain('drawguess.game.abort');
+  });
+});

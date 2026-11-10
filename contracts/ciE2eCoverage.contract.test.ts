@@ -1,9 +1,5 @@
 /**
  * CI deployment gates and coverage of the explicit Playwright shard matrix.
- *
- * Until the web client replaces the old one (docs/web-client-rewrite.md §8.2), the branch CI runs
- * only the migrated specs: the shard matrix may list a subset of e2e/specs, never a spec twice or
- * a missing one. P5 restores the every-spec rule before merge.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -153,14 +149,14 @@ describe('CI Playwright shard coverage', () => {
     );
   });
 
-  it('runs each migrated E2E spec exactly once', () => {
-    const repositorySpecs = new Set(
-      fs.readdirSync(E2E_SPEC_DIR).filter((fileName) => fileName.endsWith('.spec.ts')),
-    );
+  it('runs every E2E spec exactly once', () => {
+    const repositorySpecs = fs
+      .readdirSync(E2E_SPEC_DIR)
+      .filter((fileName) => fileName.endsWith('.spec.ts'))
+      .sort();
     const configuredSpecs = getConfiguredE2eSpecs();
 
-    expect(configuredSpecs.length).toBeGreaterThan(0);
     expect(new Set(configuredSpecs).size).toBe(configuredSpecs.length);
-    expect(configuredSpecs.filter((spec) => !repositorySpecs.has(spec))).toEqual([]);
+    expect(configuredSpecs.sort()).toEqual(repositorySpecs);
   });
 });

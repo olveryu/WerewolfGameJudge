@@ -11,7 +11,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { PORTED_GAME_TYPES } from '@/test-utils/portedGames';
+import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
 const GAMES_DIR = join(import.meta.dirname, '../games');
 const HANDWRITTEN_PATTERN = /displayName:.*\n.*onRelease:/;
@@ -53,15 +53,14 @@ describe('controlled seat model contract', () => {
     expect(factory).not.toMatch(/canControlBots|hasBots/);
     // Every game feeds the factory the controlled seat and its display
     // name; none passes a precomputed visibility flag. The coverage
-    // set is derived from the ported games: each ported game
-    // must assemble the model through exactly one production call
-    // site, discovered by scanning the game's own sources — the
+    // set is GAME_TYPES: each game must assemble the model through
+    // exactly one production call site, discovered by scanning the game's own sources — the
     // assembly point differs per game (the shell factories in the
     // adapters own the call for most games; fibking/pictionary
     // assemble in their screen-state hooks, whose factories receive
     // the model as an input), so a hardcoded path list would
     // silently leave the next game uncovered.
-    for (const gameType of PORTED_GAME_TYPES) {
+    for (const gameType of GAME_TYPES) {
       const callSites: { file: string; call: string }[] = [];
       for (const file of getAllTsFiles(join(GAMES_DIR, gameType))) {
         if (file.includes('__tests__') || file.endsWith('.test.ts') || file.endsWith('.test.tsx')) {

@@ -38,6 +38,13 @@ export default defineConfig({
     // scripts/check-bundle-size.mjs reads the manifest to compute each route's load closure.
     manifest: true,
   },
+  experimental: {
+    // Public files (manifest.json, PWA icons) are not published to the CDN; they stay
+    // same-origin on Pages, which also keeps share-image canvases untainted.
+    renderBuiltUrl(filename, { type }) {
+      return type === 'public' ? `/${filename}` : undefined;
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

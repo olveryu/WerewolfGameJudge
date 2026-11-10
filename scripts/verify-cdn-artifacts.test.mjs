@@ -3,26 +3,20 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { gzipSync } from 'node:zlib';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 
 import { verifyCdnArtifacts } from './verify-cdn-artifacts.mjs';
 
-test('checks actual JS and decompressed WASM; rejects stale and missing payloads', async () => {
+test('checks actual JS; rejects stale and missing payloads', async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'cdn-verification-'));
   try {
     await mkdir(path.join(directory, 'assets'));
     await writeFile(path.join(directory, 'assets/index.js'), 'release-js');
-    const wasmFile = path.join(directory, 'canvaskit.wasm');
-    await writeFile(wasmFile, 'release-wasm');
-    const options = { directory, wasmFile, cdnBase: 'https://cdn.example/release' };
-    const request = async (url) =>
-      new Response(url.endsWith('.gz') ? gzipSync('release-wasm') : 'release-js');
-    assert.equal(await verifyCdnArtifacts({ ...options, request }), 2);
-    const server = createServer((incoming, response) =>
-      response.end(incoming.url.endsWith('.gz') ? gzipSync('release-wasm') : 'release-js'),
-    );
+    const options = { directory, cdnBase: 'https://cdn.example/release' };
+    const request = async () => new Response('release-js');
+    assert.equal(await verifyCdnArtifacts({ ...options, request }), 1);
+    const server = createServer((_incoming, response) => response.end('release-js'));
     server.listen(0, '127.0.0.1');
     await once(server, 'listening');
     try {
@@ -31,7 +25,7 @@ test('checks actual JS and decompressed WASM; rejects stale and missing payloads
           ...options,
           cdnBase: `http://127.0.0.1:${server.address().port}`,
         }),
-        2,
+        1,
       );
     } finally {
       server.closeAllConnections();
@@ -41,7 +35,7 @@ test('checks actual JS and decompressed WASM; rejects stale and missing payloads
     }
     await assert.rejects(
       verifyCdnArtifacts({ ...options, request: async () => new Response('old') }),
-      /digest mismatch|incorrect header/,
+      /digest mismatch/,
     );
     await assert.rejects(
       verifyCdnArtifacts({ ...options, request: async () => new Response('', { status: 404 }) }),

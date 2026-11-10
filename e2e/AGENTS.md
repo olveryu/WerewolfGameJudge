@@ -17,7 +17,7 @@ Scope: `e2e/**` plus the workflows that run it. Unit and contract tests live und
 
 - The reusable run workflow (`e2e-run.yml`) validates that the named spec exists under `e2e/specs/` (bare filename only, no path) before installing, so a typo fails fast instead of reporting no tests found.
 - Verify the run through the actions API: check `head_branch` and `head_sha` against the target branch and commit, and read the run's `conclusion` field. Never infer success from the exit status of a piped watch command; that status belongs to the last stage of the pipeline, not to the run.
-- The `e2e` job runs through the same reusable workflow, gated on the quality, lint, and web-build jobs; unit and worker test results deliberately do not gate it. On this branch its matrix lists only the specs migrated to the web client (`docs/web-client-rewrite.md` §8.2), pinned by `runs each migrated E2E spec exactly once` in `contracts/ciE2eCoverage.contract.test.ts`; a spec joins the matrix when its game or page is ported.
+- The `e2e` job runs through the same reusable workflow, gated on the quality, lint, and web-build jobs; unit and worker test results deliberately do not gate it. Its matrix lists every spec exactly once, pinned by `runs every E2E spec exactly once` in `contracts/ciE2eCoverage.contract.test.ts`; a new spec must join a shard.
 
 ## Interaction rules
 

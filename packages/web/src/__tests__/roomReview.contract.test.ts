@@ -6,8 +6,7 @@
  * in the lobby; at the end, a document the platform accepts, named for its
  * game and room, that the host may share — resolved purely to plain data
  * and keyed by its round, so a new round never reuses the last round's
- * export. The registry covers every ported web game (docs/web-client-rewrite.md
- * §8.2) and becomes exhaustive over `GameType` once all are ported; the
+ * export. The registry is exhaustive over `GameType`; the
  * new-game generator registers each new game's rounds (`<GAME>_REVIEW_ROUNDS`
  * in `packages/web/src/test-utils/<gameId>State.ts`).
  *
@@ -90,7 +89,7 @@ const REVIEW_CONTRACT = {
   drawguess: reviewCase(drawGuessReview, DRAWGUESS_REVIEW_ROUNDS),
   avalon: reviewCase(avalonReview, AVALON_REVIEW_ROUNDS),
   demo: reviewCase(demoReview, DEMO_REVIEW_ROUNDS),
-} as const satisfies Partial<Record<GameType, ReviewContractCase>>;
+} as const satisfies Record<GameType, ReviewContractCase>;
 
 function documentOf(availability: RoomReviewAvailability): RoomReviewDocument {
   if (availability.kind !== 'available') {

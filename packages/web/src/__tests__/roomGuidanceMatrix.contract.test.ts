@@ -1,5 +1,5 @@
 /**
- * Guidance matrix registry contract: every ported game in the web
+ * Guidance matrix registry contract: every game in the web
  * client declares a (phase × viewer) guidance matrix, and every
  * declaration is well-formed — each phase row covers exactly the
  * three viewers, and each cell is either a message promise or an
@@ -8,7 +8,7 @@
  * matrix fails here; per-game matrix tests hold each cell true
  * against the game's real bottom-action production.
  */
-import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { GAME_TYPES, type GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
 import type { RoomGuidanceMatrix } from '@/features/room/model/RoomGuidanceMatrix';
 import { AVALON_GUIDANCE_MATRIX } from '@/games/avalon/room/avalonGuidanceMatrix';
@@ -19,9 +19,8 @@ import { PICTIONARY_GUIDANCE_MATRIX } from '@/games/pictionary/room/pictionaryGu
 import { STORY_RELAY_GUIDANCE_MATRIX } from '@/games/storyrelay/room/storyRelayGuidanceMatrix';
 import { UNDERCOVER_GUIDANCE_MATRIX } from '@/games/undercover/room/undercoverGuidanceMatrix';
 import { WEREWOLF_GUIDANCE_MATRIX } from '@/games/werewolf/room/werewolfGuidanceMatrix';
-import { PORTED_GAME_TYPES } from '@/test-utils/portedGames';
 
-const GUIDANCE_MATRICES: Partial<Record<GameType, RoomGuidanceMatrix<string>>> = {
+const GUIDANCE_MATRICES: Record<GameType, RoomGuidanceMatrix<string>> = {
   werewolf: WEREWOLF_GUIDANCE_MATRIX,
   undercover: UNDERCOVER_GUIDANCE_MATRIX,
   fibking: FIBKING_GUIDANCE_MATRIX,
@@ -35,8 +34,8 @@ const GUIDANCE_MATRICES: Partial<Record<GameType, RoomGuidanceMatrix<string>>> =
 const VIEWERS = ['host', 'seated', 'spectator'];
 
 describe('guidance matrix registry', () => {
-  it('covers exactly the ported games', () => {
-    expect(Object.keys(GUIDANCE_MATRICES).sort()).toEqual([...PORTED_GAME_TYPES].sort());
+  it('covers every game', () => {
+    expect(Object.keys(GUIDANCE_MATRICES).sort()).toEqual([...GAME_TYPES].sort());
   });
 
   it.each(Object.entries(GUIDANCE_MATRICES))(

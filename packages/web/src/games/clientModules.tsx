@@ -1,7 +1,6 @@
 /**
  * Lazily loaded client game modules, one chunk per game, created once per page load and shared
- * by the room, config and guide routes. A game whose web client has not landed yet (P3/P4 of
- * docs/web-client-rewrite.md §8.2) has no loader; its routes report it as unsupported.
+ * by the room, config and guide routes.
  */
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { createContext, type ReactNode, use, useState, useSyncExternalStore } from 'react';
@@ -22,7 +21,7 @@ import type {
 } from '@/games/model/ClientGameModule';
 
 type ClientGameLoaders = {
-  readonly [TGameType in GameType]: (() => Promise<ClientGameModuleFactory<TGameType>>) | null;
+  readonly [TGameType in GameType]: () => Promise<ClientGameModuleFactory<TGameType>>;
 };
 
 const CLIENT_GAME_LOADERS: ClientGameLoaders = {
@@ -35,14 +34,6 @@ const CLIENT_GAME_LOADERS: ClientGameLoaders = {
   avalon: async () => (await import('@/games/avalon/module')).createAvalonClientModule,
   demo: async () => (await import('@/games/demo/module')).createDemoClientModule,
 };
-
-/** The game exists in the engine but its web client has not been ported yet. */
-export class UnportedGameClientError extends Error {
-  constructor(readonly gameType: GameType) {
-    super(`The ${gameType} web client is not available yet`);
-    this.name = 'UnportedGameClientError';
-  }
-}
 
 interface ModuleSlot<TGameType extends GameType> {
   loading: Promise<ClientGameModule<TGameType>> | null;
@@ -78,9 +69,7 @@ function createClientGameModules(
   const loadModule = async <TGameType extends GameType>(
     gameType: TGameType,
   ): Promise<ClientGameModule<TGameType>> => {
-    const loader: (() => Promise<ClientGameModuleFactory<TGameType>>) | null =
-      CLIENT_GAME_LOADERS[gameType];
-    if (loader === null) throw new UnportedGameClientError(gameType);
+    const loader: () => Promise<ClientGameModuleFactory<TGameType>> = CLIENT_GAME_LOADERS[gameType];
     const [createModule, dependencies] = await Promise.all([loader(), loadDependencies()]);
     const module = createModule(dependencies);
     if (module.gameType !== gameType) {

@@ -13,15 +13,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { isPortedGamePath, PORTED_GAME_TYPES } from '@/test-utils/portedGames';
-
 const REPO_ROOT = join(import.meta.dirname, '..', '..', '..', '..');
-const WEB_SRC_PREFIX = 'packages/web/src/';
-
-/** Template files always; a game's files once its web client is ported. */
-function inScope(file: string): boolean {
-  return !file.startsWith(WEB_SRC_PREFIX) || isPortedGamePath(file.slice(WEB_SRC_PREFIX.length));
-}
 
 function readSource(relativePath: string): string {
   const fullPath = join(REPO_ROOT, relativePath);
@@ -70,7 +62,7 @@ const FORBIDDEN_VOCABULARY = [
 
 describe('host flow vocabulary — one chassis vocabulary', () => {
   it('no host-flow file carries a forked flow vocabulary', () => {
-    for (const file of HOST_FLOW_FILES.filter(inScope)) {
+    for (const file of HOST_FLOW_FILES) {
       const source = readSource(file);
       for (const word of FORBIDDEN_VOCABULARY) {
         expect({ file, word, present: source.includes(word) }).toEqual({
@@ -100,7 +92,7 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
       'packages/web/src/games/fibking/room/fibRoomAdapter.ts',
       'packages/web/src/games/undercover/room/undercoverRoomAdapter.ts',
       'scripts/lib/new-game/templates/game/packages/web/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
-    ].filter(inScope)) {
+    ]) {
       expect({ file, present: readSource(file).includes('buildAssignRolesAction({') }).toEqual({
         file,
         present: true,
@@ -118,7 +110,7 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
       'packages/web/src/games/storyrelay/room/storyRelayRoomAdapter.ts',
       'packages/web/src/games/drawguess/room/drawGuessRoomAdapter.ts',
       'scripts/lib/new-game/templates/game/packages/web/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
-    ].filter(inScope)) {
+    ]) {
       const source = readSource(file);
       expect({
         file,
@@ -141,13 +133,10 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
     }
   });
 
-  it.runIf(PORTED_GAME_TYPES.includes('pictionary'))(
-    'pictionary no longer assembles flow actions through a local helper',
-    () => {
-      const source = readSource('packages/web/src/games/pictionary/room/pictionaryRoomAdapter.ts');
-      expect(source).not.toMatch(/function hostAction\(/);
-    },
-  );
+  it('pictionary no longer assembles flow actions through a local helper', () => {
+    const source = readSource('packages/web/src/games/pictionary/room/pictionaryRoomAdapter.ts');
+    expect(source).not.toMatch(/function hostAction\(/);
+  });
 
   it('config saves dispatch under the one chassis label', () => {
     const source = readSource('packages/web/src/features/room/config/useGameConfigScreenState.ts');

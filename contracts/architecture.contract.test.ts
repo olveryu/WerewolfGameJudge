@@ -283,14 +283,8 @@ function repoPath(filePath: string): string {
   return path.relative(process.cwd(), filePath);
 }
 
-/**
- * Games whose web client has landed: the lazy loader map in `games/clientModules.tsx` imports
- * their module. The rest still render as unsupported (docs/web-client-rewrite.md §8.2).
- */
+/** The lazy loader map in `games/clientModules.tsx`, which imports every game's client module. */
 const clientModulesSource = fs.readFileSync(path.join(gamesDir, 'clientModules.tsx'), 'utf-8');
-const PORTED_GAME_TYPES = GAME_TYPES.filter((gameType) =>
-  clientModulesSource.includes(`import('@/games/${gameType}/module')`),
-);
 
 function resolveWorkerRelativeModule(importer: string, specifier: string): string | null {
   if (!specifier.startsWith('.')) return null;
@@ -568,13 +562,11 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
 });
 
 describe('Game registry: declared cross-package facts resolve', () => {
-  it('points every ported game at its existing, lazily loaded client entry module', () => {
-    expect(PORTED_GAME_TYPES.length).toBeGreaterThan(0);
+  it('points every game at its existing, lazily loaded client entry module', () => {
     for (const gameType of GAME_TYPES) {
       const clientModulePath = GAME_REGISTRY[gameType].clientModulePath;
-      expect(fs.existsSync(path.join(process.cwd(), clientModulePath))).toBe(
-        PORTED_GAME_TYPES.includes(gameType),
-      );
+      expect(fs.existsSync(path.join(process.cwd(), clientModulePath))).toBe(true);
+      expect(clientModulesSource).toContain(`import('@/games/${gameType}/module')`);
     }
   });
 
@@ -598,8 +590,8 @@ describe('Game registry: declared cross-package facts resolve', () => {
 // ─── Game capabilities: client wiring matches the engine declaration ──────
 
 describe('Game capabilities: client wiring matches the engine declaration', () => {
-  it('welds revealAnimation to RevealAnimationGate consumption in every ported game client', () => {
-    for (const gameType of PORTED_GAME_TYPES) {
+  it('welds revealAnimation to RevealAnimationGate consumption in every game client', () => {
+    for (const gameType of GAME_TYPES) {
       const declared = GAME_ENGINE_CATALOG[gameType].capabilities.revealAnimation;
       const clientSource = getAllProductionFiles(path.join(gamesDir, gameType))
         .map((filePath) => fs.readFileSync(filePath, 'utf-8'))
@@ -1327,8 +1319,8 @@ describe('Room seat taps: in-game adjudication is the shared resolveRoomInGameSe
     ).toEqual([...GAME_TYPES].sort());
   });
 
-  it('ported lobby-profile games delegate setup and seat presses to shared controllers', () => {
-    for (const gameType of PORTED_GAME_TYPES) {
+  it('lobby-profile games delegate setup and seat presses to shared controllers', () => {
+    for (const gameType of GAME_TYPES) {
       const relativePath = setupControllerGames[gameType];
       if (relativePath === undefined) continue;
       const source = fs.readFileSync(path.join(srcDir, relativePath), 'utf-8');
@@ -1337,8 +1329,8 @@ describe('Room seat taps: in-game adjudication is the shared resolveRoomInGameSe
     }
   });
 
-  it('ported in-play-profile games keep profiles open over the shared roster controller', () => {
-    for (const gameType of PORTED_GAME_TYPES) {
+  it('in-play-profile games keep profiles open over the shared roster controller', () => {
+    for (const gameType of GAME_TYPES) {
       const relativePath = rosterControllerGames[gameType];
       if (relativePath === undefined) continue;
       const source = fs.readFileSync(path.join(srcDir, relativePath), 'utf-8');
