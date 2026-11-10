@@ -13,7 +13,6 @@ import {
 import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 
-import { Avatar } from '@/components/avatar/Avatar';
 import { HAND_DRAWN_PORTRAITS } from '@/components/avatar/avatarSources';
 import { Button } from '@/components/Button';
 import { NameStyleText } from '@/components/nameStyles/NameStyleText';
@@ -35,6 +34,10 @@ import { LoginOptions } from '@/features/auth/LoginDialog';
 import { requestLogin } from '@/features/auth/loginRequests';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import {
+  ResidentAvatarTile,
+  ResidentSceneLayer,
+} from '@/features/product/components/ResidentPreview';
+import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
 } from '@/features/room/link/roomCommandResult';
@@ -45,6 +48,7 @@ import { displaySettings } from '@/features/settings/displaySettings';
 import { isExpectedStorageError } from '@/features/settings/services/userSettingsStorage';
 import { GAME_ACCOUNT_STATS_SECTIONS } from '@/games/catalog';
 import { useActiveRoomAccount } from '@/games/clientModules';
+import { resolveResidentDecorations } from '@/scene/residentDecorations';
 import type { SceneFrameRate } from '@/scene/stage';
 import { TESTIDS } from '@/testids';
 import { showPrompt } from '@/utils/alert';
@@ -71,8 +75,6 @@ const GrowthSection = lazy(async () => ({
 const settingsLog = createLogger('Settings');
 const MIN_PASSWORD_LENGTH = 6;
 const FRAME_RATE_OPTIONS: readonly SceneFrameRate[] = [60, 30];
-/** Matches `--size-avatar-xl`, the old client's settings avatar size. */
-const AVATAR_SIZE = 80;
 
 /** The appearance page, kept in the room when settings was opened from one. */
 function useAppearancePath(): string {
@@ -213,6 +215,7 @@ function AccountSection({ user }: { user: User }) {
   const appearancePath = useAppearancePath();
   const signOut = useSignOut();
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const sceneHostRef = useRef<HTMLDivElement>(null);
   const inMiniProgram = isMiniProgram();
   const activeRoom = useActiveRoomAccount();
   const isInRoom = activeRoom.phase !== 'idle';
@@ -327,9 +330,18 @@ function AccountSection({ user }: { user: User }) {
 
   return (
     <>
+      <ResidentSceneLayer hostRef={sceneHostRef} />
       <div className="settings-profile">
         <Link className="settings-avatar" to={appearancePath} aria-label="更换头像">
-          <Avatar userId={user.id} avatarUrl={user.avatarUrl} size={AVATAR_SIZE} />
+          <ResidentAvatarTile
+            userId={user.id}
+            avatarUrl={user.avatarUrl}
+            residents={resolveResidentDecorations({
+              avatarFrame: user.avatarFrame ?? undefined,
+              seatFlair: user.seatFlair ?? undefined,
+            })}
+            sceneHostRef={sceneHostRef}
+          />
           {!user.isAnonymous && (
             <span className="settings-avatar-badge">
               <IconCameraOutline aria-hidden />
@@ -343,7 +355,7 @@ function AccountSection({ user }: { user: User }) {
             <span className="settings-name-row">
               <button type="button" className="settings-name" onClick={editName}>
                 {user.displayName === null ? (
-                  '设置昵称'
+                  '点击设置名字'
                 ) : (
                   <NameStyleText styleId={user.nameStyle}>{user.displayName}</NameStyleText>
                 )}

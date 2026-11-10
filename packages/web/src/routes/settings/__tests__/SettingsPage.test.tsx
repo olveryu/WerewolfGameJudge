@@ -1,11 +1,15 @@
-/** Settings: rendering, signed-out login options, growth details and appearance / unlocks entries. */
-import { render, screen } from '@testing-library/react';
+/**
+ * Settings: rendering, signed-out login options, the decorated avatar, growth details and
+ * appearance / unlocks entries.
+ */
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router';
 
 import type { User } from '@/contexts/AuthContext';
 import type { UserStats } from '@/features/account/services/accountApi';
 import { SettingsPage } from '@/routes/settings/SettingsPage';
+import type { ResidentDecorations } from '@/scene/residentDecorations';
 
 const mocks = vi.hoisted(() => ({
   auth: {
@@ -63,6 +67,17 @@ vi.mock('@/utils/alertPresets', () => ({
 }));
 vi.mock('sonner', () => ({
   toast: Object.assign(vi.fn(), { success: vi.fn(), warning: vi.fn(), error: vi.fn() }),
+}));
+// The scene stage needs a canvas; the previews' own tests cover it. The tile reports its residents.
+vi.mock('@/features/product/components/ResidentPreview', () => ({
+  ResidentSceneLayer: () => null,
+  ResidentAvatarTile: ({ residents }: { residents: ResidentDecorations | null }) => (
+    <span
+      data-testid="resident-tile"
+      data-frame={residents?.frameId ?? 'none'}
+      data-flair={residents?.flairId ?? 'none'}
+    />
+  ),
 }));
 
 const REGISTERED_USER: User = {
@@ -160,6 +175,24 @@ describe('SettingsPage', () => {
     await userEvent.click(await screen.findByRole('link', { name: /^7 局 · 已解锁/ }));
 
     expect(await screen.findByText('at /unlocks/1234')).toBeInTheDocument();
+  });
+
+  it('draws the equipped frame and flair on the avatar', async () => {
+    mocks.auth.user = { ...REGISTERED_USER, avatarFrame: 'wolfFang', seatFlair: 'nightSanctum' };
+    await renderSettings();
+
+    const tile = within(screen.getByRole('link', { name: '更换头像' })).getByTestId(
+      'resident-tile',
+    );
+    expect(tile).toHaveAttribute('data-frame', 'wolfFang');
+    expect(tile).toHaveAttribute('data-flair', 'nightSanctum');
+  });
+
+  it('invites a registered user without a name to set one', async () => {
+    mocks.auth.user = { ...REGISTERED_USER, displayName: null };
+    await renderSettings();
+
+    expect(screen.getByRole('button', { name: '点击设置名字' })).toBeInTheDocument();
   });
 
   it('links the gacha entry with the unused-ticket badge, capped at 99+', async () => {

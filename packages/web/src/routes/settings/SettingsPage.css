@@ -13,6 +13,8 @@
 }
 
 .settings-card {
+  /* Positions the account card's scene layer, which draws the avatar's frame and flair. */
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-small);
@@ -42,11 +44,14 @@
   position: relative;
   display: inline-flex;
   flex-shrink: 0;
-  border-radius: var(--radius-medium);
+  width: var(--size-avatar-xl);
+  border-radius: var(--radius-large);
 }
 
+/* Above the scene layer, so the frame never covers the badge. */
 .settings-avatar-badge {
   position: absolute;
+  z-index: 2;
   right: calc(-1 * var(--space-small));
   bottom: calc(-1 * var(--space-tight));
   display: flex;
