@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { AUDIO_WAITING_LABEL } from '../../packages/web/src/features/room/model/RoomBottomActions';
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
-import { gateCommandFrames } from '../helpers/command-frames';
+import { gateCommandFrames, observeCommandFrames } from '../helpers/command-frames';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { HomePage } from '../pages/HomePage';
@@ -30,6 +30,11 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
     // audio batch — well past the 30s default — so allow 120s.
     const ackGate = await gateCommandFrames(hostPage);
     const heldAckPromise = ackGate.waitForHeld(`${gameId}.audio.ack`, 120_000);
+    // TEMPORARY DIAGNOSTIC (revert after root cause is found): observe the
+    // host's COMMAND frames in parallel with the gate. If the ack never
+    // arrives at the gate, the observed list shows whether the host sent it
+    // at all (gate bug) or never sent it (audio/dispatch bug).
+    const hostObservation = observeCommandFrames(hostPage);
 
     try {
       await test.step('建房、入座并查看身份', async () => {
@@ -111,7 +116,32 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
       }
 
       await test.step('真实播报 ack 后各视角移除状态', async () => {
-        const heldAck = await heldAckPromise;
+        let heldAck;
+        try {
+          heldAck = await heldAckPromise;
+        } catch (error) {
+          // TEMPORARY DIAGNOSTIC: attach what the host actually sent so the
+          // failure bundle shows whether the ack frame ever left the page.
+          await testInfo.attach(`${gameId}-host-observed-commands`, {
+            body: JSON.stringify(
+              {
+                commands: hostObservation.commands().map((c) => ({
+                  commandId: c.commandId,
+                  command: c.command,
+                })),
+                results: hostObservation.results().map((r) => ({
+                  commandId: r.commandId,
+                  outcome: r.outcome,
+                  result: r.result,
+                })),
+              },
+              null,
+              2,
+            ),
+            contentType: 'application/json',
+          });
+          throw error;
+        }
         heldAck.release();
         for (const page of [hostPage, playerPages[1]!, spectatorPage]) {
           await expect(page.getByTestId(TESTIDS.audioWaitingMessage)).toHaveCount(0, {
