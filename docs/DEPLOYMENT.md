@@ -169,15 +169,14 @@ https://cdn.npmmirror.com/packages/werewolf-judge-cdn/0.0.0-g<sha8>/files/
 
 Each deployment therefore references an immutable package version. The pipeline does not perform a blanket Cloudflare cache purge and does not require a long-lived npm token.
 
-`web/_headers` controls files served by Cloudflare Pages:
+`packages/web/public/_headers` controls files served by Cloudflare Pages:
 
-| Path                                                      | Cache-Control                         | Reason                                                 |
-| --------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------ |
-| `/assets/fonts/*`                                         | `public, max-age=31536000, immutable` | Content-hashed fonts                                   |
-| `/assets/audio/*`, `/assets/audio_end/*`, `/assets/pwa/*` | `public, max-age=31536000, immutable` | Versioned static assets                                |
-| `/assets/js/*`                                            | `no-cache`                            | Safe fallback when a bundle is served from Pages       |
-| `/`, `/index.html`                                        | `no-cache`                            | HTML must revalidate before selecting an asset package |
-| `/HVChYlYloJ.txt`                                         | `no-cache, no-store, must-revalidate` | WeChat domain verification                             |
+| Path                                 | Cache-Control                         | Reason                                                         |
+| ------------------------------------ | ------------------------------------- | -------------------------------------------------------------- |
+| `/assets/*`                          | `public, max-age=31536000, immutable` | Vite output, content-hashed (preview builds serve it on Pages) |
+| `/`, `/index.html`, `/manifest.json` | `no-cache`                            | HTML must revalidate before selecting an asset package         |
+| `/HVChYlYloJ.txt`                    | `no-cache, no-store, must-revalidate` | WeChat domain verification                                     |
+| Everything else (including `/pwa/*`) | Pages default (revalidates)           | Fixed filenames that can change in place                       |
 
 The same file sets `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy` response headers.
 
