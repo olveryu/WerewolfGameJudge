@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { Easing, withSequence, withTiming } from '@/scene/timeline';
 
 import { graphicsLayer } from '../pixi/kit';
-import { type ArtBuilder, useFrameArt, usePixiLayer } from '../pixiLayer';
+import { type ArtBuilder, useFrameArt } from '../pixiLayer';
 import { useSharedValue, useViewportSize } from '../runtime';
 
 const PARTICLE_COUNT = 16;
@@ -29,7 +29,6 @@ export function RevealBurst({ trigger, ...props }: RevealBurstProps) {
 }
 
 function Burst({ zIndex, color = '#FFD700', centerX, centerY }: Omit<RevealBurstProps, 'trigger'>) {
-  const layer = usePixiLayer(zIndex);
   const { width, height } = useViewportSize();
   const ringScale = useSharedValue(0);
   const ringOpacity = useSharedValue(0);
@@ -76,6 +75,6 @@ function Burst({ zIndex, color = '#FFD700', centerX, centerY }: Omit<RevealBurst
       }
     };
   };
-  useFrameArt(layer, build);
+  useFrameArt({ zIndex }, build);
   return null;
 }

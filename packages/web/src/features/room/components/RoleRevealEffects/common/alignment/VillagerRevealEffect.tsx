@@ -7,7 +7,6 @@ import { graphicsLayer, radialGradient } from '../../pixi/kit';
 import { drawSparkle } from '../../pixi/sparkle';
 import { type ArtBuilder, useFrameArt } from '../../pixiLayer';
 import { useSharedValue } from '../../runtime';
-import { useCanvasLayer } from '../useCanvasLayer';
 import type { AlignmentEffectProps } from './types';
 
 const AE = CONFIG.alignmentEffects;
@@ -59,7 +58,6 @@ function fireflyAlpha(t: number): number {
 
 /** Villager reveal: warm glow, a soft flash, shield ripples, twinkling stars and fireflies. */
 export function VillagerRevealEffect({ rect, zIndex, theme }: AlignmentEffectProps) {
-  const canvas = useCanvasLayer(zIndex, rect);
   const progress = useSharedValue(0);
   const appear = useSharedValue(0);
   const glowIntensity = useSharedValue(0);
@@ -177,6 +175,6 @@ export function VillagerRevealEffect({ rect, zIndex, theme }: AlignmentEffectPro
       }
     };
   };
-  useFrameArt(canvas, build);
+  useFrameArt({ zIndex, rect }, build);
   return null;
 }

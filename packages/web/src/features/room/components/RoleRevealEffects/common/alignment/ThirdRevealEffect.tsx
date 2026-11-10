@@ -6,7 +6,6 @@ import { CONFIG } from '../../config';
 import { graphicsLayer, radialGradient } from '../../pixi/kit';
 import { type ArtBuilder, useFrameArt } from '../../pixiLayer';
 import { useSharedValue } from '../../runtime';
-import { useCanvasLayer } from '../useCanvasLayer';
 import type { AlignmentEffectProps } from './types';
 
 const AE = CONFIG.alignmentEffects;
@@ -62,7 +61,6 @@ function drawRuneRing(
 
 /** Third-party reveal: violet glow, lightning arcs, counter-rotating rune rings, a pulsing core. */
 export function ThirdRevealEffect({ rect, zIndex, theme }: AlignmentEffectProps) {
-  const canvas = useCanvasLayer(zIndex, rect);
   const appear = useSharedValue(0);
   const glowIntensity = useSharedValue(0);
   const progress = useSharedValue(0);
@@ -206,6 +204,6 @@ export function ThirdRevealEffect({ rect, zIndex, theme }: AlignmentEffectProps)
       }
     };
   };
-  useFrameArt(canvas, build);
+  useFrameArt({ zIndex, rect }, build);
   return null;
 }

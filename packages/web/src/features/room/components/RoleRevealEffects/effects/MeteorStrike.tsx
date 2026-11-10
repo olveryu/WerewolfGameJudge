@@ -12,8 +12,8 @@ import { REVEAL_PIXI_LAYER } from '../common/layers';
 import { RevealedCard } from '../common/RevealedCard';
 import { CONFIG } from '../config';
 import { useAutoTimeout, useRevealLifecycle } from '../hooks/useRevealLifecycle';
-import { graphicsLayer } from '../pixi/kit';
-import { type ArtBuilder, useFrameArt, usePixiLayer } from '../pixiLayer';
+import { graphicsLayer, shapeRadialGradient } from '../pixi/kit';
+import { type ArtBuilder, useFrameArt } from '../pixiLayer';
 import {
   type RevealScene,
   SharedValue,
@@ -258,9 +258,9 @@ export default function MeteorStrike({
     if (Math.hypot(dx, dy) < MS.catchRadius) triggerImpact();
   };
 
-  const layer = usePixiLayer(REVEAL_PIXI_LAYER.effect);
-  const build: ArtBuilder = (root) => {
+  const build: ArtBuilder = (root, own) => {
     const stars = createStars(screenWidth, screenHeight);
+    const meteorHaloFill = own(shapeRadialGradient([COLORS.meteorGlow, COLORS.meteorTrailFade]));
     const art = graphicsLayer(root);
     const starDots = graphicsLayer(art);
     const trailCores = graphicsLayer(art, { blur: 3 });
@@ -300,11 +300,7 @@ export default function MeteorStrike({
       meteorCore.clear();
       meteorInner.clear();
       if (headAlpha > 0) {
-        // The old glow gradient ran from (0,0) to (50,50) in canvas space, so past that corner it
-        // is its clamped end color.
-        meteorHalo
-          .circle(headX, headY, 35)
-          .fill({ color: COLORS.meteorTrailFade, alpha: headAlpha * 0.6 });
+        meteorHalo.circle(headX, headY, 35).fill({ fill: meteorHaloFill, alpha: headAlpha * 0.6 });
         meteorCore.circle(headX, headY, 5).fill({ color: COLORS.meteorCore, alpha: headAlpha });
         meteorInner.circle(headX, headY, 12).fill({ color: COLORS.meteorGlow, alpha: headAlpha });
       }
@@ -350,7 +346,7 @@ export default function MeteorStrike({
       }
     };
   };
-  useFrameArt(layer, build);
+  useFrameArt({ zIndex: REVEAL_PIXI_LAYER.effect }, build);
 
   const hintText =
     phase === 'atmosphere'

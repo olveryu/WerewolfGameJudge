@@ -7,7 +7,6 @@ import { graphicsLayer, radialGradient } from '../../pixi/kit';
 import { type ArtBuilder, useFrameArt } from '../../pixiLayer';
 import { useSharedValue, useViewportSize } from '../../runtime';
 import type { ViewRect } from '../useAnchorRect';
-import { useCanvasLayer } from '../useCanvasLayer';
 
 const AE = CONFIG.alignmentEffects;
 const SK = CONFIG.skia;
@@ -40,7 +39,6 @@ export function ScreenFlash({
   centerY,
   delay,
 }: ScreenFlashProps) {
-  const canvas = useCanvasLayer(zIndex, rect);
   const progress = useSharedValue(0);
   const { width: screenWidth } = useViewportSize();
 
@@ -83,6 +81,6 @@ export function ScreenFlash({
       }
     };
   };
-  useFrameArt(canvas, build);
+  useFrameArt({ zIndex, rect }, build);
   return null;
 }

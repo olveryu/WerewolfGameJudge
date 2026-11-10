@@ -15,7 +15,7 @@ import { RevealedCard } from '../common/RevealedCard';
 import { CONFIG } from '../config';
 import { useAutoTimeout, useRevealLifecycle } from '../hooks/useRevealLifecycle';
 import { graphicsLayer, groupLayer, radialGradient } from '../pixi/kit';
-import { type ArtBuilder, useFrameArt, usePixiLayer } from '../pixiLayer';
+import { type ArtBuilder, useFrameArt } from '../pixiLayer';
 import { useFrameStyle, useRevealCardSize, useSharedValue, useViewportSize } from '../runtime';
 import { ALIGNMENT_THEMES } from '../themes';
 import type { RevealEffectProps } from '../types';
@@ -284,7 +284,6 @@ export default function FortuneWheel({
     transform: `scale(${cardScale.get()})`,
   }));
 
-  const layer = usePixiLayer(REVEAL_PIXI_LAYER.effect);
   const build: ArtBuilder = (root, own) => {
     if (!reducedMotion) {
       const stars = graphicsLayer(root, { blur: 4, screen: true });
@@ -386,7 +385,7 @@ export default function FortuneWheel({
       flash.alpha = flashOpacity.get();
     };
   };
-  useFrameArt(layer, build);
+  useFrameArt({ zIndex: REVEAL_PIXI_LAYER.effect }, build);
 
   const hintText =
     phase === 'appear'

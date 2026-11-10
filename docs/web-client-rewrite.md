@@ -130,6 +130,7 @@ flowchart TB
   - A：头像也画进场景层，层级完全可控，但图片要带 CORS 头才能作为 WebGL 纹理（R2 头像和 CDN 资源都要确认；分享截图也有同样的要求，见 §5.8）。
   - B：场景层整体盖在 DOM 头像之上，原来在头像后面的效果改为环绕头像并遮罩头像区域。
 - 运动来源：直接复用 loopMotion 的 sampler（`(t, size) => geometry` 纯函数），每帧驱动精灵变换，不再编译 CSS keyframes。
+- 翻牌特效同时有 Pixi 画面和 DOM（卡面、文字、按钮），两者用同一个时钟：舞台 ticker 每帧推进 `RevealScene`，共享值、Pixi 重绘和 DOM 的 `transform` / `opacity` 写入都读这一帧的时间（`RoleRevealEffects/runtime.ts`）。不用 Web Animations，因为 WAAPI 的文档时间线和 Pixi ticker 是两个时钟，卡面会和画布特效错帧；单一时钟也让假时钟能逐帧驱动截图。代价是这些 DOM 写入在主线程执行，所以只写合成属性（`transform`、`opacity`），不触发布局。每块画面由挂载它的 Effect 创建图层并在卸载时销毁（`useFrameArt`）。
 - 系统 reduced-motion 开启或"座位装饰"开关关闭时，不创建常驻装饰。
 
 ### 5.4 界面框架（D0，已定）
@@ -254,7 +255,7 @@ flowchart TB
 | 入座动画 `seatAnimations`    | 38 个组件，5,022 行        | Reanimated + SVG           | PixiJS 时间线                          |
 | 宠物 `seatPets`              | 15 个组件，1,934 行        | SVG + loopMotion           | 图集 + sampler                         |
 | 名字样式 `nameStyles`        | 1 个数据驱动组件，1,285 行 | RN 文本样式                | 留在 DOM，用 CSS 实现                  |
-| 翻牌特效 `RoleRevealEffects` | 14 种 + 阵营通用特效       | 主要是 Skia                | PixiJS                                 |
+| 翻牌特效 `RoleRevealEffects` | 14 种 + 阵营通用特效       | 主要是 Skia                | PixiJS + DOM，同一时钟（§5.3）         |
 | 扭蛋机 `CapsuleMachine`      | 1                          | Skia                       | PixiJS                                 |
 | 画板 `DrawingCanvas`         | 1                          | Skia                       | Canvas 2D（`toBlob` 导出 PNG）         |
 

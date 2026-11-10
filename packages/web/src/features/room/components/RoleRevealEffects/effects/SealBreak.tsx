@@ -47,6 +47,7 @@ const COLORS = {
   chargeGlow: 'rgba(255, 200, 50, 0.4)',
   fogColor: 'rgba(20, 10, 30, 0.6)',
   emberCore: '#FF6B00',
+  emberGlow: 'rgba(255, 107, 0, 0.4)',
   energyBeam: 'rgba(255, 215, 0, 0.5)',
   ancientText: 'rgba(180, 160, 120, 0.4)',
   waxDrip: '#6B1010',
@@ -405,12 +406,11 @@ function ChargeArt({
           opacity={0}
         >
           <circle cx={ember.startX} cy={ember.startY} r={ember.size} fill={COLORS.emberCore} />
-          {/* The old Skia glow circle had no color, so it drew Skia's default black. */}
           <circle
             cx={ember.startX}
             cy={ember.startY}
             r={ember.size * 2}
-            fill="#000000"
+            fill={COLORS.emberGlow}
             filter={`url(#${id}-ember)`}
           />
         </g>

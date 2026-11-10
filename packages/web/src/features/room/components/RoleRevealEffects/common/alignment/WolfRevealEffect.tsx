@@ -7,7 +7,6 @@ import { CONFIG } from '../../config';
 import { graphicsLayer, radialGradient, shapeRadialGradient } from '../../pixi/kit';
 import { type ArtBuilder, useFrameArt } from '../../pixiLayer';
 import { useSharedValue } from '../../runtime';
-import { useCanvasLayer } from '../useCanvasLayer';
 import type { AlignmentEffectProps } from './types';
 
 const AE = CONFIG.alignmentEffects;
@@ -70,7 +69,6 @@ function bloodDropOpacity(p: number): number {
 
 /** Werewolf reveal: red glow, drifting fog, dripping blood, glowing eyes, shock rings, sparks. */
 export function WolfRevealEffect({ rect, zIndex, theme }: AlignmentEffectProps) {
-  const canvas = useCanvasLayer(zIndex, rect);
   const progress = useSharedValue(0);
   const glowIntensity = useSharedValue(0);
   const fogDrift = useSharedValue(0);
@@ -225,6 +223,6 @@ export function WolfRevealEffect({ rect, zIndex, theme }: AlignmentEffectProps) 
       }
     };
   };
-  useFrameArt(canvas, build);
+  useFrameArt({ zIndex, rect }, build);
   return null;
 }

@@ -2,30 +2,11 @@
  * Pixi layers on the reveal overlay root. Only effect chunks import this module, so PixiJS
  * reaches the reveal through the effects' lazy chunks, never through the animator.
  */
-import { Container } from 'pixi.js';
-import { useEffect, useState } from 'react';
+import { Container, Graphics } from 'pixi.js';
+import { useEffect } from 'react';
 
+import type { ViewRect } from './common/useAnchorRect';
 import { useRevealScene } from './runtime';
-
-/**
- * A Pixi container on the overlay root at `zIndex` (mount order breaks ties), removed on unmount
- * and destroyed unless remounted in the same task (StrictMode replays effects). Layers sit in
- * viewport CSS pixels.
- */
-export function usePixiLayer(zIndex: number): Container {
-  const scene = useRevealScene();
-  const [layer] = useState(() => new Container({ zIndex }));
-  useEffect(() => {
-    scene.root.addChild(layer);
-    return () => {
-      scene.root.removeChild(layer);
-      queueMicrotask(() => {
-        if (!layer.parent && !layer.destroyed) layer.destroy({ children: true });
-      });
-    };
-  }, [scene, layer]);
-  return layer;
-}
 
 interface Disposable {
   destroy(): void;
@@ -40,16 +21,32 @@ export type ArtBuilder = (
   own: <T extends Disposable>(resource: T) => T,
 ) => FrameDraw;
 
+/** Where a piece of art sits on the overlay root, in viewport CSS pixels. */
+export interface ArtPlacement {
+  /** Stacking among the overlay's layers; mount order breaks ties. */
+  readonly zIndex: number;
+  /** The art draws in this rect's own coordinates, clipped to it; the whole viewport if absent. */
+  readonly rect?: ViewRect;
+}
+
 /**
- * Builds Pixi art into `parent` and redraws it every frame until unmount or until `build`
- * changes, then destroys it. A null `parent` draws nothing.
+ * Builds Pixi art in a layer of its own on the overlay root and redraws it every frame. The
+ * effect owns the layer: it creates it, and destroys it with every resource passed through `own`
+ * on unmount or when the placement or `build` changes.
  */
-export function useFrameArt(parent: Container | null, build: ArtBuilder): void {
+export function useFrameArt({ zIndex, rect }: ArtPlacement, build: ArtBuilder): void {
   const scene = useRevealScene();
   useEffect(() => {
-    if (!parent) return;
+    const layer = new Container({ zIndex });
+    if (rect) {
+      layer.position.set(rect.x, rect.y);
+      const clip = new Graphics().rect(0, 0, rect.width, rect.height).fill(0xffffff);
+      layer.addChild(clip);
+      layer.mask = clip;
+    }
     const root = new Container();
-    parent.addChild(root);
+    layer.addChild(root);
+    scene.root.addChild(layer);
     const resources: Disposable[] = [];
     const draw = build(root, (resource) => {
       resources.push(resource);
@@ -59,9 +56,9 @@ export function useFrameArt(parent: Container | null, build: ArtBuilder): void {
     const stop = scene.subscribe(draw);
     return () => {
       stop();
-      parent.removeChild(root);
-      root.destroy({ children: true });
+      scene.root.removeChild(layer);
+      layer.destroy({ children: true });
       for (const resource of resources) resource.destroy();
     };
-  }, [scene, parent, build]);
+  }, [scene, zIndex, rect, build]);
 }

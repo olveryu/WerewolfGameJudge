@@ -12,7 +12,7 @@ import { RevealedCard } from '../common/RevealedCard';
 import { CONFIG } from '../config';
 import { useAutoTimeout, useRevealLifecycle } from '../hooks/useRevealLifecycle';
 import { graphicsLayer, radialGradient } from '../pixi/kit';
-import { type ArtBuilder, useFrameArt, usePixiLayer } from '../pixiLayer';
+import { type ArtBuilder, useFrameArt } from '../pixiLayer';
 import { useFrameStyle, useRevealCardSize, useSharedValue, useViewportSize } from '../runtime';
 import { ALIGNMENT_THEMES } from '../themes';
 import type { RevealEffectProps } from '../types';
@@ -203,7 +203,6 @@ export default function VortexCollapse({
     transform: `scale(${cardScale.get()})`,
   }));
 
-  const layer = usePixiLayer(REVEAL_PIXI_LAYER.effect);
   const build: ArtBuilder = (root, own) => {
     const vortex = vortexRef.current;
     const art = graphicsLayer(root);
@@ -360,7 +359,7 @@ export default function VortexCollapse({
       }
     };
   };
-  useFrameArt(layer, build);
+  useFrameArt({ zIndex: REVEAL_PIXI_LAYER.effect }, build);
 
   const hintText =
     phase === 'atmosphere'

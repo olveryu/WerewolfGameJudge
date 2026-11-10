@@ -7,7 +7,6 @@ import { blurFilter, graphicsLayer, setBlurSigma } from '../../pixi/kit';
 import { type ArtBuilder, useFrameArt } from '../../pixiLayer';
 import { useSharedValue } from '../../runtime';
 import type { ViewRect } from '../useAnchorRect';
-import { useCanvasLayer } from '../useCanvasLayer';
 
 const { common, alignmentEffects, skia: SK } = CONFIG;
 
@@ -46,7 +45,6 @@ export function BreathingBorder({
     }),
     [rect, padding],
   );
-  const canvas = useCanvasLayer(zIndex, canvasRect);
   const breathe = useSharedValue(1);
   const runner = useSharedValue(0);
 
@@ -113,6 +111,6 @@ export function BreathingBorder({
       }
     };
   };
-  useFrameArt(canvas, build);
+  useFrameArt({ zIndex, rect: canvasRect }, build);
   return null;
 }

@@ -19,7 +19,6 @@ import { RevealBurst } from '../common/RevealBurst';
 import { RevealCardFace } from '../common/RevealCardFace';
 import { RevealFinale } from '../common/RevealedCard';
 import { useAnchorRect, type ViewRect } from '../common/useAnchorRect';
-import { useCanvasLayer } from '../common/useCanvasLayer';
 import { CONFIG } from '../config';
 import { useAutoTimeout, useRevealLifecycle } from '../hooks/useRevealLifecycle';
 import { linearGradient } from '../pixi/kit';
@@ -134,7 +133,6 @@ function CoatingArt({
   brushRadius,
   sheenPosition,
 }: Omit<ScratchCoatingProps, 'anchorRef'> & { readonly rect: ViewRect }) {
-  const layer = useCanvasLayer(REVEAL_PIXI_LAYER.effect, rect);
   const { width, height } = rect;
 
   const build: ArtBuilder = (root, own) => {
@@ -211,7 +209,7 @@ function CoatingArt({
       }
     };
   };
-  useFrameArt(layer, build);
+  useFrameArt({ zIndex: REVEAL_PIXI_LAYER.effect, rect }, build);
   return null;
 }
 

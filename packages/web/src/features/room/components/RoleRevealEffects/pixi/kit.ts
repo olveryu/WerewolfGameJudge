@@ -1,6 +1,6 @@
 /**
  * Pixi helpers for porting the old Skia layers: Gaussian blur by Skia sigma, gradient fills and
- * canvas-rect clipping.
+ * group layers.
  */
 import { BlurFilter, type Container, FillGradient, Graphics } from 'pixi.js';
 
@@ -147,22 +147,4 @@ export function groupLayer<T extends Container>(
 /** A redrawn-per-frame `Graphics` added to `parent` as one Skia group. */
 export function graphicsLayer(parent: Container, options: LayerOptions = {}): Graphics {
   return groupLayer(parent, new Graphics(), options);
-}
-
-/** Clips `container` to a rectangle, as each old Skia `<Canvas>` clipped to its bounds. */
-export function clipToRect(
-  container: Container,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-): void {
-  const previous = container.mask;
-  if (previous instanceof Graphics) {
-    container.mask = null;
-    previous.destroy();
-  }
-  const mask = new Graphics().rect(x, y, width, height).fill(0xffffff);
-  container.addChild(mask);
-  container.mask = mask;
 }
