@@ -55,8 +55,8 @@ import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSourc
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import {
-  buildReviewBottomButton,
   buildReviewHostAction,
+  buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -300,11 +300,13 @@ export function createDemoRoomShellModel(input: DemoRoomShellModelInput): RoomSh
           ? buildEndedWaitingMessage({ isEnded: true, viewer: input.viewer })
           : buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
       progress: null,
-      // 本局复盘对每位观看者（含观战）开放：有复盘即在次级档。
+      // 本局复盘对玩家与观战开放（次级档）；房主从任务卡进入。
       layout: {
         primary: [],
         secondary:
-          input.review === null ? [] : [buildReviewBottomButton(input.review, 'secondary')],
+          input.review === null
+            ? []
+            : buildViewerReviewBottomButtons(input.review, 'secondary', input.viewer),
         ghost: [],
       },
     },

@@ -9,6 +9,7 @@ import { TESTIDS } from '@/testids';
 import { HOST_ACTION_KEYS } from '../model/hostManagementActions';
 import type { RoomBottomButton } from '../model/RoomBottomActions';
 import type { RoomHostManagementAction } from '../model/RoomHostManagement';
+import type { RoomViewer } from '../model/RoomViewer';
 import { REVIEW_TITLE } from './reviewCopy';
 
 const REVIEW_ICON = 'document-text-outline';
@@ -37,6 +38,19 @@ export function buildReviewBottomButton(
     testID: TESTIDS.roomReviewOpenButton,
     ...entry,
   };
+}
+
+/**
+ * The review on the bottom panel for seats and spectators. The host reaches
+ * the review through the host task card, and the bottom panel carries no
+ * host flow, so the host gets no bottom review button.
+ */
+export function buildViewerReviewBottomButtons(
+  entry: RoomReviewEntry,
+  variant: RoomBottomButton['variant'],
+  viewer: Pick<RoomViewer, 'isHost'>,
+): readonly RoomBottomButton[] {
+  return viewer.isHost ? [] : [buildReviewBottomButton(entry, variant)];
 }
 
 /** The review as a host sheet action, referenced by host tasks through `HOST_ACTION_KEYS.review`. */

@@ -16,7 +16,7 @@ import {
 } from '@/features/room/model/RoomBottomActions';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import {
-  buildReviewBottomButton,
+  buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 
@@ -112,7 +112,8 @@ export function createUndercoverBottomActions(
   if (state.phase === 'ended' && review === null) {
     throw new Error('[FAIL-FAST] Undercover ended round has no review entry');
   }
-  if (review !== null) secondary.push(buildReviewBottomButton(review, 'secondary'));
+  if (review !== null)
+    secondary.push(...buildViewerReviewBottomButtons(review, 'secondary', viewer));
   return {
     kind: 'stacked',
     message: resolveUndercoverBottomMessage(controls, state, viewer, cardLabel),

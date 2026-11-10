@@ -44,9 +44,10 @@ import type { RoomHostManagementAction } from '@/features/room/model/RoomHostMan
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import {
-  buildReviewBottomButton,
   buildReviewHostAction,
+  buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -240,15 +241,16 @@ export function createDrawGuessHostManagement(
   };
 }
 
-/** Ended: every viewer, spectators included, opens the review from the bottom panel. */
+/** Ended: seats and spectators open the review from the bottom panel; the host from the task card. */
 function createDrawGuessBottomLayout(
   state: DrawGuessState,
   review: RoomReviewEntry | null,
+  viewer: RoomViewer,
 ): RoomBottomActionLayout {
   return state.phase.kind === 'ended'
     ? {
         primary: [],
-        secondary: [buildReviewBottomButton(requireEndedReview(review), 'secondary')],
+        secondary: buildViewerReviewBottomButtons(requireEndedReview(review), 'secondary', viewer),
         ghost: [],
       }
     : { primary: [], secondary: [], ghost: [] };
@@ -285,7 +287,7 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
           ? '等待本轮结算'
           : buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
       progress: null,
-      layout: createDrawGuessBottomLayout(state, input.review),
+      layout: createDrawGuessBottomLayout(state, input.review, input.viewer),
     },
     controlledSeat: createControlledSeatModel({
       controlledSeat: input.controlledSeat,

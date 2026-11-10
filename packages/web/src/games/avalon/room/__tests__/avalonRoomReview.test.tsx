@@ -1,7 +1,8 @@
 /**
  * The Avalon room renders the shared review: while the game runs there is
- * no entry; once it ended, the bottom 本局复盘 entry opens the platform
- * dialog on the Avalon document, and its close button dismisses it.
+ * no entry; once it ended, a seat's bottom 本局复盘 entry and the host's
+ * task card entry (its only one) open the platform dialog on the Avalon
+ * document, and its close button dismisses it.
  * States come from the real engine; the session is a fake link.
  */
 
@@ -20,9 +21,11 @@ import {
   AvalonRoomTestProviders,
 } from './harness/avalonRoomScreenHarness';
 
+const authUser = vi.hoisted(() => ({ id: '' }));
+
 vi.mock('@/contexts/AuthContext', () => ({
   useAuthContext: () => ({
-    user: { id: 'host-1', avatarUrl: null, equippedEffect: null },
+    user: { id: authUser.id, avatarUrl: null, equippedEffect: null },
     loading: false,
   }),
 }));
@@ -47,35 +50,47 @@ const ROOM: RoomRecord<'avalon'> = {
   createdAt: new Date(0),
 };
 
-function renderRoom(state: AvalonState) {
+function renderRoom(state: AvalonState, viewerUserId: string) {
+  authUser.id = viewerUserId;
   const session = createFakeRoomLink<AvalonState, AvalonPublicCommand>(
-    readyLinkSnapshot({ room: ROOM, userId: avalonTestSeatUser(0) }, createRoomSnapshot(state, 1)),
+    readyLinkSnapshot({ room: ROOM, userId: viewerUserId }, createRoomSnapshot(state, 1)),
     async () => successfulRoomCommand(state),
   );
   return render(avalonRoomScreenElement(ROOM, session), { wrapper: AvalonRoomTestProviders });
 }
 
+function expectAvalonReviewDialog() {
+  const dialog = within(screen.getByTestId(TESTIDS.roomReviewDialog));
+  expect(dialog.getByText('🏰 第 1 局 · 终局')).toBeTruthy();
+  expect(dialog.getByText('坏人获胜')).toBeTruthy();
+  expect(dialog.getByText('三个任务失败')).toBeTruthy();
+  for (const title of ['全员身份', '本局配置', '任务进程']) {
+    expect(dialog.getByText(title)).toBeTruthy();
+  }
+  expect(dialog.getByText('P3')).toBeTruthy();
+  expect(dialog.queryByText('湖仙查验')).toBeNull();
+}
+
 describe('AvalonRoomScreen review', () => {
   it('offers no review while the game runs', () => {
-    renderRoom(playAvalonTestGame(1));
+    renderRoom(playAvalonTestGame(1), avalonTestSeatUser(0));
     expect(screen.queryByTestId(TESTIDS.roomReviewOpenButton)).toBeNull();
   });
 
-  it('opens the shared dialog on the Avalon document from the ended bottom entry', () => {
-    renderRoom(playAvalonTestGame(3));
+  it('opens the shared dialog on the Avalon document from a seat bottom entry', () => {
+    renderRoom(playAvalonTestGame(3), avalonTestSeatUser(1));
     fireEvent.click(screen.getByTestId(TESTIDS.roomReviewOpenButton));
-
-    const dialog = within(screen.getByTestId(TESTIDS.roomReviewDialog));
-    expect(dialog.getByText('🏰 第 1 局 · 终局')).toBeTruthy();
-    expect(dialog.getByText('坏人获胜')).toBeTruthy();
-    expect(dialog.getByText('三个任务失败')).toBeTruthy();
-    for (const title of ['全员身份', '本局配置', '任务进程']) {
-      expect(dialog.getByText(title)).toBeTruthy();
-    }
-    expect(dialog.getByText('P3')).toBeTruthy();
-    expect(dialog.queryByText('湖仙查验')).toBeNull();
+    expectAvalonReviewDialog();
 
     fireEvent.click(screen.getByLabelText('关闭详情'));
     expect(screen.queryByTestId(TESTIDS.roomReviewDialog)).toBeNull();
+  });
+
+  it('gives the ended host exactly one review entry, on the host task card', () => {
+    renderRoom(playAvalonTestGame(3), avalonTestSeatUser(0));
+    expect(screen.getAllByRole('button', { name: '本局复盘' })).toHaveLength(1);
+    expect(screen.queryByTestId(TESTIDS.roomReviewOpenButton)).toBeNull();
+    fireEvent.click(screen.getByTestId(`${TESTIDS.roomHostTaskCard}-review`));
+    expectAvalonReviewDialog();
   });
 });

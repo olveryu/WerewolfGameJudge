@@ -377,11 +377,11 @@ describe('FibKing room adapter', () => {
     });
   });
 
-  it('keeps the public result beside the review for every reader once the answer is out', () => {
+  it('keeps the public result beside the review once the answer is out; the host review is on the task card', () => {
     const ended = { ...createOngoing(), phase: 'ended' as const };
     const review = reviewEntryFor(ended);
+    const viewResult = { label: '查看结果', testID: TESTIDS.fibViewResultButton, isEnabled: true };
     for (const viewer of [
-      { isHost: true, viewerSeat: 0 },
       { isHost: false, viewerSeat: 1 },
       { isHost: false, viewerSeat: null },
     ]) {
@@ -395,7 +395,7 @@ describe('FibKing room adapter', () => {
       expect(actions.layout).toMatchObject({
         primary: [],
         secondary: [
-          { label: '查看结果', testID: TESTIDS.fibViewResultButton, isEnabled: true },
+          viewResult,
           {
             key: 'review',
             label: '本局复盘',
@@ -408,6 +408,16 @@ describe('FibKing room adapter', () => {
         ghost: [],
       });
     }
+    const hostActions = createFibBottomActions({
+      state: ended,
+      isHost: true,
+      viewerSeat: 0,
+      openIdentity: vi.fn(),
+      isSubmitting: false,
+      review,
+    });
+    expect(hostActions.layout.secondary).toHaveLength(1);
+    expect(hostActions.layout.secondary[0]).toMatchObject(viewResult);
     expect(() =>
       createFibBottomActions({
         state: ended,

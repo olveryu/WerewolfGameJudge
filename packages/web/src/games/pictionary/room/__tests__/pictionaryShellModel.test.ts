@@ -242,29 +242,44 @@ describe('createPictionaryRoomShellModel', () => {
   it.each([
     ['ended', playPictionaryTestRound()],
     ['aborted', playPictionaryTestRound({ abortAtStep: 2 })],
-  ])('offers every viewer of an %s round the review as a secondary button', (_phase, state) => {
-    for (const audience of ['host', 'seated', 'spectator'] as const) {
-      const model = shellFor(state, viewerFor(audience, { hostUserId: 'host-1' }), ENABLED_REVIEW);
-      expect(model.bottomActions).toMatchObject({
-        kind: 'stacked',
-        message: null,
-        layout: {
-          primary: [],
-          secondary: [
-            {
-              key: 'review',
-              label: '本局复盘',
-              audience: 'anyone',
-              variant: 'secondary',
-              testID: 'room-review-open',
-              isEnabled: true,
-            },
-          ],
-          ghost: [],
-        },
+  ])(
+    'offers seats and spectators of an %s round the review as a secondary button',
+    (_phase, state) => {
+      for (const audience of ['seated', 'spectator'] as const) {
+        const model = shellFor(
+          state,
+          viewerFor(audience, { hostUserId: 'host-1' }),
+          ENABLED_REVIEW,
+        );
+        expect(model.bottomActions).toMatchObject({
+          kind: 'stacked',
+          message: null,
+          layout: {
+            primary: [],
+            secondary: [
+              {
+                key: 'review',
+                label: '本局复盘',
+                audience: 'anyone',
+                variant: 'secondary',
+                testID: 'room-review-open',
+                isEnabled: true,
+              },
+            ],
+            ghost: [],
+          },
+        });
+      }
+      const hostModel = shellFor(
+        state,
+        viewerFor('host', { hostUserId: 'host-1' }),
+        ENABLED_REVIEW,
+      );
+      expect(hostModel.bottomActions).toMatchObject({
+        layout: { primary: [], secondary: [], ghost: [] },
       });
-    }
-  });
+    },
+  );
 
   it('fails fast when a finished round reaches the bottom panel without its review entry', () => {
     expect(() =>

@@ -81,8 +81,8 @@ import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatT
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import {
-  buildReviewBottomButton,
   buildReviewHostAction,
+  buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -660,11 +660,11 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
       break;
     }
     case 'ended': {
-      // 终局结算只在本局复盘里；底部区只留复盘入口（玩家与观看者同款，
-      // 非 host 专属），再来一局 / 返回大厅仍是房主专属（主持管理里）。
+      // 终局结算只在本局复盘里；底部区只留复盘入口（玩家与观看者同款），
+      // 房主的复盘入口与再来一局 / 返回大厅并列在房主任务卡。
       const { review } = input;
       if (review === null) throw new Error('[FAIL-FAST] Avalon ended has no review entry');
-      secondary.push(buildReviewBottomButton(review, 'secondary'));
+      secondary.push(...buildViewerReviewBottomButtons(review, 'secondary', input.viewer));
       message = buildEndedWaitingMessage({ isEnded: true, viewer: input.viewer });
       break;
     }

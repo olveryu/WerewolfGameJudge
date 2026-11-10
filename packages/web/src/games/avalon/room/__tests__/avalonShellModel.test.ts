@@ -937,7 +937,7 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     expect(shellFor(running, 0, { review }).message).toBeNull();
   });
 
-  it('ended: every viewer gets the same review button in secondary', () => {
+  it('ended: a seat gets the review button in secondary; the host only on the task card', () => {
     const running = daytimeSession();
     for (let round = 0; round < 5 && running.state.phase.kind !== 'ended'; round += 1) {
       if (running.state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
@@ -968,21 +968,19 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     }
     if (running.state.phase.kind !== 'ended') throw new Error('expected ended phase');
     const openReview = vi.fn();
-    for (const seat of [0, 2]) {
-      const bottom = shellFor(running, seat, {
-        review: { isEnabled: true, onPress: openReview },
-      });
-      const review = findTierAction(bottom, 'secondary', 'review');
-      expect(review).toMatchObject({
-        label: '本局复盘',
-        audience: 'anyone',
-        variant: 'secondary',
-        isEnabled: true,
-        testID: 'room-review-open',
-      });
-      if (review && review.isEnabled) review.onPress();
-    }
-    expect(openReview).toHaveBeenCalledTimes(2);
+    const hostBottom = shellFor(running, 0, { review: { isEnabled: true, onPress: openReview } });
+    expect(findTierAction(hostBottom, 'secondary', 'review')).toBeUndefined();
+    const bottom = shellFor(running, 2, { review: { isEnabled: true, onPress: openReview } });
+    const review = findTierAction(bottom, 'secondary', 'review');
+    expect(review).toMatchObject({
+      label: '本局复盘',
+      audience: 'anyone',
+      variant: 'secondary',
+      isEnabled: true,
+      testID: 'room-review-open',
+    });
+    if (review && review.isEnabled) review.onPress();
+    expect(openReview).toHaveBeenCalledTimes(1);
     expect(() => shellFor(running, 2)).toThrow('[FAIL-FAST] Avalon ended has no review entry');
   });
 });

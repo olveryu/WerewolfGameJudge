@@ -1,7 +1,8 @@
 /**
  * createDrawGuessRoomShellModel characterization (AU-01): the assembled
  * model is pinned field by field from a real engine lobby state; the
- * ended panel offers the shared review to every viewer.
+ * ended panel offers the shared review to seats and spectators; the host
+ * reaches it through the task card only.
  */
 import {
   DEFAULT_DRAWGUESS_CONFIG,
@@ -149,12 +150,12 @@ describe('createDrawGuessRoomShellModel', () => {
 
     const endedModel = createDrawGuessRoomShellModel({
       roomCode: '1234',
-      viewer: { userId: 'host', isHost: true, seat: 0 },
+      viewer: { userId: 'u1', isHost: false, seat: 1 },
       capabilities: caps,
       onBack: vi.fn(),
       onTitlePress: vi.fn(),
       onTitleLongPress: vi.fn(),
-      user: { id: 'host', avatarUrl: null },
+      user: { id: 'u1', avatarUrl: null },
       gachaStatus: { normalDraws: 4, goldenDraws: 1 },
       onUserActionPress: vi.fn(),
       connection: {
@@ -373,6 +374,14 @@ describe('createDrawGuessRoomShellModel — ended review entry', () => {
       kind: 'stacked',
       message: null,
       layout: { primary: [], secondary: [{ key: 'review', audience: 'anyone' }], ghost: [] },
+    });
+  });
+
+  it('gives the host no bottom review: the host task card holds it', () => {
+    const model = endedShell(viewerFor('host'), { isEnabled: true, onPress: vi.fn() });
+    expect(model.bottomActions).toMatchObject({
+      kind: 'stacked',
+      layout: { primary: [], secondary: [], ghost: [] },
     });
   });
 

@@ -471,7 +471,11 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
       root,
       'packages/web/src/games/demoproto/room/demoprotoRoomAdapter.ts',
     );
-    assert.ok(adapterSource.includes(`buildReviewBottomButton(input.review, 'secondary')`));
+    assert.ok(
+      adapterSource.includes(
+        `buildViewerReviewBottomButtons(input.review, 'secondary', input.viewer)`,
+      ),
+    );
     assert.ok(adapterSource.includes('buildReviewHostAction(input.review)'));
     assert.ok(adapterSource.includes('hostReviewClosingTask()'));
     assert.ok(!adapterSource.includes('hostClosingTask('), 'ended task offers the review');

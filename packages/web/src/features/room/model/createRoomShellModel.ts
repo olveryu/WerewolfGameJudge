@@ -9,7 +9,7 @@
  */
 
 import { buildRoomHeaderModel, type BuildRoomHeaderModelInput } from './buildRoomHeaderModel';
-import { resolveHostTaskView } from './resolveHostTaskView';
+import { resolveHostTaskView, type RoomHostTaskBody } from './resolveHostTaskView';
 import type { RoomBottomActionModel, RoomBottomButtonAudience } from './RoomBottomActions';
 import type { RoomHostManagementModel } from './RoomHostManagement';
 import type { RoomSeatDataSource } from './RoomSeatDataSource';
@@ -72,6 +72,34 @@ function assertBottomActionAudiences(
   }
 }
 
+function hostTaskActionKeys(taskBody: RoomHostTaskBody): readonly string[] {
+  switch (taskBody.kind) {
+    case 'ready':
+    case 'blocked':
+      return [taskBody.action.key];
+    case 'choice':
+      return taskBody.actions.map((action) => action.key);
+    case 'message':
+      return taskBody.escape === null ? [] : [taskBody.escape.key];
+  }
+}
+
+/**
+ * The bottom panel carries no host flow: an action the host task card
+ * renders must not also stand on the bottom panel, or the host sees it twice.
+ */
+function assertBottomActionsOutsideHostTask(
+  taskBody: RoomHostTaskBody,
+  bottomActions: RoomBottomActionModel,
+): void {
+  const taskActionKeys = new Set(hostTaskActionKeys(taskBody));
+  for (const button of collectBottomButtons(bottomActions)) {
+    if (taskActionKeys.has(button.key)) {
+      throw new Error(`Bottom action "${button.key}" duplicates the host task card`);
+    }
+  }
+}
+
 /** Project explicit shell inputs; game-owned fields are never copied into the public model. */
 export function createRoomShellModel(
   input: RoomShellModelInput | RoomShellModelWithHeaderInput,
@@ -83,7 +111,9 @@ export function createRoomShellModel(
   );
   const hostManagement = input.viewer.isHost ? input.buildHostManagement() : null;
   // Validate task references at assembly so a dangling key fails here, not in render.
-  if (hostManagement !== null) resolveHostTaskView(hostManagement);
+  const hostTaskView = hostManagement === null ? null : resolveHostTaskView(hostManagement);
+  if (hostTaskView !== null)
+    assertBottomActionsOutsideHostTask(hostTaskView.body, input.bottomActions);
   return {
     roomCode: input.roomCode,
     viewer: input.viewer,

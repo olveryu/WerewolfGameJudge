@@ -12,7 +12,7 @@ import type {
   RoomBottomStackModel,
 } from '../RoomBottomActions';
 import type { RoomCapabilities } from '../RoomCapabilities';
-import type { RoomHostManagementModel } from '../RoomHostManagement';
+import type { RoomHostManagementAction, RoomHostManagementModel } from '../RoomHostManagement';
 import type { RoomViewer } from '../RoomViewer';
 
 const deniedCapabilities: RoomCapabilities = {
@@ -187,6 +187,38 @@ describe('createRoomShellModel ownership', () => {
       ).toThrow('Host task action references action "missing" missing from the sheet');
       expect(() =>
         createRoomShellModel(input(viewerFor('seated'), { buildHostManagement: () => model })),
+      ).not.toThrow();
+    });
+
+    it('rejects a bottom button that repeats an action of the host task card', () => {
+      const sheetAction = (key: string): RoomHostManagementAction => ({
+        key,
+        label: key,
+        icon: 'document-text-outline',
+        variant: 'secondary',
+        isEnabled: true,
+        onPress: vi.fn(),
+      });
+      const model: RoomHostManagementModel = {
+        task: { kind: 'choice', actionKeys: ['review', 'next-round'] },
+        sections: [
+          {
+            key: 'flow',
+            title: 'flow',
+            actions: [sheetAction('review'), sheetAction('next-round')],
+          },
+        ],
+      };
+      const bottomActions = stacked(button('review', 'anyone'));
+      expect(() =>
+        createRoomShellModel(
+          input(viewerFor('host'), { bottomActions, buildHostManagement: () => model }),
+        ),
+      ).toThrow('Bottom action "review" duplicates the host task card');
+      expect(() =>
+        createRoomShellModel(
+          input(viewerFor('seated'), { bottomActions, buildHostManagement: () => model }),
+        ),
       ).not.toThrow();
     });
   });

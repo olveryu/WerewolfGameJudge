@@ -45,9 +45,10 @@ import type {
 } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import {
-  buildReviewBottomButton,
   buildReviewHostAction,
+  buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -121,16 +122,17 @@ function deriveStoryRelayBottomProgress(state: StoryRelayState): NightStepProgre
   };
 }
 
-/** The review entry of a finished round, open to every viewer; nothing before the round ends. */
+/** The review entry of a finished round for seats and spectators; the host uses the task card. */
 function createStoryRelayReviewButtons(
   state: StoryRelayState,
   review: RoomReviewEntry | null,
+  viewer: RoomViewer,
 ): readonly RoomBottomButton[] {
   if (state.phase !== 'ended' && state.phase !== 'aborted') return [];
   if (review === null) {
     throw new Error(`[FAIL-FAST] Story Relay ${state.phase} has no review entry`);
   }
-  return [buildReviewBottomButton(review, 'secondary')];
+  return buildViewerReviewBottomButtons(review, 'secondary', viewer);
 }
 
 export interface StoryRelayRoomShellModelInput extends Omit<
@@ -319,7 +321,7 @@ export function createStoryRelayRoomShellModel(
       progress: deriveStoryRelayBottomProgress(state),
       layout: {
         primary: [],
-        secondary: createStoryRelayReviewButtons(state, input.review),
+        secondary: createStoryRelayReviewButtons(state, input.review, input.viewer),
         ghost: [],
       },
     },

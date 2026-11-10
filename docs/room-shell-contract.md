@@ -216,7 +216,8 @@ no game re-derives it.
 | `hostManagement` (task card + sheet) | **Every host command, and only host commands.** Start / assign / begin gates, bot scaffolds, abort / restart, closing, room setup, post-game tools, host-owned local modes and their exits. | `viewer.isHost` only. Built lazily by `buildHostManagement`; `createRoomShellModel` calls it for the host and sets `null` otherwise. Games never write `if (!isHost) return null`.                                  |
 | `bottomActions` (stacked / dock)     | The viewer's **own** actions as a participant or spectator.                                                                                                                                 | Every button declares `audience: 'participant' \| 'anyone'`. `participant` requires an effective seat; `anyone` is open to spectators. There is no host audience: a host command never renders on the bottom panel. |
 
-`createRoomShellModel` checks every bottom button against the viewer and throws on a violation.
+`createRoomShellModel` checks every bottom button against the viewer and throws on a violation;
+it also throws when a bottom button repeats an action the host task card renders.
 A seated host receives both surfaces stacked: their own participant buttons, then the host
 card. They are never merged and the renderer never reads role.
 
@@ -310,9 +311,10 @@ Test anchors are stable: the task's action button carries `roomNextStepButton`, 
 | Pictionary / Story Relay, cannot abort  | `null`; the sheet stays present with abort disabled and its reason (the host panel is never hidden mid-game)                                                                                                                                |
 
 The bottom panel carries **no** host flow: no step bar, no hint, no host buttons. Werewolf's
-bottom host rules keep only the participant actions (view identity); the review stays a bottom
-`anyone` tool for seats and spectators — a seat the host has not granted sees it disabled with
-the reason — and reaches the host through the task card and sheet. The sheriff dock therefore
+bottom host rules keep only the participant actions (view identity). In every game the review
+stays a bottom `anyone` tool for seats and spectators — a Werewolf seat the host has not granted
+sees it disabled with the reason — and reaches the host only through the task card and sheet.
+The sheriff dock therefore
 has no trailing review tool for the host.
 
 #### Review （本局复盘）
@@ -323,8 +325,9 @@ platform: the game turns state into a declarative `RoomReviewDocument` (closed b
 vocabulary; the game writes every fact, the platform owns the review title, share title and
 generated-by footer in `reviewCopy.ts`); `useRoomReview` resolves it for the viewer and
 returns the entry, `open`, `shareAll` and the overlay (dialog, hidden export stage, share
-progress). Surfaces render the entry only through `buildReviewBottomButton` (audience `anyone`)
-and `buildReviewHostAction` (sheet key `review`); a game never writes review JSX, a share
+progress). Surfaces render the entry only through `buildReviewBottomButton` (audience `anyone`;
+non-Werewolf games reach it through `buildViewerReviewBottomButtons`, which omits it for the
+host) and `buildReviewHostAction` (sheet key `review`); a game never writes review JSX, a share
 pipeline, or its own export dialog. Availability is the game's: `notEnded` renders no entry,
 `notPermitted` renders it disabled with the reason, `available` carries the document, whether
 the viewer may export it, and an optional confirmation before opening. The dialog prints the

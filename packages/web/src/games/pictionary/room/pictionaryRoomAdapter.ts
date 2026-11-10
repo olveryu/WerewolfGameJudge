@@ -52,8 +52,8 @@ import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatT
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import {
-  buildReviewBottomButton,
   buildReviewHostAction,
+  buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -139,16 +139,17 @@ export function derivePictionaryBottomProgress(state: PictionaryState): NightSte
   }
 }
 
-/** The review entry of a finished round, open to every viewer; nothing before the round ends. */
+/** The review entry of a finished round for seats and spectators; the host uses the task card. */
 function createPictionaryReviewButtons(
   state: PictionaryState,
   review: RoomReviewEntry | null,
+  viewer: RoomViewer,
 ): readonly RoomBottomButton[] {
   if (state.phase !== 'ended' && state.phase !== 'aborted') return [];
   if (review === null) {
     throw new Error(`[FAIL-FAST] Pictionary ${state.phase} has no review entry`);
   }
-  return [buildReviewBottomButton(review, 'secondary')];
+  return buildViewerReviewBottomButtons(review, 'secondary', viewer);
 }
 
 function createPictionaryBottomActions(
@@ -161,7 +162,11 @@ function createPictionaryBottomActions(
     kind: 'stacked',
     message,
     progress: derivePictionaryBottomProgress(state),
-    layout: { primary: [], secondary: createPictionaryReviewButtons(state, review), ghost: [] },
+    layout: {
+      primary: [],
+      secondary: createPictionaryReviewButtons(state, review, viewer),
+      ghost: [],
+    },
   };
 }
 

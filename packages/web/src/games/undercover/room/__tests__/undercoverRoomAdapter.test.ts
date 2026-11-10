@@ -381,7 +381,7 @@ it('requires confirmation to restart an active round and exposes restart in host
   ).toMatchObject({
     kind: 'stacked',
     message: '本局已中止',
-    layout: { primary: [], secondary: [{ key: 'review' }], ghost: [] },
+    layout: { primary: [], secondary: [], ghost: [] },
   });
   const capabilities = createUndercoverRoomCapabilities({
     state: aborted,
@@ -1054,7 +1054,7 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
     ).toBe('本局已中止');
   });
 
-  it('offers the review to every reader of a concluded round', () => {
+  it('offers the review to seats and spectators of a concluded round; the host uses the task card', () => {
     const ended = createEndedState();
     const review = reviewEntryFor(ended);
     const reviewButton = {
@@ -1066,7 +1066,6 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
       isEnabled: true,
     };
     for (const viewer of [
-      { userId: 'host', isHost: true, seat: 0 },
       { userId: 'u1', isHost: false, seat: 2 },
       { userId: 'visitor', isHost: false, seat: null },
     ]) {
@@ -1075,6 +1074,14 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
         layout: { primary: [], secondary: [reviewButton], ghost: [] },
       });
     }
+    expect(
+      createUndercoverBottomActions(
+        idleControls,
+        ended,
+        { userId: 'host', isHost: true, seat: 0 },
+        review,
+      ),
+    ).toMatchObject({ kind: 'stacked', layout: { primary: [], secondary: [], ghost: [] } });
 
     const ongoing = createOngoingState();
     const aborted = dispatch(ongoing, {

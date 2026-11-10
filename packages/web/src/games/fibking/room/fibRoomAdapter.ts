@@ -69,8 +69,8 @@ import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSourc
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import {
-  buildReviewBottomButton,
   buildReviewHostAction,
+  buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import { TESTIDS } from '@/testids';
@@ -562,7 +562,7 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
           TESTIDS.fibViewResultButton,
           input.openIdentity,
         ),
-        buildReviewBottomButton(input.review, 'secondary'),
+        ...buildViewerReviewBottomButtons(input.review, 'secondary', { isHost: input.isHost }),
       );
       break;
   }
