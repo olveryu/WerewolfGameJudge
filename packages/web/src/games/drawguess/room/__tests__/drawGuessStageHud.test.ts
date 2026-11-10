@@ -29,7 +29,10 @@ const NOW_MS = 1000;
  * A four-seat game: the host sits at `hostSeat` and bots fill the rest. The drawer queue runs in
  * seat order, so seat 0 draws first.
  */
-function playTo(hostSeat: number, target: 'lobby' | 'wordSelect' | 'drawing' | 'roundEnd') {
+function playTo(
+  hostSeat: number,
+  target: 'lobby' | 'dealing' | 'wordSelect' | 'drawing' | 'roundEnd',
+) {
   let commandNumber = 0;
   let nowMs = NOW_MS;
   let state: DrawGuessState = drawGuessEngine.createInitialState(
@@ -58,6 +61,7 @@ function playTo(hostSeat: number, target: 'lobby' | 'wordSelect' | 'drawing' | '
   asHost({ type: 'room.seat.fillBots' });
   if (target === 'lobby') return state;
   asHost({ type: 'drawguess.game.begin' });
+  if (target === 'dealing') return state;
   asSystem({
     type: 'drawguess.words.dealt',
     turnIndex: 0,
@@ -114,10 +118,18 @@ describe('createDrawGuessStageHud', () => {
     expect(createDrawGuessStageHud(hudInput(playTo(0, 'lobby')))).toBeNull();
   });
 
-  it('throws when an in-play phase has no remaining seconds', () => {
+  it('throws when a phase with a deadline has no remaining seconds', () => {
     expect(() =>
-      createDrawGuessStageHud(hudInput(playTo(0, 'wordSelect'), { remainingSeconds: null })),
-    ).toThrow('DrawGuess wordSelect stage has no remaining seconds');
+      createDrawGuessStageHud(hudInput(playTo(0, 'drawing'), { remainingSeconds: null })),
+    ).toThrow('DrawGuess drawing stage has no remaining seconds');
+  });
+
+  it('shows no countdown and no bot drawer alert while the server deals the word choices', () => {
+    const hud = createDrawGuessStageHud(
+      hudInput(playTo(1, 'dealing'), { effectiveSeat: 1, remainingSeconds: null }),
+    );
+    expect(hud?.timer).toBeNull();
+    expect(hud?.roster?.isUrgent).toBe(false);
   });
 
   it('shows the turn, a plain roster and the word select countdown', () => {

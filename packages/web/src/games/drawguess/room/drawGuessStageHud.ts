@@ -28,7 +28,10 @@ export interface DrawGuessStageHudInput {
   readonly state: DrawGuessState;
   readonly viewModel: DrawGuessViewModel;
   readonly effectiveSeat: number | null;
-  /** Remaining seconds of the phase deadline; every stage phase has one. */
+  /**
+   * Remaining seconds of the phase deadline. Null only while the server deals the word choices
+   * (word select without a deadline); drawing and round end always have one.
+   */
   readonly remainingSeconds: number | null;
   readonly seats: RoomSeatDataSource;
   /** The viewer may take a bot seat over now. */
@@ -39,7 +42,7 @@ export interface DrawGuessStageHudInput {
 function createDrawGuessRoster(
   input: DrawGuessStageHudInput,
   drawerSeat: number,
-  remainingSeconds: number,
+  remainingSeconds: number | null,
 ): RoomStageRosterModel {
   const isDrawing = input.state.phase.kind === 'drawing';
   const pendingLabel = isDrawing ? '猜词中' : '等待';
@@ -55,6 +58,7 @@ function createDrawGuessRoster(
       input.canTakeOverBots &&
       input.controlledSeat === null &&
       isBotSeat(input.state.roster, drawerSeat) &&
+      remainingSeconds !== null &&
       remainingSeconds < DRAWGUESS_BOT_DRAWER_URGENT_SECONDS,
   };
 }
@@ -74,17 +78,23 @@ function createScoreChips(input: DrawGuessStageHudInput): RoomStageChip[] {
   return [{ key: 'score', label: `我 ${total} 分 · 本轮 +${turn}`, detail: null, tone: 'neutral' }];
 }
 
+/** The countdown of a phase whose engine state carries a deadline. */
+function requireRemainingSeconds(phaseKind: string, remainingSeconds: number | null): number {
+  if (remainingSeconds === null) {
+    throw new Error(`DrawGuess ${phaseKind} stage has no remaining seconds`);
+  }
+  return remainingSeconds;
+}
+
 /**
  * Builds the information bar for word select, drawing and round end; null for the lobby and the
- * final ranking, which are not stage content.
+ * final ranking, which are not stage content. Word select has no countdown until the server has
+ * dealt the choices, so the bar shows no timer then.
  */
 export function createDrawGuessStageHud(input: DrawGuessStageHudInput): RoomStageHudModel | null {
-  const { state, remainingSeconds } = input;
+  const { state } = input;
   const phase = state.phase;
   if (phase.kind === 'lobby' || phase.kind === 'ended') return null;
-  if (remainingSeconds === null) {
-    throw new Error(`DrawGuess ${phase.kind} stage has no remaining seconds`);
-  }
   const turnChip: RoomStageChip = {
     key: 'turn',
     label: `${state.turnIndex + 1}/${getDrawGuessTotalTurns(state)} 轮`,
@@ -92,17 +102,22 @@ export function createDrawGuessStageHud(input: DrawGuessStageHudInput): RoomStag
     tone: 'neutral',
   };
   switch (phase.kind) {
-    case 'wordSelect':
+    case 'wordSelect': {
+      const remainingSeconds =
+        phase.deadlineAt === null
+          ? null
+          : requireRemainingSeconds(phase.kind, input.remainingSeconds);
       return {
         chips: [turnChip],
         roster: createDrawGuessRoster(input, phase.drawerSeat, remainingSeconds),
-        timer: {
-          label: '选词',
-          remainingSeconds,
-          totalSeconds: DRAWGUESS_WORD_SELECT_SECONDS,
-        },
+        timer:
+          remainingSeconds === null
+            ? null
+            : { label: '选词', remainingSeconds, totalSeconds: DRAWGUESS_WORD_SELECT_SECONDS },
       };
-    case 'drawing':
+    }
+    case 'drawing': {
+      const remainingSeconds = requireRemainingSeconds(phase.kind, input.remainingSeconds);
       return {
         chips: [turnChip, createWordChip(input.viewModel), ...createScoreChips(input)],
         roster: createDrawGuessRoster(input, phase.drawerSeat, remainingSeconds),
@@ -112,11 +127,16 @@ export function createDrawGuessStageHud(input: DrawGuessStageHudInput): RoomStag
           totalSeconds: DRAWGUESS_DRAWING_DURATION_SECONDS,
         },
       };
+    }
     case 'roundEnd':
       return {
         chips: [turnChip],
         roster: null,
-        timer: { label: '结算', remainingSeconds, totalSeconds: DRAWGUESS_ROUND_END_SECONDS },
+        timer: {
+          label: '结算',
+          remainingSeconds: requireRemainingSeconds(phase.kind, input.remainingSeconds),
+          totalSeconds: DRAWGUESS_ROUND_END_SECONDS,
+        },
       };
   }
 }
