@@ -14,6 +14,7 @@ import {
   computeDeadlineAfterGuess,
   computeDrawerRoundGain,
   computeGuesserScore,
+  computeRevealedCount,
   isCorrectGuess,
   normalizeGuessText,
 } from '../domain/rules';
@@ -561,6 +562,27 @@ describe('DrawGuess engine', () => {
     const drawerView = getDrawGuessViewModel(session.state, 0, session.nowMs);
     expect(drawerView.word).toBe('大熊猫');
     expect(drawerView.hintText).toBeNull();
+  });
+
+  it('reveals one pinyin initial per interval and always keeps one hidden', () => {
+    const session = game();
+    session.startGame();
+    session.chooseFirstWord(0);
+    if (session.state.phase.kind !== 'drawing') throw new Error('phase');
+    const { phaseStartAt } = session.state.phase;
+    const intervalMs = session.state.config.hintRevealIntervalSeconds * 1000;
+    const hiddenInitialsAt = (nowMs: number) =>
+      (getDrawGuessViewModel(session.state, 1, nowMs).hintText ?? '')
+        .split(' ')
+        .filter((part) => part === '_').length;
+    expect(hiddenInitialsAt(phaseStartAt)).toBe(3);
+    expect(hiddenInitialsAt(phaseStartAt + intervalMs)).toBe(2);
+    expect(hiddenInitialsAt(phaseStartAt + 2 * intervalMs)).toBe(1);
+    expect(hiddenInitialsAt(phaseStartAt + 10 * intervalMs)).toBe(1);
+  });
+
+  it('never reveals the initial of a one-character word', () => {
+    expect(computeRevealedCount(0, 600_000, 20, 1)).toBe(0);
   });
 
   it('hides correct guess text from other guessers', () => {

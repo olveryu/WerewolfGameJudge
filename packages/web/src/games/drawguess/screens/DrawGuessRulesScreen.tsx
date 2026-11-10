@@ -68,7 +68,7 @@ export function DrawGuessRulesScreen() {
         <RuleItem
           icon="text-outline"
           title="拼音首字母提示"
-          description={`猜题者看到题目字数和拼音首字母占位（如「3个字 · d _ _」），每 ${DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS} 秒揭示一个首字母，最多全部揭示。`}
+          description={`猜题者看到题目字数和拼音首字母占位（如「3个字 · d _ _」），每 ${DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS} 秒揭示一个首字母，始终至少留一个不揭示。`}
         />
         <RuleItem
           icon="people-outline"
