@@ -464,7 +464,7 @@ function DrawGuessDrawingView({
               />
             </div>
           </div>
-          <div className="drawguess-side-panel">
+          <div className="drawguess-side-panel" data-drawer={isDrawer || undefined}>
             {isDrawer && (
               <>
                 <DrawingToolbar

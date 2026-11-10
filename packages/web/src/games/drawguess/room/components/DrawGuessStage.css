@@ -182,6 +182,11 @@
   list-style: none;
 }
 
+/* The drawer's canvas yields to the toolbar, not to the log. */
+.drawguess-side-panel[data-drawer] .drawguess-message-list {
+  min-height: 0;
+}
+
 .drawguess-message {
   color: var(--color-text);
   font-size: var(--font-secondary);
