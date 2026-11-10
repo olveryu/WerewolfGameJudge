@@ -1,7 +1,7 @@
 /**
- * 画手笔画同步：整笔 300ms 批量发送 `drawguess.stroke.add`，撤销/清屏走命令并乐观更新。
+ * 画手笔画同步：整笔 300ms 批量发送 `drawguess.stroke.add`，撤销（乐观）/清屏走命令。
  *
- * 笔画命令幂等（客户端 stroke id），重放不重复入画；冲突时以权威快照为准。
+ * 笔画命令幂等（客户端 stroke id），未送达的按序重发；服务端裁决（含拒绝）以权威快照为准。
  */
 
 import type { DrawGuessStroke } from '@game-judge/game-engine/games/drawguess/public';
@@ -15,12 +15,17 @@ import {
   type DrawingWidth,
   isDrawingColor,
 } from '@/features/drawing/model/drawing';
-import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
+import {
+  getRoomCommandFailureReason,
+  isSuccessfulRoomCommand,
+} from '@/features/room/link/roomCommandResult';
 import type { DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
+import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
 import { createDrawGuessFillElement } from '../../services/renderDrawGuessDrawing';
+import { getDrawGuessRoomCommandFailureMessage } from '../drawGuessRoomCommandFailureMessage';
 
 const STROKE_FLUSH_MS = 300;
 
@@ -153,7 +158,6 @@ export function useDrawGuessStrokeSync({
   });
   const [pendingElements, setPendingElements] = useState<readonly DrawingElement[]>([]);
   const [optimisticUndoneId, setOptimisticUndoneId] = useState<string | null>(null);
-  const [optimisticallyCleared, setOptimisticallyCleared] = useState(false);
   const redoStackRef = useRef<DrawingElement[]>([]);
   const [canRedo, setCanRedo] = useState(false);
 
@@ -162,7 +166,7 @@ export function useDrawGuessStrokeSync({
     [authoritativeStrokes],
   );
 
-  // 已被权威快照确认的待发送笔画出队；乐观撤销/清屏在权威落地后复位。
+  // 已被权威快照确认的待发送笔画出队；乐观撤销在权威落地后复位。
   useEffect(() => {
     let changed = false;
     for (const id of pendingRef.current.keys()) {
@@ -174,8 +178,7 @@ export function useDrawGuessStrokeSync({
     if (changed) setPendingElements([...pendingRef.current.values()].map((entry) => entry.element));
     if (optimisticUndoneId !== null && !authoritativeIds.has(optimisticUndoneId))
       setOptimisticUndoneId(null);
-    if (optimisticallyCleared && authoritativeStrokes.length === 0) setOptimisticallyCleared(false);
-  }, [authoritativeIds, authoritativeStrokes.length, optimisticUndoneId, optimisticallyCleared]);
+  }, [authoritativeIds, optimisticUndoneId]);
 
   const flushPending = useCallback(async (): Promise<void> => {
     if (flushingRef.current || pendingRef.current.size === 0) return;
@@ -183,8 +186,9 @@ export function useDrawGuessStrokeSync({
     try {
       const latest = latestRef.current;
       for (const [id, entry] of [...pendingRef.current.entries()]) {
+        let result;
         try {
-          const result = await session.dispatch(
+          result = await session.dispatch(
             {
               type: 'drawguess.stroke.add',
               stroke: entry.stroke,
@@ -193,14 +197,33 @@ export function useDrawGuessStrokeSync({
             },
             { controlledSeat: latest.controlledSeat, label: '同步笔画', durable: false },
           );
-          // 成功或被服务端拒绝都出队：拒绝（如笔画上限、过期）以权威快照为准，不重试。
+        } catch (error: unknown) {
+          // 4xx / 契约错误：服务端不会接受这一笔，重试无意义。
           pendingRef.current.delete(id);
-          if (!isSuccessfulRoomCommand(result))
-            roomScreenLog.warn('stroke rejected by server', { strokeId: id });
-        } catch {
-          // 网络/传输失败保留在队列里，下一个 300ms 周期重试；属预期内的瞬时失败，只记 warn。
-          roomScreenLog.warn('stroke dispatch failed, will retry', { strokeId: id });
-          break;
+          handleError(error, { label: '同步笔画', logger: roomScreenLog, feedback: 'toast' });
+          return;
+        }
+        switch (result.kind) {
+          case 'committed':
+          case 'rejected':
+            // 服务端已裁决：拒绝（笔画上限、过期等）以权威快照为准，不重试。
+            pendingRef.current.delete(id);
+            if (!isSuccessfulRoomCommand(result)) {
+              roomScreenLog.warn('stroke rejected by server', {
+                strokeId: id,
+                reason: getRoomCommandFailureReason(result),
+              });
+            }
+            break;
+          case 'undelivered':
+          case 'unavailable':
+          case 'cancelled':
+            // 未送达：保留在队列里按序重试，下一个周期从这一笔继续。
+            roomScreenLog.warn('stroke not delivered, will retry', {
+              strokeId: id,
+              reason: getRoomCommandFailureReason(result),
+            });
+            return;
         }
       }
     } finally {
@@ -278,8 +301,14 @@ export function useDrawGuessStrokeSync({
       setOptimisticUndoneId(last.id);
       redoStackRef.current.push(last);
       setCanRedo(true);
+      const rollback = () => {
+        setOptimisticUndoneId(null);
+        redoStackRef.current.pop();
+        setCanRedo(redoStackRef.current.length > 0);
+      };
+      let result;
       try {
-        await session.dispatch(
+        result = await session.dispatch(
           {
             type: 'drawguess.stroke.undo',
             phaseRevision: latest.phaseRevision,
@@ -288,16 +317,17 @@ export function useDrawGuessStrokeSync({
           { controlledSeat: latest.controlledSeat, label: '撤销笔画', durable: false },
         );
       } catch (error: unknown) {
-        // 失败回滚：恢复显示，弹出重做栈
-        setOptimisticUndoneId(null);
-        redoStackRef.current.pop();
-        setCanRedo(redoStackRef.current.length > 0);
+        rollback();
         handleError(error, {
           label: '撤销笔画',
           logger: roomScreenLog,
           alertMessage: '撤销失败，请重试',
         });
+        return;
       }
+      if (isSuccessfulRoomCommand(result)) return;
+      rollback();
+      showErrorAlert('撤销失败', getDrawGuessRoomCommandFailureMessage(result));
     })();
   }, [authoritativeStrokes, flushPending, session]);
 
@@ -315,8 +345,10 @@ export function useDrawGuessStrokeSync({
     void (async () => {
       await flushPending();
       const latest = latestRef.current;
+      // 成功时 committed 快照已先落到房间链路，画布直接以权威笔画为准。
+      let result;
       try {
-        await session.dispatch(
+        result = await session.dispatch(
           {
             type: 'drawguess.stroke.clear',
             phaseRevision: latest.phaseRevision,
@@ -324,13 +356,16 @@ export function useDrawGuessStrokeSync({
           },
           { controlledSeat: latest.controlledSeat, label: '清空画布', durable: false },
         );
-        setOptimisticallyCleared(true);
       } catch (error: unknown) {
         handleError(error, {
           label: '清空画布',
           logger: roomScreenLog,
           alertMessage: '清空失败，请重试',
         });
+        return;
+      }
+      if (!isSuccessfulRoomCommand(result)) {
+        showErrorAlert('清空失败', getDrawGuessRoomCommandFailureMessage(result));
       }
     })();
   }, [flushPending, session]);
@@ -339,9 +374,8 @@ export function useDrawGuessStrokeSync({
     const confirmed = authoritativeStrokes
       .map(drawGuessStrokeToElement)
       .filter((element) => element.id !== optimisticUndoneId);
-    const base = optimisticallyCleared ? [] : confirmed;
-    return [...base, ...pendingElements];
-  }, [authoritativeStrokes, optimisticUndoneId, optimisticallyCleared, pendingElements]);
+    return [...confirmed, ...pendingElements];
+  }, [authoritativeStrokes, optimisticUndoneId, pendingElements]);
 
   return {
     elements,
