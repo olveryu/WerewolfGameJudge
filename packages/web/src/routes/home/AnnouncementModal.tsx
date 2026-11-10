@@ -119,7 +119,7 @@ export function AnnouncementModal({ open, gameTabs, onClose }: AnnouncementModal
                 <div className="announcement-scroll">
                   <FeedbackTab
                     key={user?.id ?? 'signed-out'}
-                    isLoggedIn={user !== null}
+                    userId={user?.id ?? null}
                     onUnreadChange={setUnreadFeedbackCount}
                   />
                 </div>

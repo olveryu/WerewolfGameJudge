@@ -6,14 +6,14 @@
  */
 import './FeedbackTab.css';
 
-import { type RefObject, useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Spinner } from '@/components/Spinner';
 import { APP_VERSION } from '@/config/version';
+import { useFeedbackHistory } from '@/features/feedback/queries/useFeedbackHistory';
 import {
   type FeedbackItem,
-  getFeedbackHistory,
   markFeedbackRead,
   replyToFeedback,
   resolveFeedback,
@@ -38,7 +38,6 @@ type FeedbackFilter = 'open' | 'all';
 type SyncStatus = FeedbackItem['syncStatus'];
 
 const MAX_FEEDBACK_LENGTH = 500;
-const SCROLL_TO_END_DELAY_MS = 100;
 
 function formatTime(isoString: string): string {
   const date = new Date(isoString);
@@ -148,7 +147,6 @@ interface FeedbackDetailProps {
   readonly feedback: FeedbackItem;
   readonly replyText: string;
   readonly isSubmitting: boolean;
-  readonly chatRef: RefObject<HTMLDivElement | null>;
   readonly onReplyTextChange: (text: string) => void;
   readonly onSendReply: () => void;
   readonly onResolve: (action: 'resolve' | 'reopen') => void;
@@ -160,7 +158,6 @@ function FeedbackDetail({
   feedback,
   replyText,
   isSubmitting,
-  chatRef,
   onReplyTextChange,
   onSendReply,
   onResolve,
@@ -171,6 +168,14 @@ function FeedbackDetail({
   const isSynced = feedback.syncStatus === 'synced';
   const lastReply = feedback.replies.at(-1);
   const isSendDisabled = replyText.trim().length === 0 || isSubmitting || !isSynced;
+  const chatRef = useRef<HTMLDivElement>(null);
+  const messageCount = feedback.replies.length;
+
+  // Keep the newest message in view: on open and whenever a reply lands.
+  useLayoutEffect(() => {
+    const chat = chatRef.current;
+    if (chat !== null) chat.scrollTop = chat.scrollHeight;
+  }, [messageCount]);
 
   return (
     <div className="feedback-area">
@@ -396,22 +401,22 @@ function FeedbackList({
 }
 
 interface FeedbackTabProps {
-  readonly isLoggedIn: boolean;
+  /** The signed-in user, or null when signed out. */
+  readonly userId: string | null;
   /** Notifies the parent that the unread admin reply count changed. */
   readonly onUnreadChange: (count: number) => void;
 }
 
 /** Feedback tab of the Home announcement modal; mount it keyed by the signed-in user. */
-export function FeedbackTab({ isLoggedIn, onUnreadChange }: FeedbackTabProps) {
+export function FeedbackTab({ userId, onUnreadChange }: FeedbackTabProps) {
   const [view, setView] = useState<FeedbackView>('list');
-  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
-  const [isLoading, setIsLoading] = useState(isLoggedIn);
+  const { query: historyQuery, reloadHistory, updateHistory } = useFeedbackHistory(userId);
+  const feedbackItems = historyQuery.data ?? [];
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [replyText, setReplyText] = useState('');
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(null);
   const [filter, setFilter] = useState<FeedbackFilter>('open');
-  const chatRef = useRef<HTMLDivElement>(null);
   const submitIntent = useRef<{ id: string; content: string } | null>(null);
   const replyIntent = useRef<{ id: string; content: string; feedbackId: string } | null>(null);
 
@@ -419,26 +424,6 @@ export function FeedbackTab({ isLoggedIn, onUnreadChange }: FeedbackTabProps) {
     selectedFeedbackId === null
       ? undefined
       : feedbackItems.find((item) => item.id === selectedFeedbackId);
-
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    let cancelled = false;
-    getFeedbackHistory()
-      .then((items) => {
-        if (!cancelled) setFeedbackItems(items);
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          handleError(error, { label: '加载反馈历史', logger: homeLog, feedback: 'toast' });
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoggedIn]);
 
   const submit = async () => {
     const trimmed = feedbackText.trim();
@@ -453,7 +438,7 @@ export function FeedbackTab({ isLoggedIn, onUnreadChange }: FeedbackTabProps) {
       else toast.info('反馈已保存，远端结果待核对');
       setFeedbackText('');
       submitIntent.current = null;
-      setFeedbackItems(await getFeedbackHistory());
+      await reloadHistory();
       setView('list');
     } catch (error: unknown) {
       handleError(error, { label: '提交反馈', logger: homeLog, feedback: 'toast' });
@@ -470,7 +455,7 @@ export function FeedbackTab({ isLoggedIn, onUnreadChange }: FeedbackTabProps) {
     if (item === undefined || countUnreadAdminReplies(item) === 0) return;
     try {
       await markFeedbackRead(feedbackId);
-      setFeedbackItems((previous) =>
+      updateHistory((previous) =>
         previous.map((candidate) =>
           candidate.id === feedbackId
             ? {
@@ -514,11 +499,7 @@ export function FeedbackTab({ isLoggedIn, onUnreadChange }: FeedbackTabProps) {
       if (result.syncStatus !== 'synced') toast.info('追问已保存，远端结果待核对');
       setReplyText('');
       replyIntent.current = null;
-      setFeedbackItems(await getFeedbackHistory());
-      setTimeout(() => {
-        const chat = chatRef.current;
-        if (chat !== null) chat.scrollTop = chat.scrollHeight;
-      }, SCROLL_TO_END_DELAY_MS);
+      await reloadHistory();
     } catch (error: unknown) {
       handleError(error, { label: '发送追问', logger: homeLog, feedback: 'toast' });
     } finally {
@@ -530,7 +511,7 @@ export function FeedbackTab({ isLoggedIn, onUnreadChange }: FeedbackTabProps) {
     setIsSubmitting(true);
     try {
       const result = await syncFeedbackDelivery(id);
-      setFeedbackItems(await getFeedbackHistory());
+      await reloadHistory();
       if (result.syncStatus === 'synced') toast.success('反馈同步完成');
       else toast.info('结果仍未确认，请勿重复提交；需开发者人工核对');
     } catch (error: unknown) {
@@ -544,7 +525,7 @@ export function FeedbackTab({ isLoggedIn, onUnreadChange }: FeedbackTabProps) {
     try {
       await resolveFeedback(feedbackId, action);
       const status = action === 'resolve' ? 'resolved' : 'open';
-      setFeedbackItems((previous) =>
+      updateHistory((previous) =>
         previous.map((item) => (item.id === feedbackId ? { ...item, status } : item)),
       );
       toast.success(action === 'resolve' ? '已标记解决' : '已重新打开');
@@ -553,7 +534,7 @@ export function FeedbackTab({ isLoggedIn, onUnreadChange }: FeedbackTabProps) {
     }
   };
 
-  if (!isLoggedIn) {
+  if (userId === null) {
     return (
       <div className="feedback-area feedback-center">
         <IconLockClosedOutline className="feedback-center-icon" aria-hidden />
@@ -562,7 +543,24 @@ export function FeedbackTab({ isLoggedIn, onUnreadChange }: FeedbackTabProps) {
     );
   }
 
-  if (isLoading) {
+  if (historyQuery.isError && historyQuery.data === undefined) {
+    return (
+      <div className="feedback-area feedback-center" role="alert">
+        <p className="feedback-muted">反馈记录加载失败</p>
+        <button
+          type="button"
+          className="feedback-link"
+          disabled={historyQuery.isFetching}
+          onClick={() => void historyQuery.refetch()}
+        >
+          <IconSyncOutline aria-hidden />
+          重试
+        </button>
+      </div>
+    );
+  }
+
+  if (historyQuery.isPending) {
     return (
       <div className="feedback-area feedback-center">
         <Spinner label="加载中" />
@@ -589,7 +587,6 @@ export function FeedbackTab({ isLoggedIn, onUnreadChange }: FeedbackTabProps) {
         feedback={selectedFeedback}
         replyText={replyText}
         isSubmitting={isSubmitting}
-        chatRef={chatRef}
         onReplyTextChange={setReplyText}
         onSendReply={() => void sendReply()}
         onResolve={(action) => void changeStatus(selectedFeedback.id, action)}

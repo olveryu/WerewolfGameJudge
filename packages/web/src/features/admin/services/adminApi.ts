@@ -159,20 +159,25 @@ export function grantUserReward(userId: string, input: AdminRewardInput) {
   );
 }
 
-export function fetchStats(from: string, to: string) {
-  return adminFetch('/admin/stats', parseAdminStatsResponse, { from, to });
+export function fetchStats(from: string, to: string, signal?: AbortSignal) {
+  return adminFetch('/admin/stats', parseAdminStatsResponse, { from, to }, signal);
 }
 
-export function fetchAnalytics(from: string, to: string) {
-  return adminFetch('/admin/analytics', parseAdminAnalyticsResponse, { from, to });
+export function fetchAnalytics(from: string, to: string, signal?: AbortSignal) {
+  return adminFetch('/admin/analytics', parseAdminAnalyticsResponse, { from, to }, signal);
 }
 
-export function fetchAIUsage(from: string, to: string) {
-  return adminFetch('/admin/ai-usage', parseAdminAIUsageResponse, { from, to });
+export function fetchAIUsage(from: string, to: string, signal?: AbortSignal) {
+  return adminFetch('/admin/ai-usage', parseAdminAIUsageResponse, { from, to }, signal);
 }
 
-export function fetchRequestTraffic(from: string, to: string) {
-  return adminFetch('/admin/request-traffic', parseAdminRequestTrafficResponse, { from, to });
+export function fetchRequestTraffic(from: string, to: string, signal?: AbortSignal) {
+  return adminFetch(
+    '/admin/request-traffic',
+    parseAdminRequestTrafficResponse,
+    { from, to },
+    signal,
+  );
 }
 
 export function fetchGameWordsStats(game: GameWordGame): Promise<GameWordsStats> {

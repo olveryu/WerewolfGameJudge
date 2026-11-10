@@ -20,7 +20,7 @@ const DEFAULT_PRESETS: readonly TimePreset[] = ['today', '7d', '30d', 'custom'] 
 
 interface TimeRangeSelectorProps {
   /** Called with each selected range; must be stable, since it re-runs the preset effect. */
-  onRangeChange: (range: { from: string; to: string }) => void | Promise<void>;
+  onRangeChange: (range: { from: string; to: string }) => void;
   presets?: readonly TimePreset[];
   initialPreset?: TimePreset;
 }
@@ -37,13 +37,13 @@ export function TimeRangeSelector({
 
   useEffect(() => {
     if (preset !== 'custom') {
-      void onRangeChange(getTimeRange(preset));
+      onRangeChange(getTimeRange(preset));
     }
   }, [preset, onRangeChange]);
 
   const handleCustomSearch = () => {
     if (customFrom && customTo) {
-      void onRangeChange({
+      onRangeChange({
         from: `${customFrom}T00:00:00Z`,
         to: `${customTo}T23:59:59Z`,
       });

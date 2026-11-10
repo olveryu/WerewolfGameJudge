@@ -12,7 +12,10 @@ import { useAdminRangeData } from './useAdminRangeData';
 
 /** Admin performance tab: page-load timing by country, colo, and ISP. */
 export function AnalyticsTab() {
-  const { data, loading, error, handleRangeChange } = useAdminRangeData(fetchAnalytics);
+  const { data, loading, error, handleRangeChange } = useAdminRangeData(
+    'analytics',
+    fetchAnalytics,
+  );
 
   return (
     <div className="admin-tab">

@@ -17,7 +17,7 @@ function toBarItems(items: readonly { label: string; count: number }[]) {
 
 /** Admin AI usage tab: request volume, latency, error rate, and breakdowns. */
 export function AITab() {
-  const { data, loading, error, handleRangeChange } = useAdminRangeData(fetchAIUsage);
+  const { data, loading, error, handleRangeChange } = useAdminRangeData('ai-usage', fetchAIUsage);
 
   return (
     <div className="admin-tab">

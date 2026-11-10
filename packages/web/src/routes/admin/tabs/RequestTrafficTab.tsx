@@ -1,14 +1,13 @@
 /** Admin Worker request and realtime traffic monitor with explicit user-driven refreshes. */
 import './AdminTabs.css';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { keepPreviousData, skipToken, useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 
 import { IconButton } from '@/components/IconButton';
 import { Spinner } from '@/components/Spinner';
 import type { AdminRequestTraffic, TimePreset } from '@/features/admin/model/adminContracts';
 import { fetchRequestTraffic } from '@/features/admin/services/adminApi';
-import { handleError } from '@/utils/errorPipeline';
-import { log } from '@/utils/logger';
 import IconAlertCircle from '~icons/ion/alert-circle';
 import IconAlertCircleOutline from '~icons/ion/alert-circle-outline';
 import IconAnalyticsOutline from '~icons/ion/analytics-outline';
@@ -40,7 +39,6 @@ const BYTES_PER_KILOBYTE = 1024;
 const BYTES_PER_MEGABYTE = BYTES_PER_KILOBYTE * 1024;
 const BYTES_PER_GIGABYTE = BYTES_PER_MEGABYTE * 1024;
 const BYTES_PER_TERABYTE = BYTES_PER_GIGABYTE * 1024;
-const requestTrafficTabLog = log.extend('RequestTrafficTab');
 
 function formatSignedCount(value: number): string {
   return value > 0 ? `+${value.toLocaleString()}` : value.toLocaleString();
@@ -251,69 +249,43 @@ function TrafficOverview({ data }: { data: AdminRequestTraffic }) {
 
 /** Admin request-traffic tab; loads on range selection and on explicit refresh, never polls. */
 export function RequestTrafficTab() {
-  const [data, setData] = useState<AdminRequestTraffic | null>(null);
   const [selectedRange, setSelectedRange] = useState<TrafficRange | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const requestSequence = useRef(0);
-
-  useEffect(
-    () => () => {
-      requestSequence.current += 1;
-    },
-    [],
-  );
-
-  const loadTraffic = useCallback(async (range: TrafficRange) => {
-    const sequence = requestSequence.current + 1;
-    requestSequence.current = sequence;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await fetchRequestTraffic(range.from, range.to);
-      if (requestSequence.current === sequence) setData(result);
-    } catch (cause: unknown) {
-      if (requestSequence.current !== sequence) return;
-      handleError(cause, {
-        label: '加载请求监控',
-        logger: requestTrafficTabLog,
-        feedback: false,
-      });
-      setError('请求监控加载失败，请重试');
-    } finally {
-      if (requestSequence.current === sequence) setIsLoading(false);
-    }
-  }, []);
-
-  const handleRangeChange = useCallback(
-    async (range: TrafficRange) => {
-      setSelectedRange(range);
-      await loadTraffic(range);
-    },
-    [loadTraffic],
-  );
+  const trafficQuery = useQuery({
+    queryKey: ['admin', 'request-traffic', selectedRange],
+    queryFn:
+      selectedRange === null
+        ? skipToken
+        : ({ signal }) => fetchRequestTraffic(selectedRange.from, selectedRange.to, signal),
+    // A refresh or a new range keeps the last report on screen until the next one lands.
+    placeholderData: keepPreviousData,
+  });
+  const data = trafficQuery.data ?? null;
 
   const handleRefresh = () => {
     if (selectedRange === null) return;
-    void loadTraffic(selectedRange);
+    void trafficQuery.refetch();
   };
 
   return (
     <div className="admin-tab">
       <TimeRangeSelector
-        onRangeChange={handleRangeChange}
+        onRangeChange={setSelectedRange}
         presets={REQUEST_TIME_PRESETS}
         initialPreset="24h"
       />
       <TrafficRefreshControl
         generatedAt={data?.generatedAt ?? null}
-        isLoading={isLoading}
+        isLoading={trafficQuery.isFetching}
         onRefresh={handleRefresh}
       />
-      {isLoading && data === null ? (
+      {trafficQuery.isPending ? (
         <AdminEmptyState loading error={null} empty={false} />
-      ) : error !== null || data === null ? (
-        <AdminEmptyState loading={false} error={error} empty={data === null} />
+      ) : trafficQuery.isError || data === null ? (
+        <AdminEmptyState
+          loading={false}
+          error={trafficQuery.isError ? '请求监控加载失败，请重试' : null}
+          empty={data === null}
+        />
       ) : (
         <TrafficOverview data={data} />
       )}

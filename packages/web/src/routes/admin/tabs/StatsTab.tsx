@@ -13,7 +13,7 @@ import { useAdminRangeData } from './useAdminRangeData';
 
 /** Admin stats tab: registrations, activity, games, and country / colo distribution. */
 export function StatsTab() {
-  const { data, loading, error, handleRangeChange } = useAdminRangeData(fetchStats);
+  const { data, loading, error, handleRangeChange } = useAdminRangeData('stats', fetchStats);
 
   return (
     <div className="admin-tab">

@@ -93,13 +93,14 @@ export async function submitFeedback(
 }
 
 /** Fetches the current user's feedback history (including replies). */
-export async function getFeedbackHistory(): Promise<FeedbackItem[]> {
+export async function getFeedbackHistory(signal?: AbortSignal): Promise<FeedbackItem[]> {
   const response = await apiClient.json({
     method: 'GET',
     path: '/api/feedback/history',
     auth: 'required',
     idempotent: true,
     decode: (value) => feedbackHistoryResponseSchema.parse(value),
+    signal,
   });
   return response.feedbacks;
 }

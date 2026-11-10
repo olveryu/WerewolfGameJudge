@@ -1,4 +1,5 @@
-/** Request traffic tab fetch cadence and manual-refresh tests. */
+/** Request traffic tab fetch cadence, manual-refresh, and range-race tests. */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   act,
   fireEvent,
@@ -16,13 +17,8 @@ import { RequestTrafficTab } from '../RequestTrafficTab';
 
 vi.mock('@/features/admin/services/adminApi', () => ({
   fetchRequestTraffic: vi.fn(),
-  getTimeRange: () => ({
-    from: '2026-08-31T00:00:00.000Z',
-    to: '2026-08-31T01:00:00.000Z',
-  }),
+  getTimeRange: (preset: string) => ({ from: `from-${preset}`, to: `to-${preset}` }),
 }));
-
-vi.mock('@/utils/errorPipeline', () => ({ handleError: vi.fn() }));
 
 const EMPTY_TRAFFIC: AdminRequestTraffic = {
   generatedAt: '2026-08-31T01:00:00.000Z',
@@ -84,11 +80,20 @@ const TRAFFIC_WITH_ROUTE: AdminRequestTraffic = {
 
 const fetchRequestTrafficMock = vi.mocked(fetchRequestTraffic);
 
-/** Settles the mocked fetch promises and the state updates they trigger. */
+/** Settles the mocked fetch promises and the (timer-scheduled) query notifications. */
 async function flushPromises() {
   await act(async () => {
-    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(0);
   });
+}
+
+function renderTab() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RequestTrafficTab />
+    </QueryClientProvider>,
+  );
 }
 
 describe('RequestTrafficTab', () => {
@@ -103,7 +108,7 @@ describe('RequestTrafficTab', () => {
 
   it('loads on entry, never polls, and refreshes only after explicit user intent', async () => {
     vi.useFakeTimers();
-    render(<RequestTrafficTab />);
+    renderTab();
     await flushPromises();
     expect(fetchRequestTrafficMock).toHaveBeenCalledTimes(1);
 
@@ -116,14 +121,41 @@ describe('RequestTrafficTab', () => {
     await flushPromises();
     expect(fetchRequestTrafficMock).toHaveBeenCalledTimes(2);
     expect(fetchRequestTrafficMock).toHaveBeenLastCalledWith(
-      '2026-08-31T00:00:00.000Z',
-      '2026-08-31T01:00:00.000Z',
+      'from-24h',
+      'to-24h',
+      expect.any(AbortSignal),
     );
+  });
+
+  it('aborts the earlier range and never lets its late response replace the newer one', async () => {
+    let resolveFirst: (traffic: AdminRequestTraffic) => void = () => undefined;
+    fetchRequestTrafficMock
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          }),
+      )
+      .mockResolvedValueOnce(TRAFFIC_WITH_ROUTE);
+    renderTab();
+
+    fireEvent.click(await screen.findByText('1小时'));
+    expect(await screen.findByText('HTTP 4xx')).toBeDefined();
+    const firstSignal = fetchRequestTrafficMock.mock.calls[0]?.[2];
+    expect(firstSignal?.aborted).toBe(true);
+    expect(fetchRequestTrafficMock).toHaveBeenLastCalledWith(
+      'from-1h',
+      'to-1h',
+      expect.any(AbortSignal),
+    );
+
+    await act(async () => resolveFirst(EMPTY_TRAFFIC));
+    expect(screen.getByText('12 · 60.0%')).toBeDefined();
   });
 
   it('keeps manual refresh available after the initial request fails', async () => {
     fetchRequestTrafficMock.mockRejectedValueOnce(new Error('provider unavailable'));
-    render(<RequestTrafficTab />);
+    renderTab();
 
     expect(await screen.findByText('请求监控加载失败，请重试')).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: '刷新请求数据' }));
@@ -135,7 +167,7 @@ describe('RequestTrafficTab', () => {
   it('shows error classes, route share, status counts, and an honest zero-connection ratio', async () => {
     fetchRequestTrafficMock.mockResolvedValue(TRAFFIC_WITH_ROUTE);
 
-    render(<RequestTrafficTab />);
+    renderTab();
 
     expect(await screen.findByText('HTTP 4xx')).toBeDefined();
     expect(screen.getByText('HTTP 5xx')).toBeDefined();
