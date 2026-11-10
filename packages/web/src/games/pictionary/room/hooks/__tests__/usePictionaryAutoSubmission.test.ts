@@ -28,18 +28,22 @@ vi.mock('@/games/pictionary/services/renderPictionaryDrawing', () => ({
 }));
 vi.mock('@/utils/errorPipeline', () => ({ handleError: vi.fn() }));
 
-function createCollection() {
+function createCollection({ hasBots = false }: { readonly hasBots?: boolean } = {}) {
   let sequence = 0;
   let state = pictionaryEngine.createInitialState(
     { ...DEFAULT_PICTIONARY_CONFIG, numberOfPlayers: 4, guessDurationSeconds: null },
     { roomCode: '2468', hostUserId: 'user-0', nowMs: 1_000, commandId: 'create' },
   );
-  const dispatchEngine = (command: PictionaryCommandInput, userId = 'user-0') => {
+  const dispatchEngine = (
+    command: PictionaryCommandInput,
+    userId = 'user-0',
+    controlledSeat: number | null = null,
+  ) => {
     sequence += 1;
-    const seat = getPictionaryUserSeat(state, userId) ?? 0;
+    const seat = controlledSeat ?? getPictionaryUserSeat(state, userId) ?? 0;
     const decision = decidePictionaryCommand(state, createPictionaryCommand(state, command, seat), {
       actor: { kind: 'user', userId },
-      controlledSeat: null,
+      controlledSeat,
       nowMs: 2_000 + sequence,
       commandId: `command-${sequence}`,
       randomSeed: 'recovery',
@@ -48,15 +52,19 @@ function createCollection() {
     for (const event of decision.events) state = pictionaryEngine.evolve(state, event);
     state = pictionaryEngine.normalize(state);
   };
-  for (let seat = 0; seat < 4; seat += 1) {
+  const humanSeats = hasBots ? 1 : 4;
+  for (let seat = 0; seat < humanSeats; seat += 1) {
     dispatchEngine(
       { type: 'room.seat.take', seat, profile: { displayName: `玩家${seat}` } },
       `user-${seat}`,
     );
   }
+  if (hasBots) dispatchEngine({ type: 'room.seat.fillBots' });
   dispatchEngine({ type: 'pictionary.game.begin' });
-  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1)
+  for (let seat = 0; seat < humanSeats; seat += 1)
     dispatchEngine({ type: 'pictionary.task.ready.set', isReady: true }, `user-${seat}`);
+  for (let seat = humanSeats; seat < 4; seat += 1)
+    dispatchEngine({ type: 'pictionary.task.ready.set', isReady: true }, 'user-0', seat);
   const collection = state;
   const identity = {
     userId: 'user-0',
@@ -76,8 +84,8 @@ function createCollection() {
   const publish = () => {
     for (const listener of listeners) listener();
   };
-  const acknowledge = (command: PictionaryPublicCommand) => {
-    dispatchEngine(command);
+  const acknowledge = (command: PictionaryPublicCommand, controlledSeat: number | null = null) => {
+    dispatchEngine(command, 'user-0', controlledSeat);
     snapshot = { ...snapshot, room: createRoomSnapshot(state, sequence) };
     publish();
     return {
@@ -87,8 +95,8 @@ function createCollection() {
       outcome: { kind: 'success' as const },
     };
   };
-  const dispatch = vi.fn<PictionaryRoomSession['dispatch']>(async (command) =>
-    acknowledge(command),
+  const dispatch = vi.fn<PictionaryRoomSession['dispatch']>(async (command, options) =>
+    acknowledge(command, options.controlledSeat),
   );
   const session = {
     getSnapshot: () => snapshot,
@@ -188,6 +196,25 @@ it('reports an explicit domain rejection without retrying indefinitely', async (
   expect(result.current.status).toBe('failed');
   expect(fixture.dispatch).toHaveBeenCalledTimes(1);
   expect(handleError).toHaveBeenCalledTimes(1);
+});
+
+it('settles every owned seat and fails on a rejection that follows a retryable failure', async () => {
+  const fixture = createCollection({ hasBots: true });
+  fixture.dispatch
+    .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    .mockResolvedValueOnce({ kind: 'rejected', commandId: 'rejected', reason: 'seat_not_owned' });
+  const { result } = renderHook(() =>
+    usePictionaryAutoSubmission(fixture.collection, 'user-0', fixture.session, fixture.inputs),
+  );
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(30_000);
+  });
+  expect(result.current.status).toBe('failed');
+  expect(fixture.dispatch).toHaveBeenCalledTimes(4);
+  expect(handleError).toHaveBeenCalledTimes(1);
+  expect(vi.mocked(handleError).mock.calls[0]?.[0]).toEqual(
+    new Error('Empty Pictionary task was rejected: seat_not_owned'),
+  );
 });
 
 it('automatically submits an empty input', async () => {

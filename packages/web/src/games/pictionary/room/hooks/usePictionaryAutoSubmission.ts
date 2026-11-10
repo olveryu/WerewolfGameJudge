@@ -169,6 +169,28 @@ async function submitOwnedTask(
   await submitDrawingInput(state, ownedTask, input, session, signal);
 }
 
+async function submitTaskInput(
+  state: PictionaryState,
+  ownedTask: LocallyOwnedTask,
+  input: PictionaryTaskInput | undefined,
+  session: PictionaryRoomSession,
+  signal: AbortSignal,
+): Promise<void> {
+  const isEmpty =
+    input === undefined ||
+    (typeof input === 'string' ? input.length === 0 : input.elements.length === 0);
+  if (isEmpty) {
+    const result = await session.dispatch(
+      createPictionaryCommand(state, { type: 'pictionary.task.empty.submit' }, ownedTask.seat),
+      { controlledSeat: ownedTask.controlledSeat, label: '提交空白', durable: true },
+    );
+    assertDurableSuccess(result, 'Empty Pictionary task');
+    return;
+  }
+  await submitOwnedTask(state, ownedTask, input, session, signal);
+}
+
+/** Submits every locally owned task; all of them settle, and every failure is kept. */
 async function submitAllInputs(
   state: PictionaryState,
   userId: string,
@@ -176,34 +198,18 @@ async function submitAllInputs(
   signal: AbortSignal,
   inputs: ReadonlyMap<number, PictionaryTaskInput>,
 ): Promise<void> {
-  const failures = await Promise.all(
-    getLocallyOwnedTasks(state, userId).map(async (ownedTask): Promise<Error | null> => {
-      try {
-        const input = inputs.get(ownedTask.seat);
-        const isEmpty =
-          input === undefined ||
-          (typeof input === 'string' ? input.length === 0 : input.elements.length === 0);
-        if (isEmpty) {
-          const result = await session.dispatch(
-            createPictionaryCommand(
-              state,
-              { type: 'pictionary.task.empty.submit' },
-              ownedTask.seat,
-            ),
-            { controlledSeat: ownedTask.controlledSeat, label: '提交空白', durable: true },
-          );
-          assertDurableSuccess(result, 'Empty Pictionary task');
-          return null;
-        }
-        await submitOwnedTask(state, ownedTask, input, session, signal);
-        return null;
-      } catch (error: unknown) {
-        return error instanceof Error ? error : new Error('Unknown Pictionary finalization error');
-      }
-    }),
+  const results = await Promise.allSettled(
+    getLocallyOwnedTasks(state, userId).map((ownedTask) =>
+      submitTaskInput(state, ownedTask, inputs.get(ownedTask.seat), session, signal),
+    ),
   );
-  const firstFailure = failures.find((error) => error !== null);
-  if (firstFailure !== undefined && firstFailure !== null) throw firstFailure;
+  const failures: unknown[] = [];
+  for (const result of results) {
+    if (result.status === 'rejected') failures.push(result.reason);
+  }
+  if (failures.length > 0) {
+    throw new AggregateError(failures, `${failures.length} Pictionary submissions failed`);
+  }
 }
 
 /** Recover local collection with one in-flight attempt, backoff, and authoritative acknowledgements. */
@@ -280,11 +286,23 @@ export function usePictionaryAutoSubmission(
         await submitCurrentInputs(current.room.state, controller.signal);
         if (!controller.signal.aborted) setStatus('waiting');
       } catch (error: unknown) {
-        if (controller.signal.aborted || error instanceof PictionaryLinkCancelledError) return;
+        if (controller.signal.aborted) return;
+        const failures: readonly unknown[] =
+          error instanceof AggregateError ? error.errors : [error];
+        // A cancelled durable command is replayed by the next link epoch.
+        const deliveryFailures = failures.filter(
+          (failure) => !(failure instanceof PictionaryLinkCancelledError),
+        );
+        if (deliveryFailures.length === 0) return;
+        const terminalFailures = deliveryFailures.filter(
+          (failure) => !isRetryableDeliveryError(failure),
+        );
         if (reconcile()) {
           setStatus('waiting');
-        } else if (isRetryableDeliveryError(error)) {
-          roomScreenLog.warn('Pictionary submission pending; retry scheduled', { error });
+        } else if (terminalFailures.length === 0) {
+          roomScreenLog.warn('Pictionary submission pending; retry scheduled', {
+            errors: deliveryFailures,
+          });
           setStatus('retrying');
           const delayMs =
             UPLOAD_RETRY_LADDER_MS[Math.min(retryCount, UPLOAD_RETRY_LADDER_MS.length - 1)]!;
@@ -295,11 +313,16 @@ export function usePictionaryAutoSubmission(
         } else {
           hasTerminalFailure = true;
           setStatus('failed');
-          handleError(error, {
-            label: '发送最终内容',
-            logger: roomScreenLog,
-            alertMessage: '内容发送失败，请重试。',
-          });
+          handleError(
+            terminalFailures.length === 1
+              ? terminalFailures[0]
+              : new AggregateError(terminalFailures, 'Pictionary submissions were rejected'),
+            {
+              label: '发送最终内容',
+              logger: roomScreenLog,
+              alertMessage: '内容发送失败，请重试。',
+            },
+          );
         }
       } finally {
         isSubmitting = false;
