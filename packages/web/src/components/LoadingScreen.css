@@ -9,6 +9,26 @@
   padding: var(--space-large);
 }
 
+.loading-screen-icon {
+  width: var(--size-avatar-xl);
+  height: var(--size-avatar-xl);
+  border-radius: var(--radius-xlarge);
+  box-shadow: var(--shadow-lg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .loading-screen-icon {
+    animation: loading-screen-pulse 1s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes loading-screen-pulse {
+  to {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
 .loading-screen-message {
   margin: 0;
   color: var(--color-text-secondary);

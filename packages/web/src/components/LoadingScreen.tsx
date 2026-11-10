@@ -37,6 +37,7 @@ export function LoadingScreen({
   }
   return (
     <main className="loading-screen" aria-busy>
+      <img className="loading-screen-icon" src="/pwa/icon-192.png" alt="" />
       <Spinner label={message ?? '加载中'} size="lg" />
       {message !== undefined && <p className="loading-screen-message">{message}</p>}
     </main>
