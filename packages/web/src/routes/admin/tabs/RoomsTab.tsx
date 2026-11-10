@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router';
 
 import { Button } from '@/components/Button';
 import { Spinner } from '@/components/Spinner';
-import type { AdminRoom, AdminRoomPlayer } from '@/features/admin/model/adminContracts';
+import type { AdminRoom } from '@/features/admin/model/adminContracts';
 import { fetchRoomPlayers, fetchRooms } from '@/features/admin/services/adminApi';
 import { enterRoomFromAdmin } from '@/features/room/navigation/roomFlowNavigation';
 import IconEnterOutline from '~icons/ion/enter-outline';
@@ -27,8 +27,36 @@ function formatUtcMinute(timestamp: string): string {
   return timestamp.replace('T', ' ').slice(0, 16);
 }
 
-function RoomPlayers({ loading, players }: { loading: boolean; players: AdminRoomPlayer[] }) {
-  if (loading) return <Spinner label="正在读取参与者" />;
+/** One room's participants, read when its card expands; a failed read shows a retry. */
+function RoomPlayers({ roomCode }: { readonly roomCode: string }) {
+  const playersQuery = useQuery({
+    queryKey: ['adminRoomPlayers', roomCode],
+    queryFn: ({ signal }) => fetchRoomPlayers(roomCode, signal),
+    staleTime: 0,
+    gcTime: 0,
+    retry: false,
+  });
+  if (playersQuery.isPending) return <Spinner label="正在读取参与者" />;
+  if (playersQuery.isError) {
+    return (
+      <>
+        <AdminEmptyState
+          loading={false}
+          error={`读取参与者失败：${loadErrorMessage(playersQuery.error)}`}
+          empty={false}
+        />
+        <Button
+          variant="secondary"
+          size="sm"
+          loading={playersQuery.isFetching}
+          onClick={() => void playersQuery.refetch()}
+        >
+          重新读取
+        </Button>
+      </>
+    );
+  }
+  const { players } = playersQuery.data;
   if (players.length === 0) return <p className="admin-card-meta">无参与者记录</p>;
   return (
     <ul className="admin-room-players">
@@ -52,13 +80,11 @@ export function RoomsTab() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [expandedRoom, setExpandedRoom] = useState<string | null>(null);
-  const [players, setPlayers] = useState<AdminRoomPlayer[]>([]);
-  const [playersLoading, setPlayersLoading] = useState(false);
 
   // The previous page stays as placeholder so the total holds while the next page loads.
   const roomsQuery = useQuery({
     queryKey: ['adminRooms', page],
-    queryFn: () => fetchRooms({ page }),
+    queryFn: ({ signal }) => fetchRooms({ page }, signal),
     placeholderData: keepPreviousData,
     staleTime: 0,
     gcTime: 0,
@@ -68,24 +94,6 @@ export function RoomsTab() {
   const error = roomsQuery.error === null ? null : loadErrorMessage(roomsQuery.error);
   const rooms = roomsQuery.data?.rooms ?? [];
   const total = roomsQuery.data?.total ?? 0;
-
-  const handleRoomPress = async (roomCode: string) => {
-    if (expandedRoom === roomCode) {
-      setExpandedRoom(null);
-      setPlayers([]);
-      return;
-    }
-    setExpandedRoom(roomCode);
-    setPlayersLoading(true);
-    try {
-      const result = await fetchRoomPlayers(roomCode);
-      setPlayers(result.players);
-    } catch {
-      setPlayers([]);
-    } finally {
-      setPlayersLoading(false);
-    }
-  };
 
   return (
     <div className="admin-tab">
@@ -104,7 +112,9 @@ export function RoomsTab() {
                   type="button"
                   className="admin-card-toggle"
                   aria-expanded={isExpanded}
-                  onClick={() => void handleRoomPress(room.code)}
+                  onClick={() =>
+                    setExpandedRoom((current) => (current === room.code ? null : room.code))
+                  }
                 >
                   <span className="admin-card-header">
                     <span className="admin-room-code">#{room.code}</span>
@@ -143,7 +153,7 @@ export function RoomsTab() {
                     </span>
                   </Button>
                 </div>
-                {isExpanded && <RoomPlayers loading={playersLoading} players={players} />}
+                {isExpanded && <RoomPlayers roomCode={room.code} />}
               </li>
             );
           })}

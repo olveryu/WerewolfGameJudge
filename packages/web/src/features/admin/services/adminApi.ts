@@ -127,15 +127,25 @@ export function fetchUsers(params: FetchUsersParams = {}, signal?: AbortSignal) 
   );
 }
 
-export function fetchRooms(params: { page?: number; limit?: number } = {}) {
-  return adminFetch('/admin/rooms', parseAdminRoomsResponse, {
-    page: String(params.page ?? 1),
-    limit: String(params.limit ?? 50),
-  });
+export function fetchRooms(params: { page?: number; limit?: number } = {}, signal?: AbortSignal) {
+  return adminFetch(
+    '/admin/rooms',
+    parseAdminRoomsResponse,
+    {
+      page: String(params.page ?? 1),
+      limit: String(params.limit ?? 50),
+    },
+    signal,
+  );
 }
 
-export function fetchRoomPlayers(roomCode: string) {
-  return adminFetch(`/admin/rooms/${roomCode}/players`, parseAdminRoomPlayersResponse);
+export function fetchRoomPlayers(roomCode: string, signal?: AbortSignal) {
+  return adminFetch(
+    `/admin/rooms/${encodeURIComponent(roomCode)}/players`,
+    parseAdminRoomPlayersResponse,
+    undefined,
+    signal,
+  );
 }
 
 /** Read authoritative balances and the most recent admin grant records. */

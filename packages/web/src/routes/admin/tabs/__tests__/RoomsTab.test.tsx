@@ -71,8 +71,22 @@ describe('RoomsTab', () => {
   it('preserves participant expansion without entering the room', async () => {
     const router = renderRoomsTab();
     fireEvent.click(await screen.findByText('#1234'));
-    await waitFor(() => expect(fetchRoomPlayers).toHaveBeenCalledWith('1234'));
+    await waitFor(() =>
+      expect(fetchRoomPlayers).toHaveBeenCalledWith('1234', expect.any(AbortSignal)),
+    );
     expect(await screen.findByText('无参与者记录')).toBeDefined();
     expect(router.state.location.pathname).toBe('/admin');
+  });
+
+  it('shows a failed participant read and reads again on retry', async () => {
+    vi.mocked(fetchRoomPlayers)
+      .mockRejectedValueOnce(new Error('HTTP 500'))
+      .mockResolvedValueOnce({ players: [] });
+    renderRoomsTab();
+    fireEvent.click(await screen.findByText('#1234'));
+    expect((await screen.findByRole('alert')).textContent).toBe('读取参与者失败：HTTP 500');
+    fireEvent.click(screen.getByRole('button', { name: '重新读取' }));
+    expect(await screen.findByText('无参与者记录')).toBeDefined();
+    expect(fetchRoomPlayers).toHaveBeenCalledTimes(2);
   });
 });
