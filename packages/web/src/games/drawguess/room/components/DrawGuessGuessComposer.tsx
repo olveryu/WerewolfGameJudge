@@ -7,6 +7,8 @@
 
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 
+import { TESTIDS } from '@/testids';
+
 const GUESS_THROTTLE_MS = 2000;
 const TOO_FAST_HINT_MS = 1500;
 
@@ -42,7 +44,12 @@ export function DrawGuessGuessComposer({
 
   if (isLocked) {
     return (
-      <div className="drawguess-locked-bar" role="status" aria-label="已猜中，等待本轮结束">
+      <div
+        className="drawguess-locked-bar"
+        role="status"
+        aria-label="已猜中，等待本轮结束"
+        data-testid={TESTIDS.drawGuessGuessLockedBar}
+      >
         已猜中，等待本轮结束
       </div>
     );
@@ -87,11 +94,13 @@ export function DrawGuessGuessComposer({
           enterKeyHint="send"
           autoComplete="off"
           aria-label="猜词输入框"
+          data-testid={TESTIDS.drawGuessGuessInput}
         />
         <button
           type="submit"
           className="drawguess-composer-send"
           aria-label="发送猜词"
+          data-testid={TESTIDS.drawGuessGuessSendButton}
           disabled={isInputDisabled || trimmedDraft.length === 0}
         >
           发送

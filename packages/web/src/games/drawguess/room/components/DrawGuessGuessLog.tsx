@@ -8,6 +8,8 @@
 import type { DrawGuessViewModel } from '@game-judge/game-engine/games/drawguess/public';
 import { useEffect, useRef } from 'react';
 
+import { TESTIDS } from '@/testids';
+
 export type DrawGuessGuessMessage = DrawGuessViewModel['messages'][number];
 
 /** 距底部小于该距离（px）才算「在底部」，此时新消息自动滚到底。 */
@@ -73,6 +75,7 @@ export function DrawGuessGuessLog({ messages, viewerSeat }: DrawGuessGuessLogPro
       className="drawguess-panel drawguess-message-list"
       aria-label="猜词消息"
       aria-live="polite"
+      data-testid={TESTIDS.drawGuessGuessLog}
       onScroll={(event) => {
         const { scrollHeight, scrollTop, clientHeight } = event.currentTarget;
         isNearBottomRef.current =

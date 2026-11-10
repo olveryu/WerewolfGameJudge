@@ -119,7 +119,11 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
                   title={`你画我猜 · ${config.numberOfPlayers}人局`}
                   subtitle={`每人 ${DRAWGUESS_ROUNDS_PER_DRAWER} 轮 · 选词 ${DRAWGUESS_WORD_SELECT_SECONDS} 秒 · 作画 ${DRAWGUESS_DRAWING_DURATION_SECONDS} 秒 · 结算 ${DRAWGUESS_ROUND_END_SECONDS} 秒`}
                   headerRight={
-                    <RoomGuideButton onPress={screen.openRules} label="查看你画我猜玩法" />
+                    <RoomGuideButton
+                      onPress={screen.openRules}
+                      label="查看你画我猜玩法"
+                      testId={TESTIDS.roomGuideButton('drawguess')}
+                    />
                   }
                 />
               ),
@@ -228,7 +232,9 @@ function DrawGuessWordSelectView({
     <DrawGuessStageColumn header={<DrawGuessSettleRescue screen={screen} />}>
       {isDrawer ? (
         <section className="drawguess-section">
-          <h3 className="drawguess-section-title">请选择本轮题目（{phase.choices.length} 选 1）</h3>
+          <h3 className="drawguess-section-title" data-testid={TESTIDS.drawGuessWordSelectTitle}>
+            请选择本轮题目（{phase.choices.length} 选 1）
+          </h3>
           {viewModel.choices.length === 0 ? (
             <p className="drawguess-hint">题目准备中，请稍候…</p>
           ) : (
@@ -248,7 +254,9 @@ function DrawGuessWordSelectView({
         </section>
       ) : (
         <section className="drawguess-section">
-          <h3 className="drawguess-section-title">{drawerName} 正在选词…</h3>
+          <h3 className="drawguess-section-title" data-testid={TESTIDS.drawGuessWordSelectTitle}>
+            {drawerName} 正在选词…
+          </h3>
           <p className="drawguess-hint">选词结束后开始作画，请准备猜词。</p>
         </section>
       )}

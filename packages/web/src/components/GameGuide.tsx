@@ -37,7 +37,9 @@ export function GameGuide({
       />
       <main className="game-guide">
         <p className="game-guide-kicker">游戏目标</p>
-        <h2 className="game-guide-heading">{heading}</h2>
+        <h2 className="game-guide-heading" data-testid={TESTIDS.gameGuideHeading}>
+          {heading}
+        </h2>
         <p className="game-guide-intro">{intro}</p>
         {children}
       </main>

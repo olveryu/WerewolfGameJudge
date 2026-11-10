@@ -20,6 +20,7 @@ import {
 } from '@game-judge/game-engine/games/drawguess/public';
 
 import { GameGuide, GameGuideSection, GameNotice, RuleItem } from '@/components/GameGuide';
+import { TESTIDS } from '@/testids';
 
 /** 展示轮流作画、猜词计分、提示与机器人规则。文案数字全部取自引擎常量。 */
 export function DrawGuessRulesScreen() {
@@ -29,6 +30,7 @@ export function DrawGuessRulesScreen() {
       title="你画我猜玩法"
       heading="一人作画，其余人猜"
       intro="每轮一人当画手作画，其他人在聊天框里打字猜词。猜得越快分越高，画手得分看难度。"
+      testId={TESTIDS.gameGuideScreenRoot('drawguess')}
     >
       <GameGuideSection title="一轮怎么玩">
         <RuleItem

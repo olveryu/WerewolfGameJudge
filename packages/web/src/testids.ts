@@ -93,8 +93,10 @@ export const TESTIDS = {
   fibRulesScreenRoot: 'fib-rules-screen-root',
   // Shared game guide (GameGuide) and the room's guide entry
   gameGuideScreenRoot: (gameType: string) => `${gameType}-guide-screen-root`,
+  gameGuideHeading: 'game-guide-heading',
   gameGuideBackButton: 'game-guide-back-button',
   roomGuideButton: (gameType: string) => `${gameType}-room-guide-button`,
+  roomGameSummaryTitle: 'room-game-summary-title',
 
   roomScreenRoot: 'room-screen-root',
   roomBackButton: 'room-back-button',
@@ -351,6 +353,11 @@ export const TESTIDS = {
   drawGuessGuessPeek: 'drawguess-guess-peek',
   drawGuessGuessLogSheet: 'drawguess-guess-log-sheet',
   drawGuessWordChoice: (index: number) => `drawguess-word-choice-${index}`,
+  drawGuessWordSelectTitle: 'drawguess-word-select-title',
+  drawGuessGuessInput: 'drawguess-guess-input',
+  drawGuessGuessSendButton: 'drawguess-guess-send-button',
+  drawGuessGuessLockedBar: 'drawguess-guess-locked-bar',
+  drawGuessGuessLog: 'drawguess-guess-log',
 
   // AlertModal
   alertModalOverlay: 'alert-modal-overlay',

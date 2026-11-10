@@ -4,6 +4,7 @@ import './RoomGameSummary.css';
 import type { ReactNode } from 'react';
 
 import { IonIcon, type IoniconName } from '@/components/icons/IonIcon';
+import { TESTIDS } from '@/testids';
 import IconBookOutline from '~icons/ion/book-outline';
 import IconChevronForward from '~icons/ion/chevron-forward';
 
@@ -31,7 +32,9 @@ export function RoomGameSummary({
             <IonIcon name={icon} />
           </span>
           <div className="room-game-summary-text">
-            <h2 className="room-game-summary-title">{title}</h2>
+            <h2 className="room-game-summary-title" data-testid={TESTIDS.roomGameSummaryTitle}>
+              {title}
+            </h2>
             {subtitle !== undefined && <p className="room-game-summary-subtitle">{subtitle}</p>}
           </div>
         </div>
