@@ -25,8 +25,11 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
     // announcement state stays visible while the viewports are checked.
     // The gate must be installed before the host enters the room: the
     // socket is created on room entry, and later routes miss it.
+    // The waiter's timeout starts here, but the ack can only arrive after
+    // room setup, seating, role viewing and game start plus the first
+    // audio batch — well past the 30s default — so allow 120s.
     const ackGate = await gateCommandFrames(hostPage);
-    const heldAckPromise = ackGate.waitForHeld(`${gameId}.audio.ack`);
+    const heldAckPromise = ackGate.waitForHeld(`${gameId}.audio.ack`, 120_000);
 
     try {
       await test.step('建房、入座并查看身份', async () => {
