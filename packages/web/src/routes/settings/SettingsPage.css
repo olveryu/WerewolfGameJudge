@@ -45,25 +45,6 @@
   border-radius: var(--radius-medium);
 }
 
-.settings-avatar-button {
-  padding: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
-}
-
-.settings-avatar-button:disabled {
-  cursor: progress;
-}
-
-.settings-avatar-uploading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--size-avatar-xl);
-  height: var(--size-avatar-xl);
-}
-
 .settings-avatar-badge {
   position: absolute;
   right: calc(-1 * var(--space-small));
@@ -139,6 +120,14 @@
   font-size: var(--font-caption);
   line-height: var(--line-caption);
   text-align: center;
+}
+
+.settings-teaser-link {
+  color: var(--color-primary);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-secondary);
+  text-decoration: none;
 }
 
 .settings-profile-text {

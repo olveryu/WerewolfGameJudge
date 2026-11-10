@@ -4,6 +4,9 @@ import { AppRoot } from '@/app/AppRoot';
 import { RouteErrorPage } from '@/app/RouteErrorPage';
 import { LoadingScreen } from '@/components/LoadingScreen';
 
+/** Appearance and Unlocks share one lazy chunk, so one loader serves both routes. */
+const loadCosmeticPages = () => import('@/routes/cosmeticPages');
+
 /**
  * Route table. Each page is a `lazy` route so it ships as its own chunk
  * (docs/web-client-rewrite.md §5.10); paths match the current client, including `/room/:code`.
@@ -70,6 +73,20 @@ export const routes: RouteObject[] = [
         lazy: async () => {
           const { SettingsPage } = await import('@/routes/settings/SettingsPage');
           return { Component: SettingsPage };
+        },
+      },
+      {
+        path: 'appearance/:roomCode?',
+        lazy: async () => {
+          const { AppearancePage } = await loadCosmeticPages();
+          return { Component: AppearancePage };
+        },
+      },
+      {
+        path: 'unlocks/:roomCode?',
+        lazy: async () => {
+          const { UnlocksPage } = await loadCosmeticPages();
+          return { Component: UnlocksPage };
         },
       },
       {

@@ -19,12 +19,31 @@ interface SeatDecorationProps {
   tileRef: RefObject<HTMLElement | null>;
   /** The element `SceneCanvas` covers. */
   hostRef: RefObject<HTMLElement | null>;
+  /** Opacity of every decoration, for dimmed (locked) picker cells. */
+  opacity: number;
+}
+
+/**
+ * The scroll offset of `from` and its ancestors up to (not including) `to`, which must be an
+ * ancestor; scrolled containers move their content without changing its offsets.
+ */
+function scrollBetween(from: HTMLElement | null, to: HTMLElement): { x: number; y: number } {
+  let x = 0;
+  let y = 0;
+  for (let current = from; current !== to; current = current.parentElement) {
+    if (current === null) {
+      throw new Error('Seat element is not laid out inside the scene host');
+    }
+    x += current.scrollLeft;
+    y += current.scrollTop;
+  }
+  return { x, y };
 }
 
 /**
  * The offset of `element`'s border box from the host's padding box, where the canvas sits.
  * Offsets ignore CSS transforms, so a tile's press or selection animation does not shift
- * decorations.
+ * decorations; scrolled containers between the element and the host do shift them.
  */
 export function offsetInHost(element: HTMLElement, host: HTMLElement): { x: number; y: number } {
   let x = 0;
@@ -37,9 +56,18 @@ export function offsetInHost(element: HTMLElement, host: HTMLElement): { x: numb
     if (!(parent instanceof HTMLElement)) {
       throw new Error('Seat element is not laid out inside the scene host');
     }
-    if (parent === host) return { x, y };
+    if (parent === host) {
+      const scroll = scrollBetween(element.parentElement, host);
+      return { x: x - scroll.x, y: y - scroll.y };
+    }
     if (parent === host.offsetParent) {
-      return { x: x - host.offsetLeft - host.clientLeft, y: y - host.offsetTop - host.clientTop };
+      // The host is a sibling layer under the same offset parent: compare both to it.
+      const scroll = scrollBetween(element.parentElement, parent);
+      const hostScroll = scrollBetween(host.parentElement, parent);
+      return {
+        x: x - scroll.x + hostScroll.x - host.offsetLeft - host.clientLeft,
+        y: y - scroll.y + hostScroll.y - host.offsetTop - host.clientTop,
+      };
     }
     x += parent.clientLeft;
     y += parent.clientTop;
@@ -92,7 +120,13 @@ function anchorRect(anchor: DecorationAnchor, tileRect: SeatRect, tile: HTMLElem
  * fails to load. Callers skip it when reduced motion is requested or seat decorations are
  * switched off.
  */
-export function SeatDecoration({ decorations, suspended, tileRef, hostRef }: SeatDecorationProps) {
+export function SeatDecoration({
+  decorations,
+  suspended,
+  tileRef,
+  hostRef,
+  opacity,
+}: SeatDecorationProps) {
   const stage = use(sceneStagePromise());
   const [failure, setFailure] = useState<Error | null>(null);
   const handles = useRef(new Map<DecorationSpec, DecorationHandle>());
@@ -118,13 +152,20 @@ export function SeatDecoration({ decorations, suspended, tileRef, hostRef }: Sea
     const observer = new ResizeObserver(align);
     observer.observe(tile);
     observer.observe(host);
+    // Scroll events do not bubble; capture catches scrolled containers inside the host.
+    host.addEventListener('scroll', align, { capture: true, passive: true });
     align();
     return () => {
       observer.disconnect();
+      host.removeEventListener('scroll', align, { capture: true });
       byDecoration.clear();
       for (const { handle } of mounted) handle.destroy();
     };
   }, [stage, decorations, tileRef, hostRef]);
+
+  useEffect(() => {
+    for (const handle of handles.current.values()) handle.setOpacity(opacity);
+  }, [decorations, opacity]);
 
   useEffect(() => {
     for (const [decoration, handle] of handles.current) {

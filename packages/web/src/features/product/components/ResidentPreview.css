@@ -1,0 +1,73 @@
+/* The page's scene canvas, over the previews' shared positioned container. */
+.resident-scene-host {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* A square avatar tile; its parent sets the size. */
+.resident-tile {
+  position: relative;
+  display: flex;
+  width: 100%;
+  aspect-ratio: 1;
+  border: var(--border-width-thick) solid var(--color-border-light);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+}
+
+/* A framed tile: the scene draws the frame over the avatar, which fills the border box. */
+.resident-tile[data-framed='true'] {
+  border-color: transparent;
+  background: transparent;
+}
+
+.resident-tile[data-framed='true'] .resident-tile-stage > .resident-tile-avatar {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+}
+
+/* The tile's border box; its padding keeps the avatar inside the border. */
+.resident-tile-stage {
+  position: absolute;
+  inset: calc(-1 * var(--border-width-thick));
+  display: flex;
+  padding: var(--border-width-thick);
+  pointer-events: none;
+}
+
+.resident-tile-stage[data-entrance='true'] {
+  overflow: hidden;
+}
+
+/* The avatar waits hidden for the entrance's first frame. */
+.resident-tile-stage[data-entrance='true'] .resident-tile-avatar {
+  opacity: 0;
+}
+
+.resident-tile-ghosts {
+  position: absolute;
+  inset: 0;
+}
+
+.resident-tile-ghosts > .resident-tile-avatar {
+  position: absolute;
+  inset: var(--border-width-thick);
+  width: auto;
+  height: auto;
+}
+
+.resident-tile-avatar {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-large);
+}
+
+.resident-tile-avatar .avatar {
+  border-radius: var(--radius-large);
+}

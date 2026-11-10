@@ -69,7 +69,8 @@ export function RoomSeatSceneCanvas({
 
 /**
  * One seat's entrance and resident decorations, aligned with its tile. The entrance plays when
- * the seat mounts and replays after each pause; flair and pet hide while it plays.
+ * the seat mounts and replays after each pause; flair and pet hide while it plays. `opacity`
+ * dims the stage-drawn effects with a dimmed (locked) picker cell.
  */
 export function RoomSeatResidents({
   residents,
@@ -77,12 +78,14 @@ export function RoomSeatResidents({
   hostRef,
   avatarRef,
   ghostHostRef,
+  opacity = 1,
 }: {
   readonly residents: ResidentDecorations;
   readonly tileRef: RefObject<HTMLElement | null>;
   readonly hostRef: RefObject<HTMLElement | null>;
   readonly avatarRef: RefObject<HTMLElement | null>;
   readonly ghostHostRef: RefObject<HTMLElement | null>;
+  readonly opacity?: number;
 }) {
   const specs = use(residentSpecs(residents));
   const [isEntranceActive, setEntranceActive] = useState(true);
@@ -99,6 +102,7 @@ export function RoomSeatResidents({
           avatarRef={avatarRef}
           ghostHostRef={ghostHostRef}
           onActiveChange={setEntranceActive}
+          opacity={opacity}
         />
       )}
       <SeatDecoration
@@ -106,6 +110,7 @@ export function RoomSeatResidents({
         suspended={suspended}
         tileRef={tileRef}
         hostRef={hostRef}
+        opacity={opacity}
       />
     </>
   );

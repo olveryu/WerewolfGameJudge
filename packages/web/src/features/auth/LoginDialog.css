@@ -53,6 +53,17 @@
   text-align: center;
 }
 
+.login-strip-link {
+  padding: var(--space-tight) 0;
+  border: 0;
+  background: none;
+  color: var(--color-primary);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-secondary);
+  cursor: pointer;
+}
+
 .login-method {
   display: flex;
   flex-direction: column;

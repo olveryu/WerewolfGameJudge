@@ -405,7 +405,12 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
     await completeAnonLoginIfNeeded(page);
   }
 
-  // Dismiss the join-room modal opened by the pending authenticated action.
+  // Dismiss the join-room modal opened by the pending authenticated action. The dialog chunk
+  // loads lazily, so wait for it to appear before dismissing.
+  await page
+    .getByText('加入房间')
+    .waitFor({ state: 'visible', timeout: 5000 })
+    .catch(() => {});
   await dismissBlockingModals(page);
   await ensureHomeReady(page);
 }

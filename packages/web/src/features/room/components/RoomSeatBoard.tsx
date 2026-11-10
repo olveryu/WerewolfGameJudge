@@ -12,11 +12,11 @@ import {
 } from 'react';
 
 import { IconButton } from '@/components/IconButton';
+import { useSeatDecorationsPreference } from '@/features/product/hooks/useSeatDecorationsPreference';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import { displaySettings } from '@/features/settings/displaySettings';
 import { resolveResidentDecorations } from '@/scene/residentDecorations';
-import { usePrefersReducedMotion } from '@/scene/usePrefersReducedMotion';
 import { TESTIDS } from '@/testids';
 import IconChevronBack from '~icons/ion/chevron-back';
 import IconChevronForward from '~icons/ion/chevron-forward';
@@ -108,12 +108,11 @@ function RoomSeatBoardComponent({
   const firstSeat = (page - 1) * seatsPerPage;
   const visibleSeatCount = Math.min(seatsPerPage, model.source.count - firstSeat);
   const display = useSyncExternalStore(displaySettings.subscribe, displaySettings.getSnapshot);
-  const prefersReducedMotion = usePrefersReducedMotion();
+  const showsResidents = useSeatDecorationsPreference();
   const sceneHostRef = useRef<HTMLDivElement>(null);
 
   // Resident decorations only while the user wants them, motion is allowed and the game allows
   // them for the seat; the scene layer loads only when some visible seat has one.
-  const showsResidents = display.seatDecorationsEnabled && !prefersReducedMotion;
   const seats = Array.from({ length: visibleSeatCount }, (_, offset) => {
     const seatModel = model.source.getSeat(firstSeat + offset);
     const residents =

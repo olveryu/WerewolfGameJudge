@@ -1,6 +1,7 @@
 import './LoginDialog.css';
 
 import { type FormEvent, useState, useSyncExternalStore } from 'react';
+import { useMatches, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 
 import { HAND_DRAWN_PORTRAITS } from '@/components/avatar/avatarSources';
@@ -87,11 +88,19 @@ type SettleLogin = (outcome: LoginOutcome) => void;
 
 function LoginFlow({ request, settle }: { request: LoginRequest; settle: SettleLogin }) {
   const [step, setStep] = useState<Step>(() => initialStep(request));
+  const navigate = useNavigate();
+  // The dialog sits outside the page routes; a room page's code keeps the wardrobe in that room.
+  const roomCode = useMatches().at(-1)?.params.roomCode;
+  const browseAvatars = () => {
+    settle('cancelled');
+    void navigate(roomCode === undefined ? '/appearance' : `/appearance/${roomCode}`);
+  };
   switch (step.kind) {
     case 'options':
       return (
         <LoginOptions
           onEmail={(isSignUp) => setStep({ kind: 'email', isSignUp, email: '' })}
+          onBrowseAvatars={browseAvatars}
           onSignedIn={() => settle('signedIn')}
           onCancel={() => settle('cancelled')}
         />
@@ -116,6 +125,8 @@ function LoginFlow({ request, settle }: { request: LoginRequest; settle: SettleL
 interface LoginOptionsProps {
   /** Opens the email form: sign-up when true, sign-in otherwise. */
   readonly onEmail: (isSignUp: boolean) => void;
+  /** Opens the appearance page from the portrait strip. */
+  readonly onBrowseAvatars: () => void;
   /** The dialog settles its request; the inline Settings list re-renders from the session. */
   readonly onSignedIn?: () => void;
   /** Renders a cancel button when set (the dialog); the inline Settings list has none. */
@@ -123,7 +134,12 @@ interface LoginOptionsProps {
 }
 
 /** Login method list: email sign-up / sign-in, and anonymous login outside the mini-program. */
-export function LoginOptions({ onEmail, onSignedIn, onCancel }: LoginOptionsProps) {
+export function LoginOptions({
+  onEmail,
+  onBrowseAvatars,
+  onSignedIn,
+  onCancel,
+}: LoginOptionsProps) {
   const { user, loading } = useAuthContext();
   const signInAnonymously = useSignInAnonymously();
   const isGuest = user?.isAnonymous === true;
@@ -158,6 +174,9 @@ export function LoginOptions({ onEmail, onSignedIn, onCancel }: LoginOptionsProp
         <p className="login-strip-text">
           {`绑定邮箱，解锁 ${HAND_DRAWN_PORTRAITS.length} 款暗黑头像、自定义昵称和头像框`}
         </p>
+        <button type="button" className="login-strip-link" onClick={onBrowseAvatars}>
+          浏览全部头像 ›
+        </button>
       </div>
 
       <button

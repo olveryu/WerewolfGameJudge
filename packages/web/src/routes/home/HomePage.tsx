@@ -27,9 +27,13 @@ import IconPersonCircleOutline from '~icons/ion/person-circle-outline';
 import IconTimeOutline from '~icons/ion/time-outline';
 
 import { AnnouncementCardText } from './AnnouncementCardText';
-import { JoinRoomDialog } from './JoinRoomDialog';
-import { RecentRoomsDialog } from './RecentRoomsDialog';
-
+// The dialogs (and Ark UI's dialog machinery) load on first open, outside the start-up budget.
+const JoinRoomDialog = lazy(async () => ({
+  default: (await import('./JoinRoomDialog')).JoinRoomDialog,
+}));
+const RecentRoomsDialog = lazy(async () => ({
+  default: (await import('./RecentRoomsDialog')).RecentRoomsDialog,
+}));
 const AnnouncementCardStatus = lazy(async () => ({
   default: (await import('./AnnouncementCardStatus')).AnnouncementCardStatus,
 }));
@@ -69,6 +73,12 @@ export function HomePage() {
   const navigate = useNavigate();
   const { user, loading: authLoading, error: authError } = useAuthContext();
   const [dialog, setDialog] = useState<'join' | 'recent' | null>(null);
+  // Like the announcement modal: mounted on first open, then kept for the exit motion.
+  const [dialogsMounted, setDialogsMounted] = useState(false);
+  const openDialog = (kind: 'join' | 'recent') => {
+    setDialogsMounted(true);
+    setDialog(kind);
+  };
   const [announcementOpen, setAnnouncementOpen] = useState(false);
   // The lazy modal mounts on first open and stays mounted so its exit motion can finish.
   const [announcementMounted, setAnnouncementMounted] = useState(false);
@@ -246,7 +256,7 @@ export function HomePage() {
               className="home-action"
               disabled={authLoading}
               data-testid={TESTIDS.homeEnterRoomButton}
-              onClick={() => void requireAuth(() => setDialog('join'))}
+              onClick={() => void requireAuth(() => openDialog('join'))}
             >
               <IconLogInOutline className="home-action-icon" aria-hidden />
               <span className="home-action-title">进入房间</span>
@@ -257,7 +267,7 @@ export function HomePage() {
               className="home-action"
               disabled={authLoading || recentRooms.length === 0}
               data-testid={TESTIDS.homeReturnLastGameButton}
-              onClick={() => void requireAuth(() => setDialog('recent'))}
+              onClick={() => void requireAuth(() => openDialog('recent'))}
             >
               <IconTimeOutline className="home-action-icon" aria-hidden />
               <span className="home-action-title">最近房间</span>
@@ -318,15 +328,23 @@ export function HomePage() {
         </Suspense>
       )}
 
-      <JoinRoomDialog open={dialog === 'join'} onClose={() => setDialog(null)} onJoin={joinRoom} />
-      {user && (
-        <RecentRoomsDialog
-          open={dialog === 'recent'}
-          ownerUserId={user.id}
-          rooms={recentRooms}
-          onClose={() => setDialog(null)}
-          onJoin={joinRoom}
-        />
+      {dialogsMounted && (
+        <Suspense fallback={null}>
+          <JoinRoomDialog
+            open={dialog === 'join'}
+            onClose={() => setDialog(null)}
+            onJoin={joinRoom}
+          />
+          {user && (
+            <RecentRoomsDialog
+              open={dialog === 'recent'}
+              ownerUserId={user.id}
+              rooms={recentRooms}
+              onClose={() => setDialog(null)}
+              onJoin={joinRoom}
+            />
+          )}
+        </Suspense>
       )}
     </main>
   );

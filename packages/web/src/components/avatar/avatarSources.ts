@@ -40,6 +40,17 @@ export const HAND_DRAWN_PORTRAITS: readonly string[] =
 
 const BUILTIN_AVATAR_PREFIX = 'builtin://';
 
+/** The stored avatar URL of a builtin (hand-drawn or generated) catalog avatar. */
+export function makeBuiltinAvatarUrl(avatarId: string): string {
+  return `${BUILTIN_AVATAR_PREFIX}${avatarId}`;
+}
+
+/** The catalog avatar id of a builtin avatar URL; null for an upload or no avatar. */
+export function parseBuiltinAvatarId(avatarUrl: string | null): string | null {
+  if (avatarUrl === null || !avatarUrl.startsWith(BUILTIN_AVATAR_PREFIX)) return null;
+  return avatarUrl.slice(BUILTIN_AVATAR_PREFIX.length);
+}
+
 /** Tint palette for the wolf-paw fallback; 20 colours keep 12-player rooms distinct. */
 const FALLBACK_TINTS: readonly string[] = [
   '#C0392B',

@@ -43,6 +43,11 @@ export const TESTIDS = {
   // SettingsScreen - Display section
   settingsSeatDecorationsSwitch: 'settings-seat-decorations-switch',
 
+  // Appearance / Unlocks
+  appearanceScreen: 'appearance-screen',
+  appearanceAvatarInput: 'appearance-avatar-input',
+  unlocksScreen: 'unlocks-screen',
+
   configScreenRoot: 'config-screen-root',
   configBackButton: 'config-back-button',
   configTemplatePill: 'config-template-pill',

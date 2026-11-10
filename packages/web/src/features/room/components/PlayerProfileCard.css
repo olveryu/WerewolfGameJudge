@@ -119,6 +119,15 @@
   font-size: var(--font-caption);
 }
 
+.profile-stat-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
 .profile-section-title {
   margin: 0 0 var(--space-small);
   color: var(--color-text-secondary);

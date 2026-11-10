@@ -6,7 +6,7 @@ import { Toaster } from 'sonner';
 
 import { queryClient } from '@/app/queryClient';
 import { getAppServices } from '@/app/services';
-import { AlertHost } from '@/components/AlertHost';
+import { AlertHostSlot } from '@/components/AlertHostSlot';
 import { AuthProvider, useAuthContext } from '@/contexts/AuthContext';
 import { ServiceProvider, useServices } from '@/contexts/ServiceContext';
 import { LoginDialogSlot } from '@/features/auth/LoginDialogSlot';
@@ -36,7 +36,7 @@ export function AppRoot() {
             <AppContent />
             <ClientGameOverlays />
           </ClientGameModulesProvider>
-          <AlertHost />
+          <AlertHostSlot />
           <LoginDialogSlot />
           {/* Body-level like the dialogs, so its own z-index puts toasts above an open dialog. */}
           <Portal>

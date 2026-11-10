@@ -69,6 +69,7 @@ export async function fetchUserProfile(userId: string): Promise<UserPublicProfil
 /** Fetches the list of unlocked items for a specific user. */
 export async function fetchUserUnlocks(
   userId: string,
+  signal?: AbortSignal,
 ): Promise<{ unlockedItems: readonly string[] }> {
   statsLog.debug('Fetching unlocks', { userId });
   return apiClient.json({
@@ -77,5 +78,6 @@ export async function fetchUserUnlocks(
     auth: 'required',
     idempotent: true,
     decode: (value) => userUnlocksSchema.parse(value),
+    signal,
   });
 }

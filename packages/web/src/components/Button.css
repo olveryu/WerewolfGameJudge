@@ -49,12 +49,14 @@
   opacity: var(--opacity-disabled);
 }
 
-.button:active:not(:disabled) {
+.button:active:not(:disabled, [aria-disabled='true']) {
   transform: scale(0.97);
   opacity: var(--opacity-pressed);
 }
 
-.button:disabled {
+/* `aria-disabled` keeps the button pressable so it can explain why it is unavailable. */
+.button:disabled,
+.button[aria-disabled='true'] {
   cursor: default;
   opacity: var(--opacity-disabled);
 }

@@ -63,6 +63,14 @@
   min-height: var(--size-min-touch-target);
   padding: var(--space-small) 0;
   border-top: var(--border-width) solid var(--color-border-light);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.growth-unlocks-chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: var(--size-icon-md);
 }
 
 .growth-unlocks-icon {

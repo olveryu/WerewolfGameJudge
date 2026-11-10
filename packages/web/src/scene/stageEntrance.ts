@@ -45,6 +45,8 @@ export interface EntranceHandle {
   setGeometry(geometry: EntranceGeometry): void;
   /** Plays the entrance from its start. */
   play(): void;
+  /** Dims the whole entrance, as the DOM dims a locked picker cell. */
+  setOpacity(opacity: number): void;
   destroy(): void;
 }
 
@@ -148,6 +150,10 @@ export class MountedEntrance implements EntranceHandle {
       this.playing = false;
       this.host.setAnimating(this, false);
     }
+  }
+
+  setOpacity(opacity: number): void {
+    this.container.alpha = clampOpacity(opacity);
   }
 
   destroy(): void {

@@ -173,6 +173,7 @@ function BenchSeatDecoration({
       suspended={NOTHING_SUSPENDED}
       tileRef={tileRef}
       hostRef={hostRef}
+      opacity={1}
     />
   );
 }

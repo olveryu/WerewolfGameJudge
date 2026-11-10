@@ -1,13 +1,11 @@
-/** Settings: rendering, signed-out login options, growth details and avatar upload. */
-import { render, screen, waitFor } from '@testing-library/react';
+/** Settings: rendering, signed-out login options, growth details and appearance / unlocks entries. */
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createMemoryRouter, RouterProvider } from 'react-router';
-import { toast } from 'sonner';
+import { createMemoryRouter, RouterProvider, useLocation } from 'react-router';
 
 import type { User } from '@/contexts/AuthContext';
 import type { UserStats } from '@/features/account/services/accountApi';
 import { SettingsPage } from '@/routes/settings/SettingsPage';
-import { showErrorAlert } from '@/utils/alertPresets';
 
 const mocks = vi.hoisted(() => ({
   auth: {
@@ -17,8 +15,6 @@ const mocks = vi.hoisted(() => ({
     refreshUser: vi.fn(),
   },
   stats: undefined as UserStats | undefined,
-  uploadAvatar: vi.fn(),
-  refreshSavedProfile: vi.fn(),
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({ useAuthContext: () => mocks.auth }));
@@ -28,8 +24,7 @@ vi.mock('@/features/account/queries/useUserStatsQuery', () => ({
 vi.mock('@/features/account/accountMutations', () => ({
   useUpdateProfile: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useChangePassword: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useUploadAvatar: () => ({ mutateAsync: mocks.uploadAvatar, isPending: false }),
-  refreshSavedProfile: mocks.refreshSavedProfile,
+  refreshSavedProfile: vi.fn(),
 }));
 vi.mock('@/features/auth/authMutations', () => {
   const mutation = () => ({ mutateAsync: vi.fn(), isPending: false });
@@ -80,11 +75,21 @@ const REGISTERED_USER: User = {
   isAnonymous: false,
 };
 
-async function renderSettings() {
-  const router = createMemoryRouter([{ path: '/settings', element: <SettingsPage /> }], {
-    initialEntries: ['/settings'],
-  });
+async function renderSettings(initialPath = '/settings') {
+  const router = createMemoryRouter(
+    [
+      { path: '/settings/:roomCode?', element: <SettingsPage /> },
+      { path: '/appearance/:roomCode?', element: <CurrentLocation /> },
+      { path: '/unlocks/:roomCode?', element: <CurrentLocation /> },
+    ],
+    { initialEntries: [initialPath] },
+  );
   render(<RouterProvider router={router} />);
+}
+
+function CurrentLocation() {
+  const location = useLocation();
+  return <p>{`at ${location.pathname}`}</p>;
 }
 
 beforeEach(() => {
@@ -102,19 +107,25 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('button', { name: '返回' })).toBeInTheDocument();
   });
 
-  it('shows the login options when signed out', async () => {
+  it('shows the login options when signed out, with a way to browse the avatars', async () => {
     await renderSettings();
 
     expect(screen.getByText('邮箱登录')).toBeInTheDocument();
     expect(screen.getByText('匿名登录')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: '浏览全部头像 ›' }));
+
+    expect(await screen.findByText('at /appearance')).toBeInTheDocument();
   });
 
-  it('shows the unlock teaser to anonymous users', async () => {
+  it('shows the unlock teaser to anonymous users, linking to the appearance page', async () => {
     mocks.auth.user = { ...REGISTERED_USER, email: null, displayName: null, isAnonymous: true };
     await renderSettings();
 
     expect(screen.getByText(/^绑定邮箱，解锁 \d+ 款暗黑头像/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '上传头像' })).toBeNull();
+    expect(screen.queryByRole('link', { name: '更换头像与装扮' })).toBeNull();
+    await userEvent.click(screen.getByRole('link', { name: '浏览全部头像 ›' }));
+
+    expect(await screen.findByText('at /appearance')).toBeInTheDocument();
   });
 
   it('shows the level, XP progress and game-owned account stats', async () => {
@@ -128,47 +139,21 @@ describe('SettingsPage', () => {
     expect(await screen.findByText('战绩 user-1')).toBeInTheDocument();
   });
 
-  it('uploads the picked avatar and refreshes the profile', async () => {
+  it('links the avatar, the wardrobe entry and the unlocks row, staying in the room', async () => {
     mocks.auth.user = REGISTERED_USER;
-    mocks.uploadAvatar.mockResolvedValue('https://cdn.example/avatar.jpg');
-    mocks.refreshSavedProfile.mockResolvedValue(true);
-    await renderSettings();
-    const file = new File(['image'], 'me.png', { type: 'image/png' });
+    mocks.stats = { xp: 30, level: 2, gamesPlayed: 7, unlockedItems: [] };
+    await renderSettings('/settings/1234');
 
-    await userEvent.upload(screen.getByTestId('settings-avatar-input'), file);
-
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('头像已更新'));
-    expect(mocks.uploadAvatar).toHaveBeenCalledWith(file);
-    expect(mocks.refreshSavedProfile).toHaveBeenCalledWith(mocks.auth.refreshUser);
-  });
-
-  it('warns when the avatar saved but the profile refresh failed', async () => {
-    mocks.auth.user = REGISTERED_USER;
-    mocks.uploadAvatar.mockResolvedValue('https://cdn.example/avatar.jpg');
-    mocks.refreshSavedProfile.mockResolvedValue(false);
-    await renderSettings();
-
-    await userEvent.upload(
-      screen.getByTestId('settings-avatar-input'),
-      new File(['image'], 'me.png', { type: 'image/png' }),
+    expect(screen.getByRole('link', { name: '更换头像' })).toHaveAttribute(
+      'href',
+      '/appearance/1234',
     );
-
-    await waitFor(() => expect(toast.warning).toHaveBeenCalledWith('头像已保存，资料刷新失败'));
-  });
-
-  it('alerts when the upload fails', async () => {
-    mocks.auth.user = REGISTERED_USER;
-    mocks.uploadAvatar.mockRejectedValue(new Error('图片解码失败，请换一张图片重试'));
-    await renderSettings();
-
-    await userEvent.upload(
-      screen.getByTestId('settings-avatar-input'),
-      new File(['image'], 'me.png', { type: 'image/png' }),
+    expect(screen.getByRole('link', { name: '更换头像与装扮' })).toHaveAttribute(
+      'href',
+      '/appearance/1234',
     );
+    await userEvent.click(await screen.findByRole('link', { name: /^7 局 · 已解锁/ }));
 
-    await waitFor(() =>
-      expect(showErrorAlert).toHaveBeenCalledWith('上传失败', expect.any(String)),
-    );
-    expect(mocks.refreshSavedProfile).not.toHaveBeenCalled();
+    expect(await screen.findByText('at /unlocks/1234')).toBeInTheDocument();
   });
 });

@@ -86,6 +86,8 @@ export interface DecorationHandle {
   setRect(rect: SeatRect): void;
   /** Hides the decoration; it restarts from its first frame when shown again (a remount). */
   setSuspended(suspended: boolean): void;
+  /** Dims the whole decoration, as the DOM dims a locked picker cell. */
+  setOpacity(opacity: number): void;
   destroy(): void;
 }
 
@@ -694,6 +696,10 @@ class MountedDecoration implements DecorationHandle {
     this.suspended = suspended;
     this.startMs = null;
     this.container.visible = false;
+  }
+
+  setOpacity(opacity: number): void {
+    this.container.alpha = clampOpacity(opacity);
   }
 
   setRect(rect: SeatRect): void {

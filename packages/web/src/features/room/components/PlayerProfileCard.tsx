@@ -10,13 +10,16 @@ import {
   getLevelThreshold,
   getLevelTitle,
 } from '@game-judge/game-engine/product/growth';
+import { useQueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router';
 
 import { Avatar } from '@/components/avatar/Avatar';
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
 import { NameStyleText } from '@/components/nameStyles/NameStyleText';
 import { Spinner } from '@/components/Spinner';
+import { userUnlocksOptions } from '@/features/account/queries/accountQueryOptions';
 import { useUserProfileQuery } from '@/features/account/queries/useUserProfileQuery';
 import {
   getRoomOccupantAvatarSeed,
@@ -55,9 +58,12 @@ function SeatActions({ model }: { readonly model: RoomProfileCardModel }) {
 
 export function PlayerProfileCard({
   model,
+  roomCode,
   profileDetailsRenderer,
 }: {
   readonly model: RoomProfileCardModel;
+  /** The room the card opens in; the unlocks page returns to it. */
+  readonly roomCode: string;
   /** Renders the game-specific stats section when the model carries `gameDetails`. */
   readonly profileDetailsRenderer?: (statsUserId: string) => ReactNode;
 }) {
@@ -66,7 +72,18 @@ export function PlayerProfileCard({
   const humanUserId = getRoomOccupantUserId(target.occupant);
   const avatarSeed = getRoomOccupantAvatarSeed(target.occupant);
   const { data: profile, isLoading, isError } = useUserProfileQuery(humanUserId);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const seatName = `${target.seat + 1}号座位`;
+
+  const viewUnlocks = (displayName: string) => {
+    if (humanUserId === null) throw new Error('Unlocks are only viewable for a human occupant');
+    model.onClose();
+    void queryClient.prefetchQuery(userUnlocksOptions(humanUserId));
+    const search = new URLSearchParams({ userId: humanUserId });
+    if (displayName) search.set('displayName', displayName);
+    void navigate(`/unlocks/${roomCode}?${search.toString()}`);
+  };
 
   let body: ReactNode;
   if (isBot) {
@@ -136,7 +153,15 @@ export function PlayerProfileCard({
           </div>
           <div className="profile-stat">
             <dd>{profile.unlockedItemCount}</dd>
-            <dt>已解锁</dt>
+            <dt>
+              <button
+                type="button"
+                className="profile-stat-link"
+                onClick={() => viewUnlocks(profile.displayName)}
+              >
+                已解锁 ›
+              </button>
+            </dt>
           </div>
         </dl>
         {model.gameDetails !== null && (

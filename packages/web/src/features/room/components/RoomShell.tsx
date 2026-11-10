@@ -201,6 +201,7 @@ export function RoomShell({
       {model.profile !== null && (
         <PlayerProfileCard
           model={model.profile}
+          roomCode={model.roomCode}
           {...(profileDetailsRenderer === undefined ? {} : { profileDetailsRenderer })}
         />
       )}

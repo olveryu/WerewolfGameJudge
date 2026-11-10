@@ -1,4 +1,4 @@
-import { type RefObject, use, useEffect, useState } from 'react';
+import { type RefObject, use, useEffect, useRef, useState } from 'react';
 
 import {
   type AvatarCoverage,
@@ -9,6 +9,7 @@ import {
 } from '@/scene/entrance';
 import { sceneStagePromise } from '@/scene/sceneStagePromise';
 import { offsetInHost } from '@/scene/SeatDecoration';
+import type { EntranceHandle } from '@/scene/stageEntrance';
 
 interface SeatEntranceProps {
   spec: EntranceSpec;
@@ -22,6 +23,8 @@ interface SeatEntranceProps {
   ghostHostRef: RefObject<HTMLElement | null>;
   /** `true` while a play is in progress (the seat hides its flair and pet). */
   onActiveChange: (active: boolean) => void;
+  /** Opacity of the stage-drawn effect, for dimmed (locked) picker cells. */
+  opacity: number;
 }
 
 function cssLength(value: string, basis: number): number {
@@ -142,9 +145,11 @@ export function SeatEntrance({
   avatarRef,
   ghostHostRef,
   onActiveChange,
+  opacity,
 }: SeatEntranceProps) {
   const stage = use(sceneStagePromise());
   const [failure, setFailure] = useState<Error | null>(null);
+  const handleRef = useRef<EntranceHandle | null>(null);
   if (failure) throw failure;
 
   useEffect(() => {
@@ -173,16 +178,25 @@ export function SeatEntrance({
     observer.observe(tile);
     observer.observe(host);
     observer.observe(avatar);
+    // Scroll events do not bubble; capture catches scrolled containers inside the host.
+    host.addEventListener('scroll', align, { capture: true, passive: true });
     align();
+    handleRef.current = handle;
     handle.play();
     return () => {
       clearTimeout(replay);
       observer.disconnect();
+      host.removeEventListener('scroll', align, { capture: true });
+      handleRef.current = null;
       handle.destroy();
       clearPose(avatar);
       ghostHost.replaceChildren();
     };
   }, [stage, spec, tileRef, hostRef, avatarRef, ghostHostRef, onActiveChange]);
+
+  useEffect(() => {
+    handleRef.current?.setOpacity(opacity);
+  }, [stage, spec, onActiveChange, opacity]);
 
   return null;
 }

@@ -32,6 +32,7 @@ vi.mock('@/scene/sceneStagePromise', () => {
         setSuspended: (suspended: boolean) => {
           handle.suspended = suspended;
         },
+        setOpacity: () => {},
         destroy: () => {},
       };
     },
@@ -44,6 +45,7 @@ vi.mock('@/scene/sceneStagePromise', () => {
           entrance.plays += 1;
           callbacks.onActiveChange(true);
         },
+        setOpacity: () => {},
         destroy: () => {},
       };
     },
