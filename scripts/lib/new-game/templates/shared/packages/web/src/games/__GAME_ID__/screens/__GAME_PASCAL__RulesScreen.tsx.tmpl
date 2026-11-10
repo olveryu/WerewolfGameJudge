@@ -1,5 +1,6 @@
 /** __GAME_DISPLAY_NAME__玩法说明。 */
 import { GameGuide, GameGuideSection, GameNotice, RuleItem } from '@/components/GameGuide';
+import { TESTIDS } from '@/testids';
 
 /** 展示玩法说明；章节内容随设计定稿填写（TODO(gameplay)）。 */
 export function __GAME_PASCAL__RulesScreen() {
@@ -8,6 +9,7 @@ export function __GAME_PASCAL__RulesScreen() {
       title="__GAME_DISPLAY_NAME__玩法"
       heading="__GAME_SUBTITLE__"
       intro="TODO(gameplay):一句话讲清这局游戏怎么玩、怎么赢，按 docs/__GAME_ID__-game-design.md 定稿填写。"
+      testId={TESTIDS.gameGuideScreenRoot('__GAME_ID__')}
     >
       <GameGuideSection title="一局怎么玩">
         <RuleItem
