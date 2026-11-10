@@ -1,0 +1,108 @@
+.draw-button {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-micro);
+  min-height: var(--size-button-lg);
+  padding: var(--space-medium) var(--space-small);
+  overflow: hidden;
+  border: none;
+  border-radius: var(--radius-medium);
+  background: var(--gacha-draw-normal);
+  color: var(--color-text-inverse);
+  cursor: pointer;
+  transition: transform 120ms ease-out;
+}
+
+.draw-button[data-golden='true'] {
+  border: var(--border-width) solid var(--gacha-gold-bright-a40);
+  background: var(--gacha-draw-golden);
+}
+
+.draw-button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.draw-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.draw-button:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary-light);
+  outline-offset: var(--space-micro);
+}
+
+.draw-button-shimmer {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 60%;
+  background: var(--gacha-surface-a12);
+  pointer-events: none;
+  animation: draw-button-shimmer 3000ms linear infinite;
+}
+
+.draw-button[data-golden='true'] .draw-button-shimmer {
+  animation-duration: 2200ms;
+}
+
+/* The 1px top highlight. */
+.draw-button-highlight {
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--border-width);
+  background: var(--gacha-surface-a20);
+  pointer-events: none;
+}
+
+.draw-button-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-tight);
+}
+
+.draw-button-icon {
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  opacity: 0.9;
+}
+
+.draw-button:disabled .draw-button-icon {
+  opacity: 0.4;
+}
+
+.draw-button-label {
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  font-weight: var(--weight-bold);
+}
+
+.draw-button:disabled .draw-button-label {
+  opacity: 0.5;
+}
+
+.draw-button-note {
+  position: relative;
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+  opacity: 0.5;
+}
+
+.draw-button-note[data-partial='true'] {
+  opacity: 0.7;
+}
+
+@keyframes draw-button-shimmer {
+  from {
+    transform: translateX(-100%) skewX(-20deg);
+  }
+
+  to {
+    transform: translateX(170%) skewX(-20deg);
+  }
+}

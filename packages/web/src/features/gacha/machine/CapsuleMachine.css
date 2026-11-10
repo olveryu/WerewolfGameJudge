@@ -1,0 +1,27 @@
+/* The machine keeps the 400x600 reference aspect, as large as its container allows. */
+.capsule-machine {
+  position: relative;
+  width: min(100cqw, 100cqh * 2 / 3);
+  height: min(100cqh, 150cqw);
+  margin-inline: auto;
+  container-type: inline-size;
+}
+
+.capsule-machine__shake {
+  position: absolute;
+  inset: 0;
+}
+
+/* Sits on the machine body: (BODY_T + 12) / REF_H from the top, 12/400 of the width tall. */
+.capsule-machine__label {
+  position: absolute;
+  top: calc(302 / 600 * 100%);
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 3cqw;
+  font-weight: 900;
+  letter-spacing: 0.25em;
+  pointer-events: none;
+  user-select: none;
+}

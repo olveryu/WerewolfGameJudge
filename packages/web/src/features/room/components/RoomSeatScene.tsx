@@ -123,3 +123,6 @@ export function RoomSeatResidents({
  * scene budget over its limit.
  */
 export const loadRevealEffectStage = () => import('./RoleRevealEffects/RevealEffectStage');
+
+/** Loads the gacha page's capsule machine; it is a PixiJS consumer, so its import site lives here too. */
+export const loadCapsuleMachine = () => import('@/features/gacha/machine/CapsuleMachine');

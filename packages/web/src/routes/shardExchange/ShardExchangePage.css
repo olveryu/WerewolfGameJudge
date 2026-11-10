@@ -1,0 +1,157 @@
+.shard-exchange-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--color-background);
+}
+
+.shard-exchange-balance {
+  display: flex;
+  align-items: center;
+  gap: var(--space-micro);
+  padding: var(--space-tight) var(--space-small);
+  border-radius: var(--radius-full);
+  background: var(--color-warning-a12);
+  color: var(--color-warning);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.shard-exchange-recovery {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--space-screen-h);
+}
+
+.shard-exchange-status {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-medium);
+  padding: var(--space-large);
+  color: var(--color-text-secondary);
+}
+
+/* The scene layer's positioned container. */
+.shard-exchange-body {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.shard-exchange-scroll {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-small);
+  min-height: 0;
+  padding: var(--space-small) var(--space-screen-h)
+    calc(var(--space-large) + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.shard-exchange-scroll > * {
+  width: 100%;
+  max-width: var(--size-max-content-width);
+  margin-inline: auto;
+}
+
+.shard-exchange-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-small);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (width >= 600px) {
+  .shard-exchange-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (width >= 768px) {
+  .shard-exchange-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.shard-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-micro);
+  min-width: 0;
+  padding: var(--space-small) var(--space-tight);
+  border: var(--border-width) solid;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/* The preview dims through its own opacity (stage-drawn decorations ignore CSS opacity). */
+.shard-cell[data-owned='true'] > :not(.reward-preview) {
+  opacity: 0.5;
+}
+
+.shard-cell-dot {
+  align-self: flex-start;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+}
+
+.shard-cell-name {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+  font-weight: var(--weight-semibold);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shard-cell-owned {
+  display: flex;
+  align-items: center;
+  gap: var(--space-micro);
+  color: var(--color-success);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+}
+
+.shard-cell-exchange {
+  padding: var(--space-tight) var(--space-small);
+  border: 0;
+  border-radius: var(--radius-small);
+  background: var(--color-warning-a12);
+  color: var(--color-warning);
+  font: inherit;
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+}
+
+.shard-cell-exchange:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.shard-cell-deficit {
+  color: var(--color-error);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+}

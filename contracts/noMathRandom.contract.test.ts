@@ -29,7 +29,7 @@ const ALLOWED_PATTERNS = [
   '**/*.stories.tsx',
   // Visual decoration (pure UI animation, no impact on game logic)
   '**/RoleRevealEffects/**',
-  '**/GachaScreen/**',
+  '**/features/gacha/machine/**',
 ];
 
 // Directories to scan

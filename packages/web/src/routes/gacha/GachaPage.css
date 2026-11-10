@@ -1,0 +1,201 @@
+.gacha-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--color-background);
+}
+
+.gacha-status {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-medium);
+  padding: var(--space-large);
+}
+
+.gacha-status-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-small);
+  padding: 0 var(--space-screen-h);
+}
+
+.gacha-status-message {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  text-align: center;
+}
+
+/* The machine scales to this box (container query units). */
+.gacha-machine-area {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 0;
+  overflow: hidden;
+  container-type: size;
+}
+
+.gacha-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-medium);
+  width: 100%;
+  max-width: var(--size-max-content-width);
+  margin: 0 auto;
+  padding: 0 var(--space-screen-h) calc(var(--space-large) + env(safe-area-inset-bottom));
+  background: var(--color-background);
+}
+
+/* Fades the machine into the panel. */
+.gacha-panel::before {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  height: 32px;
+  background: linear-gradient(to bottom, transparent, var(--color-background));
+  pointer-events: none;
+  content: '';
+}
+
+.gacha-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-medium);
+  padding: var(--space-medium);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.gacha-stats-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.gacha-count {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-micro);
+  margin: 0;
+}
+
+.gacha-count-value {
+  color: var(--color-text);
+  font-size: calc(var(--font-display) * 1.3);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.04;
+  letter-spacing: var(--letter-hero);
+}
+
+.gacha-count-unit {
+  color: var(--color-text-muted);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-medium);
+}
+
+.gacha-count[data-golden='true'] .gacha-count-value {
+  color: var(--gacha-gold-deep);
+}
+
+.gacha-count[data-golden='true'] .gacha-count-unit {
+  color: var(--gacha-gold-deep-a50);
+}
+
+.gacha-count[data-zero='true'] .gacha-count-value {
+  opacity: 0.25;
+}
+
+.gacha-pity {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-tight);
+  max-width: 120px;
+}
+
+.gacha-pity-label {
+  color: var(--color-text-muted);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+}
+
+.gacha-shard-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-small) var(--space-medium);
+  border-radius: var(--radius-medium);
+  background: var(--gacha-warning-a8);
+  color: inherit;
+  text-decoration: none;
+}
+
+.gacha-shard-info,
+.gacha-shard-hint {
+  display: flex;
+  align-items: center;
+}
+
+.gacha-shard-info {
+  gap: var(--space-tight);
+}
+
+.gacha-shard-hint {
+  gap: var(--space-micro);
+  color: var(--color-text-muted);
+  font-size: var(--font-caption);
+}
+
+.gacha-shard-icon {
+  color: var(--color-warning);
+}
+
+.gacha-shard-count {
+  color: var(--color-warning);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.gacha-shard-label {
+  color: var(--color-text-muted);
+  font-size: var(--font-caption);
+}
+
+.gacha-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-small);
+}
+
+.gacha-meta-hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-caption-small);
+  text-align: center;
+}
+
+.gacha-rate-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--font-caption-small);
+  text-decoration: underline;
+  cursor: pointer;
+}

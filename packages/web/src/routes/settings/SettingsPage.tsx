@@ -33,6 +33,7 @@ import { syncActiveRoomProfile } from '@/features/account/syncActiveRoomProfile'
 import { useSignOut } from '@/features/auth/authMutations';
 import { LoginOptions } from '@/features/auth/LoginDialog';
 import { requestLogin } from '@/features/auth/loginRequests';
+import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
@@ -55,6 +56,7 @@ import { isMiniProgram } from '@/utils/miniProgram';
 import IconCameraOutline from '~icons/ion/camera-outline';
 import IconChevronForward from '~icons/ion/chevron-forward';
 import IconCopyOutline from '~icons/ion/copy-outline';
+import IconGiftOutline from '~icons/ion/gift-outline';
 import IconInformationCircleOutline from '~icons/ion/information-circle-outline';
 import IconLockClosed from '~icons/ion/lock-closed';
 import IconPencil from '~icons/ion/pencil';
@@ -76,6 +78,32 @@ const AVATAR_SIZE = 80;
 function useAppearancePath(): string {
   const { roomCode } = useParams();
   return roomCode === undefined ? '/appearance' : `/appearance/${roomCode}`;
+}
+
+/** Badge counts above this show as `99+`. */
+const MAX_TICKET_BADGE_COUNT = 99;
+
+/** Gacha entry with the unused-ticket badge, kept in the room when settings was opened from one. */
+function GachaEntry() {
+  const { roomCode } = useParams();
+  const { data: gachaStatus } = useGachaStatusQuery();
+  const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : 0;
+  return (
+    <Link className="settings-entry" to={roomCode === undefined ? '/gacha' : `/gacha/${roomCode}`}>
+      <span className="settings-entry-label">
+        <IconGiftOutline aria-hidden />
+        <span>扭蛋抽奖</span>
+      </span>
+      <span className="settings-entry-label">
+        {ticketCount > 0 && (
+          <span className="settings-entry-badge">
+            {ticketCount > MAX_TICKET_BADGE_COUNT ? `${MAX_TICKET_BADGE_COUNT}+` : ticketCount}
+          </span>
+        )}
+        <IconChevronForward className="settings-entry-chevron" aria-hidden />
+      </span>
+    </Link>
+  );
 }
 
 /** Number of portraits shown in the anonymous-user preview strip. */
@@ -344,10 +372,13 @@ function AccountSection({ user }: { user: User }) {
       )}
 
       {!user.isAnonymous && (
-        <Link className="settings-entry" to={appearancePath}>
-          <span>更换头像与装扮</span>
-          <IconChevronForward aria-hidden />
-        </Link>
+        <>
+          <Link className="settings-entry" to={appearancePath}>
+            <span>更换头像与装扮</span>
+            <IconChevronForward aria-hidden />
+          </Link>
+          <GachaEntry />
+        </>
       )}
 
       {canSwitchAccount && !user.email && inMiniProgram && !user.isAnonymous && (

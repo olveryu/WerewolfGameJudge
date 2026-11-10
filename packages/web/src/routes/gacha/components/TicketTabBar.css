@@ -1,0 +1,93 @@
+.ticket-tabs {
+  position: relative;
+  display: flex;
+  padding: var(--space-micro);
+  border-radius: var(--radius-medium);
+  background: var(--gacha-text-a4);
+}
+
+.ticket-tabs-slider {
+  position: absolute;
+  inset-block: var(--space-micro);
+  left: var(--space-micro);
+  width: 49%;
+  border-radius: var(--radius-medium);
+  background: var(--gacha-normal-tint-a12);
+  transition:
+    transform 300ms ease-out,
+    background-color 300ms ease-out;
+}
+
+.ticket-tabs[data-active='golden'] .ticket-tabs-slider {
+  background: var(--gacha-gold-deep-a10);
+  transform: translateX(100%);
+}
+
+.ticket-tabs[data-reduced-motion='true'] .ticket-tabs-slider {
+  transition: none;
+}
+
+.ticket-tab {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-tight);
+  min-height: var(--size-min-touch-target);
+  padding: var(--space-small);
+  border: none;
+  border-radius: var(--radius-medium);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 200ms ease-out;
+}
+
+.ticket-tab[aria-selected='true'] {
+  opacity: 1;
+}
+
+.ticket-tab:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary-light);
+}
+
+.ticket-tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background: var(--gacha-normal-tint-a20);
+  color: var(--gacha-normal-tint);
+  font-size: var(--font-caption);
+}
+
+.ticket-tab[data-tab='golden'] .ticket-tab-icon {
+  background: var(--gacha-gold-a15);
+  color: var(--gacha-gold);
+}
+
+.ticket-tab-label {
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+.ticket-tab-count {
+  color: var(--gacha-normal-tint);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.ticket-tab[data-tab='golden'] .ticket-tab-count {
+  color: var(--gacha-gold-deep);
+}
+
+.ticket-tab[aria-selected='false'] .ticket-tab-count {
+  opacity: 0.7;
+}

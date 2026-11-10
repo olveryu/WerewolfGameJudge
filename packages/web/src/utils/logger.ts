@@ -95,4 +95,6 @@ export const configLog = createLogger('Config');
 /** Stats / personal data. */
 export const statsLog = createLogger('Stats');
 /** Gacha system. */
+export const gachaLog = createLogger('Gacha');
+/** Review sharing. */
 export const shareLog = createLogger('Share');

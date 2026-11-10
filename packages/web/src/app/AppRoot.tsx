@@ -17,6 +17,10 @@ import { ClientGameModulesProvider, ClientGameOverlays } from '@/games/clientMod
 const AccountInboxHost = lazy(async () => ({
   default: (await import('@/features/account/AccountInboxHost')).AccountInboxHost,
 }));
+// The daily-reward claim and its toast stay out of the start-up chunk.
+const DailyRewardHost = lazy(async () => ({
+  default: (await import('@/features/gacha/DailyRewardHost')).DailyRewardHost,
+}));
 
 /**
  * Root route element: app-wide providers around the active page, the loaded games' overlays, plus
@@ -32,6 +36,7 @@ export function AppRoot() {
             <RoomLinkScope />
             <Suspense fallback={null}>
               <AccountInboxHost />
+              <DailyRewardHost />
             </Suspense>
             <AppContent />
             <ClientGameOverlays />

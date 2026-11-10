@@ -1,0 +1,73 @@
+.pity-bar {
+  --pity-fill: var(--color-primary-light);
+  --pity-accent: var(--color-primary);
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+}
+
+.pity-bar[data-near='true'] {
+  --pity-fill: var(--color-primary);
+}
+
+.pity-bar[data-golden='true'] {
+  --pity-fill: var(--gacha-gold);
+  --pity-accent: var(--gacha-gold);
+}
+
+.pity-bar[data-golden='true'][data-near='true'] {
+  --pity-fill: var(--gacha-gold-bright);
+}
+
+.pity-bar-track {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--gacha-text-a6);
+}
+
+.pity-bar-fill {
+  position: relative;
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--pity-fill);
+  transition: width 300ms ease-out;
+}
+
+.pity-bar-fill[data-pulse='true'] {
+  animation: pity-bar-pulse 800ms ease-in-out infinite alternate;
+}
+
+/* The glow at the fill's leading edge. */
+.pity-bar-tip {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  bottom: -2px;
+  width: 8px;
+  border-radius: var(--radius-full);
+  background: var(--pity-fill);
+  opacity: 0.5;
+}
+
+.pity-bar-text {
+  min-width: 30px;
+  color: var(--color-text-muted);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.pity-bar[data-near='true'] .pity-bar-text {
+  color: var(--pity-accent);
+  font-weight: var(--weight-semibold);
+}
+
+@keyframes pity-bar-pulse {
+  to {
+    opacity: 0.7;
+  }
+}

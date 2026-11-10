@@ -6,6 +6,8 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 
 /** Appearance and Unlocks share one lazy chunk, so one loader serves both routes. */
 const loadCosmeticPages = () => import('@/routes/cosmeticPages');
+/** Gacha and Shard Exchange share one lazy chunk, so one loader serves both routes. */
+const loadGachaPages = () => import('@/routes/gachaPages');
 
 /**
  * Route table. Each page is a `lazy` route so it ships as its own chunk
@@ -87,6 +89,20 @@ export const routes: RouteObject[] = [
         lazy: async () => {
           const { UnlocksPage } = await loadCosmeticPages();
           return { Component: UnlocksPage };
+        },
+      },
+      {
+        path: 'gacha/:roomCode?',
+        lazy: async () => {
+          const { GachaPage } = await loadGachaPages();
+          return { Component: GachaPage };
+        },
+      },
+      {
+        path: 'shard-exchange/:roomCode?',
+        lazy: async () => {
+          const { ShardExchangePage } = await loadGachaPages();
+          return { Component: ShardExchangePage };
         },
       },
       {

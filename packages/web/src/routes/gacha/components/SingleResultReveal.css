@@ -1,0 +1,174 @@
+.single-reveal-glow {
+  position: absolute;
+  inset: 0;
+  width: 300px;
+  height: 300px;
+  margin: auto;
+  border-radius: var(--radius-full);
+  background: radial-gradient(circle, var(--rarity-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.single-reveal-pillar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 4px;
+  transform: translateX(-50%);
+  background: linear-gradient(transparent, var(--gacha-gold-bright-a40), transparent);
+  pointer-events: none;
+}
+
+.single-reveal-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-small);
+  min-width: 220px;
+  padding: var(--space-xlarge) var(--space-large) var(--space-large);
+  border-style: solid;
+  border-color: var(--rarity-color);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.single-reveal-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.single-reveal-badge {
+  padding: var(--space-tight) var(--space-medium);
+  border-radius: var(--radius-small);
+  background: var(--rarity-color);
+  color: var(--color-text-inverse);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-bold);
+}
+
+.single-reveal-badge[data-top-tier='true'] {
+  padding: var(--space-tight) var(--space-large);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.single-reveal-pity {
+  color: var(--rarity-color);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+  font-weight: var(--weight-semibold);
+}
+
+.single-reveal-preview {
+  display: flex;
+  margin: var(--space-small) 0;
+}
+
+.single-reveal-name {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-heading);
+  line-height: var(--line-heading);
+  font-weight: var(--weight-bold);
+}
+
+.single-reveal-type {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.single-reveal-duplicate {
+  display: flex;
+  gap: var(--space-small);
+}
+
+.single-reveal-owned {
+  color: var(--color-text-muted);
+  font-weight: var(--weight-semibold);
+}
+
+/* Entrances by rarity; the global reduced-motion rule and the setting both skip them. */
+[data-rarity='common'] .single-reveal-card {
+  animation: single-reveal-fade 200ms ease-out both;
+}
+
+[data-rarity='rare'] .single-reveal-card {
+  animation: single-reveal-pop 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+[data-rarity='epic'] .single-reveal-card {
+  animation: single-reveal-rise 500ms ease-out both;
+}
+
+[data-rarity='legendary'] .single-reveal-card,
+[data-rarity='mythic'] .single-reveal-card {
+  animation: single-reveal-drop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) 200ms both;
+}
+
+[data-rarity='epic'] .single-reveal-glow {
+  animation: single-reveal-breathe 1000ms ease-in-out infinite alternate;
+}
+
+[data-rarity='legendary'] .single-reveal-glow,
+[data-rarity='mythic'] .single-reveal-glow,
+.single-reveal-pillar {
+  animation: single-reveal-breathe 1200ms ease-in-out infinite alternate;
+}
+
+[data-reduced-motion='true'] .single-reveal-card,
+[data-reduced-motion='true'] .single-reveal-glow,
+[data-reduced-motion='true'] .single-reveal-pillar {
+  animation: none;
+}
+
+@keyframes single-reveal-fade {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+@keyframes single-reveal-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes single-reveal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.9);
+  }
+
+  60% {
+    opacity: 1;
+    transform: translateY(0) scale(1.05);
+  }
+}
+
+@keyframes single-reveal-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-80px);
+  }
+}
+
+@keyframes single-reveal-breathe {
+  from {
+    opacity: 0.6;
+  }
+
+  to {
+    opacity: 1;
+  }
+}

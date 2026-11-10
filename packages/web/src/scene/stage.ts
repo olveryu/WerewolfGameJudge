@@ -756,11 +756,13 @@ async function loadMaskTexture(url: string): Promise<Texture> {
   });
 }
 
-/** A full-screen overlay borrowing the canvas (the role reveal). */
+/** A full-screen overlay borrowing the canvas (the role reveal, the gacha machine). */
 interface StageOverlay {
   readonly host: HTMLElement;
   readonly root: Container;
   readonly frame: (timeMs: number) => void;
+  /** False while the overlay shows a still frame: the ticker may stop. */
+  animating: boolean;
 }
 
 class SceneStage implements EntranceHost {
@@ -825,7 +827,7 @@ class SceneStage implements EntranceHost {
     if (this.overlay) {
       throw new Error('Scene stage already shows an overlay');
     }
-    const overlay: StageOverlay = { host, root, frame };
+    const overlay: StageOverlay = { host, root, frame, animating: true };
     this.overlay = overlay;
     this.seatLayer.visible = false;
     this.application.stage.addChild(root);
@@ -841,6 +843,23 @@ class SceneStage implements EntranceHost {
     };
   }
 
+  /**
+   * Pauses or resumes the mounted overlay's frame loop. Pausing draws one last frame, so a still
+   * overlay (an idle machine) costs no ticker work until it animates again.
+   */
+  setOverlayAnimating(root: Container, animating: boolean): void {
+    const overlay = this.overlay;
+    if (overlay?.root !== root) {
+      throw new Error('Scene stage overlay is not mounted');
+    }
+    overlay.animating = animating;
+    this.syncTicker();
+    if (!animating) {
+      overlay.frame(this.application.ticker.lastTime);
+      this.application.render();
+    }
+  }
+
   /** Puts the canvas in the overlay host, else the seat board host, sized to it. */
   private placeCanvas(): void {
     this.resizeObserver?.disconnect();
@@ -849,7 +868,11 @@ class SceneStage implements EntranceHost {
     if (target) {
       target.append(this.application.canvas);
       this.application.resizeTo = target;
-      this.resizeObserver = new ResizeObserver(() => this.application.resize());
+      this.resizeObserver = new ResizeObserver(() => {
+        this.application.resize();
+        // A stopped ticker renders nothing on its own; redraw the still frame at the new size.
+        if (!this.application.ticker.started) this.application.render();
+      });
       this.resizeObserver.observe(target);
     } else {
       this.application.canvas.remove();
@@ -925,7 +948,7 @@ class SceneStage implements EntranceHost {
   private syncTicker(): void {
     const hasSeatWork =
       this.host !== null && (this.decorations.size > 0 || this.animatingEntrances.size > 0);
-    const shouldRun = (hasSeatWork || this.overlay !== null) && !document.hidden;
+    const shouldRun = (hasSeatWork || this.overlay?.animating === true) && !document.hidden;
     const ticker = this.application.ticker;
     if (shouldRun && !ticker.started) ticker.start();
     if (!shouldRun && ticker.started) ticker.stop();

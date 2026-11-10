@@ -15,9 +15,13 @@ const mocks = vi.hoisted(() => ({
     refreshUser: vi.fn(),
   },
   stats: undefined as UserStats | undefined,
+  gachaStatus: undefined as { normalDraws: number; goldenDraws: number } | undefined,
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({ useAuthContext: () => mocks.auth }));
+vi.mock('@/features/gacha/queries/useGachaQuery', () => ({
+  useGachaStatusQuery: () => ({ data: mocks.gachaStatus }),
+}));
 vi.mock('@/features/account/queries/useUserStatsQuery', () => ({
   useUserStatsQuery: () => ({ data: mocks.stats }),
 }));
@@ -96,6 +100,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.auth.user = null;
   mocks.stats = undefined;
+  mocks.gachaStatus = undefined;
 });
 
 describe('SettingsPage', () => {
@@ -155,5 +160,23 @@ describe('SettingsPage', () => {
     await userEvent.click(await screen.findByRole('link', { name: /^7 局 · 已解锁/ }));
 
     expect(await screen.findByText('at /unlocks/1234')).toBeInTheDocument();
+  });
+
+  it('links the gacha entry with the unused-ticket badge, capped at 99+', async () => {
+    mocks.auth.user = REGISTERED_USER;
+    mocks.gachaStatus = { normalDraws: 95, goldenDraws: 7 };
+    await renderSettings('/settings/1234');
+
+    const gachaEntry = screen.getByRole('link', { name: /^扭蛋抽奖/ });
+    expect(gachaEntry).toHaveAttribute('href', '/gacha/1234');
+    expect(gachaEntry).toHaveTextContent('99+');
+  });
+
+  it('hides the gacha entry from anonymous users', async () => {
+    mocks.auth.user = { ...REGISTERED_USER, email: null, displayName: null, isAnonymous: true };
+    mocks.gachaStatus = { normalDraws: 3, goldenDraws: 0 };
+    await renderSettings();
+
+    expect(screen.queryByRole('link', { name: /^扭蛋抽奖/ })).toBeNull();
   });
 });
