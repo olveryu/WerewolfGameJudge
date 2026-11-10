@@ -551,7 +551,7 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
   });
 
   it.each([9, 10] as const)(
-    'shows the Lady from dealing and transfers it independently in a %i-player game',
+    'shows the Lady from the first day phase and transfers it independently in a %i-player game',
     (numberOfPlayers) => {
       const session = startSession(numberOfPlayers);
       const source = () =>
@@ -572,15 +572,17 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
       const holder = session.state.ladyHolderSeat;
       if (holder === null) throw new Error('expected initial Lady holder');
       expect(session.state.phase.kind).toBe('viewing');
-      expect(ladySeats()).toEqual([holder]);
+      expect(ladySeats()).toEqual([]);
       for (let seat = 0; seat < numberOfPlayers; seat += 1) {
         session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
       }
       session.send({ type: 'avalon.game.begin' });
       if (session.state.isAudioPlaying)
         session.send({ type: 'avalon.audio.ack', audioBatchId: session.state.audioBatchId });
-      expect(ladySeats()).toEqual([holder]);
+      expect(session.state.phase.kind).toBe('night');
+      expect(ladySeats()).toEqual([]);
       walkNightSteps(session);
+      expect(session.state.phase.kind).toBe('nominate');
       expect(ladySeats()).toEqual([holder]);
       playSuccessfulRound(session);
       playSuccessfulRound(session);

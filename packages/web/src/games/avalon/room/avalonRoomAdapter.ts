@@ -110,13 +110,12 @@ const getAvalonProfileTarget = (state: AvalonState, seat: number): RoomProfileTa
   getRoomProfileTarget(state.roster, seat);
 
 /**
- * 组队者徽标的阶段门：组队者只在白天组队流程中有职能（组队 / 投票 /
- * 任务 / 湖仙 / 刺杀），只在这些阶段显示。身份查看与夜晚显示组队者是
- * 阶段信息串扰（与查看勾只属于查看阶段同类命题）；大厅组队者未定、
- * 终局组队者无职能，同样不显示。穷尽映射逐阶段表态，新增阶段必须在
- * 此显式决定。
+ * 组队者与湖仙徽标的阶段门：两者只在白天流程中有职能（组队 / 投票 /
+ * 任务 / 湖仙 / 刺杀），只在这些阶段显示。身份查看与夜晚显示它们是
+ * 阶段信息串扰（与查看勾只属于查看阶段同类命题）；大厅未定、终局无
+ * 职能，同样不显示。穷尽映射逐阶段表态，新增阶段必须在此显式决定。
  */
-const AVALON_LEADER_BADGE_PHASES: Readonly<Record<AvalonPhaseKind, boolean>> = {
+const AVALON_DAY_BADGE_PHASES: Readonly<Record<AvalonPhaseKind, boolean>> = {
   lobby: false,
   viewing: false,
   night: false,
@@ -135,7 +134,8 @@ function avalonSeatIndicators(
 ): RoomSeatIndicators | null {
   const phase = state.phase;
   if (phase.kind === 'lobby') return null;
-  const isPicker = state.leaderSeat === seat && AVALON_LEADER_BADGE_PHASES[phase.kind];
+  const isDay = AVALON_DAY_BADGE_PHASES[phase.kind];
+  const isPicker = isDay && state.leaderSeat === seat;
   const isTeamMember =
     (phase.kind === 'vote' && phase.proposedSeats.includes(seat)) ||
     (phase.kind === 'quest' && phase.teamSeats.includes(seat));
@@ -147,7 +147,7 @@ function avalonSeatIndicators(
       label: '组队者',
       tone: 'warning',
     });
-  if (state.ladyHolderSeat === seat)
+  if (isDay && state.ladyHolderSeat === seat)
     markers.push({
       key: 'lady',
       label: '湖仙',
