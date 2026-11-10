@@ -24,6 +24,14 @@ export interface StoryRelayTestRound {
   readonly blankSeats?: readonly (readonly number[])[];
   /** The host aborts as this step opens (0: before anything was handed in); omitted plays to the end. */
   readonly abortAtStep?: number;
+  /**
+   * Returns the state as this step's phase opens (answering: nobody ready yet; settling: everyone
+   * ready, nothing handed in; gallery: the last step, before the host finishes the playback).
+   */
+  readonly stopAt?: {
+    readonly stepIndex: number;
+    readonly phase: 'answering' | 'settling' | 'transition' | 'gallery';
+  };
 }
 
 type CommandContext = Parameters<typeof storyRelayEngine.decide>[2];
@@ -53,7 +61,7 @@ export function storyRelayTestText(stepIndex: number, seat: number): string {
  * step ready, then hands in its passage (`storyRelayTestText`) or a blank
  * as the script says, and the transition settles at its deadline through
  * the system channel. The round ends with the host finishing the
- * playback, or aborts as `abortAtStep` opens.
+ * playback, aborts as `abortAtStep` opens, or stops at `stopAt`.
  */
 export function playStoryRelayTestRound(round: StoryRelayTestRound = {}): StoryRelayState {
   const numberOfPlayers = STORY_RELAY_TEST_PLAYER_NAMES.length;
@@ -100,14 +108,25 @@ export function playStoryRelayTestRound(round: StoryRelayTestRound = {}): StoryR
     asSeat({ type: 'room.seat.take', seat, profile: { displayName } }, seat),
   );
   asSeat({ type: 'storyrelay.game.begin' }, 0);
+  const isStopAt = (stepIndex: number, phase: StoryRelayState['phase']) => {
+    if (round.stopAt?.stepIndex !== stepIndex || round.stopAt.phase !== phase) return false;
+    if (read().phase !== phase) {
+      throw new Error(
+        `[FAIL-FAST] Story Relay step ${stepIndex} is in ${read().phase}, not ${phase}`,
+      );
+    }
+    return true;
+  };
   for (let stepIndex = 0; stepIndex < numberOfPlayers; stepIndex += 1) {
     if (round.abortAtStep === stepIndex) {
       asSeat({ type: 'storyrelay.game.abort', phaseRevision: read().phaseRevision }, 0);
       return read();
     }
+    if (isStopAt(stepIndex, 'answering')) return read();
     for (let seat = 0; seat < numberOfPlayers; seat += 1) {
       asSeat({ type: 'storyrelay.task.ready.set', ...taskOf(seat), isReady: true }, seat);
     }
+    if (isStopAt(stepIndex, 'settling')) return read();
     for (let seat = 0; seat < numberOfPlayers; seat += 1) {
       asSeat(
         round.blankSeats?.[stepIndex]?.includes(seat) === true
@@ -120,8 +139,10 @@ export function playStoryRelayTestRound(round: StoryRelayTestRound = {}): StoryR
         seat,
       );
     }
+    if (isStopAt(stepIndex, 'transition')) return read();
     settle();
   }
+  if (isStopAt(numberOfPlayers - 1, 'gallery')) return read();
   asSeat({ type: 'storyrelay.gallery.finish', phaseRevision: read().phaseRevision }, 0);
   const ended = read();
   if (ended.phase !== 'ended') {

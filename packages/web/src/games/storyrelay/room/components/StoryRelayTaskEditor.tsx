@@ -6,8 +6,7 @@ import {
   type StoryRelayState,
   type StoryRelayTask,
 } from '@game-judge/game-engine/games/storyrelay/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 import { Button } from '@/components/Button';
 import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
@@ -43,6 +42,35 @@ function getSubmissionStatusText(
   return '';
 }
 
+/**
+ * The previous passage, open by default and scrolling past its height cap; collapsed, its last
+ * two lines stay in the summary as the context to continue from. The task projection carries no
+ * writer, so the passage stays anonymous.
+ */
+function PreviousPassage({ text }: { readonly text: string }) {
+  const [isOpen, setIsOpen] = useState(true);
+  return (
+    <details
+      className="storyrelay-previous"
+      open={isOpen}
+      onToggle={(event) => setIsOpen(event.currentTarget.open)}
+    >
+      <summary className="storyrelay-previous-summary">
+        <span>上一段</span>
+        <span className="storyrelay-previous-toggle">{isOpen ? '收起' : '展开'}</span>
+        {!isOpen && (
+          <span className="storyrelay-previous-tail" aria-hidden>
+            {text}
+          </span>
+        )}
+      </summary>
+      <p className="storyrelay-text" data-testid="storyrelay-previous-entry">
+        {text}
+      </p>
+    </details>
+  );
+}
+
 /** Remounts per task so switching authors cannot carry another manuscript into the editor. */
 export function StoryRelayTaskEditor({
   state,
@@ -73,6 +101,7 @@ export function StoryRelayTaskEditor({
   const canEdit = state.phase === 'answering' && !isReady && !isExpired;
   const isValid = text.length <= STORY_RELAY_TEXT_MAX_LENGTH;
   const editorCopy = getEditorCopy(state, task);
+  const countId = useId();
   const changeText = (value: string) => {
     inputs.set(task.authorSeat, value);
     setText(value);
@@ -95,56 +124,55 @@ export function StoryRelayTaskEditor({
     );
   };
   const previous = task.previousEntry;
+  const statusText = getSubmissionStatusText(state, task, entry?.kind, finalization);
   return (
     <RoomTaskFrame
       maxWidth={STORY_RELAY_CONTENT_MAX_WIDTH}
       testId="storyrelay-task"
       className="storyrelay-task-frame"
-      header={
-        <h2 className="storyrelay-title">
-          {controlledSeat === null ? '我的稿件' : `${getBotDisplayName(controlledSeat)}的稿件`}
-        </h2>
-      }
+      header={null}
       footer={
-        state.phase === 'answering' ? (
-          <Button
-            disabled={isExpired || isSubmitting}
-            data-testid="storyrelay-ready"
-            onClick={toggleReady}
-          >
-            {isReady ? <IconArrowUndoOutline aria-hidden /> : <IconCheckmarkOutline aria-hidden />}
-            {isReady ? '取消准备' : '准备好了'}
-          </Button>
-        ) : null
+        <>
+          {statusText !== '' && <p className="storyrelay-status">{statusText}</p>}
+          {state.phase === 'answering' && (
+            <Button
+              disabled={isExpired || isSubmitting}
+              data-testid="storyrelay-ready"
+              onClick={toggleReady}
+            >
+              {isReady ? (
+                <IconArrowUndoOutline aria-hidden />
+              ) : (
+                <IconCheckmarkOutline aria-hidden />
+              )}
+              {isReady ? '取消准备' : '准备好了'}
+            </Button>
+          )}
+        </>
       }
     >
       {previous !== null && (
-        <section className="storyrelay-previous" aria-label="上一段">
-          <p className="storyrelay-muted">上一段</p>
-          <div className="storyrelay-previous-scroll">
-            <p className="storyrelay-text" data-testid="storyrelay-previous-entry">
-              {previous.kind === 'text' ? previous.text : '上一段留白'}
-            </p>
-          </div>
-        </section>
+        <PreviousPassage text={previous.kind === 'text' ? previous.text : '上一段留白'} />
       )}
-      <textarea
-        className="storyrelay-editor"
-        data-testid="storyrelay-editor"
-        aria-label={editorCopy.label}
-        maxLength={STORY_RELAY_TEXT_MAX_LENGTH}
-        value={text}
-        onChange={(event) => changeText(event.target.value)}
-        readOnly={!canEdit}
-        placeholder={editorCopy.placeholder}
-      />
-      <div className="storyrelay-row">
-        <p className={isValid ? 'storyrelay-muted' : 'storyrelay-error'}>
+      <div className="storyrelay-editor-field">
+        <textarea
+          className="storyrelay-editor"
+          data-testid="storyrelay-editor"
+          aria-label={editorCopy.label}
+          aria-describedby={countId}
+          maxLength={STORY_RELAY_TEXT_MAX_LENGTH}
+          value={text}
+          onChange={(event) => changeText(event.target.value)}
+          readOnly={!canEdit}
+          placeholder={editorCopy.placeholder}
+        />
+        <span
+          id={countId}
+          className="storyrelay-editor-count"
+          data-invalid={isValid ? undefined : true}
+        >
           {text.length} / {STORY_RELAY_TEXT_MAX_LENGTH}
-        </p>
-        <p className="storyrelay-muted">
-          {getSubmissionStatusText(state, task, entry?.kind, finalization)}
-        </p>
+        </span>
       </div>
     </RoomTaskFrame>
   );

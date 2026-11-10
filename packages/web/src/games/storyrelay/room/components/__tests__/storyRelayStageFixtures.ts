@@ -11,8 +11,6 @@ import {
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
-import type { RoomSeatViewModel } from '@/features/room/model/RoomSeatDataSource';
-import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 
@@ -88,43 +86,6 @@ export function botAnsweringState(
   const state = driver.read();
   if (state.phase !== 'answering') throw new Error('Expected the answering phase');
   return state;
-}
-
-/** One board seat: a bot named `机器人<seat>号` when `isBot`, otherwise empty. */
-export function testSeatView(
-  seat: number,
-  overrides: Partial<RoomSeatViewModel> & { readonly isBot: boolean },
-): RoomSeatViewModel {
-  const { isBot, ...rest } = overrides;
-  return {
-    seat,
-    player: isBot
-      ? { occupant: { kind: 'bot', seat }, displayName: `机器人${seat}号`, isAnonymous: false }
-      : null,
-    isSelf: false,
-    highlight: 'none',
-    secondaryLabel: null,
-    showReadyBadge: false,
-    statusBadge: null,
-    indicators: null,
-    isStatusEmphasized: false,
-    showLevel: false,
-    decorationsEnabled: false,
-    ...rest,
-  };
-}
-
-/** A four-seat board model over `getSeat`. */
-export function testSeatModel(
-  getSeat: (seat: number) => RoomSeatViewModel,
-  onBotSeatLongPress: ((seat: number) => void) | null,
-): RoomSeatBoardModel {
-  return {
-    source: { count: 4, revision: 0, getSeat },
-    visuallyDisabled: false,
-    onSeatPress: () => {},
-    onBotSeatLongPress,
-  };
 }
 
 /** A ready fake link on `state`, plus a submit that always commits. */

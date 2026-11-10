@@ -39,6 +39,21 @@ function StoryRelayRoomContent(
 ) {
   const screen = useStoryRelayRoomState(props);
   const config = screen.state.config;
+  const stage = (
+    <StoryRelayStage
+      state={screen.state}
+      effectiveSeat={screen.effectiveSeat}
+      controlledSeat={screen.controlledSeat}
+      userId={screen.userId}
+      isHost={screen.isHost}
+      remainingSeconds={screen.remainingSeconds}
+      isOverdue={screen.isOverdue}
+      session={props.session}
+      submit={screen.submit}
+      isSubmitting={screen.isSubmitting}
+      openReview={screen.openReview}
+    />
+  );
   return (
     <RoomShell
       model={screen.shellModel}
@@ -60,24 +75,9 @@ function StoryRelayRoomContent(
                 />
               ),
             }
-          : {
-              kind: 'workspace',
-              element: (
-                <StoryRelayStage
-                  state={screen.state}
-                  effectiveSeat={screen.effectiveSeat}
-                  controlledSeat={screen.controlledSeat}
-                  userId={screen.userId}
-                  isHost={screen.isHost}
-                  canControlBots={screen.canControlBots}
-                  seatModel={screen.shellModel.seats}
-                  session={props.session}
-                  submit={screen.submit}
-                  isSubmitting={screen.isSubmitting}
-                  openReview={screen.openReview}
-                />
-              ),
-            }
+          : screen.stageHud !== null
+            ? { kind: 'stage', hud: screen.stageHud, element: stage }
+            : { kind: 'workspace', element: stage }
       }
       leadingExtraActions={null}
       trailingExtraActions={null}

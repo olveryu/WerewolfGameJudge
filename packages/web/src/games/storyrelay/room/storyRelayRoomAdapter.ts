@@ -33,7 +33,6 @@ import {
   hostStartTask,
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
-import type { NightStepProgress } from '@/features/room/model/nightProgress';
 import type { RoomBottomButton } from '@/features/room/model/RoomBottomActions';
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
 import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
@@ -72,7 +71,9 @@ export const getStoryRelaySeatTapIntent = createRoomSeatTapIntentResolver(
   getStoryRelayProfileTarget,
 );
 
-function createStoryRelaySeatDataSource(input: StoryRelaySeatSourceInput): RoomSeatDataSource {
+export function createStoryRelaySeatDataSource(
+  input: StoryRelaySeatSourceInput,
+): RoomSeatDataSource {
   const { state, revision, userId, controlledSeat } = input;
   return createRoomSeatDataSource({
     seatCount: state.config.numberOfPlayers,
@@ -99,27 +100,6 @@ function createStoryRelaySeatDataSource(input: StoryRelaySeatSourceInput): RoomS
       return player === null ? null : statusBadge;
     },
   });
-}
-
-/**
- * The relay steps feed the bottom panel's slim progress row; every
- * other phase has no step progress. Public progress never includes
- * story content or writer identity.
- */
-function deriveStoryRelayBottomProgress(state: StoryRelayState): NightStepProgress | null {
-  if (state.phase !== 'answering' && state.phase !== 'transition') return null;
-  return {
-    current: state.stepIndex + 1,
-    total: state.config.numberOfPlayers,
-    label:
-      state.phase === 'transition'
-        ? '稿件已收齐'
-        : state.stepIndex === 0
-          ? '写下故事开头'
-          : state.stepIndex === state.config.numberOfPlayers - 1
-            ? '写下故事结局'
-            : '续写故事',
-  };
 }
 
 /** The review entry of a finished round for seats and spectators; the host uses the task card. */
@@ -318,7 +298,8 @@ export function createStoryRelayRoomShellModel(
     bottomActions: {
       kind: 'stacked',
       message: buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
-      progress: deriveStoryRelayBottomProgress(state),
+      // The relay steps report their progress in the stage information bar.
+      progress: null,
       layout: {
         primary: [],
         secondary: createStoryRelayReviewButtons(state, input.review, input.viewer),

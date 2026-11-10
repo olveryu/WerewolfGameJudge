@@ -2,7 +2,7 @@
  * 故事接龙（阶段 × 观看者）底部提示矩阵声明：逐格事实以
  * storyRelayGuidanceMatrix.test.ts 用真实引擎流驱动
  * createStoryRelayRoomShellModel 对账为准。本家底部 message 只存在于
- * 大厅等待句；局中引导由对局工作区与底部进度行分工承载，逐格登记。
+ * 大厅等待句；局中引导由舞台（含顶部信息条）与画廊工作区承载，逐格登记。
  */
 import type { StoryRelayState } from '@game-judge/game-engine/games/storyrelay/public';
 
@@ -19,27 +19,27 @@ export const STORY_RELAY_GUIDANCE_MATRIX: RoomGuidanceMatrix<StoryRelayState['ph
     spectator: guidanceExempt('无座位无个人提示；房间状态归座位盘'),
   },
   answering: {
-    host: guidanceExempt('写作与作答在对局工作区内完成，步进归底部进度行'),
-    seated: guidanceExempt('写作与作答在对局工作区内完成，步进归底部进度行'),
-    spectator: guidanceExempt('作答进程由对局工作区与底部进度行承载'),
+    host: guidanceExempt('舞台内容：写作在舞台，第几段、准备名单与倒计时在顶部信息条'),
+    seated: guidanceExempt('舞台内容：写作在舞台，第几段、准备名单与倒计时在顶部信息条'),
+    spectator: guidanceExempt('舞台内容：写作进程由舞台与顶部信息条呈现'),
   },
   settling: {
-    host: guidanceExempt('结算过渡由对局工作区呈现'),
-    seated: guidanceExempt('结算过渡由对局工作区呈现'),
-    spectator: guidanceExempt('结算过渡由对局工作区呈现'),
+    host: guidanceExempt('舞台内容：收稿过渡在舞台，收稿名单在顶部信息条'),
+    seated: guidanceExempt('舞台内容：收稿过渡在舞台，收稿名单在顶部信息条'),
+    spectator: guidanceExempt('舞台内容：收稿过渡在舞台，收稿名单在顶部信息条'),
   },
   transition: {
-    host: guidanceExempt('下一棒准备由底部进度行承载'),
-    seated: guidanceExempt('下一棒准备由底部进度行承载'),
-    spectator: guidanceExempt('下一棒准备由底部进度行承载'),
+    host: guidanceExempt('舞台内容：下一棒准备由顶部信息条的「换棒」倒计时承载'),
+    seated: guidanceExempt('舞台内容：下一棒准备由顶部信息条的「换棒」倒计时承载'),
+    spectator: guidanceExempt('舞台内容：下一棒准备由顶部信息条的「换棒」倒计时承载'),
   },
   gallery: {
-    host: guidanceExempt('画廊在对局工作区由房主控制播放，步进归底部进度行'),
+    host: guidanceExempt('画廊在对局工作区由房主控制播放，第几篇归工作区故事标题'),
     seated: guidanceExempt(
-      '画廊在对局工作区播放，工作区有「由房主控制播放进度。」提示，步进归底部进度行',
+      '画廊在对局工作区播放，工作区有「由房主控制播放进度。」提示，第几篇归工作区故事标题',
     ),
     spectator: guidanceExempt(
-      '画廊在对局工作区播放，工作区有「由房主控制播放进度。」提示，步进归底部进度行',
+      '画廊在对局工作区播放，工作区有「由房主控制播放进度。」提示，第几篇归工作区故事标题',
     ),
   },
   aborted: {
