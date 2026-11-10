@@ -772,8 +772,11 @@ class SceneStage implements EntranceHost {
   private readonly maskTextures = new Map<string, Promise<Texture>>();
   private readonly contexts = new ContextCache();
   private readonly textures = new TextureCache();
-  /** Seat decorations and entrances, in the seat board's coordinates. */
-  private readonly seatLayer = new Container({ sortableChildren: true });
+  /** Parent of the host layers; an overlay hides it. */
+  private readonly seatLayer = new Container();
+  /** Seat decorations and entrances per host, each in its host's coordinates. */
+  private readonly hostLayers = new Map<HTMLElement, Container>();
+  private readonly attachedHosts = new Set<HTMLElement>();
   private host: HTMLElement | null = null;
   private overlay: StageOverlay | null = null;
   private resizeObserver: ResizeObserver | null = null;
@@ -796,21 +799,55 @@ class SceneStage implements EntranceHost {
     return this.application.renderer.resolution;
   }
 
-  /** Places the canvas over `host` and sizes it to the host. One host at a time. */
+  /**
+   * Attaches `host`. The canvas covers the attached host last in document order, so a dialog's
+   * host (portalled after the page) takes the canvas over the page's and hands it back when it
+   * detaches; only that host's decorations are drawn.
+   */
   attach(host: HTMLElement): void {
-    if (this.host) {
-      throw new Error('Scene stage is already attached to another host');
+    if (this.attachedHosts.has(host)) {
+      throw new Error('Scene stage is already attached to this host');
     }
-    this.host = host;
+    this.attachedHosts.add(host);
     this.placeCanvas();
   }
 
   detach(host: HTMLElement): void {
-    if (this.host !== host) {
+    if (!this.attachedHosts.delete(host)) {
       throw new Error('Scene stage is not attached to this host');
     }
-    this.host = null;
+    this.releaseLayer(host);
     this.placeCanvas();
+  }
+
+  /** The layer of `host`'s decorations, created on first use (before or after it attaches). */
+  private layerFor(host: HTMLElement): Container {
+    let layer = this.hostLayers.get(host);
+    if (!layer) {
+      layer = new Container({ sortableChildren: true, visible: host === this.host });
+      this.hostLayers.set(host, layer);
+      this.seatLayer.addChild(layer);
+    }
+    return layer;
+  }
+
+  /** Drops `host`'s layer once it is detached and empty. */
+  private releaseLayer(host: HTMLElement): void {
+    const layer = this.hostLayers.get(host);
+    if (!layer || this.attachedHosts.has(host) || layer.children.length > 0) return;
+    this.hostLayers.delete(host);
+    layer.destroy();
+  }
+
+  /** The attached host last in document order. */
+  private topHost(): HTMLElement | null {
+    let top: HTMLElement | null = null;
+    for (const host of this.attachedHosts) {
+      if (top === null || top.compareDocumentPosition(host) & Node.DOCUMENT_POSITION_FOLLOWING) {
+        top = host;
+      }
+    }
+    return top;
   }
 
   /** A root container for `mountOverlay`, built here so overlay chunks import no PixiJS values. */
@@ -860,10 +897,12 @@ class SceneStage implements EntranceHost {
     }
   }
 
-  /** Puts the canvas in the overlay host, else the seat board host, sized to it. */
+  /** Puts the canvas in the overlay host, else the top host, sized to it. */
   private placeCanvas(): void {
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
+    this.host = this.topHost();
+    for (const [host, layer] of this.hostLayers) layer.visible = host === this.host;
     const target = this.overlay?.host ?? this.host;
     if (target) {
       target.append(this.application.canvas);
@@ -888,7 +927,11 @@ class SceneStage implements EntranceHost {
    * Mounts `spec`. `onError` receives failures found after mounting (artwork that does not
    * rasterise); the caller surfaces them instead of showing a partial decoration.
    */
-  mount(spec: DecorationSpec, onError: (error: Error) => void): DecorationHandle {
+  mount(
+    spec: DecorationSpec,
+    host: HTMLElement,
+    onError: (error: Error) => void,
+  ): DecorationHandle {
     const resolution = this.application.renderer.resolution;
     const createNode = (node: DecorationNode): SceneNode =>
       this.createNode(node, spec.id, {
@@ -898,14 +941,18 @@ class SceneStage implements EntranceHost {
         onError,
       });
     const decoration = new MountedDecoration(this, spec.nodes.map(createNode), resolution);
-    this.seatLayer.addChild(decoration.container);
+    this.layerFor(host).addChild(decoration.container);
     this.decorations.add(decoration);
     this.syncTicker();
     return decoration;
   }
 
   unmount(decoration: MountedDecoration | MountedEntrance): void {
-    this.seatLayer.removeChild(decoration.container);
+    const layer = decoration.container.parent;
+    decoration.container.removeFromParent();
+    for (const [host, hostLayer] of this.hostLayers) {
+      if (hostLayer === layer) this.releaseLayer(host);
+    }
     if (decoration instanceof MountedEntrance) {
       this.entrances.delete(decoration);
       this.animatingEntrances.delete(decoration);
@@ -919,10 +966,14 @@ class SceneStage implements EntranceHost {
    * Mounts a seat entrance, idle until `play()`. `callbacks.onError` receives failures found
    * after mounting; the caller surfaces them.
    */
-  mountEntrance(spec: EntranceSpec, callbacks: EntranceCallbacks): EntranceHandle {
+  mountEntrance(
+    spec: EntranceSpec,
+    host: HTMLElement,
+    callbacks: EntranceCallbacks,
+  ): EntranceHandle {
     const entrance = new MountedEntrance(spec, callbacks, this);
     entrance.container.zIndex = ENTRANCE_Z_INDEX;
-    this.seatLayer.addChild(entrance.container);
+    this.layerFor(host).addChild(entrance.container);
     this.entrances.add(entrance);
     return entrance;
   }

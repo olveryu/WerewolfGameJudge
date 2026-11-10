@@ -161,7 +161,7 @@ export function SeatEntrance({
       throw new Error('SeatEntrance tile, host or avatar is not mounted');
     }
     let replay: ReturnType<typeof setTimeout> | undefined;
-    const handle = stage.mountEntrance(spec, {
+    const handle = stage.mountEntrance(spec, host, {
       applyAvatar: (poses, drawnOnStage) => applyPoses(avatar, ghostHost, poses, drawnOnStage),
       onActiveChange: (active) => {
         onActiveChange(active);

@@ -1,6 +1,6 @@
 /**
  * Player profile card: the unlock count opens that player's collection in the same room, and the
- * card shows the player's equipped cosmetics.
+ * card shows the player's equipped cosmetics, with the frame and flair drawn on the avatar.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
@@ -9,6 +9,7 @@ import { createMemoryRouter, RouterProvider, useLocation } from 'react-router';
 
 import type { UserPublicProfile } from '@/features/account/services/accountApi';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
+import type { ResidentDecorations } from '@/scene/residentDecorations';
 import { TESTIDS } from '@/testids';
 
 import { PlayerProfileCard } from '../PlayerProfileCard';
@@ -42,6 +43,19 @@ vi.mock('@/features/product/loadClientProductUi', () => {
   });
   return { loadClientProductUi: () => productUi };
 });
+// The scene stage needs a canvas; the previews' own tests cover it. The tile reports its residents.
+vi.mock('@/features/product/components/ResidentPreview', () => ({
+  ResidentSceneLayer: () => null,
+  ResidentAvatarTile: ({ residents }: { residents: ResidentDecorations | null }) => (
+    <span
+      data-testid="resident-tile"
+      data-frame={residents?.frameId ?? 'none'}
+      data-flair={residents?.flairId ?? 'none'}
+      data-pet={residents?.petId ?? 'none'}
+      data-entrance={residents?.entranceId ?? 'none'}
+    />
+  ),
+}));
 
 function CurrentLocation() {
   const location = useLocation();
@@ -80,6 +94,16 @@ it('closes the card and opens the player unlocks with their name', async () => {
   expect(onClose).toHaveBeenCalledOnce();
   const search = new URLSearchParams({ userId: 'user-2', displayName: PROFILE.displayName });
   expect(await screen.findByText(`at /unlocks/1234?${search.toString()}`)).toBeInTheDocument();
+});
+
+it('draws the equipped frame and flair on the avatar, without the seat pet or entrance', () => {
+  renderCard(vi.fn());
+
+  const tile = screen.getByTestId('resident-tile');
+  expect(tile).toHaveAttribute('data-frame', 'wolfFang');
+  expect(tile).toHaveAttribute('data-flair', 'nightSanctum');
+  expect(tile).toHaveAttribute('data-pet', 'none');
+  expect(tile).toHaveAttribute('data-entrance', 'none');
 });
 
 it('shows each equipped cosmetic by name and marks empty slots', async () => {

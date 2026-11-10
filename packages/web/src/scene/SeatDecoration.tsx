@@ -141,7 +141,7 @@ export function SeatDecoration({
     const mounted = decorations.map((decoration) => ({
       decoration,
       anchor: decoration.anchor ?? 'tile',
-      handle: stage.mount(decoration, setFailure),
+      handle: stage.mount(decoration, host, setFailure),
     }));
     const byDecoration = handles.current;
     for (const { decoration, handle } of mounted) byDecoration.set(decoration, handle);

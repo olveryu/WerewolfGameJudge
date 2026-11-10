@@ -11,10 +11,9 @@ import {
   getLevelTitle,
 } from '@game-judge/game-engine/product/growth';
 import { useQueryClient } from '@tanstack/react-query';
-import { type ReactNode, Suspense } from 'react';
+import { type ReactNode, Suspense, useRef } from 'react';
 import { useNavigate } from 'react-router';
 
-import { Avatar } from '@/components/avatar/Avatar';
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
 import { NameStyleText } from '@/components/nameStyles/NameStyleText';
@@ -22,15 +21,18 @@ import { Spinner } from '@/components/Spinner';
 import { userUnlocksOptions } from '@/features/account/queries/accountQueryOptions';
 import { useUserProfileQuery } from '@/features/account/queries/useUserProfileQuery';
 import {
+  ResidentAvatarTile,
+  ResidentSceneLayer,
+} from '@/features/product/components/ResidentPreview';
+import {
   getRoomOccupantAvatarSeed,
   getRoomOccupantUserId,
 } from '@/features/room/model/RoomOccupant';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
+import { resolveResidentDecorations } from '@/scene/residentDecorations';
 import { TESTIDS } from '@/testids';
 
 import { ProfileEquipmentShowcase } from './ProfileEquipmentShowcase';
-
-const AVATAR_SIZE = 80;
 
 /** Title tier per level band; colors live in the stylesheet. */
 function levelTier(level: number): string {
@@ -85,6 +87,7 @@ export function PlayerProfileCard({
   const { data: profile, isLoading, isError } = useUserProfileQuery(humanUserId);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const sceneHostRef = useRef<HTMLDivElement>(null);
   const seatName = `${target.seat + 1}号座位`;
 
   const viewUnlocks = (displayName: string) => {
@@ -101,9 +104,12 @@ export function PlayerProfileCard({
     body = (
       <>
         <div className="profile-avatar">
-          <span className="profile-avatar-clip">
-            <Avatar userId={avatarSeed} avatarUrl={null} size={AVATAR_SIZE} />
-          </span>
+          <ResidentAvatarTile
+            userId={avatarSeed}
+            avatarUrl={null}
+            residents={null}
+            sceneHostRef={sceneHostRef}
+          />
         </div>
         <p className="profile-name">{target.rosterName}</p>
         <span className="profile-title" data-tier="newbie">
@@ -132,10 +138,17 @@ export function PlayerProfileCard({
     const progress = getLevelProgress(profile.xp);
     body = (
       <>
+        <ResidentSceneLayer hostRef={sceneHostRef} />
         <div className="profile-avatar">
-          <span className="profile-avatar-clip">
-            <Avatar userId={avatarSeed} avatarUrl={profile.avatarUrl ?? null} size={AVATAR_SIZE} />
-          </span>
+          <ResidentAvatarTile
+            userId={avatarSeed}
+            avatarUrl={profile.avatarUrl ?? null}
+            residents={resolveResidentDecorations({
+              avatarFrame: profile.avatarFrame,
+              seatFlair: profile.seatFlair,
+            })}
+            sceneHostRef={sceneHostRef}
+          />
           <span className="profile-level" data-tier={tier}>
             Lv.{profile.level}
           </span>

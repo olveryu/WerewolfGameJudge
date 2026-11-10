@@ -1,4 +1,5 @@
 .profile-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -29,19 +30,18 @@
   --tier-color: var(--color-warning);
 }
 
+/* The avatar tile; the card's scene layer draws its frame and flair, which overflow the tile. */
 .profile-avatar {
   position: relative;
   align-self: center;
+  width: var(--size-avatar-xl);
+  margin-top: var(--space-small);
 }
 
-.profile-avatar-clip {
-  display: flex;
-  overflow: hidden;
-  border-radius: var(--radius-full);
-}
-
+/* Above the scene layer, so the frame never covers the level. */
 .profile-level {
   position: absolute;
+  z-index: 2;
   bottom: calc(-1 * var(--space-tight));
   left: 50%;
   padding: var(--space-micro) var(--space-small);

@@ -32,8 +32,9 @@ const RoomSeatResidents = lazy(() =>
 );
 
 /**
- * The page's scene canvas host, laid over the previews' shared positioned container (the scene
- * stage attaches to one host at a time). Renders nothing while the user prefers reduced motion.
+ * The page's scene canvas host, laid over the previews' shared positioned container. A host in
+ * a dialog takes the canvas over the page's while the dialog is open. Renders nothing while the
+ * user prefers reduced motion.
  */
 export function ResidentSceneLayer({ hostRef }: { hostRef: RefObject<HTMLDivElement | null> }) {
   const display = useSyncExternalStore(displaySettings.subscribe, displaySettings.getSnapshot);
