@@ -25,6 +25,7 @@ import { avalonReview } from '@/games/avalon/review/avalonReview';
 import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
+import { TESTIDS } from '@/testids';
 import { showErrorAlert } from '@/utils/alertPresets';
 
 import { useAvalonRoomState } from '../useAvalonRoomState';
@@ -219,7 +220,9 @@ describe('useAvalonRoomState takeover dispatch discipline', () => {
     dispatch.mockClear();
     const bottom = result.current.shellModel.bottomActions;
     if (bottom.kind !== 'stacked') throw new Error('expected stacked bottom actions in viewing');
-    const viewRole = bottom.layout.primary.find((action) => action.testID === 'avalon-view-role');
+    const viewRole = bottom.layout.primary.find(
+      (action) => action.testID === TESTIDS.roomViewIdentityButton,
+    );
     if (viewRole === undefined || !viewRole.isEnabled)
       throw new Error('view-role action missing or disabled');
     await act(async () => {

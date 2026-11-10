@@ -76,6 +76,7 @@ export function LoginDialog() {
       onClose={() => pending?.settle('cancelled')}
       title={pending?.request.title ?? ''}
       subtitle={pending?.request.subtitle}
+      testId={TESTIDS.loginDialog}
     >
       {pending && (
         <LoginFlow key={pending.request.title} request={pending.request} settle={pending.settle} />

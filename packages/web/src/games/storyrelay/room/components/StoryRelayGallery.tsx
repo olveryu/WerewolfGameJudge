@@ -12,6 +12,7 @@ import { GalleryAlbumStage } from '@/features/room/components/GalleryAlbumStage'
 import { GalleryPlaybackControls } from '@/features/room/components/GalleryPlaybackControls';
 import { GalleryPagerControls } from '@/features/room/components/RoomControls';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
+import { TESTIDS } from '@/testids';
 import { showConfirmAlert } from '@/utils/alertPresets';
 import IconImageOutline from '~icons/ion/image-outline';
 import IconPeopleOutline from '~icons/ion/people-outline';
@@ -86,7 +87,11 @@ export function StoryRelayGallery({
   if (playback === null) {
     controls = (
       <div className="storyrelay-ended-controls">
-        <Button variant="secondary" onClick={() => openReview(storyRelayStoryPageKey(chain))}>
+        <Button
+          variant="secondary"
+          onClick={() => openReview(storyRelayStoryPageKey(chain))}
+          data-testid={TESTIDS.storyRelayGalleryShareButton}
+        >
           <IconImageOutline aria-hidden />
           分享本篇故事
         </Button>

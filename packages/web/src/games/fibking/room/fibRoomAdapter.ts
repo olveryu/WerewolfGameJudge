@@ -543,7 +543,7 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
             key: 'view-identity',
             variant: input.state.phase === 'viewing' ? 'primary' : 'secondary',
             audience: 'anyone',
-            testID: TESTIDS.fibViewIdentityButton,
+            testID: TESTIDS.roomViewIdentityButton,
           }),
         );
       }

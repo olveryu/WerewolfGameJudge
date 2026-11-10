@@ -30,7 +30,10 @@ describe('RoleCardSimple', () => {
     render(<RoleCardSimple {...defaultProps} />);
     expect(screen.getByText('狼人')).toBeInTheDocument();
     expect(screen.getByText('狼人阵营')).toBeInTheDocument();
-    expect(screen.getByTestId('role-badge')).toHaveAttribute('src', expect.stringMatching(/wolf/));
+    expect(screen.getByTestId(TESTIDS.roleBadge)).toHaveAttribute(
+      'src',
+      expect.stringMatching(/wolf/),
+    );
     expect(screen.getByText('主动技能')).toBeInTheDocument();
   });
 

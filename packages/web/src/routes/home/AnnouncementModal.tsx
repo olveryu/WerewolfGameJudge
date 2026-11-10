@@ -17,6 +17,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { FeedbackTab } from '@/features/feedback/components/FeedbackTab';
 import { useUnreadFeedback } from '@/features/feedback/queries/useUnreadFeedback';
 import type { ClientGameAnnouncementTab } from '@/games/catalog';
+import { TESTIDS } from '@/testids';
 import IconClose from '~icons/ion/close';
 import IconMegaphoneOutline from '~icons/ion/megaphone-outline';
 
@@ -75,7 +76,11 @@ export function AnnouncementModal({ open, gameTabs, onClose }: AnnouncementModal
             <header className="announcement-header">
               <IconMegaphoneOutline className="announcement-header-icon" aria-hidden />
               <Dialog.Title className="announcement-title">公告与反馈</Dialog.Title>
-              <Dialog.CloseTrigger className="announcement-close" aria-label="关闭公告">
+              <Dialog.CloseTrigger
+                className="announcement-close"
+                aria-label="关闭公告"
+                data-testid={TESTIDS.homeAnnouncementCloseButton}
+              >
                 <IconClose aria-hidden />
               </Dialog.CloseTrigger>
             </header>

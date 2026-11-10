@@ -85,6 +85,7 @@ import {
   buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
+import { TESTIDS } from '@/testids';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { getAvalonRoleDisplayName } from '../model/avalonRoleDisplay';
@@ -391,7 +392,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
         key: 'viewRole',
         variant: isViewingStep ? 'primary' : 'secondary',
         audience: 'participant',
-        testID: 'avalon-view-role',
+        testID: TESTIDS.roomViewIdentityButton,
       }),
     );
   }

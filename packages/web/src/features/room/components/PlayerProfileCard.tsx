@@ -26,6 +26,7 @@ import {
   getRoomOccupantUserId,
 } from '@/features/room/model/RoomOccupant';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
+import { TESTIDS } from '@/testids';
 
 const AVATAR_SIZE = 80;
 
@@ -43,12 +44,20 @@ function SeatActions({ model }: { readonly model: RoomProfileCardModel }) {
   return (
     <>
       {model.isSelf && model.onLeaveSeat !== null && (
-        <Button variant="secondary" onClick={model.onLeaveSeat}>
+        <Button
+          variant="secondary"
+          onClick={model.onLeaveSeat}
+          data-testid={TESTIDS.playerProfileLeaveSeatButton}
+        >
           离座
         </Button>
       )}
       {!model.isSelf && model.onKick !== null && (
-        <Button variant="danger" onClick={model.onKick}>
+        <Button
+          variant="danger"
+          onClick={model.onKick}
+          data-testid={TESTIDS.playerProfileKickButton}
+        >
           移出座位
         </Button>
       )}
@@ -176,7 +185,7 @@ export function PlayerProfileCard({
   }
 
   return (
-    <CenterDialog open onClose={model.onClose} title={seatName} testId="player-profile-card">
+    <CenterDialog open onClose={model.onClose} title={seatName} testId={TESTIDS.playerProfileCard}>
       <div className="profile-card">{body}</div>
     </CenterDialog>
   );

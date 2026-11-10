@@ -13,6 +13,7 @@ import type { ReactNode } from 'react';
 import { Button } from '@/components/Button';
 import { IonIcon } from '@/components/icons/IonIcon';
 import type { DescriptionField, RevealRoleData } from '@/features/room/model/RevealRoleData';
+import { TESTIDS } from '@/testids';
 
 /** Chinese-semicolon separated text reads as bullets. */
 function splitBullets(text: string): readonly string[] {
@@ -60,7 +61,7 @@ function RoleCardContent({
   descriptionTitle,
 }: {
   readonly role: RevealRoleData;
-  readonly nameTestId?: string;
+  readonly nameTestId: string;
   readonly descriptionTitle: string;
 }) {
   const description = role.description;
@@ -70,9 +71,14 @@ function RoleCardContent({
         <span className="role-card-faction">{role.factionName}</span>
       )}
       {role.imageUrl !== undefined ? (
-        <img className="role-card-portrait" src={role.imageUrl} alt="" data-testid="role-badge" />
+        <img
+          className="role-card-portrait"
+          src={role.imageUrl}
+          alt=""
+          data-testid={TESTIDS.roleBadge}
+        />
       ) : (
-        <span className="role-card-portrait role-card-placeholder" data-testid="role-badge">
+        <span className="role-card-portrait role-card-placeholder" data-testid={TESTIDS.roleBadge}>
           {role.name.charAt(0)}
         </span>
       )}
@@ -102,10 +108,9 @@ export function RoleCardDialog({
   onClose,
   confirmText = '知道了',
   footer,
-  testId = 'role-card-modal',
-  nameTestId,
+  testId = TESTIDS.roleCardModal,
+  nameTestId = TESTIDS.roleCardName,
   descriptionTitle = '技能介绍',
-  confirmTestId,
 }: {
   readonly role: RevealRoleData;
   readonly onClose: () => void;
@@ -116,7 +121,6 @@ export function RoleCardDialog({
   readonly nameTestId?: string;
   /** Section title of a single-text description. */
   readonly descriptionTitle?: string;
-  readonly confirmTestId?: string;
 }) {
   return (
     <Dialog.Root
@@ -132,14 +136,14 @@ export function RoleCardDialog({
             <RoleCardContent
               role={role}
               descriptionTitle={descriptionTitle}
-              {...(nameTestId === undefined ? {} : { nameTestId })}
+              nameTestId={nameTestId}
             />
             {footer}
             <Button
               className="role-card-confirm"
               data-alignment={role.alignment}
               onClick={onClose}
-              data-testid={confirmTestId}
+              data-testid={TESTIDS.roleCardConfirmButton}
             >
               {confirmText}
             </Button>

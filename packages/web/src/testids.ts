@@ -30,6 +30,11 @@ export const TESTIDS = {
   homeEnterRoomButton: 'home-enter-room-button',
   homeCreateRoomButton: 'home-create-room-button',
   homeReturnLastGameButton: 'home-return-last-game-button',
+  homeAnnouncementCloseButton: 'home-announcement-close-button',
+  joinRoomDialog: 'join-room-dialog',
+  joinRoomCancelButton: 'join-room-cancel-button',
+  joinRoomSubmitButton: 'join-room-submit-button',
+  joinRoomError: 'join-room-error',
   gameModePickerModal: 'game-mode-picker-modal',
   gameModePickerOption: (gameType: string) => `game-mode-picker-option-${gameType}`,
   // Used by: GamePickerScreen.tsx — 小游戏 section label in the tiered picker
@@ -37,8 +42,10 @@ export const TESTIDS = {
 
   // User bar / login (HomeScreen)
   homeUserName: 'home-user-name',
+  loginDialog: 'login-dialog',
   homeAnonLoginButton: 'home-anon-login-button', // "👤 匿名登录" button in modal
   homeSettingsButton: 'home-settings-button', // Top bar settings icon
+  screenHeaderTitle: 'screen-header-title',
 
   // SettingsScreen - Display section
   settingsSeatDecorationsSwitch: 'settings-seat-decorations-switch',
@@ -54,6 +61,9 @@ export const TESTIDS = {
   configNextButton: 'config-next-button',
 
   boardPickerScreenRoot: 'board-picker-screen-root',
+  boardPickerCategoryTab: (category: string) => `board-picker-category-tab-${category}`,
+  boardCardHeader: (templateName: string) => `board-card-header-${templateName}`,
+  boardCardSelectButton: (templateName: string) => `board-card-select-button-${templateName}`,
 
   configPresetSection: 'config-preset-section',
   configOverflowReset: 'config-overflow-reset',
@@ -91,6 +101,16 @@ export const TESTIDS = {
   roomHostManagementButton: 'room-host-management-button',
   roomHostTaskCard: 'room-host-task-card',
   roomHostManagementPanel: 'room-host-management-panel',
+  roomHostManagementCloseButton: 'room-host-management-close-button',
+  roomViewIdentityButton: 'room-view-identity-button',
+  roomDialogCloseButton: 'room-dialog-close-button',
+  playerProfileCard: 'player-profile-card',
+  playerProfileLeaveSeatButton: 'player-profile-leave-seat-button',
+  playerProfileKickButton: 'player-profile-kick-button',
+  roleCardModal: 'role-card-modal',
+  roleCardName: 'role-card-name',
+  roleCardConfirmButton: 'role-card-confirm-button',
+  roleBadge: 'role-badge',
   roomNextStepButton: 'room-next-step-button',
   roomNextStepRemedyButton: 'room-next-step-remedy-button',
   roomShareHostActionButton: 'room-share-host-action-button',
@@ -195,7 +215,6 @@ export const TESTIDS = {
   fibRevealRoundButton: 'fib-reveal-round-button',
   fibGuessSeatButton: 'fib-guess-seat-button',
   fibRedrawRoundButton: 'fib-redraw-round-button',
-  fibViewIdentityButton: 'fib-view-identity-button',
   fibViewResultButton: 'fib-view-result-button',
 
   // Pictionary
@@ -210,6 +229,10 @@ export const TESTIDS = {
   pictionaryGalleryAlbum: 'pictionary-gallery-album',
   pictionaryGalleryEntry: 'pictionary-gallery-entry',
   pictionaryGalleryAdvanceButton: 'pictionary-gallery-advance-button',
+  pictionaryGalleryShareButton: 'pictionary-gallery-share-button',
+
+  // StoryRelay
+  storyRelayGalleryShareButton: 'storyrelay-gallery-share-button',
 
   // DrawGuess
   drawGuessDrawingCanvas: 'drawguess-drawing-canvas',
@@ -248,6 +271,7 @@ export const TESTIDS = {
   // QRCodeModal
   qrCodeModal: 'qr-code-modal',
   qrCodeShareButton: 'qr-code-share-button',
+  qrCodeCloseButton: 'qr-code-close-button',
 
   // RoleRevealEffects
   // Used by: RoleRevealEffects components, unit tests

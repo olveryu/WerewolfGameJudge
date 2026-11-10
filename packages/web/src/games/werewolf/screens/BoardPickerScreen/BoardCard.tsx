@@ -15,6 +15,7 @@ import {
   FACTION_COLOR_MAP,
   getKeyRoles,
 } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
+import { TESTIDS } from '@/testids';
 import IconBookOutline from '~icons/ion/book-outline';
 import IconChevronDown from '~icons/ion/chevron-down';
 import IconChevronUp from '~icons/ion/chevron-up';
@@ -61,6 +62,7 @@ export function BoardCard({
         type="button"
         className="board-card-header"
         aria-expanded={isExpanded}
+        data-testid={TESTIDS.boardCardHeader(template.name)}
         onClick={() => onToggleExpand(template.name)}
       >
         <span className="board-card-title-row">
@@ -115,6 +117,7 @@ export function BoardCard({
                 variant="primary"
                 size="sm"
                 className="board-card-select"
+                data-testid={TESTIDS.boardCardSelectButton(template.name)}
                 onClick={() => onSelect(template.name)}
               >
                 以此为基础

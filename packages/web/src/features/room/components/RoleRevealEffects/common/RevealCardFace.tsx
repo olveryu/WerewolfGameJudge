@@ -1,6 +1,7 @@
 import { type CSSProperties, useEffect, useRef } from 'react';
 
 import { Easing, withDelay, withSequence, withTiming } from '@/scene/timeline';
+import { TESTIDS } from '@/testids';
 
 import type { RevealRoleData } from '../../../model/RevealRoleData';
 import { useRevealFrame, useSharedValue } from '../runtime';
@@ -230,7 +231,7 @@ export function RevealCardFace({
           ref={(element) => {
             portraitRef.current = element;
           }}
-          data-testid="role-badge"
+          data-testid={TESTIDS.roleBadge}
           style={{
             ...portraitStyle,
             display: 'flex',

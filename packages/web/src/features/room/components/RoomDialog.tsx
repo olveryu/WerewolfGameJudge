@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 
 import { IconButton } from '@/components/IconButton';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
+import { TESTIDS } from '@/testids';
 import IconClose from '~icons/ion/close';
 
 import { resolveRoomDialogWidth } from './roomDialogSize';
@@ -62,7 +63,12 @@ export function RoomDialog({
                   {title}
                 </Dialog.Title>
               </div>
-              <IconButton label="关闭详情" icon={<IconClose aria-hidden />} onClick={onClose} />
+              <IconButton
+                label="关闭详情"
+                icon={<IconClose aria-hidden />}
+                onClick={onClose}
+                data-testid={TESTIDS.roomDialogCloseButton}
+              />
             </header>
             <div className="room-dialog-body" data-flush={isContentFlush}>
               {children}

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
 import { NumPad } from '@/components/NumPad';
+import { TESTIDS } from '@/testids';
 
 const ROOM_CODE_LENGTH = 4;
 const DIGIT_SLOTS = Array.from({ length: ROOM_CODE_LENGTH }, (_, index) => index);
@@ -36,7 +37,13 @@ export function JoinRoomDialog({ open, onClose, onJoin }: JoinRoomDialogProps) {
   };
 
   return (
-    <CenterDialog open={open} onClose={close} title="加入房间" subtitle="输入4位房间号码">
+    <CenterDialog
+      open={open}
+      onClose={close}
+      title="加入房间"
+      subtitle="输入4位房间号码"
+      testId={TESTIDS.joinRoomDialog}
+    >
       <div className="join-code" aria-label={`房间号 ${roomCode}`}>
         {DIGIT_SLOTS.map((slot) => (
           <span key={slot} className="join-code-digit">
@@ -44,13 +51,19 @@ export function JoinRoomDialog({ open, onClose, onJoin }: JoinRoomDialogProps) {
           </span>
         ))}
       </div>
-      {error && <p className="join-error">{error}</p>}
+      {error && (
+        <p className="join-error" data-testid={TESTIDS.joinRoomError}>
+          {error}
+        </p>
+      )}
       <NumPad value={roomCode} onValueChange={setRoomCode} maxLength={ROOM_CODE_LENGTH} />
       <div className="center-dialog-actions">
-        <Button variant="secondary" onClick={close}>
+        <Button variant="secondary" onClick={close} data-testid={TESTIDS.joinRoomCancelButton}>
           取消
         </Button>
-        <Button onClick={join}>加入</Button>
+        <Button onClick={join} data-testid={TESTIDS.joinRoomSubmitButton}>
+          加入
+        </Button>
       </div>
     </CenterDialog>
   );

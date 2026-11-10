@@ -68,6 +68,7 @@ function ManagementContent({
           label={`关闭${HOST_MANAGEMENT_LABEL}`}
           icon={<IconClose aria-hidden />}
           onClick={onClose}
+          data-testid={TESTIDS.roomHostManagementCloseButton}
         />
       </header>
       <div className="host-management-body">

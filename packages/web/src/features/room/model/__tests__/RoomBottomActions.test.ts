@@ -1,4 +1,5 @@
 import { viewerFor } from '@/test-utils/roomViewer';
+import { TESTIDS } from '@/testids';
 
 import {
   buildEndedWaitingMessage,
@@ -102,7 +103,7 @@ describe('resolveViewIdentityAction / buildViewIdentityButton', () => {
         key: 'viewRole',
         variant: 'primary',
         audience: 'participant',
-        testID: 'avalon-view-role',
+        testID: TESTIDS.roomViewIdentityButton,
         isSubmitting: false,
       }),
     ).toEqual({
@@ -112,7 +113,7 @@ describe('resolveViewIdentityAction / buildViewIdentityButton', () => {
       icon: 'eye-outline',
       variant: 'primary',
       size: 'md',
-      testID: 'avalon-view-role',
+      testID: TESTIDS.roomViewIdentityButton,
       isEnabled: true,
       onPress,
     });

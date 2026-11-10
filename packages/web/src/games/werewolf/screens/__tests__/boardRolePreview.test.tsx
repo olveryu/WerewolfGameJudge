@@ -15,6 +15,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { BOARD_STRATEGY } from '@/games/werewolf/components/BoardStrategy/boardStrategyData';
 import { BoardPickerScreen } from '@/games/werewolf/screens/BoardPickerScreen/BoardPickerScreen';
 import { BoardsGuideContent } from '@/games/werewolf/screens/EncyclopediaScreen/BoardsGuideContent';
+import { TESTIDS } from '@/testids';
 
 function renderInRouter(element: ReactElement) {
   render(<RouterProvider router={createMemoryRouter([{ path: '/', element }])} />);
@@ -64,13 +65,13 @@ describe.each([
     fireEvent.click(screen.getByText(firstClassicTemplate().name));
     fireEvent.click(screen.getByRole('button', { name: '预言家' }));
 
-    expect(within(screen.getByTestId('role-card-modal')).getByText('预言家')).toBeVisible();
+    expect(within(screen.getByTestId(TESTIDS.roleCardModal)).getByText('预言家')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: '知道了' }));
 
-    expect(screen.queryByTestId('role-card-modal')).toBeNull();
+    expect(screen.queryByTestId(TESTIDS.roleCardModal)).toBeNull();
     expect(screen.getByText(/点击角色名查看能力说明/)).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: '女巫' }));
-    expect(within(screen.getByTestId('role-card-modal')).getByText('女巫')).toBeVisible();
+    expect(within(screen.getByTestId(TESTIDS.roleCardModal)).getByText('女巫')).toBeVisible();
   });
 });
 

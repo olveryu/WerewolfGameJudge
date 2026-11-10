@@ -3,6 +3,7 @@ import './ScreenHeader.css';
 import type { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 
+import { TESTIDS } from '@/testids';
 import IconChevronBack from '~icons/ion/chevron-back';
 
 interface ScreenHeaderProps {
@@ -42,7 +43,9 @@ export function ScreenHeader({ title, parentPath = '/', backTestId, children }: 
       >
         <IconChevronBack aria-hidden />
       </button>
-      <h1 className="screen-header-title">{title}</h1>
+      <h1 className="screen-header-title" data-testid={TESTIDS.screenHeaderTitle}>
+        {title}
+      </h1>
       <div className="screen-header-actions">{children}</div>
     </header>
   );

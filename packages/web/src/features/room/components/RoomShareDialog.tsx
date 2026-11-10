@@ -90,7 +90,7 @@ function ShareCard({ model }: { readonly model: RoomShareModel }) {
         >
           分享图片
         </Button>
-        <Button variant="secondary" onClick={model.close}>
+        <Button variant="secondary" onClick={model.close} data-testid={TESTIDS.qrCodeCloseButton}>
           关闭
         </Button>
       </div>

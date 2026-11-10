@@ -156,7 +156,11 @@ export function PictionaryEndedStage({
   if (chain === undefined) throw new Error('[FAIL-FAST] Completed Pictionary album is missing');
   const controls = (
     <div className="pictionary-ended-controls">
-      <Button variant="secondary" onClick={() => openReview(pictionaryAlbumPageKey(chain))}>
+      <Button
+        variant="secondary"
+        onClick={() => openReview(pictionaryAlbumPageKey(chain))}
+        data-testid={TESTIDS.pictionaryGalleryShareButton}
+      >
         <IconShareOutline aria-hidden />
         分享本篇画册
       </Button>

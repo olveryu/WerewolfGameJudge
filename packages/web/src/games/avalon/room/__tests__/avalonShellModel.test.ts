@@ -19,6 +19,7 @@ import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import { TESTIDS } from '@/testids';
 
 import {
   type AvalonRoomShellModelInput,
@@ -272,7 +273,7 @@ describe('createAvalonRoomShellModel', () => {
       variant: 'primary',
       size: 'md',
       isEnabled: true,
-      testID: 'avalon-view-role',
+      testID: TESTIDS.roomViewIdentityButton,
     });
     if (viewRole && viewRole.isEnabled) viewRole.onPress();
     expect(onViewRolePress).toHaveBeenCalledTimes(1);

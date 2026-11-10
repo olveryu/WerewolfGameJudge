@@ -696,7 +696,7 @@ it('clears the self-hint once every seat has viewed', () => {
       label: '查看我的词',
       variant: 'primary',
       size: 'md',
-      testID: 'undercover-view-word',
+      testID: TESTIDS.roomViewIdentityButton,
       isEnabled: true,
     },
   ]);

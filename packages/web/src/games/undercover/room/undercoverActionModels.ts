@@ -19,6 +19,7 @@ import {
   buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
+import { TESTIDS } from '@/testids';
 
 import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
 import { UNDERCOVER_ABORTED_TEXT } from './undercoverCopy';
@@ -105,7 +106,7 @@ export function createUndercoverBottomActions(
         key: 'card',
         variant: isViewingStep ? 'primary' : 'secondary',
         audience: 'participant',
-        testID: 'undercover-view-word',
+        testID: TESTIDS.roomViewIdentityButton,
         isSubmitting: controls.isSubmitting,
       }),
     );

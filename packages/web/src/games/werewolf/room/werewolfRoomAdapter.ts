@@ -64,6 +64,7 @@ import {
   buildReviewBottomButton,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
+import { TESTIDS } from '@/testids';
 
 import {
   createWerewolfHostManagement,
@@ -452,7 +453,13 @@ function viewRoleButton(
 ): RoomBottomButton {
   return buildViewIdentityButton(
     { label: VIEW_IDENTITY_LABEL, onPress: input.onViewRole },
-    { key: 'viewRole', variant, audience: 'participant', isSubmitting: input.isActionSubmitting },
+    {
+      key: 'viewRole',
+      variant,
+      audience: 'participant',
+      testID: TESTIDS.roomViewIdentityButton,
+      isSubmitting: input.isActionSubmitting,
+    },
   );
 }
 

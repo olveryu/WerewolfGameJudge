@@ -105,6 +105,7 @@ export function BoardPickerScreen({ exitPath, onSelect, onCustom }: BoardPickerS
               type="button"
               className="board-picker-tab"
               aria-pressed={state.activeCategory === category}
+              data-testid={TESTIDS.boardPickerCategoryTab(category)}
               onClick={() => state.handleTabPress(category)}
             >
               {TEMPLATE_CATEGORY_LABELS[category]} {state.categoryCounts.get(category) ?? 0}

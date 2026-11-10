@@ -587,7 +587,7 @@ describe('FibKing room adapter', () => {
       {
         label: '查看身份',
         variant: 'secondary',
-        testID: TESTIDS.fibViewIdentityButton,
+        testID: TESTIDS.roomViewIdentityButton,
         isEnabled: true,
       },
     ]);
@@ -688,7 +688,7 @@ describe('FibKing room adapter', () => {
       {
         label: '查看身份',
         variant: 'secondary',
-        testID: TESTIDS.fibViewIdentityButton,
+        testID: TESTIDS.roomViewIdentityButton,
         isEnabled: true,
       },
     ]);
@@ -706,7 +706,7 @@ describe('FibKing room adapter', () => {
       {
         label: '查看题目',
         variant: 'secondary',
-        testID: TESTIDS.fibViewIdentityButton,
+        testID: TESTIDS.roomViewIdentityButton,
         isEnabled: true,
       },
     ]);
