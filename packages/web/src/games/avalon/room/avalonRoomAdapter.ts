@@ -429,7 +429,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           size: 'md',
           isEnabled: true,
           onPress: input.onNightInfoPress,
-          testID: 'avalon-night-info',
+          testID: TESTIDS.avalonNightInfo,
         });
       }
     }

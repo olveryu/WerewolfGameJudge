@@ -143,6 +143,12 @@ export const TESTIDS = {
   // Werewolf MVP selection (host, ended)
   mvpSelectionModal: 'mvp-selection-modal',
 
+  // Werewolf night step buttons, keyed by the button spec key (skip, wolfEmpty, confirm, ...)
+  werewolfNightButton: (key: string) => `werewolf-night-button-${key}`,
+
+  // Avalon night step button
+  avalonNightInfo: 'avalon-night-info',
+
   // Werewolf sheriff election
   sheriffElectionPanel: 'sheriff-election-panel',
   sheriffElectionHud: 'sheriff-election-hud',
@@ -180,6 +186,7 @@ export const TESTIDS = {
 
   // ActionMessage / BottomActionPanel
   actionMessage: 'action-message',
+  audioWaitingMessage: 'audio-waiting-message',
   bottomActionPanel: 'bottom-action-panel',
 
   // SeatConfirmModal

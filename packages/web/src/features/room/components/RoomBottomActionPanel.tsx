@@ -381,7 +381,11 @@ function RoomBottomActionPanelComponent({
       data-testid={TESTIDS.bottomActionPanel}
     >
       {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
-      {isAudioPlaying && <p className="bottom-action-message">{AUDIO_WAITING_LABEL}</p>}
+      {isAudioPlaying && (
+        <p className="bottom-action-message" data-testid={TESTIDS.audioWaitingMessage}>
+          {AUDIO_WAITING_LABEL}
+        </p>
+      )}
       {model.message !== null && model.message.length > 0 && (
         <p
           key={model.message}

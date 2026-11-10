@@ -307,7 +307,6 @@ interface NightButtonSpec {
   readonly label: string;
   readonly tier: 'primary' | 'secondary';
   readonly action: NightButtonAction;
-  readonly testID?: string;
 }
 
 /** The night step's buttons for the actioner, per model kind. */
@@ -439,7 +438,7 @@ function nightButton(spec: NightButtonSpec, input: WerewolfBottomLayoutInput): R
     audience: 'participant' as const,
     variant: spec.tier,
     size: 'md' as const,
-    testID: spec.testID,
+    testID: TESTIDS.werewolfNightButton(spec.key),
   };
   if (input.isActionSubmitting) {
     return { ...base, isEnabled: false, disabledReason: ACTION_SUBMITTING_REASON };
