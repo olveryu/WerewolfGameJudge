@@ -3,8 +3,6 @@
 import { expect, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
-import { enterRoomCodeViaNumPad } from '../helpers/home';
-import { waitForRoomScreenReady } from '../helpers/waits';
 import { RoomPage } from './RoomPage';
 
 const PHONE_STAGE_MAX_WIDTH = 430;
@@ -13,19 +11,23 @@ const GALLERY_ALIGNMENT_TOLERANCE = 2;
  *  viewport height — a relative floor, so it holds at any viewport size. */
 const MIN_TASK_MEDIA_VIEWPORT_FRACTION = 0.2;
 
+/** Accessible names of the drawing tools in the tool panel, keyed by tool id. */
+const DRAWING_TOOL_LABELS = {
+  brush: '画笔',
+  eraser: '橡皮',
+  line: '直线',
+  rectangle: '矩形',
+  ellipse: '椭圆',
+  fill: '填充',
+} as const;
+
+/** Tools exercised with one stroke each, in this order. */
+const STROKE_TOOLS = ['line', 'rectangle', 'ellipse', 'eraser'] as const;
+
 /** Operates one real player's Pictionary room surface. */
 export class PictionaryRoomPage extends RoomPage {
   constructor(page: Page) {
     super(page);
-  }
-
-  /** Join an existing room through the same number-pad flow used by players. */
-  async joinViaCode(roomCode: string): Promise<void> {
-    await this.page.getByTestId(TESTIDS.homeEnterRoomButton).click();
-    await expect(this.page.getByText('加入房间', { exact: true })).toBeVisible();
-    await enterRoomCodeViaNumPad(this.page, roomCode);
-    await this.page.getByText('加入', { exact: true }).click();
-    await waitForRoomScreenReady(this.page, { role: 'joiner' });
   }
 
   /** Start the round from the shared host-management panel. */
@@ -48,7 +50,7 @@ export class PictionaryRoomPage extends RoomPage {
   /** Wait for the opening prompt composer with no inherited context. */
   async expectPromptStep(step: number, totalSteps: number): Promise<void> {
     const stage = await this.waitForRelayStep(step, totalSteps);
-    await expect(stage.getByRole('heading', { name: '写下一个题目', exact: true })).toBeVisible();
+    await expect(stage.getByTestId(TESTIDS.pictionaryTaskTitle)).toHaveText('写下一个题目');
     const input = this.page.getByTestId(TESTIDS.pictionaryTextInput);
     await expect(input).toBeVisible();
     await expect(input).toHaveAccessibleName('接龙题目');
@@ -87,60 +89,70 @@ export class PictionaryRoomPage extends RoomPage {
     const canvasBounds = await stage.getByTestId(TESTIDS.pictionaryDrawingCanvas).boundingBox();
     if (canvasBounds === null) throw new Error('Pictionary canvas has no browser layout box');
     const toolbarBounds = [];
-    for (const tool of [/^选择工具，/, /^选择颜色，/, /^选择粗细，/, /^撤销$/, /^重做$/]) {
-      const button = stage.getByRole('button', { name: tool });
+    for (const toolbarButton of [
+      TESTIDS.drawingToolbarToolButton,
+      TESTIDS.drawingToolbarColorButton,
+      TESTIDS.drawingToolbarWidthButton,
+      TESTIDS.drawingToolbarUndoButton,
+      TESTIDS.drawingToolbarRedoButton,
+    ]) {
+      const button = stage.getByTestId(toolbarButton);
       await expect(button).toBeInViewport({ ratio: 1 });
       const toolBounds = await button.boundingBox();
-      if (toolBounds === null) throw new Error(`Pictionary ${tool} has no browser layout box`);
+      if (toolBounds === null) {
+        throw new Error(`Pictionary ${toolbarButton} has no browser layout box`);
+      }
       expect(toolBounds.y).toBeGreaterThanOrEqual(canvasBounds.y + canvasBounds.height);
       toolbarBounds.push(toolBounds);
     }
     expect(new Set(toolbarBounds.map((bounds) => bounds.y)).size).toBe(1);
-    await expect(stage.getByRole('button', { name: '红色', exact: true })).toHaveCount(0);
-    await stage.getByRole('button', { name: /^选择工具，/ }).click();
-    for (const tool of ['画笔', '橡皮', '直线', '矩形', '椭圆', '填充', '清空画布']) {
-      await expect(this.page.getByRole('button', { name: tool, exact: true })).toBeInViewport({
-        ratio: 1,
-      });
+    await expect(this.page.getByTestId(TESTIDS.drawingToolbarColorSwatch('红色'))).toHaveCount(0);
+    await stage.getByTestId(TESTIDS.drawingToolbarToolButton).click();
+    for (const [tool, label] of Object.entries(DRAWING_TOOL_LABELS)) {
+      const option = this.page.getByTestId(TESTIDS.drawingToolbarToolOption(tool));
+      await expect(option).toHaveAccessibleName(label);
+      await expect(option).toBeInViewport({ ratio: 1 });
     }
-    await this.page.getByRole('button', { name: '关闭选择面板', exact: true }).click();
-    await stage.getByRole('button', { name: /^选择颜色，/ }).click();
-    await this.page.getByTestId('drawing-toolbar-color-蓝色').click();
-    await expect(
-      stage.getByRole('button', { name: '选择颜色，当前蓝色', exact: true }),
-    ).toBeVisible();
-    await stage.getByRole('button', { name: /^选择粗细，/ }).click();
-    await this.page.getByTestId('drawing-toolbar-width-30').click();
-    await expect(
-      stage.getByRole('button', { name: '选择粗细，当前 30 像素', exact: true }),
-    ).toBeVisible();
-    await stage.getByRole('button', { name: /^选择颜色，/ }).click();
-    await expect(
-      this.page.getByRole('button', { name: '关闭选择面板', exact: true }),
-    ).toBeVisible();
+    const clearButton = this.page.getByTestId(TESTIDS.drawingToolbarClearButton);
+    await expect(clearButton).toHaveAccessibleName('清空画布');
+    await expect(clearButton).toBeInViewport({ ratio: 1 });
+    const panelCloseButton = this.page.getByTestId(TESTIDS.drawingToolbarPanelCloseButton);
+    await expect(panelCloseButton).toHaveAccessibleName('关闭选择面板');
+    await panelCloseButton.click();
+    const colorButton = stage.getByTestId(TESTIDS.drawingToolbarColorButton);
+    await colorButton.click();
+    await this.page.getByTestId(TESTIDS.drawingToolbarColorSwatch('蓝色')).click();
+    await expect(colorButton).toHaveAccessibleName('选择颜色，当前蓝色');
+    const widthButton = stage.getByTestId(TESTIDS.drawingToolbarWidthButton);
+    await widthButton.click();
+    await this.page.getByTestId(TESTIDS.drawingToolbarWidthOption(30)).click();
+    await expect(widthButton).toHaveAccessibleName('选择粗细，当前 30 像素');
+    await colorButton.click();
+    await expect(panelCloseButton).toBeVisible();
     await this.page.mouse.click(1, 1);
-    await expect(this.page.getByRole('button', { name: '关闭选择面板', exact: true })).toHaveCount(
-      0,
-    );
-    await expect(stage.getByRole('button', { name: '撤销', exact: true })).toBeDisabled();
+    await expect(panelCloseButton).toHaveCount(0);
+    await expect(stage.getByTestId(TESTIDS.drawingToolbarUndoButton)).toBeDisabled();
     await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeDisabled();
   }
 
   /** Keep preset colors first and select a custom color using only picker gestures. */
   async exerciseColorPicker(): Promise<void> {
-    const colorButton = this.page.getByRole('button', { name: /^选择颜色，/ });
-    const swatch = colorButton.locator('[style*="background-color"]').first();
+    const colorButton = this.page.getByTestId(TESTIDS.drawingToolbarColorButton);
+    const swatch = this.page.getByTestId(TESTIDS.drawingToolbarColorButtonSwatch);
     const initialColor = await swatch.evaluate(
       (element) => getComputedStyle(element).backgroundColor,
     );
     const colorButtonBounds = await colorButton.boundingBox();
     await colorButton.click();
-    const palette = this.page.getByLabel('画笔颜色面板', { exact: true });
+    const palette = this.page.getByTestId(TESTIDS.drawingToolbarColorPanel);
+    await expect(palette).toHaveAttribute('aria-label', '画笔颜色面板');
     await expect(palette).toBeInViewport({ ratio: 1 });
     const paletteBounds = await palette.boundingBox();
     const viewport = this.page.viewportSize();
-    const presetBounds = await this.page.getByTestId('drawing-toolbar-color-粉色').boundingBox();
-    const entryBounds = await this.page.getByTestId('drawing-toolbar-custom-color').boundingBox();
+    const pinkPreset = this.page.getByTestId(TESTIDS.drawingToolbarColorSwatch('粉色'));
+    const customColorButton = this.page.getByTestId(TESTIDS.drawingToolbarCustomColorButton);
+    const presetBounds = await pinkPreset.boundingBox();
+    const entryBounds = await customColorButton.boundingBox();
     if (!paletteBounds || !viewport || !colorButtonBounds || !presetBounds || !entryBounds) {
       throw new Error('Pictionary color palette has no browser layout box');
     }
@@ -152,15 +164,24 @@ export class PictionaryRoomPage extends RoomPage {
     } else {
       expect(colorButtonBounds.y - paletteBounds.y - paletteBounds.height).toBeCloseTo(8, 0);
     }
-    const panel = this.page.getByLabel('饱和度与明度', { exact: true });
-    const hue = this.page.getByLabel('色相', { exact: true });
+    const panel = this.page.getByTestId(TESTIDS.drawingColorPickerArea);
+    const hue = this.page.getByTestId(TESTIDS.drawingColorPickerHue);
     await expect(panel).toHaveCount(0);
-    await expect(this.page.getByTestId('drawing-toolbar-color-粉色')).toBeInViewport({
-      ratio: 1,
-    });
-    await this.page.getByTestId('drawing-toolbar-custom-color').click();
-    await expect(this.page.getByRole('textbox')).toHaveCount(0);
-    await expect(this.page.getByText(/#[0-9a-f]{6}/i)).toHaveCount(0);
+    await expect(pinkPreset).toBeInViewport({ ratio: 1 });
+    await customColorButton.click();
+    await expect(panel).toHaveAttribute('aria-label', '饱和度与明度');
+    await expect(hue).toHaveAttribute('aria-label', '色相');
+    await expect
+      .poll(() =>
+        this.page.evaluate(
+          () =>
+            document.querySelectorAll(
+              'textarea, input:not([type]), input[type="text"], input[type="search"]',
+            ).length,
+        ),
+      )
+      .toBe(0);
+    await expect(palette).not.toContainText(/#[0-9a-f]{6}/i);
     for (const control of [panel, hue]) {
       await expect(control).toBeInViewport({ ratio: 1 });
     }
@@ -191,7 +212,7 @@ export class PictionaryRoomPage extends RoomPage {
       { steps: 8 },
     );
     await this.page.mouse.up();
-    await this.page.getByRole('button', { name: '关闭选择面板', exact: true }).click();
+    await this.page.getByTestId(TESTIDS.drawingToolbarPanelCloseButton).click();
     await expect(colorButton).toHaveAccessibleName('选择颜色，当前自定义颜色');
     const selectedColor = await swatch.evaluate(
       (element) => getComputedStyle(element).backgroundColor,
@@ -200,15 +221,19 @@ export class PictionaryRoomPage extends RoomPage {
     await this.drawStroke(2);
     await colorButton.click();
     await expect(panel).toHaveCount(0);
-    await this.page.getByTestId('drawing-toolbar-custom-color').click();
+    await customColorButton.click();
     await expect(panel).toBeInViewport({ ratio: 1 });
-    await this.page.getByRole('button', { name: '返回常用颜色', exact: true }).click();
+    const backButton = this.page.getByTestId(TESTIDS.drawingToolbarColorBackButton);
+    await expect(backButton).toHaveAccessibleName('返回常用颜色');
+    await backButton.click();
     await expect(panel).toHaveCount(0);
-    await expect(this.page.getByRole('button', { name: /^最近颜色 / })).toHaveCount(1);
-    await this.page.getByTestId('drawing-toolbar-color-红色').click();
+    const firstRecentColor = this.page.getByTestId(TESTIDS.drawingToolbarRecentColor(0));
+    await expect(firstRecentColor).toHaveAccessibleName('最近颜色 1');
+    await expect(this.page.getByTestId(TESTIDS.drawingToolbarRecentColor(1))).toHaveCount(0);
+    await this.page.getByTestId(TESTIDS.drawingToolbarColorSwatch('红色')).click();
     await expect(colorButton).toHaveAccessibleName('选择颜色，当前红色');
     await colorButton.click();
-    await this.page.getByRole('button', { name: '最近颜色 1', exact: true }).click();
+    await firstRecentColor.click();
     await expect(swatch).toHaveCSS('background-color', selectedColor);
   }
 
@@ -243,43 +268,42 @@ export class PictionaryRoomPage extends RoomPage {
   async exerciseDrawingTools(step: number, totalSteps: number): Promise<void> {
     const stage = await this.waitForRelayStep(step, totalSteps);
     await this.drawStroke(0);
-    const undoButton = stage.getByRole('button', { name: '撤销', exact: true });
-    const redoButton = stage.getByRole('button', { name: '重做', exact: true });
+    const undoButton = stage.getByTestId(TESTIDS.drawingToolbarUndoButton);
+    const redoButton = stage.getByTestId(TESTIDS.drawingToolbarRedoButton);
+    const toolButton = stage.getByTestId(TESTIDS.drawingToolbarToolButton);
     await expect(undoButton).toBeEnabled();
     await undoButton.click();
     await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeDisabled();
     await expect(redoButton).toBeEnabled();
     await redoButton.click();
     await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeEnabled();
-    for (const [toolIndex, tool] of ['直线', '矩形', '椭圆', '橡皮'].entries()) {
-      await stage.getByRole('button', { name: /^选择工具，/ }).click();
-      await this.page.getByRole('button', { name: tool, exact: true }).click();
-      await expect(
-        stage.getByRole('button', { name: `选择工具，当前${tool}`, exact: true }),
-      ).toBeVisible();
+    for (const [toolIndex, tool] of STROKE_TOOLS.entries()) {
+      await toolButton.click();
+      await this.page.getByTestId(TESTIDS.drawingToolbarToolOption(tool)).click();
+      await expect(toolButton).toHaveAccessibleName(`选择工具，当前${DRAWING_TOOL_LABELS[tool]}`);
       await this.drawStroke(toolIndex + 1);
     }
-    await stage.getByRole('button', { name: /^选择颜色，/ }).click();
-    await this.page.getByTestId('drawing-toolbar-color-红色').click();
-    await stage.getByRole('button', { name: /^选择工具，/ }).click();
-    await this.page.getByRole('button', { name: '填充', exact: true }).click();
+    await stage.getByTestId(TESTIDS.drawingToolbarColorButton).click();
+    await this.page.getByTestId(TESTIDS.drawingToolbarColorSwatch('红色')).click();
+    await toolButton.click();
+    await this.page.getByTestId(TESTIDS.drawingToolbarToolOption('fill')).click();
     const canvas = this.page.getByTestId(TESTIDS.pictionaryDrawingCanvas);
     await canvas.scrollIntoViewIfNeeded();
     const bounds = await canvas.boundingBox();
     if (bounds === null) throw new Error('Pictionary canvas has no browser layout box');
     await this.page.mouse.click(bounds.x + bounds.width * 0.05, bounds.y + bounds.height * 0.05);
     await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeEnabled();
-    await stage.getByRole('button', { name: /^选择工具，/ }).click();
-    await this.page.getByRole('button', { name: '清空画布', exact: true }).click();
+    await toolButton.click();
+    await this.page.getByTestId(TESTIDS.drawingToolbarClearButton).click();
     await this.page.getByTestId(TESTIDS.alertButton(0)).click();
     await expect(undoButton).toBeEnabled();
-    await stage.getByRole('button', { name: /^选择工具，/ }).click();
-    await this.page.getByRole('button', { name: '清空画布', exact: true }).click();
+    await toolButton.click();
+    await this.page.getByTestId(TESTIDS.drawingToolbarClearButton).click();
     await this.page.getByTestId(TESTIDS.alertButton(1)).click();
     await expect(undoButton).toBeDisabled();
     await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeDisabled();
-    await stage.getByRole('button', { name: /^选择工具，/ }).click();
-    await this.page.getByRole('button', { name: '画笔', exact: true }).click();
+    await toolButton.click();
+    await this.page.getByTestId(TESTIDS.drawingToolbarToolOption('brush')).click();
     await this.drawStroke(0);
   }
 
@@ -307,7 +331,9 @@ export class PictionaryRoomPage extends RoomPage {
     await this.page.getByTestId(TESTIDS.pictionaryDrawingImageButton).click();
     const preview = this.page.getByTestId(TESTIDS.pictionaryDrawingFullscreenPreview);
     await expect(preview).toBeVisible();
-    await this.page.getByRole('button', { name: '关闭' }).click();
+    const closeButton = this.page.getByTestId(TESTIDS.pictionaryDrawingFullscreenCloseButton);
+    await expect(closeButton).toHaveAccessibleName('关闭');
+    await closeButton.click();
     await expect(preview).not.toBeVisible();
   }
 
@@ -322,8 +348,7 @@ export class PictionaryRoomPage extends RoomPage {
 
   /** Wait until synchronized manual gallery playback begins. */
   async expectGallery(): Promise<void> {
-    const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);
-    await expect(stage.getByText('第 1 / 4 本画册', { exact: true })).toBeVisible({
+    await expect(this.page.getByTestId(TESTIDS.galleryAlbumEyebrow)).toHaveText('第 1 / 4 本画册', {
       timeout: 30_000,
     });
     await expect(this.page.getByTestId(TESTIDS.pictionaryGalleryAlbum)).toBeVisible();
@@ -337,15 +362,13 @@ export class PictionaryRoomPage extends RoomPage {
     chainTotal: number,
     entryTotal: number,
   ): Promise<void> {
-    const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);
-    await expect(
-      stage.getByText(`第 ${chain} / ${chainTotal} 本画册`, { exact: true }),
-    ).toBeVisible({ timeout: 15_000 });
+    const eyebrow = this.page.getByTestId(TESTIDS.galleryAlbumEyebrow);
+    await expect(eyebrow).toHaveText(`第 ${chain} / ${chainTotal} 本画册`, { timeout: 15_000 });
     const revealedEntries = this.page.getByTestId(TESTIDS.pictionaryGalleryEntry);
     await expect(revealedEntries).toHaveCount(entry, { timeout: 10_000 });
     await expect(
-      revealedEntries.last().getByText(`第 ${entry} / ${entryTotal} 棒`, { exact: true }),
-    ).toBeVisible();
+      revealedEntries.last().getByTestId(TESTIDS.pictionaryGalleryEntryPosition),
+    ).toHaveText(`第 ${entry} / ${entryTotal} 棒`);
     if (entry > 1) {
       await expect
         .poll(async () => {
@@ -360,9 +383,7 @@ export class PictionaryRoomPage extends RoomPage {
         })
         .toBeLessThanOrEqual(GALLERY_ALIGNMENT_TOLERANCE);
     } else {
-      await expect(
-        stage.getByText(`第 ${chain} / ${chainTotal} 本画册`, { exact: true }),
-      ).toBeInViewport();
+      await expect(eyebrow).toBeInViewport();
     }
   }
 
@@ -403,9 +424,11 @@ export class PictionaryRoomPage extends RoomPage {
 
   /** Wait until all synchronized reveals finish and local browsing begins. */
   async expectEnded(): Promise<void> {
-    await expect(this.page.getByRole('button', { name: '下一本' })).toBeVisible({
-      timeout: 15_000,
-    });
+    const nextAlbumButton = this.page.getByTestId(
+      TESTIDS.galleryPagerNextButton(TESTIDS.pictionaryStageFrame),
+    );
+    await expect(nextAlbumButton).toBeVisible({ timeout: 15_000 });
+    await expect(nextAlbumButton).toHaveAccessibleName('下一本');
     await expect(this.page.getByTestId(TESTIDS.pictionaryGalleryEntry)).toHaveCount(4);
   }
 

@@ -21,6 +21,13 @@ export function readPngSize(png: Buffer): { readonly width: number; readonly hei
   return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
 }
 
+/** Close the open review dialog through its 「关闭详情」 header button. */
+export async function closeReviewDialog(page: Page): Promise<void> {
+  const closeButton = page.getByTestId(TESTIDS.roomDialogCloseButton);
+  await expect(closeButton).toHaveAccessibleName('关闭详情');
+  await closeButton.click();
+}
+
 /**
  * Presses a review share control once the review's pages are captured and
  * returns the one image the browser saved: desktop Chromium has no Web
@@ -129,9 +136,7 @@ export async function expectWeChatImageShare(
       expect(png.length).toBeGreaterThan(10_000);
       await test.info().attach(`wechat-share-${index}`, { body: png, contentType: 'image/png' });
     }
-    const closeReview = page.getByTestId(TESTIDS.roomDialogCloseButton);
-    await expect(closeReview).toHaveAccessibleName('关闭详情');
-    await closeReview.click();
+    await closeReviewDialog(page);
   } finally {
     page.off('download', recordDownload);
     await page.evaluate(() => document.getElementById('unrelated-share-image')?.remove());

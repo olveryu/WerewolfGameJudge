@@ -6,6 +6,7 @@ import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createColdRoomContext, createPlayerContexts } from '../fixtures/app.fixture';
 import { confirmAlert } from '../helpers/alerts';
 import {
+  closeReviewDialog,
   downloadReviewImage,
   expectWeChatImageShare,
   readPngSize,
@@ -228,9 +229,7 @@ async function expectStoryImageExport(page: Page, roomCode: string, storyIndex: 
     `data:image/png;base64,${png.toString('base64')}`,
   );
   expect(hasTextAtBottom).toBe(true);
-  const closeReview = page.getByTestId(TESTIDS.roomDialogCloseButton);
-  await expect(closeReview).toHaveAccessibleName('关闭详情');
-  await closeReview.click();
+  await closeReviewDialog(page);
 }
 
 test('four humans write four turns without restoring unsubmitted input and reveal synchronized stories', async ({

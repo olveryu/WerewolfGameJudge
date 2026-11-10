@@ -3,7 +3,11 @@ import { expect, type Page, test } from '@playwright/test';
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { confirmAlert, pressAlertButton } from '../helpers/alerts';
-import { downloadReviewImage, REVIEW_CAPTURE_TIMEOUT_MS } from '../helpers/image-sharing';
+import {
+  closeReviewDialog,
+  downloadReviewImage,
+  REVIEW_CAPTURE_TIMEOUT_MS,
+} from '../helpers/image-sharing';
 import { HomePage } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
 
@@ -17,13 +21,6 @@ async function hideWordCard(page: Page): Promise<void> {
   await expect(hideButton).toHaveText('隐藏词卡');
   await hideButton.click();
   await expect(page.getByTestId(TESTIDS.undercoverWord)).toHaveCount(0);
-}
-
-/** Close the review dialog through its 「关闭详情」 header button. */
-async function closeReviewDialog(page: Page): Promise<void> {
-  const closeButton = page.getByTestId(TESTIDS.roomDialogCloseButton);
-  await expect(closeButton).toHaveAccessibleName('关闭详情');
-  await closeButton.click();
 }
 
 for (const viewport of [
