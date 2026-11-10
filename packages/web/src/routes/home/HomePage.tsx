@@ -162,7 +162,7 @@ export function HomePage() {
   };
 
   return (
-    <main className="home" data-testid={TESTIDS.homeScreenRoot}>
+    <main data-testid={TESTIDS.homeScreenRoot}>
       <header className="home-top-bar">
         <h1 className="home-title">
           <button type="button" onClick={tapTitle}>
@@ -205,118 +205,120 @@ export function HomePage() {
         </p>
       )}
 
-      {!authLoading && !user && authError && (
-        <div className="home-auth-error" role="alert">
-          <IconCloudOfflineOutline aria-hidden />
-          <span className="home-auth-error-text">
-            <strong>网络异常</strong>
-            <span>登录失败，请检查网络后重试</span>
-          </span>
-          <button type="button" className="home-auth-error-retry" onClick={retryAuth}>
-            重试
-          </button>
-        </div>
-      )}
-
-      <div className="home-tasks">
-        <section className="home-column">
-          <button
-            type="button"
-            className="home-hero"
-            disabled={authLoading}
-            data-testid={TESTIDS.homeCreateRoomButton}
-            onClick={() => void requireAuth(() => void navigate('/games?purpose=create'))}
-          >
-            <span className="home-hero-main">
-              <span>
-                <span className="home-hero-title">创建房间</span>
-                <span className="home-hero-subtitle">
-                  {`${GAME_MODE_OPTIONS.length} 款游戏 · 点开挑一款`}
-                </span>
-              </span>
-              <IconChevronForward className="home-hero-arrow" aria-hidden />
+      <div className="home-body">
+        {!authLoading && !user && authError && (
+          <div className="home-auth-error" role="alert">
+            <IconCloudOfflineOutline aria-hidden />
+            <span className="home-auth-error-text">
+              <strong>网络异常</strong>
+              <span>登录失败，请检查网络后重试</span>
             </span>
-            <span className="home-hero-icons" aria-hidden>
-              {HERO_ICONS.map((option) => (
-                <span key={option.gameType} className="home-hero-icon">
-                  {option.artUrl ? (
-                    <img src={option.artUrl} alt="" decoding="async" />
-                  ) : (
-                    <option.Icon />
-                  )}
-                </span>
-              ))}
-              {HERO_OVERFLOW > 0 && <span className="home-hero-icon">{`+${HERO_OVERFLOW}`}</span>}
-            </span>
-          </button>
-
-          <div className="home-actions">
-            <button
-              type="button"
-              className="home-action"
-              disabled={authLoading}
-              data-testid={TESTIDS.homeEnterRoomButton}
-              onClick={() => void requireAuth(() => openDialog('join'))}
-            >
-              <IconLogInOutline className="home-action-icon" aria-hidden />
-              <span className="home-action-title">进入房间</span>
-              <span className="home-action-subtitle">输入房间号</span>
-            </button>
-            <button
-              type="button"
-              className="home-action"
-              disabled={authLoading || recentRooms.length === 0}
-              data-testid={TESTIDS.homeReturnLastGameButton}
-              onClick={() => void requireAuth(() => openDialog('recent'))}
-            >
-              <IconTimeOutline className="home-action-icon" aria-hidden />
-              <span className="home-action-title">最近房间</span>
-              <span className="home-action-subtitle">
-                {recentRooms.length > 0 ? `${recentRooms.length} 个房间` : '无记录'}
-              </span>
+            <button type="button" className="home-auth-error-retry" onClick={retryAuth}>
+              重试
             </button>
           </div>
-        </section>
+        )}
 
-        <section className="home-column">
-          <Link to="/gacha" className="home-card">
-            <span className="home-card-emoji" aria-hidden>
-              🎰
-            </span>
-            <span className="home-card-text">
-              <span className="home-card-title">扭蛋抽奖</span>
-              <span className="home-card-subtitle">用抽奖券解锁头像、头像框、装饰</span>
-            </span>
-            <IconChevronForward aria-hidden />
-          </Link>
+        <div className="home-tasks">
+          <section className="home-column">
+            <button
+              type="button"
+              className="home-hero"
+              disabled={authLoading}
+              data-testid={TESTIDS.homeCreateRoomButton}
+              onClick={() => void requireAuth(() => void navigate('/games?purpose=create'))}
+            >
+              <span className="home-hero-main">
+                <span>
+                  <span className="home-hero-title">创建房间</span>
+                  <span className="home-hero-subtitle">
+                    {`${GAME_MODE_OPTIONS.length} 款游戏 · 点开挑一款`}
+                  </span>
+                </span>
+                <IconChevronForward className="home-hero-arrow" aria-hidden />
+              </span>
+              <span className="home-hero-icons" aria-hidden>
+                {HERO_ICONS.map((option) => (
+                  <span key={option.gameType} className="home-hero-icon">
+                    {option.artUrl ? (
+                      <img src={option.artUrl} alt="" decoding="async" />
+                    ) : (
+                      <option.Icon />
+                    )}
+                  </span>
+                ))}
+                {HERO_OVERFLOW > 0 && <span className="home-hero-icon">{`+${HERO_OVERFLOW}`}</span>}
+              </span>
+            </button>
 
-          {GAME_HOME_SPOTLIGHTS.map((spotlight) => (
-            <Suspense key={spotlight.gameType} fallback={null}>
-              <spotlight.Spotlight />
-            </Suspense>
-          ))}
+            <div className="home-actions">
+              <button
+                type="button"
+                className="home-action"
+                disabled={authLoading}
+                data-testid={TESTIDS.homeEnterRoomButton}
+                onClick={() => void requireAuth(() => openDialog('join'))}
+              >
+                <IconLogInOutline className="home-action-icon" aria-hidden />
+                <span className="home-action-title">进入房间</span>
+                <span className="home-action-subtitle">输入房间号</span>
+              </button>
+              <button
+                type="button"
+                className="home-action"
+                disabled={authLoading || recentRooms.length === 0}
+                data-testid={TESTIDS.homeReturnLastGameButton}
+                onClick={() => void requireAuth(() => openDialog('recent'))}
+              >
+                <IconTimeOutline className="home-action-icon" aria-hidden />
+                <span className="home-action-title">最近房间</span>
+                <span className="home-action-subtitle">
+                  {recentRooms.length > 0 ? `${recentRooms.length} 个房间` : '无记录'}
+                </span>
+              </button>
+            </div>
+          </section>
 
-          <button
-            type="button"
-            className="home-card"
-            data-accent="primary"
-            onClick={openAnnouncement}
-          >
-            <IconMegaphoneOutline className="home-card-icon" aria-hidden />
-            <Suspense fallback={<AnnouncementCardText />}>
-              <AnnouncementCardStatus />
-            </Suspense>
-            <IconChevronForward aria-hidden />
-          </button>
-        </section>
+          <section className="home-column">
+            <Link to="/gacha" className="home-card">
+              <span className="home-card-emoji" aria-hidden>
+                🎰
+              </span>
+              <span className="home-card-text">
+                <span className="home-card-title">扭蛋抽奖</span>
+                <span className="home-card-subtitle">用抽奖券解锁头像、头像框、装饰</span>
+              </span>
+              <IconChevronForward aria-hidden />
+            </Link>
+
+            {GAME_HOME_SPOTLIGHTS.map((spotlight) => (
+              <Suspense key={spotlight.gameType} fallback={null}>
+                <spotlight.Spotlight />
+              </Suspense>
+            ))}
+
+            <button
+              type="button"
+              className="home-card"
+              data-accent="primary"
+              onClick={openAnnouncement}
+            >
+              <IconMegaphoneOutline className="home-card-icon" aria-hidden />
+              <Suspense fallback={<AnnouncementCardText />}>
+                <AnnouncementCardStatus />
+              </Suspense>
+              <IconChevronForward aria-hidden />
+            </button>
+          </section>
+        </div>
+
+        <footer className="home-footer">
+          <span>{`${APP_VERSION} · 作者：严振宇`}</span>
+          <Suspense fallback={null}>
+            <InstallMenuItem />
+          </Suspense>
+        </footer>
       </div>
-
-      <footer className="home-footer">
-        <span>{`${APP_VERSION} · 作者：严振宇`}</span>
-        <Suspense fallback={null}>
-          <InstallMenuItem />
-        </Suspense>
-      </footer>
 
       {announcementMounted && (
         <Suspense fallback={null}>
