@@ -16,7 +16,7 @@
 | [roomscreen-state-machine.md](roomscreen-state-machine.md)             | 狼人杀 RoomScreen UI 状态机（GameStatus → 按钮 / Schema Kind → 交互模式）                                                                                                                                                                                              |
 | [realtime-link-redesign.md](realtime-link-redesign.md)                 | 实时链路（RoomLink v3）：协议 v2、关闭码、客户端链路状态机、Worker 网关与命令管线、在线表                                                                                                                                                                              |
 | [outbox-recovery.md](outbox-recovery.md)                               | DO transactional outbox 的终态投递与管理端结算重放                                                                                                                                                                                                                     |
-| [web-client-rewrite.md](web-client-rewrite.md)                         | Web-only 客户端重写：去掉 React Native / Expo，React + 网页元素和 CSS 做界面、PixiJS 做场景层，单分支迁移与切换（设计稿 v3）                                                                                                                                           |
+| [web-client-rewrite.md](web-client-rewrite.md)                         | Web-only 客户端重写：去掉 React Native / Expo，React + 网页元素和 CSS 做界面、PixiJS 做场景层，单分支迁移与切换（设计稿 v3，P0–P5 已实施）                                                                                                                             |
 | [auth-session-design.md](auth-session-design.md)                       | 身份会话、`AuthSession` 缓存与用户资料的状态归属                                                                                                                                                                                                                       |
 | [DESIGN.md](DESIGN.md)                                                 | 视觉基准与主题 token（以狼人杀为主）                                                                                                                                                                                                                                   |
 
@@ -37,12 +37,11 @@
 
 ## 3. 产品模块
 
-| 文档                                                       | 说明                                          |
-| ---------------------------------------------------------- | --------------------------------------------- |
-| [gacha-system-design.md](gacha-system-design.md)           | 扭蛋收集系统                                  |
-| [gacha-operation-recovery.md](gacha-operation-recovery.md) | 抽卡 / 兑换操作的本地持久化与未知投递恢复     |
-| [growth-system-design.md](growth-system-design.md)         | XP / 等级成长系统                             |
-| [loop-motion-design.md](loop-motion-design.md)             | 常驻装饰动画：loopMotion 合成器原语与迁移取舍 |
+| 文档                                                       | 说明                                      |
+| ---------------------------------------------------------- | ----------------------------------------- |
+| [gacha-system-design.md](gacha-system-design.md)           | 扭蛋收集系统                              |
+| [gacha-operation-recovery.md](gacha-operation-recovery.md) | 抽卡 / 兑换操作的本地持久化与未知投递恢复 |
+| [growth-system-design.md](growth-system-design.md)         | XP / 等级成长系统                         |
 
 ## 4. 部署与运维
 
@@ -95,3 +94,4 @@
 | [apple-design-uplift.md](archive/apple-design-uplift.md)                       | Apple 风格 UI 提升方案                                    |
 | [bottom-panel-redesign.md](archive/bottom-panel-redesign.md)                   | BottomActionPanel 三层声明式布局重构                      |
 | [avatar-prompts.md](archive/avatar-prompts.md)                                 | Leonardo.AI 头像 prompt（已被豆包版本取代）               |
+| [loop-motion-design.md](archive/loop-motion-design.md)                         | React Native 客户端的常驻装饰动画（loopMotion）设计       |
