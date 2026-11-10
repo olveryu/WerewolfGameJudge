@@ -1,11 +1,21 @@
 /**
  * API and site URL configuration. Pure config module; values come from Vite env variables at
- * build time, defaulting to production.
+ * build time. The API URL is set per mode (`.env.production`, `.env.test`) or by the environment
+ * (the dev script and E2E builds point it at a local Worker).
  */
 
+function readApiBaseUrl(): string {
+  const url = import.meta.env.VITE_CF_API_URL;
+  if (url === undefined || url === '') {
+    throw new Error(
+      `[FAIL-FAST] VITE_CF_API_URL is not set for Vite mode "${import.meta.env.MODE}"`,
+    );
+  }
+  return url;
+}
+
 /** Cloudflare Workers API base URL. */
-export const API_BASE_URL: string =
-  import.meta.env.VITE_CF_API_URL ?? 'https://api.werewolfjudge.eu.org';
+export const API_BASE_URL: string = readApiBaseUrl();
 
 const DEFAULT_API_TIMEOUT_MS = 12000;
 
