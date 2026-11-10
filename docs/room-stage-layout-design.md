@@ -108,7 +108,7 @@ interface RoomStageRosterModel {
 1. 共享：舞台内容、信息条、名单抽屉、标题栏主持管理、工具栏纯图标；契约文档。
 2. 你画我猜迁移。
 3. 你画我猜接龙迁移。
-4. 故事接龙迁移。
-5. 删除废弃代码（`AnsweringTopBar`、`BotTakeover` 等）。
+4. 故事接龙迁移；`BotTakeover` 浮钮与 `TakeoverSheet` 随之无人使用，同一提交删除。
+5. 删除废弃代码（`AnsweringTopBar`、`answeringTopBarSeats`）。
 
 每步跑受影响范围的单测、web typecheck、eslint / prettier（改动文件）、knip、根契约；最后在四档尺寸做一次浏览器验收。
