@@ -1,16 +1,24 @@
-/** Player profile card: the unlock count opens that player's collection in the same room. */
+/**
+ * Player profile card: the unlock count opens that player's collection in the same room, and the
+ * card shows the player's equipped cosmetics.
+ */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router';
 
 import type { UserPublicProfile } from '@/features/account/services/accountApi';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
+import { TESTIDS } from '@/testids';
 
 import { PlayerProfileCard } from '../PlayerProfileCard';
 
 const PROFILE: UserPublicProfile = {
   displayName: '狼王 & 好人',
+  avatarFrame: 'wolfFang',
+  seatFlair: 'nightSanctum',
+  nameStyle: 'goldenScript',
+  seatAnimation: 'throneArrival',
   level: 3,
   title: '新手',
   xp: 40,
@@ -24,14 +32,23 @@ vi.mock('@/features/account/queries/useUserProfileQuery', () => ({
 vi.mock('@/features/account/services/accountApi', () => ({
   fetchUserUnlocks: vi.fn(() => new Promise(() => {})),
 }));
+vi.mock('@/features/product/loadClientProductUi', () => {
+  const unused = () => {
+    throw new Error('The profile has no avatar or reveal effect to resolve');
+  };
+  const productUi = Promise.resolve({
+    getAvatarDisplayName: unused,
+    getRevealEffectPresentation: unused,
+  });
+  return { loadClientProductUi: () => productUi };
+});
 
 function CurrentLocation() {
   const location = useLocation();
   return <p>{`at ${location.pathname}${location.search}`}</p>;
 }
 
-it('closes the card and opens the player unlocks with their name', async () => {
-  const onClose = vi.fn();
+function renderCard(onClose: () => void) {
   const model: RoomProfileCardModel = {
     target: { seat: 2, occupant: { kind: 'human', userId: 'user-2' }, rosterName: '' },
     isSelf: false,
@@ -52,10 +69,27 @@ it('closes the card and opens the player unlocks with their name', async () => {
       <RouterProvider router={router} />
     </QueryClientProvider>,
   );
+}
+
+it('closes the card and opens the player unlocks with their name', async () => {
+  const onClose = vi.fn();
+  renderCard(onClose);
 
   await userEvent.click(screen.getByRole('button', { name: '已解锁 ›' }));
 
   expect(onClose).toHaveBeenCalledOnce();
   const search = new URLSearchParams({ userId: 'user-2', displayName: PROFILE.displayName });
   expect(await screen.findByText(`at /unlocks/1234?${search.toString()}`)).toBeInTheDocument();
+});
+
+it('shows each equipped cosmetic by name and marks empty slots', async () => {
+  renderCard(vi.fn());
+
+  const showcase = await screen.findByTestId(TESTIDS.playerProfileEquipment);
+  for (const name of ['狼牙', '永夜圣域', '金缕天书', '王座降临']) {
+    expect(within(showcase).getByText(name)).toBeInTheDocument();
+  }
+  expect(within(showcase).getByText('史诗')).toBeInTheDocument();
+  expect(within(showcase).getAllByText('神话')).toHaveLength(3);
+  expect(within(showcase).getAllByText('未装备')).toHaveLength(2);
 });

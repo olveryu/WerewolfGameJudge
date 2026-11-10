@@ -119,6 +119,7 @@ export const TESTIDS = {
   roomViewIdentityButton: 'room-view-identity-button',
   roomDialogCloseButton: 'room-dialog-close-button',
   playerProfileCard: 'player-profile-card',
+  playerProfileEquipment: 'player-profile-equipment',
   playerProfileLeaveSeatButton: 'player-profile-leave-seat-button',
   playerProfileKickButton: 'player-profile-kick-button',
   roleCardModal: 'role-card-modal',

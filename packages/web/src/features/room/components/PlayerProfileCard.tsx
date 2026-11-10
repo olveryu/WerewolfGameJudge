@@ -1,7 +1,7 @@
 /**
  * Player profile card for a seat: public profile (level, title, XP, stats) for a human, the
- * roster name for a bot, plus the seat actions the model offers (leave seat, kick).
- * Equipped cosmetics are shown by the product layer (P4) and are not rendered here yet.
+ * roster name for a bot, its equipped cosmetics, plus the seat actions the model offers (leave
+ * seat, kick).
  */
 import './PlayerProfileCard.css';
 
@@ -11,7 +11,7 @@ import {
   getLevelTitle,
 } from '@game-judge/game-engine/product/growth';
 import { useQueryClient } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import { type ReactNode, Suspense } from 'react';
 import { useNavigate } from 'react-router';
 
 import { Avatar } from '@/components/avatar/Avatar';
@@ -27,6 +27,8 @@ import {
 } from '@/features/room/model/RoomOccupant';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { TESTIDS } from '@/testids';
+
+import { ProfileEquipmentShowcase } from './ProfileEquipmentShowcase';
 
 const AVATAR_SIZE = 80;
 
@@ -179,6 +181,9 @@ export function PlayerProfileCard({
             {profileDetailsRenderer?.(model.gameDetails.statsUserId)}
           </section>
         )}
+        <Suspense fallback={<Spinner label="加载中" />}>
+          <ProfileEquipmentShowcase profile={profile} avatarSeed={avatarSeed} />
+        </Suspense>
         <SeatActions model={model} />
       </>
     );
