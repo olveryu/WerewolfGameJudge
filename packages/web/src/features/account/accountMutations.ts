@@ -35,14 +35,7 @@ export function useChangePassword() {
 export function useUploadAvatar() {
   const { avatarUploadService } = useServices();
   return useMutation({
-    mutationFn: async (file: File) => {
-      const fileUri = URL.createObjectURL(file);
-      try {
-        return await avatarUploadService.uploadAvatar(fileUri);
-      } finally {
-        URL.revokeObjectURL(fileUri);
-      }
-    },
+    mutationFn: (file: File) => avatarUploadService.uploadAvatar(file),
     retry: 1,
   });
 }
