@@ -57,11 +57,14 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
       await expect(spectatorPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveCount(0);
       await expect(spectatorPage.getByTestId(TESTIDS.roomHostManagementButton)).toHaveCount(0);
       await hostRoom.clickHostManagementAction(TESTIDS.roomMusicSettingsButton);
-      await expect(hostPage.getByText('背景音乐', { exact: true })).toBeVisible();
-      await hostPage.getByText('The Godfather Waltz', { exact: true }).click();
-      await hostPage.getByTestId('music-settings-back').click();
-      await hostRoom.clickHostManagementAction(TESTIDS.roomFillBotsButton);
-      await hostPage.getByText('确定', { exact: true }).click();
+      const godfatherTrack = hostPage.getByTestId(TESTIDS.musicBgmTrack('theGodfatherWaltz'));
+      await expect(godfatherTrack).toContainText('The Godfather Waltz');
+      await godfatherTrack.click();
+      await hostPage.getByTestId(TESTIDS.musicSettingsBack).click();
+      await hostRoom.clickHostManagementActionAndConfirm(
+        TESTIDS.roomFillBotsButton,
+        '填充机器人？',
+      );
     });
     let panel = await hostRoom.openHostManagement();
     await expect(panel.getByTestId(TESTIDS.assignRolesButton)).toBeEnabled();
@@ -70,7 +73,9 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
     const seatsBefore = await tiles.allTextContents();
     await hostRoom.clickHostManagementActionAndConfirm(TESTIDS.assignRolesButton, '分配角色？');
     panel = await hostRoom.openHostManagement();
-    await panel.getByRole('button', { name: '标记机器人已查看', exact: true }).click();
+    const markBotsViewed = panel.getByTestId(TESTIDS.roomMarkBotsViewedButton);
+    await expect(markBotsViewed).toHaveText('标记机器人已查看');
+    await markBotsViewed.click();
     await expect(panel).toBeHidden();
     await hostRoom.startGame();
 
@@ -105,8 +110,9 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
         .poll(() => hostAudio.evaluate((elements) => [...elements].every((audio) => audio.paused)))
         .toBe(true);
       panel = await hostRoom.openHostManagement();
-      const markBots = panel.getByRole('button', { name: '标记机器人已确认', exact: true });
+      const markBots = panel.getByTestId(TESTIDS.roomMarkBotsConfirmedButton);
       await expect(markBots).toBeEnabled({ timeout: 45_000 });
+      await expect(markBots).toHaveText('标记机器人已确认');
       for (const viewport of [VIEWPORT, { width: 320, height: 640 }]) {
         await hostPage.setViewportSize(viewport);
         await expect(markBots).toBeInViewport({ ratio: 1 });
@@ -176,79 +182,57 @@ type Ballot = 'approve' | 'reject';
 type Play = 'success' | 'fail';
 
 // ---------------------------------------------------------------------------
-// Small probes (conditional probing only; assertions stay strict elsewhere)
+// Phase, seat-marker and settlement-panel helpers
 // ---------------------------------------------------------------------------
 
-async function isTextVisible(page: Page, pattern: RegExp): Promise<boolean> {
-  return page
-    .getByText(pattern)
-    .first()
-    .isVisible()
-    .catch(() => false);
+/** Wait until the room header reports `phase` (the authoritative phase kind). */
+async function waitForPhase(page: Page, phase: string): Promise<void> {
+  await expect(page.getByTestId(TESTIDS.roomHeader)).toHaveAttribute('data-phase', phase, {
+    timeout: 60_000,
+  });
 }
 
-/** Poll every page until one shows the probe text; returns its seat index. */
-async function findSeatByProbe(pages: Page[], pattern: RegExp, label: string): Promise<number> {
-  for (let sweep = 0; sweep < 60; sweep += 1) {
-    for (let seat = 0; seat < pages.length; seat += 1) {
-      if (await isTextVisible(pages[seat]!, pattern)) return seat;
+/** The one seat wearing the `kind` marker on `page`; throws unless exactly one does. */
+async function findMarkedSeat(page: Page, kind: 'leader' | 'lady'): Promise<number> {
+  const markedSeats: number[] = [];
+  for (let seat = 0; seat < PLAYER_COUNT; seat += 1) {
+    if ((await page.getByTestId(TESTIDS.seatMarker(seat, kind)).count()) === 1) {
+      markedSeats.push(seat);
     }
-    await pages[0]!.waitForTimeout(300);
   }
-  throw new Error(`findSeatByProbe: no page showed ${label} after polling`);
+  const [markedSeat] = markedSeats;
+  if (markedSeats.length !== 1 || markedSeat === undefined) {
+    throw new Error(`expected one ${kind} marker, found seats [${markedSeats.join(', ')}]`);
+  }
+  return markedSeat;
 }
 
-/** Dismiss a result panel when it is up; absence is not a failure here. */
-async function dismissPanelIfVisible(
-  page: Page,
-  panelTestId: string,
-  closeTestId: string,
-): Promise<void> {
-  const panel = page.getByTestId(panelTestId);
-  const visible = await panel
-    .waitFor({ state: 'visible', timeout: 2500 })
-    .then(() => true)
-    .catch(() => false);
-  if (!visible) return;
-  await page.getByTestId(closeTestId).click();
-  await expect(panel).toBeHidden({ timeout: 10_000 });
-}
-
-async function dismissVoteResultPanels(pages: Page[]): Promise<void> {
-  for (const page of pages)
-    await dismissPanelIfVisible(page, 'avalon-vote-result-panel', 'avalon-vote-result-close');
-}
-
-async function dismissQuestResultPanels(pages: Page[]): Promise<void> {
-  for (const page of pages)
-    await dismissPanelIfVisible(page, 'avalon-quest-result-panel', 'avalon-quest-result-close');
+/**
+ * Settlement panels open on every page once its snapshot leaves the settled
+ * phase and auto-dismiss after 6 s. Wait per page until the phase has moved
+ * on (the result has landed there), then until the panel is gone.
+ */
+async function waitForResultPanelsClosed(pages: Page[], kind: 'vote' | 'quest'): Promise<void> {
+  for (const page of pages) {
+    await expect(page.getByTestId(TESTIDS.roomHeader)).not.toHaveAttribute('data-phase', kind, {
+      timeout: 60_000,
+    });
+    await expect(page.getByTestId(TESTIDS.avalonResultPanel(kind))).toBeHidden({
+      timeout: 10_000,
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Role capture (viewing stage)
 // ---------------------------------------------------------------------------
 
-/** Open the own role card, read the role name from inside the card, dismiss. */
-async function viewAndCaptureRole(page: Page): Promise<RoleName> {
-  await page.getByTestId(TESTIDS.roomViewIdentityButton).click();
-  const modal = page.getByTestId('role-card-modal');
-  await expect(modal).toBeVisible({ timeout: 15_000 });
-  let captured: RoleName | null = null;
-  for (const name of ROLE_NAMES) {
-    const visible = await modal
-      .getByText(name, { exact: true })
-      .first()
-      .isVisible()
-      .catch(() => false);
-    if (visible) {
-      captured = name;
-      break;
-    }
-  }
-  if (captured === null) throw new Error('Role card did not show any known Avalon role name');
-  await modal.getByText('知道了', { exact: true }).click();
-  await expect(modal).toBeHidden({ timeout: 10_000 });
-  return captured;
+/** Open the own role card, read its role name, dismiss; throws on an unknown name. */
+async function viewAndCaptureRole(room: RoomPage): Promise<RoleName> {
+  const displayName = await room.viewRoleAndCapture();
+  const roleName = ROLE_NAMES.find((name) => name === displayName);
+  if (roleName === undefined) throw new Error(`Role card shows an unknown role: ${displayName}`);
+  return roleName;
 }
 
 // ---------------------------------------------------------------------------
@@ -273,7 +257,7 @@ async function confirmNightInfo(
   expectedTitle: string,
   expectedSeats: readonly number[],
 ): Promise<void> {
-  const infoButton = page.getByTestId('avalon-night-info');
+  const infoButton = page.getByTestId(TESTIDS.avalonNightInfo);
   await expect(infoButton).toBeVisible({ timeout: 30_000 });
   await infoButton.click();
   const modal = page.getByTestId(TESTIDS.alertModal);
@@ -305,20 +289,20 @@ async function pickTeam(
     (seat) => seat !== leaderSeat && !team.includes(seat),
   );
   if (probeSeat === undefined) throw new Error('pickTeam: no probe seat outside the team');
-  const pickModal = leaderPage.getByTestId('avalon-team-pick-modal');
-  const pickRow = (seat: number) => leaderPage.getByTestId(`avalon-team-pick-row-${seat}`);
-  const pickCount = leaderPage.getByTestId('avalon-team-pick-count');
-  const pickConfirm = leaderPage.getByTestId('avalon-team-pick-confirm');
+  const pickModal = leaderPage.getByTestId(TESTIDS.avalonTeamPickModal);
+  const pickRow = (seat: number) => leaderPage.getByTestId(TESTIDS.avalonTeamPickRow(seat));
+  const pickCount = leaderPage.getByTestId(TESTIDS.avalonTeamPickCount);
+  const pickConfirm = leaderPage.getByTestId(TESTIDS.avalonTeamPickConfirm);
 
   // 两段式组队：先预选——modal 取消探针：勾选后取消，板子与观察者
   // 页面都不应出现任何队员徽标。
-  const preselect = leaderPage.getByTestId('avalon-nominate-preselect');
+  const preselect = leaderPage.getByTestId(TESTIDS.avalonNominatePreselect);
   await expect(preselect).toBeEnabled({ timeout: 10_000 });
   await preselect.click();
   await expect(pickModal).toBeVisible({ timeout: 10_000 });
   await pickRow(probeSeat).click();
   await expect(pickCount).toContainText(`已选 1/${team.length}`, { timeout: 10_000 });
-  await leaderPage.getByTestId('avalon-team-pick-cancel').click();
+  await leaderPage.getByTestId(TESTIDS.avalonTeamPickCancel).click();
   await expect(pickModal).toBeHidden({ timeout: 10_000 });
   await expect(
     leaderPage.getByTestId(TESTIDS.seatTilePressable(probeSeat)),
@@ -367,7 +351,7 @@ async function pickTeam(
       await expect(leaderMarker).toBeVisible();
       await ladyMarker.scrollIntoViewIfNeeded();
       await expect(ladyMarker).toBeVisible();
-      await expect(leaderPage.getByTestId('avalon-team-pick-modal')).toBeHidden();
+      await expect(pickModal).toBeHidden();
       expect(
         await leaderPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       ).toBe(true);
@@ -379,12 +363,16 @@ async function pickTeam(
     await leaderPage.setViewportSize(VIEWPORT);
   }
   // 预选回声到后，组队者底部主按钮翻成「最终队伍」，非组队者页面宣告预选状态。
-  const submit = leaderPage.getByTestId('avalon-nominate-submit');
+  const submit = leaderPage.getByTestId(TESTIDS.avalonNominateSubmit);
   await expect(submit).toBeEnabled({ timeout: 10_000 });
-  await expect(leaderPage.getByText(/预选已确认/)).toBeVisible({ timeout: 10_000 });
-  await expect(
-    pages[observerSeat]!.getByText('队长已预选，正在定最终队伍。', { exact: true }),
-  ).toBeVisible({ timeout: 10_000 });
+  await expect(leaderPage.getByTestId(TESTIDS.actionMessage)).toHaveText(
+    '预选已确认，点「最终队伍」打开选人调整最终队伍。',
+    { timeout: 10_000 },
+  );
+  await expect(observerPage.getByTestId(TESTIDS.actionMessage)).toHaveText(
+    '队长已预选，正在定最终队伍。',
+    { timeout: 10_000 },
+  );
 
   // 最终队伍可改选探针：modal 里换出一名非组队者队员再换回——确认前
   // 板子仍是预选阵容（换出座位仍标预选、换入座位没有徽标）；换回确认后
@@ -435,12 +423,12 @@ async function pickTeam(
 }
 
 async function castVote(page: Page, ballot: Ballot): Promise<void> {
-  const modal = page.getByTestId('avalon-vote-modal');
+  const modal = page.getByTestId(TESTIDS.avalonVoteModal);
   await expect(modal).toBeVisible({ timeout: 20_000 });
   await page
-    .getByTestId(ballot === 'approve' ? 'avalon-vote-approve' : 'avalon-vote-reject')
+    .getByTestId(ballot === 'approve' ? TESTIDS.avalonVoteApprove : TESTIDS.avalonVoteReject)
     .click();
-  await expect(modal.getByText(/已投票/)).toBeVisible({ timeout: 10_000 });
+  await expect(modal).toContainText('已投票', { timeout: 10_000 });
 }
 
 interface VoteResultExpectation {
@@ -456,37 +444,36 @@ async function expectAndDismissVoteResult(
   page: Page,
   expectation: VoteResultExpectation,
 ): Promise<void> {
-  const panel = page.getByTestId('avalon-vote-result-panel');
+  const panel = page.getByTestId(TESTIDS.avalonResultPanel('vote'));
   await expect(panel).toBeVisible({ timeout: 30_000 });
   const banner = expectation.approved
     ? '组队通过'
     : `组队被否决·第 ${expectation.rejectStreak ?? 1} 次`;
-  await expect(page.getByTestId('avalon-vote-result-banner')).toHaveText(banner);
-  await expect(
-    panel.getByText(
-      `汇总：赞成 ${expectation.approveCount} · 反对 ${expectation.rejectCount} · 弃权 0`,
-      { exact: true },
-    ),
-  ).toBeVisible();
+  await expect(page.getByTestId(TESTIDS.avalonResultBanner('vote'))).toHaveText(banner);
+  await expect(page.getByTestId(TESTIDS.avalonVoteResultSummary)).toHaveText(
+    `汇总：赞成 ${expectation.approveCount} · 反对 ${expectation.rejectCount} · 弃权 0`,
+  );
   if (expectation.rows !== undefined) {
     for (const [seat, label] of expectation.rows) {
-      await expect(page.getByTestId(`avalon-vote-result-row-${seat}`)).toContainText(`· ${label}`);
+      await expect(page.getByTestId(TESTIDS.avalonVoteResultRow(seat))).toContainText(`· ${label}`);
     }
   }
-  await page.getByTestId('avalon-vote-result-close').click();
+  await page.getByTestId(TESTIDS.avalonResultClose('vote')).click();
   await expect(panel).toBeHidden({ timeout: 10_000 });
 }
 
 async function playQuestCard(page: Page, play: Play, role: RoleName): Promise<void> {
-  const modal = page.getByTestId('avalon-quest-modal');
+  const modal = page.getByTestId(TESTIDS.avalonQuestModal);
   await expect(modal).toBeVisible({ timeout: 20_000 });
   if (GOOD_ROLES.has(role)) {
     // 好人只有成功牌（D17）：失败牌根本不渲染。
-    await expect(page.getByTestId('avalon-quest-fail')).toHaveCount(0);
+    await expect(page.getByTestId(TESTIDS.avalonQuestFail)).toHaveCount(0);
   }
-  await page.getByTestId(play === 'success' ? 'avalon-quest-success' : 'avalon-quest-fail').click();
-  await expect(modal.getByText(/已出牌/)).toBeVisible({ timeout: 10_000 });
-  await page.getByTestId('avalon-quest-close').click();
+  await page
+    .getByTestId(play === 'success' ? TESTIDS.avalonQuestSuccess : TESTIDS.avalonQuestFail)
+    .click();
+  await expect(modal).toContainText('已出牌', { timeout: 10_000 });
+  await page.getByTestId(TESTIDS.avalonQuestClose).click();
   await expect(modal).toBeHidden({ timeout: 10_000 });
 }
 
@@ -501,15 +488,15 @@ async function expectAndDismissQuestResult(
   page: Page,
   expectation: QuestResultExpectation,
 ): Promise<void> {
-  const panel = page.getByTestId('avalon-quest-result-panel');
+  const panel = page.getByTestId(TESTIDS.avalonResultPanel('quest'));
   await expect(panel).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('avalon-quest-result-banner')).toHaveText(
+  await expect(page.getByTestId(TESTIDS.avalonResultBanner('quest'))).toHaveText(
     `第 ${expectation.round} 轮 · ${expectation.success ? '任务成功' : '任务失败'}`,
   );
-  await expect(page.getByTestId('avalon-quest-result-counts')).toHaveText(
+  await expect(page.getByTestId(TESTIDS.avalonQuestResultCounts)).toHaveText(
     `成功牌 ${expectation.successCount} · 失败牌 ${expectation.failCount}`,
   );
-  await page.getByTestId('avalon-quest-result-close').click();
+  await page.getByTestId(TESTIDS.avalonResultClose('quest')).click();
   await expect(panel).toBeHidden({ timeout: 10_000 });
 }
 
@@ -535,7 +522,12 @@ const LADY_PICK_PATTERN = /点座位盘点选一名没当过湖仙的玩家/;
 async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoundScript) {
   let team: readonly number[] = [];
   const leaderSeat = await test.step(`任务${script.round}：定位组队者并组队`, async () => {
-    const seat = await findSeatByProbe(pages, LEADER_PICK_PATTERN, '组队者组队提示');
+    await waitForPhase(pages[0]!, 'nominate');
+    const seat = await findMarkedSeat(pages[0]!, 'leader');
+    await expect(pages[seat]!.getByTestId(TESTIDS.actionMessage)).toContainText(
+      LEADER_PICK_PATTERN,
+      { timeout: 10_000 },
+    );
     team = script.teamFor(seat);
     // 湖仙徽标与组队者徽标同口径：只在白天五阶段显示，查看阶段不出现；
     // 进入提名、组队者出现时，湖仙徽标一起出现。
@@ -548,16 +540,18 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
 
   await test.step(`任务${script.round}：全员公投`, async () => {
     const leaderPage = pages[leaderSeat]!;
-    const leaderModal = leaderPage.getByTestId('avalon-vote-modal');
+    const leaderModal = leaderPage.getByTestId(TESTIDS.avalonVoteModal);
     await expect(leaderModal).toBeVisible({ timeout: 20_000 });
     for (const seat of team) {
-      await expect(leaderPage.getByTestId(`avalon-vote-team-${seat}`)).toBeVisible();
+      await expect(leaderPage.getByTestId(TESTIDS.avalonVoteTeam(seat))).toBeVisible();
     }
     // 提交以草稿为准：第二名玩家页面的投票队伍名单与草稿逐一一致。
     const observerPage = pages[(leaderSeat + 1) % PLAYER_COUNT]!;
-    await expect(observerPage.getByTestId('avalon-vote-modal')).toBeVisible({ timeout: 20_000 });
+    await expect(observerPage.getByTestId(TESTIDS.avalonVoteModal)).toBeVisible({
+      timeout: 20_000,
+    });
     for (const seat of team) {
-      await expect(observerPage.getByTestId(`avalon-vote-team-${seat}`)).toBeVisible();
+      await expect(observerPage.getByTestId(TESTIDS.avalonVoteTeam(seat))).toBeVisible();
     }
     for (let seat = 0; seat < pages.length; seat += 1) {
       await castVote(pages[seat]!, script.ballots.get(seat)!);
@@ -568,15 +562,14 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
           { length: PLAYER_COUNT - 1 },
           (_, index) => `${index + 2}号`,
         ).join(' ');
-        await expect(
-          pages[0]!.getByText(`已投 1/${PLAYER_COUNT} · 未投票：${pending}`, {
-            exact: true,
-          }),
-        ).toBeVisible({ timeout: 10_000 });
-        await expect(pages[0]!.getByTestId('avalon-vote-pending-seats')).toBeVisible({
+        await expect(pages[0]!.getByTestId(TESTIDS.actionMessage)).toHaveText(
+          `已投 1/${PLAYER_COUNT} · 未投票：${pending}`,
+          { timeout: 10_000 },
+        );
+        await expect(pages[0]!.getByTestId(TESTIDS.avalonVotePendingSeats)).toBeVisible({
           timeout: 10_000,
         });
-        await expect(pages[0]!.getByTestId('avalon-history-summary-pending-seats')).toBeVisible({
+        await expect(pages[0]!.getByTestId(TESTIDS.avalonHistorySummaryPendingSeats)).toBeVisible({
           timeout: 10_000,
         });
       }
@@ -596,12 +589,12 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
       }
     });
     // 结算面板 6 秒自动关闭：最后一张牌落地后先直奔房主页断言任务结果，
-    // 其余页面的面板清理放断言之后（探不到即已自动关闭，不算失败）。
+    // 再等每个页面都已离开结算阶段、面板自动关闭。
     await expectAndDismissQuestResult(pages[0]!, script.questResult);
-    await dismissVoteResultPanels(pages);
-    await dismissQuestResultPanels(pages);
+    await waitForResultPanelsClosed(pages, 'vote');
+    await waitForResultPanelsClosed(pages, 'quest');
   } else {
-    await dismissVoteResultPanels(pages);
+    await waitForResultPanelsClosed(pages, 'vote');
   }
   return leaderSeat;
 }
@@ -639,18 +632,23 @@ async function runLadyCheck(
   expectedFactionLabel: '是好人' | '是坏人',
   expectedHolderSeat?: number,
 ): Promise<LadyCheckResult> {
-  const holderSeat = await findSeatByProbe(pages, LADY_PICK_PATTERN, '湖仙查验提示');
+  await waitForPhase(pages[0]!, 'lady');
+  const holderSeat = await findMarkedSeat(pages[0]!, 'lady');
   if (expectedHolderSeat !== undefined) expect(holderSeat).toBe(expectedHolderSeat);
   const holderPage = pages[holderSeat]!;
+  await expect(holderPage.getByTestId(TESTIDS.actionMessage)).toContainText(LADY_PICK_PATTERN, {
+    timeout: 10_000,
+  });
   const targetSeat = chooseTarget(holderSeat);
   const targetPage = pages[targetSeat]!;
   // PR-B (lady bystanders): everyone else watches the public process
   // in their bottom panel — first the picking, then who was picked.
   const bystanderSeat = pages.findIndex((_, seat) => seat !== holderSeat && seat !== targetSeat);
   const bystanderPage = pages[bystanderSeat]!;
-  await expect(
-    bystanderPage.getByText(new RegExp(`${holderSeat + 1} 号 · .+ 正在选择查验对象`)),
-  ).toBeVisible({ timeout: 10_000 });
+  await expect(bystanderPage.getByTestId(TESTIDS.actionMessage)).toHaveText(
+    new RegExp(`^${holderSeat + 1} 号 · .+ 正在选择查验对象$`),
+    { timeout: 10_000 },
+  );
 
   await new RoomPage(holderPage).getSeatTile(targetSeat).click();
   const confirmModal = holderPage.getByTestId(TESTIDS.alertModal);
@@ -658,29 +656,28 @@ async function runLadyCheck(
   await expect(holderPage.getByTestId(TESTIDS.alertTitle)).toHaveText('湖中仙女查验');
   await holderPage.getByTestId(TESTIDS.alertButton(1)).click();
   await expect(confirmModal).toBeHidden({ timeout: 10_000 });
-  await expect(
-    bystanderPage.getByText(
-      new RegExp(`${holderSeat + 1} 号 · .+ 已选择查验 ${targetSeat + 1} 号 · .+，等待对方确认`),
-    ),
-  ).toBeVisible({ timeout: 10_000 });
+  await expect(bystanderPage.getByTestId(TESTIDS.actionMessage)).toHaveText(
+    new RegExp(`^${holderSeat + 1} 号 · .+ 已选择查验 ${targetSeat + 1} 号 · .+，等待对方确认$`),
+    { timeout: 10_000 },
+  );
 
   // 被查验者先在自己界面确认展示，持有人随后才看到结果。
-  const ackModal = targetPage.getByTestId('avalon-lady-acknowledge-modal');
+  const ackModal = targetPage.getByTestId(TESTIDS.avalonLadyAcknowledgeModal);
   await expect(bystanderPage.getByTestId(TESTIDS.seatMarker(holderSeat, 'lady'))).toBeVisible();
   await expect(bystanderPage.getByTestId(TESTIDS.seatMarker(targetSeat, 'lady'))).toHaveCount(0);
   await expect(ackModal).toBeVisible({ timeout: 15_000 });
   await expect(ackModal).toContainText(`${holderSeat + 1} 号`);
-  await targetPage.getByTestId('avalon-lady-acknowledge').click();
+  await targetPage.getByTestId(TESTIDS.avalonLadyAcknowledge).click();
   await expect(ackModal).toBeHidden({ timeout: 10_000 });
   await expect(bystanderPage.getByTestId(TESTIDS.seatMarker(targetSeat, 'lady'))).toBeVisible();
   await expect(bystanderPage.getByTestId(TESTIDS.seatMarker(holderSeat, 'lady'))).toHaveCount(0);
 
-  const resultModal = holderPage.getByTestId('avalon-lady-result-modal');
+  const resultModal = holderPage.getByTestId(TESTIDS.avalonLadyResultModal);
   await expect(resultModal).toBeVisible({ timeout: 15_000 });
-  await expect(holderPage.getByTestId('avalon-lady-result-text')).toHaveText(
+  await expect(holderPage.getByTestId(TESTIDS.avalonLadyResultText)).toHaveText(
     new RegExp(`^${targetSeat + 1} 号 · .+ ${expectedFactionLabel}。$`),
   );
-  await holderPage.getByTestId('avalon-lady-result-close').click();
+  await holderPage.getByTestId(TESTIDS.avalonLadyResultClose).click();
   await expect(resultModal).toBeHidden({ timeout: 10_000 });
   return { holderSeat, targetSeat };
 }
@@ -706,23 +703,23 @@ test.describe('Avalon full game', () => {
         await expect(hostPage.getByTestId(TESTIDS.gameConfigScreenRoot('avalon'))).toBeVisible({
           timeout: 15_000,
         });
-        // 人数与否决上限共用同一个步进器按钮名，用人数 testID 的父级作用域消歧。
-        const countTestId = TESTIDS.gameConfigField('avalon', 'numberOfPlayers');
-        const count = hostPage.getByTestId(countTestId);
+        const count = hostPage.getByTestId(TESTIDS.gameConfigField('avalon', 'numberOfPlayers'));
         await expect(count).toHaveValue('6');
-        const countControls = hostPage.locator(
-          `xpath=//*[@data-testid="${countTestId}"]/ancestor::div[1]`,
+        const increment = hostPage.getByTestId(
+          TESTIDS.gameConfigFieldIncrement('avalon', 'numberOfPlayers'),
         );
+        await expect(increment).toHaveAccessibleName('增加人数');
         for (let expected = 7; expected <= 10; expected += 1) {
-          await countControls.getByRole('button', { name: '增加人数' }).click();
+          await increment.click();
           await expect(count).toHaveValue(String(expected));
         }
         await hostPage
           .getByTestId(TESTIDS.gameConfigFieldOption('avalon', 'voteMode', 'public'))
           .click();
-        await expect(hostPage.getByText(/公投：投票结算后同时亮票/)).toBeVisible();
-        await expect(hostPage.getByText('本局板子（10 人）')).toBeVisible();
-        await expect(hostPage.getByText(/任务人数：3-4-4-5-5/)).toBeVisible();
+        const configRoot = hostPage.getByTestId(TESTIDS.gameConfigScreenRoot('avalon'));
+        await expect(configRoot).toContainText('公投：投票结算后同时亮票');
+        await expect(configRoot).toContainText('本局板子（10 人）');
+        await expect(configRoot).toContainText('任务人数：3-4-4-5-5');
         await hostPage.getByTestId(TESTIDS.gameConfigSubmit('avalon')).click();
         await rooms[0]!.waitForReady('host');
       });
@@ -746,14 +743,15 @@ test.describe('Avalon full game', () => {
           TESTIDS.assignRolesButton,
           '分配角色？',
         );
-        await expect(hostPage.getByText(/位玩家已查看身份，等待剩余玩家/)).toBeVisible({
-          timeout: 15_000,
-        });
+        await expect(hostPage.getByTestId(TESTIDS.roomNextStepBlockedReason)).toHaveText(
+          /^\d+\/10 位玩家已查看身份，等待剩余玩家$/,
+          { timeout: 15_000 },
+        );
         const captured: RoleName[] = [];
         // 湖仙徽标只在白天五阶段显示（与组队者徽标同口径），查看阶段不出现。
         await expect(hostPage.getByTestId(/^seat-marker-\d+-lady$/)).toHaveCount(0);
         await expect(pages[PLAYER_COUNT - 1]!.getByTestId(/^seat-marker-\d+-lady$/)).toHaveCount(0);
-        for (const page of pages) captured.push(await viewAndCaptureRole(page));
+        for (const room of rooms) captured.push(await viewAndCaptureRole(room));
         await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
           '开始游戏',
           { timeout: 15_000 },
@@ -791,10 +789,9 @@ test.describe('Avalon full game', () => {
       await test.step('房主开始游戏，进入夜晚坏人互认', async () => {
         await rooms[0]!.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
         // 夜晚状态条是进度形态：第1步 / 共3步 · 坏人互认。
-        await expect(hostPage.getByText('第1步 / 共3步', { exact: true })).toBeVisible({
-          timeout: 15_000,
-        });
-        await expect(hostPage.getByText('坏人互认', { exact: true }).first()).toBeVisible();
+        const progress = hostPage.getByTestId(TESTIDS.roomProgressIndicator);
+        await expect(progress).toContainText('第1步 / 共3步', { timeout: 15_000 });
+        await expect(progress).toContainText('坏人互认');
       });
 
       await test.step('夜晚：奥伯伦全程闭眼（无确认入口、看不见任何同伴）', async () => {
@@ -802,10 +799,11 @@ test.describe('Avalon full game', () => {
         // 排除在互认外：他夜里没有确认按钮、没有弹窗，只能等待——这正是
         // 规则口径（不参与、不确认）。「别人也看不见他」由下一拍三人互认的
         // 同伴集合断言（不含奥伯伦）覆盖。
-        await expect(pages[oberonSeat]!.getByTestId('avalon-night-info')).toHaveCount(0);
+        await expect(pages[oberonSeat]!.getByTestId(TESTIDS.avalonNightInfo)).toHaveCount(0);
         // PR-B G-5: a non-participant's bottom panel names what they
         // are waiting for instead of going blank.
-        await expect(pages[oberonSeat]!.getByText('等待本步玩家确认', { exact: true })).toBeVisible(
+        await expect(pages[oberonSeat]!.getByTestId(TESTIDS.actionMessage)).toHaveText(
+          '等待本步玩家确认',
           { timeout: 10_000 },
         );
       });
@@ -821,15 +819,17 @@ test.describe('Avalon full game', () => {
         }
         // 忠臣全程没有夜晚确认入口。
         const loyalSeat = goodSeats.find((seat) => seat !== merlinSeat && seat !== percivalSeat)!;
-        await expect(pages[loyalSeat]!.getByTestId('avalon-night-info')).toHaveCount(0);
+        await expect(pages[loyalSeat]!.getByTestId(TESTIDS.avalonNightInfo)).toHaveCount(0);
         // PR-B G-5: once step 1 settles, its confirmed participants
         // and the never-participating loyal seat both wait on step 2.
-        await expect(
-          pages[morganaSeat]!.getByText('等待本步玩家确认', { exact: true }),
-        ).toBeVisible({ timeout: 10_000 });
-        await expect(pages[loyalSeat]!.getByText('等待本步玩家确认', { exact: true })).toBeVisible({
-          timeout: 10_000,
-        });
+        await expect(pages[morganaSeat]!.getByTestId(TESTIDS.actionMessage)).toHaveText(
+          '等待本步玩家确认',
+          { timeout: 10_000 },
+        );
+        await expect(pages[loyalSeat]!.getByTestId(TESTIDS.actionMessage)).toHaveText(
+          '等待本步玩家确认',
+          { timeout: 10_000 },
+        );
       });
 
       await test.step('夜晚：梅林看见除莫德雷德外的全部坏人', async () => {
@@ -889,7 +889,7 @@ test.describe('Avalon full game', () => {
       });
       // 否决后组队者顺延一位（轮转断言）。
       expect(leader2).toBe((leader1 + 1) % PLAYER_COUNT);
-      await expect(hostPage.getByTestId('avalon-history-summary')).toContainText(
+      await expect(hostPage.getByTestId(TESTIDS.avalonHistorySummary)).toContainText(
         '任务一 · 成功（成功牌 3）',
         { timeout: 15_000 },
       );
@@ -904,7 +904,7 @@ test.describe('Avalon full game', () => {
         failerSeat: failer2,
         questResult: { round: 2, success: false, successCount: 3, failCount: 1 },
       });
-      await expect(hostPage.getByTestId('avalon-history-summary')).toContainText(
+      await expect(hostPage.getByTestId(TESTIDS.avalonHistorySummary)).toContainText(
         '任务二 · 失败（失败牌 1）',
         { timeout: 15_000 },
       );
@@ -917,26 +917,26 @@ test.describe('Avalon full game', () => {
         ));
 
       await test.step('对局记录：按任务分 tab 回看已结算轮次', async () => {
-        await hostPage.getByTestId('avalon-history-summary').click();
-        await expect(hostPage.getByTestId('avalon-history-tab-1')).toBeVisible({
+        await hostPage.getByTestId(TESTIDS.avalonHistorySummary).click();
+        await expect(hostPage.getByTestId(TESTIDS.avalonHistoryTab(1))).toBeVisible({
           timeout: 10_000,
         });
-        await hostPage.getByTestId('avalon-history-tab-1').click();
-        const round1 = hostPage.getByTestId('avalon-history-round-1');
-        await expect(round1.getByText('任务一 · 成功', { exact: true })).toBeVisible();
+        await hostPage.getByTestId(TESTIDS.avalonHistoryTab(1)).click();
+        const round1Banner = hostPage.getByTestId(TESTIDS.avalonHistoryRoundBanner(1));
+        await expect(round1Banner).toContainText('任务一 · 成功');
         // 横幅牌面（v4 起计数与标题分开渲染）：成功牌 ×3、失败牌 ×0。
-        await expect(round1.getByText('成功牌', { exact: true })).toBeVisible();
-        await expect(round1.getByText('×3', { exact: true })).toBeVisible();
-        await expect(round1.getByText('失败牌', { exact: true })).toBeVisible();
-        await expect(round1.getByText('×0', { exact: true })).toBeVisible();
-        await hostPage.getByTestId('avalon-history-tab-2').click();
-        const round2 = hostPage.getByTestId('avalon-history-round-2');
-        await expect(round2.getByText('任务二 · 失败', { exact: true })).toBeVisible();
-        await expect(round2.getByText('成功牌', { exact: true })).toBeVisible();
-        await expect(round2.getByText('×3', { exact: true })).toBeVisible();
-        await expect(round2.getByText('失败牌', { exact: true })).toBeVisible();
-        await expect(round2.getByText('×1', { exact: true })).toBeVisible();
-        await hostPage.getByTestId('avalon-history-close').click();
+        await expect(round1Banner).toContainText('成功牌');
+        await expect(round1Banner).toContainText('×3');
+        await expect(round1Banner).toContainText('失败牌');
+        await expect(round1Banner).toContainText('×0');
+        await hostPage.getByTestId(TESTIDS.avalonHistoryTab(2)).click();
+        const round2Banner = hostPage.getByTestId(TESTIDS.avalonHistoryRoundBanner(2));
+        await expect(round2Banner).toContainText('任务二 · 失败');
+        await expect(round2Banner).toContainText('成功牌');
+        await expect(round2Banner).toContainText('×3');
+        await expect(round2Banner).toContainText('失败牌');
+        await expect(round2Banner).toContainText('×1');
+        await hostPage.getByTestId(TESTIDS.avalonHistoryClose).click();
       });
 
       // ---------------- 任务三：全成功（第二胜），其后湖仙二 ----------------
@@ -975,14 +975,19 @@ test.describe('Avalon full game', () => {
       // ---------------- 刺杀：指认真梅林，坏人翻盘 ----------------
       await test.step('刺杀：刺客指认真梅林', async () => {
         const assassinPage = pages[assassinSeat]!;
-        await expect(assassinPage.getByText(/点座位盘点选一名玩家指认其为梅林/)).toBeVisible({
-          timeout: 20_000,
-        });
+        await expect(assassinPage.getByTestId(TESTIDS.actionMessage)).toContainText(
+          '点座位盘点选一名玩家指认其为梅林',
+          { timeout: 20_000 },
+        );
         const otherEvilSeat = evilSeats.find(
           (seat) => seat !== assassinSeat && seat !== oberonSeat,
         )!;
-        await expect(pages[otherEvilSeat]!.getByText(/坏人商量时间/)).toBeVisible();
-        await expect(pages[goodSeats[0]!]!.getByText(/坏人正在商量刺杀目标/)).toBeVisible();
+        await expect(pages[otherEvilSeat]!.getByTestId(TESTIDS.actionMessage)).toContainText(
+          '坏人商量时间',
+        );
+        await expect(pages[goodSeats[0]!]!.getByTestId(TESTIDS.actionMessage)).toContainText(
+          '坏人正在商量刺杀目标',
+        );
         await new RoomPage(assassinPage).getSeatTile(merlinSeat).click();
         await expect(assassinPage.getByTestId(TESTIDS.alertTitle)).toHaveText('指认梅林');
         // 确认文案只带被指认者名字（不含座号）；指认的座位对不对，由终局
@@ -997,7 +1002,6 @@ test.describe('Avalon full game', () => {
         // 终局结算只在本局复盘里：座位表上方不再有常驻结算区，复盘由
         // 平台统一的复盘对话框呈现；非房主玩家点底部「本局复盘」按钮，
         // 房主走主持管理里的复盘入口。
-        await expect(hostPage.getByTestId('avalon-ended')).toHaveCount(0);
         for (const page of [hostPage, pages[assassinSeat]!]) {
           if (page === hostPage) {
             // 房主的复盘入口在主持管理里，不在底部按钮上。
@@ -1007,21 +1011,20 @@ test.describe('Avalon full game', () => {
           }
           const review = page.getByTestId(TESTIDS.roomReviewDialog);
           await expect(review).toBeVisible({ timeout: 20_000 });
-          await expect(review.getByText('坏人获胜', { exact: true })).toBeVisible();
-          await expect(review.getByText(/刺客 \d+ 号指认 \d+ 号（梅林）→ 命中/)).toBeVisible();
-          await page.getByRole('button', { name: '关闭详情', exact: true }).click();
+          await expect(review).toContainText('坏人获胜');
+          await expect(review).toContainText(/刺客 \d+ 号指认 \d+ 号（梅林）→ 命中/);
+          const closeReview = page.getByTestId(TESTIDS.roomDialogCloseButton);
+          await expect(closeReview).toHaveAccessibleName('关闭详情');
+          await closeReview.click();
           await expect(review).toBeHidden();
         }
         // 房主再次打开复盘，同样走主持管理。
         await rooms[0]!.clickHostManagementAction(TESTIDS.roomReviewHostAction);
         const hostReview = hostPage.getByTestId(TESTIDS.roomReviewDialog);
         await expect(hostReview).toBeVisible({ timeout: 20_000 });
-        // 全员身份：身份墙是复盘里第一处座位徽章，徽章所在行写出该座角色与阵营。
+        // 全员身份：身份墙每座一行，写出该座角色与阵营。
         for (let seat = 0; seat < PLAYER_COUNT; seat += 1) {
-          const row = hostReview
-            .getByLabel(`${seat + 1}号`, { exact: true })
-            .first()
-            .locator('..');
+          const row = hostReview.getByTestId(TESTIDS.roomReviewRosterRow(seat));
           await expect(row).toContainText(roles[seat]!);
           await expect(row).toContainText(EVIL_ROLES.has(roles[seat]!) ? '坏人' : '好人');
         }
@@ -1030,24 +1033,25 @@ test.describe('Avalon full game', () => {
           `${lady1.holderSeat + 1} 号查验了 ${lady1.targetSeat + 1} 号（坏人）`,
         );
         await expect(hostReview).not.toContainText('查验结果只给当时持有人看');
-        await hostPage.getByRole('button', { name: '关闭详情', exact: true }).click();
+        await hostPage.getByTestId(TESTIDS.roomDialogCloseButton).click();
         await expect(hostReview).toBeHidden();
-        await expect(hostPage.getByTestId('avalon-history-summary')).toContainText(
+        await expect(hostPage.getByTestId(TESTIDS.avalonHistorySummary)).toContainText(
           '本局结束 · 坏人获胜',
         );
         // PR-B G-6: the ended wait lives only in the bottom panel of
         // seated non-host players (shared constant, no full stop);
         // the settlement section no longer repeats it for anyone and
         // the host is never told to wait on themselves.
-        await expect(
-          pages[1]!.getByText('等待房主操作（再来一局 / 返回大厅）', { exact: true }),
-        ).toBeVisible({ timeout: 10_000 });
-        await expect(
-          pages[1]!.getByText('等待房主操作（再来一局 / 返回大厅）。', { exact: true }),
-        ).toHaveCount(0);
-        await expect(
-          hostPage.getByText('等待房主操作（再来一局 / 返回大厅）', { exact: true }),
-        ).toHaveCount(0);
+        await expect(pages[1]!.getByTestId(TESTIDS.actionMessage)).toHaveText(
+          '等待房主操作（再来一局 / 返回大厅）',
+          { timeout: 10_000 },
+        );
+        await expect(pages[1]!.getByTestId(TESTIDS.roomScreenRoot)).not.toContainText(
+          '等待房主操作（再来一局 / 返回大厅）。',
+        );
+        await expect(hostPage.getByTestId(TESTIDS.roomScreenRoot)).not.toContainText(
+          '等待房主操作（再来一局 / 返回大厅）',
+        );
         await hostPage.screenshot({ path: testInfo.outputPath('avalon-ended.png') });
       });
     } finally {
