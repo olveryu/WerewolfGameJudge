@@ -1,14 +1,14 @@
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { expect, test } from '@playwright/test';
 
+import { readAlertText } from '../helpers/alerts';
 import {
-  clickBottomButton,
+  clickNightButton,
   clickSeatAndConfirm,
   dismissAlert,
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,
-  readAlertText,
   viewLastNightInfo,
   waitForNightEnd,
   waitForRoleTurn,
@@ -137,7 +137,7 @@ test.describe('Werewolf Night — Special Roles: Eclipse Wolf Queen Redirect', (
           const ewqTurn = await waitForRoleTurn(pages[ewqIdx]!, 'eclipseWolfQueenShelter', pages);
           expect(ewqTurn, 'EclipseWolfQueen turn should be detected').toBe(true);
           await dismissAlert(pages[ewqIdx]!);
-          await clickBottomButton(pages[ewqIdx]!, '不用技能');
+          await clickNightButton(pages[ewqIdx]!, 'skip', '不用技能');
           // Confirm skip if alert appears
           await dismissAlert(pages[ewqIdx]!);
         });
@@ -164,8 +164,7 @@ test.describe('Werewolf Night — Special Roles: Eclipse Wolf Queen Redirect', (
           expect(ended, 'Night should end').toBe(true);
 
           // Villager was killed -> should not be peaceful night
-          await viewLastNightInfo(pages[0]!);
-          const alertText = await readAlertText(pages[0]!);
+          const alertText = await viewLastNightInfo(pages[0]!);
           expect(alertText).not.toContain('平安夜');
         });
       },
@@ -229,8 +228,7 @@ test.describe('Werewolf Night — Special Roles: Eclipse Wolf Queen Redirect', (
           const ended = await waitForNightEnd(pages);
           expect(ended, 'Night should end').toBe(true);
 
-          await viewLastNightInfo(pages[0]!);
-          const alertText = await readAlertText(pages[0]!);
+          const alertText = await viewLastNightInfo(pages[0]!);
           // Should NOT be peaceful night — wolf + witch die
           expect(alertText).not.toContain('平安夜');
           // Assert specific seats died
@@ -301,8 +299,7 @@ test.describe('Werewolf Night — Special Roles: Hidden Wolf & Crow', () => {
         await dismissAlert(pages[hiddenWolfIdx]!);
 
         // Click "查看同伴" bottom button
-        const clicked = await clickBottomButton(pages[hiddenWolfIdx]!, '查看同伴');
-        expect(clicked).toBe(true);
+        await clickNightButton(pages[hiddenWolfIdx]!, 'confirm', '查看同伴');
 
         // Read the reveal — should show wolf teammate seat numbers (1-indexed display)
         const hwReveal = await readAlertText(pages[hiddenWolfIdx]!);
@@ -404,8 +401,7 @@ test.describe('Werewolf Night — Special Roles: Hidden Wolf & Crow', () => {
 
         // Dismiss initial prompt alert, then skip
         await dismissAlert(pages[crowIdx]!);
-        const skipped = await clickBottomButton(pages[crowIdx]!, '不用技能');
-        expect(skipped).toBe(true);
+        await clickNightButton(pages[crowIdx]!, 'skip', '不用技能');
 
         // Confirm skip if alert appears
         await dismissAlert(pages[crowIdx]!);

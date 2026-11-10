@@ -1,14 +1,14 @@
 import { expect, test } from '@playwright/test';
 
+import { confirmAlert, readAlertText } from '../helpers/alerts';
 import {
+  clickNightButton,
   clickSeatAndConfirm,
   dismissAlert,
   driveWolfDisabledEmptyVote,
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,
-  isTextVisible,
-  readAlertText,
   viewLastNightInfo,
   waitForNightEnd,
   waitForRoleTurn,
@@ -84,9 +84,8 @@ test.describe('Werewolf Night — Block', () => {
         const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
 
-        await viewLastNightInfo(pages[0]!);
-        const peaceful = await isTextVisible(pages[0]!, '平安夜');
-        expect(!peaceful, 'Should NOT be 平安夜 (guard was blocked)').toBe(true);
+        const nightInfo = await viewLastNightInfo(pages[0]!);
+        expect(nightInfo, 'Should NOT be 平安夜 (guard was blocked)').not.toContain('平安夜');
       },
     );
   });
@@ -246,9 +245,8 @@ test.describe('Werewolf Night — Block', () => {
         const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
 
-        await viewLastNightInfo(pages[0]!);
-        const peaceful = await isTextVisible(pages[0]!, '平安夜');
-        expect(peaceful, 'Should be 平安夜 (wolf kill disabled)').toBe(true);
+        const nightInfo = await viewLastNightInfo(pages[0]!);
+        expect(nightInfo, 'Should be 平安夜 (wolf kill disabled)').toContain('平安夜');
       },
     );
   });
@@ -291,13 +289,9 @@ test.describe('Werewolf Night — Block', () => {
         expect(blockedText).toContain('封锁');
         await dismissAlert(pages[dcIdx]!);
 
-        // Skip the blocked step on DC's page (click "跳过" button if visible)
-        const skipBtn = pages[dcIdx]!.locator('[data-testid="bottom-action-panel"]')
-          .getByText('跳过', { exact: false })
-          .first();
-        if (await skipBtn.isVisible().catch(() => false)) {
-          await skipBtn.click();
-        }
+        // Skip the blocked step on DC's page
+        await clickNightButton(pages[dcIdx]!, 'skip', '确认跳过');
+        await confirmAlert(pages[dcIdx]!, '跳过本次行动？');
 
         // Wolf kill — nightmare is wolf faction
         const allWolfIndices = [...findAllRolePageIndices(roleMap, '狼人'), nightmareIdx].filter(

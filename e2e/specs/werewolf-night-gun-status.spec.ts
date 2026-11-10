@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
 
+import { readAlertText } from '../helpers/alerts';
 import {
-  clickBottomButton,
+  clickNightButton,
   clickSeatAndConfirm,
   dismissAlert,
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,
-  readAlertText,
   waitForNightEnd,
   waitForRoleTurn,
 } from '../helpers/night-driver';
@@ -67,7 +67,7 @@ test.describe('Werewolf Night — Gun Status', () => {
         await dismissAlert(pages[hunterIdx]!);
 
         // Click "发动状态"
-        await clickBottomButton(pages[hunterIdx]!, '发动状态');
+        await clickNightButton(pages[hunterIdx]!, 'confirm', '发动状态');
 
         // Read the alert — should say "猎人可以发动技能" or "猎人不能发动技能"
         const alertText = await readAlertText(pages[hunterIdx]!);
@@ -115,7 +115,7 @@ test.describe('Werewolf Night — Gun Status', () => {
         await dismissAlert(pages[dwkIdx]!);
 
         // Click "发动状态"
-        await clickBottomButton(pages[dwkIdx]!, '发动状态');
+        await clickNightButton(pages[dwkIdx]!, 'confirm', '发动状态');
 
         // Read alert — "狼王可以发动技能" or "狼王不能发动技能"
         const alertText = await readAlertText(pages[dwkIdx]!);
@@ -175,7 +175,7 @@ test.describe('Werewolf Night — Gun Status', () => {
         expect(hunterTurn).toBe(true);
 
         await dismissAlert(pages[hunterIdx]!);
-        await clickBottomButton(pages[hunterIdx]!, '发动状态');
+        await clickNightButton(pages[hunterIdx]!, 'confirm', '发动状态');
 
         const alertText = await readAlertText(pages[hunterIdx]!);
         expect(alertText).toContain('猎人');
@@ -238,7 +238,7 @@ test.describe('Werewolf Night — Gun Status', () => {
         await dismissAlert(pages[wrIdx]!);
 
         // Hunter gate prompt — "查看技能状态" button should appear
-        await clickBottomButton(pages[wrIdx]!, '查看技能状态');
+        await clickNightButton(pages[wrIdx]!, 'viewHunterStatus', '查看技能状态');
 
         // Gate dialog shows hunter shoot status — "可发动技能" (not poisoned)
         const gateText = await readAlertText(pages[wrIdx]!);
@@ -306,7 +306,7 @@ test.describe('Werewolf Night — Gun Status', () => {
         await dismissAlert(pages[wrIdx]!);
 
         // Hunter gate — poisoned wolfRobot should see "不可发动技能"
-        await clickBottomButton(pages[wrIdx]!, '查看技能状态');
+        await clickNightButton(pages[wrIdx]!, 'viewHunterStatus', '查看技能状态');
         const gateText = await readAlertText(pages[wrIdx]!);
         expect(gateText).toContain('不可发动技能');
         await dismissAlert(pages[wrIdx]!);

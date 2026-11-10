@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import {
-  clickBottomButton,
+  clickNightButton,
   clickSeatAndConfirm,
   dismissAlert,
   driveMagicianSwap,
@@ -153,7 +153,7 @@ test.describe('Werewolf Night — Completion', () => {
         const seerTurn = await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages);
         expect(seerTurn).toBe(true);
         await dismissAlert(pages[seerIdx]!);
-        await clickBottomButton(pages[seerIdx]!, '不用技能');
+        await clickNightButton(pages[seerIdx]!, 'skip', '不用技能');
 
         // Confirm skip if alert appears
         await dismissAlert(pages[seerIdx]!);
@@ -190,7 +190,7 @@ test.describe('Werewolf Night — Completion', () => {
         const guardTurn = await waitForRoleTurn(pages[guardIdx]!, 'guardProtect', pages);
         expect(guardTurn).toBe(true);
         await dismissAlert(pages[guardIdx]!);
-        await clickBottomButton(pages[guardIdx]!, '不用技能');
+        await clickNightButton(pages[guardIdx]!, 'skip', '不用技能');
         await dismissAlert(pages[guardIdx]!);
 
         // Drive wolf kill

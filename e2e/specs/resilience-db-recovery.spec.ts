@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { closeAll } from '../fixtures/app.fixture';
 import { setupNPlayerGame } from '../helpers/multi-player';
 import { linkStatusBanner, waitForRoomScreenReady } from '../helpers/waits';
-import { runNightFlowLoop } from '../pages/NightFlowPage';
+import { runNightFlowFor, runNightFlowLoop } from '../pages/NightFlowPage';
 import { RoomPage } from '../pages/RoomPage';
 
 /**
@@ -28,6 +28,9 @@ import { RoomPage } from '../pages/RoomPage';
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(180_000);
 
+/** Night-drive window before the disconnect; a 2-player night outlasts it. */
+const PARTIAL_NIGHT_MS = 10_000;
+
 test.describe('Resilience — WebSocket state recovery after network interruption', () => {
   test('player recovers state after temporary network loss', async ({ browser }, testInfo) => {
     // Step 1: Setup 2-player game and start night
@@ -40,21 +43,11 @@ test.describe('Resilience — WebSocket state recovery after network interruptio
 
     try {
       // Step 2: Advance night partially — submit some actions
-      try {
-        await runNightFlowLoop(fixture.pages, testInfo, {
-          maxIterations: 25,
-          screenshotInterval: 25,
-        });
-        // If night finished in 25 iterations, skip the disconnect test —
-        // the game is already over. This is rare for 2p but possible.
-        const room = new RoomPage(hostPage);
-        const hasLastNightBtn = await room.isLastNightInfoVisible();
-        if (hasLastNightBtn) {
-          return;
-        }
-      } catch {
-        // Expected — night didn't complete yet
-      }
+      const partialNight = await runNightFlowFor(fixture.pages, testInfo, {
+        timeoutMs: PARTIAL_NIGHT_MS,
+        screenshotInterval: 25,
+      });
+      expect(partialNight, 'The night must still be running before the disconnect').toBeNull();
 
       await joinerPage.screenshot().then((s) =>
         testInfo.attach('db-recovery-01-pre-disconnect.png', {
@@ -96,19 +89,14 @@ test.describe('Resilience — WebSocket state recovery after network interruptio
 
       // Step 7: Continue night flow to completion
       const nightResult = await runNightFlowLoop(fixture.pages, testInfo, {
-        maxIterations: 80,
         screenshotInterval: 10,
       });
 
       // Step 8: Verify night ended
       const room = new RoomPage(hostPage);
-      const hasLastNightBtn = await room.isLastNightInfoVisible();
-      const nightEnded =
-        hasLastNightBtn ||
-        nightResult.resultText.includes('平安夜') ||
-        nightResult.resultText.includes('死亡');
-
-      expect(nightEnded, 'Night should complete after player state recovery').toBe(true);
+      expect(['Day', 'Ended'], 'Night should complete after player state recovery').toContain(
+        nightResult.phase,
+      );
 
       await room.screenshot(testInfo, 'db-recovery-04-night-ended.png');
 
@@ -116,8 +104,8 @@ test.describe('Resilience — WebSocket state recovery after network interruptio
         body: [
           `Room: ${roomCode}`,
           `Disconnect indicator shown: ${isDisconnected}`,
-          `Result: ${nightResult.resultText}`,
-          `Turns: ${nightResult.turnLog.join(' -> ')}`,
+          `Phase: ${nightResult.phase}`,
+          `Steps: ${nightResult.stepLog.join(' -> ')}`,
         ].join('\n'),
         contentType: 'text/plain',
       });
@@ -140,17 +128,11 @@ test.describe('Resilience — WebSocket state recovery after network interruptio
 
     try {
       // Step 2: Advance night partially — submit some actions
-      try {
-        await runNightFlowLoop(fixture.pages, testInfo, {
-          maxIterations: 25,
-          screenshotInterval: 25,
-        });
-        // If night finished in 25 iterations, skip — game already over
-        const room = new RoomPage(hostPage);
-        if (await room.isLastNightInfoVisible()) return;
-      } catch {
-        // Expected — night didn't complete yet
-      }
+      const partialNight = await runNightFlowFor(fixture.pages, testInfo, {
+        timeoutMs: PARTIAL_NIGHT_MS,
+        screenshotInterval: 25,
+      });
+      expect(partialNight, 'The night must still be running before the disconnect').toBeNull();
 
       await test.step('screenshot: pre-disconnect state', async () => {
         await hostPage.screenshot().then((s) =>
@@ -223,27 +205,22 @@ test.describe('Resilience — WebSocket state recovery after network interruptio
 
       // Step 5: Continue night flow to completion
       const nightResult = await runNightFlowLoop(fixture.pages, testInfo, {
-        maxIterations: 80,
         screenshotInterval: 10,
       });
 
       // Step 6: Verify night ended
       const room = new RoomPage(hostPage);
-      const hasLastNightBtn = await room.isLastNightInfoVisible();
-      const nightEnded =
-        hasLastNightBtn ||
-        nightResult.resultText.includes('平安夜') ||
-        nightResult.resultText.includes('死亡');
-
-      expect(nightEnded, 'Night should complete after dual offline recovery').toBe(true);
+      expect(['Day', 'Ended'], 'Night should complete after dual offline recovery').toContain(
+        nightResult.phase,
+      );
 
       await room.screenshot(testInfo, 'dual-offline-04-night-ended.png');
 
       await testInfo.attach('dual-offline-result.txt', {
         body: [
           `Room: ${roomCode}`,
-          `Result: ${nightResult.resultText}`,
-          `Turns: ${nightResult.turnLog.join(' -> ')}`,
+          `Phase: ${nightResult.phase}`,
+          `Steps: ${nightResult.stepLog.join(' -> ')}`,
         ].join('\n'),
         contentType: 'text/plain',
       });

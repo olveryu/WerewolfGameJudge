@@ -2,12 +2,11 @@ import { expect, test } from '@playwright/test';
 
 import {
   clickSeatAndConfirm,
-  dismissAlert,
+  driveGroupConfirmAck,
   driveWolfVote,
   findRolePageIndex,
-  isTextVisible,
-  tryClickAdvanceButton,
   viewLastNightInfo,
+  waitForGroupConfirmStep,
   waitForNightEnd,
   waitForRoleTurn,
 } from '../helpers/night-driver';
@@ -26,69 +25,6 @@ import { withSetup } from '../helpers/night-setup';
  */
 
 test.setTimeout(180_000);
-
-// ============================================================================
-// Helpers local to this file
-// ============================================================================
-
-/**
- * Drive a single player through the groupConfirm ack flow for convert reveal:
- * dismiss any existing alert -> click "转化状态" -> read personal message alert -> click "知道了".
- *
- * Returns the personal message text shown in the alert.
- */
-async function driveConvertRevealAck(page: import('@playwright/test').Page): Promise<string> {
-  // Dismiss the auto-prompt alert ("所有玩家请睁眼，请看手机确认转化信息")
-  await dismissAlert(page);
-
-  // Click "转化状态" button in bottom panel.
-  // Do NOT use force:true — Playwright's actionability check waits for
-  // ModalStack's inert attribute to be removed after alert dismissal.
-  const panel = page.locator('[data-testid="bottom-action-panel"]');
-  const statusBtn = panel.getByText('转化状态', { exact: true }).first();
-  await statusBtn.waitFor({ state: 'visible', timeout: 10_000 });
-  await statusBtn.click();
-
-  // Read the personal message alert
-  const alertModal = page.locator('[data-testid="alert-modal"]');
-  await alertModal.waitFor({ state: 'visible', timeout: 5000 });
-  const alertText = (await alertModal.textContent().catch(() => '')) ?? '';
-
-  // Click "知道了" to ack
-  const ackBtn = alertModal.getByText('知道了', { exact: true }).first();
-  if (await ackBtn.isVisible().catch(() => false)) {
-    await ackBtn.click();
-  }
-
-  return alertText;
-}
-
-/**
- * Wait for awakenedGargoyleConvertReveal groupConfirm step to be active.
- * Detects by checking for "转化状态" button visibility.
- * While waiting, advances audio gates and other intermediate steps.
- */
-async function waitForConvertRevealStep(
-  pages: import('@playwright/test').Page[],
-  maxIter = 120,
-): Promise<boolean> {
-  for (let i = 0; i < maxIter; i++) {
-    // Check if any page shows the "转化状态" button
-    for (const page of pages) {
-      const panel = page.locator('[data-testid="bottom-action-panel"]');
-      const statusBtn = panel.getByText('转化状态', { exact: true }).first();
-      if (await statusBtn.isVisible().catch(() => false)) {
-        return true;
-      }
-    }
-    // Advance any intermediate alerts/buttons on all pages (alert modal + bottom action panel)
-    for (const page of pages) {
-      await tryClickAdvanceButton(page);
-    }
-    await pages[0]!.waitForTimeout(300);
-  }
-  return false;
-}
 
 // ============================================================================
 // Tests
@@ -144,14 +80,14 @@ test.describe('Werewolf Night — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // === GroupConfirm: all players ack convert reveal ===
         await test.step('all players ack convert reveal', async () => {
-          const groupReady = await waitForConvertRevealStep(pages, 60);
+          const groupReady = await waitForGroupConfirmStep(pages, '转化状态');
           expect(groupReady, 'ConvertReveal step should become active').toBe(true);
 
           for (let i = 0; i < pages.length; i++) {
             const role = roleMap.get(i);
             if (!role) continue;
 
-            const msg = await driveConvertRevealAck(pages[i]!);
+            const msg = await driveGroupConfirmAck(pages[i]!, '转化状态', '知道了');
 
             if (role.seat === convertTargetSeat) {
               // Converted player sees conversion message
@@ -168,9 +104,8 @@ test.describe('Werewolf Night — Awakened Gargoyle (觉醒石像鬼)', () => {
           const ended = await waitForNightEnd(pages);
           expect(ended, 'Night should have ended').toBe(true);
 
-          await viewLastNightInfo(pages[0]!);
-          const hasDeath = await isTextVisible(pages[0]!, '死亡');
-          expect(hasDeath, 'Killed villager should have died').toBe(true);
+          const nightInfo = await viewLastNightInfo(pages[0]!);
+          expect(nightInfo, 'Killed villager should have died').toContain('昨夜死亡');
         });
       },
     );
@@ -246,12 +181,12 @@ test.describe('Werewolf Night — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // === GroupConfirm: verify exact messages ===
         await test.step('verify personal messages for all players', async () => {
-          const groupReady = await waitForConvertRevealStep(pages, 60);
+          const groupReady = await waitForGroupConfirmStep(pages, '转化状态');
           expect(groupReady).toBe(true);
 
           const messages: string[] = [];
           for (let i = 0; i < pages.length; i++) {
-            const msg = await driveConvertRevealAck(pages[i]!);
+            const msg = await driveGroupConfirmAck(pages[i]!, '转化状态', '知道了');
             messages.push(msg);
 
             const role = roleMap.get(i);

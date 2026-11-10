@@ -1,14 +1,16 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
+import { TESTIDS } from '../../packages/web/src/testids';
+import { readAlertText } from '../helpers/alerts';
 import {
-  clickBottomButton,
+  clickNightButton,
   dismissAlert,
+  driveGroupConfirmAck,
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,
-  readAlertText,
-  tryClickAdvanceButton,
   viewLastNightInfo,
+  waitForGroupConfirmStep,
   waitForNightEnd,
   waitForRoleTurn,
 } from '../helpers/night-driver';
@@ -23,41 +25,6 @@ import { withSetup } from '../helpers/night-setup';
  */
 
 test.setTimeout(180_000);
-
-async function waitForInfectionRevealStep(pages: Page[], maxIterations = 120): Promise<boolean> {
-  for (let iteration = 0; iteration < maxIterations; iteration++) {
-    for (const page of pages) {
-      const statusButton = page
-        .locator('[data-testid="bottom-action-panel"]')
-        .getByText('感染状态', { exact: true })
-        .first();
-      if (await statusButton.isVisible().catch(() => false)) return true;
-    }
-
-    for (const page of pages) {
-      await tryClickAdvanceButton(page);
-    }
-    await pages[0]!.waitForTimeout(300);
-  }
-  return false;
-}
-
-async function acknowledgeInfectionResult(page: Page): Promise<string> {
-  await dismissAlert(page);
-
-  const statusButton = page
-    .locator('[data-testid="bottom-action-panel"]')
-    .getByText('感染状态', { exact: true })
-    .first();
-  await statusButton.waitFor({ state: 'visible', timeout: 10_000 });
-  await statusButton.click();
-
-  const alertModal = page.locator('[data-testid="alert-modal"]');
-  await alertModal.waitFor({ state: 'visible', timeout: 5000 });
-  const message = (await alertModal.textContent()) ?? '';
-  await alertModal.getByText('知道了', { exact: true }).first().click();
-  return message;
-}
 
 test.describe('Werewolf Night — Seed Wolf (种狼)', () => {
   test('successful infection reveals to all players and cancels wolf-kill death', async ({
@@ -105,32 +72,28 @@ test.describe('Werewolf Night — Seed Wolf (种狼)', () => {
           expect(infectionTurn, 'Seed Wolf infection turn should become active').toBe(true);
 
           await dismissAlert(pages[seedWolfPageIndex]!);
-          const opened = await clickBottomButton(pages[seedWolfPageIndex]!, '感染');
-          expect(opened, 'Seed Wolf infection button should be available').toBe(true);
+          await clickNightButton(pages[seedWolfPageIndex]!, 'confirm', '感染');
 
           const confirmation = await readAlertText(pages[seedWolfPageIndex]!);
           expect(confirmation).toContain(`${infectionTargetSeat + 1}号`);
-          await pages[seedWolfPageIndex]!.locator('[data-testid="alert-modal"]')
-            .getByText('感染', { exact: true })
-            .first()
-            .click();
+          const infectButton = pages[seedWolfPageIndex]!.getByTestId(TESTIDS.alertButton(1));
+          await expect(infectButton).toHaveText('感染');
+          await infectButton.click();
         });
 
         await test.step('seer finishes the last ordinary role action', async () => {
           const seerTurn = await waitForRoleTurn(pages[seerPageIndex]!, 'seerCheck', pages);
           expect(seerTurn, 'Seer turn should become active').toBe(true);
           await dismissAlert(pages[seerPageIndex]!);
-          const skipped = await clickBottomButton(pages[seerPageIndex]!, '不用技能');
-          expect(skipped).toBe(true);
-          await pages[seerPageIndex]!.locator('[data-testid="alert-modal"]').waitFor({
-            state: 'visible',
+          await clickNightButton(pages[seerPageIndex]!, 'skip', '不用技能');
+          await expect(pages[seerPageIndex]!.getByTestId(TESTIDS.alertModal)).toBeVisible({
             timeout: 5000,
           });
           await dismissAlert(pages[seerPageIndex]!);
         });
 
         await test.step('every player acknowledges the final infection result', async () => {
-          const revealReady = await waitForInfectionRevealStep(pages);
+          const revealReady = await waitForGroupConfirmStep(pages, '感染状态');
           expect(revealReady, 'Final infection reveal should become active').toBe(true);
 
           let convertedMessageCount = 0;
@@ -138,7 +101,7 @@ test.describe('Werewolf Night — Seed Wolf (种狼)', () => {
             const player = roleMap.get(pageIndex);
             if (!player) throw new Error(`Missing captured role for page ${pageIndex}`);
 
-            const message = await acknowledgeInfectionResult(pages[pageIndex]!);
+            const message = await driveGroupConfirmAck(pages[pageIndex]!, '感染状态', '知道了');
             if (player.seat === infectionTargetSeat) {
               expect(message).toContain('你已被种狼感染并转化为普通狼人');
               convertedMessageCount++;
@@ -153,8 +116,7 @@ test.describe('Werewolf Night — Seed Wolf (种狼)', () => {
           const ended = await waitForNightEnd(pages);
           expect(ended, 'Night should end only after the final acknowledgements').toBe(true);
 
-          await viewLastNightInfo(pages[0]!);
-          expect(await readAlertText(pages[0]!)).toContain('平安夜');
+          expect(await viewLastNightInfo(pages[0]!)).toContain('平安夜');
         });
       },
     );

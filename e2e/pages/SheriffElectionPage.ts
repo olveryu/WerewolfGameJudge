@@ -247,9 +247,9 @@ export class SheriffElectionPage {
 
   /** Assert the HUD counts down the armed settle countdown; seconds tick, so match the range. */
   async expectSettleCountdown(countText: RegExp): Promise<void> {
-    await expect(
-      this.page.getByTestId(TESTIDS.sheriffElectionHud).getByText(countText),
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(this.page.getByTestId(TESTIDS.sheriffElectionHud)).toContainText(countText, {
+      timeout: 10_000,
+    });
   }
 
   async expectCanVote(canVote: boolean): Promise<void> {

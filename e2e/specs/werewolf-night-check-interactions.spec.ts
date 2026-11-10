@@ -1,6 +1,7 @@
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { expect, test } from '@playwright/test';
 
+import { readAlertText } from '../helpers/alerts';
 import {
   clickSeatAndConfirm,
   dismissAlert,
@@ -8,8 +9,6 @@ import {
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,
-  isTextVisible,
-  readAlertText,
   viewLastNightInfo,
   waitForNightEnd,
   waitForRoleTurn,
@@ -254,9 +253,8 @@ test.describe('Werewolf Night — Check Interactions', () => {
         expect(ended).toBe(true);
 
         // Verify deaths include seer (reflection kill)
-        await viewLastNightInfo(pages[0]!);
-        const hasDeath = await isTextVisible(pages[0]!, '死亡');
-        expect(hasDeath, 'Should have deaths (seer dies from reflection)').toBe(true);
+        const nightInfo = await viewLastNightInfo(pages[0]!);
+        expect(nightInfo, 'Should have deaths (seer dies from reflection)').toContain('昨夜死亡');
       },
     );
   });

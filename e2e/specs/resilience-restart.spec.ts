@@ -26,7 +26,6 @@ test.describe('Resilience — Restart & Settings', () => {
     try {
       // Run first night
       const firstNight = await runNightFlowLoop(fixture.pages, testInfo, {
-        maxIterations: 60,
         screenshotInterval: 10,
       });
 
@@ -61,29 +60,24 @@ test.describe('Resilience — Restart & Settings', () => {
 
       // Run second night
       const secondNight = await runNightFlowLoop(fixture.pages, testInfo, {
-        maxIterations: 60,
         screenshotInterval: 10,
       });
 
       await room.screenshot(testInfo, 'restart-03-second-night-done.png');
 
-      const hasLastNight = await room.isLastNightInfoVisible();
-      const secondNightEnded =
-        hasLastNight ||
-        secondNight.resultText.includes('平安夜') ||
-        secondNight.resultText.includes('死亡');
-
-      expect(secondNightEnded, 'Second night after restart should complete').toBe(true);
+      expect(['Day', 'Ended'], 'Second night after restart should complete').toContain(
+        secondNight.phase,
+      );
 
       await testInfo.attach('restart.txt', {
         body: [
           '=== FIRST NIGHT ===',
-          `Result: ${firstNight.resultText}`,
-          `Turns: ${firstNight.turnLog.join(' → ')}`,
+          `Phase: ${firstNight.phase}`,
+          `Steps: ${firstNight.stepLog.join(' → ')}`,
           '',
           '=== SECOND NIGHT ===',
-          `Result: ${secondNight.resultText}`,
-          `Turns: ${secondNight.turnLog.join(' → ')}`,
+          `Phase: ${secondNight.phase}`,
+          `Steps: ${secondNight.stepLog.join(' → ')}`,
         ].join('\n'),
         contentType: 'text/plain',
       });

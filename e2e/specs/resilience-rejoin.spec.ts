@@ -8,7 +8,7 @@ import { ensureAnonLogin } from '../helpers/home';
 import { setupNPlayerGame } from '../helpers/multi-player';
 import { gotoWithRetry } from '../helpers/ui';
 import { waitForRoomScreenReady } from '../helpers/waits';
-import { runNightFlowLoop } from '../pages/NightFlowPage';
+import { runNightFlowFor, runNightFlowLoop } from '../pages/NightFlowPage';
 import { RoomPage } from '../pages/RoomPage';
 
 /**
@@ -29,6 +29,9 @@ import { RoomPage } from '../pages/RoomPage';
 
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(180_000);
+
+/** Night-drive window before the rejoin; a 2-player night outlasts it. */
+const PARTIAL_NIGHT_MS = 10_000;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -52,23 +55,16 @@ async function dismissContinueOverlayIfVisible(page: Page): Promise<boolean> {
 }
 
 /**
- * Run a few iterations of the night flow loop — enough to advance past the initial
- * audio-gate phase and submit at least one wolf vote, but stop early (don't finish).
- * This ensures the game has meaningful state cached before we simulate rejoin.
- *
- * We use a small maxIterations and catch the "did not complete" error,
- * since we EXPECT the night to NOT finish in this mini-run.
+ * Drive the night for a short window — enough to advance past the initial
+ * audio gate and act on the first step, but not to finish — so the game has
+ * meaningful state before the rejoin.
  */
 async function advanceNightPartially(pages: Page[], testInfo: TestInfo): Promise<void> {
-  try {
-    await runNightFlowLoop(pages, testInfo, {
-      maxIterations: 25,
-      screenshotInterval: 25,
-    });
-    // If night completes in 25 iterations, that's fine too (very fast 2p game)
-  } catch {
-    // Expected — night didn't complete in 25 iterations, which is fine
-  }
+  const result = await runNightFlowFor(pages, testInfo, {
+    timeoutMs: PARTIAL_NIGHT_MS,
+    screenshotInterval: 25,
+  });
+  expect(result, 'The night must still be running before the rejoin').toBeNull();
 }
 
 // ---------------------------------------------------------------------------
@@ -121,19 +117,14 @@ test.describe('Resilience — Rejoin during ongoing game', () => {
 
       // Step 6: Continue night flow to completion
       const nightResult = await runNightFlowLoop(fixture.pages, testInfo, {
-        maxIterations: 80,
         screenshotInterval: 10,
       });
 
       // Step 7: Verify night ended
       const room = new RoomPage(hostPage);
-      const hasLastNightBtn = await room.isLastNightInfoVisible();
-      const nightEnded =
-        hasLastNightBtn ||
-        nightResult.resultText.includes('平安夜') ||
-        nightResult.resultText.includes('死亡');
-
-      expect(nightEnded, 'Night should complete after host rejoin').toBe(true);
+      expect(['Day', 'Ended'], 'Night should complete after host rejoin').toContain(
+        nightResult.phase,
+      );
 
       await room.screenshot(testInfo, 'host-rejoin-03-night-ended.png');
 
@@ -141,8 +132,8 @@ test.describe('Resilience — Rejoin during ongoing game', () => {
         body: [
           `Room: ${roomCode}`,
           `ContinueGameOverlay shown: ${hadOverlay}`,
-          `Result: ${nightResult.resultText}`,
-          `Turns: ${nightResult.turnLog.join(' → ')}`,
+          `Phase: ${nightResult.phase}`,
+          `Steps: ${nightResult.stepLog.join(' → ')}`,
         ].join('\n'),
         contentType: 'text/plain',
       });
@@ -192,27 +183,22 @@ test.describe('Resilience — Rejoin during ongoing game', () => {
 
       // Step 6: Continue night flow to completion
       const nightResult = await runNightFlowLoop(fixture.pages, testInfo, {
-        maxIterations: 80,
         screenshotInterval: 10,
       });
 
       // Step 7: Verify night ended
       const room = new RoomPage(hostPage);
-      const hasLastNightBtn = await room.isLastNightInfoVisible();
-      const nightEnded =
-        hasLastNightBtn ||
-        nightResult.resultText.includes('平安夜') ||
-        nightResult.resultText.includes('死亡');
-
-      expect(nightEnded, 'Night should complete after player rejoin').toBe(true);
+      expect(['Day', 'Ended'], 'Night should complete after player rejoin').toContain(
+        nightResult.phase,
+      );
 
       await room.screenshot(testInfo, 'player-rejoin-03-night-ended.png');
 
       await testInfo.attach('player-rejoin.txt', {
         body: [
           `Room: ${roomCode}`,
-          `Result: ${nightResult.resultText}`,
-          `Turns: ${nightResult.turnLog.join(' → ')}`,
+          `Phase: ${nightResult.phase}`,
+          `Steps: ${nightResult.stepLog.join(' → ')}`,
         ].join('\n'),
         contentType: 'text/plain',
       });
