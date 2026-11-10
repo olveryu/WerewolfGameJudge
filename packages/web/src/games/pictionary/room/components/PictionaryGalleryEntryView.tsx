@@ -34,7 +34,7 @@ export function PictionaryGalleryEntryView({
     <article className="pictionary-gallery-entry" data-testid={TESTIDS.pictionaryGalleryEntry}>
       <div className="pictionary-gallery-entry-meta">
         <span className="pictionary-gallery-entry-kind">{ENTRY_KIND_LABELS[entry.kind]}</span>
-        <span>
+        <span data-testid={TESTIDS.pictionaryGalleryEntryPosition}>
           第 {entryIndex + 1} / {state.stepIndex + 1} 棒
         </span>
       </div>

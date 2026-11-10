@@ -14,6 +14,7 @@ import { Portal } from '@ark-ui/react/portal';
 import type { ComponentType, CSSProperties, SVGProps } from 'react';
 import { useRef, useState } from 'react';
 
+import { TESTIDS } from '@/testids';
 import IconAdd from '~icons/ion/add';
 import IconArrowBack from '~icons/ion/arrow-back';
 import IconArrowRedoOutline from '~icons/ion/arrow-redo-outline';
@@ -97,6 +98,7 @@ function ToolButton({
   icon: toolIcon,
   isSelected = false,
   disabled,
+  testId,
   onClick,
 }: {
   readonly label: string;
@@ -105,6 +107,7 @@ function ToolButton({
   readonly icon: ToolbarIcon;
   readonly isSelected?: boolean;
   readonly disabled: boolean;
+  readonly testId: string;
   readonly onClick: () => void;
 }) {
   const ToolIcon = toolIcon;
@@ -116,6 +119,7 @@ function ToolButton({
       aria-pressed={isSelected}
       title={label}
       data-selected={isSelected}
+      data-testid={testId}
       disabled={disabled}
       onClick={onClick}
     >
@@ -131,6 +135,7 @@ function PanelCloseButton({ onClick }: { readonly onClick: () => void }) {
       type="button"
       className="drawing-toolbar-panel-icon-button"
       aria-label="关闭选择面板"
+      data-testid={TESTIDS.drawingToolbarPanelCloseButton}
       onClick={onClick}
     >
       <IconClose aria-hidden />
@@ -158,7 +163,11 @@ function ColorPickerPanel({
         onColorChange(hex);
       }}
     >
-      <ColorPicker.Area className="drawing-color-picker-area" aria-label="饱和度与明度">
+      <ColorPicker.Area
+        className="drawing-color-picker-area"
+        aria-label="饱和度与明度"
+        data-testid={TESTIDS.drawingColorPickerArea}
+      >
         <ColorPicker.AreaBackground className="drawing-color-picker-area-background" />
         <ColorPicker.AreaThumb
           className="drawing-color-picker-thumb"
@@ -169,6 +178,7 @@ function ColorPickerPanel({
         className="drawing-color-picker-hue"
         channel="hue"
         aria-label="色相"
+        data-testid={TESTIDS.drawingColorPickerHue}
       >
         <ColorPicker.ChannelSliderTrack className="drawing-color-picker-hue-track" />
         <ColorPicker.ChannelSliderThumb
@@ -249,6 +259,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
         caption={null}
         icon={selectedTool.icon}
         disabled={disabled}
+        testId={TESTIDS.drawingToolbarToolButton}
         onClick={() => setActivePanel('tool')}
       />
       <button
@@ -256,16 +267,22 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
         type="button"
         className="drawing-toolbar-button"
         aria-label={`选择颜色，当前${selectedSwatch?.name ?? '自定义颜色'}`}
+        data-testid={TESTIDS.drawingToolbarColorButton}
         disabled={disabled}
         onClick={openColorPanel}
       >
-        <span className="drawing-toolbar-color-dot" style={{ backgroundColor: props.color }} />
+        <span
+          className="drawing-toolbar-color-dot"
+          data-testid={TESTIDS.drawingToolbarColorButtonSwatch}
+          style={{ backgroundColor: props.color }}
+        />
       </button>
       <ToolButton
         label={`选择粗细，当前 ${props.strokeWidth} 像素`}
         caption={null}
         icon={IconEllipse}
         disabled={disabled}
+        testId={TESTIDS.drawingToolbarWidthButton}
         onClick={() => setActivePanel('width')}
       />
       <ToolButton
@@ -273,6 +290,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
         caption={null}
         icon={IconArrowUndoOutline}
         disabled={disabled || !props.canUndo}
+        testId={TESTIDS.drawingToolbarUndoButton}
         onClick={props.onUndo}
       />
       {props.onRedo !== undefined && (
@@ -281,6 +299,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
           caption={null}
           icon={IconArrowRedoOutline}
           disabled={disabled || !props.canRedo}
+          testId={TESTIDS.drawingToolbarRedoButton}
           onClick={props.onRedo}
         />
       )}
@@ -301,6 +320,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
               data-placement={colorPlacement.kind}
               style={colorPanelStyle(colorPlacement)}
               aria-label="画笔颜色面板"
+              data-testid={TESTIDS.drawingToolbarColorPanel}
             >
               <div className="drawing-toolbar-panel-header">
                 {isColorPickerVisible && (
@@ -308,6 +328,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
                     type="button"
                     className="drawing-toolbar-panel-icon-button"
                     aria-label="返回常用颜色"
+                    data-testid={TESTIDS.drawingToolbarColorBackButton}
                     onClick={() => setIsColorPickerVisible(false)}
                   >
                     <IconArrowBack aria-hidden />
@@ -338,7 +359,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
                           className="drawing-swatch"
                           aria-label={`颜色${entry.name}`}
                           aria-pressed={isSelected}
-                          data-testid={`drawing-toolbar-color-${entry.name}`}
+                          data-testid={TESTIDS.drawingToolbarColorSwatch(entry.name)}
                           data-dark={isDarkColor(entry.value)}
                           style={{ backgroundColor: entry.value }}
                           onClick={() => chooseColor(entry.value)}
@@ -351,7 +372,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
                       type="button"
                       className="drawing-swatch drawing-swatch-custom"
                       aria-label="自定义颜色"
-                      data-testid="drawing-toolbar-custom-color"
+                      data-testid={TESTIDS.drawingToolbarCustomColorButton}
                       onClick={() => setIsColorPickerVisible(true)}
                     >
                       <IconAdd aria-hidden />
@@ -367,6 +388,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
                             type="button"
                             className="drawing-swatch"
                             aria-label={`最近颜色 ${index + 1}`}
+                            data-testid={TESTIDS.drawingToolbarRecentColor(index)}
                             style={{ backgroundColor: recent }}
                             onClick={() => chooseColor(recent)}
                           />
@@ -409,6 +431,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
                       icon={option.icon}
                       isSelected={props.tool === option.tool}
                       disabled={disabled}
+                      testId={TESTIDS.drawingToolbarToolOption(option.tool)}
                       onClick={() => {
                         props.onToolChange(option.tool);
                         closePanel();
@@ -420,6 +443,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
                     caption="清空"
                     icon={IconTrashOutline}
                     disabled={disabled || !props.canUndo}
+                    testId={TESTIDS.drawingToolbarClearButton}
                     onClick={() => {
                       closePanel();
                       props.onClear();
@@ -436,7 +460,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
                       className="drawing-width-option"
                       aria-label={`笔宽 ${width}`}
                       aria-pressed={props.strokeWidth === width}
-                      data-testid={`drawing-toolbar-width-${width}`}
+                      data-testid={TESTIDS.drawingToolbarWidthOption(width)}
                       disabled={disabled}
                       onClick={() => {
                         props.onWidthChange(width);

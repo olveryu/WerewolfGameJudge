@@ -107,7 +107,10 @@ export function PictionaryGalleryStage({
     </>
   ) : (
     <>
-      <p className="pictionary-gallery-viewer-notice">
+      <p
+        className="pictionary-gallery-viewer-notice"
+        data-testid={TESTIDS.pictionaryGalleryViewerNotice}
+      >
         <IconPeopleOutline aria-hidden />
         {isAlbumEnd ? '本册已揭晓，等待房主继续' : '全员正在观看同一本画册'}
       </p>

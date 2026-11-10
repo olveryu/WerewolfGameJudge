@@ -42,8 +42,12 @@ export function PictionaryTaskHeading({
 }) {
   return (
     <div className="pictionary-heading">
-      <h2 className="pictionary-title">{title}</h2>
-      <p className="pictionary-description">{description}</p>
+      <h2 className="pictionary-title" data-testid={TESTIDS.pictionaryTaskTitle}>
+        {title}
+      </h2>
+      <p className="pictionary-description" data-testid={TESTIDS.pictionaryTaskDescription}>
+        {description}
+      </p>
     </div>
   );
 }

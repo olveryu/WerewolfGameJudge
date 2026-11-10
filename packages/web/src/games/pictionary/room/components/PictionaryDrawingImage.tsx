@@ -72,7 +72,7 @@ export function PictionaryDrawingImage({
             data-testid={TESTIDS.pictionaryDrawingImageButton}
             onClick={() => setIsFullscreenOpen(true)}
           >
-            <img src={imageState.uri} alt={label} />
+            <img src={imageState.uri} alt={label} data-testid={TESTIDS.pictionaryDrawingImage} />
           </button>
           <span className="pictionary-drawing-expand" aria-hidden>
             <IconExpandOutline />
@@ -97,6 +97,7 @@ export function PictionaryDrawingImage({
                     label="关闭"
                     icon={<IconClose aria-hidden />}
                     onClick={() => setIsFullscreenOpen(false)}
+                    data-testid={TESTIDS.pictionaryDrawingFullscreenCloseButton}
                   />
                 </Dialog.Content>
               </Dialog.Positioner>

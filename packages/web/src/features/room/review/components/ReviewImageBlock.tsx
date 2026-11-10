@@ -7,6 +7,8 @@
  */
 import { type ReactNode, use, useEffect, useSyncExternalStore } from 'react';
 
+import { TESTIDS } from '@/testids';
+
 import { ReviewExportGateContext, useReviewAssetStore } from '../reviewAssetStore';
 import type { ReviewImageBlock as ReviewImageBlockModel } from '../types';
 
@@ -44,6 +46,7 @@ export function ReviewImageBlock({
       <img
         className="review-image-frame"
         style={frameStyle}
+        data-testid={TESTIDS.roomReviewImage}
         src={asset.dataUri}
         alt={block.caption}
         onLoad={() => gate?.report(blockId, 'ready')}

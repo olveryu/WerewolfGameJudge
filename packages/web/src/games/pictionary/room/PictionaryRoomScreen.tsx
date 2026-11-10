@@ -11,6 +11,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
+import { TESTIDS } from '@/testids';
 
 import { PictionaryRoomSummary } from './components/PictionaryRoomSummary';
 import { PictionaryStage } from './components/PictionaryStage';
@@ -71,7 +72,11 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
                   config={screen.state.config}
                   occupiedSeatCount={screen.occupiedSeatCount}
                   headerRight={
-                    <RoomGuideButton onPress={screen.openRules} label="查看你画我猜接龙玩法说明" />
+                    <RoomGuideButton
+                      onPress={screen.openRules}
+                      label="查看你画我猜接龙玩法说明"
+                      testId={TESTIDS.roomGuideButton('pictionary')}
+                    />
                   }
                 />
               ),
