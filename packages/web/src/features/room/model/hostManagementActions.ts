@@ -285,7 +285,7 @@ export function buildMarkBotsViewedAction(input: ActionInput): RoomHostManagemen
     '标记机器人已查看',
     'eye-outline',
     'secondary',
-    undefined,
+    TESTIDS.roomMarkBotsViewedButton,
     input,
   );
 }

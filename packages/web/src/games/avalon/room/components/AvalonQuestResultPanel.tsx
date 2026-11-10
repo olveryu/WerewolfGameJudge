@@ -6,6 +6,8 @@
  */
 import type { AvalonQuestHistoryView } from '@game-judge/game-engine/games/avalon/public';
 
+import { TESTIDS } from '@/testids';
+
 import { formatAvalonRoundLabel } from '../policy/avalonInteractionPolicy';
 import { AvalonResultDialog } from './AvalonResultDialog';
 
@@ -22,10 +24,10 @@ export function AvalonQuestResultPanel({
     <AvalonResultDialog
       banner={`${formatAvalonRoundLabel(entry.round)} · ${succeeded ? '任务成功' : '任务失败'}`}
       outcome={succeeded ? 'positive' : 'negative'}
-      testIdPrefix="avalon-quest-result"
+      kind="quest"
       onClose={onClose}
     >
-      <p className="avalon-result-counts" data-testid="avalon-quest-result-counts">
+      <p className="avalon-result-counts" data-testid={TESTIDS.avalonQuestResultCounts}>
         成功牌 {entry.successCount} · 失败牌 {entry.failCount}
       </p>
     </AvalonResultDialog>

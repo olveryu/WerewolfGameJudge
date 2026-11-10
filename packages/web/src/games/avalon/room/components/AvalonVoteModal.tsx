@@ -13,6 +13,7 @@ import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
 import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
+import { TESTIDS } from '@/testids';
 import IconCheckmarkCircleOutline from '~icons/ion/checkmark-circle-outline';
 import IconCloseCircleOutline from '~icons/ion/close-circle-outline';
 
@@ -52,7 +53,7 @@ export function AvalonVoteModal({
       open
       onClose={onClose}
       title={`${formatAvalonRoundLabel(viewModel.questResults.length + 1)} · 组队投票`}
-      testId="avalon-vote-modal"
+      testId={TESTIDS.avalonVoteModal}
     >
       <div className="avalon-stage-team">
         <span className="avalon-stage-team-title">待表决的队伍</span>
@@ -60,14 +61,14 @@ export function AvalonVoteModal({
           <span
             key={seat}
             className="avalon-stage-team-member"
-            data-testid={`avalon-vote-team-${seat}`}
+            data-testid={TESTIDS.avalonVoteTeam(seat)}
           >
             {formatAvalonSeatName(viewModel, seat)}
           </span>
         ))}
       </div>
       {remainingSeconds !== null && remainingSeconds > 0 && (
-        <p className="avalon-stage-countdown" data-testid="avalon-vote-countdown">
+        <p className="avalon-stage-countdown" data-testid={TESTIDS.avalonVoteCountdown}>
           已全部投票，{remainingSeconds} 秒后揭晓
         </p>
       )}
@@ -75,7 +76,7 @@ export function AvalonVoteModal({
         <PendingSeatsRow
           label="未投票"
           seats={viewModel.pendingVoteSeats}
-          testId="avalon-vote-pending-seats"
+          testId={TESTIDS.avalonVotePendingSeats}
         />
       )}
       <StageSettleRescue
@@ -94,7 +95,7 @@ export function AvalonVoteModal({
             tone="light"
             isSelected={instruction.myBallot === 'approve'}
             isDisabled={isSubmitting}
-            testId="avalon-vote-approve"
+            testId={TESTIDS.avalonVoteApprove}
             onClick={() => onVote('approve')}
           />
           <AvalonChoiceCard
@@ -103,7 +104,7 @@ export function AvalonVoteModal({
             tone="dark"
             isSelected={instruction.myBallot === 'reject'}
             isDisabled={isSubmitting}
-            testId="avalon-vote-reject"
+            testId={TESTIDS.avalonVoteReject}
             onClick={() => onVote('reject')}
           />
         </div>
@@ -115,7 +116,7 @@ export function AvalonVoteModal({
             ? '请选择赞成或反对；揭晓前可改票。'
             : '你不在座位上，无法投票。'}
       </p>
-      <Button variant="secondary" size="lg" onClick={onClose} data-testid="avalon-vote-close">
+      <Button variant="secondary" size="lg" onClick={onClose} data-testid={TESTIDS.avalonVoteClose}>
         关闭
       </Button>
     </CenterDialog>

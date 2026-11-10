@@ -10,6 +10,8 @@ import type {
   AvalonSeatView,
 } from '@game-judge/game-engine/games/avalon/public';
 
+import { TESTIDS } from '@/testids';
+
 import { AvalonResultDialog } from './AvalonResultDialog';
 
 const BALLOT_LABEL: Record<AvalonBallot, string> = {
@@ -35,11 +37,11 @@ export function AvalonVoteResultPanel({ result, seats, onClose }: AvalonVoteResu
     <AvalonResultDialog
       banner={banner}
       outcome={result.approved ? 'positive' : 'negative'}
-      testIdPrefix="avalon-vote-result"
+      kind="vote"
       onClose={onClose}
     >
       {result.ballots === null ? (
-        <p className="avalon-result-summary" data-testid="avalon-vote-result-counts">
+        <p className="avalon-result-summary" data-testid={TESTIDS.avalonVoteResultCounts}>
           赞成 {result.approveCount} · 反对 {result.rejectCount} · 弃权 {result.abstainCount}
         </p>
       ) : (
@@ -51,7 +53,7 @@ export function AvalonVoteResultPanel({ result, seats, onClose }: AvalonVoteResu
                 <li
                   key={seatView.seat}
                   className="avalon-result-row"
-                  data-testid={`avalon-vote-result-row-${seatView.seat}`}
+                  data-testid={TESTIDS.avalonVoteResultRow(seatView.seat)}
                 >
                   {seatLabel(seatView.seat, seatView.displayName)} ·{' '}
                   {ballot === undefined ? '弃权' : BALLOT_LABEL[ballot]}
@@ -59,7 +61,7 @@ export function AvalonVoteResultPanel({ result, seats, onClose }: AvalonVoteResu
               );
             })}
           </ul>
-          <p className="avalon-result-summary">
+          <p className="avalon-result-summary" data-testid={TESTIDS.avalonVoteResultSummary}>
             汇总：赞成 {result.approveCount} · 反对 {result.rejectCount} · 弃权{' '}
             {result.abstainCount}
           </p>

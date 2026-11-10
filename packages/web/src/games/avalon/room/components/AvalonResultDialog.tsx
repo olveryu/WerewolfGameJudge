@@ -10,6 +10,7 @@ import { Portal } from '@ark-ui/react/portal';
 import { type ReactNode, useEffect, useEffectEvent } from 'react';
 
 import { Button } from '@/components/Button';
+import { TESTIDS } from '@/testids';
 
 /** 结算面板自动关闭时长（设计稿 412 行"展示后自动进下一阶段"；D4 的"无计时"指游戏逻辑 deadline）。 */
 const RESULT_AUTO_DISMISS_MS = 6000;
@@ -18,14 +19,14 @@ const RESULT_AUTO_DISMISS_MS = 6000;
 export function AvalonResultDialog({
   banner,
   outcome,
-  testIdPrefix,
+  kind,
   onClose,
   children,
 }: {
   readonly banner: string;
   readonly outcome: 'positive' | 'negative';
-  /** 产出 `${prefix}-panel` / `-banner` / `-close` 测试 id。 */
-  readonly testIdPrefix: string;
+  /** Which settlement this is; keys the panel / banner / close test ids. */
+  readonly kind: 'vote' | 'quest';
   readonly onClose: () => void;
   readonly children: ReactNode;
 }) {
@@ -44,11 +45,11 @@ export function AvalonResultDialog({
       <Portal>
         <Dialog.Backdrop className="center-dialog-backdrop" />
         <Dialog.Positioner className="center-dialog-positioner">
-          <Dialog.Content className="center-dialog" data-testid={`${testIdPrefix}-panel`}>
+          <Dialog.Content className="center-dialog" data-testid={TESTIDS.avalonResultPanel(kind)}>
             <Dialog.Title
               className="avalon-result-banner"
               data-outcome={outcome}
-              data-testid={`${testIdPrefix}-banner`}
+              data-testid={TESTIDS.avalonResultBanner(kind)}
             >
               {banner}
             </Dialog.Title>
@@ -57,7 +58,7 @@ export function AvalonResultDialog({
               variant="secondary"
               size="lg"
               onClick={onClose}
-              data-testid={`${testIdPrefix}-close`}
+              data-testid={TESTIDS.avalonResultClose(kind)}
             >
               知道了
             </Button>

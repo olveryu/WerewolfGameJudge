@@ -14,6 +14,8 @@ export function GameSettingsStepper({
   value,
   onChangeText,
   testId,
+  decrementTestId,
+  incrementTestId,
   onDecrement,
   onIncrement,
   isDecrementDisabled,
@@ -23,6 +25,8 @@ export function GameSettingsStepper({
   readonly value: string;
   readonly onChangeText: (value: string) => void;
   readonly testId: string;
+  readonly decrementTestId: string;
+  readonly incrementTestId: string;
   readonly onDecrement: () => void;
   readonly onIncrement: () => void;
   readonly isDecrementDisabled: boolean;
@@ -37,6 +41,7 @@ export function GameSettingsStepper({
           icon={<IconRemove aria-hidden />}
           disabled={isDecrementDisabled}
           onClick={onDecrement}
+          data-testid={decrementTestId}
         />
         <input
           className="game-settings-count"
@@ -52,6 +57,7 @@ export function GameSettingsStepper({
           icon={<IconAdd aria-hidden />}
           disabled={isIncrementDisabled}
           onClick={onIncrement}
+          data-testid={incrementTestId}
         />
       </span>
     </div>

@@ -82,6 +82,10 @@ export const TESTIDS = {
   gameConfigField: (gameType: string, key: string) => `${gameType}-config-field-${key}`,
   gameConfigFieldOption: (gameType: string, key: string, value: string) =>
     `${gameType}-config-field-${key}-${value}`,
+  gameConfigFieldDecrement: (gameType: string, key: string) =>
+    `${gameType}-config-field-${key}-decrement`,
+  gameConfigFieldIncrement: (gameType: string, key: string) =>
+    `${gameType}-config-field-${key}-increment`,
   gameConfigFieldIssue: (gameType: string, key: string) => `${gameType}-config-issue-${key}`,
   gameConfigReset: (gameType: string) => `${gameType}-config-reset`,
   gameConfigSubmit: (gameType: string) => `${gameType}-config-submit`,
@@ -113,11 +117,14 @@ export const TESTIDS = {
   roleBadge: 'role-badge',
   roomNextStepButton: 'room-next-step-button',
   roomNextStepRemedyButton: 'room-next-step-remedy-button',
+  roomNextStepBlockedReason: 'room-next-step-blocked-reason',
   roomShareHostActionButton: 'room-share-host-action-button',
   roomSettingsButton: 'room-settings-button',
   roomFillBotsButton: 'room-fill-bots-button',
   roomClearSeatsButton: 'room-clear-seats-button',
   roomMusicSettingsButton: 'room-music-settings-button',
+  roomMarkBotsViewedButton: 'room-mark-bots-viewed-button',
+  roomMarkBotsConfirmedButton: 'room-mark-bots-confirmed-button',
   roomSettingsOverlay: 'room-settings-overlay',
   assignRolesButton: 'assign-roles-button',
   abortGameButton: 'abort-game-button',
@@ -148,6 +155,63 @@ export const TESTIDS = {
 
   // Avalon night step button
   avalonNightInfo: 'avalon-night-info',
+
+  // Avalon bottom actions
+  avalonEarlyStrike: 'avalon-early-strike',
+  avalonLadyResultOpen: 'avalon-lady-result-open',
+  avalonNominatePreselect: 'avalon-nominate-preselect',
+  avalonNominateSubmit: 'avalon-nominate-submit',
+  avalonVoteOpen: 'avalon-vote-open',
+  avalonQuestOpen: 'avalon-quest-open',
+  avalonLadyAcknowledgeOpen: 'avalon-lady-acknowledge-open',
+
+  // Avalon vote / quest modals
+  avalonVoteModal: 'avalon-vote-modal',
+  avalonVoteTeam: (seat: number) => `avalon-vote-team-${seat}`,
+  avalonVoteCountdown: 'avalon-vote-countdown',
+  avalonVotePendingSeats: 'avalon-vote-pending-seats',
+  avalonVoteApprove: 'avalon-vote-approve',
+  avalonVoteReject: 'avalon-vote-reject',
+  avalonVoteClose: 'avalon-vote-close',
+  avalonQuestModal: 'avalon-quest-modal',
+  avalonQuestCountdown: 'avalon-quest-countdown',
+  avalonQuestPendingSeats: 'avalon-quest-pending-seats',
+  avalonQuestSuccess: 'avalon-quest-success',
+  avalonQuestFail: 'avalon-quest-fail',
+  avalonQuestClose: 'avalon-quest-close',
+
+  // Avalon settlement panels (kind: vote | quest)
+  avalonResultPanel: (kind: 'vote' | 'quest') => `avalon-${kind}-result-panel`,
+  avalonResultBanner: (kind: 'vote' | 'quest') => `avalon-${kind}-result-banner`,
+  avalonResultClose: (kind: 'vote' | 'quest') => `avalon-${kind}-result-close`,
+  avalonVoteResultCounts: 'avalon-vote-result-counts',
+  avalonVoteResultSummary: 'avalon-vote-result-summary',
+  avalonVoteResultRow: (seat: number) => `avalon-vote-result-row-${seat}`,
+  avalonQuestResultCounts: 'avalon-quest-result-counts',
+
+  // Avalon team pick
+  avalonTeamPickModal: 'avalon-team-pick-modal',
+  avalonTeamPickCount: 'avalon-team-pick-count',
+  avalonTeamPickRow: (seat: number) => `avalon-team-pick-row-${seat}`,
+  avalonTeamPickCancel: 'avalon-team-pick-cancel',
+  avalonTeamPickConfirm: 'avalon-team-pick-confirm',
+
+  // Avalon history
+  avalonHistorySummary: 'avalon-history-summary',
+  avalonHistorySummaryPendingSeats: 'avalon-history-summary-pending-seats',
+  avalonHistoryOverlay: 'avalon-history-overlay',
+  avalonHistoryTab: (round: number) => `avalon-history-tab-${round}`,
+  avalonHistoryClose: 'avalon-history-close',
+  avalonHistoryRound: (round: number) => `avalon-history-round-${round}`,
+  avalonHistoryRoundBanner: (round: number) => `avalon-history-banner-${round}`,
+
+  // Avalon Lady of the Lake
+  avalonLadyAcknowledgeModal: 'avalon-lady-acknowledge-modal',
+  avalonLadyAcknowledge: 'avalon-lady-acknowledge',
+  avalonLadyAcknowledgeClose: 'avalon-lady-ack-close',
+  avalonLadyResultModal: 'avalon-lady-result-modal',
+  avalonLadyResultText: 'avalon-lady-result-text',
+  avalonLadyResultClose: 'avalon-lady-result-close',
 
   // Werewolf sheriff election
   sheriffElectionPanel: 'sheriff-election-panel',
@@ -270,6 +334,11 @@ export const TESTIDS = {
   roomReviewSharePageButton: 'room-review-share-page',
   roomReviewProgress: 'room-review-progress',
   roomReviewStagePage: (pageKey: string) => `room-review-stage-page-${pageKey}`,
+  roomReviewRosterRow: (seat: number) => `room-review-roster-row-${seat}`,
+
+  // Music settings page
+  musicSettingsBack: 'music-settings-back',
+  musicBgmTrack: (trackId: string) => `music-bgm-track-${trackId}`,
 
   // ShareReviewModal (werewolf: grant seats access to the review)
   shareReviewButton: 'share-review-button',

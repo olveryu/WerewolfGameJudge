@@ -12,6 +12,7 @@ import { useState } from 'react';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
+import { TESTIDS } from '@/testids';
 import IconCheckmark from '~icons/ion/checkmark';
 
 import { formatAvalonSeatName } from '../../model/avalonSeatName';
@@ -60,11 +61,11 @@ export function AvalonTeamPickModal({
   };
 
   return (
-    <BottomSheet title={title} onClose={onClose} testId="avalon-team-pick-modal">
+    <BottomSheet title={title} onClose={onClose} testId={TESTIDS.avalonTeamPickModal}>
       <div className="avalon-team-pick">
         <header className="avalon-team-pick-header">
           <h2 className="avalon-team-pick-title">{title}</h2>
-          <span className="avalon-team-pick-count" data-testid="avalon-team-pick-count">
+          <span className="avalon-team-pick-count" data-testid={TESTIDS.avalonTeamPickCount}>
             已选 {selection.length}/{requiredSize}
           </span>
         </header>
@@ -81,7 +82,7 @@ export function AvalonTeamPickModal({
                 aria-checked={checked}
                 className="avalon-team-pick-row"
                 disabled={isSubmitting}
-                data-testid={`avalon-team-pick-row-${seat}`}
+                data-testid={TESTIDS.avalonTeamPickRow(seat)}
                 onClick={() => toggle(seat)}
               >
                 <span className="avalon-team-pick-checkbox" aria-hidden>
@@ -112,7 +113,7 @@ export function AvalonTeamPickModal({
             variant="secondary"
             size="lg"
             onClick={onClose}
-            data-testid="avalon-team-pick-cancel"
+            data-testid={TESTIDS.avalonTeamPickCancel}
           >
             取消
           </Button>
@@ -120,7 +121,7 @@ export function AvalonTeamPickModal({
             size="lg"
             disabled={!isFull || isSubmitting}
             onClick={() => onConfirm(selection)}
-            data-testid="avalon-team-pick-confirm"
+            data-testid={TESTIDS.avalonTeamPickConfirm}
           >
             {kind === 'preselect' ? '确认预选' : '确认提交'}
           </Button>

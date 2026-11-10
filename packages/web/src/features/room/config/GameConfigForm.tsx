@@ -99,6 +99,8 @@ function FieldView({
             isDecrementDisabled={value <= spec.min}
             isIncrementDisabled={value >= spec.max}
             testId={testId}
+            decrementTestId={TESTIDS.gameConfigFieldDecrement(gameType, fieldKey)}
+            incrementTestId={TESTIDS.gameConfigFieldIncrement(gameType, fieldKey)}
           />
           <p className="game-settings-hint">
             {spec.hint === undefined ? range : `${range}，${spec.hint}`}

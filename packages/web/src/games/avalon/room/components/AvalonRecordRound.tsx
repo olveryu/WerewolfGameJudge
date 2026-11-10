@@ -16,6 +16,7 @@ import type {
 import type { ReactElement } from 'react';
 
 import { formatPendingSeats } from '@/features/room/components/PendingSeatsRow';
+import { TESTIDS } from '@/testids';
 import IconCheckmark from '~icons/ion/checkmark';
 import IconClose from '~icons/ion/close';
 import IconHourglassOutline from '~icons/ion/hourglass-outline';
@@ -65,11 +66,9 @@ type BannerTone = 'success' | 'fail' | 'active';
 function AvalonQuestBanner({
   record,
   ended,
-  testIdPrefix,
 }: {
   readonly record: AvalonRoundRecordView;
   readonly ended: boolean;
-  readonly testIdPrefix: string;
 }) {
   const questLabel = formatAvalonQuestLabel(record.round);
   let icon: ReactElement = <IconPeopleOutline aria-hidden />;
@@ -108,7 +107,7 @@ function AvalonQuestBanner({
       data-tone={tone}
       role="group"
       aria-label={`${title}。${subtitle}`}
-      data-testid={`${testIdPrefix}-banner-${record.round}`}
+      data-testid={TESTIDS.avalonHistoryRoundBanner(record.round)}
     >
       <span className="avalon-round-banner-medal" data-tone={tone}>
         {icon}
@@ -155,8 +154,8 @@ export function AvalonRecordRound({
   const prefix = 'avalon-history';
   const currentProposal = record.currentProposal;
   return (
-    <div className="avalon-round" data-testid={`${prefix}-round-${record.round}`}>
-      <AvalonQuestBanner record={record} ended={ended} testIdPrefix={prefix} />
+    <div className="avalon-round" data-testid={TESTIDS.avalonHistoryRound(record.round)}>
+      <AvalonQuestBanner record={record} ended={ended} />
       {(record.proposals.length > 0 || currentProposal !== null) && (
         <h4 className="avalon-round-section-title">提案与表决</h4>
       )}

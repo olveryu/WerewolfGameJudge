@@ -18,6 +18,7 @@ import { useState } from 'react';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
+import { TESTIDS } from '@/testids';
 
 import { formatAvalonQuestSizes, formatAvalonVoteMode } from '../avalonRecordCopy';
 import { formatAvalonQuestLabel } from '../policy/avalonInteractionPolicy';
@@ -51,7 +52,7 @@ export function AvalonHistoryOverlay({
   // 湖仙进行中只属于最后已结算轮的下一节：lady 阶段发生在该轮结算后。
   const latestSettledRound = rounds.filter((record) => record.quest !== null).at(-1)?.round;
   return (
-    <BottomSheet title="对局记录" onClose={onClose} testId="avalon-history-overlay">
+    <BottomSheet title="对局记录" onClose={onClose} testId={TESTIDS.avalonHistoryOverlay}>
       <div className="avalon-history-sheet">
         <div className="avalon-history-header">
           <h2 className="avalon-history-title">对局记录</h2>
@@ -85,7 +86,7 @@ export function AvalonHistoryOverlay({
                   role="tab"
                   className="avalon-history-tab"
                   aria-selected={isActive}
-                  data-testid={`avalon-history-tab-${record.round}`}
+                  data-testid={TESTIDS.avalonHistoryTab(record.round)}
                   onClick={() => setSelectedRound(record.round)}
                 >
                   {formatAvalonQuestLabel(record.round)}
@@ -113,7 +114,12 @@ export function AvalonHistoryOverlay({
             />
           )}
         </div>
-        <Button variant="secondary" size="lg" onClick={onClose} data-testid="avalon-history-close">
+        <Button
+          variant="secondary"
+          size="lg"
+          onClick={onClose}
+          data-testid={TESTIDS.avalonHistoryClose}
+        >
           关闭
         </Button>
       </div>

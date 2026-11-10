@@ -4,6 +4,8 @@
  */
 import type React from 'react';
 
+import { TESTIDS } from '@/testids';
+
 import type {
   ReviewBlock,
   ReviewGroup,
@@ -82,7 +84,11 @@ function Group({ group }: { readonly group: ReviewGroup }) {
 
 function RosterRow({ row }: { readonly row: ReviewRosterRow }) {
   return (
-    <div className="review-roster-row" data-out={row.isOut}>
+    <div
+      className="review-roster-row"
+      data-out={row.isOut}
+      data-testid={TESTIDS.roomReviewRosterRow(row.seat)}
+    >
       <SeatMedal seat={row.seat} size="roster" tone={row.seatTone} isStamped={false} />
       {row.name === null ? (
         <span className="review-roster-primary">{row.role}</span>

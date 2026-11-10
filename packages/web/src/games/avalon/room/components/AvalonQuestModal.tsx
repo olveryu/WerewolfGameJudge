@@ -11,6 +11,7 @@ import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
 import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
+import { TESTIDS } from '@/testids';
 import IconSkullOutline from '~icons/ion/skull-outline';
 import IconTrophyOutline from '~icons/ion/trophy-outline';
 
@@ -50,7 +51,7 @@ export function AvalonQuestModal({
       open
       onClose={onClose}
       title={`${formatAvalonRoundLabel(viewModel.questResults.length + 1)} · 任务执行`}
-      testId="avalon-quest-modal"
+      testId={TESTIDS.avalonQuestModal}
     >
       <div className="avalon-stage-team">
         <span className="avalon-stage-team-title">本轮队员</span>
@@ -61,7 +62,7 @@ export function AvalonQuestModal({
         ))}
       </div>
       {remainingSeconds !== null && remainingSeconds > 0 && (
-        <p className="avalon-stage-countdown" data-testid="avalon-quest-countdown">
+        <p className="avalon-stage-countdown" data-testid={TESTIDS.avalonQuestCountdown}>
           已全部出牌，{remainingSeconds} 秒后揭晓
         </p>
       )}
@@ -69,7 +70,7 @@ export function AvalonQuestModal({
         <PendingSeatsRow
           label="未出牌"
           seats={viewModel.pendingPlaySeats}
-          testId="avalon-quest-pending-seats"
+          testId={TESTIDS.avalonQuestPendingSeats}
         />
       )}
       <StageSettleRescue
@@ -89,7 +90,7 @@ export function AvalonQuestModal({
               tone="gold"
               isSelected={instruction.myPlay === 'success'}
               isDisabled={isSubmitting}
-              testId="avalon-quest-success"
+              testId={TESTIDS.avalonQuestSuccess}
               onClick={() => onPlay('success')}
             />
           )}
@@ -100,7 +101,7 @@ export function AvalonQuestModal({
               tone="dark"
               isSelected={instruction.myPlay === 'fail'}
               isDisabled={isSubmitting}
-              testId="avalon-quest-fail"
+              testId={TESTIDS.avalonQuestFail}
               onClick={() => onPlay('fail')}
             />
           )}
@@ -113,7 +114,12 @@ export function AvalonQuestModal({
             ? '秘密出牌：点选一张卡，出了什么牌不公开。'
             : '等待队员出牌…'}
       </p>
-      <Button variant="secondary" size="lg" onClick={onClose} data-testid="avalon-quest-close">
+      <Button
+        variant="secondary"
+        size="lg"
+        onClick={onClose}
+        data-testid={TESTIDS.avalonQuestClose}
+      >
         关闭
       </Button>
     </CenterDialog>

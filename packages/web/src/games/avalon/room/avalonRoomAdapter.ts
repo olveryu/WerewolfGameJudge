@@ -455,7 +455,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
         size: 'md',
         isEnabled: true,
         onPress: input.onCancelEarlyStrikePress,
-        testID: 'avalon-early-strike',
+        testID: TESTIDS.avalonEarlyStrike,
       });
       message =
         '点座位盘点选一名玩家进行提前刺杀（除自己外任意座位），点选后会再次确认。刺中梅林坏人直接获胜，刺错好人直接获胜。';
@@ -469,7 +469,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
       size: 'md',
       isEnabled: true,
       onPress: input.onEarlyStrikePress,
-      testID: 'avalon-early-strike',
+      testID: TESTIDS.avalonEarlyStrike,
     });
   }
   // 湖仙查验结果重开入口：结果本体只住弹窗（一次性私密信息），此处只放入口；
@@ -483,7 +483,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
       size: 'md',
       isEnabled: true,
       onPress: input.onLadyResultPress,
-      testID: 'avalon-lady-result-open',
+      testID: TESTIDS.avalonLadyResultOpen,
     });
   }
   switch (phase.kind) {
@@ -506,7 +506,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               size: 'md',
               isEnabled: true,
               onPress: input.onPreselectTeamPress,
-              testID: 'avalon-nominate-preselect',
+              testID: TESTIDS.avalonNominatePreselect,
             });
           } else {
             primary.push({
@@ -518,7 +518,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               isEnabled: false,
               disabledReason: null,
               isLoading: true,
-              testID: 'avalon-nominate-preselect',
+              testID: TESTIDS.avalonNominatePreselect,
             });
           }
         } else {
@@ -532,7 +532,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               size: 'md',
               isEnabled: true,
               onPress: input.onProposeTeamPress,
-              testID: 'avalon-nominate-submit',
+              testID: TESTIDS.avalonNominateSubmit,
             });
           } else {
             primary.push({
@@ -544,7 +544,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               isEnabled: false,
               disabledReason: null,
               isLoading: true,
-              testID: 'avalon-nominate-submit',
+              testID: TESTIDS.avalonNominateSubmit,
             });
           }
         }
@@ -566,7 +566,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           size: 'md',
           isEnabled: true,
           onPress: input.onOpenVotePress,
-          testID: 'avalon-vote-open',
+          testID: TESTIDS.avalonVoteOpen,
         });
       }
       // 未投票名单全房公开：计数 + 未投票行，人人可见（不再只给已投票者看个人票）。
@@ -596,7 +596,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           size: 'md',
           isEnabled: true,
           onPress: input.onOpenQuestPress,
-          testID: 'avalon-quest-open',
+          testID: TESTIDS.avalonQuestOpen,
         });
       }
       // 未出牌名单全房公开：计数 + 未出牌行，人人可见；个人牌仍只在弹窗里看。
@@ -633,7 +633,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
             size: 'md',
             isEnabled: true,
             onPress: input.onLadyAcknowledgePress,
-            testID: 'avalon-lady-acknowledge-open',
+            testID: TESTIDS.avalonLadyAcknowledgeOpen,
           });
           break;
         case 'watching':
@@ -769,6 +769,7 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostManage
           label: '标记机器人已确认',
           icon: 'checkmark-done-outline',
           variant: 'secondary',
+          testID: TESTIDS.roomMarkBotsConfirmedButton,
           isLoading: input.isSubmitting,
         },
         input.isSubmitting,

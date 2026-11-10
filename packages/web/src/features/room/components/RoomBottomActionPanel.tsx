@@ -216,7 +216,14 @@ function HostTaskBody({
         <div className="host-task-blocked">
           <div className="host-task-blocked-text">
             <p className="host-task-blocked-label">{body.action.label}</p>
-            {reason !== null && <p className="host-task-blocked-reason">{reason}</p>}
+            {reason !== null && (
+              <p
+                className="host-task-blocked-reason"
+                data-testid={TESTIDS.roomNextStepBlockedReason}
+              >
+                {reason}
+              </p>
+            )}
           </div>
           {body.remedy !== null && (
             <Button

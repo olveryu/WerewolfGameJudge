@@ -6,6 +6,7 @@ import './AvalonDialogs.css';
 
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
+import { TESTIDS } from '@/testids';
 
 import { getAvalonCheckedFactionDisplayName } from '../../model/avalonRoleDisplay';
 
@@ -20,12 +21,12 @@ export function AvalonLadyResultModal({
   readonly onClose: () => void;
 }) {
   return (
-    <CenterDialog open onClose={onClose} title="查验结果" testId="avalon-lady-result-modal">
-      <p className="avalon-dialog-body" data-testid="avalon-lady-result-text">
+    <CenterDialog open onClose={onClose} title="查验结果" testId={TESTIDS.avalonLadyResultModal}>
+      <p className="avalon-dialog-body" data-testid={TESTIDS.avalonLadyResultText}>
         {targetName} 是{getAvalonCheckedFactionDisplayName(faction)}人。
       </p>
       <p className="avalon-dialog-hint">查验结果只有你能看到，可在讨论中透露、隐瞒或误导。</p>
-      <Button size="lg" onClick={onClose} data-testid="avalon-lady-result-close">
+      <Button size="lg" onClick={onClose} data-testid={TESTIDS.avalonLadyResultClose}>
         知道了
       </Button>
     </CenterDialog>

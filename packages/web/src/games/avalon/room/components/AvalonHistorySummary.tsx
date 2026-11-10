@@ -6,6 +6,7 @@
 import './AvalonRecord.css';
 
 import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
+import { TESTIDS } from '@/testids';
 
 /** 对局摘要条：整条是打开对局记录的按钮，进行中阶段附未提交座位行。 */
 export function AvalonHistorySummary({
@@ -25,7 +26,7 @@ export function AvalonHistorySummary({
       type="button"
       className="avalon-history-summary"
       aria-label="对局记录"
-      data-testid="avalon-history-summary"
+      data-testid={TESTIDS.avalonHistorySummary}
       onClick={onOpenHistory}
     >
       <span className="avalon-history-summary-row">
@@ -36,7 +37,7 @@ export function AvalonHistorySummary({
         <PendingSeatsRow
           label={pendingLabel}
           seats={pendingSeats}
-          testId="avalon-history-summary-pending-seats"
+          testId={TESTIDS.avalonHistorySummaryPendingSeats}
         />
       )}
     </button>

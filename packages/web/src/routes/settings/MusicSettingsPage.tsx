@@ -19,6 +19,7 @@ import { audioSettings } from '@/features/settings/audioSettings';
 import { isExpectedStorageError } from '@/features/settings/services/userSettingsStorage';
 import { type ClientGameAudioPreview, loadClientGameAudioPreviews } from '@/games/catalog';
 import type { AudioService } from '@/services/infra/AudioService';
+import { TESTIDS } from '@/testids';
 import { handleError } from '@/utils/errorPipeline';
 import { createLogger } from '@/utils/logger';
 import IconMusicalNotes from '~icons/ion/musical-notes';
@@ -113,7 +114,7 @@ function TrackRow({
 }) {
   return (
     <div className="music-track" data-selected={isSelected || undefined}>
-      <label className="music-track-select">
+      <label className="music-track-select" data-testid={TESTIDS.musicBgmTrack(track.id)}>
         <input
           type="radio"
           className="music-radio"
@@ -378,7 +379,7 @@ export function MusicSettingsPage() {
       <ScreenHeader
         title="音乐设置"
         parentPath={roomCode === undefined ? '/' : roomPath(roomCode)}
-        backTestId="music-settings-back"
+        backTestId={TESTIDS.musicSettingsBack}
       />
       {audio.isPending ? (
         <LoadingScreen message="正在加载音频" />

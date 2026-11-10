@@ -381,6 +381,7 @@ function createToolActions(input: WerewolfHostManagementInput): RoomHostManageme
           label: '标记机器人已确认',
           icon: 'checkmark-done-outline',
           variant: 'secondary',
+          testID: TESTIDS.roomMarkBotsConfirmedButton,
         },
         input.onMarkAllBotsGroupConfirmed,
       ),

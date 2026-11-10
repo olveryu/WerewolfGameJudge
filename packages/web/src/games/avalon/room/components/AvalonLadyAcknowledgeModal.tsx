@@ -8,6 +8,7 @@ import { type AvalonViewModel } from '@game-judge/game-engine/games/avalon/publi
 
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
+import { TESTIDS } from '@/testids';
 
 import { formatAvalonSeatName } from '../../model/avalonSeatName';
 import { resolveLadyInstruction } from '../policy/avalonInteractionPolicy';
@@ -34,7 +35,7 @@ export function AvalonLadyAcknowledgeModal({
       open
       onClose={onClose}
       title="湖中仙女查验"
-      testId="avalon-lady-acknowledge-modal"
+      testId={TESTIDS.avalonLadyAcknowledgeModal}
     >
       <p className="avalon-dialog-body">
         {holderName} 要查验你的阵营。确认展示后，对方将看到你是好人还是坏人。
@@ -44,11 +45,16 @@ export function AvalonLadyAcknowledgeModal({
           size="lg"
           loading={isSubmitting}
           onClick={onAcknowledge}
-          data-testid="avalon-lady-acknowledge"
+          data-testid={TESTIDS.avalonLadyAcknowledge}
         >
           确认展示
         </Button>
-        <Button variant="secondary" size="lg" onClick={onClose} data-testid="avalon-lady-ack-close">
+        <Button
+          variant="secondary"
+          size="lg"
+          onClick={onClose}
+          data-testid={TESTIDS.avalonLadyAcknowledgeClose}
+        >
           稍后再说
         </Button>
       </div>
