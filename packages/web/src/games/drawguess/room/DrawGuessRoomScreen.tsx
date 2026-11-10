@@ -10,10 +10,9 @@ import {
   type DrawGuessState,
   type DrawGuessViewModel,
 } from '@game-judge/game-engine/games/drawguess/public';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
 import { Button } from '@/components/Button';
 import { DrawingCanvas } from '@/features/drawing/components/DrawingCanvas';
 import { DrawingToolbar } from '@/features/drawing/components/DrawingToolbar';
@@ -33,7 +32,6 @@ import { StageSettleRescue } from '@/features/room/components/StageSettleRescue'
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
-import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 import { buildEndedWaitingMessage } from '@/features/room/model/RoomBottomActions';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
@@ -49,10 +47,11 @@ import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
+import { DrawGuessCorrectToast } from './components/DrawGuessCorrectToast';
 import { DrawGuessDrawerZeroedNote } from './components/DrawGuessDrawerZeroedNote';
 import { DrawGuessGuessComposer } from './components/DrawGuessGuessComposer';
 import { DrawGuessGuessLog } from './components/DrawGuessGuessLog';
-import { DrawGuessHintBar } from './components/DrawGuessHintBar';
+import { DrawGuessGuessPeek } from './components/DrawGuessGuessPeek';
 import { DrawGuessScoreboard, type DrawGuessScoreboardRow } from './components/DrawGuessScoreboard';
 import { getDrawGuessRoomCommandFailureMessage } from './drawGuessRoomCommandFailureMessage';
 import {
@@ -68,10 +67,9 @@ type DrawGuessRoundEndPhase = Extract<DrawGuessPhase, { readonly kind: 'roundEnd
 
 /** Phone-sized column for the scrolling stages and the narrow drawing layout. */
 const DRAWGUESS_STAGE_MAX_WIDTH = 430;
-/** Side-by-side canvas and guess panel from this viewport width up. */
+/** Canvas with the guess log aside from this viewport width up; below it a peek strip. */
 const DRAWGUESS_WIDE_LAYOUT_BREAKPOINT = 768;
 const DRAWGUESS_WIDE_STAGE_MAX_WIDTH = 960;
-const URGENT_COUNTDOWN_SECONDS = 5;
 const PNG_UPLOAD_MAX_ATTEMPTS = 3;
 const PNG_UPLOAD_RETRY_MS = 5000;
 
@@ -102,6 +100,9 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
   const screen = useDrawGuessRoomState({ ...props, entryController });
   const config = screen.state.config;
   const isLobby = screen.state.phase.kind === 'lobby';
+  const stage = (
+    <DrawGuessStage key={`${screen.state.turnIndex}:${screen.state.phase.kind}`} screen={screen} />
+  );
   return (
     <RoomShell
       model={screen.shellModel}
@@ -123,15 +124,9 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
                 />
               ),
             }
-          : {
-              kind: 'workspace',
-              element: (
-                <DrawGuessStage
-                  key={`${screen.state.turnIndex}:${screen.state.phase.kind}`}
-                  screen={screen}
-                />
-              ),
-            }
+          : screen.stageHud !== null
+            ? { kind: 'stage', hud: screen.stageHud, element: stage }
+            : { kind: 'workspace', element: stage }
       }
       leadingExtraActions={null}
       trailingExtraActions={null}
@@ -168,32 +163,17 @@ function retryDrawGuessSettle(screen: DrawGuessRoomScreenState): void {
   void screen.submit('重新推进', { type: 'drawguess.phase.retrySettle' });
 }
 
-function DrawGuessStageHeader({
-  screen,
-  turnLabel,
-  remainingSeconds,
-  countdownLabel,
-}: {
-  readonly screen: DrawGuessRoomScreenState;
-  readonly turnLabel: string;
-  readonly remainingSeconds: number | null;
-  readonly countdownLabel: string;
-}) {
+/** Overdue notice and host retry; turn and countdown live in the room information bar. */
+function DrawGuessSettleRescue({ screen }: { readonly screen: DrawGuessRoomScreenState }) {
   return (
-    <>
-      <div className="drawguess-stage-header">
-        <h2 className="drawguess-turn-label">{turnLabel}</h2>
-        <DrawGuessCountdown remainingSeconds={remainingSeconds} label={countdownLabel} />
-      </div>
-      <StageSettleRescue
-        remainingSeconds={remainingSeconds}
-        isOverdue={screen.isOverdue}
-        isHost={screen.isHost}
-        isRetrying={screen.isSubmitting}
-        onRetry={() => retryDrawGuessSettle(screen)}
-        waitingLabel="等待推进…"
-      />
-    </>
+    <StageSettleRescue
+      remainingSeconds={screen.remainingSeconds}
+      isOverdue={screen.isOverdue}
+      isHost={screen.isHost}
+      isRetrying={screen.isSubmitting}
+      onRetry={() => retryDrawGuessSettle(screen)}
+      waitingLabel="等待推进…"
+    />
   );
 }
 
@@ -212,64 +192,6 @@ function DrawGuessStageColumn({
         {children}
       </div>
     </div>
-  );
-}
-
-/** Fixed-width tabular mm:ss countdown; the last five seconds are highlighted. */
-function DrawGuessCountdown({
-  remainingSeconds,
-  label,
-}: {
-  readonly remainingSeconds: number | null;
-  readonly label: string;
-}) {
-  if (remainingSeconds === null) return <span className="drawguess-countdown-placeholder" />;
-  const minutes = Math.floor(remainingSeconds / 60);
-  const seconds = remainingSeconds % 60;
-  return (
-    <span
-      className="drawguess-countdown"
-      role="timer"
-      aria-label={`${label}剩余 ${minutes} 分 ${seconds} 秒`}
-      data-urgent={remainingSeconds <= URGENT_COUNTDOWN_SECONDS ? '' : undefined}
-    >
-      {formatCountdownSeconds(remainingSeconds)}
-    </span>
-  );
-}
-
-/** Host bot takeover through the shared floating control and seat takeover handler. */
-function DrawGuessTakeover({ screen }: { readonly screen: DrawGuessRoomScreenState }) {
-  const { state, viewModel, remainingSeconds, isHost, canControlBots, controlledSeat } = screen;
-  const onTakeOver = screen.shellModel.seats.onBotSeatLongPress;
-  if (onTakeOver === null) return null;
-  const bots: BotTakeoverBot[] = viewModel.seats
-    .filter((seat) => seat.isBot)
-    .map((seat) => ({
-      seat: seat.seat,
-      displayName: seat.displayName,
-      status: seat.isLocked ? 'done' : seat.isDrawer ? 'acting' : 'waiting',
-      statusLabel: seat.isDrawer
-        ? `正在作画${remainingSeconds !== null ? ` · 剩余 ${remainingSeconds}s` : ''}`
-        : seat.isLocked
-          ? '已猜中'
-          : '等待',
-      actionLabel: seat.isDrawer ? '接管代画' : '接管',
-    }));
-  const activeSeat =
-    state.phase.kind === 'drawing' || state.phase.kind === 'wordSelect'
-      ? state.phase.drawerSeat
-      : null;
-  return (
-    <BotTakeover
-      bots={bots}
-      activeSeat={activeSeat}
-      remainingSeconds={remainingSeconds}
-      controlledSeat={controlledSeat}
-      canControl={isHost && canControlBots}
-      isLobby={false}
-      onTakeOver={onTakeOver}
-    />
   );
 }
 
@@ -303,47 +225,34 @@ function DrawGuessWordSelectView({
     );
   };
   return (
-    <>
-      <DrawGuessStageColumn
-        header={
-          <DrawGuessStageHeader
-            screen={screen}
-            turnLabel={viewModel.turnLabel}
-            remainingSeconds={screen.remainingSeconds}
-            countdownLabel="选词"
-          />
-        }
-      >
-        {isDrawer ? (
-          <section className="drawguess-section">
-            <h3 className="drawguess-section-title">
-              请选择本轮题目（{phase.choices.length} 选 1）
-            </h3>
-            {viewModel.choices.length === 0 ? (
-              <p className="drawguess-hint">题目准备中，请稍候…</p>
-            ) : (
-              viewModel.choices.map((word, index) => (
-                <Button
-                  key={word}
-                  variant="secondary"
-                  size="lg"
-                  data-testid={TESTIDS.drawGuessWordChoice(index)}
-                  onClick={() => choose(word)}
-                >
-                  {word}
-                </Button>
-              ))
-            )}
-          </section>
-        ) : (
-          <section className="drawguess-section">
-            <h3 className="drawguess-section-title">{drawerName} 正在选词…</h3>
-            <p className="drawguess-hint">选词结束后开始作画，请准备猜词。</p>
-          </section>
-        )}
-      </DrawGuessStageColumn>
-      <DrawGuessTakeover screen={screen} />
-    </>
+    <DrawGuessStageColumn header={<DrawGuessSettleRescue screen={screen} />}>
+      {isDrawer ? (
+        <section className="drawguess-section">
+          <h3 className="drawguess-section-title">请选择本轮题目（{phase.choices.length} 选 1）</h3>
+          {viewModel.choices.length === 0 ? (
+            <p className="drawguess-hint">题目准备中，请稍候…</p>
+          ) : (
+            viewModel.choices.map((word, index) => (
+              <Button
+                key={word}
+                variant="secondary"
+                size="lg"
+                data-testid={TESTIDS.drawGuessWordChoice(index)}
+                onClick={() => choose(word)}
+              >
+                {word}
+              </Button>
+            ))
+          )}
+          <p className="drawguess-hint">作画不许写字、写数字。</p>
+        </section>
+      ) : (
+        <section className="drawguess-section">
+          <h3 className="drawguess-section-title">{drawerName} 正在选词…</h3>
+          <p className="drawguess-hint">选词结束后开始作画，请准备猜词。</p>
+        </section>
+      )}
+    </DrawGuessStageColumn>
   );
 }
 
@@ -358,6 +267,7 @@ function DrawGuessDrawingView({
 }) {
   const { state, viewModel, session, effectiveSeat, controlledSeat, remainingSeconds } = screen;
   const isWideLayout = useViewportWidth() >= DRAWGUESS_WIDE_LAYOUT_BREAKPOINT;
+  const asideTitleId = useId();
   const isDrawer = effectiveSeat === phase.drawerSeat;
   const [tool, setTool] = useState<DrawingTool>('brush');
   const [color, setColor] = useState<DrawingColor>(DRAWING_PALETTE[0].value);
@@ -406,103 +316,79 @@ function DrawGuessDrawingView({
     }
   };
 
-  const totalScore = effectiveSeat !== null ? (viewModel.scores[effectiveSeat] ?? 0) : null;
-  const turnScore = effectiveSeat !== null ? (viewModel.turnScores[effectiveSeat] ?? 0) : null;
-
   return (
-    <>
-      <DrawGuessTakeover screen={screen} />
-      <RoomTaskFrame
-        className="drawguess-task-frame"
-        maxWidth={isWideLayout ? DRAWGUESS_WIDE_STAGE_MAX_WIDTH : DRAWGUESS_STAGE_MAX_WIDTH}
-        header={
-          <DrawGuessStageHeader
-            screen={screen}
-            turnLabel={viewModel.turnLabel}
-            remainingSeconds={remainingSeconds}
-            countdownLabel="作画"
+    <RoomTaskFrame
+      className="drawguess-task-frame"
+      maxWidth={isWideLayout ? DRAWGUESS_WIDE_STAGE_MAX_WIDTH : DRAWGUESS_STAGE_MAX_WIDTH}
+      header={<DrawGuessSettleRescue screen={screen} />}
+      footer={
+        isDrawer ? (
+          <DrawingToolbar
+            tool={tool}
+            color={color}
+            strokeWidth={strokeWidth}
+            canUndo={sync.elements.length > 0}
+            canRedo={sync.canRedo}
+            disabled={!canDraw}
+            palette={DRAWING_PALETTE}
+            widths={DRAWING_WIDTHS}
+            onToolChange={setTool}
+            onColorChange={(nextColor) => {
+              if (isDrawingColor(nextColor)) setColor(nextColor);
+            }}
+            onWidthChange={(nextWidth) => {
+              const width = DRAWING_WIDTHS.find((candidate) => candidate === nextWidth);
+              if (width !== undefined) setStrokeWidth(width);
+            }}
+            onUndo={sync.undo}
+            onRedo={sync.redo}
+            onClear={() =>
+              showDestructiveAlert('清空画布？', '所有绘画内容都会被删除。', '清空', sync.clear)
+            }
           />
-        }
-        footer={
-          isDrawer ? null : (
-            <DrawGuessGuessComposer
-              draft={draft}
-              onDraftChange={setDraft}
-              isLocked={isLocked}
-              canGuess={canGuess}
-              onSubmitGuess={submitGuess}
+        ) : (
+          <DrawGuessGuessComposer
+            draft={draft}
+            onDraftChange={setDraft}
+            isLocked={isLocked}
+            canGuess={canGuess}
+            onSubmitGuess={submitGuess}
+          />
+        )
+      }
+    >
+      <div className="drawguess-drawing-body" data-layout={isWideLayout ? 'wide' : 'narrow'}>
+        <div className="drawguess-canvas-media">
+          <div className="drawguess-canvas-fit">
+            <DrawingCanvas
+              elements={sync.elements}
+              tool={tool}
+              color={color}
+              strokeWidth={strokeWidth}
+              isEnabled={canDraw}
+              // The canvas draws the in-progress element on its own overlay layer.
+              onElementChange={() => undefined}
+              onElementComplete={sync.onElementComplete}
+              onFill={(point) => sync.onFill(point, color)}
+              painter={drawGuessDrawingPainter}
+              testId={TESTIDS.drawGuessDrawingCanvas}
+              ariaLabel="绘画画布"
             />
-          )
-        }
-      >
-        <DrawGuessHintBar
-          word={viewModel.word}
-          hintText={viewModel.hintText}
-          wordLength={viewModel.wordLength}
-        />
-        {totalScore !== null && turnScore !== null && (
-          <p className="drawguess-hint">
-            我的总分 {totalScore} · 本轮 +{turnScore}
-          </p>
-        )}
-        <div className="drawguess-drawing-body">
-          <div className="drawguess-canvas-media">
-            <div className="drawguess-canvas-fit">
-              <DrawingCanvas
-                elements={sync.elements}
-                tool={tool}
-                color={color}
-                strokeWidth={strokeWidth}
-                isEnabled={canDraw}
-                // The canvas draws the in-progress element on its own overlay layer.
-                onElementChange={() => undefined}
-                onElementComplete={sync.onElementComplete}
-                onFill={(point) => sync.onFill(point, color)}
-                painter={drawGuessDrawingPainter}
-                testId={TESTIDS.drawGuessDrawingCanvas}
-                ariaLabel="绘画画布"
-              />
-            </div>
-          </div>
-          <div className="drawguess-side-panel" data-drawer={isDrawer || undefined}>
-            {isDrawer && (
-              <>
-                <DrawingToolbar
-                  tool={tool}
-                  color={color}
-                  strokeWidth={strokeWidth}
-                  canUndo={sync.elements.length > 0}
-                  canRedo={sync.canRedo}
-                  disabled={!canDraw}
-                  palette={DRAWING_PALETTE}
-                  widths={DRAWING_WIDTHS}
-                  onToolChange={setTool}
-                  onColorChange={(nextColor) => {
-                    if (isDrawingColor(nextColor)) setColor(nextColor);
-                  }}
-                  onWidthChange={(nextWidth) => {
-                    const width = DRAWING_WIDTHS.find((candidate) => candidate === nextWidth);
-                    if (width !== undefined) setStrokeWidth(width);
-                  }}
-                  onUndo={sync.undo}
-                  onRedo={sync.redo}
-                  onClear={() =>
-                    showDestructiveAlert(
-                      '清空画布？',
-                      '所有绘画内容都会被删除。',
-                      '清空',
-                      sync.clear,
-                    )
-                  }
-                />
-                <p className="drawguess-hint">作画不许写字、写数字。猜词聊天流：</p>
-              </>
-            )}
-            <DrawGuessGuessLog messages={viewModel.messages} viewerSeat={effectiveSeat} />
+            <DrawGuessCorrectToast messages={viewModel.messages} viewerSeat={effectiveSeat} />
           </div>
         </div>
-      </RoomTaskFrame>
-    </>
+        {isWideLayout ? (
+          <aside className="drawguess-guess-aside" aria-labelledby={asideTitleId}>
+            <h3 id={asideTitleId} className="drawguess-guess-aside-title">
+              猜词记录
+            </h3>
+            <DrawGuessGuessLog messages={viewModel.messages} viewerSeat={effectiveSeat} />
+          </aside>
+        ) : (
+          <DrawGuessGuessPeek messages={viewModel.messages} viewerSeat={effectiveSeat} />
+        )}
+      </div>
+    </RoomTaskFrame>
   );
 }
 
@@ -675,16 +561,7 @@ function DrawGuessRoundEndView({
     totalScore: viewModel.scores[seat] ?? 0,
   }));
   return (
-    <DrawGuessStageColumn
-      header={
-        <DrawGuessStageHeader
-          screen={screen}
-          turnLabel={viewModel.turnLabel}
-          remainingSeconds={screen.remainingSeconds}
-          countdownLabel="结算"
-        />
-      }
-    >
+    <DrawGuessStageColumn header={<DrawGuessSettleRescue screen={screen} />}>
       <div className="drawguess-answer-banner" role="group" aria-label={`本轮答案：${phase.word}`}>
         <span className="drawguess-answer-label">本轮答案</span>
         <span className="drawguess-answer-word">{phase.word}</span>
@@ -725,16 +602,7 @@ function DrawGuessEndedView({ screen }: { readonly screen: DrawGuessRoomScreenSt
     viewer: { userId, isHost, seat: mySeat },
   });
   return (
-    <DrawGuessStageColumn
-      header={
-        <DrawGuessStageHeader
-          screen={screen}
-          turnLabel="本局结束"
-          remainingSeconds={null}
-          countdownLabel=""
-        />
-      }
-    >
+    <DrawGuessStageColumn header={<h2 className="drawguess-turn-label">本局结束</h2>}>
       <DrawGuessScoreboard title="最终排名" competitionRanking rows={totalRows} />
       {waitingMessage !== null && <p className="drawguess-hint">{waitingMessage}</p>}
     </DrawGuessStageColumn>

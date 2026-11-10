@@ -212,6 +212,8 @@ export const TESTIDS = {
   // DrawGuess
   drawGuessDrawingCanvas: 'drawguess-drawing-canvas',
   drawGuessDrawerZeroedNote: 'drawguess-drawer-zeroed-note',
+  drawGuessGuessPeek: 'drawguess-guess-peek',
+  drawGuessGuessLogSheet: 'drawguess-guess-log-sheet',
   drawGuessWordChoice: (index: number) => `drawguess-word-choice-${index}`,
 
   // AlertModal

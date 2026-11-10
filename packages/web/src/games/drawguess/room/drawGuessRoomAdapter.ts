@@ -280,12 +280,8 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
     }),
     bottomActions: {
       kind: 'stacked',
-      // 回合结算期全员（房主也一样）等倒计时走完：给一行等待对象，
-      // 与工作区内的结算倒计时同指一件事。
-      message:
-        state.phase.kind === 'roundEnd'
-          ? '等待本轮结算'
-          : buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
+      // 进行中阶段是舞台内容：底部为空，结算等待由信息条的「结算」倒计时承载。
+      message: buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
       progress: null,
       layout: createDrawGuessBottomLayout(state, input.review, input.viewer),
     },

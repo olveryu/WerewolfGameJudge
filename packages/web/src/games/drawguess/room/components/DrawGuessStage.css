@@ -1,4 +1,4 @@
-/* DrawGuess stage: fills the room workspace; the takeover button floats over it. */
+/* DrawGuess stage: fills the room stage body under the information bar. */
 .drawguess-stage {
   position: relative;
   display: flex;
@@ -27,13 +27,6 @@
   padding: var(--space-medium) var(--space-screen-h);
 }
 
-.drawguess-stage-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-small);
-}
-
 .drawguess-turn-label,
 .drawguess-section-title {
   margin: 0;
@@ -41,29 +34,6 @@
   font-size: var(--font-subtitle);
   font-weight: var(--weight-semibold);
   line-height: var(--line-subtitle);
-}
-
-.drawguess-countdown {
-  min-width: 76px;
-  box-sizing: border-box;
-  padding: var(--space-tight) var(--space-small);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-small);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: var(--font-title);
-  font-weight: var(--weight-bold);
-  line-height: var(--line-title);
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-
-.drawguess-countdown[data-urgent] {
-  color: var(--color-primary);
-}
-
-.drawguess-countdown-placeholder {
-  min-width: 76px;
 }
 
 .drawguess-section {
@@ -88,52 +58,33 @@
   background: var(--color-surface);
 }
 
-/* ── Hint bar ── */
-.drawguess-hint-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: center;
-  gap: var(--space-small);
-  padding: var(--space-small) var(--space-medium);
-}
-
-.drawguess-hint-word,
-.drawguess-hint-text {
-  color: var(--color-text);
-  font-size: var(--font-title);
-  font-weight: var(--weight-bold);
-  line-height: var(--line-title);
-  letter-spacing: var(--letter-wide);
-}
-
-.drawguess-hint-word {
-  color: var(--color-primary);
-}
-
 /* ── Drawing task ── */
 .drawguess-task-frame .room-task-frame-footer {
   padding-top: var(--space-small);
   border-top: var(--border-width) solid var(--color-border);
 }
 
+/* Narrow: canvas over the peek strip. Wide: canvas beside the guess log aside. */
 .drawguess-drawing-body {
   display: flex;
   flex: 1 1 0;
   flex-direction: column;
   gap: var(--space-small);
   min-height: 0;
-  container-type: size;
 }
 
-/* Narrow: the canvas asks for the full width at 4:3 and yields only what the side
-   panel's content minimum (toolbar, guess log floor) needs. */
+.drawguess-drawing-body[data-layout='wide'] {
+  flex-direction: row;
+  align-items: stretch;
+}
+
+/* The canvas takes every pixel the strip, aside and footer leave. */
 .drawguess-canvas-media {
   display: flex;
-  flex: 0 1 auto;
+  flex: 1 1 0;
   align-items: center;
   justify-content: center;
-  height: calc(100cqw * 3 / 4);
+  min-width: 0;
   min-height: 120px;
   overflow: hidden;
   container-type: size;
@@ -141,32 +92,140 @@
 
 /* Fits the canonical 4:3 canvas into the media box without cropping. */
 .drawguess-canvas-fit {
+  position: relative;
   width: min(100cqw, calc(100cqh * 4 / 3));
 }
 
-.drawguess-side-panel {
-  display: flex;
-  flex: 1 1 0;
-  flex-direction: column;
-  gap: var(--space-small);
+.drawguess-correct-toast {
+  position: absolute;
+  top: var(--space-small);
+  left: 50%;
+  margin: 0;
+  padding: var(--space-tight) var(--space-medium);
+  border-radius: var(--radius-full);
+  background: var(--color-success);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-inverse);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-secondary);
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: drawguess-toast-in 0.25s ease-out;
 }
 
-@media (min-width: 768px) {
-  .drawguess-drawing-body {
-    flex-direction: row;
-    align-items: stretch;
+@keyframes drawguess-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
   }
+}
 
-  .drawguess-canvas-media {
-    flex: 1 1 0;
-    height: auto;
-    min-width: 0;
+@media (prefers-reduced-motion: reduce) {
+  .drawguess-correct-toast {
+    animation: none;
   }
+}
 
-  .drawguess-side-panel {
-    flex: 0 0 320px;
-    min-height: 0;
-  }
+/* ── Guess peek strip (narrow) ── */
+.drawguess-guess-peek {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-small);
+  align-items: center;
+  width: 100%;
+  min-height: var(--size-min-touch-target);
+  box-sizing: border-box;
+  padding: var(--space-tight) var(--space-small);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.drawguess-guess-peek-lines {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-micro);
+  min-width: 0;
+}
+
+.drawguess-guess-peek-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawguess-guess-peek-line[data-kind='empty'] {
+  color: var(--color-text-muted);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.drawguess-guess-peek-count {
+  flex: 0 0 auto;
+  padding: var(--space-micro) var(--space-small);
+  border-radius: var(--radius-full);
+  background: var(--color-background);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+/* ── Guess log aside (wide) ── */
+.drawguess-guess-aside {
+  display: flex;
+  flex: 0 0 320px;
+  flex-direction: column;
+  gap: var(--space-small);
+  min-height: 0;
+}
+
+.drawguess-guess-aside-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-body);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-body);
+}
+
+/* ── Guess log sheet (narrow) ── */
+.drawguess-log-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-small);
+  padding: var(--space-small) var(--space-medium);
+}
+
+.drawguess-log-sheet-title {
+  display: flex;
+  gap: var(--space-small);
+  align-items: baseline;
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-subtitle);
+}
+
+.drawguess-log-sheet-count {
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-normal);
+  line-height: var(--line-caption);
+}
+
+.drawguess-log-sheet-body {
+  display: flex;
+  flex-direction: column;
+  height: 60dvh;
+  min-height: 0;
+  padding: 0 var(--space-medium) var(--space-medium);
 }
 
 /* ── Guess log ── */
@@ -175,16 +234,11 @@
   flex: 1 1 0;
   flex-direction: column;
   gap: var(--space-tight);
-  min-height: 80px;
+  min-height: 0;
   margin: 0;
   padding: var(--space-small);
   overflow-y: auto;
   list-style: none;
-}
-
-/* The drawer's canvas yields to the toolbar, not to the log. */
-.drawguess-side-panel[data-drawer] .drawguess-message-list {
-  min-height: 0;
 }
 
 .drawguess-message {

@@ -564,7 +564,8 @@ describe('DrawGuess engine', () => {
     const guesserView = getDrawGuessViewModel(session.state, 1, session.nowMs);
     expect(guesserView.word).toBeNull();
     expect(guesserView.choices).toEqual([]);
-    expect(guesserView.hintText).toContain('3个字');
+    expect(guesserView.hintText).toBe('_ _ _');
+    expect(guesserView.wordLength).toBe(3);
     const drawerView = getDrawGuessViewModel(session.state, 0, session.nowMs);
     expect(drawerView.word).toBe('大熊猫');
     expect(drawerView.hintText).toBeNull();

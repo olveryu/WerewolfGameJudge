@@ -244,8 +244,8 @@ describe('createDrawGuessRoomShellModel', () => {
   });
 });
 
-describe('createDrawGuessRoomShellModel — roundEnd wait (PR-B G-8)', () => {
-  it('shows the settlement wait to every viewer during roundEnd', () => {
+describe('createDrawGuessRoomShellModel — roundEnd stage', () => {
+  it('leaves the bottom panel empty during roundEnd: the information bar carries the wait', () => {
     let commandNumber = 0;
     const dispatch = (
       current: DrawGuessState,
@@ -327,7 +327,12 @@ describe('createDrawGuessRoomShellModel — roundEnd wait (PR-B G-8)', () => {
       releaseBot: vi.fn(),
       review: null,
     });
-    expect(model.bottomActions).toMatchObject({ kind: 'stacked', message: '等待本轮结算' });
+    expect(model.bottomActions).toEqual({
+      kind: 'stacked',
+      message: null,
+      progress: null,
+      layout: { primary: [], secondary: [], ghost: [] },
+    });
   });
 });
 

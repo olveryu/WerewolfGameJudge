@@ -2,14 +2,13 @@
  * 猜词消息流：只渲染聊天式猜词记录，内部滚动。
  *
  * 猜中者的答案对其他猜题者隐藏：view model 里 text 为 null 时只显示「xxx 猜中了」。
- * 输入行已拆到 DrawGuessGuessComposer，作画视图把输入行钉在任务框底部，
- * 本组件只占剩余高度并随键盘弹起先收缩。
+ * 宽屏作画布局把本组件放在画布右侧栏，窄屏放在摘要条打开的记录抽屉里。
  */
 
 import type { DrawGuessViewModel } from '@game-judge/game-engine/games/drawguess/public';
 import { useEffect, useRef } from 'react';
 
-type DrawGuessGuessMessage = DrawGuessViewModel['messages'][number];
+export type DrawGuessGuessMessage = DrawGuessViewModel['messages'][number];
 
 /** 距底部小于该距离（px）才算「在底部」，此时新消息自动滚到底。 */
 const NEAR_BOTTOM_TOLERANCE_PX = 40;
@@ -19,33 +18,40 @@ interface DrawGuessGuessLogProps {
   readonly viewerSeat: number | null;
 }
 
-function GuessMessageRow({
+/** How a message reads to this viewer: their own hit, someone else's hit, or a plain guess. */
+export function getGuessMessageKind(
+  message: DrawGuessGuessMessage,
+  viewerSeat: number | null,
+): 'own-correct' | 'other-correct' | undefined {
+  if (!message.correct) return undefined;
+  return message.seat === viewerSeat ? 'own-correct' : 'other-correct';
+}
+
+/** The message text for this viewer, shared by the log rows and the peek strip lines. */
+export function GuessMessageContent({
   message,
   viewerSeat,
 }: {
   readonly message: DrawGuessGuessMessage;
   readonly viewerSeat: number | null;
 }) {
-  if (message.correct && message.seat === viewerSeat) {
-    return (
-      <li className="drawguess-message" data-kind="own-correct">
-        🎉 你猜中了！
-      </li>
-    );
+  switch (getGuessMessageKind(message, viewerSeat)) {
+    case 'own-correct':
+      return <>🎉 你猜中了！</>;
+    case 'other-correct':
+      return (
+        <>
+          🎯 {message.displayName} 猜中了{message.text === null ? '' : `：${message.text}`}
+        </>
+      );
+    case undefined:
+      return (
+        <>
+          <span className="drawguess-message-name">{message.displayName}：</span>
+          {message.text ?? ''}
+        </>
+      );
   }
-  if (message.correct) {
-    return (
-      <li className="drawguess-message" data-kind="other-correct">
-        🎯 {message.displayName} 猜中了{message.text === null ? '' : `：${message.text}`}
-      </li>
-    );
-  }
-  return (
-    <li className="drawguess-message">
-      <span className="drawguess-message-name">{message.displayName}：</span>
-      {message.text ?? ''}
-    </li>
-  );
 }
 
 /** 聊天式猜词记录；只在用户位于底部附近时自动滚动到底。 */
@@ -74,11 +80,13 @@ export function DrawGuessGuessLog({ messages, viewerSeat }: DrawGuessGuessLogPro
       }}
     >
       {messages.map((message) => (
-        <GuessMessageRow
+        <li
           key={`${message.seat}:${message.at}`}
-          message={message}
-          viewerSeat={viewerSeat}
-        />
+          className="drawguess-message"
+          data-kind={getGuessMessageKind(message, viewerSeat)}
+        >
+          <GuessMessageContent message={message} viewerSeat={viewerSeat} />
+        </li>
       ))}
     </ol>
   );

@@ -519,17 +519,18 @@ GET /api/games/drawguess/rooms/:roomCode/media/:entryId
 
 ### 9.9 客户端组件边界
 
-| 组件/模块                | 职责                                                          |
-| ------------------------ | ------------------------------------------------------------- |
-| `DrawGuessRoomScreen`    | 根据权威 phase 选择画手/猜题者/结算视图，不实现各阶段业务细节 |
-| `DrawGuessCanvas`        | 指针事件、归一化笔画、只读渲染（从接龙版复制）                |
-| `DrawGuessToolbar`       | 工具、色板、笔宽、撤销、清空                                  |
-| `DrawGuessGuessLog`      | 聊天流渲染、内部滚动                                          |
-| `DrawGuessGuessComposer` | 猜词输入、节流、锁定态、草稿受控                              |
-| `DrawGuessHintBar`       | 字数 + 拼音首字母提示展示                                     |
-| `DrawGuessScoreboard`    | 本轮得分与总分榜                                              |
-| `useDrawGuessStrokeSync` | 整笔发送、从 state 增量渲染、断线恢复                         |
-| `useDrawGuessDeadline`   | deadline tick、前后台恢复、single-flight 到点请求             |
+| 组件/模块                | 职责                                                                   |
+| ------------------------ | ---------------------------------------------------------------------- |
+| `DrawGuessRoomScreen`    | 根据权威 phase 选择画手/猜题者/结算视图，不实现各阶段业务细节          |
+| `DrawGuessCanvas`        | 指针事件、归一化笔画、只读渲染（从接龙版复制）                         |
+| `DrawGuessToolbar`       | 工具、色板、笔宽、撤销、清空                                           |
+| `DrawGuessGuessLog`      | 聊天流渲染、内部滚动                                                   |
+| `DrawGuessGuessPeek`     | 窄屏猜词摘要条（最近两条）与完整记录抽屉                               |
+| `DrawGuessGuessComposer` | 猜词输入、节流、锁定态、草稿受控                                       |
+| `drawGuessStageHud`      | 舞台信息条：轮次、题目 / 字数 + 拼音首字母提示、我的分数、名单、倒计时 |
+| `DrawGuessScoreboard`    | 本轮得分与总分榜                                                       |
+| `useDrawGuessStrokeSync` | 整笔发送、从 state 增量渲染、断线恢复                                  |
+| `useDrawGuessDeadline`   | deadline tick、前后台恢复、single-flight 到点请求                      |
 
 UI 组件只接收已按当前用户可见性裁剪的 view model。组件不得直接读取权威 `word` / `choices` 字段，也不得自行判断服务端权限。
 

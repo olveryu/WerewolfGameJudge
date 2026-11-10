@@ -31,6 +31,7 @@ import { useRoomSetupController } from '@/features/room/controllers/useRoomSetup
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import type { RoomStageHudModel } from '@/features/room/model/RoomStage';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import type { RoomReviewContribution } from '@/features/room/review/types';
@@ -43,6 +44,7 @@ import {
   getDrawGuessSeatTapIntent,
 } from '../drawGuessRoomAdapter';
 import { getDrawGuessRoomCommandFailureMessage } from '../drawGuessRoomCommandFailureMessage';
+import { createDrawGuessStageHud } from '../drawGuessStageHud';
 
 interface UseDrawGuessRoomStateParams {
   readonly room: GameRoomScreenProps<'drawguess'>['room'];
@@ -59,6 +61,8 @@ interface UseDrawGuessRoomStateParams {
 export interface DrawGuessRoomScreenState {
   readonly state: DrawGuessState;
   readonly shellModel: RoomShellModel;
+  /** 进行中阶段（选词 / 作画 / 结算）的信息条；大厅与终局不是舞台内容，为 null。 */
+  readonly stageHud: RoomStageHudModel | null;
   /** 当前视角的视图模型（按有效席位裁剪，随 1 秒 tick 更新提示揭示）。 */
   readonly viewModel: DrawGuessViewModel;
   /** 当前阶段剩余秒数；无截止阶段为 null。到期推进由服务端定时结算完成，任何手机都不发 expire。 */
@@ -73,7 +77,6 @@ export interface DrawGuessRoomScreenState {
   readonly effectiveSeat: number | null;
   readonly controlledSeat: number | null;
   readonly isHost: boolean;
-  readonly canControlBots: boolean;
   /** 平台单飞提交：座位动作由调用点显式传 `{ controlledSeat }`，房主命令不传。 */
   readonly submit: ReadyRoomSession<DrawGuessState, DrawGuessCommand>['submit'];
   readonly session: DrawGuessRoomSession;
@@ -208,6 +211,15 @@ export function useDrawGuessRoomState({
   return {
     state,
     shellModel,
+    stageHud: createDrawGuessStageHud({
+      state,
+      viewModel,
+      effectiveSeat,
+      remainingSeconds,
+      seats: shellModel.seats.source,
+      canTakeOverBots: bots.capability.isAllowed,
+      controlledSeat,
+    }),
     viewModel,
     remainingSeconds,
     isOverdue,
@@ -218,7 +230,6 @@ export function useDrawGuessRoomState({
     effectiveSeat,
     controlledSeat,
     isHost,
-    canControlBots: bots.capability.isAllowed,
     submit,
     session,
     openRules,

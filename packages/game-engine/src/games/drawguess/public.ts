@@ -50,6 +50,7 @@ export {
   type DrawGuessWordChoice,
   getDrawGuessOccupiedSeatCount,
   getDrawGuessRealHumanCount,
+  getDrawGuessTotalTurns,
   getDrawGuessUserSeat,
 } from './state/types';
 export { DRAWGUESS_STATE_IDENTITY, DRAWGUESS_STATE_VERSION } from './state/version';

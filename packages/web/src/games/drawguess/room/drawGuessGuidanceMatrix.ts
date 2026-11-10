@@ -18,19 +18,19 @@ export const DRAWGUESS_GUIDANCE_MATRIX: RoomGuidanceMatrix<DrawGuessPhase['kind'
     spectator: guidanceExempt('无座位无个人提示；房间状态归座位盘'),
   },
   wordSelect: {
-    host: guidanceExempt('选词在对局工作区：画手选词，其余人看「正在选词…」'),
-    seated: guidanceExempt('选词在对局工作区：画手选词，其余人看「正在选词…」'),
-    spectator: guidanceExempt('选词进程由对局工作区呈现'),
+    host: guidanceExempt('舞台内容：画手在舞台选词，选词倒计时在顶部信息条'),
+    seated: guidanceExempt('舞台内容：画手选词，其余人看「正在选词…」，倒计时在顶部信息条'),
+    spectator: guidanceExempt('舞台内容：选词进程由舞台与顶部信息条呈现'),
   },
   drawing: {
-    host: guidanceExempt('画布与猜词在对局工作区，作画倒计时在工作区呈现'),
-    seated: guidanceExempt('画布与猜词在对局工作区，作画倒计时在工作区呈现'),
-    spectator: guidanceExempt('作画进程由对局工作区呈现'),
+    host: guidanceExempt('舞台内容：画布与猜词在舞台，题目、分数与作画倒计时在顶部信息条'),
+    seated: guidanceExempt('舞台内容：画布与猜词在舞台，题目、分数与作画倒计时在顶部信息条'),
+    spectator: guidanceExempt('舞台内容：作画进程由舞台与顶部信息条呈现'),
   },
   roundEnd: {
-    host: GUIDANCE_MESSAGE,
-    seated: GUIDANCE_MESSAGE,
-    spectator: GUIDANCE_MESSAGE,
+    host: guidanceExempt('舞台内容：等待本轮结算由顶部信息条的「结算」倒计时承载'),
+    seated: guidanceExempt('舞台内容：等待本轮结算由顶部信息条的「结算」倒计时承载'),
+    spectator: guidanceExempt('舞台内容：等待本轮结算由顶部信息条的「结算」倒计时承载'),
   },
   ended: {
     host: guidanceExempt('房主由房主面板承载本局复盘 / 再来一局 / 返回大厅'),
