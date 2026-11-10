@@ -232,12 +232,7 @@ export async function gateCommandFrames(page: Page): Promise<CommandFrameGate> {
   const held: HeldCommand[] = [];
   const waiters: HeldWaiter[] = [];
 
-  // Register on the browser context, not the page: a page-level route can
-  // miss the room socket (the ack then bypasses the gate and reaches the
-  // server, as the room-narration diagnostic run 42844905359 proved), while
-  // the context route is established before any page in the context exists.
-  // Each player page has its own context, so this still scopes to one page.
-  await page.context().routeWebSocket('**/ws*', (ws: WebSocketRoute) => {
+  await page.routeWebSocket('**/ws*', (ws: WebSocketRoute) => {
     // server.send() forwards to the server; ws.send() sends back to the
     // page. Forwarding must go through the server-side route, or every
     // client frame is echoed back to the page (and the server never sees

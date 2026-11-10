@@ -3,7 +3,11 @@ import { expect, test } from '@playwright/test';
 import { AUDIO_WAITING_LABEL } from '../../packages/web/src/features/room/model/RoomBottomActions';
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
-import { gateCommandFrames, observeCommandFrames } from '../helpers/command-frames';
+import {
+  type CommandFrameGate,
+  gateCommandFrames,
+  observeCommandFrames,
+} from '../helpers/command-frames';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { HomePage } from '../pages/HomePage';
@@ -16,20 +20,26 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
     browser,
   }, testInfo) => {
     const playerCount = gameId === 'werewolf' ? 3 : 6;
-    const fixture = await createPlayerContexts(browser, playerCount + 1);
+    // Install the gate before the host page navigates: routeWebSocket's
+    // WebSocket override is an init script, which only runs on navigation,
+    // so installing it after the page already loaded leaves the room socket
+    // unrouted and the ack bypasses the gate (diagnostic run 42844905359).
+    let ackGate: CommandFrameGate | undefined;
+    const fixture = await createPlayerContexts(browser, playerCount + 1, {
+      onPageCreated: async (page, index) => {
+        if (index === 0) ackGate = await gateCommandFrames(page);
+      },
+    });
     const hostPage = fixture.pages[0];
     const playerPages = fixture.pages.slice(0, playerCount);
     const spectatorPage = fixture.pages[playerCount]!;
     const hostRoom = new RoomPage(hostPage);
     // Hold the host's audio-ack COMMAND frame at the socket so the
     // announcement state stays visible while the viewports are checked.
-    // The gate must be installed before the host enters the room: the
-    // socket is created on room entry, and later routes miss it.
     // The waiter's timeout starts here, but the ack can only arrive after
     // room setup, seating, role viewing and game start plus the first
     // audio batch — well past the 30s default — so allow 120s.
-    const ackGate = await gateCommandFrames(hostPage);
-    const heldAckPromise = ackGate.waitForHeld(`${gameId}.audio.ack`, 120_000);
+    const heldAckPromise = ackGate!.waitForHeld(`${gameId}.audio.ack`, 120_000);
     // TEMPORARY DIAGNOSTIC (revert after root cause is found): observe the
     // host's COMMAND frames in parallel with the gate. If the ack never
     // arrives at the gate, the observed list shows whether the host sent it
@@ -150,7 +160,7 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
         }
       });
     } finally {
-      await ackGate.stop();
+      await ackGate!.stop();
       await closeAll(fixture);
     }
   });

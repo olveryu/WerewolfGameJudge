@@ -83,6 +83,16 @@ export const test = base.extend<{
 export async function createPlayerContexts(
   browser: Browser,
   count: number,
+  options?: {
+    /**
+     * Runs after `newPage()` but before the page navigates to `/`, so a
+     * caller can install a `routeWebSocket` gate first: the gate's
+     * WebSocket override is an init script, which only runs on navigation,
+     * so installing it after the page already loaded leaves the room socket
+     * unrouted (the room-narration ack bypassed the gate this way).
+     */
+    onPageCreated?: (page: Page, index: number) => Promise<void> | void;
+  },
 ): Promise<MultiPlayerFixture> {
   const contexts: BrowserContext[] = [];
   const pages: Page[] = [];
@@ -94,6 +104,7 @@ export async function createPlayerContexts(
     const page = await ctx.newPage();
     const label = i === 0 ? 'HOST' : `JOINER-${i + 1}`;
 
+    await options?.onPageCreated?.(page, i);
     await suppressVersionAnnouncement(page);
     await gotoWithRetry(page, '/');
     await waitForAppReady(page);
