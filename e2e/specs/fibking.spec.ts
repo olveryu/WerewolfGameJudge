@@ -13,6 +13,7 @@ import {
   createColdRoomContext,
   createPlayerContexts,
 } from '../fixtures/app.fixture';
+import { closeReviewDialog } from '../helpers/image-sharing';
 import { FibConfigPage } from '../pages/FibConfigPage';
 import { type FibIdentity, FibRoomPage, type FibWordDetails } from '../pages/FibRoomPage';
 import { HomePage } from '../pages/HomePage';
@@ -219,9 +220,9 @@ test.describe('FibKing', () => {
       const reviewPage = joinerPages[0]!;
       await reviewPage.getByTestId(TESTIDS.roomReviewOpenButton).click();
       const reviewDialog = reviewPage.getByTestId(TESTIDS.roomReviewDialog);
-      await expect(reviewDialog.getByText(result.word, { exact: true })).toBeVisible();
-      await expect(reviewDialog.getByText('大聪明选中了老实人', { exact: true })).toBeVisible();
-      await reviewPage.getByRole('button', { name: '关闭详情', exact: true }).click();
+      await expect(reviewDialog).toContainText(result.word);
+      await expect(reviewDialog).toContainText('大聪明选中了老实人');
+      await closeReviewDialog(reviewPage);
       await expect(reviewDialog).toHaveCount(0);
 
       await hostRoom.startNextRound();

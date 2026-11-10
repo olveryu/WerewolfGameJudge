@@ -101,7 +101,9 @@ test('FibKing config, room, rules, and identity fit the small-mobile viewport', 
 
     await hostRoom.openRules();
     await expectNoHorizontalOverflow(hostPage);
-    await expect(hostPage.getByRole('heading', { name: '三个身份', level: 2 })).toBeVisible();
+    const firstGuideSection = hostPage.getByTestId(TESTIDS.gameGuideSectionTitle).first();
+    await expect(firstGuideSection).toHaveText('三个身份');
+    await expect(firstGuideSection).toBeVisible();
     await testInfo.attach('fibking-mobile-guide.png', {
       body: await hostPage.screenshot(),
       contentType: 'image/png',

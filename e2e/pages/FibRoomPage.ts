@@ -1,8 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
-import { enterRoomCodeViaNumPad } from '../helpers/home';
-import { waitForRoomScreenReady } from '../helpers/waits';
+import { confirmAlert } from '../helpers/alerts';
 import { RoomPage } from './RoomPage';
 
 export type FibWordDetails = {
@@ -23,35 +22,31 @@ export class FibRoomPage extends RoomPage {
     super(page);
   }
 
-  async joinViaCode(roomCode: string): Promise<void> {
-    await this.page.getByTestId(TESTIDS.homeEnterRoomButton).click();
-    await expect(this.page.getByText('加入房间', { exact: true })).toBeVisible();
-    await enterRoomCodeViaNumPad(this.page, roomCode);
-    await this.page.getByText('加入', { exact: true }).click();
-    await waitForRoomScreenReady(this.page, { role: 'joiner' });
-  }
-
   async expectNoWerewolfOverlay(): Promise<void> {
-    await expect(this.page.getByText('小助手', { exact: true })).toHaveCount(0);
+    await expect(this.page.getByTestId(TESTIDS.roomScreenRoot)).not.toContainText('小助手');
   }
 
   async expectPlayerCountHeading(playerCount: number): Promise<void> {
-    await expect(this.page.getByText(`瞎掰王 · ${playerCount}人局`, { exact: true })).toBeVisible();
+    await expect(this.page.getByTestId(TESTIDS.roomGameSummaryTitle)).toHaveText(
+      `瞎掰王 · ${playerCount}人局`,
+    );
   }
 
   async expectShareRoomCode(roomCode: string): Promise<void> {
-    await expect(this.page.getByText(`房间号 ${roomCode}`, { exact: true })).toBeVisible();
+    await expect(this.page.getByTestId(TESTIDS.qrCodeModal)).toContainText(`房间号 ${roomCode}`);
   }
 
   async openUserSettings(): Promise<void> {
     const userSettingsButton = this.page.getByTestId(TESTIDS.roomUserSettingsButton);
     await expect(userSettingsButton).toBeVisible();
     await userSettingsButton.click();
-    await expect(this.page.getByText('设置', { exact: true })).toBeVisible();
+    await expect(this.page.getByTestId(TESTIDS.screenHeaderTitle)).toHaveText('设置');
   }
 
   async returnFromUserSettings(): Promise<void> {
-    await this.page.getByRole('button', { name: '返回' }).click();
+    const backButton = this.page.getByTestId(TESTIDS.settingsBackButton);
+    await expect(backButton).toHaveAccessibleName('返回');
+    await backButton.click();
     await this.waitForReady('host');
   }
 
@@ -69,7 +64,9 @@ export class FibRoomPage extends RoomPage {
   }
 
   async returnFromRules(): Promise<void> {
-    await this.page.getByRole('button', { name: '返回' }).click();
+    const backButton = this.page.getByTestId(TESTIDS.gameGuideBackButton);
+    await expect(backButton).toHaveAccessibleName('返回');
+    await backButton.click();
     await expect(this.page.getByTestId(TESTIDS.roomScreenRoot)).toBeVisible();
   }
 
@@ -79,7 +76,9 @@ export class FibRoomPage extends RoomPage {
   }
 
   async closeShare(): Promise<void> {
-    await this.page.getByTestId(TESTIDS.qrCodeModal).getByRole('button', { name: '关闭' }).click();
+    const closeButton = this.page.getByTestId(TESTIDS.qrCodeCloseButton);
+    await expect(closeButton).toHaveAccessibleName('关闭');
+    await closeButton.click();
     await expect(this.page.getByTestId(TESTIDS.qrCodeModal)).not.toBeVisible();
   }
 
@@ -114,12 +113,8 @@ export class FibRoomPage extends RoomPage {
     await this.page.getByTestId(TESTIDS.fibGuessSeatButton).click();
     await this.expectHostManagementClosed();
     await this.getSeatTile(seat).click();
-    const confirmTitle = this.page.getByText(`确定选择 ${seat + 1} 号座位是老实人？`, {
-      exact: true,
-    });
-    await expect(confirmTitle).toBeVisible();
-    await this.page.getByText('确定', { exact: true }).click();
-    await expect(confirmTitle).not.toBeVisible();
+    await confirmAlert(this.page, `确定选择 ${seat + 1} 号座位是老实人？`);
+    await expect(this.page.getByTestId(TESTIDS.alertTitle)).not.toBeVisible();
   }
 
   async expectSeatRoleLabel(seat: number, label: string): Promise<void> {
@@ -142,7 +137,9 @@ export class FibRoomPage extends RoomPage {
 
   async closeIdentity(): Promise<void> {
     const modal = this.page.getByTestId(TESTIDS.fibIdentityModal);
-    await modal.getByText('知道了', { exact: true }).click();
+    const confirmButton = modal.getByTestId(TESTIDS.roleCardConfirmButton);
+    await expect(confirmButton).toHaveText('知道了');
+    await confirmButton.click();
     await expect(modal).not.toBeVisible();
   }
 
@@ -158,8 +155,7 @@ export class FibRoomPage extends RoomPage {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.fibRevealRoundButton).click();
     await this.expectHostManagementClosed();
-    await expect(this.page.getByText('公布答案？', { exact: true })).toBeVisible();
-    await this.page.getByText('确定', { exact: true }).click();
+    await this.confirmHostActionDialog('公布答案？');
     await expect(this.page.getByTestId(TESTIDS.fibViewResultButton)).toBeVisible({
       timeout: 15_000,
     });
@@ -169,8 +165,7 @@ export class FibRoomPage extends RoomPage {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.fibRedrawRoundButton).click();
     await this.expectHostManagementClosed();
-    await expect(this.page.getByText('重新抽词？', { exact: true })).toBeVisible();
-    await this.page.getByText('确定', { exact: true }).click();
+    await this.confirmHostActionDialog('重新抽词？');
     await expect(this.page.getByTestId(TESTIDS.fibPreparationStatus)).toBeVisible({
       timeout: 15_000,
     });
@@ -183,8 +178,7 @@ export class FibRoomPage extends RoomPage {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.abortGameButton).click();
     await this.expectHostManagementClosed();
-    await expect(this.page.getByText('中止本局？', { exact: true })).toBeVisible();
-    await this.page.getByText('确定', { exact: true }).click();
+    await this.confirmHostActionDialog('中止本局？');
     await expect(this.page.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
       '分配角色',
       { timeout: 15_000 },
