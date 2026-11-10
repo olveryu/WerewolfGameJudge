@@ -6,7 +6,8 @@
  */
 const KEY_PREFIX = 'mmkv.default\\';
 
-function prefixed(key: string): string {
+/** The `localStorage` item name that backs app storage `key`. */
+export function prefixedStorageKey(key: string): string {
   if (key === '' || key.includes('\\')) {
     throw new Error(`Invalid storage key "${key}"`);
   }
@@ -16,16 +17,16 @@ function prefixed(key: string): string {
 /** Synchronous storage API used across the client. */
 export const storage = {
   getString(key: string): string | undefined {
-    return window.localStorage.getItem(prefixed(key)) ?? undefined;
+    return window.localStorage.getItem(prefixedStorageKey(key)) ?? undefined;
   },
   getBoolean(key: string): boolean | undefined {
-    const value = window.localStorage.getItem(prefixed(key));
+    const value = window.localStorage.getItem(prefixedStorageKey(key));
     return value === null ? undefined : value === 'true';
   },
   set(key: string, value: string | boolean | number): void {
-    window.localStorage.setItem(prefixed(key), String(value));
+    window.localStorage.setItem(prefixedStorageKey(key), String(value));
   },
   remove(key: string): void {
-    window.localStorage.removeItem(prefixed(key));
+    window.localStorage.removeItem(prefixedStorageKey(key));
   },
 };
