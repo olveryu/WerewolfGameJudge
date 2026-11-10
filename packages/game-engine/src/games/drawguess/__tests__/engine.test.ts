@@ -116,7 +116,13 @@ function game(numberOfPlayers = 4) {
 }
 
 describe('DrawGuess engine', () => {
-  it('rejects configs outside 4–12 players', () => {
+  it('accepts 4–15 players and rejects configs outside that range', () => {
+    expect(
+      drawGuessEngine.createInitialState(
+        { ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers: 15 },
+        { roomCode: '1', hostUserId: 'host', nowMs: 1, commandId: 'c' },
+      ).config.numberOfPlayers,
+    ).toBe(15);
     expect(() =>
       drawGuessEngine.createInitialState(
         { ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers: 3 },
@@ -125,7 +131,7 @@ describe('DrawGuess engine', () => {
     ).toThrow();
     expect(() =>
       drawGuessEngine.createInitialState(
-        { ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers: 13 },
+        { ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers: 16 },
         { roomCode: '1', hostUserId: 'host', nowMs: 1, commandId: 'c' },
       ),
     ).toThrow();

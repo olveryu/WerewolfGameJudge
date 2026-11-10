@@ -5,6 +5,8 @@
  */
 
 import {
+  DRAWGUESS_MAX_PLAYERS,
+  DRAWGUESS_MIN_PLAYERS,
   DRAWGUESS_REASONS,
   type DrawGuessState,
 } from '@game-judge/game-engine/games/drawguess/public';
@@ -19,7 +21,7 @@ import {
 /** 把房间命令的失败原因翻译成用户可读的中文。 */
 export const getDrawGuessRoomCommandFailureMessage =
   createRoomCommandFailureMessage<DrawGuessState>({
-    [DRAWGUESS_REASONS.config]: '配置无效，请检查人数设置（4 至 12 人）',
+    [DRAWGUESS_REASONS.config]: `配置无效，请检查人数设置（${DRAWGUESS_MIN_PLAYERS} 至 ${DRAWGUESS_MAX_PLAYERS} 人）`,
     [DRAWGUESS_REASONS.phase]: ROOM_COMMAND_FAILURE_WRONG_PHASE,
     [DRAWGUESS_REASONS.stale]: '对局已推进，请稍后重试',
     [DRAWGUESS_REASONS.expired]: '本轮已结束，答案即将公布',
