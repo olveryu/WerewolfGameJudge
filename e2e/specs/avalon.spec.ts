@@ -745,8 +745,9 @@ test.describe('Avalon full game', () => {
           timeout: 15_000,
         });
         const captured: RoleName[] = [];
-        await expect(hostPage.getByTestId(/^seat-marker-\d+-lady$/)).toHaveCount(1);
-        await expect(pages[PLAYER_COUNT - 1]!.getByTestId(/^seat-marker-\d+-lady$/)).toHaveCount(1);
+        // 湖仙徽标只在白天五阶段显示（与组队者徽标同口径），查看阶段不出现。
+        await expect(hostPage.getByTestId(/^seat-marker-\d+-lady$/)).toHaveCount(0);
+        await expect(pages[PLAYER_COUNT - 1]!.getByTestId(/^seat-marker-\d+-lady$/)).toHaveCount(0);
         for (const page of pages) captured.push(await viewAndCaptureRole(page));
         await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
           '开始游戏',
