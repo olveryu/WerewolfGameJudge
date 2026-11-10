@@ -11,12 +11,12 @@ import { GAME_MODE_OPTIONS } from '@/games/catalog';
 
 const PRODUCTION_GAME_TYPES = [
   'werewolf',
+  'avalon',
+  'drawguess',
   'fibking',
   'pictionary',
   'undercover',
   'storyrelay',
-  'drawguess',
-  'avalon',
 ] as const;
 
 describe('client game home production filter', () => {

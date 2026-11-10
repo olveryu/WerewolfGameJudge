@@ -2,12 +2,12 @@
 
 export const GAME_TYPES = [
   'werewolf',
+  'avalon',
+  'drawguess',
   'fibking',
   'pictionary',
   'undercover',
   'storyrelay',
-  'drawguess',
-  'avalon',
   'demo',
 ] as const;
 
