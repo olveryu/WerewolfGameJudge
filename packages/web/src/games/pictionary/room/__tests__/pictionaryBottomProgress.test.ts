@@ -1,8 +1,7 @@
 /**
- * derivePictionaryBottomProgress: the retired status ribbon's stepped
- * phases (answering / transition / gallery) feed the bottom panel's
- * progress row with the same counts and labels; every other phase has
- * no step progress.
+ * derivePictionaryBottomProgress: only the gallery feeds the bottom panel's progress row; the
+ * relay steps report their progress in the stage information bar, and every other phase has no
+ * step progress.
  */
 import {
   createPictionaryCommand,
@@ -14,6 +13,11 @@ import {
   pictionaryEngine,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
+
+import {
+  PICTIONARY_TEST_PLAYER_NAMES,
+  playPictionaryTestRound,
+} from '@/test-utils/pictionaryState';
 
 import { derivePictionaryBottomProgress } from '../pictionaryRoomAdapter';
 
@@ -51,16 +55,24 @@ describe('derivePictionaryBottomProgress', () => {
     expect(derivePictionaryBottomProgress(session.state)).toBeNull();
   });
 
-  it('reports the first relay step once the round starts', () => {
+  it('is null on the relay steps, which report progress in the stage information bar', () => {
     const session = createSession();
     session.dispatch({ type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } });
     session.dispatch({ type: 'room.seat.fillBots' });
     session.dispatch({ type: 'pictionary.game.begin' });
     expect(session.state.phase).toBe('answering');
-    expect(derivePictionaryBottomProgress(session.state)).toEqual({
+    expect(derivePictionaryBottomProgress(session.state)).toBeNull();
+  });
+
+  it('reports the first gallery entry as the reveal opens', () => {
+    const stepCount = getPictionaryRelayStepCount(PICTIONARY_TEST_PLAYER_NAMES.length);
+    const state = playPictionaryTestRound({
+      stopAt: { stepIndex: stepCount - 1, phase: 'gallery' },
+    });
+    expect(derivePictionaryBottomProgress(state)).toEqual({
       current: 1,
-      total: getPictionaryRelayStepCount(4),
-      label: '全员出题中',
+      total: PICTIONARY_TEST_PLAYER_NAMES.length * stepCount,
+      label: '接龙揭晓中',
     });
   });
 });

@@ -26,12 +26,14 @@ import {
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
+import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { HOST_FLOW_CONFIRM } from '@/features/room/model/hostManagementActions';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+import type { RoomStageHudModel } from '@/features/room/model/RoomStage';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import type { RoomReviewContribution } from '@/features/room/review/types';
@@ -47,6 +49,7 @@ import {
   PICTIONARY_DISPLAY_NAME,
 } from '../pictionaryRoomAdapter';
 import { getPictionaryRoomCommandFailureMessage } from '../pictionaryRoomCommandFailureMessage';
+import { createPictionaryStageHud } from '../pictionaryStageHud';
 
 interface UsePictionaryRoomScreenStateParams {
   readonly room: GameRoomScreenProps<'pictionary'>['room'];
@@ -57,19 +60,24 @@ interface UsePictionaryRoomScreenStateParams {
 }
 
 /**
- * 你画我猜（接龙）房间 Screen 的显式契约：Screen 需要的状态推导全部在本 hook 内组装。
- * 阶段组件 PictionaryStage 的内部交互状态（截止 tick、任务输入、自动提交）属组件自身。
+ * 你画我猜（接龙）房间 Screen 的显式契约：Screen 需要的状态推导（含阶段截止 tick 与信息条）全部在本 hook 内组装。
+ * 阶段组件 PictionaryStage 的内部交互状态（任务输入、自动提交）属组件自身。
  */
 export interface PictionaryRoomScreenState {
   readonly shellModel: RoomShellModel;
   readonly state: PictionaryState;
+  /** 作答 / 换棒 / 收尾阶段的信息条；大厅、画廊与终局不是舞台内容，为 null。 */
+  readonly stageHud: RoomStageHudModel | null;
+  /** 当前阶段剩余秒数；无截止阶段为 null。到期推进由服务端定时结算完成，任何手机都不发 expire。 */
+  readonly remainingSeconds: number | null;
+  /** 截止已过且宽限期已过：结算逾期，房主可见自救重试。 */
+  readonly isOverdue: boolean;
   /** 已占座位数（引擎口径）。 */
   readonly occupiedSeatCount: number;
   readonly effectiveSeat: number | null;
   readonly controlledSeat: number | null;
   readonly userId: string;
   readonly isHost: boolean;
-  readonly canControlBots: boolean;
   readonly openRules: () => void;
   readonly session: PictionaryRoomSession;
   /** 平台单飞漏斗：阶段组件的玩家 / 房主命令都经此发出。 */
@@ -138,6 +146,12 @@ export function usePictionaryRoomState({
     ...setupCapabilities,
     canTakeOverBots: bots.capability,
   };
+  // 倒计时只做展示：到期推进由服务端定时结算完成，任何手机都不发 expire。
+  // isOverdue 是房主自救的共享判定：截止后宽限期已过、结算仍未到达。
+  const { remainingSeconds, isOverdue } = useStageDeadline({
+    deadlineAt: state.deadlineAt,
+    refreshIntervalMs: 250,
+  });
   const review = useRoomReview({
     contribution: reviewContribution,
     state,
@@ -230,12 +244,18 @@ export function usePictionaryRoomState({
   return {
     shellModel,
     state,
+    stageHud: createPictionaryStageHud({
+      state,
+      remainingSeconds,
+      seats: shellModel.seats.source,
+    }),
+    remainingSeconds,
+    isOverdue,
     occupiedSeatCount: getPictionaryOccupiedSeatCount(state),
     effectiveSeat,
     controlledSeat,
     userId: user.id,
     isHost,
-    canControlBots: bots.capability.isAllowed,
     openRules,
     session,
     submit,

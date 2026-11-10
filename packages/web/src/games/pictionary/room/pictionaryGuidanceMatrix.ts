@@ -2,7 +2,7 @@
  * 你画我猜（阶段 × 观看者）底部提示矩阵声明：逐格事实以
  * pictionaryGuidanceMatrix.test.ts 用真实引擎流驱动
  * createPictionaryRoomShellModel 对账为准。本家底部 message 只存在于
- * 大厅等待句；局中引导由对局工作区与底部进度行分工承载，逐格登记。
+ * 大厅等待句；局中引导由舞台（含顶部信息条）与画廊的底部进度行分工承载，逐格登记。
  */
 import type { PictionaryPhase } from '@game-judge/game-engine/games/pictionary/public';
 
@@ -19,19 +19,19 @@ export const PICTIONARY_GUIDANCE_MATRIX: RoomGuidanceMatrix<PictionaryPhase> = {
     spectator: guidanceExempt('无座位无个人提示；房间状态归座位盘'),
   },
   answering: {
-    host: guidanceExempt('出题与作答在对局工作区内完成，步进归底部进度行'),
-    seated: guidanceExempt('出题与作答在对局工作区内完成，步进归底部进度行'),
-    spectator: guidanceExempt('作答进程由对局工作区与底部进度行承载'),
+    host: guidanceExempt('舞台内容：出题与作答在舞台，第几棒、提交名单与倒计时在顶部信息条'),
+    seated: guidanceExempt('舞台内容：出题与作答在舞台，第几棒、提交名单与倒计时在顶部信息条'),
+    spectator: guidanceExempt('舞台内容：作答进程由舞台与顶部信息条呈现'),
   },
   settling: {
-    host: guidanceExempt('结算过渡由对局工作区呈现'),
-    seated: guidanceExempt('结算过渡由对局工作区呈现'),
-    spectator: guidanceExempt('结算过渡由对局工作区呈现'),
+    host: guidanceExempt('舞台内容：收稿过渡在舞台，提交名单在顶部信息条'),
+    seated: guidanceExempt('舞台内容：收稿过渡在舞台，提交名单在顶部信息条'),
+    spectator: guidanceExempt('舞台内容：收稿过渡在舞台，提交名单在顶部信息条'),
   },
   transition: {
-    host: guidanceExempt('下一棒准备由底部进度行承载'),
-    seated: guidanceExempt('下一棒准备由底部进度行承载'),
-    spectator: guidanceExempt('下一棒准备由底部进度行承载'),
+    host: guidanceExempt('舞台内容：下一棒准备由顶部信息条的「换棒」倒计时承载'),
+    seated: guidanceExempt('舞台内容：下一棒准备由顶部信息条的「换棒」倒计时承载'),
+    spectator: guidanceExempt('舞台内容：下一棒准备由顶部信息条的「换棒」倒计时承载'),
   },
   gallery: {
     host: guidanceExempt('画廊在对局工作区播放（自动推进），步进归底部进度行'),

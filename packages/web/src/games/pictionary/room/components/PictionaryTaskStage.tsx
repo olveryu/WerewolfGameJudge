@@ -1,7 +1,6 @@
 /** Routes a live Pictionary step to the text task, drawing task, or a waiting surface. */
 
 import {
-  getPictionaryRelayStepCount,
   getPictionaryTaskForSeat,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
@@ -9,25 +8,26 @@ import type { ReactNode } from 'react';
 
 import { Button } from '@/components/Button';
 import { Spinner } from '@/components/Spinner';
-import { GalleryAlbumHeading } from '@/features/room/components/GalleryAlbumHeading';
 import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
 import { getPictionaryCompletedCount } from '@/games/pictionary/model/pictionarySelectors';
 import { TESTIDS } from '@/testids';
 
 import type { PictionarySubmissionStatus } from '../hooks/usePictionaryAutoSubmission';
 import { PictionaryDrawingTask } from './PictionaryDrawingTask';
-import { PICTIONARY_STAGE_MAX_WIDTH, type PictionaryTaskViewProps } from './PictionaryTaskLayout';
+import {
+  PICTIONARY_STAGE_MAX_WIDTH,
+  PictionaryTaskHeading,
+  type PictionaryTaskViewProps,
+} from './PictionaryTaskLayout';
 import { PictionaryTextTask } from './PictionaryTextTask';
 
 function PictionaryWaitingStage({
   state,
-  remainingSeconds,
   title,
   description,
   children,
 }: {
   readonly state: PictionaryState;
-  readonly remainingSeconds: number | null;
   readonly title: string;
   readonly description: string;
   readonly children?: ReactNode;
@@ -37,14 +37,7 @@ function PictionaryWaitingStage({
   const completedLabel = state.phase === 'answering' ? '人已完成编辑' : '人已送达';
   return (
     <RoomTaskFrame
-      header={
-        <GalleryAlbumHeading
-          eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
-          title={title}
-          description={description}
-          remainingSeconds={remainingSeconds}
-        />
-      }
+      header={<PictionaryTaskHeading title={title} description={description} />}
       maxWidth={PICTIONARY_STAGE_MAX_WIDTH}
       testId={TESTIDS.pictionaryStageFrame}
       footer={null}
@@ -95,13 +88,11 @@ export function PictionaryTaskStage({
   userId,
   submit,
   isSubmitting,
-  remainingSeconds,
   isExpired,
   autoSubmission,
 }: Omit<PictionaryTaskViewProps, 'task' | 'effectiveSeat'> & {
   readonly effectiveSeat: number | null;
   readonly userId: string;
-  readonly remainingSeconds: number | null;
   readonly autoSubmission: {
     readonly status: PictionarySubmissionStatus;
     readonly retry: () => void;
@@ -111,7 +102,6 @@ export function PictionaryTaskStage({
     return (
       <PictionaryWaitingStage
         state={state}
-        remainingSeconds={remainingSeconds}
         title="这一棒完成"
         description="马上交换任务，请不要透露刚才看到的内容。"
       />
@@ -121,7 +111,6 @@ export function PictionaryTaskStage({
     return (
       <PictionaryWaitingStage
         state={state}
-        remainingSeconds={remainingSeconds}
         title="正在收取最终内容"
         description={getSettlingDescription(autoSubmission.status)}
       >
@@ -137,7 +126,6 @@ export function PictionaryTaskStage({
     return (
       <PictionaryWaitingStage
         state={state}
-        remainingSeconds={remainingSeconds}
         title="正在旁观接龙"
         description="本轮开始后加入的玩家可以等待揭晓。"
       />

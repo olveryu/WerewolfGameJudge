@@ -1,9 +1,6 @@
 /** Pictionary drawing task: draw the previous prompt on the shared canvas with the toolbar. */
 
-import {
-  createPictionaryCommand,
-  getPictionaryRelayStepCount,
-} from '@game-judge/game-engine/games/pictionary/public';
+import { createPictionaryCommand } from '@game-judge/game-engine/games/pictionary/public';
 import { useState } from 'react';
 
 import { Button } from '@/components/Button';
@@ -27,12 +24,10 @@ import { TESTIDS } from '@/testids';
 import { showDestructiveAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
-import IconChatbubbleEllipsesOutline from '~icons/ion/chatbubble-ellipses-outline';
 
 import {
   PICTIONARY_STAGE_MAX_WIDTH,
   PictionaryDrawingCanvas,
-  PictionaryTaskHeading,
   PictionaryTaskMedia,
   type PictionaryTaskViewProps,
 } from './PictionaryTaskLayout';
@@ -114,12 +109,7 @@ export function PictionaryDrawingTask({
 
   return (
     <RoomTaskFrame
-      header={
-        <PictionaryTaskHeading
-          eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
-          title="把这句话画出来"
-        />
-      }
+      header={null}
       maxWidth={PICTIONARY_STAGE_MAX_WIDTH}
       testId={TESTIDS.pictionaryStageFrame}
       className="pictionary-task-frame"
@@ -158,15 +148,10 @@ export function PictionaryDrawingTask({
         </>
       }
     >
-      <div className="pictionary-prompt-strip">
-        <IconChatbubbleEllipsesOutline aria-hidden />
-        <div className="pictionary-prompt-copy">
-          <p className="pictionary-label">上一棒</p>
-          <p className="pictionary-prompt-text">
-            {previousEntry.kind === 'text' ? previousEntry.text : '上一棒未完成，请自由发挥'}
-          </p>
-        </div>
-      </div>
+      <p className="pictionary-prompt-card">
+        <span>{previousEntry.kind === 'text' ? '把这句话画出来' : '上一棒未完成'}</span>
+        <strong>{previousEntry.kind === 'text' ? previousEntry.text : '请自由发挥'}</strong>
+      </p>
       <PictionaryTaskMedia>
         <PictionaryDrawingCanvas
           elements={draft.elements}

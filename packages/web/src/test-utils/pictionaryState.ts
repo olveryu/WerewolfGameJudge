@@ -29,6 +29,14 @@ export interface PictionaryTestRound {
   readonly missedSeats?: readonly (readonly number[])[];
   /** The host aborts as this step opens (0: before anything was handed in); omitted plays to the end. */
   readonly abortAtStep?: number;
+  /**
+   * Returns the state as this step's phase opens (settling: nothing handed in yet; gallery: the
+   * last step, before the host finishes it).
+   */
+  readonly stopAt?: {
+    readonly stepIndex: number;
+    readonly phase: 'answering' | 'settling' | 'transition' | 'gallery';
+  };
 }
 
 type CommandContext = Parameters<typeof pictionaryEngine.decide>[2];
@@ -57,8 +65,8 @@ export function pictionaryTestText(stepIndex: number, seat: number): string {
  * Plays a four-seat round through the real engine: every step settles at
  * its deadline through the system channel, then each seat hands in its
  * text (`pictionaryTestText`), its uploaded drawing, or nothing as the
- * script says. The round ends with the host finishing the gallery, or
- * aborts as `abortAtStep` opens.
+ * script says. The round ends with the host finishing the gallery, aborts
+ * as `abortAtStep` opens, or stops where `stopAt` says.
  */
 export function playPictionaryTestRound(round: PictionaryTestRound = {}): PictionaryState {
   const numberOfPlayers = PICTIONARY_TEST_PLAYER_NAMES.length;
@@ -136,15 +144,28 @@ export function playPictionaryTestRound(round: PictionaryTestRound = {}): Pictio
   );
   asSeat({ type: 'pictionary.game.begin' }, 0, null);
   const stepCount = getPictionaryRelayStepCount(numberOfPlayers);
+  const isStopAt = (stepIndex: number, phase: PictionaryState['phase']) => {
+    if (round.stopAt?.stepIndex !== stepIndex || round.stopAt.phase !== phase) return false;
+    if (read().phase !== phase) {
+      throw new Error(
+        `[FAIL-FAST] Pictionary step ${stepIndex} is in ${read().phase}, not ${phase}`,
+      );
+    }
+    return true;
+  };
   for (let stepIndex = 0; stepIndex < stepCount; stepIndex += 1) {
     if (round.abortAtStep === stepIndex) {
       asSeat({ type: 'pictionary.game.abort' }, 0, null);
       return read();
     }
+    if (isStopAt(stepIndex, 'answering')) return read();
     settle();
+    if (isStopAt(stepIndex, 'settling')) return read();
     for (let seat = 0; seat < numberOfPlayers; seat += 1) handIn(stepIndex, seat);
+    if (isStopAt(stepIndex, 'transition')) return read();
     settle();
   }
+  if (isStopAt(stepCount - 1, 'gallery')) return read();
   asSeat({ type: 'pictionary.gallery.finish' }, 0, null);
   const ended = read();
   if (ended.phase !== 'ended') {

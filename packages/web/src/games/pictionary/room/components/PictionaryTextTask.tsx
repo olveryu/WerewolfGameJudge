@@ -2,8 +2,6 @@
 
 import {
   createPictionaryCommand,
-  getPictionaryRelayStepCount,
-  getPictionaryTextGraphemeCount,
   isValidPictionaryText,
   PICTIONARY_TEXT_MAX_LENGTH,
   type PictionaryState,
@@ -58,14 +56,7 @@ const PICTIONARY_OPENING_PROMPT_EXAMPLES = [
   '热气球上吃早餐',
 ] as const;
 
-function getTextValidationMessage(text: string): string | null {
-  if (getPictionaryTextGraphemeCount(text) === 0) return '请输入一个词语或短句';
-  if (text.length > PICTIONARY_TEXT_MAX_LENGTH) {
-    return `最多输入 ${PICTIONARY_TEXT_MAX_LENGTH} 个字符`;
-  }
-  return null;
-}
-
+/** The previous drawing fills the body; a missed step leaves a free-guess notice instead. */
 function PreviousDrawing({
   state,
   task,
@@ -91,8 +82,7 @@ function PreviousDrawing({
     throw new Error('[FAIL-FAST] Pictionary text task requires a drawing context');
   }
   return (
-    <section className="pictionary-context-block">
-      <p className="pictionary-label">上一棒画作</p>
+    <div className="pictionary-context-block">
       <PictionaryTaskMedia>
         <PictionaryDrawingImage
           roomCode={state.roomCode}
@@ -101,11 +91,11 @@ function PreviousDrawing({
           controlledSeat={controlledSeat}
         />
       </PictionaryTaskMedia>
-    </section>
+    </div>
   );
 }
 
-/** Opening prompt (step 0) or guess of the previous drawing, with a ready toggle. */
+/** Opening prompt (step 0) or guess of the previous drawing, with a ready toggle; Enter submits. */
 export function PictionaryTextTask({
   inputs,
   state,
@@ -124,8 +114,6 @@ export function PictionaryTextTask({
     return input ?? '';
   });
   const [openingPromptExample] = useState(() => randomPick(PICTIONARY_OPENING_PROMPT_EXAMPLES));
-  const validationMessage = getTextValidationMessage(text);
-  const graphemeCount = getPictionaryTextGraphemeCount(text);
   const isOpeningPrompt = state.stepIndex === 0;
   const isReady = state.readySeats.includes(effectiveSeat);
   if (isOpeningPrompt && task.previousEntry !== null) {
@@ -140,8 +128,9 @@ export function PictionaryTextTask({
     inputs.set(effectiveSeat, nextText);
   };
 
+  const canComplete = isValidPictionaryText(text);
   const toggleReady = (): void => {
-    if (!isReady && !isValidPictionaryText(text)) return;
+    if (!isReady && !canComplete) return;
     void submit(
       isReady ? '继续编辑' : '完成编辑',
       createPictionaryCommand(
@@ -153,58 +142,52 @@ export function PictionaryTextTask({
     );
   };
 
-  const statusText =
-    text.length > 0 && validationMessage !== null ? validationMessage : isReady ? '已就绪' : '';
-
   return (
     <RoomTaskFrame
-      header={
-        <PictionaryTaskHeading
-          eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
-          title={isOpeningPrompt ? '写下一个题目' : '猜猜画的是什么'}
-        />
-      }
+      header={null}
       maxWidth={PICTIONARY_STAGE_MAX_WIDTH}
       testId={TESTIDS.pictionaryStageFrame}
       className="pictionary-task-frame"
       footer={
-        <Button
-          variant={isReady ? 'secondary' : 'primary'}
-          onClick={toggleReady}
-          disabled={(!isReady && validationMessage !== null) || isExpired}
-          loading={isSubmitting}
-          data-testid={TESTIDS.pictionaryTextSubmitButton}
+        <form
+          className="pictionary-answer-row"
+          onSubmit={(event) => {
+            event.preventDefault();
+            toggleReady();
+          }}
         >
-          {isReady ? '继续编辑' : '完成编辑'}
-        </Button>
+          <input
+            className="pictionary-answer-input"
+            value={text}
+            onChange={(event) => updateText(event.target.value)}
+            readOnly={isReady || isSubmitting || isExpired}
+            maxLength={PICTIONARY_TEXT_MAX_LENGTH}
+            placeholder={isOpeningPrompt ? `例如：${openingPromptExample}` : '猜猜画的是什么'}
+            aria-label={isOpeningPrompt ? '接龙题目' : '看图猜词答案'}
+            enterKeyHint="done"
+            autoComplete="off"
+            data-testid={TESTIDS.pictionaryTextInput}
+          />
+          <Button
+            type="submit"
+            variant={isReady ? 'secondary' : 'primary'}
+            disabled={(!isReady && !canComplete) || isExpired}
+            loading={isSubmitting}
+            data-testid={TESTIDS.pictionaryTextSubmitButton}
+          >
+            {isReady ? '继续编辑' : '完成编辑'}
+          </Button>
+        </form>
       }
     >
-      {!isOpeningPrompt && (
+      {isOpeningPrompt ? (
+        <PictionaryTaskHeading
+          title="写下一个题目"
+          description="一个词语或短句，下一棒会把它画出来。"
+        />
+      ) : (
         <PreviousDrawing state={state} task={task} controlledSeat={controlledSeat} />
       )}
-      <div className="pictionary-composer" data-opening={isOpeningPrompt || undefined}>
-        <textarea
-          className="pictionary-text-input"
-          value={text}
-          onChange={(event) => updateText(event.target.value)}
-          readOnly={isReady || isSubmitting || isExpired}
-          maxLength={PICTIONARY_TEXT_MAX_LENGTH}
-          placeholder={isOpeningPrompt ? `例如：${openingPromptExample}` : '写下你的猜测'}
-          aria-label={isOpeningPrompt ? '接龙题目' : '看图猜词答案'}
-          data-testid={TESTIDS.pictionaryTextInput}
-        />
-        <div className="pictionary-composer-meta">
-          <p
-            aria-live="polite"
-            data-invalid={(validationMessage !== null && text.length > 0) || undefined}
-          >
-            {statusText}
-          </p>
-          <p data-invalid={graphemeCount > PICTIONARY_TEXT_MAX_LENGTH || undefined}>
-            {graphemeCount}/{PICTIONARY_TEXT_MAX_LENGTH}
-          </p>
-        </div>
-      </div>
     </RoomTaskFrame>
   );
 }

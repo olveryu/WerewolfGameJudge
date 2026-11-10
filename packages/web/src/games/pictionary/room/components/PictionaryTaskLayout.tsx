@@ -32,18 +32,18 @@ export interface PictionaryTaskViewProps {
   readonly isExpired: boolean;
 }
 
-/** Task heading without a timer; the answering top bar owns the countdown. */
+/** Task heading; the room information bar owns the relay step and the countdown. */
 export function PictionaryTaskHeading({
-  eyebrow,
   title,
+  description,
 }: {
-  readonly eyebrow: string;
   readonly title: string;
+  readonly description: string;
 }) {
   return (
     <div className="pictionary-heading">
-      <p className="pictionary-eyebrow">{eyebrow}</p>
       <h2 className="pictionary-title">{title}</h2>
+      <p className="pictionary-description">{description}</p>
     </div>
   );
 }

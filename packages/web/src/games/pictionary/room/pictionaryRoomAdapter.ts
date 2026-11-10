@@ -2,7 +2,6 @@
 
 import {
   getPictionaryOccupiedSeatCount,
-  getPictionaryRelayStepCount,
   getPictionaryTaskForSeat,
   isPictionaryRoomFull,
   type PictionaryState,
@@ -67,6 +66,13 @@ interface PictionarySeatSourceInput {
   readonly controlledSeat: number | null;
 }
 
+const SUBMITTED_STATUS: RoomSeatViewModel['statusBadge'] = { label: '已提交', tone: 'success' };
+const ANSWERING_STATUS: RoomSeatViewModel['statusBadge'] = { label: '作答中', tone: 'warning' };
+
+/**
+ * While answering, a seat that marked its task done has handed it in; while settling, a seat
+ * has handed in once its entry landed, and a reserved drawing is still uploading.
+ */
 function getPictionarySeatStatus(
   state: PictionaryState,
   seat: number,
@@ -74,13 +80,14 @@ function getPictionarySeatStatus(
   if (state.phase !== 'answering' && state.phase !== 'settling') return null;
   const task = getPictionaryTaskForSeat(state, seat);
   if (task === null) return null;
-  if (task.chain.entries.length > state.stepIndex) {
-    return { label: '已提交', tone: 'success' };
+  if (state.phase === 'answering') {
+    return state.readySeats.includes(seat) ? SUBMITTED_STATUS : ANSWERING_STATUS;
   }
+  if (task.chain.entries.length > state.stepIndex) return SUBMITTED_STATUS;
   if (state.reservations.some((reservation) => reservation.authorSeat === seat)) {
     return { label: '上传中', tone: 'info' };
   }
-  return { label: '作答中', tone: 'warning' };
+  return ANSWERING_STATUS;
 }
 
 export function createPictionarySeatDataSource(
@@ -110,33 +117,19 @@ export const getPictionarySeatTapIntent = createRoomSeatTapIntentResolver(
 );
 
 /**
- * The stepped relay phases feed the bottom panel's slim progress row;
- * every other phase has no step progress.
+ * The gallery feeds the bottom panel's slim progress row; the relay steps report their progress
+ * in the stage information bar, and every other phase has no step progress.
  */
 export function derivePictionaryBottomProgress(state: PictionaryState): NightStepProgress | null {
-  const relayStepCount = getPictionaryRelayStepCount(state.config.numberOfPlayers);
-  switch (state.phase) {
-    case 'answering':
-      return {
-        current: state.stepIndex + 1,
-        total: relayStepCount,
-        label: state.stepIndex === 0 ? '全员出题中' : '接龙作答中',
-      };
-    case 'transition':
-      return { current: state.stepIndex + 1, total: relayStepCount, label: '准备下一棒' };
-    case 'gallery': {
-      if (state.gallery === null) {
-        throw new Error('[FAIL-FAST] Pictionary gallery phase requires gallery state');
-      }
-      return {
-        current: state.gallery.chainIndex * (state.stepIndex + 1) + state.gallery.entryIndex + 1,
-        total: state.config.numberOfPlayers * (state.stepIndex + 1),
-        label: '接龙揭晓中',
-      };
-    }
-    default:
-      return null;
+  if (state.phase !== 'gallery') return null;
+  if (state.gallery === null) {
+    throw new Error('[FAIL-FAST] Pictionary gallery phase requires gallery state');
   }
+  return {
+    current: state.gallery.chainIndex * (state.stepIndex + 1) + state.gallery.entryIndex + 1,
+    total: state.config.numberOfPlayers * (state.stepIndex + 1),
+    label: '接龙揭晓中',
+  };
 }
 
 /** The review entry of a finished round for seats and spectators; the host uses the task card. */

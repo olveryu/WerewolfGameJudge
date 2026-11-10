@@ -41,12 +41,26 @@ interface PictionaryRoomContentProps extends PictionaryRoomScreenProps {
 
 function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomContentProps) {
   const screen = usePictionaryRoomState({ ...props, entryController });
-  const isLobby = screen.state.phase === 'lobby';
+  const stage = (
+    <PictionaryStage
+      state={screen.state}
+      effectiveSeat={screen.effectiveSeat}
+      controlledSeat={screen.controlledSeat}
+      userId={screen.userId}
+      isHost={screen.isHost}
+      remainingSeconds={screen.remainingSeconds}
+      isOverdue={screen.isOverdue}
+      session={screen.session}
+      submit={screen.submit}
+      isSubmitting={screen.isSubmitting}
+      openReview={screen.openReview}
+    />
+  );
   return (
     <RoomShell
       model={screen.shellModel}
       content={
-        isLobby
+        screen.state.phase === 'lobby'
           ? {
               kind: 'seats',
               contextHeader: null,
@@ -62,24 +76,9 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
                 />
               ),
             }
-          : {
-              kind: 'workspace',
-              element: (
-                <PictionaryStage
-                  state={screen.state}
-                  effectiveSeat={screen.effectiveSeat}
-                  controlledSeat={screen.controlledSeat}
-                  userId={screen.userId}
-                  isHost={screen.isHost}
-                  canControlBots={screen.canControlBots}
-                  seatModel={screen.shellModel.seats}
-                  session={screen.session}
-                  submit={screen.submit}
-                  isSubmitting={screen.isSubmitting}
-                  openReview={screen.openReview}
-                />
-              ),
-            }
+          : screen.stageHud !== null
+            ? { kind: 'stage', hud: screen.stageHud, element: stage }
+            : { kind: 'workspace', element: stage }
       }
       leadingExtraActions={null}
       trailingExtraActions={null}

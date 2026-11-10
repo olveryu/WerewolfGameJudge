@@ -1,58 +1,51 @@
 /**
- * The Pictionary stage shows the shared answering top bar in the
- * answering phase — and the task heading no longer carries a countdown
- * pill.
+ * The Pictionary stage renders the viewer's task only: the step, the roster and the countdown
+ * live in the room information bar. The text task keeps a one-line answer form in its footer
+ * (Enter submits); the drawing task shows the text to draw as one compact card over the canvas.
  */
 
 import {
-  DEFAULT_PICTIONARY_CONFIG,
-  pictionaryEngine,
+  getPictionaryTaskForSeat,
   type PictionaryPublicCommand,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
-import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
+import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
+import { pictionaryTestText, playPictionaryTestRound } from '@/test-utils/pictionaryState';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
+import { TESTIDS } from '@/testids';
 
-import { createPictionarySeatDataSource } from '../../pictionaryRoomAdapter';
 import { PictionaryStage } from '../PictionaryStage';
 
-/**
- * 4 seats, answering phase at step 0 (a text step: 45-second guess
- * duration), deadline armed at nowMs 1000.
- */
-function answeringState(): PictionaryState {
-  let commandNumber = 0;
-  let state = pictionaryEngine.createInitialState(
-    {
-      ...DEFAULT_PICTIONARY_CONFIG,
-      numberOfPlayers: 4,
-      guessDurationSeconds: 45,
-      drawingDurationSeconds: 120,
-    },
-    { roomCode: 'ABCD', hostUserId: 'host-1', nowMs: 1000, commandId: 'create' },
+type Submit = ReadyRoomSession<PictionaryState, PictionaryPublicCommand>['submit'];
+
+function renderStage(state: PictionaryState, submit: Submit) {
+  const session = createFakeRoomLink<PictionaryState, PictionaryPublicCommand>(
+    readyLinkSnapshot(testIdentity('pictionary'), createRoomSnapshot(state, 1)),
+    async () => successfulRoomCommand(state),
   );
-  const send = (command: Parameters<typeof pictionaryEngine.decide>[1]) => {
-    const decision = pictionaryEngine.decide(state, command, {
-      actor: { kind: 'user', userId: 'host-1' },
-      controlledSeat: null,
-      nowMs: 1000,
-      commandId: `command:${commandNumber++}`,
-      randomSeed: 'round',
-    });
-    if (decision.kind === 'reject') throw new Error(decision.reason);
-    state = decision.events.reduce(pictionaryEngine.evolve, state);
-  };
-  send({ type: 'room.seat.fillBots' });
-  send({ type: 'pictionary.game.begin' });
-  if (state.phase !== 'answering') throw new Error('Expected the answering phase');
-  return state;
+  return render(
+    <PictionaryStage
+      state={state}
+      effectiveSeat={0}
+      controlledSeat={null}
+      userId="host-1"
+      isHost
+      remainingSeconds={30}
+      isOverdue={false}
+      session={session}
+      submit={submit}
+      isSubmitting={false}
+      openReview={vi.fn()}
+    />,
+  );
 }
 
-describe('PictionaryStage answering top bar', () => {
+describe('PictionaryStage', () => {
   beforeEach(() => {
     vi.stubGlobal(
       'ResizeObserver',
@@ -69,55 +62,42 @@ describe('PictionaryStage answering top bar', () => {
     vi.unstubAllGlobals();
   });
 
-  it('shows the top bar with the 42/45 countdown and no heading countdown pill', () => {
-    const state = answeringState();
-    // Step 0 is a text step: deadlineAt = 1000 + 45_000; at nowMs 4000 the remaining time is 42 seconds.
-    expect(state.deadlineAt).toBe(46_000);
-    vi.spyOn(Date, 'now').mockReturnValue(4_000);
-    const session = createFakeRoomLink<PictionaryState, PictionaryPublicCommand>(
-      readyLinkSnapshot(testIdentity('pictionary'), createRoomSnapshot(state, 1)),
-      async () => successfulRoomCommand(state),
+  it('shows the opening prompt task without a step label or countdown of its own', () => {
+    const state = playPictionaryTestRound({ stopAt: { stepIndex: 0, phase: 'answering' } });
+    renderStage(state, vi.fn<Submit>());
+    expect(screen.getByRole('heading', { name: '写下一个题目' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: '接龙题目' })).toHaveAttribute(
+      'placeholder',
+      expect.stringMatching(/^例如：/),
     );
-    const seatModel: RoomSeatBoardModel = {
-      source: createPictionarySeatDataSource({
-        state,
-        revision: 1,
-        myUserId: 'host-1',
-        controlledSeat: null,
-      }),
-      visuallyDisabled: false,
-      onSeatPress: () => {},
-      onBotSeatLongPress: null,
-    };
-    render(
-      <PictionaryStage
-        state={state}
-        effectiveSeat={0}
-        controlledSeat={null}
-        userId="host-1"
-        isHost
-        canControlBots
-        seatModel={seatModel}
-        session={session}
-        submit={(label, command, options) =>
-          session
-            .dispatch(command, {
-              controlledSeat: options?.controlledSeat ?? null,
-              label,
-              durable: false,
-            })
-            .then((outcome) => outcome.kind === 'committed')
-        }
-        isSubmitting={false}
-        openReview={vi.fn()}
-      />,
+    expect(screen.getByTestId(TESTIDS.pictionaryTextSubmitButton)).toBeDisabled();
+    expect(screen.queryByText(/\d+:\d{2}/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/第 ?\d+ ?\/ ?\d+ ?棒/)).not.toBeInTheDocument();
+  });
+
+  it('marks the task done when Enter submits a valid text', async () => {
+    const user = userEvent.setup();
+    const state = playPictionaryTestRound({ stopAt: { stepIndex: 0, phase: 'answering' } });
+    const submit = vi.fn<Submit>().mockResolvedValue(true);
+    renderStage(state, submit);
+    await user.type(screen.getByRole('textbox', { name: '接龙题目' }), '月球上的猫{Enter}');
+    expect(submit).toHaveBeenCalledTimes(1);
+    expect(submit).toHaveBeenCalledWith(
+      '完成编辑',
+      expect.objectContaining({ type: 'pictionary.task.ready.set', isReady: true }),
+      { controlledSeat: null, durable: true },
     );
-    expect(screen.getByTestId('answering-top-bar')).toBeInTheDocument();
-    expect(screen.getByText('42')).toBeInTheDocument();
-    expect(screen.getByText('4人作答中')).toBeInTheDocument();
-    expect(screen.getByText(/0已提交/)).toBeInTheDocument();
-    expect(screen.getByText('写下一个题目')).toBeInTheDocument();
-    // The old heading pill would have shown the formatted countdown "0:42".
-    expect(screen.queryByText('0:42')).not.toBeInTheDocument();
+  });
+
+  it('shows the text to draw as one card above the canvas', () => {
+    const state = playPictionaryTestRound({ stopAt: { stepIndex: 1, phase: 'answering' } });
+    const previousEntry = getPictionaryTaskForSeat(state, 0)?.previousEntry;
+    if (previousEntry?.kind !== 'text') throw new Error('Seat 0 should draw a handed-in text');
+    expect(previousEntry.text).toBe(pictionaryTestText(0, previousEntry.authorSeat));
+    renderStage(state, vi.fn<Submit>());
+    expect(screen.getByText('把这句话画出来')).toBeInTheDocument();
+    expect(screen.getByText(previousEntry.text)).toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toBeInTheDocument();
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
   });
 });

@@ -36,15 +36,24 @@ export class PictionaryRoomPage extends RoomPage {
     });
   }
 
+  /** Wait until the stage information bar shows this relay step, then return the task frame. */
+  private async waitForRelayStep(step: number, totalSteps: number) {
+    await expect(
+      this.page
+        .getByTestId(TESTIDS.roomStageHud)
+        .getByText(`第 ${step}/${totalSteps} 棒`, { exact: true }),
+    ).toBeVisible({ timeout: 30_000 });
+    return this.page.getByTestId(TESTIDS.pictionaryStageFrame);
+  }
+
   /** Wait for the opening prompt composer with no inherited context. */
   async expectPromptStep(step: number, totalSteps: number): Promise<void> {
-    const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);
-    await expect(stage.getByText(`第 ${step} / ${totalSteps} 棒`, { exact: true })).toBeVisible({
-      timeout: 30_000,
-    });
-    await expect(stage.getByText('写下一个题目', { exact: true })).toBeVisible();
-    await expect(this.page.getByTestId(TESTIDS.pictionaryTextInput)).toBeVisible();
-    await expect(stage.getByText('上一棒', { exact: true })).toHaveCount(0);
+    const stage = await this.waitForRelayStep(step, totalSteps);
+    await expect(stage.getByRole('heading', { name: '写下一个题目', exact: true })).toBeVisible();
+    const input = this.page.getByTestId(TESTIDS.pictionaryTextInput);
+    await expect(input).toBeVisible();
+    await expect(input).toHaveAccessibleName('接龙题目');
+    await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingImageButton)).toHaveCount(0);
   }
 
   /** Mark one locally persisted opening prompt ready for final collection. */
@@ -73,15 +82,9 @@ export class PictionaryRoomPage extends RoomPage {
 
   /** Assert a drawing task with its inherited text context and complete tool set. */
   async expectDrawingStep(step: number, totalSteps: number): Promise<void> {
-    const stage = this.page
-      .getByTestId(TESTIDS.pictionaryStageFrame)
-      .filter({ hasText: `第 ${step} / ${totalSteps} 棒` });
-    await expect(stage.getByText(`第 ${step} / ${totalSteps} 棒`, { exact: true })).toBeVisible({
-      timeout: 30_000,
-    });
+    const stage = await this.waitForRelayStep(step, totalSteps);
     await expect(stage.getByText('把这句话画出来', { exact: true })).toBeVisible();
     await expect(stage.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toBeVisible();
-    await expect(stage.getByText('上一棒', { exact: true })).toBeVisible();
     const canvasBounds = await stage.getByTestId(TESTIDS.pictionaryDrawingCanvas).boundingBox();
     if (canvasBounds === null) throw new Error('Pictionary canvas has no browser layout box');
     const toolbarBounds = [];
@@ -239,9 +242,7 @@ export class PictionaryRoomPage extends RoomPage {
 
   /** Exercise each drawing operation against the real Skia canvas. */
   async exerciseDrawingTools(step: number, totalSteps: number): Promise<void> {
-    const stage = this.page
-      .getByTestId(TESTIDS.pictionaryStageFrame)
-      .filter({ hasText: `第 ${step} / ${totalSteps} 棒` });
+    const stage = await this.waitForRelayStep(step, totalSteps);
     await this.drawStroke(0);
     const undoButton = stage.getByRole('button', { name: '撤销', exact: true });
     const redoButton = stage.getByRole('button', { name: '重做', exact: true });
@@ -292,19 +293,14 @@ export class PictionaryRoomPage extends RoomPage {
 
   /** Wait for a guess task and its protected source drawing. */
   async expectGuessStep(step: number, totalSteps: number): Promise<void> {
-    const stage = this.page
-      .getByTestId(TESTIDS.pictionaryStageFrame)
-      .filter({ hasText: `第 ${step} / ${totalSteps} 棒` });
-    await expect(stage.getByText(`第 ${step} / ${totalSteps} 棒`, { exact: true })).toBeVisible({
-      timeout: 30_000,
-    });
-    await expect(stage.getByText('猜猜画的是什么', { exact: true })).toBeVisible();
-    await expect(this.page.getByTestId(TESTIDS.pictionaryTextInput)).toBeVisible();
-    await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingImageButton)).toBeVisible({
-      timeout: 30_000,
-    });
-    await expect(stage.getByText('上一棒画作', { exact: true })).toBeVisible();
-    await expect(stage.getByText(/ 的画作$/)).toHaveCount(0);
+    const stage = await this.waitForRelayStep(step, totalSteps);
+    const input = this.page.getByTestId(TESTIDS.pictionaryTextInput);
+    await expect(input).toBeVisible();
+    await expect(input).toHaveAttribute('placeholder', '猜猜画的是什么');
+    await expect(input).toHaveAccessibleName('看图猜词答案');
+    const drawing = stage.getByTestId(TESTIDS.pictionaryDrawingImageButton);
+    await expect(drawing).toBeVisible({ timeout: 30_000 });
+    await expect(drawing).toHaveAccessibleName('上一棒画作，全屏查看');
   }
 
   /** Open and close the protected drawing's fullscreen preview. */
