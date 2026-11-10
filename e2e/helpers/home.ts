@@ -15,11 +15,15 @@ import { TESTIDS } from '../../packages/web/src/testids';
  * Register an auto-dismiss handler for the version announcement, which opens on its own
  * once auth settles. The handler fires before every actionability check, and its trigger
  * is the close button itself, so it disappears after the click.
+ *
+ * The announcement can open in the same moment as another dialog (the login dialog after
+ * 进入房间), which then stacks on top and intercepts pointer events. The click is therefore
+ * dispatched to the close trigger directly instead of going through the pointer.
  */
 export async function registerAutoDismissers(page: Page): Promise<void> {
   const closeAnnouncement = page.getByTestId(TESTIDS.homeAnnouncementCloseButton);
   await page.addLocatorHandler(closeAnnouncement, async () => {
-    await closeAnnouncement.click();
+    await closeAnnouncement.dispatchEvent('click');
   });
 }
 
