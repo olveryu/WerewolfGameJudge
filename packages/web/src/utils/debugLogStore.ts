@@ -7,8 +7,6 @@
  */
 
 export interface DebugLogEntry {
-  /** Sequence number, unique for the page's lifetime. */
-  id: number;
   timestamp: Date;
   message: string;
   level: 'log' | 'warn' | 'error' | 'debug';
@@ -19,7 +17,6 @@ const MAX_LOGS = 500;
 // ── Module state ────────────────────────────────────────────────────────────
 
 let logs: readonly DebugLogEntry[] = [];
-let nextLogId = 0;
 let visible = false;
 let version = 0;
 
@@ -45,17 +42,18 @@ function emitChange(): void {
 /** External debug log store used before and after React mounts. */
 export const debugLogStore = {
   /** useSyncExternalStore subscribe */
-  subscribe: (listener: () => void): (() => void) => {
+  subscribe(listener: () => void): () => void {
     listeners.add(listener);
     return () => listeners.delete(listener);
   },
 
   /** useSyncExternalStore getSnapshot */
-  getSnapshot: (): DebugLogSnapshot => snapshot,
+  getSnapshot(): DebugLogSnapshot {
+    return snapshot;
+  },
 
   addLog(message: string, level: DebugLogEntry['level']): void {
     const entry: DebugLogEntry = {
-      id: nextLogId++,
       timestamp: new Date(),
       message,
       level,

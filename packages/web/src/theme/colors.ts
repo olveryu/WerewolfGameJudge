@@ -74,33 +74,6 @@ const reportColors = {
   neutralMedalBorder: '#DCDCE6',
 } as const;
 
-/** The debug console's dark palette, deliberately apart from the game UI as in the previous client. */
-const debugColors = {
-  card: 'rgba(22, 22, 26, 0.98)',
-  toolbar: 'rgba(255, 255, 255, 0.04)',
-  border: 'rgba(255, 255, 255, 0.08)',
-  borderSubtle: 'rgba(255, 255, 255, 0.03)',
-  chip: 'rgba(255, 255, 255, 0.08)',
-  button: 'rgba(255, 255, 255, 0.12)',
-  input: 'rgba(255, 255, 255, 0.06)',
-  text: '#E0E0E0',
-  textSecondary: '#9CA3AF',
-  textMuted: '#6B7280',
-  textDim: '#4B5563',
-  icon: '#CCCCCC',
-  textActive: '#FFFFFF',
-  log: '#A5F3FC',
-  error: '#F87171',
-  warn: '#FBBF24',
-  debug: '#6B7280',
-  errorBadge: '#7F1D1D',
-  errorBadgeText: '#FCA5A5',
-  warnBadge: '#78350F',
-  warnBadgeText: '#FDE68A',
-  debugBadge: '#1F2937',
-  debugBadgeText: '#9CA3AF',
-} as const;
-
 /**
  * Translucent variants published as `--color-<token>-a<percent>` (e.g. `--color-primary-a25`).
  * CSS cannot derive them: `color-mix()` with variables needs Safari 16.2 and Chrome 111, above
@@ -141,7 +114,7 @@ const ALPHA_VARIANTS: readonly (readonly [keyof typeof colors, number])[] = [
   ),
 ];
 
-/** Publishes the palettes as `--color-*`, `--report-*` and `--debug-*` custom properties on the document root. */
+/** Publishes the palettes as `--color-*` and `--report-*` custom properties on the document root. */
 export function applyColorTokens(root: HTMLElement): void {
   for (const [token, value] of Object.entries(colors)) {
     root.style.setProperty(toCustomPropertyName('color', token), value);
@@ -154,8 +127,5 @@ export function applyColorTokens(root: HTMLElement): void {
   }
   for (const [token, value] of Object.entries(reportColors)) {
     root.style.setProperty(toCustomPropertyName('report', token), value);
-  }
-  for (const [token, value] of Object.entries(debugColors)) {
-    root.style.setProperty(toCustomPropertyName('debug', token), value);
   }
 }

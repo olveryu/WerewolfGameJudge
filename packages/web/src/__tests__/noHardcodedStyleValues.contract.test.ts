@@ -2,8 +2,8 @@
  * Contract test: CSS uses design tokens.
  *
  * Scans production CSS for hardcoded style values that should reference the custom properties
- * published by `theme/colors.ts` (`--color-*`, `--report-*`, `--debug-*`) and `theme/tokens.css`
- * (sizes, type, radii, shadows).
+ * published by `theme/colors.ts` (`--color-*`, `--report-*`) and `theme/tokens.css` (sizes,
+ * type, radii, shadows).
  *
  * Checked patterns:
  *   - `#hex`, `rgb()`, `rgba()`, `hsl()`, `hsla()` color literals → `var(--color-*)`
