@@ -3,6 +3,8 @@ import './LoadingScreen.css';
 import { Button } from '@/components/Button';
 import { Spinner } from '@/components/Spinner';
 
+import appIconUrl from '../../../../assets/pwa/icon-192.png';
+
 /**
  * Full-screen loading state with an optional message; with `error` it shows the error and
  * the recovery actions the caller provides (重试 / 返回首页).
@@ -37,7 +39,8 @@ export function LoadingScreen({
   }
   return (
     <main className="loading-screen" aria-busy>
-      <img className="loading-screen-icon" src="/pwa/icon-192.png" alt="" />
+      {/* CORS mode like the share logo: the CDN omits `Vary: Origin`, so cached copies must match. */}
+      <img className="loading-screen-icon" src={appIconUrl} alt="" crossOrigin="anonymous" />
       <Spinner label={message ?? '加载中'} size="lg" />
       {message !== undefined && <p className="loading-screen-message">{message}</p>}
     </main>

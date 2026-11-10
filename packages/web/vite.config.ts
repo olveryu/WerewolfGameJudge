@@ -43,7 +43,7 @@ export default defineConfig({
   },
   experimental: {
     // Public files (manifest.json, PWA icons) are not published to the CDN; they stay
-    // same-origin on Pages, which also keeps share-image canvases untainted.
+    // same-origin on Pages, as the web app manifest must.
     renderBuiltUrl(filename, { type }) {
       return type === 'public' ? `/${filename}` : undefined;
     },

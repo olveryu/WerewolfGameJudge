@@ -17,8 +17,7 @@ import { log } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
 import IconPaperPlaneOutline from '~icons/ion/paper-plane-outline';
 
-// Public files stay same-origin (vite.config.ts renderBuiltUrl), so the capture canvas is untainted.
-const APP_LOGO_URL = '/pwa/icon-192.png';
+import appLogoUrl from '../../../../../../assets/pwa/icon-192.png';
 
 function ShareCard({ model }: { readonly model: RoomShareModel }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -74,7 +73,13 @@ function ShareCard({ model }: { readonly model: RoomShareModel }) {
             <QrCode.Pattern className="room-share-qr-pattern" />
           </QrCode.Frame>
           <QrCode.Overlay className="room-share-qr-logo">
-            <img src={APP_LOGO_URL} alt="" onLoad={() => setIsLogoLoaded(true)} />
+            {/* The logo comes from the CDN in deploy builds; CORS mode keeps the capture untainted. */}
+            <img
+              src={appLogoUrl}
+              alt=""
+              crossOrigin="anonymous"
+              onLoad={() => setIsLogoLoaded(true)}
+            />
           </QrCode.Overlay>
         </QrCode.Root>
         <p className="room-share-code">房间号 {model.roomCode}</p>
