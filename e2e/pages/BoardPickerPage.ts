@@ -1,3 +1,7 @@
+import {
+  TEMPLATE_CATEGORY_LABELS,
+  type TemplateCategory,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { expect, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
@@ -21,9 +25,9 @@ export class BoardPickerPage {
 
   /** Wait until the board picker screen is visible. */
   async waitForReady() {
-    await expect(this.page.locator(`[data-testid="${TESTIDS.boardPickerScreenRoot}"]`)).toBeVisible(
-      { timeout: 10000 },
-    );
+    await expect(this.page.getByTestId(TESTIDS.boardPickerScreenRoot)).toBeVisible({
+      timeout: 10000,
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -31,34 +35,25 @@ export class BoardPickerPage {
   // ---------------------------------------------------------------------------
 
   /**
-   * Select a preset template by name.
+   * Select a preset template by name: expand its card, then press "以此为基础".
    *
-   * Clicks the template card header (which navigates to Config with that preset).
-   * The card title is a TouchableOpacity that expands/collapses. Since we want
-   * to navigate, we need to expand first, then click "以此为基础".
-   *
-   * When `categoryLabel` is given (e.g. '特色' for Special boards), the
-   * category tab is clicked first: the picker defaults to the Classic tab,
-   * so a non-Classic card is not rendered until its tab is active. Tab
-   * text is "<label> <count>", matched exactly so a section header
-   * ("<label> · <count>") never matches.
+   * The picker defaults to the Classic tab, so a card in another category is
+   * rendered only after its `category` tab is pressed.
    */
-  async selectTemplate(name: string, categoryLabel?: string) {
-    const root = this.page.locator(`[data-testid="${TESTIDS.boardPickerScreenRoot}"]`);
-    if (categoryLabel !== undefined) {
-      const escapedLabel = categoryLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const tab = root.getByText(new RegExp(`^${escapedLabel} \\d+$`)).first();
+  async selectTemplate(name: string, category?: TemplateCategory) {
+    if (category !== undefined) {
+      const tab = this.page.getByTestId(TESTIDS.boardPickerCategoryTab(category));
+      await expect(tab).toContainText(TEMPLATE_CATEGORY_LABELS[category]);
       await tab.click();
+      await expect(tab).toHaveAttribute('aria-pressed', 'true');
     }
-    // Click the card to expand it
-    const cardTitle = root.getByText(name, { exact: true }).first();
-    await cardTitle.scrollIntoViewIfNeeded();
-    await expect(cardTitle).toBeVisible({ timeout: 5000 });
-    await cardTitle.click();
+    const cardHeader = this.page.getByTestId(TESTIDS.boardCardHeader(name));
+    await expect(cardHeader).toContainText(name, { timeout: 5000 });
+    await cardHeader.click();
+    await expect(cardHeader).toHaveAttribute('aria-expanded', 'true');
 
-    // Click the "以此为基础" button in the expanded card
-    const selectButton = root.getByText('以此为基础').first();
-    await expect(selectButton).toBeVisible({ timeout: 3000 });
+    const selectButton = this.page.getByTestId(TESTIDS.boardCardSelectButton(name));
+    await expect(selectButton).toHaveText('以此为基础');
     await selectButton.click();
   }
 

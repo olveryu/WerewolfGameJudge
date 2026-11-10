@@ -1,3 +1,4 @@
+import { TESTIDS } from '../../packages/web/src/testids';
 import { expect, test } from '../fixtures/app.fixture';
 import { HomePage } from '../pages/HomePage';
 
@@ -19,14 +20,17 @@ test.describe('App — Home Screen', () => {
     const home = new HomePage(app.page);
     await home.clickSettings();
 
-    await expect(app.page.getByText('设置', { exact: true })).toBeVisible({ timeout: 5000 });
+    await expect(app.page.getByTestId(TESTIDS.screenHeaderTitle)).toHaveText('设置', {
+      timeout: 5000,
+    });
   });
 
   test('can access join room dialog', async ({ app }) => {
     const home = new HomePage(app.page);
     await home.clickJoinRoom();
 
-    await expect(app.page.getByText('加入房间')).toBeVisible({ timeout: 10000 });
-    await expect(app.page.getByText('输入4位房间号码')).toBeVisible();
+    await expect(app.page.getByTestId(TESTIDS.joinRoomDialog)).toHaveAccessibleDescription(
+      '输入4位房间号码',
+    );
   });
 });

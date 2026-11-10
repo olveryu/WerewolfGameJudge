@@ -84,12 +84,12 @@ for (const viewport of [
       await hostRoom.openHostManagement();
       await hostPage.getByTestId(TESTIDS.assignRolesButton).click();
       await hostRoom.confirmHostActionDialog('分配角色？');
-      await expect(hostPage.getByTestId('undercover-view-word')).toBeVisible();
+      await expect(hostPage.getByTestId(TESTIDS.roomViewIdentityButton)).toBeVisible();
       await expect(hostPage.getByTestId('undercover-word')).toHaveCount(0);
       // Every real player views their own word card on their own page.
       const cards: string[] = [];
       for (const page of allPages) {
-        await page.getByTestId('undercover-view-word').click();
+        await page.getByTestId(TESTIDS.roomViewIdentityButton).click();
         cards.push(await page.getByTestId('undercover-word').innerText());
         await page.getByText('隐藏词卡', { exact: true }).click();
         await expect(page.getByTestId('undercover-word')).toHaveCount(0);
@@ -97,11 +97,11 @@ for (const viewport of [
       expect(cards.filter((word) => word === '你是白板')).toHaveLength(1);
       // Five players confirm first, then the host confirms last.
       for (const page of joinerPages) {
-        await page.getByTestId('undercover-view-word').click();
+        await page.getByTestId(TESTIDS.roomViewIdentityButton).click();
         await page.getByTestId('undercover-confirm').click();
       }
       await expect(hostPage.getByText(/位玩家已查看词卡，等待剩余玩家/)).toBeVisible();
-      await hostPage.getByTestId('undercover-view-word').click();
+      await hostPage.getByTestId(TESTIDS.roomViewIdentityButton).click();
       await hostPage.getByTestId('undercover-confirm').click();
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
         '开始游戏',
@@ -119,7 +119,7 @@ for (const viewport of [
         (await hostRoom.openHostManagement()).getByTestId('undercover-select-player'),
       ).toBeVisible();
       await hostRoom.closeHostManagement();
-      await hostPage.getByTestId('undercover-view-word').click();
+      await hostPage.getByTestId(TESTIDS.roomViewIdentityButton).click();
       await expect(hostPage.getByTestId('undercover-word')).toHaveText(cards[0]!);
       await hostPage.reload();
       await hostRoom.waitForReady('host');
@@ -186,7 +186,7 @@ for (const viewport of [
           civilians.findIndex((civilian) => civilian.seat === seat) + 1,
         );
         if (seat === 0 && civilians[civilians.length - 1]?.seat !== 0) {
-          await hostPage.getByTestId('undercover-view-word').click();
+          await hostPage.getByTestId(TESTIDS.roomViewIdentityButton).click();
           await expect(hostPage.getByTestId('undercover-word')).toHaveText(cards[0]!);
           await hostPage.getByText('隐藏词卡', { exact: true }).click();
         }
@@ -197,7 +197,7 @@ for (const viewport of [
       await reviewPage.getByTestId(TESTIDS.roomReviewOpenButton).click();
       const reviewDialog = reviewPage.getByTestId(TESTIDS.roomReviewDialog);
       await expect(reviewDialog.getByText('白板获胜', { exact: true })).toBeVisible();
-      await expect(hostPage.getByTestId('undercover-view-word')).toHaveCount(0);
+      await expect(hostPage.getByTestId(TESTIDS.roomViewIdentityButton)).toHaveCount(0);
       const shareButton = reviewDialog.getByTestId(TESTIDS.roomReviewShareButton);
       // The control reads its share label once the background capture is ready.
       await expect(shareButton).toContainText('保存／分享图片', {
@@ -229,7 +229,7 @@ for (const viewport of [
       // is a modal bottom sheet that covers the host's own view-word button,
       // hanging the first confirm click until the test timeout.
       for (const page of allPages) {
-        await page.getByTestId('undercover-view-word').click();
+        await page.getByTestId(TESTIDS.roomViewIdentityButton).click();
         await page.getByTestId('undercover-confirm').click();
       }
       await hostRoom.openHostManagement();

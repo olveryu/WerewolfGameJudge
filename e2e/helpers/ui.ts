@@ -1,15 +1,12 @@
 import * as path from 'node:path';
 
-import { type Locator, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
 
 /**
  * UI Helpers (generic primitives layer, pure utilities)
  *
- * Generic UI interaction primitives for Playwright tests.
+ * Generic navigation and evidence primitives for Playwright tests.
  * These are low-level utilities with no app-specific logic.
- *
- * NOTE: This is the CANONICAL location for all generic UI utilities.
- * Domain helpers (home.ts, waits.ts) import from here.
  */
 
 // =============================================================================
@@ -199,58 +196,6 @@ async function attemptNavigation(
     const isRefused =
       error.message.includes('ERR_CONNECTION_REFUSED') || error.message.includes('ECONNREFUSED');
     return { success: false, error, isRefused };
-  }
-}
-
-// =============================================================================
-// Visibility Helpers
-// =============================================================================
-
-/**
- * Helper to get a visible element on the current screen.
- *
- * React Navigation on Web keeps previous screens in the DOM with aria-hidden="true".
- * When navigating to the same screen type (e.g., Home -> Config -> Room -> Config),
- * there can be multiple elements matching the same selector.
- */
-export function getVisibleText(page: Page, text: string) {
-  return page.locator(`text="${text}" >> visible=true`);
-}
-
-// =============================================================================
-// Click Helpers
-// =============================================================================
-
-/**
- * Click on a locator or text if it's visible.
- * Does NOT throw if not visible - just returns false.
- *
- * @param page - Playwright Page
- * @param target - Locator or text string
- * @param opts - Options for matching and timeout
- * @returns true if clicked, false if not visible
- */
-export async function clickIfVisible(
-  page: Page,
-  target: Locator | string,
-  opts: { exact?: boolean; timeout?: number } = {},
-): Promise<boolean> {
-  const { exact = false, timeout = 500 } = opts;
-
-  try {
-    const locator = typeof target === 'string' ? page.getByText(target, { exact }) : target;
-
-    const isVisible = await locator
-      .waitFor({ state: 'visible', timeout })
-      .then(() => true)
-      .catch(() => false);
-    if (isVisible) {
-      await locator.first().click({ timeout: 1000 });
-      return true;
-    }
-    return false;
-  } catch {
-    return false;
   }
 }
 

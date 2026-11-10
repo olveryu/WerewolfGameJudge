@@ -452,8 +452,7 @@ test.describe('Pictionary', () => {
       await test.step('upload every album PNG for WeChat despite an unrelated pending image', async () => {
         await expectWeChatImageShare(
           hostPage,
-          /分享本篇画册/,
-          new RegExp(`保存／分享全部 ${PLAYER_COUNT} 页`),
+          { testId: TESTIDS.pictionaryGalleryShareButton, label: '分享本篇画册' },
           PLAYER_COUNT,
         );
       });

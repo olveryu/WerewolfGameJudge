@@ -330,7 +330,11 @@ test('four humans write four turns without restoring unsubmitted input and revea
       await expectStoryImageExport(hostPage, code, 0);
       await expectStoryImageExport(fixture.pages[1]!, code, 1);
       await test.step('upload every story PNG for WeChat despite an unrelated pending image', async () => {
-        await expectWeChatImageShare(hostPage, '分享本篇故事', /保存／分享全部 4 页/, 4);
+        await expectWeChatImageShare(
+          hostPage,
+          { testId: TESTIDS.storyRelayGalleryShareButton, label: '分享本篇故事' },
+          4,
+        );
       });
       await (await room.openHostManagement()).getByTestId('next-round-button').click();
       await confirm(hostPage);

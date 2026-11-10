@@ -48,11 +48,7 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
         await new RoomPage(spectatorPage).joinViaCode(roomCode);
         await hostRoom.prepareRoles();
         for (const page of playerPages) {
-          await page.getByRole('button', { name: '查看身份', exact: true }).click();
-          const modal = page.getByTestId('role-card-modal');
-          await expect(modal).toBeVisible();
-          await modal.getByText('知道了', { exact: true }).click();
-          await expect(modal).toBeHidden();
+          await new RoomPage(page).viewRole();
         }
       });
 

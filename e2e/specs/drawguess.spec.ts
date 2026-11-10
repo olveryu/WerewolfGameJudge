@@ -241,7 +241,7 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
         await expect(page.getByTestId(TESTIDS.mySeatBadge)).toBeVisible();
       }
       expect(await room.getRoomCode()).toBe(code);
-      expect(await room.getSeatCount()).toBe(4);
+      await room.expectSeatCount(4);
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
         '开始游戏',
       );

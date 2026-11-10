@@ -230,7 +230,7 @@ async function dismissQuestResultPanels(pages: Page[]): Promise<void> {
 
 /** Open the own role card, read the role name from inside the card, dismiss. */
 async function viewAndCaptureRole(page: Page): Promise<RoleName> {
-  await page.getByTestId('avalon-view-role').click();
+  await page.getByTestId(TESTIDS.roomViewIdentityButton).click();
   const modal = page.getByTestId('role-card-modal');
   await expect(modal).toBeVisible({ timeout: 15_000 });
   let captured: RoleName | null = null;

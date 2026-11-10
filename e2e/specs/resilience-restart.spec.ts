@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { closeAll } from '../fixtures/app.fixture';
-import { setupNPlayerGame, viewRoleWithRetry } from '../helpers/multi-player';
+import { setupNPlayerGame } from '../helpers/multi-player';
 import { waitForHostAudioAck } from '../helpers/night-driver';
 import { runNightFlowLoop } from '../pages/NightFlowPage';
 import { RoomPage } from '../pages/RoomPage';
@@ -47,16 +47,14 @@ test.describe('Resilience — Restart & Settings', () => {
 
       // Wait for both pages to stabilize (seat grid visible)
       for (const page of fixture.pages) {
-        await expect(page.locator('[data-testid^="seat-tile-pressable-"]').first()).toBeVisible({
-          timeout: 5000,
-        });
+        await expect(new RoomPage(page).getSeatTile(0)).toBeVisible({ timeout: 5000 });
       }
 
       // Re-run the full game setup: prepare -> view -> start
       await room.prepareRoles();
 
       for (const page of fixture.pages) {
-        await viewRoleWithRetry(page);
+        await new RoomPage(page).viewRole();
       }
 
       await room.startGame();
@@ -106,8 +104,7 @@ test.describe('Resilience — Restart & Settings', () => {
       const room = new RoomPage(hostPage);
 
       // Verify initial seat count
-      const initialSeats = await room.getSeatCount();
-      expect(initialSeats).toBe(2);
+      await room.expectSeatCount(2);
 
       // Open settings
       await room.openSettings();
@@ -126,15 +123,14 @@ test.describe('Resilience — Restart & Settings', () => {
       await room.waitForReady('host');
 
       // Verify seat count changed
-      const updatedSeats = await room.getSeatCount();
-      expect(updatedSeats).toBe(3);
+      await room.expectSeatCount(3);
 
       await room.screenshot(testInfo, 'settings-seat-count.png');
 
       await testInfo.attach('settings.txt', {
         body: [
-          `Initial seats: ${initialSeats}`,
-          `After settings change: ${updatedSeats}`,
+          'Initial seats: 2',
+          'After settings change: 3',
           'Change: +1 villager (villager1)',
         ].join('\n'),
         contentType: 'text/plain',

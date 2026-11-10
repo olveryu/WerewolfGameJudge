@@ -1,8 +1,10 @@
 import type { Page } from '@playwright/test';
 import { expect, test, type TestInfo } from '@playwright/test';
 
+import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll } from '../fixtures/app.fixture';
-import { ensureAnonLogin, enterRoomCodeViaNumPad } from '../helpers/home';
+import { pressAlertButton } from '../helpers/alerts';
+import { ensureAnonLogin } from '../helpers/home';
 import { setupNPlayerGame } from '../helpers/multi-player';
 import { gotoWithRetry } from '../helpers/ui';
 import { waitForRoomScreenReady } from '../helpers/waits';
@@ -37,17 +39,16 @@ test.setTimeout(180_000);
  * Returns true if the overlay was visible and dismissed.
  */
 async function dismissContinueOverlayIfVisible(page: Page): Promise<boolean> {
-  const continueBtn = page.locator('[data-testid="alert-button-0"]');
-  const isVisible = await continueBtn
+  const isVisible = await page
+    .getByTestId(TESTIDS.alertButton(0))
     .waitFor({ state: 'visible', timeout: 5_000 })
-    .then(() => true)
-    .catch(() => false);
-
-  if (isVisible) {
-    await continueBtn.click();
-    return true;
-  }
-  return false;
+    .then(
+      () => true,
+      () => false,
+    );
+  if (!isVisible) return false;
+  await pressAlertButton(page, { title: '游戏已恢复', buttonIndex: 0, buttonLabel: '继续游戏' });
+  return true;
 }
 
 /**
@@ -99,12 +100,12 @@ test.describe('Resilience — Rejoin during ongoing game', () => {
       await ensureAnonLogin(hostPage);
 
       // Step 4: Click "最近房间" to open recent rooms modal, then click the room
-      const returnBtn = hostPage.locator('[data-testid="home-return-last-game-button"]');
-      await expect(returnBtn).toBeVisible({ timeout: 5_000 });
+      const returnBtn = hostPage.getByTestId(TESTIDS.homeReturnLastGameButton);
+      await expect(returnBtn).toContainText('最近房间', { timeout: 5_000 });
       await returnBtn.click();
 
       // Wait for recent rooms modal and click the room's join button
-      const joinBtn = hostPage.locator(`[data-testid="recent-room-join-${roomCode}"]`);
+      const joinBtn = hostPage.getByTestId(TESTIDS.recentRoomJoin(roomCode));
       await expect(joinBtn).toBeVisible({ timeout: 10_000 });
       await joinBtn.click();
       await waitForRoomScreenReady(hostPage, { role: 'host' });
@@ -176,13 +177,7 @@ test.describe('Resilience — Rejoin during ongoing game', () => {
       await ensureAnonLogin(joinerPage);
 
       // Step 4: Re-enter room via room code
-      const enterRoomBtn = joinerPage.locator('[data-testid="home-enter-room-button"]');
-      await expect(enterRoomBtn).toBeVisible({ timeout: 5_000 });
-      await enterRoomBtn.click();
-      await expect(joinerPage.getByText('加入房间')).toBeVisible({ timeout: 5_000 });
-      await enterRoomCodeViaNumPad(joinerPage, roomCode);
-      await joinerPage.getByText('加入', { exact: true }).click();
-      await waitForRoomScreenReady(joinerPage, { role: 'joiner' });
+      await new RoomPage(joinerPage).joinViaCode(roomCode);
 
       await joinerPage.screenshot().then((s) =>
         testInfo.attach('player-rejoin-02-back-in-room.png', {
@@ -192,7 +187,7 @@ test.describe('Resilience — Rejoin during ongoing game', () => {
       );
 
       // Step 5: Verify player is back on room screen
-      const roomScreenRoot = joinerPage.locator('[data-testid="room-screen-root"]');
+      const roomScreenRoot = joinerPage.getByTestId(TESTIDS.roomScreenRoot);
       await expect(roomScreenRoot).toBeVisible({ timeout: 5_000 });
 
       // Step 6: Continue night flow to completion

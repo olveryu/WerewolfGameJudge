@@ -66,7 +66,7 @@ test.describe('FibKing', () => {
       await room.waitForReady('host');
       await room.expectNoWerewolfOverlay();
       await room.expectPlayerCountHeading(20);
-      expect(await room.getSeatCount()).toBe(20);
+      await room.expectSeatCount(20);
     } finally {
       await closeAll(fixture);
     }
@@ -145,13 +145,7 @@ test.describe('FibKing', () => {
 
       // Kicking one seated player must not remove the others.
       await hostRoom.kickPlayer(2);
-      expect((await hostRoom.collectSeatState(3)).isEmpty, 'Kicked seat should be empty').toBe(
-        true,
-      );
-      expect(
-        (await hostRoom.collectSeatState(4)).isEmpty,
-        'Kicking one seat must not remove other players',
-      ).toBe(false);
+      await hostRoom.expectSeatOccupied(3);
       await firstBatchRooms[1]!.expectNotSeated();
       await firstBatchRooms[1]!.seatAt(2);
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
@@ -186,7 +180,7 @@ test.describe('FibKing', () => {
 
       await hostRoom.abandonGame();
       for (let seat = 0; seat < 4; seat += 1) {
-        expect((await hostRoom.collectSeatState(seat + 1)).isEmpty).toBe(false);
+        await hostRoom.expectSeatOccupied(seat);
       }
       await hostRoom.expectLobbySeatOperations();
 
@@ -238,14 +232,14 @@ test.describe('FibKing', () => {
       }
       await hostRoom.beginGame();
       for (let seat = 0; seat < 4; seat += 1) {
-        expect((await hostRoom.collectSeatState(seat + 1)).isEmpty).toBe(false);
+        await hostRoom.expectSeatOccupied(seat);
       }
       await hostRoom.expectOngoing();
 
       await hostRoom.revealRound();
       await hostRoom.endGame();
       for (let seat = 0; seat < 4; seat += 1) {
-        expect((await hostRoom.collectSeatState(seat + 1)).isEmpty).toBe(false);
+        await hostRoom.expectSeatOccupied(seat);
       }
       await hostRoom.expectLobbySeatOperations();
     } finally {
