@@ -22,6 +22,9 @@ export interface WerewolfAudioRuntime {
   /** Starts background music: one URL loops, several shuffle; no-op while playing. */
   readonly startBgm: (urls: readonly string[]) => void;
   readonly stopBgm: () => void;
+  /** Actual BGM playback state, for `useSyncExternalStore`. */
+  readonly isBgmPlaying: () => boolean;
+  readonly subscribeBgm: (listener: () => void) => () => void;
   readonly setBgmVolume: (volume: number) => void;
   readonly setGameAudioVolume: (volume: number) => void;
   readonly clearPreloaded: () => void;
@@ -33,6 +36,8 @@ export interface WerewolfAudioPlaybackPort {
   stop(): void;
   startBgm(urls: readonly string[]): void;
   stopBgm(): void;
+  isBgmPlaying(): boolean;
+  subscribeBgm(listener: () => void): () => void;
   setBgmVolume(volume: number): void;
   setGameAudioVolume(volume: number): void;
   clearPreloaded(): void;
@@ -64,6 +69,11 @@ export class WerewolfAudioPlayer implements WerewolfAudioRuntime {
   readonly startBgm = (urls: readonly string[]): void => this.#audioService.startBgm(urls);
 
   readonly stopBgm = (): void => this.#audioService.stopBgm();
+
+  readonly isBgmPlaying = (): boolean => this.#audioService.isBgmPlaying();
+
+  readonly subscribeBgm = (listener: () => void): (() => void) =>
+    this.#audioService.subscribeBgm(listener);
 
   readonly setBgmVolume = (volume: number): void => this.#audioService.setBgmVolume(volume);
 

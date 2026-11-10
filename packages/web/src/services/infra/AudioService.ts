@@ -78,6 +78,12 @@ export class AudioService {
     this.#bgm.stop();
   }
 
+  /** Whether background music is playing; the only source the UI reads. */
+  readonly isBgmPlaying = (): boolean => this.#bgm.isPlaying();
+
+  /** Notifies on every `isBgmPlaying()` change. */
+  readonly subscribeBgm = (listener: () => void): (() => void) => this.#bgm.subscribe(listener);
+
   /** Background music volume (0.0–1.0), applied to the current track immediately. */
   setBgmVolume(volume: number): void {
     this.#bgm.setVolume(volume);

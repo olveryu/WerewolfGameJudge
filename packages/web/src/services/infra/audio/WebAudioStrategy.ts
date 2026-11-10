@@ -32,7 +32,7 @@ export class WebAudioStrategy {
   #audioElement: HTMLAudioElement | null = null;
   #volume = 1;
   #loadAbortController: AbortController | null = null;
-  #cancelPlayback: (() => void) | null = null;
+  #settlePlayback: ((error?: Error) => void) | null = null;
 
   readonly #preloadedAudios = new Map<string, HTMLAudioElement>();
 
@@ -183,7 +183,7 @@ export class WebAudioStrategy {
         isSettled = true;
         audio.onended = null;
         audio.onerror = null;
-        if (this.#cancelPlayback === cancelPlayback) this.#cancelPlayback = null;
+        if (this.#settlePlayback === settle) this.#settlePlayback = null;
         if (error) {
           reject(error);
         } else {
@@ -191,8 +191,7 @@ export class WebAudioStrategy {
         }
       };
 
-      const cancelPlayback = (): void => settle();
-      this.#cancelPlayback = cancelPlayback;
+      this.#settlePlayback = settle;
 
       audio.onended = () => {
         audioLog.debug('WEB onended fired', { label });
@@ -227,39 +226,34 @@ export class WebAudioStrategy {
   stop(): void {
     this.#loadAbortController?.abort();
     this.#loadAbortController = null;
-    this.#cancelPlayback?.();
-    this.#cancelPlayback = null;
+    this.#settlePlayback?.();
+    this.#settlePlayback = null;
     if (this.#audioElement) {
       audioLog.debug('WebAudioStrategy.stop: pausing audio element (keeping for reuse)');
-      try {
-        this.#audioElement.pause();
-        this.#audioElement.onended = null;
-        this.#audioElement.onerror = null;
-        this.#audioElement.oncanplaythrough = null;
-        this.#audioElement.removeAttribute('src');
-        this.#audioElement.load();
-      } catch (e) {
-        audioLog.warn('WebAudioStrategy.stop: error pausing', e);
-      }
+      this.#audioElement.pause();
+      this.#audioElement.onended = null;
+      this.#audioElement.onerror = null;
+      this.#audioElement.oncanplaythrough = null;
+      this.#audioElement.removeAttribute('src');
+      this.#audioElement.load();
     }
   }
 
   /** Pause current playback (for visibility change). */
   pause(): void {
-    if (this.#audioElement) {
-      try {
-        this.#audioElement.pause();
-      } catch (e) {
-        audioLog.warn('error pausing web audio', e);
-      }
-    }
+    this.#audioElement?.pause();
   }
 
-  /** Resume playback if it was active before pause. */
+  /** Resume playback if it was active before pause; a rejected resume fails that playback. */
   resume(): void {
-    if (this.#cancelPlayback && this.#audioElement) {
-      this.#audioElement.play().catch((e: unknown) => {
-        audioLog.warn('error resuming web audio', e);
+    const settle = this.#settlePlayback;
+    if (settle && this.#audioElement) {
+      this.#audioElement.play().catch((error: unknown) => {
+        settle(
+          new Error(
+            `WEB resume play() rejected: ${error instanceof Error ? error.message : String(error)}`,
+          ),
+        );
       });
       audioLog.debug('resumed web audio');
     }

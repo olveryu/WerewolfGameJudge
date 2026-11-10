@@ -6,6 +6,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 import { BGM_TRACKS } from '@/features/product/model/BgmCatalog';
 import { audioSettings } from '@/features/settings/audioSettings';
+import { createFakeBgm } from '@/test-utils/fakeBgm';
 
 import type { AvalonAudioRuntime } from '../../../audio/AvalonAudioPlayer';
 import { useAvalonBgmControl } from '../useAvalonBgmControl';
@@ -15,8 +16,7 @@ function createAudio() {
     playEffect: vi.fn(async () => undefined),
     preload: vi.fn(),
     stopNarration: vi.fn(),
-    startBgm: vi.fn(),
-    stopBgm: vi.fn(),
+    ...createFakeBgm(),
     setBgmVolume: vi.fn(),
     setGameAudioVolume: vi.fn(),
   } satisfies AvalonAudioRuntime;
@@ -119,6 +119,13 @@ it('does not start or stop shared audio for a player or spectator', () => {
   expect(audio.setGameAudioVolume).not.toHaveBeenCalled();
   expect(audio.startBgm).not.toHaveBeenCalled();
   expect(audio.stopBgm).not.toHaveBeenCalled();
+});
+
+it('shows the player stopping on its own instead of a stale playing state', () => {
+  const { result } = renderMusic(true, 'night', true);
+  expect(result.current.isBgmPlaying).toBe(true);
+  act(() => audio.stopOnItsOwn());
+  expect(result.current.isBgmPlaying).toBe(false);
 });
 
 it('stops music when host ownership is lost', () => {

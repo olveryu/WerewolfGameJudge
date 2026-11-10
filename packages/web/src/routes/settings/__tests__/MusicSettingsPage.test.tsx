@@ -6,9 +6,11 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import type { Mock } from 'vitest';
 
 import { useServices } from '@/contexts/ServiceContext';
+import { BGM_TRACKS } from '@/features/product/model/BgmCatalog';
 import { audioSettings } from '@/features/settings/audioSettings';
 import { type ClientGameAudioPreview, loadClientGameAudioPreviews } from '@/games/catalog';
 import { MusicSettingsPage } from '@/routes/settings/MusicSettingsPage';
+import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { handleError } from '@/utils/errorPipeline';
 
 vi.mock('@/contexts/ServiceContext', () => ({ useServices: vi.fn() }));
@@ -16,8 +18,7 @@ vi.mock('@/utils/errorPipeline', () => ({ handleError: vi.fn() }));
 vi.mock('@/games/catalog', () => ({ loadClientGameAudioPreviews: vi.fn() }));
 
 const audioService = {
-  stopBgm: vi.fn(),
-  startBgm: vi.fn(),
+  ...createFakeBgm(),
   setBgmVolume: vi.fn(),
   setGameAudioVolume: vi.fn(),
 };
@@ -49,6 +50,7 @@ function renderPage() {
 describe('MusicSettingsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    audioService.stopOnItsOwn();
     previewResolvers = [];
     (useServices as Mock).mockReturnValue({ loadAudioService: async () => audioService });
     (loadClientGameAudioPreviews as Mock).mockResolvedValue([werewolfPreview]);
@@ -76,6 +78,21 @@ describe('MusicSettingsPage', () => {
       error,
       expect.objectContaining({ label: '保存音乐设置' }),
     );
+  });
+
+  it('shows a track preview as stopped once the player stops on its own', async () => {
+    renderPage();
+    const firstTrack = BGM_TRACKS[0];
+    if (firstTrack === undefined) throw new Error('BGM catalog is empty');
+
+    await userEvent.click(await screen.findByRole('button', { name: `试听 ${firstTrack.label}` }));
+    expect(audioService.startBgm).toHaveBeenCalledWith([firstTrack.url]);
+    expect(
+      screen.getByRole('button', { name: `停止试听 ${firstTrack.label}` }),
+    ).toBeInTheDocument();
+
+    act(() => audioService.stopOnItsOwn());
+    expect(screen.getByRole('button', { name: `试听 ${firstTrack.label}` })).toBeInTheDocument();
   });
 
   it('plays and stops the game-owned audio preview contribution', async () => {

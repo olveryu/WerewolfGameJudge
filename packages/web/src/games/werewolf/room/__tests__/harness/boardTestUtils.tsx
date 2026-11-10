@@ -44,6 +44,7 @@ import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioP
 import { werewolfReview } from '@/games/werewolf/review/werewolfReview';
 import { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
 import type { DispatchOutcome } from '@/platform/realtime/types';
+import { createFakeBgm } from '@/test-utils/fakeBgm';
 import {
   createFakeRoomLink,
   type FakeRoomLink,
@@ -184,8 +185,7 @@ function createAudioStub(): WerewolfAudioRuntime {
     playNightEnd: vi.fn(async () => undefined),
     preloadRoles: vi.fn(),
     stopNarration: vi.fn(),
-    startBgm: vi.fn(),
-    stopBgm: vi.fn(),
+    ...createFakeBgm(),
     setBgmVolume: vi.fn(),
     setGameAudioVolume: vi.fn(),
     clearPreloaded: vi.fn(),

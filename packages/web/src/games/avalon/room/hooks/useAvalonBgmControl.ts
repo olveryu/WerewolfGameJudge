@@ -1,7 +1,7 @@
 /** Host-owned Avalon background music; narration and authoritative game state remain independent. */
 
 import type { AvalonPhaseKind } from '@game-judge/game-engine/games/avalon/public';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
 import { resolveBgmTrackUrls } from '@/features/product/model/BgmCatalog';
 import { audioSettings } from '@/features/settings/audioSettings';
@@ -32,7 +32,7 @@ function resolveBgmLifecycle(phase: AvalonPhaseKind, isAudioPlaying: boolean): A
 }
 
 export interface AvalonBgmControlState {
-  /** Whether BGM is currently playing (local UI state). */
+  /** Whether the player is actually playing BGM. */
   readonly isBgmPlaying: boolean;
   /** Start BGM unconditionally (respects the track setting) — the host's manual toggle. */
   readonly playBgm: () => void;
@@ -46,8 +46,8 @@ export interface AvalonBgmControlState {
  * Binds saved music preferences to Avalon lifecycle and explicit host playback controls.
  * Automatic BGM is night-only, matching werewolf. The shared audio core silences BGM
  * right before the dawn voice; the dawn ack moves the lifecycle from auto to manual,
- * which runs the (idempotent) stop below so the play/pause control reflects the real
- * player state. Leaving play (lobby / ended) or losing host ownership stops music.
+ * which runs the (idempotent) stop below. Leaving play (lobby / ended) or losing host
+ * ownership stops music. The play/pause control reads the player's own state.
  */
 export function useAvalonBgmControl(
   audio: AvalonAudioRuntime,
@@ -55,24 +55,16 @@ export function useAvalonBgmControl(
   phase: AvalonPhaseKind,
   isAudioPlaying: boolean,
 ): AvalonBgmControlState {
-  const [isBgmPlaying, setIsBgmPlaying] = useState(false);
+  const isBgmPlaying = useSyncExternalStore(audio.subscribeBgm, audio.isBgmPlaying);
   const lifecycle = resolveBgmLifecycle(phase, isAudioPlaying);
 
-  const stopBgm = useCallback(() => {
-    audio.stopBgm();
-    setIsBgmPlaying(false);
-  }, [audio]);
+  const stopBgm = audio.stopBgm;
 
-  const startPlayer = useCallback(() => {
+  const playBgm = useCallback(() => {
     const settings = audioSettings.getSnapshot();
     audio.setBgmVolume(settings.bgmVolume);
     audio.startBgm(resolveBgmTrackUrls(settings.bgmTrack));
   }, [audio]);
-
-  const playBgm = useCallback(() => {
-    startPlayer();
-    setIsBgmPlaying(true);
-  }, [startPlayer]);
 
   const startBgmIfEnabled = useCallback(() => {
     if (audioSettings.getSnapshot().bgmEnabled) playBgm();
@@ -83,24 +75,17 @@ export function useAvalonBgmControl(
     audio.setGameAudioVolume(audioSettings.getSnapshot().gameAudioVolume);
   }, [isHost, audio]);
 
-  // The flag follows each lifecycle transition during render; the effect below drives the
-  // player. Entering auto plays when enabled; entering manual (dawn ack) or off (lobby /
-  // viewing / ended) stops. While the lifecycle stays manual neither re-runs, so host
-  // controls persist.
-  const hostLifecycle: AvalonBgmLifecycle = isHost ? lifecycle : 'off';
-  const [appliedLifecycle, setAppliedLifecycle] = useState<AvalonBgmLifecycle | null>(null);
-  if (hostLifecycle !== appliedLifecycle) {
-    setAppliedLifecycle(hostLifecycle);
-    setIsBgmPlaying(hostLifecycle === 'auto' && audioSettings.getSnapshot().bgmEnabled);
-  }
+  // Entering auto plays when enabled; entering manual (dawn ack) or off (lobby / viewing /
+  // ended) stops. While the lifecycle stays manual this does not re-run, so host controls
+  // persist.
   useEffect(() => {
     if (!isHost) return;
     if (lifecycle !== 'auto') {
       audio.stopBgm();
       return;
     }
-    if (audioSettings.getSnapshot().bgmEnabled) startPlayer();
-  }, [audio, isHost, lifecycle, startPlayer]);
+    startBgmIfEnabled();
+  }, [audio, isHost, lifecycle, startBgmIfEnabled]);
 
   useEffect(() => {
     if (!isHost) return;

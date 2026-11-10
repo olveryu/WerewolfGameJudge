@@ -18,6 +18,7 @@
  * - WeChat web-view (HarmonyOS ArkWeb) may swallow the `ended` event and native `loop`;
  *   `timeupdate` polling detects track end as a fallback. #trackEndFired prevents a
  *   double fire from `ended` + `timeupdate`.
+ * - `isPlaying()` is the only playback truth; UI subscribes to it, never mirrors it.
  */
 
 import { shuffleArray } from '@game-judge/game-engine/platform/random';
@@ -34,6 +35,7 @@ const PLAYLIST_GAP_MS = 2000;
 /** BGM player over one reused HTMLAudioElement routed through the shared AudioContext. */
 export class BgmPlayer {
   #isPlaying = false;
+  readonly #listeners = new Set<() => void>();
   #playlist: string[] = [];
   #currentIndex = 0;
   #isPlaylist = false;
@@ -48,6 +50,17 @@ export class BgmPlayer {
   #endedHandler: (() => void) | null = null;
   #timeupdateHandler: (() => void) | null = null;
   #trackEndFired = false;
+  /** Bumped per track and on release; a play() rejection from an older track is ignored. */
+  #trackGeneration = 0;
+
+  /** Whether music is playing (or between playlist tracks); `useSyncExternalStore` snapshot. */
+  readonly isPlaying = (): boolean => this.#isPlaying;
+
+  /** Notifies on every `isPlaying()` change. */
+  readonly subscribe = (listener: () => void): (() => void) => {
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
+  };
 
   /** Update BGM volume (0.0–1.0). Applies immediately to current playback. */
   setVolume(volume: number): void {
@@ -73,7 +86,7 @@ export class BgmPlayer {
     this.#isPlaylist = urls.length > 1;
     this.#playlist = this.#isPlaylist ? shuffleArray([...urls]) : [...urls];
     this.#currentIndex = 0;
-    this.#isPlaying = true;
+    this.#setPlaying(true);
 
     audioLog.debug('Starting BGM', {
       mode: this.#isPlaylist ? 'playlist' : 'loop',
@@ -84,7 +97,7 @@ export class BgmPlayer {
 
   /** Stops playback; the shared context and the element↔source binding stay alive for reuse. */
   stop(): void {
-    this.#isPlaying = false;
+    this.#setPlaying(false);
     if (this.#gapTimer) {
       clearTimeout(this.#gapTimer);
       this.#gapTimer = null;
@@ -103,10 +116,23 @@ export class BgmPlayer {
     if (!this.#isPlaying || !this.#element) return;
     // Ensure shared context is running (covers WebKit suspended + interrupted).
     void ensureAudioContextRunning();
-    this.#element.play().catch((e: unknown) => {
-      audioLog.warn('error resuming web bgm', e);
-    });
+    this.#play(this.#element, 'resume');
     audioLog.debug('resumed web BGM');
+  }
+
+  #play(audio: HTMLAudioElement, attempt: string): void {
+    const generation = this.#trackGeneration;
+    audio.play().catch((error: unknown) => {
+      if (generation !== this.#trackGeneration) return;
+      audioLog.warn(`BGM ${attempt} play() rejected; stopping`, error);
+      this.stop();
+    });
+  }
+
+  #setPlaying(isPlaying: boolean): void {
+    if (this.#isPlaying === isPlaying) return;
+    this.#isPlaying = isPlaying;
+    for (const listener of this.#listeners) listener();
   }
 
   #playCurrentTrack(): void {
@@ -119,9 +145,8 @@ export class BgmPlayer {
     try {
       this.#playTrack(url, !this.#isPlaylist);
     } catch (error) {
-      audioLog.warn('Failed to start BGM track', error);
-      this.#isPlaying = false;
-      this.#releaseTrack();
+      this.stop();
+      throw error;
     }
   }
 
@@ -146,7 +171,7 @@ export class BgmPlayer {
       audioLog.error(
         'BgmPlayer: no shared AudioContext available — webAudioUnlock may not have fired',
       );
-      this.#isPlaying = false;
+      this.#setPlaying(false);
       return;
     }
 
@@ -169,6 +194,7 @@ export class BgmPlayer {
       audio.src = url;
     }
     audio.loop = loop;
+    this.#trackGeneration += 1;
     this.#trackEndFired = false;
     this.#removeTrackListeners(audio);
 
@@ -179,20 +205,20 @@ export class BgmPlayer {
     this.#timeupdateHandler = () => this.#detectTrackEnd(loop);
     audio.addEventListener('timeupdate', this.#timeupdateHandler);
 
-    audio.play().catch((err: unknown) => {
-      audioLog.warn('Web BGM play() rejected (autoplay policy?)', err);
-      this.#isPlaying = false;
-      this.#releaseTrack();
-    });
+    this.#play(audio, 'track');
     audioLog.debug('BGM track started', { index: this.#currentIndex });
   }
 
   /** WeChat ArkWeb fallback: may not fire `ended` and may ignore `audio.loop`. */
   #detectTrackEnd(loop: boolean): void {
-    if (this.#trackEndFired) return;
     const element = this.#element;
     if (!element || !Number.isFinite(element.duration) || element.duration === 0) return;
-    if (element.currentTime < element.duration - 0.5) return;
+    if (element.currentTime < element.duration - 0.5) {
+      // The loop wrapped back to the start: the next end may fire again.
+      if (loop) this.#trackEndFired = false;
+      return;
+    }
+    if (this.#trackEndFired) return;
 
     if (!loop) {
       this.#handleTrackEnd();
@@ -201,13 +227,7 @@ export class BgmPlayer {
     this.#trackEndFired = true;
     audioLog.debug('timeupdate loop fallback triggered');
     element.currentTime = 0;
-    element.play().catch((error: unknown) => {
-      audioLog.warn('BGM loop fallback playback failed', error);
-    });
-    // Re-arm shortly after so the next cycle can fire again.
-    setTimeout(() => {
-      this.#trackEndFired = false;
-    }, 1000);
+    this.#play(element, 'loop fallback');
   }
 
   #handleTrackEnd(): void {
@@ -248,6 +268,7 @@ export class BgmPlayer {
   #releaseTrack(): void {
     const audio = this.#element;
     if (!audio) return;
+    this.#trackGeneration += 1;
     this.#removeTrackListeners(audio);
     audio.pause();
     audio.removeAttribute('src');

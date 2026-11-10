@@ -177,7 +177,70 @@ describe('stop()', () => {
   });
 });
 
+describe('isPlaying() / subscribe()', () => {
+  it('stops and notifies when the current track play() rejects', async () => {
+    element.play.mockReturnValueOnce(Promise.reject(new Error('NotAllowedError')));
+    const bgm = new BgmPlayer();
+    const listener = vi.fn();
+    bgm.subscribe(listener);
+
+    bgm.start(['track-a']);
+    expect(bgm.isPlaying()).toBe(true);
+    await vi.waitFor(() => expect(bgm.isPlaying()).toBe(false));
+
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(element.removeAttribute).toHaveBeenCalledWith('src');
+  });
+
+  it('ignores a rejection from a track that was already replaced', async () => {
+    let rejectFirst: (error: Error) => void = () => undefined;
+    element.play.mockReturnValueOnce(
+      new Promise<void>((_resolve, reject) => {
+        rejectFirst = reject;
+      }),
+    );
+    const bgm = new BgmPlayer();
+    bgm.start(['track-a', 'track-b']);
+    element.emit('ended');
+    vi.advanceTimersByTime(2000);
+
+    rejectFirst(new Error('AbortError'));
+    await Promise.resolve();
+
+    expect(bgm.isPlaying()).toBe(true);
+    expect(element.play).toHaveBeenCalledTimes(2);
+  });
+
+  it('notifies once per change and stops notifying after unsubscribe', () => {
+    const bgm = new BgmPlayer();
+    const listener = vi.fn();
+    const unsubscribe = bgm.subscribe(listener);
+
+    bgm.start(['track-a']);
+    bgm.start(['track-a']);
+    unsubscribe();
+    bgm.stop();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('WeChat ArkWeb timeupdate fallback', () => {
+  it('re-arms the loop fallback once the track wraps back to the start', () => {
+    const bgm = new BgmPlayer();
+    bgm.start(['track-a']);
+
+    element.currentTime = element.duration - 0.1;
+    element.emit('timeupdate');
+    element.emit('timeupdate');
+    expect(element.play).toHaveBeenCalledTimes(2);
+
+    element.currentTime = 1;
+    element.emit('timeupdate');
+    element.currentTime = element.duration - 0.1;
+    element.emit('timeupdate');
+    expect(element.play).toHaveBeenCalledTimes(3);
+  });
   it('loops a single track by seeking to 0 and replaying when `ended` is swallowed', () => {
     const bgm = new BgmPlayer();
     bgm.start(['track-a']);

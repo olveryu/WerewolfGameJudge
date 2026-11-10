@@ -22,6 +22,7 @@ import { act, renderHook } from '@testing-library/react';
 
 import type { DispatchOutcome } from '@/platform/realtime/types';
 import { buildAvalonTestState } from '@/test-utils/avalonState';
+import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 
@@ -111,8 +112,7 @@ const audio = {
     async () => undefined,
   ),
   stopNarration: vi.fn<() => void>(),
-  startBgm: vi.fn<(urls: readonly string[]) => void>(),
-  stopBgm: vi.fn<() => void>(),
+  ...createFakeBgm(),
   setBgmVolume: vi.fn<(volume: number) => void>(),
   setGameAudioVolume: vi.fn<(volume: number) => void>(),
 };

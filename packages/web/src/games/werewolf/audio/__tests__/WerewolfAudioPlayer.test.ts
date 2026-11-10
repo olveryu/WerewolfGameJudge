@@ -13,6 +13,8 @@ function createPlayback(): Mocked<WerewolfAudioPlaybackPort> {
     stop: vi.fn(),
     startBgm: vi.fn(),
     stopBgm: vi.fn(),
+    isBgmPlaying: vi.fn(() => false),
+    subscribeBgm: vi.fn(() => () => undefined),
     setBgmVolume: vi.fn(),
     setGameAudioVolume: vi.fn(),
     clearPreloaded: vi.fn(),

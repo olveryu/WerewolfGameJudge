@@ -4,6 +4,7 @@ import { type ReactNode, useState } from 'react';
 import { MemoryRouter } from 'react-router';
 
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
+import { createFakeBgm } from '@/test-utils/fakeBgm';
 
 import type { AvalonAudioRuntime } from '../../../audio/AvalonAudioPlayer';
 import type { AvalonRoomSession } from '../../../model/AvalonRoomSession';
@@ -27,8 +28,7 @@ function createSilentAudio(): AvalonAudioRuntime {
     preload: vi.fn(),
     playEffect: vi.fn(async () => undefined),
     stopNarration: vi.fn(),
-    startBgm: vi.fn(),
-    stopBgm: vi.fn(),
+    ...createFakeBgm(),
     setBgmVolume: vi.fn(),
     setGameAudioVolume: vi.fn(),
   };

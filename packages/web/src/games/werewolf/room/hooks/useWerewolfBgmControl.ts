@@ -8,14 +8,14 @@
  */
 
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 
 import { resolveBgmTrackUrls } from '@/features/product/model/BgmCatalog';
 import { audioSettings } from '@/features/settings/audioSettings';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 
 export interface WerewolfBgmControlState {
-  /** Whether BGM is currently playing (local UI state). */
+  /** Whether the player is actually playing BGM. */
   readonly isBgmPlaying: boolean;
   /** Start BGM if enabled — called from the rejoin resume gesture. */
   readonly startBgmIfEnabled: () => void;
@@ -31,7 +31,7 @@ export function useWerewolfBgmControl(
   gameStatus: GameStatus,
   isAudioPlaying: boolean,
 ): WerewolfBgmControlState {
-  const [isBgmPlaying, setIsBgmPlaying] = useState(false);
+  const isBgmPlaying = useSyncExternalStore(audio.subscribeBgm, audio.isBgmPlaying);
 
   useEffect(() => {
     const settings = audioSettings.getSnapshot();
@@ -41,17 +41,13 @@ export function useWerewolfBgmControl(
 
   const playBgm = useCallback(() => {
     audio.startBgm(resolveBgmTrackUrls(audioSettings.getSnapshot().bgmTrack));
-    setIsBgmPlaying(true);
   }, [audio]);
 
   const startBgmIfEnabled = useCallback(() => {
     if (audioSettings.getSnapshot().bgmEnabled) playBgm();
   }, [playBgm]);
 
-  const stopBgm = useCallback(() => {
-    audio.stopBgm();
-    setIsBgmPlaying(false);
-  }, [audio]);
+  const stopBgm = audio.stopBgm;
 
   // A transition into the night starts the music; a mount in the night (rejoin) does not, the
   // resume gate's gesture restarts it.
@@ -70,14 +66,9 @@ export function useWerewolfBgmControl(
   }, [gameStatus, isHost, startBgmIfEnabled]);
 
   // Lifecycle cleanup once the ending narration finished; the dawn cut before 天亮了 is the
-  // audio orchestrator's `stopBgm` timing hook. The flag follows the transition during render
-  // (a manual play afterwards still shows); the effect stops the player (idempotent).
+  // audio orchestrator's `stopBgm` timing hook. Only the transition stops it, so a manual
+  // play afterwards keeps playing.
   const isEndedAndQuiet = isHost && gameStatus === GameStatus.Ended && !isAudioPlaying;
-  const [wasEndedAndQuiet, setWasEndedAndQuiet] = useState(isEndedAndQuiet);
-  if (isEndedAndQuiet !== wasEndedAndQuiet) {
-    setWasEndedAndQuiet(isEndedAndQuiet);
-    if (isEndedAndQuiet) setIsBgmPlaying(false);
-  }
   useEffect(() => {
     if (isEndedAndQuiet) audio.stopBgm();
   }, [audio, isEndedAndQuiet]);

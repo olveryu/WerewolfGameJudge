@@ -22,6 +22,7 @@ import { MemoryRouter } from 'react-router';
 
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import { avalonReview } from '@/games/avalon/review/avalonReview';
+import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -160,8 +161,7 @@ function renderRoomState(state: AvalonState) {
       preload: vi.fn(async () => undefined),
       playEffect: vi.fn(async () => undefined),
       stopNarration: vi.fn(),
-      startBgm: vi.fn(),
-      stopBgm: vi.fn(),
+      ...createFakeBgm(),
       setBgmVolume: vi.fn(),
       setGameAudioVolume: vi.fn(),
     },

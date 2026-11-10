@@ -145,7 +145,10 @@ function TrackRow({
 
 function BgmSection({ audioService }: { readonly audioService: AudioService }) {
   const settings = useSyncExternalStore(audioSettings.subscribe, audioSettings.getSnapshot);
-  const [previewingTrack, setPreviewingTrack] = useState<BgmTrackEntry | null>(null);
+  const isBgmPlaying = useSyncExternalStore(audioService.subscribeBgm, audioService.isBgmPlaying);
+  const [requestedPreview, setRequestedPreview] = useState<BgmTrackEntry | null>(null);
+  // The player owns playback truth: a preview it stopped (play() rejected) shows as stopped.
+  const previewingTrack = isBgmPlaying ? requestedPreview : null;
   const [volumeDraft, setVolumeDraft] = useState<number | null>(null);
   const previewActiveRef = useRef(false);
 
@@ -159,7 +162,7 @@ function BgmSection({ audioService }: { readonly audioService: AudioService }) {
   const stopPreview = () => {
     audioService.stopBgm();
     previewActiveRef.current = false;
-    setPreviewingTrack(null);
+    setRequestedPreview(null);
   };
 
   const toggleBgm = (enabled: boolean) => {
@@ -181,7 +184,7 @@ function BgmSection({ audioService }: { readonly audioService: AudioService }) {
     audioService.stopBgm();
     audioService.startBgm([track.url]);
     previewActiveRef.current = true;
-    setPreviewingTrack(track);
+    setRequestedPreview(track);
   };
 
   const changeVolume = (value: number) => {

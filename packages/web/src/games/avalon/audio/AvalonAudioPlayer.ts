@@ -20,6 +20,9 @@ export interface AvalonAudioRuntime {
   readonly startBgm: (urls: readonly string[]) => void;
   /** Stops host BGM; the shared audio core calls it right before the dawn narration. */
   readonly stopBgm: () => void;
+  /** Actual BGM playback state, for `useSyncExternalStore`. */
+  readonly isBgmPlaying: () => boolean;
+  readonly subscribeBgm: (listener: () => void) => () => void;
   readonly setBgmVolume: (volume: number) => void;
   readonly setGameAudioVolume: (volume: number) => void;
 }
@@ -31,6 +34,8 @@ export interface AvalonAudioPlaybackPort {
   stop(): void;
   startBgm(urls: readonly string[]): void;
   stopBgm(): void;
+  isBgmPlaying(): boolean;
+  subscribeBgm(listener: () => void): () => void;
   setBgmVolume(volume: number): void;
   setGameAudioVolume(volume: number): void;
 }
@@ -56,6 +61,11 @@ export class AvalonAudioPlayer implements AvalonAudioRuntime {
   readonly startBgm = (urls: readonly string[]): void => this.#audioService.startBgm(urls);
 
   readonly stopBgm = (): void => this.#audioService.stopBgm();
+
+  readonly isBgmPlaying = (): boolean => this.#audioService.isBgmPlaying();
+
+  readonly subscribeBgm = (listener: () => void): (() => void) =>
+    this.#audioService.subscribeBgm(listener);
 
   readonly setBgmVolume = (volume: number): void => this.#audioService.setBgmVolume(volume);
 

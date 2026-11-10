@@ -100,6 +100,22 @@ it('settles the previous load when a new playback starts', async () => {
   expect(audio.play).toHaveBeenCalledTimes(1);
 });
 
+it('fails the paused playback when resume() play() rejects instead of hanging', async () => {
+  const audio = createFakeAudioElement();
+  audio.readyState = HTMLMediaElement.HAVE_ENOUGH_DATA;
+  mockGetUnlockedAudioElement.mockReturnValue(audio as unknown as HTMLAudioElement);
+  const strategy = new WebAudioStrategy();
+
+  const playPromise = strategy.play('/night.mp3', 'night');
+  await vi.advanceTimersByTimeAsync(0);
+  expect(audio.play).toHaveBeenCalledTimes(1);
+  strategy.pause();
+  audio.play.mockRejectedValueOnce(new Error('autoplay blocked'));
+  strategy.resume();
+
+  await expect(playPromise).rejects.toThrow('WEB resume play() rejected: autoplay blocked');
+});
+
 it('rejects when the gesture-authorized element cannot start playback', async () => {
   const audio = createFakeAudioElement();
   audio.readyState = HTMLMediaElement.HAVE_ENOUGH_DATA;

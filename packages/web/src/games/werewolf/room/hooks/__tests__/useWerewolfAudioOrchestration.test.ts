@@ -18,6 +18,7 @@ import { act, renderHook } from '@testing-library/react';
 
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import type { DispatchOutcome } from '@/platform/realtime/types';
+import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
@@ -80,8 +81,7 @@ function createAudio(): WerewolfAudioRuntime & { readonly timeline: string[] } {
     }),
     preloadRoles: vi.fn(),
     stopNarration: vi.fn(),
-    startBgm: vi.fn(),
-    stopBgm: vi.fn(),
+    ...createFakeBgm(),
     setBgmVolume: vi.fn(),
     setGameAudioVolume: vi.fn(),
     clearPreloaded: vi.fn(),
