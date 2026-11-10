@@ -82,6 +82,7 @@ describe('createStoryRelayStageHud', () => {
         isUrgent: false,
       },
       timer: { label: '写作', remainingSeconds: 80, totalSeconds: 90 },
+      secondaryChips: [],
     });
   });
 
@@ -120,6 +121,7 @@ describe('createStoryRelayStageHud', () => {
         isUrgent: false,
       },
       timer: null,
+      secondaryChips: [],
     });
   });
 
@@ -129,6 +131,7 @@ describe('createStoryRelayStageHud', () => {
       chips: [{ key: 'step', label: `第 1/${STEP_COUNT} 段`, detail: null, tone: 'neutral' }],
       roster: null,
       timer: { label: '换棒', remainingSeconds: 2, totalSeconds: 3 },
+      secondaryChips: [],
     });
     expect(() => hud(state, null)).toThrow(/no remaining seconds/);
   });

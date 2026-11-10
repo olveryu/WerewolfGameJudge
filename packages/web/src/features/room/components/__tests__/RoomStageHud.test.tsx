@@ -38,7 +38,7 @@ function renderHud({
 } = {}) {
   return render(
     <RoomStageHud
-      hud={{ chips: [], roster: ROSTER, timer: null, ...hud }}
+      hud={{ chips: [], roster: ROSTER, timer: null, secondaryChips: [], ...hud }}
       seats={SEATS}
       canTakeOverBots={canTakeOverBots}
       controlledSeat={controlledSeat}
@@ -60,6 +60,20 @@ describe('RoomStageHud', () => {
     expect(hud).toHaveTextContent(/^1\/12 轮P _ _3 字已完成 1\/3$/);
   });
 
+  it('keeps the countdown before the takeover chip and the secondary chips, which wrap first', () => {
+    renderHud({
+      hud: {
+        chips: [{ key: 'round', label: '1/12 轮', detail: null, tone: 'neutral' }],
+        timer: { label: '作画', remainingSeconds: 76, totalSeconds: 90 },
+        secondaryChips: [{ key: 'score', label: '我 0 分', detail: null, tone: 'neutral' }],
+      },
+      controlledSeat: { seat: 1, displayName: '玩家2', onRelease: vi.fn() },
+    });
+    expect(screen.getByTestId(TESTIDS.roomStageHud)).toHaveTextContent(
+      /^1\/12 轮已完成 1\/31:16代 2 号退出我 0 分$/,
+    );
+  });
+
   it('formats the countdown, turns red at ten seconds and draws the remaining share', () => {
     const { rerender } = renderHud({
       hud: { timer: { label: '作答', remainingSeconds: 76, totalSeconds: 152 } },
@@ -76,6 +90,7 @@ describe('RoomStageHud', () => {
           chips: [],
           roster: null,
           timer: { label: '作答', remainingSeconds: 10, totalSeconds: 152 },
+          secondaryChips: [],
         }}
         seats={SEATS}
         canTakeOverBots={{ isAllowed: false, reason: null }}

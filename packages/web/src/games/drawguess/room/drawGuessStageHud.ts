@@ -114,18 +114,20 @@ export function createDrawGuessStageHud(input: DrawGuessStageHudInput): RoomStag
           remainingSeconds === null
             ? null
             : { label: '选词', remainingSeconds, totalSeconds: DRAWGUESS_WORD_SELECT_SECONDS },
+        secondaryChips: [],
       };
     }
     case 'drawing': {
       const remainingSeconds = requireRemainingSeconds(phase.kind, input.remainingSeconds);
       return {
-        chips: [turnChip, createWordChip(input.viewModel), ...createScoreChips(input)],
+        chips: [turnChip, createWordChip(input.viewModel)],
         roster: createDrawGuessRoster(input, phase.drawerSeat, remainingSeconds),
         timer: {
           label: '作画',
           remainingSeconds,
           totalSeconds: DRAWGUESS_DRAWING_DURATION_SECONDS,
         },
+        secondaryChips: createScoreChips(input),
       };
     }
     case 'roundEnd':
@@ -137,6 +139,7 @@ export function createDrawGuessStageHud(input: DrawGuessStageHudInput): RoomStag
           remainingSeconds: requireRemainingSeconds(phase.kind, input.remainingSeconds),
           totalSeconds: DRAWGUESS_ROUND_END_SECONDS,
         },
+        secondaryChips: [],
       };
   }
 }

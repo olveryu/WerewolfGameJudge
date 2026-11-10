@@ -145,14 +145,17 @@ describe('createDrawGuessStageHud', () => {
         isUrgent: false,
       },
       timer: { label: '选词', remainingSeconds: 42, totalSeconds: DRAWGUESS_WORD_SELECT_SECONDS },
+      secondaryChips: [],
     });
   });
 
-  it('shows the word to the drawer with the score chip and the guessed count', () => {
+  it('shows the word to the drawer, the guessed count and the score after the countdown', () => {
     const hud = createDrawGuessStageHud(hudInput(playTo(0, 'drawing')));
     expect(hud?.chips).toEqual([
       { key: 'turn', label: '1/8 轮', detail: null, tone: 'neutral' },
       { key: 'word', label: '大熊猫', detail: '3 字', tone: 'accent' },
+    ]);
+    expect(hud?.secondaryChips).toEqual([
       { key: 'score', label: '我 0 分 · 本轮 +0', detail: null, tone: 'neutral' },
     ]);
     expect(hud?.roster?.chipLabel).toBe('已猜中 1/3');
@@ -172,6 +175,7 @@ describe('createDrawGuessStageHud', () => {
   it('omits the score chip for a spectator', () => {
     const hud = createDrawGuessStageHud(hudInput(playTo(0, 'drawing'), { effectiveSeat: null }));
     expect(hud?.chips.map((chip) => chip.key)).toEqual(['turn', 'word']);
+    expect(hud?.secondaryChips).toEqual([]);
   });
 
   it('shows only the turn and the round end countdown after the drawing', () => {
@@ -180,6 +184,7 @@ describe('createDrawGuessStageHud', () => {
       chips: [{ key: 'turn', label: '1/8 轮', detail: null, tone: 'neutral' }],
       roster: null,
       timer: { label: '结算', remainingSeconds: 42, totalSeconds: DRAWGUESS_ROUND_END_SECONDS },
+      secondaryChips: [],
     });
   });
 

@@ -50,9 +50,15 @@ export interface RoomStageRosterModel {
 }
 
 export interface RoomStageHudModel {
+  /** Leading game chips, before the roster chip. */
   readonly chips: readonly RoomStageChip[];
   readonly roster: RoomStageRosterModel | null;
   readonly timer: RoomStageTimerModel | null;
+  /**
+   * Chips after the countdown and the takeover chip (DrawGuess's score). On a narrow screen they
+   * wrap first, so the countdown keeps the first row.
+   */
+  readonly secondaryChips: readonly RoomStageChip[];
 }
 
 export type RoomStageRosterGroup = 'acting' | 'pending' | 'done';

@@ -241,8 +241,11 @@ export function RoomStageHud({
           </button>
         )}
         <span className="room-stage-hud-spacer" />
-        {controlledSeat !== null && <ControlledSeatChip model={controlledSeat} />}
         {hud.timer !== null && <TimerChip timer={hud.timer} />}
+        {controlledSeat !== null && <ControlledSeatChip model={controlledSeat} />}
+        {hud.secondaryChips.map((chip) => (
+          <StageChip key={chip.key} chip={chip} />
+        ))}
       </div>
       <TimerBar timer={hud.timer} />
       {isRosterOpen && roster !== null && (

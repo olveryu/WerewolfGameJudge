@@ -44,6 +44,7 @@ const HUD: RoomStageHudModel = {
   chips: [{ key: 'step', label: '第 2/5 棒', detail: null, tone: 'neutral' }],
   roster: null,
   timer: { label: '作答', remainingSeconds: 30, totalSeconds: 60 },
+  secondaryChips: [],
 };
 
 function shellInput(overrides: Partial<RoomShellModelInput> = {}): RoomShellModelInput {

@@ -75,6 +75,7 @@ describe('createPictionaryStageHud', () => {
       chips: [{ key: 'step', label: `第 1/${STEP_COUNT} 棒`, detail: null, tone: 'neutral' }],
       roster: { ...SUBMISSION_ROSTER, chipLabel: '已交 0/4' },
       timer: { label: '出题', remainingSeconds: 30, totalSeconds: 45 },
+      secondaryChips: [],
     });
   });
 
@@ -121,6 +122,7 @@ describe('createPictionaryStageHud', () => {
       chips: [{ key: 'step', label: `第 1/${STEP_COUNT} 棒`, detail: null, tone: 'neutral' }],
       roster: null,
       timer: { label: '换棒', remainingSeconds: 4, totalSeconds: 5 },
+      secondaryChips: [],
     });
     expect(() => hud(state, null)).toThrow(/no remaining seconds/);
   });
@@ -140,6 +142,7 @@ describe('createPictionaryStageHud', () => {
       chips: [{ key: 'step', label: `第 1/${STEP_COUNT} 棒`, detail: null, tone: 'neutral' }],
       roster: { ...SUBMISSION_ROSTER, chipLabel: '已交 0/4' },
       timer: null,
+      secondaryChips: [],
     });
   });
 });

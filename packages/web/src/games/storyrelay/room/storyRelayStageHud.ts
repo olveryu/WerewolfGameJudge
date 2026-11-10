@@ -105,11 +105,22 @@ export function createStoryRelayStageHud(input: StoryRelayStageHudInput): RoomSt
         chips: stepChips,
         roster: createRoster(input.seats, WRITING_ROSTER),
         timer: createWritingTimer(input),
+        secondaryChips: [],
       };
     case 'settling':
       // Collection waits for the submissions: settling has no deadline.
-      return { chips: stepChips, roster: createRoster(input.seats, SETTLING_ROSTER), timer: null };
+      return {
+        chips: stepChips,
+        roster: createRoster(input.seats, SETTLING_ROSTER),
+        timer: null,
+        secondaryChips: [],
+      };
     case 'transition':
-      return { chips: stepChips, roster: null, timer: createTransitionTimer(input) };
+      return {
+        chips: stepChips,
+        roster: null,
+        timer: createTransitionTimer(input),
+        secondaryChips: [],
+      };
   }
 }

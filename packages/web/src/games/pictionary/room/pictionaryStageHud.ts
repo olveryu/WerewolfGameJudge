@@ -91,11 +91,22 @@ export function createPictionaryStageHud(input: PictionaryStageHudInput): RoomSt
         chips: stepChips,
         roster: createSubmissionRoster(input.seats),
         timer: createAnsweringTimer(input),
+        secondaryChips: [],
       };
     case 'transition':
-      return { chips: stepChips, roster: null, timer: createTransitionTimer(input) };
+      return {
+        chips: stepChips,
+        roster: null,
+        timer: createTransitionTimer(input),
+        secondaryChips: [],
+      };
     case 'settling':
       // Collection waits for explicit submissions: settling has no deadline.
-      return { chips: stepChips, roster: createSubmissionRoster(input.seats), timer: null };
+      return {
+        chips: stepChips,
+        roster: createSubmissionRoster(input.seats),
+        timer: null,
+        secondaryChips: [],
+      };
   }
 }
