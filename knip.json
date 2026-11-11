@@ -1,12 +1,11 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignoreBinaries": ["miniprogram-ci"],
   "exclude": ["types"],
   "workspaces": {
     ".": {
       "entry": ["scripts/*.{ts,mjs,sh}", "functions/**/*.ts!", "e2e/**/*.ts"],
       "project": ["contracts/**/*.ts", "e2e/**/*.ts"],
-      "ignoreDependencies": ["serve"]
+      "ignoreDependencies": ["@sentry/cli", "serve"]
     },
     "packages/game-engine": {
       "entry": ["type-tests/**/*.ts!"],
