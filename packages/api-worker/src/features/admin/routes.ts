@@ -31,6 +31,7 @@ import {
   triggerSupplySchema,
 } from './gameWords';
 import { queryGrowthStats } from './growthStats';
+import { maintenanceUpdateSchema, readMaintenance, writeMaintenance } from './maintenance';
 import {
   queryAIUsageAnalytics,
   queryLoadTimingAnalytics,
@@ -87,6 +88,19 @@ adminRoutes.route('/effect-replays', effectRecoveryRoutes);
 adminRoutes.route('/users', rewardGrantRoutes);
 adminRoutes.get('/session', (c) => c.body(null, 204));
 adminRoutes.get('/d1-usage', async (c) => c.json(await queryD1UsageAnalytics(c.env)));
+
+// These endpoints must remain usable while D1 is unavailable.
+adminRoutes.get('/maintenance', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  return c.json(await readMaintenance(c.env));
+});
+adminRoutes.post('/maintenance', jsonBody(maintenanceUpdateSchema), async (c) => {
+  const configuration = c.req.valid('json');
+  await writeMaintenance(c.env, configuration);
+  log.info('site maintenance updated', { enabled: configuration.enabled });
+  c.header('Cache-Control', 'no-store');
+  return c.json(configuration);
+});
 
 // ── GET /admin/users ────────────────────────────────────────────────────────
 

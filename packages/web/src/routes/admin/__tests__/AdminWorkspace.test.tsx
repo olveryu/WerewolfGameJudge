@@ -5,6 +5,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 
 import type { AdminUser, GameWordsStats } from '@/features/admin/model/adminContracts';
 import {
+  fetchAdminMaintenance,
   fetchD1Usage,
   fetchGameWordsStats,
   fetchRoomPlayers,
@@ -23,6 +24,7 @@ import {
 import { showAlert } from '@/utils/alert';
 
 import { AdminPage } from '../AdminPage';
+import { MaintenanceSettingsPage } from '../pages/MaintenanceSettingsPage';
 import { GrowthPage } from '../pages/MonitoringPages';
 import { RoomsPage } from '../pages/RoomsPage';
 import { UsersPage } from '../pages/UsersPage';
@@ -35,6 +37,7 @@ vi.mock('@/features/admin/services/adminApi', async (importOriginal) => ({
   fetchRoomPlayers: vi.fn(),
   fetchStats: vi.fn(),
   fetchD1Usage: vi.fn(),
+  fetchAdminMaintenance: vi.fn(),
   fetchGameWordsStats: vi.fn(),
   triggerGameWordSupply: vi.fn(),
   fetchUserRewards: vi.fn(),
@@ -99,6 +102,7 @@ function mount(path = '/admin/users') {
           { path: 'users', Component: UsersPage },
           { path: 'rooms', Component: RoomsPage },
           { path: 'growth', Component: GrowthPage },
+          { path: 'maintenance', Component: MaintenanceSettingsPage },
           { path: 'words/:game', Component: WordsPage },
         ],
       },
@@ -153,6 +157,21 @@ afterEach(() => {
 });
 
 describe('admin workspace', () => {
+  it('opens maintenance controls without mounting any D1-backed report', async () => {
+    vi.mocked(fetchAdminMaintenance).mockResolvedValue({
+      enabled: false,
+      message: '服务升级中',
+      endsAt: null,
+    });
+    const view = mount('/admin/maintenance');
+    await screen.findByRole('checkbox', { name: '开启维护模式' });
+    expect(fetchUsers).not.toHaveBeenCalled();
+    expect(fetchRooms).not.toHaveBeenCalled();
+    expect(fetchStats).not.toHaveBeenCalled();
+    expect(fetchGameWordsStats).not.toHaveBeenCalled();
+    view.unmount();
+    view.client.clear();
+  });
   it('retains a directly opened custom monitoring range after leaving and returning', async () => {
     const search = '?range=custom&from=2026-11-01&to=2026-11-07';
     const view = mount(`/admin/growth${search}`);

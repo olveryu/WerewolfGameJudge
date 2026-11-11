@@ -16,25 +16,25 @@
 .admin-console *::after {
   box-sizing: border-box;
 }
-.admin-console h1,
-.admin-console h2,
-.admin-console h3,
-.admin-console h4,
-.admin-console p {
+.admin-console h1:where(:not(.maintenance-page *)),
+.admin-console h2:where(:not(.maintenance-page *)),
+.admin-console h3:where(:not(.maintenance-page *)),
+.admin-console h4:where(:not(.maintenance-page *)),
+.admin-console p:where(:not(.maintenance-page *)) {
   margin: 0;
 }
-.admin-console h1 {
+.admin-console h1:where(:not(.maintenance-page *)) {
   font-size: var(--font-heading);
   line-height: var(--line-heading);
   letter-spacing: var(--letter-tight);
   font-weight: var(--weight-semibold);
 }
-.admin-console h2,
-.admin-console h3 {
+.admin-console h2:where(:not(.maintenance-page *)),
+.admin-console h3:where(:not(.maintenance-page *)) {
   font-size: var(--font-secondary);
   font-weight: var(--weight-semibold);
 }
-.admin-console h3 {
+.admin-console h3:where(:not(.maintenance-page *)) {
   margin-bottom: var(--space-small);
 }
 .admin-console a {
@@ -44,14 +44,14 @@
 .admin-console a:hover {
   text-decoration: underline;
 }
-.admin-console button,
+.admin-console button:where(:not(.maintenance-moon)),
 .admin-console input,
 .admin-console select,
 .admin-console textarea {
   font: inherit;
   color: inherit;
 }
-.admin-console button,
+.admin-console button:where(:not(.maintenance-moon)),
 .admin-console select,
 .admin-console input,
 .admin-console textarea {
@@ -60,7 +60,7 @@
   background: var(--admin-panel);
   padding: var(--space-small) var(--space-medium);
 }
-.admin-console button {
+.admin-console button:where(:not(.maintenance-moon)) {
   cursor: pointer;
   transition:
     background 120ms,
@@ -70,7 +70,7 @@
   background: var(--admin-subtle);
   border-color: var(--admin-muted);
 }
-.admin-console button:disabled {
+.admin-console button:disabled:where(:not(.maintenance-moon)) {
   opacity: var(--opacity-disabled);
   cursor: not-allowed;
 }
@@ -723,6 +723,32 @@
   list-style: none;
   padding: 0;
   margin: var(--space-small) 0;
+}
+.admin-maintenance-form {
+  display: grid;
+  gap: var(--space-large);
+}
+.admin-maintenance-form > label {
+  display: grid;
+  gap: var(--space-small);
+}
+.admin-maintenance-form .admin-maintenance-switch {
+  display: flex;
+  align-items: center;
+  min-height: var(--size-min-touch-target);
+  gap: var(--space-small);
+}
+.admin-maintenance-switch input {
+  width: var(--size-icon-sm);
+  min-height: var(--size-icon-sm);
+  accent-color: var(--admin-accent);
+}
+.admin-maintenance-form > p {
+  margin: 0;
+  color: var(--admin-secondary);
+}
+.admin-maintenance-form textarea {
+  resize: vertical;
 }
 .admin-link-list li {
   display: flex;

@@ -7,6 +7,7 @@ import { adminQueryOptions } from '@/features/admin/queries/adminQueryOptions';
 import { fetchD1Usage } from '@/features/admin/services/adminApi';
 import type { AdminTheme } from '@/features/admin/services/adminTheme';
 import IconBarChartOutline from '~icons/ion/bar-chart-outline';
+import IconConstructOutline from '~icons/ion/construct-outline';
 import IconGridOutline from '~icons/ion/grid-outline';
 import IconHomeOutline from '~icons/ion/home-outline';
 import IconLibraryOutline from '~icons/ion/library-outline';
@@ -22,6 +23,7 @@ import { Meter } from './components/Charts';
 
 const NAVIGATION = [
   { path: '/admin', label: '总览', group: '工作台', icon: IconGridOutline },
+  { path: '/admin/maintenance', label: '维护', group: '运营', icon: IconConstructOutline },
   { path: '/admin/users', label: '用户', group: '运营', icon: IconPeopleOutline },
   { path: '/admin/rooms', label: '房间', group: '运营', icon: IconHomeOutline },
   { path: '/admin/words', label: '词库', group: '运营', icon: IconLibraryOutline },

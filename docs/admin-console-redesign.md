@@ -3,6 +3,7 @@
 > 状态：已实施，待合并部署与生产观察。日期：2026-11-11。
 > 范围：`packages/api-worker/src/features/admin/`、`packages/web/src/routes/admin/`、`packages/web/src/features/admin/`，外加一个只建索引的 D1 迁移。
 > 本文的生产「实测」来自 Cloudflare D1 控制台；本地回归使用真实 D1 `meta.rows_read`。第 4.5 节的单次和每日数字仍是估算，不代表上线后的实测降幅。
+> 整合 main 新增的独立维护模式后，实际交付为登录与九个后台页面；维护设置同样采用新控制台，R2 存储与访客维护页行为保持不变。
 
 ## 1. 背景与证据
 
@@ -436,7 +437,7 @@ packages/web/src/routes/admin/
   components/              Primitives、Charts、Overlays、ReportRange
   pages/
     OverviewPage.tsx  UsersPage.tsx  UserDetails.tsx  RoomsPage.tsx  WordsPage.tsx
-    MonitoringPages.tsx  TrafficPage.tsx
+    MonitoringPages.tsx  TrafficPage.tsx  MaintenanceSettingsPage.tsx
 packages/web/src/theme/           后台语义变量（浅色、深色）与新增尺寸变量（5.8）
 packages/web/src/features/admin/
   queries/adminQueryOptions.ts    唯一的查询出口（5.4）
@@ -472,11 +473,11 @@ packages/web/src/features/admin/
 
 ### 6.2 全页面与交互
 
-登录与八页均替换；旧 tabs、卡片组件和三个旧样式文件删除。保留奖励发放幂等身份、房间按需展开、四项补词及危险确认。统一缓存五分钟，禁用焦点/重连刷新和自动重试；补词成功不自动重读统计，奖励确认后仍刷新权威余额。
+登录与九页均替换；旧 tabs、卡片组件和三个旧样式文件删除。保留奖励发放幂等身份、房间按需展开、四项补词及危险确认。统一缓存五分钟，禁用焦点/重连刷新和自动重试；补词成功不自动重读统计，奖励确认后仍刷新权威余额。维护设置保存后同步管理与访客缓存，后端仍不读 D1；`AdminRoot` 与全部后台子路由保持在玩家登录和维护门之外。
 
 本地浏览器以模拟接口验证，不依赖生产数据：
 
-- 1280 × 900 和 390 × 900、浅/深色的八页均无页面级横向溢出，控制台无未捕获异常。
+- 1280 × 900 和 390 × 900、浅/深色的九页均无页面级横向溢出，控制台无未捕获异常。
 - 桌面用户首屏可见 15 行（目标至少 12 行），词库热力格在首屏可见。
 - 热力格可揭示默认低库存筛选外的分类、滚动并高亮该行；不新增查询。
 - 跨页返回复用缓存，抽屉可通过 Escape 关闭。

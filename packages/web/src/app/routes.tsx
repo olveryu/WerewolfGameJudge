@@ -1,8 +1,9 @@
 import { Navigate, type RouteObject } from 'react-router';
 
+import { AdminRoot } from '@/app/AdminRoot';
 import { AppRoot } from '@/app/AppRoot';
 import { RouteErrorPage } from '@/app/RouteErrorPage';
-import { AdminPage } from '@/routes/admin/AdminPage';
+import { MaintenanceSettingsPage } from '@/routes/admin/pages/MaintenanceSettingsPage';
 import { AiPage, GrowthPage, PerformancePage } from '@/routes/admin/pages/MonitoringPages';
 import { OverviewPage } from '@/routes/admin/pages/OverviewPage';
 import { RoomsPage } from '@/routes/admin/pages/RoomsPage';
@@ -31,6 +32,23 @@ import { UnlocksPage } from '@/routes/unlocks/UnlocksPage';
  * current client, including `/room/:code`.
  */
 export const routes: RouteObject[] = [
+  {
+    path: '/admin',
+    Component: AdminRoot,
+    errorElement: <RouteErrorPage />,
+    children: [
+      { index: true, Component: OverviewPage },
+      { path: 'maintenance', Component: MaintenanceSettingsPage },
+      { path: 'users', Component: UsersPage },
+      { path: 'rooms', Component: RoomsPage },
+      { path: 'words', element: <Navigate to="/admin/words/fibking" replace /> },
+      { path: 'words/:game', Component: WordsPage },
+      { path: 'growth', Component: GrowthPage },
+      { path: 'performance', Component: PerformancePage },
+      { path: 'traffic', Component: TrafficPage },
+      { path: 'ai', Component: AiPage },
+    ],
+  },
   {
     path: '/',
     element: <AppRoot />,
@@ -84,21 +102,6 @@ export const routes: RouteObject[] = [
       {
         path: 'shard-exchange/:roomCode?',
         Component: ShardExchangePage,
-      },
-      {
-        path: 'admin',
-        Component: AdminPage,
-        children: [
-          { index: true, Component: OverviewPage },
-          { path: 'users', Component: UsersPage },
-          { path: 'rooms', Component: RoomsPage },
-          { path: 'words', element: <Navigate to="/admin/words/fibking" replace /> },
-          { path: 'words/:game', Component: WordsPage },
-          { path: 'growth', Component: GrowthPage },
-          { path: 'performance', Component: PerformancePage },
-          { path: 'traffic', Component: TrafficPage },
-          { path: 'ai', Component: AiPage },
-        ],
       },
       {
         path: '__bench/scene',

@@ -34,6 +34,7 @@ import {
   parseGameWordsStatsResponse,
   parseTriggerSupplyResult,
 } from '@/features/admin/services/adminResponseCodec';
+import { type MaintenanceConfig, maintenanceSchema } from '@/features/maintenance/maintenance';
 import { composeAbortSignals, createTimeoutSignal } from '@/utils/abortSignal';
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -104,6 +105,27 @@ export function getTimeRange(preset: Exclude<TimePreset, 'custom'>): { from: str
 }
 
 // ── API calls ───────────────────────────────────────────────────────────────
+
+/** Read site maintenance settings with independent administrator authentication. */
+export function fetchAdminMaintenance(signal?: AbortSignal) {
+  return adminFetch(
+    '/admin/maintenance',
+    (value) => maintenanceSchema.parse(value),
+    undefined,
+    signal,
+  );
+}
+
+/** Save the maintenance switch and user-written announcement text. */
+export function saveAdminMaintenance(configuration: MaintenanceConfig) {
+  return adminFetch(
+    '/admin/maintenance',
+    (value) => maintenanceSchema.parse(value),
+    undefined,
+    undefined,
+    configuration,
+  );
+}
 
 interface FetchUsersParams {
   cursor?: string;
