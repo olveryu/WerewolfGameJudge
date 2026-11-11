@@ -527,7 +527,8 @@ export function parseGameWordsStatsResponse(value: unknown): GameWordsStats {
     object,
     [
       'game',
-      'wordsByCategory',
+      'categories',
+      'modelBudget',
       'monthlySupply',
       'tavilyRequestsUsed',
       'tavilyMonthlyQuota',
@@ -550,15 +551,41 @@ export function parseGameWordsStatsResponse(value: unknown): GameWordsStats {
       : parseNonnegativeInteger(object.tavilyMonthlyQuota, 'Game words tavilyMonthlyQuota');
   return {
     game: parseGameWordGame(object.game, 'Game words stats game'),
-    wordsByCategory: parseArray(object.wordsByCategory, 'Game words categories', (item, label) => {
-      const o = requireObject(item, label);
-      assertExactKeys(o, ['category', 'active', 'total'], label);
+    categories: parseArray(object.categories, 'Game words balance', (item, label) => {
+      const row = requireObject(item, label);
+      assertExactKeys(
+        row,
+        [
+          'id',
+          'name',
+          'active',
+          'total',
+          'pending',
+          'batches',
+          'yieldCount',
+          'lastAttempt',
+          'coolingDown',
+          'menuEligible',
+        ],
+        label,
+      );
       return {
-        category: parseNonEmptyString(o.category, `${label} category`),
-        active: parseNonnegativeInteger(o.active, `${label} active`),
-        total: parseNonnegativeInteger(o.total, `${label} total`),
+        id: parseNonEmptyString(row.id, `${label} id`),
+        name: parseNonEmptyString(row.name, `${label} name`),
+        active: parseNonnegativeInteger(row.active, `${label} active`),
+        total: parseNonnegativeInteger(row.total, `${label} total`),
+        pending: parseNonnegativeInteger(row.pending, `${label} pending`),
+        batches: parseNonnegativeInteger(row.batches, `${label} batches`),
+        yieldCount: parseNonnegativeInteger(row.yieldCount, `${label} yieldCount`),
+        lastAttempt: parseNullableString(row.lastAttempt, `${label} lastAttempt`),
+        coolingDown: parseBoolean(row.coolingDown, `${label} coolingDown`),
+        menuEligible:
+          row.menuEligible === null
+            ? null
+            : parseBoolean(row.menuEligible, `${label} menuEligible`),
       };
     }),
+    modelBudget: parseModelBudget(object.modelBudget),
     monthlySupply,
     tavilyRequestsUsed,
     tavilyMonthlyQuota,
@@ -601,6 +628,21 @@ export function parseGameWordsStatsResponse(value: unknown): GameWordsStats {
       },
     ),
     supplyEnabled: parseBoolean(object.supplyEnabled, 'Game words supplyEnabled'),
+  };
+}
+
+function parseModelBudget(value: unknown): GameWordsStats['modelBudget'] {
+  const object = requireObject(value, 'Game words model budget');
+  assertExactKeys(
+    object,
+    ['dailyUsed', 'dailyLimit', 'monthlyUsed', 'monthlyLimit'],
+    'Game words model budget',
+  );
+  return {
+    dailyUsed: parseNonnegativeInteger(object.dailyUsed, 'Model budget daily used'),
+    dailyLimit: parseNonnegativeInteger(object.dailyLimit, 'Model budget daily limit'),
+    monthlyUsed: parseNonnegativeInteger(object.monthlyUsed, 'Model budget monthly used'),
+    monthlyLimit: parseNonnegativeInteger(object.monthlyLimit, 'Model budget monthly limit'),
   };
 }
 

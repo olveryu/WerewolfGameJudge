@@ -5,6 +5,7 @@ import type {
   FibWordSource,
 } from '@game-judge/game-engine/games/fibking/public';
 
+import type { FibWordLabel, FibWordTopic } from '../wordTopics';
 import type { FibWordEvidence } from './tavily';
 
 export const FIB_WORD_CATEGORIES = ['literary', 'internet', 'compound', 'niche'] as const;
@@ -17,6 +18,7 @@ export type FibWordReviewDecision = (typeof FIB_WORD_REVIEW_DECISIONS)[number];
 
 export interface FibWordRequest {
   readonly category: FibWordCategory;
+  readonly topic?: FibWordTopic | null;
   readonly deadlineAt: number;
   readonly signal: AbortSignal;
   readonly evidence: readonly FibWordEvidence[];
@@ -31,6 +33,7 @@ export interface FibWordCandidate {
 /** Editorial provenance stays server-side and never changes the selected-word contract. */
 export interface FibWordEditorialCandidate extends FibWordCandidate {
   readonly category: FibWordCategory;
+  readonly topic?: FibWordLabel | null;
   readonly evidence: readonly FibWordEvidence[];
 }
 

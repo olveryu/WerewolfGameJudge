@@ -37,6 +37,7 @@ beforeEach(async () => {
   await env.DB.batch([
     env.DB.prepare('DELETE FROM fib_word_provider_requests'),
     env.DB.prepare('DELETE FROM fib_word_candidate_reviews'),
+    env.DB.prepare('DELETE FROM fib_word_sequence'),
     env.DB.prepare('DELETE FROM fib_words'),
     env.DB.prepare('DELETE FROM fib_word_generation_cycles'),
     env.DB.prepare('DELETE FROM fib_word_packs'),
@@ -56,16 +57,67 @@ beforeEach(async () => {
 });
 
 describe('GET /admin/games/words/stats', () => {
+  it.each([
+    ['drawguess', 'actionComedy', '动作喜剧', 40],
+    ['undercover', 'dating', '约会场景', 40],
+    ['fibking', 'courtship', '婚恋风俗', 43],
+  ] as const)(
+    'shows the new %s category even before it has words',
+    async (game, id, name, count) => {
+      const response = await fetchWordsStats(`/admin/games/words/stats?game=${game}`, ADMIN_TOKEN);
+      expect(response.status).toBe(200);
+      const body = await response.json<GameWordsStats>();
+      expect(body.categories).toHaveLength(count);
+      expect(body.categories.find((category) => category.id === id)).toMatchObject({
+        name,
+        active: 0,
+      });
+    },
+  );
+
   it('returns the fibking dashboard shape', async () => {
     const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
     expect(resp.status).toBe(200);
     const body = await resp.json<GameWordsStats>();
     expect(body.game).toBe('fibking');
-    expect(body.wordsByCategory).toEqual([{ category: 'literary', active: 1, total: 1 }]);
+    expect(body.categories.find((category) => category.id === 'unclassified')).toMatchObject({
+      name: '未标主题',
+      active: 1,
+    });
+    expect(body.categories.find((category) => category.id === 'buildings')).toMatchObject({
+      name: '建筑营造',
+      active: 0,
+    });
+    expect(body.modelBudget).toMatchObject({ dailyLimit: 8, monthlyLimit: 120 });
     expect(body.monthlySupply).toMatchObject({ month: '2026-09', reserved: 3, published: 2 });
     expect(Array.isArray(body.reviewDecisions)).toBe(true);
     expect(Array.isArray(body.queryLeaderboard)).toBe(true);
     expect(typeof body.supplyEnabled).toBe('boolean');
+  });
+
+  it('counts published words by their actual topic rather than their search topic', async () => {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO fib_word_packs (id, month_id, request_token, category, status, created_at, topic, search_selected_at)
+         VALUES ('topic-pack', '2026-09', 'topic-token', 'literary', 'published', datetime('now'), 'food', datetime('now'))`,
+      ),
+      env.DB.prepare("UPDATE fib_words SET topic = 'music' WHERE id = 'w1'"),
+      env.DB.prepare(
+        `INSERT INTO fib_word_sequence (word, published_at, pack_id)
+         VALUES ('测试词', datetime('now'), 'topic-pack')`,
+      ),
+    ]);
+    const response = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
+    expect(response.status).toBe(200);
+    const body = await response.json<GameWordsStats>();
+    expect(body.categories.find((category) => category.id === 'music')).toMatchObject({
+      batches: 0,
+      yieldCount: 1,
+    });
+    expect(body.categories.find((category) => category.id === 'food')).toMatchObject({
+      batches: 1,
+      yieldCount: 0,
+    });
   });
 
   it('reports per-check failure counts for rejected v11 reviews', async () => {
@@ -209,7 +261,7 @@ describe('POST /admin/games/words/trigger-supply', () => {
     expect(resp.status).toBe(202);
     const body = await resp.json<TriggerSupplyResult>();
     expect(body).toMatchObject({ game, force: true });
-    expect(body.workflowId).toMatch(new RegExp(`^${game}-manual-\\d+$`));
+    expect(body.workflowId).toMatch(new RegExp(`^${game}-manual-[0-9a-f-]+$`));
   });
 
   it.each(GAME_WORD_GAMES)('selects only the %s workflow binding', async (game) => {

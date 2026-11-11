@@ -6,9 +6,11 @@ import type { FibWordEditorialCandidate } from '../wordProviders/types';
 import {
   FIB_WORD_DAILY_BATCH_LIMIT,
   FIB_WORD_MONTHLY_BATCH_LIMIT,
+  publishFibWordPack,
   reserveFibWordPack,
 } from '../wordPublication';
 import { createFibWordSearchQuery, FIB_WORD_SEARCH_QUERY_COUNT } from '../wordSearchPlan';
+import { getFibWordsToClassify, storeFibWordTopics } from '../wordTopicClassification';
 
 beforeEach(async () => {
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Unexpected external HTTP request')));
@@ -29,6 +31,156 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Fib word supply workflow', () => {
+  it('ignores ambiguous, out-of-range and stale historical classifications', async () => {
+    await env.DB.prepare(
+      `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status, selection_key, created_at, activated_at)
+       VALUES ('a', '甲词', '原释义', '提示', 'niche', 'local', 'active', 1, '2026-01-01', '2026-01-01'),
+              ('b', '乙词', '原释义', '提示', 'niche', 'local', 'active', 2, '2026-01-01', '2026-01-01'),
+              ('c', '丙词', '原释义', '提示', 'niche', 'local', 'active', 3, '2026-01-01', '2026-01-01'),
+              ('d', '丁词', '原释义', '提示', 'niche', 'local', 'active', 4, '2026-01-01', '2026-01-01')`,
+    ).run();
+    const words = await getFibWordsToClassify(env.DB);
+    await env.DB.prepare("UPDATE fib_words SET core_meaning = '新释义' WHERE id = 'c'").run();
+    await storeFibWordTopics(env.DB, words, [
+      { index: 0, topic: 'food' },
+      { index: 0, topic: 'music' },
+      { index: 1, topic: 'music' },
+      { index: 2, topic: 'food' },
+      { index: 99, topic: 'food' },
+    ]);
+    const rows = await env.DB.prepare('SELECT id, topic FROM fib_words ORDER BY id').all();
+    expect(rows.results).toEqual([
+      { id: 'a', topic: null },
+      { id: 'b', topic: 'music' },
+      { id: 'c', topic: null },
+      { id: 'd', topic: null },
+    ]);
+  });
+
+  it('continues supplying words when historical topic classification fails', async () => {
+    await env.DB.prepare(
+      `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status, selection_key, created_at, activated_at)
+       VALUES ('legacy', '旧词', '原本的准确释义', '原本的使用提示', 'niche', 'local', 'active', 0, '2026-01-01', '2026-01-01')`,
+    ).run();
+    const id = crypto.randomUUID();
+    await using instance = await introspectWorkflowInstance(env.FIB_WORD_SUPPLY, id);
+    await instance.modify(async (modifier) => {
+      await modifier.disableSleeps();
+      await modifier.mockStepResult({ name: 'enabled' }, true);
+      await modifier.mockStepResult({ name: 'review-candidates-0' }, []);
+      await modifier.mockStepResult({ name: 'discover-0' }, []);
+      await modifier.mockStepResult({ name: 'capacity-1' }, 'paused');
+    });
+    await env.FIB_WORD_SUPPLY.create({
+      id,
+      params: { day: new Date().toISOString().slice(0, 10) },
+    });
+    await instance.waitForStatus('complete');
+    expect(await instance.getOutput()).toEqual({ status: 'paused' });
+    expect(
+      await env.DB.prepare('SELECT status, topic FROM fib_words WHERE id = ?')
+        .bind('legacy')
+        .first(),
+    ).toEqual({ status: 'active', topic: null });
+    expect(
+      await env.DB.prepare('SELECT status FROM fib_word_packs WHERE id LIKE ?')
+        .bind(`${new Date().toISOString().slice(0, 10)}-0`)
+        .first(),
+    ).toEqual({ status: 'published' });
+  });
+  it('classifies existing reviewed inventory without changing its playable state', async () => {
+    const day = new Date().toISOString().slice(0, 10);
+    const pack = await reserveFibWordPack(env.DB, day, 0, { runId: 'legacy' });
+    if (pack === null) throw new Error('Expected legacy pack');
+    const candidate: FibWordEditorialCandidate = {
+      word: '测试旧词',
+      source: 'gemini',
+      category: 'niche',
+      definition: {
+        coreMeaning: '用于测试的准确核心含义。',
+        usageNote: '用于测试的具体使用语境。',
+      },
+      evidence: [
+        {
+          query: '测试旧词',
+          url: 'https://example.com/words',
+          title: '测试词源',
+          content: '测试旧词：用于测试的准确核心含义。',
+        },
+      ],
+    };
+    await publishFibWordPack(
+      env.DB,
+      pack,
+      [candidate],
+      [
+        {
+          word: candidate.word,
+          decision: 'accepted',
+          reason: '有资料支持且符合游戏性标准。',
+          evidenceIndex: 0,
+          evidenceQuote: '测试旧词：用于测试的准确核心含义。',
+          qualityChecks: {
+            isEstablishedTerm: true,
+            isDefinitionAccurate: true,
+            isMeaningUnfamiliarToMostPlayers: true,
+            isMeaningDistinctFromLiteralReading: true,
+            hasMultiplePlausibleWrongDefinitions: true,
+            hasRevealValue: true,
+          },
+        },
+      ],
+    );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(() =>
+        Response.json({
+          candidates: [
+            {
+              finishReason: 'STOP',
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      classifications: [{ index: 0, topic: 'customs' }],
+                    }),
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    const id = crypto.randomUUID();
+    await using instance = await introspectWorkflowInstance(env.FIB_WORD_SUPPLY, id);
+    await instance.modify(async (modifier) => {
+      await modifier.disableSleeps();
+      await modifier.mockStepResult({ name: 'enabled' }, true);
+      await modifier.mockStepResult({ name: 'discover-0' }, []);
+      await modifier.mockStepResult({ name: 'capacity-1' }, 'paused');
+    });
+    await env.FIB_WORD_SUPPLY.create({ id, params: { day } });
+    await instance.waitForStatus('complete');
+    expect(await instance.getOutput()).toEqual({ status: 'paused' });
+    expect(await env.DB.prepare('SELECT word, status, topic FROM fib_words').first()).toEqual({
+      word: candidate.word,
+      status: 'active',
+      topic: 'customs',
+    });
+    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_sequence').first()).toEqual(
+      { count: 1 },
+    );
+    expect(await env.DB.prepare('SELECT owner FROM editorial_model_requests').first()).toEqual({
+      owner: 'fibking',
+    });
+    expect(
+      await env.DB.prepare('SELECT topic FROM fib_word_packs WHERE id = ?')
+        .bind(`${day}-0`)
+        .first(),
+    ).toEqual({ topic: 'agriculture' });
+  });
+
   it('covers the entire monthly budget with distinct non-cycling searches', () => {
     const queries = Array.from({ length: FIB_WORD_MONTHLY_BATCH_LIMIT }, (_, index) =>
       createFibWordSearchQuery(index),

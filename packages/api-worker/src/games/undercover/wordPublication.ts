@@ -2,6 +2,7 @@
 import { UNDERCOVER_CATEGORIES } from '@game-judge/game-engine/games/undercover/public';
 import { z } from 'zod';
 
+import { wordCategoryCooldownCutoff } from '../../platform/wordSupply/categoryCooldown';
 import {
   createClaimWordCandidatesStatement,
   createWordPackId,
@@ -31,7 +32,7 @@ const packSchema = z.strictObject({
 });
 export type UndercoverWordPack = z.output<typeof packSchema>;
 
-/** Reserve a category with queued work first, then the least active inventory. */
+/** Alternate between queued reviews and the smallest active inventory. */
 export async function reserveUndercoverWordPack(
   db: D1Database,
   day: string,
@@ -41,32 +42,27 @@ export async function reserveUndercoverWordPack(
   z.iso.date().parse(day);
   const maxIndex = opts.force ? Number.MAX_SAFE_INTEGER : UNDERCOVER_DAILY_BATCH_LIMIT - 1;
   z.int().min(0).max(maxIndex).parse(batchIndex);
-  const categoryRows = await db
-    .prepare(
-      `SELECT category,
+  const row = await insertReservedWordPack(db, {
+    packsTable: 'undercover_word_packs',
+    packId: createWordPackId(day, batchIndex, opts),
+    categorySql: `SELECT category FROM (SELECT category,
       (SELECT COUNT(*) FROM undercover_word_candidates candidate WHERE candidate.category = category_list.value AND (
         (candidate.status = 'pending' AND (candidate.claimed_pack_id IS NULL OR EXISTS (SELECT 1 FROM undercover_word_packs pack WHERE pack.id = candidate.claimed_pack_id AND pack.status = 'failed')))
         OR (candidate.status = 'accepted' AND (candidate.reviewed_at < ? OR EXISTS (SELECT 1 FROM undercover_word_pairs pair WHERE pair.id = candidate.id AND json_extract(pair.review_json, '$.reviewVersion') != ?))))) AS pending_count,
       (SELECT COUNT(*) FROM undercover_word_pairs pair WHERE pair.category = category_list.value AND pair.status = 'active') AS active_count
     FROM (SELECT value, value AS category FROM json_each(?)) category_list
-    ORDER BY pending_count DESC, active_count ASC,
+    ORDER BY CASE WHEN ? = 0 THEN -pending_count ELSE 0 END ASC,
+      COALESCE((SELECT MAX(created_at) FROM undercover_word_packs previous WHERE previous.category = category_list.value), '') > ? ASC,
+      active_count ASC,
       COALESCE((SELECT MAX(created_at) FROM undercover_word_packs previous WHERE previous.category = category_list.value), '') ASC,
-      category ASC LIMIT 1`,
-    )
-    .bind(
+      category ASC LIMIT 1)`,
+    categoryBinds: [
       new Date(Date.now() - REVIEW_INTERVAL_MS).toISOString(),
       UNDERCOVER_WORD_REVIEW_VERSION,
       JSON.stringify(UNDERCOVER_CATEGORIES),
-    )
-    .first();
-  const { category } = packSchema
-    .pick({ category: true })
-    .extend({ pending_count: z.int(), active_count: z.int() })
-    .parse(categoryRows);
-  const row = await insertReservedWordPack(db, {
-    packsTable: 'undercover_word_packs',
-    packId: createWordPackId(day, batchIndex, opts),
-    category,
+      batchIndex % 2,
+      wordCategoryCooldownCutoff(),
+    ],
     model: UNDERCOVER_WORD_MODEL,
     promptVersion: UNDERCOVER_WORD_PROMPT_VERSION,
     reviewVersion: UNDERCOVER_WORD_REVIEW_VERSION,

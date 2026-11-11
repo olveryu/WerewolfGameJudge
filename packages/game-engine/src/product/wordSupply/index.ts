@@ -18,7 +18,19 @@ export function isGameWordGame(value: unknown): value is GameWordGame {
 /** Dashboard response shared by the Worker and admin client. */
 export interface GameWordsStats {
   game: GameWordGame;
-  wordsByCategory: Array<{ category: string; active: number; total: number }>;
+  categories: Array<{
+    id: string;
+    name: string;
+    active: number;
+    total: number;
+    pending: number;
+    batches: number;
+    yieldCount: number;
+    lastAttempt: string | null;
+    coolingDown: boolean;
+    menuEligible: boolean | null;
+  }>;
+  modelBudget: { dailyUsed: number; dailyLimit: number; monthlyUsed: number; monthlyLimit: number };
   /** Null for games without a monthly budget. */
   monthlySupply: {
     month: string;

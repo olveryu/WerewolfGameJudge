@@ -12,6 +12,7 @@ import {
 
 import { rooms } from '../../platform/room/dbSchema';
 import { FIB_WORD_CATEGORIES, FIB_WORD_REVIEW_DECISIONS } from './wordProviders/types';
+import { FIB_WORD_ALL_TOPIC_IDS } from './wordTopics';
 
 const FIB_WORD_STATUSES = ['active', 'disabled'] as const;
 export const FIB_WORD_SELECTION_TIERS = [
@@ -39,10 +40,12 @@ export const fibWords = sqliteTable(
     activatedAt: text('activated_at').notNull(),
     disabledAt: text('disabled_at'),
     statusReason: text('status_reason'),
+    topic: text('topic', { enum: FIB_WORD_ALL_TOPIC_IDS }),
   },
   (table) => [
     uniqueIndex('idx_fib_words_word').on(table.word),
     index('idx_fib_words_selection').on(table.status, table.category, table.selectionKey, table.id),
+    index('idx_fib_words_topic').on(table.status, table.topic),
   ],
 );
 
@@ -130,6 +133,7 @@ export const fibWordCandidates = sqliteTable(
     coreMeaning: text('core_meaning').notNull(), // Proposed fixed meaning, not yet approved.
     usageNote: text('usage_note').notNull(), // Proposed usage context.
     category: text('category', { enum: FIB_WORD_CATEGORIES }).notNull(), // Candidate category, independent of pack focus.
+    topic: text('topic', { enum: FIB_WORD_ALL_TOPIC_IDS }),
     source: text('source', { enum: FIB_WORD_SOURCES }).notNull(), // Original candidate provider.
     evidenceJson: text('evidence_json').notNull(), // Bounded source snapshots; [] only for inventory awaiting verification.
     generationCycleId: text('generation_cycle_id')

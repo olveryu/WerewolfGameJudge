@@ -3,6 +3,7 @@
 import { z } from 'zod';
 
 import { claimEditorialModelRequest } from '../../platform/ai/editorialBudget';
+import { wordCategoryCooldownCutoff } from '../../platform/wordSupply/categoryCooldown';
 import { createFailWordPackStatement } from '../../platform/wordSupply/wordPackLedger';
 import {
   assertFibWordReviewEvidence,
@@ -18,11 +19,11 @@ import {
   type FibWordEditorialCandidate,
   type FibWordReview,
 } from './wordProviders/types';
-import { FIB_WORD_SEARCH_QUERY_COUNT } from './wordSearchPlan';
+import { FIB_WORD_SEARCH_QUERY_COUNT, FIB_WORD_SEARCHES } from './wordSearchPlan';
+import { FIB_WORD_TOPIC_IDS } from './wordTopics';
 
 export const FIB_WORD_MONTHLY_TARGET = 100;
-/** Monthly batch budget tracks the search plan 1:1 so scheduled supply can reach every query. */
-export const FIB_WORD_MONTHLY_BATCH_LIMIT = FIB_WORD_SEARCH_QUERY_COUNT;
+export const FIB_WORD_MONTHLY_BATCH_LIMIT = 78;
 export const FIB_WORD_DAILY_BATCH_LIMIT = 4;
 const FIB_WORD_TAVILY_REQUEST_LIMIT = 7;
 /**
@@ -43,12 +44,14 @@ type FibWordProviderOperation =
 const packSchema = z.strictObject({
   id: z.string(),
   category: z.enum(FIB_WORD_CATEGORIES),
+  topic: z.enum(FIB_WORD_TOPIC_IDS).nullable().optional(),
   request_token: z.string(),
   searchIndex: z
     .number()
     .int()
     .min(0)
-    .max(FIB_WORD_SEARCH_QUERY_COUNT - 1),
+    .max(FIB_WORD_SEARCH_QUERY_COUNT - 1)
+    .optional(),
 });
 export type FibWordPack = z.output<typeof packSchema>;
 
@@ -131,7 +134,7 @@ export async function reserveFibWordPack(
       .prepare(
         `UPDATE fib_word_supply_months SET requests_reserved = requests_reserved + 1
       WHERE id = ? AND EXISTS (SELECT 1 FROM fib_word_packs WHERE id = ? AND request_token = ?)
-      RETURNING requests_reserved - 1 AS searchIndex`,
+      RETURNING requests_reserved`,
       )
       .bind(monthId, id, requestToken),
     db
@@ -145,19 +148,63 @@ export async function reserveFibWordPack(
   if (result === undefined) throw new Error('Fib pack reservation result missing');
   const row = result.results[0];
   if (row === undefined) return null;
-  const reservation = results[2];
-  if (reservation === undefined) throw new Error('Fib monthly reservation result missing');
-  const rawSearchIndex = z
-    .strictObject({ searchIndex: z.number().int().min(0) })
-    .parse(reservation.results[0]).searchIndex;
-  // Force mode cycles through the query plan instead of failing out of range.
-  const searchIndex =
-    opts.force === true ? rawSearchIndex % FIB_WORD_SEARCH_QUERY_COUNT : rawSearchIndex;
-  await db
-    .prepare('UPDATE fib_word_packs SET search_index = ? WHERE id = ? AND request_token = ?')
-    .bind(searchIndex, id, requestToken)
-    .run();
-  return packSchema.parse({ ...row, searchIndex });
+  return packSchema.parse(row);
+}
+
+/** Select and persist the search atomically only when a pack needs discovery. */
+export async function selectFibWordSearch(db: D1Database, pack: FibWordPack) {
+  const searches = JSON.stringify(FIB_WORD_SEARCHES);
+  const now = new Date().toISOString();
+  const row = await db
+    .prepare(
+      `UPDATE fib_word_packs
+     SET (search_index, topic) = (
+       WITH focus AS (
+         SELECT value AS topic FROM json_each(?) categories
+         ORDER BY COALESCE((SELECT MAX(search_selected_at) FROM fib_word_packs WHERE topic = categories.value), '') > ?,
+           (SELECT COUNT(*) FROM fib_words WHERE status = 'active' AND topic = categories.value),
+           COALESCE((SELECT MAX(search_selected_at) FROM fib_word_packs WHERE topic = categories.value), ''),
+           value LIMIT 1
+       ), choice AS (
+         SELECT CAST(key AS INTEGER) AS search_index, json_extract(value, '$.topic') AS topic
+         FROM json_each(?) WHERE json_extract(value, '$.topic') = (SELECT topic FROM focus)
+         ORDER BY COALESCE((SELECT MAX(search_selected_at) FROM fib_word_packs
+           WHERE search_index = CAST(key AS INTEGER)), ''), CAST(key AS INTEGER) LIMIT 1
+       )
+       SELECT search_index, topic FROM choice
+     ), search_selected_at = ?
+     WHERE id = ? AND request_token = ? AND status = 'reserved' AND search_index IS NULL
+     RETURNING search_index AS searchIndex, topic`,
+    )
+    .bind(
+      JSON.stringify(FIB_WORD_TOPIC_IDS),
+      wordCategoryCooldownCutoff(),
+      searches,
+      now,
+      pack.id,
+      pack.request_token,
+    )
+    .first();
+  const selected =
+    row ??
+    (await db
+      .prepare(
+        `UPDATE fib_word_packs SET topic = COALESCE(topic, json_extract(?, '$[' || search_index || '].topic')),
+      search_selected_at = COALESCE(search_selected_at, ?)
+     WHERE id = ? AND request_token = ? AND status = 'reserved'
+     RETURNING search_index AS searchIndex, topic`,
+      )
+      .bind(searches, now, pack.id, pack.request_token)
+      .first());
+  return z
+    .strictObject({
+      searchIndex: z
+        .int()
+        .min(0)
+        .max(FIB_WORD_SEARCH_QUERY_COUNT - 1),
+      topic: z.enum(FIB_WORD_TOPIC_IDS),
+    })
+    .parse(selected);
 }
 
 const FIB_WORD_VERIFICATION_REQUEST_COUNT = 2;
@@ -170,6 +217,7 @@ const candidateRowSchema = z.strictObject({
   core_meaning: z.string(),
   usage_note: z.string(),
   category: z.string(),
+  topic: z.string().nullable(),
   source: z.string(),
   evidence_json: z.string(),
 });
@@ -181,6 +229,7 @@ function parseCandidateRow(value: unknown): FibWordEditorialCandidate {
     word: row.word,
     definition: { coreMeaning: row.core_meaning, usageNote: row.usage_note },
     category: row.category,
+    ...(row.topic === null ? {} : { topic: row.topic }),
     source: row.source,
     evidence,
   });
@@ -205,9 +254,9 @@ export async function storeFibWordCandidates(
       const evidenceJson = JSON.stringify(candidate.evidence);
       return db
         .prepare(
-          `INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, source,
+          `INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, topic, source,
            evidence_json, generation_cycle_id, status, created_at)
-           SELECT ?, ?, ?, ?, ?, ?, ?, id, 'pending', ? FROM fib_word_packs
+           SELECT ?, ?, ?, ?, ?, ?, ?, ?, id, 'pending', ? FROM fib_word_packs
            WHERE id = ? AND request_token = ? AND status = 'reserved'
              AND NOT EXISTS (
                SELECT 1 FROM fib_word_candidate_reviews WHERE word = ? AND core_meaning = ?
@@ -221,6 +270,7 @@ export async function storeFibWordCandidates(
           candidate.definition.coreMeaning,
           candidate.definition.usageNote,
           candidate.category,
+          candidate.topic ?? null,
           candidate.source,
           evidenceJson,
           now,
@@ -245,10 +295,10 @@ export async function getFibWordReviewCandidates(
   const results = await db.batch([
     db
       .prepare(
-        `INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, source,
+        `INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, topic, source,
          evidence_json, generation_cycle_id, status, created_at)
          SELECT ? || ':inventory:' || inventory.word, inventory.word, core_meaning, usage_note,
-           category, source, COALESCE((
+           category, topic, source, COALESCE((
              SELECT evidence_json FROM fib_word_candidate_reviews AS previous
              WHERE previous.word = inventory.word AND previous.core_meaning = inventory.core_meaning
                AND previous.usage_note = inventory.usage_note AND evidence_json IS NOT NULL
@@ -264,7 +314,7 @@ export async function getFibWordReviewCandidates(
          ) AND NOT EXISTS (SELECT 1 FROM fib_word_candidates WHERE claimed_pack_id = ?)
          ORDER BY activated_at, word LIMIT ?
          ON CONFLICT (word) DO UPDATE SET core_meaning = excluded.core_meaning,
-           usage_note = excluded.usage_note, category = excluded.category,
+           usage_note = excluded.usage_note, category = excluded.category, topic = excluded.topic,
            source = excluded.source, evidence_json = CASE
              WHEN fib_word_candidates.core_meaning = excluded.core_meaning
                AND fib_word_candidates.usage_note = excluded.usage_note
@@ -306,7 +356,7 @@ export async function getFibWordReviewCandidates(
       ),
     db
       .prepare(
-        `SELECT word, core_meaning, usage_note, category, source, evidence_json
+        `SELECT word, core_meaning, usage_note, category, topic, source, evidence_json
          FROM fib_word_candidates WHERE claimed_pack_id = ? AND EXISTS (
            SELECT 1 FROM fib_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved'
          ) ORDER BY EXISTS (SELECT 1 FROM fib_words WHERE word = fib_word_candidates.word AND status = 'active') DESC,
@@ -402,9 +452,9 @@ export async function publishFibWordPack(
     statements.push(
       db
         .prepare(
-          `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status,
+          `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, topic, source, status,
       selection_key, generation_cycle_id, created_at, activated_at)
-      SELECT ?, ?, ?, ?, ?, ?, 'active', 0, id, ?, ? FROM fib_word_packs
+      SELECT ?, ?, ?, ?, ?, ?, ?, 'active', 0, id, ?, ? FROM fib_word_packs
       WHERE id = ? AND request_token = ? AND status = 'reserved'
         AND (EXISTS (SELECT 1 FROM fib_word_sequence WHERE word = ?)
           OR (SELECT published_count FROM fib_word_supply_months WHERE id = month_id)
@@ -412,6 +462,8 @@ export async function publishFibWordPack(
              WHERE generation_cycle_id = fib_word_packs.id
                AND NOT EXISTS (SELECT 1 FROM fib_word_sequence WHERE word = candidate_word.word)) < ?)
       ON CONFLICT (word) DO UPDATE SET
+        topic = COALESCE(excluded.topic, CASE WHEN fib_words.core_meaning = excluded.core_meaning
+          AND fib_words.usage_note = excluded.usage_note THEN fib_words.topic ELSE NULL END),
         core_meaning = excluded.core_meaning, usage_note = excluded.usage_note,
         category = excluded.category, source = excluded.source, status = 'active',
         activated_at = excluded.activated_at, disabled_at = NULL, status_reason = NULL`,
@@ -422,6 +474,7 @@ export async function publishFibWordPack(
           candidate.definition.coreMeaning,
           candidate.definition.usageNote,
           candidate.category,
+          candidate.topic ?? null,
           candidate.source,
           now,
           now,

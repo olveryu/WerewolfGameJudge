@@ -6,7 +6,6 @@
  */
 import './AdminTabs.css';
 
-import { UNDERCOVER_CATEGORY_NAMES } from '@game-judge/game-engine/games/undercover/public';
 import { GAME_WORD_GAMES } from '@game-judge/game-engine/product/wordSupply';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -21,7 +20,6 @@ import IconInfiniteOutline from '~icons/ion/infinite-outline';
 import IconLibraryOutline from '~icons/ion/library-outline';
 
 import { AdminEmptyState } from '../components/AdminEmptyState';
-import { BarChart } from '../components/BarChart';
 import { MetricCard } from '../components/MetricCard';
 import { Pagination } from '../components/Pagination';
 import { loadErrorMessage } from './loadErrorMessage';
@@ -35,14 +33,6 @@ const GAME_WORD_LABELS: Readonly<Record<GameWordGame, string>> = {
 /** Rows per page for the fibking query leaderboard list. */
 const LEADERBOARD_PAGE_SIZE = 15;
 
-/** Fibking word categories shown in admin; API returns the raw enum values. */
-const FIBKING_CATEGORY_NAMES: Readonly<Record<string, string>> = {
-  literary: '书面词',
-  internet: '网络词',
-  compound: '复合词',
-  niche: '生僻概念',
-};
-
 /** Fibking review check names shown in admin; API returns the raw field names. */
 const FIBKING_REVIEW_CHECK_LABELS: Readonly<Record<string, string>> = {
   isEstablishedTerm: '真实词项',
@@ -53,46 +43,12 @@ const FIBKING_REVIEW_CHECK_LABELS: Readonly<Record<string, string>> = {
   hasRevealValue: '揭晓价值',
 };
 
-/** DrawGuess word categories shown in admin; API returns the raw enum values. */
-const DRAWGUESS_CATEGORY_NAMES: Readonly<Record<string, string>> = {
-  animals: '动物',
-  food: '食物',
-  dailyObjects: '日用品',
-  plants: '植物',
-  vehicles: '交通工具',
-  places: '场所',
-  sports: '运动',
-  people: '人物',
-  idioms: '成语',
-  internetMemes: '网络梗',
-  instruments: '乐器',
-  occupations: '职业',
-  space: '太空天文',
-  festivals: '节日习俗',
-  electronics: '电器数码',
-  characters: '动漫角色',
-  nature: '自然现象',
-  landmarks: '建筑地标',
-  stationery: '文具校园',
-  oceanLife: '海洋生物',
-};
-
-const GAME_WORD_CATEGORY_NAMES: Readonly<Record<GameWordGame, Readonly<Record<string, string>>>> = {
-  fibking: FIBKING_CATEGORY_NAMES,
-  undercover: UNDERCOVER_CATEGORY_NAMES,
-  drawguess: DRAWGUESS_CATEGORY_NAMES,
-};
-
 const SUPPLY_ACTIONS = [
   { force: false, count: 1, label: '补词' },
   { force: false, count: 10, label: '补词×10' },
   { force: true, count: 1, label: '强制补词' },
   { force: true, count: 10, label: '强制补词×10' },
 ] as const;
-
-function localizeCategory(game: GameWordGame, category: string): string {
-  return GAME_WORD_CATEGORY_NAMES[game][category] ?? category;
-}
 
 function buildConfirmMessage(
   game: GameWordGame,
@@ -104,8 +60,8 @@ function buildConfirmMessage(
   // Model supply runs on dedicated free projects; force only breaks the budget cap.
   const forceDetail =
     game === 'fibking'
-      ? `突破本月 ${data.monthlySupply?.batchLimit ?? '—'} 次配额`
-      : '突破每日批次上限';
+      ? `突破本月 ${data.monthlySupply?.batchLimit ?? '—'} 次配额及共享模型额度`
+      : '突破每日批次上限及共享模型额度';
   if (count > 1) {
     return force
       ? `将为「${gameLabel}」连续强制触发 ${count} 次补词，${forceDetail}，确定吗？`
@@ -142,10 +98,21 @@ interface GameStatsProps {
 }
 
 function GameStats({ game, data, leaderboardPage, onLeaderboardPageChange }: GameStatsProps) {
-  const totalActive = data.wordsByCategory.reduce((sum, item) => sum + item.active, 0);
+  const totalActive = data.categories.reduce((sum, item) => sum + item.active, 0);
+  const categories = [...data.categories].sort(
+    (a, b) => a.active - b.active || a.id.localeCompare(b.id),
+  );
+  const maxActive = Math.max(0, ...categories.map((category) => category.active));
+  const middle = Math.floor(categories.length / 2);
+  const median =
+    categories.length === 0
+      ? 0
+      : categories.length % 2 === 1
+        ? (categories[middle]?.active ?? 0)
+        : ((categories[middle - 1]?.active ?? 0) + (categories[middle]?.active ?? 0)) / 2;
   const leaderboardItems = data.queryLeaderboard.map((query) => {
     // Undercover and drawguess leaderboard rows are per-category; localize them too.
-    const baseLabel = game === 'fibking' ? query.label : localizeCategory(game, query.label);
+    const baseLabel = query.label;
     return {
       label: query.detail ? `${baseLabel}（${query.detail}）` : baseLabel,
       value: query.publishedWords,
@@ -186,13 +153,60 @@ function GameStats({ game, data, leaderboardPage, onLeaderboardPageChange }: Gam
           icon={<IconCheckmarkCircleOutline />}
         />
       </div>
-      <BarChart
-        title="各分类在库词数"
-        items={data.wordsByCategory.map((item) => ({
-          label: localizeCategory(game, item.category),
-          value: item.active,
-        }))}
-      />
+      <section className="admin-plain-list">
+        <h2 className="admin-section-title">分类均衡</h2>
+        <p className="admin-summary">
+          分类 {categories.length} · 最少 {categories[0]?.active ?? 0} · 最多 {maxActive} · 中位数{' '}
+          {median}
+        </p>
+        <p className="admin-summary">
+          {game === 'fibking'
+            ? '产出按仍在库词的当前主题统计首次发布数；批次按搜索主题统计。'
+            : '产出为当前仍在库且最近一次审核通过的词，不代表历史总产出。'}
+        </p>
+        <div className="admin-category-table-scroll">
+          <table className="admin-category-table">
+            <caption>按在库数量从少到多排列</caption>
+            <thead>
+              <tr>
+                <th scope="col">分类</th>
+                <th scope="col">在库 / 总数</th>
+                <th scope="col">待审</th>
+                <th scope="col">产出 / 批次</th>
+                <th scope="col">上次补词</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map((category) => (
+                <tr key={category.id}>
+                  <th scope="row">
+                    {category.name}
+                    {category.coolingDown && <span> · 冷却中</span>}
+                    {category.menuEligible === false && <span> · 未达菜单门槛</span>}
+                  </th>
+                  <td>
+                    {category.active} / {category.total}
+                    <progress
+                      aria-label={`${category.name}在库数量`}
+                      value={category.active}
+                      max={Math.max(1, maxActive)}
+                    />
+                  </td>
+                  <td>{category.pending}</td>
+                  <td>
+                    {category.yieldCount} / {category.batches}
+                  </td>
+                  <td>
+                    {category.lastAttempt === null
+                      ? '从未'
+                      : new Date(category.lastAttempt).toLocaleString('zh-CN')}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
       {game === 'fibking' && checkStatItems.length > 0 && (
         <section className="admin-plain-list">
           <h2 className="admin-section-title">审核拒因分布（近 30 天）</h2>
@@ -219,9 +233,7 @@ function GameStats({ game, data, leaderboardPage, onLeaderboardPageChange }: Gam
             onPageChange={onLeaderboardPageChange}
           />
         </section>
-      ) : (
-        <BarChart title="各分类产出" items={leaderboardItems} labelWidth={120} />
-      )}
+      ) : null}
     </>
   );
 }
@@ -231,6 +243,7 @@ export function GamesTab() {
   const [game, setGame] = useState<GameWordGame>(GAME_WORD_GAMES[0]);
   const [triggering, setTriggering] = useState(false);
   const [triggerError, setTriggerError] = useState<string | null>(null);
+  const [triggered, setTriggered] = useState(false);
   // Current page of the fibking query leaderboard; resets when switching games.
   const [leaderboardPage, setLeaderboardPage] = useState(1);
 
@@ -251,12 +264,13 @@ export function GamesTab() {
   const runTrigger = async (force: boolean, count: number) => {
     setTriggering(true);
     setTriggerError(null);
+    setTriggered(false);
     try {
       // Serial calls: the backend assigns a unique runId per trigger, so no conflicts.
       for (let index = 0; index < count; index += 1) {
         await triggerGameWordSupply(game, force);
       }
-      await statsQuery.refetch();
+      setTriggered(true);
     } catch (cause: unknown) {
       setTriggerError(loadErrorMessage(cause));
     } finally {
@@ -287,6 +301,7 @@ export function GamesTab() {
             onClick={() => {
               setGame(gameType);
               setTriggerError(null);
+              setTriggered(false);
               setLeaderboardPage(1);
             }}
           >
@@ -298,12 +313,6 @@ export function GamesTab() {
         <AdminEmptyState loading={loading} error={error} empty={!data && !loading && !error} />
       ) : (
         <>
-          <GameStats
-            game={game}
-            data={data}
-            leaderboardPage={leaderboardPage}
-            onLeaderboardPageChange={setLeaderboardPage}
-          />
           <div className="admin-action-grid">
             {SUPPLY_ACTIONS.map((action) => (
               <Button
@@ -317,6 +326,22 @@ export function GamesTab() {
             ))}
           </div>
           <p className="admin-hint">{buildSupplyHint(game, data)}</p>
+          <p className="admin-hint">
+            共享模型额度：近 24 小时 {data.modelBudget.dailyUsed}/{data.modelBudget.dailyLimit} · 近
+            30 天 {data.modelBudget.monthlyUsed}/{data.modelBudget.monthlyLimit}
+          </p>
+          <p className="admin-hint" role="status">
+            {triggered ? '已触发，工作流需要几分钟。' : ''}
+          </p>
+          <Button variant="primary" onClick={() => void statsQuery.refetch()}>
+            刷新统计
+          </Button>
+          <GameStats
+            game={game}
+            data={data}
+            leaderboardPage={leaderboardPage}
+            onLeaderboardPageChange={setLeaderboardPage}
+          />
         </>
       )}
     </div>

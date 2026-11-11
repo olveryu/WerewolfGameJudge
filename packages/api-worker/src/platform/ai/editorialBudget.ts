@@ -1,7 +1,7 @@
 /** Shared application ceilings for editorial model calls, not a claim about provider quotas. */
 
 export const EDITORIAL_DAILY_REQUEST_LIMIT = 8;
-const EDITORIAL_MONTHLY_REQUEST_LIMIT = 120;
+export const EDITORIAL_MONTHLY_REQUEST_LIMIT = 120;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Consume before HTTP; uncertain operations are never automatically charged and sent twice. */

@@ -1,10 +1,25 @@
 /** Provider transport uses separate material, strict output, and redacted failures. */
+import { DRAWGUESS_WORD_CATEGORIES } from '@game-judge/game-engine/games/drawguess/public';
 import { describe, expect, it, vi } from 'vitest';
 
 import { DRAWGUESS_WORD_BATCH_LIMIT } from '../wordEditorial';
 import { createDrawGuessWordProvider } from '../wordProvider';
 
 describe('DrawGuess provider', () => {
+  it('supports at least 30 distinct editorial categories', () => {
+    expect(new Set(DRAWGUESS_WORD_CATEGORIES).size).toBeGreaterThanOrEqual(30);
+  });
+
+  it('sends the new party category and its drawing instructions to the provider', async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"candidates":[]}' }] } }],
+      }),
+    );
+    await createDrawGuessWordProvider('test-key', fetchImpl).generateBatch('actionComedy', []);
+    expect(fetchImpl.mock.calls[0]?.[1]?.body).toEqual(expect.stringContaining('动作喜剧'));
+  });
+
   it('submits a bounded structured request and accepts a real zero-candidate result', async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
       Response.json({

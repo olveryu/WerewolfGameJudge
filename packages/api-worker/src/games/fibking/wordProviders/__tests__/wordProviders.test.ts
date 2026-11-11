@@ -23,6 +23,7 @@ const CANDIDATES_RESPONSE = {
     word,
     definition: LITERARY_DEFINITION,
     category: 'literary' as const,
+    topic: 'plants' as const,
     citations: [{ evidenceIndex: 0, quote: `${word}：${LITERARY_DEFINITION.coreMeaning}` }],
   })),
 };
@@ -94,10 +95,11 @@ describe('Fib word candidate batches', () => {
     expect(
       parseGeneratedFibWordCandidates(CANDIDATES_RESPONSE, 'gemini', createWordRequest()),
     ).toEqual(
-      CANDIDATES_RESPONSE.candidates.map(({ word, definition, category }) => ({
+      CANDIDATES_RESPONSE.candidates.map(({ word, definition, category, topic }) => ({
         word,
         definition,
         category,
+        topic,
         evidence: createWordRequest().evidence,
         source: 'gemini',
       })),
@@ -208,6 +210,7 @@ describe('Fib word candidate batches', () => {
             word,
             definition: LITERARY_DEFINITION,
             category: 'literary',
+            topic: 'games',
             citations: [{ evidenceIndex: 0, quote: evidenceQuote }],
           },
         ],

@@ -7,20 +7,26 @@ import { queryOptions } from '@tanstack/react-query';
 
 import { apiClient } from '@/platform/http/client';
 
-function parseInventory(value: unknown): readonly UndercoverCategory[] {
+function parseInventory(value: unknown): {
+  availableCategories: readonly UndercoverCategory[];
+  hasAnyWords: boolean;
+} {
   if (
     value === null ||
     typeof value !== 'object' ||
     !('availableCategories' in value) ||
     !Array.isArray(value.availableCategories) ||
-    Object.keys(value).length !== 1
+    !('hasAnyWords' in value) ||
+    typeof value.hasAnyWords !== 'boolean' ||
+    Object.keys(value).length !== 2
   )
     throw new Error('Invalid Undercover inventory response');
-  return value.availableCategories.map((entry: unknown) => {
+  const availableCategories = value.availableCategories.map((entry: unknown) => {
     const category = UNDERCOVER_CATEGORIES.find((candidate) => candidate === entry);
     if (category === undefined) throw new Error('Invalid Undercover inventory category');
     return category;
   });
+  return { availableCategories, hasAnyWords: value.hasAnyWords };
 }
 
 export const undercoverInventoryOptions = queryOptions({
