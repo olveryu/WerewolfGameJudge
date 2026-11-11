@@ -48,7 +48,7 @@ export function writeDevVars() {
  * Apply D1 migrations locally via wrangler CLI.
  * Only needed for cloudflare E2E mode — ensures local D1 has the schema.
  *
- * Uses pipe stdio so wrangler detects non-interactive context and auto-confirms.
+ * Closes stdin so wrangler auto-confirms and streams output without a buffer limit.
  *
  * Runs once with a timeout (migrations are deterministic — no retry).
  * Verifies completion by comparing the migration files on disk against the
@@ -87,24 +87,18 @@ export function applyD1Migrations() {
  */
 function runMigrationApply(workerDir) {
   try {
-    const output = execSync('pnpm run db:migrate:local', {
+    execSync('pnpm run db:migrate:local', {
       cwd: workerDir,
-      stdio: 'pipe',
-      encoding: 'utf-8',
+      stdio: ['ignore', 'inherit', 'inherit'],
       timeout: MIGRATION_TIMEOUT_MS,
     });
-    console.log(output);
   } catch (err) {
     if (err.code === 'ETIMEDOUT') {
       console.error(
         `❌ db:migrate:local timed out after ${MIGRATION_TIMEOUT_MS / 1000}s — wrangler hung`,
       );
     } else {
-      console.warn('⚠️  db:migrate:local exited non-zero, verifying journal...');
-    }
-    const combined = (err.stdout || '') + (err.stderr || '');
-    if (combined) {
-      console.log(combined);
+      console.warn('⚠️  db:migrate:local exited non-zero, verifying journal:', err.message);
     }
   }
 }
