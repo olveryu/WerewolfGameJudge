@@ -56,6 +56,39 @@ The frontend CI build provides these values directly:
 | `VITE_SENTRY_DSN`   | Public client DSN embedded in the web bundle                          |
 | `SENTRY_AUTH_TOKEN` | Build-only source-map upload credential; never embedded in the bundle |
 
+### Site Maintenance Mode
+
+After deploying the API Worker and frontend, open `/admin` and sign in with the admin
+password, or tap the maintenance page's moon four times (no more than three seconds
+between taps) to reach the same password gate. The default **维护** tab lets you
+enable or disable maintenance, write the maintenance message, and select **自动恢复时间**.
+The date/time picker uses the administrator's displayed device timezone and stores
+an absolute ISO timestamp; visitors see it in their own timezone.
+Its live preview matches the standalone public maintenance page.
+Click **保存维护设置** to apply changes; editing alone does not publish them.
+
+The configuration is stored at `system/maintenance.json` in the existing `GAME_MEDIA`
+R2 bucket, not in D1. Admin authentication (`GET /admin/session`), configuration
+read/write (`GET` / `POST /admin/maintenance`), and public status (`GET /maintenance`)
+do not query D1. The admin portal is outside player authentication and remains
+accessible during maintenance, although its database-backed tabs still require D1.
+Do not apply a bucket-wide expiry rule to this configuration object.
+
+Player pages check uncached status before mounting authentication/game services,
+then every 60 seconds while visible, at the scheduled end time, and when the page regains focus. Enabling
+maintenance unmounts the player UI and closes its room links; disabling it restores
+the current URL on the next successful check. Visitors can also check manually.
+Hidden/offline pages check when they become active/reconnect; this is a UI gate, not
+an API lockdown or a forced disconnection of older frontend deployments.
+
+An enabled configuration requires a future recovery time. At or after that instant,
+the server reports maintenance as disabled, without a cron job, D1 query, or read-time
+R2 write. A saved expired setting cannot keep the site locked; to extend maintenance,
+save a new future time before it expires. You can also disable it manually at any time.
+The page rechecks the server at the deadline rather than trusting the visitor's clock
+to unlock the site. Status/storage failures are shown as errors rather than silently
+treating maintenance as disabled. No database migration or new Cloudflare resource is required.
+
 ### Worker Runtime Secrets
 
 `packages/api-worker/wrangler.toml` declares the required Worker secrets:

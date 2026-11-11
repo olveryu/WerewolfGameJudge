@@ -1,0 +1,172 @@
+.maintenance-page {
+  min-height: 100dvh;
+  padding: var(--space-xxlarge) var(--space-large);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xlarge);
+  color: var(--color-text);
+  background:
+    radial-gradient(ellipse at 15% 15%, var(--color-primary-a10), transparent 55%),
+    radial-gradient(ellipse at 90% 85%, var(--color-primary-a10), transparent 50%),
+    var(--color-background);
+  text-align: center;
+}
+
+.maintenance-orbit {
+  width: calc(var(--size-avatar-xl) * 2);
+  height: calc(var(--size-avatar-xl) * 2);
+  display: grid;
+  place-items: center;
+  position: relative;
+  border: var(--border-width) solid var(--color-primary-a25);
+  border-radius: var(--radius-full);
+}
+
+.maintenance-moon {
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  width: var(--size-avatar-xl);
+  height: var(--size-avatar-xl);
+  display: grid;
+  place-items: center;
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-xlarge);
+  transform: rotate(-12deg);
+}
+
+.maintenance-moon:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary);
+  outline-offset: var(--space-tight);
+}
+
+.maintenance-moon:disabled {
+  cursor: default;
+}
+
+.maintenance-moon svg {
+  width: var(--size-button-md);
+  height: var(--size-button-md);
+}
+
+.maintenance-star {
+  position: absolute;
+  width: var(--size-badge-dot);
+  height: var(--size-badge-dot);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+}
+
+.maintenance-star-one {
+  top: 10%;
+  right: 12%;
+}
+
+.maintenance-star-two {
+  bottom: 8%;
+  left: 18%;
+}
+
+.maintenance-star-three {
+  top: 40%;
+  left: -3%;
+  width: var(--space-tight);
+  height: var(--space-tight);
+}
+
+.maintenance-card {
+  width: 100%;
+  max-width: var(--size-max-content-width);
+  padding: var(--space-xlarge) var(--space-large);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-xlarge);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.maintenance-eyebrow {
+  color: var(--color-primary);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--letter-wide);
+}
+
+.maintenance-card h1 {
+  margin: var(--space-medium) 0;
+  font-size: var(--font-hero);
+  line-height: var(--line-hero);
+  letter-spacing: var(--letter-tight);
+}
+
+.maintenance-description {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.maintenance-return {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-medium);
+  margin: var(--space-large) 0;
+  padding: var(--space-large) var(--space-medium);
+  border-radius: var(--radius-medium);
+  background: var(--color-background);
+  text-align: left;
+}
+
+.maintenance-return > svg {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+.maintenance-return span,
+.maintenance-return strong {
+  display: block;
+}
+
+.maintenance-return span {
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  margin-bottom: var(--space-small);
+}
+
+.maintenance-return strong {
+  font-size: var(--font-subtitle);
+  line-height: var(--line-subtitle);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.maintenance-note,
+.maintenance-footer {
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-secondary);
+}
+
+.maintenance-note {
+  margin: 0 0 var(--space-large);
+}
+
+.maintenance-footer {
+  margin: 0;
+}
+
+.maintenance-page-preview {
+  min-height: 0;
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-large);
+  padding: var(--space-large) var(--space-medium);
+  gap: var(--space-large);
+}
