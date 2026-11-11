@@ -1287,9 +1287,10 @@ const ROLE_SPEC_DEFINITIONS = {
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
-      '与其他狼人互不相认；首夜可学习一名玩家的技能并获知其身份，当夜不能使用，次夜可用；其他狼人全部出局后可主导袭击，不能自爆',
+      '与其他狼人互不相认；首夜可学习一名玩家的技能并获知其身份，当夜不能使用，次夜可用；学到守卫获得守护技能，下一晚开始可守护一名玩家，被守护的玩家可以免疫狼刀和女巫毒药，仅可使用一次；学到狼人获得一次双刀技能，获得狼刀后才能使用，仅限一次；学到其他角色正常继承其技能；其他狼人全部出局后可主导袭击，不能自爆',
     structuredDescription: {
-      skill: '首夜可学习一名玩家的技能并获知其身份，当夜不能使用，次夜可用',
+      skill:
+        '首夜可学习一名玩家的技能并获知其身份，当夜不能使用，次夜可用；学到守卫获得守护技能，下一晚开始可守护一名玩家，被守护的玩家可以免疫狼刀和女巫毒药，仅可使用一次；学到狼人获得一次双刀技能，获得狼刀后才能使用，仅限一次；学到其他角色正常继承其技能',
       passive: '与其他狼人互不相认',
       restriction: '不能自爆',
       special: '其他狼人全部出局后可主导袭击',
@@ -1621,10 +1622,9 @@ const ROLE_SPEC_DEFINITIONS = {
     faction: Faction.Special,
     team: Team.Third,
     description:
-      '首夜选择一名玩家作为榜样，与榜样同阵营，但不知道榜样的具体身份；榜样被投票出局时自身变为狼人；与榜样阵营共同胜利',
+      '首夜选择一名玩家作为榜样，与榜样同阵营，但不知道榜样的具体身份；与榜样阵营共同胜利',
     structuredDescription: {
       skill: '首夜选择一名玩家作为榜样，与榜样同阵营，但不知道榜样的具体身份',
-      trigger: '榜样被投票出局时自身变为狼人',
       winCondition: '与榜样阵营共同胜利',
     },
     tags: ['follow'],
@@ -1650,7 +1650,7 @@ const ROLE_SPEC_DEFINITIONS = {
         actionKind: 'chooseSeat',
         ui: {
           confirmTitle: '确认行动',
-          prompt: '请选择你的榜样（榜样被投票出局时你将变为狼人）',
+          prompt: '请选择你的榜样',
           confirmText: '选择此玩家为榜样？',
           bottomActionText: '不用技能',
         },
