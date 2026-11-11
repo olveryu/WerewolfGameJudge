@@ -15,20 +15,20 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@sentry/cloudflare": "^10.54.0",
     "@game-judge/game-engine": "workspace:*",
+    "@sentry/cloudflare": "^10.54.0",
     "bcryptjs": "^3.0.3",
-    "drizzle-orm": "^0.45.2",
-    "hono": "4.13.2",
-    "jose": "6.2.9",
+    "drizzle-orm": "^0.45.4",
+    "hono": "4.13.18",
+    "jose": "6.2.17",
     "opencc-js": "1.4.2",
-    "pinyin-pro": "^3.28.2",
-    "zod": "^4.4.3"
+    "pinyin-pro": "^3.29.5",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^25.0.0",
     "@cloudflare/vitest-pool-workers": "~0.13.5",
+    "@types/node": "^25.0.0",
     "vitest": "~4.1.10",
-    "wrangler": "^4.147.0"
+    "wrangler": "^4.160.1"
   }
 }

@@ -51,11 +51,11 @@
     ]
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.0.1",
-    "@commitlint/config-conventional": "^21.0.1",
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
     "@eslint/js": "^9.39.4",
     "@game-judge/game-engine": "workspace:*",
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.65.0",
     "@sentry/cli": "^3.8.2",
     "@types/node": "^25.0.0",
     "concurrently": "^9.2.1",
@@ -65,19 +65,19 @@
     "eslint-plugin-simple-import-sort": "^13.0.0",
     "eslint-plugin-testing-library": "^7.16.2",
     "glob": "^13.0.6",
-    "globals": "^17.6.0",
+    "globals": "^17.14.0",
     "husky": "^9.1.7",
-    "knip": "^6.14.2",
+    "knip": "^6.45.1",
     "lint-staged": "^16.4.0",
     "miniprogram-ci": "^2.1.31",
-    "prettier": "^3.8.3",
-    "serve": "^14.2.6",
-    "turbo": "^2.11.7",
+    "prettier": "^3.10.0",
+    "serve": "^14.2.7",
+    "turbo": "^2.11.11",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.60.0",
+    "typescript-eslint": "^8.72.2",
     "vitest": "~4.1.10",
-    "wrangler": "^4.147.0",
-    "yaml": "^2.9.0",
-    "zod": "^4.4.3"
+    "wrangler": "^4.160.1",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
   }
 }
