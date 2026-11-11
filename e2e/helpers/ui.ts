@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 
-import { type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 /**
  * UI Helpers (generic primitives layer, pure utilities)
@@ -218,6 +218,24 @@ export function anySeatTestId(testIdForSeat: (seat: number) => string): RegExp {
   }
   const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp(`^${escape(parts[0]!)}(\\d+)${escape(parts[1]!)}$`);
+}
+
+// =============================================================================
+// Dialog Helpers
+// =============================================================================
+
+/**
+ * Dismiss an open Ark UI dialog by pressing the page corner outside it, then require
+ * `dialogPart` (any element inside the dialog) to unmount.
+ *
+ * Ark UI arms its outside-press listener a task after the dialog renders, so a press that lands
+ * first is ignored; the press repeats until the dialog closes.
+ */
+export async function dismissDialogByOutsideClick(page: Page, dialogPart: Locator): Promise<void> {
+  await expect(async () => {
+    await page.mouse.click(1, 1);
+    await expect(dialogPart).toHaveCount(0, { timeout: 1000 });
+  }).toPass({ timeout: 5000 });
 }
 
 // =============================================================================

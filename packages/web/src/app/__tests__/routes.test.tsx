@@ -1,11 +1,8 @@
 import { render, screen } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { createMemoryRouter, type RouteObject, RouterProvider } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
 import { routes } from '@/app/routes';
-
-/** The first lazy route import transforms its module graph cold; allow it more than the 1 s default. */
-const LAZY_ROUTE_TIMEOUT_MS = 5000;
 
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
@@ -13,15 +10,21 @@ function renderAt(path: string) {
 }
 
 describe('routes', () => {
-  it('lazy-loads the home page at /', async () => {
+  it('declares no lazy route, so no navigation waits on a route chunk', () => {
+    const lazyRoutePaths: string[] = [];
+    const collectLazyRoutes = (routeObjects: readonly RouteObject[]) => {
+      for (const route of routeObjects) {
+        if (route.lazy !== undefined) lazyRoutePaths.push(route.path ?? '(index)');
+        if (route.children !== undefined) collectLazyRoutes(route.children);
+      }
+    };
+    collectLazyRoutes(routes);
+    expect(lazyRoutePaths).toEqual([]);
+  });
+
+  it('renders the home page at /', async () => {
     renderAt('/');
-    expect(
-      await screen.findByRole(
-        'heading',
-        { name: '狼人面杀电子裁判助手' },
-        { timeout: LAZY_ROUTE_TIMEOUT_MS },
-      ),
-    ).toBeDefined();
+    expect(await screen.findByRole('heading', { name: '狼人面杀电子裁判助手' })).toBeDefined();
   });
 
   it('renders the not-found page for an unknown path', async () => {

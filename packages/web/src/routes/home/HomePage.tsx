@@ -4,6 +4,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 
 import { Avatar } from '@/components/avatar/Avatar';
+import { ANNOUNCEMENTS } from '@/config/announcements';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext, type User } from '@/contexts/AuthContext';
 import { requestLogin } from '@/features/auth/loginRequests';
@@ -15,7 +16,6 @@ import { gameGuidePath } from '@/features/navigation/model/gamePaths';
 import { getRecentRooms } from '@/features/room/services/recentRooms';
 import { GAME_ANNOUNCEMENT_TABS, GAME_HOME_SPOTLIGHTS, GAME_MODE_OPTIONS } from '@/games/catalog';
 import { TESTIDS } from '@/testids';
-import { handleError } from '@/utils/errorPipeline';
 import { homeLog } from '@/utils/logger';
 import { isMiniProgram, wxReLaunch } from '@/utils/miniProgram';
 import IconBookOutline from '~icons/ion/book-outline';
@@ -95,28 +95,20 @@ export function HomePage() {
     markAnnouncementSeen(APP_VERSION);
   };
 
-  // Auto-shows this version's announcement once auth settles; the content loads on demand so
-  // the changelog stays out of the Home chunk.
+  // Auto-opens this version's announcement once, when auth first settles.
+  const [announcementChecked, setAnnouncementChecked] = useState(false);
+  if (!authLoading && !announcementChecked) {
+    setAnnouncementChecked(true);
+    if (!hasSeenAnnouncement(APP_VERSION) && APP_VERSION in ANNOUNCEMENTS) {
+      setAnnouncementMounted(true);
+      setAnnouncementOpen(true);
+    }
+  }
+
+  // A version without an announcement is recorded as seen once auth settles.
   useEffect(() => {
-    if (authLoading || hasSeenAnnouncement(APP_VERSION)) return;
-    let cancelled = false;
-    import('@/config/announcements').then(
-      (announcements) => {
-        if (cancelled) return;
-        if (announcements.ANNOUNCEMENTS[APP_VERSION]) {
-          setAnnouncementMounted(true);
-          setAnnouncementOpen(true);
-        } else {
-          markAnnouncementSeen(APP_VERSION);
-        }
-      },
-      (error: unknown) => {
-        handleError(error, { label: '加载公告', logger: homeLog });
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
+    if (authLoading || APP_VERSION in ANNOUNCEMENTS) return;
+    markAnnouncementSeen(APP_VERSION);
   }, [authLoading]);
 
   /** Runs `action` once signed in; a fresh email sign-up goes to settings to pick a profile. */

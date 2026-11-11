@@ -10,7 +10,9 @@ const manifest = JSON.parse(readFileSync(path.join(distDirectory, '.vite/manifes
 
 const KIB = 1024;
 const STARTUP_ENTRY = 'index.html';
-const HOME_ENTRIES = [STARTUP_ENTRY, 'src/boot/bootSplash.ts', 'src/routes/home/HomePage.tsx'];
+// Every route page ships in the start-up entry (docs/web-client-rewrite.md §5.10), so the
+// start-up closure already contains them all; only the boot splash is a separate entry.
+const HOME_ENTRIES = [STARTUP_ENTRY, 'src/boot/bootSplash.ts'];
 // Start-up code decodes with `zod/mini`; classic `zod` costs ~20 KiB gzip on the home budget.
 const CLASSIC_ZOD_SOURCE = /\/node_modules\/zod\/v4\/classic\//;
 
@@ -20,9 +22,10 @@ const CLASSIC_ZOD_SOURCE = /\/node_modules\/zod\/v4\/classic\//;
  */
 const BUDGETS = [
   {
+    // Measured 2026-11-10 with every route static: 527.2 KiB gzip; ~4% headroom.
     name: 'home (start-up to interactive home)',
     entries: HOME_ENTRIES,
-    maxGzipBytes: 280 * KIB,
+    maxGzipBytes: 550 * KIB,
   },
   {
     // PixiJS loads its browser extensions and the selected renderer as dynamic chunks; the stage
