@@ -67,10 +67,10 @@
 | 首页入口（到首页可交互）     | ≤ 415 KB                     | 所有路由页面静态打进入口（§5.10），2026-11-11 实测 398.0 KB；入口里不能有 PixiJS（构建检查）。原先只含首页时的 ≤ 280 KB 构成：Sentry（10.53.1 实测）错误 + 追踪 46 KB；React 19.3 + react-dom + React Router 8 约 100 KB（同一示例应用实测，含 React Compiler 运行时）；TanStack Query core 10 KB；引擎 `games/catalog` 全量导出 70 KB（上限，含 Zod）；其余应用代码 ≤ 54 KB |
 | 单个游戏（房间壳已在入口里） | ≤ 200 KB                     | 引擎 `games/werewolf/public` 全量 54 KB；其他游戏 7–16 KB                                                                                                                                                                                                                                                                                                                    |
 | 场景层（PixiJS）             | ≤ 180 KB，进入房间流程时预取 | PixiJS 8.22 探针（Application、Sprite、Graphics、ParticleContainer、Assets）全部分块共 178 KB，其中包含 WebGL 和 WebGPU 两套渲染器，运行时只加载其中一套                                                                                                                                                                                                                     |
-| Session Replay               | ≤ 52 KB，懒加载              | `@sentry/react` 11.11.0 实测独立分块 51 KB                                                                                                                                                                                                                                                                                                                                   |
+| Session Replay               | 已关闭                       | 移除回放采集，避免持续消耗 Sentry Replay 配额                                                                                                                                                                                                                                                                                                                                |
 | WASM、Web 字体               | 0                            | 去掉 CanvasKit；图标在构建期内联为 SVG                                                                                                                                                                                                                                                                                                                                       |
 
-进入狼人杀房间（含场景层，不含懒加载的 Replay）合计 ≤ 795 KB gzip（入口 415 + 单个游戏 200 + 场景层 180）；现状是首屏前 5.33 MB（2.08 + 3.25）。
+进入狼人杀房间（含场景层）合计 ≤ 795 KB gzip（入口 415 + 单个游戏 200 + 场景层 180）；现状是首屏前 5.33 MB（2.08 + 3.25）。
 
 ### 4.2 运行时（社区标准阈值 + P0 实测基线）
 
@@ -222,8 +222,8 @@ flowchart TB
 
 - 继续用 Sentry，SDK 从现装的 10.53.1 升到 11.x（`@sentry/react` 11.11.0）。
 - 按 Sentry 官方做法，把初始化放在入口的第一行。现客户端要等 CanvasKit 加载完才初始化，启动期的失败会漏报，这次一并修正。
-- 启动时只装错误监控和 BrowserTracing（实测 46 KB gzip；SDK 11 的 BrowserTracing 自动采集 INP、LCP、CLS）。Session Replay 按官方文档用动态 `import()` 加 `addIntegration` 懒加载（再加约 40 KB）。
-- 采样率沿用现值：traces 0.2；replay 会话 0.1，出错时 1.0。
+- 启动时只装错误监控和 BrowserTracing（实测 46 KB gzip；SDK 11 的 BrowserTracing 自动采集 INP、LCP、CLS）。Session Replay 已移除，不录制会话，也不消耗 Replay 配额。
+- traces 采样率为 0.2。
 - P0 在 Sentry 后台核对来自微信客户端的事件确实能到达。
 - `load_timing` 遥测保留，用于按运营商和 CDN 节点分析加载耗时，这是 Sentry 不覆盖的维度。
 
@@ -233,7 +233,7 @@ flowchart TB
 - 引擎从 TS 源码引入（别名到 `packages/game-engine/src`），因为它 `exports` 的 `default` 指向 CJS `dist`，不利于 tree-shaking。
 - 文件名按内容哈希，CDN 上设 `immutable` 长缓存。现在 Metro 按源码哈希命名，[web/\_headers](../web/_headers) 只能给 `/assets/js/*` 设 `no-cache`。
 - Vite 的 `base` 设为 npmmirror 的版本化地址，代替 CI 里对 JS 和 HTML 的 `sed` 改写（示例应用实测：构建出的 `index.html` 直接引用 CDN 地址）；删除 CanvasKit WASM 的发布步骤。HTML 仍由 Cloudflare Pages 发出（`no-cache`），SPA 回退沿用现有的 `_redirects`。
-- 路由页面全部静态导入、打进入口，不用路由 `lazy`：懒加载的路由首次进入时要先下载分块，这段时间点击看起来没反应（2026-11-10 实测首次 1–3 秒）。每个游戏模块、场景层、Session Replay 和低频弹窗仍按需加载。开发用的场景基准页（`/__bench/scene`）路由同样静态，页面内容在打开时才下载，场景层不随它进入口。
+- 路由页面全部静态导入、打进入口，不用路由 `lazy`：懒加载的路由首次进入时要先下载分块，这段时间点击看起来没反应（2026-11-10 实测首次 1–3 秒）。每个游戏模块、场景层和低频弹窗仍按需加载。开发用的场景基准页（`/__bench/scene`）路由同样静态，页面内容在打开时才下载，场景层不随它进入口。
 - 自己的启动逻辑（微信环境判断、浏览器引导页、JSSDK 加载）放进入口模块，不写内联脚本。
 - 构建目标显式配置，取值由 P0 遥测决定。
 - CI：`packages/web` 接入 Turbo 的 typecheck、lint、test、build 和体积检查。合并时，`deploy-frontend` 从 `scripts/build.sh`（`expo export`）改为 `pnpm --filter @game-judge/web build`。
@@ -375,7 +375,7 @@ flowchart TB
 | D5   | 功能冻结   | 已定 | 重写期间旧客户端只修线上 bug，不加功能和新游戏                                                                                              |
 | D6   | 视觉对等   | 已定 | 效果一致，细节可以不同；分批并排截图验收                                                                                                    |
 | D7   | 分享图     | 已定 | 保持"一个渲染器"，截图库换成 SnapDOM（§5.8）                                                                                                |
-| D8   | 错误上报   | 已定 | 继续用 Sentry（`@sentry/react`）：入口第一行初始化，只懒加载 Replay（§5.9）                                                                 |
+| D8   | 错误上报   | 已定 | 继续用 Sentry（`@sentry/react`）：入口第一行初始化；关闭 Session Replay 以避免消耗配额                                                      |
 
 ## 13. 修订记录
 

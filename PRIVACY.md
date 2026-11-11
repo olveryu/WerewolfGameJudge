@@ -36,11 +36,9 @@ Google 对 Gemini API 输入和输出的处理取决于部署所用项目是否�
 
 Gemini API 的当前条款要求用户年满 18 岁。未满 18 岁的用户不得使用本应用的 AI 功能。AI 输出可能不准确，不应作为医疗、法律、财务或其他专业建议。
 
-### 4. 错误监控和会话回放
+### 4. 错误监控
 
-生产环境使用 Sentry 收集客户端和 Worker 的错误、堆栈、性能追踪、结构化日志、设备/浏览器信息、IP 推断信息和用户 ID。配置允许 Sentry 接收默认 PII，并采样 20% 的性能追踪、10% 的普通会话回放以及发生错误的全部会话回放。
-
-回放配置会遮盖 Web 端文字和输入内容；移动端会遮盖文字和图片。遮盖并不代表回放不含任何个人信息，交互、页面结构、URL、时间、设备和网络元数据仍可能被处理。
+生产环境使用 Sentry 收集客户端和 Worker 的错误、堆栈、性能追踪、结构化日志、设备/浏览器信息、IP 推断信息和用户 ID。配置允许 Sentry 接收默认 PII，并采样 20% 的性能追踪。应用不录制或上传会话回放。
 
 ### 5. 反馈会公开同步到 GitHub
 
@@ -55,7 +53,7 @@ Gemini API 的当前条款要求用户年满 18 岁。未满 18 岁的用户不�
 | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | [Cloudflare](https://www.cloudflare.com/privacypolicy/)                                            | 网络请求、IP 和路由信息；Workers、Pages、D1、Durable Objects、R2、日志及 Analytics Engine 中的数据 | 托管应用、API、实时房间、数据库、对象存储、安全与遥测                  |
 | [Google Gemini](https://policies.google.com/privacy)                                               | AI 提示词、上下文、生成结果和调用元数据                                                            | 生成 AI 回答及游戏所需的候选词；数据处理还受 Gemini API 条款约束       |
-| [Sentry](https://sentry.io/privacy/)                                                               | 错误、日志、性能、会话回放、用户 ID、设备和网络元数据                                              | 故障诊断、发布健康和性能监控                                           |
+| [Sentry](https://sentry.io/privacy/)                                                               | 错误、日志、性能、用户 ID、设备和网络元数据                                                        | 故障诊断、发布健康和性能监控                                           |
 | [Resend](https://resend.com/legal/privacy-policy)                                                  | 收件邮箱、邮件主题、密码重置验证码和邮件正文、投递元数据                                           | 发送密码重置邮件                                                       |
 | [WeChat / Tencent](https://www.wechat.com/en/privacy_policy.html)                                  | 微信临时登录 code 及由微信返回的 OpenID                                                            | 微信小程序登录和账号绑定                                               |
 | [GitHub](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement) | 反馈 Issue、评论及随反馈发布的账号和地区元数据                                                     | 公开问题跟踪和双向反馈                                                 |
@@ -146,11 +144,9 @@ Google's handling of Gemini API input and output depends on whether the deployme
 
 The current Gemini API terms require users to be at least 18. Users under 18 must not use this app's AI feature. AI output may be inaccurate and is not medical, legal, financial, or other professional advice.
 
-### 4. Error Monitoring and Session Replay
+### 4. Error Monitoring
 
-Production uses Sentry to collect client and Worker errors, stack traces, performance traces, structured logs, device/browser information, IP-derived information, and user IDs. The configuration allows default PII and samples 20% of performance traces, 10% of ordinary session replays, and all sessions in which an error occurs.
-
-Replay configuration masks text and inputs on the Web; mobile replay masks text and images. Masking does not mean a replay contains no personal data: interactions, page structure, URLs, timestamps, device details, and network metadata may still be processed.
+Production uses Sentry to collect client and Worker errors, stack traces, performance traces, structured logs, device/browser information, IP-derived information, and user IDs. The configuration allows default PII and samples 20% of performance traces. The app does not record or upload session replays.
 
 ### 5. Feedback Is Published to GitHub
 
@@ -165,7 +161,7 @@ Feedback submitted in the app is stored in D1 and also creates a GitHub Issue in
 | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
 | [Cloudflare](https://www.cloudflare.com/privacypolicy/)                                            | Network requests, IP and routing data; data in Workers, Pages, D1, Durable Objects, R2, logs, and Analytics Engine | App and API hosting, real-time rooms, databases, object storage, security, and telemetry               |
 | [Google Gemini](https://policies.google.com/privacy)                                               | AI prompts, context, generated output, and call metadata                                                           | AI responses and candidate words used by the game; processing is also governed by the Gemini API terms |
-| [Sentry](https://sentry.io/privacy/)                                                               | Errors, logs, performance, session replay, user ID, device details, and network metadata                           | Fault diagnosis, release health, and performance monitoring                                            |
+| [Sentry](https://sentry.io/privacy/)                                                               | Errors, logs, performance, user ID, device details, and network metadata                                           | Fault diagnosis, release health, and performance monitoring                                            |
 | [Resend](https://resend.com/legal/privacy-policy)                                                  | Recipient email, subject, password-reset code and message body, and delivery metadata                              | Password-reset email delivery                                                                          |
 | [WeChat / Tencent](https://www.wechat.com/en/privacy_policy.html)                                  | Temporary WeChat login code and the OpenID returned by WeChat                                                      | Mini Program sign-in and account linking                                                               |
 | [GitHub](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement) | Feedback issues, comments, and the account and regional metadata published with feedback                           | Public issue tracking and two-way feedback                                                             |
