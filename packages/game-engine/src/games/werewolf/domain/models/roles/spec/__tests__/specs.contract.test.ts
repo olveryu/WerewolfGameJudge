@@ -271,6 +271,7 @@ describe('ROLE_SPECS contract', () => {
     it('slacker never becomes a wolf: no transform trigger anywhere', () => {
       expect(ROLE_SPECS.slacker.description).not.toContain('变为狼人');
       expect(ROLE_SPECS.slacker.description).not.toContain('变成狼人');
+      expect(ROLE_SPECS.slacker.description).not.toContain('加入狼队');
       expect(ROLE_SPECS.slacker.structuredDescription?.trigger).toBeUndefined();
       expect(ROLE_SPECS.slacker.description).toContain('与榜样阵营共同胜利');
       const step = ROLE_SPECS.slacker.nightSteps?.find((s) => s.stepId === 'slackerChooseIdol');
@@ -287,16 +288,21 @@ describe('ROLE_SPECS contract', () => {
     it('wolfRobot learn rules: guard and wolf are special cases, others inherit', () => {
       const description = ROLE_SPECS.wolfRobot.description;
       expect(description).toContain('学到守卫获得守护技能');
+      expect(description).toContain('下一晚开始');
       expect(description).toContain('被守护的玩家可以免疫狼刀和女巫毒药');
       expect(description).toContain('仅可使用一次');
       expect(description).toContain('学到狼人获得一次双刀技能');
       expect(description).toContain('获得狼刀后才能使用');
       expect(description).toContain('仅限一次');
       expect(description).toContain('学到其他角色正常继承其技能');
-      expect(ROLE_SPECS.wolfRobot.structuredDescription?.skill).toContain('学到守卫获得守护技能');
-      expect(ROLE_SPECS.wolfRobot.structuredDescription?.skill).toContain(
-        '学到狼人获得一次双刀技能',
-      );
+      const structured = ROLE_SPECS.wolfRobot.structuredDescription;
+      expect(structured?.skill).toContain('学到其他角色正常继承其技能');
+      expect(structured?.skill).not.toContain('学到守卫');
+      expect(structured?.skill).not.toContain('学到狼人');
+      expect(structured?.special).toContain('学到守卫获得守护技能');
+      expect(structured?.special).toContain('下一晚开始');
+      expect(structured?.special).toContain('学到狼人获得一次双刀技能');
+      expect(structured?.special).toContain('其他狼人全部出局后可主导袭击');
     });
   });
 
