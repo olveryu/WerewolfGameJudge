@@ -107,6 +107,7 @@
 
 .ai-chat-header {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   padding: var(--space-tight) var(--space-tight) var(--space-tight) var(--space-medium);
@@ -332,6 +333,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-small);
+  min-height: 0;
+  max-height: 30%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--space-small);
   border-top: var(--border-width) solid var(--color-border);
   background: var(--color-surface);
@@ -365,6 +370,7 @@
 /* Input */
 .ai-chat-input-row {
   display: flex;
+  flex-shrink: 0;
   align-items: flex-end;
   gap: var(--space-tight);
   padding: var(--space-small);

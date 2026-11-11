@@ -158,11 +158,13 @@ export function RoleCardDialog({
         <Dialog.Backdrop className="center-dialog-backdrop" />
         <Dialog.Positioner className="center-dialog-positioner">
           <Dialog.Content className="role-card-dialog" data-testid={testId} aria-label={role.name}>
-            <RoleCardContent
-              role={role}
-              descriptionTitle={descriptionTitle}
-              nameTestId={nameTestId}
-            />
+            <div className="role-card-scroll">
+              <RoleCardContent
+                role={role}
+                descriptionTitle={descriptionTitle}
+                nameTestId={nameTestId}
+              />
+            </div>
             {footer}
             <Button
               className="role-card-confirm"
