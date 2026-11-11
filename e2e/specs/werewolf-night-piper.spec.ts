@@ -62,23 +62,23 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === Wolf kills villager ===
         await test.step('wolf kills villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
-          expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
+          await test.step('Wolf turn should be detected', () =>
+            waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages));
           await driveWolfVote(pages, [wolfIdx], villagerSeat);
         });
 
         // === Piper hypnotizes wolf ===
         const wolfSeat = roleMap.get(wolfIdx)!.seat;
         await test.step('piper hypnotizes wolf', async () => {
-          const piperTurn = await waitForRoleTurn(pages[piperIdx]!, 'piperHypnotize', pages);
-          expect(piperTurn, 'Piper turn should be detected').toBe(true);
+          await test.step('Piper turn should be detected', () =>
+            waitForRoleTurn(pages[piperIdx]!, 'piperHypnotize', pages));
           await driveMultiSelect(pages[piperIdx]!, [wolfSeat], '确认催眠（1人）');
         });
 
         // === GroupConfirm: all players ack ===
         await test.step('all players ack groupConfirm', async () => {
-          const groupReady = await waitForGroupConfirmStep(pages, '催眠状态', 60);
-          expect(groupReady, 'GroupConfirm step should become active').toBe(true);
+          await test.step('GroupConfirm step should become active', () =>
+            waitForGroupConfirmStep(pages, '催眠状态', 60));
 
           // Each player acks — check personal messages
           for (let i = 0; i < pages.length; i++) {
@@ -101,8 +101,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === Night ends ===
         await test.step('night ends with death', async () => {
-          const ended = await waitForNightEnd(pages);
-          expect(ended, 'Night should have ended').toBe(true);
+          await test.step('Night should have ended', () => waitForNightEnd(pages));
 
           const nightInfo = await viewLastNightInfo(pages[0]!);
           expect(nightInfo, 'Villager should have died').toContain('昨夜死亡');
@@ -145,22 +144,19 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === Wolf kills ===
         await test.step('wolf kills villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
-          expect(wolfTurn).toBe(true);
+          await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
           await driveWolfVote(pages, [wolfIdx], killTarget);
         });
 
         // === Piper hypnotizes 2 targets ===
         await test.step('piper hypnotizes 2 targets', async () => {
-          const piperTurn = await waitForRoleTurn(pages[piperIdx]!, 'piperHypnotize', pages);
-          expect(piperTurn).toBe(true);
+          await waitForRoleTurn(pages[piperIdx]!, 'piperHypnotize', pages);
           await driveMultiSelect(pages[piperIdx]!, [target1Seat, target2Seat], '确认催眠（2人）');
         });
 
         // === GroupConfirm: verify messages ===
         await test.step('groupConfirm reveals correct messages', async () => {
-          const groupReady = await waitForGroupConfirmStep(pages, '催眠状态', 60);
-          expect(groupReady).toBe(true);
+          await waitForGroupConfirmStep(pages, '催眠状态', 60);
 
           const hypnotizedSeats = [target1Seat, target2Seat];
 
@@ -184,8 +180,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === Night ends ===
         await test.step('night ends', async () => {
-          const ended = await waitForNightEnd(pages);
-          expect(ended).toBe(true);
+          await waitForNightEnd(pages);
         });
       },
     );
@@ -217,15 +212,13 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === Wolf kills villager ===
         await test.step('wolf kills villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
-          expect(wolfTurn).toBe(true);
+          await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
           await driveWolfVote(pages, [wolfIdx], villagerSeat);
         });
 
         // === Piper skips ===
         await test.step('piper skips with 不用技能', async () => {
-          const piperTurn = await waitForRoleTurn(pages[piperIdx]!, 'piperHypnotize', pages);
-          expect(piperTurn).toBe(true);
+          await waitForRoleTurn(pages[piperIdx]!, 'piperHypnotize', pages);
           // Dismiss action prompt alert first
           await dismissAlert(pages[piperIdx]!);
           // Click "不用技能" skip button
@@ -240,8 +233,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === GroupConfirm: even when skipped, all ack (0 hypnotized) ===
         await test.step('all players ack groupConfirm (no one hypnotized)', async () => {
-          const groupReady = await waitForGroupConfirmStep(pages, '催眠状态', 60);
-          expect(groupReady).toBe(true);
+          await waitForGroupConfirmStep(pages, '催眠状态', 60);
 
           for (let i = 0; i < pages.length; i++) {
             const msg = await driveGroupConfirmAck(pages[i]!, '催眠状态', '知道了');
@@ -252,8 +244,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === Night ends with death ===
         await test.step('night ends with death', async () => {
-          const ended = await waitForNightEnd(pages);
-          expect(ended).toBe(true);
+          await waitForNightEnd(pages);
 
           const nightInfo = await viewLastNightInfo(pages[0]!);
           expect(nightInfo, 'Villager should have died').toContain('昨夜死亡');

@@ -55,13 +55,12 @@ test.describe('Werewolf Night — Gun Status', () => {
 
         // Drive wolf kill (target anyone except wolf)
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName !== '狼人');
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
-        expect(wolfTurn).toBe(true);
+        await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         await driveWolfVote(pages, [wolfIdx], killTarget ? killTarget[1].seat : 0);
 
         // Wait for hunter's turn — "发动状态" is in prompt text
-        const hunterTurn = await waitForRoleTurn(pages[hunterIdx]!, 'hunterConfirm', pages);
-        expect(hunterTurn, 'Hunter turn should be detected').toBe(true);
+        await test.step('Hunter turn should be detected', () =>
+          waitForRoleTurn(pages[hunterIdx]!, 'hunterConfirm', pages));
 
         // Dismiss the "夜间行动" alert before interacting with bottom buttons
         await dismissAlert(pages[hunterIdx]!);
@@ -76,8 +75,7 @@ test.describe('Werewolf Night — Gun Status', () => {
         await dismissAlert(pages[hunterIdx]!);
 
         // Finish night
-        const ended = await waitForNightEnd(pages, 90_000);
-        expect(ended).toBe(true);
+        await waitForNightEnd(pages, 90_000);
       },
     );
   });
@@ -103,13 +101,12 @@ test.describe('Werewolf Night — Gun Status', () => {
 
         // darkWolfKing is a wolf — drive wolf kill first
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
-        const wolfTurn = await waitForRoleTurn(pages[dwkIdx]!, 'wolfKill', pages);
-        expect(wolfTurn).toBe(true);
+        await waitForRoleTurn(pages[dwkIdx]!, 'wolfKill', pages);
         await driveWolfVote(pages, [dwkIdx], killTarget ? killTarget[1].seat : 0);
 
         // Wait for darkWolfKing confirm step — "发动状态" is in prompt text
-        const dwkTurn = await waitForRoleTurn(pages[dwkIdx]!, 'darkWolfKingConfirm', pages);
-        expect(dwkTurn, 'DarkWolfKing turn should be detected').toBe(true);
+        await test.step('DarkWolfKing turn should be detected', () =>
+          waitForRoleTurn(pages[dwkIdx]!, 'darkWolfKingConfirm', pages));
 
         // Dismiss the "夜间行动" alert before interacting with bottom buttons
         await dismissAlert(pages[dwkIdx]!);
@@ -124,8 +121,7 @@ test.describe('Werewolf Night — Gun Status', () => {
         await dismissAlert(pages[dwkIdx]!);
 
         // Finish night
-        const ended = await waitForNightEnd(pages, 90_000);
-        expect(ended).toBe(true);
+        await waitForNightEnd(pages, 90_000);
       },
     );
   });
@@ -158,21 +154,18 @@ test.describe('Werewolf Night — Gun Status', () => {
         const killSeat = villagers[0]?.[1].seat ?? 0;
 
         // Wolf kills a villager
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
-        expect(wolfTurn).toBe(true);
+        await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         await driveWolfVote(pages, [wolfIdx], killSeat);
 
         // Wait for witch's turn — dismiss save prompt, then poison hunter
-        const witchTurn = await waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages);
-        expect(witchTurn).toBe(true);
+        await waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages);
 
         // Dismiss witch info alert, then poison hunter by clicking his seat
         await dismissAlert(pages[witchIdx]!);
         await clickSeatAndConfirm(pages[witchIdx]!, hunterSeat);
 
         // Hunter's turn — should see "不能发动技能" (poisoned)
-        const hunterTurn = await waitForRoleTurn(pages[hunterIdx]!, 'hunterConfirm', pages);
-        expect(hunterTurn).toBe(true);
+        await waitForRoleTurn(pages[hunterIdx]!, 'hunterConfirm', pages);
 
         await dismissAlert(pages[hunterIdx]!);
         await clickNightButton(pages[hunterIdx]!, 'confirm', '发动状态');
@@ -183,8 +176,7 @@ test.describe('Werewolf Night — Gun Status', () => {
         await dismissAlert(pages[hunterIdx]!);
 
         // Finish night
-        const ended = await waitForNightEnd(pages);
-        expect(ended).toBe(true);
+        await waitForNightEnd(pages);
       },
     );
   });
@@ -221,13 +213,11 @@ test.describe('Werewolf Night — Gun Status', () => {
         // wolfRobot does NOT participate in wolf vote
         // Drive wolf kill with only generic wolves
         const wolfIndices = findAllRolePageIndices(roleMap, '狼人');
-        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]!]!, 'wolfKill', pages);
-        expect(wolfTurn).toBe(true);
+        await waitForRoleTurn(pages[wolfIndices[0]!]!, 'wolfKill', pages);
         await driveWolfVote(pages, wolfIndices, killSeat);
 
         // Wait for wolfRobot learn step
-        const wrTurn = await waitForRoleTurn(pages[wrIdx]!, 'wolfRobotLearn', pages);
-        expect(wrTurn).toBe(true);
+        await waitForRoleTurn(pages[wrIdx]!, 'wolfRobotLearn', pages);
 
         // Learn the hunter
         await clickSeatAndConfirm(pages[wrIdx]!, hunterSeat);
@@ -247,8 +237,7 @@ test.describe('Werewolf Night — Gun Status', () => {
         await dismissAlert(pages[wrIdx]!);
 
         // Night should complete after gate is acknowledged
-        const ended = await waitForNightEnd(pages);
-        expect(ended).toBe(true);
+        await waitForNightEnd(pages);
       },
     );
   });
@@ -284,21 +273,19 @@ test.describe('Werewolf Night — Gun Status', () => {
 
         // wolfRobot does NOT participate in wolf vote
         const wolfIndices = findAllRolePageIndices(roleMap, '狼人');
-        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]!]!, 'wolfKill', pages);
-        expect(wolfTurn).toBe(true);
+        await waitForRoleTurn(pages[wolfIndices[0]!]!, 'wolfKill', pages);
         await driveWolfVote(pages, wolfIndices, killSeat);
 
         // Witch turn — witch acts before wolfRobot (NIGHT_STEP_ORDER: witchAction < wolfRobotLearn).
         // Skip save (don't click use-antidote), poison the wolfRobot via seat tap (compound step:
         // seat tap is always poison selection — see useRoomActions.ts).
-        const witchTurn = await waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages);
-        expect(witchTurn, 'Witch turn should be detected').toBe(true);
+        await test.step('Witch turn should be detected', () =>
+          waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages));
         await dismissAlert(pages[witchIdx]!);
         await clickSeatAndConfirm(pages[witchIdx]!, wrSeat);
 
         // wolfRobot learns hunter
-        const wrTurn = await waitForRoleTurn(pages[wrIdx]!, 'wolfRobotLearn', pages);
-        expect(wrTurn).toBe(true);
+        await waitForRoleTurn(pages[wrIdx]!, 'wolfRobotLearn', pages);
         await clickSeatAndConfirm(pages[wrIdx]!, hunterSeat);
 
         const revealText = await readAlertText(pages[wrIdx]!);
@@ -311,8 +298,7 @@ test.describe('Werewolf Night — Gun Status', () => {
         expect(gateText).toContain('不可发动技能');
         await dismissAlert(pages[wrIdx]!);
 
-        const ended = await waitForNightEnd(pages);
-        expect(ended).toBe(true);
+        await waitForNightEnd(pages);
       },
     );
   });
