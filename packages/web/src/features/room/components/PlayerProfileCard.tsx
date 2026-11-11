@@ -96,7 +96,9 @@ export function PlayerProfileCard({
     void queryClient.prefetchQuery(userUnlocksOptions(humanUserId));
     const search = new URLSearchParams({ userId: humanUserId });
     if (displayName) search.set('displayName', displayName);
-    void navigate(`/unlocks/${roomCode}?${search.toString()}`);
+    // This navigation must land immediately: as a transition it can stay
+    // pending and leave the previous route on screen.
+    void navigate(`/unlocks/${roomCode}?${search.toString()}`, { flushSync: true });
   };
 
   let body: ReactNode;

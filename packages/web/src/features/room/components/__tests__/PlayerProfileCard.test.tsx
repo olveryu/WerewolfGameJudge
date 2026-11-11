@@ -5,7 +5,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createMemoryRouter, RouterProvider, useLocation } from 'react-router';
+import { createMemoryRouter, useLocation } from 'react-router';
+import { RouterProvider } from 'react-router/dom';
 
 import type { UserPublicProfile } from '@/features/account/services/accountApi';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
