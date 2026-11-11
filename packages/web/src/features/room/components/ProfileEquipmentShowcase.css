@@ -1,7 +1,7 @@
 .profile-equip-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-small);
+  gap: var(--space-tight);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -14,7 +14,6 @@
   gap: var(--space-micro);
   min-width: 0;
   padding: var(--space-small) var(--space-micro);
-  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--color-background);
 }
@@ -28,8 +27,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--space-xlarge);
-  height: var(--space-xlarge);
+  width: var(--size-profile-equipment-preview);
+  height: var(--size-profile-equipment-preview);
   overflow: hidden;
   border-radius: var(--radius-full);
   color: var(--color-text-secondary);
@@ -45,8 +44,9 @@
   overflow: hidden;
   max-width: 100%;
   color: var(--color-text);
-  font-size: var(--font-caption);
-  font-weight: var(--weight-semibold);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+  font-weight: var(--weight-medium);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -59,6 +59,7 @@
 .profile-equip-type {
   color: var(--color-text-muted);
   font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
 }
 
 .profile-equip-rarity {
@@ -67,6 +68,7 @@
   gap: var(--space-micro);
   color: var(--rarity-color);
   font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
   font-weight: var(--weight-semibold);
 }
 

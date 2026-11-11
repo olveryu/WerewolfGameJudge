@@ -105,6 +105,7 @@ export function PlayerProfileCard({
   if (isBot) {
     body = (
       <>
+        <div className="profile-header-band" data-tier="newbie" aria-hidden />
         <div className="profile-avatar">
           <ResidentAvatarTile
             userId={avatarSeed}
@@ -141,6 +142,7 @@ export function PlayerProfileCard({
     body = (
       <>
         <ResidentSceneLayer hostRef={sceneHostRef} />
+        <div className="profile-header-band" data-tier={tier} aria-hidden />
         <div className="profile-avatar">
           <ResidentAvatarTile
             userId={avatarSeed}
