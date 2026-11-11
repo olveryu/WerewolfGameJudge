@@ -18,7 +18,15 @@ const workflowSchema = z.object({
     z.object({
       needs: z.union([z.string(), z.array(z.string())]).optional(),
       if: z.string().optional(),
-      steps: z.array(z.object({ run: z.string().optional() })).optional(),
+      steps: z
+        .array(
+          z.object({
+            run: z.string().optional(),
+            uses: z.string().optional(),
+            with: z.record(z.string(), z.unknown()).optional(),
+          }),
+        )
+        .optional(),
     }),
   ),
 });
@@ -47,6 +55,32 @@ describe('CI production deployment gates', () => {
       expect(job?.if).toContain("needs.ci-gate.result == 'success'");
     },
   );
+
+  it('publishes release assets on main ahead of the gate and deploys that exact build', () => {
+    const publishJob = jobs['publish-frontend-assets'];
+    const deployJob = jobs['deploy-frontend'];
+    const upload = publishJob?.steps?.find((step) =>
+      step.uses?.startsWith('actions/upload-artifact@'),
+    );
+    const download = deployJob?.steps?.find((step) =>
+      step.uses?.startsWith('actions/download-artifact@'),
+    );
+
+    expect(publishJob?.needs).toEqual(['quality', 'lint']);
+    expect(publishJob?.if).toContain(
+      "(github.event_name == 'push' || github.event_name == 'workflow_dispatch')",
+    );
+    expect(publishJob?.if).toContain("github.ref == 'refs/heads/main'");
+    // Without hidden files the artifact drops dist/.well-known from production.
+    expect(upload?.with).toMatchObject({
+      name: 'frontend-release-dist',
+      path: 'dist/',
+      'include-hidden-files': true,
+    });
+    expect(download?.with).toMatchObject({ name: 'frontend-release-dist', path: 'dist/' });
+    expect(deployJob?.if).toContain("needs.publish-frontend-assets.result == 'success'");
+    expect(deployJob?.steps?.map((step) => step.run)).not.toContain('bash scripts/build.sh');
+  });
 
   it('requires every quality and test job in the stable CI gate', () => {
     expect(jobs['ci-gate']?.needs).toEqual([
@@ -142,7 +176,7 @@ describe('CI Playwright shard coverage', () => {
       workflow.indexOf('\n  deploy-frontend:'),
       workflow.indexOf('\n  deploy-miniapp:'),
     );
-    expect(frontend).toContain('needs: [ci-gate, deploy-api-worker]');
+    expect(frontend).toContain('needs: [ci-gate, deploy-api-worker, publish-frontend-assets]');
     expect(frontend.indexOf('node scripts/verify-cdn-artifacts.mjs')).toBeGreaterThan(0);
     expect(frontend.indexOf('node scripts/verify-cdn-artifacts.mjs')).toBeLessThan(
       frontend.indexOf('name: Deploy to Cloudflare Pages'),
