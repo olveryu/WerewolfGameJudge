@@ -190,6 +190,49 @@ describe('DrawGuess engine', () => {
     expect(session.state.usedWords).toContain('大熊猫');
   });
 
+  it('records the chosen word as seen by the human seats only', () => {
+    const session = game(6);
+    // 4 humans plus 2 bots: bots have no account and are not participants.
+    session.send({ type: 'room.seat.fillBots' });
+    session.startGame();
+    session.chooseFirstWord(0);
+    const recorded = session.effects.filter(
+      (effect) => effect.type === 'drawguess.word.recordSeen',
+    );
+    expect(recorded).toEqual([
+      {
+        type: 'drawguess.word.recordSeen',
+        payload: {
+          gameSequence: session.state.gameSequence,
+          turnIndex: 0,
+          word: '大熊猫',
+          participantUserIds: ['host', 'u1', 'u2', 'u3'],
+        },
+      },
+    ]);
+  });
+
+  it('records the auto-assigned word when word selection expires', () => {
+    const session = game();
+    session.startGame();
+    session.settleExpired();
+    const phase = session.state.phase;
+    if (phase.kind !== 'drawing') throw new Error('phase');
+    const recorded = session.effects.filter(
+      (effect) => effect.type === 'drawguess.word.recordSeen',
+    );
+    expect(recorded).toHaveLength(1);
+    expect(recorded[0]?.payload).toMatchObject({ turnIndex: 0, word: phase.word });
+  });
+
+  it('does not record dealt candidates that were not chosen', () => {
+    const session = game();
+    session.startGame();
+    expect(session.effects.some((effect) => effect.type === 'drawguess.word.recordSeen')).toBe(
+      false,
+    );
+  });
+
   it('rejects choosing a word that is not among the dealt choices', () => {
     const session = game();
     session.startGame();

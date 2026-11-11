@@ -31,12 +31,18 @@ export const drawGuessWorkerModule = defineWorkerGameModule({
       router: drawGuessMediaRoutes,
     },
   ],
-  getEffectBusinessKey: (effect, context) =>
-    effect.type === 'drawguess.settle.due'
-      ? settleDueBusinessKey('drawguess:settle', effect.payload)
-      : effect.type === 'drawguess.words.deal'
-        ? `drawguess:words-deal:${context.createdRevision}:${effect.payload.turnIndex}`
-        : `drawguess:game-completed:${context.createdRevision}:${effect.payload.roundId}`,
+  getEffectBusinessKey: (effect, context) => {
+    switch (effect.type) {
+      case 'drawguess.settle.due':
+        return settleDueBusinessKey('drawguess:settle', effect.payload);
+      case 'drawguess.words.deal':
+        return `drawguess:words-deal:${context.createdRevision}:${effect.payload.turnIndex}`;
+      case 'drawguess.word.recordSeen':
+        return `drawguess:word-seen:${context.createdRevision}:${effect.payload.turnIndex}`;
+      case 'drawguess.game.completed':
+        return `drawguess:game-completed:${context.createdRevision}:${effect.payload.roundId}`;
+    }
+  },
   // The settle effect is the room's wake-up for the armed phase
   // deadline: park it in the outbox until its deadline. Every other
   // effect keeps the existing immediate delivery.

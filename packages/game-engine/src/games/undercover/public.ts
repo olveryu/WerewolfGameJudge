@@ -31,6 +31,7 @@ export { migratePersistedUndercoverState } from './state/parseState';
 export {
   DEFAULT_UNDERCOVER_CONFIG,
   getUndercoverOccupiedSeatCount,
+  getUndercoverParticipantUserIds,
   getUndercoverUserSeat,
   getUndercoverViewingParticipants,
   isUndercoverSeat,

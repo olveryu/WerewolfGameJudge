@@ -1123,13 +1123,14 @@ Provider-facing schema 使用 Gemini structured output 支持的 JSON Schema 子
 
 ### 18.4 玩家词语历史
 
-当前房间 `usedWords` 仍是 authoritative 50 词硬去重窗口。除此之外，D1 为每名真人保留最近 200 个实际进入
-authoritative round 的词；新一轮选题优先使用所有当前真人均未见过的词。词史由 `fibking.word.recordUsage` effect 在
-`fibking.round.complete` committed success 后写入；选中但未完成的 round 不计入曝光。
+当前房间 `usedWords` 仍是 authoritative 50 词硬去重窗口。除此之外，三款词语游戏（瞎掰王、谁是卧底、你画我猜）
+共用一套抽词机制（`packages/api-worker/src/platform/wordSupply/wordDraw.ts`）：每个词库的词条有稳定、不复用的整数
+编号，`word_draw_index` 按词库分区保存当前可抽的编号，`word_seen` 以 `(user_id, pool)` 为主键保存每个账号见过的
+编号。一次抽词只读一行索引加每位参与者一行已见记录，读行数与词库大小、已见比例无关。
 
-`fib_word_exposures` 以 `(user_id, word)` 为主键，重复看到同一词只更新时间。写入与按用户 `ROW_NUMBER()` 裁剪在一个
-D1 batch 中执行，因此表大小按用户有界；已删除账号先与 `users` 相交，不会让一个 stale participant 阻断其他玩家
-的历史。若写入在 command commit 后失败，独立 usage outbox effect 重试相同幂等账本，再补写 exposure。
+瞎掰王与谁是卧底在同一个 D1 batch 里写入回合快照并给每位参与者追加已见；你画我猜发候选词时不写，画手选定后才
+追加。三个词库互不相通：共享模块只认编号，词条内容由各游戏自己的加载函数从自己的表里读取。已删除账号的已见
+记录随 `users` 级联删除。
 
 ## 19. 客户端链路架构
 

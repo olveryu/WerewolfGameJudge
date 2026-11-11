@@ -2,6 +2,7 @@
 
 import {
   buildPreparationFailureCommand,
+  getUndercoverParticipantUserIds,
   UNDERCOVER_REASONS,
   type UndercoverEffect,
   type UndercoverInternalCommand,
@@ -62,6 +63,7 @@ export async function handleUndercoverEffect(
       db: context.bindings.DB,
       roomIdentity: context.roomIdentity,
       effect,
+      participantUserIds: getUndercoverParticipantUserIds(context.state),
     });
     command = { type: 'undercover.round.complete', roundId: effect.payload.roundId, wordPair };
   } catch (error) {

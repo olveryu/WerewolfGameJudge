@@ -10,7 +10,6 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 
-import { users } from '../../features/account/dbSchema';
 import { rooms } from '../../platform/room/dbSchema';
 import { FIB_WORD_CATEGORIES, FIB_WORD_REVIEW_DECISIONS } from './wordProviders/types';
 
@@ -175,20 +174,12 @@ export const fibRoundWordSelections = sqliteTable(
   ],
 );
 
-/** @public Immutable publication order, independent of category and review status. */
+/** @public Immutable publication order; its id is the question's shared-draw ordinal. */
 export const fibWordSequence = sqliteTable('fib_word_sequence', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   word: text('word').notNull().unique(),
   publishedAt: text('published_at').notNull(),
   packId: text('pack_id'),
-});
-
-/** @public One permanent high-watermark per account; skipped questions are consumed too. */
-export const fibWordProgress = sqliteTable('fib_word_progress', {
-  userId: text('user_id')
-    .primaryKey()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  sequenceNumber: integer('sequence_number').notNull(),
 });
 
 /** Committed round usage ledger; selection alone never counts as usage. */

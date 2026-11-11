@@ -143,7 +143,7 @@ describe('POST /auth/anonymous', () => {
 
 describe('POST /auth/signup', () => {
   it.each([2, 8])(
-    'merges Fib progress by maximum when source progress is %i',
+    'merges seen words of every pool when the source has seen %i Fib questions',
     async (sourceProgress) => {
       const targetResponse = await postJson('/auth/signup', {
         email: 'merge@test.local',
@@ -158,9 +158,10 @@ describe('POST /auth/signup', () => {
         .bind(source.user.id)
         .run();
       await env.DB.prepare(
-        'INSERT INTO fib_word_progress (user_id, sequence_number) VALUES (?, ?), (?, 5)',
+        `INSERT INTO word_seen (user_id, pool, seen) VALUES
+          (?, 'fibking', ?), (?, 'fibking', ',1-5,'), (?, 'drawguess', ',7,')`,
       )
-        .bind(source.user.id, sourceProgress, target.user.id)
+        .bind(source.user.id, `,1-${sourceProgress},`, target.user.id, source.user.id)
         .run();
       const merged = await postJson(
         '/auth/signup',
@@ -168,12 +169,14 @@ describe('POST /auth/signup', () => {
         source.access_token,
       );
       expect(merged.status).toBe(200);
+      // The surviving account holds the union of both seen records, per pool.
       expect(
-        await env.DB.prepare('SELECT user_id, sequence_number FROM fib_word_progress').first(),
-      ).toEqual({
-        user_id: target.user.id,
-        sequence_number: Math.max(sourceProgress, 5),
-      });
+        (await env.DB.prepare('SELECT user_id, pool, seen FROM word_seen ORDER BY pool').all())
+          .results,
+      ).toEqual([
+        { user_id: target.user.id, pool: 'drawguess', seen: ',7,' },
+        { user_id: target.user.id, pool: 'fibking', seen: `,1-5,1-${sourceProgress},` },
+      ]);
     },
   );
   it('registers new user with email and password', async () => {

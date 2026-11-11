@@ -1,6 +1,14 @@
 /** Undercover-owned editorial inventory and immutable per-room allocations. */
 import { UNDERCOVER_CATEGORIES } from '@game-judge/game-engine/games/undercover/public';
-import { index, primaryKey, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
+import {
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  unique,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 
 import { rooms } from '../../platform/room/dbSchema';
 
@@ -16,10 +24,12 @@ export const undercoverWordPairs = sqliteTable(
     createdAt: text('created_at').notNull(),
     reviewedAt: text('reviewed_at').notNull(),
     reviewJson: text('review_json').notNull(),
+    drawOrdinal: integer('draw_ordinal'), // Shared-draw ordinal; trigger-assigned on insert, stable, never reused.
   },
   (table) => [
     unique().on(table.wordA, table.wordB),
     index('idx_undercover_word_pairs_category').on(table.status, table.category),
+    uniqueIndex('idx_undercover_word_pairs_draw_ordinal').on(table.drawOrdinal),
   ],
 );
 

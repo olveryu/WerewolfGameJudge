@@ -28,8 +28,8 @@ Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine
 ## D1 and Drizzle
 
 - D1 is the relational store; Drizzle is the typed query layer over it (`createDb` returns `drizzle(d1)`, schema-free). There is no Drizzle Kit, no Drizzle config, and no generated schema directory.
-- Migrations are hand-written SQL files applied by Wrangler: 65 files, `0001_init.sql` through `0066_d1_cleanup_indexes.sql`, with no `0002` file.
-- 33 tables are declared exactly once via `sqliteTable` in owner `dbSchema.ts` modules, pinned by `declares every physical D1 table exactly once in its owner module` in `contracts/architecture.contract.test.ts`. Further tables exist only as raw SQL in migrations; check the migrations before claiming the full physical set.
+- Migrations are hand-written SQL files applied by Wrangler: 66 files, `0001_init.sql` through `0067_shared_word_draw.sql`, with no `0002` file.
+- 32 tables are declared exactly once via `sqliteTable` in owner `dbSchema.ts` modules, pinned by `declares every physical D1 table exactly once in its owner module` in `contracts/architecture.contract.test.ts`. Further tables exist only as raw SQL in migrations; check the migrations before claiming the full physical set.
 - Registration migrations extend every `game_type` CHECK list by rebuilding the constrained tables (table-copy pattern).
 
 ## Worker game catalog and modules
