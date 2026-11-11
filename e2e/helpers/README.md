@@ -109,6 +109,7 @@ Keep dependencies flowing from scenarios toward lower-level helpers. `ui.ts` mus
 
 - Navigate with `gotoWithRetry()` rather than direct `page.goto()` calls in specs.
 - Wait for room readiness with `waitForRoomScreenReady()`.
+- Dismiss an Ark UI dialog by an outside press with `dismissDialogByOutsideClick()`, not a bare `page.mouse.click()`: Ark arms its outside-press listener a task after the dialog renders, so an immediate press is dropped.
 - Use Playwright locators and assertions instead of fixed sleeps. Polling cadence is the only allowed `page.waitForTimeout()` use and must be at most 300 ms.
 - Never use `force: true` to bypass actionability for normal user interactions.
 - Do not swallow assertion or state-transition failures with `.catch(() => {})`.
@@ -169,4 +170,4 @@ One caution: each `contexts/*.md` is a verbatim Playwright error-context, and Pl
 - The code path that mitigates the failure and the assertion proving it.
 - An external failure that remains unmitigated.
 
-Known structural mitigations include `gotoWithRetry()` for startup connection races and the room-creation idempotency contract for unknown delivery. Do not classify a new failure under either category without matching evidence.
+Known structural mitigations include `gotoWithRetry()` for startup connection races, `dismissDialogByOutsideClick()` for the Ark UI outside-press arming race, and the room-creation idempotency contract for unknown delivery. Do not classify a new failure under either category without matching evidence.

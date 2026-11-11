@@ -4,6 +4,7 @@ import { expect, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
 import { type CommandFrameObservation, observeCommandFrames } from '../helpers/command-frames';
+import { dismissDialogByOutsideClick } from '../helpers/ui';
 import { RoomPage } from './RoomPage';
 
 const PHONE_STAGE_MAX_WIDTH = 430;
@@ -135,8 +136,7 @@ export class PictionaryRoomPage extends RoomPage {
     await expect(widthButton).toHaveAccessibleName('选择粗细，当前 30 像素');
     await colorButton.click();
     await expect(panelCloseButton).toBeVisible();
-    await this.page.mouse.click(1, 1);
-    await expect(panelCloseButton).toHaveCount(0);
+    await dismissDialogByOutsideClick(this.page, panelCloseButton);
     await expect(stage.getByTestId(TESTIDS.drawingToolbarUndoButton)).toBeDisabled();
     await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeDisabled();
   }

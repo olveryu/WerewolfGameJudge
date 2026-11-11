@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { startRoomCreation } from '../helpers/home';
+import { dismissDialogByOutsideClick } from '../helpers/ui';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { RoomPage } from '../pages/RoomPage';
@@ -92,8 +93,7 @@ test.describe('Werewolf — Seating', () => {
       await expect(pageB.getByTestId(TESTIDS.seatConfirmModal)).not.toBeVisible({ timeout: 1000 });
 
       // Dismiss profile card by clicking the overlay backdrop (outside the card)
-      await pageB.mouse.click(5, 5);
-      await expect(pageB.getByTestId(TESTIDS.playerProfileCard)).not.toBeVisible({ timeout: 3000 });
+      await dismissDialogByOutsideClick(pageB, pageB.getByTestId(TESTIDS.playerProfileCard));
 
       // Joiner takes seat 2 instead
       await roomB.seatAt(1);
