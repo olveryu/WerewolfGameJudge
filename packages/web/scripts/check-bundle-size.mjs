@@ -10,8 +10,8 @@ const manifest = JSON.parse(readFileSync(path.join(distDirectory, '.vite/manifes
 
 const KIB = 1024;
 const STARTUP_ENTRY = 'index.html';
-// HomePage ships inside the start-up entry since v4 D11 removed route lazy-loading, so the
-// start-up closure already contains every route page; only the boot splash stays separate.
+// Every route page ships in the start-up entry (docs/web-client-rewrite.md §5.10), so the
+// start-up closure already contains them all; only the boot splash is a separate entry.
 const HOME_ENTRIES = [STARTUP_ENTRY, 'src/boot/bootSplash.ts'];
 // Start-up code decodes with `zod/mini`; classic `zod` costs ~20 KiB gzip on the home budget.
 const CLASSIC_ZOD_SOURCE = /\/node_modules\/zod\/v4\/classic\//;
@@ -22,9 +22,7 @@ const CLASSIC_ZOD_SOURCE = /\/node_modules\/zod\/v4\/classic\//;
  */
 const BUDGETS = [
   {
-    // Measured 2026-11-10 after v4 D11 (global non-lazy): the start-up closure is 526.9 KiB
-    // gzip (first build 534.4 KiB; ~7.5 KiB build-to-build variance); the budget allows ~4%
-    // headroom for small additions.
+    // Measured 2026-11-10 with every route static: 527.2 KiB gzip; ~4% headroom.
     name: 'home (start-up to interactive home)',
     entries: HOME_ENTRIES,
     maxGzipBytes: 550 * KIB,

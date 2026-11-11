@@ -2,11 +2,10 @@ import { type RouteObject } from 'react-router';
 
 import { AppRoot } from '@/app/AppRoot';
 import { RouteErrorPage } from '@/app/RouteErrorPage';
-import { LoadingScreen } from '@/components/LoadingScreen';
 import { AdminPage } from '@/routes/admin/AdminPage';
+import { AppearancePage } from '@/routes/appearance/AppearancePage';
 import { SceneBenchPage } from '@/routes/bench/SceneBenchPage';
-import { AppearancePage, UnlocksPage } from '@/routes/cosmeticPages';
-import { GachaPage, ShardExchangePage } from '@/routes/gachaPages';
+import { GachaPage } from '@/routes/gacha/GachaPage';
 import {
   GameConfigRoutePage,
   GameGuideRoutePage,
@@ -17,18 +16,18 @@ import { HomePage } from '@/routes/home/HomePage';
 import { RoomPage, RoomPageError } from '@/routes/room/RoomPage';
 import { MusicSettingsPage } from '@/routes/settings/MusicSettingsPage';
 import { SettingsPage } from '@/routes/settings/SettingsPage';
+import { ShardExchangePage } from '@/routes/shardExchange/ShardExchangePage';
+import { UnlocksPage } from '@/routes/unlocks/UnlocksPage';
 
 /**
- * Route table. Every page is statically imported so it ships in the start-up entry
- * (v4 D11: global non-lazy — no route chunk is downloaded on first visit);
- * paths match the current client, including `/room/:code`.
+ * Route table. Every page is statically imported so it ships in the start-up entry and no
+ * navigation waits on a route chunk (docs/web-client-rewrite.md §5.10); paths match the
+ * current client, including `/room/:code`.
  */
 export const routes: RouteObject[] = [
   {
     path: '/',
     element: <AppRoot />,
-    // Rendered while the router hydrates on first load.
-    HydrateFallback: LoadingScreen,
     errorElement: <RouteErrorPage />,
     children: [
       {

@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { createMemoryRouter, type RouteObject, RouterProvider } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
 import { routes } from '@/app/routes';
@@ -10,6 +10,18 @@ function renderAt(path: string) {
 }
 
 describe('routes', () => {
+  it('declares no lazy route, so no navigation waits on a route chunk', () => {
+    const lazyRoutePaths: string[] = [];
+    const collectLazyRoutes = (routeObjects: readonly RouteObject[]) => {
+      for (const route of routeObjects) {
+        if (route.lazy !== undefined) lazyRoutePaths.push(route.path ?? '(index)');
+        if (route.children !== undefined) collectLazyRoutes(route.children);
+      }
+    };
+    collectLazyRoutes(routes);
+    expect(lazyRoutePaths).toEqual([]);
+  });
+
   it('renders the home page at /', async () => {
     renderAt('/');
     expect(await screen.findByRole('heading', { name: '狼人面杀电子裁判助手' })).toBeDefined();

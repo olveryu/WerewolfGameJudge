@@ -9,7 +9,7 @@
 
 - 客户端只服务微信小程序 web-view，所以去掉 React Native、Expo 和 react-native-web，保留 React，只做网页（D0，§5.4）。React + react-dom 只占现启动包的 2.4%，不是卡的主要原因。
 - 界面用 React 19 + 普通网页元素和 CSS，Vite 构建，React Router 管路由；房间里会动的东西（座位装饰、入座动画、翻牌特效、扭蛋机）放进 PixiJS v8（WebGL）场景层（D1，§5.2）。
-- 现在每次冷启动，出界面前要下载 2.08 MB 入口 JS 和 3.25 MB CanvasKit WASM（都是 gzip 后的大小），解析约 8.46 MB JS，编译约 8 MB WASM（§3）。新客户端首页预算 ≤ 280 KB gzip，没有 WASM（§4）。
+- 现在每次冷启动，出界面前要下载 2.08 MB 入口 JS 和 3.25 MB CanvasKit WASM（都是 gzip 后的大小），解析约 8.46 MB JS，编译约 8 MB WASM（§3）。新客户端首页预算 ≤ 550 KB gzip（所有路由页面都在入口里），没有 WASM（§4）。
 - 引擎、后端、协议、数据都不动。约 3.35 万行纯 TS（实时链路、HTTP、鉴权、音频、各游戏模型）和约 1 万行只依赖 React 的 hooks 与组件直接移植；约 10.1 万行依赖 React Native 的界面代码重写（§7）。
 - 只开一个分支开发（D4），旧客户端冻结（D5），现有 34 个 Playwright spec 作为对等验收。分支合并回 `main` 就是切换，生产环境始终只有一个客户端。
 
@@ -62,15 +62,15 @@
 
 ### 4.1 体积（CI 强制）
 
-| 分块                     | 预算（gzip）                 | 依据                                                                                                                                                                                                                                           |
-| ------------------------ | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 首页入口（到首页可交互） | ≤ 280 KB                     | Sentry（10.53.1 实测）错误 + 追踪 46 KB；React 19.3 + react-dom + React Router 8 约 100 KB（同一示例应用实测，含 React Compiler 运行时）；TanStack Query core 10 KB；引擎 `games/catalog` 全量导出 70 KB（上限，含 Zod）；其余应用代码 ≤ 54 KB |
-| 房间壳 + 单个游戏        | ≤ 200 KB                     | 引擎 `games/werewolf/public` 全量 54 KB；其他游戏 7–16 KB                                                                                                                                                                                      |
-| 场景层（PixiJS）         | ≤ 180 KB，进入房间流程时预取 | PixiJS 8.22 探针（Application、Sprite、Graphics、ParticleContainer、Assets）全部分块共 178 KB，其中包含 WebGL 和 WebGPU 两套渲染器，运行时只加载其中一套                                                                                       |
-| Session Replay           | ≤ 52 KB，懒加载              | `@sentry/react` 11.11.0 实测独立分块 51 KB                                                                                                                                                                                                     |
-| WASM、Web 字体           | 0                            | 去掉 CanvasKit；图标在构建期内联为 SVG                                                                                                                                                                                                         |
+| 分块                         | 预算（gzip）                 | 依据                                                                                                                                                                                                                                                                                                                                        |
+| ---------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 首页入口（到首页可交互）     | ≤ 550 KB                     | 所有路由页面静态打进入口（§5.10），2026-11-10 实测 527.2 KB。原先只含首页时的 ≤ 280 KB 构成：Sentry（10.53.1 实测）错误 + 追踪 46 KB；React 19.3 + react-dom + React Router 8 约 100 KB（同一示例应用实测，含 React Compiler 运行时）；TanStack Query core 10 KB；引擎 `games/catalog` 全量导出 70 KB（上限，含 Zod）；其余应用代码 ≤ 54 KB |
+| 单个游戏（房间壳已在入口里） | ≤ 200 KB                     | 引擎 `games/werewolf/public` 全量 54 KB；其他游戏 7–16 KB                                                                                                                                                                                                                                                                                   |
+| 场景层（PixiJS）             | ≤ 180 KB，进入房间流程时预取 | PixiJS 8.22 探针（Application、Sprite、Graphics、ParticleContainer、Assets）全部分块共 178 KB，其中包含 WebGL 和 WebGPU 两套渲染器，运行时只加载其中一套                                                                                                                                                                                    |
+| Session Replay               | ≤ 52 KB，懒加载              | `@sentry/react` 11.11.0 实测独立分块 51 KB                                                                                                                                                                                                                                                                                                  |
+| WASM、Web 字体               | 0                            | 去掉 CanvasKit；图标在构建期内联为 SVG                                                                                                                                                                                                                                                                                                      |
 
-进入狼人杀房间（含场景层，不含懒加载的 Replay）合计 ≤ 660 KB gzip；现状是首屏前 5.33 MB（2.08 + 3.25）。P0 第一次完整构建后按实测收紧。
+进入狼人杀房间（含场景层，不含懒加载的 Replay）合计 ≤ 930 KB gzip（入口 550 + 单个游戏 200 + 场景层 180）；现状是首屏前 5.33 MB（2.08 + 3.25）。
 
 ### 4.2 运行时（社区标准阈值 + P0 实测基线）
 
@@ -143,16 +143,16 @@ flowchart TB
 
 技术栈（2026-11-08 核实的版本）：
 
-| 用途       | 选择                                                                     | 依据                                                                                                                         |
-| ---------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| 界面       | React 19.3.1、react-dom 19.3.1                                           | 现用 19.2.3，小版本升级                                                                                                      |
-| 构建       | Vite 8.3.6 + `@vitejs/plugin-react` 6.2.1                                | react.dev《从零搭建 React 应用》用 Vite                                                                                      |
-| 自动优化   | React Compiler 1.0（`babel-plugin-react-compiler`，仓库已在用）          | 按 react.dev 给出的 Vite 配置（`@rolldown/plugin-babel` + `reactCompilerPreset()`）；示例应用实测编译生效                    |
-| 路由       | React Router 8.5.1，数据模式（`createBrowserRouter` + 路由 `lazy` 分块） | 见下文                                                                                                                       |
-| 服务端数据 | TanStack Query 5（`@tanstack/react-query`，已在用）                      | §5.5                                                                                                                         |
-| 交互组件   | Ark UI React 5.40.0：对话框、抽屉、滑块、取色器、二维码、标签页          | 一个库覆盖全部需要的组件。Radix 的下载量更大（`@radix-ui/react-dialog` 周下载 9271 万），但 npm 上没有它的取色器和二维码组件 |
-| Toast      | sonner 2.0.8（周下载 5718 万）                                           | 现用的 sonner-native 就是它的 React Native 移植版                                                                            |
-| 测试       | Vitest + `@testing-library/react` 16.3.3                                 | §9                                                                                                                           |
+| 用途       | 选择                                                                    | 依据                                                                                                                         |
+| ---------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 界面       | React 19.3.1、react-dom 19.3.1                                          | 现用 19.2.3，小版本升级                                                                                                      |
+| 构建       | Vite 8.3.6 + `@vitejs/plugin-react` 6.2.1                               | react.dev《从零搭建 React 应用》用 Vite                                                                                      |
+| 自动优化   | React Compiler 1.0（`babel-plugin-react-compiler`，仓库已在用）         | 按 react.dev 给出的 Vite 配置（`@rolldown/plugin-babel` + `reactCompilerPreset()`）；示例应用实测编译生效                    |
+| 路由       | React Router 8.5.1，数据模式（`createBrowserRouter`，路由页面静态导入） | 见下文                                                                                                                       |
+| 服务端数据 | TanStack Query 5（`@tanstack/react-query`，已在用）                     | §5.5                                                                                                                         |
+| 交互组件   | Ark UI React 5.40.0：对话框、抽屉、滑块、取色器、二维码、标签页         | 一个库覆盖全部需要的组件。Radix 的下载量更大（`@radix-ui/react-dialog` 周下载 9271 万），但 npm 上没有它的取色器和二维码组件 |
+| Toast      | sonner 2.0.8（周下载 5718 万）                                          | 现用的 sonner-native 就是它的 React Native 移植版                                                                            |
+| 测试       | Vitest + `@testing-library/react` 16.3.3                                | §9                                                                                                                           |
 
 路由为什么用数据模式：react.dev 推荐整站应用用框架（Next.js、React Router 框架模式）。但实测 React Router 8 的框架模式（SPA 模式）下，只要把 Vite 的 `base` 设成 npmmirror 的绝对地址，构建就会在预渲染 `index.html` 时失败（返回 302）；去掉 `base` 就能构建成功。同一个示例改用普通 Vite + React Router 数据模式，带同样的 `base` 也能构建成功，生成的 `index.html` 直接引用 CDN 地址。资源必须走国内 CDN，所以用数据模式。react.dev 对这种情况的说法是：现有框架不适合应用的约束时，可以从零搭建。
 
@@ -233,7 +233,7 @@ flowchart TB
 - 引擎从 TS 源码引入（别名到 `packages/game-engine/src`），因为它 `exports` 的 `default` 指向 CJS `dist`，不利于 tree-shaking。
 - 文件名按内容哈希，CDN 上设 `immutable` 长缓存。现在 Metro 按源码哈希命名，[web/\_headers](../web/_headers) 只能给 `/assets/js/*` 设 `no-cache`。
 - Vite 的 `base` 设为 npmmirror 的版本化地址，代替 CI 里对 JS 和 HTML 的 `sed` 改写（示例应用实测：构建出的 `index.html` 直接引用 CDN 地址）；删除 CanvasKit WASM 的发布步骤。HTML 仍由 Cloudflare Pages 发出（`no-cache`），SPA 回退沿用现有的 `_redirects`。
-- 按路由用 `lazy` 分块：首页、房间壳、每个游戏、产品页、管理后台、场景层各自单独加载。
+- 路由页面全部静态导入、打进入口，不用路由 `lazy`：懒加载的路由首次进入时要先下载分块，这段时间点击看起来没反应（2026-11-10 实测首次 1–3 秒）。每个游戏模块、场景层、Session Replay 和低频弹窗仍按需加载。
 - 自己的启动逻辑（微信环境判断、浏览器引导页、JSSDK 加载）放进入口模块，不写内联脚本。
 - 构建目标显式配置，取值由 P0 遥测决定。
 - CI：`packages/web` 接入 Turbo 的 typecheck、lint、test、build 和体积检查。合并时，`deploy-frontend` 从 `scripts/build.sh`（`expo export`）改为 `pnpm --filter @game-judge/web build`。
@@ -406,3 +406,7 @@ v3（2026-11-08）：按你的确认改为方案 B。
 - token 改为以 CSS 自定义属性为唯一来源（§5.11），不做构建期生成。
 - 场景层 spike 用层级方案 B（画布盖在 DOM 头像上）；`onPageStateChange` 未在现客户端使用过，先沿用现有的 `visibilitychange` / `pageshow` / `focus`，真机验证后再决定是否接入。
 - 整个工作区随 `packages/web` 解析到 Vite 8；引擎和 Worker 的测试（含 `@cloudflare/vitest-pool-workers`）在 Vite 8 下全部通过。
+
+实施中的调整（2026-11-10）：
+
+- 路由不再用 `lazy` 分块，页面全部静态导入（§5.10）：首次进入懒加载的路由要先下载分块，点击后 1–3 秒没反应。首页入口预算按实测 527.2 KB 从 280 KB 改为 550 KB（§4.1）；入口里的模块因此全部用 `zod/mini` 解码。
