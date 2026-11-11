@@ -205,7 +205,14 @@ export function PlayerProfileCard({
   }
 
   return (
-    <CenterDialog open onClose={model.onClose} title={seatName} testId={TESTIDS.playerProfileCard}>
+    <CenterDialog
+      open
+      onClose={model.onClose}
+      title={seatName}
+      closeButtonLabel="关闭玩家资料"
+      className="player-profile-dialog"
+      testId={TESTIDS.playerProfileCard}
+    >
       <div className="profile-card">{body}</div>
     </CenterDialog>
   );

@@ -12,16 +12,18 @@
 
 .board-info-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-small);
 }
 
 .board-info-toggle {
   display: flex;
-  flex: 1;
+  flex: 0 1 auto;
   align-items: center;
   gap: var(--space-small);
   min-height: var(--size-min-touch-target);
+  margin-right: auto;
   padding: 0;
   border: none;
   background: none;
@@ -31,7 +33,7 @@
 }
 
 .board-info-title {
-  flex: 1;
+  flex: 0 1 auto;
   color: var(--color-text);
   font-size: var(--font-subtitle);
   line-height: var(--line-subtitle);
