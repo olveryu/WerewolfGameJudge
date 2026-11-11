@@ -1,9 +1,22 @@
 /** The werewolf role card dialog: presented identity, faction badge, variant pills. */
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
+import { setAIChatBridgeListener } from '@/games/werewolf/services/aiChatBridge';
 import { TESTIDS } from '@/testids';
+
+const { showConfirmAlertMock } = vi.hoisted(() => ({
+  showConfirmAlertMock: vi.fn<(title: string, message: string, onConfirm: () => void) => void>(),
+}));
+
+vi.mock('@/utils/alertPresets', () => ({ showConfirmAlert: showConfirmAlertMock }));
+
+interface AIChatPayload {
+  readonly fullText: string;
+  readonly displayText: string;
+  readonly maxTokens?: number;
+}
 
 const defaultProps: {
   readonly visible: boolean;
@@ -16,6 +29,11 @@ const defaultProps: {
 };
 
 describe('RoleCardSimple', () => {
+  afterEach(() => {
+    act(() => setAIChatBridgeListener(null));
+    showConfirmAlertMock.mockClear();
+  });
+
   it('renders nothing when not visible', () => {
     render(<RoleCardSimple {...defaultProps} visible={false} />);
     expect(screen.queryByText('狼人')).not.toBeInTheDocument();
@@ -86,5 +104,79 @@ describe('RoleCardSimple', () => {
     fireEvent.click(screen.getByTestId(TESTIDS.configVariantOption('witch')));
 
     expect(onVariantSelect).toHaveBeenCalledWith('witch');
+  });
+
+  it('offers the AI guide when a room chat is available, even without caller wiring', () => {
+    const listener = vi.fn<(payload: AIChatPayload) => void>();
+    const onClose = vi.fn();
+    act(() => setAIChatBridgeListener(listener));
+    render(<RoleCardSimple {...defaultProps} onClose={onClose} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'AI 攻略' }));
+
+    expect(showConfirmAlertMock).toHaveBeenCalledWith(
+      'AI 攻略',
+      '让 AI 分析「狼人」的玩法？',
+      expect.any(Function),
+    );
+    const confirm = showConfirmAlertMock.mock.calls[0]?.[2];
+    if (confirm === undefined) throw new Error('Expected the AI confirmation callback');
+    act(confirm);
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith(
+      expect.objectContaining({ displayText: '狼人 攻略', maxTokens: 1024 }),
+    );
+  });
+
+  it('uses the presented identity for the AI prompt when the role is disguised', () => {
+    const listener = vi.fn<(payload: AIChatPayload) => void>();
+    act(() => setAIChatBridgeListener(listener));
+    render(<RoleCardSimple {...defaultProps} roleId="mirrorSeer" />);
+
+    expect(screen.getByRole('heading', { name: '预言家' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'AI 攻略' }));
+    expect(showConfirmAlertMock).toHaveBeenCalledWith(
+      'AI 攻略',
+      '让 AI 分析「预言家」的玩法？',
+      expect.any(Function),
+    );
+
+    const confirm = showConfirmAlertMock.mock.calls[0]?.[2];
+    if (confirm === undefined) throw new Error('Expected the AI confirmation callback');
+    act(confirm);
+
+    const payload = listener.mock.calls[0]?.[0];
+    expect(payload?.displayText).toBe('预言家 攻略');
+    expect(payload?.fullText).toContain('名称：预言家');
+    expect(payload?.fullText).not.toContain('灯影预言家');
+  });
+
+  it.each([
+    [false, 'seer'],
+    [true, 'mirrorSeer'],
+  ] satisfies [boolean, RoleId][])(
+    'passes the card identity to explicit AI handlers (showRealIdentity=%s)',
+    (showRealIdentity, expectedRoleId) => {
+      const onAskAI = vi.fn<(id: RoleId) => void>();
+      render(
+        <RoleCardSimple
+          {...defaultProps}
+          roleId="mirrorSeer"
+          showRealIdentity={showRealIdentity}
+          onAskAI={onAskAI}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'AI 攻略' }));
+
+      expect(onAskAI).toHaveBeenCalledWith(expectedRoleId);
+    },
+  );
+
+  it('hides the AI guide when no room chat is mounted', () => {
+    render(<RoleCardSimple {...defaultProps} />);
+
+    expect(screen.queryByRole('button', { name: 'AI 攻略' })).not.toBeInTheDocument();
   });
 });

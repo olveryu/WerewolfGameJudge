@@ -8,9 +8,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { ROLE_REVEAL_EFFECT_IDS } from '@game-judge/game-engine/product/rewards';
-import { act, render } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { Container } from 'pixi.js';
 
+import { RevealCardFace } from '../common/RevealCardFace';
 import { loadRevealEffect } from '../registry';
 import { RevealScene, RevealSceneContext } from '../runtime';
 import type { RevealEffectProps } from '../types';
@@ -74,6 +75,22 @@ describe('reveal effect registry', () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it('uses the supplied identity placeholder on the revealed card', () => {
+    const scene = new RevealScene(new Container({ sortableChildren: true }));
+    render(
+      <RevealSceneContext value={scene}>
+        <RevealCardFace
+          role={{ id: 'word', name: '苹果', alignment: 'neutral', placeholderText: '?' }}
+          width={200}
+          height={300}
+          revealGradient={['#000000', '#000000', '#000000']}
+        />
+      </RevealSceneContext>,
+    );
+    expect(screen.getByTestId('role-badge')).toHaveTextContent('?');
+    expect(screen.getByText('苹果')).toBeInTheDocument();
   });
 
   it.each([...ROLE_REVEAL_EFFECT_IDS])('%s plays and stops on unmount', async (id) => {

@@ -116,7 +116,7 @@ describe('createWerewolfSeatDataSource', () => {
     expect(hostSource.getSeat(5).player?.occupant).toEqual({ kind: 'bot', seat: 5 });
     expect(hostSource.getSeat(0).showReadyBadge).toBe(true);
     expect(hostSource.getSeat(1).showReadyBadge).toBe(false);
-    expect(hostSource.getSeat(0).showLevel).toBe(true);
+    expect(hostSource.getSeat(0).showLevel).toBe(false);
 
     const player = nightModel(state, 1, false);
     const playerSource = createWerewolfSeatDataSource({
@@ -128,6 +128,30 @@ describe('createWerewolfSeatDataSource', () => {
       revision: 1,
     });
     expect(playerSource.getSeat(5).secondaryLabel).toBeNull();
+  });
+
+  it.each([
+    [GameStatus.Unseated, true, true],
+    [GameStatus.Seated, true, true],
+    [GameStatus.Assigned, false, true],
+    [GameStatus.Ready, false, true],
+    [GameStatus.Ongoing, false, false],
+    [GameStatus.Day, false, false],
+    [GameStatus.Ended, false, true],
+  ])('shows levels only before roles are dealt (%s)', (status, showLevel, decorationsEnabled) => {
+    const base = nightState({ roles: BOARD, stepId: 'seerCheck' });
+    const state: GameState = { ...base, status };
+    const viewModel = getWerewolfViewModel(state, { seat: 0, isHost: true });
+    const source = createWerewolfSeatDataSource({
+      state,
+      viewModel,
+      night: IDLE,
+      controlledSeat: null,
+      sheriffElectionView: null,
+      revision: 1,
+    });
+
+    expect(source.getSeat(0)).toMatchObject({ showLevel, decorationsEnabled });
   });
 
   it('highlights the night draft picks', () => {
@@ -277,7 +301,7 @@ describe('createWerewolfBottomActionLayout', () => {
     expect(layoutFor(ended, 1, false).ghost.map((button) => button.key)).toEqual(['review']);
   });
 
-  it('gives spectators the review as primary and seats a ghost tool; the host uses the panel', () => {
+  it('gives every ended non-host the enabled review tool; the host uses the panel', () => {
     const ended: GameState = { ...night, status: GameStatus.Ended, nightStep: null };
     expect(layoutFor(ended, null, false).primary).toMatchObject([
       { key: 'review', audience: 'anyone', variant: 'primary', isEnabled: true },
@@ -288,9 +312,10 @@ describe('createWerewolfBottomActionLayout', () => {
     expect(layoutFor(ended, 1, false).ghost).toMatchObject([
       { key: 'review', variant: 'ghost', isEnabled: true },
     ]);
-    // A seat the host has not granted sees the entry with the reason, not nothing.
+    const day: GameState = { ...night, status: GameStatus.Day, nightStep: null };
+    // Day privacy remains in place for a seat the host has not granted.
     expect(
-      layoutFor(ended, 1, false, {
+      layoutFor(day, 1, false, {
         review: { isEnabled: false, disabledReason: '房主尚未向你开放复盘' },
       }).ghost,
     ).toMatchObject([{ key: 'review', isEnabled: false, disabledReason: '房主尚未向你开放复盘' }]);

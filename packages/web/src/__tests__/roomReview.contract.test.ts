@@ -4,7 +4,7 @@
  * Every game type ships a review, and every review honours the platform's
  * rules on rounds played through the game's real engine: nothing to review
  * in the lobby; at the end, a document the platform accepts, named for its
- * game and room, that the host may share — resolved purely to plain data
+ * game and room, that eligible readers may share — resolved purely to plain data
  * and keyed by its round, so a new round never reuses the last round's
  * export. The registry is exhaustive over `GameType`; the
  * new-game generator registers each new game's rounds (`<GAME>_REVIEW_ROUNDS`

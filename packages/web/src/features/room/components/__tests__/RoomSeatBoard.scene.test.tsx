@@ -3,7 +3,7 @@
  * decoration, the game allows decorations, the user has not switched them off and the system
  * does not ask for reduced motion.
  */
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 import { RoomSeatBoard } from '@/features/room/components/RoomSeatBoard';
 import type { RoomSeatPlayer, RoomSeatViewModel } from '@/features/room/model/RoomSeatDataSource';
@@ -119,5 +119,37 @@ describe('RoomSeatBoard scene layer', () => {
     renderBoard([seat(0, { seatFlair: 'fireRing' })]);
     expect(screen.queryByTestId('scene-canvas')).toBeNull();
     matchMedia.mockRestore();
+  });
+
+  it('places the lobby level badge on the avatar, separate from the name', () => {
+    const onSeatPress = vi.fn();
+    const seatWithLevel = seat(0, { level: 42 });
+    const { getByTestId } = render(
+      <RoomSeatBoard
+        model={{ ...board([{ ...seatWithLevel, showLevel: true }]), onSeatPress }}
+        header={null}
+        footer={null}
+      />,
+    );
+
+    const button = getByTestId(TESTIDS.seatTilePressable(0));
+    const levelBadge = screen.getByText('42').closest<HTMLElement>('.seat-level-badge');
+    const nameRow = getByTestId(TESTIDS.seatNameRow(0));
+
+    expect(button).toContainElement(levelBadge);
+    expect(nameRow).not.toContainElement(levelBadge);
+    expect(levelBadge).toHaveTextContent('Lv.42');
+    expect(button).toHaveAccessibleName('1号座位 玩家1，等级 42');
+
+    fireEvent.click(button);
+    expect(onSeatPress).toHaveBeenCalledWith(0, undefined);
+  });
+
+  it('omits the level badge when the seat has a secondary label', () => {
+    const seatWithLevel = seat(0, { level: 42 });
+
+    renderBoard([{ ...seatWithLevel, showLevel: true, secondaryLabel: '预言家' }]);
+
+    expect(screen.queryByText('42')).not.toBeInTheDocument();
   });
 });

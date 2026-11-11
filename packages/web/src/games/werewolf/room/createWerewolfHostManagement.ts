@@ -41,7 +41,6 @@ import {
 import {
   buildPanelFlowSteps,
   PANEL_FLOW_ACTION_KEYS,
-  PANEL_FLOW_SHARE_HINT,
   type PanelFlowProgress,
   resolvePanelFlowCurrentStep,
 } from '@/games/werewolf/room/day/panelFlow';
@@ -60,7 +59,7 @@ interface WerewolfHostManagementInput {
   readonly roomStatus: GameStatus;
   /** Client-local Day/Ended flow progress (panelFlow.ts). */
   readonly panelFlow: PanelFlowProgress;
-  /** The host has shared the review with at least one seat (engine nightReviewAllowedSeats). */
+  /** During Day, the host has granted the review to at least one seat. */
   readonly isReviewShared: boolean;
   readonly isPlagueMode: boolean;
   readonly seatedCount: number;
@@ -300,22 +299,14 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
         case 'lastNightInfo':
           return hostActionTask(PANEL_FLOW_ACTION_KEYS.lastNightInfo, { steps });
         case 'grantReview':
-          return hostActionTask(PANEL_FLOW_ACTION_KEYS.grantReview, {
-            steps,
-            note: PANEL_FLOW_SHARE_HINT,
-          });
+          throw new Error('[FAIL-FAST] Ended Werewolf review access is public');
         case 'closing':
         case null:
-          // Closing keeps both review tools beside the exits: the host
-          // may still grant seats or read the review before the next
-          // round starts (the review is gone once it does). Four keys
-          // is werewolf-only — grant-review exists in no other game —
-          // so this choice stays local instead of growing the shared
-          // closing builders.
+          // Keep the host's review beside the exits before the next
+          // round starts; all room users can read it once this round ends.
           return {
             kind: 'choice',
             actionKeys: [
-              PANEL_FLOW_ACTION_KEYS.grantReview,
               HOST_ACTION_KEYS.review,
               HOST_ACTION_KEYS.nextRound,
               HOST_ACTION_KEYS.returnLobby,
@@ -395,18 +386,22 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostMana
   if (input.review === null) {
     throw new Error(`[FAIL-FAST] Werewolf ${input.roomStatus} host has no review entry`);
   }
-  return [
-    buildReviewHostAction(input.review),
-    buildEnabledHostAction(
-      {
-        key: PANEL_FLOW_ACTION_KEYS.grantReview,
-        label: '授权玩家查看',
-        icon: 'people-outline',
-        variant: 'secondary',
-        testID: TESTIDS.shareReviewButton,
-      },
-      input.onGrantReviewAccess,
-    ),
+  const actions = [buildReviewHostAction(input.review)];
+  if (input.roomStatus === GameStatus.Day) {
+    actions.push(
+      buildEnabledHostAction(
+        {
+          key: PANEL_FLOW_ACTION_KEYS.grantReview,
+          label: '授权玩家查看',
+          icon: 'people-outline',
+          variant: 'secondary',
+          testID: TESTIDS.shareReviewButton,
+        },
+        input.onGrantReviewAccess,
+      ),
+    );
+  }
+  actions.push(
     buildEnabledHostAction(
       {
         key: PANEL_FLOW_ACTION_KEYS.lastNightInfo,
@@ -417,7 +412,8 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostMana
       },
       input.onLastNightInfo,
     ),
-  ];
+  );
+  return actions;
 }
 
 function createDangerActions(input: WerewolfHostManagementInput): RoomHostManagementAction[] {

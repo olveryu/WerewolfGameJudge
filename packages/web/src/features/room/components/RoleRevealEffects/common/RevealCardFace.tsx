@@ -244,7 +244,7 @@ export function RevealCardFace({
             fontWeight: 700,
           }}
         >
-          {role.name.charAt(0)}
+          {role.placeholderText ?? role.name.charAt(0)}
         </span>
       )}
       <p

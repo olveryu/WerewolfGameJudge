@@ -30,6 +30,9 @@ function describeSeat(model: RoomSeatViewModel): string {
     player === null
       ? `${formatRoomSeat(seat)}座位`
       : `${formatRoomSeat(seat)}座位 ${player.displayName}`,
+    model.showLevel && player?.level !== undefined && model.secondaryLabel === null
+      ? `等级 ${player.level}`
+      : null,
     ...(indicators === null
       ? []
       : [
@@ -167,7 +170,9 @@ function RoomSeatTileComponent({
           </span>
         )}
         {model.showLevel && player?.level !== undefined && model.secondaryLabel === null && (
-          <span className="seat-level-badge">Lv{player.level}</span>
+          <span className="seat-level-badge">
+            Lv.<span>{player.level}</span>
+          </span>
         )}
       </button>
       <span

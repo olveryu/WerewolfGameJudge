@@ -3,14 +3,13 @@
  *
  * The host's dawn work is a guided sequence, not a button shelf: 昨夜信息
  * (last night's result — the step completes only when the host confirms
- * it in the dialog, mirroring the in-person announcement) → 授权
- * (grant seats access to the review — the step completes only when the
- * engine's nightReviewAllowedSeats is non-empty, i.e. the host has
- * actually shared it with at least one seat) → 收尾 (closing).
- * Reading the review is not a step of this flow: the host reads it from
- * the sheet or from the closing task, after granting. Progress is pure
- * client-local state (a `useScopedDraft` draft in `useWerewolfRoomState`);
- * it never enters room state.
+ * it in the dialog, mirroring the in-person announcement). During Day,
+ * the host may also grant seats access to the private review. Once the
+ * game ends, review access is public and the host proceeds from the
+ * last-night info directly to closing. Reading the review is not a step
+ * of this flow: the host reads it from the sheet or closing task.
+ * Progress is pure client-local state (a `useScopedDraft` draft in
+ * `useWerewolfRoomState`); it never enters room state.
  *
  * The flow is rendered on the host task card (room-shell-contract "Host
  * Task"): steps come from here, the current step's sheet action is the
@@ -34,9 +33,6 @@ export const EMPTY_PANEL_FLOW_PROGRESS: PanelFlowProgress = {
   lastNightInfoConfirmed: false,
 };
 
-/** Reminder shown to the host while the grant step is current. */
-export const PANEL_FLOW_SHARE_HINT = '记得把复盘分享给第一天出局的玩家';
-
 /** Sheet keys the flow steps reference (createWerewolfHostManagement). */
 export const PANEL_FLOW_ACTION_KEYS = {
   lastNightInfo: 'last-night-info',
@@ -58,7 +54,7 @@ const PANEL_FLOW_STEP_ORDER: readonly PanelFlowStepId[] = [
 interface PanelFlowInput {
   readonly roomStatus: GameStatus;
   readonly progress: PanelFlowProgress;
-  /** The host has shared the review with at least one seat in this game. */
+  /** During Day, the host has granted the review to at least one seat. */
   readonly reviewShared: boolean;
 }
 
@@ -79,7 +75,6 @@ export function resolvePanelFlowCurrentStep(input: PanelFlowInput): PanelFlowSte
   }
   if (input.roomStatus === GameStatus.Ended) {
     if (!input.progress.lastNightInfoConfirmed) return 'lastNightInfo';
-    if (!isStepComplete('grantReview', input)) return 'grantReview';
     return 'closing';
   }
   return null;
@@ -93,7 +88,11 @@ export function resolvePanelFlowCurrentStep(input: PanelFlowInput): PanelFlowSte
 export function buildPanelFlowSteps(input: PanelFlowInput): readonly RoomHostTaskStep[] | null {
   const currentStep = resolvePanelFlowCurrentStep(input);
   if (currentStep === null) return null;
-  return PANEL_FLOW_STEP_ORDER.map((step) => {
+  const steps =
+    input.roomStatus === GameStatus.Ended
+      ? PANEL_FLOW_STEP_ORDER.filter((step) => step !== 'grantReview')
+      : PANEL_FLOW_STEP_ORDER;
+  return steps.map((step) => {
     const state: RoomHostTaskStep['state'] = isStepComplete(step, input)
       ? 'complete'
       : step === currentStep

@@ -47,7 +47,6 @@ export function BoardInfoCard({
           onClick={() => setUserCollapsed(!isCollapsed)}
         >
           <span className="board-info-title">配置（{playerCount}人）</span>
-          {isCollapsed ? <IconChevronDown aria-hidden /> : <IconChevronUp aria-hidden />}
         </button>
         {onStrategyPress !== null && (
           <button type="button" className="board-info-pill" onClick={onStrategyPress}>
@@ -61,6 +60,15 @@ export function BoardInfoCard({
             笔记
           </button>
         )}
+        <button
+          type="button"
+          className="board-info-chevron"
+          aria-label={isCollapsed ? '展开配置' : '收起配置'}
+          aria-expanded={!isCollapsed}
+          onClick={() => setUserCollapsed(!isCollapsed)}
+        >
+          {isCollapsed ? <IconChevronDown aria-hidden /> : <IconChevronUp aria-hidden />}
+        </button>
       </div>
       {!isCollapsed && (
         <div className="board-info-content">

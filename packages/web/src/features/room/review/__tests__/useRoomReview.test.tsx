@@ -226,13 +226,13 @@ describe('useRoomReview share controls', () => {
     render(
       <Harness
         state={available(reviewDocument(), {
-          sharing: { isAllowed: false, reason: '仅房主和已获授权的玩家可以分享战报' },
+          sharing: { isAllowed: false, reason: '当前复盘暂不可分享' },
         })}
       />,
     );
     act(() => current().open(null));
     expect(screen.getByTestId(TESTIDS.roomReviewShareButton)).toBeDisabled();
-    expect(screen.getByText('仅房主和已获授权的玩家可以分享战报')).toBeTruthy();
+    expect(screen.getByText('当前复盘暂不可分享')).toBeTruthy();
     expect(screen.queryByTestId(TESTIDS.roomReviewStagePage('only'))).toBeNull();
     expect(() => current().shareAll()).toThrow(
       '[FAIL-FAST] Review shared without a document this viewer may share',
