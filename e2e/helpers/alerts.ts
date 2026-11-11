@@ -5,7 +5,7 @@
  * three or more render in a column with cancel moved last.
  */
 
-import { expect, type Locator, type Page } from '@playwright/test';
+import { errors, expect, type Locator, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
 
@@ -60,7 +60,19 @@ export async function dismissCurrentAlert(
     try {
       // Capture the button node: a live locator could click a newer alert after replacement.
       if (!(await title.evaluate((element) => element.isConnected))) return false;
-      await button.click({ timeout });
+      try {
+        await button.click({ timeout });
+      } catch (error) {
+        const detached =
+          error instanceof Error && error.message.includes('Element is not attached to the DOM');
+        if (
+          (detached || error instanceof errors.TimeoutError) &&
+          !(await title.evaluate((element) => element.isConnected))
+        ) {
+          return false;
+        }
+        throw error;
+      }
       if (!waitForClose) return true;
       await expect
         .poll(() => title.evaluate((element) => element.isConnected), { timeout })

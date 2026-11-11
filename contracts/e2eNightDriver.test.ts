@@ -162,33 +162,37 @@ describe('night driver alert identity', () => {
     expect(await alertPrimaryButton(page)).toBeNull();
   });
 
-  it('clicks the captured body once and leaves its replacement untouched', async () => {
-    const oldTitle = { isConnected: true };
-    const replacementClick = vi.fn();
-    const button = {
-      click: vi.fn(async () => {
-        oldTitle.isConnected = false;
-      }),
-      dispose: vi.fn(),
-    };
-    const title = {
-      evaluate: async (callback: (node: typeof oldTitle) => unknown) => callback(oldTitle),
-      dispose: vi.fn(),
-    };
-    const page = {
-      getByTestId: (testId: string) => ({
-        isVisible: async () => true,
-        count: async () => Number(testId !== TESTIDS.alertButton(2)),
-        elementHandles: async () => (testId === TESTIDS.alertTitle ? [title] : [button]),
-        click: replacementClick,
-      }),
-    } as unknown as Page;
+  it.each([false, true])(
+    'leaves replacements untouched when the captured click detaches=%s',
+    async (detaches) => {
+      const oldTitle = { isConnected: true };
+      const replacementClick = vi.fn();
+      const button = {
+        click: vi.fn(async () => {
+          oldTitle.isConnected = false;
+          if (detaches) throw new Error('Element is not attached to the DOM');
+        }),
+        dispose: vi.fn(),
+      };
+      const title = {
+        evaluate: async (callback: (node: typeof oldTitle) => unknown) => callback(oldTitle),
+        dispose: vi.fn(),
+      };
+      const page = {
+        getByTestId: (testId: string) => ({
+          isVisible: async () => true,
+          count: async () => Number(testId !== TESTIDS.alertButton(2)),
+          elementHandles: async () => (testId === TESTIDS.alertTitle ? [title] : [button]),
+          click: replacementClick,
+        }),
+      } as unknown as Page;
 
-    await dismissCurrentAlert(page);
+      await dismissCurrentAlert(page);
 
-    expect(button.click).toHaveBeenCalledTimes(1);
-    expect(replacementClick).not.toHaveBeenCalled();
-    expect(title.dispose).toHaveBeenCalledTimes(1);
-    expect(button.dispose).toHaveBeenCalledTimes(1);
-  });
+      expect(button.click).toHaveBeenCalledTimes(1);
+      expect(replacementClick).not.toHaveBeenCalled();
+      expect(title.dispose).toHaveBeenCalledTimes(1);
+      expect(button.dispose).toHaveBeenCalledTimes(1);
+    },
+  );
 });
