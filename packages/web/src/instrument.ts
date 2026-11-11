@@ -1,4 +1,4 @@
-import { addIntegration, init } from '@sentry/react';
+import { init } from '@sentry/react';
 import { reactRouterBrowserTracingIntegration } from '@sentry/react/react-router';
 
 import { APP_VERSION } from '@/config/version';
@@ -11,8 +11,6 @@ init({
     ? (import.meta.env.VITE_DEPLOY_ENV ?? 'production')
     : 'development',
   tracesSampleRate: 0.2,
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1.0,
   integrations: [reactRouterBrowserTracingIntegration()],
   ignoreErrors: [
     'ResizeObserver loop',
@@ -23,11 +21,3 @@ init({
   ],
   denyUrls: [/extensions\//i, /^chrome:\/\//i, /^chrome-extension:\/\//i, /^moz-extension:\/\//i],
 });
-
-// Session Replay is the heaviest integration, so it loads in its own chunk after start-up
-// (https://docs.sentry.io/platforms/javascript/session-replay/#lazy-loading-replay).
-if (import.meta.env.PROD) {
-  void import('./sentryReplay').then(({ createReplayIntegration }) => {
-    addIntegration(createReplayIntegration());
-  });
-}

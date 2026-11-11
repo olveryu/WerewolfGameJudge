@@ -55,12 +55,6 @@ const BUDGETS = [
     beyondStartup: true,
     maxGzipBytes: 180 * KIB,
   },
-  {
-    name: 'Sentry Session Replay (lazy)',
-    entries: ['src/sentryReplay.ts'],
-    beyondStartup: true,
-    maxGzipBytes: 52 * KIB,
-  },
 ];
 
 /**
