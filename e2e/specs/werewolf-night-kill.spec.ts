@@ -153,15 +153,13 @@ test.describe('Werewolf Night — Kill', () => {
 
         // Wait for wolfQueen charm step
         if (wqIdx !== -1) {
-          const wqTurn = await waitForRoleTurn(pages[wqIdx]!, 'wolfQueenCharm', pages);
-          if (wqTurn) {
-            // Charm a non-wolf target
-            const charmTarget = [...roleMap.entries()].find(
-              ([, info]) => info.displayName !== '狼人' && info.displayName !== '狼美人',
-            );
-            if (charmTarget) {
-              await clickSeatAndConfirm(pages[wqIdx]!, charmTarget[1].seat);
-            }
+          await waitForRoleTurn(pages[wqIdx]!, 'wolfQueenCharm', pages);
+          // Charm a non-wolf target
+          const charmTarget = [...roleMap.entries()].find(
+            ([, info]) => info.displayName !== '狼人' && info.displayName !== '狼美人',
+          );
+          if (charmTarget) {
+            await clickSeatAndConfirm(pages[wqIdx]!, charmTarget[1].seat);
           }
         }
 

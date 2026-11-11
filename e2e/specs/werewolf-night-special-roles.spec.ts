@@ -95,20 +95,16 @@ test.describe('Werewolf Night — Special Roles: TreasureMaster', () => {
 
         // === Step 3: Poisoner & Seer (if they are players, not bottom cards) ===
         if (poisonerIdx !== -1) {
-          const turn = await waitForRoleTurn(pages[poisonerIdx]!, 'poisonerPoison', pages, 60_000);
-          if (turn) {
-            await dismissAlert(pages[poisonerIdx]!);
-            await clickNightButton(pages[poisonerIdx]!, 'skip', '不用技能');
-            await dismissAlert(pages[poisonerIdx]!);
-          }
+          await waitForRoleTurn(pages[poisonerIdx]!, 'poisonerPoison', pages, 60_000);
+          await dismissAlert(pages[poisonerIdx]!);
+          await clickNightButton(pages[poisonerIdx]!, 'skip', '不用技能');
+          await dismissAlert(pages[poisonerIdx]!);
         }
         if (seerIdx !== -1) {
-          const turn = await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages, 60_000);
-          if (turn) {
-            await dismissAlert(pages[seerIdx]!);
-            await clickNightButton(pages[seerIdx]!, 'skip', '不用技能');
-            await dismissAlert(pages[seerIdx]!);
-          }
+          await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages, 60_000);
+          await dismissAlert(pages[seerIdx]!);
+          await clickNightButton(pages[seerIdx]!, 'skip', '不用技能');
+          await dismissAlert(pages[seerIdx]!);
         }
 
         // === Step 4: Night should end ===
@@ -335,20 +331,16 @@ test.describe('Werewolf Night — Special Roles: Poisoner Override Feedback', ()
 
         // === Step 3: Poisoner & Seer skip their skills ===
         if (poisonerIdx !== -1) {
-          const turn = await waitForRoleTurn(pages[poisonerIdx]!, 'poisonerPoison', pages, 60_000);
-          if (turn) {
-            await dismissAlert(pages[poisonerIdx]!);
-            await clickNightButton(pages[poisonerIdx]!, 'skip', '不用技能');
-            await dismissAlert(pages[poisonerIdx]!);
-          }
+          await waitForRoleTurn(pages[poisonerIdx]!, 'poisonerPoison', pages, 60_000);
+          await dismissAlert(pages[poisonerIdx]!);
+          await clickNightButton(pages[poisonerIdx]!, 'skip', '不用技能');
+          await dismissAlert(pages[poisonerIdx]!);
         }
         if (seerIdx !== -1) {
-          const turn = await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages, 60_000);
-          if (turn) {
-            await dismissAlert(pages[seerIdx]!);
-            await clickNightButton(pages[seerIdx]!, 'skip', '不用技能');
-            await dismissAlert(pages[seerIdx]!);
-          }
+          await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages, 60_000);
+          await dismissAlert(pages[seerIdx]!);
+          await clickNightButton(pages[seerIdx]!, 'skip', '不用技能');
+          await dismissAlert(pages[seerIdx]!);
         }
 
         // === Step 4: Night should end ===
