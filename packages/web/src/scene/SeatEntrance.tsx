@@ -10,6 +10,7 @@ import {
 import { sceneStagePromise } from '@/scene/sceneStagePromise';
 import { offsetInHost } from '@/scene/SeatDecoration';
 import type { EntranceHandle } from '@/scene/stageEntrance';
+import { watchSeatGeometry } from '@/scene/watchSeatGeometry';
 
 interface SeatEntranceProps {
   spec: EntranceSpec;
@@ -174,19 +175,13 @@ export function SeatEntrance({
       onError: setFailure,
     });
     const align = () => handle.setGeometry(measureEntrance(tile, host, avatar));
-    const observer = new ResizeObserver(align);
-    observer.observe(tile);
-    observer.observe(host);
-    observer.observe(avatar);
-    // Scroll events do not bubble; capture catches scrolled containers inside the host.
-    host.addEventListener('scroll', align, { capture: true, passive: true });
+    const stopWatching = watchSeatGeometry([tile, avatar], host, align);
     align();
     handleRef.current = handle;
     handle.play();
     return () => {
       clearTimeout(replay);
-      observer.disconnect();
-      host.removeEventListener('scroll', align, { capture: true });
+      stopWatching();
       handleRef.current = null;
       handle.destroy();
       clearPose(avatar);

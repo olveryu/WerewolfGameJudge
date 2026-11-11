@@ -9,6 +9,7 @@ import {
 } from '@/scene/decoration';
 import { sceneStagePromise } from '@/scene/sceneStagePromise';
 import type { DecorationHandle, SeatRect } from '@/scene/stage';
+import { watchSeatGeometry } from '@/scene/watchSeatGeometry';
 
 interface SeatDecorationProps {
   /** Resident decorations of one seat, back to front (e.g. frame, flair, pet). */
@@ -149,15 +150,10 @@ export function SeatDecoration({
       const rect = measureTile(tile, host);
       for (const { anchor, handle } of mounted) handle.setRect(anchorRect(anchor, rect, tile));
     };
-    const observer = new ResizeObserver(align);
-    observer.observe(tile);
-    observer.observe(host);
-    // Scroll events do not bubble; capture catches scrolled containers inside the host.
-    host.addEventListener('scroll', align, { capture: true, passive: true });
+    const stopWatching = watchSeatGeometry([tile], host, align);
     align();
     return () => {
-      observer.disconnect();
-      host.removeEventListener('scroll', align, { capture: true });
+      stopWatching();
       byDecoration.clear();
       for (const { handle } of mounted) handle.destroy();
     };
