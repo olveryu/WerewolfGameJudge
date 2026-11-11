@@ -47,10 +47,7 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
   if (password.length === 0 || password !== password.trim()) {
     throw new Error('[FAIL-FAST] Admin credential must be a trimmed non-empty string');
   }
-  const url = new URL(`${API_BASE_URL}/admin/stats`);
-  // Use a minimal time range just to verify auth
-  url.searchParams.set('from', '2020-01-01T00:00:00Z');
-  url.searchParams.set('to', '2020-01-01T00:01:00Z');
+  const url = new URL(`${API_BASE_URL}/admin/session`);
 
   const resp = await fetch(url.toString(), {
     headers: { 'X-Admin-Token': password },

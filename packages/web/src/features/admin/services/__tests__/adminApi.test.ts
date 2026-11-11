@@ -23,6 +23,15 @@ describe('adminApi', () => {
     await expect(verifyAdminPassword('credential')).resolves.toBe(false);
   });
 
+  it('verifies credentials without calling the database-backed stats endpoint', async () => {
+    mockFetch.mockResolvedValue(Response.json({ success: true }));
+    await expect(verifyAdminPassword('credential')).resolves.toBe(true);
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/admin/session'),
+      expect.objectContaining({ headers: { 'X-Admin-Token': 'credential' } }),
+    );
+  });
+
   it('surfaces non-authentication failures instead of reporting a bad password', async () => {
     mockFetch.mockResolvedValue(
       new Response(JSON.stringify({ success: false, reason: 'INTERNAL_ERROR' }), {

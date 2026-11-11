@@ -1,7 +1,7 @@
 /**
  * AdminPage — the admin portal.
  *
- * A password gate leads to a seven-tab dashboard. The password is cached in local storage and
+ * A password gate leads to an eight-tab dashboard. The password is cached in local storage and
  * verified again on the next entry. The portal does not use the player JWT; requests carry a
  * standalone admin token.
  */
@@ -28,6 +28,7 @@ import {
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
 import IconBarChartOutline from '~icons/ion/bar-chart-outline';
+import IconConstructOutline from '~icons/ion/construct-outline';
 import IconGameControllerOutline from '~icons/ion/game-controller-outline';
 import IconHomeOutline from '~icons/ion/home-outline';
 import IconLockClosed from '~icons/ion/lock-closed';
@@ -39,12 +40,21 @@ import IconSpeedometerOutline from '~icons/ion/speedometer-outline';
 import { AITab } from './tabs/AITab';
 import { AnalyticsTab } from './tabs/AnalyticsTab';
 import { GamesTab } from './tabs/GamesTab';
+import { MaintenanceTab } from './tabs/MaintenanceTab';
 import { RequestTrafficTab } from './tabs/RequestTrafficTab';
 import { RoomsTab } from './tabs/RoomsTab';
 import { StatsTab } from './tabs/StatsTab';
 import { UsersTab } from './tabs/UsersTab';
 
-type TabId = 'users' | 'rooms' | 'stats' | 'analytics' | 'requests' | 'ai' | 'games';
+type TabId =
+  | 'maintenance'
+  | 'users'
+  | 'rooms'
+  | 'stats'
+  | 'analytics'
+  | 'requests'
+  | 'ai'
+  | 'games';
 
 interface AdminTab {
   readonly id: TabId;
@@ -54,6 +64,7 @@ interface AdminTab {
 }
 
 const TABS: readonly AdminTab[] = [
+  { id: 'maintenance', label: '维护', Icon: IconConstructOutline, Panel: MaintenanceTab },
   { id: 'users', label: '用户', Icon: IconPeopleOutline, Panel: UsersTab },
   { id: 'rooms', label: '房间', Icon: IconHomeOutline, Panel: RoomsTab },
   { id: 'stats', label: '统计', Icon: IconBarChartOutline, Panel: StatsTab },
@@ -174,7 +185,7 @@ export function AdminPage() {
 
 /** The tabbed dashboard shown once the password is verified. */
 function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<TabId>('users');
+  const [activeTab, setActiveTab] = useState<TabId>('maintenance');
   const listRef = useRef<HTMLDivElement>(null);
   const activeIndex = TABS.findIndex((tab) => tab.id === activeTab);
   const ActivePanel = getTab(activeIndex).Panel;
