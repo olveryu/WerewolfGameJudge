@@ -22,6 +22,7 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--space-small);
+  margin-bottom: var(--space-small);
 }
 
 .role-variant-pill {

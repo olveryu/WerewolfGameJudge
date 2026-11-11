@@ -73,6 +73,7 @@
   /* Borders and states */
   --border-width: 1px;
   --border-width-thick: 2px;
+  --border-width-highlight: 3px;
   --opacity-pressed: 0.7;
   --opacity-disabled: 0.5;
 
@@ -82,4 +83,5 @@
   --shadow-lg: 0 4px 16px rgb(0 0 0 / 10%);
   --shadow-upward: 0 -1px 8px rgb(0 0 0 / 6%);
   --shadow-lg-upward: 0 -2px 12px rgb(0 0 0 / 8%);
+  --shadow-card: 0 10px 40px rgb(0 0 0 / 50%);
 }

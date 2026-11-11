@@ -456,13 +456,6 @@
   font-weight: var(--weight-semibold);
 }
 
-.encyclopedia-detail-text {
-  margin: 0;
-  color: var(--color-text);
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
-}
-
 .button.encyclopedia-detail-confirm[data-variant] {
   flex-shrink: 0;
   background: var(--key-color);

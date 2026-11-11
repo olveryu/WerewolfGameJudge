@@ -21,7 +21,7 @@ function splitBullets(text: string): readonly string[] {
 }
 
 /** Structured description fields; the accent follows the surrounding `--faction-color`. */
-export function DescriptionFields({ fields }: { readonly fields: readonly DescriptionField[] }) {
+function DescriptionFields({ fields }: { readonly fields: readonly DescriptionField[] }) {
   return (
     <div className="role-card-fields">
       {fields.map((field) => {
@@ -51,6 +51,29 @@ export function DescriptionFields({ fields }: { readonly fields: readonly Descri
           </section>
         );
       })}
+    </div>
+  );
+}
+
+/** One field (or none) reads as a centered titled text; two or more as structured fields. */
+export function RoleDescription({
+  fields,
+  fallbackText,
+  title,
+}: {
+  readonly fields: readonly DescriptionField[];
+  readonly fallbackText: string;
+  readonly title: string;
+}) {
+  const filledFields = fields.filter((field) => field.content.length > 0);
+  if (filledFields.length > 1) return <DescriptionFields fields={filledFields} />;
+  const [onlyField] = filledFields;
+  return (
+    <div className="role-description-single">
+      <h3 className="role-description-title">{title}</h3>
+      <p className="role-description-text" data-testid={onlyField?.testID}>
+        {onlyField?.content ?? fallbackText}
+      </p>
     </div>
   );
 }
@@ -87,16 +110,11 @@ function RoleCardContent({
       </h2>
       <hr className="role-card-divider" />
       <div className="role-card-description">
-        {Array.isArray(description) && description.length > 0 ? (
-          <DescriptionFields fields={description} />
-        ) : (
-          <>
-            <h3 className="role-card-description-title">{descriptionTitle}</h3>
-            <p className="role-card-description-text">
-              {typeof description === 'string' ? description : '无技能描述'}
-            </p>
-          </>
-        )}
+        <RoleDescription
+          fields={description === undefined || typeof description === 'string' ? [] : description}
+          fallbackText={typeof description === 'string' ? description : '无技能描述'}
+          title={descriptionTitle}
+        />
       </div>
     </div>
   );

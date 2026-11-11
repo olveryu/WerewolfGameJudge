@@ -26,7 +26,7 @@ describe('RoleCardSimple', () => {
     expect(screen.queryByText('狼人')).not.toBeInTheDocument();
   });
 
-  it('shows the role name, faction badge, portrait and structured description', () => {
+  it('shows the role name, faction badge, portrait and its single-field description centered', () => {
     render(<RoleCardSimple {...defaultProps} />);
     expect(screen.getByText('狼人')).toBeInTheDocument();
     expect(screen.getByText('狼人阵营')).toBeInTheDocument();
@@ -34,7 +34,8 @@ describe('RoleCardSimple', () => {
       'src',
       expect.stringMatching(/wolf/),
     );
-    expect(screen.getByText('主动技能')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '技能介绍' })).toBeInTheDocument();
+    expect(screen.queryByText('主动技能')).not.toBeInTheDocument();
   });
 
   it('calls onClose when the confirm button is pressed', () => {

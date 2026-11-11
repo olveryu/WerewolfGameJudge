@@ -107,7 +107,7 @@ describe('avalon role introduction single source (source pins)', () => {
     expect(dataSource).toMatch(/getAvalonRoleMeta/);
     expect(dataSource).toMatch(/toAvalonRoleDescriptionFields/);
     const sheetSource = readSource('features/encyclopedia/EncyclopediaRoleDetailSheet.tsx');
-    expect(sheetSource).toMatch(/DescriptionFields/);
+    expect(sheetSource).toMatch(/RoleDescription/);
   });
 
   it('no avalon production source outside the meta contains role introduction literals', () => {
