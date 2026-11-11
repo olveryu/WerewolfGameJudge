@@ -134,7 +134,7 @@ test.describe('Werewolf Night — Block', () => {
         expect(seerBlocked, 'Seer should see blocked prompt').toBe(true);
 
         // Verify blocked text
-        const blockedText = await readAlertText(pages[seerIdx]!);
+        const blockedText = await readAlertText(pages[seerIdx]!, 10_000, '技能被封锁');
         expect(blockedText).toContain('封锁');
         await dismissAlert(pages[seerIdx]!);
 
@@ -189,7 +189,7 @@ test.describe('Werewolf Night — Block', () => {
         expect(witchBlocked, 'Witch should see blocked prompt').toBe(true);
 
         // Verify blocked text
-        const blockedText = await readAlertText(pages[witchIdx]!);
+        const blockedText = await readAlertText(pages[witchIdx]!, 10_000, '技能被封锁');
         expect(blockedText).toContain('封锁');
         await dismissAlert(pages[witchIdx]!);
 
@@ -285,7 +285,7 @@ test.describe('Werewolf Night — Block', () => {
         const dcBlocked = await waitForRoleTurn(pages[dcIdx]!, 'dreamcatcherDream', pages);
         expect(dcBlocked, 'Dreamcatcher should see blocked prompt').toBe(true);
 
-        const blockedText = await readAlertText(pages[dcIdx]!);
+        const blockedText = await readAlertText(pages[dcIdx]!, 10_000, '技能被封锁');
         expect(blockedText).toContain('封锁');
         await dismissAlert(pages[dcIdx]!);
 
