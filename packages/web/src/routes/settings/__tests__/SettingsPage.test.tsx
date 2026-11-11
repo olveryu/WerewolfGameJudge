@@ -205,6 +205,19 @@ describe('SettingsPage', () => {
     expect(gachaEntry).toHaveTextContent('99+');
   });
 
+  it('lists the account actions as rows and opens the password form in place', async () => {
+    mocks.auth.user = REGISTERED_USER;
+    await renderSettings();
+
+    expect(screen.getByRole('button', { name: '切换账号' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '登出' })).toHaveAttribute('data-tone', 'danger');
+    await userEvent.click(screen.getByRole('button', { name: '修改密码' }));
+
+    expect(screen.getByPlaceholderText('旧密码')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '切换账号' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '登出' })).toBeNull();
+  });
+
   it('hides the gacha entry from anonymous users', async () => {
     mocks.auth.user = { ...REGISTERED_USER, email: null, displayName: null, isAnonymous: true };
     mocks.gachaStatus = { normalDraws: 3, goldenDraws: 0 };

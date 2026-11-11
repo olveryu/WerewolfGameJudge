@@ -34,14 +34,18 @@
 
 .rarity-filters {
   display: flex;
+  /* A horizontal scroller has no automatic minimum height: without this a column flex parent
+     squeezes the row to nothing. */
+  flex-shrink: 0;
   gap: var(--space-tight);
   overflow-x: auto;
   scrollbar-width: none;
 }
 
 .rarity-filter {
-  flex-shrink: 0;
-  padding: var(--space-micro) var(--space-medium);
+  /* Share the row when the chips fit; scroll sideways when they do not. */
+  flex: 1 0 auto;
+  padding: var(--space-tight) var(--space-small);
   border: none;
   border-radius: var(--radius-full);
   background: var(--color-surface);

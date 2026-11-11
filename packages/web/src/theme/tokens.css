@@ -69,6 +69,8 @@
   --size-modal-min-width: 280px;
   --size-profile-card-width: 300px;
   --size-profile-equipment-preview: 28px;
+  --size-appearance-cell-min: 88px;
+  --size-appearance-avatar-cell-min: 72px;
   --size-min-touch-target: 44px;
   --size-max-content-width: 600px;
 

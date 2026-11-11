@@ -37,7 +37,9 @@
   background: var(--color-primary-light);
 }
 
+/* In the unlocks row's text column: `flex: none`, or the column's zero basis flattens the bar. */
 .growth-progress-mini {
+  flex: none;
   width: 100%;
   height: var(--space-tight);
   background: var(--color-primary-a10);
@@ -54,34 +56,4 @@
 
 .growth-progress-mini::-moz-progress-bar {
   background: var(--color-primary);
-}
-
-.growth-unlocks {
-  display: flex;
-  align-items: center;
-  gap: var(--space-small);
-  min-height: var(--size-min-touch-target);
-  padding: var(--space-small) 0;
-  border-top: var(--border-width) solid var(--color-border-light);
-  color: var(--color-text);
-  text-decoration: none;
-}
-
-.growth-unlocks-chevron {
-  flex-shrink: 0;
-  color: var(--color-text-muted);
-  font-size: var(--size-icon-md);
-}
-
-.growth-unlocks-icon {
-  flex-shrink: 0;
-  color: var(--color-primary);
-  font-size: var(--size-icon-md);
-}
-
-.growth-unlocks-content {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: var(--space-tight);
 }

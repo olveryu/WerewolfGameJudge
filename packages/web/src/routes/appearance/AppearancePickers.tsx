@@ -11,6 +11,7 @@ import { RarityCellBg } from '@/features/product/components/RarityCellBg';
 import { ResidentAvatarTile } from '@/features/product/components/ResidentPreview';
 import type { ClientProductUi } from '@/features/product/model/ClientProductUi';
 import { resolveResidentDecorations } from '@/scene/residentDecorations';
+import IconCameraOutline from '~icons/ion/camera-outline';
 import IconCheckmark from '~icons/ion/checkmark';
 import IconCloseCircleOutline from '~icons/ion/close-circle-outline';
 import IconLockClosed from '~icons/ion/lock-closed';
@@ -70,8 +71,10 @@ interface PickerCellProps {
   readonly isSelected: boolean;
   /** The equipped item while nothing is selected. */
   readonly showActive: boolean;
-  /** A check badge on the equipped avatar. */
+  /** A check badge on the equipped item. */
   readonly showCheck?: boolean;
+  /** Leaves room around the thumbnail for artwork drawn past its edge (avatar frames). */
+  readonly inset?: boolean;
   readonly onPress: () => void;
   readonly onLongPress?: () => void;
   readonly children: ReactNode;
@@ -85,6 +88,7 @@ function PickerCell({
   isSelected,
   showActive,
   showCheck = false,
+  inset = false,
   onPress,
   onLongPress,
   children,
@@ -108,7 +112,9 @@ function PickerCell({
       }}
     >
       <RarityCellBg rarity={rarity} />
-      <span className="appearance-cell-thumb">{children}</span>
+      <span className="appearance-cell-thumb" data-inset={inset}>
+        {children}
+      </span>
       {caption !== undefined && (
         <span className="appearance-cell-caption" data-locked={!unlocked}>
           {unlocked ? caption : '???'}
@@ -146,9 +152,36 @@ interface PickerPanelProps {
   readonly userId: string;
   readonly sceneHostRef: RefObject<HTMLDivElement | null>;
   readonly scrollRootRef: RefObject<HTMLElement | null>;
+  /** Opens the file picker for a custom avatar. */
+  readonly onUpload: () => void;
 }
 
-function AvatarGrid({ state, productUi, userId }: PickerPanelProps) {
+/** The first avatar cell of an editable account: upload (or replace) the custom avatar. */
+function UploadCell({
+  hasCustomAvatar,
+  onUpload,
+}: {
+  readonly hasCustomAvatar: boolean;
+  readonly onUpload: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="appearance-cell"
+      aria-label={hasCustomAvatar ? '更换自定义头像' : '上传自定义头像'}
+      onClick={onUpload}
+    >
+      <span className="appearance-cell-thumb">
+        <span className="appearance-cell-upload">
+          <IconCameraOutline aria-hidden />
+          <span>{hasCustomAvatar ? '更换' : '上传'}</span>
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function AvatarCells({ state, productUi, userId }: PickerPanelProps) {
   return state.avatarGrid.map((item) => {
     if (item.type === 'default') {
       return (
@@ -239,6 +272,8 @@ function ResidentGrid({
       rarity={item.rarity}
       isSelected={selection === item.id}
       showActive={item.isActive && selection === null}
+      showCheck={item.isActive && selection !== item.id}
+      inset
       onPress={() => onSelect(item.id)}
     >
       {item.id === 'none' ? (
@@ -267,6 +302,7 @@ function NameStyleGrid({ state }: Pick<PickerPanelProps, 'state'>) {
       rarity={item.rarity}
       isSelected={state.selectedNameStyle === item.id}
       showActive={item.isActive && state.selectedNameStyle === null}
+      showCheck={item.isActive && state.selectedNameStyle !== item.id}
       onPress={() => state.handleSelectNameStyle(item.id)}
     >
       {item.id === 'none' ? (
@@ -293,6 +329,7 @@ function EffectGrid({ state }: Pick<PickerPanelProps, 'state'>) {
       rarity={item.rarity}
       isSelected={state.selectedEffect === item.id}
       showActive={item.isActive && state.selectedEffect === null}
+      showCheck={item.isActive && state.selectedEffect !== item.id}
       onPress={() => state.handleSelectEffect(item.id)}
     >
       <span className="appearance-cell-icon" data-locked={!item.unlocked}>
@@ -314,8 +351,14 @@ export function AppearancePickerGrid(props: PickerPanelProps) {
   switch (state.activeTab) {
     case 'avatar':
       return (
-        <div className="appearance-grid" data-columns="4">
-          <AvatarGrid {...props} />
+        <div className="appearance-grid" data-kind="avatar">
+          {!state.readOnly && state.rarityFilter === 'all' && (
+            <UploadCell
+              hasCustomAvatar={state.customAvatarUrl !== null}
+              onUpload={props.onUpload}
+            />
+          )}
+          <AvatarCells {...props} />
         </div>
       );
     case 'frame':

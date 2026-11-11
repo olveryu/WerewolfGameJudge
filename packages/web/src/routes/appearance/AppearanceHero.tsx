@@ -7,7 +7,6 @@ import { NameStyleText } from '@/components/nameStyles/NameStyleText';
 import { RARITY_VISUAL, rarityStarLabel } from '@/config/rarityVisual';
 import { ResidentAvatarTile } from '@/features/product/components/ResidentPreview';
 import { resolveResidentDecorations } from '@/scene/residentDecorations';
-import IconCameraOutline from '~icons/ion/camera-outline';
 
 import type { AppearanceState } from './useAppearanceState';
 
@@ -15,19 +14,17 @@ interface HeroPreviewProps {
   readonly state: AppearanceState;
   readonly userId: string;
   readonly displayName: string;
-  readonly hasCustomAvatar: boolean;
   readonly sceneHostRef: RefObject<HTMLDivElement | null>;
-  readonly onUpload: () => void;
+  readonly scrollRootRef: RefObject<HTMLElement | null>;
 }
 
-/** The draft look: avatar with frame and flair, the styled name, and the custom upload. */
+/** The draft look: avatar with frame and flair beside the styled name and the frame's name. */
 export function HeroPreview({
   state,
   userId,
   displayName,
-  hasCustomAvatar,
   sceneHostRef,
-  onUpload,
+  scrollRootRef,
 }: HeroPreviewProps) {
   const residents = resolveResidentDecorations({
     avatarFrame: state.effectiveFrame ?? undefined,
@@ -35,29 +32,21 @@ export function HeroPreview({
   });
   return (
     <section className="appearance-hero" aria-label="形象预览">
-      <div className="appearance-hero-left">
-        <div className="appearance-hero-avatar">
-          <ResidentAvatarTile
-            userId={userId}
-            avatarUrl={state.previewAvatarUrl}
-            residents={residents}
-            sceneHostRef={sceneHostRef}
-          />
-        </div>
+      <div className="appearance-hero-avatar">
+        <ResidentAvatarTile
+          userId={userId}
+          avatarUrl={state.previewAvatarUrl}
+          residents={residents}
+          sceneHostRef={sceneHostRef}
+          scrollRootRef={scrollRootRef}
+        />
+      </div>
+      <div className="appearance-hero-text">
         <NameStyleText styleId={state.effectiveNameStyle} className="appearance-hero-name">
           {displayName}
         </NameStyleText>
-      </div>
-      <div className="appearance-hero-right">
         <p className="appearance-hero-meta">当前框：{state.frameLabel}</p>
-        {state.readOnly ? (
-          <p className="appearance-hero-muted">绑定后可上传</p>
-        ) : (
-          <Button variant="secondary" size="sm" onClick={onUpload}>
-            <IconCameraOutline aria-hidden />
-            {hasCustomAvatar ? '更换自定义' : '上传自定义'}
-          </Button>
-        )}
+        {state.readOnly && <p className="appearance-hero-muted">绑定后可上传</p>}
       </div>
     </section>
   );
@@ -67,6 +56,7 @@ interface EffectHeroPreviewProps {
   readonly state: AppearanceState;
   readonly userId: string;
   readonly sceneHostRef: RefObject<HTMLDivElement | null>;
+  readonly scrollRootRef: RefObject<HTMLElement | null>;
   readonly saving: boolean;
   readonly onEquip: () => void;
   readonly onEquipUnavailable: () => void;
@@ -77,6 +67,7 @@ export function EffectHeroPreview({
   state,
   userId,
   sceneHostRef,
+  scrollRootRef,
   saving,
   onEquip,
   onEquipUnavailable,
@@ -90,32 +81,33 @@ export function EffectHeroPreview({
   else if (state.heroEffectIsEquipped) equipLabel = '已装备';
   return (
     <section className="appearance-hero" aria-label="特效预览">
-      <div className="appearance-hero-left">
-        <div className="appearance-hero-avatar">
-          {presentation.petName === null ? (
-            <span className="appearance-hero-effect-icon" style={{ color: rarityColor }}>
-              <IonIcon name={presentation.icon} />
-            </span>
-          ) : (
-            <ResidentAvatarTile
-              userId={userId}
-              avatarUrl={state.previewAvatarUrl}
-              residents={resolveResidentDecorations({ seatPetId: heroEffectId })}
-              sceneHostRef={sceneHostRef}
-            />
-          )}
-        </div>
+      <div className="appearance-hero-avatar">
+        {presentation.petName === null ? (
+          <span className="appearance-hero-effect-icon" style={{ color: rarityColor }}>
+            <IonIcon name={presentation.icon} />
+          </span>
+        ) : (
+          <ResidentAvatarTile
+            userId={userId}
+            avatarUrl={state.previewAvatarUrl}
+            residents={resolveResidentDecorations({ seatPetId: heroEffectId })}
+            sceneHostRef={sceneHostRef}
+            scrollRootRef={scrollRootRef}
+          />
+        )}
       </div>
-      <div className="appearance-hero-right">
-        <p className="appearance-hero-title">{presentation.label}</p>
+      <div className="appearance-hero-text">
+        <p className="appearance-hero-heading">
+          <span className="appearance-hero-title">{presentation.label}</span>
+          {heroEffectRarity !== null && (
+            <span className="appearance-hero-rarity" style={{ color: rarityColor }}>
+              {rarityStarLabel(heroEffectRarity)}
+            </span>
+          )}
+        </p>
         <p className="appearance-hero-description">{presentation.shortDescription}</p>
         {presentation.petName !== null && (
           <p className="appearance-hero-muted">🐾 装备后座位出现{presentation.petName}</p>
-        )}
-        {heroEffectRarity !== null && (
-          <p className="appearance-hero-rarity" style={{ color: rarityColor }}>
-            {rarityStarLabel(heroEffectRarity)}
-          </p>
         )}
         <div className="appearance-hero-actions">
           <Button
