@@ -288,7 +288,8 @@ describe('ROLE_SPECS contract', () => {
     it('wolfRobot learn rules: guard and wolf are special cases, others inherit', () => {
       const description = ROLE_SPECS.wolfRobot.description;
       expect(description).toContain('若学习到守卫');
-      expect(description).toContain('从次夜起');
+      expect(description).toContain('从第二夜起');
+      expect(description).not.toContain('次夜');
       expect(description).toContain('毒药反弹至施法者自身');
       expect(description).toContain('毒药反弹至施法者自身；若学习到狼人');
       expect(description).toContain('限用一次');
@@ -308,7 +309,8 @@ describe('ROLE_SPECS contract', () => {
       expect(structured?.skill).not.toContain('若学习到守卫');
       expect(structured?.skill).not.toContain('若学习到狼人');
       expect(structured?.special).toContain('若学习到守卫');
-      expect(structured?.special).toContain('从次夜起');
+      expect(structured?.special).toContain('从第二夜起');
+      expect(structured?.special).not.toContain('次夜');
       expect(structured?.special).toContain('毒药反弹至施法者自身');
       expect(structured?.special).toContain('毒药反弹至施法者自身；若学习到狼人');
       expect(structured?.special).toContain('限用一次');
