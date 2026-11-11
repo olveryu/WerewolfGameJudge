@@ -86,10 +86,10 @@ async function driveGuardProtect(
   guardPageIndex: number,
   protectSeat: number,
 ): Promise<void> {
-  const guardTurn = await waitForRoleTurn(pages[guardPageIndex]!, 'guardProtect', pages);
-  expect(guardTurn, 'Guard turn should become active').toBe(true);
-  const confirmed = await clickSeatAndConfirm(pages[guardPageIndex]!, protectSeat);
-  expect(confirmed, 'Guard should confirm protection').toBe(true);
+  await test.step('Guard turn should become active', () =>
+    waitForRoleTurn(pages[guardPageIndex]!, 'guardProtect', pages));
+  await test.step('Guard should confirm protection', () =>
+    clickSeatAndConfirm(pages[guardPageIndex]!, protectSeat));
 }
 
 async function drivePostConfessNight(
@@ -106,22 +106,22 @@ async function drivePostConfessNight(
     // the confirm button is actually rendered when the driver looks
     // for it. The override renders "确认放弃袭击", not the plain
     // "放弃袭击" button driveWolfEmptyVote clicks.
-    const wolfTurn = await waitForRoleTurn(pages[wolfPageIndices[0]!]!, 'wolfKill', pages);
-    expect(wolfTurn, 'Wolf turn should become active').toBe(true);
+    await test.step('Wolf turn should become active', () =>
+      waitForRoleTurn(pages[wolfPageIndices[0]!]!, 'wolfKill', pages));
     await driveWolfDisabledEmptyVote(pages, wolfPageIndices);
   });
 
   await test.step('poisoner skips the poison', async () => {
-    const poisonerTurn = await waitForRoleTurn(pages[poisonerPageIndex]!, 'poisonerPoison', pages);
-    expect(poisonerTurn, 'Poisoner turn should become active').toBe(true);
+    await test.step('Poisoner turn should become active', () =>
+      waitForRoleTurn(pages[poisonerPageIndex]!, 'poisonerPoison', pages));
     await dismissAlert(pages[poisonerPageIndex]!);
     await clickNightButton(pages[poisonerPageIndex]!, 'skip', '不用技能');
     await dismissAlert(pages[poisonerPageIndex]!);
   });
 
   await test.step('hunter confirms shoot status', async () => {
-    const hunterTurn = await waitForRoleTurn(pages[hunterPageIndex]!, 'hunterConfirm', pages);
-    expect(hunterTurn, 'Hunter turn should become active').toBe(true);
+    await test.step('Hunter turn should become active', () =>
+      waitForRoleTurn(pages[hunterPageIndex]!, 'hunterConfirm', pages));
     await dismissAlert(pages[hunterPageIndex]!);
     await clickNightButton(pages[hunterPageIndex]!, 'confirm', '发动状态');
     const alertText = await readAlertText(pages[hunterPageIndex]!);
@@ -131,10 +131,10 @@ async function drivePostConfessNight(
   });
 
   await test.step('seer checks the target and reads good', async () => {
-    const seerTurn = await waitForRoleTurn(pages[seerPageIndex]!, 'seerCheck', pages);
-    expect(seerTurn, 'Seer turn should become active').toBe(true);
-    const checked = await clickSeatAndConfirm(pages[seerPageIndex]!, seerCheckSeat);
-    expect(checked, 'Seer should confirm the check').toBe(true);
+    await test.step('Seer turn should become active', () =>
+      waitForRoleTurn(pages[seerPageIndex]!, 'seerCheck', pages));
+    await test.step('Seer should confirm the check', () =>
+      clickSeatAndConfirm(pages[seerPageIndex]!, seerCheckSeat));
     const revealText = await readAlertText(pages[seerPageIndex]!);
     expect(revealText).toContain(formatSeat(seerCheckSeat));
     expect(revealText).toContain('好人');
@@ -181,12 +181,8 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
         });
 
         await test.step('wolf girl sees the pack and confesses a civilian', async () => {
-          const confessTurn = await waitForRoleTurn(
-            pages[wolfGirlPageIndex]!,
-            'wolfGirlConfess',
-            pages,
-          );
-          expect(confessTurn, 'Wolf Girl confess turn should become active').toBe(true);
+          await test.step('Wolf Girl confess turn should become active', () =>
+            waitForRoleTurn(pages[wolfGirlPageIndex]!, 'wolfGirlConfess', pages));
 
           await expect(
             pages[wolfGirlPageIndex]!.getByTestId(TESTIDS.alertMessage),
@@ -199,8 +195,8 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
             confessTargetSeat,
           );
 
-          const confirmed = await clickSeatAndConfirm(pages[wolfGirlPageIndex]!, confessTargetSeat);
-          expect(confirmed, 'Wolf Girl should confirm the confession').toBe(true);
+          await test.step('Wolf Girl should confirm the confession', () =>
+            clickSeatAndConfirm(pages[wolfGirlPageIndex]!, confessTargetSeat));
         });
 
         await drivePostConfessNight(
@@ -213,8 +209,8 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
         );
 
         await test.step('every player acknowledges the confession reveal', async () => {
-          const revealReady = await waitForGroupConfirmStep(pages, '表白状态', 120);
-          expect(revealReady, 'Confession reveal should become active last').toBe(true);
+          await test.step('Confession reveal should become active last', () =>
+            waitForGroupConfirmStep(pages, '表白状态', 120));
 
           let disclosedSeatCount = 0;
           for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
@@ -234,8 +230,8 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
         });
 
         await test.step('night ends peacefully after all acknowledgements', async () => {
-          const ended = await waitForNightEnd(pages);
-          expect(ended, 'Night should end only after the final acknowledgements').toBe(true);
+          await test.step('Night should end only after the final acknowledgements', () =>
+            waitForNightEnd(pages));
 
           await viewLastNightInfo(pages[0]!);
           expect(await readAlertText(pages[0]!)).toContain('平安夜');
@@ -280,17 +276,13 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
         });
 
         await test.step('wolf girl confesses the seer', async () => {
-          const confessTurn = await waitForRoleTurn(
-            pages[wolfGirlPageIndex]!,
-            'wolfGirlConfess',
-            pages,
-          );
-          expect(confessTurn, 'Wolf Girl confess turn should become active').toBe(true);
+          await test.step('Wolf Girl confess turn should become active', () =>
+            waitForRoleTurn(pages[wolfGirlPageIndex]!, 'wolfGirlConfess', pages));
 
           await expectWolfSeatNotConfessable(pages[wolfGirlPageIndex]!, wolfSeats[0]!, seerSeat);
 
-          const confirmed = await clickSeatAndConfirm(pages[wolfGirlPageIndex]!, seerSeat);
-          expect(confirmed, 'Wolf Girl should confirm the confession').toBe(true);
+          await test.step('Wolf Girl should confirm the confession', () =>
+            clickSeatAndConfirm(pages[wolfGirlPageIndex]!, seerSeat));
         });
 
         await drivePostConfessNight(
@@ -303,8 +295,8 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
         );
 
         await test.step('every player acknowledges the confession reveal', async () => {
-          const revealReady = await waitForGroupConfirmStep(pages, '表白状态', 120);
-          expect(revealReady, 'Confession reveal should become active last').toBe(true);
+          await test.step('Confession reveal should become active last', () =>
+            waitForGroupConfirmStep(pages, '表白状态', 120));
 
           for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
             const player = roleMap.get(pageIndex);
@@ -321,8 +313,8 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
         });
 
         await test.step('night ends peacefully after all acknowledgements', async () => {
-          const ended = await waitForNightEnd(pages);
-          expect(ended, 'Night should end only after the final acknowledgements').toBe(true);
+          await test.step('Night should end only after the final acknowledgements', () =>
+            waitForNightEnd(pages));
 
           await viewLastNightInfo(pages[0]!);
           expect(await readAlertText(pages[0]!)).toContain('平安夜');
