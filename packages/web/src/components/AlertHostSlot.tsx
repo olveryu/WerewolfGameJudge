@@ -1,13 +1,10 @@
-import { lazy, Suspense, useState, useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 
+import { AlertHost } from '@/components/AlertHost';
 import { alertStore } from '@/utils/alert';
 
-const AlertHost = lazy(async () => ({
-  default: (await import('@/components/AlertHost')).AlertHost,
-}));
-
 /**
- * Loads the alert dialog chunk on the first alert, then keeps it mounted: the host keeps its
+ * Mounts the alert dialog on the first alert, then keeps it mounted: the host keeps its
  * dialog content node across replacements and plays the exit motion.
  */
 export function AlertHostSlot() {
@@ -15,9 +12,5 @@ export function AlertHostSlot() {
   const [mounted, setMounted] = useState(false);
   if (alert !== null && !mounted) setMounted(true);
   if (!mounted && alert === null) return null;
-  return (
-    <Suspense fallback={null}>
-      <AlertHost />
-    </Suspense>
-  );
+  return <AlertHost />;
 }

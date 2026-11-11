@@ -22,6 +22,7 @@ import { useReadyRoomSession } from '@/features/room/controllers/useReadyRoomSes
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomRosterController } from '@/features/room/controllers/useRoomRosterController';
+import { useRolePortraitPreload } from '@/features/room/hooks/useRolePortraitPreload';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
@@ -31,6 +32,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import { useRoomReview } from '@/features/room/review/useRoomReview';
+import { getBoardRolePortraits } from '@/games/undercover/assets/roleAvatars';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
 import {
@@ -82,6 +84,7 @@ export function useUndercoverRoomState({
     session,
     getUndercoverRoomCommandFailureMessage,
   );
+  useRolePortraitPreload(getBoardRolePortraits(state.config.hasBlank));
   const isHost = state.hostUserId === user.id;
   const mySeat = getUndercoverUserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };

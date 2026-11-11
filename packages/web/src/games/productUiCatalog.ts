@@ -1,16 +1,16 @@
 /**
- * Game-owned product UI (avatar names, reveal effects), keyed by game. Kept apart from the eager
- * `catalog.ts` because only the lazy product pages need it: the Home closure then carries none of
- * these loaders.
+ * Game-owned product UI (avatar names, reveal effects), keyed by game. Code is statically
+ * imported; product pages compose the contributions only when needed.
  */
 import { GAME_TYPES, type GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
 import type { GameProductUiContribution } from '@/features/product/model/GameProductUi';
+import { werewolfProductUi } from '@/games/werewolf/productUi';
 
 const PRODUCT_UI_LOADERS: {
   readonly [TGameType in GameType]?: () => Promise<GameProductUiContribution>;
 } = {
-  werewolf: async () => (await import('@/games/werewolf/productUi')).werewolfProductUi,
+  werewolf: async () => werewolfProductUi,
 };
 
 /** Loads every game's product-UI contribution, in catalog order. */

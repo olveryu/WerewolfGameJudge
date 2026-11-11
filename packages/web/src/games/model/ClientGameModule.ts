@@ -22,7 +22,7 @@ export interface ClientGameModuleDependencies {
   readonly audioService: AudioService;
 }
 
-/** A game's lazily loaded client entry: one module factory per game chunk. */
+/** A game's statically imported factory, initialized only when that game is requested. */
 export type ClientGameModuleFactory<TGameType extends GameType> = (
   dependencies: ClientGameModuleDependencies,
 ) => ClientGameModule<TGameType>;

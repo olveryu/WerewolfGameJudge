@@ -1,37 +1,51 @@
 /**
  * Seat pet registry: one spec loader per catalog role reveal effect id, since the previous
- * client keyed each companion by the equipped reveal effect. Every pet is its own lazy chunk
- * (the three mythic collection pets share one), loaded the first time a seat shows it. The map
- * is exhaustive over the catalog; loading checks the spec's id.
+ * client keyed each companion by the equipped reveal effect. Code is statically imported; specs
+ * are prepared and cached on demand. The map is exhaustive; preparation checks the spec's id.
  */
 import type { RoleRevealEffectId } from '@game-judge/game-engine/product/rewards';
 
 import type { DecorationSpec } from '@/scene/decoration';
 
+import { capsulePet } from './capsule';
+import { cardSpritePet } from './cardSprite';
+import { chainDragonPet } from './chainDragon';
+import { crystalPet } from './crystal';
+import { dicePet } from './dice';
+import { filmBugPet } from './filmBug';
+import { houndPet } from './hound';
+import { luckyStarPet } from './luckyStar';
+import { meteorBuddyPet } from './meteorBuddy';
+import { paintedCranePet, pearlRayPet, starShuttlePet } from './mythicCollection';
+import { nightRavenPet } from './nightRaven';
+import { scratchCatPet } from './scratchCat';
+import { sealBeastPet } from './sealBeast';
+import { vortexEyePet } from './vortexEye';
+
 const PET_LOADERS: Record<RoleRevealEffectId, () => Promise<DecorationSpec>> = {
-  fateDecree: () => import('./nightRaven').then((module) => module.nightRavenPet),
-  fateReweave: () => import('./mythicCollection').then((module) => module.starShuttlePet),
-  oceanPearl: () => import('./mythicCollection').then((module) => module.pearlRayPet),
-  unfoldLandscape: () => import('./mythicCollection').then((module) => module.paintedCranePet),
-  roulette: () => import('./dice').then((module) => module.dicePet),
-  roleHunt: () => import('./hound').then((module) => module.houndPet),
-  scratch: () => import('./scratchCat').then((module) => module.scratchCatPet),
-  tarot: () => import('./crystal').then((module) => module.crystalPet),
-  gachaMachine: () => import('./capsule').then((module) => module.capsulePet),
-  cardPick: () => import('./cardSprite').then((module) => module.cardSpritePet),
-  sealBreak: () => import('./sealBeast').then((module) => module.sealBeastPet),
-  chainShatter: () => import('./chainDragon').then((module) => module.chainDragonPet),
-  fortuneWheel: () => import('./luckyStar').then((module) => module.luckyStarPet),
-  meteorStrike: () => import('./meteorBuddy').then((module) => module.meteorBuddyPet),
-  filmRewind: () => import('./filmBug').then((module) => module.filmBugPet),
-  vortexCollapse: () => import('./vortexEye').then((module) => module.vortexEyePet),
+  fateDecree: async () => nightRavenPet,
+  fateReweave: async () => starShuttlePet,
+  oceanPearl: async () => pearlRayPet,
+  unfoldLandscape: async () => paintedCranePet,
+  roulette: async () => dicePet,
+  roleHunt: async () => houndPet,
+  scratch: async () => scratchCatPet,
+  tarot: async () => crystalPet,
+  gachaMachine: async () => capsulePet,
+  cardPick: async () => cardSpritePet,
+  sealBreak: async () => sealBeastPet,
+  chainShatter: async () => chainDragonPet,
+  fortuneWheel: async () => luckyStarPet,
+  meteorStrike: async () => meteorBuddyPet,
+  filmRewind: async () => filmBugPet,
+  vortexCollapse: async () => vortexEyePet,
 };
 
 const loadedPets = new Map<RoleRevealEffectId, Promise<DecorationSpec>>();
 
 /**
  * The pet of reveal effect `id`, loaded once and shared (a stable promise for `use()`). Rejects
- * when its chunk fails to load or holds a spec registered under another id.
+ * when preparation fails or the spec is registered under another id.
  */
 export function loadPetSpec(id: RoleRevealEffectId): Promise<DecorationSpec> {
   let spec = loadedPets.get(id);

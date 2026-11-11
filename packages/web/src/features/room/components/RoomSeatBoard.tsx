@@ -1,15 +1,7 @@
 /** Paged seat board used by every game room; a page holds 12 rows. */
 import './RoomSeatBoard.css';
 
-import {
-  lazy,
-  memo,
-  type ReactNode,
-  Suspense,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { memo, type ReactNode, Suspense, useRef, useState, useSyncExternalStore } from 'react';
 
 import { IconButton } from '@/components/IconButton';
 import { useSeatDecorationsPreference } from '@/features/product/hooks/useSeatDecorationsPreference';
@@ -21,11 +13,8 @@ import { TESTIDS } from '@/testids';
 import IconChevronBack from '~icons/ion/chevron-back';
 import IconChevronForward from '~icons/ion/chevron-forward';
 
+import { RoomSeatSceneCanvas } from './RoomSeatScene';
 import { RoomSeatTile } from './RoomSeatTile';
-
-const RoomSeatSceneCanvas = lazy(() =>
-  import('./RoomSeatScene').then((module) => ({ default: module.RoomSeatSceneCanvas })),
-);
 
 const ROWS_PER_PAGE = 12;
 

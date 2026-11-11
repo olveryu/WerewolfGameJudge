@@ -15,3 +15,6 @@ const FIBKING_ROLE_IMAGE_MAP: Readonly<Record<FibRole, string>> = {
 export function getRoleAvatar(roleId: FibRole): string {
   return FIBKING_ROLE_IMAGE_MAP[roleId];
 }
+
+/** Every FibKing board can deal all three public role kinds. */
+export const FIBKING_ROLE_PORTRAITS: readonly string[] = Object.values(FIBKING_ROLE_IMAGE_MAP);

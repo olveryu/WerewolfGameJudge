@@ -1,14 +1,9 @@
 /**
- * Full-screen role reveal: the dialog, the backdrop and the DOM title. The canvas and the effect
- * live in the lazy RevealEffectStage chunk, reached through RoomSeatScene for the reason given
- * there, so neither the room chunk nor the seat-scene chunk carries any effect. Only room code
- * may import this module: an importer outside the room's chunks (the scene bench, say) splits it
- * into its own chunk, and its Ark Portal import then makes Rolldown split react-dom off the
- * start-up chunk, pushing the home route over its budget.
+ * Full-screen role reveal: dialog, backdrop, DOM title and the scene overlay.
  */
 import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 
 import { usePrefersReducedMotion } from '@/scene/usePrefersReducedMotion';
 
@@ -18,19 +13,14 @@ import {
   REVEAL_TITLE_STYLE,
   revealTitle,
 } from './common/shell';
+import RevealEffectStage, { prefetchRevealEffect } from './RevealEffectStage';
 import type { RevealEffectProps, RevealEffectType, RoleRevealAnimatorProps } from './types';
 
-const loadRevealEffectStage = () =>
-  import('../RoomSeatScene').then((module) => module.loadRevealEffectStage());
-const RevealEffectStage = lazy(loadRevealEffectStage);
-
 /**
- * Starts fetching the reveal stage chunk and effect `id` before the reveal opens (the previous
- * client warmed its shaders ahead of the first reveal for the same reason). Load failures surface
- * where the reveal renders them.
+ * Prepares the cached effect promise ahead of the reveal. Effect code is already available.
  */
 export function prefetchRoleReveal(id: RevealEffectType): void {
-  void loadRevealEffectStage().then((module) => module.prefetchRevealEffect(id));
+  prefetchRevealEffect(id);
 }
 
 /** Plays `effectType` for `role` over the whole screen, then calls `onComplete` once. */

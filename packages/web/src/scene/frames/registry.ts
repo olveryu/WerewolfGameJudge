@@ -1,70 +1,122 @@
 /**
- * Avatar frame registry: one decoration spec loader per catalog frame id. Every frame is its own
- * lazy chunk (the 150 generated common / rare frames share one), loaded the first time a seat
- * shows it, so neither the start-up closure nor the scene chunk carries frame artwork. Building
- * the registry fails fast when a catalog id has no loader, and loading checks the spec's id.
+ * Avatar frame registry: statically imported code, with specs prepared and cached on demand.
+ * Building the registry fails fast when a catalog id has no factory; preparation checks the id.
  */
 import { FRAME_IDS, type FrameId } from '@game-judge/game-engine/product/rewards';
 
 import type { DecorationSpec } from '@/scene/decoration';
 
+import { ashWoodFrame } from './ashWood';
+import { bloodThornFrame } from './bloodThorn';
+import { boneGateFrame } from './boneGate';
+import { celestialRingFrame } from './celestialRing';
+import { generatedFrame } from './common';
+import { coralReefFrame } from './coralReef';
+import { crystalThornFrame } from './crystalThorn';
+import { crystalVeinFrame } from './crystalVein';
+import { darkVineFrame } from './darkVine';
+import { dragonScaleFrame } from './dragonScale';
+import { duskIronFrame } from './duskIron';
+import { emberAshFrame } from './emberAsh';
+import { eternalCrownFrame } from './eternalCrown';
+import { flameThornFrame } from './flameThorn';
+import { frostCrystalFrame } from './frostCrystal';
+import { frostForgeFrame } from './frostForge';
+import { goldLeafFrame } from './goldLeaf';
+import { hellFireFrame } from './hellFire';
+import { ironForgeFrame } from './ironForge';
+import { jadeSealFrame } from './jadeSeal';
+import { lionCrestFrame } from './lionCrest';
+import { moonGateFrame } from './moonGate';
+import { moonSilverFrame } from './moonSilver';
+import { mysticRuneFrame } from './mysticRune';
+import { celestialLoomFrame, coralTideFrame, inkLandscapeFrame } from './mythicCollection';
+import { nightBloomFrame } from './nightBloom';
+import { nightShadeFrame } from './nightShade';
+import { obsidianEdgeFrame } from './obsidianEdge';
+import { oceanDeepFrame } from './oceanDeep';
+import { pharaohGoldFrame } from './pharaohGold';
+import { ravenWingFrame } from './ravenWing';
+import { runicSealFrame } from './runicSeal';
+import { sakuraDriftFrame } from './sakuraDrift';
+import { sandStoneFrame } from './sandStone';
+import { serpentScaleFrame } from './serpentScale';
+import { shadowWeaveFrame } from './shadowWeave';
+import { sirenCallFrame } from './sirenCall';
+import { spectralEdgeFrame } from './spectralEdge';
+import { spiritBarkFrame } from './spiritBark';
+import { starForgeFrame } from './starForge';
+import { starNebulaFrame } from './starNebula';
+import { stormBoltFrame } from './stormBolt';
+import { stormWeaveFrame } from './stormWeave';
+import { sunForgeFrame } from './sunForge';
+import { thornCrownFrame } from './thornCrown';
+import { thunderForgeFrame } from './thunderForge';
+import { venomGlassFrame } from './venomGlass';
+import { viperCoilFrame } from './viperCoil';
+import { voidRiftFrame } from './voidRift';
+import { wildBriarFrame } from './wildBriar';
+import { witchMarkFrame } from './witchMark';
+import { wolfFangFrame } from './wolfFang';
+import { wraithBoneFrame } from './wraithBone';
+
 type FrameLoader = () => Promise<DecorationSpec>;
 
 const HAND_CRAFTED_FRAMES = {
-  eternalCrown: () => import('./eternalCrown').then((module) => module.eternalCrownFrame),
-  celestialLoom: () => import('./mythicCollection').then((module) => module.celestialLoomFrame),
-  coralTide: () => import('./mythicCollection').then((module) => module.coralTideFrame),
-  inkLandscape: () => import('./mythicCollection').then((module) => module.inkLandscapeFrame),
-  ironForge: () => import('./ironForge').then((module) => module.ironForgeFrame),
-  moonSilver: () => import('./moonSilver').then((module) => module.moonSilverFrame),
-  bloodThorn: () => import('./bloodThorn').then((module) => module.bloodThornFrame),
-  runicSeal: () => import('./runicSeal').then((module) => module.runicSealFrame),
-  boneGate: () => import('./boneGate').then((module) => module.boneGateFrame),
-  hellFire: () => import('./hellFire').then((module) => module.hellFireFrame),
-  frostCrystal: () => import('./frostCrystal').then((module) => module.frostCrystalFrame),
-  jadeSeal: () => import('./jadeSeal').then((module) => module.jadeSealFrame),
-  emberAsh: () => import('./emberAsh').then((module) => module.emberAshFrame),
-  nightShade: () => import('./nightShade').then((module) => module.nightShadeFrame),
-  sunForge: () => import('./sunForge').then((module) => module.sunForgeFrame),
-  crystalVein: () => import('./crystalVein').then((module) => module.crystalVeinFrame),
-  wolfFang: () => import('./wolfFang').then((module) => module.wolfFangFrame),
-  serpentScale: () => import('./serpentScale').then((module) => module.serpentScaleFrame),
-  thornCrown: () => import('./thornCrown').then((module) => module.thornCrownFrame),
-  mysticRune: () => import('./mysticRune').then((module) => module.mysticRuneFrame),
-  wildBriar: () => import('./wildBriar').then((module) => module.wildBriarFrame),
-  venomGlass: () => import('./venomGlass').then((module) => module.venomGlassFrame),
-  starForge: () => import('./starForge').then((module) => module.starForgeFrame),
-  duskIron: () => import('./duskIron').then((module) => module.duskIronFrame),
-  spectralEdge: () => import('./spectralEdge').then((module) => module.spectralEdgeFrame),
-  wraithBone: () => import('./wraithBone').then((module) => module.wraithBoneFrame),
-  viperCoil: () => import('./viperCoil').then((module) => module.viperCoilFrame),
-  moonGate: () => import('./moonGate').then((module) => module.moonGateFrame),
-  stormWeave: () => import('./stormWeave').then((module) => module.stormWeaveFrame),
-  sandStone: () => import('./sandStone').then((module) => module.sandStoneFrame),
-  ravenWing: () => import('./ravenWing').then((module) => module.ravenWingFrame),
-  frostForge: () => import('./frostForge').then((module) => module.frostForgeFrame),
-  goldLeaf: () => import('./goldLeaf').then((module) => module.goldLeafFrame),
-  spiritBark: () => import('./spiritBark').then((module) => module.spiritBarkFrame),
-  nightBloom: () => import('./nightBloom').then((module) => module.nightBloomFrame),
-  flameThorn: () => import('./flameThorn').then((module) => module.flameThornFrame),
-  oceanDeep: () => import('./oceanDeep').then((module) => module.oceanDeepFrame),
-  thunderForge: () => import('./thunderForge').then((module) => module.thunderForgeFrame),
-  witchMark: () => import('./witchMark').then((module) => module.witchMarkFrame),
-  lionCrest: () => import('./lionCrest').then((module) => module.lionCrestFrame),
-  sirenCall: () => import('./sirenCall').then((module) => module.sirenCallFrame),
-  ashWood: () => import('./ashWood').then((module) => module.ashWoodFrame),
-  crystalThorn: () => import('./crystalThorn').then((module) => module.crystalThornFrame),
-  stormBolt: () => import('./stormBolt').then((module) => module.stormBoltFrame),
-  dragonScale: () => import('./dragonScale').then((module) => module.dragonScaleFrame),
-  starNebula: () => import('./starNebula').then((module) => module.starNebulaFrame),
-  shadowWeave: () => import('./shadowWeave').then((module) => module.shadowWeaveFrame),
-  celestialRing: () => import('./celestialRing').then((module) => module.celestialRingFrame),
-  obsidianEdge: () => import('./obsidianEdge').then((module) => module.obsidianEdgeFrame),
-  pharaohGold: () => import('./pharaohGold').then((module) => module.pharaohGoldFrame),
-  voidRift: () => import('./voidRift').then((module) => module.voidRiftFrame),
-  coralReef: () => import('./coralReef').then((module) => module.coralReefFrame),
-  darkVine: () => import('./darkVine').then((module) => module.darkVineFrame),
-  sakuraDrift: () => import('./sakuraDrift').then((module) => module.sakuraDriftFrame),
+  eternalCrown: async () => eternalCrownFrame,
+  celestialLoom: async () => celestialLoomFrame,
+  coralTide: async () => coralTideFrame,
+  inkLandscape: async () => inkLandscapeFrame,
+  ironForge: async () => ironForgeFrame,
+  moonSilver: async () => moonSilverFrame,
+  bloodThorn: async () => bloodThornFrame,
+  runicSeal: async () => runicSealFrame,
+  boneGate: async () => boneGateFrame,
+  hellFire: async () => hellFireFrame,
+  frostCrystal: async () => frostCrystalFrame,
+  jadeSeal: async () => jadeSealFrame,
+  emberAsh: async () => emberAshFrame,
+  nightShade: async () => nightShadeFrame,
+  sunForge: async () => sunForgeFrame,
+  crystalVein: async () => crystalVeinFrame,
+  wolfFang: async () => wolfFangFrame,
+  serpentScale: async () => serpentScaleFrame,
+  thornCrown: async () => thornCrownFrame,
+  mysticRune: async () => mysticRuneFrame,
+  wildBriar: async () => wildBriarFrame,
+  venomGlass: async () => venomGlassFrame,
+  starForge: async () => starForgeFrame,
+  duskIron: async () => duskIronFrame,
+  spectralEdge: async () => spectralEdgeFrame,
+  wraithBone: async () => wraithBoneFrame,
+  viperCoil: async () => viperCoilFrame,
+  moonGate: async () => moonGateFrame,
+  stormWeave: async () => stormWeaveFrame,
+  sandStone: async () => sandStoneFrame,
+  ravenWing: async () => ravenWingFrame,
+  frostForge: async () => frostForgeFrame,
+  goldLeaf: async () => goldLeafFrame,
+  spiritBark: async () => spiritBarkFrame,
+  nightBloom: async () => nightBloomFrame,
+  flameThorn: async () => flameThornFrame,
+  oceanDeep: async () => oceanDeepFrame,
+  thunderForge: async () => thunderForgeFrame,
+  witchMark: async () => witchMarkFrame,
+  lionCrest: async () => lionCrestFrame,
+  sirenCall: async () => sirenCallFrame,
+  ashWood: async () => ashWoodFrame,
+  crystalThorn: async () => crystalThornFrame,
+  stormBolt: async () => stormBoltFrame,
+  dragonScale: async () => dragonScaleFrame,
+  starNebula: async () => starNebulaFrame,
+  shadowWeave: async () => shadowWeaveFrame,
+  celestialRing: async () => celestialRingFrame,
+  obsidianEdge: async () => obsidianEdgeFrame,
+  pharaohGold: async () => pharaohGoldFrame,
+  voidRift: async () => voidRiftFrame,
+  coralReef: async () => coralReefFrame,
+  darkVine: async () => darkVineFrame,
+  sakuraDrift: async () => sakuraDriftFrame,
 } satisfies Partial<Record<FrameId, FrameLoader>>;
 
 /** Catalog ids of the generated frames: a shape prefix plus a capitalised palette colour. */
@@ -77,7 +129,7 @@ function buildFrameLoaders(): ReadonlyMap<FrameId, FrameLoader> {
     FRAME_IDS.map((id) => {
       let loader = handCrafted[id];
       if (loader === undefined && GENERATED_FRAME_ID.test(id)) {
-        loader = () => import('./common').then((module) => module.generatedFrame(id));
+        loader = async () => generatedFrame(id);
       }
       if (loader === undefined) {
         throw new Error(`Missing avatar frame spec for "${id}"`);
@@ -94,7 +146,7 @@ const loadedFrames = new Map<FrameId, Promise<DecorationSpec>>();
 
 /**
  * The decoration of catalog frame `id`, loaded once and shared (a stable promise for `use()`).
- * Rejects when its chunk fails to load or holds a spec registered under another id.
+ * Rejects when preparation fails or the spec is registered under another id.
  */
 export function loadFrameSpec(id: FrameId): Promise<DecorationSpec> {
   let spec = loadedFrames.get(id);

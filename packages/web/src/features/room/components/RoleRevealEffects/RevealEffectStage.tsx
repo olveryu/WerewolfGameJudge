@@ -1,9 +1,6 @@
 /**
- * The lazily loaded half of the role reveal: the global scene stage's canvas mounted as an overlay
- * and the equipped effect, itself loaded from its own chunk. It is loaded only through
- * RoomSeatScene's `loadRevealEffectStage` (see there). This chunk imports the stage module
- * statically, so the PixiJS core is already loaded whenever an effect chunk (which imports
- * PixiJS values) is requested.
+ * The global scene stage's canvas mounted as an overlay and the equipped effect. All effect
+ * code is statically imported; the WebGL application is initialized only when a scene mounts.
  */
 import { type CSSProperties, use, useLayoutEffect, useRef, useState } from 'react';
 
@@ -21,7 +18,7 @@ const CANVAS_HOST_STYLE: CSSProperties = {
   pointerEvents: 'none',
 };
 
-/** Starts loading effect `id` ahead of its reveal; the reveal awaits the same cached promise. */
+/** Prepares effect `id` ahead of its reveal; the reveal reads the same cached promise. */
 export function prefetchRevealEffect(id: RevealEffectType): void {
   void loadRevealEffect(id);
 }

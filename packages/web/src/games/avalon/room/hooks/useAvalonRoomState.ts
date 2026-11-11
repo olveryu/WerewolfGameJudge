@@ -36,6 +36,7 @@ import {
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
+import { useRolePortraitPreload } from '@/features/room/hooks/useRolePortraitPreload';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
@@ -46,6 +47,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import { useRoomReview } from '@/features/room/review/useRoomReview';
+import { getBoardRolePortraits } from '@/games/avalon/assets/roleAvatars';
 import { type AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 
 import type { AvalonAudioRuntime } from '../../audio/AvalonAudioPlayer';
@@ -142,6 +144,7 @@ export function useAvalonRoomState(
     session,
     getAvalonRoomCommandFailureMessage,
   );
+  useRolePortraitPreload(getBoardRolePortraits(state.config.numberOfPlayers));
   const isHost = state.hostUserId === user.id;
   const bgm = useAvalonBgmControl(audio, isHost, state.phase.kind, state.isAudioPlaying);
   // 第一晚播报：房主按序播放服务端队列，播完 ack；重连后经续播门重放。

@@ -1,12 +1,12 @@
 /**
- * Gacha: the capsule machine on top (a lazy PixiJS chunk), the ticket tabs, counts, pity and draw
+ * Gacha: the capsule machine on top, the ticket tabs, counts, pity and draw
  * button below. A single draw reveals one card; a multi-draw shows the grouped results.
  */
 import './GachaPage.css';
 
 import { PITY_THRESHOLD } from '@game-judge/game-engine/product/rewards';
 import { useQueryClient } from '@tanstack/react-query';
-import { lazy, Suspense, use, useRef, useState } from 'react';
+import { Suspense, use, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 
@@ -18,7 +18,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
 import { GUEST_GROWTH_NOTICE } from '@/features/auth/guestPolicy';
 import { requestLogin } from '@/features/auth/loginRequests';
-import type { CapsuleMachineHandle } from '@/features/gacha/machine/CapsuleMachine';
+import CapsuleMachine, { type CapsuleMachineHandle } from '@/features/gacha/machine/CapsuleMachine';
 import { PHASE } from '@/features/gacha/machine/gachaConstants';
 import { useDrawMutation, usePendingGachaOperation } from '@/features/gacha/queries/gachaMutations';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
@@ -41,11 +41,6 @@ import { TenResultOverlay } from './components/TenResultOverlay';
 import { type TicketTab, TicketTabBar, ticketTabId } from './components/TicketTabBar';
 import { GACHA_PALETTE_VARS } from './gachaPalette';
 import { useDrawPresentation } from './useDrawPresentation';
-
-// The machine is a PixiJS consumer, so it loads through the seat-scene chunk (see `loadCapsuleMachine`).
-const CapsuleMachine = lazy(() =>
-  import('@/features/room/components/RoomSeatScene').then((module) => module.loadCapsuleMachine()),
-);
 
 const TICKET_PANEL_ID = 'gacha-ticket-panel';
 const MAX_MULTI_DRAW = 10;

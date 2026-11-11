@@ -6,7 +6,7 @@ import {
   ROLE_REVEAL_EFFECT_IDS,
   type RoleRevealEffectId,
 } from '@game-judge/game-engine/product/rewards';
-import { lazy, type RefObject, Suspense, use, useRef } from 'react';
+import { type RefObject, Suspense, use, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 
 import {
@@ -15,6 +15,8 @@ import {
   REVEAL_TITLE_STYLE,
   revealTitle,
 } from '@/features/room/components/RoleRevealEffects/common/shell';
+import RevealEffectStage from '@/features/room/components/RoleRevealEffects/RevealEffectStage';
+import { RoomSeatBoard } from '@/features/room/components/RoomSeatBoard';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomSeatViewModel } from '@/features/room/model/RoomSeatDataSource';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
@@ -29,20 +31,6 @@ import { usePrefersReducedMotion } from '@/scene/usePrefersReducedMotion';
 const SEAT_COUNT = 12;
 const DEFAULT_FLAIRS = 'fireRing,goldenShine,snowfall';
 const NOTHING_SUSPENDED: ReadonlySet<DecorationSpec> = new Set();
-
-// Lazy, so the bench route does not share the room's chunks with the scene layer.
-const RoomSeatBoard = lazy(() =>
-  import('@/features/room/components/RoomSeatBoard').then((module) => ({
-    default: module.RoomSeatBoard,
-  })),
-);
-
-// The room's RoleRevealAnimator is room-only (see there), so the bench draws its shell itself.
-const RevealEffectStage = lazy(() =>
-  import('@/features/room/components/RoomSeatScene').then((module) =>
-    module.loadRevealEffectStage(),
-  ),
-);
 
 /** The roles the previous client's reveal-effect preview played, so frames compare 1:1. */
 const BENCH_REVEAL_ROLE: RevealRoleData = { id: 'villager', name: '村民', alignment: 'villager' };

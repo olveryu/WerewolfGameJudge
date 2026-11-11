@@ -283,7 +283,7 @@ function repoPath(filePath: string): string {
   return path.relative(process.cwd(), filePath);
 }
 
-/** The lazy loader map in `games/clientModules.tsx`, which imports every game's client module. */
+/** The module factory map in `games/clientModules.tsx`, which statically imports every game. */
 const clientModulesSource = fs.readFileSync(path.join(gamesDir, 'clientModules.tsx'), 'utf-8');
 
 function resolveWorkerRelativeModule(importer: string, specifier: string): string | null {
@@ -562,11 +562,33 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
 });
 
 describe('Game registry: declared cross-package facts resolve', () => {
-  it('points every game at its existing, lazily loaded client entry module', () => {
+  it('keeps only the benchmark behind dynamic imports', () => {
+    const dynamicImports: string[] = [];
+    for (const file of srcFiles) {
+      const source = ts.createSourceFile(
+        file,
+        fs.readFileSync(file, 'utf8'),
+        ts.ScriptTarget.Latest,
+        true,
+      );
+      function visit(node: ts.Node): void {
+        if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+          dynamicImports.push(
+            `${path.relative(srcDir, file)}:${node.arguments[0]?.getText(source)}`,
+          );
+        }
+        ts.forEachChild(node, visit);
+      }
+      visit(source);
+    }
+    expect(dynamicImports.sort()).toEqual(["routes/bench/SceneBenchPage.tsx:'./SceneBench'"]);
+  });
+
+  it('points every game at its existing, statically imported client entry module', () => {
     for (const gameType of GAME_TYPES) {
       const clientModulePath = GAME_REGISTRY[gameType].clientModulePath;
       expect(fs.existsSync(path.join(process.cwd(), clientModulePath))).toBe(true);
-      expect(clientModulesSource).toContain(`import('@/games/${gameType}/module')`);
+      expect(clientModulesSource).toContain(`from '@/games/${gameType}/module'`);
     }
   });
 
@@ -1164,7 +1186,7 @@ describe('Client ownership: Home and root navigation stay game-neutral', () => {
       return importedGames.length > 1;
     });
 
-    // catalog.ts holds the eager Home entries; clientModules.tsx the lazy room chunks.
+    // catalog.ts holds Home entries; clientModules.tsx holds the room module factories.
     const catalogs = [
       'packages/web/src/games/catalog.ts',
       'packages/web/src/games/clientModules.tsx',

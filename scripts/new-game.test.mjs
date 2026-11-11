@@ -346,9 +346,10 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
     assert.ok(clientCatalog.includes(`import { demoprotoHome } from '@/games/demoproto/home';`));
     assert.ok(clientCatalog.includes('  demoproto: { home: demoprotoHome },'));
     const clientModules = readFixture(root, 'packages/web/src/games/clientModules.tsx');
+    assert.ok(clientModules.includes('demoproto: createDemoprotoClientModule,'));
     assert.ok(
       clientModules.includes(
-        "demoproto: async () => (await import('@/games/demoproto/module')).createDemoprotoClientModule,",
+        "import { createDemoprotoClientModule } from '@/games/demoproto/module';",
       ),
     );
     assert.ok(clientModules.includes("    demoproto: cacheLoad(() => loadModule('demoproto')),"));
@@ -1064,7 +1065,12 @@ function stripShippedDemo(root) {
   removeExactText(
     root,
     'packages/web/src/games/clientModules.tsx',
-    "  demo: async () => (await import('@/games/demo/module')).createDemoClientModule,\n",
+    '  demo: createDemoClientModule,\n',
+  );
+  removeExactText(
+    root,
+    'packages/web/src/games/clientModules.tsx',
+    "import { createDemoClientModule } from '@/games/demo/module';\n",
   );
   removeExactText(
     root,

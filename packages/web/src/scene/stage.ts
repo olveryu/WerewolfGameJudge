@@ -15,6 +15,8 @@
  *   destroyed with their last user, so leaving the room frees them. A decoration stays hidden
  *   until all of its textures are ready; a failed rasterisation goes to the mount's `onError`.
  */
+import 'pixi.js/browser';
+
 import {
   Application,
   Color,
@@ -1040,7 +1042,7 @@ let sharedStage: Promise<SceneStage> | null = null;
 
 /**
  * The app-wide stage, created on first call. Scene components reach it through
- * `sceneStagePromise()`; overlay chunks that import this module statically call it directly.
+ * `sceneStagePromise()`; overlays call it directly.
  *
  * @returns the same promise on every call; rejects when WebGL is unavailable
  */
@@ -1054,7 +1056,7 @@ export function sharedSceneStage(): Promise<SceneStage> {
  *
  * @returns the stage; rejects when WebGL is unavailable
  */
-export async function createSceneStage(): Promise<SceneStage> {
+async function createSceneStage(): Promise<SceneStage> {
   const application = new Application();
   await application.init({
     // WebGL only: an array preference makes PixiJS throw instead of falling back to another

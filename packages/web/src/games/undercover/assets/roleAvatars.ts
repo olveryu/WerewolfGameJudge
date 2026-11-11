@@ -15,3 +15,8 @@ const UNDERCOVER_ROLE_IMAGE_MAP: Readonly<Record<UndercoverRole, string>> = {
 export function getRoleAvatar(roleId: UndercoverRole): string {
   return UNDERCOVER_ROLE_IMAGE_MAP[roleId];
 }
+
+/** The public blank-card setting determines which portrait kinds can appear. */
+export function getBoardRolePortraits(hasBlank: boolean): readonly string[] {
+  return hasBlank ? [civilian, undercover, blank] : [civilian, undercover];
+}

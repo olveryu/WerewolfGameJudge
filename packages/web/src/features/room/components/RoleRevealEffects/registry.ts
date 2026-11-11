@@ -1,42 +1,47 @@
 /**
- * Reveal effect registry: one component loader per catalog reveal effect id. Each effect is its own
- * lazy chunk (the three mythic collection reveals share one), so neither the room chunk nor the
- * scene chunk carries any effect. The `satisfies` clause fails the build when a catalog id has no
- * loader.
+ * Reveal effect registry: all effect components are statically imported. Stable promises let the
+ * reveal prepare an effect ahead of mounting it. `satisfies` requires every catalog id.
  */
 import type { ComponentType } from 'react';
 
+import CardPick from './effects/CardPick';
+import ChainShatter from './effects/ChainShatter';
+import EnhancedRoulette from './effects/EnhancedRoulette';
+import FateDecree from './effects/FateDecree';
+import FilmRewind from './effects/FilmRewind';
+import FortuneWheel from './effects/FortuneWheel';
+import GachaMachine from './effects/GachaMachine';
+import MeteorStrike from './effects/MeteorStrike';
+import {
+  AstralCollectionReveal,
+  InkCollectionReveal,
+  OceanCollectionReveal,
+} from './effects/MythicCollectionReveal';
+import RoleHunt from './effects/RoleHunt';
+import ScratchReveal from './effects/ScratchReveal';
+import SealBreak from './effects/SealBreak';
+import TarotDraw from './effects/TarotDraw';
+import VortexCollapse from './effects/VortexCollapse';
 import type { RevealEffectProps, RevealEffectType } from './types';
 
-type RevealEffectLoader = () => Promise<ComponentType<RevealEffectProps>>;
-
-const mythic =
-  (
-    pick: (
-      module: typeof import('./effects/MythicCollectionReveal'),
-    ) => ComponentType<RevealEffectProps>,
-  ) =>
-  () =>
-    import('./effects/MythicCollectionReveal').then(pick);
-
-const REVEAL_EFFECT_LOADERS = {
-  fateDecree: () => import('./effects/FateDecree').then((module) => module.default),
-  fateReweave: mythic((module) => module.AstralCollectionReveal),
-  oceanPearl: mythic((module) => module.OceanCollectionReveal),
-  unfoldLandscape: mythic((module) => module.InkCollectionReveal),
-  roulette: () => import('./effects/EnhancedRoulette').then((module) => module.default),
-  roleHunt: () => import('./effects/RoleHunt').then((module) => module.default),
-  scratch: () => import('./effects/ScratchReveal').then((module) => module.default),
-  tarot: () => import('./effects/TarotDraw').then((module) => module.default),
-  gachaMachine: () => import('./effects/GachaMachine').then((module) => module.default),
-  cardPick: () => import('./effects/CardPick').then((module) => module.default),
-  sealBreak: () => import('./effects/SealBreak').then((module) => module.default),
-  chainShatter: () => import('./effects/ChainShatter').then((module) => module.default),
-  fortuneWheel: () => import('./effects/FortuneWheel').then((module) => module.default),
-  meteorStrike: () => import('./effects/MeteorStrike').then((module) => module.default),
-  filmRewind: () => import('./effects/FilmRewind').then((module) => module.default),
-  vortexCollapse: () => import('./effects/VortexCollapse').then((module) => module.default),
-} satisfies Record<RevealEffectType, RevealEffectLoader>;
+const REVEAL_EFFECTS = {
+  fateDecree: FateDecree,
+  fateReweave: AstralCollectionReveal,
+  oceanPearl: OceanCollectionReveal,
+  unfoldLandscape: InkCollectionReveal,
+  roulette: EnhancedRoulette,
+  roleHunt: RoleHunt,
+  scratch: ScratchReveal,
+  tarot: TarotDraw,
+  gachaMachine: GachaMachine,
+  cardPick: CardPick,
+  sealBreak: SealBreak,
+  chainShatter: ChainShatter,
+  fortuneWheel: FortuneWheel,
+  meteorStrike: MeteorStrike,
+  filmRewind: FilmRewind,
+  vortexCollapse: VortexCollapse,
+} satisfies Record<RevealEffectType, ComponentType<RevealEffectProps>>;
 
 /** A loaded reveal effect; rendered as `<Effect />` after a property read, never a call result. */
 interface LoadedRevealEffect {
@@ -49,7 +54,7 @@ const loadedEffects = new Map<RevealEffectType, Promise<LoadedRevealEffect>>();
 export function loadRevealEffect(id: RevealEffectType): Promise<LoadedRevealEffect> {
   let effect = loadedEffects.get(id);
   if (!effect) {
-    effect = REVEAL_EFFECT_LOADERS[id]().then((component) => ({ Effect: component }));
+    effect = Promise.resolve({ Effect: REVEAL_EFFECTS[id] });
     loadedEffects.set(id, effect);
   }
   return effect;

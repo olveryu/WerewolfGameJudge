@@ -6,7 +6,7 @@
  * clips it to the tile's border box. A framed seat drops its border and background, and its
  * avatar fills the border box under the frame, as in the previous client.
  */
-import { lazy, memo, type RefObject, Suspense, useRef } from 'react';
+import { memo, type RefObject, Suspense, useRef } from 'react';
 
 import { Avatar } from '@/components/avatar/Avatar';
 import { NameStyleText } from '@/components/nameStyles/NameStyleText';
@@ -22,9 +22,7 @@ import { TESTIDS } from '@/testids';
 import IconChatbubbleEllipsesOutline from '~icons/ion/chatbubble-ellipses-outline';
 import IconCheckmarkCircle from '~icons/ion/checkmark-circle';
 
-const RoomSeatResidents = lazy(() =>
-  import('./RoomSeatScene').then((module) => ({ default: module.RoomSeatResidents })),
-);
+import { RoomSeatResidents } from './RoomSeatScene';
 
 function describeSeat(model: RoomSeatViewModel): string {
   const { seat, player, indicators } = model;

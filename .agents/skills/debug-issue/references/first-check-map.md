@@ -1,6 +1,6 @@
 # First-check map
 
-First-check paths by symptom branch. Every path below was verified to exist at drafting time. The client is `packages/web/src/`; the React Native client in the repository-root `src/` was removed (last present in commit `ccedf18b5`). Only games with a loader in `CLIENT_GAME_LOADERS` (`packages/web/src/games/clientModules.tsx`) have web room UI; the others report unsupported by design until their port (`docs/web-client-rewrite.md` §8.2). Names that appeared in earlier versions of this skill but do not exist are listed at the end, with their replacements.
+First-check paths by symptom branch. Every path below was verified to exist at drafting time. The client is `packages/web/src/`; the React Native client in the repository-root `src/` was removed (last present in commit `ccedf18b5`). Every game has a statically imported factory in `CLIENT_GAME_FACTORIES` (`packages/web/src/games/clientModules.tsx`); sessions still initialize on demand. Names that appeared in earlier versions of this skill but do not exist are listed at the end, with their replacements.
 
 ## Branch A — Client UI anomaly
 

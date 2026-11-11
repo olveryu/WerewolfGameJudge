@@ -40,10 +40,10 @@ export default defineConfig({
     sourcemap: 'hidden',
     // scripts/check-bundle-size.mjs reads the manifest to compute each route's load closure.
     manifest: true,
-    // The entry holds every route page by design (docs/web-client-rewrite.md §5.10) and measured
-    // 934 kB minified on 2026-11-11. scripts/check-bundle-size.mjs enforces the gzip budgets; this
+    // The entry holds all application code except bench/Replay (§5.10) and measured ~3920 kB
+    // minified on 2026-11-11. scripts/check-bundle-size.mjs enforces the gzip budgets; this
     // only moves Vite's per-chunk note above the entry's expected size.
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 4100,
   },
   experimental: {
     // Public files (manifest.json, PWA icons) are not published to the CDN; they stay
