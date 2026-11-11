@@ -1,9 +1,15 @@
-/** Real Workflows/D1 checkpoints; only external model steps are replaced. */
+/** Real Workflow, provider and D1 checkpoints with model HTTP mocked. */
+import { DRAWGUESS_WORD_CATEGORIES } from '@game-judge/game-engine/games/drawguess/public';
 import { env, introspectWorkflowInstance } from 'cloudflare:test';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
+
+import { mockWordSupplyModel } from '../../../../test/wordSupplyModelMock';
 
 beforeEach(async () => {
+  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Unexpected external HTTP request')));
   await env.DB.batch([
+    env.DB.prepare('DELETE FROM editorial_model_requests'),
     env.DB.prepare('DELETE FROM drawguess_word_candidates'),
     env.DB.prepare('DELETE FROM drawguess_word_packs'),
     env.DB.prepare('DELETE FROM drawguess_words'),
@@ -11,18 +17,19 @@ beforeEach(async () => {
   ]);
 });
 
+afterEach(() => vi.unstubAllGlobals());
+
 describe('DrawGuess supply workflow', () => {
   it('stores actual generation material and publishes independently reviewed words', async () => {
     const id = crypto.randomUUID();
     const day = new Date().toISOString().slice(0, 10);
-    const candidate = {
+    const candidateMaterial = {
       word: '大熊猫',
-      category: 'animals',
       difficulty: 'easy',
       potentialIssues: [],
     };
     const review = {
-      word: candidate.word,
+      word: candidateMaterial.word,
       qualityChecks: {
         isConcreteAndDrawable: true,
         isSimplifiedChinese: true,
@@ -31,28 +38,51 @@ describe('DrawGuess supply workflow', () => {
         isAppropriate: true,
         isUnambiguous: true,
       },
-      reason: '常见动物，外形特征明确，好画好猜。',
+      reason: '模拟独立审核通过。',
     };
+    const requests = mockWordSupplyModel(candidateMaterial, review);
     await using instance = await introspectWorkflowInstance(env.DRAWGUESS_WORD_SUPPLY, id);
     await instance.modify(async (modifier) => {
       await modifier.disableSleeps();
       await modifier.mockStepResult({ name: 'enabled' }, true);
-      await modifier.mockStepResult({ name: 'generate-0' }, { candidates: [candidate] });
-      await modifier.mockStepResult({ name: 'review-0' }, [review]);
       await modifier.mockStepResult({ name: 'capacity-1' }, 'paused');
     });
     await env.DRAWGUESS_WORD_SUPPLY.create({ id, params: { day } });
     await instance.waitForStatus('complete');
     expect(await instance.getOutput()).toEqual({ status: 'paused' });
-    expect(
-      await env.DB.prepare('SELECT status, generation_json FROM drawguess_word_packs').first(),
-    ).toEqual({
-      status: 'published',
-      generation_json: JSON.stringify({ candidates: [candidate] }),
+    const pack = z
+      .object({
+        category: z.enum(DRAWGUESS_WORD_CATEGORIES),
+        status: z.string(),
+        generation_json: z.string(),
+      })
+      .parse(
+        await env.DB.prepare(
+          'SELECT category, status, generation_json FROM drawguess_word_packs WHERE id = ?',
+        )
+          .bind(`${day}-0`)
+          .first(),
+      );
+    expect(pack.status).toBe('published');
+    expect(JSON.parse(pack.generation_json)).toEqual({
+      candidates: [{ ...candidateMaterial, category: pack.category }],
+    });
+    expect(requests).toHaveLength(2);
+    expect(requests[0]).toMatchObject({ category: pack.category, history: [] });
+    expect(requests[1]).toMatchObject({
+      category: pack.category,
+      candidates: [{ word: candidateMaterial.word }],
     });
     expect(
-      await env.DB.prepare('SELECT word, pinyin_initials, status FROM drawguess_words').first(),
-    ).toEqual({ word: '大熊猫', pinyin_initials: 'd x m', status: 'active' });
+      await env.DB.prepare(
+        'SELECT word, category, pinyin_initials, status FROM drawguess_words',
+      ).first(),
+    ).toEqual({
+      word: '大熊猫',
+      category: pack.category,
+      pinyin_initials: 'd x m',
+      status: 'active',
+    });
   });
 
   it('records failed generation without publishing or automatically repeating the operation', async () => {
