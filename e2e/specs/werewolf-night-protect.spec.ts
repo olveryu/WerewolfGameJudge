@@ -266,7 +266,11 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         expect(witchTurn).toBe(true);
 
         // Read the prompt — should mention "无法自救"
-        const alertText = await readAlertText(pages[witchIdx]!, 10_000, '女巫行动');
+        const alertText = await readAlertText(
+          pages[witchIdx]!,
+          10_000,
+          '女巫请行动（可救人、用毒或点「不用技能」跳过）',
+        );
         expect(alertText).toContain('无法自救');
         await dismissAlert(pages[witchIdx]!);
 
