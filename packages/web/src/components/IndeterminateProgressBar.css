@@ -1,0 +1,32 @@
+.indeterminate-progress {
+  display: block;
+  height: var(--space-micro);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--progress-track, var(--color-border));
+}
+
+.indeterminate-progress-bar {
+  display: block;
+  width: 30%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--progress-bar, var(--color-primary));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .indeterminate-progress-bar {
+    animation: indeterminate-progress-sweep 1.5s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+  }
+}
+
+/* From one bar width before the track to the track's far edge (track = bar / 30%). */
+@keyframes indeterminate-progress-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(calc(100% * 10 / 3));
+  }
+}

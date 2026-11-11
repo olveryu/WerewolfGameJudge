@@ -31,33 +31,14 @@
   cursor: pointer;
 }
 
-.connection-bar-track {
+.connection-bar-progress {
+  --progress-track: transparent;
+  --progress-bar: var(--color-error-a50);
+
   position: absolute;
   right: 0;
   bottom: 0;
   left: 0;
-  height: var(--space-micro);
-  overflow: hidden;
-}
-
-.connection-bar-indeterminate {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 40%;
-  border-radius: var(--radius-full);
-  background: var(--color-error-a50);
-  animation: connection-bar-slide 1.2s ease-in-out infinite;
-}
-
-@keyframes connection-bar-slide {
-  from {
-    left: -40%;
-  }
-
-  to {
-    left: 100%;
-  }
 }
 
 .controlled-seat-banner {
@@ -97,11 +78,4 @@
   font-size: var(--font-body);
   line-height: var(--line-body);
   text-align: center;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .connection-bar-indeterminate {
-    left: 30%;
-    animation: none;
-  }
 }

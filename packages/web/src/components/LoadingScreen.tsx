@@ -1,16 +1,17 @@
 import './LoadingScreen.css';
 
 import { Button } from '@/components/Button';
-import { Spinner } from '@/components/Spinner';
+import { IndeterminateProgressBar } from '@/components/IndeterminateProgressBar';
 
 import appIconUrl from '../../../../assets/pwa/icon-192.png';
 
 /**
- * Full-screen loading state with an optional message; with `error` it shows the error and
- * the recovery actions the caller provides (重试 / 返回首页).
+ * Full-screen loading state under the pulsing app icon: the message (default 加载中) over a
+ * sweeping bar; with `error` it shows the error and the recovery actions the caller provides
+ * (重试 / 返回首页).
  */
 export function LoadingScreen({
-  message,
+  message = '加载中',
   error,
   onRetry,
   onBack,
@@ -20,29 +21,32 @@ export function LoadingScreen({
   readonly onRetry?: () => void;
   readonly onBack?: () => void;
 }) {
-  if (error !== undefined) {
-    return (
-      <main className="loading-screen">
-        <p className="loading-screen-error" role="alert">
-          {error}
-        </p>
-        <div className="loading-screen-actions">
-          {onRetry !== undefined && <Button onClick={onRetry}>重试</Button>}
-          {onBack !== undefined && (
-            <Button variant="ghost" onClick={onBack}>
-              返回首页
-            </Button>
-          )}
-        </div>
-      </main>
-    );
-  }
   return (
-    <main className="loading-screen" aria-busy>
+    <main className="loading-screen" aria-busy={error === undefined}>
       {/* CORS mode like the share logo: the CDN omits `Vary: Origin`, so cached copies must match. */}
       <img className="loading-screen-icon" src={appIconUrl} alt="" crossOrigin="anonymous" />
-      <Spinner label={message ?? '加载中'} size="lg" />
-      {message !== undefined && <p className="loading-screen-message">{message}</p>}
+      {error === undefined ? (
+        <>
+          <p className="loading-screen-message" role="status">
+            {message}
+          </p>
+          <IndeterminateProgressBar className="loading-screen-progress" />
+        </>
+      ) : (
+        <>
+          <p className="loading-screen-error" role="alert">
+            {error}
+          </p>
+          <div className="loading-screen-actions">
+            {onRetry !== undefined && <Button onClick={onRetry}>重试</Button>}
+            {onBack !== undefined && (
+              <Button variant="outline" onClick={onBack}>
+                返回首页
+              </Button>
+            )}
+          </div>
+        </>
+      )}
     </main>
   );
 }
