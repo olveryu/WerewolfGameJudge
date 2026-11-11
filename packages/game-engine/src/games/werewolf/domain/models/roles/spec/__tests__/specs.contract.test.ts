@@ -267,6 +267,58 @@ describe('ROLE_SPECS contract', () => {
     });
   });
 
+  describe('slacker and wolfRobot skill copy (2026-11-10 rulings)', () => {
+    it('slacker never becomes a wolf: no transform trigger anywhere', () => {
+      expect(ROLE_SPECS.slacker.description).not.toContain('变为狼人');
+      expect(ROLE_SPECS.slacker.description).not.toContain('变成狼人');
+      expect(ROLE_SPECS.slacker.description).not.toContain('加入狼队');
+      expect(ROLE_SPECS.slacker.structuredDescription?.trigger).toBeUndefined();
+      expect(ROLE_SPECS.slacker.description).toContain('与榜样阵营共同胜利');
+      const step = ROLE_SPECS.slacker.nightSteps?.find((s) => s.stepId === 'slackerChooseIdol');
+      expect(step?.ui.prompt).toBe('请选择你的榜样');
+    });
+
+    it('wildChild still transforms when its idol is voted out', () => {
+      expect(ROLE_SPECS.wildChild.description).toContain('变为狼人');
+      expect(ROLE_SPECS.wildChild.structuredDescription?.trigger).toContain('变为狼人');
+      const step = ROLE_SPECS.wildChild.nightSteps?.find((s) => s.stepId === 'wildChildChooseIdol');
+      expect(step?.ui.prompt).toContain('变为狼人');
+    });
+
+    it('wolfRobot learn rules: guard and wolf are special cases, others inherit', () => {
+      const description = ROLE_SPECS.wolfRobot.description;
+      expect(description).toContain('若学习到守卫');
+      expect(description).toContain('从次夜起');
+      expect(description).toContain('毒药反弹至施法者自身');
+      expect(description).toContain('毒药反弹至施法者自身；若学习到狼人');
+      expect(description).toContain('限用一次');
+      expect(description).toContain('可额外袭击一名玩家，限用一次');
+      expect(description).toContain('学习其他角色时正常继承其技能');
+      expect((description.match(/限用一次/g) ?? []).length).toBe(1);
+      expect(description).not.toContain('学到守卫');
+      expect(description).not.toContain('学到狼人');
+      expect(description).not.toContain('下一晚');
+      expect(description).not.toContain('仅可使用');
+      expect(description).not.toContain('仅限一次');
+      expect(description).not.toContain('多一刀');
+      expect(description).not.toContain('双刀');
+      expect(description).not.toContain('免疫狼刀');
+      const structured = ROLE_SPECS.wolfRobot.structuredDescription;
+      expect(structured?.skill).toContain('学习其他角色时正常继承其技能');
+      expect(structured?.skill).not.toContain('若学习到守卫');
+      expect(structured?.skill).not.toContain('若学习到狼人');
+      expect(structured?.special).toContain('若学习到守卫');
+      expect(structured?.special).toContain('从次夜起');
+      expect(structured?.special).toContain('毒药反弹至施法者自身');
+      expect(structured?.special).toContain('毒药反弹至施法者自身；若学习到狼人');
+      expect(structured?.special).toContain('限用一次');
+      expect(structured?.special).toContain('若学习到狼人');
+      expect(structured?.special).toContain('可额外袭击一名玩家，限用一次');
+      expect(structured?.special).toContain('其他狼人全部出局后可主导袭击');
+      expect((structured?.special?.match(/限用一次/g) ?? []).length).toBe(1);
+    });
+  });
+
   describe('nightSteps ↔ NIGHT_STEPS alignment (M3c contract)', () => {
     it('nightSteps presence should match NIGHT_STEPS presence for all roles', () => {
       const stepsRoleIds = new Set(NIGHT_STEPS.map((s) => s.roleId));
