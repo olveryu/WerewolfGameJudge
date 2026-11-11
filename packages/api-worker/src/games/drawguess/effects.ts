@@ -1,4 +1,4 @@
-/** Worker-side execution for DrawGuess word-dealing and scheduled settlement effects. */
+/** Worker-side execution for DrawGuess word-dealing, seen-word and scheduled settlement effects. */
 
 import {
   DRAWGUESS_REASONS,
@@ -6,6 +6,7 @@ import {
   type DrawGuessInternalCommand,
   type DrawGuessState,
   expiringPhaseDeadlineAt,
+  getDrawGuessParticipantUserIds,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { z } from 'zod';
 
@@ -16,12 +17,22 @@ import {
 import { dispatchEffectCommand } from '../../platform/gameModules/effectDispatch';
 import { createSettleDueHandler } from '../../platform/gameModules/settleDue';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
-import { dealDrawGuessWords } from './wordDeal';
+import { dealDrawGuessWords, recordDrawGuessWordSeen } from './wordDeal';
 
 const dealWordsEffectSchema = z.strictObject({
   type: z.literal('drawguess.words.deal'),
   payload: z.strictObject({
     turnIndex: z.int().nonnegative(),
+  }),
+});
+
+const recordSeenWordEffectSchema = z.strictObject({
+  type: z.literal('drawguess.word.recordSeen'),
+  payload: z.strictObject({
+    gameSequence: z.int().nonnegative(),
+    turnIndex: z.int().nonnegative(),
+    word: z.string().min(1),
+    participantUserIds: z.array(z.string().min(1)).readonly(),
   }),
 });
 
@@ -42,6 +53,7 @@ const settleDueEffectSchema = z.strictObject({
 
 export const drawGuessEffectSchema: z.ZodType<DrawGuessEffect> = z.union([
   dealWordsEffectSchema,
+  recordSeenWordEffectSchema,
   gameCompletedEffectSchema,
   settleDueEffectSchema,
 ]);
@@ -108,6 +120,7 @@ async function handleDrawGuessDealWordsEffect(
   const choices = await dealDrawGuessWords({
     db: context.bindings.DB,
     usedWords: state.usedWords,
+    participantUserIds: getDrawGuessParticipantUserIds(state),
   });
   await dispatchEffectCommand(
     context,
@@ -132,6 +145,13 @@ export async function handleDrawGuessEffect(
   switch (effect.type) {
     case 'drawguess.words.deal':
       await handleDrawGuessDealWordsEffect(effect, context);
+      return;
+    case 'drawguess.word.recordSeen':
+      await recordDrawGuessWordSeen({
+        db: context.bindings.DB,
+        word: effect.payload.word,
+        participantUserIds: effect.payload.participantUserIds,
+      });
       return;
     case 'drawguess.game.completed':
       await publishGameRewards(

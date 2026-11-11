@@ -349,11 +349,12 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
 
         // Use batch() for atomicity: clear openid → transfer → delete, all-or-nothing.
         await env.DB.batch([
+          // Seen words of every pool move to the surviving account (union of both).
           env.DB.prepare(
-            `INSERT INTO fib_word_progress (user_id, sequence_number)
-            SELECT ?, sequence_number FROM fib_word_progress WHERE user_id = ?
-            ON CONFLICT (user_id) DO UPDATE SET
-              sequence_number = MAX(fib_word_progress.sequence_number, excluded.sequence_number)`,
+            `INSERT INTO word_seen (user_id, pool, seen)
+            SELECT ?, pool, seen FROM word_seen WHERE user_id = ?
+            ON CONFLICT (user_id, pool) DO UPDATE SET
+              seen = word_seen.seen || substr(excluded.seen, 2)`,
           ).bind(existing.id, existingUserId),
           env.DB.prepare('UPDATE users SET wechat_openid = NULL WHERE id = ?').bind(existingUserId),
           env.DB.prepare(

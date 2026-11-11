@@ -288,6 +288,13 @@ export function getDrawGuessRealHumanCount(state: DrawGuessState): number {
   return Object.keys(getHumanSeatMap(state.roster, state.config.numberOfPlayers)).length;
 }
 
+/** User ids of the human seats in seat order: the accounts that see a played word. */
+export function getDrawGuessParticipantUserIds(state: DrawGuessState): readonly string[] {
+  return Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)).map(
+    (seat) => seat.userId,
+  );
+}
+
 /** Counts every occupied seat (real humans plus bots). */
 export function getDrawGuessOccupiedSeatCount(state: DrawGuessState): number {
   return countOccupiedSeats(state.roster);

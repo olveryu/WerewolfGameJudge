@@ -12,6 +12,7 @@ import type { RoomSeatProfile } from '../../../platform/room/roster';
 import {
   countOccupiedSeats,
   findRosterSeatByUserId,
+  getHumanSeatMap,
   type RosterMap,
   type SeatOccupant,
 } from '../../../platform/room/seating';
@@ -174,6 +175,13 @@ export function getUndercoverViewingParticipants(
   state: UndercoverState,
 ): readonly IdentityViewingParticipant[] {
   return buildRosterViewingParticipants(state.roster, state.config.numberOfPlayers);
+}
+
+/** User ids of the human seats in seat order: the accounts that see a dealt word pair. */
+export function getUndercoverParticipantUserIds(state: UndercoverState): readonly string[] {
+  return Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)).map(
+    (seat) => seat.userId,
+  );
 }
 
 /** Returns the seat held by a user, or null when they hold no seat. */

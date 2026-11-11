@@ -61,15 +61,18 @@ describe('runScheduledCron', () => {
     ).toEqual({ count: 0 });
   });
 
-  it('deletes stale anonymous non-hosts but preserves hosts and accounts with Fib progress', async () => {
+  it('deletes stale anonymous non-hosts but preserves hosts and accounts with Fib seen words', async () => {
     await env.DB.prepare(
       `INSERT INTO users (id, is_anonymous, created_at, updated_at) VALUES
         ('stale-anonymous', 1, '2000-01-01T00:00:00.000Z', '2000-01-01T00:00:00.000Z'),
         ('progress-owner', 1, '2000-01-01T00:00:00.000Z', '2000-01-01T00:00:00.000Z'),
+        ('drawguess-only', 1, '2000-01-01T00:00:00.000Z', '2000-01-01T00:00:00.000Z'),
         ('room-host', 1, '2000-01-01T00:00:00.000Z', '2000-01-01T00:00:00.000Z')`,
     ).run();
     await env.DB.prepare(
-      "INSERT INTO fib_word_progress (user_id, sequence_number) VALUES ('progress-owner', 12)",
+      `INSERT INTO word_seen (user_id, pool, seen) VALUES
+        ('progress-owner', 'fibking', ',1-12,'),
+        ('drawguess-only', 'drawguess', ',3,')`,
     ).run();
     await env.DB.prepare(
       `INSERT INTO rooms (
@@ -84,9 +87,16 @@ describe('runScheduledCron', () => {
 
     expect(
       await env.DB.prepare(
-        "SELECT sequence_number FROM fib_word_progress WHERE user_id = 'progress-owner'",
+        "SELECT pool, seen FROM word_seen WHERE user_id = 'progress-owner'",
       ).first(),
-    ).toEqual({ sequence_number: 12 });
+    ).toEqual({ pool: 'fibking', seen: ',1-12,' });
+    // Only Fib seen words keep an anonymous account; other pools go with the account.
+    expect(
+      await env.DB.prepare("SELECT id FROM users WHERE id = 'drawguess-only'").first(),
+    ).toBeNull();
+    expect(
+      await env.DB.prepare("SELECT seen FROM word_seen WHERE user_id = 'drawguess-only'").first(),
+    ).toBeNull();
     expect(
       await env.DB.prepare("SELECT id FROM users WHERE id = 'stale-anonymous'").first(),
     ).toBeNull();

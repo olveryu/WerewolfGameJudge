@@ -49,6 +49,7 @@ export {
   type DrawGuessWordCategory,
   type DrawGuessWordChoice,
   getDrawGuessOccupiedSeatCount,
+  getDrawGuessParticipantUserIds,
   getDrawGuessRealHumanCount,
   getDrawGuessTotalTurns,
   getDrawGuessUserSeat,

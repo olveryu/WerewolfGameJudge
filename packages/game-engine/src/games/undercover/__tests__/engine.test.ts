@@ -11,7 +11,11 @@ import { getUndercoverWordCard } from '../domain/visibility';
 import { undercoverEngine } from '../engine';
 import { UNDERCOVER_STATE_CODEC } from '../state/codec';
 import { migratePersistedUndercoverState } from '../state/parseState';
-import type { UndercoverConfig, UndercoverState } from '../state/types';
+import {
+  getUndercoverParticipantUserIds,
+  type UndercoverConfig,
+  type UndercoverState,
+} from '../state/types';
 
 const config: UndercoverConfig = {
   numberOfPlayers: 8,
@@ -395,6 +399,18 @@ describe('Undercover authoritative engine', () => {
     let state = reveal(ongoing(), 'blank');
     for (let count = 0; count < 3; count += 1) state = reveal(state, 'civilian');
     expect(state).toMatchObject({ phase: 'ended', winner: 'undercover' });
+  });
+
+  it('lists the human seats as word participants, in seat order and without bots', () => {
+    let state = createLobby();
+    state = dispatch(
+      state,
+      { type: 'room.seat.take', seat: 3, profile: { displayName: 'Guest' } },
+      user('guest'),
+    );
+    expect(getUndercoverParticipantUserIds(state)).toEqual(['host', 'guest']);
+    state = dispatch(state, { type: 'room.seat.fillBots' });
+    expect(getUndercoverParticipantUserIds(state)).toEqual(['host', 'guest']);
   });
 
   it('allows seated and unseated hosts to fill bots but rejects other users', () => {

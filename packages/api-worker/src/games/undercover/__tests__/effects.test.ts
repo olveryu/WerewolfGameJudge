@@ -186,7 +186,8 @@ describe('Undercover Worker effects', () => {
       failureCode: 'selectionFailed',
     });
     await env.DB.prepare(
-      `INSERT INTO undercover_word_pairs VALUES ('effect-pair', 'Milk', 'Soy milk', 'food', 'active', '2026-09-21', '2026-09-21', '{}')`,
+      `INSERT INTO undercover_word_pairs (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
+       VALUES ('effect-pair', 'Milk', 'Soy milk', 'food', 'active', '2026-09-21', '2026-09-21', '{}')`,
     ).run();
     await undercoverWorkerModule.handleEffect(effect, context('retry-attempt'));
     expect(state).toMatchObject({

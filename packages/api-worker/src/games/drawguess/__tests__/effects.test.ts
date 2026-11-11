@@ -89,6 +89,63 @@ describe('DrawGuess effects', () => {
     ).toBeNull();
   });
 
+  it('validates the seen-word effect strictly and keys it by turn', () => {
+    const businessContext = { originCommandId: 'choose', createdRevision: 12 };
+    const payload = {
+      gameSequence: 1,
+      turnIndex: 3,
+      word: '火锅',
+      participantUserIds: ['drawguess-host'],
+    };
+    const recordSeen = drawGuessEffectSchema.parse({ type: 'drawguess.word.recordSeen', payload });
+    expect(drawGuessWorkerModule.getEffectBusinessKey(recordSeen, businessContext)).toBe(
+      'drawguess:word-seen:12:3',
+    );
+    expect(drawGuessWorkerModule.getEffectDeliveryAt?.(recordSeen, businessContext)).toBeNull();
+    for (const invalid of [
+      { ...payload, word: '' },
+      { ...payload, extra: 1 },
+      { gameSequence: 1, turnIndex: 3, word: '火锅' },
+    ]) {
+      expect(
+        drawGuessEffectSchema.safeParse({ type: 'drawguess.word.recordSeen', payload: invalid })
+          .success,
+      ).toBe(false);
+    }
+  });
+
+  it('records the played word for the participants without dispatching a command', async () => {
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM users WHERE id = 'drawguess-seen-player'"),
+      env.DB.prepare("INSERT INTO users (id) VALUES ('drawguess-seen-player')"),
+      env.DB.prepare(
+        `INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at)
+         VALUES ('seen-word', '火锅', 'h g', '食物', 'easy', 'active', datetime('now'))`,
+      ),
+    ]);
+    const effect = drawGuessEffectSchema.parse({
+      type: 'drawguess.word.recordSeen',
+      payload: {
+        gameSequence: 1,
+        turnIndex: 0,
+        word: '火锅',
+        participantUserIds: ['drawguess-seen-player'],
+      },
+    });
+    const context = effectContext();
+    await drawGuessWorkerModule.handleEffect(effect, context);
+    await drawGuessWorkerModule.handleEffect(effect, { ...context, deliveryAttemptCount: 2 });
+    expect(
+      await env.DB.prepare(
+        `SELECT seen.seen = ',' || word.draw_ordinal || ',' AS is_recorded_once
+         FROM word_seen AS seen, drawguess_words AS word
+         WHERE seen.user_id = 'drawguess-seen-player' AND seen.pool = 'drawguess'
+           AND word.id = 'seen-word'`,
+      ).first(),
+    ).toEqual({ is_recorded_once: 1 });
+    expect(context.dispatchInternal).not.toHaveBeenCalled();
+  });
+
   it('validates the settle effect strictly and parks it at its pinned deadline', () => {
     const businessContext = { originCommandId: 'create', createdRevision: 10 };
     const settle = drawGuessEffectSchema.parse({

@@ -111,6 +111,7 @@ export type DrawGuessEvent =
 
 export type DrawGuessEffect =
   | { readonly type: 'drawguess.words.deal'; readonly payload: { readonly turnIndex: number } }
+  | DrawGuessRecordSeenWordEffect
   | {
       readonly type: 'drawguess.game.completed';
       readonly payload: {
@@ -120,6 +121,17 @@ export type DrawGuessEffect =
       };
     }
   | DrawGuessSettleDueEffect;
+
+/** The word chosen for a turn, with the accounts at the table that now count as having seen it. */
+type DrawGuessRecordSeenWordEffect = {
+  readonly type: 'drawguess.word.recordSeen';
+  readonly payload: {
+    readonly gameSequence: number;
+    readonly turnIndex: number;
+    readonly word: string;
+    readonly participantUserIds: readonly string[];
+  };
+};
 
 /** Scheduled settle effect: pins the exact arming (game, phase identity, deadline) the Worker delivery must still match to settle. */
 export type DrawGuessSettleDueEffect = {

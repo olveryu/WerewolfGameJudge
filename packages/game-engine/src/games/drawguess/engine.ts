@@ -53,6 +53,7 @@ import {
   type DrawGuessState,
   type DrawGuessStroke,
   type DrawGuessWordChoice,
+  getDrawGuessParticipantUserIds,
   getDrawGuessTotalTurns,
   isValidDrawGuessConfig,
 } from './state/types';
@@ -196,7 +197,20 @@ function beginDrawing(
     // word.chosen is a phase transition (phaseRevision +1); pin the
     // evolved identity. Both callers (manual chooseWord and the
     // wordSelect-timeout auto-assign) arm through this one function.
-    [settleDueEffect(state, state.phaseRevision + 1, deadlineAt)],
+    // The chosen word is the only one the table plays, so only it is
+    // recorded as seen; the unchosen candidates stay drawable.
+    [
+      settleDueEffect(state, state.phaseRevision + 1, deadlineAt),
+      {
+        type: 'drawguess.word.recordSeen',
+        payload: {
+          gameSequence: state.gameSequence,
+          turnIndex: state.turnIndex,
+          word: choice.word,
+          participantUserIds: getDrawGuessParticipantUserIds(state),
+        },
+      },
+    ],
   );
 }
 

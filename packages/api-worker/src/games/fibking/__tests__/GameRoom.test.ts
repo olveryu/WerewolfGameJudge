@@ -18,7 +18,7 @@ beforeEach(async () => {
   await env.DB.prepare('DELETE FROM user_event_inbox').run();
   await env.DB.prepare('DELETE FROM fib_word_usages').run();
   await env.DB.prepare('DELETE FROM fib_round_word_selections').run();
-  await env.DB.prepare('DELETE FROM fib_word_exposures').run();
+  await env.DB.prepare('DELETE FROM word_seen').run();
   await env.DB.prepare('DELETE FROM room_participants').run();
   await env.DB.prepare('DELETE FROM room_game_starts').run();
   await env.DB.prepare('DELETE FROM rooms').run();
@@ -283,9 +283,11 @@ describe('FibKing generic GameRoom integration', () => {
     });
     expect(
       await env.DB.prepare(
-        `SELECT progress.user_id, word.word FROM fib_word_progress AS progress
-         INNER JOIN fib_word_sequence AS sequence ON sequence.id = progress.sequence_number
-         INNER JOIN fib_words AS word ON word.word = sequence.word WHERE progress.user_id = 'fib-host'`,
+        `SELECT seen.user_id, word.word FROM word_seen AS seen
+         INNER JOIN fib_word_sequence AS sequence
+           ON instr(seen.seen, ',' || sequence.id || ',') > 0
+         INNER JOIN fib_words AS word ON word.word = sequence.word
+         WHERE seen.user_id = 'fib-host' AND seen.pool = 'fibking'`,
       ).first(),
     ).toEqual({
       user_id: 'fib-host',
