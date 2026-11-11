@@ -60,6 +60,7 @@ No per-environment E2E JSON configuration is used.
 | `pnpm run e2e:core`                                    | Single worker, line reporter, full trace, stop after the first failure |
 | `pnpm run e2e:night`                                   | Night-flow subset with the list reporter                               |
 | `pnpm run e2e:ui`                                      | Playwright UI mode                                                     |
+| `pnpm exec tsc --noEmit -p e2e/tsconfig.json`          | E2E-only typecheck; also included in root `pnpm run typecheck` and CI  |
 | `pnpm exec playwright test e2e/specs/app-home.spec.ts` | One spec using the standard config                                     |
 
 Playwright runs Chromium desktop tests in parallel. Home, configuration, and FibKing responsive coverage also run in a `320 x 640` Chromium project. Each spec must create an independent room so parallel workers cannot share state.
