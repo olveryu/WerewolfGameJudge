@@ -127,4 +127,16 @@ describe('AppearancePage', () => {
 
     expect(mocks.stats.refetch).toHaveBeenCalledTimes(1);
   });
+
+  it('opens the file picker from the upload cell of the avatar grid', async () => {
+    mocks.stats.data = { unlockedItems: [] };
+    await renderAt('/appearance');
+    const openPicker = vi.spyOn(HTMLInputElement.prototype, 'click');
+
+    await userEvent.click(await screen.findByRole('button', { name: '上传自定义头像' }));
+
+    expect(openPicker).toHaveBeenCalledTimes(1);
+    expect(openPicker.mock.contexts[0]).toBe(screen.getByTestId(TESTIDS.appearanceAvatarInput));
+    openPicker.mockRestore();
+  });
 });

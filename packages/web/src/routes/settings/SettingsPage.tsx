@@ -2,6 +2,7 @@ import './SettingsPage.css';
 
 import {
   type FormEvent,
+  type ReactNode,
   Suspense,
   useEffect,
   useEffectEvent,
@@ -58,17 +59,23 @@ import { createLogger } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
 import IconCameraOutline from '~icons/ion/camera-outline';
 import IconChevronForward from '~icons/ion/chevron-forward';
+import IconColorPaletteOutline from '~icons/ion/color-palette-outline';
 import IconCopyOutline from '~icons/ion/copy-outline';
 import IconGiftOutline from '~icons/ion/gift-outline';
 import IconInformationCircleOutline from '~icons/ion/information-circle-outline';
+import IconKeyOutline from '~icons/ion/key-outline';
+import IconLinkOutline from '~icons/ion/link-outline';
 import IconLockClosed from '~icons/ion/lock-closed';
+import IconLogOutOutline from '~icons/ion/log-out-outline';
+import IconMailOutline from '~icons/ion/mail-outline';
 import IconPencil from '~icons/ion/pencil';
 import IconPersonOutline from '~icons/ion/person-outline';
+import IconShirtOutline from '~icons/ion/shirt-outline';
 import IconSparklesOutline from '~icons/ion/sparkles-outline';
+import IconStatsChartOutline from '~icons/ion/stats-chart-outline';
+import IconSwapHorizontalOutline from '~icons/ion/swap-horizontal-outline';
 
-import { GrowthSection } from './GrowthSection';
-
-// Growth details pull in the engine growth and reward catalogs; keep them out of the page chunk.
+import { GrowthXpBar, UnlocksEntry } from './GrowthSection';
 
 const settingsLog = createLogger('Settings');
 const MIN_PASSWORD_LENGTH = 6;
@@ -83,26 +90,80 @@ function useAppearancePath(): string {
 /** Badge counts above this show as `99+`. */
 const MAX_TICKET_BADGE_COUNT = 99;
 
+interface EntryBodyProps {
+  readonly icon: ReactNode;
+  readonly label: string;
+  readonly hint?: string;
+  /** Shown before the chevron (a badge). */
+  readonly trailing?: ReactNode;
+}
+
+/** The content of a settings list row: icon, label with an optional hint, trailing, chevron. */
+function EntryBody({ icon, label, hint, trailing }: EntryBodyProps) {
+  return (
+    <>
+      <span className="settings-entry-icon">{icon}</span>
+      <span className="settings-entry-text">
+        <span>{label}</span>
+        {hint !== undefined && <span className="settings-entry-hint">{hint}</span>}
+      </span>
+      {trailing}
+      <IconChevronForward className="settings-entry-chevron" aria-hidden />
+    </>
+  );
+}
+
+/** A settings list row that opens another page. */
+function LinkEntry({ to, ...body }: EntryBodyProps & { readonly to: string }) {
+  return (
+    <Link className="settings-entry" to={to}>
+      <EntryBody {...body} />
+    </Link>
+  );
+}
+
+interface ActionEntryProps extends EntryBodyProps {
+  readonly onClick: () => void;
+  /** `danger` paints the row in the error colour (sign out). */
+  readonly tone?: 'danger';
+  /** Blocks presses while the action runs. */
+  readonly busy?: boolean;
+}
+
+/** A settings list row that runs an action. */
+function ActionEntry({ onClick, tone, busy = false, ...body }: ActionEntryProps) {
+  return (
+    <button
+      type="button"
+      className="settings-entry"
+      data-tone={tone}
+      disabled={busy}
+      aria-busy={busy}
+      onClick={onClick}
+    >
+      <EntryBody {...body} />
+    </button>
+  );
+}
+
 /** Gacha entry with the unused-ticket badge, kept in the room when settings was opened from one. */
 function GachaEntry() {
   const { roomCode } = useParams();
   const { data: gachaStatus } = useGachaStatusQuery();
   const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : 0;
   return (
-    <Link className="settings-entry" to={roomCode === undefined ? '/gacha' : `/gacha/${roomCode}`}>
-      <span className="settings-entry-label">
-        <IconGiftOutline aria-hidden />
-        <span>扭蛋抽奖</span>
-      </span>
-      <span className="settings-entry-label">
-        {ticketCount > 0 && (
+    <LinkEntry
+      to={roomCode === undefined ? '/gacha' : `/gacha/${roomCode}`}
+      icon={<IconGiftOutline aria-hidden />}
+      label="扭蛋抽奖"
+      trailing={
+        ticketCount > 0 && (
           <span className="settings-entry-badge">
             {ticketCount > MAX_TICKET_BADGE_COUNT ? `${MAX_TICKET_BADGE_COUNT}+` : ticketCount}
           </span>
-        )}
-        <IconChevronForward className="settings-entry-chevron" aria-hidden />
-      </span>
-    </Link>
+        )
+      }
+    />
   );
 }
 
@@ -326,126 +387,152 @@ function AccountSection({ user }: { user: User }) {
     }
   };
 
+  const hasCollectionEntries = !user.isAnonymous || growthStats !== undefined;
+  const showBindEmail = canSwitchAccount && !user.email && !inMiniProgram;
+  const showMiniProgramBind = canSwitchAccount && !user.email && inMiniProgram && !user.isAnonymous;
+  const showSwitchAccount = canSwitchAccount && !isChangingPassword && !inMiniProgram;
+  const showLogOut = !isInRoom && !isChangingPassword && !inMiniProgram;
+  const hasAccountEntries =
+    showBindEmail || showMiniProgramBind || !!user.email || showSwitchAccount || showLogOut;
+
   return (
     <>
-      <ResidentSceneLayer hostRef={sceneHostRef} />
-      <div className="settings-profile">
-        <Link className="settings-avatar" to={appearancePath} aria-label="更换头像">
-          <ResidentAvatarTile
-            userId={user.id}
-            avatarUrl={user.avatarUrl}
-            residents={resolveResidentDecorations({
-              avatarFrame: user.avatarFrame ?? undefined,
-              seatFlair: user.seatFlair ?? undefined,
-            })}
-            sceneHostRef={sceneHostRef}
-          />
-          {!user.isAnonymous && (
-            <span className="settings-avatar-badge">
-              <IconCameraOutline aria-hidden />
+      <section className="settings-card" aria-label="个人资料">
+        <ResidentSceneLayer hostRef={sceneHostRef} />
+        <div className="settings-profile">
+          <Link className="settings-avatar" to={appearancePath} aria-label="更换头像">
+            <ResidentAvatarTile
+              userId={user.id}
+              avatarUrl={user.avatarUrl}
+              residents={resolveResidentDecorations({
+                avatarFrame: user.avatarFrame ?? undefined,
+                seatFlair: user.seatFlair ?? undefined,
+              })}
+              sceneHostRef={sceneHostRef}
+            />
+            {!user.isAnonymous && (
+              <span className="settings-avatar-badge">
+                <IconCameraOutline aria-hidden />
+              </span>
+            )}
+          </Link>
+          <div className="settings-profile-text">
+            {user.isAnonymous ? (
+              <span className="settings-name">匿名用户</span>
+            ) : (
+              <span className="settings-name-row">
+                <button type="button" className="settings-name" onClick={editName}>
+                  {user.displayName === null ? (
+                    '点击设置名字'
+                  ) : (
+                    <NameStyleText styleId={user.nameStyle}>{user.displayName}</NameStyleText>
+                  )}
+                  <IconPencil aria-hidden />
+                </button>
+                {growthStats && <span className="settings-level">{`Lv.${growthStats.level}`}</span>}
+              </span>
+            )}
+            <span className="settings-status">
+              <span className="settings-status-dot" />
+              {user.isAnonymous ? '匿名登录' : user.email ? '邮箱登录' : '微信登录'}
             </span>
-          )}
-        </Link>
-        <div className="settings-profile-text">
-          {user.isAnonymous ? (
-            <span className="settings-name">匿名用户</span>
-          ) : (
-            <span className="settings-name-row">
-              <button type="button" className="settings-name" onClick={editName}>
-                {user.displayName === null ? (
-                  '点击设置名字'
-                ) : (
-                  <NameStyleText styleId={user.nameStyle}>{user.displayName}</NameStyleText>
-                )}
-                <IconPencil aria-hidden />
-              </button>
-              {growthStats && <span className="settings-level">{`Lv.${growthStats.level}`}</span>}
-            </span>
-          )}
-          <span className="settings-status">
-            <span className="settings-status-dot" />
-            {user.isAnonymous ? '匿名登录' : user.email ? '邮箱登录' : '微信登录'}
-          </span>
-          {user.email && <span className="settings-email">{user.email}</span>}
+            {user.email && <span className="settings-email">{user.email}</span>}
+          </div>
         </div>
-      </div>
+        {user.isAnonymous && <AvatarTeaser />}
+        {growthStats && <GrowthXpBar stats={growthStats} />}
+      </section>
 
-      {user.isAnonymous && <AvatarTeaser />}
+      {hasCollectionEntries && (
+        <section className="settings-card">
+          <h2 className="settings-card-title">
+            <IconColorPaletteOutline aria-hidden /> 形象与收藏
+          </h2>
+          <div className="settings-list">
+            {!user.isAnonymous && (
+              <LinkEntry
+                to={appearancePath}
+                icon={<IconShirtOutline aria-hidden />}
+                label="更换头像与装扮"
+              />
+            )}
+            {growthStats && <UnlocksEntry stats={growthStats} />}
+            {!user.isAnonymous && <GachaEntry />}
+          </div>
+        </section>
+      )}
 
       {growthStats && (
-        <Suspense fallback={<Spinner label="加载成长数据" />}>
-          <GrowthSection stats={growthStats} />
-          {GAME_ACCOUNT_STATS_SECTIONS.map((statsSection) => (
-            <statsSection.Section key={statsSection.gameType} userId={user.id} />
-          ))}
-        </Suspense>
+        <section className="settings-card">
+          <h2 className="settings-card-title">
+            <IconStatsChartOutline aria-hidden /> 战绩
+          </h2>
+          <Suspense fallback={<Spinner label="加载战绩" />}>
+            {GAME_ACCOUNT_STATS_SECTIONS.map((statsSection) => (
+              <statsSection.Section key={statsSection.gameType} userId={user.id} />
+            ))}
+          </Suspense>
+        </section>
       )}
 
-      {!user.isAnonymous && (
-        <>
-          <Link className="settings-entry" to={appearancePath}>
-            <span>更换头像与装扮</span>
-            <IconChevronForward aria-hidden />
-          </Link>
-          <GachaEntry />
-        </>
+      {hasAccountEntries && (
+        <section className="settings-card">
+          <h2 className="settings-card-title">
+            <IconPersonOutline aria-hidden /> 账户
+          </h2>
+          <div className="settings-list">
+            {showMiniProgramBind && (
+              <>
+                <ActionEntry
+                  icon={<IconLinkOutline aria-hidden />}
+                  label="绑定已有账号"
+                  hint="输入之前注册的邮箱和密码，恢复昵称、头像等数据"
+                  onClick={() => bindEmail('绑定已有账号', true)}
+                />
+                <ActionEntry
+                  icon={<IconMailOutline aria-hidden />}
+                  label="注册新邮箱"
+                  hint="绑定后可在网页端登录，数据不丢失"
+                  onClick={() => bindEmail('注册新邮箱')}
+                />
+              </>
+            )}
+            {showBindEmail && (
+              <ActionEntry
+                icon={<IconMailOutline aria-hidden />}
+                label="绑定邮箱"
+                onClick={() => bindEmail('绑定邮箱')}
+              />
+            )}
+            {user.email &&
+              (isChangingPassword ? (
+                <ChangePasswordForm onDone={() => setIsChangingPassword(false)} />
+              ) : (
+                <ActionEntry
+                  icon={<IconKeyOutline aria-hidden />}
+                  label="修改密码"
+                  onClick={() => setIsChangingPassword(true)}
+                />
+              ))}
+            {showSwitchAccount && (
+              <ActionEntry
+                icon={<IconSwapHorizontalOutline aria-hidden />}
+                label="切换账号"
+                onClick={switchAccount}
+              />
+            )}
+            {showLogOut && (
+              <ActionEntry
+                icon={<IconLogOutOutline aria-hidden />}
+                label="登出"
+                tone="danger"
+                busy={signOut.isPending}
+                onClick={() => void logOut()}
+              />
+            )}
+          </div>
+        </section>
       )}
-
-      {canSwitchAccount && !user.email && inMiniProgram && !user.isAnonymous && (
-        <>
-          <button
-            type="button"
-            className="settings-entry"
-            onClick={() => bindEmail('绑定已有账号', true)}
-          >
-            <span className="settings-entry-text">
-              <span>绑定已有账号</span>
-              <span className="settings-entry-hint">
-                输入之前注册的邮箱和密码，恢复昵称、头像等数据
-              </span>
-            </span>
-            <IconChevronForward aria-hidden />
-          </button>
-          <button type="button" className="settings-entry" onClick={() => bindEmail('注册新邮箱')}>
-            <span className="settings-entry-text">
-              <span>注册新邮箱</span>
-              <span className="settings-entry-hint">绑定后可在网页端登录，数据不丢失</span>
-            </span>
-            <IconChevronForward aria-hidden />
-          </button>
-        </>
-      )}
-
-      <div className="settings-actions">
-        {canSwitchAccount && !user.email && !inMiniProgram && (
-          <Button variant="secondary" onClick={() => bindEmail('绑定邮箱')}>
-            绑定邮箱
-          </Button>
-        )}
-        {user.email &&
-          (isChangingPassword ? (
-            <ChangePasswordForm onDone={() => setIsChangingPassword(false)} />
-          ) : (
-            <Button variant="secondary" onClick={() => setIsChangingPassword(true)}>
-              修改密码
-            </Button>
-          ))}
-        {canSwitchAccount && !isChangingPassword && !inMiniProgram && (
-          <Button variant="secondary" onClick={switchAccount}>
-            切换账号
-          </Button>
-        )}
-        {!isInRoom && !isChangingPassword && !inMiniProgram && (
-          <Button
-            variant="secondary"
-            className="settings-logout"
-            loading={signOut.isPending}
-            onClick={() => void logOut()}
-          >
-            登出
-          </Button>
-        )}
-      </div>
     </>
   );
 }
@@ -535,9 +622,9 @@ function AboutSection() {
 }
 
 /**
- * Settings: account (profile, appearance and unlocks entries, growth and per-game stats), display preferences
- * (decorations, frame rate) and about. Opened from a room (`/settings/:roomCode`), it returns to
- * that room and applies account changes to the room.
+ * Settings: a profile card, then grouped lists — appearance and collection entries, per-game
+ * stats, account actions, display preferences (decorations, frame rate) and about. Opened from a
+ * room (`/settings/:roomCode`), it returns to that room and applies account changes to the room.
  */
 export function SettingsPage() {
   const { user, loading } = useAuthContext();
@@ -552,14 +639,14 @@ export function SettingsPage() {
         backTestId={TESTIDS.settingsBackButton}
       />
       <main className="settings-content">
-        <section className="settings-card">
-          <h2 className="settings-card-title">
-            <IconPersonOutline aria-hidden /> 账户
-          </h2>
-          {user ? (
-            <AccountSection user={user} />
-          ) : (
-            !loading && (
+        {user ? (
+          <AccountSection user={user} />
+        ) : (
+          !loading && (
+            <section className="settings-card">
+              <h2 className="settings-card-title">
+                <IconPersonOutline aria-hidden /> 账户
+              </h2>
               <LoginOptions
                 onEmail={(isSignUp) =>
                   void requestLogin({
@@ -569,9 +656,9 @@ export function SettingsPage() {
                 }
                 onBrowseAvatars={() => void navigate(appearancePath)}
               />
-            )
-          )}
-        </section>
+            </section>
+          )
+        )}
         <DisplaySection />
         <AboutSection />
       </main>

@@ -14,18 +14,30 @@
   min-height: 0;
 }
 
+/*
+ * The scene previews' scroll root. On tall screens it does not scroll: the top block stays in
+ * place and only the panel scrolls. On short screens (below) it scrolls as one page.
+ */
 .appearance-scroll {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: var(--space-small);
   min-height: 0;
-  padding: var(--space-small) var(--space-screen-h) var(--space-large);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
 }
 
-.appearance-scroll > * {
+/* Preview, category tabs and rarity filter. Nothing in it changes height once loaded. */
+.appearance-top {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: var(--space-small);
+  padding: var(--space-small) var(--space-screen-h);
+}
+
+.appearance-top > *,
+.appearance-grid,
+.appearance-footer-content {
   width: 100%;
   max-width: var(--size-max-content-width);
   margin-inline: auto;
@@ -34,8 +46,8 @@
 .appearance-status {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
   text-align: center;
 }
 
@@ -59,28 +71,16 @@
   box-shadow: var(--shadow-sm);
 }
 
-.appearance-hero-left {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-tight);
-}
-
 .appearance-hero-avatar {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   width: var(--size-avatar-xl);
   height: var(--size-avatar-xl);
 }
 
-.appearance-hero-name {
-  font-size: var(--font-body);
-  line-height: var(--line-body);
-  font-weight: var(--weight-semibold);
-}
-
-.appearance-hero-right {
+.appearance-hero-text {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -89,8 +89,18 @@
   min-width: 0;
 }
 
-.appearance-hero-right p {
+.appearance-hero-text p {
   margin: 0;
+}
+
+.appearance-hero-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: var(--font-subtitle);
+  line-height: var(--line-subtitle);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .appearance-hero-meta,
@@ -113,6 +123,13 @@
   line-height: var(--line-caption);
 }
 
+.appearance-hero-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-micro) var(--space-small);
+}
+
 .appearance-hero-title {
   font-size: var(--font-subtitle);
   line-height: var(--line-subtitle);
@@ -133,22 +150,41 @@
 
 .appearance-hero-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-small);
   margin-top: var(--space-tight);
 }
 
 .appearance-panel {
-  flex-shrink: 0;
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-tight) var(--space-screen-h) var(--space-large);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
+/* As many columns as fit: three on a phone, more on wide screens. */
 .appearance-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--size-appearance-cell-min), 1fr));
   gap: var(--space-small);
 }
 
-.appearance-grid[data-columns='4'] {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.appearance-grid[data-kind='avatar'] {
+  grid-template-columns: repeat(auto-fill, minmax(var(--size-appearance-avatar-cell-min), 1fr));
+}
+
+/* Short screens (landscape phones): the pinned blocks would leave no room for the grid. */
+@media (max-height: 640px) {
+  .appearance-scroll {
+    display: block;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .appearance-panel {
+    overflow: visible;
+  }
 }
 
 .appearance-cell {
@@ -168,7 +204,7 @@
   touch-action: manipulation;
 }
 
-.appearance-grid[data-columns='4'] .appearance-cell {
+.appearance-grid[data-kind='avatar'] .appearance-cell {
   padding: var(--space-micro);
 }
 
@@ -201,6 +237,26 @@
   height: 100%;
   align-items: center;
   justify-content: center;
+}
+
+/* Room for artwork the scene draws past the tile's edge, so it stays off the caption. */
+.appearance-cell-thumb[data-inset='true'] {
+  padding: var(--space-small);
+}
+
+.appearance-cell-thumb > .appearance-cell-upload {
+  flex-direction: column;
+  gap: var(--space-micro);
+  border: var(--border-width) dashed var(--color-border);
+  border-radius: var(--radius-medium);
+  color: var(--color-primary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+}
+
+.appearance-cell-upload svg {
+  font-size: var(--size-icon-lg);
 }
 
 .appearance-cell-icon {
@@ -265,6 +321,12 @@
     max(var(--space-medium), env(safe-area-inset-bottom));
   border-top: var(--border-width) solid var(--color-border);
   background: var(--color-surface);
+}
+
+.appearance-footer-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
 }
 
 .appearance-confirm {

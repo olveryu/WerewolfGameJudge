@@ -117,38 +117,35 @@ function AppearanceEditor({ user, unlockedIds, isRefreshError, retry }: Appearan
     <div className="appearance-body">
       <ResidentSceneLayer hostRef={sceneHostRef} />
       <div ref={scrollRootRef} className="appearance-scroll">
-        {isRefreshError && <Button onClick={retry}>藏品刷新失败，重试</Button>}
-        {state.hasSelection && (
-          <p className="appearance-status" aria-live="polite">
-            有未保存的更改
-          </p>
-        )}
-        {state.activeTab === 'effect' ? (
-          <EffectHeroPreview
-            state={state}
-            userId={userId}
-            sceneHostRef={sceneHostRef}
-            saving={save.saving}
-            onEquip={() => void save.handleEquipEffect()}
-            onEquipUnavailable={save.handleEquipEffectUnavailable}
+        <div className="appearance-top">
+          {isRefreshError && <Button onClick={retry}>藏品刷新失败，重试</Button>}
+          {state.activeTab === 'effect' ? (
+            <EffectHeroPreview
+              state={state}
+              userId={userId}
+              sceneHostRef={sceneHostRef}
+              scrollRootRef={scrollRootRef}
+              saving={save.saving}
+              onEquip={() => void save.handleEquipEffect()}
+              onEquipUnavailable={save.handleEquipEffectUnavailable}
+            />
+          ) : (
+            <HeroPreview
+              state={state}
+              userId={userId}
+              displayName={user?.displayName ?? '玩家'}
+              sceneHostRef={sceneHostRef}
+              scrollRootRef={scrollRootRef}
+            />
+          )}
+          <CosmeticTabBar
+            activeTab={state.activeTab}
+            onChange={state.handleChangeTab}
+            idPrefix={TAB_ID_PREFIX}
+            panelId={PANEL_ID}
           />
-        ) : (
-          <HeroPreview
-            state={state}
-            userId={userId}
-            displayName={user?.displayName ?? '玩家'}
-            hasCustomAvatar={state.customAvatarUrl !== null}
-            sceneHostRef={sceneHostRef}
-            onUpload={() => fileInputRef.current?.click()}
-          />
-        )}
-        <CosmeticTabBar
-          activeTab={state.activeTab}
-          onChange={state.handleChangeTab}
-          idPrefix={TAB_ID_PREFIX}
-          panelId={PANEL_ID}
-        />
-        <RarityFilterBar value={state.rarityFilter} onChange={state.setRarityFilter} />
+          <RarityFilterBar value={state.rarityFilter} onChange={state.setRarityFilter} />
+        </div>
         <div
           id={PANEL_ID}
           role="tabpanel"
@@ -161,19 +158,27 @@ function AppearanceEditor({ user, unlockedIds, isRefreshError, retry }: Appearan
             userId={userId}
             sceneHostRef={sceneHostRef}
             scrollRootRef={scrollRootRef}
+            onUpload={() => fileInputRef.current?.click()}
           />
         </div>
       </div>
       <footer className="appearance-footer">
-        <AppearanceFooter
-          readOnly={state.readOnly}
-          hasSelection={state.hasSelection}
-          saving={save.saving}
-          hasUser={user !== null}
-          onConfirm={() => void save.handleConfirm()}
-          onConfirmUnavailable={save.handleConfirmUnavailable}
-          onUpgrade={goBack}
-        />
+        <div className="appearance-footer-content">
+          {state.hasSelection && (
+            <p className="appearance-status" aria-live="polite">
+              有未保存的更改
+            </p>
+          )}
+          <AppearanceFooter
+            readOnly={state.readOnly}
+            hasSelection={state.hasSelection}
+            saving={save.saving}
+            hasUser={user !== null}
+            onConfirm={() => void save.handleConfirm()}
+            onConfirmUnavailable={save.handleConfirmUnavailable}
+            onUpgrade={goBack}
+          />
+        </div>
       </footer>
       {!state.readOnly && (
         <input
@@ -235,7 +240,9 @@ function AppearanceSession() {
 
 /**
  * Appearance: pick an avatar (or upload a custom one), frame, seat flair, name style, reveal
- * effect and seat entrance, previewed with the room's own scene code. Opened from a room
+ * effect and seat entrance, previewed with the room's own scene code. The preview, category tabs
+ * and rarity filter stay in place while the grid scrolls (on short screens the whole page
+ * scrolls), and nothing above the grid changes height once loaded. Opened from a room
  * (`/appearance/:roomCode`), it returns to that room's settings and applies saves to the room.
  */
 export function AppearancePage() {
