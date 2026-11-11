@@ -1,6 +1,7 @@
 /**
  * Static identity card in a dialog: faction badge, portrait (or faction-colored initial), name,
- * and the role description — one centered text or structured fields with icons and bullets.
+ * and the role description — one centered single-clause text, or structured fields with icons
+ * and bullets.
  * Game-neutral: games hand in `RevealRoleData`. Reveal animations (P3) wrap this card.
  */
 import '@/components/CenterDialog.css';
@@ -55,7 +56,10 @@ function DescriptionFields({ fields }: { readonly fields: readonly DescriptionFi
   );
 }
 
-/** One field (or none) reads as a centered titled text; two or more as structured fields. */
+/**
+ * One single-clause field (or none) reads as a centered titled text. Two or more fields, or one
+ * field holding several clauses, read as structured fields so every clause gets its bullet.
+ */
 export function RoleDescription({
   fields,
   fallbackText,
@@ -66,8 +70,11 @@ export function RoleDescription({
   readonly title: string;
 }) {
   const filledFields = fields.filter((field) => field.content.length > 0);
-  if (filledFields.length > 1) return <DescriptionFields fields={filledFields} />;
   const [onlyField] = filledFields;
+  const hasSeveralClauses = onlyField !== undefined && splitBullets(onlyField.content).length > 1;
+  if (filledFields.length > 1 || hasSeveralClauses) {
+    return <DescriptionFields fields={filledFields} />;
+  }
   return (
     <div className="role-description-single">
       <h3 className="role-description-title">{title}</h3>

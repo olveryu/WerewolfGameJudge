@@ -1,4 +1,4 @@
-/** Role description layout: one filled field or none reads as centered text, more as sections. */
+/** Role description layout: one single-clause field or none reads as centered text, more as sections. */
 import { render, screen } from '@testing-library/react';
 
 import { RoleDescription } from '@/features/room/components/RoleCard';
@@ -38,6 +38,17 @@ describe('RoleDescription', () => {
 
     expect(screen.getByRole('heading', { name: '身份' })).toBeInTheDocument();
     expect(screen.getByText('单段介绍')).toBeInTheDocument();
+  });
+
+  it('renders a single field holding several clauses as a labelled section with bullets', () => {
+    render(<RoleDescription fields={[restriction]} fallbackText="" title="技能介绍" />);
+
+    expect(screen.queryByRole('heading', { name: '技能介绍' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '限制条件' })).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      '不能自刀',
+      '不能空刀',
+    ]);
   });
 
   it('renders two or more fields as labelled sections with semicolon bullets', () => {
