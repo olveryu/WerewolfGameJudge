@@ -1,8 +1,17 @@
+.center-dialog.player-profile-dialog {
+  max-height: 85vh;
+  overflow: hidden;
+}
+
 .profile-card {
   position: relative;
   display: flex;
+  flex: 1;
   flex-direction: column;
   align-items: stretch;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   gap: var(--space-small);
 }
 

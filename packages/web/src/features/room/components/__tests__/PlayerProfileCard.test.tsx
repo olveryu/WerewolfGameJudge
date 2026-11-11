@@ -97,6 +97,19 @@ it('closes the card and opens the player unlocks with their name', async () => {
   expect(await screen.findByText(`at /unlocks/1234?${search.toString()}`)).toBeInTheDocument();
 });
 
+it('shows a close button and keeps it available on a bounded dialog', async () => {
+  const onClose = vi.fn();
+  renderCard(onClose);
+
+  const dialog = screen.getByTestId(TESTIDS.playerProfileCard);
+  expect(dialog).toHaveClass('player-profile-dialog');
+  expect(screen.getByRole('button', { name: '关闭玩家资料' })).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: '关闭玩家资料' }));
+
+  expect(onClose).toHaveBeenCalledOnce();
+});
+
 it('draws the equipped frame and flair on the avatar, without the seat pet or entrance', () => {
   renderCard(vi.fn());
 

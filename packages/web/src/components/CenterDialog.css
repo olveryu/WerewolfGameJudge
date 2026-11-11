@@ -36,6 +36,20 @@
   box-shadow: var(--shadow-lg);
 }
 
+.center-dialog[data-has-close-button='true'] {
+  position: relative;
+}
+
+.center-dialog-close {
+  position: absolute;
+  top: var(--space-medium);
+  right: var(--space-medium);
+}
+
+.center-dialog[data-has-close-button='true'] .center-dialog-title {
+  padding-inline: var(--size-min-touch-target);
+}
+
 .center-dialog[data-state='open'] {
   animation: center-dialog-pop 150ms ease-out;
 }
