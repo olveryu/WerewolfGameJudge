@@ -61,27 +61,23 @@ test.describe('Werewolf Night — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // === Wolf (gargoyle) kills villager ===
         await test.step('gargoyle kills villager via wolf vote', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[gargoyleIdx]!, 'wolfKill', pages);
-          expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
+          await test.step('Wolf turn should be detected', () =>
+            waitForRoleTurn(pages[gargoyleIdx]!, 'wolfKill', pages));
           await driveWolfVote(pages, [gargoyleIdx], killTargetSeat);
         });
 
         // === Gargoyle converts adjacent non-wolf villager ===
         await test.step('gargoyle converts villager', async () => {
-          const gargoyleTurn = await waitForRoleTurn(
-            pages[gargoyleIdx]!,
-            'awakenedGargoyleConvert',
-            pages,
-          );
-          expect(gargoyleTurn, 'Gargoyle convert turn should be detected').toBe(true);
-          const confirmed = await clickSeatAndConfirm(pages[gargoyleIdx]!, convertTargetSeat);
-          expect(confirmed, 'Gargoyle should have confirmed convert').toBe(true);
+          await test.step('Gargoyle convert turn should be detected', () =>
+            waitForRoleTurn(pages[gargoyleIdx]!, 'awakenedGargoyleConvert', pages));
+          await test.step('Gargoyle should have confirmed convert', () =>
+            clickSeatAndConfirm(pages[gargoyleIdx]!, convertTargetSeat));
         });
 
         // === GroupConfirm: all players ack convert reveal ===
         await test.step('all players ack convert reveal', async () => {
-          const groupReady = await waitForGroupConfirmStep(pages, '转化状态');
-          expect(groupReady, 'ConvertReveal step should become active').toBe(true);
+          await test.step('ConvertReveal step should become active', () =>
+            waitForGroupConfirmStep(pages, '转化状态'));
 
           for (let i = 0; i < pages.length; i++) {
             const role = roleMap.get(i);
@@ -101,8 +97,7 @@ test.describe('Werewolf Night — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // === Night ends ===
         await test.step('night ends with death', async () => {
-          const ended = await waitForNightEnd(pages);
-          expect(ended, 'Night should have ended').toBe(true);
+          await test.step('Night should have ended', () => waitForNightEnd(pages));
 
           const nightInfo = await viewLastNightInfo(pages[0]!);
           expect(nightInfo, 'Killed villager should have died').toContain('昨夜死亡');
@@ -161,28 +156,20 @@ test.describe('Werewolf Night — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // === Wolves kill villager ===
         await test.step('wolves kill villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
-          expect(wolfTurn).toBe(true);
+          await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
           // Both wolf-faction players participate in wolf meeting
           await driveWolfVote(pages, [wolfIdx, gargoyleIdx], killTargetSeat);
         });
 
         // === Gargoyle converts ===
         await test.step('gargoyle converts adjacent villager', async () => {
-          const gargoyleTurn = await waitForRoleTurn(
-            pages[gargoyleIdx]!,
-            'awakenedGargoyleConvert',
-            pages,
-          );
-          expect(gargoyleTurn).toBe(true);
-          const confirmed = await clickSeatAndConfirm(pages[gargoyleIdx]!, convertTargetSeat);
-          expect(confirmed).toBe(true);
+          await waitForRoleTurn(pages[gargoyleIdx]!, 'awakenedGargoyleConvert', pages);
+          await clickSeatAndConfirm(pages[gargoyleIdx]!, convertTargetSeat);
         });
 
         // === GroupConfirm: verify exact messages ===
         await test.step('verify personal messages for all players', async () => {
-          const groupReady = await waitForGroupConfirmStep(pages, '转化状态');
-          expect(groupReady).toBe(true);
+          await waitForGroupConfirmStep(pages, '转化状态');
 
           const messages: string[] = [];
           for (let i = 0; i < pages.length; i++) {
@@ -204,8 +191,7 @@ test.describe('Werewolf Night — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // === Night ends ===
         await test.step('night ends', async () => {
-          const ended = await waitForNightEnd(pages);
-          expect(ended).toBe(true);
+          await waitForNightEnd(pages);
         });
       },
     );
