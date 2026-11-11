@@ -48,20 +48,43 @@ export type RoleGroupTag = 'seerFamily'; // 预言家系 — 预言家及其变�
  * Structured role description for card UI rendering.
  *
  * Each field maps to a visual section on the role card.
- * Only non-null fields are rendered. When a role has a single field,
+ * Only non-null fields are rendered. When a role has a single field holding a single clause,
  * the card uses a simplified centered layout (Mode A);
- * with 2+ fields, it uses a structured layout with labeled sections (Mode B).
+ * with 2+ fields or 2+ clauses, it uses a structured layout with labeled sections (Mode B).
+ *
+ * Writing rules, pinned by `structuredDescription.contract.test.ts`:
+ * - Declare fields in the order below; it is the render order.
+ * - One rule per clause, clauses separated by `；`. Each clause renders as one bullet, so it must
+ *   read on its own without leaning on another field, and stays within 45 characters. No `。`.
+ * - `RoleSpec.description` is exactly the fields joined by `；` in that order.
+ * - A rule goes in the field that matches what it is, not the field next to its topic.
+ * - One phrase per concept across roles: `不能…` for prohibitions, `限用一次`, `投票放逐`,
+ *   `免疫女巫毒药`, `与其他狼人互不相认`, `其他狼人全部出局后可主导袭击`, `从第二夜起`,
+ *   `不能连续两晚…同一人`, `自身` for the role itself, and Chinese numerals for counts (`一名`,
+ *   `两名`, `一张`).
  */
 export interface RoleDescription {
-  /** Active skill — ability the player actively uses (each night/day) */
+  /**
+   * Active skill — what the player chooses to do (night or day): timing, action, its direct
+   * outcome, and what the target experiences. Owned resources (potions) are stated here.
+   */
   readonly skill?: string;
-  /** Passive trait — always active, requires no action */
+  /**
+   * Passive trait — always-on properties of the role itself: immunities, wolf recognition,
+   * how it reads when checked, fixed faction.
+   */
   readonly passive?: string;
-  /** Triggered effect — activates on elimination, check, or specific events */
+  /** Triggered effect — "when X happens, Y" events the player does not start as a regular action. */
   readonly trigger?: string;
-  /** Restriction — what the role cannot do */
+  /**
+   * Restriction — limits on the role's own ability: use counts, repeat-target bans, forbidden
+   * targets or actions, activation conditions, and the cost of using it.
+   */
   readonly restriction?: string;
-  /** Special rules — interactions with other roles and edge cases */
+  /**
+   * Special rules — interactions with other roles, board-level rules, rules about other players
+   * (converted, confessed, poisoned), and edge cases.
+   */
   readonly special?: string;
   /** Win condition — non-standard victory condition (optional) */
   readonly winCondition?: string;

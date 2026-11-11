@@ -24,7 +24,7 @@ normally sets are listed; read the interface before using any other field.
 | `team`                                                    | `Team`: `Wolf`, `Good`, or `Third`. Team is not inferred from faction.                                                                |
 | `abilities`                                               | Ability declarations (see below). Empty array when the role has no ability.                                                           |
 | `nightSteps`                                              | Optional. Each entry becomes one derived night step. Omit it (or use an empty list) for a role with no night step.                    |
-| `description`, `structuredDescription`                    | Full and structured description text.                                                                                                 |
+| `description`, `structuredDescription`                    | Structured fields, plus the flat text that is those fields joined in order; the rules are on `RoleDescription` in the type file.      |
 | `displayAs`                                               | Optional disguised identity shown to players.                                                                                         |
 | `immunities`, `recognition`, `resources`, `deathCalcRole` | Only when the role needs them; copy the field shape from the nearest existing role that uses the same field, and check the type file. |
 
@@ -57,8 +57,7 @@ the spec's constraints (`genericResolver.ts`, `validateConstraints`;
 
 ## What is not stated here
 
-Effect vocabularies beyond the shapes above, passive/triggered ability
-forms, and `structuredDescription` field rules were not verified
-line-by-line for this draft. Read the nearest existing role and the type
-files, and list any unverified claim in the work notes instead of
-asserting it.
+Effect vocabularies beyond the shapes above and passive/triggered ability
+forms were not verified line-by-line for this draft. Read the nearest
+existing role and the type files, and list any unverified claim in the
+work notes instead of asserting it.
