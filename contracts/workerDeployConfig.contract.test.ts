@@ -47,11 +47,11 @@ describe('API Worker deployment config ownership', () => {
       'utf-8',
     );
     const workerJobStart = workflowSource.indexOf('  deploy-api-worker:');
-    const frontendJobStart = workflowSource.indexOf('  deploy-frontend:');
-    if (workerJobStart < 0 || frontendJobStart <= workerJobStart) {
-      throw new Error('CI workflow must define deploy-api-worker before deploy-frontend');
+    const nextJobStart = workflowSource.indexOf('  publish-frontend-assets:');
+    if (workerJobStart < 0 || nextJobStart <= workerJobStart) {
+      throw new Error('CI workflow must define deploy-api-worker before publish-frontend-assets');
     }
-    const workerJob = workflowSource.slice(workerJobStart, frontendJobStart);
+    const workerJob = workflowSource.slice(workerJobStart, nextJobStart);
 
     expect(workerJob).toContain('CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}');
     expect(workerJob).toContain('CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}');

@@ -174,18 +174,23 @@ jobs:
       - name: Deploy API Worker
         run: pnpm --filter @game-judge/api-worker run deploy
 
-  deploy-frontend:
+  # Production counterpart of build-web: build once with the CDN base and
+  # publish the immutable, commit-versioned asset package while the test jobs
+  # are still running. npm needs minutes to materialize a published version
+  # (145–574s observed), so that wait overlaps with E2E here instead of
+  # extending the pipeline after ci-gate. Nothing references the package until
+  # deploy-frontend publishes the HTML, and that job still waits for ci-gate.
+  publish-frontend-assets:
     runs-on: ubuntu-latest
     if: |
-      needs.ci-gate.result == 'success' &&
-      needs.deploy-api-worker.result == 'success' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       github.ref == 'refs/heads/main'
-    needs: [ci-gate, deploy-api-worker]
+    needs: [quality, lint]
     permissions:
       contents: read
-      deployments: write
       id-token: write
+    outputs:
+      cdn_base: ${{ steps.cdn.outputs.cdn_base }}
     steps:
       - uses: actions/checkout@v6
 
@@ -441,9 +446,55 @@ jobs:
           fi
           exit 1
 
+      # dist/ carries dot-directories (.well-known) that Pages must serve.
+      # Retained long enough to re-run a failed deploy-frontend on its own.
+      - name: Upload release dist
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-release-dist
+          path: dist/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    if: |
+      needs.ci-gate.result == 'success' &&
+      needs.deploy-api-worker.result == 'success' &&
+      needs.publish-frontend-assets.result == 'success' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/main'
+    needs: [ci-gate, deploy-api-worker, publish-frontend-assets]
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build game-engine (Pages Functions dependency)
+        run: pnpm --filter @game-judge/game-engine run build
+
+      # Deploy the exact build whose assets are already on the CDN; a rebuild
+      # here could produce HTML that references different asset bytes.
+      - name: Download release dist
+        uses: actions/download-artifact@v8
+        with:
+          name: frontend-release-dist
+          path: dist/
+
       - name: Verify release CDN payload
         timeout-minutes: 3
-        run: node scripts/verify-cdn-artifacts.mjs "${{ steps.cdn.outputs.cdn_base }}"
+        run: node scripts/verify-cdn-artifacts.mjs "${{ needs.publish-frontend-assets.outputs.cdn_base }}"
 
       # Cloudflare Pages API rejects non-ASCII commit messages, so deploy with
       # the subject line (first line) instead of the full message.

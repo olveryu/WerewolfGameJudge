@@ -104,11 +104,14 @@ pnpm exec wrangler secret list --config wrangler.toml
 quality + lint + test-root + test-api-worker + e2e
 └── ci-gate (all required jobs must succeed)
 	├── deploy-api-worker (main only)
-	│   └── deploy-frontend (main only; waits for API deployment)
+	│   └── deploy-frontend (main only; waits for API deployment and the published assets)
 	└── deploy-miniapp (main push only; conditional upload)
+
+quality + lint
+└── publish-frontend-assets (main only; runs alongside the test jobs)
 ```
 
-E2E uses local Wrangler/D1 and a local web build. It validates the commit independently of production deployment and does not wait for deploy jobs. All production deployment jobs wait for `ci-gate`, so remote migrations and releases cannot start while required tests are still running or have failed. E2E reports are published separately after the matrix finishes.
+E2E uses local Wrangler/D1 and a local web build. It validates the commit independently of production deployment and does not wait for deploy jobs. All production deployment jobs wait for `ci-gate`, so remote migrations and releases cannot start while required tests are still running or have failed. The one production-side step ahead of the gate is `publish-frontend-assets`: it publishes an immutable, commit-versioned asset package that nothing references until `deploy-frontend` publishes the HTML. E2E reports are published separately after the matrix finishes.
 
 ### Quality
 
@@ -134,7 +137,9 @@ Migrations run before Worker deployment. A migration failure stops the job and l
 
 ### Frontend
 
-`deploy-frontend` waits for both `ci-gate` and `deploy-api-worker`, then:
+Frontend release is split into two jobs so the slow part overlaps with the test jobs. npm takes minutes to make a published version visible (145–574 seconds observed), and that wait used to run after `ci-gate`.
+
+`publish-frontend-assets` starts on `main` as soon as `quality` and `lint` succeed, in parallel with the test jobs:
 
 1. Resolves the versioned npmmirror files address of `werewolf-judge-cdn@0.0.0-g<sha8>`.
 2. Runs `scripts/build.sh` with that address as `WEB_ASSET_BASE`: it builds `game-engine`, builds `packages/web` with Vite (per-route gzip budgets included), copies the result to `dist/`, and uploads Sentry source maps. Hashed assets reference the CDN; `index.html`, `manifest.json` and PWA icons stay on Pages.
@@ -142,9 +147,16 @@ Migrations run before Worker deployment. A migration failure stops the job and l
 4. Publishes that package to npm with OIDC trusted publishing.
 5. Waits for npm registry visibility.
 6. Triggers npmmirror synchronization and polls both npmmirror registry metadata and the CDN `index.js` artifact for up to 15 minutes.
-7. Deploys `dist/` to the `werewolfgamejudge` Cloudflare Pages project only after both CDN checks pass.
+7. Uploads `dist/` (hidden files included) as the `frontend-release-dist` artifact, retained for 7 days.
 
-This order prevents production HTML from referencing an asset package that the CDN cannot yet serve.
+`deploy-frontend` waits for `ci-gate`, `deploy-api-worker` and `publish-frontend-assets`, then:
+
+1. Builds `game-engine` for the Pages Functions bundle.
+2. Downloads `frontend-release-dist` instead of rebuilding, so the HTML matches the published assets.
+3. Verifies every file under `dist/assets` byte-for-byte against the CDN.
+4. Deploys `dist/` to the `werewolfgamejudge` Cloudflare Pages project.
+
+This order prevents production HTML from referencing an asset package that the CDN cannot yet serve. A commit that fails `ci-gate` leaves an unreferenced `werewolf-judge-cdn` version on npm; it is never deployed.
 
 ### WeChat Mini Program
 
@@ -222,8 +234,8 @@ Production frontend deployment must use CI because URL rewriting, npm publicatio
 
 ## Production Verification
 
-1. Confirm `ci-gate`, `deploy-api-worker`, and `deploy-frontend` succeeded in GitHub Actions.
-2. Confirm the frontend job recorded the expected npm package version and both npmmirror checks passed.
+1. Confirm `ci-gate`, `deploy-api-worker`, `publish-frontend-assets`, and `deploy-frontend` succeeded in GitHub Actions.
+2. Confirm `publish-frontend-assets` recorded the expected npm package version and both npmmirror checks passed.
 3. Visit [werewolfgamer.com](https://werewolfgamer.com) and confirm the document and versioned CDN assets load without errors.
 4. Request [api.werewolfjudge.eu.org/health](https://api.werewolfjudge.eu.org/health) and confirm the Worker is healthy.
 5. Create a room, join it from a second browser or device, and confirm WebSocket state synchronization.
@@ -257,7 +269,11 @@ Verify the npm trusted publisher uses the exact GitHub owner, repository, and wo
 
 ### npmmirror propagation times out
 
-The workflow retriggers synchronization and polls for up to 15 minutes. If either registry metadata or the CDN artifact is still missing, Pages deployment correctly stops. Inspect the reported sync task and artifact URLs, then rerun the failed job after npmmirror recovers.
+The workflow retriggers synchronization and polls for up to 15 minutes. If either registry metadata or the CDN artifact is still missing, `publish-frontend-assets` fails and Pages deployment correctly does not run. Inspect the reported sync task and artifact URLs, then rerun the failed job after npmmirror recovers; `deploy-frontend` reruns with it.
+
+### `deploy-frontend` cannot download `frontend-release-dist`
+
+The artifact expires after 7 days. Rerun the whole workflow rather than the single job: `publish-frontend-assets` rebuilds, skips the already published version, and the byte-for-byte CDN verification stops the deployment if the rebuild differs from what was published.
 
 ### Frontend loads a white screen
 
