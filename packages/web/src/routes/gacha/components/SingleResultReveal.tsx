@@ -69,6 +69,7 @@ export function SingleResultReveal({
   reducedMotion,
 }: SingleResultRevealProps) {
   const sceneHostRef = useRef<HTMLDivElement>(null);
+  const scrollRootRef = useRef<HTMLDivElement>(null);
   const { rarity } = item;
   const visual = RARITY_VISUAL[rarity];
   const glow = CARD_GLOWS[rarity];
@@ -114,33 +115,36 @@ export function SingleResultReveal({
               className="single-reveal-close"
               onClick={onDismiss}
             />
-            <span className="single-reveal-badge" data-top-tier={isTopTier}>
-              {visual.label}
-            </span>
-            {item.isPityTriggered && <span className="single-reveal-pity">保底</span>}
-            <span className="single-reveal-preview">
-              <RewardPreview
-                rewardType={item.rewardType}
-                rewardId={item.rewardId}
-                size={PREVIEW_SIZES[rarity]}
-                productUi={productUi}
-                sceneHostRef={sceneHostRef}
-              />
-            </span>
-            <Dialog.Title className="single-reveal-name">
-              {getRewardDisplayName(productUi, item.rewardType, item.rewardId)}
-            </Dialog.Title>
-            <Dialog.Description className="single-reveal-type">
-              {REWARD_TYPE_LABELS[item.rewardType]}
-            </Dialog.Description>
-            {item.isDuplicate ? (
-              <span className="single-reveal-duplicate">
-                <span className="single-reveal-owned">已拥有</span>
-                <span className="gacha-shard-award">◆ +{item.shardsAwarded}</span>
+            <div ref={scrollRootRef} className="single-reveal-body">
+              <span className="single-reveal-badge" data-top-tier={isTopTier}>
+                {visual.label}
               </span>
-            ) : (
-              item.isNew && <span className="gacha-new-tag">NEW</span>
-            )}
+              {item.isPityTriggered && <span className="single-reveal-pity">保底</span>}
+              <span className="single-reveal-preview">
+                <RewardPreview
+                  rewardType={item.rewardType}
+                  rewardId={item.rewardId}
+                  size={PREVIEW_SIZES[rarity]}
+                  productUi={productUi}
+                  sceneHostRef={sceneHostRef}
+                  scrollRootRef={scrollRootRef}
+                />
+              </span>
+              <Dialog.Title className="single-reveal-name">
+                {getRewardDisplayName(productUi, item.rewardType, item.rewardId)}
+              </Dialog.Title>
+              <Dialog.Description className="single-reveal-type">
+                {REWARD_TYPE_LABELS[item.rewardType]}
+              </Dialog.Description>
+              {item.isDuplicate ? (
+                <span className="single-reveal-duplicate">
+                  <span className="single-reveal-owned">已拥有</span>
+                  <span className="gacha-shard-award">◆ +{item.shardsAwarded}</span>
+                </span>
+              ) : (
+                item.isNew && <span className="gacha-new-tag">NEW</span>
+              )}
+            </div>
             {onGoEquip && (
               <Button className="gacha-equip-button" onClick={onGoEquip}>
                 去装扮

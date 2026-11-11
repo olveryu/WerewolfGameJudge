@@ -24,6 +24,18 @@
   flex-direction: column;
   gap: var(--space-medium);
   width: min(82vw, 360px);
+  max-height: 100%;
+}
+
+.role-card-dialog > :not(.role-card-scroll) {
+  flex-shrink: 0;
+}
+
+.role-card-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-xlarge);
 }
 
 .role-card-dialog[data-state='open'] {
