@@ -290,10 +290,11 @@ describe('ROLE_SPECS contract', () => {
       expect(description).toContain('若学习到守卫');
       expect(description).toContain('从次夜起');
       expect(description).toContain('毒药反弹至施法者自身');
+      expect(description).toContain('毒药反弹至施法者自身；若学习到狼人');
       expect(description).toContain('限用一次');
-      expect(description).toContain('若学习到狼人');
-      expect(description).toContain('可额外袭击一名玩家');
+      expect(description).toContain('可额外袭击一名玩家，限用一次');
       expect(description).toContain('学习其他角色时正常继承其技能');
+      expect((description.match(/限用一次/g) ?? []).length).toBe(1);
       expect(description).not.toContain('学到守卫');
       expect(description).not.toContain('学到狼人');
       expect(description).not.toContain('下一晚');
@@ -309,10 +310,12 @@ describe('ROLE_SPECS contract', () => {
       expect(structured?.special).toContain('若学习到守卫');
       expect(structured?.special).toContain('从次夜起');
       expect(structured?.special).toContain('毒药反弹至施法者自身');
+      expect(structured?.special).toContain('毒药反弹至施法者自身；若学习到狼人');
       expect(structured?.special).toContain('限用一次');
       expect(structured?.special).toContain('若学习到狼人');
-      expect(structured?.special).toContain('可额外袭击一名玩家');
+      expect(structured?.special).toContain('可额外袭击一名玩家，限用一次');
       expect(structured?.special).toContain('其他狼人全部出局后可主导袭击');
+      expect((structured?.special?.match(/限用一次/g) ?? []).length).toBe(1);
     });
   });
 
