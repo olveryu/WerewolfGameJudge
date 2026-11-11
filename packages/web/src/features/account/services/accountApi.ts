@@ -5,13 +5,13 @@
  */
 
 import { ROLE_REVEAL_EFFECT_IDS } from '@game-judge/game-engine/product/rewards';
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
 import { apiClient } from '@/platform/http/client';
 import { statsLog } from '@/utils/logger';
 
-const nonnegativeIntegerSchema = z.number().int().nonnegative();
-const unlockedItemsSchema = z.array(z.string().min(1));
+const nonnegativeIntegerSchema = z.int().check(z.nonnegative());
+const unlockedItemsSchema = z.array(z.string().check(z.minLength(1)));
 const equippedRevealEffectSchema = z.enum(['random', ...ROLE_REVEAL_EFFECT_IDS]);
 
 const userStatsSchema = z.strictObject({
@@ -23,14 +23,14 @@ const userStatsSchema = z.strictObject({
 
 const userPublicProfileSchema = z.strictObject({
   displayName: z.string(),
-  avatarUrl: z.string().min(1).optional(),
-  avatarFrame: z.string().min(1).optional(),
-  seatFlair: z.string().min(1).optional(),
-  nameStyle: z.string().min(1).optional(),
-  revealEffect: equippedRevealEffectSchema.optional(),
-  seatAnimation: z.string().min(1).optional(),
+  avatarUrl: z.optional(z.string().check(z.minLength(1))),
+  avatarFrame: z.optional(z.string().check(z.minLength(1))),
+  seatFlair: z.optional(z.string().check(z.minLength(1))),
+  nameStyle: z.optional(z.string().check(z.minLength(1))),
+  revealEffect: z.optional(equippedRevealEffectSchema),
+  seatAnimation: z.optional(z.string().check(z.minLength(1))),
   level: nonnegativeIntegerSchema,
-  title: z.string().min(1),
+  title: z.string().check(z.minLength(1)),
   xp: nonnegativeIntegerSchema,
   gamesPlayed: nonnegativeIntegerSchema,
   unlockedItemCount: nonnegativeIntegerSchema,

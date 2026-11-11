@@ -1,6 +1,6 @@
 /** Persists one unresolved asset operation per account; never replaces uncertain delivery. */
 import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
 import { GACHA_OPERATION_KEY } from '@/config/storageKeys';
 import { storage } from '@/services/infra/localStorage';
@@ -10,14 +10,14 @@ const requestSchema = z.discriminatedUnion('operation', [
   z.strictObject({
     operation: z.literal('draw'),
     drawType: z.enum(['normal', 'golden']),
-    count: z.int().min(1).max(10),
+    count: z.int().check(z.minimum(1), z.maximum(10)),
   }),
-  z.strictObject({ operation: z.literal('exchange'), rewardId: z.string().min(1) }),
+  z.strictObject({ operation: z.literal('exchange'), rewardId: z.string().check(z.minLength(1)) }),
 ]);
 const operationSchema = z.strictObject({
-  userId: z.string().min(1),
+  userId: z.string().check(z.minLength(1)),
   idempotencyKey: z.uuid(),
-  createdAtMs: z.int().nonnegative(),
+  createdAtMs: z.int().check(z.nonnegative()),
   request: requestSchema,
 });
 

@@ -1,6 +1,6 @@
 /**
- * The Appearance and Unlocks pages ship as one lazy chunk: they share almost every module,
- * and one chunk keeps the start-up entry's preload map to one entry for both (home budget).
+ * The Appearance and Unlocks pages share almost every module, so one barrel re-exports both.
+ * They ship in the start-up entry since v4 D11 removed route lazy-loading.
  */
 export { AppearancePage } from '@/routes/appearance/AppearancePage';
 export { UnlocksPage } from '@/routes/unlocks/UnlocksPage';
