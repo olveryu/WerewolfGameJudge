@@ -7,6 +7,7 @@ import {
   chooseFirstEnabledBottomCard,
   clickNightButton,
   clickSeatAndConfirm,
+  clickSeatAndReadNotice,
   dismissAlert,
   driveGroupConfirmAck,
   driveMultiSelect,
@@ -316,11 +317,7 @@ test.describe('Werewolf Night — Special Roles: Poisoner Override Feedback', ()
           expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
 
           const wolfPage = pages[wolfIndices[0]!]!;
-          await dismissAlert(wolfPage);
-
-          await wolfPage.getByTestId(TESTIDS.seatTilePressable(targetSeat)).click();
-
-          const alertText = await readAlertText(wolfPage);
+          const alertText = await clickSeatAndReadNotice(wolfPage, targetSeat, '首夜无法袭击');
           expect(alertText).toContain('本局有毒师在场，首夜无法袭击');
           expect(alertText).not.toContain('确定袭击');
           await expect(wolfPage.getByTestId(TESTIDS.alertButton(0))).toHaveText('知道了');
