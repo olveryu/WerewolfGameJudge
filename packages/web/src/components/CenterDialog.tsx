@@ -4,6 +4,9 @@ import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import type { ReactNode } from 'react';
 
+import { IconButton } from '@/components/IconButton';
+import IconClose from '~icons/ion/close';
+
 interface CenterDialogProps {
   open: boolean;
   /** Called when the user dismisses with Escape or the backdrop. */
@@ -12,6 +15,8 @@ interface CenterDialogProps {
   subtitle?: string;
   testId?: string;
   titleTestId?: string;
+  closeButtonLabel?: string;
+  className?: string;
   children: ReactNode;
 }
 
@@ -23,6 +28,8 @@ export function CenterDialog({
   subtitle,
   testId,
   titleTestId,
+  closeButtonLabel,
+  className,
   children,
 }: CenterDialogProps) {
   return (
@@ -37,7 +44,19 @@ export function CenterDialog({
       <Portal>
         <Dialog.Backdrop className="center-dialog-backdrop" />
         <Dialog.Positioner className="center-dialog-positioner">
-          <Dialog.Content className="center-dialog" data-testid={testId}>
+          <Dialog.Content
+            className={['center-dialog', className].filter(Boolean).join(' ')}
+            data-has-close-button={closeButtonLabel !== undefined}
+            data-testid={testId}
+          >
+            {closeButtonLabel !== undefined && (
+              <IconButton
+                className="center-dialog-close"
+                label={closeButtonLabel}
+                icon={<IconClose aria-hidden />}
+                onClick={onClose}
+              />
+            )}
             <Dialog.Title className="center-dialog-title" data-testid={titleTestId}>
               {title}
             </Dialog.Title>

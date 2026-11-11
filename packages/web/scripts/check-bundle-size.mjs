@@ -10,7 +10,7 @@ const manifest = JSON.parse(readFileSync(path.join(distDirectory, '.vite/manifes
 
 const KIB = 1024;
 const STARTUP_ENTRY = 'index.html';
-// All application code except the bench and Replay ships at start-up (§5.10).
+// All application code except the bench ships at start-up; Replay is disabled (§5.10).
 const HOME_ENTRIES = [STARTUP_ENTRY, 'src/boot/bootSplash.ts'];
 /** Modules that must stay out of the home closure, matched against each chunk's source-map sources. */
 const HOME_FORBIDDEN_SOURCES = [
@@ -22,7 +22,7 @@ const HOME_FORBIDDEN_SOURCES = [
   {
     name: 'Sentry Replay',
     pattern: /\/src\/sentryReplay\.ts$|\/node_modules\/@sentry\/replay[^/]*\//,
-    fix: 'Replay must remain behind its background dynamic import',
+    fix: 'Replay is disabled and must not be reintroduced into start-up',
   },
 ];
 
@@ -36,12 +36,6 @@ const BUDGETS = [
     name: 'home (start-up to interactive home)',
     entries: HOME_ENTRIES,
     maxGzipBytes: 1400 * KIB,
-  },
-  {
-    name: 'Sentry Session Replay (lazy)',
-    entries: ['src/sentryReplay.ts'],
-    beyondStartup: true,
-    maxGzipBytes: 52 * KIB,
   },
 ];
 
@@ -104,7 +98,7 @@ for (const [entry, chunk] of Object.entries(manifest)) {
   if (
     chunk.isDynamicEntry &&
     entry.startsWith('src/') &&
-    !['src/routes/bench/SceneBench.tsx', 'src/sentryReplay.ts'].includes(entry)
+    entry !== 'src/routes/bench/SceneBench.tsx'
   ) {
     failures.push(`Unexpected lazy application entry: ${entry}`);
   }

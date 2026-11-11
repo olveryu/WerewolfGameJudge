@@ -1,7 +1,7 @@
 .numpad {
   display: grid;
-  grid-template-columns: repeat(3, 72px);
-  justify-content: center;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
   gap: var(--space-small);
 }
 

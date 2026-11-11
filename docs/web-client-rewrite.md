@@ -9,7 +9,7 @@
 
 - 客户端只服务微信小程序 web-view，所以去掉 React Native、Expo 和 react-native-web，保留 React，只做网页（D0，§5.4）。React + react-dom 只占现启动包的 2.4%，不是卡的主要原因。
 - 界面用 React 19 + 普通网页元素和 CSS，Vite 构建，React Router 管路由；房间里会动的东西（座位装饰、入座动画、翻牌特效、扭蛋机）放进 PixiJS v8（WebGL）场景层（D1，§5.2）。
-- 旧客户端每次冷启动，出界面前要下载 2.08 MB 入口 JS 和 3.25 MB CanvasKit WASM（都是 gzip 后的大小），解析约 8.46 MB JS，编译约 8 MB WASM（§3）。新客户端首页预算 ≤ 1400 KiB gzip（除 bench、Replay 外的应用代码全部静态导入），没有 WASM（§4）。
+- 旧客户端每次冷启动，出界面前要下载 2.08 MB 入口 JS 和 3.25 MB CanvasKit WASM（都是 gzip 后的大小），解析约 8.46 MB JS，编译约 8 MB WASM（§3）。新客户端首页预算 ≤ 1400 KiB gzip（除 bench 外的应用代码全部静态导入，Replay 已关闭），没有 WASM（§4）。
 - 引擎、后端、协议、数据都不动。约 3.35 万行纯 TS（实时链路、HTTP、鉴权、音频、各游戏模型）和约 1 万行只依赖 React 的 hooks 与组件直接移植；约 10.1 万行依赖 React Native 的界面代码重写（§7）。
 - 只开一个分支开发（D4），旧客户端冻结（D5），现有 34 个 Playwright spec 作为对等验收。分支合并回 `main` 就是切换，生产环境始终只有一个客户端。
 
@@ -62,11 +62,11 @@
 
 ### 4.1 体积（CI 强制）
 
-| 分块                     | 预算（gzip）    | 依据                                                                                                                                                   |
-| ------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 首页入口（到首页可交互） | ≤ 1400 KiB      | 应用代码全部静态导入，只有 bench 内容和 Replay 按需下载（§5.10）；2026-11-11 实测约 1340 KiB，含各游戏、PixiJS、特效、截图和弹窗代码，预算约留 4% 余量 |
-| Session Replay           | ≤ 52 KB，懒加载 | `@sentry/react` 11.11.0 实测独立分块 51 KB                                                                                                             |
-| WASM、Web 字体           | 0               | 去掉 CanvasKit；图标在构建期内联为 SVG                                                                                                                 |
+| 分块                     | 预算（gzip） | 依据                                                                                                                                         |
+| ------------------------ | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 首页入口（到首页可交互） | ≤ 1400 KiB   | 应用代码全部静态导入，只有 bench 内容按需下载（§5.10）；2026-11-11 实测约 1340 KiB，含各游戏、PixiJS、特效、截图和弹窗代码，预算约留 4% 余量 |
+| Session Replay           | 已关闭       | 移除回放采集，避免持续消耗 Sentry Replay 配额                                                                                                |
+| WASM、Web 字体           | 0            | 去掉 CanvasKit；图标在构建期内联为 SVG                                                                                                       |
 
 进入任何游戏不再额外下载应用代码；图片、音频等媒体仍按使用场景请求，不计入 JS/CSS gzip 预算。CDN 能减少传输延迟，但不会消除首次下载、解压和 JavaScript 解析成本。
 
@@ -220,8 +220,8 @@ flowchart TB
 
 - 继续用 Sentry，SDK 从现装的 10.53.1 升到 11.x（`@sentry/react` 11.11.0）。
 - 按 Sentry 官方做法，把初始化放在入口的第一行。现客户端要等 CanvasKit 加载完才初始化，启动期的失败会漏报，这次一并修正。
-- 启动时只装错误监控和 BrowserTracing（实测 46 KB gzip；SDK 11 的 BrowserTracing 自动采集 INP、LCP、CLS）。Session Replay 按官方文档用动态 `import()` 加 `addIntegration` 懒加载（再加约 40 KB）。
-- 采样率沿用现值：traces 0.2；replay 会话 0.1，出错时 1.0。
+- 启动时只装错误监控和 BrowserTracing（实测 46 KB gzip；SDK 11 的 BrowserTracing 自动采集 INP、LCP、CLS）。Session Replay 已移除，不录制会话，也不消耗 Replay 配额。
+- traces 采样率为 0.2。
 - P0 在 Sentry 后台核对来自微信客户端的事件确实能到达。
 - `load_timing` 遥测保留，用于按运营商和 CDN 节点分析加载耗时，这是 Sentry 不覆盖的维度。
 
@@ -231,7 +231,7 @@ flowchart TB
 - 引擎从 TS 源码引入（别名到 `packages/game-engine/src`），因为它 `exports` 的 `default` 指向 CJS `dist`，不利于 tree-shaking。
 - 文件名按内容哈希，CDN 上设 `immutable` 长缓存。现在 Metro 按源码哈希命名，[web/\_headers](../web/_headers) 只能给 `/assets/js/*` 设 `no-cache`。
 - Vite 的 `base` 设为 npmmirror 的版本化地址，代替 CI 里对 JS 和 HTML 的 `sed` 改写（示例应用实测：构建出的 `index.html` 直接引用 CDN 地址）；删除 CanvasKit WASM 的发布步骤。HTML 仍由 Cloudflare Pages 发出（`no-cache`），SPA 回退沿用现有的 `_redirects`。
-- 应用代码全部静态导入，包括所有路由、游戏模块、PixiJS、装饰、翻牌特效、截图和弹窗；只有开发基准页（`/__bench/scene`）内容及 Sentry Replay 保持独立异步分块。Replay 沿用原有启动时后台下载策略，不是用户打开页面后才请求。动态导入位置由 AST 契约固定，构建检查禁止新增应用懒加载入口，也禁止 bench、Replay 混入首页静态闭包。PixiJS 自带的未使用 Web Worker 环境分块不是应用入口，浏览器场景不请求它。
+- 应用代码全部静态导入，包括所有路由、游戏模块、PixiJS、装饰、翻牌特效、截图和弹窗；只有开发基准页（`/__bench/scene`）内容保持独立异步分块。Replay 已关闭并移除。动态导入位置由 AST 契约固定，构建检查禁止新增应用懒加载入口，也禁止 bench 混入首页静态闭包。PixiJS 自带的未使用 Web Worker 环境分块不是应用入口，浏览器场景不请求它。
 - 代码预先下载不等于立即运行功能：游戏 session、WebSocket、音频服务、WebGL、纹理和弹窗仍按原生命周期创建或挂载；保留等待真实资源的 Suspense。图片和音频仍是独立媒体请求，角色立绘按公开配置在房间里低优先级预取并解码。
 - 角色立绘在房间就绪后按公开板子/配置低优先级预加载并调用 `Image.decode()`（狼人杀、阿瓦隆、谁是卧底、瞎掰王），不根据玩家隐藏身份选择请求。共享 `useRolePortraitPreload` 对重复角色和快照更新去重；失败记录日志、不阻塞翻牌，卡片仍可正常请求图片。其他游戏没有角色立绘，不做额外预加载；慢网下不保证图片一定先于翻牌完成。
 - 自己的启动逻辑（微信环境判断、浏览器引导页、JSSDK 加载）放进入口模块，不写内联脚本。
@@ -375,7 +375,7 @@ flowchart TB
 | D5   | 功能冻结   | 已定 | 重写期间旧客户端只修线上 bug，不加功能和新游戏                                                                                              |
 | D6   | 视觉对等   | 已定 | 效果一致，细节可以不同；分批并排截图验收                                                                                                    |
 | D7   | 分享图     | 已定 | 保持"一个渲染器"，截图库换成 SnapDOM（§5.8）                                                                                                |
-| D8   | 错误上报   | 已定 | 继续用 Sentry（`@sentry/react`）：入口第一行初始化，只懒加载 Replay（§5.9）                                                                 |
+| D8   | 错误上报   | 已定 | 继续用 Sentry（`@sentry/react`）：入口第一行初始化；关闭 Session Replay 以避免消耗配额                                                      |
 
 ## 13. 修订记录
 
@@ -414,3 +414,4 @@ v3（2026-11-08）：按你的确认改为方案 B。
 实施中的调整（2026-11-11）：
 
 - 曾将基准页内容拆开、禁止 PixiJS 进入首屏，入口实测 398.0 KiB；随后产品明确选择除 bench、Replay 外的代码全部预先加载，优先避免后续操作等待下载。现在入口实测约 1340 KiB，预算 1400 KiB；取消旧的独立游戏、场景预算及 PixiJS、classic Zod 首屏禁令，改为检查 bench、Replay 不进入首页和应用动态入口白名单。Vite 单块提示阈值为 4100 kB（入口实测约 3920 kB minified），gzip 门禁仍独立执行。
+- 同日合入 main 的 Replay 关闭改动后，保留其移除结果，应用动态入口白名单只剩 bench；不恢复 Replay 下载或录制。

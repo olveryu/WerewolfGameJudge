@@ -562,7 +562,7 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
 });
 
 describe('Game registry: declared cross-package facts resolve', () => {
-  it('keeps only the benchmark and background Replay behind dynamic imports', () => {
+  it('keeps only the benchmark behind dynamic imports', () => {
     const dynamicImports: string[] = [];
     for (const file of srcFiles) {
       const source = ts.createSourceFile(
@@ -581,10 +581,7 @@ describe('Game registry: declared cross-package facts resolve', () => {
       }
       visit(source);
     }
-    expect(dynamicImports.sort()).toEqual([
-      "instrument.ts:'./sentryReplay'",
-      "routes/bench/SceneBenchPage.tsx:'./SceneBench'",
-    ]);
+    expect(dynamicImports.sort()).toEqual(["routes/bench/SceneBenchPage.tsx:'./SceneBench'"]);
   });
 
   it('points every game at its existing, statically imported client entry module', () => {
