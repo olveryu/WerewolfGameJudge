@@ -3,6 +3,7 @@
 import { expect, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
+import { type CommandFrameObservation, observeCommandFrames } from '../helpers/command-frames';
 import { RoomPage } from './RoomPage';
 
 const PHONE_STAGE_MAX_WIDTH = 430;
@@ -26,8 +27,13 @@ const STROKE_TOOLS = ['line', 'rectangle', 'ellipse', 'eraser'] as const;
 
 /** Operates one real player's Pictionary room surface. */
 export class PictionaryRoomPage extends RoomPage {
+  private readonly commands: CommandFrameObservation;
+
   constructor(page: Page) {
     super(page);
+    // The room socket is created on room entry, so the frame observer must
+    // be installed here — every construction happens before room entry.
+    this.commands = observeCommandFrames(page);
   }
 
   /** Start the round from the shared host-management panel. */
@@ -396,27 +402,13 @@ export class PictionaryRoomPage extends RoomPage {
 
   /** Advance the authoritative gallery cursor from the host controls. */
   async advanceGallery(): Promise<void> {
-    const responsePromise = this.page.waitForResponse((response) => {
-      const request = response.request();
-      if (new URL(response.url()).pathname !== '/room/command' || request.method() !== 'POST') {
-        return false;
-      }
-      const body: unknown = request.postDataJSON();
-      return (
-        typeof body === 'object' &&
-        body !== null &&
-        'command' in body &&
-        typeof body.command === 'object' &&
-        body.command !== null &&
-        'type' in body.command &&
-        body.command.type === 'pictionary.gallery.advance'
-      );
-    });
+    const commandPromise = this.commands.waitForCommand('pictionary.gallery.advance');
     await this.page.getByTestId(TESTIDS.pictionaryGalleryAdvanceButton).click();
-    const response = await responsePromise;
-    expect(await response.finished()).toBeNull();
-    expect(response.ok()).toBe(true);
-    expect(await response.json()).toMatchObject({
+    const frame = await commandPromise;
+    const result = await this.commands.waitForResult(frame.commandId);
+    expect(result.outcome).toBe('decided');
+    const decision: unknown = result.result;
+    expect(decision).toMatchObject({
       kind: 'committed',
       outcome: { kind: 'success' },
     });

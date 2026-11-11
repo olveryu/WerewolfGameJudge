@@ -8,6 +8,9 @@ const roomCodeSchema = z.string().regex(ROOM_CODE_PATTERN);
 const roomIdSchema = z.string().min(1).max(128);
 const commandIdSchema = z.string().min(1).max(200);
 
+/** Shared command-object shape: every game command carries a non-empty `type`. */
+const roomCommandPayloadSchema = z.looseObject({ type: z.string().min(1) });
+
 /** POST /room/create */
 export const createRoomSchema = z.strictObject({
   gameType: z.enum(GAME_TYPES),
@@ -20,7 +23,15 @@ export const roomCommandSchema = z.strictObject({
   roomCode: roomCodeSchema,
   roomId: roomIdSchema,
   commandId: commandIdSchema,
-  command: z.looseObject({ type: z.string().min(1) }),
+  command: roomCommandPayloadSchema,
+  controlledSeat: z.number().int().nonnegative().nullable(),
+});
+
+/** WebSocket COMMAND — same envelope as POST /room/command minus roomId: the socket is already bound to the room instance, so the room id is not carried per frame. */
+export const wsRoomCommandSchema = z.strictObject({
+  roomCode: roomCodeSchema,
+  commandId: commandIdSchema,
+  command: roomCommandPayloadSchema,
   controlledSeat: z.number().int().nonnegative().nullable(),
 });
 

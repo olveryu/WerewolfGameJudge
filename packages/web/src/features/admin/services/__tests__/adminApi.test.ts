@@ -58,6 +58,7 @@ describe('adminApi', () => {
           },
           realtime: {
             stateSyncRequests: 0,
+            commandRequests: 0,
             stateUpdateBroadcasts: 0,
             stateUpdateDeliveries: 0,
             stateUpdateBytes: 0,

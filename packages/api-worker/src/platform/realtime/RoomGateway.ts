@@ -18,6 +18,10 @@ import type {
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { REALTIME_CLOSE_CODE } from '@game-judge/game-engine/platform/realtime/closeCodes';
 import {
+  type CommandFrame,
+  createCommandDecidedFrame,
+  createCommandThrottledFrame,
+  createCommandUnavailableFrame,
   createStateUpdateFrame,
   createSyncCurrentFrame,
   createSyncSnapshotFrame,
@@ -27,8 +31,11 @@ import {
 import * as Sentry from '@sentry/cloudflare';
 
 import type { Env } from '../../env';
+import type { CommandDispatch } from '../commands/CommandPipeline';
 import { requestWakeNoLaterThan } from '../commands/roomAlarm';
 import { createLogger } from '../observability/logger';
+import { wsRoomCommandSchema } from '../room/requestSchemas';
+import type { DispatchRoomCommand, RoomInstanceIdentity } from '../room/types';
 import {
   getWebSocketMessageByteLength,
   type RealtimeTrafficMessageType,
@@ -40,6 +47,13 @@ const USER_SOCKET_TAG_PREFIX = 'user:';
 const STALE_SOCKET_MS = 60_000;
 /** Alarm cadence for the half-open sweep while at least one socket is attached. */
 export const STALE_SOCKET_SWEEP_INTERVAL_MS = 30_000;
+/**
+ * Per-socket cap on commands awaiting a result. Legitimate concurrency is ~3 (one stroke flush,
+ * one single-flight user action, one auto-submission), so 16 leaves a wide margin and only trips
+ * on a bug or a flooding client. Over the cap the gateway answers throttled instead of closing
+ * the socket: closing would trigger a reconnect plus durable replay and amplify the flood.
+ */
+export const MAX_PENDING_COMMANDS_PER_SOCKET = 16;
 const KEEPALIVE_REQUEST = 'ping';
 const KEEPALIVE_RESPONSE = 'pong';
 
@@ -53,6 +67,10 @@ interface SocketAttachment {
 export interface RoomGatewayDeps {
   /** Current authoritative snapshot, or null when the room has no state. */
   readSnapshot(): RoomSnapshot<BaseGameState<GameType>> | null;
+  /** Immutable identity of the room this object serves, or null when no room is stored. */
+  readRoomIdentity(): RoomInstanceIdentity | null;
+  /** Run one user command through the pipeline (and broadcast when it commits). */
+  dispatchCommand(request: DispatchRoomCommand): Promise<CommandDispatch>;
 }
 
 function userSocketTag(userId: string): string {
@@ -80,6 +98,8 @@ export class RoomGateway {
   readonly #ctx: DurableObjectState;
   readonly #env: Env;
   readonly #deps: RoomGatewayDeps;
+  /** Commands sent on a socket that have not received a COMMAND_RESULT yet. */
+  readonly #pendingCommands = new WeakMap<WebSocket, number>();
 
   constructor(ctx: DurableObjectState, env: Env, deps: RoomGatewayDeps) {
     this.#ctx = ctx;
@@ -100,7 +120,7 @@ export class RoomGateway {
   }
 
   /** Handle one inbound frame. Any protocol violation closes the socket with 1002. */
-  handleMessage(socket: WebSocket, message: string | ArrayBuffer): void {
+  async handleMessage(socket: WebSocket, message: string | ArrayBuffer): Promise<void> {
     let frame: ReturnType<typeof parseClientFrame>;
     try {
       if (typeof message !== 'string') throw new Error('WebSocket client message must be text');
@@ -115,6 +135,10 @@ export class RoomGateway {
       return;
     }
     this.#record(frame.type, message, 1);
+    if (frame.type === 'COMMAND') {
+      await this.#handleCommand(socket, frame);
+      return;
+    }
 
     const snapshot = this.#deps.readSnapshot();
     if (snapshot === null) {
@@ -129,6 +153,106 @@ export class RoomGateway {
         ? createSyncCurrentFrame(frame.requestId, snapshot.revision)
         : createSyncSnapshotFrame(frame.requestId, snapshot);
     this.#send(socket, 'SYNC_RESULT', JSON.stringify(response));
+  }
+
+  /** Run one COMMAND frame through the pipeline and answer only the sending socket. */
+  async #handleCommand(socket: WebSocket, frame: CommandFrame): Promise<void> {
+    let attachment: SocketAttachment;
+    try {
+      attachment = readAttachment(socket);
+    } catch (error) {
+      log.error('command without a socket attachment', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      Sentry.captureException(error);
+      socket.close(1011, 'command_failed');
+      return;
+    }
+    const identity = this.#deps.readRoomIdentity();
+    if (identity === null) {
+      this.#send(
+        socket,
+        'COMMAND_RESULT',
+        JSON.stringify(createCommandUnavailableFrame(frame.commandId)),
+      );
+      return;
+    }
+    if (frame.roomCode !== identity.roomCode) {
+      log.error('command room code does not match this room', {
+        commandRoomCode: frame.roomCode,
+        roomCode: identity.roomCode,
+      });
+      Sentry.captureException(new Error('command room code does not match this room'));
+      socket.close(REALTIME_CLOSE_CODE.PROTOCOL_ERROR, 'protocol_error');
+      return;
+    }
+    const pending = (this.#pendingCommands.get(socket) ?? 0) + 1;
+    if (pending > MAX_PENDING_COMMANDS_PER_SOCKET) {
+      log.warn('command throttled: too many pending commands', {
+        userId: attachment.userId,
+        roomCode: identity.roomCode,
+        pending,
+      });
+      this.#send(
+        socket,
+        'COMMAND_RESULT',
+        JSON.stringify(createCommandThrottledFrame(frame.commandId)),
+      );
+      return;
+    }
+    this.#pendingCommands.set(socket, pending);
+    try {
+      const parsed = wsRoomCommandSchema.safeParse({
+        roomCode: frame.roomCode,
+        commandId: frame.commandId,
+        command: frame.command,
+        controlledSeat: frame.controlledSeat,
+      });
+      if (!parsed.success) {
+        log.error('invalid websocket command', {
+          error: parsed.error.message,
+          userId: attachment.userId,
+        });
+        Sentry.captureException(parsed.error);
+        socket.close(REALTIME_CLOSE_CODE.PROTOCOL_ERROR, 'protocol_error');
+        return;
+      }
+      let dispatch: CommandDispatch;
+      try {
+        dispatch = await this.#deps.dispatchCommand({
+          roomCode: parsed.data.roomCode,
+          commandId: parsed.data.commandId,
+          actor: { kind: 'user', userId: attachment.userId },
+          controlledSeat: parsed.data.controlledSeat,
+          command: parsed.data.command,
+        });
+      } catch (error) {
+        log.error('command dispatch failed', {
+          error: error instanceof Error ? error.message : String(error),
+          userId: attachment.userId,
+        });
+        Sentry.captureException(error);
+        socket.close(1011, 'command_failed');
+        return;
+      }
+      if (dispatch.kind === 'unavailable') {
+        this.#send(
+          socket,
+          'COMMAND_RESULT',
+          JSON.stringify(createCommandUnavailableFrame(frame.commandId)),
+        );
+        return;
+      }
+      this.#send(
+        socket,
+        'COMMAND_RESULT',
+        JSON.stringify(createCommandDecidedFrame(frame.commandId, dispatch.result)),
+      );
+    } finally {
+      const remaining = (this.#pendingCommands.get(socket) ?? 1) - 1;
+      if (remaining <= 0) this.#pendingCommands.delete(socket);
+      else this.#pendingCommands.set(socket, remaining);
+    }
   }
 
   /** Alarm entry: close half-open sockets (peers that vanished without a Close frame). */

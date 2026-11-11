@@ -6,6 +6,7 @@ import { createPlayerContexts, type MultiPlayerFixture } from '../fixtures/app.f
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { RoomPage } from '../pages/RoomPage';
+import { type CommandFrameObservation, observeCommandFrames } from './command-frames';
 import { extractRoomCode, startRoomCreation } from './home';
 import { waitForRoomScreenReady } from './waits';
 
@@ -38,6 +39,10 @@ interface GameSetupResult {
   roomCode: string;
   hostPage: Page;
   joinerPages: Page[];
+  /** COMMAND / COMMAND_RESULT frames per page (fixture.pages order), observed since before room entry. */
+  commands: CommandFrameObservation[];
+  /** The host page's observation (commands[0]). */
+  hostCommands: CommandFrameObservation;
 }
 
 /** Role info captured during viewRole phase. */
@@ -91,6 +96,10 @@ async function createRoomAndSeatAll(
 ): Promise<GameSetupResult & { hostRoom: RoomPage }> {
   const fixture = await createPlayerContexts(browser, opts.playerCount);
   const [hostPage, ...joinerPages] = fixture.pages;
+  // The room sockets are created on room entry below, so the frame
+  // observers must be installed now — later listeners miss them.
+  const commands = fixture.pages.map((page) => observeCommandFrames(page));
+  const hostCommands = commands[0]!;
 
   await startRoomCreation(hostPage, 'werewolf');
   const boardPicker = new BoardPickerPage(hostPage);
@@ -120,7 +129,7 @@ async function createRoomAndSeatAll(
     await room.seatAt(index + 1);
   }
 
-  return { fixture, roomCode, hostPage, joinerPages, hostRoom };
+  return { fixture, roomCode, hostPage, joinerPages, commands, hostCommands, hostRoom };
 }
 
 // ---------------------------------------------------------------------------

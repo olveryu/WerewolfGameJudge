@@ -3,6 +3,11 @@ import { expect, test } from '@playwright/test';
 import { AUDIO_WAITING_LABEL } from '../../packages/web/src/features/room/model/RoomBottomActions';
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
+import {
+  type CommandFrameGate,
+  gateCommandFrames,
+  observeCommandFrames,
+} from '../helpers/command-frames';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { HomePage } from '../pages/HomePage';
@@ -15,12 +20,31 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
     browser,
   }, testInfo) => {
     const playerCount = gameId === 'werewolf' ? 3 : 6;
-    const fixture = await createPlayerContexts(browser, playerCount + 1);
+    // Install the gate before the host page navigates: routeWebSocket's
+    // WebSocket override is an init script, which only runs on navigation,
+    // so installing it after the page already loaded leaves the room socket
+    // unrouted and the ack bypasses the gate (diagnostic run 42844905359).
+    let ackGate: CommandFrameGate | undefined;
+    const fixture = await createPlayerContexts(browser, playerCount + 1, {
+      onPageCreated: async (page, index) => {
+        if (index === 0) ackGate = await gateCommandFrames(page);
+      },
+    });
     const hostPage = fixture.pages[0];
     const playerPages = fixture.pages.slice(0, playerCount);
     const spectatorPage = fixture.pages[playerCount]!;
     const hostRoom = new RoomPage(hostPage);
-    const audioAckGate = Promise.withResolvers<void>();
+    // Hold the host's audio-ack COMMAND frame at the socket so the
+    // announcement state stays visible while the viewports are checked.
+    // The waiter's timeout starts here, but the ack can only arrive after
+    // room setup, seating, role viewing and game start plus the first
+    // audio batch — well past the 30s default — so allow 120s.
+    const heldAckPromise = ackGate!.waitForHeld(`${gameId}.audio.ack`, 120_000);
+    // TEMPORARY DIAGNOSTIC (revert after root cause is found): observe the
+    // host's COMMAND frames in parallel with the gate. If the ack never
+    // arrives at the gate, the observed list shows whether the host sent it
+    // at all (gate bug) or never sent it (audio/dispatch bug).
+    const hostObservation = observeCommandFrames(hostPage);
 
     try {
       await test.step('建房、入座并查看身份', async () => {
@@ -50,24 +74,6 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
         for (const page of playerPages) {
           await new RoomPage(page).viewRole();
         }
-      });
-
-      await hostPage.route('**/room/command', async (route, request) => {
-        if (request.method() === 'POST') {
-          const body: unknown = request.postDataJSON();
-          if (
-            typeof body === 'object' &&
-            body !== null &&
-            'command' in body &&
-            typeof body.command === 'object' &&
-            body.command !== null &&
-            'type' in body.command &&
-            body.command.type === `${gameId}.audio.ack`
-          ) {
-            await audioAckGate.promise;
-          }
-        }
-        await route.continue();
       });
 
       await hostRoom.startGame();
@@ -120,7 +126,33 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
       }
 
       await test.step('真实播报 ack 后各视角移除状态', async () => {
-        audioAckGate.resolve();
+        let heldAck;
+        try {
+          heldAck = await heldAckPromise;
+        } catch (error) {
+          // TEMPORARY DIAGNOSTIC: attach what the host actually sent so the
+          // failure bundle shows whether the ack frame ever left the page.
+          await testInfo.attach(`${gameId}-host-observed-commands`, {
+            body: JSON.stringify(
+              {
+                commands: hostObservation.commands().map((c) => ({
+                  commandId: c.commandId,
+                  command: c.command,
+                })),
+                results: hostObservation.results().map((r) => ({
+                  commandId: r.commandId,
+                  outcome: r.outcome,
+                  result: r.result,
+                })),
+              },
+              null,
+              2,
+            ),
+            contentType: 'application/json',
+          });
+          throw error;
+        }
+        heldAck.release();
         for (const page of [hostPage, playerPages[1]!, spectatorPage]) {
           await expect(page.getByTestId(TESTIDS.audioWaitingMessage)).toHaveCount(0, {
             timeout: 45_000,
@@ -128,8 +160,7 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
         }
       });
     } finally {
-      audioAckGate.resolve();
-      await hostPage.unrouteAll({ behavior: 'wait' });
+      await ackGate!.stop();
       await closeAll(fixture);
     }
   });

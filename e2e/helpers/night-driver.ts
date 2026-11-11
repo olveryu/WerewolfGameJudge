@@ -3,6 +3,7 @@ import { expect, type Locator, type Page } from '@playwright/test';
 import { TESTIDS } from '../../packages/web/src/testids';
 import { RoomPage } from '../pages/RoomPage';
 import { alertPrimaryButton, pressAlertButton, readAlertText } from './alerts';
+import type { CommandFrameObservation } from './command-frames';
 import type { CapturedRole } from './multi-player';
 import { ensureConnected } from './waits';
 
@@ -482,8 +483,14 @@ const AUDIO_ACK_WAIT_MS = 30_000;
  * Ended has no step anchor and fires no prompt, and the bottom
  * panel's audio-waiting placeholder exists only in Ongoing. The ack
  * is the anchor instead: the host submits werewolf.audio.ack only
- * after the batch has played in full, and its committed response
+ * after the batch has played in full, and its committed COMMAND_RESULT
  * means the server has cleared isAudioPlaying.
+ *
+ * The observation is attached before the host page enters the room
+ * (setupNPlayerGame returns it on the setup result): the room socket is
+ * created on room entry, and a listener installed later misses it.
+ * The wait is for the NEXT ack after this call, like waitForResponse —
+ * an ack from an earlier batch does not satisfy it.
  *
  * Call only when the announcement batch is the one outstanding —
  * i.e. after the phase flip that queued it (a night cannot advance
@@ -493,37 +500,20 @@ const AUDIO_ACK_WAIT_MS = 30_000;
  *   ack command was not committed.
  */
 export async function waitForHostAudioAck(
-  hostPage: Page,
+  observation: CommandFrameObservation,
   timeoutMs = AUDIO_ACK_WAIT_MS,
 ): Promise<void> {
-  const response = await hostPage.waitForResponse(
-    (resp) => {
-      const request = resp.request();
-      if (new URL(resp.url()).pathname !== '/room/command' || request.method() !== 'POST') {
-        return false;
-      }
-      const body: unknown = request.postDataJSON();
-      return (
-        typeof body === 'object' &&
-        body !== null &&
-        'command' in body &&
-        typeof body.command === 'object' &&
-        body.command !== null &&
-        'type' in body.command &&
-        body.command.type === 'werewolf.audio.ack'
-      );
-    },
-    { timeout: timeoutMs },
-  );
-  if (!response.ok()) {
-    throw new Error(`Audio ack request failed with HTTP ${response.status()}`);
+  const frame = await observation.waitForCommand('werewolf.audio.ack', timeoutMs);
+  const result = await observation.waitForResult(frame.commandId, timeoutMs);
+  if (result.outcome !== 'decided') {
+    throw new Error(`Audio ack was not decided by the server (outcome: ${result.outcome})`);
   }
-  const result: unknown = await response.json();
+  const decision: unknown = result.result;
   if (
-    typeof result !== 'object' ||
-    result === null ||
-    !('kind' in result) ||
-    result.kind !== 'committed'
+    typeof decision !== 'object' ||
+    decision === null ||
+    !('kind' in decision) ||
+    decision.kind !== 'committed'
   ) {
     throw new Error('Audio ack was not committed by the server');
   }

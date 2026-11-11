@@ -388,6 +388,7 @@ export function parseAdminRequestTrafficResponse(value: unknown): AdminRequestTr
     realtime,
     [
       'stateSyncRequests',
+      'commandRequests',
       'stateUpdateBroadcasts',
       'stateUpdateDeliveries',
       'stateUpdateBytes',
@@ -482,6 +483,10 @@ export function parseAdminRequestTrafficResponse(value: unknown): AdminRequestTr
       stateSyncRequests: parseNonnegativeInteger(
         realtime.stateSyncRequests,
         'Admin request traffic stateSyncRequests',
+      ),
+      commandRequests: parseNonnegativeInteger(
+        realtime.commandRequests,
+        'Admin request traffic commandRequests',
       ),
       stateUpdateBroadcasts: parseNonnegativeInteger(
         realtime.stateUpdateBroadcasts,

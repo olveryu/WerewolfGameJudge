@@ -145,6 +145,7 @@ describe('adminResponseCodec', () => {
         },
         realtime: {
           stateSyncRequests: 6,
+          commandRequests: 6,
           stateUpdateBroadcasts: 3,
           stateUpdateDeliveries: 12,
           stateUpdateBytes: 2400,
@@ -196,6 +197,7 @@ describe('adminResponseCodec', () => {
         realtime: {
           stateSyncRequests: 0,
           stateUpdateBroadcasts: 0,
+          commandRequests: 0,
           stateUpdateDeliveries: 0,
           stateUpdateBytes: 0,
           downlinkDeliveries: 0,
@@ -231,6 +233,7 @@ describe('adminResponseCodec', () => {
           stateSyncRequests: 0,
           stateUpdateBroadcasts: 0,
           stateUpdateDeliveries: 0,
+          commandRequests: 0,
           stateUpdateBytes: 0,
           downlinkDeliveries: 0,
           downlinkBytes: 0,

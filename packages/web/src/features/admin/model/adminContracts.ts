@@ -107,6 +107,7 @@ export interface AdminRequestTraffic {
   };
   realtime: {
     stateSyncRequests: number;
+    commandRequests: number;
     stateUpdateBroadcasts: number;
     stateUpdateDeliveries: number;
     /** STATE_UPDATE UTF-8 payload bytes after WebSocket fanout. */

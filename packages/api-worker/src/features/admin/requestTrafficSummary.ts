@@ -53,6 +53,7 @@ export interface AdminRequestTrafficSummary {
   };
   readonly realtime: {
     readonly stateSyncRequests: number;
+    readonly commandRequests: number;
     readonly stateUpdateBroadcasts: number;
     readonly stateUpdateDeliveries: number;
     readonly stateUpdateBytes: number;
@@ -201,6 +202,7 @@ export function createAdminRequestTrafficSummary(
 
   const realtime = {
     stateSyncRequests: 0,
+    commandRequests: 0,
     stateUpdateBroadcasts: 0,
     stateUpdateDeliveries: 0,
     stateUpdateBytes: 0,
@@ -213,6 +215,9 @@ export function createAdminRequestTrafficSummary(
       case 'SYNC':
         realtime.stateSyncRequests += row.messageCount;
         break;
+      case 'COMMAND':
+        realtime.commandRequests += row.messageCount;
+        break;
       case 'STATE_UPDATE':
         realtime.stateUpdateBroadcasts += row.messageCount;
         realtime.stateUpdateDeliveries += row.deliveryCount;
@@ -221,6 +226,7 @@ export function createAdminRequestTrafficSummary(
         realtime.downlinkBytes += row.transferredBytes;
         break;
       case 'SYNC_RESULT':
+      case 'COMMAND_RESULT':
       case 'INBOX_HINT':
         realtime.downlinkDeliveries += row.deliveryCount;
         realtime.downlinkBytes += row.transferredBytes;

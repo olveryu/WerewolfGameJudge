@@ -196,7 +196,8 @@ export class CommandOutbox<TState extends BaseGameState<string>> {
     const decision = new Promise<DispatchOutcome<TState>>((resolve, reject) => {
       intent.waiters.push({ resolve, reject });
     });
-    // HTTP does not need the socket: the first send goes out now; replays wait for a live link.
+    // The first send goes out now and fails fast when the socket is not live; replays wait
+    // for a live link.
     if (intent.inFlight === null && intent.attemptedGeneration === -1) {
       void this.#attempt(key, intent);
     }

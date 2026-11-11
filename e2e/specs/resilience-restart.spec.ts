@@ -18,7 +18,7 @@ test.setTimeout(180_000);
 
 test.describe('Resilience — Restart & Settings', () => {
   test('restart after first night completes successfully', async ({ browser }, testInfo) => {
-    const { fixture, hostPage } = await setupNPlayerGame(browser, {
+    const { fixture, hostPage, hostCommands } = await setupNPlayerGame(browser, {
       playerCount: 2,
       configureTemplate: async (config) => config.configure2Player(),
     });
@@ -38,7 +38,7 @@ test.describe('Resilience — Restart & Settings', () => {
       // retry. Wait for the host's audio ack (the server-side gate
       // lifting) before clicking, like a host who waits out the
       // announcement.
-      await waitForHostAudioAck(hostPage);
+      await waitForHostAudioAck(hostCommands);
 
       // Return to the lobby (terminal flow), then set the game up again
       await room.returnToLobby();
