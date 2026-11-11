@@ -22,6 +22,36 @@ beforeEach(async () => {
 });
 
 describe('Undercover editorial publication', () => {
+  it('spreads concurrent empty-inventory reservations across categories', async () => {
+    const packs = await Promise.all(
+      Array.from({ length: 10 }, (_, index) =>
+        reserveUndercoverWordPack(env.DB, '2026-09-01', 1, {
+          force: true,
+          runId: `parallel-${index}`,
+        }),
+      ),
+    );
+    expect(new Set(packs.map((pack) => pack?.category)).size).toBe(10);
+  });
+
+  it('reserves one batch for queued reviews and one for the least stocked category', async () => {
+    await env.DB.prepare(
+      `INSERT INTO undercover_word_pairs
+        (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
+       VALUES ('existing', '咖啡', '茶', 'food', 'active', '2026-09-01', '2026-09-01', '{}')`,
+    ).run();
+    await env.DB.prepare(
+      `INSERT INTO undercover_word_candidates
+        (id, word_a, word_b, category, material_json, status, created_at)
+       VALUES ('pending', '果汁', '汽水', 'food', '{}', 'pending', '2026-09-01')`,
+    ).run();
+    const review = await reserveUndercoverWordPack(env.DB, '2026-09-01', 0);
+    const replenishment = await reserveUndercoverWordPack(env.DB, '2026-09-01', 1);
+    expect(review?.category).toBe('food');
+    expect(replenishment).not.toBeNull();
+    expect(replenishment?.category).not.toBe('food');
+  });
+
   it('resumes failed material, publishes once, and retires only after a negative review', async () => {
     const first = await reserveUndercoverWordPack(env.DB, '2026-09-01', 0);
     if (first === null) throw new Error('Expected reservation');

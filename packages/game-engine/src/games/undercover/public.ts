@@ -37,6 +37,7 @@ export {
   isUndercoverSeat,
   isValidUndercoverConfig,
   UNDERCOVER_CATEGORIES,
+  UNDERCOVER_CATEGORY_MIN_ACTIVE_PAIRS,
   UNDERCOVER_CATEGORY_NAMES,
   UNDERCOVER_CONFIG_SCHEMA,
   type UndercoverCategory,

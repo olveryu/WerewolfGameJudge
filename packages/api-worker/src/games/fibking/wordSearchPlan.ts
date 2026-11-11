@@ -1,4 +1,5 @@
 /** Distinct editorial searches indexed by the monthly reservation ledger, not the calendar day. */
+import type { FibWordTopic } from './wordTopics';
 
 const SEARCH_QUERIES = [
   '中国古代婚礼习俗 仪式名称 撒帐 障车 青庐 含义',
@@ -81,12 +82,131 @@ const SEARCH_QUERIES = [
   '文字训诂 音韵学 术语 名称 含义',
 ] as const;
 
-/** Total planned searches; force mode cycles the monthly ledger over all of them. */
-export const FIB_WORD_SEARCH_QUERY_COUNT = SEARCH_QUERIES.length;
+const SEARCH_TOPICS: readonly FibWordTopic[] = [
+  'customs',
+  'games',
+  'science',
+  'utensils',
+  'dialect',
+  'food',
+  'textiles',
+  'occupations',
+  'internet',
+  'law',
+  'clothing',
+  'plants',
+  'drinks',
+  'games',
+  'plants',
+  'medicine',
+  'sports',
+  'internet',
+  'theatre',
+  'crafts',
+  'plants',
+  'games',
+  'music',
+  'science',
+  'music',
+  'theatre',
+  'internet',
+  'earth',
+  'animals',
+  'science',
+  'law',
+  'occupations',
+  'animals',
+  'dialect',
+  'festivals',
+  'internet',
+  'customs',
+  'clothing',
+  'astronomy',
+  'education',
+  'education',
+  'earth',
+  'sports',
+  'utensils',
+  'games',
+  'food',
+  'food',
+  'astronomy',
+  'food',
+  'agriculture',
+  'agriculture',
+  'mining',
+  'mining',
+  'currency',
+  'transport',
+  'games',
+  'crafts',
+  'crafts',
+  'textiles',
+  'crafts',
+  'crafts',
+  'crafts',
+  'crafts',
+  'painting',
+  'painting',
+  'textiles',
+  'games',
+  'internet',
+  'internet',
+  'law',
+  'trade',
+  'occupations',
+  'dialect',
+  'dialect',
+  'sports',
+  'sports',
+  'literature',
+  'literature',
+];
 
-/** Every reserved monthly batch has one query; out-of-plan requests fail instead of cycling. */
+const ADDITIONAL_SEARCHES: readonly { readonly topic: FibWordTopic; readonly query: string }[] = [
+  { topic: 'buildings', query: '中国古建筑 斗拱 檐角 构件 名称 用途' },
+  { topic: 'buildings', query: '传统民居 营造 门窗 梁架 术语 含义' },
+  { topic: 'festivals', query: '中国传统节日 节令 祭祀 习俗 名称 由来' },
+  { topic: 'drinks', query: '中国传统酿酒 酒曲 发酵 工艺 术语 名称' },
+  { topic: 'medicine', query: '传统中医 药方 炮制 药材 术语 名称 含义' },
+  { topic: 'currency', query: '古代钱币 铜钱 货币 重量 单位 名称 含义' },
+  { topic: 'transport', query: '古代舟车 驿站 行旅 交通 器具 术语 名称' },
+  { topic: 'trade', query: '古代商业 账簿 票号 交易 行话 名称 含义' },
+  { topic: 'courtship', query: '中国古代婚恋 纳采 相亲 婚书 习俗 术语 含义' },
+  { topic: 'courtship', query: '传统婚嫁 媒人 定亲 迎亲 礼俗 名称 由来' },
+  { topic: 'emotions', query: '古代情感词语 相思 别离 称谓 典故 含义' },
+  { topic: 'emotions', query: '民间爱情歌谣 情感表达 方言 词语 解释' },
+  { topic: 'drinkingCustoms', query: '古代酒令 行令 宴饮 术语 名称 规则' },
+  { topic: 'drinkingCustoms', query: '传统酒俗 劝酒 宴席 饮酒礼仪 词语 解释' },
+  { topic: 'partyGames', query: '古代宴会 游戏 射覆 猜谜 术语 名称 含义' },
+  { topic: 'partyGames', query: '民间聚会 酒令 猜拳 博戏 游戏名称 玩法' },
+  { topic: 'jianghu', query: '民间艺人 江湖行话 演出 称谓 术语 含义' },
+  { topic: 'jianghu', query: '传统戏班 走江湖 旧时行话 称谓 名称 解释' },
+  { topic: 'stageProps', query: '传统戏曲 舞台 砌末 道具 名称 用途' },
+  { topic: 'stageProps', query: '戏曲表演 虚拟道具 马鞭 舞台用品 名称 含义' },
+  { topic: 'theatricalTricks', query: '传统戏曲 舞台 变脸 特技 术语 名称 解释' },
+  { topic: 'theatricalTricks', query: '古代戏台 机关 换景 舞台效果 行话 名称 含义' },
+  { topic: 'detective', query: '中国古代公案小说 断案 推理 术语 名称 解释' },
+  { topic: 'detective', query: '侦探小说 叙事 线索 诡计 术语 名称 含义' },
+  { topic: 'socialEtiquette', query: '中国古代社交礼仪 作揖 拜会 称谓 名称 含义' },
+  { topic: 'socialEtiquette', query: '旧时待客 宴席 礼节 礼仪 术语 名称 解释' },
+  { topic: 'urbanSlang', query: '老北京 市井 俚语 行话 词语 含义 由来' },
+  { topic: 'urbanSlang', query: '旧上海 市井 俗语 社交 称谓 词语 解释' },
+];
+
+/** Search indexes are append-only because historical packs store them. */
+export const FIB_WORD_SEARCHES = [
+  ...SEARCH_QUERIES.map((query, index) => {
+    const topic = SEARCH_TOPICS[index];
+    if (topic === undefined) throw new Error(`Missing Fib topic for search ${index}`);
+    return { topic, query };
+  }),
+  ...ADDITIONAL_SEARCHES,
+];
+export const FIB_WORD_SEARCH_QUERY_COUNT = FIB_WORD_SEARCHES.length;
+
 export function createFibWordSearchQuery(searchIndex: number): string {
-  const query = SEARCH_QUERIES[searchIndex];
-  if (query === undefined) throw new Error(`Fib word search index out of range: ${searchIndex}`);
-  return query;
+  const search = FIB_WORD_SEARCHES[searchIndex];
+  if (search === undefined) throw new Error(`Fib word search index out of range: ${searchIndex}`);
+  return search.query;
 }

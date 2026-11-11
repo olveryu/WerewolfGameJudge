@@ -1,4 +1,5 @@
 /** Real D1 queue recovery, exact review publication with pinyin, and stable retirement. */
+import { DRAWGUESS_WORD_CATEGORIES } from '@game-judge/game-engine/games/drawguess/public';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -21,6 +22,46 @@ beforeEach(async () => {
 });
 
 describe('DrawGuess editorial publication', () => {
+  it('spreads concurrent empty-inventory reservations across categories', async () => {
+    const packs = await Promise.all(
+      Array.from({ length: 10 }, (_, index) =>
+        reserveDrawGuessWordPack(env.DB, '2026-09-01', 0, {
+          force: true,
+          runId: `parallel-${index}`,
+        }),
+      ),
+    );
+    expect(new Set(packs.map((pack) => pack?.category)).size).toBe(10);
+  });
+  it('tries another equally empty category after a pack produces no words', async () => {
+    const first = await reserveDrawGuessWordPack(env.DB, '2026-09-01', 0);
+    if (first === null) throw new Error('Expected reservation');
+    await publishDrawGuessWordPack(env.DB, first, [], []);
+    const second = await reserveDrawGuessWordPack(env.DB, '2026-09-02', 0);
+    expect(second).not.toBeNull();
+    expect(second?.category).not.toBe(first.category);
+  });
+
+  it('falls back to the least stocked category when all categories are cooling down', async () => {
+    const now = new Date().toISOString();
+    await env.DB.batch(
+      DRAWGUESS_WORD_CATEGORIES.map((category) =>
+        env.DB.prepare(
+          `INSERT INTO drawguess_word_packs (id, category, request_token, status, model, prompt_version, review_version, created_at)
+           VALUES (?, ?, ?, 'failed', 'test', '1', '1', ?)`,
+        ).bind(`attempt-${category}`, category, category, now),
+      ),
+    );
+    await env.DB.prepare(
+      `INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at)
+       VALUES ('stock', '大熊猫', 'dxm', 'animals', 'easy', 'active', ?)`,
+    )
+      .bind(now)
+      .run();
+    const pack = await reserveDrawGuessWordPack(env.DB, '2026-09-01', 0);
+    expect(pack?.category).not.toBe('animals');
+  });
+
   it('resumes failed material and atomically publishes once with pinyin initials', async () => {
     const first = await reserveDrawGuessWordPack(env.DB, '2026-09-01', 0);
     if (first === null) throw new Error('Expected reservation');
@@ -35,6 +76,17 @@ describe('DrawGuess editorial publication', () => {
     const candidates = await getDrawGuessReviewCandidates(env.DB, first);
     expect(candidates).toHaveLength(1);
     await failDrawGuessWordPack(env.DB, first, 'review:timedOut');
+    await env.DB.prepare("UPDATE drawguess_word_packs SET created_at = '2020-01-01' WHERE id = ?")
+      .bind(first.id)
+      .run();
+    await env.DB.batch(
+      DRAWGUESS_WORD_CATEGORIES.filter((category) => category !== first.category).map((category) =>
+        env.DB.prepare(
+          `INSERT INTO drawguess_word_packs (id, category, request_token, status, model, prompt_version, review_version, created_at)
+        VALUES (?, ?, ?, 'failed', 'test', '1', '1', ?)`,
+        ).bind(`attempt-${category}`, category, category, new Date().toISOString()),
+      ),
+    );
     const second = await reserveDrawGuessWordPack(env.DB, '2026-09-02', 0);
     if (second === null) throw new Error('Expected resumed reservation');
     expect(await getDrawGuessReviewCandidates(env.DB, second)).toEqual(candidates);

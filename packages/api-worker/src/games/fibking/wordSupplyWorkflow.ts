@@ -3,11 +3,13 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloud
 import { z } from 'zod';
 
 import type { Env } from '../../env';
+import { claimEditorialModelRequest } from '../../platform/ai/editorialBudget';
 import { createLogger } from '../../platform/observability/logger';
 import { measureDatabaseCapacity } from '../../platform/storage/capacity';
 import { cleanupFibWordAudit } from './maintenance';
 import { updateFibWordCandidateEvidence } from './wordCandidatePool';
 import { createConfiguredFibWordProvider } from './wordProviders';
+import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
 import {
   extractFibWordEvidence,
   type FibWordEvidence,
@@ -27,9 +29,16 @@ import {
   getFibWordReviewCandidates,
   publishFibWordPack,
   reserveFibWordPack,
+  selectFibWordSearch,
   storeFibWordCandidates,
 } from './wordPublication';
 import { createFibWordSearchQuery } from './wordSearchPlan';
+import {
+  classifyFibWords,
+  getFibWordsToClassify,
+  storeFibWordTopics,
+} from './wordTopicClassification';
+import type { FibWordTopic } from './wordTopics';
 
 const EXTERNAL_STEP = { retries: { limit: 0, delay: '1 second' }, timeout: '40 seconds' } as const;
 const REQUEST_TIMEOUT_MS = 120_000;
@@ -47,9 +56,11 @@ interface FibWordSupplyParams {
 function createRequest(
   category: FibWordCategory,
   evidence: readonly FibWordEvidence[],
+  topic?: FibWordTopic | null,
 ): FibWordRequest {
   return {
     category,
+    topic,
     evidence,
     deadlineAt: Date.now() + REQUEST_TIMEOUT_MS,
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -74,6 +85,27 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
     if (!isEnabled) return { status: 'disabled' };
     if (day.slice(0, 7) !== new Date().toISOString().slice(0, 7)) return { status: 'expired' };
     await step.do('retention', () => cleanupFibWordAudit(this.env.DB, Date.now()));
+    try {
+      await step.do('classify-history', MODEL_STEP, async () => {
+        const words = await getFibWordsToClassify(this.env.DB);
+        if (words.length === 0) return;
+        const identity = force && runId !== undefined ? `${day}:force:${runId}` : day;
+        await claimEditorialModelRequest(
+          this.env.DB,
+          `fib:history:${identity}`,
+          'fibking',
+          GEMINI_FIB_WORD_MODEL,
+          Date.now(),
+          { force },
+        );
+        const classifications = await classifyFibWords(this.env.GEMINI_API_KEY, words);
+        await storeFibWordTopics(this.env.DB, words, classifications);
+      });
+    } catch (error) {
+      log.error('historical topic classification failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     for (let batchIndex = 0; batchIndex < batchLimit; batchIndex += 1) {
       const capacity = await step.do(`capacity-${batchIndex}`, () =>
         measureDatabaseCapacity(this.env.DB),
@@ -101,12 +133,16 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
         getFibWordReviewCandidates(this.env.DB, pack),
       );
       if (candidates.length === 0) {
+        failureStage = 'searchSelection';
+        const search = await step.do(`select-search-${batchIndex}`, () =>
+          selectFibWordSearch(this.env.DB, pack),
+        );
         failureStage = 'discovery';
         const discovery = await step.do(`discover-${batchIndex}`, EXTERNAL_STEP, async () => {
           await claimFibWordProviderRequest(this.env.DB, pack, 'discovery', { force });
           return searchFibWordEvidence(
             this.env.TAVILY_API_KEY,
-            createFibWordSearchQuery(pack.searchIndex),
+            createFibWordSearchQuery(search.searchIndex),
           );
         });
         if (discovery.length > 0) {
@@ -124,7 +160,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
                 await claimFibWordProviderRequest(this.env.DB, pack, 'generation', { force });
                 return [
                   ...(await createConfiguredFibWordProvider(this.env).generateBatch(
-                    createRequest(pack.category, extraction.evidence),
+                    createRequest(pack.category, extraction.evidence, search.topic),
                   )),
                 ];
               },

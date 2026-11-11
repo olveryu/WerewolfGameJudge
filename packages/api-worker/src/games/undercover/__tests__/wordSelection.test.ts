@@ -1,5 +1,6 @@
 /** Real D1 allocation contracts for Undercover snapshots and per-account deduplication. */
 
+import { UNDERCOVER_CATEGORIES } from '@game-judge/game-engine/games/undercover/public';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -51,13 +52,140 @@ beforeEach(async () => {
 });
 
 describe('Undercover word selection', () => {
-  it('exposes only categories with active inventory and never exposes pairs', async () => {
+  it('preserves existing draws and indexes when adding the party categories', async () => {
+    const newCategories = UNDERCOVER_CATEGORIES.slice(-10);
+    const selection = await getOrCreateUndercoverWordSelection(input());
+    const oldIndex = (
+      await env.DB.prepare(
+        "SELECT partition_key, members FROM word_draw_index WHERE pool = 'undercover' AND partition_key IN ('all', 'food') ORDER BY partition_key",
+      ).all()
+    ).results;
+    const seen = await env.DB.prepare(
+      "SELECT seen FROM word_seen WHERE user_id = ? AND pool = 'undercover'",
+    )
+      .bind(PLAYER)
+      .first();
+    await env.DB.prepare(
+      "DELETE FROM word_draw_index WHERE pool = 'undercover' AND partition_key IN (SELECT value FROM json_each(?))",
+    )
+      .bind(JSON.stringify(newCategories))
+      .run();
+    const migration = env.TEST_MIGRATIONS.find(
+      ({ name }) => name === '0070_undercover_party_categories.sql',
+    );
+    if (migration === undefined) throw new Error('Undercover party category migration is missing');
+    await env.DB.batch(migration.queries.map((query) => env.DB.prepare(query)));
+    expect(await getOrCreateUndercoverWordSelection(input())).toEqual(selection);
+    expect(
+      (
+        await env.DB.prepare(
+          "SELECT partition_key, members FROM word_draw_index WHERE pool = 'undercover' AND partition_key IN ('all', 'food') ORDER BY partition_key",
+        ).all()
+      ).results,
+    ).toEqual(oldIndex);
+    expect(
+      await env.DB.prepare("SELECT seen FROM word_seen WHERE user_id = ? AND pool = 'undercover'")
+        .bind(PLAYER)
+        .first(),
+    ).toEqual(seen);
+    expect((await env.DB.prepare('PRAGMA foreign_key_check').all()).results).toEqual([]);
+    await env.DB.batch(
+      newCategories.map((category, index) =>
+        env.DB.prepare(
+          `INSERT INTO undercover_word_pairs
+           (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
+           VALUES (?, ?, ?, ?, 'active', '2026-09-21', '2026-09-21', '{}')`,
+        ).bind(`new-${category}`, `A${index}`, `B${index}`, category),
+      ),
+    );
+    const indexed = await env.DB.prepare(
+      `SELECT p.category, i.members, p.draw_ordinal FROM undercover_word_pairs p
+       JOIN word_draw_index i ON i.pool = 'undercover' AND i.partition_key = p.category
+       WHERE p.id LIKE 'new-%'`,
+    ).all<{ category: string; members: string; draw_ordinal: number }>();
+    expect(indexed.results).toHaveLength(10);
+    for (const row of indexed.results) expect(row.members).toBe(`,${row.draw_ordinal},`);
+    const partySelection = await getOrCreateUndercoverWordSelection({
+      ...input('party-round'),
+      effect: {
+        type: 'undercover.word.select',
+        payload: {
+          roundId: 'party-round',
+          category: 'dating',
+          avoidWordPairIds: [],
+          shouldAllowRepeated: false,
+        },
+      },
+    });
+    expect(partySelection.category).toBe('dating');
+  });
+
+  it('preserves existing snapshots and draw indexes when expanding categories', async () => {
+    const selection = await getOrCreateUndercoverWordSelection(input());
+    const beforeIndex = (
+      await env.DB.prepare(
+        "SELECT partition_key, members FROM word_draw_index WHERE pool = 'undercover' AND partition_key IN ('all', 'food') ORDER BY partition_key",
+      ).all()
+    ).results;
+    const beforeSeen = await env.DB.prepare(
+      "SELECT seen FROM word_seen WHERE user_id = ? AND pool = 'undercover'",
+    )
+      .bind(PLAYER)
+      .first();
+    await env.DB.prepare(
+      `DELETE FROM word_draw_index WHERE pool = 'undercover'
+       AND partition_key NOT IN ('all', 'food', 'dailyLife', 'school', 'work', 'relationships', 'actions', 'entertainment', 'sportsAndGames', 'travel', 'nature')`,
+    ).run();
+    const migration = env.TEST_MIGRATIONS.find(
+      ({ name }) => name === '0068_undercover_word_categories.sql',
+    );
+    if (migration === undefined) throw new Error('Undercover category migration is missing');
+    await env.DB.batch(migration.queries.map((query) => env.DB.prepare(query)));
+    expect(await getOrCreateUndercoverWordSelection(input())).toEqual(selection);
+    expect(
+      (
+        await env.DB.prepare(
+          "SELECT partition_key, members FROM word_draw_index WHERE pool = 'undercover' AND partition_key IN ('all', 'food') ORDER BY partition_key",
+        ).all()
+      ).results,
+    ).toEqual(beforeIndex);
+    expect(
+      await env.DB.prepare("SELECT seen FROM word_seen WHERE user_id = ? AND pool = 'undercover'")
+        .bind(PLAYER)
+        .first(),
+    ).toEqual(beforeSeen);
+    expect((await env.DB.prepare('PRAGMA foreign_key_check').all()).results).toEqual([]);
+    await env.DB.prepare(
+      `INSERT INTO undercover_word_pairs
+        (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
+       VALUES ('new-pair', '咖啡', '茶', 'drinks', 'active', '2026-09-21', '2026-09-21', '{}')`,
+    ).run();
+    const newIndex = await env.DB.prepare(
+      "SELECT members FROM word_draw_index WHERE pool = 'undercover' AND partition_key = 'drinks'",
+    ).first<{ members: string }>();
+    const newPair = await env.DB.prepare(
+      "SELECT draw_ordinal FROM undercover_word_pairs WHERE id = 'new-pair'",
+    ).first<{ draw_ordinal: number }>();
+    expect(newIndex?.members).toBe(`,${newPair?.draw_ordinal},`);
+  });
+
+  it('keeps all available below the category threshold and exposes categories at eight pairs', async () => {
     const response = await undercoverInventoryRoutes.request('/categories', {}, env);
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ availableCategories: ['food'] });
+    expect(await response.json()).toEqual({ availableCategories: [], hasAnyWords: true });
+    await env.DB.batch(
+      Array.from({ length: 7 }, (_, index) =>
+        env.DB.prepare(
+          `INSERT INTO undercover_word_pairs (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
+         VALUES (?, ?, ?, 'food', 'active', '2026-09-21', '2026-09-21', '{}')`,
+        ).bind(`extra-${index}`, `A${index}`, `B${index}`),
+      ),
+    );
+    const sufficient = await undercoverInventoryRoutes.request('/categories', {}, env);
+    expect(await sufficient.json()).toEqual({ availableCategories: ['food'], hasAnyWords: true });
     await env.DB.prepare("UPDATE undercover_word_pairs SET status = 'disabled'").run();
     const empty = await undercoverInventoryRoutes.request('/categories', {}, env);
-    expect(await empty.json()).toEqual({ availableCategories: [] });
+    expect(await empty.json()).toEqual({ availableCategories: [], hasAnyWords: false });
   });
 
   it('replays a round snapshot even after its source changes and retires', async () => {

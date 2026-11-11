@@ -52,7 +52,7 @@ export function UndercoverCategoryField({
     }
   }, [inventory.error]);
 
-  const available = inventory.isSuccess ? inventory.data : [];
+  const available = inventory.isSuccess ? inventory.data.availableCategories : [];
   const options = spec.options.flatMap((option) =>
     isAvailable(option.value, available) ? [{ value: option.value, label: option.label }] : [],
   );
@@ -65,7 +65,7 @@ export function UndercoverCategoryField({
           <span className="game-settings-label">{spec.label}</span>
           <p className="game-settings-hint">正在读取分类</p>
         </div>
-      ) : inventory.isSuccess && inventory.data.length === 0 ? (
+      ) : inventory.isSuccess && !inventory.data.hasAnyWords ? (
         <div className="game-settings-section">
           <span className="game-settings-label">{spec.label}</span>
           <p className="game-settings-hint">暂无可用词语</p>
@@ -105,7 +105,10 @@ export function useUndercoverConfigSubmitGate(config: UndercoverConfig): ConfigS
       blockedMessage: '请等待分类加载完成，或重试读取分类',
     };
   }
-  if (inventory.data.length === 0 || !isAvailable(config.category, inventory.data)) {
+  if (
+    !inventory.data.hasAnyWords ||
+    !isAvailable(config.category, inventory.data.availableCategories)
+  ) {
     return {
       isReady: false,
       blockedTitle: '暂无可用词语',

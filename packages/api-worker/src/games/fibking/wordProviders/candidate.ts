@@ -11,6 +11,7 @@ import {
 import { Converter } from 'opencc-js/t2cn';
 import { z } from 'zod';
 
+import { FIB_WORD_ALL_TOPIC_IDS } from '../wordTopics';
 import { FIB_WORD_EVIDENCE_SOURCE_LIMIT, fibWordEvidenceSchema } from './tavily';
 import {
   FIB_WORD_CATEGORIES,
@@ -47,12 +48,14 @@ const fibWordCandidatePayloadSchema = z.strictObject({
 
 const fibWordEditorialCandidateSchema = fibWordCandidatePayloadSchema.extend({
   category: z.enum(FIB_WORD_CATEGORIES),
+  topic: z.enum(FIB_WORD_ALL_TOPIC_IDS).nullable().optional(),
   source: z.enum(FIB_WORD_SOURCES),
   evidence: z.array(fibWordEvidenceSchema).max(FIB_WORD_EVIDENCE_SOURCE_LIMIT),
 });
 
 const generatedFibWordCandidatePayloadSchema = fibWordCandidatePayloadSchema.extend({
   category: z.enum(FIB_WORD_CATEGORIES),
+  topic: z.enum(FIB_WORD_ALL_TOPIC_IDS),
   citations: z
     .array(z.strictObject({ evidenceIndex: z.number().int().min(0), quote: evidenceQuoteSchema }))
     .min(1)
@@ -87,7 +90,7 @@ const fibWordReviewsPayloadSchema = z.strictObject({
 export const FIB_WORD_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['word', 'definition', 'category', 'citations'],
+  required: ['word', 'definition', 'category', 'topic', 'citations'],
   properties: {
     word: {
       type: 'string',
@@ -112,6 +115,11 @@ export const FIB_WORD_JSON_SCHEMA = {
       type: 'string',
       enum: FIB_WORD_CATEGORIES,
       description: '候选类别',
+    },
+    topic: {
+      type: 'string',
+      enum: FIB_WORD_ALL_TOPIC_IDS,
+      description: '根据释义选择主题，无法归类时为 other',
     },
     citations: {
       type: 'array',
@@ -270,10 +278,11 @@ export function parseGeneratedFibWordCandidates(
 ): readonly FibWordEditorialCandidate[] {
   const payload = generatedFibWordCandidatesPayloadSchema.parse(value);
   assertDistinctCandidates(payload.candidates);
-  return payload.candidates.map(({ word, definition, category, citations }) => ({
+  return payload.candidates.map(({ word, definition, category, topic, citations }) => ({
     word,
     definition,
     category,
+    topic,
     source,
     evidence: citations.map(({ evidenceIndex, quote }) => {
       const evidence = request.evidence[evidenceIndex];

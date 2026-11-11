@@ -2,6 +2,7 @@
 import { DRAWGUESS_WORD_CATEGORIES } from '@game-judge/game-engine/games/drawguess/public';
 import { z } from 'zod';
 
+import { wordCategoryCooldownCutoff } from '../../platform/wordSupply/categoryCooldown';
 import {
   createClaimWordCandidatesStatement,
   createWordPackId,
@@ -41,23 +42,16 @@ export async function reserveDrawGuessWordPack(
   z.iso.date().parse(day);
   const maxIndex = opts.force ? Number.MAX_SAFE_INTEGER : DRAWGUESS_DAILY_BATCH_LIMIT - 1;
   z.int().min(0).max(maxIndex).parse(batchIndex);
-  const categoryRows = await db
-    .prepare(
-      `SELECT value AS category,
-        (SELECT COUNT(*) FROM drawguess_words w WHERE w.category = c.value AND w.status = 'active') AS active_count
-      FROM (SELECT value FROM json_each(?)) c
-      ORDER BY active_count ASC, category ASC LIMIT 1`,
-    )
-    .bind(JSON.stringify(DRAWGUESS_WORD_CATEGORIES))
-    .first();
-  const { category } = packSchema
-    .pick({ category: true })
-    .extend({ active_count: z.int() })
-    .parse(categoryRows);
   const row = await insertReservedWordPack(db, {
     packsTable: 'drawguess_word_packs',
     packId: createWordPackId(day, batchIndex, opts),
-    category,
+    categorySql: `SELECT value AS category
+      FROM (SELECT value FROM json_each(?)) c
+      ORDER BY COALESCE((SELECT MAX(created_at) FROM drawguess_word_packs previous WHERE previous.category = c.value), '') > ? ASC,
+        (SELECT COUNT(*) FROM drawguess_words w WHERE w.category = c.value AND w.status = 'active') ASC,
+        COALESCE((SELECT MAX(created_at) FROM drawguess_word_packs previous WHERE previous.category = c.value), '') ASC,
+        category ASC LIMIT 1`,
+    categoryBinds: [JSON.stringify(DRAWGUESS_WORD_CATEGORIES), wordCategoryCooldownCutoff()],
     model: DRAWGUESS_WORD_MODEL,
     promptVersion: DRAWGUESS_WORD_PROMPT_VERSION,
     reviewVersion: DRAWGUESS_WORD_REVIEW_VERSION,

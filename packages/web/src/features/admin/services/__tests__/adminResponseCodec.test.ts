@@ -247,7 +247,21 @@ describe('adminResponseCodec', () => {
   it('decodes the game words dashboard including the per-row pack denominator', () => {
     const decoded = parseGameWordsStatsResponse({
       game: 'fibking',
-      wordsByCategory: [{ category: 'literary', active: 3, total: 4 }],
+      categories: [
+        {
+          id: 'literary',
+          name: '文学',
+          active: 3,
+          total: 4,
+          pending: 0,
+          batches: 1,
+          yieldCount: 2,
+          lastAttempt: null,
+          coolingDown: false,
+          menuEligible: null,
+        },
+      ],
+      modelBudget: { dailyUsed: 1, dailyLimit: 8, monthlyUsed: 2, monthlyLimit: 120 },
       monthlySupply: {
         month: '2026-09',
         reserved: 10,
@@ -275,11 +289,13 @@ describe('adminResponseCodec', () => {
     expect(() =>
       parseGameWordsStatsResponse({
         game: 'fibking',
-        wordsByCategory: [],
+        categories: [],
+        modelBudget: { dailyUsed: 0, dailyLimit: 8, monthlyUsed: 0, monthlyLimit: 120 },
         monthlySupply: null,
         tavilyRequestsUsed: null,
         tavilyMonthlyQuota: null,
         reviewDecisions: [],
+        reviewCheckStats: [],
         queryLeaderboard: [{ label: 'x', detail: null, publishedWords: 1 }],
         supplyEnabled: false,
       }),
@@ -289,7 +305,21 @@ describe('adminResponseCodec', () => {
   it.each(GAME_WORD_GAMES)('accepts %s in dashboard and trigger responses', (game) => {
     const decoded = parseGameWordsStatsResponse({
       game,
-      wordsByCategory: [{ category: 'animals', active: 0, total: 0 }],
+      categories: [
+        {
+          id: 'animals',
+          name: '动物',
+          active: 0,
+          total: 0,
+          pending: 0,
+          batches: 0,
+          yieldCount: 0,
+          lastAttempt: null,
+          coolingDown: false,
+          menuEligible: null,
+        },
+      ],
+      modelBudget: { dailyUsed: 0, dailyLimit: 8, monthlyUsed: 0, monthlyLimit: 120 },
       monthlySupply: null,
       tavilyRequestsUsed: null,
       tavilyMonthlyQuota: null,

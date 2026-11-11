@@ -22,10 +22,25 @@ vi.mock('@/utils/alert', () => ({
 const fetchStatsMock = vi.mocked(fetchGameWordsStats);
 const triggerSupplyMock = vi.mocked(triggerGameWordSupply);
 const showAlertMock = vi.mocked(showAlert);
+const modelBudget = { dailyUsed: 2, dailyLimit: 8, monthlyUsed: 20, monthlyLimit: 120 };
 
 const FIBKING_STATS: GameWordsStats = {
   game: 'fibking',
-  wordsByCategory: [{ category: 'literary', active: 10, total: 12 }],
+  categories: [
+    {
+      id: 'literary',
+      name: '书面词',
+      active: 10,
+      total: 12,
+      pending: 0,
+      batches: 1,
+      yieldCount: 2,
+      lastAttempt: null,
+      coolingDown: false,
+      menuEligible: null,
+    },
+  ],
+  modelBudget,
   monthlySupply: {
     month: '2026-09',
     reserved: 30,
@@ -53,7 +68,21 @@ const FIBKING_STATS: GameWordsStats = {
 
 const UNDERCOVER_STATS: GameWordsStats = {
   game: 'undercover',
-  wordsByCategory: [{ category: 'daily', active: 20, total: 20 }],
+  categories: [
+    {
+      id: 'daily',
+      name: '日常生活',
+      active: 20,
+      total: 20,
+      pending: 0,
+      batches: 4,
+      yieldCount: 20,
+      lastAttempt: null,
+      coolingDown: false,
+      menuEligible: true,
+    },
+  ],
+  modelBudget,
   monthlySupply: null,
   tavilyRequestsUsed: null,
   tavilyMonthlyQuota: null,
@@ -65,7 +94,33 @@ const UNDERCOVER_STATS: GameWordsStats = {
 
 const DRAWGUESS_STATS: GameWordsStats = {
   game: 'drawguess',
-  wordsByCategory: [{ category: 'animals', active: 7, total: 9 }],
+  categories: [
+    {
+      id: 'animals',
+      name: '动物',
+      active: 7,
+      total: 9,
+      pending: 0,
+      batches: 3,
+      yieldCount: 7,
+      lastAttempt: null,
+      coolingDown: false,
+      menuEligible: null,
+    },
+    {
+      id: 'insects',
+      name: '昆虫',
+      active: 0,
+      total: 0,
+      pending: 0,
+      batches: 0,
+      yieldCount: 0,
+      lastAttempt: null,
+      coolingDown: false,
+      menuEligible: null,
+    },
+  ],
+  modelBudget,
   monthlySupply: null,
   tavilyRequestsUsed: null,
   tavilyMonthlyQuota: null,
@@ -158,9 +213,8 @@ describe('GamesTab', () => {
     // Raw enum values are localized: animals -> 动物.
     expect(screen.getByText('动物')).toBeDefined();
     expect(screen.queryByText('animals')).toBeNull();
-    // Non-fibking leaderboard uses the generic per-category output title.
-    expect(screen.getByText('各分类产出')).toBeDefined();
-    expect(screen.getByText('动物（active 题目）')).toBeDefined();
+    expect(screen.getByText('昆虫')).toBeDefined();
+    expect(screen.getByRole('progressbar', { name: '昆虫在库数量' })).toHaveProperty('value', 0);
   });
 
   it('confirms and triggers a normal supply run', async () => {
@@ -170,7 +224,8 @@ describe('GamesTab', () => {
     expect(alertText().message).toMatch(/为「瞎掰王」立即触发一次补词/);
     pressAlertConfirm();
     await waitFor(() => expect(triggerSupplyMock).toHaveBeenCalledWith('fibking', false));
-    // Reloads stats after the trigger.
+    expect(await screen.findByText('已触发，工作流需要几分钟。')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: '刷新统计' }));
     await waitFor(() => expect(fetchStatsMock).toHaveBeenCalledTimes(2));
   });
 
@@ -193,8 +248,7 @@ describe('GamesTab', () => {
     await waitFor(() => expect(triggerSupplyMock).toHaveBeenCalledTimes(10));
     expect(triggerSupplyMock).toHaveBeenCalledWith('fibking', false);
     expect(triggerSupplyMock).not.toHaveBeenCalledWith('fibking', true);
-    // Reloads stats after the batch completes.
-    await waitFor(() => expect(fetchStatsMock).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('已触发，工作流需要几分钟。')).toBeDefined();
   });
 
   it('triggers ten serial force supply runs on 强制补词×10', async () => {
@@ -205,8 +259,7 @@ describe('GamesTab', () => {
     pressAlertConfirm();
     await waitFor(() => expect(triggerSupplyMock).toHaveBeenCalledTimes(10));
     expect(triggerSupplyMock).toHaveBeenCalledWith('fibking', true);
-    // Reloads stats after the batch completes.
-    await waitFor(() => expect(fetchStatsMock).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('已触发，工作流需要几分钟。')).toBeDefined();
   });
 
   it('uses the daily batch wording for undercover force trigger', async () => {

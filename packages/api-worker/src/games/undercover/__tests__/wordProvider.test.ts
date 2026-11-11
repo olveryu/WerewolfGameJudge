@@ -5,6 +5,16 @@ import { UNDERCOVER_WORD_BATCH_LIMIT } from '../wordEditorial';
 import { createUndercoverWordProvider } from '../wordProvider';
 
 describe('Undercover provider', () => {
+  it('sends the new party category and its word-pair instructions to the provider', async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"candidates":[]}' }] } }],
+      }),
+    );
+    await createUndercoverWordProvider('test-key', fetchImpl).generateBatch('dating', []);
+    expect(fetchImpl.mock.calls[0]?.[1]?.body).toEqual(expect.stringContaining('约会场景'));
+  });
+
   it('submits a bounded structured request and accepts a real zero-candidate result', async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
       Response.json({

@@ -3,6 +3,28 @@
   flex-direction: column;
 }
 
+.admin-category-table-scroll {
+  overflow-x: auto;
+}
+
+.admin-category-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-category-table th,
+.admin-category-table td {
+  padding: var(--space-small);
+  border-bottom: 1px solid var(--color-divider);
+  vertical-align: top;
+}
+
+.admin-category-table progress {
+  display: block;
+  width: 100%;
+}
+
 .admin-summary {
   margin: 0 0 var(--space-small);
   color: var(--color-text-secondary);

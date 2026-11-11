@@ -140,7 +140,8 @@ export async function insertReservedWordPack(
   options: {
     readonly packsTable: WordPacksTable;
     readonly packId: string;
-    readonly category: string;
+    readonly categorySql: string;
+    readonly categoryBinds: readonly unknown[];
     readonly model: string;
     readonly promptVersion: string;
     readonly reviewVersion: string;
@@ -149,12 +150,12 @@ export async function insertReservedWordPack(
   return db
     .prepare(
       `INSERT INTO ${options.packsTable} (id, category, request_token, status, created_at, model, prompt_version, review_version)
-    SELECT ?, ?, ?, 'reserved', ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM database_capacity WHERE id = 1 AND state IN ('normal', 'warning'))
+    SELECT ?, (${options.categorySql}), ?, 'reserved', ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM database_capacity WHERE id = 1 AND state IN ('normal', 'warning'))
     ON CONFLICT (id) DO NOTHING RETURNING id, category, request_token`,
     )
     .bind(
       options.packId,
-      options.category,
+      ...options.categoryBinds,
       crypto.randomUUID(),
       new Date().toISOString(),
       options.model,
