@@ -1,35 +1,16 @@
 /**
  * Collection previews on the scene layer: an avatar tile that shows a frame, flair, pet or seat
- * entrance through the room's own scene code (`RoomSeatScene`, lazily loaded, so no new scene
- * entry point), and the one scene host a page puts over its previews.
+ * entrance through the room's own scene code, and the one scene host a page puts over its previews.
  */
 import './ResidentPreview.css';
 
-import {
-  lazy,
-  type RefObject,
-  Suspense,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { type RefObject, Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { Avatar } from '@/components/avatar/Avatar';
+import { RoomSeatResidents, RoomSeatSceneCanvas } from '@/features/room/components/RoomSeatScene';
 import { displaySettings } from '@/features/settings/displaySettings';
 import type { ResidentDecorations } from '@/scene/residentDecorations';
 import { usePrefersReducedMotion } from '@/scene/usePrefersReducedMotion';
-
-const RoomSeatSceneCanvas = lazy(() =>
-  import('@/features/room/components/RoomSeatScene').then((module) => ({
-    default: module.RoomSeatSceneCanvas,
-  })),
-);
-const RoomSeatResidents = lazy(() =>
-  import('@/features/room/components/RoomSeatScene').then((module) => ({
-    default: module.RoomSeatResidents,
-  })),
-);
 
 /**
  * The page's scene canvas host, laid over the previews' shared positioned container. A host in

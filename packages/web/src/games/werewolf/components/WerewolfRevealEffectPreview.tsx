@@ -1,5 +1,5 @@
 /** Product-facing preview of a Werewolf role reveal effect, played full screen. */
-import { lazy, Suspense, useId } from 'react';
+import { Suspense, useId } from 'react';
 
 import type { RevealEffectPreviewProps } from '@/features/product/model/GameProductUi';
 import {
@@ -8,16 +8,9 @@ import {
   REVEAL_TITLE_STYLE,
   revealTitle,
 } from '@/features/room/components/RoleRevealEffects/common/shell';
+import RevealEffectStage from '@/features/room/components/RoleRevealEffects/RevealEffectStage';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import { usePrefersReducedMotion } from '@/scene/usePrefersReducedMotion';
-
-// The room's RoleRevealAnimator is room-only (importing it elsewhere moves its dialog portal into
-// a shared chunk), so the preview draws the same shell itself, like the scene bench.
-const RevealEffectStage = lazy(() =>
-  import('@/features/room/components/RoomSeatScene').then((module) =>
-    module.loadRevealEffectStage(),
-  ),
-);
 
 const PREVIEW_ROLE: RevealRoleData = { id: 'villager', name: '村民', alignment: 'villager' };
 const PREVIEW_ROLES: readonly RevealRoleData[] = [

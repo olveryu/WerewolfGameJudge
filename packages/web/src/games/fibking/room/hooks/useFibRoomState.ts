@@ -27,6 +27,7 @@ import { type RoleViewing, useRoleViewing } from '@/features/room/controllers/us
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomRosterController } from '@/features/room/controllers/useRoomRosterController';
+import { useRolePortraitPreload } from '@/features/room/hooks/useRolePortraitPreload';
 import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
@@ -39,6 +40,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import { useRoomReview } from '@/features/room/review/useRoomReview';
+import { FIBKING_ROLE_PORTRAITS } from '@/games/fibking/assets/roleAvatars';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
@@ -101,6 +103,7 @@ export function useFibRoomState({
     session,
     getFibRoomCommandFailureMessage,
   );
+  useRolePortraitPreload(FIBKING_ROLE_PORTRAITS);
   const isHost = state.hostUserId === user.id;
   const mySeat = getFibUserSeat(state, user.id);
   const viewer = useMemo(

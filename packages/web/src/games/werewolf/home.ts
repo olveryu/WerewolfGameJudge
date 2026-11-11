@@ -4,6 +4,9 @@ import type { GameHomeContribution } from '@/games/model/GameHome';
 import { colors } from '@/theme/colors';
 import IconMoonOutline from '~icons/ion/moon-outline';
 
+import { WerewolfBoardAnnouncementTab } from './components/WerewolfBoardAnnouncementTab';
+import { WerewolfHomeSpotlight } from './components/WerewolfHomeSpotlight';
+
 export const werewolfHome = {
   mode: {
     displayName: '狼人杀',
@@ -13,15 +16,12 @@ export const werewolfHome = {
     gradient: [colors.primaryLight, colors.primary],
     artUrl: werewolfArt,
   },
-  // The spotlight pulls in role specs and portraits: its own chunk, loaded after Home renders.
-  loadSpotlight: async () =>
-    (await import('./components/WerewolfHomeSpotlight')).WerewolfHomeSpotlight,
+  Spotlight: WerewolfHomeSpotlight,
   announcementTabs: [
     {
       id: 'boards',
       label: '板子',
-      loadContent: async () =>
-        (await import('./components/WerewolfBoardAnnouncementTab')).WerewolfBoardAnnouncementTab,
+      Content: WerewolfBoardAnnouncementTab,
     },
   ],
 } satisfies GameHomeContribution;

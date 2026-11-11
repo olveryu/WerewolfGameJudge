@@ -111,4 +111,4 @@ Acceptance is: diagnostic logs removed, scoped checks pass, and the report names
 2. Naming the old realtime service paths or the removed root `src/` client. Realtime code lives under `packages/web/src/platform/realtime/`.
 3. Treating the audio flag as a value the UI may set. The flag is owned by audio-queue events only; the client lock is read through the one predicate.
 4. A plain `as` cast in production code: `contracts/architecture.contract.test.ts` allows only `as const` assertions (see `getOrdinaryTypeAssertions`).
-5. Debugging the room UI of an unported game. Only games with a loader in `CLIENT_GAME_LOADERS` (`packages/web/src/games/clientModules.tsx`) have a web client; the rest throw `UnportedGameClientError` by design until their port (`docs/web-client-rewrite.md` §8.2).
+5. Debugging game registration. Every game has a statically imported factory in `CLIENT_GAME_FACTORIES` (`packages/web/src/games/clientModules.tsx`); root contracts require an entry for each registered game.

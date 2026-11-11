@@ -4,8 +4,9 @@
  */
 import { GAME_REGISTRY } from '@game-judge/game-engine/games/registry';
 import { GAME_TYPES, type GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
-import { type ComponentType, lazy, type LazyExoticComponent } from 'react';
+import type { ComponentType } from 'react';
 
+import { createAvalonAudioPreview } from '@/games/avalon/audio/audioPreview';
 import { avalonHome } from '@/games/avalon/home';
 import { demoHome } from '@/games/demo/home';
 import { drawGuessHome } from '@/games/drawguess/home';
@@ -15,15 +16,17 @@ import type { GameHomeContribution, GameModePresentation } from '@/games/model/G
 import { pictionaryHome } from '@/games/pictionary/home';
 import { storyRelayHome } from '@/games/storyrelay/home';
 import { undercoverHome } from '@/games/undercover/home';
+import { createWerewolfAudioPreview } from '@/games/werewolf/audio/audioPreview';
+import { WerewolfAccountStatsSection } from '@/games/werewolf/components/WerewolfAccountStatsSection';
 import { werewolfHome } from '@/games/werewolf/home';
 import type { AudioService } from '@/services/infra/AudioService';
 
 interface ClientGameModule {
   readonly home: GameHomeContribution;
-  /** Narrated games offer a music-settings preview, loaded only by that page. */
+  /** Narrated games create a music-settings preview only when that page requests it. */
   readonly loadAudioPreview?: () => Promise<GameAudioPreviewFactory>;
-  /** Game-owned statistics on the account settings page, loaded only by that page. */
-  readonly loadAccountStats?: () => Promise<ComponentType<GameAccountStatsProps>>;
+  /** Game-owned statistics, mounted only on the account settings page. */
+  readonly AccountStats?: ComponentType<GameAccountStatsProps>;
 }
 
 /** Props of a game-owned account statistics section. */
@@ -34,11 +37,8 @@ interface GameAccountStatsProps {
 const CLIENT_GAMES: { readonly [TGameType in GameType]: ClientGameModule } = {
   werewolf: {
     home: werewolfHome,
-    loadAudioPreview: async () =>
-      (await import('@/games/werewolf/audio/audioPreview')).createWerewolfAudioPreview,
-    loadAccountStats: async () =>
-      (await import('@/games/werewolf/components/WerewolfAccountStatsSection'))
-        .WerewolfAccountStatsSection,
+    loadAudioPreview: async () => createWerewolfAudioPreview,
+    AccountStats: WerewolfAccountStatsSection,
   },
   fibking: { home: fibHome },
   pictionary: { home: pictionaryHome },
@@ -47,8 +47,7 @@ const CLIENT_GAMES: { readonly [TGameType in GameType]: ClientGameModule } = {
   storyrelay: { home: storyRelayHome },
   avalon: {
     home: avalonHome,
-    loadAudioPreview: async () =>
-      (await import('@/games/avalon/audio/audioPreview')).createAvalonAudioPreview,
+    loadAudioPreview: async () => createAvalonAudioPreview,
   },
   demo: { home: demoHome },
 };
@@ -67,15 +66,15 @@ export const GAME_MODE_OPTIONS: readonly ClientGameModeOption[] = GAME_TYPES.fil
 
 export interface ClientGameHomeSpotlight {
   readonly gameType: GameType;
-  readonly Spotlight: LazyExoticComponent<ComponentType>;
+  readonly Spotlight: ComponentType;
 }
 
-/** Game-owned Home spotlight cards, each loaded lazily after Home renders. */
+/** Game-owned Home spotlight cards, available at start-up. */
 export const GAME_HOME_SPOTLIGHTS: readonly ClientGameHomeSpotlight[] = GAME_TYPES.flatMap(
   (gameType) => {
-    const { loadSpotlight } = CLIENT_GAMES[gameType].home;
-    if (!GAME_REGISTRY[gameType].isProduction || loadSpotlight === undefined) return [];
-    return [{ gameType, Spotlight: lazy(async () => ({ default: await loadSpotlight() })) }];
+    const { Spotlight } = CLIENT_GAMES[gameType].home;
+    if (!GAME_REGISTRY[gameType].isProduction || Spotlight === undefined) return [];
+    return [{ gameType, Spotlight }];
   },
 );
 
@@ -83,7 +82,7 @@ export interface ClientGameAnnouncementTab {
   /** `${gameType}:${tabId}`, unique across the catalog. */
   readonly key: string;
   readonly label: string;
-  readonly Content: LazyExoticComponent<ComponentType>;
+  readonly Content: ComponentType;
 }
 
 /** Game-owned announcement modal tabs of production games, in catalog order. */
@@ -98,22 +97,22 @@ export const GAME_ANNOUNCEMENT_TABS: readonly ClientGameAnnouncementTab[] = GAME
     return tabs.map((tab) => ({
       key: `${gameType}:${tab.id}`,
       label: tab.label,
-      Content: lazy(async () => ({ default: await tab.loadContent() })),
+      Content: tab.Content,
     }));
   },
 );
 
 export interface ClientGameAccountStatsSection {
   readonly gameType: GameType;
-  readonly Section: LazyExoticComponent<ComponentType<GameAccountStatsProps>>;
+  readonly Section: ComponentType<GameAccountStatsProps>;
 }
 
 /** Game-owned account statistics sections, in catalog order. */
 export const GAME_ACCOUNT_STATS_SECTIONS: readonly ClientGameAccountStatsSection[] =
   GAME_TYPES.flatMap((gameType) => {
-    const { loadAccountStats } = CLIENT_GAMES[gameType];
-    if (loadAccountStats === undefined) return [];
-    return [{ gameType, Section: lazy(async () => ({ default: await loadAccountStats() })) }];
+    const { AccountStats } = CLIENT_GAMES[gameType];
+    if (AccountStats === undefined) return [];
+    return [{ gameType, Section: AccountStats }];
   });
 
 export interface ClientGameAudioPreview extends GameAudioPreview {

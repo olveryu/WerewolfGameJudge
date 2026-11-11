@@ -1,9 +1,8 @@
 /**
  * Contract: every reward-catalog reveal effect loads a component under its own id, mounts on the
  * reveal clock without throwing, and leaves nothing running once unmounted (no frame listener,
- * no Pixi layer, no timer). Effects stay out of every static import graph: only the registry
- * reaches them, through dynamic imports, so each one is its own lazy chunk. Reveals draw only on the
- * shared scene stage and its clock.
+ * no Pixi layer, no timer). Only the registry statically imports effect implementations.
+ * Reveals draw only on the shared scene stage and its clock.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -115,7 +114,7 @@ describe('reveal effect registry', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it('reaches effects only through the registry dynamic imports', () => {
+  it('statically imports effects only through the registry', () => {
     const effectsDir = path.resolve(import.meta.dirname, '../effects');
     const staticImporters = productionSources(path.join(PACKAGE_ROOT, 'src'))
       .filter(([file]) => !file.startsWith(effectsDir))
@@ -126,7 +125,7 @@ describe('reveal effect registry', () => {
           ) || /^\s*(?:import|export)\b[^;]*from\s+['"]\.\/effects\//m.test(source),
       )
       .map(([file]) => path.relative(PACKAGE_ROOT, file));
-    expect(staticImporters).toEqual([]);
+    expect(staticImporters).toEqual(['src/features/room/components/RoleRevealEffects/registry.ts']);
   });
 
   // One PixiJS Application (the shared scene stage) and one clock (its ticker driving

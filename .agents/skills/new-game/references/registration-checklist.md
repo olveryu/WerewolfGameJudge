@@ -74,7 +74,7 @@ dependency: `SHARED_EDITS` performs none.
     `packages/web/src/test-utils/<id>State.ts` in
     `packages/web/src/__tests__/roomReview.contract.test.ts`; see
     `references/skeleton-and-wiring.md`).
-15. `[G]` Lazy client loader in `CLIENT_GAME_LOADERS` plus its module
+15. `[G]` Static client factory in `CLIENT_GAME_FACTORIES` plus its module
     slot (`packages/web/src/games/clientModules.tsx`). The loader map
     is what marks a game ported for the per-game web contracts
     (`PORTED_GAME_TYPES` in `contracts/architecture.contract.test.ts`

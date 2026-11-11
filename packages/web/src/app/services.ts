@@ -4,32 +4,27 @@ import { RoomCreationIntentStore } from '@/features/room/services/RoomCreationIn
 import { RoomCreationService } from '@/features/room/services/RoomCreationService';
 import { apiClient, authTokenStore } from '@/platform/http/client';
 import { createInboxWakeSignal } from '@/platform/inbox/inboxWake';
-import type { RoomLinkFactory } from '@/platform/realtime/RoomLinkFactory';
+import { createRoomLinkFactory, type RoomLinkFactory } from '@/platform/realtime/RoomLinkFactory';
 import { CFAuthService } from '@/services/cloudflare/CFAuthService';
 import { CFAvatarUploadService } from '@/services/cloudflare/CFAvatarUploadService';
 import { CFRoomDirectoryService } from '@/services/cloudflare/CFRoomDirectoryService';
+import { AudioService } from '@/services/infra/AudioService';
 import { cacheLoad } from '@/utils/cacheLoad';
 
 /** Builds the services provided through `ServiceProvider`. */
 function createAppServices(): ServiceContextValue {
   const roomDirectory = new CFRoomDirectoryService();
   const inboxWakes = createInboxWakeSignal();
-  // The realtime stack loads with the first room, outside the home start-up budget.
+  // Code is eager; links are instantiated only when the first room needs them.
   let loadedRoomLinks: RoomLinkFactory | null = null;
   const loadRoomLinks = cacheLoad(async () => {
-    const { createRoomLinkFactory } = await import('@/platform/realtime/RoomLinkFactory');
     loadedRoomLinks = createRoomLinkFactory({
       onInboxWake: (reason) => inboxWakes.emit(reason),
     });
     return loadedRoomLinks;
   });
-  // Audio loads with the first room module too, which registers the gesture unlock then. Narration
-  // only starts from the host's in-room 开始游戏 tap, which the loaded module renders, so that tap
-  // (or any earlier in-room tap) is the gesture that unlocks it.
-  const loadAudioService = cacheLoad(async () => {
-    const { AudioService } = await import('@/services/infra/AudioService');
-    return new AudioService();
-  });
+  // Retain first-room initialization and the existing audio gesture-unlock lifecycle.
+  const loadAudioService = cacheLoad(async () => new AudioService());
   return {
     authService: new CFAuthService({ apiClient, tokens: authTokenStore }),
     roomDirectory,

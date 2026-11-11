@@ -1,7 +1,6 @@
 /**
- * Scene layer of the room seat board, loaded lazily (with PixiJS and the flair specs) only while
- * at least one seat shows a resident decoration or an entrance. Avatar frames, pets and
- * entrances load as their own chunks.
+ * Scene layer of the room seat board. Code is available at start-up; decorations and the WebGL
+ * application are instantiated only when a visible scene needs them.
  */
 import { type RefObject, use, useState } from 'react';
 
@@ -115,14 +114,3 @@ export function RoomSeatResidents({
     </>
   );
 }
-
-/**
- * Loads the role reveal's stage chunk. Every reveal loader goes through this module because the
- * import site has to live in the seat-scene chunk: a PixiJS consumer imported from anywhere else
- * makes Rolldown fold the WebGL and WebGPU renderers into the stage's static closure, pushing the
- * scene budget over its limit.
- */
-export const loadRevealEffectStage = () => import('./RoleRevealEffects/RevealEffectStage');
-
-/** Loads the gacha page's capsule machine; it is a PixiJS consumer, so its import site lives here too. */
-export const loadCapsuleMachine = () => import('@/features/gacha/machine/CapsuleMachine');

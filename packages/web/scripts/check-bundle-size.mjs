@@ -10,23 +10,19 @@ const manifest = JSON.parse(readFileSync(path.join(distDirectory, '.vite/manifes
 
 const KIB = 1024;
 const STARTUP_ENTRY = 'index.html';
-// Every route page ships in the start-up entry (docs/web-client-rewrite.md §5.10), so the
-// start-up closure already contains them all; only the boot splash is a separate entry.
+// All application code except the bench and Replay ships at start-up (§5.10).
 const HOME_ENTRIES = [STARTUP_ENTRY, 'src/boot/bootSplash.ts'];
 /** Modules that must stay out of the home closure, matched against each chunk's source-map sources. */
 const HOME_FORBIDDEN_SOURCES = [
   {
-    name: 'Classic zod',
-    pattern: /\/node_modules\/zod\/v4\/classic\//,
-    // Classic `zod` costs ~20 KiB gzip on the home budget.
-    fix: "start-up modules must import from 'zod/mini'",
+    name: 'Scene benchmark',
+    pattern: /\/src\/routes\/bench\/SceneBench\.tsx$/,
+    fix: 'only the benchmark route wrapper belongs in the start-up entry',
   },
   {
-    name: 'PixiJS',
-    pattern: /\/node_modules\/pixi\.js\//,
-    // The scene layer costs ~130 KiB gzip on the home budget, and the scene budget below counts
-    // only what loads beyond start-up, so PixiJS in the entry would escape that budget too.
-    fix: 'start-up modules must reach the scene layer through a dynamic import',
+    name: 'Sentry Replay',
+    pattern: /\/src\/sentryReplay\.ts$|\/node_modules\/@sentry\/replay[^/]*\//,
+    fix: 'Replay must remain behind its background dynamic import',
   },
 ];
 
@@ -36,24 +32,10 @@ const HOME_FORBIDDEN_SOURCES = [
  */
 const BUDGETS = [
   {
-    // Measured 2026-11-11 with every route static: 398.0 KiB gzip; ~4% headroom.
+    // Measured 2026-11-11: ~1340 KiB gzip with application code eager; ~4% headroom.
     name: 'home (start-up to interactive home)',
     entries: HOME_ENTRIES,
-    maxGzipBytes: 415 * KIB,
-  },
-  {
-    // PixiJS loads its browser extensions and the selected renderer as dynamic chunks; the stage
-    // always requests WebGL, so that renderer counts and the WebGPU / Canvas ones do not. The
-    // room seat board's scene chunk (decoration specs) loads with it.
-    name: 'scene layer (PixiJS stage + WebGL renderer + seat decorations)',
-    entries: [
-      'src/scene/stage.ts',
-      'src/features/room/components/RoomSeatScene.tsx',
-      '../../node_modules/pixi.js/lib/environment-browser/browserAll.mjs',
-      '../../node_modules/pixi.js/lib/rendering/renderers/gl/WebGLRenderer.mjs',
-    ],
-    beyondStartup: true,
-    maxGzipBytes: 180 * KIB,
+    maxGzipBytes: 1400 * KIB,
   },
   {
     name: 'Sentry Session Replay (lazy)',
@@ -117,6 +99,16 @@ function readHomeChunkSources() {
 
 const startupFiles = collectLoadClosure(STARTUP_ENTRY);
 const failures = [];
+
+for (const [entry, chunk] of Object.entries(manifest)) {
+  if (
+    chunk.isDynamicEntry &&
+    entry.startsWith('src/') &&
+    !['src/routes/bench/SceneBench.tsx', 'src/sentryReplay.ts'].includes(entry)
+  ) {
+    failures.push(`Unexpected lazy application entry: ${entry}`);
+  }
+}
 
 const homeChunkSources = readHomeChunkSources();
 for (const forbidden of HOME_FORBIDDEN_SOURCES) {

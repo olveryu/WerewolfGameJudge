@@ -1,6 +1,6 @@
 import './HomePage.css';
 
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 
 import { Avatar } from '@/components/avatar/Avatar';
@@ -26,28 +26,13 @@ import IconMegaphoneOutline from '~icons/ion/megaphone-outline';
 import IconPersonCircleOutline from '~icons/ion/person-circle-outline';
 import IconTimeOutline from '~icons/ion/time-outline';
 
+import { AnnouncementCardStatus } from './AnnouncementCardStatus';
 import { AnnouncementCardText } from './AnnouncementCardText';
-// The dialogs (and Ark UI's dialog machinery) load on first open, outside the start-up budget.
-const JoinRoomDialog = lazy(async () => ({
-  default: (await import('./JoinRoomDialog')).JoinRoomDialog,
-}));
-const RecentRoomsDialog = lazy(async () => ({
-  default: (await import('./RecentRoomsDialog')).RecentRoomsDialog,
-}));
-const AnnouncementCardStatus = lazy(async () => ({
-  default: (await import('./AnnouncementCardStatus')).AnnouncementCardStatus,
-}));
-const AnnouncementModal = lazy(async () => ({
-  default: (await import('./AnnouncementModal')).AnnouncementModal,
-}));
-const TicketBadge = lazy(async () => ({
-  default: (await import('./TicketBadge')).TicketBadge,
-}));
-// The install prompt is captured at boot, so the footer entry can load after Home is interactive.
-const InstallMenuItem = lazy(async () => ({
-  default: (await import('./InstallMenuItem')).InstallMenuItem,
-}));
-
+import { AnnouncementModal } from './AnnouncementModal';
+import { InstallMenuItem } from './InstallMenuItem';
+import { JoinRoomDialog } from './JoinRoomDialog';
+import { RecentRoomsDialog } from './RecentRoomsDialog';
+import { TicketBadge } from './TicketBadge';
 /** Max icon chips on the create-room card; past this the tail folds into a +N chip. */
 const HERO_ICON_LIMIT = 8;
 const HERO_ICONS =
@@ -80,7 +65,7 @@ export function HomePage() {
     setDialog(kind);
   };
   const [announcementOpen, setAnnouncementOpen] = useState(false);
-  // The lazy modal mounts on first open and stays mounted so its exit motion can finish.
+  // The modal mounts on first open and stays mounted so its exit motion can finish.
   const [announcementMounted, setAnnouncementMounted] = useState(false);
   const adminTaps = useRef({ count: 0, lastTapMs: 0 });
   const recentRooms = user === null ? [] : getRecentRooms(user.id);

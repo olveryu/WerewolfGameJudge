@@ -1,6 +1,6 @@
 /**
- * Lazily loaded client game modules, one chunk per game, created once per page load and shared
- * by the room, config and guide routes.
+ * Statically imported client game factories. Sessions are created only when requested, once per
+ * page load, and shared by the room, config and guide routes.
  */
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { createContext, type ReactNode, use, useState, useSyncExternalStore } from 'react';
@@ -14,26 +14,34 @@ import {
   type ActiveRoomAccountSource,
   createActiveRoomAccountSource,
 } from '@/games/activeRoomAccount';
+import { createAvalonClientModule } from '@/games/avalon/module';
+import { createDemoClientModule } from '@/games/demo/module';
+import { createDrawGuessClientModule } from '@/games/drawguess/module';
+import { createFibClientModule } from '@/games/fibking/module';
 import type {
   ClientGameModule,
   ClientGameModuleDependencies,
   ClientGameModuleFactory,
 } from '@/games/model/ClientGameModule';
+import { createPictionaryClientModule } from '@/games/pictionary/module';
+import { createStoryRelayClientModule } from '@/games/storyrelay/module';
+import { createUndercoverClientModule } from '@/games/undercover/module';
+import { createWerewolfClientModule } from '@/games/werewolf/module';
 import { cacheLoad } from '@/utils/cacheLoad';
 
-type ClientGameLoaders = {
-  readonly [TGameType in GameType]: () => Promise<ClientGameModuleFactory<TGameType>>;
+type ClientGameFactories = {
+  readonly [TGameType in GameType]: ClientGameModuleFactory<TGameType>;
 };
 
-const CLIENT_GAME_LOADERS: ClientGameLoaders = {
-  werewolf: async () => (await import('@/games/werewolf/module')).createWerewolfClientModule,
-  fibking: async () => (await import('@/games/fibking/module')).createFibClientModule,
-  pictionary: async () => (await import('@/games/pictionary/module')).createPictionaryClientModule,
-  undercover: async () => (await import('@/games/undercover/module')).createUndercoverClientModule,
-  drawguess: async () => (await import('@/games/drawguess/module')).createDrawGuessClientModule,
-  storyrelay: async () => (await import('@/games/storyrelay/module')).createStoryRelayClientModule,
-  avalon: async () => (await import('@/games/avalon/module')).createAvalonClientModule,
-  demo: async () => (await import('@/games/demo/module')).createDemoClientModule,
+const CLIENT_GAME_FACTORIES: ClientGameFactories = {
+  werewolf: createWerewolfClientModule,
+  fibking: createFibClientModule,
+  pictionary: createPictionaryClientModule,
+  undercover: createUndercoverClientModule,
+  drawguess: createDrawGuessClientModule,
+  storyrelay: createStoryRelayClientModule,
+  avalon: createAvalonClientModule,
+  demo: createDemoClientModule,
 };
 
 type ClientGameModuleLoads = {
@@ -60,8 +68,8 @@ function createClientGameModules(
   const loadModule = async <TGameType extends GameType>(
     gameType: TGameType,
   ): Promise<ClientGameModule<TGameType>> => {
-    const loader: () => Promise<ClientGameModuleFactory<TGameType>> = CLIENT_GAME_LOADERS[gameType];
-    const [createModule, dependencies] = await Promise.all([loader(), loadDependencies()]);
+    const createModule: ClientGameModuleFactory<TGameType> = CLIENT_GAME_FACTORIES[gameType];
+    const dependencies = await loadDependencies();
     const module = createModule(dependencies);
     if (module.gameType !== gameType) {
       throw new Error(`[FAIL-FAST] Client module for ${gameType} registered ${module.gameType}`);
@@ -70,7 +78,7 @@ function createClientGameModules(
     for (const listener of loadListeners) listener();
     return module;
   };
-  // A failed chunk load may succeed on retry; only a loaded module stays cached.
+  // Retry failed initialization; cache only a successfully created module.
   const moduleLoads: ClientGameModuleLoads = {
     werewolf: cacheLoad(() => loadModule('werewolf')),
     fibking: cacheLoad(() => loadModule('fibking')),
@@ -136,8 +144,8 @@ export function useActiveRoomAccount(): ActiveRoomAccountSnapshot {
 }
 
 /**
- * The app overlays of the modules loaded so far. A game's overlay ships in its own chunk and
- * mounts once a page has loaded that game; it decides from its session when to show anything.
+ * The overlays of initialized games. Each mounts only once a page has initialized that game;
+ * it decides from its session when to show anything.
  */
 export function ClientGameOverlays() {
   const { loaded, subscribeLoaded } = useClientGameModules();

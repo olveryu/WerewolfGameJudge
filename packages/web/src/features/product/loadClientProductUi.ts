@@ -1,5 +1,5 @@
 /**
- * The client product UI, composed once from the games' lazily loaded contributions. Replaces the
+ * The client product UI, composed once from the games' statically imported contributions. Replaces the
  * previous client's React context: game slices may not provide context, so product pages read
  * this cached promise with `use()` under Suspense.
  */

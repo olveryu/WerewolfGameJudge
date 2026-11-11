@@ -2,7 +2,6 @@ import './SettingsPage.css';
 
 import {
   type FormEvent,
-  lazy,
   Suspense,
   useEffect,
   useEffectEvent,
@@ -67,10 +66,9 @@ import IconPencil from '~icons/ion/pencil';
 import IconPersonOutline from '~icons/ion/person-outline';
 import IconSparklesOutline from '~icons/ion/sparkles-outline';
 
+import { GrowthSection } from './GrowthSection';
+
 // Growth details pull in the engine growth and reward catalogs; keep them out of the page chunk.
-const GrowthSection = lazy(async () => ({
-  default: (await import('./GrowthSection')).GrowthSection,
-}));
 
 const settingsLog = createLogger('Settings');
 const MIN_PASSWORD_LENGTH = 6;

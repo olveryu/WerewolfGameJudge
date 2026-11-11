@@ -36,7 +36,7 @@ order:
 12. `packages/web/src/games/catalog.ts` (`CLIENT_GAMES`: the game's
     Home entry from `@/games/<id>/home`)
 13. `packages/web/src/games/clientModules.tsx` (a lazy
-    `CLIENT_GAME_LOADERS` entry, which also marks the game ported for
+    `CLIENT_GAME_FACTORIES` entry, which also marks the game ported for
     the per-game web contracts, plus its module slot)
 14. `packages/web/src/__tests__/botDispatchDiscipline.contract.test.ts`
 15. `packages/web/src/__tests__/roomGuidanceMatrix.contract.test.ts`

@@ -7,10 +7,7 @@
  * with SnapDOM is a P3 real-device check (docs/web-client-rewrite.md §5.8).
  */
 
-/** SnapDOM is fetched on the first export so it stays out of the room chunk. */
-async function loadSnapdom() {
-  return (await import('@zumer/snapdom')).snapdom;
-}
+import { snapdom } from '@zumer/snapdom';
 
 /**
  * Height of one rasterized band in CSS pixels: far below the mini-program
@@ -55,7 +52,6 @@ export function planCaptureBands(totalHeightPx: number, bandHeightPx: number): C
 
 /** Captures the whole element at the device pixel ratio. */
 export async function captureElementPngBase64(element: HTMLElement): Promise<string> {
-  const snapdom = await loadSnapdom();
   return canvasToPngBase64(await snapdom.toCanvas(element, { dpr: devicePixelRatio }));
 }
 
@@ -67,7 +63,6 @@ export async function captureElementSegmentedPngBase64(
   element: HTMLElement,
   onProgress: (done: number, total: number) => void,
 ): Promise<string> {
-  const snapdom = await loadSnapdom();
   const capture = await snapdom(element);
   const { contentX, contentY, w0, h0 } = capture.meta;
   const bands = planCaptureBands(h0, SEGMENTED_CAPTURE_BAND_HEIGHT_PX);

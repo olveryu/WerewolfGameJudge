@@ -1,6 +1,6 @@
 import { Portal } from '@ark-ui/react/portal';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { lazy, Suspense, useCallback, useLayoutEffect, useSyncExternalStore } from 'react';
+import { useCallback, useLayoutEffect, useSyncExternalStore } from 'react';
 import { Outlet, useMatches } from 'react-router';
 import { Toaster } from 'sonner';
 
@@ -9,18 +9,11 @@ import { getAppServices } from '@/app/services';
 import { AlertHostSlot } from '@/components/AlertHostSlot';
 import { AuthProvider, useAuthContext } from '@/contexts/AuthContext';
 import { ServiceProvider, useServices } from '@/contexts/ServiceContext';
+import { AccountInboxHost } from '@/features/account/AccountInboxHost';
 import { LoginDialogSlot } from '@/features/auth/LoginDialogSlot';
 import { WechatLoginEntry } from '@/features/auth/WechatLoginEntry';
+import { DailyRewardHost } from '@/features/gacha/DailyRewardHost';
 import { ClientGameModulesProvider, ClientGameOverlays } from '@/games/clientModules';
-
-// The inbox consumer's Zod schemas stay out of the start-up chunk.
-const AccountInboxHost = lazy(async () => ({
-  default: (await import('@/features/account/AccountInboxHost')).AccountInboxHost,
-}));
-// The daily-reward claim and its toast stay out of the start-up chunk.
-const DailyRewardHost = lazy(async () => ({
-  default: (await import('@/features/gacha/DailyRewardHost')).DailyRewardHost,
-}));
 
 /**
  * Root route element: app-wide providers around the active page, the loaded games' overlays, plus
@@ -34,10 +27,8 @@ export function AppRoot() {
         <AuthProvider>
           <ClientGameModulesProvider>
             <RoomLinkScope />
-            <Suspense fallback={null}>
-              <AccountInboxHost />
-              <DailyRewardHost />
-            </Suspense>
+            <AccountInboxHost />
+            <DailyRewardHost />
             <AppContent />
             <ClientGameOverlays />
           </ClientGameModulesProvider>

@@ -322,19 +322,23 @@ export function editClientCatalog(content, { gameId, camel }) {
 }
 
 /**
- * Register the lazily loaded client module in both exhaustive literals of
- * the web module loader: the loader map and the per-page cached module loads.
+ * Register the statically imported client factory and the per-page cached module initialization.
  */
 export function editClientModuleLoaders(content, { gameId, pascal }) {
   const file = 'packages/web/src/games/clientModules.tsx';
-  if (content.includes(`import('@/games/${gameId}/module')`))
+  if (content.includes(`from '@/games/${gameId}/module'`))
     fail(file, `'${gameId}' already has a client module loader.`);
-  const withLoader = replaceOnce(
+  const withImport = insertImportsSorted(
     file,
     content,
-    /(const CLIENT_GAME_LOADERS: ClientGameLoaders = \{[\s\S]*?)(\n\};)/,
-    (_match, head, tail) =>
-      `${head}\n  ${gameId}: async () => (await import('@/games/${gameId}/module')).create${pascal}ClientModule,${tail}`,
+    [`import { create${pascal}ClientModule } from '@/games/${gameId}/module';`],
+    /^@\/games\//,
+  );
+  const withLoader = replaceOnce(
+    file,
+    withImport,
+    /(const CLIENT_GAME_FACTORIES: ClientGameFactories = \{[\s\S]*?)(\n\};)/,
+    (_match, head, tail) => `${head}\n  ${gameId}: create${pascal}ClientModule,${tail}`,
   );
   return replaceOnce(
     file,

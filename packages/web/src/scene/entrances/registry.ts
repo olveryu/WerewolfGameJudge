@@ -1,20 +1,24 @@
 /**
- * Seat entrance registry: one spec loader per catalog seat animation id. Entrances load as lazy
- * chunks the first time a seat shows one (generated common / rare, epic, legendary and mythic
- * each share a chunk), so neither the start-up closure nor the scene chunk carries them. Building
- * the registry fails fast when a catalog id has no loader; loading checks the spec's id.
+ * Seat entrance registry: statically imported code, with specs prepared and cached on demand.
+ * Building the registry fails fast when a catalog id has no factory; preparation checks the id.
  */
 import { SEAT_ANIMATION_IDS, type SeatAnimationId } from '@game-judge/game-engine/product/rewards';
 
 import type { EntranceSpec } from '@/scene/entrance';
 
+import { generatedEntrance } from './common';
+import { epicEntrance } from './epic';
+import * as legendaryModule from './legendary';
+import * as mythicModule from './mythic';
+
 type EntranceLoader = () => Promise<EntranceSpec>;
 
-const legendary = (pick: (module: typeof import('./legendary')) => () => EntranceSpec) => () =>
-  import('./legendary').then((module) => pick(module)());
+const legendary =
+  (pick: (module: typeof import('./legendary')) => () => EntranceSpec) => async () =>
+    pick(legendaryModule)();
 
-const mythic = (pick: (module: typeof import('./mythic')) => () => EntranceSpec) => () =>
-  import('./mythic').then((module) => pick(module)());
+const mythic = (pick: (module: typeof import('./mythic')) => () => EntranceSpec) => async () =>
+  pick(mythicModule)();
 
 const HAND_CRAFTED_ENTRANCES = {
   throneArrival: mythic((module) => module.throneArrival),
@@ -46,9 +50,9 @@ function buildEntranceLoaders(): ReadonlyMap<SeatAnimationId, EntranceLoader> {
     SEAT_ANIMATION_IDS.map((id) => {
       let loader = handCrafted[id];
       if (loader === undefined && GENERATED_ENTRANCE_ID.test(id)) {
-        loader = () => import('./common').then((module) => module.generatedEntrance(id));
+        loader = async () => generatedEntrance(id);
       } else if (loader === undefined && EPIC_ENTRANCE_ID.test(id)) {
-        loader = () => import('./epic').then((module) => module.epicEntrance(id));
+        loader = async () => epicEntrance(id);
       }
       if (loader === undefined) {
         throw new Error(`Missing seat entrance spec for "${id}"`);
@@ -65,7 +69,7 @@ const loadedEntrances = new Map<SeatAnimationId, Promise<EntranceSpec>>();
 
 /**
  * The entrance of catalog seat animation `id`, loaded once and shared (a stable promise for
- * `use()`). Rejects when its chunk fails to load or holds a spec registered under another id.
+ * `use()`). Rejects when preparation fails or the spec is registered under another id.
  */
 export function loadEntranceSpec(id: SeatAnimationId): Promise<EntranceSpec> {
   let spec = loadedEntrances.get(id);
